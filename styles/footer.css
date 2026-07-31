@@ -1,0 +1,164 @@
+/* ============================================================================
+   Adeorq · web/styles/footer.css
+   Pie de la landing. Consume los mismos alias que sections.css, que a su vez
+   salen de los tokens de web/DISENO.md: funciona en tema claro y oscuro.
+   La valvula de movimiento NO vive aqui: es la del nav (base.css), y dos
+   interruptores del mismo dial acabarian contradiciendose.
+   ============================================================================ */
+
+.pie {
+  position: relative;
+  padding: clamp(48px, 7vh, 80px) var(--e5, 1.5rem) var(--e6, 2rem);
+  background: var(--s-bg-alt);
+  border-top: 1px solid var(--s-line);
+  font-size: var(--t-pie, 0.92rem);
+}
+
+/* Hilo de marca en el borde superior, sin coste de pintado */
+.pie::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent,
+              color-mix(in oklab, var(--s-accent) 45%, transparent), transparent);
+  pointer-events: none;
+}
+
+.pie__alto {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+  gap: clamp(28px, 4vw, 56px);
+  padding-bottom: var(--e7, 3rem);
+}
+
+.pie__marca {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3, 0.75rem);
+  max-width: 34ch;
+}
+
+.pie__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e3, 0.75rem);
+  font-size: 1.06rem;
+  font-weight: var(--peso-alto, 680);
+  letter-spacing: -0.02em;
+  color: var(--s-text);
+}
+
+/* Mismo glifo que el nav, en pequeño y sin girar: un anillo con su punto */
+.pie__glifo {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background:
+    conic-gradient(from 140deg, var(--s-cian), var(--s-accent), var(--s-accent-2), var(--s-cian))
+    border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  flex: none;
+}
+
+.pie__lema {
+  color: var(--s-dim);
+  line-height: 1.6;
+}
+
+.pie__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2, 0.5rem);
+  align-self: flex-start;
+  padding: 4px 11px;
+  border: 1px solid var(--s-line);
+  border-radius: 999px;
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  font-size: var(--t-micro, 0.76rem);
+  color: var(--s-dim);
+}
+
+.pie__estado::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--s-vivo);
+  flex: none;
+}
+
+.pie__titulo {
+  margin-bottom: var(--e3, 0.75rem);
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  font-size: var(--t-micro, 0.76rem);
+  font-weight: var(--peso-normal, 420);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--s-dim);
+}
+
+.pie__col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--e2, 0.5rem);
+}
+
+.pie__col a {
+  display: inline-block;
+  color: var(--s-muted);
+  /* translate va aparte del transform: no pisa ningun otro estado */
+  transition: color 0.18s var(--s-ease-ui), translate 0.18s var(--s-ease-ui);
+}
+
+.pie__col a:hover {
+  color: var(--s-text);
+  translate: 3px 0;
+}
+
+.pie__contacto {
+  padding-bottom: var(--e5, 1.5rem);
+  color: var(--s-muted);
+}
+
+.pie__contacto a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--s-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-thickness 0.18s var(--s-ease-ui);
+}
+
+.pie__contacto a:hover { text-decoration-thickness: 2px; }
+
+.pie__bajo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4, 1rem);
+  padding-top: var(--e5, 1.5rem);
+  border-top: 1px solid var(--s-line);
+  color: var(--s-dim);
+  font-size: var(--t-micro, 0.8rem);
+}
+
+.pie__privacidad { color: var(--s-dim); }
+
+@media (max-width: 900px) {
+  .pie__alto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pie__marca { grid-column: 1 / -1; }
+}
+
+@media (max-width: 520px) {
+  .pie__alto { grid-template-columns: 1fr; gap: var(--e6, 2rem); }
+  .pie__bajo { flex-direction: column; align-items: flex-start; }
+}

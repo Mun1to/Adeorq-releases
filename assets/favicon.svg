@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Tab icon: the app's own mark (assets/adeorq.svg) on the app's panel
+       colour, corners rounded like the installed icon. The plate is what makes
+       it survive a light browser theme, where the bare mark's counter would
+       read as a white hole. The transform places the mark at 74% of the box,
+       the same framing scripts/brand-assets.py renders for the PNG fallbacks. -->
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#48c2ff"/>
+      <stop offset="1" stop-color="#2f9df3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="225" fill="#101624"/>
+  <g transform="translate(127.14 151.16) scale(0.7517)">
+    <path fill="url(#a)" fill-rule="evenodd" d="
+      M 236 112
+      L 788 112
+      L 1016 756
+      L 944 848
+      L 80 848
+      L 8 756
+      Z
+      M 512 240
+      L 712 730
+      Q 512 572 312 730
+      Z"/>
+  </g>
+</svg>

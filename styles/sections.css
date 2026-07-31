@@ -1,0 +1,1070 @@
+/* ============================================================================
+   Adeorq · web/styles/sections.css
+   Cuerpo de la landing: todo lo que va DEBAJO del hero.
+   Frontera: este archivo no toca el head, el boot ni el hero.
+
+   TOKENS · sigue web/DISENO.md
+   Los nombres cortos de aqui (--s-*) son alias internos de esta hoja. Cada uno
+   se resuelve en tres saltos:
+     1) el alias en ingles del puente de DISENO.md §7, si base.css ya lo trae
+     2) el token en espanol de la casa, que es el que manda hoy
+     3) un valor de reserva, solo por si esta hoja se abre suelta
+   Asi la seccion funciona en tema claro y oscuro sin una sola regla duplicada.
+   ============================================================================ */
+
+:root {
+  /* Superficies */
+  --s-bg:        var(--bg,        var(--fondo,             #f6f8fc));
+  --s-bg-alt:    var(--bg-alt,    var(--fondo-hondo,       #eaeff8));
+  --s-surface:   var(--surface,   var(--superficie,        rgba(255, 255, 255, 0.72)));
+  --s-solid:     var(--surface-3, var(--superficie-solida, #ffffff));
+  --s-line:      var(--line,      var(--borde,             rgba(16, 34, 68, 0.10)));
+  --s-line-hard: var(--line-2,    var(--borde-fuerte,      rgba(16, 34, 68, 0.18)));
+
+  /* Texto */
+  --s-text:  var(--text,  var(--tinta,       #0b1220));
+  --s-muted: var(--muted, var(--tinta-media, #3a4a66));
+  --s-dim:   var(--dim,   var(--tinta-suave, #5f7191));
+
+  /* Marca */
+  --s-accent:   var(--accent,     var(--acento,       #1f6feb));
+  --s-accent-2: var(--accent-2,   var(--s-accent));
+  --s-ink:      var(--accent-ink, var(--acento-tinta, #ffffff));
+  --s-glow:     var(--brillo, rgba(31, 111, 235, 0.22));
+  --s-cian:     var(--cian,   #0e7c97);
+
+  /* Estados, mismo codigo que la app */
+  --s-vivo: var(--vivo, #15803d);
+
+  /* Ritmo y forma */
+  --s-radius:   var(--radius,   var(--radio-m, 14px));
+  --s-radius-l: var(--radius-l, var(--radio-l, 22px));
+  --s-max:      var(--max-width, var(--ancho, 1200px));
+  --s-section:  var(--seccion, clamp(72px, 11vh, 132px));
+  --s-shadow:   var(--sombra-baja, 0 1px 2px rgba(13, 22, 38, 0.06), 0 4px 14px rgba(13, 22, 38, 0.05));
+  --s-glass:    var(--cristal, blur(18px) saturate(1.4));
+
+  --s-ease:    var(--curva,    cubic-bezier(0.22, 1, 0.36, 1));
+  --s-ease-ui: var(--curva-ui, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+/* ---------------------------------------------------------------- primitivas */
+
+.seccion {
+  position: relative;
+  padding: var(--s-section) var(--e5, 1.5rem);
+}
+
+.seccion--honda { background: var(--s-bg-alt); }
+
+.envoltura {
+  width: min(100% - var(--e6, 2rem), var(--s-max));
+  margin-inline: auto;
+}
+
+/* Etiqueta de seccion. DISENO.md §8: mono, micro, mayusculas, tracking +0.04em
+   y color --tinta-suave. Nunca del color del acento: competiria con el titulo. */
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2, 0.5rem);
+  margin-bottom: var(--e4, 1rem);
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  font-size: var(--t-micro, 0.78rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--s-dim);
+}
+
+.etiqueta::before {
+  content: "";
+  width: 16px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.titulo-2 {
+  font-size: var(--t-h2, clamp(1.75rem, 1.2rem + 1.9vw, 2.9rem));
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  font-weight: var(--peso-alto, 680);
+  text-wrap: balance;
+}
+
+.titulo-3 {
+  font-size: var(--t-h3, clamp(1.15rem, 1.05rem + 0.5vw, 1.45rem));
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  font-weight: var(--peso-medio, 560);
+}
+
+.entradilla {
+  margin-top: var(--e4, 1rem);
+  font-size: var(--t-guia, 1.2rem);
+  line-height: 1.55;
+  color: var(--s-muted);
+  max-width: 60ch;
+  text-wrap: pretty;
+}
+
+.parrafo {
+  color: var(--s-muted);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* Enlace dentro de texto: el subrayado engorda, el color no cambia (§8) */
+.parrafo a,
+.nota a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--s-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-thickness 0.18s var(--s-ease-ui);
+}
+
+.parrafo a:hover,
+.nota a:hover { text-decoration-thickness: 2px; }
+
+/* Chip de hecho (texto libre con punto) */
+.chip-dato {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: var(--t-pie, 0.95rem);
+  font-weight: 500;
+  color: var(--s-muted);
+  white-space: nowrap;
+}
+.chip-dato::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--s-accent);
+  opacity: 0.8;
+  display: inline-block;
+}
+
+/* Etiquetas del changelog */
+.marca-cambio {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--radio-s, 8px);
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  font-size: var(--t-micro, 0.78rem);
+  letter-spacing: 0.03em;
+}
+
+.marca-cambio--nuevo   { background: color-mix(in oklab, var(--s-accent) 14%, transparent);   color: var(--s-accent); }
+.marca-cambio--mejora  { background: color-mix(in oklab, var(--s-accent-2) 14%, transparent); color: var(--s-accent-2); }
+.marca-cambio--arreglo { background: color-mix(in oklab, var(--s-dim) 14%, transparent);      color: var(--s-dim); }
+
+/* ============================================================================
+   MOVIMIENTO
+   El motor de reveals es el de la casa: [data-reveal] + .is-dentro (base.css) y
+   el observador de hero.js, que reparte el retardo dentro de [data-reveal-grupo].
+   Esta hoja no redefine nada de eso: solo lo usa.
+   El dial --motion-gain gradua el recorrido; la opacidad nunca se escala.
+   ============================================================================ */
+
+/* ============================================================================
+   2 · QUE ES ADEORQ
+   ============================================================================ */
+
+.que-es {
+  padding-top: clamp(60px, 8vh, 100px);
+  background: linear-gradient(180deg, var(--s-bg), var(--s-bg-alt));
+}
+
+.que-es__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 64px);
+  align-items: center;
+}
+
+.que-es__intro .entradilla {
+  margin-top: var(--e4, 1.2rem);
+}
+
+.que-es__frase {
+  font-size: clamp(1.6rem, 1.1rem + 1.9vw, 2.6rem);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  font-weight: var(--peso-medio, 560);
+  text-wrap: balance;
+}
+
+.que-es__frase .hl {
+  background: linear-gradient(100deg, var(--s-accent), var(--s-cian));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.que-es__puntos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e4, 1.25rem);
+}
+
+.que-es__ventaja {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e3, 0.9rem);
+  padding-left: var(--e3, 1rem);
+  border-left: 2px solid color-mix(in oklab, var(--s-accent) 35%, transparent);
+  transition: border-color 0.22s var(--s-ease-ui), transform 0.22s var(--s-ease-ui);
+}
+
+.que-es__ventaja:hover {
+  border-left-color: var(--s-accent);
+  transform: translateX(4px);
+}
+
+.que-es__ventaja-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--s-accent) 12%, transparent);
+  color: var(--s-accent);
+  margin-top: 2px;
+}
+.que-es__ventaja-icono svg {
+  width: 17px;
+  height: 17px;
+}
+
+.que-es__ventaja-titulo {
+  font-size: var(--t-base, 1.05rem);
+  font-weight: 600;
+  color: var(--s-text);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.que-es__ventaja-texto {
+  font-size: var(--t-micro, 0.88rem);
+  color: var(--s-muted);
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .que-es__grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 580px) {
+  .que-es__puntos { grid-template-columns: 1fr; }
+}
+
+/* ============================================================================
+   3 · FEATURES · tarjetas que se apilan
+   El apilado es CSS puro (position: sticky). El encogido de las que quedan
+   debajo usa animation-timeline: view() donde exista, con la amplitud del dial.
+   Sin soporte, las tarjetas se apilan sin encoger: se entiende igual.
+   ============================================================================ */
+
+.features__cabecera {
+  max-width: 60ch;
+  margin-bottom: clamp(32px, 5vh, 60px);
+}
+
+.pila {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 3vh, 28px);
+}
+
+.tarjeta-f {
+  position: sticky;
+  /* Cada tarjeta se pega un poco mas abajo que la anterior: asoma el borde de
+     las de debajo, como una baraja abierta. --n lo declara el HTML. */
+  top: calc(var(--nav-alto, 68px) + var(--e4, 1rem) + var(--n, 0) * 14px);
+  scroll-margin-top: calc(var(--nav-alto, 68px) + var(--e6, 2rem));
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: clamp(22px, 4vw, 52px);
+  align-items: center;
+  padding: clamp(24px, 3.2vw, 42px);
+  border: 1px solid var(--s-line);
+  border-radius: var(--s-radius);
+  background: var(--s-solid);
+  box-shadow: var(--s-shadow);
+  overflow: hidden;
+  transform-origin: 50% 0%;
+  /* §8: al pasar el raton sube el borde, no la sombra */
+  transition: border-color 0.28s var(--s-ease-ui);
+}
+
+.tarjeta-f:hover { border-color: var(--s-line-hard); }
+
+.tarjeta-f:nth-child(even) .tarjeta-f__media { order: -1; }
+
+.tarjeta-f__num {
+  display: block;
+  margin-bottom: var(--e3, 0.75rem);
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  font-size: var(--t-micro, 0.78rem);
+  letter-spacing: 0.08em;
+  color: var(--s-dim);
+}
+
+.tarjeta-f__texto { margin-top: var(--e3, 0.75rem); font-size: var(--t-base, 1rem); }
+
+.tarjeta-f__lista {
+  list-style: none;
+  padding: 0;
+  margin: var(--e5, 1.5rem) 0 0;
+  display: grid;
+  gap: var(--e2, 0.5rem);
+}
+
+.tarjeta-f__lista li {
+  position: relative;
+  padding-left: 20px;
+  font-size: var(--t-pie, 0.92rem);
+  color: var(--s-muted);
+}
+
+.tarjeta-f__lista li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--s-accent), var(--s-accent-2));
+}
+
+/* Media: captura real cuando exista, maqueta de CSS mientras tanto */
+.tarjeta-f__media {
+  position: relative;
+  border: 1px solid var(--s-line);
+  border-radius: var(--s-radius);
+  background: var(--s-bg-alt);
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  /* El tilt lo escriben estas dos variables desde JS. Es movimiento dirigido
+     por el puntero: NO se multiplica por el dial. */
+  transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 0.5s var(--s-ease);
+  will-change: transform;
+}
+
+.tarjeta-f__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Maqueta de terminal (§8: fondo solido, cristal en la barra, lineas en mono).
+
+   OJO, esto es deliberado: la maqueta se queda OSCURA tambien en el tema claro.
+   Es el retrato del producto, y el producto es oscuro. Si se aclarara con el
+   resto de la pagina dejaria de parecerse a la app y sus textos pequenos se
+   caerian del minimo de contraste (medido por Direccion: 2.35, 1.12 y 1.12).
+   Por eso usa su propia paleta fija, la del tema oscuro de DISENO.md §7, y no
+   los tokens que cambian con el tema. Se comporta como una captura. */
+.maqueta {
+  --m-fondo:  #090d16;
+  --m-solido: #101624;
+  --m-borde:  rgba(140, 170, 220, 0.16);
+  --m-tinta-suave: #93a4c2;
+  --m-acento:  #4d9fff;
+  --m-violeta: #a877ff;
+  --m-cian:    #5fd0ff;
+
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  background: var(--m-fondo);
+}
+
+.maqueta__barra {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--m-borde);
+  background: var(--m-solido);
+}
+
+.maqueta__punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--m-tinta-suave) 45%, transparent);
+}
+
+.maqueta__punto--vivo {
+  background: var(--m-cian);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--m-cian) 60%, transparent);
+}
+
+.maqueta__titulo {
+  margin-left: 6px;
+  font-size: var(--t-micro, 0.76rem);
+  color: var(--m-tinta-suave);
+}
+
+.maqueta__panes {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--panes, 2), 1fr);
+  gap: 1px;
+  background: var(--m-borde);
+  min-height: 0;
+}
+
+.maqueta__pane {
+  background: var(--m-fondo);
+  padding: 12px 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.maqueta__pane--activo {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--m-acento) 45%, transparent);
+}
+
+.maqueta__linea {
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--m-tinta-suave) 32%, transparent);
+  width: var(--w, 80%);
+  flex: none;
+}
+
+.maqueta__linea--acento { background: color-mix(in oklab, var(--m-acento) 60%, transparent); }
+.maqueta__linea--alt    { background: color-mix(in oklab, var(--m-violeta) 50%, transparent); }
+
+.maqueta__cursor {
+  width: 7px;
+  height: 13px;
+  background: var(--m-acento);
+  align-self: flex-start;
+  margin-top: 2px;
+  flex: none;
+}
+
+html.motion .maqueta__cursor { animation: parpadeo 1.15s steps(2, jump-none) infinite; }
+
+@keyframes parpadeo {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.15; }
+}
+
+@supports (animation-timeline: view()) {
+  html.motion .tarjeta-f {
+    animation: encoger linear both;
+    animation-timeline: view();
+    animation-range: exit-crossing 0% exit-crossing 90%;
+  }
+
+  @keyframes encoger {
+    to {
+      transform: scale(calc(1 - 0.06 * var(--motion-gain, 1)))
+                 translateY(calc(-12px * var(--motion-gain, 1)));
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .tarjeta-f { grid-template-columns: 1fr; position: static; }
+  .tarjeta-f:nth-child(even) .tarjeta-f__media { order: 0; }
+  @supports (animation-timeline: view()) {
+    html.motion .tarjeta-f { animation: none; }
+  }
+}
+
+/* ============================================================================
+   4 · DESCARGA
+   ============================================================================ */
+
+.descarga {
+  background:
+    radial-gradient(75% 120% at 50% 0%, var(--s-glow), transparent 62%),
+    var(--s-bg);
+  border-block: 1px solid var(--s-line);
+}
+
+.descarga__inner {
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.descarga__entradilla { max-width: 52ch; }
+
+.descarga__acciones {
+  margin-top: var(--e6, 2rem);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e3, 0.75rem);
+  justify-content: center;
+}
+
+.descarga__datos {
+  margin-top: var(--e4, 1rem);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2, 0.5rem) var(--e5, 1.5rem);
+  justify-content: center;
+  font-size: var(--t-pie, 0.9rem);
+  color: var(--s-dim);
+}
+
+.descarga__version {
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  color: var(--s-muted);
+}
+
+/* Mientras el JSON de data/ no ha llegado, el dato se muestra atenuado */
+.descarga.cargando .descarga__datos { opacity: 0.55; }
+
+/* La linea que ocupa el sitio de los precios (DISENO.md §10) */
+.descarga__gratis {
+  margin-top: var(--e5, 1.5rem);
+  font-size: var(--t-pie, 0.92rem);
+  color: var(--s-muted);
+}
+
+.nota {
+  margin-top: var(--e5, 1.5rem);
+  font-size: var(--t-pie, 0.9rem);
+  color: var(--s-dim);
+  max-width: 54ch;
+}
+
+/* ============================================================================
+   5 · CHANGELOG (formato blog) + 6 · ROADMAP
+   Patron de referencia: usecardboard.com/changelog. Columna izquierda pegajosa
+   con la fecha y la version, a la derecha la entrada.
+   ============================================================================ */
+
+.log__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--e5, 1.5rem);
+  margin-bottom: clamp(32px, 5vh, 56px);
+}
+
+.log__entradas {
+  display: grid;
+  gap: clamp(30px, 4.5vh, 52px);
+}
+
+.entrada {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 48px);
+  padding-top: var(--e6, 2rem);
+  border-top: 1px solid var(--s-line);
+}
+
+.entrada:first-child { border-top: 0; padding-top: 0; }
+
+.entrada__aside {
+  position: sticky;
+  top: calc(var(--nav-alto, 68px) + var(--e5, 1.5rem));
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2, 0.5rem);
+}
+
+.entrada__fecha {
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  font-size: var(--t-pie, 0.9rem);
+  color: var(--s-dim);
+}
+
+.entrada__version {
+  font-size: var(--t-base, 1rem);
+  font-weight: var(--peso-medio, 560);
+  letter-spacing: -0.01em;
+  color: var(--s-text);
+}
+
+.entrada__marcas { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.entrada__cuerpo .titulo-3 { margin-bottom: var(--e2, 0.5rem); }
+
+.entrada__lista {
+  list-style: none;
+  padding: 0;
+  margin: var(--e4, 1rem) 0 0;
+  display: grid;
+  gap: var(--e2, 0.5rem);
+}
+
+.entrada__lista li {
+  position: relative;
+  padding-left: 20px;
+  color: var(--s-muted);
+  line-height: 1.55;
+}
+
+.entrada__lista li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 8px;
+  height: 1.5px;
+  background: var(--s-dim);
+}
+
+.entrada__cuerpo strong { color: var(--s-text); font-weight: var(--peso-medio, 560); }
+
+.entrada__cuerpo code {
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  font-size: 0.88em;
+  padding: 1px 6px;
+  border-radius: var(--radio-s, 8px);
+  background: color-mix(in oklab, var(--s-accent) 10%, transparent);
+  color: var(--s-accent);
+}
+
+.entrada__captura {
+  margin-top: var(--e5, 1.5rem);
+  border: 1px solid var(--s-line);
+  border-radius: var(--s-radius);
+  overflow: hidden;
+  background: var(--s-surface);
+  aspect-ratio: 16 / 9;
+}
+
+.entrada__captura img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+@media (max-width: 760px) {
+  .entrada { grid-template-columns: 1fr; gap: var(--e3, 0.75rem); }
+  .entrada__aside { position: static; flex-direction: row; align-items: center; flex-wrap: wrap; }
+}
+
+/* Roadmap ------------------------------------------------------------------ */
+
+.roadmap {
+  margin-top: clamp(56px, 8vh, 96px);
+  padding-top: clamp(36px, 5vh, 60px);
+  border-top: 1px solid var(--s-line);
+}
+
+.roadmap__grid {
+  margin-top: var(--e6, 2rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+  gap: var(--e3, 0.75rem);
+}
+
+.paso {
+  padding: var(--e5, 1.5rem);
+  border: 1px solid var(--s-line);
+  border-radius: var(--s-radius);
+  background: var(--s-surface);
+  backdrop-filter: var(--s-glass);
+  -webkit-backdrop-filter: var(--s-glass);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2, 0.5rem);
+  transition: border-color 0.28s var(--s-ease-ui);
+}
+
+.paso:hover { border-color: var(--s-line-hard); }
+
+.paso__estado {
+  display: flex;
+  align-items: center;
+  gap: var(--e2, 0.5rem);
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  font-size: var(--t-micro, 0.78rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--s-dim);
+}
+
+.paso__estado::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Punto de estado: solo los colores de la tabla de DISENO.md §3.2 */
+.paso--marcha .paso__estado    { color: var(--s-vivo); }
+.paso--siguiente .paso__estado { color: var(--s-cian); }
+
+.paso__titulo { font-size: var(--t-base, 1rem); font-weight: var(--peso-medio, 560); }
+.paso__texto  { font-size: var(--t-pie, 0.92rem); color: var(--s-muted); line-height: 1.5; }
+
+/* ============================================================================
+   7 · FAQ
+   ============================================================================ */
+
+.faq__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: start;
+}
+
+.faq__lista { border-top: 1px solid var(--s-line); }
+
+.pregunta { border-bottom: 1px solid var(--s-line); }
+
+.pregunta > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--e5, 1.5rem) 44px var(--e5, 1.5rem) 0;
+  position: relative;
+  font-size: var(--t-guia, 1.1rem);
+  font-weight: var(--peso-medio, 560);
+  color: var(--s-text);
+  transition: color 0.18s var(--s-ease-ui);
+}
+
+.pregunta > summary::-webkit-details-marker { display: none; }
+.pregunta > summary:hover { color: var(--s-accent); }
+
+.pregunta > summary::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.6;
+  transition: transform 0.32s var(--s-ease), opacity 0.18s var(--s-ease-ui);
+}
+
+.pregunta[open] > summary::after { transform: rotate(-135deg); opacity: 1; }
+
+.respuesta { overflow: hidden; color: var(--s-muted); }
+.respuesta p { padding: 0 0 var(--e5, 1.5rem); max-width: 64ch; line-height: 1.6; }
+
+@media (max-width: 860px) {
+  .faq__grid { grid-template-columns: 1fr; }
+}
+
+@media print {
+  .tarjeta-f { position: static; }
+}
+
+/* ============================================================================
+   8 · DOCUMENTACIÓN INMERSIVA (DOCS PORTAL)
+   ============================================================================ */
+
+.docs-guia-section {
+  position: relative;
+  border-block: 1px solid var(--s-line, rgba(255,255,255,0.08));
+  background: radial-gradient(circle at 10% 20%, rgba(168, 119, 255, 0.05), transparent 60%),
+              radial-gradient(circle at 90% 80%, rgba(34, 211, 238, 0.05), transparent 60%),
+              var(--s-bg, #090c13);
+  padding-block: clamp(60px, 10vh, 120px);
+}
+
+.docs-guia__inner {
+  max-width: var(--max-w, 1280px);
+  margin: 0 auto;
+  padding: 0 var(--e5, 1.5rem);
+}
+
+.docs-guia-header {
+  margin-bottom: var(--e7, 3rem);
+  max-width: 760px;
+}
+
+.docs-guia-header .entradilla {
+  margin-top: 1rem;
+  color: var(--s-muted, rgba(255,255,255,0.7));
+  line-height: 1.6;
+}
+
+.docs-portal {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 48px);
+  background: var(--s-surface, rgba(16, 20, 32, 0.7));
+  border: 1px solid var(--s-line, rgba(255,255,255,0.12));
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  overflow: hidden;
+}
+
+.docs-nav {
+  padding: 24px;
+  background: rgba(10, 13, 22, 0.5);
+  border-right: 1px solid var(--s-line, rgba(255,255,255,0.08));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.docs-nav__title {
+  font-family: var(--tipo-mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--s-dim, rgba(255,255,255,0.45));
+  letter-spacing: 0.08em;
+  margin: 0 0 12px 8px;
+}
+
+.docs-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--s-muted, rgba(255,255,255,0.75));
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.docs-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  transform: translateX(4px);
+}
+
+.docs-nav-btn.is-active {
+  background: color-mix(in oklab, var(--s-accent, #22d3ee) 12%, transparent);
+  border-color: color-mix(in oklab, var(--s-accent, #22d3ee) 35%, transparent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+
+.docs-nav-icon {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+}
+
+.docs-body {
+  padding: clamp(24px, 4vw, 48px);
+  min-height: 440px;
+}
+
+.docs-pane {
+  display: none;
+  animation: docs-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.docs-pane.is-active {
+  display: block;
+}
+
+@keyframes docs-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.docs-pane h3 {
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 700;
+  color: #fff;
+  margin-top: 0;
+  margin-bottom: 16px;
+  letter-spacing: -0.015em;
+}
+
+.docs-pane h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--s-text, #fff);
+  margin-top: 28px;
+  margin-bottom: 12px;
+}
+
+.docs-pane p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--s-muted, rgba(255,255,255,0.75));
+  margin-bottom: 20px;
+}
+
+.docs-callout {
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  color: #cffafe;
+}
+
+.docs-callout--tip strong {
+  color: #22d3ee;
+}
+
+.docs-code {
+  background: rgba(8, 10, 16, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  margin: 20px 0;
+  font-family: var(--tipo-mono, 'JetBrains Mono', Consolas, monospace);
+  font-size: 13.5px;
+  color: #e2e8f0;
+  line-height: 1.6;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.6);
+}
+
+.docs-list {
+  padding-left: 20px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.docs-list li {
+  color: var(--s-muted, rgba(255,255,255,0.75));
+  line-height: 1.6;
+  font-size: 14.5px;
+}
+
+.docs-list strong {
+  color: #fff;
+}
+
+.docs-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.docs-mini-card {
+  padding: 20px;
+  border: 1px solid var(--s-line, rgba(255,255,255,0.12));
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.2s ease;
+}
+
+.docs-mini-card:hover {
+  border-color: rgba(255,255,255,0.25);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.docs-mini-card h5 {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.docs-mini-card p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--s-dim, rgba(255,255,255,0.6));
+}
+
+@media (max-width: 900px) {
+  .docs-portal {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .docs-nav {
+    border-right: none;
+    border-bottom: 1px solid var(--s-line, rgba(255,255,255,0.1));
+  }
+}
+
+
+/* ============================================================================
+   GUIA · la puerta a guia.html
+   Sustituye al bloque "docs-*" anterior, que era un acordeon con la
+   documentacion metida dentro de la portada. La documentacion vive ahora en su
+   propia pagina; esto solo la anuncia y lleva a las cuatro entradas que mas se
+   buscan.
+   ========================================================================= */
+
+.guia-atajos {
+  margin-top: var(--e7);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--e4);
+}
+
+.guia-atajo {
+  display: grid;
+  align-content: start;
+  gap: var(--e2);
+  padding: var(--e5);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-m);
+  background: color-mix(in oklab, var(--superficie) 62%, transparent);
+  transition: transform 0.28s var(--curva), border-color 0.28s var(--curva),
+              background 0.28s var(--curva);
+}
+.guia-atajo:hover {
+  transform: translateY(calc(-3px * var(--motion-gain, 1)));
+  border-color: var(--borde-fuerte);
+  background: color-mix(in oklab, var(--acento) 8%, var(--superficie));
+}
+
+.guia-atajo__num {
+  font-family: var(--tipo-mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.12em;
+  color: var(--acento);
+  opacity: 0.85;
+}
+
+.guia-atajo__titulo {
+  font-size: var(--t-h3);
+  font-weight: var(--peso-medio);
+  letter-spacing: -0.02em;
+  color: var(--tinta);
+  line-height: 1.2;
+}
+
+.guia-atajo__texto {
+  font-size: var(--t-pie);
+  color: var(--tinta-media);
+  line-height: 1.5;
+}
+
+.guia-cta {
+  margin: var(--e6) 0 0;
+}

@@ -1,0 +1,32 @@
+{
+  "version": "0.9.41",
+  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.41/Adeorq_0.9.41_x64-setup.exe",
+  "pub_date": "2026-07-31T17:46:28Z",
+  "size_bytes": 4480031,
+  "notes": "Objetivos del dia con panel flotante, el Panel, Cuentas y la Agenda manejados como Ajustes, textos legibles sobre el fondo, un pulso en la barra con lo que gasta la app, Codex dentro de su proyecto y documentacion nueva con capturas.",
+  "generatedAt": "2026-07-31T22:29:18.226Z",
+  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.41",
+  "tag": "v0.9.41",
+  "title": "Adeorq 0.9.41",
+  "date": "2026-07-31",
+  "publishedAt": "2026-07-31T17:46:28Z",
+  "notesFormat": "markdown",
+  "summary": "Objetivos del dia con panel flotante, el Panel, Cuentas y la Agenda manejados como Ajustes, textos legibles sobre el fondo, un pulso en la barra con lo que gasta la app, Codex dentro de su proyecto y documentacion nueva con capturas.",
+  "windows": {
+    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.41/Adeorq_0.9.41_x64-setup.exe",
+    "filename": "Adeorq_0.9.41_x64-setup.exe",
+    "size": 4480031,
+    "sizeLabel": "4,3 MB",
+    "arch": "x64",
+    "downloadCount": 2
+  },
+  "platforms": {
+    "windows-x86_64": {
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.41/Adeorq_0.9.41_x64-setup.exe",
+      "filename": "Adeorq_0.9.41_x64-setup.exe",
+      "size": 4480031
+    }
+  },
+  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.41",
+  "allReleasesUrl": "https://github.com/Mun1to/Adeorq-releases/releases"
+}

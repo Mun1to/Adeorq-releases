@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Adeorq mark: Munir's "A" ship, second cut (2026-07-26). Redrawn from his
+       reference: the semicircular notch that used to bite the bottom edge is
+       gone (that was the "parte circular de abajo"), the chamfers at the base
+       are small instead of huge, and the whole thing is bigger in its box. The
+       counter keeps its concave base, which is what makes it read as a prow
+       and not as a plain triangle. -->
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#48c2ff"/>
+      <stop offset="1" stop-color="#2f9df3"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#a)" fill-rule="evenodd" d="
+    M 236 112
+    L 788 112
+    L 1016 756
+    L 944 848
+    L 80 848
+    L 8 756
+    Z
+    M 512 240
+    L 712 730
+    Q 512 572 312 730
+    Z"/>
+</svg>

@@ -1,0 +1,2324 @@
+{
+  "generatedAt": "2026-07-31T22:29:18.685Z",
+  "source": "https://github.com/Mun1to/Adeorq-releases/releases",
+  "count": 68,
+  "latest": "0.9.41",
+  "entries": [
+    {
+      "version": "0.9.41",
+      "tag": "v0.9.41",
+      "date": "2026-07-31",
+      "publishedAt": "2026-07-31T17:46:28Z",
+      "title": null,
+      "name": "Adeorq 0.9.41",
+      "summary": "Objetivos del dia con panel flotante, el Panel, Cuentas y la Agenda manejados como Ajustes, textos legibles sobre el fondo, un pulso en la barra con lo que gasta la app, Codex dentro de su proyecto y documentacion nueva con capturas.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Objetivos del dia con panel flotante, el Panel, Cuentas y la Agenda manejados como Ajustes, textos legibles sobre el fondo, un pulso en la barra con lo que gasta la app, Codex dentro de su proyecto y documentacion nueva con capturas."
+      ],
+      "highlights": [
+        "Objetivos del dia con panel flotante, el Panel, Cuentas y la Agenda manejados como Ajustes, textos legibles sobre el fondo, un pulso en la barra con lo que gasta la app, Codex dentro de su proyecto y documentacion nueva con capturas."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Objetivos del dia con panel flotante, el Panel, Cuentas y la Agenda manejados como Ajustes, textos legibles sobre el fondo, un pulso en la barra con lo que gasta la app, Codex dentro de su proyecto y documentacion nueva con capturas.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.41",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.41/Adeorq_0.9.41_x64-setup.exe",
+        "filename": "Adeorq_0.9.41_x64-setup.exe",
+        "size": 4480031,
+        "sizeLabel": "4,3 MB"
+      }
+    },
+    {
+      "version": "0.9.40",
+      "tag": "v0.9.40",
+      "date": "2026-07-31",
+      "publishedAt": "2026-07-31T14:25:25Z",
+      "title": null,
+      "name": "Adeorq 0.9.40",
+      "summary": "El panel y las cuentas rehechos, Codex ya sale dentro de su proyecto con la marca de su cliente, el aviso de sesion cara vuelve a avisar (ahora por tokens) y la Guia se muda a Ajustes con enlace a la documentacion.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "El panel y las cuentas rehechos, Codex ya sale dentro de su proyecto con la marca de su cliente, el aviso de sesion cara vuelve a avisar (ahora por tokens) y la Guia se muda a Ajustes con enlace a la documentacion."
+      ],
+      "highlights": [
+        "El panel y las cuentas rehechos, Codex ya sale dentro de su proyecto con la marca de su cliente, el aviso de sesion cara vuelve a avisar (ahora por tokens) y la Guia se muda a Ajustes con enlace a la documentacion."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "El panel y las cuentas rehechos, Codex ya sale dentro de su proyecto con la marca de su cliente, el aviso de sesion cara vuelve a avisar (ahora por tokens) y la Guia se muda a Ajustes con enlace a la documentacion.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.40",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.40/Adeorq_0.9.40_x64-setup.exe",
+        "filename": "Adeorq_0.9.40_x64-setup.exe",
+        "size": 4455876,
+        "sizeLabel": "4,2 MB"
+      }
+    },
+    {
+      "version": "0.9.39",
+      "tag": "v0.9.39",
+      "date": "2026-07-31",
+      "publishedAt": "2026-07-31T12:58:06Z",
+      "title": null,
+      "name": "Adeorq 0.9.39",
+      "summary": "El fondo ya se ve a traves de las terminales: el negro lo ponia la hoja de estilos de xterm.js, no nuestro codigo. Entra tambien el rastro de fallos y un lector de PTY que sobrevive a un panico.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "El fondo ya se ve a traves de las terminales: el negro lo ponia la hoja de estilos de xterm.js, no nuestro codigo.",
+        "Entra tambien el rastro de fallos y un lector de PTY que sobrevive a un panico."
+      ],
+      "highlights": [
+        "El fondo ya se ve a traves de las terminales: el negro lo ponia la hoja de estilos de xterm.js, no nuestro codigo.",
+        "Entra tambien el rastro de fallos y un lector de PTY que sobrevive a un panico."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "El fondo ya se ve a traves de las terminales: el negro lo ponia la hoja de estilos de xterm.js, no nuestro codigo. Entra tambien el rastro de fallos y un lector de PTY que sobrevive a un panico.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.39",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.39/Adeorq_0.9.39_x64-setup.exe",
+        "filename": "Adeorq_0.9.39_x64-setup.exe",
+        "size": 4434747,
+        "sizeLabel": "4,2 MB"
+      }
+    },
+    {
+      "version": "0.9.38",
+      "tag": "v0.9.38",
+      "date": "2026-07-31",
+      "publishedAt": "2026-07-31T06:08:12Z",
+      "title": null,
+      "name": "Adeorq 0.9.38",
+      "summary": "El medidor de contexto medía contra 200.000 tokens para todo. Ahora la ventana la decide el modelo: Opus 5 y Sonnet 5 son de un millón.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "El medidor de contexto medía contra 200.000 tokens para todo.",
+        "Ahora la ventana la decide el modelo: Opus 5 y Sonnet 5 son de un millón."
+      ],
+      "highlights": [
+        "El medidor de contexto medía contra 200.000 tokens para todo.",
+        "Ahora la ventana la decide el modelo: Opus 5 y Sonnet 5 son de un millón."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "El medidor de contexto medía contra 200.000 tokens para todo. Ahora la ventana la decide el modelo: Opus 5 y Sonnet 5 son de un millón.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.38",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.38/Adeorq_0.9.38_x64-setup.exe",
+        "filename": "Adeorq_0.9.38_x64-setup.exe",
+        "size": 4435958,
+        "sizeLabel": "4,2 MB"
+      }
+    },
+    {
+      "version": "0.9.37",
+      "tag": "v0.9.37",
+      "date": "2026-07-31",
+      "publishedAt": "2026-07-31T06:01:07Z",
+      "title": null,
+      "name": "Adeorq 0.9.37",
+      "summary": "Ahora si se ve el fondo a traves de las terminales: la regla vivia en un div y la terminal lee su color de <html>, que esta por encima, asi que el valor bueno no llegaba nunca.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Ahora si se ve el fondo a traves de las terminales: la regla vivia en un div y la terminal lee su color de <html>, que esta por encima, asi que el valor bueno no llegaba nunca."
+      ],
+      "highlights": [
+        "Ahora si se ve el fondo a traves de las terminales: la regla vivia en un div y la terminal lee su color de <html>, que esta por encima, asi que el valor bueno no llegaba nunca."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Ahora si se ve el fondo a traves de las terminales: la regla vivia en un div y la terminal lee su color de <html>, que esta por encima, asi que el valor bueno no llegaba nunca.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.37",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.37/Adeorq_0.9.37_x64-setup.exe",
+        "filename": "Adeorq_0.9.37_x64-setup.exe",
+        "size": 4441436,
+        "sizeLabel": "4,2 MB"
+      }
+    },
+    {
+      "version": "0.9.36",
+      "tag": "v0.9.36",
+      "date": "2026-07-31",
+      "publishedAt": "2026-07-31T05:53:14Z",
+      "title": null,
+      "name": "Adeorq 0.9.36",
+      "summary": "Arreglo de la 0.9.35: las terminales se veian negras y el fondo no se veia a traves. Interruptor de terminales transparentes, y once textos que seguian en espanol con la app en ingles.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Arreglo de la 0.9.35: las terminales se veian negras y el fondo no se veia a traves.",
+        "Interruptor de terminales transparentes, y once textos que seguian en espanol con la app en ingles."
+      ],
+      "highlights": [
+        "Arreglo de la 0.9.35: las terminales se veian negras y el fondo no se veia a traves.",
+        "Interruptor de terminales transparentes, y once textos que seguian en espanol con la app en ingles."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Arreglo de la 0.9.35: las terminales se veian negras y el fondo no se veia a traves. Interruptor de terminales transparentes, y once textos que seguian en espanol con la app en ingles.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.36",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.36/Adeorq_0.9.36_x64-setup.exe",
+        "filename": "Adeorq_0.9.36_x64-setup.exe",
+        "size": 4438659,
+        "sizeLabel": "4,2 MB"
+      }
+    },
+    {
+      "version": "0.9.35",
+      "tag": "v0.9.35",
+      "date": "2026-07-31",
+      "publishedAt": "2026-07-31T05:31:56Z",
+      "title": null,
+      "name": "Adeorq 0.9.35",
+      "summary": "La version de los congelones.",
+      "tags": [
+        "arreglo"
+      ],
+      "items": [
+        "La version de los congelones.",
+        "Cinco formas de quedarse quieto cerradas, vigia del cuelgue con Reanimar, aviso de cuota con salida a otra cuenta, transparencia de las terminales graduable, y el medidor de contexto ya no ensena lo que compactar acaba de tirar."
+      ],
+      "highlights": [
+        "La version de los congelones.",
+        "Cinco formas de quedarse quieto cerradas, vigia del cuelgue con Reanimar, aviso de cuota con salida a otra cuenta, transparencia de las terminales graduable, y el medidor de contexto ya no ensena lo que compactar acaba de tirar."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "La version de los congelones. Cinco formas de quedarse quieto cerradas, vigia del cuelgue con Reanimar, aviso de cuota con salida a otra cuenta, transparencia de las terminales graduable, y el medidor de contexto ya no ensena lo que compactar acaba de tirar.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.35",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.35/Adeorq_0.9.35_x64-setup.exe",
+        "filename": "Adeorq_0.9.35_x64-setup.exe",
+        "size": 4438179,
+        "sizeLabel": "4,2 MB"
+      }
+    },
+    {
+      "version": "0.9.22",
+      "tag": "v0.9.22",
+      "date": "2026-07-30",
+      "publishedAt": "2026-07-30T06:26:48Z",
+      "title": null,
+      "name": "Adeorq 0.9.22",
+      "summary": "El Modo Espejo ahora aisla de verdad: un worktree por agente, en vez de un cambio de rama sobre tu propia carpeta. Y el fondo vuelve a verse.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "El Modo Espejo ahora aisla de verdad: un worktree por agente, en vez de un cambio de rama sobre tu propia carpeta.",
+        "Y el fondo vuelve a verse."
+      ],
+      "highlights": [
+        "El Modo Espejo ahora aisla de verdad: un worktree por agente, en vez de un cambio de rama sobre tu propia carpeta.",
+        "Y el fondo vuelve a verse."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "El Modo Espejo ahora aisla de verdad: un worktree por agente, en vez de un cambio de rama sobre tu propia carpeta. Y el fondo vuelve a verse.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.22",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.22/Adeorq_0.9.22_x64-setup.exe",
+        "filename": "Adeorq_0.9.22_x64-setup.exe",
+        "size": 4376719,
+        "sizeLabel": "4,2 MB"
+      }
+    },
+    {
+      "version": "0.9.21",
+      "tag": "v0.9.21",
+      "date": "2026-07-30",
+      "publishedAt": "2026-07-30T02:33:31Z",
+      "title": null,
+      "name": "Adeorq 0.9.21",
+      "summary": "El fondo vuelve a verse, Ajustes esta rehecho por secciones, y va incluido el arreglo del temblor de la 0.9.20 que estaba en otra rama.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "El fondo vuelve a verse, Ajustes esta rehecho por secciones, y va incluido el arreglo del temblor de la 0.9.20 que estaba en otra rama."
+      ],
+      "highlights": [
+        "El fondo vuelve a verse, Ajustes esta rehecho por secciones, y va incluido el arreglo del temblor de la 0.9.20 que estaba en otra rama."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "El fondo vuelve a verse, Ajustes esta rehecho por secciones, y va incluido el arreglo del temblor de la 0.9.20 que estaba en otra rama.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.21",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.21/Adeorq_0.9.21_x64-setup.exe",
+        "filename": "Adeorq_0.9.21_x64-setup.exe",
+        "size": 4331379,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.20",
+      "tag": "v0.9.20",
+      "date": "2026-07-30",
+      "publishedAt": "2026-07-30T01:56:00Z",
+      "title": null,
+      "name": "v0.9.20",
+      "summary": "**Se acabó el temblor al abrir una sesión.**",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "**Se acabó el temblor al abrir una sesión.**  El panel y su proceso no contaban las mismas filas.",
+        "Los primeros ajustes de tamaño salían antes de que el proceso existiera, se perdían en silencio y se daban por enviados, así que el CLI repintaba su pie creyendo que tenía otra altura: cada parpadeo del spinner caía una línea desviada y la pantalla temblaba el resto de la sesión.",
+        "Ahora el tamaño espera a que haya un proceso al que mandárselo, y el panel vuelve a medir en cuanto arranca.",
+        "Además: si el sistema le quita el lienzo acelerado a un panel (solo aguanta unos pocos a la vez, y cada panel abre el suyo), ese panel vuelve al pintado normal en vez de quedarse congelado en lo último que dibujó."
+      ],
+      "highlights": [
+        "**Se acabó el temblor al abrir una sesión.**  El panel y su proceso no contaban las mismas filas.",
+        "Los primeros ajustes de tamaño salían antes de que el proceso existiera, se perdían en silencio y se daban por enviados, así que el CLI repintaba su pie creyendo que tenía otra altura: cada parpadeo del spinner caía una línea desviada y la pantalla temblaba el resto de la sesión.",
+        "Ahora el tamaño espera a que haya un proceso al que mandárselo, y el panel vuelve a medir en cuanto arranca.",
+        "Además: si el sistema le quita el lienzo acelerado a un panel (solo aguanta unos pocos a la vez, y cada panel abre el suyo), ese panel vuelve al pintado normal en vez de quedarse congelado en lo último que dibujó."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "**Se acabó el temblor al abrir una sesión.**\n\nEl panel y su proceso no contaban las mismas filas. Los primeros ajustes de tamaño salían antes de que el proceso existiera, se perdían en silencio y se daban por enviados, así que el CLI repintaba su pie creyendo que tenía otra altura: cada parpadeo del spinner caía una línea desviada y la pantalla temblaba el resto de la sesión.\n\nAhora el tamaño espera a que haya un proceso al que mandárselo, y el panel vuelve a medir en cuanto arranca.\n\nAdemás: si el sistema le quita el lienzo acelerado a un panel (solo aguanta unos pocos a la vez, y cada panel abre el suyo), ese panel vuelve al pintado normal en vez de quedarse congelado en lo último que dibujó.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.20",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.20/Adeorq_0.9.20_x64-setup.exe",
+        "filename": "Adeorq_0.9.20_x64-setup.exe",
+        "size": 4332979,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.19",
+      "tag": "v0.9.19",
+      "date": "2026-07-30",
+      "publishedAt": "2026-07-30T01:20:47Z",
+      "title": null,
+      "name": "Adeorq 0.9.19",
+      "summary": "La barra de la fila de botones ya no cruza los botones: se queda debajo.",
+      "tags": [
+        "arreglo"
+      ],
+      "items": [
+        "La barra de la fila de botones ya no cruza los botones: se queda debajo."
+      ],
+      "highlights": [
+        "La barra de la fila de botones ya no cruza los botones: se queda debajo."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "La barra de la fila de botones ya no cruza los botones: se queda debajo.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.19",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.19/Adeorq_0.9.19_x64-setup.exe",
+        "filename": "Adeorq_0.9.19_x64-setup.exe",
+        "size": 4331885,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.18",
+      "tag": "v0.9.18",
+      "date": "2026-07-30",
+      "publishedAt": "2026-07-30T01:03:50Z",
+      "title": null,
+      "name": "Adeorq 0.9.18",
+      "summary": "Chats con modelos por tu clave de API en el lienzo, claves en Cuentas para abrir un CLI por tokens en vez de con tu plan, y contador de gasto. La clave nunca pasa por la interfaz.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Chats con modelos por tu clave de API en el lienzo, claves en Cuentas para abrir un CLI por tokens en vez de con tu plan, y contador de gasto.",
+        "La clave nunca pasa por la interfaz."
+      ],
+      "highlights": [
+        "Chats con modelos por tu clave de API en el lienzo, claves en Cuentas para abrir un CLI por tokens en vez de con tu plan, y contador de gasto.",
+        "La clave nunca pasa por la interfaz."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Chats con modelos por tu clave de API en el lienzo, claves en Cuentas para abrir un CLI por tokens en vez de con tu plan, y contador de gasto. La clave nunca pasa por la interfaz.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.18",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.18/Adeorq_0.9.18_x64-setup.exe",
+        "filename": "Adeorq_0.9.18_x64-setup.exe",
+        "size": 4332565,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.17",
+      "tag": "v0.9.17",
+      "date": "2026-07-30",
+      "publishedAt": "2026-07-30T00:13:08Z",
+      "title": null,
+      "name": "Adeorq 0.9.17",
+      "summary": "La fila de botones de un proyecto se mueve con flechas, arrastrando su barra o con la rueda. Antes la barra era un adorno que no se podia agarrar.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "La fila de botones de un proyecto se mueve con flechas, arrastrando su barra o con la rueda.",
+        "Antes la barra era un adorno que no se podia agarrar."
+      ],
+      "highlights": [
+        "La fila de botones de un proyecto se mueve con flechas, arrastrando su barra o con la rueda.",
+        "Antes la barra era un adorno que no se podia agarrar."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "La fila de botones de un proyecto se mueve con flechas, arrastrando su barra o con la rueda. Antes la barra era un adorno que no se podia agarrar.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.17",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.17/Adeorq_0.9.17_x64-setup.exe",
+        "filename": "Adeorq_0.9.17_x64-setup.exe",
+        "size": 4278635,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.16",
+      "tag": "v0.9.16",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T23:59:20Z",
+      "title": null,
+      "name": "Adeorq 0.9.16",
+      "summary": "Seleccionar texto y soltar fuera ya no cierra el dialogo llevandose el mensaje, en los nueve dialogos que lo tenian. El borrador del Asistente sobrevive al cierre.",
+      "tags": [
+        "arreglo"
+      ],
+      "items": [
+        "Seleccionar texto y soltar fuera ya no cierra el dialogo llevandose el mensaje, en los nueve dialogos que lo tenian.",
+        "El borrador del Asistente sobrevive al cierre.",
+        "Y las terminales sin historial salen en el cajon Sueltas."
+      ],
+      "highlights": [
+        "Seleccionar texto y soltar fuera ya no cierra el dialogo llevandose el mensaje, en los nueve dialogos que lo tenian.",
+        "El borrador del Asistente sobrevive al cierre.",
+        "Y las terminales sin historial salen en el cajon Sueltas."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Seleccionar texto y soltar fuera ya no cierra el dialogo llevandose el mensaje, en los nueve dialogos que lo tenian. El borrador del Asistente sobrevive al cierre. Y las terminales sin historial salen en el cajon Sueltas.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.16",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.16/Adeorq_0.9.16_x64-setup.exe",
+        "filename": "Adeorq_0.9.16_x64-setup.exe",
+        "size": 4275743,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.15",
+      "tag": "v0.9.15",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T22:54:42Z",
+      "title": null,
+      "name": "Adeorq 0.9.15",
+      "summary": "El asistente de sesion nueva ya no se abre pegado abajo, y esta vez arreglado por la causa: ningun panel flotante puede volver a caerse. Y en el + puedes abrir una sesion suelta, sin proyecto.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "El asistente de sesion nueva ya no se abre pegado abajo, y esta vez arreglado por la causa: ningun panel flotante puede volver a caerse.",
+        "Y en el + puedes abrir una sesion suelta, sin proyecto."
+      ],
+      "highlights": [
+        "El asistente de sesion nueva ya no se abre pegado abajo, y esta vez arreglado por la causa: ningun panel flotante puede volver a caerse.",
+        "Y en el + puedes abrir una sesion suelta, sin proyecto."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "El asistente de sesion nueva ya no se abre pegado abajo, y esta vez arreglado por la causa: ningun panel flotante puede volver a caerse. Y en el + puedes abrir una sesion suelta, sin proyecto.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.15",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.15/Adeorq_0.9.15_x64-setup.exe",
+        "filename": "Adeorq_0.9.15_x64-setup.exe",
+        "size": 4273199,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.14",
+      "tag": "v0.9.14",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T22:29:53Z",
+      "title": null,
+      "name": "Adeorq 0.9.14",
+      "summary": "El tablero del trabajo en el lienzo: tres columnas se llenan solas con lo que hace cada agente y una es tuya, y al arrastrar una tarjeta a Trabajando se abre una terminal con ese encargo.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "El tablero del trabajo en el lienzo: tres columnas se llenan solas con lo que hace cada agente y una es tuya, y al arrastrar una tarjeta a Trabajando se abre una terminal con ese encargo."
+      ],
+      "highlights": [
+        "El tablero del trabajo en el lienzo: tres columnas se llenan solas con lo que hace cada agente y una es tuya, y al arrastrar una tarjeta a Trabajando se abre una terminal con ese encargo."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "El tablero del trabajo en el lienzo: tres columnas se llenan solas con lo que hace cada agente y una es tuya, y al arrastrar una tarjeta a Trabajando se abre una terminal con ese encargo.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.14",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.14/Adeorq_0.9.14_x64-setup.exe",
+        "filename": "Adeorq_0.9.14_x64-setup.exe",
+        "size": 4275027,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.13",
+      "tag": "v0.9.13",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T22:05:59Z",
+      "title": null,
+      "name": "Adeorq 0.9.13",
+      "summary": "La papelera funciona: tirar un proyecto fallaba siempre con el codigo 124. Y cada CLI con su marca, dibujada de su logo real.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "La papelera funciona: tirar un proyecto fallaba siempre con el codigo 124.",
+        "Y cada CLI con su marca, dibujada de su logo real."
+      ],
+      "highlights": [
+        "La papelera funciona: tirar un proyecto fallaba siempre con el codigo 124.",
+        "Y cada CLI con su marca, dibujada de su logo real."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "La papelera funciona: tirar un proyecto fallaba siempre con el codigo 124. Y cada CLI con su marca, dibujada de su logo real.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.13",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.13/Adeorq_0.9.13_x64-setup.exe",
+        "filename": "Adeorq_0.9.13_x64-setup.exe",
+        "size": 4273649,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.12",
+      "tag": "v0.9.12",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T21:33:34Z",
+      "title": null,
+      "name": "Adeorq 0.9.12",
+      "summary": "Cada CLI con su marca, la fila de un proyecto se desplaza cuando no caben todos, y el dictado ya no abre dos microfonos de golpe.",
+      "tags": [
+        "arreglo"
+      ],
+      "items": [
+        "Cada CLI con su marca, la fila de un proyecto se desplaza cuando no caben todos, y el dictado ya no abre dos microfonos de golpe."
+      ],
+      "highlights": [
+        "Cada CLI con su marca, la fila de un proyecto se desplaza cuando no caben todos, y el dictado ya no abre dos microfonos de golpe."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Cada CLI con su marca, la fila de un proyecto se desplaza cuando no caben todos, y el dictado ya no abre dos microfonos de golpe.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.12",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.12/Adeorq_0.9.12_x64-setup.exe",
+        "filename": "Adeorq_0.9.12_x64-setup.exe",
+        "size": 4273048,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.11",
+      "tag": "v0.9.11",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T17:44:16Z",
+      "title": "Los avisos ya no salen rotos",
+      "name": "Adeorq 0.9.11",
+      "summary": "Desde la 0.9.10 el aviso de secretos aparecía como una franja pegada abajo, a lo ancho y cortada por la izquierda. La causa era una sola línea del fondo nuevo:",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "**El aviso de secretos**, que es lo que se veía.",
+        "**La ventana del Asistente**, que se abría abajo en vez de en el centro.",
+        "**El telón del modo emisión**, que es lo que tapa la pantalla cuando aparece una clave en un directo. Ese es el grave: había dejado de taparla."
+      ],
+      "highlights": [
+        "**El aviso de secretos**, que es lo que se veía.",
+        "**La ventana del Asistente**, que se abría abajo en vez de en el centro.",
+        "**El telón del modo emisión**, que es lo que tapa la pantalla cuando aparece una clave en un directo. Ese es el grave: había dejado de taparla."
+      ],
+      "headings": [
+        "Los avisos ya no salen rotos",
+        "El Asistente",
+        "Y además"
+      ],
+      "image": null,
+      "notes": "## Los avisos ya no salen rotos\n\nDesde la 0.9.10 el aviso de secretos aparecía como una franja pegada abajo, a lo ancho y cortada por la izquierda. La causa era una sola línea del fondo nuevo:\n\n```css\n.app > *:not(.fondo) { position: relative; z-index: 1; }\n```\n\nEse selector son dos clases y le gana en especificidad a un `.burnt-bar` pelado, que es una. Así que le reescribió el `position` a los tres paneles flotantes de la app, y un `fixed` convertido en `relative` no desaparece: se cae al flujo. El `right: 14px`, que en `fixed` separa el aviso del borde derecho, en `relative` lo empuja 14 px a la izquierda hasta salirse de la ventana.\n\nRompió tres cosas a la vez:\n\n- **El aviso de secretos**, que es lo que se veía.\n- **La ventana del Asistente**, que se abría abajo en vez de en el centro.\n- **El telón del modo emisión**, que es lo que tapa la pantalla cuando aparece una clave en un directo. Ese es el grave: había dejado de taparla.\n\n## El Asistente\n\nSe abre centrado en la pantalla, con el velo detrás, y ahora es un orbe en lugar de la estrella de cuatro puntas que usa media industria para decir «IA». Va solo, sin palabra al lado.\n\n## Y además\n\nEl botón de Layout se va al extremo derecho de la barra: es el único que aparece y desaparece, y en mitad de la fila movía de sitio a todos los de su derecha cada vez.\n\nLa cabecera de cada terminal ya no se inventa modelos. Leía el nombre de la pantalla con una regla que aceptaba saltos de línea, así que un texto que acabara una línea en «Opus» y empezara la siguiente con un número producía «Opus 6». Y una vez leído mal, se quedaba puesto. Ahora el transcript manda y la conjetura calla en cuanto llega el dato bueno.\n\nYouTube se reproduce dentro del lienzo: los enlaces normales se traducen solos al formato que sí se deja empotrar. Y una página que se niega a abrirse dentro te lo dice, en vez de dejarte un cuadro blanco.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.11",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.11/Adeorq_0.9.11_x64-setup.exe",
+        "filename": "Adeorq_0.9.11_x64-setup.exe",
+        "size": 4274026,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.10",
+      "tag": "v0.9.10",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T17:05:05Z",
+      "title": "Un fondo tuyo detrás de las terminales",
+      "name": "Adeorq 0.9.10",
+      "summary": "Los paneles ya eran cristal traslúcido, así que debajo había un color plano sin aprovechar. En **Ajustes → El fondo** eliges una imagen o un vídeo (se pone en bucle y sin sonido) y se ve ahí detrás.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "## Un fondo tuyo detrás de las terminales  Los paneles ya eran cristal traslúcido, así que debajo había un color plano sin aprovechar.",
+        "En **Ajustes → El fondo** eliges una imagen o un vídeo (se pone en bucle y sin sonido) y se ve ahí detrás.",
+        "Dos mandos, y los dos existen por lo mismo: **cuánto se ve** y **cuánto se desenfoca**.",
+        "Si cuesta leer las terminales, bajas uno o subes el otro."
+      ],
+      "highlights": [
+        "## Un fondo tuyo detrás de las terminales  Los paneles ya eran cristal traslúcido, así que debajo había un color plano sin aprovechar.",
+        "En **Ajustes → El fondo** eliges una imagen o un vídeo (se pone en bucle y sin sonido) y se ve ahí detrás.",
+        "Dos mandos, y los dos existen por lo mismo: **cuánto se ve** y **cuánto se desenfoca**.",
+        "Si cuesta leer las terminales, bajas uno o subes el otro."
+      ],
+      "headings": [
+        "Un fondo tuyo detrás de las terminales"
+      ],
+      "image": null,
+      "notes": "## Un fondo tuyo detrás de las terminales\n\nLos paneles ya eran cristal traslúcido, así que debajo había un color plano sin aprovechar. En **Ajustes → El fondo** eliges una imagen o un vídeo (se pone en bucle y sin sonido) y se ve ahí detrás.\n\nDos mandos, y los dos existen por lo mismo: **cuánto se ve** y **cuánto se desenfoca**. Si cuesta leer las terminales, bajas uno o subes el otro. El texto manda sobre la foto.\n\n**El archivo se copia** a la carpeta de Adeorq en vez de guardarse la ruta que elegiste. Un fondo que desaparece porque moviste la foto, o porque estaba en un pendrive, es un fondo roto sin explicación.\n\nY se sirve **desde el disco**, no cargado en memoria: por eso un vídeo de 200 MB puede ser tu fondo sin que la app lo sostenga entero, y por eso sigue ahí después de reiniciar.\n\nNada de esto recibe un clic: un vídeo de fondo que pudieras pausar sin querer sería un fondo que participa en el trabajo.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.10",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.10/Adeorq_0.9.10_x64-setup.exe",
+        "filename": "Adeorq_0.9.10_x64-setup.exe",
+        "size": 4271996,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.9",
+      "tag": "v0.9.9",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T16:22:59Z",
+      "title": "El modo emisión ya no te tapa la pantalla",
+      "name": "Adeorq 0.9.9",
+      "summary": "Tapaba una pantalla en la que **no quedaba nada que tapar**. El escudo enmascara el texto *antes* de que el panel lo pinte, así que cuando saltaba el telón el secreto ya eran puntitos.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "## El modo emisión ya no te tapa la pantalla  Tapaba una pantalla en la que **no quedaba nada que tapar**.",
+        "El escudo enmascara el texto *antes* de que el panel lo pinte, así que cuando saltaba el telón el secreto ya eran puntitos.",
+        "Lo único que hacía de verdad era dejarte a ciegas, y saltaba con cualquier variable que llevara KEY en el nombre, que en esta app es todo el rato.",
+        "Ahora sale solo el aviso de siempre, que dura más cuando la cosa es seria (nueve segundos en vez de cinco) y ya se pintaba distinto según la gravedad."
+      ],
+      "highlights": [
+        "## El modo emisión ya no te tapa la pantalla  Tapaba una pantalla en la que **no quedaba nada que tapar**.",
+        "El escudo enmascara el texto *antes* de que el panel lo pinte, así que cuando saltaba el telón el secreto ya eran puntitos.",
+        "Lo único que hacía de verdad era dejarte a ciegas, y saltaba con cualquier variable que llevara KEY en el nombre, que en esta app es todo el rato.",
+        "Ahora sale solo el aviso de siempre, que dura más cuando la cosa es seria (nueve segundos en vez de cinco) y ya se pintaba distinto según la gravedad."
+      ],
+      "headings": [
+        "El modo emisión ya no te tapa la pantalla"
+      ],
+      "image": null,
+      "notes": "## El modo emisión ya no te tapa la pantalla\n\nTapaba una pantalla en la que **no quedaba nada que tapar**. El escudo enmascara el texto *antes* de que el panel lo pinte, así que cuando saltaba el telón el secreto ya eran puntitos. Lo único que hacía de verdad era dejarte a ciegas, y saltaba con cualquier variable que llevara KEY en el nombre, que en esta app es todo el rato.\n\nAhora sale solo el aviso de siempre, que dura más cuando la cosa es seria (nueve segundos en vez de cinco) y ya se pintaba distinto según la gravedad.\n\n**Ninguna protección se ha bajado.** Las reglas del escudo siguen todas en alta: lo que se ha quitado es la interrupción, no el tapado. Un JWT o una clave de API siguen saliendo enmascarados en la terminal exactamente igual que antes.\n\nEl telón sigue existiendo como **botón manual** (Ctrl+Mayús+P), que es para lo que sirve de verdad: ha entrado alguien en la habitación y tapas todo tú.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.9",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.9/Adeorq_0.9.9_x64-setup.exe",
+        "filename": "Adeorq_0.9.9_x64-setup.exe",
+        "size": 4249831,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.8",
+      "tag": "v0.9.8",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T16:14:49Z",
+      "title": "Tu cuenta de OpenRouter",
+      "name": "Adeorq 0.9.8",
+      "summary": "En el centro de cuentas, en su propio grupo. Pegas la clave y ves cuánto crédito te queda y lo que llevas gastado hoy, esta semana y este mes.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "## Tu cuenta de OpenRouter  En el centro de cuentas, en su propio grupo.",
+        "Pegas la clave y ves cuánto crédito te queda y lo que llevas gastado hoy, esta semana y este mes.",
+        "La clave va al Gestor de Credenciales de Windows, cifrada por el sistema, nunca a un archivo de ajustes.",
+        "Y no vuelve a salir de ahí: se manda una vez al conectar y a partir de entonces la app pide datos, no la llave."
+      ],
+      "highlights": [
+        "## Tu cuenta de OpenRouter  En el centro de cuentas, en su propio grupo.",
+        "Pegas la clave y ves cuánto crédito te queda y lo que llevas gastado hoy, esta semana y este mes.",
+        "La clave va al Gestor de Credenciales de Windows, cifrada por el sistema, nunca a un archivo de ajustes.",
+        "Y no vuelve a salir de ahí: se manda una vez al conectar y a partir de entonces la app pide datos, no la llave."
+      ],
+      "headings": [
+        "Tu cuenta de OpenRouter",
+        "El Capataz escribe tus encargos",
+        "Y te escucha",
+        "La barra de arriba",
+        "El lienzo",
+        "El modelo de cada terminal"
+      ],
+      "image": null,
+      "notes": "## Tu cuenta de OpenRouter\n\nEn el centro de cuentas, en su propio grupo. Pegas la clave y ves cuánto crédito te queda y lo que llevas gastado hoy, esta semana y este mes.\n\nLa clave va al Gestor de Credenciales de Windows, cifrada por el sistema, nunca a un archivo de ajustes. Y no vuelve a salir de ahí: se manda una vez al conectar y a partir de entonces la app pide datos, no la llave. Se comprueba antes de guardarla, porque una clave mal copiada que ponga «conectado» hasta que un día falle es peor que no tenerla.\n\n## El Capataz escribe tus encargos\n\nAdemás de montar el tablero, ahora hace lo contrario: coges lo que dirías de pasada («que el icono sea más futurista») y te devuelve el encargo que de verdad necesita el agente que tienes delante, con dónde mirar, qué no tocar y cómo se comprueba que quedó bien.\n\nNo decide nada: ni elige proyecto ni abre nada. Y lo que escribe se te enseña antes de llegar a ninguna terminal. Se pega sin enviar: el Enter sigue siendo tuyo, que con un texto redactado por un modelo importa más que nunca.\n\n## Y te escucha\n\nMantén pulsado el micrófono, habla, suéltalo, y lo dicho se suma a lo que tuvieras escrito. Transcribe con whisper.cpp en tu propio equipo: sin nube, sin cuenta y sin que salga de aquí lo que dices en tu despacho.\n\n## La barra de arriba\n\nMás baja, con los ocho iconos dibujados en vez de glifos sueltos, y en tres zonas. Al estrechar la ventana ya no se desborda ni hace scroll: se aprieta, y lo primero que se va son los nombres de las pestañas. El reproductor deja de comerse el sitio y su título ya no empuja botones fuera de la pantalla.\n\n## El lienzo\n\nUn enlace normal de YouTube ya se reproduce. Y una página que se niegue a abrirse dentro te lo dice, con el botón para abrirla fuera, en vez de dejarte mirando un cuadro blanco sin explicación.\n\n## El modelo de cada terminal\n\nYa no se lee de la pantalla sino del transcript, que es donde está el dato de verdad. La lectura de pantalla cazaba cualquier «opus» seguido de un número en cualquier parte, así que una sesión escribiendo código sobre el códec de audio Opus acababa anunciando modelos que no existen.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.8",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.8/Adeorq_0.9.8_x64-setup.exe",
+        "filename": "Adeorq_0.9.8_x64-setup.exe",
+        "size": 4250736,
+        "sizeLabel": "4,1 MB"
+      }
+    },
+    {
+      "version": "0.9.7",
+      "tag": "v0.9.7",
+      "date": "2026-07-29",
+      "publishedAt": "2026-07-29T14:48:06Z",
+      "title": "Todas tus sesiones, en un sitio",
+      "name": "Adeorq 0.9.7",
+      "summary": "La Agenda tiene un bloque nuevo con **todas** tus sesiones, no solo las del proyecto que estés mirando, ordenadas por quién te espera primero: te pregunta → espera tu OK → te toca → a medias → terminó.",
+      "tags": [
+        "nuevo",
+        "mejora",
+        "arreglo"
+      ],
+      "items": [
+        "## Todas tus sesiones, en un sitio  La Agenda tiene un bloque nuevo con **todas** tus sesiones, no solo las del proyecto que estés mirando, ordenadas por quién te espera primero: te pregunta → espera tu OK → te toca → a medias → terminó.",
+        "Cada fila trae su proyecto, su estado, de cuándo es y, si la desplegó el Capataz, para qué se abrió.",
+        "Un clic y la retomas.",
+        "Todo eso sale del disco, es exacto y no gasta cuota."
+      ],
+      "highlights": [
+        "## Todas tus sesiones, en un sitio  La Agenda tiene un bloque nuevo con **todas** tus sesiones, no solo las del proyecto que estés mirando, ordenadas por quién te espera primero: te pregunta → espera tu OK → te toca → a medias → terminó.",
+        "Cada fila trae su proyecto, su estado, de cuándo es y, si la desplegó el Capataz, para qué se abrió.",
+        "Un clic y la retomas.",
+        "Todo eso sale del disco, es exacto y no gasta cuota."
+      ],
+      "headings": [
+        "Todas tus sesiones, en un sitio",
+        "Y un modelo local que dice qué necesita cada una",
+        "Tirar un proyecto, y su panel reordenado",
+        "Las sesiones sueltas ya no desaparecen",
+        "Dos arreglos que no se veían mirando"
+      ],
+      "image": null,
+      "notes": "## Todas tus sesiones, en un sitio\n\nLa Agenda tiene un bloque nuevo con **todas** tus sesiones, no solo las del proyecto que estés mirando, ordenadas por quién te espera primero: te pregunta → espera tu OK → te toca → a medias → terminó. Cada fila trae su proyecto, su estado, de cuándo es y, si la desplegó el Capataz, para qué se abrió. Un clic y la retomas.\n\nTodo eso sale del disco, es exacto y no gasta cuota.\n\n## Y un modelo local que dice qué necesita cada una\n\nLo que no se puede saber sin leer es QUÉ te está preguntando cada sesión. Esa línea la escribe un modelo que corre en tu propio ordenador, con Ollama, sin gastar cuota de nadie. Se elige en Ajustes → Tu modelo local, que te lista los que tengas descargados.\n\nSolo se le pregunta por las sesiones que te esperan, que son un puñado y no cuarenta; de una en una, para que no te quite la GPU de lo que estés haciendo; y nunca dos veces por una sesión que no ha vuelto a hablar. Si Ollama está cerrado, la Agenda funciona igual: el modelo añade prosa, no información.\n\n## Tirar un proyecto, y su panel reordenado\n\nYa se pueden tirar proyectos a la papelera de Windows, sin clic derecho. Va a la papelera de verdad, no a un borrado: se recupera desde el escritorio.\n\nEl panel que se abre al pasar el ratón por un proyecto estaba mezclando tres trabajos distintos y ahora los separa: **qué es** (con su ruta, el único dato que la fila de la barra no puede enseñar), **qué abres dentro** y **qué le haces** — renombrar, logo, archivadas y papelera, en su propio pie.\n\n## Las sesiones sueltas ya no desaparecen\n\nCualquier sesión abierta fuera de C:\\proyectos se escaneaba y luego se tiraba en silencio: existía en el disco y no salía por ningún lado. Ahora caen en un cajón de **Sueltas** al final de la lista, cada una recordando su carpeta.\n\n## Dos arreglos que no se veían mirando\n\nEl relevo del lienzo y el medidor de contexto leían el transcript de otro agente cuando había dos sesiones nuevas en la misma carpeta. Solo reconocían una de las dos formas de nombrar una sesión, así que caían en «lee el más reciente de esta carpeta». El relevo pasaba una respuesta que no era, y cada panel te enseñaba el contexto del de al lado.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.7",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.7/Adeorq_0.9.7_x64-setup.exe",
+        "filename": "Adeorq_0.9.7_x64-setup.exe",
+        "size": 3733425,
+        "sizeLabel": "3,6 MB"
+      }
+    },
+    {
+      "version": "0.9.6",
+      "tag": "v0.9.6",
+      "date": "2026-07-28",
+      "publishedAt": "2026-07-28T16:03:27Z",
+      "title": null,
+      "name": "v0.9.6",
+      "summary": "Gran expansión del sistema de diseño visual con 14 nuevos temas (24 temas en total).",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Gran expansión del sistema de diseño visual con 14 nuevos temas (24 temas en total)."
+      ],
+      "highlights": [
+        "Gran expansión del sistema de diseño visual con 14 nuevos temas (24 temas en total)."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Gran expansión del sistema de diseño visual con 14 nuevos temas (24 temas en total).",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.6",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.6/Adeorq_0.9.6_x64-setup.exe",
+        "filename": "Adeorq_0.9.6_x64-setup.exe",
+        "size": 3703274,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.9.4",
+      "tag": "v0.9.4",
+      "date": "2026-07-28",
+      "publishedAt": "2026-07-28T15:08:40Z",
+      "title": null,
+      "name": "Adeorq 0.9.4 - sin repetición de sonidos ni parpadeos",
+      "summary": "Se corrige el fallo por el cual la interfaz entraba en bucle de alertas y sonido repetido (pi pium) al interactuar con las terminales o solicitar confirmaciones, y se soluciona el bloqueo en Modo Emisión (Streamer Mode).",
+      "tags": [
+        "arreglo"
+      ],
+      "items": [
+        "Se corrige el fallo por el cual la interfaz entraba en bucle de alertas y sonido repetido (pi pium) al interactuar con las terminales o solicitar confirmaciones, y se soluciona el bloqueo en Modo Emisión (Streamer Mode)."
+      ],
+      "highlights": [
+        "Se corrige el fallo por el cual la interfaz entraba en bucle de alertas y sonido repetido (pi pium) al interactuar con las terminales o solicitar confirmaciones, y se soluciona el bloqueo en Modo Emisión (Streamer Mode)."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Se corrige el fallo por el cual la interfaz entraba en bucle de alertas y sonido repetido (pi pium) al interactuar con las terminales o solicitar confirmaciones, y se soluciona el bloqueo en Modo Emisión (Streamer Mode).",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.4",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.4/Adeorq_0.9.4_x64-setup.exe",
+        "filename": "Adeorq_0.9.4_x64-setup.exe",
+        "size": 3701704,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.9.3",
+      "tag": "v0.9.3",
+      "date": "2026-07-28",
+      "publishedAt": "2026-07-28T10:46:16Z",
+      "title": "Rodear con el botón derecho",
+      "name": "Adeorq 0.9.3",
+      "summary": "Mantén el botón derecho y barre: coge piezas y dibujo a la vez, sin subir a por el marco de la barra. Con Mayús suma a lo que ya tenías cogido.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "## Rodear con el botón derecho  Mantén el botón derecho y barre: coge piezas y dibujo a la vez, sin subir a por el marco de la barra.",
+        "Con Mayús suma a lo que ya tenías cogido.",
+        "El clic derecho suelto sigue abriendo el menú de añadir de siempre; lo que decide es si hubo arrastre o no.",
+        "## Los atajos del lienzo, y puedes cambiarlos  Ajustes → **Atajos del lienzo**."
+      ],
+      "highlights": [
+        "## Rodear con el botón derecho  Mantén el botón derecho y barre: coge piezas y dibujo a la vez, sin subir a por el marco de la barra.",
+        "Con Mayús suma a lo que ya tenías cogido.",
+        "El clic derecho suelto sigue abriendo el menú de añadir de siempre; lo que decide es si hubo arrastre o no.",
+        "## Los atajos del lienzo, y puedes cambiarlos  Ajustes → **Atajos del lienzo**."
+      ],
+      "headings": [
+        "Rodear con el botón derecho",
+        "Los atajos del lienzo, y puedes cambiarlos",
+        "Saltar a la sesión que termina: ahora sí",
+        "Y además"
+      ],
+      "image": null,
+      "notes": "## Rodear con el botón derecho\n\nMantén el botón derecho y barre: coge piezas y dibujo a la vez, sin subir a por el marco de la barra. Con Mayús suma a lo que ya tenías cogido. El clic derecho suelto sigue abriendo el menú de añadir de siempre; lo que decide es si hubo arrastre o no.\n\n## Los atajos del lienzo, y puedes cambiarlos\n\nAjustes → **Atajos del lienzo**. Diecisiete acciones con su tecla: pulsas el atajo de una, pulsas la combinación que quieras y ya está. Si esa combinación era de otra acción, la otra se queda sin atajo en vez de quedar las dos igual. Hay botón para volver a los de fábrica.\n\nDe fábrica: `Alt+C` `Alt+T` `Alt+G` abren Claude, terminal y Antigravity · `Alt+N` `Alt+L` `Alt+I` ponen nota, ventana de localhost y galería · `Ctrl+A` coge todo · `Esc` suelta · `Supr` borra · `Alt+0` encaja · `V M P F L R O T E` las herramientas de dibujo, las mismas letras que en cualquier editor · `Ctrl+Z` deshace el trazo.\n\nVan con Alt y no con Ctrl a propósito: dentro de una terminal `Ctrl+letra` es del programa que corre ahí, que Ctrl+C corta a Claude. Y solo actúan con el lienzo delante y el foco fuera de donde se escribe, así que la V sigue siendo una v mientras escribes.\n\nLos atajos salen ahora en los globos de ayuda y en el menú de añadir, y se ponen al día solos si los cambias.\n\n## Saltar a la sesión que termina: ahora sí\n\nEstaba en la 0.9.2 y no funcionaba. La salvaguarda que evita que te quite la pantalla mientras escribes miraba dónde estaba el foco, y una terminal tiene el foco siempre que la miras, escribas o no: la excepción se cumplía casi siempre y el salto no llegaba a ocurrir. Ahora se mide por teclas pulsadas de verdad, así que solo te respeta si de verdad estabas escribiendo en otra.\n\n## Y además\n\nEl recuadro blanco que salía alrededor del tablero al tocar una tecla ya no sale. Con un menú abierto, cualquier tecla lo cierra y no se cuela a lo que hay detrás, que era de donde venía ese recuadro. Y el selector de proyecto de la barra va sin su icono.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.3",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.3/Adeorq_0.9.3_x64-setup.exe",
+        "filename": "Adeorq_0.9.3_x64-setup.exe",
+        "size": 3693727,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.9.2",
+      "tag": "v0.9.2",
+      "date": "2026-07-27",
+      "publishedAt": "2026-07-27T23:56:26Z",
+      "title": "Coger varias piezas a la vez",
+      "name": "Adeorq 0.9.2",
+      "summary": "Herramienta nueva en la barra de dibujo: rodeas con un marco y queda cogido todo lo que roce, piezas y dibujo.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "## Coger varias piezas a la vez  Herramienta nueva en la barra de dibujo: rodeas con un marco y queda cogido todo lo que roce, piezas y dibujo.",
+        "Después se arrastra el grupo entero desde cualquiera de sus miembros, y la barra de abajo dice cuántas cosas llevas y las borra de golpe.",
+        "Antes había que quitarlas una a una por su ✕.",
+        "Borrar pregunta antes, y si hay terminales dentro dice cuántas se van a cerrar: eso mata procesos y no se deshace."
+      ],
+      "highlights": [
+        "## Coger varias piezas a la vez  Herramienta nueva en la barra de dibujo: rodeas con un marco y queda cogido todo lo que roce, piezas y dibujo.",
+        "Después se arrastra el grupo entero desde cualquiera de sus miembros, y la barra de abajo dice cuántas cosas llevas y las borra de golpe.",
+        "Antes había que quitarlas una a una por su ✕.",
+        "Borrar pregunta antes, y si hay terminales dentro dice cuántas se van a cerrar: eso mata procesos y no se deshace."
+      ],
+      "headings": [
+        "Coger varias piezas a la vez",
+        "Una ventana de localhost en el lienzo",
+        "La barra lateral, encogida del todo",
+        "Descargar clientes desde el centro de cuentas"
+      ],
+      "image": null,
+      "notes": "## Coger varias piezas a la vez\n\nHerramienta nueva en la barra de dibujo: rodeas con un marco y queda cogido todo lo que roce, piezas y dibujo. Después se arrastra el grupo entero desde cualquiera de sus miembros, y la barra de abajo dice cuántas cosas llevas y las borra de golpe. Antes había que quitarlas una a una por su ✕.\n\nBorrar pregunta antes, y si hay terminales dentro dice cuántas se van a cerrar: eso mata procesos y no se deshace. Ctrl+A lo coge todo, Supr lo borra, Esc lo suelta y Mayús+clic suma piezas de una en una. Ninguno de esos atajos actúa si estás escribiendo dentro de una terminal.\n\n## Una ventana de localhost en el lienzo\n\nPieza nueva: pones la dirección (o tocas uno de los puertos de siempre) y ves tu web dentro del tablero, al lado de la terminal que la está tocando. Se guarda con el lienzo.\n\nVa tapada por defecto para que se arrastre como cualquier otra pieza, y un clic la levanta para poder navegar dentro. Un iframe se queda con todo lo que pasa por encima, así que sin eso había que elegir entre mover la pieza o usar la web.\n\nLleva botón de froede: arranca su companion en la carpeta del proyecto y abre la página en tu navegador de verdad, que es donde vive su extensión. Aquí dentro no puede editar, y por eso te lleva fuera en vez de fingir que sí.\n\n## La barra lateral, encogida del todo\n\nTercer modo, estilo Discord: una tira de logos en una columna y nada más. El nombre, los botones y las sesiones salen al pasar el ratón por encima. El tirador de ensanchar desaparece mientras está puesta, porque ahí no hay ancho que elegir.\n\n## Descargar clientes desde el centro de cuentas\n\nLos que no tienes instalados ya traen botón: abre una terminal y los descarga, sin pedirte ninguna cuenta ni meterte en ningún login. Los que no tienen un comando de fiar (opencode, Amp, Cursor) llevan enlace a su web, porque su paquete de npm no es suyo o deja un ejecutable vacío en Windows.\n\nKiro CLI entra en la lista. Y el botón de recargar ahora vuelve a mirar qué hay instalado, no solo relee los límites.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.2",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.2/Adeorq_0.9.2_x64-setup.exe",
+        "filename": "Adeorq_0.9.2_x64-setup.exe",
+        "size": 3691630,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.9.1",
+      "tag": "v0.9.1",
+      "date": "2026-07-27",
+      "publishedAt": "2026-07-27T16:14:12Z",
+      "title": "Las piezas se agarran por donde sea",
+      "name": "Adeorq 0.9.1 - las piezas se agarran por donde sea",
+      "summary": "Notas, cacharros, utilidades, capturas y galería ya no hay que cogerlos por la cabecera: se arrastran desde el cuerpo, como en cualquier lienzo.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "## Las piezas se agarran por donde sea  Notas, cacharros, utilidades, capturas y galería ya no hay que cogerlos por la cabecera: se arrastran desde el cuerpo, como en cualquier lienzo.",
+        "Las terminales conservan la suya a propósito — si no, arrastrar dentro del terminal movería el panel en vez de seleccionar texto.",
+        "Dos cosas que se habrían roto por el camino van cubiertas: seleccionar texto en un campo ya no se lleva la pieza por delante, y mover una nota ya no la deja en modo escritura al soltarla.",
+        "## Texto en las capturas  Herramienta **T**: clic donde quieras y escribes ahí mismo."
+      ],
+      "highlights": [
+        "## Las piezas se agarran por donde sea  Notas, cacharros, utilidades, capturas y galería ya no hay que cogerlos por la cabecera: se arrastran desde el cuerpo, como en cualquier lienzo.",
+        "Las terminales conservan la suya a propósito — si no, arrastrar dentro del terminal movería el panel en vez de seleccionar texto.",
+        "Dos cosas que se habrían roto por el camino van cubiertas: seleccionar texto en un campo ya no se lleva la pieza por delante, y mover una nota ya no la deja en modo escritura al soltarla.",
+        "## Texto en las capturas  Herramienta **T**: clic donde quieras y escribes ahí mismo."
+      ],
+      "headings": [
+        "Las piezas se agarran por donde sea",
+        "Texto en las capturas",
+        "Copiar la captura editada",
+        "Conectar una captura a una terminal",
+        "Las piezas caen donde estás mirando"
+      ],
+      "image": null,
+      "notes": "## Las piezas se agarran por donde sea\n\nNotas, cacharros, utilidades, capturas y galería ya no hay que cogerlos por la cabecera: se arrastran desde el cuerpo, como en cualquier lienzo. Las terminales conservan la suya a propósito — si no, arrastrar dentro del terminal movería el panel en vez de seleccionar texto.\n\nDos cosas que se habrían roto por el camino van cubiertas: seleccionar texto en un campo ya no se lleva la pieza por delante, y mover una nota ya no la deja en modo escritura al soltarla.\n\n## Texto en las capturas\n\nHerramienta **T**: clic donde quieras y escribes ahí mismo. Enter cierra, Mayús+Enter hace otra línea. Un rótulo ya puesto **se arrastra** a otro sitio y se reescribe con doble clic — casi nunca cae a la primera donde tiene que estar, y antes había que deshacerlo y repetirlo.\n\nLleva un borde oscuro detrás para que se lea sobre capturas claras y oscuras, y se ve del mismo tamaño en pantalla que en el PNG que sale.\n\n## Copiar la captura editada\n\nBotón nuevo junto a «Mandar a…», con las flechas y el texto ya pintados. Antes la única salida era mandarla a un agente: servía para el agente y para nadie más.\n\n## Conectar una captura a una terminal\n\nEran dos fallos a la vez. Los puertos estaban **recortados a la mitad** por el borde redondeado de la tarjeta, así que enganchar una flecha era puntería. Y aunque acertaras, **la flecha no hacía nada**: solo las notas viajaban por ella, así que se dibujaba la línea y ahí se quedaba, que es la peor versión posible porque parece que ha funcionado. Ahora una captura enganchada a una terminal se manda sola.\n\n## Las piezas caen donde estás mirando\n\nAparecían en una cuadrícula contada desde el origen del lienzo, así que la número veinte salía a pantallas de distancia: pegabas un pantallazo y parecía que no pasaba nada. Ahora caen donde tienes el ratón, o en el centro de lo que ves. Vale para Ctrl+V, notas, cacharros y galería.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.1",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.1/Adeorq_0.9.1_x64-setup.exe",
+        "filename": "Adeorq_0.9.1_x64-setup.exe",
+        "size": 3685805,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.9.0",
+      "tag": "v0.9.0",
+      "date": "2026-07-27",
+      "publishedAt": "2026-07-27T15:32:17Z",
+      "title": "El tablero de cuadrilla",
+      "name": "Adeorq 0.9.0 - el tablero de cuadrilla",
+      "summary": "Repartir un encargo entre varias terminales ya lo hacía el Capataz.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "## El tablero de cuadrilla  Repartir un encargo entre varias terminales ya lo hacía el Capataz.",
+        "La parte difícil venía después: con cinco paneles abiertos no se ve de un vistazo quién trabaja, quién ya terminó y —lo que de verdad cuesta tiempo— **quién lleva diez minutos parado esperando que le contestes**.",
+        "Un agente esperándote no avisa: se queda quieto, y el reparto que iba a ahorrar media hora la pierde ahí.",
+        "Encima del mosaico aparece ahora una tira con la cuadrilla: cada puesto, lo que está haciendo y **cuánto lleva así**."
+      ],
+      "highlights": [
+        "## El tablero de cuadrilla  Repartir un encargo entre varias terminales ya lo hacía el Capataz.",
+        "La parte difícil venía después: con cinco paneles abiertos no se ve de un vistazo quién trabaja, quién ya terminó y —lo que de verdad cuesta tiempo— **quién lleva diez minutos parado esperando que le contestes**.",
+        "Un agente esperándote no avisa: se queda quieto, y el reparto que iba a ahorrar media hora la pierde ahí.",
+        "Encima del mosaico aparece ahora una tira con la cuadrilla: cada puesto, lo que está haciendo y **cuánto lleva así**."
+      ],
+      "headings": [
+        "El tablero de cuadrilla",
+        "Y de paso"
+      ],
+      "image": null,
+      "notes": "## El tablero de cuadrilla\n\nRepartir un encargo entre varias terminales ya lo hacía el Capataz. La parte difícil venía después: con cinco paneles abiertos no se ve de un vistazo quién trabaja, quién ya terminó y —lo que de verdad cuesta tiempo— **quién lleva diez minutos parado esperando que le contestes**. Un agente esperándote no avisa: se queda quieto, y el reparto que iba a ahorrar media hora la pierde ahí.\n\nEncima del mosaico aparece ahora una tira con la cuadrilla: cada puesto, lo que está haciendo y **cuánto lleva así**. Los que te esperan salen marcados y contados arriba, porque son lo único de esa tira que te toca a ti. Un clic te lleva a esa terminal **y te deja el teclado dentro**, listo para contestar.\n\nDebajo, el `BUZON.md` según se va escribiendo: ahí es donde los puestos se dejan dicho lo que no pueden tocar porque es zona de otro. Estaba en el disco desde el primer día y nadie lo leía hasta el final, cuando ya tocaba deshacer cosas.\n\n**No pregunta nada a ningún modelo.** Lee lo que el panel ya sabe de cada terminal y un archivo de texto. Por eso no gasta cuota y por eso no se equivoca: no interpreta, mira.\n\nCuando no hay ninguna cuadrilla abierta, no ocupa nada.\n\n## Y de paso\n\n`pnpm i18n` encontró dos avisos más sin traducir en la Cabina y en las utilidades.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.0",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.0/Adeorq_0.9.0_x64-setup.exe",
+        "filename": "Adeorq_0.9.0_x64-setup.exe",
+        "size": 3685079,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.8.9",
+      "tag": "v0.8.9",
+      "date": "2026-07-27",
+      "publishedAt": "2026-07-27T15:20:15Z",
+      "title": "La captura ya te suelta",
+      "name": "Adeorq 0.8.9 - la captura ya te suelta",
+      "summary": "Pintabas una flecha y te quedabas atrapado: la capa de dibujo se tragaba todos los clics, así que la captura no se podía mover ni enganchar a una terminal, y no había manera de salir porque no existía un estado «sin herramienta».",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "## La captura ya te suelta  Pintabas una flecha y te quedabas atrapado: la capa de dibujo se tragaba todos los clics, así que la captura no se podía mover ni enganchar a una terminal, y no había manera de salir porque no existía un estado «sin herramienta».",
+        "Empezaba ya con la flecha puesta.",
+        "Ahora la barra abre con **✥ Mover y conectar**, que es como arranca una captura recién pegada: lo primero que se hace con un pantallazo es colocarlo, no pintarlo.",
+        "Con la mano puesta el clic baja al lienzo y la captura se arrastra y se conecta como cualquier otra pieza."
+      ],
+      "highlights": [
+        "## La captura ya te suelta  Pintabas una flecha y te quedabas atrapado: la capa de dibujo se tragaba todos los clics, así que la captura no se podía mover ni enganchar a una terminal, y no había manera de salir porque no existía un estado «sin herramienta».",
+        "Empezaba ya con la flecha puesta.",
+        "Ahora la barra abre con **✥ Mover y conectar**, que es como arranca una captura recién pegada: lo primero que se hace con un pantallazo es colocarlo, no pintarlo.",
+        "Con la mano puesta el clic baja al lienzo y la captura se arrastra y se conecta como cualquier otra pieza."
+      ],
+      "headings": [
+        "La captura ya te suelta"
+      ],
+      "image": null,
+      "notes": "## La captura ya te suelta\n\nPintabas una flecha y te quedabas atrapado: la capa de dibujo se tragaba todos los clics, así que la captura no se podía mover ni enganchar a una terminal, y no había manera de salir porque no existía un estado «sin herramienta». Empezaba ya con la flecha puesta.\n\nAhora la barra abre con **✥ Mover y conectar**, que es como arranca una captura recién pegada: lo primero que se hace con un pantallazo es colocarlo, no pintarlo. Con la mano puesta el clic baja al lienzo y la captura se arrastra y se conecta como cualquier otra pieza.\n\nY **Escape suelta la herramienta**, que es lo que uno prueba por instinto al verse atrapado dibujando.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.8.9",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.8.9/Adeorq_0.8.9_x64-setup.exe",
+        "filename": "Adeorq_0.8.9_x64-setup.exe",
+        "size": 3677958,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.8.8",
+      "tag": "v0.8.8",
+      "date": "2026-07-27",
+      "publishedAt": "2026-07-27T15:08:16Z",
+      "title": "Una tarea de la nota ya se puede corregir",
+      "name": "Adeorq 0.8.8 - la nota se corrige, el reloj se oye y el ingles esta entero",
+      "summary": "Estaba rota por dos motivos a la vez: cada fila era una etiqueta de casilla, así que ir a tocar una palabra la daba por hecha, y además la fila entera se tragaba el clic antes de que llegara a abrir el cuadro de escribir.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "## Una tarea de la nota ya se puede corregir  Estaba rota por dos motivos a la vez: cada fila era una etiqueta de casilla, así que ir a tocar una palabra la daba por hecha, y además la fila entera se tragaba el clic antes de que llegara a abrir el cuadro de escribir.",
+        "Ahora la casilla marca y el texto de al lado se edita, como debía ser.",
+        "## El Pomodoro avisa de verdad  Al llegar a cero suena una alarma de tres repiques, sale la notificación de Windows y parpadea el botón de la barra de tareas.",
+        "Antes era un repique corto de dos notas: estando en la Cabina con el lienzo en otra pestaña, se perdía."
+      ],
+      "highlights": [
+        "## Una tarea de la nota ya se puede corregir  Estaba rota por dos motivos a la vez: cada fila era una etiqueta de casilla, así que ir a tocar una palabra la daba por hecha, y además la fila entera se tragaba el clic antes de que llegara a abrir el cuadro de escribir.",
+        "Ahora la casilla marca y el texto de al lado se edita, como debía ser.",
+        "## El Pomodoro avisa de verdad  Al llegar a cero suena una alarma de tres repiques, sale la notificación de Windows y parpadea el botón de la barra de tareas.",
+        "Antes era un repique corto de dos notas: estando en la Cabina con el lienzo en otra pestaña, se perdía."
+      ],
+      "headings": [
+        "Una tarea de la nota ya se puede corregir",
+        "El Pomodoro avisa de verdad",
+        "La app en inglés, terminada"
+      ],
+      "image": null,
+      "notes": "## Una tarea de la nota ya se puede corregir\n\nEstaba rota por dos motivos a la vez: cada fila era una etiqueta de casilla, así que ir a tocar una palabra la daba por hecha, y además la fila entera se tragaba el clic antes de que llegara a abrir el cuadro de escribir. Ahora la casilla marca y el texto de al lado se edita, como debía ser.\n\n## El Pomodoro avisa de verdad\n\nAl llegar a cero suena una alarma de tres repiques, sale la notificación de Windows y parpadea el botón de la barra de tareas. Antes era un repique corto de dos notas: estando en la Cabina con el lienzo en otra pestaña, se perdía.\n\n**Y hay cuenta atrás**, un cacharro nuevo. Eliges los minutos (1, 5, 10, 25 de un botón, o los que quieras hasta 180) y al llegar a cero avisa igual. El Pomodoro no podía hacer esto porque el Pomodoro son 25 y 5 y no se discute.\n\n## La app en inglés, terminada\n\nLas nueve utilidades del lienzo estaban enteras en español, igual que el panel de la derecha, que además decía «Skills · Uso» con la app en inglés. Ese panel ni siquiera pasaba por el traductor: tenía el texto escrito a mano.\n\nY su rótulo, cuando está plegado, era de 11 píxeles en gris apagado. Ahora se lee.\n\n**Para que esto no vuelva a pasar hay `pnpm i18n`**, que revisa dos cosas distintas: lo que pide traducción y no la tiene, y lo que está escrito en duro y por tanto nunca la pedirá. Lo segundo es lo que se nos escapó dos veces. Los encargos que Adeorq le escribe a un agente quedan fuera a propósito: esos van en español siempre.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.8.8",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.8.8/Adeorq_0.8.8_x64-setup.exe",
+        "filename": "Adeorq_0.8.8_x64-setup.exe",
+        "size": 3679934,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.8.7",
+      "tag": "v0.8.7",
+      "date": "2026-07-27",
+      "publishedAt": "2026-07-27T14:18:41Z",
+      "title": null,
+      "name": "Adeorq 0.8.7 - la app en ingles vuelve a hablar ingles",
+      "summary": "**La app en inglés estaba medio en español.** El menú de piezas del lienzo entero, la barra, los avisos, los ajustes de Discord y la papelera de sesiones salían en español aunque tuvieras Adeorq en inglés.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "**La app en inglés estaba medio en español.** El menú de piezas del lienzo entero, la barra, los avisos, los ajustes de Discord y la papelera de sesiones salían en español aunque tuvieras Adeorq en inglés.",
+        "Faltaban **76 textos** en el diccionario, y la mayoría no eran de esta versión: se venían acumulando desde que llegó el lienzo.",
+        "Ya están los 76, y ahora hay una comprobación que saca todas las frases que pasan por el traductor y las cruza con el diccionario, para que no vuelva a colarse ninguna.",
+        "Es un fallo que no detecta ningún test ni se ve leyendo el código: se ve mirando la pantalla con el idioma cambiado."
+      ],
+      "highlights": [
+        "**La app en inglés estaba medio en español.** El menú de piezas del lienzo entero, la barra, los avisos, los ajustes de Discord y la papelera de sesiones salían en español aunque tuvieras Adeorq en inglés.",
+        "Faltaban **76 textos** en el diccionario, y la mayoría no eran de esta versión: se venían acumulando desde que llegó el lienzo.",
+        "Ya están los 76, y ahora hay una comprobación que saca todas las frases que pasan por el traductor y las cruza con el diccionario, para que no vuelva a colarse ninguna.",
+        "Es un fallo que no detecta ningún test ni se ve leyendo el código: se ve mirando la pantalla con el idioma cambiado."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "**La app en inglés estaba medio en español.** El menú de piezas del lienzo entero, la barra, los avisos, los ajustes de Discord y la papelera de sesiones salían en español aunque tuvieras Adeorq en inglés.\n\nFaltaban **76 textos** en el diccionario, y la mayoría no eran de esta versión: se venían acumulando desde que llegó el lienzo. Ya están los 76, y ahora hay una comprobación que saca todas las frases que pasan por el traductor y las cruza con el diccionario, para que no vuelva a colarse ninguna.\n\nEs un fallo que no detecta ningún test ni se ve leyendo el código: se ve mirando la pantalla con el idioma cambiado.\n\n**Y tres pruebas nuevas que tocan el disco de verdad**: una escribe una nota, la lee, la edita por fuera como haría un agente marcando una casilla y comprueba que la app ve el cambio; otra que una nota vacía no cuenta como escrita; y otra que la galería solo lee de su propia carpeta y manda las imágenes en crudo. Las tres limpian lo que crean.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.8.7",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.8.7/Adeorq_0.8.7_x64-setup.exe",
+        "filename": "Adeorq_0.8.7_x64-setup.exe",
+        "size": 3673481,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.8.6",
+      "tag": "v0.8.6",
+      "date": "2026-07-27",
+      "publishedAt": "2026-07-27T13:53:21Z",
+      "title": "Notas que un agente puede tachar",
+      "name": "Adeorq 0.8.6 - el lienzo guarda tu trabajo, y el Capataz lo reparte",
+      "summary": "La versión más grande del lienzo hasta ahora, y un Capataz que sabe repartir trabajo.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "**Galería**: todas las capturas que has pegado en Adeorq, en rejilla. Clic para volver a soltar una en el lienzo, doble clic para verla grande, papelera por imagen.",
+        "**Calendario**: eliges un día y escribes en él. Los días con algo escrito llevan un punto, y cada día es un archivo de texto como las notas.",
+        "**Nueve utilidades**: JSON, expresión regular, comparar textos, codificador, hash, contraseñas, identificadores, color y contar texto (con los tokens aproximados, para saber si algo le cabe al agente). Están dentro por un motivo: lo que uno pega en esas webs suele ser justo lo que no debería salir del equipo. Aquí no sale nada.",
+        "**Tiradores para estirar** lo que ya has puesto: los extremos de una flecha, las cuatro esquinas de un recuadro y el tamaño de un texto."
+      ],
+      "highlights": [
+        "**Galería**: todas las capturas que has pegado en Adeorq, en rejilla. Clic para volver a soltar una en el lienzo, doble clic para verla grande, papelera por imagen.",
+        "**Calendario**: eliges un día y escribes en él. Los días con algo escrito llevan un punto, y cada día es un archivo de texto como las notas.",
+        "**Nueve utilidades**: JSON, expresión regular, comparar textos, codificador, hash, contraseñas, identificadores, color y contar texto (con los tokens aproximados, para saber si algo le cabe al agente). Están dentro por un motivo: lo que uno pega en esas webs suele ser justo lo que no debería salir del equipo. Aquí no sale nada.",
+        "**Tiradores para estirar** lo que ya has puesto: los extremos de una flecha, las cuatro esquinas de un recuadro y el tamaño de un texto."
+      ],
+      "headings": [
+        "Notas que un agente puede tachar",
+        "La cuadrilla: una tarea, varias terminales",
+        "Galería, calendario y nueve utilidades",
+        "Dibujo",
+        "Y lo pequeño que se nota"
+      ],
+      "image": null,
+      "notes": "La versión más grande del lienzo hasta ahora, y un Capataz que sabe repartir trabajo.\n\n## Notas que un agente puede tachar\n\nAñade una nota al lienzo y escribe. Las líneas que empiezan por `- [ ]` se pintan como casillas y se marcan con un clic. **Se guardan solas**, sin botón: cada nota es un archivo markdown en `%LOCALAPPDATA%\\Adeorq\\notas`, así que sobreviven al tablero y se pueden abrir fuera de Adeorq.\n\nY de ahí sale lo bueno: **conecta una nota a una terminal** con una flecha y el agente recibe la lista de tareas pendientes y la ruta del archivo, con el encargo de marcar cada casilla cuando termine de verdad. La nota vigila su archivo, así que ves tacharse las tareas según van cayendo. Solo se escribe en la terminal: el Enter lo sigues dando tú.\n\nEse es el motivo de que las notas sean archivos y no un trozo del tablero: un agente sabe editar un `.md`, y no sabe nada de nuestro formato de lienzo.\n\n## La cuadrilla: una tarea, varias terminales\n\nPídele al Capataz que reparta un trabajo y monta un equipo. Él decide cuántas manos según cuántos trozos independientes tenga la tarea, y **si no se puede partir en pedazos que no se toquen, lo dice y no monta nada**: dos agentes editando el mismo archivo van más lento que uno.\n\nCada puesto recibe su frontera de archivos, qué están haciendo los demás a la vez, y la orden de apuntar en el `BUZON.md` lo que necesite de otra zona en vez de meter mano. Y se ve que van juntas: comparten color, borde y una chapa con su puesto («2/5 · Backend»).\n\nTope de seis, y la comprobación que importa se hace antes de abrir nada: si dos puestos comparten archivos, el plan se rechaza.\n\n## Galería, calendario y nueve utilidades\n\n- **Galería**: todas las capturas que has pegado en Adeorq, en rejilla. Clic para volver a soltar una en el lienzo, doble clic para verla grande, papelera por imagen.\n- **Calendario**: eliges un día y escribes en él. Los días con algo escrito llevan un punto, y cada día es un archivo de texto como las notas.\n- **Nueve utilidades**: JSON, expresión regular, comparar textos, codificador, hash, contraseñas, identificadores, color y contar texto (con los tokens aproximados, para saber si algo le cabe al agente). Están dentro por un motivo: lo que uno pega en esas webs suele ser justo lo que no debería salir del equipo. Aquí no sale nada.\n\n## Dibujo\n\n- **Tiradores para estirar** lo que ya has puesto: los extremos de una flecha, las cuatro esquinas de un recuadro y el tamaño de un texto.\n- **Dibujar con brillo**, un interruptor nuevo. El botón enseña el color que tienes puesto ya con el halo.\n- **Cinco tipografías** para el texto, cada una elegible viendo cómo se ve.\n- Arreglado: el texto ya se puede mover (el navegador te robaba el gesto para seleccionarlo) y la goma ya lo borra (medía la distancia desde su esquina, no desde la palabra).\n\n## Y lo pequeño que se nota\n\nClic derecho en el lienzo vacío abre el menú de añadir, agrupado por secciones. Los menús se cierran al pulsar fuera. Las piezas se agrandan por las cuatro esquinas y los bordes, con un tirador visible en la esquina. La calculadora tiene el `=` donde lo busca la mano, y sus teclas crecen al agrandarla. El aviso del escudo dura cinco segundos y ya no tapa la barra de arriba.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.8.6",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.8.6/Adeorq_0.8.6_x64-setup.exe",
+        "filename": "Adeorq_0.8.6_x64-setup.exe",
+        "size": 3675619,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.8.5",
+      "tag": "v0.8.5",
+      "date": "2026-07-27",
+      "publishedAt": "2026-07-27T11:39:39Z",
+      "title": null,
+      "name": "Adeorq 0.8.5 - el aviso se aparta y el lapiz se queda",
+      "summary": "Dos cosas que estorbaban, quitadas de en medio.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "Dos cosas que estorbaban, quitadas de en medio.",
+        "**El aviso del escudo ya no se pone delante.** Cuando el modo emisión tapa un correo o una ruta con tu nombre de usuario, lo decía con una banda de lado a lado pegada al techo, por encima de la barra de arriba: el aviso más inofensivo de la app se comportaba como el más grave.",
+        "Ahora es una tarjeta pequeña abajo a la derecha y se va sola a los cinco segundos, no a los nueve.",
+        "No hace falta más, porque el escudo tapa **antes** de pintar: cuando lees ese mensaje, lo que anuncia ya no puede pasar."
+      ],
+      "highlights": [
+        "Dos cosas que estorbaban, quitadas de en medio.",
+        "**El aviso del escudo ya no se pone delante.** Cuando el modo emisión tapa un correo o una ruta con tu nombre de usuario, lo decía con una banda de lado a lado pegada al techo, por encima de la barra de arriba: el aviso más inofensivo de la app se comportaba como el más grave.",
+        "Ahora es una tarjeta pequeña abajo a la derecha y se va sola a los cinco segundos, no a los nueve.",
+        "No hace falta más, porque el escudo tapa **antes** de pintar: cuando lees ese mensaje, lo que anuncia ya no puede pasar."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Dos cosas que estorbaban, quitadas de en medio.\n\n**El aviso del escudo ya no se pone delante.** Cuando el modo emisión tapa un correo o una ruta con tu nombre de usuario, lo decía con una banda de lado a lado pegada al techo, por encima de la barra de arriba: el aviso más inofensivo de la app se comportaba como el más grave. Ahora es una tarjeta pequeña abajo a la derecha y se va sola a los cinco segundos, no a los nueve.\n\nNo hace falta más, porque el escudo tapa **antes** de pintar: cuando lees ese mensaje, lo que anuncia ya no puede pasar. Solo te está contando algo. El único que sigue esperándote hasta que lo cierres es el de una clave o un token, porque ese sí pide que mires qué lo imprimió.\n\n**El lápiz se queda en la mano.** Al soltar el ratón, la herramienta volvía sola a la flecha y había que picar otra vez en la barra entre raya y raya. A mano alzada nadie dibuja de un solo trazo: una cara son tres y subrayar dos cosas, dos. Las figuras de un gesto (flecha, línea, recuadro, elipse, texto) sí se siguen soltando, que es donde ese automatismo acierta y evita que el siguiente arrastre pinte cuando querías mover. Para salir del lápiz, Esc o la propia flecha.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.8.5",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.8.5/Adeorq_0.8.5_x64-setup.exe",
+        "filename": "Adeorq_0.8.5_x64-setup.exe",
+        "size": 3663839,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.8.4",
+      "tag": "v0.8.4",
+      "date": "2026-07-27",
+      "publishedAt": "2026-07-27T11:04:00Z",
+      "title": null,
+      "name": "Adeorq 0.8.4 - lo que dibujas se puede cambiar",
+      "summary": "**Lo que dibujas ya se puede cambiar.** El lienzo iba en una sola dirección: pintabas y lo pintado se quedaba quieto para siempre.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "**Lo que dibujas ya se puede cambiar.** El lienzo iba en una sola dirección: pintabas y lo pintado se quedaba quieto para siempre.",
+        "Ahora, con la flecha de seleccionar, coges cualquier trazo y lo mueves, le cambias el color o el grosor, reescribes un texto con doble clic y lo borras con Supr.",
+        "Las líneas finas también se pueden agarrar, porque cada forma lleva debajo una copia invisible y gruesa: apuntar a un pelo de dos píxeles no es trabajo del usuario.",
+        "**Y ahora se puede dibujar de verdad**: lápiz, líneas, flechas, rectángulos, elipses y texto, con siete colores y tres grosores."
+      ],
+      "highlights": [
+        "**Lo que dibujas ya se puede cambiar.** El lienzo iba en una sola dirección: pintabas y lo pintado se quedaba quieto para siempre.",
+        "Ahora, con la flecha de seleccionar, coges cualquier trazo y lo mueves, le cambias el color o el grosor, reescribes un texto con doble clic y lo borras con Supr.",
+        "Las líneas finas también se pueden agarrar, porque cada forma lleva debajo una copia invisible y gruesa: apuntar a un pelo de dos píxeles no es trabajo del usuario.",
+        "**Y ahora se puede dibujar de verdad**: lápiz, líneas, flechas, rectángulos, elipses y texto, con siete colores y tres grosores."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "**Lo que dibujas ya se puede cambiar.** El lienzo iba en una sola dirección: pintabas y lo pintado se quedaba quieto para siempre. Ahora, con la flecha de seleccionar, coges cualquier trazo y lo mueves, le cambias el color o el grosor, reescribes un texto con doble clic y lo borras con Supr. Las líneas finas también se pueden agarrar, porque cada forma lleva debajo una copia invisible y gruesa: apuntar a un pelo de dos píxeles no es trabajo del usuario.\n\n**Y ahora se puede dibujar de verdad**: lápiz, líneas, flechas, rectángulos, elipses y texto, con siete colores y tres grosores. El séptimo es un selector libre, por si el color que quieres no está.\n\n**Un tablero entero cabe en un archivo.** Guardar y abrir en `.json` se lleva las notas, los dibujos, las capturas pegadas y las flechas, y al abrirlo vuelven a levantarse las terminales que había. Sirve para cambiar de proyecto sin perder el mapa mental, y para enseñarle a alguien cómo tienes montada la cabeza ese día.\n\n**Los desplegables ya no bailan.** Un menú abierto desde un botón sale pegado al botón, por su esquina de abajo, y no donde cayó el ratón. Antes aparecía en un sitio distinto cada vez y a veces tapaba el propio botón que acababas de pulsar. Cada opción lleva además su icono dibujado, en lugar de un emoji que cada sistema pinta de un tamaño y desalinea las filas.\n\n**La barra de arriba lleva el nombre**, no una marca de veinte píxeles que no se leía.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.8.4",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.8.4/Adeorq_0.8.4_x64-setup.exe",
+        "filename": "Adeorq_0.8.4_x64-setup.exe",
+        "size": 3659133,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.8.3",
+      "tag": "v0.8.3",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T23:26:46Z",
+      "title": null,
+      "name": "Adeorq 0.8.3 — contar el tablero",
+      "summary": "**Contar el tablero.** Un botón nuevo en la barra del lienzo: la terminal que tengas enfocada recibe quién más está trabajando ahí, en qué proyecto, qué otras piezas hay y **qué flecha sale de dónde**.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "**Contar el tablero.** Un botón nuevo en la barra del lienzo: la terminal que tengas enfocada recibe quién más está trabajando ahí, en qué proyecto, qué otras piezas hay y **qué flecha sale de dónde**.",
+        "Hasta ahora un agente solo veía su propia terminal.",
+        "Esa es la diferencia entre un lienzo donde dibujas y un lienzo sobre el que la IA puede razonar.",
+        "El texto se arma en la app y no se le deja al agente, porque es un hecho comprobable del tablero y no algo que deba adivinar."
+      ],
+      "highlights": [
+        "**Contar el tablero.** Un botón nuevo en la barra del lienzo: la terminal que tengas enfocada recibe quién más está trabajando ahí, en qué proyecto, qué otras piezas hay y **qué flecha sale de dónde**.",
+        "Hasta ahora un agente solo veía su propia terminal.",
+        "Esa es la diferencia entre un lienzo donde dibujas y un lienzo sobre el que la IA puede razonar.",
+        "El texto se arma en la app y no se le deja al agente, porque es un hecho comprobable del tablero y no algo que deba adivinar."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "**Contar el tablero.** Un botón nuevo en la barra del lienzo: la terminal que tengas enfocada recibe quién más está trabajando ahí, en qué proyecto, qué otras piezas hay y **qué flecha sale de dónde**.\n\nHasta ahora un agente solo veía su propia terminal. Esa es la diferencia entre un lienzo donde dibujas y un lienzo sobre el que la IA puede razonar.\n\nEl texto se arma en la app y no se le deja al agente, porque es un hecho comprobable del tablero y no algo que deba adivinar. Va marcado como **una foto de ahora mismo, no una orden**, para que un modelo servicial no lo lea como una lista de tareas. Y como todo lo que la app escribe en una terminal: se escribe, no se envía. El Enter sigue siendo tuyo.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.8.3",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.8.3/Adeorq_0.8.3_x64-setup.exe",
+        "filename": "Adeorq_0.8.3_x64-setup.exe",
+        "size": 3654424,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.8.2",
+      "tag": "v0.8.2",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T23:20:00Z",
+      "title": null,
+      "name": "Adeorq 0.8.2 — arrastrar terminales en el lienzo",
+      "summary": "**Las terminales del lienzo no se podían arrastrar por su cabecera.** Nunca, en realidad: parecía intermitente porque el borde del nodo sí respondía.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "**Las terminales del lienzo no se podían arrastrar por su cabecera.** Nunca, en realidad: parecía intermitente porque el borde del nodo sí respondía.",
+        "React Flow exige que se cumplan **las dos** condiciones a la vez:  ```js (!noDragClassName || !hasSelector(target, '.nodrag')) && (!handleSelector  ||  hasSelector(target, handleSelector)) ```  Y la cabecera vivía dentro de la raíz del nodo, que llevaba `nodrag`.",
+        "Así que la primera daba falso siempre y cualquier arrastre que empezara en la cabecera se rechazaba.",
+        "Con `dragHandle: \".pane-head\"` puesto, `nodrag` sobraba: la segunda condición ya impide que un arrastre empiece dentro del terminal."
+      ],
+      "highlights": [
+        "**Las terminales del lienzo no se podían arrastrar por su cabecera.** Nunca, en realidad: parecía intermitente porque el borde del nodo sí respondía.",
+        "React Flow exige que se cumplan **las dos** condiciones a la vez:  ```js (!noDragClassName || !hasSelector(target, '.nodrag')) && (!handleSelector  ||  hasSelector(target, handleSelector)) ```  Y la cabecera vivía dentro de la raíz del nodo, que llevaba `nodrag`.",
+        "Así que la primera daba falso siempre y cualquier arrastre que empezara en la cabecera se rechazaba.",
+        "Con `dragHandle: \".pane-head\"` puesto, `nodrag` sobraba: la segunda condición ya impide que un arrastre empiece dentro del terminal."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "**Las terminales del lienzo no se podían arrastrar por su cabecera.** Nunca, en realidad: parecía intermitente porque el borde del nodo sí respondía.\n\nReact Flow exige que se cumplan **las dos** condiciones a la vez:\n\n```js\n(!noDragClassName || !hasSelector(target, '.nodrag')) &&\n(!handleSelector  ||  hasSelector(target, handleSelector))\n```\n\nY la cabecera vivía dentro de la raíz del nodo, que llevaba `nodrag`. Así que la primera daba falso siempre y cualquier arrastre que empezara en la cabecera se rechazaba.\n\nCon `dragHandle: \".pane-head\"` puesto, `nodrag` sobraba: la segunda condición ya impide que un arrastre empiece dentro del terminal. `nowheel` se queda, que eso es la rueda y ahí sí debe scrollear el terminal.\n\nDe paso, la cabecera ahora **dice** que es un asa (cursor de agarre), cosa que no hacía, y sus botones mantienen el puntero para que ir a por la ✕ no mueva el nodo.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.8.2",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.8.2/Adeorq_0.8.2_x64-setup.exe",
+        "filename": "Adeorq_0.8.2_x64-setup.exe",
+        "size": 3654773,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.8.1",
+      "tag": "v0.8.1",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T23:12:05Z",
+      "title": "Pegar una captura, anotarla y mandársela a un agente",
+      "name": "Adeorq 0.8.1 — el lienzo se llena",
+      "summary": "El lienzo deja de ser solo terminales.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Las anotaciones se guardan en coordenadas de 0 a 100 sobre la imagen, no en píxeles de pantalla: redimensionas el nodo o haces zoom y la flecha sigue señalando lo mismo.",
+        "Se exporta al tamaño real de la captura y el grosor del trazo escala con ella; una captura 4K no puede llevar la misma flecha de 3 px que una miniatura.",
+        "La ruta se escribe pero **no se envía**: el Enter sigue siendo tuyo, como en todo lo que la app teclea en una terminal.",
+        "Pomodoro 25/5 con anillo, cambio de fase automático, vueltas y aviso sonoro. El descanso cambia de color."
+      ],
+      "highlights": [
+        "Las anotaciones se guardan en coordenadas de 0 a 100 sobre la imagen, no en píxeles de pantalla: redimensionas el nodo o haces zoom y la flecha sigue señalando lo mismo.",
+        "Se exporta al tamaño real de la captura y el grosor del trazo escala con ella; una captura 4K no puede llevar la misma flecha de 3 px que una miniatura.",
+        "La ruta se escribe pero **no se envía**: el Enter sigue siendo tuyo, como en todo lo que la app teclea en una terminal.",
+        "Pomodoro 25/5 con anillo, cambio de fase automático, vueltas y aviso sonoro. El descanso cambia de color."
+      ],
+      "headings": [
+        "Pegar una captura, anotarla y mandársela a un agente",
+        "Cuatro widgets"
+      ],
+      "image": null,
+      "notes": "El lienzo deja de ser solo terminales.\n\n## Pegar una captura, anotarla y mandársela a un agente\n\n**Ctrl+V** en el Canvas y el pantallazo entra como nodo. Le pintas una **flecha**, un **recuadro** o un trazo a mano alzada donde está el problema, y con **«Mandar a…»** eliges la terminal: se aplanan imagen y anotaciones en un solo PNG, se guarda en disco y **se escribe la ruta en el prompt de esa terminal**. El agente recibe una imagen con la flecha dentro, no un «mira arriba a la derecha».\n\nAntes eso eran tres programas: recortes, algo para pintar encima, y volver a pegar la ruta a mano.\n\n- Las anotaciones se guardan en coordenadas de 0 a 100 sobre la imagen, no en píxeles de pantalla: redimensionas el nodo o haces zoom y la flecha sigue señalando lo mismo.\n- Se exporta al tamaño real de la captura y el grosor del trazo escala con ella; una captura 4K no puede llevar la misma flecha de 3 px que una miniatura.\n- La ruta se escribe pero **no se envía**: el Enter sigue siendo tuyo, como en todo lo que la app teclea en una terminal.\n\n## Cuatro widgets\n\nDesde la barra de arriba: **Pomodoro**, **Cronómetro**, **Calculadora** y **Calendario**. Se arrastran, se redimensionan y se conectan como cualquier otro nodo, porque el lienzo ya era un grafo: un widget es un tipo de nodo más, no un segundo lienzo.\n\n- Pomodoro 25/5 con anillo, cambio de fase automático, vueltas y aviso sonoro. El descanso cambia de color.\n- Cronómetro con centésimas y vueltas marcadas.\n- Calculadora con precedencia de verdad (`2+3*4` son 14) y el resultado adelantado antes de pulsar `=`.\n- Calendario del mes con hoy marcado y la semana empezando en lunes.\n\n**Los relojes no cuentan sumando.** Un `setInterval(1000)` no dispara cada 1000 ms exactos y en segundo plano Windows lo estrangula: un pomodoro que va sumando se queda minutos corto justo cuando ya te fiabas de él. Aquí se guarda el instante de fin y lo que queda se deriva de la hora real.\n\n**La calculadora no usa `eval`.** Analiza y opera a mano: está dentro de una app con acceso al disco y no hay razón para dejar que se ejecute ahí un texto cualquiera.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.8.1",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.8.1/Adeorq_0.8.1_x64-setup.exe",
+        "filename": "Adeorq_0.8.1_x64-setup.exe",
+        "size": 3655273,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.7.19",
+      "tag": "v0.7.19",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T22:49:53Z",
+      "title": null,
+      "name": "Adeorq 0.7.19",
+      "summary": "**El botón de desplegar las sesiones.** En la anterior agrandé el de al lado por equivocación: Munir pedía el que **enseña** las sesiones (el `▾` que despliega la lista) y yo hice el que las **abre** como terminales.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "**El botón de desplegar las sesiones.** En la anterior agrandé el de al lado por equivocación: Munir pedía el que **enseña** las sesiones (el `▾` que despliega la lista) y yo hice el que las **abre** como terminales.",
+        "La fila acabó con un botón grande y azul junto al rótulo más pequeño de toda la barra: 12 px, gris y sin caja, cuando es la acción que más se usa.",
+        "Ahora es una pastilla del tamaño de un control.",
+        "**El panel lateral plegado** decía solo «Skills», pero ahí dentro también está el uso de la cuenta y nada lo indicaba."
+      ],
+      "highlights": [
+        "**El botón de desplegar las sesiones.** En la anterior agrandé el de al lado por equivocación: Munir pedía el que **enseña** las sesiones (el `▾` que despliega la lista) y yo hice el que las **abre** como terminales.",
+        "La fila acabó con un botón grande y azul junto al rótulo más pequeño de toda la barra: 12 px, gris y sin caja, cuando es la acción que más se usa.",
+        "Ahora es una pastilla del tamaño de un control.",
+        "**El panel lateral plegado** decía solo «Skills», pero ahí dentro también está el uso de la cuenta y nada lo indicaba."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "**El botón de desplegar las sesiones.** En la anterior agrandé el de al lado por equivocación: Munir pedía el que **enseña** las sesiones (el `▾` que despliega la lista) y yo hice el que las **abre** como terminales. La fila acabó con un botón grande y azul junto al rótulo más pequeño de toda la barra: 12 px, gris y sin caja, cuando es la acción que más se usa. Ahora es una pastilla del tamaño de un control.\n\n**El panel lateral plegado** decía solo «Skills», pero ahí dentro también está el uso de la cuenta y nada lo indicaba. Ahora pone «Skills · Uso».",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.19",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.19/Adeorq_0.7.19_x64-setup.exe",
+        "filename": "Adeorq_0.7.19_x64-setup.exe",
+        "size": 3650032,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.7.18",
+      "tag": "v0.7.18",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T22:36:28Z",
+      "title": null,
+      "name": "Adeorq 0.7.18",
+      "summary": "Cuatro cosas que salieron de usarlo, y una que rompí yo anoche.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "**Los avisos flotantes salían como una columna alta y estrecha.** Culpa mía, de ayer: el globo se pinta una vez invisible para medirlo, pero se medía **en su sitio definitivo**. Pegado a un borde, el navegador estrecha la caja para que quepa, así que medía el ancho ya aplastado y se quedaba así. Ahora se mide en la esquina, sin nada que lo apriete.",
+        "**«Abrir todas las sesiones» era un icono suelto** del mismo tamaño y color que los demás: no decía ni qué hacía ni cuántas abriría. Ahora lleva el número al lado y el acento de la casa.",
+        "**Un proyecto desplegado dejaba los botones fijos**, y como la fila les hace sitio quitándoselo al nombre, un proyecto abierto se quedaba llamándose «ho…» sin que nadie lo señalara. Desplegar enseña sus sesiones; los botones son cosa del ratón.",
+        "**Cuentas desperdiciaba media pantalla ancha**: la rejilla estaba topada a 1100 px mientras seis CLIs se apilaban hacia abajo. Dos columnas a partir de 1500 px."
+      ],
+      "highlights": [
+        "**Los avisos flotantes salían como una columna alta y estrecha.** Culpa mía, de ayer: el globo se pinta una vez invisible para medirlo, pero se medía **en su sitio definitivo**. Pegado a un borde, el navegador estrecha la caja para que quepa, así que medía el ancho ya aplastado y se quedaba así. Ahora se mide en la esquina, sin nada que lo apriete.",
+        "**«Abrir todas las sesiones» era un icono suelto** del mismo tamaño y color que los demás: no decía ni qué hacía ni cuántas abriría. Ahora lleva el número al lado y el acento de la casa.",
+        "**Un proyecto desplegado dejaba los botones fijos**, y como la fila les hace sitio quitándoselo al nombre, un proyecto abierto se quedaba llamándose «ho…» sin que nadie lo señalara. Desplegar enseña sus sesiones; los botones son cosa del ratón.",
+        "**Cuentas desperdiciaba media pantalla ancha**: la rejilla estaba topada a 1100 px mientras seis CLIs se apilaban hacia abajo. Dos columnas a partir de 1500 px."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Cuatro cosas que salieron de usarlo, y una que rompí yo anoche.\n\n- **Los avisos flotantes salían como una columna alta y estrecha.** Culpa mía, de ayer: el globo se pinta una vez invisible para medirlo, pero se medía **en su sitio definitivo**. Pegado a un borde, el navegador estrecha la caja para que quepa, así que medía el ancho ya aplastado y se quedaba así. Ahora se mide en la esquina, sin nada que lo apriete.\n- **«Abrir todas las sesiones» era un icono suelto** del mismo tamaño y color que los demás: no decía ni qué hacía ni cuántas abriría. Ahora lleva el número al lado y el acento de la casa.\n- **Un proyecto desplegado dejaba los botones fijos**, y como la fila les hace sitio quitándoselo al nombre, un proyecto abierto se quedaba llamándose «ho…» sin que nadie lo señalara. Desplegar enseña sus sesiones; los botones son cosa del ratón.\n- **Cuentas desperdiciaba media pantalla ancha**: la rejilla estaba topada a 1100 px mientras seis CLIs se apilaban hacia abajo. Dos columnas a partir de 1500 px.\n\nLos CLIs que aparecen ahí no están inventados: `claude`, `codex`, `gemini`, `qwen`, `copilot` y `crush` están de verdad en el PATH de esta máquina, y la vista ya filtraba por lo que encuentra la detección.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.18",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.18/Adeorq_0.7.18_x64-setup.exe",
+        "filename": "Adeorq_0.7.18_x64-setup.exe",
+        "size": 3651677,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.7.17",
+      "tag": "v0.7.17",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T22:11:39Z",
+      "title": "El Capataz ahora ve el tablero",
+      "name": "Adeorq 0.7.17",
+      "summary": "Antes sabía abrir terminales pero no cerrar ninguna, y de las abiertas conocía solo el nombre: no distinguía una que te está esperando de otra que ya entregó.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "**Reciclar paneles.** Propone cerrar los que ya terminaron. Nunca cierra uno que te espera, uno que está trabajando, uno con subagentes fuera, ni uno cuyo estado no se pueda leer. La comprobación se repite al aceptar, no solo al proponer.",
+        "**Revisar.** Abre un panel nuevo cuyo único trabajo es comprobar lo hecho por otro, y tiene prohibido arreglarlo. Una sesión no puede revisarse a sí misma.",
+        "**Un modelo por trabajo.** Seguridad y auditoría con Opus, el grueso con Sonnet, recados con Haiku. Sale de una tabla, no de otra llamada: elegirlo no gasta nada.",
+        "**El hueco negro al maximizar un panel.** Una terminal es una rejilla; al maximizar cambiaban a la vez el ancho y la fuente, y las columnas se calculaban con datos de dos estados distintos. Sobraba espacio y no se corregía solo."
+      ],
+      "highlights": [
+        "**Reciclar paneles.** Propone cerrar los que ya terminaron. Nunca cierra uno que te espera, uno que está trabajando, uno con subagentes fuera, ni uno cuyo estado no se pueda leer. La comprobación se repite al aceptar, no solo al proponer.",
+        "**Revisar.** Abre un panel nuevo cuyo único trabajo es comprobar lo hecho por otro, y tiene prohibido arreglarlo. Una sesión no puede revisarse a sí misma.",
+        "**Un modelo por trabajo.** Seguridad y auditoría con Opus, el grueso con Sonnet, recados con Haiku. Sale de una tabla, no de otra llamada: elegirlo no gasta nada.",
+        "**El hueco negro al maximizar un panel.** Una terminal es una rejilla; al maximizar cambiaban a la vez el ancho y la fuente, y las columnas se calculaban con datos de dos estados distintos. Sobraba espacio y no se corregía solo."
+      ],
+      "headings": [
+        "El Capataz ahora ve el tablero",
+        "Arreglos",
+        "Avisos"
+      ],
+      "image": null,
+      "notes": "## El Capataz ahora ve el tablero\n\nAntes sabía abrir terminales pero no cerrar ninguna, y de las abiertas conocía solo el nombre: no distinguía una que te está esperando de otra que ya entregó.\n\n- **Reciclar paneles.** Propone cerrar los que ya terminaron. Nunca cierra uno que te espera, uno que está trabajando, uno con subagentes fuera, ni uno cuyo estado no se pueda leer. La comprobación se repite al aceptar, no solo al proponer.\n- **Revisar.** Abre un panel nuevo cuyo único trabajo es comprobar lo hecho por otro, y tiene prohibido arreglarlo. Una sesión no puede revisarse a sí misma.\n- **Un modelo por trabajo.** Seguridad y auditoría con Opus, el grueso con Sonnet, recados con Haiku. Sale de una tabla, no de otra llamada: elegirlo no gasta nada.\n\n## Arreglos\n\n- **El hueco negro al maximizar un panel.** Una terminal es una rejilla; al maximizar cambiaban a la vez el ancho y la fuente, y las columnas se calculaban con datos de dos estados distintos. Sobraba espacio y no se corregía solo.\n- **La cabecera del panel decía `C:\\pro…`** en vez del proyecto: partía la ruta solo por `/` y en Windows es `\\`. Ahora pone `[Adeorq] Frontend`, y se lee con la terminal pequeña.\n- **Los avisos flotantes** se salían de la ventana y caían sobre la fila de al lado. Ahora se miden y se vuelcan hacia arriba si no caben.\n- **Clic derecho en un proyecto**: funciona en toda la fila, no solo en el borde izquierdo, y abre con la ruta, cuántas sesiones tiene y cuántas te esperan.\n\n## Avisos\n\nEl resplandor de «esta terminal te espera» es naranja en los cuatro temas y solo aparece con más de una abierta. Y suena: dos notas que bajan al terminar, que suben al preguntar. Se calla con los avisos en «nunca».",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.17",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.17/Adeorq_0.7.17_x64-setup.exe",
+        "filename": "Adeorq_0.7.17_x64-setup.exe",
+        "size": 3648920,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.7.16",
+      "tag": "v0.7.16",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T18:57:55Z",
+      "title": null,
+      "name": "Adeorq 0.7.16",
+      "summary": "Discord sin configurar nada, papelera de sesiones, terminales con un ancho mínimo y el Capataz cambiando un ajuste en todas a la vez. Además, arreglado el cuelgue al conectar con Discord.",
+      "tags": [
+        "arreglo"
+      ],
+      "items": [
+        "Discord sin configurar nada, papelera de sesiones, terminales con un ancho mínimo y el Capataz cambiando un ajuste en todas a la vez.",
+        "Además, arreglado el cuelgue al conectar con Discord."
+      ],
+      "highlights": [
+        "Discord sin configurar nada, papelera de sesiones, terminales con un ancho mínimo y el Capataz cambiando un ajuste en todas a la vez.",
+        "Además, arreglado el cuelgue al conectar con Discord."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Discord sin configurar nada, papelera de sesiones, terminales con un ancho mínimo y el Capataz cambiando un ajuste en todas a la vez. Además, arreglado el cuelgue al conectar con Discord.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.16",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.16/Adeorq_0.7.16_x64-setup.exe",
+        "filename": "Adeorq_0.7.16_x64-setup.exe",
+        "size": 3646258,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.7.12",
+      "tag": "v0.7.12",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T15:21:46Z",
+      "title": null,
+      "name": "Adeorq 0.7.12",
+      "summary": "Logo redibujado, escuadron de terminales (abre las que quieras de golpe, colocadas en rejilla) y arreglado el desplazamiento lateral de la ventana.",
+      "tags": [
+        "arreglo"
+      ],
+      "items": [
+        "Logo redibujado, escuadron de terminales (abre las que quieras de golpe, colocadas en rejilla) y arreglado el desplazamiento lateral de la ventana."
+      ],
+      "highlights": [
+        "Logo redibujado, escuadron de terminales (abre las que quieras de golpe, colocadas en rejilla) y arreglado el desplazamiento lateral de la ventana."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Logo redibujado, escuadron de terminales (abre las que quieras de golpe, colocadas en rejilla) y arreglado el desplazamiento lateral de la ventana.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.12",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.12/Adeorq_0.7.12_x64-setup.exe",
+        "filename": "Adeorq_0.7.12_x64-setup.exe",
+        "size": 3630709,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.7.11",
+      "tag": "v0.7.11",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T14:04:25Z",
+      "title": null,
+      "name": "Adeorq 0.7.11",
+      "summary": "Iconos dibujados y botones visibles, el logo llenando su tarjeta, renombrar proyectos sin tocar carpetas, y la pestana Agenda con calendario, ideas, proximos pasos y bandeja de agentes.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Iconos dibujados y botones visibles, el logo llenando su tarjeta, renombrar proyectos sin tocar carpetas, y la pestana Agenda con calendario, ideas, proximos pasos y bandeja de agentes."
+      ],
+      "highlights": [
+        "Iconos dibujados y botones visibles, el logo llenando su tarjeta, renombrar proyectos sin tocar carpetas, y la pestana Agenda con calendario, ideas, proximos pasos y bandeja de agentes."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Iconos dibujados y botones visibles, el logo llenando su tarjeta, renombrar proyectos sin tocar carpetas, y la pestana Agenda con calendario, ideas, proximos pasos y bandeja de agentes.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.11",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.11/Adeorq_0.7.11_x64-setup.exe",
+        "filename": "Adeorq_0.7.11_x64-setup.exe",
+        "size": 3638072,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.7.10",
+      "tag": "v0.7.10",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T12:09:59Z",
+      "title": null,
+      "name": "Adeorq 0.7.10",
+      "summary": "Rail de logos, Agenda (calendario, ideas y proximos pasos), arranque con Windows, actividad de Discord y asistente para abrir sesiones.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Rail de logos, Agenda (calendario, ideas y proximos pasos), arranque con Windows, actividad de Discord y asistente para abrir sesiones."
+      ],
+      "highlights": [
+        "Rail de logos, Agenda (calendario, ideas y proximos pasos), arranque con Windows, actividad de Discord y asistente para abrir sesiones."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Rail de logos, Agenda (calendario, ideas y proximos pasos), arranque con Windows, actividad de Discord y asistente para abrir sesiones.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.10",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.10/Adeorq_0.7.10_x64-setup.exe",
+        "filename": "Adeorq_0.7.10_x64-setup.exe",
+        "size": 3622700,
+        "sizeLabel": "3,5 MB"
+      }
+    },
+    {
+      "version": "0.7.9",
+      "tag": "v0.7.9",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T00:46:57Z",
+      "title": null,
+      "name": "Adeorq 0.7.9",
+      "summary": "Arreglado el fallo que llenaba la lista de sesiones sin titulo: cada consulta de cuota dejaba una sesion guardada (59 en una noche). Ahora se borra sola en cuanto responde, y las que ya haya no se listan.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "Arreglado el fallo que llenaba la lista de sesiones sin titulo: cada consulta de cuota dejaba una sesion guardada (59 en una noche).",
+        "Ahora se borra sola en cuanto responde, y las que ya haya no se listan.",
+        "Ademas cada sesion muestra su contador de agentes, para ver cuales tienen ayudantes dentro sin abrirlas."
+      ],
+      "highlights": [
+        "Arreglado el fallo que llenaba la lista de sesiones sin titulo: cada consulta de cuota dejaba una sesion guardada (59 en una noche).",
+        "Ahora se borra sola en cuanto responde, y las que ya haya no se listan.",
+        "Ademas cada sesion muestra su contador de agentes, para ver cuales tienen ayudantes dentro sin abrirlas."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Arreglado el fallo que llenaba la lista de sesiones sin titulo: cada consulta de cuota dejaba una sesion guardada (59 en una noche). Ahora se borra sola en cuanto responde, y las que ya haya no se listan. Ademas cada sesion muestra su contador de agentes, para ver cuales tienen ayudantes dentro sin abrirlas.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.9",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.9/Adeorq_0.7.9_x64-setup.exe",
+        "filename": "Adeorq_0.7.9_x64-setup.exe",
+        "size": 3508839,
+        "sizeLabel": "3,3 MB"
+      }
+    },
+    {
+      "version": "0.7.8",
+      "tag": "v0.7.8",
+      "date": "2026-07-26",
+      "publishedAt": "2026-07-26T00:25:35Z",
+      "title": null,
+      "name": "Adeorq 0.7.8",
+      "summary": "Cada proyecto con su logo en la barra de la izquierda, como los servidores de Discord. Nueva pestana Cuentas con tus programas de IA y cuales admiten varias cuentas.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "Cada proyecto con su logo en la barra de la izquierda, como los servidores de Discord.",
+        "Nueva pestana Cuentas con tus programas de IA y cuales admiten varias cuentas.",
+        "Claude estrena icono propio y el cuadradito verde desaparece.",
+        "El aviso del modo emision ya no te manda rotar una carpeta."
+      ],
+      "highlights": [
+        "Cada proyecto con su logo en la barra de la izquierda, como los servidores de Discord.",
+        "Nueva pestana Cuentas con tus programas de IA y cuales admiten varias cuentas.",
+        "Claude estrena icono propio y el cuadradito verde desaparece.",
+        "El aviso del modo emision ya no te manda rotar una carpeta."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Cada proyecto con su logo en la barra de la izquierda, como los servidores de Discord. Nueva pestana Cuentas con tus programas de IA y cuales admiten varias cuentas. Claude estrena icono propio y el cuadradito verde desaparece. El aviso del modo emision ya no te manda rotar una carpeta. La ventana abre maximizada.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.8",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.8/Adeorq_0.7.8_x64-setup.exe",
+        "filename": "Adeorq_0.7.8_x64-setup.exe",
+        "size": 3496732,
+        "sizeLabel": "3,3 MB"
+      }
+    },
+    {
+      "version": "0.7.7",
+      "tag": "v0.7.7",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T22:43:03Z",
+      "title": "Avisos en el escritorio",
+      "name": "Adeorq 0.7.7",
+      "summary": "Dos notificaciones distintas, con el nombre del proyecto delante y el icono parpadeando en la barra de tareas:",
+      "tags": [
+        "nuevo",
+        "mejora"
+      ],
+      "items": [
+        "**terminó**: el agente acabó su turno y te espera.",
+        "**espera tu OK**: salió la pregunta de permiso, y el aviso trae las opciones dentro."
+      ],
+      "highlights": [
+        "**terminó**: el agente acabó su turno y te espera.",
+        "**espera tu OK**: salió la pregunta de permiso, y el aviso trae las opciones dentro."
+      ],
+      "headings": [
+        "Avisos en el escritorio",
+        "Los límites de tu plan, solos",
+        "Comandos, reordenado"
+      ],
+      "image": null,
+      "notes": "## Avisos en el escritorio\n\nDos notificaciones distintas, con el nombre del proyecto delante y el icono parpadeando en la barra de tareas:\n\n- **terminó**: el agente acabó su turno y te espera.\n- **espera tu OK**: salió la pregunta de permiso, y el aviso trae las opciones dentro.\n\nPara que no sea ruido con nueve terminales: nunca avisa del panel que estás mirando, un aviso por terminal y motivo cada 20 segundos, y tres modos en Ajustes (solo en segundo plano, siempre, nunca).\n\n## Los límites de tu plan, solos\n\n`/usage` es un comando local del CLI, así que Adeorq lo pide él mismo al arrancar y cada diez minutos **sin gastar cuota** (cero turnos, cero tokens). Abajo a la derecha ves sesión, semana y por modelo, cada uno con su barra y **cuándo se renueva**, en ámbar a partir del 80%.\n\n## Comandos, reordenado\n\nUna sección por herramienta con rejilla de tarjetas, en vez de una columna única que dejaba un pasillo vacío entre cada nombre y su descripción.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.7",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.7/Adeorq_0.7.7_x64-setup.exe",
+        "filename": "Adeorq_0.7.7_x64-setup.exe",
+        "size": 3482317,
+        "sizeLabel": "3,3 MB"
+      }
+    },
+    {
+      "version": "0.7.5",
+      "tag": "v0.7.5",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T20:31:36Z",
+      "title": "Mover terminales como ventanas",
+      "name": "Adeorq 0.7.5",
+      "summary": "Arrastra una terminal por su barra y verás un **rectángulo azul** con el sitio exacto donde va a caer, igual que al mover una ventana en Windows:",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "En el **centro** de otra: intercambian sitio.",
+        "Cerca de un **borde**: se coloca a ese lado, partiendo el espacio de la otra en dos."
+      ],
+      "highlights": [
+        "En el **centro** de otra: intercambian sitio.",
+        "Cerca de un **borde**: se coloca a ese lado, partiendo el espacio de la otra en dos."
+      ],
+      "headings": [
+        "Mover terminales como ventanas",
+        "Tu uso, debajo de Skills"
+      ],
+      "image": null,
+      "notes": "## Mover terminales como ventanas\n\nArrastra una terminal por su barra y verás un **rectángulo azul** con el sitio exacto donde va a caer, igual que al mover una ventana en Windows:\n\n- En el **centro** de otra: intercambian sitio.\n- Cerca de un **borde**: se coloca a ese lado, partiendo el espacio de la otra en dos.\n\nSin huecos ni solapes: sigue siendo un mosaico.\n\n## Tu uso, debajo de Skills\n\nBarras de tokens de los últimos siete días, sesiones de la semana y qué modelos han hecho el trabajo. Se lee de las estadísticas que Claude Code ya guarda en tu disco, así que **no gasta nada de cuota**.\n\nOjo: eso es trabajo hecho, no el porcentaje de tu suscripción. Ese solo lo sabe Claude por dentro, y para eso está el botón `/usage` justo debajo.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.5",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.5/Adeorq_0.7.5_x64-setup.exe",
+        "filename": "Adeorq_0.7.5_x64-setup.exe",
+        "size": 3458463,
+        "sizeLabel": "3,3 MB"
+      }
+    },
+    {
+      "version": "0.7.4",
+      "tag": "v0.7.4",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T20:19:33Z",
+      "title": "Mover terminales, ahora de verdad",
+      "name": "Adeorq 0.7.4",
+      "summary": "Agarra una terminal por su barra de título y suéltala sobre otra: intercambian sitio. Aparece una etiqueta junto al cursor y la terminal de destino se marca con borde discontinuo.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "**⊞ Disposición** ya no se queda recortado detrás de la barra de arriba: se dibuja por encima de todo y anclado al botón.",
+        "Al **tapar una terminal** vuelve el desenfoque, ahora a 18 px y con velo, de modo que sigue siendo ilegible desde una grabación.",
+        "Las **cajas de escribir** del Panel y del Capataz son fijas (fuera el tirador de la esquina) y bastante más altas."
+      ],
+      "highlights": [
+        "**⊞ Disposición** ya no se queda recortado detrás de la barra de arriba: se dibuja por encima de todo y anclado al botón.",
+        "Al **tapar una terminal** vuelve el desenfoque, ahora a 18 px y con velo, de modo que sigue siendo ilegible desde una grabación.",
+        "Las **cajas de escribir** del Panel y del Capataz son fijas (fuera el tirador de la esquina) y bastante más altas."
+      ],
+      "headings": [
+        "Mover terminales, ahora de verdad",
+        "Y además"
+      ],
+      "image": null,
+      "notes": "## Mover terminales, ahora de verdad\n\nAgarra una terminal por su barra de título y suéltala sobre otra: intercambian sitio. Aparece una etiqueta junto al cursor y la terminal de destino se marca con borde discontinuo.\n\nPor qué no funcionaba antes: estas ventanas capturan el arrastre a nivel nativo para poder soltar archivos, así que el arrastre normal de una página nunca llegaba a la aplicación. Ahora se sigue el puntero directamente.\n\n## Y además\n\n- **⊞ Disposición** ya no se queda recortado detrás de la barra de arriba: se dibuja por encima de todo y anclado al botón.\n- Al **tapar una terminal** vuelve el desenfoque, ahora a 18 px y con velo, de modo que sigue siendo ilegible desde una grabación.\n- Las **cajas de escribir** del Panel y del Capataz son fijas (fuera el tirador de la esquina) y bastante más altas.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.4",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.4/Adeorq_0.7.4_x64-setup.exe",
+        "filename": "Adeorq_0.7.4_x64-setup.exe",
+        "size": 3454154,
+        "sizeLabel": "3,3 MB"
+      }
+    },
+    {
+      "version": "0.7.3",
+      "tag": "v0.7.3",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T19:57:29Z",
+      "title": "La cabina, en mosaico",
+      "name": "Adeorq 0.7.3",
+      "summary": "Al abrir Adeorq se recuperan las que tenías, en sus carpetas y con sus tamaños, y **cada Claude retoma su propia conversación** (ahora cada sesión nace con su identificador). Se puede desactivar en Ajustes.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "**Arrastra** una terminal por su barra de título y suéltala sobre otra: intercambian sitio, sin huecos ni solapes.",
+        "**Tira de las costuras** entre terminales para repartir ancho y alto.",
+        "**⊞ Disposición**: ocho plantillas tipo Snap de Windows que reparten las terminales que ya tienes abiertas, sin cerrar ninguna."
+      ],
+      "highlights": [
+        "**Arrastra** una terminal por su barra de título y suéltala sobre otra: intercambian sitio, sin huecos ni solapes.",
+        "**Tira de las costuras** entre terminales para repartir ancho y alto.",
+        "**⊞ Disposición**: ocho plantillas tipo Snap de Windows que reparten las terminales que ya tienes abiertas, sin cerrar ninguna."
+      ],
+      "headings": [
+        "La cabina, en mosaico",
+        "Vuelven tus terminales",
+        "Y sabes cuál es cuál"
+      ],
+      "image": null,
+      "notes": "## La cabina, en mosaico\n\n- **Arrastra** una terminal por su barra de título y suéltala sobre otra: intercambian sitio, sin huecos ni solapes.\n- **Tira de las costuras** entre terminales para repartir ancho y alto.\n- **⊞ Disposición**: ocho plantillas tipo Snap de Windows que reparten las terminales que ya tienes abiertas, sin cerrar ninguna.\n\n## Vuelven tus terminales\n\nAl abrir Adeorq se recuperan las que tenías, en sus carpetas y con sus tamaños, y **cada Claude retoma su propia conversación** (ahora cada sesión nace con su identificador). Se puede desactivar en Ajustes.\n\n## Y sabes cuál es cuál\n\nCada terminal muestra el **nombre de su proyecto en el color de ese proyecto**, y la cabecera ya no se come el nombre cuando el panel es estrecho: primero suelta la ruta, luego el esfuerzo, luego el modelo. La tira de música pierde el control de volumen.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.3",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.3/Adeorq_0.7.3_x64-setup.exe",
+        "filename": "Adeorq_0.7.3_x64-setup.exe",
+        "size": 3456387,
+        "sizeLabel": "3,3 MB"
+      }
+    },
+    {
+      "version": "0.7.2",
+      "tag": "v0.7.2",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T19:28:42Z",
+      "title": "Modo emisión de verdad",
+      "name": "Adeorq 0.7.2",
+      "summary": "Antes solo desenfocaba cuatro etiquetas y el ratón por encima las revelaba. Ahora:",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "**Tapa en vez de desenfocar** (un desenfoque suave sobre texto monoespaciado se puede deshacer desde una grabación) y el ratón ya no revela: mantén **Alt** para mirar.",
+        "**Escudo dentro de las terminales**: el texto se revisa ANTES de pintarse y se enmascaran claves de API, tokens, JWT, claves privadas, contraseñas de cadenas de conexión, variables tipo KEY=..., tu correo y tu usuario en las rutas. El agente sigue recibiendo el texto real.",
+        "**Ctrl+Mayús+P** tapa la pantalla entera al instante, y se levanta sola si aparece algo grave.",
+        "**Aviso de quemado**: te dice qué tapó, para que rotes esa clave."
+      ],
+      "highlights": [
+        "**Tapa en vez de desenfocar** (un desenfoque suave sobre texto monoespaciado se puede deshacer desde una grabación) y el ratón ya no revela: mantén **Alt** para mirar.",
+        "**Escudo dentro de las terminales**: el texto se revisa ANTES de pintarse y se enmascaran claves de API, tokens, JWT, claves privadas, contraseñas de cadenas de conexión, variables tipo KEY=..., tu correo y tu usuario en las rutas. El agente sigue recibiendo el texto real.",
+        "**Ctrl+Mayús+P** tapa la pantalla entera al instante, y se levanta sola si aparece algo grave.",
+        "**Aviso de quemado**: te dice qué tapó, para que rotes esa clave."
+      ],
+      "headings": [
+        "Modo emisión de verdad",
+        "Además"
+      ],
+      "image": null,
+      "notes": "## Modo emisión de verdad\n\nAntes solo desenfocaba cuatro etiquetas y el ratón por encima las revelaba. Ahora:\n\n- **Tapa en vez de desenfocar** (un desenfoque suave sobre texto monoespaciado se puede deshacer desde una grabación) y el ratón ya no revela: mantén **Alt** para mirar.\n- **Escudo dentro de las terminales**: el texto se revisa ANTES de pintarse y se enmascaran claves de API, tokens, JWT, claves privadas, contraseñas de cadenas de conexión, variables tipo KEY=..., tu correo y tu usuario en las rutas. El agente sigue recibiendo el texto real.\n- **Ctrl+Mayús+P** tapa la pantalla entera al instante, y se levanta sola si aparece algo grave.\n- **Aviso de quemado**: te dice qué tapó, para que rotes esa clave.\n\n## Además\n\n- Cada terminal muestra un **icono del agente** en vez de la palabra entera, que se comía un tercio de la barra.\n- Guía con un **porqué usar Adeorq** al principio y esquemas dibujados de la ventana y de la cabecera.\n- La tira de música pierde el control de volumen: eso ya lo hace el mezclador de Windows.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.2",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.2/Adeorq_0.7.2_x64-setup.exe",
+        "filename": "Adeorq_0.7.2_x64-setup.exe",
+        "size": 3444441,
+        "sizeLabel": "3,3 MB"
+      }
+    },
+    {
+      "version": "0.7.1",
+      "tag": "v0.7.1",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T18:39:41Z",
+      "title": "La letra se ajusta al pane",
+      "name": "Adeorq 0.7.1",
+      "summary": "Con muchas terminales abiertas cada una se queda estrecha y la letra fija rompía las cajas del agente. Ahora el tamaño de Ajustes es el **máximo**: una terminal apretada baja la letra hasta que la línea vuelve a caber.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "## La letra se ajusta al pane  Con muchas terminales abiertas cada una se queda estrecha y la letra fija rompía las cajas del agente.",
+        "Ahora el tamaño de Ajustes es el **máximo**: una terminal apretada baja la letra hasta que la línea vuelve a caber.",
+        "Hay un interruptor nuevo en Ajustes por si prefieres tamaño fijo.",
+        "## Pastillas y avisos que siguen al tema  Las pastillas de sesiones, las filas que esperan respuesta, el aviso de reconectar y la barra de preguntas eran bloques de color saturado sobre una interfaz de cristal, y se veían genéricos."
+      ],
+      "highlights": [
+        "## La letra se ajusta al pane  Con muchas terminales abiertas cada una se queda estrecha y la letra fija rompía las cajas del agente.",
+        "Ahora el tamaño de Ajustes es el **máximo**: una terminal apretada baja la letra hasta que la línea vuelve a caber.",
+        "Hay un interruptor nuevo en Ajustes por si prefieres tamaño fijo.",
+        "## Pastillas y avisos que siguen al tema  Las pastillas de sesiones, las filas que esperan respuesta, el aviso de reconectar y la barra de preguntas eran bloques de color saturado sobre una interfaz de cristal, y se veían genéricos."
+      ],
+      "headings": [
+        "La letra se ajusta al pane",
+        "Pastillas y avisos que siguen al tema"
+      ],
+      "image": null,
+      "notes": "## La letra se ajusta al pane\n\nCon muchas terminales abiertas cada una se queda estrecha y la letra fija rompía las cajas del agente. Ahora el tamaño de Ajustes es el **máximo**: una terminal apretada baja la letra hasta que la línea vuelve a caber. Hay un interruptor nuevo en Ajustes por si prefieres tamaño fijo.\n\n## Pastillas y avisos que siguen al tema\n\nLas pastillas de sesiones, las filas que esperan respuesta, el aviso de reconectar y la barra de preguntas eran bloques de color saturado sobre una interfaz de cristal, y se veían genéricos. Ahora son cristal teñido con el color del tema, más discretos, y las filas que te esperan llevan una línea fina de color en vez del fondo pintado entero.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.1",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.1/Adeorq_0.7.1_x64-setup.exe",
+        "filename": "Adeorq_0.7.1_x64-setup.exe",
+        "size": 3440876,
+        "sizeLabel": "3,3 MB"
+      }
+    },
+    {
+      "version": "0.7.0",
+      "tag": "v0.7.0",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T18:24:37Z",
+      "title": "El lienzo",
+      "name": "Adeorq 0.7.0",
+      "summary": "Pestaña nueva **⬡ Lienzo**: un tablero donde las terminales se mueven, se agrandan y se conectan con flechas.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "El contador de agentes (▣) ahora es exacto: cuenta los ayudantes en el historial de la sesión en vez de estimarlos por el texto de pantalla.",
+        "Un pane de Antigravity ya no muestra el contexto de una sesión de Claude que no era suya.",
+        "Guía reescrita elemento por elemento (las dos barras de arriba, cada campo de la cabecera, leyenda de colores y glosario), con la versión en inglés a la par."
+      ],
+      "highlights": [
+        "El contador de agentes (▣) ahora es exacto: cuenta los ayudantes en el historial de la sesión en vez de estimarlos por el texto de pantalla.",
+        "Un pane de Antigravity ya no muestra el contexto de una sesión de Claude que no era suya.",
+        "Guía reescrita elemento por elemento (las dos barras de arriba, cada campo de la cabecera, leyenda de colores y glosario), con la versión en inglés a la par."
+      ],
+      "headings": [
+        "El lienzo",
+        "Además"
+      ],
+      "image": null,
+      "notes": "## El lienzo\n\nPestaña nueva **⬡ Lienzo**: un tablero donde las terminales se mueven, se agrandan y se conectan con flechas. Escribes el encargo en la flecha y, cuando el primer agente termina su turno, pasas el relevo: el segundo recibe tu encargo más la última respuesta real del primero. Nada se envía sin tu OK salvo que marques la flecha como automática.\n\n## Además\n\n- El contador de agentes (▣) ahora es exacto: cuenta los ayudantes en el historial de la sesión en vez de estimarlos por el texto de pantalla.\n- Un pane de Antigravity ya no muestra el contexto de una sesión de Claude que no era suya.\n- Guía reescrita elemento por elemento (las dos barras de arriba, cada campo de la cabecera, leyenda de colores y glosario), con la versión en inglés a la par.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.7.0",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.7.0/Adeorq_0.7.0_x64-setup.exe",
+        "filename": "Adeorq_0.7.0_x64-setup.exe",
+        "size": 3445195,
+        "sizeLabel": "3,3 MB"
+      }
+    },
+    {
+      "version": "0.6.0",
+      "tag": "v0.6.0",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T17:21:28Z",
+      "title": null,
+      "name": "Adeorq 0.6.0",
+      "summary": "Pestana Comandos nueva: - Chuleta buscable con los comandos de Claude Code (sacados de su referencia oficial), los de Antigravity (agy, de su propia ayuda) y tus skills, que se leen solas - Buscas por lo que quieres hacer: escribe deshacer y sale /rewind, cuota y sale /usage, seguridad y sale /security-review - Clic en un comando y se escribe en la terminal activa; tu das al Enter - El Capataz tambien conoce la lista: preguntale si hay algo para X y te dice cual es y te lo deja escrito",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "Chuleta buscable con los comandos de Claude Code (sacados de su referencia oficial), los de Antigravity (agy, de su propia ayuda) y tus skills, que se leen solas",
+        "Buscas por lo que quieres hacer: escribe deshacer y sale /rewind, cuota y sale /usage, seguridad y sale /security-review",
+        "Clic en un comando y se escribe en la terminal activa; tu das al Enter",
+        "El Capataz tambien conoce la lista: preguntale si hay algo para X y te dice cual es y te lo deja escrito"
+      ],
+      "highlights": [
+        "Chuleta buscable con los comandos de Claude Code (sacados de su referencia oficial), los de Antigravity (agy, de su propia ayuda) y tus skills, que se leen solas",
+        "Buscas por lo que quieres hacer: escribe deshacer y sale /rewind, cuota y sale /usage, seguridad y sale /security-review",
+        "Clic en un comando y se escribe en la terminal activa; tu das al Enter",
+        "El Capataz tambien conoce la lista: preguntale si hay algo para X y te dice cual es y te lo deja escrito"
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Pestana Comandos nueva:\n- Chuleta buscable con los comandos de Claude Code (sacados de su referencia oficial), los de Antigravity (agy, de su propia ayuda) y tus skills, que se leen solas\n- Buscas por lo que quieres hacer: escribe deshacer y sale /rewind, cuota y sale /usage, seguridad y sale /security-review\n- Clic en un comando y se escribe en la terminal activa; tu das al Enter\n- El Capataz tambien conoce la lista: preguntale si hay algo para X y te dice cual es y te lo deja escrito\n\nAdemas la barra de arriba ya no empuja el boton del Capataz cuando suena musica.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.6.0",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.6.0/Adeorq_0.6.0_x64-setup.exe",
+        "filename": "Adeorq_0.6.0_x64-setup.exe",
+        "size": 3378514,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.5.2",
+      "tag": "v0.5.2",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T17:00:44Z",
+      "title": null,
+      "name": "Adeorq 0.5.2",
+      "summary": "El resplandor de la terminal activa se nota de verdad: aro del color del tema, halo alrededor y la cabecera encendida. Y cuando un Claude termina y te espera, su resplandor respira para que lo pilles de reojo.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "El resplandor de la terminal activa se nota de verdad: aro del color del tema, halo alrededor y la cabecera encendida.",
+        "Y cuando un Claude termina y te espera, su resplandor respira para que lo pilles de reojo."
+      ],
+      "highlights": [
+        "El resplandor de la terminal activa se nota de verdad: aro del color del tema, halo alrededor y la cabecera encendida.",
+        "Y cuando un Claude termina y te espera, su resplandor respira para que lo pilles de reojo."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "El resplandor de la terminal activa se nota de verdad: aro del color del tema, halo alrededor y la cabecera encendida. Y cuando un Claude termina y te espera, su resplandor respira para que lo pilles de reojo.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.5.2",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.5.2/Adeorq_0.5.2_x64-setup.exe",
+        "filename": "Adeorq_0.5.2_x64-setup.exe",
+        "size": 3372137,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.5.1",
+      "tag": "v0.5.1",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T16:50:23Z",
+      "title": null,
+      "name": "Adeorq 0.5.1",
+      "summary": "Los controles de musica quedan en el orden clasico: anterior, play/pausa en el boton redondo del centro, y siguiente.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Los controles de musica quedan en el orden clasico: anterior, play/pausa en el boton redondo del centro, y siguiente."
+      ],
+      "highlights": [
+        "Los controles de musica quedan en el orden clasico: anterior, play/pausa en el boton redondo del centro, y siguiente."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Los controles de musica quedan en el orden clasico: anterior, play/pausa en el boton redondo del centro, y siguiente.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.5.1",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.5.1/Adeorq_0.5.1_x64-setup.exe",
+        "filename": "Adeorq_0.5.1_x64-setup.exe",
+        "size": 3373832,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.5.0",
+      "tag": "v0.5.0",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T16:43:19Z",
+      "title": null,
+      "name": "Adeorq 0.5.0",
+      "summary": "Musica en la barra de arriba, a la izquierda del Capataz: - Que cancion suena ahora mismo, con ecualizador que baila mientras suena - Play/pausa, anterior y siguiente - Volumen SOLO de Spotify, sin tocar el resto del sistema - Sin conectar cuentas ni contrasenas: lee la sesion de medios de Windows, asi que vale para Spotify o para lo que estes escuchando",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Que cancion suena ahora mismo, con ecualizador que baila mientras suena",
+        "Play/pausa, anterior y siguiente",
+        "Volumen SOLO de Spotify, sin tocar el resto del sistema",
+        "Sin conectar cuentas ni contrasenas: lee la sesion de medios de Windows, asi que vale para Spotify o para lo que estes escuchando"
+      ],
+      "highlights": [
+        "Que cancion suena ahora mismo, con ecualizador que baila mientras suena",
+        "Play/pausa, anterior y siguiente",
+        "Volumen SOLO de Spotify, sin tocar el resto del sistema",
+        "Sin conectar cuentas ni contrasenas: lee la sesion de medios de Windows, asi que vale para Spotify o para lo que estes escuchando"
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Musica en la barra de arriba, a la izquierda del Capataz:\n- Que cancion suena ahora mismo, con ecualizador que baila mientras suena\n- Play/pausa, anterior y siguiente\n- Volumen SOLO de Spotify, sin tocar el resto del sistema\n- Sin conectar cuentas ni contrasenas: lee la sesion de medios de Windows, asi que vale para Spotify o para lo que estes escuchando\n\nAdemas: el modelo vuelve a verse en la cabecera de cada sesion (ahora se lee de la conversacion, no del cartel de bienvenida que se pierde al reiniciar).",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.5.0",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.5.0/Adeorq_0.5.0_x64-setup.exe",
+        "filename": "Adeorq_0.5.0_x64-setup.exe",
+        "size": 3373066,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.4.0",
+      "tag": "v0.4.0",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T16:30:39Z",
+      "title": null,
+      "name": "Adeorq 0.4.0",
+      "summary": "",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "Menu de clic derecho propio en terminales, proyectos y sesiones; el del navegador (Atras, Actualizar, Imprimir) ya no aparece",
+        "Textos de ayuda propios al pasar el raton: rapidos, con el color del tema y con segunda linea",
+        "Medidor de contexto arreglado: sumaba todas las llamadas de un turno y no reconocia la ventana de 1M, por eso marcaba 100%",
+        "El Capataz ve donde arranca cada sesion y ya no retoma una que abriria fuera de la carpeta del proyecto: en ese caso abre una nueva alli"
+      ],
+      "highlights": [
+        "Menu de clic derecho propio en terminales, proyectos y sesiones; el del navegador (Atras, Actualizar, Imprimir) ya no aparece",
+        "Textos de ayuda propios al pasar el raton: rapidos, con el color del tema y con segunda linea",
+        "Medidor de contexto arreglado: sumaba todas las llamadas de un turno y no reconocia la ventana de 1M, por eso marcaba 100%",
+        "El Capataz ve donde arranca cada sesion y ya no retoma una que abriria fuera de la carpeta del proyecto: en ese caso abre una nueva alli"
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "- Menu de clic derecho propio en terminales, proyectos y sesiones; el del navegador (Atras, Actualizar, Imprimir) ya no aparece\n- Textos de ayuda propios al pasar el raton: rapidos, con el color del tema y con segunda linea\n- Medidor de contexto arreglado: sumaba todas las llamadas de un turno y no reconocia la ventana de 1M, por eso marcaba 100%\n- El Capataz ve donde arranca cada sesion y ya no retoma una que abriria fuera de la carpeta del proyecto: en ese caso abre una nueva alli",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.4.0",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.4.0/Adeorq_0.4.0_x64-setup.exe",
+        "filename": "Adeorq_0.4.0_x64-setup.exe",
+        "size": 3343199,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.3.2",
+      "tag": "v0.3.2",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T16:15:48Z",
+      "title": null,
+      "name": "Adeorq 0.3.2",
+      "summary": "Ajustes tiene una tarjeta nueva, Tu cuota: un boton escribe /usage en la terminal activa y te lleva alli para leer cuanto llevas gastado de la semana. Se desactiva solo si no hay ninguna sesion abierta.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Ajustes tiene una tarjeta nueva, Tu cuota: un boton escribe /usage en la terminal activa y te lleva alli para leer cuanto llevas gastado de la semana.",
+        "Se desactiva solo si no hay ninguna sesion abierta."
+      ],
+      "highlights": [
+        "Ajustes tiene una tarjeta nueva, Tu cuota: un boton escribe /usage en la terminal activa y te lleva alli para leer cuanto llevas gastado de la semana.",
+        "Se desactiva solo si no hay ninguna sesion abierta."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Ajustes tiene una tarjeta nueva, Tu cuota: un boton escribe /usage en la terminal activa y te lleva alli para leer cuanto llevas gastado de la semana. Se desactiva solo si no hay ninguna sesion abierta.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.3.2",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.3.2/Adeorq_0.3.2_x64-setup.exe",
+        "filename": "Adeorq_0.3.2_x64-setup.exe",
+        "size": 3340468,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.3.1",
+      "tag": "v0.3.1",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T16:04:48Z",
+      "title": null,
+      "name": "Adeorq 0.3.1",
+      "summary": "Arreglos que pidio Munir: - Tema claro legible: la marca, las pestanas y las superficies ya no dependian del cristal oscuro - La guia tiene version en ingles y cambia con el idioma - Cambiar el tamano de la letra ya NO reinicia las terminales - Nuevo: medidor de contexto en la cabecera de cada sesion (cuanto lleva llena su ventana)",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "Tema claro legible: la marca, las pestanas y las superficies ya no dependian del cristal oscuro",
+        "La guia tiene version en ingles y cambia con el idioma",
+        "Cambiar el tamano de la letra ya NO reinicia las terminales",
+        "Nuevo: medidor de contexto en la cabecera de cada sesion (cuanto lleva llena su ventana)"
+      ],
+      "highlights": [
+        "Tema claro legible: la marca, las pestanas y las superficies ya no dependian del cristal oscuro",
+        "La guia tiene version en ingles y cambia con el idioma",
+        "Cambiar el tamano de la letra ya NO reinicia las terminales",
+        "Nuevo: medidor de contexto en la cabecera de cada sesion (cuanto lleva llena su ventana)"
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Arreglos que pidio Munir:\n- Tema claro legible: la marca, las pestanas y las superficies ya no dependian del cristal oscuro\n- La guia tiene version en ingles y cambia con el idioma\n- Cambiar el tamano de la letra ya NO reinicia las terminales\n- Nuevo: medidor de contexto en la cabecera de cada sesion (cuanto lleva llena su ventana)",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.3.1",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.3.1/Adeorq_0.3.1_x64-setup.exe",
+        "filename": "Adeorq_0.3.1_x64-setup.exe",
+        "size": 3338290,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.3.0",
+      "tag": "v0.3.0",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T13:03:06Z",
+      "title": null,
+      "name": "Adeorq 0.3.0",
+      "summary": "Seccion de Ajustes nueva: - Idioma: espanol o ingles, toda la interfaz traducida (arranca en el del sistema) - Temas: Azul noche, Grafito, Violeta, Bosque y Claro; todo el color de la app sigue al tema, botones incluidos - Terminales: tamano de la letra y cuantas sesiones abre el boton de abrir todas - Actualizaciones: version instalada y boton para buscar a mano",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Idioma: espanol o ingles, toda la interfaz traducida (arranca en el del sistema)",
+        "Temas: Azul noche, Grafito, Violeta, Bosque y Claro; todo el color de la app sigue al tema, botones incluidos",
+        "Terminales: tamano de la letra y cuantas sesiones abre el boton de abrir todas",
+        "Actualizaciones: version instalada y boton para buscar a mano"
+      ],
+      "highlights": [
+        "Idioma: espanol o ingles, toda la interfaz traducida (arranca en el del sistema)",
+        "Temas: Azul noche, Grafito, Violeta, Bosque y Claro; todo el color de la app sigue al tema, botones incluidos",
+        "Terminales: tamano de la letra y cuantas sesiones abre el boton de abrir todas",
+        "Actualizaciones: version instalada y boton para buscar a mano"
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Seccion de Ajustes nueva:\n- Idioma: espanol o ingles, toda la interfaz traducida (arranca en el del sistema)\n- Temas: Azul noche, Grafito, Violeta, Bosque y Claro; todo el color de la app sigue al tema, botones incluidos\n- Terminales: tamano de la letra y cuantas sesiones abre el boton de abrir todas\n- Actualizaciones: version instalada y boton para buscar a mano",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.3.0",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.3.0/Adeorq_0.3.0_x64-setup.exe",
+        "filename": "Adeorq_0.3.0_x64-setup.exe",
+        "size": 3343285,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.2.5",
+      "tag": "v0.2.5",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T12:34:10Z",
+      "title": null,
+      "name": "Adeorq 0.2.5",
+      "summary": "Botones con vibe: degradado, brillo en el borde de arriba, sombra debajo y hundimiento al pulsar. Mismo lenguaje en pastillas, pestanas, botones pequenos y botones de cada terminal.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Botones con vibe: degradado, brillo en el borde de arriba, sombra debajo y hundimiento al pulsar.",
+        "Mismo lenguaje en pastillas, pestanas, botones pequenos y botones de cada terminal."
+      ],
+      "highlights": [
+        "Botones con vibe: degradado, brillo en el borde de arriba, sombra debajo y hundimiento al pulsar.",
+        "Mismo lenguaje en pastillas, pestanas, botones pequenos y botones de cada terminal."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Botones con vibe: degradado, brillo en el borde de arriba, sombra debajo y hundimiento al pulsar. Mismo lenguaje en pastillas, pestanas, botones pequenos y botones de cada terminal.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.2.5",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.2.5/Adeorq_0.2.5_x64-setup.exe",
+        "filename": "Adeorq_0.2.5_x64-setup.exe",
+        "size": 3345527,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.2.4",
+      "tag": "v0.2.4",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T12:15:16Z",
+      "title": null,
+      "name": "Adeorq 0.2.4",
+      "summary": "El contador de agentes (el simbolo cuadrado de la cabecera) solo aparece mientras hay ayudantes trabajando de verdad, y deja de contar texto que solo se le parecia.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "El contador de agentes (el simbolo cuadrado de la cabecera) solo aparece mientras hay ayudantes trabajando de verdad, y deja de contar texto que solo se le parecia."
+      ],
+      "highlights": [
+        "El contador de agentes (el simbolo cuadrado de la cabecera) solo aparece mientras hay ayudantes trabajando de verdad, y deja de contar texto que solo se le parecia."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "El contador de agentes (el simbolo cuadrado de la cabecera) solo aparece mientras hay ayudantes trabajando de verdad, y deja de contar texto que solo se le parecia.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.2.4",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.2.4/Adeorq_0.2.4_x64-setup.exe",
+        "filename": "Adeorq_0.2.4_x64-setup.exe",
+        "size": 3340593,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.2.3",
+      "tag": "v0.2.3",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T11:57:27Z",
+      "title": null,
+      "name": "Adeorq 0.2.3",
+      "summary": "",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Notificacion de Windows cuando hay version nueva (ademas de la barra dentro de la app)",
+        "Cabecera de cada terminal con el modelo y el esfuerzo",
+        "Una sola ventana de Adeorq"
+      ],
+      "highlights": [
+        "Notificacion de Windows cuando hay version nueva (ademas de la barra dentro de la app)",
+        "Cabecera de cada terminal con el modelo y el esfuerzo",
+        "Una sola ventana de Adeorq"
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "- Notificacion de Windows cuando hay version nueva (ademas de la barra dentro de la app)\n- Cabecera de cada terminal con el modelo y el esfuerzo\n- Una sola ventana de Adeorq",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.2.3",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.2.3/Adeorq_0.2.3_x64-setup.exe",
+        "filename": "Adeorq_0.2.3_x64-setup.exe",
+        "size": 3339939,
+        "sizeLabel": "3,2 MB"
+      }
+    },
+    {
+      "version": "0.2.2",
+      "tag": "v0.2.2",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T11:40:33Z",
+      "title": null,
+      "name": "Adeorq 0.2.2",
+      "summary": "",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "La cabecera de cada terminal muestra el modelo (Opus 5, Gemini 3.6 Flash...) y su esfuerzo",
+        "Una sola ventana: abrirlo otra vez trae al frente la que ya tienes"
+      ],
+      "highlights": [
+        "La cabecera de cada terminal muestra el modelo (Opus 5, Gemini 3.6 Flash...) y su esfuerzo",
+        "Una sola ventana: abrirlo otra vez trae al frente la que ya tienes"
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "- La cabecera de cada terminal muestra el modelo (Opus 5, Gemini 3.6 Flash...) y su esfuerzo\n- Una sola ventana: abrirlo otra vez trae al frente la que ya tienes",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.2.2",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.2.2/Adeorq_0.2.2_x64-setup.exe",
+        "filename": "Adeorq_0.2.2_x64-setup.exe",
+        "size": 3268746,
+        "sizeLabel": "3,1 MB"
+      }
+    },
+    {
+      "version": "0.2.1",
+      "tag": "v0.2.1",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T11:31:16Z",
+      "title": null,
+      "name": "Adeorq 0.2.1",
+      "summary": "Cada terminal muestra en su cabecera el modelo que la mueve (Opus 5, Gemini 3.6 Flash...) y su nivel de esfuerzo.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "Cada terminal muestra en su cabecera el modelo que la mueve (Opus 5, Gemini 3.6 Flash...) y su nivel de esfuerzo."
+      ],
+      "highlights": [
+        "Cada terminal muestra en su cabecera el modelo que la mueve (Opus 5, Gemini 3.6 Flash...) y su nivel de esfuerzo."
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Cada terminal muestra en su cabecera el modelo que la mueve (Opus 5, Gemini 3.6 Flash...) y su nivel de esfuerzo.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.2.1",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.2.1/Adeorq_0.2.1_x64-setup.exe",
+        "filename": "Adeorq_0.2.1_x64-setup.exe",
+        "size": 3262422,
+        "sizeLabel": "3,1 MB"
+      }
+    },
+    {
+      "version": "0.2.0",
+      "tag": "v0.2.0",
+      "date": "2026-07-25",
+      "publishedAt": "2026-07-25T11:19:38Z",
+      "title": null,
+      "name": "Adeorq 0.2.0",
+      "summary": "Primera version instalable con auto-actualizacion.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "Modo emision: oculta rutas y datos personales para streamear (Ctrl+Mayus+E)",
+        "Antigravity CLI (agy) como terminal dentro del panel",
+        "Capataz: monta el tablero del dia desde una frase",
+        "Colores de los agentes arreglados"
+      ],
+      "highlights": [
+        "Modo emision: oculta rutas y datos personales para streamear (Ctrl+Mayus+E)",
+        "Antigravity CLI (agy) como terminal dentro del panel",
+        "Capataz: monta el tablero del dia desde una frase",
+        "Colores de los agentes arreglados"
+      ],
+      "headings": [],
+      "image": null,
+      "notes": "Primera version instalable con auto-actualizacion.\n\n- Modo emision: oculta rutas y datos personales para streamear (Ctrl+Mayus+E)\n- Antigravity CLI (agy) como terminal dentro del panel\n- Capataz: monta el tablero del dia desde una frase\n- Colores de los agentes arreglados\n- Las sesiones se retoman siempre desde su carpeta correcta\n- Pegar imagenes en las terminales",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.2.0",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.2.0/Adeorq_0.2.0_x64-setup.exe",
+        "filename": "Adeorq_0.2.0_x64-setup.exe",
+        "size": 3262472,
+        "sizeLabel": "3,1 MB"
+      }
+    }
+  ]
+}

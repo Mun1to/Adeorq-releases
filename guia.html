@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="es" data-boot="pending">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía de Adeorq · cómo se usa la cabina</title>
+<meta name="description" content="La guía de Adeorq: qué hace cada pantalla, cómo se instala, los estados de una sesión, los objetivos del día, los atajos y dónde guarda tus cosas.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Adeorq">
+<meta property="og:locale" content="es_ES">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:title" content="Guía de Adeorq">
+<meta property="og:description" content="Qué hace cada pantalla, cómo se instala y dónde guarda tus cosas.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F6F8FC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#090D16" media="(prefers-color-scheme: dark)">
+
+<!-- Mismo interruptor de movimiento que la portada: va arriba del todo, antes
+     de cualquier CSS que anime. Las animaciones se ven para todos; lo que
+     cambia es la amplitud. -->
+<script>
+(function () {
+  var h = document.documentElement;
+  var q = new URLSearchParams(location.search).get('motion');
+  var saved = null;
+  try { saved = localStorage.getItem('adeorq-motion'); } catch (e) {}
+  var pref = q || saved;
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var gain = pref === 'off' ? 0 : pref === 'full' ? 1 : reduce ? 0.25 : 1;
+  h.style.setProperty('--motion-gain', String(gain));
+  h.classList.toggle('motion', gain > 0);
+})();
+</script>
+
+<!-- Boot de idioma: el mismo de la portada y con la misma clave, para que
+     quien eligio ingles alli no tenga que volver a elegirlo aqui. -->
+<script>
+(function () {
+  var SUPPORTED = ['es', 'en'];
+  var saved = null;
+  try { saved = localStorage.getItem('adeorq-lang'); } catch (e) {}
+  var lang = SUPPORTED.indexOf(saved) > -1 ? saved : null;
+  if (!lang) {
+    var list = navigator.languages || [navigator.language || 'es'];
+    for (var i = 0; i < list.length && !lang; i++) {
+      var base = String(list[i]).toLowerCase().split('-')[0];
+      if (SUPPORTED.indexOf(base) > -1) lang = base;
+    }
+  }
+  document.documentElement.lang = lang || 'es';
+})();
+</script>
+
+<link rel="preload" href="./assets/inter-latin-wght-normal-Dx4kXJAl.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="./assets/favicon-Y92JRF3f.svg" type="image/svg+xml">
+<link rel="icon" href="./assets/favicon-32-yAkH3OI8.png" sizes="32x32">
+<link rel="apple-touch-icon" href="./assets/favicon-180-BrjYTK1y.png">
+<link rel="manifest" href="./assets/site-BamwBA3z.webmanifest">
+
+
+<!-- El diccionario ingles de esta pagina va ANTES de boot.js: boot.js lo
+     recoge de window.ADEORQ_I18N_EXTRA al arrancar. -->
+<script src="js/guia-i18n.js"></script>
+  <script type="module" crossorigin src="./assets/guia-QfoVdqcz.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/boot-dXAqOqam.js">
+  <link rel="stylesheet" crossorigin href="./assets/boot-lSALiguf.css">
+  <link rel="stylesheet" crossorigin href="./assets/guia-exRqLsL8.css">
+</head>
+
+<body>
+<a class="skip-link" href="#doc-inicio" data-i18n="skip">Saltar al contenido</a>
+
+<!-- ============================ NAV ============================ -->
+<header class="nav is-posado" id="nav">
+  <div class="nav__inner">
+    <a class="marca" href="index.html" aria-label="Adeorq, ir al inicio">
+      <img class="marca__logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPgogIDwhLS0gQWRlb3JxIG1hcms6IE11bmlyJ3MgIkEiIHNoaXAsIHNlY29uZCBjdXQgKDIwMjYtMDctMjYpLiBSZWRyYXduIGZyb20gaGlzCiAgICAgICByZWZlcmVuY2U6IHRoZSBzZW1pY2lyY3VsYXIgbm90Y2ggdGhhdCB1c2VkIHRvIGJpdGUgdGhlIGJvdHRvbSBlZGdlIGlzCiAgICAgICBnb25lICh0aGF0IHdhcyB0aGUgInBhcnRlIGNpcmN1bGFyIGRlIGFiYWpvIiksIHRoZSBjaGFtZmVycyBhdCB0aGUgYmFzZQogICAgICAgYXJlIHNtYWxsIGluc3RlYWQgb2YgaHVnZSwgYW5kIHRoZSB3aG9sZSB0aGluZyBpcyBiaWdnZXIgaW4gaXRzIGJveC4gVGhlCiAgICAgICBjb3VudGVyIGtlZXBzIGl0cyBjb25jYXZlIGJhc2UsIHdoaWNoIGlzIHdoYXQgbWFrZXMgaXQgcmVhZCBhcyBhIHByb3cKICAgICAgIGFuZCBub3QgYXMgYSBwbGFpbiB0cmlhbmdsZS4gLS0+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImEiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNDhjMmZmIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJmOWRmMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHBhdGggZmlsbD0idXJsKCNhKSIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSIKICAgIE0gMjM2IDExMgogICAgTCA3ODggMTEyCiAgICBMIDEwMTYgNzU2CiAgICBMIDk0NCA4NDgKICAgIEwgODAgODQ4CiAgICBMIDggNzU2CiAgICBaCiAgICBNIDUxMiAyNDAKICAgIEwgNzEyIDczMAogICAgUSA1MTIgNTcyIDMxMiA3MzAKICAgIFoiLz4KPC9zdmc+Cg==" width="32" height="32" alt="" decoding="async">
+      <span class="marca__texto">Adeorq</span>
+    </a>
+
+    <nav class="nav__enlaces" aria-label="Secciones">
+      <a href="index.html#que-es" data-i18n="nav.queEs">Qué es</a>
+      <a href="index.html#features" data-i18n="nav.funciones">Funciones</a>
+      <a href="index.html#changelog" data-i18n="nav.novedades">Novedades</a>
+      <a href="guia.html" aria-current="page" data-i18n="nav.guia">Guía</a>
+    </nav>
+
+    <div class="nav__acciones">
+      <button type="button" class="idioma-toggle" id="idioma-toggle" aria-label="Cambiar idioma">
+        <span class="idioma-toggle__texto" id="idioma-toggle-texto">English</span>
+      </button>
+      <a class="boton boton--solido nav__cta" href="index.html#descargar" data-i18n="cta.descargar">Descargar</a>
+    </div>
+  </div>
+</header>
+
+<main class="doc" id="doc-inicio">
+
+  <!-- =========================== PORTADA =========================== -->
+  <div class="doc-portada">
+    <p class="doc-portada__eyebrow" data-i18n="guia.eyebrow">Documentación</p>
+    <h1 data-i18n="guia.titulo">Cómo se usa la cabina.</h1>
+    <p data-i18n="guia.entrada">
+      Adeorq es un panel de escritorio para Windows donde tus agentes trabajan en terminales de
+      verdad. Esta guía cuenta qué hace cada pantalla, en el orden en que te las vas encontrando.
+      No hace falta leerla entera: el índice de la izquierda lleva directo a lo que buscas.
+    </p>
+    <div class="doc-portada__meta">
+      <span data-i18n="guia.meta1">Windows 10 y 11, 64 bits</span>
+      <span data-i18n="guia.meta2">Gratis, sin cuenta</span>
+      <span data-i18n="guia.meta3">Funciona con tus suscripciones</span>
+    </div>
+  </div>
+
+  <!-- ============================ INDICE ============================ -->
+  <aside class="doc-indice" aria-label="Índice de la guía">
+    <details open>
+      <summary data-i18n="guia.indice">En esta guía</summary>
+      <p class="doc-indice__titulo" data-i18n="guia.indice">En esta guía</p>
+      <ol>
+        <li><a href="#que-es" data-i18n="guia.nav.queEs">Qué es, y qué no es</a></li>
+        <li><a href="#instalar" data-i18n="guia.nav.instalar">Instalar</a></li>
+        <li><a href="#primeros-pasos" data-i18n="guia.nav.primeros">Primeros pasos</a></li>
+        <li><a href="#cabina" data-i18n="guia.nav.cabina">La Cabina</a></li>
+        <li><a href="#panel" data-i18n="guia.nav.panel">El Panel</a></li>
+        <li><a href="#agenda" data-i18n="guia.nav.agenda">La Agenda</a></li>
+        <li><a href="#objetivos" data-i18n="guia.nav.objetivos">Los objetivos del día</a></li>
+        <li><a href="#lienzo" data-i18n="guia.nav.lienzo">El Lienzo</a></li>
+        <li><a href="#cuentas" data-i18n="guia.nav.cuentas">Las Cuentas</a></li>
+        <li><a href="#ajustes" data-i18n="guia.nav.ajustes">Ajustes</a></li>
+        <li><a href="#emision" data-i18n="guia.nav.emision">El modo emisión</a></li>
+        <li><a href="#pulso" data-i18n="guia.nav.pulso">El pulso</a></li>
+        <li><a href="#atajos" data-i18n="guia.nav.atajos">Atajos</a></li>
+        <li><a href="#donde-guarda" data-i18n="guia.nav.donde">Dónde guarda tus cosas</a></li>
+        <li><a href="#dudas" data-i18n="guia.nav.dudas">Dudas frecuentes</a></li>
+      </ol>
+    </details>
+  </aside>
+
+  <!-- ============================ CUERPO ============================ -->
+  <div class="doc-cuerpo">
+
+    <!-- ---------------------------- QUE ES ---------------------------- -->
+    <section id="que-es">
+      <h2 data-i18n="guia.queEs.h">Qué es, y qué no es<a class="doc-ancla" href="#que-es" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n-html="guia.queEs.p1">
+        Adeorq no es un chat con una IA, y tampoco es otro editor de código. Es la
+        <b>sala donde caben los programas de agentes que ya usas</b>: Claude Code, Codex,
+        Gemini CLI, Antigravity y compañía. Funcionan muy bien y tienen un problema práctico:
+        cada uno es una ventana negra suelta, y en cuanto abres cuatro pierdes de vista quién
+        está trabajando, quién ha terminado y quién lleva diez minutos esperándote.
+      </p>
+      <p data-i18n-html="guia.queEs.p2">
+        Adeorq los ejecuta tal cual, en terminales reales, y pone alrededor lo que les falta:
+        tus proyectos a un clic, el estado de cada sesión, la agenda de lo que se te ocurre por
+        el camino y una pantalla donde ves a todos a la vez.
+      </p>
+
+      <div class="doc-caja">
+        <p data-i18n-html="guia.queEs.caja">
+          <span class="doc-caja__titulo">Funciona con tus cuentas.</span>
+          Adeorq no incluye ni revende acceso a ningún modelo. Usa las suscripciones y las
+          claves que ya tienes, y todo lo que hace ocurre en tu equipo: no hay servidor por
+          medio ni cuenta que crear para usarlo.
+        </p>
+      </div>
+
+      <h3 data-i18n="guia.queEs.h3">Por qué la línea de comandos y no una aplicación</h3>
+      <p data-i18n-html="guia.queEs.p3">
+        Porque las novedades llegan antes. Opus 5 se podía usar en la terminal antes que en la
+        aplicación de escritorio, y el contexto de un millón de tokens tardó bastante más en
+        llegar allí. Adeorq monta la experiencia <em>encima</em> de esos programas, así que
+        tienes lo último el mismo día, con cara de aplicación.
+      </p>
+    </section>
+
+    <!-- ---------------------------- INSTALAR --------------------------- -->
+    <section id="instalar">
+      <h2 data-i18n="guia.instalar.h">Instalar<a class="doc-ancla" href="#instalar" aria-label="Enlace a esta sección">#</a></h2>
+      <ol class="doc-pasos">
+        <li data-i18n-html="guia.instalar.p1">
+          Descarga el instalador desde <a href="index.html#descargar">la página de descargas</a>.
+        </li>
+        <li data-i18n-html="guia.instalar.p2">
+          Ejecútalo. Windows puede avisar de que no reconoce al editor: es lo normal en
+          programas sin firma comercial, y se pasa con
+          <em>Más información → Ejecutar de todas formas</em>.
+        </li>
+        <li data-i18n-html="guia.instalar.p3">
+          Abre Adeorq. No hace falta crear ninguna cuenta ni introducir nada.
+        </li>
+      </ol>
+      <p data-i18n-html="guia.instalar.p4">
+        A partir de ahí <b>se actualiza sola</b>: comprueba si hay versión nueva al arrancar y
+        cada seis horas, y te avisa con una barra arriba. No hace falta volver a la web.
+      </p>
+      <p data-i18n-html="guia.instalar.p5">
+        <b>Requisitos:</b> Windows 10 u 11 de 64 bits. El instalador ocupa unos 4 MB, porque
+        la aplicación es nativa y no lleva un navegador entero empaquetado dentro.
+      </p>
+    </section>
+
+    <!-- ------------------------- PRIMEROS PASOS ------------------------ -->
+    <section id="primeros-pasos">
+      <h2 data-i18n="guia.primeros.h">Primeros pasos<a class="doc-ancla" href="#primeros-pasos" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.primeros.p">Con Adeorq recién instalado, el camino más corto para ver de qué va:</p>
+      <ol class="doc-pasos">
+        <li data-i18n-html="guia.primeros.p1">
+          Ve a <b>Cuentas</b>. Adeorq mira qué programas de IA tienes instalados y te lo dice.
+          Si te falta alguno, desde ahí se descarga.
+        </li>
+        <li data-i18n-html="guia.primeros.p2">
+          Ve a la <b>Cabina</b> y abre una terminal en uno de tus proyectos. Es una terminal
+          normal: lo que escribirías en ella, escríbelo ahí.
+        </li>
+        <li data-i18n-html="guia.primeros.p3">
+          Vuelve al <b>Panel</b>. Ya verás tu sesión contada, y en la <b>Agenda</b> aparecerá
+          con lo que esté haciendo.
+        </li>
+      </ol>
+    </section>
+
+    <!-- ---------------------------- CABINA ----------------------------- -->
+    <section id="cabina">
+      <h2 data-i18n="guia.cabina.h">La Cabina<a class="doc-ancla" href="#cabina" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.cabina.p">
+        Es donde se trabaja. Cada panel es una terminal de verdad, con su programa dentro, y
+        puedes tener las que quieras a la vez repartidas en columnas y filas.
+      </p>
+
+      <figure class="doc-figura">
+        <img src="./assets/cockpit-DgxNHWSr.png" width="1600" height="1000" loading="lazy" decoding="async"
+             alt="La Cabina de Adeorq con cuatro terminales abiertas y la barra lateral de proyectos a la izquierda">
+        <figcaption data-i18n="guia.cabina.pie">
+          La Cabina con cuatro terminales a la vez. A la izquierda, los proyectos y sus sesiones.
+        </figcaption>
+      </figure>
+
+      <h3 data-i18n="guia.cabina.h3a">La barra lateral</h3>
+      <p data-i18n="guia.cabina.p2">
+        A la izquierda están tus proyectos, y dentro de cada uno sus sesiones. Cada sesión lleva
+        la marca del programa que la escribió, así que ves de un vistazo cuáles son de Claude y
+        cuáles de Codex. El color del punto dice en qué estado está:
+      </p>
+
+      <div class="doc-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="guia.cabina.th1">Estado</th>
+              <th data-i18n="guia.cabina.th2">Qué significa</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="doc-punto doc-punto--vivo"></span><b data-i18n="guia.cabina.e1">Trabajando</b></td>
+              <td data-i18n="guia.cabina.e1d">El agente está haciendo algo ahora mismo.</td>
+            </tr>
+            <tr>
+              <td><span class="doc-punto doc-punto--espera"></span><b data-i18n="guia.cabina.e2">Te espera</b></td>
+              <td data-i18n="guia.cabina.e2d">Ha terminado su turno preguntando o pidiendo permiso. La pelota está en tu tejado.</td>
+            </tr>
+            <tr>
+              <td><span class="doc-punto doc-punto--lista"></span><b data-i18n="guia.cabina.e3">Lista</b></td>
+              <td data-i18n="guia.cabina.e3d">Entregó lo que le pediste y no espera nada.</td>
+            </tr>
+            <tr>
+              <td><span class="doc-punto doc-punto--dormida"></span><b data-i18n="guia.cabina.e4">Dormida</b></td>
+              <td data-i18n="guia.cabina.e4d">Sin actividad en un par de días, pero se puede retomar.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p data-i18n="guia.cabina.p3">
+        Esa distinción no es cosmética: cerrar un panel que te estaba preguntando algo pierde la
+        pregunta, así que Adeorq lee el historial de la sesión para saberlo de verdad, en vez de
+        adivinarlo por si suena la campana de la terminal.
+      </p>
+
+      <h3 data-i18n="guia.cabina.h3b">La cabecera de cada panel</h3>
+      <p data-i18n="guia.cabina.p4">Cada terminal lleva encima lo que hace falta saber sin entrar a mirar:</p>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.cabina.l1">
+          <b>El contexto</b>, en porcentaje. Cuánto lleva cargado esa conversación, medido contra
+          la ventana real del modelo que estés usando, no contra un número fijo.
+        </li>
+        <li data-i18n-html="guia.cabina.l2"><b>El modelo</b> con el que está trabajando.</li>
+        <li data-i18n-html="guia.cabina.l3">
+          <b>Los agentes desplegados</b>, si esa sesión ha repartido trabajo entre subagentes.
+        </li>
+        <li data-i18n-html="guia.cabina.l4">
+          <b>El modo espejo</b>, que aísla lo que el agente escriba en una copia aparte del
+          proyecto para que puedas revisarlo antes de aceptarlo.
+        </li>
+      </ul>
+
+      <div class="doc-caja doc-caja--ojo">
+        <p data-i18n-html="guia.cabina.caja">
+          <span class="doc-caja__titulo">El aviso de sesión cara.</span>
+          A partir de cierto tamaño, cada mensaje vuelve a pagar el contexto entero, y compactar
+          paga de golpe todo lo acumulado. Adeorq avisa cuando una conversación llega ahí, para
+          que la decisión de seguir o empezar de nuevo se tome con el dato delante.
+        </p>
+      </div>
+    </section>
+
+    <!-- ----------------------------- PANEL ----------------------------- -->
+    <section id="panel">
+      <h2 data-i18n="guia.panel.h">El Panel<a class="doc-ancla" href="#panel" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.panel.p">
+        El resumen del día. Arriba, cuatro cifras que no dicen sólo cuánto hay, sino si tienes
+        que hacer algo: cuántas sesiones trabajan ahora, cuántas te esperan, cuántas van esta
+        semana y cuántos proyectos tienes. La primera es un botón que te lleva a la Cabina.
+      </p>
+      <p data-i18n-html="guia.panel.p0">
+        Está organizado como los Ajustes: los grupos a la izquierda y una sola hoja a la derecha,
+        cada uno con su contador para ver que algo está vacío sin entrar a mirarlo.
+      </p>
+
+      <figure class="doc-figura">
+        <img src="./assets/dashboard-zEaV7TSU.png" width="1600" height="947" loading="lazy" decoding="async"
+             alt="El Panel de Adeorq: las cuatro cifras del día arriba, y debajo el Capataz con los grupos Ahora, Proyectos y Misión a la izquierda">
+        <figcaption data-i18n="guia.panel.pie">
+          El Panel. Arriba las cuatro cifras del día; a la izquierda, los grupos.
+        </figcaption>
+      </figure>
+
+      <h3 data-i18n="guia.panel.h3a">Ahora</h3>
+      <p data-i18n-html="guia.panel.p1">
+        El <b>Capataz</b> y los proyectos calientes. Al Capataz le pides el tablero en castellano
+        («abre las sesiones del panel de Orquio», «un agente al frontend y otro al backend») y él
+        propone el plan: qué sesiones abrir, con qué programa y con qué encargo.
+        <b>No ejecuta nada sin tu visto bueno.</b>
+      </p>
+
+      <h3 data-i18n="guia.panel.h3b">Proyectos</h3>
+      <p data-i18n-html="guia.panel.p2">
+        Crear uno nuevo y la lista completa. Al crearlo, Adeorq deja la carpeta lista con
+        <code>AGENTS.md</code> (tus reglas para los agentes), <code>docs/METAS.md</code> y git
+        iniciado, para que la primera sesión empiece con contexto en vez de en blanco.
+      </p>
+
+      <h3 data-i18n="guia.panel.h3c">Misión</h3>
+      <p data-i18n="guia.panel.p3">
+        Despliega un equipo. Describes qué quieres, eliges proyecto y roles (Frontend, Backend,
+        Seguridad, Diseño) y se abre un agente por rol, cada uno con su cometido, su reparto de
+        archivos y coordinados entre ellos por un fichero común del proyecto. Cada uno te propone
+        su plan y espera tu aprobación antes de tocar nada.
+      </p>
+    </section>
+
+    <!-- ----------------------------- AGENDA ---------------------------- -->
+    <section id="agenda">
+      <h2 data-i18n="guia.agenda.h">La Agenda<a class="doc-ancla" href="#agenda" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.agenda.p">
+        Lo que se te viene encima, lo que pensaste y lo que toca. Cada bloque lee de donde esa
+        cosa ya vive, sin guardar una segunda copia de nada.
+      </p>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.agenda.l1"><b>Hoy</b> — tus objetivos del día y todas tus sesiones, lo que te espera primero.</li>
+        <li data-i18n-html="guia.agenda.l2">
+          <b>Calendario</b> — lo que tiene fecha porque la pone otro. Cada cosa avisa con la
+          antelación que tú le pusiste, no con un umbral fijo.
+        </li>
+        <li data-i18n-html="guia.agenda.l3">
+          <b>Ideas</b> — las que tienes vivas o aparcadas, cada una con su condición de desbloqueo.
+        </li>
+        <li data-i18n-html="guia.agenda.l4">
+          <b>Próximos pasos</b> — el <code>METAS.md</code> del proyecto que estés mirando, leído
+          de su carpeta y ampliable desde aquí.
+        </li>
+      </ul>
+      <div class="doc-caja">
+        <p data-i18n-html="guia.agenda.caja">
+          <span class="doc-caja__titulo">La bandeja.</span>
+          Mientras trabajas salen cabos sueltos que no son de ahora. En vez de interrumpirte,
+          caen en una bandeja que revisas cuando quieras: aceptas lo que sirve y descartas el
+          resto. Un agente puede proponer ahí sin tocar ninguna credencial tuya.
+        </p>
+      </div>
+    </section>
+
+    <!-- --------------------------- OBJETIVOS --------------------------- -->
+    <section id="objetivos">
+      <h2 data-i18n="guia.obj.h">Los objetivos del día<a class="doc-ancla" href="#objetivos" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.obj.p1">
+        Qué dos o tres cosas quieres dejar cerradas hoy. No pertenecen a ningún proyecto: son
+        tuyas y del día, y mañana empiezas con la hoja en blanco sin que nadie limpie nada.
+      </p>
+      <p data-i18n-html="guia.obj.p2">
+        Están en la Agenda, y también en un <b>panel flotante</b> que se abre desde el icono de
+        diana de la barra superior y se queda sobre la pantalla en la que estés. Lo puedes
+        arrastrar por su barra de título hasta donde te convenga, plegarlo para que ocupe sólo
+        una línea con el contador a la vista, o devolverlo a su esquina.
+      </p>
+      <div class="doc-caja">
+        <p data-i18n-html="guia.obj.caja">
+          <span class="doc-caja__titulo">Un agente puede tacharlos.</span>
+          Los objetivos no viven en la configuración, sino en un archivo de texto por día. Un
+          agente sabe editar un archivo de texto, así que cuando una terminal termina lo que le
+          pediste puede marcar el objetivo como hecho, y el panel lo recoge solo sin recargar nada.
+        </p>
+      </div>
+    </section>
+
+    <!-- ----------------------------- LIENZO ---------------------------- -->
+    <section id="lienzo">
+      <h2 data-i18n="guia.lienzo.h">El Lienzo<a class="doc-ancla" href="#lienzo" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.lienzo.p">
+        Un tablero infinito donde colocar terminales, notas, dibujos y widgets como si fueran
+        piezas sobre una mesa. Sirve para pensar un trabajo con varias piezas a la vez, en lugar
+        de en una rejilla fija.
+      </p>
+
+      <figure class="doc-figura">
+        <img src="./assets/canvas-EDBiWVrc.png" width="1600" height="1000" loading="lazy" decoding="async"
+             alt="El Lienzo de Adeorq, un tablero infinito con terminales, notas y widgets colocados">
+        <figcaption data-i18n="guia.lienzo.pie">
+          El Lienzo. Las piezas se colocan y se conectan como en una pizarra.
+        </figcaption>
+      </figure>
+
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.lienzo.l1">
+          <b>Terminales</b> conectadas entre sí: cuando una acaba, puede pasarle el relevo a la
+          siguiente con su respuesta.
+        </li>
+        <li data-i18n-html="guia.lienzo.l2">
+          <b>Notas</b> en Markdown con casillas, que también son archivos y que un agente puede marcar.
+        </li>
+        <li data-i18n-html="guia.lienzo.l3">
+          <b>El kanban</b>: arrastras una tarjeta de «Por hacer» a «Trabajando» y se abre una
+          terminal con ese encargo. Las otras columnas se llenan solas con lo que reporta cada agente.
+        </li>
+        <li data-i18n-html="guia.lienzo.l4">
+          <b>Widgets</b> de trabajo: pomodoro, cronómetro, cuenta atrás, calculadora y un
+          calendario con notas por día.
+        </li>
+      </ul>
+    </section>
+
+    <!-- ----------------------------- CUENTAS --------------------------- -->
+    <section id="cuentas">
+      <h2 data-i18n="guia.cuentas.h">Las Cuentas<a class="doc-ancla" href="#cuentas" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.cuentas.p">
+        Una cuenta es un inicio de sesión del mismo programa, con su propia carpeta de
+        configuración. Puedes tener varias del mismo y repartir el trabajo entre ellas.
+      </p>
+
+      <figure class="doc-figura">
+        <img src="./assets/accounts-2MWvrE7m.png" width="1600" height="947" loading="lazy" decoding="async"
+             alt="La pantalla de Cuentas: cuántas hay conectadas, cuál es el límite más apretado y cuál es la predeterminada">
+        <figcaption data-i18n="guia.cuentas.pie">
+          Cuentas. Arriba, cuánto queda del límite más apretado y cuál manda por defecto.
+        </figcaption>
+      </figure>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.cuentas.l1">
+          <b>Tus cuentas</b> — una tarjeta por programa instalado, diciendo si está conectada y
+          cuánto llevas gastado de sus límites.
+        </li>
+        <li data-i18n-html="guia.cuentas.l2">
+          <b>Claves de API</b> — la otra forma de pagar lo que consume un programa: por tokens en
+          vez de con tu suscripción. Se guardan cifradas en el Gestor de Credenciales de Windows,
+          nunca en un archivo de configuración, y no vuelven a salir de ahí.
+        </li>
+        <li data-i18n-html="guia.cuentas.l3">
+          <b>Atajos</b> — qué programas aparecen al pasar el ratón por un proyecto en la barra lateral.
+        </li>
+        <li data-i18n-html="guia.cuentas.l4">
+          <b>No instalados</b> — lo que te falta, con su botón de descarga.
+        </li>
+      </ul>
+      <div class="doc-caja doc-caja--ojo">
+        <p data-i18n-html="guia.cuentas.caja">
+          <span class="doc-caja__titulo">Varias cuentas tuyas, sin problema.</span>
+          Turnarte cuentas de otras personas para estirar los límites incumple los términos de
+          los proveedores, y lo que te juegas es el cierre de la cuenta.
+        </p>
+      </div>
+    </section>
+
+    <!-- ----------------------------- AJUSTES --------------------------- -->
+    <section id="ajustes">
+      <h2 data-i18n="guia.ajustes.h">Ajustes<a class="doc-ancla" href="#ajustes" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.ajustes.p">Cómo se ve y cómo habla tu taller.</p>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.ajustes.l1">
+          <b>Aspecto</b> — idioma (español o inglés), veinticuatro temas y el fondo: puedes poner
+          una imagen o un vídeo detrás de todo, graduar cuánto se ve y hacer que las terminales
+          sean transparentes para que la foto se vea a través del texto.
+        </li>
+        <li data-i18n-html="guia.ajustes.l2">
+          <b>Terminales</b> — tamaño de letra, cuántas sesiones abre el botón de abrir todo y la
+          recuperación de lo que tenías abierto.
+        </li>
+        <li data-i18n-html="guia.ajustes.l3"><b>Avisos</b> — cómo te avisa cuando un agente termina o te pregunta.</li>
+        <li data-i18n-html="guia.ajustes.l4"><b>Atajos</b> — todas las combinaciones de teclas, editables.</li>
+        <li data-i18n-html="guia.ajustes.l5">
+          <b>Modelo local</b> — si tienes Ollama, Adeorq lo usa para tareas pequeñas sin gastar cuota.
+        </li>
+        <li data-i18n-html="guia.ajustes.l6">
+          <b>Discord</b> — para que tu estado en Discord diga en qué estás trabajando.
+        </li>
+        <li data-i18n-html="guia.ajustes.l7">
+          <b>Ayuda</b> — la guía completa dentro de la aplicación y el enlace a esta documentación.
+        </li>
+        <li data-i18n-html="guia.ajustes.l8">
+          <b>Adeorq</b> — versión instalada, buscar actualizaciones y tu consumo semanal.
+        </li>
+      </ul>
+    </section>
+
+    <!-- ----------------------------- EMISION --------------------------- -->
+    <section id="emision">
+      <h2 data-i18n="guia.emision.h">El modo emisión<a class="doc-ancla" href="#emision" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n-html="guia.emision.p">
+        Pensado para grabar o compartir pantalla: tapa rutas, correos, claves y datos personales
+        de las terminales de un golpe. Se activa con <kbd>Ctrl</kbd> + <kbd>Mayús</kbd> +
+        <kbd>E</kbd>, y manteniendo <kbd>Alt</kbd> puedes mirar debajo un momento sin desactivarlo.
+      </p>
+    </section>
+
+    <!-- ------------------------------ PULSO ---------------------------- -->
+    <section id="pulso">
+      <h2 data-i18n="guia.pulso.h">El pulso<a class="doc-ancla" href="#pulso" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n-html="guia.pulso.p1">
+        Arriba en la barra, cuánta memoria están gastando Adeorq y sus agentes, y cuántos agentes
+        hay vivos, que es el número que dice si te has dejado algo abierto.
+      </p>
+      <p data-i18n-html="guia.pulso.p2">
+        Mide el <b>árbol entero</b> de procesos, no sólo la ventana, porque lo que de verdad pesa
+        son los programas que cuelgan de ella. Y lo compara con lo que tiene tu equipo: se pone
+        ámbar cuando el que aprieta es Adeorq, y rojo cuando la que va justa es la máquina.
+      </p>
+    </section>
+
+    <!-- ----------------------------- ATAJOS ---------------------------- -->
+    <section id="atajos">
+      <h2 data-i18n="guia.atajos.h">Atajos<a class="doc-ancla" href="#atajos" aria-label="Enlace a esta sección">#</a></h2>
+      <div class="doc-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="guia.atajos.th1">Atajo</th>
+              <th data-i18n="guia.atajos.th2">Qué hace</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>A</kbd></td><td data-i18n="guia.atajos.a1">Llamar al Capataz</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>M</kbd></td><td data-i18n="guia.atajos.a2">Llamar al Capataz y dictarle</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>E</kbd></td><td data-i18n="guia.atajos.a3">Modo emisión</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>P</kbd></td><td data-i18n="guia.atajos.a4">Tapar la pantalla entera</td></tr>
+            <tr><td><kbd>Alt</kbd> <span data-i18n="guia.atajos.mantener">(mantener)</span></td><td data-i18n="guia.atajos.a5">Mirar debajo del modo emisión</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td data-i18n="guia.atajos.a6">Cerrar lo que esté abierto encima</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p data-i18n-html="guia.atajos.p">Todos son editables en <b>Ajustes → Atajos</b>.</p>
+    </section>
+
+    <!-- -------------------------- DONDE GUARDA ------------------------- -->
+    <section id="donde-guarda">
+      <h2 data-i18n="guia.donde.h">Dónde guarda tus cosas<a class="doc-ancla" href="#donde-guarda" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.donde.p">Todo en tu equipo, y en formatos que puedes abrir por tu cuenta:</p>
+      <div class="doc-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="guia.donde.th1">Qué</th>
+              <th data-i18n="guia.donde.th2">Dónde</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td data-i18n="guia.donde.q1">Objetivos del día</td><td data-i18n-html="guia.donde.d1"><code>%LOCALAPPDATA%\Adeorq\objetivos\</code>, un Markdown por día</td></tr>
+            <tr><td data-i18n="guia.donde.q2">Notas del lienzo</td><td data-i18n-html="guia.donde.d2"><code>%LOCALAPPDATA%\Adeorq\notas\</code>, en Markdown</td></tr>
+            <tr><td data-i18n="guia.donde.q3">Claves de API</td><td data-i18n="guia.donde.d3">Gestor de Credenciales de Windows, cifradas por el sistema</td></tr>
+            <tr><td data-i18n="guia.donde.q4">Rastro de fallos</td><td data-i18n-html="guia.donde.d4"><code>%LOCALAPPDATA%\Adeorq\rastro.log</code></td></tr>
+            <tr><td data-i18n="guia.donde.q5">Sesiones e historiales</td><td data-i18n="guia.donde.d5">Donde los deja cada programa: Adeorq los lee, no los copia</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ----------------------------- DUDAS ----------------------------- -->
+    <section id="dudas">
+      <h2 data-i18n="guia.dudas.h">Dudas frecuentes<a class="doc-ancla" href="#dudas" aria-label="Enlace a esta sección">#</a></h2>
+
+      <details class="doc-pregunta">
+        <summary data-i18n="guia.dudas.q1">¿Necesito una cuenta de Adeorq?</summary>
+        <div class="doc-pregunta__cuerpo">
+          <p data-i18n="guia.dudas.r1">No. Adeorq no tiene cuentas, ni servidor, ni te pide nada al instalarlo.</p>
+        </div>
+      </details>
+
+      <details class="doc-pregunta">
+        <summary data-i18n="guia.dudas.q2">¿Sustituye a Claude Code o a Codex?</summary>
+        <div class="doc-pregunta__cuerpo">
+          <p data-i18n="guia.dudas.r2">
+            No: los ejecuta. Adeorq no toca lo que esos programas hacen ni cómo lo hacen; pone la
+            sala alrededor. Si mañana sacan una función nueva, la tienes el mismo día.
+          </p>
+        </div>
+      </details>
+
+      <details class="doc-pregunta">
+        <summary data-i18n="guia.dudas.q3">¿Se lleva mis datos a algún sitio?</summary>
+        <div class="doc-pregunta__cuerpo">
+          <p data-i18n="guia.dudas.r3">
+            No. Todo lo que ves ocurre en tu equipo. La aplicación sólo sale a internet para
+            comprobar si hay una versión nueva.
+          </p>
+        </div>
+      </details>
+
+      <details class="doc-pregunta">
+        <summary data-i18n="guia.dudas.q4">¿Puedo usar dos cuentas del mismo programa?</summary>
+        <div class="doc-pregunta__cuerpo">
+          <p data-i18n="guia.dudas.r4">
+            Sí, siempre que sean tuyas. Cada una vive en su carpeta de configuración y no se pisan.
+          </p>
+        </div>
+      </details>
+
+      <details class="doc-pregunta">
+        <summary data-i18n="guia.dudas.q5">¿Qué pasa si cierro un panel con un agente trabajando?</summary>
+        <div class="doc-pregunta__cuerpo">
+          <p data-i18n="guia.dudas.r5">
+            Se cierra el programa y todo lo que colgara de él. Si estaba a mitad de un turno, ese
+            trabajo se pierde: mira el estado del panel antes de cerrarlo.
+          </p>
+        </div>
+      </details>
+
+      <details class="doc-pregunta">
+        <summary data-i18n="guia.dudas.q6">Windows dice que el instalador no es seguro</summary>
+        <div class="doc-pregunta__cuerpo">
+          <p data-i18n="guia.dudas.r6">
+            Es el aviso estándar para programas sin firma comercial de pago. El instalador va
+            firmado con la clave del actualizador de Adeorq, que es lo que garantiza que la
+            actualización que te llega es la nuestra.
+          </p>
+        </div>
+      </details>
+
+      <div class="doc-cierre">
+        <p data-i18n="guia.cierre">
+          ¿Falta algo en esta guía o algo no funciona como se cuenta aquí? Dilo y se arregla.
+        </p>
+        <a class="boton boton--solido" href="https://github.com/Mun1to/Adeorq-releases/issues"
+           rel="noopener" data-i18n="guia.cierre.cta">Avisar de un fallo</a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ============================ PIE ============================ -->
+<footer class="pie" id="pie">
+  <div class="pie__inner">
+    <div class="pie__rejilla">
+      <div class="pie__marca">
+        <a class="marca" href="index.html" aria-label="Adeorq, ir al inicio">
+          <img class="marca__logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPgogIDwhLS0gQWRlb3JxIG1hcms6IE11bmlyJ3MgIkEiIHNoaXAsIHNlY29uZCBjdXQgKDIwMjYtMDctMjYpLiBSZWRyYXduIGZyb20gaGlzCiAgICAgICByZWZlcmVuY2U6IHRoZSBzZW1pY2lyY3VsYXIgbm90Y2ggdGhhdCB1c2VkIHRvIGJpdGUgdGhlIGJvdHRvbSBlZGdlIGlzCiAgICAgICBnb25lICh0aGF0IHdhcyB0aGUgInBhcnRlIGNpcmN1bGFyIGRlIGFiYWpvIiksIHRoZSBjaGFtZmVycyBhdCB0aGUgYmFzZQogICAgICAgYXJlIHNtYWxsIGluc3RlYWQgb2YgaHVnZSwgYW5kIHRoZSB3aG9sZSB0aGluZyBpcyBiaWdnZXIgaW4gaXRzIGJveC4gVGhlCiAgICAgICBjb3VudGVyIGtlZXBzIGl0cyBjb25jYXZlIGJhc2UsIHdoaWNoIGlzIHdoYXQgbWFrZXMgaXQgcmVhZCBhcyBhIHByb3cKICAgICAgIGFuZCBub3QgYXMgYSBwbGFpbiB0cmlhbmdsZS4gLS0+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImEiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNDhjMmZmIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJmOWRmMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHBhdGggZmlsbD0idXJsKCNhKSIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSIKICAgIE0gMjM2IDExMgogICAgTCA3ODggMTEyCiAgICBMIDEwMTYgNzU2CiAgICBMIDk0NCA4NDgKICAgIEwgODAgODQ4CiAgICBMIDggNzU2CiAgICBaCiAgICBNIDUxMiAyNDAKICAgIEwgNzEyIDczMAogICAgUSA1MTIgNTcyIDMxMiA3MzAKICAgIFoiLz4KPC9zdmc+Cg==" width="32" height="32" alt="" decoding="async">
+          <span class="marca__texto">Adeorq</span>
+        </a>
+        <p class="pie__lema" data-i18n="guia.pie.lema">
+          El panel donde tus agentes trabajan en terminales de verdad. Hecho en Windows, para
+          quien vive en Windows.
+        </p>
+      </div>
+
+      <nav class="pie__col" aria-label="Producto">
+        <h2 class="pie__titulo" data-i18n="guia.pie.producto">Producto</h2>
+        <ul>
+          <li><a href="index.html#que-es" data-i18n="nav.queEs">Qué es</a></li>
+          <li><a href="index.html#features" data-i18n="nav.funciones">Funciones</a></li>
+          <li><a href="index.html#descargar" data-i18n="cta.descargar">Descargar</a></li>
+          <li><a href="index.html#roadmap" data-i18n="guia.pie.roadmap">Lo que viene</a></li>
+        </ul>
+      </nav>
+
+      <nav class="pie__col" aria-label="Recursos">
+        <h2 class="pie__titulo" data-i18n="guia.pie.recursos">Recursos</h2>
+        <ul>
+          <li><a href="index.html#changelog" data-i18n="nav.novedades">Novedades</a></li>
+          <li><a href="#dudas" data-i18n="guia.pie.preguntas">Preguntas</a></li>
+          <li>
+            <a href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener"
+               data-i18n="guia.pie.versiones">Todas las versiones</a>
+          </li>
+          <li>
+            <a href="https://github.com/Mun1to/Adeorq-releases/blob/main/LICENSE" rel="noopener"
+               data-i18n="guia.pie.licencia">Licencia de uso</a>
+          </li>
+        </ul>
+      </nav>
+
+      <nav class="pie__col" aria-label="Ecosistema">
+        <h2 class="pie__titulo" data-i18n="guia.pie.ecosistema">Ecosistema</h2>
+        <ul>
+          <li><a href="https://orquio.com" rel="noopener">Orquio</a></li>
+          <li><a href="https://munito.dev" rel="noopener">munito.dev</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <p class="pie__contacto" data-i18n-html="guia.pie.marcas">
+      No afiliado a Anthropic, OpenAI, Google ni Microsoft. Sus nombres y logotipos son marcas de
+      sus titulares, y aquí sólo identifican con qué herramienta estás trabajando.
+    </p>
+
+    <div class="pie__bajo">
+      <p data-i18n="guia.pie.copyright">© 2026 Adeorq · parte del ecosistema Orquio</p>
+      <p class="pie__privacidad" data-i18n="guia.pie.privacidad">Esta web no usa cookies ni te sigue.</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

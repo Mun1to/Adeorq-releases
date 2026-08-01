@@ -1,9 +1,44 @@
 {
-  "generatedAt": "2026-08-01T20:35:07.766Z",
+  "generatedAt": "2026-08-01T20:55:28.787Z",
   "source": "https://github.com/Mun1to/Adeorq-releases/releases",
-  "count": 70,
-  "latest": "0.9.43",
+  "count": 71,
+  "latest": "0.9.44",
   "entries": [
+    {
+      "version": "0.9.44",
+      "tag": "v0.9.44",
+      "date": "2026-08-01",
+      "publishedAt": "2026-08-01T20:55:01Z",
+      "title": "Arreglo pequeño: el cuadro del Reparto se comía la primera letra",
+      "name": "Adeorq 0.9.44",
+      "summary": "Al escribir varias tareas en el Reparto (el botón de las tres ramas), la primera letra de cada línea de arriba desaparecía dentro del borde redondeado del cuadro.",
+      "tags": [
+        "nuevo"
+      ],
+      "items": [
+        "## Arreglo pequeño: el cuadro del Reparto se comía la primera letra  Al escribir varias tareas en el Reparto (el botón de las tres ramas), la primera letra de cada línea de arriba desaparecía dentro del borde redondeado del cuadro.",
+        "Era una pieza pensada para un campo de una sola línea, mal puesta en un cuadro de varias.",
+        "Y de paso, fuera el tirador de agrandar que asomaba en las esquinas de los cuadros de texto: no aportaba nada y no encajaba con el resto de la interfaz."
+      ],
+      "highlights": [
+        "## Arreglo pequeño: el cuadro del Reparto se comía la primera letra  Al escribir varias tareas en el Reparto (el botón de las tres ramas), la primera letra de cada línea de arriba desaparecía dentro del borde redondeado del cuadro.",
+        "Era una pieza pensada para un campo de una sola línea, mal puesta en un cuadro de varias.",
+        "Y de paso, fuera el tirador de agrandar que asomaba en las esquinas de los cuadros de texto: no aportaba nada y no encajaba con el resto de la interfaz."
+      ],
+      "headings": [
+        "Arreglo pequeño: el cuadro del Reparto se comía la primera letra"
+      ],
+      "image": null,
+      "notes": "## Arreglo pequeño: el cuadro del Reparto se comía la primera letra\n\nAl escribir varias tareas en el Reparto (el botón de las tres ramas), la\nprimera letra de cada línea de arriba desaparecía dentro del borde redondeado\ndel cuadro. Era una pieza pensada para un campo de una sola línea, mal puesta\nen un cuadro de varias.\n\nY de paso, fuera el tirador de agrandar que asomaba en las esquinas de los\ncuadros de texto: no aportaba nada y no encajaba con el resto de la interfaz.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.44",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.44/Adeorq_0.9.44_x64-setup.exe",
+        "filename": "Adeorq_0.9.44_x64-setup.exe",
+        "size": 4524099,
+        "sizeLabel": "4,3 MB"
+      }
+    },
     {
       "version": "0.9.43",
       "tag": "v0.9.43",

@@ -1,32 +1,32 @@
 {
-  "version": "0.9.43",
-  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.43/Adeorq_0.9.43_x64-setup.exe",
-  "pub_date": "2026-08-01T20:33:59Z",
-  "size_bytes": 4523282,
-  "notes": "## Ahora Adeorq la puede instalar cualquiera, y sabe repartir un día entero\n\n### La bienvenida\n\nLa primera vez que se abre, cuatro preguntas: cómo te llamas, **dónde viven tus\nproyectos**, qué clientes usas y el aspecto. Ninguna es de adorno: la carpeta de\nproyectos era una constante dentro del programa, así que en cualquier ordenador\nque no fuera el del autor el panel salía vacío y sin un sitio donde arreglarlo.\n\nAl terminar, un **recorrido** que señala los botones de verdad, incluidos la\nAgenda y los objetivos del día. Los dos se repiten desde **Ajustes › Ayuda**.\n\n### El Reparto: varias tareas de golpe\n\nEl botón de las tres ramas, al lado del Asistente. Le pegas tus tareas (o marcas\nlas que ya tienes en tus objetivos y en la Agenda) y:\n\n1. una sola llamada las clasifica todas y les reparte los archivos,\n2. el código elige el destino de cada una mirando tus clientes, tus cuentas, tu\n   cuota y **tu plan de pago**, sin gastar un token,\n3. se escribe el reparto entero en el `BUZON.md` del proyecto para que no se\n   pisen,\n4. y se abren, cada una con su encargo escrito en el idioma de su cliente.\n\nAntes de aceptar ves lo que pesa el lote: *Abre 4 agentes · 1 opus + 3 sonnet · ×14*.\n\n### Lo que ya no se pierde\n\n- **Un cuelgue ya no deja agentes sueltos.** Cerrar con la X ya estaba cubierto;\n  colgarse o que te maten desde el Administrador de tareas, no. Ahora es Windows\n  quien se encarga, sin depender de que a Adeorq le dé tiempo a despedirse.\n- **Tu espacio de trabajo sobrevive al reinicio**: las terminales de una misma\n  misión vuelven agrupadas.\n- **Arrastrar archivos a una terminal funciona.** No fallaba donde parecía: la\n  ventana se quedaba el arrastre y el navegador de dentro nunca veía nada.\n\n### Y además\n\n- **Modo plan**: una terminal puede nacer enseñándote su plan en vez de editar\n  desde el primer segundo. En Ajustes, o por sesión al abrirla.\n- **Pi (pi.dev)** entra como cliente, con cuentas separadas de verdad.\n- **La guía viaja dentro del instalador** y está al día: antes se leía de una\n  carpeta del disco del autor, así que fuera de ahí salía un error.",
-  "generatedAt": "2026-08-01T20:35:07.646Z",
-  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.43",
-  "tag": "v0.9.43",
-  "title": "Adeorq 0.9.43",
+  "version": "0.9.44",
+  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.44/Adeorq_0.9.44_x64-setup.exe",
+  "pub_date": "2026-08-01T20:55:01Z",
+  "size_bytes": 4524099,
+  "notes": "## Arreglo pequeño: el cuadro del Reparto se comía la primera letra\n\nAl escribir varias tareas en el Reparto (el botón de las tres ramas), la\nprimera letra de cada línea de arriba desaparecía dentro del borde redondeado\ndel cuadro. Era una pieza pensada para un campo de una sola línea, mal puesta\nen un cuadro de varias.\n\nY de paso, fuera el tirador de agrandar que asomaba en las esquinas de los\ncuadros de texto: no aportaba nada y no encajaba con el resto de la interfaz.",
+  "generatedAt": "2026-08-01T20:55:28.672Z",
+  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.44",
+  "tag": "v0.9.44",
+  "title": "Adeorq 0.9.44",
   "date": "2026-08-01",
-  "publishedAt": "2026-08-01T20:33:59Z",
+  "publishedAt": "2026-08-01T20:55:01Z",
   "notesFormat": "markdown",
-  "summary": "La primera vez que se abre, cuatro preguntas: cómo te llamas, **dónde viven tus proyectos**, qué clientes usas y el aspecto.",
+  "summary": "Al escribir varias tareas en el Reparto (el botón de las tres ramas), la primera letra de cada línea de arriba desaparecía dentro del borde redondeado del cuadro.",
   "windows": {
-    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.43/Adeorq_0.9.43_x64-setup.exe",
-    "filename": "Adeorq_0.9.43_x64-setup.exe",
-    "size": 4523282,
+    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.44/Adeorq_0.9.44_x64-setup.exe",
+    "filename": "Adeorq_0.9.44_x64-setup.exe",
+    "size": 4524099,
     "sizeLabel": "4,3 MB",
     "arch": "x64",
     "downloadCount": 0
   },
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.43/Adeorq_0.9.43_x64-setup.exe",
-      "filename": "Adeorq_0.9.43_x64-setup.exe",
-      "size": 4523282
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.44/Adeorq_0.9.44_x64-setup.exe",
+      "filename": "Adeorq_0.9.44_x64-setup.exe",
+      "size": 4524099
     }
   },
-  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.43",
+  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.44",
   "allReleasesUrl": "https://github.com/Mun1to/Adeorq-releases/releases"
 }

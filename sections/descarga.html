@@ -1,0 +1,63 @@
+<!--
+  Adeorq · web/sections/descarga.html
+  Seccion 4 del mapa (DISENO.md §10): instalador de Windows con version, fecha,
+  peso y el aviso de SmartScreen. Es el unico boton solido de esta mitad de la
+  pagina (§8: uno por pantalla).
+
+  DATOS: los genera el agente de datos en web/data/. web/js/sections.js intenta:
+    1) data/release.json  { version, url, pub_date, size_bytes, notes }
+    2) data/latest.json   formato del updater de Tauri
+  Sin ninguno de los dos el HTML sigue siendo valido: enlaza a la pagina de
+  releases y no promete ninguna version.
+  TEXTOS: web/content/es/descarga.md (claves data-content).
+-->
+<section class="seccion descarga cargando" id="descargar" aria-labelledby="descargar-titulo" data-descarga>
+  <div class="envoltura descarga__inner" data-reveal-grupo>
+    <p class="etiqueta" data-reveal data-content="descarga.eyebrow">Descarga</p>
+
+    <h2 class="titulo-2" id="descargar-titulo" data-reveal data-content="descarga.titulo">
+      Móntate la cabina en dos minutos.
+    </h2>
+
+    <p class="entradilla descarga__entradilla" data-reveal data-content="descarga.lead">
+      Instalador para Windows de 64 bits. Necesitas tener instalado el CLI que ya uses, porque
+      Adeorq trabaja con él: no te pide ninguna clave ni te crea otra cuenta.
+    </p>
+
+    <div class="descarga__acciones" data-reveal>
+      <!-- href de partida: la pagina de releases. El JS lo cambia al instalador
+           exacto en cuanto lee el dato. -->
+      <a class="boton boton--solido boton--grande"
+         data-descarga-enlace
+         data-magnetico
+         href="https://github.com/Mun1to/Adeorq-releases/releases/latest"
+         rel="noopener">
+        <span data-descarga-texto data-content="descarga.boton">Descargar para Windows</span>
+      </a>
+
+      <a class="boton boton--fantasma boton--grande"
+         href="https://github.com/Mun1to/Adeorq-releases/releases"
+         rel="noopener"
+         data-content="descarga.todas">
+        Ver todas las versiones
+      </a>
+    </div>
+
+    <p class="descarga__datos" data-reveal>
+      <span class="descarga__version" data-descarga-version>buscando la última versión</span>
+      <span data-descarga-fecha></span>
+      <span data-descarga-peso></span>
+      <span data-content="descarga.meta.sistema">Windows 10 y 11 · x64</span>
+    </p>
+
+    <p class="descarga__gratis" data-reveal data-content="descarga.gratis">
+      Gratis, en desarrollo abierto. Ni cuenta, ni prueba de 14 días, ni tarjeta.
+    </p>
+
+    <p class="nota" data-reveal data-content="descarga.nota">
+      Windows puede avisarte de que el instalador viene de un editor desconocido. Es el aviso
+      normal de SmartScreen con una aplicación joven y poco descargada: en
+      <a href="#faq">las preguntas</a> te contamos cómo comprobar que el paquete es el nuestro.
+    </p>
+  </div>
+</section>

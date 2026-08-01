@@ -1,0 +1,99 @@
+<!--
+  Adeorq · web/sections/faq.html
+  Seccion 7 del mapa (DISENO.md §10): seis preguntas, incluidas las incomodas.
+  Lo que Adeorq NO hace se cuenta aqui, y esa honestidad es la que sostiene el
+  resto de la pagina (DISENO.md §9.4).
+
+  <details> nativos: se leen y se abren sin JavaScript. El JS solo anima la
+  altura, y con el dial a 0 deja el comportamiento nativo del navegador.
+  TEXTOS: web/content/es/faq.md (claves data-content).
+-->
+<section class="seccion faq" id="faq" aria-labelledby="faq-titulo">
+  <div class="envoltura faq__grid">
+
+    <div data-reveal-grupo>
+      <p class="etiqueta" data-reveal data-content="faq.eyebrow">Preguntas</p>
+      <h2 class="titulo-2" id="faq-titulo" data-reveal data-content="faq.titulo">
+        Lo que suelen preguntar.
+      </h2>
+      <p class="entradilla" data-reveal data-content="faq.lead">
+        Las respuestas cortas están aquí. Si te falta una, dilo y se añade.
+      </p>
+    </div>
+
+    <div class="faq__lista" data-faq data-reveal-grupo>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.0.p">¿Necesito una API key o pagar algo aparte?</summary>
+        <div class="respuesta">
+          <p data-content="faq.0.r">
+            No. Adeorq usa el CLI que ya tienes instalado y la sesión que ya tienes iniciada en él.
+            No pide claves, no guarda credenciales y no manda tu código a ningún servidor nuestro.
+            Lo que gastes de cuota lo gastas igual que si escribieras en la terminal a mano.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.1.p">¿Funciona con algo que no sea Claude Code?</summary>
+        <div class="respuesta">
+          <p data-content="faq.1.r">
+            Las terminales son reales, así que dentro puedes ejecutar lo que quieras: Antigravity,
+            Codex, Gemini o tu propio script. Lo que hoy está afinado para Claude Code es la lectura
+            de sesiones, porque es el único que las guarda en archivos legibles. Los demás están en
+            la lista de lo que viene.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.2.p">¿Por qué Windows me avisa al instalar?</summary>
+        <div class="respuesta">
+          <p data-content="faq.2.r">
+            Porque el instalador todavía no tiene certificado de editor, y SmartScreen desconfía por
+            defecto de lo que se ha descargado poco. Las actualizaciones sí van firmadas y
+            verificadas por la app. Antes de ejecutar nada, comprueba que el archivo viene de
+            nuestra página de releases en GitHub y que el nombre es
+            <code>Adeorq_&lt;versión&gt;_x64-setup.exe</code>.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.3.p">¿Hay versión para macOS o Linux?</summary>
+        <div class="respuesta">
+          <p data-content="faq.3.r">
+            Hoy no. Las terminales se apoyan en ConPTY, que es de Windows, así que portarlo es
+            trabajo de verdad y no una casilla que marcar. Si te interesa, dilo: eso es lo que hará
+            que se priorice.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.4.p">¿Cuánto ocupa y cuánto consume?</summary>
+        <div class="respuesta">
+          <p data-content="faq.4.r">
+            El instalador pesa 3,5 MB. Es una app nativa hecha con Tauri, no lleva un navegador
+            entero empaquetado dentro, así que arranca al instante y en reposo casi no se nota. Lo
+            que consuma de más será lo que consuman tus agentes y tus terminales, que es lo mismo
+            que ya consumen ahora.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.5.p">¿Mis datos salen del ordenador?</summary>
+        <div class="respuesta">
+          <p data-content="faq.5.r">
+            Solo lo que ya salía por tu CLI. Adeorq lee archivos locales para enseñarte tus
+            proyectos y tus sesiones, y pregunta si hay una versión nueva. Nada más. Además trae un
+            modo emisión que tapa rutas, nombres y claves para cuando compartes pantalla o
+            retransmites.
+          </p>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</section>

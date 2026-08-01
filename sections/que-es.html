@@ -1,0 +1,74 @@
+<!--
+  Adeorq · web/sections/que-es.html
+  Seccion 2 del mapa (DISENO.md §10): una frase de posicionamiento y cuatro
+  chips de hechos. Primera seccion debajo del hero.
+
+  TEXTOS: web/content/es/que-es.md, claves data-content. El espanol vive en este
+  HTML a proposito: la pagina se lee entera sin JavaScript.
+  Reveals: motor de la casa ([data-reveal] + observador de hero.js). El retardo
+  en cascada lo reparte hero.js dentro de [data-reveal-grupo].
+-->
+<section class="seccion que-es" id="que-es" aria-labelledby="que-es-titulo">
+  <div class="envoltura">
+    <div class="que-es__grid" data-reveal-grupo>
+      <div class="que-es__intro">
+        <h2 class="que-es__frase" id="que-es-titulo" data-reveal data-content="que-es.claim">
+          Por qué Adeorq: la potencia de los CLIs con la comodidad de una app desktop.
+        </h2>
+        <p class="entradilla" data-reveal data-content="que-es.lead">
+          Las mayores novedades de la IA llegan siempre antes a la terminal que a las apps oficiales. Adeorq reúne la primicia de los CLIs con una interfaz de escritorio fluida para dirigir escuadrones de agentes en paralelo, ahorrar tokens y trabajar directamente sobre tu entorno nativo.
+        </p>
+      </div>
+
+      <div class="que-es__puntos" data-reveal>
+        <div class="que-es__ventaja">
+          <div class="que-es__ventaja-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <div class="que-es__ventaja-cuerpo">
+            <h3 class="que-es__ventaja-titulo" data-content="que-es.p1.titulo">CLI-First: Las novedades el primer día</h3>
+            <p class="que-es__ventaja-texto" data-content="que-es.p1.sub">
+              Los nuevos modelos (como Opus 5) y las grandes ventanas de contexto se estrenan en los CLIs semanas antes que en las apps de escritorio. Con Adeorq disfrutas las primicias el día 1 sin esperar a nadie.
+            </p>
+          </div>
+        </div>
+
+        <div class="que-es__ventaja">
+          <div class="que-es__ventaja-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+          </div>
+          <div class="que-es__ventaja-cuerpo">
+            <h3 class="que-es__ventaja-titulo" data-content="que-es.p2.titulo">Escuadrones en paralelo vs un solo chat</h3>
+            <p class="que-es__ventaja-texto" data-content="que-es.p2.sub">
+              Frente al chat secuencial tradicional, Adeorq te permite orquestar 3, 5 o 9 agentes a la vez en paneles independientes. Cada terminal avisa con un destello luminoso en cuanto termina su turno.
+            </p>
+          </div>
+        </div>
+
+        <div class="que-es__ventaja">
+          <div class="que-es__ventaja-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <div class="que-es__ventaja-cuerpo">
+            <h3 class="que-es__ventaja-titulo" data-content="que-es.p3.titulo">Cero desperdicio de tokens y contexto</h3>
+            <p class="que-es__ventaja-texto" data-content="que-es.p3.sub">
+              Retoma cualquier sesión previa guardada en tu máquina con un clic. Controlas el contexto consumido en cada prompt para sacar el máximo rendimiento a tu cuota sin pagar sobrecostes.
+            </p>
+          </div>
+        </div>
+
+        <div class="que-es__ventaja">
+          <div class="que-es__ventaja-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="que-es__ventaja-cuerpo">
+            <h3 class="que-es__ventaja-titulo" data-content="que-es.p4.titulo">Tu consola nativa, 100% privado</h3>
+            <p class="que-es__ventaja-texto" data-content="que-es.p4.sub">
+              Ejecuta terminales ConPTY sobre tu PowerShell local heredando tus credenciales, PATH y scripts. Sin crear cuentas, sin API keys externas y en una app ultra-ligera de 3,5 MB en Rust.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

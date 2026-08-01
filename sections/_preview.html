@@ -1,0 +1,175 @@
+<!doctype html>
+<!--
+  Adeorq · web/sections/_preview.html
+  BANCO DE PRUEBAS del cuerpo de la landing. NO es la pagina publica.
+  Sirve para ver en localhost las secciones que van debajo del hero sin tocar
+  index.html, que es del agente del hero. Cuando index.html incluya estos
+  parciales, este archivo se puede borrar sin que se rompa nada.
+
+  Usa el CSS y el JS de verdad de la casa (base.css, hero.js) para que lo que se
+  ve aqui sea lo que se vera alli. Lo unico simulado es el interruptor de
+  movimiento del <head> y un hero de mentira que hace de colchon.
+
+  Parametros de revision:
+    ?motion=full|off   parada del dial
+    ?solo=features     monta una sola seccion, sin hero
+    ?reveal=all        revela todo y congela el estado final (capturas)
+    ?flat=1            suelta el sticky de las tarjetas (capturas)
+    ?y=1200            salta a esa altura
+    ?probe=1           escribe las posiciones reales de las tarjetas
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adeorq · banco de pruebas del cuerpo</title>
+
+<!-- SIMULADO (en produccion lo pone el head de index.html): dial de movimiento -->
+<script>
+(function () {
+  var h = document.documentElement;
+  var q = new URLSearchParams(location.search).get('motion');
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var gain = q === 'off' ? 0 : q === 'full' ? 1 : reduce ? 0.25 : 1;
+  h.style.setProperty('--motion-gain', String(gain));
+  h.classList.toggle('motion', gain > 0);
+})();
+</script>
+
+<!-- Los de verdad -->
+<link rel="stylesheet" href="../styles/base.css">
+<link rel="stylesheet" href="../styles/sections.css">
+<link rel="stylesheet" href="../styles/footer.css">
+
+<style>
+  /* Hero de mentira, solo como colchon superior */
+  .falso-hero {
+    min-height: 70vh;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    gap: 12px;
+    padding: 40px 24px;
+    border-bottom: 1px dashed var(--borde-fuerte);
+  }
+  .falso-hero b { font-family: var(--tipo-mono); font-size: 12px; letter-spacing: .1em;
+                  text-transform: uppercase; color: var(--tinta-suave); }
+  .falso-hero h1 { font-size: var(--t-titulo); letter-spacing: -.035em; line-height: 1.02; }
+  .falso-hero small { color: var(--tinta-suave); }
+
+  /* Chivato del banco de pruebas */
+  .devbar {
+    position: fixed; z-index: 99; left: 12px; bottom: 12px;
+    display: flex; gap: 4px; align-items: center;
+    padding: 7px 10px; border-radius: 999px;
+    border: 1px solid var(--borde); background: var(--superficie);
+    backdrop-filter: blur(10px);
+    font-family: var(--tipo-mono); font-size: 12px; color: var(--tinta-suave);
+  }
+  .devbar a { padding: 3px 7px; border-radius: 999px; }
+  .devbar a:hover { color: var(--tinta); background: var(--superficie-solida); }
+  .devbar b { color: var(--acento); }
+  #probe { position: fixed; inset: auto 12px 12px auto; margin: 0; padding: 10px;
+           max-height: 40vh; overflow: auto; font-size: 11px; line-height: 1.4;
+           background: var(--superficie-solida); border: 1px solid var(--borde);
+           border-radius: 10px; color: var(--tinta-media); }
+</style>
+</head>
+
+<body id="top">
+
+<div class="falso-hero">
+  <b>hero simulado</b>
+  <h1>Adeorq</h1>
+  <small>Este bloque no es mío: lo sustituye el hero real. Baja para ver el cuerpo.</small>
+</div>
+
+<main data-parciales></main>
+
+<div class="devbar">
+  gain <b data-gain>1</b>
+  <a href="?motion=full">full</a>
+  <a href="?">auto</a>
+  <a href="?motion=off">off</a>
+</div>
+
+<script>
+/* Ensamblador del banco de pruebas. En la pagina real los parciales van
+   incrustados en index.html; aqui basta con traerlos por fetch. */
+(function () {
+  var Q = new URLSearchParams(location.search);
+  var SOLO = Q.get('solo');
+  var ORDEN = SOLO ? [SOLO] : ['que-es', 'features', 'descarga', 'changelog', 'faq'];
+  var host = document.querySelector('[data-parciales]');
+
+  if (SOLO) document.querySelector('.falso-hero').remove();
+  document.querySelector('[data-gain]').textContent =
+    getComputedStyle(document.documentElement).getPropertyValue('--motion-gain').trim() || '1';
+
+  Promise.all(ORDEN.map(function (n) {
+    return fetch(n + '.html').then(function (r) { return r.ok ? r.text() : '<!-- falta ' + n + ' -->'; });
+  }))
+  .then(function (partes) {
+    host.innerHTML = partes.join('\n');
+    return fetch('footer.html').then(function (r) { return r.ok ? r.text() : ''; });
+  })
+  .then(function (pie) {
+    if (pie) host.insertAdjacentHTML('afterend', pie);
+
+    /* Los JS de verdad, cargados DESPUES de que exista el HTML: asi el
+       observador de hero.js ve las secciones, igual que vera las de index.html */
+    ['../js/hero.js', '../js/sections.js'].forEach(function (src) {
+      var s = document.createElement('script');
+      s.src = src;
+      document.body.appendChild(s);
+    });
+
+    setTimeout(revisar, 60);
+  })
+  .catch(function (e) {
+    host.innerHTML = '<p style="padding:40px;color:#c00">No se han podido cargar los parciales: ' +
+      e + '. Sirve la carpeta por http, no abras el archivo con doble clic.</p>';
+  });
+
+  function revisar() {
+    /* Modo captura: revela todo y congela el estado final. En una captura
+       automatica el tiempo no corre igual y una transicion a medias se
+       fotografia como un vacio. */
+    if (Q.get('reveal') === 'all') {
+      document.querySelectorAll('[data-reveal]').forEach(function (n) { n.classList.add('is-dentro'); });
+      var st = document.createElement('style');
+      st.textContent = '[data-reveal]{opacity:1!important;transform:none!important;transition:none!important}' +
+        (Q.get('flat') === '1' ? '.tarjeta-f{position:static!important;animation:none!important}' : '');
+      document.head.appendChild(st);
+    }
+
+    var y = Q.get('y');
+    if (y) window.scrollTo({ top: parseInt(y, 10) || 0, behavior: 'instant' });
+    else if (location.hash) {
+      var t = document.querySelector(location.hash);
+      if (t) t.scrollIntoView({ behavior: 'instant', block: 'start' });
+    }
+
+    if (Q.get('probe') === '1') setTimeout(sonda, 400);
+  }
+
+  /* Mide la posicion real de cada tarjeta apilada: comprobar el sticky con
+     numeros en vez de a ojo. */
+  function sonda() {
+    var out = ['scrollY=' + Math.round(window.scrollY) +
+               ' docH=' + document.documentElement.scrollHeight +
+               ' vh=' + window.innerHeight];
+    document.querySelectorAll('.tarjeta-f').forEach(function (c, i) {
+      var r = c.getBoundingClientRect(), st = getComputedStyle(c);
+      out.push('t' + i + ' top=' + Math.round(r.top) + ' h=' + Math.round(r.height) +
+               ' op=' + st.opacity + ' tr=' + st.transform);
+    });
+    var pre = document.createElement('pre');
+    pre.id = 'probe';
+    pre.textContent = out.join('\n');
+    document.body.appendChild(pre);
+  }
+})();
+</script>
+</body>
+</html>

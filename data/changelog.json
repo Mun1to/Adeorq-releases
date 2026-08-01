@@ -1,9 +1,90 @@
 {
-  "generatedAt": "2026-07-31T22:29:18.685Z",
+  "generatedAt": "2026-08-01T20:35:07.766Z",
   "source": "https://github.com/Mun1to/Adeorq-releases/releases",
-  "count": 68,
-  "latest": "0.9.41",
+  "count": 70,
+  "latest": "0.9.43",
   "entries": [
+    {
+      "version": "0.9.43",
+      "tag": "v0.9.43",
+      "date": "2026-08-01",
+      "publishedAt": "2026-08-01T20:33:59Z",
+      "title": "Ahora Adeorq la puede instalar cualquiera, y sabe repartir un día entero",
+      "name": "Adeorq 0.9.43",
+      "summary": "La primera vez que se abre, cuatro preguntas: cómo te llamas, **dónde viven tus proyectos**, qué clientes usas y el aspecto.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "**Un cuelgue ya no deja agentes sueltos.** Cerrar con la X ya estaba cubierto;",
+        "**Tu espacio de trabajo sobrevive al reinicio**: las terminales de una misma",
+        "**Arrastrar archivos a una terminal funciona.** No fallaba donde parecía: la",
+        "**Modo plan**: una terminal puede nacer enseñándote su plan en vez de editar"
+      ],
+      "highlights": [
+        "**Un cuelgue ya no deja agentes sueltos.** Cerrar con la X ya estaba cubierto;",
+        "**Tu espacio de trabajo sobrevive al reinicio**: las terminales de una misma",
+        "**Arrastrar archivos a una terminal funciona.** No fallaba donde parecía: la",
+        "**Modo plan**: una terminal puede nacer enseñándote su plan en vez de editar"
+      ],
+      "headings": [
+        "Ahora Adeorq la puede instalar cualquiera, y sabe repartir un día entero",
+        "La bienvenida",
+        "El Reparto: varias tareas de golpe",
+        "Lo que ya no se pierde",
+        "Y además"
+      ],
+      "image": null,
+      "notes": "## Ahora Adeorq la puede instalar cualquiera, y sabe repartir un día entero\n\n### La bienvenida\n\nLa primera vez que se abre, cuatro preguntas: cómo te llamas, **dónde viven tus\nproyectos**, qué clientes usas y el aspecto. Ninguna es de adorno: la carpeta de\nproyectos era una constante dentro del programa, así que en cualquier ordenador\nque no fuera el del autor el panel salía vacío y sin un sitio donde arreglarlo.\n\nAl terminar, un **recorrido** que señala los botones de verdad, incluidos la\nAgenda y los objetivos del día. Los dos se repiten desde **Ajustes › Ayuda**.\n\n### El Reparto: varias tareas de golpe\n\nEl botón de las tres ramas, al lado del Asistente. Le pegas tus tareas (o marcas\nlas que ya tienes en tus objetivos y en la Agenda) y:\n\n1. una sola llamada las clasifica todas y les reparte los archivos,\n2. el código elige el destino de cada una mirando tus clientes, tus cuentas, tu\n   cuota y **tu plan de pago**, sin gastar un token,\n3. se escribe el reparto entero en el `BUZON.md` del proyecto para que no se\n   pisen,\n4. y se abren, cada una con su encargo escrito en el idioma de su cliente.\n\nAntes de aceptar ves lo que pesa el lote: *Abre 4 agentes · 1 opus + 3 sonnet · ×14*.\n\n### Lo que ya no se pierde\n\n- **Un cuelgue ya no deja agentes sueltos.** Cerrar con la X ya estaba cubierto;\n  colgarse o que te maten desde el Administrador de tareas, no. Ahora es Windows\n  quien se encarga, sin depender de que a Adeorq le dé tiempo a despedirse.\n- **Tu espacio de trabajo sobrevive al reinicio**: las terminales de una misma\n  misión vuelven agrupadas.\n- **Arrastrar archivos a una terminal funciona.** No fallaba donde parecía: la\n  ventana se quedaba el arrastre y el navegador de dentro nunca veía nada.\n\n### Y además\n\n- **Modo plan**: una terminal puede nacer enseñándote su plan en vez de editar\n  desde el primer segundo. En Ajustes, o por sesión al abrirla.\n- **Pi (pi.dev)** entra como cliente, con cuentas separadas de verdad.\n- **La guía viaja dentro del instalador** y está al día: antes se leía de una\n  carpeta del disco del autor, así que fuera de ahí salía un error.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.43",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.43/Adeorq_0.9.43_x64-setup.exe",
+        "filename": "Adeorq_0.9.43_x64-setup.exe",
+        "size": 4523282,
+        "sizeLabel": "4,3 MB"
+      }
+    },
+    {
+      "version": "0.9.42",
+      "tag": "v0.9.42",
+      "date": "2026-07-31",
+      "publishedAt": "2026-07-31T23:50:11Z",
+      "title": "El Asistente ya elige con qué cerebro hacer cada cosa, y con qué cuenta",
+      "name": "Adeorq 0.9.42",
+      "summary": "Le sueltas una frase de lo que quieres y te devuelve **dos** cosas: el encargo bien escrito (con lo que tu frase no decía y el agente necesita para no preguntar) y **a quién dárselo**, o sea el cliente, la cuenta, el modelo y el esfuerzo, con los porqués a la vista uno a uno.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "**Ponerlo en la terminal que tienes delante**: le cambia el modelo y el",
+        "**Abrir una terminal nueva ya nacida así.**",
+        "**Copiarlo.**"
+      ],
+      "highlights": [
+        "**Ponerlo en la terminal que tienes delante**: le cambia el modelo y el",
+        "**Abrir una terminal nueva ya nacida así.**",
+        "**Copiarlo.**"
+      ],
+      "headings": [
+        "El Asistente ya elige con qué cerebro hacer cada cosa, y con qué cuenta",
+        "Cómo elige",
+        "El plan del Capataz pasa por lo mismo",
+        "Arreglado"
+      ],
+      "image": null,
+      "notes": "## El Asistente ya elige con qué cerebro hacer cada cosa, y con qué cuenta\n\nLe sueltas una frase de lo que quieres y te devuelve **dos** cosas: el encargo\nbien escrito (con lo que tu frase no decía y el agente necesita para no\npreguntar) y **a quién dárselo**, o sea el cliente, la cuenta, el modelo y el\nesfuerzo, con los porqués a la vista uno a uno.\n\nDe ahí salen tres botones:\n\n- **Ponerlo en la terminal que tienes delante**: le cambia el modelo y el\n  esfuerzo y deja el encargo escrito **sin enviarlo**. El Enter lo das tú.\n- **Abrir una terminal nueva ya nacida así.**\n- **Copiarlo.**\n\nY siempre puedes cambiarlo a mano, con el peso de cada cerebro al lado.\n\n### Cómo elige\n\n1. **Qué pide el trabajo.** Un recado mecánico no necesita lo mismo que una\n   auditoría. El tamaño no sube de modelo; la **consecuencia** sí, o sea si un\n   fallo puede pasar desapercibido y hacer daño después.\n2. **Tu semana de verdad, cuenta por cuenta.** Elige la que más margen tiene,\n   abarata lo que se puede abaratar y, si no queda semana en ninguna cuenta de\n   Claude, propone otro cliente **de los que tengas conectados**, con el plan B\n   a la vista.\n3. Lo único que **nunca** abarata es lo de juicio (seguridad, revisiones,\n   auditorías): ahí ahorrar cerebro cuesta repetir el trabajo entero.\n\n### El plan del Capataz pasa por lo mismo\n\nQue es donde de verdad se gasta: una cuadrilla de seis abre seis agentes de\ngolpe. Ahora cada acción enseña con qué cerebro abre, y encima del botón sale lo\nque pesa el plan entero (*Abre 6 agentes · 2 opus + 4 sonnet · ×22*), que es\ninformación que antes no existía en ningún sitio.\n\nEn **Ajustes › Avisos** eliges cuánto opina sobre el modelo que ya tienes puesto.\n\n### Arreglado\n\n**Arrastrar una imagen a un panel de Codex no hacía nada.** Adeorq escribía la\nRUTA, que es lo que lee Claude Code; Codex las quiere del portapapeles. Ahora, en\nlos clientes que no leen rutas, la imagen se copia sola y te lo dice.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.42",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.42/Adeorq_0.9.42_x64-setup.exe",
+        "filename": "Adeorq_0.9.42_x64-setup.exe",
+        "size": 4486914,
+        "sizeLabel": "4,3 MB"
+      }
+    },
     {
       "version": "0.9.41",
       "tag": "v0.9.41",

@@ -1,0 +1,157 @@
+<!--
+  Adeorq · web/sections/features.html
+  Seccion 3 del mapa (DISENO.md §10): cinco tarjetas que se apilan al bajar,
+  como una baraja abierta. El apilado es CSS puro; el encogido de las que quedan
+  debajo usa animation-timeline: view() donde existe, graduado por --motion-gain.
+
+  CAPTURAS: hoy cada media lleva una maqueta dibujada con CSS. Cuando Munir haga
+  las capturas reales (DISENO.md §12), se sustituye el bloque .maqueta por:
+    <img src="assets/features/<nombre>.png" alt="..." width="1280" height="800"
+         loading="lazy" decoding="async">
+  conservando el mismo marco. Los alt ya escritos estan en content/es/features.md
+  y hoy son el aria-label de cada maqueta.
+  TEXTOS: web/content/es/features.md (claves data-content).
+-->
+<section class="seccion seccion--honda features" id="features" aria-labelledby="features-titulo">
+  <div class="envoltura">
+    <header class="features__cabecera" data-reveal-grupo>
+      <p class="etiqueta" data-reveal data-content="features.eyebrow">Lo que hace</p>
+      <h2 class="titulo-2" id="features-titulo" data-reveal data-content="features.titulo">
+        Una cabina para dirigir agentes, no otra ventana de terminal.
+      </h2>
+      <p class="entradilla" data-reveal data-content="features.lead">
+        Cada pieza está aquí porque hacía falta trabajando de verdad, no porque quedara bien en
+        una lista de características.
+      </p>
+    </header>
+
+    <div class="pila">
+
+      <!-- 1 · Terminales ConPTY reales -->
+      <article class="tarjeta-f" style="--n:0" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">01</span>
+          <h3 class="titulo-3" data-content="features.conpty.titulo">Terminales de verdad, no una imitación</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.conpty.texto">
+            Dentro de cada panel corre el mismo motor de consola que usa Windows. Los colores, el
+            redibujado, Ctrl+C, el historial y cualquier herramienta que espere una terminal
+            funcionan tal cual. El dibujado va por GPU, así que miles de líneas no atragantan la
+            ventana.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.conpty.item1">PowerShell, CMD o el shell que uses, con tu PATH y tu perfil</li>
+            <li data-content="features.conpty.item2">El terminal se redimensiona de verdad, sin líneas partidas</li>
+            <li data-content="features.conpty.item3">Copiar, pegar y arrastrar una imagen para dársela al agente</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/commands.png" alt="Un panel de Adeorq con PowerShell abierto en la carpeta de un proyecto" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 2 · Sesiones de Claude Code -->
+      <article class="tarjeta-f" style="--n:1" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">02</span>
+          <h3 class="titulo-3" data-content="features.sesiones.titulo">Tus sesiones de Claude Code, a la vista</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.sesiones.texto">
+            Adeorq lee lo que el CLI ya guarda en tu equipo: qué sesiones tienes, en qué proyecto,
+            de qué iban, cuáles siguen vivas y cuáles te están esperando. Sin API keys, sin
+            registrarte en nada y sin que tu código salga del ordenador.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.sesiones.item1">Título, proyecto y estado real de cada sesión</li>
+            <li data-content="features.sesiones.item2">Retomas donde lo dejaste con un clic, con toda su memoria</li>
+            <li data-content="features.sesiones.item3">Antes de archivar te avisa si el proyecto tiene cambios sin commitear</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/dashboard.png" alt="La lista de sesiones de un proyecto, con dos vivas y una esperando respuesta" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 3 · Escuadron de terminales -->
+      <article class="tarjeta-f" style="--n:2" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">03</span>
+          <h3 class="titulo-3" data-content="features.escuadron.titulo">El escuadrón trabaja, tú diriges</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.escuadron.texto">
+            Varios agentes a la vez, cada uno en su panel y en su carpeta, todos en la misma
+            pantalla. Cuando uno termina su turno, su panel se enciende, así sabes a quién atender
+            sin ir mirando ventana por ventana.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.escuadron.item1">Rejilla de paneles que se parten a la derecha o abajo</li>
+            <li data-content="features.escuadron.item2">Aviso visual cuando un agente acaba y te espera</li>
+            <li data-content="features.escuadron.item3">Cada proyecto con su color, para no perderte entre paneles</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/cockpit.png" alt="Cuatro paneles a la vez, uno de ellos encendido porque su agente ha terminado" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 4 · Agenda -->
+      <article class="tarjeta-f" style="--n:3" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">04</span>
+          <h3 class="titulo-3" data-content="features.agenda.titulo">Las ideas al vuelo no se pierden</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.agenda.texto">
+            Mientras trabajas salen cabos sueltos que no son lo de ahora. En vez de interrumpirte,
+            caen en una bandeja que revisas cuando quieras: aceptas lo que sirve y descartas el
+            resto. Los agentes proponen, tú decides.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.agenda.item1">Bandeja de ideas y próximos pasos, por proyecto</li>
+            <li data-content="features.agenda.item2">Se acepta o se descarta de una en una</li>
+            <li data-content="features.agenda.item3">Un agente puede proponer sin tocar ninguna credencial tuya</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/canvas.png" alt="La pestaña Agenda con el calendario y la bandeja de ideas propuestas" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 5 · Arranque y actualizaciones -->
+      <article class="tarjeta-f" style="--n:4" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">05</span>
+          <h3 class="titulo-3" data-content="features.sistema.titulo">Arranca con Windows y se actualiza sola</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.sistema.texto">
+            Enciendes el ordenador y la cabina ya está montada. Las versiones nuevas llegan
+            firmadas, te avisan con sus notas y se instalan cuando tú digas, sin ir a buscar un
+            instalador cada vez.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.sistema.item1">Inicio con el sistema, opcional y reversible en un clic</li>
+            <li data-content="features.sistema.item2">Actualización firmada, con aviso y notas de la versión</li>
+            <li data-content="features.sistema.item3">App nativa de 3,5 MB, sin un navegador entero empaquetado dentro</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/settings.png" alt="El aviso de versión nueva con sus notas y el botón de actualizar" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 6 · Cuentas -->
+      <article class="tarjeta-f" style="--n:5" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">06</span>
+          <h3 class="titulo-3">Cuentas seguras</h3>
+          <p class="parrafo tarjeta-f__texto">
+            Gestiona tus cuentas y credenciales de manera local, sin que salgan de tu equipo. Todo está encriptado y seguro.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li>Gestión local de credenciales</li>
+            <li>Sin servidores intermedios</li>
+            <li>Control total de tus datos</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/accounts.png" alt="Gestión de cuentas locales y credenciales" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>

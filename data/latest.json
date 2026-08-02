@@ -1,32 +1,32 @@
 {
-  "version": "0.9.46",
-  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.46/Adeorq_0.9.46_x64-setup.exe",
-  "pub_date": "2026-08-02T05:39:35Z",
-  "size_bytes": 4553713,
-  "notes": "# Adeorq 0.9.46\n\nTus proyectos ya no tienen que vivir todos dentro de una misma carpeta, y las sesiones que no son de ninguno dejan de estar guardadas en un cajón.\n\n## Un proyecto puede estar donde quieras\n\nHasta ahora el panel era «las subcarpetas de una carpeta». Ahora es **la lista de proyectos que tú dices**: desde Ajustes › Tú y tus proyectos puedes añadir cualquier carpeta del disco, aunque esté en otra unidad, y sale en la barra como una más. Quitarla de la lista no toca la carpeta.\n\n## Se puede entrar sin carpeta de proyectos\n\nLa bienvenida daba por hecho que todo el mundo guarda sus repositorios juntos y no dejaba pasar sin señalar una carpeta. Quien no los tiene así acababa apuntando a su carpeta de usuario, y el panel le listaba Descargas, Documentos y Escritorio como si fueran proyectos suyos.\n\nAhora hay una salida: **No los tengo en una sola carpeta**. Se entra a una barra vacía, cada terminal que abres vive suelta, y vas ascendiendo a proyecto lo que resulta importar. Se cambia de idea cuando quieras, en los dos sentidos, desde Ajustes.\n\n## Las sesiones sueltas salen del cajón\n\nEl cajón «Sueltas» era una carpeta que no existe en ningún disco y se comportaba como un proyecto: había que desplegarlo para llegar a lo de dentro, y allí se mezclaban sesiones de carpetas distintas.\n\nAhora cuelgan al final de la barra, con la misma pinta que cualquier otra fila, y cada una lleva su carpeta escrita al lado. Esa carpeta se pulsa: al hacerlo, **sube a proyecto del panel**.\n\n## Y se pueden meter en un proyecto arrastrándolas\n\nArrastra una sesión sobre cualquier proyecto y se queda ahí. Es una etiqueta tuya y manda sobre lo que diga su carpeta, así que esa sesión sigue enseñando dónde trabaja de verdad: el proyecto nunca da a entender que el trabajo pasa dentro de él cuando no es así. Para deshacerlo, arrástrala de vuelta abajo o usa su menú.\n\nY la barra **se desplaza sola** mientras arrastras cerca de un borde, que antes dejaba una sesión del final sin forma de llegar a un proyecto de arriba.",
-  "generatedAt": "2026-08-02T05:39:52.703Z",
-  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.46",
-  "tag": "v0.9.46",
-  "title": "Adeorq 0.9.46",
+  "version": "0.9.47",
+  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.47/Adeorq_0.9.47_x64-setup.exe",
+  "pub_date": "2026-08-02T06:26:15Z",
+  "size_bytes": 4557929,
+  "notes": "# Adeorq 0.9.47\n\nEntrar en un grupo ahora es entrar de verdad, lo que apartas sobrevive al reinicio, y el menú del clic derecho deja de irse por detrás de las terminales.\n\n## Entrar en un grupo aparta lo que había\n\nAbrir un grupo apartaba los **otros grupos**, pero dejaba encima las terminales que no son de ninguno: justo aquella en la que estabas trabajando. Así que abrir un grupo no era entrar en ningún sitio, era sumar. Ahora bajan todas a la tira del pie, vivas y trabajando.\n\n## Lo apartado sigue apartado al reabrir Adeorq\n\nEl tablero ya guardaba qué terminales tenías y cómo estaban repartidas, pero no si habías apartado un grupo: al volver te caían las doce encima. Ahora se guarda, y también cuáles estaban minimizadas.\n\n## Un botón para vaciar la pantalla, y el mismo para recuperarla\n\nArriba, junto a **Disposición**. Con terminales a la vista dice **Minimizar todas** y las aparta de golpe; con la pantalla vacía cambia solo a **Traer todas** y las devuelve, grupos incluidos. Ninguna se cierra en ningún momento.\n\n## La tira del pie dice cuánto tienes fuera\n\nDeja de ser solo de las minimizadas una a una: recoge todo lo que está fuera del mosaico, con su número. Las que se fueron con su grupo llevan el borde discontinuo, porque al pulsarlas vuelve el grupo entero. Cada una sigue diciendo qué hace, y la que te espera sigue en ámbar.\n\n## El menú del clic derecho ya no se va por detrás\n\nSalía debajo de las terminales, y no era su prioridad de dibujo: era que se pintaba dentro de la app, así que cualquier capa por encima podía taparlo. El menú y los globos de ayuda ahora cuelgan de la raíz de la ventana, por encima de todo.",
+  "generatedAt": "2026-08-02T06:26:34.774Z",
+  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.47",
+  "tag": "v0.9.47",
+  "title": "Adeorq 0.9.47",
   "date": "2026-08-02",
-  "publishedAt": "2026-08-02T05:39:35Z",
+  "publishedAt": "2026-08-02T06:26:15Z",
   "notesFormat": "markdown",
-  "summary": "Tus proyectos ya no tienen que vivir todos dentro de una misma carpeta, y las sesiones que no son de ninguno dejan de estar guardadas en un cajón.",
+  "summary": "Entrar en un grupo ahora es entrar de verdad, lo que apartas sobrevive al reinicio, y el menú del clic derecho deja de irse por detrás de las terminales.",
   "windows": {
-    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.46/Adeorq_0.9.46_x64-setup.exe",
-    "filename": "Adeorq_0.9.46_x64-setup.exe",
-    "size": 4553713,
+    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.47/Adeorq_0.9.47_x64-setup.exe",
+    "filename": "Adeorq_0.9.47_x64-setup.exe",
+    "size": 4557929,
     "sizeLabel": "4,3 MB",
     "arch": "x64",
     "downloadCount": 0
   },
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.46/Adeorq_0.9.46_x64-setup.exe",
-      "filename": "Adeorq_0.9.46_x64-setup.exe",
-      "size": 4553713
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.47/Adeorq_0.9.47_x64-setup.exe",
+      "filename": "Adeorq_0.9.47_x64-setup.exe",
+      "size": 4557929
     }
   },
-  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.46",
+  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.47",
   "allReleasesUrl": "https://github.com/Mun1to/Adeorq-releases/releases"
 }

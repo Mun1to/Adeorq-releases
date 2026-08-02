@@ -1,32 +1,32 @@
 {
-  "version": "0.9.45",
-  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.45/Adeorq_0.9.45_x64-setup.exe",
-  "pub_date": "2026-08-02T04:22:26Z",
-  "size_bytes": 4527972,
-  "notes": "## Grupos de trabajo\n\nLas sesiones se **agrupan arrastrando** una encima de otra, y pulsar un grupo abre sus sesiones igual que pulsar un proyecto. Cada grupo tiene su nombre, su color y un botón que **aparta sus terminales de la Cabina sin cerrarlas**: siguen trabajando y vuelven enteras.\n\nLos grupos existían desde hacía tiempo, pero solo se llegaba a ellos por el menú `⋯` de una sesión, dos niveles adentro. Existir sin encontrarse es no existir.\n\n## Minimizar una terminal\n\nCada terminal se puede minimizar a una tira al pie del mosaico. Las que quedan se reparten su hueco.\n\nMinimizar un agente tiene una trampa que no tiene minimizar una ventana normal: puede preguntarte algo desde ahí. Por eso la tira **sigue diciendo qué hace cada una**, y la que te espera se pinta en ámbar. Apartar no puede significar perder de vista.\n\n## El tablero de cuadrilla, rehecho\n\nEra una tabla de filas grises: saber quién te necesitaba obligaba a leer tres párrafos. Ahora cada puesto es una tarjeta con su estado en la primera línea y su color. La cabecera lleva barra de progreso, un botón para apartar sus terminales y otro para cerrar la cuadrilla entera (en dos pasos, porque mata lo que sus agentes tengan a medias).\n\n## Arreglos\n\n- **El tablero del lienzo vuelve a arrastrar tarjetas.** No lo hacía en absoluto: el arrastre del navegador no llega dentro de la ventana de la app.\n- **Las tarjetas se pueden reescribir** con doble clic, en vez de borrarlas y teclearlas de nuevo.\n- **La terminal que lanza una tarjeta aparece de verdad en el lienzo.** Antes arrancaba invisible y «ir a esta terminal» no llevaba a ninguna parte.\n- **El Reparto recupera la forma de sus pastillas**, que se pintaban como texto suelto.\n- **Se retira la sección Misión del Panel**: ya estaba fusionada con el Reparto, y sus cuatro puestos viven ahora ahí como botones.",
-  "generatedAt": "2026-08-02T04:23:06.448Z",
-  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.45",
-  "tag": "v0.9.45",
-  "title": "Adeorq 0.9.45",
+  "version": "0.9.46",
+  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.46/Adeorq_0.9.46_x64-setup.exe",
+  "pub_date": "2026-08-02T05:39:35Z",
+  "size_bytes": 4553713,
+  "notes": "# Adeorq 0.9.46\n\nTus proyectos ya no tienen que vivir todos dentro de una misma carpeta, y las sesiones que no son de ninguno dejan de estar guardadas en un cajón.\n\n## Un proyecto puede estar donde quieras\n\nHasta ahora el panel era «las subcarpetas de una carpeta». Ahora es **la lista de proyectos que tú dices**: desde Ajustes › Tú y tus proyectos puedes añadir cualquier carpeta del disco, aunque esté en otra unidad, y sale en la barra como una más. Quitarla de la lista no toca la carpeta.\n\n## Se puede entrar sin carpeta de proyectos\n\nLa bienvenida daba por hecho que todo el mundo guarda sus repositorios juntos y no dejaba pasar sin señalar una carpeta. Quien no los tiene así acababa apuntando a su carpeta de usuario, y el panel le listaba Descargas, Documentos y Escritorio como si fueran proyectos suyos.\n\nAhora hay una salida: **No los tengo en una sola carpeta**. Se entra a una barra vacía, cada terminal que abres vive suelta, y vas ascendiendo a proyecto lo que resulta importar. Se cambia de idea cuando quieras, en los dos sentidos, desde Ajustes.\n\n## Las sesiones sueltas salen del cajón\n\nEl cajón «Sueltas» era una carpeta que no existe en ningún disco y se comportaba como un proyecto: había que desplegarlo para llegar a lo de dentro, y allí se mezclaban sesiones de carpetas distintas.\n\nAhora cuelgan al final de la barra, con la misma pinta que cualquier otra fila, y cada una lleva su carpeta escrita al lado. Esa carpeta se pulsa: al hacerlo, **sube a proyecto del panel**.\n\n## Y se pueden meter en un proyecto arrastrándolas\n\nArrastra una sesión sobre cualquier proyecto y se queda ahí. Es una etiqueta tuya y manda sobre lo que diga su carpeta, así que esa sesión sigue enseñando dónde trabaja de verdad: el proyecto nunca da a entender que el trabajo pasa dentro de él cuando no es así. Para deshacerlo, arrástrala de vuelta abajo o usa su menú.\n\nY la barra **se desplaza sola** mientras arrastras cerca de un borde, que antes dejaba una sesión del final sin forma de llegar a un proyecto de arriba.",
+  "generatedAt": "2026-08-02T05:39:52.703Z",
+  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.46",
+  "tag": "v0.9.46",
+  "title": "Adeorq 0.9.46",
   "date": "2026-08-02",
-  "publishedAt": "2026-08-02T04:22:26Z",
+  "publishedAt": "2026-08-02T05:39:35Z",
   "notesFormat": "markdown",
-  "summary": "Las sesiones se **agrupan arrastrando** una encima de otra, y pulsar un grupo abre sus sesiones igual que pulsar un proyecto.",
+  "summary": "Tus proyectos ya no tienen que vivir todos dentro de una misma carpeta, y las sesiones que no son de ninguno dejan de estar guardadas en un cajón.",
   "windows": {
-    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.45/Adeorq_0.9.45_x64-setup.exe",
-    "filename": "Adeorq_0.9.45_x64-setup.exe",
-    "size": 4527972,
+    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.46/Adeorq_0.9.46_x64-setup.exe",
+    "filename": "Adeorq_0.9.46_x64-setup.exe",
+    "size": 4553713,
     "sizeLabel": "4,3 MB",
     "arch": "x64",
     "downloadCount": 0
   },
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.45/Adeorq_0.9.45_x64-setup.exe",
-      "filename": "Adeorq_0.9.45_x64-setup.exe",
-      "size": 4527972
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.46/Adeorq_0.9.46_x64-setup.exe",
+      "filename": "Adeorq_0.9.46_x64-setup.exe",
+      "size": 4553713
     }
   },
-  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.45",
+  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.46",
   "allReleasesUrl": "https://github.com/Mun1to/Adeorq-releases/releases"
 }

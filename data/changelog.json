@@ -1,9 +1,50 @@
 {
-  "generatedAt": "2026-08-02T04:23:06.558Z",
+  "generatedAt": "2026-08-02T05:39:52.817Z",
   "source": "https://github.com/Mun1to/Adeorq-releases/releases",
-  "count": 72,
-  "latest": "0.9.45",
+  "count": 73,
+  "latest": "0.9.46",
   "entries": [
+    {
+      "version": "0.9.46",
+      "tag": "v0.9.46",
+      "date": "2026-08-02",
+      "publishedAt": "2026-08-02T05:39:35Z",
+      "title": "Un proyecto puede estar donde quieras",
+      "name": "Adeorq 0.9.46",
+      "summary": "Tus proyectos ya no tienen que vivir todos dentro de una misma carpeta, y las sesiones que no son de ninguno dejan de estar guardadas en un cajón.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "# Adeorq 0.9.46  Tus proyectos ya no tienen que vivir todos dentro de una misma carpeta, y las sesiones que no son de ninguno dejan de estar guardadas en un cajón.",
+        "## Un proyecto puede estar donde quieras  Hasta ahora el panel era «las subcarpetas de una carpeta».",
+        "Ahora es **la lista de proyectos que tú dices**: desde Ajustes › Tú y tus proyectos puedes añadir cualquier carpeta del disco, aunque esté en otra unidad, y sale en la barra como una más.",
+        "Quitarla de la lista no toca la carpeta."
+      ],
+      "highlights": [
+        "# Adeorq 0.9.46  Tus proyectos ya no tienen que vivir todos dentro de una misma carpeta, y las sesiones que no son de ninguno dejan de estar guardadas en un cajón.",
+        "## Un proyecto puede estar donde quieras  Hasta ahora el panel era «las subcarpetas de una carpeta».",
+        "Ahora es **la lista de proyectos que tú dices**: desde Ajustes › Tú y tus proyectos puedes añadir cualquier carpeta del disco, aunque esté en otra unidad, y sale en la barra como una más.",
+        "Quitarla de la lista no toca la carpeta."
+      ],
+      "headings": [
+        "Un proyecto puede estar donde quieras",
+        "Se puede entrar sin carpeta de proyectos",
+        "Las sesiones sueltas salen del cajón",
+        "Y se pueden meter en un proyecto arrastrándolas"
+      ],
+      "image": null,
+      "notes": "# Adeorq 0.9.46\n\nTus proyectos ya no tienen que vivir todos dentro de una misma carpeta, y las sesiones que no son de ninguno dejan de estar guardadas en un cajón.\n\n## Un proyecto puede estar donde quieras\n\nHasta ahora el panel era «las subcarpetas de una carpeta». Ahora es **la lista de proyectos que tú dices**: desde Ajustes › Tú y tus proyectos puedes añadir cualquier carpeta del disco, aunque esté en otra unidad, y sale en la barra como una más. Quitarla de la lista no toca la carpeta.\n\n## Se puede entrar sin carpeta de proyectos\n\nLa bienvenida daba por hecho que todo el mundo guarda sus repositorios juntos y no dejaba pasar sin señalar una carpeta. Quien no los tiene así acababa apuntando a su carpeta de usuario, y el panel le listaba Descargas, Documentos y Escritorio como si fueran proyectos suyos.\n\nAhora hay una salida: **No los tengo en una sola carpeta**. Se entra a una barra vacía, cada terminal que abres vive suelta, y vas ascendiendo a proyecto lo que resulta importar. Se cambia de idea cuando quieras, en los dos sentidos, desde Ajustes.\n\n## Las sesiones sueltas salen del cajón\n\nEl cajón «Sueltas» era una carpeta que no existe en ningún disco y se comportaba como un proyecto: había que desplegarlo para llegar a lo de dentro, y allí se mezclaban sesiones de carpetas distintas.\n\nAhora cuelgan al final de la barra, con la misma pinta que cualquier otra fila, y cada una lleva su carpeta escrita al lado. Esa carpeta se pulsa: al hacerlo, **sube a proyecto del panel**.\n\n## Y se pueden meter en un proyecto arrastrándolas\n\nArrastra una sesión sobre cualquier proyecto y se queda ahí. Es una etiqueta tuya y manda sobre lo que diga su carpeta, así que esa sesión sigue enseñando dónde trabaja de verdad: el proyecto nunca da a entender que el trabajo pasa dentro de él cuando no es así. Para deshacerlo, arrástrala de vuelta abajo o usa su menú.\n\nY la barra **se desplaza sola** mientras arrastras cerca de un borde, que antes dejaba una sesión del final sin forma de llegar a un proyecto de arriba.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.46",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.46/Adeorq_0.9.46_x64-setup.exe",
+        "filename": "Adeorq_0.9.46_x64-setup.exe",
+        "size": 4553713,
+        "sizeLabel": "4,3 MB"
+      }
+    },
     {
       "version": "0.9.45",
       "tag": "v0.9.45",

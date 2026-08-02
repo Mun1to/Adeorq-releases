@@ -1,9 +1,49 @@
 {
-  "generatedAt": "2026-08-02T10:14:28.314Z",
+  "generatedAt": "2026-08-02T19:14:58.962Z",
   "source": "https://github.com/Mun1to/Adeorq-releases/releases",
-  "count": 76,
-  "latest": "0.9.49",
+  "count": 77,
+  "latest": "0.9.50",
   "entries": [
+    {
+      "version": "0.9.50",
+      "tag": "v0.9.50",
+      "date": "2026-08-02",
+      "publishedAt": "2026-08-02T19:13:52Z",
+      "title": "Renombrar un grupo de sesiones ya no se para en la primera letra",
+      "name": "v0.9.50",
+      "summary": "Había dos cuadros de texto editando el mismo nombre a la vez: uno visible, en la ficha del lápiz, y otro escondido en la propia cabecera del grupo.",
+      "tags": [
+        "nuevo",
+        "arreglo"
+      ],
+      "items": [
+        "## Renombrar un grupo de sesiones ya no se para en la primera letra  Había dos cuadros de texto editando el mismo nombre a la vez: uno visible, en la ficha del lápiz, y otro escondido en la propia cabecera del grupo.",
+        "Al teclear la primera letra, el escondido se llevaba el foco y el visible se cerraba guardando solo ese carácter.",
+        "Queda uno solo, se abre con el nombre ya seleccionado, y Escape deja el grupo como estaba.",
+        "## Cerrar todas las terminales de un golpe  Junto a «Minimizar todas» hay ahora un **Cerrar todas**, con confirmación que avisa si alguna sigue trabajando (cerrar mata al agente, no solo lo esconde)."
+      ],
+      "highlights": [
+        "## Renombrar un grupo de sesiones ya no se para en la primera letra  Había dos cuadros de texto editando el mismo nombre a la vez: uno visible, en la ficha del lápiz, y otro escondido en la propia cabecera del grupo.",
+        "Al teclear la primera letra, el escondido se llevaba el foco y el visible se cerraba guardando solo ese carácter.",
+        "Queda uno solo, se abre con el nombre ya seleccionado, y Escape deja el grupo como estaba.",
+        "## Cerrar todas las terminales de un golpe  Junto a «Minimizar todas» hay ahora un **Cerrar todas**, con confirmación que avisa si alguna sigue trabajando (cerrar mata al agente, no solo lo esconde)."
+      ],
+      "headings": [
+        "Renombrar un grupo de sesiones ya no se para en la primera letra",
+        "Cerrar todas las terminales de un golpe",
+        "Los textos claros ya se leen sobre una foto clara"
+      ],
+      "image": null,
+      "notes": "## Renombrar un grupo de sesiones ya no se para en la primera letra\n\nHabía dos cuadros de texto editando el mismo nombre a la vez: uno visible, en la ficha del lápiz, y otro escondido en la propia cabecera del grupo. Al teclear la primera letra, el escondido se llevaba el foco y el visible se cerraba guardando solo ese carácter. Queda uno solo, se abre con el nombre ya seleccionado, y Escape deja el grupo como estaba.\n\n## Cerrar todas las terminales de un golpe\n\nJunto a «Minimizar todas» hay ahora un **Cerrar todas**, con confirmación que avisa si alguna sigue trabajando (cerrar mata al agente, no solo lo esconde). Añadir este botón destapó que la barra de arriba no se encogía en un portátil: el grupo entero podía salirse de la ventana sin que se notara que estaba ahí. Ya se compacta junto con el resto de la barra.\n\n## Los textos claros ya se leen sobre una foto clara\n\nEl índice de Ajustes (Look, Terminales, Notificaciones…) flotaba directo sobre tu foto de fondo, sin ningún cristal detrás, y en un tema claro el gris apagado casi desaparecía. Ahora lleva el mismo halo que ya protegía otros textos sueltos de la app.",
+      "notesFormat": "markdown",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.50",
+      "download": {
+        "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.50/Adeorq_0.9.50_x64-setup.exe",
+        "filename": "Adeorq_0.9.50_x64-setup.exe",
+        "size": 4614142,
+        "sizeLabel": "4,4 MB"
+      }
+    },
     {
       "version": "0.9.49",
       "tag": "v0.9.49",

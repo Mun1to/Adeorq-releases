@@ -1,32 +1,32 @@
 {
-  "version": "0.9.48",
-  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.48/Adeorq_0.9.48_x64-setup.exe",
-  "pub_date": "2026-08-02T07:57:00Z",
-  "size_bytes": 4596193,
-  "notes": "## Tu cerebro de Obsidian, dentro de Adeorq\n\nPestaña nueva: **Memoria**. Busca en tus notas por lo que **dicen**, no solo por cómo se llaman (sin tildes ni mayúsculas, escribe como te salga), las lee, las deja editar y dibuja la **Constelación**: el mapa de lo que enlaza con qué.\n\nNo importa ni copia nada. Tu bóveda sigue siendo una carpeta de markdown en tu disco y se abre con Obsidian igual que siempre; Adeorq la lee donde está.\n\nDos cosas que se decidieron mirando notas de verdad y no la teoría:\n\n- **La red no son los wikilinks.** En una bóveda real de 442 documentos había 24 enlaces `[[así]]` en 7 archivos, y 572 flechas contando también los enlaces markdown normales. Un mapa que solo entendiera la sintaxis de Obsidian habría salido vacío. Se leen las dos formas.\n- **Guardar no puede hacer daño.** Nunca escribe encima de un archivo: escribe al lado y renombra de golpe, así que un cierre a mitad deja la nota vieja entera. Y antes comprueba que el archivo sigue siendo el que abriste: si Obsidian o un agente lo tocaron mientras tanto, se niega y te lo dice en vez de tirar ese cambio.\n\n## Cada terminal dice lo que ocupa\n\nEl medidor de la barra decía lo que gasta Adeorq entero. Con seis agentes abiertos y tres apartados, la pregunta que no tenía respuesta era la otra: **cuál de ellos me está costando**. Ahora lo dice cada cabecera, y también cada píldora de la tira del pie, que es donde viven las que se olvidan.\n\nSe mide el árbol entero de procesos de cada terminal, porque `claude.exe` es un lanzador y quien de verdad ocupa la memoria es lo que cuelga de él.\n\n## Las terminales tienen su propio color\n\nTenían una sola paleta y no cambiaba nunca: con la casa en Gruvbox o en Matrix, el rojo de un error era siempre el mismo. Ahora hay **doce esquemas** en Ajustes, y se aplican a las terminales abiertas sin reiniciar:\n\n- **De la casa**: el de siempre, y una versión subida para cuando lees con el brillo bajo.\n- **Conocidos**: Drácula, Ártico, Gruvbox, One Dark, Tokyo Night, Catppuccin, Solarizado, Monokai.\n- **De un solo color**: Fósforo verde y Ámbar antiguo. Leer una consola de logs en un solo color cansa menos que en dieciséis.\n\nCada uno se elige viendo su muestra de colores, no leyendo el nombre. **El fondo no lo toca ningún esquema**, a propósito: es lo que hace que una terminal de Adeorq sea cristal sobre tu fondo en vez de un rectángulo negro.\n\n## Los temas de la app, ordenados y con seis nuevos\n\nEran treinta chips en una fila por orden de llegada, así que dos azules hermanos podían acabar en extremos opuestos y elegir era leer treinta nombres. Ahora van **por familia** (de la casa · conocidos · de los que se notan · de fondo claro) y del más frío al más cálido dentro de cada una.\n\nNuevos: **Ciruela** y **Arena** tapan los dos saltos más bruscos de la familia de la casa; **Kanagawa**, **Everforest** y **Monokai** entran con su nombre real; y **Papel** es un segundo tema claro, cálido, para quererlo claro sin querer un quirófano.\n\n## El panel de objetivos\n\nDejó de parecer un cuadro de diálogo:\n\n- Sus botones eran tres caracteres de tres fuentes distintas con tres alturas. Ahora están dibujados, como el resto de la app, y se ven.\n- Le faltaba la **fecha** (abierto desde ayer parecía el de hoy) y el **anillo de avance** estando desplegado.\n- La línea de escribir era un cajón con borde que pesaba más que la propia lista.\n- **Un deslizador nuevo** para elegir cuánto tapa lo que hay detrás, porque encima de una terminal se quiere traslúcido y en una esquina vacía opaco.\n- Y **ya no se sale de la pantalla al desplegarlo**: crecía hacia abajo desde donde lo hubieras dejado y la lista entera acababa bajo la barra de tareas.",
-  "generatedAt": "2026-08-02T07:57:52.406Z",
-  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.48",
-  "tag": "v0.9.48",
-  "title": "Adeorq 0.9.48",
+  "version": "0.9.49",
+  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.49/Adeorq_0.9.49_x64-setup.exe",
+  "pub_date": "2026-08-02T10:13:57Z",
+  "size_bytes": 4608085,
+  "notes": "## Tu memoria, ordenada como una bóveda\n\nLa pestaña **Memoria** ya no te hace buscar la carpeta: **te ofrece tus bóvedas de Obsidian**. Obsidian lleva su propia lista, así que se lee de ahí en vez de rastrear el disco, y cada una sale con su nombre, su ruta y cuántos documentos tiene. Las que ya no existen se descartan, porque ofrecer una carpeta que no está es ofrecer un error.\n\nDentro, **árbol de carpetas plegable** con el recuento de cada una, y la lista por fecha en su propia pestaña, porque «dónde lo guardé» y «qué tocaba ayer» son dos preguntas distintas. Todo empieza cerrado: cuatrocientas notas abiertas de par en par son una pared, no un árbol.\n\n## La Constelación deja de portarse mal\n\nTenía dos fallos opuestos, y los dos están medidos, no mirados.\n\n**Notas disparadas a la otra punta.** Eran tres topes que faltaban: la repulsión no tenía techo (dos notas casi encima se empujaban con una fuerza de decenas de miles), la velocidad tampoco, y la gravedad del centro se enfriaba con todo lo demás, así que al final no quedaba nada capaz de recoger a la que se había alejado.\n\n**Y luego, todo amontonado**, que lo causó el propio arreglo: la repulsión se enfría y la gravedad ya no, así que el tablero se cerraba sobre sí mismo. Ahora la repulsión tiene un suelo y la gravedad es una **valla** en vez de un imán: recoge lo que se sale y deja en paz lo de dentro.\n\nCon 400 notas, medido: el tablero pasa de 290 a **862 píxeles** de ancho, y la separación entre vecinas de 11 a **32**. Con puntos de 18 píxeles, antes tenían que solaparse por fuerza.\n\nAdemás: cada carpeta nace en su sector, los nombres reservan su sitio para no pintarse unos encima de otros, y **puedes arrastrar una nota y dejarla donde quieras**.\n\n## Elegir el cerebro tú\n\nLa pastilla del modelo en el **Reparto** es ahora un botón: lo pulsas y eliges qué cerebro quieres para esa tarea, con lo que pesa cada uno. «Automático» le devuelve la decisión al router.\n\nEl lote entero se recalcula, no solo esa fila, porque el botón de abajo dice lo que pesa el reparto y enseñar ese número mal sería mentir en lo único con lo que decides. Lo que eliges a mano queda marcado.\n\n**La cuota sigue mandando**, y esa es la gracia: pedir opus para un renombrado con la semana agotada se abarata igual, porque eso no es una opinión sino lo que te queda. Lo que no se abarata nunca es una auditoría.\n\n## Ajustes\n\n- **Modo Apagón**: negro sólido detrás de las terminales, aunque tengas fondo puesto. Para cuando lo que hay debajo estorba a lo que estás leyendo.\n- **Dos temas nuevos**: *Negro absoluto* (negro de verdad, para que un píxel OLED esté apagado) y *Tinta* (negro con una gota de azul).\n- **Cada esquema de terminal se enseña como una terminal**, con cuatro líneas de verdad en sus colores: un comando, un acierto, un aviso y un error. Seis rayitas decían qué colores tiene; esto dice cómo se va a ver.\n- Los temas de la app se eligen viendo **una miniatura pintada con su paleta real**, con filtro por familia y buscador.\n\n## El panel de objetivos\n\nYa no se sale de la pantalla al desplegarlo: crecía hacia abajo desde donde lo hubieras dejado y la lista entera acababa bajo la barra de tareas. Y lleva un **deslizador para elegir cuánto tapa lo que hay detrás**, porque encima de una terminal se quiere traslúcido y en una esquina vacía, opaco.",
+  "generatedAt": "2026-08-02T10:14:28.197Z",
+  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.49",
+  "tag": "v0.9.49",
+  "title": "Adeorq 0.9.49",
   "date": "2026-08-02",
-  "publishedAt": "2026-08-02T07:57:00Z",
+  "publishedAt": "2026-08-02T10:13:57Z",
   "notesFormat": "markdown",
-  "summary": "Pestaña nueva: **Memoria**.",
+  "summary": "La pestaña **Memoria** ya no te hace buscar la carpeta: **te ofrece tus bóvedas de Obsidian**.",
   "windows": {
-    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.48/Adeorq_0.9.48_x64-setup.exe",
-    "filename": "Adeorq_0.9.48_x64-setup.exe",
-    "size": 4596193,
+    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.49/Adeorq_0.9.49_x64-setup.exe",
+    "filename": "Adeorq_0.9.49_x64-setup.exe",
+    "size": 4608085,
     "sizeLabel": "4,4 MB",
     "arch": "x64",
     "downloadCount": 0
   },
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.48/Adeorq_0.9.48_x64-setup.exe",
-      "filename": "Adeorq_0.9.48_x64-setup.exe",
-      "size": 4596193
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.49/Adeorq_0.9.49_x64-setup.exe",
+      "filename": "Adeorq_0.9.49_x64-setup.exe",
+      "size": 4608085
     }
   },
-  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.48",
+  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.49",
   "allReleasesUrl": "https://github.com/Mun1to/Adeorq-releases/releases"
 }

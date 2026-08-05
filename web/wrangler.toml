@@ -1,0 +1,8 @@
+# Cloudflare Pages project for the public Adeorq website.
+#
+# Nothing is deployed by having this file. The deploy is a manual command,
+# documented in README.md. No DNS record is touched here.
+
+name = "adeorq-web"
+compatibility_date = "2026-07-26"
+pages_build_output_dir = "dist"

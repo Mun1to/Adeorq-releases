@@ -1,0 +1,23 @@
+# Buzon entre sesiones (regla Q): efimero y local, nunca historial
+BUZON.md
+
+# Dependencies / build output
+node_modules/
+dist/
+src-tauri/target/
+
+# Local env and secrets
+.env
+.env.*
+.froede-token
+
+# Editor noise
+.vscode/
+*.log
+# Los worktrees de Claude Code. Solo esa carpeta: ignorar .claude/ entera
+# dejaria sin versionar las skills y los ajustes del proyecto que se pongan
+# ahi manana, y se perderian sin que nadie se enterase.
+.claude/worktrees/
+# Los arboles del Modo Espejo: uno por agente, y son de usar y tirar.
+.adeorq/
+

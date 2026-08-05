@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- Sonda de desarrollo. Carga la web real en un iframe del mismo origen, mide
+     cada seccion y escupe el resultado como texto, para poder comprobar desde
+     la terminal que el cuerpo de la pagina existe, mide y es visible.
+     Vive en scripts/, que el build excluye: no llega nunca al dist. -->
+<meta charset="utf-8">
+<title>sonda</title>
+<body style="background:#111;color:#ddd;font:13px monospace">
+<pre id="out">midiendo...</pre>
+<iframe id="f" src="/?motion=off" style="width:1280px;height:900px;border:0;position:fixed;left:-9999px"></iframe>
+<script>
+const IDS = ['nav', 'hero', 'que-es', 'features', 'descargar', 'changelog', 'faq', 'footer']
+const out = document.getElementById('out')
+const frame = document.getElementById('f')
+
+frame.addEventListener('load', () => {
+  const doc = frame.contentDocument
+  const win = frame.contentWindow
+  const lines = []
+
+  // Recorre la pagina entera para que el IntersectionObserver dispare los
+  // reveals, igual que haria una persona bajando con la rueda. Con pausas: el
+  // observador es asincrono y un bucle seguido solo le deja ver la ultima
+  // posicion, que es justo el falso negativo que hay que evitar aqui.
+  const total = doc.documentElement.scrollHeight
+  const paso = 300
+  let y = 0
+
+  const bajar = () => {
+    if (y < total) {
+      win.scrollTo(0, y)
+      y += paso
+      return setTimeout(bajar, 40)
+    }
+    win.scrollTo(0, 0)
+    setTimeout(medir, 600)
+  }
+  setTimeout(bajar, 300)
+
+  function medir() {
+    lines.push('alto total de la pagina: ' + total + 'px')
+    for (const id of IDS) {
+      const el = doc.getElementById(id)
+      if (!el) { lines.push(id.padEnd(12) + 'NO EXISTE'); continue }
+      const box = el.getBoundingClientRect()
+      const cs = win.getComputedStyle(el)
+      lines.push(
+        id.padEnd(12) +
+        'alto ' + String(Math.round(box.height)).padStart(5) + 'px  ' +
+        'opacidad ' + cs.opacity + '  ' +
+        'display ' + cs.display,
+      )
+    }
+
+    const ocultos = doc.querySelectorAll('[data-reveal]:not(.is-dentro)')
+    lines.push('bloques data-reveal sin revelar: ' + ocultos.length +
+               ' de ' + doc.querySelectorAll('[data-reveal]').length)
+
+    lines.push('entradas de changelog pintadas: ' +
+               doc.querySelectorAll('[data-log-entradas] > *').length)
+
+    for (const gancho of ['version', 'fecha', 'peso']) {
+      const el = doc.querySelector('[data-descarga-' + gancho + ']')
+      lines.push(('descarga ' + gancho).padEnd(20) +
+                 (el ? JSON.stringify(el.textContent.trim()) : 'NO ENCONTRADO'))
+    }
+    const enlace = doc.querySelector('[data-descarga-enlace]')
+    lines.push('descarga enlace'.padEnd(20) + (enlace ? enlace.getAttribute('href') : 'NO ENCONTRADO'))
+
+    out.textContent = lines.join('\n')
+  }
+})
+</script>

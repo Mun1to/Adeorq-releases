@@ -1,0 +1,16 @@
+{
+  "name": "Adeorq",
+  "short_name": "Adeorq",
+  "description": "El taller de vibe coding con terminales de verdad.",
+  "lang": "es",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1020",
+  "theme_color": "#4d9fff",
+  "icons": [
+    { "src": "/assets/favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
+    { "src": "/assets/favicon-180.png", "type": "image/png", "sizes": "180x180" },
+    { "src": "/assets/adeorq-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" },
+    { "src": "/assets/adeorq-1024.png", "type": "image/png", "sizes": "1024x1024" }
+  ]
+}

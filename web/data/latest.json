@@ -1,0 +1,32 @@
+{
+  "version": "0.9.51",
+  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.51/Adeorq_0.9.51_x64-setup.exe",
+  "pub_date": "2026-08-03T21:11:38Z",
+  "size_bytes": 4610247,
+  "notes": "## Arreglos\n\n**Bajo el ratón, la fila de un proyecto es su foto y sus accesos directos.**\nEl número de sesiones, la flecha de plegar y el aviso rojo de «te esperan»\ndesaparecen al pasar por encima: competían con los botones por la misma tira\nestrecha, y son datos que ya se leen sin acercar el ratón. La foto se queda,\npara que sepas de qué proyecto es lo que estás a punto de abrir.\n\n**Se va el botón de abrir todas las sesiones de un clic.** Con dieciséis\nsesiones abría doce terminales de golpe sin preguntar, y estaba justo donde\ncae el ratón. La acción sigue estando en el menú del botón derecho del\nproyecto, que pide un clic a propósito antes.\n\n**Las pestañas, los avisos y las etiquetas de estado que nunca llegaron al\ninglés.** «Memoria» se quedaba en español con el idioma en inglés, y con ella\nlas opciones de permiso de Antigravity, los avisos del Modo Espejo, los\nestados de la Agenda y los ajustes de comparación. Trece textos más, todos\ntraducidos.",
+  "generatedAt": "2026-08-03T21:12:14.730Z",
+  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.51",
+  "tag": "v0.9.51",
+  "title": "v0.9.51",
+  "date": "2026-08-03",
+  "publishedAt": "2026-08-03T21:11:38Z",
+  "notesFormat": "markdown",
+  "summary": "**Bajo el ratón, la fila de un proyecto es su foto y sus accesos directos.** El número de sesiones, la flecha de plegar y el aviso rojo de «te esperan» desaparecen al pasar por encima: competían con los botones por la misma tira estrecha, y son datos que ya se leen sin acercar el ratón.",
+  "windows": {
+    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.51/Adeorq_0.9.51_x64-setup.exe",
+    "filename": "Adeorq_0.9.51_x64-setup.exe",
+    "size": 4610247,
+    "sizeLabel": "4,4 MB",
+    "arch": "x64",
+    "downloadCount": 0
+  },
+  "platforms": {
+    "windows-x86_64": {
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.51/Adeorq_0.9.51_x64-setup.exe",
+      "filename": "Adeorq_0.9.51_x64-setup.exe",
+      "size": 4610247
+    }
+  },
+  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.51",
+  "allReleasesUrl": "https://github.com/Mun1to/Adeorq-releases/releases"
+}

@@ -1,0 +1,11 @@
+{
+  "version": "0.9.51",
+  "notes": "BAJO EL RATON, LA FILA DE UN PROYECTO ES SU FOTO Y SUS ACCESOS DIRECTOS: el numero de sesiones, la flecha de plegar y el aviso rojo de te esperan desaparecen al pasar por encima, porque competian con los botones por la misma tira estrecha y son datos que ya se leen sin acercar el raton; la foto se queda, para que sepas de que proyecto es lo que estas a punto de abrir. SE VA EL BOTON DE ABRIR TODAS LAS SESIONES DE UN CLIC: con dieciseis sesiones abria doce terminales de golpe sin preguntar, y estaba justo donde cae el raton; la accion sigue en el menu del boton derecho del proyecto, que pide un clic a proposito antes. LAS ETIQUETAS Y LOS AVISOS QUE NUNCA LLEGARON AL INGLES: Memoria se quedaba en castellano con el idioma puesto en ingles, y con ella las opciones de permiso de Antigravity, los avisos del Modo Espejo, los estados de la Agenda y los ajustes de comparacion; trece textos mas, todos traducidos.",
+  "pub_date": "2026-08-03T21:10:19.000Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLyt3aitGZExQNEhFZHROSUhpbTZMdURVUWxoTXgzd2VSUTdRZlRIZ0F6VXZleTRKY2FzSTJBcjl5S2lZSUorc3B4dHVPRGpxeWJtLythRUdVY1p6eVFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NzkxNDE5CWZpbGU6QWRlb3JxXzAuOS41MV94NjQtc2V0dXAuZXhlCi9iTk9nOFIxUWZXK0tGUWYyb1JHMkZYL0RDaGlvNnljZEs3bWwzK3JTNjc2QTRFRk8xclhUODFPNEl1NWkvREh6NmF5MGQxWEE1UDJIZkczU2JnWUJ3PT0K",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.51/Adeorq_0.9.51_x64-setup.exe"
+    }
+  }
+}

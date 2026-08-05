@@ -1,0 +1,80 @@
+<!--
+  Adeorq · web/sections/footer.html
+  Seccion 8 del mapa (DISENO.md §10): marca, enlaces, ecosistema Orquio y
+  copyright.
+
+  DECISIONES aplicadas de content/es/footer.md:
+    · La columna Contacto pasa a Ecosistema. El contacto se resuelve con una
+      linea a las incidencias del repositorio, porque hoy no hay buzon de
+      soporte y poner uno falso es peor que no ponerlo.
+    · Se quitan "Aviso legal" y "Privacidad": no habia paginas detras. En su
+      sitio va la frase que esas paginas dirian.
+  VALVULA DE MOVIMIENTO: no se repite aqui. La casa ya la tiene en el nav
+  (#valvula-motion, con memoria en localStorage), y dos interruptores del mismo
+  dial acabarian contradiciendose.
+  LOGO: glifo dibujado con CSS, el mismo del nav. Asi el pie no depende de
+  brand/adeorq.png, que vive fuera de web/ y no llegaria al dist.
+  TEXTOS: web/content/es/footer.md (claves data-content).
+-->
+<footer class="pie" id="footer">
+  <div class="envoltura">
+
+    <div class="pie__alto">
+      <div class="pie__marca">
+        <a class="pie__logo" href="#top" aria-label="Adeorq, volver arriba">
+          <img class="marca__logo" src="assets/adeorq.svg" width="28" height="28" alt="" decoding="async">
+          Adeorq
+        </a>
+        <p class="pie__lema" data-content="footer.tag">
+          El panel donde tus agentes trabajan en terminales de verdad. Hecho en Windows, para
+          quien vive en Windows.
+        </p>
+        <p class="pie__estado" data-content="footer.gratis">Gratis, en desarrollo abierto.</p>
+      </div>
+
+      <nav class="pie__col" aria-label="Producto">
+        <h2 class="pie__titulo" data-content="footer.col.producto">Producto</h2>
+        <ul>
+          <li><a href="#que-es" data-content="footer.enlace.quees">Qué es</a></li>
+          <li><a href="#features" data-content="footer.enlace.funciones">Funciones</a></li>
+          <li><a href="#descargar" data-content="footer.enlace.descargar">Descargar</a></li>
+          <li><a href="#roadmap" data-content="footer.enlace.roadmap">Lo que viene</a></li>
+        </ul>
+      </nav>
+
+      <nav class="pie__col" aria-label="Recursos">
+        <h2 class="pie__titulo" data-content="footer.col.recursos">Recursos</h2>
+        <ul>
+          <li><a href="#changelog" data-content="footer.enlace.novedades">Novedades</a></li>
+          <li><a href="#faq" data-content="footer.enlace.preguntas">Preguntas</a></li>
+          <li>
+            <a href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener"
+               data-content="footer.enlace.versiones">Todas las versiones</a>
+          </li>
+        </ul>
+      </nav>
+
+      <nav class="pie__col" aria-label="Ecosistema">
+        <h2 class="pie__titulo" data-content="footer.col.ecosistema">Ecosistema</h2>
+        <ul>
+          <li><a href="https://orquio.com" rel="noopener" data-content="footer.enlace.orquio">Orquio</a></li>
+          <li><a href="https://munito.dev" rel="noopener" data-content="footer.enlace.munito">munito.dev</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <p class="pie__contacto" data-content="footer.contacto">
+      ¿Un fallo o una idea? Cuéntalo en
+      <a href="https://github.com/Mun1to/Adeorq-releases/issues" rel="noopener">las incidencias
+      del repositorio</a>.
+    </p>
+
+    <div class="pie__bajo">
+      <p data-content="footer.copyright">© 2026 Adeorq · parte del ecosistema Orquio</p>
+      <p class="pie__privacidad" data-content="footer.privacidad">
+        Esta web no usa cookies ni te sigue.
+      </p>
+    </div>
+
+  </div>
+</footer>

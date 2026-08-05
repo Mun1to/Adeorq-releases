@@ -1,0 +1,79 @@
+# Publica la web de descargas en GitHub Pages.
+#
+# Antes esto era a mano y era el paso que más se rompía: clonar el repo público,
+# borrar a dedo lo que era web dejando `LICENSE` y los avisos, copiar el `dist/`,
+# rescatar con `git checkout` los dos archivos que el build no genera, y empujar.
+# Cinco pasos, y olvidar cualquiera dejaba la web anunciando la versión anterior.
+#
+# Ahora la web se construye aquí y se despliega sola. Lo importante es el
+# disparador `release`: los datos de la página salen de la API de releases, así
+# que publicar una versión es lo que tiene que actualizarla, no un push.
+
+name: Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/pages.yml"
+  # Publicar una release actualiza la descarga y el changelog de la web.
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Ni dos despliegues a la vez ni cancelar el que ya está publicando: lo que se
+# descarta es lo que esté esperando en la cola.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Este archivo viaja en los dos repositorios, y Pages solo existe en el
+    # público. Sin esta condición, cada push al privado arrancaría un despliegue
+    # que no tiene dónde aterrizar: fallaría, y encima gastando minutos.
+    if: github.repository == 'Mun1to/Adeorq-releases'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Construir la web
+        working-directory: web
+        env:
+          # Sin token, la API de GitHub deja 60 peticiones por hora y por IP
+          # compartida entre todo el que use estos corredores. Con él, 1000.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pnpm data
+          pnpm build
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

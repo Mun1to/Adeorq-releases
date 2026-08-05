@@ -1,0 +1,19 @@
+name: Una idea
+description: Algo que echas en falta o que se podría hacer mejor.
+labels: ["idea"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Qué echas en falta
+      description: |
+        Cuenta el problema antes que la solución: qué estabas intentando hacer y dónde te
+        atascaste. Muchas veces la mejor salida no es la que uno tenía pensada.
+    validations:
+      required: true
+
+  - type: textarea
+    id: hoy
+    attributes:
+      label: Cómo lo haces hoy
+      description: Aunque sea a mano, o con otro programa. Ayuda a saber qué hay que ganarle.

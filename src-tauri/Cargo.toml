@@ -1,0 +1,81 @@
+[package]
+name = "adeorq"
+version = "0.9.51"
+description = "El ADE de la casa: panel de vibe coding con terminales reales"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "adeorq_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-notification = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+portable-pty = "0.9.0"
+windows-sys = { version = "0.61.2", features = [
+    "Win32_System_Threading",
+    "Win32_Foundation",
+    # SHFileOperationW: the only way to send a file to the recycle bin.
+    "Win32_UI_Shell",
+    # GetLocalTime: fechar el rastro de fallos sin arrastrar una librería de
+    # fechas entera para escribir seis números.
+    # GlobalMemoryStatusEx: cuánta RAM tiene el equipo y cuánta queda libre.
+    "Win32_System_SystemInformation",
+    # GetProcessMemoryInfo: lo que ocupa CADA proceso del árbol de Adeorq. Sin
+    # esto habría que arrastrar `sysinfo` entero, que trae media docena de
+    # crates más para leer cuatro números que Windows ya da.
+    "Win32_System_ProcessStatus",
+    # CreateToolhelp32Snapshot: quién cuelga de quién, para poder sumar lo que
+    # gastan las terminales y sus agentes además de la ventana.
+    "Win32_System_Diagnostics_ToolHelp",
+    # Job Objects: el corral de `pty.rs`. Es lo que hace que un cierre ANORMAL
+    # de Adeorq (colgada, matada desde el Administrador de tareas, caída) no
+    # deje agentes sueltos: Windows los mata solo al morir la ventana.
+    "Win32_System_JobObjects",
+    # Solo por SECURITY_ATTRIBUTES, que es el primer parámetro de
+    # `CreateJobObjectW`. Le pasamos un puntero nulo, pero sin esta feature
+    # windows-sys ni siquiera declara la función.
+    "Win32_Security",
+] }
+# WinRT media transport controls (what is playing, next/previous) plus Core
+# Audio for per-app volume: no Spotify account, no OAuth, no Premium needed.
+windows = { version = "0.62", features = [
+    "Media_Control",
+    "Foundation",
+    "Win32_Foundation",
+    "Win32_Media_Audio",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Variant",
+    "Win32_System_Threading",
+    "Win32_Security_Credentials",
+] }
+# Solo para hablar con Ollama en 127.0.0.1. Va por Rust y no por `fetch` del
+# front a propósito: desde el WebView la llamada es de otro origen y depende de
+# que Ollama lo permita en su CORS, que es una condición que no controlamos y
+# que cambia entre versiones suyas. Aquí no hay origen que valga.
+# Ya venía compilado como dependencia del actualizador, así que no añade build.
+# Con TLS desde el 2026-07-29: entró sin él porque solo hablaba con Ollama en
+# 127.0.0.1 por http, y ese mismo día se le sumó OpenRouter, que es https de
+# verdad y ahí los certificados no son peso muerto, son el punto.
+# rustls y no el TLS del sistema: una pila propia se comporta igual en tu
+# equipo que en el de cualquiera, y no depende de qué tenga instalado Windows.
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
+auto-launch = "0.6.0"
+tauri-plugin-dialog = "2"
+

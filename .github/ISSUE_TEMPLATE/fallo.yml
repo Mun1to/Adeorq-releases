@@ -1,0 +1,56 @@
+name: Algo va mal
+description: Un fallo, algo que se ve raro o que no hace lo que debería.
+labels: ["fallo"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por avisar. Con rellenar lo que sepas basta: si algún campo no lo tienes a
+        mano, déjalo vacío.
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Adeorq
+      description: Está abajo del todo en Ajustes › Adeorq.
+      placeholder: "0.9.51"
+    validations:
+      required: true
+
+  - type: textarea
+    id: que-pasa
+    attributes:
+      label: Qué pasa
+      description: Qué hiciste, qué esperabas que pasara y qué pasó en su lugar.
+      placeholder: |
+        Abrí una sesión desde la barra lateral y…
+    validations:
+      required: true
+
+  - type: textarea
+    id: rastro
+    attributes:
+      label: El rastro
+      description: |
+        Adeorq apunta sus fallos en `%LOCALAPPDATA%\Adeorq\rastro.log`. Pega aquí las últimas
+        líneas si hay algo con la hora en la que falló: casi siempre dice exactamente qué se
+        rompió.
+      render: text
+
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Windows
+      options:
+        - Windows 11
+        - Windows 10
+        - Otro
+
+  - type: textarea
+    id: captura
+    attributes:
+      label: Una captura, si se ve
+      description: |
+        Arrástrala aquí. **Antes de subirla, mira qué sale**: los títulos de sesión, las rutas
+        y el correo de tus cuentas salen en pantalla. Adeorq tiene un modo emisión
+        (`Ctrl+Mayús+E`) que tapa justo eso.

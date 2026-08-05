@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Adeorq",
+  "version": "0.9.51",
+  "identifier": "com.orquio.adeorq",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Adeorq",
+        "width": 1360,
+        "height": 850,
+        "minWidth": 940,
+        "minHeight": 600,
+        "maximized": true,
+        "transparent": true,
+        "additionalBrowserArgs": "--use-fake-ui-for-media-stream",
+        "windowEffects": {
+          "effects": ["acrylic"],
+          "state": "active"
+        }
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPLOCALDATA/**", "$LOCALDATA/Adeorq/**"]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZGQ0NEREUwNDBCQjU0Q0MKUldUTVZMdEE0TjNNLzM1MDlLcllHcHhNSzR3LzUxdXM5a2lIdm5FYTBUS3NxV05TQ1E3dDFMOG4K",
+      "endpoints": [
+        "https://github.com/Mun1to/Adeorq-releases/releases/latest/download/latest.json"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "resources": {
+      "../docs/GUIA.md": "docs/GUIA.md",
+      "../docs/GUIDE.en.md": "docs/GUIDE.en.md"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

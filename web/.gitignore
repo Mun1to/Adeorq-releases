@@ -1,0 +1,8 @@
+# Build output and local tooling state
+node_modules/
+dist/
+.wrangler/
+
+# Local secrets (never commit)
+.dev.vars
+.froede-token

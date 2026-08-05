@@ -1,0 +1,503 @@
+// The app's own icons, drawn rather than typed.
+//
+// The buttons used to be text glyphs: ▦ ▤ for the two rail modes, ○ ◫ ▬ ⛶ ×
+// on every pane header. At 12px those are smudges, ▦ and ▤ are the same smudge,
+// and a font substitution can silently change what a button looks like. Munir's
+// complaint was exact: "cuesta ver de qué son" and "no se diferencian".
+//
+// So: one stroke weight, one grid, one viewBox, and each icon says what its
+// button does. Line icons scale, take currentColor, and cannot be swapped out
+// by a missing font.
+
+interface Props {
+  /** Rendered size in px; 17 suits the small buttons of the header. */
+  size?: number;
+}
+
+function svg(size: number) {
+  return {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none" as const,
+    stroke: "currentColor" as const,
+    strokeWidth: 1.9,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+}
+
+/** Rail: photos only. A wall of marks, which is what that mode shows. */
+export function GridIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="2" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="2" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="2" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="2" />
+    </svg>
+  );
+}
+
+/** Rail: photo and name. A mark with a line of text beside it, twice. */
+export function RowsIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3.5" y="4.5" width="6" height="6" rx="2" />
+      <rect x="3.5" y="13.5" width="6" height="6" rx="2" />
+      <path d="M12.5 7.5h8M12.5 16.5h8" />
+    </svg>
+  );
+}
+
+/** Rail: la tira estrecha. Tres marcas en una sola columna, pegadas al borde,
+    que es exactamente lo que se ve cuando está puesta. */
+export function StripIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="4.5" y="3.5" width="6" height="6" rx="2" />
+      <rect x="4.5" y="12.5" width="6" height="6" rx="2" />
+      <path d="M14.5 4.5v13" />
+    </svg>
+  );
+}
+
+export function PlusIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+export function RefreshIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+      <path d="M20 4.5V10h-5.4" />
+    </svg>
+  );
+}
+
+/** Open every session of this project at once. */
+export function StackIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="8" y="3.5" width="12.5" height="12.5" rx="2.5" />
+      <path d="M15.5 20.5H6A2.5 2.5 0 0 1 3.5 18V8.5" />
+    </svg>
+  );
+}
+
+export function TerminalIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="2.5" y="4" width="19" height="16" rx="3" />
+      <path d="M6.5 10l2.5 2-2.5 2M12 14h5" />
+    </svg>
+  );
+}
+
+/** Covered for a stream, or visible. Two icons, one meaning each way. */
+export function EyeIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6Z" />
+      <circle cx="12" cy="12" r="2.8" />
+    </svg>
+  );
+}
+
+export function EyeOffIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 5l16 14" />
+      <path d="M9.6 6.5A9.9 9.9 0 0 1 12 6c6.2 0 10 6 10 6a18 18 0 0 1-2.7 3.2" />
+      <path d="M6.6 8.3A17.6 17.6 0 0 0 2 12s3.8 6 10 6a9.7 9.7 0 0 0 3.4-.6" />
+    </svg>
+  );
+}
+
+/** Split: the pane divides, and the new half is where the fill is. */
+export function SplitRightIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path d="M12 4v16" />
+      <path d="M15 8.5h3M15 12h3M15 15.5h3" opacity="0.75" />
+    </svg>
+  );
+}
+
+export function SplitDownIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="4" y="3" width="16" height="18" rx="2.5" />
+      <path d="M4 12h16" />
+      <path d="M8 15h8M8 18h5" opacity="0.75" />
+    </svg>
+  );
+}
+
+/**
+ * Minimizar: de la ventana entera queda solo su barra de abajo.
+ *
+ * El marco tenue es lo que se va y la barra marcada es lo que queda, que es
+ * literalmente lo que hace: la terminal baja a la tira del pie. El primer
+ * intento fue una flecha hacia abajo sobre una línea, y eso es el icono de
+ * descargar en todas partes (Munir, 2026-08-02: «parece un botón de guardar»).
+ */
+export function MinimizeIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="4" y="4" width="16" height="16" rx="2.5" opacity="0.4" />
+      <path d="M7.5 16.5h9" />
+    </svg>
+  );
+}
+
+/**
+ * Lo contrario del anterior, dibujado como su reflejo: aquí el marco es lo que
+ * está marcado y la barra de abajo lo que se va. La ventana vuelve.
+ *
+ * No vale `MaximizeIcon` ni `RestoreIcon`: esos dos hablan del tamaño de una
+ * ventana, y esto no agranda nada, devuelve al mosaico lo que estaba apartado.
+ */
+export function UnminimizeIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="4" y="4" width="16" height="16" rx="2.5" />
+      <path d="M7.5 16.5h9" opacity="0.4" />
+    </svg>
+  );
+}
+
+export function MaximizeIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M9 4H6a2 2 0 0 0-2 2v3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M4 15v3a2 2 0 0 0 2 2h3" />
+    </svg>
+  );
+}
+
+export function RestoreIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 9h3a2 2 0 0 0 2-2V4M20 9h-3a2 2 0 0 1-2-2V4M20 15h-3a2 2 0 0 0-2 2v3M4 15h3a2 2 0 0 1 2 2v3" />
+    </svg>
+  );
+}
+
+/** Cuánto tapa un panel lo que hay detrás.
+    El círculo medio relleno es el signo de contraste de toda la vida y se lee
+    entero a quince píxeles. Antes era una gota con medio relleno tenue, que a
+    ese tamaño no era una gota: era una mancha (Munir, 2026-08-02). */
+export function OpacityIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)} strokeWidth={2.1}>
+      <circle cx="12" cy="12" r="8.4" />
+      <path d="M12 3.6a8.4 8.4 0 0 1 0 16.8Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Buscar. La lupa de siempre: aquí no hay nada que reinventar. */
+export function SearchIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m15.8 15.8 4.2 4.2" />
+    </svg>
+  );
+}
+
+/** El segundo cerebro: notas enlazadas entre sí, que es lo que se ve en la
+    Constelación. Tres puntos y sus hilos, no un cerebro dibujado. */
+export function MemoryIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="6.5" cy="8" r="2.4" />
+      <circle cx="17" cy="6.5" r="2.2" />
+      <circle cx="13" cy="17.5" r="2.6" />
+      <path d="M8.7 9.3 11.4 15M8.6 7.2l6-0.6M16 8.6l-1.9 6.6" opacity="0.55" />
+    </svg>
+  );
+}
+
+/** Plegar y desplegar un panel. La punta mira adonde va a ir el contenido. */
+export function ChevronIcon({ size = 17, up = false }: Props & { up?: boolean }) {
+  return (
+    <svg {...svg(size)} strokeWidth={2.3}>
+      <path d={up ? "M6 14.5 12 8.5l6 6" : "M6 9.5 12 15.5l6-6"} />
+    </svg>
+  );
+}
+
+/** Devolver un panel suelto a su esquina: la esquina y la flecha que entra en
+    ella. Solo esas dos formas, con la punta dibujada: el trazo tenue que había
+    de tercero no se leía y solo emborronaba el dibujo. */
+export function CornerIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)} strokeWidth={2.1}>
+      <path d="M20 13.5V20h-6.5" />
+      <path d="M10.5 10.5 19.4 19.4" />
+      <path d="M10.5 15v-4.5H15" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)} strokeWidth={2.2}>
+      <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+    </svg>
+  );
+}
+
+/** Archived sessions, hidden from the list but not deleted. */
+export function ArchiveIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3" y="4" width="18" height="4.5" rx="1.5" />
+      <path d="M5 8.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8.5" />
+      <path d="M10 13h4" />
+    </svg>
+  );
+}
+
+/** La galería: un marco con una montaña y su sol, que es como se dibuja "foto"
+    en todas partes, y una segunda hoja detrás porque son varias. */
+export function GalleryIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="2.5" y="6" width="15" height="12" rx="2.5" />
+      <path d="M2.5 14.5l4-3.5 3.5 3 2.5-2 5 4.5" />
+      <circle cx="12.8" cy="9.8" r="1.3" />
+      <path d="M6.5 3.5h12A3 3 0 0 1 21.5 6.5v9" />
+    </svg>
+  );
+}
+
+/** Una nota del lienzo: una hoja con dos renglones y una casilla marcada, que
+    es lo que la nota puede llevar dentro. Sin la casilla se confundía con
+    "documento" a 17 px. */
+export function NoteIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M5 4.5h14v11.5l-4 4H5z" />
+      <path d="M19 16h-4v4" />
+      <path d="M8 8.5h8M8 12h4" />
+    </svg>
+  );
+}
+
+/** Thrown away for real, unlike the archive box right above it: a bin with a
+    lid, the shape everyone already reads as "delete". */
+export function TrashIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 6.5h16" />
+      <path d="M9.5 6.5V4.8A1.3 1.3 0 0 1 10.8 3.5h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7" />
+      <path d="M6.5 6.5l.9 12.2A1.8 1.8 0 0 0 9.2 20.5h5.6a1.8 1.8 0 0 0 1.8-1.8l.9-12.2" />
+      <path d="M10.5 10.5v6M13.5 10.5v6" />
+    </svg>
+  );
+}
+
+/* --------------------------------------------------------------------------
+   Las ocho pestañas del header.
+   Estaban puestas como glifos sueltos (◱ ▦ 🗓 ⬡ ◍ ? ⌘ ⚙): un emoji al lado de
+   unas figuras geométricas al lado de un signo de interrogación, cada uno con
+   su grosor y su tamaño real distintos, y uno de ellos a merced de la fuente
+   de emoji del sistema. Es el mismo problema que este archivo se escribió para
+   resolver en los botones de los paneles, y se había quedado sin resolver
+   justo en la barra que se ve siempre.
+   -------------------------------------------------------------------------- */
+
+/** Panel: el vistazo de pájaro, cuadros de distinto peso. */
+export function PanelIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3" y="3" width="7.5" height="7.5" rx="1.6" />
+      <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6" />
+      <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6" />
+      <path d="M13.5 17.25 h7.5" />
+    </svg>
+  );
+}
+
+/** Cabina: el mosaico de terminales. */
+export function CockpitIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="2.5" y="4" width="19" height="16" rx="2.2" />
+      <path d="M12 4 v16 M2.5 12 h9.5" />
+    </svg>
+  );
+}
+
+/** Agenda: lo que viene, con su fecha. */
+export function AgendaIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3" y="5" width="18" height="16" rx="2.2" />
+      <path d="M3 10 h18 M8 3 v4 M16 3 v4" />
+      <path d="M8 15 h5" />
+    </svg>
+  );
+}
+
+/** Lienzo: piezas unidas por una flecha, que es de lo que va. */
+export function CanvasIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="2.5" y="3.5" width="7" height="6" rx="1.5" />
+      <rect x="14.5" y="14.5" width="7" height="6" rx="1.5" />
+      <path d="M9.5 6.5 h4.5 a3 3 0 0 1 3 3 v4" />
+    </svg>
+  );
+}
+
+/** Cuentas: una persona, que es lo que hay detrás de cada una. */
+export function AccountIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M4.5 20.5 a7.5 7.5 0 0 1 15 0" />
+    </svg>
+  );
+}
+
+/** Guía: un libro abierto. */
+export function GuideIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 6.5 C10 4.8 7.4 4.3 3.5 4.5 v13 c3.9 -0.2 6.5 0.3 8.5 2 2 -1.7 4.6 -2.2 8.5 -2 v-13 c-3.9 -0.2 -6.5 0.3 -8.5 2 z" />
+      <path d="M12 6.5 v14" />
+    </svg>
+  );
+}
+
+/** Comandos: la tecla de comando, que es lo que la pestaña lista. */
+export function CommandIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M9 9 h6 v6 h-6 z" />
+      <path d="M9 9 V6.5 a2.5 2.5 0 1 0 -2.5 2.5 z M15 9 V6.5 a2.5 2.5 0 1 1 2.5 2.5 z M9 15 v2.5 a2.5 2.5 0 1 1 -2.5 -2.5 z M15 15 v2.5 a2.5 2.5 0 1 0 2.5 -2.5 z" />
+    </svg>
+  );
+}
+
+/** Ajustes: la rueda, sin los doce dientes que a 17px son una mancha. */
+export function SettingsIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M12 2.5 v2.6 M12 18.9 v2.6 M21.5 12 h-2.6 M5.1 12 H2.5 M18.7 5.3 l-1.8 1.8 M7.1 16.9 l-1.8 1.8 M18.7 18.7 l-1.8 -1.8 M7.1 7.1 L5.3 5.3" />
+    </svg>
+  );
+}
+
+/** El Capataz: una estrella de cuatro puntas, la marca que ya lleva. */
+export function ForemanIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 2.8 C12.9 8.2 15.8 11.1 21.2 12 C15.8 12.9 12.9 15.8 12 21.2 C11.1 15.8 8.2 12.9 2.8 12 C8.2 11.1 11.1 8.2 12 2.8 z" />
+    </svg>
+  );
+}
+
+/** Emisión: el punto de grabar. Relleno cuando está puesta, hueco cuando no,
+    que es la misma convención de cualquier cámara. */
+export function StreamIcon({ size = 17, on = false }: Props & { on?: boolean }) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="12" cy="12" r="8.2" />
+      {on && <circle cx="12" cy="12" r="4" fill="currentColor" />}
+    </svg>
+  );
+}
+
+/**
+ * El Asistente: un orbe.
+ *
+ * La estrella de cuatro puntas que tenía es la marca genérica de «IA» que usa
+ * media industria, y encima iba con la palabra al lado, así que ocupaba como
+ * un botón y decía menos que un icono solo. Un orbe es otra cosa: una esfera
+ * suspendida, con un anillo que la rodea en escorzo y un punto de luz. Se
+ * reconoce a 16px, no se parece a ninguna otra cosa de la barra, y no es la
+ * chispa de nadie más.
+ *
+ * El anillo lleva su propio grosor, más fino que el trazo de la casa: es lo
+ * que hace que se lea como algo que ORBITA y no como un segundo círculo.
+ */
+export function OrbIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="12" cy="11.5" r="5.4" />
+      <ellipse
+        cx="12"
+        cy="11.5"
+        rx="10"
+        ry="4.1"
+        strokeWidth={1.2}
+        opacity={0.75}
+        transform="rotate(-22 12 11.5)"
+      />
+      <circle cx="10.1" cy="9.6" r="1.15" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function CheckIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+export function GitBranchIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <line x1="6" y1="3" x2="6" y2="15" />
+      <circle cx="18" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="6" cy="6" r="3" />
+      <path d="M18 9a9 9 0 0 1-9 9" />
+    </svg>
+  );
+}
+
+export function DiffIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="12" y1="3" x2="12" y2="21" />
+      <line x1="16" y1="8" x2="18" y2="8" />
+      <line x1="6" y1="8" x2="8" y2="8" />
+      <line x1="16" y1="12" x2="18" y2="12" />
+      <line x1="6" y1="12" x2="8" y2="12" />
+    </svg>
+  );
+}
+
+
+/**
+ * El Reparto: una lista que se abre en varias manos.
+ *
+ * Un tronco a la izquierda y tres ramas que salen hacia la derecha, cada una
+ * terminada en su punto. Se lee como «esto se divide» a 17px, que es lo único
+ * que tiene que decir al lado del orbe del Asistente.
+ */
+export function RepartoIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 12 h4 M8 12 V5 h5 M8 12 h5 M8 12 v7 h5" />
+      <circle cx="15.6" cy="5" r="2.2" />
+      <circle cx="15.6" cy="12" r="2.2" />
+      <circle cx="15.6" cy="19" r="2.2" />
+    </svg>
+  );
+}

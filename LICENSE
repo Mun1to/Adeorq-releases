@@ -1,0 +1,90 @@
+Licencia de uso de Adeorq
+=========================
+
+Copyright (c) 2026 Munir Torres Athayde. Todos los derechos reservados.
+
+Adeorq no es software libre. Este documento explica qué puedes hacer con los
+binarios que se publican en este repositorio. Está escrito para leerse.
+
+
+1. Qué se te permite
+--------------------
+
+Puedes descargar Adeorq, instalarlo en los ordenadores que uses y utilizarlo
+para trabajar, sea para ti o para tu empresa. No hay límite de puestos ni de
+tiempo, y no hace falta pedir permiso.
+
+Puedes hablar de Adeorq, enseñarlo, escribir sobre él, grabar vídeo usándolo y
+enlazar a este repositorio.
+
+
+2. Qué no se te permite
+-----------------------
+
+No puedes redistribuir el instalador ni sus archivos por tu cuenta: quien lo
+quiera, que lo descargue de aquí. Esto es para que nadie acabe instalando una
+copia modificada creyendo que es la original.
+
+No puedes venderlo, alquilarlo, ni cobrar por darle acceso a otros.
+
+No puedes descompilarlo, desensamblarlo ni hacer ingeniería inversa, salvo en
+la medida en que la ley aplicable te lo permita expresamente pese a esta
+prohibición.
+
+No puedes quitar ni tapar los avisos de autoría, ni presentarlo como propio.
+
+
+3. De quién es
+--------------
+
+Adeorq es propiedad de su autor. Instalarlo no te transfiere ninguna propiedad
+sobre él: solo el permiso de uso descrito arriba.
+
+
+4. Software de terceros
+-----------------------
+
+Adeorq incorpora componentes de software libre escritos por otras personas,
+cada uno bajo su propia licencia (MIT, Apache-2.0, ISC, BSD y MPL-2.0). Esas
+licencias mandan sobre esos componentes, y esta no las sustituye.
+
+La lista completa, con sus avisos de copyright, está en THIRD-PARTY-NOTICES.md,
+en este mismo repositorio.
+
+
+5. Cuentas de otros proveedores
+-------------------------------
+
+Adeorq es un panel que se maneja sobre programas de línea de comandos que ya
+tienes instalados. Funciona con TUS cuentas y TUS suscripciones: no incluye ni
+proporciona acceso a ningún modelo de inteligencia artificial, ni revende ese
+acceso. Lo que hagas con esas cuentas se rige por los términos de cada
+proveedor, no por esta licencia.
+
+Adeorq no está afiliado, patrocinado ni respaldado por Anthropic, OpenAI,
+Google, Microsoft ni ninguna otra empresa cuyos productos pueda utilizar. Sus
+nombres y logotipos son marcas de sus respectivos titulares y aquí solo se usan
+para identificar con qué herramienta estás trabajando.
+
+
+6. Sin garantía
+---------------
+
+Adeorq se entrega tal cual, sin garantía de ningún tipo, expresa o implícita,
+incluidas las de comerciabilidad, idoneidad para un fin concreto y no
+infracción. En la medida en que lo permita la ley aplicable, el autor no
+responde de ningún daño derivado del uso o de la imposibilidad de uso del
+programa.
+
+Adeorq ejecuta procesos y escribe en tus archivos porque para eso sirve. Haz
+copias de seguridad de tu trabajo, como con cualquier otra herramienta.
+
+
+7. Ley aplicable
+----------------
+
+Esta licencia se rige por la ley española. Nada en ella limita los derechos
+que la normativa de consumo te reconozca de forma imperativa.
+
+
+Contacto: https://github.com/Mun1to/Adeorq-releases/issues

@@ -1,0 +1,1928 @@
+<!doctype html>
+<html lang="es" data-boot="pending">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adeorq · el taller de vibe coding con terminales de verdad</title>
+<meta name="description" content="Adeorq es el panel de escritorio para Windows donde tus agentes trabajan en terminales reales: tus proyectos a un clic, las sesiones de Claude Code con su estado, Agenda para las ideas al vuelo y actualizaciones que llegan solas.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Adeorq">
+<meta property="og:locale" content="es_ES">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:title" content="Adeorq · nueve agentes trabajando, una sola pantalla">
+<meta property="og:description" content="El panel de escritorio para Windows donde tus agentes trabajan en terminales de verdad. Gratis, sin cuenta y sin API keys.">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Sin og:url ni canonical mientras no haya dominio, y sin og:image mientras
+     no exista web/assets/og.png: una etiqueta que apunta a nada es peor que
+     no ponerla (content/es/meta.md). -->
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F6F8FC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#090D16" media="(prefers-color-scheme: dark)">
+<!-- Favicon provisional dibujado a mano con los tonos de DISENO.md. Se sustituye
+     por el logo definitivo en SVG cuando exista (DISENO.md §12). -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234D9FFF'/%3E%3Cstop offset='1' stop-color='%23A877FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='url(%23g)' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='4.5' fill='url(%23g)'/%3E%3C/svg%3E">
+
+<!-- ============================================================
+     INTERRUPTOR CENTRAL DE MOVIMIENTO (politica de la casa)
+     Va aqui arriba, antes de cualquier CSS de animacion.
+     Las animaciones se ven para TODOS: lo que cambia es la amplitud.
+     ============================================================ -->
+<script>
+(function () {
+  var h = document.documentElement;
+  var q = new URLSearchParams(location.search).get('motion');
+  var saved = null;
+  try { saved = localStorage.getItem('adeorq-motion'); } catch (e) {}
+  var pref = q || saved;
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var gain = pref === 'off' ? 0 : pref === 'full' ? 1 : reduce ? 0.25 : 1;
+  h.style.setProperty('--motion-gain', String(gain));
+  h.classList.toggle('motion', gain > 0);
+})();
+</script>
+
+<!-- ============================================================
+     BOOT DE IDIOMA (sin parpadeo, sin redirecciones)
+     Solo decide y marca. El intercambio de textos lo hace boot.js.
+     El HTML nace en espanol: sin JS, la pagina se lee entera.
+     ============================================================ -->
+<script>
+(function () {
+  var SUPPORTED = ['es', 'en'];
+  var saved = null;
+  try { saved = localStorage.getItem('adeorq-lang'); } catch (e) {}
+  var lang = SUPPORTED.indexOf(saved) > -1 ? saved : null;
+  if (!lang) {
+    var list = navigator.languages || [navigator.language || 'es'];
+    for (var i = 0; i < list.length && !lang; i++) {
+      var base = String(list[i]).toLowerCase().split('-')[0];
+      if (SUPPORTED.indexOf(base) > -1) lang = base;
+    }
+  }
+  document.documentElement.lang = lang || 'es';
+})();
+</script>
+
+<!-- Tipografia propia (Inter y JetBrains Mono, SIL OFL), servida desde casa y
+     declarada en fonts/fonts.css. Solo Inter va con preload: es la que se lee
+     primero. El resto llega con font-display: swap, sin bloquear el pintado. -->
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<!-- Marca: el icono real de la app, el mismo vectorial que src/assets/adeorq.svg -->
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="manifest" href="assets/site.webmanifest">
+
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/hero.css">
+<!-- Hojas del cuerpo de la pagina (de los agentes de secciones y pie). Se
+     cargan aqui aunque sus secciones aun no esten pegadas: sin su HTML no
+     pintan nada. -->
+<link rel="stylesheet" href="styles/sections.css">
+<link rel="stylesheet" href="styles/footer.css">
+
+<!-- Los dos mios van como modulo para que el build los empaquete y los minifique.
+     No dependen del orden entre ellos ni de Lenis: hero.js reintenta al load. -->
+<script src="js/boot.js" type="module"></script>
+<script src="js/command-menu.js" type="module"></script>
+<!-- Lenis 1.1.18 (MIT) servido desde casa: sin CDN de terceros, funciona sin red
+     y no filtra visitas a otro dominio. Va como script clasico porque es un
+     paquete UMD que se expone en window. Si faltara, hero.js cae al scroll
+     nativo con scroll-behavior: smooth y no se rompe nada. -->
+<script src="js/vendor/lenis.min.js" defer></script>
+<script src="js/hero.js" type="module"></script>
+<!-- js/sections.js va como script CLASICO a proposito, no como modulo: resuelve
+     la ruta de web/data/ con document.currentScript, que en un modulo vale null
+     y le dejaria apuntando fuera del sitio. -->
+<script src="js/sections.js" defer></script>
+<!-- El Panel de la maqueta. Va detras de hero.js porque usa su showToastDemo,
+     y como modulo para que el build lo empaquete. -->
+<script src="js/dash.js" type="module"></script>
+<!-- El recorrido explicado por dentro de la maqueta. -->
+<script src="js/tour.js" type="module"></script>
+<!-- Los botones de la maqueta: los que se pueden imitar funcionan,
+     y los que no, explican qué hacen. -->
+<script src="js/acciones.js" type="module"></script>
+</head>
+
+<body>
+<a class="skip-link" href="#hero-titulo" data-i18n="skip">Saltar al contenido</a>
+
+<!-- ============================ NAV ============================ -->
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a class="marca" href="#top" aria-label="Adeorq, ir al inicio">
+      <img class="marca__logo" src="assets/adeorq.svg" width="32" height="32" alt="" decoding="async">
+      <span class="marca__texto">Adeorq</span>
+    </a>
+
+    <nav class="nav__enlaces" aria-label="Secciones">
+      <a href="#que-es" data-i18n="nav.queEs">Qué es</a>
+      <a href="#features" data-i18n="nav.funciones">Funciones</a>
+      <a href="#changelog" data-i18n="nav.novedades">Novedades</a>
+      <a href="guia.html" data-i18n="nav.guia">Guía</a>
+      <a href="#descargar" data-i18n="nav.descargar">Descargas</a>
+    </nav>
+
+    <div class="nav__acciones">
+      <button type="button" class="idioma-toggle" id="idioma-toggle" aria-label="Cambiar idioma">
+        <span class="idioma-toggle__texto" id="idioma-toggle-texto">English</span>
+      </button>
+      <a class="boton boton--solido nav__cta" href="#descargar" data-i18n="cta.descargar">Descargar</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============================ HERO ============================ -->
+<section class="hero" id="hero">
+  <div class="hero__telon" aria-hidden="true">
+    <span class="hero__aurora hero__aurora--a" data-speed="0.16"></span>
+    <span class="hero__aurora hero__aurora--b" data-speed="0.26"></span>
+    <span class="hero__rejilla" data-speed="0.08"></span>
+  </div>
+
+  <div class="hero__inner">
+    <div class="hero__texto" data-reveal-grupo>
+      <h1 class="hero__titulo" id="hero-titulo" data-reveal>
+        <span class="linea" data-i18n="hero.titulo1">Nueve agentes trabajando en paralelo.</span>
+        <span class="linea linea--acento" data-i18n="hero.titulo2">Una sola pantalla.</span>
+      </h1>
+
+      <p class="hero__entrada" data-reveal data-i18n="hero.entrada">
+        Adeorq es el panel de escritorio nativo para Windows diseñado para vibe coding agéntico. Abre proyectos en terminales ConPTY reales, supervisa sesiones vivas de Claude Code, recoge ideas al vuelo y dirige escuadrones en paralelo.
+      </p>
+
+      <div class="hero__acciones" data-reveal>
+        <a class="boton boton--solido boton--grande" href="#descargar">
+          <span data-i18n="cta.windows">Descargar para Windows</span>
+          <span class="boton__meta" data-i18n="cta.meta">gratis, sin cuenta</span>
+        </a>
+        <a class="boton boton--fantasma boton--grande" href="#features" data-i18n="cta.como">
+          Ver cómo funciona
+        </a>
+      </div>
+
+      <ul class="hero__notas" data-reveal>
+        <li data-i18n="hero.nota1">Windows 10 y 11 · 64-bit</li>
+        <li data-i18n="hero.nota2">Actualizaciones firmadas</li>
+        <li data-i18n="hero.nota3">Sin API keys requeridas</li>
+      </ul>
+    </div>
+
+    <!-- ======= CAPTURA REAL DE LA APP ADEORQ (GRANDE) ======= -->
+    <div class="escena" id="escena" data-reveal>
+      <div class="escena__halo" aria-hidden="true"></div>
+
+      <div class="panel panel--live-demo" id="panel-demo">
+        <!-- El fondo de la app. Con foto puesta, TODO lo de encima se abre y
+             la imagen se ve a traves de las terminales: es la firma visual de
+             Adeorq y sin ella la maqueta no se le parece. -->
+        <div class="ap-fondo" aria-hidden="true"></div>
+        <!-- ====================================================================
+             LOS ICONOS DE LA APP, dibujados
+
+             En Adeorq no hay ni un emoji ni un glifo de fuente: todos los
+             iconos son SVG de trazo 1.9 en una rejilla de 24, con las puntas
+             redondeadas (src/components/Icons.tsx). Aqui van los mismos,
+             copiados de sus formas, en un sprite para no repetirlos.
+             ================================================================= -->
+        <svg class="ap-sprite" aria-hidden="true" width="0" height="0">
+          <defs>
+            <g id="i-panel">
+              <rect x="3.2" y="3.2" width="7.5" height="7.5" rx="1.8"/>
+              <rect x="13.3" y="3.2" width="7.5" height="7.5" rx="1.8"/>
+              <rect x="3.2" y="13.3" width="7.5" height="7.5" rx="1.8"/>
+              <path d="M13.3 17h7.5"/>
+            </g>
+            <g id="i-cabina">
+              <rect x="2.5" y="4" width="19" height="16" rx="2.2"/>
+              <path d="M12 4v16"/>
+              <path d="M2.5 12H12"/>
+            </g>
+            <g id="i-agenda">
+              <rect x="3" y="5" width="18" height="16" rx="2.2"/>
+              <path d="M3 9.5h18"/>
+              <path d="M8 3v4M16 3v4"/>
+              <path d="M7.5 14h6"/>
+            </g>
+            <g id="i-lienzo">
+              <rect x="2.8" y="4" width="7" height="6" rx="1.6"/>
+              <rect x="14.2" y="14" width="7" height="6" rx="1.6"/>
+              <path d="M6.3 10v3.5a2 2 0 0 0 2 2h5.9"/>
+            </g>
+            <g id="i-cuentas">
+              <circle cx="12" cy="8.4" r="3.6"/>
+              <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0"/>
+            </g>
+            <g id="i-comandos">
+              <path d="M8.5 8.5h7v7h-7z"/>
+              <path d="M8.5 8.5V6a2.5 2.5 0 1 0-2.5 2.5h2.5z"/>
+              <path d="M15.5 8.5V6A2.5 2.5 0 1 1 18 8.5h-2.5z"/>
+              <path d="M8.5 15.5V18A2.5 2.5 0 1 1 6 15.5h2.5z"/>
+              <path d="M15.5 15.5V18A2.5 2.5 0 1 0 18 15.5h-2.5z"/>
+            </g>
+            <g id="i-ajustes">
+              <circle cx="12" cy="12" r="3.1"/>
+              <path d="M12 2.6v2.6M12 18.8v2.6M21.4 12h-2.6M5.2 12H2.6M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8M18.6 18.6l-1.8-1.8M7.2 7.2 5.4 5.4"/>
+            </g>
+            <!-- Diana: los objetivos del dia -->
+            <g id="i-objetivos">
+              <circle cx="12" cy="12" r="8.6"/>
+              <circle cx="12" cy="12" r="4.4"/>
+              <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none"/>
+            </g>
+            <!-- Emision: un circulo, y con un disco dentro cuando esta activo -->
+            <g id="i-emision"><circle cx="12" cy="12" r="8.2"/></g>
+            <!-- El orbe del Asistente: circulo con su anillo inclinado -->
+            <g id="i-orbe">
+              <circle cx="12" cy="12" r="5.4"/>
+              <ellipse cx="12" cy="12" rx="10" ry="4.1" transform="rotate(-22 12 12)"/>
+            </g>
+            <g id="i-layout">
+              <rect x="3" y="4.5" width="18" height="15" rx="2"/>
+              <path d="M12 4.5v15M3 12h9"/>
+            </g>
+            <!-- Los siete de la cabecera de terminal -->
+            <g id="i-espejo">
+              <circle cx="7" cy="6" r="2.6"/><circle cx="7" cy="18" r="2.6"/><circle cx="17" cy="9" r="2.6"/>
+              <path d="M7 8.6v6.8"/>
+              <path d="M17 11.6a5.4 5.4 0 0 1-5.4 5.4H9.6"/>
+            </g>
+            <g id="i-ojo">
+              <path d="M2.6 12S6 5.9 12 5.9 21.4 12 21.4 12 18 18.1 12 18.1 2.6 12 2.6 12z"/>
+              <circle cx="12" cy="12" r="2.7"/>
+            </g>
+            <g id="i-partir-d">
+              <rect x="3" y="4" width="18" height="16" rx="2"/>
+              <path d="M12 4v16"/>
+              <path d="M15 9h3M15 12h3M15 15h3"/>
+            </g>
+            <g id="i-partir-a">
+              <rect x="4" y="3" width="16" height="18" rx="2"/>
+              <path d="M4 12h16"/>
+              <path d="M8 15.5h8M8 18h8"/>
+            </g>
+            <g id="i-max">
+              <path d="M8.6 3.4H3.4v5.2M15.4 3.4h5.2v5.2M20.6 15.4v5.2h-5.2M3.4 15.4v5.2h5.2"/>
+            </g>
+            <g id="i-papelera">
+              <path d="M3.8 6.4h16.4"/>
+              <path d="M8.6 6.4V4.6a1.4 1.4 0 0 1 1.4-1.4h4a1.4 1.4 0 0 1 1.4 1.4v1.8"/>
+              <path d="M6.2 6.4 7 19.4a1.6 1.6 0 0 0 1.6 1.4h6.8a1.6 1.6 0 0 0 1.6-1.4l.8-13"/>
+            </g>
+            <g id="i-cerrar"><path d="M6 6l12 12M18 6L6 18"/></g>
+            <!-- Los de la tira lateral -->
+            <g id="i-mas"><path d="M12 5v14M5 12h14"/></g>
+            <g id="i-filas">
+              <path d="M4 7h16M4 12h16M4 17h16"/>
+            </g>
+          </defs>
+        </svg>
+
+        <!-- ====================================================================
+             REPLICA DE LA APP · anatomia copiada de la Cabina de verdad
+             (barra de titulo, topbar con sus siete pestanas, riel de proyectos
+             con su icono y sus contadores, rejilla de terminales con la
+             cabecera completa, pestana de Skills y barra de estado).
+
+             Es una MAQUETA: aqui no corre ningun proceso ni se escribe en
+             ninguna terminal. Los textos son inventados a proposito.
+             ================================================================= -->
+
+        <!-- Barra de titulo del sistema -->
+        <div class="ap-title">
+          <span class="ap-title__app"><span class="ap-title__ico">◆</span> Adeorq</span>
+          <span class="ap-title__win" data-hace="ventana"><i class="min"></i><i class="max"></i><i class="cls"></i></span>
+        </div>
+
+        <!-- Barra superior: marca, pestanas y lo que vive a la derecha -->
+        <div class="ap-top">
+          <span class="ap-top__marca">Adeorq</span>
+
+          <nav class="ap-tabs" id="hero-demo-tabs" data-explica="tabs" aria-label="Pantallas de Adeorq">
+            <button type="button" class="ap-tab demo-tab" data-tab="panel"><svg class="ap-i ap-i--tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-panel"/></svg> <span data-i18n="demo.tab.panel2">Panel</span></button>
+            <button type="button" class="ap-tab demo-tab is-activa" data-tab="cabina"><svg class="ap-i ap-i--tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-cabina"/></svg> <span data-i18n="demo.tab.cabina2">Cabina</span> <b class="ap-tab__n">4</b></button>
+            <button type="button" class="ap-tab demo-tab" data-tab="agenda"><svg class="ap-i ap-i--tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-agenda"/></svg> <span data-i18n="demo.tab.agenda2">Agenda</span></button>
+            <button type="button" class="ap-tab demo-tab" data-tab="lienzo"><svg class="ap-i ap-i--tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-lienzo"/></svg> <span data-i18n="demo.tab.lienzo2">Lienzo</span> <b class="ap-tab__n">2</b></button>
+            <button type="button" class="ap-tab demo-tab" data-tab="cuentas"><svg class="ap-i ap-i--tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-cuentas"/></svg> <span data-i18n="demo.tab.cuentas2">Cuentas</span></button>
+            <button type="button" class="ap-tab demo-tab" data-tab="comandos"><svg class="ap-i ap-i--tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-comandos"/></svg> <span data-i18n="demo.tab.comandos2">Comandos</span></button>
+            <button type="button" class="ap-tab demo-tab" data-tab="ajustes"><svg class="ap-i ap-i--tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-ajustes"/></svg> <span data-i18n="demo.tab.ajustes2">Ajustes</span></button>
+          </nav>
+
+          <div class="ap-top__der">
+            <button type="button" class="ap-obj" data-hace="objetivos" title="Tus objetivos de hoy"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-objetivos"/></svg></button>
+            <span class="ap-now" data-hace="now">
+              <span class="ap-now__eq" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="ap-now__t">bad fever · Codec</span>
+            </span>
+            <span class="ap-pulso" data-explica="pulso" data-hace="pulso" title="Memoria de Adeorq y sus agentes">
+              <b>612</b><em>MB</em>
+            </span>
+            <span class="ap-pulso ap-pulso--ag" title="Agentes vivos"><b>3</b><em>AG</em></span>
+            <span class="ap-top__btn ap-top__btn--emision" data-explica="emision" data-hace="emision"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-emision"/></svg> <span data-i18n="demo.emision">Emisión</span></span>
+            <span class="ap-top__btn ap-top__btn--capataz" data-explica="capataz" data-hace="capataz"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-orbe"/></svg><span data-i18n="demo.capataz">Capataz</span></span>
+            <span class="ap-top__btn ap-top__btn--layout" data-hace="layout"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-layout"/></svg> <span data-i18n="demo.layout">Disposición</span></span>
+          </div>
+        </div>
+
+        <div class="demo-body ap-body">
+
+          <!-- Riel de proyectos: icono, nombre y lo que tiene vivo dentro -->
+          <aside class="demo-sidebar ap-side ap-side--tira">
+            <div class="ap-tira__cab"><button type="button" data-hace="nueva" title="Abrir una sesión"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-mas"/></svg></button><button type="button" data-hace="riel" title="Cómo se ve la barra"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-filas"/></svg></button></div>
+            <ul class="ap-proys" data-explica="riel">
+              <li class="ap-proy is-on" data-hace="proyecto" data-n="Adeorq"><span class="ap-ico" style="--c: #2f8dff"><span>A</span><i class="ap-ico__vivo"></i></span></li>
+              <li class="ap-proy" data-hace="proyecto" data-n="VoCript"><span class="ap-ico" style="--c: #17b3a3"><span>V</span></span></li>
+              <li class="ap-proy" data-hace="proyecto" data-n="Layco"><span class="ap-ico" style="--c: #7b6cf6"><span>L</span></span></li>
+              <li class="ap-proy" data-hace="proyecto" data-n="froede"><span class="ap-ico" style="--c: #e0682f"><span>F</span></span></li>
+              <li class="ap-proy" data-hace="proyecto" data-n="Orquio"><span class="ap-ico" style="--c: #2f8dff"><span>O</span><i class="ap-ico__espera"></i></span></li>
+              <li class="ap-proy" data-hace="proyecto" data-n="Expoal"><span class="ap-ico" style="--c: #b0447a"><span>E</span></span></li>
+              <li class="ap-proy" data-hace="proyecto" data-n="C:\proyectos"><span class="ap-ico" style="--c: #3f8f5c"><span>C</span></span></li>
+            </ul>
+          </aside>
+
+          <!-- Zona de trabajo: la Cabina y el resto de pantallas -->
+          <div class="demo-content ap-main">
+
+            <!-- ============ CABINA: cuatro terminales de verdad ============ -->
+            <div class="demo-view is-activa" id="demo-view-cabina">
+              <div class="ap-panes">
+
+                <!-- 1 · Claude Code, con su turno terminado -->
+                <div class="ap-pane is-on is-done">
+                  <div class="ap-pane__cab">
+                    <span class="ap-cli ap-cli--claude" aria-hidden="true">✳</span>
+                    <span class="ap-chip" data-hace="proy">Adeorq</span>
+                    <span class="ap-pane__t">Adeorq: sesiones y terminales</span>
+                    <span class="ap-ctx" data-explica="contexto" data-hace="contexto"><i style="width: 34%"></i></span>
+                    <span class="ap-ctx__n">34%</span>
+                    <span class="ap-modelo" data-hace="modelo">Opus 5 xhigh</span>
+                    <span class="ap-icos"><button type="button" class="ap-ico-b" data-hace="espejo" title="Modo espejo"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-espejo"/></svg></button><button type="button" class="ap-ico-b" data-hace="tapar" title="Tapar esta terminal"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-ojo"/></svg></button><button type="button" class="ap-ico-b" data-hace="partir" title="Partir a la derecha"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-partir-d"/></svg></button><button type="button" class="ap-ico-b" data-hace="partir" title="Partir abajo"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-partir-a"/></svg></button><button type="button" class="ap-ico-b" data-hace="maximizar" title="Maximizar"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-max"/></svg></button><button type="button" class="ap-ico-b" data-hace="borrar" title="Borrar la sesión"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-papelera"/></svg></button><button type="button" class="ap-ico-b ap-ico-b--x" data-hace="cerrar" title="Cerrar"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-cerrar"/></svg></button></span>
+                  </div>
+                  <div class="ap-pane__cuerpo" data-explica="terminal">
+<pre class="ap-term"><span class="t-dim">› ¿puedes repasar el contraste de la landing?</span>
+
+<span class="t-ok">⏺</span> He mirado las tres capas que se pisaban.
+
+  <span class="t-dim">L</span> El texto sobre la foto no llegaba al mínimo legible.
+  <span class="t-dim">L</span> Arreglado con una sombra, sin tocar el tono del tema.
+
+<span class="t-dim">✳ Worked for 4m 14s</span>
+
+<span class="t-dim">› y el aviso de sesión cara, ¿por qué no saltaba?</span>
+
+<span class="t-ok">⏺</span> Iba por porcentaje, y con la ventana de un millón
+  no habría saltado hasta los 600.000 tokens.
+
+  <span class="t-dim">L</span> Ahora avisa a los 150.000, que es donde empieza a doler.
+  <span class="t-dim">L</span> src/components/TerminalPane.tsx · 2 líneas
+
+<span class="t-dim">✳ Worked for 1m 08s · ↓ 12.4k tokens</span>
+
+<span class="t-warn">›</span> <span class="t-cursor">▮</span></pre>
+                  </div>
+                  <div class="ap-pane__pie">
+                    <span class="ap-pane__prompt">❯</span>
+                    <span class="ap-pane__ph" data-hace="escribir" data-i18n="demo.escribe">Escribe un comando o un prompt</span>
+                    <span class="ap-turno" data-explica="estado" data-hace="estado">✓ <span data-i18n="demo.turno">Turno terminado</span></span>
+                  </div>
+                </div>
+
+                <!-- 2 · Compilando, con la barra de contexto casi vacia -->
+                <div class="ap-pane">
+                  <div class="ap-pane__cab">
+                    <span class="ap-cli ap-cli--sh" aria-hidden="true">&gt;_</span>
+                    <span class="ap-chip" data-hace="proy">Adeorq</span>
+                    <span class="ap-pane__t">pnpm tauri dev</span>
+                    <span class="ap-ctx" data-hace="contexto"><i style="width: 8%"></i></span>
+                    <span class="ap-ctx__n">8%</span>
+                    <span class="ap-modelo ap-modelo--sh" data-hace="modelo">PowerShell</span>
+                    <span class="ap-icos"><button type="button" class="ap-ico-b" data-hace="espejo" title="Modo espejo"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-espejo"/></svg></button><button type="button" class="ap-ico-b" data-hace="tapar" title="Tapar esta terminal"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-ojo"/></svg></button><button type="button" class="ap-ico-b" data-hace="partir" title="Partir a la derecha"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-partir-d"/></svg></button><button type="button" class="ap-ico-b" data-hace="partir" title="Partir abajo"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-partir-a"/></svg></button><button type="button" class="ap-ico-b" data-hace="maximizar" title="Maximizar"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-max"/></svg></button><button type="button" class="ap-ico-b" data-hace="borrar" title="Borrar la sesión"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-papelera"/></svg></button><button type="button" class="ap-ico-b ap-ico-b--x" data-hace="cerrar" title="Cerrar"><svg class="ap-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-cerrar"/></svg></button></span>
+                  </div>
+                  <div class="ap-pane__cuerpo">
+<pre class="ap-term"><span class="t-dim">Compiling adeorq (ConPTY Rust engine)</span>
+<span class="t-dim">Finished dev profile [unoptimized + debuginfo]</span>
+
+<span class="t-ok">app abierta en 1,2 s · motor ConPTY listo</span>
+
+<span class="t-dim">VITE ready · http://localhost:1420</span>
+
+<span class="t-dim">PS C:\proyectos\Adeorq&gt; cargo check</span>
+<span class="t-dim">    Checking adeorq v0.9.41</span>
+<span class="t-ok">    Finished dev profile in 3.41s</span>
+
+<span class="t-dim">PS C:\proyectos\Adeorq&gt; git status</span>
+<span class="t-dim">On branch main · nothing to commit</span>
+
+<span class="t-warn">›</span> <span class="t-cursor">▮</span></pre>
+                  </div>
+                  <div class="ap-pane__pie">
+                    <span class="ap-pane__prompt">❯</span>
+                    <span class="ap-pane__ph" data-hace="escribir" data-i18n="demo.escribe2">Escribe «cargo check», «git status» o un comando</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- VISTA 2: LIENZO (CANVAS INFINITO INTERACTIVO CON DIBUJO & REACT FLOW ENGINE REALISTA) -->
+            <div class="demo-view" id="demo-view-lienzo">
+              <div class="lz">
+
+                <!-- La barra del lienzo: grupos en capsula, como en la app -->
+                <div class="lz-bar">
+                  <span class="lz-grupo">
+                    <button type="button" class="lz-proj" data-hace="lz-proj">Adeorq <em>▾</em></button>
+                    <i class="lz-div"></i>
+                    <button type="button" class="lz-b lz-b--pri" data-hace="lz-claude">✦ Claude</button>
+                    <button type="button" class="lz-b" data-hace="lz-term">&gt;_ Terminal</button>
+                    <button type="button" class="lz-b" data-hace="lz-ag">◈ Antigravity</button>
+                  </span>
+
+                  <span class="lz-grupo lz-tools">
+                    <button type="button" class="lz-t is-on" data-hace="lz-mover" title="Mover y seleccionar">✥</button>
+                    <button type="button" class="lz-t" data-hace="lz-lazo" title="Rodear varias a la vez">⌾</button>
+                    <button type="button" class="lz-t" data-hace="lz-lapiz" title="Lápiz">✎</button>
+                    <button type="button" class="lz-t" data-hace="lz-flecha" title="Flecha">↗</button>
+                    <button type="button" class="lz-t" data-hace="lz-linea" title="Línea">╱</button>
+                    <button type="button" class="lz-t" data-hace="lz-caja" title="Recuadro">▭</button>
+                    <button type="button" class="lz-t" data-hace="lz-elipse" title="Elipse">◯</button>
+                    <button type="button" class="lz-t" data-hace="lz-texto" title="Texto">T</button>
+                    <button type="button" class="lz-t" data-hace="lz-goma" title="Borrar trazos">⌫</button>
+                  </span>
+
+                  <span class="lz-grupo">
+                    <button type="button" class="lz-b" data-hace="lz-add">＋ Añadir ▾</button>
+                    <button type="button" class="lz-b" data-hace="lz-contar">⌘ Contar el tablero</button>
+                  </span>
+
+                  <span class="lz-sp"></span>
+
+                  <span class="lz-grupo">
+                    <button type="button" class="lz-b" data-hace="lz-guardar">⤓ Lienzo ▾</button>
+                    <button type="button" class="lz-t" data-hace="lz-ayuda">?</button>
+                  </span>
+                </div>
+
+                <!-- El tablero: rejilla de puntos cada 26 px, como la app -->
+                <div class="lz-tablero">
+
+                  <div class="lz-pieza lz-pieza--term" style="left: 4%; top: 12%">
+                    <div class="lz-pieza__cab">
+                      <span class="ap-cli ap-cli--claude">✳</span>
+                      <span class="lz-pieza__t">claude · repasar el CSS</span>
+                      <span class="ap-turno">✓ Turno terminado</span>
+                    </div>
+                    <div class="lz-pieza__cuerpo">
+<pre class="ap-term"><span class="t-ok">⏺</span> Dos archivos tocados en web/styles/.
+<span class="t-dim">✳ Worked for 2m 11s</span>
+<span class="t-warn">›</span> <span class="t-cursor">▮</span></pre>
+                    </div>
+                  </div>
+
+                  <span class="lz-flecha" aria-hidden="true">
+                    <svg viewBox="0 0 120 60" preserveAspectRatio="none">
+                      <path d="M2 30 C 45 30, 60 12, 116 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 4"/>
+                      <path d="M110 8 L118 12 L110 16" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                    </svg>
+                    <em>pásale el resumen</em>
+                  </span>
+
+                  <div class="lz-pieza lz-pieza--term lz-pieza--espera" style="left: 54%; top: 6%">
+                    <div class="lz-pieza__cab">
+                      <span class="ap-cli ap-cli--sh">&gt;_</span>
+                      <span class="lz-pieza__t">terminal · pnpm build</span>
+                      <span class="ap-trabaja"><i></i><i></i><i></i> Trabajando</span>
+                    </div>
+                    <div class="lz-pieza__cuerpo">
+<pre class="ap-term"><span class="t-dim">vite v7.3.6 building for production…</span>
+<span class="t-ok">✓ 10 modules transformed</span>
+<span class="t-warn">›</span> <span class="t-cursor">▮</span></pre>
+                    </div>
+                  </div>
+
+                  <div class="lz-nota" style="left: 6%; top: 62%">
+                    <span class="lz-nota__t">Nota</span>
+                    <p>Cuando acabe el build, mirar si el hero sigue a 60 fps en el portátil.</p>
+                    <label class="lz-check"><i></i> medir en el portátil</label>
+                    <label class="lz-check is-on"><i>✓</i> quitar el fondo de prueba</label>
+                  </div>
+
+                  <div class="lz-widget" style="left: 40%; top: 66%">
+                    <span class="lz-widget__t">Pomodoro</span>
+                    <span class="lz-widget__n">24:31</span>
+                    <span class="lz-widget__b">
+                      <button type="button" class="lz-b" data-hace="lz-pomo">▶ Iniciar</button>
+                      <button type="button" class="lz-b" data-hace="lz-pomo">↺</button>
+                    </span>
+                  </div>
+
+                  <div class="lz-kanban" style="right: 4%; top: 52%">
+                    <span class="lz-widget__t">Tablero</span>
+                    <span class="lz-kan__cols">
+                      <span><em>Por hacer</em>3</span>
+                      <span><em>Trabajando</em>1</span>
+                      <span><em>Te espera</em>1</span>
+                      <span><em>Hecho</em>7</span>
+                    </span>
+                  </div>
+
+                  <!-- El minimapa y el zoom, abajo a la derecha -->
+                  <div class="lz-mapa" aria-hidden="true"><i></i><i></i><i></i></div>
+                  <div class="lz-zoom">
+                    <button type="button" data-hace="lz-zoom">＋</button>
+                    <span>100%</span>
+                    <button type="button" data-hace="lz-zoom">－</button>
+                    <button type="button" data-hace="lz-zoom">⛶</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- VISTA 3: CUENTAS (GESTOR MULTI-CLI & LÍMITES) -->
+            <div class="demo-view" id="demo-view-cuentas">
+              <div class="dash">
+                <div class="dash__saludo">
+                  <div>
+                    <h4 data-i18n="ct.t">Cuentas</h4>
+                    <p data-i18n="ct.d">Cada cuenta es un inicio de sesión aparte del mismo programa, con su propia carpeta.</p>
+                  </div>
+                </div>
+
+                <div class="dash__cifras">
+                  <span class="dash-cifra">
+                    <span class="dash-cifra__n">3</span>
+                    <span class="dash-cifra__q" data-i18n="ct.c1">cuentas conectadas</span>
+                    <span class="dash-cifra__p" data-i18n="ct.c1b">de 9 programas instalados</span>
+                  </span>
+                  <span class="dash-cifra">
+                    <span class="dash-cifra__n">65%</span>
+                    <span class="dash-cifra__q" data-i18n="ct.c2">el límite más apretado</span>
+                    <span class="dash-cifra__p">Claude Code · <span data-i18n="ct.semana">semana</span></span>
+                  </span>
+                  <span class="dash-cifra dash-cifra--ancha">
+                    <span class="dash-cifra__n dash-cifra__n--texto">Claude Code</span>
+                    <span class="dash-cifra__q" data-i18n="ct.c3">la predeterminada</span>
+                    <span class="dash-cifra__p" data-i18n="ct.c3b">con la que nacen las terminales nuevas</span>
+                  </span>
+                </div>
+
+                <div class="dash__marco">
+                  <nav class="dash__rail" aria-label="Secciones de Cuentas">
+                    <span class="dash-sec is-activa"><span data-i18n="ct.s1">Tus cuentas</span><span class="dash-sec__n">3</span></span>
+                    <span class="dash-sec"><span data-i18n="ct.s2">Claves de API</span></span>
+                    <span class="dash-sec"><span data-i18n="ct.s3">Atajos</span><span class="dash-sec__n">2</span></span>
+                    <span class="dash-sec"><span data-i18n="ct.s4">No instalados</span><span class="dash-sec__n">2</span></span>
+                  </nav>
+
+                  <div class="dash__hoja">
+                    <div class="dash-hoja is-activa">
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t"><span class="dash-glifo">◉</span> <span data-i18n="ct.tus">Tus cuentas</span></span>
+                        </div>
+                        <div class="ct-cuentas">
+                          <div class="ct-cuenta">
+                            <span class="ap-cli ap-cli--claude">✳</span>
+                            <span class="ct-cuenta__n">Claude Code<em data-i18n="ct.principal">principal</em></span>
+                            <span class="ct-barras">
+                              <span class="ct-barra"><i style="width: 65%"></i></span>
+                              <span class="ct-barra__t"><span data-i18n="ct.sesion">Sesión</span> 65%</span>
+                              <span class="ct-barra"><i style="width: 24%"></i></span>
+                              <span class="ct-barra__t"><span data-i18n="ct.semana2">Semana</span> 24%</span>
+                            </span>
+                            <span class="demo-chip chip--cian" data-i18n="ct.def">Predeterminada</span>
+                          </div>
+                          <div class="ct-cuenta">
+                            <span class="ap-cli ap-cli--codex">◇</span>
+                            <span class="ct-cuenta__n">Codex<em>gpt-5.6</em></span>
+                            <span class="ct-barras">
+                              <span class="ct-barra"><i style="width: 10%"></i></span>
+                              <span class="ct-barra__t"><span data-i18n="ct.sesion">Sesión</span> 10%</span>
+                              <span class="ct-barra"><i style="width: 6%"></i></span>
+                              <span class="ct-barra__t"><span data-i18n="ct.semana2">Semana</span> 6%</span>
+                            </span>
+                          </div>
+                          <div class="ct-cuenta">
+                            <span class="ap-cli ap-cli--ag">AG</span>
+                            <span class="ct-cuenta__n">Antigravity<em>agy v1.1.7</em></span>
+                            <span class="ct-barras">
+                              <span class="ct-barra"><i style="width: 5%"></i></span>
+                              <span class="ct-barra__t"><span data-i18n="ct.sesion">Sesión</span> 5%</span>
+                            </span>
+                          </div>
+                        </div>
+                        <p class="dash-bloque__d dash-bloque__d--pie" data-i18n="ct.claves">
+                          Las claves de API se guardan cifradas en el Gestor de Credenciales de Windows,
+                          nunca en un archivo de configuración, y no vuelven a salir de ahí.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- VISTA 4: PANEL (OVERVIEW & MISSION SWARM) -->
+            <div class="demo-view" id="demo-view-panel">
+              <div class="dash">
+
+                <!-- Saludo y cifras del dia -->
+                <div class="dash__saludo">
+                  <div>
+                    <h4 data-i18n="dash.saludo">Buenas tardes, socio.</h4>
+                    <p data-i18n="dash.sub">3 sesiones en marcha y nada pendiente de ti.</p>
+                  </div>
+                  <button type="button" class="dash__btn" data-dash-refresh>
+                    <span data-i18n="dash.refrescar">Actualizar</span>
+                  </button>
+                </div>
+
+                <div class="dash__cifras">
+                  <button type="button" class="dash-cifra" data-dash-goto="cabina">
+                    <span class="dash-cifra__n" data-dash-vivas>3</span>
+                    <span class="dash-cifra__q" data-i18n="dash.c1">trabajando ahora</span>
+                    <span class="dash-cifra__p" data-i18n="dash.c1b">sin subagentes fuera</span>
+                  </button>
+                  <button type="button" class="dash-cifra" data-dash-goto="cabina">
+                    <span class="dash-cifra__n" data-dash-esperan>0</span>
+                    <span class="dash-cifra__q" data-i18n="dash.c2">te esperan</span>
+                    <span class="dash-cifra__p" data-i18n="dash.c2b">nada pendiente de ti</span>
+                  </button>
+                  <button type="button" class="dash-cifra">
+                    <span class="dash-cifra__n">59</span>
+                    <span class="dash-cifra__q" data-i18n="dash.c3">sesiones esta semana</span>
+                    <span class="dash-cifra__p" data-i18n="dash.c3b">en 17 proyectos</span>
+                  </button>
+                  <button type="button" class="dash-cifra" data-dash-sec="proyectos">
+                    <span class="dash-cifra__n">19</span>
+                    <span class="dash-cifra__q" data-i18n="dash.c4">proyectos</span>
+                    <span class="dash-cifra__p">C:\proyectos</span>
+                  </button>
+                </div>
+
+                <!-- Marco de secciones, el mismo que la app: rail a la izquierda
+                     y una sola hoja a la derecha. -->
+                <div class="dash__marco">
+                  <nav class="dash__rail" aria-label="Secciones del panel">
+                    <button type="button" class="dash-sec is-activa" data-dash-sec="ahora">
+                      <span data-i18n="dash.sec.ahora">Ahora</span><span class="dash-sec__n">3</span>
+                    </button>
+                    <button type="button" class="dash-sec" data-dash-sec="proyectos">
+                      <span data-i18n="dash.sec.proyectos">Proyectos</span><span class="dash-sec__n">19</span>
+                    </button>
+                    <button type="button" class="dash-sec" data-dash-sec="mision">
+                      <span data-i18n="dash.sec.mision">Misión</span>
+                    </button>
+                    <button type="button" class="dash-sec" data-dash-sec="pulso">
+                      <span data-i18n="dash.sec.pulso">Pulso</span><span class="dash-sec__n" data-dash-agentes>4</span>
+                    </button>
+                  </nav>
+
+                  <div class="dash__hoja">
+
+                    <!-- ============ AHORA: el Capataz ============ -->
+                    <div class="dash-hoja is-activa" data-dash-hoja="ahora">
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t"><span class="dash-glifo">✦</span> <span data-i18n="dash.capataz">Capataz</span></span>
+                          <span class="demo-chip chip--cian">Ctrl+Mayús+A</span>
+                        </div>
+                        <p class="dash-bloque__d" data-i18n="dash.capataz.d">
+                          Pídele el tablero en cristiano: él propone el plan y no ejecuta nada sin tu OK.
+                        </p>
+                        <div class="dash-chips">
+                          <button type="button" class="dash-chip" data-dash-ejemplo="Abre las sesiones del panel de Orquio">
+                            <span data-i18n="dash.ej1">abre el panel de Orquio</span>
+                          </button>
+                          <button type="button" class="dash-chip" data-dash-ejemplo="Un agente al frontend y otro al backend del formulario de pago">
+                            <span data-i18n="dash.ej2">frontend y backend a la vez</span>
+                          </button>
+                          <button type="button" class="dash-chip" data-dash-ejemplo="Revisa el CSS de la landing y arregla el contraste">
+                            <span data-i18n="dash.ej3">revisa el CSS</span>
+                          </button>
+                        </div>
+                        <textarea class="dash-input" id="dash-encargo" rows="2"
+                                  data-i18n-ph="dash.ph"
+                                  placeholder="Pídeme el tablero: «abre las sesiones del panel de Orquio»"></textarea>
+                        <div class="dash-acciones">
+                          <button type="button" class="dash__btn dash__btn--solido" data-dash-planear>
+                            <span data-i18n="dash.planear">Planear</span>
+                          </button>
+                          <button type="button" class="dash__btn" data-dash-dictar>
+                            <span data-i18n="dash.dictar">Dictar</span>
+                          </button>
+                          <button type="button" class="dash__btn" data-dash-limpiar>
+                            <span data-i18n="dash.limpiar">Limpiar</span>
+                          </button>
+                        </div>
+
+                        <!-- El plan que propone. Oculto hasta que se pulsa Planear:
+                             la gracia del Capataz es que NO ejecuta nada sin el OK. -->
+                        <div class="dash-plan" data-dash-plan hidden>
+                          <div class="dash-plan__cab">
+                            <span data-i18n="dash.plan.t">Propuesta · 3 sesiones</span>
+                            <span class="demo-chip chip--ambar" data-i18n="dash.plan.espera">esperando tu OK</span>
+                          </div>
+                          <div class="dash-plan__filas" data-dash-filas></div>
+                          <div class="dash-acciones">
+                            <button type="button" class="dash__btn dash__btn--solido" data-dash-aprobar>
+                              <span data-i18n="dash.aprobar">Aprobar y abrir</span>
+                            </button>
+                            <button type="button" class="dash__btn" data-dash-descartar>
+                              <span data-i18n="dash.descartar">Descartar</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t"><span class="dash-glifo">◱</span> <span data-i18n="dash.calientes">Proyectos calientes</span></span>
+                          <span class="dash-bloque__meta" data-i18n="dash.calientes.d">esta semana</span>
+                        </div>
+                        <div class="dash-calientes">
+                          <button type="button" class="dash-caliente" data-dash-goto="cabina"><span>Adeorq</span><span class="dash-caliente__n">15</span></button>
+                          <button type="button" class="dash-caliente" data-dash-goto="cabina"><span>Layco</span><span class="dash-caliente__n">6</span></button>
+                          <button type="button" class="dash-caliente" data-dash-goto="cabina"><span>VoCript</span><span class="dash-caliente__n">5</span></button>
+                          <button type="button" class="dash-caliente" data-dash-goto="cabina"><span>froede</span><span class="dash-caliente__n">4</span></button>
+                          <button type="button" class="dash-caliente" data-dash-goto="cabina"><span>Orquio</span><span class="dash-caliente__n">3</span></button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- ============ PROYECTOS ============ -->
+                    <div class="dash-hoja" data-dash-hoja="proyectos">
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t"><span class="dash-glifo">◱</span> <span data-i18n="dash.proy.t">Tus proyectos</span></span>
+                          <button type="button" class="dash__btn dash__btn--solido dash__btn--mini" data-dash-nuevo>
+                            <span data-i18n="dash.proy.nuevo">+ Proyecto nuevo</span>
+                          </button>
+                        </div>
+                        <p class="dash-bloque__d" data-i18n="dash.proy.d">
+                          Al crearlo, la carpeta nace lista: AGENTS.md con tus reglas, docs/METAS.md y git
+                          iniciado, para que la primera sesión empiece con contexto en vez de en blanco.
+                        </p>
+                        <div class="dash-proys">
+                          <div class="dash-proy">
+                            <span class="dash-proy__punto dash-proy__punto--vivo"></span>
+                            <span class="dash-proy__n">Adeorq</span>
+                            <span class="dash-proy__s"><span data-i18n="dash.proy.s3">3 sesiones</span></span>
+                            <span class="dash-proy__acc">
+                              <button type="button" class="dash__btn dash__btn--mini" data-dash-abrir="Adeorq"><span data-i18n="dash.proy.abrir">Abrir todo</span></button>
+                              <button type="button" class="dash__btn dash__btn--mini" data-dash-sesion="Adeorq"><span data-i18n="dash.proy.sesion">Nueva sesión</span></button>
+                            </span>
+                          </div>
+                          <div class="dash-proy">
+                            <span class="dash-proy__punto dash-proy__punto--espera"></span>
+                            <span class="dash-proy__n">VoCript</span>
+                            <span class="dash-proy__s"><span data-i18n="dash.proy.s1">1 te espera</span></span>
+                            <span class="dash-proy__acc">
+                              <button type="button" class="dash__btn dash__btn--mini" data-dash-abrir="VoCript"><span data-i18n="dash.proy.abrir">Abrir todo</span></button>
+                              <button type="button" class="dash__btn dash__btn--mini" data-dash-sesion="VoCript"><span data-i18n="dash.proy.sesion">Nueva sesión</span></button>
+                            </span>
+                          </div>
+                          <div class="dash-proy">
+                            <span class="dash-proy__punto"></span>
+                            <span class="dash-proy__n">froede</span>
+                            <span class="dash-proy__s"><span data-i18n="dash.proy.dormida">dormida</span></span>
+                            <span class="dash-proy__acc">
+                              <button type="button" class="dash__btn dash__btn--mini" data-dash-abrir="froede"><span data-i18n="dash.proy.abrir">Abrir todo</span></button>
+                              <button type="button" class="dash__btn dash__btn--mini" data-dash-sesion="froede"><span data-i18n="dash.proy.sesion">Nueva sesión</span></button>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- ============ MISION ============ -->
+                    <div class="dash-hoja" data-dash-hoja="mision">
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t"><span class="dash-glifo">⬡</span> <span data-i18n="dash.mision.t">Desplegar un equipo</span></span>
+                          <span class="demo-chip chip--cian"><span data-dash-nroles>4</span> <span data-i18n="dash.roles">roles</span></span>
+                        </div>
+                        <p class="dash-bloque__d" data-i18n="dash.mision.d">
+                          Un agente por rol, cada uno con su cometido y su reparto de archivos, coordinados
+                          por un fichero común del proyecto. Toca un rol para quitarlo del equipo.
+                        </p>
+                        <div class="dash-roles">
+                          <button type="button" class="dash-rol is-on" data-dash-rol><span class="demo-chip chip--cian">Frontend</span><code>claude --role frontend</code></button>
+                          <button type="button" class="dash-rol is-on" data-dash-rol><span class="demo-chip chip--azul">Backend</span><code>claude --role backend</code></button>
+                          <button type="button" class="dash-rol is-on" data-dash-rol><span class="demo-chip chip--verde">Seguridad</span><code>codex --sandbox</code></button>
+                          <button type="button" class="dash-rol is-on" data-dash-rol><span class="demo-chip chip--ambar">Diseño</span><code>agy --mode design</code></button>
+                        </div>
+                        <div class="dash-acciones">
+                          <button type="button" class="dash__btn dash__btn--solido" data-dash-desplegar>
+                            <span data-i18n="dash.desplegar">Desplegar el equipo</span>
+                          </button>
+                          <button type="button" class="dash__btn" data-dash-goto="cabina">
+                            <span data-i18n="dash.irCabina">Ir a la Cabina</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- ============ PULSO: los procesos ============ -->
+                    <div class="dash-hoja" data-dash-hoja="pulso">
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t"><span class="dash-glifo">◍</span> <span data-i18n="dash.pulso.t">Lo que te está costando</span></span>
+                          <span class="demo-chip chip--verde"><span data-dash-total>612</span> MB</span>
+                        </div>
+                        <p class="dash-bloque__d" data-i18n="dash.pulso.d">
+                          Mide el árbol entero de procesos, no sólo la ventana, porque lo que de verdad pesa
+                          son los programas que cuelgan de ella.
+                        </p>
+                        <div class="dash-procs" data-dash-procs>
+                          <div class="dash-proc" data-mb="286">
+                            <span class="dash-proc__n">claude.exe <em>· Adeorq</em></span>
+                            <span class="dash-proc__barra"><i style="width: 62%"></i></span>
+                            <span class="dash-proc__mb">286 MB</span>
+                            <button type="button" class="dash__btn dash__btn--mini" data-dash-matar><span data-i18n="dash.cerrar">Cerrar</span></button>
+                          </div>
+                          <div class="dash-proc" data-mb="164">
+                            <span class="dash-proc__n">node.exe <em>· vite dev</em></span>
+                            <span class="dash-proc__barra"><i style="width: 36%"></i></span>
+                            <span class="dash-proc__mb">164 MB</span>
+                            <button type="button" class="dash__btn dash__btn--mini" data-dash-matar><span data-i18n="dash.cerrar">Cerrar</span></button>
+                          </div>
+                          <div class="dash-proc" data-mb="98">
+                            <span class="dash-proc__n">codex.exe <em>· sandbox</em></span>
+                            <span class="dash-proc__barra"><i style="width: 21%"></i></span>
+                            <span class="dash-proc__mb">98 MB</span>
+                            <button type="button" class="dash__btn dash__btn--mini" data-dash-matar><span data-i18n="dash.cerrar">Cerrar</span></button>
+                          </div>
+                          <div class="dash-proc" data-mb="64">
+                            <span class="dash-proc__n">adeorq.exe <em>· la ventana</em></span>
+                            <span class="dash-proc__barra"><i style="width: 14%"></i></span>
+                            <span class="dash-proc__mb">64 MB</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- VISTA 5: AJUSTES (SELECTOR DE TEMAS EN VIVO) -->
+            <div class="demo-view" id="demo-view-ajustes">
+              <div class="dash">
+                <div class="dash__saludo">
+                  <div>
+                    <h4 data-i18n="aj.t">Ajustes</h4>
+                    <p data-i18n="aj.d">Cómo se ve y cómo habla tu taller.</p>
+                  </div>
+                </div>
+
+                <div class="dash__marco">
+                  <nav class="dash__rail" aria-label="Secciones de Ajustes">
+                    <span class="dash-sec is-activa"><span data-i18n="aj.s1">Aspecto</span></span>
+                    <span class="dash-sec"><span data-i18n="aj.s2">Terminales</span></span>
+                    <span class="dash-sec"><span data-i18n="aj.s3">Avisos</span></span>
+                    <span class="dash-sec"><span data-i18n="aj.s4">Atajos</span></span>
+                    <span class="dash-sec"><span data-i18n="aj.s5">Modelo local</span></span>
+                    <span class="dash-sec"><span>Discord</span></span>
+                    <span class="dash-sec"><span data-i18n="aj.s7">Ayuda</span></span>
+                    <span class="dash-sec"><span>Adeorq</span></span>
+                  </nav>
+
+                  <div class="dash__hoja">
+                    <div class="dash-hoja is-activa">
+
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t" data-i18n="aj.idioma">Idioma</span>
+                        </div>
+                        <p class="dash-bloque__d" data-i18n="aj.idioma.d">
+                          El idioma de la app. Las terminales siguen hablando lo que hable cada agente.
+                        </p>
+                        <span class="aj-chips">
+                          <button type="button" class="dash-chip is-on" data-hace="aj-idioma">Español</button>
+                          <button type="button" class="dash-chip" data-hace="aj-idioma">Inglés</button>
+                        </span>
+                      </div>
+
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t" data-i18n="aj.tema">Tema</span>
+                          <span class="dash-bloque__meta"><span data-i18n="aj.temas">24 temas</span></span>
+                        </div>
+                        <p class="dash-bloque__d" data-i18n="aj.tema.d">
+                          El color de la casa. El cristal y el desenfoque se mantienen.
+                        </p>
+                        <span class="aj-temas">
+                          <button type="button" class="aj-tema is-on" style="--c:#4d9fff" data-hace="aj-tema"><i></i> <span data-i18n="aj.azul">Azul noche</span></button>
+                          <button type="button" class="aj-tema" style="--c:#9aa4b8" data-hace="aj-tema"><i></i> Grafito</button>
+                          <button type="button" class="aj-tema" style="--c:#a877ff" data-hace="aj-tema"><i></i> Violeta</button>
+                          <button type="button" class="aj-tema" style="--c:#46c99a" data-hace="aj-tema"><i></i> Bosque</button>
+                          <button type="button" class="aj-tema" style="--c:#ff4b6e" data-hace="aj-tema"><i></i> Carmín</button>
+                          <button type="button" class="aj-tema" style="--c:#fbbf24" data-hace="aj-tema"><i></i> Ámbar</button>
+                          <button type="button" class="aj-tema" style="--c:#22d3ee" data-hace="aj-tema"><i></i> Océano</button>
+                          <button type="button" class="aj-tema" style="--c:#ec4899" data-hace="aj-tema"><i></i> Neón</button>
+                          <button type="button" class="aj-tema" style="--c:#bd93f9" data-hace="aj-tema"><i></i> Drácula</button>
+                          <button type="button" class="aj-tema" style="--c:#88c0d0" data-hace="aj-tema"><i></i> Ártico</button>
+                        </span>
+                      </div>
+
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t" data-i18n="aj.fondo">El fondo</span>
+                        </div>
+                        <p class="dash-bloque__d" data-i18n="aj.fondo.d">
+                          Lo que se ve detrás de las terminales. Vale una imagen o un vídeo, que se pone
+                          en bucle y sin sonido.
+                        </p>
+                        <span class="dash-acciones">
+                          <button type="button" class="dash__btn dash__btn--solido dash__btn--mini" data-hace="aj-fondo" data-i18n="aj.cambiar">Cambiar el fondo…</button>
+                          <button type="button" class="dash__btn dash__btn--mini" data-hace="aj-fondo" data-i18n="aj.quitar">Quitarlo</button>
+                        </span>
+                        <span class="aj-slider">
+                          <span data-i18n="aj.cuanto">Cuánto se ve</span>
+                          <i class="aj-track"><b style="width: 60%"></b></i>
+                          <em>60</em>
+                        </span>
+                        <span class="aj-slider">
+                          <span data-i18n="aj.desenfoque">Desenfoque</span>
+                          <i class="aj-track"><b style="width: 22%"></b></i>
+                          <em>22</em>
+                        </span>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- VISTA 6: AGENDA (BANDEJA DE IDEAS Y CABOS SUELTOS) -->
+            <div class="demo-view" id="demo-view-agenda">
+              <div class="dash">
+                <div class="dash__saludo">
+                  <div>
+                    <h4 data-i18n="ag.t">Agenda</h4>
+                    <p data-i18n="ag.d">Lo que viene, lo que pensaste y lo que toca.</p>
+                  </div>
+                </div>
+
+                <!-- La próxima cita, sola y grande, como en la app -->
+                <div class="ag-next" data-hace="ag-next">
+                  <span class="ag-next__w" data-i18n="ag.manana">mañana</span>
+                  <span class="ag-next__t" data-i18n="ag.cita">Entrega del panel de Orquio</span>
+                  <span class="ag-next__b" data-i18n="ag.abrir">Abrir</span>
+                </div>
+
+                <!-- Los proyectos, en avatares en vez de un desplegable -->
+                <div class="ag-pick">
+                  <button type="button" class="ag-av is-on" data-hace="ag-todo" title="Todo el ecosistema">◈</button>
+                  <button type="button" class="ag-av" style="--c: #2f8dff" data-hace="ag-proj">A</button>
+                  <button type="button" class="ag-av" style="--c: #17b3a3" data-hace="ag-proj">V</button>
+                  <button type="button" class="ag-av" style="--c: #7b6cf6" data-hace="ag-proj">L</button>
+                  <button type="button" class="ag-av" style="--c: #e0682f" data-hace="ag-proj">F</button>
+                  <button type="button" class="ag-av" style="--c: #b0447a" data-hace="ag-proj">E</button>
+                </div>
+
+                <div class="dash__marco">
+                  <nav class="dash__rail" aria-label="Secciones de la Agenda">
+                    <span class="dash-sec is-activa"><span data-i18n="ag.s1">Hoy</span><span class="dash-sec__n">3</span></span>
+                    <span class="dash-sec"><span data-i18n="ag.s2">Calendario</span><span class="dash-sec__n">2</span></span>
+                    <span class="dash-sec"><span data-i18n="ag.s3">Ideas</span><span class="dash-sec__n">7</span></span>
+                    <span class="dash-sec"><span data-i18n="ag.s4">Próximos pasos</span></span>
+                  </nav>
+
+                  <div class="dash__hoja">
+                    <div class="dash-hoja is-activa">
+
+                      <!-- Los objetivos del día, tal cual salen en la app -->
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t"><span class="dash-glifo">◎</span> <span data-i18n="ag.obj">Objetivos de hoy</span></span>
+                          <span class="ag-anillo"><i></i><span>1/3</span></span>
+                        </div>
+                        <div class="ag-barra"><i style="width: 33%"></i></div>
+                        <div class="ag-objs">
+                          <button type="button" class="ag-obj is-on" data-hace="ag-marcar"><i>✓</i> <span data-i18n="ag.o1">dejar la web con la maqueta buena</span></button>
+                          <button type="button" class="ag-obj" data-hace="ag-marcar"><i></i> <span data-i18n="ag.o2">publicar la 0.9.42</span></button>
+                          <button type="button" class="ag-obj" data-hace="ag-marcar"><i></i> <span data-i18n="ag.o3">rotar la clave que estuvo en claro</span></button>
+                        </div>
+                        <p class="dash-bloque__d dash-bloque__d--pie" data-i18n="ag.pie">
+                          Están en un archivo, así que un agente puede tacharlos al terminar.
+                        </p>
+                      </div>
+
+                      <!-- Lo que reportan los agentes -->
+                      <div class="dash-bloque">
+                        <div class="dash-bloque__cab">
+                          <span class="dash-bloque__t"><span class="dash-glifo">▤</span> <span data-i18n="ag.tus">Tus sesiones</span></span>
+                        </div>
+                        <div class="ag-ses">
+                          <span class="ag-ses__i" data-urg="1">
+                            <span class="ap-dot ap-dot--ask"></span>
+                            <span class="ag-ses__t">hero de la web</span>
+                            <span class="ag-ses__e" data-i18n="ag.espera">te pregunta</span>
+                          </span>
+                          <span class="ag-ses__i">
+                            <span class="ap-dot ap-dot--live"></span>
+                            <span class="ag-ses__t">Adeorq: sesiones y terminales</span>
+                            <span class="ag-ses__e" data-i18n="ag.trab">trabajando</span>
+                          </span>
+                          <span class="ag-ses__i">
+                            <span class="ap-dot"></span>
+                            <span class="ag-ses__t">infra web y despliegue</span>
+                            <span class="ag-ses__e" data-i18n="ag.termino">terminó</span>
+                          </span>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- VISTA 7: GUÍA (REFERENCIA RÁPIDA DEL ENTORNO AGÉNTICO) -->
+            <div class="demo-view" id="demo-view-guia">
+              <div class="demo-guia">
+                <h3 data-i18n="demo.guia.title">? Guía rápida del entorno agéntico Adeorq</h3>
+                <div class="demo-guia-grid">
+                  <div class="demo-guia-card">
+                    <h4 data-i18n="demo.guia.c1.title">✦ Vibe Coding por CLIs Reales</h4>
+                    <p data-i18n="demo.guia.c1.desc">Adeorq monta la mejor experiencia sobre las terminales reales (Claude Code, Agy, Codex), trayendo al segundo el último contexto 1M y razonamiento sin intermediarios.</p>
+                  </div>
+                  <div class="demo-guia-card">
+                    <h4 data-i18n="demo.guia.c2.title">🗓 Bandeja &amp; Buzón entre sesiones</h4>
+                    <p data-i18n="demo.guia.c2.desc">Los agentes se comunican por ficheros <code>BUZON.md</code> efímeros y apuntan ideas en <code>bandeja.md</code> para no romper el flujo mental cuando dictas con VoCript.</p>
+                  </div>
+                  <div class="demo-guia-card">
+                    <h4 data-i18n="demo.guia.c3.title">👁 Modo Emisión &amp; Privacidad</h4>
+                    <p data-i18n="demo.guia.c3.desc">Con un solo clic (o <code>Ctrl+Mayús+E</code>), Adeorq difumina rutas, correos, claves y tokens para que puedas emitir tu pantalla o grabar vídeos en directo con tranquilidad.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- VISTA 8: COMANDOS (PALETA DE EJECUCIÓN RÁPIDA) -->
+            <div class="demo-view" id="demo-view-comandos">
+              <div class="dash">
+                <div class="dash__saludo">
+                  <div>
+                    <h4 data-i18n="cm.t">Comandos</h4>
+                    <p data-i18n="cm.d">Todo lo que puedes escribir dentro de cada agente. Busca por lo que quieres hacer, no por cómo se llama.</p>
+                  </div>
+                </div>
+
+                <div class="cm-bar">
+                  <span class="cm-buscar" data-hace="cm-buscar">
+                    <span class="ap-side__lupa">⌕</span>
+                    <span data-i18n="cm.ph">Buscar: contexto, cuota, deshacer, seguridad…</span>
+                  </span>
+                  <span class="cm-chips">
+                    <button type="button" class="dash-chip is-on" data-hace="cm-filtro" data-i18n="cm.f1">Todos</button>
+                    <button type="button" class="dash-chip" data-hace="cm-filtro">Claude Code</button>
+                    <button type="button" class="dash-chip" data-hace="cm-filtro">Antigravity</button>
+                    <button type="button" class="dash-chip" data-hace="cm-filtro" data-i18n="cm.f4">Tus skills</button>
+                  </span>
+                </div>
+                <p class="cm-hint" data-i18n="cm.hint">
+                  Clic en un comando y se escribe en la terminal activa. El Enter lo das tú.
+                </p>
+
+                <div class="cm-sec">
+                  <h5>Claude Code <em>28</em></h5>
+                  <div class="cm-grid">
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/model</code><span data-i18n="cm.c1">Cambiar de modelo (Opus, Sonnet, Fable…).</span></button>
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/compact</code><span data-i18n="cm.c2">Resumir la conversación para seguir con menos contexto.</span></button>
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/cost</code><span data-i18n="cm.c3">Ver lo que llevas gastado en esta sesión.</span></button>
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/clear</code><span data-i18n="cm.c4">Empezar de cero sin cerrar la terminal.</span></button>
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/agents</code><span data-i18n="cm.c5">Ver y editar tus subagentes.</span></button>
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/permissions</code><span data-i18n="cm.c6">Qué puede tocar sin preguntarte.</span></button>
+                  </div>
+                </div>
+
+                <div class="cm-sec">
+                  <h5>Antigravity (agy) <em>9</em></h5>
+                  <div class="cm-grid">
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/mode</code><span data-i18n="cm.a1">Cambiar entre pedir permiso y editar solo.</span></button>
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/undo</code><span data-i18n="cm.a2">Deshacer lo último que tocó.</span></button>
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/diff</code><span data-i18n="cm.a3">Ver los cambios antes de aceptarlos.</span></button>
+                  </div>
+                </div>
+
+                <div class="cm-sec">
+                  <h5 data-i18n="cm.skills">Tus skills <em>4</em></h5>
+                  <div class="cm-grid">
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/fin</code><span data-i18n="cm.s1">Cerrar la sesión con resumen y próximos pasos.</span></button>
+                    <button type="button" class="cm-card" data-hace="cm-cmd"><code>/froede</code><span data-i18n="cm.s2">Editar la web por clic y que se guarde en el código.</span></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- La pestaña vertical de Skills, pegada al borde derecho como en la app -->
+          <div class="ap-skills" data-hace="skills">Skills · Uso</div>
+        </div>
+
+        <div class="ap-status" data-explica="estado_barra">
+          <span class="ap-status__izq">
+            <span class="ap-punto"></span>
+            <span data-i18n="demo.footer.status">4 terminales ConPTY activas · 0 errores</span>
+          </span>
+          <span data-i18n="demo.atajos">Ctrl+Mayús+? = Atajos</span>
+        </div>
+        <!-- Toast Notifications Container -->
+        <div class="demo-toast-container" id="demo-toasts"></div>
+        <!-- Context Menu (global, positioned dynamically) -->
+        <div class="demo-ctx-menu" id="demo-ctx-menu" style="display: none;"></div>
+        <!-- Keyboard Shortcuts Overlay -->
+        <div class="demo-kbd-overlay" id="demo-kbd-overlay" style="display: none;">
+          <div class="demo-kbd-overlay-inner">
+            <h3>⌨ Atajos de teclado</h3>
+            <div class="demo-kbd-row"><span>Cambiar stream/privacidad</span><span class="demo-kbd">Ctrl+Shift+E</span></div>
+            <div class="demo-kbd-row"><span>Maximizar panel activo</span><span class="demo-kbd">Ctrl+Shift+F</span></div>
+            <div class="demo-kbd-row"><span>Dividir panel →</span><span class="demo-kbd">Ctrl+Shift+→</span></div>
+            <div class="demo-kbd-row"><span>Pantalla de pánico</span><span class="demo-kbd">Ctrl+Shift+P</span></div>
+            <div class="demo-kbd-row"><span>Mostrar atajos</span><span class="demo-kbd">Ctrl+Shift+?</span></div>
+            <div class="demo-kbd-row"><span>Cerrar este overlay</span><span class="demo-kbd">Esc</span></div>
+          </div>
+        </div>
+      </div>
+
+      <span class="escena__reflejo" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <a class="hero__bajar" href="#que-es" aria-label="Bajar al contenido">
+    <span class="hero__bajar-linea" aria-hidden="true"></span>
+    <span data-i18n="hero.bajar">seguir</span>
+  </a>
+</section>
+
+<!-- ============================================================================
+     FRONTERA. De aqui hacia abajo manda el agente de secciones y el del pie.
+     Yo (head, boot, nav y hero) no toco nada por debajo de esta linea.
+
+     Aqui van los parciales de sections/ en el orden de DISENO.md §10:
+       que-es · features · descarga · changelog · roadmap · faq   y luego footer
+     Pegadlos tal cual o, mejor, montad un include en el build (vite.config.js
+     es vuestro) que sustituya marcas tipo <!== include: sections/que-es.html ==>
+     por el contenido: asi el HTML no se duplica y la pagina sigue leyendose sin
+     JavaScript, que es lo que pide DISENO.md §11. Un fetch en runtime NO vale
+     para esto.
+     El nav ya enlaza a #que-es, #features, #descargar y #faq: con poner esos id
+     en vuestros parciales, el scroll suave los recoge solo.
+     ============================================================================ -->
+
+<!-- secciones:inicio · generado por sections/_sincronizar.mjs, no editar a mano -->
+
+<!-- que-es.html -->
+<!--
+  Adeorq · web/sections/que-es.html
+  Seccion 2 del mapa (DISENO.md §10): una frase de posicionamiento y cuatro
+  chips de hechos. Primera seccion debajo del hero.
+
+  TEXTOS: web/content/es/que-es.md, claves data-content. El espanol vive en este
+  HTML a proposito: la pagina se lee entera sin JavaScript.
+  Reveals: motor de la casa ([data-reveal] + observador de hero.js). El retardo
+  en cascada lo reparte hero.js dentro de [data-reveal-grupo].
+-->
+<section class="seccion que-es" id="que-es" aria-labelledby="que-es-titulo">
+  <div class="envoltura">
+    <div class="que-es__grid" data-reveal-grupo>
+      <div class="que-es__intro">
+        <h2 class="que-es__frase" id="que-es-titulo" data-reveal data-content="que-es.claim">
+          Por qué Adeorq: la potencia de los CLI con la comodidad de una aplicación de escritorio.
+        </h2>
+        <p class="entradilla" data-reveal data-content="que-es.lead">
+          Las mayores novedades de la IA llegan siempre antes a la terminal que a las apps oficiales. Adeorq reúne la primicia de los CLIs con una interfaz de escritorio fluida para dirigir escuadrones de agentes en paralelo, ahorrar tokens y trabajar directamente sobre tu entorno nativo.
+        </p>
+      </div>
+
+      <div class="que-es__puntos" data-reveal>
+        <div class="que-es__ventaja">
+          <div class="que-es__ventaja-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <div class="que-es__ventaja-cuerpo">
+            <h3 class="que-es__ventaja-titulo" data-content="que-es.p1.titulo">CLI-First: Las novedades el primer día</h3>
+            <p class="que-es__ventaja-texto" data-content="que-es.p1.sub">
+              Los nuevos modelos (como Opus 5) y las grandes ventanas de contexto se estrenan en los CLIs semanas antes que en las apps de escritorio. Con Adeorq disfrutas las primicias el día 1 sin esperar a nadie.
+            </p>
+          </div>
+        </div>
+
+        <div class="que-es__ventaja">
+          <div class="que-es__ventaja-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+          </div>
+          <div class="que-es__ventaja-cuerpo">
+            <h3 class="que-es__ventaja-titulo" data-content="que-es.p2.titulo">Escuadrones en paralelo vs un solo chat</h3>
+            <p class="que-es__ventaja-texto" data-content="que-es.p2.sub">
+              Frente al chat secuencial tradicional, Adeorq te permite orquestar 3, 5 o 9 agentes a la vez en paneles independientes. Cada terminal avisa con un destello luminoso en cuanto termina su turno.
+            </p>
+          </div>
+        </div>
+
+        <div class="que-es__ventaja">
+          <div class="que-es__ventaja-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <div class="que-es__ventaja-cuerpo">
+            <h3 class="que-es__ventaja-titulo" data-content="que-es.p3.titulo">Cero desperdicio de tokens y contexto</h3>
+            <p class="que-es__ventaja-texto" data-content="que-es.p3.sub">
+              Retoma cualquier sesión previa guardada en tu máquina con un clic. Controlas el contexto consumido en cada prompt para sacar el máximo rendimiento a tu cuota sin pagar sobrecostes.
+            </p>
+          </div>
+        </div>
+
+        <div class="que-es__ventaja">
+          <div class="que-es__ventaja-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="que-es__ventaja-cuerpo">
+            <h3 class="que-es__ventaja-titulo" data-content="que-es.p4.titulo">Tu consola nativa, 100% privado</h3>
+            <p class="que-es__ventaja-texto" data-content="que-es.p4.sub">
+              Ejecuta terminales ConPTY sobre tu PowerShell local heredando tus credenciales, PATH y scripts. Sin crear cuentas, sin API keys externas y en una app nativa de unos 4 MB escrita en Rust.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- features.html -->
+<!--
+  Adeorq · web/sections/features.html
+  Seccion 3 del mapa (DISENO.md §10): cinco tarjetas que se apilan al bajar,
+  como una baraja abierta. El apilado es CSS puro; el encogido de las que quedan
+  debajo usa animation-timeline: view() donde existe, graduado por --motion-gain.
+
+  CAPTURAS: hoy cada media lleva una maqueta dibujada con CSS. Cuando Munir haga
+  las capturas reales (DISENO.md §12), se sustituye el bloque .maqueta por:
+    <img src="assets/features/<nombre>.png" alt="..." width="1280" height="800"
+         loading="lazy" decoding="async">
+  conservando el mismo marco. Los alt ya escritos estan en content/es/features.md
+  y hoy son el aria-label de cada maqueta.
+  TEXTOS: web/content/es/features.md (claves data-content).
+-->
+<section class="seccion seccion--honda features" id="features" aria-labelledby="features-titulo">
+  <div class="envoltura">
+    <header class="features__cabecera" data-reveal-grupo>
+      <p class="etiqueta" data-reveal data-content="features.eyebrow">Lo que hace</p>
+      <h2 class="titulo-2" id="features-titulo" data-reveal data-content="features.titulo">
+        Una cabina para dirigir agentes, no otra ventana de terminal.
+      </h2>
+      <p class="entradilla" data-reveal data-content="features.lead">
+        Cada pieza está aquí porque hacía falta trabajando de verdad, no porque quedara bien en
+        una lista de características.
+      </p>
+    </header>
+
+    <div class="pila">
+
+      <!-- 1 · Terminales ConPTY reales -->
+      <article class="tarjeta-f" style="--n:0" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">01</span>
+          <h3 class="titulo-3" data-content="features.conpty.titulo">Terminales de verdad, no una imitación</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.conpty.texto">
+            Dentro de cada panel corre el mismo motor de consola que usa Windows. Los colores, el
+            redibujado, Ctrl+C, el historial y cualquier herramienta que espere una terminal
+            funcionan tal cual. El dibujado va por GPU, así que miles de líneas no atragantan la
+            ventana.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.conpty.item1">PowerShell, CMD o el shell que uses, con tu PATH y tu perfil</li>
+            <li data-content="features.conpty.item2">El terminal se redimensiona de verdad, sin líneas partidas</li>
+            <li data-content="features.conpty.item3">Copiar, pegar y arrastrar una imagen para dársela al agente</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/commands.png" alt="Un panel de Adeorq con PowerShell abierto en la carpeta de un proyecto" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 2 · Sesiones de Claude Code -->
+      <article class="tarjeta-f" style="--n:1" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">02</span>
+          <h3 class="titulo-3" data-content="features.sesiones.titulo">Tus sesiones de Claude Code, a la vista</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.sesiones.texto">
+            Adeorq lee lo que el CLI ya guarda en tu equipo: qué sesiones tienes, en qué proyecto,
+            de qué iban, cuáles siguen vivas y cuáles te están esperando. Sin API keys, sin
+            registrarte en nada y sin que tu código salga del ordenador.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.sesiones.item1">Título, proyecto y estado real de cada sesión</li>
+            <li data-content="features.sesiones.item2">Retomas donde lo dejaste con un clic, con toda su memoria</li>
+            <li data-content="features.sesiones.item3">Antes de archivar te avisa si el proyecto tiene cambios sin commitear</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/dashboard.png" alt="La lista de sesiones de un proyecto, con dos vivas y una esperando respuesta" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 3 · Escuadron de terminales -->
+      <article class="tarjeta-f" style="--n:2" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">03</span>
+          <h3 class="titulo-3" data-content="features.escuadron.titulo">El escuadrón trabaja, tú diriges</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.escuadron.texto">
+            Varios agentes a la vez, cada uno en su panel y en su carpeta, todos en la misma
+            pantalla. Cuando uno termina su turno, su panel se enciende, así sabes a quién atender
+            sin ir mirando ventana por ventana.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.escuadron.item1">Rejilla de paneles que se parten a la derecha o abajo</li>
+            <li data-content="features.escuadron.item2">Aviso visual cuando un agente acaba y te espera</li>
+            <li data-content="features.escuadron.item3">Cada proyecto con su color, para no perderte entre paneles</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/cockpit.png" alt="Cuatro paneles a la vez, uno de ellos encendido porque su agente ha terminado" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 4 · Agenda -->
+      <article class="tarjeta-f" style="--n:3" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">04</span>
+          <h3 class="titulo-3" data-content="features.agenda.titulo">Las ideas al vuelo no se pierden</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.agenda.texto">
+            Mientras trabajas salen cabos sueltos que no son lo de ahora. En vez de interrumpirte,
+            caen en una bandeja que revisas cuando quieras: aceptas lo que sirve y descartas el
+            resto. Los agentes proponen, tú decides.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.agenda.item1">Bandeja de ideas y próximos pasos, por proyecto</li>
+            <li data-content="features.agenda.item2">Se acepta o se descarta de una en una</li>
+            <li data-content="features.agenda.item3">Un agente puede proponer sin tocar ninguna credencial tuya</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/canvas.png" alt="La pestaña Agenda con el calendario y la bandeja de ideas propuestas" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 5 · Arranque y actualizaciones -->
+      <article class="tarjeta-f" style="--n:4" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">05</span>
+          <h3 class="titulo-3" data-content="features.sistema.titulo">Arranca con Windows y se actualiza sola</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.sistema.texto">
+            Enciendes el ordenador y la cabina ya está montada. Las versiones nuevas llegan
+            firmadas, te avisan con sus notas y se instalan cuando tú digas, sin ir a buscar un
+            instalador cada vez.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.sistema.item1">Inicio con el sistema, opcional y reversible en un clic</li>
+            <li data-content="features.sistema.item2">Actualización firmada, con aviso y notas de la versión</li>
+            <li data-content="features.sistema.item3">App nativa de unos 4 MB, sin un navegador entero empaquetado dentro</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/settings.png" alt="El aviso de versión nueva con sus notas y el botón de actualizar" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+      <!-- 6 · Cuentas -->
+      <article class="tarjeta-f" style="--n:5" data-reveal data-tilt>
+        <div class="tarjeta-f__cuerpo">
+          <span class="tarjeta-f__num">06</span>
+          <h3 class="titulo-3" data-content="features.cuentas.titulo">Varias cuentas, y las claves donde tienen que estar</h3>
+          <p class="parrafo tarjeta-f__texto" data-content="features.cuentas.texto">
+            Una tarjeta por programa instalado, con lo que llevas gastado de sus límites. Puedes
+            tener varias cuentas del mismo y repartir el trabajo entre ellas.
+          </p>
+          <ul class="tarjeta-f__lista">
+            <li data-content="features.cuentas.item1">Las claves de API van cifradas al Gestor de Credenciales de Windows</li>
+            <li data-content="features.cuentas.item2">Nunca en un archivo de configuración, y no vuelven a salir de ahí</li>
+            <li data-content="features.cuentas.item3">Lo que te falte por instalar, con su botón de descarga</li>
+          </ul>
+        </div>
+        <div class="tarjeta-f__media" style="background: var(--s-surface); backdrop-filter: var(--s-glass); -webkit-backdrop-filter: var(--s-glass); padding: 1.5rem;">
+          <img src="assets/screens/accounts.png" alt="Gestión de cuentas locales y credenciales" width="1280" height="800" loading="lazy" decoding="async" style="border-radius: 6px; border: 1px solid var(--s-line); box-shadow: var(--s-shadow);">
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- descarga.html -->
+<!--
+  Adeorq · web/sections/descarga.html
+  Seccion 4 del mapa (DISENO.md §10): instalador de Windows con version, fecha,
+  peso y el aviso de SmartScreen. Es el unico boton solido de esta mitad de la
+  pagina (§8: uno por pantalla).
+
+  DATOS: los genera el agente de datos en web/data/. web/js/sections.js intenta:
+    1) data/release.json  { version, url, pub_date, size_bytes, notes }
+    2) data/latest.json   formato del updater de Tauri
+  Sin ninguno de los dos el HTML sigue siendo valido: enlaza a la pagina de
+  releases y no promete ninguna version.
+  TEXTOS: web/content/es/descarga.md (claves data-content).
+-->
+<!-- ==================== GUIA (puerta a guia.html) ====================
+  Bloque corto a proposito: la documentacion de verdad vive en guia.html, que
+  es una pagina entera con indice. Aqui solo se anuncia y se entra.
+  El bloque anterior prometia "latencia cero" y "blur de grado militar",
+  hablaba de pnpm y de las reglas internas de la casa, y mezclaba castellano
+  con ingles. Nada de eso le sirve a quien acaba de instalar el .exe.
+-->
+<section class="seccion seccion--honda" id="guia" aria-labelledby="guia-titulo">
+  <div class="envoltura" data-reveal-grupo>
+    <div data-reveal>
+      <p class="etiqueta" data-i18n="guia.home.eyebrow">Documentación</p>
+      <h2 class="titulo-2" id="guia-titulo" data-i18n="guia.home.titulo">
+        Todo lo que hace, explicado.
+      </h2>
+      <p class="entradilla" data-i18n="guia.home.lead">
+        Qué hace cada pantalla, en el orden en que te las vas encontrando. Con los estados de
+        una sesión, los atajos y dónde guarda tus cosas, por si prefieres mirarlo tú.
+      </p>
+    </div>
+
+    <div class="guia-atajos" data-reveal>
+      <a class="guia-atajo" href="guia.html#cabina">
+        <span class="guia-atajo__num">01</span>
+        <span class="guia-atajo__titulo" data-i18n="guia.home.a1">La Cabina</span>
+        <span class="guia-atajo__texto" data-i18n="guia.home.a1d">Las terminales, la barra lateral y qué significa cada estado.</span>
+      </a>
+      <a class="guia-atajo" href="guia.html#panel">
+        <span class="guia-atajo__num">02</span>
+        <span class="guia-atajo__titulo" data-i18n="guia.home.a2">El Panel y el Capataz</span>
+        <span class="guia-atajo__texto" data-i18n="guia.home.a2d">El resumen del día y quién propone el reparto del trabajo.</span>
+      </a>
+      <a class="guia-atajo" href="guia.html#objetivos">
+        <span class="guia-atajo__num">03</span>
+        <span class="guia-atajo__titulo" data-i18n="guia.home.a3">Los objetivos del día</span>
+        <span class="guia-atajo__texto" data-i18n="guia.home.a3d">El panel flotante, y por qué un agente puede tacharlos.</span>
+      </a>
+      <a class="guia-atajo" href="guia.html#donde-guarda">
+        <span class="guia-atajo__num">04</span>
+        <span class="guia-atajo__titulo" data-i18n="guia.home.a4">Dónde guarda tus cosas</span>
+        <span class="guia-atajo__texto" data-i18n="guia.home.a4d">Todo en tu equipo, y en formatos que puedes abrir tú.</span>
+      </a>
+    </div>
+
+    <p class="guia-cta" data-reveal>
+      <a class="boton boton--solido" href="guia.html" data-i18n="guia.home.cta">Abrir la guía</a>
+    </p>
+  </div>
+</section>
+
+<section class="seccion descarga cargando" id="descargar" aria-labelledby="descargar-titulo" data-descarga>
+  <div class="envoltura descarga__inner" data-reveal-grupo>
+    <p class="etiqueta" data-reveal data-content="descarga.eyebrow">Descarga</p>
+
+    <h2 class="titulo-2" id="descargar-titulo" data-reveal data-content="descarga.titulo">
+      Móntate la cabina en dos minutos.
+    </h2>
+
+    <p class="entradilla descarga__entradilla" data-reveal data-content="descarga.lead">
+      Instalador para Windows de 64 bits. Necesitas tener instalado el CLI que ya uses, porque
+      Adeorq trabaja con él: no te pide ninguna clave ni te crea otra cuenta.
+    </p>
+
+    <div class="descarga__acciones" data-reveal>
+      <!-- href de partida: la pagina de releases. El JS lo cambia al instalador
+           exacto en cuanto lee el dato. -->
+      <a class="boton boton--solido boton--grande"
+         data-descarga-enlace
+         data-magnetico
+         href="https://github.com/Mun1to/Adeorq-releases/releases/latest"
+         rel="noopener">
+        <span data-descarga-texto data-content="descarga.boton">Descargar para Windows</span>
+      </a>
+
+      <a class="boton boton--fantasma boton--grande"
+         href="https://github.com/Mun1to/Adeorq-releases/releases"
+         rel="noopener"
+         data-content="descarga.todas">
+        Ver todas las versiones
+      </a>
+    </div>
+
+    <p class="descarga__datos" data-reveal>
+      <span class="descarga__version" data-descarga-version>buscando la última versión</span>
+      <span data-descarga-fecha></span>
+      <span data-descarga-peso></span>
+      <span data-content="descarga.meta.sistema">Windows 10 y 11 · x64</span>
+    </p>
+
+    <p class="descarga__gratis" data-reveal data-content="descarga.gratis">
+      Gratis, en desarrollo abierto. Ni cuenta, ni prueba de 14 días, ni tarjeta.
+    </p>
+
+    <p class="nota" data-reveal data-content="descarga.nota">
+      Windows puede avisarte de que el instalador viene de un editor desconocido. Es el aviso
+      normal de SmartScreen con una aplicación joven y poco descargada: en
+      <a href="#faq">las preguntas</a> te contamos cómo comprobar que el paquete es el nuestro.
+    </p>
+  </div>
+</section>
+
+<!-- changelog.html -->
+<!--
+  Adeorq · web/sections/changelog.html
+  Secciones 5 y 6 del mapa (DISENO.md §10): novedades en formato blog y roadmap.
+  Patron de referencia: usecardboard.com/changelog. Columna izquierda pegajosa
+  con fecha, version y etiquetas; a la derecha la entrada.
+
+  DATOS: web/js/sections.js sustituye las entradas de abajo por las seis
+  ultimas de data/changelog.json; el resto queda detras del enlace al historial.
+  Las tres entradas escritas aqui son el contenido de reserva (lo que se ve si
+  el JSON no carga) y llevan los titulares de content/es/changelog.md, porque
+  entries[].title viene a null en 20 de las 27 entradas de la API.
+  TEXTOS: web/content/es/changelog.md y roadmap.md (claves data-content).
+-->
+<section class="seccion seccion--honda log" id="changelog" aria-labelledby="changelog-titulo">
+  <div class="envoltura">
+
+    <header class="log__cabecera" data-reveal-grupo>
+      <div>
+        <p class="etiqueta" data-reveal data-content="changelog.eyebrow">Novedades</p>
+        <h2 class="titulo-2" id="changelog-titulo" data-reveal data-content="changelog.titulo">
+          Se mueve casi todos los días.
+        </h2>
+        <!-- El numero lo pone sections.js con el dato real: escrito a mano
+             envejecia a la siguiente publicacion, y ya iba por detras. -->
+        <p class="entradilla" data-reveal data-content="changelog.lead">
+          <span data-log-cuantas>Decenas de versiones</span> publicadas desde que arrancó. No es
+          una web con un producto detrás: es un producto que se usa mientras se construye.
+        </p>
+      </div>
+      <a class="boton boton--fantasma" data-reveal
+         href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener"
+         data-content="changelog.todas" data-log-todas>
+        Ver las 27 versiones
+      </a>
+    </header>
+
+    <div class="log__entradas" data-log-entradas>
+
+      <article class="entrada" data-reveal>
+        <aside class="entrada__aside">
+          <time class="entrada__fecha" datetime="2026-07-26">26 de julio de 2026</time>
+          <span class="entrada__version">v0.7.16</span>
+        </aside>
+        <div class="entrada__cuerpo">
+          <h3 class="titulo-3" data-content="changelog.0.titulo">Discord sin configurar nada y papelera de sesiones</h3>
+          <p class="parrafo" data-content="changelog.0.texto">
+            La actividad de Discord funciona sin registrar ninguna aplicación y habla el idioma de
+            la app. Las sesiones se tiran a una papelera en vez de desaparecer, los paneles ya no
+            se pueden estrechar más que su propia cabecera y el Capataz cambia un ajuste en todas
+            las terminales a la vez.
+          </p>
+        </div>
+      </article>
+
+      <article class="entrada" data-reveal>
+        <aside class="entrada__aside">
+          <time class="entrada__fecha" datetime="2026-07-26">26 de julio de 2026</time>
+          <span class="entrada__version">v0.7.12</span>
+        </aside>
+        <div class="entrada__cuerpo">
+          <h3 class="titulo-3" data-content="changelog.1.titulo">El escuadrón de terminales</h3>
+          <p class="parrafo" data-content="changelog.1.texto">
+            Abre de golpe las sesiones que quieras de un proyecto y se colocan solas en rejilla.
+            Además, el logo redibujado y arreglado el desplazamiento lateral que se colaba en la
+            ventana.
+          </p>
+        </div>
+      </article>
+
+      <article class="entrada" data-reveal>
+        <aside class="entrada__aside">
+          <time class="entrada__fecha" datetime="2026-07-26">26 de julio de 2026</time>
+          <span class="entrada__version">v0.7.11</span>
+        </aside>
+        <div class="entrada__cuerpo">
+          <h3 class="titulo-3" data-content="changelog.2.titulo">La Agenda, con calendario</h3>
+          <p class="parrafo" data-content="changelog.2.texto">
+            Nueva pestaña para las ideas y los próximos pasos, con su calendario. Los proyectos se
+            renombran sin tocar sus carpetas, cada uno luce su logo en la tarjeta y los iconos y
+            botones que antes se adivinaban ahora se ven.
+          </p>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- ROADMAP ------------------------------------------------------------ -->
+    <div class="roadmap" id="roadmap">
+      <div data-reveal-grupo>
+        <p class="etiqueta" data-reveal data-content="roadmap.eyebrow">Lo que viene</p>
+        <h2 class="titulo-2" data-reveal data-content="roadmap.titulo">
+          Lo siguiente, con su condición.
+        </h2>
+        <p class="entradilla" data-reveal data-content="roadmap.lead">
+          Aquí no hay fechas. Hay metas, y al lado lo que hace falta para que cada una salga.
+        </p>
+      </div>
+
+      <div class="roadmap__grid" data-reveal-grupo>
+        <article class="paso paso--marcha" data-reveal>
+          <p class="paso__estado" data-content="roadmap.0.estado">En marcha</p>
+          <h3 class="paso__titulo" data-content="roadmap.0.titulo">El tablero del Lienzo se guarda</h3>
+          <p class="paso__texto" data-content="roadmap.0.texto">
+            Hoy las posiciones de las tarjetas y las flechas que las encadenan se pierden al cerrar
+            la app. Es lo primero de la lista porque es lo que más se echa de menos al volver al
+            día siguiente.
+          </p>
+        </article>
+
+        <article class="paso paso--siguiente" data-reveal>
+          <p class="paso__estado" data-content="roadmap.1.estado">Lo siguiente</p>
+          <h3 class="paso__titulo" data-content="roadmap.1.titulo">Espacios de trabajo aislados</h3>
+          <p class="paso__texto" data-content="roadmap.1.texto">
+            Un grupo de sesiones dedicadas a una tarea grande, aparte de todo lo demás: entras y
+            sólo ves las suyas. Media pieza existe ya, porque el Capataz agrupa lo que reparte;
+            falta que el grupo sobreviva al reinicio y que se pueda crear a mano.
+          </p>
+        </article>
+
+        <article class="paso" data-reveal>
+          <p class="paso__estado" data-content="roadmap.4.estado">Codex hecho</p>
+          <h3 class="paso__titulo" data-content="roadmap.4.titulo">Las sesiones de los demás CLI</h3>
+          <p class="paso__texto" data-content="roadmap.4.texto">
+            Claude Code guarda sus conversaciones en archivos y por eso se pueden leer. Codex ya
+            sale también, dentro de su proyecto y con la marca de su cliente. Antigravity y Gemini
+            las guardan cada uno a su manera: se irán añadiendo según se puedan leer sin
+            inventarse nada.
+          </p>
+        </article>
+
+        <article class="paso" data-reveal>
+          <p class="paso__estado" data-content="roadmap.2.estado">Falta el certificado</p>
+          <h3 class="paso__titulo" data-content="roadmap.2.titulo">Instalador firmado</h3>
+          <p class="paso__texto" data-content="roadmap.2.texto">
+            Para que Windows deje de avisar de editor desconocido en la primera instalación.
+            Necesita un certificado de firma de código, y ese es el trámite que lo bloquea, no el
+            trabajo.
+          </p>
+        </article>
+
+        <article class="paso" data-reveal>
+          <p class="paso__estado" data-content="roadmap.3.estado">Si lo pedís</p>
+          <h3 class="paso__titulo" data-content="roadmap.3.titulo">macOS y Linux</h3>
+          <p class="paso__texto" data-content="roadmap.3.texto">
+            Las terminales se apoyan en ConPTY, que es de Windows, así que un puerto es trabajo de
+            verdad y no una casilla que marcar. Si te interesa, dilo: es lo que decidirá si se hace.
+          </p>
+        </article>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- faq.html -->
+<!--
+  Adeorq · web/sections/faq.html
+  Seccion 7 del mapa (DISENO.md §10): seis preguntas, incluidas las incomodas.
+  Lo que Adeorq NO hace se cuenta aqui, y esa honestidad es la que sostiene el
+  resto de la pagina (DISENO.md §9.4).
+
+  <details> nativos: se leen y se abren sin JavaScript. El JS solo anima la
+  altura, y con el dial a 0 deja el comportamiento nativo del navegador.
+  TEXTOS: web/content/es/faq.md (claves data-content).
+-->
+<section class="seccion faq" id="faq" aria-labelledby="faq-titulo">
+  <div class="envoltura faq__grid">
+
+    <div data-reveal-grupo>
+      <p class="etiqueta" data-reveal data-content="faq.eyebrow">Preguntas</p>
+      <h2 class="titulo-2" id="faq-titulo" data-reveal data-content="faq.titulo">
+        Lo que suelen preguntar.
+      </h2>
+      <p class="entradilla" data-reveal data-content="faq.lead">
+        Las respuestas cortas están aquí. Si te falta una, dilo y se añade.
+      </p>
+    </div>
+
+    <div class="faq__lista" data-faq data-reveal-grupo>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.0.p">¿Necesito una API key o pagar algo aparte?</summary>
+        <div class="respuesta">
+          <p data-content="faq.0.r">
+            No. Adeorq usa el CLI que ya tienes instalado y la sesión que ya tienes iniciada en él.
+            No pide claves, no guarda credenciales y no manda tu código a ningún servidor nuestro.
+            Lo que gastes de cuota lo gastas igual que si escribieras en la terminal a mano.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.1.p">¿Funciona con algo que no sea Claude Code?</summary>
+        <div class="respuesta">
+          <p data-content="faq.1.r">
+            Las terminales son reales, así que dentro puedes ejecutar lo que quieras: Antigravity,
+            Codex, Gemini o tu propio script. Lo que hoy está afinado para Claude Code es la lectura
+            de sesiones, porque es el único que las guarda en archivos legibles. Los demás están en
+            la lista de lo que viene.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.2.p">¿Por qué Windows me avisa al instalar?</summary>
+        <div class="respuesta">
+          <p data-content="faq.2.r">
+            Porque el instalador todavía no tiene certificado de editor, y SmartScreen desconfía por
+            defecto de lo que se ha descargado poco. Las actualizaciones sí van firmadas y
+            verificadas por la app. Antes de ejecutar nada, comprueba que el archivo viene de
+            nuestra página de releases en GitHub y que el nombre es
+            <code>Adeorq_&lt;versión&gt;_x64-setup.exe</code>.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.3.p">¿Hay versión para macOS o Linux?</summary>
+        <div class="respuesta">
+          <p data-content="faq.3.r">
+            Hoy no. Las terminales se apoyan en ConPTY, que es de Windows, así que portarlo es
+            trabajo de verdad y no una casilla que marcar. Si te interesa, dilo: eso es lo que hará
+            que se priorice.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.4.p">¿Cuánto ocupa y cuánto consume?</summary>
+        <div class="respuesta">
+          <p data-content="faq.4.r">
+            El instalador ronda los 4 MB. Es una app nativa hecha con Tauri, no lleva un navegador
+            entero empaquetado dentro, así que arranca al instante y en reposo casi no se nota. Lo
+            que consuma de más será lo que consuman tus agentes y tus terminales, que es lo mismo
+            que ya consumen ahora.
+          </p>
+        </div>
+      </details>
+
+      <details class="pregunta" data-reveal>
+        <summary data-content="faq.5.p">¿Mis datos salen del ordenador?</summary>
+        <div class="respuesta">
+          <p data-content="faq.5.r">
+            Solo lo que ya salía por tu CLI. Adeorq lee archivos locales para enseñarte tus
+            proyectos y tus sesiones, y pregunta si hay una versión nueva. Nada más. Además trae un
+            modo emisión que tapa rutas, nombres y claves para cuando compartes pantalla o
+            retransmites.
+          </p>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- footer.html -->
+<!--
+  Adeorq · web/sections/footer.html
+  Seccion 8 del mapa (DISENO.md §10): marca, enlaces, ecosistema Orquio y
+  copyright.
+
+  DECISIONES aplicadas de content/es/footer.md:
+    · La columna Contacto pasa a Ecosistema. El contacto se resuelve con una
+      linea a las incidencias del repositorio, porque hoy no hay buzon de
+      soporte y poner uno falso es peor que no ponerlo.
+    · Se quitan "Aviso legal" y "Privacidad": no habia paginas detras. En su
+      sitio va la frase que esas paginas dirian.
+  VALVULA DE MOVIMIENTO: no se repite aqui. La casa ya la tiene en el nav
+  (#valvula-motion, con memoria en localStorage), y dos interruptores del mismo
+  dial acabarian contradiciendose.
+  LOGO: glifo dibujado con CSS, el mismo del nav. Asi el pie no depende de
+  brand/adeorq.png, que vive fuera de web/ y no llegaria al dist.
+  TEXTOS: web/content/es/footer.md (claves data-content).
+-->
+<footer class="pie" id="footer">
+  <div class="envoltura">
+
+    <div class="pie__alto">
+      <div class="pie__marca">
+        <a class="pie__logo" href="#top" aria-label="Adeorq, volver arriba">
+          <img class="marca__logo" src="assets/adeorq.svg" width="28" height="28" alt="" decoding="async">
+          Adeorq
+        </a>
+        <p class="pie__lema" data-content="footer.tag">
+          El panel donde tus agentes trabajan en terminales de verdad. Hecho en Windows, para
+          quien vive en Windows.
+        </p>
+        <p class="pie__estado" data-content="footer.gratis">Gratis, en desarrollo abierto.</p>
+      </div>
+
+      <nav class="pie__col" aria-label="Producto">
+        <h2 class="pie__titulo" data-content="footer.col.producto">Producto</h2>
+        <ul>
+          <li><a href="#que-es" data-content="footer.enlace.quees">Qué es</a></li>
+          <li><a href="#features" data-content="footer.enlace.funciones">Funciones</a></li>
+          <li><a href="#descargar" data-content="footer.enlace.descargar">Descargar</a></li>
+          <li><a href="#roadmap" data-content="footer.enlace.roadmap">Lo que viene</a></li>
+        </ul>
+      </nav>
+
+      <nav class="pie__col" aria-label="Recursos">
+        <h2 class="pie__titulo" data-content="footer.col.recursos">Recursos</h2>
+        <ul>
+          <li><a href="#changelog" data-content="footer.enlace.novedades">Novedades</a></li>
+          <li><a href="#faq" data-content="footer.enlace.preguntas">Preguntas</a></li>
+          <li>
+            <a href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener"
+               data-content="footer.enlace.versiones">Todas las versiones</a>
+          </li>
+        </ul>
+      </nav>
+
+      <nav class="pie__col" aria-label="Ecosistema">
+        <h2 class="pie__titulo" data-content="footer.col.ecosistema">Ecosistema</h2>
+        <ul>
+          <li><a href="https://orquio.com" rel="noopener" data-content="footer.enlace.orquio">Orquio</a></li>
+          <li><a href="https://munito.dev" rel="noopener" data-content="footer.enlace.munito">munito.dev</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <p class="pie__contacto" data-content="footer.contacto">
+      ¿Un fallo o una idea? Cuéntalo en
+      <a href="https://github.com/Mun1to/Adeorq-releases/issues" rel="noopener">las incidencias
+      del repositorio</a>.
+    </p>
+
+    <div class="pie__bajo">
+      <p data-content="footer.copyright">© 2026 Adeorq · parte del ecosistema Orquio</p>
+      <p class="pie__privacidad" data-content="footer.privacidad">
+        Esta web no usa cookies ni te sigue.
+      </p>
+    </div>
+
+  </div>
+</footer>
+
+<!-- secciones:fin -->
+
+<!-- Paleta de comandos: patron Dialog + Command de shadcn/ui, implementado
+     con el elemento dialog nativo para no meter un framework en una landing. -->
+<dialog class="comando" id="command-menu" aria-labelledby="command-title">
+  <div class="comando__panel">
+    <div class="comando__cabecera">
+      <div>
+        <p class="comando__eyebrow" data-i18n="command.eyebrow">Navegación rápida</p>
+        <h2 id="command-title" data-i18n="command.title">¿A dónde quieres ir?</h2>
+      </div>
+      <form method="dialog">
+        <button class="comando__cerrar" type="submit" aria-label="Cerrar">×</button>
+      </form>
+    </div>
+
+    <label class="comando__buscador" for="command-input">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="11" cy="11" r="6.25"></circle><path d="m16 16 4.1 4.1"></path>
+      </svg>
+      <input id="command-input" type="search" autocomplete="off" data-command-input
+             placeholder="Busca una sección..." aria-label="Buscar una sección">
+      <kbd aria-hidden="true">Esc</kbd>
+    </label>
+
+    <p class="comando__grupo" data-i18n="command.group">Explorar</p>
+    <div class="comando__lista" data-command-list>
+      <button type="button" data-command-target="#que-es" data-command-keywords="que es adeorq panel terminales">
+        <span class="comando__icono" aria-hidden="true">◱</span>
+        <span><strong data-i18n="command.about">Qué es Adeorq</strong><small data-i18n="command.aboutHint">Terminales reales para tus agentes</small></span>
+        <span class="comando__flecha" aria-hidden="true">↗</span>
+      </button>
+      <button type="button" data-command-target="#features" data-command-keywords="funciones caracteristicas cockpit agenda canvas">
+        <span class="comando__icono" aria-hidden="true">✦</span>
+        <span><strong data-i18n="command.features">Funciones</strong><small data-i18n="command.featuresHint">Todo lo que hace la cabina</small></span>
+        <span class="comando__flecha" aria-hidden="true">↗</span>
+      </button>
+      <button type="button" data-command-target="#changelog" data-command-keywords="novedades versiones actualizaciones changelog">
+        <span class="comando__icono" aria-hidden="true">⌁</span>
+        <span><strong data-i18n="command.changelog">Novedades</strong><small data-i18n="command.changelogHint">Las últimas mejoras publicadas</small></span>
+        <span class="comando__flecha" aria-hidden="true">↗</span>
+      </button>
+      <button type="button" data-command-target="#faq" data-command-keywords="preguntas ayuda soporte windows seguridad">
+        <span class="comando__icono" aria-hidden="true">?</span>
+        <span><strong data-i18n="command.faq">Preguntas frecuentes</strong><small data-i18n="command.faqHint">Respuestas rápidas antes de instalar</small></span>
+        <span class="comando__flecha" aria-hidden="true">↗</span>
+      </button>
+      <button type="button" class="comando__destacado" data-command-target="#descargar" data-command-keywords="descargar download windows instalador">
+        <span class="comando__icono" aria-hidden="true">↓</span>
+        <span><strong data-i18n="command.download">Descargar Adeorq</strong><small data-i18n="command.downloadHint">Gratis para Windows 10 y 11</small></span>
+        <span class="comando__flecha" aria-hidden="true">↗</span>
+      </button>
+    </div>
+    <p class="comando__vacio" data-command-empty hidden data-i18n="command.empty">No encuentro esa sección.</p>
+  </div>
+</dialog>
+</body>
+</html>

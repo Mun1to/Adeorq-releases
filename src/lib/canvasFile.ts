@@ -1,4 +1,10 @@
-import { FIGURAS, type Ancla, type Trazo } from "../components/CanvasDraw";
+import { FIGURAS, type Ancla, type Guion, type Punta, type Trazo } from "./trazos";
+
+/** Los valores que este archivo acepta para los campos con lista cerrada. Van
+    aquí y no como strings sueltos dentro del bucle: una lista suelta es la que
+    se olvida de actualizar el día que se añade un patrón nuevo. */
+const GUIONES: readonly string[] = ["solido", "guiones", "puntos"];
+const PUNTAS: readonly string[] = ["nada", "flecha", "triangulo"];
 import type { Shape } from "../components/CanvasImage";
 import { esFontId, esWidgetKind, type WidgetKind } from "./piezas";
 
@@ -343,6 +349,21 @@ export function parsear(raw: string): CanvasFile | null {
             ? r.seed
             : 1
           : undefined,
+      // Lo que se le fue añadiendo al trazo después. Todo opcional y todo con
+      // el valor de fábrica igual a como se veía antes de existir, así que un
+      // tablero guardado con una versión anterior se abre exactamente igual.
+      opacidad:
+        typeof r.opacidad === "number" && r.opacidad > 0 && r.opacidad < 1
+          ? r.opacidad
+          : undefined,
+      guion: GUIONES.includes(r.guion as Guion) && r.guion !== "solido"
+        ? (r.guion as Guion)
+        : undefined,
+      puntaDe: PUNTAS.includes(r.puntaDe as Punta) ? (r.puntaDe as Punta) : undefined,
+      puntaA: PUNTAS.includes(r.puntaA as Punta) ? (r.puntaA as Punta) : undefined,
+      bloq: r.bloq === true ? true : undefined,
+      grupo: txt(r.grupo) || undefined,
+      etiqueta: typeof r.etiqueta === "string" ? r.etiqueta.slice(0, 600) : undefined,
     });
   }
 

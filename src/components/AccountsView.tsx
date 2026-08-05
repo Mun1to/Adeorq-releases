@@ -38,6 +38,9 @@ import { useT } from "../lib/i18n";
 import { initials } from "./ProjectAvatar";
 import { propsDeVelo } from "../lib/velo";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
+import {
+  RefreshIcon,
+} from "./Icons";
 
 interface Info {
   plan: PlanInfo | null;
@@ -356,7 +359,7 @@ export default function AccountsView({
           data-tip={t("Buscar otra vez qué hay instalado y releer los límites (no gasta cuota)")}
           onClick={detectar}
         >
-          {busy ? "…" : "↻"}
+          {busy ? "…" : <RefreshIcon size={13} />}
         </button>
       </header>
 

@@ -13,6 +13,7 @@ state, and lets you run several agents at once without losing track of any of th
 <br>
 
 [![Download Adeorq for Windows](web/assets/descargar-windows.en.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe)
+[![Download Adeorq for Linux](web/assets/descargar-linux.en.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage)
 
 **Free · no account · no API keys · updates itself**
 
@@ -72,6 +73,34 @@ Always download it from
 and nowhere else. And once installed, **updates are signed**: Adeorq verifies each one's
 cryptographic signature before applying it, so that warning only ever appears once.
 
+## On Linux
+
+Download
+**[Adeorq-x86_64.AppImage](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage)**,
+make it executable and run it. There is nothing to install:
+
+```bash
+chmod +x Adeorq-x86_64.AppImage
+./Adeorq-x86_64.AppImage
+```
+
+The [releases page](https://github.com/Mun1to/Adeorq-releases/releases/latest) also carries a
+`.deb` for Debian and Ubuntu (`sudo apt install ./Adeorq_*.deb`).
+
+**Three things work differently**, and it is better to know them upfront:
+
+- **Secrets.** On Windows they go to the Credential Manager, which encrypts them with your
+  login. Linux has no such vault, so they go to a `600` file under
+  `~/.local/share/adeorq/secretos`: that protects them from other users of the machine, not
+  from another program of yours.
+- **The music controls** (what is playing, next, volume) are Windows-only: the system itself
+  publishes that, and the Linux equivalent is MPRIS, which is not in yet.
+- **The window is translucent**, so it needs a compositing desktop. Any modern GNOME or KDE
+  has one; without a compositor the glass will look opaque.
+
+It is built on **Ubuntu 22.04**, so it needs glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+,
+Fedora 36+, Arch).
+
 ## Building it yourself
 
 ```bash
@@ -80,7 +109,12 @@ pnpm tauri dev      # development window
 pnpm tauri build    # installer
 ```
 
-You need [Rust](https://rustup.rs) and the Visual Studio build tools.
+You need [Rust](https://rustup.rs). On Windows, also the Visual Studio build tools; on Linux,
+Tauri 2's own:
+
+```bash
+sudo apt install build-essential pkg-config libssl-dev   libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+```
 
 ## Licence
 

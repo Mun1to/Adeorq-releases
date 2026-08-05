@@ -34,6 +34,7 @@ use sessions::SessionCache;
 
 /// La hora local, sin dependencias ni conversiones a mano. Un rastro fechado
 /// con «1785000000» no le sirve a nadie a las tres de la mañana.
+#[cfg(windows)]
 fn ahora() -> String {
     use windows_sys::Win32::System::SystemInformation::GetLocalTime;
     let mut t = unsafe { std::mem::zeroed() };
@@ -44,12 +45,112 @@ fn ahora() -> String {
     )
 }
 
-/// Dónde queda escrito lo que va mal: `%LOCALAPPDATA%\Adeorq\rastro.log`.
+/// Lo mismo donde no hay `GetLocalTime`. Los segundos desde 1970, convertidos a
+/// mano: son cuatro divisiones y evitan arrastrar una librería de fechas entera
+/// para escribir seis números, que es exactamente lo que se decidió en Windows.
+#[cfg(not(windows))]
+fn ahora() -> String {
+    let s = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let (dias, hora, min, seg) = (s / 86_400, (s / 3600) % 24, (s / 60) % 60, s % 60);
+    // De días desde 1970 a fecha civil, con el algoritmo de Howard Hinnant:
+    // cabe en diez líneas y acierta con los bisiestos, incluido el año 2100.
+    let z = dias as i64 + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    format!("{y:04}-{m:02}-{d:02} {hora:02}:{min:02}:{seg:02}")
+}
+
+/// La carpeta de datos de Adeorq: la ÚNICA fuente de esa ruta.
+///
+/// Era `std::env::var("LOCALAPPDATA")` repetido en veinte sitios de doce
+/// archivos, así que la carpeta de la app estaba escrita veinte veces y nadie
+/// podía cambiarla sin cazarlas todas. Y sobre todo: en Linux esa variable no
+/// existe, así que cada uno de esos veinte sitios era un fallo distinto con el
+/// mismo mensaje.
+///
+/// En Windows es `%LOCALAPPDATA%\Adeorq`, que es donde está lo de siempre. En
+/// Linux, `$XDG_DATA_HOME/adeorq` o `~/.local/share/adeorq`, que es donde una
+/// aplicación guarda SUS datos según la convención del escritorio.
+pub fn dir_datos() -> Result<std::path::PathBuf, String> {
+    #[cfg(windows)]
+    {
+        let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
+        Ok(std::path::Path::new(&local).join("Adeorq"))
+    }
+    #[cfg(not(windows))]
+    {
+        if let Ok(xdg) = std::env::var("XDG_DATA_HOME") {
+            if !xdg.is_empty() {
+                return Ok(std::path::Path::new(&xdg).join("adeorq"));
+            }
+        }
+        let casa = std::env::var("HOME").map_err(|e| e.to_string())?;
+        Ok(std::path::Path::new(&casa)
+            .join(".local")
+            .join("share")
+            .join("adeorq"))
+    }
+}
+
+/// La misma carpeta, ya creada. La mayoría de los sitios que la piden es para
+/// escribir dentro, y ese `create_dir_all` estaba también repetido.
+pub fn dir_datos_creado() -> Result<std::path::PathBuf, String> {
+    let d = dir_datos()?;
+    std::fs::create_dir_all(&d).map_err(|e| e.to_string())?;
+    Ok(d)
+}
+
+/// La carpeta del usuario, donde vive `~/.claude`.
+///
+/// Windows la llama `USERPROFILE` y el resto del mundo `HOME`. Estaba escrito
+/// `USERPROFILE` en doce sitios, así que en Linux Adeorq no habría encontrado
+/// NI UNA sesión: el lector de `~/.claude` es media aplicación.
+pub fn dir_casa() -> Option<std::path::PathBuf> {
+    let v = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+    std::env::var(v).ok().map(std::path::PathBuf::from)
+}
+
+/// Lanzar un programa SIN que parpadee una consola negra.
+///
+/// Adeorq llama a `git`, a `where`, a los CLI y al propio Windows unas cuantas
+/// veces por minuto, y cada uno de esos lanzamientos abría una ventana de
+/// consola durante una fracción de segundo si no se le decía que no. La bandera
+/// estaba escrita en SEIS archivos, con su constante propia en cada uno y el
+/// mismo `use std::os::windows::process::CommandExt` al lado; seis copias de un
+/// número mágico que además no existe fuera de Windows.
+///
+/// Fuera de Windows no hay ventana que evitar, así que no hace nada y la cadena
+/// de llamadas se queda igual de legible en los dos sitios.
+pub trait SinVentana {
+    fn sin_ventana(&mut self) -> &mut Self;
+}
+
+impl SinVentana for std::process::Command {
+    #[cfg(windows)]
+    fn sin_ventana(&mut self) -> &mut Self {
+        use std::os::windows::process::CommandExt;
+        // CREATE_NO_WINDOW, tal cual lo llama Windows.
+        self.creation_flags(0x0800_0000)
+    }
+
+    #[cfg(not(windows))]
+    fn sin_ventana(&mut self) -> &mut Self {
+        self
+    }
+}
+
+/// Dónde queda escrito lo que va mal: `rastro.log` en la carpeta de datos.
 fn ruta_rastro() -> Option<std::path::PathBuf> {
-    let local = std::env::var("LOCALAPPDATA").ok()?;
-    let dir = std::path::Path::new(&local).join("Adeorq");
-    std::fs::create_dir_all(&dir).ok()?;
-    Some(dir.join("rastro.log"))
+    Some(dir_datos_creado().ok()?.join("rastro.log"))
 }
 
 /// Deja constancia de algo que ha ido mal, con su hora.
@@ -99,8 +200,8 @@ fn registrar_panicos() {
         anterior(info);
     }));
 }
-// Only the release build raises the existing window (single-instance).
-#[cfg(not(debug_assertions))]
+// La release lo usa para levantar la ventana que ya existe (instancia única) y
+// el desarrollo para ponerle a la suya el nombre que la distingue.
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -129,6 +230,18 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             mcp::start_mcp_server(app.handle().clone());
+            // La ventana de desarrollo dice que lo es.
+            //
+            // `pnpm tauri dev` abre una Adeorq al lado de la instalada, y las
+            // dos se llaman igual, tienen el mismo icono y enseñan lo mismo:
+            // no hay forma de saber cuál estás mirando. Munir cerró una de las
+            // dos creyendo que era un duplicado y se quedó probando la de
+            // siempre, sin ver ni uno de los cambios (2026-08-05). Con esto,
+            // la barra de tareas y el propio marco lo dicen.
+            #[cfg(debug_assertions)]
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.set_title("Adeorq · DESARROLLO");
+            }
             Ok(())
         })
         .manage(PtyState::default())
@@ -172,6 +285,7 @@ pub fn run() {
             manage::read_paste,
             manage::delete_paste,
             manage::save_canvas_file,
+            manage::save_drawing,
             manage::read_canvas_file,
             manage::delete_project,
             manage::set_fondo,

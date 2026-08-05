@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.52"
+version = "0.9.53"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["you"]
 edition = "2021"
@@ -27,6 +27,26 @@ tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 portable-pty = "0.9.0"
+# Solo para hablar con Ollama en 127.0.0.1. Va por Rust y no por `fetch` del
+# front a propósito: desde el WebView la llamada es de otro origen y depende de
+# que Ollama lo permita en su CORS, que es una condición que no controlamos y
+# que cambia entre versiones suyas. Aquí no hay origen que valga.
+# Ya venía compilado como dependencia del actualizador, así que no añade build.
+# Con TLS desde el 2026-07-29: entró sin él porque solo hablaba con Ollama en
+# 127.0.0.1 por http, y ese mismo día se le sumó OpenRouter, que es https de
+# verdad y ahí los certificados no son peso muerto, son el punto.
+# rustls y no el TLS del sistema: una pila propia se comporta igual en tu
+# equipo que en el de cualquiera, y no depende de qué tenga instalado Windows.
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
+auto-launch = "0.6.0"
+tauri-plugin-dialog = "2"
+
+# Lo de Windows, solo en Windows.
+#
+# Estaban como dependencias normales, así que un `cargo build` en Linux ni
+# siquiera llegaba a mirar el código: se caía resolviendo las dependencias. Con
+# esto, en Linux no se compilan y los sitios que las usan van bajo `cfg`.
+[target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = [
     "Win32_System_Threading",
     "Win32_Foundation",
@@ -65,17 +85,15 @@ windows = { version = "0.62", features = [
     "Win32_System_Threading",
     "Win32_Security_Credentials",
 ] }
-# Solo para hablar con Ollama en 127.0.0.1. Va por Rust y no por `fetch` del
-# front a propósito: desde el WebView la llamada es de otro origen y depende de
-# que Ollama lo permita en su CORS, que es una condición que no controlamos y
-# que cambia entre versiones suyas. Aquí no hay origen que valga.
-# Ya venía compilado como dependencia del actualizador, así que no añade build.
-# Con TLS desde el 2026-07-29: entró sin él porque solo hablaba con Ollama en
-# 127.0.0.1 por http, y ese mismo día se le sumó OpenRouter, que es https de
-# verdad y ahí los certificados no son peso muerto, son el punto.
-# rustls y no el TLS del sistema: una pila propia se comporta igual en tu
-# equipo que en el de cualquiera, y no depende de qué tenga instalado Windows.
-reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
-auto-launch = "0.6.0"
-tauri-plugin-dialog = "2"
+
+# La papelera del escritorio, en Linux. En Windows se llama a SHFileOperationW
+# directamente (ver `manage.rs`) porque ya estaba escrito y funciona; aquí no
+# hay un equivalente de una línea, y la especificación XDG de la papelera tiene
+# más letra pequeña de la que parece (el archivo `.trashinfo`, los puntos de
+# montaje) como para escribirla a mano.
+[target.'cfg(unix)'.dependencies]
+trash = "5"
+# Solo por `kill(-pgid)`: matar la RAMA de una terminal, no solo a su hijo
+# directo. Es la traducción exacta del `taskkill /T` de Windows.
+libc = "0.2"
 

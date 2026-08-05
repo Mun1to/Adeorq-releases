@@ -24,8 +24,7 @@ pub fn raiz_de(raiz: Option<String>) -> PathBuf {
 /// `get_projects` no tiene de dónde sacar el ajuste. El front la escribe cuando
 /// el usuario la elige; el localStorage sigue siendo el dueño.
 fn archivo_raiz() -> Option<PathBuf> {
-    let local = std::env::var("LOCALAPPDATA").ok()?;
-    Some(Path::new(&local).join("Adeorq").join("raiz.txt"))
+    Some(crate::dir_datos().ok()?.join("raiz.txt"))
 }
 
 pub fn raiz_por_defecto() -> PathBuf {
@@ -66,8 +65,7 @@ pub struct ProyectosAparte {
 }
 
 fn archivo_aparte() -> Option<PathBuf> {
-    let local = std::env::var("LOCALAPPDATA").ok()?;
-    Some(Path::new(&local).join("Adeorq").join("proyectos.json"))
+    Some(crate::dir_datos().ok()?.join("proyectos.json"))
 }
 
 pub fn proyectos_aparte() -> ProyectosAparte {
@@ -127,8 +125,7 @@ pub struct CreatedProject {
 /// `{name}` se sustituye por el nombre del proyecto. Si el archivo no está, o
 /// no se puede leer, se usa la de fábrica y no pasa nada.
 fn plantilla_propia(name: &str) -> Option<String> {
-    let local = std::env::var("LOCALAPPDATA").ok()?;
-    let f = Path::new(&local).join("Adeorq").join("plantilla-agents.md");
+    let f = crate::dir_datos().ok()?.join("plantilla-agents.md");
     let txt = std::fs::read_to_string(f).ok()?;
     let txt = txt.trim();
     if txt.is_empty() {

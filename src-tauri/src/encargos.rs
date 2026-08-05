@@ -14,7 +14,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Encargo {
@@ -33,10 +33,7 @@ pub struct Encargo {
 }
 
 fn encargos_path() -> Result<PathBuf, String> {
-    let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-    let dir = Path::new(&local).join("Adeorq");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir.join("encargos.json"))
+    Ok(crate::dir_datos_creado()?.join("encargos.json"))
 }
 
 fn leer_todos() -> HashMap<String, Encargo> {

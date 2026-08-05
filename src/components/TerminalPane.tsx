@@ -31,15 +31,16 @@ import { useT } from "../lib/i18n";
 import { useMenu } from "./Overlays";
 import { RedactStream, type Hit } from "../lib/redact";
 import {
+  CheckIcon,
   CloseIcon,
   EyeIcon,
   EyeOffIcon,
+  GitBranchIcon,
   MaximizeIcon,
   MinimizeIcon,
   RestoreIcon,
+  RobotIcon,
   TrashIcon,
-  CheckIcon,
-  GitBranchIcon,
 } from "./Icons";
 import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
@@ -1392,7 +1393,7 @@ export default function TerminalPane({
                 : `${crew.total} ${crew.total === 1 ? "agente desplegado" : "agentes desplegados"} en esta sesión, ninguno trabajando ahora.\nContados en el historial de la sesión: es el dato exacto.`
             }
           >
-            ▣ {crew.live > 0 ? crew.live : crew.total}
+            <RobotIcon size={13} /> {crew.live > 0 ? crew.live : crew.total}
           </span>
         )}
         {ctx && ctx.percent > 0 && (

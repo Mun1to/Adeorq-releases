@@ -130,6 +130,11 @@ export function saveCanvasFile(path: string, content: string): Promise<void> {
   return invoke("save_canvas_file", { path, content });
 }
 
+/** Guarda el dibujo del lienzo como imagen (.png o .svg). */
+export function saveDrawing(path: string, bytes: number[]): Promise<void> {
+  return invoke("save_drawing", { path, bytes });
+}
+
 /** Lee un lienzo exportado. */
 export function readCanvasFile(path: string): Promise<string> {
   return invoke("read_canvas_file", { path });

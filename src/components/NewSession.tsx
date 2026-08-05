@@ -30,6 +30,7 @@ import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
 import { propsDeVelo } from "../lib/velo";
 import { ClaudeMark } from "./KindIcon";
+import { FolderIcon, RefreshIcon, UnlinkIcon } from "./Icons";
 
 /** Everything needed to open one terminal, once both steps are answered. */
 export interface Launch {
@@ -55,6 +56,9 @@ interface Props {
   /** Where to start looking, so the wizard opens on the project he is in. */
   suggested?: string | null;
   onLaunch: (launch: Launch) => void;
+  /** Las que YA están en un panel de Adeorq. Salen marcadas y no se pueden
+      elegir: abrir dos veces la misma conversación bloquea a las dos. */
+  yaAbiertas: Set<string>;
   /** Retomar las que ya tienes, todas de una tacada. Lo hace App, que es quien
       sabe cuáles están ya abiertas y cómo colocarlas en el mosaico. */
   onRetomar: (sesiones: SessionInfo[]) => void;
@@ -81,6 +85,7 @@ export default function NewSession({
   accounts,
   maxPanes,
   suggested,
+  yaAbiertas,
   onLaunch,
   onRetomar,
   onClose,
@@ -224,7 +229,19 @@ export default function NewSession({
   }, [sesiones, busca]);
 
   const tope = Math.max(1, maxPanes);
-  const marcadas = visibles.filter((s) => elegidas.has(s.id));
+
+  /** Las que se pueden traer: las que NO están ya en un panel.
+   *
+   *  No es una comodidad, es lo que evita el fallo: abrir dos veces la misma
+   *  conversación deja a las dos esperándose, y el aviso llegaba después de
+   *  haberla abierto. Aquí se ve antes, y la casilla ni siquiera se deja
+   *  marcar. */
+  const traibles = useMemo(
+    () => visibles.filter((s) => !yaAbiertas.has(s.id)),
+    [visibles, yaAbiertas],
+  );
+  const cuantasYa = visibles.length - traibles.length;
+  const marcadas = traibles.filter((s) => elegidas.has(s.id));
 
   const marcar = (id: string) =>
     setElegidas((prev) => {
@@ -238,7 +255,7 @@ export default function NewSession({
     if (!sesiones) return;
     // Se manda en el orden en que se ven, no en el que se fueron marcando: al
     // colocarse en el mosaico, lo de arriba de la lista queda arriba.
-    onRetomar(visibles.filter((s) => elegidas.has(s.id)).slice(0, tope));
+    onRetomar(traibles.filter((s) => elegidas.has(s.id)).slice(0, tope));
   };
 
   const launch = () => {
@@ -315,14 +332,26 @@ export default function NewSession({
                           total: visibles.length,
                         })
                       : t("{n} sesiones", { n: visibles.length })}
+                    {/* Cuántas de esas ya las tienes puestas: dicho aquí, el
+                        número de arriba deja de parecer que sobran. */}
+                    {cuantasYa > 0 && (
+                      <span className="ret-ya-n">
+                        {t("· {n} ya en Adeorq", { n: cuantasYa })}
+                      </span>
+                    )}
                   </span>
                   <span className="ret-todas">
                     <button
                       className="mini"
-                      disabled={!visibles.length}
-                      onClick={() => setElegidas(new Set(visibles.slice(0, tope).map((s) => s.id)))}
+                      disabled={!traibles.length}
+                      onClick={() => setElegidas(new Set(traibles.slice(0, tope).map((s) => s.id)))}
                     >
-                      {visibles.length > tope ? t("Las {n} primeras", { n: tope }) : t("Todas")}
+                      {/* Marca las que NO tienes, que es lo que uno quiere de
+                          verdad: «todas» incluía las que ya están puestas y
+                          esas no se pueden traer. */}
+                      {traibles.length > tope
+                        ? t("Las {n} que no tengo", { n: tope })
+                        : t("Las que no tengo")}
                     </button>
                     <button
                       className="mini"
@@ -335,33 +364,45 @@ export default function NewSession({
                 </div>
 
                 <ul className="wiz-list ret-lista">
-                  {visibles.map((s) => (
-                    <li key={s.id}>
-                      <label className="ret-item" data-on={elegidas.has(s.id)}>
-                        <input
-                          type="checkbox"
-                          checked={elegidas.has(s.id)}
-                          onChange={() => marcar(s.id)}
-                        />
-                        {tieneMarca(s.fuente ?? "claude") && (
-                          <span className="ret-marca">
-                            <ProviderMark id={s.fuente ?? "claude"} />
+                  {visibles.map((s) => {
+                    const ya = yaAbiertas.has(s.id);
+                    return (
+                      <li key={s.id}>
+                        {/* Las que ya tienes se quedan a la vista, en dorado y
+                            sin casilla: esconderlas dejaría el mismo hueco sin
+                            explicación y volverías a buscarlas creyendo que el
+                            buscador no las encuentra. */}
+                        <label className="ret-item" data-on={elegidas.has(s.id)} data-ya={ya}>
+                          <input
+                            type="checkbox"
+                            checked={elegidas.has(s.id)}
+                            disabled={ya}
+                            onChange={() => marcar(s.id)}
+                          />
+                          {tieneMarca(s.fuente ?? "claude") && (
+                            <span className="ret-marca">
+                              <ProviderMark id={s.fuente ?? "claude"} />
+                            </span>
+                          )}
+                          <span className="ret-txt">
+                            <span className="ret-tit">{s.title}</span>
+                            <span className="ret-pie">
+                              {s.project} · {s.ago}
+                              {ya ? (
+                                <span className="ret-ya">{t("ya la tienes")}</span>
+                              ) : (
+                                /* Que esté viva se dice AQUÍ y no después:
+                                   abrir una que ya corre en otro sitio bloquea
+                                   a las dos, y hasta ahora el aviso llegaba de
+                                   una en una y se pisaba a sí mismo. */
+                                s.live && <span className="ret-viva">{t("abierta ahora")}</span>
+                              )}
+                            </span>
                           </span>
-                        )}
-                        <span className="ret-txt">
-                          <span className="ret-tit">{s.title}</span>
-                          <span className="ret-pie">
-                            {s.project} · {s.ago}
-                            {/* Que esté viva se dice AQUÍ y no después: abrir
-                                una que ya corre en otro sitio bloquea a las dos,
-                                y hasta ahora el aviso llegaba de una en una y se
-                                pisaba a sí mismo. */}
-                            {s.live && <span className="ret-viva">{t("abierta ahora")}</span>}
-                          </span>
-                        </span>
-                      </label>
-                    </li>
-                  ))}
+                        </label>
+                      </li>
+                    );
+                  })}
                   {!visibles.length && (
                     <li className="wiz-none">
                       {busca.trim()
@@ -371,7 +412,7 @@ export default function NewSession({
                   )}
                 </ul>
 
-                {visibles.length > tope && marcadas.length >= tope && (
+                {traibles.length > tope && marcadas.length >= tope && (
                   <p className="modal-text modal-dim ret-tope">
                     {t("Entran {n} de golpe; el resto se queda para la próxima tanda.", { n: tope })}
                   </p>
@@ -450,7 +491,7 @@ export default function NewSession({
             ) : (
               <div className="wiz-row">
                 <button className="mini wiz-alt" onClick={browse}>
-                  {t("📁 Otra carpeta del disco…")}
+                  <FolderIcon size={14} /> {t("Otra carpeta del disco…")}
                 </button>
                 <button className="mini wiz-alt" onClick={() => setCreating(true)}>
                   {t("＋ Proyecto nuevo…")}
@@ -468,13 +509,13 @@ export default function NewSession({
                       setStep(2);
                     }}
                   >
-                    {t("↯ Suelta, sin proyecto")}
+                    <UnlinkIcon size={14} /> {t("Suelta, sin proyecto")}
                   </button>
                 )}
                 {/* El otro camino: no abrir nada nuevo, sino volver a algo que
                     ya empezaste. Es la mitad que le faltaba a este asistente. */}
                 <button className="mini wiz-alt wiz-alt-ancho" onClick={irARetomar}>
-                  {t("↻ Retomar las que ya tienes…")}
+                  <RefreshIcon size={14} /> {t("Retomar las que ya tienes…")}
                 </button>
               </div>
             )}

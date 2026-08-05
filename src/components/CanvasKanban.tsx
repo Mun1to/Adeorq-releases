@@ -25,6 +25,9 @@ import { COLUMNAS, PINTA, TITULO, columnaDe, haceCuanto, type Columna } from "..
 import type { WorkState } from "../lib/pty";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
 import { kindDeComando } from "./KindIcon";
+import {
+  CloseIcon,
+} from "./Icons";
 
 /** Una tarjeta de «Por hacer»: lo único de este tablero que escribes tú. */
 export interface Pendiente {
@@ -321,7 +324,7 @@ export default function KanbanNode({ data, selected }: NodeProps<Node<KanbanData
           data-tip={t("Quitar el tablero del lienzo")}
           onClick={() => d.onClose(d.nodeId)}
         >
-          ✕
+          <CloseIcon size={13} />
         </button>
       </header>
 
@@ -400,7 +403,7 @@ export default function KanbanNode({ data, selected }: NodeProps<Node<KanbanData
                           data-tip={t("Quitar esta tarjeta")}
                           onClick={() => quitarPendiente(p.id)}
                         >
-                          ✕
+                          <CloseIcon size={13} />
                         </button>
                       </div>
                     ))}

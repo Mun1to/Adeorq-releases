@@ -28,6 +28,11 @@ import {
   type Mensaje,
   type Modelo,
 } from "../lib/chat";
+import {
+  ChevronIcon,
+  CloseIcon,
+  SendIcon,
+} from "./Icons";
 
 export interface ChatData extends Record<string, unknown> {
   nodeId: string;
@@ -146,7 +151,7 @@ export default function ChatNode({ data, selected }: NodeProps<Node<ChatData>>) 
           onClick={abrirLista}
         >
           {nombreModelo}
-          <span className="ch-caret">▾</span>
+          <span className="ch-caret"><ChevronIcon size={13} /></span>
         </button>
         <span className="ch-coste" data-tip={t("Lo que llevas gastado en esta conversación")}>
           {comoDinero(coste)}
@@ -156,7 +161,7 @@ export default function ChatNode({ data, selected }: NodeProps<Node<ChatData>>) 
           data-tip={t("Quitar el chat del lienzo")}
           onClick={() => d.onClose(d.nodeId)}
         >
-          ✕
+          <CloseIcon size={13} />
         </button>
       </header>
 
@@ -233,7 +238,7 @@ export default function ChatNode({ data, selected }: NodeProps<Node<ChatData>>) 
           data-tip={t("Enviar")}
           onClick={() => void enviar()}
         >
-          {enVuelo !== null ? "…" : "↑"}
+          {enVuelo !== null ? "…" : <SendIcon size={14} />}
         </button>
       </div>
       <Handle type="source" position={Position.Right} className="rf-handle" />

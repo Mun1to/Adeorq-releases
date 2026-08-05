@@ -16,12 +16,17 @@
 
 use serde::Serialize;
 use std::collections::HashMap;
+#[cfg(windows)]
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+#[cfg(windows)]
 use windows_sys::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
 };
+#[cfg(windows)]
 use windows_sys::Win32::System::ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
+#[cfg(windows)]
 use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+#[cfg(windows)]
 use windows_sys::Win32::System::Threading::{
     OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_VM_READ,
 };
@@ -56,6 +61,7 @@ fn es_agente(nombre: &str) -> bool {
 }
 
 /// Todos los procesos del sistema, con su padre y su nombre.
+#[cfg(windows)]
 fn foto_procesos() -> Vec<(u32, u32, String)> {
     let mut out = Vec::new();
     unsafe {
@@ -82,6 +88,7 @@ fn foto_procesos() -> Vec<(u32, u32, String)> {
 
 /// Los megas que ocupa un proceso. `None` si el sistema no deja mirarlo, que
 /// pasa con los procesos protegidos y no es un error.
+#[cfg(windows)]
 fn ram_de(pid: u32) -> Option<u64> {
     unsafe {
         let h: HANDLE = OpenProcess(
@@ -101,6 +108,80 @@ fn ram_de(pid: u32) -> Option<u64> {
         }
         Some(pmc.WorkingSetSize as u64)
     }
+}
+
+/* ------------------------------------------------------ lo mismo, leyendo /proc
+
+   En Linux no hace falta ninguna API: el núcleo publica todo esto como
+   archivos. `/proc/<pid>/stat` trae el nombre y el padre en la misma línea, y
+   `/proc/<pid>/statm` la memoria residente en páginas. Es más simple que la
+   versión de Windows, no un remiendo.
+*/
+
+/// El tamaño de página, para pasar de páginas a bytes. Se pregunta una vez.
+#[cfg(not(windows))]
+fn tam_pagina() -> u64 {
+    // SAFETY: una consulta al sistema sin punteros ni memoria compartida.
+    let n = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    if n > 0 { n as u64 } else { 4096 }
+}
+
+#[cfg(not(windows))]
+fn foto_procesos() -> Vec<(u32, u32, String)> {
+    let mut out = Vec::new();
+    let Ok(dir) = std::fs::read_dir("/proc") else {
+        return out;
+    };
+    for e in dir.flatten() {
+        let nombre_dir = e.file_name();
+        let Some(txt) = nombre_dir.to_str() else { continue };
+        let Ok(pid) = txt.parse::<u32>() else { continue };
+        let Ok(stat) = std::fs::read_to_string(format!("/proc/{pid}/stat")) else {
+            continue;
+        };
+        // El formato es `pid (nombre con espacios) estado ppid ...`. El nombre
+        // va entre paréntesis Y PUEDE LLEVAR ESPACIOS, así que se corta por el
+        // ÚLTIMO paréntesis y no por el tercer campo: partir por espacios es el
+        // error clásico al leer esto.
+        let Some(ini) = stat.find('(') else { continue };
+        let Some(fin) = stat.rfind(')') else { continue };
+        let nombre = stat[ini + 1..fin].to_owned();
+        let resto: Vec<&str> = stat[fin + 1..].split_whitespace().collect();
+        // resto[0] es el estado; resto[1], el padre.
+        let ppid = resto.get(1).and_then(|x| x.parse::<u32>().ok()).unwrap_or(0);
+        out.push((pid, ppid, nombre));
+    }
+    out
+}
+
+#[cfg(not(windows))]
+fn ram_de(pid: u32) -> Option<u64> {
+    let statm = std::fs::read_to_string(format!("/proc/{pid}/statm")).ok()?;
+    // El segundo número es la memoria RESIDENTE en páginas, que es el
+    // equivalente del WorkingSetSize de Windows.
+    let paginas: u64 = statm.split_whitespace().nth(1)?.parse().ok()?;
+    Some(paginas * tam_pagina())
+}
+
+/// Cuánta RAM tiene el equipo y cuánta queda de verdad libre.
+///
+/// `MemAvailable` y no `MemFree`: el segundo no cuenta la caché de disco, que
+/// el sistema suelta en cuanto hace falta, así que en un Linux con horas de uso
+/// diría que no queda nada cuando queda casi todo.
+#[cfg(not(windows))]
+fn memoria_sistema() -> (u64, u64) {
+    let Ok(txt) = std::fs::read_to_string("/proc/meminfo") else {
+        return (0, 0);
+    };
+    let campo = |clave: &str| -> u64 {
+        txt.lines()
+            .find(|l| l.starts_with(clave))
+            .and_then(|l| l.split_whitespace().nth(1))
+            .and_then(|n| n.parse::<u64>().ok())
+            .map(|kb| kb * 1024)
+            .unwrap_or(0)
+    };
+    (campo("MemTotal:"), campo("MemAvailable:"))
 }
 
 /// Quién cuelga de quién, indexado una sola vez. Está separado de `arbol_de`
@@ -164,6 +245,7 @@ pub async fn pulso() -> Pulso {
         }
     }
 
+    #[cfg(windows)]
     let (total, libre) = unsafe {
         let mut m: MEMORYSTATUSEX = std::mem::zeroed();
         m.dwLength = std::mem::size_of::<MEMORYSTATUSEX>() as u32;
@@ -173,6 +255,8 @@ pub async fn pulso() -> Pulso {
             (m.ullTotalPhys, m.ullAvailPhys)
         }
     };
+    #[cfg(not(windows))]
+    let (total, libre) = memoria_sistema();
     let usado = total.saturating_sub(libre);
     let mb = |b: u64| b / 1_048_576;
     let pct = |parte: u64| {

@@ -3,6 +3,10 @@ import { readCrewInbox, type CrewNote, type PaneStatus, type WorkState } from ".
 import { PINTA, haceCuanto } from "../lib/estados";
 import { useT } from "../lib/i18n";
 import type { Team } from "../App";
+import {
+  ChevronIcon,
+  CloseIcon,
+} from "./Icons";
 
 /**
  * El tablero de la cuadrilla.
@@ -222,7 +226,7 @@ export default function CrewBoard({
                 {ocultas.has(team.id) ? "◱" : "◲"}
               </button>
               <button className="mini crew-fold" data-tip={plegado ? t("Desplegar") : t("Plegar")}>
-                {plegado ? "▾" : "▴"}
+                <ChevronIcon size={12} up={!plegado} />
               </button>
               {/* Cerrar la cuadrilla entera. En dos tiempos: el primero pide
                   confirmación en el propio botón y el segundo cierra, porque
@@ -247,7 +251,7 @@ export default function CrewBoard({
                   );
                 }}
               >
-                {cerrando === team.id ? t("¿Cerrar {n}?", { n: puestos.length }) : "✕"}
+                {cerrando === team.id ? t("¿Cerrar {n}?", { n: puestos.length }) : <CloseIcon size={13} />}
               </button>
             </header>
 

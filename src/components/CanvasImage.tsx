@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useT } from "../lib/i18n";
 import { nodragEnControles } from "../lib/arrastre";
+import {
+  CloseIcon,
+  ImageIcon,
+  UndoIcon,
+} from "./Icons";
 
 // Una captura pegada en el lienzo, anotable y entregable a un agente.
 //
@@ -372,11 +377,11 @@ export default function ImageNode({ data, selected }: NodeProps<Node<ImageData>>
 
       <header className="wdg-head">
         <span className="wdg-icon" aria-hidden="true">
-          🖼
+          <ImageIcon size={14} />
         </span>
         <span className="wdg-name">{t("Captura")}</span>
         <button className="wdg-x" onClick={() => data.onClose(data.nodeId)} data-tip={t("Quitar")}>
-          ✕
+          <CloseIcon size={13} />
         </button>
       </header>
 
@@ -412,7 +417,7 @@ export default function ImageNode({ data, selected }: NodeProps<Node<ImageData>>
           disabled={shapes.length === 0}
           onClick={() => setShapes((s) => s.slice(0, -1))}
         >
-          ↶
+          <UndoIcon size={13} />
         </button>
       </div>
 

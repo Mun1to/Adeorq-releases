@@ -3,11 +3,10 @@
 // subscription, no API keys). The model interprets; the UI then validates
 // every action against known projects/sessions and executes with
 // deterministic code. House principle: the model never runs anything itself.
-use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
+use crate::SinVentana;
 
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 const PLAN_TIMEOUT: Duration = Duration::from_secs(120);
 
 const SYSTEM_PROMPT: &str = r#"Eres el Capataz de Adeorq, el panel de vibe coding de Munir. Convierte su pedido en un plan de acciones ESTRICTO en JSON. Munir te habla como a un jefe de obra: dice el objetivo del día ("hoy quiero arreglar errores de VoCript", "quiero hacer la web de Layco") y tú montas el tablero exacto para eso.
@@ -72,7 +71,7 @@ Reglas duras:
 - No uses herramientas ni leas archivos: responde inmediatamente con el plan."#;
 
 fn claude_exe() -> PathBuf {
-    if let Ok(home) = std::env::var("USERPROFILE") {
+    if let Some(home) = crate::dir_casa() {
         let p = Path::new(&home)
             .join(".local")
             .join("bin")
@@ -214,7 +213,7 @@ async fn preguntar(prompt: String) -> Result<String, String> {
             // Desde la carpeta de proyectos del usuario, no desde una fija: en
             // un equipo sin `C:\proyectos` esto no llegaba ni a lanzarse.
             .current_dir(crate::workspace::raiz_por_defecto())
-            .creation_flags(CREATE_NO_WINDOW)
+            .sin_ventana()
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .stdin(std::process::Stdio::null())

@@ -710,6 +710,13 @@ mod tests {
     fn una_ruta_que_se_sale_de_la_boveda_no_es_un_documento() {
         let raiz = Path::new("C:/proyectos");
         assert!(ruta_de(raiz, "../.ssh/id_rsa.md").is_err());
+        // Una ruta ABSOLUTA no vale, y absoluta se escribe distinto en cada
+        // sistema: con barra inicial en todos, y además con letra de unidad en
+        // Windows. Ese segundo caso solo se comprueba allí porque en Linux
+        // «C:/otro» NO es absoluta: es una carpeta que se llama «C:», y no se
+        // sale de ninguna bóveda.
+        assert!(ruta_de(raiz, "/otro/sitio.md").is_err());
+        #[cfg(windows)]
         assert!(ruta_de(raiz, "C:/otro/sitio.md").is_err());
         assert!(ruta_de(raiz, "notas/una.txt").is_err(), "solo markdown");
         assert!(ruta_de(raiz, "notas/una.md").is_ok());

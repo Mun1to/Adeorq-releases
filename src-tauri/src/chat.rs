@@ -275,10 +275,7 @@ pub struct Gasto {
 }
 
 fn gasto_path() -> Result<PathBuf, String> {
-    let local = std::env::var("LOCALAPPDATA").map_err(|_| "LOCALAPPDATA no disponible")?;
-    let dir = PathBuf::from(local).join("Adeorq");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir.join("gasto.json"))
+    Ok(crate::dir_datos_creado()?.join("gasto.json"))
 }
 
 fn hoy() -> String {
@@ -354,8 +351,7 @@ fn chat_path(id: &str) -> Result<PathBuf, String> {
     if id.is_empty() || id.len() > 64 || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
         return Err("id de conversación no válido".into());
     }
-    let local = std::env::var("LOCALAPPDATA").map_err(|_| "LOCALAPPDATA no disponible")?;
-    let dir = PathBuf::from(local).join("Adeorq").join("chats");
+    let dir = crate::dir_datos()?.join("chats");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir.join(format!("{id}.json")))
 }

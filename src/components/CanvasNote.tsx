@@ -5,6 +5,9 @@ import { nodragEnControles } from "../lib/arrastre";
 import { noteRead, noteWrite } from "../lib/pty";
 import { conCuerpo, conTitulo, cuerpoDe, leerLineas, tituloDe, voltear } from "../lib/notas";
 import { Grip } from "./CanvasWidgets";
+import {
+  CloseIcon,
+} from "./Icons";
 
 // Una nota del lienzo: lo que apuntas al vuelo, con casillas si hace falta.
 //
@@ -178,7 +181,7 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
           <span className="note-dot" />
         </button>
         <button className="wdg-x" onClick={() => data.onClose(data.nodeId)} data-tip={t("Quitar")}>
-          ✕
+          <CloseIcon size={13} />
         </button>
       </header>
 

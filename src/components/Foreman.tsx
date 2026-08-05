@@ -36,7 +36,7 @@ import { leerPerfil } from "../lib/perfil";
 import { providerOf } from "../lib/providers";
 import { createPortal } from "react-dom";
 import { useT } from "../lib/i18n";
-import { OrbIcon } from "./Icons";
+import Orbe, { type EstadoOrbe } from "./Orbe";
 import { propsDeVelo } from "../lib/velo";
 import { dictar, transcribir, vozLista, type Dictado } from "../lib/voz";
 import { COMMANDS } from "../lib/commands";
@@ -115,6 +115,17 @@ interface Props {
    * el Asistente ya abierto el atajo es suyo y no pasa por aquí.
    */
   dictarAlAbrir?: boolean;
+  /**
+   * Varias tareas de golpe, con el texto ya escrito.
+   *
+   * El Reparto y el Asistente eran dos botones seguidos en la barra, y el
+   * comentario que los juntaba ya decía lo que eran: «la misma pregunta con
+   * una lista en vez de una frase» (Munir lo dijo igual el 2026-08-05). Ahora
+   * hay UNA puerta: escribes, y el número de líneas decide. Sigue habiendo dos
+   * pantallas porque un reparto enseña una tabla de destinos que en un cuadro
+   * de chat no cabe, pero eso ya no es cosa de quien pregunta.
+   */
+  onRepartir?: (texto: string) => void;
 }
 
 type Phase = "idle" | "thinking" | "plan" | "done" | "error";
@@ -545,7 +556,7 @@ function actionLabel(c: Checked): string {
   return `Antigravity en ${a.proyecto} con encargo`;
 }
 
-export default function Foreman({ mode, exec, onClose, dictarAlAbrir }: Props) {
+export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir }: Props) {
   const { t } = useT();
   // El borrador sobrevive al cierre. El Asistente se cierra con Esc, pinchando
   // fuera y con el aspa, y hasta ahora cerrarlo tiraba lo que estuvieras
@@ -957,6 +968,49 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir }: Props) {
     setDoneNote("");
   };
 
+  /**
+   * En qué estado va el orbe.
+   *
+   * Sale de la fase que ya existía, no de un estado nuevo: el orbe no sabe
+   * nada del Asistente, solo enseña lo que el Asistente ya sabía y contaba con
+   * la palabra «Pensando». Escribir es lo que lo pone a escuchar, que es la
+   * parte que hace que parezca que te sigue.
+   */
+  /** Cuántas tareas hay escritas: una por línea con algo dentro. Es lo único
+      que separa «planear esto» de «repartir estas». */
+  const tareas = text.split("\n").filter((l) => l.trim()).length;
+
+  const estadoOrbe: EstadoOrbe =
+    phase === "thinking"
+      ? "piensa"
+      : phase === "plan" || phase === "done"
+        ? "listo"
+        : text.trim()
+          ? "escucha"
+          : "reposo";
+
+  /**
+   * Lo que le puedes pedir, dicho con ejemplos que se pulsan.
+   *
+   * Un cuadro de texto vacío no dice qué acepta, y este acepta lenguaje
+   * normal: sin esto hay que adivinar si entiende «ábreme tres claudes» o hay
+   * que hablarle como a una consola. Los ejemplos NO son adorno: cada uno es
+   * una de las cosas que el plan sabe montar de verdad (`PlanAction`), así que
+   * esta lista y lo que la máquina puede hacer no se pueden separar.
+   */
+  const EJEMPLOS: Array<{ que: string; ejemplo: string }> = [
+    { que: "Abrir lo que ya tienes", ejemplo: "ábreme las sesiones del panel de Orquio" },
+    { que: "Montar un equipo", ejemplo: "en Layco: Antigravity al frontend y un Claude al backend" },
+    { que: "Mandar una orden a todas", ejemplo: "diles a todas que hagan commit de lo que llevan" },
+    { que: "Revisar cómo va algo", ejemplo: "mírame qué está haciendo el agente del login" },
+    // Varias líneas: ese es el gesto que lo convierte en un reparto, una
+    // tarea por terminal. Por eso el ejemplo las lleva.
+    {
+      que: "Repartir el día",
+      ejemplo: "arreglar el hover\nescribir los tests del router\nauditar el login",
+    },
+  ];
+
   const body = (
     <>
       {phase === "idle" || phase === "thinking" || phase === "error" ? (
@@ -964,9 +1018,9 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir }: Props) {
           <textarea
             ref={inputRef}
             className="mission-text foreman-input"
-            placeholder={
-              'Pídeme el tablero: "ábreme las sesiones del panel de Orquio" o "en Layco: Antigravity al frontend y un Claude al backend para el formulario de pago"'
-            }
+            placeholder={t(
+              'Pídeme el tablero: "ábreme las sesiones del panel de Orquio" o "en Layco: Antigravity al frontend y un Claude al backend para el formulario de pago"',
+            )}
             rows={mode === "overlay" ? 3 : 5}
             value={text}
             disabled={phase === "thinking"}
@@ -981,13 +1035,24 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir }: Props) {
             }}
           />
           <div className="foreman-row">
-            <button
-              className="np-btn"
-              disabled={!text.trim() || phase === "thinking"}
-              onClick={ask}
-            >
-              {t(phase === "thinking" ? "Pensando el plan…" : "Planear")}
-            </button>
+            {/* El botón principal cambia de oficio según lo que hayas escrito.
+                Una frase se planea aquí; varias líneas son varias tareas y
+                eso es un reparto, que tiene su propia tabla de destinos. El
+                usuario no elige entre dos botones: escribe, y el número de
+                líneas decide. */}
+            {tareas > 1 && onRepartir ? (
+              <button className="np-btn" onClick={() => onRepartir(text)}>
+                {t("Repartir las {n} tareas", { n: tareas })}
+              </button>
+            ) : (
+              <button
+                className="np-btn"
+                disabled={!text.trim() || phase === "thinking"}
+                onClick={ask}
+              >
+                {t(phase === "thinking" ? "Pensando el plan…" : "Planear")}
+              </button>
+            )}
             {/* El segundo oficio, al lado y con el mismo peso: no monta nada,
                 escribe el encargo para la terminal que tienes delante. */}
             <button
@@ -1001,6 +1066,38 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir }: Props) {
               <span className="foreman-hint">{t("Enter planea · Ctrl+Mayús+M dicta · Esc cierra · nada se ejecuta sin tu OK")}</span>
             )}
           </div>
+          {/* La mini guía. Solo con el cuadro vacío y antes de la primera
+              pregunta: en cuanto escribes algo estorba, y quien ya sabe lo que
+              quiere no la ve nunca. Cada fila se pulsa y se escribe sola, que
+              es la única forma de que un ejemplo enseñe de verdad: leerlo no
+              te dice si al pulsar Enter va a pasar lo que crees. */}
+          {phase === "idle" && !text.trim() && (
+            <div className="fm-guia">
+              <p className="fm-guia-tit">{t("Háblame normal. Puedo, por ejemplo:")}</p>
+              <ul>
+                {EJEMPLOS.map((e) => (
+                  <li key={e.que}>
+                    <button
+                      className="fm-guia-fila"
+                      onClick={() => {
+                        // El ejemplo entra TRADUCIDO: es lo que se va a leer
+                        // en el cuadro y lo que va a acabar leyendo el modelo.
+                        setText(t(e.ejemplo));
+                        inputRef.current?.focus();
+                      }}
+                    >
+                      <span className="fm-guia-que">{t(e.que)}</span>
+                      <span className="fm-guia-ej">{t(e.ejemplo).replace(/\n/g, " · ")}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="fm-guia-pie">
+                {t("Una línea es un encargo. Varias líneas, una terminal para cada una.")}
+              </p>
+            </div>
+          )}
+
           {/* Grabando. Un punto rojo latiendo y la palabra: es la señal que
               todo el mundo reconoce sin que nadie se la explique, y hace falta
               precisamente porque ya no hay un botón que mirar. */}
@@ -1265,7 +1362,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir }: Props) {
     >
       <div className="foreman-box">
         <div className="foreman-title">
-          <OrbIcon size={18} />
+          <Orbe estado={estadoOrbe} size={22} />
           {t("Asistente")}
         </div>
         {body}

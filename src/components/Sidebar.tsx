@@ -39,13 +39,19 @@ import FilaBotones from "./FilaBotones";
 import { ClaudeMark } from "./KindIcon";
 import {
   ArchiveIcon,
+  EnterIcon,
   GridIcon,
+  GroupIcon,
+  ImageIcon,
+  PencilIcon,
   PlusIcon,
   RefreshIcon,
+  RobotIcon,
   RowsIcon,
   StripIcon,
   TerminalIcon,
   TrashIcon,
+  UnlinkIcon,
 } from "./Icons";
 
 interface Props {
@@ -455,7 +461,17 @@ export default function Sidebar({
   const archived = useMemo(() => new Set(ui.archived), [ui.archived]);
 
   const todo = useMemo<{ proyectos: Group[]; sueltas: Group | null }>(() => {
-    const fresh = sessions.filter((s) => s.fresh !== "muerta");
+    /** Las conversaciones que tienes AHORA en un panel. Lo dice el propio
+        comando del panel, que lleva su `--resume <id>` dentro. */
+    const enPantalla = new Set(
+      abiertas.map((a) => sessionIdOf(a.command)).filter((x): x is string => !!x),
+    );
+    // Las de más de una semana no se enseñan... salvo que las tengas abiertas.
+    // Desde que el ＋ sabe retomar las viejas, esa regla las hacía desaparecer:
+    // abrías una de hace un mes, se abría bien, y en la barra no salía por
+    // ningún lado. Una conversación que está en pantalla tiene que estar en la
+    // lista, tenga la edad que tenga.
+    const fresh = sessions.filter((s) => s.fresh !== "muerta" || enPantalla.has(s.id));
     const byProject = new Map<string, SessionInfo[]>();
     for (const s of fresh) {
       // Donde tú la mandaste gana a donde la puso su carpeta: si arrastraste
@@ -508,7 +524,10 @@ export default function Sidebar({
     // suelta de terminal no aparecía en ninguna parte de la barra. Se cuelan
     // solo las de fuera de un proyecto conocido (las de dentro ya salen en su
     // fila) y las que no tengan ya su sesión listada, para no verlas dos veces.
-    const yaListadas = new Set(sessions.map((s) => s.id));
+    // Las que de verdad han quedado listadas arriba, no todas las escaneadas:
+    // una que se haya quedado fuera por vieja tiene que poder salir al menos
+    // como terminal viva, en vez de no salir en ningún sitio.
+    const yaListadas = new Set(fresh.map((s) => s.id));
     const raices = [
       ...projects.map((p) => p.path.toLowerCase().replace(/[\\/]+$/, "")),
       casa.toLowerCase(),
@@ -1094,7 +1113,8 @@ export default function Sidebar({
     },
     { label: "", separator: true },
     {
-      label: t("✎ Cambiar el nombre que se ve…"),
+      label: t("Cambiar el nombre que se ve…"),
+      icon: <PencilIcon size={14} />,
       onClick: () => setNaming({ name: g.name, value: shownName(g.name) }),
     },
     ...(ui.projectAlias[g.name]
@@ -1127,7 +1147,8 @@ export default function Sidebar({
       : [
           { label: "", separator: true },
           {
-            label: t("🗑 Tirar este proyecto…"),
+            label: t("Tirar este proyecto…"),
+      icon: <TrashIcon size={14} />,
             danger: true,
             onClick: () => setTirando(g),
           },
@@ -1285,21 +1306,23 @@ export default function Sidebar({
               : [
                   { label: t("Retomar la sesión aquí"), onClick: () => onResume(s) },
                   { label: "", separator: true },
-                  { label: t("✎ Renombrar"), onClick: () => startRename(s) },
-                  { label: t("▣ Mover a grupo…"), onClick: () => openMenu(e, s, g.path) },
+                  { label: t("Renombrar"), icon: <PencilIcon size={14} />, onClick: () => startRename(s) },
+                  { label: t("Mover a grupo…"), icon: <GroupIcon size={14} />, onClick: () => openMenu(e, s, g.path) },
                   // Solo para las que mandaste tú aquí: deshacerlo arrastrando
                   // funciona, pero hay que saber que se puede arrastrar.
                   ...(ui.sessionProject[s.id]
                     ? [
                         {
-                          label: t("↯ Sacarla de este proyecto"),
+                          label: t("Sacarla de este proyecto"),
+            icon: <UnlinkIcon size={14} />,
                           onClick: () => devolverASueltas(s.id),
                         },
                       ]
                     : []),
                   { label: t("⊟ Archivar"), danger: true, onClick: () => askArchive(s, g.path) },
                   {
-                    label: t("🗑 Borrar la sesión"),
+                    label: t("Borrar la sesión"),
+            icon: <TrashIcon size={14} />,
                     danger: true,
                     onClick: () => {
                       setMenu(null);
@@ -1346,7 +1369,7 @@ export default function Sidebar({
               className="sess-agents"
               data-tip={`${s.agentsLive} ${s.agentsLive === 1 ? "agente trabajando" : "agentes trabajando"} ahora dentro de esta sesión · ${s.agentsTotal} desplegados en total`}
             >
-              ▣ {s.agentsLive}
+              <RobotIcon size={12} /> {s.agentsLive}
             </span>
           )}
           <span className="session-ago">{s.ago}</span>
@@ -1372,7 +1395,7 @@ export default function Sidebar({
             data-tip={t("Restaurar: vuelve a la lista normal")}
             onClick={() => unarchive(s.id)}
           >
-            ↩
+            <EnterIcon size={13} />
           </button>
         ) : (
           <button
@@ -1464,7 +1487,7 @@ export default function Sidebar({
                     setGnaming(abriendo ? { id: pg.id, value: pg.name } : null);
                   }}
                 >
-                  ✎
+                  <PencilIcon size={13} />
                 </button>
                 {/* Plegar, con su botón propio y siempre a la vista. La
                     cabecera entera ya pliega al pulsarla, pero eso hay que
@@ -1953,7 +1976,7 @@ export default function Sidebar({
                     setNaming({ name: flyGroup.name, value: shownName(flyGroup.name) })
                   }
                 >
-                  ✎
+                  <PencilIcon size={13} />
                 </button>
                 <button
                   className="fly-mini"
@@ -1962,7 +1985,7 @@ export default function Sidebar({
                   }
                   onClick={() => askLogo(flyGroup.name)}
                 >
-                  ◑
+                  <ImageIcon size={13} />
                 </button>
                 {flyGroup.archivedSessions.length > 0 && (
                   <button
@@ -1970,7 +1993,7 @@ export default function Sidebar({
                     data-tip={t("Ver las archivadas")}
                     onClick={() => setShowArchived((v) => !v)}
                   >
-                    ⊟ {flyGroup.archivedSessions.length}
+                    <ArchiveIcon size={13} /> {flyGroup.archivedSessions.length}
                   </button>
                 )}
                 <span className="fly-manage-sep" />
@@ -1995,13 +2018,13 @@ export default function Sidebar({
           {menu.mode === "main" ? (
             <>
               <button className="menu-item" onClick={() => startRename(menu.s)}>
-                {t("✎ Renombrar")}
+                <PencilIcon size={13} /> {t("Renombrar")}
               </button>
               <button
                 className="menu-item"
                 onClick={() => setMenu({ ...menu, mode: "group" })}
               >
-                {t("▣ Mover a grupo…")}
+                <GroupIcon size={13} /> {t("Mover a grupo…")}
               </button>
               <button
                 className="menu-item menu-warn"

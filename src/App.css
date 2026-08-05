@@ -2950,6 +2950,42 @@ body {
   border: 1px solid rgba(126, 224, 138, 0.34);
 }
 
+/* Las que ya tienes puestas, en dorado.
+   Dorado y no gris: gris es «esto no funciona», y aquí lo que pasa es lo
+   contrario, que ya la tienes. El renglón entero se apaga un poco para que la
+   vista caiga sola en las que sí puedes traer, pero el título se sigue leyendo:
+   la lista sirve también para comprobar que una conversación ya está abierta. */
+.ret-ya {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: #f0c46a;
+  background: rgba(240, 196, 106, 0.14);
+  border: 1px solid rgba(240, 196, 106, 0.36);
+}
+
+.ret-item[data-ya="true"] {
+  cursor: default;
+  border-color: rgba(240, 196, 106, 0.24);
+  background: rgba(240, 196, 106, 0.05);
+}
+
+.ret-item[data-ya="true"] .ret-tit {
+  color: #f0c46a;
+}
+
+.ret-item[data-ya="true"] input[type="checkbox"] {
+  opacity: 0.28;
+  cursor: default;
+}
+
+/* Cuántas de las de la lista ya están puestas, al lado del total. */
+.ret-ya-n {
+  margin-left: 6px;
+  color: #f0c46a;
+  opacity: 0.75;
+}
+
 .ret-tope {
   margin: 6px 0 0;
 }
@@ -3812,6 +3848,11 @@ body {
 
 .pane-agents {
   flex: none;
+  /* El robot y su cifra, alineados por el centro y no por la línea base: un
+     SVG no se sienta solo donde se sienta una letra. */
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 11.5px;
   font-weight: 650;
   border-radius: 6px;
@@ -3866,6 +3907,9 @@ body {
 
 .sess-agents {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   font-size: 10px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -3941,11 +3985,12 @@ body {
 }
 
 .skills-toggle {
+  display: inline-flex;
+  align-items: center;
   background: none;
   border: none;
   color: var(--accent);
   cursor: pointer;
-  font-size: 15px;
   border-radius: 999px;
   padding: 4px 6px;
 }
@@ -7298,7 +7343,8 @@ button.stat-card[data-live="false"] {
 
 .ch-caret {
   flex: none;
-  font-size: 9px;
+  display: inline-flex;
+  align-items: center;
   color: var(--muted);
 }
 
@@ -8225,8 +8271,9 @@ button.stat-card[data-live="false"] {
 }
 
 .usage-caret {
+  display: inline-flex;
+  align-items: center;
   color: var(--muted);
-  font-size: 10px;
 }
 
 .usage-bars {
@@ -9172,7 +9219,8 @@ body.arrastrando .obj-flota {
 }
 
 .pick-all {
-  font-size: 17px;
+  display: inline-flex;
+  align-items: center;
   color: var(--accent);
 }
 
@@ -10805,6 +10853,29 @@ textarea.note-body {
 .cp-fill[data-on="true"] {
   border-color: var(--accent-dim);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* Apagado, no escondido. El relleno y el trazo de boceto aparecían solo con la
+   figura correspondiente puesta, así que con el lápiz en la mano la barra se
+   veía igual que antes de que existieran: parecía que no estaban. Un botón
+   apagado enseña que la herramienta existe y qué hay que coger para usarla. */
+.cp-fill:disabled {
+  cursor: default;
+  opacity: 0.34;
+}
+
+.cp-fill:disabled span {
+  border-style: dashed;
+}
+
+/* Lo clavado al tablero: ni se coge ni se arrastra, y el cursor lo dice antes
+   de que lo intentes. */
+.canvas-draw-shape[data-bloq] {
+  cursor: default;
+}
+
+.canvas-draw-shape[data-bloq] .canvas-draw-grab {
+  pointer-events: none;
 }
 
 /* Las utilidades del lienzo: todas comparten forma, así que comparten estilo
@@ -13378,4 +13449,175 @@ textarea.note-body {
 }
 .apagon-fila .card-hint {
   margin: 0;
+}
+
+/* Un icono metido en un rótulo de texto.
+   Los glifos se sentaban solos en la línea base; un SVG no, así que sin esto
+   la papelera de «Tirar este proyecto…» queda medio renglón más abajo que su
+   palabra. El menú flotante no está aquí porque ya coloca los suyos: tenía
+   sitio para un icono desde el principio (`ctx-ico` en Overlays.tsx) y la
+   barra lateral seguía pegando el emoji dentro del texto. */
+.agenda-card > h2 > svg,
+.ag-ses-encargo svg,
+.idea-cond svg,
+.wiz-alt svg {
+  flex: none;
+  vertical-align: -0.14em;
+  margin-right: 2px;
+}
+
+.agenda-card > h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* ===========================================================================
+   EL ORBE DEL ASISTENTE
+   ===========================================================================
+   Un planeta azul y un satélite blanco dando vueltas. Tres formas, y solo una
+   se mueve: ver `Orbe.tsx` para el porqué, y también para QUIÉN la mueve, que
+   es un `<animateMotion>` del propio SVG y no esta hoja.
+   =========================================================================== */
+
+.orbe {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.orbe svg {
+  overflow: visible;
+}
+
+.orbe-planeta {
+  fill: var(--accent);
+}
+
+.orbe-orbita {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  opacity: 0.6;
+  transition: opacity 0.4s ease;
+}
+
+/* EL SATÉLITE.
+   Blanco, y no es decisión de gusto: es lo único que hace que se distinga de
+   su propio planeta justo cuando pasa por delante, que es donde el movimiento
+   se tiene que leer.
+
+   Quién lo mueve NO está aquí: lo mueve el propio componente, frame a frame
+   (ver `Orbe.tsx`). Se probaron `offset-path` de CSS y `<animateMotion>` de
+   SVG y en este WebView no movió nada ninguno. Aquí solo queda cómo se ve, y
+   la transición de opacidad, que es lo que hace que aparecer y desaparecer
+   detrás del planeta no sea un parpadeo. */
+.orbe-satelite {
+  fill: #ffffff;
+  transition: opacity 0.12s linear;
+}
+
+/* Escuchando: has empezado a escribir. */
+.orbe[data-estado="escucha"] .orbe-orbita {
+  opacity: 0.85;
+}
+
+/* Pensando: vuela. Es el estado que tiene que verse desde la otra punta de la
+   pantalla, porque es el que responde a «¿se ha colgado?». */
+.orbe[data-estado="piensa"] .orbe-orbita {
+  opacity: 1;
+}
+
+/* El botón que lo envuelve cuando se puede pulsar: sin caja y sin fondo. */
+.orbe-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: transform 0.16s ease;
+}
+
+.orbe-boton:active {
+  transform: scale(0.92);
+}
+
+/* La mini guía del Asistente.
+   Un cuadro de texto vacío no dice qué acepta, y este acepta lenguaje normal:
+   sin esto hay que adivinar si entiende «ábreme tres claudes» o si hay que
+   hablarle como a una consola. Cada fila se pulsa y se escribe sola, porque
+   leer un ejemplo no te dice si al pulsar Enter va a pasar lo que crees. */
+.fm-guia {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.fm-guia-tit {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.fm-guia ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fm-guia-fila {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.fm-guia-fila:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.fm-guia-que {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* El ejemplo, en la letra de la terminal: dice sin decirlo que eso es lo que
+   se puede teclear tal cual. Se corta con puntos suspensivos porque una fila
+   que crece a dos renglones rompe la columna de la izquierda. */
+.fm-guia-ej {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.fm-guia-pie {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  opacity: 0.85;
 }

@@ -11,17 +11,31 @@
 // see and delete every entry from Control Panel without asking us.
 //
 // Only three operations, because that is all a token needs: put, read, forget.
+//
+// En Linux no existe el Credential Manager, y lo honesto es decir qué se pierde
+// en vez de fingir que es lo mismo: allí el secreto va a un archivo de la
+// carpeta de datos con permisos `600`, que lo protege de OTROS usuarios de la
+// máquina pero no de otro programa tuyo. La alternativa era el Secret Service
+// del escritorio (el crate `keyring`), que arrastra D-Bus y falla en cuanto no
+// hay un llavero corriendo, que es la mitad de las sesiones. Se dice en el
+// README, en la sección de Linux, para que nadie se entere por sorpresa.
 
+#[cfg(windows)]
 use windows::core::{PCWSTR, PWSTR};
+#[cfg(windows)]
 use windows::Win32::Foundation::FILETIME;
+#[cfg(windows)]
 use windows::Win32::Security::Credentials::{
     CredDeleteW, CredFree, CredReadW, CredWriteW, CREDENTIALW, CRED_PERSIST_LOCAL_MACHINE,
     CRED_TYPE_GENERIC,
 };
 
-/// Windows' own ceiling for one credential blob.
+/// Windows' own ceiling for one credential blob. En Linux no hay tope del
+/// sistema, pero se respeta el mismo: un secreto más largo que esto no es un
+/// token, es otra cosa, y el aviso vale igual en los dos sitios.
 const MAX_BLOB: usize = 2560;
 
+#[cfg(windows)]
 fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain(std::iter::once(0)).collect()
 }
@@ -32,6 +46,7 @@ fn target_of(key: &str) -> String {
     format!("Adeorq/{key}")
 }
 
+#[cfg(windows)]
 pub fn put(key: &str, value: &str) -> Result<(), String> {
     let blob = value.as_bytes();
     if blob.len() > MAX_BLOB {
@@ -58,6 +73,7 @@ pub fn put(key: &str, value: &str) -> Result<(), String> {
     unsafe { CredWriteW(&cred, 0) }.map_err(|e| format!("no he podido guardarlo: {e}"))
 }
 
+#[cfg(windows)]
 pub fn get(key: &str) -> Option<String> {
     let target = wide(&target_of(key));
     let mut out = std::ptr::null_mut::<CREDENTIALW>();
@@ -76,6 +92,7 @@ pub fn get(key: &str) -> Option<String> {
     }
 }
 
+#[cfg(windows)]
 pub fn forget(key: &str) -> Result<(), String> {
     let target = wide(&target_of(key));
     // SAFETY: a plain call with a null-terminated string we own.
@@ -83,6 +100,61 @@ pub fn forget(key: &str) -> Result<(), String> {
         Ok(()) => Ok(()),
         // Deleting what is not there is what the caller wanted anyway.
         Err(_) if get(key).is_none() => Ok(()),
+        Err(e) => Err(format!("no he podido borrarlo: {e}")),
+    }
+}
+
+/* ------------------------------------------------------- lo mismo, en Linux */
+
+/// El archivo de un secreto. Un nombre de clave llega del front, así que se
+/// codifica en vez de meterlo tal cual en una ruta: `api:claude` lleva dos
+/// puntos, que en algún sistema de archivos no vale, y `../algo` sería salirse
+/// de la carpeta.
+#[cfg(not(windows))]
+fn ruta_secreto(key: &str) -> Result<std::path::PathBuf, String> {
+    let limpio: String = key
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .collect();
+    if limpio.is_empty() {
+        return Err("nombre de secreto vacío".into());
+    }
+    let dir = crate::dir_datos()?.join("secretos");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    // La carpeta también a 700: si solo se protegiera el archivo, los NOMBRES
+    // de los secretos seguirían siendo legibles, y eso ya dice de más.
+    permisos(&dir, 0o700)?;
+    Ok(dir.join(format!("{limpio}.txt")))
+}
+
+#[cfg(not(windows))]
+fn permisos(p: &std::path::Path, modo: u32) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(p, std::fs::Permissions::from_mode(modo)).map_err(|e| e.to_string())
+}
+
+#[cfg(not(windows))]
+pub fn put(key: &str, value: &str) -> Result<(), String> {
+    if value.len() > MAX_BLOB {
+        return Err("ese secreto es demasiado largo".into());
+    }
+    let p = ruta_secreto(key)?;
+    std::fs::write(&p, value).map_err(|e| e.to_string())?;
+    permisos(&p, 0o600)
+}
+
+#[cfg(not(windows))]
+pub fn get(key: &str) -> Option<String> {
+    std::fs::read_to_string(ruta_secreto(key).ok()?).ok()
+}
+
+#[cfg(not(windows))]
+pub fn forget(key: &str) -> Result<(), String> {
+    let p = ruta_secreto(key)?;
+    match std::fs::remove_file(&p) {
+        Ok(()) => Ok(()),
+        // Borrar lo que no está es lo que quería quien lo pidió.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(format!("no he podido borrarlo: {e}")),
     }
 }

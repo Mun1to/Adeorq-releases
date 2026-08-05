@@ -24,7 +24,14 @@ import "@xyflow/react/dist/style.css";
 import { open as abrirArchivo, save as guardarComo } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { shellCommand, sessionIdOf } from "../lib/comandos";
-import { accionDe, comoTexto, resolver, type AccionId, type Atajos } from "../lib/atajos";
+import {
+  accionDe,
+  comoTexto,
+  escribiendoTexto,
+  resolver,
+  type AccionId,
+  type Atajos,
+} from "../lib/atajos";
 import { tecleandoEnOtro } from "../lib/tecleando";
 import TerminalPane from "./TerminalPane";
 import WidgetNode, { ES_UTILIDAD, WIDGETS, type WidgetData, type WidgetKind } from "./CanvasWidgets";
@@ -33,23 +40,45 @@ import NoteNode, { NOTE_COLORS, type NoteData } from "./CanvasNote";
 import GalleryNode, { type GalleryData } from "./CanvasGallery";
 import WebNode, { comoUrl, type WebData } from "./CanvasWeb";
 import { encargoDeNota } from "../lib/notas";
-import CanvasDraw, {
+import CanvasDraw, { DRAW_TOOLS } from "./CanvasDraw";
+import {
   DRAW_COLORS,
   DRAW_FONTS,
-  DRAW_TOOLS,
   DRAW_WIDTHS,
+  OPACIDADES,
+  RELLENOS,
+  alineados,
   cajaDe,
+  cajaDeVarios,
+  conSuGrupo,
+  desempaquetar,
+  empaquetar,
   fuente,
   movido,
+  nuevoId,
   puntoDeAncla,
+  repartidos,
   seTocan,
+  type Alineacion,
   type Ancla,
   type Caja,
   type DrawTool,
   type FontId,
+  type Guion,
+  type Punta,
   type Trazo,
-} from "./CanvasDraw";
-import { GalleryIcon, NoteIcon, TrashIcon } from "./Icons";
+} from "../lib/trazos";
+import {
+  BrowserIcon,
+  ChatIcon,
+  GalleryIcon,
+  KanbanIcon,
+  NoteIcon,
+  PencilIcon,
+  PinIcon,
+  TrashIcon,
+  UndoIcon,
+} from "./Icons";
 import { kindDeComando } from "./KindIcon";
 import {
   CANVAS_FILE_KIND,
@@ -69,6 +98,7 @@ import {
   readCanvasFile,
   saveBoard,
   saveCanvasFile,
+  saveDrawing,
   savePastedImage,
   sessionContext,
   writePty,
@@ -339,12 +369,23 @@ function Canvas({
   /** Cuánto relleno lleva la próxima caja o elipse: 0 hueca, 0.25 translúcida,
       0.85 maciza. Tres pasos y no una barra, ver el botón. */
   const [relleno, setRelleno] = useState(0);
+  /** Lo transparente que sale lo próximo, borde incluido. 1 es opaco. */
+  const [opacidad, setOpacidad] = useState(1);
+  /** El patrón de la línea: entera, a guiones o a puntos. */
+  const [guion, setGuion] = useState<Guion>("solido");
   /** Si lo próximo se dibuja a mano alzada. Nace apagado a propósito: encenderlo
       de fábrica cambiaría el aspecto de todos los tableros que ya existen. */
   const [rugoso, setRugoso] = useState(false);
   const [fuenteId, setFuenteId] = useState<FontId>("app");
   /** El trazo cogido con la flecha, si hay alguno. */
   const [selTrazo, setSelTrazo] = useState<string | null>(null);
+  /** Y los que se han cogido de varios en varios, rodeándolos con el marco. Se
+      declara aquí arriba, lejos de su historia (ver «coger varias cosas a la
+      vez»), porque la barra de estilo lo necesita y la barra se monta antes. */
+  const [grupo, setGrupo] = useState<Set<string>>(new Set());
+  /** Si el grupo se ha pedido a propósito: es lo que saca la barra de acciones.
+      Ver «coger varias cosas a la vez» para el porqué de que sea aparte. */
+  const [activo, setActivo] = useState(false);
   const [trazos, setTrazos] = useState<Trazo[]>([]);
   const [fijar, setFijar] = useState(false);
   // Un lienzo leído de disco, esperando el OK: importar abre procesos.
@@ -1450,6 +1491,30 @@ ${ruta}` : ruta;
      que hace cualquier editor de dibujo y evita tener dos juegos de botones
      para lo mismo. */
 
+  /**
+   * Todo lo que está cogido ahora mismo, sea de uno en uno o rodeado.
+   *
+   * Los dos caminos existían ya y no hablaban entre ellos: `selTrazo` para el
+   * trazo suelto, con sus tiradores; `grupo` para lo barrido con el marco. La
+   * barra de estilo solo miraba al primero, así que rodear diez flechas y
+   * pulsar un color repintaba una. Esta lista los une, y con ella el color, el
+   * grosor, el relleno y todo lo demás valen para lo que tengas cogido.
+   */
+  const cogidos = useMemo(() => {
+    // Lo agrupado va entero: coger un trazo de un grupo es coger el grupo, y
+    // por eso la lista se expande aquí y no en cada sitio que la use.
+    if (grupo.size) return [...conSuGrupo(grupo, trazos)];
+    return selTrazo ? [...conSuGrupo([selTrazo], trazos)] : [];
+  }, [grupo, selTrazo, trazos]);
+  const cogidosRef = useRef(cogidos);
+  cogidosRef.current = cogidos;
+
+  /** Los trazos cogidos, no sus ids: lo que necesitan alinear, copiar y exportar. */
+  const trazosCogidos = useMemo(() => {
+    const set = new Set(cogidos);
+    return trazos.filter((s) => set.has(s.id));
+  }, [trazos, cogidos]);
+
   /** Repinta lo que esté cogido, si hay algo.
    *
    *  Salir antes cuando no hay nada seleccionado no es un ahorro cosmético:
@@ -1460,11 +1525,12 @@ ${ruta}` : ruta;
    *  la mano vacía costaba eso. */
   const retocarSel = useCallback(
     (cambio: Partial<Trazo>) => {
-      if (!selTrazo) return;
+      if (!cogidos.length) return;
+      const set = new Set(cogidos);
       recordar();
-      setTrazos((p) => p.map((x) => (x.id === selTrazo ? { ...x, ...cambio } : x)));
+      setTrazos((p) => p.map((x) => (set.has(x.id) ? { ...x, ...cambio } : x)));
     },
-    [selTrazo, recordar],
+    [cogidos, recordar],
   );
 
   const usarColor = useCallback(
@@ -1502,7 +1568,6 @@ ${ruta}` : ruta;
 
   /** El relleno rota entre los tres pasos. Un botón que cicla y no tres
       botones: es una sola idea con tres grados, y en la barra el sitio manda. */
-  const RELLENOS = [0, 0.25, 0.85];
   const usarRelleno = useCallback(() => {
     const i = RELLENOS.indexOf(relleno);
     const siguiente = RELLENOS[(i + 1) % RELLENOS.length];
@@ -1510,22 +1575,41 @@ ${ruta}` : ruta;
     retocarSel({ relleno: siguiente });
   }, [relleno, retocarSel]);
 
+  /** Lo transparente que va todo el trazo. Mismo botón que cicla, misma idea:
+      opaco, medio y fantasma. Distinto del relleno, que es solo el interior. */
+  const usarOpacidad = useCallback(() => {
+    const i = OPACIDADES.indexOf(opacidad);
+    const siguiente = OPACIDADES[(i + 1) % OPACIDADES.length];
+    setOpacidad(siguiente);
+    retocarSel({ opacidad: siguiente === 1 ? undefined : siguiente });
+  }, [opacidad, retocarSel]);
+
+  /** Entera, a guiones o a puntos. */
+  const GUIONES: Guion[] = ["solido", "guiones", "puntos"];
+  const usarGuion = useCallback(() => {
+    const i = GUIONES.indexOf(guion);
+    const siguiente = GUIONES[(i + 1) % GUIONES.length];
+    setGuion(siguiente);
+    retocarSel({ guion: siguiente === "solido" ? undefined : siguiente });
+  }, [guion, retocarSel]);
+
   /** Quién tapa a quién. El orden de pintado ES el orden del array, así que
       subir algo al frente es llevarlo al final. Hace falta desde que hay
       relleno: dos cajas macizas que se solapan tienen que poder intercambiarse,
       y hasta ahora el único orden posible era el de dibujado. */
   const mandarAlBorde = useCallback(
     (alFrente: boolean) => {
-      if (!selTrazo) return;
+      if (!cogidos.length) return;
+      const set = new Set(cogidos);
       recordar();
       setTrazos((p) => {
-        const s = p.find((x) => x.id === selTrazo);
-        if (!s) return p;
-        const resto = p.filter((x) => x.id !== selTrazo);
-        return alFrente ? [...resto, s] : [s, ...resto];
+        const elegidos = p.filter((x) => set.has(x.id));
+        if (!elegidos.length) return p;
+        const resto = p.filter((x) => !set.has(x.id));
+        return alFrente ? [...resto, ...elegidos] : [...elegidos, ...resto];
       });
     },
-    [selTrazo, recordar],
+    [cogidos, recordar],
   );
 
   /** El trazo a mano alzada. Al encenderlo sobre algo ya dibujado hay que darle
@@ -1544,10 +1628,246 @@ ${ruta}` : ruta;
   /** Si lo que hay cogido admite relleno: entonces el botón sale aunque la
       herramienta sea la flecha, que es como se le cambia el fondo a una caja
       que ya está dibujada. */
-  const rellenable = useMemo(() => {
-    const s = trazos.find((x) => x.id === selTrazo);
-    return s?.t === "caja" || s?.t === "rombo" || s?.t === "elipse";
-  }, [trazos, selTrazo]);
+  const rellenable = useMemo(
+    () => trazosCogidos.some((s) => s.t === "caja" || s.t === "rombo" || s.t === "elipse"),
+    [trazosCogidos],
+  );
+
+  /** Si entre lo cogido hay alguna línea o flecha: entonces salen los botones
+      de las puntas, que en una caja no significarían nada. */
+  const conPuntas = useMemo(
+    () => trazosCogidos.some((s) => s.t === "flecha" || s.t === "linea"),
+    [trazosCogidos],
+  );
+
+  /* ------------------------------------------------- copiar, pegar, duplicar
+   *
+   * El portapapeles va en JSON con una marca dentro (`empaquetar`), y no en un
+   * estado de React: así se pega en OTRO tablero, que es donde esto de verdad
+   * hace falta. Un estado interno solo serviría dentro de la misma pantalla.
+   */
+
+  /** Coge estos trazos y suelta lo demás. Se usa al pegar y al duplicar: lo
+      recién puesto queda cogido, que es lo que uno espera para moverlo. */
+  const cogerSolo = useCallback((ids: string[]) => {
+    setSelTrazo(ids.length === 1 ? ids[0] : null);
+    setGrupo(ids.length > 1 ? new Set(ids) : new Set());
+    setActivo(ids.length > 1);
+    setTool("sel");
+  }, []);
+
+  const copiar = useCallback(async () => {
+    if (!trazosCogidos.length) return;
+    try {
+      await navigator.clipboard.writeText(empaquetar(trazosCogidos));
+    } catch {
+      // Sin permiso de portapapeles no hay nada que hacer, y avisar de esto en
+      // mitad de un dibujo estorbaría más que el fallo.
+    }
+  }, [trazosCogidos]);
+
+  /** Lo mismo que copiar y pegar, pero de un tirón y sin tocar el portapapeles:
+      así duplicar no te pisa lo que tuvieras copiado. */
+  const DESPLAZA = 16;
+  const duplicar = useCallback(() => {
+    if (!trazosCogidos.length) return;
+    const copias = desempaquetar(empaquetar(trazosCogidos), DESPLAZA, DESPLAZA);
+    if (!copias.length) return;
+    recordar();
+    setTrazos((p) => [...p, ...copias]);
+    cogerSolo(copias.map((s) => s.id));
+  }, [trazosCogidos, recordar, cogerSolo]);
+
+  /** Pegar trazos del portapapeles. Devuelve si se ha quedado con el evento,
+      para que la captura de pantalla siga teniendo su turno. */
+  const pegarTrazos = useCallback(
+    (e: React.ClipboardEvent) => {
+      const txt = e.clipboardData?.getData("text/plain");
+      if (!txt) return false;
+      const copias = desempaquetar(txt, DESPLAZA, DESPLAZA);
+      if (!copias.length) return false;
+      e.preventDefault();
+      recordar();
+      setTrazos((p) => [...p, ...copias]);
+      cogerSolo(copias.map((s) => s.id));
+      return true;
+    },
+    [recordar, cogerSolo],
+  );
+
+  /* ------------------------------------------------ clavar, agrupar, alinear */
+
+  /** Clavar al tablero o soltarlo. Si hay de todo, se clava todo: es lo que se
+      quiere decir al pulsarlo con cinco cosas cogidas. */
+  const bloquear = useCallback(() => {
+    if (!trazosCogidos.length) return;
+    const clavar = trazosCogidos.some((s) => !s.bloq);
+    retocarSel({ bloq: clavar || undefined });
+  }, [trazosCogidos, retocarSel]);
+
+  /** Agrupar lo cogido, o deshacer el grupo si ya lo era. */
+  const agrupar = useCallback(() => {
+    if (trazosCogidos.length < 2) return;
+    const yaEsGrupo =
+      trazosCogidos.every((s) => s.grupo) &&
+      new Set(trazosCogidos.map((s) => s.grupo)).size === 1;
+    retocarSel({ grupo: yaEsGrupo ? undefined : nuevoId() });
+  }, [trazosCogidos, retocarSel]);
+
+  /** Alinear a un borde común. La cuenta vive en `trazos.ts`, aquí solo se
+      guarda: así se puede probar sin abrir la app. */
+  const alinear = useCallback(
+    (como: Alineacion) => {
+      const movidos = alineados(trazosCogidos, como);
+      if (!movidos.length) return;
+      const porId = new Map(movidos.map((s) => [s.id, s]));
+      recordar();
+      setTrazos((p) => p.map((x) => porId.get(x.id) ?? x));
+    },
+    [trazosCogidos, recordar],
+  );
+
+  const repartir = useCallback(
+    (horizontal: boolean) => {
+      const movidos = repartidos(trazosCogidos, horizontal);
+      if (!movidos.length) return;
+      const porId = new Map(movidos.map((s) => [s.id, s]));
+      recordar();
+      setTrazos((p) => p.map((x) => porId.get(x.id) ?? x));
+    },
+    [trazosCogidos, recordar],
+  );
+
+  /** Mover lo cogido con las flechas del teclado: una unidad, o diez con
+      Mayús. Es la única forma de colocar algo al píxel sin pelearse con el
+      imán, y la tiene cualquier editor. */
+  const moverCogidos = useCallback(
+    (dx: number, dy: number) => {
+      const set = new Set(cogidosRef.current);
+      if (!set.size) return;
+      recordar();
+      setTrazos((p) => p.map((x) => (set.has(x.id) && !x.bloq ? movido(x, dx, dy) : x)));
+    },
+    [recordar],
+  );
+
+  /** El estilo copiado con Ctrl+Alt+C, esperando a que lo peguen. No es estado
+      de React porque no se pinta en ningún sitio: solo se recuerda. */
+  const estiloRef = useRef<Partial<Trazo> | null>(null);
+  const copiarEstilo = useCallback(() => {
+    const s = trazosCogidos[0];
+    if (!s) return;
+    estiloRef.current = {
+      color: s.color,
+      w: s.w,
+      glow: s.glow,
+      relleno: s.relleno,
+      opacidad: s.opacidad,
+      guion: s.guion,
+      rugoso: s.rugoso,
+      font: s.font,
+      puntaDe: s.puntaDe,
+      puntaA: s.puntaA,
+    };
+  }, [trazosCogidos]);
+  const pegarEstilo = useCallback(() => {
+    if (estiloRef.current) retocarSel(estiloRef.current);
+  }, [retocarSel]);
+
+  /**
+   * El dibujo, en una imagen.
+   *
+   * Se serializa el SVG que YA está pintado en vez de volver a dibujarlo con
+   * cadenas de texto: cualquier otra cosa sería un segundo motor de dibujo que
+   * hay que mantener a la par del de verdad, y el día que se le añada una
+   * figura, el exportador se queda corto sin que nadie se entere. Del clon se
+   * quitan las capas que no son dibujo (los agarres invisibles, el marco, las
+   * guías) y se recorta a lo que ocupa el tablero.
+   *
+   * A PNG se pasa por un `<canvas>`: el navegador ya sabe rasterizar un SVG,
+   * así que no hace falta ninguna librería.
+   */
+  const exportarDibujo = useCallback(
+    async (comoPng: boolean) => {
+      const vivos = trazosRef.current;
+      // Si hay algo cogido se exporta ESO, y si no, el tablero entero. Es lo
+      // que hace Excalidraw y evita tener dos botones para lo mismo.
+      const elegidos = cogidosRef.current.length
+        ? vivos.filter((s) => cogidosRef.current.includes(s.id))
+        : vivos;
+      const marco = cajaDeVarios(elegidos);
+      const fuenteSvg = hoja.current?.querySelector<SVGSVGElement>(".canvas-draw");
+      if (!marco || !fuenteSvg) {
+        setNote(t("No hay nada dibujado que exportar"));
+        return;
+      }
+      const M = 24;
+      const w = Math.ceil(marco.w + M * 2);
+      const h = Math.ceil(marco.h + M * 2);
+      const clon = fuenteSvg.cloneNode(true) as SVGSVGElement;
+      clon.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clon.setAttribute("width", String(w));
+      clon.setAttribute("height", String(h));
+      clon.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      for (const fuera of clon.querySelectorAll(
+        ".canvas-draw-grab, .canvas-marco, .canvas-guia, .canvas-imana, .canvas-draw-tirador",
+      )) {
+        fuera.remove();
+      }
+      // El grupo de dentro lleva el viewport de la pantalla: se cambia por el
+      // desplazamiento que deja el dibujo pegado a la esquina de la imagen.
+      const capa = clon.querySelector("g");
+      if (capa) capa.setAttribute("transform", `translate(${M - marco.x},${M - marco.y})`);
+      if (cogidosRef.current.length) {
+        const dentro = new Set(elegidos.map((s) => s.id));
+        for (const g of clon.querySelectorAll<SVGGElement>(".canvas-draw-shape")) {
+          // El clon no guarda qué trazo es cada grupo, así que se cuentan en el
+          // mismo orden en el que se pintaron.
+          if (!g.dataset.id || !dentro.has(g.dataset.id)) g.remove();
+        }
+      }
+      const texto = new XMLSerializer().serializeToString(clon);
+      try {
+        const ruta = await guardarComo({
+          defaultPath: `${nombreSugerido(project).replace(/\.json$/i, "")}.${comoPng ? "png" : "svg"}`,
+          filters: [
+            comoPng
+              ? { name: "Imagen PNG", extensions: ["png"] }
+              : { name: "Dibujo SVG", extensions: ["svg"] },
+          ],
+        });
+        if (!ruta) return;
+        if (!comoPng) {
+          await saveDrawing(ruta, [...new TextEncoder().encode(texto)]);
+        } else {
+          // Al doble, que es lo que hace que un diagrama exportado no se vea
+          // borroso al pegarlo en cualquier sitio.
+          const escala = 2;
+          const lienzo = document.createElement("canvas");
+          lienzo.width = w * escala;
+          lienzo.height = h * escala;
+          const ctx = lienzo.getContext("2d");
+          if (!ctx) throw new Error("sin contexto 2D");
+          const img = new Image();
+          const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(texto)}`;
+          await new Promise<void>((ok, mal) => {
+            img.onload = () => ok();
+            img.onerror = () => mal(new Error("no se pudo rasterizar el dibujo"));
+            img.src = url;
+          });
+          ctx.scale(escala, escala);
+          ctx.drawImage(img, 0, 0, w, h);
+          const blob = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, "image/png"));
+          if (!blob) throw new Error("no se pudo generar el PNG");
+          await saveDrawing(ruta, [...new Uint8Array(await blob.arrayBuffer())]);
+        }
+        setNote(t("Dibujo guardado en {r}", { r: ruta }));
+      } catch (e) {
+        setNote(String(e));
+      }
+    },
+    [project, t],
+  );
   /* ------------------------------------------------------ flechas que se pegan
    *
    * Una flecha dibujada sobre una terminal se queda pegada a ella y la sigue.
@@ -1663,8 +1983,6 @@ ${ruta}` : ruta;
    * (rodeando, con Mayús o pidiendo todo).
    */
 
-  const [grupo, setGrupo] = useState<Set<string>>(new Set());
-  const [activo, setActivo] = useState(false);
   /** El botón de borrar, esperando el sí: cerrar terminales mata procesos. */
   const [confirmar, setConfirmar] = useState(false);
   const grupoRef = useRef(grupo);
@@ -1956,10 +2274,51 @@ ${ruta}` : ruta;
         case "borrar":
           if (!hayGrupo) return;
           e.preventDefault();
-          // La primera pulsación pregunta y la segunda borra: el mismo gesto que
-          // el botón, sin obligar a coger el ratón.
-          if (confirmar) borrarGrupo();
+          // Se pregunta SOLO si caen terminales: cerrar una mata a su agente y
+          // eso no se deshace. Un puñado de trazos vuelve con Ctrl+Z, así que
+          // pedir permiso para borrarlos era una pregunta con una sola
+          // respuesta posible, y encima dejaba la tecla pulsada sin efecto
+          // visible: parecía que Suprimir no hacía nada.
+          if (confirmar || !termsDentro) borrarGrupo();
           else setConfirmar(true);
+          return;
+        case "copiar":
+          if (!cogidosRef.current.length) return;
+          e.preventDefault();
+          void copiar();
+          return;
+        case "duplicar":
+          if (!cogidosRef.current.length) return;
+          e.preventDefault();
+          duplicar();
+          return;
+        case "agrupar":
+          e.preventDefault();
+          agrupar();
+          return;
+        case "clavar":
+          e.preventDefault();
+          bloquear();
+          return;
+        case "alFrente":
+          e.preventDefault();
+          mandarAlBorde(true);
+          return;
+        case "alFondo":
+          e.preventDefault();
+          mandarAlBorde(false);
+          return;
+        case "estiloCopiar":
+          e.preventDefault();
+          copiarEstilo();
+          return;
+        case "estiloPegar":
+          e.preventDefault();
+          pegarEstilo();
+          return;
+        case "exportar":
+          e.preventDefault();
+          void exportarDibujo(true);
           return;
         default: {
           // Lo que queda son las herramientas de dibujo, que se llaman igual
@@ -1975,6 +2334,7 @@ ${ruta}` : ruta;
   }, [
     hayGrupo,
     confirmar,
+    termsDentro,
     soltar,
     todo,
     borrarGrupo,
@@ -1983,7 +2343,40 @@ ${ruta}` : ruta;
     ponerWeb,
     ponerGaleria,
     flow,
+    copiar,
+    duplicar,
+    agrupar,
+    bloquear,
+    mandarAlBorde,
+    copiarEstilo,
+    pegarEstilo,
+    exportarDibujo,
   ]);
+
+  /**
+   * Las flechas del teclado mueven lo cogido.
+   *
+   * No entran en el catálogo de atajos porque no son UNA tecla sino cuatro con
+   * el mismo significado, y porque nadie va a querer cambiarlas: son las
+   * flechas en todos los editores que existen. Una unidad del lienzo por
+   * pulsación, diez con Mayús, que es lo justo para colocar algo al píxel sin
+   * pelearse con el imán.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!hoja.current?.offsetParent || escribiendoTexto()) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const paso = e.shiftKey ? 10 : 1;
+      const dx = e.key === "ArrowLeft" ? -paso : e.key === "ArrowRight" ? paso : 0;
+      const dy = e.key === "ArrowUp" ? -paso : e.key === "ArrowDown" ? paso : 0;
+      if (!dx && !dy) return;
+      if (!cogidosRef.current.length) return;
+      e.preventDefault();
+      moverCogidos(dx, dy);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moverCogidos]);
 
   /* ------------------------------------------------- el lienzo, en archivo */
 
@@ -2385,19 +2778,19 @@ ${ruta}` : ruta;
         onClick: ponerGaleria,
       },
       {
-        icon: <span aria-hidden="true">◱</span>,
+        icon: <BrowserIcon size={15} />,
         label: t("Ventana de localhost"),
         hint: comoTexto(mapaRef.current.web) || t("ver la web mientras se hace"),
         onClick: ponerWeb,
       },
       {
-        icon: <span aria-hidden="true">▤</span>,
+        icon: <KanbanIcon size={15} />,
         label: t("Tablero del trabajo"),
         hint: t("quién trabaja y quién te espera"),
         onClick: () => ponerKanban(),
       },
       {
-        icon: <span aria-hidden="true">◗</span>,
+        icon: <ChatIcon size={15} />,
         label: t("Chat con un modelo"),
         hint: t("por tu clave, sin gastar suscripción"),
         onClick: () => ponerChat(),
@@ -2433,6 +2826,15 @@ ${ruta}` : ruta;
       { label: t("Guardar el lienzo…"), hint: t("a un .json"), onClick: () => void exportar() },
       { label: t("Abrir un lienzo…"), onClick: () => void elegirArchivo() },
       { label: "", separator: true },
+      // El dibujo, aparte del tablero: un .json de Adeorq solo lo abre Adeorq,
+      // y un diagrama hay que poder pegarlo en un sitio cualquiera.
+      {
+        label: t("Exportar el dibujo a PNG"),
+        hint: comoTexto(mapaRef.current.exportar),
+        onClick: () => void exportarDibujo(true),
+      },
+      { label: t("Exportar el dibujo a SVG"), onClick: () => void exportarDibujo(false) },
+      { label: "", separator: true },
       {
         label: t("Encajar todo en la pantalla"),
         hint: comoTexto(mapaRef.current.encajar),
@@ -2451,7 +2853,15 @@ ${ruta}` : ruta;
   );
 
   return (
-    <div className="canvas-wrap" onPaste={pegar} tabIndex={-1}>
+    <div
+      className="canvas-wrap"
+      // Dos pegados por el mismo sitio y en este orden: si lo copiado son
+      // trazos nuestros, entran como dibujo; si no, se mira si es una captura.
+      onPaste={(e) => {
+        if (!pegarTrazos(e)) pegar(e);
+      }}
+      tabIndex={-1}
+    >
       {/* La barra manda tres cosas distintas (dónde trabajo, con qué dibujo,
           qué le hago al tablero) y antes eran nueve botones seguidos, todos
           del mismo peso. Ahora cada cosa es un grupo y el trabajo va primero. */}
@@ -2665,45 +3075,120 @@ ${ruta}` : ruta;
                   </button>
                 </>
               )}
-              {/* El relleno, solo donde significa algo. Tres pasos y no una
-                  barra: en un tablero se quiere «hueca», «se ve lo de debajo» o
-                  «tapa», y afinar el 34 % no le sirve a nadie. Va con el color
-                  del trazo, así que el botón enseña justo cómo va a quedar. */}
-              {(tool === "caja" || tool === "rombo" || tool === "elipse" || rellenable) && (
-                <>
-                  <span className="cb-div" />
-                  <button
-                    className="cp-fill"
-                    data-on={relleno > 0}
-                    data-tip={t("Relleno: hueca, translúcida o maciza")}
-                    onClick={usarRelleno}
-                  >
-                    <span style={{ background: color, opacity: relleno || 0.12 }} />
-                  </button>
-                </>
-              )}
-              {/* El trazo de boceto. Solo donde cambia algo: un texto o un
-                  trazo de lápiz no tiemblan, ya son a mano. */}
-              {(tool === "caja" || tool === "rombo" || tool === "elipse" || tool === "linea" || rellenable) && (
-                <>
-                  <span className="cb-div" />
-                  <button
-                    className="cp-btn"
-                    data-on={rugoso}
-                    data-tip={t("Dibujar a mano alzada")}
-                    onClick={usarRugoso}
-                  >
-                    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
-                      <path
-                        d="M2 11.5 C4 9 5 13 7.5 10.5 S11.5 6 14 8"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-                </>
+              {/* El relleno, el boceto y las puntas se quedan SIEMPRE en la
+                  barra, apagados donde no significan nada, en vez de aparecer y
+                  desaparecer. Estaban escondidos tras la herramienta que
+                  tuvieras puesta, así que con el lápiz en la mano la barra se
+                  veía igual que antes de que existieran y parecía que no
+                  estaban. Un botón apagado se aprende; uno que no está, no. */}
+              <span className="cb-div" />
+              <button
+                className="cp-fill"
+                data-on={relleno > 0}
+                disabled={!(tool === "caja" || tool === "rombo" || tool === "elipse" || rellenable)}
+                data-tip={t("Relleno: hueca, translúcida o maciza")}
+                onClick={usarRelleno}
+              >
+                <span style={{ background: color, opacity: relleno || 0.12 }} />
+              </button>
+              <button
+                className="cp-btn"
+                data-on={rugoso}
+                disabled={
+                  !(
+                    tool === "caja" ||
+                    tool === "rombo" ||
+                    tool === "elipse" ||
+                    tool === "linea" ||
+                    tool === "flecha" ||
+                    rellenable ||
+                    conPuntas
+                  )
+                }
+                data-tip={t("Dibujar a mano alzada")}
+                onClick={usarRugoso}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <path
+                    d="M2 11.5 C4 9 5 13 7.5 10.5 S11.5 6 14 8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+              <span className="cb-div" />
+              {/* El patrón de la línea: entera, a guiones, a puntos. El botón
+                  enseña el que viene, que es más rápido de leer que un nombre. */}
+              <button
+                className="cp-btn"
+                data-on={guion !== "solido"}
+                data-tip={t("Línea: entera, a guiones o a puntos")}
+                onClick={usarGuion}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <path
+                    d="M1.5 8 H14.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeDasharray={
+                      guion === "guiones" ? "4 2.6" : guion === "puntos" ? "0.1 3" : undefined
+                    }
+                  />
+                </svg>
+              </button>
+              {/* Lo transparente que va TODO, borde incluido: es lo que
+                  convierte una caja en una marca de agua sobre una terminal. */}
+              <button
+                className="cp-fill"
+                data-on={opacidad < 1}
+                data-tip={t("Transparencia: opaco, medio o fantasma")}
+                onClick={usarOpacidad}
+              >
+                <span style={{ background: color, opacity: opacidad }} />
+              </button>
+              {/* Las puntas, solo si hay una línea o una flecha de por medio:
+                  en una caja no hay dónde ponerlas. */}
+              {(conPuntas || tool === "flecha" || tool === "linea") && (
+                <button
+                  className="cp-btn"
+                  data-tip={t("Las puntas de la línea")}
+                  onClick={(e) =>
+                    menu(
+                      e,
+                      (
+                        [
+                          ["nada", t("Sin punta")],
+                          ["flecha", t("Punta abierta")],
+                          ["triangulo", t("Punta maciza")],
+                        ] as Array<[Punta, string]>
+                      ).flatMap(([p, label]) => [
+                        {
+                          label: `${label} · ${t("al final")}`,
+                          onClick: () => retocarSel({ puntaA: p }),
+                        },
+                        {
+                          label: `${label} · ${t("al principio")}`,
+                          onClick: () => retocarSel({ puntaDe: p }),
+                        },
+                      ]),
+                    )
+                  }
+                >
+                  <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                    <path
+                      d="M2 8 H11 M11 8 L8 5.4 M11 8 L8 10.6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
               )}
               <span className="cb-div" />
               {/* El halo. Se pinta con el color que tengas puesto, así que el
@@ -2724,13 +3209,78 @@ ${ruta}` : ruta;
                   data-tip={t("Mantener la herramienta puesta para dibujar varias seguidas")}
                   onClick={() => setFijar((v) => !v)}
                 >
-                  📌
+                  <PinIcon size={14} />
                 </button>
               )}
             </>
           )}
-          {selTrazo && tool === "sel" ? (
+          {cogidos.length > 0 && tool === "sel" ? (
             <>
+              <button
+                className="cp-btn"
+                data-tip={conTecla(t("Duplicar"), "duplicar")}
+                onClick={duplicar}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <rect x="1.8" y="1.8" width="9" height="9" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.3" opacity="0.5" />
+                  <rect x="5.2" y="5.2" width="9" height="9" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                </svg>
+              </button>
+              <button
+                className="cp-btn"
+                data-on={trazosCogidos.every((s) => s.bloq)}
+                data-tip={conTecla(t("Clavar al tablero"), "clavar")}
+                onClick={bloquear}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <rect x="3.2" y="7" width="9.6" height="6.6" rx="1.4" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M5.4 7 V5.2 a2.6 2.6 0 0 1 5.2 0 V7" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                </svg>
+              </button>
+              {cogidos.length > 1 && (
+                <>
+                  <button
+                    className="cp-btn"
+                    data-on={
+                      trazosCogidos.every((s) => s.grupo) &&
+                      new Set(trazosCogidos.map((s) => s.grupo)).size === 1
+                    }
+                    data-tip={conTecla(t("Agrupar o desagrupar"), "agrupar")}
+                    onClick={agrupar}
+                  >
+                    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                      <rect x="1.6" y="1.6" width="5.4" height="5.4" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                      <rect x="9" y="9" width="5.4" height="5.4" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                      <path d="M7 4.3 H12 a2 2 0 0 1 2 2 V9" fill="none" stroke="currentColor" strokeWidth="1.1" opacity="0.55" />
+                    </svg>
+                  </button>
+                  {/* Alinear y repartir van en un menú y no en ocho botones: se
+                      usan de vez en cuando y la barra ya está llena. */}
+                  <button
+                    className="cp-btn"
+                    data-tip={t("Alinear y repartir")}
+                    onClick={(e) =>
+                      menu(e, [
+                        { label: t("A la izquierda"), onClick: () => alinear("izq") },
+                        { label: t("Centrados a lo ancho"), onClick: () => alinear("centroH") },
+                        { label: t("A la derecha"), onClick: () => alinear("der") },
+                        { label: t("Arriba"), onClick: () => alinear("arriba") },
+                        { label: t("Centrados a lo alto"), onClick: () => alinear("centroV") },
+                        { label: t("Abajo"), onClick: () => alinear("abajo") },
+                        { label: t("Repartir a lo ancho"), onClick: () => repartir(true) },
+                        { label: t("Repartir a lo alto"), onClick: () => repartir(false) },
+                      ])
+                    }
+                  >
+                    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                      <path d="M2 2 V14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                      <rect x="4.4" y="3.4" width="9.6" height="3.4" rx="1" fill="currentColor" opacity="0.8" />
+                      <rect x="4.4" y="9.2" width="6" height="3.4" rx="1" fill="currentColor" opacity="0.55" />
+                    </svg>
+                  </button>
+                </>
+              )}
+              <span className="cb-div" />
               <button
                 className="cp-btn"
                 data-tip={t("Traer al frente")}
@@ -2756,8 +3306,15 @@ ${ruta}` : ruta;
                 className="cp-btn"
                 data-tip={conTecla(t("Borrar lo seleccionado"), "borrar")}
                 onClick={() => {
-                  borrarTrazo(selTrazo);
+                  // Lo clavado no se borra desde aquí: primero se desclava.
+                  const fuera = new Set(
+                    trazosCogidos.filter((s) => !s.bloq).map((s) => s.id),
+                  );
+                  if (!fuera.size) return;
+                  recordar();
+                  setTrazos((p) => p.filter((s) => !fuera.has(s.id)));
                   setSelTrazo(null);
+                  setGrupo(new Set());
                 }}
               >
                 <TrashIcon size={15} />
@@ -2765,7 +3322,10 @@ ${ruta}` : ruta;
               <button
                 className="cp-btn cp-done"
                 data-tip={conTecla(t("Soltar la selección"), "soltar")}
-                onClick={() => setSelTrazo(null)}
+                onClick={() => {
+                  setSelTrazo(null);
+                  setGrupo(new Set());
+                }}
               >
                 {t("Soltar")}
               </button>
@@ -2778,7 +3338,7 @@ ${ruta}` : ruta;
                 data-tip={conTecla(t("Deshacer"), "deshacer")}
                 onClick={deshacer}
               >
-                ↶
+                <UndoIcon size={14} />
               </button>
               <button
                 className="cp-btn"
@@ -2786,7 +3346,7 @@ ${ruta}` : ruta;
                 data-tip={t("Rehacer")}
                 onClick={rehacer}
               >
-                ↷
+                <UndoIcon size={14} redo />
               </button>
               <button
                 className="cp-btn cp-done"
@@ -2963,7 +3523,9 @@ ${ruta}` : ruta;
               <button
                 className="cp-btn cs-danger"
                 data-tip={conTecla(t("Quitar del lienzo todo lo cogido"), "borrar")}
-                onClick={() => setConfirmar(true)}
+                // Igual que la tecla: solo se pregunta si hay terminales de por
+                // medio, que es lo único que no se puede deshacer.
+                onClick={() => (termsDentro ? setConfirmar(true) : borrarGrupo())}
               >
                 {t("Borrar")}
               </button>
@@ -3106,7 +3668,7 @@ ${ruta}` : ruta;
                 {t("Pasar el relevo")}
               </button>
               <button className="mini" data-tip={t("Escribirlo sin enviar")} onClick={() => void runRelay(r, false)}>
-                ✎
+                <PencilIcon size={13} />
               </button>
               <button
                 className="mini"

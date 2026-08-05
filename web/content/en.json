@@ -48,6 +48,7 @@
   "descarga.titulo": "Launch your agent cockpit in 60 seconds.",
   "descarga.lead": "Installer for Windows 10 and 11 (64-bit). Works directly with your existing CLI tools — zero setup fees, no API keys requested, and no account creation.",
   "descarga.boton": "Download for Windows",
+  "descarga.linux": "Download for Linux",
   "descarga.todas": "Browse all releases",
   "descarga.meta.sistema": "Windows 10 & 11 · x64 Native",
   "descarga.gratis": "Free & open development. No trial period, no credit card required.",

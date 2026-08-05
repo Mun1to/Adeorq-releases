@@ -6,16 +6,22 @@
 // and Core Audio exposes a per-app volume, so Adeorq asks the OS instead. It
 // works with Spotify closed-source, with the browser, or with anything else.
 use serde::Serialize;
+#[cfg(windows)]
 use windows::core::Interface;
+#[cfg(windows)]
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
+#[cfg(windows)]
 use windows::Win32::Foundation::CloseHandle;
+#[cfg(windows)]
 use windows::Win32::Media::Audio::{
     eConsole, eRender, IAudioSessionControl2, IAudioSessionManager2, IMMDeviceEnumerator,
     ISimpleAudioVolume, MMDeviceEnumerator,
 };
+#[cfg(windows)]
 use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED,
 };
+#[cfg(windows)]
 use windows::Win32::System::Threading::{
     OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
 };
@@ -32,6 +38,7 @@ pub struct NowPlaying {
     pub volume: Option<u8>,
 }
 
+#[cfg(windows)]
 async fn manager() -> Option<GlobalSystemMediaTransportControlsSessionManager> {
     GlobalSystemMediaTransportControlsSessionManager::RequestAsync()
         .ok()?
@@ -40,6 +47,7 @@ async fn manager() -> Option<GlobalSystemMediaTransportControlsSessionManager> {
 }
 
 /// Prefer Spotify when it has a session; otherwise whatever is in front.
+#[cfg(windows)]
 async fn session() -> Option<windows::Media::Control::GlobalSystemMediaTransportControlsSession> {
     let mgr = manager().await?;
     if let Ok(list) = mgr.GetSessions() {
@@ -56,6 +64,7 @@ async fn session() -> Option<windows::Media::Control::GlobalSystemMediaTransport
     mgr.GetCurrentSession().ok()
 }
 
+#[cfg(windows)]
 fn friendly_app(id: &str) -> String {
     let low = id.to_lowercase();
     if low.contains("spotify") {
@@ -67,6 +76,7 @@ fn friendly_app(id: &str) -> String {
     }
 }
 
+#[cfg(windows)]
 fn process_name(pid: u32) -> Option<String> {
     unsafe {
         let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
@@ -88,6 +98,7 @@ fn process_name(pid: u32) -> Option<String> {
 /// Runs `f` with the audio session volume of the first process whose name
 /// contains `needle` (spotify.exe). COM is initialised per call: these run on
 /// Tauri's command threads, not on a single dedicated one.
+#[cfg(windows)]
 fn with_app_volume<T>(needle: &str, f: impl FnOnce(&ISimpleAudioVolume) -> Option<T>) -> Option<T> {
     unsafe {
         let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
@@ -116,6 +127,7 @@ fn with_app_volume<T>(needle: &str, f: impl FnOnce(&ISimpleAudioVolume) -> Optio
     }
 }
 
+#[cfg(windows)]
 #[tauri::command]
 pub async fn media_now() -> Option<NowPlaying> {
     let s = session().await?;
@@ -147,6 +159,7 @@ pub async fn media_now() -> Option<NowPlaying> {
     })
 }
 
+#[cfg(windows)]
 #[tauri::command]
 pub async fn media_next() -> Result<(), String> {
     let s = session().await.ok_or("no hay nada sonando")?;
@@ -157,6 +170,7 @@ pub async fn media_next() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(windows)]
 #[tauri::command]
 pub async fn media_prev() -> Result<(), String> {
     let s = session().await.ok_or("no hay nada sonando")?;
@@ -167,6 +181,7 @@ pub async fn media_prev() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(windows)]
 #[tauri::command]
 pub async fn media_playpause() -> Result<(), String> {
     let s = session().await.ok_or("no hay nada sonando")?;
@@ -178,6 +193,7 @@ pub async fn media_playpause() -> Result<(), String> {
 }
 
 /// Sets Spotify's own volume (0..100), leaving the rest of Windows alone.
+#[cfg(windows)]
 #[tauri::command]
 pub fn media_set_volume(percent: u8) -> Result<(), String> {
     let level = (percent.min(100) as f32) / 100.0;
@@ -185,4 +201,43 @@ pub fn media_set_volume(percent: u8) -> Result<(), String> {
         v.SetMasterVolume(level, std::ptr::null()).ok().map(|_| ())
     })
     .ok_or_else(|| "Spotify no tiene sonido activo ahora mismo".to_owned())
+}
+
+/* ------------------------------------------------------------ fuera de Windows
+
+   Los mismos comandos, sin nada detrás. No se quitan del registro: el front los
+   llama y una llamada a un comando que no existe se rechaza con un error feo en
+   la consola, cuando lo verdadero es «aquí no hay esto». En Linux el
+   equivalente sería MPRIS, que es otro día y otra dependencia; mientras tanto
+   el reproductor sencillamente no aparece.
+*/
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub async fn media_now() -> Option<NowPlaying> {
+    None
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub async fn media_next() -> Result<(), String> {
+    Err("controlar la música es cosa de Windows por ahora".into())
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub async fn media_prev() -> Result<(), String> {
+    Err("controlar la música es cosa de Windows por ahora".into())
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub async fn media_playpause() -> Result<(), String> {
+    Err("controlar la música es cosa de Windows por ahora".into())
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub fn media_set_volume(_percent: u8) -> Result<(), String> {
+    Err("el volumen por aplicación es cosa de Windows por ahora".into())
 }

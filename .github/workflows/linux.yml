@@ -1,0 +1,137 @@
+# Adeorq para Linux: el AppImage y el .deb.
+#
+# Dos disparadores y dos trabajos distintos, a propósito:
+#
+# · `release: published` construye y SUBE a esa versión. El instalador de
+#   Windows se sigue haciendo a mano en la máquina de Munir, con su clave, así
+#   que este trabajo solo añade lo de Linux a una release que ya existe. Va
+#   DESPUÉS de publicar, nunca a la vez: `tauri-action` lee el `latest.json`
+#   que ya está subido y le añade la plataforma en vez de sobrescribirlo.
+#
+# · La rama `ci/linux` y el botón de «Run workflow» solo COMPILAN, y dejan los
+#   paquetes como artefactos. Es lo que permite saber si el código sigue
+#   compilando fuera de Windows sin publicar nada, que es lo único que se puede
+#   comprobar desde una máquina Windows.
+#
+# ubuntu-22.04 y no la última: un AppImage hereda la glibc de donde se compila,
+# así que compilar en la LTS más vieja que aguante Tauri 2 es lo que hace que
+# corra en más distribuciones. Aquí SÍ se puede, porque Adeorq no arrastra
+# ningún binario precompilado que exija una glibc moderna.
+
+name: Linux
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: [ci/linux]
+  workflow_dispatch:
+
+jobs:
+  linux:
+    # COMPILAR se hace en los dos repositorios: el privado es donde se
+    # programa, así que es ahí donde interesa enterarse de que algo dejó de
+    # compilar fuera de Windows. PUBLICAR, solo en el público, que es donde
+    # viven las releases; si no, cada versión intentaría subir sus paquetes a
+    # un sitio donde no hay ninguna.
+    if: github.event_name != 'release' || github.repository == 'Mun1to/Adeorq-releases'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      # Las dependencias de sistema de Tauri 2 en Linux. `libwebkit2gtk-4.1` es
+      # el motor de la ventana (el equivalente de WebView2 en Windows) y
+      # `patchelf` es lo que empaqueta el AppImage. Adeorq no necesita nada más:
+      # ni audio, ni Vulkan, ni modelos.
+      - name: Instalar las dependencias del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config libssl-dev \
+            libgtk-3-dev libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - run: pnpm install --frozen-lockfile
+
+      # Antes de empaquetar nada: si el código no compila fuera de Windows, que
+      # se vea aquí y con el error de Rust, no dentro de un log de bundling.
+      - name: Comprobar que compila
+        working-directory: src-tauri
+        run: cargo check --all-targets
+
+      - name: Pasar los tests
+        working-directory: src-tauri
+        run: cargo test --lib
+
+      # Publicar: solo cuando esto lo dispara una release.
+      - name: Construir y añadir a la versión
+        if: github.event_name == 'release'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Sin la clave, `tauri build` falla al firmar los artefactos del
+          # actualizador (`createUpdaterArtifacts` está activo en la config).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.event.release.tag_name }}
+          releaseId: ${{ github.event.release.id }}
+          includeUpdaterJson: true
+          # deb y AppImage, no rpm: los dos cubren casi cualquier distribución,
+          # y el AppImage es además el formato que usa el actualizador.
+          args: --bundles deb,appimage
+
+      # Compilar sin publicar, que es lo que se hace desde `ci/linux`.
+      #
+      # SIN artefactos de actualizador, y por eso sin clave: la pregunta de esta
+      # rama es «¿compila y empaqueta?», y firmar no forma parte de esa
+      # pregunta. Con `createUpdaterArtifacts` puesto (que lo está en la
+      # configuración, porque en una release sí hace falta) el build se cae
+      # pidiendo una clave que este repo no tiene que guardar.
+      - name: Construir sin publicar
+        if: github.event_name != 'release'
+        run: >
+          pnpm tauri build --bundles deb,appimage
+          --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      # Una copia con nombre FIJO, sin la versión dentro, para que el botón del
+      # README pueda apuntar a `releases/latest/download/Adeorq-x86_64.AppImage`
+      # y no caduque en cada publicación. Es lo mismo que ya se hace con
+      # `Adeorq-setup.exe` en Windows.
+      - name: Subir la copia de nombre fijo
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          appimage=$(find src-tauri/target/release/bundle/appimage -maxdepth 1 -name "*.AppImage" | head -n1)
+          cp "$appimage" Adeorq-x86_64.AppImage
+          gh release upload "${{ github.event.release.tag_name }}" Adeorq-x86_64.AppImage \
+            --clobber --repo ${{ github.repository }}
+
+      - name: Guardar los paquetes
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: adeorq-linux
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: error

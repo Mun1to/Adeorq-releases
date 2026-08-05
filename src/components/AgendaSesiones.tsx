@@ -9,6 +9,7 @@ import {
   type SessionInfo,
 } from "../lib/pty";
 import ProjectAvatar from "./ProjectAvatar";
+import { FlagIcon, FoldersIcon } from "./Icons";
 
 // Todas tus sesiones, ordenadas por quién te espera.
 //
@@ -151,7 +152,10 @@ export default function AgendaSesiones({ modelo, onResume }: Props) {
 
   return (
     <section className="panel-card agenda-card">
-      <h2>{t("🗂 Todas tus sesiones")}</h2>
+      <h2>
+        <FoldersIcon size={16} />
+        {t("Todas tus sesiones")}
+      </h2>
       <p className="card-hint">
         {t(
           "Lo que tienes vivo ahora mismo, lo que te espera primero. El estado sale del disco y es exacto; la línea de debajo la escribe tu modelo local, solo para las que te esperan.",
@@ -190,7 +194,9 @@ export default function AgendaSesiones({ modelo, onResume }: Props) {
                   {linea ? (
                     <span className="ag-ses-necesita stream-hide">{linea}</span>
                   ) : e?.encargo ? (
-                    <span className="ag-ses-encargo stream-hide">⚑ {e.encargo}</span>
+                    <span className="ag-ses-encargo stream-hide">
+                        <FlagIcon size={12} /> {e.encargo}
+                      </span>
                   ) : null}
                 </span>
               </button>

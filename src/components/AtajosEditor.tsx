@@ -9,6 +9,9 @@ import {
   type AccionId,
   type Atajos,
 } from "../lib/atajos";
+import {
+  CloseIcon,
+} from "./Icons";
 
 // El editor de atajos: la tabla de qué hace cada tecla en el lienzo.
 //
@@ -90,7 +93,7 @@ export default function AtajosEditor({ atajos, onChange }: Props) {
                   disabled={!val}
                   onClick={() => quitar(a.id)}
                 >
-                  ✕
+                  <CloseIcon size={13} />
                 </button>
               </div>
             );

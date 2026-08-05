@@ -11,8 +11,7 @@
 use std::path::{Path, PathBuf};
 
 fn accounts_root() -> Result<PathBuf, String> {
-    let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-    Ok(Path::new(&local).join("Adeorq").join("accounts"))
+    Ok(crate::dir_datos()?.join("accounts"))
 }
 
 /// Folder names come from a label Munir types, so keep them boring.
@@ -69,7 +68,7 @@ pub fn account_ready(config_dir: String, files: Vec<String>, home_dir: Option<St
         let Some(rel) = home_dir.filter(|h| !h.trim().is_empty()) else {
             return false;
         };
-        let Ok(home) = std::env::var("USERPROFILE") else {
+        let Some(home) = crate::dir_casa() else {
             return false;
         };
         // Providers write "a/b" style paths; join handles both separators.
@@ -99,7 +98,7 @@ pub struct CliFound {
 pub fn cli_effort(config_dir: Option<String>) -> Option<String> {
     let base = match config_dir.as_deref().filter(|d| !d.is_empty()) {
         Some(dir) => PathBuf::from(dir),
-        None => PathBuf::from(std::env::var("USERPROFILE").ok()?).join(".claude"),
+        None => crate::dir_casa()?.join(".claude"),
     };
     let text = std::fs::read_to_string(base.join("settings.json")).ok()?;
     let value: serde_json::Value = serde_json::from_str(&text).ok()?;
@@ -117,11 +116,22 @@ pub fn cli_effort(config_dir: Option<String>) -> Option<String> {
 #[tauri::command]
 pub fn detect_clis(exes: Vec<(String, String)>) -> Vec<CliFound> {
     let path = std::env::var("PATH").unwrap_or_default();
-    let dirs: Vec<&str> = path.split(';').filter(|d| !d.is_empty()).collect();
+    // El separador del PATH no es el mismo en los dos sitios: `;` en Windows,
+    // `:` en todo lo demás. Con el de Windows, en Linux el PATH entero sería UNA
+    // carpeta con dos puntos dentro y no se encontraría ni un CLI.
+    let sep = if cfg!(windows) { ';' } else { ':' };
+    let dirs: Vec<&str> = path.split(sep).filter(|d| !d.is_empty()).collect();
     let mut out = Vec::new();
     for (id, exe) in exes {
         let found = dirs.iter().find_map(|dir| {
-            for ext in ["exe", "cmd", "bat", "ps1", ""] {
+            // En Linux un ejecutable no lleva extensión; probar las de
+            // Windows ahí es gastar cuatro `stat` por carpeta para nada.
+            let exts: &[&str] = if cfg!(windows) {
+                &["exe", "cmd", "bat", "ps1", ""]
+            } else {
+                &[""]
+            };
+            for ext in exts {
                 let name = if ext.is_empty() {
                     exe.clone()
                 } else {
@@ -136,8 +146,8 @@ pub fn detect_clis(exes: Vec<(String, String)>) -> Vec<CliFound> {
         });
         // Claude installs itself outside PATH for the shell Adeorq spawns.
         let found = found.or_else(|| {
-            let home = std::env::var("USERPROFILE").ok()?;
-            let p = Path::new(&home)
+            let home = crate::dir_casa()?;
+            let p = home
                 .join(".local")
                 .join("bin")
                 .join(format!("{exe}.exe"));

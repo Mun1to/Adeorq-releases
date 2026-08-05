@@ -7,11 +7,10 @@
 // real work done, which is the number that tells him how the week is going.
 use serde::Serialize;
 use serde_json::Value;
-use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
+use crate::SinVentana;
 
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 const LIMITS_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// The config folder of an account. `None` is the main one (`~/.claude`); any
@@ -277,7 +276,7 @@ pub async fn usage_limits(config_dir: Option<String>) -> Result<Limits, String> 
             "--session-id",
             &id,
         ])
-        .creation_flags(CREATE_NO_WINDOW)
+        .sin_ventana()
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())
         .stdin(std::process::Stdio::null());

@@ -14,6 +14,7 @@ vista a ninguno.
 <br>
 
 [![Descargar Adeorq para Windows](web/assets/descargar-windows.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe)
+[![Descargar Adeorq para Linux](web/assets/descargar-linux.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage)
 
 **Gratis · sin cuenta · sin API keys · se actualiza sola**
 
@@ -74,6 +75,34 @@ y de ningún otro sitio. Y una vez instalado, **las actualizaciones sí van firm
 verifica la firma criptográfica de cada una antes de aplicarla, así que ese aviso solo sale
 la primera vez.
 
+## En Linux
+
+Descarga
+**[Adeorq-x86_64.AppImage](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage)**,
+dale permiso y arráncalo. No hay nada que instalar:
+
+```bash
+chmod +x Adeorq-x86_64.AppImage
+./Adeorq-x86_64.AppImage
+```
+
+En la [página de releases](https://github.com/Mun1to/Adeorq-releases/releases/latest) hay
+también un `.deb` para Debian y Ubuntu (`sudo apt install ./Adeorq_*.deb`).
+
+**Tres cosas funcionan distinto**, y es mejor saberlas antes que descubrirlas:
+
+- **Los secretos.** En Windows van al Almacén de credenciales, que los cifra con tu sesión.
+  En Linux no existe ese almacén, así que van a un archivo con permisos `600` dentro de
+  `~/.local/share/adeorq/secretos`: eso los protege de otros usuarios de la máquina, no de
+  otro programa tuyo.
+- **El reproductor de música** (qué suena, siguiente, volumen) es de Windows: lo publica el
+  propio sistema y en Linux el equivalente es MPRIS, que todavía no está.
+- **La ventana es translúcida**, así que necesita un escritorio con composición. Cualquier
+  GNOME o KDE moderno la tiene; en uno sin compositor el cristal se verá opaco.
+
+Se compila sobre **Ubuntu 22.04**, así que hace falta glibc 2.35 o posterior (Ubuntu 22.04+,
+Debian 12+, Fedora 36+, Arch).
+
 ## Compilarlo tú
 
 ```bash
@@ -82,7 +111,13 @@ pnpm tauri dev      # ventana de desarrollo
 pnpm tauri build    # instalador
 ```
 
-Hace falta [Rust](https://rustup.rs) y las herramientas de compilación de Visual Studio.
+Hace falta [Rust](https://rustup.rs). En Windows, además, las herramientas de compilación de
+Visual Studio; en Linux, las de Tauri 2:
+
+```bash
+sudo apt install build-essential pkg-config libssl-dev \
+  libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+```
 
 ## Licencia
 

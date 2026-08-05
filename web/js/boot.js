@@ -134,6 +134,7 @@
       'cta.windows': 'Download for Windows',
       'cta.meta': 'free, no account required',
       'cta.como': 'See how it works',
+      'descarga.linux': 'Download for Linux',
       'hero.nota1': 'Windows 10 & 11',
       'hero.nota2': 'Signed updates',
       'hero.nota3': 'No API keys required',

@@ -34,14 +34,23 @@ export type AccionId =
   | "texto"
   | "goma"
   | "deshacer"
-  | "rehacer";
+  | "rehacer"
+  | "copiar"
+  | "duplicar"
+  | "agrupar"
+  | "clavar"
+  | "alFrente"
+  | "alFondo"
+  | "estiloCopiar"
+  | "estiloPegar"
+  | "exportar";
 
 export interface Accion {
   id: AccionId;
   /** Lo que se lee en Ajustes. En español, que es la clave del diccionario. */
   label: string;
   /** El grupo bajo el que se ordena en la tabla. */
-  grupo: "abrir" | "piezas" | "seleccion" | "dibujo";
+  grupo: "abrir" | "piezas" | "seleccion" | "dibujo" | "editar";
   /** La combinación de fábrica, o "" si esa acción nace sin atajo. */
   porDefecto: string;
 }
@@ -83,6 +92,20 @@ export const ACCIONES: Accion[] = [
   { id: "goma", label: "Herramienta: la goma", grupo: "dibujo", porDefecto: "E" },
   { id: "deshacer", label: "Deshacer", grupo: "dibujo", porDefecto: "Ctrl+Z" },
   { id: "rehacer", label: "Rehacer", grupo: "dibujo", porDefecto: "Ctrl+Shift+Z" },
+
+  // Las de editar son las de siempre en un editor de dibujo, y todas llevan
+  // Ctrl: caen dentro de una terminal solo si el foco NO está en ella, que es
+  // lo que ya comprueba `accionDe`. Pegar no está aquí porque no es un atajo
+  // nuestro: es el evento `paste` del navegador, que trae consigo lo copiado.
+  { id: "copiar", label: "Copiar lo cogido", grupo: "editar", porDefecto: "Ctrl+C" },
+  { id: "duplicar", label: "Duplicar lo cogido", grupo: "editar", porDefecto: "Ctrl+D" },
+  { id: "agrupar", label: "Agrupar o desagrupar", grupo: "editar", porDefecto: "Ctrl+G" },
+  { id: "clavar", label: "Clavar al tablero", grupo: "editar", porDefecto: "Ctrl+L" },
+  { id: "alFrente", label: "Traer al frente", grupo: "editar", porDefecto: "Ctrl+Shift+ArrowUp" },
+  { id: "alFondo", label: "Enviar al fondo", grupo: "editar", porDefecto: "Ctrl+Shift+ArrowDown" },
+  { id: "estiloCopiar", label: "Copiar el estilo", grupo: "editar", porDefecto: "Ctrl+Alt+C" },
+  { id: "estiloPegar", label: "Pegar el estilo", grupo: "editar", porDefecto: "Ctrl+Alt+V" },
+  { id: "exportar", label: "Exportar el dibujo", grupo: "editar", porDefecto: "Ctrl+Shift+E" },
 ];
 
 export const GRUPOS: Array<{ id: Accion["grupo"]; label: string }> = [
@@ -90,6 +113,7 @@ export const GRUPOS: Array<{ id: Accion["grupo"]; label: string }> = [
   { id: "piezas", label: "Poner piezas" },
   { id: "seleccion", label: "Coger y soltar" },
   { id: "dibujo", label: "Dibujar" },
+  { id: "editar", label: "Editar el dibujo" },
 ];
 
 export type Atajos = Partial<Record<AccionId, string>>;
@@ -195,5 +219,19 @@ export function accionDe(e: KeyboardEvent, mapa: Record<AccionId, string>): Acci
   for (const a of ACCIONES) {
     if (mapa[a.id] === pulsado) return a.id;
   }
+  // Y si no era ninguna, se prueba con su gemela. Retroceso y Suprimir borran
+  // en todos los editores que existen, y quien tiene diez trazos cogidos pulsa
+  // la que le pilla más cerca sin pensarlo: mapear solo una es una pelea
+  // perdida contra la costumbre de todo el mundo.
+  const gemela = GEMELAS[pulsado];
+  if (gemela) {
+    for (const a of ACCIONES) {
+      if (mapa[a.id] === gemela) return a.id;
+    }
+  }
   return null;
 }
+
+/** Teclas que significan lo mismo que otra. Se resuelven DESPUÉS del mapa, así
+    que si alguien le pone a algo el Retroceso a propósito, gana lo suyo. */
+const GEMELAS: Record<string, string> = { Backspace: "Delete" };

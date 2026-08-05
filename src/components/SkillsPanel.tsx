@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { listSkills, type Skill } from "../lib/pty";
 import { useT } from "../lib/i18n";
 import UsagePanel from "./UsagePanel";
+import {
+  ChevronIcon,
+  SparkIcon,
+} from "./Icons";
 
 interface Props {
   canPaste: boolean;
@@ -47,7 +51,7 @@ export default function SkillsPanel({ canPaste, onUse, onUsage }: Props) {
           onClick={toggle}
           data-tip={t("Mostrar skills y uso")}
         >
-          ✦
+          <SparkIcon size={13} />
         </button>
         {/* Plegado también dice lo que hay dentro: aquí no viven solo las
             skills, debajo está el uso de la cuenta, y el rótulo de antes lo
@@ -62,7 +66,7 @@ export default function SkillsPanel({ canPaste, onUse, onUsage }: Props) {
       <div className="skills-head">
         <span className="skills-title">✦ {t("Skills")}</span>
         <button className="mini" onClick={toggle} data-tip={t("Ocultar panel")}>
-          ▸
+          <ChevronIcon size={12} />
         </button>
       </div>
       <p className="skills-hint">

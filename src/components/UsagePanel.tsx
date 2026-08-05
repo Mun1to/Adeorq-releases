@@ -8,6 +8,10 @@ import {
   type UsageReport,
 } from "../lib/pty";
 import { useT } from "../lib/i18n";
+import {
+  ChevronIcon,
+  RefreshIcon,
+} from "./Icons";
 
 // Bottom right corner: how the plan is doing, in two blocks.
 //
@@ -106,7 +110,7 @@ export default function UsagePanel({ onUsage }: { onUsage: (() => void) | null }
           {plan?.subscription && <em className="usage-plan">{plan.subscription}</em>}
         </span>
         {limits[0] && <span className="usage-week">{limits[0].percent}%</span>}
-        <span className="usage-caret">{open ? "▾" : "▸"}</span>
+        <span className="usage-caret"><ChevronIcon size={12} up={!open} /></span>
       </button>
 
       {open && (
@@ -120,7 +124,7 @@ export default function UsagePanel({ onUsage }: { onUsage: (() => void) | null }
                 disabled={busy}
                 onClick={refresh}
               >
-                {busy ? "…" : "↻"}
+                {busy ? "…" : <RefreshIcon size={13} />}
               </button>
             </div>
 

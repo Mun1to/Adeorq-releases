@@ -501,3 +501,354 @@ export function RepartoIcon({ size = 17 }: Props) {
     </svg>
   );
 }
+
+/* --------------------------------------------------------------------------
+   Los que faltaban, y por qué son tantos de golpe.
+
+   La app llevaba 260 glifos de fuente haciendo de icono: la papelera, el
+   calendario, la bombilla y la diana en las cabeceras; el lápiz, la recarga,
+   la equis, la bandera, el aviso y el rayo en los botones; y los triangulitos,
+   los rombos y los destellos repartidos por todas partes. Es el mismo problema
+   que este archivo abrió resolviendo en los botones de los paneles y siguió
+   resolviendo en el header, solo que en el resto de la casa nadie lo había
+   terminado: cada glifo con su grosor, su rejilla y su tamaño real distintos,
+   y los emoji además cambiando de dibujo entre versiones de Windows.
+
+   La forma la marca Bootstrap Icons (MIT), que es donde Munir señaló: se ha
+   mirado cómo resuelven cada figura y se ha vuelto a dibujar en la rejilla de
+   esta casa. No se instala su paquete, y el motivo es medible: los suyos son
+   MACIZOS sobre 16 y estos son de LÍNEA sobre 24 con trazo 1,9, así que
+   mezclarlos habría dejado dos estilos en la misma barra en vez de arreglar el
+   que ya había.
+   -------------------------------------------------------------------------- */
+
+/** Renombrar: el lápiz de siempre, con su punta y su trazo. */
+export function PencilIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0 0-3l-1-1a2.1 2.1 0 0 0-3 0L4 16z" />
+      <path d="M13.5 6.5 17.5 10.5" />
+    </svg>
+  );
+}
+
+/** Calendario: la hoja con sus dos anillas. */
+export function CalendarIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.4" />
+      <path d="M3.5 10h17M8.5 3v4M15.5 3v4" />
+    </svg>
+  );
+}
+
+/** Ideas: la bombilla. La rosca la hacen dos rayas y no un rectángulo, que a
+    17px se convierte en una mancha. */
+export function BulbIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M9 17.5a6 6 0 1 1 6 0v1.5a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 19z" />
+      <path d="M9.5 17.5h5" />
+    </svg>
+  );
+}
+
+/** Próximos pasos: la diana. Tres aros, no cuatro: el cuarto ya no se ve. */
+export function TargetIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.6" />
+      <circle cx="12" cy="12" r="1.1" />
+    </svg>
+  );
+}
+
+/** De tus agentes: la bandeja de entrada, con lo que cae dentro. */
+export function InboxIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M3.5 13.5 6 5.2A1.8 1.8 0 0 1 7.7 4h8.6a1.8 1.8 0 0 1 1.7 1.2l2.5 8.3" />
+      <path d="M3.5 13.5h4.2l1.2 2.6h6.2l1.2-2.6h4.2v4.7a1.8 1.8 0 0 1-1.8 1.8H5.3a1.8 1.8 0 0 1-1.8-1.8z" />
+    </svg>
+  );
+}
+
+/** Una carpeta. */
+export function FolderIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M3.5 7.2a1.8 1.8 0 0 1 1.8-1.8h3.6l2 2.4h7.8a1.8 1.8 0 0 1 1.8 1.8v8.6a1.8 1.8 0 0 1-1.8 1.8H5.3a1.8 1.8 0 0 1-1.8-1.8z" />
+    </svg>
+  );
+}
+
+/** Varias carpetas: todas tus sesiones. La de atrás asomando por arriba. */
+export function FoldersIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M6.5 6.6V5.4a1.7 1.7 0 0 1 1.7-1.7h2.8l1.7 2h5a1.7 1.7 0 0 1 1.7 1.7v.8" />
+      <path d="M2.8 10.4a1.7 1.7 0 0 1 1.7-1.7h3.4l1.7 2h9.9a1.7 1.7 0 0 1 1.7 1.7v6.2a1.7 1.7 0 0 1-1.7 1.7H4.5a1.7 1.7 0 0 1-1.7-1.7z" />
+    </svg>
+  );
+}
+
+/** Desbloqueado: el candado con el arco abierto hacia un lado. */
+export function UnlockIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="4.5" y="10.5" width="15" height="9.5" rx="2.2" />
+      <path d="M8 10.5V7.4A4 4 0 0 1 15.8 6" />
+    </svg>
+  );
+}
+
+/** Una imagen: el marco con su sol y su monte.
+
+    Sirve también para «ponerle un logo a un proyecto», que es elegir una
+    imagen: se probó una chapa con su marca dentro y no se leía como lo que
+    hace el botón (Munir, 2026-08-05). El paisaje de toda la vida sí. */
+export function ImageIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.4" />
+      <circle cx="8.8" cy="9.8" r="1.7" />
+      <path d="M3.5 16.5 9 11.6l4.4 4 2.6-2.3 4.5 4" />
+    </svg>
+  );
+}
+
+/** La chincheta: mantener la herramienta puesta. */
+export function PinIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M9 3.5h6l-.9 6 3.4 3.2H6.5L9.9 9.5z" />
+      <path d="M12 12.7V20.5" />
+    </svg>
+  );
+}
+
+/** Deshacer y rehacer: la flecha que da la vuelta. Es la MISMA figura
+    espejada, que es lo que hace que se lean como pareja. */
+export function UndoIcon({ size = 17, redo = false }: Props & { redo?: boolean }) {
+  return (
+    <svg {...svg(size)} style={redo ? { transform: "scaleX(-1)" } : undefined}>
+      <path d="M4 8.5h9.5a5.5 5.5 0 1 1 0 11H8" />
+      <path d="M7.4 4.6 3.5 8.5l3.9 3.9" />
+    </svg>
+  );
+}
+
+/** Volver a empezar: el círculo que se muerde la cola. Distinto de recargar a
+    propósito: aquel trae datos de fuera, este pone algo a cero. */
+export function ResetIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+      <path d="M20.5 3.5v5h-5" />
+    </svg>
+  );
+}
+
+/** Una bandera: el encargo que lleva puesto una sesión. */
+export function FlagIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M5.5 20.5V4" />
+      <path d="M5.5 5h11.8l-2.2 4 2.2 4H5.5" />
+    </svg>
+  );
+}
+
+/** Aviso: el triángulo. La admiración va en dos trazos porque un punto suelto
+    a este tamaño se pierde. */
+export function WarnIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M10.3 4.1 2.8 17.2A2 2 0 0 0 4.5 20.2h15a2 2 0 0 0 1.7-3L13.7 4.1a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9.5v4.2M12 16.9v.1" />
+    </svg>
+  );
+}
+
+/** El rayo: reanimar una terminal colgada. */
+export function BoltIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M13.5 2.5 4.5 13.5h6l-1 8 9-11h-6z" />
+    </svg>
+  );
+}
+
+/** El destello: «esto lo hace una IA». Cuatro puntas y no seis: a este tamaño
+    las de seis se convierten en una estrella de sheriff. */
+export function SparkIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 2.8c0 4.6 2.6 7.2 7.2 7.2-4.6 0-7.2 2.6-7.2 7.2 0-4.6-2.6-7.2-7.2-7.2 4.6 0 7.2-2.6 7.2-7.2z" />
+      <path d="M18.4 15.4c0 2 1.1 3.1 3.1 3.1-2 0-3.1 1.1-3.1 3.1 0-2-1.1-3.1-3.1-3.1 2 0 3.1-1.1 3.1-3.1z" />
+    </svg>
+  );
+}
+
+/** El rombo de Antigravity. */
+export function DiamondIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 2.8 21.2 12 12 21.2 2.8 12z" />
+    </svg>
+  );
+}
+
+/** Un grupo: la caja con algo dentro. Sirve para «mover a grupo» y para el
+    contador de agentes que cuelgan de una sesión. */
+export function GroupIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3.2" y="3.2" width="17.6" height="17.6" rx="3" />
+      <rect x="8" y="8" width="8" height="8" rx="1.6" />
+    </svg>
+  );
+}
+
+/** Suelta, sin proyecto: el eslabón partido. */
+export function UnlinkIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M9.5 14.5 7.2 16.8a3.7 3.7 0 0 1-5.2-5.2l2.3-2.3" />
+      <path d="M14.5 9.5l2.3-2.3a3.7 3.7 0 0 1 5.2 5.2l-2.3 2.3" />
+      <path d="M9 3.5v2.2M3.5 9h2.2M15 20.5v-2.2M20.5 15h-2.2" />
+    </svg>
+  );
+}
+
+/** La tecla de intro: devolver algo a su sitio. */
+export function EnterIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M20 5v7.5a3 3 0 0 1-3 3H4.5" />
+      <path d="M8.4 11.6 4 15.5l4.4 3.9" />
+    </svg>
+  );
+}
+
+/** Reproducir, pausar y saltar: el mando del reproductor. */
+export function PlayIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M7.5 4.6 19 12 7.5 19.4z" />
+    </svg>
+  );
+}
+
+export function PauseIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M9 4.5v15M15 4.5v15" />
+    </svg>
+  );
+}
+
+export function SkipIcon({ size = 17, back = false }: Props & { back?: boolean }) {
+  return (
+    <svg {...svg(size)} style={back ? { transform: "scaleX(-1)" } : undefined}>
+      <path d="M6 5 16 12 6 19z" />
+      <path d="M18.5 5v14" />
+    </svg>
+  );
+}
+
+/** Enviar: la flecha que sube. */
+export function SendIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 20V4.6" />
+      <path d="M5.6 11 12 4.6 18.4 11" />
+    </svg>
+  );
+}
+
+/**
+ * Los agentes que cuelgan de una sesión: un robot.
+ *
+ * Iba con un ▣, que no dice nada, y este contador sale en la cabecera de cada
+ * terminal y en cada fila de la barra lateral: es de los que más se miran.
+ *
+ * Minimalista de verdad, no «sencillo»: a 13px caben la antena, la cabeza y
+ * dos ojos, y ni una línea más. Con boca, orejas o cuerpo se convierte en una
+ * mancha con una antena. Los ojos van con `stroke-linecap: round` sobre un
+ * trazo de longitud cero, que es como se dibuja un punto redondo aquí sin
+ * meter dos círculos que a este tamaño se rellenan solos.
+ */
+export function RobotIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 3v3" />
+      <rect x="3.8" y="6" width="16.4" height="12.6" rx="3.4" />
+      <path d="M9 11.4v.1M15 11.4v.1" />
+    </svg>
+  );
+}
+
+/** El tablero del trabajo: columnas de distinta altura, que es lo que se ve al
+    abrirlo y lo que lo distingue de una lista. */
+export function KanbanIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3" y="3.5" width="18" height="17" rx="2.6" />
+      <path d="M8.4 7.6v9.3M15.6 7.6v5.4" />
+    </svg>
+  );
+}
+
+/** Chat con un modelo: el bocadillo. La colita va abajo a la izquierda porque
+    es de donde salen en toda la app. */
+export function ChatIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M20.5 14.6a2.4 2.4 0 0 1-2.4 2.4H8.4L4 20.5V6.4A2.4 2.4 0 0 1 6.4 4h11.7a2.4 2.4 0 0 1 2.4 2.4z" />
+    </svg>
+  );
+}
+
+/** Una ventana de localhost: el marco del navegador con su barra. */
+export function BrowserIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3" y="4.5" width="18" height="15" rx="2.4" />
+      <path d="M3 9.2h18" />
+      <path d="M6.4 6.9v.1M9.2 6.9v.1" />
+    </svg>
+  );
+}
+
+/** Abrir fuera: la flecha que se sale de su caja. */
+export function ExternalIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M13.5 4.5h6v6" />
+      <path d="M19.5 4.5 11 13" />
+      <path d="M18 14.5v4a1.9 1.9 0 0 1-1.9 1.9H5.4A1.9 1.9 0 0 1 3.5 18.6V7.9A1.9 1.9 0 0 1 5.4 6h4.1" />
+    </svg>
+  );
+}
+
+/** Información: el porqué de una decisión del Capataz. */
+export function InfoIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="12" cy="12" r="8.8" />
+      <path d="M12 11v5.2M12 7.9v.1" />
+    </svg>
+  );
+}
+
+/** A todas: una orden que se reparte a varias terminales a la vez. */
+export function BroadcastIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M3.5 7h11M3.5 12h11M3.5 17h11" />
+      <path d="M17 4.5 20.5 7 17 9.5M17 14.5 20.5 17 17 19.5" />
+    </svg>
+  );
+}

@@ -36,8 +36,7 @@ pub struct Note {
 const DEFAULT_PROJECT: &str = "ecosistema";
 
 pub fn inbox_path() -> Option<PathBuf> {
-    let local = std::env::var("LOCALAPPDATA").ok()?;
-    Some(PathBuf::from(local).join("Adeorq").join("bandeja.md"))
+    Some(crate::dir_datos().ok()?.join("bandeja.md"))
 }
 
 /// Everything an agent could reasonably write for "this is a next step".

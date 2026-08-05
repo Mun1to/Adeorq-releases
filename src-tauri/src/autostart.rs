@@ -12,16 +12,15 @@
 // So the switch always governs the INSTALLED app, and in a dev build it says
 // so rather than registering the throwaway binary.
 
-use auto_launch::{AutoLaunchBuilder, WindowsEnableMode};
+use auto_launch::AutoLaunchBuilder;
+#[cfg(windows)]
+use auto_launch::WindowsEnableMode;
 
 const APP_NAME: &str = "Adeorq";
 
 /// Where the installer puts it: %LOCALAPPDATA%\Adeorq\adeorq.exe.
 fn installed_exe() -> Option<std::path::PathBuf> {
-    let base = std::env::var("LOCALAPPDATA").ok()?;
-    let path = std::path::Path::new(&base)
-        .join("Adeorq")
-        .join("adeorq.exe");
+    let path = crate::dir_datos().ok()?.join("adeorq.exe");
     path.exists().then_some(path)
 }
 
@@ -41,14 +40,17 @@ fn target_exe() -> Result<String, String> {
 }
 
 fn launcher() -> Result<auto_launch::AutoLaunch, String> {
-    AutoLaunchBuilder::new()
-        .set_app_name(APP_NAME)
-        .set_app_path(&target_exe()?)
-        // His user, not the machine. The default tries the machine-wide key
-        // first and only falls back when Windows refuses: run Adeorq once as
-        // administrator and it would quietly become everyone's startup entry.
-        .set_windows_enable_mode(WindowsEnableMode::CurrentUser)
-        .build()
+    let mut b = AutoLaunchBuilder::new();
+    b.set_app_name(APP_NAME).set_app_path(&target_exe()?);
+    // His user, not the machine. The default tries the machine-wide key
+    // first and only falls back when Windows refuses: run Adeorq once as
+    // administrator and it would quietly become everyone's startup entry.
+    //
+    // En Linux no hay tal disyuntiva: `auto-launch` escribe un `.desktop` en
+    // `~/.config/autostart`, que ya es del usuario y de nadie más.
+    #[cfg(windows)]
+    b.set_windows_enable_mode(WindowsEnableMode::CurrentUser);
+    b.build()
         .map_err(|e| format!("no he podido preparar el arranque automático: {e}"))
 }
 

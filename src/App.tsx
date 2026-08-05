@@ -15,6 +15,7 @@ import AgendaView from "./components/AgendaView";
 import MemoriaView from "./components/MemoriaView";
 import NewSession, { type Launch } from "./components/NewSession";
 import Onboarding from "./components/Onboarding";
+import Orbe from "./components/Orbe";
 import RepartoView from "./components/RepartoView";
 import Tour from "./components/Tour";
 import AccountsView from "./components/AccountsView";
@@ -41,8 +42,6 @@ import {
   CommandIcon,
   MemoryIcon,
   MinimizeIcon,
-  OrbIcon,
-  RepartoIcon,
   UnminimizeIcon,
   PanelIcon,
   SettingsIcon,
@@ -958,6 +957,19 @@ function App() {
    * corriendo en algún proceso vivo, y los paneles abiertos llevan su id en el
    * comando. Solo faltaba mirarlos antes de abrir.
    */
+  /**
+   * Las conversaciones que YA están en un panel de Adeorq.
+   *
+   * Lo sabe el propio comando del panel (`--resume <id>`), así que no hace
+   * falta guardar nada aparte. Con esto, el asistente puede enseñar cuáles ya
+   * tienes en vez de ofrecértelas otra vez: abrir dos veces la misma sesión es
+   * la forma más fácil de bloquear las dos.
+   */
+  const sesionesEnPantalla = useMemo(
+    () => new Set(panes.map((p) => sessionIdOf(p.command)).filter((x): x is string => !!x)),
+    [panes],
+  );
+
   const onResume = useCallback(
     (s: SessionInfo, grupo?: string) => {
       // Ya abierta AQUÍ: no se abre otra, se va a la que hay. Duplicar el panel
@@ -2275,18 +2287,12 @@ function App() {
           </span>
           <span className="tab-label">{t(stream ? "En emisión" : "Emisión")}</span>
         </button>
-        {/* El hermano mayor del Asistente: el mismo criterio, pero para el día
-            entero. Va justo al lado porque es la misma pregunta («¿qué hago
-            ahora?») con una lista en vez de una frase. */}
-        <button
-          className="tab reparto-call"
-          data-tip={t("Repartir varias tareas entre agentes")}
-          onClick={() => setReparto({})}
-        >
-          <span className="tab-icon">
-            <RepartoIcon size={17} />
-          </span>
-        </button>
+        {/* UNA puerta, no dos. El Reparto tenía su propio botón aquí al lado, y
+            el comentario que lo justificaba ya decía lo que era: «la misma
+            pregunta con una lista en vez de una frase». Dos botones seguidos
+            para la misma pregunta es hacer elegir antes de escribir. Ahora se
+            escribe primero y el Asistente reparte solo cuando hay varias
+            líneas (Munir, 2026-08-05). */}
         <button
           className="tab foreman-call"
           data-tip={t("Llamar al Asistente (Ctrl+Mayús+A · Ctrl+Mayús+M para dictarle)")}
@@ -2295,7 +2301,7 @@ function App() {
             setShowForeman((v) => !v);
           }}
         >
-          <OrbIcon size={19} />
+          <Orbe estado={showForeman ? "escucha" : "reposo"} size={21} />
         </button>
         {/* El último grupo de la fila, pegado al borde: son los únicos botones
             de aquí que solo aparecen a veces (con la Cabina y más de un
@@ -2623,7 +2629,13 @@ function App() {
           onGoProject={goProject}
           onCreated={onCreated}
           onGoCabina={() => setView("cabina")}
-          foremanCard={<Foreman mode="card" exec={foremanExec} />}
+          foremanCard={
+            <Foreman
+              mode="card"
+              exec={foremanExec}
+              onRepartir={(texto) => setReparto({ texto })}
+            />
+          }
         />
       )}
       {view === "agenda" && (
@@ -2810,6 +2822,7 @@ function App() {
           accounts={accounts}
           maxPanes={openAllCap}
           suggested={focusProject}
+          yaAbiertas={sesionesEnPantalla}
           onLaunch={launchFromWizard}
           onRetomar={retomarVarias}
           onClose={() => setWizard(false)}
@@ -2943,6 +2956,10 @@ function App() {
       {showForeman && (
         <Foreman
           mode="overlay"
+          onRepartir={(texto) => {
+            setShowForeman(false);
+            setReparto({ texto });
+          }}
           exec={foremanExec}
           dictarAlAbrir={dictarAlAbrir}
           onClose={() => {

@@ -23,13 +23,12 @@
 // incompatible. Fusionar sigue siendo una decisión tuya.
 
 use std::collections::HashMap;
-use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde::Serialize;
+use crate::SinVentana;
 
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 /// Dónde viven los árboles espejo, dentro del proyecto para que compartan disco
 /// y el `git worktree` sea instantáneo. Va en el .gitignore.
@@ -39,7 +38,7 @@ fn run_git(dir: &str, args: &[&str]) -> Result<String, String> {
     let out = Command::new("git")
         .args(["-C", dir])
         .args(args)
-        .creation_flags(CREATE_NO_WINDOW)
+        .sin_ventana()
         .output()
         .map_err(|e| format!("no pude ejecutar git: {e}"))?;
 

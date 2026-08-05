@@ -12,6 +12,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  BulbIcon,
+  CalendarIcon,
+  CheckIcon,
+  DiamondIcon,
+  InboxIcon,
+  TargetIcon,
+  UnlockIcon,
+} from "./Icons";
+import {
   addIdea,
   condiciones as fetchCondiciones,
   daysTo,
@@ -312,7 +321,7 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
           onClick={() => setProject(null)}
           data-tip={t("Todo el ecosistema")}
         >
-          <span className="pick-all">◈</span>
+          <span className="pick-all"><DiamondIcon size={13} /></span>
         </button>
         {projects.map((p) => (
           <button
@@ -391,7 +400,8 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
       {notes.length > 0 && (
         <section className="panel-card agenda-card tray-card">
           <h2>
-            {t("📥 De tus agentes")}
+            <InboxIcon size={16} />
+            {t("De tus agentes")}
             <span className="tray-count">{notes.length}</span>
           </h2>
           <p className="card-hint">
@@ -416,7 +426,7 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
                   }
                   onClick={() => void acceptNote(n)}
                 >
-                  ✓
+                  <CheckIcon size={14} />
                 </button>
                 <button
                   className="mini tray-no"
@@ -476,7 +486,10 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   function CardCalendario() {
     return (
         <section className="panel-card agenda-card">
-          <h2>{t("📅 Calendario")}</h2>
+          <h2>
+            <CalendarIcon size={16} />
+            {t("Calendario")}
+          </h2>
           <p className="card-hint">
             {t(
               "Tus ventanas externas: lo que tiene fecha porque la pone otro. Cada una avisa con la antelación que le pusiste.",
@@ -516,7 +529,10 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   function CardIdeas() {
     return (
         <section className="panel-card agenda-card">
-          <h2>{t("💡 Ideas")}</h2>
+          <h2>
+            <BulbIcon size={16} />
+            {t("Ideas")}
+          </h2>
           <p className="card-hint">
             {project
               ? t("Las de {p} y las del ecosistema, con su condición de desbloqueo.", { p: project })
@@ -534,7 +550,8 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
                   {!project && <span className="idea-proj stream-hide">{i.project}</span>}
                   {c && (
                     <span className="idea-cond stream-hide" data-cond={c.status}>
-                      🔓 {c.text}
+                      <UnlockIcon size={12} />
+                      {c.text}
                     </span>
                   )}
                 </li>
@@ -569,7 +586,10 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   function CardPasos() {
     return (
         <section className="panel-card agenda-card">
-          <h2>{t("🎯 Próximos pasos")}</h2>
+          <h2>
+            <TargetIcon size={16} />
+            {t("Próximos pasos")}
+          </h2>
           {!project ? (
             <p className="card-hint">{t("Elige un proyecto arriba para ver sus metas.")}</p>
           ) : !metas?.exists ? (

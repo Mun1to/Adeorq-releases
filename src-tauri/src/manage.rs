@@ -8,11 +8,10 @@
 // changes without warning; that gotcha is the reason project_dirty exists).
 use serde::Serialize;
 use std::io::Write;
-use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
+use crate::SinVentana;
 
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 fn transcript_path(folder: &str, session_id: &str) -> Result<PathBuf, String> {
     // Both names come from scan_sessions (directory + file stem), but they
@@ -20,8 +19,8 @@ fn transcript_path(folder: &str, session_id: &str) -> Result<PathBuf, String> {
     if folder.contains(['\\', '/', '.']) || session_id.contains(['\\', '/', '.']) {
         return Err("nombre de sesión inválido".into());
     }
-    let home = std::env::var("USERPROFILE").map_err(|e| e.to_string())?;
-    Ok(PathBuf::from(home)
+    let home = crate::dir_casa().ok_or("no sé cuál es tu carpeta de usuario")?;
+    Ok(home
         .join(".claude")
         .join("projects")
         .join(folder)
@@ -40,8 +39,7 @@ pub async fn save_pasted_image(bytes: Vec<u8>, ext: String) -> Result<String, St
     if bytes.is_empty() {
         return Err("portapapeles vacío".into());
     }
-    let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-    let dir = Path::new(&local).join("Adeorq").join("pastes");
+    let dir = crate::dir_datos()?.join("pastes");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -70,8 +68,7 @@ pub struct Paste {
 }
 
 fn pastes_dir() -> Result<PathBuf, String> {
-    let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-    Ok(Path::new(&local).join("Adeorq").join("pastes"))
+    Ok(crate::dir_datos()?.join("pastes"))
 }
 
 /// Lo que hay en la carpeta de capturas, de la más nueva a la más vieja.
@@ -170,6 +167,29 @@ pub fn save_canvas_file(path: String, content: String) -> Result<(), String> {
     std::fs::write(p, content).map_err(|e| e.to_string())
 }
 
+/// El dibujo del lienzo exportado como imagen, donde el usuario dijo.
+///
+/// Va aparte de `save_canvas_file` y no como un parámetro suyo por lo mismo que
+/// aquel: cada comando que escribe donde le digan comprueba SU extensión, y
+/// juntarlos obligaría a aceptar las dos en los dos sitios. Los bytes llegan
+/// crudos y no en base64 porque un PNG de un tablero grande pesa, y base64 le
+/// suma un tercio para nada.
+#[tauri::command]
+pub fn save_drawing(path: String, bytes: Vec<u8>) -> Result<(), String> {
+    let p = Path::new(&path);
+    if !p.is_absolute() {
+        return Err("ruta no absoluta".into());
+    }
+    let bajo = path.to_lowercase();
+    if !bajo.ends_with(".png") && !bajo.ends_with(".svg") {
+        return Err("el dibujo se guarda en un .png o un .svg".into());
+    }
+    if let Some(dir) = p.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(p, bytes).map_err(|e| e.to_string())
+}
+
 /// Lee un lienzo exportado. El tope existe porque el archivo lleva dentro las
 /// capturas pegadas en base64: un lienzo con fotos pesa, pero 64 MB ya no es
 /// un lienzo, es otra cosa, y no se carga en memoria para averiguarlo.
@@ -193,10 +213,7 @@ pub fn read_canvas_file(path: String) -> Result<String, String> {
 /// aparte de `save_canvas_file` en vez de un parámetro suyo: ese escribe donde
 /// le digan y tiene que desconfiar de la ruta; este no acepta ninguna.
 fn board_path() -> Result<std::path::PathBuf, String> {
-    let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-    let dir = Path::new(&local).join("Adeorq");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir.join("lienzo.json"))
+    Ok(crate::dir_datos_creado()?.join("lienzo.json"))
 }
 
 #[tauri::command]
@@ -331,6 +348,7 @@ fn sin_verbatim(path: &Path) -> std::borrow::Cow<'_, Path> {
 /// than a file one: `FOF_ALLOWUNDO` is the flag that makes it recoverable.
 ///
 /// Verified against a real recycle bin by `a_file_really_goes_to_the_bin`.
+#[cfg(windows)]
 pub(crate) fn to_recycle_bin(path: &Path) -> Result<(), String> {
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::UI::Shell::{
@@ -366,6 +384,22 @@ pub(crate) fn to_recycle_bin(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// La papelera del escritorio, en Linux.
+///
+/// Va por el crate `trash` y no a mano: la especificación XDG parece dos
+/// carpetas y un archivo `.trashinfo`, pero tiene detrás los puntos de montaje
+/// (un archivo de otro disco va a la papelera DE ESE disco), los nombres
+/// repetidos y las fechas. Escribir eso mal significa borrar algo de verdad
+/// creyendo que se podía recuperar, que es el peor fallo posible aquí.
+#[cfg(not(windows))]
+pub(crate) fn to_recycle_bin(path: &Path) -> Result<(), String> {
+    let quien = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.display().to_string());
+    trash::delete(path).map_err(|e| format!("no he podido mover «{quien}» a la papelera: {e}"))
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DirtyReport {
@@ -380,7 +414,7 @@ pub struct DirtyReport {
 pub async fn project_dirty(path: String) -> Result<DirtyReport, String> {
     let out = std::process::Command::new("git")
         .args(["-C", &path, "status", "--porcelain"])
-        .creation_flags(CREATE_NO_WINDOW)
+        .sin_ventana()
         .output()
         .map_err(|e| e.to_string())?;
     if !out.status.success() {
@@ -514,6 +548,7 @@ mod tests {
     /// `cargo test -- --ignored`.
     #[test]
     #[ignore]
+    #[cfg(windows)]
     fn la_ruta_larga_no_le_vale_al_shell() {
         use std::os::windows::ffi::OsStrExt;
         use windows_sys::Win32::UI::Shell::{
@@ -580,10 +615,7 @@ mod tests {
 const FONDO_EXT: [&str; 8] = ["png", "jpg", "jpeg", "webp", "gif", "avif", "mp4", "webm"];
 
 fn fondo_dir() -> Result<std::path::PathBuf, String> {
-    let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-    let dir = Path::new(&local).join("Adeorq");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir)
+    crate::dir_datos_creado()
 }
 
 /// El que haya puesto, si hay alguno. Se busca por extensión porque solo puede

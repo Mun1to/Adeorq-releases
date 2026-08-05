@@ -13,6 +13,11 @@ import { alarm, notify } from "../lib/notify";
 import { noteList, noteRead, noteWrite } from "../lib/pty";
 import { TOOLS, TOOL_BODIES } from "./CanvasTools";
 import type { WidgetKind } from "../lib/piezas";
+import {
+  CloseIcon,
+  FlagIcon,
+  ResetIcon,
+} from "./Icons";
 
 // Widgets del lienzo. No son terminales ni dibujo: son cacharros que viven al
 // lado del trabajo, donde ya estás mirando, para no cambiar de ventana por un
@@ -207,7 +212,7 @@ function Pomodoro() {
           {corriendo ? t("Pausar") : t("Empezar")}
         </button>
         <button className="mini" onClick={reiniciar} data-tip={t("Volver a empezar")}>
-          ↺
+          <ResetIcon size={13} />
         </button>
       </div>
     </div>
@@ -300,7 +305,7 @@ function Cuenta() {
           {corriendo ? t("Pausar") : t("Empezar")}
         </button>
         <button className="mini" onClick={() => poner(min)} data-tip={t("Poner a cero")}>
-          ↺
+          <ResetIcon size={13} />
         </button>
       </div>
     </div>
@@ -344,7 +349,7 @@ function Crono() {
           disabled={!corriendo}
           onClick={() => setVueltas((v) => [ms, ...v].slice(0, 12))}
         >
-          ⚑
+          <FlagIcon size={13} />
         </button>
         <button
           className="mini"
@@ -355,7 +360,7 @@ function Crono() {
             setVueltas([]);
           }}
         >
-          ↺
+          <ResetIcon size={13} />
         </button>
       </div>
       {vueltas.length > 0 && (
@@ -681,7 +686,7 @@ export default function WidgetNode({ data }: NodeProps<Node<WidgetData>>) {
         </span>
         <span className="wdg-name">{meta.label}</span>
         <button className="wdg-x" onClick={() => data.onClose(data.nodeId)} data-tip={t("Quitar")}>
-          ✕
+          <CloseIcon size={13} />
         </button>
       </header>
       <Cuerpo />

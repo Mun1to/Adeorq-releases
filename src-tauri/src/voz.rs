@@ -13,11 +13,7 @@
 
 use std::path::PathBuf;
 use std::process::Command;
-
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
-#[cfg(windows)]
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+use crate::SinVentana;
 
 /// Dónde se busca whisper.cpp, en orden.
 ///
@@ -26,7 +22,12 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 /// binario suelto sin tocar el PATH. Los dos nombres porque el proyecto
 /// renombró `main` a `whisper-cli` y por ahí circulan las dos versiones.
 fn whisper_exe() -> Option<PathBuf> {
-    let nombres = ["whisper-cli.exe", "whisper.exe", "main.exe"];
+    // Los mismos tres nombres, con extensión donde la hay y sin ella donde no.
+    let nombres: [&str; 3] = if cfg!(windows) {
+        ["whisper-cli.exe", "whisper.exe", "main.exe"]
+    } else {
+        ["whisper-cli", "whisper", "main"]
+    };
     if let Ok(path) = std::env::var("PATH") {
         for dir in std::env::split_paths(&path) {
             for n in nombres {
@@ -37,8 +38,7 @@ fn whisper_exe() -> Option<PathBuf> {
             }
         }
     }
-    let local = std::env::var("LOCALAPPDATA").ok()?;
-    let propia = PathBuf::from(local).join("Adeorq").join("whisper");
+    let propia = crate::dir_datos().ok()?.join("whisper");
     for n in nombres {
         let p = propia.join(n);
         if p.is_file() {
@@ -59,8 +59,8 @@ fn whisper_model() -> Option<PathBuf> {
             dirs.push(d.join("models"));
         }
     }
-    if let Ok(local) = std::env::var("LOCALAPPDATA") {
-        dirs.push(PathBuf::from(local).join("Adeorq").join("whisper"));
+    if let Ok(d) = crate::dir_datos() {
+        dirs.push(d.join("whisper"));
     }
     for d in dirs {
         let Ok(entradas) = std::fs::read_dir(&d) else {
@@ -160,7 +160,7 @@ pub async fn transcribir(wav: Vec<u8>, idioma: String) -> Result<String, String>
                 "--no-timestamps",
                 "--no-prints",
             ])
-            .creation_flags(CREATE_NO_WINDOW)
+            .sin_ventana()
             .output()
             .map_err(|e| format!("no pude lanzar whisper: {e}"))?;
 

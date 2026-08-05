@@ -10,7 +10,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::SystemTime;
 use tauri::State;
+#[cfg(windows)]
 use windows_sys::Win32::Foundation::CloseHandle;
+#[cfg(windows)]
 use windows_sys::Win32::System::Threading::{
     GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
 };
@@ -20,6 +22,7 @@ use windows_sys::Win32::System::Threading::{
 const TAIL_BYTES: u64 = 1_500_000;
 const SLEEP_H: f64 = 48.0;
 const DEAD_H: f64 = 24.0 * 7.0;
+#[cfg(windows)]
 const STILL_ACTIVE: u32 = 259;
 
 #[derive(Clone, Serialize)]
@@ -56,9 +59,7 @@ pub struct SessionInfo {
 pub struct SessionCache(pub Mutex<HashMap<PathBuf, (u64, u64, Option<SessionInfo>)>>);
 
 fn claude_dir() -> Option<PathBuf> {
-    std::env::var("USERPROFILE")
-        .ok()
-        .map(|h| Path::new(&h).join(".claude"))
+    crate::dir_casa().map(|h| h.join(".claude"))
 }
 
 fn read_tail(path: &Path) -> std::io::Result<Vec<String>> {
@@ -112,6 +113,7 @@ fn context_window(model: &str) -> u64 {
     200_000
 }
 
+#[cfg(windows)]
 fn pid_alive(pid: u32) -> bool {
     unsafe {
         let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
@@ -123,6 +125,14 @@ fn pid_alive(pid: u32) -> bool {
         CloseHandle(h);
         ok != 0 && code == STILL_ACTIVE
     }
+}
+
+/// Lo mismo en Linux, y aquí es una pregunta al sistema de archivos: `/proc`
+/// tiene una carpeta por proceso vivo y deja de tenerla en cuanto muere. No
+/// hace falta abrir un handle ni pedir permiso para mirar.
+#[cfg(not(windows))]
+fn pid_alive(pid: u32) -> bool {
+    std::path::Path::new(&format!("/proc/{pid}")).exists()
 }
 
 fn live_session_ids() -> HashSet<String> {
@@ -207,16 +217,43 @@ fn rebuild_from_disk(base: &Path, tokens: &[&str]) -> Option<PathBuf> {
     None
 }
 
-fn decode_folder(folder: &str) -> Option<String> {
-    // Encoded folders start with the drive: "C--proyectos-..." for C:\proyectos
-    let mut chars = folder.chars();
-    let drive = chars.next()?;
-    if !drive.is_ascii_alphabetic() || !folder[1..].starts_with("--") {
-        return None;
+/// El separador de rutas de ESTE sistema.
+#[cfg(windows)]
+const SEP: char = '\\';
+#[cfg(not(windows))]
+const SEP: char = '/';
+
+/// Una ruta escrita como la escribe este sistema, sin barra final.
+///
+/// En Windows se convierten las barras normales, porque Claude Code escribe
+/// algunos `cwd` con `/` y sin esto la subida por el árbol no encontraba
+/// separador. En Linux NO se toca nada: allí una contrabarra es un carácter
+/// válido dentro de un nombre de archivo, y "arreglarla" partiría el nombre.
+fn normalizar(p: &str) -> String {
+    let limpio = p.trim_end_matches(['\\', '/']);
+    if cfg!(windows) {
+        limpio.replace('/', "\\")
+    } else {
+        limpio.to_owned()
     }
-    let root = format!("{drive}:\\");
-    // "C--" alone is the drive root: sessions started at C:\ live there.
-    let tokens: Vec<&str> = folder[3..].split('-').filter(|t| !t.is_empty()).collect();
+}
+
+fn decode_folder(folder: &str) -> Option<String> {
+    // Dos formas, según de dónde venga el transcript:
+    // · Windows, con la unidad delante: "C--proyectos-..." es C:\proyectos\...
+    // · Linux, donde la ruta empieza por barra y la barra se codifica igual que
+    //   todo lo demás, así que la carpeta empieza por un guion: "-home-munir-".
+    let mut chars = folder.chars();
+    let primero = chars.next()?;
+    let (root, resto) = if primero == '-' {
+        ("/".to_owned(), &folder[1..])
+    } else if primero.is_ascii_alphabetic() && folder[1..].starts_with("--") {
+        (format!("{primero}:\\"), &folder[3..])
+    } else {
+        return None;
+    };
+    // Una raíz a secas ("C--" o "-") es una sesión abierta en la raíz.
+    let tokens: Vec<&str> = resto.split('-').filter(|t| !t.is_empty()).collect();
     if tokens.is_empty() {
         return (encode_claude(&root) == folder).then_some(root);
     }
@@ -232,13 +269,17 @@ fn resume_dir(cwd: &str, folder: &str) -> String {
     // and without normalising them the walk up the tree found no separator and
     // resumed from a subfolder: that was the "No conversation found" bug.
     if !cwd.is_empty() {
-        let mut probe = cwd.trim_end_matches(['\\', '/']).replace('/', "\\");
+        let mut probe = normalizar(cwd);
         loop {
             if encode_claude(&probe) == folder {
                 return probe;
             }
-            match probe.rfind('\\') {
-                Some(i) if i > 2 => probe.truncate(i),
+            // El tope es la raíz: en Windows `C:\` ocupa tres, así que cortar
+            // por debajo del índice 2 dejaría `C:` a secas; en Linux la raíz es
+            // la barra del principio y cortar en cero dejaría la cadena vacía.
+            let minimo = if cfg!(windows) { 2 } else { 0 };
+            match probe.rfind(SEP) {
+                Some(i) if i > minimo => probe.truncate(i),
                 _ => break,
             }
         }
@@ -255,22 +296,27 @@ fn resume_dir(cwd: &str, folder: &str) -> String {
 /// any other computer every single session looked loose.
 fn project_of(cwd: &str, folder: &str, raiz: &str) -> String {
     if !cwd.is_empty() {
-        let c = cwd.trim_end_matches(['\\', '/']).replace('/', "\\");
+        let c = normalizar(cwd);
         let low = c.to_lowercase();
-        let base_real = raiz.trim_end_matches(['\\', '/']).replace('/', "\\");
+        let base_real = normalizar(raiz);
         let base = base_real.to_lowercase();
         if !base.is_empty() {
             if low == base {
                 return format!("{base_real} (raíz)");
             }
-            if low.starts_with(&format!("{base}\\")) {
+            if low.starts_with(&format!("{base}{SEP}")) {
                 let rest = &c[base.len() + 1..];
-                return rest.split('\\').next().unwrap_or(rest).to_owned();
+                return rest.split(SEP).next().unwrap_or(rest).to_owned();
             }
         }
-        return c.rsplit('\\').next().unwrap_or(&c).to_owned();
+        return c.rsplit(SEP).next().unwrap_or(&c).to_owned();
     }
-    folder.replacen("C--", "C:\\", 1).replace('-', "\\")
+    // Sin `cwd` no queda más que deshacer el nombre de la carpeta a ojo.
+    if cfg!(windows) {
+        folder.replacen("C--", "C:\\", 1).replace('-', "\\")
+    } else {
+        folder.replace('-', "/")
+    }
 }
 
 fn analyze(path: &Path, folder: &str, cache: &SessionCache) -> Option<SessionInfo> {
@@ -417,7 +463,7 @@ pub async fn scan_sessions(
 ) -> Result<Vec<SessionInfo>, String> {
     let projects_dir = claude_dir()
         .map(|d| d.join("projects"))
-        .ok_or("USERPROFILE no disponible")?;
+        .ok_or("no sé cuál es tu carpeta de usuario")?;
     let live = live_session_ids();
     let mut out = Vec::new();
 
@@ -472,9 +518,7 @@ pub async fn scan_sessions(
 }
 
 fn codex_dir() -> Option<PathBuf> {
-    std::env::var("USERPROFILE")
-        .ok()
-        .map(|h| Path::new(&h).join(".codex").join("sessions"))
+    crate::dir_casa().map(|h| h.join(".codex").join("sessions"))
 }
 
 /// Las sesiones de Codex, que hasta ahora no salían en ningún sitio.
@@ -647,9 +691,7 @@ fn pi_agent_dir() -> Option<PathBuf> {
             return Some(PathBuf::from(dir));
         }
     }
-    std::env::var("USERPROFILE")
-        .ok()
-        .map(|h| Path::new(&h).join(".pi").join("agent"))
+    crate::dir_casa().map(|h| h.join(".pi").join("agent"))
 }
 
 /// Las sesiones de Pi (pi.dev), organizadas por carpeta de trabajo dentro de
@@ -821,8 +863,8 @@ pub fn find_agy() -> Option<String> {
             }
         }
     }
-    if let Ok(home) = std::env::var("USERPROFILE") {
-        let p = Path::new(&home).join(".local").join("bin").join("agy.exe");
+    if let Some(home) = crate::dir_casa() {
+        let p = home.join(".local").join("bin").join(if cfg!(windows) { "agy.exe" } else { "agy" });
         if p.exists() {
             return Some(p.to_string_lossy().into_owned());
         }
@@ -1265,6 +1307,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn walks_up_to_the_transcript_folder() {
         assert_eq!(
             resume_dir(r"C:\proyectos\Orquio\docs", "C--proyectos-Orquio"),
@@ -1272,7 +1315,24 @@ mod tests {
         );
     }
 
+    /// Lo mismo donde las rutas se escriben con barras. Es el mismo camino de
+    /// código, y merece su prueba en vez de darlo por hecho: el fallo de esta
+    /// tarde fue justo ese, que la versión de Windows «pasaba» en Linux
+    /// devolviendo una ruta con contrabarras que allí no abre nada.
     #[test]
+    #[cfg(not(windows))]
+    fn walks_up_to_the_transcript_folder() {
+        assert_eq!(
+            resume_dir("/home/munir/proyectos/Orquio/docs", "-home-munir-proyectos-Orquio"),
+            "/home/munir/proyectos/Orquio"
+        );
+    }
+
+    /// Claude Code escribe algunos `cwd` con barras normales aunque sea
+    /// Windows, y sin normalizarlas la subida por el árbol no encontraba
+    /// separador: ese era el «No conversation found».
+    #[test]
+    #[cfg(windows)]
     fn normalises_forward_slashes() {
         assert_eq!(
             resume_dir("C:/proyectos/Orquio/docs", "C--proyectos-Orquio"),
@@ -1281,18 +1341,39 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn drive_root_sessions_resume_from_the_root() {
         // The "No conversation found" case: the transcript folder was "C--".
         assert_eq!(resume_dir(r"C:\proyectos\Orquio\docs\marca", "C--"), r"C:\");
     }
 
+    /// VoCript-Core must not be read as VoCript\Core.
+    ///
+    /// Only on Windows, and not because of the drive letter: `decode_folder`
+    /// WALKS THE DISK to resolve the ambiguity of the dash, so the test needs
+    /// `C:\proyectos\VoCript-Core` to actually exist. It does on this machine
+    /// and it never will on a CI runner.
     #[test]
+    #[cfg(windows)]
     fn dashed_project_names_survive_the_rebuild() {
-        // VoCript-Core must not be read as VoCript\Core.
         assert_eq!(
             decode_folder("C--proyectos-VoCript-Core").as_deref(),
             Some(r"C:\proyectos\VoCript-Core")
         );
+    }
+
+    /// La otra forma de la misma codificación: en Linux la ruta empieza por
+    /// barra, así que la carpeta del transcript empieza por guion. Sin esto,
+    /// `decode_folder` devolvía `None` para TODAS las sesiones de un Linux y
+    /// ninguna sabía de qué carpeta venía.
+    #[test]
+    fn a_linux_transcript_folder_starts_with_a_dash() {
+        // La raíz sola, que no toca el disco y por eso se puede comprobar en
+        // cualquier máquina: "/" se codifica como un guion suelto.
+        assert_eq!(encode_claude("/"), "-");
+        assert_eq!(decode_folder("-").as_deref(), Some("/"));
+        // Y una carpeta que no existe sigue sin colarse.
+        assert_eq!(decode_folder("-no-existe-esta-carpeta-de-aqui"), None);
     }
 
     #[test]

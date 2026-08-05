@@ -237,8 +237,7 @@ const EN: Record<string, string> = {
     "Sign in",
   "Entrando…":
     "Signing in…",
-  "📅 Calendario":
-    "📅 Calendar",
+  Calendario: "Calendar",
   "Tus ventanas externas: lo que tiene fecha porque la pone otro. Cada una avisa con la antelación que le pusiste.":
     "Your external windows: the things with a date because someone else set it. Each one warns you as early as you told it to.",
   "Nada a la vista.":
@@ -249,8 +248,6 @@ const EN: Record<string, string> = {
     "Show the past ones too",
   "Ocultar las pasadas":
     "Hide the past ones",
-  "💡 Ideas":
-    "💡 Ideas",
   "Las de {p} y las del ecosistema, con su condición de desbloqueo.":
     "The ones from {p} and from the ecosystem, with what unlocks them.",
   "Todas las que tienes vivas o aparcadas, con su condición de desbloqueo.":
@@ -263,8 +260,6 @@ const EN: Record<string, string> = {
     "Note it down",
   "Idea guardada en tu brújula.":
     "Idea saved to your compass.",
-  "🎯 Próximos pasos":
-    "🎯 Next steps",
   "Elige un proyecto arriba para ver sus metas.":
     "Pick a project above to see its goals.",
   "{p} todavía no tiene docs/METAS.md. Lo que apuntes abajo lo crea.":
@@ -281,8 +276,7 @@ const EN: Record<string, string> = {
     "Add to this project's parked list",
   "Apuntado en su METAS.md. Lo verás en el diff antes de commitear.":
     "Written into its METAS.md. You will see it in the diff before committing.",
-  "📥 De tus agentes":
-    "📥 From your agents",
+  "De tus agentes": "From your agents",
   "Lo que tus sesiones han ido apuntando mientras trabajaban. Aceptar una idea la manda a tu brújula; aceptar un paso lo escribe en el METAS.md de ese proyecto.":
     "What your sessions noted down while they worked. Accepting an idea sends it to your compass; accepting a step writes it into that project's METAS.md.",
   "idea":
@@ -862,6 +856,38 @@ const EN: Record<string, string> = {
   "Traer al frente": "Bring to front",
   "Enviar al fondo": "Send to back",
 
+  // Editar el dibujo: el estilo que faltaba y lo que se hace con lo cogido.
+  "Línea: entera, a guiones o a puntos": "Line: solid, dashed or dotted",
+  "Transparencia: opaco, medio o fantasma": "Transparency: solid, half or ghost",
+  "Las puntas de la línea": "The ends of the line",
+  "Sin punta": "No head",
+  "Punta abierta": "Open head",
+  "Punta maciza": "Solid head",
+  "al final": "at the end",
+  "al principio": "at the start",
+  Duplicar: "Duplicate",
+  "Clavar al tablero": "Pin to the board",
+  "Agrupar o desagrupar": "Group or ungroup",
+  "Alinear y repartir": "Align and spread",
+  "A la izquierda": "To the left",
+  "Centrados a lo ancho": "Centred across",
+  "A la derecha": "To the right",
+  Arriba: "Top",
+  "Centrados a lo alto": "Centred down",
+  Abajo: "Bottom",
+  "Repartir a lo ancho": "Spread across",
+  "Repartir a lo alto": "Spread down",
+  "Dibujo guardado en {r}": "Drawing saved to {r}",
+  "No hay nada dibujado que exportar": "There is nothing drawn to export",
+  "Copiar lo cogido": "Copy what you picked",
+  "Duplicar lo cogido": "Duplicate what you picked",
+  "Copiar el estilo": "Copy the style",
+  "Pegar el estilo": "Paste the style",
+  "Exportar el dibujo": "Export the drawing",
+  "Editar el dibujo": "Edit the drawing",
+  "Exportar el dibujo a PNG": "Export the drawing to PNG",
+  "Exportar el dibujo a SVG": "Export the drawing to SVG",
+
   // Retomar sesiones desde el asistente del ＋.
   "↻ Retomar las que ya tienes…": "↻ Resume the ones you already have…",
   "Tus conversaciones, las de esta semana y las de antes. Marca las que quieras traer.":
@@ -872,6 +898,48 @@ const EN: Record<string, string> = {
   "{n} sesiones": "{n} sessions",
   Todas: "All",
   "Las {n} primeras": "The first {n}",
+  // La mini guía del Asistente: qué se le puede pedir, con ejemplos que se
+  // pulsan. Las etiquetas pasan por t() a través de una variable, así que el
+  // comprobador no las ve: van aquí a mano y hay que acordarse al tocarlas.
+  "Repartir las {n} tareas": "Split up the {n} tasks",
+  // El texto de dentro del cuadro del Asistente. Se quedó sin traducir hasta
+  // que Munir abrió la app en inglés y vio media pantalla en español.
+  'Pídeme el tablero: "ábreme las sesiones del panel de Orquio" o "en Layco: Antigravity al frontend y un Claude al backend para el formulario de pago"':
+    'Ask me for the board: "open the sessions of the Orquio dashboard" or "in Layco: Antigravity on the frontend and a Claude on the backend for the payment form"',
+  "Háblame normal. Puedo, por ejemplo:": "Talk to me normally. I can, for instance:",
+  "Una línea es un encargo. Varias líneas, una terminal para cada una.":
+    "One line is one errand. Several lines, one terminal each.",
+  "Abrir lo que ya tienes": "Open what you already have",
+  "ábreme las sesiones del panel de Orquio": "open the sessions of the Orquio dashboard",
+  "Montar un equipo": "Put a team together",
+  "en Layco: Antigravity al frontend y un Claude al backend":
+    "in Layco: Antigravity on the frontend and a Claude on the backend",
+  "Mandar una orden a todas": "Send one order to all of them",
+  "diles a todas que hagan commit de lo que llevan":
+    "tell them all to commit what they have so far",
+  "Revisar cómo va algo": "Check how something is going",
+  "mírame qué está haciendo el agente del login":
+    "show me what the login agent is doing",
+  "Repartir el día": "Split up the day",
+  "arreglar el hover\nescribir los tests del router\nauditar el login":
+    "fix the hover\nwrite the router tests\naudit the login",
+
+
+  // Las etiquetas que perdieron su emoji al pasar a icono dibujado.
+  "Cambiar el nombre que se ve…": "Change the name shown here…",
+  "Tirar este proyecto…": "Bin this project…",
+  Renombrar: "Rename",
+  "Mover a grupo…": "Move to group…",
+  "Sacarla de este proyecto": "Take it out of this project",
+  "Borrar la sesión": "Delete the session",
+  "Otra carpeta del disco…": "Another folder from disk…",
+  "Suelta, sin proyecto": "Loose, no project",
+  "Retomar las que ya tienes…": "Resume the ones you already have…",
+  "Todas tus sesiones": "All your sessions",
+  "Las que no tengo": "The ones I lack",
+  "Las {n} que no tengo": "{n} I lack",
+  "ya la tienes": "already open here",
+  "· {n} ya en Adeorq": "· {n} already in Adeorq",
   Ninguna: "None",
   "abierta ahora": "open right now",
   "Ninguna sesión con eso.": "No session matches that.",
@@ -932,7 +1000,6 @@ const EN: Record<string, string> = {
   "en una terminal aquí": "in a terminal here",
   "Terminal con esta": "Terminal with this one",
   "Usar por defecto": "Make it the default",
-  Renombrar: "Rename",
   Quitar: "Remove",
   "Añadir cuenta": "Add account",
   "Cómo la llamas (p. ej. Trabajo). Nunca tu correo.":
@@ -1024,7 +1091,6 @@ const EN: Record<string, string> = {
   Cronómetro: "Stopwatch",
   "Cuenta atrás": "Countdown",
   Calculadora: "Calculator",
-  Calendario: "Calendar",
   Minutos: "Minutes",
   "Se acabó el tiempo": "Time is up",
   "La cuenta atrás de {n} minutos ha llegado a cero.":
@@ -1401,7 +1467,6 @@ const EN: Record<string, string> = {
 
   // La lista de sesiones
   Borrar: "Delete",
-  "Borrar la sesión": "Delete the session",
   "🗑 Borrar la sesión": "🗑 Delete the session",
   "Borrar la sesión: va a la papelera de Windows":
     "Delete the session: it goes to the Windows recycle bin",

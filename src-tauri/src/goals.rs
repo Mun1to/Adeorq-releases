@@ -62,8 +62,7 @@ fn safe_date(date: &str) -> Result<&str, String> {
 }
 
 pub fn goals_dir() -> Result<PathBuf, String> {
-    let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-    Ok(PathBuf::from(local).join("Adeorq").join("objetivos"))
+    Ok(crate::dir_datos()?.join("objetivos"))
 }
 
 fn goals_path(date: &str) -> Result<PathBuf, String> {

@@ -5,6 +5,12 @@ import { useT } from "../lib/i18n";
 import { nodragEnControles } from "../lib/arrastre";
 import { Grip } from "./CanvasWidgets";
 import { puedeEmpotrarse } from "../lib/pty";
+import {
+  CloseIcon,
+  ExternalIcon,
+  MaximizeIcon,
+  RefreshIcon,
+} from "./Icons";
 
 // La ventana de localhost dentro del lienzo.
 //
@@ -124,7 +130,7 @@ export default function WebNode({ data }: NodeProps<Node<WebData>>) {
 
       <header className="wdg-head">
         <span className="wdg-icon" aria-hidden="true">
-          ◱
+          <MaximizeIcon size={13} />
         </span>
         <input
           className="web-url"
@@ -139,17 +145,17 @@ export default function WebNode({ data }: NodeProps<Node<WebData>>) {
           }}
         />
         <button className="wdg-x" data-tip={t("Recargar")} onClick={() => setVuelta((n) => n + 1)}>
-          ↻
+          <RefreshIcon size={13} />
         </button>
         <button
           className="wdg-x"
           data-tip={t("Abrirla en tu navegador de verdad")}
           onClick={() => void openUrl(data.url).catch(() => {})}
         >
-          ↗
+          <ExternalIcon size={13} />
         </button>
         <button className="wdg-x" onClick={() => data.onClose(data.nodeId)} data-tip={t("Quitar")}>
-          ✕
+          <CloseIcon size={13} />
         </button>
       </header>
 

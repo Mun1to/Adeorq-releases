@@ -3,7 +3,11 @@ import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflo
 import { useT } from "../lib/i18n";
 import { nodragEnControles } from "../lib/arrastre";
 import { deletePaste, listPastes, readPaste, type Paste } from "../lib/pty";
-import { TrashIcon } from "./Icons";
+import {
+  CloseIcon,
+  RefreshIcon,
+  TrashIcon,
+} from "./Icons";
 import { Grip } from "./CanvasWidgets";
 
 // La galería: todo lo que has pegado alguna vez en Adeorq, en una rejilla.
@@ -134,10 +138,10 @@ export default function GalleryNode({ data }: NodeProps<Node<GalleryData>>) {
         <span className="wdg-name">{t("Galería")}</span>
         <span className="gal-count">{todas.length}</span>
         <button className="wdg-x" onClick={() => void releer()} data-tip={t("Volver a mirar")}>
-          ↻
+          <RefreshIcon size={13} />
         </button>
         <button className="wdg-x" onClick={() => data.onClose(data.nodeId)} data-tip={t("Quitar")}>
-          ✕
+          <CloseIcon size={13} />
         </button>
       </header>
 

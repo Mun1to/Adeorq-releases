@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="330" height="74" viewBox="0 0 330 74" role="img" aria-label="Descargar Adeorq para Linux">
+  <!--
+    El gemelo del botón de Windows, con el mismo dibujo y la misma caja para que
+    los dos queden a la par en el README. Cambia el color: el azul es el de la
+    casa y se lo queda la descarga principal; esta va en el gris azulado del
+    cristal de la app, para que se lea «la otra» sin parecer un botón apagado.
+  -->
+  <defs>
+    <linearGradient id="cuerpoLnx" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5C6B84"/>
+      <stop offset="1" stop-color="#33415B"/>
+    </linearGradient>
+    <linearGradient id="brilloLnx" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="1" y="1" width="328" height="72" rx="15" fill="url(#cuerpoLnx)"/>
+  <rect x="1.5" y="1.5" width="327" height="34" rx="14" fill="url(#brilloLnx)"/>
+  <rect x="1" y="1" width="328" height="72" rx="15" fill="none" stroke="#A8BBD8" stroke-opacity="0.45"/>
+
+  <!-- La flecha de bajar, idéntica a la del otro botón. -->
+  <g transform="translate(40, 27)" stroke="#F7FBFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M8 0 V13"/>
+    <path d="M2.6 8 L8 13.4 L13.4 8"/>
+    <path d="M0.6 18 H15.4"/>
+  </g>
+
+  <text x="74" y="34" font-family="Segoe UI Variable Text,Segoe UI,-apple-system,Helvetica Neue,Arial,sans-serif" font-size="19" font-weight="650" fill="#FFFFFF">Descargar Adeorq</text>
+  <text x="74" y="53" font-family="Segoe UI Variable Text,Segoe UI,-apple-system,Helvetica Neue,Arial,sans-serif" font-size="12.5" font-weight="500" fill="#FFFFFF" fill-opacity="0.82">Linux · AppImage y .deb</text>
+</svg>

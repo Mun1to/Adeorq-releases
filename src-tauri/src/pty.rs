@@ -2,17 +2,37 @@ use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, MasterPty, Pt
 use serde::Serialize;
 use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
+// El corral es de Windows, y es el único que guarda algo para siempre.
+#[cfg(windows)]
+use std::sync::OnceLock;
 use tauri::{AppHandle, Emitter, Manager, State};
+#[cfg(windows)]
 use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HANDLE};
+#[cfg(windows)]
 use windows_sys::Win32::System::JobObjects::{
     AssignProcessToJobObject, CreateJobObjectW, SetInformationJobObject,
     JobObjectExtendedLimitInformation, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
     JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
 };
+#[cfg(windows)]
 use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE};
+// Solo lo usa `taskkill`, que es la versión de Windows de matar la rama.
+#[cfg(windows)]
+use crate::SinVentana;
 
+/// Con qué nace una terminal si nadie dice otra cosa.
+///
+/// En Windows, PowerShell, que es la de la casa. En Linux, la del usuario:
+/// `$SHELL` es la que él eligió, y caer en `/bin/sh` cuando no está es lo que
+/// hace cualquier programa que abre una terminal.
+#[cfg(windows)]
 const DEFAULT_SHELL: &str = "powershell.exe";
+
+#[cfg(not(windows))]
+fn shell_de_fabrica() -> String {
+    std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_owned())
+}
 
 pub struct PtySession {
     /// Tras su propio candado, para poder RESIZEAR SIN el candado del mapa:
@@ -301,9 +321,12 @@ fn vaciar<R: Read>(
 /// seguro entre hilos, y no se cierra JAMÁS —cerrarlo mataría en el acto a
 /// todos los paneles, que es precisamente lo que el flag hace por nosotros
 /// cuando el proceso muere—.
+#[cfg(windows)]
 #[derive(Clone, Copy)]
 struct Corral(HANDLE);
+#[cfg(windows)]
 unsafe impl Send for Corral {}
+#[cfg(windows)]
 unsafe impl Sync for Corral {}
 
 /// El corral se crea UNA sola vez, la primera que se abre un panel.
@@ -313,6 +336,7 @@ unsafe impl Sync for Corral {}
 /// comportándose EXACTAMENTE como antes de que esto existiera: la X sigue
 /// matando a los agentes y lo único que se pierde es la red bajo el cierre
 /// anormal. Una app que no arranca sería mucho peor que un huérfano.
+#[cfg(windows)]
 fn corral() -> Option<Corral> {
     static CORRAL: OnceLock<Option<Corral>> = OnceLock::new();
     *CORRAL.get_or_init(|| unsafe {
@@ -372,6 +396,7 @@ fn corral() -> Option<Corral> {
 ///   hipotético: pasa si a Adeorq la lanza algo que ya trabaja con jobs.
 /// - El corral no sustituye a `kill_all` ni a `pty_kill`: mata al cerrarse la
 ///   app, no al cerrarse un panel. Los dos caminos siguen haciendo falta.
+#[cfg(windows)]
 fn meter_en_el_corral(pid: u32) {
     let Some(corral) = corral() else { return };
     unsafe {
@@ -430,9 +455,21 @@ pub async fn pty_spawn(
             c
         }
         _ => {
-            let mut c = CommandBuilder::new(DEFAULT_SHELL);
-            c.arg("-NoLogo");
-            c
+            #[cfg(windows)]
+            {
+                let mut c = CommandBuilder::new(DEFAULT_SHELL);
+                c.arg("-NoLogo");
+                c
+            }
+            // La shell de Linux se abre de login (`-l`) para que el PATH y los
+            // alias del usuario estén puestos: sin eso, `claude` no se
+            // encuentra en la mitad de las instalaciones.
+            #[cfg(not(windows))]
+            {
+                let mut c = CommandBuilder::new(shell_de_fabrica());
+                c.arg("-l");
+                c
+            }
         }
     };
     cmd.cwd(&cwd);
@@ -481,6 +518,14 @@ pub async fn pty_spawn(
     // Al corral lo ANTES posible, antes de montar hilos o de tocar el mapa: el
     // hijo ya está corriendo y cada instante que pasa fuera es un instante en el
     // que podría abrir un nieto que se quedara sin encerrar. Ver `corral()`.
+    //
+    // En Linux no hace falta corral y no es una carencia: el propio sistema ya
+    // lo hace. Cada terminal nace en su SESIÓN, con el pseudoterminal como
+    // terminal de control; cuando Adeorq muere —como muera—, el extremo maestro
+    // se cierra, el núcleo manda SIGHUP a esa sesión y los agentes se van con
+    // ella. Es el mismo seguro que el flag KILL_ON_JOB_CLOSE de Windows, solo
+    // que en Unix viene de fábrica desde hace cuarenta años.
+    #[cfg(windows)]
     if let Some(pid) = pid {
         meter_en_el_corral(pid);
     }
@@ -660,13 +705,35 @@ pub async fn pty_resize(state: State<'_, PtyState>, id: u32, cols: u16, rows: u1
 ///
 /// `/T` es la rama entera, `/F` sin preguntar. Y sin ventana: sin el flag, cada
 /// cierre de panel asoma una consola negra un instante.
+#[cfg(windows)]
 fn matar_rama(pid: u32) {
-    use std::os::windows::process::CommandExt;
-    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     let _ = std::process::Command::new("taskkill")
         .args(["/PID", &pid.to_string(), "/T", "/F"])
-        .creation_flags(CREATE_NO_WINDOW)
+        .sin_ventana()
         .output();
+}
+
+/// Lo mismo en Linux, y sale más barato que en Windows: `portable-pty` abre
+/// cada terminal en su propia SESIÓN, así que el hijo es líder de un grupo de
+/// procesos que lleva su mismo número. Una señal a `-pid` va al grupo entero,
+/// que es exactamente la rama que hay que matar, sin llamar a ningún programa
+/// de fuera.
+///
+/// Primero por las buenas (TERM) y, si sigue ahí, por las malas (KILL): un
+/// agente a medias tiene cosas que cerrar, y matarlo en seco le deja el
+/// transcript a medio escribir.
+#[cfg(not(windows))]
+fn matar_rama(pid: u32) {
+    let grupo = -(pid as i32);
+    // SAFETY: `kill` con un pgid negativo es la llamada de siempre; no toca
+    // memoria nuestra y el peor caso es un ESRCH que no nos importa.
+    unsafe {
+        libc::kill(grupo, libc::SIGTERM);
+    }
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    unsafe {
+        libc::kill(grupo, libc::SIGKILL);
+    }
 }
 
 #[tauri::command]

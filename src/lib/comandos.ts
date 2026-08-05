@@ -4,13 +4,26 @@
 // propios (froede) hacían falta en dos sitios: aquí no lo tiene que importar
 // nadie de nadie, y así el envoltorio es el mismo en toda la casa.
 
+/** Si la app corre sobre Windows. Se mira el `userAgent` porque el WebView no
+    tiene forma de preguntárselo a Rust sin una llamada asíncrona, y esto hace
+    falta al construir cada comando. */
+export const ES_WINDOWS = /win/i.test(navigator.userAgent.split(")")[0] ?? "");
+
 /**
- * Un comando, envuelto en PowerShell para que valgan el PATH y el perfil del
- * usuario. `-NoExit` deja la terminal viva cuando el programa acaba, que es lo
- * que permite leer lo que dejó escrito y seguir tecleando ahí.
+ * Un comando, envuelto en la shell del sistema para que valgan el PATH y el
+ * perfil del usuario. Sin ese envoltorio, `claude` no se encuentra en la mitad
+ * de las instalaciones, porque vive en una carpeta que añade el perfil.
+ *
+ * En Windows, PowerShell con `-NoExit`, que deja la terminal viva cuando el
+ * programa acaba: es lo que permite leer lo que dejó escrito y seguir
+ * tecleando ahí. En Linux se consigue lo mismo encadenando una shell
+ * interactiva detrás (`; exec bash -i`), porque `bash -c` no tiene un `-NoExit`
+ * y sin eso la terminal se cerraría en cuanto el agente termina.
  */
 export function shellCommand(inner: string): string[] {
-  return ["powershell.exe", "-NoLogo", "-NoExit", "-Command", inner];
+  if (ES_WINDOWS) return ["powershell.exe", "-NoLogo", "-NoExit", "-Command", inner];
+  const shell = "/bin/bash";
+  return [shell, "-lc", `${inner}; exec ${shell} -i`];
 }
 
 /**

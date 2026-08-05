@@ -53,8 +53,7 @@ fn safe_id(id: &str) -> Result<&str, String> {
 }
 
 pub fn notes_dir() -> Result<PathBuf, String> {
-    let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
-    Ok(PathBuf::from(local).join("Adeorq").join("notas"))
+    Ok(crate::dir_datos()?.join("notas"))
 }
 
 fn note_path(id: &str) -> Result<PathBuf, String> {

@@ -1039,6 +1039,42 @@ function App() {
   );
 
   /**
+   * Retomar varias conversaciones de una vez, desde el asistente del ＋.
+   *
+   * Es primo de `onOpenAll`, pero no el mismo: aquel abre las de UN proyecto y,
+   * si vienen de un grupo, aparta lo demás para entrar en ese espacio. Estas
+   * pueden ser de proyectos distintos y no aparta nada, porque las has elegido
+   * tú una a una.
+   *
+   * Lo que sí comparte es lo que costó aprender: escalonarlas, porque nueve
+   * CLIs arrancando a la vez se pelean por la CPU y todos van lentos; y repartir
+   * el mosaico al final, pero solo si son las únicas —un tablero que ya habías
+   * colocado es tuyo, no nuestro—, que es justo lo que `onOpenAll` no hace.
+   */
+  const retomarVarias = useCallback(
+    (sesiones: SessionInfo[]) => {
+      setWizard(false);
+      const n = sesiones.length;
+      if (!n) return;
+      sesiones.forEach((s, i) => {
+        if (i === 0) onResume(s);
+        else window.setTimeout(() => onResume(s), i * OPEN_ALL_STAGGER_MS);
+      });
+      if (n > 1) {
+        window.setTimeout(() => {
+          setCols((prev) => {
+            const total = prev.reduce((k, c) => k + c.panes.length, 0);
+            return total === n
+              ? applyPreset(prev, presetFor(n), () => nextCol.current++)
+              : prev;
+          });
+        }, n * OPEN_ALL_STAGGER_MS + 150);
+      }
+    },
+    [onResume],
+  );
+
+  /**
    * Mete esta sesión en el grupo de su cuadrilla, creándolo si es la primera.
    *
    * Reaprovecha el agrupado manual que la barra lateral ya tenía («▣ Mover a
@@ -2775,6 +2811,7 @@ function App() {
           maxPanes={openAllCap}
           suggested={focusProject}
           onLaunch={launchFromWizard}
+          onRetomar={retomarVarias}
           onClose={() => setWizard(false)}
         />
       )}

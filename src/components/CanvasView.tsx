@@ -41,7 +41,9 @@ import CanvasDraw, {
   cajaDe,
   fuente,
   movido,
+  puntoDeAncla,
   seTocan,
+  type Ancla,
   type Caja,
   type DrawTool,
   type FontId,
@@ -334,6 +336,12 @@ function Canvas({
   /** Dibujar con halo: lo que le gustó del resaltado de la selección, pero
       puesto a propósito y para siempre. */
   const [glow, setGlow] = useState(false);
+  /** Cuánto relleno lleva la próxima caja o elipse: 0 hueca, 0.25 translúcida,
+      0.85 maciza. Tres pasos y no una barra, ver el botón. */
+  const [relleno, setRelleno] = useState(0);
+  /** Si lo próximo se dibuja a mano alzada. Nace apagado a propósito: encenderlo
+      de fábrica cambiaría el aspecto de todos los tableros que ya existen. */
+  const [rugoso, setRugoso] = useState(false);
   const [fuenteId, setFuenteId] = useState<FontId>("app");
   /** El trazo cogido con la flecha, si hay alguno. */
   const [selTrazo, setSelTrazo] = useState<string | null>(null);
@@ -1373,8 +1381,65 @@ ${ruta}` : ruta;
 
   /* ----------------------------------------------------------- el dibujo */
 
-  const addTrazo = useCallback((s: Trazo) => setTrazos((p) => [...p, s]), []);
-  const borrarTrazo = useCallback((id: string) => setTrazos((p) => p.filter((s) => s.id !== id)), []);
+  /* -------------------------------------------------------- deshacer de verdad
+   *
+   * Lo de antes era `trazos.slice(0, -1)`: quitaba el ÚLTIMO del array, que casi
+   * nunca es lo que acabas de tocar. Mover un trazo y pulsar Ctrl+Z te borraba
+   * otro; cambiar un color, estirar una caja o vaciar el dibujo entero no se
+   * podían deshacer en absoluto.
+   *
+   * Se guardan FOTOS del array, no diferencias: con decenas de trazos una foto
+   * son unos kilobytes, y el código que hay que mantener es una décima parte del
+   * de un sistema de deltas. El tope evita que un lienzo de horas se coma la
+   * memoria.
+   *
+   * La regla que hace que esto se sienta bien es de Excalidraw: la foto se toma
+   * cuando EMPIEZA un gesto, nunca en cada movimiento. Arrastrar un trazo cien
+   * píxeles llama a `onCambiar` una vez por fotograma; sin esta regla habría que
+   * pulsar Ctrl+Z cien veces para volver donde estabas. Por eso `cambiarTrazo`
+   * NO recuerda nada y quien recuerda es `alEmpezarGesto`, en el pointerdown. */
+  const PASOS_ATRAS = 60;
+  const historia = useRef<Trazo[][]>([]);
+  const futuro = useRef<Trazo[][]>([]);
+  // El array de trazos de ESTE render, para poder fotografiarlo desde un
+  // callback sin arrastrar `trazos` como dependencia por toda la cadena.
+  const trazosVivos = useRef(trazos);
+  trazosVivos.current = trazos;
+
+  // Cuántos pasos hay a cada lado. Las pilas son refs (no queremos un render por
+  // fotograma de arrastre), pero los dos botones tienen que saber si están vivos
+  // o apagados, y para eso hace falta estado.
+  const [pasos, setPasos] = useState({ atras: 0, alante: 0 });
+
+  // Mientras dura un gesto no se toman más fotos. Arrastrar la goma sobre diez
+  // trazos es UNA cosa que has hecho, así que se deshace de una vez.
+  const enGesto = useRef(false);
+
+  const recordar = useCallback(() => {
+    if (enGesto.current) return;
+    historia.current.push(trazosVivos.current);
+    if (historia.current.length > PASOS_ATRAS) historia.current.shift();
+    // Cualquier cosa nueva cierra el camino de vuelta: es lo que hace todo
+    // editor, y lo contrario deja un «rehacer» que reaparece cambios de otra
+    // rama de la historia.
+    futuro.current = [];
+    setPasos({ atras: historia.current.length, alante: 0 });
+  }, []);
+
+  const addTrazo = useCallback(
+    (s: Trazo) => {
+      recordar();
+      setTrazos((p) => [...p, s]);
+    },
+    [recordar],
+  );
+  const borrarTrazo = useCallback(
+    (id: string) => {
+      recordar();
+      setTrazos((p) => p.filter((s) => s.id !== id));
+    },
+    [recordar],
+  );
   const cambiarTrazo = useCallback(
     (s: Trazo) => setTrazos((p) => p.map((x) => (x.id === s.id ? s : x))),
     [],
@@ -1384,29 +1449,47 @@ ${ruta}` : ruta;
      trazo seleccionado, lo repinta; si no, deja preparado el siguiente. Es lo
      que hace cualquier editor de dibujo y evita tener dos juegos de botones
      para lo mismo. */
+
+  /** Repinta lo que esté cogido, si hay algo.
+   *
+   *  Salir antes cuando no hay nada seleccionado no es un ahorro cosmético:
+   *  un `map` que no cambia ni un trazo devuelve igualmente un array NUEVO, y
+   *  con él cambia la identidad de `construir`, se reinicia el temporizador del
+   *  autoguardado y se reescribe el tablero ENTERO en disco —capturas en base64
+   *  incluidas— para dejarlo exactamente como estaba. Cada clic en un color con
+   *  la mano vacía costaba eso. */
+  const retocarSel = useCallback(
+    (cambio: Partial<Trazo>) => {
+      if (!selTrazo) return;
+      recordar();
+      setTrazos((p) => p.map((x) => (x.id === selTrazo ? { ...x, ...cambio } : x)));
+    },
+    [selTrazo, recordar],
+  );
+
   const usarColor = useCallback(
     (c: string) => {
       setColor(c);
-      setTrazos((p) => p.map((x) => (x.id === selTrazo ? { ...x, color: c } : x)));
+      retocarSel({ color: c });
     },
-    [selTrazo],
+    [retocarSel],
   );
 
   const usarGrosor = useCallback(
     (w: number) => {
       setGrosor(w);
-      setTrazos((p) => p.map((x) => (x.id === selTrazo ? { ...x, w } : x)));
+      retocarSel({ w });
     },
-    [selTrazo],
+    [retocarSel],
   );
 
   /** La tipografía del texto. Mismo trato que el color y el grosor. */
   const usarFuente = useCallback(
     (id: FontId) => {
       setFuenteId(id);
-      setTrazos((p) => p.map((x) => (x.id === selTrazo ? { ...x, font: id } : x)));
+      retocarSel({ font: id });
     },
-    [selTrazo],
+    [retocarSel],
   );
 
   /** El halo, encendido o apagado. Igual que el color: si hay algo cogido lo
@@ -1414,9 +1497,128 @@ ${ruta}` : ruta;
   const usarGlow = useCallback(() => {
     const siguiente = !glow;
     setGlow(siguiente);
-    setTrazos((p) => p.map((x) => (x.id === selTrazo ? { ...x, glow: siguiente } : x)));
-  }, [glow, selTrazo]);
-  const deshacer = useCallback(() => setTrazos((p) => p.slice(0, -1)), []);
+    retocarSel({ glow: siguiente });
+  }, [glow, retocarSel]);
+
+  /** El relleno rota entre los tres pasos. Un botón que cicla y no tres
+      botones: es una sola idea con tres grados, y en la barra el sitio manda. */
+  const RELLENOS = [0, 0.25, 0.85];
+  const usarRelleno = useCallback(() => {
+    const i = RELLENOS.indexOf(relleno);
+    const siguiente = RELLENOS[(i + 1) % RELLENOS.length];
+    setRelleno(siguiente);
+    retocarSel({ relleno: siguiente });
+  }, [relleno, retocarSel]);
+
+  /** Quién tapa a quién. El orden de pintado ES el orden del array, así que
+      subir algo al frente es llevarlo al final. Hace falta desde que hay
+      relleno: dos cajas macizas que se solapan tienen que poder intercambiarse,
+      y hasta ahora el único orden posible era el de dibujado. */
+  const mandarAlBorde = useCallback(
+    (alFrente: boolean) => {
+      if (!selTrazo) return;
+      recordar();
+      setTrazos((p) => {
+        const s = p.find((x) => x.id === selTrazo);
+        if (!s) return p;
+        const resto = p.filter((x) => x.id !== selTrazo);
+        return alFrente ? [...resto, s] : [s, ...resto];
+      });
+    },
+    [selTrazo, recordar],
+  );
+
+  /** El trazo a mano alzada. Al encenderlo sobre algo ya dibujado hay que darle
+      su dado, o RoughJS usaría el mismo para todo y dos cajas iguales saldrían
+      temblando exactamente igual, que se nota. */
+  const usarRugoso = useCallback(() => {
+    const siguiente = !rugoso;
+    setRugoso(siguiente);
+    retocarSel(
+      siguiente
+        ? { rugoso: true, seed: Math.floor(Math.random() * 2 ** 31) }
+        : { rugoso: undefined },
+    );
+  }, [rugoso, retocarSel]);
+
+  /** Si lo que hay cogido admite relleno: entonces el botón sale aunque la
+      herramienta sea la flecha, que es como se le cambia el fondo a una caja
+      que ya está dibujada. */
+  const rellenable = useMemo(() => {
+    const s = trazos.find((x) => x.id === selTrazo);
+    return s?.t === "caja" || s?.t === "rombo" || s?.t === "elipse";
+  }, [trazos, selTrazo]);
+  /* ------------------------------------------------------ flechas que se pegan
+   *
+   * Una flecha dibujada sobre una terminal se queda pegada a ella y la sigue.
+   * Antes guardaba dos puntos sueltos, así que en cuanto reordenabas el tablero
+   * todas las flechas se quedaban señalando al aire donde estuvo algo, y había
+   * que redibujarlas una a una. El ancla va en PROPORCIÓN a la caja de la pieza
+   * (ver `Ancla`), de modo que aguanta también redimensionarla.
+   *
+   * Esto es distinto de las flechas de React Flow, que unen dos terminales para
+   * pasarles el relevo: aquellas son una tubería de trabajo, estas son dibujo.
+   * Se puede rodear tres cosas y señalarlas sin montar ningún encadenado. */
+  const cajasNodos = useMemo(() => {
+    const m = new Map<string, Caja>();
+    for (const n of nodes) m.set(n.id, cajaNodo(n));
+    return m;
+  }, [nodes]);
+
+  useEffect(() => {
+    setTrazos((prev) => {
+      let tocado = false;
+      const next = prev.map((s) => {
+        if (!s.anclaDe && !s.anclaA) return s;
+        const p = [...s.p];
+        const de = s.anclaDe && puntoDeAncla(s.anclaDe, cajasNodos);
+        const a = s.anclaA && puntoDeAncla(s.anclaA, cajasNodos);
+        if (de && (p[0] !== de[0] || p[1] !== de[1])) [p[0], p[1]] = de;
+        if (a && (p[2] !== a[0] || p[3] !== a[1])) [p[2], p[3]] = a;
+        // La pieza que se borró se lleva su ancla, no arrastra la flecha: el
+        // extremo se queda donde estaba y a partir de ahí es tuyo otra vez.
+        const huerfano = (s.anclaDe && !de) || (s.anclaA && !a);
+        if (p.every((v, i) => v === s.p[i]) && !huerfano) return s;
+        tocado = true;
+        const limpio: Trazo = { ...s, p };
+        if (s.anclaDe && !de) delete limpio.anclaDe;
+        if (s.anclaA && !a) delete limpio.anclaA;
+        return limpio;
+      });
+      // Devolver el MISMO array cuando no ha cambiado nada es lo que evita el
+      // bucle: un array nuevo reinicia el autoguardado, que reescribe el
+      // tablero, que vuelve a pasar por aquí.
+      return tocado ? next : prev;
+    });
+  }, [cajasNodos]);
+
+  /** Lo llama la capa de dibujo al empezar a mover, estirar o borrar: una foto
+      por gesto, no por fotograma ni por trazo. */
+  const alEmpezarGesto = useCallback(() => {
+    recordar();
+    enGesto.current = true;
+  }, [recordar]);
+
+  /** Y al soltar. A partir de aquí lo siguiente vuelve a ser un paso propio. */
+  const alSoltarGesto = useCallback(() => {
+    enGesto.current = false;
+  }, []);
+
+  const deshacer = useCallback(() => {
+    const antes = historia.current.pop();
+    if (!antes) return;
+    futuro.current.push(trazosVivos.current);
+    setTrazos(antes);
+    setPasos({ atras: historia.current.length, alante: futuro.current.length });
+  }, []);
+
+  const rehacer = useCallback(() => {
+    const despues = futuro.current.pop();
+    if (!despues) return;
+    historia.current.push(trazosVivos.current);
+    setTrazos(despues);
+    setPasos({ atras: historia.current.length, alante: futuro.current.length });
+  }, []);
   // Tras dibujar se vuelve a la mano, como en Excalidraw. No es un capricho:
   // una herramienta que se queda puesta hace que el siguiente arrastre pinte
   // en vez de mover, y el usuario concluye que el lienzo "no le deja arrastrar".
@@ -1438,14 +1640,15 @@ ${ruta}` : ruta;
   useEffect(() => {
     if (tool === "sel") return;
     const onKey = (e: KeyboardEvent) => {
-      if (accionDe(e, mapaRef.current) === "deshacer") {
-        e.preventDefault();
-        deshacer();
-      }
+      const a = accionDe(e, mapaRef.current);
+      if (a !== "deshacer" && a !== "rehacer") return;
+      e.preventDefault();
+      if (a === "deshacer") deshacer();
+      else rehacer();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [tool, deshacer]);
+  }, [tool, deshacer, rehacer]);
 
   /* ---------------------------------------------- coger varias cosas a la vez
    *
@@ -1607,11 +1810,14 @@ ${ruta}` : ruta;
     for (const n of fuera) if (n.type === "term") onClose(Number(n.id));
     setNodes((prev) => prev.filter((n) => !ids.has(n.id)));
     setEdges((prev) => prev.filter((e) => !ids.has(e.source) && !ids.has(e.target)));
+    // Los trazos SÍ vuelven con Ctrl+Z; las terminales no, porque cerrarlas mata
+    // a su agente. Por eso esto se pregunta antes y aquello no.
+    recordar();
     setTrazos((prev) => prev.filter((s) => !grupoRef.current.has(s.id)));
     setGrupo(new Set());
     setActivo(false);
     setConfirmar(false);
-  }, [nodes, onClose]);
+  }, [nodes, onClose, recordar]);
 
   /** Cuántas terminales caerían: es lo único de esto que no se puede deshacer. */
   const termsDentro = nodes.filter((n) => n.selected && n.type === "term").length;
@@ -1634,13 +1840,15 @@ ${ruta}` : ruta;
         setActivo(false);
         return;
       }
+      // Una foto al empezar el arrastre, no en cada fotograma de `durantArrastre`.
+      recordar();
       arrastreRef.current = {
         x: n.position.x,
         y: n.position.y,
         base: trazos.filter((s) => grupo.has(s.id)),
       };
     },
-    [grupo, trazos, nodes],
+    [grupo, trazos, nodes, recordar],
   );
 
   const durantArrastre = useCallback((n: CanvasNode) => {
@@ -1703,7 +1911,10 @@ ${ruta}` : ruta;
     const onKey = (e: KeyboardEvent) => {
       if (!hoja.current?.offsetParent) return;
       const accion = accionDe(e, mapaRef.current);
-      if (!accion || accion === "deshacer") return;
+      // Deshacer y rehacer los lleva el efecto de arriba, que solo escucha
+      // mientras hay herramienta puesta: dentro de una terminal Ctrl+Z suspende
+      // el proceso que corre ahí, y robárselo sería peor que no tener deshacer.
+      if (!accion || accion === "deshacer" || accion === "rehacer") return;
 
       // Un pane con el teclado es una terminal escuchando: no se le quitan las
       // teclas por la espalda. Solo pasan las que necesitan el foco fuera para
@@ -2052,7 +2263,25 @@ ${ruta}` : ruta;
 
       // Los ids de los trazos se rehacen: importar dos veces el mismo archivo
       // dejaría dos trazos con el mismo id y la goma borraría los dos.
-      setTrazos((prev) => [...prev, ...f.trazos.map((s) => ({ ...s, id: `${sello}-${s.id}` }))]);
+      // Las flechas pegadas a una pieza siguen pegadas: los ids de los nodos se
+      // reparten de nuevo al importar (`mapa`), así que el ancla se traduce al
+      // id nuevo. Si esa pieza no llegó a abrirse —un tablero traído con las
+      // terminales sin abrir—, el ancla se cae y la flecha se queda donde el
+      // dibujo la dejó, que es mejor que apuntar a un id que no existe.
+      const reancla = (a?: Ancla): Ancla | undefined => {
+        if (!a) return undefined;
+        const nodo = mapa.get(a.nodo);
+        return nodo ? { ...a, nodo } : undefined;
+      };
+      setTrazos((prev) => [
+        ...prev,
+        ...f.trazos.map((s) => ({
+          ...s,
+          id: `${sello}-${s.id}`,
+          anclaDe: reancla(s.anclaDe),
+          anclaA: reancla(s.anclaA),
+        })),
+      ]);
 
       if (!callado) {
         const r = resumen(f);
@@ -2436,6 +2665,46 @@ ${ruta}` : ruta;
                   </button>
                 </>
               )}
+              {/* El relleno, solo donde significa algo. Tres pasos y no una
+                  barra: en un tablero se quiere «hueca», «se ve lo de debajo» o
+                  «tapa», y afinar el 34 % no le sirve a nadie. Va con el color
+                  del trazo, así que el botón enseña justo cómo va a quedar. */}
+              {(tool === "caja" || tool === "rombo" || tool === "elipse" || rellenable) && (
+                <>
+                  <span className="cb-div" />
+                  <button
+                    className="cp-fill"
+                    data-on={relleno > 0}
+                    data-tip={t("Relleno: hueca, translúcida o maciza")}
+                    onClick={usarRelleno}
+                  >
+                    <span style={{ background: color, opacity: relleno || 0.12 }} />
+                  </button>
+                </>
+              )}
+              {/* El trazo de boceto. Solo donde cambia algo: un texto o un
+                  trazo de lápiz no tiemblan, ya son a mano. */}
+              {(tool === "caja" || tool === "rombo" || tool === "elipse" || tool === "linea" || rellenable) && (
+                <>
+                  <span className="cb-div" />
+                  <button
+                    className="cp-btn"
+                    data-on={rugoso}
+                    data-tip={t("Dibujar a mano alzada")}
+                    onClick={usarRugoso}
+                  >
+                    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                      <path
+                        d="M2 11.5 C4 9 5 13 7.5 10.5 S11.5 6 14 8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                </>
+              )}
               <span className="cb-div" />
               {/* El halo. Se pinta con el color que tengas puesto, así que el
                   botón enseña justo cómo va a quedar. */}
@@ -2464,6 +2733,27 @@ ${ruta}` : ruta;
             <>
               <button
                 className="cp-btn"
+                data-tip={t("Traer al frente")}
+                onClick={() => mandarAlBorde(true)}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <rect x="2.5" y="2.5" width="8" height="8" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.3" opacity="0.45" />
+                  <rect x="5.5" y="5.5" width="8" height="8" rx="1.6" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+              <button
+                className="cp-btn"
+                data-tip={t("Enviar al fondo")}
+                onClick={() => mandarAlBorde(false)}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <rect x="2.5" y="2.5" width="8" height="8" rx="1.6" fill="currentColor" stroke="none" />
+                  <rect x="5.5" y="5.5" width="8" height="8" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.3" opacity="0.45" />
+                </svg>
+              </button>
+              <span className="cb-div" />
+              <button
+                className="cp-btn"
                 data-tip={conTecla(t("Borrar lo seleccionado"), "borrar")}
                 onClick={() => {
                   borrarTrazo(selTrazo);
@@ -2484,11 +2774,19 @@ ${ruta}` : ruta;
             <>
               <button
                 className="cp-btn"
-                disabled={!trazos.length}
-                data-tip={conTecla(t("Deshacer el último trazo"), "deshacer")}
+                disabled={!pasos.atras}
+                data-tip={conTecla(t("Deshacer"), "deshacer")}
                 onClick={deshacer}
               >
                 ↶
+              </button>
+              <button
+                className="cp-btn"
+                disabled={!pasos.alante}
+                data-tip={t("Rehacer")}
+                onClick={rehacer}
+              >
+                ↷
               </button>
               <button
                 className="cp-btn cp-done"
@@ -2599,11 +2897,16 @@ ${ruta}` : ruta;
             color={color}
             grosor={grosor}
             glow={glow}
+            relleno={relleno}
+            rugoso={rugoso}
+            cajasNodos={cajasNodos}
             font={fuenteId}
             trazos={trazos}
             onAdd={addTrazo}
             onBorrar={borrarTrazo}
             onCambiar={cambiarTrazo}
+            onGesto={alEmpezarGesto}
+            onFinGesto={alSoltarGesto}
             sel={selTrazo}
             onSel={elegirTrazo}
             onFin={finTrazo}

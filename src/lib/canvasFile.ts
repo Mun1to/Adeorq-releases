@@ -1,4 +1,4 @@
-import type { Trazo } from "../components/CanvasDraw";
+import { FIGURAS, type Ancla, type Trazo } from "../components/CanvasDraw";
 import type { Shape } from "../components/CanvasImage";
 import { esFontId, esWidgetKind, type WidgetKind } from "./piezas";
 
@@ -169,6 +169,21 @@ const num = (v: unknown, pordefecto = 0): number =>
   typeof v === "number" && Number.isFinite(v) ? v : pordefecto;
 const txt = (v: unknown, pordefecto = ""): string => (typeof v === "string" ? v : pordefecto);
 
+/** El extremo de una flecha pegado a una pieza, si el archivo lo trae bien.
+ *
+ *  Las proporciones se acotan a 0..1 y no solo se comprueban: un archivo con
+ *  `rx: 40` colocaría el extremo cuarenta anchos a la derecha de su pieza, o
+ *  sea perdido en el infinito, y el trazo seguiría pareciendo válido. */
+const ancla = (v: unknown): Ancla | undefined => {
+  if (!v || typeof v !== "object") return undefined;
+  const r = v as Record<string, unknown>;
+  const nodo = txt(r.nodo);
+  if (!nodo || typeof r.rx !== "number" || typeof r.ry !== "number") return undefined;
+  if (!Number.isFinite(r.rx) || !Number.isFinite(r.ry)) return undefined;
+  const acotar = (n: number) => Math.min(Math.max(n, 0), 1);
+  return { nodo, rx: acotar(r.rx), ry: acotar(r.ry) };
+};
+
 /** Lee un archivo de lienzo comprobándolo campo a campo.
  *
  *  Es más largo que un `JSON.parse` a pelo y esa es la idea: el archivo puede
@@ -291,18 +306,43 @@ export function parsear(raw: string): CanvasFile | null {
     if (!s || typeof s !== "object") continue;
     const r = s as Record<string, unknown>;
     const t = txt(r.t);
-    const p = Array.isArray(r.p) ? r.p.filter((v) => typeof v === "number") : [];
-    if (!["lapiz", "flecha", "linea", "caja", "elipse", "texto"].includes(t)) continue;
-    if (p.length < 2) continue;
+    if (!(FIGURAS as readonly string[]).includes(t)) continue;
+    // Las coordenadas van EN PAREJAS, y por eso no se filtran: quitar un valor
+    // malo de en medio desplazaría todo el array y a partir de ahí las X pasan
+    // a ser Y. Si hay algo que no es un número, ese trazo no se puede leer y se
+    // descarta entero, que es lo honesto.
+    const crudo = Array.isArray(r.p) ? r.p : [];
+    if (!crudo.every((v) => typeof v === "number" && Number.isFinite(v))) continue;
+    const p = crudo as number[];
+    // Un texto se ancla con un punto; todo lo demás necesita dos, y una caja con
+    // solo dos coordenadas acaba pintándose con ancho y alto `NaN`.
+    if (p.length < (t === "texto" ? 2 : 4)) continue;
     trazos.push({
       id: txt(r.id, `d${trazos.length}`),
       t: t as Trazo["t"],
       color: txt(r.color, "#e6edf7"),
-      w: num(r.w, 3),
-      p: p as number[],
+      // Acotado: un grosor absurdo venido de un archivo tocado a mano pintaba
+      // una mancha del tamaño del tablero.
+      w: Math.min(Math.max(num(r.w, 3), 0.5), 64),
+      p,
       txt: typeof r.txt === "string" ? r.txt : undefined,
       glow: r.glow === true,
+      relleno:
+        typeof r.relleno === "number" && r.relleno > 0
+          ? Math.min(r.relleno, 1)
+          : undefined,
       font: esFontId(r.font) ? r.font : undefined,
+      anclaDe: ancla(r.anclaDe),
+      anclaA: ancla(r.anclaA),
+      rugoso: r.rugoso === true ? true : undefined,
+      // El dado del temblor. Si viene rugoso sin dado (archivo tocado a mano),
+      // se le da uno: sin él RoughJS usaría el suyo y la figura herviría.
+      seed:
+        r.rugoso === true
+          ? typeof r.seed === "number" && Number.isFinite(r.seed)
+            ? r.seed
+            : 1
+          : undefined,
     });
   }
 

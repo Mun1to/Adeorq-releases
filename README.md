@@ -13,13 +13,14 @@ vista a ninguno.
 
 <br>
 
-## [⬇&nbsp;&nbsp;Descargar para Windows](https://github.com/Mun1to/Adeorq-releases/releases/latest)
-
-[![Última versión](https://img.shields.io/github/v/release/Mun1to/Adeorq-releases?label=&color=4c8dff&style=for-the-badge)](https://github.com/Mun1to/Adeorq-releases/releases/latest)
+[![Descargar Adeorq para Windows](web/assets/descargar-windows.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe)
 
 **Gratis · sin cuenta · sin API keys · se actualiza sola**
 
-Windows 10 y 11, 64 bits · [La web](https://mun1to.github.io/Adeorq-releases/) ·
+[![Última versión](https://img.shields.io/github/v/release/Mun1to/Adeorq-releases?label=&color=1C66DE&style=flat-square)](https://github.com/Mun1to/Adeorq-releases/releases/latest)
+&nbsp;
+[Todas las versiones](https://github.com/Mun1to/Adeorq-releases/releases) ·
+[La web](https://mun1to.github.io/Adeorq-releases/) ·
 [La guía](https://mun1to.github.io/Adeorq-releases/guia.html) ·
 [English](README.en.md)
 

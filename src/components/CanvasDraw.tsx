@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { useReactFlow, useViewport } from "@xyflow/react";
+import { getStroke } from "perfect-freehand";
+import rough from "roughjs/bin/rough";
 import { useT } from "../lib/i18n";
 import { escribiendoTexto } from "../lib/atajos";
 import type { FontId } from "../lib/piezas";
@@ -24,13 +26,19 @@ export type DrawTool =
   | "flecha"
   | "linea"
   | "caja"
+  | "rombo"
   | "elipse"
   | "texto"
   | "goma";
 
+/** Las que dejan trazo. Existe para que el validador del archivo no tenga su
+    propia lista de strings sueltos: era la quinta copia de esta misma lista, y
+    la única que el compilador no protegía. */
+export const FIGURAS = ["lapiz", "flecha", "linea", "caja", "rombo", "elipse", "texto"] as const;
+
 export interface Trazo {
   id: string;
-  t: Exclude<DrawTool, "sel" | "marco" | "goma">;
+  t: (typeof FIGURAS)[number];
   color: string;
   /** Grosor en unidades del lienzo (escala con el zoom, como los nodos). */
   w: number;
@@ -41,8 +49,101 @@ export interface Trazo {
       para que un trazo destaque sobre una captura clara o sobre el código de
       una terminal, donde una línea fina se pierde. */
   glow?: boolean;
+  /** El relleno de una caja o una elipse, si lo tiene.
+   *
+   *  Se guarda la OPACIDAD y no un color: el relleno siempre es el color del
+   *  trazo, más o menos transparente. Dos colores por figura obligarían a dos
+   *  paletas en la barra, y en un tablero de trabajo lo que se quiere es tapar
+   *  el fondo detrás de una nota, no combinar colores. `0` o sin poner es hueca,
+   *  que es como nacen. */
+  relleno?: number;
   /** Solo para el texto: con qué tipografía se escribe. */
   font?: FontId;
+  /** Los extremos de una flecha o una línea, cuando están pegados a una pieza. */
+  anclaDe?: Ancla;
+  anclaA?: Ancla;
+  /** Dibujado a mano alzada, con el trazo tembloroso de un boceto. */
+  rugoso?: boolean;
+  /** El dado de ese temblor.
+   *
+   *  Se guarda, y esto no es opcional: RoughJS es aleatorio, así que sin un
+   *  número fijo la misma caja tiembla distinto en cada repintado y el tablero
+   *  entero parece hervir mientras mueves el ratón. Es EL detalle que separa un
+   *  boceto de un error. */
+  seed?: number;
+}
+
+/**
+ * Un extremo pegado a una pieza del lienzo.
+ *
+ * Se guarda EN PROPORCIÓN a su caja (0 es el borde de arriba o de la izquierda,
+ * 1 el de abajo o el de la derecha) y no en coordenadas absolutas. Es lo que
+ * hace Excalidraw en `binding.ts`, y el motivo es que así el extremo sobrevive
+ * a mover la pieza Y a redimensionarla: una flecha que apuntaba al centro de una
+ * terminal le sigue apuntando al centro después de estirarla.
+ */
+export interface Ancla {
+  /** El id del nodo de React Flow. */
+  nodo: string;
+  rx: number;
+  ry: number;
+}
+
+/**
+ * Cuánto se puede fallar apuntando y que aun así se alinee solo, en píxeles de
+ * PANTALLA. Es el `SNAP_DISTANCE` de Excalidraw, y como todos los umbrales de
+ * aquí se divide por el zoom: el imán tiene que sentirse igual de fuerte con el
+ * tablero cerca y lejos. Ocho es suficiente para acertar sin querer y poco para
+ * estorbar cuando de verdad quieres poner algo torcido.
+ */
+export const IMAN = 8;
+
+/** A qué valores merece la pena alinearse en cada eje: los dos bordes y el
+    centro de cada caja. Lo mismo que hace Figma, y es lo que hace que un
+    tablero hecho a mano parezca ordenado sin haberlo medido. */
+export function guiasDe(cajas: Iterable<Caja>): { xs: number[]; ys: number[] } {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const c of cajas) {
+    xs.push(c.x, c.x + c.w / 2, c.x + c.w);
+    ys.push(c.y, c.y + c.h / 2, c.y + c.h);
+  }
+  return { xs, ys };
+}
+
+/** El valor imantado más cercano, o el original si no hay ninguno a tiro. */
+export function imantar(v: number, candidatos: number[], umbral: number): number {
+  let mejor = v;
+  let d = umbral;
+  for (const c of candidatos) {
+    const dd = Math.abs(v - c);
+    if (dd < d) {
+      d = dd;
+      mejor = c;
+    }
+  }
+  return mejor;
+}
+
+/** Dónde cae ese ancla ahora mismo, en coordenadas del lienzo. */
+export function puntoDeAncla(a: Ancla, cajas: Map<string, Caja>): [number, number] | null {
+  const c = cajas.get(a.nodo);
+  if (!c) return null;
+  return [c.x + c.w * a.rx, c.y + c.h * a.ry];
+}
+
+/** Qué pieza hay bajo un punto, y en qué proporción de ella cae.
+ *
+ *  Se recorre al revés porque el último de la lista es el que se pinta encima:
+ *  si dos piezas se solapan, gana la que está a la vista. */
+export function anclaEn(x: number, y: number, cajas: Map<string, Caja>): Ancla | undefined {
+  const entradas = [...cajas.entries()].reverse();
+  for (const [nodo, c] of entradas) {
+    if (x < c.x || x > c.x + c.w || y < c.y || y > c.y + c.h) continue;
+    if (c.w <= 0 || c.h <= 0) continue;
+    return { nodo, rx: (x - c.x) / c.w, ry: (y - c.y) / c.h };
+  }
+  return undefined;
 }
 
 /** Los iconos van en SVG y no en glifos de texto: «⌖», «╱» y «⌫» dependen de
@@ -75,6 +176,7 @@ export const DRAW_TOOLS: Array<{ t: DrawTool; icon: ReactElement; label: string 
   { t: "flecha", icon: <Ico d="M3 13 L13 3 M13 3 L8.4 3.4 M13 3 L12.6 7.6" />, label: "Flecha" },
   { t: "linea", icon: <Ico d="M3 13 L13 3" />, label: "Línea" },
   { t: "caja", icon: <Ico d="M2.5 4 h11 a1 1 0 0 1 1 1 v6 a1 1 0 0 1 -1 1 h-11 a1 1 0 0 1 -1 -1 v-6 a1 1 0 0 1 1 -1 z" />, label: "Recuadro" },
+  { t: "rombo", icon: <Ico d="M8 1.8 L14.2 8 L8 14.2 L1.8 8 Z" />, label: "Rombo" },
   { t: "elipse", icon: <Ico d="M8 3.2 c3.6 0 6.2 2.1 6.2 4.8 c0 2.7 -2.6 4.8 -6.2 4.8 c-3.6 0 -6.2 -2.1 -6.2 -4.8 c0 -2.7 2.6 -4.8 6.2 -4.8 z" />, label: "Elipse" },
   { t: "texto", icon: <Ico d="M3 3.6 h10 M8 3.6 v9 M6 12.6 h4" />, label: "Texto" },
   { t: "goma", icon: <Ico d="M6.4 12.8 L2.6 9 a1 1 0 0 1 0 -1.4 l5.2 -5.2 a1 1 0 0 1 1.4 0 l3.8 3.8 a1 1 0 0 1 0 1.4 l-4.4 4.4 z M13.4 12.8 h-7" />, label: "Borrar trazos" },
@@ -82,6 +184,24 @@ export const DRAW_TOOLS: Array<{ t: DrawTool; icon: ReactElement; label: string 
 
 export const DRAW_COLORS = ["#ff6b6b", "#ffd166", "#6fe0bb", "#5fd0ff", "#c4b5fd", "#e6edf7"];
 export const DRAW_WIDTHS = [2, 4, 8];
+
+/**
+ * Cuánto se puede fallar apuntando a un trazo, en píxeles de PANTALLA.
+ *
+ * Se divide por el zoom en cada uso, que es la regla de Excalidraw y la que hace
+ * que un lienzo se sienta bien: el margen de error tiene que ser el mismo para
+ * el dedo, no para el tablero. Un umbral en unidades del lienzo es generoso
+ * alejado e imposible de acertar de cerca.
+ *
+ * Es UNA constante porque hay dos maneras de saber si le has dado a un trazo, y
+ * tienen que decir lo mismo. Agarrar lo resuelve el navegador con un camino
+ * transparente y grueso (`pointer-events: stroke`), que es gratis y exacto;
+ * borrar tiene que hacer la cuenta a mano, porque con la goma puesta la capa se
+ * queda todos los eventos y ningún trazo llega a recibirlos. Antes eran 12 por
+ * un lado y 22 de grosor —o sea 11 de radio— por el otro: casi lo mismo, pero
+ * dos números sueltos que nadie sabía que iban emparejados.
+ */
+export const ALCANCE_RATON = 12;
 
 /** Las tipografías del texto del lienzo.
  *
@@ -111,6 +231,14 @@ interface Props {
   grosor: number;
   /** Si lo próximo que dibujes sale con halo. */
   glow: boolean;
+  /** Con cuánto relleno nace la próxima caja o elipse (0 = hueca). */
+  relleno: number;
+  /** Si lo próximo sale con el trazo tembloroso de un boceto. */
+  rugoso: boolean;
+  /** Lo que ocupa cada pieza del lienzo, para poder pegarle una flecha. Lo
+      manda el padre, que es quien tiene los nodos: una sola fuente para las
+      cajas evita que el dibujo y el tablero discrepen medio píxel. */
+  cajasNodos: Map<string, Caja>;
   /** Con qué tipografía se escribe el texto. */
   font: FontId;
   trazos: Trazo[];
@@ -118,6 +246,15 @@ interface Props {
   onBorrar: (id: string) => void;
   /** Reemplaza un trazo por su versión nueva: moverlo o reescribir su texto. */
   onCambiar: (t: Trazo) => void;
+  /** Aviso de que empieza un gesto que va a cambiar algo: mover o estirar.
+   *
+   *  Existe por el deshacer. `onCambiar` se dispara una vez por fotograma
+   *  mientras arrastras, así que si la foto se tomara ahí, arrastrar un trazo
+   *  de un lado a otro dejaría cien pasos que deshacer para volver donde
+   *  estabas. Este se llama UNA vez, en el pointerdown. */
+  onGesto: () => void;
+  /** Y al soltar, para que lo siguiente vuelva a ser un paso propio. */
+  onFinGesto: () => void;
   /** Qué trazo está cogido. Vive en el padre porque la barra de arriba también
       lo necesita: los colores y el grosor pintan sobre lo seleccionado. */
   sel: string | null;
@@ -137,9 +274,18 @@ interface Props {
   onMoverNodos: (dx: number, dy: number) => void;
 }
 
-/** Un trazo movido: todos sus puntos, desplazados lo mismo. */
+/** Un trazo movido: todos sus puntos, desplazados lo mismo.
+ *
+ *  Si estaba pegado a alguna pieza, se despega: lo has cogido y lo has llevado
+ *  a otro sitio, así que mandas tú. Volver a pegarlo es arrastrar su punta
+ *  encima de la pieza. */
 export function movido(s: Trazo, dx: number, dy: number): Trazo {
-  return { ...s, p: s.p.map((v, i) => (i % 2 === 0 ? v + dx : v + dy)) };
+  const m = { ...s, p: s.p.map((v, i) => (i % 2 === 0 ? v + dx : v + dy)) };
+  if (m.anclaDe || m.anclaA) {
+    delete m.anclaDe;
+    delete m.anclaA;
+  }
+  return m;
 }
 
 /** Un rectángulo del lienzo. Lo hablan el marco de selección, los trazos y las
@@ -174,19 +320,56 @@ function distSeg(px: number, py: number, x1: number, y1: number, x2: number, y2:
 }
 
 /**
- * La caja que ocupa un texto, calculada y no medida.
+ * El lienzo de medir. Uno solo para toda la app, y nunca se pinta.
  *
- * Medirla de verdad (`getBBox`) obligaría a tener el nodo pintado antes de
- * saber dónde está, y esto se usa para DECIDIR si el ratón le ha dado. La
- * aproximación por número de letras se queda corta con mayúsculas y larga con
- * íes, y para agarrar y borrar da igual: nadie apunta al píxel.
+ * `measureText` es la única forma de saber lo que ocupa un texto sin tenerlo ya
+ * en pantalla, y crear un canvas por medición cuesta más que la medición.
+ */
+let medidor: CanvasRenderingContext2D | null = null;
+function anchoDeTexto(txt: string, px: number, css: string): number | null {
+  if (!medidor) medidor = document.createElement("canvas").getContext("2d");
+  if (!medidor) return null;
+  // `inherit` no significa nada fuera del DOM: para la fuente de la app se mide
+  // con la misma familia que el CSS le acaba dando.
+  const familia = css === "inherit" ? 'system-ui, "Segoe UI", sans-serif' : css;
+  medidor.font = `${px}px ${familia}`;
+  return medidor.measureText(txt).width;
+}
+
+/**
+ * La caja que ocupa un texto.
+ *
+ * Se MIDE, no se estima. Antes se calculaba como «número de letras × alto ×
+ * ancho medio de la familia», y el propio comentario admitía que se quedaba
+ * corta con mayúsculas y larga con íes. El problema es que esa caja decide tres
+ * cosas a la vez —dónde se puede agarrar el texto, hasta dónde llega la goma y
+ * si el marco lo ha cogido—, así que un «MMMM» en Arial Black tenía la zona de
+ * clic desplazada media palabra. `measureText` cuesta lo mismo y acierta.
+ *
+ * Si el navegador no da contexto 2D (nunca, en un WebView2), se cae a la
+ * estimación de antes en vez de dejar el texto sin caja.
  */
 export function cajaTexto(s: Trazo): Caja {
   const alto = 8 * s.w;
-  const ancho = Math.max(alto * 0.6, (s.txt?.length ?? 1) * alto * fuente(s.font).ancho);
+  const f = fuente(s.font);
+  const lineas = (s.txt ?? "").split("\n");
+  const ancho = Math.max(
+    alto * 0.6,
+    ...lineas.map((l) => anchoDeTexto(l, alto, f.css) ?? l.length * alto * f.ancho),
+  );
   // La `y` de un <text> es su línea base, no su borde de arriba.
-  return { x: s.p[0], y: s.p[1] - alto * 0.85, w: ancho, h: alto * 1.2 };
+  return {
+    x: s.p[0],
+    y: s.p[1] - alto * 0.85,
+    w: ancho,
+    h: alto * (0.2 + lineas.length * INTERLINEA),
+  };
 }
+
+/** Cuánto baja de una línea a la siguiente, en cuerpos de letra. 1,25 es el
+    valor por defecto de Excalidraw para sus tipografías, y es el que hace que
+    un párrafo corto se lea sin apelotonarse ni desperdigarse. */
+const INTERLINEA = 1.25;
 
 /** Lo que ocupa un trazo cualquiera, para saber si el marco lo ha pillado. */
 export function cajaDe(s: Trazo): Caja {
@@ -247,13 +430,21 @@ function tiradoresDe(s: Trazo): Tirador[] {
   ];
 }
 
-/** El tamaño de letra que toca al arrastrar el tirador hasta `x`. */
+/** El tamaño de letra que toca al arrastrar el tirador hasta `x`.
+ *
+ *  Se despeja de la MISMA medida con la que se dibuja la caja, para que el texto
+ *  acabe midiendo justo lo que has estirado. Como ahora el ancho se mide de
+ *  verdad y no se estima, se mide una vez a un tamaño de referencia y se escala:
+ *  el ancho de un texto es proporcional al cuerpo de la letra, así que una
+ *  medición basta para cualquier tamaño. */
 function tamPara(s: Trazo, x: number): number {
-  const letras = Math.max(s.txt?.length ?? 1, 1);
   const ancho = Math.max(x - s.p[0], 4);
-  // Se despeja de la misma cuenta con la que se dibuja la caja, para que el
-  // texto acabe midiendo justo lo que has estirado.
-  const alto = ancho / (letras * fuente(s.font).ancho);
+  const f = fuente(s.font);
+  const txt = s.txt ?? "";
+  const REF = 100;
+  const anchoRef = (txt ? anchoDeTexto(txt, REF, f.css) : null) ??
+    Math.max(txt.length, 1) * REF * f.ancho;
+  const alto = (ancho * REF) / Math.max(anchoRef, 1);
   return Math.min(Math.max(alto / 8, 0.6), 24);
 }
 
@@ -299,11 +490,16 @@ export default function CanvasDraw({
   color,
   grosor,
   glow,
+  relleno,
+  rugoso,
+  cajasNodos,
   font,
   trazos,
   onAdd,
   onBorrar,
   onCambiar,
+  onGesto,
+  onFinGesto,
   sel,
   onSel,
   onFin,
@@ -331,6 +527,13 @@ export default function CanvasDraw({
     y: number;
     /** Si viene, se está reescribiendo ese trazo en vez de crear uno nuevo. */
     id?: string;
+    /** Con qué se pinta el cuadro. Al reescribir un texto que ya existe son
+        los SUYOS, no los de la barra: si no, abrir una nota roja a mano para
+        cambiarle una palabra la enseñaba azul y con otra letra mientras la
+        editabas, y solo volvía a su sitio al pulsar Enter. */
+    color?: string;
+    w?: number;
+    font?: FontId;
   } | null>(null);
   const [texto, setTexto] = useState("");
   const arrastre = useRef<{
@@ -348,6 +551,22 @@ export default function CanvasDraw({
   } | null>(null);
   const capa = useRef<SVGSVGElement>(null);
   const activo = tool !== "sel";
+  /** Si la goma está apoyada: mientras lo esté, todo lo que pase por debajo cae. */
+  const borrando = useRef(false);
+  /** Las líneas de alineación que se están enseñando ahora mismo. */
+  const [guias, setGuias] = useState<{ x?: number; y?: number } | null>(null);
+
+  /** Borra lo que haya bajo el punto, si hay algo. */
+  const gomear = useCallback(
+    (x: number, y: number) => {
+      const cerca = trazos
+        .map((s) => ({ s, d: distTrazo(s, x, y) }))
+        .filter((o) => o.d < ALCANCE_RATON / zoom)
+        .sort((a, b) => a.d - b.d)[0];
+      if (cerca) onBorrar(cerca.s.id);
+    },
+    [trazos, zoom, onBorrar],
+  );
 
   // La selección es de la flecha: cambiar de herramienta la suelta, para que
   // el resaltado no se quede encendido mientras dibujas otra cosa.
@@ -382,6 +601,33 @@ export default function CanvasDraw({
     [flow],
   );
 
+  /** Lo mismo, pero alineándose con lo que ya hay en el tablero.
+   *
+   *  Se imanta a los bordes y a los centros de las piezas y de los demás
+   *  trazos, y mientras dura enseña la guía. Con **Ctrl** no se imanta nada: es
+   *  la salida de emergencia para cuando de verdad quieres poner algo un poco
+   *  torcido, y la tiene cualquier editor por el mismo motivo. */
+  const puntoIman = useCallback(
+    (e: React.PointerEvent, ignorar?: string): [number, number] => {
+      const [x, y] = punto(e);
+      if (e.ctrlKey) {
+        setGuias(null);
+        return [x, y];
+      }
+      const cajas = [
+        ...cajasNodos.values(),
+        ...trazos.filter((s) => s.id !== ignorar).map(cajaDe),
+      ];
+      const { xs, ys } = guiasDe(cajas);
+      const u = IMAN / zoom;
+      const ix = imantar(x, xs, u);
+      const iy = imantar(y, ys, u);
+      setGuias(ix === x && iy === y ? null : { x: ix === x ? undefined : ix, y: iy === y ? undefined : iy });
+      return [ix, iy];
+    },
+    [punto, cajasNodos, trazos, zoom],
+  );
+
   const abajo = (e: React.PointerEvent) => {
     if (e.button !== 0 || !activo) return;
     // Sin esto, React Flow interpretaría el mismo gesto como un panning y el
@@ -402,11 +648,14 @@ export default function CanvasDraw({
       return;
     }
     if (tool === "goma") {
-      const cerca = trazos
-        .map((s) => ({ s, d: distTrazo(s, x, y) }))
-        .filter((o) => o.d < 12 / zoom)
-        .sort((a, b) => a.d - b.d)[0];
-      if (cerca) onBorrar(cerca.s.id);
+      // Se borra arrastrando, no clic a clic: pasar la goma por encima de cinco
+      // rayas y que se vaya solo una es de las cosas que hacen que una
+      // herramienta parezca rota. Todo lo que caiga bajo el mismo arrastre
+      // cuenta como UN paso de deshacer.
+      capa.current?.setPointerCapture(e.pointerId);
+      onGesto();
+      borrando.current = true;
+      gomear(x, y);
       return;
     }
     if (tool === "texto") {
@@ -423,6 +672,13 @@ export default function CanvasDraw({
       w: grosor,
       glow,
       font,
+      // Solo donde significa algo: una flecha rellena no existe, y guardarlo
+      // igualmente ensuciaría el archivo con un campo que nadie lee.
+      relleno: tool === "caja" || tool === "rombo" || tool === "elipse" ? relleno : undefined,
+      rugoso: rugoso || undefined,
+      // El dado del temblor se echa UNA vez, aquí, y viaja con el trazo. Ver
+      // `seed` en Trazo: sin él la figura hierve en cada repintado.
+      seed: rugoso ? Math.floor(Math.random() * 2 ** 31) : undefined,
       p: tool === "lapiz" ? [x, y] : [x, y, x, y],
     });
   };
@@ -436,6 +692,7 @@ export default function CanvasDraw({
     if (tool !== "sel" || e.button !== 0) return;
     // Sin esto React Flow tomaría el gesto por un panning del lienzo.
     e.stopPropagation();
+    onGesto();
     const [x, y] = punto(e);
     if (grupo.has(s.id)) {
       arrastre.current = {
@@ -458,24 +715,45 @@ export default function CanvasDraw({
   const agarrarTirador = (e: React.PointerEvent, s: Trazo, tir: Tirador) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    onGesto();
     const [x, y] = punto(e);
     arrastre.current = { id: s.id, x, y, base: s, tir };
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
   };
 
   const mueve = (e: React.PointerEvent) => {
+    if (borrando.current) {
+      const [x, y] = punto(e);
+      gomear(x, y);
+      return;
+    }
     const a = arrastre.current;
     if (a?.tir) {
       e.stopPropagation();
-      const [x, y] = punto(e);
       const t = a.tir;
       if (t.tam) {
+        // El tirador del tamaño de letra no se imanta: lo que se está eligiendo
+        // es un cuerpo de letra, no una posición en el tablero.
+        const [x] = punto(e);
         onCambiar({ ...a.base, w: tamPara(a.base, x) });
       } else {
+        // Estirar imanta: es donde más se agradece, porque un lado de una caja
+        // a ras del de la de al lado no se acierta a pulso.
+        const [ix, iy] = puntoIman(e, a.base.id);
         const p = [...a.base.p];
-        p[t.ix] = x;
-        p[t.iy] = y;
-        onCambiar({ ...a.base, p });
+        p[t.ix] = ix;
+        p[t.iy] = iy;
+        // Arrastrar un extremo lo repega a donde lo sueltes, o lo despega si lo
+        // sacas fuera de todo. Sin esto, mover la punta de una flecha anclada
+        // la devolvía a su sitio en el siguiente render, y parecía que el
+        // tirador no funcionaba.
+        const repegado =
+          a.base.t === "flecha" || a.base.t === "linea"
+            ? t.ix === 0
+              ? { anclaDe: anclaEn(ix, iy, cajasNodos) }
+              : { anclaA: anclaEn(ix, iy, cajasNodos) }
+            : null;
+        onCambiar({ ...a.base, p, ...repegado });
       }
       return;
     }
@@ -507,7 +785,9 @@ export default function CanvasDraw({
     }
     if (!dibujando) return;
     e.stopPropagation();
-    const [x, y] = punto(e);
+    // El lápiz NO se imanta: es a mano alzada, y un imán le daría tirones a
+    // cada punto que pasara cerca de un borde. Las figuras de dos puntos sí.
+    const [x, y] = dibujando.t === "lapiz" ? punto(e) : puntoIman(e);
     setDibujando((s) => {
       if (!s) return s;
       if (s.t !== "lapiz") return { ...s, p: [s.p[0], s.p[1], x, y] };
@@ -521,8 +801,17 @@ export default function CanvasDraw({
   };
 
   const arriba = (e: React.PointerEvent) => {
+    // Las guías son de mientras dura el gesto: al soltar, fuera.
+    setGuias(null);
+    if (borrando.current) {
+      borrando.current = false;
+      onFinGesto();
+      e.stopPropagation();
+      return;
+    }
     if (arrastre.current) {
       arrastre.current = null;
+      onFinGesto();
       e.stopPropagation();
       return;
     }
@@ -553,7 +842,20 @@ export default function CanvasDraw({
         ? dibujando.p.length > 4
         : Math.hypot(dibujando.p[2] - dibujando.p[0], dibujando.p[3] - dibujando.p[1]) > 6 / zoom;
     if (grande) {
-      onAdd(dibujando);
+      // Una flecha o una línea que acaba sobre una terminal se PEGA a ella, y a
+      // partir de ahí la sigue cuando la muevas. Es lo que uno da por hecho al
+      // dibujar una flecha entre dos cosas, y sin esto el tablero se
+      // desmoronaba en cuanto reordenabas las piezas: las flechas se quedaban
+      // señalando al aire donde estuvo algo.
+      const pegado =
+        dibujando.t === "flecha" || dibujando.t === "linea"
+          ? {
+              ...dibujando,
+              anclaDe: anclaEn(dibujando.p[0], dibujando.p[1], cajasNodos),
+              anclaA: anclaEn(dibujando.p[2], dibujando.p[3], cajasNodos),
+            }
+          : dibujando;
+      onAdd(pegado);
       onFin();
     }
     setDibujando(null);
@@ -575,6 +877,13 @@ export default function CanvasDraw({
           w: grosor,
           p: [escribiendo.x, escribiendo.y],
           txt: limpio,
+          // La letra y el halo, que se quedaban por el camino: el cuadro de
+          // escritura SÍ los usaba para la vista previa, así que elegías «A
+          // mano», lo veías escrito a mano, pulsabas Enter y salía con la letra
+          // de la app. Justo la sorpresa que el comentario de ese cuadro dice
+          // que no puede pasar.
+          font,
+          glow,
         });
         onFin();
       }
@@ -597,10 +906,32 @@ export default function CanvasDraw({
       x: s.p[0],
       y: s.p[1],
       id: s.id,
+      color: s.color,
+      w: s.w,
+      font: s.font,
     });
   };
 
   const vistos = dibujando ? [...trazos, dibujando] : trazos;
+
+  // Lo que se ve del tablero ahora mismo, en sus propias coordenadas: es hasta
+  // dónde tienen que llegar las guías para que se lean de lado a lado.
+  const anchoCapa = capa.current?.clientWidth ?? window.innerWidth;
+  const altoCapa = capa.current?.clientHeight ?? window.innerHeight;
+  const vistaX = -vx / zoom;
+  const vistaY = -vy / zoom;
+  const vistaW = anchoCapa / zoom;
+  const vistaH = altoCapa / zoom;
+
+  /** La pieza sobre la que está la punta ahora mismo, si la hay: es la que se
+      va a quedar la flecha. Se mira el extremo que se está moviendo, que al
+      dibujar es siempre el segundo. */
+  const pegandoA = (() => {
+    const s = dibujando;
+    if (!s || (s.t !== "flecha" && s.t !== "linea")) return null;
+    const a = anclaEn(s.p[2], s.p[3], cajasNodos);
+    return a ? (cajasNodos.get(a.nodo) ?? null) : null;
+  })();
 
   return (
     <>
@@ -635,7 +966,10 @@ export default function CanvasDraw({
                   letra, y entre letra y letra no hay tinta. */}
               {tool === "sel" && (
                 <g className="canvas-draw-grab">
-                  <Forma s={s} agarre={22 / zoom} />
+                  {/* El doble, porque un `stroke-width` se reparte a los dos
+                      lados del camino: 24 de grosor son 12 de radio, que es lo
+                      mismo que alcanza la goma. */}
+                  <Forma s={s} agarre={(ALCANCE_RATON * 2) / zoom} />
                 </g>
               )}
             </g>
@@ -661,6 +995,47 @@ export default function CanvasDraw({
                 )),
               )}
 
+          {/* Las guías de alineación. Se dibujan de lado a lado del tablero
+              visible, que es como se lee «esto está a la misma altura que
+              aquello»: una raya corta al lado del cursor no dice con QUÉ te
+              estás alineando. */}
+          {guias?.x !== undefined && (
+            <line
+              className="canvas-guia"
+              x1={guias.x}
+              y1={vistaY}
+              x2={guias.x}
+              y2={vistaY + vistaH}
+              strokeWidth={1 / zoom}
+            />
+          )}
+          {guias?.y !== undefined && (
+            <line
+              className="canvas-guia"
+              x1={vistaX}
+              y1={guias.y}
+              x2={vistaX + vistaW}
+              y2={guias.y}
+              strokeWidth={1 / zoom}
+            />
+          )}
+
+          {/* La pieza a la que se va a pegar el extremo, mientras dibujas.
+              Sin esto el anclaje sería invisible: la flecha se pegaría o no
+              según dónde soltaras, y no habría forma de saberlo hasta mover la
+              terminal un rato después. */}
+          {pegandoA && (
+            <rect
+              className="canvas-imana"
+              x={pegandoA.x}
+              y={pegandoA.y}
+              width={pegandoA.w}
+              height={pegandoA.h}
+              strokeWidth={2 / zoom}
+              rx={12 / zoom}
+            />
+          )}
+
           {/* El marco, mientras se barre. El guion y el grosor se dividen por
               el zoom para que se vea igual de fino con el lienzo lejos. */}
           {marco && (
@@ -678,24 +1053,33 @@ export default function CanvasDraw({
       </svg>
 
       {escribiendo && (
-        <input
+        <textarea
           className="canvas-draw-text"
           autoFocus
+          rows={texto.split("\n").length}
           // Mientras escribes se ve ya con su tipografía y su tamaño: si el
           // cuadro escribiera con otra letra, lo que sale al pulsar Enter
           // sería una sorpresa cada vez.
           style={{
             left: escribiendo.mx,
             top: escribiendo.my,
-            color,
-            fontSize: 8 * grosor * zoom,
-            fontFamily: fuente(font).css,
+            color: escribiendo.color ?? color,
+            fontSize: 8 * (escribiendo.w ?? grosor) * zoom,
+            fontFamily: fuente(escribiendo.font ?? font).css,
+            lineHeight: INTERLINEA,
           }}
-          placeholder={t("Escribe y Enter")}
+          placeholder={t("Escribe y Enter · Mayús+Enter para otra línea")}
           value={texto}
           onChange={(e) => setTexto(e.currentTarget.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") cerrarTexto(true);
+            // Enter cierra y Mayús+Enter baja de línea, como en cualquier chat:
+            // el gesto de siempre se conserva y el párrafo largo cabe. Con un
+            // Enter que bajara de línea, la mitad de los rótulos de una palabra
+            // se quedarían abiertos esperando un botón.
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              cerrarTexto(true);
+            }
             if (e.key === "Escape") cerrarTexto(false);
             e.stopPropagation();
           }}
@@ -704,6 +1088,109 @@ export default function CanvasDraw({
       )}
     </>
   );
+}
+
+/**
+ * El camino de un trazo de lápiz, con grosor variable.
+ *
+ * Antes era una polilínea de grosor constante: correcta, y con la pinta de
+ * haberla dibujado un ordenador. `perfect-freehand` devuelve el CONTORNO del
+ * trazo —un polígono que se rellena, no una línea que se traza—, y ahí es donde
+ * está la diferencia: entra afilado, engorda donde vas más despacio y sale
+ * afilado, que es lo que hace un rotulador de verdad.
+ *
+ * Los números son los de Excalidraw, tal cual: están medidos allí y cualquier
+ * otro juego se nota peor. El `easing` senoidal es el que afila las puntas.
+ *
+ * Se guardan los puntos CRUDOS y el contorno se calcula al pintar. Así el
+ * archivo no engorda, el hit-testing sigue midiendo distancias a la línea de
+ * verdad, y cambiar estos parámetros mañana mejora también los trazos de ayer.
+ */
+function caminoLapiz(s: Trazo): string {
+  const puntos: number[][] = [];
+  for (let i = 0; i + 1 < s.p.length; i += 2) puntos.push([s.p[i], s.p[i + 1]]);
+  const contorno = getStroke(puntos, {
+    size: s.w * 4.25,
+    thinning: 0.6,
+    smoothing: 0.5,
+    streamline: 0.5,
+    easing: (t: number) => Math.sin((t * Math.PI) / 2),
+    last: true,
+  });
+  if (!contorno.length) return "";
+  // A curvas cuadráticas entre los puntos medios, que es como lo cierra
+  // Excalidraw: un polígono a segmentos rectos se ve dentado al acercar el zoom.
+  let d = `M${contorno[0][0].toFixed(2)} ${contorno[0][1].toFixed(2)}`;
+  for (let i = 0; i < contorno.length; i++) {
+    const [x0, y0] = contorno[i];
+    const [x1, y1] = contorno[(i + 1) % contorno.length];
+    d += `Q${x0.toFixed(2)} ${y0.toFixed(2)} ${((x0 + x1) / 2).toFixed(2)} ${((y0 + y1) / 2).toFixed(2)}`;
+  }
+  return `${d}Z`;
+}
+
+/** Las cuatro puntas de un rombo inscrito en la caja que has arrastrado: los
+    puntos medios de sus cuatro lados. */
+function puntosRombo(p: number[]): [number, number][] {
+  const [a, b, c, d] = p;
+  const cx = (a + c) / 2;
+  const cy = (b + d) / 2;
+  return [
+    [cx, Math.min(b, d)],
+    [Math.max(a, c), cy],
+    [cx, Math.max(b, d)],
+    [Math.min(a, c), cy],
+  ];
+}
+
+/**
+ * El generador del trazo tembloroso. Uno para toda la app: no dibuja nada por
+ * su cuenta, solo calcula caminos.
+ */
+const rugo = rough.generator();
+
+/** Los caminos de una figura dibujada a mano alzada, en cacheados por trazo.
+ *
+ *  La caché importa: RoughJS tarda lo suyo y React repinta esta capa en cada
+ *  fotograma de pan y de zoom. La clave lleva la geometría, así que estirar una
+ *  caja la recalcula y moverla por el tablero no.
+ */
+const cacheRugosa = new Map<string, string[]>();
+function caminosRugosos(s: Trazo): string[] {
+  const [a, b, c, d] = s.p;
+  const clave = `${s.id}|${s.seed}|${a}|${b}|${c}|${d}|${s.t}|${s.w}|${s.relleno ?? 0}`;
+  const hecho = cacheRugosa.get(clave);
+  if (hecho) return hecho;
+  const opciones = {
+    seed: s.seed || 1,
+    // Menos temblor en las figuras pequeñas: una caja de veinte píxeles con la
+    // rugosidad al máximo es una mancha ilegible. Es el `adjustRoughness` de
+    // Excalidraw, con la misma idea aunque no con su fórmula exacta.
+    roughness: Math.min(1.6, Math.max(0.6, Math.hypot(c - a, d - b) / 260)),
+    strokeWidth: s.w,
+    bowing: 1,
+    fill: s.relleno ? s.color : undefined,
+    fillStyle: "hachure",
+    fillWeight: s.w / 2,
+    hachureGap: s.w * 4,
+    // Con poco temblor, obliga a que los vértices caigan donde tocan: si no,
+    // una flecha «casi» toca la caja a la que apunta y se nota.
+    preserveVertices: true,
+  };
+  const dib =
+    s.t === "caja"
+      ? rugo.rectangle(Math.min(a, c), Math.min(b, d), Math.abs(c - a), Math.abs(d - b), opciones)
+      : s.t === "elipse"
+        ? rugo.ellipse((a + c) / 2, (b + d) / 2, Math.abs(c - a), Math.abs(d - b), opciones)
+        : s.t === "rombo"
+          ? rugo.polygon(puntosRombo(s.p), opciones)
+          : rugo.line(a, b, c, d, opciones);
+  const caminos = rugo.toPaths(dib).map((p) => p.d);
+  // Un tope tonto para que un lienzo de horas no acumule caminos de trazos que
+  // ya se movieron veinte veces.
+  if (cacheRugosa.size > 4000) cacheRugosa.clear();
+  cacheRugosa.set(clave, caminos);
+  return caminos;
 }
 
 /** Un trazo, ya en coordenadas del lienzo. Con `agarre` se pinta el mismo
@@ -715,18 +1202,24 @@ function Forma({ s, agarre }: { s: Trazo; agarre?: number }) {
     !agarre && s.glow
       ? { filter: `drop-shadow(0 0 ${s.w * 0.8}px ${s.color}) drop-shadow(0 0 ${s.w * 2.4}px ${s.color})` }
       : undefined;
+  // Una figura rellena se agarra por DENTRO; una hueca, solo por su borde. Es
+  // la regla de Excalidraw y es la que espera cualquiera: si el interior de una
+  // caja vacía capturase el ratón, taparía todo lo que hubiera debajo —una
+  // terminal, por ejemplo— con un rectángulo de aire.
+  const macizo = !!s.relleno && (s.t === "caja" || s.t === "elipse");
   const comun = agarre
     ? {
         stroke: "transparent",
         strokeWidth: Math.max(agarre, s.w),
-        fill: "none",
+        fill: macizo ? "transparent" : "none",
         strokeLinecap: "round" as const,
         strokeLinejoin: "round" as const,
       }
     : {
         stroke: s.color,
         strokeWidth: s.w,
-        fill: "none",
+        fill: macizo ? s.color : "none",
+        fillOpacity: macizo ? s.relleno : undefined,
         strokeLinecap: "round" as const,
         strokeLinejoin: "round" as const,
         style: halo,
@@ -741,6 +1234,9 @@ function Forma({ s, agarre }: { s: Trazo; agarre?: number }) {
         <rect className="canvas-draw-hit" x={c.x} y={c.y} width={c.w} height={c.h} fill="transparent" />
       );
     }
+    // Varias líneas: un <tspan> por línea, con la `x` repetida porque sin ella
+    // cada tspan continuaría donde acabó el anterior en vez de volver al margen.
+    const lineas = (s.txt ?? "").split("\n");
     return (
       <text
         x={s.p[0]}
@@ -757,32 +1253,79 @@ function Forma({ s, agarre }: { s: Trazo; agarre?: number }) {
             : undefined
         }
       >
-        {s.txt}
+        {lineas.map((l, i) => (
+          <tspan key={i} x={s.p[0]} dy={i === 0 ? 0 : 8 * s.w * INTERLINEA}>
+            {/* Una línea vacía sin nada dentro no ocupa alto: el espacio duro
+                la mantiene, para que un párrafo con un hueco lo conserve. */}
+            {l || " "}
+          </tspan>
+        ))}
       </text>
     );
   }
 
   if (s.t === "lapiz") {
-    let d = "";
-    for (let i = 0; i + 1 < s.p.length; i += 2) {
-      d += `${i === 0 ? "M" : "L"}${s.p[i]} ${s.p[i + 1]} `;
+    // Para agarrarlo, la polilínea de siempre con un trazo gordo y transparente:
+    // el contorno relleno de abajo no sirve de zona de agarre, porque un trazo
+    // fino deja un polígono estrechísimo y habría que apuntar al píxel.
+    if (agarre) {
+      let d = "";
+      for (let i = 0; i + 1 < s.p.length; i += 2) {
+        d += `${i === 0 ? "M" : "L"}${s.p[i]} ${s.p[i + 1]} `;
+      }
+      return <path d={d} {...comun} />;
     }
-    return <path d={d} {...comun} />;
+    return <path d={caminoLapiz(s)} fill={s.color} stroke="none" style={halo} />;
   }
 
   const [a, b, c, d] = s.p;
 
+  // A mano alzada: RoughJS devuelve varios caminos por figura (el contorno lleva
+  // dos pasadas, y el relleno son sus rayas), así que se pintan todos. Para
+  // agarrarla se sigue usando la figura limpia de abajo: el contorno tembloroso
+  // es una tira finísima y habría que apuntar al píxel.
+  if (
+    s.rugoso &&
+    !agarre &&
+    (s.t === "caja" || s.t === "rombo" || s.t === "elipse" || s.t === "linea")
+  ) {
+    return (
+      <g style={halo}>
+        {caminosRugosos(s).map((camino, i) => (
+          <path
+            key={i}
+            d={camino}
+            stroke={s.color}
+            strokeWidth={s.w}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+      </g>
+    );
+  }
+
   if (s.t === "caja") {
+    // La esquina crece con la caja hasta un tope, en vez de ser siempre 6.
+    // Con un radio fijo, una caja pequeña sale casi redonda y una grande casi
+    // recta: las dos «igual de redondeadas» solo lo parecen si el radio es una
+    // proporción. El 25 % con tope de 32 es de Excalidraw, medido allí.
+    const lado = Math.min(Math.abs(c - a), Math.abs(d - b));
     return (
       <rect
         x={Math.min(a, c)}
         y={Math.min(b, d)}
         width={Math.abs(c - a)}
         height={Math.abs(d - b)}
-        rx={6}
+        rx={Math.min(32, lado * 0.25)}
         {...comun}
       />
     );
+  }
+
+  if (s.t === "rombo") {
+    return <polygon points={puntosRombo(s.p).map(([x, y]) => `${x},${y}`).join(" ")} {...comun} />;
   }
 
   if (s.t === "elipse") {

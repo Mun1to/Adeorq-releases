@@ -12,13 +12,14 @@ state, and lets you run several agents at once without losing track of any of th
 
 <br>
 
-## [⬇&nbsp;&nbsp;Download for Windows](https://github.com/Mun1to/Adeorq-releases/releases/latest)
-
-[![Latest release](https://img.shields.io/github/v/release/Mun1to/Adeorq-releases?label=&color=4c8dff&style=for-the-badge)](https://github.com/Mun1to/Adeorq-releases/releases/latest)
+[![Download Adeorq for Windows](web/assets/descargar-windows.en.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe)
 
 **Free · no account · no API keys · updates itself**
 
-Windows 10 and 11, 64-bit · [Website](https://mun1to.github.io/Adeorq-releases/) ·
+[![Latest release](https://img.shields.io/github/v/release/Mun1to/Adeorq-releases?label=&color=1C66DE&style=flat-square)](https://github.com/Mun1to/Adeorq-releases/releases/latest)
+&nbsp;
+[All releases](https://github.com/Mun1to/Adeorq-releases/releases) ·
+[Website](https://mun1to.github.io/Adeorq-releases/) ·
 [Guide](https://mun1to.github.io/Adeorq-releases/guia.html) ·
 [Español](README.md)
 

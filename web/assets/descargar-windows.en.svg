@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="330" height="74" viewBox="0 0 330 74" role="img" aria-label="Download Adeorq for Windows">
+  <!-- La gemela inglesa de descargar-windows.svg. Ver allí el porqué. -->
+  <defs>
+    <linearGradient id="cuerpo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4D9FFF"/>
+      <stop offset="1" stop-color="#1C66DE"/>
+    </linearGradient>
+    <linearGradient id="brillo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="1" y="1" width="328" height="72" rx="15" fill="url(#cuerpo)"/>
+  <rect x="1.5" y="1.5" width="327" height="34" rx="14" fill="url(#brillo)"/>
+  <rect x="1" y="1" width="328" height="72" rx="15" fill="none" stroke="#8FC0FF" stroke-opacity="0.55"/>
+
+  <g transform="translate(40, 27)" stroke="#F7FBFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M8 0 V13"/>
+    <path d="M2.6 8 L8 13.4 L13.4 8"/>
+    <path d="M0.6 18 H15.4"/>
+  </g>
+
+  <text x="74" y="34" font-family="Segoe UI Variable Text,Segoe UI,-apple-system,Helvetica Neue,Arial,sans-serif" font-size="19" font-weight="650" fill="#FFFFFF">Download Adeorq</text>
+  <text x="74" y="53" font-family="Segoe UI Variable Text,Segoe UI,-apple-system,Helvetica Neue,Arial,sans-serif" font-size="12.5" font-weight="500" fill="#FFFFFF" fill-opacity="0.82">Windows 10 and 11 · .exe installer</text>
+</svg>

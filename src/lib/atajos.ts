@@ -29,10 +29,12 @@ export type AccionId =
   | "flecha"
   | "linea"
   | "caja"
+  | "rombo"
   | "elipse"
   | "texto"
   | "goma"
-  | "deshacer";
+  | "deshacer"
+  | "rehacer";
 
 export interface Accion {
   id: AccionId;
@@ -75,10 +77,12 @@ export const ACCIONES: Accion[] = [
   { id: "flecha", label: "Herramienta: la flecha", grupo: "dibujo", porDefecto: "F" },
   { id: "linea", label: "Herramienta: la línea", grupo: "dibujo", porDefecto: "L" },
   { id: "caja", label: "Herramienta: el recuadro", grupo: "dibujo", porDefecto: "R" },
+  { id: "rombo", label: "Herramienta: el rombo", grupo: "dibujo", porDefecto: "D" },
   { id: "elipse", label: "Herramienta: la elipse", grupo: "dibujo", porDefecto: "O" },
   { id: "texto", label: "Herramienta: el texto", grupo: "dibujo", porDefecto: "T" },
   { id: "goma", label: "Herramienta: la goma", grupo: "dibujo", porDefecto: "E" },
-  { id: "deshacer", label: "Deshacer el último trazo", grupo: "dibujo", porDefecto: "Ctrl+Z" },
+  { id: "deshacer", label: "Deshacer", grupo: "dibujo", porDefecto: "Ctrl+Z" },
+  { id: "rehacer", label: "Rehacer", grupo: "dibujo", porDefecto: "Ctrl+Shift+Z" },
 ];
 
 export const GRUPOS: Array<{ id: Accion["grupo"]; label: string }> = [
@@ -164,13 +168,6 @@ export function guardarAtajos(a: Atajos): void {
 }
 
 /**
- * Con qué acción se corresponde una tecla, si es que con alguna.
- *
- * Devuelve null cuando el foco está donde se escribe: dentro de una terminal,
- * de una nota o de un cuadro de texto, las teclas son de quien escribe. Sin
- * esto, poner "V" como herramienta convertiría la letra v en inescribible.
- */
-/**
  * ¿El foco está donde se escribe?
  *
  * Vive aquí y no dentro de `accionDe` porque el lienzo tiene otro atajo que
@@ -184,6 +181,13 @@ export function escribiendoTexto(): boolean {
   return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 }
 
+/**
+ * Con qué acción se corresponde una tecla, si es que con alguna.
+ *
+ * Devuelve null cuando el foco está donde se escribe: dentro de una terminal,
+ * de una nota o de un cuadro de texto, las teclas son de quien escribe. Sin
+ * esto, poner "V" como herramienta convertiría la letra v en inescribible.
+ */
 export function accionDe(e: KeyboardEvent, mapa: Record<AccionId, string>): AccionId | null {
   if (escribiendoTexto()) return null;
   const pulsado = comoAtajo(e);

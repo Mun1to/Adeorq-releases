@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.51",
+  "version": "0.9.52",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -23,8 +23,10 @@
     "@xterm/xterm": "^6.0.0",
     "@xyflow/react": "^12.11.2",
     "marked": "^18.0.7",
+    "perfect-freehand": "^1.2.3",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "roughjs": "^4.6.6"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4",

@@ -2850,6 +2850,110 @@ body {
   border-color: var(--border);
 }
 
+/* «Retomar las que ya tienes» ocupa su propia línea: no es una alternativa más
+   a la carpeta, es el otro camino entero del asistente. */
+.wiz-alt-ancho {
+  flex: 1 0 100%;
+}
+
+/* ── Retomar sesiones ─────────────────────────────────────────────────────
+   La lista de conversaciones que ya existen, con casillas. Comparte la caja
+   con la lista de proyectos (`wiz-list`) para que las dos pantallas del
+   asistente midan lo mismo y no dé un salto al cambiar. */
+.ret-cuenta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 2px 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ret-todas {
+  display: flex;
+  gap: 6px;
+}
+
+.ret-lista {
+  max-height: 320px;
+}
+
+.ret-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--row);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.ret-item:hover {
+  background: var(--row-hover);
+}
+
+.ret-item[data-on="true"] {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--row));
+}
+
+.ret-item input {
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.ret-marca {
+  flex: none;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+}
+
+.ret-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ret-tit {
+  font-size: 13px;
+  color: var(--text);
+  /* Un título largo no puede empujar la casilla fuera de la fila. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ret-pie {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* Que ya esté abierta en otro sitio se dice aquí, ANTES de traerla: abrir dos
+   veces la misma conversación las bloquea a las dos. */
+.ret-viva {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: #7ee08a;
+  background: rgba(126, 224, 138, 0.14);
+  border: 1px solid rgba(126, 224, 138, 0.34);
+}
+
+.ret-tope {
+  margin: 6px 0 0;
+}
+
 .wiz-label {
   margin: 6px 0 0;
   font-size: 12px;
@@ -6783,6 +6887,28 @@ button.stat-card[data-live="false"] {
   pointer-events: none;
 }
 
+/* Las guías de alineación, mientras dibujas o estiras. Rosa y finísimas, como
+   en Figma: tienen que verse encima de cualquier cosa —una foto clara, una
+   terminal negra— y desaparecer en cuanto sueltas, así que el color no puede
+   ser ninguno de los que ya significan algo aquí. */
+.canvas-guia {
+  stroke: #ff5cc8;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* La pieza a la que se va a pegar la flecha que estás dibujando. Verde y no del
+   color de la casa a propósito: el azul ya significa «esto está seleccionado»,
+   y aquí se está diciendo otra cosa —«suelta y se queda pegada aquí»—, que es
+   una promesa sobre lo que va a pasar, no un estado. */
+.canvas-imana {
+  fill: none;
+  stroke: #7ee08a;
+  stroke-dasharray: none;
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(126, 224, 138, 0.55));
+}
+
 /* ==========================================================================
    El editor de atajos, en Ajustes. Una tecla se lee de un vistazo o no sirve
    de nada, así que van en su propia caja con letra de máquina de escribir.
@@ -6991,6 +7117,13 @@ button.stat-card[data-live="false"] {
   font-family: inherit;
   font-weight: 600;
   outline: none;
+  /* Es un <textarea> desde que el texto puede tener varias líneas, así que
+     nunca lleva el tirador de agrandar (regla U de la casa): crece solo con
+     `rows`, y ese puñito de rayas dentro de una caja de cristal es una pegatina
+     que no ha diseñado nadie. */
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
 }
 
 .canvas-import {
@@ -10643,6 +10776,35 @@ textarea.note-body {
 
 .cp-glow[data-on="true"] span {
   opacity: 1;
+}
+
+/* El relleno. Misma caja que el halo, pero la muestra es un cuadrado con la
+   esquina redondeada y un borde siempre visible: así se lee «una figura, más o
+   menos llena» en vez de «otro punto de color». La opacidad la pone el propio
+   botón desde el estado, que es lo que se está eligiendo. */
+.cp-fill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cp-fill span {
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  border: 1.5px solid currentColor;
+  transition: opacity 0.12s ease;
+}
+
+.cp-fill[data-on="true"] {
+  border-color: var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 /* Las utilidades del lienzo: todas comparten forma, así que comparten estilo

@@ -17,13 +17,17 @@ import {
   findAgy,
   listProjects,
   mainAccount,
+  scanSessions,
   type Account,
   type Project,
+  type SessionInfo,
 } from "../lib/pty";
 import { raiz } from "../lib/perfil";
 import { PROVIDERS, providerOf } from "../lib/providers";
 import { useT } from "../lib/i18n";
+import { encaja } from "../lib/buscar";
 import ProjectAvatar from "./ProjectAvatar";
+import ProviderMark, { tieneMarca } from "./ProviderMark";
 import { propsDeVelo } from "../lib/velo";
 import { ClaudeMark } from "./KindIcon";
 
@@ -51,6 +55,9 @@ interface Props {
   /** Where to start looking, so the wizard opens on the project he is in. */
   suggested?: string | null;
   onLaunch: (launch: Launch) => void;
+  /** Retomar las que ya tienes, todas de una tacada. Lo hace App, que es quien
+      sabe cuáles están ya abiertas y cómo colocarlas en el mosaico. */
+  onRetomar: (sesiones: SessionInfo[]) => void;
   onClose: () => void;
 }
 
@@ -75,10 +82,11 @@ export default function NewSession({
   maxPanes,
   suggested,
   onLaunch,
+  onRetomar,
   onClose,
 }: Props) {
   const { t } = useT();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | "retomar">(1);
   const [projects, setProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState("");
   const [place, setPlace] = useState<{ name: string; path: string; suelta?: boolean } | null>(
@@ -101,6 +109,19 @@ export default function NewSession({
   const [clis, setClis] = useState<string[]>([]);
   /** Ver lib/velo.ts: distingue pinchar el velo de soltar ahi un arrastre. */
   const bajoEnVelo = useRef(false);
+
+  /* --------------------------------------------------- retomar las que tienes
+   *
+   * El asistente sabía abrir cosas NUEVAS y nada más. Retomar una conversación
+   * ya empezada solo se podía hacer buscándola a ojo en la barra lateral, de una
+   * en una, y con un filtro que ni siquiera perdona una tilde.
+   *
+   * Aquí salen TODAS, incluidas las de hace más de una semana: `scan_sessions`
+   * las devuelve, pero las cuatro pantallas que las pintan las descartan por
+   * viejas, así que hasta ahora no había forma de llegar a ellas desde la app. */
+  const [sesiones, setSesiones] = useState<SessionInfo[] | null>(null);
+  const [busca, setBusca] = useState("");
+  const [elegidas, setElegidas] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     listProjects()
@@ -179,6 +200,47 @@ export default function NewSession({
     }
   };
 
+  /** Se pide al entrar en la pantalla, no al abrir el asistente: un escaneo
+      recorre el historial de tres CLIs y no tiene por qué pagarlo quien solo
+      venía a abrir una terminal. */
+  const irARetomar = () => {
+    setStep("retomar");
+    if (sesiones) return;
+    // Sin argumentos: lee el perfil por dentro, y ahí es donde se respeta el
+    // permiso del onboarding de leer o no el historial.
+    scanSessions()
+      .then(setSesiones)
+      .catch((e) => {
+        setError(String(e));
+        setSesiones([]);
+      });
+  };
+
+  /** Lo que se enseña: todo lo que responda a la búsqueda, y lo más reciente
+      arriba, que es como llega de Rust. */
+  const visibles = useMemo(() => {
+    if (!sesiones) return [];
+    return sesiones.filter((s) => encaja(`${s.title} ${s.project} ${s.cwd}`, busca));
+  }, [sesiones, busca]);
+
+  const tope = Math.max(1, maxPanes);
+  const marcadas = visibles.filter((s) => elegidas.has(s.id));
+
+  const marcar = (id: string) =>
+    setElegidas((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+
+  const retomar = () => {
+    if (!sesiones) return;
+    // Se manda en el orden en que se ven, no en el que se fueron marcando: al
+    // colocarse en el mosaico, lo de arriba de la lista queda arriba.
+    onRetomar(visibles.filter((s) => elegidas.has(s.id)).slice(0, tope));
+  };
+
   const launch = () => {
     if (!place) return;
     onLaunch({
@@ -213,17 +275,122 @@ export default function NewSession({
       <div className="modal wizard" onClick={(e) => e.stopPropagation()}>
         <header className="wiz-head">
           <h3 className="modal-title">{t("Abrir una sesión")}</h3>
-          <span className="wiz-steps">
-            <span className="wiz-pip" data-on={true} onClick={() => setStep(1)}>
-              1 · {t("Dónde")}
+          {/* Retomar no es un paso de este camino, es otro camino: enseñar
+              «1 · Dónde / 2 · Con qué» encima de una lista de conversaciones
+              sería decir que falta un paso que no falta. */}
+          {step !== "retomar" && (
+            <span className="wiz-steps">
+              <span className="wiz-pip" data-on={true} onClick={() => setStep(1)}>
+                1 · {t("Dónde")}
+              </span>
+              <span className="wiz-pip" data-on={step === 2} onClick={() => place && setStep(2)}>
+                2 · {t("Con qué")}
+              </span>
             </span>
-            <span className="wiz-pip" data-on={step === 2} onClick={() => place && setStep(2)}>
-              2 · {t("Con qué")}
-            </span>
-          </span>
+          )}
         </header>
 
-        {step === 1 ? (
+        {step === "retomar" ? (
+          <>
+            <p className="modal-text modal-dim">
+              {t("Tus conversaciones, las de esta semana y las de antes. Marca las que quieras traer.")}
+            </p>
+            <input
+              className="finder"
+              placeholder={t("Buscar por título, proyecto o carpeta")}
+              value={busca}
+              autoFocus
+              onChange={(e) => setBusca(e.currentTarget.value)}
+            />
+
+            {sesiones === null ? (
+              <p className="wiz-none">{t("Leyendo tus sesiones…")}</p>
+            ) : (
+              <>
+                <div className="ret-cuenta">
+                  <span>
+                    {marcadas.length
+                      ? t("{n} elegidas de {total}", {
+                          n: marcadas.length,
+                          total: visibles.length,
+                        })
+                      : t("{n} sesiones", { n: visibles.length })}
+                  </span>
+                  <span className="ret-todas">
+                    <button
+                      className="mini"
+                      disabled={!visibles.length}
+                      onClick={() => setElegidas(new Set(visibles.slice(0, tope).map((s) => s.id)))}
+                    >
+                      {visibles.length > tope ? t("Las {n} primeras", { n: tope }) : t("Todas")}
+                    </button>
+                    <button
+                      className="mini"
+                      disabled={!elegidas.size}
+                      onClick={() => setElegidas(new Set())}
+                    >
+                      {t("Ninguna")}
+                    </button>
+                  </span>
+                </div>
+
+                <ul className="wiz-list ret-lista">
+                  {visibles.map((s) => (
+                    <li key={s.id}>
+                      <label className="ret-item" data-on={elegidas.has(s.id)}>
+                        <input
+                          type="checkbox"
+                          checked={elegidas.has(s.id)}
+                          onChange={() => marcar(s.id)}
+                        />
+                        {tieneMarca(s.fuente ?? "claude") && (
+                          <span className="ret-marca">
+                            <ProviderMark id={s.fuente ?? "claude"} />
+                          </span>
+                        )}
+                        <span className="ret-txt">
+                          <span className="ret-tit">{s.title}</span>
+                          <span className="ret-pie">
+                            {s.project} · {s.ago}
+                            {/* Que esté viva se dice AQUÍ y no después: abrir
+                                una que ya corre en otro sitio bloquea a las dos,
+                                y hasta ahora el aviso llegaba de una en una y se
+                                pisaba a sí mismo. */}
+                            {s.live && <span className="ret-viva">{t("abierta ahora")}</span>}
+                          </span>
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                  {!visibles.length && (
+                    <li className="wiz-none">
+                      {busca.trim()
+                        ? t("Ninguna sesión con eso.")
+                        : t("Todavía no hay sesiones que retomar.")}
+                    </li>
+                  )}
+                </ul>
+
+                {visibles.length > tope && marcadas.length >= tope && (
+                  <p className="modal-text modal-dim ret-tope">
+                    {t("Entran {n} de golpe; el resto se queda para la próxima tanda.", { n: tope })}
+                  </p>
+                )}
+              </>
+            )}
+
+            <div className="modal-actions">
+              <button className="mini modal-cancel" onClick={() => setStep(1)}>
+                {t("Atrás")}
+              </button>
+              <button className="np-btn" disabled={!marcadas.length} onClick={retomar}>
+                {marcadas.length > 1
+                  ? t("Traer las {n}", { n: Math.min(marcadas.length, tope) })
+                  : t("Traerla")}
+              </button>
+            </div>
+          </>
+        ) : step === 1 ? (
           <>
             <p className="modal-text modal-dim">
               {t("La carpeta donde va a trabajar. Puede ser una que ya tengas, una del disco o una nueva.")}
@@ -304,6 +471,11 @@ export default function NewSession({
                     {t("↯ Suelta, sin proyecto")}
                   </button>
                 )}
+                {/* El otro camino: no abrir nada nuevo, sino volver a algo que
+                    ya empezaste. Es la mitad que le faltaba a este asistente. */}
+                <button className="mini wiz-alt wiz-alt-ancho" onClick={irARetomar}>
+                  {t("↻ Retomar las que ya tienes…")}
+                </button>
               </div>
             )}
           </>
@@ -460,20 +632,24 @@ export default function NewSession({
 
         {error && <p className="np-err">{error}</p>}
 
-        <div className="modal-actions">
-          <button className="mini modal-cancel" onClick={step === 2 ? () => setStep(1) : onClose}>
-            {step === 2 ? t("Atrás") : t("Cancelar")}
-          </button>
-          {step === 1 ? (
-            <button className="np-btn" disabled={!place} onClick={() => setStep(2)}>
-              {t("Siguiente")}
+        {/* Retomar trae los suyos: sin este `!==`, saldrían dos filas de botones
+            y dos «Atrás» diciendo cosas distintas. */}
+        {step !== "retomar" && (
+          <div className="modal-actions">
+            <button className="mini modal-cancel" onClick={step === 2 ? () => setStep(1) : onClose}>
+              {step === 2 ? t("Atrás") : t("Cancelar")}
             </button>
-          ) : (
-            <button className="np-btn" onClick={launch}>
-              {count === 1 ? t("Abrir") : t("Abrir las {n}", { n: count })}
-            </button>
-          )}
-        </div>
+            {step === 1 ? (
+              <button className="np-btn" disabled={!place} onClick={() => setStep(2)}>
+                {t("Siguiente")}
+              </button>
+            ) : (
+              <button className="np-btn" onClick={launch}>
+                {count === 1 ? t("Abrir") : t("Abrir las {n}", { n: count })}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

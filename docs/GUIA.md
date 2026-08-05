@@ -218,7 +218,25 @@ Escribes el nombre y Crear: se crea la carpeta en `C:\proyectos` con
 `AGENTS.md`, `docs/METAS.md`, `.gitignore` y el repo git inicializado. Listo
 para su primera sesión.
 
-**Con TUS reglas, si quieres.** El `AGENTS.md` que nace de fábrica es un punto
+### ＋ Retomar las que ya tienes
+
+El mismo botón **＋** de la barra lateral tiene un segundo camino: en vez de
+abrir algo nuevo, **volver a una conversación que ya empezaste**. Sale la lista
+entera con un buscador y una casilla por sesión, marcas las que quieras y se
+traen todas de golpe, escalonadas y repartidas por la pantalla.
+
+Tres cosas que solo tiene esta lista:
+
+- **Salen también las viejas.** Las de más de una semana no aparecen en ninguna
+  otra pantalla de Adeorq, y aquí sí.
+- **El buscador perdona las tildes** y admite palabras sueltas en cualquier
+  orden: «hover boton» encuentra «arreglar el hover del botón».
+- **Te avisa antes**, no después, de cuáles están abiertas en otro sitio. Abrir
+  dos veces la misma conversación las bloquea a las dos.
+
+### ＋ Nuevo proyecto: con TUS reglas, si quieres
+
+El `AGENTS.md` que nace de fábrica es un punto
 de partida corto y neutro. Si tienes tus propias normas y quieres que todos tus
 proyectos nuevos vengan ya con ellas, déjalas en
 `%LOCALAPPDATA%\Adeorq\plantilla-agents.md` y Adeorq usará esa en lugar de la
@@ -414,6 +432,32 @@ equivocada: para encadenar, mejor una por proyecto o sesiones retomadas.
 
 Y lo de siempre: sin marcar la casilla de automático, nada se manda sin que tú
 lo pulses.
+
+### Dibujar encima
+
+La barra de la izquierda trae lápiz, flecha, línea, recuadro, rombo, elipse,
+texto y goma, y todo se dibuja **encima** de las terminales sin molestarlas: con
+la mano (V) puesta, el ratón vuelve a ser de ellas.
+
+Lo que conviene saber:
+
+- **Las flechas se pegan.** Si acabas una flecha sobre una terminal, se queda
+  enganchada: muévela por el tablero y la flecha la sigue. Mientras dibujas, la
+  pieza a la que se va a pegar se contornea en **verde**. Para despegarla,
+  arrastra su punta al aire; para pegarla a otra, arrástrala encima.
+- **Se alinea solo.** Al dibujar o estirar, todo se imanta a los bordes y
+  centros de lo que ya hay, con una guía rosa que cruza el tablero. Mantén
+  **Ctrl** si quieres poner algo un poco torcido.
+- **Relleno**: las figuras cerradas pueden estar huecas, translúcidas o macizas.
+  Una hueca se agarra por el borde; una rellena, por dentro.
+- **A mano alzada**: el botón del garabato le da a la figura el temblor de un
+  boceto. Viene apagado.
+- **El texto admite varias líneas**: Enter cierra y **Mayús+Enter** baja de
+  línea, como en un chat.
+- **Deshacer va en serio**: `Ctrl+Z` y `Ctrl+Mayús+Z` recorren hasta sesenta
+  pasos, y un arrastre entero cuenta como uno solo.
+- **Traer al frente / enviar al fondo** salen al seleccionar un trazo, para
+  cuando dos figuras rellenas se tapan.
 
 ### Utilidades y Widgets en el Lienzo
 
@@ -852,8 +896,9 @@ teclas son de quien escribe.
 | Esc | Soltar lo cogido; si no hay nada cogido, dejar la herramienta |
 | Supr | Borrar lo cogido (pregunta una vez) |
 | Alt+0 | Encajar todo en la pantalla |
-| V M P F L R O T E | Mano, marco, lápiz, flecha, línea, recuadro, elipse, texto, goma |
-| Ctrl+Z | Deshacer el último trazo (solo con una herramienta puesta) |
+| V M P F L R D O T E | Mano, marco, lápiz, flecha, línea, recuadro, rombo, elipse, texto, goma |
+| Ctrl+Z / Ctrl+Mayús+Z | Deshacer y rehacer (solo con una herramienta puesta) |
+| Ctrl (mantenido) | Mientras dibujas, apaga el imán de las guías |
 
 Van con Alt y no con Ctrl porque dentro de una terminal Ctrl+letra es del
 programa que corre ahí: Ctrl+C corta a Claude y Ctrl+R busca en el historial.

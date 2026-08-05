@@ -31,6 +31,7 @@ import { propsDeVelo } from "../lib/velo";
 import { PROVIDERS, providerOf } from "../lib/providers";
 import { ATAJOS_PROV_EVENTO, leerAtajosProv } from "../lib/atajosProveedor";
 import { useT } from "../lib/i18n";
+import { encaja } from "../lib/buscar";
 import { useMenu } from "./Overlays";
 import ProjectAvatar, { initials } from "./ProjectAvatar";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
@@ -546,13 +547,17 @@ export default function Sidebar({
 
   const groups = todo.proyectos;
 
+  /* El filtro compara con `encaja` (ver lib/buscar.ts) y no con un `includes`
+     a secas, que es lo que había: así «sesion» encuentra «sesión» y dos
+     palabras sueltas encuentran una frase que las tiene en otro orden. Y busca
+     también por CARPETA en los proyectos, no solo en las sueltas: eso era una
+     diferencia sin motivo entre dos listas de la misma barra. */
   const shown = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return groups;
+    if (!filter.trim()) return groups;
     return groups.filter(
       (g) =>
-        g.name.toLowerCase().includes(q) ||
-        g.sessions.some((s) => s.title.toLowerCase().includes(q)),
+        encaja(`${g.name} ${g.path}`, filter) ||
+        g.sessions.some((s) => encaja(s.title, filter)),
     );
   }, [groups, filter]);
 
@@ -561,14 +566,9 @@ export default function Sidebar({
   const sueltas = useMemo(() => {
     const g = todo.sueltas;
     if (!g) return null;
-    const q = filter.trim().toLowerCase();
-    if (!q) return g;
-    const sessions = g.sessions.filter(
-      (s) => s.title.toLowerCase().includes(q) || s.cwd.toLowerCase().includes(q),
-    );
-    const vivas = (g.vivas ?? []).filter(
-      (a) => a.name.toLowerCase().includes(q) || a.cwd.toLowerCase().includes(q),
-    );
+    if (!filter.trim()) return g;
+    const sessions = g.sessions.filter((s) => encaja(`${s.title} ${s.cwd}`, filter));
+    const vivas = (g.vivas ?? []).filter((a) => encaja(`${a.name} ${a.cwd}`, filter));
     if (!sessions.length && !vivas.length) return null;
     return { ...g, sessions, vivas };
   }, [todo.sueltas, filter]);

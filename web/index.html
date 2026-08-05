@@ -156,7 +156,13 @@
       </p>
 
       <div class="hero__acciones" data-reveal>
-        <a class="boton boton--solido boton--grande" href="#descargar">
+        <!-- Descarga de un clic, sin pasar antes por la sección de abajo. El
+             enlace no lleva número de versión: `releases/latest/download` con un
+             nombre de archivo estable siempre entrega la última, así que este
+             href no caduca y no depende de que el JS llegue a rellenarlo. -->
+        <a class="boton boton--solido boton--grande"
+           href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"
+           rel="noopener">
           <span data-i18n="cta.windows">Descargar para Windows</span>
           <span class="boton__meta" data-i18n="cta.meta">gratis, sin cuenta</span>
         </a>
@@ -1491,12 +1497,14 @@
     </p>
 
     <div class="descarga__acciones" data-reveal>
-      <!-- href de partida: la pagina de releases. El JS lo cambia al instalador
-           exacto en cuanto lee el dato. -->
+      <!-- href de partida: el instalador de la última versión, por su nombre
+           estable. Antes era la página de releases, que obligaba a un clic más
+           si el JS no llegaba a rellenar el enlace exacto. Ahora, falle lo que
+           falle, este botón descarga. -->
       <a class="boton boton--solido boton--grande"
          data-descarga-enlace
          data-magnetico
-         href="https://github.com/Mun1to/Adeorq-releases/releases/latest"
+         href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"
          rel="noopener">
         <span data-descarga-texto data-content="descarga.boton">Descargar para Windows</span>
       </a>

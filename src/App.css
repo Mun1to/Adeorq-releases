@@ -1040,6 +1040,9 @@ body {
   min-height: 0;
   min-width: 0;
   display: flex;
+  /* El ancla de la pestaña de skills, que se pega al borde derecho por fuera
+     del flujo para no robarle ancho a las terminales. */
+  position: relative;
 }
 
 
@@ -2986,8 +2989,17 @@ body {
   opacity: 0.75;
 }
 
-.ret-tope {
-  margin: 6px 0 0;
+/* Lo que cuesta traerse una tanda grande. En ámbar y no en rojo: no es un
+   error ni una prohibición, es el precio de algo que se pidió a propósito. */
+.ret-aviso {
+  margin: 8px 0 0;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(240, 196, 106, 0.34);
+  background: rgba(240, 196, 106, 0.09);
+  color: color-mix(in srgb, #f0c46a 62%, var(--text));
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .wiz-label {
@@ -3017,7 +3029,18 @@ body {
 }
 
 .empty-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   margin-top: 16px;
+}
+
+/* La letra pequeña de la cabina vacía: dónde mirar si te pierdes. Va separada
+   del párrafo de arriba y en el tono de las pistas, porque es lo que se lee la
+   primera vez y ya no se vuelve a leer nunca. */
+.empty-pie {
+  margin-top: 18px;
+  max-width: 46ch;
 }
 
 .side-error {
@@ -3977,35 +4000,49 @@ body {
   box-shadow: var(--glass-edge);
 }
 
-.skills-closed {
-  width: 34px;
+/* La pestaña: lo que queda del panel cuando lo cierras.
+   Antes era una columna de alto completo, así que cerrar el panel devolvía
+   270 px pero se quedaba 34 en toda la pantalla para nada. Ahora sale del
+   flujo, se pega al borde derecho a media altura y solo mide lo que mide su
+   rótulo: cerrado, las terminales llegan hasta el borde. */
+.skills-pestana {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 14px 4px;
-  gap: 12px;
-}
-
-.skills-toggle {
-  display: inline-flex;
-  align-items: center;
-  background: none;
-  border: none;
+  gap: 9px;
+  padding: 14px 6px 16px;
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  border-right: none;
+  /* Redondeada solo por donde asoma: pegada al borde, una caja con las cuatro
+     esquinas redondas flota en vez de salir de él. */
+  border-radius: 12px 0 0 12px;
   color: var(--accent);
   cursor: pointer;
-  border-radius: 999px;
-  padding: 4px 6px;
+  box-shadow: var(--glass-edge);
+  transition:
+    padding-right 0.14s ease,
+    background 0.14s ease;
 }
 
-.skills-toggle:hover {
+.skills-pestana:hover {
   background: var(--panel-head);
+  padding-right: 10px;
 }
 
-/* El rótulo del panel plegado. Estaba a 11 px, en gris apagado y en
-   versalitas: era casi invisible, y es lo único que dice qué hay ahí dentro
-   cuando el panel está cerrado. */
+/* El rótulo, de canto porque la pestaña es más alta que ancha. Estaba a 11 px,
+   en gris apagado y en versalitas: era casi invisible, y es lo único que dice
+   qué hay ahí dentro con el panel cerrado. */
 .skills-vertical {
   writing-mode: vertical-rl;
   color: color-mix(in srgb, var(--text) 78%, var(--muted));
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.6px;
 }
@@ -4017,6 +4054,9 @@ body {
 }
 
 .skills-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
   font-size: 14px;
   color: var(--accent);
@@ -8721,6 +8761,40 @@ button.stat-card[data-live="false"] {
   color: var(--muted);
   font-size: 13.5px;
   padding: 6px 10px 10px;
+}
+
+/* Lo que quedó pendiente del último día. Ocupa el ancho entero y no es un
+   `.mini` en una esquina: cuando la lista de hoy está vacía, esto es lo único
+   que hay que leer, y es además lo que contesta a «se me han borrado». */
+.obj-atras {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 2px 0 4px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: color-mix(in srgb, var(--text) 82%, var(--accent));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.obj-atras:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.obj-atras svg {
+  flex: none;
+  color: var(--accent);
 }
 
 /* Escribir un objetivo es lo que más se hace aquí, así que la línea de añadir

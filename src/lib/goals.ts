@@ -44,6 +44,32 @@ export function goalsRemove(date: string, g: Goal): Promise<GoalDay> {
   return invoke("goals_remove", { date, idx: g.idx, text: g.text });
 }
 
+/** Lo que quedó sin tachar el último día que hubo objetivos antes de este, o
+    `null` si no hay nada pendiente detrás. Ver `goals_pending_before`. */
+export function goalsPendingBefore(date: string): Promise<GoalDay | null> {
+  return invoke("goals_pending_before", { date });
+}
+
+/** Trae a `to` los pendientes de `from`, sin repetir los que ya estén. */
+export function goalsCarry(from: string, to: string): Promise<GoalDay> {
+  return invoke("goals_carry", { from, to });
+}
+
+/** «miércoles», «ayer»: cómo se nombra un día que ya pasó. Se dice con
+    palabras porque «2026-08-05» no le dice a nadie cuánto hace de eso. */
+export function diaCorto(date: string, lang: string, ayerTxt: string): string {
+  const [a, m, d] = date.split("-").map(Number);
+  const cuando = new Date(a, m - 1, d);
+  const ayer = new Date();
+  ayer.setDate(ayer.getDate() - 1);
+  if (hoy(cuando) === hoy(ayer)) return ayerTxt;
+  return cuando.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
 /* --------------------------------------------------------------------------
    El día de hoy, leído UNA vez para toda la ventana.
 

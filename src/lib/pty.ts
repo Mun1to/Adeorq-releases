@@ -515,6 +515,15 @@ export interface UiState {
    */
   sessionProject: Record<string, string>;
   archived: string[];
+  /**
+   * Las que trajiste a mano desde el ＋, aunque sean viejas.
+   *
+   * La barra esconde las de más de una semana, y con razón: son cientos y casi
+   * ninguna interesa. Pero si has ido a buscar una de hace un mes y has dicho
+   * «esta», esa decisión pesa más que la regla. Solo se guardan los ids, así
+   * que no cuesta nada y una que se borre de `~/.claude` desaparece sola.
+   */
+  traidas: string[];
   /** Logos chosen by hand, project name → small data URI. Beats detection. */
   projectIcon: Record<string, string>;
   /**
@@ -531,6 +540,7 @@ export const EMPTY_UI_STATE: UiState = {
   sessionGroup: {},
   sessionProject: {},
   archived: [],
+  traidas: [],
   projectIcon: {},
   projectAlias: {},
   railMode: "full",
@@ -545,6 +555,7 @@ export async function loadUiState(): Promise<UiState> {
       sessionGroup: parsed.sessionGroup ?? {},
       sessionProject: parsed.sessionProject ?? {},
       archived: Array.isArray(parsed.archived) ? parsed.archived : [],
+      traidas: Array.isArray(parsed.traidas) ? parsed.traidas : [],
       projectIcon: parsed.projectIcon ?? {},
       projectAlias: parsed.projectAlias ?? {},
       railMode:

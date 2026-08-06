@@ -57,7 +57,10 @@ import {
 interface Props {
   width: number;
   refreshKey: number;
-  focusReq: { name: string; n: number } | null;
+  focusReq: { name: string; sesion?: string; n: number } | null;
+  /** Conversaciones traídas desde el ＋: se apuntan aquí y salen en la lista,
+      tengan la edad que tengan. No abren nada; abrirlas es un clic tuyo. */
+  traerReq: { ids: string[]; n: number } | null;
   /** Extra accounts (META 6): each one can open its own session per project. */
   accounts: Account[];
   /** The ＋ of the rail: the two-step wizard, without leaving the cockpit. */
@@ -240,6 +243,7 @@ export default function Sidebar({
   width,
   refreshKey,
   focusReq,
+  traerReq,
   accounts,
   onNewSession,
   onOpenTerminal,
@@ -331,11 +335,29 @@ export default function Sidebar({
       .catch(() => {});
   }, [projects]);
 
+  // Lo que trae el ＋: se apunta en el estado de la barra y se reescanea sin
+  // esperar al reloj de los 45 s, que era justo lo que hacía parecer que traer
+  // una conversación no la añadía a ningún sitio.
+  useEffect(() => {
+    if (!traerReq?.ids.length) return;
+    mutate((prev) => ({
+      ...prev,
+      traidas: [...new Set([...prev.traidas, ...traerReq.ids])],
+    }));
+    refresh();
+  }, [traerReq]);
+
   useEffect(() => {
     if (!focusReq) return;
+    // Si se pide por una sesión, manda dónde la tengas TÚ puesta: arrastrar una
+    // sesión a otro proyecto cambia su sitio aquí y no en el escaneo, así que
+    // el nombre que llega de fuera puede señalar a la fila equivocada.
+    const donde =
+      (focusReq.sesion ? ui.sessionProject[focusReq.sesion] : "") || focusReq.name;
+    if (!donde) return;
     setExpanded((prev) => {
       const next = new Set(prev);
-      next.add(focusReq.name);
+      next.add(donde);
       return next;
     });
   }, [focusReq]);
@@ -459,6 +481,7 @@ export default function Sidebar({
   };
 
   const archived = useMemo(() => new Set(ui.archived), [ui.archived]);
+  const traidas = useMemo(() => new Set(ui.traidas), [ui.traidas]);
 
   const todo = useMemo<{ proyectos: Group[]; sueltas: Group | null }>(() => {
     /** Las conversaciones que tienes AHORA en un panel. Lo dice el propio
@@ -466,12 +489,15 @@ export default function Sidebar({
     const enPantalla = new Set(
       abiertas.map((a) => sessionIdOf(a.command)).filter((x): x is string => !!x),
     );
-    // Las de más de una semana no se enseñan... salvo que las tengas abiertas.
-    // Desde que el ＋ sabe retomar las viejas, esa regla las hacía desaparecer:
-    // abrías una de hace un mes, se abría bien, y en la barra no salía por
-    // ningún lado. Una conversación que está en pantalla tiene que estar en la
-    // lista, tenga la edad que tenga.
-    const fresh = sessions.filter((s) => s.fresh !== "muerta" || enPantalla.has(s.id));
+    // Las de más de una semana no se enseñan... salvo que las tengas abiertas o
+    // que las hayas traído tú desde el ＋. Desde que ese cuadro sabe buscar
+    // entre las viejas, la regla de la semana las hacía desaparecer justo
+    // después de elegirlas: ir a por una de hace un mes y no verla en ningún
+    // lado. Lo que está en pantalla, y lo que has pedido a mano, mandan sobre
+    // la edad.
+    const fresh = sessions.filter(
+      (s) => s.fresh !== "muerta" || enPantalla.has(s.id) || traidas.has(s.id),
+    );
     const byProject = new Map<string, SessionInfo[]>();
     for (const s of fresh) {
       // Donde tú la mandaste gana a donde la puso su carpeta: si arrastraste
@@ -562,7 +588,7 @@ export default function Sidebar({
       return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
     });
     return { proyectos: result, sueltas };
-  }, [projects, sessions, archived, abiertas, ui.sessionProject]);
+  }, [projects, sessions, archived, traidas, abiertas, ui.sessionProject]);
 
   const groups = todo.proyectos;
 

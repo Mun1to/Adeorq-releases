@@ -1194,23 +1194,24 @@ export default function TerminalPane({
   //
   // 0 = nada que decir · 1 = ya pesa · 2 = compactar sale peor que empezar.
   //
-  // Salta por TOKENS o por porcentaje, lo que ocurra antes, y esa doble vara no
-  // es por gusto: lo que cuesta dinero son los tokens, no la fracción de la
-  // ventana. Al arreglar el medidor (0.9.38) los modelos grandes pasaron a
-  // declarar un millón, y un umbral que solo mirase el porcentaje se fue con
-  // ellos: el primer aviso no habría llegado hasta los 600.000 tokens, cuando
-  // esa sesión ya lleva rato saliendo cara. El porcentaje se queda porque es el
-  // que manda en una ventana pequeña: con Haiku, 150.000 tokens ya son el 75 %
-  // y ahí el techo aprieta antes que el bolsillo.
-  const PESA = 150_000;
-  const CARA = 400_000;
-  const ctxNivel = !ctx
-    ? 0
-    : ctx.used >= CARA || ctx.percent >= 80
-      ? 2
-      : ctx.used >= PESA || ctx.percent >= 60
-        ? 1
-        : 0;
+  // Se mide SOLO en porcentaje de la ventana, y eso corrige lo anterior.
+  //
+  // Antes había una doble vara: saltaba por tokens (150.000 y 400.000) o por
+  // porcentaje, lo que ocurriera antes. La idea era que lo que cuesta dinero
+  // son los tokens y no la fracción; el efecto real fue el contrario. Opus 5 y
+  // Sonnet 5 declaran un MILLÓN de ventana, así que la vara de los tokens
+  // disparaba siempre primero: el primer aviso al 15 % y el «compactar sale
+  // peor que empezar de cero» al 40 %, con el 60 % de la ventana todavía libre.
+  // Dicho de otra forma: cualquier sesión de trabajo de verdad nacía avisada, y
+  // el aviso grave mentía (Munir, 2026-08-06: «son muy molestas y aunque el
+  // contexto esté por debajo del 50 % siguen apareciendo»).
+  //
+  // Con una sola vara el aviso vuelve a querer decir algo en cualquier modelo:
+  // con Haiku el 60 % son 120.000 tokens y con Opus 600.000, que es justo la
+  // diferencia que la doble vara borraba. Y lo que cuesta la sesión sigue
+  // estando a la vista sin que nadie avise: la píldora de la cabecera lleva el
+  // número puesto todo el rato.
+  const ctxNivel = !ctx ? 0 : ctx.percent >= 80 ? 2 : ctx.percent >= 60 ? 1 : 0;
   const avisoCtx = ctxNivel > ctxVisto ? ctxNivel : 0;
 
   // Reanimar una sesión PASADA DE TAMAÑO es volver a cargarle los mismos
@@ -1547,10 +1548,22 @@ export default function TerminalPane({
           )}
           {avisoCtx > 0 && ctx && (
             <div className="pane-ctx-warn" data-grave={avisoCtx === 2}>
+              {/* Dos renglones, no un párrafo. Esto es una franja que se come
+                  el alto de la terminal mientras esté puesta, así que dice el
+                  dato y qué hacer; el porqué largo vive en el globo de la
+                  píldora del contexto, que está siempre a mano. Y pasa por
+                  `t()`: estaba escrito en duro y salía en español con la app
+                  puesta en inglés. */}
               <span>
                 {avisoCtx === 2
-                  ? `Esta sesión ya arrastra ${ctx.used.toLocaleString()} tokens (${ctx.percent}% de su ventana). A estas alturas compactarla sale PEOR que empezar de cero: /compact vuelve a pagarlos todos de golpe, y puede tardar mucho. Abre una terminal nueva y deja esta cerrada.`
-                  : `Esta sesión ya arrastra ${ctx.used.toLocaleString()} tokens (${ctx.percent}% de su ventana). Cada mensaje que escribas aquí los vuelve a pagar enteros, así que irá cada vez más lenta y más cara. Ve cerrándola pronto.`}
+                  ? t("{pct} % de contexto ({n} tokens). Compactar ahora sale peor que empezar: abre una terminal nueva.", {
+                      pct: ctx.percent,
+                      n: ctx.used.toLocaleString(lang === "en" ? "en-GB" : "es-ES"),
+                    })
+                  : t("{pct} % de contexto ({n} tokens). Cada mensaje vuelve a pagarlos enteros, así que irá más lenta y más cara.", {
+                      pct: ctx.percent,
+                      n: ctx.used.toLocaleString(lang === "en" ? "en-GB" : "es-ES"),
+                    })}
               </span>
               <button
                 className="pane-close"

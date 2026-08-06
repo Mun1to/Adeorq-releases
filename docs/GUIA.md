@@ -150,11 +150,11 @@ De izquierda a derecha:
 | **Logo + «Adeorq»** | La marca, nada que pulsar. |
 | **◱ Panel · ▦ Cabina · ▤ Agenda · ⬡ Lienzo · ◍ Cuentas · ⌘ Comandos · ⚙ Ajustes** | Las siete vistas de la app. Cambian lo que ves debajo. |
 | **Número junto a «Cabina» o «Lienzo»** | Cuántas terminales tienes abiertas ahí. Si estás en el Panel y ves un 4, es que hay 4 vivas en la Cabina. |
-| **El botón de Objetivos** | Abre un panel flotante con lo que quieres dejar cerrado hoy. Lo escribes, lo marcas con un clic en la fila entera (no hace falta apuntar a una casilla diminuta) y se guarda en un archivo del día, no en localStorage, para que un agente también pueda tacharlo cuando termine lo que le pediste. Se arrastra donde quieras y se puede plegar a solo el contador (por ejemplo 2/3). |
+| **El botón de Objetivos** | Abre un panel flotante con lo que quieres dejar cerrado hoy. Lo escribes, lo marcas con un clic en la fila entera (no hace falta apuntar a una casilla diminuta) y se guarda en un archivo del día, no en localStorage, para que un agente también pueda tacharlo cuando termine lo que le pediste. Se arrastra donde quieras y se puede plegar a solo el contador (por ejemplo 2/3). **Son de un día**: al cambiar la fecha la lista nace vacía, pero nada se borra. Si el día anterior dejaste algo sin tachar, arriba sale un botón para traértelo («Traer los 3 que dejaste ayer»); lo que ya tachaste se queda donde estaba. |
 | **El Pulso** | La píldora con lo que Adeorq y sus agentes están gastando en RAM ahora mismo, y cuántos procesos de agente hay corriendo. Clic para abrir el detalle: memoria de Adeorq frente a memoria de todo el equipo. Se pone ámbar si el que aprieta es Adeorq y roja si el equipo entero va apretado, así sabes de quién es la culpa antes de abrir el Administrador de tareas. |
 | **La tira de música** | Solo aparece si algo suena en el PC. Título, artista, ⏮ anterior, ❚❚/▶ pausa y ⏭ siguiente. El volumen se queda en el mezclador de Windows, para no llenar la barra. |
 | **○ Emisión / ◉ En emisión** | El escudo para retransmitir: tapa rutas y datos personales, y enmascara las claves que escupan las terminales. Atajo Ctrl+Mayús+E, detalle en el [punto 9b](#9b-modo-emisión-para-directos). |
-| **✦ Capataz** | Llama al agente orquestador flotante. Atajo Ctrl+Mayús+A. |
+| **El orbe** | Llama al Asistente. Atajo Ctrl+Mayús+A. Da vueltas más deprisa mientras piensa. |
 
 Encima de todo eso puede aparecer una **barra de actualización** azul cuando hay
 una versión nueva de Adeorq: «Actualizar ahora» la descarga y «Reiniciar» la
@@ -222,17 +222,25 @@ para su primera sesión.
 
 El mismo botón **＋** de la barra lateral tiene un segundo camino: en vez de
 abrir algo nuevo, **volver a una conversación que ya empezaste**. Sale la lista
-entera con un buscador y una casilla por sesión, marcas las que quieras y se
-traen todas de golpe, escalonadas y repartidas por la pantalla.
+entera con un buscador y una casilla por sesión.
+
+**Traer no abre nada.** Lo que marques aparece en la barra de la izquierda y se
+queda ahí esperando; la abres tú desde ahí, cuando quieras y de una en una. Por
+eso da igual traerse ciento veinte de golpe: en la barra no cuestan nada, y cada
+terminal abierta sí (unos 200 MB, porque cada una es un programa aparte).
+
+Sin marcar nada, el botón grande dice **«Ponerlas en la barra»** con el número de
+las que te faltan: es la forma rápida de recuperar tu semana entera.
 
 Tres cosas que solo tiene esta lista:
 
 - **Salen también las viejas.** Las de más de una semana no aparecen en ninguna
-  otra pantalla de Adeorq, y aquí sí.
+  otra pantalla de Adeorq, y aquí sí. Y una vez la traes, se queda en la barra
+  aunque sea de hace un mes: lo que has pedido a mano manda sobre su edad.
 - **El buscador perdona las tildes** y admite palabras sueltas en cualquier
   orden: «hover boton» encuentra «arreglar el hover del botón».
-- **Te avisa antes**, no después, de cuáles están abiertas en otro sitio. Abrir
-  dos veces la misma conversación las bloquea a las dos.
+- **Las que ya tienes salen en dorado** y sin casilla, para que no las busques
+  dos veces creyendo que el buscador no las encuentra.
 
 ### ＋ Nuevo proyecto: con TUS reglas, si quieres
 
@@ -507,7 +515,7 @@ Esta es la barra de tu captura. De izquierda a derecha:
 | **El icono** (el destello de Claude, la flecha en órbita o el símbolo de consola) | Qué hay dentro: Claude Code, Antigravity o una consola. Y también si sigue vivo: cuando el programa termina, el icono se apaga a gris. Antes esto último era un cuadradito verde aparte; ahora lo dice la propia marca y la barra respira. El nombre sale al pasar el ratón. |
 | **El nombre** (tu «Adeorq: sesiones y terminales») | El título de la sesión, el mismo que ves en la lista de la izquierda. Si lo renombras allí, cambia aquí. |
 | **▣ n.º** | Cuántos subagentes están trabajando AHORA dentro de esa sesión. Se cuentan en el historial (cada ayudante lanzado menos cada uno que ya ha vuelto), así que es el dato exacto, no una estimación. Solo aparece mientras los hay. |
-| **La barra + %** (tu 79%) | El contexto: cuánto lleva ocupado de su memoria de trabajo. Pasa el ratón y te dice los tokens exactos y el total. Se pone ámbar a partir del 80%. |
+| **La barra + %** (tu 79%) | El contexto: cuánto lleva ocupado de su memoria de trabajo. Pasa el ratón y te dice los tokens exactos y el total. Se pone ámbar a partir del 80%. Y solo ahí te avisa: a partir del 60% te dice que la sesión pesa, y a partir del 80% que compactarla sale peor que abrir una terminal nueva. Se mide en porcentaje de SU ventana, así que el aviso quiere decir lo mismo con un modelo de 200.000 tokens que con uno de un millón. |
 | **«Opus 5» + «high»** | El modelo que está pensando y su esfuerzo. Se cambian dentro del pane con `/model` y `/effort`. |
 | **La carpeta** (tu `C:\proyectos`) | Dónde está trabajando ese agente. Importante: si aquí no sale la carpeta del proyecto, ese agente no ve el código del proyecto. |
 | **○ / ◉** | Tapa solo ESTA terminal (desenfoque), para emitir sin cerrar nada. |
@@ -728,7 +736,15 @@ de 30 segundos en OBS**. El razonamiento entero está en `docs/EMISION.md`.
 
 Tu agente orquestador. Le escribes lo que quieres y te propone un plan; NADA se
 ejecuta sin tu OK. Vive en dos sitios: la tarjeta fija del Panel y el flotante
-de la Cabina (Ctrl+Mayús+A o el botón ✦ Capataz).
+de la Cabina (Ctrl+Mayús+A o el orbe de la barra).
+
+**Con el cuadro vacío te dice qué puedes pedirle**: cinco ejemplos, y al pulsar
+cualquiera se escribe solo en el cuadro. Desaparecen en cuanto escribes.
+
+**Y el orbe te dice si está trabajando**: es un planeta con su satélite dando
+vueltas, que va despacio en reposo, acelera mientras escribes y vuela mientras
+piensa. Antes te lo decía con la palabra «pensando», que es lo mismo que no
+decir nada cuando llevas veinte segundos esperando.
 
 Ejemplos de pedidos reales:
 
@@ -820,8 +836,13 @@ solo las diferencias gordas (de fábrica), cualquiera, o nunca.
 
 ## 10b. El Reparto (varias tareas de golpe)
 
-El botón de las tres ramas, al lado del Asistente. El Asistente resuelve UNA
-cosa; esto resuelve un día entero.
+**Ya no tiene botón propio: es el mismo Asistente.** Eran dos botones seguidos
+para la misma pregunta, así que ahora escribes y el número de líneas decide.
+Una frase se planea ahí mismo; **varias líneas son varias tareas**, y el botón
+cambia solo a «Repartir las N tareas» y te lleva a esta pantalla con el texto
+ya puesto.
+
+El Asistente resuelve UNA cosa; esto resuelve un día entero.
 
 Pegas tus tareas, una por línea, o marcas las que ya tienes apuntadas: los
 **objetivos de hoy** y las **ideas que tus agentes te dejaron en la Agenda**

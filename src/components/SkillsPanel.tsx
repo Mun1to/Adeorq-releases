@@ -43,30 +43,33 @@ export default function SkillsPanel({ canPaste, onUse, onUsage }: Props) {
     });
   };
 
+  // Cerrado no es una columna, es una pestaña.
+  //
+  // Antes se quedaba una franja de 34 px de ALTO COMPLETO con el rótulo girado
+  // de arriba abajo: 34 píxeles de terminal cedidos en toda la pantalla para
+  // enseñar dos palabras de canto (Munir, 2026-08-06). Ahora es una lengüeta
+  // pegada al borde, a media altura, y el ancho que ocupaba se lo quedan las
+  // terminales. Sigue diciendo lo que hay dentro, que era lo que se ganó al
+  // ponerle el rótulo.
   if (!open) {
     return (
-      <aside className="skills skills-closed">
-        <button
-          className="skills-toggle"
-          onClick={toggle}
-          data-tip={t("Mostrar skills y uso")}
-        >
-          <SparkIcon size={13} />
-        </button>
-        {/* Plegado también dice lo que hay dentro: aquí no viven solo las
-            skills, debajo está el uso de la cuenta, y el rótulo de antes lo
-            escondía. */}
+      <button className="skills-pestana" onClick={toggle} data-tip={t("Mostrar skills y uso")}>
+        <SparkIcon size={13} />
         <span className="skills-vertical">{t("Skills · Uso")}</span>
-      </aside>
+      </button>
     );
   }
 
   return (
     <aside className="skills">
       <div className="skills-head">
-        <span className="skills-title">✦ {t("Skills")}</span>
+        <span className="skills-title">
+          <SparkIcon size={14} /> {t("Skills")}
+        </span>
+        {/* Hacia la derecha, que es por donde se va: el chevron hacia abajo
+            señalaba un sitio al que este panel no se pliega. */}
         <button className="mini" onClick={toggle} data-tip={t("Ocultar panel")}>
-          <ChevronIcon size={12} />
+          <ChevronIcon size={12} der />
         </button>
       </div>
       <p className="skills-hint">

@@ -690,7 +690,9 @@ export default function SettingsView({
                   <span className="setting-value">{fontSize}px</span>
                 </label>
                 <label className="setting-row">
-                  <span>{t("Cuántas sesiones abre el botón ⧉")}</span>
+                  {/* Antes se llamaba «Cuántas sesiones abre el botón ⧉», que
+                      obliga a saberse un símbolo para entender un ajuste. */}
+                  <span>{t("Cuántas sesiones abre de golpe un proyecto")}</span>
                   <input
                     type="range"
                     min={2}

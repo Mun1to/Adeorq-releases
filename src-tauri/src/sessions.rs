@@ -1376,6 +1376,21 @@ mod tests {
         assert_eq!(decode_folder("-no-existe-esta-carpeta-de-aqui"), None);
     }
 
+    /// Cómo se llama la fila de la barra en la que cae una sesión: dentro de la
+    /// carpeta madre manda el primer tramo, y fuera de ella, la carpeta donde
+    /// estés. Una raíz de unidad (`C:\`) se queda en `C:`, que no es bonito
+    /// pero tampoco está vacío: cae en «sin proyecto» y se ve.
+    #[test]
+    fn a_project_is_named_after_its_first_folder_under_the_root() {
+        let (base, dentro, fuera) = if cfg!(windows) {
+            ("C:\\proyectos", "C:\\proyectos\\Adeorq\\src", "C:\\otra\\cosa")
+        } else {
+            ("/home/m/proyectos", "/home/m/proyectos/Adeorq/src", "/otra/cosa")
+        };
+        assert_eq!(project_of(dentro, "", base), "Adeorq");
+        assert_eq!(project_of(fuera, "", base), "cosa");
+    }
+
     #[test]
     fn context_reads_the_last_usage_of_a_transcript() {
         // A transcript ends with tool traffic; the meter must still find the

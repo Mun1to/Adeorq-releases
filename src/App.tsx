@@ -44,6 +44,7 @@ import {
   MinimizeIcon,
   UnminimizeIcon,
   PanelIcon,
+  PlusIcon,
   SettingsIcon,
   StreamIcon,
 } from "./components/Icons";
@@ -500,7 +501,16 @@ function App() {
   const focusedIdRef2 = useRef<number | null>(null);
   focusedIdRef2.current = focusedId;
   const [refreshKey, setRefreshKey] = useState(0);
-  const [focusReq, setFocusReq] = useState<{ name: string; n: number } | null>(null);
+  const [focusReq, setFocusReq] = useState<{
+    name: string;
+    /** Cuando se pide por una sesión concreta: la barra sabe mejor que nadie en
+        qué proyecto la tiene puesta, porque tú pudiste moverla a mano. */
+    sesion?: string;
+    n: number;
+  } | null>(null);
+  /** Lo que el ＋ manda a la barra: ids de conversaciones que quieres ver ahí,
+      sin abrir ninguna terminal. Lo guarda el Sidebar, que es su dueño. */
+  const [traerReq, setTraerReq] = useState<{ ids: string[]; n: number } | null>(null);
   /** Quién ha pedido el teclado desde el tablero, y cuántas veces. */
   const [tecladoReq, setTecladoReq] = useState<{ id: number; n: number } | null>(null);
   const [sideW, setSideW] = useState(() => {
@@ -1051,40 +1061,33 @@ function App() {
   );
 
   /**
-   * Retomar varias conversaciones de una vez, desde el asistente del ＋.
+   * Traer conversaciones desde el asistente del ＋: a la BARRA, no a la pantalla.
    *
-   * Es primo de `onOpenAll`, pero no el mismo: aquel abre las de UN proyecto y,
-   * si vienen de un grupo, aparta lo demás para entrar en ese espacio. Estas
-   * pueden ser de proyectos distintos y no aparta nada, porque las has elegido
-   * tú una a una.
+   * Antes abría una terminal por cada una, y con eso el botón de «tráete las que
+   * te faltan» era una forma de encender ciento veintidós CLIs de 200 MB a la
+   * vez. Munir lo cortó en seco el 2026-08-06: «que no se abran directamente,
+   * sino que se abran solo en el menú de la izquierda». Traer es hacerlas
+   * visibles y a mano; abrirlas es un clic tuyo, cuando quieras y de una en una.
    *
-   * Lo que sí comparte es lo que costó aprender: escalonarlas, porque nueve
-   * CLIs arrancando a la vez se pelean por la CPU y todos van lentos; y repartir
-   * el mosaico al final, pero solo si son las únicas —un tablero que ya habías
-   * colocado es tuyo, no nuestro—, que es justo lo que `onOpenAll` no hace.
+   * Quien guarda esa lista es la barra, que es la dueña del estado de la
+   * interfaz (`adeorq-state.json`) y la única que lo escribe: si lo escribiera
+   * también desde aquí, dos escrituras seguidas se pisarían.
    */
-  const retomarVarias = useCallback(
-    (sesiones: SessionInfo[]) => {
-      setWizard(false);
-      const n = sesiones.length;
-      if (!n) return;
-      sesiones.forEach((s, i) => {
-        if (i === 0) onResume(s);
-        else window.setTimeout(() => onResume(s), i * OPEN_ALL_STAGGER_MS);
-      });
-      if (n > 1) {
-        window.setTimeout(() => {
-          setCols((prev) => {
-            const total = prev.reduce((k, c) => k + c.panes.length, 0);
-            return total === n
-              ? applyPreset(prev, presetFor(n), () => nextCol.current++)
-              : prev;
-          });
-        }, n * OPEN_ALL_STAGGER_MS + 150);
-      }
-    },
-    [onResume],
-  );
+  const retomarVarias = useCallback((sesiones: SessionInfo[]) => {
+    setWizard(false);
+    if (!sesiones.length) return;
+    setTraerReq((prev) => ({
+      ids: sesiones.map((s) => s.id),
+      n: (prev?.n ?? 0) + 1,
+    }));
+    // Y se despliega el proyecto de la primera, que puede estar al final de la
+    // lista y plegado: eso es lo mismo que no estar cuando lo que quieres es
+    // comprobar que llegó. Va con el id además del nombre porque el sitio de
+    // una sesión lo puedes haber decidido tú arrastrándola, y eso solo lo sabe
+    // la barra (`ui.sessionProject`).
+    const s0 = sesiones[0];
+    setFocusReq((prev) => ({ name: s0.project, sesion: s0.id, n: (prev?.n ?? 0) + 1 }));
+  }, []);
 
   /**
    * Mete esta sesión en el grupo de su cuadrilla, creándolo si es la primera.
@@ -2364,6 +2367,7 @@ function App() {
           width={sideW}
           refreshKey={refreshKey}
           focusReq={focusReq}
+          traerReq={traerReq}
           abiertas={abiertas}
           onFocusPane={irATerminal}
           onOpenTerminal={openTerminal}
@@ -2419,16 +2423,23 @@ function App() {
           />
           <main className="grid" ref={gridRef}>
           {cols.length === 0 ? (
+            // La primera pantalla que se ve, y hasta hoy era un manual: dos
+            // renglones enumerando seis botones con su glifo (⧉ ✦ >_ AG ⋯) en
+            // mitad de un párrafo. Esos botones salen solos al pasar el ratón y
+            // cada uno lleva su globo, así que la lista no enseñaba nada que no
+            // se descubra en un segundo, y tapaba lo único que hay que saber:
+            // de dónde sale una terminal (Munir, 2026-08-06).
             <div className="empty">
               <p className="empty-title">{t("La cabina está lista.")}</p>
               <p>
-                {t(
-                  "Clic en un proyecto despliega sus sesiones y un clic en una sesión la retoma aquí. Al pasar el ratón: ⧉ abre todas · ✦ Claude nuevo · >_ terminal · AG Antigravity · ⋯ renombrar, agrupar o archivar. Si algo no cuadra, pestaña ? Guía, arriba.",
-                )}
+                {t("Elige una conversación en la barra de la izquierda para retomarla, o abre una nueva aquí.")}
               </p>
               <button className="np-btn empty-new" onClick={() => setWizard(true)}>
-                {t("＋ Abrir una sesión…")}
+                <PlusIcon size={15} /> {t("Abrir una sesión…")}
               </button>
+              <p className="card-hint empty-pie">
+                {t("Cada proyecto enseña sus botones al pasar el ratón. Y si algo no cuadra, está la pestaña Guía.")}
+              </p>
             </div>
           ) : (
             <>
@@ -2851,6 +2862,7 @@ function App() {
           {t("Recuperando tus terminales…")} {restoring}
         </div>
       )}
+
 
       {sesionOcupada && (
         <div className="ocupada-bar">

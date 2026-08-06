@@ -18,15 +18,19 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { openPath } from "@tauri-apps/plugin-opener";
 import {
   aplicarDia,
+  diaCorto,
   goalsAdd,
+  goalsCarry,
+  goalsPendingBefore,
   goalsRemove,
   goalsToggle,
   hoy,
   useDiaDeHoy,
   type Goal,
+  type GoalDay,
 } from "../lib/goals";
 import { useT } from "../lib/i18n";
-import { ChevronIcon, CloseIcon, CornerIcon, OpacityIcon } from "./Icons";
+import { ChevronIcon, CloseIcon, CornerIcon, OpacityIcon, UndoIcon } from "./Icons";
 
 interface Props {
   /** Sin la caja del panel y con la lista con scroll propio: es como se pinta
@@ -62,6 +66,31 @@ export default function Objetivos({ compacto = false }: Props) {
     goalsToggle(fecha, g).then(aplicarDia).catch((e) => setError(String(e)));
   const quitar = (g: Goal) =>
     goalsRemove(fecha, g).then(aplicarDia).catch((e) => setError(String(e)));
+
+  /* ------------------------------------------------ lo que quedó pendiente
+   *
+   * Los objetivos son de un día, así que al cambiar la fecha esta lista nace
+   * en blanco. Desde fuera eso no se distingue de haberlos perdido: Munir
+   * actualizó Adeorq el 2026-08-06, vio la lista vacía y dio por hecho que la
+   * actualización se había llevado los cinco objetivos que tenía vivos. No se
+   * había borrado nada, seguían en `2026-08-05.md`; lo que faltaba era que
+   * alguien lo dijera y un botón para traérselos.
+   *
+   * Solo llega lo que de verdad falta hoy (lo filtra el propio comando), así
+   * que si ya están traídos el botón no aparece. */
+  const [atras, setAtras] = useState<GoalDay | null>(null);
+  // Se vuelve a preguntar cuando cambia CUÁNTOS hay hoy, no en cada latido del
+  // reloj de `useDiaDeHoy`: lo único que puede hacer aparecer o desaparecer
+  // este botón es que hoy gane o pierda objetivos.
+  useEffect(() => {
+    goalsPendingBefore(fecha).then(setAtras).catch(() => {});
+  }, [fecha, dia?.goals.length]);
+
+  const traerAtras = () => {
+    if (!atras) return;
+    setAtras(null);
+    goalsCarry(atras.date, fecha).then(aplicarDia).catch((e) => setError(String(e)));
+  };
 
   const goals = dia?.goals ?? [];
   const hechos = goals.filter((g) => g.done).length;
@@ -134,12 +163,30 @@ export default function Objetivos({ compacto = false }: Props) {
             </button>
           </li>
         ))}
-        {goals.length === 0 && (
+        {goals.length === 0 && !atras && (
           <li className="obj-empty">
             {t("Nada apuntado para hoy. Escribe abajo lo que quieras dejar cerrado.")}
           </li>
         )}
       </ul>
+
+      {/* Lo que dejaste a medias, ofrecido y no arrastrado solo: un objetivo que
+          reaparece cada mañana sin que nadie lo pida deja de ser un objetivo y
+          pasa a ser un reproche. Un clic y están aquí; sin clic, el día de ayer
+          se queda como quedó. */}
+      {atras && (
+        <button className="obj-atras" onClick={traerAtras}>
+          <UndoIcon size={15} />
+          <span>
+            {atras.goals.length === 1
+              ? t("Traer el que dejaste el {dia}", { dia: diaCorto(atras.date, lang, t("ayer")) })
+              : t("Traer los {n} que dejaste el {dia}", {
+                  n: atras.goals.length,
+                  dia: diaCorto(atras.date, lang, t("ayer")),
+                })}
+          </span>
+        </button>
+      )}
 
       {/* Escribir aquí es la acción más frecuente del panel, así que deja de
           parecer un formulario: un «+» y una línea, con el mismo hueco a la

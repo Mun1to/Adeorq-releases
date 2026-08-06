@@ -242,6 +242,9 @@ export default function NewSession({
   );
   const cuantasYa = visibles.length - traibles.length;
   const marcadas = traibles.filter((s) => elegidas.has(s.id));
+  /** Cuántas se van a abrir al pulsar el botón grande: las que hayas marcado o,
+      si no marcaste ninguna, todas las que te faltan. */
+  const porTraer = marcadas.length || traibles.length;
 
   const marcar = (id: string) =>
     setElegidas((prev) => {
@@ -251,11 +254,16 @@ export default function NewSession({
       return n;
     });
 
+  /** Lo que se trae. Sin marcar nada, las que te faltan: el botón grande hace
+      el trabajo entero en un clic, que es lo que se le pedía a este cuadro y no
+      hacía (Munir, 2026-08-06: «sigue sin haber un botón de abrir todas las que
+      no hay dentro de Adeorq»). Va sin recorte: el tope lo decides tú y aquí
+      solo se avisa de lo que cuesta. */
   const retomar = () => {
     if (!sesiones) return;
     // Se manda en el orden en que se ven, no en el que se fueron marcando: al
     // colocarse en el mosaico, lo de arriba de la lista queda arriba.
-    onRetomar(traibles.filter((s) => elegidas.has(s.id)).slice(0, tope));
+    onRetomar(marcadas.length ? marcadas : traibles);
   };
 
   const launch = () => {
@@ -310,7 +318,7 @@ export default function NewSession({
         {step === "retomar" ? (
           <>
             <p className="modal-text modal-dim">
-              {t("Tus conversaciones, las de esta semana y las de antes. Marca las que quieras traer.")}
+              {t("Tus conversaciones, las de esta semana y las de antes. Las que marques aparecen en la barra de la izquierda, listas para abrirlas cuando quieras.")}
             </p>
             <input
               className="finder"
@@ -340,25 +348,25 @@ export default function NewSession({
                       </span>
                     )}
                   </span>
+                  {/* Verbos, no sustantivos. Se llamaban «Las 8 que no tengo» y
+                      «Ninguna», que en una línea gris de estadísticas se leen
+                      como dos contadores más y no como dos botones (Munir,
+                      2026-08-06). El número se fue al botón grande, que es
+                      quien de verdad las trae. */}
                   <span className="ret-todas">
                     <button
                       className="mini"
                       disabled={!traibles.length}
-                      onClick={() => setElegidas(new Set(traibles.slice(0, tope).map((s) => s.id)))}
+                      onClick={() => setElegidas(new Set(traibles.map((s) => s.id)))}
                     >
-                      {/* Marca las que NO tienes, que es lo que uno quiere de
-                          verdad: «todas» incluía las que ya están puestas y
-                          esas no se pueden traer. */}
-                      {traibles.length > tope
-                        ? t("Las {n} que no tengo", { n: tope })
-                        : t("Las que no tengo")}
+                      {t("Marcar las que no tengo")}
                     </button>
                     <button
                       className="mini"
                       disabled={!elegidas.size}
                       onClick={() => setElegidas(new Set())}
                     >
-                      {t("Ninguna")}
+                      {t("Quitar las marcas")}
                     </button>
                   </span>
                 </div>
@@ -412,9 +420,14 @@ export default function NewSession({
                   )}
                 </ul>
 
-                {traibles.length > tope && marcadas.length >= tope && (
-                  <p className="modal-text modal-dim ret-tope">
-                    {t("Entran {n} de golpe; el resto se queda para la próxima tanda.", { n: tope })}
+                {/* Traer NO abre nada. Antes sí, y por eso hacía falta avisar
+                    de los gigas: ciento veintidós conversaciones eran ciento
+                    veintidós CLIs de 200 MB. Ahora van a la barra y se abren de
+                    una en una, cuando tú quieras, así que la única pregunta que
+                    queda es cuántas van a aparecer ahí. */}
+                {porTraer > tope && (
+                  <p className="ret-aviso">
+                    {t("Van a la barra de la izquierda, no se abre ninguna terminal. Las abres tú desde ahí, una a una.")}
                   </p>
                 )}
               </>
@@ -424,10 +437,14 @@ export default function NewSession({
               <button className="mini modal-cancel" onClick={() => setStep(1)}>
                 {t("Atrás")}
               </button>
-              <button className="np-btn" disabled={!marcadas.length} onClick={retomar}>
-                {marcadas.length > 1
-                  ? t("Traer las {n}", { n: Math.min(marcadas.length, tope) })
-                  : t("Traerla")}
+              {/* Encendido aunque no hayas marcado nada: sin marcas trae las
+                  que te faltan, que es lo que se venía a hacer. Antes salía
+                  apagado y el único botón con pinta de botón no hacía nada.
+                  Y dice A DÓNDE van, que es lo que lo distingue de abrirlas. */}
+              <button className="np-btn" disabled={!porTraer} onClick={retomar}>
+                {porTraer > 1
+                  ? t("Ponerlas en la barra ({n})", { n: porTraer })
+                  : t("Ponerla en la barra")}
               </button>
             </div>
           </>

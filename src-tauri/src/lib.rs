@@ -342,6 +342,8 @@ pub fn run() {
             goals::goals_add,
             goals::goals_toggle,
             goals::goals_remove,
+            goals::goals_pending_before,
+            goals::goals_carry,
             inbox::read_inbox,
             inbox::drop_inbox,
             inbox::inbox_where,

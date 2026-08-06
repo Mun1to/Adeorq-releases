@@ -411,8 +411,11 @@ const EN: Record<string, string> = {
 
   // Cockpit
   "La cabina está lista.": "The cockpit is ready.",
-  "Clic en un proyecto despliega sus sesiones y un clic en una sesión la retoma aquí. Al pasar el ratón: ⧉ abre todas · ✦ Claude nuevo · >_ terminal · AG Antigravity · ⋯ renombrar, agrupar o archivar. Si algo no cuadra, pestaña ? Guía, arriba.":
-    "Click a project to unfold its sessions, click a session to resume it here. On hover: ⧉ opens them all · ✦ new Claude · >_ terminal · AG Antigravity · ⋯ rename, group or archive. If something looks off, see the ? Guide tab above.",
+  "Elige una conversación en la barra de la izquierda para retomarla, o abre una nueva aquí.":
+    "Pick a conversation from the left-hand rail to resume it, or start a new one here.",
+  "Cada proyecto enseña sus botones al pasar el ratón. Y si algo no cuadra, está la pestaña Guía.":
+    "Each project shows its buttons on hover. And if something looks off, there is the Guide tab.",
+  "Abrir una sesión…": "Open a session…",
   "Imagen pegada como archivo: el agente la lee de esa ruta. Escribe tu pregunta al lado y Enter.":
     "Image pasted as a file: the agent reads it from that path. Type your question next to it and press Enter.",
   "Claude está comprimiendo la memoria de la charla (normal en sesiones largas): unos segundos y sigue solo.":
@@ -490,7 +493,8 @@ const EN: Record<string, string> = {
     "The house colour. Glass and blur stay put.",
   Terminales: "Terminals",
   "Tamaño de la letra": "Font size",
-  "Cuántas sesiones abre el botón ⧉": "How many sessions the ⧉ button opens",
+  "Cuántas sesiones abre de golpe un proyecto":
+    "How many sessions a project opens at once",
   "Cada sesión es un programa aparte: unos 200 MB cada una.":
     "Each session is a separate program: about 200 MB each.",
   "Modo de permisos": "Permission mode",
@@ -890,8 +894,8 @@ const EN: Record<string, string> = {
 
   // Retomar sesiones desde el asistente del ＋.
   "↻ Retomar las que ya tienes…": "↻ Resume the ones you already have…",
-  "Tus conversaciones, las de esta semana y las de antes. Marca las que quieras traer.":
-    "Your conversations, this week's and the older ones. Tick the ones to bring over.",
+  "Tus conversaciones, las de esta semana y las de antes. Las que marques aparecen en la barra de la izquierda, listas para abrirlas cuando quieras.":
+    "Your conversations, this week's and the older ones. Whatever you tick shows up in the left-hand rail, ready to open whenever you want.",
   "Buscar por título, proyecto o carpeta": "Search by title, project or folder",
   "Leyendo tus sesiones…": "Reading your sessions…",
   "{n} elegidas de {total}": "{n} of {total} picked",
@@ -936,16 +940,17 @@ const EN: Record<string, string> = {
   "Suelta, sin proyecto": "Loose, no project",
   "Retomar las que ya tienes…": "Resume the ones you already have…",
   "Todas tus sesiones": "All your sessions",
-  "Las que no tengo": "The ones I lack",
-  "Las {n} que no tengo": "{n} I lack",
+  "Marcar las que no tengo": "Tick the ones I lack",
+  "Quitar las marcas": "Clear the ticks",
   "ya la tienes": "already open here",
   "· {n} ya en Adeorq": "· {n} already in Adeorq",
-  Ninguna: "None",
+  "Ponerlas en la barra ({n})": "Put them in the rail ({n})",
+  "Ponerla en la barra": "Put it in the rail",
+  "Van a la barra de la izquierda, no se abre ninguna terminal. Las abres tú desde ahí, una a una.":
+    "They go to the left-hand rail; no terminal is opened. You open them from there, one at a time.",
   "abierta ahora": "open right now",
   "Ninguna sesión con eso.": "No session matches that.",
   "Todavía no hay sesiones que retomar.": "No sessions to resume yet.",
-  "Traer las {n}": "Bring the {n}",
-  Traerla: "Bring it over",
   Rombo: "Diamond",
   "Herramienta: el rombo": "Tool: the diamond",
   "Recuperando tus terminales…": "Bringing your terminals back…",
@@ -1186,6 +1191,19 @@ const EN: Record<string, string> = {
   "Ocultar panel": "Hide panel",
   "Sin skills en ~/.claude/skills": "No skills in ~/.claude/skills",
   "Qué pasa este día…": "What happens on this day…",
+
+  // El aviso de contexto de una terminal. Estaba escrito en duro dentro del
+  // JSX, así que salía en español con la app puesta en inglés.
+  "{pct} % de contexto ({n} tokens). Compactar ahora sale peor que empezar: abre una terminal nueva.":
+    "{pct}% of context ({n} tokens). Compacting now costs more than starting over: open a new terminal.",
+  "{pct} % de contexto ({n} tokens). Cada mensaje vuelve a pagarlos enteros, así que irá más lenta y más cara.":
+    "{pct}% of context ({n} tokens). Every message pays for all of them again, so it gets slower and dearer.",
+
+  // Los objetivos que quedaron sin tachar el día anterior. Nada se borra nunca,
+  // pero la lista de hoy nace vacía y eso se lee como una pérdida.
+  ayer: "yesterday",
+  "Traer el que dejaste el {dia}": "Bring over the one you left on {dia}",
+  "Traer los {n} que dejaste el {dia}": "Bring over the {n} you left on {dia}",
 
   // Las notas
   Nota: "Note",

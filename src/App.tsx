@@ -11,6 +11,7 @@ import Vigia from "./components/Vigia";
 import SettingsView from "./components/SettingsView";
 import CommandsView from "./components/CommandsView";
 import CanvasView, { type CanvasPane } from "./components/CanvasView";
+import ChatView from "./components/ChatView";
 import AgendaView from "./components/AgendaView";
 import MemoriaView from "./components/MemoriaView";
 import NewSession, { type Launch } from "./components/NewSession";
@@ -37,6 +38,7 @@ import {
   AccountIcon,
   AgendaIcon,
   CanvasIcon,
+  ChatIcon,
   CloseIcon,
   CockpitIcon,
   CommandIcon,
@@ -187,6 +189,7 @@ export interface RepartoInicial {
 type View =
   | "panel"
   | "cabina"
+  | "chat"
   | "agenda"
   | "lienzo"
   | "memoria"
@@ -1003,9 +1006,70 @@ function App() {
         return;
       }
       const cwd = s.resumeCwd || s.cwd || raiz();
-      addPane(s.title, cwd, claudeCommand(withEffort(`--resume ${s.id}`)), undefined, undefined, undefined, undefined, grupo);
+      // En SU cuenta, no en la que esté por defecto. Cada cuenta guarda sus
+      // propios transcripts, así que un `--resume` lanzado desde otra contesta
+      // «No conversation found» y el panel se queda con una sesión en blanco:
+      // parecía que la conversación se hubiera perdido.
+      const suya = s.cuenta
+        ? accountsRef.current.list.find((a) => a.dir === s.cuenta)
+        : undefined;
+      addPane(s.title, cwd, claudeCommand(withEffort(`--resume ${s.id}`)), undefined, suya, undefined, undefined, grupo);
     },
     [addPane, panes],
+  );
+
+  /**
+   * Lo que escribes en el chat, bajado a la terminal de esa misma sesión.
+   *
+   * Aquí es donde la cara se pega al motor: el chat no habla con ninguna API,
+   * habla con TU CLI, y por eso gasta tu suscripción en vez de una clave (ver
+   * `docs/CHAT.md` §3). Si esa conversación no está abierta como terminal, se
+   * abre primero y se espera a que el CLI arranque; escribir en un PTY que
+   * todavía está pintando su pantalla se come parte del texto, que es el mismo
+   * motivo por el que los `/model` van escalonados.
+   *
+   * Y como en todo lo demás de la casa: los ajustes se envían, el mensaje
+   * también, porque aquí SÍ le has dado a enviar. Es la diferencia con el
+   * Asistente, que solo deja el encargo escrito.
+   */
+  const enviarAlChat = useCallback(
+    (s: SessionInfo, texto: string, modelo?: string, esfuerzo?: string) => {
+      const ajustes = [modelo ? `/model ${modelo}` : "", esfuerzo ? `/effort ${esfuerzo}` : ""]
+        .filter(Boolean);
+      const escribir = (id: number) => {
+        ajustes.forEach((linea, i) => {
+          window.setTimeout(() => void writePty(id, `${linea}\r`).catch(() => {}), i * 400);
+        });
+        window.setTimeout(
+          () => void writePty(id, `${texto}\r`).catch(() => {}),
+          ajustes.length * 400 + 250,
+        );
+      };
+
+      const abierto = panesRef.current.find((p) => sessionIdOf(p.command) === s.id);
+      if (abierto) {
+        escribir(abierto.id);
+        return;
+      }
+      // Sin panel: se abre y se espera a que exista. `onResume` no devuelve el
+      // id (lo crea React), así que se busca el que aparece con esta sesión
+      // dentro; si en cinco segundos no ha nacido, es que no se pudo abrir
+      // (una sesión viva fuera de Adeorq, por ejemplo) y no se escribe nada, en
+      // vez de mandar el texto a la terminal equivocada.
+      onResume(s);
+      const desde = Date.now();
+      const espera = window.setInterval(() => {
+        const p = panesRef.current.find((x) => sessionIdOf(x.command) === s.id);
+        if (p) {
+          window.clearInterval(espera);
+          // Un respiro para que el CLI termine de pintar su pantalla de inicio.
+          window.setTimeout(() => escribir(p.id), 1200);
+        } else if (Date.now() - desde > 5_000) {
+          window.clearInterval(espera);
+        }
+      }, 200);
+    },
+    [onResume],
   );
 
   const openAgy = useCallback(
@@ -2156,6 +2220,9 @@ function App() {
   const tabs: Array<{ key: View; icon: React.ReactElement; label: string }> = [
     { key: "panel", icon: <PanelIcon size={16} />, label: "Panel" },
     { key: "cabina", icon: <CockpitIcon size={16} />, label: "Cabina" },
+    // Justo detrás de la Cabina porque es la misma cosa vista de otra manera:
+    // las mismas sesiones, sin la consola delante.
+    { key: "chat", icon: <ChatIcon size={16} />, label: "Chat" },
     { key: "agenda", icon: <AgendaIcon size={16} />, label: "Agenda" },
     { key: "lienzo", icon: <CanvasIcon size={16} />, label: "Lienzo" },
     { key: "memoria", icon: <MemoryIcon size={16} />, label: "Memoria" },
@@ -2648,6 +2715,13 @@ function App() {
             />
           }
         />
+      )}
+      {/* La otra cara de la Cabina: las mismas sesiones, leídas como
+          conversación en vez de como consola. Se monta y se desmonta con su
+          pestaña porque no tiene nada vivo dentro: lo que corre son las
+          terminales de la Cabina, que siguen en pie donde estaban. */}
+      {view === "chat" && (
+        <ChatView onEnviar={enviarAlChat} onResume={onResume} onNueva={() => setWizard(true)} />
       )}
       {view === "agenda" && (
         <AgendaView

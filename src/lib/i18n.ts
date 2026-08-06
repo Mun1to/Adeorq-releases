@@ -384,6 +384,8 @@ const EN: Record<string, string> = {
   "Volver a la barra ancha": "Back to the wide rail",
   "Nueva sesión de {cli} con la cuenta «{acc}» aquí":
     "New {cli} session here, signed in as “{acc}”",
+  "Escrita con la cuenta «{acc}», y ahí se retoma":
+    "Written on the “{acc}” account, and that is where it resumes",
   "Nueva sesión de Claude Code aquí": "New Claude Code session here",
   "Terminal PowerShell aquí": "PowerShell terminal here",
   "Antigravity (agy) en una terminal aquí": "Antigravity (agy) in a terminal here",
@@ -724,7 +726,17 @@ const EN: Record<string, string> = {
 
   // El Capataz que escribe encargos, y el micrófono
   "Escribir el encargo": "Write the brief",
+  "Escribir y ponerlo": "Write it and put it in",
   "Escribiendo…": "Writing…",
+
+  // El modo automático: aplica la receta en vez de enseñarla. Nunca envía.
+  // («Automático» a secas ya está arriba, en la pastilla del Reparto.)
+  "Automático: en vez de enseñarte la ficha, ajusta el cerebro y deja el encargo escrito en la terminal de delante. No lo envía.":
+    "Automatic: instead of showing you the card, it sets the brain and leaves the brief typed in the terminal in front of you. It does not send it.",
+  "Automático puesto: aplica el cerebro que toque y deja el encargo escrito, sin enseñarte la ficha. No lo envía.":
+    "Automatic is on: it applies whichever brain fits and leaves the brief typed, without showing you the card. It does not send it.",
+  "sin cambiar el cerebro": "brain left as it was",
+  "Quitar este aviso": "Dismiss this note",
   "Para la terminal que tienes delante": "For the terminal in front of you",
   Copiarlo: "Copy it",
 
@@ -807,17 +819,75 @@ const EN: Record<string, string> = {
   "Cambiar su logo": "Change its logo",
   "Ponerle un logo": "Give it a logo",
   "Ver las archivadas": "Show the archived ones",
-  "Tirar este proyecto a la papelera de Windows":
-    "Send this project to the Windows recycle bin",
+  "Quitar de Adeorq: sale de la barra, la carpeta no se toca":
+    "Remove from Adeorq: it leaves the rail, the folder is not touched",
+  "Borrar su carpeta del disco: se va a la papelera de Windows":
+    "Delete its folder from disk: it goes to the Windows recycle bin",
 
-  // Tirar un proyecto a la papelera
-  "🗑 Tirar este proyecto…": "🗑 Bin this project…",
-  "Tirar el proyecto": "Bin the project",
-  "«{n}» se va a la papelera de Windows, con todo lo que tenga dentro. Se recupera desde el escritorio como cualquier otra cosa, así que no es definitivo, pero sí se lleva la carpeta.":
-    "«{n}» goes to the Windows recycle bin, with everything inside it. You can get it back from the desktop like anything else, so this is not final — but it does take the folder.",
+  // Quitar un proyecto de la barra. Nada de esto toca el disco.
+  "Quitar de Adeorq": "Remove from Adeorq",
+  "no borra nada": "deletes nothing",
+  Ocultos: "Hidden",
+  "Devolverlo a la barra": "Put it back in the rail",
+  "Sus carpetas siguen en el disco, intactas.":
+    "Their folders are still on disk, untouched.",
+
+  // Borrar la CARPETA de un proyecto. Se llamaba «tirar el proyecto», y por ese
+  // nombre se fueron diecisiete carpetas de C:\proyectos el 31-jul-2026 sin que
+  // nadie recordara haberlas borrado: aquí nada dice «proyecto» a secas.
+  "Borrar la carpeta del disco…": "Delete the folder from disk…",
+  "Borrar la carpeta del disco": "Delete the folder from disk",
+  "Esto borra del disco la CARPETA de «{n}», con todo lo que tenga dentro. Va a la papelera de Windows, así que se recupera desde el escritorio, pero deja de estar en su sitio y lo que la use dejará de encontrarla.":
+    "This deletes «{n}»'s FOLDER from disk, with everything inside it. It goes to the Windows recycle bin, so you can get it back from the desktop, but it stops being where it was and anything using it will no longer find it.",
   "⚠ Tiene {n} sesiones de Claude. Sus conversaciones NO se borran: viven en tu carpeta de Claude, no en esta. Pero se quedarán apuntando a una carpeta que ya no está.":
     "⚠ It has {n} Claude sessions. Their conversations are NOT deleted: they live in your Claude folder, not this one. But they will be left pointing at a folder that is gone.",
-  "A la papelera": "To the bin",
+  "Si lo que quieres es dejar de verlo en la barra, no hace falta borrar nada:":
+    "If all you want is to stop seeing it in the rail, nothing needs deleting:",
+  "Quitar de Adeorq, sin tocar la carpeta": "Remove from Adeorq, leaving the folder alone",
+  "Escribe «{n}» para confirmar:": "Type «{n}» to confirm:",
+  "Borrar la carpeta": "Delete the folder",
+
+  // El modo chat: las mismas sesiones, leídas como conversación.
+  "Nueva conversación": "New conversation",
+  "Buscar conversaciones…": "Search conversations…",
+  "Ninguna conversación con esas palabras.": "No conversation matches those words.",
+  "Todavía no hay conversaciones. Empieza una con el botón de arriba.":
+    "No conversations yet. Start one with the button above.",
+  Limpio: "Clean",
+  // El selector del cerebro. Cada uno con PARA QUÉ es, que es lo único que
+  // ayuda a elegir; pasan por `t(c.para)`, así que el revisor no los ve.
+  "lo elige el router según la tarea y tu semana":
+    "the router picks it from the task and how much week you have left",
+  "recados: renombrar, traducir, formatear": "errands: renaming, translating, formatting",
+  "el día a día: escribir, refactorizar, probar":
+    "the daily craft: writing, refactoring, testing",
+  "juicio: seguridad, revisión, bugs difíciles":
+    "judgement: security, review, hard bugs",
+  "lo más caro que hay; solo si sabes por qué":
+    "the most expensive there is; only if you know why",
+  "{u} de {w} tokens usados": "{u} of {w} tokens used",
+  "{n} archivos sin guardar": "{n} unsaved files",
+  "todo guardado": "all committed",
+  "sin plan detectado": "no plan detected",
+  // Lo que la referencia llama «Live Ask». Lo que dice de verdad es que lo que
+  // escribas ahora entra en cuanto termine lo que está haciendo.
+  "Se lo digo ahora: entra en cuanto termine lo de ahora":
+    "Queued: it goes in as soon as the current one finishes",
+  "Añade algo más: se lo paso a continuación…": "Add something else: it goes in next…",
+  "Releer la conversación": "Re-read the conversation",
+  "Esta conversación todavía no tiene nada escrito.":
+    "Nothing has been written in this conversation yet.",
+  "Escribe aquí. Enter envía, Mayús+Enter hace un párrafo.":
+    "Type here. Enter sends, Shift+Enter starts a paragraph.",
+  "Lo que pesa: {p}": "What it weighs: {p}",
+  "Elige una conversación a la izquierda.": "Pick a conversation on the left.",
+  "Son tus sesiones de siempre, las mismas de la Cabina: aquí se leen como una conversación en vez de como una consola, y lo que escribas va a la misma terminal.":
+    "These are your usual sessions, the same ones as in the Cockpit: here they read as a conversation instead of a console, and whatever you type goes to that same terminal.",
+  "sin título": "untitled",
+  // «Hoy», «Esta semana» y «Este mes» ya están arriba, con los cajones de la
+  // Agenda: los mismos cajones de tiempo, el mismo texto.
+  Ayer: "Yesterday",
+  "Más atrás": "Further back",
 
   // El cajón de las sesiones que no son de ningún proyecto
   Sueltas: "Loose ones",
@@ -931,7 +1001,6 @@ const EN: Record<string, string> = {
 
   // Las etiquetas que perdieron su emoji al pasar a icono dibujado.
   "Cambiar el nombre que se ve…": "Change the name shown here…",
-  "Tirar este proyecto…": "Bin this project…",
   Renombrar: "Rename",
   "Mover a grupo…": "Move to group…",
   "Sacarla de este proyecto": "Take it out of this project",

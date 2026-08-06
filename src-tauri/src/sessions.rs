@@ -53,6 +53,11 @@ pub struct SessionInfo {
     /// permite que un proyecto enseñe junto lo que ha pasado en él, lo abriera
     /// quien lo abriera.
     pub fuente: String,
+    /// En qué cuenta se escribió: su `CLAUDE_CONFIG_DIR`, o vacío si es la de
+    /// siempre. La barra lo usa para marcar la fila, y `onResume` para volver a
+    /// abrirla donde vive: un `--resume` lanzado con otra cuenta no encuentra
+    /// la conversación, porque cada cuenta tiene sus propios transcripts.
+    pub cuenta: String,
 }
 
 #[derive(Default)]
@@ -60,6 +65,37 @@ pub struct SessionCache(pub Mutex<HashMap<PathBuf, (u64, u64, Option<SessionInfo
 
 fn claude_dir() -> Option<PathBuf> {
     crate::dir_casa().map(|h| h.join(".claude"))
+}
+
+/// TODAS las carpetas de configuración de Claude Code que hay en esta máquina:
+/// la de siempre (`~/.claude`) y una por cada cuenta extra de Adeorq.
+///
+/// Una cuenta ES una carpeta (ver `accounts.rs`): el CLI arranca con
+/// `CLAUDE_CONFIG_DIR` apuntando ahí y guarda dentro su login, sus proyectos y
+/// sus transcripts. Este lector solo miraba `~/.claude`, así que todo lo que se
+/// trabajaba con una segunda cuenta no aparecía en la barra: ni la sesión, ni
+/// el proyecto, ni el punto verde de «está viva». Munir entró con una cuenta
+/// nueva y su sesión no salía por ningún sitio (2026-08-06).
+///
+/// El `String` es ese mismo `CLAUDE_CONFIG_DIR`, y viaja hasta la interfaz para
+/// dos cosas: pintar de quién es cada fila, y retomarla en SU cuenta (un
+/// `--resume` en la cuenta equivocada no encuentra la conversación).
+/// Vacío = la principal.
+pub fn raices_claude() -> Vec<(String, PathBuf)> {
+    let mut out = Vec::new();
+    if let Some(d) = claude_dir() {
+        out.push((String::new(), d));
+    }
+    for dir in crate::accounts::list_account_dirs() {
+        // La carpeta de una cuenta de Codex o de Gemini también sale de ahí;
+        // no se filtra por el nombre, que es un slug que escribe Munir: si
+        // dentro no hay `projects` con transcripts, no aporta nada y ya está.
+        let p = PathBuf::from(&dir);
+        if p.join("projects").is_dir() || p.join("sessions").is_dir() {
+            out.push((dir, p));
+        }
+    }
+    out
 }
 
 fn read_tail(path: &Path) -> std::io::Result<Vec<String>> {
@@ -137,23 +173,26 @@ fn pid_alive(pid: u32) -> bool {
 
 fn live_session_ids() -> HashSet<String> {
     let mut live = HashSet::new();
-    let Some(dir) = claude_dir().map(|d| d.join("sessions")) else {
-        return live;
-    };
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return live;
-    };
-    for entry in entries.flatten() {
-        let Ok(text) = std::fs::read_to_string(entry.path()) else {
+    // Cada cuenta lleva su propio registro de sesiones vivas, así que se miran
+    // todas: si no, una conversación abierta con la segunda cuenta nunca se
+    // marcaría como viva y Adeorq dejaría abrirla dos veces, que es justo lo
+    // que la cuelga (ver `onResume` en App.tsx).
+    for (_, raiz) in raices_claude() {
+        let Ok(entries) = std::fs::read_dir(raiz.join("sessions")) else {
             continue;
         };
-        let Ok(v) = serde_json::from_str::<Value>(&text) else {
-            continue;
-        };
-        let sid = v["sessionId"].as_str().unwrap_or_default();
-        let pid = v["pid"].as_u64().unwrap_or(0) as u32;
-        if !sid.is_empty() && pid != 0 && pid_alive(pid) {
-            live.insert(sid.to_owned());
+        for entry in entries.flatten() {
+            let Ok(text) = std::fs::read_to_string(entry.path()) else {
+                continue;
+            };
+            let Ok(v) = serde_json::from_str::<Value>(&text) else {
+                continue;
+            };
+            let sid = v["sessionId"].as_str().unwrap_or_default();
+            let pid = v["pid"].as_u64().unwrap_or(0) as u32;
+            if !sid.is_empty() && pid != 0 && pid_alive(pid) {
+                live.insert(sid.to_owned());
+            }
         }
     }
     live
@@ -445,6 +484,8 @@ fn analyze_uncached(path: &Path, folder: &str, mtime: u64, size: u64) -> Option<
         agents_live,
         agents_total,
         fuente: "claude".into(),
+        // La pone `scan_sessions`, que es quien sabe de qué carpeta salió.
+        cuenta: String::new(),
     })
 }
 
@@ -461,32 +502,18 @@ pub async fn scan_sessions(
     raiz: Option<String>,
     sin_raiz: Option<bool>,
 ) -> Result<Vec<SessionInfo>, String> {
-    let projects_dir = claude_dir()
-        .map(|d| d.join("projects"))
-        .ok_or("no sé cuál es tu carpeta de usuario")?;
+    let raices = raices_claude();
+    if raices.is_empty() {
+        return Err("no sé cuál es tu carpeta de usuario".into());
+    }
     let live = live_session_ids();
     let mut out = Vec::new();
 
-    let entries = std::fs::read_dir(&projects_dir).map_err(|e| e.to_string())?;
-    for entry in entries.flatten() {
-        let dir = entry.path();
-        if !dir.is_dir() {
-            continue;
-        }
-        let folder = entry.file_name().to_string_lossy().into_owned();
-        let Ok(files) = std::fs::read_dir(&dir) else {
-            continue;
-        };
-        for file in files.flatten() {
-            let path = file.path();
-            if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
-                continue;
-            }
-            if let Some(mut info) = analyze(&path, &folder, &cache) {
-                info.live = live.contains(&info.id);
-                out.push(info);
-            }
-        }
+    // Una vuelta por la cuenta de siempre y otra por cada cuenta extra. Las
+    // sesiones van todas al mismo saco, como las de Codex: un proyecto enseña
+    // su día entero, y de quién es cada una lo dice su marca en la fila.
+    for (cuenta, raiz) in &raices {
+        out.extend(escanear_raiz(raiz, cuenta, &cache, &live));
     }
     // Y las de los otros clientes, que van al mismo saco a propósito: el panel
     // ordena por proyecto y por antigüedad, no por quién las abrió, así que un
@@ -515,6 +542,47 @@ pub async fn scan_sessions(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
     Ok(out)
+}
+
+/// Los transcripts de UNA carpeta de configuración: `<raiz>/projects/<cwd>/*.jsonl`.
+///
+/// Aparte del comando para poder probarla con una carpeta de mentira: lo que
+/// hay que demostrar de este arreglo es justo esto, que una raíz que no sea
+/// `~/.claude` se lee igual y que sus sesiones salen firmadas con su cuenta.
+fn escanear_raiz(
+    raiz: &Path,
+    cuenta: &str,
+    cache: &SessionCache,
+    live: &HashSet<String>,
+) -> Vec<SessionInfo> {
+    let mut out = Vec::new();
+    let Ok(entries) = std::fs::read_dir(raiz.join("projects")) else {
+        return out;
+    };
+    for entry in entries.flatten() {
+        let dir = entry.path();
+        if !dir.is_dir() {
+            continue;
+        }
+        let folder = entry.file_name().to_string_lossy().into_owned();
+        let Ok(files) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for file in files.flatten() {
+            let path = file.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+                continue;
+            }
+            if let Some(mut info) = analyze(&path, &folder, cache) {
+                info.live = live.contains(&info.id);
+                // Fuera de `analyze`, que va por caché de archivo: la cuenta la
+                // decide DÓNDE está el transcript, no lo que ponga dentro.
+                info.cuenta = cuenta.to_owned();
+                out.push(info);
+            }
+        }
+    }
+    out
 }
 
 fn codex_dir() -> Option<PathBuf> {
@@ -628,6 +696,7 @@ fn analyze_codex(path: &Path) -> Option<SessionInfo> {
         agents_live: 0,
         agents_total: 0,
         fuente: "codex".into(),
+        cuenta: String::new(),
     })
 }
 
@@ -842,6 +911,7 @@ fn analyze_pi(path: &Path) -> Option<SessionInfo> {
         agents_live: 0,
         agents_total: 0,
         fuente: "pi".into(),
+        cuenta: String::new(),
     })
 }
 
@@ -1037,7 +1107,35 @@ fn count_agents(lines: &[String], fresh: bool) -> (u32, u32) {
 /// pane's folder when the session id is unknown (a fresh `claude`).
 #[tauri::command]
 pub async fn session_context(cwd: String, session_id: Option<String>) -> Option<ContextInfo> {
-    context_at(&claude_dir()?.join("projects"), &cwd, session_id)
+    context_de(&transcript_de(&cwd, session_id.as_deref())?)
+}
+
+/// El transcript de una conversación, la tenga la cuenta que la tenga.
+///
+/// Se busca por TODAS las carpetas de cuentas y no solo por `~/.claude` porque
+/// un panel abierto con una segunda cuenta guarda ahí dentro: sin esto, ese
+/// panel se quedaba sin contador de contexto, sin estado y sin última
+/// respuesta, y no había forma de saber por qué.
+///
+/// Sin id (un `claude` recién abierto, cuya sesión todavía no tiene nombre) se
+/// coge el transcript MÁS RECIENTE de esa carpeta de trabajo entre todas las
+/// cuentas, que es lo que acaba de escribir el panel que pregunta.
+fn transcript_de(cwd: &str, session_id: Option<&str>) -> Option<PathBuf> {
+    let carpetas = raices_claude()
+        .into_iter()
+        .map(|(_, r)| r.join("projects").join(encode_claude(cwd)));
+    match session_id.filter(|id| !id.is_empty()) {
+        Some(id) => carpetas
+            .map(|d| d.join(format!("{id}.jsonl")))
+            .find(|p| p.exists()),
+        None => carpetas
+            .filter_map(|d| newest_transcript(&d))
+            .max_by_key(|p| {
+                std::fs::metadata(p)
+                    .and_then(|m| m.modified())
+                    .unwrap_or(SystemTime::UNIX_EPOCH)
+            }),
+    }
 }
 
 /// Most recent transcript of a folder: the stand-in for a pane running a fresh
@@ -1057,6 +1155,9 @@ fn newest_transcript(dir: &Path) -> Option<PathBuf> {
 
 /// The body of `session_context`, with the transcripts root passed in so tests
 /// can point at a temp folder instead of racing over the USERPROFILE variable.
+/// Solo para eso: en producción la carpeta la elige `transcript_de`, que sabe
+/// de cuentas.
+#[cfg(test)]
 fn context_at(projects: &Path, cwd: &str, session_id: Option<String>) -> Option<ContextInfo> {
     let dir = projects.join(encode_claude(cwd));
     let path = match session_id {
@@ -1066,19 +1167,26 @@ fn context_at(projects: &Path, cwd: &str, session_id: Option<String>) -> Option<
         }
         _ => newest_transcript(&dir)?,
     };
+    context_de(&path)
+}
+
+/// Lo que se puede decir de un transcript ya localizado. Separado de la
+/// búsqueda porque encontrarlo depende de la cuenta y leerlo no.
+fn context_de(path: &Path) -> Option<ContextInfo> {
     // Who this transcript belongs to, named the way every other command names
     // it: the folder under ~/.claude/projects, and the file's own stem.
     let session_id = path
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let folder = dir
-        .file_name()
+    let folder = path
+        .parent()
+        .and_then(|d| d.file_name())
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_default();
 
-    let lines = read_tail(&path).ok()?;
-    let fresh = std::fs::metadata(&path)
+    let lines = read_tail(path).ok()?;
+    let fresh = std::fs::metadata(path)
         .and_then(|m| m.modified())
         .and_then(|t| t.elapsed().map_err(std::io::Error::other))
         .map(|age| age.as_secs() < AGENTS_STALE_S)
@@ -1187,14 +1295,7 @@ fn context_at(projects: &Path, cwd: &str, session_id: Option<String>) -> Option<
 /// with "No conversation found", so those are reopened as fresh instead.
 #[tauri::command]
 pub async fn transcript_exists(cwd: String, session_id: String) -> bool {
-    claude_dir()
-        .map(|d| {
-            d.join("projects")
-                .join(encode_claude(&cwd))
-                .join(format!("{session_id}.jsonl"))
-                .exists()
-        })
-        .unwrap_or(false)
+    transcript_de(&cwd, Some(&session_id)).is_some()
 }
 
 /// The agent's last written answer, straight from the transcript. The canvas
@@ -1206,14 +1307,7 @@ pub async fn last_reply(
     session_id: Option<String>,
     max_chars: Option<usize>,
 ) -> Option<String> {
-    let dir = claude_dir()?.join("projects").join(encode_claude(&cwd));
-    let path = match session_id {
-        Some(id) if !id.is_empty() => {
-            let p = dir.join(format!("{id}.jsonl"));
-            p.exists().then_some(p)?
-        }
-        _ => newest_transcript(&dir)?,
-    };
+    let path = transcript_de(&cwd, session_id.as_deref())?;
     let lines = read_tail(&path).ok()?;
     for line in lines.iter().rev() {
         let Ok(v) = serde_json::from_str::<Value>(line) else {
@@ -1245,6 +1339,161 @@ pub async fn last_reply(
     None
 }
 
+/// Un turno de la conversación, ya limpio para pintarlo como chat.
+#[derive(Serialize)]
+pub struct Turno {
+    /// "tu" o "agente". No "user"/"assistant": esto se pinta, no se manda a
+    /// ninguna API, y el que lee la pantalla no es un modelo.
+    pub rol: String,
+    pub texto: String,
+    /// Tal como lo escribió el CLI (ISO). Se formatea en el front, que es quien
+    /// sabe en qué idioma está la app.
+    pub hora: String,
+    /// Las herramientas que usó en ese turno, por su nombre. Un chat que
+    /// esconde que el agente ha estado escribiendo archivos miente sobre lo que
+    /// ha pasado; pero el volcado de cada llamada no es conversación, así que
+    /// aquí solo van los nombres y el front decide cómo resumirlos.
+    pub herramientas: Vec<String>,
+}
+
+/// Lo que el CLI se dice a sí mismo y no es conversación de nadie.
+///
+/// El transcript mezcla los turnos de verdad con la fontanería: los comandos
+/// con barra, los recordatorios que el propio Claude Code inyecta y los avisos
+/// del arnés. Pintarlos como si Munir los hubiera escrito sería enseñar una
+/// conversación que nunca ocurrió.
+fn es_fontaneria(t: &str) -> bool {
+    let s = t.trim_start();
+    s.starts_with("<command-name>")
+        || s.starts_with("<local-command-")
+        || s.starts_with("<system-reminder>")
+        || s.starts_with("<command-message>")
+        || s.starts_with("Caveat: The messages below were generated")
+}
+
+/// El texto de un `message.content`, que viene de dos formas según el turno:
+/// una cadena pelada (lo que escribes tú) o una lista de bloques (lo que
+/// escribe el agente, que parte las respuestas largas).
+fn texto_del_contenido(content: &Value) -> String {
+    if let Some(s) = content.as_str() {
+        return s.trim().to_owned();
+    }
+    content
+        .as_array()
+        .map(|bloques| {
+            bloques
+                .iter()
+                .filter(|b| b["type"] == "text")
+                .filter_map(|b| b["text"].as_str())
+                .collect::<Vec<_>>()
+                .join("\n")
+                .trim()
+                .to_owned()
+        })
+        .unwrap_or_default()
+}
+
+fn herramientas_del_contenido(content: &Value) -> Vec<String> {
+    content
+        .as_array()
+        .map(|bloques| {
+            bloques
+                .iter()
+                .filter(|b| b["type"] == "tool_use")
+                .filter_map(|b| b["name"].as_str())
+                .map(|s| s.to_owned())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Convierte las líneas de un transcript en turnos de conversación.
+///
+/// Aparte del comando para poder probarla: lo que decide qué se ve en el modo
+/// chat es esto, y compilar no demuestra que reparta bien los turnos.
+pub fn turnos_de(lineas: &[String], max: usize) -> Vec<Turno> {
+    let mut out: Vec<Turno> = Vec::new();
+    for linea in lineas {
+        let Ok(v) = serde_json::from_str::<Value>(linea) else {
+            continue;
+        };
+        let kind = v["type"].as_str().unwrap_or_default();
+        if kind != "user" && kind != "assistant" {
+            continue;
+        }
+        // Los subagentes tienen su propia conversación paralela. Mezclarla con
+        // la principal es lo que convierte un chat en un revoltijo.
+        if v["isSidechain"].as_bool().unwrap_or(false) {
+            continue;
+        }
+        let content = &v["message"]["content"];
+        let texto = texto_del_contenido(content);
+        let herramientas = herramientas_del_contenido(content);
+        if texto.is_empty() && herramientas.is_empty() {
+            continue;
+        }
+        if !texto.is_empty() && es_fontaneria(&texto) {
+            continue;
+        }
+        let rol = if kind == "assistant" { "agente" } else { "tu" };
+        let hora = v["timestamp"].as_str().unwrap_or_default().to_owned();
+
+        // El CLI parte una respuesta larga en varios mensajes seguidos, y cada
+        // llamada a una herramienta abre otro. Pintados por separado saldrían
+        // veinte burbujas de la misma frase, así que los seguidos del mismo rol
+        // se juntan en uno.
+        match out.last_mut() {
+            Some(ult) if ult.rol == rol => {
+                if !texto.is_empty() {
+                    if !ult.texto.is_empty() {
+                        ult.texto.push_str("\n\n");
+                    }
+                    ult.texto.push_str(&texto);
+                }
+                ult.herramientas.extend(herramientas);
+            }
+            _ => out.push(Turno {
+                rol: rol.to_owned(),
+                texto,
+                hora,
+                herramientas,
+            }),
+        }
+    }
+    // Los últimos, que son los que interesan al abrir una conversación.
+    if out.len() > max {
+        out.drain(..out.len() - max);
+    }
+    out
+}
+
+/// La conversación de una sesión, lista para pintarla sin pasar por la consola.
+///
+/// Es el motor del modo chat: la misma sesión que en la Cabina sale como una
+/// terminal con sus códigos de escape, aquí sale como lo que de verdad es, una
+/// conversación. No cuesta ni un token: ya está escrita en el disco.
+#[tauri::command]
+pub async fn session_messages(
+    cwd: String,
+    session_id: Option<String>,
+    max: Option<usize>,
+) -> Result<Vec<Turno>, String> {
+    // El id viaja en una ruta, así que no se acepta a ojo: sin esto,
+    // «../../algo» leería cualquier archivo del disco.
+    if let Some(id) = session_id.as_deref().filter(|i| !i.is_empty()) {
+        if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            return Err("id de sesión no válido".into());
+        }
+    }
+    let path = transcript_de(&cwd, session_id.as_deref()).ok_or(if session_id.is_some() {
+        "esa conversación no está en el disco"
+    } else {
+        "ese proyecto no tiene conversaciones"
+    })?;
+    let lineas = read_tail(&path).map_err(|e| e.to_string())?;
+    Ok(turnos_de(&lineas, max.unwrap_or(60)))
+}
+
 #[tauri::command]
 pub fn open_in_antigravity(path: String) -> Result<(), String> {
     let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
@@ -1273,6 +1522,61 @@ mod tests {
         assert_eq!(pretty_model("claude-haiku-4-5-20251001"), "Haiku 4.5");
     }
     use super::*;
+
+    /// Lo que hace legible el modo chat: el CLI parte una respuesta larga en
+    /// varios mensajes seguidos y abre otro por cada herramienta, así que sin
+    /// juntarlos salen veinte burbujas de la misma frase.
+    #[test]
+    fn los_mensajes_seguidos_del_mismo_lado_son_un_solo_turno() {
+        let lineas: Vec<String> = vec![
+            r#"{"type":"user","message":{"content":"arregla el hover"}}"#.into(),
+            r#"{"type":"assistant","message":{"content":[{"type":"text","text":"Voy."}]}}"#.into(),
+            r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit"}]}}"#
+                .into(),
+            r#"{"type":"assistant","message":{"content":[{"type":"text","text":"Hecho."}]}}"#
+                .into(),
+        ];
+        let t = turnos_de(&lineas, 60);
+        assert_eq!(t.len(), 2, "una pregunta y una respuesta, no cuatro burbujas");
+        assert_eq!(t[0].rol, "tu");
+        assert_eq!(t[1].texto, "Voy.\n\nHecho.");
+        assert_eq!(t[1].herramientas, vec!["Edit".to_owned()]);
+    }
+
+    /// La fontanería del CLI no es conversación de nadie: pintarla sería
+    /// enseñar mensajes que Munir no escribió.
+    #[test]
+    fn lo_que_el_cli_se_dice_a_si_mismo_no_sale() {
+        let lineas: Vec<String> = vec![
+            r#"{"type":"user","message":{"content":"<command-name>/usage</command-name>"}}"#.into(),
+            r#"{"type":"user","message":{"content":"<system-reminder>ojo</system-reminder>"}}"#
+                .into(),
+            r#"{"type":"assistant","isSidechain":true,"message":{"content":[{"type":"text","text":"soy un subagente"}]}}"#.into(),
+            r#"{"type":"user","message":{"content":"esto si"}}"#.into(),
+        ];
+        let t = turnos_de(&lineas, 60);
+        assert_eq!(t.len(), 1);
+        assert_eq!(t[0].texto, "esto si");
+    }
+
+    /// Un transcript de meses no cabe en una pantalla: se abre por el final,
+    /// que es donde estabas.
+    #[test]
+    fn una_conversacion_larga_se_abre_por_el_final() {
+        let lineas: Vec<String> = (0..10)
+            .flat_map(|i| {
+                vec![
+                    format!(r#"{{"type":"user","message":{{"content":"pregunta {i}"}}}}"#),
+                    format!(
+                        r#"{{"type":"assistant","message":{{"content":[{{"type":"text","text":"respuesta {i}"}}]}}}}"#
+                    ),
+                ]
+            })
+            .collect();
+        let t = turnos_de(&lineas, 4);
+        assert_eq!(t.len(), 4);
+        assert_eq!(t[3].texto, "respuesta 9");
+    }
 
     /// The bug Munir hit: 59 untitled rows that were Adeorq watching its own
     /// quota. A probe must be hidden, and a real session must never be.
@@ -1389,6 +1693,79 @@ mod tests {
         };
         assert_eq!(project_of(dentro, "", base), "Adeorq");
         assert_eq!(project_of(fuera, "", base), "cosa");
+    }
+
+    /// Lo que faltaba: una conversación escrita con una SEGUNDA cuenta se lee
+    /// igual y sale firmada con la suya.
+    ///
+    /// Cada cuenta es una carpeta de configuración con sus propios
+    /// transcripts dentro (ver `accounts.rs`), y este lector solo miraba
+    /// `~/.claude`. Munir entró con una cuenta nueva, trabajó con ella y su
+    /// sesión no aparecía por ningún lado en la barra (2026-08-06). La firma
+    /// no es un adorno: es lo que hace que `onResume` la vuelva a abrir en su
+    /// cuenta, porque un `--resume` lanzado desde otra no la encuentra.
+    #[test]
+    fn a_session_written_on_a_second_account_is_found_and_signed() {
+        let dir = std::env::temp_dir().join("adeorq-cuentas-test");
+        let _ = std::fs::remove_dir_all(&dir);
+        let cwd = dir.join("proj");
+        let cuenta = dir.join("accounts").join("la-nueva");
+        let carpeta = cuenta
+            .join("projects")
+            .join(encode_claude(&cwd.to_string_lossy()));
+        std::fs::create_dir_all(&carpeta).unwrap();
+        std::fs::write(
+            carpeta.join("d721543f-c8f8-468a-87ac-863b6e536c31.jsonl"),
+            concat!(
+                r#"{"type":"user","cwd":"#,
+                "\"",
+                "PLACEHOLDER",
+                "\"",
+                r#","message":{"role":"user","content":"arregla el panel"}}"#,
+                "\n",
+                r#"{"type":"assistant","message":{"content":[{"type":"text","text":"Hecho."}]}}"#,
+                "\n",
+            )
+            .replace("PLACEHOLDER", &cwd.to_string_lossy().replace('\\', "\\\\")),
+        )
+        .unwrap();
+
+        let ruta = cuenta.to_string_lossy().into_owned();
+        let encontradas = escanear_raiz(
+            &cuenta,
+            &ruta,
+            &SessionCache::default(),
+            &HashSet::new(),
+        );
+        assert_eq!(encontradas.len(), 1, "el transcript de la otra cuenta se lee");
+        assert_eq!(encontradas[0].cuenta, ruta, "y viene firmado con su cuenta");
+        assert_eq!(encontradas[0].id, "d721543f-c8f8-468a-87ac-863b6e536c31");
+
+        // Y la cuenta de siempre sigue firmando en blanco, que es lo que
+        // distingue una fila marcada de una normal en la barra.
+        let principal = escanear_raiz(&cuenta, "", &SessionCache::default(), &HashSet::new());
+        assert_eq!(principal[0].cuenta, "");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// La lista de carpetas contra el disco de verdad de esta máquina: si
+    /// Munir tiene una cuenta extra, tiene que estar aquí.
+    #[test]
+    fn the_real_accounts_of_this_machine_are_listed() {
+        let raices = raices_claude();
+        assert!(!raices.is_empty(), "siempre está al menos ~/.claude");
+        assert_eq!(raices[0].0, "", "la primera es la de siempre");
+        for (cuenta, raiz) in &raices {
+            let n = std::fs::read_dir(raiz.join("projects"))
+                .map(|d| d.flatten().count())
+                .unwrap_or(0);
+            println!(
+                "{} · {} carpetas de proyecto",
+                if cuenta.is_empty() { "~/.claude" } else { cuenta },
+                n
+            );
+        }
     }
 
     #[test]

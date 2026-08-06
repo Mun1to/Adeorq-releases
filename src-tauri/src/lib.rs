@@ -260,6 +260,7 @@ pub fn run() {
             sessions::session_context,
             sessions::last_reply,
             sessions::transcript_exists,
+            sessions::session_messages,
             skills::list_skills,
             icons::project_icons,
             icons::forget_project_icons,

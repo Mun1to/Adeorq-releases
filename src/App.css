@@ -1229,6 +1229,83 @@ body {
   letter-spacing: 0;
 }
 
+/* El cajón de los proyectos que quitaste de la barra. Vive al final del todo y
+   nace plegado: es la marcha atrás de «Quitar de Adeorq», así que tiene que
+   estar a la vista, pero no puede competir con los proyectos de verdad. Mismo
+   tono que la línea de las sueltas, que es su hermana de arriba. */
+.ocultos-zona {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.ocultos-cab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.ocultos-cab:hover {
+  color: var(--text);
+}
+
+/* La flecha, al otro extremo: el número se queda pegado al nombre y ella marca
+   el borde, que es donde el ojo la busca para plegar. */
+.ocultos-cab svg:last-child {
+  margin-left: auto;
+}
+
+.ocultos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 6px 6px;
+}
+
+.oculto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 6px;
+  border-radius: 8px;
+}
+
+.oculto:hover {
+  background: var(--row);
+}
+
+.oculto-nombre {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.oculto:hover .oculto-nombre {
+  color: var(--text);
+}
+
+.ocultos-pie {
+  margin: 4px 0 0;
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
 /* En la pared de marcas, la suya: sin foto de proyecto, porque no son un
    proyecto, pero con sitio propio para que no desaparezcan en ese modo. */
 .project-logo-sueltas {
@@ -1920,13 +1997,12 @@ body {
 /* The photo keeps its square: it is an image and it is clickable, which is
    exactly when a box is earned. Clicking it opens the project, like the card
    underneath it. */
+/* Ya no es un botón: es la foto. Ver el comentario del componente. */
 .fly-photo {
   flex: none;
   align-self: stretch;
+  display: block;
   padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
 }
 
 .fly-photo .pavatar {
@@ -2057,6 +2133,33 @@ body {
   padding: 4px 2px 2px;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* Abrir el día entero de un proyecto. Con su nombre escrito, porque durante un
+   tiempo esto lo hacía la FOTO del proyecto y un botón sin nombre no existe
+   (Munir, 2026-08-06: «hemos quitado el botón de abrir todas las sesiones»,
+   estando ahí). A ancho completo y encabezando la lista que va a abrir. */
+.fly-todas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin: 8px 0 2px;
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.fly-todas:hover {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 /* Inside the panel the list needs no indent: there is no card above it. */
@@ -2738,6 +2841,21 @@ body {
   background: linear-gradient(180deg, #ff8f8f, #e05a5a);
   border-color: rgba(255, 143, 143, 0.6);
   color: #1a0d10;
+}
+
+/* La puerta de atrás del cuadro de borrar: hace lo que casi todo el mundo venía
+   a hacer, así que va ancha y a la vista, pero en gris. Si se pintara del azul
+   de un botón principal, competiría con el rojo y el cuadro pasaría a tener
+   dos protagonistas. */
+.modal-salida {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
 }
 
 /* ── Opening a session by hand ──────────────────────────────────────────────
@@ -3911,6 +4029,27 @@ body {
   font-weight: 700;
   letter-spacing: 0.06em;
   white-space: nowrap;
+}
+
+/* La cuenta con la que se escribió una sesión, cuando no es la de siempre.
+   Va TEÑIDA y no en el gris de `.sess-rol` a propósito: no es un dato más de
+   la fila, es la respuesta a «¿esta de quién es?», y tiene que contestarse sin
+   leer. El color es el mismo que lleva esa cuenta en la cabecera del proyecto,
+   así que las dos cosas se reconocen como una. */
+.sess-cuenta {
+  flex: none;
+  max-width: 78px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: var(--c);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .sess-rol {
@@ -11560,6 +11699,69 @@ textarea.note-body {
   margin-bottom: 2px;
 }
 
+/* El interruptor del automático, pegado a su botón. Apagado es un botón más;
+   encendido se enciende de verdad, porque a partir de ahí el Asistente deja de
+   preguntar y eso hay que verlo de un vistazo. */
+.fm-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fm-auto:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.fm-auto[data-on="true"] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* El recibo de lo que hizo el automático. Va en verde de «hecho», no en ámbar
+   de aviso: no ha salido nada mal, es una decisión que se tomó sin ti y que
+   tienes derecho a leer. */
+.fm-recibo {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 9px 0 0;
+  padding: 8px 9px;
+  border-left: 3px solid var(--done);
+  border-radius: 0 7px 7px 0;
+  background: color-mix(in srgb, var(--done) 10%, transparent);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fm-recibo > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--done);
+}
+
+.fm-recibo-txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fm-recibo-txt em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 11.5px;
+}
+
 .fm-aviso {
   margin: 9px 0 0;
   padding: 7px 9px;
@@ -13527,7 +13729,7 @@ textarea.note-body {
 
 /* Un icono metido en un rótulo de texto.
    Los glifos se sentaban solos en la línea base; un SVG no, así que sin esto
-   la papelera de «Tirar este proyecto…» queda medio renglón más abajo que su
+   la papelera de «Borrar la carpeta del disco…» queda medio renglón más baja que su
    palabra. El menú flotante no está aquí porque ya coloca los suyos: tenía
    sitio para un icono desde el principio (`ctx-ico` en Overlays.tsx) y la
    barra lateral seguía pegando el emoji dentro del texto. */
@@ -13694,4 +13896,767 @@ textarea.note-body {
   font-size: 11.5px;
   color: var(--muted);
   opacity: 0.85;
+}
+
+/* ── El modo chat ───────────────────────────────────────────────────────────
+   La otra cara de la Cabina: las mismas sesiones, sin la consola delante.
+
+   El aspecto sale de las referencias que trajo Munir el 2026-08-06 (Clodex),
+   traducido a la firma de la casa: cristal sobre la foto, no un panel opaco.
+   Dos columnas de las que solo una scrollea a la vez, porque el chat es lo
+   único de la app donde el contenido crece solo mientras lo miras. */
+.chat-view {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 288px 1fr;
+}
+
+/* ── Izquierda: las conversaciones ──────────────────────────────────────── */
+.chat-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 0;
+  padding: 12px 10px;
+  border-right: 1px solid var(--line);
+  background: color-mix(in srgb, var(--page-tint) 100%, black 26%);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+/* Los clientes: solo sus marcas, en fila. Nació con los nombres escritos
+   («Claude Code», «Codex») y Munir lo cortó al verlo: en esta casa hay nueve
+   clientes, y dos nombres largos ocupando la columna entera dicen que solo
+   existen esos dos. El nombre lo pone el tooltip. */
+.chat-clientes {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.chat-cliente {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chat-cliente:hover {
+  color: var(--text);
+  background: var(--row);
+}
+
+/* El activo se tiñe del color de SU marca, no del azul de la app: en una fila
+   de logos, lo que distingue es la marca. */
+.chat-cliente[data-on="true"] {
+  background: color-mix(in srgb, var(--c, var(--accent)) 22%, transparent);
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, transparent);
+  color: var(--c, var(--accent));
+}
+
+/* «Nueva conversación»: ancho entero y con relieve, que es el único botón de
+   esta columna que crea algo. El relieve son tres capas sobre el mismo
+   elemento (cuerpo, bisel y luz de arriba), como el CSS que mandó Munir. */
+.chat-nueva {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: linear-gradient(180deg, var(--row-hover), var(--row));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chat-nueva:hover {
+  border-color: var(--border-strong);
+  filter: brightness(1.1);
+}
+
+.chat-nueva:active {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.chat-buscar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.chat-buscar > svg {
+  position: absolute;
+  left: 10px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.chat-buscar .finder {
+  width: 100%;
+  padding-left: 32px;
+}
+
+.chat-cajones {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-cajon {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* La cabecera del cajón se pliega, como en la referencia: con veinte
+   conversaciones de hoy, «Esta semana» queda fuera de la pantalla. */
+.chat-cajon-tit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0 0 2px;
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.chat-cajon-tit:hover {
+  color: var(--text);
+}
+
+/* La fila lleva el color de su proyecto en una barra fina a la izquierda: es
+   lo que deja distinguir de qué es cada conversación sin leer el subtítulo. */
+.chat-fila {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 9px 7px 12px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-fila::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--c, var(--accent));
+  opacity: 0;
+}
+
+.chat-fila:hover {
+  background: var(--row);
+}
+
+.chat-fila:hover::before,
+.chat-fila[data-on="true"]::before {
+  opacity: 0.85;
+}
+
+.chat-fila[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.chat-fila-txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* Los dos renglones se cortan en seco: una columna de 288px con títulos de dos
+   líneas deja de ser una lista y pasa a ser un muro. */
+.chat-fila-tit,
+.chat-fila-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-fila-tit {
+  font-size: 13px;
+}
+
+.chat-fila-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* El pie: cómo está el repo de lo que tocas y quién eres. Los dos datos son
+   de verdad (un `git status` y tus credenciales), que es la diferencia entre
+   copiar un diseño y copiar una captura. */
+.chat-git,
+.chat-yo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.chat-git > svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.chat-git-txt,
+.chat-yo-txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.chat-git-txt strong,
+.chat-yo-txt strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.chat-git-txt em,
+.chat-yo-txt em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 11px;
+}
+
+.chat-yo {
+  border: none;
+  background: none;
+  padding: 4px 6px;
+}
+
+/* ── Centro: el hilo ──────────────────────────────────────────────────────
+   Con cristal DE VERDAD, no medio transparente. La Cabina puede dejar ver la
+   foto entre terminales porque ahí lo que hay son cuadros negros con letras
+   verdes; aquí hay párrafos largos, y sobre una foto con caras y colores no se
+   leen (Munir, 2026-08-06). El fondo sigue estando, se ve por los bordes y a
+   través del cristal, pero por debajo del texto manda el texto. */
+.chat-hilo {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: color-mix(in srgb, var(--page-tint) 100%, black 34%);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.chat-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.chat-cab-id {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.chat-cab-id strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.chat-cab-id em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-style: normal;
+  font-size: 11px;
+}
+
+/* «Limpio / Terminal»: el mismo par de la referencia. La consola no
+   desaparece, se aparta a la otra mitad del mismo control. */
+.chat-modo {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.chat-modo-b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chat-modo-b[data-on] {
+  background: var(--row-hover);
+  color: var(--text);
+}
+
+.chat-modo-b:hover {
+  color: var(--text);
+}
+
+.chat-turnos {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 24px 8px;
+}
+
+/* Lo tuyo a la derecha en su burbuja, lo del agente a la izquierda y a lo
+   ancho: son dos cosas distintas y por eso no se pintan igual. Tú escribes
+   frases; él escribe páginas con listas, código y tablas, y una burbuja
+   estrecha convierte eso en una columna de palabras sueltas. */
+.chat-turno {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 820px;
+}
+
+.chat-turno[data-rol="tu"] {
+  align-self: flex-end;
+  align-items: flex-end;
+  max-width: 620px;
+}
+
+.chat-burbuja {
+  font-size: 14px;
+  line-height: 1.62;
+}
+
+.chat-turno[data-rol="tu"] .chat-burbuja {
+  padding: 10px 14px;
+  border-radius: 14px 14px 4px 14px;
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.chat-burbuja > :first-child {
+  margin-top: 0;
+}
+
+.chat-burbuja > :last-child {
+  margin-bottom: 0;
+}
+
+.chat-burbuja pre {
+  overflow-x: auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.32);
+  font-size: 12.5px;
+}
+
+.chat-burbuja code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.chat-burbuja :not(pre) > code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--row);
+}
+
+/* Lo que hizo, no lo que dijo. Un chat que esconde que el agente ha estado
+   escribiendo archivos miente sobre lo que ha pasado; el volcado de cada
+   llamada tampoco es conversación, así que queda en una línea pequeña. */
+.chat-tools {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.chat-vacio {
+  margin: auto;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ── La caja ────────────────────────────────────────────────────────────── */
+.chat-caja-zona {
+  position: relative;
+  padding: 14px 24px 20px;
+}
+
+/* El haz de la referencia, con CSS y no con WebGL: el componente que mandó
+   Munir revela el contenido capturándolo con `drawElementImage`, que es
+   experimental de Chromium y no está en el WebView2 que embarca Adeorq. Esto
+   pinta la luz, que es lo que se ve, sin un lienzo por encima del texto. */
+.chat-haz {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 0;
+  height: 90px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  background:
+    radial-gradient(60% 100% at 50% 100%, rgba(77, 159, 255, 0.5), transparent 70%),
+    radial-gradient(28% 100% at 50% 100%, rgba(255, 255, 255, 0.55), transparent 72%);
+  filter: blur(6px);
+}
+
+.chat-haz[data-on="true"] {
+  opacity: 1;
+  animation: chat-haz-late 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes chat-haz-late {
+  from {
+    transform: scaleX(0.86);
+    opacity: 0.65;
+  }
+  to {
+    transform: scaleX(1.04);
+    opacity: 1;
+  }
+}
+
+.chat-caja {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--row) 88%, black);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
+.chat-caja[data-trabajando="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* La etiqueta de «va después»: la referencia la llama Live Ask, y lo que dice
+   de verdad es que lo que escribas ahora entra en cuanto acabe lo de ahora. */
+.chat-live {
+  position: absolute;
+  top: -11px;
+  left: 14px;
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, #0b1220);
+  color: var(--text);
+  font-size: 10.5px;
+}
+
+.chat-caja-fila {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.chat-mas,
+.chat-enviar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--row-hover), var(--row));
+  color: var(--text);
+  cursor: pointer;
+}
+
+.chat-mas:hover,
+.chat-enviar:not(:disabled):hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chat-enviar {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 90%, white), var(--accent));
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: #0a1424;
+}
+
+.chat-enviar:disabled {
+  background: var(--row);
+  border-color: var(--border);
+  color: var(--muted);
+  box-shadow: none;
+  cursor: default;
+}
+
+/* Regla U de la casa: ningún cuadro de texto lleva el tirador de agrandar. */
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 2px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: none;
+  outline: none;
+}
+
+.chat-pastillas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.chat-hueco {
+  flex: 1;
+}
+
+.chat-donde {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.chat-pastilla {
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.chat-pastilla:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.chat-pastilla[data-on="true"] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.chat-pastilla-fuerte {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* El selector del cerebro, en dos familias como la referencia. Se abre hacia
+   ARRIBA porque la caja vive pegada al borde de abajo. */
+.chat-modelo {
+  position: relative;
+}
+
+.chat-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 40;
+  width: 296px;
+  padding: 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: color-mix(in srgb, #0a0f1a 88%, var(--row));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.55);
+}
+
+.chat-menu-raya {
+  display: block;
+  height: 1px;
+  margin: 5px 8px;
+  background: var(--border);
+}
+
+/* Dos renglones por fila: el nombre y PARA QUÉ es. Eso es lo único que ayuda
+   a elegir, y era justo lo que faltaba en la primera versión, que solo tenía
+   un punto de color y un «×3» sueltos. */
+.chat-menu-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 9px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-menu-fila:hover {
+  background: var(--row);
+}
+
+.chat-menu-fila[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.chat-menu-txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chat-menu-txt strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chat-menu-txt em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* Cuatro muescas: lo que pesa, de un vistazo y sin hacer la cuenta. Verde las
+   dos primeras y ámbar las dos últimas, que es la misma frontera que usa el
+   router para decidir cuándo abaratar. */
+.chat-peso {
+  flex: none;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 15px;
+}
+
+.chat-peso i {
+  width: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.chat-peso i:nth-child(1) { height: 5px; }
+.chat-peso i:nth-child(2) { height: 8px; }
+.chat-peso i:nth-child(3) { height: 11px; }
+.chat-peso i:nth-child(4) { height: 15px; }
+
+.chat-peso i[data-on="true"]:nth-child(-n + 2) {
+  background: #7ee08a;
+}
+
+.chat-peso i[data-on="true"]:nth-child(n + 3) {
+  background: var(--done);
+}
+
+/* El anillo del contexto: un conic-gradient con el porcentaje de verdad, leído
+   del transcript. Se pone ámbar al 80%, el mismo umbral que el aviso de la
+   terminal, para que las dos pantallas no digan cosas distintas. */
+.chat-ctx {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.chat-ctx-anillo {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: conic-gradient(var(--accent) var(--p, 0%), rgba(255, 255, 255, 0.14) 0);
+  mask: radial-gradient(circle, transparent 52%, black 54%);
+}
+
+.chat-ctx-anillo[data-alto="true"] {
+  background: conic-gradient(var(--done) var(--p, 0%), rgba(255, 255, 255, 0.14) 0);
+}
+
+.chat-elige {
+  margin: auto;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.chat-elige-tit {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.chat-elige-sub {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
 }

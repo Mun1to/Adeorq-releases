@@ -41,6 +41,11 @@ export interface SessionInfo {
   /** Qué cliente la escribió. Rust lo manda siempre; el `?` es para que una
       versión vieja del binario no rompa la lista mientras se actualiza. */
   fuente?: FuenteSesion;
+  /** En qué cuenta se escribió: su carpeta de configuración
+      (`CLAUDE_CONFIG_DIR`), o vacío si es la de siempre. Casa con `Account.dir`.
+      Sirve para dos cosas: marcar la fila, y retomarla en SU cuenta, porque un
+      `--resume` lanzado desde otra no encuentra la conversación. */
+  cuenta?: string;
 }
 
 export function spawnPty(
@@ -532,6 +537,20 @@ export interface UiState {
    * sessions, which are indexed by path, and with anything holding that path.
    */
   projectAlias: Record<string, string>;
+  /**
+   * Los proyectos que quitaste de la barra, por nombre de carpeta.
+   *
+   * Quitar un proyecto NO toca el disco: esto es una lista de lo que quieres
+   * ver, no un inventario de lo que existe. Hasta la 0.9.54 la única forma de
+   * sacar un proyecto de aquí era «tirarlo», que mandaba su carpeta entera a
+   * la papelera de Windows; el 31-jul-2026 se fueron así diecisiete carpetas
+   * de `C:\proyectos` sin que nadie recordara haberlas borrado.
+   *
+   * Por NOMBRE y no por ruta porque el nombre es la clave de todo lo demás en
+   * la barra (alias, logo, grupos), así que un proyecto oculto sigue siendo el
+   * mismo proyecto aunque su carpeta se mueva.
+   */
+  hiddenProjects: string[];
   railMode: RailMode;
 }
 
@@ -543,6 +562,7 @@ export const EMPTY_UI_STATE: UiState = {
   traidas: [],
   projectIcon: {},
   projectAlias: {},
+  hiddenProjects: [],
   railMode: "full",
 };
 
@@ -558,6 +578,7 @@ export async function loadUiState(): Promise<UiState> {
       traidas: Array.isArray(parsed.traidas) ? parsed.traidas : [],
       projectIcon: parsed.projectIcon ?? {},
       projectAlias: parsed.projectAlias ?? {},
+      hiddenProjects: Array.isArray(parsed.hiddenProjects) ? parsed.hiddenProjects : [],
       railMode:
         parsed.railMode === "logo" || parsed.railMode === "tira" ? parsed.railMode : "full",
     };

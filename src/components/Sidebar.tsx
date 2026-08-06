@@ -39,7 +39,10 @@ import FilaBotones from "./FilaBotones";
 import { ClaudeMark } from "./KindIcon";
 import {
   ArchiveIcon,
+  ChevronIcon,
   EnterIcon,
+  EyeIcon,
+  EyeOffIcon,
   GridIcon,
   GroupIcon,
   ImageIcon,
@@ -274,8 +277,17 @@ export default function Sidebar({
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   /** The session the bin is pointing at, waiting for a yes. */
   const [binning, setBinning] = useState<SessionInfo | null>(null);
-  /** El proyecto que estás a punto de tirar a la papelera, esperando tu OK. */
+  /** El proyecto cuya CARPETA estás a punto de borrar del disco, esperando tu
+      OK. Es la acción rara: la de todos los días es «Quitar de Adeorq», que
+      solo lo saca de esta lista (ver `ui.hiddenProjects`). */
   const [tirando, setTirando] = useState<Group | null>(null);
+  /** El cajón de los proyectos que quitaste, desplegado o no. */
+  const [verOcultos, setVerOcultos] = useState(false);
+  /** Lo tecleado en la casilla de confirmación: hay que escribir el nombre del
+      proyecto para que el botón se encienda, como al borrar un repo en GitHub.
+      El 31-jul-2026 se fueron 17 carpetas a la papelera en veinte minutos con
+      solo un clic de por medio, y nadie se acordaba de haberlo hecho. */
+  const [tirandoTexto, setTirandoTexto] = useState("");
   /** Qué botones de «abrir aquí» quiere ver, elegidos en Cuentas. */
   const [atajosProv, setAtajosProv] = useState<string[]>(() => leerAtajosProv());
   const [showArchived, setShowArchived] = useState(false);
@@ -355,6 +367,10 @@ export default function Sidebar({
     const donde =
       (focusReq.sesion ? ui.sessionProject[focusReq.sesion] : "") || focusReq.name;
     if (!donde) return;
+    // Si lo habías quitado de la barra y vuelves a abrir algo suyo, vuelve.
+    // Lo otro sería abrir una terminal y no verla en ningún lado, que es el
+    // fallo que esto venía a arreglar.
+    if (ocultos.has(donde)) devolverProyecto(donde);
     setExpanded((prev) => {
       const next = new Set(prev);
       next.add(donde);
@@ -482,6 +498,9 @@ export default function Sidebar({
 
   const archived = useMemo(() => new Set(ui.archived), [ui.archived]);
   const traidas = useMemo(() => new Set(ui.traidas), [ui.traidas]);
+  /* Los proyectos que quitaste de la barra. Ojo con el nombre: `gruposOcultos`,
+     que llega por props, es otra cosa (los grupos de sesiones plegados). */
+  const ocultos = useMemo(() => new Set(ui.hiddenProjects), [ui.hiddenProjects]);
 
   const todo = useMemo<{ proyectos: Group[]; sueltas: Group | null }>(() => {
     /** Las conversaciones que tienes AHORA en un panel. Lo dice el propio
@@ -590,7 +609,19 @@ export default function Sidebar({
     return { proyectos: result, sueltas };
   }, [projects, sessions, archived, traidas, abiertas, ui.sessionProject]);
 
-  const groups = todo.proyectos;
+  /* Los que quitaste de la barra salen de la lista aquí, y no dentro del memo
+     de arriba, para que sus sesiones se vayan con ellos en vez de caer al
+     cajón de las sueltas: quitar un proyecto es dejar de verlo entero, no
+     desperdigarlo. Se quedan aparte, enteros, para el cajón «Ocultos». */
+  const groups = useMemo(
+    () => todo.proyectos.filter((g) => !ocultos.has(g.name)),
+    [todo.proyectos, ocultos],
+  );
+
+  const proyectosOcultos = useMemo(
+    () => todo.proyectos.filter((g) => ocultos.has(g.name)),
+    [todo.proyectos, ocultos],
+  );
 
   /* El filtro compara con `encaja` (ver lib/buscar.ts) y no con un `includes`
      a secas, que es lo que había: así «sesion» encuentra «sesión» y dos
@@ -1038,6 +1069,50 @@ export default function Sidebar({
   const shownName = (name: string): string =>
     ui.projectAlias[name] || (name === SUELTAS ? t(SUELTAS) : name);
 
+  /**
+   * Lo saca de la barra y ya está. La carpeta sigue donde estaba, con todo
+   * dentro, y sus conversaciones tampoco se tocan: esto es una lista de lo que
+   * quieres tener delante, no un inventario del disco. Se recupera desde el
+   * cajón «Ocultos» del final de la barra.
+   */
+  const quitarDeAdeorq = (name: string) => {
+    setFlyout(null);
+    mutate((prev) => ({
+      ...prev,
+      hiddenProjects: [...new Set([...prev.hiddenProjects, name])],
+    }));
+  };
+
+  /** Lo devuelve a la barra, tal y como estaba. */
+  const devolverProyecto = (name: string) => {
+    mutate((prev) => ({
+      ...prev,
+      hiddenProjects: prev.hiddenProjects.filter((n) => n !== name),
+    }));
+  };
+
+  /** Abre el diálogo de borrar la carpeta, siempre con la casilla en blanco. */
+  const pedirTirar = (g: Group) => {
+    setTirandoTexto("");
+    setTirando(g);
+  };
+
+  /** ¿Ha escrito el nombre del proyecto que está a punto de tirar? Sin
+      distinguir mayúsculas: la idea es que teclee el nombre entero y se dé
+      cuenta de lo que hace, no castigarle por una letra. */
+  const tirarDesbloqueado =
+    tirando !== null &&
+    tirandoTexto.trim().toLowerCase() === shownName(tirando.name).toLowerCase();
+
+  const tirarAhora = () => {
+    if (!tirando || !tirarDesbloqueado) return;
+    const g = tirando;
+    setTirando(null);
+    deleteProject(g.path)
+      .then(() => refresh())
+      .catch((e) => setError(String(e)));
+  };
+
   const saveAlias = () => {
     if (!naming) return;
     const value = naming.value.trim();
@@ -1164,19 +1239,29 @@ export default function Sidebar({
       ? [{ label: t("Quitar el logo que le puse"), onClick: () => clearLogo(g.name) }]
       : []),
     { label: t("Volver a buscar logos en las carpetas"), onClick: rescanLogos },
-    // Tirar el proyecto. Solo en el menú, nunca como botón de la fila: una
-    // acción que se lleva una carpeta no puede estar a un clic de distancia de
-    // las que abren una terminal. Y no aparece en el cajón de las sueltas,
-    // que no es una carpeta de nadie.
+    // Las dos formas de dejar de ver un proyecto, en el orden en que se
+    // necesitan. Arriba la de siempre: quitarlo de la lista, que no toca el
+    // disco y se deshace desde el cajón «Ocultos». Abajo del todo, separada y
+    // en rojo, la que borra su carpeta de verdad; hasta la 0.9.54 esta era la
+    // ÚNICA, se llamaba «Tirar este proyecto…» y por ese camino se fueron
+    // diecisiete carpetas a la papelera en una madrugada. Ninguna de las dos
+    // sale en el cajón de las sueltas, que no es una carpeta de nadie.
     ...(g.suelto
       ? []
       : [
           { label: "", separator: true },
           {
-            label: t("Tirar este proyecto…"),
-      icon: <TrashIcon size={14} />,
+            label: t("Quitar de Adeorq"),
+            icon: <EyeOffIcon size={14} />,
+            hint: t("no borra nada"),
+            onClick: () => quitarDeAdeorq(g.name),
+          },
+          { label: "", separator: true },
+          {
+            label: t("Borrar la carpeta del disco…"),
+            icon: <TrashIcon size={14} />,
             danger: true,
-            onClick: () => setTirando(g),
+            onClick: () => pedirTirar(g),
           },
         ]),
   ];
@@ -1285,6 +1370,23 @@ export default function Sidebar({
     </>
   );
 
+  /**
+   * Cómo se llama la cuenta con la que se escribió una sesión, o `null` si es
+   * la de siempre.
+   *
+   * Solo se marcan las OTRAS: si se etiquetaran todas, la etiqueta dejaría de
+   * decir nada y la lista se llenaría de la misma palabra repetida. Lo que hay
+   * que poder ver de un vistazo es «esta no es la de siempre».
+   */
+  const nombreCuenta = (s: SessionInfo): string | null => {
+    if (!s.cuenta) return null;
+    const a = accounts.find((x) => x.dir === s.cuenta);
+    // Sin ficha en el panel (la cuenta se quitó pero su carpeta sigue en el
+    // disco, con sus conversaciones dentro) el nombre de la carpeta dice más
+    // que no decir nada.
+    return a?.label ?? s.cuenta.split(/[\\/]/).pop() ?? null;
+  };
+
   const sessionRow = (s: SessionInfo, g: Group, isArchived: boolean) => {
     if (renaming?.id === s.id) {
       return (
@@ -1361,6 +1463,12 @@ export default function Sidebar({
             // La ruta entera: la fila enseña solo la última carpeta, que es lo
             // que se reconoce, pero dos carpetas se pueden llamar igual.
             s.cwd && (g.suelto || ui.sessionProject[s.id]) ? `\n${s.cwd}` : ""
+          }${
+            nombreCuenta(s)
+              ? `\n${t("Escrita con la cuenta «{acc}», y ahí se retoma", {
+                  acc: nombreCuenta(s) as string,
+                })}`
+              : ""
           }${porQue(s.id)}${
             wait === "ask"
               ? "\n⚠ Claude te dejó una pregunta con opciones"
@@ -1384,6 +1492,19 @@ export default function Sidebar({
             </span>
           )}
           <span className="session-title">{s.title}</span>
+          {/* De qué cuenta es, cuando no es la de siempre. Sin esto, entrar con
+              una cuenta nueva y ver sus conversaciones mezcladas con las de la
+              otra no se distingue de que se hayan mezclado de verdad (Munir,
+              2026-08-06). Va con el color de la cuenta, que es el mismo que
+              lleva su botón en la cabecera del proyecto. */}
+          {nombreCuenta(s) && (
+            <span
+              className="sess-cuenta"
+              style={{ ["--c" as string]: hueOf(nombreCuenta(s) as string) }}
+            >
+              {nombreCuenta(s)}
+            </span>
+          )}
           {/* El puesto que ocupaba en su cuadrilla, cuando salió de una. Es lo
               que distingue de un vistazo seis sesiones del mismo encargo, que
               es justo cuando la lista se vuelve ilegible. */}
@@ -1889,6 +2010,48 @@ export default function Sidebar({
               {sessionList(sueltas)}
             </div>
           ))}
+
+        {/* Lo que quitaste de la barra, al final y plegado. Ocultar algo sin
+            una forma visible de recuperarlo es el mismo error que borrar sin
+            avisar, solo que más pequeño: mientras haya uno oculto, esta línea
+            está aquí. En la pared de marcas y en la tira no cabe un renglón de
+            texto, y tampoco hacen falta dos sitios donde buscarlo. */}
+        {!tira && rail !== "logo" && proyectosOcultos.length > 0 && (
+          <div className="ocultos-zona">
+            <button
+              className="ocultos-cab"
+              data-open={verOcultos}
+              onClick={() => setVerOcultos((v) => !v)}
+            >
+              <EyeOffIcon size={13} />
+              <span>{t("Ocultos")}</span>
+              <span className="sueltas-n">{proyectosOcultos.length}</span>
+              <ChevronIcon size={12} up={verOcultos} />
+            </button>
+            {verOcultos && (
+              <div className="ocultos-lista">
+                {proyectosOcultos.map((g) => (
+                  <div key={g.name} className="oculto" title={g.path}>
+                    <ProjectAvatar
+                      name={g.name}
+                      src={iconFor(g)}
+                      className="pavatar-mini"
+                    />
+                    <span className="oculto-nombre">{shownName(g.name)}</span>
+                    <button
+                      className="mini"
+                      data-tip={t("Devolverlo a la barra")}
+                      onClick={() => devolverProyecto(g.name)}
+                    >
+                      <EyeIcon size={13} />
+                    </button>
+                  </div>
+                ))}
+                <p className="ocultos-pie">{t("Sus carpetas siguen en el disco, intactas.")}</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {/* The browser's own file dialog: no extra Tauri plugin for one picker. */}
       <input
@@ -1933,23 +2096,18 @@ export default function Sidebar({
             {/* His mock, left to right: the photo, the name in its long box,
                 how many sessions, and the one that needs him. */}
             <header className="fly-head" style={{ height: flyout.size }}>
-              <button
-                className="fly-photo"
-                style={{ width: flyout.size }}
-                data-tip={t("Abrir sus {n} sesiones a la vez", {
-                  n: Math.min(flyGroup.sessions.length, topeAbrirTodas),
-                })}
-                onClick={() => {
-                  setFlyout(null);
-                  onOpenAll(shownName(flyGroup.name), flyGroup.path, flyGroup.sessions);
-                }}
-              >
+              {/* La foto es la foto y ya está. Fue el botón de «abrir todas»
+                  durante un tiempo, y eso era un botón sin nombre: nadie
+                  adivina que una foto abre ocho terminales, y quien lo
+                  descubría era por haberlas abierto sin querer. Ahora esa
+                  acción tiene su botón, con su nombre, ahí abajo. */}
+              <span className="fly-photo" style={{ width: flyout.size }}>
                 <ProjectAvatar
                   name={flyGroup.name}
                   src={iconFor(flyGroup)}
                   className="pavatar-xl"
                 />
-              </button>
+              </span>
               {/* Two lines of plain text, no boxes: what it is, and what is
                   inside it. Counters as a sentence beat counters in coloured
                   squares, which have to be decoded. */}
@@ -1984,6 +2142,25 @@ export default function Sidebar({
               )}
             </header>
             <FilaBotones className="fly-actions">{actionButtons(flyGroup)}</FilaBotones>
+            {/* Retomar el día entero de un proyecto de una vez. Encabeza la
+                lista que va a abrir, que es donde se entiende qué hace, y con
+                el número escrito para que no haya sorpresas: son terminales de
+                verdad, no pestañas. Desde dos sesiones para arriba; con una,
+                abrirla es pulsarla. */}
+            {flyGroup.sessions.length > 1 && (
+              <button
+                className="fly-todas"
+                onClick={() => {
+                  setFlyout(null);
+                  onOpenAll(shownName(flyGroup.name), flyGroup.path, flyGroup.sessions);
+                }}
+              >
+                <GridIcon size={13} />
+                {t("Abrir sus {n} sesiones a la vez", {
+                  n: Math.min(flyGroup.sessions.length, topeAbrirTodas),
+                })}
+              </button>
+            )}
             {flyGroup.sessions.length ? (
               sessionList(flyGroup)
             ) : (
@@ -2023,12 +2200,22 @@ export default function Sidebar({
                   </button>
                 )}
                 <span className="fly-manage-sep" />
+                {/* La de todos los días: sacarlo de la barra sin tocar el
+                    disco. Va ANTES que la papelera y sin color de peligro,
+                    porque es la que se quiere el 99% de las veces. */}
+                <button
+                  className="fly-mini"
+                  data-tip={t("Quitar de Adeorq: sale de la barra, la carpeta no se toca")}
+                  onClick={() => quitarDeAdeorq(flyGroup.name)}
+                >
+                  <EyeOffIcon size={13} />
+                </button>
                 <button
                   className="fly-mini fly-mini-danger"
-                  data-tip={t("Tirar este proyecto a la papelera de Windows")}
+                  data-tip={t("Borrar su carpeta del disco: se va a la papelera de Windows")}
                   onClick={() => {
                     setFlyout(null);
-                    setTirando(flyGroup);
+                    pedirTirar(flyGroup);
                   }}
                 >
                   <TrashIcon size={13} />
@@ -2144,10 +2331,10 @@ export default function Sidebar({
       {tirando && (
         <div className="modal-overlay" {...propsDeVelo(bajoEnVelo, () => setTirando(null))}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">{t("Tirar el proyecto")}</h3>
+            <h3 className="modal-title">{t("Borrar la carpeta del disco")}</h3>
             <p className="modal-text">
               {t(
-                "«{n}» se va a la papelera de Windows, con todo lo que tenga dentro. Se recupera desde el escritorio como cualquier otra cosa, así que no es definitivo, pero sí se lleva la carpeta.",
+                "Esto borra del disco la CARPETA de «{n}», con todo lo que tenga dentro. Va a la papelera de Windows, así que se recupera desde el escritorio, pero deja de estar en su sitio y lo que la use dejará de encontrarla.",
               ).replace("{n}", shownName(tirando.name))}
             </p>
             <p className="modal-text modal-dim">{tirando.path}</p>
@@ -2163,6 +2350,36 @@ export default function Sidebar({
                 </p>
               </div>
             )}
+            {/* La salida buena, justo antes de la casilla: casi nadie que llega
+                aquí quiere borrar una carpeta, quiere dejar de ver el proyecto.
+                Y con el botón puesto, no hay que saberse el otro camino. */}
+            <p className="modal-text">
+              {t("Si lo que quieres es dejar de verlo en la barra, no hace falta borrar nada:")}
+            </p>
+            <button
+              className="mini modal-salida"
+              onClick={() => {
+                const g = tirando;
+                setTirando(null);
+                quitarDeAdeorq(g.name);
+              }}
+            >
+              <EyeOffIcon size={13} /> {t("Quitar de Adeorq, sin tocar la carpeta")}
+            </button>
+            <p className="modal-text">
+              {t("Escribe «{n}» para confirmar:").replace("{n}", shownName(tirando.name))}
+            </p>
+            <input
+              className="finder name-input"
+              autoFocus
+              value={tirandoTexto}
+              placeholder={shownName(tirando.name)}
+              onChange={(e) => setTirandoTexto(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") tirarAhora();
+                else if (e.key === "Escape") setTirando(null);
+              }}
+            />
             <div className="modal-actions">
               <button className="mini modal-cancel" onClick={() => setTirando(null)}>
                 {t("Cancelar")}
@@ -2171,15 +2388,10 @@ export default function Sidebar({
                 // Rojo, que borra una carpeta del disco. Ponía `danger`, que no
                 // existe en App.css: salía del mismo azul que «Cancelar».
                 className="np-btn modal-danger"
-                onClick={() => {
-                  const g = tirando;
-                  setTirando(null);
-                  deleteProject(g.path)
-                    .then(() => refresh())
-                    .catch((e) => setError(String(e)));
-                }}
+                disabled={!tirarDesbloqueado}
+                onClick={tirarAhora}
               >
-                {t("A la papelera")}
+                {t("Borrar la carpeta")}
               </button>
             </div>
           </div>

@@ -22,6 +22,16 @@ export function isModelAlias(x: string | undefined): x is ModelAlias {
 }
 
 /**
+ * Los tres cerebros entre los que se elige a mano, de barato a caro.
+ *
+ * Aquí y no dentro de una vista porque ya se elige a mano en tres sitios (el
+ * Asistente, el Reparto y la caja del chat) y tres copias de la misma lista es
+ * como se acaba ofreciendo fable en una pantalla y en otra no. Fable queda
+ * fuera a propósito: es ×10 y no es una decisión de andar por casa.
+ */
+export const A_MANO: ModelAlias[] = ["haiku", "sonnet", "opus"];
+
+/**
  * The house table, by what the job actually demands:
  *
  *   opus    judgement and consequence — security, audits, review, architecture,

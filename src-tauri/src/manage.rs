@@ -19,12 +19,21 @@ fn transcript_path(folder: &str, session_id: &str) -> Result<PathBuf, String> {
     if folder.contains(['\\', '/', '.']) || session_id.contains(['\\', '/', '.']) {
         return Err("nombre de sesión inválido".into());
     }
-    let home = crate::dir_casa().ok_or("no sé cuál es tu carpeta de usuario")?;
-    Ok(home
-        .join(".claude")
-        .join("projects")
-        .join(folder)
-        .join(format!("{session_id}.jsonl")))
+    // Se mira en la cuenta de siempre y en las demás: renombrar o borrar una
+    // sesión escrita con una segunda cuenta buscaba el archivo donde no estaba
+    // y contestaba «no encuentro el transcript» sin más explicación.
+    let nombre = format!("{session_id}.jsonl");
+    let mut primera = None;
+    for (_, raiz) in crate::sessions::raices_claude() {
+        let p = raiz.join("projects").join(folder).join(&nombre);
+        if p.is_file() {
+            return Ok(p);
+        }
+        primera.get_or_insert(p);
+    }
+    // Ninguna lo tiene: se devuelve la de la cuenta principal para que quien
+    // llama dé su propio mensaje de «no está», como hacía antes.
+    primera.ok_or_else(|| "no sé cuál es tu carpeta de usuario".to_owned())
 }
 
 /// Saves an image pasted into a pane and returns its path. Claude Code and agy

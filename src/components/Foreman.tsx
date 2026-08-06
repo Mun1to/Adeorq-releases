@@ -17,7 +17,7 @@ import {
   type Skill,
 } from "../lib/pty";
 import type { Account } from "../lib/pty";
-import { isModelAlias, modelForRole, modelPolicyText, type ModelAlias } from "../lib/models";
+import { A_MANO, isModelAlias, modelForRole, modelPolicyText, type ModelAlias } from "../lib/models";
 import {
   comoPeso,
   interpretar,
@@ -37,6 +37,7 @@ import { providerOf } from "../lib/providers";
 import { createPortal } from "react-dom";
 import { useT } from "../lib/i18n";
 import Orbe, { type EstadoOrbe } from "./Orbe";
+import { BoltIcon, CheckIcon, CloseIcon } from "./Icons";
 import { propsDeVelo } from "../lib/velo";
 import { dictar, transcribir, vozLista, type Dictado } from "../lib/voz";
 import { COMMANDS } from "../lib/commands";
@@ -148,8 +149,9 @@ interface Ficha {
   receta: Receta;
 }
 
-/** Los tres cerebros entre los que se elige a mano, de barato a caro. */
-const A_MANO: ModelAlias[] = ["haiku", "sonnet", "opus"];
+// La lista de los tres cerebros vive ahora en `lib/models.ts` (`A_MANO`): se
+// elige a mano en tres sitios y una copia por sitio es como se acaba ofreciendo
+// un modelo en una pantalla y en otra no.
 
 /** Los cerebros que abre una acción: uno, seis si es cuadrilla, o ninguno. */
 function cerebrosDe(c: Checked): ModelAlias[] {
@@ -167,6 +169,32 @@ function resumeCerebros(ms: ModelAlias[]): string {
 
 /** Lo que estabas escribiendo en el Asistente cuando se cerró. */
 const BORRADOR = "adeorq-asistente-borrador";
+
+/**
+ * El modo automático: en vez de enseñar la ficha y esperar, aplica la receta.
+ *
+ * Lo que NO hace, y no es un olvido: no envía. El `/model` y el `/effort` sí
+ * salen, porque son ajustes del CLI y a medio escribir no ajustan nada; el
+ * encargo se queda escrito esperando tu Enter, que es lo único que gasta.
+ * «Automático» aquí significa «sin pantalla intermedia», no «sin tu dedo».
+ */
+const AUTO = "adeorq-asistente-auto";
+
+/** Lo último que hizo el automático, para poder contarlo cuando ya ha pasado. */
+const RECIBO = "adeorq-asistente-recibo";
+
+export function autoPuesto(): boolean {
+  return localStorage.getItem(AUTO) === "1";
+}
+
+/** Lo que se enseña la próxima vez que se abra: qué se aplicó y por qué. Una
+    decisión que se toma sola y no se puede leer después no se puede corregir,
+    y eso es justo lo que este router evita (ver la cabecera de router.ts). */
+interface Recibo {
+  modelo?: string;
+  esfuerzo?: string;
+  porque: string;
+}
 
 const MAX_ACTIONS = 8;
 const MAX_CTX_SESSIONS = 40;
@@ -578,6 +606,17 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
    * «lo recomendado era sonnet» sin haberlo perdido.
    */
   const [elegido, setElegido] = useState<Destino | null>(null);
+  /** El automático puesto. Se guarda como el resto de preferencias del panel. */
+  const [auto, setAuto] = useState(autoPuesto);
+  /** Lo que hizo el automático la última vez, hasta que lo leas. */
+  const [recibo, setRecibo] = useState<Recibo | null>(() => {
+    try {
+      const raw = localStorage.getItem(RECIBO);
+      return raw ? (JSON.parse(raw) as Recibo) : null;
+    } catch {
+      return null;
+    }
+  });
   const [escribiendo, setEscribiendo] = useState(false);
   /** El dictado en marcha, si lo hay. Null = el micrófono está en reposo. */
   const dictadoRef = useRef<Dictado | null>(null);
@@ -677,6 +716,32 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
           avisos: modoAviso(),
           usa: leerPerfil().clis,
         });
+
+        // El camino automático: se aplica y ya. Solo cuando de verdad hay dónde
+        // aplicarlo. Si el router manda a otro CLI, o no tienes ninguna terminal
+        // delante, NO se fuerza nada: sale la ficha de siempre, que es lo que
+        // permite abrir una nueva. Un automático que hace algo distinto de lo
+        // que decidió el router sería peor que no tenerlo.
+        if (auto && receta.cli === "claude" && exec.focused() != null) {
+          const r: Recibo = {
+            modelo: receta.modelo,
+            esfuerzo: receta.esfuerzo,
+            // La última razón es la que MOVIÓ la decisión: las de antes
+            // explican de dónde partía, y en una línea sola solo cabe la que
+            // manda.
+            porque: receta.aviso ?? receta.porque[receta.porque.length - 1] ?? "",
+          };
+          setRecibo(r);
+          try {
+            localStorage.setItem(RECIBO, JSON.stringify(r));
+          } catch {
+            /* sin sitio en localStorage: el recibo es un extra, no el trabajo */
+          }
+          exec.onDespachar(encargo, receta.modelo, receta.esfuerzo);
+          if (mode === "overlay") onClose?.();
+          return;
+        }
+
         setFicha({ encargo, ex, porqueTarea: porque, receta });
         setElegido({
           cli: receta.cli,
@@ -1060,7 +1125,27 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
               disabled={!text.trim() || escribiendo || phase === "thinking"}
               onClick={redactar}
             >
-              {t(escribiendo ? "Escribiendo…" : "Escribir el encargo")}
+              {t(escribiendo ? "Escribiendo…" : auto ? "Escribir y ponerlo" : "Escribir el encargo")}
+            </button>
+            {/* El automático. Se queda pegado a su botón porque es lo que
+                cambia: sin él sale la ficha y eliges, con él se aplica y ya.
+                Nunca envía; el Enter del encargo sigue siendo tuyo. */}
+            <button
+              className="fm-auto"
+              data-on={auto}
+              data-tip={
+                auto
+                  ? t("Automático puesto: aplica el cerebro que toque y deja el encargo escrito, sin enseñarte la ficha. No lo envía.")
+                  : t("Automático: en vez de enseñarte la ficha, ajusta el cerebro y deja el encargo escrito en la terminal de delante. No lo envía.")
+              }
+              onClick={() => {
+                const v = !auto;
+                setAuto(v);
+                localStorage.setItem(AUTO, v ? "1" : "0");
+              }}
+            >
+              <BoltIcon size={13} />
+              {t("Automático")}
             </button>
             {mode === "overlay" && (
               <span className="foreman-hint">{t("Enter planea · Ctrl+Mayús+M dicta · Esc cierra · nada se ejecuta sin tu OK")}</span>
@@ -1109,6 +1194,33 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
           )}
           {vozError && <p className="np-err">{vozError}</p>}
           {phase === "error" && <p className="np-err">{error}</p>}
+
+          {/* Lo que hizo el automático la última vez. Está aquí porque una
+              decisión que se toma sola y no se puede leer después no se puede
+              corregir, que es justo lo que este router evita: el modo
+              automático se ahorra la ficha, no el porqué. Se va al leerlo. */}
+          {recibo && !ficha && (
+            <div className="fm-recibo">
+              <CheckIcon size={13} />
+              <span className="fm-recibo-txt">
+                <strong>
+                  {[recibo.modelo, recibo.esfuerzo].filter(Boolean).join(" · ") ||
+                    t("sin cambiar el cerebro")}
+                </strong>
+                {recibo.porque && <em>{recibo.porque}</em>}
+              </span>
+              <button
+                className="mini"
+                data-tip={t("Quitar este aviso")}
+                onClick={() => {
+                  setRecibo(null);
+                  localStorage.removeItem(RECIBO);
+                }}
+              >
+                <CloseIcon size={12} />
+              </button>
+            </div>
+          )}
 
           {/* El encargo escrito Y a quién va. Se lee y se decide: no llega a
               ninguna terminal hasta que tú digas por dónde. El texto es

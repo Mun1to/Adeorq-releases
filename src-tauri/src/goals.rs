@@ -19,6 +19,11 @@
 // Una línea que no empiece por `- [ ]` o `- [x]` se ignora al leer y se
 // conserva al escribir, para que se pueda anotar lo que sea entre medias sin
 // que Adeorq lo borre.
+//
+// Hay una tercera marca, `- [>]`, que es la de siempre en un bullet journal (y
+// en el Obsidian de Munir): «esto no se hizo, se llevó a otro día». La escribe
+// `goals_carry` en el día de ORIGEN, y se lee como una línea cualquiera, o sea
+// que ni cuenta ni se ofrece. Ver el porqué en ese comando.
 
 use serde::Serialize;
 use std::path::PathBuf;
@@ -184,29 +189,77 @@ pub async fn goals_pending_before(date: String) -> Result<Option<GoalDay>, Strin
 /// Trae al día `to` los objetivos sin tachar de `from`.
 ///
 /// Los que ya estén escritos hoy no se repiten, así que pulsar dos veces no
-/// duplica nada. Y el día de origen se queda intacto: es el registro de lo que
-/// pasó ese día, no una bandeja que se vacía.
+/// duplica nada.
+///
+/// Y el día de origen SE CIERRA: sus pendientes pasan a `- [>]`, la marca de
+/// «migrado». Antes se dejaba intacto, por respetar el registro del día, y eso
+/// convertía el botón en un fantasma: traías los cinco, borrabas de hoy los que
+/// ya no querías, y como ayer los seguía teniendo sin tachar, el «traer los 5
+/// que dejaste ayer» volvía a aparecer una y otra vez (Munir, 2026-08-06:
+/// «sigue el mensaje todo el rato»). El registro no se pierde, que la línea
+/// sigue ahí con su texto: lo que se anota es adónde fue.
 #[tauri::command]
 pub async fn goals_carry(from: String, to: String) -> Result<GoalDay, String> {
-    let origen = goals_read(from).await?;
+    let origen = goals_read(from.clone()).await?;
     let destino = goals_read(to.clone()).await?;
     let traer = a_traer(&origen.goals, &destino.goals);
-    if traer.is_empty() {
-        return Ok(destino);
+    if !traer.is_empty() {
+        let path = goals_path(&to)?;
+        std::fs::create_dir_all(goals_dir()?).map_err(|e| e.to_string())?;
+        let mut texto = std::fs::read_to_string(&path).unwrap_or_default();
+        if texto.is_empty() {
+            texto.push_str(&format!("# Objetivos · {to}\n\n"));
+        } else if !texto.ends_with('\n') {
+            texto.push('\n');
+        }
+        for t in traer {
+            texto.push_str(&format!("- [ ] {t}\n"));
+        }
+        std::fs::write(&path, &texto).map_err(|e| e.to_string())?;
     }
-    let path = goals_path(&to)?;
-    std::fs::create_dir_all(goals_dir()?).map_err(|e| e.to_string())?;
-    let mut texto = std::fs::read_to_string(&path).unwrap_or_default();
-    if texto.is_empty() {
-        texto.push_str(&format!("# Objetivos · {to}\n\n"));
-    } else if !texto.ends_with('\n') {
-        texto.push('\n');
-    }
-    for t in traer {
-        texto.push_str(&format!("- [ ] {t}\n"));
-    }
-    std::fs::write(&path, &texto).map_err(|e| e.to_string())?;
+    // Y ahora sí: el origen queda cerrado. Se marcan TODOS sus pendientes, no
+    // solo los que se acaban de copiar, porque los que ya estaban hoy también
+    // están traídos y volverían a ofrecerse en cuanto se borrara uno.
+    marcar_migrados(&from)?;
     goals_read(to).await
+}
+
+/// Pasa a `- [>]` todo lo que quedó sin tachar en ese día.
+fn marcar_migrados(date: &str) -> Result<(), String> {
+    let path = goals_path(date)?;
+    let Ok(texto) = std::fs::read_to_string(&path) else {
+        return Ok(());
+    };
+    if let Some(nuevo) = migrar_texto(&texto) {
+        std::fs::write(&path, nuevo).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// El cambio de arriba sobre el texto, sin disco: `None` si no había nada que
+/// migrar, y así el archivo ni se reescribe.
+fn migrar_texto(texto: &str) -> Option<String> {
+    let mut cambiado = false;
+    let salida: Vec<String> = texto
+        .lines()
+        .map(|linea| {
+            let t = linea.trim_start();
+            if !t.starts_with("- [ ]") || t[5..].trim().is_empty() {
+                return linea.to_owned();
+            }
+            cambiado = true;
+            // Se conserva la sangría, que el archivo lo puede haber escrito un
+            // agente dentro de una lista anidada.
+            let sangria = &linea[..linea.len() - t.len()];
+            format!("{sangria}- [>] {}", t[5..].trim())
+        })
+        .collect();
+    if !cambiado {
+        return None;
+    }
+    let mut fin = salida.join("\n");
+    fin.push('\n');
+    Some(fin)
 }
 
 /// Qué se lleva de un día al otro: lo que quedó sin tachar y no está ya
@@ -324,6 +377,32 @@ mod tests {
         let ayer = [goal("arreglar el hover", false), goal("Orquio", false)];
         let hoy = [goal("Orquio", false)];
         assert_eq!(a_traer(&ayer, &hoy), vec!["arreglar el hover"]);
+    }
+
+    /// El fantasma del botón: traer los pendientes tiene que CERRAR el día de
+    /// origen, o borrarlos hoy los devuelve a la cola de mañana.
+    #[test]
+    fn carrying_closes_the_day_it_came_from() {
+        let ayer = "# Objetivos · 2026-08-05\n\n- [ ] arreglar el hover\n- [x] publicar\nuna nota suelta\n";
+        let migrado = migrar_texto(ayer).expect("había un pendiente que migrar");
+        assert!(migrado.contains("- [>] arreglar el hover"));
+        // Lo tachado y lo escrito a mano se quedan como estaban.
+        assert!(migrado.contains("- [x] publicar"));
+        assert!(migrado.contains("una nota suelta"));
+        // Y lo migrado ya no es ni un objetivo pendiente ni uno hecho, así que
+        // `goals_pending_before` no lo vuelve a ofrecer nunca.
+        let leido = parse(&migrado);
+        assert_eq!(leido.len(), 1);
+        assert_eq!(leido[0].text, "publicar");
+        assert!(a_traer(&leido, &[]).is_empty());
+    }
+
+    /// Un día ya cerrado no se reescribe: sin esto, cada visita al panel
+    /// tocaría archivos viejos sin cambiar ni una letra.
+    #[test]
+    fn a_day_with_nothing_pending_is_left_alone() {
+        assert_eq!(migrar_texto("- [x] publicar\n- [>] movido ayer\n"), None);
+        assert_eq!(migrar_texto(""), None);
     }
 
     /// La fecha acaba siendo un nombre de archivo, así que nada que se parezca

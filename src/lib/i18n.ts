@@ -386,6 +386,9 @@ const EN: Record<string, string> = {
     "New {cli} session here, signed in as “{acc}”",
   "Escrita con la cuenta «{acc}», y ahí se retoma":
     "Written on the “{acc}” account, and that is where it resumes",
+  "Cuenta: {acc}": "Account: {acc}",
+  "Volver al orden automático": "Back to automatic order",
+  "lo abierto y lo reciente arriba": "open and recent on top",
   "Nueva sesión de Claude Code aquí": "New Claude Code session here",
   "Terminal PowerShell aquí": "PowerShell terminal here",
   "Antigravity (agy) en una terminal aquí": "Antigravity (agy) in a terminal here",

@@ -1633,6 +1633,7 @@ function App() {
         command: p.command,
         agente: !!p.command,
         enLienzo: false,
+        cuenta: p.account,
       })),
       ...canvasPanes.map((p) => ({
         paneId: p.id,
@@ -1641,6 +1642,7 @@ function App() {
         command: p.command,
         agente: !!p.command,
         enLienzo: true,
+        cuenta: p.account,
       })),
     ],
     [panes, canvasPanes],

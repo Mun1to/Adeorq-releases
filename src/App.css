@@ -2434,6 +2434,18 @@ body {
   background: color-mix(in srgb, var(--c, var(--accent)) 12%, transparent);
 }
 
+/* Ordenar la barra a mano. El que llevas se apaga (lo tienes en la mano, no
+   en la lista) y el sitio donde va a caer se marca con una línea gruesa arriba,
+   que dice «encima de este»: un recuadro entero se confunde con soltar DENTRO,
+   que es lo que hace un arrastre de sesión. */
+.project[data-moviendo] {
+  opacity: 0.4;
+}
+
+.project[data-encima] {
+  box-shadow: inset 0 3px 0 -1px var(--c, var(--accent));
+}
+
 /* La cabecera ES la barra del grupo, y hasta ahora no se distinguía de las
    sesiones que cuelgan de ella: mismo fondo, misma altura, y dos botones
    redondos más altos que su propio texto, que era lo que descuadraba la fila

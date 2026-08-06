@@ -551,6 +551,16 @@ export interface UiState {
    * mismo proyecto aunque su carpeta se mueva.
    */
   hiddenProjects: string[];
+  /**
+   * El orden que TÚ le has dado a la barra, por nombre de carpeta.
+   *
+   * Sin esto la barra se ordena sola por actividad (lo abierto arriba, luego
+   * lo más reciente), y eso significa que un proyecto cambia de sitio mientras
+   * trabajas: buscas el de siempre donde estaba y ya no está. En cuanto
+   * arrastras uno, el orden pasa a ser tuyo ENTERO y deja de moverse; los que
+   * aparezcan después se colocan detrás, por actividad, hasta que los muevas.
+   */
+  projectOrder: string[];
   railMode: RailMode;
 }
 
@@ -563,6 +573,7 @@ export const EMPTY_UI_STATE: UiState = {
   projectIcon: {},
   projectAlias: {},
   hiddenProjects: [],
+  projectOrder: [],
   railMode: "full",
 };
 
@@ -579,6 +590,7 @@ export async function loadUiState(): Promise<UiState> {
       projectIcon: parsed.projectIcon ?? {},
       projectAlias: parsed.projectAlias ?? {},
       hiddenProjects: Array.isArray(parsed.hiddenProjects) ? parsed.hiddenProjects : [],
+      projectOrder: Array.isArray(parsed.projectOrder) ? parsed.projectOrder : [],
       railMode:
         parsed.railMode === "logo" || parsed.railMode === "tira" ? parsed.railMode : "full",
     };

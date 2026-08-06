@@ -25,6 +25,7 @@ import {
   type UiState,
 } from "../lib/pty";
 import { anadirProyecto, raiz, sinRaiz } from "../lib/perfil";
+import { moverProyecto, ordenarProyectos } from "../lib/ordenBarra";
 import { hueOf } from "../lib/colors";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
@@ -120,6 +121,10 @@ export interface Abierta {
   agente: boolean;
   /** En qué vista vive, para saber a dónde llevarte al pulsarla. */
   enLienzo: boolean;
+  /** Cómo se llama la cuenta con la que nació, si no es la de siempre. Lo
+      guarda el propio panel desde que se abre, así que se sabe antes de que
+      la conversación haya escrito una sola línea. */
+  cuenta?: string;
 }
 
 interface Group {
@@ -168,10 +173,6 @@ interface FlyoutState {
     hablen el mismo idioma de colores. */
 const COLORES_GRUPO = ["#5fd0ff", "#6fe0bb", "#ffd166", "#c4b5fd", "#ff9f6b", "#ff8fa3"];
 
-/** Rust nombra así el cajón de las sesiones abiertas en la raíz misma, y aquí
-    hay que reconstruir ese nombre con la carpeta que el usuario eligió: era la
-    constante `C:\proyectos (raíz)` y con otra carpeta no coincidía con nada. */
-const rootName = () => `${raiz().replace(/[\\/]+$/, "")} (raíz)`;
 /** El nombre con el que Rust agrupa a las que no son de ningún proyecto. Ya no
     se pinta como un cajón, pero sigue siendo la llave de ese saco. */
 const SUELTAS = "Sueltas";
@@ -527,18 +528,56 @@ export default function Sidebar({
       byProject.set(donde, list);
     }
 
+    // Las que de verdad han quedado listadas, no todas las escaneadas: una que
+    // se haya quedado fuera por vieja tiene que poder salir al menos como
+    // terminal abierta, en vez de no salir en ningún sitio.
+    const yaListadas = new Set(fresh.map((s) => s.id));
+
+    /* Las terminales que tienes ABIERTAS y todavía no han escrito nada.
+     *
+     * Una conversación no existe en el disco hasta el primer mensaje, así que
+     * abrir una terminal y no verla en ningún sitio de la barra es
+     * indistinguible de que no se haya abierto. Le pasó a Munir el 2026-08-06
+     * con una cuenta nueva: abrió dos, no salió ninguna, y la única fila
+     * parecida que veía era de la otra cuenta.
+     *
+     * Van a SU proyecto, y el proyecto se decide por la RUTA y no por el
+     * nombre de la carpeta: dos carpetas que se llamen igual en sitios
+     * distintos son dos proyectos distintos, y casar por nombre las mezcla. */
+    const norma = (p: string) => p.toLowerCase().replace(/[\\/]+$/, "").replace(/\//g, "\\");
+    const vivasDe = new Map<string, Abierta[]>();
+    const vivasSueltas: Abierta[] = [];
+    for (const a of abiertas) {
+      // Con transcript ya listado tiene su propia fila; pintarla otra vez la
+      // duplicaría. El id sale del comando, y vale igual para una sesión
+      // retomada (`--resume`) que para una recién acuñada (`--session-id`).
+      const sid = sessionIdOf(a.command);
+      if (sid && yaListadas.has(sid)) continue;
+      const cwd = norma(a.cwd);
+      const dueño = projects.find((p) => {
+        const r = norma(p.path);
+        return !!r && (cwd === r || cwd.startsWith(`${r}\\`));
+      });
+      // La carpeta madre NO es un proyecto: lo abierto ahí va suelto, igual
+      // que sus conversaciones (ver abajo).
+      if (!dueño) vivasSueltas.push(a);
+      else vivasDe.set(dueño.name, [...(vivasDe.get(dueño.name) ?? []), a]);
+    }
+
     const build = (name: string, path: string, hasGit: boolean, all: SessionInfo[]): Group => {
       const active = all.filter((s) => !archived.has(s.id));
+      const vivas = vivasDe.get(name) ?? [];
       return {
         name,
         path,
         hasGit,
         sessions: active,
         archivedSessions: all.filter((s) => archived.has(s.id)),
-        hasLive: active.some((s) => s.live),
+        hasLive: active.some((s) => s.live) || vivas.length > 0,
         waiting: active.filter((s) => s.state === "pregunta" || s.state === "ofrece")
           .length,
         minHours: active.length ? Math.min(...active.map((s) => s.hours)) : Infinity,
+        vivas,
       };
     };
 
@@ -548,13 +587,16 @@ export default function Sidebar({
       return build(p.name, p.path, p.hasGit, list);
     });
 
-    const casa = raiz().replace(/[\\/]+$/, "");
-    const nombreRaiz = rootName();
-    const rootSessions = byProject.get(nombreRaiz) ?? [];
-    if (rootSessions.length) {
-      result.push(build(nombreRaiz, casa, true, rootSessions));
-      byProject.delete(nombreRaiz);
-    }
+    /* La carpeta madre ya no es una fila de la barra.
+     *
+     * `C:\proyectos` salía como un proyecto más, con su logo y su nombre, y
+     * dentro caía TODO lo que se hubiera abierto ahí sin entrar en ninguna
+     * carpeta: veintitrés conversaciones sin nada que ver entre ellas metidas
+     * en un cajón que no es un proyecto de nada (Munir, 2026-08-06: «me
+     * gustaría que estuviesen literalmente sueltas»). Ahora bajan al «sin
+     * proyecto» del final, que es donde vive lo que no pertenece a ningún
+     * sitio, cada una enseñando su carpeta. Las que él haya metido a mano en
+     * un proyecto siguen ahí: eso lo decide `ui.sessionProject`, más arriba. */
 
     // Y lo que queda: todo lo que se abrió FUERA de la carpeta de proyectos.
     // Hasta ahora
@@ -564,25 +606,6 @@ export default function Sidebar({
     // (Munir, 2026-07-29). Van todas juntas en un cajón, como la lista de
     // chats de la app de escritorio: cada una recuerda su carpeta, así que
     // retomarlas funciona igual que las de un proyecto.
-    // Y las terminales VIVAS que no dejan historial: una PowerShell no escribe
-    // transcript, así que no puede salir del escaneo, y sin esto abrir una
-    // suelta de terminal no aparecía en ninguna parte de la barra. Se cuelan
-    // solo las de fuera de un proyecto conocido (las de dentro ya salen en su
-    // fila) y las que no tengan ya su sesión listada, para no verlas dos veces.
-    // Las que de verdad han quedado listadas arriba, no todas las escaneadas:
-    // una que se haya quedado fuera por vieja tiene que poder salir al menos
-    // como terminal viva, en vez de no salir en ningún sitio.
-    const yaListadas = new Set(fresh.map((s) => s.id));
-    const raices = [
-      ...projects.map((p) => p.path.toLowerCase().replace(/[\\/]+$/, "")),
-      casa.toLowerCase(),
-    ].filter(Boolean);
-    const vivas = abiertas.filter((a) => {
-      const sid = sessionIdOf(a.command);
-      if (sid && yaListadas.has(sid)) return false;
-      const cwd = a.cwd.toLowerCase().replace(/[\\/]+$/, "");
-      return !raices.some((r) => cwd === r || cwd.startsWith(`${r}\\`));
-    });
 
     // Lo que sobra son las sesiones sueltas, y ya no van en un cajón que las
     // envuelva: un cajón llamado «Sueltas» es una carpeta que no existe en
@@ -593,21 +616,16 @@ export default function Sidebar({
     // pintarlas, pero no entra en la lista de proyectos.
     const sesionesSueltas = [...byProject.values()].flat();
     let sueltas: Group | null = null;
-    if (sesionesSueltas.length || vivas.length) {
+    if (sesionesSueltas.length || vivasSueltas.length) {
       sueltas = build(SUELTAS, "", false, sesionesSueltas);
       sueltas.suelto = true;
-      sueltas.vivas = vivas;
-      if (vivas.length) sueltas.hasLive = true;
+      sueltas.vivas = vivasSueltas;
+      if (vivasSueltas.length) sueltas.hasLive = true;
     }
 
-    result.sort((a, b) => {
-      if (a.hasLive !== b.hasLive) return a.hasLive ? -1 : 1;
-      if (a.minHours !== b.minHours) return a.minHours - b.minHours;
-      if (a.hasGit !== b.hasGit) return a.hasGit ? -1 : 1;
-      return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-    });
-    return { proyectos: result, sueltas };
-  }, [projects, sessions, archived, traidas, abiertas, ui.sessionProject]);
+    // El orden, con sus reglas y sus casos, en `lib/ordenBarra.ts`.
+    return { proyectos: ordenarProyectos(result, ui.projectOrder), sueltas };
+  }, [projects, sessions, archived, traidas, abiertas, ui.sessionProject, ui.projectOrder]);
 
   /* Los que quitaste de la barra salen de la lista aquí, y no dentro del memo
      de arriba, para que sus sesiones se vayan con ellos en vez de caer al
@@ -829,6 +847,79 @@ export default function Sidebar({
       pararAuto();
       setLlevando(null);
       setSobre(null);
+    };
+    window.addEventListener("pointerup", limpiar);
+    window.addEventListener("pointercancel", limpiar);
+    window.addEventListener("blur", limpiar);
+    return () => {
+      window.removeEventListener("pointerup", limpiar);
+      window.removeEventListener("pointercancel", limpiar);
+      window.removeEventListener("blur", limpiar);
+    };
+  }, []);
+
+  /* --------------------------------------------------------------- ordenar
+   *
+   * Arrastrar un proyecto para ponerlo donde tú quieres. El gesto es el mismo
+   * que el de una sesión (por punteros, con umbral de seis píxeles, ver más
+   * arriba el porqué), pero el estado va aparte para que arrastrar un proyecto
+   * no encienda las zonas de destino de las sesiones.
+   *
+   * El orden que se guarda es el de la barra ENTERA tal y como se está viendo,
+   * no solo el del que has movido: así, el primer arrastre congela lo que ya
+   * tenías delante y a partir de ahí nada se mueve solo. */
+  const arrProy = useRef<{ name: string; x: number; y: number; activo: boolean } | null>(null);
+  const [moviendoProy, setMoviendoProy] = useState<string | null>(null);
+  const [sobreProy, setSobreProy] = useState<string | null>(null);
+
+  const proyDown = (e: React.PointerEvent<HTMLDivElement>, name: string) => {
+    // Los botones de la fila (plegar, insignias, ⋯) siguen siendo botones.
+    if ((e.target as HTMLElement).closest("button, input")) return;
+    arrProy.current = { name, x: e.clientX, y: e.clientY, activo: false };
+  };
+
+  const proyMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const a = arrProy.current;
+    if (!a) return;
+    if (!a.activo) {
+      if (Math.hypot(e.clientX - a.x, e.clientY - a.y) < 6) return;
+      a.activo = true;
+      setMoviendoProy(a.name);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    cercaDelBorde(e.clientX, e.clientY, a.name);
+    const bajo = document.elementFromPoint(e.clientX, e.clientY);
+    const destino = bajo?.closest<HTMLElement>("[data-proyecto]")?.dataset.proyecto;
+    setSobreProy(destino && destino !== a.name ? destino : null);
+  };
+
+  const proyUp = () => {
+    const a = arrProy.current;
+    const destino = sobreProy;
+    arrProy.current = null;
+    pararAuto();
+    setMoviendoProy(null);
+    setSobreProy(null);
+    if (!a?.activo) return;
+    // El clic que viene detrás de un arrastre no debe plegar el proyecto.
+    soltoRecien.current = true;
+    window.setTimeout(() => {
+      soltoRecien.current = false;
+    }, 0);
+    if (!destino) return;
+    const orden = moverProyecto(groups.map((g) => g.name), a.name, destino);
+    mutate((prev) => ({ ...prev, projectOrder: orden }));
+  };
+
+  // La misma red de seguridad que el arrastre de sesiones: un puntero que se
+  // levanta fuera de la fila dejaría el proyecto pegado al ratón para siempre.
+  useEffect(() => {
+    const limpiar = () => {
+      if (!arrProy.current) return;
+      arrProy.current = null;
+      pararAuto();
+      setMoviendoProy(null);
+      setSobreProy(null);
     };
     window.addEventListener("pointerup", limpiar);
     window.addEventListener("pointercancel", limpiar);
@@ -1239,6 +1330,17 @@ export default function Sidebar({
       ? [{ label: t("Quitar el logo que le puse"), onClick: () => clearLogo(g.name) }]
       : []),
     { label: t("Volver a buscar logos en las carpetas"), onClick: rescanLogos },
+    // Solo cuando hay algo que deshacer: si nunca has arrastrado nada, esta
+    // línea no dice nada de lo que está pasando.
+    ...(ui.projectOrder.length
+      ? [
+          {
+            label: t("Volver al orden automático"),
+            hint: t("lo abierto y lo reciente arriba"),
+            onClick: () => mutate((prev) => ({ ...prev, projectOrder: [] })),
+          },
+        ]
+      : []),
     // Las dos formas de dejar de ver un proyecto, en el orden en que se
     // necesitan. Arriba la de siempre: quitarlo de la lista, que no toca el
     // disco y se deshace desde el cajón «Ocultos». Abajo del todo, separada y
@@ -1727,7 +1829,9 @@ export default function Sidebar({
           <li key={`viva${a.paneId}`} className="session-row">
             <button
               className="session"
-              data-tip={`${a.name}\n${a.cwd}\n${t(
+              data-tip={`${a.name}\n${a.cwd}${
+                a.cuenta ? `\n${t("Cuenta: {acc}", { acc: a.cuenta })}` : ""
+              }\n${t(
                 a.agente
                   ? "Abierta ahora. Clic: ir a ella."
                   : "Abierta ahora. Una terminal no deja historial: al cerrarla no queda nada suyo.",
@@ -1736,6 +1840,15 @@ export default function Sidebar({
             >
               <span className="dot dot-live" />
               <span className="session-title">{a.name}</span>
+              {/* La cuenta también aquí, y no solo en las filas del historial:
+                  una terminal recién abierta con otra cuenta es justo cuando
+                  hace falta saberlo, porque todavía no ha escrito nada con lo
+                  que reconocerla. */}
+              {a.cuenta && (
+                <span className="sess-cuenta" style={{ ["--c" as string]: hueOf(a.cuenta) }}>
+                  {a.cuenta}
+                </span>
+              )}
               <span className="sess-abierta">{t("ABIERTA")}</span>
             </button>
           </li>
@@ -1917,8 +2030,15 @@ export default function Sidebar({
                 // manda a este proyecto aunque su carpeta sea otra.
                 data-proyecto={g.name}
                 data-suelta={(llevando && sobre === `p:${g.name}`) || undefined}
+                // Arrastrándolo se coloca donde quieras, y ahí se queda.
+                data-moviendo={moviendoProy === g.name || undefined}
+                data-encima={sobreProy === g.name || undefined}
                 style={{ ["--c" as string]: hueOf(g.name) }}
                 onContextMenu={(e) => showMenu(e, projectMenu(g))}
+                onPointerDown={(e) => proyDown(e, g.name)}
+                onPointerMove={proyMove}
+                onPointerUp={proyUp}
+                onPointerCancel={proyUp}
               >
                 <button
                   className="project-main"

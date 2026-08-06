@@ -1749,6 +1749,74 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// La barra de la izquierda TAL Y COMO le queda a Munir, contra su disco.
+    ///
+    /// No afirma nada: imprime a qué proyecto va a parar cada sesión y cuáles
+    /// caen en el cajón de las sueltas, que es lo único que contesta a «la
+    /// vinculación de las sesiones está mal». Se corre a mano:
+    /// `cargo test --lib la_barra_de_verdad -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn la_barra_de_verdad() {
+        let base = "C:\\proyectos";
+        // Los proyectos son las carpetas de la raíz, como hace `list_projects`.
+        let proyectos: std::collections::HashSet<String> = std::fs::read_dir(base)
+            .map(|d| {
+                d.flatten()
+                    .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let mut sesiones = Vec::new();
+        for (cuenta, raiz) in raices_claude() {
+            sesiones.extend(escanear_raiz(
+                &raiz,
+                &cuenta,
+                &SessionCache::default(),
+                &HashSet::new(),
+            ));
+        }
+        for s in &mut sesiones {
+            s.project = project_of(&s.cwd, &s.folder, base);
+        }
+        // Igual que la barra: solo lo que no está muerto de más de una semana.
+        sesiones.retain(|s| s.fresh != "muerta");
+        sesiones.sort_by(|a, b| a.hours.partial_cmp(&b.hours).unwrap());
+
+        let mut por_grupo: std::collections::BTreeMap<String, Vec<&SessionInfo>> =
+            Default::default();
+        for s in &sesiones {
+            let clave = if proyectos.contains(&s.project) {
+                s.project.clone()
+            } else {
+                format!("SUELTA · {}", s.project)
+            };
+            por_grupo.entry(clave).or_default().push(s);
+        }
+        println!("\n{} sesiones vivas de menos de una semana\n", sesiones.len());
+        for (grupo, lista) in &por_grupo {
+            println!("{}  ({})", grupo, lista.len());
+            for s in lista.iter().take(4) {
+                println!(
+                    "    {:>10}  [{}]  {:<42}  {}",
+                    s.ago,
+                    if s.cuenta.is_empty() {
+                        "principal".to_owned()
+                    } else {
+                        s.cuenta.rsplit(['\\', '/']).next().unwrap_or("?").to_owned()
+                    },
+                    s.title.chars().take(42).collect::<String>(),
+                    s.cwd
+                );
+            }
+            if lista.len() > 4 {
+                println!("    … y {} más", lista.len() - 4);
+            }
+        }
+    }
+
     /// La lista de carpetas contra el disco de verdad de esta máquina: si
     /// Munir tiene una cuenta extra, tiene que estar aquí.
     #[test]

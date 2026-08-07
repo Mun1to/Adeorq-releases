@@ -21,6 +21,8 @@ import {
   ORLA,
   ZOOM_MAX,
   ZOOM_MIN,
+  acercar,
+  alTope,
   arrastrar,
   esDefecto,
   estiloDe,
@@ -130,6 +132,31 @@ ok(
 ok(
   "no se puede alejar por debajo de lo que rellena, ni acercarse sin fin",
   rueda(base(), 999).zoom === ZOOM_MIN && rueda(base({ zoom: ZOOM_MAX }), -999).zoom === ZOOM_MAX,
+);
+
+// --- los botones de mas y menos ----------------------------------------------
+ok("el boton de acercar sube un paso", acercar(base(), 1).zoom === 108);
+ok("el de alejar baja uno", acercar(base({ zoom: 200 }), -1).zoom === 192);
+ok(
+  "el clic y la rueda mueven LO MISMO, o serian dos velocidades de zoom",
+  acercar(base(), 1).zoom === rueda(base(), -100).zoom &&
+    acercar(base({ zoom: 200 }), -1).zoom === rueda(base({ zoom: 200 }), 100).zoom,
+);
+ok(
+  "los botones tampoco se salen de los limites",
+  acercar(base(), -5).zoom === ZOOM_MIN && acercar(base({ zoom: ZOOM_MAX }), 5).zoom === ZOOM_MAX,
+);
+ok(
+  "abajo del todo se apaga el menos y NO el mas",
+  alTope(base({ zoom: ZOOM_MIN }), -1) === true && alTope(base({ zoom: ZOOM_MIN }), 1) === false,
+);
+ok(
+  "arriba del todo, al reves",
+  alTope(base({ zoom: ZOOM_MAX }), 1) === true && alTope(base({ zoom: ZOOM_MAX }), -1) === false,
+);
+ok(
+  "y en medio no se apaga ninguno",
+  alTope(base({ zoom: 150 }), 1) === false && alTope(base({ zoom: 150 }), -1) === false,
 );
 
 // --- lo que entra de fuera ---------------------------------------------------

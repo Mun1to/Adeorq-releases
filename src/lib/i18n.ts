@@ -1647,6 +1647,7 @@ const EN: Record<string, string> = {
   Centrar: "Centre",
   "Como estaba": "As it was",
   Acercar: "Zoom in",
+  Alejar: "Zoom out",
   "Arrastra para mover la foto. La rueda acerca y aleja.":
     "Drag to move the photo. The wheel zooms in and out.",
   "Así se va a ver. Arrastra la foto y usa la rueda para acercarla.":

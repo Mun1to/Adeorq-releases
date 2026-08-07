@@ -71,6 +71,16 @@ export function PlusIcon({ size = 17 }: Props) {
   );
 }
 
+/* La mitad horizontal del anterior, con la misma medida: los dos van juntos en
+   el mismo par de botones y un menos más corto o más largo que el más se ve. */
+export function MinusIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
 export function RefreshIcon({ size = 17 }: Props) {
   return (
     <svg {...svg(size)}>

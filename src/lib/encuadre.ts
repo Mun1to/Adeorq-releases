@@ -151,11 +151,25 @@ export function arrastrar(
 }
 
 /**
+ * Acercar o alejar a pasos contados. Positivo acerca, negativo aleja. Lo usan
+ * los dos botones de la fila del zoom y, por debajo, la rueda: así el clic y la
+ * rueda mueven exactamente lo mismo y no hay dos velocidades de zoom.
+ */
+export function acercar(e: Encuadre, pasos: number, paso = 8): Encuadre {
+  return limitar({ ...e, zoom: e.zoom + pasos * paso });
+}
+
+/**
  * La rueda. Un paso fijo por muesca en vez de proporcional a `deltaY`, porque
  * el ratón de Munir y el trackpad mandan números muy distintos por el mismo
  * gesto y con lo proporcional uno de los dos se vuelve inservible.
  */
 export function rueda(e: Encuadre, deltaY: number, paso = 8): Encuadre {
   if (deltaY === 0) return e;
-  return limitar({ ...e, zoom: e.zoom + (deltaY < 0 ? paso : -paso) });
+  return acercar(e, deltaY < 0 ? 1 : -1, paso);
+}
+
+/** Si ya no se puede acercar (o alejar) más, para apagar su botón. */
+export function alTope(e: Encuadre, pasos: number): boolean {
+  return acercar(e, pasos).zoom === limitar(e).zoom;
 }

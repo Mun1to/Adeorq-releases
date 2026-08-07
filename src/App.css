@@ -15059,3 +15059,33 @@ textarea.note-body {
   border-color: var(--accent);
   color: #fff;
 }
+
+/* La fila del zoom: menos, deslizador, más y el porcentaje. El hueco baja de
+   14 a 8 px porque los dos botones y su barra son UN mando, no tres cosas
+   sueltas puestas en fila. */
+.enc-zoom {
+  gap: 8px;
+  cursor: default;
+}
+
+.enc-zoom .mini {
+  padding: 0;
+  min-width: 30px;
+}
+
+/* Al tope del zoom el botón se apaga en vez de desaparecer: un mando que se va
+   deja un hueco y mueve de sitio a sus vecinos justo mientras los estás
+   usando. Y sin el `translateY` del hover, que en un botón muerto parece que
+   ha respondido. */
+.mini:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.mini:disabled:hover {
+  color: color-mix(in srgb, var(--text) 72%, var(--muted));
+  background: var(--row);
+  border-color: var(--border);
+  transform: none;
+  box-shadow: none;
+}

@@ -5,12 +5,15 @@ import {
   ENCUADRE_DEFECTO,
   ZOOM_MAX,
   ZOOM_MIN,
+  acercar,
+  alTope,
   arrastrar,
   esDefecto,
   estiloDe,
   rueda,
   type Encuadre,
 } from "../lib/encuadre";
+import { MinusIcon, PlusIcon } from "./Icons";
 
 // El editor del encuadre: una ventana de Adeorq en pequeño con la foto dentro.
 //
@@ -51,6 +54,25 @@ export default function EncuadreFondo({ path, sello, desenfoque, encuadre, onEnc
     return () => window.removeEventListener("resize", medir);
   }, []);
 
+  /**
+   * La rueda se pone A MANO, y no con el `onWheel` de React, porque React monta
+   * los suyos en la raíz como PASIVOS: dentro de uno, `preventDefault` no hace
+   * nada (el navegador ni siquiera lo intenta, solo avisa por consola). El
+   * resultado era que girar la rueda para acercar la foto acercaba la foto Y
+   * además bajaba la pestaña de Ajustes entera, así que perdías de vista lo que
+   * estabas encuadrando. Con `passive: false` el gesto se queda aquí.
+   */
+  useEffect(() => {
+    const el = caja.current;
+    if (!el) return;
+    const alGirar = (e: WheelEvent) => {
+      e.preventDefault();
+      onEncuadre(rueda(encuadre, e.deltaY));
+    };
+    el.addEventListener("wheel", alGirar, { passive: false });
+    return () => el.removeEventListener("wheel", alGirar);
+  }, [encuadre, onEncuadre]);
+
   const onDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     anterior.current = { x: e.clientX, y: e.clientY };
@@ -89,7 +111,6 @@ export default function EncuadreFondo({ path, sello, desenfoque, encuadre, onEnc
         onPointerMove={onMove}
         onPointerUp={soltar}
         onPointerCancel={soltar}
-        onWheel={(e) => onEncuadre(rueda(encuadre, e.deltaY))}
         title={t("Arrastra para mover la foto. La rueda acerca y aleja.")}
       >
         {esVideo(path) ? (
@@ -121,8 +142,25 @@ export default function EncuadreFondo({ path, sello, desenfoque, encuadre, onEnc
           </button>
         )}
       </div>
-      <label className="setting-row">
+      {/* Los dos botones flanquean el deslizador en vez de flotar sobre la foto:
+          ahí taparían justo lo que se está encuadrando, y además este es el
+          sitio donde ya vive la idea de «zoom», con su porcentaje al lado. Dan
+          el mismo paso que una muesca de rueda, así que el clic y la rueda no
+          se mueven a dos velocidades distintas. */}
+      {/* Un div y no un `label` como sus vecinas: un label con botones dentro
+          les roba el clic para dárselo a su control, así que el más y el menos
+          moverían el foco al deslizador en vez de hacer su trabajo. */}
+      <div className="setting-row enc-zoom">
         <span>{t("Acercar")}</span>
+        <button
+          className="mini"
+          disabled={alTope(encuadre, -1)}
+          onClick={() => onEncuadre(acercar(encuadre, -1))}
+          title={t("Alejar")}
+          aria-label={t("Alejar")}
+        >
+          <MinusIcon size={15} />
+        </button>
         <input
           type="range"
           min={ZOOM_MIN}
@@ -130,8 +168,17 @@ export default function EncuadreFondo({ path, sello, desenfoque, encuadre, onEnc
           value={encuadre.zoom}
           onChange={(e) => onEncuadre({ ...encuadre, zoom: Number(e.currentTarget.value) })}
         />
+        <button
+          className="mini"
+          disabled={alTope(encuadre, 1)}
+          onClick={() => onEncuadre(acercar(encuadre, 1))}
+          title={t("Acercar")}
+          aria-label={t("Acercar")}
+        >
+          <PlusIcon size={15} />
+        </button>
         <span className="setting-value">{encuadre.zoom}%</span>
-      </label>
+      </div>
     </div>
   );
 }

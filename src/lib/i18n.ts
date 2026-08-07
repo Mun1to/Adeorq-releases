@@ -1641,6 +1641,17 @@ const EN: Record<string, string> = {
   "Volver al automático": "Back to automatic",
   auto: "auto",
 
+  // El encuadre del fondo: qué trozo de la foto se ve.
+  Rellenar: "Fill",
+  Entera: "Whole",
+  Centrar: "Centre",
+  "Como estaba": "As it was",
+  Acercar: "Zoom in",
+  "Arrastra para mover la foto. La rueda acerca y aleja.":
+    "Drag to move the photo. The wheel zooms in and out.",
+  "Así se va a ver. Arrastra la foto y usa la rueda para acercarla.":
+    "This is how it will look. Drag the photo and use the wheel to zoom in.",
+
   // El aviso de cuota.
   "«{c}» va por el {p}% de su límite.": "«{c}» is at {p}% of its limit.",
   "Se renueva {r}.": "Renews {r}.",

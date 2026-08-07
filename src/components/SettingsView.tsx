@@ -25,6 +25,8 @@ import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
 import { autostartGet, autostartSet, ollamaModels } from "../lib/pty";
 import { guardarModoAviso, modoAviso, type ModoAviso } from "../lib/router";
 import { guardarModoVigia, modoVigia, type ModoVigia } from "../lib/vigia";
+import EncuadreFondo from "./EncuadreFondo";
+import type { Encuadre } from "../lib/encuadre";
 import {
   anadirProyecto,
   fijarRaiz,
@@ -67,11 +69,15 @@ interface Props {
   /** El fondo de detrás de las terminales: ruta ya dentro de la carpeta de la
    *  app, o "" si no hay ninguno. Pasar "" a onFondo lo quita. */
   fondo: string;
+  /** Cambia al poner otro; la miniatura lo necesita para no servir el cacheado. */
+  fondoSello: number;
   fondoOpacidad: number;
   fondoDesenfoque: number;
+  fondoEncuadre: Encuadre;
   onFondo: (ruta: string) => Promise<void>;
   onFondoOpacidad: (n: number) => void;
   onFondoDesenfoque: (n: number) => void;
+  onFondoEncuadre: (e: Encuadre) => void;
   /** Cuánto se ve a través de las terminales; -1 = automático. */
   terminalVer: number;
   onTerminalVer: (n: number) => void;
@@ -248,11 +254,14 @@ export default function SettingsView({
   modeloLocal,
   onModeloLocal,
   fondo,
+  fondoSello,
   fondoOpacidad,
   fondoDesenfoque,
+  fondoEncuadre,
   onFondo,
   onFondoOpacidad,
   onFondoDesenfoque,
+  onFondoEncuadre,
   terminalVer,
   onTerminalVer,
   notifyMode,
@@ -609,6 +618,18 @@ export default function SettingsView({
                 {fondoError && <p className="setting-line setting-bad">⚠ {fondoError}</p>}
                 {fondo && (
                   <>
+                    {/* El encuadre va lo PRIMERO tras elegir el archivo, y no al
+                        final entre los deslizadores, porque es la pregunta que
+                        se hace uno nada más poner una foto: «¿por qué sale
+                        recortada así?». Los graduadores vienen después, cuando
+                        ya se ve lo que se quiere ver. */}
+                    <EncuadreFondo
+                      path={fondo}
+                      sello={fondoSello}
+                      desenfoque={fondoDesenfoque}
+                      encuadre={fondoEncuadre}
+                      onEncuadre={onFondoEncuadre}
+                    />
                     {/* Los dos mandos solo salen con fondo puesto: sin él no gradúan
                         nada y serían dos barras que no hacen visiblemente nada. */}
                     <label className="setting-row">

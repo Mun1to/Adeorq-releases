@@ -1,4 +1,5 @@
 import { comoFuente, esVideo } from "../lib/fondo";
+import { estiloDe, type Encuadre } from "../lib/encuadre";
 
 // La capa del fondo. Va debajo de todo y no recibe un solo clic.
 //
@@ -21,32 +22,26 @@ interface Props {
   opacidad: number;
   /** 0-30 px. Desenfoque, para que un fondo con detalle no compita con el texto. */
   desenfoque: number;
+  /** Qué trozo de la foto se ve y a qué tamaño. Lo elige él en Ajustes. */
+  encuadre: Encuadre;
 }
 
-export default function Fondo({ path, sello, opacidad, desenfoque }: Props) {
+export default function Fondo({ path, sello, opacidad, desenfoque, encuadre }: Props) {
   if (!path) return null;
   const src = comoFuente(path, sello);
+  // El encaje, la posición y la escala salen de la MISMA función que usa la
+  // miniatura del editor. Es lo único que garantiza que la vista previa no
+  // mienta: si se escribieran dos veces, se separarían a la primera.
+  const style = {
+    ...estiloDe(encuadre, desenfoque),
+    filter: desenfoque ? `blur(${desenfoque}px)` : undefined,
+  };
   return (
     <div className="fondo" aria-hidden="true">
       {esVideo(path) ? (
-        <video
-          key={src}
-          className="fondo-medio"
-          src={src}
-          autoPlay
-          loop
-          muted
-          playsInline
-          style={{ filter: desenfoque ? `blur(${desenfoque}px)` : undefined }}
-        />
+        <video key={src} className="fondo-medio" src={src} autoPlay loop muted playsInline style={style} />
       ) : (
-        <img
-          key={src}
-          className="fondo-medio"
-          src={src}
-          alt=""
-          style={{ filter: desenfoque ? `blur(${desenfoque}px)` : undefined }}
-        />
+        <img key={src} className="fondo-medio" src={src} alt="" style={style} />
       )}
       <div className="fondo-velo" style={{ opacity: 1 - opacidad / 100 }} />
     </div>

@@ -34,6 +34,7 @@ import {
   ponerFondo,
   quitarFondo,
 } from "./lib/fondo";
+import { guardarEncuadre, leerEncuadre, type Encuadre } from "./lib/encuadre";
 import {
   AccountIcon,
   AgendaIcon,
@@ -641,6 +642,8 @@ function App() {
   const [fondoDesenfoque, setFondoDesenfoque] = useState(
     () => Number(localStorage.getItem(FONDO_DESENFOQUE_KEY) ?? 0),
   );
+  /** Qué trozo de la foto se ve. Antes era una regla fija del CSS; ver `lib/encuadre.ts`. */
+  const [fondoEncuadre, setFondoEncuadre] = useState<Encuadre>(() => leerEncuadre());
   /**
    * Cuánto se ve a TRAVÉS de las terminales: 0 opacas, 100 invisibles.
    *
@@ -2266,6 +2269,7 @@ function App() {
         sello={fondoSello}
         opacidad={fondoOpacidad}
         desenfoque={fondoDesenfoque}
+        encuadre={fondoEncuadre}
       />
       <UpdateBar />
       {verObjetivos && (
@@ -2862,8 +2866,10 @@ function App() {
             localStorage.setItem(OLLAMA_KEY, m);
           }}
           fondo={fondo}
+          fondoSello={fondoSello}
           fondoOpacidad={fondoOpacidad}
           fondoDesenfoque={fondoDesenfoque}
+          fondoEncuadre={fondoEncuadre}
           terminalVer={terminalVer}
           onTerminalVer={setTerminalVer}
           onFondo={async (ruta) => {
@@ -2877,6 +2883,18 @@ function App() {
             // El sello cambia siempre: los dos archivos se llaman igual, así
             // que sin esto pondrías otro fondo y verías el de antes.
             setFondoSello(Date.now());
+            // Y el encuadre vuelve al centro: heredar el recorte de la foto
+            // anterior es enseñar la esquina de una foto que no tiene nada que
+            // ver con la otra, y parece que la nueva ha entrado mal puesta.
+            setFondoEncuadre((e) => {
+              const limpio = { ...e, x: 50, y: 50, zoom: 100 };
+              guardarEncuadre(limpio);
+              return limpio;
+            });
+          }}
+          onFondoEncuadre={(e) => {
+            setFondoEncuadre(e);
+            guardarEncuadre(e);
           }}
           onFondoOpacidad={(n) => {
             setFondoOpacidad(n);

@@ -820,11 +820,14 @@ body {
 .fondo-medio {
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
-  /* El desenfoque encoge el borde de la imagen y deja una orla del color de
-     debajo. Se agranda un poco para que ese borde caiga fuera de la ventana. */
-  transform: scale(1.06);
+  /* `object-fit`, `object-position` y `transform` NO se ponen aquí, y antes sí:
+     eran `cover` y `scale(1.06)` clavados, o sea Adeorq recortando tu foto
+     siempre igual sin forma de decirle otra cosa. Ahora los escribe `Fondo.tsx`
+     con lo que él haya encuadrado en Ajustes, usando la misma función que pinta
+     la miniatura del editor (`lib/encuadre.ts`). El 6 % que tapaba la orla del
+     desenfoque no se ha perdido: vive allí, y ahora solo sale cuando hay
+     desenfoque que tapar. */
 }
 
 /* El velo va ENCIMA del medio y no como opacidad suya, y no es lo mismo:
@@ -14983,4 +14986,76 @@ textarea.note-body {
   margin: 0;
   font-size: 12.5px;
   line-height: 1.55;
+}
+
+/* ==========================================================================
+   El editor del encuadre del fondo (Ajustes > El fondo).
+   Una ventana de Adeorq en pequeño con la foto dentro, para elegir qué trozo
+   se ve. Vive dentro de una `.panel-card`, que ya pone la superficie: aquí NO
+   se inventa otra (ver la regla escrita encima de `.panel-card`).
+   ========================================================================== */
+.enc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+
+/* La caja tiene la proporción de la ventana de verdad, y la pone el componente
+   con `aspect-ratio` porque solo él sabe cuánto mide la ventana ahora mismo.
+   El ancho se limita para que en una pantalla grande no ocupe media pestaña. */
+.enc-caja {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  cursor: grab;
+  /* Sin esto, arrastrar sobre la miniatura en un portátil hace scroll de la
+     pestaña en vez de mover la foto: el navegador se queda el gesto. */
+  touch-action: none;
+  user-select: none;
+}
+
+.enc-caja:active {
+  cursor: grabbing;
+}
+
+.enc-medio {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* `object-fit`, `object-position` y `transform` los escribe el componente con
+     los MISMOS números que la capa del fondo de verdad. Si se pusieran aquí,
+     la vista previa mentiría en cuanto una de las dos cambiara. */
+  pointer-events: none;
+}
+
+.enc-pie {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text) 62%, var(--muted));
+}
+
+.enc-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* El botón del modo que está puesto. Relleno de acento, no un gris un poco más
+   claro: un conmutador se lee cuando el lado elegido va relleno. */
+.mini.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.mini.on:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }

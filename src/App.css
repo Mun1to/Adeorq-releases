@@ -1098,6 +1098,71 @@ body {
   box-shadow: 0 0 0 3px rgba(77, 159, 255, 0.18);
 }
 
+/* El buscador de la barra, con su X y encendido mientras filtra.
+   Filtrar esconde proyectos ENTEROS, y eso pasaba sin que nada lo dijera: la
+   barra se quedaba a medias y parecía que se habían borrado. Un cuadro que se
+   ve encendido y una X a mano son la mitad del arreglo; la otra mitad es la
+   línea de abajo, que cuenta cuántos faltan (Munir). */
+.finder-caja {
+  position: relative;
+  display: flex;
+}
+
+.finder-caja .finder {
+  flex: 1;
+  min-width: 0;
+}
+
+.finder-caja[data-lleno] .finder {
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  padding-right: 30px;
+}
+
+.finder-x {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  /* Con márgenes no, que aquí hay que centrar sobre una posición absoluta; y
+     sin `transform` en el hover, que es lo que descoloca a los `.mini`. */
+  transform: translateY(-50%);
+  padding: 2px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.finder-x:hover {
+  color: var(--text);
+}
+
+/* Lo que el filtro está escondiendo, y las sesiones que trajiste a mano. Las
+   dos son la misma idea: algo que cambia lo que ves y que hasta ahora no se
+   anunciaba en ningún sitio. Se pulsa para deshacerlo. */
+.finder-aviso {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: color-mix(in srgb, var(--text) 78%, transparent);
+  font-size: 10.5px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.finder-aviso:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text);
+}
+
 .side-label {
   display: flex;
   justify-content: space-between;
@@ -3354,6 +3419,13 @@ body {
 /* La tira de las minimizadas, al pie del mosaico. No es una lista de nombres:
    es el sitio donde una terminal apartada SIGUE contando qué hace, porque un
    agente que te pregunta desde ahí tiene que poder encontrarte. */
+/* La tira de las apartadas. Tenía un borde arriba y NADA más: ni fondo propio,
+   así que caía directamente sobre la foto de escritorio y sus letras grises se
+   perdían encima (Munir, 2026-08-07: «se ve muy transparente»). Es la misma
+   trampa de siempre en esta app, y la regla de la casa ya está escrita: lo que
+   puede quedar sobre el fondo lleva superficie propia (`--popover` y cristal),
+   nunca `--row`, que es translúcido y solo funciona dentro de un panel opaco.
+   Aquí además es un pie fijo, así que se lee mejor cuanto más asentado se ve. */
 .minim {
   flex: none;
   display: flex;
@@ -3361,14 +3433,18 @@ body {
   align-items: center;
   gap: 6px;
   padding: 7px 12px 8px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border-strong, var(--border));
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
 }
 
 .minim-eti {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: var(--muted);
+  /* Un punto más de luz que `--muted`: es el rótulo del pie y sobre cristal
+     el gris de los textos secundarios se apaga del todo. */
+  color: color-mix(in srgb, var(--text) 62%, transparent);
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.8px;
@@ -3387,15 +3463,18 @@ body {
   letter-spacing: 0;
 }
 
+/* Cada ficha, con cuerpo. Iba sobre `--row`, que es translúcido: encima de la
+   tira transparente de antes eran letras flotando sobre una foto. Ahora parte
+   del color del panel, que es sólido, y el color de la cuadrilla lo tiñe. */
 .minim-chip {
   display: flex;
   align-items: center;
   gap: 6px;
   max-width: 260px;
-  padding: 4px 10px;
+  padding: 4px 10px 4px 8px;
   border: 1px solid color-mix(in srgb, var(--crew, var(--border)) 45%, var(--border));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--crew, var(--row)) 12%, var(--row));
+  background: color-mix(in srgb, var(--crew, var(--accent)) 10%, var(--panel));
   color: var(--text);
   font: inherit;
   font-size: 11.5px;
@@ -3406,14 +3485,27 @@ body {
 }
 
 .minim-chip:hover {
-  background: color-mix(in srgb, var(--crew, var(--accent)) 26%, var(--row));
+  background: color-mix(in srgb, var(--crew, var(--accent)) 26%, var(--panel));
   border-color: color-mix(in srgb, var(--crew, var(--accent)) 70%, var(--border));
 }
 
+
+/* El estado, ahora un dibujo y no un glifo de la fuente (ver `EstadoIcon`).
+   Sin `font-size`, que ya no es texto, y sin `--muted` de base: ese gris se
+   apaga del todo sobre cristal, que es la mitad de por qué esta tira no se
+   leía. El color de la cuadrilla manda cuando la hay, porque ahí sirve para
+   reconocer de quién es la ficha. */
 .minim-ico {
   flex: none;
-  color: var(--crew, var(--muted));
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--crew, color-mix(in srgb, var(--text) 60%, transparent));
+}
+
+/* Terminó: el ámbar con el que la app dice «esto ya está y te reclama», el
+   mismo del halo de un panel que te espera. */
+.minim-chip[data-estado="lista"] .minim-ico {
+  color: var(--done);
 }
 
 .minim-nombre {
@@ -3434,7 +3526,9 @@ body {
    tira existe en vez de que la terminal simplemente desaparezca. */
 .minim-chip[data-urge] {
   border-color: var(--warn, #ffd166);
-  background: color-mix(in srgb, var(--warn, #ffd166) 18%, var(--row));
+  /* Sobre `--panel` y no sobre `--row`: es la ficha que MÁS tiene que leerse
+     de la tira, y `--row` es translúcido. */
+  background: color-mix(in srgb, var(--warn, #ffd166) 18%, var(--panel));
 }
 
 .minim-chip[data-urge] .minim-ico,
@@ -3457,7 +3551,9 @@ body {
   font-size: 9.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: color-mix(in srgb, var(--muted) 70%, transparent);
+  /* Era `--muted` al 70%, o sea gris translúcido sobre gris translúcido: el
+     dato estaba ahí y no se leía. Sigue siendo secundario, pero legible. */
+  color: color-mix(in srgb, var(--text) 52%, transparent);
 }
 
 .crew-min,

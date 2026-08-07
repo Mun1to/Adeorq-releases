@@ -387,6 +387,13 @@ const EN: Record<string, string> = {
   "Escrita con la cuenta «{acc}», y ahí se retoma":
     "Written on the “{acc}” account, and that is where it resumes",
   "Cuenta: {acc}": "Account: {acc}",
+  "Quitar el filtro": "Clear the filter",
+  "{n} proyectos escondidos por el filtro. Pulsa para verlos.":
+    "{n} projects hidden by the filter. Click to see them.",
+  "{n} traídas a mano. Pulsa para quitarlas de la lista.":
+    "{n} brought over by hand. Click to take them off the list.",
+  "Dejan de verse las que trajiste a mano. No se borra ninguna.":
+    "The ones you brought over stop showing. Nothing is deleted.",
   "Modo rendimiento": "Performance mode",
   "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido: el motor gasta un 4 % y dibujarlo se lleva núcleo y medio. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.":
     "Less glass and solid terminals, for when you have several agents working at once. Adeorq stacks thirty glass surfaces over your photo and the terminals are transparent so you can see it: that is the pretty part and that is the expensive part. Measured: the engine uses 4% and drawing it eats a core and a half. It changes nothing about what Adeorq does, only what it spends painting it.",

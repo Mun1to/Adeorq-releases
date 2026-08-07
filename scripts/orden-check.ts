@@ -70,15 +70,32 @@ caso(
 );
 
 // --- mover ------------------------------------------------------------------
+// Cae donde lo llevas: subiendo, encima del destino; bajando, debajo. Antes
+// caia siempre delante y bajar algo al final de la lista era imposible.
 caso(
-  "soltarlo encima de otro lo pone justo delante de ese",
+  "subiendolo, se queda encima del destino",
   moverProyecto(["a", "b", "c", "d"], "d", "b"),
   ["a", "d", "b", "c"],
 );
-caso("soltarlo el primero lo pone el primero", moverProyecto(["a", "b", "c"], "c", "a"), [
+caso("subirlo del todo lo pone el primero", moverProyecto(["a", "b", "c"], "c", "a"), [
   "c",
   "a",
   "b",
+]);
+caso("bajandolo, se queda DEBAJO del destino", moverProyecto(["a", "b", "c"], "a", "c"), [
+  "b",
+  "c",
+  "a",
+]);
+caso(
+  "bajarlo al ultimo lo deja el ultimo de verdad",
+  moverProyecto(["a", "b", "c", "d"], "b", "d"),
+  ["a", "c", "d", "b"],
+);
+caso("bajarlo un puesto lo intercambia con el de abajo", moverProyecto(["a", "b", "c"], "a", "b"), [
+  "b",
+  "a",
+  "c",
 ]);
 caso("soltarlo sobre si mismo no cambia nada", moverProyecto(["a", "b", "c"], "b", "b"), [
   "a",
@@ -90,12 +107,10 @@ caso(
   moverProyecto(["a", "b", "c"], "a", "zzz"),
   ["a", "b", "c"],
 );
-// Mover hacia abajo: lo mueve DEBAJO del destino no, delante; es la misma regla
-// en las dos direcciones y hay que dejarla escrita para no "arreglarla" luego.
-caso("moverlo hacia abajo lo deja delante del destino", moverProyecto(["a", "b", "c"], "a", "c"), [
-  "b",
-  "a",
-  "c",
-]);
+caso(
+  "y uno movido que ya no existe, tampoco",
+  moverProyecto(["a", "b", "c"], "zzz", "b"),
+  ["a", "b", "c"],
+);
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

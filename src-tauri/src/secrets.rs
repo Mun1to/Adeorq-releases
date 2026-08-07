@@ -195,10 +195,28 @@ pub fn secret_forget(key: String) -> Result<(), String> {
 mod tests {
     use super::*;
 
+    /// Estos tests hablan con el almacén DE VERDAD del sistema, y `cargo` los
+    /// corre a la vez. Cada uno usa su propia clave, así que no se pisan datos,
+    /// pero escribir y leer credenciales desde varios hilos a la vez falla de
+    /// tanto en tanto: el 2026-08-07 saltó uno en una suite entera y pasó solo
+    /// en la siguiente vuelta, que es la firma de una carrera y no de un fallo.
+    ///
+    /// Un test que falla al azar es peor que no tenerlo: se aprende a ignorarlo
+    /// y el día que avise de algo real nadie lo mirará. Así que los que tocan
+    /// el almacén pasan de uno en uno.
+    static EN_FILA: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// El candado, recuperándose de un pánico ajeno: aquí no hay ningún dato
+    /// que pueda quedar a medias, solo el turno.
+    fn turno() -> std::sync::MutexGuard<'static, ()> {
+        EN_FILA.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     /// The whole round trip against the real vault, with a key of its own so a
     /// failure here can never touch a token he is using.
     #[test]
     fn a_secret_survives_a_round_trip_and_can_be_forgotten() {
+        let _turno = turno();
         let key = "test/round-trip";
         put(key, "hola, socio").expect("guardar");
         assert_eq!(get(key).as_deref(), Some("hola, socio"));
@@ -213,11 +231,13 @@ mod tests {
 
     #[test]
     fn an_unknown_key_is_simply_absent() {
+        let _turno = turno();
         assert_eq!(get("test/nunca-escrita"), None);
     }
 
     #[test]
     fn an_oversized_secret_is_refused_rather_than_truncated() {
+        let _turno = turno();
         let huge = "x".repeat(MAX_BLOB + 1);
         assert!(put("test/huge", &huge).is_err());
     }
@@ -228,6 +248,7 @@ mod tests {
     /// silence, and the only way to notice would be reading this file again.
     #[test]
     fn the_front_end_cannot_ask_for_an_api_key() {
+        let _turno = turno();
         assert!(es_privada("openrouter"));
         assert!(es_privada("api:claude"));
         assert!(es_privada("api:codex"));

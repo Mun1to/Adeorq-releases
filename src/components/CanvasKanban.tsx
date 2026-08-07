@@ -27,6 +27,7 @@ import ProviderMark, { tieneMarca } from "./ProviderMark";
 import { kindDeComando } from "./KindIcon";
 import {
   CloseIcon,
+  EstadoIcon,
 } from "./Icons";
 
 /** Una tarjeta de «Por hacer»: lo único de este tablero que escribes tú. */
@@ -292,7 +293,7 @@ export default function KanbanNode({ data, selected }: NodeProps<Node<KanbanData
         <span className="kb-card-pie">
           <span className="kb-proy">{proyecto}</span>
           <span className="kb-estado">
-            {pinta.icon} {t(pinta.label)}
+            <EstadoIcon estado={a.state ?? ""} size={12} /> {t(pinta.label)}
             {rato && ` · ${rato}`}
           </span>
         </span>

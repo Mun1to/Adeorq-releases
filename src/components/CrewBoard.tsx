@@ -6,6 +6,7 @@ import type { Team } from "../App";
 import {
   ChevronIcon,
   CloseIcon,
+  EstadoIcon,
 } from "./Icons";
 
 /**
@@ -287,7 +288,9 @@ export default function CrewBoard({
                         }
                       >
                         <span className="crew-card-top">
-                          <span className="crew-card-ico">{pinta.icon}</span>
+                          <span className="crew-card-ico">
+                            <EstadoIcon estado={p.estado} size={13} />
+                          </span>
                           <span className="crew-card-estado">{t(pinta.label)}</span>
                           <span className="crew-card-rato">{rato}</span>
                         </span>

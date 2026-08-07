@@ -19,14 +19,19 @@ export const TITULO: Record<Columna, string> = {
   hecho: "Hecho",
 };
 
-/** Lo que hay que hacer con cada estado, que es lo único que importa aquí. */
-export const PINTA: Record<string, { icon: string; label: string; urge: boolean }> = {
-  a_medias: { icon: "●", label: "trabajando", urge: false },
-  pregunta: { icon: "▲", label: "TE ESPERA", urge: true },
-  ofrece: { icon: "▲", label: "TE ESPERA", urge: true },
-  tuya: { icon: "▲", label: "te toca", urge: true },
-  lista: { icon: "✓", label: "terminó", urge: false },
-  "": { icon: "·", label: "no se sabe", urge: false },
+/** Lo que hay que hacer con cada estado, que es lo único que importa aquí.
+ *
+ * El dibujo NO vive aquí: es `EstadoIcon` (`components/Icons.tsx`), que recibe
+ * el estado y lo pinta. Hasta el 2026-08-07 esto llevaba un glifo de texto por
+ * estado (● ▲ ✓ ·), y un glifo cambia de forma según la tipografía que cargue
+ * el sistema, no escala y se ve prestado al lado de los iconos de la casa. */
+export const PINTA: Record<string, { label: string; urge: boolean }> = {
+  a_medias: { label: "trabajando", urge: false },
+  pregunta: { label: "TE ESPERA", urge: true },
+  ofrece: { label: "TE ESPERA", urge: true },
+  tuya: { label: "te toca", urge: true },
+  lista: { label: "terminó", urge: false },
+  "": { label: "no se sabe", urge: false },
 };
 
 /**

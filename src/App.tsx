@@ -41,6 +41,7 @@ import {
   ChatIcon,
   CloseIcon,
   CockpitIcon,
+  EstadoIcon,
   CommandIcon,
   MemoryIcon,
   MinimizeIcon,
@@ -2644,12 +2645,14 @@ function App() {
                 <b>{apartadas.length}</b>
               </span>
               {apartadas.map((p) => {
-                const pinta = PINTA[paneStatus[p.id]?.state ?? ""] ?? PINTA[""];
+                const estado = paneStatus[p.id]?.state ?? "";
+                const pinta = PINTA[estado] ?? PINTA[""];
                 const porGrupo = !minimizados.has(p.id) && p.grupo != null;
                 return (
                   <button
                     key={p.id}
                     className="minim-chip"
+                    data-estado={estado || "sinsaber"}
                     data-urge={pinta.urge || undefined}
                     data-grupo={porGrupo || undefined}
                     style={p.team ? { ["--crew" as string]: p.team.color } : undefined}
@@ -2662,7 +2665,9 @@ function App() {
                       porGrupo && p.grupo ? alternarGrupo(p.grupo) : alternarMinimizado(p.id)
                     }
                   >
-                    <span className="minim-ico">{pinta.icon}</span>
+                    <span className="minim-ico">
+                      <EstadoIcon estado={estado} size={13} />
+                    </span>
                     <span className="minim-nombre">{p.name}</span>
                     {pinta.urge && <span className="minim-urge">{t(pinta.label)}</span>}
                     {/* Lo que cuesta tenerla apartada. Aquí es donde de verdad

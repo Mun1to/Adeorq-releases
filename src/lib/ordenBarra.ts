@@ -51,7 +51,13 @@ export function ordenarProyectos<T extends Colocable>(lista: T[], manual: string
 }
 
 /**
- * El orden nuevo tras soltar `movido` justo encima de `destino`.
+ * El orden nuevo tras soltar `movido` sobre `destino`.
+ *
+ * Cae **donde lo llevas**: subiéndolo se queda encima del destino, y bajándolo
+ * se queda debajo. Al principio caía siempre delante, y bajar un proyecto al
+ * final de la lista era imposible: lo soltabas sobre el último y se colocaba
+ * antes que él (Munir, 2026-08-07). Es la misma regla que cualquier lista que
+ * se arrastra, y la dirección la dice de dónde venía.
  *
  * Se guarda la barra ENTERA tal y como se está viendo, no solo el que se ha
  * movido: así el primer arrastre congela lo que ya tenías delante, que es lo
@@ -59,11 +65,13 @@ export function ordenarProyectos<T extends Colocable>(lista: T[], manual: string
  */
 export function moverProyecto(visibles: string[], movido: string, destino: string): string[] {
   if (movido === destino) return visibles;
+  const desde = visibles.indexOf(movido);
+  const hasta = visibles.indexOf(destino);
+  // Uno de los dos ya no está en la lista (se ocultó mientras arrastrabas):
+  // mejor no tocar el orden que colocarlo en un sitio inventado.
+  if (desde < 0 || hasta < 0) return visibles;
   const orden = visibles.filter((n) => n !== movido);
   const i = orden.indexOf(destino);
-  // Un destino que ya no está en la lista (se ocultó mientras arrastrabas):
-  // mejor no tocar el orden que colocarlo en un sitio inventado.
-  if (i < 0) return visibles;
-  orden.splice(i, 0, movido);
+  orden.splice(desde < hasta ? i + 1 : i, 0, movido);
   return orden;
 }

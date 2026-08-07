@@ -41,6 +41,7 @@ import { ClaudeMark } from "./KindIcon";
 import {
   ArchiveIcon,
   ChevronIcon,
+  CloseIcon,
   EnterIcon,
   EyeIcon,
   EyeOffIcon,
@@ -327,7 +328,22 @@ export default function Sidebar({
 
   useEffect(() => {
     refresh();
-    loadUiState().then(setUi).catch(() => {});
+    // Y lo que se haya tocado mientras tanto se reaplica encima, en orden. Ver
+    // `mutate`: es lo que impide que el primer segundo borre la organización
+    // entera de la barra.
+    const llegar = (guardado: UiState) => {
+      const encolado = pendientes.current;
+      pendientes.current = [];
+      cargado.current = true;
+      const final = encolado.reduce((acc, f) => f(acc), guardado);
+      setUi(final);
+      if (encolado.length) void saveUiState(final).catch(() => {});
+    };
+    loadUiState()
+      .then(llegar)
+      // Sin archivo (primer arranque) el estado vacío ES el bueno, y a partir
+      // de ahí sí se puede escribir.
+      .catch(() => llegar(EMPTY_UI_STATE));
     findAgy().then(setAgy).catch(() => {});
     // Whichever other agent CLIs exist get their own entry per project.
     detectClis(OTHER_CLIS.map((p) => [p.id, p.exe] as [string, string]))
@@ -489,10 +505,28 @@ export default function Sidebar({
     return `${cabecera}\n${texto}`;
   };
 
+  /**
+   * Cambiar el estado de la barra y guardarlo.
+   *
+   * ⚠ No se escribe NADA hasta haber leído el archivo. El estado arranca vacío
+   * y `loadUiState()` llega un momento después, así que cualquier cambio hecho
+   * en ese primer instante (traer una sesión, renombrar, arrastrar) guardaba el
+   * estado VACÍO con ese cambio dentro y se llevaba por delante los grupos, los
+   * alias, los logos y los archivados. Un segundo de ventana, todo el trabajo
+   * de organizar la barra.
+   *
+   * Lo que se hace en esa ventana no se pierde: se apunta la operación y se
+   * vuelve a aplicar SOBRE lo que llegue del disco, que es lo que la hace
+   * inofensiva. En pantalla se ve al instante igual que siempre.
+   */
+  const cargado = useRef(false);
+  const pendientes = useRef<Array<(prev: UiState) => UiState>>([]);
+
   const mutate = (fn: (prev: UiState) => UiState) => {
+    if (!cargado.current) pendientes.current.push(fn);
     setUi((prev) => {
       const next = fn(prev);
-      void saveUiState(next).catch((e) => setError(String(e)));
+      if (cargado.current) void saveUiState(next).catch((e) => setError(String(e)));
       return next;
     });
   };
@@ -654,6 +688,9 @@ export default function Sidebar({
         g.sessions.some((s) => encaja(s.title, filter)),
     );
   }, [groups, filter]);
+
+  /** Cuántos proyectos se está tragando el filtro, para poder decirlo. */
+  const ocultosPorFiltro = groups.length - shown.length;
 
   /** Las sueltas que pasan el filtro de búsqueda. Con el filtro puesto, una
       suelta que no case desaparece igual que un proyecto que no case. */
@@ -1900,12 +1937,51 @@ export default function Sidebar({
         </div>
       ) : (
         <>
-      <input
-        className="finder"
-        placeholder={t("Filtrar proyectos y sesiones")}
-        value={filter}
-        onChange={(e) => setFilter(e.currentTarget.value)}
-      />
+      {/* El buscador, y debajo lo que estaba escondiendo.
+          Con texto escrito se lleva media barra por delante sin decir nada:
+          esconde proyectos enteros y obliga a los demás a salir desplegados,
+          así que el clic del logo deja de plegar. Desde fuera eso no se
+          distingue de que se hayan borrado (Munir). Ahora el cuadro se ve
+          encendido, tiene su X, y una línea dice cuántos faltan. */}
+      <div className="finder-caja" data-lleno={!!filter.trim() || undefined}>
+        <input
+          className="finder"
+          placeholder={t("Filtrar proyectos y sesiones")}
+          value={filter}
+          onChange={(e) => setFilter(e.currentTarget.value)}
+        />
+        {filter && (
+          <button
+            className="finder-x"
+            data-tip={t("Quitar el filtro")}
+            onClick={() => setFilter("")}
+          >
+            <CloseIcon size={13} />
+          </button>
+        )}
+      </div>
+      {filter.trim() && ocultosPorFiltro > 0 && (
+        <button className="finder-aviso" onClick={() => setFilter("")}>
+          {t("{n} proyectos escondidos por el filtro. Pulsa para verlos.", {
+            n: ocultosPorFiltro,
+          })}
+        </button>
+      )}
+      {/* Las que trajiste a mano desde el ＋. Salen aunque sean viejas, y hasta
+          hoy la única forma de sacarlas era archivarlas una a una. */}
+      {ui.traidas.length > 0 && !filter.trim() && (
+        <button
+          className="finder-aviso"
+          data-tip={t("Dejan de verse las que trajiste a mano. No se borra ninguna.")}
+          onClick={() =>
+            mutate((prev) => ({ ...prev, traidas: [] }))
+          }
+        >
+          {t("{n} traídas a mano. Pulsa para quitarlas de la lista.", {
+            n: ui.traidas.length,
+          })}
+        </button>
+      )}
       <div className="side-label">
         <span>{t("Workspaces")}</span>
         <span className="rail-tabs">

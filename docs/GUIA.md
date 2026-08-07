@@ -1,6 +1,7 @@
 # Guía de Adeorq (sin jerga)
 
-> Reescrita el 1 de agosto de 2026 sobre la versión 0.9.42.
+> Reescrita el 1 de agosto de 2026 sobre la versión 0.9.42, y repasada el 7 de
+> agosto sobre la 0.9.61 (entraron el Chat y la Memoria).
 > Va elemento por elemento: cada cosa que se ve en pantalla, qué es y para qué
 > sirve. Si solo quieres una parte, salta por el índice.
 
@@ -9,7 +10,7 @@
 0. [Por qué usar Adeorq](#0-por-qué-usar-adeorq)
 1. [Qué es Adeorq](#1-qué-es-adeorq)
 2. [Las DOS barras de arriba](#2-las-dos-barras-de-arriba-la-duda-de-la-captura)
-3. [Las siete pestañas](#3-las-siete-pestañas)
+3. [Las nueve pestañas](#3-las-nueve-pestañas)
 4. [Panel (la pestaña ◱)](#4-panel-la-pestaña-)
 5. [Cabina (la pestaña ▦)](#5-cabina-la-pestaña-)
 5b. [Lienzo (la pestaña ⬡)](#5b-lienzo-la-pestaña-)
@@ -171,16 +172,22 @@ Si pone el nombre de una sesión y una carpeta, es la barra de una terminal.
 
 ---
 
-## 3. Las siete pestañas
+## 3. Las nueve pestañas
 
 - **◱ Panel**: el inicio. Tus números, el Capataz, proyectos calientes, crear
   proyecto, desplegar equipos y el foco.
 - **▦ Cabina**: donde se trabaja. Proyectos a la izquierda, terminales en el
   centro, skills a la derecha.
+- **Chat**: las MISMAS conversaciones de la Cabina, sin la consola delante. Lo
+  que escribes ahí baja a su terminal, así que gasta tu suscripción y no una
+  clave de API.
 - **▤ Agenda**: el día completo en un sitio: tu calendario, las ideas
   guardadas, los objetivos de hoy y los próximos pasos de `docs/METAS.md`.
 - **⬡ Lienzo**: el tablero libre, con terminales que se mueven y se conectan
   con flechas.
+- **Memoria**: tus notas de Obsidian dentro de Adeorq. Busca por lo que dicen,
+  las lee, las deja editar y dibuja la Constelación de cómo se enlazan. No se
+  copia ni se mueve nada: se leen donde están.
 - **◍ Cuentas**: todas tus cuentas de agentes en un sitio, agrupadas por
   programa, con cuál está conectada y cuánto te queda.
 - **⌘ Comandos**: la chuleta buscable de todo lo que se puede escribir dentro

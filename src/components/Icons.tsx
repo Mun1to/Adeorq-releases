@@ -470,6 +470,59 @@ export function CheckIcon({ size = 17 }: Props) {
   );
 }
 
+/**
+ * En qué anda un agente, dibujado.
+ *
+ * Eran cuatro glifos de texto (● ▲ ✓ ·) puestos donde tocara. Un `✓` de la
+ * fuente es un tick de lista de la compra, cambia de forma según qué tipografía
+ * cargue el sistema, y al lado de los iconos de la casa se ve como una pegatina
+ * de otro sitio (Munir, 2026-08-07: «el tick no me gusta ese icono»).
+ *
+ * Ahora son cuatro dibujos de la misma familia que el resto: mismo grosor de
+ * trazo, misma rejilla, y cada uno dice lo suyo sin leer nada. El color lo pone
+ * quien los usa, que es quien sabe si ese estado urge.
+ */
+export function EstadoIcon({ estado, size = 13 }: Props & { estado: string }) {
+  // Terminó: el círculo cerrado y el visto DENTRO. Cerrado porque terminar es
+  // cerrar algo, y dentro para que no se lea como una casilla de tarea.
+  if (estado === "lista") {
+    return (
+      <svg {...svg(size)}>
+        <circle cx="12" cy="12" r="9" />
+        <polyline points="8.2 12.2 11 15 16 9.4" />
+      </svg>
+    );
+  }
+  // Te espera: el aviso de siempre, un triángulo con su marca. Es el único de
+  // los cuatro que tiene que llamarte desde el rabillo del ojo.
+  if (estado === "pregunta" || estado === "ofrece" || estado === "tuya") {
+    return (
+      <svg {...svg(size)}>
+        <path d="M12 4.5 21 19.5H3z" />
+        <line x1="12" y1="10" x2="12" y2="14" />
+        <circle cx="12" cy="16.8" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  // Trabajando: medio círculo relleno, el mismo dibujo que usa el panel de
+  // objetivos para «a medias». Se ve de un vistazo que hay algo en marcha.
+  if (estado === "a_medias") {
+    return (
+      <svg {...svg(size)}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  // Y lo que no se sabe: un círculo y nada más. No inventarse un estado es
+  // parte del trato de este tablero.
+  return (
+    <svg {...svg(size)}>
+      <circle cx="12" cy="12" r="9" />
+    </svg>
+  );
+}
+
 export function GitBranchIcon({ size = 17 }: Props) {
   return (
     <svg {...svg(size)}>

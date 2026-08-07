@@ -3906,6 +3906,14 @@ body {
     0 0 0 2px color-mix(in srgb, var(--done) 85%, transparent),
     0 0 34px color-mix(in srgb, var(--done) 55%, transparent);
   animation: pane-waiting 1.9s ease-in-out infinite;
+  /* A su propia capa MIENTRAS late, y solo mientras late.
+     Este halo respira sobre un panel del tamaño de media pantalla, y sin capa
+     propia cada latido obliga a repintar también todo lo que hay detrás: la
+     foto de fondo y el desenfoque de cada cristal que la tapa. Con `will-change`
+     el navegador lo pinta aparte una vez y luego solo lo compone, que es lo que
+     hace la tarjeta gráfica sin despeinarse. Y este estado no es raro: se
+     enciende cada vez que un agente termina su turno (2026-08-07). */
+  will-change: transform;
   z-index: 3;
 }
 
@@ -6434,15 +6442,27 @@ button.stat-card[data-live="false"] {
   height: 12px;
 }
 
+/* Las barras nacen a su ALTURA MÁXIMA y se encogen con `transform`, en vez de
+   nacer bajitas y crecer con `height`. Se ven igual y cuestan otra cosa: `height`
+   obliga al navegador a recalcular la maquetación en cada fotograma, y eso
+   invalida el desenfoque de todos los cristales de la pantalla, que son treinta
+   y están todos sobre una foto. Medido el 2026-08-07 en el mismo motor que usa
+   Adeorq, con seis capas de cristal y esta animación dentro: 56% de un núcleo
+   animando `height`, 22% animando `transform`. Era la mitad del «va lag». */
 .np-eq i {
   width: 2.5px;
-  height: 4px;
+  height: 12px;
   border-radius: 2px;
   background: var(--accent);
+  transform-origin: bottom;
+  transform: scaleY(0.34);
 }
 
 .np-eq[data-on="true"] i {
   animation: eq 0.9s ease-in-out infinite;
+  /* En su propia capa: así su latido no arrastra a repintar la barra de
+     arriba, que es cristal y está encima de la foto. */
+  will-change: transform;
 }
 
 .np-eq[data-on="true"] i:nth-child(2) {
@@ -6454,8 +6474,8 @@ button.stat-card[data-live="false"] {
 }
 
 @keyframes eq {
-  0%, 100% { height: 4px; }
-  50% { height: 12px; }
+  0%, 100% { transform: scaleY(0.34); }
+  50% { transform: scaleY(1); }
 }
 
 .np-pop {

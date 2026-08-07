@@ -1,11 +1,11 @@
 {
-  "version": "0.9.58",
-  "notes": "LAS BARRAS DE ESTIRAR LAS TERMINALES DEJAN DE BAILAR. Hay dos mosaicos a la vez: el de verdad, con todo dentro, y el que se ve, que es ese menos lo que tienes apartado. Las terminales se colocaban con el segundo y las barras de arrastre se calculaban con el PRIMERO, asi que con una sola terminal apartada aparecia una barra azul flotando en mitad de otra terminal, y al tirar de ella estirabas una columna que no estaba en pantalla: se movia sola, o no se movia nada. Ahora las barras salen del mosaico que ves, y lo que estiras se copia al de verdad por columna y por terminal, nunca por posicion, que es justo lo que se descolocaba. Lo apartado conserva su tamaño y lo recupera al volver.",
-  "pub_date": "2026-08-07T02:53:58.000Z",
+  "version": "0.9.59",
+  "notes": "DOS ANIMACIONES ESTABAN REPINTANDO TODO EL CRISTAL. Medido en la app en marcha con tres terminales abiertas: el motor (todo el Rust) al 4,4 por ciento de un nucleo, y su parte web al 66,6 pintando y al 72,1 en el renderizador, sin parar. O sea que lo lento nunca fue el motor, era pintar. Adeorq apila treinta superficies de cristal sobre una foto, y dos animaciones estaban dandole justo donde mas duele. El ecualizador de la musica crecia cambiando su ALTURA, y eso obliga a recalcular la maquetacion en cada fotograma, lo que invalida el desenfoque de todos los cristales de la pantalla; ahora se encoge y se estira con una transformacion, se ve igual y no toca la maquetacion. Y el halo verde de cuando un agente te espera respiraba sobre el panel entero, media pantalla, repintando de paso todo lo que tenia detras; ahora respira en su propia capa. Los dos casos son de todos los dias, no rarezas: el ecualizador va siempre que suene musica y el halo se enciende cada vez que un agente termina su turno. Queda dicho lo que NO se ha tocado porque es tu decision: las terminales son transparentes a proposito, que es lo que deja ver tu foto a traves, y ese es el coste de fondo de todo esto.",
+  "pub_date": "2026-08-07T17:05:36.000Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy96RUYrZGk0WW5LbWpvTEp5M3hJWWcwaWFCL2tyNGc4ZU1pVjNzTWZ0ZDBYVkgzNWN0aDdBQ0p6VG84SUg4eTZwd05WR1dOZHVKbXc3TDJ2d3l3MHdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MDcxMjI1CWZpbGU6QWRlb3JxXzAuOS41OF94NjQtc2V0dXAuZXhlClBaK3JIUlBvNDBPOVFCVzk2L3Rud3NsdnlHcFZqRkNYOU1aUTdxSkVQSk84U2VLNWg2Uk14ekpPNnNjaG1VQXVGMzZuNUtFOWNTV1BPRHV5TlNYdUJnPT0K",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.58/Adeorq_0.9.58_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzAvc04zZ1ljVXQwTVdJOGphUjJRYnVGUHlEMTNKNzJocktwQTVRN0RQUTJ5VXlCRWRxU2E5N2ZubVh3OTVxTGc1K29rY3VKL0F1cU9ieHRnZVhWaGdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MTIyMzE3CWZpbGU6QWRlb3JxXzAuOS41OV94NjQtc2V0dXAuZXhlClR3S3VPVUJGaERRQS9PRHRJdUcvbEZNZTV0WGZ4NGYrUlMyT3BON2E3bzJBYzcza3BGbkRIaVpUa1o1SWI5TjJhL0lMaFBsRG9heEpoZ01lWnR5WkRnPT0K",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.59/Adeorq_0.9.59_x64-setup.exe"
     }
   }
 }

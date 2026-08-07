@@ -126,6 +126,33 @@ export function removePane(cols: Col[], id: number): Col[] {
     .filter((c) => c.panes.length > 0);
 }
 
+/**
+ * Devuelve el mosaico REAL con las medidas del mosaico que se está viendo.
+ *
+ * Hay dos mosaicos a la vez: el de verdad (`cols`, con todo dentro) y el que
+ * se ve, que es ese menos lo apartado. Los paneles se colocan con el segundo y
+ * las barras de arrastre se calculaban con el PRIMERO, así que con una sola
+ * terminal apartada aparecía una barra azul flotando en mitad de otra terminal
+ * y arrastrarla movía una columna que no era (Munir, 2026-08-07: «el drag de
+ * estirar las terminales se buguea»).
+ *
+ * Ahora las barras salen del que se ve, y lo que el arrastre cambia se copia
+ * aquí de vuelta al de verdad: por `cid` la columna y por id del panel el alto,
+ * nunca por posición, porque en el que se ve faltan justo los que no están. Lo
+ * apartado conserva su medida y la recupera al volver.
+ */
+export function aplicarVistas(cols: Col[], vistas: Col[]): Col[] {
+  return cols.map((c) => {
+    const v = vistas.find((x) => x.cid === c.cid);
+    if (!v) return c;
+    const hs = c.hs.map((h, i) => {
+      const k = v.panes.indexOf(c.panes[i]);
+      return k >= 0 ? v.hs[k] : h;
+    });
+    return { ...c, w: v.w, hs };
+  });
+}
+
 /** Drag one pane onto another: they trade places, so no gaps are ever left. */
 export function swapPanes(cols: Col[], a: number, b: number): Col[] {
   if (a === b) return cols;

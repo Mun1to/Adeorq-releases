@@ -1,11 +1,11 @@
 {
-  "version": "0.9.57",
-  "notes": "EL PANEL DE USO YA SABE DE TODAS TUS CUENTAS. Cada cuenta es una suscripcion aparte, con su plan, su limite y su gasto, y el panel solo sabia leer la de siempre: trabajar con una segunda cuenta era hacerlo sin ver el deposito. Ahora, con mas de una cuenta, sale una pastilla por cada una encima de los limites; pulsas y todo el panel pasa a hablar de esa: su plan, el porcentaje de la sesion y de la semana, y los tokens que ha hecho cada modelo. Preguntarlo sigue sin gastar cuota, que es un comando local del CLI. Cada cuenta guarda su propia copia de lo ultimo leido, para que al cambiar no aparezcan ni un segundo los numeros de la otra. Y si una cuenta todavia no ha trabajado, lo dice en vez de dejar el hueco en blanco. Aviso honesto: hoy solo Claude publica su consumo de forma legible sin gastar nada. Codex no tiene nada equivalente y Gemini no guarda nada, asi que esto va por CUENTA, no por proveedor: cuando alguno lo publique, entra aqui al lado.",
-  "pub_date": "2026-08-07T02:45:24.000Z",
+  "version": "0.9.58",
+  "notes": "LAS BARRAS DE ESTIRAR LAS TERMINALES DEJAN DE BAILAR. Hay dos mosaicos a la vez: el de verdad, con todo dentro, y el que se ve, que es ese menos lo que tienes apartado. Las terminales se colocaban con el segundo y las barras de arrastre se calculaban con el PRIMERO, asi que con una sola terminal apartada aparecia una barra azul flotando en mitad de otra terminal, y al tirar de ella estirabas una columna que no estaba en pantalla: se movia sola, o no se movia nada. Ahora las barras salen del mosaico que ves, y lo que estiras se copia al de verdad por columna y por terminal, nunca por posicion, que es justo lo que se descolocaba. Lo apartado conserva su tamaño y lo recupera al volver.",
+  "pub_date": "2026-08-07T02:53:58.000Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJQa1ZIYjFaRERWVWNEUHczR0FSS3pIRVNPK0JCLzBpZUEwU2V0VWhSZExLamorbUhkUmhBbGFCV2x0cEZiQ3RyL2Y3cmZVNEpXZDlGaHVoZVVJOWc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MDcwNzA3CWZpbGU6QWRlb3JxXzAuOS41N194NjQtc2V0dXAuZXhlCmN2UDJkVXVPbFBHN0tXc0xWeWRtU2tQaS9NTVF6U3cwZkJ0K1pTa09vVk5VM2M0Q1RabTNaZ1dvZFZ4ejl4UlNKZEhtOXFlYktDT21Nd0QwcXlhckF3PT0K",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.57/Adeorq_0.9.57_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy96RUYrZGk0WW5LbWpvTEp5M3hJWWcwaWFCL2tyNGc4ZU1pVjNzTWZ0ZDBYVkgzNWN0aDdBQ0p6VG84SUg4eTZwd05WR1dOZHVKbXc3TDJ2d3l3MHdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MDcxMjI1CWZpbGU6QWRlb3JxXzAuOS41OF94NjQtc2V0dXAuZXhlClBaK3JIUlBvNDBPOVFCVzk2L3Rud3NsdnlHcFZqRkNYOU1aUTdxSkVQSk84U2VLNWg2Uk14ekpPNnNjaG1VQXVGMzZuNUtFOWNTV1BPRHV5TlNYdUJnPT0K",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.58/Adeorq_0.9.58_x64-setup.exe"
     }
   }
 }

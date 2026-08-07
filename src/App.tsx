@@ -58,6 +58,7 @@ import {
 } from "./lib/discord";
 import {
   addPane as layoutAdd,
+  aplicarVistas,
   applyPreset,
   presetFor,
   rects as layoutRects,
@@ -2017,6 +2018,8 @@ function App() {
     | { kind: "row"; ci: number; ri: number; from: number }
     | null
   >(null);
+  /** El mosaico que se está viendo, para el arrastre de las barras. */
+  const colsVisiblesRef = useRef<Col[]>([]);
 
   const onDividerDown = (
     e: React.PointerEvent<HTMLDivElement>,
@@ -2033,28 +2036,36 @@ function App() {
     const d = dragDiv.current;
     const box = gridRef.current?.getBoundingClientRect();
     if (!d || !box) return;
+    // Se estira lo que SE VE, y el resultado se copia al mosaico de verdad
+    // (ver `aplicarVistas`): los índices de una barra son los del mosaico
+    // visible, y aplicarlos al completo movía la columna equivocada en cuanto
+    // había una terminal apartada.
+    const vistas = colsVisiblesRef.current;
     // The floor is worked out here and not in the model, because only the
     // cockpit knows how many pixels a fraction is worth right now.
     if (d.kind === "col") {
       const delta = (e.clientX - d.from) / box.width;
       if (Math.abs(delta) < 0.005) return;
       dragDiv.current = { ...d, from: e.clientX };
-      setCols((prev) =>
-        resizeCol(prev, d.i, delta, floorFor(MIN_PANE_W, box.width, prev.length)),
+      const tras = resizeCol(
+        vistas,
+        d.i,
+        delta,
+        floorFor(MIN_PANE_W, box.width, vistas.length),
       );
+      setCols((prev) => aplicarVistas(prev, tras));
     } else {
       const delta = (e.clientY - d.from) / box.height;
       if (Math.abs(delta) < 0.005) return;
       dragDiv.current = { ...d, from: e.clientY };
-      setCols((prev) =>
-        resizeRow(
-          prev,
-          d.ci,
-          d.ri,
-          delta,
-          floorFor(MIN_PANE_H, box.height, prev[d.ci]?.panes.length ?? 1),
-        ),
+      const tras = resizeRow(
+        vistas,
+        d.ci,
+        d.ri,
+        delta,
+        floorFor(MIN_PANE_H, box.height, vistas[d.ci]?.panes.length ?? 1),
       );
+      setCols((prev) => aplicarVistas(prev, tras));
     }
   };
 
@@ -2127,6 +2138,9 @@ function App() {
     if (!fuera.length) return cols;
     return fuera.reduce((c, p) => layoutRemove(c, p.id), cols);
   }, [cols, panes, oculto]);
+  // Lo que ve el arrastre de las barras, que corre desde un manejador y no
+  // desde el render (ver `onDividerMove`).
+  colsVisiblesRef.current = colsVisibles;
 
   const placement = layoutRects(colsVisibles);
 
@@ -2574,8 +2588,11 @@ function App() {
                   />
                 );
               })}
+              {/* Las barras salen del mosaico que SE VE, no del completo: con
+                  una terminal apartada, el completo las colocaba en sitios que
+                  ya no eran ningún borde. */}
               {maximizedId == null &&
-                dividers(cols).map((d) =>
+                dividers(colsVisibles).map((d) =>
                   d.kind === "col" ? (
                     <div
                       key={`c${d.i}`}

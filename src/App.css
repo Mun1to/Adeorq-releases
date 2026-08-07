@@ -4654,9 +4654,21 @@ body {
   font-size: 26px;
 }
 
+/* El título y la frase de una pestaña van SUELTOS sobre el fondo de la casa,
+   que es una foto. Un texto sin caja encima de una foto necesita una sombra
+   para despegarse, o se lee a trozos según lo que tenga detrás: en Comandos la
+   frase caía sobre un gato claro y desaparecía a la mitad. */
+.panel-hero h1,
+.panel-hero p,
+.cmd-hint {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+}
+
 .panel-hero p {
   margin: 4px 0 0;
-  color: var(--muted);
+  /* Y con más luz que `--muted`, que es un gris pensado para leerse dentro de
+     un panel opaco. */
+  color: color-mix(in srgb, var(--text) 74%, transparent);
   /* La frase es una línea de contexto, no un párrafo: sin tope se estira a lo
      ancho de la pantalla y el ojo tiene que recorrerla entera para volver. */
   max-width: 78ch;
@@ -4935,6 +4947,19 @@ button.stat-card[data-live="false"] {
   }
 }
 
+/* LA TARJETA DE CONTENIDO. Léase esto antes de inventarse otra.
+ *
+ * El fondo de Adeorq es una FOTO, así que cualquier cosa que se pinte suelta
+ * encima de una pestaña cae sobre ella. Esta tarjeta es la que resuelve eso, y
+ * mientras una pantalla la use, se lee. Cuentas, Agenda y Ajustes la usan.
+ *
+ * Los cuatro sitios donde se ha roto esta semana son los cuatro que se
+ * inventaron su propia superficie: la Memoria, la tira de apartadas, el índice
+ * de secciones y la rejilla de Comandos. Siempre por lo mismo, `--row` de
+ * fondo (que es translúcido) o `--muted` de texto (que es un gris para leer
+ * dentro de un panel opaco). Si haces una rejilla nueva: fondo `--popover` con
+ * `backdrop-filter`, y el desenfoque UNA vez en el contenedor, nunca en cada
+ * tarjeta, que cincuenta y dos desenfoques cuestan lo que costaba el lag. */
 .panel-card {
   background: var(--panel);
   backdrop-filter: var(--glass-blur);
@@ -5635,6 +5660,11 @@ button.stat-card[data-live="false"] {
   gap: 8px;
 }
 
+/* Los chips de elegir, en toda la app (Ajustes, Comandos, los filtros).
+   Iban con un degradado de blanco al 7%, que dentro de una tarjeta opaca se ve
+   y sobre la foto de escritorio no existe: en Comandos, los filtros «Claude
+   Code / Antigravity / Tus skills» eran texto gris flotando sobre unos gatos.
+   Ahora parten de un color SÓLIDO del tema, así que se ven donde caigan. */
 .choice {
   display: flex;
   align-items: center;
@@ -5643,8 +5673,8 @@ button.stat-card[data-live="false"] {
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--muted);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  color: color-mix(in srgb, var(--text) 72%, transparent);
+  background: color-mix(in srgb, var(--text) 8%, var(--panel-solid));
   border: 1px solid var(--border);
   cursor: pointer;
   transition:
@@ -6742,6 +6772,9 @@ button.stat-card[data-live="false"] {
 
 .cmd-hint {
   margin: 0 0 12px;
+  /* Sobre la foto, no dentro de una tarjeta: `--muted` no basta. La sombra la
+     pone la regla de arriba, junto a la del título. */
+  color: color-mix(in srgb, var(--text) 70%, transparent);
 }
 
 .cmd-name {
@@ -8754,10 +8787,24 @@ button.stat-card[data-live="false"] {
   padding: 1px 7px;
 }
 
+/* La rejilla lleva el cristal, y lo lleva UNA vez.
+   Las tarjetas iban sobre `--row` al 45%, o sea translúcido sobre translúcido,
+   y encima de la foto de escritorio no se leía ni un comando: cincuenta y dos
+   nombres flotando sobre unos gatos (Munir, 2026-08-08, y es la cuarta vez con
+   esta misma causa esta semana).
+   El desenfoque va AQUÍ y no en cada tarjeta a propósito: cincuenta y dos
+   `backdrop-filter` de 22 píxeles en una pantalla son exactamente el gasto que
+   acabamos de quitar de encima. Uno por sección, y las tarjetas encima con un
+   color sólido, que no cuesta nada. */
 .cmd-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
   gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
 }
 
 .cmd-card {
@@ -8768,7 +8815,7 @@ button.stat-card[data-live="false"] {
   padding: 9px 12px;
   border-radius: 11px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--row) 45%, transparent);
+  background: var(--row);
   cursor: pointer;
   transition:
     transform 0.1s ease,

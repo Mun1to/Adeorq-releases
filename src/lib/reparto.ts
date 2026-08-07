@@ -21,7 +21,7 @@ import {
   type Mundo,
   type Receta,
 } from "./router";
-import type { ModelAlias } from "./models";
+import { cerebroPorDefecto, type ModelAlias } from "./models";
 
 /** Una tarea del lote, tal como entra al reparto. */
 export interface Tarea {
@@ -201,7 +201,7 @@ export function actaDeReparto(puestos: Puesto[], objetivo?: string, cuando?: str
 export function repartir(tareas: Tarea[], mundo: Mundo, objetivo?: string, cuando?: string): Reparto {
   const dentro = tareas.slice(0, MAX_TAREAS);
   const puestos: Puesto[] = dentro.map((tarea) => {
-    const receta = recetar(tarea.ex, mundo, tarea.pedido);
+    const receta = recetar(tarea.ex, mundo, tarea.pedido, cerebroPorDefecto());
     const otras = dentro.filter((o) => o !== tarea);
     return { tarea, receta, prompt: promptPara(receta.cli, tarea, otras, objetivo) };
   });

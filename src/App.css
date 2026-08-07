@@ -3897,7 +3897,10 @@ body {
    the secondary bits step aside as the pane gets narrower. */
 .pane-name {
   flex: 1 1 auto;
-  min-width: 0;
+  /* Un suelo, no cero: con `min-width: 0` el nombre se dejaba comer del todo
+     para que cupiera el resto, y una terminal sin nombre no se distingue de la
+     de al lado. A partir de aquí, lo que sobra se desplaza (ver `.pane-head`). */
+  min-width: 68px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -8471,52 +8474,37 @@ button.stat-card[data-live="false"] {
   }
 }
 
-/* Y después de las etiquetas, los BOTONES, que hasta ahora no soltaban nunca
-   nada: siete a 28 px con sus huecos son casi 300 px que la cabecera no podía
-   recortar por ningún sitio salvo por la derecha, encima de la X.
-   Se retiran por orden inverso a lo que cuesta llegar a ellos de otra forma:
-   partir y tapar están en el menú del botón derecho y tienen atajo, y borrar
-   la sesión se puede hacer desde la lista de la izquierda. Maximizar y cerrar
-   no se van nunca.
-   Van por posición porque estos botones no tienen clase propia: son el 1º
-   (espejo), 2º (tapar), 3º y 4º (partir) y 5º (maximizar) de la cabecera. Si
-   algún día se añade otro botón, hay que revisar estos números. */
-@container (max-width: 430px) {
-  .pane-head > .pane-btn:nth-of-type(4) {
-    display: none;
-  }
-}
-
-@container (max-width: 380px) {
-  .pane-head > .pane-btn:nth-of-type(3) {
-    display: none;
-  }
-}
-
-@container (max-width: 330px) {
-  .pane-head > .pane-btn:nth-of-type(2) {
-    display: none;
-  }
-}
-
-@container (max-width: 290px) {
-  .pane-head > .pane-btn:nth-of-type(1) {
-    display: none;
-  }
-}
-
-/* La última en irse, y a propósito: en una cabecera apretada un botón que
-   borra la conversación pegado al que solo cierra la ventana es un accidente
-   esperando a pasar. */
-@container (max-width: 250px) {
-  .pane-head > .pane-bin {
-    display: none;
-  }
-}
-
-/* And whatever is left never spills out of the header. */
+/* LOS BOTONES YA NO SE ESCONDEN NUNCA.
+   Aquí había cinco reglas que los iban quitando uno a uno según se estrechaba
+   la terminal: a 430px se iba el de partir, a 380 el de tapar, a 330 el de
+   espejo, y a 250 la papelera. Eso es esconder ACCIONES sin decirlo, y con tres
+   terminales en pantalla pasaba siempre: Munir buscaba el menú de su terminal y
+   la mitad no estaba (2026-08-07).
+   Lo que se esconde ahora es solo TEXTO informativo (el esfuerzo, el modelo, el
+   medidor), que además está entero en el globo de ayuda. Los botones se quedan,
+   y si no caben se llega a ellos rodando la rueda encima de la cabecera. */
 .pane-head {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Sin barra a la vista: una barra de 15px en una fila de 30 se come media
+     cabecera. La rueda ya lo mueve, y la X vive pegada al borde derecho
+     (`position: sticky`, más abajo), así que siempre se ve dónde acaba. */
+  scrollbar-width: none;
+}
+
+.pane-head::-webkit-scrollbar {
+  height: 0;
+}
+
+/* Nada de la cabecera se encoge hasta desaparecer: o cabe, o se desplaza. El
+   nombre es el único que cede sitio, porque es el que puede recortarse y
+   seguir diciendo algo. */
+.pane-head > * {
+  flex-shrink: 0;
+}
+
+.pane-head > .pane-name {
+  flex-shrink: 1;
 }
 
 /* Moving a pane: the label follows the cursor and the target lights up. */

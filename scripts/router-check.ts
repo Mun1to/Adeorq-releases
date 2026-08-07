@@ -16,6 +16,7 @@ import {
   type CuentaViva,
   type Exigencia,
 } from "../src/lib/router";
+import type { ModelAlias } from "../src/lib/models";
 
 const cuenta = (provider: string, label: string, gastado?: number): CuentaViva => ({
   cuenta: { id: `${provider}:${label}`, label, dir: "", provider },
@@ -307,6 +308,62 @@ comprueba(
   "una tarjeta vacía no revienta",
   typeof deTarjeta("") === "string",
   deTarjeta(""),
+);
+
+/* ---------------------------------------- el cerebro por defecto de Ajustes
+ *
+ * Se pone una vez y se olvida, así que la pregunta que importa no es si se
+ * respeta (que sí), sino QUÉ NO PUEDE HACER meses después.
+ */
+const exig = (clase: Exigencia["clase"]): Exigencia => ({
+  clase,
+  consecuencia: "baja",
+  largo: false,
+  trabajo: "codigo",
+});
+
+const conDefecto = (clase: Exigencia["clase"], preferido: ModelAlias) =>
+  recetar(
+    exig(clase),
+    { cuentas: max2 },
+    undefined,
+    preferido,
+  ).modelo;
+
+comprueba(
+  "el cerebro por defecto manda en el trabajo del dia a dia",
+  conDefecto("oficio", "haiku") === "haiku",
+  conDefecto("oficio", "haiku"),
+);
+comprueba(
+  "y tambien para subir: si lo pones en opus, el oficio va en opus",
+  conDefecto("oficio", "opus") === "opus",
+  conDefecto("oficio", "opus"),
+);
+comprueba(
+  "EL QUE IMPORTA: no abarata una tarea de juicio",
+  conDefecto("juicio", "haiku") === "opus",
+  conDefecto("juicio", "haiku"),
+);
+comprueba(
+  "un recado si se puede encarecer a mano, que eso lo decides tu",
+  conDefecto("recado", "opus") === "opus",
+  conDefecto("recado", "opus"),
+);
+comprueba(
+  "sin defecto puesto, decide la tabla de siempre",
+  recetar(exig("recado"), { cuentas: max2 }).modelo === "haiku",
+  recetar(exig("recado"), { cuentas: max2 }).modelo,
+);
+comprueba(
+  "lo elegido PARA ESA TAREA manda sobre el defecto",
+  recetar(
+    exig("oficio"),
+    { cuentas: max2 },
+    "opus",
+    "haiku",
+  ).modelo === "opus",
+  recetar(exig("oficio"), { cuentas: max2 }, "opus", "haiku").modelo,
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

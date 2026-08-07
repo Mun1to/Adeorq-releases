@@ -49,6 +49,7 @@ import { apuntaTecla } from "../lib/tecleando";
 import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
 import { hayQueAjustar, volverA } from "../lib/scrollTerm";
+import { modoRendimiento } from "../lib/rendimiento";
 import { sessionIdOf } from "../lib/comandos";
 
 interface Props {
@@ -917,7 +918,15 @@ export default function TerminalPane({
       // de abajo lo mantiene al día. Ver el porqué allí.
       cursorBlink: focusedRef.current,
       cursorStyle: "bar",
-      scrollback: 8000,
+      /* Cuánto historial guarda cada terminal, en líneas.
+       *
+       * Ocho mil por terminal son un buen pico de la memoria del navegador (267
+       * MB medidos con tres abiertas), y la mayoría no se mira jamás: para
+       * volver a lo de hace rato está el transcript entero, que Adeorq lee
+       * aparte. Pero recortarlo por las bravas es quitarle a Munir algo que
+       * tiene, así que se pregunta: en el modo rendimiento baja a 2.500, que
+       * siguen siendo cien pantallas, y en modo normal se queda como estaba. */
+      scrollback: modoRendimiento() ? 2500 : 8000,
       // Solo cuando de verdad hay algo que dejar ver detrás. Ver `esFondoSolido`.
       allowTransparency: !esFondoSolido(),
       theme: temaDeXterm(),
@@ -1416,6 +1425,26 @@ export default function TerminalPane({
           // Buttons and the tooltip areas keep their own behaviour.
           if (e.button !== 0 || (e.target as HTMLElement).closest("button")) return;
           onHeaderDown?.(id, e);
+        }}
+        /* La cabecera se desplaza con la rueda cuando no cabe.
+         *
+         * Antes, al estrechar una terminal, los BOTONES se iban escondiendo uno
+         * a uno: el de partir, el de tapar, el del espejo... y a 250px la
+         * cabecera se quedaba en dos. Eso es esconder acciones sin decirlo, y
+         * con tres terminales en pantalla pasa siempre (Munir, 2026-08-07: «que
+         * puedas hacer scroll o algo para que se vea bien el menú»). Ahora no se
+         * esconde ni un botón: si no caben, se llega a ellos rodando la rueda
+         * encima, como en la fila de un proyecto.
+         *
+         * Solo se queda el evento si de verdad lo usa: al llegar al final, la
+         * rueda vuelve a ser de quien estuviera debajo. */
+        onWheel={(e) => {
+          const el = e.currentTarget;
+          if (el.scrollWidth - el.clientWidth <= 1) return;
+          if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+          const antes = el.scrollLeft;
+          el.scrollLeft += e.deltaY;
+          if (el.scrollLeft !== antes) e.preventDefault();
         }}
       >
         <KindIcon kind={kind} exited={exited} />

@@ -13,6 +13,12 @@ import {
   TEMAS_TERM,
 } from "../lib/temasTerm";
 import { guardarRendimiento, modoRendimiento } from "../lib/rendimiento";
+import {
+  A_MANO,
+  cerebroPorDefecto,
+  guardarCerebroPorDefecto,
+  type ModelAlias,
+} from "../lib/models";
 import type { PermissionMode } from "../App";
 import type { NotifyMode } from "../lib/notify";
 import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
@@ -278,6 +284,7 @@ export default function SettingsView({
   const [termTheme, setTermTheme] = useState(temaTermId);
   const [apagada, setApagada] = useState(apagon);
   const [rapida, setRapida] = useState(modoRendimiento);
+  const [cerebro, setCerebro] = useState<ModelAlias | undefined>(cerebroPorDefecto);
   /** Qué familia de temas se está mirando, y qué se ha escrito para buscar.
       No se guardan: son de este rato delante de la pantalla, no un ajuste. */
   const [famTema, setFamTema] = useState<string>("todas");
@@ -814,6 +821,43 @@ export default function SettingsView({
                       onClick={() => onNotifyMode(mode)}
                     >
                       {t(label)}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {/* El cerebro de partida. Va JUSTO ANTES del aviso de «cuando el
+                  cerebro no cuadra» porque son la misma conversación: uno
+                  elige y el otro te avisa si lo elegido no pega. */}
+              <section className="panel-card">
+                <h2>{t("Tu cerebro por defecto")}</h2>
+                <p className="card-hint">
+                  {t(
+                    "De fábrica decide Adeorq, mirando lo que exige cada tarea: un renombrado va en haiku y una auditoría en opus. Aquí puedes fijar uno para todo, si prefieres gastar de otra manera. Dos cosas que sigue haciendo igual: la cuota manda (con la semana agotada se abarata lo que se pueda), y una tarea de juicio NO se abarata nunca, porque un ajuste que se pone una vez no puede decidir meses después que una auditoría de seguridad se haga con el modelo barato.",
+                  )}
+                </p>
+                <div className="chip-row">
+                  <button
+                    className="choice"
+                    data-on={!cerebro}
+                    onClick={() => {
+                      guardarCerebroPorDefecto(undefined);
+                      setCerebro(undefined);
+                    }}
+                  >
+                    {t("Que decida Adeorq")}
+                  </button>
+                  {A_MANO.map((m) => (
+                    <button
+                      key={m}
+                      className="choice"
+                      data-on={cerebro === m}
+                      onClick={() => {
+                        guardarCerebroPorDefecto(m);
+                        setCerebro(m);
+                      }}
+                    >
+                      {m}
                     </button>
                   ))}
                 </div>

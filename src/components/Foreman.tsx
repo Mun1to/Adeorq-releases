@@ -17,7 +17,14 @@ import {
   type Skill,
 } from "../lib/pty";
 import type { Account } from "../lib/pty";
-import { A_MANO, isModelAlias, modelForRole, modelPolicyText, type ModelAlias } from "../lib/models";
+import {
+  A_MANO,
+  cerebroPorDefecto,
+  isModelAlias,
+  modelForRole,
+  modelPolicyText,
+  type ModelAlias,
+} from "../lib/models";
 import {
   comoPeso,
   interpretar,
@@ -341,6 +348,7 @@ function cerebroDe(
     exigenciaDeRol(rol),
     { cuentas: mundo, avisos: "nunca", usa: leerPerfil().clis },
     base,
+    cerebroPorDefecto(),
   );
   const esfuerzo = r.esfuerzo;
   // Ojo con el relevo: el router puede proponer otro CLI cuando no queda
@@ -710,12 +718,12 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
     ])
       .then(([raw, vivas]) => {
         const { encargo, ex, porque } = interpretar(raw);
-        const receta = recetar(ex, {
-          cuentas: vivas,
-          panel: p,
-          avisos: modoAviso(),
-          usa: leerPerfil().clis,
-        });
+        const receta = recetar(
+          ex,
+          { cuentas: vivas, panel: p, avisos: modoAviso(), usa: leerPerfil().clis },
+          undefined,
+          cerebroPorDefecto(),
+        );
 
         // El camino automático: se aplica y ya. Solo cuando de verdad hay dónde
         // aplicarlo. Si el router manda a otro CLI, o no tienes ninguna terminal

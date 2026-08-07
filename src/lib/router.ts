@@ -267,16 +267,38 @@ function nombre(c: CuentaViva): string {
  * decisión y SIEMPRE deja dicho por qué la cambió, porque una recomendación
  * sin motivo no se puede discutir y esta se va a discutir.
  */
-export function recetar(ex: Exigencia, mundo: Mundo, pedido?: ModelAlias): Receta {
+export function recetar(
+  ex: Exigencia,
+  mundo: Mundo,
+  pedido?: ModelAlias,
+  preferido?: ModelAlias,
+): Receta {
   const porque: string[] = [];
 
   // 1. Lo que pide el trabajo, antes de mirar la cartera.
   //
-  // `pedido` es el modelo que alguien ya eligió a conciencia: el Capataz
-  // cuando lo escribe en su plan, o Munir cambiándolo a mano. Se respeta como
-  // punto de partida en vez de discutirlo, pero NO se salta las reglas de
-  // cuota de más abajo: que alguien pida opus no hace que aparezca semana.
+  // `pedido` es el modelo que alguien ya eligió a conciencia PARA ESTA TAREA:
+  // el Capataz cuando lo escribe en su plan, o Munir cambiándolo a mano en el
+  // Reparto. Se respeta como punto de partida en vez de discutirlo, pero NO se
+  // salta las reglas de cuota de más abajo: que alguien pida opus no hace que
+  // aparezca semana.
+  //
+  // `preferido` es otra cosa: el cerebro por defecto de Ajustes, que se pone
+  // una vez y se olvida. Por eso NO manda sobre una tarea de juicio: poner
+  // haiku por defecto en enero no puede significar que en marzo una auditoría
+  // de seguridad se haga con haiku. Un ajuste que se olvida no puede abaratar
+  // lo que no se abarata ni con la cuota agotada (ver `esIntocable`).
   let modelo = pedido ?? POR_CLASE[ex.clase];
+  if (!pedido && preferido && preferido !== modelo) {
+    if (ex.clase === "juicio" && ESCALA.indexOf(preferido) < ESCALA.indexOf(modelo)) {
+      porque.push(
+        `Tienes ${preferido} como cerebro por defecto, pero esto es de los de juicio y ahí no se abarata.`,
+      );
+    } else {
+      modelo = preferido;
+      porque.push(`Tu cerebro por defecto es ${preferido}, así que se parte de ahí.`);
+    }
+  }
   const esfuerzo = ESFUERZO_CLASE[ex.clase];
   porque.push(
     ex.clase === "recado"

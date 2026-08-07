@@ -107,6 +107,7 @@ import {
 } from "./lib/pty";
 import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
 import { exigenciaDeRol, modoAviso, recetar } from "./lib/router";
+import { cerebroPorDefecto } from "./lib/models";
 import { PINTA } from "./lib/estados";
 import { fotoRapida } from "./lib/mundo";
 import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
@@ -1469,7 +1470,7 @@ function App() {
         ]),
         avisos: modoAviso(),
         usa: leerPerfil().clis,
-      });
+      }, undefined, cerebroPorDefecto());
       const titulo = limpio.length > 30 ? `${limpio.slice(0, 30)}…` : limpio;
       const nombre = `${project.name} · ${titulo}`;
 

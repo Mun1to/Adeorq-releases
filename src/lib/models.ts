@@ -31,6 +31,30 @@ export function isModelAlias(x: string | undefined): x is ModelAlias {
  */
 export const A_MANO: ModelAlias[] = ["haiku", "sonnet", "opus"];
 
+/* -------------------------------------------------- el cerebro por defecto
+ *
+ * De fábrica no hay ninguno: decide el router, que mira lo que EXIGE cada
+ * tarea. Esto es para cuando tú quieres otra cosa de forma estable («todo con
+ * sonnet este mes») sin tener que decirlo tarea por tarea.
+ *
+ * Y no manda sobre todo, a propósito: un ajuste que se pone una vez y se
+ * olvida no puede abaratar una auditoría de seguridad seis semanas después.
+ * Las tareas de juicio siguen yendo por la tabla (ver `recetar` en router.ts).
+ */
+const CEREBRO_KEY = "adeorq-cerebro-defecto";
+
+/** El cerebro que has puesto por defecto, o `undefined` si decide el router. */
+export function cerebroPorDefecto(): ModelAlias | undefined {
+  const v = localStorage.getItem(CEREBRO_KEY);
+  return v && isModelAlias(v) ? v : undefined;
+}
+
+/** `undefined` devuelve la decisión al router. */
+export function guardarCerebroPorDefecto(m: ModelAlias | undefined): void {
+  if (m) localStorage.setItem(CEREBRO_KEY, m);
+  else localStorage.removeItem(CEREBRO_KEY);
+}
+
 /**
  * The house table, by what the job actually demands:
  *

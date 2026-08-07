@@ -395,6 +395,10 @@ const EN: Record<string, string> = {
   "Dejan de verse las que trajiste a mano. No se borra ninguna.":
     "The ones you brought over stop showing. Nothing is deleted.",
   "Modo rendimiento": "Performance mode",
+  "Tu cerebro por defecto": "Your default brain",
+  "Que decida Adeorq": "Let Adeorq decide",
+  "De fábrica decide Adeorq, mirando lo que exige cada tarea: un renombrado va en haiku y una auditoría en opus. Aquí puedes fijar uno para todo, si prefieres gastar de otra manera. Dos cosas que sigue haciendo igual: la cuota manda (con la semana agotada se abarata lo que se pueda), y una tarea de juicio NO se abarata nunca, porque un ajuste que se pone una vez no puede decidir meses después que una auditoría de seguridad se haga con el modelo barato.":
+    "Out of the box Adeorq decides, looking at what each job demands: a rename goes to haiku, an audit to opus. Here you can pin one for everything, if you would rather spend differently. Two things stay the same: quota rules (with the week spent, whatever can be made cheaper is), and a judgement job is NEVER made cheaper, because a setting you pin once cannot decide months later that a security audit runs on the cheap model.",
   "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido: el motor gasta un 4 % y dibujarlo se lleva núcleo y medio. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.":
     "Less glass and solid terminals, for when you have several agents working at once. Adeorq stacks thirty glass surfaces over your photo and the terminals are transparent so you can see it: that is the pretty part and that is the expensive part. Measured: the engine uses 4% and drawing it eats a core and a half. It changes nothing about what Adeorq does, only what it spends painting it.",
   "Ver el gasto de la cuenta «{acc}»": "See what the “{acc}” account has spent",

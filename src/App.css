@@ -8689,6 +8689,43 @@ button.stat-card[data-live="false"] {
   border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
+/* Qué cuenta estás mirando. Cada una es una suscripción distinta con su propio
+   límite, así que esto no es un filtro: es de quién son los números de abajo, y
+   por eso la elegida va rellena y no solo subrayada. Se envuelve en varias
+   líneas si hay muchas; una columna de 260px no da para una tira que se corte. */
+.usage-cuentas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.usage-cuenta {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.usage-cuenta:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, transparent);
+}
+
+.usage-cuenta[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 60%, transparent);
+  background: color-mix(in srgb, var(--c, var(--accent)) 20%, transparent);
+  color: var(--text);
+}
+
 .usage-block-head {
   display: flex;
   align-items: center;

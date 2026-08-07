@@ -350,3 +350,56 @@ pub async fn usage_limits(config_dir: Option<String>) -> Result<Limits, String> 
     .await
     .map_err(|e| e.to_string())?
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// La cuota de CADA cuenta, contra las cuentas de verdad de esta máquina.
+    ///
+    /// El panel de uso solo sabía leer la de siempre, así que trabajar con una
+    /// segunda cuenta era hacerlo sin ver el depósito (Munir, 2026-08-07). Lo
+    /// que hay que demostrar es que la MISMA orden, con `CLAUDE_CONFIG_DIR`
+    /// puesto, contesta los límites de esa otra cuenta y no los de la primera.
+    ///
+    /// Va en `#[ignore]` porque lanza el CLI de verdad (sin gastar cuota:
+    /// `/usage` es un comando local) y tarda unos segundos:
+    /// `cargo test --lib la_cuota_de_cada_cuenta -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn la_cuota_de_cada_cuenta() {
+        use tauri::async_runtime::block_on;
+        let mut cuentas: Vec<Option<String>> = vec![None];
+        cuentas.extend(
+            crate::accounts::list_account_dirs()
+                .into_iter()
+                .filter(|d| Path::new(d).join(".credentials.json").is_file())
+                .map(Some),
+        );
+        println!("\n{} cuentas con sesión iniciada", cuentas.len());
+        for dir in cuentas {
+            let nombre = dir
+                .as_deref()
+                .and_then(|d| d.rsplit(['\\', '/']).next())
+                .unwrap_or("~/.claude")
+                .to_owned();
+            let plan = block_on(plan_info(dir.clone()))
+                .map(|p| p.subscription)
+                .unwrap_or_else(|| "?".into());
+            let trabajo = block_on(usage_report(dir.clone()))
+                .map(|r| format!("{} tokens esta semana", r.week_tokens))
+                .unwrap_or_else(|| "sin stats todavía".into());
+            match block_on(usage_limits(dir)) {
+                Ok(l) => {
+                    let resumen: Vec<String> = l
+                        .lines
+                        .iter()
+                        .map(|x| format!("{} {}%", x.label, x.percent))
+                        .collect();
+                    println!("  {nombre} · plan {plan} · {trabajo}\n      {}", resumen.join(" · "));
+                }
+                Err(e) => println!("  {nombre} · plan {plan} · {trabajo}\n      SIN LÍMITES: {e}"),
+            }
+        }
+    }
+}

@@ -387,6 +387,9 @@ const EN: Record<string, string> = {
   "Escrita con la cuenta «{acc}», y ahí se retoma":
     "Written on the “{acc}” account, and that is where it resumes",
   "Cuenta: {acc}": "Account: {acc}",
+  "Ver el gasto de la cuenta «{acc}»": "See what the “{acc}” account has spent",
+  "Todavía no hay trabajo apuntado en esta cuenta.":
+    "No work recorded on this account yet.",
   "Volver al orden automático": "Back to automatic order",
   "lo abierto y lo reciente arriba": "open and recent on top",
   "Nueva sesión de Claude Code aquí": "New Claude Code session here",

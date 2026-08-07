@@ -2663,6 +2663,7 @@ function App() {
           canPaste={focusedId != null}
           onUse={pasteToFocused}
           onUsage={focusedId != null ? askUsage : null}
+          cuentas={cuentasClaude}
         />
       </div>
 

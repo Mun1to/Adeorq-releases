@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { listSkills, type Skill } from "../lib/pty";
+import { listSkills, type Account, type Skill } from "../lib/pty";
 import { useT } from "../lib/i18n";
 import UsagePanel from "./UsagePanel";
 import {
@@ -12,11 +12,13 @@ interface Props {
   onUse: (text: string) => void;
   /** Types /usage into the focused pane; null when there is none. */
   onUsage: (() => void) | null;
+  /** Las cuentas de Claude, para poder ver el gasto de cada una. */
+  cuentas: Account[];
 }
 
 const OPEN_KEY = "adeorq-skills-open";
 
-export default function SkillsPanel({ canPaste, onUse, onUsage }: Props) {
+export default function SkillsPanel({ canPaste, onUse, onUsage, cuentas }: Props) {
   const { t } = useT();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [q, setQ] = useState("");
@@ -105,7 +107,7 @@ export default function SkillsPanel({ canPaste, onUse, onUsage }: Props) {
           <p className="skills-hint">{t("Sin skills en ~/.claude/skills")}</p>
         )}
       </div>
-      <UsagePanel onUsage={onUsage} />
+      <UsagePanel onUsage={onUsage} cuentas={cuentas} />
     </aside>
   );
 }

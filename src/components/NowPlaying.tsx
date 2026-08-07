@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   mediaNext,
   mediaNow,
@@ -38,9 +38,39 @@ export default function NowPlaying() {
     return () => window.removeEventListener("mousedown", close);
   }, [open]);
 
-  if (!info) return null;
+  const label = info?.artist ? `${info.title} · ${info.artist}` : (info?.title ?? "");
 
-  const label = info.artist ? `${info.title} · ${info.artist}` : info.title;
+  /* Cuánto se sale el título de su hueco, MEDIDO.
+   *
+   * Contar letras no vale: el ancho depende de la fuente, del idioma y de lo
+   * ancha que tengas la ventana, y un carrusel que se mueve cuando el texto sí
+   * cabía es una animación regalada en la barra de cristal, que es justo lo
+   * que costó núcleo y medio en agosto. Aquí se pregunta al navegador. */
+  const caja = useRef<HTMLSpanElement>(null);
+  const tira = useRef<HTMLSpanElement>(null);
+  const [sobra, setSobra] = useState(0);
+
+  useEffect(() => {
+    const medir = () => {
+      const c = caja.current;
+      const t = tira.current;
+      if (!c || !t) return;
+      // Un par de píxeles de margen: los anchos fraccionarios dejan sobras de
+      // medio píxel que encenderían el carrusel en un título que cabe entero.
+      const fuera = t.scrollWidth - c.clientWidth;
+      setSobra(fuera > 2 ? fuera : 0);
+    };
+    medir();
+    const c = caja.current;
+    if (!c) return;
+    // La barra se estrecha al cambiar el tamaño de la ventana, y entonces un
+    // título que cabía deja de caber.
+    const ro = new ResizeObserver(medir);
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, [label]);
+
+  if (!info) return null;
 
   const act = (fn: () => Promise<unknown>) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -63,7 +93,20 @@ export default function NowPlaying() {
           <i />
           <i />
         </span>
-        <span className="np-text">{label}</span>
+        {/* El título entero, pasando.
+            En una ventana estrecha aquí caben veinte letras y una canción se
+            queda en «Pass The Dutchie · Music…»: no sabes ni de quién es
+            (Munir, 2026-08-07). En vez de cortarlo, pasa como un carrusel.
+            Se para al pasar el ratón, para poder leerlo quieto. */}
+        <span className="np-text" ref={caja} data-largo={sobra > 0 || undefined}>
+          <span
+            className="np-tira"
+            ref={tira}
+            style={sobra > 0 ? ({ ["--sobra" as string]: `${sobra}px` }) : undefined}
+          >
+            {label}
+          </span>
+        </span>
       </button>
       <button
         className="np-btn-mini"

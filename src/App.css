@@ -4828,10 +4828,20 @@ button.stat-card[data-live="false"] {
   background: color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
+/* El índice de secciones (Ajustes y el Panel usan el mismo).
+   No tenía fondo, así que sus ocho nombres en gris caían sueltos sobre la foto
+   de escritorio y no se leía ninguno (Munir, 2026-08-07, por tercera vez con
+   la misma causa). Superficie propia y cristal, que es la regla de la casa
+   para todo lo que puede acabar sobre el fondo. */
 .set-nav {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
   /* Se queda a la vista mientras el contenido baja: en Discord o en Terminales
      hay texto de sobra para perder de vista dónde estás.
      El `-40px` compensa el padding de arriba de `.panel`: sin él, la barra se
@@ -4850,7 +4860,9 @@ button.stat-card[data-live="false"] {
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--muted);
+  /* Un punto más de luz que `--muted`: son ocho nombres seguidos y es lo único
+     que hay que leer de esta columna. */
+  color: color-mix(in srgb, var(--text) 70%, transparent);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -4861,7 +4873,7 @@ button.stat-card[data-live="false"] {
 
 .set-tab:hover {
   color: var(--text);
-  background: color-mix(in srgb, var(--text) 6%, transparent);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
 }
 
 .set-tab[data-on] {
@@ -6527,11 +6539,63 @@ button.stat-card[data-live="false"] {
 /* Con tope. Sin él, un título largo —o uno en chino, que ocupa el doble por
    carácter— empujaba al resto de la barra hasta sacar botones de la pantalla.
    Ahora el que se corta es el título, que es lo que se puede permitir. */
+/* El título de lo que suena. Corto, se lee entero; largo, pasa como un
+   carrusel en vez de quedarse en «Pass The Dutchie · Music…».
+   Se mueve con `transform`, nunca con `left` ni con `margin`: esto vive en la
+   barra de arriba, que es cristal sobre la foto, y cualquier animación que
+   toque la maquetación obliga a recalcular ese desenfoque en cada fotograma.
+   Es exactamente el fallo que costó núcleo y medio en agosto (ver el
+   ecualizador, tres reglas más abajo). */
 .np-text {
   max-width: 190px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  /* Los extremos se desvanecen en vez de cortarse a cuchillo: así se entiende
+     que el texto sigue, y de paso el bucle no da un salto seco al reiniciar. */
+  mask-image: linear-gradient(90deg, transparent, #000 8px, #000 calc(100% - 10px), transparent);
+}
+
+.np-tira {
+  display: inline-block;
+  padding-left: 4px;
+}
+
+/* Solo cuando de verdad no cabe: un título corto quieto se lee mejor, y una
+   animación permanente por gusto es trabajo de la tarjeta gráfica regalado. */
+.np-text[data-largo] .np-tira {
+  animation: np-pasa 13s linear infinite;
+  will-change: transform;
+}
+
+/* Y quieto mientras lo miras, que es cuando quieres leerlo entero de una vez. */
+.np:hover .np-tira,
+:root[data-rendimiento="1"] .np-tira {
+  animation: none;
+}
+
+/* `--sobra` es lo que se sale, medido en el componente: así el recorrido es
+   exactamente el que hace falta y ni un píxel más, sea cual sea el título. */
+@keyframes np-pasa {
+  /* Empieza y acaba quieto un momento en el principio: sin esa pausa el
+     título nunca se lee desde el arranque, que es como se reconoce una
+     canción. */
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+  88%,
+  100% {
+    transform: translateX(calc(-1 * var(--sobra, 0px)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .np-text[data-largo] .np-tira {
+    animation: none;
+  }
+  .np-text {
+    text-overflow: ellipsis;
+  }
 }
 
 .np-btn-mini {

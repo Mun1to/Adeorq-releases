@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useT } from "../lib/i18n";
 import { bonito } from "../lib/ram";
+import { latido } from "../lib/latido";
 
 interface Datos {
   ramMb: number;
@@ -36,8 +37,8 @@ export default function Pulso() {
   useEffect(() => {
     const leer = () => void invoke<Datos>("pulso").then(setD).catch(() => {});
     leer();
-    const id = setInterval(leer, CADA_MS);
-    return () => clearInterval(id);
+    // Ver `lib/latido.ts`: con la ventana oculta no se pregunta nada.
+    return latido(leer, CADA_MS);
   }, []);
 
   if (!d) return null;

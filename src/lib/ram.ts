@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { latido } from "./latido";
 
 export interface PanePulso {
   /** El mismo id del panel en la ventana. */
@@ -60,10 +61,13 @@ export function useRamPanes(activo: boolean): Map<number, PanePulso> {
         })
         .catch(() => {});
     leer();
-    const id = setInterval(leer, CADA_MS);
+    // Con la ventana minimizada esto no lo mira nadie, y recorrer la tabla de
+    // procesos del sistema cada ocho segundos para no enseñárselo a nadie es
+    // trabajo tirado. Al volver se pregunta en el acto (ver `lib/latido.ts`).
+    const parar = latido(leer, CADA_MS);
     return () => {
       vivo = false;
-      clearInterval(id);
+      parar();
     };
   }, [activo]);
 

@@ -4,7 +4,8 @@ import {
   requestPermission,
   sendNotification,
 } from "@tauri-apps/plugin-notification";
-import { usageLimits, type Account } from "../lib/pty";
+import { type Account } from "../lib/pty";
+import { limitesDe, loQueTePara } from "../lib/cuota";
 import { anotarCuota } from "../lib/mundo";
 import { useT } from "../lib/i18n";
 
@@ -80,13 +81,12 @@ export default function AvisoCuota({ cuentas, paneles, onAbrir }: Props) {
       for (const acc of cuentasRef.current) {
         if (stop) return;
         try {
-          const l = await usageLimits(acc.dir || undefined);
-          // De todas sus líneas manda la más alta: da igual que la semana vaya
-          // holgada si la sesión está al 97%, porque es la que te para.
-          const peor = l.lines.reduce(
-            (max, x) => (x.percent > max.percent ? x : max),
-            { label: "", percent: 0, resets: "" },
-          );
+          // Por el portero de `lib/cuota.ts`, no directo: preguntarlo lanza un
+          // proceso `claude` de cinco segundos y aquí se preguntaba una vez por
+          // cuenta cada veinte minutos, aparte de lo que preguntaran el panel de
+          // uso y el router por su cuenta. Ahora la lectura se comparte.
+          const l = await limitesDe(acc.dir);
+          const peor = loQueTePara(l);
           if (stop) return;
           setLecturas((prev) => ({
             ...prev,

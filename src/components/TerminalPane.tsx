@@ -48,6 +48,7 @@ import { chime, forgetPane, notify, type NotifyMode } from "../lib/notify";
 import { apuntaTecla } from "../lib/tecleando";
 import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
+import { hayQueAjustar, volverA } from "../lib/scrollTerm";
 import { sessionIdOf } from "../lib/comandos";
 
 interface Props {
@@ -138,6 +139,31 @@ function fondoDeXterm(): string {
     .getPropertyValue("--xterm-bg")
     .trim();
   return v || FONDO_RESERVA;
+}
+
+/**
+ * Si el fondo que le toca a la terminal es SÓLIDO, o sea que no hay nada que
+ * dejar ver a través.
+ *
+ * Con transparencia, xterm renuncia a su camino rápido: tiene que componer cada
+ * celda contra lo que hay debajo en vez de pintar y ya. Es lo correcto cuando
+ * la gracia es ver tu foto por detrás, y es tirar rendimiento cuando el fondo
+ * es negro sólido (el Apagón) o cuando has pedido el modo rendimiento.
+ *
+ * Se mira el COLOR que va a usar, no el ajuste: así vale para las tres formas
+ * de acabar con un fondo sólido sin tener que acordarse de ninguna.
+ */
+function esFondoSolido(): boolean {
+  const c = fondoDeXterm();
+  const m = c.match(/rgba?\(([^)]+)\)/i);
+  if (m) {
+    const partes = m[1].split(/[,/]/).map((x) => x.trim());
+    // Sin cuarto valor es un rgb() de toda la vida: opaco.
+    return partes.length < 4 || Number(partes[3]) >= 0.999;
+  }
+  // `#rrggbbaa` y `#rgba` llevan la transparencia dentro; el resto es opaco.
+  if (c.startsWith("#")) return c.length !== 9 && c.length !== 5;
+  return !/transparent|color-mix|hsla|\/\s*0?\.\d/.test(c);
 }
 
 /** Aviso de que el fondo de la casa ha cambiado, para que las terminales ya
@@ -636,7 +662,30 @@ export default function TerminalPane({
       const f2 = fitRef.current;
       const e2 = holder.current;
       if (!t2 || !f2 || !e2 || e2.clientWidth === 0) return;
+
+      /* Ajustar SOLO si de verdad cambia la rejilla.
+       *
+       * `fit()` acaba llamando a `resize()`, y `resize()` rehace el texto para
+       * el ancho nuevo y mueve el viewport a donde le toque. Aquí se llamaba en
+       * cada aviso del ResizeObserver, y ese observador dispara por cualquier
+       * cosa que mueva un píxel el alto del panel: una pregunta que aparece, el
+       * aviso de contexto, la barra de agentes. O sea que estabas leyendo hacia
+       * arriba, llegaba texto nuevo, y el scroll se te iba solo (Munir,
+       * 2026-08-07: «un pequeño scroll y a veces se te teletransporta hacia muy
+       * arriba»). Si las columnas y las filas van a ser las mismas, no hay nada
+       * que ajustar y no se toca nada. */
+      if (!hayQueAjustar(t2, f2.proposeDimensions())) return;
+
+      // Y cuando SÍ hay que ajustar, se vuelve a donde estabas mirando. Las dos
+      // reglas y sus casos, en `lib/scrollTerm.ts`.
+      const antes = { baseY: t2.buffer.active.baseY, viewportY: t2.buffer.active.viewportY };
+
       f2.fit();
+
+      const destino = volverA(antes, t2.buffer.active.baseY);
+      if (destino === null) t2.scrollToBottom();
+      else t2.scrollToLine(destino);
+
       if (
         t2.cols !== lastSizeRef.current.cols ||
         t2.rows !== lastSizeRef.current.rows
@@ -721,6 +770,24 @@ export default function TerminalPane({
     if (focused) setDone(false);
   }, [focused]);
 
+  /** El foco de ahora mismo, para el montaje de xterm, que corre una sola vez
+      y no puede depender de `focused` sin recrear la terminal entera. */
+  const focusedRef = useRef(focused);
+  focusedRef.current = focused;
+
+  /* Solo parpadea el cursor de la terminal que tienes delante.
+   *
+   * Cada parpadeo repinta la terminal, y una terminal de Adeorq es cristal
+   * sobre una foto: repintarla obliga a recalcular el desenfoque de todo lo que
+   * tiene detrás. Con cuatro paneles abiertos eran ocho repintados por segundo
+   * de media pantalla para dibujar tres cursores que no estás mirando. El de la
+   * terminal activa sigue parpadeando, que es donde escribes y donde un cursor
+   * quieto parece un guion (2026-08-07). */
+  useEffect(() => {
+    const term = termRef.current;
+    if (term) term.options.cursorBlink = focused;
+  }, [focused]);
+
   // El teclado, cuando lo piden desde fuera. No se hace en cada cambio de
   // `focused` a propósito: eso le robaría el cursor a quien esté escribiendo en
   // el buscador o en un cuadro cualquiera.
@@ -794,7 +861,13 @@ export default function TerminalPane({
   useEffect(() => {
     const alCambiar = () => {
       const t = termRef.current;
-      if (t) t.options.theme = temaDeXterm();
+      if (!t) return;
+      t.options.theme = temaDeXterm();
+      // Y si el fondo que le acaba de tocar es SÓLIDO, xterm deja de trabajar
+      // como si fuera translúcido. Es su camino rápido, y es el gasto de fondo
+      // debajo de todo el rendimiento de Adeorq: mantenerlo encendido cuando
+      // ya no hay nada que dejar ver es pagar por nada (2026-08-07).
+      t.options.allowTransparency = !esFondoSolido();
     };
     window.addEventListener(FONDO_EVENTO, alCambiar);
     window.addEventListener(TEMA_TERM_EVENTO, alCambiar);
@@ -840,10 +913,13 @@ export default function TerminalPane({
       fontSize,
       lineHeight: 1.2,
       letterSpacing: 0.2,
-      cursorBlink: true,
+      // Nace parpadeando solo si es la terminal que tienes delante; el efecto
+      // de abajo lo mantiene al día. Ver el porqué allí.
+      cursorBlink: focusedRef.current,
       cursorStyle: "bar",
       scrollback: 8000,
-      allowTransparency: true,
+      // Solo cuando de verdad hay algo que dejar ver detrás. Ver `esFondoSolido`.
+      allowTransparency: !esFondoSolido(),
       theme: temaDeXterm(),
     });
     const fit = new FitAddon();

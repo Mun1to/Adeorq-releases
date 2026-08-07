@@ -12,6 +12,7 @@ import {
   temaTermId,
   TEMAS_TERM,
 } from "../lib/temasTerm";
+import { guardarRendimiento, modoRendimiento } from "../lib/rendimiento";
 import type { PermissionMode } from "../App";
 import type { NotifyMode } from "../lib/notify";
 import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
@@ -276,6 +277,7 @@ export default function SettingsView({
       hace falta para saber cuál sale marcado. */
   const [termTheme, setTermTheme] = useState(temaTermId);
   const [apagada, setApagada] = useState(apagon);
+  const [rapida, setRapida] = useState(modoRendimiento);
   /** Qué familia de temas se está mirando, y qué se ha escrito para buscar.
       No se guardan: son de este rato delante de la pantalla, no un ajuste. */
   const [famTema, setFamTema] = useState<string>("todas");
@@ -488,6 +490,27 @@ export default function SettingsView({
                     <span className="card-hint">
                       {t(
                         "Negro sólido detrás de las terminales, aunque tengas fondo puesto. Para cuando lo que hay debajo estorba a lo que estás leyendo. No toca el resto de la app: para eso está el tema «Negro absoluto».",
+                      )}
+                    </span>
+                  </span>
+                </label>
+                {/* Justo debajo del apagón porque son la misma familia: los dos
+                    cambian lo que se ve DETRÁS del texto. La diferencia es que
+                    el apagón lo hace para leer mejor y este para gastar menos. */}
+                <label className="ajuste-fila mem-check apagon-fila">
+                  <input
+                    type="checkbox"
+                    checked={rapida}
+                    onChange={(e) => {
+                      guardarRendimiento(e.currentTarget.checked);
+                      setRapida(e.currentTarget.checked);
+                    }}
+                  />
+                  <span>
+                    <b>{t("Modo rendimiento")}</b>
+                    <span className="card-hint">
+                      {t(
+                        "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido: el motor gasta un 4 % y dibujarlo se lleva núcleo y medio. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.",
                       )}
                     </span>
                   </span>

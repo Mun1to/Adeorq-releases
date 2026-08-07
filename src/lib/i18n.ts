@@ -387,6 +387,9 @@ const EN: Record<string, string> = {
   "Escrita con la cuenta «{acc}», y ahí se retoma":
     "Written on the “{acc}” account, and that is where it resumes",
   "Cuenta: {acc}": "Account: {acc}",
+  "Modo rendimiento": "Performance mode",
+  "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido: el motor gasta un 4 % y dibujarlo se lleva núcleo y medio. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.":
+    "Less glass and solid terminals, for when you have several agents working at once. Adeorq stacks thirty glass surfaces over your photo and the terminals are transparent so you can see it: that is the pretty part and that is the expensive part. Measured: the engine uses 4% and drawing it eats a core and a half. It changes nothing about what Adeorq does, only what it spends painting it.",
   "Ver el gasto de la cuenta «{acc}»": "See what the “{acc}” account has spent",
   "Todavía no hay trabajo apuntado en esta cuenta.":
     "No work recorded on this account yet.",

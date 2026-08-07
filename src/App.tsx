@@ -111,6 +111,7 @@ import { fotoRapida } from "./lib/mundo";
 import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
 import { apagon, aplicarApagon } from "./lib/temasTerm";
+import { aplicarRendimiento, modoRendimiento } from "./lib/rendimiento";
 import { sessionIdOf, shellCommand } from "./lib/comandos";
 import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
@@ -726,6 +727,9 @@ function App() {
   // dejó encendido ayer no tiene que volver a Ajustes hoy.
   useEffect(() => {
     aplicarApagon(apagon());
+    // Igual que el apagón: la marca vive en `<html>` y hay que ponerla al
+    // arrancar, o el ajuste se pierde entre sesiones.
+    aplicarRendimiento(modoRendimiento());
   }, []);
 
   useEffect(() => {

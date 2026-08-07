@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   planInfo,
-  usageLimits,
   usageReport,
   type Account,
   type Limits,
   type PlanInfo,
   type UsageReport,
 } from "../lib/pty";
+import { enCache, limitesDe } from "../lib/cuota";
 import { hueOf } from "../lib/colors";
 import { useT } from "../lib/i18n";
 import {
@@ -26,16 +26,9 @@ import {
 //    models did them.
 
 const OPEN_KEY = "adeorq-usage-open";
-const CACHE_KEY = "adeorq-limits";
 /** Qué cuenta estabas mirando, para no volver a la principal cada vez. */
 const CUENTA_KEY = "adeorq-usage-cuenta";
 const REFRESH_MS = 10 * 60 * 1000;
-
-/* Una caché por cuenta. Con una sola clave para todas, cambiar de cuenta
-   enseñaba durante un segundo los porcentajes de la anterior, que es la clase
-   de dato que no puede aparecer mal ni un segundo: se lee para decidir si
-   seguir trabajando o parar. */
-const claveDe = (dir: string) => (dir ? `${CACHE_KEY}:${dir}` : CACHE_KEY);
 
 interface Cached {
   at: number;
@@ -92,33 +85,31 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
 
   const [cache, setCache] = useState<Cached | null>(null);
 
-  const refresh = useCallback(() => {
-    setBusy(true);
-    setError("");
-    usageLimits(dir || undefined)
-      .then((limits) => {
-        const fresh = { at: Date.now(), limits };
-        setCache(fresh);
-        localStorage.setItem(claveDe(dir), JSON.stringify(fresh));
-      })
-      .catch((e) => setError(String(e)))
-      .finally(() => setBusy(false));
-  }, [dir]);
+  /* Preguntar la cuota lanza un proceso `claude` de cinco segundos, así que
+     pasa por el portero de `lib/cuota.ts`, que la comparte con el aviso y con
+     el router. `forzar` es el botón de refrescar: ahí sí lo has pedido tú. */
+  const refresh = useCallback(
+    (forzar = false) => {
+      setBusy(true);
+      setError("");
+      limitesDe(dir, forzar ? 0 : undefined)
+        .then((limits) => setCache({ at: enCache(dir)?.at ?? Date.now(), limits }))
+        .catch((e) => setError(String(e)))
+        .finally(() => setBusy(false));
+    },
+    [dir],
+  );
 
   useEffect(() => {
     // Lo último que se leyó de ESTA cuenta, mientras llega lo de ahora: el
     // panel enseña algo desde el primer instante en vez de tres huecos.
-    try {
-      setCache(JSON.parse(localStorage.getItem(claveDe(dir)) ?? "null"));
-    } catch {
-      setCache(null);
-    }
+    setCache(enCache(dir));
     setPlan(null);
     setData(null);
     planInfo(dir || undefined).then(setPlan).catch(() => {});
     usageReport(dir || undefined).then(setData).catch(() => {});
     refresh();
-    const timer = setInterval(refresh, REFRESH_MS);
+    const timer = setInterval(() => refresh(), REFRESH_MS);
     return () => clearInterval(timer);
   }, [refresh, dir]);
 
@@ -177,7 +168,7 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
                 className="mini usage-refresh"
                 data-tip={t("Volver a preguntar (no gasta cuota)")}
                 disabled={busy}
-                onClick={refresh}
+                onClick={() => refresh(true)}
               >
                 {busy ? "…" : <RefreshIcon size={13} />}
               </button>

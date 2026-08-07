@@ -2086,3 +2086,43 @@ mod tests {
         assert_eq!(codex_titulo(&[]), "");
     }
 }
+
+#[cfg(test)]
+mod coste_tests {
+    use super::*;
+
+    /// Cuánto cuesta barrer cada cuenta, contra el disco de verdad.
+    ///
+    /// La pregunta de Munir (2026-08-07): «¿el lag tendrá que ver con tener dos
+    /// cuentas trabajando a la vez?». Esto contesta la parte que le toca al
+    /// lector de sesiones, que es lo único que crece con el número de cuentas.
+    /// `cargo test --lib lo_que_cuesta_cada_cuenta -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn lo_que_cuesta_cada_cuenta() {
+        use std::time::Instant;
+        let live = HashSet::new();
+        // Dos vueltas: la primera con la caché fría, la segunda como el panel
+        // la encuentra de verdad cada 45 segundos.
+        for vuelta in 1..=2 {
+            let cache = SessionCache::default();
+            if vuelta == 2 {
+                for (cuenta, raiz) in raices_claude() {
+                    let _ = escanear_raiz(&raiz, &cuenta, &cache, &live);
+                }
+            }
+            let mut total = 0u128;
+            for (cuenta, raiz) in raices_claude() {
+                let t = Instant::now();
+                let n = escanear_raiz(&raiz, &cuenta, &cache, &live).len();
+                let ms = t.elapsed().as_millis();
+                total += ms;
+                println!(
+                    "vuelta {vuelta} · {:<48} {n:>4} sesiones en {ms:>5} ms",
+                    if cuenta.is_empty() { "~/.claude (la de siempre)" } else { &cuenta }
+                );
+            }
+            println!("vuelta {vuelta} · TOTAL {total} ms\n");
+        }
+    }
+}

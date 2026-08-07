@@ -7,6 +7,7 @@ import {
   type NowPlayingInfo,
 } from "../lib/pty";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 
 // The music strip in the top bar. It reads Windows' media session, so it works
 // with Spotify without asking Munir for any account: no login, no tokens.
@@ -25,8 +26,9 @@ export default function NowPlaying() {
         .catch(() => setInfo(null));
     };
     look();
-    const timer = setInterval(look, POLL_MS);
-    return () => clearInterval(timer);
+    // Ver `lib/latido.ts`: con Adeorq minimizado no hay barra que actualizar,
+    // y esto preguntaba a Windows qué suena cada cuatro segundos igual.
+    return latido(look, POLL_MS);
   }, []);
 
   useEffect(() => {

@@ -14,7 +14,8 @@
 // hay caché y por eso la comparte con el aviso de cuota, que ya sondeaba solo
 // cada veinte minutos: lo normal es que el dato ya esté cuando se pregunte.
 
-import { accountReady, detectClis, planInfo, usageLimits, type Account } from "./pty";
+import { accountReady, detectClis, planInfo, type Account } from "./pty";
+import { limitesDe, loQueTePara } from "./cuota";
 import { PROVIDERS, providerOf } from "./providers";
 import type { CuentaViva } from "./router";
 
@@ -124,11 +125,12 @@ export async function mirarMundo(cuentas: Account[]): Promise<CuentaViva[]> {
 
     let gastado = cuotas.get(cuenta.id)?.valor;
     if (instalado && conectada && p.usage && !fresco(cuotas.get(cuenta.id), VIDA_CUOTA)) {
-      const l = await usageLimits(cuenta.dir || undefined).catch(() => null);
+      // Por el portero, que puede tener la respuesta ya leída por el aviso de
+      // cuota o por el panel de uso. Antes cada uno lanzaba su propio proceso
+      // `claude` de cinco segundos para enterarse de lo mismo.
+      const l = await limitesDe(cuenta.dir).catch(() => null);
       if (l) {
-        // Manda la línea más alta, igual que en el aviso: da igual que la
-        // semana vaya holgada si la sesión está al 97 %, porque es la que para.
-        gastado = l.lines.reduce((max, x) => (x.percent > max ? x.percent : max), 0);
+        gastado = loQueTePara(l).percent;
         anotarCuota(cuenta.id, gastado);
       }
     }

@@ -375,6 +375,7 @@ const EN: Record<string, string> = {
   Carpeta: "Folder",
   "sin sesiones recientes": "no recent sessions",
   "Aquí queda fuera de su grupo": "Drop here to take it out of its group",
+  "Aquí deja de ser de ningún proyecto": "Drop here and it belongs to no project",
   "sesiones no agrupadas": "ungrouped sessions",
 
   // Lo que llevas trabajado, en la pantalla vacía de la Cabina. «Sesiones» ya

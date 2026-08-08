@@ -1,11 +1,11 @@
 {
-  "version": "0.9.71",
-  "notes": "EL PULSO YA ENSEÑA LA CPU, Y CUENTA LOS PROCESOS QUE DE VERDAD LA GASTAN. Estaban la RAM y los agentes; faltaba el numero que se mueve y el que explica un tiron. Va el primero de la tira porque la RAM apenas cambia en horas. Mide el ARBOL ENTERO, que es la parte que casi todo el mundo hace mal aqui: el trabajo de Adeorq no esta en su ventana, esta en los procesos del navegador que cuelgan de ella y que son los que pintan. Mirando solo la ventana sale un 4 por ciento y la conclusion falsa de que no pasa nada. Y va repartida entre los hilos del equipo, como en el Administrador de tareas: sin eso, una maquina de 16 hilos daria cifras de tres digitos que no se parecen a nada de lo que ves en Windows. Un porcentaje de CPU nunca es de un instante, es siempre trabajo hecho ENTRE dos momentos: por eso la primera lectura devuelve cero en vez de un numero inventado, y dos lecturas demasiado seguidas repiten la anterior en vez de enseñar una cifra que salta sola.",
-  "pub_date": "2026-08-08T02:50:36.000Z",
+  "version": "0.9.72",
+  "notes": "EL ARRASTRE SE QUEDA DENTRO DE LA BARRA, Y UNA SESION YA LLEGA A LAS NO AGRUPADAS. La copia que llevas en la mano se salia de la barra y flotaba sobre las terminales. Fuera de la barra no hay nada donde soltar, asi que enseñarla ahi prometia un sitio que no existe: ahora tiene corral, y el corral se mide en cada movimiento porque la barra se desplaza sola mientras arrastras. Y llevar una sesion abajo, a sesiones no agrupadas, seguia sin funcionar por un motivo tonto: esa zona solo existia cuando YA habia alguna suelta, asi que la primera no tenia adonde ir. Ahora aparece siempre que llevas una sesion en la mano, se enciende al pasar por encima, y manda sobre la zona de sueltas de cada proyecto: si estas dentro de ella, lo que quieres es que la sesion no sea de ningun proyecto. Al soltarla ahi se la manda al saco de verdad y no se la devuelve a su carpeta, que son cosas distintas: lo segundo la haria volver a subir al proyecto en el acto si su carpeta esta en la lista.",
+  "pub_date": "2026-08-08T03:27:35.000Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzh1NE9IN0U4TDFSVGp5YU4wcFJvT0lOTTJMNWhxajVaeUJlaU82eVNXZDRONDZCSGpUZ1hkTWwvZGdXbVFPOVd4RWpwMHU1dmVXK2hpNVE0L0M4cndvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MTU3NDIwCWZpbGU6QWRlb3JxXzAuOS43MV94NjQtc2V0dXAuZXhlCmZKdUt4c2ZxRE5vODhHT3hFU2pPdXp2a1NjTVdreExiVHpBOHdld1BvRlZZcHVBZ3VCOFhZb1VWSnBVeVU0elVJTTduemhDbTFsVW5ENjNSUFB3Q0NRPT0K",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.71/Adeorq_0.9.71_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzg3TkM2NWl6Z1lXMkRjbTV0YWVid3VmeUgxQnJlTW9SVEYxNTNpOWVGNUlqVUNNd2F6SGpKVWM0eTlXSXMrbG1CdWhkcVR3MmMzM0NkWU51RDlqZVFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MTU5NjIyCWZpbGU6QWRlb3JxXzAuOS43Ml94NjQtc2V0dXAuZXhlCktuQTdTM3E0bGlLRm9JaDBhYVA0WC9BcjJkbWhjMjM5dkgwT3RNeVZiV2pVQ0FUYndSZjgrMEZpcHZrcVM0UGRpcjc2M3Q4a0ZMelFxTzk0d1FYZERBPT0K",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.72/Adeorq_0.9.72_x64-setup.exe"
     }
   }
 }

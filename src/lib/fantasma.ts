@@ -39,14 +39,29 @@ export interface Fantasma {
  * gesto (se centra en el puntero) y se siente como si se te hubiera escapado.
  */
 export function posicion(
-  caja: { left: number; top: number },
+  caja: { left: number; top: number; width: number; height: number },
   agarre: { x: number; y: number },
   puntero: { x: number; y: number },
+  /**
+   * Hasta dónde puede llegar. Sin esto, arrastrar un proyecto lo sacaba de la
+   * barra y lo dejaba flotando sobre las terminales (Munir, 2026-08-08: «que no
+   * se pueda mover de donde la pestaña en sí de workspaces»), que además es
+   * mentira: ahí no se puede soltar nada, así que enseñarlo ahí promete un sitio
+   * que no existe.
+   */
+  limite?: { left: number; top: number; right: number; bottom: number },
 ): { x: number; y: number } {
-  return {
-    x: puntero.x - (agarre.x - caja.left),
-    y: puntero.y - (agarre.y - caja.top),
-  };
+  let x = puntero.x - (agarre.x - caja.left);
+  let y = puntero.y - (agarre.y - caja.top);
+  if (limite) {
+    // Se acota la esquina de arriba a la izquierda contando el tamaño de la
+    // copia, o el corral dejaría asomar por abajo y por la derecha justo lo que
+    // mide la fila. Y con `Math.max` DESPUÉS del `min` para que un corral más
+    // estrecho que la copia la pegue al borde en vez de sacarla por el otro.
+    x = Math.max(limite.left, Math.min(x, limite.right - caja.width));
+    y = Math.max(limite.top, Math.min(y, limite.bottom - caja.height));
+  }
+  return { x, y };
 }
 
 /**
@@ -66,6 +81,12 @@ export function levantar(
    * levantaría en gris, que es justo lo que la distingue de un grupo normal.
    */
   vars?: Record<string, string | undefined>,
+  /**
+   * El elemento que hace de corral. Se mide en CADA movimiento y no una sola
+   * vez: la barra puede desplazarse sola mientras arrastras (el autoscroll de
+   * los bordes), y con una medida congelada el corral se quedaría donde estaba.
+   */
+  corral?: HTMLElement | null,
 ): Fantasma {
   const caja = el.getBoundingClientRect();
   const agarre = { x, y };
@@ -84,11 +105,15 @@ export function levantar(
   // Ni identidad ni foco: es un dibujo. Sin esto, un lector de pantalla leería
   // dos veces la misma fila y el tabulador pararía en un elemento fantasma.
   clon.setAttribute("aria-hidden", "true");
-  for (const b of clon.querySelectorAll("button, input, a")) b.setAttribute("tabindex", "-1");
+  clon.querySelectorAll("button, input, a").forEach((b) => b.setAttribute("tabindex", "-1"));
   document.body.appendChild(clon);
 
   const mover = (px: number, py: number) => {
-    const p = posicion(caja, agarre, { x: px, y: py });
+    const r = corral?.getBoundingClientRect();
+    const limite = r
+      ? { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
+      : undefined;
+    const p = posicion(caja, agarre, { x: px, y: py }, limite);
     clon.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px)`;
   };
   mover(x, y);

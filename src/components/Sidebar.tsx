@@ -991,7 +991,11 @@ export default function Sidebar({
       // Se levanta desde donde EMPEZÓ el gesto, no desde donde está el puntero
       // al cruzar el umbral: así la fila conserva el punto por el que la
       // cogiste en vez de dar un salto de seis píxeles al arrancar.
-      fantasma.current = levantar(e.currentTarget, a.x, a.y);
+      //
+      // Y con la barra de corral: fuera de ella no se puede soltar nada, así
+      // que dejar la copia salir prometía un sitio que no existe (Munir,
+      // 2026-08-08: «que no se pueda mover de donde la pestaña de workspaces»).
+      fantasma.current = levantar(e.currentTarget, a.x, a.y, undefined, asideRef.current);
     }
     fantasma.current?.mover(e.clientX, e.clientY);
     cercaDelBorde(e.clientX, e.clientY, a.name);
@@ -1088,7 +1092,7 @@ export default function Sidebar({
       // cuadrilla se levantaría en gris, que es justo su seña de identidad.
       if (cab) {
         const color = e.currentTarget.style.getPropertyValue("--sg");
-        fantasma.current = levantar(cab, a.x, a.y, { "--sg": color });
+        fantasma.current = levantar(cab, a.x, a.y, { "--sg": color }, asideRef.current);
       }
     }
     fantasma.current?.mover(e.clientX, e.clientY);
@@ -1147,6 +1151,7 @@ export default function Sidebar({
     const grupo = bajo?.closest<HTMLElement>("[data-grupo]")?.dataset.grupo;
     const fila = bajo?.closest<HTMLElement>("[data-sesion]")?.dataset.sesion;
     const fuera = bajo?.closest<HTMLElement>("[data-fuera]")?.dataset.fuera;
+    const global = !!bajo?.closest("[data-sueltas]");
     const proyecto = bajo?.closest<HTMLElement>("[data-proyecto]")?.dataset.proyecto;
     // De más adentro a más afuera, y ese orden es todo el sentido:
     //   · un grupo está DENTRO de un proyecto, así que soltar ahí significa el
@@ -1156,8 +1161,13 @@ export default function Sidebar({
     //     hacer uno y sería una pena perderla;
     //   · la zona de sueltas, que es donde una sesión SALE de su grupo;
     //   · y el proyecto, que es lo más ancho.
+    //   · y por encima de la zona de sueltas de un proyecto va la GLOBAL, la
+    //     del final de la barra: si estás dentro de ella, lo que quieres es
+    //     que la sesión deje de ser de ningún proyecto, no meterla en el saco
+    //     como si el saco fuera uno más.
     if (grupo) setSobre(grupo);
     else if (fila && fila !== id) setSobre(`s:${fila}`);
+    else if (global) setSobre("sueltas");
     else if (fuera) setSobre(`fuera:${fuera}`);
     else if (proyecto) setSobre(`p:${proyecto}`);
     else setSobre(null);
@@ -1215,7 +1225,7 @@ export default function Sidebar({
       a.activo = true;
       setLlevando(a.id);
       e.currentTarget.setPointerCapture(e.pointerId);
-      fantasma.current = levantar(e.currentTarget, a.x, a.y);
+      fantasma.current = levantar(e.currentTarget, a.x, a.y, undefined, asideRef.current);
     }
     fantasma.current?.mover(e.clientX, e.clientY);
     cercaDelBorde(e.clientX, e.clientY, a.id);
@@ -1249,6 +1259,14 @@ export default function Sidebar({
         return;
       }
       if (bajo?.closest(".sessions") && ui.sessionGroup[a.id]) assignGroup(a.id, null);
+      return;
+    }
+    if (destino === "sueltas") {
+      // La zona del final: la sesión deja de pertenecer a ningún proyecto.
+      // Va por `asignarProyecto` al saco y no por `devolverASueltas`, que es
+      // otra cosa: aquel la devuelve a donde diga SU CARPETA, y si su carpeta
+      // es un proyecto de la lista volvería a subir ahí en el acto.
+      asignarProyecto(a.id, SUELTAS);
       return;
     }
     if (destino.startsWith("fuera:")) {
@@ -2415,8 +2433,15 @@ export default function Sidebar({
         {/* Y al final, sin caja que las envuelva, las que no son de ningún
             proyecto. En la pared de marcas siguen teniendo la suya, porque si
             no, en ese modo desaparecerían del panel entero. */}
-        {sueltas &&
-          (rail === "logo" || tira ? (
+        {/* La zona existe tambien SIN sueltas mientras llevas una sesion en la
+            mano: si solo apareciera cuando ya hay alguna, la primera no tendria
+            adonde ir, que es justo lo que Munir seguia sin poder hacer
+            (2026-08-08: «sigue sin poder arrastrar la sesion de un proyecto al
+            de no sesiones»). */}
+        {/* En la pared de marcas y en la tira, su logo: sin el, en esos modos
+            desaparecerian del panel entero. Ahi hace falta que HAYA sueltas. */}
+        {sueltas && (rail === "logo" || tira) && (
+          <>
             <button
               className="project-logo project-logo-sueltas"
               data-live={sueltas.hasLive}
@@ -2433,8 +2458,19 @@ export default function Sidebar({
               {sueltas.hasLive && <span className="logo-live" />}
               {sueltas.waiting > 0 && <span className="logo-asks" />}
             </button>
-          ) : (
-            <div className="sueltas-zona">
+          </>
+        )}
+        {!tira && rail !== "logo" && (sueltas || llevando) && (
+            <div
+              className="sueltas-zona"
+              /* Destino de arrastre con nombre propio: aqui una sesion deja de
+                 pertenecer a un proyecto. Sin esto, `mirarDestino` veia dentro
+                 el `data-fuera` del saco o una fila cualquiera, y nunca se
+                 llegaba a la rama que la suelta. */
+              data-sueltas=""
+              data-suelta={(llevando && sobre === "sueltas") || undefined}
+              data-lista={llevando || undefined}
+            >
               <div className="side-divider side-divider-sueltas">
                 {/* «sin proyecto» decía de dónde NO son, que es la mitad menos
                     útil: aquí caen las que no encajan en ninguna carpeta de la
@@ -2442,12 +2478,16 @@ export default function Sidebar({
                     2026-08-08). */}
                 {t("sesiones no agrupadas")}
                 <span className="sueltas-n">
-                  {sueltas.sessions.length + (sueltas.vivas?.length ?? 0)}
+                  {sueltas ? sueltas.sessions.length + (sueltas.vivas?.length ?? 0) : 0}
                 </span>
               </div>
-              {sessionList(sueltas)}
+              {sueltas ? (
+                sessionList(sueltas)
+              ) : (
+                <p className="sueltas-pista">{t("Aquí deja de ser de ningún proyecto")}</p>
+              )}
             </div>
-          ))}
+        )}
 
         {/* Lo que quitaste de la barra, al final y plegado. Ocultar algo sin
             una forma visible de recuperarlo es el mismo error que borrar sin

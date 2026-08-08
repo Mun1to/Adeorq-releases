@@ -15459,3 +15459,18 @@ textarea.note-body {
   line-height: 1.5;
   color: color-mix(in srgb, var(--text) 58%, transparent);
 }
+
+/* La zona de «sesiones no agrupadas», al final de la barra, como destino de
+   arrastre. Mientras llevas una sesión en la mano se dibuja su borde, y al
+   pasar por encima se enciende: sin eso era un sitio al que se podía soltar sin
+   que nada lo dijera, o sea un sitio que no existía. */
+.sueltas-zona[data-lista] {
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.sueltas-zona[data-suelta] {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}

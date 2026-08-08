@@ -1,11 +1,11 @@
 {
-  "version": "0.9.74",
-  "notes": "AJUSTES YA PUEDE INSTALAR UNA ACTUALIZACION, NO SOLO BUSCARLA. El boton de Ajustes solo COMPROBABA: te decia que habia version nueva y ahi se quedaba, sin nada que pulsar para traerla. Asi que la tarjeta de aviso era el UNICO camino para instalar, y el dia que esa tarjeta no respondio al clic no quedaba ninguna puerta dentro de la app: habia que bajarse el instalador a mano. Ahora descarga e instala, enseña el porcentaje en el propio boton mientras tarda, y ofrece Reiniciar cuando termina. Dos caminos independientes para lo mismo es justo lo que hacia falta aqui: la tarjeta es la que se ve, y este es al que se va a buscar cuando la otra no contesta.",
-  "pub_date": "2026-08-08T08:18:51.000Z",
+  "version": "0.9.75",
+  "notes": "UNA ACTUALIZACION AUTOMATICA DEJA DE HACERTE UNA PREGUNTA SIN BUENA RESPUESTA. Instalando a mano sale la pagina estandar del empaquetador: desinstalar antes de instalar, o no desinstalar. Munir pregunto por que ofrece desinstalar en vez de actualizar, y es la pregunta correcta: ese texto nombra el caso raro y esconde el normal, y ninguna de las dos opciones toca tus datos (viven en la carpeta de Adeorq de tu usuario; la del programa solo tiene el ejecutable y los documentos). Esa pagina esta bien cuando abres un instalador a proposito. No lo esta en mitad de una actualizacion, donde la app ya sabe lo que quieres: ahora corre con su barra de progreso y sin preguntas, que es lo que deberia significar actualizar. Solo tiene efecto a partir de la version que lo lleva dentro: el programa que esta corriendo es el que decide como se instala el siguiente.",
+  "pub_date": "2026-08-08T09:02:55.000Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3dBZ29rM0I1M3NQUkQvN0dkWWc5N3FiYXpESWRxQ0RUUUQ0VnZmVE51TXB6V1p5eEwyR3VzWkFzZjBOZnlhdlh4VCs0K0YzRDNWclVCbmZzWXZJRUFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MTc3MTE1CWZpbGU6QWRlb3JxXzAuOS43NF94NjQtc2V0dXAuZXhlClFKZUkvbDZGaGs3Rjk1ay9xenNDdFBTV255cXJMTy9ORUNwY3paQ2ozano2NG1aTjZVcitYc1JBNWtKQ3BMRmZBRUFkRUtrcHpINml5b1FSTjJMakNnPT0K",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.74/Adeorq_0.9.74_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLytuRnc5aWI5MEdCaXU5TEpqanN3U01TWTB5am8yM3EzNGowWWxTaDdQWlgwQzYrdHFnRW1tZXNlaTFwNXh2dFQwVXJFTTdUbTcrcDU5R2lyQjRpSUFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MTc5NzU4CWZpbGU6QWRlb3JxXzAuOS43NV94NjQtc2V0dXAuZXhlCkdQbWVPQVVIcTN0WGNCUmZ4c3N0bkoyU3pDZmhyYkozOVpPcDBtNExDM1dWWDQ0ZGFPZW44RHhINUV2Uk9OKzRPbHFQaHZKd1NWVDNHN0FvVFRmQURnPT0K",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.75/Adeorq_0.9.75_x64-setup.exe"
     }
   }
 }

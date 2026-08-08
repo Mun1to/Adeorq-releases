@@ -379,6 +379,11 @@ const EN: Record<string, string> = {
 
   // Lo que llevas trabajado, en la pantalla vacía de la Cabina. «Sesiones» ya
   // está traducida más arriba, así que aquí solo van las que faltaban.
+  // La CPU en el Pulso, desde la 0.9.71.
+  "CPU de Adeorq y sus agentes": "CPU of Adeorq and its agents",
+  "La CPU es del equipo entero, como en el Administrador de tareas: tu máquina tiene {n} hilos, así que el 100 % son todos a la vez.":
+    "The CPU figure is of the whole machine, like in Task Manager: yours has {n} threads, so 100% means all of them at once.",
+
   // La tarjeta de actualizar, que desde la 0.9.70 es una tarjeta abajo a la
   // izquierda en vez de una franja que empujaba la app entera hacia abajo.
   "Actualizar Adeorq": "Update Adeorq",

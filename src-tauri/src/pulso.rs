@@ -16,8 +16,9 @@
 
 use serde::Serialize;
 use std::collections::HashMap;
+use std::time::Instant;
 #[cfg(windows)]
-use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+use windows_sys::Win32::Foundation::{CloseHandle, FILETIME, HANDLE};
 #[cfg(windows)]
 use windows_sys::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
@@ -28,7 +29,7 @@ use windows_sys::Win32::System::ProcessStatus::{GetProcessMemoryInfo, PROCESS_ME
 use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
 #[cfg(windows)]
 use windows_sys::Win32::System::Threading::{
-    OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_VM_READ,
+    GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_VM_READ,
 };
 
 #[derive(Serialize, Default, Debug, PartialEq)]
@@ -49,7 +50,20 @@ pub struct Pulso {
     /// De esos, cuántos son un agente de verdad (claude, codex, node…) y no un
     /// powershell de paso. Es el número que dice si te has dejado algo abierto.
     pub agentes: u32,
+    /// Cuánta CPU del EQUIPO se está llevando el árbol entero, de 0 a 100, como
+    /// lo cuenta el Administrador de tareas. 0 en la primera lectura, porque un
+    /// porcentaje de CPU es siempre trabajo hecho entre dos momentos.
+    pub cpu_pct: u32,
+    /// Cuántos hilos tiene la máquina, para poder decir «de N» si hace falta.
+    pub nucleos: u32,
 }
+
+/// Un tic de los de Windows son 100 ns; en Linux, `/proc` da tics de reloj, que
+/// son 1/100 de segundo en cualquier sistema de escritorio actual.
+#[cfg(windows)]
+const UNIDAD_CPU: f64 = 1e-7;
+#[cfg(not(windows))]
+const UNIDAD_CPU: f64 = 0.01;
 
 /// Los nombres que cuentan como agente. Un `powershell.exe` es el envoltorio
 /// que abre Adeorq; el que gasta y el que importa es lo que corre dentro.
@@ -109,6 +123,56 @@ fn ram_de(pid: u32) -> Option<u64> {
         Some(pmc.WorkingSetSize as u64)
     }
 }
+
+/// El tiempo de CPU que lleva gastado un proceso desde que nació, en unidades
+/// de 100 nanosegundos (que es lo que da Windows, y aquí no se convierte a
+/// nada: solo se van a restar dos lecturas).
+///
+/// Se suma el tiempo de núcleo y el de usuario porque los dos son trabajo del
+/// proceso: en Adeorq una buena parte del gasto es pintar, que pasa por el
+/// controlador de la tarjeta y cuenta como tiempo de núcleo.
+#[cfg(windows)]
+fn cpu_de(pid: u32) -> Option<u64> {
+    unsafe {
+        let h: HANDLE = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if h.is_null() {
+            return None;
+        }
+        let mut creado: FILETIME = std::mem::zeroed();
+        let mut salida: FILETIME = std::mem::zeroed();
+        let mut nucleo: FILETIME = std::mem::zeroed();
+        let mut usuario: FILETIME = std::mem::zeroed();
+        let ok = GetProcessTimes(h, &mut creado, &mut salida, &mut nucleo, &mut usuario);
+        CloseHandle(h);
+        if ok == 0 {
+            return None;
+        }
+        let junta = |f: FILETIME| ((f.dwHighDateTime as u64) << 32) | f.dwLowDateTime as u64;
+        Some(junta(nucleo) + junta(usuario))
+    }
+}
+
+#[cfg(not(windows))]
+fn cpu_de(pid: u32) -> Option<u64> {
+    // `/proc/<pid>/stat`: los campos 14 y 15 son utime y stime, en tics de
+    // reloj. No se convierten a segundos por lo mismo que en Windows: solo se
+    // van a restar dos lecturas, y el tic se cancela al dividir.
+    let texto = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    // El nombre del ejecutable va entre paréntesis y puede llevar espacios
+    // dentro, así que se corta por el ÚLTIMO paréntesis y no por el primero.
+    let resto = &texto[texto.rfind(')')? + 1..];
+    let campos: Vec<&str> = resto.split_whitespace().collect();
+    // Tras el paréntesis, el primer campo es `state`, que es el 3.º del
+    // archivo: utime es el 14.º, o sea el índice 11 desde aquí.
+    let utime: u64 = campos.get(11)?.parse().ok()?;
+    let stime: u64 = campos.get(12)?.parse().ok()?;
+    Some(utime + stime)
+}
+
+/// La lectura anterior, para poder restar. El porcentaje de CPU de un instante
+/// no existe: es siempre trabajo hecho ENTRE dos momentos, así que la primera
+/// vez que se pregunta no hay respuesta y se devuelve 0.
+static ANTES: std::sync::Mutex<Option<(Instant, u64)>> = std::sync::Mutex::new(None);
 
 /* ------------------------------------------------------ lo mismo, leyendo /proc
 
@@ -238,12 +302,49 @@ pub async fn pulso() -> Pulso {
 
     let mut bytes = 0u64;
     let mut agentes = 0u32;
+    let mut cpu_ahora = 0u64;
     for (pid, nombre) in &arbol {
         bytes += ram_de(*pid).unwrap_or(0);
+        cpu_ahora += cpu_de(*pid).unwrap_or(0);
         if es_agente(nombre) {
             agentes += 1;
         }
     }
+
+    // La CPU del ÁRBOL entero, que es la parte que casi nadie mide bien: el
+    // trabajo de Adeorq no está en `adeorq.exe`, está en los `msedgewebview2`
+    // que cuelgan de él y que son los que pintan. Mirando solo la ventana sale
+    // un 4 % y la conclusión de que no pasa nada (medido el 2026-08-07).
+    //
+    // Y se reparte entre los núcleos, como hace el Administrador de tareas: un
+    // 100 % aquí es la máquina entera, no un núcleo. Sin dividir, un equipo de
+    // 16 hilos daría cifras de tres dígitos que no se parecen a nada de lo que
+    // él ve en Windows.
+    let nucleos = std::thread::available_parallelism().map(|n| n.get() as f64).unwrap_or(1.0);
+    let cpu_pct = {
+        let ahora = Instant::now();
+        let mut guardado = ANTES.lock().unwrap_or_else(|e| e.into_inner());
+        let salida = match *guardado {
+            Some((cuando, antes)) => {
+                let paso = ahora.duration_since(cuando).as_secs_f64();
+                let gastado = cpu_ahora.saturating_sub(antes) as f64 * UNIDAD_CPU;
+                // Menos de un cuarto de segundo entre lecturas da un cociente
+                // que oscila muchísimo por el redondeo del reloj: se prefiere
+                // repetir la cifra anterior a enseñar un número que salta.
+                if paso < 0.25 {
+                    None
+                } else {
+                    Some(((gastado / paso / nucleos) * 100.0).round().min(100.0) as u32)
+                }
+            }
+            // La primera lectura no tiene con qué compararse.
+            None => Some(0),
+        };
+        if salida.is_some() {
+            *guardado = Some((ahora, cpu_ahora));
+        }
+        salida.unwrap_or(0)
+    };
 
     #[cfg(windows)]
     let (total, libre) = unsafe {
@@ -275,6 +376,8 @@ pub async fn pulso() -> Pulso {
         total_mb: mb(total),
         procesos: arbol.len() as u32,
         agentes,
+        cpu_pct,
+        nucleos: nucleos as u32,
     }
 }
 

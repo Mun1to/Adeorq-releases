@@ -23,6 +23,11 @@ interface Datos {
   totalMb: number;
   procesos: number;
   agentes: number;
+  /** CPU del árbol entero sobre la del EQUIPO, de 0 a 100, como el
+      Administrador de tareas. Ver `pulso.rs`: el gasto de Adeorq no está en su
+      ventana sino en los procesos del WebView que cuelgan de ella. */
+  cpuPct: number;
+  nucleos: number;
 }
 
 /** Cada cinco segundos. Recorrer la tabla de procesos cuesta poco, pero no es
@@ -46,7 +51,10 @@ export default function Pulso() {
   // Rojo cuando el equipo entero va apretado, ámbar cuando el que aprieta es
   // Adeorq. Distinguirlo es la mitad de la gracia: si el sistema está al 90 %
   // pero Adeorq lleva el 6 %, el problema no es este programa.
-  const nivel = d.sistemaPct >= 90 ? "alto" : d.ramPct >= 25 ? "medio" : "";
+  // Rojo si el equipo va apretado O si Adeorq se está comiendo la mitad de la
+  // máquina él solo: con la CPU dentro, lo segundo pasa más que lo primero.
+  const nivel =
+    d.sistemaPct >= 90 || d.cpuPct >= 50 ? "alto" : d.ramPct >= 25 || d.cpuPct >= 25 ? "medio" : "";
 
   return (
     <div className="pulso-caja">
@@ -57,6 +65,13 @@ export default function Pulso() {
         data-tip={t("Lo que Adeorq está gastando en tu equipo")}
         onClick={() => setAbierto((v) => !v)}
       >
+        {/* La CPU va la PRIMERA: es la que se mueve, la que explica un tirón, y
+            la que a Munir le hacía falta mirar. La RAM apenas cambia en horas. */}
+        <span className="pulso-dato">
+          <b>{d.cpuPct}%</b>
+          <span>CPU</span>
+        </span>
+        <span className="pulso-sep" />
         <span className="pulso-dato">
           <b>{bonito(d.ramMb, lang)}</b>
           <span>RAM</span>
@@ -71,6 +86,12 @@ export default function Pulso() {
       {abierto && (
         <div className="pulso-detalle">
           <h4>{t("Lo que gasta Adeorq")}</h4>
+          <Fila
+            etiqueta={t("CPU de Adeorq y sus agentes")}
+            valor={`${d.cpuPct}%`}
+            pct={d.cpuPct}
+            alto={d.cpuPct >= 50}
+          />
           <Fila
             etiqueta={t("Memoria de Adeorq y sus agentes")}
             valor={`${bonito(d.ramMb, lang)} · ${d.ramPct}%`}
@@ -93,6 +114,10 @@ export default function Pulso() {
           <p className="card-hint">
             {t(
               "Cada agente es un programa aparte, así que la cuenta incluye lo que gastan tus terminales y no solo la ventana.",
+            )}{" "}
+            {t(
+              "La CPU es del equipo entero, como en el Administrador de tareas: tu máquina tiene {n} hilos, así que el 100 % son todos a la vez.",
+              { n: d.nucleos },
             )}
           </p>
         </div>

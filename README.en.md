@@ -12,8 +12,11 @@ state, and lets you run several agents at once without losing track of any of th
 
 <br>
 
-[![Download Adeorq for Windows](web/assets/descargar-windows.en.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe)
-[![Download Adeorq for Linux](web/assets/descargar-linux.en.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage)
+<!-- HTML, not markdown: see the note in README.md. The Windows button rendered
+     as a broken link on GitHub while the Linux one drew fine, with both files
+     served 200. The `<img>` form is the one that already works in this file. -->
+<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"><img src="web/assets/descargar-windows.en.svg" width="330" alt="Download Adeorq for Windows"></a>
+<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage"><img src="web/assets/descargar-linux.en.svg" width="330" alt="Download Adeorq for Linux"></a>
 
 **Free · no account · no API keys · updates itself**
 

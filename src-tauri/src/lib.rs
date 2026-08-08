@@ -267,6 +267,7 @@ pub fn run() {
             usage::usage_report,
             usage::plan_info,
             usage::usage_limits,
+            usage::stats_historia,
             accounts::account_dir,
             accounts::account_ready,
             accounts::detect_clis,

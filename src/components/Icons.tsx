@@ -71,6 +71,50 @@ export function PlusIcon({ size = 17 }: Props) {
   );
 }
 
+/**
+ * La marca de Adeorq: la proa de Munir, el mismo dibujo que el icono de la app
+ * y el del README (`web/assets/adeorq.svg`), aquí como componente para poder
+ * ponerla dentro de la interfaz sin cargar un archivo.
+ *
+ * Va RELLENA y no de trazo, que es la excepción a la regla de los iconos de la
+ * casa: esto no es un icono de acción, es la cara del programa, y de trazo se
+ * confundiría con un botón más de la fila.
+ */
+export function AdeorqMark({ size = 22 }: Props) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 1024 1024" aria-hidden="true">
+      <defs>
+        <linearGradient id="adq-a" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#48c2ff" />
+          <stop offset="1" stopColor="#2f9df3" />
+        </linearGradient>
+      </defs>
+      <path
+        fill="url(#adq-a)"
+        fillRule="evenodd"
+        d="M 236 112 L 788 112 L 1016 756 L 944 848 L 80 848 L 8 756 Z M 512 240 L 712 730 Q 512 572 312 730 Z"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Descargar. Gordo y macizo a propósito (Munir, 2026-08-08: «un icono simple
+ * gordo de descarga»): va en la tarjeta de actualizar, que es una sola cosa que
+ * pulsar, no una fila de herramientas donde el trazo fino manda.
+ */
+export function DownloadIcon({ size = 17 }: Props) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M13.6 3.4v7.9h3.1c.6 0 .9.7.5 1.1l-4.7 5.1a.7.7 0 0 1-1 0l-4.7-5.1c-.4-.4-.1-1.1.5-1.1h3.1V3.4c0-.5.4-.9.9-.9h1.4c.5 0 .9.4.9.9Z"
+      />
+      <rect fill="currentColor" x="3.6" y="18.4" width="16.8" height="2.9" rx="1.45" />
+    </svg>
+  );
+}
+
 /* La mitad horizontal del anterior, con la misma medida: los dos van juntos en
    el mismo par de botones y un menos más corto o más largo que el más se ve. */
 export function MinusIcon({ size = 17 }: Props) {
@@ -432,11 +476,26 @@ export function ForemanIcon({ size = 17 }: Props) {
 
 /** Emisión: el punto de grabar. Relleno cuando está puesta, hueco cuando no,
     que es la misma convención de cualquier cámara. */
+/**
+ * Emisión: un punto con dos ondas saliendo a cada lado.
+ *
+ * Antes era un círculo con otro dentro, que es el dibujo universal de «grabar»
+ * y no decía nada de emitir (Munir, 2026-08-08, con la referencia delante). Las
+ * ondas son lo que se reconoce sin leer: es el mismo símbolo del wifi, de la
+ * radio y del directo. El punto del centro se rellena solo cuando está
+ * encendido, que es la única diferencia que hace falta ver de un vistazo.
+ */
 export function StreamIcon({ size = 17, on = false }: Props & { on?: boolean }) {
   return (
     <svg {...svg(size)}>
-      <circle cx="12" cy="12" r="8.2" />
-      {on && <circle cx="12" cy="12" r="4" fill="currentColor" />}
+      {/* Las de fuera, más abiertas; las de dentro, más cerradas. Los arcos van
+          por la izquierda y por la derecha, no arriba: una emisión sale hacia
+          los lados, y así el icono ocupa su caja a lo ancho como sus vecinos. */}
+      <path d="M5.6 4.6a10 10 0 0 0 0 14.8" />
+      <path d="M18.4 4.6a10 10 0 0 1 0 14.8" />
+      <path d="M8.9 8.3a5.2 5.2 0 0 0 0 7.4" />
+      <path d="M15.1 8.3a5.2 5.2 0 0 1 0 7.4" />
+      <circle cx="12" cy="12" r="2.3" fill={on ? "currentColor" : "none"} />
     </svg>
   );
 }

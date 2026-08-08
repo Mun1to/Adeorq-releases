@@ -26,6 +26,7 @@ import CrewBoard from "./components/CrewBoard";
 import Fondo from "./components/Fondo";
 import { ObjetivosFlotante } from "./components/Objetivos";
 import Pulso from "./components/Pulso";
+import Estadisticas from "./components/Estadisticas";
 import { IconoObjetivos } from "./components/IconosSeccion";
 import {
   FONDO_DESENFOQUE_KEY,
@@ -2527,6 +2528,12 @@ function App() {
               <p>
                 {t("Elige una conversación en la barra de la izquierda para retomarla, o abre una nueva aquí.")}
               </p>
+              {/* Lo que llevas trabajado. Va ENTRE la frase y el botón, y no al
+                  final: este hueco es el único momento del día en que se puede
+                  mirar atrás sin quitarle sitio a nada, y el botón sigue siendo
+                  lo último que se lee, que es lo que hay que pulsar. Si no hay
+                  datos no se pinta nada, en vez de una fila de ceros. */}
+              <Estadisticas />
               <button className="np-btn empty-new" onClick={() => setWizard(true)}>
                 <PlusIcon size={15} /> {t("Abrir una sesión…")}
               </button>

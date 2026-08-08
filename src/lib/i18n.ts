@@ -376,6 +376,28 @@ const EN: Record<string, string> = {
   "sin sesiones recientes": "no recent sessions",
   "Aquí queda fuera de su grupo": "Drop here to take it out of its group",
   "sesiones no agrupadas": "ungrouped sessions",
+
+  // Lo que llevas trabajado, en la pantalla vacía de la Cabina. «Sesiones» ya
+  // está traducida más arriba, así que aquí solo van las que faltaban.
+  // La tarjeta de actualizar, que desde la 0.9.70 es una tarjeta abajo a la
+  // izquierda en vez de una franja que empujaba la app entera hacia abajo.
+  "Actualizar Adeorq": "Update Adeorq",
+  "Reinicia para estrenar": "Restart to get it",
+  "Reiniciar Adeorq": "Restart Adeorq",
+  "Descargar e instalar la versión {v}": "Download and install version {v}",
+
+  Mensajes: "Messages",
+  Tokens: "Tokens",
+  "Días activos": "Active days",
+  "Racha actual": "Current streak",
+  "Racha más larga": "Longest streak",
+  "Hora punta": "Peak hour",
+  "Modelo favorito": "Favourite model",
+  "Sumando tus {n} cuentas. ": "Across your {n} accounts. ",
+  "Lo lleva Claude Code por su cuenta: mirar esto no gasta nada.":
+    "Claude Code keeps this on its own: looking at it costs nothing.",
+  "Claude Code calculó esto el {d}; lo de después todavía no está dentro.":
+    "Claude Code worked this out on {d}; anything since is not in yet.",
   "Cargar {n} sesiones más antiguas": "Load {n} older sessions",
   "sesión": "session",
   esperando: "waiting",

@@ -5996,26 +5996,145 @@ button.stat-card[data-live="false"] {
   color: #7ee08a;
 }
 
-/* Update bar: a thin strip above the tabs, only when there is news */
-.update-bar {
+/* El aviso de version nueva: una TARJETA abajo a la izquierda.
+   Era una franja que cruzaba la ventana y empujaba la app entera hacia abajo,
+   recolocando la barra, la Cabina y todas las terminales por un aviso que se
+   lee en dos segundos. Ahora se posa encima sin mover nada. */
+.update-card {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 95;
+  display: flex;
+  align-items: stretch;
+  width: 306px;
+  max-width: calc(100vw - 28px);
+  border-radius: 14px;
+  overflow: hidden;
+  /* SOLIDO: esto se posa sobre terminales y sobre la foto, y un aviso que no se
+     lee no es un aviso (ver la regla encima de `.panel-card`). */
+  background: var(--panel-solid);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  animation: update-sube 0.18s ease;
+}
+
+@keyframes update-sube {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.update-card-main {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  font-size: 13px;
-  background: rgba(77, 159, 255, 0.14);
-  border-bottom: 1px solid rgba(77, 159, 255, 0.3);
+  gap: 11px;
+  min-width: 0;
+  padding: 11px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
 }
 
-.update-bar[data-phase="error"] {
-  background: rgba(214, 96, 96, 0.16);
-  border-bottom-color: rgba(224, 110, 110, 0.4);
+.update-card-main:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-.update-btn {
-  padding: 4px 12px;
-  font-size: 12.5px;
+.update-card-main:disabled {
+  cursor: default;
 }
+
+.update-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.update-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.update-tit {
+  font-size: 13.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.update-sub {
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--text) 58%, transparent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.update-flecha {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  color: var(--accent);
+}
+
+/* Cerrar: pequeno y a la derecha, con una linea que lo separa del boton
+   grande para que no parezca parte de el. */
+.update-no {
+  flex: none;
+  width: 32px;
+  background: none;
+  border: none;
+  border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.update-no:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+/* La descarga, pegada al borde de abajo: crece sin mover nada. */
+.update-barra {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.update-card[data-phase="error"] {
+  border-color: rgba(224, 110, 110, 0.5);
+}
+
+.update-card[data-phase="error"] .update-mark {
+  background: rgba(214, 96, 96, 0.2);
+}
+
+.update-card[data-phase="error"] .update-flecha {
+  color: #ff9a9a;
+}
+
+/* Aquí vivía `.update-btn`, el botón «Actualizar ahora» de la franja de arriba.
+   La franja ya no existe (la sustituyó `.update-card`) y con ella se fue su
+   botón: ahora la tarjeta entera es el botón. Se quita en vez de dejarlo por si
+   acaso, que una regla sin dueño es una pista falsa para el siguiente. */
 
 /* La marca del cliente en cada fila de sesión. Pequeña y con su tono, porque
    distingue de quién es la conversación sin robarle sitio al título, que en una
@@ -15251,4 +15370,92 @@ textarea.note-body {
   color: var(--text);
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* ==========================================================================
+   Lo que llevas trabajado, en la pantalla vacía de la Cabina.
+   Va dentro de `.empty`, que ya está sobre el fondo de la casa, así que aquí
+   SÍ hace falta superficie propia: ver la regla escrita encima de
+   `.panel-card`. Una sola vez, en el contenedor, nunca por tarjeta.
+   ========================================================================== */
+.stats {
+  width: min(620px, 100%);
+  margin: 22px 0 6px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-edge);
+  text-align: left;
+}
+
+.stats-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+}
+
+/* Cada dato sobre un color SÓLIDO del tema, no un blanco al 7 %: dentro de una
+   tarjeta translúcida ese blanco desaparece contra la foto de detrás. */
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 11px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--panel-solid) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.stat-tag {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+}
+
+.stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  /* Los números de una rejilla se leen en columna: sin esto, un 1 y un 8
+     ocupan distinto y las cifras bailan de tarjeta a tarjeta. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nueve semanas en columnas de siete, que es como se lee un calendario. */
+.stats-mapa {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-flow: column;
+  gap: 3px;
+  margin-top: 14px;
+}
+
+.stats-dia {
+  aspect-ratio: 1;
+  min-height: 9px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+/* Cuatro escalones del mismo azul: el color dice cuánto, no qué. */
+.stats-dia[data-n="1"] {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.stats-dia[data-n="2"] {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.stats-dia[data-n="3"] {
+  background: color-mix(in srgb, var(--accent) 74%, transparent);
+}
+.stats-dia[data-n="4"] {
+  background: var(--accent);
+}
+
+.stats-pie {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text) 58%, transparent);
 }

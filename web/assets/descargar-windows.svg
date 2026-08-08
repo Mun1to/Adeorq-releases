@@ -8,19 +8,19 @@
     y donde no la haya, en la sans que toque.
   -->
   <defs>
-    <linearGradient id="cuerpo" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="cuerpoWin" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#4D9FFF"/>
       <stop offset="1" stop-color="#1C66DE"/>
     </linearGradient>
-    <linearGradient id="brillo" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="brilloWin" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
   </defs>
 
-  <rect x="1" y="1" width="328" height="72" rx="15" fill="url(#cuerpo)"/>
+  <rect x="1" y="1" width="328" height="72" rx="15" fill="url(#cuerpoWin)"/>
   <!-- El filo encendido de arriba, como los botones de la app. -->
-  <rect x="1.5" y="1.5" width="327" height="34" rx="14" fill="url(#brillo)"/>
+  <rect x="1.5" y="1.5" width="327" height="34" rx="14" fill="url(#brilloWin)"/>
   <rect x="1" y="1" width="328" height="72" rx="15" fill="none" stroke="#8FC0FF" stroke-opacity="0.55"/>
 
   <!-- La flecha de bajar -->

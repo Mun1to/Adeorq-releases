@@ -13,8 +13,15 @@ vista a ninguno.
 
 <br>
 
-[![Descargar Adeorq para Windows](web/assets/descargar-windows.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe)
-[![Descargar Adeorq para Linux](web/assets/descargar-linux.svg)](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage)
+<!-- Los dos botones van en HTML y no en markdown (`![alt](ruta)`) a propósito.
+     En markdown, el de Windows salía como un enlace roto en GitHub mientras el
+     de Linux se pintaba bien, y las dos imágenes existen y se sirven con un 200
+     (comprobado el 2026-08-08). La forma que SÍ funciona en este mismo archivo
+     es la de la línea del logo de arriba: un `<img>` con su ancho puesto. Con
+     `width` explícito además quedan exactamente a la par, que en markdown
+     dependía de que GitHub respetara el `viewBox`. -->
+<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"><img src="web/assets/descargar-windows.svg" width="330" alt="Descargar Adeorq para Windows"></a>
+<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage"><img src="web/assets/descargar-linux.svg" width="330" alt="Descargar Adeorq para Linux"></a>
 
 **Gratis · sin cuenta · sin API keys · se actualiza sola**
 

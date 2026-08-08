@@ -7,6 +7,7 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { useT } from "../lib/i18n";
+import { AdeorqMark, CloseIcon, DownloadIcon } from "./Icons";
 
 // Auto-update like VoCript: check once on start (and every few hours for the
 // panels Munir leaves open for days), then install only when he says so.
@@ -83,41 +84,64 @@ export default function UpdateBar() {
 
   if (phase === "idle" || !update) return null;
 
+  // Una TARJETA abajo a la izquierda, no una franja arriba del todo.
+  //
+  // Era una línea que cruzaba la ventana entera y empujaba hacia abajo la app
+  // completa: por un aviso que se lee en dos segundos, se recolocaban la barra,
+  // la Cabina y todas las terminales, y encima el único sitio de la pantalla
+  // donde uno no está mirando es el borde de arriba. Munir pidió la forma que
+  // usa la app de escritorio de Claude (2026-08-08): una tarjeta pequeña que se
+  // posa sobre el contenido sin moverlo, con la marca a la izquierda y un solo
+  // gesto a la derecha.
+  const nombre = phase === "done" ? t("Reinicia para estrenar") : t("Actualizar Adeorq");
+  const accion = phase === "done" ? () => void relaunch() : install;
+
   return (
-    <div className="update-bar" data-phase={phase}>
-      {phase === "found" && (
-        <>
-          <span>
-            {t("Hay una versión nueva de Adeorq")} (<strong>{update.version}</strong>).
-          </span>
-          <button className="np-btn update-btn" onClick={install}>
-            {t("Actualizar ahora")}
-          </button>
-          <button className="mini" data-tip={t("Ahora no")} onClick={() => setUpdate(null)}>
-            ×
-          </button>
-        </>
-      )}
-      {phase === "downloading" && (
-        <span>
-          {t("Descargando la actualización…")} {pct}%
+    <div className="update-card" data-phase={phase} role="status">
+      <button
+        className="update-card-main"
+        onClick={accion}
+        disabled={phase === "downloading"}
+        data-tip={
+          phase === "done"
+            ? t("Reiniciar Adeorq")
+            : t("Descargar e instalar la versión {v}", { v: update.version })
+        }
+      >
+        <span className="update-mark">
+          <AdeorqMark size={26} />
         </span>
+        <span className="update-texto">
+          <span className="update-tit">
+            {phase === "error" ? t("No pude actualizar") : nombre}
+          </span>
+          <span className="update-sub">
+            {phase === "downloading"
+              ? `${pct}%`
+              : phase === "error"
+                ? error
+                : `v${update.version}`}
+          </span>
+        </span>
+        {/* La flecha a la derecha del original de Claude es «ir a», y esto no
+            lleva a ninguna parte: descarga. Un icono de bajar, macizo. */}
+        <span className="update-flecha">
+          <DownloadIcon size={19} />
+        </span>
+      </button>
+      {/* La barra de descarga va PEGADA al borde de abajo de la tarjeta, no como
+          un elemento más: así crece sin mover ni un píxel de lo de arriba. */}
+      {phase === "downloading" && (
+        <span className="update-barra" style={{ width: `${pct}%` }} />
       )}
-      {phase === "done" && (
-        <>
-          <span>{t("Listo. Reinicia para estrenar la versión nueva.")}</span>
-          <button className="np-btn update-btn" onClick={() => void relaunch()}>
-            {t("Reiniciar")}
-          </button>
-        </>
-      )}
-      {phase === "error" && (
-        <>
-          <span>{t("No pude actualizar")}: {error}</span>
-          <button className="mini" onClick={() => setUpdate(null)}>
-            ×
-          </button>
-        </>
+      {phase !== "downloading" && (
+        <button
+          className="update-no"
+          data-tip={t("Ahora no")}
+          onClick={() => setUpdate(null)}
+        >
+          <CloseIcon size={13} />
+        </button>
       )}
     </div>
   );

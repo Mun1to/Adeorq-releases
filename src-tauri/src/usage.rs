@@ -95,6 +95,130 @@ pub struct PlanInfo {
 /// file: the tokens next to them are never read, returned or logged.
 // async porque un comando sin async corre en el hilo de la ventana, y estos
 // dos los sondea el panel de uso: cada lectura del disco congelaba la UI.
+/// Un día de trabajo, ya sumado entre todas las cuentas.
+#[derive(Serialize, Default, Clone)]
+pub struct DiaUso {
+    /// `AAAA-MM-DD`, tal cual lo escribe el CLI.
+    pub fecha: String,
+    pub mensajes: u64,
+    pub sesiones: u64,
+    pub tokens: u64,
+}
+
+/// Todo lo que se ha trabajado, para la pantalla de bienvenida.
+#[derive(Serialize, Default)]
+pub struct Historia {
+    /// Ordenados de más viejo a más nuevo, sin huecos rellenados: un día que no
+    /// existe aquí es un día que no se trabajó, y eso es lo que corta una racha.
+    pub dias: Vec<DiaUso>,
+    pub total_sesiones: u64,
+    pub total_mensajes: u64,
+    pub por_modelo: Vec<ModelSlice>,
+    /// 24 casillas, de las 0 a las 23.
+    pub horas: Vec<u64>,
+    /// Cuándo empezó todo, en ISO. Vacío si no consta.
+    pub desde: String,
+    /// La fecha que el propio CLI dice haber calculado. Se enseña porque este
+    /// archivo NO se rehace en cada turno: puede ir varios días por detrás, y
+    /// dar sus números como si fueran de hoy sería mentir.
+    pub calculado: String,
+    /// De cuántas cuentas salen estos números.
+    pub cuentas: u64,
+}
+
+/// La historia de uso, sumando todas las cuentas que se le pasen.
+///
+/// Sale del `stats-cache.json` que Claude Code ya mantiene: ni una llamada a la
+/// API, ni un token gastado. Cada cuenta es una carpeta con su propio archivo
+/// (ver `config_root`), así que trabajar con dos cuentas partía las cifras en
+/// dos mitades que no se veían juntas en ningún sitio.
+///
+/// Codex no entra y no es un olvido: no publica nada equivalente. Se miró su
+/// carpeta el 2026-08-08 y solo guarda los rollouts, sin contadores.
+#[tauri::command]
+pub async fn stats_historia(config_dirs: Vec<String>) -> Historia {
+    // Vacío = solo la principal, que es lo que quiere decir `None` aquí.
+    let mut raices: Vec<Option<String>> = vec![None];
+    raices.extend(config_dirs.into_iter().filter(|d| !d.trim().is_empty()).map(Some));
+
+    let mut por_dia: std::collections::BTreeMap<String, DiaUso> = Default::default();
+    let mut out = Historia { horas: vec![0; 24], ..Default::default() };
+
+    for raiz in raices {
+        let Some(path) = stats_path(raiz.as_deref()) else {
+            continue;
+        };
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(v) = serde_json::from_str::<Value>(&text) else {
+            continue;
+        };
+        out.cuentas += 1;
+        out.total_sesiones += v["totalSessions"].as_u64().unwrap_or(0);
+        out.total_mensajes += v["totalMessages"].as_u64().unwrap_or(0);
+
+        // La más antigua de todas las cuentas manda: es cuándo empezó ÉL.
+        if let Some(d) = v["firstSessionDate"].as_str() {
+            if out.desde.is_empty() || d < out.desde.as_str() {
+                out.desde = d.to_owned();
+            }
+        }
+        // Y de la fecha de cálculo, la más VIEJA: es hasta dónde llega el dato
+        // menos fresco, o sea hasta dónde se puede prometer que esto es cierto.
+        if let Some(d) = v["lastComputedDate"].as_str() {
+            if out.calculado.is_empty() || d < out.calculado.as_str() {
+                out.calculado = d.to_owned();
+            }
+        }
+
+        if let Some(map) = v["hourCounts"].as_object() {
+            for (h, n) in map {
+                if let Ok(i) = h.parse::<usize>() {
+                    if i < 24 {
+                        out.horas[i] += n.as_u64().unwrap_or(0);
+                    }
+                }
+            }
+        }
+
+        for day in v["dailyActivity"].as_array().into_iter().flatten() {
+            let Some(fecha) = day["date"].as_str() else { continue };
+            let d = por_dia.entry(fecha.to_owned()).or_insert_with(|| DiaUso {
+                fecha: fecha.to_owned(),
+                ..Default::default()
+            });
+            d.mensajes += day["messageCount"].as_u64().unwrap_or(0);
+            d.sesiones += day["sessionCount"].as_u64().unwrap_or(0);
+        }
+
+        for day in v["dailyModelTokens"].as_array().into_iter().flatten() {
+            let Some(fecha) = day["date"].as_str() else { continue };
+            let d = por_dia.entry(fecha.to_owned()).or_insert_with(|| DiaUso {
+                fecha: fecha.to_owned(),
+                ..Default::default()
+            });
+            if let Some(map) = day["tokensByModel"].as_object() {
+                for (modelo, n) in map {
+                    let n = n.as_u64().unwrap_or(0);
+                    d.tokens += n;
+                    let nombre = pretty(modelo);
+                    match out.por_modelo.iter_mut().find(|s| s.model == nombre) {
+                        Some(slice) => slice.tokens += n,
+                        None => out.por_modelo.push(ModelSlice { model: nombre, tokens: n }),
+                    }
+                }
+            }
+        }
+    }
+
+    out.por_modelo.sort_by(|a, b| b.tokens.cmp(&a.tokens));
+    // BTreeMap ya los da ordenados por fecha, que es lo que necesitan las
+    // rachas: al ser `AAAA-MM-DD`, el orden de texto ES el orden de calendario.
+    out.dias = por_dia.into_values().collect();
+    out
+}
+
 #[tauri::command]
 pub async fn plan_info(config_dir: Option<String>) -> Option<PlanInfo> {
     let path = config_root(config_dir.as_deref())?.join(".credentials.json");

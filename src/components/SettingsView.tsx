@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import { getVersion } from "@tauri-apps/api/app";
 import { useEffect } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -338,6 +339,8 @@ export default function SettingsView({
   const [qTema, setQTema] = useState("");
   const [checking, setChecking] = useState(false);
   const [news, setNews] = useState<string | null>(null);
+  /** Cuánto lleva bajado, para que el botón diga algo mientras tarda. */
+  const [updPct, setUpdPct] = useState(0);
   // Starting with Windows is a fact about the machine, not a preference of
   // ours: it is read from the system, never remembered here. null = still
   // asking, so the switch cannot flicker from off to on in front of him.
@@ -380,19 +383,48 @@ export default function SettingsView({
       .catch((e) => setBootError(String(e)));
   };
 
+  /**
+   * Buscar actualizaciones Y ponerla, que es lo que se espera al pulsar eso.
+   *
+   * Hasta hoy solo COMPROBABA: te decía «hay una versión nueva» y ahí se
+   * quedaba, sin un botón para traerla. La única forma de instalar era la
+   * tarjeta de aviso, así que el día que esa tarjeta no respondió al clic
+   * (Munir, 2026-08-08, en la 0.9.71) no quedaba ninguna puerta dentro de la
+   * app: había que bajarse el instalador a mano. Dos caminos independientes
+   * para lo mismo es exactamente lo que hace falta aquí, porque si el que falla
+   * es el del aviso, el aviso es lo único que se ve.
+   */
   const lookForUpdates = () => {
     setChecking(true);
     setNews(null);
+    setUpdPct(0);
     check()
       .then((u) => {
-        setNews(
-          u
-            ? `${t("Hay una versión nueva de Adeorq")}: ${u.version}`
-            : t("Ya tienes la última versión."),
-        );
+        if (!u) {
+          setNews(t("Ya tienes la última versión."));
+          setChecking(false);
+          return;
+        }
+        setNews(t("Bajando la {v}…", { v: u.version }));
+        let total = 0;
+        let got = 0;
+        return u
+          .downloadAndInstall((e) => {
+            if (e.event === "Started") total = e.data.contentLength ?? 0;
+            else if (e.event === "Progress") {
+              got += e.data.chunkLength;
+              if (total > 0) setUpdPct(Math.min(99, Math.round((got / total) * 100)));
+            } else if (e.event === "Finished") setUpdPct(100);
+          })
+          .then(() => {
+            setNews(t("Listo. Reinicia para estrenar la versión nueva."));
+            setChecking(false);
+          });
       })
-      .catch((e) => setNews(String(e)))
-      .finally(() => setChecking(false));
+      .catch((e) => {
+        setNews(String(e));
+        setChecking(false);
+      });
   };
 
   return (
@@ -1377,8 +1409,19 @@ export default function SettingsView({
                 </p>
                 <div className="foreman-row">
                   <button className="np-btn" disabled={checking} onClick={lookForUpdates}>
-                    {checking ? t("Buscando…") : t("Buscar actualizaciones")}
+                    {checking
+                      ? updPct > 0
+                        ? `${updPct}%`
+                        : t("Buscando…")
+                      : t("Buscar e instalar")}
                   </button>
+                  {/* Reiniciar solo sale cuando ya está bajada: un botón de
+                      reiniciar siempre visible invita a cerrar la app por nada. */}
+                  {updPct === 100 && (
+                    <button className="np-btn" onClick={() => void relaunch()}>
+                      {t("Reiniciar")}
+                    </button>
+                  )}
                 </div>
                 {news && <p className="np-ok">{news}</p>}
               </section>

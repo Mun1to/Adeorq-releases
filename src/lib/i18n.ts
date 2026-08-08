@@ -380,6 +380,10 @@ const EN: Record<string, string> = {
 
   // Lo que llevas trabajado, en la pantalla vacía de la Cabina. «Sesiones» ya
   // está traducida más arriba, así que aquí solo van las que faltaban.
+  // El botón de Ajustes, que desde la 0.9.74 instala además de comprobar.
+  "Buscar e instalar": "Check and install",
+  "Bajando la {v}…": "Downloading {v}…",
+
   // La cabecera a su gusto, desde la 0.9.73.
   "La cabecera": "The header",
   "Qué pestañas salen arriba y en qué orden. Apagar una la quita de la vista, no de Adeorq: su atajo de teclado la sigue abriendo, y los botones de otras pantallas que llevan a ella también. Ajustes no se puede apagar, porque es donde se vuelven a encender las demás.":

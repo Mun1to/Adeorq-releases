@@ -754,6 +754,12 @@ export default function Sidebar({
   const keepFlyout = () => window.clearTimeout(flyTimer.current);
 
   const toggle = (name: string) => {
+    // El clic que el navegador manda detrás de un arrastre no pliega nada.
+    // `proyUp` levanta esta bandera y la baja en el turno siguiente; hasta hoy
+    // la escribía sin que nadie la leyera aquí, y no se notaba porque la fila
+    // no se podía agarrar por su botón. Desde que sí (`data-agarre`), sin esta
+    // línea cada vez que colocaras un proyecto se plegaría o se desplegaría.
+    if (soltoRecien.current) return;
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
@@ -915,9 +921,28 @@ export default function Sidebar({
    */
   const [sobreProy, setSobreProy] = useState<{ name: string; lado: Lado } | null>(null);
 
+  /**
+   * De dónde se puede agarrar una fila.
+   *
+   * Antes era «de cualquier sitio que no sea un botón», y eso dejaba fuera el
+   * logo, el nombre y la flecha, porque los tres viven DENTRO del botón que
+   * pliega el proyecto. En la práctica solo se podía agarrar por el hueco que
+   * queda a la derecha, que son unos pocos píxeles (Munir, 2026-08-08: «haz que
+   * también se pueda arrastrar desde el logo»).
+   *
+   * Ahora el botón principal lleva `data-agarre` y sí se puede agarrar: el clic
+   * no se pierde porque el arrastre no empieza hasta los seis píxeles, y el que
+   * llega después de arrastrar ya venía anulado. Los demás botones de la fila
+   * (las insignias, el ⋯, la papelera) siguen siendo botones y nada más.
+   */
+  const agarrable = (t: HTMLElement): boolean => {
+    if (t.closest("input")) return false;
+    const btn = t.closest("button");
+    return !btn || btn.hasAttribute("data-agarre");
+  };
+
   const proyDown = (e: React.PointerEvent<HTMLDivElement>, name: string) => {
-    // Los botones de la fila (plegar, insignias, ⋯) siguen siendo botones.
-    if ((e.target as HTMLElement).closest("button, input")) return;
+    if (!agarrable(e.target as HTMLElement)) return;
     arrProy.current = { name, x: e.clientX, y: e.clientY, activo: false };
   };
 
@@ -997,8 +1022,9 @@ export default function Sidebar({
     // propio arrastre: sin esta línea, empezar a mover una sesión movería
     // además el grupo entero.
     if (!(e.target as HTMLElement).closest(".sgroup-head")) return;
-    // El nombre, el color y el ⋯ del grupo siguen siendo suyos.
-    if ((e.target as HTMLElement).closest("button, input")) return;
+    // Su nombre y su punto de color se agarran igual que el logo de un
+    // proyecto; el lápiz y el ⋯ de al lado siguen siendo botones y nada más.
+    if (!agarrable(e.target as HTMLElement)) return;
     // Y que no se entere el proyecto de arriba: sin esto se arrastrarían los
     // dos a la vez y la barra entera se recolocaría al soltar un grupo.
     e.stopPropagation();
@@ -1851,13 +1877,21 @@ export default function Sidebar({
                 <button
                   className="sgroup-main"
                   type="button"
+                  // Igual que el del proyecto: se pulsa para abrir sus sesiones
+                  // y se agarra para cambiarlo de sitio.
+                  data-agarre
                   // Pulsar el grupo ABRE sus sesiones, igual que pulsar un
                   // proyecto abre las suyas. Estaba puesto para plegar, y por
                   // eso «no se abría el grupo» por más que se pulsara: hacía
                   // otra cosa (Munir, 2026-08-02). Plegar tiene su ▴ al lado.
                   data-tip={t("Abrir sus {n} sesiones a la vez", { n: inside.length })}
                   disabled={inside.length === 0}
-                  onClick={() => onOpenAll(pg.name, g.path, inside, pg.id)}
+                  // Y aquí lo mismo que en `toggle`, con más motivo: soltar un
+                  // grupo en su sitio nuevo no puede abrirte sus seis sesiones.
+                  onClick={() => {
+                    if (soltoRecien.current) return;
+                    onOpenAll(pg.name, g.path, inside, pg.id);
+                  }}
                 >
                   {pg.color && <span className="sgroup-dot" />}
                   <span className="sgroup-name">{pg.name}</span>
@@ -2224,6 +2258,10 @@ export default function Sidebar({
               >
                 <button
                   className="project-main"
+                  // Se pulsa Y se agarra: el logo, el nombre y la flecha están
+                  // aquí dentro, así que sin esto la fila solo se podía
+                  // arrastrar por los pocos píxeles que quedan a la derecha.
+                  data-agarre
                   onClick={() => toggle(g.name)}
                   data-tip={
                     g.sessions.length

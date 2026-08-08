@@ -380,6 +380,18 @@ export function accountReady(
 }
 
 /**
+ * Deja constancia de un fallo de la parte web en `rastro.log`, que es donde
+ * Rust ya escribe los suyos. No lanza nunca: si el rastro falla, se calla.
+ *
+ * Existe porque Adeorq es una ventana SIN CONSOLA: un `catch` vacío aquí no
+ * deja NADA en ninguna parte, y eso convierte cualquier «no me ha aparecido»
+ * en algo que no se puede ni empezar a mirar.
+ */
+export function anotarRastro(mensaje: string): Promise<void> {
+  return invoke<void>("anotar_rastro", { mensaje }).catch(() => {});
+}
+
+/**
  * Cierra la sesión de una cuenta: borra sus archivos de credenciales y nada
  * más. Devuelve cuáles borró; vacío significa que ya no había sesión.
  *

@@ -296,6 +296,7 @@ pub fn run() {
             manage::clear_fondo,
             manage::save_board,
             manage::read_board,
+            manage::anotar_rastro,
             apikeys::api_key_put,
             apikeys::api_key_forget,
             apikeys::api_keys_estado,

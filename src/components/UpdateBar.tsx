@@ -7,12 +7,16 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { useT } from "../lib/i18n";
+import { anotarRastro } from "../lib/pty";
 import { AdeorqMark, CloseIcon, DownloadIcon } from "./Icons";
 
 // Auto-update like VoCript: check once on start (and every few hours for the
 // panels Munir leaves open for days), then install only when he says so.
 // Dev builds have no updater endpoint, so check() just fails and we stay quiet.
 const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
+/** Lo mínimo entre dos comprobaciones. Ahora que también se mira al volver a
+    la ventana, sin este suelo un rato de alt-tabs serían veinte peticiones. */
+const MIN_ENTRE_MS = 5 * 60 * 1000;
 const NOTIFIED_KEY = "adeorq-update-notified";
 
 type Phase = "idle" | "found" | "downloading" | "done" | "error";
@@ -44,7 +48,14 @@ export default function UpdateBar() {
   };
 
   useEffect(() => {
-    const look = () => {
+    // Cuándo se miró por última vez, para no preguntar cien veces al ir y
+    // volver de la ventana. Fuera del estado: no se pinta, y cambiarlo no tiene
+    // que rehacer nada.
+    let ultima = 0;
+    const look = (motivo: string) => {
+      const ahora = Date.now();
+      if (ahora - ultima < MIN_ENTRE_MS) return;
+      ultima = ahora;
       check()
         .then((u) => {
           if (u) {
@@ -53,13 +64,33 @@ export default function UpdateBar() {
             void announce(u.version);
           }
         })
-        .catch(() => {
-          // No endpoint (dev build) or no connection: never nag about it.
+        .catch((e) => {
+          // En pantalla no se dice nada, y eso estaba bien: sin conexión o en
+          // una compilación de desarrollo no hay endpoint, y dar la lata por
+          // eso sería peor. Lo que estaba mal era que TAMPOCO quedaba en
+          // ningún sitio: Adeorq no tiene consola, así que el comprobador podía
+          // llevar horas fallando sin un solo indicio, y un «reinicié y no me
+          // aparece el aviso» no se podía ni empezar a mirar (Munir,
+          // 2026-08-08). Ahora va al rastro, que es donde se mira primero.
+          void anotarRastro(`el comprobador de actualizaciones falló (${motivo}): ${e}`);
         });
     };
-    look();
-    const timer = setInterval(look, CHECK_EVERY_MS);
-    return () => clearInterval(timer);
+    look("arranque");
+    const timer = setInterval(() => look("cada 6 h"), CHECK_EVERY_MS);
+    // Y al volver a la ventana. Sin esto, un fallo puntual en el arranque (la
+    // red que aún no está, la caché de GitHub sirviendo el archivo de hace un
+    // minuto) dejaba a Adeorq seis horas sin volver a mirar, y la única salida
+    // era reiniciarla otra vez y confiar.
+    const alVolver = () => {
+      if (!document.hidden) look("al volver");
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", alVolver);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", alVolver);
+    };
   }, []);
 
   const install = () => {
@@ -124,10 +155,15 @@ export default function UpdateBar() {
           </span>
         </span>
         {/* La flecha a la derecha del original de Claude es «ir a», y esto no
-            lleva a ninguna parte: descarga. Un icono de bajar, macizo. */}
-        <span className="update-flecha">
-          <DownloadIcon size={19} />
-        </span>
+            lleva a ninguna parte: descarga. Un icono de bajar, macizo.
+            Mientras baja NO se pinta: la barra de abajo ya lo está diciendo, y
+            un icono de «descargar» al lado de algo que ya se está descargando
+            es la misma información dos veces (Munir, 2026-08-08). */}
+        {phase !== "downloading" && (
+          <span className="update-flecha">
+            <DownloadIcon size={19} />
+          </span>
+        )}
       </button>
       {/* La barra de descarga va PEGADA al borde de abajo de la tarjeta, no como
           un elemento más: así crece sin mover ni un píxel de lo de arriba. */}

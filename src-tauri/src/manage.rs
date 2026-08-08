@@ -239,6 +239,26 @@ pub fn save_board(content: String) -> Result<(), String> {
     std::fs::rename(&tmp, &p).map_err(|e| e.to_string())
 }
 
+/**
+ * Dejar constancia de algo que ha ido mal en la parte web.
+ *
+ * Rust ya escribe sus fallos en `rastro.log` (ver `crate::anotar`), y la parte
+ * web no tenía dónde: los suyos se los tragaba un `catch` vacío y no quedaban
+ * en ninguna parte, porque Adeorq es una ventana SIN CONSOLA. Eso convirtió un
+ * «reinicié y no me aparece el aviso de actualizar» (Munir, 2026-08-08) en algo
+ * que no se podía ni empezar a mirar: el comprobador podía llevar horas fallando
+ * y nadie lo sabía.
+ *
+ * No lanza nunca: un rastro que rompa lo que estaba anotando sería peor que no
+ * tenerlo.
+ */
+#[tauri::command]
+pub async fn anotar_rastro(mensaje: String) {
+    // Acotado, que esto viene de fuera: un mensaje de un mega llenaría el
+    // archivo él solo y se llevaría por delante lo que había antes.
+    crate::anotar(&mensaje.chars().take(500).collect::<String>());
+}
+
 /// Devuelve "" cuando todavía no hay tablero guardado: no tenerlo es lo normal
 /// la primera vez, no un error que haya que enseñarle a nadie.
 #[tauri::command]

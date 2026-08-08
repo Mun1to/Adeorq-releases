@@ -5,7 +5,6 @@ import SkillsPanel from "./components/SkillsPanel";
 import TerminalPane, { FONDO_EVENTO, SOLTADO_EVENTO } from "./components/TerminalPane";
 import PanelView from "./components/PanelView";
 import Foreman, { type ForemanExec } from "./components/Foreman";
-import UpdateBar from "./components/UpdateBar";
 import AvisoCuota from "./components/AvisoCuota";
 import Vigia from "./components/Vigia";
 import SettingsView from "./components/SettingsView";
@@ -36,6 +35,7 @@ import {
   quitarFondo,
 } from "./lib/fondo";
 import { guardarEncuadre, leerEncuadre, type Encuadre } from "./lib/encuadre";
+import { guardarCabecera, leerCabecera, visibles, type Cabecera } from "./lib/cabecera";
 import {
   AccountIcon,
   AgendaIcon,
@@ -645,6 +645,8 @@ function App() {
   );
   /** Qué trozo de la foto se ve. Antes era una regla fija del CSS; ver `lib/encuadre.ts`. */
   const [fondoEncuadre, setFondoEncuadre] = useState<Encuadre>(() => leerEncuadre());
+  /** Qué pestañas salen arriba y en qué orden. Ver `lib/cabecera.ts`. */
+  const [cabecera, setCabecera] = useState<Cabecera>(() => leerCabecera());
   /**
    * Cuánto se ve a TRAVÉS de las terminales: 0 opacas, 100 invisibles.
    *
@@ -2260,6 +2262,11 @@ function App() {
     { key: "ajustes", icon: <SettingsIcon size={16} />, label: "Ajustes" },
   ];
 
+  // Las que él quiere ver, en el orden que él ha puesto. Apagar una la quita de
+  // la fila pero NO de la app: su atajo de teclado sigue abriéndola, y los
+  // botones de otras pantallas que llevan a ella también. Ver `lib/cabecera.ts`.
+  const tabsVisibles = visibles(tabs, cabecera);
+
   return (
     <LangContext.Provider value={{ lang, t }}>
     <Overlays>
@@ -2272,7 +2279,11 @@ function App() {
         desenfoque={fondoDesenfoque}
         encuadre={fondoEncuadre}
       />
-      <UpdateBar />
+      {/* La tarjeta de actualizar ya NO se monta aquí: vive al final de la
+          barra de la izquierda, como en la app de escritorio de Claude, que es
+          la referencia que dio Munir. Flotando en la esquina se posaba encima
+          del contenido y tapaba lo que hubiera debajo; en la barra ocupa su
+          sitio y no le quita nada a nadie. */}
       {verObjetivos && (
         <ObjetivosFlotante
           onCerrar={() => {
@@ -2311,7 +2322,7 @@ function App() {
           Adeorq
         </span>
         <nav className="tabs">
-          {tabs.map((tab) => (
+          {tabsVisibles.map((tab) => (
             <button
               key={tab.key}
               className="tab"
@@ -2877,6 +2888,11 @@ function App() {
           fondoOpacidad={fondoOpacidad}
           fondoDesenfoque={fondoDesenfoque}
           fondoEncuadre={fondoEncuadre}
+          cabecera={cabecera}
+          onCabecera={(c) => {
+            setCabecera(c);
+            guardarCabecera(c);
+          }}
           terminalVer={terminalVer}
           onTerminalVer={setTerminalVer}
           onFondo={async (ruta) => {

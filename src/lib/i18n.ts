@@ -380,6 +380,15 @@ const EN: Record<string, string> = {
 
   // Lo que llevas trabajado, en la pantalla vacía de la Cabina. «Sesiones» ya
   // está traducida más arriba, así que aquí solo van las que faltaban.
+  // La cabecera a su gusto, desde la 0.9.73.
+  "La cabecera": "The header",
+  "Qué pestañas salen arriba y en qué orden. Apagar una la quita de la vista, no de Adeorq: su atajo de teclado la sigue abriendo, y los botones de otras pantallas que llevan a ella también. Ajustes no se puede apagar, porque es donde se vuelven a encender las demás.":
+    "Which tabs show up top, and in what order. Turning one off takes it out of sight, not out of Adeorq: its keyboard shortcut still opens it, and so do the buttons in other screens that lead there. Settings cannot be turned off, because it is where you turn the rest back on.",
+  "Ajustes no se puede apagar": "Settings cannot be turned off",
+  Subir: "Move up",
+  Bajar: "Move down",
+  "Como venía de fábrica": "Back to how it came",
+
   // La CPU en el Pulso, desde la 0.9.71.
   "CPU de Adeorq y sus agentes": "CPU of Adeorq and its agents",
   "La CPU es del equipo entero, como en el Administrador de tareas: tu máquina tiene {n} hilos, así que el 100 % son todos a la vez.":

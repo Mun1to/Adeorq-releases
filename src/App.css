@@ -6001,14 +6001,17 @@ button.stat-card[data-live="false"] {
    recolocando la barra, la Cabina y todas las terminales por un aviso que se
    lee en dos segundos. Ahora se posa encima sin mover nada. */
 .update-card {
-  position: fixed;
-  left: 14px;
-  bottom: 14px;
-  z-index: 95;
+  /* En su sitio de la barra, no flotando sobre el contenido. Flotante se posaba
+     encima de lo que estuvieras leyendo, y Munir pidio el sitio de su
+     referencia: al final de la columna, como en la app de escritorio de Claude
+     (2026-08-08). `relative` solo por la barra de descarga, que va absoluta
+     contra este borde. */
+  position: relative;
+  flex: none;
+  /* Sin margen propio: `.sidebar` es una columna con `gap`, y sumar los dos
+     dejaria esta tarjeta mas separada de la lista que todo lo demas. */
   display: flex;
   align-items: stretch;
-  width: 306px;
-  max-width: calc(100vw - 28px);
   border-radius: 14px;
   overflow: hidden;
   /* SOLIDO: esto se posa sobre terminales y sobre la foto, y un aviso que no se
@@ -6059,7 +6062,11 @@ button.stat-card[data-live="false"] {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
+/* `flex: 1` para que empuje el icono al borde derecho. Sin esto el texto solo
+   ocupaba lo suyo y la flecha se quedaba pegada a el, con un hueco muerto
+   detras hasta la X (Munir, 2026-08-08: «el icono deberia estar a la derecha»). */
 .update-texto {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -15473,4 +15480,50 @@ textarea.note-body {
   border-style: solid;
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* La lista de la cabecera, en Ajustes: qué pestañas salen arriba y en qué
+   orden. Dentro de una `.panel-card`, que ya pone la superficie. */
+.cab-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 10px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.cab-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  font-size: 13px;
+}
+
+.cab-fila:last-child {
+  border-bottom: none;
+}
+
+/* Una apagada se atenúa PERO se sigue leyendo: es la fila que hay que
+   encontrar para volver a encenderla, así que un gris de adorno la escondería
+   justo cuando hace falta. */
+.cab-fila[data-fuera] .cab-nombre {
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+.cab-nombre {
+  flex: 1;
+  min-width: 0;
+}
+
+.cab-flechas {
+  display: flex;
+  gap: 3px;
+}
+
+.cab-flechas .mini {
+  padding: 0;
+  min-width: 26px;
+  min-height: 26px;
 }

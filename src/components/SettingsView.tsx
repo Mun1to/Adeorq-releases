@@ -28,6 +28,17 @@ import { guardarModoVigia, modoVigia, type ModoVigia } from "../lib/vigia";
 import EncuadreFondo from "./EncuadreFondo";
 import type { Encuadre } from "../lib/encuadre";
 import {
+  alternar,
+  esDefecto as esDefectoCabecera,
+  estaOculta,
+  mover,
+  paraAjustes,
+  reiniciar as reiniciarCabecera,
+  TAB_FIJA,
+  type Cabecera,
+} from "../lib/cabecera";
+
+import {
   anadirProyecto,
   fijarRaiz,
   leerPerfil,
@@ -37,13 +48,35 @@ import {
 import { open as pickFile } from "@tauri-apps/plugin-dialog";
 import AtajosEditor from "./AtajosEditor";
 import GuideView from "./GuideView";
-import { CheckIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
+import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
 
 /** La documentación pública. Vive en el repo de descargas, que es el único
     sitio público del proyecto: adeorq.com no está comprado. Apunta a la guía
     directamente, no a la portada: quien pulsa "Ayuda" busca la guía. */
 const DOCS_URL = "https://mun1to.github.io/Adeorq-releases/guia.html";
+
+/**
+ * Las nueve pestañas, solo con lo que hace falta aquí: su clave y su nombre.
+ *
+ * Se escriben otra vez en vez de importarlas de `App.tsx` porque allí cada una
+ * lleva su icono ya construido, o sea JSX, y arrastrar eso hasta Ajustes obliga
+ * a que App exporte parte de su render. Aquí solo se listan y se ordenan.
+ * El orden ES el de fábrica y tiene que coincidir con el de allí: si algún día
+ * entra una pestaña nueva, se añade en los dos sitios.
+ */
+const TABS_CABECERA = [
+  { key: "panel", label: "Panel" },
+  { key: "cabina", label: "Cabina" },
+  { key: "chat", label: "Chat" },
+  { key: "agenda", label: "Agenda" },
+  { key: "lienzo", label: "Lienzo" },
+  { key: "memoria", label: "Memoria" },
+  { key: "cuentas", label: "Cuentas" },
+  { key: "comandos", label: "Comandos" },
+  { key: "ajustes", label: "Ajustes" },
+];
+
 
 interface Props {
   lang: Lang;
@@ -74,6 +107,9 @@ interface Props {
   fondoOpacidad: number;
   fondoDesenfoque: number;
   fondoEncuadre: Encuadre;
+  /** Qué pestañas salen arriba y en qué orden. Ver `lib/cabecera.ts`. */
+  cabecera: Cabecera;
+  onCabecera: (c: Cabecera) => void;
   onFondo: (ruta: string) => Promise<void>;
   onFondoOpacidad: (n: number) => void;
   onFondoDesenfoque: (n: number) => void;
@@ -258,6 +294,8 @@ export default function SettingsView({
   fondoOpacidad,
   fondoDesenfoque,
   fondoEncuadre,
+  cabecera,
+  onCabecera,
   onFondo,
   onFondoOpacidad,
   onFondoDesenfoque,
@@ -386,6 +424,66 @@ export default function SettingsView({
         <div className="set-hoja">
           {seccion === "aspecto" && (
             <>
+              {/* La cabecera a su gusto. Va la primera de Aspecto porque es lo
+                  que más cambia el día a día: nueve pestañas iguales para todos
+                  funcionan el primer día y dejan de funcionar al mes, cuando ya
+                  sabes cuáles no vas a abrir nunca (Munir, 2026-08-08). */}
+              <section className="panel-card">
+                <h2>{t("La cabecera")}</h2>
+                <p className="card-hint">
+                  {t(
+                    "Qué pestañas salen arriba y en qué orden. Apagar una la quita de la vista, no de Adeorq: su atajo de teclado la sigue abriendo, y los botones de otras pantallas que llevan a ella también. Ajustes no se puede apagar, porque es donde se vuelven a encender las demás.",
+                  )}
+                </p>
+                <ul className="cab-lista">
+                  {paraAjustes(TABS_CABECERA, cabecera).map((tab, i, fila) => {
+                    const fuera = estaOculta(cabecera, tab.key);
+                    const fija = tab.key === TAB_FIJA;
+                    return (
+                      <li key={tab.key} className="cab-fila" data-fuera={fuera || undefined}>
+                        <span className="cab-nombre">{t(tab.label)}</span>
+                        {/* Las flechas solo tienen sentido en las que se ven:
+                            una apagada no está en la fila, así que no hay un
+                            puesto suyo que subir o bajar. */}
+                        {!fuera && (
+                          <span className="cab-flechas">
+                            <button
+                              className="mini"
+                              disabled={i === 0}
+                              data-tip={t("Subir")}
+                              aria-label={t("Subir")}
+                              onClick={() => onCabecera(mover(TABS_CABECERA, cabecera, tab.key, -1))}
+                            >
+                              <ChevronIcon size={12} up />
+                            </button>
+                            <button
+                              className="mini"
+                              disabled={i + 1 >= fila.length || estaOculta(cabecera, fila[i + 1].key)}
+                              data-tip={t("Bajar")}
+                              aria-label={t("Bajar")}
+                              onClick={() => onCabecera(mover(TABS_CABECERA, cabecera, tab.key, 1))}
+                            >
+                              <ChevronIcon size={12} />
+                            </button>
+                          </span>
+                        )}
+                        <input
+                          type="checkbox"
+                          checked={!fuera}
+                          disabled={fija}
+                          title={fija ? t("Ajustes no se puede apagar") : undefined}
+                          onChange={() => onCabecera(alternar(cabecera, tab.key))}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+                {!esDefectoCabecera(cabecera) && (
+                  <button className="mini" onClick={() => onCabecera(reiniciarCabecera())}>
+                    {t("Como venía de fábrica")}
+                  </button>
+                )}
+              </section>
               <section className="panel-card">
                 <h2>{t("Idioma")}</h2>
                 <p className="card-hint">

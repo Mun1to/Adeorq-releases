@@ -27,6 +27,7 @@ import {
 import { anadirProyecto, raiz, sinRaiz } from "../lib/perfil";
 import { ladoDeCaida, moverGrupo, moverProyecto, ordenarProyectos, type Lado } from "../lib/ordenBarra";
 import { levantar, type Fantasma } from "../lib/fantasma";
+import UpdateBar from "./UpdateBar";
 import { hueOf } from "../lib/colors";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
@@ -2543,6 +2544,13 @@ export default function Sidebar({
           </button>
         )}
       </div>
+      {/* La tarjeta de actualizar, al final de la barra y FUERA de la lista con
+          scroll: si fuera dentro, con veinte proyectos habría que bajar hasta
+          el fondo para enterarse de que hay versión nueva. Este es el sitio que
+          pidió Munir y el de su referencia, la app de escritorio de Claude.
+          En la tira y en la pared de marcas no cabe: allí sigue avisando el
+          globo de Windows, que es lo que ya hacía. */}
+      {!tira && rail !== "logo" && <UpdateBar />}
       {/* The browser's own file dialog: no extra Tauri plugin for one picker. */}
       <input
         ref={fileRef}

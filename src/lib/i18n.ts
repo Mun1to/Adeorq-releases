@@ -380,6 +380,17 @@ const EN: Record<string, string> = {
 
   // Lo que llevas trabajado, en la pantalla vacía de la Cabina. «Sesiones» ya
   // está traducida más arriba, así que aquí solo van las que faltaban.
+  // Cerrar sesión en Cuentas, desde la 0.9.76. No confundir con «Quitar», que
+  // se lleva la carpeta entera: esto solo borra el login.
+  "Cerrar sesión": "Sign out",
+  "Cerrar todas ({n})": "Sign out of all ({n})",
+  "Cerrar sesión en todas: cada CLI volverá a pedir login":
+    "Sign out everywhere: each CLI will ask for a login again",
+  "Se cierra la sesión en las {n} cuentas conectadas, de todos los CLIs. No se borra nada más: los proyectos, el historial y los ajustes de cada una siguen donde están, y para volver a entrar hay que hacer el login otra vez en cada una.":
+    "Signs out of the {n} connected accounts, across every CLI. Nothing else is deleted: each one keeps its projects, its history and its settings, and getting back in means logging into each one again.",
+  "«{a}» ({p}) deja de estar conectada. No se borra nada más: sus proyectos, su historial y sus ajustes siguen donde están, y para volver a entrar hay que hacer el login otra vez.":
+    "«{a}» ({p}) stops being connected. Nothing else is deleted: its projects, its history and its settings stay where they are, and getting back in means logging in again.",
+
   // El botón de Ajustes, que desde la 0.9.74 instala además de comprobar.
   "Buscar e instalar": "Check and install",
   "Bajando la {v}…": "Downloading {v}…",

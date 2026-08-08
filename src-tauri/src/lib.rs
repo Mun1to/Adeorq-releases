@@ -274,6 +274,7 @@ pub fn run() {
             accounts::cli_effort,
             accounts::list_account_dirs,
             accounts::forget_account,
+            accounts::logout_account,
             workspace::create_project,
             workspace::read_guide,
             workspace::default_projects_root,

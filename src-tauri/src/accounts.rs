@@ -80,6 +80,79 @@ pub fn account_ready(config_dir: String, files: Vec<String>, home_dir: Option<St
     files.iter().any(|f| dir.join(f).is_file())
 }
 
+/// La carpeta de una cuenta, venga con ruta propia o sea la de siempre del CLI.
+///
+/// Sale de `account_ready`, que hacía esta misma cuenta a mano: el renderer no
+/// puede expandir `~`, así que la carpeta de fábrica llega como ruta relativa
+/// (`.claude`, `.pi/agent`) y se resuelve aquí.
+fn carpeta_de(config_dir: &str, home_dir: Option<&str>) -> Option<PathBuf> {
+    if !config_dir.trim().is_empty() {
+        return Some(PathBuf::from(config_dir));
+    }
+    let rel = home_dir.filter(|h| !h.trim().is_empty())?;
+    let home = crate::dir_casa()?;
+    Some(rel.split(['/', '\\']).fold(PathBuf::from(home), |acc, p| acc.join(p)))
+}
+
+/**
+ * Cerrar sesión: borra SOLO los archivos de credenciales de esa cuenta.
+ *
+ * No es lo mismo que `forget_account`, que se lleva la carpeta entera. Aquí la
+ * cuenta sigue existiendo con sus proyectos, su historial y sus ajustes: lo
+ * único que se va es la prueba de que estabas dentro, así que el CLI vuelve a
+ * pedir login la próxima vez y todo lo demás sigue donde estaba. Esa distinción
+ * es la razón de que sean dos comandos y no uno con una bandera.
+ *
+ * Qué archivo es la credencial depende del CLI (Claude escribe
+ * `.credentials.json`, Codex y Pi `auth.json`, Gemini `oauth_creds.json`), así
+ * que la lista viene de la tabla de proveedores, igual que en `account_ready`.
+ *
+ * Dos cierres a lo que se puede tocar, porque esto BORRA:
+ *
+ *   · el nombre del archivo tiene que ser un nombre, no una ruta: nada de
+ *     barras ni de `..`, o una entrada de la tabla mal escrita (o cambiada)
+ *     podría salir de la carpeta;
+ *   · la carpeta tiene que ser una cuenta de Adeorq o la de fábrica de un CLI,
+ *     que son las dos únicas cosas que este panel gestiona.
+ *
+ * Devuelve los archivos que ha borrado de verdad. Vacío significa que ya no
+ * había sesión, que no es un error: es la respuesta.
+ */
+#[tauri::command]
+pub async fn logout_account(
+    config_dir: String,
+    files: Vec<String>,
+    home_dir: Option<String>,
+) -> Result<Vec<String>, String> {
+    let dir = carpeta_de(&config_dir, home_dir.as_deref())
+        .ok_or("no sé cuál es la carpeta de esa cuenta")?;
+
+    // La carpeta: o una cuenta de Adeorq, o la de fábrica del CLI dentro de la
+    // carpeta del usuario. Cualquier otra cosa es un error de quien llama.
+    let real = dir.canonicalize().map_err(|e| e.to_string())?;
+    let bajo = |base: Option<PathBuf>| {
+        base.and_then(|b| b.canonicalize().ok())
+            .map(|b| real.starts_with(&b) && real != b)
+            .unwrap_or(false)
+    };
+    if !bajo(accounts_root().ok()) && !bajo(crate::dir_casa().map(PathBuf::from)) {
+        return Err("esa carpeta no es una cuenta que Adeorq gestione".into());
+    }
+
+    let mut fuera = Vec::new();
+    for f in files {
+        if f.contains(['/', '\\']) || f.contains("..") || f.trim().is_empty() {
+            return Err(format!("nombre de credencial inválido: {f}"));
+        }
+        let p = real.join(&f);
+        if p.is_file() {
+            std::fs::remove_file(&p).map_err(|e| format!("{f}: {e}"))?;
+            fuera.push(f);
+        }
+    }
+    Ok(fuera)
+}
+
 #[derive(serde::Serialize)]
 pub struct CliFound {
     pub id: String,
@@ -197,6 +270,49 @@ pub fn forget_account(config_dir: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Cerrar sesión BORRA archivos, así que lo que hay que fijar no es que
+    /// funcione (eso se ve), sino lo que NO puede tocar. Un nombre de
+    /// credencial que sea una ruta saldría de la carpeta de la cuenta, y la
+    /// lista viene de una tabla que algún día editará alguien con prisa.
+    #[test]
+    fn a_credential_name_that_is_a_path_is_refused() {
+        let malos = ["../.credentials.json", "..\\otra\\auth.json", "a/b.json", ""];
+        for m in malos {
+            assert!(
+                m.contains(['/', '\\']) || m.contains("..") || m.trim().is_empty(),
+                "«{m}» tendría que quedar fuera y la guarda no lo ve",
+            );
+        }
+        // Y los buenos de verdad, los de la tabla de proveedores, pasan.
+        for bueno in [".credentials.json", "auth.json", "oauth_creds.json"] {
+            assert!(
+                !bueno.contains(['/', '\\']) && !bueno.contains("..") && !bueno.trim().is_empty(),
+                "«{bueno}» es un nombre legítimo y la guarda lo estaría tirando",
+            );
+        }
+    }
+
+    /// La carpeta de fábrica de un CLI llega como ruta relativa porque el
+    /// renderer no puede expandir `~`. Pi es el caso que lo obliga: la suya no
+    /// es `.pi` sino `.pi/agent`, con separador dentro.
+    #[test]
+    fn a_default_folder_arrives_relative_and_is_expanded() {
+        let Some(casa) = crate::dir_casa() else { return };
+        let d = carpeta_de("", Some(".pi/agent")).expect("tendría que resolverla");
+        assert_eq!(d, casa.join(".pi").join("agent"));
+        // Y con la barra al revés sale lo mismo: los proveedores escriben las
+        // dos formas y no puede depender de cuál eligió quien la anotó.
+        assert_eq!(carpeta_de("", Some(".pi\\agent")).unwrap(), d);
+        // Una cuenta con carpeta propia se usa tal cual, sin tocar.
+        assert_eq!(
+            carpeta_de("C:/lo/que/sea", Some(".claude")).unwrap(),
+            PathBuf::from("C:/lo/que/sea"),
+        );
+        // Y sin ninguna de las dos, no hay carpeta que adivinar.
+        assert!(carpeta_de("", None).is_none());
+        assert!(carpeta_de("", Some("  ")).is_none());
+    }
 
     #[test]
     fn labels_become_boring_folder_names() {

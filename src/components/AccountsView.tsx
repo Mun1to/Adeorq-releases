@@ -26,6 +26,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   accountReady,
   detectClis,
+  logoutAccount,
   mainAccount,
   planInfo,
   usageLimits,
@@ -111,6 +112,11 @@ export default function AccountsView({
   const [label, setLabel] = useState("");
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Account | null>(null);
+  /** Qué se va a cerrar: una cuenta concreta, o "todas". Null = nada. */
+  const [cerrando, setCerrando] = useState<Account | "todas" | null>(null);
+  const [saliendo, setSaliendo] = useState(false);
+  /** Lo que salió mal, si salió: cerrar en silencio no dice si funcionó. */
+  const [salida, setSalida] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [atajosProv, setAtajosProv] = useState<string[]>(() => leerAtajosProv());
   /** Ver lib/velo.ts: distingue pinchar el velo de soltar ahi un arrastre. */
@@ -166,6 +172,53 @@ export default function AccountsView({
       porDefecto,
     };
   }, [info, installed, defaultAccount, allOf, nombreDe]);
+
+  /** Las cuentas conectadas ahora mismo, de cualquier CLI. Es sobre lo que
+      actúa «cerrar en todas», y también lo que decide si ese botón existe. */
+  const conectadas = useMemo(
+    () =>
+      PROVIDERS.filter((p) => installed?.has(p.id))
+        .flatMap((p) => allOf(p).map((acc) => ({ acc, p })))
+        .filter(({ acc }) => info[acc.id]?.ready),
+    [installed, allOf, info],
+  );
+
+  /**
+   * Cerrar sesión: borra solo el archivo de credenciales, así que la cuenta
+   * sigue con sus proyectos, su historial y sus ajustes. Ver
+   * `accounts::logout_account`, que es donde están los límites de lo que se
+   * puede borrar.
+   *
+   * Si falla una de varias NO se para: cerrar cinco y fallar en la tercera
+   * dejando dos abiertas sin decirlo sería peor que seguir y contarlo al final.
+   */
+  const cerrarSesion = async () => {
+    if (!cerrando) return;
+    setSaliendo(true);
+    setSalida(null);
+    const lista =
+      cerrando === "todas"
+        ? conectadas
+        : [{ acc: cerrando, p: providerOf(cerrando.provider) }];
+    const fallos: string[] = [];
+    for (const { acc, p } of lista) {
+      await logoutAccount(acc.dir, p.creds, p.homeDir).catch((e) => {
+        fallos.push(`${nombreDe(acc)}: ${e}`);
+      });
+    }
+    setSaliendo(false);
+    if (fallos.length) {
+      setSalida(fallos.join(" · "));
+      // El diálogo se queda abierto con el fallo escrito: cerrarlo aquí
+      // escondería lo único que explica por qué siguen conectadas.
+      if (installed) void load(installed);
+      return;
+    }
+    setCerrando(null);
+    // Releer: las tarjetas tienen que pasar a «sin conectar» ahora, no en el
+    // siguiente repaso, o parecería que el botón no ha hecho nada.
+    if (installed) void load(installed);
+  };
 
   const load = useCallback(
     async (ids: Set<string>) => {
@@ -325,6 +378,19 @@ export default function AccountsView({
               {t("Usar por defecto")}
             </button>
           )}
+          {/* Cerrar sesión, en TODAS las cuentas y no solo en las que tú has
+              creado: la de casa de cada CLI también se cierra, y era la que no
+              tenía forma de hacerlo sin ir a buscar el archivo a mano.
+              Solo aparece si está conectada: en una que no lo está sería un
+              botón que no hace nada.
+              Y no es lo mismo que «Quitar», que se lleva la carpeta entera:
+              esto borra el login y deja los proyectos, el historial y los
+              ajustes donde estaban. */}
+          {it?.ready && (
+            <button className="mini" onClick={() => setCerrando(acc)}>
+              {t("Cerrar sesión")}
+            </button>
+          )}
           {!isMain && (
             <>
               <button className="mini" onClick={() => setRenaming(acc.id)}>
@@ -353,14 +419,28 @@ export default function AccountsView({
             )}
           </p>
         </div>
-        <button
-          className="mini"
-          disabled={busy}
-          data-tip={t("Buscar otra vez qué hay instalado y releer los límites (no gasta cuota)")}
-          onClick={detectar}
-        >
-          {busy ? "…" : <RefreshIcon size={13} />}
-        </button>
+        <div className="account-actions accounts-hero-btns">
+          {/* Solo con DOS o más conectadas: con una, este botón y el de su
+              tarjeta hacen lo mismo, y dos caminos para lo mismo en la misma
+              pantalla es una duda, no una comodidad. */}
+          {conectadas.length > 1 && (
+            <button
+              className="mini"
+              data-tip={t("Cerrar sesión en todas: cada CLI volverá a pedir login")}
+              onClick={() => setCerrando("todas")}
+            >
+              {t("Cerrar todas ({n})", { n: conectadas.length })}
+            </button>
+          )}
+          <button
+            className="mini"
+            disabled={busy}
+            data-tip={t("Buscar otra vez qué hay instalado y releer los límites (no gasta cuota)")}
+            onClick={detectar}
+          >
+            {busy ? "…" : <RefreshIcon size={13} />}
+          </button>
+        </div>
       </header>
 
       {/* El estado de un vistazo, antes de la lista.
@@ -447,6 +527,38 @@ export default function AccountsView({
                 }}
               >
                 {t("Quitar")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cerrar sesión, en una o en todas. Un solo diálogo para los dos casos:
+          es la misma pregunta y la misma consecuencia, y lo único que cambia es
+          cuántas. Se pregunta SIEMPRE porque volver de aquí cuesta un login por
+          cuenta, aunque no se pierda nada más. */}
+      {cerrando && (
+        <div className="modal-overlay" {...propsDeVelo(bajoEnVelo, () => setCerrando(null))}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">{t("Cerrar sesión")}</h3>
+            <p className="modal-text">
+              {cerrando === "todas"
+                ? t(
+                    "Se cierra la sesión en las {n} cuentas conectadas, de todos los CLIs. No se borra nada más: los proyectos, el historial y los ajustes de cada una siguen donde están, y para volver a entrar hay que hacer el login otra vez en cada una.",
+                    { n: conectadas.length },
+                  )
+                : t(
+                    "«{a}» ({p}) deja de estar conectada. No se borra nada más: sus proyectos, su historial y sus ajustes siguen donde están, y para volver a entrar hay que hacer el login otra vez.",
+                    { a: nombreDe(cerrando), p: providerOf(cerrando.provider).label },
+                  )}
+            </p>
+            {salida && <p className="modal-warn-note">{salida}</p>}
+            <div className="modal-actions">
+              <button className="mini modal-cancel" onClick={() => setCerrando(null)}>
+                {t("Cancelar")}
+              </button>
+              <button className="np-btn" disabled={saliendo} onClick={() => void cerrarSesion()}>
+                {saliendo ? "…" : t("Cerrar sesión")}
               </button>
             </div>
           </div>

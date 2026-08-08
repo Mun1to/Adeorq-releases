@@ -1,11 +1,11 @@
 {
-  "version": "0.9.75",
-  "notes": "UNA ACTUALIZACION AUTOMATICA DEJA DE HACERTE UNA PREGUNTA SIN BUENA RESPUESTA. Instalando a mano sale la pagina estandar del empaquetador: desinstalar antes de instalar, o no desinstalar. Munir pregunto por que ofrece desinstalar en vez de actualizar, y es la pregunta correcta: ese texto nombra el caso raro y esconde el normal, y ninguna de las dos opciones toca tus datos (viven en la carpeta de Adeorq de tu usuario; la del programa solo tiene el ejecutable y los documentos). Esa pagina esta bien cuando abres un instalador a proposito. No lo esta en mitad de una actualizacion, donde la app ya sabe lo que quieres: ahora corre con su barra de progreso y sin preguntas, que es lo que deberia significar actualizar. Solo tiene efecto a partir de la version que lo lleva dentro: el programa que esta corriendo es el que decide como se instala el siguiente.",
-  "pub_date": "2026-08-08T09:02:55.000Z",
+  "version": "0.9.76",
+  "notes": "CERRAR SESION EN UNA CUENTA, O EN TODAS. Se podian añadir, renombrar y quitar, pero no cerrar sesion. Lo unico parecido era Quitar, que borra la carpeta ENTERA con su historial, y ni siquiera valia para las cuentas de casa de cada CLI, que son justo las que mas lo necesitan. Ahora cada cuenta conectada tiene su boton, y arriba hay otro que las cierra todas de golpe cuando hay dos o mas. Solo se borra el archivo del login: la cuenta se queda con sus proyectos, su historial y sus ajustes, y lo unico que se va es la prueba de que estabas dentro, asi que el CLI vuelve a pedirte que entres y nada mas cambia. Cerrar en todas no se para en el primer fallo: cerrar cinco y fallar en la tercera dejando dos abiertas sin decirlo seria peor que seguir y contarlo, asi que el dialogo se queda abierto con lo que no pudo. Y de paso, sobre Pi: ya estaba en el catalogo desde hace tiempo, con su carpeta y su login verificados leyendo su codigo. No salia en Cuentas simplemente porque no lo tienes instalado; aparece en la lista de los que se pueden instalar, con su comando.",
+  "pub_date": "2026-08-08T09:20:26.000Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLytuRnc5aWI5MEdCaXU5TEpqanN3U01TWTB5am8yM3EzNGowWWxTaDdQWlgwQzYrdHFnRW1tZXNlaTFwNXh2dFQwVXJFTTdUbTcrcDU5R2lyQjRpSUFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MTc5NzU4CWZpbGU6QWRlb3JxXzAuOS43NV94NjQtc2V0dXAuZXhlCkdQbWVPQVVIcTN0WGNCUmZ4c3N0bkoyU3pDZmhyYkozOVpPcDBtNExDM1dWWDQ0ZGFPZW44RHhINUV2Uk9OKzRPbHFQaHZKd1NWVDNHN0FvVFRmQURnPT0K",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.75/Adeorq_0.9.75_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzcrZFJpQTBTeE5seHlFVVZ3NDJTYmFsVFIrckU5dzFXYmR1M0djUDgzeWVBQUZNZUZWTWEvaXpRQ3BwNFJjc3ZISlZGaUFzUnNCcGUrbWVKL2Q3eHdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MTgwODA2CWZpbGU6QWRlb3JxXzAuOS43Nl94NjQtc2V0dXAuZXhlCnU5NG5wTXF0TTFlejhuRzcvYTU5ZkRxOXM5bEdJYllyT0cvbElTS0hVTVIyODdWRDJlNlNWNkJHekRhWVV3QmVuMHlHeHNPdi9ZNGo2aVVCbUliREFBPT0K",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.76/Adeorq_0.9.76_x64-setup.exe"
     }
   }
 }

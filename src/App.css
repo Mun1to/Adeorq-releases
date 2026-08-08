@@ -15527,3 +15527,12 @@ textarea.note-body {
   min-width: 26px;
   min-height: 26px;
 }
+
+/* Los botones de la cabecera de Cuentas. `.account-actions` ya sabe repartir
+   botones en fila; esto solo los pega a la derecha de la cabecera, que es una
+   fila con el título a la izquierda. */
+.accounts-hero-btns {
+  flex: none;
+  align-items: center;
+  margin: 0;
+}

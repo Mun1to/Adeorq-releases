@@ -379,6 +379,22 @@ export function accountReady(
   return invoke("account_ready", { configDir, files, homeDir: homeDir ?? null });
 }
 
+/**
+ * Cierra la sesión de una cuenta: borra sus archivos de credenciales y nada
+ * más. Devuelve cuáles borró; vacío significa que ya no había sesión.
+ *
+ * NO es `forgetAccount`, que se lleva la carpeta entera con su historial. Aquí
+ * la cuenta sigue existiendo: lo único que se va es la prueba de que estabas
+ * dentro, así que el CLI vuelve a pedir login y todo lo demás sigue igual.
+ */
+export function logoutAccount(
+  configDir: string,
+  files: string[],
+  homeDir?: string,
+): Promise<string[]> {
+  return invoke("logout_account", { configDir, files, homeDir: homeDir ?? null });
+}
+
 /** Which of the given CLIs are installed: [id, exe] in, id → path out. */
 export function detectClis(exes: Array<[string, string]>): Promise<
   Array<{ id: string; path: string }>

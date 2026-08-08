@@ -75,3 +75,53 @@ export function moverProyecto(visibles: string[], movido: string, destino: strin
   orden.splice(desde < hasta ? i + 1 : i, 0, movido);
   return orden;
 }
+
+/**
+ * De qué lado del destino va a caer, para pintar la raya DONDE va a caer.
+ *
+ * Existe porque la raya mentía la mitad de las veces: estaba escrita en el CSS
+ * como una línea fija arriba del destino («encima de este»), mientras que
+ * `moverProyecto` deja el arrastrado DEBAJO cuando lo bajas. Bajabas un
+ * proyecto, veías la raya sobre el destino y acababa después. Una sola regla
+ * decide las dos cosas, así que ya no pueden discrepar.
+ *
+ * `null` cuando no hay nada que marcar (soltar sobre sí mismo, o un destino que
+ * ya no está en la lista).
+ */
+export type Lado = "antes" | "despues";
+
+export function ladoDeCaida(visibles: string[], movido: string, destino: string): Lado | null {
+  if (movido === destino) return null;
+  const desde = visibles.indexOf(movido);
+  const hasta = visibles.indexOf(destino);
+  if (desde < 0 || hasta < 0) return null;
+  return desde < hasta ? "despues" : "antes";
+}
+
+/**
+ * Mover un grupo de sesiones dentro de SU proyecto.
+ *
+ * Los grupos de todos los proyectos viven en un solo array (`ui.groups`) y su
+ * orden en la barra ES el orden de ese array, sin lista de orden aparte. Así
+ * que aquí hay dos cuidados que no tiene el de proyectos:
+ *
+ *  1. El movimiento se calcula SOLO entre los del proyecto que se está tocando.
+ *     Con la lista entera, los índices contarían grupos de otros proyectos que
+ *     ni siquiera se ven, y el arrastrado caería en un sitio que no es.
+ *  2. Los reordenados vuelven a las MISMAS ranuras que ocupaban en el array
+ *     grande, así que ningún otro proyecto ve moverse los suyos.
+ */
+export function moverGrupo<T extends { id: string; project: string }>(
+  todos: T[],
+  proyecto: string,
+  movido: string,
+  destino: string,
+): T[] {
+  const mios = todos.filter((x) => x.project === proyecto);
+  const orden = moverProyecto(mios.map((x) => x.id), movido, destino);
+  const porId = new Map(mios.map((x) => [x.id, x]));
+  const cola = orden.map((id) => porId.get(id)).filter((x): x is T => !!x);
+  if (cola.length !== mios.length) return todos;
+  let i = 0;
+  return todos.map((x) => (x.project === proyecto ? cola[i++] : x));
+}

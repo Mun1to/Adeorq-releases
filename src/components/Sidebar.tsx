@@ -25,7 +25,7 @@ import {
   type UiState,
 } from "../lib/pty";
 import { anadirProyecto, raiz, sinRaiz } from "../lib/perfil";
-import { moverProyecto, ordenarProyectos } from "../lib/ordenBarra";
+import { ladoDeCaida, moverGrupo, moverProyecto, ordenarProyectos, type Lado } from "../lib/ordenBarra";
 import { hueOf } from "../lib/colors";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
@@ -907,7 +907,13 @@ export default function Sidebar({
    * tenías delante y a partir de ahí nada se mueve solo. */
   const arrProy = useRef<{ name: string; x: number; y: number; activo: boolean } | null>(null);
   const [moviendoProy, setMoviendoProy] = useState<string | null>(null);
-  const [sobreProy, setSobreProy] = useState<string | null>(null);
+  /**
+   * Dónde va a caer, con el LADO. Antes era solo el nombre del destino y la
+   * raya la pintaba el CSS siempre arriba: bajabas un proyecto, la veías sobre
+   * el destino y acababa debajo (`ladoDeCaida` lo cuenta entero). Ahora el lado
+   * sale del mismo cálculo que hace el movimiento, así que no pueden discrepar.
+   */
+  const [sobreProy, setSobreProy] = useState<{ name: string; lado: Lado } | null>(null);
 
   const proyDown = (e: React.PointerEvent<HTMLDivElement>, name: string) => {
     // Los botones de la fila (plegar, insignias, ⋯) siguen siendo botones.
@@ -927,12 +933,13 @@ export default function Sidebar({
     cercaDelBorde(e.clientX, e.clientY, a.name);
     const bajo = document.elementFromPoint(e.clientX, e.clientY);
     const destino = bajo?.closest<HTMLElement>("[data-proyecto]")?.dataset.proyecto;
-    setSobreProy(destino && destino !== a.name ? destino : null);
+    const lado = destino ? ladoDeCaida(groups.map((g) => g.name), a.name, destino) : null;
+    setSobreProy(destino && lado ? { name: destino, lado } : null);
   };
 
   const proyUp = () => {
     const a = arrProy.current;
-    const destino = sobreProy;
+    const destino = sobreProy?.name;
     arrProy.current = null;
     pararAuto();
     setMoviendoProy(null);
@@ -957,6 +964,92 @@ export default function Sidebar({
       pararAuto();
       setMoviendoProy(null);
       setSobreProy(null);
+    };
+    window.addEventListener("pointerup", limpiar);
+    window.addEventListener("pointercancel", limpiar);
+    window.addEventListener("blur", limpiar);
+    return () => {
+      window.removeEventListener("pointerup", limpiar);
+      window.removeEventListener("pointercancel", limpiar);
+      window.removeEventListener("blur", limpiar);
+    };
+  }, []);
+
+  /* ------------------------------------------------- ordenar los grupos
+   *
+   * El mismo gesto, un puesto más adentro: los grupos de un proyecto salían en
+   * el orden en que se crearon y no había forma de tocarlo. El orden ES el del
+   * array `ui.groups`, así que arrastrar lo reordena y se guarda solo, sin una
+   * lista de orden aparte que mantener en sitio.
+   *
+   * Estado propio, como el de proyectos, para que arrastrar un grupo no encienda
+   * las zonas de destino de las sesiones ni las de los proyectos. */
+  const arrGrupo = useRef<{ id: string; x: number; y: number; activo: boolean } | null>(null);
+  const [moviendoGrupo, setMoviendoGrupo] = useState<string | null>(null);
+  const [sobreGrupo, setSobreGrupo] = useState<{ id: string; lado: Lado } | null>(null);
+
+  /** Los grupos visibles de un proyecto, que es la lista sobre la que se mueve. */
+  const gruposDe = (proyecto: string) => ui.groups.filter((x) => x.project === proyecto);
+
+  const grupoDown = (e: React.PointerEvent<HTMLLIElement>, id: string) => {
+    // Un grupo se agarra por SU CABECERA. El `li` del grupo envuelve también la
+    // lista de sesiones que cuelga de él, y ahí dentro cada sesión tiene su
+    // propio arrastre: sin esta línea, empezar a mover una sesión movería
+    // además el grupo entero.
+    if (!(e.target as HTMLElement).closest(".sgroup-head")) return;
+    // El nombre, el color y el ⋯ del grupo siguen siendo suyos.
+    if ((e.target as HTMLElement).closest("button, input")) return;
+    // Y que no se entere el proyecto de arriba: sin esto se arrastrarían los
+    // dos a la vez y la barra entera se recolocaría al soltar un grupo.
+    e.stopPropagation();
+    arrGrupo.current = { id, x: e.clientX, y: e.clientY, activo: false };
+  };
+
+  const grupoMove = (e: React.PointerEvent<HTMLLIElement>, proyecto: string) => {
+    const a = arrGrupo.current;
+    if (!a) return;
+    if (!a.activo) {
+      if (Math.hypot(e.clientX - a.x, e.clientY - a.y) < 6) return;
+      a.activo = true;
+      setMoviendoGrupo(a.id);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    e.stopPropagation();
+    cercaDelBorde(e.clientX, e.clientY, a.id);
+    const bajo = document.elementFromPoint(e.clientX, e.clientY);
+    const destino = bajo?.closest<HTMLElement>("[data-grupo-orden]")?.dataset.grupoOrden;
+    const lado = destino
+      ? ladoDeCaida(gruposDe(proyecto).map((x) => x.id), a.id, destino)
+      : null;
+    setSobreGrupo(destino && lado ? { id: destino, lado } : null);
+  };
+
+  const grupoUp = (e: React.PointerEvent<HTMLLIElement>, proyecto: string) => {
+    const a = arrGrupo.current;
+    const destino = sobreGrupo?.id;
+    arrGrupo.current = null;
+    pararAuto();
+    setMoviendoGrupo(null);
+    setSobreGrupo(null);
+    if (!a?.activo) return;
+    e.stopPropagation();
+    // Igual que con los proyectos: el clic que viene detrás de un arrastre no
+    // debe abrir las sesiones del grupo.
+    soltoRecien.current = true;
+    window.setTimeout(() => {
+      soltoRecien.current = false;
+    }, 0);
+    if (!destino) return;
+    mutate((prev) => ({ ...prev, groups: moverGrupo(prev.groups, proyecto, a.id, destino) }));
+  };
+
+  useEffect(() => {
+    const limpiar = () => {
+      if (!arrGrupo.current) return;
+      arrGrupo.current = null;
+      pararAuto();
+      setMoviendoGrupo(null);
+      setSobreGrupo(null);
     };
     window.addEventListener("pointerup", limpiar);
     window.addEventListener("pointercancel", limpiar);
@@ -1735,6 +1828,16 @@ export default function Sidebar({
               // Solo mientras hay algo EN el aire: sin la condición, un estado
               // que se quedara pegado dejaría el grupo iluminado para siempre.
               data-suelta={(llevando && sobre === pg.id) || undefined}
+              // Zona de destino para ORDENAR grupos, con nombre propio y no el
+              // `data-grupo` de arriba: ese ya significa «suelta aquí una
+              // sesión», y las dos cosas se buscan durante el mismo arrastre.
+              data-grupo-orden={pg.id}
+              data-moviendo={moviendoGrupo === pg.id || undefined}
+              data-encima={sobreGrupo?.id === pg.id ? sobreGrupo.lado : undefined}
+              onPointerDown={(e) => grupoDown(e, pg.id)}
+              onPointerMove={(e) => grupoMove(e, g.name)}
+              onPointerUp={(e) => grupoUp(e, g.name)}
+              onPointerCancel={(e) => grupoUp(e, g.name)}
             >
               <div className="sgroup-head">
                 {/* Aquí NO se renombra. Hubo un segundo input en esta cabecera,
@@ -2108,7 +2211,10 @@ export default function Sidebar({
                 data-suelta={(llevando && sobre === `p:${g.name}`) || undefined}
                 // Arrastrándolo se coloca donde quieras, y ahí se queda.
                 data-moviendo={moviendoProy === g.name || undefined}
-                data-encima={sobreProy === g.name || undefined}
+                // El LADO, no un sí/nada: la raya se pinta arriba o abajo según
+                // dónde vaya a caer de verdad. Antes iba siempre arriba y
+                // mentía cada vez que bajabas un proyecto.
+                data-encima={sobreProy?.name === g.name ? sobreProy.lado : undefined}
                 style={{ ["--c" as string]: hueOf(g.name) }}
                 onContextMenu={(e) => showMenu(e, projectMenu(g))}
                 onPointerDown={(e) => proyDown(e, g.name)}

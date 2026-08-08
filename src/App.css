@@ -2502,16 +2502,45 @@ body {
   background: color-mix(in srgb, var(--c, var(--accent)) 12%, transparent);
 }
 
-/* Ordenar la barra a mano. El que llevas se apaga (lo tienes en la mano, no
-   en la lista) y el sitio donde va a caer se marca con una línea gruesa arriba,
-   que dice «encima de este»: un recuadro entero se confunde con soltar DENTRO,
-   que es lo que hace un arrastre de sesión. */
-.project[data-moviendo] {
+/* Ordenar la barra a mano. El que llevas se apaga (lo tienes en la mano, no en
+   la lista) y el sitio donde va a caer se marca con una línea gruesa: un
+   recuadro entero se confunde con soltar DENTRO, que es lo que hace un arrastre
+   de sesión.
+   La línea va ARRIBA o ABAJO según dónde vaya a caer de verdad, y ese lado lo
+   dice `ladoDeCaida` con los mismos índices que hacen el movimiento. Estaba
+   clavada arriba, o sea que decía «encima de este» siempre: bajabas un proyecto
+   y acababa DEBAJO del que te había marcado. */
+.project[data-moviendo],
+.sgroup[data-moviendo] {
   opacity: 0.4;
 }
 
-.project[data-encima] {
+.project[data-encima="antes"] {
   box-shadow: inset 0 3px 0 -1px var(--c, var(--accent));
+}
+
+.project[data-encima="despues"] {
+  box-shadow: inset 0 -3px 0 -1px var(--c, var(--accent));
+}
+
+/* Los grupos usan su color cuando lo traen (una cuadrilla), y el acento cuando
+   no: la raya tiene que decir dónde cae, no de qué color es el grupo. */
+.sgroup[data-encima="antes"] .sgroup-head {
+  box-shadow: inset 0 3px 0 -1px var(--sg, var(--accent));
+}
+
+.sgroup[data-encima="despues"] .sgroup-head {
+  box-shadow: inset 0 -3px 0 -1px var(--sg, var(--accent));
+}
+
+/* Un grupo se agarra por su cabecera, no por la lista de sesiones que cuelga
+   de ella: ahí dentro cada sesión tiene su propio arrastre. */
+.sgroup-head {
+  cursor: grab;
+}
+
+.sgroup[data-moviendo] .sgroup-head {
+  cursor: grabbing;
 }
 
 /* La cabecera ES la barra del grupo, y hasta ahora no se distinguía de las

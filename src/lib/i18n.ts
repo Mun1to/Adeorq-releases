@@ -374,6 +374,9 @@ const EN: Record<string, string> = {
     "Changes only what you see in Adeorq. The folder stays as it is, which is why your Claude sessions keep finding it: they go by its path, not by its name.",
   Carpeta: "Folder",
   "sin sesiones recientes": "no recent sessions",
+  "Aquí queda fuera de su grupo": "Drop here to take it out of its group",
+  "sesiones no agrupadas": "ungrouped sessions",
+  "Cargar {n} sesiones más antiguas": "Load {n} older sessions",
   "sesión": "session",
   esperando: "waiting",
 
@@ -1619,6 +1622,12 @@ const EN: Record<string, string> = {
   // otra sesión tiene abierto (ver BUZON.md); esto no lo toca, solo les da su
   // traducción, que es lo que faltaba para que la app en inglés no las enseñe
   // en español.
+  // La papelera del encabezado de una terminal, que desde la 0.9.69 pregunta
+  // con el mismo diálogo que la de la barra en vez de armarse con dos clics.
+  "Se cierra esta terminal y su conversación deja de estar en disco.":
+    "This terminal closes and its conversation stops being on disk.",
+  "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera de Windows":
+    "Delete this session: it closes the terminal and its conversation goes to the Windows Recycle Bin",
   Reanimar: "Revive",
   "Empezar limpia": "Start fresh",
   "⚡ Reanimar (si se ha quedado colgada)": "⚡ Revive (if it has wedged)",

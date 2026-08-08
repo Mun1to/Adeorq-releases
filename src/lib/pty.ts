@@ -476,9 +476,19 @@ export function renameSession(
 }
 
 /** Throws a session away: its transcript goes to the Windows recycle bin, so
-    it is gone from Adeorq and from Claude Code, but still recoverable. */
-export function deleteSession(folder: string, sessionId: string): Promise<void> {
-  return invoke("delete_session", { folder, sessionId });
+    it is gone from Adeorq and from Claude Code, but still recoverable.
+
+    `fuente` es qué CLI la escribió (`SessionInfo.fuente`). Importa porque cada
+    uno guarda a su manera: Claude por carpeta de proyecto, Codex por fecha y con
+    un nombre de archivo que se inventa él. Sin este dato, borrar una sesión de
+    Codex buscaba en la carpeta de Claude y no borraba nada, y la sesión volvía a
+    salir en cuanto Adeorq releía el disco. */
+export function deleteSession(
+  folder: string,
+  sessionId: string,
+  fuente?: string,
+): Promise<void> {
+  return invoke("delete_session", { folder, sessionId, fuente });
 }
 
 export interface DirtyReport {

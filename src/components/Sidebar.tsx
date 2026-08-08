@@ -26,6 +26,7 @@ import {
 } from "../lib/pty";
 import { anadirProyecto, raiz, sinRaiz } from "../lib/perfil";
 import { ladoDeCaida, moverGrupo, moverProyecto, ordenarProyectos, type Lado } from "../lib/ordenBarra";
+import { levantar, type Fantasma } from "../lib/fantasma";
 import { hueOf } from "../lib/colors";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
@@ -285,6 +286,15 @@ export default function Sidebar({
   const [tirando, setTirando] = useState<Group | null>(null);
   /** El cajón de los proyectos que quitaste, desplegado o no. */
   const [verOcultos, setVerOcultos] = useState(false);
+  /**
+   * Enseñar también las de más de una semana.
+   *
+   * La barra corta por edad para que no crezca sin fin, y hasta ahora ese corte
+   * era mudo: una conversación de hace ocho días simplemente no estaba, sin que
+   * nada dijera que existía. No se guarda a propósito: es una mirada al pasado,
+   * no un ajuste, y al abrir Adeorq lo que quieres ver es lo de ahora.
+   */
+  const [verViejas, setVerViejas] = useState(false);
   /** Lo tecleado en la casilla de confirmación: hay que escribir el nombre del
       proyecto para que el botón se encienda, como al borrar un repo en GitHub.
       El 31-jul-2026 se fueron 17 carpetas a la papelera en veinte minutos con
@@ -550,7 +560,7 @@ export default function Sidebar({
     // lado. Lo que está en pantalla, y lo que has pedido a mano, mandan sobre
     // la edad.
     const fresh = sessions.filter(
-      (s) => s.fresh !== "muerta" || enPantalla.has(s.id) || traidas.has(s.id),
+      (s) => verViejas || s.fresh !== "muerta" || enPantalla.has(s.id) || traidas.has(s.id),
     );
     const byProject = new Map<string, SessionInfo[]>();
     for (const s of fresh) {
@@ -659,7 +669,14 @@ export default function Sidebar({
 
     // El orden, con sus reglas y sus casos, en `lib/ordenBarra.ts`.
     return { proyectos: ordenarProyectos(result, ui.projectOrder), sueltas };
-  }, [projects, sessions, archived, traidas, abiertas, ui.sessionProject, ui.projectOrder]);
+  }, [projects, sessions, archived, traidas, abiertas, ui.sessionProject, ui.projectOrder, verViejas]);
+
+  /** Cuántas hay escondidas por edad, para que el botón diga un número y no
+      «cargar más» a ciegas. Si son cero, el botón no existe. */
+  const viejasOcultas = useMemo(
+    () => (verViejas ? 0 : sessions.filter((s) => s.fresh === "muerta").length),
+    [sessions, verViejas],
+  );
 
   /* Los que quitaste de la barra salen de la lista aquí, y no dentro del memo
      de arriba, para que sus sesiones se vayan con ellos en vez de caer al
@@ -821,7 +838,10 @@ export default function Sidebar({
     // Gone from the list at once: the scan runs on its own clock and a row
     // that lingers after you binned it reads as "it did not work".
     setSessions((prev) => prev.filter((x) => x.id !== s.id));
-    deleteSession(s.folder, s.id)
+    // `s.fuente` es de qué CLI es: sin ese dato, una sesión de Codex se buscaba
+    // en la carpeta de Claude, no se borraba nada, y volvía a la lista en cuanto
+    // el escáner releía el disco (Munir, 2026-08-08).
+    deleteSession(s.folder, s.id, s.fuente)
       .then(() => refresh())
       .catch((e) => {
         setError(String(e));
@@ -887,6 +907,7 @@ export default function Sidebar({
     const limpiar = () => {
       if (!arrastre.current) return;
       arrastre.current = null;
+      soltarFantasma();
       pararAuto();
       setLlevando(null);
       setSobre(null);
@@ -941,6 +962,19 @@ export default function Sidebar({
     return !btn || btn.hasAttribute("data-agarre");
   };
 
+  /**
+   * La copia que va pegada al puntero mientras arrastras, sea lo que sea lo que
+   * lleves. Una sola para toda la barra: no se puede arrastrar un proyecto y un
+   * grupo a la vez, así que dos referencias distintas solo servirían para que
+   * una se quedara sin recoger. Ver `lib/fantasma.ts`.
+   */
+  const fantasma = useRef<Fantasma | null>(null);
+
+  const soltarFantasma = () => {
+    fantasma.current?.soltar();
+    fantasma.current = null;
+  };
+
   const proyDown = (e: React.PointerEvent<HTMLDivElement>, name: string) => {
     if (!agarrable(e.target as HTMLElement)) return;
     arrProy.current = { name, x: e.clientX, y: e.clientY, activo: false };
@@ -954,7 +988,12 @@ export default function Sidebar({
       a.activo = true;
       setMoviendoProy(a.name);
       e.currentTarget.setPointerCapture(e.pointerId);
+      // Se levanta desde donde EMPEZÓ el gesto, no desde donde está el puntero
+      // al cruzar el umbral: así la fila conserva el punto por el que la
+      // cogiste en vez de dar un salto de seis píxeles al arrancar.
+      fantasma.current = levantar(e.currentTarget, a.x, a.y);
     }
+    fantasma.current?.mover(e.clientX, e.clientY);
     cercaDelBorde(e.clientX, e.clientY, a.name);
     const bajo = document.elementFromPoint(e.clientX, e.clientY);
     const destino = bajo?.closest<HTMLElement>("[data-proyecto]")?.dataset.proyecto;
@@ -966,6 +1005,7 @@ export default function Sidebar({
     const a = arrProy.current;
     const destino = sobreProy?.name;
     arrProy.current = null;
+    soltarFantasma();
     pararAuto();
     setMoviendoProy(null);
     setSobreProy(null);
@@ -986,6 +1026,7 @@ export default function Sidebar({
     const limpiar = () => {
       if (!arrProy.current) return;
       arrProy.current = null;
+      soltarFantasma();
       pararAuto();
       setMoviendoProy(null);
       setSobreProy(null);
@@ -1039,7 +1080,18 @@ export default function Sidebar({
       a.activo = true;
       setMoviendoGrupo(a.id);
       e.currentTarget.setPointerCapture(e.pointerId);
+      // Se levanta SU CABECERA y no el `li` entero: ese envuelve también las
+      // sesiones desplegadas, así que llevarías una columna de diez filas
+      // colgando del ratón en vez del grupo.
+      const cab = e.currentTarget.querySelector<HTMLElement>(".sgroup-head");
+      // `--sg` se lleva a mano: vive en el `li` de arriba, y sin él una
+      // cuadrilla se levantaría en gris, que es justo su seña de identidad.
+      if (cab) {
+        const color = e.currentTarget.style.getPropertyValue("--sg");
+        fantasma.current = levantar(cab, a.x, a.y, { "--sg": color });
+      }
     }
+    fantasma.current?.mover(e.clientX, e.clientY);
     e.stopPropagation();
     cercaDelBorde(e.clientX, e.clientY, a.id);
     const bajo = document.elementFromPoint(e.clientX, e.clientY);
@@ -1054,6 +1106,7 @@ export default function Sidebar({
     const a = arrGrupo.current;
     const destino = sobreGrupo?.id;
     arrGrupo.current = null;
+    soltarFantasma();
     pararAuto();
     setMoviendoGrupo(null);
     setSobreGrupo(null);
@@ -1073,6 +1126,7 @@ export default function Sidebar({
     const limpiar = () => {
       if (!arrGrupo.current) return;
       arrGrupo.current = null;
+      soltarFantasma();
       pararAuto();
       setMoviendoGrupo(null);
       setSobreGrupo(null);
@@ -1092,11 +1146,19 @@ export default function Sidebar({
     const bajo = document.elementFromPoint(x, y);
     const grupo = bajo?.closest<HTMLElement>("[data-grupo]")?.dataset.grupo;
     const fila = bajo?.closest<HTMLElement>("[data-sesion]")?.dataset.sesion;
+    const fuera = bajo?.closest<HTMLElement>("[data-fuera]")?.dataset.fuera;
     const proyecto = bajo?.closest<HTMLElement>("[data-proyecto]")?.dataset.proyecto;
-    // El grupo primero: está DENTRO de un proyecto, así que soltar sobre él
-    // tiene que significar el grupo y no el proyecto que lo contiene.
+    // De más adentro a más afuera, y ese orden es todo el sentido:
+    //   · un grupo está DENTRO de un proyecto, así que soltar ahí significa el
+    //     grupo y no el proyecto que lo contiene;
+    //   · otra sesión gana sobre la zona de sueltas: soltar encima de una
+    //     suelta crea un grupo con las dos, que es la forma más corta de
+    //     hacer uno y sería una pena perderla;
+    //   · la zona de sueltas, que es donde una sesión SALE de su grupo;
+    //   · y el proyecto, que es lo más ancho.
     if (grupo) setSobre(grupo);
     else if (fila && fila !== id) setSobre(`s:${fila}`);
+    else if (fuera) setSobre(`fuera:${fuera}`);
     else if (proyecto) setSobre(`p:${proyecto}`);
     else setSobre(null);
   };
@@ -1153,7 +1215,9 @@ export default function Sidebar({
       a.activo = true;
       setLlevando(a.id);
       e.currentTarget.setPointerCapture(e.pointerId);
+      fantasma.current = levantar(e.currentTarget, a.x, a.y);
     }
+    fantasma.current?.mover(e.clientX, e.clientY);
     cercaDelBorde(e.clientX, e.clientY, a.id);
     mirarDestino(e.clientX, e.clientY, a.id);
   };
@@ -1162,6 +1226,7 @@ export default function Sidebar({
     const a = arrastre.current;
     const destino = sobre;
     arrastre.current = null;
+    soltarFantasma();
     pararAuto();
     setLlevando(null);
     setSobre(null);
@@ -1184,6 +1249,15 @@ export default function Sidebar({
         return;
       }
       if (bajo?.closest(".sessions") && ui.sessionGroup[a.id]) assignGroup(a.id, null);
+      return;
+    }
+    if (destino.startsWith("fuera:")) {
+      // La zona de sueltas de un proyecto: aquí una sesión SALE de su grupo.
+      // Si además viene de otro proyecto, se queda en este, que es lo que dice
+      // el gesto: la has traído hasta aquí.
+      const suyo = destino.slice(6);
+      if (suyo !== proyecto) asignarProyecto(a.id, suyo);
+      else if (ui.sessionGroup[a.id]) assignGroup(a.id, null);
       return;
     }
     if (destino.startsWith("p:")) {
@@ -2027,7 +2101,27 @@ export default function Sidebar({
             </button>
           </li>
         ))}
-        {loose.map((s) => sessionRow(s, g, false))}
+        {/* Las sueltas de este proyecto, en su propia zona y no sueltas en el
+            `ul`. Es lo que hacía falta para poder SACAR una sesión de un grupo
+            arrastrando (Munir, 2026-08-08: «no puedo mover una sesión fuera de
+            un grupo a suelta»): el `li` de un grupo envuelve también sus
+            sesiones, así que cualquier punto de dentro contaba como «este
+            grupo» y no quedaba ni un píxel donde soltarla para que saliera.
+            Solo enciende cuando llevas algo que está EN un grupo: si no, sería
+            una caja parpadeando sin significado. */}
+        <li
+          className="sueltas-de"
+          data-fuera={g.name}
+          data-suelta={(llevando && sobre === `fuera:${g.name}`) || undefined}
+          data-lista={(llevando && !!ui.sessionGroup[llevando]) || undefined}
+        >
+          {loose.length === 0 && llevando && ui.sessionGroup[llevando] && (
+            <span className="sueltas-pista">{t("Aquí queda fuera de su grupo")}</span>
+          )}
+          <ul className="sessions sueltas-lista">
+            {loose.map((s) => sessionRow(s, g, false))}
+          </ul>
+        </li>
         {showArchived && g.archivedSessions.map((s) => sessionRow(s, g, true))}
       </ul>
     );
@@ -2181,12 +2275,8 @@ export default function Sidebar({
         data-rail={rail}
         onScroll={() => setFlyout(null)}
       >
-        {shown.map((g, i) => {
+        {shown.map((g) => {
           const open = expanded.has(g.name) || filter.trim() !== "";
-          const firstQuiet =
-            g.sessions.length === 0 &&
-            i > 0 &&
-            shown[i - 1].sessions.length > 0;
           const shownCount =
             g.sessions.length +
             (g.vivas?.length ?? 0) +
@@ -2228,9 +2318,13 @@ export default function Sidebar({
 
           return (
             <div key={g.name} className="group">
-              {firstQuiet && (
-                <div className="side-divider">{t("sin sesiones recientes")}</div>
-              )}
+              {/* Aquí iba una raya de «sin sesiones recientes» que partía la
+                  barra en dos. Fuera desde la 0.9.69, a petición de Munir: la
+                  barra ya la ordena él a mano desde la 0.9.56, y una raya que
+                  parte la lista según la actividad contradice ese orden y hace
+                  que un proyecto se mude de sección solo por no haberlo tocado
+                  hoy. El dato no se pierde: los que no tienen sesiones siguen
+                  yendo detrás por su propio orden (`ordenarProyectos`). */}
               {/* El clic derecho vive en la FILA, no en el botón de la
                   izquierda: las insignias y los botones de acción son hermanos
                   suyos, así que pulsando ahí no aparecía nada y había que
@@ -2342,7 +2436,11 @@ export default function Sidebar({
           ) : (
             <div className="sueltas-zona">
               <div className="side-divider side-divider-sueltas">
-                {t("sin proyecto")}
+                {/* «sin proyecto» decía de dónde NO son, que es la mitad menos
+                    útil: aquí caen las que no encajan en ninguna carpeta de la
+                    lista, y lo que hace falta saber es qué son (Munir,
+                    2026-08-08). */}
+                {t("sesiones no agrupadas")}
                 <span className="sueltas-n">
                   {sueltas.sessions.length + (sueltas.vivas?.length ?? 0)}
                 </span>
@@ -2391,6 +2489,18 @@ export default function Sidebar({
               </div>
             )}
           </div>
+        )}
+
+        {/* Abajo del todo, lo que la barra estaba escondiendo por viejo.
+            La barra corta por edad (una semana) para no crecer sin fin, y ese
+            corte era mudo: una conversación de hace ocho días no estaba y nada
+            decía que existiera. Ahora dice cuántas son y se traen con un clic
+            (Munir, 2026-08-08). No hay botón para volver a esconderlas porque
+            se van solas al reiniciar: es una mirada al pasado, no un ajuste. */}
+        {!tira && rail !== "logo" && viejasOcultas > 0 && (
+          <button className="mas-viejas" onClick={() => setVerViejas(true)}>
+            {t("Cargar {n} sesiones más antiguas", { n: viejasOcultas })}
+          </button>
         )}
       </div>
       {/* The browser's own file dialog: no extra Tauri plugin for one picker. */}

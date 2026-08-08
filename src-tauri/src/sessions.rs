@@ -636,6 +636,58 @@ fn leer_dirs(dir: &Path) -> Vec<PathBuf> {
         .unwrap_or_default()
 }
 
+/// El archivo de una sesión de Codex a partir de su id.
+///
+/// Hace falta porque Codex NO organiza por proyecto: guarda por fecha, en
+/// `~/.codex/sessions/AAAA/MM/DD/`, y el nombre del archivo lo pone él (lleva la
+/// hora dentro), así que no se puede componer la ruta como en Claude. El id solo
+/// aparece DENTRO, en el `session_meta` de la primera línea.
+///
+/// Por eso borrar una sesión de Codex no hacía nada: `delete_session` armaba
+/// `~/.claude/projects/<carpeta>/<id>.jsonl` con la carpeta vacía, no encontraba
+/// el archivo, y la sesión seguía en la lista al siguiente repaso del disco
+/// (Munir, 2026-08-08: «las sesiones de otros proveedores como codex no se
+/// eliminan cuando le das»).
+///
+/// Se recorren los mismos tres niveles que `scan_codex` y se lee UNA línea por
+/// archivo, que es lo que cuesta menos: la cabecera trae el id.
+pub fn codex_transcript(session_id: &str) -> Option<PathBuf> {
+    codex_transcript_en(&codex_dir()?, session_id)
+}
+
+/// La búsqueda de verdad, con la raíz por parámetro.
+///
+/// Separada solo para poder probarla: la de arriba saca la carpeta de
+/// `USERPROFILE`, y un test que cambiara esa variable la cambiaría para TODOS
+/// los que corren a la vez en el mismo proceso (le pasó a los de `secrets.rs`).
+fn codex_transcript_en(raiz: &Path, session_id: &str) -> Option<PathBuf> {
+    for anyo in leer_dirs(raiz) {
+        for mes in leer_dirs(&anyo) {
+            for dia in leer_dirs(&mes) {
+                let Ok(ficheros) = std::fs::read_dir(&dia) else {
+                    continue;
+                };
+                for f in ficheros.flatten() {
+                    let path = f.path();
+                    if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+                        continue;
+                    }
+                    let Some(cabecera) = primera_linea(&path) else {
+                        continue;
+                    };
+                    let Ok(v) = serde_json::from_str::<Value>(&cabecera) else {
+                        continue;
+                    };
+                    if v["payload"]["session_id"].as_str() == Some(session_id) {
+                        return Some(path);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 fn analyze_codex(path: &Path) -> Option<SessionInfo> {
     let meta = std::fs::metadata(path).ok()?;
     let size = meta.len();
@@ -2044,6 +2096,49 @@ mod tests {
             r#"{"type":"event_msg","payload":{"type":"user_message","message":"y luego el login"}}"#.into(),
         ];
         assert_eq!(codex_titulo(&lines), "arréglame el buscador");
+    }
+
+    /// Borrar una sesión de Codex no borraba nada, y la sesión volvía a la
+    /// lista al siguiente repaso del disco (Munir, 2026-08-08). El motivo es
+    /// este: Codex guarda por FECHA y con un nombre de archivo que se inventa
+    /// él, así que su ruta no se puede componer a partir del id como la de
+    /// Claude; hay que buscarla leyendo la cabecera de cada rollout.
+    ///
+    /// El test escribe un árbol como el suyo y comprueba las dos mitades: que
+    /// encuentra el archivo del id pedido aunque no se llame como él, y que no
+    /// devuelve otro por equivocación (que sería borrar la conversación de
+    /// alguien que no habías tocado).
+    #[test]
+    fn a_codex_session_is_found_by_its_id_and_not_by_its_file_name() {
+        let raiz = std::env::temp_dir().join(format!("adeorq-codex-{}", std::process::id()));
+        let dia = raiz.join("2026").join("08").join("07");
+        let _ = std::fs::remove_dir_all(&raiz);
+        std::fs::create_dir_all(&dia).unwrap();
+
+        let cabecera = |id: &str| {
+            format!(
+                r#"{{"type":"session_meta","payload":{{"cwd":"C:\\proyectos\\Adeorq","session_id":"{id}"}}}}"#
+            )
+        };
+        // Nombres como los que pone Codex: la hora dentro y el id al final, o
+        // sea nada que se pueda componer desde fuera.
+        std::fs::write(dia.join("rollout-2026-08-07T10-11-12-aaa.jsonl"), cabecera("aaa")).unwrap();
+        std::fs::write(dia.join("rollout-2026-08-07T18-19-20-bbb.jsonl"), cabecera("bbb")).unwrap();
+        // Un archivo que no es un rollout: no puede confundir la búsqueda.
+        std::fs::write(dia.join("notas.txt"), "nada").unwrap();
+
+        let hallado = codex_transcript_en(&raiz, "bbb").expect("tendría que encontrarla");
+        assert_eq!(
+            hallado.file_name().unwrap().to_string_lossy(),
+            "rollout-2026-08-07T18-19-20-bbb.jsonl",
+            "el id vive DENTRO del archivo, no en su nombre",
+        );
+        assert!(
+            codex_transcript_en(&raiz, "no-existe").is_none(),
+            "un id desconocido devuelve nada, en vez de el primero que pille",
+        );
+
+        let _ = std::fs::remove_dir_all(&raiz);
     }
 
     /// Munir pega capturas a menudo, y ese turno llega sin una palabra: solo

@@ -2421,12 +2421,11 @@ body {
   border-color: rgba(255, 143, 143, 0.5);
 }
 
-/* Asked once, waiting for the second click. Four seconds and it forgets. */
-.pane-bin[data-armed="true"] {
-  color: #1a0d10;
-  background: #ff8f8f;
-  border-color: #ff8f8f;
-}
+/* Aquí vivía el estado «armado» de la papelera, cuando borrar una sesión desde
+   el encabezado eran dos clics con cuatro segundos de margen. Desde la 0.9.69
+   pregunta con el mismo diálogo que la barra, así que ese estado ya no existe.
+   Se quita en vez de dejarlo por si acaso: una regla que no puede activarse es
+   una pista falsa para el siguiente que venga a leer esto. */
 
 /* An archived row already shows its restore button; the bin joins it. */
 .session-row[data-archived="true"] .sess-bin {
@@ -6464,8 +6463,22 @@ button.stat-card[data-live="false"] {
   min-width: 172px;
   padding: 4px;
   border-radius: 10px;
-  background: var(--popover);
-  backdrop-filter: var(--glass-blur);
+  /* SÓLIDO, y es el único sitio de la app donde eso es obligatorio.
+   *
+   * Tenía `--popover` (0.94 de opacidad) más el cristal de la casa, que es la
+   * receta correcta en todas partes menos aquí. El menú se pinta por portal en
+   * el `body`, y el `body` es TRANSPARENTE porque la ventana de Adeorq es
+   * acrílica: `backdrop-filter` desenfoca lo que hay detrás DENTRO de su capa,
+   * y colgando del body no hay nada suyo detrás que desenfocar. Sin desenfoque
+   * queda el 6 % que deja pasar `--popover`, y un 6 % de texto de terminal, que
+   * es verde o blanco brillante sobre negro, se lee perfectamente. Se veía en
+   * la captura de Munir (2026-08-08): el texto de detrás salía NÍTIDO, no
+   * borroso, que es la prueba de que el desenfoque no llegaba.
+   *
+   * Un menú no es decoración: es lo que estás leyendo para decidir. Manda la
+   * legibilidad. Y de paso se ahorra un desenfoque de 22 px que no hacía nada.
+   */
+  background: var(--panel-solid);
   border: 1px solid var(--border-strong);
   box-shadow: var(--glass-edge), 0 12px 30px rgba(0, 0, 0, 0.45);
   animation: tip-in 0.1s ease;
@@ -15117,4 +15130,125 @@ textarea.note-body {
   border-color: var(--border);
   transform: none;
   box-shadow: none;
+}
+
+/* ==========================================================================
+   Lo que llevas en la mano al arrastrar en la barra (ver `lib/fantasma.ts`).
+   Es una copia del DOM colgada del <body>, no un componente: así se lleva el
+   logo, las insignias y los colores tal y como estaban, y ninguna lista con
+   scroll puede recortarla mientras la mueves.
+   ========================================================================== */
+.fantasma {
+  position: fixed;
+  left: 0;
+  top: 0;
+  /* Por encima de todo lo de la barra y de los menús: lo que va en la mano no
+     puede pasar por detrás de nada. */
+  z-index: 9999;
+  /* Un dibujo, no un control. Sin esto se comería el `elementFromPoint` que
+     busca el destino y estarías soltando siempre encima de ti mismo. */
+  pointer-events: none;
+  /* Levantada del papel: un poco más grande, con sombra y ligeramente girada.
+     La inclinación es lo que más hace: dice «esto está en el aire» sin tapar
+     nada, y el ojo la lee antes que cualquier cambio de color. */
+  transform-origin: 0 0;
+  opacity: 0.92;
+  border-radius: 12px;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  /* SUPERFICIE PROPIA Y SÓLIDA, que es la regla escrita encima de `.panel-card`
+     y aquí es obligatoria: un proyecto se pinta con `--row` (translúcido), una
+     sesión no tiene fondo ninguno y la cabecera de un grupo es un 6 % de color.
+     Los tres funcionan DENTRO de la barra, que ya es una superficie; colgados
+     del <body> caen directamente sobre la foto de escritorio y se leerían a
+     trozos. Sólido y no cristal a propósito: esto se mueve con cada evento del
+     puntero, y un `backdrop-filter` que se mueve recalcula el desenfoque de
+     todo lo que tiene debajo en cada paso. */
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  /* `will-change` porque esto se mueve en cada evento del puntero por encima de
+     treinta cristales: sin su propia capa, cada paso repinta el fondo entero
+     (ver la memoria del rendimiento). */
+  will-change: transform;
+  /* Ni animaciones ni transiciones heredadas: tiene que ir clavada al ratón, y
+     una transición de 140 ms se traduce en un elemento que va por detrás. */
+  transition: none;
+}
+
+/* Dentro de la copia no late nada: el punto de «sesión abierta» y cualquier
+   otra animación gastarían capa nueva por cada paso del arrastre. */
+.fantasma *,
+.fantasma::before,
+.fantasma::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Los tooltips de la casa se pintan con ::after sobre `data-tip`. En la copia
+   sobran: la fila real ya está debajo y saldrían dos. */
+.fantasma [data-tip]::after,
+.fantasma [data-tip]::before {
+  content: none !important;
+}
+
+/* La zona de sueltas de un proyecto: donde una sesión sale de su grupo.
+   Normalmente no se ve, porque no es una caja: es el sitio donde ya viven las
+   sesiones que no están agrupadas. Solo se dibuja cuando llevas en la mano una
+   que SÍ está en un grupo, que es la única vez que significa algo. */
+.sueltas-de {
+  list-style: none;
+  border-radius: 10px;
+  border: 1px dashed transparent;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.sueltas-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Llevas una sesión agrupada: aquí se puede soltar. */
+.sueltas-de[data-lista] {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  min-height: 34px;
+}
+
+/* Y encima de ella. */
+.sueltas-de[data-suelta] {
+  border-color: var(--accent);
+  border-style: solid;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.sueltas-pista {
+  display: block;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  /* No `--muted`: esto puede quedar sobre la foto si la barra es estrecha. */
+  color: color-mix(in srgb, var(--text) 66%, transparent);
+}
+
+/* «Cargar N sesiones más antiguas», abajo del todo de la barra. Discreto de
+   fábrica: es una salida por si buscas algo viejo, no una acción del día. */
+.mas-viejas {
+  width: 100%;
+  margin: 6px 0 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  /* Ni `--muted`: la barra puede quedar sobre la foto. */
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.mas-viejas:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }

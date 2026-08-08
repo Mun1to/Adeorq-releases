@@ -317,7 +317,23 @@ pub fn rename_session(folder: String, session_id: String, title: String) -> Resu
  * bin and not a day of work. Windows keeps the undo, and we do not have to.
  */
 #[tauri::command]
-pub fn delete_session(folder: String, session_id: String) -> Result<(), String> {
+/// `fuente` es de qué CLI es la sesión. Llega vacía desde las llamadas antiguas
+/// y entonces se entiende «claude», que es lo único que sabía borrar esto.
+pub fn delete_session(
+    folder: String,
+    session_id: String,
+    fuente: Option<String>,
+) -> Result<(), String> {
+    // Codex no guarda por proyecto sino por fecha, y el nombre del archivo lo
+    // pone él: no hay ruta que componer, hay que buscarla. Sin esto, borrar una
+    // sesión suya armaba `~/.claude/projects//<id>.jsonl`, no encontraba nada y
+    // la sesión reaparecía en el siguiente repaso del disco. Ver
+    // `sessions::codex_transcript`.
+    if fuente.as_deref() == Some("codex") {
+        let path = crate::sessions::codex_transcript(&session_id)
+            .ok_or("No encuentro el archivo de esa sesión de Codex")?;
+        return to_recycle_bin(&path);
+    }
     let path = transcript_path(&folder, &session_id)?;
     if !path.is_file() {
         return Err("No encuentro el transcript de esa sesión".into());

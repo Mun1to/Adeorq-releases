@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
@@ -51,6 +52,7 @@ import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
 import { hayQueAjustar, volverA } from "../lib/scrollTerm";
 import { modoRendimiento } from "../lib/rendimiento";
 import { sessionIdOf } from "../lib/comandos";
+import { propsDeVelo } from "../lib/velo";
 
 interface Props {
   id: number;
@@ -381,9 +383,10 @@ export default function TerminalPane({
   const [ask, setAsk] = useState<Ask | null>(null);
   const dismissedAskRef = useRef(0);
   const [note, setNote] = useState<string | null>(null);
-  /** The bin asks before it bites: one click arms it, the next one does it. */
-  const [armed, setArmed] = useState(false);
-  const armTimer = useRef(0);
+  /** La papelera pregunta antes de morder, con el mismo diálogo que la barra. */
+  const [borrando, setBorrando] = useState(false);
+  /** Ver `lib/velo.ts`: distingue pinchar el velo de soltar ahí un arrastre. */
+  const bajoEnVelo = useRef(false);
   const [agents, setAgents] = useState({ live: 0, total: 0 });
   // Per-pane blur for streams: hide THIS terminal without hiding the rest.
   const [blurred, setBlurred] = useState(false);
@@ -796,9 +799,16 @@ export default function TerminalPane({
     if (pideTeclado) termRef.current?.focus();
   }, [pideTeclado]);
 
-  // El temporizador de la papelera armada, apagado al desmontar: cerrando el
-  // panel con la papelera armada quedaba un disparo pendiente cuatro segundos.
-  useEffect(() => () => window.clearTimeout(armTimer.current), []);
+  // Escape cierra el diálogo de borrar. Va en window y no en el diálogo porque
+  // el foco puede estar en la terminal de detrás cuando se abre.
+  useEffect(() => {
+    if (!borrando) return;
+    const alPulsar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setBorrando(false);
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [borrando]);
 
   // El vigía del cuelgue. Tres minutos sin UN SOLO byte de salida no es un
   // modelo pensando: un CLI sano repinta su spinner sin parar aunque el modelo
@@ -1587,31 +1597,22 @@ export default function TerminalPane({
         >
           {maximized ? <RestoreIcon /> : <MaximizeIcon />}
         </button>
-        {/* Only when we know which session this pane is showing: a pane with
-            no transcript behind it has nothing to throw away. Two clicks
-            rather than a dialog, because a dialog over a terminal you are
-            working in is worse than a button that waits four seconds. */}
+        {/* Solo cuando se sabe QUÉ sesión enseña este panel: uno sin transcript
+            detrás no tiene nada que tirar.
+            Esto eran dos clics con cuatro segundos de margen, con el argumento
+            de que un diálogo encima de una terminal en la que estás trabajando
+            molesta más que un botón que espera. Munir pidió el diálogo
+            (2026-08-08), y tiene razón: borrar una conversación es la única
+            acción de este encabezado que no se puede deshacer, y las otras dos
+            papeleras de la app ya preguntan así. Un botón armado no dice QUÉ se
+            va a borrar ni adónde va; el diálogo sí, con el nombre dentro. */}
         {ctx?.sessionId && (
           <button
             className="pane-btn pane-bin"
-            data-armed={armed}
-            data-tip={
-              armed
-                ? "Pulsa otra vez para borrarla"
-                : "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera de Windows"
-            }
-            onClick={() => {
-              window.clearTimeout(armTimer.current);
-              if (!armed) {
-                setArmed(true);
-                armTimer.current = window.setTimeout(() => setArmed(false), 4000);
-                return;
-              }
-              setArmed(false);
-              deleteSession(ctx.folder, ctx.sessionId)
-                .then(() => onClose(id))
-                .catch((e) => setNote(`No he podido borrarla: ${e}`));
-            }}
+            data-tip={t(
+              "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera de Windows",
+            )}
+            onClick={() => setBorrando(true)}
           >
             <TrashIcon />
           </button>
@@ -1798,6 +1799,53 @@ export default function TerminalPane({
           </div>
         </div>
       )}
+      {/* El diálogo de borrar, con las mismas clases que el de la barra: es la
+          misma pregunta y tiene que verse igual la haga quien la haga.
+          A `document.body` y no aquí donde cae, como el del Capataz: esto tapa
+          y desenfoca la app ENTERA, y un `position: fixed` deja de mirar a la
+          ventana en cuanto un ancestro tiene un filtro o una transformación,
+          que es exactamente lo que tiene el panel de una terminal. */}
+      {borrando &&
+        ctx?.sessionId &&
+        createPortal(
+          <div className="modal-overlay" {...propsDeVelo(bajoEnVelo, () => setBorrando(false))}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <h3 className="modal-title">{t("Borrar la sesión")}</h3>
+              <p className="modal-text">
+                {t(
+                  "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de Claude Code, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.",
+                  { n: name },
+                )}
+              </p>
+              {/* El aviso que la barra solo enseña a veces aquí sale SIEMPRE: si
+                  estás leyendo esto desde el encabezado de una terminal, esa
+                  terminal está abierta por definición. */}
+              <div className="modal-warn">
+                <p className="modal-warn-title">⚠ {t("Esta sesión está abierta ahora mismo.")}</p>
+                <p className="modal-warn-note">
+                  {t("Se cierra esta terminal y su conversación deja de estar en disco.")}
+                </p>
+              </div>
+              <div className="modal-actions">
+                <button className="mini modal-cancel" onClick={() => setBorrando(false)}>
+                  {t("Cancelar")}
+                </button>
+                <button
+                  className="np-btn modal-danger"
+                  onClick={() => {
+                    setBorrando(false);
+                    deleteSession(ctx.folder, ctx.sessionId)
+                      .then(() => onClose(id))
+                      .catch((e) => setNote(`No he podido borrarla: ${e}`));
+                  }}
+                >
+                  {t("Borrar")}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </section>
   );
 }

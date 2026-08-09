@@ -1251,17 +1251,28 @@ body {
   display: flex;
   align-items: center;
   /* Held from here, not by whatever is inside: under the mouse the name and
-     the count leave and the row would otherwise shrink as you pass over it. */
-  min-height: 54px;
+     the count leave and the row would otherwise shrink as you pass over it.
+     40 y no 54 (Munir, 2026-08-09: «son muy gordas»): con doce proyectos, esos
+     catorce píxeles por fila eran casi tres filas enteras de barra. El alto lo
+     marca el logo, así que los dos bajan a la vez o la fila deja de encogerse. */
+  min-height: 40px;
   border-radius: 12px;
-  background: var(--row);
+  /* ⚠ OPACO, y esto es legibilidad pura, no gusto.
+     `--row` es un rgba al 34 %, y Windows NO aplica ClearType (el suavizado por
+     subpíxeles) sobre un fondo que no es opaco: no sabe de qué color va a estar
+     hecho cada píxel. El texto cae al suavizado en gris y se ve emborronado,
+     que es lo que Munir llamó «baja calidad» (2026-08-09).
+     El truco es aplanar: se pinta `--row` con su alfa ENCIMA de un color sólido
+     del tema, así el tinte de la fila se conserva igual y el resultado final es
+     opaco. Vale para cualquier caja de esta barra que lleve texto dentro. */
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
   border: 1px solid transparent;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 .project:hover,
 .project[data-open="true"] {
-  background: var(--row-hover);
+  background: linear-gradient(var(--row-hover), var(--row-hover)), var(--panel-solid);
   border-color: var(--border);
 }
 
@@ -1462,30 +1473,32 @@ body {
 .project-mark {
   position: relative;
   flex: none;
-  width: 52px;
-  height: 52px;
+  width: 38px;
+  height: 38px;
 }
 
 .project-mark .pavatar {
   width: 100%;
   height: 100%;
-  border-radius: 11px 4px 4px 11px;
-  font-size: 17px;
+  border-radius: 9px 3px 3px 9px;
+  font-size: 13px;
   letter-spacing: 0.3px;
 }
 
+/* El hueco de dentro baja con el marco, o un logo cuadrado se quedaría del
+   mismo tamaño en una caja más pequeña y saldría rozando el borde. */
 .project-mark .pavatar img {
-  padding: 9px;
+  padding: 6px;
 }
 
 /* Same signal as the photos-only rail, same corner: one green dot means one
    session of this project is running. */
 .mark-live {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 10px;
-  height: 10px;
+  top: 1px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #7ee08a;
   border: 2px solid var(--panel-solid);
@@ -1502,7 +1515,10 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 15.5px;
+  /* Baja con la fila, pero menos que el logo: es lo que se lee, y encogerlo a
+     la misma proporción lo dejaría al tamaño de una sesión, que está un piso
+     por debajo en la jerarquía de esta barra. */
+  font-size: 14px;
   font-weight: 650;
   letter-spacing: 0.2px;
 }
@@ -2282,13 +2298,15 @@ body {
    del fondo. El desenfoque no se toca: va una sola vez en el contenedor. */
 .session-row {
   border-radius: 10px;
-  background: color-mix(in srgb, var(--panel-solid) 74%, transparent);
+  /* Opaca del todo, por lo mismo que `.project`: sobre un fondo con alfa,
+     Windows apaga ClearType y el título de la sesión se ve emborronado. */
+  background: var(--panel-solid);
   border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 .session-row:hover {
-  background: color-mix(in srgb, var(--panel-solid) 92%, transparent);
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
   border-color: color-mix(in srgb, var(--border) 90%, transparent);
 }
 

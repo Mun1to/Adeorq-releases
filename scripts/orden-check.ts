@@ -393,4 +393,34 @@ ok(
   );
 }
 
+// Colocar y TRAER son el mismo gesto visto desde las dos listas. Una sesión
+// fijada arrastrada abajo, entre las sueltas, tiene que entrar en esa lista; si
+// `colocarSuelta` exigiera que ya perteneciera, ese arrastre no haría nada y la
+// sesión se quedaría clavada arriba, que es lo que pasaba (Munir, 2026-08-09).
+ok(
+  "una que no estaba en la lista ENTRA donde la sueltas",
+  colocarSuelta(["a", "b", "c"], "nueva", "b", "antes").join() === "a,nueva,b,c",
+);
+ok(
+  "y por el otro lado del destino, igual",
+  colocarSuelta(["a", "b", "c"], "nueva", "b", "despues").join() === "a,b,nueva,c",
+);
+ok(
+  "entrar al final de la lista se puede",
+  colocarSuelta(["a", "b"], "nueva", "b", "despues").join() === "a,b,nueva",
+);
+ok(
+  "entrar la primera, también",
+  colocarSuelta(["a", "b"], "nueva", "a", "antes").join() === "nueva,a,b",
+);
+ok(
+  "pero un destino que no existe sigue sin tocar nada",
+  colocarSuelta(["a", "b"], "nueva", "zzz", "antes").join() === "a,b",
+  "sin esto, una sesión entraría en una lista por un destino inventado",
+);
+ok(
+  "y nunca se duplica: si ya estaba, se mueve",
+  colocarSuelta(["a", "b", "c"], "a", "c", "despues").join() === "b,c,a",
+);
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

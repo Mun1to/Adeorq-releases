@@ -226,7 +226,12 @@ export function colocarSuelta(
   if (movida === destino) return visibles;
   const sin = visibles.filter((x) => x !== movida);
   const i = sin.indexOf(destino);
-  if (i < 0 || !visibles.includes(movida)) return visibles;
+  if (i < 0) return visibles;
+  // Si la movida no estaba en esta lista, ENTRA. Es lo que hace falta para
+  // arrastrar una sesión de la sección de fijadas a las sueltas y al revés:
+  // antes se exigía que ya perteneciera, así que ese arrastre no hacía nada y
+  // la sesión se quedaba fijada donde estaba (Munir, 2026-08-09). Colocar y
+  // traer son el mismo gesto visto desde las dos listas.
   sin.splice(lado === "antes" ? i : i + 1, 0, movida);
   return sin;
 }

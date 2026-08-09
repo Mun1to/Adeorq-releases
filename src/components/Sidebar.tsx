@@ -1277,6 +1277,14 @@ export default function Sidebar({
    * Así el hueco que ves y el orden que queda salen del mismo número y no
    * pueden discrepar, que es lo que le pasaba a la raya.
    */
+  /** Si dos huecos son el mismo. Comparar por JSON sería más corto y bastante
+      más caro: esto corre una vez por fotograma mientras arrastras. */
+  const mismoHueco = (a: Record<string, number>, b: Record<string, number>) => {
+    const ka = Object.keys(a);
+    if (ka.length !== Object.keys(b).length) return false;
+    return ka.every((k) => b[k] === a[k]);
+  };
+
   const abrirHueco = (
     li: HTMLElement | null | undefined,
     id: string,
@@ -1303,7 +1311,14 @@ export default function Sidebar({
     for (const [i, sid] of sin.entries()) {
       if (desplazamiento(i, donde)) dy[sid] = 1;
     }
-    setHueco({ dy, alto });
+    // Si el hueco cae donde ya estaba, no se toca el estado. Sin esta guarda,
+    // cada fotograma creaba un objeto nuevo y React repintaba la barra entera
+    // para dejarla exactamente igual: mover el ratón dentro de una misma fila
+    // costaba decenas de repintados que no cambiaban un píxel.
+    setHueco((antes) => {
+      if (antes && antes.alto === alto && mismoHueco(antes.dy, dy)) return antes;
+      return { dy, alto };
+    });
   };
 
   /**
@@ -1435,6 +1450,11 @@ export default function Sidebar({
     if (v && !auto.current.raf) auto.current.raf = requestAnimationFrame(tick);
   };
 
+  /** El fotograma pendiente para recalcular el destino, y la última posición
+      del ratón. Ver el porqué dentro de `sesionMove`. */
+  const rafDestino = useRef(0);
+  const ultimoRaton = useRef<{ x: number; y: number; id: string } | null>(null);
+
   const sesionMove = (e: React.PointerEvent<HTMLLIElement>) => {
     const a = arrastre.current;
     if (!a) return;
@@ -1446,9 +1466,26 @@ export default function Sidebar({
       e.currentTarget.setPointerCapture(e.pointerId);
       fantasma.current = levantar(e.currentTarget, a.x, a.y, undefined, asideRef.current);
     }
+    // La copia que llevas se mueve SIEMPRE y en el acto: es lo único que tiene
+    // que ir pegado al dedo, y es barato (un `transform` sobre un solo nodo).
     fantasma.current?.mover(e.clientX, e.clientY);
     cercaDelBorde(e.clientX, e.clientY, a.id);
-    mirarDestino(e.clientX, e.clientY, a.id);
+    // Lo caro va una vez por fotograma, no una por evento del ratón.
+    //
+    // Buscar el destino mide la caja de CADA fila de la lista, y con treinta y
+    // tres sesiones eso son treinta y tres medidas más un repintado de la barra
+    // entera. El ratón dispara muchos más eventos que fotogramas tiene la
+    // pantalla, así que se hacía varias veces para pintar lo mismo: de ahí los
+    // tirones que Munir notó (2026-08-09). Con esto se hace como mucho una vez
+    // por fotograma y se descarta lo que llegue de más, quedándose con la
+    // última posición, que es la única que importa.
+    ultimoRaton.current = { x: e.clientX, y: e.clientY, id: a.id };
+    if (rafDestino.current) return;
+    rafDestino.current = requestAnimationFrame(() => {
+      rafDestino.current = 0;
+      const p = ultimoRaton.current;
+      if (arrastre.current?.activo && p) mirarDestino(p.x, p.y, p.id);
+    });
   };
 
   /**
@@ -1509,10 +1546,29 @@ export default function Sidebar({
       // SIN la fila que llevas, que es exactamente lo que ella hace por dentro.
       // Así el sitio que viste abierto y el que ocupa al soltar son el mismo
       // número, que es la regla que esta barra ya rompió una vez con la raya.
-      if (ui.pinned.includes(a.id) && ui.pinned.includes(hasta)) {
+      // Dónde cae decide el DESTINO, no de dónde venía. Una sesión fijada
+      // arrastrada abajo, entre las sueltas, se DESFIJA; y una suelta subida a
+      // la sección de arriba se fija. Antes solo se miraba si las dos estaban
+      // fijadas, así que sacar una de la sección no hacía absolutamente nada y
+      // se quedaba clavada donde estaba (Munir, 2026-08-09). Arrastrarla fuera
+      // ES la forma de quitarla, igual que arrastrar una sesión fuera de un
+      // grupo la saca de él.
+      if (ui.pinned.includes(hasta)) {
         mutate((prev) => ({
           ...prev,
           pinned: colocarSuelta(prev.pinned, a.id, hasta, lado),
+        }));
+      } else if (ui.pinned.includes(a.id)) {
+        // Bajaba de las fijadas a las sueltas: sale de arriba y se coloca donde
+        // la has dejado. Las dos cosas en la MISMA escritura, o entre una y otra
+        // la barra se pintaría con la sesión en ningún sitio.
+        const visibles = filter.trim() ? [] : (sueltas?.sessions ?? []).map((s) => s.id);
+        mutate((prev) => ({
+          ...prev,
+          pinned: prev.pinned.filter((x) => x !== a.id),
+          sueltasOrder: visibles.includes(hasta)
+            ? colocarSuelta(visibles, a.id, hasta, lado)
+            : prev.sueltasOrder,
         }));
       } else {
         // El orden se guarda ENTERO tal y como se está viendo, y por eso hace
@@ -1539,6 +1595,13 @@ export default function Sidebar({
       // Va por `asignarProyecto` al saco y no por `devolverASueltas`, que es
       // otra cosa: aquel la devuelve a donde diga SU CARPETA, y si su carpeta
       // es un proyecto de la lista volvería a subir ahí en el acto.
+      //
+      // Y si venía fijada, se desfija: has arrastrado la sesión hasta aquí
+      // abajo, y dejarla arriba sería no hacer caso al gesto. Vale también
+      // cuando sueltas en el hueco de la zona sin acertar ninguna fila.
+      if (ui.pinned.includes(a.id)) {
+        mutate((prev) => ({ ...prev, pinned: prev.pinned.filter((x) => x !== a.id) }));
+      }
       asignarProyecto(a.id, SUELTAS);
       return;
     }

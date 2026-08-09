@@ -2591,8 +2591,18 @@ body {
 
 .session-row {
   /* Solo `transform`: animar `top` o `margin` obliga a recalcular la posición
-     de toda la lista en cada fotograma, y esto se mueve con el ratón. */
-  transition: transform 0.16s cubic-bezier(0.2, 0, 0.2, 1);
+     de toda la lista en cada fotograma, y esto se mueve con el ratón.
+
+     220 ms y una curva que ARRANCA suave (0.25, 0.1) en vez de salir disparada:
+     a 160 ms con una curva de entrada dura, las filas daban un respingo y el
+     hueco parecía abrirse a tirones (Munir, 2026-08-09: «más fluido y menos
+     rápido»). El tirón no era de rendimiento, era de la curva; lo de
+     rendimiento se arregló aparte, en `sesionMove`.
+
+     `will-change` NO se pone aquí a propósito: son treinta y tres filas y
+     promoverlas todas a capa propia para un gesto que dura un segundo cuesta
+     más memoria de vídeo de lo que ahorra. */
+  transition: transform 0.22s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 /* Menos la que llevas en la mano: esa la mueve el fantasma y una transición
@@ -6277,19 +6287,80 @@ button.stat-card[data-live="false"] {
 /* El aviso de cuota. Ámbar mientras queda margen y rojo cuando ya no queda:
    son dos noticias distintas («ve pensando en cambiarte» y «se acabó»), y a la
    segunda hay que poder llegar sin leer el número. */
-.cuota-bar {
-  background: rgba(240, 180, 80, 0.16);
-  border-bottom-color: rgba(240, 180, 80, 0.42);
-  flex-wrap: wrap;
+/* ── Se te acaba la cuota de una cuenta ─────────────────────────────────────
+   Tarjeta abajo a la izquierda, con la misma forma que la de versión nueva.
+   Era una franja de una línea cruzando la ventana entera por arriba, y ahí
+   el porcentaje, la hora de renovación, el botón de relevo y la × iban todos
+   en fila, compitiendo además con el contador de FPS de esa esquina. Munir ya
+   había pedido este mismo cambio para el aviso de actualizar (2026-08-09).
+   SÓLIDA: se posa sobre terminales y sobre la foto de la casa, y un aviso que
+   no se lee no es un aviso (ver la regla encima de `.panel-card`). */
+.cuota-card {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 60;
+  width: min(330px, calc(100vw - 28px));
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: var(--panel-solid);
+  border: 1px solid rgba(240, 180, 80, 0.5);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  animation: update-sube 0.18s ease;
 }
 
-.cuota-bar[data-lleno="true"] {
-  background: rgba(214, 96, 96, 0.16);
-  border-bottom-color: rgba(224, 110, 110, 0.4);
+/* Al 99 % ya no es un aviso, es un tope: cambia de color y no de tamaño. */
+.cuota-card[data-lleno="true"] {
+  border-color: rgba(224, 110, 110, 0.55);
+}
+
+.cuota-cab {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cuota-titulo {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* La × pegada arriba a la derecha y pequeña: cerrar un aviso no es la acción
+   principal de un aviso. */
+.cuota-x {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.cuota-x:hover {
+  background: var(--row-hover);
+  color: var(--text);
 }
 
 .cuota-sep {
-  opacity: 0.75;
+  font-size: 12px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--text) 66%, transparent);
+}
+
+.cuota-salidas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 /* The Foreman (Capataz): static card in Panel + volatile overlay in Cabina */

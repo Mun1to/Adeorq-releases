@@ -155,17 +155,30 @@ export default function AvisoCuota({ cuentas, paneles, onAbrir }: Props) {
   const origen = paneles.find((p) => p.account === apurada.acc.label) ?? paneles[0];
 
   return (
-    <div className="update-bar cuota-bar" data-lleno={apurada.l.peor >= 99}>
-      <span>
-        {t("«{c}» va por el {p}% de su límite.", {
-          c: apurada.acc.label,
-          p: apurada.l.peor,
-        })}
-        {apurada.l.resets ? ` ${t("Se renueva {r}.", { r: apurada.l.resets })}` : ""}
-      </span>
+    /* Tarjeta y no franja, y abajo a la izquierda y no cruzando la ventana.
+       La franja era una línea de una sola altura pegada al borde de arriba, con
+       el porcentaje, la fecha de renovación, el botón y la × todo seguido, y
+       compitiendo con el contador de FPS de la esquina: se leía fatal (Munir,
+       2026-08-09). Es exactamente lo que ya se corrigió en el aviso de versión
+       nueva, así que lleva su misma forma: título, detalle debajo, y la acción
+       al final, cada cosa en su renglón. */
+    <div className="cuota-card" data-lleno={apurada.l.peor >= 99}>
+      <div className="cuota-cab">
+        <span className="cuota-titulo">
+          {t("«{c}» va por el {p}% de su límite.", {
+            c: apurada.acc.label,
+            p: apurada.l.peor,
+          })}
+        </span>
+        <button className="cuota-x" data-tip={t("Ahora no")} onClick={() => setCerrado(clave)}>
+          ×
+        </button>
+      </div>
+      {apurada.l.resets && (
+        <span className="cuota-sep">{t("Se renueva {r}.", { r: apurada.l.resets })}</span>
+      )}
       {salidas.length > 0 ? (
-        <>
-          <span className="cuota-sep">{t("Seguir en")}:</span>
+        <div className="cuota-salidas">
           {salidas.map(({ acc, l }) => (
             <button
               key={acc.id}
@@ -179,18 +192,15 @@ export default function AvisoCuota({ cuentas, paneles, onAbrir }: Props) {
                 if (origen) onAbrir(acc, { ...origen, cuenta: apurada.acc.label });
               }}
             >
-              {acc.label} ({l.peor}%)
+              {t("Seguir en")} {acc.label} ({l.peor}%)
             </button>
           ))}
-        </>
+        </div>
       ) : (
         <span className="cuota-sep">
           {t("No tienes otra cuenta con margen. Se añaden en la pestaña Cuentas.")}
         </span>
       )}
-      <button className="mini" data-tip={t("Ahora no")} onClick={() => setCerrado(clave)}>
-        ×
-      </button>
     </div>
   );
 }

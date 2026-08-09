@@ -209,7 +209,27 @@ pub async fn foreman_lote(tareas: String, context: String) -> Result<String, Str
 async fn preguntar(prompt: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let mut child = std::process::Command::new(claude_exe())
-            .args(["-p", &prompt, "--model", PLAN_MODEL, "--output-format", "json"])
+            // `--strict-mcp-config` sin ningún `--mcp-config` = CERO servidores
+            // MCP. Munir tiene el de Adeorq puesto en global, así que cada
+            // llamada del Capataz lo levantaba entero para no llamarlo jamás:
+            // esto pide un JSON, no usa una sola herramienta. Medido el
+            // 2026-08-09 con el mismo prompt: 6,75 s → 5,19 s, y el tiempo de
+            // API idéntico (~2 s), o sea que el segundo y medio era todo
+            // arranque. Sube solo si él conecta más servidores.
+            //
+            // ⚠ Y NO se usa `--bare`, que promete justo esto y más: su ayuda
+            // dice que con él «OAuth y el llavero nunca se leen», y aquí se
+            // entra con la suscripción de Munir, sin API key en ninguna parte
+            // (regla de la casa). Con `--bare` el Capataz no se autenticaría.
+            .args([
+                "-p",
+                &prompt,
+                "--model",
+                PLAN_MODEL,
+                "--output-format",
+                "json",
+                "--strict-mcp-config",
+            ])
             // Desde la carpeta de proyectos del usuario, no desde una fija: en
             // un equipo sin `C:\proyectos` esto no llegaba ni a lanzarse.
             .current_dir(crate::workspace::raiz_por_defecto())

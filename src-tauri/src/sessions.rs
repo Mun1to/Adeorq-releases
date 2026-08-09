@@ -198,18 +198,26 @@ fn live_session_ids() -> HashSet<String> {
     live
 }
 
+/// Cuánto hace, DESNUDO: «19 min», «23 h», «1 día», «9 días».
+///
+/// Sin el «hace» delante, y no es un descuido. La barra pone treinta y tres de
+/// estos en columna, uno debajo de otro, y esa palabra se repetía treinta y
+/// tres veces sin distinguir ninguna fila de la de al lado: solo robaba el
+/// ancho que necesita el título, que es lo único que sirve para elegir una
+/// conversación (Munir, 2026-08-09, con la lista delante). Donde la frase sí
+/// la necesita para leerse bien, la pone quien escribe la frase.
 fn ago_text(hours: f64) -> String {
     if hours < 1.0 {
-        return format!("hace {} min", (hours * 60.0).max(1.0) as u32);
+        return format!("{} min", (hours * 60.0).max(1.0) as u32);
     }
     if hours < 24.0 {
-        return format!("hace {} h", hours as u32);
+        return format!("{} h", hours as u32);
     }
     let days = (hours / 24.0) as u32;
     if days == 1 {
-        "hace 1 día".into()
+        "1 día".into()
     } else {
-        format!("hace {} días", days)
+        format!("{} días", days)
     }
 }
 

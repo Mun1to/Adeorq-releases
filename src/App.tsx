@@ -1119,7 +1119,15 @@ function App() {
   const launchFromWizard = useCallback(
     (l: Launch) => {
       setWizard(false);
-      const tag = l.provider === "shell" ? "terminal" : l.provider;
+      const tag =
+        l.provider === "shell"
+          ? "terminal"
+          : // El de casa se llama por su modelo y no por «ollama»: en el mosaico
+            // lo que hace falta saber es con QUIÉN estás hablando, y «ollama» es
+            // el programa, no el interlocutor.
+            l.provider === "ollama"
+            ? (l.localModel ?? "local")
+            : l.provider;
       // A command per terminal, never a shared one: each Claude has to carry
       // its own --session-id or they would all resume the same conversation.
       const commandFor = () =>
@@ -1129,7 +1137,14 @@ function App() {
             ? newClaudeCommand(l.model ? `--model ${l.model}` : "", l.plan ? "plan" : undefined)
             : l.provider === "agy" && agyExe.current
               ? agyCommand(agyExe.current)
-              : providerCommand(l.provider);
+              : // Un chat con el modelo de casa, en una terminal como cualquier
+                // otra: `ollama run` ya ES una conversación interactiva, así que
+                // no hace falta nada más que abrirla. Sin cuota de nadie y sin
+                // acceso a los archivos, que es justo lo que lo hace distinto
+                // de los CLIs de al lado.
+                l.provider === "ollama"
+                ? shellCommand(`ollama run ${l.localModel ?? ""}`.trim())
+                : providerCommand(l.provider);
 
       const n = Math.max(1, Math.min(l.count, openAllCap));
       for (let i = 0; i < n; i++) {

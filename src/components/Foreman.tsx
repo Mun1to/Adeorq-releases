@@ -243,7 +243,9 @@ function buildContext(
         home && !home.toLowerCase().includes(s.project.toLowerCase())
           ? ` | ⚠ se retoma en ${home}, NO en la carpeta del proyecto`
           : "";
-      return `- ${s.id} | ${s.project} | ${s.title} | ${s.state}${s.live ? " (abierta ahora)" : ""} | ${s.ago}${stray}`;
+      // `hace` a mano: `ago` viene desnudo de Rust («1 día»), y aquí lo lee un
+      // modelo que tiene que entender que es una antigüedad y no una duración.
+      return `- ${s.id} | ${s.project} | ${s.title} | ${s.state}${s.live ? " (abierta ahora)" : ""} | hace ${s.ago}${stray}`;
     })
     .join("\n");
   const sk = skills
@@ -1121,6 +1123,9 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
               <button
                 className="np-btn"
                 disabled={!text.trim() || phase === "thinking"}
+                data-tip={t(
+                  "Monta el tablero: mira tus proyectos y tus sesiones y te propone qué abrir y con qué cerebro. Nada se ejecuta hasta que lo apruebes.",
+                )}
                 onClick={ask}
               >
                 {t(phase === "thinking" ? "Pensando el plan…" : "Planear")}
@@ -1131,6 +1136,9 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
             <button
               className="np-btn ghost"
               disabled={!text.trim() || escribiendo || phase === "thinking"}
+              data-tip={t(
+                "No abre nada: convierte lo que has dicho en el encargo que necesita leer el agente de la terminal que tienes delante, y te lo deja escrito ahí. No lo envía.",
+              )}
               onClick={redactar}
             >
               {t(escribiendo ? "Escribiendo…" : auto ? "Escribir y ponerlo" : "Escribir el encargo")}
@@ -1155,10 +1163,17 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
               <BoltIcon size={13} />
               {t("Automático")}
             </button>
-            {mode === "overlay" && (
-              <span className="foreman-hint">{t("Enter planea · Ctrl+Mayús+M dicta · Esc cierra · nada se ejecuta sin tu OK")}</span>
-            )}
           </div>
+          {/* Los atajos, DEBAJO y en su propio renglón. Iban dentro de la fila
+              de botones, y como un flex encoge a sus hijos antes que
+              desbordar, esta frase de cuatro datos les robaba el ancho hasta
+              partirles las palabras: «Plan / it», «Write the / brief» (Munir,
+              2026-08-09, con la captura). Los botones ya no ceden (`flex:
+              none`) y esto no tiene por qué competir con ellos: es una nota al
+              pie, y una nota al pie va al pie. */}
+          {mode === "overlay" && (
+            <span className="foreman-hint">{t("Enter planea · Ctrl+Mayús+M dicta · Esc cierra · nada se ejecuta sin tu OK")}</span>
+          )}
           {/* La mini guía. Solo con el cuadro vacío y antes de la primera
               pregunta: en cuanto escribes algo estorba, y quien ya sabe lo que
               quiere no la ve nunca. Cada fila se pulsa y se escribe sola, que

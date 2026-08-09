@@ -17,6 +17,7 @@ import {
   findAgy,
   listProjects,
   mainAccount,
+  ollamaModels,
   scanSessions,
   type Account,
   type Project,
@@ -41,6 +42,9 @@ export interface Launch {
   provider: string;
   /** Claude only, and only when it is not the one he already has set. */
   model?: string;
+  /** Con qué modelo de casa se abre el chat, cuando el elegido es «ollama».
+   *  Vacío nunca: si no hay ninguno descargado, esa opción no se ofrece. */
+  localModel?: string;
   /** Claude only: nace en modo plan (mira y propone, no toca nada) sin tocar
       el modo por defecto de Ajustes, que sigue siendo el de todas las demás. */
   plan?: boolean;
@@ -112,6 +116,13 @@ export default function NewSession({
   const [count, setCount] = useState(1);
   const [agy, setAgy] = useState<string | null>(null);
   const [clis, setClis] = useState<string[]>([]);
+  /** Los modelos que tienes descargados en este equipo. Lista vacía = Ollama no
+   *  está escuchando, que no es un fallo: es que ahora no lo tienes abierto. */
+  const [locales, setLocales] = useState<string[]>([]);
+  const [local, setLocal] = useState("");
+  /** Si `ollama` está en el PATH. Distinto de tener modelos: se puede tener el
+   *  programa y ninguno descargado, y ahí lo útil es decirlo, no esconderlo. */
+  const [tieneLocal, setTieneLocal] = useState(false);
   /** Ver lib/velo.ts: distingue pinchar el velo de soltar ahi un arrastre. */
   const bajoEnVelo = useRef(false);
 
@@ -143,8 +154,27 @@ export default function NewSession({
     homeDir()
       .then((h) => setCasa(h.replace(/[\\/]+$/, "")))
       .catch(() => {});
-    detectClis(PROVIDERS.map((p) => [p.id, p.exe] as [string, string]))
-      .then((found) => setClis(found.map((c) => c.id)))
+    // Ollama va en la misma detección que los demás: se busca su ejecutable en
+    // el PATH, no si tiene modelos. Son dos preguntas distintas y confundirlas
+    // escondía la opción entera a quien lo tiene instalado y todavía no se ha
+    // bajado ninguno, que es exactamente el caso de Munir (2026-08-09).
+    detectClis([
+      ...PROVIDERS.map((p) => [p.id, p.exe] as [string, string]),
+      ["ollama", "ollama"] as [string, string],
+    ])
+      .then((found) => {
+        const ids = found.map((c) => c.id);
+        setClis(ids.filter((id) => id !== "ollama"));
+        setTieneLocal(ids.includes("ollama"));
+      })
+      .catch(() => {});
+    // Y qué modelos hay descargados. Falla en silencio y hacia el lado bueno,
+    // igual que el resto de Ollama en esta app.
+    ollamaModels()
+      .then((m) => {
+        setLocales(m);
+        setLocal((prev) => prev || m[0] || "");
+      })
       .catch(() => {});
   }, [suggested]);
 
@@ -273,6 +303,7 @@ export default function NewSession({
       cwd: place.path,
       provider,
       model: provider === "claude" && model ? model : undefined,
+      localModel: provider === "ollama" ? local || locales[0] : undefined,
       plan: provider === "claude" && planMode ? true : undefined,
       account: chosenAccount,
       count,
@@ -290,8 +321,13 @@ export default function NewSession({
       if (id === "claude" || id === "agy") continue;
       list.push({ id, label: providerOf(id).label });
     }
+    // El modelo de casa, al final. Aparece si Ollama ESTÁ INSTALADO, no si hay
+    // modelos: la regla de esta pantalla es no ofrecer lo que no puede correr,
+    // y con Ollama instalado esto corre. Que no haya ninguno bajado se cuenta
+    // dentro, con el comando para arreglarlo.
+    if (tieneLocal) list.push({ id: "ollama", label: "Modelo local" });
     return list;
-  }, [clis, agy]);
+  }, [clis, agy, tieneLocal]);
 
   const toolLabel = tools.find((x) => x.id === provider)?.label ?? provider;
 
@@ -567,6 +603,40 @@ export default function NewSession({
               ))}
             </div>
 
+            {/* Con qué modelo de casa. Misma forma que el de Claude, porque es
+                la misma pregunta: se abre un chat y hay que decir con quién.
+                Sale la lista de lo que tienes descargado, sin escribir nada. */}
+            {provider === "ollama" && (
+              <>
+                <p className="wiz-label">{t("Modelo")}</p>
+                {locales.length > 0 ? (
+                  <div className="chip-row">
+                    {locales.map((m) => (
+                      <button
+                        key={m}
+                        className="choice"
+                        data-on={local === m}
+                        onClick={() => setLocal(m)}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  /* Tienes Ollama y ningún modelo. Se dice con el comando que lo
+                     arregla, en vez de esconder la opción y dejarte buscando por
+                     qué no está: la pantalla sabe qué falta, así que lo dice. */
+                  <p className="card-hint">
+                    {t("Tienes Ollama pero ningún modelo descargado. Bájate uno con este comando y vuelve aquí:")}{" "}
+                    <code>ollama pull qwen2.5:3b</code>
+                  </p>
+                )}
+                <p className="card-hint">
+                  {t("Corre en tu equipo y no gasta cuota de nadie. Es un chat: no lee ni toca tus archivos.")}
+                </p>
+              </>
+            )}
+
             {provider === "claude" && (
               <>
                 <p className="wiz-label">{t("Modelo")}</p>
@@ -702,7 +772,13 @@ export default function NewSession({
                 {t("Siguiente")}
               </button>
             ) : (
-              <button className="np-btn" onClick={launch}>
+              <button
+                className="np-btn"
+                /* Con el modelo de casa elegido y ninguno descargado no hay nada
+                   que abrir: `ollama run` sin modelo se queda esperando. */
+                disabled={provider === "ollama" && locales.length === 0}
+                onClick={launch}
+              >
                 {count === 1 ? t("Abrir") : t("Abrir las {n}", { n: count })}
               </button>
             )}

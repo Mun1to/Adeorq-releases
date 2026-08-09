@@ -1,8 +1,15 @@
 // Con qué envoltorio arranca cada terminal. Se corre:
 //
-//   npx tsc scripts/comandos-check.ts --module commonjs --target es2022 \
-//     --lib es2022,dom --esModuleInterop --skipLibCheck --outDir <tmp>
+//   npx tsc scripts/comandos-check.ts src/lib/comandos.ts --module commonjs \
+//     --target es2022 --lib es2022,dom --esModuleInterop --skipLibCheck \
+//     --outDir <tmp>
 //   node <tmp>/scripts/comandos-check.js
+//
+// El módulo va NOMBRADO en la orden, al revés que en los demás comprobadores, y
+// no es un descuido: aquí se carga con un `require` de ejecución (hay que
+// fingir el sistema operativo antes de cada carga, ver `cargar()` abajo), así
+// que tsc no lo ve venir y no lo compila solo. Sin nombrarlo, el comprobador
+// muere con `Cannot find module '../src/lib/comandos'` (visto el 2026-08-09).
 //
 // Por qué existe: el 2026-08-08 el envoltorio de Windows pasó de
 // `powershell.exe -NoExit` (74,8 MB por terminal) a `cmd.exe /k` (7,5 MB), y

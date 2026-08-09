@@ -44,6 +44,7 @@ import { initials } from "./ProjectAvatar";
 import { propsDeVelo } from "../lib/velo";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
 import {
+  ChevronIcon,
   RefreshIcon,
 } from "./Icons";
 
@@ -98,6 +99,9 @@ function tonoDe(id: string): string {
   return id === "shell" ? "#5391fe" : providerOf(id).hue;
 }
 
+/** Qué CLIs dejaste abiertos en esta pantalla. */
+const ABIERTOS_KEY = "adeorq-cuentas-abiertos";
+
 export default function AccountsView({
   accounts,
   defaultAccount,
@@ -114,6 +118,28 @@ export default function AccountsView({
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [label, setLabel] = useState("");
+  /**
+   * Qué CLIs tienes abiertos, por id.
+   *
+   * La pantalla era una rejilla de tarjetas donde un CLI sin cuenta ocupaba lo
+   * mismo que uno con tres barras de uso, y con diez instalados eso son dos
+   * pantallas de scroll para mirar un porcentaje (Munir, 2026-08-09: «más
+   * profesional, no tan grande, como un menú desplegable»). Ahora cada CLI es
+   * una fila que se abre.
+   *
+   * Nacen abiertos los que TIENEN cuenta, que es lo único que se viene a mirar
+   * aquí; los demás, plegados y en un renglón. Y lo que tú abras o cierres se
+   * recuerda: `null` mientras no hayas tocado ninguno, y desde el primer clic
+   * manda tu lista y no la regla.
+   */
+  const [abiertos, setAbiertos] = useState<string[] | null>(() => {
+    try {
+      const g = localStorage.getItem(ABIERTOS_KEY);
+      return g ? (JSON.parse(g) as string[]) : null;
+    } catch {
+      return null;
+    }
+  });
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Account | null>(null);
   /** Qué se va a cerrar: una cuenta concreta, o "todas". Null = nada. */
@@ -358,6 +384,16 @@ export default function AccountsView({
           ) : (
             <span className="account-name stream-hide">{nombreDe(acc)}</span>
           )}
+        </div>
+
+        {/* Las tres chapas, EN COLUMNA y por el lado derecho de la tarjeta
+            entera, no en fila detrás del nombre.
+            En fila se llevaban un renglón completo para tres palabras, y a la
+            vez la mitad derecha de la tarjeta quedaba en blanco desde la
+            primera barra hasta abajo (Munir, 2026-08-09, con las flechas
+            señalando ese hueco). Puestas de pie ocupan el alto que las barras
+            ya gastaban, así que la tarjeta pierde una fila y no gana ninguna. */}
+        <div className="account-chips">
           {it?.plan?.subscription && <span className="account-plan">{it.plan.subscription}</span>}
           {isDefault && (
             <span className="account-badge" data-tip={t("Las terminales nuevas usan esta")}>
@@ -365,47 +401,78 @@ export default function AccountsView({
             </span>
           )}
           {/* El estado, donde se busca: arriba y a la derecha. Antes había que
-              leer el párrafo de dentro para saber si esa cuenta responde. */}
-          <span className="account-state" data-ok={it?.ready === true} data-off={it?.ready === false}>
-            {it == null ? "…" : it.ready ? t("conectada") : t("sin conectar")}
+              leer el párrafo de dentro para saber si esa cuenta responde.
+
+              ⚠ Y de un CLI que no escribe ningún archivo de sesión NO se dice
+              «sin conectar», porque no se sabe. Lo decía, y a la vez el párrafo
+              de debajo decía «no sé leer si has iniciado sesión»: la misma
+              tarjeta afirmando una cosa y su contraria (Munir, 2026-08-09, con
+              Crush delante). Este tablero se construyó sobre no mentir del
+              estado de nada, así que aquí toca decir que no se sabe. */}
+          <span
+            className="account-state"
+            data-ok={p.creds.length > 0 && it?.ready === true}
+            data-off={p.creds.length > 0 && it?.ready === false}
+            data-tip={
+              p.creds.length === 0
+                ? t("Este programa no deja ninguna huella en el equipo al iniciar sesión, así que Adeorq no puede saberlo sin abrirlo.")
+                : undefined
+            }
+          >
+            {p.creds.length === 0
+              ? t("no se sabe")
+              : it == null
+                ? "…"
+                : it.ready
+                  ? t("conectada")
+                  : t("sin conectar")}
           </span>
         </div>
 
         {p.creds.length === 0 ? (
           // Not every CLI writes a file that means "signed in", and inventing
           // one would show a wrong answer with total confidence.
-          <p className="account-empty">
-            {t("Instalado. De este programa no sé leer si has iniciado sesión, así que ábrelo y te lo dirá él.")}
-          </p>
+          // Corto: la chapa de arriba ya dice «no se sabe», así que aquí solo
+          // queda el qué hacer. La frase larga repetía el estado y se comía dos
+          // renglones en siete tarjetas para decir lo mismo siete veces.
+          <p className="account-empty">{t("Ábrelo y te lo dirá él.")}</p>
         ) : it && !it.ready ? (
-          <p className="account-empty">
-            {t("Sin conectar todavía. Abre una terminal aquí y haz el login.")}
-          </p>
+          <p className="account-empty">{t("Abre una terminal aquí y haz el login.")}</p>
         ) : !p.usage ? (
           <p className="account-empty">
-            {it ? t("Conectada.") : "…"}{" "}
-            {t("Este CLI no publica su consumo en el equipo, así que no hay barras que enseñar.")}
+            {t("No publica su consumo en el equipo, así que no hay barras que enseñar.")}
           </p>
         ) : (
+          // Un límite, UN renglón: nombre, barra, cifra y cuándo se renueva.
+          // Eran tres renglones cada uno (nombre y cifra arriba, la barra
+          // debajo, la renovación debajo de esa), así que tres límites se
+          // comían nueve líneas y media tarjeta para decir tres números. La
+          // barra va más GRUESA y más CORTA a la vez, que es justo lo que
+          // pidió Munir (2026-08-09): a lo ancho de la tarjeta y con cinco
+          // píxeles de alto no era un medidor, era un subrayado.
+          // Clases propias y no las `limit-*` de siempre: esas las comparte el
+          // panel de Uso, que no ha pedido cambiar.
           <div className="account-limits">
             {(it?.limits?.lines ?? []).map((l) => (
-              <div key={l.label} className="limit" data-tip={`${l.label}: ${l.percent}%`}>
-                <div className="limit-top">
-                  <span className="limit-label">{shortLabel(l.label)}</span>
-                  <strong data-hot={l.percent >= 80}>{l.percent}%</strong>
-                </div>
-                <span className="limit-track">
+              <div
+                key={l.label}
+                className="acc-uso"
+                data-tip={`${l.label}: ${l.percent}%${
+                  l.resets ? `\n${t("se renueva")} ${l.resets}` : ""
+                }`}
+              >
+                <span className="acc-uso-que">{shortLabel(l.label)}</span>
+                <span className="acc-uso-barra">
                   <span
-                    className="limit-fill"
+                    className="acc-uso-fill"
                     data-hot={l.percent >= 80}
                     style={{ width: `${Math.min(100, l.percent)}%` }}
                   />
                 </span>
-                {l.resets && (
-                  <div className="limit-reset">
-                    {t("se renueva")} {l.resets.replace(/\s*\([^)]*\)\s*$/, "")}
-                  </div>
-                )}
+                <strong data-hot={l.percent >= 80}>{l.percent}%</strong>
+                <span className="acc-uso-cuando">
+                  {l.resets ? l.resets.replace(/\s*\([^)]*\)\s*$/, "") : ""}
+                </span>
               </div>
             ))}
             {!it && <p className="account-empty">{t("Preguntando a Claude…")}</p>}
@@ -517,28 +584,30 @@ export default function AccountsView({
           Esta pantalla se abre por dos motivos: para ver cuánto queda de cuota
           y para cambiar de cuenta. Los dos obligaban a bajar leyendo tarjeta
           por tarjeta, porque nueve tarjetas iguales que dicen todas «Principal»
-          no se distinguen de lejos. Aquí arriba está la respuesta. */}
-      <div className="accounts-summary">
-        <div className="stat-card">
-          <span className="stat-num">{resumen.conectadas}</span>
-          <span className="stat-label">{t("cuentas conectadas")}</span>
-          <span className="stat-foot">
-            {t("de {n} programas instalados", { n: resumen.programas })}
-          </span>
-        </div>
-        <div className="stat-card" data-hot={resumen.peor != null && resumen.peor >= 80}>
-          <span className="stat-num">{resumen.peor != null ? `${resumen.peor}%` : "—"}</span>
-          <span className="stat-label">{t("el límite más apretado")}</span>
-          <span className="stat-foot">
-            {resumen.peorCuenta || t("todavía preguntando…")}
-          </span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-num stat-nombre">{resumen.porDefecto || "—"}</span>
-          <span className="stat-label">{t("la predeterminada")}</span>
-          <span className="stat-foot">{t("con la que nacen las terminales nuevas")}</span>
-        </div>
-      </div>
+          no se distinguen de lejos. Aquí arriba está la respuesta.
+
+          Y en UN RENGLÓN, no en tres cajas de cien píxeles. Los tres datos
+          caben en una línea y ninguno es un titular: son la respuesta a «¿cómo
+          voy?», que se lee de paso y no se queda mirando. Ocupaban la quinta
+          parte de la pantalla para decir tres cosas que además vuelven a salir
+          más abajo, cada una en su sitio (Munir, 2026-08-09). */}
+      <p className="accounts-linea">
+        <span>
+          <b>{resumen.conectadas}</b>{" "}
+          {resumen.conectadas === 1 ? t("conectada") : t("conectadas")}
+          <em>{t("de {n} instalados", { n: resumen.programas })}</em>
+        </span>
+        <span data-hot={resumen.peor != null && resumen.peor >= 80 ? "" : undefined}>
+          <b>{resumen.peor != null ? `${resumen.peor}%` : "—"}</b>{" "}
+          {t("el límite más apretado")}
+          <em>{resumen.peorCuenta || t("todavía preguntando…")}</em>
+        </span>
+        <span>
+          <b className="stream-hide">{resumen.porDefecto || "—"}</b>{" "}
+          {t("es la de siempre")}
+          <em>{t("con ella nacen las terminales nuevas")}</em>
+        </span>
+      </p>
 
       {error && <p className="side-error">{error}</p>}
 
@@ -644,9 +713,30 @@ export default function AccountsView({
           de sobra: con seis instalados, uno debajo de otro obligaba a hacer
           scroll con media ventana vacía al lado. */}
       <div className="accounts-groups">
-      {PROVIDERS.filter((p) => installed?.has(p.id)).map((p) => (
-        <section key={p.id} className="account-group">
-          <h2 className="account-group-title">
+      {PROVIDERS.filter((p) => installed?.has(p.id)).map((p) => {
+        // Conectado = alguna de sus cuentas ha contestado que sí. Es el único
+        // dato que decide si esta fila merece nacer abierta: los CLIs que no
+        // publican nada no tienen nada que enseñar hasta que los abras.
+        const conectado = allOf(p).some((a) => info[a.id]?.ready);
+        const propias = accounts.filter((a) => a.provider === p.id).length;
+        const abierto = abiertos ? abiertos.includes(p.id) : conectado;
+        return (
+        <section key={p.id} className="account-group" data-abierto={abierto || undefined}>
+          {/* La cabecera ES el interruptor, no un título con un botón al lado:
+              la fila entera se pulsa, que es lo que uno intenta hacer. */}
+          <button
+            className="account-group-title"
+            aria-expanded={abierto}
+            onClick={() => {
+              const base = abiertos ?? PROVIDERS.filter((x) => allOf(x).some((a) => info[a.id]?.ready)).map((x) => x.id);
+              const nuevo = base.includes(p.id)
+                ? base.filter((x) => x !== p.id)
+                : [...base, p.id];
+              setAbiertos(nuevo);
+              localStorage.setItem(ABIERTOS_KEY, JSON.stringify(nuevo));
+            }}
+          >
+            <ChevronIcon size={13} up={abierto} />
             {/* Su marca en lugar del punto de color de antes: doce puntos de
                 doce colores no dicen cuál es cuál sin leer el nombre. */}
             {tieneMarca(p.id) ? (
@@ -667,7 +757,16 @@ export default function AccountsView({
                 {t("una sola cuenta")}
               </em>
             )}
-          </h2>
+            {/* Plegado, la fila tiene que decir por sí sola si hay algo dentro,
+                o abrirlos todos para mirar es exactamente lo que quitamos. */}
+            <span className="account-group-tras">
+              {conectado
+                ? propias > 0
+                  ? t("{n} cuentas", { n: propias + 1 })
+                  : t("conectada")
+                : t("sin conectar")}
+            </span>
+          </button>
           <div className="panel-grid accounts-grid">
             {allOf(p).map((acc) => card(p, acc))}
 
@@ -711,7 +810,8 @@ export default function AccountsView({
               ))}
           </div>
         </section>
-      ))}
+        );
+      })}
       </div>
       <p className="accounts-note">
         {t(

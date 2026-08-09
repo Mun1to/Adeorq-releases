@@ -859,6 +859,16 @@ body {
    la posición de nada, y un overlay nuevo funciona sin que nadie se acuerde de
    apuntarlo en ninguna lista. El z-index se queda porque ordena a los hermanos
    que SÍ están posicionados; a uno estático no le hace nada, y no lo necesita. */
+/* ⚠ TRAMPA para lo que flota. Esta regla es `.app > *`, o sea (0,1,1), y le
+   gana a cualquier `.loquesea` (0,1,0): un hijo directo de `.app` que declare
+   su propio z-index NO lo va a tener, va a tener 1. Y con todos a 1 el orden
+   lo decide el árbol, así que un flotante montado arriba del JSX acaba DEBAJO
+   de la barra y de la vista, sin recibir un solo clic. Le pasó a `.obj-flota`
+   y le volvió a pasar a `.cuota-card` (Munir, 2026-08-09: «que es esto?»,
+   señalando un recuadro vacío asomando por el borde de la barra).
+   Si añades otro flotante colgado de `.app`, dale su regla `.app > .lo-tuyo`
+   como las de más abajo, o cuélgalo del body por un portal como hace
+   `Overlays`. */
 .app > *:not(.fondo) {
   z-index: 1;
 }
@@ -2369,38 +2379,13 @@ body {
 }
 
 
-/* La carpeta de una sesión sin proyecto. Va EN LA FILA, con la misma pinta que
-   el rol de una cuadrilla, para que una suelta se lea igual que cualquier otra
-   sesión de la barra: en una segunda línea la hacía distinta de todas y le
-   comía el ancho al título. Y se pulsa, porque lo que se hace con una carpeta
-   que resulta importar es convertirla en proyecto. */
-.sess-donde {
-  flex: none;
-  max-width: 84px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 1px 5px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: none;
-  color: var(--muted);
-  font-size: 9.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-}
-
-.sess-donde::before {
-  content: "↯ ";
-  opacity: 0.7;
-}
-
-.sess-donde:hover {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-}
+/* Aquí vivía `.sess-donde`, la pastilla con la carpeta de una sesión suelta.
+   Se fue entera el 2026-08-09 y el porqué está en el JSX: en una lista donde
+   todas las sueltas cuelgan de `C:\proyectos`, las treinta y tres decían
+   «proyectos» y ninguna se distinguía de la de al lado, mientras el título se
+   leía «S..». La carpeta vive ahora en el globo de la fila y su acción en el
+   menú. Se quita en vez de dejarla apagada por si acaso: una regla sin dueño
+   es una pista falsa para el siguiente. */
 
 .session-ago {
   flex: none;
@@ -5545,32 +5530,65 @@ button.stat-card[data-live="false"] {
   gap: 16px;
 }
 
-/* El resumen de cabecera. Reutiliza las tarjetas del Panel a propósito: son la
-   misma idea (un número con su contexto debajo) y que se vean igual en las dos
-   pantallas es justo lo que las hace legibles sin leerlas. */
-.accounts-summary {
+/* El resumen de cabecera, en UN RENGLÓN.
+   Fueron tres tarjetas del tamaño de las del Panel, y allí están bien porque
+   allí ese número es el titular de la pantalla. Aquí no: aquí el titular es la
+   lista, y estos tres datos vuelven a salir cada uno en su sitio unas líneas
+   más abajo. Se llevaban la quinta parte de la ventana para repetirse (Munir,
+   2026-08-09: «más profesional, no tan grande»). */
+.accounts-linea {
   display: flex;
-  gap: 14px;
-  margin: 22px 0 26px;
   flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 26px;
+  margin: 14px 0 14px;
+  /* Su superficie, por lo mismo que la lista de abajo: una raya de separación
+     no sirve de nada cuando lo que hay detrás es una foto. Aplanada, opaca. */
+  padding: 11px 16px;
+  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 12.5px;
+  color: var(--muted);
 }
 
-/* El nombre de la cuenta predeterminada va donde en las otras hay una cifra, y
-   un nombre largo no cabe a 34px: baja de tamaño y se recorta con puntos en vez
-   de romper la fila. */
-.accounts-summary .stat-nombre {
-  font-size: 21px;
-  line-height: 1.25;
+.accounts-linea > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.accounts-linea b {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El nombre de la cuenta de siempre va donde los otros dos llevan una cifra, y
+   un nombre largo no puede empujar a los demás fuera del renglón. */
+.accounts-linea b:not(.stream-hide) {
+  flex: none;
+}
+
+.accounts-linea .stream-hide {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 190px;
+}
+
+/* Lo de después del dato, en gris y más pequeño: es el pie de la cifra, el
+   mismo papel que hacía `.stat-foot` cuando esto eran tarjetas. */
+.accounts-linea em {
+  font-style: normal;
+  font-size: 11px;
+  opacity: 0.62;
 }
 
 /* Y cuando el límite más apretado ya aprieta de verdad, se ve desde la puerta. */
-.accounts-summary .stat-card[data-hot="true"] {
-  border-color: color-mix(in srgb, var(--done) 55%, transparent);
-}
-.accounts-summary .stat-card[data-hot="true"] .stat-num {
+.accounts-linea > span[data-hot] b {
   color: var(--done);
 }
 
@@ -5580,25 +5598,60 @@ button.stat-card[data-live="false"] {
      dejaba la mitad derecha en negro mientras los CLIs se apilaban hacia
      abajo y había que hacer scroll para verlos. */
   max-width: none;
+  /* Con TOPE por columna, que es lo que le faltaba. `.panel-grid` reparte en
+     `1fr`, así que dos tarjetas en un monitor ancho se estiraban a 600 px cada
+     una para enseñar un nombre, tres barras de 84 px y dos botones: todo el
+     ancho que sobraba se convertía en hueco DENTRO de la tarjeta. Ahora una
+     tarjeta mide lo que necesita y el sitio que sobra queda fuera, que es
+     donde no molesta. */
+  grid-template-columns: repeat(auto-fill, minmax(340px, 460px));
+  justify-content: start;
 }
 
-/* Cada CLI es su propia sección, y con seis instalados eso era una columna
-   larguísima. En pantalla ancha caben dos de lado a lado; el hueco de la
-   derecha era sitio desaprovechado, no diseño. Se reparten con `masonry` de
-   columnas para que una sección alta no deje un boquete al lado. */
-/* Desde 1700 y no desde 1500: la barra de secciones se lleva 192px, así que dos
-   columnas de tarjetas necesitan esa anchura de más para no quedar apretadas. */
-@media (min-width: 1700px) {
-  .accounts .account-group {
-    break-inside: avoid;
-    margin-top: 0;
-    margin-bottom: 22px;
-  }
+/* Aquí repartía los CLIs en DOS COLUMNAS a partir de 1700 px, y tenía sentido
+   mientras cada uno era una tarjeta alta: seis apilados dejaban media pantalla
+   en negro. Se va con las tarjetas (2026-08-09). Ahora un CLI plegado es un
+   renglón y los diez caben sin bajar, así que la segunda columna no ahorraría
+   ningún scroll; y peor: `column-count` reparte por altura, así que abrir un
+   CLI recolocaba los de la otra columna y la lista entera saltaba bajo el
+   ratón. Una lista que se pliega tiene que quedarse quieta. */
+/* Y la lista va SOBRE UNA SUPERFICIE, que es lo que traía cada tarjeta y se fue
+   con ellas: sin esto los diez CLIs quedaban sueltos sobre la foto de la casa y
+   el nombre de cada uno competía con lo que hubiera detrás (Munir, 2026-08-09:
+   «hazlo menos transparente», con un Mickey de fondo atravesando la pantalla).
+   Es exactamente el error del que avisa el comentario de `.panel-card`, y van
+   cinco esta semana: quien monta una rejilla nueva se inventa su superficie.
 
-  .accounts-groups {
-    column-count: 2;
-    column-gap: 26px;
-  }
+   OPACA y no cristal, por dos motivos a la vez: es lo que él ha pedido, y sobre
+   un fondo con alfa Windows apaga ClearType y estos nombres se leen blandos.
+   Se APLANA en vez de cambiar de color: el mismo `--panel` de siempre pintado
+   encima de un sólido del tema, así que el tono es idéntico al del resto de la
+   app y el elemento acaba opaco. Sin `backdrop-filter`: detrás de algo opaco no
+   se ve, y un desenfoque que no se ve es puro coste. */
+.accounts-groups {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+
+/* Una raya finísima entre CLIs, menos bajo el que está abierto: ahí el que
+   separa es el propio hueco de lo que hay dentro. */
+.accounts-groups > .account-group + .account-group::before {
+  content: "";
+  display: block;
+  height: 1px;
+  margin: 0 10px;
+  background: var(--line);
+  opacity: 0.5;
+}
+
+.accounts-groups > .account-group[data-abierto] + .account-group::before,
+.accounts-groups > .account-group[data-abierto]::before {
+  opacity: 0;
 }
 
 /* Cuentas y el Panel necesitan más ancho que Ajustes: dentro de la hoja hay
@@ -5614,19 +5667,77 @@ button.stat-card[data-live="false"] {
 /* One section per CLI: they are not interchangeable, and each has its own
    idea of what it will tell you about itself. */
 .account-group {
-  margin-top: 22px;
+  margin-top: 6px;
 }
 
+/* La cabecera de cada CLI es el interruptor que lo abre, así que es un BOTÓN de
+   ancho completo y no un título con algo pulsable dentro: lo que uno intenta
+   pulsar es la fila. Plegada, este renglón es todo lo que ocupa un CLI, que era
+   el objetivo: diez instalados caben en una pantalla sin bajar. */
 .account-group-title {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin: 0 0 12px;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  width: 100%;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  /* Cada CLI se llama como se llama. Esto iba en versales con un punto de
+     espaciado y peso 700, que es tipografía de ETIQUETA: valía cuando era el
+     título de una sección, y dejó de valer en cuanto pasó a ser el contenido de
+     una fila. Diez renglones gritando en mayúsculas se leen peor, y encima las
+     versales pisaban el nombre real de las marcas: «GITHUB COPILOT» y, el peor,
+     «OPENCODE», que se escribe todo en minúscula a propósito. Es la misma regla
+     que este repo ya aplica a los temas prestados: se llaman por su nombre de
+     verdad, que es lo honesto y además lo que hace que se reconozcan. */
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
   color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.account-group-title:hover {
+  color: var(--text);
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
+  border-color: color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+/* Abierto, el nombre manda: es el que tiene algo debajo. */
+.account-group[data-abierto] > .account-group-title {
+  color: var(--text);
+}
+
+.account-group-title > svg {
+  flex: none;
+  opacity: 0.55;
+}
+
+/* Cuántas cuentas hay dentro, al final de la fila. Sin esto, plegado no se
+   sabe si abrirlo trae algo, y abrirlos todos para mirar es justo el paseo que
+   este rediseño quita. En minúscula y sin espaciar: no es un título. */
+.account-group-tras {
+  margin-left: auto;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+/* Lo de dentro, sangrado bajo su cabecera y solo cuando está abierto. */
+.account-group > .accounts-grid {
+  display: none;
+  margin: 8px 0 16px 22px;
+}
+
+.account-group[data-abierto] > .accounts-grid {
+  display: grid;
 }
 
 .account-dot {
@@ -5652,16 +5763,18 @@ button.stat-card[data-live="false"] {
   height: 17px;
 }
 
+/* «una sola cuenta»: una nota, no una chapa. Enmarcada competía con el nombre
+   que tiene al lado, y en siete filas seguidas eran siete marcos para decir
+   siete veces lo mismo. Sin caja y en gris claro se lee cuando la buscas y
+   desaparece cuando no. */
 .account-note {
   font-style: normal;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
   color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1px 7px;
+  opacity: 0.6;
 }
 
 .account-missing {
@@ -5676,10 +5789,85 @@ button.stat-card[data-live="false"] {
   word-break: break-all;
 }
 
-.account-card {
+/* La tarjeta se apila y punto: la altura la pone lo que hay dentro.
+   ⚠ Aquí hubo un grid de dos columnas con las chapas en `grid-row: 1 / span 20`
+   para que ocuparan todo el alto. Eso CREA veinte filas: aunque diecisiete
+   estén vacías, el `gap` entre ellas sigue contando, y la tarjeta salía con
+   casi doscientos píxeles de aire muerto debajo de los botones (Munir,
+   2026-08-09: «fatal»). Una fila de rejilla vacía no es gratis.
+   Las chapas van ANCLADAS a la esquina, que es lo que hacen de verdad: se
+   posan encima, no forman columna con nadie. */
+/* El sitio de las chapas se reserva en la tarjeta ENTERA, y a mano, porque un
+   elemento anclado no reserva nada por su cuenta. Va así porque van CENTRADAS
+   de arriba abajo: con eso esa franja no es sitio muerto, es la columna en la
+   que viven. Reservarla mientras colgaban de la esquina de arriba es lo que
+   dejaba el hueco largo del lado derecho (Munir, 2026-08-09). */
+/* ⚠ `.account-card.panel-card` y no `.account-card` a secas, y esto NO se puede
+   "simplificar" luego: unas líneas más arriba vive `.set-hoja .panel-card`, que
+   vale (0,2,0) y declara el `padding` ENTERO. Cuentas se pinta dentro de
+   `.set-hoja`, así que a un `.account-card` de (0,1,0) le pisaba el
+   `padding-right` y lo devolvía a 22 px. Se veía como que las chapas se comían
+   el texto de la izquierda, y aguantó tres intentos porque el CSS que yo leía
+   era correcto: el que perdía era el que ganaba (Munir, 2026-08-09).
+   Con las dos clases del propio elemento empata a (0,2,0) y gana por ir
+   después, sin depender de ningún ancestro. */
+.account-card.panel-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  /* 90 de la tira + 16 que la separan del borde + 12 de aire. La cuenta tiene
+     que salir: con 76 a ojo, «CONNECTED» (y peor, «NOT CONNECTED») era más
+     ancha que su reserva. Si algún día la tira cambia de ancho, este número
+     cambia con ella. */
+  padding-right: 118px;
+}
+
+/* Centradas a lo alto de la tarjeta: son tres palabras sueltas, y un grupo
+   suelto pegado a una esquina se lee como algo que se ha caído. */
+.account-chips {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  right: 16px;
+  /* Ancho FIJO, y de él sale el relleno que le reserva la tarjeta. Sin fijarlo,
+     cada chapa medía lo que midiera su palabra y no había número que reservar:
+     unas cabían y otras no. */
+  width: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+/* SOLO TEXTO. Cada una traía su caja (borde, fondo y esquinas), y en fila eso
+   las separaba del nombre que tenían al lado; puestas en columna, tres cajas
+   apiladas de tres anchos distintos son tres jaulas y nada más (Munir,
+   2026-08-09: «quita las cárceles»). Lo que distingue a las tres es el COLOR,
+   que se queda: gris el plan, el de la casa la predeterminada, verde la
+   conectada.
+   Hace falta `.account-card` delante para ganarle a `.account-badge` y a
+   `.account-state`, que declaran su fondo y su borde más abajo en la hoja y
+   con la misma especificidad se llevarían el empate por ir después. */
+.account-card .account-chips > * {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  max-width: 100%;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  text-align: right;
+  text-transform: uppercase;
+  /* Que pueda partir en dos renglones antes que salirse de su columna: la
+     única que no cabe de una es «not connected», y prefiero verla en dos
+     líneas a que se coma el texto de al lado. */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .account-card[data-default="true"] {
@@ -5754,7 +5942,69 @@ button.stat-card[data-live="false"] {
 .account-limits {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
+}
+
+/* Un límite en un renglón, en rejilla para que las tres barras arranquen y
+   acaben en la misma vertical: eso es lo que deja comparar «16» con «42» sin
+   leer los números, y con las barras a lo ancho de la tarjeta no pasaba porque
+   todas medían lo mismo. Columnas fijas y no `auto`, por lo mismo. */
+.acc-uso {
+  display: grid;
+  grid-template-columns: 76px 84px 32px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.acc-uso-que {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* GRUESA y CORTA. Antes eran 5 px de alto ocupando los 590 de la tarjeta: a esa
+   proporción no se lee como un depósito que se llena, se lee como una raya
+   debajo del texto. Con 92 px de largo y 8 de alto vuelve a parecer lo que es. */
+.acc-uso-barra {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 25%, transparent);
+  overflow: hidden;
+}
+
+.acc-uso-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.acc-uso-fill[data-hot="true"] {
+  background: var(--ask);
+}
+
+.acc-uso strong {
+  text-align: right;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.acc-uso strong[data-hot="true"] {
+  color: var(--ask);
+}
+
+/* Cuándo se renueva, al final del mismo renglón y en gris: es el dato que se
+   mira DESPUÉS del porcentaje, nunca antes. Si la tarjeta se estrecha, se
+   recorta aquí y no en la cifra, y el globo lo dice entero. */
+.acc-uso-cuando {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  opacity: 0.72;
 }
 
 .account-empty {
@@ -5782,11 +6032,14 @@ button.stat-card[data-live="false"] {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 150px;
+  /* Baja de 150 con la tarjeta de al lado: la de una cuenta cabe ahora en tres
+     renglones de uso, y un «＋ Añadir cuenta» del alto de la anterior se
+     quedaba como una caja vacía enorme al lado de la que sí dice cosas. */
+  min-height: 92px;
   color: var(--muted);
   border-style: dashed;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -5800,9 +6053,15 @@ button.stat-card[data-live="false"] {
   line-height: 1;
 }
 
+/* El aviso de los términos. También iba suelto sobre la foto, y este es de los
+   que hay que poder leer: dice qué te juegas. Su superficie, como las otras. */
 .accounts-note {
   max-width: 1100px;
-  margin: 18px 0 0;
+  margin: 14px 0 0;
+  padding: 11px 16px;
+  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 14px;
   font-size: 12px;
   color: var(--muted);
   line-height: 1.6;
@@ -6295,6 +6554,15 @@ button.stat-card[data-live="false"] {
    había pedido este mismo cambio para el aviso de actualizar (2026-08-09).
    SÓLIDA: se posa sobre terminales y sobre la foto de la casa, y un aviso que
    no se lee no es un aviso (ver la regla encima de `.panel-card`). */
+/* Y su z-index, otra vez, porque colgada de `.app` el de abajo no le llega:
+   ver la trampa comentada encima de `.app > *:not(.fondo)`. Sin esta línea la
+   tarjeta sale al 99 % de una cuenta y nadie la lee, porque queda debajo de la
+   barra y de la Cabina: se ve el trozo que asoma por el borde de la barra, el
+   texto se pierde bajo el cristal y la × no recibe el clic. */
+.app > .cuota-card {
+  z-index: 60;
+}
+
 .cuota-card {
   position: fixed;
   left: 14px;
@@ -6393,9 +6661,23 @@ button.stat-card[data-live="false"] {
   margin-top: 2px;
 }
 
+/* Ningún botón de esta fila cede ancho. Es la regla que faltaba: en un flex
+   todo hijo trae `flex-shrink: 1` de fábrica, así que se encogían por debajo de
+   su propio texto y el navegador lo partía en dos renglones («Plan / it»). Y
+   `nowrap` además, que es el cinturón: aunque un día vuelva a caber algo justo
+   al lado, una etiqueta de botón no se parte nunca. */
+.foreman-row > button {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* La nota de los atajos, ya fuera de la fila y a lo ancho de la tarjeta. */
 .foreman-hint {
+  display: block;
+  margin-top: 8px;
   color: var(--muted);
   font-size: 11px;
+  line-height: 1.45;
 }
 
 .foreman-summary {

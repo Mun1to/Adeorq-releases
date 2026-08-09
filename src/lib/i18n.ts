@@ -148,6 +148,28 @@ const EN: Record<string, string> = {
   "Todavía no hay proyectos. Abre una carpeta del disco o una suelta.":
     "No projects yet. Open a folder from disk, or a loose one.",
   "Tus cuentas": "Your accounts",
+  // Abrir un chat con el modelo de casa, desde el asistente de sesión nueva.
+  "Corre en tu equipo y no gasta cuota de nadie. Es un chat: no lee ni toca tus archivos.":
+    "It runs on your machine and spends nobody's quota. It is a chat: it does not read or touch your files.",
+  "Tienes Ollama pero ningún modelo descargado. Bájate uno con este comando y vuelve aquí:":
+    "You have Ollama but no model downloaded. Get one with this command and come back here:",
+  // Los tres estados de una tarjeta de cuenta, cortos a propósito: la chapa de
+  // la esquina ya dice cómo está, así que el texto solo dice qué hacer. Antes
+  // repetían el estado y se comían dos renglones en cada tarjeta.
+  "Ábrelo y te lo dirá él.": "Open it and it will tell you.",
+  "Abre una terminal aquí y haz el login.": "Open a terminal here and log in.",
+  "No publica su consumo en el equipo, así que no hay barras que enseñar.":
+    "It publishes no usage on the machine, so there are no bars to show.",
+  "Este programa no deja ninguna huella en el equipo al iniciar sesión, así que Adeorq no puede saberlo sin abrirlo.":
+    "This program leaves no trace on the machine when you log in, so Adeorq cannot know without opening it.",
+  // El renglón de resumen de Cuentas, que hasta el 2026-08-09 eran tres
+  // tarjetas grandes, y el contador del final de cada CLI plegado.
+  // `conectada` a secas ya vive más abajo, con las cuentas: no se repite aquí.
+  conectadas: "connected",
+  "de {n} instalados": "of {n} installed",
+  "es la de siempre": "is the usual one",
+  "con ella nacen las terminales nuevas": "new terminals are born with it",
+  "{n} cuentas": "{n} accounts",
   "Los tienes todos. No queda ningún programa de la lista por instalar.":
     "You have them all. No program on the list is left to install.",
   Ideas: "Ideas",
@@ -547,6 +569,15 @@ const EN: Record<string, string> = {
   "Hecho: mira la Cabina.": "Done: check the Cockpit.",
   "El Capataz no propuso acciones para ese pedido.":
     "The Foreman proposed no actions for that request.",
+
+  // Qué hace cada uno de los dos oficios del Asistente. Los botones se llaman
+  // «Planear» y «Escribir el encargo», que dicen QUÉ hacen pero no en qué se
+  // diferencian; eso se cuenta aquí, al pasar el ratón (Munir, 2026-08-09:
+  // «hacerlo más claro qué puede hacer el asistente»).
+  "Monta el tablero: mira tus proyectos y tus sesiones y te propone qué abrir y con qué cerebro. Nada se ejecuta hasta que lo apruebes.":
+    "Builds the board: it looks at your projects and sessions and proposes what to open and with which brain. Nothing runs until you approve it.",
+  "No abre nada: convierte lo que has dicho en el encargo que necesita leer el agente de la terminal que tienes delante, y te lo deja escrito ahí. No lo envía.":
+    "Opens nothing: it turns what you said into the brief the agent in the terminal in front of you needs to read, and leaves it typed there. It does not send it.",
 
   // Updates
   "Actualizar ahora": "Update now",
@@ -1089,6 +1120,9 @@ const EN: Record<string, string> = {
   Renombrar: "Rename",
   "Mover a grupo…": "Move to group…",
   "Sacarla de este proyecto": "Take it out of this project",
+  // Ascender la carpeta de una suelta a proyecto de la barra. Vivía en una
+  // pastilla dentro de la fila y se mudó al menú el 2026-08-09.
+  "Hacer un proyecto de «{c}»": "Make «{c}» a project",
   "Borrar la sesión": "Delete the session",
   "Otra carpeta del disco…": "Another folder from disk…",
   "Suelta, sin proyecto": "Loose, no project",

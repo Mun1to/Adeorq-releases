@@ -18,6 +18,21 @@ import {
 } from "../src/lib/reparto";
 import type { CuentaViva, Exigencia } from "../src/lib/router";
 
+// Aquí no hay navegador, y `repartir()` sí mira uno: consulta el ajuste «Tu
+// cerebro por defecto» (`models.ts`), que vive en localStorage. Sin este
+// remedo, el comprobador entero reventaba con `localStorage is not defined`
+// antes del primer caso, y llevaba así desde que nació ese ajuste (visto el
+// 2026-08-09 al correrlo). Vacío a propósito: lo que se comprueba abajo es el
+// reparto de fábrica, sin cerebro fijado a mano.
+(globalThis as unknown as { localStorage: Storage }).localStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+  clear: () => {},
+  key: () => null,
+  length: 0,
+} as Storage;
+
 const cuenta = (provider: string, label: string, gastado?: number, plan?: string): CuentaViva => ({
   cuenta: { id: `${provider}:${label}`, label, dir: "", provider },
   instalado: true,

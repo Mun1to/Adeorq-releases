@@ -1860,7 +1860,9 @@ export default function Sidebar({
         `${g.sessions.length} ${g.sessions.length === 1 ? "sesión" : "sesiones"}`,
         g.hasLive ? "una abierta ahora" : null,
         g.waiting > 0 ? `${g.waiting} te ${g.waiting === 1 ? "espera" : "esperan"}` : null,
-        g.sessions[0]?.ago ? `última ${g.sessions[0].ago}` : null,
+        // El «hace» lo pone aquí quien escribe la frase: `ago` llega desnudo
+        // desde Rust («1 día»), porque en la fila esa palabra solo estorbaba.
+        g.sessions[0]?.ago ? `última hace ${g.sessions[0].ago}` : null,
       ]
         .filter(Boolean)
         .join(" · "),
@@ -2160,6 +2162,20 @@ export default function Sidebar({
                         },
                       ]
                     : []),
+                  // Ascender su carpeta a proyecto. Estaba en la fila, en la
+                  // pastilla que decía dónde trabaja, y se fue con ella: es
+                  // algo que se hace UNA vez, y lo que se hace una vez no
+                  // ocupa sitio en una lista que se lee todo el día.
+                  ...(s.cwd && (g.suelto || ui.sessionProject[s.id])
+                    ? [
+                        {
+                          label: t("Hacer un proyecto de «{c}»", { c: carpetaDe(s.cwd) }),
+                          hint: s.cwd,
+                          icon: <GroupIcon size={14} />,
+                          onClick: () => ascender(s.cwd),
+                        },
+                      ]
+                    : []),
                   { label: t("⊟ Archivar"), danger: true, onClick: () => askArchive(s, g.path) },
                   {
                     label: t("Borrar la sesión"),
@@ -2172,7 +2188,7 @@ export default function Sidebar({
                   },
                 ])
           }
-          data-tip={`${s.title}\n${s.ago}${s.live ? " · abierta ahora" : ""}${
+          data-tip={`${s.title}\nhace ${s.ago}${s.live ? " · abierta ahora" : ""}${
             // La ruta entera: la fila enseña solo la última carpeta, que es lo
             // que se reconoce, pero dos carpetas se pueden llamar igual.
             s.cwd && (g.suelto || ui.sessionProject[s.id]) ? `\n${s.cwd}` : ""
@@ -2237,21 +2253,15 @@ export default function Sidebar({
               veces lo mismo dentro de la misma caja. */}
           <span className="session-ago">{s.ago}</span>
         </button>
-        {/* La carpeta, y a la vez el botón de ascenderla a proyecto. Empezó
-            siendo dos cosas —una segunda línea bajo el título y un ⊞ aparte— y
-            las dos rompían la fila: la línea de más la hacía distinta de todas
-            las demás de la barra, y un cuarto botón dejaba el título en cuatro
-            letras (Munir, 2026-08-02). Una pastilla en línea, como el rol de
-            una cuadrilla, dice dónde trabaja y se pulsa para hacerla tuya. */}
-        {s.cwd && (g.suelto || ui.sessionProject[s.id]) && !isArchived && (
-          <button
-            className="sess-donde"
-            data-tip={`${s.cwd}\n${t("Pulsa para convertirla en un proyecto del panel")}`}
-            onClick={() => ascender(s.cwd)}
-          >
-            {carpetaDe(s.cwd)}
-          </button>
-        )}
+        {/* Aquí vivía la pastilla con la carpeta (`.sess-donde`), que además era
+            el botón de ascenderla a proyecto. Fuera de la fila desde el
+            2026-08-09, por lo que se ve mirando la lista entera: las treinta y
+            tres sueltas de Munir están en `C:\proyectos`, así que las treinta y
+            tres ponían «proyectos». Una etiqueta que dice lo mismo en todas las
+            filas no distingue ninguna, y esta se llevaba 84 px de una barra
+            donde el título ya se leía «S..». La carpeta sigue estando: sale
+            entera en el globo de la fila. Y ascenderla también, en su menú, que
+            es donde vive lo que se hace una vez en la vida de una sesión. */}
         {isArchived ? (
           <button
             className="mini sess-more"

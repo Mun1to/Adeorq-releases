@@ -678,6 +678,16 @@ const EN: Record<string, string> = {
   "procesos": "processes",
   "Es el árbol entero de esta terminal, no solo su primer proceso.":
     "That is this terminal's whole process tree, not just its first process.",
+  "los pone el agente de dentro, no Adeorq": "come from the agent inside, not from Adeorq",
+  "Fijar arriba": "Pin to the top",
+  "Quitar de arriba": "Unpin",
+  "Fijadas": "Pinned",
+  "Compartir mis skills": "Share my skills",
+  "Skills: compartidas ({n})": "Skills: shared ({n})",
+  "Deja de ver las skills de tu cuenta principal. No se borra ninguna.":
+    "Stops showing your main account's skills. None of them are deleted.",
+  "Es la MISMA carpeta, no una copia: lo que escribas lo verán todas tus cuentas, y lo que borres se borrará para todas.":
+    "It is the SAME folder, not a copy: whatever you write shows up in every account, and whatever you delete is gone from all of them.",
   "de contexto usado": "of context used",
   "Uso semanal": "Weekly usage",
   "Tu cuota": "Your quota",

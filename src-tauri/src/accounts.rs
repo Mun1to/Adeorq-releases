@@ -383,3 +383,173 @@ mod effort_tests {
         assert_eq!(cli_effort(Some(r"C:\no\existe".into())), None);
     }
 }
+
+// ── Las skills, compartidas entre cuentas ───────────────────────────────────
+//
+// Una cuenta es una carpeta (`CLAUDE_CONFIG_DIR`), así que cada una tiene sus
+// propias skills en `<cuenta>/skills` y lo que escribes en una no existe en las
+// demás. Munir lo vio con la cuenta CCC delante, que no enseñaba ni una
+// (2026-08-09).
+//
+// La respuesta la tenía él ya en su disco sin saberlo: tres de sus seis skills
+// son JUNCTIONS, carpetas que en realidad apuntan a otro sitio. Compartirlas es
+// exactamente eso, un enlace de `<cuenta>/skills` a `~/.claude/skills`.
+//
+// Un enlace y no una copia, y eso hay que decirlo en el botón: es la MISMA
+// carpeta, así que escribes una skill una vez y la ven todas, pero borrarla
+// desde una cuenta la borra para todas.
+//
+// En Windows va por junction (`mklink /J`) a propósito y no por `symlink_dir`:
+// un enlace simbólico pide permisos de administrador o el modo desarrollador
+// encendido, y un junction no pide nada. En Linux, un symlink normal.
+
+#[derive(serde::Serialize)]
+pub struct EstadoSkills {
+    /// Cuántas skills ve esa cuenta ahora mismo.
+    pub cuantas: u32,
+    /// Si su carpeta es un enlace a la de la cuenta principal.
+    pub compartida: bool,
+    /// Cuántas hay en la principal, que es lo que ganaría al compartir.
+    pub en_principal: u32,
+}
+
+fn carpeta_skills(config_dir: &str) -> Result<PathBuf, String> {
+    let dir = PathBuf::from(config_dir);
+    if config_dir.trim().is_empty() {
+        return Err("esa cuenta no tiene carpeta propia".into());
+    }
+    // Nunca la principal: `~/.claude/skills` es el ORIGEN de todo esto y
+    // enlazarla contra sí misma dejaría a Munir sin skills en ningún sitio.
+    let real = dir.canonicalize().map_err(|e| e.to_string())?;
+    let raiz = accounts_root()?;
+    let dentro = raiz
+        .canonicalize()
+        .ok()
+        .map(|b| real.starts_with(&b) && real != b)
+        .unwrap_or(false);
+    if !dentro {
+        return Err("solo se pueden enlazar las cuentas que Adeorq gestiona".into());
+    }
+    Ok(real.join("skills"))
+}
+
+fn skills_principal() -> Result<PathBuf, String> {
+    let casa = crate::dir_casa().ok_or("no sé cuál es tu carpeta de usuario")?;
+    Ok(casa.join(".claude").join("skills"))
+}
+
+fn cuantas_en(p: &Path) -> u32 {
+    std::fs::read_dir(p)
+        .map(|d| d.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()).count() as u32)
+        .unwrap_or(0)
+}
+
+/// Es un enlace (symlink o junction). `symlink_metadata` no sigue el enlace,
+/// que es justo lo que hace falta para poder distinguirlo de una carpeta.
+fn es_enlace(p: &Path) -> bool {
+    std::fs::symlink_metadata(p)
+        .map(|m| m.file_type().is_symlink())
+        .unwrap_or(false)
+}
+
+#[tauri::command]
+pub async fn skills_estado(config_dir: String) -> Result<EstadoSkills, String> {
+    let principal = skills_principal()?;
+    let suya = carpeta_skills(&config_dir)?;
+    Ok(EstadoSkills {
+        cuantas: cuantas_en(&suya),
+        compartida: es_enlace(&suya),
+        en_principal: cuantas_en(&principal),
+    })
+}
+
+/// Enlaza las skills de una cuenta con las de la principal.
+///
+/// Se niega si esa cuenta ya tiene skills SUYAS: enlazar taparía su carpeta y
+/// las perdería de vista sin decir nada. Ese caso se resuelve arriba, con
+/// Munir delante, no aquí a la brava.
+#[tauri::command]
+pub async fn compartir_skills(config_dir: String) -> Result<u32, String> {
+    let principal = skills_principal()?;
+    if !principal.is_dir() {
+        return Err("todavía no tienes ninguna skill en tu cuenta principal".into());
+    }
+    let suya = carpeta_skills(&config_dir)?;
+    if es_enlace(&suya) {
+        return Ok(cuantas_en(&principal)); // ya lo estaba: no es un error
+    }
+    if suya.exists() {
+        let propias = cuantas_en(&suya);
+        if propias > 0 {
+            return Err(format!(
+                "esa cuenta ya tiene {propias} skills suyas; muévelas o bórralas antes de compartir"
+            ));
+        }
+        std::fs::remove_dir(&suya).map_err(|e| format!("no pude quitar la carpeta vacía: {e}"))?;
+    }
+    if let Some(padre) = suya.parent() {
+        std::fs::create_dir_all(padre).map_err(|e| e.to_string())?;
+    }
+    enlazar(&principal, &suya)?;
+    Ok(cuantas_en(&principal))
+}
+
+/// Deshace el enlace. NO borra ninguna skill: solo quita el enlace, y la cuenta
+/// se queda sin skills propias hasta que le pongas alguna.
+#[tauri::command]
+pub async fn dejar_de_compartir_skills(config_dir: String) -> Result<(), String> {
+    let suya = carpeta_skills(&config_dir)?;
+    if !es_enlace(&suya) {
+        return Err("esa cuenta no tiene las skills compartidas".into());
+    }
+    // Un enlace a un directorio se quita con `remove_dir`, no con `remove_file`,
+    // y quitar el enlace NO toca lo que hay al otro lado.
+    std::fs::remove_dir(&suya).map_err(|e| e.to_string())
+}
+
+#[cfg(windows)]
+fn enlazar(origen: &Path, destino: &Path) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    // Sin ventana negra: esto corre desde una app sin consola.
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let salida = std::process::Command::new("cmd")
+        .args(["/c", "mklink", "/J"])
+        .arg(destino)
+        .arg(origen)
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if salida.status.success() {
+        return Ok(());
+    }
+    let texto = String::from_utf8_lossy(&salida.stderr);
+    Err(format!(
+        "no pude crear el enlace: {}",
+        texto.trim().lines().next().unwrap_or("error desconocido")
+    ))
+}
+
+#[cfg(not(windows))]
+fn enlazar(origen: &Path, destino: &Path) -> Result<(), String> {
+    std::os::unix::fs::symlink(origen, destino).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests_skills {
+    use super::*;
+
+    #[test]
+    fn the_main_account_can_never_be_linked() {
+        // La principal no está bajo `accounts`, así que la guarda la rechaza.
+        // Sin esto, enlazar `~/.claude/skills` contra sí misma dejaría a Munir
+        // sin skills en ninguna cuenta.
+        let casa = crate::dir_casa().unwrap_or_default();
+        assert!(carpeta_skills(&casa.to_string_lossy()).is_err());
+        assert!(carpeta_skills("").is_err());
+    }
+
+    #[test]
+    fn a_folder_with_no_subfolders_counts_zero() {
+        assert_eq!(cuantas_en(Path::new("no-existe-esta-carpeta-de-verdad")), 0);
+    }
+}

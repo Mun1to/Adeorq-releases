@@ -2271,14 +2271,25 @@ body {
   transition: background 0.12s ease;
 }
 
+/* Una fila de sesión es una TARJETA, no un renglón.
+   `--row` es un blanco al 5 % pensado para leerse dentro de un panel opaco, y
+   esta barra está sobre la foto de la casa: encima de una zona clara la fila
+   desaparecía y encima de una oscura se veía como papel de calco (Munir,
+   2026-08-09: «se ven muy finas, como papel transparente, y no tienen
+   personalidad; deberían ser sólidas»). Es la misma trampa que ya está escrita
+   encima de `.panel-card`, aquí otra vez.
+   Superficie SÓLIDA del tema, borde propio y una sombra corta que la despega
+   del fondo. El desenfoque no se toca: va una sola vez en el contenedor. */
 .session-row {
   border-radius: 10px;
-  background: var(--row);
-  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--panel-solid) 74%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 .session-row:hover {
-  background: var(--row-hover);
+  background: color-mix(in srgb, var(--panel-solid) 92%, transparent);
+  border-color: color-mix(in srgb, var(--border) 90%, transparent);
 }
 
 /* Waiting for Munir: amber when Claude offers, red when it asks outright. */
@@ -2482,8 +2493,29 @@ body {
   touch-action: none;
 }
 
+/* La fila que llevas en la mano SALE del flujo, no se queda medio borrosa en su
+   sitio. Antes iba a `opacity: .45` y seguía ocupando su hueco, así que con las
+   vecinas apartadas había una fila de más y se montaban unas encima de otras
+   (Munir, 2026-08-09, con la captura al lado). Quitándola, las de abajo suben
+   solas a tapar su sitio y solo queda UN hueco en pantalla: el nuevo.
+   Copiarla ya la ves: la lleva el puntero (`lib/fantasma.ts`).
+
+   ⚠ SALE DEL FLUJO, PERO NO CON `display: none`, y esto no se puede "limpiar"
+   luego. Un elemento con `display: none` se va del árbol de renderizado y el
+   navegador LE QUITA LA CAPTURA DEL PUNTERO. Como el `pointerup` que aplica el
+   cambio vive en esa misma fila, dejaba de llegar: el arrastre terminaba por la
+   red de seguridad de `window`, que solo limpia, y el orden nuevo no se
+   guardaba NUNCA. Se veía como «la suelto y vuelve a su sitio» (Munir,
+   2026-08-09), y el hueco se quedaba abierto por el mismo motivo.
+   Con `position: absolute` la fila sigue renderizada —conserva la captura— pero
+   no ocupa sitio, que es justo lo que hacía falta. */
 .session-row[data-llevando] {
-  opacity: 0.45;
+  position: absolute;
+  width: 1px;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  z-index: -1;
 }
 
 .session-row[data-suelta] {
@@ -2520,6 +2552,41 @@ body {
 
 .project[data-encima="despues"] {
   box-shadow: inset 0 -3px 0 -1px var(--c, var(--accent));
+}
+
+/* El hueco: las filas de al lado se apartan y dejan el sitio libre donde va a
+   caer la que llevas. Munir rechazó dos veces la raya y pidió esto con un
+   nombre propio: «que cuando lo muevas se mueva lo que tiene cerca».
+
+   Y es la otra mitad del mensaje: sobre una fila caben dos gestos y hay que
+   distinguirlos ANTES de soltar. Hueco = «me coloco aquí»; la fila encendida
+   (`[data-suelta]`, más arriba) = «me agrupo con esta». Si los dos se vieran
+   igual, el gesto sería una apuesta.
+
+   El desplazamiento llega en PÍXELES desde el componente y no como un 100 %:
+   las filas de esta barra no miden todas lo mismo (la que enseña su carpeta
+   debajo es más alta), así que apartarse «su propio alto» abriría huecos de
+   distinto tamaño según por dónde pasaras. */
+.session-row[data-apartada] {
+  transform: translateY(var(--dy, 0));
+}
+
+.session-row {
+  /* Solo `transform`: animar `top` o `margin` obliga a recalcular la posición
+     de toda la lista en cada fotograma, y esto se mueve con el ratón. */
+  transition: transform 0.16s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/* Menos la que llevas en la mano: esa la mueve el fantasma y una transición
+   encima la dejaría persiguiendo al puntero con retraso. */
+.session-row[data-llevando] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-row {
+    transition: none;
+  }
 }
 
 /* Los grupos usan su color cuando lo traen (una cuadrilla), y el acento cuando
@@ -4259,6 +4326,35 @@ body {
   color: color-mix(in srgb, var(--accent) 75%, var(--text));
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+/* ── Las fijadas, en la cabeza de la barra ──────────────────────────────────
+   Una sección con su nombre escrito, como la de los proyectos, y no una fila
+   marcada dentro de su proyecto: subirla ahí no servía de nada, porque ese
+   proyecto puede estar plegado o ser el décimo de la lista, y la sesión seguía
+   sin estar a la vista (Munir, 2026-08-09). Se reordenan arrastrando, con la
+   misma raya de destino y el mismo fantasma que los proyectos. */
+.fijadas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+/* El encabezado: minúscula alta y tenue, que nombra la sección sin competir
+   con los proyectos, que son la fila principal de esta barra. */
+.fijadas-tag {
+  padding: 2px 10px 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text) 52%, transparent);
+  /* Sobre la foto de la casa un gris tenue se pierde: ver la regla de encima
+     de `.panel-card`. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* A glyph instead of a word: the header is narrow and the name lives in the
@@ -15384,10 +15480,25 @@ textarea.note-body {
    Va dentro de `.empty`, que ya está sobre el fondo de la casa, así que aquí
    SÍ hace falta superficie propia: ver la regla escrita encima de
    `.panel-card`. Una sola vez, en el contenedor, nunca por tarjeta.
+
+   ⚠ SE LLAMABA `.stats`, Y ESE NOMBRE YA ESTABA COGIDO: las tarjetas del Panel
+   usan `.stats` + `.stat-card` (búscalo más arriba en este mismo archivo). Las
+   dos reglas se aplicaban a la vez a esta pantalla, y como la del Panel trae
+   `display: flex` y esta no declaraba ninguno, sobrevivía el flex ajeno. De ahí
+   salía todo lo que Munir vio el 2026-08-08: los datos y el mapa uno al lado
+   del otro en vez de uno debajo del otro, la columna de datos encogida a su
+   mínimo (esa torre estrecha de ocho cajas), y el mapa estirando su alto al de
+   esa torre y creciendo a lo ancho por su `aspect-ratio: 1` hasta SALIRSE del
+   panel y quedar dibujado sobre su foto de fondo.
+   Por eso lleva prefijo propio, y por eso declara su `display` aunque hoy no
+   choque con nadie: dos pantallas distintas no pueden compartir nombre de clase
+   por parecido que sea lo que enseñan.
    ========================================================================== */
-.stats {
-  width: min(620px, 100%);
-  margin: 22px 0 6px;
+.repaso {
+  display: flex;
+  flex-direction: column;
+  width: min(580px, 100%);
+  margin: 20px 0 6px;
   padding: 16px;
   border-radius: 16px;
   background: var(--popover);
@@ -15397,70 +15508,87 @@ textarea.note-body {
   text-align: left;
 }
 
-.stats-rejilla {
+/* Cuatro y cuatro, en dos filas. Fijas y no `auto-fit`: con `auto-fit` el
+   número de columnas depende del ancho que le sobre al contenedor, que es
+   justo lo que se descuadró antes. */
+.repaso-datos {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 }
 
 /* Cada dato sobre un color SÓLIDO del tema, no un blanco al 7 %: dentro de una
    tarjeta translúcida ese blanco desaparece contra la foto de detrás. */
-.stat {
+.repaso-dato {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 9px 11px;
+  gap: 2px;
+  padding: 10px 12px;
   border-radius: 11px;
   background: color-mix(in srgb, var(--panel-solid) 82%, transparent);
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  min-width: 0;
 }
 
-.stat-tag {
-  font-size: 11px;
+.repaso-tag {
+  font-size: 11.5px;
   letter-spacing: 0.02em;
   color: color-mix(in srgb, var(--text) 62%, transparent);
+  /* «Modelo favorito» no cabe en una columna de cuatro y partirlo en dos
+     renglones descuadraría esa fila entera. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.stat-val {
+.repaso-val {
   font-size: 18px;
   font-weight: 700;
   color: var(--text);
   /* Los números de una rejilla se leen en columna: sin esto, un 1 y un 8
      ocupan distinto y las cifras bailan de tarjeta a tarjeta. */
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Nueve semanas en columnas de siete, que es como se lee un calendario. */
-.stats-mapa {
+/* Nueve semanas en columnas de siete, que es como se lee un calendario.
+   ⚠ Las casillas van en PÍXELES, filas y columnas, y no en `1fr` con
+   `aspect-ratio`. Con `1fr` el tamaño de la casilla sale del alto que le toque
+   al mapa, así que el mapa crecía o menguaba según lo que midiera lo de al
+   lado: es lo que lo sacó del panel. En píxeles, un mapa de nueve semanas mide
+   siempre lo mismo y no puede desbordar nada. */
+.repaso-mapa {
   display: grid;
-  grid-template-rows: repeat(7, 1fr);
+  grid-template-rows: repeat(7, 19px);
   grid-auto-flow: column;
-  gap: 3px;
+  grid-auto-columns: 19px;
+  gap: 4px;
   margin-top: 14px;
+  justify-content: start;
 }
 
-.stats-dia {
-  aspect-ratio: 1;
-  min-height: 9px;
-  border-radius: 3px;
+.repaso-dia {
+  border-radius: 4px;
   background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 /* Cuatro escalones del mismo azul: el color dice cuánto, no qué. */
-.stats-dia[data-n="1"] {
+.repaso-dia[data-n="1"] {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
-.stats-dia[data-n="2"] {
+.repaso-dia[data-n="2"] {
   background: color-mix(in srgb, var(--accent) 50%, transparent);
 }
-.stats-dia[data-n="3"] {
+.repaso-dia[data-n="3"] {
   background: color-mix(in srgb, var(--accent) 74%, transparent);
 }
-.stats-dia[data-n="4"] {
+.repaso-dia[data-n="4"] {
   background: var(--accent);
 }
 
-.stats-pie {
+.repaso-pie {
   margin: 12px 0 0;
   font-size: 11.5px;
   line-height: 1.5;

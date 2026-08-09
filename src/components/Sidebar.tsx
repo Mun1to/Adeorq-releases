@@ -25,7 +25,21 @@ import {
   type UiState,
 } from "../lib/pty";
 import { anadirProyecto, raiz, sinRaiz } from "../lib/perfil";
-import { ladoDeCaida, moverGrupo, moverProyecto, ordenarProyectos, type Lado } from "../lib/ordenBarra";
+import {
+  alternarFijada,
+  colocarSuelta,
+  conOrdenManual,
+  desplazamiento,
+  huecoEn,
+  fijadasDe,
+  ladoDeCaida,
+  moverGrupo,
+  moverProyecto,
+  sinFijadas,
+  zonaDeFila,
+  ordenarProyectos,
+  type Lado,
+} from "../lib/ordenBarra";
 import { levantar, type Fantasma } from "../lib/fantasma";
 import UpdateBar from "./UpdateBar";
 import { hueOf } from "../lib/colors";
@@ -51,6 +65,7 @@ import {
   GroupIcon,
   ImageIcon,
   PencilIcon,
+  PinIcon,
   PlusIcon,
   RefreshIcon,
   RobotIcon,
@@ -179,6 +194,28 @@ const COLORES_GRUPO = ["#5fd0ff", "#6fe0bb", "#ffd166", "#c4b5fd", "#ff9f6b", "#
 /** El nombre con el que Rust agrupa a las que no son de ningún proyecto. Ya no
     se pinta como un cajón, pero sigue siendo la llave de ese saco. */
 const SUELTAS = "Sueltas";
+
+/**
+ * El grupo de mentira con el que se pintan las filas de la sección «Fijadas».
+ *
+ * `sessionRow` pide un grupo porque las filas normales lo necesitan (para
+ * archivar en su carpeta, para saber si enseñar la ruta), y las fijadas no
+ * tienen uno: cada una viene del suyo. Va con `suelto: true` para que cada fila
+ * enseñe su carpeta debajo, que es exactamente lo que hace falta cuando una
+ * sesión está fuera de su sitio, y con la ruta vacía porque esta sección no ES
+ * ninguna carpeta y nada puede dar a entender que se trabaja dentro de ella.
+ */
+const GRUPO_FIJADAS: Group = {
+  name: "Fijadas",
+  path: "",
+  hasGit: false,
+  sessions: [],
+  archivedSessions: [],
+  hasLive: false,
+  waiting: 0,
+  minHours: Infinity,
+  suelto: true,
+};
 /** La última carpeta de una ruta, que es como se reconoce de un vistazo. */
 const carpetaDe = (ruta: string) => ruta.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || ruta;
 /** Lo que ocupa la tira. Da para un logo de 44 y sus dos márgenes, que es el
@@ -548,7 +585,11 @@ export default function Sidebar({
      que llega por props, es otra cosa (los grupos de sesiones plegados). */
   const ocultos = useMemo(() => new Set(ui.hiddenProjects), [ui.hiddenProjects]);
 
-  const todo = useMemo<{ proyectos: Group[]; sueltas: Group | null }>(() => {
+  const todo = useMemo<{
+    proyectos: Group[];
+    sueltas: Group | null;
+    fijadas: SessionInfo[];
+  }>(() => {
     /** Las conversaciones que tienes AHORA en un panel. Lo dice el propio
         comando del panel, que lleva su `--resume <id>` dentro. */
     const enPantalla = new Set(
@@ -611,12 +652,21 @@ export default function Sidebar({
 
     const build = (name: string, path: string, hasGit: boolean, all: SessionInfo[]): Group => {
       const active = all.filter((s) => !archived.has(s.id));
+      // Lo fijado se ve arriba, en su propia sección, así que sale de la LISTA
+      // del proyecto: una sesión en dos sitios a la vez es una sesión que
+      // parece dos.
+      //
+      // Pero solo de la lista. Las insignias del proyecto (que algo está vivo,
+      // que algo te espera, cuánto hace del último movimiento) se siguen
+      // calculando con TODAS las suyas: si no, fijar una sesión apagaría el
+      // aviso de su proyecto y ese proyecto pasaría a mentir sobre lo que
+      // tiene dentro.
       const vivas = vivasDe.get(name) ?? [];
       return {
         name,
         path,
         hasGit,
-        sessions: active,
+        sessions: sinFijadas(active, ui.pinned),
         archivedSessions: all.filter((s) => archived.has(s.id)),
         hasLive: active.some((s) => s.live) || vivas.length > 0,
         waiting: active.filter((s) => s.state === "pregunta" || s.state === "ofrece")
@@ -663,14 +713,41 @@ export default function Sidebar({
     let sueltas: Group | null = null;
     if (sesionesSueltas.length || vivasSueltas.length) {
       sueltas = build(SUELTAS, "", false, sesionesSueltas);
+      // Y el orden que les diste a mano, si diste alguno. Va DESPUÉS de
+      // `build` porque `build` es quien las filtra (archivadas, fijadas) y
+      // ordenar antes de filtrar habría dejado huecos en tu orden.
+      sueltas.sessions = conOrdenManual(sueltas.sessions, ui.sueltasOrder);
       sueltas.suelto = true;
       sueltas.vivas = vivasSueltas;
       if (vivasSueltas.length) sueltas.hasLive = true;
     }
 
+    // Las fijadas se recogen de la lista ENTERA y no grupo a grupo, porque su
+    // orden es uno solo para toda la barra: el de `ui.pinned`. Recogerlas por
+    // proyecto y juntarlas después habría dado el orden de los proyectos, no el
+    // que les diste tú.
+    const fijadas = fijadasDe(sessions, ui.pinned);
+
     // El orden, con sus reglas y sus casos, en `lib/ordenBarra.ts`.
-    return { proyectos: ordenarProyectos(result, ui.projectOrder), sueltas };
-  }, [projects, sessions, archived, traidas, abiertas, ui.sessionProject, ui.projectOrder, verViejas]);
+    return { proyectos: ordenarProyectos(result, ui.projectOrder), sueltas, fijadas };
+  }, [
+    projects,
+    sessions,
+    archived,
+    traidas,
+    abiertas,
+    ui.sessionProject,
+    ui.projectOrder,
+    ui.pinned,
+    // Sin esto la barra no se rehace al colocar una suelta a mano: el orden se
+    // guardaba bien en disco pero React no tenía por qué volver a pintar, así
+    // que la sesión saltaba a su sitio de antes y parecía que el arrastre no
+    // había servido de nada (Munir, 2026-08-09: «no se quedan donde las
+    // mueves»). Cada lista de orden que se lea aquí dentro tiene que estar en
+    // esta lista de abajo, o miente.
+    ui.sueltasOrder,
+    verViejas,
+  ]);
 
   /** Cuántas hay escondidas por edad, para que el botón diga un número y no
       «cargar más» a ciegas. Si son cero, el botón no existe. */
@@ -887,16 +964,41 @@ export default function Sidebar({
    * arrastre antes de que el WebView los vea. Con umbral de movimiento, para
    * que un clic normal siga abriendo la sesión.
    */
-  const arrastre = useRef<{ id: string; x: number; y: number; activo: boolean } | null>(null);
+  /**
+   * El arrastre en curso. Lleva TODO lo que hace falta para resolverlo, y por
+   * eso guarda también el proyecto de origen y el destino de cada momento: el
+   * `pointerup` que aplica el cambio se escucha en `window` (ver abajo), y ahí
+   * no hay ni evento de React ni estado fresco que consultar.
+   */
+  const arrastre = useRef<{
+    id: string;
+    x: number;
+    y: number;
+    activo: boolean;
+    proyecto: string;
+    destino: string | null;
+  } | null>(null);
   /** Bandera de un instante: distingue el clic que abre del que acaba de
       soltar un arrastre, porque el navegador dispara los dos igual. */
   const soltoRecien = useRef(false);
   const [llevando, setLlevando] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
+  /**
+   * El hueco que se abre mientras arrastras: en qué lista, de qué puesto salió
+   * la fila y en cuál caería ahora. Con eso, cada fila sabe si tiene que
+   * apartarse (`desplazamiento`, en `lib/ordenBarra.ts`).
+   *
+   * `alto` en píxeles y no un 100 %: las filas de esta barra NO miden todas lo
+   * mismo (la que enseña su carpeta debajo es más alta), así que apartarse «su
+   * propio alto» dejaría huecos de distinto tamaño según por dónde pasaras.
+   */
+  const [hueco, setHueco] = useState<{ dy: Record<string, number>; alto: number } | null>(
+    null,
+  );
 
-  const sesionDown = (e: React.PointerEvent<HTMLLIElement>, id: string) => {
+  const sesionDown = (e: React.PointerEvent<HTMLLIElement>, id: string, proyecto: string) => {
     if ((e.target as HTMLElement).closest(".sess-more, .sess-bin, input")) return;
-    arrastre.current = { id, x: e.clientX, y: e.clientY, activo: false };
+    arrastre.current = { id, x: e.clientX, y: e.clientY, activo: false, proyecto, destino: null };
   };
 
   // Red de seguridad del arrastre. Si el puntero se levanta en un sitio que no
@@ -905,6 +1007,17 @@ export default function Sidebar({
   // queda vivo, la zona de destino iluminada, y a partir de ahí el resto de la
   // barra deja de responder a los clics. Pasó a la primera (Munir, 2026-08-02).
   useEffect(() => {
+    // `pointerup` RESUELVE el arrastre (mueve, agrupa, coloca). Los otros dos
+    // solo limpian: perder el foco o que el sistema cancele el gesto no es
+    // soltar en un sitio, y no puede reordenar nada a tus espaldas.
+    const soltar = (e: PointerEvent) => {
+      if (!arrastre.current) return;
+      // Por el ref y no directo: este efecto se registra UNA vez, así que
+      // llamar a `sesionUp` desde su closure usaría para siempre el `ui` del
+      // primer pintado, y el orden se guardaría encima de una foto vieja. El
+      // ref se refresca en cada render, unas líneas más abajo.
+      alSoltar.current(e);
+    };
     const limpiar = () => {
       if (!arrastre.current) return;
       arrastre.current = null;
@@ -912,15 +1025,19 @@ export default function Sidebar({
       pararAuto();
       setLlevando(null);
       setSobre(null);
+      // Y el hueco, que si no se queda abierto para siempre: un espacio en
+      // blanco en mitad de la lista que ya no significa nada.
+      setHueco(null);
     };
-    window.addEventListener("pointerup", limpiar);
+    window.addEventListener("pointerup", soltar);
     window.addEventListener("pointercancel", limpiar);
     window.addEventListener("blur", limpiar);
     return () => {
-      window.removeEventListener("pointerup", limpiar);
+      window.removeEventListener("pointerup", soltar);
       window.removeEventListener("pointercancel", limpiar);
       window.removeEventListener("blur", limpiar);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* --------------------------------------------------------------- ordenar
@@ -1147,10 +1264,88 @@ export default function Sidebar({
   }, []);
 
   /** Qué hay debajo del puntero, para pintar dónde va a caer. */
+  /**
+   * Abre el hueco donde caería la fila que llevas.
+   *
+   * Los índices salen del DOM y no del estado a propósito: lo que hay que
+   * apartar es lo que se está VIENDO, y la lista visible ya viene filtrada
+   * (archivadas fuera, fijadas fuera, el buscador). Con los índices del estado
+   * se apartaría la fila equivocada en cuanto hubiera un filtro puesto.
+   *
+   * `hasta` es el índice de la fila que tienes debajo, sin más, y eso no es una
+   * casualidad: `moverProyecto` deja al arrastrado EXACTAMENTE en ese puesto.
+   * Así el hueco que ves y el orden que queda salen del mismo número y no
+   * pueden discrepar, que es lo que le pasaba a la raya.
+   */
+  const abrirHueco = (
+    li: HTMLElement | null | undefined,
+    id: string,
+    destino: string,
+    alto: number,
+    lado: Lado,
+  ) => {
+    const ul = li?.closest("ul");
+    if (!ul || !alto) return setHueco(null);
+    const filas = [...ul.querySelectorAll<HTMLElement>("[data-sesion]")].map(
+      (e) => e.dataset.sesion ?? "",
+    );
+    // SIN la que llevas en la mano: esa ya no ocupa sitio (sale del flujo con
+    // `display: none`), así que las de abajo suben solas a taparlo. Contarla
+    // aquí es lo que montaba unas filas encima de otras.
+    const sin = filas.filter((f) => f !== id);
+    if (!filas.includes(id) || !sin.includes(destino)) return setHueco(null);
+    const donde = huecoEn(sin, destino, lado);
+    if (donde < 0) return setHueco(null);
+    // Se guarda ya resuelto, fila por fila, en vez del índice: así no hace
+    // falta identificar de qué lista es cada fila al pintarla, que con varias
+    // listas llamadas igual (`ul.sessions`) no tiene forma fiable.
+    const dy: Record<string, number> = {};
+    for (const [i, sid] of sin.entries()) {
+      if (desplazamiento(i, donde)) dy[sid] = 1;
+    }
+    setHueco({ dy, alto });
+  };
+
+  /**
+   * La fila que tienes debajo, aunque no la tengas debajo.
+   *
+   * `elementFromPoint` no vale por sí solo desde que existe el hueco: al
+   * abrirse, el puntero se queda sobre espacio VACÍO, así que el DOM contesta
+   * que ahí no hay ninguna fila. Y entonces ganaba la zona de sueltas, que
+   * envuelve la lista entera, y el destino pasaba de «colócala aquí» a
+   * «mándala a sueltas», donde ya estaba: soltabas y volvía a su sitio, con el
+   * recuadro azul encendido. Ese era el bug que Munir vio tres veces seguidas
+   * (2026-08-09), y el cuadro azul que él señaló era exactamente el síntoma.
+   *
+   * Así que dentro de una lista se elige por GEOMETRÍA: la fila cuyo centro
+   * está más cerca en vertical. Un hueco deja de ser un agujero por el que se
+   * cuela el gesto.
+   */
+  const filaCercana = (ul: Element, y: number, id: string): HTMLElement | null => {
+    let mejor: HTMLElement | null = null;
+    let cerca = Infinity;
+    for (const el of ul.querySelectorAll<HTMLElement>("[data-sesion]")) {
+      if (el.dataset.sesion === id) continue; // la que llevas no cuenta
+      const r = el.getBoundingClientRect();
+      if (!r.height) continue; // la arrastrada, colapsada
+      const d = Math.abs(y - (r.top + r.height / 2));
+      if (d < cerca) {
+        cerca = d;
+        mejor = el;
+      }
+    }
+    return mejor;
+  };
+
   const mirarDestino = (x: number, y: number, id: string) => {
     const bajo = document.elementFromPoint(x, y);
     const grupo = bajo?.closest<HTMLElement>("[data-grupo]")?.dataset.grupo;
-    const fila = bajo?.closest<HTMLElement>("[data-sesion]")?.dataset.sesion;
+    // Si el puntero cae dentro de una lista de sesiones pero no sobre una fila
+    // (o sea, sobre el hueco), se busca la más cercana en vez de rendirse.
+    const enLista = bajo?.closest("ul.sessions");
+    const liDirecto = bajo?.closest<HTMLElement>("[data-sesion]");
+    const li = liDirecto ?? (enLista ? filaCercana(enLista, y, id) : null);
+    const fila = li?.dataset.sesion;
     const fuera = bajo?.closest<HTMLElement>("[data-fuera]")?.dataset.fuera;
     const global = !!bajo?.closest("[data-sueltas]");
     const proyecto = bajo?.closest<HTMLElement>("[data-proyecto]")?.dataset.proyecto;
@@ -1166,12 +1361,35 @@ export default function Sidebar({
     //     del final de la barra: si estás dentro de ella, lo que quieres es
     //     que la sesión deje de ser de ningún proyecto, no meterla en el saco
     //     como si el saco fuera uno más.
-    if (grupo) setSobre(grupo);
-    else if (fila && fila !== id) setSobre(`s:${fila}`);
-    else if (global) setSobre("sueltas");
-    else if (fuera) setSobre(`fuera:${fuera}`);
-    else if (proyecto) setSobre(`p:${proyecto}`);
-    else setSobre(null);
+    // Todo destino se apunta TAMBIÉN en el ref: el manejador que lo aplica vive
+    // en `window` y no puede leer el estado de React.
+    const marcar = (d: string | null) => {
+      setSobre(d);
+      if (arrastre.current) arrastre.current.destino = d;
+    };
+    if (grupo) marcar(grupo);
+    else if (fila && fila !== id) {
+      // Sobre una fila caben DOS gestos, y los separa dónde sueltas: en un
+      // borde se reordena (sale la raya) y en el centro se agrupa (se enciende
+      // la fila). Ver `zonaDeFila`, que es donde está el porqué y el 30 %.
+      // Entre dos fijadas no hay centro: agrupar dos sesiones que has puesto
+      // arriba a mano no significa nada, y su sección solo sabe de orden.
+      const caja = li?.getBoundingClientRect();
+      const zona = caja ? zonaDeFila(y, caja.top, caja.height) : "centro";
+      const ambasFijadas = ui.pinned.includes(id) && ui.pinned.includes(fila);
+      if (zona === "centro" && !ambasFijadas) {
+        marcar(`s:${fila}`);
+        setHueco(null); // agrupar no abre hueco: se enciende la fila y ya
+      } else {
+        const lado: Lado = zona === "centro" ? "antes" : zona;
+        marcar(`r:${lado}:${fila}`);
+        abrirHueco(li, id, fila, caja?.height ?? 0, lado);
+      }
+    }
+    else if (global) marcar("sueltas");
+    else if (fuera) marcar(`fuera:${fuera}`);
+    else if (proyecto) marcar(`p:${proyecto}`);
+    else marcar(null);
   };
 
   /**
@@ -1233,14 +1451,34 @@ export default function Sidebar({
     mirarDestino(e.clientX, e.clientY, a.id);
   };
 
-  const sesionUp = (e: React.PointerEvent<HTMLLIElement>, proyecto: string) => {
+  /**
+   * Resolver un arrastre de sesión. Lo llama el `pointerup` de `window`, NUNCA
+   * la fila, y eso es el arreglo del 2026-08-09 después de tres intentos.
+   *
+   * Vivía en el `<li>` y dependía de su captura de puntero, que se pierde en
+   * cuanto ese elemento se esconde, se mueve o se repinta. Como el arrastre
+   * hace justo eso —la fila sale del flujo para abrir el hueco—, el `pointerup`
+   * dejaba de llegar y el orden no se guardaba nunca: soltabas la sesión y
+   * volvía a su sitio. En `window` no hay nada que se pueda perder.
+   *
+   * Por lo mismo, el destino y el proyecto salen del ref del arrastre y no del
+   * estado de React: este manejador se registra una sola vez, así que su
+   * closure vería para siempre los valores del primer render.
+   */
+  /** La última versión de `sesionUp`, para que el oyente de `window` no se
+      quede con la del primer render. Ver el porqué en el efecto de arriba. */
+  const alSoltar = useRef<(e: { clientX: number; clientY: number }) => void>(() => {});
+
+  const sesionUp = (e: { clientX: number; clientY: number }) => {
     const a = arrastre.current;
-    const destino = sobre;
+    const destino = a?.destino ?? null;
+    const proyecto = a?.proyecto ?? "";
     arrastre.current = null;
     soltarFantasma();
     pararAuto();
     setLlevando(null);
     setSobre(null);
+    setHueco(null);
     if (!a?.activo) return;
     // Se acaba de arrastrar: el clic que viene detrás no debe abrir la sesión.
     soltoRecien.current = true;
@@ -1260,6 +1498,40 @@ export default function Sidebar({
         return;
       }
       if (bajo?.closest(".sessions") && ui.sessionGroup[a.id]) assignGroup(a.id, null);
+      return;
+    }
+    // Soltada en el borde de otra fila: se coloca a mano, ni se agrupa ni se
+    // mueve de proyecto. Dos listas distintas la pueden recibir, y cada una
+    // guarda su orden en su sitio.
+    if (destino.startsWith("r:")) {
+      const [, lado, hasta] = destino.split(":") as [string, Lado, string];
+      // `colocarSuelta` con el mismo `lado` que abrió el hueco, y sobre la lista
+      // SIN la fila que llevas, que es exactamente lo que ella hace por dentro.
+      // Así el sitio que viste abierto y el que ocupa al soltar son el mismo
+      // número, que es la regla que esta barra ya rompió una vez con la raya.
+      if (ui.pinned.includes(a.id) && ui.pinned.includes(hasta)) {
+        mutate((prev) => ({
+          ...prev,
+          pinned: colocarSuelta(prev.pinned, a.id, hasta, lado),
+        }));
+      } else {
+        // El orden se guarda ENTERO tal y como se está viendo, y por eso hace
+        // falta la lista visible: hasta el primer arrastre no hay orden manual
+        // ninguno, así que guardar solo la movida dejaría al resto bailando con
+        // la actividad alrededor de la que acabas de colocar.
+        // Con el buscador puesto NO se coloca a mano, y es a propósito: lo que
+        // se ve es media lista, así que guardar ese orden se comería de un
+        // plumazo el sitio de todas las que el filtro esconde. Arrastrar sigue
+        // valiendo para agrupar y para mover de proyecto, que no dependen del
+        // orden; colocar, no.
+        const visibles = filter.trim() ? [] : (sueltas?.sessions ?? []).map((s) => s.id);
+        if (visibles.includes(a.id) && visibles.includes(hasta)) {
+          mutate((prev) => ({
+            ...prev,
+            sueltasOrder: colocarSuelta(visibles, a.id, hasta, lado),
+          }));
+        }
+      }
       return;
     }
     if (destino === "sueltas") {
@@ -1307,6 +1579,11 @@ export default function Sidebar({
     }));
   };
 
+  // En cada pintado, para que el oyente de `window` llame SIEMPRE a la versión
+  // de ahora y no a la del primer render. Sin asignación condicional a
+  // propósito: cuesta nada y una condición aquí es una forma de equivocarse.
+  alSoltar.current = sesionUp;
+
   /**
    * Mandar una sesión a un proyecto que no es el de su carpeta. Es una
    * etiqueta tuya, no un hecho del disco: la sesión sigue trabajando donde
@@ -1325,6 +1602,12 @@ export default function Sidebar({
   };
 
   /** Deshacer lo anterior: vuelve a estar donde diga su carpeta. */
+  /** Clavar una sesión arriba de su lista, o soltarla. La regla de dónde cae
+      vive en `alternarFijada` (`lib/ordenBarra.ts`), con sus casos probados. */
+  const fijar = (id: string) => {
+    mutate((prev) => ({ ...prev, pinned: alternarFijada(prev.pinned, id) }));
+  };
+
   const devolverASueltas = (id: string) => {
     mutate((prev) => ({
       ...prev,
@@ -1770,12 +2053,21 @@ export default function Sidebar({
         data-archived={isArchived}
         data-wait={wait ?? undefined}
         data-sesion={s.id}
+        data-fijada={ui.pinned.includes(s.id) || undefined}
         data-llevando={llevando === s.id || undefined}
         data-suelta={(llevando && sobre === `s:${s.id}`) || undefined}
-        onPointerDown={(e) => sesionDown(e, s.id)}
+        /* Apartarse para dejar el hueco. Sustituye a la raya que había aquí, y
+           el motivo está escrito en `desplazamiento`: una raya PROMETE dónde va
+           a caer y ya mintió una vez; un hueco no promete, enseña. Munir
+           rechazó la raya dos veces antes de pedir esto (2026-08-09). */
+        style={
+          hueco?.dy[s.id]
+            ? ({ "--dy": `${hueco.dy[s.id] * hueco.alto}px` } as React.CSSProperties)
+            : undefined
+        }
+        data-apartada={hueco?.dy[s.id] ? "" : undefined}
+        onPointerDown={(e) => sesionDown(e, s.id, g.name)}
         onPointerMove={sesionMove}
-        onPointerUp={(e) => sesionUp(e, g.name)}
-        onPointerCancel={(e) => sesionUp(e, g.name)}
       >
         <button
           className="session"
@@ -1785,6 +2077,13 @@ export default function Sidebar({
               : [
                   { label: t("Retomar la sesión aquí"), onClick: () => onResume(s) },
                   { label: "", separator: true },
+                  {
+                    label: ui.pinned.includes(s.id)
+                      ? t("Quitar de arriba")
+                      : t("Fijar arriba"),
+                    icon: <PinIcon size={14} />,
+                    onClick: () => fijar(s.id),
+                  },
                   { label: t("Renombrar"), icon: <PencilIcon size={14} />, onClick: () => startRename(s) },
                   { label: t("Mover a grupo…"), icon: <GroupIcon size={14} />, onClick: () => openMenu(e, s, g.path) },
                   // Solo para las que mandaste tú aquí: deshacerlo arrastrando
@@ -1870,6 +2169,9 @@ export default function Sidebar({
               <RobotIcon size={12} /> {s.agentsLive}
             </span>
           )}
+          {/* Sin chincheta en la fila: lo fijado ya vive bajo un encabezado que
+              se llama «Fijadas», así que repetirlo en cada fila es decir dos
+              veces lo mismo dentro de la misma caja. */}
           <span className="session-ago">{s.ago}</span>
         </button>
         {/* La carpeta, y a la vez el botón de ascenderla a proyecto. Empezó
@@ -2294,6 +2596,21 @@ export default function Sidebar({
         data-rail={rail}
         onScroll={() => setFlyout(null)}
       >
+        {/* Lo fijado, arriba del todo y con su nombre escrito. Se pinta con el
+            MISMO `sessionRow` que el resto de la barra —menú del clic derecho,
+            arrastre, insignias, todo— para que una sesión no se comporte de una
+            manera aquí y de otra dentro de su proyecto.
+            El grupo que se le pasa es de mentira y va con `suelto: true` a
+            propósito: eso hace que cada fila enseñe su carpeta debajo, que es
+            justo lo que hace falta cuando una sesión está fuera de su sitio. */}
+        {todo.fijadas.length > 0 && rail === "full" && !tira && !filter.trim() && (
+          <div className="fijadas">
+            <span className="fijadas-tag">{t("Fijadas")}</span>
+            <ul className="sessions">
+              {todo.fijadas.map((s) => sessionRow(s, GRUPO_FIJADAS, false))}
+            </ul>
+          </div>
+        )}
         {shown.map((g) => {
           const open = expanded.has(g.name) || filter.trim() !== "";
           const shownCount =

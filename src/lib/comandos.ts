@@ -14,13 +14,54 @@ export const ES_WINDOWS = /win/i.test(navigator.userAgent.split(")")[0] ?? "");
  * perfil del usuario. Sin ese envoltorio, `claude` no se encuentra en la mitad
  * de las instalaciones, porque vive en una carpeta que añade el perfil.
  *
- * En Windows, PowerShell con `-NoExit`, que deja la terminal viva cuando el
- * programa acaba: es lo que permite leer lo que dejó escrito y seguir
- * tecleando ahí. En Linux se consigue lo mismo encadenando una shell
- * interactiva detrás (`; exec bash -i`), porque `bash -c` no tiene un `-NoExit`
- * y sin eso la terminal se cerraría en cuanto el agente termina.
+ * En Windows el envoltorio es `cmd.exe`, y el motivo es la memoria. Medido en
+ * la máquina de Munir el 2026-08-08, con la app en marcha: un `powershell.exe
+ * -NoExit` de envoltorio ocupa 74,8 MB y un `cmd.exe /k` haciendo exactamente
+ * lo mismo ocupa 7,5. Ese proceso no hace ningún trabajo —arranca el CLI y se
+ * queda ahí para que la terminal siga viva cuando el programa acaba, que es lo
+ * que `/k` hace igual que `-NoExit`—, así que con seis agentes abiertos eran
+ * 400 MB de peaje por nada. `-NoProfile` no era la solución: 74,4 MB, porque
+ * el peso está en levantar .NET, no en leer el perfil.
+ *
+ * Y encuentra los CLIs igual de bien, que era lo que había que comprobar antes
+ * de cambiar por dónde arranca TODA la casa: los seis instalados (claude,
+ * codex, gemini, pi, qwen, agy) y `npx` ejecutan desde cmd, no solo aparecen
+ * en su PATH. Los de pnpm son scripts `.ps1`, que cmd no sabe correr, pero
+ * pnpm deja SIEMPRE un `.CMD` al lado (10 de 10 comprobados) y es el que coge
+ * por PATHEXT.
+ *
+ * ⚠ `chcp 65001` no es un adorno. cmd nace en la codepage OEM del sistema (en
+ * esta máquina la 850) y un CLI de agente escribe UTF-8 sin parar: tildes y
+ * los dibujos de caja (─ ● ⎿). Sin esa línea la salida sale rota, que es la
+ * misma familia de fallo que costó una noche entera en julio. El `>nul` se
+ * come el aviso de que ha cambiado.
+ *
+ * ⚠ Y por lo mismo `inner` NO puede llevar texto escrito por una persona: en
+ * cmd, `&`, `|`, `>` y `%` son metacaracteres, así que un encargo dictado con
+ * un «&» partiría el comando por la mitad. Lo que lleve texto libre va por
+ * `powershellCommand`, que sabe citarlo.
+ *
+ * En Linux no cambia nada: una shell interactiva encadenada detrás
+ * (`; exec bash -i`), porque `bash -c` no tiene un `-NoExit` y sin eso la
+ * terminal se cerraría en cuanto el agente termina.
  */
 export function shellCommand(inner: string): string[] {
+  if (ES_WINDOWS) return ["cmd.exe", "/k", `chcp 65001 >nul && ${inner}`];
+  const shell = "/bin/bash";
+  return [shell, "-lc", `${inner}; exec ${shell} -i`];
+}
+
+/**
+ * El envoltorio caro, y solo para lo que de verdad habla PowerShell.
+ *
+ * Son dos casos, y ninguno de los dos es un agente que se queda horas abierto,
+ * que es donde dolía la memoria: instalar un CLI (usa `$?` y `Write-Host` con
+ * color, que en cmd no existen) y arrancar uno con un encargo dictado dentro
+ * (las comillas simples de PowerShell no interpretan nada de lo que llevan
+ * dentro y se escapan doblándolas, así que un encargo con `&`, `%` o `>` viaja
+ * entero).
+ */
+export function powershellCommand(inner: string): string[] {
   if (ES_WINDOWS) return ["powershell.exe", "-NoLogo", "-NoExit", "-Command", inner];
   const shell = "/bin/bash";
   return [shell, "-lc", `${inner}; exec ${shell} -i`];

@@ -116,7 +116,7 @@ import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
 import { apagon, aplicarApagon } from "./lib/temasTerm";
 import { aplicarRendimiento, modoRendimiento } from "./lib/rendimiento";
-import { sessionIdOf, shellCommand } from "./lib/comandos";
+import { powershellCommand, sessionIdOf, shellCommand } from "./lib/comandos";
 import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
 import { guardarAtajos, leerAtajos, type Atajos } from "./lib/atajos";
@@ -311,9 +311,17 @@ function modoGuardado(): PermissionMode {
 // there is no React state to hand it here, and localStorage is the one store
 // both sides can already see. Shift+Tab inside a pane still cycles the mode
 // for that one session, same as always.
-function claudeCommand(args = "", mode?: PermissionMode): string[] {
+function claudeCommand(args = "", mode?: PermissionMode, conTexto = false): string[] {
   const m = mode ?? modoGuardado();
-  return shellCommand(`claude --permission-mode ${m}${args ? ` ${args}` : ""}`);
+  const inner = `claude --permission-mode ${m}${args ? ` ${args}` : ""}`;
+  // `conTexto` = en `args` viaja un encargo escrito por una persona, entre las
+  // comillas simples de PowerShell. Entonces el envoltorio TIENE que ser
+  // PowerShell, aunque pese diez veces más: en cmd esas comillas no agrupan
+  // nada (llegarían al CLI como parte del texto y el encargo se partiría por
+  // cada espacio) y un «&» dictado ejecutaría lo que venga detrás. Sin encargo
+  // —abrir una terminal, retomar una sesión, restaurar el tablero, que es la
+  // mayoría— va el envoltorio ligero. Ver `shellCommand` para los números.
+  return conTexto ? powershellCommand(inner) : shellCommand(inner);
 }
 
 // The effort his settings.json is set to, read once at startup. Every Claude
@@ -335,10 +343,11 @@ function withEffort(args: string): string {
 }
 
 /** A fresh Claude, tagged with an id we choose so it can be resumed later. */
-function newClaudeCommand(extra = "", mode?: PermissionMode): string[] {
+function newClaudeCommand(extra = "", mode?: PermissionMode, conTexto = false): string[] {
   return claudeCommand(
     withEffort(`--session-id ${crypto.randomUUID()}${extra ? ` ${extra}` : ""}`),
     mode,
+    conTexto,
   );
 }
 
@@ -397,7 +406,10 @@ function providerCommand(provider: string): string[] {
  * qué escribir el día que quiera conectarlo, y la terminal se queda ahí.
  */
 function installCommand(p: Provider, listo: string): string[] {
-  return shellCommand(
+  // PowerShell a propósito: `$?` y `Write-Host -ForegroundColor` son suyos y en
+  // cmd no existen. Es una terminal que dura lo que tarda la descarga, así que
+  // sus 74 MB de envoltorio no son los que hay que perseguir (ver `shellCommand`).
+  return powershellCommand(
     `${p.cmd}; if ($?) { Write-Host ''; Write-Host '${listo.replace(/'/g, "''")}' -ForegroundColor Green }`,
   );
 }
@@ -406,8 +418,17 @@ function installCommand(p: Provider, listo: string): string[] {
 // Its installer only adds %LOCALAPPDATA%\agy\bin to the PATH for NEW shells,
 // so call it through the path Rust found. --mode accept-edits is agy's Auto.
 export function agyCommand(exe: string, prompt?: string): string[] {
-  const safe = prompt ? ` '${prompt.replace(/'/g, "''")}'` : "";
-  return shellCommand(`& '${exe}' --mode accept-edits${safe}`);
+  // Con encargo va por PowerShell, y no por ahorrar trabajo: ese texto lo ha
+  // dictado Munir y en una línea de cmd un «&» o un «%» lo partiría o, peor,
+  // ejecutaría lo de detrás. Las comillas simples de PowerShell no interpretan
+  // nada de lo que llevan dentro. Sin encargo no hay texto de nadie, así que se
+  // lleva el envoltorio ligero, que es el caso de todos los días (el botón AG).
+  if (prompt) {
+    return powershellCommand(
+      `& '${exe}' --mode accept-edits '${prompt.replace(/'/g, "''")}'`,
+    );
+  }
+  return shellCommand(`"${exe}" --mode accept-edits`);
 }
 
 /** Where the draggable seams go, derived from the same rectangles. */
@@ -1205,7 +1226,9 @@ function App() {
       /** Lo que añade el router: con cuánto esfuerzo nace, y en qué cuenta. */
       extras?: { esfuerzo?: string; cuenta?: Account },
     ) => {
-      // Single-quote for PowerShell -Command; embedded quotes double up.
+      // Single-quote for PowerShell -Command; embedded quotes double up. El
+      // `true` del `newClaudeCommand` de abajo es lo que garantiza que el
+      // envoltorio sea PowerShell y estas comillas signifiquen algo.
       const safe = prompt.replace(/'/g, "''");
       // The model goes on the command line, not through /model afterwards: a
       // pane born on the right model never spends a token on the wrong one.
@@ -1218,7 +1241,7 @@ function App() {
       ]
         .filter(Boolean)
         .join(" ");
-      const command = newClaudeCommand(extra);
+      const command = newClaudeCommand(extra, undefined, true);
       // Y queda apuntado PARA QUÉ se abrió, indexado por el id de sesión que
       // acaba de acuñar ese comando. El título que verás luego en la lista lo
       // pone Claude resumiendo la charla, y eso no dice de qué encargo salió:
@@ -1499,7 +1522,9 @@ function App() {
         return;
       }
 
-      // Comilla simple para PowerShell -Command; las de dentro se doblan.
+      // Comilla simple para PowerShell -Command; las de dentro se doblan. Y por
+      // eso el `true` de abajo: con un encargo dentro el envoltorio tiene que
+      // ser PowerShell, no el cmd ligero. Ver la nota de `claudeCommand`.
       const extra = [
         receta.modelo ? `--model ${receta.modelo}` : "",
         receta.esfuerzo ? `--effort ${receta.esfuerzo}` : "",
@@ -1507,7 +1532,7 @@ function App() {
       ]
         .filter(Boolean)
         .join(" ");
-      const command = newClaudeCommand(extra);
+      const command = newClaudeCommand(extra, undefined, true);
       const sid = sessionIdOf(command);
       if (sid) {
         void saveEncargo(sid, {

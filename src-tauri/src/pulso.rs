@@ -393,6 +393,15 @@ pub struct PanePulso {
     /// Si dentro hay un agente de verdad y no solo el PowerShell de paso. Un
     /// panel parado ocupa memoria pero no está trabajando, y no es lo mismo.
     pub agente: bool,
+    /// De todo eso, cuánto es el agente. El resto es el envoltorio y lo que el
+    /// propio agente haya lanzado.
+    ///
+    /// Existe porque el número de la cabecera se leía al revés (2026-08-08):
+    /// Munir vio «514 MB» en cada terminal y entendió que se lo cobraba Adeorq.
+    /// Medido ese día en su equipo, de esos 514 eran 451 el `claude.exe` y 47 el
+    /// envoltorio, y un `claude.exe` abierto desde la app de escritorio pesaba
+    /// 451 igual. La cifra nunca mintió; lo que faltaba era decir de quién es.
+    pub agente_mb: u64,
 }
 
 /// La memoria de cada terminal por separado.
@@ -431,11 +440,14 @@ pub async fn pulso_panes(pty: tauri::State<'_, crate::pty::PtyState>) -> Result<
     for (id, pid) in raices {
         let arbol = arbol_con_indice(pid, &procesos, &hijos);
         let mut bytes = 0u64;
+        let mut bytes_agente = 0u64;
         let mut agente = false;
         for (p, nombre) in &arbol {
-            bytes += ram_de(*p).unwrap_or(0);
+            let suyo = ram_de(*p).unwrap_or(0);
+            bytes += suyo;
             if es_agente(nombre) {
                 agente = true;
+                bytes_agente += suyo;
             }
         }
         out.push(PanePulso {
@@ -443,6 +455,7 @@ pub async fn pulso_panes(pty: tauri::State<'_, crate::pty::PtyState>) -> Result<
             ram_mb: bytes / 1_048_576,
             procesos: arbol.len() as u32,
             agente,
+            agente_mb: bytes_agente / 1_048_576,
         });
     }
     Ok(out)

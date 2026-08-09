@@ -27,6 +27,10 @@ import {
   accountReady,
   detectClis,
   logoutAccount,
+  skillsEstado,
+  compartirSkills,
+  dejarDeCompartirSkills,
+  type EstadoSkills,
   mainAccount,
   planInfo,
   usageLimits,
@@ -114,6 +118,39 @@ export default function AccountsView({
   const [confirm, setConfirm] = useState<Account | null>(null);
   /** Qué se va a cerrar: una cuenta concreta, o "todas". Null = nada. */
   const [cerrando, setCerrando] = useState<Account | "todas" | null>(null);
+  /** Qué skills ve cada cuenta, por su carpeta. Se pregunta al pintar y tras
+      cada cambio: es leer un directorio, no cuesta nada, y una etiqueta que
+      dice «compartidas» cuando ya no lo están sería peor que no decir nada. */
+  const [skills, setSkills] = useState<Record<string, EstadoSkills>>({});
+
+  const mirarSkills = useCallback((dir: string) => {
+    if (!dir) return;
+    void skillsEstado(dir)
+      .then((e) => setSkills((p) => ({ ...p, [dir]: e })))
+      // En silencio: una cuenta cuya carpeta todavía no existe no es un fallo,
+      // y el botón simplemente sale como «Compartir».
+      .catch(() => {});
+  }, []);
+
+  /**
+   * Enlaza o desenlaza. El error de Rust se enseña tal cual, porque el único
+   * que llega hasta aquí es el que importa: «esa cuenta ya tiene N skills
+   * suyas». Ese caso NO se resuelve solo a la brava —enlazar taparía su
+   * carpeta y las perdería de vista sin decir nada—, así que se cuenta y se
+   * deja que Munir decida.
+   */
+  const alternarSkills = useCallback(
+    async (dir: string) => {
+      try {
+        if (skills[dir]?.compartida) await dejarDeCompartirSkills(dir);
+        else await compartirSkills(dir);
+      } catch (e) {
+        setError(String(e));
+      }
+      mirarSkills(dir);
+    },
+    [skills, mirarSkills],
+  );
   const [saliendo, setSaliendo] = useState(false);
   /** Lo que salió mal, si salió: cerrar en silencio no dice si funcionó. */
   const [salida, setSalida] = useState<string | null>(null);
@@ -264,6 +301,13 @@ export default function AccountsView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accounts.length]);
 
+  // Y con ellas, si cada una comparte las skills de la principal. Se pregunta
+  // por CARPETA y no por cuenta porque es lo que Rust necesita, y las de casa
+  // (sin carpeta propia) no se preguntan: la principal es el origen.
+  useEffect(() => {
+    for (const a of accounts) if (a.dir) mirarSkills(a.dir);
+  }, [accounts, mirarSkills]);
+
   const add = (p: Provider) => {
     const name = label.trim();
     if (!name) return;
@@ -389,6 +433,32 @@ export default function AccountsView({
           {it?.ready && (
             <button className="mini" onClick={() => setCerrando(acc)}>
               {t("Cerrar sesión")}
+            </button>
+          )}
+          {/* Compartir las skills con la cuenta principal.
+              Una cuenta es una carpeta (`CLAUDE_CONFIG_DIR`), así que cada una
+              tiene sus propias skills y lo que escribes en una no existe en las
+              demás: Munir lo vio con su cuenta CCC delante, sin ninguna
+              (2026-08-09). Esto enlaza su carpeta con la de casa, que es lo que
+              él ya hacía a mano con junctions en tres de sus seis skills.
+              Solo en las cuentas de Adeorq: la principal ES el origen, y
+              enlazarla contra sí misma la dejaría sin nada.
+              El texto dice «la misma carpeta» a propósito, porque esa es la
+              consecuencia que se paga: borrar una skill desde aquí la borra
+              para todas, y eso no puede ir en una nota al pie. */}
+          {!isMain && p.id === "claude" && (
+            <button
+              className="mini"
+              data-tip={
+                skills[acc.dir]?.compartida
+                  ? t("Deja de ver las skills de tu cuenta principal. No se borra ninguna.")
+                  : t("Es la MISMA carpeta, no una copia: lo que escribas lo verán todas tus cuentas, y lo que borres se borrará para todas.")
+              }
+              onClick={() => void alternarSkills(acc.dir)}
+            >
+              {skills[acc.dir]?.compartida
+                ? t("Skills: compartidas ({n})", { n: skills[acc.dir]?.cuantas ?? 0 })
+                : t("Compartir mis skills")}
             </button>
           )}
           {!isMain && (

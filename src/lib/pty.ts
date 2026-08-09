@@ -599,6 +599,23 @@ export interface UiState {
    * aparezcan después se colocan detrás, por actividad, hasta que los muevas.
    */
   projectOrder: string[];
+  /**
+   * Las sesiones que has clavado arriba de su lista, en el orden en que las
+   * clavaste.
+   *
+   * Mismo motivo que `projectOrder`, un piso más abajo: dentro de un proyecto
+   * (y dentro de las sueltas) las sesiones se ordenan por actividad, así que la
+   * conversación que abres cada día se te va moviendo y hay que buscarla. Solo
+   * ids, como `traidas`: no cuesta nada y una sesión que desaparezca de
+   * `~/.claude` se cae sola de aquí sin dejar hueco.
+   */
+  pinned: string[];
+  /** El orden que le has dado a mano a las sesiones no agrupadas, por id.
+      Vacío mientras no muevas ninguna: hasta entonces las coloca la actividad,
+      igual que a los proyectos. Se guarda la lista ENTERA que estabas viendo,
+      no solo la movida, o el resto seguiría bailando alrededor de la que
+      colocaste. */
+  sueltasOrder: string[];
   railMode: RailMode;
 }
 
@@ -612,6 +629,8 @@ export const EMPTY_UI_STATE: UiState = {
   projectAlias: {},
   hiddenProjects: [],
   projectOrder: [],
+  pinned: [],
+  sueltasOrder: [],
   railMode: "full",
 };
 
@@ -629,6 +648,8 @@ export async function loadUiState(): Promise<UiState> {
       projectAlias: parsed.projectAlias ?? {},
       hiddenProjects: Array.isArray(parsed.hiddenProjects) ? parsed.hiddenProjects : [],
       projectOrder: Array.isArray(parsed.projectOrder) ? parsed.projectOrder : [],
+      pinned: Array.isArray(parsed.pinned) ? parsed.pinned : [],
+      sueltasOrder: Array.isArray(parsed.sueltasOrder) ? parsed.sueltasOrder : [],
       railMode:
         parsed.railMode === "logo" || parsed.railMode === "tira" ? parsed.railMode : "full",
     };
@@ -903,4 +924,28 @@ export function foremanLote(tareas: string, context: string): Promise<string> {
 /** Escribe el papel común del reparto en el BUZON.md de un proyecto. */
 export function escribirBuzon(proyecto: string, texto: string): Promise<string> {
   return invoke("escribir_buzon", { proyecto, texto });
+}
+
+/** Qué skills ve una cuenta, y si su carpeta es un enlace a la principal. */
+export interface EstadoSkills {
+  cuantas: number;
+  compartida: boolean;
+  en_principal: number;
+}
+
+export function skillsEstado(configDir: string): Promise<EstadoSkills> {
+  return invoke("skills_estado", { configDir });
+}
+
+/** Enlaza las skills de esa cuenta con las de tu cuenta principal. Devuelve
+    cuántas pasa a ver. Es la MISMA carpeta, no una copia: escribir una skill
+    la pone en todas, y borrarla la quita de todas. */
+export function compartirSkills(configDir: string): Promise<number> {
+  return invoke("compartir_skills", { configDir });
+}
+
+/** Quita el enlace. No borra ninguna skill: la cuenta se queda sin skills
+    propias hasta que le pongas alguna. */
+export function dejarDeCompartirSkills(configDir: string): Promise<void> {
+  return invoke("dejar_de_compartir_skills", { configDir });
 }

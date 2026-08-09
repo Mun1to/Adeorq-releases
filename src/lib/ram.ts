@@ -20,6 +20,9 @@ export interface PanePulso {
   procesos: number;
   /** Si dentro hay un agente de verdad y no solo el PowerShell de paso. */
   agente: boolean;
+  /** Cuánto de `ramMb` es el agente. Lo que sobra es el envoltorio y lo que el
+      propio agente haya abierto (una herramienta suya, el puente MCP). */
+  agenteMb: number;
 }
 
 /** Más lento que el Pulso de la barra (5 s) a propósito: son varios árboles de

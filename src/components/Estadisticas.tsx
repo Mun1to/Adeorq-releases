@@ -54,16 +54,19 @@ export default function Estadisticas() {
   // turno. Decirlo cuesta una línea y evita que un número viejo pase por nuevo.
   const viejo = h.calculado && h.calculado < hoy ? h.calculado : "";
 
+  // `repaso` y no `stats`: ese nombre de clase ya era de las tarjetas del Panel
+  // y las dos reglas se pisaban, que es lo que descuadraba esta pantalla entera
+  // (el porqué completo está escrito en `App.css`, encima de `.repaso`).
   const dato = (etiqueta: string, valor: string) => (
-    <div className="stat">
-      <span className="stat-tag">{etiqueta}</span>
-      <span className="stat-val">{valor}</span>
+    <div className="repaso-dato" title={`${etiqueta}: ${valor}`}>
+      <span className="repaso-tag">{etiqueta}</span>
+      <span className="repaso-val">{valor}</span>
     </div>
   );
 
   return (
-    <div className="stats">
-      <div className="stats-rejilla">
+    <div className="repaso">
+      <div className="repaso-datos">
         {dato(t("Sesiones"), String(h.total_sesiones))}
         {dato(t("Mensajes"), cifra(h.total_mensajes))}
         {dato(t("Tokens"), cifra(tokens))}
@@ -76,13 +79,13 @@ export default function Estadisticas() {
 
       {/* Nueve semanas, en columnas: es lo que cabe sin que las casillas se
           hagan ilegibles, y llega para ver una racha de un vistazo. */}
-      <div className="stats-mapa" aria-hidden="true">
+      <div className="repaso-mapa" aria-hidden="true">
         {mapa.map((c) => (
-          <span key={c.fecha} className="stats-dia" data-n={c.nivel} title={c.fecha} />
+          <span key={c.fecha} className="repaso-dia" data-n={c.nivel} title={c.fecha} />
         ))}
       </div>
 
-      <p className="stats-pie">
+      <p className="repaso-pie">
         {h.cuentas > 1 && t("Sumando tus {n} cuentas. ", { n: h.cuentas })}
         {viejo
           ? t("Claude Code calculó esto el {d}; lo de después todavía no está dentro.", { d: viejo })

@@ -8,6 +8,14 @@
 // de tests y la lógica pura se prueba compilando a CommonJS.)
 
 import {
+  alternarFijada,
+  colocarSuelta,
+  conOrdenManual,
+  desplazamiento,
+  huecoEn,
+  fijadasDe,
+  sinFijadas,
+  zonaDeFila,
   ladoDeCaida,
   moverGrupo,
   moverProyecto,
@@ -199,5 +207,190 @@ caso(
   ids(moverGrupo([g("b1", "B")], "A", "x", "y")),
   ["b1"],
 );
+
+// --- fijar sesiones arriba ----------------------------------------------------
+// Munir lo pidió tres veces. Las sesiones se ordenan por actividad, así que la
+// conversación que abres cada día se te mueve sola y hay que buscarla. Fijarla
+// la saca de su proyecto y la sube a una sección propia en la cabeza.
+
+const ses = (id: string) => ({ id });
+const idsDe = (l: { id: string }[]) => l.map((x) => x.id).join(",");
+const lista4 = [ses("a"), ses("b"), ses("c"), ses("d")];
+
+ok("sin nada fijado, la sección está vacía", fijadasDe(lista4, []).length === 0);
+ok("una fijada sale ella sola", idsDe(fijadasDe(lista4, ["c"])) === "c");
+ok(
+  "dos salen en el orden en que las fijaste, no en el de la lista",
+  idsDe(fijadasDe(lista4, ["d", "b"])) === "d,b",
+  "si mandara la lista saldrían b,d y fijar no serviría de nada",
+);
+ok(
+  "un id fijado que ya no está en la lista no inventa una fila",
+  idsDe(fijadasDe([ses("a"), ses("b")], ["fantasma", "b"])) === "b",
+  "una sesión borrada sigue en `pinned` hasta que se toca la barra",
+);
+
+ok("sin nada fijado, el proyecto queda igual", idsDe(sinFijadas(lista4, [])) === "a,b,c,d");
+ok(
+  "lo fijado sale de la lista de su proyecto",
+  idsDe(sinFijadas(lista4, ["b"])) === "a,c,d",
+  "si no, la misma sesión se vería en dos sitios y parecerían dos",
+);
+ok(
+  "fijarlas todas deja el proyecto sin lista, no lo rompe",
+  sinFijadas(lista4, ["a", "b", "c", "d"]).length === 0,
+);
+{
+  // Las dos funciones son complementarias: juntas tienen que dar exactamente
+  // las mismas sesiones, sin perder ninguna ni contar una dos veces.
+  const fij = ["c", "a"];
+  const juntas = [...fijadasDe(lista4, fij), ...sinFijadas(lista4, fij)];
+  ok(
+    "entre la sección y los proyectos están todas, y una sola vez",
+    juntas.length === 4 && new Set(juntas.map((x) => x.id)).size === 4,
+  );
+}
+
+ok("fijar la primera vez la añade", alternarFijada([], "a").join() === "a");
+ok(
+  "la nueva entra la ÚLTIMA de las fijadas",
+  alternarFijada(["a", "b"], "c").join() === "a,b,c",
+  "si entrara primera, fijar una tercera movería de sitio a las dos de antes",
+);
+ok("volver a pulsarla la quita", alternarFijada(["a", "b"], "a").join() === "b");
+ok("quitar la única deja la sección vacía", alternarFijada(["a"], "a").length === 0);
+ok(
+  "es un conmutador: una que no estaba se FIJA",
+  alternarFijada(["a"], "z").join() === "a,z",
+  "el menú enseña «Fijar» o «Quitar» según el estado, así que solo se llama en el sentido que toca",
+);
+ok(
+  "fijar y quitar deja las cosas como estaban",
+  alternarFijada(alternarFijada(["x"], "a"), "a").join() === "x",
+);
+
+// --- colocar sueltas a mano: las zonas de una fila ----------------------------
+// Sobre una fila caben dos gestos (agrupar y colocar) y los separa DÓNDE
+// sueltas. Munir eligió esta forma con las tres opciones delante.
+
+ok("el 10 % de arriba coloca ANTES", zonaDeFila(102, 100, 40) === "antes");
+ok("el 10 % de abajo coloca DESPUES", zonaDeFila(138, 100, 40) === "despues");
+ok("el centro agrupa, como siempre", zonaDeFila(120, 100, 40) === "centro");
+ok(
+  "justo en el borde del 30 % ya es centro, no lado",
+  zonaDeFila(112, 100, 40) === "centro" && zonaDeFila(128, 100, 40) === "centro",
+  "40 px de alto: el 30 % son 12, así que 112 y 128 son las fronteras",
+);
+ok("un pelo antes de la frontera sí es lado", zonaDeFila(111, 100, 40) === "antes");
+ok(
+  "una fila sin medir agrupa, que es lo que la barra hacía antes de esto",
+  zonaDeFila(50, 0, 0) === "centro",
+);
+ok(
+  "el borde es configurable: al 50 % casi no queda centro",
+  zonaDeFila(119, 100, 40, 0.5) === "antes" && zonaDeFila(121, 100, 40, 0.5) === "despues",
+  "en el píxel central exacto sigue saliendo «centro», porque las dos comparaciones son estrictas",
+);
+
+ok(
+  "colocar una suelta encima de otra",
+  colocarSuelta(["a", "b", "c"], "c", "a", "antes").join() === "c,a,b",
+);
+ok(
+  "y debajo",
+  colocarSuelta(["a", "b", "c"], "a", "c", "despues").join() === "b,c,a",
+);
+ok(
+  "bajar una al final del todo se puede",
+  colocarSuelta(["a", "b", "c"], "a", "c", "despues").at(-1) === "a",
+  "con la regla vieja de los proyectos esto era imposible: caía siempre delante",
+);
+ok("sobre sí misma no pasa nada", colocarSuelta(["a", "b"], "a", "a", "antes").join() === "a,b");
+ok(
+  "un destino que ya no está deja el orden como estaba",
+  colocarSuelta(["a", "b"], "a", "zzz", "antes").join() === "a,b",
+);
+ok(
+  "no pierde ni duplica ninguna",
+  colocarSuelta(["a", "b", "c", "d"], "b", "d", "despues").join() === "a,c,d,b",
+);
+
+// El orden manual se guarda entero, y lo que llegue después va DETRÁS: una
+// sesión nueva no puede colarse en medio de lo que ya colocaste.
+ok(
+  "sin orden manual, la lista se queda como venía",
+  conOrdenManual([ses("a"), ses("b")], []).map((x) => x.id).join() === "a,b",
+);
+ok(
+  "con orden manual manda el tuyo",
+  conOrdenManual([ses("a"), ses("b"), ses("c")], ["c", "a"]).map((x) => x.id).join() === "c,a,b",
+);
+ok(
+  "lo que aparezca después va detrás, a la vista, no intercalado",
+  conOrdenManual([ses("nueva"), ses("a"), ses("b")], ["b", "a"]).map((x) => x.id).join() ===
+    "b,a,nueva",
+);
+ok(
+  "un orden guardado de sesiones que ya no existen no descoloca nada",
+  conOrdenManual([ses("a"), ses("b")], ["zzz", "yyy"]).map((x) => x.id).join() === "a,b",
+);
+
+// Arrastrar dentro de la sección de fijadas usa `colocarSuelta`, el mismo
+// mecanismo que las sueltas: una sola regla de colocar a mano para toda la
+// barra, y la raya que se ve al arrastrar sale del mismo lado que se le pasa.
+ok(
+  "bajando una fijada, cae debajo del destino",
+  colocarSuelta(["a", "b", "c"], "a", "c", "despues").join() === "b,c,a",
+);
+ok(
+  "subiéndola, cae encima",
+  colocarSuelta(["a", "b", "c"], "c", "a", "antes").join() === "c,a,b",
+);
+
+// --- el hueco que se abre al arrastrar ----------------------------------------
+// Munir rechazó dos veces la raya y pidió esto: «que cuando lo muevas se mueva
+// lo que tiene cerca». Y al probarlo encontró el fallo de la primera versión:
+// «no tiene que ponerse encima de otra, sino ajustar bien los espacios que ha
+// dejado la que arrastras». La clave está en ese «ha dejado»: la fila que
+// llevas SALE del flujo, así que todo se cuenta sin ella.
+
+{
+  // Llevas "b" en la mano. La lista que queda en pantalla es a, c, d, e.
+  const sin = ["a", "c", "d", "e"];
+  ok("soltando en el borde de arriba de «d», el hueco se abre en su puesto", huecoEn(sin, "d", "antes") === 2);
+  ok("y en el de abajo, justo después", huecoEn(sin, "d", "despues") === 3);
+  ok("sobre la primera, el hueco va al principio", huecoEn(sin, "a", "antes") === 0);
+  ok("bajo la última, al final del todo", huecoEn(sin, "e", "despues") === 4);
+  ok("un destino que ya no está no abre nada", huecoEn(sin, "zzz", "antes") === -1);
+}
+{
+  // Con el hueco en el puesto 2, bajan la 2 y las de después. Ni una más.
+  const bajan = [0, 1, 2, 3].map((i) => desplazamiento(i, 2));
+  ok("bajan solo las que están del hueco para abajo", bajan.join() === "0,0,1,1");
+  ok("el hueco al principio baja a todas", [0, 1, 2].every((i) => desplazamiento(i, 0) === 1));
+  ok("y al final no baja a ninguna", [0, 1, 2].every((i) => desplazamiento(i, 3) === 0));
+}
+{
+  // EL QUE IMPORTA: el hueco que ves y el sitio que ocupa al soltar tienen que
+  // ser el mismo puesto. La raya ya mintió una vez por no cumplir esto, y la
+  // primera versión del hueco también, con otra cara.
+  const lista = ["a", "b", "c", "d", "e"];
+  let discrepan = 0;
+  for (const m of lista)
+    for (const d of lista) {
+      if (m === d) continue;
+      for (const lado of ["antes", "despues"] as const) {
+        const sin = lista.filter((x) => x !== m);
+        const donde = huecoEn(sin, d, lado);
+        const fin = colocarSuelta(lista, m, d, lado).indexOf(m);
+        if (donde !== fin) discrepan++;
+      }
+    }
+  ok(
+    "el hueco y el sitio final coinciden en las 40 combinaciones",
+    discrepan === 0,
+    "si esto falla, la barra vuelve a enseñar una cosa y hacer otra",
+  );
+}
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

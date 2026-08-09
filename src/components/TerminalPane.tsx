@@ -1544,9 +1544,20 @@ export default function TerminalPane({
           <span
             className="pane-ram"
             data-hot={ram.ramMb >= 1024}
-            data-tip={`${bonito(ram.ramMb, lang)} ${t("de memoria")} · ${ram.procesos} ${
-              ram.procesos === 1 ? t("proceso") : t("procesos")
-            }\n${t("Es el árbol entero de esta terminal, no solo su primer proceso.")}`}
+            /* Con el desglose, y no por gusto: la cifra a secas se lee como «lo
+               que me cuesta Adeorq» cuando casi toda es el agente que corre
+               dentro, que pesa lo mismo se abra desde donde se abra. */
+            data-tip={[
+              `${bonito(ram.ramMb, lang)} ${t("de memoria")} · ${ram.procesos} ${
+                ram.procesos === 1 ? t("proceso") : t("procesos")
+              }`,
+              ram.agenteMb > 0
+                ? `${bonito(ram.agenteMb, lang)} ${t("los pone el agente de dentro, no Adeorq")}`
+                : "",
+              t("Es el árbol entero de esta terminal, no solo su primer proceso."),
+            ]
+              .filter(Boolean)
+              .join("\n")}
           >
             {bonito(ram.ramMb, lang)}
           </span>

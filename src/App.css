@@ -5117,14 +5117,37 @@ button.stat-card[data-live="false"] {
 /* Los bloques del grupo abierto. Sangrados y colgando de una línea vertical,
    que es lo que dice «esto es de ahí arriba» sin escribirlo: sin la línea,
    ocho nombres seguidos de dos tamaños distintos se leen como una lista sola.
-   Aparece y desaparece con el grupo, así que nunca hay más de una abierta. */
+   Aparece y desaparece con el grupo, así que nunca hay más de una abierta.
+
+   ⚠ La línea NO SE PINTABA, y no por su color: iba con `var(--line)`, que es
+   una variable que NO EXISTE en ningún `:root` de este archivo (se usa en 25
+   sitios más). Cuando un `var()` no resuelve dentro de un atajo como `border`,
+   se cae la declaración ENTERA, y con ella el `solid`: sin estilo de borde no
+   se dibuja nada, así que no había línea que valiera. Aquí va con `--border`,
+   que sí existe y la traen los treinta y dos temas. */
 .set-sub {
   display: flex;
   flex-direction: column;
   gap: 1px;
   margin: 3px 0 5px 20px;
   padding-left: 10px;
-  border-left: 1px solid var(--line);
+  border-left: 1px solid var(--border);
+  /* Se despliega, no aparece de golpe: el movimiento es la mitad de lo que
+     hace que esto se lea como un desplegable y no como una lista que cambia.
+     Con `opacity` y `transform`, que son las dos que no obligan a recalcular
+     el desenfoque de los cristales de debajo. */
+  animation: set-sub-abre 0.18s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+@keyframes set-sub-abre {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .set-sub-item {
@@ -5190,6 +5213,32 @@ button.stat-card[data-live="false"] {
 .set-tab[data-on] svg {
   color: var(--accent);
   opacity: 1;
+}
+
+/* La flecha del desplegable, que es lo que le faltaba al índice para leerse
+   como uno (Munir, 2026-08-10: «no hay un desplegable como tal»). Los bloques
+   ya se desplegaban debajo del grupo abierto, pero nada decía CUÁLES de los
+   ocho nombres esconden algo: había que ir pulsando a ver.
+   De lado significa «aquí dentro hay más», y gira noventa grados al abrirse. La
+   llevan solo los grupos que de verdad se abren, así que su ausencia también
+   informa: Atajos, Modelo local y Discord son de una sola tarjeta. */
+.set-tab-chev {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  color: color-mix(in srgb, var(--text) 38%, transparent);
+  transition:
+    transform 0.18s cubic-bezier(0.3, 0.7, 0.4, 1),
+    color 0.12s ease;
+}
+
+.set-tab:hover .set-tab-chev {
+  color: color-mix(in srgb, var(--text) 70%, transparent);
+}
+
+.set-tab[data-on] .set-tab-chev {
+  transform: rotate(90deg);
+  color: var(--accent);
 }
 
 /* Solo el nombre. Llevaba debajo una línea explicando qué había dentro, y con
@@ -5611,6 +5660,17 @@ button.stat-card[data-live="false"] {
   .stream-toggle[data-on="true"]::after {
     animation: none;
     opacity: 0;
+  }
+
+  /* El desplegable del índice de Ajustes: sigue abriéndose, sin el deslizamiento
+     ni el giro de la flecha. La flecha se queda apuntando adonde tiene que
+     apuntar, que es lo que informa; lo que se va es cómo llega. */
+  .set-sub {
+    animation: none;
+  }
+
+  .set-tab-chev {
+    transition: color 0.12s ease;
   }
 }
 

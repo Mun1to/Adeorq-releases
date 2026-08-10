@@ -154,6 +154,32 @@ const SECCIONES = [
 
 type SeccionId = (typeof SECCIONES)[number]["id"];
 
+/**
+ * Cuántos bloques tiene cada grupo. Sirve para UNA cosa: saber si su nombre
+ * lleva flecha de desplegable estando CERRADO.
+ *
+ * Los bloques del grupo abierto se leen del DOM, que es lo correcto y no se
+ * toca; pero los cerrados no están pintados, así que no hay nada que contar y
+ * la flecha tenía que salir de algún sitio. Sin ella el índice no se lee como
+ * un desplegable: no dice cuáles se abren (Munir, 2026-08-10).
+ *
+ * Es una semilla, no una verdad: cada vez que abres un grupo se apunta aquí lo
+ * que de verdad tenía. Si alguien añade una tarjeta a un grupo de uno solo y se
+ * olvida de esta línea, lo único que pasa es que a ese grupo le falta la flecha
+ * hasta que lo abras una vez. El índice sigue sin poder mentir sobre lo que hay
+ * dentro, que era la condición.
+ */
+const CUANTOS: Record<string, number> = {
+  aspecto: 5,
+  terminales: 2,
+  avisos: 4,
+  atajos: 1,
+  modelo: 1,
+  discord: 1,
+  ayuda: 2,
+  adeorq: 3,
+};
+
 /** La última que miraste. Ajustes se abre muchas veces seguidas cuando estás
     afinando algo, y volver siempre a la primera obliga a rebuscar cada vez. */
 const RECUERDO = "adeorq-ajustes-seccion";
@@ -384,11 +410,13 @@ export default function SettingsView({
       setBloques([]);
       return;
     }
-    setBloques(
-      [...hoja.querySelectorAll("section.panel-card > h2")].map(
-        (h) => h.textContent?.trim() ?? "",
-      ),
+    const titulos = [...hoja.querySelectorAll("section.panel-card > h2")].map(
+      (h) => h.textContent?.trim() ?? "",
     );
+    setBloques(titulos);
+    // Y de paso se corrige la cuenta de este grupo, que es lo que decide si su
+    // nombre lleva flecha cuando está cerrado (ver CUANTOS).
+    CUANTOS[seccion] = titulos.length;
     // `lang` entra en las dependencias porque los títulos se traducen: sin él,
     // cambiar de idioma dejaría el índice en el anterior.
   }, [seccion, lang]);
@@ -483,30 +511,48 @@ export default function SettingsView({
             rejilla, y como una tenia dos botones y otra veinticuatro
             temas, la rejilla quedaba llena de huecos (Munir, 2026-07-30). */}
         <nav className="set-nav">
-          {SECCIONES.map((s) => (
-            <div key={s.id} className="set-grupo">
-              <button
-                className="set-tab"
-                data-on={seccion === s.id || undefined}
-                onClick={() => irA(s.id)}
-              >
-                <IconoSeccion id={s.id} />
-                <span className="set-tab-nom">{t(s.label)}</span>
-              </button>
-              {/* Los bloques del grupo abierto, y solo si hay más de uno: con
-                  uno solo, el desplegable repetiría el nombre del grupo justo
-                  debajo del grupo. */}
-              {seccion === s.id && bloques.length > 1 && (
-                <div className="set-sub">
-                  {bloques.map((b, i) => (
-                    <button key={`${b}-${i}`} className="set-sub-item" onClick={() => irABloque(i)}>
-                      {b}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+          {SECCIONES.map((s) => {
+            const abierto = seccion === s.id;
+            // Abierto manda el dato real; cerrado, la cuenta aprendida.
+            const despliega = abierto ? bloques.length > 1 : (CUANTOS[s.id] ?? 0) > 1;
+            return (
+              <div key={s.id} className="set-grupo">
+                <button
+                  className="set-tab"
+                  data-on={abierto || undefined}
+                  onClick={() => irA(s.id)}
+                >
+                  <IconoSeccion id={s.id} />
+                  <span className="set-tab-nom">{t(s.label)}</span>
+                  {/* La flecha, que es lo que convierte una lista de nombres en
+                      un desplegable: de lado dice «aquí dentro hay más», abajo
+                      dice «ya está abierto». Solo la llevan los que de verdad
+                      se abren, así que su ausencia también informa. */}
+                  {despliega && (
+                    <span className="set-tab-chev" aria-hidden="true">
+                      <ChevronIcon size={13} der />
+                    </span>
+                  )}
+                </button>
+                {/* Los bloques del grupo abierto, y solo si hay más de uno: con
+                    uno solo, el desplegable repetiría el nombre del grupo justo
+                    debajo del grupo. */}
+                {abierto && bloques.length > 1 && (
+                  <div className="set-sub">
+                    {bloques.map((b, i) => (
+                      <button
+                        key={`${b}-${i}`}
+                        className="set-sub-item"
+                        onClick={() => irABloque(i)}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Y la derecha: una sola seccion, a todo el ancho. */}

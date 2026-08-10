@@ -13,7 +13,7 @@ import {
   temaTermId,
   TEMAS_TERM,
 } from "../lib/temasTerm";
-import { guardarRendimiento, modoRendimiento } from "../lib/rendimiento";
+import { guardarRendimiento, prefRendimiento, type ModoRend } from "../lib/rendimiento";
 import {
   A_MANO,
   cerebroPorDefecto,
@@ -331,7 +331,11 @@ export default function SettingsView({
       hace falta para saber cuál sale marcado. */
   const [termTheme, setTermTheme] = useState(temaTermId);
   const [apagada, setApagada] = useState(apagon);
-  const [rapida, setRapida] = useState(modoRendimiento);
+  const [rapida, setRapida] = useState<ModoRend>(prefRendimiento);
+  /** Cuántas terminales hay abiertas ahora mismo, para decidir en el acto si el
+   *  ahorro se aplica ya. No hace falta que el padre la pase: la cuenta que
+   *  importa es la que ya está aplicada, y esa vive en el `<html>`. */
+  const abiertas = document.querySelectorAll(".pane-term").length;
   const [cerebro, setCerebro] = useState<ModelAlias | undefined>(cerebroPorDefecto);
   /** Qué familia de temas se está mirando, y qué se ha escrito para buscar.
       No se guardan: son de este rato delante de la pantalla, no un ajuste. */
@@ -643,24 +647,45 @@ export default function SettingsView({
                 {/* Justo debajo del apagón porque son la misma familia: los dos
                     cambian lo que se ve DETRÁS del texto. La diferencia es que
                     el apagón lo hace para leer mejor y este para gastar menos. */}
-                <label className="ajuste-fila mem-check apagon-fila">
-                  <input
-                    type="checkbox"
-                    checked={rapida}
-                    onChange={(e) => {
-                      guardarRendimiento(e.currentTarget.checked);
-                      setRapida(e.currentTarget.checked);
-                    }}
-                  />
-                  <span>
-                    <b>{t("Modo rendimiento")}</b>
-                    <span className="card-hint">
-                      {t(
-                        "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido: el motor gasta un 4 % y dibujarlo se lleva núcleo y medio. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.",
-                      )}
-                    </span>
+                {/* Tres opciones y no un sí/no, desde el 2026-08-09. El sí/no
+                    obligaba a elegir entre bonita y rápida de una vez para
+                    siempre, y la respuesta buena depende de lo que tengas
+                    abierto: con dos terminales el cristal no cuesta, con seis
+                    se nota al escribir. */}
+                <div className="setting-line">
+                  <b>{t("Modo rendimiento")}</b>
+                  <span className="card-hint">
+                    {t(
+                      "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido con TRES terminales: dibujarlo se lleva dos tercios de un núcleo, sin parar. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.",
+                    )}
                   </span>
-                </label>
+                  <div className="chip-row">
+                    {(
+                      [
+                        ["auto", "Automático", "El cristal se queda mientras va fino y se apaga solo al abrir la cuarta terminal. Al cerrarlas vuelve."],
+                        ["nunca", "Siempre bonita", "El cristal no se apaga nunca, tengas las terminales que tengas."],
+                        ["siempre", "Siempre rápida", "Sin cristal desde el primer momento, aunque no haga falta."],
+                      ] as Array<[ModoRend, string, string]>
+                    ).map(([id, label, tip]) => (
+                      <button
+                        key={id}
+                        className="choice"
+                        data-on={rapida === id}
+                        data-tip={t(tip)}
+                        onClick={() => {
+                          // Cuántas hay abiertas AHORA lo sabe App, no esta
+                          // pantalla: se le pregunta al DOM, que es donde vive
+                          // aplicada la decisión, y App la recalcula sola en
+                          // cuanto cambie el tablero.
+                          guardarRendimiento(id, abiertas);
+                          setRapida(id);
+                        }}
+                      >
+                        {t(label)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {/* Seis rayitas de color dentro de un chip no dicen cómo se va
                     a ver una terminal: dicen qué colores tiene. Cada esquema se
                     enseña como lo que es, cuatro líneas de terminal de verdad

@@ -46,7 +46,9 @@ import {
   DRAW_FONTS,
   DRAW_WIDTHS,
   OPACIDADES,
+  REJILLA,
   RELLENOS,
+  TRAMAS,
   alineados,
   cajaDe,
   cajaDeVarios,
@@ -66,12 +68,14 @@ import {
   type FontId,
   type Guion,
   type Punta,
+  type Trama,
   type Trazo,
 } from "../lib/trazos";
 import {
   BrowserIcon,
   ChatIcon,
   GalleryIcon,
+  GridIcon,
   KanbanIcon,
   NoteIcon,
   PencilIcon,
@@ -118,6 +122,44 @@ import type { Hit } from "../lib/redact";
 // META 5: the cockpit as a board. The grid stays untouched (it works and is
 // used daily); this is a second workspace where terminals can be placed freely
 // AND wired together, so one agent's result feeds the next one.
+
+/** Si dejaste puesta la rejilla del lienzo. */
+const REJILLA_KEY = "adeorq-lienzo-rejilla";
+
+/** En qué modo dejaste el lienzo. */
+const MODO_KEY = "adeorq-lienzo-modo";
+
+/**
+ * Los tres lienzos que caben en el lienzo (Munir, 2026-08-09).
+ *
+ * El tablero hace dos trabajos que casi nunca se hacen a la vez: dirigir
+ * agentes y pensar dibujando. Con las dos cosas siempre encima, la barra tiene
+ * diecisiete botones de los que en cada momento sobran diez, y basta un clic
+ * torcido para plantar una flecha cuando ibas a mover una terminal.
+ *
+ * · `terminales` es el tablero de trabajo: terminales y piezas (kanban, notas,
+ *   chat, relojes) y nada de dibujo. Los trazos no se borran, se guardan igual
+ *   y vuelven enteros al cambiar de modo: esto es una vista, no una papelera.
+ * · `dibujo` es la pizarra: todas las herramientas y todos los trazos. Las
+ *   piezas siguen viéndose, porque dibujar sirve justamente para anotarlas,
+ *   pero no se arrastran: con el lápiz en la mano, un arrastre es un trazo.
+ * · `todo` es lo de siempre, para quien lo quiera todo a la vez.
+ */
+export type ModoLienzo = "terminales" | "dibujo" | "todo";
+
+const MODOS: Array<{ id: ModoLienzo; label: string; tip: string }> = [
+  {
+    id: "terminales",
+    label: "Terminales",
+    tip: "Solo el trabajo: terminales y piezas, sin nada de dibujo. Tus trazos no se borran, vuelven al cambiar de modo.",
+  },
+  {
+    id: "dibujo",
+    label: "Dibujo",
+    tip: "La pizarra: todas las herramientas y tus trazos. Las piezas se ven para poder anotarlas, pero no se arrastran.",
+  },
+  { id: "todo", label: "Todo", tip: "Las dos cosas a la vez, como siempre." },
+];
 
 export interface CanvasPane {
   id: number;
@@ -251,7 +293,11 @@ interface TermData extends Record<string, unknown> {
 
 const NODE_W = 640;
 const NODE_H = 420;
-const GAP = 40;
+// Aquí vivía `GAP`, la separación entre piezas cuando las nuevas se colocaban
+// solas en filas de tres desde el origen. Se fue con esa forma de colocarlas
+// (2026-08-09): ahora nacen centradas en lo que estás mirando, así que no hay
+// ninguna fila que separar. Se quita en vez de dejarla por si acaso, que una
+// constante sin dueño es una pista falsa para el siguiente.
 
 /** Lo que mide una pieza. React Flow lo sabe una vez pintada (`measured`); si
     aún no lo está, manda lo que se le pidió, y si tampoco, el tamaño de casa. */
@@ -361,6 +407,27 @@ function Canvas({
   // Dibujo: la herramienta viva y lo ya dibujado. Los trazos son del lienzo y
   // no de un nodo, porque su gracia es rodear y unir varios a la vez.
   const [tool, setTool] = useState<DrawTool>("sel");
+  /**
+   * La rejilla: con ella puesta, todo cae en una casilla.
+   *
+   * El fondo del lienzo lleva desde siempre una cuadrícula de puntos pintada
+   * que no sujetaba nada, así que las piezas caían ENTRE los puntos: se veía
+   * una rejilla y no servía de nada. Ahora es de verdad, y usa el mismo paso
+   * que esos puntos (`REJILLA`), para que lo que ves y lo que pasa sean la
+   * misma cosa.
+   *
+   * Apagada de fábrica: es un cambio grande en cómo se siente mover algo, y
+   * eso se enciende queriendo. Se recuerda entre sesiones.
+   */
+  const [rejilla, setRejilla] = useState(
+    () => localStorage.getItem(REJILLA_KEY) === "1",
+  );
+  /** En cuál de los tres lienzos estás. Ver `MODOS` arriba. */
+  const [modo, setModo] = useState<ModoLienzo>(() => {
+    const g = localStorage.getItem(MODO_KEY);
+    return g === "terminales" || g === "dibujo" ? g : "todo";
+  });
+  const dibujable = modo !== "terminales";
   const [color, setColor] = useState(DRAW_COLORS[0]);
   const [grosor, setGrosor] = useState(DRAW_WIDTHS[1]);
   /** Dibujar con halo: lo que le gustó del resaltado de la selección, pero
@@ -376,6 +443,12 @@ function Canvas({
   /** Si lo próximo se dibuja a mano alzada. Nace apagado a propósito: encenderlo
       de fábrica cambiaría el aspecto de todos los tableros que ya existen. */
   const [rugoso, setRugoso] = useState(false);
+  /** Con qué se rellena lo próximo: macizo, rayado o cruzado (Excalidraw). */
+  const [trama, setTrama] = useState<Trama>("macizo");
+  /** Si lo próximo sale con las esquinas vivas en vez de redondeadas. */
+  const [vivas, setVivas] = useState(false);
+  /** Si la próxima línea o flecha sale curva en vez de recta. */
+  const [curva, setCurva] = useState(false);
   const [fuenteId, setFuenteId] = useState<FontId>("app");
   /** El trazo cogido con la flecha, si hay alguno. */
   const [selTrazo, setSelTrazo] = useState<string | null>(null);
@@ -487,6 +560,30 @@ function Canvas({
 
   const splitRef = useRef<(id: number) => void>(() => {});
 
+  /**
+   * Dónde nace una pieza nueva: centrada en lo que la cámara enseña ahora.
+   *
+   * `n` solo sirve para escalonarla un poco. Sin eso, abrir tres seguidas sin
+   * tocar el lienzo las dejaría exactamente una encima de otra y parecería que
+   * solo se abrió una, que es el mismo fallo del que venimos con otra cara.
+   */
+  const centroDeLaVista = useCallback(
+    (n: number) => {
+      const caja = hoja.current?.getBoundingClientRect();
+      const escalon = (n % 4) * 28;
+      if (!caja) return { x: escalon, y: escalon };
+      const c = flow.screenToFlowPosition({
+        x: caja.left + caja.width / 2,
+        y: caja.top + caja.height / 2,
+      });
+      // Del CENTRO de la pieza, no de su esquina: si se colocara la esquina en
+      // el centro de la pantalla, media terminal quedaría fuera por abajo y por
+      // la derecha, que era casi el mismo problema en pequeño.
+      return { x: c.x - NODE_W / 2 + escalon, y: c.y - NODE_H / 2 + escalon };
+    },
+    [flow],
+  );
+
   const place = useCallback(
     (
       kind: SpawnKind,
@@ -496,14 +593,18 @@ function Canvas({
     ): CanvasPane => {
       const pane = onCreate(kind, p, propio);
       setNodes((prev) => {
-        // Lay new nodes out in rows of three so they never land on top of
-        // each other; from there it is all drag and drop. Al importar un
-        // lienzo la posición viene dada: ahí manda el archivo.
-        const i = prev.length;
-        const position = en ?? {
-          x: (i % 3) * (NODE_W + GAP),
-          y: Math.floor(i / 3) * (NODE_H + GAP),
-        };
+        /* Nace EN EL CENTRO DE LO QUE ESTÁS MIRANDO. Al importar un lienzo la
+           posición viene dada: ahí manda el archivo.
+
+           ⚠ Antes se colocaban en filas de tres contando desde el origen
+           (`x: (i%3)*ancho, y: floor(i/3)*alto`), y eso solo funciona mientras
+           nadie mueva nada. En el lienzo de Munir, con doce piezas repartidas
+           entre y=-969 e y=382, la siguiente le salía en y=1840: mil
+           cuatrocientos píxeles por debajo de lo más bajo que tenía. La
+           terminal se abría perfectamente y él no la veía, así que parecía que
+           el botón no hacía nada (2026-08-09). Un contador no sabe dónde estás
+           mirando; la cámara sí. */
+        const position = en ?? centroDeLaVista(prev.length);
         // Anotado a mano: con el estado ya en unión (terminales + widgets),
         // un literal suelto haría que TypeScript fundiese los dos `data` y no
         // encajaría en ninguno de los dos.
@@ -1625,11 +1726,48 @@ ${ruta}` : ruta;
     );
   }, [rugoso, retocarSel]);
 
+  /** Macizo → rayado → cruzado → macizo. Un botón que rota, como el guion y la
+      opacidad: son tres estados y un desplegable para tres es un clic de más. */
+  const usarTrama = useCallback(() => {
+    const siguiente = TRAMAS[(TRAMAS.indexOf(trama) + 1) % TRAMAS.length];
+    setTrama(siguiente);
+    // El rayado y el cruzado los calcula RoughJS, que es aleatorio: sin dado
+    // propio, dos cajas rayadas saldrían con las rayas EXACTAMENTE iguales, que
+    // es justo lo que delata que no está dibujado a mano. Mismo motivo que el
+    // trazo de boceto de aquí arriba.
+    retocarSel({
+      trama: siguiente,
+      ...(siguiente === "macizo" ? null : { seed: Math.floor(Math.random() * 2 ** 31) }),
+    });
+  }, [trama, retocarSel]);
+
+  /** Esquinas vivas o redondeadas, en recuadros y rombos. */
+  const usarVivas = useCallback(() => {
+    const siguiente = !vivas;
+    setVivas(siguiente);
+    retocarSel({ vivas: siguiente || undefined });
+  }, [vivas, retocarSel]);
+
+  /** Recta o curva, en líneas y flechas. */
+  const usarCurva = useCallback(() => {
+    const siguiente = !curva;
+    setCurva(siguiente);
+    retocarSel({ curva: siguiente || undefined });
+  }, [curva, retocarSel]);
+
   /** Si lo que hay cogido admite relleno: entonces el botón sale aunque la
       herramienta sea la flecha, que es como se le cambia el fondo a una caja
       que ya está dibujada. */
   const rellenable = useMemo(
     () => trazosCogidos.some((s) => s.t === "caja" || s.t === "rombo" || s.t === "elipse"),
+    [trazosCogidos],
+  );
+
+  /** Si lo cogido tiene esquinas que redondear. La elipse queda fuera a
+      propósito: no las tiene, y ofrecer el botón sería prometer algo que no
+      va a pasar. */
+  const esquinable = useMemo(
+    () => trazosCogidos.some((s) => s.t === "caja" || s.t === "rombo"),
     [trazosCogidos],
   );
 
@@ -1765,6 +1903,9 @@ ${ruta}` : ruta;
       opacidad: s.opacidad,
       guion: s.guion,
       rugoso: s.rugoso,
+      trama: s.trama,
+      vivas: s.vivas,
+      curva: s.curva,
       font: s.font,
       puntaDe: s.puntaDe,
       puntaA: s.puntaA,
@@ -2947,7 +3088,31 @@ ${ruta}` : ruta;
           </button>
         </div>
 
+        {/* Los tres lienzos. Va ANTES de las herramientas porque decide cuáles
+            de ellas existen: primero eliges a qué vienes, luego con qué. */}
+        <div className="cb-group cb-modos">
+          {MODOS.map((m) => (
+            <button
+              key={m.id}
+              className="cb-modo"
+              data-on={modo === m.id}
+              data-tip={t(m.tip)}
+              onClick={() => {
+                setModo(m.id);
+                localStorage.setItem(MODO_KEY, m.id);
+                // Al entrar en «terminales» la herramienta vuelve a la mano: si
+                // te quedaste con el lápiz cogido, al volver a «dibujo» te
+                // encontrarías dibujando sin haberlo pedido.
+                if (m.id === "terminales") setTool("sel");
+              }}
+            >
+              {t(m.label)}
+            </button>
+          ))}
+        </div>
+
         {/* Dibujo: flechas y notas encima del tablero, no dentro de un nodo. */}
+        {dibujable && (
         <div className="cb-group cb-tools">
           {DRAW_TOOLS.map((h) => {
             // La mano se llama "sel" como herramienta y "mano" como acción;
@@ -2965,6 +3130,31 @@ ${ruta}` : ruta;
               </button>
             );
           })}
+        </div>
+        )}
+
+        {/* La rejilla va en su propio grupo y NO con las herramientas de
+            dibujo, aunque naciera ahí: coloca terminales igual que coloca
+            trazos, así que en el modo «terminales» tiene que seguir estando.
+            Y no es una herramienta: no se «coge», cambia cómo se comportan
+            todas las demás. */}
+        <div className="cb-group">
+          <button
+            className="cb-tool"
+            data-on={rejilla}
+            data-tip={
+              rejilla
+                ? t("Rejilla puesta: todo cae en una casilla. Púlsalo para moverlo libre otra vez.")
+                : t("Poner la rejilla: lo que muevas cae en la casilla más cercana, terminales y dibujo. Los puntos del fondo son las casillas.")
+            }
+            onClick={() => {
+              const v = !rejilla;
+              setRejilla(v);
+              localStorage.setItem(REJILLA_KEY, v ? "1" : "0");
+            }}
+          >
+            <GridIcon size={15} />
+          </button>
         </div>
 
         <div className="cb-group">
@@ -3013,7 +3203,7 @@ ${ruta}` : ruta;
           </span>
           {tool !== "goma" && (
             <>
-              <span className="cb-div" />
+              <span className="cp-grupo">{t("Color")}</span>
               {DRAW_COLORS.map((c) => (
                 <button
                   key={c}
@@ -3033,7 +3223,7 @@ ${ruta}` : ruta;
                   onChange={(e) => usarColor(e.currentTarget.value)}
                 />
               </label>
-              <span className="cb-div" />
+              <span className="cp-grupo">{t("Grosor")}</span>
               {DRAW_WIDTHS.map((w) => (
                 <button
                   key={w}
@@ -3049,7 +3239,7 @@ ${ruta}` : ruta;
                   flecha no significa nada y sería un botón muerto. */}
               {(tool === "texto" || trazos.find((x) => x.id === selTrazo)?.t === "texto") && (
                 <>
-                  <span className="cb-div" />
+                  <span className="cp-grupo">{t("Tipografía")}</span>
                   <button
                     className="cp-font"
                     data-tip={t("Tipografía")}
@@ -3081,7 +3271,7 @@ ${ruta}` : ruta;
                   tuvieras puesta, así que con el lápiz en la mano la barra se
                   veía igual que antes de que existieran y parecía que no
                   estaban. Un botón apagado se aprende; uno que no está, no. */}
-              <span className="cb-div" />
+              <span className="cp-grupo">{t("Relleno")}</span>
               <button
                 className="cp-fill"
                 data-on={relleno > 0}
@@ -3118,7 +3308,68 @@ ${ruta}` : ruta;
                   />
                 </svg>
               </button>
-              <span className="cb-div" />
+              {/* Con qué se pinta el relleno: macizo, rayado o cruzado. Solo
+                  tiene sentido cuando hay relleno, así que se apaga sin él en
+                  vez de dejarte pulsar algo que no cambia nada. */}
+              <button
+                className="cp-btn"
+                data-on={trama !== "macizo"}
+                disabled={
+                  !relleno || !(tool === "caja" || tool === "rombo" || tool === "elipse" || rellenable)
+                }
+                data-tip={t("Relleno: macizo, rayado o cruzado")}
+                onClick={usarTrama}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <rect x="2" y="3.5" width="12" height="9" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                  {trama !== "macizo" && (
+                    <path d="M3.4 11 L6.4 4.8 M6.6 11.6 L9.6 5 M9.9 11.9 L12.6 6" stroke="currentColor" strokeWidth="1" fill="none" />
+                  )}
+                  {trama === "cruzado" && (
+                    <path d="M3.4 6 L6.1 11.9 M6.4 4.9 L9.6 11.7 M9.9 5 L12.6 10.8" stroke="currentColor" strokeWidth="1" fill="none" />
+                  )}
+                  {trama === "macizo" && <rect x="4" y="5.5" width="8" height="5" fill="currentColor" opacity="0.75" />}
+                </svg>
+              </button>
+              {/* Esquinas vivas o redondeadas. La elipse no entra: no tiene
+                  esquinas que redondear. */}
+              <span className="cp-grupo">{t("Forma")}</span>
+              <button
+                className="cp-btn"
+                data-on={vivas}
+                disabled={!(tool === "caja" || tool === "rombo" || esquinable)}
+                data-tip={t("Esquinas: redondeadas o vivas")}
+                onClick={usarVivas}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <path
+                    d={vivas ? "M3 13 V4 H13" : "M3 13 V7 a3 3 0 0 1 3 -3 H13"}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+              <span className="cp-grupo">{t("Línea")}</span>
+              {/* Recta o curva, solo para líneas y flechas. */}
+              <button
+                className="cp-btn"
+                data-on={curva}
+                disabled={!(tool === "linea" || tool === "flecha" || conPuntas)}
+                data-tip={t("Línea recta o curva")}
+                onClick={usarCurva}
+              >
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <path
+                    d={curva ? "M2 12 C5 12 5 4 8 4 S11 12 14 12" : "M2 12 L14 4"}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
               {/* El patrón de la línea: entera, a guiones, a puntos. El botón
                   enseña el que viene, que es más rápido de leer que un nombre. */}
               <button
@@ -3142,6 +3393,7 @@ ${ruta}` : ruta;
               </button>
               {/* Lo transparente que va TODO, borde incluido: es lo que
                   convierte una caja en una marca de agua sobre una terminal. */}
+              <span className="cp-grupo">{t("Transparencia")}</span>
               <button
                 className="cp-fill"
                 data-on={opacidad < 1}
@@ -3190,7 +3442,7 @@ ${ruta}` : ruta;
                   </svg>
                 </button>
               )}
-              <span className="cb-div" />
+              <span className="cp-grupo">{t("Efecto")}</span>
               {/* El halo. Se pinta con el color que tengas puesto, así que el
                   botón enseña justo cómo va a quedar. */}
               <button
@@ -3201,7 +3453,7 @@ ${ruta}` : ruta;
               >
                 <span style={{ background: color, boxShadow: `0 0 6px ${color}, 0 0 12px ${color}` }} />
               </button>
-              <span className="cb-div" />
+              <span className="cp-grupo">{t("Al dibujar")}</span>
               {tool !== "sel" && (
                 <button
                   className="cp-btn"
@@ -3280,7 +3532,7 @@ ${ruta}` : ruta;
                   </button>
                 </>
               )}
-              <span className="cb-div" />
+              <span className="cp-grupo">{t("Orden")}</span>
               <button
                 className="cp-btn"
                 data-tip={t("Traer al frente")}
@@ -3301,7 +3553,7 @@ ${ruta}` : ruta;
                   <rect x="5.5" y="5.5" width="8" height="8" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.3" opacity="0.45" />
                 </svg>
               </button>
-              <span className="cb-div" />
+              <span className="cp-grupo">{t("Acciones")}</span>
               <button
                 className="cp-btn"
                 data-tip={conTecla(t("Borrar lo seleccionado"), "borrar")}
@@ -3443,7 +3695,15 @@ ${ruta}` : ruta;
           // significar dos cosas: aquí manda el trazo y el lienzo se queda
           // quieto. La rueda sigue haciendo zoom, que nunca estorba.
           panOnDrag={tool === "sel"}
-          nodesDraggable={tool === "sel"}
+          // En «dibujo» las piezas se ven pero no se cogen: con el lápiz en la
+          // mano, un arrastre encima de una terminal es un trazo y no una
+          // mudanza. En los otros dos modos manda la herramienta, como siempre.
+          nodesDraggable={tool === "sel" && modo !== "dibujo"}
+          // La rejilla para las terminales la trae React Flow de serie, así que
+          // aquí no hay cuenta que hacer: solo decirle el paso, que es el mismo
+          // con el que el fondo pinta sus puntos.
+          snapToGrid={rejilla}
+          snapGrid={[REJILLA, REJILLA]}
           selectionOnDrag={false}
           minZoom={0.3}
           maxZoom={1.4}
@@ -3451,7 +3711,21 @@ ${ruta}` : ruta;
           proOptions={{ hideAttribution: true }}
           fitView
         >
-          <Background variant={BackgroundVariant.Dots} gap={26} size={1} />
+          {/* El paso sale de `REJILLA` y no de un 26 escrito aquí: estos puntos
+              son la promesa de dónde van a caer las cosas, así que tienen que
+              ser el MISMO número que las sujeta. Con la rejilla puesta se ven
+              un poco más, porque entonces dejan de ser decoración. */}
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={REJILLA}
+            size={rejilla ? 1.6 : 1}
+          />
+          {/* La capa de dibujo entera desaparece en «terminales». No se pinta
+              vacía ni transparente: no se monta, así que ni los trazos se ven
+              ni su capa se come un solo clic. Los trazos siguen en su sitio, en
+              memoria y en el archivo, y vuelven enteros al cambiar de modo:
+              esto es una vista, no una papelera (Munir, 2026-08-09). */}
+          {dibujable && (
           <CanvasDraw
             tool={tool}
             color={color}
@@ -3459,6 +3733,10 @@ ${ruta}` : ruta;
             glow={glow}
             relleno={relleno}
             rugoso={rugoso}
+            trama={trama}
+            vivas={vivas}
+            curva={curva}
+            rejilla={rejilla}
             cajasNodos={cajasNodos}
             font={fuenteId}
             trazos={trazos}
@@ -3475,6 +3753,7 @@ ${ruta}` : ruta;
             onCambiarVarios={cambiarVarios}
             onMoverNodos={moverNodosSel}
           />
+          )}
           <MiniMap pannable zoomable className="canvas-map" />
           <Controls showInteractive={false} />
         </ReactFlow>

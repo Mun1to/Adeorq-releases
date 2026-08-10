@@ -115,7 +115,7 @@ import { fotoRapida } from "./lib/mundo";
 import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
 import { apagon, aplicarApagon } from "./lib/temasTerm";
-import { aplicarRendimiento, modoRendimiento } from "./lib/rendimiento";
+import { aplicarRendimiento, debeAhorrar, prefRendimiento } from "./lib/rendimiento";
 import { powershellCommand, sessionIdOf, shellCommand } from "./lib/comandos";
 import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
@@ -465,6 +465,10 @@ function App() {
       antes de que la primera terminara de guardar y se perdía una de las dos. */
   const uiStateChain = useRef(Promise.resolve());
   const [view, setView] = useState<View>("panel");
+  /** La vista de ahora, para quien la necesita sin querer volver a crearse cada
+   *  vez que cambias de pestaña. La lee `addPane` para saber dónde estás. */
+  const viewRef = useRef<View>("panel");
+  viewRef.current = view;
   const [panes, setPanes] = useState<Pane[]>([]);
   /**
    * Los grupos apartados: sus terminales no se ven en la Cabina, pero siguen
@@ -756,10 +760,25 @@ function App() {
   // dejó encendido ayer no tiene que volver a Ajustes hoy.
   useEffect(() => {
     aplicarApagon(apagon());
-    // Igual que el apagón: la marca vive en `<html>` y hay que ponerla al
-    // arrancar, o el ajuste se pierde entre sesiones.
-    aplicarRendimiento(modoRendimiento());
   }, []);
+
+  /**
+   * El cristal, encendido o apagado según lo que tengas abierto.
+   *
+   * Se recalcula con CADA cambio del tablero y no solo al arrancar, porque el
+   * modo de fábrica es automático: la app tiene que apagar el cristal cuando
+   * abres la cuarta terminal y devolvértelo al cerrarla. Cuentan las de la
+   * cabina Y las del lienzo, que pintan las mismas capas de cristal y cuestan
+   * exactamente lo mismo.
+   *
+   * Quién decide es `debeAhorrar`, que es puro y está comprobado en
+   * `scripts/rendimiento-check.ts`. Aquí solo se cuenta y se aplica.
+   */
+  useEffect(() => {
+    aplicarRendimiento(
+      debeAhorrar(prefRendimiento(), panes.length + canvasPanes.length),
+    );
+  }, [panes.length, canvasPanes.length]);
 
   useEffect(() => {
     localStorage.setItem(LANG_KEY, lang);
@@ -918,6 +937,27 @@ function App() {
     ) => {
       const id = nextId.current++;
       const { env, etiqueta } = entornoDePane(command, account);
+
+      /* Estando en el LIENZO, la terminal nace en el lienzo.
+         Antes esto acababa siempre en `setView("cabina")`, así que pulsar
+         «✦ Claude» mientras trabajabas en el tablero te sacaba de él y dejaba
+         allí solo su tarjeta del kanban, que es lo que Munir preguntó
+         (2026-08-09: «¿por qué solo se me abren en el kanban?»). Un botón de
+         abrir no tiene por qué mudarte de sitio: abre donde estás mirando.
+
+         Dos excepciones, y las dos por lo mismo (allí ese panel no existiría):
+         · `at` es partir OTRO panel en dos, y eso es del mosaico de la cabina;
+         · `team` es un puesto de cuadrilla, y el tablero que las agrupa y las
+           cuenta vive en la cabina. Abrir media cuadrilla en cada vista sería
+           partirla por donde nadie la puede ver entera. */
+      if (viewRef.current === "lienzo" && !at && !team) {
+        setCanvasPanes((prev) => [
+          ...prev,
+          { id, cwd, name, command, env, account: etiqueta },
+        ]);
+        return;
+      }
+
       setPanes((prev) => [
         ...prev,
         { id, cwd, name, command, env, account: etiqueta, team, shadow, grupo },

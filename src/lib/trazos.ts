@@ -35,6 +35,20 @@ export type Guion = "solido" | "guiones" | "puntos";
 /** Qué lleva cada extremo de una flecha o una línea. */
 export type Punta = "nada" | "flecha" | "triangulo";
 
+/**
+ * CÓMO se pinta el relleno de una figura, no cuánto (eso es `relleno`).
+ *
+ * Es lo que en Excalidraw se llama «fill style», y lo que hace que un boceto
+ * parezca dibujado a mano en vez de pintado por un ordenador. Las rayas y el
+ * cruzado los calcula RoughJS, que ya estaba en el proyecto para el trazo
+ * tembloroso, así que esto no trae ninguna dependencia nueva.
+ *
+ * `macizo` es lo de siempre y por eso es lo que vale cuando no hay nada puesto:
+ * los trazos que ya estén guardados no cambian de aspecto al actualizar.
+ */
+export type Trama = "macizo" | "rayado" | "cruzado";
+export const TRAMAS: Trama[] = ["macizo", "rayado", "cruzado"];
+
 export interface Trazo {
   id: string;
   t: (typeof FIGURAS)[number];
@@ -75,6 +89,21 @@ export interface Trazo {
   anclaA?: Ancla;
   /** Dibujado a mano alzada, con el trazo tembloroso de un boceto. */
   rugoso?: boolean;
+  /** Con qué se pinta el relleno cuando lo hay. Sin poner = `macizo`, que es
+      como se pintaba todo antes de que esto existiera. */
+  trama?: Trama;
+  /** Esquinas VIVAS en un recuadro o un rombo. Sin poner = redondeadas, que es
+      lo que hacía siempre y por tanto lo que ya tienen los trazos guardados.
+      No afecta a la elipse, que no tiene esquinas que redondear. */
+  vivas?: boolean;
+  /** La línea o la flecha van CURVAS en vez de rectas.
+   *
+   *  Pasa por los mismos puntos que la recta: lo único que cambia es el camino
+   *  entre ellos. Y eso es a propósito, porque el resto del sistema (dónde se
+   *  ancla a una terminal, dónde caen las puntas, qué se puede pinchar para
+   *  cogerla) sigue midiendo sobre esos puntos. Una curva que además moviera
+   *  los extremos obligaría a rehacer las cuatro cosas a la vez. */
+  curva?: boolean;
   /** El dado de ese temblor.
    *
    *  Se guarda, y esto no es opcional: RoughJS es aleatorio, así que sin un
@@ -128,6 +157,34 @@ export interface Caja {
  * estorbar cuando de verdad quieres poner algo torcido.
  */
 export const IMAN = 8;
+
+/**
+ * El lado de la casilla de la rejilla, en unidades del lienzo.
+ *
+ * 26 y no un número redondo porque es EXACTAMENTE el paso con el que el fondo
+ * del lienzo pinta sus puntos desde que existe (`<Background gap>`). Esa rejilla
+ * ya estaba dibujada y no sujetaba nada: se veía una cuadrícula y las cosas
+ * caían entre los puntos, que es la peor combinación posible. Con el mismo
+ * número, lo que ves y lo que pasa son la misma cosa.
+ *
+ * ⚠ Si algún día se cambia aquí, hay que cambiarlo también en el `<Background>`
+ * de `CanvasView`, o vuelven a mentirse el uno al otro.
+ */
+export const REJILLA = 26;
+
+/**
+ * El múltiplo de la rejilla más cercano.
+ *
+ * A diferencia de `imantar`, esta NO tiene umbral: con la rejilla puesta, todo
+ * cae en una casilla siempre, que es lo que Munir eligió sabiendo lo que
+ * implica («todo encaja en la cuadrícula, quieras o no», 2026-08-09). Para
+ * colocar algo entre dos casillas están las flechas del teclado y la tecla de
+ * escape del imán.
+ */
+export function aRejilla(v: number, paso: number = REJILLA): number {
+  if (!Number.isFinite(v) || paso <= 0) return v;
+  return Math.round(v / paso) * paso;
+}
 
 /**
  * Cuánto se puede fallar apuntando a un trazo, en píxeles de PANTALLA.
@@ -636,4 +693,45 @@ export function desempaquetar(txt: string, dx = 0, dy = 0): Trazo[] {
     }
     return copia;
   });
+}
+
+/**
+ * El camino SVG de una línea o flecha CURVA.
+ *
+ * Pasa por los mismos puntos que la recta; lo único que cambia es cómo va de
+ * uno a otro. Es Catmull-Rom convertido a Bézier cúbica, que es la receta de
+ * toda la vida para «una curva suave que pase por estos puntos» y la que usa
+ * Excalidraw por debajo. La tensión de 6 es la estándar: más alta aplana la
+ * curva hasta parecer recta, más baja la abomba y la línea se sale por fuera de
+ * los puntos que tú has puesto.
+ *
+ * Con dos puntos no hay nada que curvar (por dos puntos pasa una sola recta),
+ * así que devuelve la recta y no finge una curva que no existe.
+ */
+export function caminoCurvo(p: number[]): string {
+  const n = Math.floor(p.length / 2);
+  if (n < 2) return "";
+  const en = (i: number): [number, number] => {
+    const j = Math.min(Math.max(i, 0), n - 1);
+    return [p[j * 2], p[j * 2 + 1]];
+  };
+  if (n === 2) {
+    const [x1, y1] = en(0);
+    const [x2, y2] = en(1);
+    return `M${x1} ${y1} L${x2} ${y2}`;
+  }
+  const [x0, y0] = en(0);
+  let d = `M${x0} ${y0}`;
+  for (let i = 0; i < n - 1; i++) {
+    const [xa, ya] = en(i - 1);
+    const [xb, yb] = en(i);
+    const [xc, yc] = en(i + 1);
+    const [xd, yd] = en(i + 2);
+    const c1x = xb + (xc - xa) / 6;
+    const c1y = yb + (yc - ya) / 6;
+    const c2x = xc - (xd - xb) / 6;
+    const c2y = yc - (yd - yb) / 6;
+    d += ` C${c1x} ${c1y} ${c2x} ${c2y} ${xc} ${yc}`;
+  }
+  return d;
 }

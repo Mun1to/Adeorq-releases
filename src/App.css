@@ -7682,6 +7682,44 @@ button.stat-card[data-live="false"] {
   color: #f7fbff;
 }
 
+/* Los tres lienzos: un selector de tres, no tres botones sueltos.
+   Van dentro de una misma pastilla hundida y solo uno está encendido, que es la
+   forma de decir «elige uno» sin escribirlo. Si fueran tres botones normales se
+   leerían como tres acciones que se pueden pulsar a la vez, y no lo son. */
+.cb-modos {
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.cb-modo {
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.cb-modo:hover {
+  color: var(--text);
+}
+
+.cb-modo[data-on="true"] {
+  color: var(--text);
+  /* Sólido y no un tinte con alfa: es la pastilla que va encima de otra
+     superficie ya translúcida, y ahí el texto pierde el suavizado de Windows
+     (ver la regla de `.session-row`). */
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
 .cb-tool {
   display: inline-flex;
   align-items: center;
@@ -7713,20 +7751,84 @@ button.stat-card[data-live="false"] {
 
 /* Segunda fila: color y grosor solo existen mientras hay una herramienta
    puesta, así que la barra no carga con ellos el resto del tiempo. */
+/* Los ajustes del trazo: un PANEL de pie a la izquierda, con sus grupos
+   titulados. Estilo Excalidraw, y por el mismo motivo que ellos.
+
+   Era una tira horizontal pegada bajo la barra de herramientas, y ahí no cabía:
+   veinte controles en una línea, sin una sola etiqueta, así que había que
+   pasar el ratón por encima de cada icono para saber qué era, uno a uno, cada
+   vez (Munir, 2026-08-09: «más intuitivo, como el de Excalidraw»). De pie hay
+   sitio para escribir «Color», «Grosor» o «Relleno» encima de cada fila, que es
+   lo único que hacía falta para no tener que adivinar.
+
+   Va FLOTANDO y no en el flujo: en la tira, aparecer y desaparecer empujaba el
+   lienzo entero hacia abajo y hacia arriba cada vez que cogías o soltabas algo,
+   y con él todas las terminales. */
 .canvas-props {
+  position: absolute;
+  left: 10px;
+  /* ⚠ POR DEBAJO DE LA BARRA. `.canvas-wrap` empieza arriba del todo, así que un
+     `top` pequeño mete el panel encima de los botones del lienzo y los tapa
+     (Munir, 2026-08-09, con «Terminal» y «Antigravity» medio comidos). Este
+     número es el alto de `.canvas-bar` más un dedo de aire. */
+  top: 56px;
+  z-index: 6;
+  width: 186px;
+  max-height: calc(100% - 68px);
+  overflow-y: auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--accent) 10%, var(--topbar));
+  gap: 4px;
+  padding: 9px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  /* Opaca: se posa sobre las terminales y sobre la foto de la casa, y encima
+     lleva texto pequeño, que sobre un fondo con alfa pierde el suavizado de
+     Windows (ver la regla de `.session-row`). */
+  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  box-shadow: var(--glass-edge), 0 12px 34px rgba(0, 0, 0, 0.4);
 }
 
+/* El nombre de lo que estás ajustando, arriba del todo y a lo ancho. */
 .cp-title {
+  flex-basis: 100%;
+  margin-bottom: 2px;
   color: var(--text);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 650;
   letter-spacing: 0.2px;
+}
+
+/* El título de cada grupo. Ocupa la fila entera, así que además de nombrar el
+   grupo es lo que hace que los botones de abajo empiecen en una línea nueva:
+   aquí no hace falta envolver cada grupo en su div. */
+.cp-grupo {
+  flex-basis: 100%;
+  /* Pegado a SU fila y despegado de la de arriba: un título a la misma
+     distancia de los dos grupos no dice de cuál es. */
+  margin: 8px 0 1px;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.75;
+}
+
+/* El primero no necesita separarse de nada: encima solo está el título. */
+.cp-grupo:first-of-type {
+  margin-top: 2px;
+}
+
+/* «Listo» cierra el panel, así que va SOLO y al final, no en la misma fila que
+   los botones de deshacer: es la única acción que se lleva el panel entero. */
+.canvas-props .cp-done {
+  flex-basis: 100%;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  text-align: center;
 }
 
 .cp-color {
@@ -7957,6 +8059,38 @@ button.stat-card[data-live="false"] {
 .react-flow__node:hover .react-flow__handle {
   opacity: 1;
   transform: scale(1.15);
+}
+
+/* Lo que está fuera de la pantalla NO se pinta.
+ *
+ * Medido en el equipo de Munir el 2026-08-09 con el tablero lleno: el motor de
+ * Adeorq al 0,3 % de CPU y el WebView en veinte procesos con 1,8 GB. El trabajo
+ * no cuesta nada; lo que cuesta es dibujar, y se estaba dibujando TODO el
+ * tablero, incluidas las piezas que quedan fuera de la vista. Con doce piezas
+ * repartidas por un lienzo enorme, eso es la mayor parte del gasto.
+ *
+ * ⚠ Y se hace desde CSS a propósito, NO con el `onlyRenderVisibleElements` de
+ * React Flow, que es lo que parece la respuesta y habría sido un desastre: ese
+ * DESMONTA los nodos que salen de la vista, y al desmontarse un `TerminalPane`
+ * llama a `killPty` en su limpieza. O sea que mover el lienzo habría MATADO a
+ * los agentes que salieran por el borde. `content-visibility` no desmonta nada:
+ * el nodo sigue en el DOM, el PTY sigue vivo y el navegador solo se salta el
+ * trabajo de pintarlo.
+ *
+ * `contain-intrinsic-size` es obligatorio y no es un adorno: sin él, una pieza
+ * que no se pinta mide cero, y el tablero entero se recolocaría cada vez que
+ * una entra o sale de la vista. Son las medidas con las que nacen las piezas.
+ */
+.react-flow__node {
+  content-visibility: auto;
+  contain-intrinsic-size: 640px 420px;
+}
+
+/* Menos la que estás arrastrando o tienes cogida: ahí no se puede saltar ni un
+   fotograma, y además siempre está a la vista por definición. */
+.react-flow__node.dragging,
+.react-flow__node.selected {
+  content-visibility: visible;
 }
 
 .react-flow__handle:hover {

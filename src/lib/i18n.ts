@@ -476,8 +476,18 @@ const EN: Record<string, string> = {
   "Que decida Adeorq": "Let Adeorq decide",
   "De fábrica decide Adeorq, mirando lo que exige cada tarea: un renombrado va en haiku y una auditoría en opus. Aquí puedes fijar uno para todo, si prefieres gastar de otra manera. Dos cosas que sigue haciendo igual: la cuota manda (con la semana agotada se abarata lo que se pueda), y una tarea de juicio NO se abarata nunca, porque un ajuste que se pone una vez no puede decidir meses después que una auditoría de seguridad se haga con el modelo barato.":
     "Out of the box Adeorq decides, looking at what each job demands: a rename goes to haiku, an audit to opus. Here you can pin one for everything, if you would rather spend differently. Two things stay the same: quota rules (with the week spent, whatever can be made cheaper is), and a judgement job is NEVER made cheaper, because a setting you pin once cannot decide months later that a security audit runs on the cheap model.",
-  "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido: el motor gasta un 4 % y dibujarlo se lleva núcleo y medio. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.":
-    "Less glass and solid terminals, for when you have several agents working at once. Adeorq stacks thirty glass surfaces over your photo and the terminals are transparent so you can see it: that is the pretty part and that is the expensive part. Measured: the engine uses 4% and drawing it eats a core and a half. It changes nothing about what Adeorq does, only what it spends painting it.",
+  "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido con TRES terminales: dibujarlo se lleva dos tercios de un núcleo, sin parar. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.":
+    "Less glass and solid terminals, for when you have several agents working at once. Adeorq stacks thirty glass surfaces over your photo and the terminals are transparent so you can see it: that is the pretty part and that is the expensive part. Measured with THREE terminals: drawing it eats two thirds of a core, non-stop. It changes nothing about what Adeorq does, only what it spends painting it.",
+  // Los tres modos del rendimiento, desde que dejó de ser un sí/no (2026-08-09).
+  // «Automático» a secas ya vive con los modos de permisos, así que no se repite.
+  "Siempre bonita": "Always pretty",
+  "Siempre rápida": "Always fast",
+  "El cristal se queda mientras va fino y se apaga solo al abrir la cuarta terminal. Al cerrarlas vuelve.":
+    "The glass stays while things run smoothly and switches itself off when you open the fourth terminal. Close them and it comes back.",
+  "El cristal no se apaga nunca, tengas las terminales que tengas.":
+    "The glass never switches off, however many terminals you have.",
+  "Sin cristal desde el primer momento, aunque no haga falta.":
+    "No glass from the start, even when it is not needed.",
   "Ver el gasto de la cuenta «{acc}»": "See what the “{acc}” account has spent",
   "Todavía no hay trabajo apuntado en esta cuenta.":
     "No work recorded on this account yet.",
@@ -815,6 +825,33 @@ const EN: Record<string, string> = {
   // Los atajos del lienzo. Las etiquetas de las acciones llegan a t() desde
   // `lib/atajos`, así que el revisor no las ve pasar: van a mano.
   "Atajos del lienzo": "Canvas shortcuts",
+  // Los títulos de cada grupo del panel de dibujo, que desde el 2026-08-09 va
+  // de pie y con etiquetas en vez de ser una tira de iconos mudos.
+  Relleno: "Fill",
+  Forma: "Shape",
+  Transparencia: "Opacity",
+  Efecto: "Effect",
+  "Al dibujar": "While drawing",
+  Orden: "Order",
+  Acciones: "Actions",
+  // Los tres controles de dibujo que llegaron con lo de Excalidraw (2026-08-09).
+  "Relleno: macizo, rayado o cruzado": "Fill: solid, hachure or cross-hatch",
+  "Esquinas: redondeadas o vivas": "Corners: rounded or sharp",
+  "Línea recta o curva": "Straight or curved line",
+  // Los tres lienzos (2026-08-09). «Terminales» ya está traducido más arriba.
+  Dibujo: "Drawing",
+  // «Todo» a secas ya vive más abajo, con los filtros de Comandos: no se repite.
+  "Solo el trabajo: terminales y piezas, sin nada de dibujo. Tus trazos no se borran, vuelven al cambiar de modo.":
+    "Work only: terminals and pieces, no drawing at all. Your strokes are not deleted, they come back when you switch mode.",
+  "La pizarra: todas las herramientas y tus trazos. Las piezas se ven para poder anotarlas, pero no se arrastran.":
+    "The whiteboard: every tool and all your strokes. Pieces stay visible so you can annotate them, but they cannot be dragged.",
+  "Las dos cosas a la vez, como siempre.": "Both at once, as always.",
+  // La rejilla del lienzo (2026-08-09). Los puntos del fondo llevaban ahí desde
+  // el principio sin sujetar nada; ahora se pueden encender.
+  "Rejilla puesta: todo cae en una casilla. Púlsalo para moverlo libre otra vez.":
+    "Grid on: everything lands on a cell. Click to move things freely again.",
+  "Poner la rejilla: lo que muevas cae en la casilla más cercana, terminales y dibujo. Los puntos del fondo son las casillas.":
+    "Turn the grid on: whatever you move lands on the nearest cell, terminals and drawings alike. The dots in the background are the cells.",
 
   // El fondo de detrás de las terminales
   "El fondo": "The background",

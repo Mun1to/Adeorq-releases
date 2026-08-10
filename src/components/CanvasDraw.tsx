@@ -11,6 +11,8 @@ import {
   anclaEn,
   cajaDe,
   cajaTexto,
+  aRejilla,
+  caminoCurvo,
   conSuGrupo,
   cuerpoEtiqueta,
   distTrazo,
@@ -29,6 +31,7 @@ import {
   type DrawTool,
   type FontId,
   type Punta as TipoPunta,
+  type Trama,
   type Tirador,
   type Trazo,
 } from "../lib/trazos";
@@ -97,6 +100,16 @@ interface Props {
   relleno: number;
   /** Si lo próximo sale con el trazo tembloroso de un boceto. */
   rugoso: boolean;
+  /** Con qué se rellena lo próximo: macizo, rayado o cruzado. */
+  trama: Trama;
+  /** Si lo próximo sale con las esquinas vivas. */
+  vivas: boolean;
+  /** Si la próxima línea o flecha sale curva. */
+  curva: boolean;
+  /** La rejilla del lienzo. Con ella puesta, lo que dibujas cae en una casilla
+      en vez de imantarse a los bordes de lo que hay al lado: son dos formas de
+      alinear y encenderlas a la vez se pelearían por el mismo píxel. */
+  rejilla: boolean;
   /** Lo que ocupa cada pieza del lienzo, para poder pegarle una flecha. Lo
       manda el padre, que es quien tiene los nodos: una sola fuente para las
       cajas evita que el dibujo y el tablero discrepen medio píxel. */
@@ -144,6 +157,10 @@ export default function CanvasDraw({
   glow,
   relleno,
   rugoso,
+  trama,
+  vivas,
+  curva,
+  rejilla,
   cajasNodos,
   font,
   trazos,
@@ -331,6 +348,13 @@ export default function CanvasDraw({
         setGuias(null);
         return [x, y];
       }
+      // Con la rejilla puesta manda la rejilla, y no se enseña guía: la guía
+      // dice «te has alineado con AQUELLO», y aquí no te alineas con nada, caes
+      // en una casilla. La cuadrícula del fondo ya enseña dónde.
+      if (rejilla) {
+        setGuias(null);
+        return [aRejilla(x), aRejilla(y)];
+      }
       const cajas = [
         ...cajasNodos.values(),
         ...trazos.filter((s) => s.id !== ignorar).map(cajaDe),
@@ -342,7 +366,7 @@ export default function CanvasDraw({
       setGuias(ix === x && iy === y ? null : { x: ix === x ? undefined : ix, y: iy === y ? undefined : iy });
       return [ix, iy];
     },
-    [punto, cajasNodos, trazos, zoom],
+    [punto, cajasNodos, trazos, zoom, rejilla],
   );
 
   const abajo = (e: React.PointerEvent) => {
@@ -406,10 +430,23 @@ export default function CanvasDraw({
       // Solo donde significa algo: una flecha rellena no existe, y guardarlo
       // igualmente ensuciaría el archivo con un campo que nadie lee.
       relleno: tool === "caja" || tool === "rombo" || tool === "elipse" ? relleno : undefined,
+      // Lo mismo con el resto: solo donde significan algo. La trama vive con el
+      // relleno, las esquinas solo las tienen el recuadro y el rombo, y curvar
+      // una elipse no quiere decir nada.
+      trama:
+        (tool === "caja" || tool === "rombo" || tool === "elipse") && relleno && trama !== "macizo"
+          ? trama
+          : undefined,
+      vivas: (tool === "caja" || tool === "rombo") && vivas ? true : undefined,
+      curva: (tool === "linea" || tool === "flecha") && curva ? true : undefined,
       rugoso: rugoso || undefined,
       // El dado del temblor se echa UNA vez, aquí, y viaja con el trazo. Ver
-      // `seed` en Trazo: sin él la figura hierve en cada repintado.
-      seed: rugoso ? Math.floor(Math.random() * 2 ** 31) : undefined,
+      // `seed` en Trazo: sin él la figura hierve en cada repintado. También lo
+      // necesita la trama rayada, que la calcula el mismo RoughJS.
+      seed:
+        rugoso || (relleno && trama !== "macizo")
+          ? Math.floor(Math.random() * 2 ** 31)
+          : undefined,
       p: tool === "lapiz" ? [x, y] : [x, y, x, y],
     });
   };
@@ -953,7 +990,7 @@ const rugo = rough.generator();
 const cacheRugosa = new Map<string, string[]>();
 function caminosRugosos(s: Trazo): string[] {
   const [a, b, c, d] = s.p;
-  const clave = `${s.id}|${s.seed}|${a}|${b}|${c}|${d}|${s.t}|${s.w}|${s.relleno ?? 0}`;
+  const clave = `${s.id}|${s.seed}|${a}|${b}|${c}|${d}|${s.t}|${s.w}|${s.relleno ?? 0}|${s.trama ?? ""}|${s.vivas ? 1 : 0}`;
   const hecho = cacheRugosa.get(clave);
   if (hecho) return hecho;
   const opciones = {
@@ -961,11 +998,19 @@ function caminosRugosos(s: Trazo): string[] {
     // Menos temblor en las figuras pequeñas: una caja de veinte píxeles con la
     // rugosidad al máximo es una mancha ilegible. Es el `adjustRoughness` de
     // Excalidraw, con la misma idea aunque no con su fórmula exacta.
-    roughness: Math.min(1.6, Math.max(0.6, Math.hypot(c - a, d - b) / 260)),
+    // Casi cero cuando lo único que se quería eran las rayas y no el boceto: la
+    // figura sale con el borde recto y solo el relleno viene de RoughJS.
+    roughness: s.rugoso
+      ? Math.min(1.6, Math.max(0.6, Math.hypot(c - a, d - b) / 260))
+      : 0.35,
     strokeWidth: s.w,
     bowing: 1,
     fill: s.relleno ? s.color : undefined,
-    fillStyle: "hachure",
+    // El nombre de RoughJS para lo que la barra llama trama. `hachure` sigue
+    // siendo el valor por defecto del modo boceto: es lo que hacía antes de que
+    // esto existiera, así que un tablero guardado se ve igual al actualizar.
+    fillStyle:
+      s.trama === "cruzado" ? "cross-hatch" : s.trama === "macizo" ? "solid" : "hachure",
     fillWeight: s.w / 2,
     hachureGap: s.w * 4,
     // Con poco temblor, obliga a que los vértices caigan donde tocan: si no,
@@ -975,6 +1020,9 @@ function caminosRugosos(s: Trazo): string[] {
   const dib =
     s.t === "caja"
       ? rugo.rectangle(Math.min(a, c), Math.min(b, d), Math.abs(c - a), Math.abs(d - b), opciones)
+      // RoughJS no sabe redondear esquinas, así que en modo boceto la caja sale
+      // siempre con las esquinas vivas. No es una carencia que tapar: un boceto
+      // hecho a mano no tiene radios exactos, y en Excalidraw pasa lo mismo.
       : s.t === "elipse"
         ? rugo.ellipse((a + c) / 2, (b + d) / 2, Math.abs(c - a), Math.abs(d - b), opciones)
         : s.t === "rombo"
@@ -1146,8 +1194,13 @@ function Pintada({ s, agarre }: { s: Trazo; agarre?: number }) {
   // dos pasadas, y el relleno son sus rayas), así que se pintan todos. Para
   // agarrarla se sigue usando la figura limpia de abajo: el contorno tembloroso
   // es una tira finísima y habría que apuntar al píxel.
+  // Y también cuando la trama es rayada o cruzada aunque NO esté el modo
+  // boceto: esas rayas las calcula RoughJS y no existen en SVG plano. Es lo
+  // mismo que hace Excalidraw, que dibuja su relleno con Rough incluso con el
+  // trazo «arquitecto». El temblor lo pone `roughness`, no esta rama.
+  const conRayas = !!s.relleno && (s.trama === "rayado" || s.trama === "cruzado");
   if (
-    s.rugoso &&
+    (s.rugoso || conRayas) &&
     !agarre &&
     (s.t === "caja" || s.t === "rombo" || s.t === "elipse" || s.t === "linea")
   ) {
@@ -1181,7 +1234,7 @@ function Pintada({ s, agarre }: { s: Trazo; agarre?: number }) {
           y={Math.min(b, d)}
           width={Math.abs(c - a)}
           height={Math.abs(d - b)}
-          rx={Math.min(32, lado * 0.25)}
+          rx={s.vivas ? 0 : Math.min(32, lado * 0.25)}
           {...comun}
         />
       ) : s.t === "rombo" ? (
@@ -1213,7 +1266,15 @@ function Pintada({ s, agarre }: { s: Trazo; agarre?: number }) {
   const n = s.p.length;
   return (
     <g>
-      <polyline points={puntos.join(" ")} {...comun} />
+      {/* Curva o recta, el mismo trazo por los mismos puntos. Para AGARRARLA se
+          usa siempre la polilínea recta: la zona de agarre puede quedar un pelo
+          por fuera de la curva y nadie lo nota, pero un `<path>` curvo con
+          `stroke` gordo cuesta más de acertar que dos segmentos rectos. */}
+      {s.curva && !agarre ? (
+        <path d={caminoCurvo(s.p)} {...comun} />
+      ) : (
+        <polyline points={puntos.join(" ")} {...comun} />
+      )}
       {/* Cada punta mira hacia fuera por el tramo que la trae: en una línea
           doblada, la del final apunta como el ÚLTIMO tramo, no como la recta
           imaginaria entre los dos extremos. */}

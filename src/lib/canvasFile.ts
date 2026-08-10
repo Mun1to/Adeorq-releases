@@ -341,10 +341,18 @@ export function parsear(raw: string): CanvasFile | null {
       anclaDe: ancla(r.anclaDe),
       anclaA: ancla(r.anclaA),
       rugoso: r.rugoso === true ? true : undefined,
+      // Lo de Excalidraw que llegó el 2026-08-09. Los tres van con el valor de
+      // fábrica igual a como se pintaba antes de que existieran (macizo,
+      // esquinas redondeadas, línea recta), así que un tablero guardado con una
+      // versión anterior se abre exactamente igual.
+      trama: r.trama === "rayado" || r.trama === "cruzado" ? r.trama : undefined,
+      vivas: r.vivas === true ? true : undefined,
+      curva: r.curva === true ? true : undefined,
       // El dado del temblor. Si viene rugoso sin dado (archivo tocado a mano),
-      // se le da uno: sin él RoughJS usaría el suyo y la figura herviría.
+      // se le da uno: sin él RoughJS usaría el suyo y la figura herviría. Lo
+      // necesita también la trama rayada, que sale del mismo RoughJS.
       seed:
-        r.rugoso === true
+        r.rugoso === true || r.trama === "rayado" || r.trama === "cruzado"
           ? typeof r.seed === "number" && Number.isFinite(r.seed)
             ? r.seed
             : 1

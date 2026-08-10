@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "adeorq"
-version = "0.9.81"
+version = "0.9.82"
 dependencies = [
  "auto-launch",
  "libc",

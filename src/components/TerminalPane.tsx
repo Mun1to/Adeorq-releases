@@ -1328,6 +1328,22 @@ export default function TerminalPane({
     ? { live: ctx.agentsLive, total: ctx.agentsTotal, exact: true }
     : { ...agents, exact: false };
 
+  // El globo del título carga con lo que la cabecera no pudo enseñar.
+  // La zona de estado suelta datos según se estrecha la terminal (el esfuerzo,
+  // la memoria, el modelo, el medidor), y desde aquí no hay forma de saber cuál
+  // quedó a la vista: el ancho lo decide arrastrar un separador. Así que se
+  // arma entero siempre y no se pierde nada por estrechar un panel.
+  const cerebro = ctx?.model || brain.model;
+  const resumen =
+    [
+      name === label ? "" : name,
+      cerebro ? `${cerebro}${brain.effort ? ` · ${brain.effort}` : ""}` : "",
+      ctx && ctx.percent > 0 ? `${ctx.percent} % ${t("de contexto usado")}` : "",
+      ram && ram.ramMb > 0 ? `${bonito(ram.ramMb, lang)} ${t("de memoria")}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n") || undefined;
+
   return (
     <section
       className={`pane${hidden ? " pane-hidden" : ""}`}
@@ -1457,177 +1473,200 @@ export default function TerminalPane({
           if (el.scrollLeft !== antes) e.preventDefault();
         }}
       >
-        <KindIcon kind={kind} exited={exited} />
-        {/* La chapa de la cuadrilla. Seis terminales iguales no dicen que estén
-            trabajando en lo mismo: esto sí, y con el color del equipo, que es
-            el mismo en las seis y distinto del de la cuadrilla de al lado. */}
-        {team && (
-          <span
-            className="pane-team"
-            data-tip={`${team.rol} · puesto ${team.n} de ${team.de}\n${team.objetivo}`}
-          >
-            <span className="pane-team-n">
-              {team.n}/{team.de}
+        {/* TRES ZONAS, y el orden importa.
+            Antes esto eran trece hijos sueltos con el mismo peso, y como TODOS
+            llevaban `flex-shrink: 0` menos el nombre, el único que cedía sitio
+            era justo el dato que distingue una terminal de otra: el título se
+            quedaba en «Adeorq: se…» mientras «Opus 5 xhigh» mantenía sus 90px
+            enteros (Munir, 2026-08-10). Ahora ceden ZONAS, no elementos:
+              · identidad, que CRECE y manda;
+              · estado, que se encoge y suelta datos por orden;
+              · acciones, que no ceden nunca.
+            La ✕ se queda FUERA de las tres a propósito: es hija directa de la
+            cabecera para que su `position: sticky` siga anclándola al borde
+            cuando no cabe todo, y para que cerrar no se confunda con el resto. */}
+        <div className="ph-id">
+          <KindIcon kind={kind} exited={exited} />
+          {/* La chapa de la cuadrilla. Seis terminales iguales no dicen que estén
+              trabajando en lo mismo: esto sí, y con el color del equipo, que es
+              el mismo en las seis y distinto del de la cuadrilla de al lado. */}
+          {team && (
+            <span
+              className="pane-team"
+              data-tip={`${team.rol} · puesto ${team.n} de ${team.de}\n${team.objetivo}`}
+            >
+              <span className="pane-team-n">
+                {team.n}/{team.de}
+              </span>
+              {team.rol}
             </span>
-            {team.rol}
-          </span>
-        )}
-        {account && (
-          <span
-            className="pane-account"
-            data-tip={`Esta terminal usa tu cuenta «${account}», no la principal`}
-          >
-            {account}
-          </span>
-        )}
-        <span
-          className="pane-proj"
-          style={{ ["--c" as string]: hueOf(project) }}
-          data-tip={cwd}
-        >
-          {project}
-        </span>
-        <span className="pane-name" data-tip={name === label ? undefined : name}>
-          {label}
-        </span>
-        {/* Counted in the transcript: then the total is a fact and it stays on
-            screen, dimmed, once they are back. Guessed off the screen: only
-            while they are out, because a wrong number that lingers is worse
-            than none. It looked broken because it only ever showed live ones
-            and a session with no subagents has nothing to show. */}
-        {(crew.live > 0 || (crew.exact && crew.total > 0)) && (
-          <span
-            className="pane-agents"
-            data-live={crew.live > 0}
-            data-tip={
-              crew.live > 0
-                ? `${crew.live} ${crew.live === 1 ? "agente trabajando" : "agentes trabajando"} ahora dentro de esta sesión · ${crew.total} desplegados en total\n${
-                    crew.exact
-                      ? "Contados en el historial de la sesión: es el dato exacto."
-                      : "Estimado por lo que se lee en pantalla."
-                  }`
-                : `${crew.total} ${crew.total === 1 ? "agente desplegado" : "agentes desplegados"} en esta sesión, ninguno trabajando ahora.\nContados en el historial de la sesión: es el dato exacto.`
-            }
-          >
-            <RobotIcon size={13} /> {crew.live > 0 ? crew.live : crew.total}
-          </span>
-        )}
-        {ctx && ctx.percent > 0 && (
-          <span
-            className="pane-ctx"
-            data-hot={ctx.percent >= 80}
-            data-tip={`${t("Contexto")}: ${ctx.used.toLocaleString()} / ${ctx.window.toLocaleString()} tokens (${ctx.percent}% ${t("de contexto usado")})\nCada mensaje en esta sesión vuelve a pagar esos ${ctx.used.toLocaleString()} tokens.${
-              ctx.percent >= 80
-                ? "\nA este nivel, compactar cuesta más que abrir una terminal nueva."
-                : ""
-            }`}
-          >
-            <span className="ctx-bar" style={{ ["--p" as string]: `${ctx.percent}%` }} />
-            {ctx.percent}%
-          </span>
-        )}
-        {(ctx?.model || brain.model || brain.effort) && (
-          <span
-            className="pane-brain"
-            data-tip={`Modelo: ${ctx?.model || brain.model || "?"}${brain.effort ? ` · esfuerzo ${brain.effort}` : ""}\nSe cambia dentro del pane con /model y /effort`}
-          >
-            {ctx?.model || brain.model}
-            {brain.effort && <span className="pane-effort">{brain.effort}</span>}
-          </span>
-        )}
-        {/* Lo que ocupa esta terminal. El Pulso de la barra ya decía el total
-            de la app; este número contesta a la otra pregunta, la de tener
-            varios agentes abiertos: cuál de ellos pesa. Va sin etiqueta («RAM»
-            no cabe y tampoco hace falta: 480 MB en una cabecera solo puede ser
-            memoria) y solo cuando hay algo que medir. */}
-        {ram && ram.ramMb > 0 && (
-          <span
-            className="pane-ram"
-            data-hot={ram.ramMb >= 1024}
-            /* Con el desglose, y no por gusto: la cifra a secas se lee como «lo
-               que me cuesta Adeorq» cuando casi toda es el agente que corre
-               dentro, que pesa lo mismo se abra desde donde se abra. */
-            data-tip={[
-              `${bonito(ram.ramMb, lang)} ${t("de memoria")} · ${ram.procesos} ${
-                ram.procesos === 1 ? t("proceso") : t("procesos")
-              }`,
-              ram.agenteMb > 0
-                ? `${bonito(ram.agenteMb, lang)} ${t("los pone el agente de dentro, no Adeorq")}`
-                : "",
-              t("Es el árbol entero de esta terminal, no solo su primer proceso."),
-            ]
-              .filter(Boolean)
-              .join("\n")}
-          >
-            {bonito(ram.ramMb, lang)}
-          </span>
-        )}
-        {/* The path used to sit here too, and in C:\proyectos it was the same
-            text twice. The pill on the left already carries the whole path in
-            its tooltip, so this said nothing the header did not. */}
-        {/* Shadow Mode Button */}
-        <button
-          className={`pane-btn pane-shadow-toggle ${shadowActive ? "is-active" : ""}`}
-          data-tip={
-            shadowActive
-              ? `Modo Espejo (SVFS) activo · Rama: ${shadowSession?.shadowBranch}\n${shadowFiles.length} archivos propuestos. Clic para ver diffs.`
-              : "Activar Modo Espejo (Shadow Git): aísla escrituras de la IA en una rama espejo"
-          }
-          onClick={handleToggleShadow}
-        >
-          <GitBranchIcon />
-          {shadowActive && shadowFiles.length > 0 && (
-            <span className="shadow-badge">{shadowFiles.length}</span>
           )}
-        </button>
-        <button
-          className="pane-btn"
-          data-tip={t(blurred ? "Mostrar esta terminal" : "Tapar esta terminal (para emitir)")}
-          onClick={() => setBlurred((v) => !v)}
-        >
-          {blurred ? <EyeOffIcon /> : <EyeIcon />}
-        </button>
-        {/* Partir a la derecha y partir abajo estaban aquí y se han ido: dos
-            botones permanentes para algo que se hace una vez al montar el
-            tablero, y que siguen en el clic derecho y en Ctrl+Mayús+→/↓
-            (Munir, 2026-08-02). El sitio lo ocupa minimizar, que sí se usa a
-            todas horas. */}
-        {onMinimizar && (
+          {account && (
+            <span
+              className="pane-account"
+              data-tip={`Esta terminal usa tu cuenta «${account}», no la principal`}
+            >
+              {account}
+            </span>
+          )}
+          <span
+            className="pane-proj"
+            style={{ ["--c" as string]: hueOf(project) }}
+            data-tip={cwd}
+          >
+            {project}
+          </span>
+          {/* El título es el ancla de la cabecera, así que su globo carga con
+              lo que el ancho no dejó enseñar: al estrecharse, el estado va
+              soltando el esfuerzo, la memoria, el modelo… y todo eso sigue
+              aquí, a un puntero de distancia. Antes solo salía el nombre
+              largo, y cuando el nombre cabía entero no salía nada. */}
+          <span className="pane-name" data-tip={resumen}>
+            {label}
+          </span>
+        </div>
+        <div className="ph-meta">
+          {/* Counted in the transcript: then the total is a fact and it stays on
+              screen, dimmed, once they are back. Guessed off the screen: only
+              while they are out, because a wrong number that lingers is worse
+              than none. It looked broken because it only ever showed live ones
+              and a session with no subagents has nothing to show. */}
+          {(crew.live > 0 || (crew.exact && crew.total > 0)) && (
+            <span
+              className="pane-agents"
+              data-live={crew.live > 0}
+              data-tip={
+                crew.live > 0
+                  ? `${crew.live} ${crew.live === 1 ? "agente trabajando" : "agentes trabajando"} ahora dentro de esta sesión · ${crew.total} desplegados en total\n${
+                      crew.exact
+                        ? "Contados en el historial de la sesión: es el dato exacto."
+                        : "Estimado por lo que se lee en pantalla."
+                    }`
+                  : `${crew.total} ${crew.total === 1 ? "agente desplegado" : "agentes desplegados"} en esta sesión, ninguno trabajando ahora.\nContados en el historial de la sesión: es el dato exacto.`
+              }
+            >
+              <RobotIcon size={13} /> {crew.live > 0 ? crew.live : crew.total}
+            </span>
+          )}
+          {ctx && ctx.percent > 0 && (
+            <span
+              className="pane-ctx"
+              data-hot={ctx.percent >= 80}
+              data-tip={`${t("Contexto")}: ${ctx.used.toLocaleString()} / ${ctx.window.toLocaleString()} tokens (${ctx.percent}% ${t("de contexto usado")})\nCada mensaje en esta sesión vuelve a pagar esos ${ctx.used.toLocaleString()} tokens.${
+                ctx.percent >= 80
+                  ? "\nA este nivel, compactar cuesta más que abrir una terminal nueva."
+                  : ""
+              }`}
+            >
+              <span className="ctx-bar" style={{ ["--p" as string]: `${ctx.percent}%` }} />
+              {ctx.percent}%
+            </span>
+          )}
+          {(ctx?.model || brain.model || brain.effort) && (
+            <span
+              className="pane-brain"
+              data-tip={`Modelo: ${ctx?.model || brain.model || "?"}${brain.effort ? ` · esfuerzo ${brain.effort}` : ""}\nSe cambia dentro del pane con /model y /effort`}
+            >
+              {ctx?.model || brain.model}
+              {brain.effort && <span className="pane-effort">{brain.effort}</span>}
+            </span>
+          )}
+          {/* Lo que ocupa esta terminal. El Pulso de la barra ya decía el total
+              de la app; este número contesta a la otra pregunta, la de tener
+              varios agentes abiertos: cuál de ellos pesa. Va sin etiqueta («RAM»
+              no cabe y tampoco hace falta: 480 MB en una cabecera solo puede ser
+              memoria) y solo cuando hay algo que medir. */}
+          {ram && ram.ramMb > 0 && (
+            <span
+              className="pane-ram"
+              data-hot={ram.ramMb >= 1024}
+              /* Con el desglose, y no por gusto: la cifra a secas se lee como «lo
+                 que me cuesta Adeorq» cuando casi toda es el agente que corre
+                 dentro, que pesa lo mismo se abra desde donde se abra. */
+              data-tip={[
+                `${bonito(ram.ramMb, lang)} ${t("de memoria")} · ${ram.procesos} ${
+                  ram.procesos === 1 ? t("proceso") : t("procesos")
+                }`,
+                ram.agenteMb > 0
+                  ? `${bonito(ram.agenteMb, lang)} ${t("los pone el agente de dentro, no Adeorq")}`
+                  : "",
+                t("Es el árbol entero de esta terminal, no solo su primer proceso."),
+              ]
+                .filter(Boolean)
+                .join("\n")}
+            >
+              {bonito(ram.ramMb, lang)}
+            </span>
+          )}
+          {/* The path used to sit here too, and in C:\proyectos it was the same
+              text twice. The pill on the left already carries the whole path in
+              its tooltip, so this said nothing the header did not. */}
+        </div>
+        <div className="ph-acts">
+          {/* Shadow Mode Button */}
+          <button
+            className={`pane-btn pane-shadow-toggle ${shadowActive ? "is-active" : ""}`}
+            data-tip={
+              shadowActive
+                ? `Modo Espejo (SVFS) activo · Rama: ${shadowSession?.shadowBranch}\n${shadowFiles.length} archivos propuestos. Clic para ver diffs.`
+                : "Activar Modo Espejo (Shadow Git): aísla escrituras de la IA en una rama espejo"
+            }
+            onClick={handleToggleShadow}
+          >
+            <GitBranchIcon />
+            {shadowActive && shadowFiles.length > 0 && (
+              <span className="shadow-badge">{shadowFiles.length}</span>
+            )}
+          </button>
           <button
             className="pane-btn"
-            data-tip={t("Minimizar: baja a la tira de abajo y sigue trabajando")}
-            onClick={() => onMinimizar(id)}
+            data-tip={t(blurred ? "Mostrar esta terminal" : "Tapar esta terminal (para emitir)")}
+            onClick={() => setBlurred((v) => !v)}
           >
-            <MinimizeIcon />
+            {blurred ? <EyeOffIcon /> : <EyeIcon />}
           </button>
-        )}
-        <button
-          className="pane-btn"
-          data-tip={maximized ? "Restaurar" : "Maximizar (Ctrl+Mayús+F)"}
-          onClick={() => onToggleMax(id)}
-        >
-          {maximized ? <RestoreIcon /> : <MaximizeIcon />}
-        </button>
-        {/* Solo cuando se sabe QUÉ sesión enseña este panel: uno sin transcript
-            detrás no tiene nada que tirar.
-            Esto eran dos clics con cuatro segundos de margen, con el argumento
-            de que un diálogo encima de una terminal en la que estás trabajando
-            molesta más que un botón que espera. Munir pidió el diálogo
-            (2026-08-08), y tiene razón: borrar una conversación es la única
-            acción de este encabezado que no se puede deshacer, y las otras dos
-            papeleras de la app ya preguntan así. Un botón armado no dice QUÉ se
-            va a borrar ni adónde va; el diálogo sí, con el nombre dentro. */}
-        {ctx?.sessionId && (
+          {/* Partir a la derecha y partir abajo estaban aquí y se han ido: dos
+              botones permanentes para algo que se hace una vez al montar el
+              tablero, y que siguen en el clic derecho y en Ctrl+Mayús+→/↓
+              (Munir, 2026-08-02). El sitio lo ocupa minimizar, que sí se usa a
+              todas horas. */}
+          {onMinimizar && (
+            <button
+              className="pane-btn"
+              data-tip={t("Minimizar: baja a la tira de abajo y sigue trabajando")}
+              onClick={() => onMinimizar(id)}
+            >
+              <MinimizeIcon />
+            </button>
+          )}
           <button
-            className="pane-btn pane-bin"
-            data-tip={t(
-              "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera de Windows",
-            )}
-            onClick={() => setBorrando(true)}
+            className="pane-btn"
+            data-tip={maximized ? "Restaurar" : "Maximizar (Ctrl+Mayús+F)"}
+            onClick={() => onToggleMax(id)}
           >
-            <TrashIcon />
+            {maximized ? <RestoreIcon /> : <MaximizeIcon />}
           </button>
-        )}
+          {/* Solo cuando se sabe QUÉ sesión enseña este panel: uno sin transcript
+              detrás no tiene nada que tirar.
+              Esto eran dos clics con cuatro segundos de margen, con el argumento
+              de que un diálogo encima de una terminal en la que estás trabajando
+              molesta más que un botón que espera. Munir pidió el diálogo
+              (2026-08-08), y tiene razón: borrar una conversación es la única
+              acción de este encabezado que no se puede deshacer, y las otras dos
+              papeleras de la app ya preguntan así. Un botón armado no dice QUÉ se
+              va a borrar ni adónde va; el diálogo sí, con el nombre dentro. */}
+          {ctx?.sessionId && (
+            <button
+              className="pane-btn pane-bin"
+              data-tip={t(
+                "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera de Windows",
+              )}
+              onClick={() => setBorrando(true)}
+            >
+              <TrashIcon />
+            </button>
+          )}
+        </div>
         <button
           className="pane-close"
           data-tip={t("Cerrar terminal")}

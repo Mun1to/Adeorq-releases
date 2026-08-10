@@ -4010,12 +4010,55 @@ body {
   container-type: inline-size;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
+  /* El hueco entre ZONAS. Dentro de cada una es más estrecho, y esa diferencia
+     es la que hace que se lean como tres bloques y no como trece cosas. */
+  gap: 10px;
+  /* Menos por la derecha que por la izquierda: los botones ya traen su propio
+     aire dentro, y ahí es donde primero se nota que falta sitio. */
+  padding: 6px 8px 6px 11px;
   background: var(--panel-head);
   backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border);
   font-size: 12px;
+}
+
+/* ZONA 1 — quién es esta terminal. Es la que crece: si sobra sitio, se lo
+   queda el título, que es lo único que distingue una terminal de otra. */
+.ph-id {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* ZONA 2 — cómo va. Ni crece ni se estruja: suelta datos ENTEROS por orden
+   según se estrecha la cabecera (los `@container` de más abajo), que es la
+   única forma de que ninguna píldora se lea a medias. Vacía no existe, para no
+   dejar un hueco de 10px de nada. */
+.ph-meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ph-meta:empty {
+  display: none;
+}
+
+/* ZONA 3 — qué puedes hacer. No cede NUNCA, y va detrás de una línea: es la
+   frontera entre leer y actuar, y sin ella los botones eran seis cuadros más
+   en una fila de trece cosas. Juntos y con poco hueco, que son de la misma
+   familia. */
+.ph-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding-left: 9px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
 }
 
 /* Identity first. The path used to be the one that grew and the name the one
@@ -4026,9 +4069,15 @@ body {
   flex: 1 1 auto;
   /* Un suelo, no cero: con `min-width: 0` el nombre se dejaba comer del todo
      para que cupiera el resto, y una terminal sin nombre no se distingue de la
-     de al lado. A partir de aquí, lo que sobra se desplaza (ver `.pane-head`). */
-  min-width: 68px;
-  font-weight: 600;
+     de al lado. Eran 68px, que da para tres letras y unos puntos suspensivos:
+     «Adeorq: se…» no dice de qué va esa terminal. 112 son catorce caracteres,
+     que es donde un título empieza a servir para algo. Por debajo de 330px de
+     cabecera baja solo, porque ahí ya no hay sitio para nadie. */
+  min-width: 112px;
+  /* Medio punto por encima del resto de la fila, y con más cuerpo: en una
+     cabecera donde todo pesaba igual, el ojo no encontraba el título. */
+  font-size: 12.5px;
+  font-weight: 650;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9486,7 +9535,10 @@ button.stat-card[data-live="false"] {
 .pane-proj {
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 130px;
+  /* 130 eran para una cabecera donde el chip crecía y el título encogía. Ahora
+     manda el título, y un proyecto se reconoce de sobra en catorce letras: los
+     26px que sobraban se los queda el nombre, que los necesita más. */
+  max-width: 104px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9505,21 +9557,35 @@ button.stat-card[data-live="false"] {
   background: color-mix(in srgb, var(--c) 26%, transparent);
 }
 
-/* What a narrow pane drops, in order: the effort, then the model, then the
-   meter. The project name and the session name never go. */
-@container (max-width: 430px) {
+/* EL ORDEN EN QUE UNA CABECERA ESTRECHA SUELTA LASTRE.
+   Los umbrales estaban calibrados para una cabecera que ya no existe: el
+   primero saltaba a 430px, y a 430px hacía rato que el título estaba en tres
+   letras y había botones fuera de la vista. Sumando anchos, la fila entera pide
+   unos 620px, así que el primer escalón tiene que estar AHÍ, no doscientos
+   píxeles más abajo.
+   El orden lo dicen los propios elementos: primero el esfuerzo (un adverbio del
+   modelo), luego la memoria (que su comentario ya llama «el dato más callado»),
+   luego el modelo, luego el medidor y por último los agentes. Nada de esto se
+   pierde al esconderse: todo está en el globo del título, que no se va nunca. */
+@container (max-width: 620px) {
   .pane-effort {
     display: none;
   }
 }
 
-@container (max-width: 360px) {
+@container (max-width: 545px) {
+  .pane-ram {
+    display: none;
+  }
+}
+
+@container (max-width: 470px) {
   .pane-brain {
     display: none;
   }
 }
 
-@container (max-width: 290px) {
+@container (max-width: 395px) {
   .pane-ctx {
     display: none;
   }
@@ -9528,9 +9594,20 @@ button.stat-card[data-live="false"] {
 /* Last stop. Below this the labels have all gone and the row is the buttons,
    which is the right answer: a pane you cannot close is worse than one you
    cannot read. Dragging cannot get here any more, only shrinking the window. */
-@container (max-width: 250px) {
+@container (max-width: 330px) {
   .pane-agents {
     display: none;
+  }
+
+  /* Y aquí el título suelta su suelo: con la zona de estado vacía, lo que
+     queda es él contra los botones, y prefiero un título recortado a una
+     cabecera desplazable. */
+  .pane-name {
+    min-width: 48px;
+  }
+
+  .ph-acts {
+    padding-left: 6px;
   }
 }
 
@@ -9558,12 +9635,18 @@ button.stat-card[data-live="false"] {
 
 /* Nada de la cabecera se encoge hasta desaparecer: o cabe, o se desplaza. El
    nombre es el único que cede sitio, porque es el que puede recortarse y
-   seguir diciendo algo. */
-.pane-head > * {
+   seguir diciendo algo.
+   Va por DENTRO de cada zona: las que ceden son las zonas (`.ph-id` y
+   `.ph-meta`, ambas con su `flex` propio), y dentro de ellas ninguna píldora se
+   estruja hasta ser ilegible. Antes esto era `.pane-head > *` y ahora esos
+   hijos son tres cajas, así que el selector viejo habría congelado justo lo que
+   tiene que ceder. */
+.ph-id > *,
+.ph-meta > * {
   flex-shrink: 0;
 }
 
-.pane-head > .pane-name {
+.ph-id > .pane-name {
   flex-shrink: 1;
 }
 

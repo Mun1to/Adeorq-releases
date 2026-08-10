@@ -2593,19 +2593,36 @@ export default function Sidebar({
         </button>
       )}
       {/* Las que trajiste a mano desde el ＋. Salen aunque sean viejas, y hasta
-          hoy la única forma de sacarlas era archivarlas una a una. */}
-      {ui.traidas.length > 0 && !filter.trim() && (
-        <button
-          className="finder-aviso"
-          data-tip={t("Dejan de verse las que trajiste a mano. No se borra ninguna.")}
-          onClick={() =>
-            mutate((prev) => ({ ...prev, traidas: [] }))
-          }
-        >
-          {t("{n} traídas a mano. Pulsa para quitarlas de la lista.", {
-            n: ui.traidas.length,
-          })}
-        </button>
+          hoy la única forma de sacarlas era archivarlas una a una.
+
+          Y SE PUEDE CERRAR, que es lo que le faltaba. Este cartel salía siempre
+          que hubiera alguna traída, y su único botón las quitaba TODAS de la
+          lista: un aviso permanente cuya única acción deshace lo que acabas de
+          hacer (Munir, 2026-08-10, con 110 traídas: «me está incitando a que
+          quite las sesiones»). Ahora la ✕ lo calla sin tocar ninguna, y si otro
+          día traes más vuelve a salir con las nuevas, que eso sí es algo que no
+          sabías. */}
+      {ui.traidas.length > (ui.traidasVisto ?? 0) && !filter.trim() && (
+        <div className="finder-aviso-fila">
+          <button
+            className="finder-aviso"
+            data-tip={t("Dejan de verse las que trajiste a mano. No se borra ninguna.")}
+            onClick={() => mutate((prev) => ({ ...prev, traidas: [], traidasVisto: 0 }))}
+          >
+            {t("{n} traídas a mano. Pulsa para quitarlas de la lista.", {
+              n: ui.traidas.length,
+            })}
+          </button>
+          <button
+            className="finder-aviso-x"
+            data-tip={t("Entendido: dejar de avisar. Las sesiones se quedan donde están.")}
+            onClick={() =>
+              mutate((prev) => ({ ...prev, traidasVisto: prev.traidas.length }))
+            }
+          >
+            ×
+          </button>
+        </div>
       )}
       <div className="side-label">
         <span>{t("Workspaces")}</span>

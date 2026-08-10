@@ -48,6 +48,42 @@ export function columnaDe(state: WorkState): Exclude<Columna, "porhacer"> {
   return "trabajando";
 }
 
+/**
+ * ¿Este agente ha dejado de trabajar y ahora te toca a ti?
+ *
+ * Es el disparo del ajuste «saltar a la sesión que termina». Ese salto colgaba
+ * SOLO de la campana del terminal, y una campana es un pitido: no dice si el
+ * agente acabó o si te está preguntando algo, y si el CLI no la toca no pasa
+ * nada de nada y no hay forma de saber por qué (Munir, 2026-08-10: «la tengo
+ * activada y no funciona»). El transcript sí lo sabe, y Adeorq ya lo lee para
+ * pintar el estado de cada panel.
+ *
+ * Entran los cuatro estados en los que la pelota es tuya, no solo «terminó»:
+ * si el agente se para a preguntarte algo también quieres tenerlo delante, que
+ * es literalmente lo que se pide al encender el ajuste.
+ */
+export function reclamaTuAtencion(state: WorkState): boolean {
+  return columnaDe(state) !== "trabajando";
+}
+
+/**
+ * Y el disparo de verdad: solo en el INSTANTE en que cambia.
+ *
+ * El estado de un panel se recalcula cada pocos segundos, así que preguntar
+ * «¿te espera?» daría que sí una y otra vez mientras el agente espera, y la
+ * pantalla saltaría en bucle. Solo cuenta el momento en que pasa de trabajar a
+ * esperarte.
+ *
+ * Un `antes` desconocido nunca dispara: son los paneles que se restauran al
+ * abrir la app, que a menudo nacen ya terminados. Arrancar Adeorq no puede
+ * significar que se te ponga a pantalla completa lo último que hiciste ayer.
+ */
+export function acabaDeReclamar(antes: WorkState | undefined, ahora: WorkState): boolean {
+  if (antes === undefined) return false;
+  if (antes === ahora) return false;
+  return reclamaTuAtencion(ahora) && !reclamaTuAtencion(antes);
+}
+
 /** «4 min». Los segundos no se enseñan: nadie decide nada con ellos. */
 export function haceCuanto(ms: number): string {
   const min = Math.floor(ms / 60_000);

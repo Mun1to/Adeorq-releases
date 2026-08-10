@@ -568,6 +568,20 @@ export interface UiState {
    * que no cuesta nada y una que se borre de `~/.claude` desaparece sola.
    */
   traidas: string[];
+  /**
+   * Cuántas traídas ya habías reconocido, para no repetirte el aviso.
+   *
+   * El cartel de «{n} traídas a mano» salía SIEMPRE que hubiera alguna, y su
+   * único botón las quitaba todas de la lista. O sea: un aviso permanente cuya
+   * única acción deshace el trabajo que acabas de hacer, y ninguna forma de
+   * decir «vale, ya lo sé» (Munir, 2026-08-10, con 110 traídas: «me está
+   * incitando a que quite las sesiones»).
+   *
+   * Guardando el número y no un sí/no, si otro día traes más el aviso vuelve
+   * con las nuevas, que sí es información. Lo que no vuelve es el recordatorio
+   * de una decisión que ya tomaste.
+   */
+  traidasVisto?: number;
   /** Logos chosen by hand, project name → small data URI. Beats detection. */
   projectIcon: Record<string, string>;
   /**
@@ -645,6 +659,8 @@ export async function loadUiState(): Promise<UiState> {
       sessionProject: parsed.sessionProject ?? {},
       archived: Array.isArray(parsed.archived) ? parsed.archived : [],
       traidas: Array.isArray(parsed.traidas) ? parsed.traidas : [],
+      traidasVisto:
+        typeof parsed.traidasVisto === "number" ? parsed.traidasVisto : undefined,
       projectIcon: parsed.projectIcon ?? {},
       projectAlias: parsed.projectAlias ?? {},
       hiddenProjects: Array.isArray(parsed.hiddenProjects) ? parsed.hiddenProjects : [],

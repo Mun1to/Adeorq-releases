@@ -109,11 +109,12 @@ import {
   type SessionInfo,
   type PaneStatus,
   type RailMode,
+  type WorkState,
 } from "./lib/pty";
 import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
 import { exigenciaDeRol, modoAviso, recetar } from "./lib/router";
 import { cerebroPorDefecto } from "./lib/models";
-import { PINTA } from "./lib/estados";
+import { acabaDeReclamar, PINTA } from "./lib/estados";
 import { fotoRapida } from "./lib/mundo";
 import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
@@ -535,7 +536,22 @@ function App() {
   // Capataz: sin esto solo conocía los nombres de las terminales abiertas, que
   // no distinguen una que te espera de una que ya entregó.
   const [paneStatus, setPaneStatus] = useState<Record<number, PaneStatus>>({});
+  /* El estado que tenía cada panel la última vez, para saber cuándo CAMBIA.
+     Es lo que dispara el salto a pantalla completa: ver `alTerminarRef`. */
+  const estadoAntes = useRef<Record<number, WorkState>>({});
+  const alTerminarRef = useRef<((id: number) => void) | null>(null);
   const onPaneStatus = useCallback((st: PaneStatus) => {
+    const antes = estadoAntes.current[st.id];
+    estadoAntes.current[st.id] = st.state;
+    /* SEGUNDO CAMINO PARA EL SALTO, y el bueno.
+       El ajuste «saltar a la sesión que termina» colgaba solo de la campana del
+       terminal, que es un pitido: no distingue acabar de preguntarte, y si el
+       CLI no la toca no pasa nada y no hay forma de saber por qué (Munir,
+       2026-08-10: «la tengo activada y no funciona»). El transcript sí lo sabe,
+       y Adeorq ya lo lee para pintar el estado de cada panel: colgarlo también
+       de aquí cubre además el «o necesita mi feedback», que la campana no sabe
+       decir. Las reglas y sus casos, en `lib/estados.ts`. */
+    if (acabaDeReclamar(antes, st.state)) alTerminarRef.current?.(st.id);
     setPaneStatus((prev) => ({ ...prev, [st.id]: st }));
   }, []);
   const [cols, setCols] = useState<Col[]>([]);
@@ -1808,6 +1824,9 @@ function App() {
     },
     [saltarAlQueTermina],
   );
+  // Por ref, para que `onPaneStatus` pueda dispararlo sin rehacerse: ese
+  // callback lo tienen guardado todos los paneles vivos.
+  alTerminarRef.current = alTerminar;
 
   const goProject = useCallback((name: string) => {
     setView("cabina");

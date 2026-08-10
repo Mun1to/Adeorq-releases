@@ -469,6 +469,8 @@ const EN: Record<string, string> = {
     "{n} projects hidden by the filter. Click to see them.",
   "{n} traídas a mano. Pulsa para quitarlas de la lista.":
     "{n} brought over by hand. Click to take them off the list.",
+  "Entendido: dejar de avisar. Las sesiones se quedan donde están.":
+    "Got it: stop reminding me. The sessions stay where they are.",
   "Dejan de verse las que trajiste a mano. No se borra ninguna.":
     "The ones you brought over stop showing. Nothing is deleted.",
   "Modo rendimiento": "Performance mode",

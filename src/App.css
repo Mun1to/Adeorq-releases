@@ -1207,6 +1207,43 @@ body {
   color: var(--text);
 }
 
+/* El cartel con su ✕ al lado: dos acciones distintas, dos botones.
+   El grande hace lo que dice; la ✕ solo lo calla. Antes eran la misma cosa, y
+   por eso callarlo costaba perder las sesiones que habías traído. */
+.finder-aviso-fila {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.finder-aviso-fila > .finder-aviso {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.finder-aviso-x {
+  flex: none;
+  margin-top: 6px;
+  width: 24px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: color-mix(in srgb, var(--text) 60%, transparent);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.finder-aviso-x:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--text);
+}
+
 .side-label {
   display: flex;
   justify-content: space-between;

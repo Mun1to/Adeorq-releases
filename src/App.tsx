@@ -2470,10 +2470,16 @@ function App() {
             })
           }
         >
+          {/* Solo el icono, como el orbe del Asistente (Munir, 2026-08-10). El
+              rótulo decía «Emisión» o «En emisión», y de las dos cosas que hay
+              que saber de este botón (qué hace, y si está puesto) la primera la
+              cuenta el globo y la segunda se ve mucho mejor en los anillos que
+              en una palabra. Un botón que solo se enciende no necesita
+              anunciarse con letra en una cabecera donde el sitio es de las
+              pestañas. */}
           <span className="tab-icon">
             <StreamIcon size={16} on={stream} />
           </span>
-          <span className="tab-label">{t(stream ? "En emisión" : "Emisión")}</span>
         </button>
         {/* UNA puerta, no dos. El Reparto tenía su propio botón aquí al lado, y
             el comentario que lo justificaba ya decía lo que era: «la misma

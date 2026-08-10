@@ -4476,7 +4476,12 @@ body {
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 9px;
-  background: color-mix(in srgb, var(--panel-solid) 72%, transparent);
+  /* Se ACLARA sobre lo que haya detrás, no se oscurece. Tenía `--panel-solid`
+     al 72 %, que es un azul casi negro, y encima del cristal de la franja
+     quedaba un cuadrado NEGRO en vez del botón translúcido que Munir señaló
+     (2026-08-10). Un velo del color del texto sube el brillo en los temas
+     oscuros y lo baja en los claros, así que funciona en los treinta y dos. */
+  background: color-mix(in srgb, var(--text) 11%, transparent);
   color: color-mix(in srgb, var(--text) 82%, var(--muted));
   cursor: pointer;
   box-shadow: var(--glass-edge);
@@ -4487,7 +4492,7 @@ body {
 }
 
 .skills-abrir:hover {
-  background: var(--panel-solid);
+  background: color-mix(in srgb, var(--text) 19%, transparent);
   border-color: var(--border-strong);
   color: var(--text);
 }
@@ -5045,6 +5050,56 @@ button.stat-card[data-live="false"] {
      pestañas de la app. */
   position: sticky;
   top: -40px;
+  /* Y con tope, ahora que puede crecer: el grupo abierto despliega sus bloques
+     debajo, así que en una pantalla baja el índice podía pasar de largo la
+     ventana, y un `sticky` más alto que la ventana deja lo de abajo fuera de
+     alcance para siempre. Con esto se hace su propia rueda y siempre se llega
+     al último grupo. */
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+}
+
+/* Un grupo del índice: su nombre y, si es el abierto, sus bloques debajo. */
+.set-grupo {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Los bloques del grupo abierto. Sangrados y colgando de una línea vertical,
+   que es lo que dice «esto es de ahí arriba» sin escribirlo: sin la línea,
+   ocho nombres seguidos de dos tamaños distintos se leen como una lista sola.
+   Aparece y desaparece con el grupo, así que nunca hay más de una abierta. */
+.set-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 3px 0 5px 20px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+.set-sub-item {
+  padding: 6px 9px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: color-mix(in srgb, var(--text) 58%, transparent);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  /* Un título largo no ensancha la columna: se recorta. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.set-sub-item:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .set-tab {
@@ -5433,10 +5488,81 @@ button.stat-card[data-live="false"] {
    columna de barras grises y un panel de objetivos con las tareas en blanco.
    Lo que de verdad no puede salir —rutas, cuentas, encargos, la respuesta del
    agente, cualquier clave— sigue tapado, y esa parte no se toca. */
+/* Sin rótulo, así que ocupa lo que ocupa su icono, igual que el orbe del
+   Asistente de al lado. `relative` para poder colgarle los anillos. */
+.stream-toggle {
+  position: relative;
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+}
+
 .stream-toggle[data-on="true"] {
   color: #ff9c6e;
   border-color: rgba(255, 156, 110, 0.45);
   background: rgba(255, 156, 110, 0.14);
+}
+
+/* Los anillos de emisión: dos ondas que salen del botón y se apagan.
+   Es lo que Munir señaló de reactbits (Munir, 2026-08-10), hecho aquí con dos
+   pseudoelementos en vez de traerse un canvas: son dos bordes que crecen, y a
+   este tamaño no se distingue de lo otro.
+
+   Solo `transform` y `opacity`, que es la regla de la casa para lo que se anima
+   encima del cristal (ver `.np-eq i`): animar el tamaño obligaría a recalcular
+   la maqueta en cada fotograma e invalidaría el desenfoque de todo lo que hay
+   debajo, que en esta cabecera es la app entera.
+
+   Y solo con `data-on`: apagado no hay nada que anunciar, así que no se anima
+   nada y no cuesta nada. */
+.stream-toggle[data-on="true"]::before,
+.stream-toggle[data-on="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px solid #ff7c00;
+  opacity: 0;
+  pointer-events: none;
+  animation: emision-anillo 2.4s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+}
+
+/* El segundo sale a mitad de camino del primero: dos ondas seguidas se leen
+   como algo que EMITE; una sola parece un parpadeo. */
+.stream-toggle[data-on="true"]::after {
+  animation-delay: 1.2s;
+  border-color: #eb0000;
+}
+
+@keyframes emision-anillo {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.12;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+/* Lo que respira deja de respirar cuando se pide rendimiento, como el halo del
+   panel que te espera y el ecualizador de la música. El botón sigue encendido
+   con su color: se pierde la onda, no la información. */
+:root[data-rendimiento="1"] .stream-toggle[data-on="true"]::before,
+:root[data-rendimiento="1"] .stream-toggle[data-on="true"]::after {
+  animation: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-toggle[data-on="true"]::before,
+  .stream-toggle[data-on="true"]::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* Streaming: cover, never blur. A light blur over monospaced text can be
@@ -6404,6 +6530,27 @@ button.stat-card[data-live="false"] {
 .setting-line {
   font-size: 13px;
   margin: 4px 0 12px;
+}
+
+/* Un ajuste con nombre, explicación y controles, apilados y con aire.
+   `.setting-line` no vale para esto: es un div sin `display`, así que sus hijos
+   quedan en línea y el título se pegaba a la primera palabra del texto
+   («Modo rendimientoMenos cristal y…»), y de ahí los botones salían pisando el
+   final del párrafo (Munir, 2026-08-10). Aquí cada cosa va en su renglón y el
+   hueco lo pone el `gap`, no los márgenes de cada uno. */
+.ajuste-bloque {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 16px 0 6px;
+  font-size: 13px;
+}
+
+/* Sus márgenes propios sobran: aquí separa el `gap`, y sumar los dos deja el
+   texto flotando lejos de su título. */
+.ajuste-bloque > .card-hint {
+  margin: 0;
 }
 
 /* A field in a settings row: same pill as the finder, but it takes the width

@@ -364,6 +364,46 @@ export default function SettingsView({
     localStorage.setItem(RECUERDO, id);
   };
 
+  /**
+   * Los bloques de la sección abierta, para poder saltar a uno sin bajar a mano.
+   *
+   * Aspecto tiene cinco tarjetas y la primera es una lista de nueve pestañas,
+   * así que llegar a «El fondo» eran varias pantallas de rueda (Munir,
+   * 2026-08-10). Con esto, el grupo abierto despliega sus bloques debajo de su
+   * nombre y se va de un clic.
+   *
+   * Se leen del DOM y NO de una lista escrita a mano. Es a propósito: una lista
+   * paralela hay que acordarse de tocarla cada vez que se añade una tarjeta, y
+   * el día que se olvide el índice mentirá sin que nadie se entere. Leyendo los
+   * `h2` que hay pintados, el índice no puede desfasarse de lo que enseña.
+   */
+  const [bloques, setBloques] = useState<string[]>([]);
+  useEffect(() => {
+    const hoja = document.querySelector(".set-hoja");
+    if (!hoja) {
+      setBloques([]);
+      return;
+    }
+    setBloques(
+      [...hoja.querySelectorAll("section.panel-card > h2")].map(
+        (h) => h.textContent?.trim() ?? "",
+      ),
+    );
+    // `lang` entra en las dependencias porque los títulos se traducen: sin él,
+    // cambiar de idioma dejaría el índice en el anterior.
+  }, [seccion, lang]);
+
+  /** Lleva la hoja hasta el bloque n. Por posición y no por texto: dos títulos
+   *  iguales en la misma sección llevarían siempre al primero. */
+  const irABloque = (i: number) => {
+    const hoja = document.querySelector(".set-hoja");
+    const cajas = hoja?.querySelectorAll("section.panel-card");
+    // Se busca la que TIENE h2, para que la cuenta cuadre con la lista de
+    // arriba aunque alguna tarjeta se pinte sin título.
+    const conTitulo = [...(cajas ?? [])].filter((c) => c.querySelector(":scope > h2"));
+    conTitulo[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   useEffect(() => {
     // Se pregunta cada vez que se abre Ajustes, no una sola vez: Ollama se
     // abre y se cierra durante el día, y una lista de hace tres horas diría
@@ -444,15 +484,28 @@ export default function SettingsView({
             temas, la rejilla quedaba llena de huecos (Munir, 2026-07-30). */}
         <nav className="set-nav">
           {SECCIONES.map((s) => (
-            <button
-              key={s.id}
-              className="set-tab"
-              data-on={seccion === s.id || undefined}
-              onClick={() => irA(s.id)}
-            >
-              <IconoSeccion id={s.id} />
-              <span className="set-tab-nom">{t(s.label)}</span>
-            </button>
+            <div key={s.id} className="set-grupo">
+              <button
+                className="set-tab"
+                data-on={seccion === s.id || undefined}
+                onClick={() => irA(s.id)}
+              >
+                <IconoSeccion id={s.id} />
+                <span className="set-tab-nom">{t(s.label)}</span>
+              </button>
+              {/* Los bloques del grupo abierto, y solo si hay más de uno: con
+                  uno solo, el desplegable repetiría el nombre del grupo justo
+                  debajo del grupo. */}
+              {seccion === s.id && bloques.length > 1 && (
+                <div className="set-sub">
+                  {bloques.map((b, i) => (
+                    <button key={`${b}-${i}`} className="set-sub-item" onClick={() => irABloque(i)}>
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </nav>
 
@@ -652,7 +705,7 @@ export default function SettingsView({
                     siempre, y la respuesta buena depende de lo que tengas
                     abierto: con dos terminales el cristal no cuesta, con seis
                     se nota al escribir. */}
-                <div className="setting-line">
+                <div className="ajuste-bloque">
                   <b>{t("Modo rendimiento")}</b>
                   <span className="card-hint">
                     {t(

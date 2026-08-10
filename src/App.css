@@ -725,6 +725,37 @@
   --ask: #9a6b12;
 }
 
+/* ==========================================================================
+   LA RAYA QUE FALTABA, y faltaba en veinticinco sitios.
+
+   `--line` se usa por todo este archivo (los separadores del Chat, la barra
+   del lienzo, las dos zonas de la barra lateral, los grupos de Cuentas, las
+   piezas del panel de dibujo…) y NO ESTABA DECLARADA en ninguna parte.
+
+   Un `var()` que no resuelve no deja el color en blanco: **anula la
+   declaración entera**. Y como casi todas iban en un atajo (`border`,
+   `border-top`, `background`), con el color se caía también el `solid`: sin
+   estilo de borde no se pinta nada, así que ninguna de esas rayas ha existido
+   nunca. Los cinco sitios que usaban `border-color` sí pintaban algo, pero del
+   color del TEXTO, que es adonde cae un `border-color` inválido, bastante más
+   fuerte de lo que nadie escribió. Encontrado el 2026-08-10 buscando por qué el
+   índice de Ajustes no enseñaba la suya.
+
+   Va como `--border` a propósito: es el borde sutil de la casa, ya lo traen los
+   treinta y dos temas y no mete un tono nuevo en la paleta.
+
+   Y en UNA regla, no repetida 32 veces: `var()` dentro de una variable se
+   resuelve en el elemento donde se declara, con el `--border` que gane ahí. En
+   el `<html>` ese es el del tema puesto. El `[data-tema-prev]` sin valor entra
+   por las miniaturas del selector de temas, que declaran sus tokens en su
+   propia caja: sin él, las treinta y dos se pintarían con la raya del tema
+   activo en vez de con la suya.
+   ========================================================================== */
+:root,
+[data-tema-prev] {
+  --line: var(--border);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -5119,12 +5150,10 @@ button.stat-card[data-live="false"] {
    ocho nombres seguidos de dos tamaños distintos se leen como una lista sola.
    Aparece y desaparece con el grupo, así que nunca hay más de una abierta.
 
-   ⚠ La línea NO SE PINTABA, y no por su color: iba con `var(--line)`, que es
-   una variable que NO EXISTE en ningún `:root` de este archivo (se usa en 25
-   sitios más). Cuando un `var()` no resuelve dentro de un atajo como `border`,
-   se cae la declaración ENTERA, y con ella el `solid`: sin estilo de borde no
-   se dibuja nada, así que no había línea que valiera. Aquí va con `--border`,
-   que sí existe y la traen los treinta y dos temas. */
+   ⚠ Esta línea NO SE PINTABA, y fue lo que destapó el fallo de `--line`: la
+   variable no estaba declarada en ninguna parte y se usaba en 25 sitios más
+   (ver el bloque «LA RAYA QUE FALTABA», arriba del todo). Se dejó en `--border`
+   escrito a mano, que es exactamente lo que `--line` vale ahora. */
 .set-sub {
   display: flex;
   flex-direction: column;
@@ -8548,8 +8577,14 @@ button.stat-card[data-live="false"] {
   cursor: pointer;
 }
 
+/* Con fondo, y no solo con borde. Este era el único de los tres botones que se
+   apoyaban en `var(--line)` para su estado de ratón encima que no tenía otra
+   señal: mientras la variable no existía, ese borde caía a currentColor y salía
+   del color del texto, o sea CLARO y bien visible. Al declarar `--line` como el
+   borde sutil de la casa, ese hover se habría quedado casi sin marcar. */
 .atajos-x:hover:not(:disabled) {
   border-color: var(--line);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--text);
 }
 

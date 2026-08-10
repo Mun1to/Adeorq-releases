@@ -4443,43 +4443,71 @@ body {
   box-shadow: var(--glass-edge);
 }
 
-/* La pestaña: lo que queda del panel cuando lo cierras.
-   Antes era una columna de alto completo, así que cerrar el panel devolvía
-   270 px pero se quedaba 34 en toda la pantalla para nada. Ahora sale del
-   flujo, se pega al borde derecho a media altura y solo mide lo que mide su
-   rótulo: cerrado, las terminales llegan hasta el borde. */
-.skills-pestana {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 4;
-  display: flex;
-  flex-direction: column;
+/* Cerrada: la misma columna, estrechada a una franja de canto.
+   Es `.skills` otra vez, no una caja aparte, así que comparte el cristal, el
+   borde y la sombra del panel abierto y cerrar se ve como estrechar y no como
+   cambiar una cosa por otra. Munir la eligió entre cinco formas el 2026-08-10,
+   señalando esta y pidiendo la pestañita ARRIBA. */
+.skills-cerrada {
+  width: 34px;
   align-items: center;
-  gap: 9px;
-  padding: 14px 6px 16px;
-  background: var(--panel);
-  backdrop-filter: var(--glass-blur);
+  padding: 12px 4px 14px;
+  gap: 14px;
+  cursor: pointer;
+}
+
+/* El botón de abrir, ARRIBA del todo. No va centrado ni al pie: arriba es lo
+   primero que cae bajo el ojo al ir al borde derecho, y además queda a la
+   altura de la cabecera del panel que va a abrirse, así que al pulsarlo el
+   botón no se muda de sitio. */
+/* Con CAJA, no un icono suelto (Munir, 2026-08-10, señalando uno). Un chevron
+   a pelo sobre el cristal parece decoración; con su cuadrado redondeado, su
+   fondo y su borde se lee como lo que es, un botón que se pulsa.
+   Cuadrado y no círculo: la franja mide 34 con 4 de relleno a cada lado, así
+   que 26 es exactamente lo que cabe, y a ese tamaño un círculo se ve como una
+   pastilla suelta mientras que el cuadrado acompaña al borde de la franja. */
+.skills-abrir {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 1px solid var(--border);
-  border-right: none;
-  /* Redondeada solo por donde asoma: pegada al borde, una caja con las cuatro
-     esquinas redondas flota en vez de salir de él. */
-  border-radius: 12px 0 0 12px;
-  color: var(--accent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--panel-solid) 72%, transparent);
+  color: color-mix(in srgb, var(--text) 82%, var(--muted));
   cursor: pointer;
   box-shadow: var(--glass-edge);
   transition:
-    padding-right 0.14s ease,
-    background 0.14s ease;
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 
-.skills-pestana:hover {
-  background: var(--panel-head);
-  padding-right: 10px;
+.skills-abrir:hover {
+  background: var(--panel-solid);
+  border-color: var(--border-strong);
+  color: var(--text);
 }
 
-/* El rótulo, de canto porque la pestaña es más alta que ancha. Estaba a 11 px,
+/* El chevron mira a la IZQUIERDA, que es por donde va a salir el panel.
+   `ChevronIcon` sabe apuntar arriba, abajo y a la derecha, así que se le da la
+   vuelta al de la derecha en vez de añadirle una cuarta dirección a un icono
+   que usa media app por una sola franja. */
+.skills-abrir > svg {
+  transform: scaleX(-1);
+}
+
+/* El rótulo se centra en lo que queda de alto, debajo del botón. */
+.skills-cerrada .skills-vertical {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* El rótulo, de canto porque la franja es más alta que ancha. Estaba a 11 px,
    en gris apagado y en versalitas: era casi invisible, y es lo único que dice
    qué hay ahí dentro con el panel cerrado. */
 .skills-vertical {

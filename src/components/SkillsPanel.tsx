@@ -45,20 +45,31 @@ export default function SkillsPanel({ canPaste, onUse, onUsage, cuentas }: Props
     });
   };
 
-  // Cerrado no es una columna, es una pestaña.
+  // Cerrado es una FRANJA de alto completo con el rótulo de canto.
   //
-  // Antes se quedaba una franja de 34 px de ALTO COMPLETO con el rótulo girado
-  // de arriba abajo: 34 píxeles de terminal cedidos en toda la pantalla para
-  // enseñar dos palabras de canto (Munir, 2026-08-06). Ahora es una lengüeta
-  // pegada al borde, a media altura, y el ancho que ocupaba se lo quedan las
-  // terminales. Sigue diciendo lo que hay dentro, que era lo que se ganó al
-  // ponerle el rótulo.
+  // Ha sido las dos cosas. Nació así, el 6 de agosto pasó a ser una lengüeta a
+  // media altura para devolverle esos 34 px a las terminales, y el 10 de agosto
+  // Munir pidió la franja otra vez, señalando cuál de cinco maquetas quería y
+  // con un cambio: la pestañita ARRIBA, no abajo.
+  //
+  // Y tiene sentido arriba: es lo primero que cae bajo el ojo cuando vas al
+  // borde derecho, y queda a la altura de la cabecera del panel que va a
+  // abrirse, así que el botón no se mueve de sitio al pulsarlo.
   if (!open) {
     return (
-      <button className="skills-pestana" onClick={toggle} data-tip={t("Mostrar skills y uso")}>
-        <SparkIcon size={13} />
+      <aside className="skills skills-cerrada">
+        <button className="skills-abrir" onClick={toggle} data-tip={t("Mostrar skills y uso")}>
+          {/* Un chevron y no la estrella (Munir, 2026-08-10). La estrella decía
+              QUÉ hay dentro, y eso ya lo dice el rótulo de debajo; lo que no
+              decía nadie es que esto se abre. Apunta hacia la izquierda, que es
+              por donde sale el panel: mirando al borde en el que ya está pegado
+              no significaría nada. */}
+          <ChevronIcon size={13} der />
+        </button>
+        {/* Plegada también dice lo que hay dentro: aquí no viven solo las
+            skills, debajo está el uso de la cuenta. */}
         <span className="skills-vertical">{t("Skills · Uso")}</span>
-      </button>
+      </aside>
     );
   }
 

@@ -385,7 +385,24 @@ export default function SettingsView({
     return SECCIONES.some((s) => s.id === guardada) ? (guardada as SeccionId) : "aspecto";
   });
 
+  /** Si la lista de bloques del grupo abierto está recogida. Volver a pulsar el
+   *  grupo que ya estás viendo la esconde, que es lo que hace cualquier
+   *  desplegable y lo que faltaba aquí (Munir, 2026-08-10: «cuando le das no se
+   *  esconden las secciones»).
+   *
+   *  Ojo, no cierra la SECCIÓN: la hoja de la derecha sigue siendo la misma. Lo
+   *  que se pliega es su índice, que es lo único que la flecha promete. Cerrar
+   *  también la hoja dejaría la mitad de la pantalla en blanco y no hay ningún
+   *  sitio al que volver. */
+  const [plegado, setPlegado] = useState(false);
+
   const irA = (id: SeccionId) => {
+    // El mismo grupo otra vez: se recoge o se despliega, y la hoja no se mueve.
+    if (id === seccion) {
+      setPlegado((v) => !v);
+      return;
+    }
+    setPlegado(false);
     setSeccion(id);
     localStorage.setItem(RECUERDO, id);
   };
@@ -520,6 +537,10 @@ export default function SettingsView({
                 <button
                   className="set-tab"
                   data-on={abierto || undefined}
+                  /* Abierto pero recogido: la flecha vuelve a apuntar de lado,
+                     porque es lo que hay debajo lo que describe, no cuál es la
+                     sección que estás viendo. */
+                  data-plegado={(abierto && plegado && despliega) || undefined}
                   onClick={() => irA(s.id)}
                 >
                   <IconoSeccion id={s.id} />
@@ -537,7 +558,7 @@ export default function SettingsView({
                 {/* Los bloques del grupo abierto, y solo si hay más de uno: con
                     uno solo, el desplegable repetiría el nombre del grupo justo
                     debajo del grupo. */}
-                {abierto && bloques.length > 1 && (
+                {abierto && !plegado && bloques.length > 1 && (
                   <div className="set-sub">
                     {bloques.map((b, i) => (
                       <button

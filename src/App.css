@@ -5270,6 +5270,14 @@ button.stat-card[data-live="false"] {
   color: var(--accent);
 }
 
+/* Y vuelve a apuntar de lado si el grupo está a la vista pero con su lista
+   recogida: la flecha describe lo que hay DEBAJO de ella, no cuál es la
+   sección abierta. Con `[data-on][data-plegado]` para ganarle a la regla de
+   arriba, que es la que gira. */
+.set-tab[data-on][data-plegado] .set-tab-chev {
+  transform: none;
+}
+
 /* Solo el nombre. Llevaba debajo una línea explicando qué había dentro, y con
    siete grupos eso convertía el índice en más texto que el contenido. */
 .set-tab-nom {

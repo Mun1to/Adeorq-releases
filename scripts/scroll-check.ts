@@ -4,7 +4,7 @@
 //     --lib es2022,dom --esModuleInterop --skipLibCheck --outDir <tmp>
 //   node <tmp>/scripts/scroll-check.js
 
-import { hayQueAjustar, volverA } from "../src/lib/scrollTerm";
+import { hayQueAjustar, hayQueRecolocar, volverA } from "../src/lib/scrollTerm";
 
 let fallos = 0;
 function ok(nombre: string, cond: boolean, detalle = "") {
@@ -58,6 +58,40 @@ ok(
 ok(
   "una terminal recien abierta, sin historial, no se mueve",
   volverA({ baseY: 0, viewportY: 0 }, 0) === null,
+);
+
+// --- la segunda pasada, que es la que arregla el salto ------------------------
+// El div de scroll de xterm se resincroniza solo en el frame siguiente y pisaba
+// lo que acababamos de colocar. Se recoloca, pero solo si hace falta.
+ok(
+  "si el viewport se subio solo, se vuelve a bajar",
+  hayQueRecolocar(null, { baseY: 540, viewportY: 300 }),
+  "queriamos el final y acabamos 240 lineas mas arriba",
+);
+ok(
+  "si ya esta al final, no se toca (ni un tiron)",
+  !hayQueRecolocar(null, { baseY: 540, viewportY: 540 }),
+);
+ok(
+  "un viewport adelantado tampoco se recoloca",
+  !hayQueRecolocar(null, { baseY: 540, viewportY: 542 }),
+);
+ok(
+  "una linea concreta que se movio, se recoloca",
+  hayQueRecolocar(528, { baseY: 540, viewportY: 400 }),
+);
+ok(
+  "un renglon de margen no cuenta: el reflow deja a uno de distancia",
+  !hayQueRecolocar(528, { baseY: 540, viewportY: 529 }),
+  "recolocar por una linea da un tiron peor que el fallo",
+);
+ok(
+  "dos renglones ya no son el reflow, son un salto",
+  hayQueRecolocar(528, { baseY: 540, viewportY: 530 }),
+);
+ok(
+  "terminal vacia: nada que recolocar",
+  !hayQueRecolocar(null, { baseY: 0, viewportY: 0 }),
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

@@ -49,7 +49,7 @@ import { chime, forgetPane, notify, type NotifyMode } from "../lib/notify";
 import { apuntaTecla } from "../lib/tecleando";
 import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
-import { hayQueAjustar, volverA } from "../lib/scrollTerm";
+import { hayQueAjustar, hayQueRecolocar, volverA } from "../lib/scrollTerm";
 import { modoRendimiento } from "../lib/rendimiento";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
@@ -687,8 +687,31 @@ export default function TerminalPane({
       f2.fit();
 
       const destino = volverA(antes, t2.buffer.active.baseY);
-      if (destino === null) t2.scrollToBottom();
-      else t2.scrollToLine(destino);
+      const colocar = () => {
+        const t3 = termRef.current;
+        if (!t3) return;
+        if (destino === null) t3.scrollToBottom();
+        else t3.scrollToLine(destino);
+      };
+      colocar();
+      /* Y OTRA VEZ en el frame siguiente, que es lo que faltaba.
+       *
+       * Una terminal tiene dos scrolls: el del búfer, que es el que acabamos de
+       * colocar, y el del div que xterm monta encima (`.xterm-viewport`, con
+       * scroll de navegador). Ese div se resincroniza SOLO después de un cambio
+       * de tamaño, en el frame siguiente, y pisaba lo que habíamos colocado: por
+       * eso abrir una terminal nueva o desplegar la franja de Skills —las dos
+       * cosas cambian el ancho de todos los paneles— te subían el historial y
+       * había que bajar a mano cada vez (Munir, 2026-08-10).
+       *
+       * `hayQueRecolocar` evita el tirón cuando ya está bien, y de paso respeta
+       * un scroll que hayas hecho tú entre medias. */
+      requestAnimationFrame(() => {
+        const t3 = termRef.current;
+        if (!t3) return;
+        const ahora = { baseY: t3.buffer.active.baseY, viewportY: t3.buffer.active.viewportY };
+        if (hayQueRecolocar(destino, ahora)) colocar();
+      });
 
       if (
         t2.cols !== lastSizeRef.current.cols ||

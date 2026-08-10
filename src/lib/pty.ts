@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { leerPerfil, raiz } from "./perfil";
+import type { PedidoMcp, RespuestaMcp } from "./supremo";
 
 export interface PtyData {
   id: number;
@@ -948,4 +949,18 @@ export function compartirSkills(configDir: string): Promise<number> {
     propias hasta que le pongas alguna. */
 export function dejarDeCompartirSkills(configDir: string): Promise<void> {
   return invoke("dejar_de_compartir_skills", { configDir });
+}
+
+/* ── El puente de la sesión suprema ──────────────────────────────────────────
+   Un agente pide por MCP que se abra una terminal o que se unan dos. Eso lo
+   monta React, así que Rust emite el pedido y espera a que la ventana conteste
+   con `mcp_reply`. Si nadie contesta en 25 segundos, el agente recibe un «no
+   contestó a tiempo» en vez de quedarse colgado. Ver `docs/SUPREMA.md`. */
+
+export function onPedidoMcp(cb: (p: PedidoMcp) => void): Promise<UnlistenFn> {
+  return listen<PedidoMcp>("mcp:pedido", (e) => cb(e.payload));
+}
+
+export function mcpReply(peticion: number, respuesta: RespuestaMcp): Promise<void> {
+  return invoke("mcp_reply", { peticion, respuesta });
 }

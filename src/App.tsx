@@ -101,6 +101,9 @@ import {
   loadUiState,
   saveUiState,
   writePty,
+  listProjects,
+  mcpReply,
+  onPedidoMcp,
   type Account,
   type Project,
   type SessionInfo,
@@ -123,6 +126,14 @@ import { guardarAtajos, leerAtajos, type Atajos } from "./lib/atajos";
 import { tecleandoEnOtro } from "./lib/tecleando";
 import { PROVIDERS, providerOf, type Provider } from "./lib/providers";
 import { actaDeRelevo } from "./lib/relevo";
+import {
+  ARRANCAN_CON_ENCARGO,
+  carpetaDe,
+  cliPedido,
+  nombreDe,
+  parteDeApertura,
+  type PedidoMcp,
+} from "./lib/supremo";
 import { type Hit } from "./lib/redact";
 import "@xterm/xterm/css/xterm.css";
 import "./App.css";
@@ -955,7 +966,7 @@ function App() {
           ...prev,
           { id, cwd, name, command, env, account: etiqueta },
         ]);
-        return;
+        return { id, donde: "lienzo" as const };
       }
 
       setPanes((prev) => [
@@ -965,6 +976,11 @@ function App() {
       setCols((prev) => layoutAdd(prev, id, () => nextCol.current++, at));
       setFocusedId(id);
       setView("cabina");
+      // Devuelve QUÉ abrió y DÓNDE. Casi nadie lo mira, y a los que no lo miran
+      // no les cambia nada; lo necesita el puente del MCP, que tiene que
+      // contestarle al agente con el número de su terminal nueva y decirle si
+      // cayó en un sitio donde existan las flechas (`docs/SUPREMA.md`).
+      return { id, donde: "cabina" as const };
     },
     [entornoDePane],
   );
@@ -1386,6 +1402,104 @@ function App() {
     },
     [addPane, openClaudePrompt],
   );
+
+  /* ── LA SESIÓN SUPREMA ───────────────────────────────────────────────────
+     Un agente con el MCP de Adeorq puesto pide abrir otra terminal, o unir dos
+     con una flecha. Rust no sabe montar un panel (eso es React), así que emite
+     el pedido y espera aquí; lo que decide qué abrir vive aparte, en
+     `lib/supremo.ts`, para poder probarlo sin abrir la app.
+
+     Los topes (seis vivas, doce por hora) están en Rust a propósito: son
+     presupuesto, y el presupuesto no lo guarda quien lo gasta. El plano entero
+     está en `docs/SUPREMA.md`. */
+  const enlazarRef = useRef<((from: number, to: number, auto: boolean) => boolean) | null>(null);
+
+  useEffect(() => {
+    const atender = async (p: PedidoMcp) => {
+      const responder = (r: Parameters<typeof mcpReply>[1]) =>
+        void mcpReply(p.peticion, r).catch(() => {});
+      try {
+        if (p.clase === "link_panes") {
+          const hecho = enlazarRef.current?.(Number(p.from), Number(p.to), !!p.auto);
+          responder(
+            hecho
+              ? {}
+              : {
+                  error:
+                    "No se pudo dibujar: las flechas solo existen en el Lienzo, y esas dos terminales tienen que estar las dos allí.",
+                },
+          );
+          return;
+        }
+        if (p.clase !== "open_pane") {
+          responder({ error: `No sé atender «${p.clase}».` });
+          return;
+        }
+
+        const elegido = cliPedido(p.cli);
+        if ("error" in elegido) return responder({ error: elegido.error });
+        const { cli } = elegido;
+
+        const proyectos = await listProjects().catch(() => []);
+        const donde = carpetaDe(p, proyectos);
+        if ("error" in donde) return responder({ error: donde.error });
+        const cwd = donde.cwd;
+
+        const brief = (p.brief ?? "").trim();
+        const label = nombreDe(p, cwd, cli);
+        // Solo Claude y Antigravity aceptan el encargo en la línea de arranque.
+        // Al resto se les abre la terminal y se le DICE al agente que lo mande
+        // él: meterle texto suelto a un CLI que espera un subcomando es abrirle
+        // una terminal con un error dentro.
+        const conEncargo = !!brief && ARRANCAN_CON_ENCARGO.has(cli);
+        let command: string[] | undefined;
+        if (cli === "shell") command = undefined;
+        else if (cli === "claude")
+          command = conEncargo
+            ? newClaudeCommand(`'${brief.replace(/'/g, "''")}'`, undefined, true)
+            : newClaudeCommand();
+        else if (cli === "agy" && agyExe.current)
+          command = agyCommand(agyExe.current, conEncargo ? brief : undefined);
+        else command = providerCommand(cli);
+
+        const abierto = addPane(label, cwd, command);
+        if (!abierto) return responder({ error: "no pude abrir la terminal" });
+
+        // La flecha de paso, si la pidió: así el árbol le queda hecho sin una
+        // segunda llamada. Solo cuela en el lienzo, y se dice cuando no.
+        let flecha: "hecha" | "sin-lienzo" | undefined;
+        if (typeof p.from === "number" && p.from > 0) {
+          const ok =
+            abierto.donde === "lienzo" &&
+            !!enlazarRef.current?.(p.from, abierto.id, false);
+          flecha = ok ? "hecha" : "sin-lienzo";
+        }
+
+        responder({
+          pane_id: abierto.id,
+          donde: abierto.donde,
+          parte: parteDeApertura({
+            paneId: abierto.id,
+            cli,
+            donde: abierto.donde,
+            conEncargo: conEncargo || !brief,
+            flecha,
+          }),
+        });
+      } catch (e) {
+        responder({ error: String(e) });
+      }
+    };
+
+    let vivo = true;
+    const un = onPedidoMcp((p) => {
+      if (vivo) void atender(p);
+    });
+    return () => {
+      vivo = false;
+      void un.then((f) => f()).catch(() => {});
+    };
+  }, [addPane]);
 
   /** Abre una cuadrilla entera: una terminal por puesto, todas marcadas con el
       mismo color y sabiendo que trabajan juntas. Se escalonan unos cientos de
@@ -2837,6 +2951,10 @@ function App() {
           alVolver={(cwd, command) => resumeCommandFor({ name: "", cwd, command })}
           onCreate={createCanvasPane}
           onClose={closeCanvasPane}
+          // El asa de las flechas para la sesión suprema: mientras el lienzo
+          // esté montado, un agente puede pedir por MCP que se unan dos
+          // terminales. Ver `docs/SUPREMA.md`.
+          enlazarRef={enlazarRef}
         />
       </div>
 

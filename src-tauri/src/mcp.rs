@@ -1,8 +1,140 @@
+use std::collections::HashMap;
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{mpsc, Mutex};
 use std::thread;
+use std::time::{Duration, Instant};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+
+/// ==========================================================================
+/// EL PUENTE HACIA LA VENTANA
+///
+/// `send_command` no lo necesitaba: escribe directo al PTY, que es estado de
+/// Rust. Pero ABRIR un panel del lienzo lo monta React (nodos, posición,
+/// layout), así que hay que pedírselo al front y esperar a que conteste con el
+/// número que le tocó.
+///
+/// Patrón petición/respuesta sobre los eventos que ya usa el PTY: aquí se emite
+/// `mcp:pedido` y se bloquea en un canal; el front hace lo suyo y llama al
+/// comando `mcp_reply`, que suelta el canal. Bloquear es correcto porque cada
+/// cliente MCP se atiende en su propio hilo (ver `start_mcp_server`): no para
+/// nada más de la app.
+///
+/// Ver `docs/SUPREMA.md`.
+/// ==========================================================================
+
+/// Lo que el front contesta a una petición.
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+pub struct Respuesta {
+    /// El panel que nació, cuando la petición era abrir uno.
+    pub pane_id: Option<u32>,
+    /// «lienzo» o «cabina»: la suprema tiene que saber dónde acabó su hijo,
+    /// porque las flechas solo existen en el lienzo.
+    pub donde: Option<String>,
+    /// Por qué no se pudo. Si viene, lo demás no vale.
+    pub error: Option<String>,
+    /// Lo que se le cuenta al agente, cuando la ventana sabe más que nosotros.
+    /// Ella conoce el CLI que abrió y si ese acepta encargo al arrancar, y de
+    /// eso depende si el agente tiene que mandarlo él. Ver `lib/supremo.ts`.
+    pub parte: Option<String>,
+}
+
+#[derive(Default)]
+pub struct Puente {
+    esperando: Mutex<HashMap<u64, mpsc::Sender<Respuesta>>>,
+    siguiente: AtomicU64,
+    /// Cuándo se abrió cada panel por MCP y cuál fue, para los dos topes.
+    aperturas: Mutex<Vec<(Instant, u32)>>,
+}
+
+/// LOS DOS FRENOS, y no son opcionales.
+///
+/// La suprema es un agente que DECIDE (lo eligió Munir), así que el control no
+/// puede ser «pregúntame cada vez»: sería inusable. Es presupuesto duro, aquí en
+/// Rust, donde el agente no puede tocarlo. Cada sesión que abre es cuota de
+/// verdad, y un árbol que se retroalimenta puede quemar la semana en veinte
+/// minutos.
+///
+/// Seis vivas es el mismo tope que la cuadrilla. Doce por hora es para que un
+/// bucle no abra y cierre sin parar sin llegar nunca a las seis.
+const MAX_VIVOS: usize = 6;
+const MAX_POR_HORA: usize = 12;
+const VENTANA: Duration = Duration::from_secs(3600);
+/// Lo que se espera a que la ventana conteste. Generoso porque abrir un panel
+/// arranca un proceso, y corto comparado con lo que tarda un turno de agente.
+const ESPERA: Duration = Duration::from_secs(25);
+
+/// La ventana ya hizo lo que se le pidió (o no pudo): suelta al hilo que espera.
+#[tauri::command]
+pub fn mcp_reply(state: tauri::State<'_, Puente>, peticion: u64, respuesta: Respuesta) {
+    if let Some(tx) = state.esperando.lock().unwrap().remove(&peticion) {
+        let _ = tx.send(respuesta);
+    }
+}
+
+/// Pide algo al front y espera su respuesta. Bloquea este hilo, con tope.
+fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Result<Respuesta, String> {
+    let puente = app.state::<Puente>();
+    let peticion = puente.siguiente.fetch_add(1, Ordering::Relaxed) + 1;
+    let (tx, rx) = mpsc::channel::<Respuesta>();
+    puente.esperando.lock().unwrap().insert(peticion, tx);
+
+    let mut cuerpo = datos;
+    cuerpo["peticion"] = json!(peticion);
+    cuerpo["clase"] = json!(clase);
+    if app.emit("mcp:pedido", &cuerpo).is_err() {
+        puente.esperando.lock().unwrap().remove(&peticion);
+        return Err("la ventana de Adeorq no responde".into());
+    }
+
+    match rx.recv_timeout(ESPERA) {
+        Ok(r) => match r.error {
+            Some(e) => Err(e),
+            None => Ok(r),
+        },
+        Err(_) => {
+            // Se limpia SIEMPRE, o el mapa crece con peticiones muertas cada vez
+            // que la ventana tarde de más.
+            puente.esperando.lock().unwrap().remove(&peticion);
+            Err("la ventana de Adeorq no contestó a tiempo".into())
+        }
+    }
+}
+
+/// ¿Queda presupuesto para abrir otra? Devuelve el motivo si no.
+fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
+    let puente = app.state::<Puente>();
+    let mut aperturas = puente.aperturas.lock().unwrap();
+    aperturas.retain(|(cuando, _)| cuando.elapsed() < VENTANA);
+
+    if aperturas.len() >= MAX_POR_HORA {
+        return Err(format!(
+            "Tope alcanzado: {} terminales abiertas por MCP en la última hora. \
+             Cada una cuesta cuota de verdad, así que Adeorq no abre más por ahora. \
+             Cuéntaselo a quien te lo pidió en vez de reintentar.",
+            MAX_POR_HORA
+        ));
+    }
+
+    // Vivas de verdad: las que abrió el MCP y siguen en el mapa del PTY. Las que
+    // el usuario haya cerrado a mano no cuentan, que para eso las cerró.
+    let vivas = {
+        let pty = app.state::<crate::pty::PtyState>();
+        let map = pty.0.lock().unwrap();
+        aperturas.iter().filter(|(_, id)| map.contains_key(id)).count()
+    };
+    if vivas >= MAX_VIVOS {
+        return Err(format!(
+            "Tope alcanzado: ya hay {} terminales vivas abiertas por MCP. \
+             Cierra alguna (o pide que la cierren) antes de abrir otra.",
+            MAX_VIVOS
+        ));
+    }
+    Ok(())
+}
 
 /// Run the stdio-to-TCP bridge for MCP clients executing from console.
 pub fn run_mcp_bridge() -> Result<(), Box<dyn std::error::Error>> {
@@ -221,6 +353,62 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                                     "type": "object",
                                     "properties": {}
                                 }
+                            },
+                            {
+                                "name": "open_pane",
+                                "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_transcript. This is how a supervising session builds a team: one pane per job. Every pane costs real quota, so open the fewest you need. Hard limits apply (6 alive, 12 per hour) and you are told when you hit them.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "cli": {
+                                            "type": "string",
+                                            "description": "Which agent to run: claude, codex, gemini, qwen, copilot, crush, opencode, amp, cursor, pi, kiro, agy — or 'shell' for a plain terminal. Defaults to claude."
+                                        },
+                                        "project": {
+                                            "type": "string",
+                                            "description": "Project name as listed by get_projects. Either this or cwd."
+                                        },
+                                        "cwd": {
+                                            "type": "string",
+                                            "description": "Absolute folder to open it in. Wins over project."
+                                        },
+                                        "brief": {
+                                            "type": "string",
+                                            "description": "The job for this agent, typed into it as its first message. Say what to do and what NOT to touch: panes opened this way share the machine with the others."
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "description": "Short label for the pane header, so a human can tell your team apart at a glance."
+                                        },
+                                        "from": {
+                                            "type": "number",
+                                            "description": "Draw an arrow from this pane ID to the new one (canvas only). Use your own ID, in ADEORQ_PANE_ID, to hang it off you."
+                                        }
+                                    },
+                                    "required": []
+                                }
+                            },
+                            {
+                                "name": "link_panes",
+                                "description": "Draws an arrow between two panes on the canvas. When the source agent finishes a turn, its reply is handed to the target as its next prompt. This is how work flows down a tree without you relaying it by hand. Canvas only.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "from": {
+                                            "type": "number",
+                                            "description": "Source pane ID. Yours is in the ADEORQ_PANE_ID environment variable."
+                                        },
+                                        "to": {
+                                            "type": "number",
+                                            "description": "Target pane ID."
+                                        },
+                                        "auto": {
+                                            "type": "boolean",
+                                            "description": "Hand over on its own instead of waiting for a human click. Defaults to false: automatic arrows spend quota with nobody watching, and Adeorq switches one back to manual if it fires 3 times in 10 minutes."
+                                        }
+                                    },
+                                    "required": ["from", "to"]
+                                }
                             }
                         ]
                     }
@@ -417,6 +605,86 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                         "text": combined
                     }
                 ]
+            }))
+        }
+        // Las dos que necesitan a la ventana: un panel del lienzo lo monta React,
+        // no Rust. Ver el bloque «EL PUENTE HACIA LA VENTANA», arriba.
+        "open_pane" => {
+            hay_sitio(app)?;
+
+            let cli = args["cli"].as_str().unwrap_or("claude").trim().to_lowercase();
+            let brief = args["brief"].as_str().unwrap_or_default().trim().to_string();
+            let cwd = args["cwd"].as_str().unwrap_or_default().trim().to_string();
+            let project = args["project"].as_str().unwrap_or_default().trim().to_string();
+            if cwd.is_empty() && project.is_empty() {
+                return Err(
+                    "Falta dónde abrirla: pasa `project` (uno de los de get_projects) o `cwd`."
+                        .into(),
+                );
+            }
+
+            let r = pedir_a_la_ventana(
+                app,
+                "open_pane",
+                json!({
+                    "cli": cli,
+                    "cwd": cwd,
+                    "project": project,
+                    "brief": brief,
+                    "name": args["name"].as_str().unwrap_or_default(),
+                    "from": args["from"],
+                }),
+            )?;
+
+            let pane_id = r.pane_id.ok_or("la ventana no devolvió el número del panel")?;
+            // Se apunta DESPUÉS de que naciera de verdad: un intento fallido no
+            // debe gastar presupuesto.
+            app.state::<Puente>()
+                .aperturas
+                .lock()
+                .unwrap()
+                .push((Instant::now(), pane_id));
+
+            // El parte lo redacta la ventana, que es la que sabe con qué CLI
+            // acabó y si ese acepta encargo al arrancar. Aquí solo se le añade
+            // el recordatorio de cómo hablarle, que es igual para todos.
+            let parte = r
+                .parte
+                .unwrap_or_else(|| format!("Terminal {} abierta con «{}».", pane_id, cli));
+            Ok(json!({
+                "content": [{
+                    "type": "text",
+                    "text": format!(
+                        "{}\nLee lo que va haciendo con read_pane_transcript({}), y háblale con send_command({}, \"...\").",
+                        parte, pane_id, pane_id
+                    )
+                }]
+            }))
+        }
+        "link_panes" => {
+            let from = args["from"].as_u64().ok_or("Falta `from` (el panel de origen)")?;
+            let to = args["to"].as_u64().ok_or("Falta `to` (el panel de destino)")?;
+            if from == to {
+                return Err("Una flecha de un panel a sí mismo se relevaría en bucle.".into());
+            }
+            let auto = args["auto"].as_bool().unwrap_or(false);
+            pedir_a_la_ventana(
+                app,
+                "link_panes",
+                json!({ "from": from, "to": to, "auto": auto }),
+            )?;
+            Ok(json!({
+                "content": [{
+                    "type": "text",
+                    "text": format!(
+                        "Flecha dibujada de {} a {}{}. Cuando {} termine un turno, su respuesta pasa a {}.",
+                        from,
+                        to,
+                        if auto { " (automática)" } else { " (a la espera de un clic)" },
+                        from,
+                        to
+                    )
+                }]
             }))
         }
         _ => Err(format!("Unknown tool: {}", name))

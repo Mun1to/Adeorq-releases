@@ -248,7 +248,11 @@ pub fn run() {
         .manage(SessionCache::default())
         .manage(discord::DiscordState::default())
         .manage(memoria::MemoriaCache::default())
+        // El puente del MCP con la ventana: lo que un agente pide (abrir un
+        // panel, unir dos) lo hace React, no Rust. Ver `docs/SUPREMA.md`.
+        .manage(mcp::Puente::default())
         .invoke_handler(tauri::generate_handler![
+            mcp::mcp_reply,
             pty::pty_spawn,
             pty::pty_write,
             pty::pty_resize,

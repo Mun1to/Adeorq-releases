@@ -50,3 +50,26 @@ export function volverA(antes: Vista, baseYDespues: number): number | null {
   if (desdeElFinal <= 0) return null;
   return Math.max(0, baseYDespues - desdeElFinal);
 }
+
+/**
+ * ¿Hay que volver a colocar el scroll, o ya está donde debía?
+ *
+ * Existe porque colocarlo UNA vez no bastaba. La terminal tiene dos scrolls: el
+ * del búfer (`viewportY`, que es lo que `volverA` calcula) y el del div que xterm
+ * pone por encima (`.xterm-viewport`, con scroll de navegador). Al cambiar el
+ * tamaño, ese div se resincroniza SOLO, en el frame siguiente, y ahí pisaba lo
+ * que acabábamos de colocar: por eso abrir una terminal nueva o abrir la franja
+ * de Skills, que cambian el ancho de todos los paneles, te subían el historial
+ * y había que bajar a mano cada vez (Munir, 2026-08-10).
+ *
+ * Así que se coloca dos veces, y esta función es la que decide si la segunda
+ * tiene algo que hacer: si el búfer ya está donde queríamos, no se toca nada, y
+ * un scroll que hayas hecho tú entre medias no se pisa.
+ */
+export function hayQueRecolocar(destino: number | null, ahora: Vista): boolean {
+  // Queríamos el final: solo si de verdad no estamos al final.
+  if (destino === null) return ahora.viewportY < ahora.baseY;
+  // Queríamos una línea concreta: un renglón de margen, porque el reflow puede
+  // dejarlo a uno de distancia y recolocar por eso da un tirón peor que el fallo.
+  return Math.abs(ahora.viewportY - destino) > 1;
+}

@@ -226,6 +226,12 @@ interface Props {
    *  cerebros y fronteras antes de gastar nada. */
   onRepartirTarjetas: (texto: string, project: Project, alAbrir: () => void) => void;
   onClose: (id: number) => void;
+  /** El asa para que una sesión suprema pida flechas por MCP. La rellena el
+   *  lienzo al montarse y la vacía al irse, así que App puede preguntar si hay
+   *  lienzo abierto sin saber nada de él. Ver `docs/SUPREMA.md`. */
+  enlazarRef?: React.MutableRefObject<
+    ((from: number, to: number, auto: boolean) => boolean) | null
+  >;
 }
 
 /** What travels along an arrow when the upstream agent finishes. */
@@ -387,6 +393,7 @@ function Canvas({
   onLanzarEncargo,
   onRepartirTarjetas,
   onClose,
+  enlazarRef,
 }: Props) {
   const { t } = useT();
   const flow = useReactFlow();
@@ -741,6 +748,49 @@ function Canvas({
    * ES entregar: se le escribe ahí mismo lo que dice la nota. Es lo que uno
    * espera al arrastrar una flecha de sus tareas a un agente.
    */
+  /* La flecha que pide un agente por MCP, no un dedo arrastrando.
+   *
+   * Es la MISMA flecha que dibujas tú: entra en `edges` igual, la mueve el
+   * mismo `onTurnEnd` y la frena el mismo tope de tres entregas. Lo único que
+   * cambia es quién la pidió, así que nace SIEMPRE a la espera de un clic salvo
+   * que el agente pida automática a conciencia: una flecha automática gasta
+   * cuota sin que nadie mire.
+   *
+   * Devuelve si se pudo, y no se puede si alguna de las dos terminales no está
+   * en el lienzo: ahí no hay nada a lo que enganchar la punta. Ver
+   * `docs/SUPREMA.md`. */
+  useEffect(() => {
+    if (!enlazarRef) return;
+    enlazarRef.current = (from, to, auto) => {
+      if (!flow.getNode(String(from)) || !flow.getNode(String(to))) return false;
+      if (from === to) return false;
+      if (alcanza(String(to), String(from), edgesRef.current)) {
+        setNote(t("Un agente ha pedido una flecha que cierra un círculo."));
+        window.setTimeout(() => setNote(null), 8000);
+      }
+      setEdges((prev) =>
+        addEdge(
+          {
+            source: String(from),
+            target: String(to),
+            // Sin asa concreta: una flecha pedida por un agente no sale de un
+            // punto de la caja, sale de la terminal entera.
+            sourceHandle: null,
+            targetHandle: null,
+            animated: true,
+            label: "encargo…",
+            data: { brief: "", auto },
+          },
+          prev,
+        ),
+      );
+      return true;
+    };
+    return () => {
+      enlazarRef.current = null;
+    };
+  }, [enlazarRef, flow, t]);
+
   const onConnect = useCallback(
     (c: Connection) => {
       const origen = flow.getNode(String(c.source));

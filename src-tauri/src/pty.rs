@@ -488,6 +488,14 @@ pub async fn pty_spawn(
     cmd.env_remove("NO_COLOR");
     cmd.env("FORCE_COLOR", "3");
     cmd.env("CLICOLOR_FORCE", "1");
+    // QUIÉN ERES. Un agente dentro de una terminal de Adeorq no tenía forma de
+    // saber en qué panel vive, y sin eso no puede pedir por MCP que se dibuje
+    // una flecha DESDE él: sabe los números de los demás (`get_active_panes`) y
+    // no el suyo. Va en el entorno y no por el prompt porque lo hereda todo lo
+    // que nazca dentro, incluido el puente `adeorq.exe --mcp`, que es nieto del
+    // panel y de otra forma no podría identificarse.
+    // Ver `docs/SUPREMA.md`.
+    cmd.env("ADEORQ_PANE_ID", id.to_string());
     // Last, so a pane's own settings win over the defaults above.
     for (key, value) in env.into_iter().flatten() {
         if value.is_empty() {

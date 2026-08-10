@@ -1661,6 +1661,8 @@ const EN: Record<string, string> = {
     "«{a}» → «{b}» handed over {n} times in a row: switched to manual",
   "Ojo: esta flecha cierra un círculo. En automático giraría sin parar.":
     "Careful: this arrow closes a loop. On automatic it would go round forever.",
+  "Un agente ha pedido una flecha que cierra un círculo.":
+    "An agent asked for an arrow that closes a loop.",
   "Lienzo importado sin abrir terminales.": "Canvas imported without opening terminals.",
   "Lienzo importado: {n} terminales abriéndose.": "Canvas imported: {n} terminals opening.",
   terminales: "terminals",

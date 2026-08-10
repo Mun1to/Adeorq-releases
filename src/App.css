@@ -4097,14 +4097,18 @@ body {
    terminals side by side looked identical. Now the name takes the room and
    the secondary bits step aside as the pane gets narrower. */
 .pane-name {
-  flex: 1 1 auto;
-  /* Un suelo, no cero: con `min-width: 0` el nombre se dejaba comer del todo
-     para que cupiera el resto, y una terminal sin nombre no se distingue de la
-     de al lado. Eran 68px, que da para tres letras y unos puntos suspensivos:
-     «Adeorq: se…» no dice de qué va esa terminal. 112 son catorce caracteres,
-     que es donde un título empieza a servir para algo. Por debajo de 330px de
-     cabecera baja solo, porque ahí ya no hay sitio para nadie. */
-  min-width: 112px;
+  /* PIDE 112px, pero no los EXIGE, y esa diferencia es todo.
+     Con `min-width: 112px` el título no podía encogerse por debajo de eso, así
+     que en una terminal estrecha —las del lienzo lo son— su zona desbordaba y
+     el nombre acababa pintado DEBAJO del medidor de contexto: «Adeorq: sesione»
+     y encima un «40 %» (Munir, 2026-08-10). Un mínimo duro no reparte espacio,
+     lo reclama, y cuando no hay, alguien se pisa.
+     Como base flexible pide lo mismo (catorce caracteres, que es donde un
+     título empieza a servir para algo) y cede cuando de verdad no cabe, así que
+     el solape es imposible por construcción: o entra entero, o sale con sus
+     puntos suspensivos. */
+  flex: 1 1 112px;
+  min-width: 0;
   /* Medio punto por encima del resto de la fila, y con más cuerpo: en una
      cabecera donde todo pesaba igual, el ojo no encontraba el título. */
   font-size: 12.5px;
@@ -9682,6 +9686,35 @@ button.stat-card[data-live="false"] {
   }
 }
 
+/* LA BARRITA SE VA ANTES QUE SU NÚMERO.
+   Son dos formas de decir lo mismo, y una ocupa 32px y la otra 26. Con sitio,
+   la barra se lee de un vistazo sin leer; sin sitio, el número solo dice
+   exactamente igual de bien y le devuelve ese ancho al título, que es quien
+   distingue una terminal de otra (Munir, 2026-08-10: «si no soporta todo el
+   espacio, que solo ponga el porcentaje y no la barrita»).
+   Y a la vez se aprietan los botones: 26px en vez de 28 y un pelo menos de
+   hueco. Nadie nota dos píxeles por botón, y son catorce de vuelta. */
+@container (max-width: 500px) {
+  .ctx-bar {
+    display: none;
+  }
+
+  .pane-ctx {
+    gap: 0;
+    padding: 2px 6px;
+  }
+
+  .ph-acts {
+    gap: 2px;
+    padding-left: 7px;
+  }
+
+  .ph-acts .pane-btn {
+    min-width: 26px;
+    padding: 2px 4px;
+  }
+}
+
 @container (max-width: 470px) {
   .pane-brain {
     display: none;
@@ -9702,11 +9735,11 @@ button.stat-card[data-live="false"] {
     display: none;
   }
 
-  /* Y aquí el título suelta su suelo: con la zona de estado vacía, lo que
-     queda es él contra los botones, y prefiero un título recortado a una
-     cabecera desplazable. */
+  /* Y aquí el título deja de pedir catorce caracteres: con la zona de estado
+     vacía, lo que queda es él contra los botones, y a estos anchos pedir de más
+     solo sirve para quitarle sitio al chip del proyecto. */
   .pane-name {
-    min-width: 48px;
+    flex-basis: 48px;
   }
 
   .ph-acts {

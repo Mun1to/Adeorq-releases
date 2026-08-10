@@ -22,9 +22,51 @@ export interface Punto {
   grado: number;
   color: string;
   title: string;
+  /** A qué proyecto pertenece: su carpeta de primer nivel. Es lo que lo lleva a
+      su cúmulo, y lo que lo pinta de un color u otro. */
+  fam?: string;
   /** Lo estás arrastrando: manda tu mano, no las fuerzas. */
   agarrado?: boolean;
 }
+
+/**
+ * EL CARRUSEL: dónde vive el cúmulo de cada proyecto.
+ *
+ * La constelación era una nube de puntos sueltos donde todo flotaba igual, y
+ * con quinientos documentos eso no se lee: no se ve dónde acaba un proyecto y
+ * empieza el otro (Munir, 2026-08-10: «que los nodos se diferencien mucho más
+ * por proyectos, tipo un carrusel, algo más digerible»).
+ *
+ * Ahora cada proyecto tiene un sitio FIJO en una rueda, y sus documentos son
+ * atraídos ahí. El resultado son islas reconocibles con los hilos entre ellas a
+ * la vista, que es exactamente lo que se quiere mirar: quién habla con quién.
+ *
+ * El radio crece con el número de proyectos, no es fijo: con cinco caben cerca
+ * y con treinta hay que abrir la rueda o los cúmulos se tocan.
+ */
+export function anclas(familias: string[]): Map<string, { x: number; y: number }> {
+  const n = familias.length;
+  const m = new Map<string, { x: number; y: number }>();
+  if (n === 0) return m;
+  // Uno solo manda al centro: una rueda de un elemento es un punto descentrado
+  // sin ningún motivo.
+  if (n === 1) return m.set(familias[0], { x: 0, y: 0 });
+  // Perímetro suficiente para que cada cúmulo tenga su sitio, con tope: pasado
+  // el valle de la gravedad los de fuera se pasarían la vida siendo recogidos.
+  const radio = Math.min(VALLA * 0.62, Math.max(240, (n * 210) / (2 * Math.PI)));
+  familias.forEach((f, i) => {
+    // Arrancando arriba y no a la derecha: una rueda se lee desde las doce.
+    const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
+    m.set(f, { x: Math.cos(ang) * radio, y: Math.sin(ang) * radio });
+  });
+  return m;
+}
+
+/** Cuánto tira cada proyecto de los suyos. Suave a propósito: tiene que ganar
+    al ruido y perder contra un hilo de verdad, porque un documento que enlaza
+    con otro proyecto debe poder acercarse a él. Eso es lo que dibuja los
+    puentes entre cúmulos en vez de dejar islas incomunicadas. */
+export const IMAN_FAMILIA = 0.011;
 
 /** Un hilo, por índice dentro del array de puntos. */
 export type Hilo = [number, number];
@@ -70,7 +112,14 @@ export const VALLA = 950;
  * ese se quedaría fuera para siempre. Es literalmente el punto perdido en la
  * esquina.
  */
-export function paso(ps: Punto[], hilos: Hilo[], alpha: number): number {
+export function paso(
+  ps: Punto[],
+  hilos: Hilo[],
+  alpha: number,
+  /** Dónde vive el cúmulo de cada proyecto. Sin esto se comporta como antes,
+      que es lo que hace que el comprobador viejo siga valiendo. */
+  casas?: Map<string, { x: number; y: number }>,
+): number {
   if (ps.length === 0) return alpha;
   const a = alpha;
 
@@ -174,6 +223,17 @@ export function paso(ps: Punto[], hilos: Hilo[], alpha: number): number {
       p.vy -= (p.y / lejos) * tira;
     }
 
+    /* Y cada uno hacia su proyecto. Es lo que convierte la nube en cúmulos.
+       NO se enfría con `alpha`, por lo mismo que la valla: si se enfriara, un
+       documento que otro empujó fuera de su isla se quedaría fuera para
+       siempre. Lineal y suave: acerca sin arrancar, y un hilo hacia otro
+       proyecto todavía puede ganarle y tender el puente. */
+    const casa = p.fam ? casas?.get(p.fam) : undefined;
+    if (casa) {
+      p.vx += (casa.x - p.x) * IMAN_FAMILIA;
+      p.vy += (casa.y - p.y) * IMAN_FAMILIA;
+    }
+
     const v = Math.hypot(p.vx, p.vy);
     if (v > VEL_MAX) {
       p.vx = (p.vx / v) * VEL_MAX;
@@ -202,16 +262,55 @@ export function colocar<T>(
   familiaDe: (x: T) => string,
 ): Array<{ x: number; y: number }> {
   const familias = [...new Set(items.map(familiaDe))].sort();
-  const sector = new Map(familias.map((f, i) => [f, (i / familias.length) * Math.PI * 2]));
+  const casas = anclas(familias);
   const cuenta = new Map<string, number>();
   return items.map((it) => {
     const fam = familiaDe(it);
     const n = cuenta.get(fam) ?? 0;
     cuenta.set(fam, n + 1);
-    // Espiral dentro del sector: reparte a los hermanos sin amontonarlos y sin
-    // necesitar saber cuántos son.
-    const ang = (sector.get(fam) ?? 0) + (n % 9) * 0.06 - 0.24;
-    const r = 200 + Math.sqrt(n) * 34;
-    return { x: Math.cos(ang) * r, y: Math.sin(ang) * r };
+    const casa = casas.get(fam) ?? { x: 0, y: 0 };
+    // En espiral ALREDEDOR DE SU CASA, no en un sector del centro. Nacer ya
+    // dentro de su cúmulo es lo que hace que la colocación solo tenga que
+    // afinar: si nacen mezclados, los primeros segundos son un revoltijo
+    // deshaciéndose, y eso es lo que se ve como un tirón.
+    const ang = n * 2.399; // ángulo áureo: reparte sin repetir direcciones
+    const r = 26 + Math.sqrt(n) * 26;
+    return { x: casa.x + Math.cos(ang) * r, y: casa.y + Math.sin(ang) * r };
   });
+}
+
+/**
+ * Dónde queda cada isla ya colocada, para poder dibujarla.
+ *
+ * Devuelve el centro y el radio de cada proyecto según DÓNDE ESTÁN sus puntos,
+ * no según dónde deberían: un documento que se fue a hablar con otro proyecto
+ * estira su isla, y eso es información, no un error que haya que esconder.
+ */
+export function cumulos(
+  ps: Punto[],
+): Array<{ fam: string; x: number; y: number; r: number; n: number; color: string }> {
+  const por = new Map<string, Punto[]>();
+  for (const p of ps) {
+    if (!p.fam) continue;
+    const l = por.get(p.fam);
+    if (l) l.push(p);
+    else por.set(p.fam, [p]);
+  }
+  const out = [];
+  for (const [fam, list] of por) {
+    let sx = 0;
+    let sy = 0;
+    for (const p of list) {
+      sx += p.x;
+      sy += p.y;
+    }
+    const x = sx / list.length;
+    const y = sy / list.length;
+    let r = 0;
+    for (const p of list) r = Math.max(r, Math.hypot(p.x - x, p.y - y));
+    out.push({ fam, x, y, r: r + 34, n: list.length, color: list[0].color });
+  }
+  // De mayor a menor, para que el disco de una isla grande no tape a una
+  // pequeña que le haya quedado dentro.
+  return out.sort((a, b) => b.r - a.r);
 }

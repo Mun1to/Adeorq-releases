@@ -20,7 +20,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { hueOf } from "../lib/colors";
 import { familia, type Doc } from "../lib/memoria";
 import {
+  anclas,
   colocar,
+  cumulos,
   paso as pasoDeFuerzas,
   PARA_EN,
   type Hilo,
@@ -44,6 +46,8 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
   const puntos = useRef<Punto[]>([]);
   const hilos = useRef<Array<[number, number]>>([]);
   const alpha = useRef(1);
+  /** Dónde vive el cúmulo de cada proyecto: la rueda. Ver `lib/constelacion`. */
+  const casas = useRef<Map<string, { x: number; y: number }>>(new Map());
   const raf = useRef(0);
   const vista = useRef({ x: 0, y: 0, z: 1 });
   const arrastre = useRef<{
@@ -96,9 +100,15 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
         // del tono: se usa tal cual, como en las píldoras de proyecto.
         color: hueOf(familia(d)),
         title: d.title,
+        // Su proyecto, que es lo que lo lleva a su cúmulo.
+        fam: familia(d),
       };
     });
     puntos.current = ps;
+    // Las casas de la rueda se calculan UNA vez, con las familias que de verdad
+    // hay a la vista: si se recalcularan en cada paso, filtrar por conectados
+    // movería el tablero entero.
+    casas.current = anclas([...new Set(visibles.map(familia))].sort());
     hilos.current = red.pares
       .map(([a, b]) => [idx.get(a) ?? -1, idx.get(b) ?? -1] as Hilo)
       .filter(([a, b]) => a >= 0 && b >= 0);
@@ -114,7 +124,12 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
    * `scripts/constelacion-check.ts` con cuatrocientos puntos.
    */
   const paso = useCallback(() => {
-    alpha.current = pasoDeFuerzas(puntos.current, hilos.current, alpha.current);
+    alpha.current = pasoDeFuerzas(
+      puntos.current,
+      hilos.current,
+      alpha.current,
+      casas.current,
+    );
   }, []);
 
   const pintar = useCallback(() => {
@@ -147,14 +162,63 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
       }
     }
 
-    // Los hilos primero, para que los puntos queden encima.
+    /* LAS ISLAS, lo primero de todo y por debajo de todo.
+       Un disco tenue del color del proyecto con el nombre encima. Es lo que
+       convierte quinientos puntos sueltos en «esto es Adeorq, esto es VoCript»
+       sin tener que leer una sola etiqueta (Munir, 2026-08-10: «que los nodos
+       se diferencien mucho más por proyectos»).
+       Solo las que tienen más de un documento: un disco enorme alrededor de un
+       punto suelto dice que ahí hay algo que no hay. */
+    for (const c of cumulos(ps)) {
+      if (c.n < 2) continue;
+      const tenue = !!sobre && !vecinos.has(sobre.id) && sobre.fam !== c.fam;
+      ctx.globalAlpha = tenue ? 0.35 : 1;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+      // Relleno casi invisible y borde algo más marcado: con el relleno fuerte,
+      // dos islas que se solapan se suman y se ve una mancha en medio.
+      ctx.fillStyle = c.color;
+      ctx.globalAlpha *= 0.06;
+      ctx.fill();
+      ctx.globalAlpha = tenue ? 0.14 : 0.34;
+      ctx.lineWidth = 1.5 / v.z;
+      ctx.strokeStyle = c.color;
+      ctx.stroke();
+
+      // El nombre del proyecto, ARRIBA del disco y en su color. Va fuera del
+      // cúmulo y no en el centro para no competir con los puntos ni con las
+      // etiquetas de los documentos, que viven dentro.
+      ctx.globalAlpha = tenue ? 0.4 : 0.92;
+      ctx.font = `600 ${Math.min(22, 13 / v.z)}px system-ui, sans-serif`;
+      ctx.fillStyle = c.color;
+      ctx.textAlign = "center";
+      ctx.fillText(c.fam, c.x, c.y - c.r - 8 / v.z);
+      // Y cuántos hay dentro, en pequeño: dice el peso de cada proyecto de un
+      // vistazo, que es la otra pregunta que uno le hace a este mapa.
+      ctx.globalAlpha = tenue ? 0.25 : 0.5;
+      ctx.font = `${Math.min(15, 10 / v.z)}px system-ui, sans-serif`;
+      ctx.fillText(String(c.n), c.x, c.y - c.r + 14 / v.z);
+    }
+    ctx.globalAlpha = 1;
+
+    // Los hilos, sobre las islas y bajo los puntos.
     ctx.lineWidth = 1 / v.z;
     for (const [i, j] of hilos.current) {
       const p = ps[i];
       const q = ps[j];
       if (!p || !q) continue;
       const tocado = sobre && (p.id === sobre.id || q.id === sobre.id);
-      ctx.strokeStyle = tocado ? "rgba(120,180,255,0.75)" : "rgba(150,160,180,0.16)";
+      /* Un hilo ENTRE proyectos no es un hilo más: es la respuesta a la única
+         pregunta que este mapa contesta mejor que una lista, que es quién habla
+         con quién. Los de dentro de un proyecto quedan de fondo (ya lo dice su
+         isla) y los puentes se ven. */
+      const puente = p.fam !== q.fam;
+      ctx.lineWidth = (tocado ? 1.6 : puente ? 1.3 : 1) / v.z;
+      ctx.strokeStyle = tocado
+        ? "rgba(120,180,255,0.75)"
+        : puente
+          ? "rgba(180,200,230,0.32)"
+          : "rgba(150,160,180,0.1)";
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
       ctx.lineTo(q.x, q.y);

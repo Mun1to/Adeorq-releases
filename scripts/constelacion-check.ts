@@ -10,7 +10,16 @@
 // 2026-08-02) pero no se demuestra mirando, porque cada arranque coloca
 // distinto y el fallo aparece una vez de cada tantas. Aquí se corre la
 // colocación entera con cuatrocientos puntos y se mide dónde acaban.
-import { colocar, paso, PARA_EN, VEL_MAX, type Hilo, type Punto } from "../src/lib/constelacion";
+import {
+  anclas,
+  colocar,
+  cumulos,
+  paso,
+  PARA_EN,
+  VEL_MAX,
+  type Hilo,
+  type Punto,
+} from "../src/lib/constelacion";
 
 let fallos = 0;
 function comprueba(titulo: string, cond: boolean, visto: unknown) {
@@ -167,5 +176,128 @@ comprueba(
   conMano.puntos[0].x === 900 && conMano.puntos[0].y === -400,
   { x: conMano.puntos[0].x, y: conMano.puntos[0].y },
 );
+
+// ============================================================================
+// LOS CÚMULOS POR PROYECTO (2026-08-10)
+//
+// La constelación era una nube donde todo flotaba igual y no se veía dónde
+// acaba un proyecto y empieza otro. Ahora cada uno tiene su casa en una rueda y
+// tira de los suyos. Esto mide que de verdad se agrupan, que las islas no se
+// montan unas encima de otras, y que el imán nuevo no rompe lo de antes: un
+// punto disparado sigue siendo el fallo que no puede volver.
+// ============================================================================
+
+/** La misma bóveda de mentira, pero diciendo de qué proyecto es cada uno. */
+function bovedaConFamilias(n: number, familias: number) {
+  const b = boveda(n, familias);
+  b.puntos.forEach((p, i) => {
+    p.fam = `f${i % familias}`;
+  });
+  const casas = anclas(
+    Array.from({ length: familias }, (_, i) => `f${i}`).sort(),
+  );
+  return { ...b, casas };
+}
+
+function correrConCasas(
+  puntos: Punto[],
+  hilos: Hilo[],
+  casas: Map<string, { x: number; y: number }>,
+) {
+  let alpha = 1;
+  let vueltas = 0;
+  while (alpha > PARA_EN && vueltas < 2000) {
+    alpha = paso(puntos, hilos, alpha, casas);
+    vueltas++;
+  }
+}
+
+// --- la rueda ---------------------------------------------------------------
+comprueba("sin proyectos, la rueda no explota", anclas([]).size === 0, anclas([]).size);
+const unaSola = anclas(["solo"]).get("solo")!;
+comprueba(
+  "un proyecto solo va al centro, no descentrado sin motivo",
+  unaSola.x === 0 && unaSola.y === 0,
+  unaSola,
+);
+const rueda = anclas(["a", "b", "c", "d"]);
+const radios4 = [...rueda.values()].map((c) => Math.hypot(c.x, c.y));
+comprueba(
+  "los cuatro caen en el mismo circulo",
+  Math.max(...radios4) - Math.min(...radios4) < 1,
+  radios4,
+);
+const r6 = Math.hypot(...Object.values(anclas(["a","b","c","d","e","f"]).get("a")!));
+const r20 = Math.hypot(
+  ...Object.values(anclas(Array.from({ length: 20 }, (_, i) => `p${i}`)).get("p0")!),
+);
+comprueba("con mas proyectos, la rueda se abre", r20 > r6, { r6, r20 });
+
+// --- que de verdad se agrupan ------------------------------------------------
+const c = bovedaConFamilias(120, 4);
+correrConCasas(c.puntos, c.hilos, c.casas);
+
+function centroDe(fam: string) {
+  const l = c.puntos.filter((p) => p.fam === fam);
+  return {
+    x: l.reduce((s, p) => s + p.x, 0) / l.length,
+    y: l.reduce((s, p) => s + p.y, 0) / l.length,
+    l,
+  };
+}
+const centros = ["f0", "f1", "f2", "f3"].map(centroDe);
+const dentro =
+  centros.reduce(
+    (s, ce) => s + ce.l.reduce((t, p) => t + Math.hypot(p.x - ce.x, p.y - ce.y), 0) / ce.l.length,
+    0,
+  ) / centros.length;
+let entre = 0;
+let pares = 0;
+for (let i = 0; i < centros.length; i++)
+  for (let j = i + 1; j < centros.length; j++) {
+    entre += Math.hypot(centros[i].x - centros[j].x, centros[i].y - centros[j].y);
+    pares++;
+  }
+entre /= pares;
+comprueba(
+  "los de un mismo proyecto acaban mucho mas juntos entre si que de los otros",
+  entre > dentro * 1.8,
+  { dentro: Math.round(dentro), entre: Math.round(entre) },
+);
+
+// --- y sin romper lo de antes ------------------------------------------------
+comprueba(
+  "con el iman puesto, ninguna coordenada se va a infinito",
+  c.puntos.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
+  c.puntos.filter((p) => !Number.isFinite(p.x)).length,
+);
+const radiosC = c.puntos.map((p) => Math.hypot(p.x, p.y)).sort((a, b) => a - b);
+comprueba(
+  "ningun punto disparado lejos del resto",
+  radiosC[radiosC.length - 1] < radiosC[Math.floor(radiosC.length * 0.9)] * 2.2,
+  { p90: Math.round(radiosC[Math.floor(radiosC.length * 0.9)]), max: Math.round(radiosC.at(-1)!) },
+);
+
+// --- las islas que se dibujan ------------------------------------------------
+const islas = cumulos(c.puntos);
+comprueba("hay una isla por proyecto", islas.length === 4, islas.length);
+comprueba(
+  "vienen de mayor a menor, para que la grande no tape a la pequeña",
+  islas.every((x, i) => i === 0 || islas[i - 1].r >= x.r),
+  islas.map((x) => Math.round(x.r)),
+);
+comprueba(
+  "cada isla cubre a los suyos",
+  islas.every((x) =>
+    c.puntos
+      .filter((p) => p.fam === x.fam)
+      .every((p) => Math.hypot(p.x - x.x, p.y - x.y) <= x.r + 0.01),
+  ),
+  islas.map((x) => x.fam),
+);
+const sinFam = cumulos([
+  { id: "x", x: 0, y: 0, vx: 0, vy: 0, grado: 0, color: "", title: "x" },
+]);
+comprueba("un punto sin proyecto no inventa una isla", sinFam.length === 0, sinFam.length);
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

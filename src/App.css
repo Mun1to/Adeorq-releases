@@ -14569,22 +14569,31 @@ textarea.note-body {
   background: var(--row-hover);
 }
 
-/* El árbol. Filas apretadas y sin adornos: aquí lo que importa es ver muchas
-   de un vistazo, no que cada una luzca. */
+/* El árbol.
+   Era una lista de 12,5px con 4px de aire: quinientas filas apretadas donde no
+   se distinguía una carpeta de un documento y había que acercarse a leer
+   (Munir, 2026-08-10: «los archivos se ven muy pequeños»). Ahora la jerarquía
+   la hace el TAMAÑO y no un adorno: la carpeta manda (13,5 y con cuerpo) y el
+   documento va debajo, del mismo tamaño pero en un tono más bajo, que es como
+   se lee un índice. Y ambos con sitio para respirar.
+
+   Se sigue viendo casi lo mismo de un vistazo, porque lo que estorbaba no era
+   el alto de la fila: era no encontrar dónde empieza cada cosa. */
 .mem-carpeta {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   width: 100%;
   border: 0;
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: 0.1px;
   text-align: left;
-  padding: 4px 8px;
-  border-radius: 7px;
+  padding: 6px 8px;
+  border-radius: 8px;
   cursor: pointer;
 }
 .mem-carpeta:hover {
@@ -14609,37 +14618,34 @@ textarea.note-body {
   font-variant-numeric: tabular-nums;
 }
 
+/* El documento: mismo tamaño que su carpeta pero un tono por debajo, que es lo
+   que hace que el ojo baje de la carpeta a lo que hay dentro sin tener que
+   mirar la sangría. Y sin punto de color delante: quinientos puntos no ordenan
+   nada, solo empujan el título hacia la derecha. */
 .mem-hoja {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+  display: block;
   width: 100%;
   border: 0;
   background: none;
-  color: var(--text);
+  color: color-mix(in srgb, var(--text) 72%, transparent);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13px;
   text-align: left;
-  padding: 4px 8px;
-  border-radius: 7px;
+  padding: 5px 8px;
+  border-radius: 8px;
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .mem-hoja:hover {
+  color: var(--text);
   background: var(--row);
 }
 .mem-hoja[data-on="true"] {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--accent);
-}
-.mem-hoja-punto {
-  flex: none;
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: var(--c);
+  font-weight: 600;
 }
 
 .mem-lista-eti {
@@ -14672,16 +14678,10 @@ textarea.note-body {
   background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
-/* El punto lleva el color de la carpeta de primer nivel, el mismo que en la
-   constelación: mirar la lista y mirar el mapa tienen que ser lo mismo. */
-.mem-fila-punto {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  margin-top: 6px;
-  border-radius: 999px;
-  background: var(--c);
-}
+/* El punto de color de esta fila se ha ido con el del árbol: llevaba el color
+   de su carpeta de primer nivel, pero en una lista de quinientos ese código no
+   se aprende nunca y el título empezaba nueve píxeles más adentro. Donde el
+   color SÍ dice algo es en la constelación, y allí sigue. */
 
 .mem-fila-txt {
   min-width: 0;
@@ -14772,19 +14772,73 @@ textarea.note-body {
   scrollbar-width: thin;
 }
 
-/* La columna de lectura: ancha para leer, no para llenar la pantalla. */
+/* La columna de lectura: ancha para leer, no para llenar la pantalla.
+   El cuerpo va un punto por debajo del blanco puro y con más aire entre líneas:
+   una nota de estas se lee entera de arriba abajo, y el texto a todo contraste
+   cansa antes de llegar al final. */
 .mem-md {
   max-width: 74ch;
-  line-height: 1.62;
+  line-height: 1.72;
   font-size: 14.5px;
+  color: color-mix(in srgb, var(--text) 88%, transparent);
 }
-.mem-md h1 { font-size: 24px; margin: 0 0 14px; }
-.mem-md h2 { font-size: 18px; margin: 30px 0 10px; }
-.mem-md h3 { font-size: 15px; margin: 22px 0 8px; }
-.mem-md p { margin: 0 0 13px; }
+
+/* LOS TÍTULOS, CON COLOR Y CON JERARQUÍA.
+   Eran tres tamaños de la misma tinta que el párrafo, así que un documento
+   largo era un muro donde había que buscar dónde empieza cada cosa (Munir,
+   2026-08-10: «que los títulos tengan otro color, más liviano de releer»).
+   Ahora cada nivel se distingue por DOS cosas a la vez, tamaño y color:
+     · el h1 en el color de la casa y con una raya debajo, que es la portada;
+     · el h2 en el mismo color pero sin raya, que es lo que se busca al ojear;
+     · el h3 en el color del texto, discreto, que ya está dentro de algo.
+   Y con más aire ARRIBA que abajo: un título pertenece a lo que viene después,
+   y ese hueco es lo que hace que un documento se lea por bloques. */
+.mem-md h1 {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin: 0 0 18px;
+  padding-bottom: 12px;
+  color: var(--accent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.mem-md h2 {
+  font-size: 18.5px;
+  font-weight: 680;
+  letter-spacing: -0.1px;
+  margin: 34px 0 10px;
+  color: color-mix(in srgb, var(--accent) 78%, var(--text));
+}
+.mem-md h3 {
+  font-size: 15px;
+  font-weight: 680;
+  margin: 24px 0 7px;
+  color: var(--text);
+}
+.mem-md p { margin: 0 0 14px; }
 .mem-md ul,
-.mem-md ol { margin: 0 0 14px; padding-left: 22px; }
-.mem-md li { margin-bottom: 5px; }
+.mem-md ol { margin: 0 0 15px; padding-left: 22px; }
+.mem-md li { margin-bottom: 7px; }
+/* Lo que va en negrita dentro de un párrafo es lo que el autor quería que
+   vieras sin leer: que se vea. */
+.mem-md strong {
+  color: var(--text);
+  font-weight: 680;
+}
+/* Una cita, con su barra en el color de la casa en vez de un margen suelto. */
+.mem-md blockquote {
+  margin: 0 0 15px;
+  padding: 2px 0 2px 14px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: color-mix(in srgb, var(--text) 74%, transparent);
+}
+/* Y el separador, que es un cambio de tema y no una raya de tabla. */
+.mem-md hr {
+  height: 1px;
+  border: 0;
+  margin: 30px 0;
+  background: var(--border);
+}
 .mem-md a {
   color: var(--accent);
   text-decoration: none;

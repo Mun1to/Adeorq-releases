@@ -16,7 +16,6 @@ import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
 import {
   boveda,
-  familia,
   guardarBoveda,
   memoriaRead,
   memoriaScan,
@@ -30,7 +29,8 @@ import {
   type VaultInfo,
 } from "../lib/memoria";
 import { useT } from "../lib/i18n";
-import { hueOf } from "../lib/colors";
+// `hueOf` y `familia` se han ido con los puntos de color de la lista: el color
+// por familia solo se pinta ya donde dice algo, que es la constelación.
 import { ChevronIcon, RefreshIcon, SearchIcon } from "./Icons";
 import MemoriaGrafo from "./MemoriaGrafo";
 
@@ -163,15 +163,19 @@ function Rama({
         );
       })}
       {rama.docs.map((d) => (
+        /* Sin punto de color delante. Lo llevaban los quinientos documentos, y
+           quinientos puntos no ordenan nada: hacen ruido y roban el sitio donde
+           empieza el título, que es lo único que se lee (Munir, 2026-08-10:
+           «quita estos puntitos»). El color de la familia sigue vivo donde sí
+           dice algo, que es la constelación. */
         <button
           key={d.id}
           className="mem-hoja"
           data-on={activo === d.id}
-          style={{ paddingLeft: `${21 + nivel * 13}px` }}
+          style={{ paddingLeft: `${20 + nivel * 13}px` }}
           onClick={() => onAbrir(d.id)}
           data-tip={d.id}
         >
-          <span className="mem-hoja-punto" style={{ ["--c" as string]: hueOf(familia(d)) }} />
           {d.title}
         </button>
       ))}
@@ -504,10 +508,7 @@ export default function MemoriaView() {
                 data-on={abierto?.id === id}
                 onClick={() => abrir(id)}
               >
-                <span
-                  className="mem-fila-punto"
-                  style={{ ["--c" as string]: doc ? hueOf(familia(doc)) : "var(--muted)" }}
-                />
+                {/* Aquí también fuera el punto: mismo motivo que en el árbol. */}
                 <span className="mem-fila-txt">
                   <span className="mem-fila-tit">{d.title}</span>
                   <span className="mem-fila-sub">

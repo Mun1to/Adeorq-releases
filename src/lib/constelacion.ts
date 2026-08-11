@@ -39,6 +39,10 @@ export interface Punto {
   title: string;
   /** Su proyecto: la carpeta de primer nivel. Decide su arco y su color. */
   fam?: string;
+  /** Su ángulo en la rueda. Lo usa el hilo para saber por dónde rodear el
+      hueco del centro: entre dos puntos opuestos, la dirección del punto medio
+      no existe (cae en el origen) y la del ángulo medio sí. */
+  ang?: number;
 }
 
 /** Un hilo, por índice dentro del array de puntos. */
@@ -75,6 +79,23 @@ export const DR = 44;
 const HUECO = 0.014;
 
 /**
+ * Lo que se le garantiza a cada documento en su fila, en píxeles.
+ *
+ * Sin esto el arco de un proyecto es proporcional a cuántos documentos tiene,
+ * y ahí hay una trampa que solo se ve midiendo: los proyectos GRANDES reparten
+ * sus documentos en varias filas, así que en la primera solo ponen un puñado y
+ * les sobra sitio; los de dos documentos meten los dos en una fila y quedan
+ * pegados. Medido en la bóveda de Munir el 2026-08-11: 63 px entre vecinos en
+ * el proyecto de 201 documentos y **7,9 px en el de dos**.
+ *
+ * Así que primero cada proyecto se lleva lo que necesita para que sus puntos
+ * respiren, y lo que sobra se reparte por tamaño. Un proyecto grande cede un
+ * poco de arco (de 63 px a 53 entre vecinos, que no se nota) y uno pequeño pasa
+ * de 7,9 a 29 (que se nota mucho).
+ */
+const SEP_MIN = 26;
+
+/**
  * Reparte los documentos en arcos concéntricos, un arco por proyecto.
  *
  * El orden de los proyectos es alfabético a propósito: es estable entre
@@ -100,12 +121,29 @@ export function anillar<T>(
   const util = Math.PI * 2 - HUECO * familias.length;
   let ang = -Math.PI / 2;
 
+  /* Cuántos caben por fila: la raíz reparte para que un proyecto de 150 no
+     salga con veinte filas ni uno de 4 con una fila larguísima. */
+  const cabenPorFila = (n: number) => Math.max(3, Math.ceil(Math.sqrt(n) * 1.7));
+
+  /* EL REPARTO DEL ÁNGULO, EN DOS TIEMPOS (ver `SEP_MIN`).
+     Primero cada proyecto se lleva lo justo para que los puntos de su fila más
+     apretada no se toquen, y lo que sobra se reparte por tamaño.
+
+     Y si ni así caben —con 26 proyectos en la vuelta no caben, medido—, lo que
+     cede no es la separación: es el CÍRCULO, que se abre hasta que caben. Un
+     mapa más grande no molesta a nadie porque la cámara nace enseñándolo
+     entero; puntos pegados, sí. */
+  const anguloMin = (n: number) => (Math.min(n, cabenPorFila(n)) * SEP_MIN) / R0;
+  const sumaMin = familias.reduce((s, f) => s + anguloMin(suyos.get(f)!.length), 0);
+  const crece = sumaMin > util ? sumaMin / util : 1;
+  const r0 = R0 * crece;
+  const sobra = util - sumaMin / crece;
+  const abreDe = (n: number) => anguloMin(n) / crece + (sobra > 0 ? (n / total) * sobra : 0);
+
   for (const fam of familias) {
     const list = suyos.get(fam)!;
-    const abre = (list.length / total) * util;
-    // Cuántos caben por fila: la raíz reparte para que un proyecto de 150 no
-    // salga con veinte filas ni uno de 4 con una fila larguísima.
-    const porFila = Math.max(3, Math.ceil(Math.sqrt(list.length) * 1.7));
+    const abre = abreDe(list.length);
+    const porFila = cabenPorFila(list.length);
     const filas = Math.max(1, Math.ceil(list.length / porFila));
     list.forEach((idx, k) => {
       const fila = Math.floor(k / porFila);
@@ -113,7 +151,7 @@ export function anillar<T>(
       // Los de la última fila se reparten entre los que SON, no entre los que
       // cabrían: si no, una fila a medias sale pegada a un borde del arco.
       const cuantos = fila === filas - 1 ? list.length - fila * porFila : porFila;
-      const r = R0 + fila * DR;
+      const r = r0 + fila * DR;
       const a = ang + ((enFila + 0.5) / cuantos) * abre;
       pos[idx] = { x: Math.cos(a) * r, y: Math.sin(a) * r, a, r };
     });
@@ -121,7 +159,7 @@ export function anillar<T>(
       fam,
       a: ang + abre / 2,
       abre,
-      rMax: R0 + (filas - 1) * DR,
+      rMax: r0 + (filas - 1) * DR,
       n: list.length,
     });
     ang += abre + HUECO;
@@ -159,6 +197,39 @@ export function nucleo(n: number): Sitio[] {
   });
 }
 
+/** Lo que se le deja libre al centro: el anillo de las skills y un respiro
+    alrededor. Ningún hilo entra aquí. */
+export const R_LIBRE = R_NUCLEO + 46;
+
+/**
+ * Por dónde tira un hilo, que es lo que decide si el centro se ve o no.
+ *
+ * Hasta el 2026-08-11 el punto de control era `(p + q) * 0.04`, y eso hace que
+ * la curva pase por el 54 % de la distancia de su punto medio; dos documentos
+ * OPUESTOS tienen su punto medio en el origen, así que cruzaban el centro
+ * exacto. Con mil hilos, el medio del mapa era un ovillo y se comía el anillo
+ * de las skills que vive justo ahí.
+ *
+ * Ahora la curva pasa por un punto elegido: en la dirección del ángulo MEDIO de
+ * los dos —que existe siempre, también entre opuestos, donde la del punto medio
+ * no— y nunca a menos de `R_LIBRE` del centro. Los hilos cortos se curvan igual
+ * que antes; los largos bordean el hueco, y como todos rozan la misma
+ * circunferencia se leen como un anillo de haces.
+ *
+ * Devuelve el punto de control de una cuadrática, despejado de que una
+ * cuadrática pasa por `(M + C) / 2` en su mitad.
+ */
+export function tiroDelHilo(p: Sitio, q: Sitio): { x: number; y: number } {
+  const mx = (p.x + q.x) / 2;
+  const my = (p.y + q.y) / 2;
+  let da = q.a - p.a;
+  if (da > Math.PI) da -= Math.PI * 2;
+  else if (da < -Math.PI) da += Math.PI * 2;
+  const medio = p.a + da / 2;
+  const r = Math.max(R_LIBRE, Math.hypot(mx, my) * 0.54);
+  return { x: 2 * Math.cos(medio) * r - mx, y: 2 * Math.sin(medio) * r - my };
+}
+
 /**
  * El color de un proyecto AQUÍ, que no es el de la barra lateral.
  *
@@ -175,11 +246,16 @@ export function nucleo(n: number): Sitio[] {
  * La luminosidad sube un punto en los tonos a los que el ojo ve apagados (los
  * azules profundos, alrededor de 240) para que ninguno quede más flojo que sus
  * vecinos sobre un fondo oscuro.
+ *
+ * La saturación bajó del 78 % al 58 % el 2026-08-11 («se nota muy, pero que muy
+ * saturado»): mil hilos de un cian al 78 % son mil trazos de neón, y donde se
+ * cruzan el color se suma hasta el blanco. Con 58 los diez proyectos se siguen
+ * distinguiendo de un vistazo, que es lo único que este color tiene que hacer.
  */
 export function colorDeArco(i: number, n: number): string {
   const t = n <= 1 ? 0 : i / n;
   const tono = t * 360;
   const azulon = Math.cos(((tono - 245) * Math.PI) / 180);
   const luz = 64 + Math.max(0, azulon) * 9;
-  return `hsl(${tono.toFixed(1)} 78% ${luz.toFixed(0)}%)`;
+  return `hsl(${tono.toFixed(1)} 58% ${luz.toFixed(0)}%)`;
 }

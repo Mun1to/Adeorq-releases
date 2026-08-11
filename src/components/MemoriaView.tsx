@@ -29,7 +29,7 @@ import {
   type VaultInfo,
 } from "../lib/memoria";
 import { useT } from "../lib/i18n";
-import { listSkills } from "../lib/pty";
+import { listSkills, skillText } from "../lib/pty";
 // `hueOf` y `familia` se han ido con los puntos de color de la lista: el color
 // por familia solo se pinta ya donde dice algo, que es la constelación.
 import { ChevronIcon, RefreshIcon, SearchIcon } from "./Icons";
@@ -38,6 +38,21 @@ import MemoriaGrafo from "./MemoriaGrafo";
 /** Cuánto se espera desde la última tecla para buscar. La búsqueda es local y
     va sobrada, pero repintar la lista en cada letra parpadea. */
 const ESPERA_MS = 140;
+
+/**
+ * Una ruta acortada por el PRINCIPIO, no por el final.
+ *
+ * `C:\Apps\Random APPS\obsidian\BUNKER\BUNKER` no cabe en una lista estrecha, y
+ * cortada por el final deja «C:\Apps\Random APPS\o…», que es exactamente igual
+ * en las dos bóvedas que viven ahí: lo que las distingue está al otro lado
+ * (Munir, 2026-08-11, con las dos suyas indistinguibles en pantalla). Se queda
+ * con la carpeta y su padre, que es lo que uno reconoce.
+ */
+function rutaCorta(p: string): string {
+  const partes = p.split(/[\\/]/).filter(Boolean);
+  if (partes.length <= 2) return p;
+  return `…\\${partes.slice(-2).join("\\")}`;
+}
 
 /**
  * Markdown a HTML, con dos cosas de la casa:
@@ -208,7 +223,9 @@ export default function MemoriaView() {
   /** Las skills, que van en el centro del mapa: no son de ningún proyecto y se
       usan en todos. Si no hay ninguna (o el sistema no las sabe leer) el centro
       se queda vacío, como estaba. */
-  const [skills, setSkills] = useState<Array<{ name: string; description: string }>>([]);
+  const [skills, setSkills] = useState<Array<{ name: string; description: string; folder: string }>>(
+    [],
+  );
   useEffect(() => {
     listSkills()
       .then(setSkills)
@@ -234,8 +251,11 @@ export default function MemoriaView() {
     escanear(raiz);
   }, [raiz, escanear]);
 
+  // Las bóvedas que Obsidian ya conoce, SIEMPRE, tengas una abierta o no: antes
+  // solo se leían en la pantalla de bienvenida, así que una vez elegida una, la
+  // única forma de cambiar era buscar la carpeta a mano en el disco (Munir,
+  // 2026-08-11). Es la lista de Obsidian, no un rastreo: cuesta leer un JSON.
   useEffect(() => {
-    if (raiz) return;
     memoriaVaults().then(setVaults).catch(() => {});
   }, [raiz]);
 
@@ -264,6 +284,7 @@ export default function MemoriaView() {
     (id: string) => {
       if (!raiz) return;
       setBorrador(null);
+      setSkillAbierta(null);
       setModo("doc");
       memoriaRead(raiz, id)
         .then((d) => {
@@ -275,8 +296,38 @@ export default function MemoriaView() {
     [raiz],
   );
 
+  /** Una skill abierta en el visor. NO se puede guardar desde aquí: vive en
+      `~/.claude/skills` y el que escribe es el de la bóveda, así que guardarla
+      escribiría en el sitio equivocado. Se lee, y para tocarla, «Abrir fuera». */
+  const [skillAbierta, setSkillAbierta] = useState<string | null>(null);
+  /** Si está abierta la lista de bóvedas. Se cierra sola al elegir y con un
+      clic fuera, como cualquier menú de la casa. */
+  const [eligiendo, setEligiendo] = useState(false);
+  useEffect(() => {
+    if (!eligiendo) return;
+    const fuera = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest?.(".mem-cambiar")) setEligiendo(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setEligiendo(false);
+    window.addEventListener("mousedown", fuera, true);
+    window.addEventListener("keydown", esc);
+    return () => {
+      window.removeEventListener("mousedown", fuera, true);
+      window.removeEventListener("keydown", esc);
+    };
+  }, [eligiendo]);
+  const abrirSkill = useCallback((folder: string) => {
+    skillText(folder)
+      .then((s) => {
+        setSkillAbierta(folder);
+        setBorrador(null);
+        setAbierto({ id: `${folder}/SKILL.md`, text: s.text, stamp: 0, path: s.path });
+      })
+      .catch((e) => setError(String(e)));
+  }, []);
+
   const guardar = () => {
-    if (!abierto || borrador === null || !raiz) return;
+    if (!abierto || borrador === null || !raiz || skillAbierta) return;
     setGuardando(true);
     setError("");
     memoriaWrite(raiz, abierto.id, borrador, abierto.stamp)
@@ -473,9 +524,52 @@ export default function MemoriaView() {
         >
           <RefreshIcon size={15} />
         </button>
-        <button className="mem-accion" onClick={elegirCarpeta}>
-          {t("Cambiar carpeta")}
-        </button>
+        {/* Cambiar de bóveda sin buscar una carpeta: las que Obsidian conoce
+            salen aquí ya listadas, y buscar a mano se queda como último
+            recurso, que es lo que es. */}
+        <div className="mem-cambiar">
+          <button className="mem-accion" onClick={() => setEligiendo((v) => !v)}>
+            {t("Cambiar bóveda")}
+          </button>
+          {eligiendo && (
+            <div className="mem-cambiar-pop">
+              {vaults.length > 0 && (
+                <div className="mem-vaults">
+                  {vaults.map((v) => (
+                    <button
+                      key={v.path}
+                      className="mem-vault"
+                      data-on={v.path === raiz}
+                      onClick={() => {
+                        setEligiendo(false);
+                        if (v.path === raiz) return;
+                        guardarBoveda(v.path);
+                        setAbierto(null);
+                        setRaiz(v.path);
+                      }}
+                      data-tip={v.path}
+                    >
+                      <span className="mem-vault-nombre">{v.name}</span>
+                      <span className="mem-vault-ruta">{rutaCorta(v.path)}</span>
+                      <span className="mem-vault-n">
+                        {v.docs} {v.docs === 1 ? t("documento") : t("documentos")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                className="mini"
+                onClick={() => {
+                  setEligiendo(false);
+                  void elegirCarpeta();
+                }}
+              >
+                {t("Buscar otra carpeta…")}
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {error && <p className="np-err mem-err">{error}</p>}
@@ -562,6 +656,10 @@ export default function MemoriaView() {
                 onAbrir={abrir}
                 soloConectados={soloConectados}
                 skills={skills}
+                onAbrirSkill={(folder) => {
+                  setModo("doc");
+                  abrirSkill(folder);
+                }}
               />
             </>
           ) : abierto ? (
@@ -571,17 +669,22 @@ export default function MemoriaView() {
                   <h2>{porId.get(abierto.id)?.title ?? abierto.id}</h2>
                   <span className="mem-doc-ruta">{abierto.id}</span>
                 </div>
-                {sucio && (
+                {sucio && !skillAbierta && (
                   <button className="np-btn" onClick={guardar} disabled={guardando}>
                     {guardando ? t("Guardando…") : t("Guardar")}
                   </button>
                 )}
-                <button
-                  className="mini"
-                  onClick={() => setBorrador(editando ? null : abierto.text)}
-                >
-                  {editando ? t("Ver") : t("Editar")}
-                </button>
+                {/* Una skill se lee aquí y se edita fuera: el guardado de esta
+                    pantalla escribe en la bóveda, y una skill no está en ella.
+                    Un botón «Editar» que no puede guardar es una trampa. */}
+                {!skillAbierta && (
+                  <button
+                    className="mini"
+                    onClick={() => setBorrador(editando ? null : abierto.text)}
+                  >
+                    {editando ? t("Ver") : t("Editar")}
+                  </button>
+                )}
                 <button className="mini" onClick={() => void openPath(abierto.path).catch(() => {})}>
                   {t("Abrir fuera")}
                 </button>

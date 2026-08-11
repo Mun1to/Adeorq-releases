@@ -32,6 +32,18 @@ export function goalsRead(date: string): Promise<GoalDay> {
   return invoke("goals_read", { date });
 }
 
+/** Un día del mes visto desde el calendario: sin el texto, solo el recuento. */
+export interface GoalCount {
+  date: string;
+  total: number;
+  done: number;
+}
+
+/** Los días de un mes ("AAAA-MM") que tuvieron objetivos. Una sola llamada. */
+export function goalsMonth(month: string): Promise<GoalCount[]> {
+  return invoke("goals_month", { month });
+}
+
 export function goalsAdd(date: string, text: string): Promise<GoalDay> {
   return invoke("goals_add", { date, text });
 }

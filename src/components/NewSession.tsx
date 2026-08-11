@@ -31,7 +31,7 @@ import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
 import { propsDeVelo } from "../lib/velo";
 import { ClaudeMark } from "./KindIcon";
-import { FolderIcon, RefreshIcon, UnlinkIcon } from "./Icons";
+import { ChevronIcon, FolderIcon, RefreshIcon, UnlinkIcon } from "./Icons";
 
 /** Everything needed to open one terminal, once both steps are answered. */
 export interface Launch {
@@ -470,7 +470,8 @@ export default function NewSession({
             )}
 
             <div className="modal-actions">
-              <button className="mini modal-cancel" onClick={() => setStep(1)}>
+              <button className="mini volver modal-cancel" onClick={() => setStep(1)}>
+                <ChevronIcon size={13} izq />
                 {t("Atrás")}
               </button>
               {/* Encendido aunque no hayas marcado nada: sin marcas trae las
@@ -764,7 +765,14 @@ export default function NewSession({
             y dos «Atrás» diciendo cosas distintas. */}
         {step !== "retomar" && (
           <div className="modal-actions">
-            <button className="mini modal-cancel" onClick={step === 2 ? () => setStep(1) : onClose}>
+            {/* El mismo botón hace dos cosas según el paso, así que el chevron
+                sale solo cuando de verdad se vuelve: en «Cancelar» apuntaría a
+                un sitio al que ese botón no lleva. */}
+            <button
+              className={step === 2 ? "mini volver modal-cancel" : "mini modal-cancel"}
+              onClick={step === 2 ? () => setStep(1) : onClose}
+            >
+              {step === 2 && <ChevronIcon size={13} izq />}
               {step === 2 ? t("Atrás") : t("Cancelar")}
             </button>
             {step === 1 ? (

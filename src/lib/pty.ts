@@ -92,6 +92,14 @@ export interface Skill {
   name: string;
   description: string;
   invocation: string;
+  /** La carpeta, que es su identificador: `name` sale del frontmatter y puede
+      no parecerse a ella. Es lo que se le pasa a `skillText`. */
+  folder: string;
+}
+
+/** El texto de una skill, para leerla dentro de la app. */
+export function skillText(folder: string): Promise<{ text: string; path: string }> {
+  return invoke("skill_text", { folder });
 }
 
 export function scanSessions(): Promise<SessionInfo[]> {

@@ -49,6 +49,19 @@ pub struct GoalDay {
     pub path: String,
 }
 
+/// Un día visto desde el calendario: solo si tuvo algo y cuánto se cerró.
+///
+/// El texto NO viaja. El calendario pinta treinta y un días a la vez y ahí solo
+/// hace falta saber si ese día hubo trabajo y si quedó hecho; mandar además los
+/// objetivos enteros sería subir el mes completo para pintar puntitos.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalCount {
+    pub date: String,
+    pub total: usize,
+    pub done: usize,
+}
+
 /// Un día es un nombre de archivo, así que se comprueba aquí y no en el front:
 /// este módulo es el que toca el disco, y un `..\..` en la fecha no puede
 /// convertirse nunca en una ruta.
@@ -108,6 +121,52 @@ pub async fn goals_read(date: String) -> Result<GoalDay, String> {
         goals: parse(&texto),
         path: path.to_string_lossy().into_owned(),
     })
+}
+
+/// Qué días de un mes tienen objetivos, y cuántos de ellos están hechos.
+///
+/// Para el calendario de la Agenda. Se lee la carpeta UNA vez y se cuentan las
+/// líneas de cada archivo del mes: preguntar día a día serían treinta y un
+/// saltos a Rust para pintar una rejilla, y la carpeta entera son unos pocos
+/// kilobytes.
+///
+/// El mes llega como "AAAA-MM" y se valida igual que una fecha, porque acaba
+/// siendo un prefijo de nombre de archivo.
+#[tauri::command]
+pub async fn goals_month(month: String) -> Result<Vec<GoalCount>, String> {
+    let ok = month.len() == 7
+        && month.as_bytes()[4] == b'-'
+        && month.chars().all(|c| c.is_ascii_digit() || c == '-');
+    if !ok {
+        return Err("mes no válido (se espera AAAA-MM)".into());
+    }
+    let dir = goals_dir()?;
+    let mut out: Vec<GoalCount> = Vec::new();
+    let Ok(entradas) = std::fs::read_dir(&dir) else {
+        // Sin carpeta todavía no es un error: es que no ha escrito ninguno.
+        return Ok(out);
+    };
+    for e in entradas.flatten() {
+        let nombre = e.file_name().to_string_lossy().into_owned();
+        let Some(date) = nombre.strip_suffix(".md") else { continue };
+        if !date.starts_with(&month) || date.len() != 10 {
+            continue;
+        }
+        let texto = std::fs::read_to_string(e.path()).unwrap_or_default();
+        let goals = parse(&texto);
+        if goals.is_empty() {
+            continue;
+        }
+        out.push(GoalCount {
+            date: date.to_owned(),
+            total: goals.len(),
+            done: goals.iter().filter(|g| g.done).count(),
+        });
+    }
+    // Ordenados por fecha: el calendario los coloca por día, pero una lista sin
+    // orden es una invitación a que el siguiente que la use se confíe.
+    out.sort_by(|a, b| a.date.cmp(&b.date));
+    Ok(out)
 }
 
 #[tauri::command]

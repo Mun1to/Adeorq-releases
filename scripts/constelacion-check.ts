@@ -14,7 +14,15 @@
 // mirar el mapa y opinar no demuestra que dos arcos no se pisen, porque a
 // simple vista un solape de dos grados no se ve y aun así junta dos proyectos.
 
-import { anillar, radioTotal, R0, DR } from "../src/lib/constelacion";
+import {
+  anillar,
+  radioTotal,
+  tiroDelHilo,
+  DR,
+  R0,
+  R_LIBRE,
+  type Sitio,
+} from "../src/lib/constelacion";
 
 let fallos = 0;
 function comprueba(titulo: string, cond: boolean, visto?: unknown) {
@@ -58,15 +66,36 @@ comprueba(
   "ningún documento se pierde: los arcos suman todos",
   arcos.reduce((s, a) => s + a.n, 0) === real.length,
 );
+// El arco crece con el tamaño, pero YA NO es proporcional puro, y es a
+// propósito (2026-08-11, ver `SEP_MIN`): así el de 103 tenía 100 veces el arco
+// del de 1 y sus puntos quedaban a 7,9 px, porque el grande reparte en varias
+// filas y el chico mete todo en una. Ahora cada uno se lleva primero lo que
+// necesita para respirar. Lo que sí sigue siendo cierto es el ORDEN.
 comprueba(
-  "el arco de cada uno es proporcional a lo que tiene",
+  "el que más tiene, más arco, y por ese orden",
   (() => {
-    const grande = arcos.find((a) => a.n === 103)!;
-    const chico = arcos.find((a) => a.n === 1)!;
-    const razon = grande.abre / chico.abre;
-    return razon > 60 && razon < 130;
+    const porTamano = [...arcos].sort((a, b) => b.n - a.n);
+    return porTamano.every((a, i) => i === 0 || porTamano[i - 1].abre >= a.abre - 1e-9);
   })(),
   { grande: arcos.find((a) => a.n === 103)!.abre, chico: arcos.find((a) => a.n === 1)!.abre },
+);
+
+// Y LA REGLA NUEVA, que es la que hace que los puntos puedan ser gordos: dos
+// documentos de la misma fila nunca quedan más juntos que el radio de dos
+// puntos. Se mide en el peor sitio, que es la primera fila (la de dentro).
+comprueba(
+  "dos vecinos de fila no se tocan ni en el proyecto más pequeño",
+  (() => {
+    let min = Infinity;
+    for (let i = 0; i < pos.length; i++) {
+      for (let j = i + 1; j < pos.length; j++) {
+        const d = Math.hypot(pos[i].x - pos[j].x, pos[i].y - pos[j].y);
+        if (d < min) min = d;
+      }
+    }
+    // 25 = dos puntos del tamaño máximo (radio 12,5) pegados. Ver `radioDe`.
+    return min >= 25;
+  })(),
 );
 
 // EL CASO QUE IMPORTA: dos proyectos no pueden compartir sitio.
@@ -102,11 +131,15 @@ comprueba(
     return dif <= arco.abre / 2 + 1e-9;
   }),
 );
+// El primer anillo ya no está siempre en `R0`: con muchos proyectos el círculo
+// se abre para que los puntos no se toquen (ver `SEP_MIN`). Lo que no cambia es
+// que todas las familias arrancan en el MISMO anillo y suben de DR en DR, que
+// es lo que hace que el mapa se lea como anillos y no como una espiral.
 comprueba(
-  "las filas van del primer anillo hacia fuera, sin huecos",
+  "las filas van todas del mismo anillo hacia fuera, sin huecos",
   (() => {
     const radios = [...new Set(pos.map((p) => Math.round(p.r)))].sort((a, b) => a - b);
-    return radios[0] === R0 && radios.every((r, i) => i === 0 || r - radios[i - 1] === DR);
+    return radios[0] >= R0 && radios.every((r, i) => i === 0 || r - radios[i - 1] === DR);
   })(),
   [...new Set(pos.map((p) => Math.round(p.r)))].sort((a, b) => a - b),
 );
@@ -150,6 +183,92 @@ comprueba(
   "y en varias filas, no en una sola vuelta apretada",
   new Set(solo.pos.map((p) => Math.round(p.r))).size > 1,
   [...new Set(solo.pos.map((p) => Math.round(p.r)))],
+);
+
+// ── Y LA BÓVEDA DE VERDAD, con su forma medida ──────────────────────────────
+// Ocho proyectos brutalmente desiguales (`node scripts/medir-constelacion.mjs`,
+// 2026-08-11): uno de 201 documentos y tres de uno solo. Es el caso que rompía
+// el reparto proporcional puro, con dos vecinos a 7,9 px.
+const real8 = anillar(boveda([201, 93, 34, 2, 2, 1, 1, 1]), (d) => d.fam);
+comprueba(
+  "en la bóveda de verdad, dos vecinos nunca bajan de 26 px",
+  (() => {
+    let min = Infinity;
+    const p = real8.pos;
+    for (let i = 0; i < p.length; i++) {
+      for (let j = i + 1; j < p.length; j++) {
+        min = Math.min(min, Math.hypot(p[i].x - p[j].x, p[i].y - p[j].y));
+      }
+    }
+    return min >= 25;
+  })(),
+  (() => {
+    let min = Infinity;
+    const p = real8.pos;
+    for (let i = 0; i < p.length; i++) {
+      for (let j = i + 1; j < p.length; j++) {
+        min = Math.min(min, Math.hypot(p[i].x - p[j].x, p[i].y - p[j].y));
+      }
+    }
+    return { separacionMinima: Math.round(min) };
+  })(),
+);
+// Con ocho proyectos el círculo NO tiene que crecer: cabe de sobra. Si esto
+// falla, es que `SEP_MIN` subió tanto que la bóveda de casa se sale.
+comprueba("y sin tener que agrandar el círculo", Math.round(Math.min(...real8.pos.map((p) => p.r))) === R0);
+
+// ── EL HUECO DEL CENTRO, que es donde viven las skills ──────────────────────
+// Ningún hilo puede entrar ahí, o se come el anillo del medio. Se comprueba
+// muestreando la curva de verdad, no fiándose de la fórmula.
+const enCurva = (p: Sitio, q: Sitio, t: number) => {
+  const c = tiroDelHilo(p, q);
+  const u = 1 - t;
+  return {
+    x: u * u * p.x + 2 * u * t * c.x + t * t * q.x,
+    y: u * u * p.y + 2 * u * t * c.y + t * t * q.y,
+  };
+};
+const cerca = (p: Sitio, q: Sitio) => {
+  let min = Infinity;
+  for (let t = 0; t <= 1.0001; t += 0.01) {
+    const b = enCurva(p, q, t);
+    min = Math.min(min, Math.hypot(b.x, b.y));
+  }
+  return min;
+};
+const sitio = (a: number, r: number): Sitio => ({ x: Math.cos(a) * r, y: Math.sin(a) * r, a, r });
+
+comprueba(
+  "un hilo entre dos documentos OPUESTOS rodea el centro",
+  cerca(sitio(0, R0), sitio(Math.PI, R0)) >= R_LIBRE - 1,
+  { pasa_a: Math.round(cerca(sitio(0, R0), sitio(Math.PI, R0))), libre: R_LIBRE },
+);
+// OJO con este: hasta hoy el comentario del dibujo decía que «dos vecinos del
+// mismo arco casi no se curvan», y es MENTIRA. Un hilo entre dos documentos
+// pegados se hunde hasta el 54 % de su radio, o sea que de un anillo a 430 baja
+// a 232. Es lo que hace la flor de pétalos largos del mapa. Queda escrito aquí
+// para que el siguiente que lo lea sepa lo que hay, no lo que se creía.
+comprueba(
+  "un hilo entre vecinos se hunde al 54 %, ni más ni menos",
+  Math.abs(cerca(sitio(0, R0), sitio(0.15, R0)) / R0 - 0.54) < 0.02,
+  { pasa_a: Math.round(cerca(sitio(0, R0), sitio(0.15, R0))), anillo: R0 },
+);
+// La tolerancia del 3 % no es pereza: el punto garantizado es el de la mitad de
+// la curva, y cuando los dos extremos están en filas muy distintas (782 y 430,
+// medido) el punto más bajo se corre a t = 0,53 y pierde tres píxeles. Tres
+// sobre 196 no los ve nadie; exigir el clavado obligaría a una fórmula que
+// resuelve un problema que no existe.
+comprueba(
+  "ningún hilo de la bóveda de verdad entra en el hueco",
+  (() => {
+    const p = real8.pos;
+    for (let i = 0; i < p.length; i += 3) {
+      for (let j = i + 1; j < p.length; j += 7) {
+        if (cerca(p[i], p[j]) < R_LIBRE * 0.97) return false;
+      }
+    }
+    return true;
+  })(),
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

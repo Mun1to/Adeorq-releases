@@ -43,8 +43,11 @@ const PINTA: Record<string, { label: string; urge: number }> = {
   "": { label: "sin saber", urge: 5 },
 };
 
-/** Las que de verdad te esperan: solo a estas se les pregunta al modelo. */
-const ESPERAN = new Set(["pregunta", "ofrece", "tuya"]);
+/** Las que de verdad te esperan: solo a estas se les pregunta al modelo.
+    Lo usa también la portada de la Agenda para su cifra, y por eso se exporta:
+    dos definiciones de «te espera» acabarían diciendo números distintos en dos
+    sitios de la misma pantalla. */
+export const ESPERAN = new Set(["pregunta", "ofrece", "tuya"]);
 
 const REFRESCO_MS = 60_000;
 

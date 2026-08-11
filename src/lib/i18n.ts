@@ -235,6 +235,61 @@ const EN: Record<string, string> = {
   "Abrir el archivo": "Open the file",
   "Todo el ecosistema":
     "The whole ecosystem",
+  /* La portada de la Agenda: seis cifras y una frase corta cada una. */
+  "sesiones te esperan":
+    "sessions are waiting for you",
+  "te preguntan algo o esperan tu OK":
+    "they asked you something or want your OK",
+  "ninguna te espera":
+    "none waiting on you",
+  "propuestas de tus agentes":
+    "proposals from your agents",
+  "{p} pasos · {i} ideas":
+    "{p} steps · {i} ideas",
+  "nada apuntado":
+    "nothing jotted down",
+  "objetivos para hoy":
+    "goals for today",
+  "{n} de {t} hechos":
+    "{n} of {t} done",
+  "no has puesto ninguno":
+    "you have not set any",
+  "con fecha esta semana":
+    "dated this week",
+  "nada en el calendario":
+    "nothing on the calendar",
+  "metas activas":
+    "open goals",
+  "elige un proyecto":
+    "pick a project",
+  "ideas vivas":
+    "live ideas",
+  "en tu brújula":
+    "in your compass",
+  "Volver":
+    "Back",
+  /* El calendario del mes. */
+  "El mes anterior":
+    "The month before",
+  "El mes siguiente":
+    "The month after",
+  "Ese día no apuntaste nada.":
+    "You did not write anything down that day.",
+  "Apuntar algo para este día…":
+    "Write something down for this day…",
+  "Salir de la brújula":
+    "Sign out of the compass",
+  /* Las propuestas, de una en una. */
+  "{i} de {n}":
+    "{i} of {n}",
+  "Aceptar":
+    "Accept",
+  "Luego":
+    "Later",
+  "Dejarla para otro rato y ver la siguiente":
+    "Leave it for later and see the next one",
+  "No queda ninguna propuesta. Tus agentes escribirán más mientras trabajan.":
+    "No proposals left. Your agents will write more while they work.",
   "Ir a sus sesiones":
     "Go to its sessions",
   "brújula conectada":
@@ -677,6 +732,9 @@ const EN: Record<string, string> = {
   "Dónde vive tu memoria": "Where your memory lives",
   "Elegir la carpeta": "Choose the folder",
   "Cambiar carpeta": "Change folder",
+  "Cambiar bóveda": "Change vault",
+  "Buscar otra carpeta…": "Find another folder…",
+  "documento": "document",
   "Volver a leer la carpeta": "Read the folder again",
   "Documento": "Document",
   "Constelación": "Constellation",
@@ -708,8 +766,8 @@ const EN: Record<string, string> = {
   "Señalar otra carpeta": "Point to another folder",
   "Vale cualquier carpeta con markdown dentro, sea de Obsidian o no.":
     "Any folder with markdown inside will do, Obsidian or not.",
-  "Rueda para acercar · arrastra un punto para colocarlo · clic para abrirlo":
-    "Wheel to zoom · drag a dot to place it · click to open it",
+  "Rueda para acercar · arrastra para mover · con Shift, gira · clic en un punto para abrirlo":
+    "Wheel to zoom · drag to pan · hold Shift to spin it · click a dot to open it",
   "documentos": "documents",
   "con enlaces": "with links",
   "en la raíz": "at the root",

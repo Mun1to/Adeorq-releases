@@ -15,8 +15,8 @@ import {
   BulbIcon,
   CalendarIcon,
   CheckIcon,
+  ChevronIcon,
   DiamondIcon,
-  InboxIcon,
   TargetIcon,
   UnlockIcon,
 } from "./Icons";
@@ -44,21 +44,29 @@ import {
   projectIcons,
   readInbox,
   readMetas,
+  scanSessions,
   type Metas,
   type Note,
   type Project,
 } from "../lib/pty";
 import { useT } from "../lib/i18n";
 import ProjectAvatar from "./ProjectAvatar";
-import AgendaSesiones from "./AgendaSesiones";
+import AgendaSesiones, { ESPERAN } from "./AgendaSesiones";
 import Objetivos from "./Objetivos";
-import Secciones from "./Secciones";
 import {
-  IconoCalendario,
-  IconoIdeas,
-  IconoObjetivos,
-  IconoPasos,
-} from "./IconosSeccion";
+  goalsAdd,
+  goalsMonth,
+  goalsRead,
+  goalsRemove,
+  goalsToggle,
+  hoy,
+  useDiaDeHoy,
+  type Goal,
+  type GoalCount,
+} from "../lib/goals";
+import { hueOf } from "../lib/colors";
+import { indiceValido, siguienteNota } from "../lib/agenda";
+import { mesDe, mesVecino, rejillaDelMes } from "../lib/calendario";
 import type { SessionInfo } from "../lib/pty";
 
 interface Props {
@@ -98,6 +106,67 @@ function richLine(text: string): React.ReactNode[] {
     );
 }
 
+/** La portada, y una pantalla por cifra. */
+type Modo = null | "propuestas" | "sesiones" | "objetivos" | "fechas" | "metas" | "ideas";
+
+const TITULOS: Record<NonNullable<Modo>, string> = {
+  propuestas: "De tus agentes",
+  sesiones: "Tus sesiones",
+  objetivos: "Objetivos de hoy",
+  fechas: "Calendario",
+  metas: "Próximos pasos",
+  ideas: "Ideas",
+};
+
+/** «martes, 11 de agosto». Sin el año: hoy no necesita que le recuerden en qué
+    año está, y es el único encabezado que queda en la portada. */
+function fechaLarga(lang: string): string {
+  return new Date().toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+/**
+ * Las columnas del calendario: L M X J V S D, y M T W T F S S en inglés.
+ *
+ * Salen del idioma y no de una lista escrita a mano porque una lista habría
+ * que traducirla, y traducir «X» de miércoles a mano es justo el tipo de
+ * cadena que se queda sin traducir para siempre. El 1 de junio de 2026 es
+ * lunes, que es donde empieza la semana aquí.
+ */
+function inicialesSemana(lang: string): string[] {
+  const loc = lang === "en" ? "en-GB" : "es-ES";
+  return Array.from({ length: 7 }, (_, i) =>
+    new Date(2026, 5, 1 + i).toLocaleDateString(loc, { weekday: "narrow" }),
+  );
+}
+
+/**
+ * «jueves, 20 de agosto» a partir de un "AAAA-MM-DD".
+ *
+ * Se parte el texto en tres números en vez de pasárselo a `new Date(texto)`:
+ * esa forma lo interpreta como UTC y en España, que va por delante, devuelve
+ * el día ANTERIOR media jornada al año.
+ */
+function diaLargo(fecha: string, lang: string): string {
+  const [a, m, d] = fecha.split("-").map(Number);
+  return new Date(a, m - 1, d).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+/** «agosto de 2026», con el idioma de la app. */
+function nombreDelMes(anio: number, mes: number, lang: string): string {
+  return new Date(anio, mes - 1, 1).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 /** "faltan 7 días", "hoy", "hace 3 días": the number he actually reads. */
 function whenText(date: string): string {
   const left = daysTo(date);
@@ -108,8 +177,110 @@ function whenText(date: string): string {
   return `hace ${-left} días`;
 }
 
-export default function AgendaView({ current, onOpenProject, modeloLocal, onResume }: Props) {
+/**
+ * Un día cualquiera del calendario: lo que hay y lo que quieras dejar puesto.
+ *
+ * Se escribe igual que los objetivos de hoy, en el mismo markdown por día
+ * (`goals_add` acepta cualquier fecha), así que un recordatorio para el jueves
+ * es un objetivo del jueves: cuando llegue ya está donde tiene que estar, y un
+ * agente puede tacharlo. No hace falta un almacén nuevo para esto.
+ *
+ * VA FUERA DE `AgendaView`, y no es un detalle de estilo. Estaba declarado
+ * dentro, y una función declarada dentro de un componente es una función NUEVA
+ * en cada render: React la ve como otro tipo de componente, desmonta el viejo y
+ * monta este, con lo que su efecto vuelve a correr. Como el efecto avisaba
+ * hacia arriba para refrescar el mes, eso re-renderizaba al padre y volvía a
+ * empezar: la pantalla parpadeaba sin parar y no llegaba a pintar nada (Munir,
+ * 2026-08-11). Aquí arriba su identidad es estable y el ciclo se rompe.
+ *
+ * Tampoco usa `aplicarDia`: eso guarda en la caché de HOY, y meter ahí el
+ * jueves haría que la lista de hoy y el panel flotante enseñaran el día
+ * equivocado hasta el siguiente latido.
+ */
+function DiaSuelto({
+  fecha,
+  onCambio,
+  onError,
+}: {
+  fecha: string;
+  /** Que el calendario se entere de que ese día ya cuenta otra cosa. */
+  onCambio: () => void;
+  onError: (e: string) => void;
+}) {
   const { t } = useT();
+  const [goals, setGoals] = useState<Goal[] | null>(null);
+  const [texto, setTexto] = useState("");
+
+  const releer = useCallback(() => {
+    goalsRead(fecha)
+      .then((d) => setGoals(d.goals))
+      .catch(() => setGoals([]));
+  }, [fecha]);
+
+  useEffect(releer, [releer]);
+
+  /** Leer lo de este día y avisar arriba. Solo tras un cambio, nunca al montar:
+      avisar al montar es justo lo que cerraba el bucle. */
+  const trasCambiar = () => {
+    releer();
+    onCambio();
+  };
+
+  const añadir = () => {
+    const limpio = texto.trim();
+    if (!limpio) return;
+    setTexto("");
+    goalsAdd(fecha, limpio).then(trasCambiar).catch((e) => onError(String(e)));
+  };
+
+  if (!goals) return null;
+  return (
+    <section className="panel-card agenda-card ag-dia-suelto">
+      <ul className="obj-list">
+        {goals.map((g, i) => (
+          <li key={i} className="obj-item" data-done={g.done}>
+            <button
+              className="obj-fila"
+              role="checkbox"
+              aria-checked={g.done}
+              onClick={() => goalsToggle(fecha, g).then(trasCambiar).catch(() => {})}
+            >
+              <span className="obj-mark" aria-hidden>
+                {g.done ? <CheckIcon size={13} /> : ""}
+              </span>
+              <span className="obj-text stream-hide">{g.text}</span>
+            </button>
+            <button
+              className="obj-del"
+              data-tip={t("Quitar este objetivo")}
+              onClick={() => goalsRemove(fecha, g).then(trasCambiar).catch(() => {})}
+            >
+              ×
+            </button>
+          </li>
+        ))}
+        {!goals.length && <li className="card-hint">{t("Ese día no apuntaste nada.")}</li>}
+      </ul>
+      <div className="np-row">
+        <input
+          className="finder"
+          placeholder={t("Apuntar algo para este día…")}
+          value={texto}
+          onChange={(e) => setTexto(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") añadir();
+          }}
+        />
+        <button className="np-btn" disabled={!texto.trim()} onClick={añadir}>
+          {t("Apuntar")}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export default function AgendaView({ current, onOpenProject, modeloLocal, onResume }: Props) {
+  const { t, lang } = useT();
   const [projects, setProjects] = useState<Project[]>([]);
   const [icons, setIcons] = useState<Record<string, string>>({});
   const [link, setLink] = useState<Link>("checking");
@@ -132,6 +303,22 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   /** What the rail calls each project: one name for the same thing everywhere. */
   const [alias, setAlias] = useState<Record<string, string>>({});
   const shownName = (name: string) => alias[name] || name;
+  /** En qué está mirando. `null` es la portada: seis cifras y nada más. */
+  const [modo, setModo] = useState<Modo>(null);
+  /** Qué propuesta se está revisando, dentro del modo propuestas. */
+  const [rev, setRev] = useState(0);
+  /** Cuántas sesiones te esperan. Se cuenta aquí y no dentro de la pantalla de
+      sesiones porque esa solo se monta al entrar, y la cifra de la portada
+      tiene que ser verdad ANTES de entrar. Es leer disco: ni un token. */
+  const [esperando, setEsperando] = useState(0);
+  const dia = useDiaDeHoy();
+  /** El mes que enseña el calendario. Empieza en el de hoy, claro. */
+  const [anio, setAnio] = useState(() => new Date().getFullYear());
+  const [mes, setMes] = useState(() => new Date().getMonth() + 1);
+  /** Qué días de ese mes tuvieron objetivos, y cuántos se cerraron. */
+  const [cuenta, setCuenta] = useState<GoalCount[]>([]);
+  /** El día que se está mirando, si entraste por una casilla del calendario. */
+  const [diaElegido, setDiaElegido] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -150,6 +337,31 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   const loadNotes = useCallback(() => {
     readInbox().then(setNotes).catch(() => {});
   }, []);
+
+  /* El mes del calendario, de una sola llamada. Se relee cuando cambias de mes
+     y cuando tachas un objetivo (por eso `dia` está en las dependencias: al
+     marcar uno, el día de hoy cambia y su casilla tiene que enterarse). */
+  const releerMes = useCallback(() => {
+    goalsMonth(`${anio}-${String(mes).padStart(2, "0")}`)
+      .then(setCuenta)
+      .catch(() => {});
+  }, [anio, mes]);
+
+  useEffect(() => {
+    releerMes();
+  }, [releerMes, dia]);
+
+  const contarSesiones = useCallback(() => {
+    void scanSessions()
+      .then((s) => setEsperando(s.filter((x) => x.fresh !== "muerta" && ESPERAN.has(x.state)).length))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    contarSesiones();
+    const beat = window.setInterval(contarSesiones, 60_000);
+    return () => window.clearInterval(beat);
+  }, [contarSesiones]);
 
   useEffect(() => {
     loadNotes();
@@ -215,18 +427,24 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
     [ventanas, showPast],
   );
 
-  /** The soonest one still ahead: the headline of the whole page. */
-  const next = useMemo(
-    () => ventanas.filter((v) => daysTo(v.date) >= 0)[0] ?? null,
-    [ventanas],
-  );
-
   const projectIdeas = useMemo(() => {
     const live = ideas.filter((i) => i.status !== "discarded" && i.status !== "done");
     if (!project) return live;
     // Its own plus the ones filed under the ecosystem, which are everyone's.
     return live.filter((i) => i.project === project || i.project === "ecosistema");
   }, [ideas, project]);
+
+  /* Ya no hay cifra de «objetivos para hoy» ni de «con fecha esta semana»: las
+     dos las cuenta mejor el calendario, que además dice CUÁNDO, y repetirlas
+     arriba sería decir dos veces lo mismo en la misma pantalla. */
+  const pasos = useMemo(() => notes.filter((n) => n.kind === "paso").length, [notes]);
+  const metasVivas = metas?.metas.filter((m) => !m.done).length ?? 0;
+
+  /* Las dos reglas del índice viven en `lib/agenda.ts` con sus casos, porque
+     son justo las que no se ven leyendo el JSX. */
+  useEffect(() => {
+    setRev((r) => indiceValido(r, notes.length));
+  }, [notes.length]);
 
   const condOf = (id: string | null) => (id ? conds.find((c) => c.id === id) : undefined);
   const path = projects.find((p) => p.name === project)?.path;
@@ -288,200 +506,427 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
     }
   };
 
-  return (
-    <div className="panel agenda">
-      <header className="panel-hero">
-        <h1>{t("Agenda")}</h1>
-        <p>{t("Lo que viene, lo que pensaste y lo que toca.")}</p>
-      </header>
+  /* La portada NO enseña contenido, enseña cuánto hay de cada cosa.
+     Munir, 2026-08-11, con doce notas de párrafo en pantalla: «me sigue
+     pareciendo mucho texto, la Agenda debe aclarar las cosas, no hacerlas más
+     difíciles». Trece notas de doscientos caracteres son un documento, y un
+     documento no se lee de un vistazo. Así que el texto no aparece hasta que
+     se entra a algo, y las propuestas se revisan de UNA EN UNA, porque cada
+     una es una decisión y doce decisiones a la vez no se toman. */
+  const contenido = () => {
+    switch (modo) {
+      case "propuestas":
+        return <Revision />;
+      case "sesiones":
+        return <AgendaSesiones modelo={modeloLocal} onResume={onResume} />;
+      case "objetivos":
+        /* Hoy se edita; un día pasado se lee y ya está. `Objetivos` cuelga de
+           `useDiaDeHoy`, que es un hook con caché compartida entre la Agenda y
+           el panel flotante: pasarle una fecha cualquiera obligaría a partir esa
+           caché en dos para un caso que es de consulta. */
+        return diaElegido && diaElegido !== hoy() ? (
+          <DiaSuelto fecha={diaElegido} onCambio={releerMes} onError={setError} />
+        ) : (
+          <Objetivos />
+        );
+      case "fechas":
+        return link === "out" ? <Login /> : <CardCalendario />;
+      case "ideas":
+        return link === "out" ? <Login /> : <CardIdeas />;
+      case "metas":
+        return (
+          <>
+            <Picker />
+            <CardPasos />
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
-      {/* The next window, alone and big: on any given day this is the one
-          thing on the screen that has a deadline attached to it. */}
-      {next && (
-        <div className="agenda-next" data-urgency={urgency(next)}>
-          <span className="next-when">{whenText(next.date)}</span>
-          <span className="next-body">
-            <span className="next-title stream-hide">{next.title}</span>
-            <span className="next-date">{next.date}</span>
-          </span>
-          {next.url && (
-            <a className="mini next-go" href={next.url} target="_blank" rel="noreferrer">
-              {t("Abrir")}
-            </a>
+  if (modo) {
+    return (
+      <div className="panel agenda">
+        <div className="ag-dia">
+          <button
+            className="mini volver ag-volver"
+            onClick={() => {
+              setModo(null);
+              setDiaElegido(null);
+            }}
+          >
+            <ChevronIcon size={13} izq />
+            {t("Volver")}
+          </button>
+          <h1>
+            {modo === "objetivos" && diaElegido && diaElegido !== hoy()
+              ? diaLargo(diaElegido, lang)
+              : t(TITULOS[modo])}
+          </h1>
+          {modo === "propuestas" && notes.length > 0 && (
+            <span className="ag-quedan">
+              {t("{i} de {n}", { i: rev + 1, n: notes.length })}
+            </span>
+          )}
+          {modo === "fechas" && link === "in" && (
+            <button className="mini ag-salir" onClick={() => void leave()}>
+              {t("Salir de la brújula")}
+            </button>
           )}
         </div>
-      )}
+        {contenido()}
+        {note && <p className="np-ok agenda-note">{note}</p>}
+        {error && <p className="np-err agenda-note">{error}</p>}
+      </div>
+    );
+  }
 
-      {/* The rail's own language instead of a system dropdown: with twenty-five
-          projects that grey list filled the whole window (Munir, 2026-07-26). */}
-      <div className="agenda-picker">
+  /* La portada: rail de proyectos a la izquierda como en la cabina, y el
+     calendario ocupando lo ancho.
+
+     La vuelta anterior se fue al extremo contrario del muro de texto: una
+     columna de 720 px centrada, con media pantalla en blanco a los lados
+     (Munir, 2026-08-11: «no aprovecha del todo el espacio, y me gustaría que
+     en el menú principal haya literalmente un calendario y un menú como en el
+     cockpit a la izquierda de los proyectos»). Un calendario es justo lo que
+     pide ancho, así que las dos cosas se arreglan con la misma forma. */
+  return (
+    <div className="panel agenda ag-marco">
+      {/* Las marcas son LAS MISMAS piezas que la tira de la cabina
+          (`.project-logo` + `.pavatar-xl` + `--c`), no una copia parecida:
+          «igualito, eh» (Munir, 2026-08-11). Compartiendo clase no se pueden
+          separar mañana, que es lo que le pasó a la anterior. */}
+      <aside className="ag-rail">
         <button
-          className="pick-item"
-          data-on={!project}
+          className="project-logo"
+          data-active={!project}
+          style={{ ["--c" as string]: "var(--accent)" }}
           onClick={() => setProject(null)}
           data-tip={t("Todo el ecosistema")}
         >
-          <span className="pick-all"><DiamondIcon size={13} /></span>
+          <span className="pick-all"><DiamondIcon size={20} /></span>
         </button>
         {projects.map((p) => (
           <button
             key={p.path}
-            className="pick-item"
-            data-on={project === p.name}
+            className="project-logo"
+            data-active={project === p.name}
+            style={{ ["--c" as string]: hueOf(p.name) }}
             onClick={() => setProject(project === p.name ? null : p.name)}
-            data-tip={p.name}
+            data-tip={shownName(p.name)}
           >
-            <ProjectAvatar name={p.name} src={icons[p.path]} className="pavatar-pick" />
+            <ProjectAvatar name={p.name} src={icons[p.path]} className="pavatar-xl" />
           </button>
         ))}
-      </div>
+      </aside>
 
-      <div className="agenda-where">
-        <h2 className="where-name stream-hide">
-          {project ? shownName(project) : t("Todo el ecosistema")}
-        </h2>
-        {project && (
-          <button className="mini" onClick={() => onOpenProject(project)}>
-            {t("Ir a sus sesiones")}
-          </button>
-        )}
-        <span className="agenda-link" data-state={link}>
-          {link === "in"
-            ? t("brújula conectada")
-            : link === "checking"
-              ? t("comprobando…")
-              : link === "failing"
-                ? t("brújula con problemas")
-                : t("brújula sin conectar")}
-        </span>
-        {link === "in" && (
-          <button className="mini" onClick={() => void leave()}>
-            {t("Salir")}
-          </button>
-        )}
-      </div>
-
-      {link === "out" && (
-        <section className="panel-card agenda-login">
-          <h2>{t("Conecta tu brújula")}</h2>
-          <p className="card-hint">
-            {t(
-              "Con tu cuenta de munito.dev, para traer aquí tus fechas y tus ideas. La contraseña no se guarda en ningún sitio: solo el permiso de vuelta, y va al almacén cifrado de Windows.",
-            )}
-          </p>
-          <div className="np-row">
-            <input
-              className="finder"
-              type="email"
-              placeholder={t("Tu correo")}
-              value={email}
-              autoComplete="off"
-              onChange={(e) => setEmail(e.currentTarget.value)}
-            />
-            <input
-              className="finder"
-              type="password"
-              placeholder={t("Tu contraseña")}
-              value={password}
-              onChange={(e) => setPassword(e.currentTarget.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void enter();
-              }}
-            />
-            <button className="np-btn" disabled={busy} onClick={() => void enter()}>
-              {busy ? t("Entrando…") : t("Entrar")}
+      <div className="ag-cuerpo">
+        <div className="ag-dia">
+          <h1>{fechaLarga(lang)}</h1>
+          {project && (
+            <button className="mini" onClick={() => onOpenProject(project)}>
+              {t("Ir a sus sesiones")}
             </button>
-          </div>
-        </section>
-      )}
+          )}
+        </div>
 
-      {/* What his agents proposed while working. A proposal, never a decision:
-          nothing reaches the brújula or a METAS.md until he says so here. */}
-      {notes.length > 0 && (
-        <section className="panel-card agenda-card tray-card">
-          <h2>
-            <InboxIcon size={16} />
-            {t("De tus agentes")}
-            <span className="tray-count">{notes.length}</span>
-          </h2>
-          <p className="card-hint">
-            {t(
-              "Lo que tus sesiones han ido apuntando mientras trabajaban. Aceptar una idea la manda a tu brújula; aceptar un paso lo escribe en el METAS.md de ese proyecto.",
-            )}
-          </p>
-          <ul className="tray-list">
-            {notes.map((n) => (
-              <li key={n.line} className="tray-item" data-kind={n.kind}>
-                <span className="tray-kind">{n.kind === "paso" ? t("paso") : t("idea")}</span>
-                <span className="tray-body">
-                  <span className="tray-text stream-hide">{n.text}</span>
-                  <span className="tray-proj">{n.project}</span>
-                </span>
-                <button
-                  className="mini tray-yes"
-                  data-tip={
-                    n.kind === "paso"
-                      ? t("Escribirlo en el METAS.md de {p}", { p: n.project })
-                      : t("Guardarlo como idea en tu brújula")
-                  }
-                  onClick={() => void acceptNote(n)}
-                >
-                  <CheckIcon size={14} />
-                </button>
-                <button
-                  className="mini tray-no"
-                  data-tip={t("Descartar: se borra de la bandeja y ya está")}
-                  onClick={() => void dropNote(n)}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="card-hint tray-path stream-hide">{trayPath}</p>
-        </section>
-      )}
+        <div className="ag-cifras">
+          <Cifra
+            n={esperando}
+            viva
+            que={t("sesiones te esperan")}
+            pie={esperando ? t("te preguntan algo o esperan tu OK") : t("ninguna te espera")}
+            onClick={() => setModo("sesiones")}
+          />
+          <Cifra
+            n={notes.length}
+            que={t("propuestas de tus agentes")}
+            pie={
+              notes.length
+                ? t("{p} pasos · {i} ideas", { p: pasos, i: notes.length - pasos })
+                : t("nada apuntado")
+            }
+            onClick={() => setModo("propuestas")}
+          />
+          <Cifra
+            n={metasVivas}
+            que={t("metas activas")}
+            pie={project ? shownName(project) : t("elige un proyecto")}
+            onClick={() => setModo("metas")}
+          />
+          <Cifra
+            n={projectIdeas.length}
+            que={t("ideas vivas")}
+            pie={link !== "in" ? t("brújula sin conectar") : t("en tu brújula")}
+            onClick={() => setModo("ideas")}
+          />
+        </div>
 
-      <Secciones
-        memoria="adeorq-agenda-seccion"
-        secciones={[
-          { id: "objetivos", label: "Hoy", icon: <IconoObjetivos /> },
-          {
-            id: "calendario",
-            label: "Calendario",
-            icon: <IconoCalendario />,
-            badge: shownVentanas.length || "",
-          },
-          {
-            id: "ideas",
-            label: "Ideas",
-            icon: <IconoIdeas />,
-            badge: projectIdeas.length || "",
-          },
-          { id: "pasos", label: "Próximos pasos", icon: <IconoPasos /> },
-        ]}
-      >
-        {(activa) => (
-          <>
-            {activa === "objetivos" && (
-              <>
-                <Objetivos />
-                {/* Tus sesiones aquí y no en su propia pestaña: lo que un
-                    agente te está preguntando AHORA es parte de lo de hoy. */}
-                <AgendaSesiones modelo={modeloLocal} onResume={onResume} />
-              </>
-            )}
-            {activa === "calendario" && <CardCalendario />}
-            {activa === "ideas" && <CardIdeas />}
-            {activa === "pasos" && <CardPasos />}
-          </>
-        )}
-      </Secciones>
-
-      {note && <p className="np-ok agenda-note">{note}</p>}
-      {error && <p className="np-err agenda-note">{error}</p>}
+        <Calendario />
+      </div>
     </div>
   );
+
+  /**
+   * El calendario del mes, con lo que cae en cada día.
+   *
+   * Junta las dos cosas que SÍ tienen fecha y que hasta ahora vivían en dos
+   * pestañas que no se veían a la vez: tus objetivos (un archivo por día) y
+   * las ventanas de la brújula. Un día con objetivos lleva su punto; si están
+   * todos hechos, el punto se apaga. Pinchar un día abre el suyo.
+   */
+  function Calendario() {
+    const dias = useMemo(() => rejillaDelMes(anio, mes), [anio, mes]);
+    const hoyTxt = hoy();
+    const porFecha = useMemo(() => {
+      const m = new Map<string, { objetivos?: GoalCount; ventanas: Ventana[] }>();
+      for (const g of cuenta) m.set(g.date, { objetivos: g, ventanas: [] });
+      for (const v of ventanas) {
+        const e = m.get(v.date) ?? { ventanas: [] };
+        e.ventanas.push(v);
+        m.set(v.date, e);
+      }
+      return m;
+    }, [cuenta, ventanas]);
+
+    return (
+      <section className="ag-cal">
+        <header className="ag-cal-cab">
+          <button
+            className="ag-cal-mover"
+            data-tip={t("El mes anterior")}
+            onClick={() => {
+              const v = mesVecino(anio, mes, -1);
+              setAnio(v.anio);
+              setMes(v.mes);
+            }}
+          >
+            ‹
+          </button>
+          <h2>{nombreDelMes(anio, mes, lang)}</h2>
+          <button
+            className="ag-cal-mover"
+            data-tip={t("El mes siguiente")}
+            onClick={() => {
+              const v = mesVecino(anio, mes, 1);
+              setAnio(v.anio);
+              setMes(v.mes);
+            }}
+          >
+            ›
+          </button>
+          {mesDe(hoyTxt) !== `${anio}-${String(mes).padStart(2, "0")}` && (
+            <button
+              className="mini ag-cal-hoy"
+              onClick={() => {
+                setAnio(new Date().getFullYear());
+                setMes(new Date().getMonth() + 1);
+              }}
+            >
+              {t("Hoy")}
+            </button>
+          )}
+        </header>
+
+        <div className="ag-cal-dias">
+          {inicialesSemana(lang).map((d, i) => (
+            <span key={i} className="ag-cal-inicial">
+              {d}
+            </span>
+          ))}
+        </div>
+
+        <div className="ag-cal-rejilla">
+          {dias.map((d) => {
+            const q = porFecha.get(d.fecha);
+            const pendientes = q?.objetivos ? q.objetivos.total - q.objetivos.done : 0;
+            return (
+              <button
+                key={d.fecha}
+                className="ag-cal-celda"
+                data-fuera={!d.delMes}
+                data-hoy={d.fecha === hoyTxt}
+                data-tip={q?.ventanas.length ? q.ventanas.map((v) => v.title).join(" · ") : undefined}
+                onClick={() => {
+                  setDiaElegido(d.fecha);
+                  setModo("objetivos");
+                }}
+              >
+                <span className="ag-cal-num">{d.numero}</span>
+                {q?.objetivos && (
+                  <span className="ag-cal-obj" data-todo={pendientes === 0}>
+                    {q.objetivos.done}/{q.objetivos.total}
+                  </span>
+                )}
+                {q?.ventanas.map((v) => (
+                  <span key={v.id} className="ag-cal-ventana stream-hide" data-urgency={urgency(v)}>
+                    {v.title}
+                  </span>
+                ))}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
+
+  /** Una cifra de la portada. El número manda, la frase lo explica y el pie da
+      el matiz que evita tener que entrar solo para comprobar algo. */
+  function Cifra({
+    n,
+    que,
+    pie,
+    viva,
+    onClick,
+  }: {
+    n: number;
+    que: string;
+    pie: string;
+    viva?: boolean;
+    onClick: () => void;
+  }) {
+    return (
+      <button className="ag-cifra" data-viva={!!(viva && n)} data-cero={n === 0} onClick={onClick}>
+        <span className="ag-n">{n}</span>
+        <span className="ag-q">
+          {que}
+          <small className="stream-hide">{pie}</small>
+        </span>
+      </button>
+    );
+  }
+
+  /** Las propuestas, de una en una: la nota entera, y tres salidas. */
+  function Revision() {
+    const n = notes[rev];
+    if (!n) {
+      return (
+        <p className="ag-fin">
+          {t("No queda ninguna propuesta. Tus agentes escribirán más mientras trabajan.")}
+        </p>
+      );
+    }
+    return (
+      <div className="ag-uno">
+        <div className="ag-caja" data-kind={n.kind}>
+          <span className="ag-caja-cab">
+            <span className="ag-k">{n.kind === "paso" ? t("paso") : t("idea")}</span>
+            {shownName(n.project)}
+          </span>
+          <p className="ag-caja-texto stream-hide">{n.text}</p>
+          {/* Las tres salidas van DENTRO de la tarjeta, no flotando debajo:
+              sueltas caían sobre el fondo de escritorio con un 5 % de blanco y
+              «Luego» era invisible del todo (Munir, 2026-08-11: «se ve como a
+              los botones más transparentes»). Dentro heredan la superficie
+              opaca de la caja y el conjunto se lee como una sola decisión. */}
+          <div className="ag-botones">
+            <button
+              className="ag-si"
+              data-tip={
+                n.kind === "paso"
+                  ? t("Escribirlo en el METAS.md de {p}", { p: n.project })
+                  : t("Guardarlo como idea en tu brújula")
+              }
+              onClick={() => void acceptNote(n)}
+            >
+              <CheckIcon size={14} />
+              {t("Aceptar")}
+            </button>
+            <button
+              data-tip={t("Descartar: se borra de la bandeja y ya está")}
+              onClick={() => void dropNote(n)}
+            >
+              {t("Descartar")}
+            </button>
+            <button
+              data-tip={t("Dejarla para otro rato y ver la siguiente")}
+              onClick={() => setRev((r) => siguienteNota(r, notes.length))}
+            >
+              {t("Luego")}
+            </button>
+          </div>
+          <p className="card-hint ag-donde stream-hide">{trayPath}</p>
+        </div>
+      </div>
+    );
+  }
+
+  /** El rail's own language instead of a system dropdown: with twenty-five
+      projects that grey list filled the whole window (Munir, 2026-07-26).
+      Vive dentro de las metas, que es lo único que depende del proyecto. */
+  function Picker() {
+    return (
+      <>
+        <div className="agenda-picker">
+          <button
+            className="pick-item"
+            data-on={!project}
+            onClick={() => setProject(null)}
+            data-tip={t("Todo el ecosistema")}
+          >
+            <span className="pick-all"><DiamondIcon size={13} /></span>
+          </button>
+          {projects.map((p) => (
+            <button
+              key={p.path}
+              className="pick-item"
+              data-on={project === p.name}
+              onClick={() => setProject(project === p.name ? null : p.name)}
+              data-tip={p.name}
+            >
+              <ProjectAvatar name={p.name} src={icons[p.path]} className="pavatar-pick" />
+            </button>
+          ))}
+        </div>
+        {project && (
+          <div className="agenda-where">
+            <h2 className="where-name stream-hide">{shownName(project)}</h2>
+            <button className="mini" onClick={() => onOpenProject(project)}>
+              {t("Ir a sus sesiones")}
+            </button>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  function Login() {
+    return (
+      <section className="panel-card agenda-login">
+        <h2>{t("Conecta tu brújula")}</h2>
+        <p className="card-hint">
+          {t(
+            "Con tu cuenta de munito.dev, para traer aquí tus fechas y tus ideas. La contraseña no se guarda en ningún sitio: solo el permiso de vuelta, y va al almacén cifrado de Windows.",
+          )}
+        </p>
+        <div className="np-row">
+          <input
+            className="finder"
+            type="email"
+            placeholder={t("Tu correo")}
+            value={email}
+            autoComplete="off"
+            onChange={(e) => setEmail(e.currentTarget.value)}
+          />
+          <input
+            className="finder"
+            type="password"
+            placeholder={t("Tu contraseña")}
+            value={password}
+            onChange={(e) => setPassword(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void enter();
+            }}
+          />
+          <button className="np-btn" disabled={busy} onClick={() => void enter()}>
+            {busy ? t("Entrando…") : t("Entrar")}
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   function CardCalendario() {
     return (

@@ -50,6 +50,7 @@ import { apuntaTecla } from "../lib/tecleando";
 import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
 import { hayQueAjustar, hayQueRecolocar, volverA } from "../lib/scrollTerm";
+import { EVENTO_REFIT, redimensionando, tocaAjustar } from "../lib/redimension";
 import { modoRendimiento } from "../lib/rendimiento";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
@@ -93,6 +94,9 @@ interface Props {
   onMinimizar?: (id: number) => void;
   /** Fired when the agent finishes its turn: the canvas chains on this. */
   onTurnEnd?: (id: number) => void;
+  /** Lo que se teclea aquí, tal cual, para que la cabina sepa que ya estás
+      atendiendo esta terminal. */
+  onEscribir?: (id: number, data: string) => void;
   /** What this pane is doing, reported up so the Foreman can reason about it.
       Everything here was already known INSIDE the pane (it is what the header
       paints); it just never left it. */
@@ -357,6 +361,7 @@ export default function TerminalPane({
   onToggleMax,
   onMinimizar,
   onTurnEnd,
+  onEscribir,
   onStatus,
   stream,
   onSecret,
@@ -603,6 +608,10 @@ export default function TerminalPane({
   // calls the current callback instead of the one captured at mount.
   const turnEndRef = useRef(onTurnEnd);
   turnEndRef.current = onTurnEnd;
+  // Por ref igual que el de arriba: el `onData` se engancha una sola vez, al
+  // nacer la terminal, y se quedaría con la función de aquel primer render.
+  const alEscribirRef = useRef(onEscribir);
+  alEscribirRef.current = onEscribir;
   // Read by the data handler, which is built once with the terminal.
   const streamRef = useRef(stream);
   streamRef.current = stream;
@@ -1106,6 +1115,9 @@ export default function TerminalPane({
       // de eso, y de ella depende que otro pane que termine no te quite la
       // pantalla a mitad de frase. Ver lib/tecleando.
       apuntaTecla(id);
+      // Y hacia arriba, que es lo que devuelve al mosaico una terminal puesta
+      // a pantalla completa por el salto en cuanto le contestas.
+      alEscribirRef.current?.(id, data);
       void writePty(id, data).catch(() => {});
     });
     unsubs.push(() => dataSub.dispose());
@@ -1267,13 +1279,44 @@ export default function TerminalPane({
       else unsubs.push(un);
     });
 
-    const ro = new ResizeObserver(() => refitRef.current());
+    /* Un ajuste por frame como mucho, y durante un arrastre uno cada 80 ms.
+     *
+     * El ResizeObserver dispara por cada píxel, así que arrastrando un
+     * separador (o el borde de la ventana) llegaban decenas de avisos por
+     * segundo y cada uno costaba un reflow del búfer entero más un salto a
+     * Rust para avisar del tamaño. Coalescer en un rAF funde todos los del
+     * mismo frame en uno; la cadencia del arrastre baja de sesenta a doce por
+     * segundo, que es donde el texto todavía se ve fluir pero ya no cuesta.
+     *
+     * Si toca esperar, se vuelve a pedir el frame en vez de descartar el
+     * aviso: descartarlo dejaría la terminal con el ancho de hace un momento
+     * si el ratón se para justo ahí. */
+    let pedido = 0;
+    let ultimo = 0;
+    const pedirRefit = () => {
+      if (pedido) return;
+      pedido = requestAnimationFrame(() => {
+        pedido = 0;
+        if (!tocaAjustar(Date.now(), ultimo, redimensionando())) {
+          pedirRefit();
+          return;
+        }
+        ultimo = Date.now();
+        refitRef.current();
+      });
+    };
+    const ro = new ResizeObserver(pedirRefit);
     ro.observe(el);
+    /* Y el ajuste bueno, el de después de soltar. */
+    const alSoltar = () => refitRef.current();
+    window.addEventListener(EVENTO_REFIT, alSoltar);
     term.focus();
 
     return () => {
       disposed = true;
       ro.disconnect();
+      if (pedido) cancelAnimationFrame(pedido);
+      window.removeEventListener(EVENTO_REFIT, alSoltar);
       el.removeEventListener("paste", pasteNativo, true);
       pasteRef.current = null;
       unsubs.forEach((un) => un());

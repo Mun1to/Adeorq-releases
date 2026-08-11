@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.94",
+  "version": "0.9.95",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "i18n": "node scripts/i18n-check.mjs",
     "css": "node scripts/css-check.mjs",
+    "botones": "node scripts/botones-check.mjs",
     "publicar": "node scripts/publicar-codigo.mjs",
     "tauri": "tauri"
   },

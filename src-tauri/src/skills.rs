@@ -7,10 +7,50 @@ pub struct Skill {
     pub name: String,
     pub description: String,
     pub invocation: String,
+    /// La CARPETA, que es su identificador de verdad: `name` sale del
+    /// frontmatter y puede no parecerse a ella.
+    pub folder: String,
 }
 
-#[tauri::command]
-pub fn list_skills() -> Result<Vec<Skill>, String> {
+/// El texto de una skill, para poder leerla dentro de la app.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillText {
+    pub text: String,
+    pub path: String,
+}
+
+/// Lee el `SKILL.md` de una skill.
+///
+/// Recibe la CARPETA y no una ruta, y por eso no hace falta más validación que
+/// la de abajo: con un nombre a secas no se puede salir de `~/.claude/skills`.
+/// Aun así se rechazan los separadores y los `..`, porque el día que alguien
+/// llame a esto desde otro sitio la garantía tiene que estar aquí y no en quien
+/// llama.
+#[tauri::command(async)]
+pub async fn skill_text(folder: String) -> Result<SkillText, String> {
+    if folder.is_empty()
+        || folder.contains(['/', '\\', ':'])
+        || folder == ".."
+        || folder == "."
+    {
+        return Err("nombre de skill no válido".into());
+    }
+    let home = std::env::var("USERPROFILE").map_err(|e| e.to_string())?;
+    let path = Path::new(&home)
+        .join(".claude")
+        .join("skills")
+        .join(&folder)
+        .join("SKILL.md");
+    let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    Ok(SkillText {
+        text,
+        path: path.to_string_lossy().into_owned(),
+    })
+}
+
+#[tauri::command(async)]
+pub async fn list_skills() -> Result<Vec<Skill>, String> {
     let home = std::env::var("USERPROFILE").map_err(|e| e.to_string())?;
     let dir = Path::new(&home).join(".claude").join("skills");
     let mut out = Vec::new();
@@ -57,6 +97,7 @@ pub fn list_skills() -> Result<Vec<Skill>, String> {
             name,
             description,
             invocation: format!("/{}", folder),
+            folder,
         });
     }
     out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));

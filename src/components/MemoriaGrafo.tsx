@@ -17,6 +17,23 @@
 //
 // Se perdió arrastrar un nodo: con un sitio calculado, moverlo sería mentir
 // sobre dónde vive. Lo que se sigue haciendo con un punto es abrirlo.
+//
+// ── POR QUÉ EL DIBUJO VA AGRUPADO (2026-08-11) ──────────────────────────────
+//
+// Munir: «se nota muy, pero que muy saturado, y va muy lagueado». Medido con su
+// bóveda antes de tocar nada (410 documentos, 1.071 hilos, 10 proyectos), el
+// fotograma costaba **1.481 llamadas de dibujo, y 824 de ellas con
+// `shadowBlur`**: el 77 % de los hilos, no «las pocas que de verdad mandan»
+// como decía el comentario que había aquí. Un `shadowBlur` en canvas desenfoca
+// todo el rectángulo que ocupa el trazo, y estas curvas cruzan el disco entero.
+//
+// Ahora los hilos se trazan UNA vez y se agrupan por color, por si cruzan de
+// proyecto y por su peso en tres escalones; los puntos, por color. El mismo
+// fotograma cuesta **35 llamadas y ni un desenfoque**. Y se ve mejor de paso:
+// las líneas de un mismo trazo no suman opacidad donde se cruzan, así que la
+// madeja del centro deja de ser una mancha blanca. Se vuelve a medir con
+// `node scripts/medir-constelacion.mjs`, que cuenta el trabajo del fotograma
+// sobre la bóveda de verdad sin abrir la app.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { familia, type Doc } from "../lib/memoria";
@@ -25,6 +42,7 @@ import {
   colorDeArco,
   nucleo,
   radioTotal,
+  tiroDelHilo,
   R_NUCLEO,
   type Arco,
   type Hilo,
@@ -37,6 +55,100 @@ import { useT } from "../lib/i18n";
     skills no son un proyecto más, y con un tono de la rueda parecerían uno. */
 const AMBAR = "#f0b464";
 
+/** Un manojo de hilos que se pintan de una vez: mismo color, mismo grosor y
+    mismo tono. Ver el porqué en `trazar`. */
+interface Madeja {
+  color: string;
+  ancho: number;
+  alfa: number;
+  path: Path2D;
+}
+
+/** El tamaño dice cuántos hilos tiene. Subió el 2026-08-11 («que los circulitos
+    sean más gruesos, más grandes, son muy pequeñitos»): de 2,5–9 a 4–12,5 de
+    radio. Cabe porque el reparto ahora garantiza 26 px entre dos vecinos, que
+    antes eran 7,9 en los proyectos de dos documentos (ver `SEP_MIN` en
+    `lib/constelacion`). Y hay que mirarlo con el zoom puesto: al que enseña el
+    mapa entero, un radio de 2,5 quedaba en un píxel y medio en pantalla. */
+function radioDe(p: Punto): number {
+  return 4 + Math.min(8.5, Math.sqrt(p.grado) * 1.8);
+}
+
+/** La curva de un hilo: recogida hacia dentro, pero RODEANDO el hueco del
+    centro. El porqué y la geometría, en `tiroDelHilo`. */
+function curva(path: Path2D, p: Punto, q: Punto) {
+  const c = tiroDelHilo(
+    { x: p.x, y: p.y, a: p.ang ?? Math.atan2(p.y, p.x), r: 0 },
+    { x: q.x, y: q.y, a: q.ang ?? Math.atan2(q.y, q.x), r: 0 },
+  );
+  path.moveTo(p.x, p.y);
+  path.quadraticCurveTo(c.x, c.y, q.x, q.y);
+}
+
+/**
+ * Traza el dibujo entero UNA vez y lo deja agrupado.
+ *
+ * Antes cada hilo era su propio `beginPath` + `stroke`, y con la bóveda de
+ * Munir eso son 1.071 trazos por fotograma, treinta veces por segundo. Peor
+ * aún: 824 de ellos (el 77 %, medido) llevaban `shadowBlur`, que en canvas es
+ * un desenfoque de todo el rectángulo que ocupa la curva, y esas curvas cruzan
+ * el disco entero. De ahí venía el «va muy lag» del 2026-08-11.
+ *
+ * Aquí los hilos se reparten en manojos por color, por si cruzan de proyecto y
+ * por su peso en tres escalones, y cada manojo se pinta con UN solo trazo. Con
+ * diez proyectos eso son unas veinte llamadas de dibujo en vez de mil. El
+ * camino se guarda en un `Path2D` y no se vuelve a calcular: los documentos no
+ * se mueven.
+ *
+ * Y de regalo se ve mejor: dentro de un mismo trazo las líneas superpuestas no
+ * suman opacidad, así que la madeja del centro deja de ser una mancha blanca.
+ */
+function trazar(ps: Punto[], hs: Hilo[]): { madejas: Madeja[]; bolas: Array<{ color: string; path: Path2D }> } {
+  const grupos = new Map<string, Madeja>();
+  for (const [i, j] of hs) {
+    const p = ps[i];
+    const q = ps[j];
+    if (!p || !q) continue;
+    const puente = p.fam !== q.fam;
+    // Un enlace que sale de un documento con veinte hilos es una arteria de la
+    // bóveda; uno entre dos notas sueltas es un detalle. En tres escalones y no
+    // continuo, que es lo que permite agruparlos.
+    const peso = Math.min(1, Math.max(p.grado, q.grado) / 14);
+    const nivel = peso > 0.66 ? 2 : peso > 0.33 ? 1 : 0;
+    const clave = `${p.color}|${puente ? 1 : 0}|${nivel}`;
+    let g = grupos.get(clave);
+    if (!g) {
+      g = {
+        color: p.color,
+        ancho: (puente ? 0.75 : 0.5) + nivel * 0.5,
+        // Más bajo que antes a propósito: sin el halo que los encendía, mil
+        // hilos al 40 % seguían tapando el mapa.
+        alfa: (puente ? 0.15 : 0.07) + nivel * 0.08,
+        path: new Path2D(),
+      };
+      grupos.set(clave, g);
+    }
+    curva(g.path, p, q);
+  }
+  // Los puntos, agrupados igual: un relleno por color en vez de uno por
+  // documento. El radio dice cuántos hilos tiene, con techo bajo.
+  const porColor = new Map<string, Path2D>();
+  for (const p of ps) {
+    let path = porColor.get(p.color);
+    if (!path) porColor.set(p.color, (path = new Path2D()));
+    // El `moveTo` antes de cada círculo es obligatorio: sin él, un `arc` se une
+    // al anterior con una recta y los puntos saldrían cosidos entre sí.
+    const r = radioDe(p);
+    path.moveTo(p.x + r, p.y);
+    path.arc(p.x, p.y, r, 0, Math.PI * 2);
+  }
+  return {
+    // De los finos a los gruesos, para que las arterias queden encima.
+    madejas: [...grupos.values()].sort((a, b) => a.ancho - b.ancho),
+    bolas: [...porColor.entries()].map(([color, path]) => ({ color, path })),
+  };
+}
+
 interface Props {
   docs: Doc[];
   /** El documento abierto, que se pinta encendido y con su nombre. */
@@ -48,16 +160,44 @@ interface Props {
   /** Las skills, que van en el centro. No son documentos de la bóveda: no
       pertenecen a ningún proyecto y valen para todos, que es justo lo que se
       pone en el centro de un mapa. */
-  skills?: Array<{ name: string; description: string }>;
+  skills?: Array<{ name: string; description: string; folder: string }>;
+  /** Abrir una skill. Va aparte de `onAbrir` porque no viven en la bóveda: su
+      texto está en `~/.claude/skills`, y quien las lee es otro comando. */
+  onAbrirSkill?: (folder: string) => void;
 }
 
-export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, skills }: Props) {
+export default function MemoriaGrafo({
+  docs,
+  activo,
+  onAbrir,
+  soloConectados,
+  skills,
+  onAbrirSkill,
+}: Props) {
   const { t } = useT();
   const canvas = useRef<HTMLCanvasElement>(null);
+  /** La caja que lo contiene. Se mide ELLA y no el lienzo, porque el lienzo
+      está girado y su rectángulo envolvente cambia con el ángulo. */
+  const caja = useRef<HTMLDivElement>(null);
   const puntos = useRef<Punto[]>([]);
   const hilos = useRef<Array<[number, number]>>([]);
   /** El trozo de círculo de cada proyecto. Ver `lib/constelacion`. */
   const arcos = useRef<Arco[]>([]);
+  /** El dibujo ya trazado, agrupado por color y grosor. Ver `Madeja`. */
+  const madejas = useRef<Madeja[]>([]);
+  const bolas = useRef<Array<{ color: string; path: Path2D }>>([]);
+  /** El color de cada proyecto y quiénes merecen etiqueta. Los dos se sacaban
+      recorriendo los 335 puntos DENTRO del bucle de pintado, treinta veces por
+      segundo, para un dato que no cambia nunca. */
+  const colorFam = useRef<Map<string, string>>(new Map());
+  const rotulables = useRef<Punto[]>([]);
+  /** Las skills del centro, como puntos, PARA BUSCARLAS con el ratón. No entran
+      en `puntos` porque no se dibujan con los demás (van en ámbar y con su
+      anillo), pero sin esto el puntero no las encuentra y el clic no abría
+      nada: era lo único del mapa que no respondía (Munir, 2026-08-11). */
+  const nucleoPuntos = useRef<Punto[]>([]);
+  /** Si no ha cambiado nada y el mapa no gira, no hay nada que repintar. */
+  const sucio = useRef(true);
   const raf = useRef(0);
   const vista = useRef({ x: 0, y: 0, z: 1 });
   /** Cuánto lleva girada la rueda. Una vuelta cada tres minutos y pico: lo
@@ -70,6 +210,11 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
     x: number;
     y: number;
     movido: boolean;
+    /** Arrastrando con Shift o con el botón derecho no se mueve el mapa: se
+        GIRA, cogiéndolo como se coge un dial. Guarda el ángulo del puntero
+        respecto al centro para saber cuánto ha rodado desde el último aviso. */
+    girando: boolean;
+    ang: number;
   } | null>(null);
   const [encima, setEncima] = useState<Punto | null>(null);
   const encimaRef = useRef<Punto | null>(null);
@@ -110,6 +255,7 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
         id: d.id,
         x: pos[i].x,
         y: pos[i].y,
+        ang: pos[i].a,
         grado: red.grado.get(d.id) ?? 0,
         color: tono.get(fam) ?? "#8aa",
         title: d.title,
@@ -121,15 +267,43 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
     hilos.current = red.pares
       .map(([a, b]) => [idx.get(a) ?? -1, idx.get(b) ?? -1] as Hilo)
       .filter(([a, b]) => a >= 0 && b >= 0);
+    // El dibujo se traza aquí, no en cada fotograma: nadie se mueve.
+    const trazado = trazar(ps, hilos.current);
+    madejas.current = trazado.madejas;
+    bolas.current = trazado.bolas;
+    colorFam.current = tono;
+    // Los que pueden llevar su nombre escrito. Son los conectados de verdad, y
+    // saber quiénes son no depende de dónde esté la cámara.
+    rotulables.current = ps.filter((p) => p.grado >= 8);
+    sucio.current = true;
     // La cámara nace enseñándolo entero. Con 56 proyectos el círculo mide más
     // de mil quinientos píxeles de lado, y al zoom de fábrica solo se veía el
     // agujero del medio.
-    const c = canvas.current;
+    // La medida buena es la de la CAJA: el lienzo es mayor que ella a
+    // propósito (ver `medir`), y con su tamaño el mapa nacería demasiado lejos.
+    const c = caja.current;
     if (c && arcs.length) {
       const cabe = Math.min(c.clientWidth, c.clientHeight) / (radioTotal(arcs) * 2.35);
       vista.current = { x: 0, y: 0, z: Math.max(0.12, Math.min(1, cabe)) };
     }
   }, [docs, red, soloConectados]);
+
+  // Las skills, como puntos buscables. Sus sitios salen del MISMO `nucleo` que
+  // los dibuja, así que no hay dos versiones de dónde están.
+  useEffect(() => {
+    const sk = skills ?? [];
+    const sitios = nucleo(sk.length);
+    nucleoPuntos.current = sk.map((s, i) => ({
+      id: `skill:${s.folder}`,
+      x: sitios[i].x,
+      y: sitios[i].y,
+      ang: sitios[i].a,
+      grado: 0,
+      color: AMBAR,
+      title: s.name,
+    }));
+    sucio.current = true;
+  }, [skills]);
 
   const pintar = useCallback(() => {
     const c = canvas.current;
@@ -148,13 +322,14 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
 
     const v = vista.current;
     ctx.save();
-    ctx.translate(w / 2 + v.x, h / 2 + v.y);
+    /* NI EL GIRO NI EL ARRASTRE ENTRAN AQUÍ, y es el cambio que quita el lag.
+       Los dos son transformaciones rígidas de TODO el dibujo, así que los hace
+       la tarjeta gráfica moviendo el lienzo ya pintado (`style.transform` en el
+       bucle), en vez de obligar a rehacer mil trazos treinta veces por segundo
+       para enseñar exactamente lo mismo un grado más allá. Aquí solo queda el
+       zoom, que sí cambia lo que hay que dibujar. */
+    ctx.translate(w / 2, h / 2);
     ctx.scale(v.z, v.z);
-    // La rueda gira despacio, y se para en cuanto pones el ratón encima. Es
-    // giro de CÁMARA y no de las posiciones: los documentos siguen donde su
-    // proyecto los puso, así que buscar uno concreto no depende del momento en
-    // el que mires. Ver `giro`.
-    ctx.rotate(giro.current);
 
     const ps = puntos.current;
     const sobre = encimaRef.current;
@@ -167,61 +342,52 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
     }
 
     /* LOS HILOS, CURVADOS POR DENTRO Y DEL COLOR DE QUIEN SALE.
-       Es el cambio que hace legible el mapa. Rectos, los 554 enlaces que cruzan
-       de un proyecto a otro se reparten por todo el disco y tapan el centro;
-       curvados hacia el medio, los viajes parecidos se recogen en haces y el ojo
-       puede seguirlos. Y con el color de su proyecto de origen, como pidió
+       Es el cambio que hace legible el mapa. Rectos, los enlaces que cruzan de
+       un proyecto a otro se reparten por todo el disco y tapan el centro;
+       curvados hacia el medio, los viajes parecidos se recogen en haces y el
+       ojo puede seguirlos. Y con el color de su proyecto de origen, como pidió
        Munir: una madeja de un color se lee como «esto sale de aquí», que es la
-       pregunta que este mapa contesta mejor que una lista. */
-    for (const [i, j] of hilos.current) {
-      const p = ps[i];
-      const q = ps[j];
-      if (!p || !q) continue;
-      const tocado = sobre && (p.id === sobre.id || q.id === sobre.id);
-      const puente = p.fam !== q.fam;
-      const apagado = !!sobre && !tocado;
-      /* CUANTO MÁS CONECTADO, MÁS SE VE.
-         Un enlace que sale de un documento con veinte hilos es una arteria de
-         la bóveda; uno entre dos notas sueltas es un detalle. Con todos al
-         mismo tono, las arterias se pierden entre los detalles. `peso` va de 0
-         a 1 con el grado del más conectado de los dos extremos, y sube el
-         cuerpo y la fuerza de la línea. */
-      const peso = Math.min(1, Math.max(p.grado, q.grado) / 14);
-      ctx.lineWidth = (tocado ? 2.2 : (puente ? 0.75 : 0.5) + peso * 1.5) / v.z;
-      ctx.strokeStyle = tocado ? "#cfe6ff" : p.color;
-      ctx.globalAlpha = apagado
-        ? 0.045
-        : tocado
-          ? 0.95
-          : (puente ? 0.2 : 0.08) + peso * 0.34;
-      // Las más gordas, además, con halo: el `shadowBlur` del canvas cuesta, así
-      // que solo lo llevan las pocas que de verdad mandan y nunca con el ratón
-      // encima de otro punto, que es cuando hay que ver el dibujo limpio.
-      const brilla = !sobre && peso > 0.55;
-      if (brilla) {
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = (4 + peso * 9) / v.z;
+       pregunta que este mapa contesta mejor que una lista.
+
+       Ya vienen trazados y agrupados de `trazar`, así que aquí solo se pintan:
+       una veintena de trazos en vez de mil, y ni un `shadowBlur`. */
+    for (const m of madejas.current) {
+      ctx.lineWidth = m.ancho / v.z;
+      ctx.strokeStyle = m.color;
+      // Con el ratón sobre un punto, el resto del mapa se apaga para que se
+      // vean sus hilos. Se hace bajando el tono del manojo entero, no
+      // recorriéndolos de uno en uno.
+      ctx.globalAlpha = sobre ? m.alfa * 0.3 : m.alfa;
+      ctx.stroke(m.path);
+    }
+    // Y los del punto que estás mirando, encima y en claro. Son un puñado, así
+    // que estos sí se trazan al vuelo.
+    if (sobre) {
+      const suyos = new Path2D();
+      for (const [i, j] of hilos.current) {
+        const p = ps[i];
+        const q = ps[j];
+        if (!p || !q) continue;
+        if (p.id === sobre.id || q.id === sobre.id) curva(suyos, p, q);
       }
-      // Bézier con el tirón hacia el centro. Cuanto más lejos van los dos
-      // extremos, más se recoge: dos vecinos del mismo arco casi no se curvan,
-      // y un salto de punta a punta pasa por el medio en vez de por la cuerda.
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.quadraticCurveTo((p.x + q.x) * 0.04, (p.y + q.y) * 0.04, q.x, q.y);
-      ctx.stroke();
-      if (brilla) ctx.shadowBlur = 0;
+      ctx.lineWidth = 2.2 / v.z;
+      ctx.strokeStyle = "#cfe6ff";
+      ctx.globalAlpha = 0.95;
+      ctx.stroke(suyos);
     }
     ctx.globalAlpha = 1;
 
     /* Y el nombre de cada proyecto, fuera de su arco y girado con él.
        Va después de los hilos y antes de los puntos: los hilos no pueden tapar
        un rótulo, y un punto sí puede pisarlo sin que estorbe. */
+    ctx.font = `600 ${Math.min(20, 12 / v.z)}px system-ui, sans-serif`;
+    ctx.textBaseline = "middle";
     for (const arco of arcos.current) {
       // Un proyecto de un solo documento abre un arco de nada: su nombre se
       // montaría con el del vecino. Se rotula solo si hay sitio.
       if (arco.abre < 0.035 && v.z < 0.5) continue;
       const tenue = !!sobre && sobre.fam !== arco.fam;
-      const color = ps.find((p) => p.fam === arco.fam)?.color ?? "#8aa";
+      const color = colorFam.current.get(arco.fam) ?? "#8aa";
       ctx.save();
       ctx.rotate(arco.a);
       ctx.translate(arco.rMax + 16 / v.z, 0);
@@ -235,8 +401,6 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
       }
       ctx.globalAlpha = tenue ? 0.3 : 0.95;
       ctx.fillStyle = color;
-      ctx.font = `600 ${Math.min(20, 12 / v.z)}px system-ui, sans-serif`;
-      ctx.textBaseline = "middle";
       ctx.fillText(arco.fam, 0, 0);
       ctx.restore();
     }
@@ -250,27 +414,31 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
     const sk = skills ?? [];
     if (sk.length) {
       const sitios = nucleo(sk.length);
-      // Un aro tenue que los une, para que se lean como un conjunto y no como
-      // seis puntos sueltos que se han caído dentro.
+      // El aro que las une, para que se lean como un anillo y no como seis
+      // puntos sueltos que se han caído dentro. Ahora se ve, porque desde hoy
+      // ningún hilo entra en este hueco (ver `R_LIBRE`); antes estaba tapado
+      // por la madeja y por eso Munir pidió un anillo que ya existía.
       if (sk.length > 1) {
         ctx.beginPath();
         ctx.arc(0, 0, R_NUCLEO, 0, Math.PI * 2);
         ctx.strokeStyle = AMBAR;
-        ctx.globalAlpha = sobre ? 0.1 : 0.22;
-        ctx.lineWidth = 1 / v.z;
+        ctx.globalAlpha = sobre ? 0.14 : 0.4;
+        ctx.lineWidth = 1.6 / v.z;
         ctx.stroke();
       }
       ctx.globalAlpha = sobre ? 0.3 : 1;
       sk.forEach((s, i) => {
         const p = sitios[i];
+        // Del tamaño de un documento bien conectado: son el centro de todo, no
+        // pueden ser los puntos más pequeños del mapa.
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
         ctx.fillStyle = AMBAR;
         ctx.fill();
         ctx.font = `600 ${Math.min(18, 11 / v.z)}px system-ui, sans-serif`;
         ctx.fillStyle = AMBAR;
         ctx.textAlign = "center";
-        ctx.fillText(s.name, p.x, p.y - 11 / v.z);
+        ctx.fillText(s.name, p.x, p.y - 15 / v.z);
       });
       // Y el rótulo del conjunto, en el centro exacto. Solo con más de una: con
       // una sola, el punto ya está ahí y se pisarían.
@@ -287,53 +455,81 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
     /** El sitio que ya ocupa una etiqueta, para no pintar otra encima. */
     const etiquetas: Array<{ x: number; y: number; w: number }> = [];
 
-    for (const p of ps) {
-      // El tamaño dice cuántos hilos tiene, pero con techo bajo: a doce
-      // píxeles de radio, media bóveda se toca aunque esté bien colocada.
-      const r = 2.5 + Math.min(6.5, Math.sqrt(p.grado) * 1.5);
-      const esActivo = p.id === activo;
-      const apagado = !!sobre && !esActivo && p.id !== sobre.id && !vecinos.has(p.id);
-      ctx.globalAlpha = apagado ? 0.25 : 1;
+    /* LOS PUNTOS. Sin nadie bajo el ratón van de golpe, un relleno por color
+       (los caminos ya vienen hechos de `trazar`): diez llamadas en vez de
+       cuatrocientas. Con el ratón encima hay que apagar unos sí y otros no, y
+       ahí sí se recorren de uno en uno, que es cuando el mapa está parado. */
+    if (!sobre) {
+      for (const b of bolas.current) {
+        ctx.fillStyle = b.color;
+        ctx.fill(b.path);
+      }
+    } else {
+      for (const p of ps) {
+        const apagado = p.id !== activo && p.id !== sobre.id && !vecinos.has(p.id);
+        ctx.globalAlpha = apagado ? 0.25 : 1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, radioDe(p), 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // El que tienes abierto, con su aro blanco.
+    const abierto = activo ? ps.find((p) => p.id === activo) : undefined;
+    if (abierto) {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = p.color;
-      ctx.fill();
-      if (esActivo) {
-        ctx.lineWidth = 2 / v.z;
-        ctx.strokeStyle = "#fff";
-        ctx.stroke();
-      }
-      // El nombre solo de los importantes, del que se mira y del abierto: medio
-      // millar de etiquetas es una mancha de tinta, no un mapa.
-      //
-      // Y aunque sean pocos, dos nombres encima uno de otro no se leen ninguno
-      // de los dos. Se reserva el sitio que ocupa cada etiqueta y la siguiente
-      // que caiga ahí simplemente no se pinta: mejor cinco leídos que quince
-      // pisados (Munir, 2026-08-02).
-      const forzado = esActivo || p.id === sobre?.id;
-      if (forzado || (p.grado >= 8 && v.z > 0.5)) {
-        const alto = 14 / v.z;
-        const ancho = Math.min(p.title.length, 26) * (5.4 / v.z);
-        const ex = p.x;
-        const ey = p.y - r - 5 / v.z;
-        const libre =
-          forzado ||
-          !etiquetas.some(
-            (e) => Math.abs(e.x - ex) < (e.w + ancho) / 2 && Math.abs(e.y - ey) < alto,
-          );
-        if (libre) {
-          etiquetas.push({ x: ex, y: ey, w: ancho });
-          ctx.globalAlpha = 1;
-          ctx.font = `${11 / v.z}px system-ui, sans-serif`;
-          ctx.fillStyle = forzado ? "#fff" : "rgba(220,225,235,0.72)";
-          ctx.textAlign = "center";
-          ctx.fillText(p.title.slice(0, 26), ex, ey);
-        }
-      }
+      ctx.arc(abierto.x, abierto.y, radioDe(abierto), 0, Math.PI * 2);
+      ctx.lineWidth = 2 / v.z;
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+    }
+
+    /* El nombre solo de los importantes, del que se mira y del abierto: medio
+       millar de etiquetas es una mancha de tinta, no un mapa.
+
+       Y aunque sean pocos, dos nombres encima uno de otro no se leen ninguno de
+       los dos. Se reserva el sitio que ocupa cada etiqueta y la siguiente que
+       caiga ahí simplemente no se pinta: mejor cinco leídos que quince pisados
+       (Munir, 2026-08-02). */
+    ctx.textAlign = "center";
+    // La fuente se pone UNA vez: cambiarla obliga al motor a rehacer su
+    // medición de texto, y aquí eran cuarenta cambios por fotograma para
+    // escribir siempre del mismo tamaño.
+    ctx.font = `${11 / v.z}px system-ui, sans-serif`;
+    // Y los candidatos vienen filtrados de antes; solo se añaden el abierto y
+    // el que estés mirando, que sí cambian.
+    const conNombre = v.z > 0.5 ? rotulables.current : [];
+    const extra = ps.filter(
+      (p) => (p.id === activo || p.id === sobre?.id) && !conNombre.includes(p),
+    );
+    for (const p of [...extra, ...conNombre]) {
+      const forzado = p.id === activo || p.id === sobre?.id;
+      const alto = 14 / v.z;
+      const ancho = Math.min(p.title.length, 26) * (5.4 / v.z);
+      const ex = p.x;
+      const ey = p.y - radioDe(p) - 5 / v.z;
+      const libre =
+        forzado ||
+        !etiquetas.some(
+          (e) => Math.abs(e.x - ex) < (e.w + ancho) / 2 && Math.abs(e.y - ey) < alto,
+        );
+      if (!libre) continue;
+      etiquetas.push({ x: ex, y: ey, w: ancho });
+      ctx.fillStyle = forzado ? "#fff" : "rgba(220,225,235,0.72)";
+      ctx.fillText(p.title.slice(0, 26), ex, ey);
     }
     ctx.globalAlpha = 1;
     ctx.restore();
-  }, [activo]);
+    // `skills` va en las dependencias y NO es un detalle: las skills llegan de
+    // disco un momento después de montarse esto, y con `[activo]` a secas el
+    // dibujo se quedaba con la foto de antes —o sea, con la lista vacía— y no
+    // volvía a mirarla nunca. Por eso el centro salía vacío desde el día que se
+    // añadió el núcleo, y por eso Munir pidió el 2026-08-11 un anillo de skills
+    // que llevaba horas escrito. Cualquier prop que se lea aquí dentro tiene
+    // que estar en esta lista.
+  }, [activo, skills]);
 
   /* El bucle: ya no hay nada que mover, solo que repintar.
      Con el reparto en arcos, cada documento nace en su sitio y se queda: no hay
@@ -348,24 +544,60 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
     const sinMovimiento =
       modoRendimiento() || matchMedia("(prefers-reduced-motion: reduce)").matches;
     let ultimo = 0;
+    let ultimoPintado = 0;
+    sucio.current = true;
     const tick = (ts: number) => {
       raf.current = requestAnimationFrame(tick);
-      if (ts - ultimo < 33) return;
       // Por tiempo real y no por fotograma: así gira igual de despacio tanto si
       // el equipo va a 120 como si va a 30.
       const dt = ultimo ? Math.min(0.2, (ts - ultimo) / 1000) : 0;
       ultimo = ts;
       if (!sinMovimiento && !quieto.current) giro.current += dt * 0.03;
+      /* Mover el lienzo cuesta una línea de CSS y lo hace la tarjeta gráfica:
+         ni se limpia nada, ni se vuelve a trazar nada. Esto es lo que corre en
+         cada fotograma ahora. */
+      const el = canvas.current;
+      if (el) {
+        const v = vista.current;
+        el.style.transform = `translate(${v.x}px, ${v.y}px) rotate(${giro.current}rad)`;
+      }
+      // Y REPINTAR solo cuando de verdad cambia lo dibujado: el zoom, el punto
+      // que miras, otra bóveda. Con el mapa girando solo, eso es nunca.
+      if (!sucio.current || ts - ultimoPintado < 33) return;
+      ultimoPintado = ts;
+      sucio.current = false;
       pintar();
     };
     raf.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf.current);
+    /* El lienzo es CUADRADO y del tamaño de la diagonal de su caja, no del
+       tamaño de la caja: como gira, uno del tamaño justo dejaría sus esquinas
+       vacías barriendo por dentro del panel. Se recalcula al cambiar de tamaño,
+       y de paso hay que repintar o se queda con el dibujo del ancho de antes. */
+    const medir = () => {
+      const b = caja.current;
+      const el = canvas.current;
+      if (!b || !el) return;
+      const lado = Math.ceil(Math.hypot(b.clientWidth, b.clientHeight));
+      el.style.width = `${lado}px`;
+      el.style.height = `${lado}px`;
+      el.style.marginLeft = `${-lado / 2}px`;
+      el.style.marginTop = `${-lado / 2}px`;
+      sucio.current = true;
+    };
+    medir();
+    const obs = new ResizeObserver(medir);
+    if (caja.current) obs.observe(caja.current);
+    return () => {
+      cancelAnimationFrame(raf.current);
+      obs.disconnect();
+    };
   }, [pintar]);
 
-  /** De la pantalla al tablero. */
+  /** De la pantalla al tablero. Se mide la CAJA y no el lienzo: el lienzo está
+      girado, y el rectángulo envolvente de algo girado crece y encoge con el
+      ángulo. La caja no se mueve nunca. */
   const enTablero = (e: React.PointerEvent | React.MouseEvent) => {
-    const c = canvas.current!;
-    const r = c.getBoundingClientRect();
+    const r = caja.current!.getBoundingClientRect();
     const v = vista.current;
     const px = (e.clientX - r.left - r.width / 2 - v.x) / v.z;
     const py = (e.clientY - r.top - r.height / 2 - v.y) / v.z;
@@ -378,10 +610,23 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
     return { x: px * cos - py * sen, y: px * sen + py * cos };
   };
 
+  /** El ángulo del puntero visto desde el centro del mapa. Es lo que convierte
+      un arrastre en un giro: la mano coge el disco por donde lo toca. */
+  const anguloPuntero = (e: React.PointerEvent) => {
+    const r = caja.current!.getBoundingClientRect();
+    const v = vista.current;
+    return Math.atan2(
+      e.clientY - r.top - r.height / 2 - v.y,
+      e.clientX - r.left - r.width / 2 - v.x,
+    );
+  };
+
   const buscarPunto = (x: number, y: number): Punto | null => {
     let mejor: Punto | null = null;
     let dist = 14 / vista.current.z;
-    for (const p of puntos.current) {
+    // Las del centro entran en la misma búsqueda: para el ratón son puntos como
+    // los demás, y lo que cambia es lo que pasa al soltar.
+    for (const p of [...nucleoPuntos.current, ...puntos.current]) {
       const d = Math.hypot(p.x - x, p.y - y);
       if (d < dist) {
         dist = d;
@@ -391,8 +636,12 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
     return mejor;
   };
 
+  /** Qué skill es un punto del centro, si es que lo es. */
+  const skillDe = (p: Punto | null) =>
+    p?.id.startsWith("skill:") ? (skills ?? []).find((s) => `skill:${s.folder}` === p.id) : undefined;
+
   return (
-    <div className="mem-grafo">
+    <div className="mem-grafo" ref={caja}>
       <canvas
         ref={canvas}
         onPointerDown={(e) => {
@@ -403,8 +652,19 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
              reparto en arcos el sitio de cada documento lo decide su proyecto:
              sacarlo de ahí sería mentir sobre dónde vive. Lo que se sigue
              haciendo con un punto es lo que importaba, que es abrirlo. */
-          arrastre.current = { x: e.clientX, y: e.clientY, movido: false };
+          arrastre.current = {
+            x: e.clientX,
+            y: e.clientY,
+            movido: false,
+            // Con Shift o con el botón derecho se gira. La rueda ya giraba
+            // sola; esto es poder cogerla (Munir, 2026-08-11).
+            girando: e.shiftKey || e.button === 2,
+            ang: anguloPuntero(e),
+          };
         }}
+        // Sin esto, el botón derecho abriría el menú del sistema encima del
+        // mapa justo cuando lo estás girando.
+        onContextMenu={(e) => e.preventDefault()}
         onPointerEnter={() => {
           // La rueda se para mientras miras. Girando no se puede leer un rotulo
           // ni apuntar a un punto, que es justo lo que vienes a hacer.
@@ -422,15 +682,30 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
             a.movido = true;
             a.x = e.clientX;
             a.y = e.clientY;
+            if (a.girando) {
+              // Lo que ha rodado el puntero alrededor del centro, por el camino
+              // corto: sin esto, al cruzar el sur el mapa pegaría una vuelta
+              // entera de golpe.
+              const ang = anguloPuntero(e);
+              let d = ang - a.ang;
+              if (d > Math.PI) d -= Math.PI * 2;
+              else if (d < -Math.PI) d += Math.PI * 2;
+              giro.current += d;
+              a.ang = ang;
+              return;
+            }
             vista.current.x += dx;
             vista.current.y += dy;
             return;
           }
+          // Solo el punto bajo el ratón obliga a repintar: ni arrastrar ni
+          // girar lo hacen ya, que los mueve la tarjeta gráfica.
           const { x, y } = enTablero(e);
           const p = buscarPunto(x, y);
           if (p?.id !== encimaRef.current?.id) {
             encimaRef.current = p;
             setEncima(p);
+            sucio.current = true;
           }
         }}
         onPointerUp={(e) => {
@@ -439,7 +714,10 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
           if (a?.movido) return;
           const { x, y } = enTablero(e);
           const p = buscarPunto(x, y);
-          if (p) onAbrir(p.id);
+          if (!p) return;
+          const sk = skillDe(p);
+          if (sk) onAbrirSkill?.(sk.folder);
+          else onAbrir(p.id);
         }}
         onPointerLeave={() => {
           // Y vuelve a girar al salir.
@@ -447,15 +725,16 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
           arrastre.current = null;
           encimaRef.current = null;
           setEncima(null);
+          sucio.current = true;
         }}
         onWheel={(e) => {
+          sucio.current = true;
           const v = vista.current;
           const antes = v.z;
           v.z = Math.min(3, Math.max(0.15, v.z * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
           // El zoom va hacia donde apunta el ratón y no hacia el centro: si no,
           // acercarse a un racimo del borde lo saca de la pantalla.
-          const c = canvas.current!;
-          const r = c.getBoundingClientRect();
+          const r = caja.current!.getBoundingClientRect();
           const mx = e.clientX - r.left - r.width / 2;
           const my = e.clientY - r.top - r.height / 2;
           v.x = mx - ((mx - v.x) / antes) * v.z;
@@ -465,13 +744,19 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, sk
       {encima && (
         <div className="mem-grafo-eti">
           <b>{encima.title}</b>
+          {/* Una skill no tiene enlaces que contar: lo que dice de ella misma
+              es para qué sirve, que es lo que trae en su frontmatter. */}
           <span>
-            {encima.grado} {encima.grado === 1 ? t("enlace") : t("enlaces")}
+            {skillDe(encima)?.description ||
+              `${encima.grado} ${encima.grado === 1 ? t("enlace") : t("enlaces")}`}
           </span>
         </div>
       )}
+      {/* Decía «arrastra un punto para colocarlo», y eso dejó de poder hacerse
+          el 10 de agosto, cuando el sitio de cada documento pasó a decidirlo su
+          proyecto. Una ayuda que miente es peor que no tenerla. */}
       <div className="mem-grafo-ayuda">
-        {t("Rueda para acercar · arrastra un punto para colocarlo · clic para abrirlo")}
+        {t("Rueda para acercar · arrastra para mover · con Shift, gira · clic en un punto para abrirlo")}
       </div>
     </div>
   );

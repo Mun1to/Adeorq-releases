@@ -284,15 +284,20 @@ export function ChevronIcon({
   size = 17,
   up = false,
   der = false,
-}: Props & { up?: boolean; der?: boolean }) {
+  izq = false,
+}: Props & { up?: boolean; der?: boolean; izq?: boolean }) {
   // `der` para lo que se cierra hacia un LADO. Un panel anclado al borde
   // derecho se plegaba con un chevron hacia abajo, que apuntaba a un sitio al
   // que ese panel no se va (Munir, 2026-08-06).
-  const d = der
-    ? "M9.5 6 15.5 12l-6 6"
-    : up
-      ? "M6 14.5 12 8.5l6 6"
-      : "M6 9.5 12 15.5l6-6";
+  // `izq` es el de VOLVER, y existe para que los botones de atrás dejen de
+  // llevar un «←» de teclado: en esta app los iconos se dibujan.
+  const d = izq
+    ? "M14.5 6 8.5 12l6 6"
+    : der
+      ? "M9.5 6 15.5 12l-6 6"
+      : up
+        ? "M6 14.5 12 8.5l6 6"
+        : "M6 9.5 12 15.5l6-6";
   return (
     <svg {...svg(size)} strokeWidth={2.3}>
       <path d={d} />

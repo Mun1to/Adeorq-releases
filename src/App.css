@@ -754,6 +754,23 @@
 :root,
 [data-tema-prev] {
   --line: var(--border);
+
+  /* LA ESCALA DE ESQUINAS.
+     Medido el 2026-08-11 sobre los 412 botones de la app: había ONCE radios
+     distintos (6, 7, 8, 9, 10, 11, 12, 15, 16 px, 50 % y píldora), y los dos
+     que más se usan salían desiguales por un píxel —`.mini` a 10 y `.np-btn`
+     a 11—, que además son los dos que aparecen juntos en cada ventana de
+     confirmación. Un píxel no se ve de uno en uno; lo que se ve es que nada
+     casa. Tres valores y una píldora: si algo pide un cuarto, casi siempre es
+     que era uno de los tres. */
+  /* Chico: un botón que solo lleva un icono, o una fila apretada.
+     Btn: el botón de acción, con su texto. Es el de `.mini`.
+     Caja: una tarjeta o una superficie, el de `.panel-card`.
+     Pastilla: lo que va redondo del todo a propósito. */
+  --r-chico: 8px;
+  --r-btn: 10px;
+  --r-caja: 16px;
+  --r-pastilla: 999px;
 }
 
 * {
@@ -1075,7 +1092,7 @@ body {
   gap: 7px;
   background: none;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   color: var(--muted);
   font-size: 13px;
   font-weight: 550;
@@ -1237,7 +1254,10 @@ body {
   transform: translateY(-50%);
   padding: 2px;
   border: none;
-  border-radius: 999px;
+  /* Redonda del todo, y no la esquina de la escala: es la ✕ que se mete DENTRO
+     del propio campo de búsqueda, y ahí una caja con esquinas se lee como un
+     segundo control encajado en el primero. */
+  border-radius: var(--r-pastilla);
   background: none;
   color: var(--muted);
   cursor: pointer;
@@ -1256,7 +1276,7 @@ body {
   margin-top: 6px;
   padding: 5px 10px;
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: color-mix(in srgb, var(--text) 78%, transparent);
   font-size: 10.5px;
@@ -1290,7 +1310,7 @@ body {
   margin-top: 6px;
   width: 24px;
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: color-mix(in srgb, var(--text) 60%, transparent);
   font-size: 14px;
@@ -1338,7 +1358,7 @@ body {
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   padding: 4px 8px;
   transition:
     background 0.12s ease,
@@ -1361,6 +1381,21 @@ body {
 .mini:active {
   transform: translateY(1px);
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+/* ATRÁS, EN TODA LA APP, Y UNO SOLO.
+   Va SIEMPRE encima de `.mini`, o sea la misma tecla que el resto de acciones,
+   con el chevron dibujado y el texto al lado. Lo único suyo es que la flecha se
+   despega un pelo hacia la izquierda al pasar: dice a dónde lleva sin
+   escribirlo. Antes cada pantalla resolvía «volver» a su manera —la Agenda con
+   un «←» de teclado y sin caja, el asistente y la bienvenida sin dibujo
+   ninguno—, y un botón que no parece un botón no existe (Munir, 2026-08-11). */
+.volver svg {
+  transition: transform 0.14s ease;
+}
+
+.volver:hover svg {
+  transform: translateX(-2px);
 }
 
 /* An icon inside a button never blocks the click on the button itself. */
@@ -1959,7 +1994,7 @@ body {
   height: 22px;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   /* Opaco a propósito: debajo pasan botones, y una flecha translúcida sobre un
      icono no se lee. */
   background: var(--row);
@@ -2076,7 +2111,7 @@ body {
 .projects[data-rail="tira"] .project-logo {
   width: 46px;
   flex: none;
-  border-radius: 15px;
+  border-radius: var(--r-caja);
 }
 
 /* Los dos botones de arriba de la tira, en columna y del tamaño de las marcas
@@ -2331,7 +2366,7 @@ body {
   height: 24px;
   padding: 0 8px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: none;
   color: var(--muted);
   font-family: inherit;
@@ -2374,7 +2409,7 @@ body {
   margin: 8px 0 2px;
   padding: 7px 10px;
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
   font-size: 12px;
@@ -2423,7 +2458,7 @@ body {
   color: var(--text);
   text-align: left;
   padding: 9px 11px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   cursor: pointer;
   font-size: 14px;
   transition: background 0.12s ease;
@@ -2784,7 +2819,7 @@ body {
   gap: 6px;
   padding: 3px 6px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -2809,7 +2844,7 @@ body {
   min-width: 22px;
   min-height: 22px;
   padding: 1px 4px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   font-size: 11px;
 }
 
@@ -2820,7 +2855,7 @@ body {
   min-width: 22px;
   min-height: 22px;
   padding: 1px 4px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   font-size: 11px;
   line-height: 1;
 }
@@ -2877,7 +2912,7 @@ body {
   height: 20px;
   padding: 0;
   border: 2px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--sc);
   cursor: pointer;
   transition: transform 0.1s ease;
@@ -3040,7 +3075,7 @@ body {
   text-align: left;
   font-size: 13px;
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   cursor: pointer;
   transition: background 0.12s ease;
 }
@@ -3250,7 +3285,7 @@ body {
   align-items: center;
   gap: 9px;
   padding: 7px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: var(--row);
   border: 1px solid transparent;
   color: var(--text);
@@ -3732,7 +3767,7 @@ body {
   max-width: 260px;
   padding: 4px 10px 4px 8px;
   border: 1px solid color-mix(in srgb, var(--crew, var(--border)) 45%, var(--border));
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--crew, var(--accent)) 10%, var(--panel));
   color: var(--text);
   font: inherit;
@@ -3862,7 +3897,7 @@ body {
   padding: 7px 9px 8px;
   border: 1px solid color-mix(in srgb, var(--crew) 22%, var(--border));
   border-left: 3px solid color-mix(in srgb, var(--crew) 60%, var(--border));
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--crew) 6%, transparent);
   color: var(--text);
   font: inherit;
@@ -4239,7 +4274,7 @@ body {
   justify-content: center;
   min-width: 28px;
   min-height: 26px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: inherit;
   border: none;
   color: var(--muted);
@@ -4381,7 +4416,7 @@ body {
   color: color-mix(in srgb, var(--text) 66%, var(--muted));
   font-size: 12px;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   padding: 2px 5px;
   transition:
     background 0.12s ease,
@@ -4660,7 +4695,7 @@ body {
   justify-content: center;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   /* Se ACLARA sobre lo que haya detrás, no se oscurece. Tenía `--panel-solid`
      al 72 %, que es un azul casi negro, y encima del cristal de la franja
      quedaba un cuadrado NEGRO en vez del botón translúcido que Munir señaló
@@ -4843,7 +4878,7 @@ body {
   );
   color: color-mix(in srgb, var(--ask) 78%, var(--text));
   border: 1px solid color-mix(in srgb, var(--ask) 45%, transparent);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 4px 13px;
   font-size: 12px;
   font-weight: 650;
@@ -4902,7 +4937,7 @@ body {
   );
   color: color-mix(in srgb, var(--accent) 40%, var(--text));
   border: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 4px 13px;
   font-size: 12px;
   font-weight: 650;
@@ -5120,7 +5155,7 @@ body {
   background: var(--panel);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
@@ -5287,7 +5322,7 @@ button.stat-card[data-live="false"] {
 .set-sub-item {
   padding: 6px 9px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: none;
   color: color-mix(in srgb, var(--text) 58%, transparent);
   font: inherit;
@@ -5314,7 +5349,7 @@ button.stat-card[data-live="false"] {
   gap: 10px;
   width: 100%;
   padding: 9px 11px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   border: 1px solid transparent;
   background: transparent;
   /* Un punto más de luz que `--muted`: son ocho nombres seguidos y es lo único
@@ -5443,7 +5478,7 @@ button.stat-card[data-live="false"] {
   background: var(--panel);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   padding: 18px 20px;
   box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
 }
@@ -5564,7 +5599,7 @@ button.stat-card[data-live="false"] {
   color: var(--text);
   text-align: left;
   padding: 8px 10px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   cursor: pointer;
   font-size: 14px;
   transition: background 0.12s ease;
@@ -5604,7 +5639,7 @@ button.stat-card[data-live="false"] {
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, white 18%), color-mix(in srgb, var(--accent) 78%, black 22%));
   color: #f7fbff;
   border: 1px solid color-mix(in srgb, var(--accent) 55%, white 45%);
-  border-radius: 11px;
+  border-radius: var(--r-btn);
   padding: 8px 18px;
   font-size: 13px;
   font-weight: 650;
@@ -6134,7 +6169,7 @@ button.stat-card[data-live="false"] {
   margin: 0;
   padding: 9px 10px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: none;
   /* Cada CLI se llama como se llama. Esto iba en versales con un punto de
      espaciado y peso 700, que es tipografía de ETIQUETA: valía cuando era el
@@ -6536,7 +6571,7 @@ button.stat-card[data-live="false"] {
   align-items: center;
   gap: 7px;
   padding: 7px 13px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   font-size: 13px;
   font-weight: 600;
   color: color-mix(in srgb, var(--text) 72%, transparent);
@@ -7078,7 +7113,7 @@ button.stat-card[data-live="false"] {
   width: 22px;
   height: 22px;
   border: none;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: none;
   color: var(--muted);
   cursor: pointer;
@@ -7558,7 +7593,7 @@ button.stat-card[data-live="false"] {
   gap: 16px;
   padding: 7px 10px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: none;
   color: var(--text);
   font-size: 13px;
@@ -7743,7 +7778,7 @@ button.stat-card[data-live="false"] {
   flex: none;
   background: none;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--r-btn);
   color: var(--muted);
   font-size: 11px;
   padding: 3px 7px;
@@ -7987,7 +8022,7 @@ button.stat-card[data-live="false"] {
   max-width: 210px;
   padding: 5px 9px 5px 8px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: none;
   color: var(--text);
   font-size: 13px;
@@ -8106,7 +8141,7 @@ button.stat-card[data-live="false"] {
   gap: 6px;
   padding: 6px 11px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: none;
   color: color-mix(in srgb, var(--text) 78%, var(--muted));
   font-size: 12.5px;
@@ -8169,7 +8204,7 @@ button.stat-card[data-live="false"] {
 .cb-modo {
   padding: 5px 11px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--r-btn);
   background: none;
   color: var(--muted);
   font-size: 12px;
@@ -8200,7 +8235,7 @@ button.stat-card[data-live="false"] {
   width: 30px;
   height: 30px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: none;
   color: color-mix(in srgb, var(--text) 72%, var(--muted));
   font-size: 14px;
@@ -8354,7 +8389,7 @@ button.stat-card[data-live="false"] {
   width: 28px;
   height: 26px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: none;
   cursor: pointer;
 }
@@ -8377,7 +8412,7 @@ button.stat-card[data-live="false"] {
   height: 26px;
   padding: 0 9px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-btn);
   background: none;
   color: color-mix(in srgb, var(--text) 78%, var(--muted));
   font-size: 12px;
@@ -8676,7 +8711,7 @@ button.stat-card[data-live="false"] {
   height: 26px;
   padding: 0 10px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-btn);
   background: var(--row);
   color: var(--text);
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -8714,7 +8749,7 @@ button.stat-card[data-live="false"] {
   width: 24px;
   height: 24px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: none;
   color: var(--muted);
   font-size: 12px;
@@ -9009,7 +9044,7 @@ button.stat-card[data-live="false"] {
   align-items: center;
   gap: 5px;
   padding: 3px 7px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text);
@@ -9047,7 +9082,7 @@ button.stat-card[data-live="false"] {
 .ch-x {
   flex: none;
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
@@ -9109,7 +9144,7 @@ button.stat-card[data-live="false"] {
   width: 100%;
   padding: 6px 8px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -9242,7 +9277,7 @@ button.stat-card[data-live="false"] {
 .ch-enviar {
   flex: none;
   width: 34px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   background: color-mix(in srgb, var(--accent) 22%, var(--row));
   color: var(--text);
@@ -9309,7 +9344,7 @@ button.stat-card[data-live="false"] {
 .kb-mia-x {
   flex: none;
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
@@ -9394,7 +9429,7 @@ button.stat-card[data-live="false"] {
   gap: 3px;
   width: 100%;
   padding: 7px 8px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   border: 1px solid var(--border);
   background: var(--row);
   color: var(--text);
@@ -9583,7 +9618,7 @@ button.stat-card[data-live="false"] {
 .kb-nueva-mas {
   flex: none;
   width: 26px;
-  border-radius: 7px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: var(--row);
   color: var(--text);
@@ -9736,7 +9771,7 @@ button.stat-card[data-live="false"] {
 
 .layout-choice {
   padding: 4px;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--accent) 6%, transparent);
   color: var(--accent);
@@ -10127,7 +10162,7 @@ button.stat-card[data-live="false"] {
   gap: 3px;
   text-align: left;
   padding: 9px 12px;
-  border-radius: 11px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: var(--row);
   cursor: pointer;
@@ -10264,7 +10299,7 @@ button.stat-card[data-live="false"] {
   white-space: nowrap;
   padding: 3px 8px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: none;
   color: var(--muted);
   font-size: 10.5px;
@@ -10490,7 +10525,7 @@ button.stat-card[data-live="false"] {
   font-size: 17px;
   line-height: 1;
   padding: 2px 6px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   cursor: pointer;
   transition: opacity .12s ease, color .12s ease;
 }
@@ -10519,7 +10554,7 @@ button.stat-card[data-live="false"] {
   width: 100%;
   margin: 2px 0 4px;
   padding: 9px 11px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   border: 1px dashed color-mix(in srgb, var(--accent) 42%, transparent);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   color: color-mix(in srgb, var(--text) 82%, var(--accent));
@@ -10874,7 +10909,7 @@ body.arrastrando .obj-flota {
      sobre cristal no se veían (Munir, 2026-08-02). */
   background: transparent;
   color: color-mix(in srgb, var(--text) 78%, transparent);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   cursor: pointer;
   transition: color .12s ease, background .12s ease;
 }
@@ -10929,6 +10964,532 @@ body.arrastrando .obj-flota {
 }
 .obj-flota-head .obj-anillo-num {
   font-size: 9.5px;
+}
+
+/* MIENTRAS ARRASTRAS UN SEPARADOR, EL CRISTAL SE APAGA.
+   ------------------------------------------------------------------
+   `backdrop-filter` obliga al WebView a releer y desenfocar todo lo que hay
+   DEBAJO del elemento, y eso se rehace entero en cada frame en el que el
+   elemento cambia de tamaño. Con nueve terminales son nueve desenfoques por
+   frame, más los de la barra y la sidebar, justo mientras el ratón pide 60
+   frames por segundo. Es la mitad cara del lag que Munir notaba el 2026-08-11;
+   la otra mitad, el reflow de xterm, se apaga desde `lib/redimension.ts`.
+
+   Solo mientras el dedo está abajo: al soltar, `data-redim` desaparece y el
+   cristal vuelve sin que se note. Lo que queda debajo es el color sólido del
+   tema, que ya está puesto en todas estas reglas. */
+body[data-redim] .pane-head,
+body[data-redim] .pane,
+body[data-redim] .topbar,
+body[data-redim] .sidebar,
+body[data-redim] .panel-card {
+  backdrop-filter: none;
+}
+
+/* Y ni una transición mientras se arrastra: animar un ancho que ya cambia
+   sesenta veces por segundo solo añade trabajo y deja la barra por detrás del
+   puntero. */
+body[data-redim] .pane,
+body[data-redim] .divider {
+  transition: none !important;
+}
+
+/* LA PORTADA DE LA AGENDA: cifras, no contenido.
+   ------------------------------------------------------------------
+   Munir, 2026-08-11: «me sigue pareciendo mucho texto, la Agenda debe aclarar
+   las cosas, no hacerlas más difíciles». Tenía doce notas de doscientos
+   caracteres apiladas, o sea tres mil caracteres de párrafo antes de llegar a
+   nada. Aquí el texto no se pinta hasta que se entra a algo: la portada son
+   seis números y una frase corta cada uno. Ancho tope de 720 px porque una
+   línea de mil cuatrocientos obliga a barrer con la cabeza para leerla. */
+.agenda {
+  /* El ancho de lo que se LEE, no el de la pantalla. Una línea de texto de mil
+     cuatrocientos píxeles obliga a barrer con la cabeza; una rejilla de
+     calendario, en cambio, cuanto más ancha mejor, y por eso está fuera de
+     este tope. */
+  --ag-ancho: 720px;
+}
+
+/* Dos zonas: el rail de proyectos, como en la cabina, y todo lo demás. */
+.ag-marco {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* El rail de la Agenda es LA PARED DE MARCAS de la cabina, la misma rejilla
+   de `.projects[data-rail="logo"]` (unas nueve mil líneas más arriba): mismas
+   columnas de 64 px, mismo hueco de 8, mismas piezas dentro (`.project-logo`
+   con `.pavatar-xl`). Munir, 2026-08-11, dos veces: «igualito que el cockpit,
+   cuando tienes solo los logos apareciendo a la izquierda» y «hazlo
+   literalmente como el cockpit». Compartiendo clase y medidas no se pueden
+   separar mañana, que es justo lo que le había pasado a la anterior: unas
+   chapas propias de 40 px al 62 % de opacidad, apagadas y más pequeñas que las
+   de la barra de al lado. */
+.ag-rail {
+  display: grid;
+  position: sticky;
+  top: 0;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  align-content: start;
+  gap: 8px;
+  /* Una columna de marcas: el ancho de la rejilla del cockpit, ni más ni
+     menos. El `auto-fill` sigue ahí por si un día este rail se ensancha.
+     La cuenta va explícita porque el `box-sizing: border-box` global se come
+     el hueco y el borde por dentro: sin sumarlos, la marca saldría de 47 px y
+     habríamos vuelto al tamaño de antes. */
+  width: calc(64px + 16px + 1px);
+  max-height: calc(100vh - 90px);
+  padding-right: 16px;
+  overflow-y: auto;
+  border-right: 1px solid var(--stroke);
+  /* Sin barra a la vista: son cuarenta iconos en columna y una barra al lado
+     de un rail estrecho ocupa casi tanto como los iconos. */
+  scrollbar-width: none;
+}
+
+.ag-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.ag-cuerpo {
+  min-width: 0;
+}
+
+/* EL CALENDARIO. Lo pidió literal, y es lo que da sentido al ancho: aquí
+   caben a la vez las dos cosas que tienen fecha (tus objetivos, un archivo por
+   día, y las ventanas de la brújula) que antes vivían en dos pestañas que no
+   se veían nunca juntas. */
+/* El calendario es UNA superficie, no treinta y una casillas sueltas sobre la
+   foto de escritorio. Con el cristal en el marco, las celdas de dentro ya
+   pueden ser sutiles sin que se transparente el fondo a través del texto: la
+   opacidad la pone la caja, no cada celda. */
+.ag-cal {
+  margin-top: 26px;
+  padding: 16px 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+}
+
+.ag-cal-cab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.ag-cal-cab h2 {
+  margin: 0 6px;
+  font-size: 14px;
+  font-weight: 640;
+  text-transform: capitalize;
+}
+
+.ag-cal-mover {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-chico);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--dim);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ag-cal-mover:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.ag-cal-hoy {
+  margin-left: auto;
+}
+
+.ag-cal-dias,
+.ag-cal-rejilla {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ag-cal-inicial {
+  padding-bottom: 6px;
+  color: var(--dim);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ag-cal-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: stretch;
+  /* Alto mínimo y no fijo: un día con dos ventanas crece y arrastra a toda su
+     semana, que es como se lee un calendario de papel. */
+  min-height: 78px;
+  padding: 7px 8px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-btn);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ag-cal-celda:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.ag-cal-celda[data-fuera="true"] {
+  opacity: 0.32;
+}
+
+/* Hoy se marca con el color, no con un borde más gordo: engordar un borde
+   mueve un píxel toda la rejilla. */
+.ag-cal-celda[data-hoy="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.ag-cal-num {
+  font-size: 12.5px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-cal-celda[data-hoy="true"] .ag-cal-num {
+  color: var(--accent);
+}
+
+.ag-cal-obj {
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: rgba(255, 190, 120, 0.16);
+  color: var(--warn);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un día cerrado del todo deja de pedir atención: es información, no una
+   tarea pendiente. */
+.ag-cal-obj[data-todo="true"] {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--dim);
+}
+
+.ag-cal-ventana {
+  overflow: hidden;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  font-size: 10.5px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-cal-ventana[data-urgency="now"] {
+  background: rgba(255, 120, 120, 0.22);
+}
+
+.ag-cal-ventana[data-urgency="past"] {
+  opacity: 0.5;
+}
+
+.ag-dia-suelto .np-row {
+  margin-top: 14px;
+}
+
+@media (max-width: 860px) {
+  .ag-marco {
+    grid-template-columns: 1fr;
+  }
+
+  /* Sin sitio para una columna, la misma rejilla se tumba y las marcas llenan
+     lo ancho: es lo que hace la pared de la cabina en una barra ancha, no una
+     forma distinta inventada aquí. */
+  .ag-rail {
+    position: static;
+    width: auto;
+    max-height: none;
+    padding: 0 0 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  .ag-cal-celda {
+    min-height: 56px;
+  }
+}
+
+.ag-dia {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.ag-dia h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  /* Los días y los meses vienen en minúscula de toLocaleDateString, y en un
+     encabezado eso se lee como un descuido. */
+  text-transform: capitalize;
+}
+
+/* VOLVER, Y TODOS LOS DE ATRÁS DE LA APP: la receta de la casa con el texto
+   dentro (ver `.volver`, aquí abajo). Estuvo un rato siendo una flecha suelta
+   sin caja, y sobre el fondo de escritorio eso no parece un botón (Munir,
+   2026-08-11: «me gustaría que todos se parezcan a un estilo de botón como
+   este, pero con texto dentro»). Aquí solo queda su sitio en la cabecera. */
+.ag-volver {
+  margin-right: 2px;
+}
+
+.ag-dia .ag-quedan {
+  font-size: 12px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-dia .ag-salir {
+  margin-left: auto;
+}
+
+/* Las cifras se reparten el ancho del calendario: cuatro en fila en una
+   pantalla ancha, dos en una estrecha. Antes iban a 720 px y quedaban en media
+   pantalla con el calendario debajo ocupándola entera, que es la desalineación
+   que hacía que la Agenda pareciese dos pantallas pegadas. */
+.ag-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+/* Sobre el fondo de escritorio y no sobre un panel: necesitan su propio
+   cristal, como cualquier tarjeta de la app. Con un blanco al 4 % la foto se
+   veía enterita a través del número (Munir, 2026-08-11: «muy transparente»). */
+.ag-cifra {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  /* `--popover` y no `--panel`: es el tono que la app usa para lo que TIENE
+     que leerse (los modales, los menús). Con `--panel`, que es un 62 %, la
+     foto de escritorio se veía a través del número. */
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.ag-cifra:hover {
+  background: var(--panel-head);
+}
+
+.ag-n {
+  min-width: 42px;
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-q {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ag-q small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+
+/* Lo que reclama algo de ti se distingue por el color, no por el tamaño: si
+   todo pudiera crecer, la rejilla dejaría de leerse de un vistazo. */
+.ag-cifra[data-viva="true"] {
+  border-color: rgba(255, 190, 120, 0.32);
+  background: rgba(255, 190, 120, 0.06);
+}
+
+.ag-cifra[data-viva="true"] .ag-n {
+  color: var(--warn);
+}
+
+.ag-cifra[data-cero="true"] {
+  opacity: 0.45;
+}
+
+@media (max-width: 620px) {
+  .ag-cifras {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* LAS PROPUESTAS, DE UNA EN UNA.
+   Cada nota es una decisión, y doce decisiones a la vez no se toman: se
+   posponen todas. Una sola en pantalla y tres salidas. */
+/* Una decisión ocupa la pantalla, no una esquina. Estaba acotada a 720 px sin
+   centrar, o sea arriba a la izquierda con dos tercios de escritorio a la
+   vista (Munir, 2026-08-11: «hay que aprovechar bien el espacio entero»). Se
+   centra en los dos ejes y la caja crece; lo que NO crece es el ancho del
+   texto, que por eso lleva su propio tope dentro. */
+.ag-uno {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 860px;
+  min-height: calc(100vh - 210px);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.ag-caja {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+  padding: 34px 34px 26px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+}
+
+.ag-caja-cab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+
+.ag-k {
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(120, 170, 255, 0.14);
+  color: #8fb6ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ag-caja[data-kind="paso"] .ag-k {
+  background: rgba(255, 190, 120, 0.14);
+  color: var(--warn);
+}
+
+/* La caja se ensancha, la línea no: el texto sigue con su tope de lectura y
+   centrado dentro de una tarjeta más grande. */
+.ag-caja-texto {
+  max-width: 62ch;
+  margin: 0 auto;
+  font-size: 17px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.ag-botones {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* Con superficie de verdad. El `rgba(255,255,255,.05)` de antes es el error
+   de siempre en esta casa: un 5 % de blanco existe sobre un panel opaco y
+   desaparece sobre la foto del escritorio, y «Luego» directamente no se veía.
+   Ahora van dentro de la tarjeta y con el mismo relleno que cualquier fila de
+   la app, que ahí sí es un color y no una insinuación. */
+.ag-botones button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 24px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--row);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 620;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.ag-botones button:hover {
+  background: var(--row-hover);
+  border-color: var(--border-strong);
+}
+
+.ag-botones .ag-si {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.ag-botones .ag-si:hover {
+  filter: brightness(1.12);
+  background: var(--accent);
+}
+
+/* La ruta del archivo, ya dentro de la tarjeta: es el pie de la decisión, no
+   una línea suelta sobre la foto. */
+.ag-donde {
+  margin: 2px 0 0;
+}
+
+.ag-fin {
+  display: grid;
+  place-content: center;
+  min-height: calc(100vh - 210px);
+  max-width: var(--ag-ancho);
+  margin: 0 auto;
+  color: var(--dim);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Lo que se LEE sí se acota: una línea de texto de lado a lado de la ventana
+   obliga a barrer con la cabeza. La rejilla del calendario no entra aquí,
+   porque es lo contrario: cuanto más ancha, mejor se lee. */
+.agenda .agenda-picker,
+.agenda .agenda-where,
+.agenda .panel-card,
+.agenda .agenda-note,
+.agenda .sesiones {
+  max-width: var(--ag-ancho);
 }
 
 /* The headline: the one date with a deadline attached, alone and readable
@@ -11011,7 +11572,7 @@ body.arrastrando .obj-flota {
   align-items: center;
   justify-content: center;
   padding: 0;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--row);
   border: 1px solid transparent;
   color: var(--muted);
@@ -11515,7 +12076,7 @@ body.arrastrando .obj-flota {
   height: 21px;
   padding: 0 7px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: none;
   color: var(--muted);
   font-family: inherit;
@@ -11539,12 +12100,14 @@ body.arrastrando .obj-flota {
   flex: 1;
 }
 
+/* Con superficie propia: se pinta sobre la web que tenga cargada la pieza, y
+   sin fondo era un texto flotando encima de una página cualquiera. */
 .web-froede {
   height: 21px;
   padding: 0 9px;
   border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
-  border-radius: 6px;
-  background: none;
+  border-radius: var(--r-btn);
+  background: var(--row);
   color: var(--text);
   font-family: inherit;
   font-size: 11px;
@@ -11658,7 +12221,7 @@ body.arrastrando .obj-flota {
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: transparent;
   color: var(--muted);
   cursor: pointer;
@@ -11827,7 +12390,7 @@ body.arrastrando .obj-flota {
 
 .wdg-key {
   min-height: 30px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   border: 1px solid var(--border);
   background: var(--row);
   color: var(--text);
@@ -11952,7 +12515,7 @@ body.arrastrando .obj-flota {
   position: relative;
   min-height: 24px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: transparent;
   font: inherit;
   color: color-mix(in srgb, var(--text) 82%, var(--muted));
@@ -12048,7 +12611,7 @@ body.arrastrando .obj-flota {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
@@ -12459,7 +13022,7 @@ textarea.note-body {
 
 .note-add {
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--r-btn);
   padding: 3px 9px;
   background: color-mix(in srgb, var(--note) 22%, transparent);
   color: var(--text);
@@ -12625,7 +13188,7 @@ textarea.note-body {
   height: 26px;
   padding: 0 7px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: var(--row);
   color: var(--text);
   font-size: 13px;
@@ -12647,7 +13210,7 @@ textarea.note-body {
   width: 26px;
   height: 26px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: transparent;
   cursor: pointer;
 }
@@ -12684,7 +13247,7 @@ textarea.note-body {
   width: 26px;
   height: 26px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: transparent;
   cursor: pointer;
 }
@@ -12804,16 +13367,28 @@ textarea.note-body {
 .tool-btn {
   padding: 4px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-btn);
   background: var(--row);
   color: var(--text);
   font-size: 11.5px;
   cursor: pointer;
 }
 
+/* Se levanta como una tecla, igual que `.mini`: es el mismo gesto en la misma
+   app, y aquí se quedaba plano mientras el de al lado subía. */
 .tool-btn:hover {
-  border-color: var(--accent-dim);
-  background: color-mix(in srgb, var(--accent) 12%, var(--row));
+  color: #eaf3ff;
+  background: linear-gradient(180deg, rgba(90, 130, 190, 0.62), rgba(46, 68, 104, 0.62));
+  border-color: rgba(140, 185, 255, 0.5);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 3px 9px rgba(0, 0, 0, 0.35);
+}
+
+.tool-btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
 }
 
 .tool-out {
@@ -12999,7 +13574,7 @@ textarea.note-body {
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: rgba(0, 0, 0, 0.6);
   color: #ffd7d7;
   cursor: pointer;
@@ -13019,7 +13594,7 @@ textarea.note-body {
   margin-top: 8px;
   padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-btn);
   background: transparent;
   color: var(--muted);
   font-size: 11.5px;
@@ -13072,7 +13647,7 @@ textarea.note-body {
   gap: 9px;
   padding: 7px 9px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: none;
   color: var(--text);
   font: inherit;
@@ -13268,7 +13843,7 @@ textarea.note-body {
   align-items: center;
   padding: 3px 9px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--bg) 60%, transparent);
   font-size: 11.5px;
   font-weight: 600;
@@ -13342,7 +13917,7 @@ textarea.note-body {
   gap: 6px;
   padding: 7px 11px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: none;
   color: var(--muted);
   font-size: 12px;
@@ -13639,7 +14214,7 @@ textarea.note-body {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  border-radius: 6px;
+  border-radius: var(--r-btn);
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
@@ -14074,7 +14649,7 @@ textarea.note-body {
   gap: 8px;
   padding: 9px 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: transparent;
   color: var(--text);
   font-size: 12.5px;
@@ -14158,7 +14733,7 @@ textarea.note-body {
   gap: 7px;
   padding: 7px 8px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: transparent;
   color: var(--text);
   font-size: 11.5px;
@@ -14490,7 +15065,7 @@ textarea.note-body {
 .rep-rol {
   min-height: 26px;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   font-size: 11.5px;
   font-weight: 600;
 }
@@ -14609,7 +15184,7 @@ textarea.note-body {
   display: flex;
   align-items: center;
   gap: 6px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border-strong);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
@@ -14718,7 +15293,7 @@ textarea.note-body {
   letter-spacing: 0.1px;
   text-align: left;
   padding: 6px 8px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   cursor: pointer;
 }
 .mem-carpeta:hover {
@@ -14757,7 +15332,7 @@ textarea.note-body {
   font-size: 13px;
   text-align: left;
   padding: 5px 8px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -14792,7 +15367,7 @@ textarea.note-body {
   color: inherit;
   font: inherit;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   cursor: pointer;
   transition: background .12s ease;
 }
@@ -15082,13 +15657,24 @@ textarea.note-body {
   position: relative;
   flex: 1;
   min-height: 0;
+  /* El lienzo es mayor que esta caja y gira dentro de ella (ver `medir` en
+     MemoriaGrafo): sin esto se saldría por encima del resto del panel. */
+  overflow: hidden;
 }
+
+/* El lienzo se GIRA y se ARRASTRA con `transform`, que lo hace la tarjeta
+   gráfica sin repintar nada; por eso está centrado con posición absoluta y su
+   tamaño lo pone JS (un cuadrado del lado de la diagonal, para que al girar no
+   asomen sus esquinas vacías). Antes el giro obligaba a redibujar mil trazos
+   veinte veces por segundo para enseñar lo mismo un grado más allá. */
 .mem-grafo canvas {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
   display: block;
   cursor: grab;
   touch-action: none;
+  will-change: transform;
 }
 .mem-grafo canvas:active {
   cursor: grabbing;
@@ -15174,12 +15760,55 @@ textarea.note-body {
   text-align: left;
 }
 
+/* LAS BÓVEDAS, A UN CLIC DESDE LA CABECERA.
+   La lista ya existía en la pantalla de bienvenida; lo que faltaba era poder
+   volver a ella con una abierta, que era la única forma de cambiar y obligaba
+   a buscar la carpeta en el disco. Cuelga del botón, no del `body`, así que
+   lleva superficie sólida y no cristal (ver la regla en `.panel-card`). */
+.mem-cambiar {
+  position: relative;
+}
+
+.mem-cambiar-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Ancho para que el nombre y el «410 documentos» quepan en su renglón: más
+     estrecho, el contador se partía en dos líneas y la tarjeta pasaba de dos
+     renglones a cuatro. */
+  width: max(340px, 38ch);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-caja);
+  background: var(--panel-solid);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+
+.mem-cambiar-pop .mem-vaults {
+  margin-bottom: 0;
+}
+
+/* La que ya tienes puesta, marcada y sin invitar a pulsarla otra vez. */
+.mem-vault[data-on="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--row));
+  cursor: default;
+}
+
 .mem-vault {
   display: grid;
-  grid-template-columns: 1fr auto;
+  /* `minmax(0, 1fr)` y no `1fr`: sin eso un nombre o una ruta largos empujan la
+     columna del contador fuera de la caja en vez de recortarse. */
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 2px 12px;
   padding: 11px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: var(--row);
   color: inherit;
@@ -15196,6 +15825,10 @@ textarea.note-body {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 600;
 }
@@ -15299,7 +15932,7 @@ textarea.note-body {
   font: inherit;
   font-size: 12.5px;
   padding: 5px 13px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   cursor: pointer;
   white-space: nowrap;
   transition: background .12s ease, color .12s ease;
@@ -15540,7 +16173,7 @@ textarea.note-body {
   border: 0;
   background: none;
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   transition: transform 0.16s ease;
 }
 
@@ -15583,7 +16216,7 @@ textarea.note-body {
   width: 100%;
   padding: 5px 7px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: none;
   color: var(--text);
   text-align: left;
@@ -15667,7 +16300,7 @@ textarea.note-body {
   width: 30px;
   height: 28px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: none;
   color: var(--muted);
   cursor: pointer;
@@ -15697,7 +16330,7 @@ textarea.note-body {
   width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--border);
-  border-radius: 11px;
+  border-radius: var(--r-btn);
   background: linear-gradient(180deg, var(--row-hover), var(--row));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -15782,7 +16415,7 @@ textarea.note-body {
   width: 100%;
   padding: 7px 9px 7px 12px;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: none;
   color: var(--text);
   text-align: left;
@@ -15956,7 +16589,7 @@ textarea.note-body {
   gap: 6px;
   padding: 5px 12px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: none;
   color: var(--muted);
   font-size: 12px;
@@ -16139,7 +16772,7 @@ textarea.note-body {
   width: 30px;
   height: 30px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: linear-gradient(180deg, var(--row-hover), var(--row));
   color: var(--text);
   cursor: pointer;
@@ -16207,7 +16840,7 @@ textarea.note-body {
 .chat-pastilla {
   padding: 4px 10px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: none;
   color: var(--muted);
   font-size: 11.5px;
@@ -16271,7 +16904,7 @@ textarea.note-body {
   width: 100%;
   padding: 8px 9px;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: none;
   color: var(--text);
   text-align: left;
@@ -16592,7 +17225,7 @@ textarea.note-body {
   width: 100%;
   margin: 6px 0 10px;
   padding: 9px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   border: 1px dashed var(--border);
   background: transparent;
   /* Ni `--muted`: la barra puede quedar sobre la foto. */

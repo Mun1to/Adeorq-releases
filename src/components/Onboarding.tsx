@@ -17,6 +17,7 @@ import { fijarRaiz, leerPerfil, raizPorDefecto, tocarPerfil, type Perfil } from 
 import { PROVIDERS, providerOf } from "../lib/providers";
 import { THEMES, useT, type Lang, type ThemeId } from "../lib/i18n";
 import ProviderMark from "./ProviderMark";
+import { ChevronIcon } from "./Icons";
 
 interface Props {
   lang: Lang;
@@ -337,7 +338,8 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone }: Pro
           </button>
           <div className="onb-nav">
             {paso > 0 && (
-              <button className="mini" onClick={() => setPaso((p) => (p - 1) as Paso)}>
+              <button className="mini volver" onClick={() => setPaso((p) => (p - 1) as Paso)}>
+                <ChevronIcon size={13} izq />
                 {t("Atrás")}
               </button>
             )}

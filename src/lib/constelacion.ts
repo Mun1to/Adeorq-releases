@@ -133,3 +133,28 @@ export function anillar<T>(
 export function radioTotal(arcos: Arco[]): number {
   return arcos.reduce((m, a) => Math.max(m, a.rMax), R0) + DR;
 }
+
+/**
+ * El color de un proyecto AQUÍ, que no es el de la barra lateral.
+ *
+ * `hueOf` reparte los tonos entre el 186 y el 268 —del cian al violeta— para que
+ * el panel entero se lea como un sistema azul, y para una píldora suelta está
+ * bien. Aquí hay 56 proyectos a la vez: en ochenta grados les tocan grado y
+ * medio a cada uno, o sea el mismo color (Munir, 2026-08-10: «solo hay dos
+ * colores»).
+ *
+ * Así que el mapa usa la rueda entera, y el tono va con la POSICIÓN en el
+ * círculo: los vecinos se parecen y los de enfrente contrastan, así que el color
+ * también te dice por dónde vas. Es lo que se vio en el prototipo.
+ *
+ * La luminosidad sube un punto en los tonos a los que el ojo ve apagados (los
+ * azules profundos, alrededor de 240) para que ninguno quede más flojo que sus
+ * vecinos sobre un fondo oscuro.
+ */
+export function colorDeArco(i: number, n: number): string {
+  const t = n <= 1 ? 0 : i / n;
+  const tono = t * 360;
+  const azulon = Math.cos(((tono - 245) * Math.PI) / 180);
+  const luz = 64 + Math.max(0, azulon) * 9;
+  return `hsl(${tono.toFixed(1)} 78% ${luz.toFixed(0)}%)`;
+}

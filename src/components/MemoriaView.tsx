@@ -194,7 +194,10 @@ export default function MemoriaView() {
   const [abierto, setAbierto] = useState<DocText | null>(null);
   const [borrador, setBorrador] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const [modo, setModo] = useState<"doc" | "grafo">("doc");
+  /** Memoria abre por el MAPA, no por un documento en blanco. Es lo que hay que
+   *  ver primero: quinientos documentos y de dónde tirar. El documento entra en
+   *  cuanto abres uno, aquí o en la lista. */
+  const [modo, setModo] = useState<"doc" | "grafo">("grafo");
   /** Las bóvedas que Obsidian ya conoce. Se preguntan una vez y solo cuando
       todavía no hay carpeta elegida: después no sirven para nada. */
   const [vaults, setVaults] = useState<VaultInfo[]>([]);
@@ -436,15 +439,20 @@ export default function MemoriaView() {
             </button>
           )}
         </div>
-        {/* Un conmutador de verdad y no dos pestañas sueltas: el estilo de la
-            barra de arriba está hecho para ir sobre una barra opaca, y aquí
-            estos dos flotan sobre el fondo de pantalla, donde un texto gris no
-            se ve (Munir, 2026-08-02). */}
+        {/* UN botón, no dos.
+            «Documento» era la mitad de un conmutador que no elegía nada: el
+            documento aparece solo en cuanto abres uno, así que ese botón solo
+            servía para volver a lo que ya estabas viendo. Ahora Memoria arranca
+            en la Constelación —es el mapa, y desde ahí se entra a lo que sea— y
+            este botón es el camino de vuelta (Munir, 2026-08-11).
+            Sin el fondo de acento que tenía: se enciende igual que las pestañas
+            de la lista, que es como se marca lo activo en esta pantalla. */}
         <div className="mem-modos">
-          <button data-on={modo === "doc"} onClick={() => setModo("doc")}>
-            {t("Documento")}
-          </button>
-          <button data-on={modo === "grafo"} onClick={() => setModo("grafo")}>
+          <button
+            data-on={modo === "grafo"}
+            data-tip={t("Volver al mapa de la bóveda")}
+            onClick={() => setModo("grafo")}
+          >
             {t("Constelación")}
           </button>
         </div>

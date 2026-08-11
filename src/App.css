@@ -774,6 +774,70 @@
   height: 0;
 }
 
+/* ==========================================================================
+   Y CUANDO SÍ HACE FALTA UNA BARRA, QUE SEA DE LA CASA.
+
+   Cinco sitios pedían `scrollbar-width: thin` sin decir de qué color, y una
+   barra fina sin color la pinta Windows con la suya: un raíl blanco de sistema
+   dentro de un panel de cristal (Munir, 2026-08-10). El resto de la app ya lo
+   hacía bien (el buzón de la cuadrilla, el visor de xterm), así que esto es
+   traer aquí lo que allí ya estaba escrito, una vez, en vez de cinco.
+
+   Se listan por nombre a propósito: la regla global de arriba esconde TODAS las
+   barras porque un raíl de sistema al lado de una lista es sitio tirado, y esa
+   decisión no se toca. Estas cinco son las excepciones, y son excepciones
+   porque en una lista de quinientos documentos o en un chat largo hace falta
+   saber por dónde vas.
+   ========================================================================== */
+.mem-lista,
+.mem-doc-cuerpo,
+.ch-lista-cuerpo,
+.ch-charla,
+.kb-col-cuerpo {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 38%, transparent) transparent;
+}
+
+.mem-lista::-webkit-scrollbar,
+.mem-doc-cuerpo::-webkit-scrollbar,
+.ch-lista-cuerpo::-webkit-scrollbar,
+.ch-charla::-webkit-scrollbar,
+.kb-col-cuerpo::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.mem-lista::-webkit-scrollbar-track,
+.mem-doc-cuerpo::-webkit-scrollbar-track,
+.ch-lista-cuerpo::-webkit-scrollbar-track,
+.ch-charla::-webkit-scrollbar-track,
+.kb-col-cuerpo::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* El `border` transparente con `background-clip` es lo que deja el pulgar más
+   fino que su carril sin tener que inventarse un ancho: el borde no se pinta y
+   el fondo se queda dentro. */
+.mem-lista::-webkit-scrollbar-thumb,
+.mem-doc-cuerpo::-webkit-scrollbar-thumb,
+.ch-lista-cuerpo::-webkit-scrollbar-thumb,
+.ch-charla::-webkit-scrollbar-thumb,
+.kb-col-cuerpo::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
+  background-clip: content-box;
+}
+
+.mem-lista::-webkit-scrollbar-thumb:hover,
+.mem-doc-cuerpo::-webkit-scrollbar-thumb:hover,
+.ch-lista-cuerpo::-webkit-scrollbar-thumb:hover,
+.ch-charla::-webkit-scrollbar-thumb:hover,
+.kb-col-cuerpo::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+  background-clip: content-box;
+}
+
 html,
 body,
 #root {
@@ -14472,9 +14536,14 @@ textarea.note-body {
   color: var(--text);
   background: var(--row);
 }
+
+/* Encendido como las pestañas de la lista (`.mem-lista-tabs`), no con el fondo
+   de acento: son el mismo gesto —«estoy mirando esto»— en la misma pantalla, y
+   marcarlo de dos maneras distintas hace pensar que son dos cosas distintas
+   (Munir, 2026-08-11). */
 .mem-modos button[data-on="true"] {
-  color: var(--on-accent);
-  background: var(--accent);
+  color: var(--text);
+  background: var(--row-hover);
 }
 
 /* Los dos de al lado, con la misma superficie: sobre una foto, un botón sin

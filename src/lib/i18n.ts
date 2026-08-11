@@ -680,6 +680,7 @@ const EN: Record<string, string> = {
   "Volver a leer la carpeta": "Read the folder again",
   "Documento": "Document",
   "Constelación": "Constellation",
+  "Volver al mapa de la bóveda": "Back to the vault map",
   "Solo los que tienen enlaces": "Only the linked ones",
   "Abrir fuera": "Open outside",
   "Editar": "Edit",

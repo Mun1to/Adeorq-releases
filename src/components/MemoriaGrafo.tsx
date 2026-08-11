@@ -19,15 +19,16 @@
 // sobre dónde vive. Lo que se sigue haciendo con un punto es abrirlo.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { hueOf } from "../lib/colors";
 import { familia, type Doc } from "../lib/memoria";
 import {
   anillar,
+  colorDeArco,
   radioTotal,
   type Arco,
   type Hilo,
   type Punto,
 } from "../lib/constelacion";
+import { modoRendimiento } from "../lib/rendimiento";
 import { useT } from "../lib/i18n";
 
 interface Props {
@@ -49,6 +50,12 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
   const arcos = useRef<Arco[]>([]);
   const raf = useRef(0);
   const vista = useRef({ x: 0, y: 0, z: 1 });
+  /** Cuánto lleva girada la rueda. Una vuelta cada tres minutos y pico: lo
+      bastante para que el mapa esté vivo y lo bastante poco para no marear ni
+      para que un rótulo se te escape mientras lo lees. Se para sola en cuanto
+      el ratón entra, porque mirar de cerca algo que se mueve es imposible. */
+  const giro = useRef(0);
+  const quieto = useRef(false);
   const arrastre = useRef<{
     x: number;
     y: number;
@@ -81,21 +88,22 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
   useEffect(() => {
     const visibles = soloConectados ? docs.filter((d) => (red.grado.get(d.id) ?? 0) > 0) : docs;
     const { pos, arcos: arcs } = anillar(visibles, familia);
+    // El color sale de la POSICIÓN en la rueda, no del nombre: `hueOf` solo
+    // usa ochenta grados de tono para que la app se lea azul, y con 56
+    // proyectos eso los deja indistinguibles. Ver `colorDeArco`.
+    const tono = new Map(arcs.map((a, i) => [a.fam, colorDeArco(i, arcs.length)]));
     const idx = new Map<string, number>();
     const ps: Punto[] = visibles.map((d, i) => {
       idx.set(d.id, i);
+      const fam = familia(d);
       return {
         id: d.id,
         x: pos[i].x,
         y: pos[i].y,
-        vx: 0,
-        vy: 0,
         grado: red.grado.get(d.id) ?? 0,
-        // `hueOf` devuelve el color entero (`hsl(210 82% 66%)`), no el número
-        // del tono: se usa tal cual, como en las píldoras de proyecto.
-        color: hueOf(familia(d)),
+        color: tono.get(fam) ?? "#8aa",
         title: d.title,
-        fam: familia(d),
+        fam,
       };
     });
     puntos.current = ps;
@@ -132,6 +140,11 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
     ctx.save();
     ctx.translate(w / 2 + v.x, h / 2 + v.y);
     ctx.scale(v.z, v.z);
+    // La rueda gira despacio, y se para en cuanto pones el ratón encima. Es
+    // giro de CÁMARA y no de las posiciones: los documentos siguen donde su
+    // proyecto los puso, así que buscar uno concreto no depende del momento en
+    // el que mires. Ver `giro`.
+    ctx.rotate(giro.current);
 
     const ps = puntos.current;
     const sobre = encimaRef.current;
@@ -157,9 +170,28 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
       const tocado = sobre && (p.id === sobre.id || q.id === sobre.id);
       const puente = p.fam !== q.fam;
       const apagado = !!sobre && !tocado;
-      ctx.lineWidth = (tocado ? 2 : puente ? 0.9 : 0.6) / v.z;
+      /* CUANTO MÁS CONECTADO, MÁS SE VE.
+         Un enlace que sale de un documento con veinte hilos es una arteria de
+         la bóveda; uno entre dos notas sueltas es un detalle. Con todos al
+         mismo tono, las arterias se pierden entre los detalles. `peso` va de 0
+         a 1 con el grado del más conectado de los dos extremos, y sube el
+         cuerpo y la fuerza de la línea. */
+      const peso = Math.min(1, Math.max(p.grado, q.grado) / 14);
+      ctx.lineWidth = (tocado ? 2.2 : (puente ? 0.75 : 0.5) + peso * 1.5) / v.z;
       ctx.strokeStyle = tocado ? "#cfe6ff" : p.color;
-      ctx.globalAlpha = apagado ? 0.05 : tocado ? 0.95 : puente ? 0.34 : 0.13;
+      ctx.globalAlpha = apagado
+        ? 0.045
+        : tocado
+          ? 0.95
+          : (puente ? 0.2 : 0.08) + peso * 0.34;
+      // Las más gordas, además, con halo: el `shadowBlur` del canvas cuesta, así
+      // que solo lo llevan las pocas que de verdad mandan y nunca con el ratón
+      // encima de otro punto, que es cuando hay que ver el dibujo limpio.
+      const brilla = !sobre && peso > 0.55;
+      if (brilla) {
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = (4 + peso * 9) / v.z;
+      }
       // Bézier con el tirón hacia el centro. Cuanto más lejos van los dos
       // extremos, más se recoge: dos vecinos del mismo arco casi no se curvan,
       // y un salto de punta a punta pasa por el medio en vez de por la cuerda.
@@ -167,6 +199,7 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
       ctx.moveTo(p.x, p.y);
       ctx.quadraticCurveTo((p.x + q.x) * 0.04, (p.y + q.y) * 0.04, q.x, q.y);
       ctx.stroke();
+      if (brilla) ctx.shadowBlur = 0;
     }
     ctx.globalAlpha = 1;
 
@@ -258,13 +291,21 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
      que se ve, y a esa cadencia el ventilador no se entera de que hay un mapa
      abierto. */
   useEffect(() => {
+    // Ni gira ni se anima con el modo rendimiento puesto ni con la preferencia
+    // del sistema de reducir animaciones: un mapa girando es lo más caro que
+    // hay aquí, y es adorno.
+    const sinMovimiento =
+      modoRendimiento() || matchMedia("(prefers-reduced-motion: reduce)").matches;
     let ultimo = 0;
     const tick = (ts: number) => {
       raf.current = requestAnimationFrame(tick);
-      if (ts - ultimo > 33) {
-        ultimo = ts;
-        pintar();
-      }
+      if (ts - ultimo < 33) return;
+      // Por tiempo real y no por fotograma: así gira igual de despacio tanto si
+      // el equipo va a 120 como si va a 30.
+      const dt = ultimo ? Math.min(0.2, (ts - ultimo) / 1000) : 0;
+      ultimo = ts;
+      if (!sinMovimiento && !quieto.current) giro.current += dt * 0.03;
+      pintar();
     };
     raf.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf.current);
@@ -275,10 +316,15 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
     const c = canvas.current!;
     const r = c.getBoundingClientRect();
     const v = vista.current;
-    return {
-      x: (e.clientX - r.left - r.width / 2 - v.x) / v.z,
-      y: (e.clientY - r.top - r.height / 2 - v.y) / v.z,
-    };
+    const px = (e.clientX - r.left - r.width / 2 - v.x) / v.z;
+    const py = (e.clientY - r.top - r.height / 2 - v.y) / v.z;
+    // Y se DESHACE el giro de la cámara. Sin esto, el puntero apunta a donde el
+    // mapa estaba cuando empezó a girar: señalas un documento y se enciende
+    // otro, cada vez más lejos según pasa el rato.
+    const g = -giro.current;
+    const cos = Math.cos(g);
+    const sen = Math.sin(g);
+    return { x: px * cos - py * sen, y: px * sen + py * cos };
   };
 
   const buscarPunto = (x: number, y: number): Punto | null => {
@@ -308,7 +354,13 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
              haciendo con un punto es lo que importaba, que es abrirlo. */
           arrastre.current = { x: e.clientX, y: e.clientY, movido: false };
         }}
+        onPointerEnter={() => {
+          // La rueda se para mientras miras. Girando no se puede leer un rotulo
+          // ni apuntar a un punto, que es justo lo que vienes a hacer.
+          quieto.current = true;
+        }}
         onPointerMove={(e) => {
+          quieto.current = true;
           const a = arrastre.current;
           if (a) {
             const dx = e.clientX - a.x;
@@ -339,6 +391,8 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
           if (p) onAbrir(p.id);
         }}
         onPointerLeave={() => {
+          // Y vuelve a girar al salir.
+          quieto.current = false;
           arrastre.current = null;
           encimaRef.current = null;
           setEncima(null);

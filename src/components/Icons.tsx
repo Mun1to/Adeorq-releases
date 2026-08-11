@@ -758,11 +758,16 @@ export function ImageIcon({ size = 17 }: Props) {
 }
 
 /** La chincheta: mantener la herramienta puesta. */
-export function PinIcon({ size = 17 }: Props) {
+export function PinIcon({ size = 17, off = false }: Props & { off?: boolean }) {
   return (
     <svg {...svg(size)}>
       <path d="M9 3.5h6l-.9 6 3.4 3.2H6.5L9.9 9.5z" />
       <path d="M12 12.7V20.5" />
+      {/* Quitar de arriba: el mismo pin con la raya encima, que es como se
+          niega un icono en todas partes. Antes poner y quitar compartían
+          dibujo, así que el icono no ayudaba a elegir. Misma idea que
+          `UndoIcon` con `redo`: una figura, dos sentidos. */}
+      {off && <path d="M4 4 20 20" />}
     </svg>
   );
 }
@@ -850,13 +855,18 @@ export function GroupIcon({ size = 17 }: Props) {
   );
 }
 
-/** Suelta, sin proyecto: el eslabón partido. */
+/** Suelta, sin proyecto: el eslabón partido.
+ *
+ * Los dos ganchos y el hueco entre ellos, y nada más. Tenía cuatro destellos
+ * de dos píxeles en las esquinas y a los 15 px de un menú no se leían como
+ * destellos: se leían como suciedad alrededor de una figura que ya de por sí
+ * es fina. Mismo criterio que la rosca de la bombilla aquí arriba: lo que a
+ * tamaño pequeño se convierte en mancha, no se dibuja. */
 export function UnlinkIcon({ size = 17 }: Props) {
   return (
     <svg {...svg(size)}>
       <path d="M9.5 14.5 7.2 16.8a3.7 3.7 0 0 1-5.2-5.2l2.3-2.3" />
       <path d="M14.5 9.5l2.3-2.3a3.7 3.7 0 0 1 5.2 5.2l-2.3 2.3" />
-      <path d="M9 3.5v2.2M3.5 9h2.2M15 20.5v-2.2M20.5 15h-2.2" />
     </svg>
   );
 }

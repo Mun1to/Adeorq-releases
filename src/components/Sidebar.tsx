@@ -61,6 +61,7 @@ import {
   EnterIcon,
   EyeIcon,
   EyeOffIcon,
+  FolderIcon,
   GridIcon,
   GroupIcon,
   ImageIcon,
@@ -867,7 +868,15 @@ export default function Sidebar({
     e.stopPropagation();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setNewGroup("");
-    setMenu({ s, projectPath, x: r.right + 4, y: r.top, mode: "main" });
+    // `getBoundingClientRect` mide contra la VENTANA, y desde que el menú
+    // cuelga del `body` eso es justo lo que hace falta. Antes vivía dentro del
+    // sidebar, y un `backdrop-filter` le fija el ancla a un `position: fixed`
+    // de dentro: estas coordenadas de ventana se leían como si fueran del
+    // sidebar, así que el menú nacía desplazado hacia dentro de la terminal.
+    // El tope de la derecha son los 200 de `min-width` más 16 de aire: sin él,
+    // con el sidebar ensanchado, el menú se saldría de la pantalla.
+    const x = Math.min(r.right + 4, Math.max(4, window.innerWidth - 216));
+    setMenu({ s, projectPath, x, y: r.top, mode: "main" });
   };
 
   const startRename = (s: SessionInfo) => {
@@ -2140,24 +2149,35 @@ export default function Sidebar({
             showMenu(e, isArchived
               ? [{ label: t("Restaurar: vuelve a la lista normal"), onClick: () => unarchive(s.id) }]
               : [
-                  { label: t("Retomar la sesión aquí"), onClick: () => onResume(s) },
+                  // Con su icono, como todas: sin él era la única fila cuyo
+                  // texto arrancaba en el margen, así que la primera línea del
+                  // menú salía descuadrada respecto a las seis de debajo. Y es
+                  // el mismo icono que el botón de retomar de la fila.
+                  {
+                    label: t("Retomar la sesión aquí"),
+                    icon: <EnterIcon size={15} />,
+                    onClick: () => onResume(s),
+                  },
                   { label: "", separator: true },
                   {
                     label: ui.pinned.includes(s.id)
                       ? t("Quitar de arriba")
                       : t("Fijar arriba"),
-                    icon: <PinIcon size={14} />,
+                    // Tachado para quitar: poner y quitar son acciones
+                    // opuestas y tenían el mismo dibujo, así que el icono no
+                    // decía nada y había que leer el texto para saber cuál era.
+                    icon: <PinIcon size={15} off={ui.pinned.includes(s.id)} />,
                     onClick: () => fijar(s.id),
                   },
-                  { label: t("Renombrar"), icon: <PencilIcon size={14} />, onClick: () => startRename(s) },
-                  { label: t("Mover a grupo…"), icon: <GroupIcon size={14} />, onClick: () => openMenu(e, s, g.path) },
+                  { label: t("Renombrar"), icon: <PencilIcon size={15} />, onClick: () => startRename(s) },
+                  { label: t("Mover a grupo…"), icon: <GroupIcon size={15} />, onClick: () => openMenu(e, s, g.path) },
                   // Solo para las que mandaste tú aquí: deshacerlo arrastrando
                   // funciona, pero hay que saber que se puede arrastrar.
                   ...(ui.sessionProject[s.id]
                     ? [
                         {
                           label: t("Sacarla de este proyecto"),
-            icon: <UnlinkIcon size={14} />,
+                          icon: <UnlinkIcon size={15} />,
                           onClick: () => devolverASueltas(s.id),
                         },
                       ]
@@ -2171,15 +2191,28 @@ export default function Sidebar({
                         {
                           label: t("Hacer un proyecto de «{c}»", { c: carpetaDe(s.cwd) }),
                           hint: s.cwd,
-                          icon: <GroupIcon size={14} />,
+                          // Una CARPETA, que es lo que asciende, y no el
+                          // cuadro-dentro-de-cuadro de «Mover a grupo…»: las
+                          // dos filas llevaban el mismo dibujo dos renglones
+                          // seguidos, y un icono repetido no distingue nada.
+                          icon: <FolderIcon size={15} />,
                           onClick: () => ascender(s.cwd),
                         },
                       ]
                     : []),
-                  { label: t("⊟ Archivar"), danger: true, onClick: () => askArchive(s, g.path) },
+                  // Su icono de verdad. Llevaba el glifo «⊟» pegado al texto,
+                  // que lo dibuja la fuente del sistema con otro grosor y otro
+                  // tamaño, y además caía en la columna del texto en vez de en
+                  // la del icono: era la única fila torcida de las siete.
+                  {
+                    label: t("Archivar"),
+                    icon: <ArchiveIcon size={15} />,
+                    danger: true,
+                    onClick: () => askArchive(s, g.path),
+                  },
                   {
                     label: t("Borrar la sesión"),
-            icon: <TrashIcon size={14} />,
+                    icon: <TrashIcon size={15} />,
                     danger: true,
                     onClick: () => {
                       setMenu(null);
@@ -3131,7 +3164,18 @@ export default function Sidebar({
           host,
         )}
 
-      {menu && (
+      {/* Al `body` por un portal, y no ahí donde cae en el árbol.
+          El sidebar es cristal (`backdrop-filter`), y eso le da una capa
+          propia: cualquier z-index de dentro compite solo contra sus hermanos
+          del sidebar, así que este menú se pintaba DEBAJO de la terminal de al
+          lado por muy alto que fuese el número. Munir lo dijo cinco veces y las
+          cuatro primeras se le buscó al color, que llevaba bien desde el día 9.
+          Es el mismo arreglo que ya llevan `.ctx-menu` y `.tip` (Overlays.tsx)
+          y el panel desplegable de aquí arriba. `position: fixed` sigue
+          midiendo contra la ventana, así que las coordenadas no cambian, y el
+          cierre por clic fuera busca `.sess-menu` en el DOM real, que el portal
+          no mueve de sitio. */}
+      {menu && createPortal(
         <div className="sess-menu" style={{ left: menu.x, top: menu.y }}>
           {menu.mode === "main" ? (
             <>
@@ -3148,7 +3192,7 @@ export default function Sidebar({
                 className="menu-item menu-warn"
                 onClick={() => askArchive(menu.s, menu.projectPath)}
               >
-                {t("⊟ Archivar")}
+                <ArchiveIcon size={13} /> {t("Archivar")}
               </button>
             </>
           ) : (
@@ -3195,7 +3239,8 @@ export default function Sidebar({
               </div>
             </>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
 
       {naming && (

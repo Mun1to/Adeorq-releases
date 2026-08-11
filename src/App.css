@@ -3031,12 +3031,21 @@ body {
 /* Floating session menu (fixed position, escapes the sidebar scroll) */
 .sess-menu {
   position: fixed;
-  /* Por ENCIMA del panel desplegable (`.rail-flyout`, z-index 90), no debajo.
-     Estaba en 60, y como el menú se abre desde dentro del panel, el panel lo
-     tapaba: se veía medio menú cortado por la izquierda y las opciones no se
-     podían leer (Munir, 2026-07-30). Sigue por debajo de los tooltips (200),
-     que es donde tienen que estar. */
-  z-index: 100;
+  /* Arriba del todo, junto al menú del clic derecho (9990) y por encima del
+     globo de ayuda (9989), que si no lo tapa justo cuando lo acabas de abrir.
+     Solo el aviso de pánico (9999) y lo que va en la mano quedan por encima.
+
+     ⚠ Este número NO servía de nada hasta el 2026-08-11, y ese es el fallo que
+     costó cinco intentos: el menú se pintaba DENTRO del `<aside class="sidebar">`,
+     y el sidebar tiene `backdrop-filter` (línea ~1182), que le da una capa
+     propia. Un z-index dentro de una capa propia solo compite contra sus
+     hermanos, nunca contra la ventana: por muy alto que fuera, el menú salía
+     DEBAJO de las terminales de al lado. Se arregla en el TSX, colgándolo del
+     `body` por un portal, no aquí. Este número solo ordena a los que ya están
+     arriba. Lo mismo ya le había pasado a `.ctx-menu` y a `.tip` (ver el porqué
+     entero en `Overlays.tsx`) y al `.rail-flyout` (en `Sidebar.tsx`): es el
+     tercer sitio, así que si nace un menú nuevo, nace por portal. */
+  z-index: 9991;
   min-width: 200px;
   display: flex;
   flex-direction: column;
@@ -3058,7 +3067,13 @@ body {
      `.ctx-menu`, que es el menú del clic derecho, mientras él usaba el del
      botón «⋯», que es este. Son cuatro menús distintos con cuatro superficies
      distintas: `.ctx-menu`, `.sess-menu`, `.img-menu` y `.chat-menu`. Si
-     aparece un quinto, que nazca con esta línea. */
+     aparece un quinto, que nazca con esta línea.
+
+     ⚠⚠ Y a la QUINTA (2026-08-11) resultó que el color llevaba dos días bien:
+     lo que se veía a través no era este menú siendo translúcido, era este menú
+     quedando por DEBAJO de una terminal. La pista estaba en sus palabras («se
+     ve detrás de las terminales») y no en el color. Si vuelve a pasar, mirar
+     la CAPA antes que el alfa: ver el z-index de aquí arriba. */
   background: var(--panel-solid);
   border: 1px solid var(--border-strong);
   border-radius: 12px;

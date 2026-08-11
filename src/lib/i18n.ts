@@ -557,9 +557,6 @@ const EN: Record<string, string> = {
     "Open the Antigravity IDE here (its agy CLI is not installed)",
   "Renombrar, agrupar o archivar": "Rename, group or archive",
   "Restaurar: vuelve a la lista normal": "Restore: back to the normal list",
-  "✎ Renombrar": "✎ Rename",
-  "▣ Mover a grupo…": "▣ Move to group…",
-  "⊟ Archivar": "⊟ Archive",
   "Grupo nuevo": "New group",
   "Quitar del grupo": "Remove from group",
   "Disolver el grupo (las sesiones no se tocan)":

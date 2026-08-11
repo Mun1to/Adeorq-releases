@@ -1,303 +1,155 @@
-// Comprobación de la Constelación: la física, medida y no mirada.
+// Comprobación de la Constelación: el reparto, medido y no mirado.
 //
 //   npx tsc scripts/constelacion-check.ts --module commonjs --target es2022 \
 //     --lib es2022,dom --esModuleInterop --skipLibCheck --outDir <fuera>
 //   node <fuera>/scripts/constelacion-check.js
 //
-// Existe por un fallo concreto: con la repulsión sin acotar, un punto que caía
-// casi encima de otro salía disparado a la otra punta del tablero y se quedaba
-// allí para siempre. Se veía («hay nodos que se van a tomar por el culo», Munir
-// 2026-08-02) pero no se demuestra mirando, porque cada arranque coloca
-// distinto y el fallo aparece una vez de cada tantas. Aquí se corre la
-// colocación entera con cuatrocientos puntos y se mide dónde acaban.
-import {
-  anclas,
-  colocar,
-  cumulos,
-  paso,
-  PARA_EN,
-  VEL_MAX,
-  type Hilo,
-  type Punto,
-} from "../src/lib/constelacion";
+// Antes esto medía una colocación por fuerzas y su fallo estrella (un punto que
+// salía disparado a la otra punta). Esa física se retiró el 2026-08-10: no era
+// el problema. Con 599 documentos y el 64 % de los enlaces cruzando de un
+// proyecto a otro, lo que no se leía eran las LÍNEAS, y eso no se arregla
+// colocando mejor los puntos. Ahora cada proyecto ocupa un arco del círculo.
+//
+// Lo que se mide aquí es que ese reparto no se solape, no se salga y no mienta:
+// mirar el mapa y opinar no demuestra que dos arcos no se pisen, porque a
+// simple vista un solape de dos grados no se ve y aun así junta dos proyectos.
+
+import { anillar, radioTotal, R0, DR } from "../src/lib/constelacion";
 
 let fallos = 0;
-function comprueba(titulo: string, cond: boolean, visto: unknown) {
+function comprueba(titulo: string, cond: boolean, visto?: unknown) {
   if (!cond) {
     fallos++;
-    console.log(`FALLA  ${titulo}\n       visto: ${JSON.stringify(visto)}`);
+    console.log(`FALLA  ${titulo}${visto === undefined ? "" : `\n       visto: ${JSON.stringify(visto)}`}`);
   } else {
     console.log(`ok     ${titulo}`);
   }
 }
 
-/** Una bóveda de mentira con la misma forma que la de verdad: unos cuantos
-    documentos muy enlazados y una cola larga con uno o dos enlaces, que es
-    exactamente lo que salió al medir la bóveda real (442 documentos, 175 con
-    enlaces, 572 flechas). */
-function boveda(n: number, familias: number): { puntos: Punto[]; hilos: Hilo[] } {
-  const docs = Array.from({ length: n }, (_, i) => ({
-    id: `d${i}`,
-    fam: `f${i % familias}`,
-  }));
-  const sitios = colocar(docs, (d) => d.fam);
-  const grado = new Array(n).fill(0);
-  const hilos: Hilo[] = [];
-  // Determinista a propósito: un fallo que solo sale con ciertos números al
-  // azar es un fallo que no se puede volver a mirar.
-  for (let i = 1; i < n; i++) {
-    // Cada documento enlaza a uno anterior; los primeros reciben muchos, que
-    // es lo que crea los nodos gordos del centro.
-    const j = Math.floor(i / 3) % i;
-    hilos.push([i, j]);
-    grado[i]++;
-    grado[j]++;
-    if (i % 7 === 0) {
-      const k = (i * 13) % i;
-      hilos.push([i, k]);
-      grado[i]++;
-      grado[k]++;
-    }
-  }
-  const puntos: Punto[] = docs.map((d, i) => ({
-    id: d.id,
-    x: sitios[i].x,
-    y: sitios[i].y,
-    vx: 0,
-    vy: 0,
-    grado: grado[i],
-    color: "",
-    title: d.id,
-  }));
-  return { puntos, hilos };
-}
-
-/** Corre la colocación hasta que se enfría, midiendo lo que pasa por el camino. */
-function correr(puntos: Punto[], hilos: Hilo[]) {
-  let alpha = 1;
-  let saltoMax = 0;
-  let vueltas = 0;
-  while (alpha > PARA_EN && vueltas < 2000) {
-    const antes = puntos.map((p) => ({ x: p.x, y: p.y }));
-    alpha = paso(puntos, hilos, alpha);
-    for (let i = 0; i < puntos.length; i++) {
-      const s = Math.hypot(puntos[i].x - antes[i].x, puntos[i].y - antes[i].y);
-      if (s > saltoMax) saltoMax = s;
-    }
-    vueltas++;
-  }
-  const radios = puntos.map((p) => Math.hypot(p.x, p.y)).sort((a, b) => a - b);
-  // Lo cerca que acaba cada punto de su vecino más próximo. Es el número del
-  // fallo contrario al de salir disparado: si esto baja de lo que mide un
-  // punto en pantalla, el tablero se ve como una mancha de círculos pegados.
-  const vecino = puntos.map((p) => {
-    let min = Infinity;
-    for (const q of puntos) {
-      if (q === p) continue;
-      const d = Math.hypot(p.x - q.x, p.y - q.y);
-      if (d < min) min = d;
-    }
-    return min;
+/** Una bóveda de mentira con la forma de la de verdad: unos proyectos gordos y
+    una cola larga de proyectos de dos o tres documentos. */
+function boveda(reparto: number[]) {
+  const docs: Array<{ id: string; fam: string }> = [];
+  reparto.forEach((n, i) => {
+    for (let k = 0; k < n; k++) docs.push({ id: `p${i}-d${k}`, fam: `proy${String(i).padStart(2, "0")}` });
   });
-  vecino.sort((a, b) => a - b);
-  return {
-    vueltas,
-    saltoMax,
-    /** La mitad de los puntos tiene su vecino más cerca que esto. */
-    vecinoMedio: vecino[Math.floor(vecino.length / 2)],
-    /** El par más pegado de todos. */
-    vecinoMin: vecino[0],
-    /** El más lejano del centro. Es el número del fallo: un punto disparado
-        acaba a miles de píxeles mientras el resto está a cientos. */
-    lejos: radios[radios.length - 1],
-    /** La mitad de los puntos está más cerca que esto. */
-    medio: radios[Math.floor(radios.length / 2)],
-    finito: puntos.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
-  };
+  return docs;
 }
 
-// 1. Una bóveda del tamaño de la suya.
-let r = correr(...(({ puntos, hilos }) => [puntos, hilos] as const)(boveda(400, 12)));
-comprueba("400 puntos: ninguna coordenada se va a infinito", r.finito, r);
+const TAU = Math.PI * 2;
+/** El ángulo de un arco, llevado siempre al mismo rango para poder compararlos. */
+const norm = (a: number) => ((a % TAU) + TAU) % TAU;
+
+// ── Lo básico ────────────────────────────────────────────────────────────────
+const vacio = anillar([], (x: { fam: string }) => x.fam);
+comprueba("sin documentos no explota", vacio.pos.length === 0 && vacio.arcos.length === 0);
+
+const uno = anillar(boveda([1]), (d) => d.fam);
+comprueba("un solo documento cae en el primer anillo", Math.abs(Math.hypot(uno.pos[0].x, uno.pos[0].y) - R0) < 0.01, uno.pos[0]);
+comprueba("y su proyecto se queda el círculo entero", uno.arcos[0].abre > TAU - 0.1, uno.arcos[0].abre);
+
+// ── El reparto, que es lo que puede mentir ───────────────────────────────────
+const real = boveda([103, 39, 31, 25, 18, 18, 11, 10, 10, 9, 9, 6, 5, 5, 4, 4, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1]);
+const { pos, arcos } = anillar(real, (d) => d.fam);
+
+comprueba("todos los documentos tienen sitio", pos.length === real.length && pos.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)));
+comprueba("hay un arco por proyecto", arcos.length === 26, arcos.length);
 comprueba(
-  "ningún punto salta más que el tope en un paso",
-  r.saltoMax <= VEL_MAX + 0.001,
-  r.saltoMax,
+  "ningún documento se pierde: los arcos suman todos",
+  arcos.reduce((s, a) => s + a.n, 0) === real.length,
 );
-comprueba("la colocación termina y no se queda dando vueltas", r.vueltas < 400, r.vueltas);
-// El de fuera no puede estar a más de seis veces la distancia del de en medio.
-// Con la repulsión sin acotar esta proporción se iba por encima de veinte.
 comprueba(
-  "no hay ningún punto disparado lejos del resto",
-  r.lejos < r.medio * 6,
-  { lejos: Math.round(r.lejos), medio: Math.round(r.medio) },
-);
-// El fallo contrario, y el que vino después de arreglar el primero: un punto
-// se dibuja con hasta nueve píxeles de radio, así que por debajo de veinte de
-// separación el tablero se ve como una mancha de círculos pegados.
-comprueba(
-  "y tampoco se amontonan unos encima de otros",
-  r.vecinoMedio > 26 && r.vecinoMin > 12,
-  { vecinoMedio: Math.round(r.vecinoMedio), vecinoMin: Math.round(r.vecinoMin) },
+  "el arco de cada uno es proporcional a lo que tiene",
+  (() => {
+    const grande = arcos.find((a) => a.n === 103)!;
+    const chico = arcos.find((a) => a.n === 1)!;
+    const razon = grande.abre / chico.abre;
+    return razon > 60 && razon < 130;
+  })(),
+  { grande: arcos.find((a) => a.n === 103)!.abre, chico: arcos.find((a) => a.n === 1)!.abre },
 );
 
-// 2. El caso que lo rompía: todos los puntos exactamente en el mismo sitio.
-//    Pasa de verdad cuando una bóveda tiene una sola carpeta y pocas notas.
-const juntos = boveda(120, 1);
-for (const p of juntos.puntos) {
-  p.x = 0;
-  p.y = 0;
-}
-r = correr(juntos.puntos, juntos.hilos);
-comprueba("120 puntos encima del mismo píxel: siguen siendo números", r.finito, r);
+// EL CASO QUE IMPORTA: dos proyectos no pueden compartir sitio.
 comprueba(
-  "y se separan sin que ninguno salga despedido",
-  r.lejos < r.medio * 6 && r.saltoMax <= VEL_MAX + 0.001,
-  { lejos: Math.round(r.lejos), medio: Math.round(r.medio), salto: r.saltoMax },
-);
-
-// 3. Sin un solo hilo: la gravedad tiene que recogerlos igual, porque es lo
-//    único que actúa. Si se enfriara con el resto, quedarían desperdigados.
-const sueltos = boveda(200, 8);
-r = correr(sueltos.puntos, []);
-comprueba("sin enlaces, nadie se queda en la otra punta", r.lejos < r.medio * 6, {
-  lejos: Math.round(r.lejos),
-  medio: Math.round(r.medio),
-});
-
-// 4. Un punto agarrado no se mueve, que es lo que permite colocarlo a mano.
-const conMano = boveda(60, 4);
-conMano.puntos[0].agarrado = true;
-conMano.puntos[0].x = 900;
-conMano.puntos[0].y = -400;
-correr(conMano.puntos, conMano.hilos);
-comprueba(
-  "el punto que llevas agarrado se queda donde lo pones",
-  conMano.puntos[0].x === 900 && conMano.puntos[0].y === -400,
-  { x: conMano.puntos[0].x, y: conMano.puntos[0].y },
-);
-
-// ============================================================================
-// LOS CÚMULOS POR PROYECTO (2026-08-10)
-//
-// La constelación era una nube donde todo flotaba igual y no se veía dónde
-// acaba un proyecto y empieza otro. Ahora cada uno tiene su casa en una rueda y
-// tira de los suyos. Esto mide que de verdad se agrupan, que las islas no se
-// montan unas encima de otras, y que el imán nuevo no rompe lo de antes: un
-// punto disparado sigue siendo el fallo que no puede volver.
-// ============================================================================
-
-/** La misma bóveda de mentira, pero diciendo de qué proyecto es cada uno. */
-function bovedaConFamilias(n: number, familias: number) {
-  const b = boveda(n, familias);
-  b.puntos.forEach((p, i) => {
-    p.fam = `f${i % familias}`;
-  });
-  const casas = anclas(
-    Array.from({ length: familias }, (_, i) => `f${i}`).sort(),
-  );
-  return { ...b, casas };
-}
-
-function correrConCasas(
-  puntos: Punto[],
-  hilos: Hilo[],
-  casas: Map<string, { x: number; y: number }>,
-) {
-  let alpha = 1;
-  let vueltas = 0;
-  while (alpha > PARA_EN && vueltas < 2000) {
-    alpha = paso(puntos, hilos, alpha, casas);
-    vueltas++;
-  }
-}
-
-// --- la rueda ---------------------------------------------------------------
-comprueba("sin proyectos, la rueda no explota", anclas([]).size === 0, anclas([]).size);
-const unaSola = anclas(["solo"]).get("solo")!;
-comprueba(
-  "un proyecto solo va al centro, no descentrado sin motivo",
-  unaSola.x === 0 && unaSola.y === 0,
-  unaSola,
-);
-const rueda = anclas(["a", "b", "c", "d"]);
-const radios4 = [...rueda.values()].map((c) => Math.hypot(c.x, c.y));
-comprueba(
-  "los cuatro caen en el mismo circulo",
-  Math.max(...radios4) - Math.min(...radios4) < 1,
-  radios4,
-);
-const r6 = Math.hypot(...Object.values(anclas(["a","b","c","d","e","f"]).get("a")!));
-const r20 = Math.hypot(
-  ...Object.values(anclas(Array.from({ length: 20 }, (_, i) => `p${i}`)).get("p0")!),
-);
-comprueba("con mas proyectos, la rueda se abre", r20 > r6, { r6, r20 });
-
-// --- que de verdad se agrupan ------------------------------------------------
-const c = bovedaConFamilias(120, 4);
-correrConCasas(c.puntos, c.hilos, c.casas);
-
-function centroDe(fam: string) {
-  const l = c.puntos.filter((p) => p.fam === fam);
-  return {
-    x: l.reduce((s, p) => s + p.x, 0) / l.length,
-    y: l.reduce((s, p) => s + p.y, 0) / l.length,
-    l,
-  };
-}
-const centros = ["f0", "f1", "f2", "f3"].map(centroDe);
-const dentro =
-  centros.reduce(
-    (s, ce) => s + ce.l.reduce((t, p) => t + Math.hypot(p.x - ce.x, p.y - ce.y), 0) / ce.l.length,
-    0,
-  ) / centros.length;
-let entre = 0;
-let pares = 0;
-for (let i = 0; i < centros.length; i++)
-  for (let j = i + 1; j < centros.length; j++) {
-    entre += Math.hypot(centros[i].x - centros[j].x, centros[i].y - centros[j].y);
-    pares++;
-  }
-entre /= pares;
-comprueba(
-  "los de un mismo proyecto acaban mucho mas juntos entre si que de los otros",
-  entre > dentro * 1.8,
-  { dentro: Math.round(dentro), entre: Math.round(entre) },
-);
-
-// --- y sin romper lo de antes ------------------------------------------------
-comprueba(
-  "con el iman puesto, ninguna coordenada se va a infinito",
-  c.puntos.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
-  c.puntos.filter((p) => !Number.isFinite(p.x)).length,
-);
-const radiosC = c.puntos.map((p) => Math.hypot(p.x, p.y)).sort((a, b) => a - b);
-comprueba(
-  "ningun punto disparado lejos del resto",
-  radiosC[radiosC.length - 1] < radiosC[Math.floor(radiosC.length * 0.9)] * 2.2,
-  { p90: Math.round(radiosC[Math.floor(radiosC.length * 0.9)]), max: Math.round(radiosC.at(-1)!) },
-);
-
-// --- las islas que se dibujan ------------------------------------------------
-const islas = cumulos(c.puntos);
-comprueba("hay una isla por proyecto", islas.length === 4, islas.length);
-comprueba(
-  "vienen de mayor a menor, para que la grande no tape a la pequeña",
-  islas.every((x, i) => i === 0 || islas[i - 1].r >= x.r),
-  islas.map((x) => Math.round(x.r)),
+  "ningún arco se monta sobre el de al lado",
+  (() => {
+    const orden = [...arcos].sort((a, b) => a.a - b.a);
+    for (let i = 1; i < orden.length; i++) {
+      const finAnterior = orden[i - 1].a + orden[i - 1].abre / 2;
+      const inicio = orden[i].a - orden[i].abre / 2;
+      if (inicio < finAnterior - 1e-9) return false;
+    }
+    return true;
+  })(),
 );
 comprueba(
-  "cada isla cubre a los suyos",
-  islas.every((x) =>
-    c.puntos
-      .filter((p) => p.fam === x.fam)
-      .every((p) => Math.hypot(p.x - x.x, p.y - x.y) <= x.r + 0.01),
-  ),
-  islas.map((x) => x.fam),
+  "y el círculo se cierra sin pasarse de una vuelta",
+  (() => {
+    const orden = [...arcos].sort((a, b) => a.a - b.a);
+    const total = orden[orden.length - 1].a + orden[orden.length - 1].abre / 2 - (orden[0].a - orden[0].abre / 2);
+    return total <= TAU + 1e-9;
+  })(),
 );
-const sinFam = cumulos([
-  { id: "x", x: 0, y: 0, vx: 0, vy: 0, grado: 0, color: "", title: "x" },
-]);
-comprueba("un punto sin proyecto no inventa una isla", sinFam.length === 0, sinFam.length);
+
+// ── Cada documento, dentro de su arco ────────────────────────────────────────
+comprueba(
+  "ningún documento se sale del arco de su proyecto",
+  real.every((d, i) => {
+    const arco = arcos.find((a) => a.fam === d.fam)!;
+    // Distancia angular al centro de su arco, por el camino corto.
+    let dif = Math.abs(norm(pos[i].a) - norm(arco.a));
+    if (dif > Math.PI) dif = TAU - dif;
+    return dif <= arco.abre / 2 + 1e-9;
+  }),
+);
+comprueba(
+  "las filas van del primer anillo hacia fuera, sin huecos",
+  (() => {
+    const radios = [...new Set(pos.map((p) => Math.round(p.r)))].sort((a, b) => a - b);
+    return radios[0] === R0 && radios.every((r, i) => i === 0 || r - radios[i - 1] === DR);
+  })(),
+  [...new Set(pos.map((p) => Math.round(p.r)))].sort((a, b) => a - b),
+);
+comprueba(
+  "el proyecto más gordo no se estira hasta el infinito",
+  radioTotal(arcos) < R0 + DR * 12,
+  { radio: Math.round(radioTotal(arcos)), filas: Math.round((radioTotal(arcos) - R0) / DR) },
+);
+comprueba(
+  "dos documentos nunca caen en el mismo punto",
+  new Set(pos.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)).size === pos.length,
+);
+
+// ── Estabilidad: lo que hace que el mapa sea reconocible ─────────────────────
+comprueba(
+  "el mismo montón dos veces da el mismo mapa",
+  JSON.stringify(anillar(real, (d) => d.fam).pos) === JSON.stringify(pos),
+);
+comprueba(
+  "el orden de los proyectos es alfabético, no por tamaño",
+  (() => {
+    const nombres = arcos.map((a) => a.fam);
+    return JSON.stringify(nombres) === JSON.stringify([...nombres].sort());
+  })(),
+  arcos.slice(0, 4).map((a) => `${a.fam}(${a.n})`),
+);
+comprueba(
+  "quitar los sueltos no reordena a los demás",
+  (() => {
+    const conectados = real.filter((d) => !["proy23", "proy24", "proy25"].includes(d.fam));
+    const b = anillar(conectados, (d) => d.fam);
+    const antes = arcos.map((a) => a.fam).filter((f) => !["proy23", "proy24", "proy25"].includes(f));
+    return JSON.stringify(b.arcos.map((a) => a.fam)) === JSON.stringify(antes);
+  })(),
+);
+
+// ── Un solo proyecto con todo dentro, que es la bóveda recién estrenada ──────
+const solo = anillar(boveda([80]), (d) => d.fam);
+comprueba("una bóveda de un solo proyecto se reparte igual", solo.pos.length === 80 && solo.arcos.length === 1);
+comprueba(
+  "y en varias filas, no en una sola vuelta apretada",
+  new Set(solo.pos.map((p) => Math.round(p.r))).size > 1,
+  [...new Set(solo.pos.map((p) => Math.round(p.r)))],
+);
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

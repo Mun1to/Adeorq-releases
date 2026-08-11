@@ -6,25 +6,25 @@
 // millar de nodos del DOM para dibujar círculos de cuatro píxeles va lento y no
 // da nada a cambio.
 //
-// La colocación es la de siempre para un grafo: los que se enlazan se atraen,
-// todos se repelen y el conjunto se recoge hacia el centro. Se ENFRÍA y se
-// para, como en Obsidian: un tablero que nunca deja de temblar cansa la vista y
-// gasta batería para siempre.
+// El reparto NO es por fuerzas, y eso es una decisión (2026-08-10). Lo fue
+// hasta hoy, endurecida contra sus dos fallos, y aun así el mapa no se leía.
+// Con 599 documentos y el 64 % de los enlaces cruzando de un proyecto a otro,
+// lo que tapaba el mapa eran las LÍNEAS, no los puntos: 554 trazos rectos
+// atravesando el centro. Ahora cada proyecto ocupa un arco del círculo (el
+// reparto vive en `lib/constelacion.ts`, medido aparte) y los hilos se dibujan
+// curvados hacia dentro, con el color de quien sale, así que los viajes
+// parecidos se recogen en haces en vez de cruzarse.
 //
-// La repulsión se calcula por casillas y no contra todos: quinientos puntos son
-// ciento treinta mil parejas en cada paso, y con eso se notaba. Cada punto solo
-// mira a los que tiene en su casilla y en las ocho de alrededor, que son los
-// únicos que pueden empujarle de verdad.
+// Se perdió arrastrar un nodo: con un sitio calculado, moverlo sería mentir
+// sobre dónde vive. Lo que se sigue haciendo con un punto es abrirlo.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { hueOf } from "../lib/colors";
 import { familia, type Doc } from "../lib/memoria";
 import {
-  anclas,
-  colocar,
-  cumulos,
-  paso as pasoDeFuerzas,
-  PARA_EN,
+  anillar,
+  radioTotal,
+  type Arco,
   type Hilo,
   type Punto,
 } from "../lib/constelacion";
@@ -45,17 +45,14 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
   const canvas = useRef<HTMLCanvasElement>(null);
   const puntos = useRef<Punto[]>([]);
   const hilos = useRef<Array<[number, number]>>([]);
-  const alpha = useRef(1);
-  /** Dónde vive el cúmulo de cada proyecto: la rueda. Ver `lib/constelacion`. */
-  const casas = useRef<Map<string, { x: number; y: number }>>(new Map());
+  /** El trozo de círculo de cada proyecto. Ver `lib/constelacion`. */
+  const arcos = useRef<Arco[]>([]);
   const raf = useRef(0);
   const vista = useRef({ x: 0, y: 0, z: 1 });
   const arrastre = useRef<{
     x: number;
     y: number;
     movido: boolean;
-    /** El punto que llevas agarrado, si empezaste encima de uno. */
-    punto: Punto | null;
   } | null>(null);
   const [encima, setEncima] = useState<Punto | null>(null);
   const encimaRef = useRef<Punto | null>(null);
@@ -77,22 +74,20 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
     return { grado, pares };
   }, [docs]);
 
-  // Colocación inicial: cada carpeta en su sector, y dentro de él en espiral.
-  //
-  // Antes era un círculo por orden de lectura, o sea con las carpetas
-  // mezcladas: la simulación empezaba teniendo que deshacer ese desorden, y
-  // deshacerlo es justo lo que se ve como un tirón y lo que deja nodos lejos.
-  // Naciendo cada familia junta, las fuerzas solo tienen que afinar.
+  // El reparto: cada proyecto un arco, y sus documentos en filas dentro de él.
+  // Se calcula UNA vez, cuando cambian los documentos o el filtro, y ya no se
+  // vuelve a tocar: no hay colocación que se enfríe ni tablero que tiemble los
+  // primeros segundos.
   useEffect(() => {
     const visibles = soloConectados ? docs.filter((d) => (red.grado.get(d.id) ?? 0) > 0) : docs;
-    const sitios = colocar(visibles, familia);
+    const { pos, arcos: arcs } = anillar(visibles, familia);
     const idx = new Map<string, number>();
     const ps: Punto[] = visibles.map((d, i) => {
       idx.set(d.id, i);
       return {
         id: d.id,
-        x: sitios[i].x,
-        y: sitios[i].y,
+        x: pos[i].x,
+        y: pos[i].y,
         vx: 0,
         vy: 0,
         grado: red.grado.get(d.id) ?? 0,
@@ -100,37 +95,23 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
         // del tono: se usa tal cual, como en las píldoras de proyecto.
         color: hueOf(familia(d)),
         title: d.title,
-        // Su proyecto, que es lo que lo lleva a su cúmulo.
         fam: familia(d),
       };
     });
     puntos.current = ps;
-    // Las casas de la rueda se calculan UNA vez, con las familias que de verdad
-    // hay a la vista: si se recalcularan en cada paso, filtrar por conectados
-    // movería el tablero entero.
-    casas.current = anclas([...new Set(visibles.map(familia))].sort());
+    arcos.current = arcs;
     hilos.current = red.pares
       .map(([a, b]) => [idx.get(a) ?? -1, idx.get(b) ?? -1] as Hilo)
       .filter(([a, b]) => a >= 0 && b >= 0);
-    alpha.current = 1;
+    // La cámara nace enseñándolo entero. Con 56 proyectos el círculo mide más
+    // de mil quinientos píxeles de lado, y al zoom de fábrica solo se veía el
+    // agujero del medio.
+    const c = canvas.current;
+    if (c && arcs.length) {
+      const cabe = Math.min(c.clientWidth, c.clientHeight) / (radioTotal(arcs) * 2.35);
+      vista.current = { x: 0, y: 0, z: Math.max(0.12, Math.min(1, cabe)) };
+    }
   }, [docs, red, soloConectados]);
-
-  /**
-   * Un paso de la colocación.
-   *
-   * La física vive en `lib/constelacion.ts` y no aquí, para poder medirla fuera
-   * del navegador: mirar el tablero y opinar no demuestra que ningún punto se
-   * escape, y eso es exactamente lo que estaba pasando. Lo comprueba
-   * `scripts/constelacion-check.ts` con cuatrocientos puntos.
-   */
-  const paso = useCallback(() => {
-    alpha.current = pasoDeFuerzas(
-      puntos.current,
-      hilos.current,
-      alpha.current,
-      casas.current,
-    );
-  }, []);
 
   const pintar = useCallback(() => {
     const c = canvas.current;
@@ -162,68 +143,62 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
       }
     }
 
-    /* LAS ISLAS, lo primero de todo y por debajo de todo.
-       Un disco tenue del color del proyecto con el nombre encima. Es lo que
-       convierte quinientos puntos sueltos en «esto es Adeorq, esto es VoCript»
-       sin tener que leer una sola etiqueta (Munir, 2026-08-10: «que los nodos
-       se diferencien mucho más por proyectos»).
-       Solo las que tienen más de un documento: un disco enorme alrededor de un
-       punto suelto dice que ahí hay algo que no hay. */
-    for (const c of cumulos(ps)) {
-      if (c.n < 2) continue;
-      const tenue = !!sobre && !vecinos.has(sobre.id) && sobre.fam !== c.fam;
-      ctx.globalAlpha = tenue ? 0.35 : 1;
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-      // Relleno casi invisible y borde algo más marcado: con el relleno fuerte,
-      // dos islas que se solapan se suman y se ve una mancha en medio.
-      ctx.fillStyle = c.color;
-      ctx.globalAlpha *= 0.06;
-      ctx.fill();
-      ctx.globalAlpha = tenue ? 0.14 : 0.34;
-      ctx.lineWidth = 1.5 / v.z;
-      ctx.strokeStyle = c.color;
-      ctx.stroke();
-
-      // El nombre del proyecto, ARRIBA del disco y en su color. Va fuera del
-      // cúmulo y no en el centro para no competir con los puntos ni con las
-      // etiquetas de los documentos, que viven dentro.
-      ctx.globalAlpha = tenue ? 0.4 : 0.92;
-      ctx.font = `600 ${Math.min(22, 13 / v.z)}px system-ui, sans-serif`;
-      ctx.fillStyle = c.color;
-      ctx.textAlign = "center";
-      ctx.fillText(c.fam, c.x, c.y - c.r - 8 / v.z);
-      // Y cuántos hay dentro, en pequeño: dice el peso de cada proyecto de un
-      // vistazo, que es la otra pregunta que uno le hace a este mapa.
-      ctx.globalAlpha = tenue ? 0.25 : 0.5;
-      ctx.font = `${Math.min(15, 10 / v.z)}px system-ui, sans-serif`;
-      ctx.fillText(String(c.n), c.x, c.y - c.r + 14 / v.z);
-    }
-    ctx.globalAlpha = 1;
-
-    // Los hilos, sobre las islas y bajo los puntos.
-    ctx.lineWidth = 1 / v.z;
+    /* LOS HILOS, CURVADOS POR DENTRO Y DEL COLOR DE QUIEN SALE.
+       Es el cambio que hace legible el mapa. Rectos, los 554 enlaces que cruzan
+       de un proyecto a otro se reparten por todo el disco y tapan el centro;
+       curvados hacia el medio, los viajes parecidos se recogen en haces y el ojo
+       puede seguirlos. Y con el color de su proyecto de origen, como pidió
+       Munir: una madeja de un color se lee como «esto sale de aquí», que es la
+       pregunta que este mapa contesta mejor que una lista. */
     for (const [i, j] of hilos.current) {
       const p = ps[i];
       const q = ps[j];
       if (!p || !q) continue;
       const tocado = sobre && (p.id === sobre.id || q.id === sobre.id);
-      /* Un hilo ENTRE proyectos no es un hilo más: es la respuesta a la única
-         pregunta que este mapa contesta mejor que una lista, que es quién habla
-         con quién. Los de dentro de un proyecto quedan de fondo (ya lo dice su
-         isla) y los puentes se ven. */
       const puente = p.fam !== q.fam;
-      ctx.lineWidth = (tocado ? 1.6 : puente ? 1.3 : 1) / v.z;
-      ctx.strokeStyle = tocado
-        ? "rgba(120,180,255,0.75)"
-        : puente
-          ? "rgba(180,200,230,0.32)"
-          : "rgba(150,160,180,0.1)";
+      const apagado = !!sobre && !tocado;
+      ctx.lineWidth = (tocado ? 2 : puente ? 0.9 : 0.6) / v.z;
+      ctx.strokeStyle = tocado ? "#cfe6ff" : p.color;
+      ctx.globalAlpha = apagado ? 0.05 : tocado ? 0.95 : puente ? 0.34 : 0.13;
+      // Bézier con el tirón hacia el centro. Cuanto más lejos van los dos
+      // extremos, más se recoge: dos vecinos del mismo arco casi no se curvan,
+      // y un salto de punta a punta pasa por el medio en vez de por la cuerda.
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
-      ctx.lineTo(q.x, q.y);
+      ctx.quadraticCurveTo((p.x + q.x) * 0.04, (p.y + q.y) * 0.04, q.x, q.y);
       ctx.stroke();
     }
+    ctx.globalAlpha = 1;
+
+    /* Y el nombre de cada proyecto, fuera de su arco y girado con él.
+       Va después de los hilos y antes de los puntos: los hilos no pueden tapar
+       un rótulo, y un punto sí puede pisarlo sin que estorbe. */
+    for (const arco of arcos.current) {
+      // Un proyecto de un solo documento abre un arco de nada: su nombre se
+      // montaría con el del vecino. Se rotula solo si hay sitio.
+      if (arco.abre < 0.035 && v.z < 0.5) continue;
+      const tenue = !!sobre && sobre.fam !== arco.fam;
+      const color = ps.find((p) => p.fam === arco.fam)?.color ?? "#8aa";
+      ctx.save();
+      ctx.rotate(arco.a);
+      ctx.translate(arco.rMax + 16 / v.z, 0);
+      // Al otro lado del círculo el texto saldría del revés: se da la vuelta y
+      // se alinea por el otro extremo, que es como se rotula una rueda.
+      if (Math.cos(arco.a) < 0) {
+        ctx.rotate(Math.PI);
+        ctx.textAlign = "right";
+      } else {
+        ctx.textAlign = "left";
+      }
+      ctx.globalAlpha = tenue ? 0.3 : 0.95;
+      ctx.fillStyle = color;
+      ctx.font = `600 ${Math.min(20, 12 / v.z)}px system-ui, sans-serif`;
+      ctx.textBaseline = "middle";
+      ctx.fillText(arco.fam, 0, 0);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.textBaseline = "alphabetic";
 
     /** El sitio que ya ocupa una etiqueta, para no pintar otra encima. */
     const etiquetas: Array<{ x: number; y: number; w: number }> = [];
@@ -276,23 +251,24 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
     ctx.restore();
   }, [activo]);
 
-  // El bucle: mueve mientras está caliente y siempre pinta, porque el ratón y
-  // el zoom cambian lo que se ve aunque los puntos ya no se muevan.
+  /* El bucle: ya no hay nada que mover, solo que repintar.
+     Con el reparto en arcos, cada documento nace en su sitio y se queda: no hay
+     colocación que se enfríe ni tablero que tiemble los primeros segundos. Se
+     repinta treinta veces por segundo porque el ratón y el zoom sí cambian lo
+     que se ve, y a esa cadencia el ventilador no se entera de que hay un mapa
+     abierto. */
   useEffect(() => {
     let ultimo = 0;
     const tick = (ts: number) => {
       raf.current = requestAnimationFrame(tick);
-      if (alpha.current > PARA_EN) paso();
-      // Quieto, con repintar treinta veces por segundo va sobrado, y así el
-      // ventilador no se entera de que hay un grafo abierto.
-      if (alpha.current > PARA_EN || ts - ultimo > 33) {
+      if (ts - ultimo > 33) {
         ultimo = ts;
         pintar();
       }
     };
     raf.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf.current);
-  }, [paso, pintar]);
+  }, [pintar]);
 
   /** De la pantalla al tablero. */
   const enTablero = (e: React.PointerEvent | React.MouseEvent) => {
@@ -324,12 +300,13 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
         ref={canvas}
         onPointerDown={(e) => {
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
-          // Empezar SOBRE un punto lo agarra a él; empezar en el hueco mueve el
-          // tablero. Es lo que se espera de un mapa: arrastras lo que tocas.
-          const { x, y } = enTablero(e);
-          const p = buscarPunto(x, y);
-          if (p) p.agarrado = true;
-          arrastre.current = { x: e.clientX, y: e.clientY, movido: false, punto: p };
+          /* Arrastrar mueve el MAPA, siempre.
+             Antes, empezar sobre un punto lo agarraba a él, porque el tablero
+             era una colocación por fuerzas y moverlo tenía sentido. Con el
+             reparto en arcos el sitio de cada documento lo decide su proyecto:
+             sacarlo de ahí sería mentir sobre dónde vive. Lo que se sigue
+             haciendo con un punto es lo que importaba, que es abrirlo. */
+          arrastre.current = { x: e.clientX, y: e.clientY, movido: false };
         }}
         onPointerMove={(e) => {
           const a = arrastre.current;
@@ -342,19 +319,8 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
             a.movido = true;
             a.x = e.clientX;
             a.y = e.clientY;
-            if (a.punto) {
-              // El punto sigue al ratón a escala del tablero, no de la
-              // pantalla: con el zoom al 30 % moverlo un centímetro tiene que
-              // moverlo un centímetro, no tres.
-              a.punto.x += dx / vista.current.z;
-              a.punto.y += dy / vista.current.z;
-              // Y se despierta la colocación: los vecinos tienen que
-              // acomodarse a donde acabas de ponerlo.
-              alpha.current = Math.max(alpha.current, 0.25);
-            } else {
-              vista.current.x += dx;
-              vista.current.y += dy;
-            }
+            vista.current.x += dx;
+            vista.current.y += dy;
             return;
           }
           const { x, y } = enTablero(e);
@@ -367,14 +333,12 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
         onPointerUp={(e) => {
           const a = arrastre.current;
           arrastre.current = null;
-          if (a?.punto) a.punto.agarrado = false;
           if (a?.movido) return;
           const { x, y } = enTablero(e);
           const p = buscarPunto(x, y);
           if (p) onAbrir(p.id);
         }}
         onPointerLeave={() => {
-          if (arrastre.current?.punto) arrastre.current.punto.agarrado = false;
           arrastre.current = null;
           encimaRef.current = null;
           setEncima(null);

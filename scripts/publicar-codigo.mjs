@@ -79,6 +79,52 @@ if (git(["status", "--porcelain"], raiz)) {
 const version = JSON.parse(readFileSync(join(raiz, "package.json"), "utf8")).version;
 console.log(`Publicando el código de la ${version}\n`);
 
+/**
+ * QUÉ TRAE ESTA VERSIÓN, sacado de los commits del repo privado.
+ *
+ * El commit del público se llamaba «Adeorq 0.9.91» y nada más, así que su lista
+ * de commits era una columna de números sin decir qué cambió en ninguno (Munir,
+ * 2026-08-10). Los mensajes ya existen aquí, escritos uno a uno: solo hay que
+ * traerlos.
+ *
+ * Se leen desde HEAD hacia atrás hasta el `release:` ANTERIOR, que es
+ * exactamente lo que se ha hecho para esta versión. Se quedan los `feat`, `fix`
+ * y `perf`, que son los que cuentan algo a quien mira desde fuera; `chore`,
+ * `docs` y los propios `release` se caen solos.
+ */
+function queTrae() {
+  let lineas = [];
+  try {
+    lineas = git(["log", "--pretty=%s", "-80"], raiz).split("\n");
+  } catch {
+    return { titulo: "", cuerpo: "" };
+  }
+  const mios = [];
+  /* Se para en el `release:` de OTRA versión, no en el primero que aparezca.
+     Los de esta (el del número y el del manifiesto) se saltan, porque son parte
+     de publicarla. Contar posiciones no vale: encima del release puede haber un
+     `docs:` de otra sesión trabajando en paralelo, y con eso la lista salía
+     vacía. */
+  for (const linea of lineas) {
+    const s = linea.trim();
+    const rel = s.match(/^release:\s*([\d]+\.[\d]+\.[\d]+)/i);
+    if (rel) {
+      if (rel[1] === version) continue;
+      break;
+    }
+    const m = s.match(/^(feat|fix|perf)(\([^)]*\))?:\s*(.+)$/i);
+    if (m) mios.push(m[3].trim());
+  }
+  if (!mios.length) return { titulo: "", cuerpo: "" };
+  /* UNA frase, la del cambio más reciente, y el resto en el cuerpo.
+     Encadenar tres da un título de tres renglones con dos «and» dentro, y la
+     lista de commits de GitHub lo corta igual: lo que se lee de un vistazo es
+     el principio, así que ahí va lo que mejor resume la versión. El detalle
+     entero está a un clic, en el cuerpo. */
+  const titulo = mios[0].length > 72 ? `${mios[0].slice(0, 69)}…` : mios[0];
+  return { titulo, cuerpo: mios.map((x) => `- ${x}`).join("\n") };
+}
+
 const tmp = mkdtempSync(join(tmpdir(), "adeorq-pub-"));
 const foto = join(tmp, "foto");
 const publico = join(tmp, "publico");
@@ -150,7 +196,14 @@ try {
     console.log("El público ya está igual que esta versión: no hay nada que publicar.");
     process.exit(0);
   }
-  git(["commit", "-m", `Adeorq ${version}`], publico);
+  const trae = queTrae();
+  const mensaje = trae.titulo ? `Adeorq ${version} — ${trae.titulo}` : `Adeorq ${version}`;
+  git(
+    trae.cuerpo
+      ? ["commit", "-m", mensaje, "-m", trae.cuerpo]
+      : ["commit", "-m", mensaje],
+    publico,
+  );
 
   console.log(git(["show", "--stat", "--oneline", "HEAD"], publico));
   console.log(`

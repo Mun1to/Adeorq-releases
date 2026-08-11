@@ -40,6 +40,26 @@ fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
+/// DÓNDE acaban de verdad los secretos en ESTE sistema.
+///
+/// La pantalla de Cuentas prometía «se guarda cifrada en el Gestor de
+/// Credenciales de Windows» en los dos sistemas, y en Linux eso no es verdad:
+/// allí es un archivo con permisos `600`, que protege de otros usuarios de la
+/// máquina pero no de otro programa tuyo. La diferencia está escrita arriba y en
+/// el README desde el principio; lo que faltaba era decirla donde se lee, que es
+/// justo antes de pegar una clave.
+///
+/// Devuelve una etiqueta y no una frase hecha: el texto se traduce en el front,
+/// como todo lo demás.
+#[tauri::command]
+pub fn secretos_donde() -> &'static str {
+    if cfg!(windows) {
+        "credenciales"
+    } else {
+        "archivo"
+    }
+}
+
 /// Every entry of ours is prefixed, so they are recognisable in Control Panel
 /// and impossible to confuse with someone else's.
 fn target_of(key: &str) -> String {

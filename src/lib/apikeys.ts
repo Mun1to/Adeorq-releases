@@ -31,6 +31,20 @@ export function apiKeysEstado(proveedores: string[]): Promise<EstadoClave[]> {
   return invoke("api_keys_estado", { proveedores });
 }
 
+/**
+ * Dónde acaban las claves en ESTE sistema, para poder decirlo sin mentir.
+ *
+ * En Windows van al Gestor de Credenciales, cifradas con tu login. En Linux no
+ * hay tal cosa: es un archivo con permisos `600`, que protege de otros usuarios
+ * de la máquina pero no de otro programa tuyo. La pantalla prometía lo primero
+ * en los dos sitios, y esa promesa hay que cumplirla o no hacerla.
+ */
+export type DondeSecretos = "credenciales" | "archivo";
+
+export function secretosDonde(): Promise<DondeSecretos> {
+  return invoke<DondeSecretos>("secretos_donde").catch(() => "archivo" as const);
+}
+
 /** Qué proveedores abren con clave en vez de con la suscripción. */
 export const MODO_API_KEY = "adeorq-modo-api";
 

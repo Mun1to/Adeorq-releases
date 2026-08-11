@@ -134,6 +134,31 @@ export function radioTotal(arcos: Arco[]): number {
   return arcos.reduce((m, a) => Math.max(m, a.rMax), R0) + DR;
 }
 
+/** El anillo del NÚCLEO, dentro del agujero que dejan los proyectos. */
+export const R_NUCLEO = 150;
+
+/**
+ * Las skills, en el centro.
+ *
+ * El centro del mapa era un agujero, y lo que va en el centro de un mapa es lo
+ * que vale para todo lo demás. Las skills son exactamente eso: no pertenecen a
+ * ningún proyecto y se usan en todos (Munir, 2026-08-11: «que en el centro
+ * estén las skills, que son muy importantes de hecho»).
+ *
+ * Van en su propio anillo pequeño, holgado dentro del hueco: si se acercaran al
+ * primer anillo de documentos se leerían como un proyecto más, y no lo son.
+ */
+export function nucleo(n: number): Sitio[] {
+  if (n === 0) return [];
+  // Una sola va al centro exacto; varias, repartidas por su anillo. Arrancando
+  // arriba, como la rueda de fuera, para que las dos se lean igual.
+  if (n === 1) return [{ x: 0, y: 0, a: 0, r: 0 }];
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+    return { x: Math.cos(a) * R_NUCLEO, y: Math.sin(a) * R_NUCLEO, a, r: R_NUCLEO };
+  });
+}
+
 /**
  * El color de un proyecto AQUÍ, que no es el de la barra lateral.
  *

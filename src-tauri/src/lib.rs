@@ -364,6 +364,7 @@ pub fn run() {
             secrets::secret_put,
             secrets::secret_get,
             secrets::secret_forget,
+            secrets::secretos_donde,
             autostart::autostart_get,
             autostart::autostart_set,
             git_shadow::shadow_init,

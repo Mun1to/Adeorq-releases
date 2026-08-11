@@ -5483,6 +5483,37 @@ button.stat-card[data-live="false"] {
   line-height: 1.5;
 }
 
+/* Dónde acaba tu clave, con el aspecto de lo que es.
+   En Windows es una nota verde: el sistema la guarda cifrada. En Linux es un
+   aviso ámbar, porque allí es un archivo con permisos y hay que saberlo ANTES
+   de pegar nada. Se distingue por color y por texto, no solo por texto: la
+   diferencia entre las dos frases importa de verdad. */
+.apikeys-donde {
+  display: flex;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--done) 40%, transparent);
+  background: color-mix(in srgb, var(--done) 9%, transparent);
+  color: color-mix(in srgb, var(--text) 82%, transparent);
+}
+
+.apikeys-donde::before {
+  content: "⚠";
+  flex: none;
+  color: var(--done);
+}
+
+.apikeys-donde[data-seguro="true"] {
+  border-color: color-mix(in srgb, #4ec98a 34%, transparent);
+  background: color-mix(in srgb, #4ec98a 8%, transparent);
+}
+
+.apikeys-donde[data-seguro="true"]::before {
+  content: "🔒";
+  color: #4ec98a;
+}
+
 /* A setting almost nobody needs, folded away. Present for whoever looks for
    it, absent for everyone else: the card should read as one switch. */
 .setting-more {
@@ -11025,6 +11056,31 @@ body.arrastrando .obj-flota {
   font-size: 22px;
   font-weight: 650;
   letter-spacing: -0.2px;
+}
+
+/* EMITIENDO, el nombre del proyecto se tapa, pero no así.
+   El tapón de `.stream-hide` está pensado para texto pequeño: pinta una barra
+   del color del texto con la forma exacta de lo que oculta, y en un renglón de
+   once píxeles pasa desapercibido. Sobre un título de 22 px es un ladrillo gris
+   en la esquina de la pantalla, y encima con la forma del nombre, que es medio
+   dato (Munir, 2026-08-11: «mira qué feo el título»).
+   Aquí va una caja de ancho FIJO, con el borde punteado de lo que está
+   guardado: se lee como «esto no se enseña», no como un borrón. Y al ser fija
+   ya no dice si el proyecto se llama Adeorq o VoCript-Core. */
+.app[data-stream="true"] .where-name {
+  min-width: 168px;
+  padding: 2px 14px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--text) 26%, transparent);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+/* Con Alt pulsado se enseña, como todo lo demás: vuelve a ser un título. */
+.app[data-stream="true"][data-peek="true"] .where-name {
+  min-width: 0;
+  padding: 0;
+  border-color: transparent;
+  background: none;
 }
 
 .agenda-link {

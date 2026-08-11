@@ -1561,8 +1561,12 @@ const EN: Record<string, string> = {
 
   // Las claves de API, en Cuentas
   "Claves de API": "API keys",
-  "La otra forma de pagar lo que consume un CLI: por tokens en vez de con tu suscripción. Sirve para gastar menos plan en cosas pequeñas, o para seguir trabajando cuando el plan se agota. La clave se guarda cifrada y no vuelve a salir de aquí.":
-    "The other way to pay for what a CLI consumes: by tokens instead of out of your subscription. Useful to spend less plan on small things, or to keep working when the plan runs out. The key is stored encrypted and never leaves here.",
+  "La otra forma de pagar lo que consume un CLI: por tokens en vez de con tu suscripción. Sirve para gastar menos plan en cosas pequeñas, o para seguir trabajando cuando el plan se agota.":
+    "The other way to pay for what a CLI consumes: by tokens instead of out of your subscription. Useful to spend less plan on small things, or to keep working when the plan runs out.",
+  "Se guarda en el Gestor de Credenciales de Windows, cifrada con tu sesión, y no vuelve a salir: al abrir una terminal la pone Rust justo antes de arrancar el proceso, así que no pasa por la pantalla ni aparece en una captura.":
+    "Stored in the Windows Credential Manager, encrypted with your login, and it never comes back out: when a terminal opens, Rust puts it in right before starting the process, so it never goes through the screen or shows up in a screenshot.",
+  "En Linux no hay Gestor de Credenciales: se guarda en un archivo tuyo con permisos 600. Eso la protege de otros usuarios del equipo, pero NO de otro programa tuyo. Sí es igual que en Windows lo otro: no vuelve a salir, la pone Rust justo antes de arrancar el proceso.":
+    "Linux has no Credential Manager: it goes into a file of yours with 600 permissions. That protects it from other users of the machine, but NOT from another program of yours. The other half is the same as on Windows: it never comes back out, Rust puts it in right before starting the process.",
   "Pega aquí la clave": "Paste the key here",
   "Sacar una": "Get one",
   Olvidarla: "Forget it",

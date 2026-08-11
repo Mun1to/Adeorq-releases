@@ -23,13 +23,19 @@ import { familia, type Doc } from "../lib/memoria";
 import {
   anillar,
   colorDeArco,
+  nucleo,
   radioTotal,
+  R_NUCLEO,
   type Arco,
   type Hilo,
   type Punto,
 } from "../lib/constelacion";
 import { modoRendimiento } from "../lib/rendimiento";
 import { useT } from "../lib/i18n";
+
+/** El ámbar del núcleo. Fijo, y NO de la paleta de proyectos a propósito: las
+    skills no son un proyecto más, y con un tono de la rueda parecerían uno. */
+const AMBAR = "#f0b464";
 
 interface Props {
   docs: Doc[];
@@ -39,9 +45,13 @@ interface Props {
   /** Los sueltos (sin un solo enlace) se pueden esconder: en una bóveda de
       notas de trabajo son mayoría y tapan la red que sí existe. */
   soloConectados: boolean;
+  /** Las skills, que van en el centro. No son documentos de la bóveda: no
+      pertenecen a ningún proyecto y valen para todos, que es justo lo que se
+      pone en el centro de un mapa. */
+  skills?: Array<{ name: string; description: string }>;
 }
 
-export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: Props) {
+export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados, skills }: Props) {
   const { t } = useT();
   const canvas = useRef<HTMLCanvasElement>(null);
   const puntos = useRef<Punto[]>([]);
@@ -232,6 +242,47 @@ export default function MemoriaGrafo({ docs, activo, onAbrir, soloConectados }: 
     }
     ctx.globalAlpha = 1;
     ctx.textBaseline = "alphabetic";
+
+    /* EL NÚCLEO: las skills, en el agujero del medio.
+       Van en ámbar y no en el color de ningún proyecto porque no son de
+       ninguno: se usan en todos, que es lo que las pone en el centro. Y con
+       nombre siempre, que son seis y caben. */
+    const sk = skills ?? [];
+    if (sk.length) {
+      const sitios = nucleo(sk.length);
+      // Un aro tenue que los une, para que se lean como un conjunto y no como
+      // seis puntos sueltos que se han caído dentro.
+      if (sk.length > 1) {
+        ctx.beginPath();
+        ctx.arc(0, 0, R_NUCLEO, 0, Math.PI * 2);
+        ctx.strokeStyle = AMBAR;
+        ctx.globalAlpha = sobre ? 0.1 : 0.22;
+        ctx.lineWidth = 1 / v.z;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = sobre ? 0.3 : 1;
+      sk.forEach((s, i) => {
+        const p = sitios[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = AMBAR;
+        ctx.fill();
+        ctx.font = `600 ${Math.min(18, 11 / v.z)}px system-ui, sans-serif`;
+        ctx.fillStyle = AMBAR;
+        ctx.textAlign = "center";
+        ctx.fillText(s.name, p.x, p.y - 11 / v.z);
+      });
+      // Y el rótulo del conjunto, en el centro exacto. Solo con más de una: con
+      // una sola, el punto ya está ahí y se pisarían.
+      if (sk.length > 1) {
+        ctx.font = `700 ${Math.min(22, 13 / v.z)}px system-ui, sans-serif`;
+        ctx.fillStyle = AMBAR;
+        ctx.globalAlpha = sobre ? 0.2 : 0.75;
+        ctx.textAlign = "center";
+        ctx.fillText("SKILLS", 0, 5 / v.z);
+      }
+      ctx.globalAlpha = 1;
+    }
 
     /** El sitio que ya ocupa una etiqueta, para no pintar otra encima. */
     const etiquetas: Array<{ x: number; y: number; w: number }> = [];

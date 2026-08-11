@@ -29,6 +29,7 @@ import {
   type VaultInfo,
 } from "../lib/memoria";
 import { useT } from "../lib/i18n";
+import { listSkills } from "../lib/pty";
 // `hueOf` y `familia` se han ido con los puntos de color de la lista: el color
 // por familia solo se pinta ya donde dice algo, que es la constelación.
 import { ChevronIcon, RefreshIcon, SearchIcon } from "./Icons";
@@ -204,6 +205,15 @@ export default function MemoriaView() {
   /** Cómo se mira la bóveda: por dónde guardaste las cosas, o por lo último
       que tocaste. Son dos preguntas distintas y las dos se hacen. */
   const [vista, setVista] = useState<"arbol" | "recientes">("arbol");
+  /** Las skills, que van en el centro del mapa: no son de ningún proyecto y se
+      usan en todos. Si no hay ninguna (o el sistema no las sabe leer) el centro
+      se queda vacío, como estaba. */
+  const [skills, setSkills] = useState<Array<{ name: string; description: string }>>([]);
+  useEffect(() => {
+    listSkills()
+      .then(setSkills)
+      .catch(() => setSkills([]));
+  }, []);
   /** Qué carpetas están desplegadas. Empieza todo cerrado a propósito: una
       bóveda de cuatrocientas notas abierta de par en par es una pared. */
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
@@ -551,6 +561,7 @@ export default function MemoriaView() {
                 activo={abierto?.id}
                 onAbrir={abrir}
                 soloConectados={soloConectados}
+                skills={skills}
               />
             </>
           ) : abierto ? (

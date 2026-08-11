@@ -17,6 +17,8 @@ import {
   apiKeysEstado,
   guardarModoApi,
   leerModoApi,
+  secretosDonde,
+  type DondeSecretos,
   type EstadoClave,
 } from "../lib/apikeys";
 import { comoDinero, gastoLeer, type Gasto } from "../lib/chat";
@@ -46,6 +48,12 @@ export default function ApiKeysCard() {
       Adeorq: lo que gaste un CLI con tu clave lo cuenta su proveedor, y decir
       que es «todo tu gasto» sería mentir sobre dinero. */
   const [gasto, setGasto] = useState<Gasto>({ total: 0, dias: {} });
+  /** Dónde acaban las claves en ESTE sistema. Se pregunta a Rust, que es quien
+      las guarda: un `#[cfg]` no se puede equivocar de plataforma. */
+  const [donde, setDonde] = useState<DondeSecretos>("credenciales");
+  useEffect(() => {
+    void secretosDonde().then(setDonde);
+  }, []);
   // La fecha, en el mismo formato que la escribe Rust.
   const hoy = new Date().toISOString().slice(0, 10);
 
@@ -113,8 +121,24 @@ export default function ApiKeysCard() {
       </h2>
       <p className="card-hint">
         {t(
-          "La otra forma de pagar lo que consume un CLI: por tokens en vez de con tu suscripción. Sirve para gastar menos plan en cosas pequeñas, o para seguir trabajando cuando el plan se agota. La clave se guarda cifrada y no vuelve a salir de aquí.",
+          "La otra forma de pagar lo que consume un CLI: por tokens en vez de con tu suscripción. Sirve para gastar menos plan en cosas pequeñas, o para seguir trabajando cuando el plan se agota.",
         )}
+      </p>
+      {/* DÓNDE ACABA LA CLAVE, dicho aquí y sin adornos.
+          Esto ponía «se guarda cifrada» en los dos sistemas, y en Linux no hay
+          Gestor de Credenciales: es un archivo con permisos 600, que protege de
+          otros usuarios de la máquina pero no de otro programa tuyo. Prometer
+          cifrado donde no lo hay es lo peor que puede hacer una pantalla que
+          pide una clave, así que ahora dice lo que pasa en TU sistema.
+          Lo que sí es igual en los dos: la clave no vuelve nunca al front. */}
+      <p className="card-hint apikeys-donde" data-seguro={donde === "credenciales"}>
+        {donde === "credenciales"
+          ? t(
+              "Se guarda en el Gestor de Credenciales de Windows, cifrada con tu sesión, y no vuelve a salir: al abrir una terminal la pone Rust justo antes de arrancar el proceso, así que no pasa por la pantalla ni aparece en una captura.",
+            )
+          : t(
+              "En Linux no hay Gestor de Credenciales: se guarda en un archivo tuyo con permisos 600. Eso la protege de otros usuarios del equipo, pero NO de otro programa tuyo. Sí es igual que en Windows lo otro: no vuelve a salir, la pone Rust justo antes de arrancar el proceso.",
+            )}
       </p>
 
       <div className="panel-grid accounts-grid">

@@ -736,6 +736,9 @@ const EN: Record<string, string> = {
   "Volver a leer la carpeta": "Read the folder again",
   "Documento": "Document",
   "Cerebro": "Brain",
+  beta: "beta",
+  "En beta: funciona, pero le faltan cosas y puede cambiar":
+    "In beta: it works, but it is unfinished and may change",
   "Un nodo clavado: gira alrededor para verlo · clic en el vacío para soltarlo":
     "One node pinned: spin around to look at it · click empty space to release",
   "Rueda para entrar dentro · botón de la rueda sobre un nodo para clavarlo · clic para abrirlo":

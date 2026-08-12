@@ -2622,12 +2622,14 @@ function App() {
     },
   };
 
-  const tabs: Array<{ key: View; icon: React.ReactElement; label: string }> = [
+  /* `beta` marca lo que todavía no está terminado. No es adorno: quien abre una
+     sección sin saberlo la juzga como si estuviera acabada, y luego no vuelve. */
+  const tabs: Array<{ key: View; icon: React.ReactElement; label: string; beta?: boolean }> = [
     { key: "panel", icon: <PanelIcon size={16} />, label: "Panel" },
     { key: "cabina", icon: <CockpitIcon size={16} />, label: "Cabina" },
     // Justo detrás de la Cabina porque es la misma cosa vista de otra manera:
     // las mismas sesiones, sin la consola delante.
-    { key: "chat", icon: <ChatIcon size={16} />, label: "Chat" },
+    { key: "chat", icon: <ChatIcon size={16} />, label: "Chat", beta: true },
     { key: "agenda", icon: <AgendaIcon size={16} />, label: "Agenda" },
     { key: "lienzo", icon: <CanvasIcon size={16} />, label: "Lienzo" },
     { key: "memoria", icon: <MemoryIcon size={16} />, label: "Memoria" },
@@ -2708,7 +2710,12 @@ function App() {
               // de la vista no.
               data-tab={tab.key}
               data-active={view === tab.key}
-              data-tip={t(tab.label)}
+              data-tip={
+                tab.beta
+                  ? `${t(tab.label)}
+${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
+                  : t(tab.label)
+              }
               onClick={() => setView(tab.key)}
             >
               <span className="tab-icon">{tab.icon}</span>
@@ -2718,6 +2725,7 @@ function App() {
                   icono dibujado, sin nombre sigue siendo reconocible, y el
                   globo dice cuál es. */}
               <span className="tab-label">{t(tab.label)}</span>
+              {tab.beta && <span className="tab-beta">{t("beta")}</span>}
               {tab.key === "cabina" && panes.length > 0 && (
                 <span className="tab-count">{panes.length}</span>
               )}

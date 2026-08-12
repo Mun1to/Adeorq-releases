@@ -1160,6 +1160,25 @@ body {
   padding: 0 5px;
 }
 
+/* La marca de «beta». Va en `--ask`, el ámbar con el que la app dice «esto te
+   está esperando», y NO en el de acento: el acento significa «estás aquí» en
+   toda la barra, así que teñir la marca con él la haría parecer parte de la
+   pestaña seleccionada en vez de un aviso sobre ella. Y `--ask` está definido
+   en los cuatro temas, que es lo que un color inventado no tendría.
+   Pequeña y en minúsculas a propósito: tiene que avisar, no gritar por encima
+   del nombre de la sección. */
+.tab-beta {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ask) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ask) 42%, transparent);
+  color: var(--ask);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
 .view-cabina {
   flex: 1;
   min-height: 0;

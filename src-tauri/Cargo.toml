@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.96"
+version = "0.9.97"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["you"]
 edition = "2021"

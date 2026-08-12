@@ -205,6 +205,11 @@ export default function MemoriaGrafo({
       para que un rótulo se te escape mientras lo lees. Se para sola en cuanto
       el ratón entra, porque mirar de cerca algo que se mueve es imposible. */
   const giro = useRef(0);
+  /** Con qué ángulo se pintó el lienzo la última vez. Solo importa cuando el
+      mapa está desplazado: entonces el arrastre va dibujado DENTRO del lienzo
+      y girar cambia dónde cae, así que hay que repintar. Centrado no depende
+      del ángulo y el giro sigue saliendo gratis. */
+  const giroPintado = useRef(0);
   const quieto = useRef(false);
   const arrastre = useRef<{
     x: number;
@@ -322,14 +327,33 @@ export default function MemoriaGrafo({
 
     const v = vista.current;
     ctx.save();
-    /* NI EL GIRO NI EL ARRASTRE ENTRAN AQUÍ, y es el cambio que quita el lag.
-       Los dos son transformaciones rígidas de TODO el dibujo, así que los hace
-       la tarjeta gráfica moviendo el lienzo ya pintado (`style.transform` en el
-       bucle), en vez de obligar a rehacer mil trazos treinta veces por segundo
-       para enseñar exactamente lo mismo un grado más allá. Aquí solo queda el
-       zoom, que sí cambia lo que hay que dibujar. */
-    ctx.translate(w / 2, h / 2);
+    /* EL GIRO no entra aquí, y es el cambio que quitó el lag: girar es una
+       transformación rígida de todo el dibujo, así que la hace la tarjeta
+       gráfica moviendo el lienzo ya pintado (`style.transform` en el bucle) en
+       vez de rehacer mil trazos para enseñar lo mismo un grado más allá.
+
+       EL ARRASTRE SÍ, y esto es lo que cambió el 2026-08-11 (noche). Estaba
+       también en el `style.transform`, y ahí se cortaba: el lienzo mide la
+       DIAGONAL de su caja, que es justo lo que hace falta para girar sin
+       enseñar las esquinas, pero al desplazarlo deja de cubrirla por el lado
+       contrario. En una caja de 1200x800 el margen es de 121 px: arrastrabas
+       eso y aparecía un borde recto con el mapa cortado (Munir, con captura).
+       Agrandar el lienzo no era la salida, porque el arrastre no tiene tope y
+       la memoria va al cuadrado del lado. Mover el DIBUJO en vez del lienzo sí:
+       lo que se sale se recorta fuera de la vista, que es donde no molesta.
+
+       Va contra-rotado porque el lienzo lo gira el CSS después: para que el
+       mapa siga al dedo en pantalla, dentro hay que desplazarlo por el ángulo
+       de vuelta. Es la misma cuenta que `enTablero` hace al revés. */
+    const g = -giro.current;
+    const cos = Math.cos(g);
+    const sen = Math.sin(g);
+    ctx.translate(
+      w / 2 + (v.x * cos - v.y * sen),
+      h / 2 + (v.x * sen + v.y * cos),
+    );
     ctx.scale(v.z, v.z);
+    giroPintado.current = giro.current;
 
     const ps = puntos.current;
     const sobre = encimaRef.current;
@@ -552,15 +576,26 @@ export default function MemoriaGrafo({
       // el equipo va a 120 como si va a 30.
       const dt = ultimo ? Math.min(0.2, (ts - ultimo) / 1000) : 0;
       ultimo = ts;
-      if (!sinMovimiento && !quieto.current) giro.current += dt * 0.03;
-      /* Mover el lienzo cuesta una línea de CSS y lo hace la tarjeta gráfica:
+      const v = vista.current;
+      /* En cuanto tocas el mapa (lo arrastras o le haces zoom, que también lo
+         desplaza para acercarse a donde apunta el ratón), la rueda se para.
+         Dos motivos, y el segundo es el que manda: si lo has movido para mirar
+         algo es que quieres mirarlo, no que se te escape; y desplazado, el
+         arrastre va dibujado dentro del lienzo, así que cada grado obligaría a
+         repintar y volvería el lag que costó tres rondas quitar. Centrado no
+         cuesta nada y sigue girando como siempre. Volver a centrarlo la
+         reanuda. */
+      const movido = v.x !== 0 || v.y !== 0;
+      if (!sinMovimiento && !quieto.current && !movido) giro.current += dt * 0.03;
+      /* Girar el lienzo cuesta una línea de CSS y lo hace la tarjeta gráfica:
          ni se limpia nada, ni se vuelve a trazar nada. Esto es lo que corre en
          cada fotograma ahora. */
       const el = canvas.current;
-      if (el) {
-        const v = vista.current;
-        el.style.transform = `translate(${v.x}px, ${v.y}px) rotate(${giro.current}rad)`;
-      }
+      if (el) el.style.transform = `rotate(${giro.current}rad)`;
+      // Girar a mano el mapa ya desplazado sí cambia el dibujo, por lo de la
+      // contra-rotación de `pintar`. Se mira aquí y no en el gesto para que
+      // valga igual venga el ángulo de la mano o de la rueda.
+      if (movido && giro.current !== giroPintado.current) sucio.current = true;
       // Y REPINTAR solo cuando de verdad cambia lo dibujado: el zoom, el punto
       // que miras, otra bóveda. Con el mapa girando solo, eso es nunca.
       if (!sucio.current || ts - ultimoPintado < 33) return;
@@ -696,6 +731,11 @@ export default function MemoriaGrafo({
             }
             vista.current.x += dx;
             vista.current.y += dy;
+            // Arrastrar SÍ repinta, desde que el desplazamiento se dibuja
+            // dentro del lienzo en vez de mover el lienzo entero (ver
+            // `pintar`). Es lo correcto: mover la cámara cambia qué trozo del
+            // mapa se ve, al revés que girarla.
+            sucio.current = true;
             return;
           }
           // Solo el punto bajo el ratón obliga a repintar: ni arrastrar ni

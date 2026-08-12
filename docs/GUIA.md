@@ -186,7 +186,7 @@ Si pone el nombre de una sesión y una carpeta, es la barra de una terminal.
 - **⬡ Lienzo**: el tablero libre, con terminales que se mueven y se conectan
   con flechas.
 - **Memoria**: tus notas de Obsidian dentro de Adeorq. Busca por lo que dicen,
-  las lee, las deja editar y dibuja la Constelación de cómo se enlazan. No se
+  las lee, las deja editar y dibuja el Cerebro de cómo se enlazan. No se
   copia ni se mueve nada: se leen donde están.
 - **◍ Cuentas**: todas tus cuentas de agentes en un sitio, agrupadas por
   programa, con cuál está conectada y cuánto te queda.

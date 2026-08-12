@@ -826,23 +826,26 @@ fn pi_agent_dir() -> Option<PathBuf> {
 /// Las sesiones de Pi (pi.dev), organizadas por carpeta de trabajo dentro de
 /// `~/.pi/agent/sessions/` (o donde apunte `PI_CODING_AGENT_DIR`).
 ///
-/// SIN VERIFICAR EN ESTA MÁQUINA: Pi no está instalado aquí — no existe ni
-/// `~/.pi` (comprobado en disco el 2026-08-01) — así que no hay ningún
-/// fichero real que mirar para confirmar el formato. Lo único que se sabe de
-/// verdad, por haber leído el código fuente de Pi (no su web), es la carpeta
-/// y que agrupa por cwd en vez de por fecha como Codex; el resto (si cada
-/// sesión es un `.json` o un `.jsonl`, si hay un nivel de subcarpetas por
-/// proyecto o más, cómo se llama el campo del cwd y el del id) es una
-/// suposición calcada de Claude Code y Codex, que es la única referencia que
-/// hay. Por eso `analyze_pi` es defensivo: si el fichero que encuentra no
-/// tiene un cwd y un id reconocibles, se descarta esa sesión sin inventar
-/// nada, y si la carpeta no existe (como en esta máquina) se devuelve vacío.
+/// VERIFICADO EN DISCO el 2026-08-12, que hasta hoy no lo estaba: esto se
+/// escribió a ciegas, calcado de Claude Code y Codex, porque Pi no estaba
+/// instalado en esta máquina. Ya lo está, y las tres preguntas que dejó
+/// abiertas el comentario de entonces tienen respuesta:
 ///
-/// Cuando Pi esté instalado en algún sitio, comprobar en su disco: (1) la
-/// extensión real de cada fichero de sesión, (2) si el cwd viene en la
-/// primera línea como aquí se prueba o hay que leerlo de otra parte, (3) si
-/// el nombre de la subcarpeta ya ES el cwd (crudo o codificado tipo Claude)
-/// en vez de tener que abrir el fichero para saberlo.
+///  1. la extensión es `.jsonl`, una línea por evento;
+///  2. el cwd viene en la PRIMERA línea, con la clave `cwd` tal cual
+///     (`{"type":"session","version":3,"id":"…","timestamp":"…","cwd":"C:\\proyectos"}`);
+///  3. la subcarpeta es el cwd codificado a la manera de Pi
+///     (`C:\proyectos` → `--C--proyectos--`), y el nombre del fichero es la
+///     marca de tiempo, un guion bajo y el id.
+///
+/// O sea que las suposiciones eran buenas y el escaneo funciona. Se deja
+/// igual de defensivo (sin cwd o sin id, la sesión se descarta) porque un
+/// formato leído una vez en una versión no es un formato garantizado.
+///
+/// ⚠ Lo que NO se puede componer es la ruta de un fichero a partir de su id,
+/// porque el nombre lleva delante la marca de tiempo: hay que BUSCARLA, igual
+/// que en Codex. Eso vive en `pi_transcript`, y su ausencia es lo que hacía
+/// que la papelera no borrara estas sesiones.
 fn scan_pi() -> Vec<SessionInfo> {
     let Some(raiz) = pi_agent_dir().map(|d| d.join("sessions")) else {
         return Vec::new();
@@ -973,6 +976,65 @@ fn analyze_pi(path: &Path) -> Option<SessionInfo> {
         fuente: "pi".into(),
         cuenta: String::new(),
     })
+}
+
+/// El fichero de una sesión de Pi, buscándolo por su id.
+///
+/// Existe por el mismo motivo que `codex_transcript`, y por el mismo fallo:
+/// `delete_session` solo sabía componer la ruta de Claude Code
+/// (`~/.claude/projects/<carpeta>/<id>.jsonl`), y una sesión de Pi llega con
+/// la carpeta VACÍA —`analyze_pi` no rellena ese campo, que es de Claude— así
+/// que armaba `~/.claude/projects//<id>.jsonl`, no encontraba nada y la
+/// sesión seguía en la lista (Munir, 2026-08-12: «esta sesión en concreto no
+/// me deja eliminarla, le doy a la papelera aceptar y no se elimina»). Es
+/// literalmente el fallo que Codex tuvo el 8 de agosto, que se arregló solo
+/// para Codex.
+///
+/// Aquí tampoco vale componer la ruta: el fichero se llama
+/// `<marca-de-tiempo>_<id>.jsonl`, así que la parte de delante no se sabe. Se
+/// busca por la CABECERA y no por el nombre porque el id de la cabecera es el
+/// mismo que usa `analyze_pi` para identificar la sesión: mirando ahí, las dos
+/// no se pueden desincronizar aunque Pi cambie cómo nombra sus ficheros.
+pub fn pi_transcript(session_id: &str) -> Option<PathBuf> {
+    pi_transcript_en(&pi_agent_dir()?.join("sessions"), session_id)
+}
+
+/// La búsqueda de verdad, con la raíz por parámetro. Separada para poder
+/// probarla sin tocar `USERPROFILE`, que es una variable de todo el proceso y
+/// la comparten los tests que corren a la vez (el mismo motivo que en
+/// `codex_transcript_en`).
+///
+/// Recorre los mismos dos sitios que `scan_pi`: los ficheros sueltos de la
+/// raíz y un nivel de subcarpetas. Ni uno más, para no pasear por un árbol
+/// ajeno con una recursión general.
+fn pi_transcript_en(raiz: &Path, session_id: &str) -> Option<PathBuf> {
+    let mira = |path: PathBuf| -> Option<PathBuf> {
+        let ext = path.extension().and_then(|e| e.to_str());
+        if ext != Some("jsonl") && ext != Some("json") {
+            return None;
+        }
+        let v: Value = serde_json::from_str(&primera_linea(&path)?).ok()?;
+        let id = campo_texto(&v, &["id", "sessionId", "session_id"])?;
+        (id == session_id).then_some(path)
+    };
+    if let Ok(ficheros) = std::fs::read_dir(raiz) {
+        for f in ficheros.flatten() {
+            if let Some(p) = mira(f.path()) {
+                return Some(p);
+            }
+        }
+    }
+    for proyecto in leer_dirs(raiz) {
+        let Ok(ficheros) = std::fs::read_dir(&proyecto) else {
+            continue;
+        };
+        for f in ficheros.flatten() {
+            if let Some(p) = mira(f.path()) {
+                return Some(p);
+            }
+        }
+    }
+    None
 }
 
 /// Antigravity CLI (`agy`, Google's terminal agent, successor to Gemini CLI).
@@ -2143,6 +2205,64 @@ mod tests {
         );
         assert!(
             codex_transcript_en(&raiz, "no-existe").is_none(),
+            "un id desconocido devuelve nada, en vez de el primero que pille",
+        );
+
+        let _ = std::fs::remove_dir_all(&raiz);
+    }
+
+    /// Y lo MISMO con Pi, que volvió a caer en el agujero cuatro días después
+    /// (Munir, 2026-08-12: «esta sesión en concreto no me deja eliminarla, le
+    /// doy a la papelera aceptar y no se elimina»). Su fichero se llama
+    /// `<marca-de-tiempo>_<id>.jsonl`, así que la ruta tampoco se puede
+    /// componer desde el id, y `analyze_pi` deja la carpeta de Claude vacía:
+    /// sin esta búsqueda, borrar armaba `~/.claude/projects//<id>.jsonl`.
+    ///
+    /// El árbol del test es el de su disco de verdad, leído el mismo día: una
+    /// subcarpeta con el cwd codificado a la manera de Pi.
+    #[test]
+    fn a_pi_session_is_found_by_its_id_and_not_by_its_file_name() {
+        let raiz = std::env::temp_dir().join(format!("adeorq-pi-{}", std::process::id()));
+        let proyecto = raiz.join("--C--proyectos--");
+        let _ = std::fs::remove_dir_all(&raiz);
+        std::fs::create_dir_all(&proyecto).unwrap();
+
+        let cabecera = |id: &str| {
+            format!(
+                r#"{{"type":"session","version":3,"id":"{id}","timestamp":"2026-08-08T09:46:21.411Z","cwd":"C:\\proyectos"}}"#
+            )
+        };
+        std::fs::write(
+            proyecto.join("2026-08-08T09-46-21-411Z_aaa.jsonl"),
+            cabecera("aaa"),
+        )
+        .unwrap();
+        std::fs::write(
+            proyecto.join("2026-08-08T11-22-33-444Z_bbb.jsonl"),
+            cabecera("bbb"),
+        )
+        .unwrap();
+        // Suelto en la raíz, que `scan_pi` también mira: si Pi dejara de anidar
+        // por proyecto, la búsqueda tiene que seguir encontrándolo.
+        std::fs::write(raiz.join("2026-08-09T00-00-00-000Z_ccc.jsonl"), cabecera("ccc")).unwrap();
+        std::fs::write(proyecto.join("notas.txt"), "nada").unwrap();
+
+        let hallado = pi_transcript_en(&raiz, "bbb").expect("tendría que encontrarla");
+        assert_eq!(
+            hallado.file_name().unwrap().to_string_lossy(),
+            "2026-08-08T11-22-33-444Z_bbb.jsonl",
+            "el id vive DENTRO del archivo; delante lleva la marca de tiempo",
+        );
+        assert_eq!(
+            pi_transcript_en(&raiz, "ccc")
+                .expect("la de la raíz también cuenta")
+                .file_name()
+                .unwrap()
+                .to_string_lossy(),
+            "2026-08-09T00-00-00-000Z_ccc.jsonl",
+        );
+        assert!(
+            pi_transcript_en(&raiz, "no-existe").is_none(),
             "un id desconocido devuelve nada, en vez de el primero que pille",
         );
 

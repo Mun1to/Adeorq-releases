@@ -19,6 +19,7 @@ import {
   ladoDeCaida,
   moverGrupo,
   moverProyecto,
+  ordenGuardado,
   ordenarProyectos,
   type Colocable,
 } from "../src/lib/ordenBarra";
@@ -421,6 +422,40 @@ ok(
 ok(
   "y nunca se duplica: si ya estaba, se mueve",
   colocarSuelta(["a", "b", "c"], "a", "c", "despues").join() === "b,c,a",
+);
+
+
+// ── EL ORDEN GUARDADO, UNA LISTA POR SITIO ──────────────────────────────────
+// Hasta la 0.9.99 solo se guardaba el del cajón del final (`sueltasOrder`), y
+// por eso arrastrar una sesión dentro de un proyecto no colocaba nada: esa
+// lista no tenía dónde escribir su orden (Munir, 2026-08-12).
+ok(
+  "lo viejo se sube a su clave en vez de perderse",
+  JSON.stringify(ordenGuardado({ sueltasOrder: ["a", "b"] })) === '{"sueltas":["a","b"]}',
+  "sin esto, quien tuviera sus sueltas colocadas a mano se las encuentra barajadas",
+);
+ok(
+  "y si ya hay clave nueva, manda ella",
+  JSON.stringify(ordenGuardado({ sueltasOrder: ["x"], ordenLista: { sueltas: ["a"] } }))
+    === '{"sueltas":["a"]}',
+);
+ok(
+  "cada lista guarda la suya",
+  JSON.stringify(
+    ordenGuardado({ ordenLista: { "p:Adeorq": ["a"], "g:7": ["b"], sueltas: ["c"] } }),
+  ) === '{"p:Adeorq":["a"],"g:7":["b"],"sueltas":["c"]}',
+);
+ok("sin nada guardado, vacío", JSON.stringify(ordenGuardado({})) === "{}");
+ok("y un fichero a medias no revienta", JSON.stringify(ordenGuardado(null)) === "{}");
+ok(
+  "una clave con basura dentro se descarta entera",
+  JSON.stringify(ordenGuardado({ ordenLista: { "p:A": ["ok"], "p:B": [1, 2], "p:C": "no" } }))
+    === '{"p:A":["ok"]}',
+  "un id que no es texto acabaría comparándose con ids de verdad y no casaría nunca",
+);
+ok(
+  "un ordenLista que llega como array se ignora",
+  JSON.stringify(ordenGuardado({ ordenLista: ["a", "b"] })) === "{}",
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

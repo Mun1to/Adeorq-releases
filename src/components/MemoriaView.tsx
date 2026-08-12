@@ -504,7 +504,7 @@ export default function MemoriaView() {
             «Documento» era la mitad de un conmutador que no elegía nada: el
             documento aparece solo en cuanto abres uno, así que ese botón solo
             servía para volver a lo que ya estabas viendo. Ahora Memoria arranca
-            en la Constelación —es el mapa, y desde ahí se entra a lo que sea— y
+            en el Cerebro —es el mapa, y desde ahí se entra a lo que sea— y
             este botón es el camino de vuelta (Munir, 2026-08-11).
             Sin el fondo de acento que tenía: se enciende igual que las pestañas
             de la lista, que es como se marca lo activo en esta pantalla. */}
@@ -514,7 +514,7 @@ export default function MemoriaView() {
             data-tip={t("Volver al mapa de la bóveda")}
             onClick={() => setModo("grafo")}
           >
-            {t("Constelación")}
+            {t("Cerebro")}
           </button>
         </div>
         <button
@@ -640,7 +640,7 @@ export default function MemoriaView() {
           {modo === "grafo" ? (
             <>
               <div className="mem-doc-head">
-                <h2>{t("Constelación")}</h2>
+                <h2>{t("Cerebro")}</h2>
                 <label className="mem-check">
                   <input
                     type="checkbox"

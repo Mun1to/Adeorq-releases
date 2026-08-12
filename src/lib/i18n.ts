@@ -735,7 +735,11 @@ const EN: Record<string, string> = {
   "documento": "document",
   "Volver a leer la carpeta": "Read the folder again",
   "Documento": "Document",
-  "Constelación": "Constellation",
+  "Cerebro": "Brain",
+  "Ver solo este proyecto": "Show only this project",
+  "Ver la bola entera": "Back to the whole sphere",
+  "Rueda para entrar dentro · arrastra un nodo para moverlo · el fondo para girar · clic para abrirlo":
+    "Wheel to fly inside · drag a node to move it · drag the background to spin · click to open",
   "Volver al mapa de la bóveda": "Back to the vault map",
   "Solo los que tienen enlaces": "Only the linked ones",
   "Abrir fuera": "Open outside",

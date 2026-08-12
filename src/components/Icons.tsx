@@ -267,7 +267,8 @@ export function SearchIcon({ size = 17 }: Props) {
 }
 
 /** El segundo cerebro: notas enlazadas entre sí, que es lo que se ve en la
-    Constelación. Tres puntos y sus hilos, no un cerebro dibujado. */
+    Cerebro. Tres puntos y sus hilos: la vista se llama así por lo que ES una
+    bóveda de notas enlazadas, no porque haya que dibujar un cerebro. */
 export function MemoryIcon({ size = 17 }: Props) {
   return (
     <svg {...svg(size)}>

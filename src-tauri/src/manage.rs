@@ -354,6 +354,18 @@ pub fn delete_session(
             .ok_or("No encuentro el archivo de esa sesión de Codex")?;
         return to_recycle_bin(&path);
     }
+    // Pi tiene el MISMO problema y por eso está aquí al lado: guarda por cwd,
+    // no por proyecto de Claude, y nombra sus ficheros
+    // `<marca-de-tiempo>_<id>.jsonl`, así que tampoco hay ruta que componer.
+    // Cuando se arregló lo de Codex, esta rama se quedó sin escribir y el fallo
+    // volvió idéntico cuatro días después (Munir, 2026-08-12: «no me deja
+    // eliminarla, le doy a la papelera aceptar y no se elimina»). Cualquier CLI
+    // que se añada a `sessions.rs` con la carpeta vacía necesita su rama AQUÍ.
+    if fuente.as_deref() == Some("pi") {
+        let path = crate::sessions::pi_transcript(&session_id)
+            .ok_or("No encuentro el archivo de esa sesión de Pi")?;
+        return to_recycle_bin(&path);
+    }
     let path = transcript_path(&folder, &session_id)?;
     if !path.is_file() {
         return Err("No encuentro el transcript de esa sesión".into());

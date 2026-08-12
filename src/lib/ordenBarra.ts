@@ -292,3 +292,33 @@ export function huecoEn(sinLaMano: string[], destino: string, lado: Lado): numbe
   if (i < 0) return -1;
   return lado === "antes" ? i : i + 1;
 }
+
+/**
+ * El orden manual de cada lista, leído de lo que hubiera guardado en disco.
+ *
+ * Hasta la 0.9.99 esto era UN array, `sueltasOrder`, y guardaba el orden del
+ * cajón del final de la barra. Solo de ese: las sueltas de un proyecto y las de
+ * un grupo son otras listas y no tenían dónde ir, así que arrastrar dentro de
+ * un proyecto abría el hueco y al soltar no pasaba nada. Ahora hay una lista
+ * por sitio, con su clave (`sueltas`, `p:<proyecto>`, `g:<grupo>`).
+ *
+ * Lo viejo se SUBE a su clave en vez de tirarlo: quien tuviera sus sueltas
+ * colocadas a mano se las encontraría barajadas al actualizar. Y se comprueba
+ * de verdad que lo que hay dentro son listas de textos, porque esto viene de un
+ * fichero que puede estar a medio escribir o de una versión que no existía.
+ */
+export function ordenGuardado(guardado: unknown): Record<string, string[]> {
+  const salida: Record<string, string[]> = {};
+  if (!guardado || typeof guardado !== "object") return salida;
+  const g = guardado as { ordenLista?: unknown; sueltasOrder?: unknown };
+  const esLista = (v: unknown): v is string[] =>
+    Array.isArray(v) && v.every((x) => typeof x === "string");
+  if (g.ordenLista && typeof g.ordenLista === "object" && !Array.isArray(g.ordenLista)) {
+    for (const [k, v] of Object.entries(g.ordenLista)) {
+      if (k && esLista(v)) salida[k] = v;
+    }
+  }
+  // Solo si la clave nueva no trae ya lo suyo: una vez migrado, manda la nueva.
+  if (!salida.sueltas && esLista(g.sueltasOrder)) salida.sueltas = g.sueltasOrder;
+  return salida;
+}

@@ -1,4 +1,4 @@
-// Cuánto trabajo tiene la Constelación por fotograma, con la bóveda REAL.
+// Cuánto trabajo tiene la Cerebro por fotograma, con la bóveda REAL.
 // Lo que importa: cuántos hilos llevan `shadowBlur`, que es lo caro de canvas.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -87,7 +87,7 @@ console.log("ANTES:", pares.length + docs.length, "llamadas, de ellas", brillan,
 
 // Cuántos documentos tiene cada proyecto: es lo que decide el arco de cada uno
 // y, con él, cuánto sitio le queda a un punto antes de tocar a su vecino. Se
-// mide de verdad en `scripts/constelacion-check.ts`, que sí puede importar el
+// mide de verdad en `scripts/cerebro-check.ts`, que sí puede importar el
 // reparto; aquí sale la forma de la bóveda para poder alimentarlo.
 const porFam = new Map();
 for (const d of docs) {

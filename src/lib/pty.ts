@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { ordenGuardado } from "./ordenBarra";
 import { leerPerfil, raiz } from "./perfil";
 import type { PedidoMcp, RespuestaMcp } from "./supremo";
 
@@ -633,12 +634,25 @@ export interface UiState {
    * `~/.claude` se cae sola de aquí sin dejar hueco.
    */
   pinned: string[];
-  /** El orden que le has dado a mano a las sesiones no agrupadas, por id.
-      Vacío mientras no muevas ninguna: hasta entonces las coloca la actividad,
-      igual que a los proyectos. Se guarda la lista ENTERA que estabas viendo,
-      no solo la movida, o el resto seguiría bailando alrededor de la que
-      colocaste. */
-  sueltasOrder: string[];
+  /**
+   * El orden que le has dado a mano a las sesiones, UNA LISTA POR SITIO.
+   *
+   * Vacío mientras no muevas ninguna: hasta entonces las coloca la actividad,
+   * igual que a los proyectos. Se guarda la lista ENTERA que estabas viendo, no
+   * solo la movida, o el resto seguiría bailando alrededor de la que colocaste.
+   *
+   * Fue un solo array (`sueltasOrder`) hasta el 2026-08-12, y eso era el bug:
+   * en la barra hay MUCHAS listas de sesiones —el cajón del final, las sueltas
+   * de cada proyecto, las de cada grupo— y todas menos una se quedaban sin
+   * sitio donde guardar su orden. Arrastrabas una sesión dentro de un proyecto,
+   * veías el hueco abrirse, soltabas y no pasaba nada (Munir, 2026-08-12: «la
+   * muevo más arriba o más abajo y no se queda donde la arrastro»). Las claves:
+   *   · `sueltas`      el cajón del final de la barra
+   *   · `p:<proyecto>` las sueltas de ese proyecto
+   *   · `g:<grupoId>`  las de ese grupo
+   * Las fijadas no entran: su orden ES `pinned`.
+   */
+  ordenLista: Record<string, string[]>;
   railMode: RailMode;
 }
 
@@ -653,7 +667,7 @@ export const EMPTY_UI_STATE: UiState = {
   hiddenProjects: [],
   projectOrder: [],
   pinned: [],
-  sueltasOrder: [],
+  ordenLista: {},
   railMode: "full",
 };
 
@@ -674,7 +688,10 @@ export async function loadUiState(): Promise<UiState> {
       hiddenProjects: Array.isArray(parsed.hiddenProjects) ? parsed.hiddenProjects : [],
       projectOrder: Array.isArray(parsed.projectOrder) ? parsed.projectOrder : [],
       pinned: Array.isArray(parsed.pinned) ? parsed.pinned : [],
-      sueltasOrder: Array.isArray(parsed.sueltasOrder) ? parsed.sueltasOrder : [],
+      // La regla vive en `ordenBarra` con el resto del orden de la barra, y
+      // ahí se prueba (`scripts/orden-check.ts`): incluye subir a su clave el
+      // `sueltasOrder` suelto que escribía la 0.9.99 y anteriores.
+      ordenLista: ordenGuardado(parsed),
       railMode:
         parsed.railMode === "logo" || parsed.railMode === "tira" ? parsed.railMode : "full",
     };

@@ -717,7 +717,7 @@ export default function Sidebar({
       // Y el orden que les diste a mano, si diste alguno. Va DESPUÉS de
       // `build` porque `build` es quien las filtra (archivadas, fijadas) y
       // ordenar antes de filtrar habría dejado huecos en tu orden.
-      sueltas.sessions = conOrdenManual(sueltas.sessions, ui.sueltasOrder);
+      sueltas.sessions = conOrdenManual(sueltas.sessions, ui.ordenLista.sueltas ?? []);
       sueltas.suelto = true;
       sueltas.vivas = vivasSueltas;
       if (vivasSueltas.length) sueltas.hasLive = true;
@@ -746,7 +746,7 @@ export default function Sidebar({
     // había servido de nada (Munir, 2026-08-09: «no se quedan donde las
     // mueves»). Cada lista de orden que se lea aquí dentro tiene que estar en
     // esta lista de abajo, o miente.
-    ui.sueltasOrder,
+    ui.ordenLista,
     verViejas,
   ]);
 
@@ -1361,6 +1361,10 @@ export default function Sidebar({
     return mejor;
   };
 
+  /** La clave de una lista de sesiones en `ui.ordenLista`. Un solo sitio, o el
+      que guarda y el que pinta acabarían mirando cajones distintos. */
+  const claveLista = (g: Group) => (g.suelto ? "sueltas" : `p:${g.name}`);
+
   const mirarDestino = (x: number, y: number, id: string) => {
     const bajo = document.elementFromPoint(x, y);
     const grupo = bajo?.closest<HTMLElement>("[data-grupo]")?.dataset.grupo;
@@ -1406,7 +1410,14 @@ export default function Sidebar({
         setHueco(null); // agrupar no abre hueco: se enciende la fila y ya
       } else {
         const lado: Lado = zona === "centro" ? "antes" : zona;
-        marcar(`r:${lado}:${fila}`);
+        // En QUÉ lista está la fila sobre la que sueltas. Se lee de la lista
+        // que la contiene y no de dónde venía la que llevas: son dos sitios
+        // distintos en cuanto arrastras de un proyecto a otro, y el orden se
+        // guarda en el de destino. Sin este dato solo se sabía colocar en el
+        // cajón del final, así que arrastrar dentro de un proyecto abría el
+        // hueco y al soltar no pasaba nada (Munir, 2026-08-12).
+        const lista = li?.closest<HTMLElement>("ul.sessions[data-orden]")?.dataset.orden ?? "";
+        marcar(`r:${lado}:${lista}:${fila}`);
         abrirHueco(li, id, fila, caja?.height ?? 0, lado);
       }
     }
@@ -1515,6 +1526,31 @@ export default function Sidebar({
       quede con la del primer render. Ver el porqué en el efecto de arriba. */
   const alSoltar = useRef<(e: { clientX: number; clientY: number }) => void>(() => {});
 
+  /**
+   * Los ids de una lista, en el orden EN QUE SE ESTÁN VIENDO.
+   *
+   * Salen del DOM y no de reconstruir la lista desde el estado, y eso es lo que
+   * hace que colocar valga igual en las sueltas de un proyecto, en las de un
+   * grupo y en el cajón del final sin tres caminos distintos: quién está
+   * primero lo sabe exactamente quien lo está pintando. Antes se sacaban de
+   * `sueltas.sessions`, o sea del cajón del final y de ningún otro sitio, y por
+   * eso arrastrar dentro de un proyecto no colocaba nada.
+   *
+   * Con el buscador puesto devuelve vacío a propósito: lo que se ve es media
+   * lista, y guardar ese orden borraría el sitio de todo lo que el filtro
+   * esconde.
+   */
+  const idsVisiblesDe = (lista: string): string[] => {
+    if (!lista || filter.trim()) return [];
+    const ul = document.querySelector<HTMLElement>(
+      `ul.sessions[data-orden="${CSS.escape(lista)}"]`,
+    );
+    if (!ul) return [];
+    return [...ul.querySelectorAll<HTMLElement>("[data-sesion]")]
+      .map((el) => el.dataset.sesion ?? "")
+      .filter(Boolean);
+  };
+
   const sesionUp = (e: { clientX: number; clientY: number }) => {
     const a = arrastre.current;
     const destino = a?.destino ?? null;
@@ -1550,7 +1586,7 @@ export default function Sidebar({
     // mueve de proyecto. Dos listas distintas la pueden recibir, y cada una
     // guarda su orden en su sitio.
     if (destino.startsWith("r:")) {
-      const [, lado, hasta] = destino.split(":") as [string, Lado, string];
+      const [, lado, lista, hasta] = destino.split(":") as [string, Lado, string, string];
       // `colocarSuelta` con el mismo `lado` que abrió el hueco, y sobre la lista
       // SIN la fila que llevas, que es exactamente lo que ella hace por dentro.
       // Así el sitio que viste abierto y el que ocupa al soltar son el mismo
@@ -1568,33 +1604,45 @@ export default function Sidebar({
           pinned: colocarSuelta(prev.pinned, a.id, hasta, lado),
         }));
       } else if (ui.pinned.includes(a.id)) {
-        // Bajaba de las fijadas a las sueltas: sale de arriba y se coloca donde
-        // la has dejado. Las dos cosas en la MISMA escritura, o entre una y otra
-        // la barra se pintaría con la sesión en ningún sitio.
-        const visibles = filter.trim() ? [] : (sueltas?.sessions ?? []).map((s) => s.id);
+        // Bajaba de las fijadas a una lista normal: sale de arriba y se coloca
+        // donde la has dejado. Las dos cosas en la MISMA escritura, o entre una
+        // y otra la barra se pintaría con la sesión en ningún sitio.
+        const visibles = idsVisiblesDe(lista);
         mutate((prev) => ({
           ...prev,
           pinned: prev.pinned.filter((x) => x !== a.id),
-          sueltasOrder: visibles.includes(hasta)
-            ? colocarSuelta(visibles, a.id, hasta, lado)
-            : prev.sueltasOrder,
+          ordenLista: visibles.includes(hasta)
+            ? { ...prev.ordenLista, [lista]: colocarSuelta(visibles, a.id, hasta, lado) }
+            : prev.ordenLista,
         }));
-      } else {
-        // El orden se guarda ENTERO tal y como se está viendo, y por eso hace
-        // falta la lista visible: hasta el primer arrastre no hay orden manual
-        // ninguno, así que guardar solo la movida dejaría al resto bailando con
-        // la actividad alrededor de la que acabas de colocar.
-        // Con el buscador puesto NO se coloca a mano, y es a propósito: lo que
-        // se ve es media lista, así que guardar ese orden se comería de un
-        // plumazo el sitio de todas las que el filtro esconde. Arrastrar sigue
-        // valiendo para agrupar y para mover de proyecto, que no dependen del
-        // orden; colocar, no.
-        const visibles = filter.trim() ? [] : (sueltas?.sessions ?? []).map((s) => s.id);
-        if (visibles.includes(a.id) && visibles.includes(hasta)) {
+      } else if (lista) {
+        /* El orden se guarda ENTERO tal y como se está viendo, y por eso hace
+           falta la lista visible: hasta el primer arrastre no hay orden manual
+           ninguno, así que guardar solo la movida dejaría al resto bailando con
+           la actividad alrededor de la que acabas de colocar.
+           Con el buscador puesto NO se coloca a mano, y es a propósito: lo que
+           se ve es media lista, así que guardar ese orden se comería de un
+           plumazo el sitio de todas las que el filtro esconde. Arrastrar sigue
+           valiendo para agrupar y para mover de proyecto, que no dependen del
+           orden; colocar, no.
+
+           Y los ids salen del DOM de esa lista (ver `idsVisiblesDe`), no de
+           reconstruirla desde el estado. */
+        const visibles = idsVisiblesDe(lista);
+        if (visibles.includes(hasta)) {
           mutate((prev) => ({
             ...prev,
-            sueltasOrder: colocarSuelta(visibles, a.id, hasta, lado),
+            ordenLista: { ...prev.ordenLista, [lista]: colocarSuelta(visibles, a.id, hasta, lado) },
           }));
+          // Y si venía de OTRA lista, además de colocarla hay que mudarla: si
+          // no, se guardaría su sitio en una lista donde no se pinta.
+          if (lista.startsWith("g:")) assignGroup(a.id, lista.slice(2));
+          else if (lista === "sueltas") asignarProyecto(a.id, SUELTAS);
+          else if (lista.startsWith("p:")) {
+            const suyo = lista.slice(2);
+            if (suyo !== proyecto) asignarProyecto(a.id, suyo);
+            else if (ui.sessionGroup[a.id]) assignGroup(a.id, null);
+          }
         }
       }
       return;
@@ -2490,8 +2538,16 @@ export default function Sidebar({
               )}
 
               {!gruposOcultos.has(pg.id) && (
-                <ul className="sessions sgroup-list">
-                  {inside.map((s) => sessionRow(s, g, false))}
+                /* `data-orden` es la CLAVE de esta lista en `ui.ordenLista`, y
+                   la lee `mirarDestino` del DOM al soltar. Así el que coloca no
+                   tiene que adivinar en qué lista estabas: se lo dice la lista
+                   misma, que es la única que lo sabe con seguridad.
+                   (`data-lista` NO vale: la zona de sueltas ya lo usa para otra
+                   cosa, marcar que llevas algo en la mano.) */
+                <ul className="sessions sgroup-list" data-orden={`g:${pg.id}`}>
+                  {conOrdenManual(inside, ui.ordenLista[`g:${pg.id}`] ?? []).map((s) =>
+                    sessionRow(s, g, false),
+                  )}
                 </ul>
               )}
             </li>
@@ -2545,8 +2601,14 @@ export default function Sidebar({
           {loose.length === 0 && llevando && ui.sessionGroup[llevando] && (
             <span className="sueltas-pista">{t("Aquí queda fuera de su grupo")}</span>
           )}
-          <ul className="sessions sueltas-lista">
-            {loose.map((s) => sessionRow(s, g, false))}
+          {/* El cajón del final de la barra pasa por aquí igual que un
+              proyecto, pero su clave es `sueltas` y no `p:<nombre>`: es la que
+              ya venía escrita de antes, y cambiársela le barajaría a Munir el
+              orden que tiene puesto. */}
+          <ul className="sessions sueltas-lista" data-orden={claveLista(g)}>
+            {conOrdenManual(loose, ui.ordenLista[claveLista(g)] ?? []).map((s) =>
+              sessionRow(s, g, false),
+            )}
           </ul>
         </li>
         {showArchived && g.archivedSessions.map((s) => sessionRow(s, g, true))}

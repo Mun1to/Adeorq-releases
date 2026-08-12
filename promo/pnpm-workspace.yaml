@@ -1,0 +1,9 @@
+# Este archivo existe para que `promo` sea su PROPIA raíz de instalación y no
+# cuelgue de la del repo. Remotion arrastra un Chrome headless de unos 150 MB y
+# no tiene por qué bajárselo quien clona el producto para compilarlo.
+#
+# Y aquí vive `allowBuilds`, que en pnpm 11 se mudó desde el `pnpm.onlyBuilt
+# Dependencies` del package.json (que sigue aceptándose sin dar error, pero se
+# ignora en silencio y lo único que ves es que esbuild no se compila).
+allowBuilds:
+  esbuild: true

@@ -1226,7 +1226,11 @@ const EN: Record<string, string> = {
   "Marcar las que no tengo": "Tick the ones I lack",
   "Quitar las marcas": "Clear the ticks",
   "ya la tienes": "already open here",
+  "en un panel": "in a pane",
+  "en la barra": "in the rail",
+  "de esta semana": "from this week",
   "· {n} ya en Adeorq": "· {n} already in Adeorq",
+  "· ya las tienes todas": "· you already have them all",
   "Ponerlas en la barra ({n})": "Put them in the rail ({n})",
   "Ponerla en la barra": "Put it in the rail",
   "Van a la barra de la izquierda, no se abre ninguna terminal. Las abres tú desde ahí, una a una.":

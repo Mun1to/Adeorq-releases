@@ -1,0 +1,26 @@
+{
+  "name": "adeorq-promo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "El video de promocion de Adeorq. Fuera del workspace a proposito: Remotion arrastra un Chrome headless y no tiene por que instalarse al clonar el producto. Se instala aqui dentro con `pnpm install --ignore-workspace`.",
+  "scripts": {
+    "capturas": "node capturas.mjs",
+    "ver": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Promo out/adeorq.mp4 --crf=18",
+    "gif": "remotion render src/index.ts PromoCorta out/adeorq.gif --codec=gif --every-nth-frame=3 --width=720",
+    "vertical": "remotion render src/index.ts PromoVertical out/adeorq-vertical.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.507",
+    "@remotion/fonts": "^4.0.507",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "remotion": "^4.0.507"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "typescript": "~5.8.3"
+  }
+}

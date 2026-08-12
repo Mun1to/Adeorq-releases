@@ -41,6 +41,7 @@ import {
   type Lado,
 } from "../lib/ordenBarra";
 import { levantar, type Fantasma } from "../lib/fantasma";
+import { saleEnLaBarra } from "../lib/enLaBarra";
 import UpdateBar from "./UpdateBar";
 import { hueOf } from "../lib/colors";
 import { sessionIdOf } from "../lib/comandos";
@@ -597,13 +598,12 @@ export default function Sidebar({
       abiertas.map((a) => sessionIdOf(a.command)).filter((x): x is string => !!x),
     );
     // Las de más de una semana no se enseñan... salvo que las tengas abiertas o
-    // que las hayas traído tú desde el ＋. Desde que ese cuadro sabe buscar
-    // entre las viejas, la regla de la semana las hacía desaparecer justo
-    // después de elegirlas: ir a por una de hace un mes y no verla en ningún
-    // lado. Lo que está en pantalla, y lo que has pedido a mano, mandan sobre
-    // la edad.
-    const fresh = sessions.filter(
-      (s) => verViejas || s.fresh !== "muerta" || enPantalla.has(s.id) || traidas.has(s.id),
+    // que las hayas traído tú desde el ＋. La regla entera, con su porqué, en
+    // `lib/enLaBarra.ts`: la comparte el asistente del ＋, que es quien decide
+    // cuáles te FALTAN, y tenerla escrita dos veces era justo el fallo (ofrecía
+    // traer las que ya estaban aquí, una y otra vez).
+    const fresh = sessions.filter((s) =>
+      saleEnLaBarra(s, { enPantalla, traidas, verViejas }),
     );
     const byProject = new Map<string, SessionInfo[]>();
     for (const s of fresh) {

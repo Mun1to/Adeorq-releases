@@ -1,0 +1,5 @@
+out/
+node_modules/
+# Las capturas se traen de web/assets/screens con `pnpm capturas`:
+# una sola copia de cada imagen, la de la web.
+public/pantallas/

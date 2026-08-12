@@ -16,6 +16,7 @@ import {
   detectClis,
   findAgy,
   listProjects,
+  loadUiState,
   mainAccount,
   ollamaModels,
   scanSessions,
@@ -23,6 +24,7 @@ import {
   type Project,
   type SessionInfo,
 } from "../lib/pty";
+import { porQueSale } from "../lib/enLaBarra";
 import { raiz } from "../lib/perfil";
 import { PROVIDERS, providerOf } from "../lib/providers";
 import { useT } from "../lib/i18n";
@@ -136,6 +138,8 @@ export default function NewSession({
    * las devuelve, pero las cuatro pantallas que las pintan las descartan por
    * viejas, así que hasta ahora no había forma de llegar a ellas desde la app. */
   const [sesiones, setSesiones] = useState<SessionInfo[] | null>(null);
+  /** Las que ya trajiste a mano a la barra (`ui.traidas`). Ver `irARetomar`. */
+  const [traidas, setTraidas] = useState<Set<string>>(new Set());
   const [busca, setBusca] = useState("");
   const [elegidas, setElegidas] = useState<Set<string>>(new Set());
 
@@ -249,6 +253,15 @@ export default function NewSession({
         setError(String(e));
         setSesiones([]);
       });
+    /* Y las que ya trajiste a mano, que es la mitad de la respuesta a «¿cuáles
+       me faltan?». Se lee aquí y no llega por props porque quien la guarda es
+       la barra, y hacerla subir hasta App para volver a bajarla sería pasear un
+       dato por tres componentes que no lo usan. Si falla, se sigue con la lista
+       vacía: como mucho se ofrece traer algo que ya tienes, que es exactamente
+       lo que pasaba antes, y no se rompe nada. */
+    loadUiState()
+      .then((ui) => setTraidas(new Set(ui.traidas)))
+      .catch(() => {});
   };
 
   /** Lo que se enseña: todo lo que responda a la búsqueda, y lo más reciente
@@ -260,15 +273,28 @@ export default function NewSession({
 
   const tope = Math.max(1, maxPanes);
 
-  /** Las que se pueden traer: las que NO están ya en un panel.
+  /** Por qué se ve ya cada sesión en la barra, o `null` si de verdad falta.
    *
-   *  No es una comodidad, es lo que evita el fallo: abrir dos veces la misma
-   *  conversación deja a las dos esperándose, y el aviso llegaba después de
-   *  haberla abierto. Aquí se ve antes, y la casilla ni siquiera se deja
-   *  marcar. */
+   *  Lo decide `lib/enLaBarra.ts`, que es LA MISMA función con la que la barra
+   *  elige qué pinta. Antes aquí solo se miraba si estaba abierta en un panel,
+   *  y por eso este cuadro ofrecía traer sesiones que ya estaban en la barra y
+   *  las seguía ofreciendo después de traerlas (Munir, 2026-08-12). */
+  const motivo = useMemo(() => {
+    const enPantalla = yaAbiertas;
+    const m = new Map<string, ReturnType<typeof porQueSale>>();
+    for (const s of visibles) m.set(s.id, porQueSale(s, { enPantalla, traidas }));
+    return m;
+  }, [visibles, yaAbiertas, traidas]);
+
+  /** Las que de verdad se pueden traer: las que no están ya en la barra.
+   *
+   *  Lo de los paneles no es una comodidad, es lo que evita el fallo: abrir dos
+   *  veces la misma conversación deja a las dos esperándose, y el aviso llegaba
+   *  después de haberla abierto. Aquí se ve antes, y la casilla ni siquiera se
+   *  deja marcar. */
   const traibles = useMemo(
-    () => visibles.filter((s) => !yaAbiertas.has(s.id)),
-    [visibles, yaAbiertas],
+    () => visibles.filter((s) => motivo.get(s.id) === null),
+    [visibles, motivo],
   );
   const cuantasYa = visibles.length - traibles.length;
   const marcadas = traibles.filter((s) => elegidas.has(s.id));
@@ -377,10 +403,24 @@ export default function NewSession({
                         })
                       : t("{n} sesiones", { n: visibles.length })}
                     {/* Cuántas de esas ya las tienes puestas: dicho aquí, el
-                        número de arriba deja de parecer que sobran. */}
+                        número de arriba deja de parecer que sobran.
+
+                        Y cuando no falta NINGUNA se dice con todas las letras,
+                        porque si no lo único que se ve es el botón grande en
+                        gris, que se lee como una avería y no como un «ya está
+                        todo». Pasa a menudo desde que el recuento sabe que una
+                        sesión de esta semana ya sale sola en la barra.
+
+                        Corto, y no «ya las tienes todas en Adeorq»: esta línea
+                        comparte renglón con dos botones, y con la frase larga
+                        se partía en dos y los mandaba a bailar contra el borde
+                        derecho (Munir, 2026-08-12). Aquí dentro se sabe que
+                        estamos en Adeorq. */}
                     {cuantasYa > 0 && (
                       <span className="ret-ya-n">
-                        {t("· {n} ya en Adeorq", { n: cuantasYa })}
+                        {traibles.length === 0
+                          ? t("· ya las tienes todas")
+                          : t("· {n} ya en Adeorq", { n: cuantasYa })}
                       </span>
                     )}
                   </span>
@@ -409,7 +449,8 @@ export default function NewSession({
 
                 <ul className="wiz-list ret-lista">
                   {visibles.map((s) => {
-                    const ya = yaAbiertas.has(s.id);
+                    const por = motivo.get(s.id) ?? null;
+                    const ya = por !== null;
                     return (
                       <li key={s.id}>
                         {/* Las que ya tienes se quedan a la vista, en dorado y
@@ -431,9 +472,24 @@ export default function NewSession({
                           <span className="ret-txt">
                             <span className="ret-tit">{s.title}</span>
                             <span className="ret-pie">
-                              {s.project} · {s.ago}
-                              {ya ? (
-                                <span className="ret-ya">{t("ya la tienes")}</span>
+                              {/* En su propio elemento para poder recortarlo:
+                                  un proyecto de nombre largo empujaba la
+                                  pastilla fuera de la fila. */}
+                              <span className="ret-donde">
+                                {s.project} · {s.ago}
+                              </span>
+                              {/* Y se dice POR QUÉ ya la tienes, que son tres
+                                  cosas distintas y antes las tres ponían «ya la
+                                  tienes»: con eso, ver una sesión de ayer
+                                  marcada como que ya la tenías parecía un fallo
+                                  del buscador en vez de la regla de la semana
+                                  haciendo su trabajo. */}
+                              {por === "abierta" ? (
+                                <span className="ret-ya">{t("en un panel")}</span>
+                              ) : por === "traida" ? (
+                                <span className="ret-ya">{t("en la barra")}</span>
+                              ) : por === "reciente" ? (
+                                <span className="ret-ya">{t("de esta semana")}</span>
                               ) : (
                                 /* Que esté viva se dice AQUÍ y no después:
                                    abrir una que ya corre en otro sitio bloquea

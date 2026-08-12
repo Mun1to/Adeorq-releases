@@ -17,6 +17,103 @@
 // cerebelo, tronco— y se descartó por gusto; volver a la bola fue cambiar UNA
 // función, porque el reparto nunca supo qué forma tenía debajo.
 
+/* ═══════════════════════════════════════════════════════ LO QUE SE PUEDE TOCAR
+ *
+ * Munir vio los mandos del prototipo en el navegador y los quiere en la app:
+ * «que sea customizable el glow, el tamaño, etc.». Son seis números y dos
+ * interruptores, y cada uno es una decisión de gusto que yo no debería estar
+ * tomando por él.
+ *
+ * Van de 0 a 1 (o su rango) y NO en píxeles: así el dibujo puede reinterpretar
+ * lo que significa «resplandor 0,6» si algún día cambia cómo se pinta, sin que
+ * el ajuste guardado de nadie quede apuntando a un número que ya no existe.
+ */
+export interface AjustesCerebro {
+  /** El desenfoque del resplandor, en píxeles de pantalla. 0 lo apaga. */
+  brillo: number;
+  /** Cuánto sobresalen los nodos del cascarón. 1 es lo de fábrica. */
+  alto: number;
+  /** Cuánto se ven los enlaces de la bóveda. */
+  enlaces: number;
+  /** Cuánto se ve la malla que cose los nodos entre sí. */
+  tejido: number;
+  /** Cuánto se ve la rejilla de meridianos y paralelos. */
+  rejilla: number;
+  /** Cuánto se aparta lo que tienes delante al entrar en la bola. */
+  corte: number;
+  /** Si gira sola cuando no la estás tocando. */
+  gira: boolean;
+  /** Si se escriben los nombres encima. */
+  nombres: boolean;
+}
+
+export const AJUSTES_FABRICA: AjustesCerebro = {
+  brillo: 6,
+  alto: 1,
+  enlaces: 0.55,
+  tejido: 1,
+  rejilla: 1,
+  corte: 1,
+  gira: true,
+  nombres: true,
+};
+
+/** Los topes de cada mando, en un solo sitio: los usan el que guarda (para no
+    aceptar basura) y el que pinta los deslizadores (para su rango). */
+export const TOPES: Record<keyof Omit<AjustesCerebro, "gira" | "nombres">, [number, number]> = {
+  brillo: [0, 24],
+  alto: [0, 2.2],
+  enlaces: [0, 2.4],
+  tejido: [0, 2.4],
+  rejilla: [0, 2.6],
+  corte: [0.2, 2.6],
+};
+
+const CLAVE = "adeorq-cerebro";
+
+/**
+ * Los ajustes guardados, aceptando cualquier cosa que haya en disco.
+ *
+ * Defensivo a propósito y no por costumbre: esto viene de `localStorage`, que
+ * puede tener lo que escribió una versión anterior, algo a medio escribir, o un
+ * `null` de un `JSON.stringify(undefined)`. Un solo número que llegue como texto
+ * («0.6» en vez de 0,6) haría que una multiplicación diera `NaN`, y un `NaN` en
+ * un alfa de canvas no avisa: deja de dibujarse esa capa y la pantalla sale a
+ * medias sin un solo error en la consola.
+ */
+export function ajustesGuardados(crudo: unknown): AjustesCerebro {
+  const out: AjustesCerebro = { ...AJUSTES_FABRICA };
+  if (!crudo || typeof crudo !== "object") return out;
+  const o = crudo as Record<string, unknown>;
+  for (const k of Object.keys(TOPES) as Array<keyof typeof TOPES>) {
+    const v = o[k];
+    if (typeof v !== "number" || !Number.isFinite(v)) continue;
+    const [min, max] = TOPES[k];
+    out[k] = Math.max(min, Math.min(max, v));
+  }
+  if (typeof o.gira === "boolean") out.gira = o.gira;
+  if (typeof o.nombres === "boolean") out.nombres = o.nombres;
+  return out;
+}
+
+/** Lee los ajustes del disco. Nunca lanza: si no se puede leer, los de fábrica. */
+export function leerAjustes(): AjustesCerebro {
+  try {
+    const raw = localStorage.getItem(CLAVE);
+    return raw ? ajustesGuardados(JSON.parse(raw)) : { ...AJUSTES_FABRICA };
+  } catch {
+    return { ...AJUSTES_FABRICA };
+  }
+}
+
+export function guardarAjustes(a: AjustesCerebro): void {
+  try {
+    localStorage.setItem(CLAVE, JSON.stringify(a));
+  } catch {
+    // El disco lleno o el almacenamiento bloqueado no puede tumbar la vista.
+  }
+}
+
 /** Un documento en la bola. */
 export interface Punto {
   id: string;

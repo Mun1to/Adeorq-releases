@@ -47,14 +47,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { familia, type Doc } from "../lib/memoria";
 import {
+  AJUSTES_FABRICA,
+  TOPES,
   altoDe,
   coser,
+  guardarAjustes,
+  leerAjustes,
   nucleo,
   normalDe,
   rejilla,
   repartir,
   tiroDelHilo,
   R,
+  type AjustesCerebro,
   type Hilo,
   type Punto,
   type Region,
@@ -171,6 +176,31 @@ export default function MemoriaGrafo({
   const focoRaton = useRef<string | null>(null);
   focoFijoRef.current = focoFijo;
   const [lista, setLista] = useState<Region[]>([]);
+  /** Qué pestaña del tablero está delante. Con veinticinco proyectos la lista ya
+      llena el panel, así que los mandos NO pueden ir debajo: se cambia. */
+  const [pestana, setPestana] = useState<"proyectos" | "ajustes">("proyectos");
+  /* Los ajustes van en estado (los pinta el tablero) Y en un ref (los lee el
+     bucle de dibujo). El ref no es una duplicación por comodidad: el bucle se
+     monta una vez y su closure se quedaría con los ajustes del primer render
+     para siempre, así que sin él mover un deslizador no cambiaría nada. */
+  const [ajustes, setAjustes] = useState<AjustesCerebro>(() => leerAjustes());
+  const aj = useRef(ajustes);
+  aj.current = ajustes;
+  const tocar = useCallback((cambio: Partial<AjustesCerebro>) => {
+    setAjustes((v) => {
+      const n = { ...v, ...cambio };
+      guardarAjustes(n);
+      return n;
+    });
+  }, []);
+  /* Y repintar DESPUÉS de que el ajuste nuevo esté puesto, no al pedirlo.
+     Marcándolo dentro de `tocar`, un fotograma que cayera entre el cambio y el
+     render pintaría con el valor viejo y dejaría el dibujo por limpio: el
+     deslizador se movería y no pasaría nada hasta tocar otra cosa. Aquí ya está
+     `aj.current` al día. */
+  useEffect(() => {
+    sucio.current = true;
+  }, [ajustes]);
 
   /** Los enlaces son de ida: para saber si un documento está conectado cuenta
       igual que le enlacen a él, así que el grado se suma por los dos lados. */
@@ -268,7 +298,7 @@ export default function MemoriaGrafo({
       const y2 = py * cp - z1 * sp;
       const z2 = py * sp + z1 * cp;
       const prof = c.dist - z2;
-      const corte = NEAR;
+      const corte = NEAR * aj.current.corte;
       if (prof <= corte * 0.55) {
         o.ok = false;
         return null;
@@ -359,9 +389,10 @@ export default function MemoriaGrafo({
       ultimo = ts;
       const c = cam.current;
       const K = calidad.current;
+      const A = aj.current;
 
       const quieto = (ratonEncima.current && sobreLaBola.current) || arrastre.current !== null;
-      const girando = !sinMovimiento && !quieto;
+      const girando = !sinMovimiento && A.gira && !quieto;
       if (girando) {
         c.yaw += dt * 0.115 * Math.min(1, c.dist / 2.4);
         sucio.current = true;
@@ -399,7 +430,7 @@ export default function MemoriaGrafo({
       // estar desplazado hasta ahí.
       const desvio = Math.hypot(c.tx, c.ty, c.tz);
       dLejos = c.dist + 1.16 + desvio;
-      dCerca = Math.max(NEAR * 0.6, c.dist - 1.16 - desvio);
+      dCerca = Math.max(NEAR * A.corte * 0.6, c.dist - 1.16 - desvio);
       if (dLejos - dCerca < 0.05) dLejos = dCerca + 0.05;
 
       /* La resolución. El lienzo nítido va a 1,5 como mucho y no a 2: en una
@@ -478,7 +509,7 @@ export default function MemoriaGrafo({
       for (let i = 0; i < P.length; i++) {
         const p = P[i];
         proyIn(prA[i], p, p.n);
-        const kk = 1 + p.alto;
+        const kk = 1 + p.alto * A.alto;
         punta.x = p.x * kk; punta.y = p.y * kk; punta.z = p.z * kk;
         proyIn(ptA[i], punta, p.n);
       }
@@ -555,13 +586,13 @@ export default function MemoriaGrafo({
         }
       }
       nctx.lineWidth = 0.5; nctx.strokeStyle = "#4f6b8c";
-      nctx.globalAlpha = 0.05 * brillo; nctx.stroke(det);
+      nctx.globalAlpha = 0.05 * brillo * A.rejilla; nctx.stroke(det);
       nctx.lineWidth = 0.7; nctx.strokeStyle = "#86a4c6";
-      nctx.globalAlpha = 0.11 * brillo; nctx.stroke(del);
+      nctx.globalAlpha = 0.11 * brillo * A.rejilla; nctx.stroke(del);
       nctx.lineWidth = 1.5; nctx.strokeStyle = "#dcecff";
-      nctx.globalAlpha = 0.62 * brillo; nctx.stroke(filo);
+      nctx.globalAlpha = 0.62 * brillo * Math.min(1, A.rejilla * 1.4); nctx.stroke(filo);
       hctx.lineWidth = 3; hctx.strokeStyle = "#a8d0ff";
-      hctx.globalAlpha = 0.3; hctx.stroke(filo);
+      hctx.globalAlpha = 0.3 * Math.min(1, A.rejilla * 1.4); hctx.stroke(filo);
       nctx.globalAlpha = 1; hctx.globalAlpha = 1;
 
       /* LA MALLA DEL TEJIDO, en tres capas por CONTORNO: en el filo brilla y por
@@ -587,11 +618,11 @@ export default function MemoriaGrafo({
       capas.forEach((path, ci) => {
         const [col, anc, alf] = tonos[ci];
         nctx.lineWidth = anc; nctx.strokeStyle = col;
-        nctx.globalAlpha = alf * brillo * (bajo || F ? 0.55 : 1);
+        nctx.globalAlpha = alf * brillo * A.tejido * (bajo || F ? 0.55 : 1);
         nctx.stroke(path);
         if (ci === 2) {
           hctx.lineWidth = anc * 2; hctx.strokeStyle = col;
-          hctx.globalAlpha = alf * 0.5; hctx.stroke(path);
+          hctx.globalAlpha = alf * 0.5 * A.tejido; hctx.stroke(path);
         }
       });
       nctx.globalAlpha = 1; hctx.globalAlpha = 1;
@@ -635,7 +666,7 @@ export default function MemoriaGrafo({
         // Dentro hay menos superficie tapando y más madeja delante: la maraña
         // se afloja, que es lo que hace que se pueda mirar desde ahí.
         const dentro = 0.45 + 0.55 * fuera;
-        let alfa = (m.puente ? 0.2 : 0.11) * (0.25 + tt * 0.75) * m.ve * dentro * 0.55 * brillo;
+        let alfa = (m.puente ? 0.2 : 0.11) * (0.25 + tt * 0.75) * m.ve * dentro * A.enlaces * brillo;
         if (!m.mio) alfa *= APAGADO * 1.6;
         else if (F) alfa *= 2.1;
         else if (bajo) alfa *= 0.3;
@@ -814,6 +845,7 @@ export default function MemoriaGrafo({
          dicen dónde estás); los de documento, los que tengas más cerca. Y sin
          pisarse: mejor cinco leídos que quince encima unos de otros. */
       const puestos: Array<{ x: number; y: number; w: number }> = [];
+      if (!A.nombres) { rctx.globalAlpha = 1; return; }
       const hueco = (x: number, y: number, w: number) =>
         !puestos.some((e) => Math.abs(e.x - x) < (e.w + w) / 2 && Math.abs(e.y - y) < 15);
       for (const rg of RG) {
@@ -998,7 +1030,17 @@ export default function MemoriaGrafo({
           que hay debajo: sobre una región encendida el blanco ya estaba al
           máximo y el texto no añadía nada, así que el resplandor se comía los
           nombres (Munir, 2026-08-12). */}
-      <canvas className="mem-cerebro-halo" ref={halo} />
+      {/* El desenfoque va en el `style` y no en el CSS porque es un ajuste suyo.
+          Lo aplica el compositor sobre un lienzo que ya está a un tercio de
+          resolución, así que cuesta una novena parte de dibujarlo desenfocado. */}
+      <canvas
+        className="mem-cerebro-halo"
+        ref={halo}
+        style={{
+          filter: `blur(${ajustes.brillo}px) saturate(1.1)`,
+          opacity: ajustes.brillo > 0 ? 0.4 : 0,
+        }}
+      />
       <canvas className="mem-cerebro-nitido" ref={nitido} />
       <canvas className="mem-cerebro-rotulos" ref={rotulos} />
 
@@ -1007,7 +1049,71 @@ export default function MemoriaGrafo({
           una bolita azul entre trescientas (Munir, 2026-08-12). */}
       {lista.length > 1 && (
         <div className="mem-cerebro-panel">
-          <h3>{t("Proyectos")}</h3>
+          {/* Dos pestañas y no dos secciones apiladas: con veinticinco proyectos
+              la lista ya llena el panel de alto, así que unos mandos debajo
+              obligarían a hacer scroll para llegar a ellos. */}
+          <div className="mem-cerebro-tabs">
+            <button data-on={pestana === "proyectos"} onClick={() => setPestana("proyectos")}>
+              {t("Proyectos")}
+            </button>
+            <button data-on={pestana === "ajustes"} onClick={() => setPestana("ajustes")}>
+              {t("Aspecto")}
+            </button>
+          </div>
+
+          {pestana === "ajustes" && (
+            <div className="mem-cerebro-mandos">
+              {(
+                [
+                  ["brillo", t("Resplandor")],
+                  ["alto", t("Alto de los nodos")],
+                  ["enlaces", t("Enlaces de la bóveda")],
+                  ["tejido", t("Malla del tejido")],
+                  ["rejilla", t("Rejilla de la esfera")],
+                  ["corte", t("Cuánto se aparta lo de delante")],
+                ] as Array<[keyof typeof TOPES, string]>
+              ).map(([clave, nombre]) => {
+                const [min, max] = TOPES[clave];
+                // El paso sale del rango, no a ojo: cien muescas en cualquiera de
+                // ellos, que es fino sin llegar a ser imposible de clavar.
+                const paso = (max - min) / 100;
+                return (
+                  <label key={clave}>
+                    <span>{nombre}</span>
+                    <b>{clave === "brillo" ? Math.round(ajustes[clave]) : Math.round(ajustes[clave] * 100)}</b>
+                    <input
+                      type="range"
+                      min={min}
+                      max={max}
+                      step={paso}
+                      value={ajustes[clave]}
+                      onChange={(e) => tocar({ [clave]: Number(e.target.value) })}
+                    />
+                  </label>
+                );
+              })}
+              <div className="mem-cerebro-fila">
+                <button data-on={ajustes.gira} onClick={() => tocar({ gira: !ajustes.gira })}>
+                  {t("Gira sola")}
+                </button>
+                <button data-on={ajustes.nombres} onClick={() => tocar({ nombres: !ajustes.nombres })}>
+                  {t("Nombres")}
+                </button>
+              </div>
+              <button
+                className="mem-cerebro-salir"
+                onClick={() => {
+                  setAjustes({ ...AJUSTES_FABRICA });
+                  guardarAjustes({ ...AJUSTES_FABRICA });
+                  ensuciar();
+                }}
+              >
+                {t("Volver a lo de fábrica")}
+              </button>
+            </div>
+          )}
+
+          {pestana === "proyectos" && (
           <div className="mem-cerebro-leyenda">
             {lista.map((rg) => (
               <button
@@ -1033,6 +1139,7 @@ export default function MemoriaGrafo({
               </button>
             ))}
           </div>
+          )}
           <button
             className="mem-cerebro-salir"
             onClick={() => {

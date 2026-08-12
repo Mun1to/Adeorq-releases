@@ -736,6 +736,16 @@ const EN: Record<string, string> = {
   "Volver a leer la carpeta": "Read the folder again",
   "Documento": "Document",
   "Cerebro": "Brain",
+  // «Aspecto» ya está traducido más abajo, con los grupos de Ajustes.
+  "Resplandor": "Glow",
+  "Alto de los nodos": "Node height",
+  "Enlaces de la bóveda": "Vault links",
+  "Malla del tejido": "Surface weave",
+  "Rejilla de la esfera": "Sphere grid",
+  "Cuánto se aparta lo de delante": "How much the near side steps aside",
+  "Gira sola": "Spin on its own",
+  "Nombres": "Labels",
+  "Volver a lo de fábrica": "Back to defaults",
   "Ver solo este proyecto": "Show only this project",
   "Ver la bola entera": "Back to the whole sphere",
   "Rueda para entrar dentro · arrastra un nodo para moverlo · el fondo para girar · clic para abrirlo":

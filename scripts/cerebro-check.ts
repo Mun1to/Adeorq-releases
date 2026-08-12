@@ -12,6 +12,9 @@
 // cruza el núcleo, y que el color de dos proyectos vecinos se distingue.
 
 import {
+  AJUSTES_FABRICA,
+  TOPES,
+  ajustesGuardados,
   altoDe,
   colorDeProyecto,
   coser,
@@ -256,6 +259,53 @@ const REAL = { "·": 1, "00-inbox": 2, "01-proyectos": 34, "02-areas": 2, "03-re
     "por fuera, sus líneas cruzarían por encima de las luces");
   ok("cada punto lleva su normal, que es de donde sale el contorno",
     todos.every((p) => Math.abs(Math.hypot(p.n.x, p.n.y, p.n.z) - 1) < 1e-9));
+}
+
+
+/* ── LO QUE SE PUEDE TOCAR ───────────────────────────────────────────────────
+   Esto viene de `localStorage`, o sea de lo que escribió una versión anterior,
+   de algo a medio escribir, o de que alguien lo abrió a mano. Y un solo número
+   malo no se nota hasta que es tarde: un `NaN` en el alfa de un canvas NO da
+   error, simplemente deja de dibujarse esa capa. */
+{
+  ok("sin nada guardado, los de fábrica",
+    JSON.stringify(ajustesGuardados(null)) === JSON.stringify(AJUSTES_FABRICA));
+  ok("y con basura, también",
+    JSON.stringify(ajustesGuardados("pues no")) === JSON.stringify(AJUSTES_FABRICA));
+  ok("un ajuste suelto no borra los demás",
+    ajustesGuardados({ brillo: 3 }).alto === AJUSTES_FABRICA.alto &&
+    ajustesGuardados({ brillo: 3 }).brillo === 3);
+
+  for (const malo of [NaN, Infinity, -Infinity, "0.5", null, {}, []] as unknown[]) {
+    const a = ajustesGuardados({ brillo: malo, tejido: malo });
+    ok(`un valor imposible (${JSON.stringify(malo) ?? String(malo)}) se descarta`,
+      Number.isFinite(a.brillo) && Number.isFinite(a.tejido) &&
+      a.brillo === AJUSTES_FABRICA.brillo,
+      "un NaN en un alfa de canvas no avisa: deja de dibujarse esa capa");
+  }
+
+  const fuera = ajustesGuardados({ brillo: 9999, alto: -50, corte: 0 });
+  ok("y uno fuera de rango se recorta a su tope",
+    fuera.brillo === TOPES.brillo[1] && fuera.alto === TOPES.alto[0] &&
+    fuera.corte === TOPES.corte[0],
+    `salió ${fuera.brillo}, ${fuera.alto}, ${fuera.corte}`);
+
+  ok("los interruptores solo aceptan sí o no",
+    ajustesGuardados({ gira: "sí" }).gira === AJUSTES_FABRICA.gira &&
+    ajustesGuardados({ gira: false }).gira === false);
+
+  // Todo mando tiene su tope, y al revés: si se añade uno y se olvida su rango,
+  // el deslizador saldría sin extremos y guardaría cualquier cosa.
+  const mandos = Object.keys(AJUSTES_FABRICA).filter((k) => k !== "gira" && k !== "nombres");
+  ok("cada mando tiene su rango declarado",
+    mandos.every((k) => k in TOPES) && Object.keys(TOPES).length === mandos.length,
+    mandos.join(", "));
+  ok("y lo de fábrica cae dentro de su propio rango",
+    mandos.every((k) => {
+      const [min, max] = TOPES[k as keyof typeof TOPES];
+      const v = AJUSTES_FABRICA[k as keyof typeof TOPES];
+      return v >= min && v <= max;
+    }));
 }
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

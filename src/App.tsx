@@ -3109,6 +3109,7 @@ function App() {
         style={{ display: view === "lienzo" ? "flex" : "none" }}
       >
         <CanvasView
+          visible={view === "lienzo"}
           panes={canvasPanes}
           // Las de la cabina van solo como DATO, para que el tablero del lienzo
           // pueda contarlas: con las del lienzo a secas diría que no trabaja

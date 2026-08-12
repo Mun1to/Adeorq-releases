@@ -168,7 +168,7 @@ const EN: Record<string, string> = {
   conectadas: "connected",
   "de {n} instalados": "of {n} installed",
   "es la de siempre": "is the usual one",
-  "con ella nacen las terminales nuevas": "new terminals are born with it",
+  "con ella nacen las terminales nuevas": "new terminals open with it",
   "{n} cuentas": "{n} accounts",
   "Los tienes todos. No queda ningún programa de la lista por instalar.":
     "You have them all. No program on the list is left to install.",
@@ -190,7 +190,7 @@ const EN: Record<string, string> = {
     "Creates the folder in {d} with AGENTS.md (your rules), METAS.md and git, ready for its first session.",
   "sesiones de ~/.claude": "sessions from ~/.claude",
   "Describe qué quieres, elige proyecto y roles: pasa por el Reparto, que decide el cliente y el cerebro de cada puesto, les separa los archivos para que no se pisen y deja el papel común en el BUZON.md. Antes de abrir nada verás lo que va a costar.":
-    "Describe what you want, pick a project and roles: it goes through the Split, which picks each seat's client and brain, separates their files so they do not step on each other, and leaves the shared notes in BUZON.md. You see what it will cost before anything opens.",
+    "Describe what you want, pick a project and roles: it goes through the Split, which picks each seat's client and brain, separates their files so they do not step on each other's toes, and leaves the shared notes in BUZON.md. You see what it will cost before anything opens.",
   "Ej.: una landing con formulario de contacto que guarde en SQLite":
     "e.g. a landing page with a contact form that saves to SQLite",
   "Preparar el reparto de {n} puestos": "Prepare the split for {n} seats",
@@ -466,7 +466,7 @@ const EN: Record<string, string> = {
   "Se cierra la sesión en las {n} cuentas conectadas, de todos los CLIs. No se borra nada más: los proyectos, el historial y los ajustes de cada una siguen donde están, y para volver a entrar hay que hacer el login otra vez en cada una.":
     "Signs out of the {n} connected accounts, across every CLI. Nothing else is deleted: each one keeps its projects, its history and its settings, and getting back in means logging into each one again.",
   "«{a}» ({p}) deja de estar conectada. No se borra nada más: sus proyectos, su historial y sus ajustes siguen donde están, y para volver a entrar hay que hacer el login otra vez.":
-    "«{a}» ({p}) stops being connected. Nothing else is deleted: its projects, its history and its settings stay where they are, and getting back in means logging in again.",
+    "“{a}” ({p}) stops being connected. Nothing else is deleted: its projects, its history and its settings stay where they are, and getting back in means logging in again.",
 
   // El botón de Ajustes, que desde la 0.9.74 instala además de comprobar.
   "Buscar e instalar": "Check and install",
@@ -706,6 +706,7 @@ const EN: Record<string, string> = {
     "It checks on start and every 6 hours by itself.",
   "Sobre Adeorq": "About Adeorq",
   "Cargando la guía…": "Loading the guide…",
+  "En esta guía": "In this guide",
   "No pude leer la guía": "Could not read the guide",
   "Contexto": "Context",
   "Cuánto tapa lo que hay detrás": "How much it covers what is behind",
@@ -921,7 +922,7 @@ const EN: Record<string, string> = {
   "Cuánto se ve": "How much shows",
   Desenfoque: "Blur",
   "Si cuesta leer las terminales, baja «cuánto se ve» o sube el desenfoque: el texto manda sobre la foto.":
-    "If the terminals get hard to read, lower «how much shows» or raise the blur: the text outranks the picture.",
+    "If the terminals get hard to read, lower “how much shows” or raise the blur: the text outranks the picture.",
 
   // Cuando una página se niega a abrirse dentro del lienzo
   "Esta página no se deja abrir aquí dentro": "This page refuses to open in here",
@@ -992,7 +993,8 @@ const EN: Record<string, string> = {
     "The buttons that appear when you hover a project in the sidebar. Pick the ones you actually use: the rest stay in the right-click menu, which lists them all.",
 
   // La cuenta de OpenRouter, en el centro de cuentas
-  "Por clave": "By key",
+  "Una sola cuenta para modelos de muchos proveedores, pagando por lo que uses. Va bien para probar uno suelto sin darte de alta en su web.":
+    "One account for models from many providers, paying for what you use. Handy for trying one out without signing up on its website.",
   Conectar: "Connect",
   "Comprobando…": "Checking…",
   "Olvidar la clave": "Forget the key",
@@ -1049,13 +1051,13 @@ const EN: Record<string, string> = {
   "Borrar la carpeta del disco…": "Delete the folder from disk…",
   "Borrar la carpeta del disco": "Delete the folder from disk",
   "Esto borra del disco la CARPETA de «{n}», con todo lo que tenga dentro. Va a la papelera de Windows, así que se recupera desde el escritorio, pero deja de estar en su sitio y lo que la use dejará de encontrarla.":
-    "This deletes «{n}»'s FOLDER from disk, with everything inside it. It goes to the Windows recycle bin, so you can get it back from the desktop, but it stops being where it was and anything using it will no longer find it.",
+    "This deletes “{n}”'s FOLDER from disk, with everything inside it. It goes to the Windows recycle bin, so you can get it back from the desktop, but it stops being where it was and anything using it will no longer find it.",
   "⚠ Tiene {n} sesiones de Claude. Sus conversaciones NO se borran: viven en tu carpeta de Claude, no en esta. Pero se quedarán apuntando a una carpeta que ya no está.":
     "⚠ It has {n} Claude sessions. Their conversations are NOT deleted: they live in your Claude folder, not this one. But they will be left pointing at a folder that is gone.",
   "Si lo que quieres es dejar de verlo en la barra, no hace falta borrar nada:":
     "If all you want is to stop seeing it in the rail, nothing needs deleting:",
   "Quitar de Adeorq, sin tocar la carpeta": "Remove from Adeorq, leaving the folder alone",
-  "Escribe «{n}» para confirmar:": "Type «{n}» to confirm:",
+  "Escribe «{n}» para confirmar:": "Type “{n}” to confirm:",
   "Borrar la carpeta": "Delete the folder",
 
   // El modo chat: las mismas sesiones, leídas como conversación.
@@ -1217,7 +1219,7 @@ const EN: Record<string, string> = {
   "Sacarla de este proyecto": "Take it out of this project",
   // Ascender la carpeta de una suelta a proyecto de la barra. Vivía en una
   // pastilla dentro de la fila y se mudó al menú el 2026-08-09.
-  "Hacer un proyecto de «{c}»": "Make «{c}» a project",
+  "Hacer un proyecto de «{c}»": "Make “{c}” a project",
   "Borrar la sesión": "Delete the session",
   "Otra carpeta del disco…": "Another folder from disk…",
   "Suelta, sin proyecto": "Loose, no project",
@@ -1286,7 +1288,7 @@ const EN: Record<string, string> = {
   "el límite más apretado": "tightest limit",
   "todavía preguntando…": "still asking…",
   "la predeterminada": "the default one",
-  "con la que nacen las terminales nuevas": "new terminals are born with this one",
+  "con la que nacen las terminales nuevas": "new terminals open with this one",
   conectada: "connected",
   "sin conectar": "not connected",
   "en una terminal aquí": "in a terminal here",
@@ -1722,9 +1724,9 @@ const EN: Record<string, string> = {
   "Solo el dibujo y las piezas": "Only the drawing and the pieces",
   "Todo, abre las terminales": "Everything, open the terminals",
   "Lienzo guardado en {r}": "Canvas saved to {r}",
-  "«{n}» te preguntó algo antes de terminar": "«{n}» asked you something before finishing",
+  "«{n}» te preguntó algo antes de terminar": "“{n}” asked you something before finishing",
   "«{a}» → «{b}» se pasó el relevo {n} veces seguidas: la he puesto a mano":
-    "«{a}» → «{b}» handed over {n} times in a row: switched to manual",
+    "“{a}” → “{b}” handed over {n} times in a row: switched to manual",
   "Ojo: esta flecha cierra un círculo. En automático giraría sin parar.":
     "Careful: this arrow closes a loop. On automatic it would go round forever.",
   "Un agente ha pedido una flecha que cierra un círculo.":
@@ -1817,7 +1819,7 @@ const EN: Record<string, string> = {
   "Ver los de la derecha": "See the ones on the right",
   "Abrir esta terminal aislada en Modo Espejo": "Open this terminal isolated, in Shadow Mode",
   "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de Claude Code, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.":
-    "«{n}» goes to the Windows Recycle Bin. It disappears from Adeorq and from Claude Code too, so you will not be able to resume it. If you change your mind, it is in the bin.",
+    "“{n}” goes to the Windows Recycle Bin. It disappears from Adeorq and from Claude Code too, so you will not be able to resume it. If you change your mind, it is in the bin.",
 
   // Reanimar: el vigía del cuelgue. Las cadenas están en TerminalPane.tsx, que
   // otra sesión tiene abierto (ver BUZON.md); esto no lo toca, solo les da su
@@ -1847,7 +1849,7 @@ const EN: Record<string, string> = {
   "Sube esto para que la foto, o el escritorio, se vean a través del texto de las terminales. Al 100% la terminal es un cristal.":
     "Turn this up to see the photo, or the desktop, behind the terminal text. At 100% the terminal is glass.",
   "Ojo: «cuánto se ve», aquí arriba, manda sobre esto. Si está bajo, la foto llega apagada a todas partes y subir este mando no la trae de vuelta.":
-    "Note: «how much shows», above, overrides this. If it is low the photo arrives dimmed everywhere, and turning this up will not bring it back.",
+    "Note: “how much shows”, above, overrides this. If it is low the photo arrives dimmed everywhere, and turning this up will not bring it back.",
   "Volver al automático": "Back to automatic",
   auto: "auto",
 
@@ -1864,7 +1866,7 @@ const EN: Record<string, string> = {
     "This is how it will look. Drag the photo and use the wheel to zoom in.",
 
   // El aviso de cuota.
-  "«{c}» va por el {p}% de su límite.": "«{c}» is at {p}% of its limit.",
+  "«{c}» va por el {p}% de su límite.": "“{c}” is at {p}% of its limit.",
   "Se renueva {r}.": "Renews {r}.",
   "Se renueva {r}. Ábrelo para seguir en otra cuenta.":
     "Renews {r}. Open it to carry on with another account.",

@@ -188,6 +188,15 @@ type CanvasNode =
   | Node<ChatData>;
 
 interface Props {
+  /** Si la vista del Lienzo es la que se está viendo AHORA.
+   *
+   *  Hace falta porque el lienzo no se desmonta al cambiar de pestaña: se
+   *  esconde con `display: none`, o sus terminales se morirían. Y un elemento
+   *  escondido así mide CERO, así que el encuadre automático de React Flow, que
+   *  se hace al montar, calcula sobre una caja de 0x0 y deja la cámara en
+   *  cualquier sitio. Al volver, el tablero aparece arriba a la izquierda y tú
+   *  mirando el vacío de abajo a la derecha (Munir, 2026-08-12). */
+  visible: boolean;
   panes: CanvasPane[];
   /** Las de la cabina, solo para que el kanban pueda contarlas: el lienzo no
       las pinta ni las toca. Sin ellas el tablero diría que no hay nadie
@@ -376,6 +385,7 @@ function sidOf(pane: CanvasPane): string | undefined {
 }
 
 function Canvas({
+  visible,
   panes,
   panesCabina,
   estados,
@@ -404,6 +414,31 @@ function Canvas({
   // derecho, con sus propios datos, así que el estado guarda la unión.
   const [nodes, setNodes] = useState<CanvasNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  /** Si ya se encuadró el tablero desde que se abrió la app. Una sola vez: a
+      partir de ahí manda dónde lo hayas dejado tú. */
+  const encuadrado = useRef(false);
+  /* Encuadrar el tablero la PRIMERA vez que se ve de verdad.
+   *
+   * El `fitView` que React Flow trae de serie se hace al montar, y aquí el
+   * lienzo se monta escondido con `display: none` (ver la prop `visible`), o
+   * sea midiendo cero. Encuadrar sobre una caja de 0x0 no encuadra nada, y por
+   * eso al entrar te encontrabas el trabajo arriba a la izquierda y la cámara
+   * mirando al vacío. Aquí se esperan las dos condiciones que hacen que la
+   * cuenta signifique algo: que la vista esté delante y que haya algo que
+   * encuadrar.
+   *
+   * Una sola vez, y ese es el punto: si se encuadrara en cada visita, volver
+   * del Panel te movería el tablero que acabas de colocar. */
+  useEffect(() => {
+    if (!visible || encuadrado.current || nodes.length === 0) return;
+    // Un respiro para que el navegador aplique el `display` y el contenedor
+    // tenga medidas: leerlas en el mismo tick devuelve las de antes.
+    const t = window.setTimeout(() => {
+      encuadrado.current = true;
+      void flow.fitView({ padding: 0.15, duration: 260 });
+    }, 60);
+    return () => window.clearTimeout(t);
+  }, [visible, nodes.length, flow]);
   const [focusedId, setFocusedId] = useState<number | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [project, setProject] = useState("");

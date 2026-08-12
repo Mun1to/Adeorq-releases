@@ -65,7 +65,19 @@ export default function OpenRouterCard() {
 
   return (
     <section className="account-group">
-      <h2 className="account-group-title">{t("Por clave")}</h2>
+      {/* Se llamaba «Por clave», y justo debajo venía «Claves de API»: dos
+          títulos que dicen lo mismo, uno detrás de otro, así que la pantalla
+          parecía tener la misma sección repetida (Munir, 2026-08-12). Se llama
+          por su nombre, que además es lo que distingue: una sola cuenta que
+          abre muchos modelos, frente a una clave por proveedor. */}
+      <header className="account-intro">
+        <h2 className="account-group-title">OpenRouter</h2>
+        <p className="card-hint">
+          {t(
+            "Una sola cuenta para modelos de muchos proveedores, pagando por lo que uses. Va bien para probar uno suelto sin darte de alta en su web.",
+          )}
+        </p>
+      </header>
       <div className="panel-grid accounts-grid">
         <article className="panel-card account-card">
           <div className="account-top">

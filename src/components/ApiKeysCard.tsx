@@ -106,6 +106,9 @@ export default function ApiKeysCard() {
 
   return (
     <section className="account-group">
+      {/* El nombre y sus explicaciones, sobre una superficie propia: sueltos
+          caían sobre la foto del escritorio y se leían a través de ella. */}
+      <header className="account-intro">
       <h2 className="account-group-title">
         {t("Claves de API")}
         {gasto.total > 0 && (
@@ -140,6 +143,7 @@ export default function ApiKeysCard() {
               "En Linux no hay Gestor de Credenciales: se guarda en un archivo tuyo con permisos 600. Eso la protege de otros usuarios del equipo, pero NO de otro programa tuyo. Sí es igual que en Windows lo otro: no vuelve a salir, la pone Rust justo antes de arrancar el proceso.",
             )}
       </p>
+      </header>
 
       <div className="panel-grid accounts-grid">
         {conApi.map((p) => {

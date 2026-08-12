@@ -55,6 +55,31 @@ import { useT } from "../lib/i18n";
     skills no son un proyecto más, y con un tono de la rueda parecerían uno. */
 const AMBAR = "#f0b464";
 
+/**
+ * El tamaño de un rótulo, en unidades del mapa, para que en PANTALLA se lea.
+ *
+ * Todo lo de aquí dentro se dibuja escalado por el zoom, así que un tamaño a
+ * secas encoge al alejarte y se dispara al acercarte. Antes se dividía por el
+ * zoom para dejarlo clavado en píxeles de pantalla, con un tope arriba, y de
+ * ahí salían las dos quejas de Munir (2026-08-12) a la vez:
+ *
+ *  · el tope mordía justo en la vista general. Con el mapa entero delante el
+ *    zoom es de 0,2, y `min(20, 12 / 0,2)` daba 20 unidades, que a esa escala
+ *    son CUATRO PÍXELES de alto. De ahí los nombres ilegibles del primer
+ *    vistazo, que es la pantalla que más se mira;
+ *  · y clavado en pantalla, al ampliar los puntos crecen y la letra no, así que
+ *    se lee como si menguara aunque mida exactamente lo mismo.
+ *
+ * Ahora crece con el zoom, pero despacio: entre el mapa entero y el máximo
+ * acercamiento el zoom se multiplica por veinte y la letra solo por dos y
+ * medio. Con su suelo y su techo puestos en píxeles de PANTALLA, que es la
+ * única unidad en la que tiene sentido preguntarse si algo se lee.
+ */
+function letra(z: number, base: number, min: number, max: number) {
+  const enPantalla = Math.max(min, Math.min(max, base * Math.pow(z, 0.35)));
+  return enPantalla / z;
+}
+
 /** Un manojo de hilos que se pintan de una vez: mismo color, mismo grosor y
     mismo tono. Ver el porqué en `trazar`. */
 interface Madeja {
@@ -199,17 +224,15 @@ export default function MemoriaGrafo({
   /** Si no ha cambiado nada y el mapa no gira, no hay nada que repintar. */
   const sucio = useRef(true);
   const raf = useRef(0);
-  const vista = useRef({ x: 0, y: 0, z: 1 });
+  /** La cámara: QUÉ PUNTO del mapa está en el centro de la pantalla, y cuánto
+      se acerca. No es «cuánto he movido la vista», y esa diferencia es la que
+      hace que girar no cueste nada (el porqué entero, en `pintar`). */
+  const vista = useRef({ cx: 0, cy: 0, z: 1 });
   /** Cuánto lleva girada la rueda. Una vuelta cada tres minutos y pico: lo
       bastante para que el mapa esté vivo y lo bastante poco para no marear ni
       para que un rótulo se te escape mientras lo lees. Se para sola en cuanto
       el ratón entra, porque mirar de cerca algo que se mueve es imposible. */
   const giro = useRef(0);
-  /** Con qué ángulo se pintó el lienzo la última vez. Solo importa cuando el
-      mapa está desplazado: entonces el arrastre va dibujado DENTRO del lienzo
-      y girar cambia dónde cae, así que hay que repintar. Centrado no depende
-      del ángulo y el giro sigue saliendo gratis. */
-  const giroPintado = useRef(0);
   const quieto = useRef(false);
   const arrastre = useRef<{
     x: number;
@@ -289,7 +312,7 @@ export default function MemoriaGrafo({
     const c = caja.current;
     if (c && arcs.length) {
       const cabe = Math.min(c.clientWidth, c.clientHeight) / (radioTotal(arcs) * 2.35);
-      vista.current = { x: 0, y: 0, z: Math.max(0.12, Math.min(1, cabe)) };
+      vista.current = { cx: 0, cy: 0, z: Math.max(0.12, Math.min(1, cabe)) };
     }
   }, [docs, red, soloConectados]);
 
@@ -332,28 +355,26 @@ export default function MemoriaGrafo({
        gráfica moviendo el lienzo ya pintado (`style.transform` en el bucle) en
        vez de rehacer mil trazos para enseñar lo mismo un grado más allá.
 
-       EL ARRASTRE SÍ, y esto es lo que cambió el 2026-08-11 (noche). Estaba
-       también en el `style.transform`, y ahí se cortaba: el lienzo mide la
-       DIAGONAL de su caja, que es justo lo que hace falta para girar sin
-       enseñar las esquinas, pero al desplazarlo deja de cubrirla por el lado
-       contrario. En una caja de 1200x800 el margen es de 121 px: arrastrabas
-       eso y aparecía un borde recto con el mapa cortado (Munir, con captura).
-       Agrandar el lienzo no era la salida, porque el arrastre no tiene tope y
-       la memoria va al cuadrado del lado. Mover el DIBUJO en vez del lienzo sí:
-       lo que se sale se recorta fuera de la vista, que es donde no molesta.
+       EL ARRASTRE tampoco, y por eso la cámara es «qué punto del mapa estás
+       mirando» (`cx`, `cy`) y no «cuánto he movido la pantalla».
 
-       Va contra-rotado porque el lienzo lo gira el CSS después: para que el
-       mapa siga al dedo en pantalla, dentro hay que desplazarlo por el ángulo
-       de vuelta. Es la misma cuenta que `enTablero` hace al revés. */
-    const g = -giro.current;
-    const cos = Math.cos(g);
-    const sen = Math.sin(g);
-    ctx.translate(
-      w / 2 + (v.x * cos - v.y * sen),
-      h / 2 + (v.x * sen + v.y * cos),
-    );
+       Ha tenido tres formas en dos días, y las dos primeras se rompieron por
+       sitios distintos: moviendo el LIENZO con `style.transform`, se cortaba
+       (mide la diagonal de su caja, lo justo para girar, así que desplazarlo lo
+       saca de la caja y aparece un borde recto); y moviendo el DIBUJO por un
+       desplazamiento de pantalla, había que contra-rotarlo, o sea que dependía
+       del ángulo, así que girar obligaba a repintar y hubo que frenar la vuelta
+       automática en cuanto tocabas el mapa (Munir, 2026-08-12: «que no se pare
+       lo de girar aunque lo amplíes»).
+
+       Mirando a un punto no pasa ninguna de las dos cosas: el lienzo no se
+       mueve nunca, y esta transformación NO tiene dentro el ángulo, así que
+       girar sigue costando cero y la rueda puede girar siempre. De regalo, el
+       punto que centras se queda quieto en el centro mientras el resto gira a
+       su alrededor, que estando ampliado es justo lo que quieres mirar. */
+    ctx.translate(w / 2, h / 2);
     ctx.scale(v.z, v.z);
-    giroPintado.current = giro.current;
+    ctx.translate(-v.cx, -v.cy);
 
     const ps = puntos.current;
     const sobre = encimaRef.current;
@@ -404,7 +425,7 @@ export default function MemoriaGrafo({
     /* Y el nombre de cada proyecto, fuera de su arco y girado con él.
        Va después de los hilos y antes de los puntos: los hilos no pueden tapar
        un rótulo, y un punto sí puede pisarlo sin que estorbe. */
-    ctx.font = `600 ${Math.min(20, 12 / v.z)}px system-ui, sans-serif`;
+    ctx.font = `600 ${letra(v.z, 18, 14, 34)}px system-ui, sans-serif`;
     ctx.textBaseline = "middle";
     for (const arco of arcos.current) {
       // Un proyecto de un solo documento abre un arco de nada: su nombre se
@@ -414,7 +435,9 @@ export default function MemoriaGrafo({
       const color = colorFam.current.get(arco.fam) ?? "#8aa";
       ctx.save();
       ctx.rotate(arco.a);
-      ctx.translate(arco.rMax + 16 / v.z, 0);
+      // El aire entre el borde del arco y su nombre, en proporción a la letra:
+      // con un hueco fijo, al agrandarla el nombre se pegaba a los puntos.
+      ctx.translate(arco.rMax + 10 + letra(v.z, 18, 14, 34) * 0.6, 0);
       // Al otro lado del círculo el texto saldría del revés: se da la vuelta y
       // se alinea por el otro extremo, que es como se rotula una rueda.
       if (Math.cos(arco.a) < 0) {
@@ -459,19 +482,21 @@ export default function MemoriaGrafo({
         ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
         ctx.fillStyle = AMBAR;
         ctx.fill();
-        ctx.font = `600 ${Math.min(18, 11 / v.z)}px system-ui, sans-serif`;
+        ctx.font = `600 ${letra(v.z, 16, 13, 30)}px system-ui, sans-serif`;
         ctx.fillStyle = AMBAR;
         ctx.textAlign = "center";
-        ctx.fillText(s.name, p.x, p.y - 15 / v.z);
+        // El hueco sobre el punto crece con la letra, o al agrandarla se le
+        // montaría encima.
+        ctx.fillText(s.name, p.x, p.y - 11 - letra(v.z, 16, 13, 30) * 0.55);
       });
       // Y el rótulo del conjunto, en el centro exacto. Solo con más de una: con
       // una sola, el punto ya está ahí y se pisarían.
       if (sk.length > 1) {
-        ctx.font = `700 ${Math.min(22, 13 / v.z)}px system-ui, sans-serif`;
+        ctx.font = `700 ${letra(v.z, 19, 15, 36)}px system-ui, sans-serif`;
         ctx.fillStyle = AMBAR;
         ctx.globalAlpha = sobre ? 0.2 : 0.75;
         ctx.textAlign = "center";
-        ctx.fillText("SKILLS", 0, 5 / v.z);
+        ctx.fillText("SKILLS", 0, letra(v.z, 19, 15, 36) * 0.35);
       }
       ctx.globalAlpha = 1;
     }
@@ -521,7 +546,8 @@ export default function MemoriaGrafo({
     // La fuente se pone UNA vez: cambiarla obliga al motor a rehacer su
     // medición de texto, y aquí eran cuarenta cambios por fotograma para
     // escribir siempre del mismo tamaño.
-    ctx.font = `${11 / v.z}px system-ui, sans-serif`;
+    const cuerpo = letra(v.z, 15, 12.5, 28);
+    ctx.font = `${cuerpo}px system-ui, sans-serif`;
     // Y los candidatos vienen filtrados de antes; solo se añaden el abierto y
     // el que estés mirando, que sí cambian.
     const conNombre = v.z > 0.5 ? rotulables.current : [];
@@ -530,10 +556,13 @@ export default function MemoriaGrafo({
     );
     for (const p of [...extra, ...conNombre]) {
       const forzado = p.id === activo || p.id === sobre?.id;
-      const alto = 14 / v.z;
-      const ancho = Math.min(p.title.length, 26) * (5.4 / v.z);
+      // El hueco que ocupa cada nombre sale de su propio cuerpo de letra: con
+      // medidas fijas, al agrandarla dejaban de reservar lo suficiente y los
+      // nombres se pisaban justo cuando por fin se leían.
+      const alto = cuerpo * 1.25;
+      const ancho = Math.min(p.title.length, 26) * cuerpo * 0.5;
       const ex = p.x;
-      const ey = p.y - radioDe(p) - 5 / v.z;
+      const ey = p.y - radioDe(p) - cuerpo * 0.45;
       const libre =
         forzado ||
         !etiquetas.some(
@@ -576,26 +605,20 @@ export default function MemoriaGrafo({
       // el equipo va a 120 como si va a 30.
       const dt = ultimo ? Math.min(0.2, (ts - ultimo) / 1000) : 0;
       ultimo = ts;
-      const v = vista.current;
-      /* En cuanto tocas el mapa (lo arrastras o le haces zoom, que también lo
-         desplaza para acercarse a donde apunta el ratón), la rueda se para.
-         Dos motivos, y el segundo es el que manda: si lo has movido para mirar
-         algo es que quieres mirarlo, no que se te escape; y desplazado, el
-         arrastre va dibujado dentro del lienzo, así que cada grado obligaría a
-         repintar y volvería el lag que costó tres rondas quitar. Centrado no
-         cuesta nada y sigue girando como siempre. Volver a centrarlo la
-         reanuda. */
-      const movido = v.x !== 0 || v.y !== 0;
-      if (!sinMovimiento && !quieto.current && !movido) giro.current += dt * 0.03;
+      /* La rueda gira SIEMPRE, esté el mapa donde esté y con el zoom que sea.
+         Llegó a pararse en cuanto lo movías, y no era un capricho de diseño:
+         con la cámara de entonces el desplazamiento iba dibujado dentro del
+         lienzo y contra-rotado, así que cada grado obligaba a repintar. Con la
+         cámara mirando a un punto (ver `pintar`) el ángulo ya no entra en el
+         dibujo, así que girar vuelve a costar cero y no hay nada que frenar
+         (Munir, 2026-08-12). Lo único que la para sigue siendo el ratón
+         encima, que es cuando estás leyendo. */
+      if (!sinMovimiento && !quieto.current) giro.current += dt * 0.03;
       /* Girar el lienzo cuesta una línea de CSS y lo hace la tarjeta gráfica:
          ni se limpia nada, ni se vuelve a trazar nada. Esto es lo que corre en
          cada fotograma ahora. */
       const el = canvas.current;
       if (el) el.style.transform = `rotate(${giro.current}rad)`;
-      // Girar a mano el mapa ya desplazado sí cambia el dibujo, por lo de la
-      // contra-rotación de `pintar`. Se mira aquí y no en el gesto para que
-      // valga igual venga el ángulo de la mano o de la rueda.
-      if (movido && giro.current !== giroPintado.current) sucio.current = true;
       // Y REPINTAR solo cuando de verdad cambia lo dibujado: el zoom, el punto
       // que miras, otra bóveda. Con el mapa girando solo, eso es nunca.
       if (!sucio.current || ts - ultimoPintado < 33) return;
@@ -634,15 +657,30 @@ export default function MemoriaGrafo({
   const enTablero = (e: React.PointerEvent | React.MouseEvent) => {
     const r = caja.current!.getBoundingClientRect();
     const v = vista.current;
-    const px = (e.clientX - r.left - r.width / 2 - v.x) / v.z;
-    const py = (e.clientY - r.top - r.height / 2 - v.y) / v.z;
-    // Y se DESHACE el giro de la cámara. Sin esto, el puntero apunta a donde el
+    const sx = e.clientX - r.left - r.width / 2;
+    const sy = e.clientY - r.top - r.height / 2;
+    // Se DESHACE el giro de la cámara. Sin esto, el puntero apunta a donde el
     // mapa estaba cuando empezó a girar: señalas un documento y se enciende
     // otro, cada vez más lejos según pasa el rato.
     const g = -giro.current;
     const cos = Math.cos(g);
     const sen = Math.sin(g);
-    return { x: px * cos - py * sen, y: px * sen + py * cos };
+    // Y se suma el punto que estás mirando, que es el origen de la cámara.
+    return {
+      x: v.cx + (sx * cos - sy * sen) / v.z,
+      y: v.cy + (sx * sen + sy * cos) / v.z,
+    };
+  };
+
+  /** El delta del ratón, en unidades del mapa. Arrastrar la pantalla hacia un
+      lado mueve la cámara hacia el CONTRARIO, y girado hay que deshacer el
+      ángulo o el mapa se iría en diagonal cuando arrastras en horizontal. */
+  const enMapa = (dx: number, dy: number) => {
+    const v = vista.current;
+    const g = -giro.current;
+    const cos = Math.cos(g);
+    const sen = Math.sin(g);
+    return { dx: (dx * cos - dy * sen) / v.z, dy: (dx * sen + dy * cos) / v.z };
   };
 
   /** El ángulo del puntero visto desde el centro del mapa. Es lo que convierte
@@ -650,9 +688,18 @@ export default function MemoriaGrafo({
   const anguloPuntero = (e: React.PointerEvent) => {
     const r = caja.current!.getBoundingClientRect();
     const v = vista.current;
+    // Desde el centro del MAPA (su punto 0,0), que con la cámara mirando a un
+    // sitio ya no coincide con el centro de la pantalla: está donde caiga el
+    // origen, o sea a `-c` escalado y girado. Cogerlo por el centro de la
+    // ventana haría que el disco girase raro justo cuando estás ampliado.
+    const g = giro.current;
+    const cos = Math.cos(g);
+    const sen = Math.sin(g);
+    const ox = (-v.cx * cos - -v.cy * sen) * v.z;
+    const oy = (-v.cx * sen + -v.cy * cos) * v.z;
     return Math.atan2(
-      e.clientY - r.top - r.height / 2 - v.y,
-      e.clientX - r.left - r.width / 2 - v.x,
+      e.clientY - r.top - r.height / 2 - oy,
+      e.clientX - r.left - r.width / 2 - ox,
     );
   };
 
@@ -729,12 +776,14 @@ export default function MemoriaGrafo({
               a.ang = ang;
               return;
             }
-            vista.current.x += dx;
-            vista.current.y += dy;
-            // Arrastrar SÍ repinta, desde que el desplazamiento se dibuja
-            // dentro del lienzo en vez de mover el lienzo entero (ver
-            // `pintar`). Es lo correcto: mover la cámara cambia qué trozo del
-            // mapa se ve, al revés que girarla.
+            // La cámara va hacia donde NO empuja el dedo: arrastrar el mapa a
+            // la derecha es mirar más a la izquierda.
+            const m = enMapa(dx, dy);
+            vista.current.cx -= m.dx;
+            vista.current.cy -= m.dy;
+            // Arrastrar SÍ repinta, porque cambia qué trozo del mapa se ve. Es
+            // lo contrario de girar, que enseña lo mismo desde otro ángulo y
+            // por eso lo hace la tarjeta gráfica sin dibujar nada.
             sucio.current = true;
             return;
           }
@@ -772,13 +821,21 @@ export default function MemoriaGrafo({
           const v = vista.current;
           const antes = v.z;
           v.z = Math.min(3, Math.max(0.15, v.z * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
-          // El zoom va hacia donde apunta el ratón y no hacia el centro: si no,
-          // acercarse a un racimo del borde lo saca de la pantalla.
+          /* El zoom va hacia donde apunta el ratón y no hacia el centro: si no,
+             acercarse a un racimo del borde lo saca de la pantalla.
+             La cuenta es «que el punto del mapa que hay bajo el ratón siga bajo
+             el ratón»: como la pantalla se mide desde el centro, ese punto se
+             aleja del centro justo lo que crece el zoom, y la cámara compensa
+             la diferencia entre los dos inversos. */
           const r = caja.current!.getBoundingClientRect();
           const mx = e.clientX - r.left - r.width / 2;
           const my = e.clientY - r.top - r.height / 2;
-          v.x = mx - ((mx - v.x) / antes) * v.z;
-          v.y = my - ((my - v.y) / antes) * v.z;
+          const g = -giro.current;
+          const cos = Math.cos(g);
+          const sen = Math.sin(g);
+          const k = 1 / antes - 1 / v.z;
+          v.cx += (mx * cos - my * sen) * k;
+          v.cy += (mx * sen + my * cos) * k;
         }}
       />
       {encima && (

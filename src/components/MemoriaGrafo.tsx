@@ -889,7 +889,24 @@ export default function MemoriaGrafo({
     if (!box) return;
     const rectCaja = () => box.getBoundingClientRect();
 
+    /**
+     * Si este evento viene del tablero y no de la bola.
+     *
+     * Hace falta porque el tablero vive DENTRO de la caja que maneja el ratón, y
+     * los eventos de un botón BURBUJEAN hasta ella. Sin esto, pulsar cualquier
+     * botón disparaba el `setPointerCapture` de aquí abajo: con el puntero
+     * capturado, el `pointerup` deja de llegar al botón y el clic no llega a
+     * completarse nunca. Los deslizadores, lo mismo, y encima arrastrarlos
+     * giraba la bola de fondo (Munir, 2026-08-12: «no funcionan los botones»).
+     *
+     * ⚑ Vale para CUALQUIER cosa que se ponga encima de este canvas: si lleva
+     * algo con lo que se pueda interactuar, tiene que salir por aquí.
+     */
+    const delTablero = (e: Event) =>
+      !!(e.target as HTMLElement | null)?.closest?.(".mem-cerebro-panel");
+
     const onDown = (e: PointerEvent) => {
+      if (delTablero(e)) return;
       ensuciar();
       box.setPointerCapture(e.pointerId);
       // Botón de la rueda sobre un nodo: ese nodo pasa a ser el centro del giro
@@ -909,6 +926,16 @@ export default function MemoriaGrafo({
     };
 
     const onMove = (e: PointerEvent) => {
+      if (!arrastre.current && delTablero(e)) {
+        // Estás en el tablero, no en la bola: ni cuenta como tocarla ni hay que
+        // repintar por cada píxel que recorres encima de una lista.
+        if (ratonEncima.current) {
+          ratonEncima.current = false;
+          focoRaton.current = null;
+          ensuciar();
+        }
+        return;
+      }
       raton.current = { x: e.clientX, y: e.clientY };
       ratonEncima.current = true;
       ensuciar();
@@ -945,6 +972,7 @@ export default function MemoriaGrafo({
     };
 
     const onUp = (e: PointerEvent) => {
+      if (!arrastre.current && delTablero(e)) return;
       ensuciar();
       const era = arrastre.current;
       arrastre.current = null;
@@ -974,6 +1002,10 @@ export default function MemoriaGrafo({
     };
 
     const onWheel = (e: WheelEvent) => {
+      // Sobre el tablero, la rueda hace scroll de su lista. Meterse en la bola
+      // mientras intentas bajar por veinticinco proyectos es lo contrario de lo
+      // que has pedido.
+      if (delTablero(e)) return;
       e.preventDefault();
       ensuciar();
       // La rueda MUEVE EL OJO. El paso es proporcional a lo lejos que estás:

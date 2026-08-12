@@ -29,6 +29,12 @@ import {
   R_NUCLEO,
 } from "../src/lib/cerebro";
 
+/* Sin `import` de node y sin sus tipos: este comprobador se compila suelto, con
+   `--skipLibCheck` y sin `@types/node`, así que un `import` de `node:fs` no
+   compilaría. Se declara aquí lo justo que se usa. */
+declare const require: (m: string) => { readFileSync(p: string, e: string): string };
+declare const process: { cwd(): string };
+
 let fallos = 0;
 function ok(nombre: string, cond: boolean, extra = "") {
   if (!cond) fallos++;
@@ -306,6 +312,45 @@ const REAL = { "·": 1, "00-inbox": 2, "01-proyectos": 34, "02-areas": 2, "03-re
       const v = AJUSTES_FABRICA[k as keyof typeof TOPES];
       return v >= min && v <= max;
     }));
+}
+
+
+/* ── EL TABLERO NO PUEDE COMERSE LOS CLICS ───────────────────────────────────
+   Esto mira el CÓDIGO y no un resultado, que es raro y aquí está justificado:
+   el tablero vive DENTRO de la caja que maneja el ratón, así que los eventos de
+   sus botones burbujean hasta ella. Sin una guarda, `setPointerCapture` se lleva
+   el puntero y el `pointerup` no vuelve al botón: el clic no llega a
+   completarse. Le pasó a Munir con la 0.9.101 y no lo cazó ninguna prueba,
+   porque las de interacción disparan eventos sin un `target` de verdad.
+
+   Lo que se protege es que NO SE OLVIDE en un manejador nuevo, que es la forma
+   en que esto vuelve. */
+{
+  /* Sin `import` de node y sin sus tipos: este comprobador se compila suelto,
+     con `--skipLibCheck` y sin `@types/node`, así que un import de `node:fs`
+     no compilaría. Y la raíz sale del directorio DE TRABAJO y no del del
+     archivo: al compilar a un temporal, `__dirname` apunta ahí y no al repo. */
+  const { readFileSync } = require("node:fs");
+  const raiz = process.cwd();
+  const src = readFileSync(raiz + "/src/components/MemoriaGrafo.tsx", "utf8");
+  ok("la guarda del tablero existe", src.includes("const delTablero ="),
+    "sin ella, cualquier botón encima del canvas deja de funcionar");
+  for (const mano of ["onDown", "onMove", "onUp", "onWheel"]) {
+    const i = src.indexOf(`const ${mano} = (`);
+    const cuerpo = i < 0 ? "" : src.slice(i, i + 900);
+    ok(`${mano} deja pasar lo que viene del tablero`,
+      i >= 0 && cuerpo.includes("delTablero("),
+      i < 0 ? "no encontrado" : "");
+  }
+  // Y que nadie interactivo más se cuele encima del canvas sin pensarlo: los
+  // otros dos que hay flotando tienen que ser transparentes al ratón.
+  const css = readFileSync(raiz + "/src/App.css", "utf8");
+  for (const clase of [".mem-cerebro-eti", ".mem-cerebro-ayuda"]) {
+    const i = css.indexOf(`${clase} {`);
+    const regla = i < 0 ? "" : css.slice(i, css.indexOf("}", i));
+    ok(`${clase} no intercepta el ratón`, i >= 0 && regla.includes("pointer-events: none"),
+      "flota sobre la bola: si captura clics, no se puede señalar lo que hay debajo");
+  }
 }
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

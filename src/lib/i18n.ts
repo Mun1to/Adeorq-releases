@@ -736,6 +736,10 @@ const EN: Record<string, string> = {
   "Volver a leer la carpeta": "Read the folder again",
   "Documento": "Document",
   "Cerebro": "Brain",
+  "Un nodo clavado: gira alrededor para verlo · clic en el vacío para soltarlo":
+    "One node pinned: spin around to look at it · click empty space to release",
+  "Rueda para entrar dentro · botón de la rueda sobre un nodo para clavarlo · clic para abrirlo":
+    "Wheel to fly inside · middle-click a node to pin it · click to open",
   // «Aspecto» ya está traducido más abajo, con los grupos de Ajustes.
   "Resplandor": "Glow",
   "Alto de los nodos": "Node height",
@@ -748,8 +752,6 @@ const EN: Record<string, string> = {
   "Volver a lo de fábrica": "Back to defaults",
   "Ver solo este proyecto": "Show only this project",
   "Ver la bola entera": "Back to the whole sphere",
-  "Rueda para entrar dentro · arrastra un nodo para moverlo · el fondo para girar · clic para abrirlo":
-    "Wheel to fly inside · drag a node to move it · drag the background to spin · click to open",
   "Volver al mapa de la bóveda": "Back to the vault map",
   "Solo los que tienen enlaces": "Only the linked ones",
   "Abrir fuera": "Open outside",

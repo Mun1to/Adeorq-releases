@@ -342,6 +342,24 @@ const REAL = { "·": 1, "00-inbox": 2, "01-proyectos": 34, "02-areas": 2, "03-re
       i >= 0 && cuerpo.includes("delTablero("),
       i < 0 ? "no encontrado" : "");
   }
+  /* EL NODO CLAVADO tiene que poder soltarse SIEMPRE. Es un estado pegajoso: se
+     queda puesto aunque apartes el ratón, que es justo su gracia, y por eso una
+     salida que falte deja la vista atascada sin forma de volver.
+     Se cuentan las salidas en vez de buscar cada una por su texto: así el caso
+     no se rompe porque alguien mueva una llave de sitio. */
+  const suelta = (src.match(/nodoFijo\.current = null/g) ?? []).length;
+  ok("el nodo clavado tiene sus tres salidas", suelta >= 3,
+    `encontradas ${suelta}: el clic en el vacío, el botón del tablero y quedarse sin nodo`);
+  ok("y el botón de la rueda en el vacío también lo suelta",
+    src.includes("nodoFijo.current = suyo ? suyo.id : null"),
+    "clavar y soltar tienen que ser el MISMO gesto, o hay que buscar cómo salir");
+  ok("se suelta solo si el nodo deja de existir",
+    src.includes("!ps.some((p) => p.id === nodoFijo.current)"),
+    "otra bóveda o el filtro de sueltos pueden llevárselo por delante");
+  ok("y mientras está clavado, el ratón no decide",
+    src.includes("const sel = fijo ?? bajo"),
+    "si el señalado mandara, rozar otro punto al dar la vuelta lo perdería");
+
   // Y que nadie interactivo más se cuele encima del canvas sin pensarlo: los
   // otros dos que hay flotando tienen que ser transparentes al ratón.
   const css = readFileSync(raiz + "/src/App.css", "utf8");

@@ -172,6 +172,12 @@ export default function MemoriaGrafo({
   const encimaRef = useRef<Punto | null>(null);
   /** El proyecto aislado: fijado con un clic, o el de lo que señalas. */
   const [focoFijo, setFocoFijo] = useState<string | null>(null);
+  /** El nodo CLAVADO con el botón de la rueda: se queda solo él y sus vecinos
+      encendidos, y la cámara orbita a su alrededor hasta que lo sueltes. A
+      diferencia del que señalas con el ratón, este no se va al apartar la mano,
+      que es justo lo que hace falta para poder dar la vuelta y mirarlo. */
+  const nodoFijo = useRef<string | null>(null);
+  const [hayNodoFijo, setHayNodoFijo] = useState(false);
   const focoFijoRef = useRef<string | null>(null);
   const focoRaton = useRef<string | null>(null);
   focoFijoRef.current = focoFijo;
@@ -255,6 +261,14 @@ export default function MemoriaGrafo({
     pt.current = ps.map(nuevaProy);
     setLista([...regs].sort((a, b) => b.n - a.n));
     setFocoFijo((f) => (f && regs.some((r) => r.fam === f) ? f : null));
+    // El nodo clavado puede haber desaparecido (otra bóveda, o el filtro de
+    // sueltos). Se suelta aquí: si no, la cámara se quedaría orbitando un punto
+    // que ya no está y la ayuda diría que hay uno clavado.
+    if (nodoFijo.current && !ps.some((p) => p.id === nodoFijo.current)) {
+      nodoFijo.current = null;
+      setHayNodoFijo(false);
+      destino.current = { x: 0, y: 0, z: 0 };
+    }
     sucio.current = true;
   }, [docs, red, soloConectados]);
 
@@ -552,22 +566,34 @@ export default function MemoriaGrafo({
         const b = buscar(SK, skQ, mx, my, a.d);
         bajo = b.p ?? a.p;
       }
-      focoRaton.current = bajo?.fam ?? null;
+      /* Con un nodo clavado manda ÉL, y el ratón solo sirve para leer nombres:
+         si el señalado siguiera decidiendo, bastaría rozar otro punto al dar la
+         vuelta para perder lo que acabas de clavar. */
+      const fijo = nodoFijo.current ? (P.find((p) => p.id === nodoFijo.current) ?? null) : null;
+      const sel = fijo ?? bajo;
+      // Y aislar por PROYECTO se calla mientras hay un nodo clavado: son dos
+      // formas de mirar lo mismo y a la vez no dicen nada.
+      focoRaton.current = fijo ? null : (bajo?.fam ?? null);
       if (bajo?.id !== encimaRef.current?.id) {
         encimaRef.current = bajo;
         setEncima(bajo);
       }
       const F = fFijo ?? focoRaton.current;
       const vecinos = new Set<string>();
-      if (bajo) {
+      if (sel) {
         for (const [i, j] of H) {
-          if (P[i]?.id === bajo.id) vecinos.add(P[j]?.id);
-          if (P[j]?.id === bajo.id) vecinos.add(P[i]?.id);
+          if (P[i]?.id === sel.id) vecinos.add(P[j]?.id);
+          if (P[j]?.id === sel.id) vecinos.add(P[i]?.id);
         }
       }
       /** Cuánto se ve lo que NO es del proyecto aislado. Muy poco, pero no
           cero: a oscuras del todo se pierde de dónde a dónde va lo que miras. */
       const APAGADO = 0.07;
+      /** Lo que queda de lo que no es del nodo clavado. Señalando se atenúa un
+          poco (es una ojeada); clavado se apaga casi del todo, que es lo que se
+          ha pedido al clavarlo. Nunca a cero: sin nada de fondo se pierde en qué
+          parte de la bola estás mirando. */
+      const restoNodo = fijo ? APAGADO : 0.25;
 
       /* LA REJILLA. Tres caminos y no dos: detrás, delante y EL FILO, que es el
          que dibuja la silueta. No se apaga al aislar: es la bola en sí, y sin
@@ -618,7 +644,7 @@ export default function MemoriaGrafo({
       capas.forEach((path, ci) => {
         const [col, anc, alf] = tonos[ci];
         nctx.lineWidth = anc; nctx.strokeStyle = col;
-        nctx.globalAlpha = alf * brillo * A.tejido * (bajo || F ? 0.55 : 1);
+        nctx.globalAlpha = alf * brillo * A.tejido * (fijo ? 0.22 : bajo || F ? 0.55 : 1);
         nctx.stroke(path);
         if (ci === 2) {
           hctx.lineWidth = anc * 2; hctx.strokeStyle = col;
@@ -669,6 +695,7 @@ export default function MemoriaGrafo({
         let alfa = (m.puente ? 0.2 : 0.11) * (0.25 + tt * 0.75) * m.ve * dentro * A.enlaces * brillo;
         if (!m.mio) alfa *= APAGADO * 1.6;
         else if (F) alfa *= 2.1;
+        else if (fijo) alfa *= APAGADO * 1.4;
         else if (bajo) alfa *= 0.3;
         if (alfa < 0.004) continue;
         const pasadas: Array<[CanvasRenderingContext2D, number, number]> =
@@ -683,11 +710,11 @@ export default function MemoriaGrafo({
       nctx.globalAlpha = 1; hctx.globalAlpha = 1;
 
       // Los del punto que miras, encima y en claro.
-      if (bajo && bajo.fam !== undefined) {
+      if (sel && sel.fam !== undefined) {
         const suyos = new Path2D();
         for (let h = 0; h < H.length; h++) {
           const i = H[h][0], j = H[h][1];
-          if (P[i].id !== bajo.id && P[j].id !== bajo.id) continue;
+          if (P[i].id !== sel.id && P[j].id !== sel.id) continue;
           if (!prA[i].ok || !prA[j].ok) continue;
           const pc = proyIn(_q1, C[h]);
           if (!pc) continue;
@@ -723,7 +750,7 @@ export default function MemoriaGrafo({
       const torres = new Map<number, { color: string; t: number; ve: number; off: boolean; path: Path2D }>();
       for (const i of vivos) {
         const p = P[i];
-        const off = (!!bajo && p.id !== bajo.id && !vecinos.has(p.id) && !F) || (!!F && p.fam !== F);
+        const off = (!!sel && p.id !== sel.id && !vecinos.has(p.id) && !F) || (!!F && p.fam !== F);
         const tt = prA[i].t;
         const t5 = Math.min(4, Math.floor(tt * 5));
         const ve5 = Math.min(4, Math.floor(ptA[i].v * 5));
@@ -737,7 +764,7 @@ export default function MemoriaGrafo({
         g.path.lineTo(ptA[i].sx, ptA[i].sy);
       }
       for (const g of [...torres.values()].sort((a, b) => a.t - b.t)) {
-        const a = (0.25 + g.t * 0.75) * g.ve * (g.off ? (F ? APAGADO : 0.22) : 1) * 0.75 * brillo;
+        const a = (0.25 + g.t * 0.75) * g.ve * (g.off ? (F ? APAGADO : restoNodo * 0.9) : 1) * 0.75 * brillo;
         const pasadas: Array<[CanvasRenderingContext2D, number, number]> =
           K > 0.45 ? [[nctx, 1, 1], [hctx, 2, 0.8]] : [[nctx, 1, 1]];
         for (const [ctx, gordo, mult] of pasadas) {
@@ -758,9 +785,9 @@ export default function MemoriaGrafo({
       const luces = new Map<number, { color: string; a: number; halo: Path2D; cuerpo: Path2D; nucleo: Path2D; tiene: boolean }>();
       for (const i of vivos) {
         const p = P[i], q = ptA[i];
-        const off = (!!bajo && p.id !== bajo.id && !vecinos.has(p.id) && !F) || (!!F && p.fam !== F);
+        const off = (!!sel && p.id !== sel.id && !vecinos.has(p.id) && !F) || (!!F && p.fam !== F);
         const r = Math.min(26, (1.5 + Math.min(3.8, Math.sqrt(p.grado) * 1.15)) * q.f * 3.2);
-        const a = (0.28 + q.t * 0.72) * q.v * (off ? (F ? APAGADO : 0.25) : 1) * brillo;
+        const a = (0.28 + q.t * 0.72) * q.v * (off ? (F ? APAGADO : restoNodo) : 1) * brillo;
         const a8 = Math.max(0, Math.min(7, Math.round(a * 7)));
         const clave = p.ci * 20 + a8 * 2 + (off ? 1 : 0);
         let g = luces.get(clave);
@@ -824,7 +851,7 @@ export default function MemoriaGrafo({
       SK.forEach((s, i) => {
         const q = skQ[i];
         if (!q || q.v < 0.02) return;
-        const a = (0.5 + q.t * 0.5) * q.v * (F ? 0.28 : bajo && bajo.id !== s.id ? 0.4 : 1) * brillo;
+        const a = (0.5 + q.t * 0.5) * q.v * (F ? 0.28 : sel && sel.id !== s.id ? (fijo ? 0.2 : 0.4) : 1) * brillo;
         const r = Math.min(30, 5 * q.f * 3.2);
         hctx.globalAlpha = Math.min(1, a); hctx.fillStyle = AMBAR;
         hctx.beginPath(); hctx.arc(q.sx, q.sy, r, 0, 6.2832); hctx.fill();
@@ -867,8 +894,12 @@ export default function MemoriaGrafo({
         const q = ptA[i], p = P[i];
         if (!q.ok || q.v < 0.55) continue;
         if (F && p.fam !== F) continue;
-        const suyo = p.id === bajo?.id || p.id === activo;
-        if (!suyo && !(F ? q.t > 0.25 : fuera > 0.5 ? q.z > 0.42 && p.grado >= 9 : q.t > 0.55 && p.grado >= 2)) continue;
+        const suyo = p.id === bajo?.id || p.id === activo || p.id === fijo?.id;
+        const suyoVecino = !!fijo && vecinos.has(p.id);
+        if (!suyo && !suyoVecino && !(F ? q.t > 0.25 : fuera > 0.5 ? q.z > 0.42 && p.grado >= 9 : q.t > 0.55 && p.grado >= 2)) continue;
+        // Con un nodo clavado, lo que NO es suyo ni vecino no se rotula: has ido
+        // a leer esa vecindad, y treinta nombres de fondo la tapan.
+        if (fijo && !suyo && !suyoVecino) continue;
         cand.push([p, q]);
       }
       cand.sort((a, b) => a[1].prof - b[1].prof);
@@ -876,7 +907,7 @@ export default function MemoriaGrafo({
         const txt = p.title.slice(0, 26);
         const w = txt.length * 6.4;
         const y = q.sy - 12;
-        const mirado = p.id === bajo?.id || p.id === activo;
+        const mirado = p.id === bajo?.id || p.id === activo || p.id === fijo?.id;
         if (!mirado && !hueco(q.sx, y, w)) continue;
         puestos.push({ x: q.sx, y, w });
         rotular(txt, q.sx, y, mirado ? "#fff" : "#dfe8f5", mirado ? 1 : Math.min(0.9, q.v * 0.9), 12.5);
@@ -914,8 +945,14 @@ export default function MemoriaGrafo({
       if (e.button === 1) {
         e.preventDefault();
         const s = encimaRef.current;
-        destino.current = s ? { x: s.x, y: s.y, z: s.z } : { x: 0, y: 0, z: 0 };
-        if (s && cam.current.dist > 1.3) cam.current.dist = 1.15;
+        const suyo = s && s.fam !== undefined ? s : null;
+        // Sobre un nodo: se CLAVA y además pasa a ser el centro del giro, para
+        // poder darle la vuelta. En el vacío, se suelta y la cámara vuelve.
+        nodoFijo.current = suyo ? suyo.id : null;
+        setHayNodoFijo(!!suyo);
+        if (suyo) setFocoFijo(null);
+        destino.current = suyo ? { x: suyo.x, y: suyo.y, z: suyo.z } : { x: 0, y: 0, z: 0 };
+        if (suyo && cam.current.dist > 1.3) cam.current.dist = 1.15;
       }
       // Botón izquierdo SOBRE UN NODO: se coge el nodo, no la bola.
       const s = encimaRef.current;
@@ -988,8 +1025,14 @@ export default function MemoriaGrafo({
         else onAbrir(s.id);
         return;
       }
-      // En el vacío se suelta lo aislado: es la salida evidente.
+      // En el vacío se suelta lo aislado: es la salida evidente, y vale tanto
+      // para el proyecto como para el nodo clavado.
       setFocoFijo(null);
+      if (nodoFijo.current) {
+        nodoFijo.current = null;
+        setHayNodoFijo(false);
+        destino.current = { x: 0, y: 0, z: 0 };
+      }
     };
 
     const onLeave = () => {
@@ -1181,6 +1224,8 @@ export default function MemoriaGrafo({
               cam.current.dist = 2.85;
               destino.current = { x: 0, y: 0, z: 0 };
               setFocoFijo(null);
+              nodoFijo.current = null;
+              setHayNodoFijo(false);
             }}
           >
             {t("Ver la bola entera")}
@@ -1200,7 +1245,9 @@ export default function MemoriaGrafo({
         </div>
       )}
       <div className="mem-cerebro-ayuda">
-        {t("Rueda para entrar dentro · arrastra un nodo para moverlo · el fondo para girar · clic para abrirlo")}
+        {hayNodoFijo
+          ? t("Un nodo clavado: gira alrededor para verlo · clic en el vacío para soltarlo")
+          : t("Rueda para entrar dentro · botón de la rueda sobre un nodo para clavarlo · clic para abrirlo")}
       </div>
     </div>
   );

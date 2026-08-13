@@ -40,7 +40,7 @@ import {
 } from "../lib/router";
 import { mirarMundo, mundoEnCache } from "../lib/mundo";
 import { leerPerfil } from "../lib/perfil";
-import { providerOf } from "../lib/providers";
+import { providerOf, sabe } from "../lib/providers";
 import { createPortal } from "react-dom";
 import { useT } from "../lib/i18n";
 import Orbe, { type EstadoOrbe } from "./Orbe";
@@ -358,8 +358,8 @@ function cerebroDe(
   // aquí no se cambia de CLI. Lo que sí se hace es DECIRLO, que es la mitad
   // que sirve. Sin esta línea la acción se quedaría sin modelo y la terminal
   // nacería con el de tus ajustes, en silencio.
-  const model = (r.cli === "claude" ? r.modelo : r.alternativa?.modelo) ?? base ?? deLaTabla;
-  if (r.cli !== "claude") {
+  const model = (sabe(r.cli, "modelo") ? r.modelo : r.alternativa?.modelo) ?? base ?? deLaTabla;
+  if (!sabe(r.cli, "modelo")) {
     return { model, esfuerzo, porque: `sin semana; ${providerOf(r.cli).label} está libre` };
   }
   // Solo se cuenta como "explicación" lo que CAMBIA algo respecto a lo que se
@@ -679,7 +679,9 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
    */
   const semanaJusta = (() => {
     const gastos = mundo
-      .filter((x) => x.cuenta.provider === "claude" && x.conectada && x.gastado != null)
+      // `usage` es «Adeorq puede leer su cuota sin gastarla», y hasta el
+      // 2026-08-13 eso estaba en la tabla y aquí se preguntaba «¿eres Claude?».
+      .filter((x) => sabe(x.cuenta.provider, "usage") && x.conectada && x.gastado != null)
       .map((x) => x.gastado!);
     if (!gastos.length) return null;
     const mejor = Math.min(...gastos);
@@ -732,7 +734,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
         // delante, NO se fuerza nada: sale la ficha de siempre, que es lo que
         // permite abrir una nueva. Un automático que hace algo distinto de lo
         // que decidió el router sería peor que no tenerlo.
-        if (auto && receta.cli === "claude" && exec.focused() != null) {
+        if (auto && sabe(receta.cli, "modelo") && exec.focused() != null) {
           const r: Recibo = {
             modelo: receta.modelo,
             esfuerzo: receta.esfuerzo,
@@ -1292,7 +1294,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
                   <button
                     key={m}
                     className="mini fm-op"
-                    data-on={elegido.cli === "claude" && elegido.modelo === m}
+                    data-on={sabe(elegido.cli, "modelo") && elegido.modelo === m}
                     data-tip={
                       m === ficha.receta.modelo
                         ? t("Lo recomendado para esta tarea")

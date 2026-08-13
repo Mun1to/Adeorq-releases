@@ -879,7 +879,11 @@ export default function SettingsView({
                         .catch((e) => setFondoError(String(e)));
                     }}
                   >
-                    {fondo ? t("Cambiar el fondo…") : t("Elegir un fondo…")}
+                    {/* El rótulo nombra el vídeo a propósito. Se admite desde la
+                        0.9.10, pero decía solo «un fondo» y Munir lo pidió como
+                        si no existiera (2026-08-13): la función estaba, la
+                        palabra no, y una función que no se nombra no está. */}
+                    {fondo ? t("Cambiar la imagen o el vídeo…") : t("Elegir una imagen o un vídeo…")}
                   </button>
                   {fondo && (
                     <button

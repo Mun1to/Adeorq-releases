@@ -11,7 +11,7 @@
 // inventado y contesta lo mismo siempre. Quien habla con el disco o con el
 // modelo es otro (`mundo.ts`, `foreman.rs`), y por eso esto se puede probar.
 
-import { providerOf } from "./providers";
+import { providerOf, sabe } from "./providers";
 import {
   comoPeso,
   exigenciaDeRol,
@@ -139,8 +139,9 @@ export function promptPara(cli: string, t: Tarea, otras: Tarea[], objetivo?: str
   );
   partes.push("Si el proyecto tiene AGENTS.md o CLAUDE.md, síguelos.");
 
-  // Solo Claude Code tiene skills invocables por barra.
-  if (cli === "claude" && t.ex.trabajo === "diseno") {
+  // Sugerir una skill a un CLI que no las tiene es mandarle a escribir algo que
+  // no existe, así que se pregunta por la capacidad y no por el nombre.
+  if (sabe(cli, "skills") && t.ex.trabajo === "diseno") {
     partes.push("Si vas a diseñar interfaz con movimiento, invoca antes la skill /frontlaxweb.");
   }
 

@@ -52,6 +52,15 @@ export interface Provider {
   usage: boolean;
   /** Colour for its avatar and pills. */
   hue: string;
+  /**
+   * Cómo se llama en la chapa de una terminal, cuando ahí conviene decir además
+   * su nombre de programa.
+   *
+   * Solo lo necesita Antigravity: su `label` es «Antigravity» pero el comando
+   * que corre dentro se llama `agy`, y en la cabecera de un panel lo útil es
+   * poder atar las dos cosas. Vacío = su `label` de siempre.
+   */
+  rotuloPane?: string;
   /** How to get it, for the ones that are not installed. */
   install: string;
   /**
@@ -73,6 +82,64 @@ export interface Provider {
    * lo que le pediste. Cuando se confirme una, se añade y ya (2026-07-30).
    */
   apiEnv?: string;
+  /**
+   * La línea con la que se le llama para que empiece PUDIENDO EDITAR, cuando no
+   * es su nombre a secas. Vacío = se le llama por su `exe`.
+   *
+   * Vive aquí y no en un `switch` dentro de `App.tsx` (donde estuvo hasta el
+   * 2026-08-13) por el motivo de siempre: cada dato que se guarda por el NOMBRE
+   * del CLI en vez de por lo que ese CLI SABE HACER es un sitio más que hay que
+   * visitar para añadir el siguiente. Comprobado contra el `--help` de cada uno
+   * el 2026-07-26; donde no había equivalente del `acceptEdits` de Claude, el
+   * hueco se queda vacío a propósito: una bandera inventada es peor que una
+   * comodidad menos, y el `--allow-all-tools` de Copilot es permiso total, que
+   * no es nuestro para darlo.
+   */
+  arranque?: string;
+  /**
+   * Acepta el encargo en su línea de arranque.
+   *
+   * Los demás nacen vacíos y hay que hablarles después, y no es un descuido:
+   * cada CLI decide si su primer argumento es un prompt o un subcomando, y
+   * meterle texto suelto a uno que espera un subcomando es abrirle una terminal
+   * con un error dentro.
+   */
+  encargoEnLinea?: boolean;
+  /**
+   * Con qué bandera se le pasa ese encargo.
+   *
+   * Claude y Antigravity no la necesitan (lo toman como argumento suelto) y por
+   * eso su arranque está escrito a mano. Los demás que acepten encargo entran
+   * SOLO con esta columna, sin tocar una línea de código.
+   */
+  banderaEncargo?: string;
+  /**
+   * Se le puede elegir el cerebro desde Adeorq, con `--model` o equivalente.
+   *
+   * No es «tiene varios modelos»: casi todos los tienen. Es que Adeorq sepa
+   * pedirle uno concreto en la línea de arranque y que eso se respete.
+   */
+  modelo?: boolean;
+  /** Tiene un modo de solo planificar, sin tocar archivos, que se pide al
+   *  arrancar. En Claude es `--permission-mode plan`. */
+  modoPlan?: boolean;
+  /** Una sesión suya se puede retomar por su id, así que Adeorq puede revivirla
+   *  o pasarle el testigo a otra cuenta. Los que no lo tienen abren una
+   *  conversación nueva y el hilo anterior se queda donde estaba. */
+  retomable?: boolean;
+  /**
+   * Lee una imagen de una RUTA escrita en el prompt.
+   *
+   * Los que no, la quieren pegada con Ctrl+V desde el portapapeles. No es un
+   * detalle: al soltar una imagen sobre una terminal hay que decirle a Munir
+   * cuál de las dos cosas ha pasado, y decirle la equivocada le hace pelearse
+   * con un agente que nunca vio la imagen.
+   */
+  leeRutaDeImagen?: boolean;
+  /** Tiene habilidades invocables con barra (`/loquesea`), así que se le puede
+   *  sugerir una en el encargo, y las carpetas de skills se pueden compartir
+   *  entre sus cuentas. */
+  skills?: boolean;
 }
 
 export const PROVIDERS: Provider[] = [
@@ -89,6 +156,17 @@ export const PROVIDERS: Provider[] = [
     apiEnv: "ANTHROPIC_API_KEY",
     cmd: "pnpm add -g @anthropic-ai/claude-code",
     web: "https://claude.ai/code",
+    // Sin `arranque`: Claude no se lanza con una línea fija, sino con su modo,
+    // su esfuerzo y un id de sesión para poder retomarla luego. Eso lo arma
+    // `newClaudeCommand` en App.tsx y no cabe en una cadena.
+    encargoEnLinea: true,
+    modelo: true,
+    modoPlan: true,
+    // El `--session-id` que le pone Adeorq al nacer es justo lo que permite
+    // volver con `--resume`. De ahí salen revivir un panel y el relevo.
+    retomable: true,
+    leeRutaDeImagen: true,
+    skills: true,
   },
   {
     id: "codex",
@@ -102,6 +180,7 @@ export const PROVIDERS: Provider[] = [
     install: "pnpm add -g @openai/codex",
     apiEnv: "OPENAI_API_KEY",
     cmd: "pnpm add -g @openai/codex",
+    arranque: "codex --sandbox workspace-write",
   },
   {
     id: "gemini",
@@ -115,6 +194,7 @@ export const PROVIDERS: Provider[] = [
     install: "pnpm add -g @google/gemini-cli",
     apiEnv: "GEMINI_API_KEY",
     cmd: "pnpm add -g @google/gemini-cli",
+    arranque: "gemini --approval-mode auto_edit",
   },
   {
     id: "qwen",
@@ -159,15 +239,43 @@ export const PROVIDERS: Provider[] = [
     id: "opencode",
     label: "opencode",
     exe: "opencode",
+    // Su `OPENCODE_CONFIG_DIR` mueve la CONFIGURACIÓN, no el login, así que dos
+    // cuentas seguirían compartiendo sesión. Se queda vacío a propósito: es la
+    // misma trampa que `PI_CODING_AGENT_SESSION_DIR`, que solo mueve las
+    // sesiones. Lo que sí lo movería es `XDG_DATA_HOME`, pero no es suya (la
+    // respetan todos los programas del proceso) y además apunta un nivel por
+    // encima, así que Adeorq buscaría el login donde no está.
     envVar: "",
-    homeDir: ".config/opencode",
-    creds: [],
+    // VERIFICADO EN DISCO el 2026-08-13, tras instalarlo: crea `.local/share`,
+    // `.config`, `.cache` y `.local/state`. El login vive en la de DATOS, no en
+    // la de config, que es lo que decía esta ficha desde julio y era falso:
+    // `packages/opencode/src/auth/index.ts` hace `join(Global.Path.data,
+    // "auth.json")`, y `Path.data` sale de `xdgData`, que en Windows no tiene
+    // caso especial y cae en `~/.local/share`.
+    homeDir: ".local/share/opencode",
+    creds: ["auth.json"],
     usage: false,
     hue: "#f5c542",
-    // Installing it through pnpm on Windows leaves a 0-byte opencode.exe that
-    // will not run (tried on 2026-07-26), so point at the official installer.
-    install: "el instalador de opencode.ai (por pnpm deja un .exe vacío)",
+    // Lo del «.exe de 0 bytes» de julio era un diagnóstico a medias: el paquete
+    // trae un `postinstall.mjs` que copia el binario real desde su dependencia
+    // opcional, y pnpm 10+ bloquea los postinstall salvo que se le permita.
+    // Con `--allow-build` instala 170 MB que arrancan (probado el 2026-08-13).
+    install: "pnpm add -g --allow-build=opencode-ai opencode-ai",
+    cmd: "pnpm add -g --allow-build=opencode-ai opencode-ai",
     web: "https://opencode.ai",
+    // Su propio `packages/llm/src/providers/anthropic.ts` la lee:
+    //   .orElse(Auth.config("ANTHROPIC_API_KEY"))
+    apiEnv: "ANTHROPIC_API_KEY",
+    // Su `--help` en esta máquina (1.18.16): «--prompt  prompt to use». Es una
+    // opción del comando por defecto, el que abre su TUI, así que el encargo
+    // llega puesto en vez de tener que pegárselo a mano.
+    encargoEnLinea: true,
+    banderaEncargo: "--prompt",
+    // Sin `arranque`: su única bandera de permisos es `--auto`, y su PROPIA
+    // ayuda la marca «(dangerous!)» porque aprueba todo lo que no esté prohibido
+    // explícitamente. Eso no es el `acceptEdits` de Claude (pasa las ediciones,
+    // sigue preguntando lo arriesgado), es permiso total, y darlo no es nuestro.
+    // Mismo criterio que con el `--allow-all-tools` de Copilot.
   },
   {
     id: "amp",
@@ -193,10 +301,17 @@ export const PROVIDERS: Provider[] = [
     creds: ["settings.json"],
     usage: false,
     hue: "#7aa6ff",
+    rotuloPane: "Antigravity (agy)",
     // Official installer (antigravity.google/docs/cli/install). There is no
     // npm package: the ones using that name belong to other people.
     install: "irm https://antigravity.google/cli/install.ps1 | iex",
     cmd: "irm https://antigravity.google/cli/install.ps1 | iex",
+    // Su instalador solo añade su carpeta al PATH de las consolas NUEVAS, así
+    // que cuando Rust encuentra su ruta se le llama por ella (`agyCommand`).
+    // Esta línea es el respaldo para cuando no la ha encontrado.
+    arranque: "agy --mode accept-edits",
+    encargoEnLinea: true,
+    leeRutaDeImagen: true,
   },
   {
     id: "cursor",
@@ -260,11 +375,62 @@ export const PROVIDERS: Provider[] = [
     install: "irm 'https://cli.kiro.dev/install.ps1' | iex",
     cmd: "irm 'https://cli.kiro.dev/install.ps1' | iex",
     web: "https://kiro.dev/docs/cli/installation/",
+    // Su nombre a secas imprime la ayuda: la conversación es `kiro-cli chat`,
+    // tal como sale en todos los ejemplos de su documentación.
+    arranque: "kiro-cli chat",
   },
 ];
+
+/** Todos los ids de la tabla. Se deriva para que nadie tenga que mantener una
+ *  segunda lista con los mismos nombres escritos a mano. */
+export const IDS = PROVIDERS.map((p) => p.id);
+
+/** La línea con la que se arranca ese CLI. Su `arranque` si lo declara, y si no
+ *  su propio nombre de programa, que es el caso de la mayoría. */
+export function lineaDeArranque(id: string): string {
+  const p = PROVIDERS.find((x) => x.id === id);
+  return p ? (p.arranque ?? p.exe) : id;
+}
+
+/** Con qué bandera acepta el encargo, si lo acepta así. */
+export function banderaDeEncargo(id: string): string | undefined {
+  return PROVIDERS.find((x) => x.id === id)?.banderaEncargo;
+}
 
 export const CLAUDE = PROVIDERS[0];
 
 export function providerOf(id: string): Provider {
   return PROVIDERS.find((p) => p.id === id) ?? CLAUDE;
+}
+
+/** Las capacidades que se preguntan por ahí, y que antes se preguntaban por el
+ *  nombre del CLI: `provider === "claude"` repetido en nueve sitios. */
+export type Capacidad =
+  | "modelo"
+  | "modoPlan"
+  | "retomable"
+  | "encargoEnLinea"
+  | "usage"
+  | "leeRutaDeImagen"
+  | "skills"
+  /** Su carpeta de identidad se puede mover, así que admite varias cuentas.
+   *  No es un booleano en la tabla sino el nombre de la variable, y por eso se
+   *  pregunta aquí en vez de comparar contra `""` por ahí suelto. */
+  | "variasCuentas";
+
+/**
+ * Si ese CLI sabe hacer eso.
+ *
+ * ⚠ Aquí NO se puede usar `providerOf`, y es la razón de que esta función
+ * exista: `providerOf` devuelve Claude cuando no encuentra el id, así que
+ * `providerOf("shell").modelo` diría que sí y a una consola pelada le saldría
+ * el selector de cerebro. `shell` y `ollama` pasan por estos mismos sitios y no
+ * están en la tabla, así que lo desconocido tiene que responder «no sé hacer
+ * eso», nunca «lo que haga Claude».
+ */
+export function sabe(id: string, que: Capacidad): boolean {
+  const p = PROVIDERS.find((x) => x.id === id);
+  if (!p) return false;
+  if (que === "variasCuentas") return !!p.envVar;
+  return !!p[que];
 }

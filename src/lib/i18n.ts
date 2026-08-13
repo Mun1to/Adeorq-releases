@@ -935,8 +935,8 @@ const EN: Record<string, string> = {
   "El fondo": "The background",
   "Lo que se ve detrás de las terminales. Los paneles ya son cristal, así que debajo había un color plano desaprovechado. Vale una imagen o un vídeo, que se pone en bucle y sin sonido. El archivo se copia a la carpeta de Adeorq, así que el fondo no se rompe si luego mueves el original.":
     "What you see behind the terminals. The panes are already glass, so underneath there was a flat colour going to waste. An image or a video will do, looping and muted. The file is copied into Adeorq's folder, so the background does not break if you move the original later.",
-  "Elegir un fondo…": "Pick a background…",
-  "Cambiar el fondo…": "Change the background…",
+  "Elegir una imagen o un vídeo…": "Pick an image or a video…",
+  "Cambiar la imagen o el vídeo…": "Change the image or video…",
   Quitarlo: "Remove it",
   "Cuánto se ve": "How much shows",
   Desenfoque: "Blur",

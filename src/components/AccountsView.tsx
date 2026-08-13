@@ -38,7 +38,7 @@ import {
   type Limits,
   type PlanInfo,
 } from "../lib/pty";
-import { PROVIDERS, providerOf, type Provider } from "../lib/providers";
+import { PROVIDERS, providerOf, sabe, type Provider } from "../lib/providers";
 import { useT } from "../lib/i18n";
 import { initials } from "./ProjectAvatar";
 import { propsDeVelo } from "../lib/velo";
@@ -484,7 +484,11 @@ export default function AccountsView({
           <button className="mini" onClick={() => onTerminal(acc)}>
             {t("Terminal con esta")}
           </button>
-          {!isDefault && p.id === "claude" && (
+          {/* «Por defecto» solo significa algo donde puede haber más de una
+              cuenta, que es lo que dice `variasCuentas` de la tabla. Antes
+              preguntaba «¿eres Claude?», y era la misma respuesta por
+              casualidad. */}
+          {!isDefault && sabe(p.id, "variasCuentas") && (
             <button className="mini" onClick={() => onSetDefault(acc.id)}>
               {t("Usar por defecto")}
             </button>
@@ -513,7 +517,7 @@ export default function AccountsView({
               El texto dice «la misma carpeta» a propósito, porque esa es la
               consecuencia que se paga: borrar una skill desde aquí la borra
               para todas, y eso no puede ir en una nota al pie. */}
-          {!isMain && p.id === "claude" && (
+          {!isMain && sabe(p.id, "skills") && (
             <button
               className="mini"
               data-tip={

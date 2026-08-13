@@ -26,13 +26,12 @@ import {
 } from "../lib/pty";
 import { porQueSale } from "../lib/enLaBarra";
 import { raiz } from "../lib/perfil";
-import { PROVIDERS, providerOf } from "../lib/providers";
+import { PROVIDERS, providerOf, sabe } from "../lib/providers";
 import { useT } from "../lib/i18n";
 import { encaja } from "../lib/buscar";
 import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
 import { propsDeVelo } from "../lib/velo";
-import { ClaudeMark } from "./KindIcon";
 import { ChevronIcon, FolderIcon, RefreshIcon, UnlinkIcon } from "./Icons";
 
 /** Everything needed to open one terminal, once both steps are answered. */
@@ -328,9 +327,9 @@ export default function NewSession({
       name: place.name,
       cwd: place.path,
       provider,
-      model: provider === "claude" && model ? model : undefined,
+      model: sabe(provider, "modelo") && model ? model : undefined,
       localModel: provider === "ollama" ? local || locales[0] : undefined,
-      plan: provider === "claude" && planMode ? true : undefined,
+      plan: sabe(provider, "modoPlan") && planMode ? true : undefined,
       account: chosenAccount,
       count,
     });
@@ -654,7 +653,12 @@ export default function NewSession({
                     setAccountId("");
                   }}
                 >
-                  {tool.id === "claude" && <ClaudeMark />}
+                  {/* La marca de CADA cliente, no solo la de Claude: en esta
+                      lista los demás salían con el nombre pelado aunque su
+                      dibujo existiera desde julio. `ProviderMark` ya devuelve
+                      null cuando no tenemos su logo, así que ninguno pinta un
+                      hueco. */}
+                  <ProviderMark id={tool.id} />
                   {tool.label}
                 </button>
               ))}
@@ -694,7 +698,7 @@ export default function NewSession({
               </>
             )}
 
-            {provider === "claude" && (
+            {sabe(provider, "modelo") && (
               <>
                 <p className="wiz-label">{t("Modelo")}</p>
                 <div className="chip-row">
@@ -808,8 +812,8 @@ export default function NewSession({
                     tool: toolLabel,
                     path: place?.path ?? "",
                   })}
-              {provider === "claude" && model ? ` · ${model}` : ""}
-              {provider === "claude" && planMode ? ` · ${t("modo plan")}` : ""}
+              {sabe(provider, "modelo") && model ? ` · ${model}` : ""}
+              {sabe(provider, "modoPlan") && planMode ? ` · ${t("modo plan")}` : ""}
               {chosenAccount ? ` · ${chosenAccount.label}` : ""}
             </p>
           </>

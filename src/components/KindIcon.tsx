@@ -27,7 +27,7 @@ export function tonoDeKind(kind: PaneKind): string | undefined {
 export function nombreDeKind(kind: PaneKind): string {
   if (kind === "shell") return "PowerShell";
   const p = PROVIDERS.find((x) => x.id === kind);
-  return p ? (p.id === "agy" ? "Antigravity (agy)" : p.label) : "Terminal";
+  return p ? (p.rotuloPane ?? p.label) : "Terminal";
 }
 
 /**

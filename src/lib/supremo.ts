@@ -9,6 +9,8 @@
 //
 // El plano entero está en `docs/SUPREMA.md`.
 
+import { IDS, PROVIDERS } from "./providers";
+
 /** Lo que llega por el evento `mcp:pedido`. Todo opcional menos lo primero:
  *  viene de un modelo, así que se valida aquí y no se da nada por hecho. */
 export interface PedidoMcp {
@@ -44,25 +46,17 @@ export interface RespuestaMcp {
  * dentro. Al agente se le DICE, para que mande el encargo él con `send_command`
  * en vez de suponer que llegó.
  */
-export const ARRANCAN_CON_ENCARGO = new Set(["claude", "agy"]);
+export const ARRANCAN_CON_ENCARGO = new Set(
+  PROVIDERS.filter((p) => p.encargoEnLinea).map((p) => p.id),
+);
 
 /** Los que Adeorq sabe abrir. `shell` no es un agente: es una consola pelada,
- *  y vale como pieza del árbol para tareas que no necesitan modelo. */
-export const CLIS_CONOCIDOS = new Set([
-  "claude",
-  "codex",
-  "gemini",
-  "qwen",
-  "copilot",
-  "crush",
-  "opencode",
-  "amp",
-  "agy",
-  "cursor",
-  "pi",
-  "kiro",
-  "shell",
-]);
+ *  y vale como pieza del árbol para tareas que no necesitan modelo.
+ *
+ *  Sale de la tabla de proveedores en vez de repetir sus nombres: esta lista
+ *  estuvo escrita a mano hasta el 2026-08-13 y era una de las que había que
+ *  acordarse de tocar al añadir un cliente. Ahora añadir la fila basta. */
+export const CLIS_CONOCIDOS = new Set([...IDS, "shell"]);
 
 /** El CLI pedido, o el motivo por el que no vale. Un modelo escribe «Claude» y
  *  «claude-code» con la misma intención, así que se limpia antes de juzgar. */

@@ -127,7 +127,8 @@ import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
 import { guardarAtajos, leerAtajos, type Atajos } from "./lib/atajos";
 import { tecleandoEnOtro } from "./lib/tecleando";
-import { PROVIDERS, providerOf, type Provider } from "./lib/providers";
+import { lineaDeArranque, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
+import { planDeArranque, type Peticion, type Plan } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
 import {
   ARRANCAN_CON_ENCARGO,
@@ -386,29 +387,53 @@ async function resumeCommandFor(pane: SavedPane): Promise<string[] | undefined> 
  * is inside: edits go through, risky things still ask. Where it did not, the
  * CLI starts plain: a made-up flag is worse than one less convenience, and
  * Copilot's --allow-all-tools is full permission, which is not ours to grant.
- * Checked against each --help on 2026-07-26.
+ *
+ * Cada una de esas líneas vive AHORA en la tabla de proveedores, en su columna
+ * `arranque`. Aquí había un `switch` con los nombres escritos otra vez, que era
+ * uno de los diecinueve archivos que había que visitar para añadir un cliente
+ * (2026-08-13).
  */
-function providerInner(provider: string): string {
-  switch (provider) {
-    case "codex":
-      return "codex --sandbox workspace-write";
-    case "gemini":
-      return "gemini --approval-mode auto_edit";
-    case "agy":
-      return "agy --mode accept-edits";
-    // Su nombre a secas imprime la ayuda: la conversación es `kiro-cli chat`,
-    // tal como sale en todos los ejemplos de su documentación.
-    case "kiro":
-      return "kiro-cli chat";
-    default:
-      return providerOf(provider).exe;
-  }
+const providerInner = lineaDeArranque;
+
+/** Abrirlo sin nada dentro: ni encargo, ni modelo, ni modo. Es el caso de
+ *  todos los días (el botón de la barra, un atajo de proyecto). */
+function providerCommand(provider: string): string[] {
+  // El `?? shellCommand(...)` no es defensa por si acaso: `comandoDe` devuelve
+  // `undefined` para la consola pelada, y aquí siempre llega un CLI de verdad.
+  return comandoDe({ cli: provider }) ?? shellCommand(providerInner(provider));
 }
 
-function providerCommand(provider: string): string[] {
-  // Claude va aparte: se lanza con su modo, su esfuerzo y un id de sesión para
-  // poder retomarla luego, y eso no es una simple línea de arranque.
-  return provider === "claude" ? newClaudeCommand() : shellCommand(providerInner(provider));
+/**
+ * El comando con el que nace una terminal, sea del CLI que sea.
+ *
+ * Es la única traducción de un plan de arranque a un comando de verdad. La
+ * DECISIÓN vive aparte y es pura (`lib/arranque.ts`, comprobada sin abrir la
+ * app); esto es la mitad que no se puede probar, porque necesita un id de
+ * sesión nuevo y el modo guardado en `localStorage`.
+ *
+ * Devuelve `undefined` solo para la consola pelada, que es una terminal sin
+ * nada dentro y no un fallo.
+ */
+function comandoDe(p: Peticion): string[] | undefined {
+  return comandoDelPlan(planDeArranque(p));
+}
+
+/** La misma traducción, cuando quien llama ya tiene el plan en la mano y
+ *  necesita mirarlo (para copiar el encargo, o para saber en qué se abre). */
+function comandoDelPlan(plan: Plan): string[] | undefined {
+  switch (plan.tipo) {
+    case "consola":
+      return undefined;
+    case "claude":
+      return newClaudeCommand(plan.extra, plan.modo, plan.conTexto);
+    case "agy":
+      return agyCommand(plan.exe, plan.encargo);
+    case "linea":
+      // Con un encargo dictado dentro, PowerShell: en cmd las comillas simples
+      // no agrupan nada y un «&» ejecutaría lo que venga detrás. Ver la nota de
+      // `claudeCommand`, que es la misma razón.
+      return plan.conTexto ? powershellCommand(plan.inner) : shellCommand(plan.inner);
+  }
 }
 
 /**
@@ -849,10 +874,17 @@ function App() {
   /** El panel sobre el que se está soltando un archivo ahora mismo. */
   const [soltandoEn, setSoltandoEn] = useState<number | null>(null);
 
-  /** Las de Claude, que son las únicas que publican su cuota y las únicas a
-   *  las que se puede relevar una sesión suya. */
-  const cuentasClaude = useMemo(
-    () => [MAIN_ACCOUNT, ...accounts.filter((a) => a.provider === "claude")],
+  /** Las cuentas cuya cuota Adeorq sabe leer, que son las que alimentan el
+   *  aviso de plan y el panel de uso. Se filtran por la capacidad `usage` de la
+   *  tabla y no por «¿eres Claude?», que era lo que ponía aquí: el día que otro
+   *  CLI publique su porcentaje entra solo con marcarlo en su fila.
+   *
+   *  El relevo también las usa, y ahí hace falta ADEMÁS que la sesión se pueda
+   *  retomar; eso lo comprueba `TerminalPane` con `sabe(kind, "retomable")`,
+   *  así que no se pierde nada aunque algún día las dos listas dejen de
+   *  coincidir. */
+  const cuentasConCuota = useMemo(
+    () => [MAIN_ACCOUNT, ...accounts.filter((a) => sabe(a.provider, "usage"))],
     [accounts],
   );
 
@@ -1217,21 +1249,15 @@ function App() {
             : l.provider;
       // A command per terminal, never a shared one: each Claude has to carry
       // its own --session-id or they would all resume the same conversation.
+      //
       const commandFor = () =>
-        l.provider === "shell"
-          ? undefined
-          : l.provider === "claude"
-            ? newClaudeCommand(l.model ? `--model ${l.model}` : "", l.plan ? "plan" : undefined)
-            : l.provider === "agy" && agyExe.current
-              ? agyCommand(agyExe.current)
-              : // Un chat con el modelo de casa, en una terminal como cualquier
-                // otra: `ollama run` ya ES una conversación interactiva, así que
-                // no hace falta nada más que abrirla. Sin cuota de nadie y sin
-                // acceso a los archivos, que es justo lo que lo hace distinto
-                // de los CLIs de al lado.
-                l.provider === "ollama"
-                ? shellCommand(`ollama run ${l.localModel ?? ""}`.trim())
-                : providerCommand(l.provider);
+        comandoDe({
+          cli: l.provider,
+          modelo: l.model,
+          plan: l.plan,
+          modeloLocal: l.localModel,
+          agyExe: agyExe.current,
+        });
 
       const n = Math.max(1, Math.min(l.count, openAllCap));
       for (let i = 0; i < n; i++) {
@@ -1417,19 +1443,28 @@ function App() {
       team?: Team,
       shadow?: boolean,
     ) => {
-      if (r.cli === "claude") {
+      const plan = planDeArranque({
+        cli: r.cli,
+        encargo,
+        modelo: r.modelo,
+        esfuerzo: r.esfuerzo,
+        agyExe: agyExe.current,
+      });
+      // Claude no se abre con un comando y ya: `openClaudePrompt` además cuenta
+      // el encargo por el PTY y engancha la sesión, así que ese camino se queda
+      // suyo. Lo que ya NO se pregunta aquí es «¿eres Claude?», sino en qué
+      // acabó el plan.
+      if (plan.tipo === "claude") {
         openClaudePrompt(label, cwd, encargo, r.modelo, team, shadow, {
           esfuerzo: r.esfuerzo,
           cuenta: r.cuenta,
         });
         return;
       }
-      if (r.cli === "agy" && agyExe.current) {
-        addPane(label, cwd, agyCommand(agyExe.current, encargo), undefined, r.cuenta, team, shadow);
-        return;
+      if (plan.tipo === "linea" && plan.alPortapapeles) {
+        void navigator.clipboard.writeText(plan.alPortapapeles).catch(() => {});
       }
-      void navigator.clipboard.writeText(encargo).catch(() => {});
-      addPane(label, cwd, providerCommand(r.cli), undefined, r.cuenta, team, shadow);
+      addPane(label, cwd, comandoDelPlan(plan), undefined, r.cuenta, team, shadow);
     },
     [addPane, openClaudePrompt],
   );
@@ -1483,15 +1518,7 @@ function App() {
         // él: meterle texto suelto a un CLI que espera un subcomando es abrirle
         // una terminal con un error dentro.
         const conEncargo = !!brief && ARRANCAN_CON_ENCARGO.has(cli);
-        let command: string[] | undefined;
-        if (cli === "shell") command = undefined;
-        else if (cli === "claude")
-          command = conEncargo
-            ? newClaudeCommand(`'${brief.replace(/'/g, "''")}'`, undefined, true)
-            : newClaudeCommand();
-        else if (cli === "agy" && agyExe.current)
-          command = agyCommand(agyExe.current, conEncargo ? brief : undefined);
-        else command = providerCommand(cli);
+        const command = comandoDe({ cli, encargo: brief, agyExe: agyExe.current });
 
         const abierto = addPane(label, cwd, command);
         if (!abierto) return responder({ error: "no pude abrir la terminal" });
@@ -1650,20 +1677,20 @@ function App() {
       cuenta?: Account,
     ): CanvasPane => {
       const id = nextId.current++;
-      const command =
-        propio?.command ??
-        (kind === "claude"
-          ? newClaudeCommand()
-          : kind === "agy" && agyExe.current
-            ? agyCommand(agyExe.current)
-            : undefined);
+      // Sin `propio.command`, el kind manda. El lienzo solo guarda `claude`,
+      // `agy` y `shell` (lo convierte en `CanvasView`), así que aquí «el resto»
+      // es siempre la consola pelada.
+      const command = propio?.command ?? comandoDe({ cli: kind, agyExe: agyExe.current });
       const { env, etiqueta } = entornoDePane(command, cuenta);
       const pane: CanvasPane = {
         id,
         cwd: project.path,
         name:
           propio?.name ??
-          `${project.name} · ${kind === "claude" ? "claude" : kind === "agy" ? "antigravity" : "terminal"}`,
+          // El rótulo sale de la tabla, en minúscula como el resto de nombres
+          // del lienzo. Antes había tres casos escritos a mano y un CLI nuevo
+          // salía como «terminal» aunque fuese un agente.
+          `${project.name} · ${kind === "shell" ? "terminal" : providerOf(kind).label.toLowerCase()}`,
         command,
         env,
         account: etiqueta,
@@ -1706,33 +1733,27 @@ function App() {
       // Solo Claude y Antigravity aceptan el encargo en la línea de arranque;
       // al resto se les abre la terminal y el encargo va al portapapeles. Es la
       // misma regla que `openReceta` aplica en la cabina.
-      if (receta.cli === "agy" && agyExe.current) {
-        createCanvasPane("agy", project, {
+      const plan = planDeArranque({
+        cli: receta.cli,
+        encargo: limpio,
+        modelo: receta.modelo,
+        esfuerzo: receta.esfuerzo,
+        agyExe: agyExe.current,
+      });
+      // A quien no acepta el encargo al arrancar se le copia y se le abre la
+      // terminal: el plan devuelve el texto justo para esto, así que copiarlo y
+      // decidirlo no pueden separarse.
+      if (plan.tipo === "linea" && plan.alPortapapeles) {
+        void navigator.clipboard.writeText(plan.alPortapapeles).catch(() => {});
+      }
+      const command = comandoDelPlan(plan);
+      if (plan.tipo !== "claude") {
+        createCanvasPane(plan.tipo === "agy" ? "agy" : "shell", project, {
           name: nombre,
-          command: agyCommand(agyExe.current, limpio),
+          command,
         }, receta.cuenta);
         return;
       }
-      if (receta.cli !== "claude") {
-        void navigator.clipboard.writeText(limpio).catch(() => {});
-        createCanvasPane("shell", project, {
-          name: nombre,
-          command: providerCommand(receta.cli),
-        }, receta.cuenta);
-        return;
-      }
-
-      // Comilla simple para PowerShell -Command; las de dentro se doblan. Y por
-      // eso el `true` de abajo: con un encargo dentro el envoltorio tiene que
-      // ser PowerShell, no el cmd ligero. Ver la nota de `claudeCommand`.
-      const extra = [
-        receta.modelo ? `--model ${receta.modelo}` : "",
-        receta.esfuerzo ? `--effort ${receta.esfuerzo}` : "",
-        `'${limpio.replace(/'/g, "''")}'`,
-      ]
-        .filter(Boolean)
-        .join(" ");
-      const command = newClaudeCommand(extra, undefined, true);
       const sid = sessionIdOf(command);
       if (sid) {
         void saveEncargo(sid, {
@@ -2675,7 +2696,7 @@ function App() {
           mitad de una tarea. Solo mira si hay alguien trabajando, y solo las
           cuentas de Claude, que son las únicas que publican su porcentaje. */}
       <AvisoCuota
-        cuentas={cuentasClaude}
+        cuentas={cuentasConCuota}
         paneles={panes
           .filter((p) => kindDeComando(p.command?.join(" ") ?? "") === "claude")
           .map((p) => ({
@@ -2985,7 +3006,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     style={style}
                     onSwap={onSwap}
                     onHeaderDown={onHeaderDown}
-                    cuentas={cuentasClaude}
+                    cuentas={cuentasConCuota}
                     onRelevar={(cuenta) =>
                       relevar(cuenta, {
                         cwd: p.cwd,
@@ -3107,7 +3128,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           canPaste={focusedId != null}
           onUse={pasteToFocused}
           onUsage={focusedId != null ? askUsage : null}
-          cuentas={cuentasClaude}
+          cuentas={cuentasConCuota}
         />
       </div>
 

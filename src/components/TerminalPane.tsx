@@ -54,6 +54,7 @@ import { EVENTO_REFIT, redimensionando, tocaAjustar } from "../lib/redimension";
 import { modoRendimiento } from "../lib/rendimiento";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
+import { sabe } from "../lib/providers";
 
 interface Props {
   id: number;
@@ -938,7 +939,7 @@ export default function TerminalPane({
         return;
       }
       setNote(
-        kind === "claude" || kind === "agy"
+        sabe(kind, "leeRutaDeImagen")
           ? "Imagen puesta como ruta: el agente la lee de ahí. Escribe tu pregunta al lado y Enter."
           : "Ruta escrita, pero este cliente no lee imágenes de una ruta: cópiala y pégala aquí con Ctrl+V.",
       );
@@ -1455,7 +1456,10 @@ export default function TerminalPane({
             label: blurred ? t("Mostrar esta terminal") : t("Tapar esta terminal (para emitir)"),
             onClick: () => setBlurred((v) => !v),
           },
-          ...(onRevivir && kind === "claude"
+          // Revivir es volver a la MISMA conversación, así que solo cabe en un
+          // CLI cuya sesión se puede retomar por su id. En los demás, «revivir»
+          // abriría un hilo nuevo con cara de ser el de antes.
+          ...(onRevivir && sabe(kind, "retomable")
             ? [
                 { label: etiquetaReanimar, onClick: reanimar },
               ]
@@ -1465,7 +1469,7 @@ export default function TerminalPane({
           // porque el valor de esto no es abrir otra cuenta (eso ya se podía)
           // sino no tener que contarle otra vez lo que llevabas media hora
           // explicando (Munir, 2026-08-01).
-          ...(onRelevar && kind === "claude" && otrasCuentas.length > 0
+          ...(onRelevar && sabe(kind, "retomable") && otrasCuentas.length > 0
             ? [
                 { label: "", separator: true },
                 { label: t("Seguir en otra cuenta"), heading: true },

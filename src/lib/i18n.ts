@@ -741,8 +741,8 @@ const EN: Record<string, string> = {
     "In beta: it works, but it is unfinished and may change",
   "Un nodo clavado: gira alrededor para verlo · clic en el vacío para soltarlo":
     "One node pinned: spin around to look at it · click empty space to release",
-  "Rueda para entrar dentro · botón de la rueda sobre un nodo para clavarlo · clic para abrirlo":
-    "Wheel to fly inside · middle-click a node to pin it · click to open",
+  "Rueda para entrar · arrastra con la rueda para moverte · clic con la rueda en un nodo para clavarlo · clic para abrirlo":
+    "Wheel to fly in · drag with the wheel to pan · middle-click a node to pin it · click to open",
   // «Aspecto» ya está traducido más abajo, con los grupos de Ajustes.
   "Resplandor": "Glow",
   "Alto de los nodos": "Node height",

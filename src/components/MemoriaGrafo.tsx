@@ -76,6 +76,10 @@ const FOV = 0.55;
 /** Nada más cerca del ojo que esto se dibuja. Es lo que aparta la corteza que
     tienes entre el ojo y el interior cuando entras. */
 const NEAR = 0.3;
+/** Hasta dónde puede alejarse el pivote del centro al desplazarse con la rueda.
+    La bola tiene radio 1: con este tope te la puedes echar entera a un lado de
+    la pantalla, pero no perderla de vista y quedarte mirando el vacío. */
+const TOPE_PAN = 2.2;
 
 /** Una proyección: dónde cae un punto en pantalla y en qué estado está. */
 interface Proy {
@@ -152,11 +156,20 @@ export default function MemoriaGrafo({
 
   /** La cámara: dos ángulos, la distancia del ojo, y el PIVOTE, que es el punto
       alrededor del que orbita. El pivote se mueve a un nodo con el botón de la
-      rueda y se queda ahí. */
+      rueda y se queda ahí, o a mano arrastrando con ese mismo botón. */
   const cam = useRef({ yaw: 0, pitch: -0.18, dist: 2.85, tx: 0, ty: 0, tz: 0 });
   const destino = useRef({ x: 0, y: 0, z: 0 });
   const raf = useRef(0);
-  const arrastre = useRef<{ x: number; y: number; movido: boolean; nodo: number } | null>(null);
+  /** El arrastre en curso. `nodo` es el que llevas cogido (o -1); `pan` es que
+      vas con el botón de la rueda, desplazando la vista en vez de girándola. */
+  const arrastre = useRef<{
+    x: number;
+    y: number;
+    movido: boolean;
+    nodo: number;
+    pan: boolean;
+    clavar: Punto | null;
+  } | null>(null);
   const raton = useRef({ x: 0, y: 0 });
   const ratonEncima = useRef(false);
   const sucio = useRef(true);
@@ -689,9 +702,15 @@ export default function MemoriaGrafo({
         a.mio === b.mio ? a.nivel - b.nivel : a.mio ? -1 : 1);
       for (const m of orden) {
         const tt = m.nivel / 4;
-        // Dentro hay menos superficie tapando y más madeja delante: la maraña
-        // se afloja, que es lo que hace que se pueda mirar desde ahí.
-        const dentro = 0.45 + 0.55 * fuera;
+        /* DENTRO, los hilos son el paisaje: es a lo que se entra. Hasta hoy se
+           apagaban a menos de la mitad para que la madeja no se hiciera sopa, y
+           el resultado era entrar a una bola vacía (Munir, 2026-08-13).
+           Se suben, pero no a lo bruto: el que sube de verdad es el que tienes
+           AL LADO, y el del otro extremo de la bola se queda casi como estaba.
+           Eso es lo que da profundidad en vez de una nube lechosa, que es el
+           riesgo real aquí (estos trazos SUMAN luz unos sobre otros).
+           Fuera vale exactamente 1, así que la vista de siempre no se toca. */
+        const dentro = fuera + (1 - fuera) * (0.9 + tt * 1.3);
         let alfa = (m.puente ? 0.2 : 0.11) * (0.25 + tt * 0.75) * m.ve * dentro * A.enlaces * brillo;
         if (!m.mio) alfa *= APAGADO * 1.6;
         else if (F) alfa *= 2.1;
@@ -829,12 +848,21 @@ export default function MemoriaGrafo({
       /* EL NÚCLEO: las skills, con su nombre. Van en ámbar y no en el color de
          ningún proyecto porque no son de ninguno: se usan en todos, que es lo
          que las pone en el centro. */
+      /* Un nombre se pone SIEMPRE con dos contornos y no con uno. El fino le da
+         el borde limpio, y el ancho y translúcido es el que lo despega de lo que
+         haya detrás: aquí detrás hay hilos claros, luces encendidas y una foto de
+         fondo que no controlamos, y con un solo contorno el texto se leía a la
+         segunda mirada en vez de a la primera (Munir, 2026-08-13). Dos trazos
+         cuestan menos que una sombra desenfocada, que es lo otro que valdría. */
       const rotular = (txt: string, x: number, y: number, color: string, alfa: number, cuerpo: number, peso = "") => {
         rctx.font = `${peso} ${cuerpo}px system-ui, sans-serif`.trim();
         rctx.globalAlpha = Math.min(1, alfa);
-        rctx.lineWidth = Math.max(2.6, cuerpo * 0.24);
         rctx.lineJoin = "round";
-        rctx.strokeStyle = "rgba(3,6,12,0.9)";
+        rctx.strokeStyle = "rgba(2,5,11,0.5)";
+        rctx.lineWidth = Math.max(5.2, cuerpo * 0.46);
+        rctx.strokeText(txt, x, y);
+        rctx.strokeStyle = "rgba(2,5,11,0.95)";
+        rctx.lineWidth = Math.max(2.6, cuerpo * 0.24);
         rctx.strokeText(txt, x, y);
         rctx.fillStyle = color;
         rctx.fillText(txt, x, y);
@@ -910,7 +938,10 @@ export default function MemoriaGrafo({
         const mirado = p.id === bajo?.id || p.id === activo || p.id === fijo?.id;
         if (!mirado && !hueco(q.sx, y, w)) continue;
         puestos.push({ x: q.sx, y, w });
-        rotular(txt, q.sx, y, mirado ? "#fff" : "#dfe8f5", mirado ? 1 : Math.min(0.9, q.v * 0.9), 12.5);
+        /* El suelo del alfa no baja de 0,78: un nombre solo se dibuja si ya has
+           decidido que ese nodo merece nombre, y entonces o se lee o sobra. Lo
+           que sigue haciendo la distancia es matizar, no desvanecer. */
+        rotular(txt, q.sx, y, mirado ? "#fff" : "#eaf1fb", mirado ? 1 : Math.min(1, 0.55 + q.v * 0.45), 12.5);
       }
       rctx.globalAlpha = 1;
     };
@@ -938,28 +969,30 @@ export default function MemoriaGrafo({
 
     const onDown = (e: PointerEvent) => {
       if (delTablero(e)) return;
+      // Que un arrastre no empiece a marcar texto de lo que hay encima del
+      // dibujo. Va aquí ADEMÁS del `user-select` del CSS porque el navegador
+      // también arrastra imágenes y enlaces con este mismo gesto.
+      e.preventDefault();
       ensuciar();
       box.setPointerCapture(e.pointerId);
-      // Botón de la rueda sobre un nodo: ese nodo pasa a ser el centro del giro
-      // y se queda ahí. En el vacío, vuelve al centro de la bola.
-      if (e.button === 1) {
-        e.preventDefault();
-        const s = encimaRef.current;
-        const suyo = s && s.fam !== undefined ? s : null;
-        // Sobre un nodo: se CLAVA y además pasa a ser el centro del giro, para
-        // poder darle la vuelta. En el vacío, se suelta y la cámara vuelve.
-        nodoFijo.current = suyo ? suyo.id : null;
-        setHayNodoFijo(!!suyo);
-        if (suyo) setFocoFijo(null);
-        destino.current = suyo ? { x: suyo.x, y: suyo.y, z: suyo.z } : { x: 0, y: 0, z: 0 };
-        if (suyo && cam.current.dist > 1.3) cam.current.dist = 1.15;
-      }
-      // Botón izquierdo SOBRE UN NODO: se coge el nodo, no la bola.
       const s = encimaRef.current;
+      // Botón izquierdo SOBRE UN NODO: se coge el nodo, no la bola.
       const nodo = e.button === 0 && s && s.fam !== undefined
         ? puntos.current.findIndex((p) => p.id === s.id)
         : -1;
-      arrastre.current = { x: e.clientX, y: e.clientY, movido: false, nodo };
+      /* El botón de la rueda hace las dos cosas que se le piden a una rueda, y
+         las separa el movimiento, igual que el izquierdo separa abrir de girar:
+         arrastrando DESPLAZA la vista, y sin moverlo clava el nodo que tengas
+         debajo. Por eso lo de clavar se decide al soltar y no aquí: al pulsar
+         todavía no se sabe cuál de las dos era (Munir, 2026-08-13). */
+      arrastre.current = {
+        x: e.clientX,
+        y: e.clientY,
+        movido: false,
+        nodo,
+        pan: e.button === 1,
+        clavar: e.button === 1 && s && s.fam !== undefined ? s : null,
+      };
     };
 
     const onMove = (e: PointerEvent) => {
@@ -1001,6 +1034,26 @@ export default function MemoriaGrafo({
         }
         return;
       }
+      if (a.pan) {
+        /* DESPLAZAR: el pivote se mueve por el plano de la cámara, así que lo
+           que había bajo el cursor sigue debajo. La conversión de píxeles a
+           mundo es la de la perspectiva a la altura del pivote (`dist/escala`)
+           y no un número a ojo: sin ella, de lejos el arrastre se quedaría
+           corto y de cerca se dispararía. */
+        const c = cam.current;
+        const s = c.dist / escala;
+        const w = deRotar(-dx * s, dy * s, 0);
+        let nx = c.tx + w.x, ny = c.ty + w.y, nz = c.tz + w.z;
+        const l = Math.hypot(nx, ny, nz);
+        if (l > TOPE_PAN) {
+          nx = (nx / l) * TOPE_PAN; ny = (ny / l) * TOPE_PAN; nz = (nz / l) * TOPE_PAN;
+        }
+        c.tx = nx; c.ty = ny; c.tz = nz;
+        // Y el destino con él: el pivote se desliza SIEMPRE hacia el destino, así
+        // que sin esto la vista volvería sola al sitio en cuanto sueltes.
+        destino.current = { x: nx, y: ny, z: nz };
+        return;
+      }
       // Girar más despacio cuanto más cerca: dentro, el mismo arrastre barre
       // muchísimo más mundo y marearía.
       const k = 0.0068 * Math.min(1, cam.current.dist / 2.4);
@@ -1017,7 +1070,21 @@ export default function MemoriaGrafo({
         tejido.current = coser(puntos.current, 3);
         return;
       }
-      if (era?.movido || e.button === 1) return;
+      /* La rueda soltada donde se pulsó: no querías desplazarte, querías clavar.
+         Sobre un nodo se CLAVA y pasa a ser el centro del giro, para poder darle
+         la vuelta; en el vacío se suelta y la cámara vuelve al centro, que es
+         además la forma de deshacer un desplazamiento que te dejó perdido. */
+      if (era?.pan) {
+        if (era.movido) return;
+        const suyo = era.clavar;
+        nodoFijo.current = suyo ? suyo.id : null;
+        setHayNodoFijo(!!suyo);
+        if (suyo) setFocoFijo(null);
+        destino.current = suyo ? { x: suyo.x, y: suyo.y, z: suyo.z } : { x: 0, y: 0, z: 0 };
+        if (suyo && cam.current.dist > 1.3) cam.current.dist = 1.15;
+        return;
+      }
+      if (era?.movido) return;
       const s = encimaRef.current;
       if (s) {
         const sk = (skills ?? []).find((x) => `skill:${x.folder}` === s.id);
@@ -1247,7 +1314,7 @@ export default function MemoriaGrafo({
       <div className="mem-cerebro-ayuda">
         {hayNodoFijo
           ? t("Un nodo clavado: gira alrededor para verlo · clic en el vacío para soltarlo")
-          : t("Rueda para entrar dentro · botón de la rueda sobre un nodo para clavarlo · clic para abrirlo")}
+          : t("Rueda para entrar · arrastra con la rueda para moverte · clic con la rueda en un nodo para clavarlo · clic para abrirlo")}
       </div>
     </div>
   );

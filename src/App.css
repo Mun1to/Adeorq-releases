@@ -15859,6 +15859,13 @@ textarea.note-body {
   overflow: hidden;
   cursor: grab;
   touch-action: none;
+  /* Arrastrar aquí NO puede seleccionar texto. El dibujo es un canvas, pero
+     encima viven la línea de ayuda, la etiqueta del nodo y el tablero, y el
+     navegador entiende un arrastre largo sobre ellos como «te estoy marcando
+     un párrafo»: al mover un nodo se quedaba media ayuda en azul de selección
+     (Munir, 2026-08-13). */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .mem-cerebro:active {
   cursor: grabbing;

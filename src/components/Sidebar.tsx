@@ -31,6 +31,8 @@ import {
   conOrdenManual,
   desplazamiento,
   huecoEn,
+  leerMarcaDeColocar,
+  marcaDeColocar,
   fijadasDe,
   ladoDeCaida,
   moverGrupo,
@@ -986,6 +988,18 @@ export default function Sidebar({
     activo: boolean;
     proyecto: string;
     destino: string | null;
+    /**
+     * En qué lista vas a soltar (`p:Adeorq`, `g:<uuid>`, `sueltas`).
+     *
+     * Va aquí y NO dentro de `destino`, aunque parezca un dato más de lo mismo.
+     * Estuvo dentro, como `r:<lado>:<lista>:<fila>`, y al leerlo con un
+     * `split(":")` de cuatro trozos la propia clave se partía por su mitad:
+     * `p:Adeorq` daba lista `"p"` y fila `"Adeorq"`, así que no se encontraba
+     * ninguna lista con ese nombre y soltar no hacía nada. El cajón del final se
+     * salvaba de milagro, porque su clave (`sueltas`) es la única sin dos
+     * puntos: por eso ahí sí funcionaba y dentro de un proyecto no.
+     */
+    lista: string;
   } | null>(null);
   /** Bandera de un instante: distingue el clic que abre del que acaba de
       soltar un arrastre, porque el navegador dispara los dos igual. */
@@ -1007,7 +1021,15 @@ export default function Sidebar({
 
   const sesionDown = (e: React.PointerEvent<HTMLLIElement>, id: string, proyecto: string) => {
     if ((e.target as HTMLElement).closest(".sess-more, .sess-bin, input")) return;
-    arrastre.current = { id, x: e.clientX, y: e.clientY, activo: false, proyecto, destino: null };
+    arrastre.current = {
+      id,
+      x: e.clientX,
+      y: e.clientY,
+      activo: false,
+      proyecto,
+      destino: null,
+      lista: "",
+    };
   };
 
   // Red de seguridad del arrastre. Si el puntero se levanta en un sitio que no
@@ -1407,9 +1429,14 @@ export default function Sidebar({
     //     como si el saco fuera uno más.
     // Todo destino se apunta TAMBIÉN en el ref: el manejador que lo aplica vive
     // en `window` y no puede leer el estado de React.
-    const marcar = (d: string | null) => {
+    // La lista se limpia con cada destino nuevo: si no, la de un borde por el
+    // que pasaste antes sobreviviría a un destino que ya no es de colocar.
+    const marcar = (d: string | null, lista = "") => {
       setSobre(d);
-      if (arrastre.current) arrastre.current.destino = d;
+      if (arrastre.current) {
+        arrastre.current.destino = d;
+        arrastre.current.lista = lista;
+      }
     };
     if (grupo) marcar(grupo);
     else if (fila && fila !== id) {
@@ -1433,7 +1460,7 @@ export default function Sidebar({
         // cajón del final, así que arrastrar dentro de un proyecto abría el
         // hueco y al soltar no pasaba nada (Munir, 2026-08-12).
         const lista = li?.closest<HTMLElement>("ul.sessions[data-orden]")?.dataset.orden ?? "";
-        marcar(`r:${lado}:${lista}:${fila}`);
+        marcar(marcaDeColocar(lado, fila), lista);
         abrirHueco(li, id, fila, caja?.height ?? 0, lado);
       }
     }
@@ -1601,8 +1628,11 @@ export default function Sidebar({
     // Soltada en el borde de otra fila: se coloca a mano, ni se agrupa ni se
     // mueve de proyecto. Dos listas distintas la pueden recibir, y cada una
     // guarda su orden en su sitio.
-    if (destino.startsWith("r:")) {
-      const [, lado, lista, hasta] = destino.split(":") as [string, Lado, string, string];
+    const colocar = leerMarcaDeColocar(destino);
+    if (colocar) {
+      const { lado, fila: hasta } = colocar;
+      // La lista viene por el ref y NO de la marca: ver `marcaDeColocar`.
+      const lista = a?.lista ?? "";
       // `colocarSuelta` con el mismo `lado` que abrió el hueco, y sobre la lista
       // SIN la fila que llevas, que es exactamente lo que ella hace por dentro.
       // Así el sitio que viste abierto y el que ocupa al soltar son el mismo

@@ -13,6 +13,8 @@ import {
   conOrdenManual,
   desplazamiento,
   huecoEn,
+  leerMarcaDeColocar,
+  marcaDeColocar,
   fijadasDe,
   sinFijadas,
   zonaDeFila,
@@ -456,6 +458,40 @@ ok(
 ok(
   "un ordenLista que llega como array se ignora",
   JSON.stringify(ordenGuardado({ ordenLista: ["a", "b"] })) === "{}",
+);
+
+// --- la marca de colocar, ida y vuelta -----------------------------------
+//
+// El bug que la trajo aquí: la lista de destino viajaba DENTRO de la marca y se
+// leía con un `split(":")` de cuatro trozos, así que `p:Adeorq` se partía por su
+// mitad y soltar dentro de un proyecto no hacía nada. El cajón del final se
+// salvaba solo porque su clave, `sueltas`, es la única sin dos puntos.
+
+const ID = "d721543f-c8f8-468a-87ac-863b6e536c31";
+
+ok(
+  "la marca se lee tal y como se escribió",
+  JSON.stringify(leerMarcaDeColocar(marcaDeColocar("antes", ID)))
+    === JSON.stringify({ lado: "antes", fila: ID }),
+);
+ok(
+  "y por el otro lado igual",
+  leerMarcaDeColocar(marcaDeColocar("despues", ID))?.lado === "despues",
+);
+ok(
+  "un id con dos puntos dentro llega ENTERO",
+  leerMarcaDeColocar(marcaDeColocar("antes", "raro:con:puntos"))?.fila === "raro:con:puntos",
+  "el id de una sesión no es siempre un uuid: las de otros clientes salen de su propio JSON",
+);
+ok(
+  "las otras marcas de la barra no son de colocar",
+  ["s:abc", `p:${"Adeorq"}`, "sueltas", "fuera:Adeorq", "g:1", ""]
+    .every((m) => leerMarcaDeColocar(m) === null),
+  "si una de estas colara, soltar para agrupar acabaría reordenando",
+);
+ok(
+  "una marca a medias no se inventa un lado",
+  leerMarcaDeColocar("r:antes") === null && leerMarcaDeColocar("r:arriba:x") === null,
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

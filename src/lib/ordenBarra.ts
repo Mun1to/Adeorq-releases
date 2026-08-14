@@ -294,6 +294,36 @@ export function huecoEn(sinLaMano: string[], destino: string, lado: Lado): numbe
 }
 
 /**
+ * La marca de «vas a COLOCARLA aquí», que la barra apunta mientras arrastras.
+ *
+ * Es una cadena porque el mismo dato pinta la pantalla y resuelve el gesto, y
+ * comparte hueco con las otras marcas (`s:<sesión>` para agrupar, `p:<proyecto>`
+ * para mudarla). Vive aquí, con sus casos probados, porque ya se rompió por
+ * escribirla y leerla a ojo en dos sitios distintos: la lista de destino iba
+ * dentro y se leía con un `split(":")` de cuatro trozos, así que una clave como
+ * `p:Adeorq`, que lleva dos puntos dentro, se partía por su mitad y soltar
+ * dentro de un proyecto no hacía absolutamente nada.
+ *
+ * De ahí la regla: en la cadena solo van piezas de las que se sabe SEGURO que no
+ * llevan dos puntos, y el id de la fila, que puede llevarlos, va el último y se
+ * lee entero. Lo demás (la lista) viaja aparte.
+ */
+export function marcaDeColocar(lado: Lado, fila: string): string {
+  return `r:${lado}:${fila}`;
+}
+
+/** Lo de arriba al revés. `null` si la marca no es de colocar. */
+export function leerMarcaDeColocar(marca: string): { lado: Lado; fila: string } | null {
+  if (!marca.startsWith("r:")) return null;
+  const corte = marca.indexOf(":", 2);
+  if (corte < 0) return null;
+  const lado = marca.slice(2, corte);
+  const fila = marca.slice(corte + 1);
+  if ((lado !== "antes" && lado !== "despues") || !fila) return null;
+  return { lado, fila };
+}
+
+/**
  * El orden manual de cada lista, leído de lo que hubiera guardado en disco.
  *
  * Hasta la 0.9.99 esto era UN array, `sueltasOrder`, y guardaba el orden del

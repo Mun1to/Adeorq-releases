@@ -338,7 +338,11 @@ fn claude_exe() -> PathBuf {
 /// A session id of our own for each `-p` call, so its transcript can be found
 /// and removed afterwards. Not cryptographic: it only has to be unique on this
 /// machine, and a v4-shaped string is what the CLI accepts.
-fn throwaway_id() -> String {
+///
+/// Shared with the Foreman: every `-p` call in the app files a session, so the
+/// fix that kept the usage probes out of Munir's list is the same one his
+/// planning calls need.
+pub(crate) fn throwaway_id() -> String {
     static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let n = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let nanos = std::time::SystemTime::now()
@@ -360,7 +364,7 @@ fn throwaway_id() -> String {
 /// Deletes the transcript that a throwaway `-p` call left behind. The file is
 /// named after the session id, so a walk of ~/.claude/projects finds it
 /// wherever the CLI decided to file it.
-fn drop_transcript(config_dir: Option<&str>, id: &str) {
+pub(crate) fn drop_transcript(config_dir: Option<&str>, id: &str) {
     let Some(root) = config_root(config_dir).map(|r| r.join("projects")) else {
         return;
     };

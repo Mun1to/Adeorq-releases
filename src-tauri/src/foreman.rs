@@ -83,6 +83,38 @@ fn claude_exe() -> PathBuf {
     PathBuf::from("claude")
 }
 
+/// Una sesión de usar y tirar, que se lleva su rastro al morir.
+///
+/// Cada `claude -p` del Capataz archiva un transcript en `~/.claude/projects`
+/// exactamente igual que una sesión que abre Munir a mano, y el panel no tiene
+/// forma de distinguirlos por el nombre: los títulos salían del prompt, así que
+/// su lista se llenaba de «Eres el Capataz…», «Te doy las piezas…», «Te dan el
+/// esqueleto…». El 2026-08-14 eran 57 de los 113 transcripts de la máquina, o
+/// sea que más de la mitad de lo que se le enseñaba como trabajo suyo era el
+/// Capataz hablando solo.
+///
+/// El arreglo ya estaba inventado en casa: es el mismo que sacó de la lista las
+/// sondas de `/usage` (`usage.rs`). Se le da a la llamada un id nuestro con
+/// `--session-id` y se borra su archivo al terminar. Va en un `Drop` y no en
+/// una línea al final porque estos oficios salen por muchas puertas (parado por
+/// Munir, timeout, error del CLI, éxito) y ninguna debe dejar rastro.
+struct SinRastro(String);
+
+impl SinRastro {
+    fn nueva() -> Self {
+        Self(crate::usage::throwaway_id())
+    }
+    fn id(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Drop for SinRastro {
+    fn drop(&mut self) {
+        crate::usage::drop_transcript(None, &self.0);
+    }
+}
+
 /// Con qué cerebro piensa el Capataz.
 ///
 /// Se fija aquí y no se hereda del que Munir tenga por defecto. Sin este flag
@@ -387,6 +419,7 @@ pub async fn foreman_mapa(
         use std::sync::atomic::Ordering;
         use tauri::Emitter;
 
+        let sesion = SinRastro::nueva();
         let mut cmd = std::process::Command::new(claude_exe());
         cmd.args([
             "-p",
@@ -397,6 +430,9 @@ pub async fn foreman_mapa(
             "stream-json",
             "--verbose",
             "--strict-mcp-config",
+            // Con nombre nuestro para poder borrarle el transcript: ver `SinRastro`.
+            "--session-id",
+            sesion.id(),
         ]);
         // Manos SOLO cuando hay que leer código. Para el taller la lista viene
         // ya masticada desde Rust (`resumen_taller`), así que darle herramientas
@@ -471,12 +507,14 @@ pub async fn foreman_mapa(
         loop {
             if PARAR_MAPA.swap(false, Ordering::Relaxed) {
                 let _ = child.kill();
+                let _ = child.wait();
                 return Err("parado".into());
             }
             match child.try_wait() {
                 Ok(Some(_)) => break,
                 Ok(None) if start.elapsed() > MAPA_TIMEOUT => {
                     let _ = child.kill();
+                    let _ = child.wait();
                     return Err("leer el proyecto tardó más de seis minutos; reintenta".into());
                 }
                 Ok(None) => std::thread::sleep(Duration::from_millis(200)),
@@ -574,8 +612,11 @@ pub async fn foreman_agente(
     let prompt = format!("{AGENTE_SYSTEM}\n\n## Lo que ya se sabe\n{context}\n\n## Lo que te pide Munir\n{request}");
 
     tauri::async_runtime::spawn_blocking(move || {
+        let sesion = SinRastro::nueva();
         let mut cmd = std::process::Command::new(claude_exe());
         cmd.args(["-p", &prompt, "--model", &modelo, "--output-format", "json"])
+            // Con nombre nuestro para poder borrarle el transcript: ver `SinRastro`.
+            .args(["--session-id", sesion.id()])
             // Solo el de Adeorq: los servidores que Munir tenga en su config
             // global no pintan nada aquí y cada uno suma arranque.
             .arg("--strict-mcp-config")
@@ -610,6 +651,7 @@ pub async fn foreman_agente(
                 Ok(Some(_)) => break,
                 Ok(None) if start.elapsed() > AGENTE_TIMEOUT => {
                     let _ = child.kill();
+                    let _ = child.wait();
                     return Err("el Capataz se quedó pensando demasiado (3 min); reintenta".into());
                 }
                 Ok(None) => std::thread::sleep(Duration::from_millis(200)),
@@ -665,6 +707,7 @@ async fn preguntar(prompt: String) -> Result<String, String> {
 /// más Y esperar de más.
 async fn preguntar_con(prompt: String, modelo: &'static str) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        let sesion = SinRastro::nueva();
         let mut child = std::process::Command::new(claude_exe())
             // `--strict-mcp-config` sin ningún `--mcp-config` = CERO servidores
             // MCP. Munir tiene el de Adeorq puesto en global, así que cada
@@ -686,6 +729,10 @@ async fn preguntar_con(prompt: String, modelo: &'static str) -> Result<String, S
                 "--output-format",
                 "json",
                 "--strict-mcp-config",
+                // Con nombre nuestro para poder borrarle el transcript después:
+                // ver `SinRastro`.
+                "--session-id",
+                sesion.id(),
             ])
             // Desde la carpeta de proyectos del usuario, no desde una fija: en
             // un equipo sin `C:\proyectos` esto no llegaba ni a lanzarse.
@@ -703,6 +750,10 @@ async fn preguntar_con(prompt: String, modelo: &'static str) -> Result<String, S
                 Ok(Some(_)) => break,
                 Ok(None) if start.elapsed() > PLAN_TIMEOUT => {
                     let _ = child.kill();
+                    // Esperarlo aunque ya esté muerto: `SinRastro` borra su
+                    // transcript al salir de aquí y el CLI sigue escribiéndolo
+                    // hasta que el sistema lo da por terminado.
+                    let _ = child.wait();
                     return Err("el Capataz tardó demasiado (120 s); reintenta".into());
                 }
                 Ok(None) => std::thread::sleep(Duration::from_millis(200)),

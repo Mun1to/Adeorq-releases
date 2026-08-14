@@ -414,9 +414,71 @@ fn is_own_usage_probe(lines: &[String]) -> bool {
     saw_usage
 }
 
+/// El valor de una clave en una línea JSON, sin parsearla entera.
+///
+/// Se mira línea a línea de todos los transcripts en cada barrido, así que
+/// montar un `Value` por línea para leer un campo saldría caro: aquí basta con
+/// buscar la clave y quedarse con lo que hay hasta la siguiente comilla.
+fn valor_json<'a>(linea: &'a str, clave: &str) -> Option<&'a str> {
+    let desde = linea.find(clave)? + clave.len();
+    let resto = &linea[desde..];
+    Some(&resto[..resto.find('"')?])
+}
+
+/// Cierto para un transcript que no abrió una persona, sino un programa.
+///
+/// Cada `claude -p` que lanza Adeorq (los planes del Capataz, los encargos, los
+/// mapas del Esquema, las sondas de cuota) archiva su sesión en
+/// `~/.claude/projects` igual que una de verdad, y el panel las enseñaba con el
+/// prompt de título: «Eres el Capataz…», «Te doy las piezas…», «Te dan el
+/// esqueleto…». El 2026-08-14 eran 57 de 113 transcripts en la máquina de
+/// Munir, más de la mitad de su lista.
+///
+/// Desde ese día el Capataz les pone nombre propio y las borra al terminar
+/// (`foreman.rs`, `SinRastro`), pero eso solo vale para las que vengan: esto
+/// tapa las que ya están en disco, y de paso las de cualquier otra herramienta
+/// que use el CLI por debajo.
+///
+/// La marca la pone el propio Claude Code y no hay que adivinarla: la sesión
+/// dice por dónde nació en `entrypoint`, y solo las que empiezan por `sdk`
+/// (`sdk-cli`) las abrió un programa. Se mira eso y no el título, porque un
+/// título se puede parecer por casualidad y el origen no.
+///
+/// ⚠ `sdk` y no «lo que no sea `cli`», que fue el primer intento y estuvo a
+/// punto de borrarle media lista: sus sesiones de la app de escritorio de
+/// Claude se archivan en la MISMA carpeta y llevan `"claude-desktop"`. Medido
+/// antes de darlo por bueno: con la regla ancha desaparecían 57 transcripts,
+/// pero entre ellos «SESION SUPREMA», «ORQUIO REGISTRO DE MARCA» o «VoCript
+/// General», que son trabajo suyo de verdad.
+///
+/// Y no basta con cómo nació: hace falta que nadie haya escrito dentro. Una de
+/// estas sesiones (`51c25bc6…`) la abrió el Capataz para planificar y Munir
+/// siguió trabajando en ella desde una terminal («go», «si dale, los pequeños
+/// solo», «queda mucho?»), justamente porque el panel se la ofrecía para
+/// retomar. Un solo mensaje tecleado la convierte en suya para siempre.
+///
+/// Si no hay marca (transcripts de versiones viejas), se enseña: ante la duda,
+/// la sesión es de Munir.
+fn es_de_programa(lines: &[String]) -> bool {
+    let mut nacio_de_programa = None;
+    for line in lines {
+        // Nada de lo que venga después puede desmentir que esto es suyo.
+        if line.contains("\"promptSource\":\"typed\"") {
+            return false;
+        }
+        // La primera marca manda: es cómo NACIÓ la sesión.
+        if nacio_de_programa.is_none() {
+            if let Some(v) = valor_json(line, "\"entrypoint\":\"") {
+                nacio_de_programa = Some(v.starts_with("sdk"));
+            }
+        }
+    }
+    nacio_de_programa.unwrap_or(false)
+}
+
 fn analyze_uncached(path: &Path, folder: &str, mtime: u64, size: u64) -> Option<SessionInfo> {
     let lines = read_tail(path).ok()?;
-    if lines.is_empty() || is_own_usage_probe(&lines) {
+    if lines.is_empty() || is_own_usage_probe(&lines) || es_de_programa(&lines) {
         return None;
     }
 
@@ -1730,6 +1792,83 @@ mod tests {
         assert!(!is_own_usage_probe(&long));
 
         assert!(!is_own_usage_probe(&[]));
+    }
+
+    /// Las líneas son las de verdad, recortadas de los transcripts de la
+    /// máquina de Munir el 2026-08-14: la del Capataz venía de un mapa del
+    /// Esquema y la suya de esta misma sesión.
+    #[test]
+    fn las_llamadas_del_capataz_no_son_sesiones_suyas() {
+        let capataz: Vec<String> = vec![
+            r#"{"type":"queue-operation","operation":"enqueue","content":"Eres el Capataz de Adeorq. Te dan un proyecto"}"#.into(),
+            r#"{"parentUuid":null,"type":"user","userType":"external","entrypoint":"sdk-cli","promptSource":"sdk","cwd":"C:\\proyectos\\Adeorq"}"#.into(),
+            r#"{"type":"assistant","entrypoint":"sdk-cli","cwd":"C:\\proyectos\\Adeorq"}"#.into(),
+        ];
+        assert!(es_de_programa(&capataz));
+
+        // La suya, abierta a mano en una terminal, se queda.
+        let suya: Vec<String> = vec![
+            r#"{"type":"custom-title","customTitle":"Adeorq: sesiones y terminales"}"#.into(),
+            r#"{"type":"user","userType":"external","entrypoint":"cli","promptSource":"typed","cwd":"C:\\proyectos\\Adeorq"}"#.into(),
+        ];
+        assert!(!es_de_programa(&suya));
+
+        // Y la de la app de escritorio TAMBIÉN se queda, que se archiva en la
+        // misma carpeta: «SESION SUPREMA» y «ORQUIO REGISTRO DE MARCA» son de
+        // ahí, y la primera versión de este filtro se las llevaba por delante.
+        let escritorio: Vec<String> = vec![
+            r#"{"type":"custom-title","customTitle":"SESION SUPREMA"}"#.into(),
+            r#"{"type":"user","entrypoint":"claude-desktop","cwd":"C:\\proyectos"}"#.into(),
+            r#"{"type":"assistant","entrypoint":"claude-desktop"}"#.into(),
+        ];
+        assert!(!es_de_programa(&escritorio));
+
+        // Un transcript viejo, de cuando el CLI no ponía la marca: ante la duda
+        // se enseña, que perder una sesión suya es mucho peor que ver una fila
+        // de más.
+        let viejo: Vec<String> = vec![
+            r#"{"type":"user","message":{"content":"arregla el pty"}}"#.into(),
+            r#"{"type":"assistant","message":{"content":[{"type":"text","text":"hecho"}]}}"#.into(),
+        ];
+        assert!(!es_de_programa(&viejo));
+        assert!(!es_de_programa(&[]));
+
+        // Y manda la marca, no el título: un encargo suyo que EMPIECE igual que
+        // un prompt del Capataz sigue siendo suyo.
+        let disfrazada: Vec<String> = vec![
+            r#"{"type":"user","entrypoint":"cli","message":{"content":"Eres el Capataz de Adeorq, dime que ves"}}"#.into(),
+        ];
+        assert!(!es_de_programa(&disfrazada));
+    }
+
+    /// El caso que casi se cuela: una sesión que abrió el Capataz para hacer un
+    /// plan y que Munir retomó desde una terminal. Nació de un programa, pero
+    /// dentro hay conversación suya, así que es suya.
+    #[test]
+    fn una_sesion_del_capataz_que_el_retomo_sigue_siendo_suya() {
+        let retomada: Vec<String> = vec![
+            r#"{"type":"user","entrypoint":"sdk-cli","promptSource":"sdk","message":{"content":"Eres el Capataz de Adeorq"}}"#.into(),
+            r#"{"type":"assistant","entrypoint":"sdk-cli"}"#.into(),
+            r#"{"type":"user","entrypoint":"cli","promptSource":"typed","message":{"content":"si dale, los pequeños solo"}}"#.into(),
+        ];
+        assert!(!es_de_programa(&retomada));
+
+        // Con la marca de tecleado en cualquier sitio basta, aunque llegue
+        // antes de saber cómo nació.
+        let al_reves: Vec<String> = vec![
+            r#"{"type":"user","promptSource":"typed","message":{"content":"go"}}"#.into(),
+            r#"{"type":"user","entrypoint":"sdk-cli","promptSource":"sdk"}"#.into(),
+        ];
+        assert!(!es_de_programa(&al_reves));
+    }
+
+    #[test]
+    fn el_valor_json_se_saca_sin_parsear_la_linea() {
+        let l = r#"{"a":1,"entrypoint":"sdk-cli","cwd":"C:\\x"}"#;
+        assert_eq!(valor_json(l, "\"entrypoint\":\""), Some("sdk-cli"));
+        assert_eq!(valor_json(l, "\"noestá\":\""), None);
+        // Una línea cortada por la mitad no puede reventar la lista entera.
+        assert_eq!(valor_json(r#"{"entrypoint":"sdk-c"#, "\"entrypoint\":\""), None);
     }
 
     #[test]

@@ -109,11 +109,11 @@ fn carpeta_de(config_dir: &str, home_dir: Option<&str>) -> Option<PathBuf> {
  *
  * Dos cierres a lo que se puede tocar, porque esto BORRA:
  *
- *   · el nombre del archivo tiene que ser un nombre, no una ruta: nada de
- *     barras ni de `..`, o una entrada de la tabla mal escrita (o cambiada)
- *     podría salir de la carpeta;
- *   · la carpeta tiene que ser una cuenta de Adeorq o la de fábrica de un CLI,
- *     que son las dos únicas cosas que este panel gestiona.
+ * · el nombre del archivo tiene que ser un nombre, no una ruta: nada de barras
+ *   ni de `..`, o una entrada de la tabla mal escrita (o cambiada) podría salir
+ *   de la carpeta;
+ * · la carpeta tiene que ser una cuenta de Adeorq o la de fábrica de un CLI,
+ *   que son las dos únicas cosas que este panel gestiona.
  *
  * Devuelve los archivos que ha borrado de verdad. Vacío significa que ya no
  * había sesión, que no es un error: es la respuesta.

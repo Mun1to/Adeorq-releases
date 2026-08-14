@@ -60,6 +60,38 @@ ok(
   volverA({ baseY: 0, viewportY: 0 }, 0) === null,
 );
 
+// --- el salto que Munir reporto TRES veces (7 y 10 de agosto, y el 14) --------
+// Cuando solo cambia el ALTO del panel, el texto NO se re-envuelve: las lineas
+// son las mismas. Mantener la distancia al final te mueve exactamente lo que
+// haya crecido el panel, y hacia arriba, que es lo que el veia.
+ok(
+  "mismo ancho y panel MAS ALTO: la linea de arriba no se mueve",
+  volverA({ baseY: 500, viewportY: 480 }, 494, true) === 480,
+  "el panel gano 6 filas; con la regla vieja habria saltado a 474",
+);
+ok(
+  "y con la regla vieja ese mismo caso SI saltaba",
+  volverA({ baseY: 500, viewportY: 480 }, 494) === 474,
+  "6 lineas hacia arriba sin que nadie tocara nada",
+);
+ok(
+  "mismo ancho y panel MAS BAJO: tampoco se mueve",
+  volverA({ baseY: 500, viewportY: 480 }, 512, true) === 480,
+);
+ok(
+  "estar al final manda sobre todo lo demas, tambien con el ancho igual",
+  volverA({ baseY: 500, viewportY: 500 }, 494, true) === null,
+);
+ok(
+  "si el panel crece tanto que ya no hay donde bajar, se topa en el final",
+  volverA({ baseY: 500, viewportY: 480 }, 300, true) === 300,
+);
+ok(
+  "cambiar el ANCHO sigue guardando la distancia al final, que es lo correcto",
+  volverA({ baseY: 500, viewportY: 488 }, 540, false) === 528,
+  "ahi el texto SI se re-envuelve y el numero de linea ya no significa lo mismo",
+);
+
 // --- la segunda pasada, que es la que arregla el salto ------------------------
 // El div de scroll de xterm se resincroniza solo en el frame siguiente y pisaba
 // lo que acababamos de colocar. Se recoloca, pero solo si hace falta.

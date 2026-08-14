@@ -38,16 +38,35 @@ export function hayQueAjustar(actual: Rejilla, propuesta: Rejilla | undefined | 
  * A qué línea volver después de rehacer el texto, o `null` para «al final del
  * todo».
  *
- * Se guarda la distancia AL FINAL y no el número de línea: tras el reflow ese
- * número ya no significa lo mismo, mientras que «doce líneas por encima del
- * final» sigue pareciéndose a lo que tenías delante. Y si estabas abajo del
- * todo, se vuelve abajo del todo, que es lo que espera cualquiera que esté
- * viendo trabajar a un agente.
+ * ── LOS DOS CASOS, QUE NO SON EL MISMO (2026-08-14) ─────────────────────────
+ *
+ * Hasta hoy había una sola regla, «mantén la distancia al final», y **esa regla
+ * ERA el salto**. Vale cuando cambia el ANCHO, porque entonces el texto se
+ * re-envuelve, los números de línea dejan de significar lo mismo y «doce líneas
+ * por encima del final» es lo más parecido que queda a lo que tenías delante.
+ *
+ * Pero cuando lo único que cambia es el ALTO, el texto NO se toca: las líneas
+ * son exactamente las mismas y solo se ven más o menos a la vez. Mantener ahí la
+ * distancia al final te mueve tantas líneas como haya cambiado el alto, porque
+ * `baseY` es «total de líneas menos las que caben». Un panel que se hace más
+ * alto baja su `baseY`, y con la regla vieja el destino salía por encima de
+ * donde estabas: **el salto hacia arriba**. Y el alto de un panel cambia solo,
+ * sin que nadie toque nada, cada vez que aparece el aviso de contexto o la barra
+ * de agentes, que es por lo que pasaba «mientras hacía scroll» (Munir, tercera
+ * vez que lo reporta: 7 y 10 de agosto, y hoy).
+ *
+ * Con el ancho igual, la línea de arriba se queda donde estaba y ya.
  */
-export function volverA(antes: Vista, baseYDespues: number): number | null {
+export function volverA(antes: Vista, baseYDespues: number, mismoAncho = false): number | null {
   const desdeElFinal = antes.baseY - antes.viewportY;
   // Estabas al final (o más allá, que pasa mientras llega texto): al final.
+  // Esto manda sobre lo demás: quien mira trabajar a un agente quiere el final.
   if (desdeElFinal <= 0) return null;
+  if (mismoAncho) {
+    // Nada se ha re-envuelto: la línea de arriba sigue siendo esa misma línea.
+    // El tope es por si el panel creció tanto que ya no hay dónde bajar.
+    return Math.max(0, Math.min(antes.viewportY, baseYDespues));
+  }
   return Math.max(0, baseYDespues - desdeElFinal);
 }
 

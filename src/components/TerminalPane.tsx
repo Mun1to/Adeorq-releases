@@ -654,7 +654,15 @@ export default function TerminalPane({
   // una línea más arriba o más abajo. Eso es el temblor. Por eso el tamaño se
   // encola detrás del arranque y se manda cuando hay a quién mandárselo.
   const ptyReadyRef = useRef<Promise<unknown>>(Promise.resolve());
+  /** Lo último que el PTY ha CONFIRMADO, que no es lo mismo que lo último que
+      se le pidió. Marcar un tamaño como puesto antes de saber si llegó es lo
+      que dejaba al proceso escribiendo a un ancho y a la terminal pintando a
+      otro, sin que nada lo volviera a intentar nunca (Munir, 2026-08-14: «el
+      texto se bugea y aparece mal estructurado»). */
+  const confirmadoRef = useRef({ cols: 0, rows: 0 });
   const enviarTamano = (cols: number, rows: number) => {
+    // Ese pedido ya está en vuelo: repetirlo sería otro viaje para lo mismo.
+    if (lastSizeRef.current.cols === cols && lastSizeRef.current.rows === rows) return;
     lastSizeRef.current = { cols, rows };
     void ptyReadyRef.current
       .then(() => {
@@ -662,9 +670,29 @@ export default function TerminalPane({
         // solo se manda el último, nunca uno viejo que volvería a descuadrarlo.
         const now = lastSizeRef.current;
         if (now.cols !== cols || now.rows !== rows) return;
-        return resizePty(id, cols, rows);
+        return resizePty(id, cols, rows).then(() => {
+          confirmadoRef.current = { cols, rows };
+        });
       })
-      .catch(() => {});
+      .catch(() => {
+        // No llegó. Se borra la marca del pedido para que el siguiente ajuste
+        // lo vuelva a intentar: un fallo tragado en silencio dejaba al proceso
+        // descuadrado hasta cerrar la terminal.
+        lastSizeRef.current = { cols: -1, rows: -1 };
+      });
+  };
+  /** Que el proceso sepa el tamaño que la terminal tiene AHORA.
+   *
+   * Va aparte y se llama SIEMPRE, incluso cuando no hay que tocar la rejilla.
+   * Antes vivía al final de `aplicar()`, detrás del guardia que corta cuando el
+   * dibujo ya está bien, así que un proceso que se hubiera quedado con un ancho
+   * viejo no se enteraba jamás: la terminal se veía correcta y el agente seguía
+   * escribiendo líneas más largas que el panel, que salen partidas por donde no
+   * toca y con el resto colgando del margen. */
+  const sincronizarPty = (t: { cols: number; rows: number }) => {
+    if (t.cols !== confirmadoRef.current.cols || t.rows !== confirmadoRef.current.rows) {
+      enviarTamano(t.cols, t.rows);
+    }
   };
   refitRef.current = () => {
     const term = termRef.current;
@@ -706,15 +734,25 @@ export default function TerminalPane({
        * 2026-08-07: «un pequeño scroll y a veces se te teletransporta hacia muy
        * arriba»). Si las columnas y las filas van a ser las mismas, no hay nada
        * que ajustar y no se toca nada. */
-      if (!hayQueAjustar(t2, f2.proposeDimensions())) return;
+      if (!hayQueAjustar(t2, f2.proposeDimensions())) {
+        // El dibujo ya está bien, pero el PROCESO puede no saberlo. Este es el
+        // caso que se escapaba: nada que reajustar en pantalla y un agente
+        // escribiendo a un ancho que no existe.
+        sincronizarPty(t2);
+        return;
+      }
 
       // Y cuando SÍ hay que ajustar, se vuelve a donde estabas mirando. Las dos
       // reglas y sus casos, en `lib/scrollTerm.ts`.
       const antes = { baseY: t2.buffer.active.baseY, viewportY: t2.buffer.active.viewportY };
+      // Si el ancho no cambia, el texto no se re-envuelve, y entonces volver a
+      // «la misma distancia del final» te mueve tantas líneas como haya crecido
+      // el panel de alto. Ver `volverA`: es de donde salía el salto.
+      const anchoAntes = t2.cols;
 
       f2.fit();
 
-      const destino = volverA(antes, t2.buffer.active.baseY);
+      const destino = volverA(antes, t2.buffer.active.baseY, t2.cols === anchoAntes);
       const colocar = () => {
         const t3 = termRef.current;
         if (!t3) return;
@@ -741,12 +779,7 @@ export default function TerminalPane({
         if (hayQueRecolocar(destino, ahora)) colocar();
       });
 
-      if (
-        t2.cols !== lastSizeRef.current.cols ||
-        t2.rows !== lastSizeRef.current.rows
-      ) {
-        enviarTamano(t2.cols, t2.rows);
-      }
+      sincronizarPty(t2);
     };
     aplicar();
     if (cambiaFuente) requestAnimationFrame(aplicar);
@@ -1134,7 +1167,13 @@ export default function TerminalPane({
         // Ya hay PTY. Se olvida lo que se dio por enviado mientras no lo había
         // y se vuelve a medir: es la única pasada que garantiza que las filas
         // del proceso son las que se ven en pantalla.
+        //
+        // Y se olvida también lo CONFIRMADO, que es lo que hace que este ajuste
+        // sirva de algo cuando la terminal renace sobre un PTY que ya existía
+        // (una sacada a su propia ventana): allí el proceso lleva el ancho de la
+        // ventana de la que viene, y sin esto nadie le diría el nuevo.
         lastSizeRef.current = { cols: 0, rows: 0 };
+        confirmadoRef.current = { cols: 0, rows: 0 };
         refitRef.current();
       })
       .catch(() => {});

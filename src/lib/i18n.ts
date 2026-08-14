@@ -955,6 +955,27 @@ const EN: Record<string, string> = {
   "Enter planea · Ctrl+Mayús+M dicta · Esc cierra · nada se ejecuta sin tu OK":
     "Enter plans · Ctrl+Shift+M dictates · Esc closes · nothing runs without your OK",
 
+  // El Capataz que MIRA Adeorq y contesta, con su conmutador de escalones.
+  // Los tres nombres y sus frases salen de `lib/manos.ts`, así que aquí no se
+  // ven como literales: el comprobador no los pide y aun así hacen falta.
+  // Sacar una terminal a su propia ventana de Windows.
+  "Sacar a su propia ventana: el agente sigue trabajando, solo cambia dónde lo ves":
+    "Pop out into its own window: the agent keeps working, only where you see it changes",
+  "Esta terminal ya no existe.": "This terminal is gone.",
+
+  Preguntar: "Ask",
+  // («Mirando…» ya está más abajo, en la Galería.)
+  "Mira Adeorq por dentro (tus terminales, tus proyectos, la agenda) y te responde. Lo que puede tocar mientras tanto lo decide el escalón de aquí abajo.":
+    "Looks inside Adeorq (your terminals, your projects, the agenda) and answers you. What it may touch meanwhile is set by the step below.",
+  "Qué puede hacer": "What it may do",
+  Vale: "Got it",
+  Mirar: "Look",
+  Plan: "Plan",
+  Auto: "Auto",
+  "Responde y no toca nada": "Answers, touches nothing",
+  "Monta trabajo nuevo, y pregunta antes": "Sets up new work, and asks first",
+  "También interrumpe terminales en marcha": "Also interrupts running terminals",
+
   // El Capataz que escribe encargos, y el micrófono
   "Escribir el encargo": "Write the brief",
   "Escribir y ponerlo": "Write it and put it in",

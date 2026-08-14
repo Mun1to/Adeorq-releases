@@ -780,6 +780,79 @@ export function foremanPrompt(request: string, context: string): Promise<string>
   return invoke("foreman_prompt", { request, context });
 }
 
+/* ─────────────── Sacar una terminal a su propia ventana ─────────────────── */
+
+/** Lo que ya se dijo en ese panel, para que la ventana nueva no nazca vacía. */
+export function ptyHistorial(id: number, bytes?: number): Promise<string> {
+  return invoke("pty_historial", { id, bytes: bytes ?? null });
+}
+
+/**
+ * Saca el panel a una ventana de Windows normal, con su marco.
+ *
+ * `x` e `y` van en PÍXELES FÍSICOS de la pantalla, que no son los del
+ * navegador: en un monitor al 125 % un píxel del navegador son 1,25 de los de
+ * verdad. Quien llama multiplica por `devicePixelRatio` una sola vez, o pide
+ * el sitio con `ratonEnPantalla`, que ya viene en físico.
+ */
+export function sacarPanel(
+  id: number,
+  nombre: string,
+  x?: number,
+  y?: number,
+  ancho?: number,
+  alto?: number,
+): Promise<void> {
+  return invoke("sacar_panel", {
+    id,
+    nombre,
+    x: x ?? null,
+    y: y ?? null,
+    ancho: ancho ?? null,
+    alto: alto ?? null,
+  });
+}
+
+/** Lo que la ventana suelta necesita saber del panel: dónde vive y con qué
+ *  arrancó. Se pregunta a Rust porque es quien tiene el dato de verdad. */
+export function datosPanel(id: number): Promise<{ cwd: string; command: string[] | null }> {
+  return invoke("datos_panel", { id });
+}
+
+/** Dónde está el ratón en la pantalla, en píxeles físicos. Lo sabe Windows;
+ *  el navegador solo sabe de su propia ventana. */
+export function ratonEnPantalla(): Promise<[number, number]> {
+  return invoke("raton_en_pantalla");
+}
+
+/** Cierra la ventana suelta de ese panel y lo devuelve a Adeorq. */
+export function devolverPanel(id: number): Promise<void> {
+  return invoke("devolver_panel", { id });
+}
+
+/** Una terminal que estaba fuera acaba de cerrar su ventana: vuelve al tablero.
+ *  Lo avisa Rust y no la ventana que se cierra, porque a esa no le da tiempo. */
+export function onVuelvePanel(cb: (id: number) => void): Promise<UnlistenFn> {
+  return listen<number>("suelta:vuelve", (e) => cb(e.payload));
+}
+
+/**
+ * El Capataz CON LAS MANOS PUESTAS: mira Adeorq por dentro para contestar.
+ *
+ * `manos` son los nombres de las herramientas que se le permiten, y salen de
+ * `lib/manos.ts`. No es una recomendación: lo que no vaya en esa lista no
+ * existe en su sesión, así que el modo elegido no depende de que nadie lo
+ * respete después.
+ */
+export function foremanAgente(
+  request: string,
+  context: string,
+  manos: string[],
+  modelo?: string,
+): Promise<string> {
+  return invoke("foreman_agente", { request, context, manos, modelo });
+}
+
 export function writeMission(projectPath: string, content: string): Promise<string> {
   return invoke("write_mission", { projectPath, content });
 }

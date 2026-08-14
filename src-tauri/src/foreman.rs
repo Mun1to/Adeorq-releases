@@ -206,6 +206,150 @@ pub async fn foreman_lote(tareas: String, context: String) -> Result<String, Str
     .await
 }
 
+/* ─────────────────────────── EL CUARTO OFICIO ─────────────────────────────
+ *
+ * Los tres de arriba (planificar, escribir un encargo, repartir un lote) son de
+ * UN SOLO TIRO: se les da el estado ya masticado dentro del prompt y devuelven
+ * un JSON. Sirve porque la pregunta se sabe de antemano.
+ *
+ * Conversar no se puede hacer así. «¿En qué proyectos estoy trabajando?»
+ * necesita mirar las terminales, y «resúmeme lo de la 3» necesita leer una
+ * transcripción de mil líneas que no cabe en ningún contexto pre-cocinado. Hace
+ * falta que MIRE, decida y vuelva a mirar.
+ *
+ * Y ese bucle NO se escribe aquí: se le pide prestado a Claude Code, que ya lo
+ * tiene hecho y probado, y se le enchufan SOLO las herramientas de Adeorq. Es
+ * el harness encima del harness del cliente, y por eso esto son sesenta líneas
+ * y no un módulo entero de tool-use.
+ *
+ * ⚑ LO QUE HACE QUE EL CONMUTADOR SEA DE VERDAD: los permisos no son una
+ * promesa que alguien tiene que cumplir después, son la lista `manos`. Lo que
+ * no está ahí, el Capataz NO PUEDE hacerlo aunque el modelo se empeñe, porque
+ * la herramienta no existe en su sesión. Un AUTO/MANUAL escrito en un prompt
+ * sería una petición educada; esto es una puerta cerrada.
+ *
+ * Medido el 2026-08-13 con `haiku` y la pregunta de los proyectos: 3 turnos,
+ * 10,4 s. El doble que una llamada de un tiro, y ese es el precio de mirar.
+ */
+
+/// El fichero de MCP que se le pasa al Capataz, con Adeorq y nada más.
+///
+/// Apunta a `current_exe()` y no a una ruta escrita: así el Capataz habla con
+/// ESTA ventana y no con la que hubiera instalada en otro sitio. Se reescribe
+/// en cada llamada porque una actualización cambia el binario de sitio.
+fn config_mcp() -> Result<PathBuf, String> {
+    let exe = std::env::current_exe().map_err(|e| format!("no sé dónde estoy: {e}"))?;
+    // Barras normales: en un JSON, `C:\Apps\...` son escapes inválidos y el CLI
+    // lo rechaza con «MCP config is not a valid JSON», que no dice nada de
+    // barras. Windows acepta las de dividir igual de bien.
+    let ruta = exe.to_string_lossy().replace('\\', "/");
+    let json = serde_json::json!({
+        "mcpServers": { "adeorq": { "type": "stdio", "command": ruta, "args": ["--mcp"], "env": {} } }
+    });
+    let destino = std::env::temp_dir().join("adeorq-capataz-mcp.json");
+    std::fs::write(&destino, json.to_string()).map_err(|e| format!("no pude escribirlo: {e}"))?;
+    Ok(destino)
+}
+
+/// Conversar con las manos puestas. `manos` son los nombres completos de las
+/// herramientas (`mcp__adeorq__get_active_panes`), que es lo que decide el
+/// front: la política vive en TypeScript, junto al router, donde se puede
+/// probar sin arrancar la app.
+#[tauri::command]
+pub async fn foreman_agente(
+    request: String,
+    context: String,
+    manos: Vec<String>,
+    modelo: Option<String>,
+) -> Result<String, String> {
+    if manos.is_empty() {
+        return Err("sin manos no hay agente: usa foreman_prompt".into());
+    }
+    let cfg = config_mcp()?;
+    let modelo = modelo.unwrap_or_else(|| PLAN_MODEL.to_string());
+    let prompt = format!("{AGENTE_SYSTEM}\n\n## Lo que ya se sabe\n{context}\n\n## Lo que te pide Munir\n{request}");
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut cmd = std::process::Command::new(claude_exe());
+        cmd.args(["-p", &prompt, "--model", &modelo, "--output-format", "json"])
+            // Solo el de Adeorq: los servidores que Munir tenga en su config
+            // global no pintan nada aquí y cada uno suma arranque.
+            .arg("--strict-mcp-config")
+            .arg("--mcp-config")
+            .arg(&cfg)
+            .arg("--allowedTools");
+        for m in &manos {
+            cmd.arg(m);
+        }
+        // Y la puerta de atrás, cerrada. `--allowedTools` dice qué SÍ, pero las
+        // de solo lectura de Claude Code no necesitan permiso, así que sin esto
+        // el Capataz podría leerse el disco entero para responder «¿en qué
+        // proyectos estoy?». Que solo pueda tocar Adeorq es media promesa si la
+        // otra media se la salta por un camino que nadie miró.
+        cmd.arg("--disallowedTools")
+            .args(["Bash", "Write", "Edit", "NotebookEdit", "WebFetch", "WebSearch", "Task"]);
+        let mut child = cmd
+            .current_dir(crate::workspace::raiz_por_defecto())
+            .sin_ventana()
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .stdin(std::process::Stdio::null())
+            .spawn()
+            .map_err(|e| format!("no pude lanzar claude: {e}"))?;
+
+        // Más margen que los otros tres oficios, y no por capricho: este da
+        // varias vueltas de mirar y pensar, así que el reloj de una llamada
+        // suelta se le queda corto.
+        let start = Instant::now();
+        loop {
+            match child.try_wait() {
+                Ok(Some(_)) => break,
+                Ok(None) if start.elapsed() > AGENTE_TIMEOUT => {
+                    let _ = child.kill();
+                    return Err("el Capataz se quedó pensando demasiado (3 min); reintenta".into());
+                }
+                Ok(None) => std::thread::sleep(Duration::from_millis(200)),
+                Err(e) => return Err(e.to_string()),
+            }
+        }
+        let out = child.wait_with_output().map_err(|e| e.to_string())?;
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        if stdout.trim().is_empty() {
+            let err = String::from_utf8_lossy(&out.stderr);
+            return Err(format!("claude no devolvió nada: {}", err.trim()));
+        }
+        let wrapper: serde_json::Value =
+            serde_json::from_str(stdout.trim()).map_err(|e| format!("envoltorio ilegible: {e}"))?;
+        if wrapper["is_error"].as_bool().unwrap_or(false) {
+            return Err(format!(
+                "claude devolvió error: {}",
+                wrapper["result"].as_str().unwrap_or("desconocido")
+            ));
+        }
+        wrapper["result"]
+            .as_str()
+            .map(|s| s.to_owned())
+            .ok_or_else(|| "la respuesta no trae texto".into())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+const AGENTE_TIMEOUT: Duration = Duration::from_secs(180);
+
+const AGENTE_SYSTEM: &str = r#"Eres el Capataz de Adeorq, el panel desde el que Munir dirige a sus agentes. Estás DENTRO de Adeorq y tienes herramientas para mirarlo y para moverlo.
+
+CÓMO CONTESTAS:
+- En español, a Munir, de tú. Directo y corto: dos o tres frases, y si son datos, una lista de líneas cortas.
+- Nada de preámbulos ni de "he usado la herramienta X". Él quiere la respuesta, no el procedimiento.
+- Si te falta un dato para hacer algo bien, PREGÚNTALO en vez de adivinarlo. Un objetivo sin día, un encargo sin proyecto o una tarea sin archivos son preguntas, no suposiciones.
+
+CÓMO TRABAJAS:
+- MIRA antes de hablar. Tienes las herramientas para saber qué hay abierto de verdad; no respondas de memoria ni des por hecho lo que no has consultado.
+- Si te piden algo que no puedes hacer porque no tienes esa herramienta, dilo en una frase y ofrece lo más cercano que sí puedas. No lo intentes por otro camino.
+- No inventes nombres de proyecto, de sesión ni de panel: usa los que te devuelvan las herramientas, tal cual.
+- Al terminar, di en una frase qué has hecho si has cambiado algo. Si solo has mirado, no hace falta."#;
+
 async fn preguntar(prompt: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let mut child = std::process::Command::new(claude_exe())

@@ -7256,20 +7256,37 @@ button.stat-card[data-live="false"] {
 /* The Foreman (Capataz): static card in Panel + volatile overlay in Cabina */
 /* El orbe va solo, sin palabra al lado: era un botón con texto ocupando como
    una pestaña más, y lo que hace no es ir a ningún sitio, es llamar a alguien.
-   Cuadrado, y se enciende al pasar por encima como si despertara. */
+   Y va SIN CAJA: el borde azul que traía le dibujaba una celda alrededor
+   (Munir, 2026-08-13: «más grande y fuera de la cárcel»). Lo que responde al
+   ratón es el propio Orbe, encendiéndose, que es lo que hace un planeta y no
+   una pestaña.
+   El 28 del icono es el tope que NO estira la barra: los botones con texto
+   miden 33 de alto, así que el Orbe puede llegar a 30 con su hueco sin mover
+   de sitio a nada de su alrededor. */
 .foreman-call {
-  width: 34px;
+  width: 38px;
   padding: 0;
   justify-content: center;
+  color: var(--accent);
+  border-color: transparent;
+  transition: filter 0.14s ease;
+}
+
+/* Los tres estados juntos a propósito: `.tab:hover` trae fondo, borde, sombra
+   Y un salto de un píxel, y basta con que se cuele uno de los cuatro para que
+   la celda vuelva a aparecer. */
+.foreman-call:hover,
+.foreman-call:active,
+.foreman-call:focus-visible {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+  color: var(--accent);
 }
 
 .foreman-call:hover {
-  color: var(--accent);
-}
-
-.foreman-call {
-  color: var(--accent);
-  border-color: rgba(77, 159, 255, 0.35);
+  filter: brightness(1.3);
 }
 
 .foreman-card h2 {
@@ -7300,6 +7317,122 @@ button.stat-card[data-live="false"] {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.45;
+}
+
+/* ── Una terminal sacada a su propia ventana ───────────────────────────────
+   Ocupa la ventana entera y nada más: aquí no hay barra lateral, ni pestañas,
+   ni mosaico. El marco de arriba lo pinta Windows.
+   Fondo OPACO al revés que la ventana principal: esta se va a poner encima de
+   un editor o de un navegador, y un fondo translúcido sobre eso deja el texto
+   de la terminal ilegible. */
+.suelta {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  background: var(--bg);
+}
+.suelta > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.suelta-vacia {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  justify-items: center;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+}
+.suelta-vacia button {
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pastilla);
+  background: none;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* El conmutador del Capataz: qué puede tocar mientras te contesta.
+   Los tres pegados dentro de un mismo marco, y no tres botones sueltos: son
+   escalones de una misma cosa, y separados se leerían como tres acciones
+   distintas. La frase de al lado cambia con el escalón porque el nombre solo
+   ("Plan") no dice qué implica. */
+.fm-modo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+}
+.fm-modo button {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+/* El marco es del grupo, no de cada uno: tres cajas seguidas dibujan una raya
+   doble en cada junta. */
+.fm-modo button:not(:first-of-type) {
+  border-left: none;
+}
+.fm-modo button:first-of-type {
+  border-radius: var(--r-pastilla) 0 0 var(--r-pastilla);
+}
+.fm-modo button:last-of-type {
+  border-radius: 0 var(--r-pastilla) var(--r-pastilla) 0;
+}
+.fm-modo button:hover {
+  color: var(--text);
+}
+.fm-modo button[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--text);
+}
+.fm-modo-que {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Lo que ha contestado el Capataz. Sobre fondo propio y con el texto tal cual
+   viene: son dos o tres frases, no un documento, así que no necesita markdown
+   ni scroll. Si algún día devuelve algo largo, lo que crece es la caja. */
+.fm-respuesta {
+  margin-top: 10px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.fm-respuesta p {
+  margin: 0 0 9px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+.fm-respuesta-x {
+  padding: 3px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pastilla);
+  background: none;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.fm-respuesta-x:hover {
+  color: var(--text);
 }
 
 .foreman-summary {

@@ -21,6 +21,7 @@ mod voz;
 mod pty;
 mod secrets;
 mod sessions;
+mod suelta;
 mod skills;
 mod usage;
 mod workspace;
@@ -257,6 +258,11 @@ pub fn run() {
             pty::pty_write,
             pty::pty_resize,
             pty::pty_kill,
+            pty::pty_historial,
+            suelta::sacar_panel,
+            suelta::raton_en_pantalla,
+            suelta::devolver_panel,
+            suelta::datos_panel,
             pty::list_projects,
             sessions::scan_sessions,
             sessions::open_in_antigravity,
@@ -334,6 +340,7 @@ pub fn run() {
             foreman::foreman_plan,
             foreman::foreman_prompt,
             foreman::foreman_lote,
+            foreman::foreman_agente,
             voz::voz_lista,
             voz::transcribir,
             foreman::write_mission,

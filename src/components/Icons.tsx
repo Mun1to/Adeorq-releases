@@ -202,6 +202,24 @@ export function SplitDownIcon({ size = 17 }: Props) {
  * intento fue una flecha hacia abajo sobre una línea, y eso es el icono de
  * descargar en todas partes (Munir, 2026-08-02: «parece un botón de guardar»).
  */
+/**
+ * Sacar la terminal fuera de Adeorq.
+ *
+ * Una ventana que se ha ido de su sitio, con la flecha saliendo por la esquina.
+ * No es la flecha de «abrir enlace externo» de siempre porque aquí no se va
+ * nada a un navegador: lo que sale es esta misma terminal, y por eso el marco
+ * que deja atrás está dibujado con línea partida, como un hueco.
+ */
+export function SacarIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M13.5 4.5H5.5a1.5 1.5 0 0 0-1.5 1.5v12a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-8" opacity="0.4" strokeDasharray="3 2.5" />
+      <path d="M20 4l-8 8" />
+      <path d="M14.5 4H20v5.5" />
+    </svg>
+  );
+}
+
 export function MinimizeIcon({ size = 17 }: Props) {
   return (
     <svg {...svg(size)}>

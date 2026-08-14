@@ -39,6 +39,7 @@ import {
   GitBranchIcon,
   MaximizeIcon,
   MinimizeIcon,
+  SacarIcon,
   RestoreIcon,
   RobotIcon,
   TrashIcon,
@@ -46,6 +47,7 @@ import {
 import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
 import { chime, forgetPane, notify, type NotifyMode } from "../lib/notify";
+import { seMuda } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
 import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
@@ -129,6 +131,15 @@ interface Props {
       sí se mantiene: puedes estar en otra ventana. */
   alone?: boolean;
   shadow?: boolean;
+  /** Sacar esta terminal a su propia ventana de Windows. Ausente cuando ya
+      está fuera, que es lo que quita el botón sin tener que preguntarlo. */
+  onSacar?: (id: number) => void;
+  /** Lo ya dicho en este panel, para escribirlo al nacer. Solo lo usa la
+      terminal que renace en su propia ventana: el proceso lleva rato vivo y sin
+      esto la ventana nueva empezaría en negro con la conversación perdida. */
+  volcar?: string;
+  /** Avisa de que el volcado ya se hizo, para que no se repita en otro montaje. */
+  onVolcado?: () => void;
 }
 
 /** Our own drag type, so a dragged pane is never read as pasted text. */
@@ -376,6 +387,9 @@ export default function TerminalPane({
   notifyMode,
   alone,
   shadow,
+  onSacar,
+  volcar,
+  onVolcado,
 }: Props) {
   const { t, lang } = useT();
   /** Las cuentas a las que tiene sentido saltar: todas menos en la que ya está.
@@ -620,6 +634,10 @@ export default function TerminalPane({
   onSecretRef.current = onSecret;
   // The PTY is spawned once, in an effect that must not re-run when props
   // change: its environment is read from here at that moment.
+  /** En un ref y no leído directo: el efecto que monta el xterm corre una sola
+      vez, y si mirara la prop se quedaría con la del primer render para
+      siempre. Vaciarlo tras escribirlo es lo que impide volcar dos veces. */
+  const volcarRef = useRef(volcar ?? "");
   const envRef = useRef(env);
   const notifyRef = useRef({ mode: notifyMode, name, focused, project: "" });
   notifyRef.current = { ...notifyRef.current, mode: notifyMode, name, focused };
@@ -1100,6 +1118,16 @@ export default function TerminalPane({
         },
       );
     }
+    // Lo que ya se había dicho en este panel, cuando la terminal renace en otra
+    // ventana. Se escribe ANTES de que llegue nada nuevo del PTY, o el final de
+    // la conversación aparecería por encima del principio. Es texto crudo con
+    // sus colores y sus saltos: xterm lo interpreta igual que si acabara de
+    // salir del proceso, porque es exactamente lo que salió de él.
+    if (volcarRef.current) {
+      term.write(volcarRef.current);
+      volcarRef.current = "";
+      onVolcado?.();
+    }
     ptyReadyRef.current = arranque;
     void arranque
       .then(() => {
@@ -1323,7 +1351,10 @@ export default function TerminalPane({
       unsubs.forEach((un) => un());
       shield.flush();
       forgetPane(id);
-      void killPty(id);
+      // Salvo que se esté MUDANDO a otra ventana. Esta terminal desaparece de
+      // aquí, pero su agente sigue trabajando al otro lado; matarlo ahora sería
+      // perder el trabajo por haberla sacado de sitio (ver lib/mudanza.ts).
+      if (!seMuda(id)) void killPty(id);
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
@@ -1707,6 +1738,18 @@ export default function TerminalPane({
               onClick={() => onMinimizar(id)}
             >
               <MinimizeIcon />
+            </button>
+          )}
+          {/* Sacarla fuera. Solo aparece dentro de Adeorq: en una terminal que
+              YA está suelta no hay a dónde sacarla, y por eso va colgado de su
+              función y no de un `if` con el modo dentro. */}
+          {onSacar && (
+            <button
+              className="pane-btn"
+              data-tip={t("Sacar a su propia ventana: el agente sigue trabajando, solo cambia dónde lo ves")}
+              onClick={() => onSacar(id)}
+            >
+              <SacarIcon />
             </button>
           )}
           <button

@@ -1,6 +1,8 @@
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import VentanaSuelta from "./components/VentanaSuelta";
 import { leerPerfil, raizPorDefecto, tocarPerfil } from "./lib/perfil";
+import "./App.css";
 
 // La carpeta de proyectos se resuelve ANTES de montar nada. Media app la usa
 // como el «dónde» de una terminal que no tiene un proyecto detrás, así que si
@@ -8,6 +10,21 @@ import { leerPerfil, raizPorDefecto, tocarPerfil } from "./lib/perfil";
 // carpeta equivocada. Es una sola lectura de disco y pasa una única vez: en
 // cuanto está en el perfil, ya no se vuelve a preguntar.
 async function arrancar() {
+  /* Una terminal sacada a su propia ventana.
+   *
+   * Es la MISMA página (`index.html`) con un parámetro puesto, y no un HTML
+   * aparte: así una terminal suelta y una de dentro son el mismo componente, y
+   * lo que se arregle en una queda arreglado en la otra. Lo que cambia es que
+   * aquí no se monta Adeorq entera, solo ese panel: montar la app completa
+   * abriría un segundo tablero, un segundo Capataz y un segundo todo. */
+  const suelta = new URLSearchParams(location.search);
+  const idSuelta = Number(suelta.get("suelta"));
+  if (idSuelta) {
+    ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+      <VentanaSuelta id={idSuelta} nombre={suelta.get("nombre") ?? `Terminal ${idSuelta}`} />,
+    );
+    return;
+  }
   // Quien dijo que no tiene una carpeta madre no la recibe por la puerta de
   // atrás: rellenarla aquí es lo que convertía «omitir» en «tus Descargas son
   // un proyecto». Sus terminales nacen igual, solo que sueltas.

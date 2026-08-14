@@ -435,6 +435,21 @@ pub async fn pty_spawn(
     // which is what makes a terminal belong to one account.
     env: Option<HashMap<String, String>>,
 ) -> Result<(), String> {
+    // ── Ese panel YA está abierto ────────────────────────────────────────────
+    //
+    // Hasta hoy esto abría un proceso nuevo sin mirar, y al meterlo en el mapa
+    // pisaba al que ya estaba: el primer agente se quedaba corriendo sin nadie
+    // que lo leyera ni pudiera matarlo, o sea un huérfano de manual. No pasaba
+    // nunca porque un id solo se pedía una vez, y eso deja de ser cierto en
+    // cuanto una terminal se puede sacar a su propia ventana (Munir,
+    // 2026-08-13): la ventana nueva monta el mismo panel y pide su PTY.
+    //
+    // Así que engancharse a lo que ya hay no es un caso raro, es el caso
+    // normal, y salir por aquí es lo que hace que sacar una terminal no cueste
+    // ni un proceso más.
+    if state.0.lock().unwrap().contains_key(&id) {
+        return Ok(());
+    }
     let command_clone = command.clone();
     let pty_system = native_pty_system();
     let pair = pty_system
@@ -676,6 +691,34 @@ pub fn pty_write(state: State<'_, PtyState>, id: u32, data: String) -> Result<()
         .tx_entrada
         .send(data.into_bytes())
         .map_err(|_| "pty cerrado".to_string())
+}
+
+/// Lo que ya se ha dicho en ese panel, para pintarlo en una ventana que acaba
+/// de nacer.
+///
+/// Sacar una terminal a su propia ventana no puede dejarla en blanco: el
+/// proceso sigue vivo y lleva media conversación dentro, así que la ventana
+/// nueva empieza escribiendo esto en su xterm y sigue por donde iba.
+///
+/// El corte va por CARÁCTER y no por byte. Una tilde ocupa dos bytes y un
+/// dibujo de esos que pinta Claude ocupa tres o cuatro: cortar por el byte de
+/// en medio parte el carácter, y en Rust eso no devuelve texto raro, entra en
+/// pánico. Es exactamente el fallo que ya se arregló una vez en
+/// `recortar_historial`.
+#[tauri::command]
+pub fn pty_historial(state: State<'_, PtyState>, id: u32, bytes: Option<usize>) -> Result<String, String> {
+    let map = state.0.lock().unwrap();
+    let session = map.get(&id).ok_or("no such pty")?;
+    let hist = session.history.lock().unwrap_or_else(|e| e.into_inner());
+    let tope = bytes.unwrap_or(HIST_OBJETIVO);
+    if hist.len() <= tope {
+        return Ok(hist.clone());
+    }
+    let mut corte = hist.len() - tope;
+    while corte < hist.len() && !hist.is_char_boundary(corte) {
+        corte += 1;
+    }
+    Ok(hist[corte..].to_string())
 }
 
 // async por la misma ley que todo lo que toca la tubería de un panel: el

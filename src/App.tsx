@@ -106,6 +106,9 @@ import {
   listProjects,
   mcpReply,
   onPedidoMcp,
+  sacarPanel,
+  onVuelvePanel,
+  anotarRastro,
   type Account,
   type Project,
   type SessionInfo,
@@ -117,7 +120,7 @@ import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
 import { exigenciaDeRol, modoAviso, recetar } from "./lib/router";
 import { cerebroPorDefecto } from "./lib/models";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
-import { fotoRapida } from "./lib/mundo";
+import { fotoRapida, parteDelEquipo } from "./lib/mundo";
 import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
 import { apagon, aplicarApagon } from "./lib/temasTerm";
@@ -127,6 +130,7 @@ import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
 import { guardarAtajos, leerAtajos, type Atajos } from "./lib/atajos";
 import { tecleandoEnOtro } from "./lib/tecleando";
+import { cancelaMudanza, empiezaMudanza } from "./lib/mudanza";
 import { lineaDeArranque, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
 import { planDeArranque, type Peticion, type Plan } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
@@ -543,6 +547,9 @@ function App() {
   /** Los paneles de ahora, para leerlos desde un callback estable sin volver a
       crearlo cada vez que se abre o se cierra una terminal. */
   const panesRef = useRef<Pane[]>([]);
+  /** Las terminales que están fuera, en su propia ventana. Se guardan enteras
+      para poder devolverlas tal como estaban cuando cierren esa ventana. */
+  const fueraRef = useRef<Map<number, Pane>>(new Map());
 
   /** Todo de vuelta al mosaico. Entrar en un grupo aparta lo demás de golpe,
       así que salir tiene que costar lo mismo: sin esto había que ir trayendo
@@ -1497,6 +1504,19 @@ function App() {
           );
           return;
         }
+        // Cuánto queda en cada cuenta. Lo contesta la ventana y no Rust porque
+        // aquí ya está leído y guardado: preguntárselo otra vez a los CLIs
+        // costaría un proceso de cinco segundos por cuenta para saber lo mismo.
+        if (p.clase === "uso") {
+          // Con reloj: el puente de Rust espera 25 s como mucho, y refrescar la
+          // cuota de tres cuentas frías son tres procesos de cinco segundos.
+          // Ocho segundos dan de sobra para refrescar lo que haga falta, y si
+          // no llega se contesta con lo último que se supo, que es infinitamente
+          // mejor que dejar al agente sin respuesta.
+          const vivas = await fotoRapida(accountsRef.current.list, 8000);
+          responder({ parte: parteDelEquipo(vivas) });
+          return;
+        }
         if (p.clase !== "open_pane") {
           responder({ error: `No sé atender «${p.clase}».` });
           return;
@@ -1558,6 +1578,27 @@ function App() {
       void un.then((f) => f()).catch(() => {});
     };
   }, [addPane]);
+
+  /* Una terminal que estaba fuera ha cerrado su ventana: vuelve al tablero tal
+     como se fue. Vuelve y NO muere, que es la diferencia entre esto y la X de
+     un panel: cerrar la ventana suelta es «tráemela», no «mátala». Para matar
+     al agente está su X de dentro, que sigue siendo la de siempre. */
+  useEffect(() => {
+    let vivo = true;
+    const un = onVuelvePanel((id) => {
+      if (!vivo) return;
+      const p = fueraRef.current.get(id);
+      if (!p) return;
+      fueraRef.current.delete(id);
+      // Por si acaso llegara dos veces: un panel duplicado en la lista son dos
+      // terminales pintando el mismo proceso y el teclado yendo por duplicado.
+      setPanes((prev) => (prev.some((x) => x.id === id) ? prev : [...prev, p]));
+    });
+    return () => {
+      vivo = false;
+      void un.then((f) => f()).catch(() => {});
+    };
+  }, []);
 
   /** Abre una cuadrilla entera: una terminal por puesto, todas marcadas con el
       mismo color y sabiendo que trabajan juntas. Se escalonan unos cientos de
@@ -1773,6 +1814,43 @@ function App() {
     // igual que la de la cabina. Ver el comentario de `closePane`.
     void killPty(id).catch(() => {});
     setCanvasPanes((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
+  /**
+   * Sacar una terminal a su propia ventana de Windows.
+   *
+   * El agente NO se toca: su proceso vive en Rust y esto solo cambia quién lo
+   * pinta. Por eso el orden importa y no es intercambiable:
+   *
+   *   1. Se marca la mudanza. Si no, al quitar el panel React lo desmonta, el
+   *      desmontaje llama a `killPty` y el agente muere por haberlo movido.
+   *   2. Se abre la ventana Y SE ESPERA. Quitar el panel antes de saber que la
+   *      ventana ha abierto dejaría la terminal en tierra de nadie: fuera del
+   *      tablero y sin ventana donde aparecer.
+   *   3. Solo entonces se quita de aquí, que es lo que impide que el teclado
+   *      llegue por duplicado al mismo agente.
+   */
+  const sacarFuera = useCallback((id: number) => {
+    const p = panesRef.current.find((x) => x.id === id);
+    if (!p) return;
+    empiezaMudanza(id);
+    void sacarPanel(id, p.name)
+      .then(() => {
+        // Se GUARDA entero, no se tira. Al volver hay que devolverla con su
+        // cuadrilla, su cuenta, su entorno y su grupo, y eso no se puede
+        // reconstruir preguntándole a Rust: Rust solo sabe la carpeta y el
+        // comando, lo demás es cosa del tablero.
+        fueraRef.current.set(id, p);
+        setPanes((prev) => prev.filter((x) => x.id !== id));
+      })
+      .catch((e) => {
+        // No salió: se deshace la marca o esa terminal se quedaría sin poder
+        // matarse nunca, que es peor que no haberla sacado. Y queda anotado,
+        // porque esta ventana no tiene consola y un catch mudo convierte esto
+        // en un «le doy al botón y no pasa nada» imposible de mirar.
+        cancelaMudanza(id);
+        void anotarRastro(`sacar_panel(${id}) falló: ${e}`);
+      });
   }, []);
 
   const closePane = useCallback((id: number) => {
@@ -2821,7 +2899,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
             setShowForeman((v) => !v);
           }}
         >
-          <Orbe estado={showForeman ? "escucha" : "reposo"} size={21} />
+          <Orbe estado={showForeman ? "escucha" : "reposo"} size={28} />
         </button>
         {/* El último grupo de la fila, pegado al borde: son los únicos botones
             de aquí que solo aparecen a veces (con la Cabina y más de un
@@ -3006,6 +3084,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     style={style}
                     onSwap={onSwap}
                     onHeaderDown={onHeaderDown}
+                    onSacar={sacarFuera}
                     cuentas={cuentasConCuota}
                     onRelevar={(cuenta) =>
                       relevar(cuenta, {

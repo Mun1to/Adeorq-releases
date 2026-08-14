@@ -355,6 +355,14 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                                 }
                             },
                             {
+                                "name": "get_usage",
+                                "description": "How much of each AI subscription is left, which CLIs are installed but signed out (paid quota going to waste), and how to spread the work between them. Read this BEFORE deciding which model or account a job should run on: the units are not comparable across vendors, so the reading also explains what each number means. Costs nothing: it reads what Adeorq already knows.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {}
+                                }
+                            },
+                            {
                                 "name": "open_pane",
                                 "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_transcript. This is how a supervising session builds a team: one pane per job. Every pane costs real quota, so open the fewest you need. Hard limits apply (6 alive, 12 per hour) and you are told when you hit them.",
                                 "inputSchema": {
@@ -565,6 +573,19 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                     }
                 ]
             }))
+        }
+        // Se la pide a la VENTANA y no se lee aquí, aunque el dato salga de un
+        // comando de Rust. Motivo: preguntarle la cuota a un CLI cuesta unos
+        // cinco segundos y medio de arrancar un proceso, POR CUENTA, y el front
+        // ya tiene la respuesta guardada de hace un rato (`lib/cuota.ts`, nueve
+        // minutos de vida). Leerlo desde aquí sería pagar otra vez, más lento,
+        // por un número que ya está en la casa.
+        "get_usage" => {
+            let r = pedir_a_la_ventana(app, "uso", json!({}))?;
+            let texto = r
+                .parte
+                .unwrap_or_else(|| "La ventana no supo decir cómo va el uso.".to_string());
+            Ok(json!({ "content": [ { "type": "text", "text": texto } ] }))
         }
         "get_agenda" => {
             let project_name = args["project"].as_str().unwrap_or("Adeorq");

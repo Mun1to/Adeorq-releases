@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   findAgy,
+  foremanAgente,
   foremanPlan,
   foremanPrompt,
   listProjects,
@@ -41,6 +42,15 @@ import {
 import { mirarMundo, mundoEnCache } from "../lib/mundo";
 import { leerPerfil } from "../lib/perfil";
 import { providerOf, sabe } from "../lib/providers";
+import {
+  MODOS,
+  ROTULO,
+  aviso as avisoDelModo,
+  guardarModo,
+  leerModo,
+  manosDe,
+  type ModoCapataz,
+} from "../lib/manos";
 import { createPortal } from "react-dom";
 import { useT } from "../lib/i18n";
 import Orbe, { type EstadoOrbe } from "./Orbe";
@@ -628,6 +638,11 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
     }
   });
   const [escribiendo, setEscribiendo] = useState(false);
+  /** El cuarto oficio: preguntar con las manos puestas. Va aparte de `phase`
+      porque no monta ningún tablero que aprobar; devuelve texto y ya. */
+  const [modo, setModo] = useState<ModoCapataz>(leerModo);
+  const [preguntando, setPreguntando] = useState(false);
+  const [respuesta, setRespuesta] = useState<string | null>(null);
   /** El dictado en marcha, si lo hay. Null = el micrófono está en reposo. */
   const dictadoRef = useRef<Dictado | null>(null);
   const [oyendo, setOyendo] = useState(false);
@@ -703,6 +718,37 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
    * mirar qué hay conectado tarda mucho menos, así que cuando vuelve el texto
    * la foto ya está hecha y nadie ha esperado por ella.
    */
+  /**
+   * PREGUNTARLE, que es el oficio nuevo (2026-08-13).
+   *
+   * Los otros tres le dan a `claude -p` todo el estado ya masticado dentro del
+   * prompt y le piden un JSON. Aquí no se puede: «¿en qué proyectos estoy?»
+   * necesita mirar las terminales, y «resúmeme lo de la 3» necesita leer una
+   * transcripción que no cabe en ningún contexto pre-cocinado. Así que en vez
+   * de contárselo, se le dan las llaves de Adeorq y mira él.
+   *
+   * El contexto que se le pasa es CORTO a propósito: es un punto de partida
+   * para que sepa dónde está, no la foto entera. Si necesita más, la pide con
+   * una herramienta, que es justo lo que lo diferencia de los otros tres.
+   */
+  const preguntar = () => {
+    const pedido = text.trim();
+    if (!pedido || preguntando) return;
+    setPreguntando(true);
+    setError("");
+    setRespuesta(null);
+    const p = exec.panes().find((x) => x.id === exec.focused());
+    const donde = [
+      avisoDelModo(modo),
+      p ? `Tiene delante la terminal «${p.name}», en ${p.cwd}.` : "No tiene ninguna terminal delante.",
+      `Hoy es ${new Date().toISOString().slice(0, 10)}.`,
+    ].join("\n");
+    foremanAgente(pedido, donde, manosDe(modo))
+      .then((r) => setRespuesta(r.trim()))
+      .catch((e) => setError(String(e)))
+      .finally(() => setPreguntando(false));
+  };
+
   const redactar = () => {
     const pedido = text.trim();
     if (!pedido || escribiendo) return;
@@ -1133,6 +1179,20 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
                 {t(phase === "thinking" ? "Pensando el plan…" : "Planear")}
               </button>
             )}
+            {/* El oficio nuevo: no monta tablero ni escribe encargos, MIRA
+                Adeorq y te contesta. Va aquí, pegado al principal, porque es
+                lo que más veces vas a querer: preguntar es más barato que
+                montar, y hasta hoy no se podía. */}
+            <button
+              className="np-btn ghost"
+              disabled={!text.trim() || preguntando || phase === "thinking"}
+              data-tip={t(
+                "Mira Adeorq por dentro (tus terminales, tus proyectos, la agenda) y te responde. Lo que puede tocar mientras tanto lo decide el escalón de aquí abajo.",
+              )}
+              onClick={preguntar}
+            >
+              {t(preguntando ? "Mirando…" : "Preguntar")}
+            </button>
             {/* El segundo oficio, al lado y con el mismo peso: no monta nada,
                 escribe el encargo para la terminal que tienes delante. */}
             <button
@@ -1173,6 +1233,40 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
               2026-08-09, con la captura). Los botones ya no ceden (`flex:
               none`) y esto no tiene por qué competir con ellos: es una nota al
               pie, y una nota al pie va al pie. */}
+          {/* EL CONMUTADOR. Tres escalones y no un interruptor de dos, porque
+              la frontera de verdad no está entre «propone» y «actúa»: está
+              entre montar trabajo NUEVO (que no molesta a nadie) y meterse en
+              una terminal que ya está trabajando (que sí).
+              Y no es un cartel: cada escalón ES la lista de herramientas que
+              recibe (lib/manos.ts). Lo que no está en su escalón no puede
+              hacerlo, aunque el modelo lo intente. */}
+          <div className="fm-modo" role="group" aria-label={t("Qué puede hacer")}>
+            {MODOS.map((m) => (
+              <button
+                key={m}
+                data-on={modo === m}
+                data-tip={t(ROTULO[m].que)}
+                onClick={() => {
+                  setModo(m);
+                  guardarModo(m);
+                }}
+              >
+                {t(ROTULO[m].nombre)}
+              </button>
+            ))}
+            <span className="fm-modo-que">{t(ROTULO[modo].que)}</span>
+          </div>
+          {/* Lo que ha contestado. Va en su propio bloque y no en el cuadro de
+              texto: el cuadro es tuyo y lo que escribes ahí sigue ahí, que es
+              lo que permite repreguntar sin volver a escribirlo todo. */}
+          {respuesta && (
+            <div className="fm-respuesta">
+              <p>{respuesta}</p>
+              <button className="fm-respuesta-x" onClick={() => setRespuesta(null)}>
+                {t("Vale")}
+              </button>
+            </div>
+          )}
           {mode === "overlay" && (
             <span className="foreman-hint">{t("Enter planea · Ctrl+Mayús+M dicta · Esc cierra · nada se ejecuta sin tu OK")}</span>
           )}
@@ -1500,7 +1594,11 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
       <div className="foreman-box">
         <div className="foreman-title">
           <Orbe estado={estadoOrbe} size={22} />
-          {t("Asistente")}
+          {/* «Capataz» y no «Asistente»: el panel se llamaba de las dos formas
+              a la vez (la tarjeta del Panel ya decía Capataz) y Munir cerró el
+              nombre el 2026-08-13. Un nombre a medias es dos piezas para quien
+              lo lee. */}
+          {t("Capataz")}
         </div>
         {body}
       </div>

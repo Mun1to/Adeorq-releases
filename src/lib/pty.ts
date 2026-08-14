@@ -782,6 +782,58 @@ export function foremanPrompt(request: string, context: string): Promise<string>
 
 /* ─────────────── Sacar una terminal a su propia ventana ─────────────────── */
 
+/* ── El mapa de cómo funciona un proyecto ─────────────────────────────────
+ *
+ * Los cuatro devuelven o guardan JSON CRUDO a propósito: lo escribe un modelo,
+ * así que la validación entera vive en `lib/mapa.ts`, que se puede probar sin
+ * arrancar la app. Aquí solo se cruza la frontera con Rust. */
+
+/** Lee el código del proyecto y saca sus piezas y quién llama a quién. Tarda
+ *  minutos: es la única llamada del Capataz con manos para leer archivos. */
+export function foremanMapa(
+  ruta: string,
+  esqueleto: string,
+  /** `true` para la carpeta que contiene TODOS los proyectos: ahí el encargo es
+   *  otro, porque cada pieza es un proyecto entero y no un módulo. */
+  todos = false,
+): Promise<string> {
+  return invoke("foreman_mapa", { ruta, esqueleto, todos });
+}
+
+/** Un renglón por proyecto de la carpeta madre, con lo que cada uno dice de sí
+ *  mismo. Es lo que se le manda al Capataz para el mapa del taller: leer
+ *  veintiocho README es trabajo de disco, no de modelo. */
+export function resumenTaller(ruta: string): Promise<string> {
+  return invoke("resumen_taller", { ruta });
+}
+
+/** Corta la lectura a medias. Equivocarse de proyecto costaba, si no, seis
+ *  minutos de espera obligatoria delante de una pantalla vacía. */
+export function pararMapa(): Promise<void> {
+  return invoke("parar_mapa");
+}
+
+/** Lo que se guardó la última vez de esa carpeta, o `null` si nunca se leyó. */
+export function mapaGuardado(ruta: string): Promise<string | null> {
+  return invoke("mapa_guardado", { ruta });
+}
+
+export function guardarMapa(ruta: string, contenido: string): Promise<void> {
+  return invoke("guardar_mapa", { ruta, contenido });
+}
+
+/** El árbol de una carpeta, para dibujarlo como esquema. Vale igual para un
+ *  proyecto de código y para una carpeta de la bóveda: cambia la ruta y ya. */
+export function escanearArbol(
+  ruta: string,
+  /** Cuántos niveles bajar. Se recorta para mirar la carpeta de proyectos
+      entera: a fondo, el tope de nodos se llena con los primeros por orden
+      alfabético y los últimos no salen. */
+  hondo?: number,
+): Promise<import("./esquema").ArbolCrudo> {
+  return invoke("escanear_arbol", { ruta, hondo: hondo ?? null });
+}
+
 /** Lo que ya se dijo en ese panel, para que la ventana nueva no nazca vacía. */
 export function ptyHistorial(id: number, bytes?: number): Promise<string> {
   return invoke("pty_historial", { id, bytes: bytes ?? null });

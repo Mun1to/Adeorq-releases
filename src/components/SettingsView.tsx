@@ -371,6 +371,10 @@ export default function SettingsView({
   const [news, setNews] = useState<string | null>(null);
   /** Cuánto lleva bajado, para que el botón diga algo mientras tarda. */
   const [updPct, setUpdPct] = useState(0);
+  /** La versión que se encontró, esperando a que tú digas que sí. Buscar no
+      instala: instalar cierra la app, y aquí dentro hay terminales trabajando. */
+  const [hallada, setHallada] = useState<Awaited<ReturnType<typeof check>>>(null);
+  const [bajando, setBajando] = useState(false);
   // Starting with Windows is a fact about the machine, not a preference of
   // ours: it is read from the system, never remembered here. null = still
   // asking, so the switch cannot flicker from off to on in front of him.
@@ -473,47 +477,56 @@ export default function SettingsView({
   };
 
   /**
-   * Buscar actualizaciones Y ponerla, que es lo que se espera al pulsar eso.
+   * BUSCAR, y nada más.
    *
-   * Hasta hoy solo COMPROBABA: te decía «hay una versión nueva» y ahí se
-   * quedaba, sin un botón para traerla. La única forma de instalar era la
-   * tarjeta de aviso, así que el día que esa tarjeta no respondió al clic
-   * (Munir, 2026-08-08, en la 0.9.71) no quedaba ninguna puerta dentro de la
-   * app: había que bajarse el instalador a mano. Dos caminos independientes
-   * para lo mismo es exactamente lo que hace falta aquí, porque si el que falla
-   * es el del aviso, el aviso es lo único que se ve.
+   * Aquí se buscaba e instalaba de un tirón: pulsabas «buscar» y la aplicación
+   * empezaba a bajarse una versión nueva sin preguntar (Munir, 2026-08-14:
+   * «cuando le das a buscar actualizaciones, que no se te actualice
+   * automáticamente, solo cuando le das a actualizar»). Y tiene razón por algo
+   * que no es manía: instalar cierra la app, y él la tiene llena de terminales
+   * trabajando. Buscar es una pregunta; instalar es una decisión, y las
+   * decisiones se toman en un segundo clic.
+   *
+   * Sigue habiendo DOS caminos para instalar (aquí y la tarjeta de aviso), que
+   * es lo que salvó el día que la tarjeta no respondió al clic en la 0.9.71.
    */
   const lookForUpdates = () => {
     setChecking(true);
     setNews(null);
     setUpdPct(0);
+    setHallada(null);
     check()
       .then((u) => {
         if (!u) {
           setNews(t("Ya tienes la última versión."));
-          setChecking(false);
           return;
         }
-        setNews(t("Bajando la {v}…", { v: u.version }));
-        let total = 0;
-        let got = 0;
-        return u
-          .downloadAndInstall((e) => {
-            if (e.event === "Started") total = e.data.contentLength ?? 0;
-            else if (e.event === "Progress") {
-              got += e.data.chunkLength;
-              if (total > 0) setUpdPct(Math.min(99, Math.round((got / total) * 100)));
-            } else if (e.event === "Finished") setUpdPct(100);
-          })
-          .then(() => {
-            setNews(t("Listo. Reinicia para estrenar la versión nueva."));
-            setChecking(false);
-          });
+        setHallada(u);
+        setNews(t("Hay una versión nueva: la {v}.", { v: u.version }));
       })
-      .catch((e) => {
-        setNews(String(e));
-        setChecking(false);
-      });
+      .catch((e) => setNews(String(e)))
+      .finally(() => setChecking(false));
+  };
+
+  /** Y ahora sí: bajarla y ponerla, porque lo has pedido tú. */
+  const instalarHallada = () => {
+    if (!hallada || bajando) return;
+    setBajando(true);
+    setUpdPct(0);
+    setNews(t("Bajando la {v}…", { v: hallada.version }));
+    let total = 0;
+    let got = 0;
+    hallada
+      .downloadAndInstall((e) => {
+        if (e.event === "Started") total = e.data.contentLength ?? 0;
+        else if (e.event === "Progress") {
+          got += e.data.chunkLength;
+          if (total > 0) setUpdPct(Math.min(99, Math.round((got / total) * 100)));
+        } else if (e.event === "Finished") setUpdPct(100);
+      })
+      .then(() => setNews(t("Listo. Reinicia para estrenar la versión nueva.")))
+      .catch((e) => setNews(String(e)))
+      .finally(() => setBajando(false));
   };
 
   return (
@@ -1551,19 +1564,27 @@ export default function SettingsView({
               <section className="panel-card">
                 <h2>{t("Actualizaciones")}</h2>
                 <p className="card-hint">
-                  {t("Comprueba sola al arrancar y cada 6 horas.")}
+                  {t("Comprueba sola al arrancar y cada 6 horas. Avisa, pero no instala nada sin que se lo digas: ponerla cierra Adeorq con lo que tengas abierto dentro.")}
                 </p>
                 <p className="setting-line">
                   {t("Versión instalada")}: <strong>{version || "…"}</strong>
                 </p>
                 <div className="foreman-row">
-                  <button className="np-btn" disabled={checking} onClick={lookForUpdates}>
-                    {checking
-                      ? updPct > 0
-                        ? `${updPct}%`
-                        : t("Buscando…")
-                      : t("Buscar e instalar")}
+                  <button className="np-btn" disabled={checking || bajando} onClick={lookForUpdates}>
+                    {checking ? t("Buscando…") : t("Buscar actualizaciones")}
                   </button>
+                  {/* Instalar es el SEGUNDO clic, y solo aparece si de verdad
+                      hay algo que instalar. Antes iba pegado a buscar, así que
+                      preguntar por una versión nueva te la ponía. */}
+                  {hallada && updPct < 100 && (
+                    <button className="np-btn" disabled={bajando} onClick={instalarHallada}>
+                      {bajando
+                        ? updPct > 0
+                          ? `${updPct}%`
+                          : t("Bajando…")
+                        : t("Poner la {v}", { v: hallada.version })}
+                    </button>
+                  )}
                   {/* Reiniciar solo sale cuando ya está bajada: un botón de
                       reiniciar siempre visible invita a cerrar la app por nada. */}
                   {updPct === 100 && (

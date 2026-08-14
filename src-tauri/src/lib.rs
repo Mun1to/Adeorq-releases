@@ -3,6 +3,7 @@ mod autostart;
 mod crew;
 mod discord;
 mod encargos;
+mod esquema;
 mod foreman;
 mod goals;
 mod icons;
@@ -263,6 +264,10 @@ pub fn run() {
             suelta::raton_en_pantalla,
             suelta::devolver_panel,
             suelta::datos_panel,
+            esquema::escanear_arbol,
+            esquema::resumen_taller,
+            esquema::mapa_guardado,
+            esquema::guardar_mapa,
             pty::list_projects,
             sessions::scan_sessions,
             sessions::open_in_antigravity,
@@ -341,6 +346,8 @@ pub fn run() {
             foreman::foreman_prompt,
             foreman::foreman_lote,
             foreman::foreman_agente,
+            foreman::foreman_mapa,
+            foreman::parar_mapa,
             voz::voz_lista,
             voz::transcribir,
             foreman::write_mission,

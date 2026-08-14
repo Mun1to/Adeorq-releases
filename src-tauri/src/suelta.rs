@@ -112,7 +112,12 @@ pub async fn sacar_panel(
     // Y SIN transparencia ni acrílico, al revés que la principal: una ventana
     // suelta se va a poner encima de un editor o de un navegador, y un fondo
     // translúcido sobre eso deja el texto de la terminal ilegible.
-    .transparent(false);
+    .transparent(false)
+    // Al frente y con el foco puesto. Sin esto puede nacer DETRÁS de Adeorq,
+    // que suele estar maximizada, y entonces sacar una terminal se ve como que
+    // la terminal ha desaparecido (Munir, 2026-08-14).
+    .focused(true)
+    .visible(true);
 
     if let (Some(x), Some(y)) = (x, y) {
         b = b.position(x, y);
@@ -129,13 +134,22 @@ pub async fn sacar_panel(
     //
     // El aviso se emite a TODAS las ventanas, así que la principal lo oye. La
     // que se está muriendo también, y le da igual.
+    //
+    // Y queda ESCRITO cuándo se cierra. Una ventana que muriera nada más nacer
+    // se ve exactamente igual que una que no se abrió, y sin esta línea no hay
+    // forma de distinguir los dos casos: la app no tiene consola.
     let app2 = app.clone();
     v.on_window_event(move |e| {
         if matches!(e, tauri::WindowEvent::Destroyed) {
             use tauri::Emitter;
+            crate::anotar(&format!("la ventana suelta de la terminal {id} se cerró"));
             let _ = app2.emit("suelta:vuelve", id);
         }
     });
+    // Y al frente del todo, por si el gestor de ventanas la dejó detrás pese al
+    // `focused`. Falla en silencio: no tenerla enfocada no impide usarla.
+    let _ = v.set_focus();
+    crate::anotar(&format!("terminal {id} sacada a su propia ventana"));
     Ok(())
 }
 

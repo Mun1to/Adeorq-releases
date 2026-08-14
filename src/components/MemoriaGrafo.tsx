@@ -57,6 +57,7 @@ import {
   normalDe,
   rejilla,
   repartir,
+  repartirGalaxia,
   tiroDelHilo,
   R,
   type AjustesCerebro,
@@ -122,6 +123,17 @@ interface Props {
   /** Abrir una skill. Va aparte de `onAbrir` porque no viven en la bóveda: su
       texto está en `~/.claude/skills`, y quien las lee es otro comando. */
   onAbrirSkill?: (folder: string) => void;
+  /**
+   * Cómo se colocan las notas. Dos cielos con los mismos datos:
+   *  · "esfera"  — todas sobre un cascarón, agrupadas por proyecto. Nada tapa a
+   *    nada y por eso se lee tan bien; es la de siempre.
+   *  · "galaxia" — un cúmulo por proyecto flotando en el espacio, con lo más
+   *    enlazado en su corazón. Es la que Munir pidió como «una galaxia con sus
+   *    planetas en 3D, estilo Obsidian» (2026-08-14).
+   * En galaxia no hay bola, así que se apagan las dos cosas que la dibujan: la
+   * rejilla del globo y la malla que cose los nodos vecinos.
+   */
+  forma?: "esfera" | "galaxia";
 }
 
 export default function MemoriaGrafo({
@@ -131,6 +143,7 @@ export default function MemoriaGrafo({
   soloConectados,
   skills,
   onAbrirSkill,
+  forma = "esfera",
 }: Props) {
   const { t } = useT();
   const caja = useRef<HTMLDivElement>(null);
@@ -152,7 +165,15 @@ export default function MemoriaGrafo({
   const pt = useRef<Proy[]>([]);
   const q1 = useRef(nuevaProy());
   const q2 = useRef(nuevaProy());
-  const malla = useMemo(() => rejilla(), []);
+  // Sin bola no hay rejilla: en galaxia se queda vacía y los bucles que la
+  // pintan no tienen nada que hacer. Apagarla así, con los datos, evita tocar
+  // doscientas líneas de pintado que ya funcionan.
+  const malla = useMemo(() => (forma === "galaxia" ? [] : rejilla()), [forma]);
+  /** El mismo dato que `forma`, pero en un ref: el bucle de pintado corre
+   *  dentro de un efecto que no se rehace en cada render, así que leer la prop
+   *  directamente le daría el valor de cuando se montó. */
+  const galaxiaRef = useRef(forma === "galaxia");
+  galaxiaRef.current = forma === "galaxia";
 
   /** La cámara: dos ángulos, la distancia del ojo, y el PIVOTE, que es el punto
       alrededor del que orbita. El pivote se mueve a un nodo con el botón de la
@@ -243,7 +264,12 @@ export default function MemoriaGrafo({
   useEffect(() => {
     const visibles = soloConectados ? docs.filter((d) => (red.grado.get(d.id) ?? 0) > 0) : docs;
     const gradoDe = (d: Doc) => red.grado.get(d.id) ?? 0;
-    const { pos, regiones: regs } = repartir(visibles, familia, gradoDe);
+    const galaxia = forma === "galaxia";
+    const { pos, regiones: regs } = (galaxia ? repartirGalaxia : repartir)(
+      visibles,
+      familia,
+      gradoDe,
+    );
     const idx = new Map<string, number>();
     const orden = new Map(regs.map((r, i) => [r.fam, i]));
     const ps: Punto[] = visibles.map((d, i) => {
@@ -260,15 +286,19 @@ export default function MemoriaGrafo({
         fam,
         ci,
         n: normalDe(pos[i]),
-        alto: altoDe(grado),
+        alto: galaxia ? 0 : altoDe(grado),
       };
     });
     puntos.current = ps;
     regiones.current = regs;
-    tejido.current = coser(ps, 3);
+    tejido.current = galaxia ? [] : coser(ps, 3);
     hilos.current = red.pares
       .map(([a, b]) => [idx.get(a) ?? -1, idx.get(b) ?? -1] as Hilo)
       .filter(([a, b]) => a >= 0 && b >= 0);
+    // El hilo se comba hacia fuera en las dos formas. En la galaxia se probó
+    // recto —no hay bola que esquivar— y quedó peor: dos notas de cúmulos
+    // opuestos daban una raya blanca cruzando la pantalla entera por delante de
+    // todo. Combado, ese mismo hilo se lee como lo que es, un puente.
     ctrl.current = hilos.current.map(([i, j]) => tiroDelHilo(ps[i], ps[j]));
     pr.current = ps.map(nuevaProy);
     pt.current = ps.map(nuevaProy);
@@ -283,7 +313,7 @@ export default function MemoriaGrafo({
       destino.current = { x: 0, y: 0, z: 0 };
     }
     sucio.current = true;
-  }, [docs, red, soloConectados]);
+  }, [docs, red, soloConectados, forma]);
 
   // Las skills, en el núcleo. Sus sitios salen del MISMO `nucleo` que las
   // dibuja, así que no hay dos versiones de dónde están.
@@ -599,6 +629,21 @@ export default function MemoriaGrafo({
           if (P[j]?.id === sel.id) vecinos.add(P[i]?.id);
         }
       }
+      /* CON QUIÉN HABLA EL PROYECTO AISLADO, aunque sea de otra familia.
+         Al aislar uno salían sus hilos hacia fuera y el otro extremo se quedaba
+         apagado y sin nombre: el hilo prometía una conexión y no enseñaba con
+         quién (Munir, 2026-08-14: «¿no deberían verse también los nodos a los
+         que está conectado?»). Ahora la vecindad del proyecto se enciende igual
+         que la de un nodo clavado, y con su nombre puesto. */
+      const fronteraF = new Set<string>();
+      if (F) {
+        for (const [i, j] of H) {
+          const a = P[i], b = P[j];
+          if (!a || !b) continue;
+          if (a.fam === F && b.fam !== F) fronteraF.add(b.id);
+          if (b.fam === F && a.fam !== F) fronteraF.add(a.id);
+        }
+      }
       /** Cuánto se ve lo que NO es del proyecto aislado. Muy poco, pero no
           cero: a oscuras del todo se pierde de dónde a dónde va lo que miras. */
       const APAGADO = 0.07;
@@ -769,7 +814,9 @@ export default function MemoriaGrafo({
       const torres = new Map<number, { color: string; t: number; ve: number; off: boolean; path: Path2D }>();
       for (const i of vivos) {
         const p = P[i];
-        const off = (!!sel && p.id !== sel.id && !vecinos.has(p.id) && !F) || (!!F && p.fam !== F);
+        const off =
+          (!!sel && p.id !== sel.id && !vecinos.has(p.id) && !F) ||
+          (!!F && p.fam !== F && !fronteraF.has(p.id));
         const tt = prA[i].t;
         const t5 = Math.min(4, Math.floor(tt * 5));
         const ve5 = Math.min(4, Math.floor(ptA[i].v * 5));
@@ -804,7 +851,9 @@ export default function MemoriaGrafo({
       const luces = new Map<number, { color: string; a: number; halo: Path2D; cuerpo: Path2D; nucleo: Path2D; tiene: boolean }>();
       for (const i of vivos) {
         const p = P[i], q = ptA[i];
-        const off = (!!sel && p.id !== sel.id && !vecinos.has(p.id) && !F) || (!!F && p.fam !== F);
+        const off =
+          (!!sel && p.id !== sel.id && !vecinos.has(p.id) && !F) ||
+          (!!F && p.fam !== F && !fronteraF.has(p.id));
         const r = Math.min(26, (1.5 + Math.min(3.8, Math.sqrt(p.grado) * 1.15)) * q.f * 3.2);
         const a = (0.28 + q.t * 0.72) * q.v * (off ? (F ? APAGADO : restoNodo) : 1) * brillo;
         const a8 = Math.max(0, Math.min(7, Math.round(a * 7)));
@@ -921,17 +970,34 @@ export default function MemoriaGrafo({
       for (let i = 0; i < P.length; i++) {
         const q = ptA[i], p = P[i];
         if (!q.ok || q.v < 0.55) continue;
-        if (F && p.fam !== F) continue;
+        if (F && p.fam !== F && !fronteraF.has(p.id)) continue;
         const suyo = p.id === bajo?.id || p.id === activo || p.id === fijo?.id;
-        const suyoVecino = !!fijo && vecinos.has(p.id);
-        if (!suyo && !suyoVecino && !(F ? q.t > 0.25 : fuera > 0.5 ? q.z > 0.42 && p.grado >= 9 : q.t > 0.55 && p.grado >= 2)) continue;
+        // La frontera del proyecto aislado se rotula SIEMPRE, aunque esté lejos
+        // o enlace poco: es exactamente el dato que has ido a buscar al aislar.
+        const suyoVecino = (!!fijo && vecinos.has(p.id)) || fronteraF.has(p.id);
+        /* Quién se lleva nombre. En la GALAXIA el listón sube: los cúmulos
+           están más juntos en pantalla que las regiones de la bola, así que con
+           el mismo criterio salían sesenta nombres encima unos de otros y no se
+           leía ninguno (Munir, 2026-08-14). Aquí el nombre del cúmulo ya está
+           puesto; lo que se rotula dentro es lo que de verdad manda. */
+        const listón = galaxiaRef.current ? 6 : 2;
+        if (
+          !suyo &&
+          !suyoVecino &&
+          !(F
+            ? q.t > 0.25 && p.grado >= (galaxiaRef.current ? 3 : 0)
+            : fuera > 0.5
+              ? q.z > 0.42 && p.grado >= 9
+              : q.t > 0.55 && p.grado >= listón)
+        )
+          continue;
         // Con un nodo clavado, lo que NO es suyo ni vecino no se rotula: has ido
         // a leer esa vecindad, y treinta nombres de fondo la tapan.
         if (fijo && !suyo && !suyoVecino) continue;
         cand.push([p, q]);
       }
       cand.sort((a, b) => a[1].prof - b[1].prof);
-      for (const [p, q] of cand.slice(0, F ? 110 : 70)) {
+      for (const [p, q] of cand.slice(0, F ? 110 : galaxiaRef.current ? 34 : 70)) {
         const txt = p.title.slice(0, 26);
         const w = txt.length * 6.4;
         const y = q.sy - 12;
@@ -1067,7 +1133,9 @@ export default function MemoriaGrafo({
       const era = arrastre.current;
       arrastre.current = null;
       if (era?.movido && era.nodo >= 0) {
-        tejido.current = coser(puntos.current, 3);
+        // Recoser solo tiene sentido con cascarón: en la galaxia no hay malla
+        // que rehacer y volver a tejerla la haría aparecer de la nada.
+        if (forma !== "galaxia") tejido.current = coser(puntos.current, 3);
         return;
       }
       /* La rueda soltada donde se pulsó: no querías desplazarte, querías clavar.
@@ -1156,7 +1224,7 @@ export default function MemoriaGrafo({
     // `activo` y `skills` van aquí y NO es un detalle: se leen dentro del
     // pintado, y sin ellas el dibujo se queda con la foto de antes y no vuelve
     // a mirarla nunca. Cualquier prop que se lea ahí dentro tiene que estar.
-  }, [activo, skills, onAbrir, onAbrirSkill, ensuciar, malla]);
+  }, [activo, skills, onAbrir, onAbrirSkill, ensuciar, malla, forma]);
 
   const sobreLaBola = useRef(false);
 

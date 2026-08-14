@@ -141,6 +141,10 @@ export default function NewSession({
   const [traidas, setTraidas] = useState<Set<string>>(new Set());
   const [busca, setBusca] = useState("");
   const [elegidas, setElegidas] = useState<Set<string>>(new Set());
+  /** Mientras se relee el historial. Distinto de `sesiones === null`, que es
+   *  «todavía no se ha leído nunca»: al recargar, la lista de antes se queda a
+   *  la vista hasta que llega la nueva, en vez de vaciarse y volver. */
+  const [releyendo, setReleyendo] = useState(false);
 
   useEffect(() => {
     listProjects()
@@ -238,12 +242,12 @@ export default function NewSession({
     }
   };
 
-  /** Se pide al entrar en la pantalla, no al abrir el asistente: un escaneo
-      recorre el historial de tres CLIs y no tiene por qué pagarlo quien solo
-      venía a abrir una terminal. */
-  const irARetomar = () => {
-    setStep("retomar");
-    if (sesiones) return;
+  /** Leer el historial de los CLIs. La lectura entera, las conversaciones y las
+      que ya trajiste, porque las dos juntas son la respuesta a «¿cuáles me
+      faltan?» y por separado se contradicen. */
+  const leerSesiones = () => {
+    if (releyendo) return;
+    setReleyendo(true);
     // Sin argumentos: lee el perfil por dentro, y ahí es donde se respeta el
     // permiso del onboarding de leer o no el historial.
     scanSessions()
@@ -251,7 +255,8 @@ export default function NewSession({
       .catch((e) => {
         setError(String(e));
         setSesiones([]);
-      });
+      })
+      .finally(() => setReleyendo(false));
     /* Y las que ya trajiste a mano, que es la mitad de la respuesta a «¿cuáles
        me faltan?». Se lee aquí y no llega por props porque quien la guarda es
        la barra, y hacerla subir hasta App para volver a bajarla sería pasear un
@@ -261,6 +266,16 @@ export default function NewSession({
     loadUiState()
       .then((ui) => setTraidas(new Set(ui.traidas)))
       .catch(() => {});
+  };
+
+  /** Se pide al entrar en la pantalla, no al abrir el asistente: un escaneo
+      recorre el historial de tres CLIs y no tiene por qué pagarlo quien solo
+      venía a abrir una terminal. Una sola vez: repetirla es del botón de
+      buscar otra vez, que es quien sabe que se lo has pedido tú. */
+  const irARetomar = () => {
+    setStep("retomar");
+    if (sesiones) return;
+    leerSesiones();
   };
 
   /** Lo que se enseña: todo lo que responda a la búsqueda, y lo más reciente
@@ -381,13 +396,31 @@ export default function NewSession({
             <p className="modal-text modal-dim">
               {t("Tus conversaciones, las de esta semana y las de antes. Las que marques aparecen en la barra de la izquierda, listas para abrirlas cuando quieras.")}
             </p>
-            <input
-              className="finder"
-              placeholder={t("Buscar por título, proyecto o carpeta")}
-              value={busca}
-              autoFocus
-              onChange={(e) => setBusca(e.currentTarget.value)}
-            />
+            {/* El buscador y, a su lado, volver a leer el historial. El
+                escaneo se hacía UNA vez al entrar aquí, así que una sesión
+                abierta en otra ventana mientras este cuadro estaba puesto no
+                salía por ningún lado y había que cerrar y volver a entrar
+                (Munir, 2026-08-14). Al lado del buscador y no en la línea de
+                los otros dos botones: ahí ya hay dos, y un tercero devuelve esa
+                fila al baile contra el borde derecho que se arregló el día 12. */}
+            <div className="ret-busca">
+              <input
+                className="finder"
+                placeholder={t("Buscar por título, proyecto o carpeta")}
+                value={busca}
+                autoFocus
+                onChange={(e) => setBusca(e.currentTarget.value)}
+              />
+              <button
+                className="mini ret-recargar"
+                disabled={releyendo}
+                data-tip={t("Vuelve a leer el historial de tus clientes, por si abriste algo desde que entraste aquí")}
+                onClick={leerSesiones}
+              >
+                <RefreshIcon size={13} />
+                {releyendo ? t("Buscando…") : t("Buscar otra vez")}
+              </button>
+            </div>
 
             {sesiones === null ? (
               <p className="wiz-none">{t("Leyendo tus sesiones…")}</p>

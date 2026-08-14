@@ -700,6 +700,11 @@ const EN: Record<string, string> = {
     "Adeorq's documentation on the web: it opens in your browser, reads anywhere, and is always current without waiting for an app update.",
   "Versión instalada": "Installed version",
   "Buscar actualizaciones": "Check for updates",
+  "Hay una versión nueva: la {v}.": "There is a new version: {v}.",
+  "Poner la {v}": "Install {v}",
+  "Bajando…": "Downloading…",
+  "Comprueba sola al arrancar y cada 6 horas. Avisa, pero no instala nada sin que se lo digas: ponerla cierra Adeorq con lo que tengas abierto dentro.":
+    "It checks on its own at startup and every 6 hours. It tells you, but installs nothing unless you say so: installing closes Adeorq with whatever you have open inside.",
   "Buscando…": "Checking…",
   "Ya tienes la última versión.": "You already have the latest version.",
   "Comprueba sola al arrancar y cada 6 horas.":
@@ -958,6 +963,63 @@ const EN: Record<string, string> = {
   // El Capataz que MIRA Adeorq y contesta, con su conmutador de escalones.
   // Los tres nombres y sus frases salen de `lib/manos.ts`, así que aquí no se
   // ven como literales: el comprobador no los pide y aun así hacen falta.
+  // El Esquema: cómo funciona un proyecto por dentro. Los nombres de las capas
+  // salen de `lib/mapa.ts`, así que aquí no se ven como literales y el
+  // comprobador no los pide; hacen falta igual.
+  Esquema: "Schema",
+  "La estructura de un proyecto o de una carpeta": "How a project or a folder is put together",
+  "De este proyecto todavía no hay mapa.": "There is no map of this project yet.",
+  // («Ordenar» ya está más abajo: lo usa también el lienzo.)
+  "Devuelve cada pieza a su sitio de fábrica y encuadra el mapa":
+    "Puts every piece back where it started and frames the map",
+  "Arrastra las piezas donde quieras. Pulsa una para ver con quién habla y qué se piden.":
+    "Drag the pieces wherever you like. Click one to see who it talks to and what they ask each other.",
+  "Pulsa el fondo para verlo todo otra vez.": "Click the background to see everything again.",
+  "El Capataz lee su código y dibuja de qué está hecho y qué pasa cuando haces algo. Tarda unos minutos, y luego se queda guardado.":
+    "The Foreman reads its code and draws what it is made of and what happens when you do something. It takes a few minutes, and then it is kept.",
+  "Elige arriba un proyecto o una carpeta y te digo cómo funciona por dentro.":
+    "Pick a project or a folder above and I will tell you how it works inside.",
+  "Leer el proyecto": "Read the project",
+  "Leer otra vez": "Read again",
+  "Leído {c}": "Read {c}",
+  "Leyendo el código del proyecto… (unos minutos)":
+    "Reading the project's code… (a few minutes)",
+  "Ordenando los caminos…": "Sorting out the paths…",
+  "Pulsa una pieza para ver con quién habla y qué se piden.":
+    "Click a piece to see who it talks to and what they ask each other.",
+  "Pulsa otra vez para verlo todo.": "Click again to see everything.",
+  "Todavía no hay caminos de este proyecto": "No paths for this project yet",
+  "Vuelve a leer el código del proyecto. Tarda unos minutos.":
+    "Reads the project's code again. Takes a few minutes.",
+  "el Capataz no devolvió un mapa que se pueda leer":
+    "the Foreman did not return a readable map",
+  // Las capas, de `lib/mapa.ts`.
+  "Lo que tocas": "What you touch",
+  "ventanas y pantallas": "windows and screens",
+  "La interfaz": "The interface",
+  "lo que se dibuja": "what gets drawn",
+  "El núcleo": "The core",
+  "lo que corre por dentro, con permisos de verdad":
+    "what runs inside, with real permissions",
+  "Fuera de casa": "Away from home",
+  "otros programas, el disco y la red": "other programs, the disk and the network",
+  "Lo demás": "The rest",
+  "piezas sin sitio claro": "pieces with no clear place",
+  "Elige un proyecto…": "Pick a project…",
+  "Todos mis proyectos": "All my projects",
+  Mapa: "Map",
+  "Mapa mental": "Mind map",
+  "Árbol": "Tree",
+  Esfera: "Sphere",
+  Galaxia: "Galaxy",
+  usa: "uses",
+  "De este proyecto no salieron caminos": "No paths came out of this project",
+  "sale en {n} de los {total} caminos": "shows up in {n} of the {total} paths",
+  "Mirando el proyecto…": "Looking at the project…",
+  // («Parar» ya está más abajo: lo usa también la lectura del mapa.)
+  "Está abriendo el código y viendo quién llama a quién. Un par de minutos.":
+    "It is opening the code and seeing who calls whom. A couple of minutes.",
+
   // Sacar una terminal a su propia ventana de Windows.
   "Sacar a su propia ventana: el agente sigue trabajando, solo cambia dónde lo ves":
     "Pop out into its own window: the agent keeps working, only where you see it changes",
@@ -1220,6 +1282,9 @@ const EN: Record<string, string> = {
   "Tus conversaciones, las de esta semana y las de antes. Las que marques aparecen en la barra de la izquierda, listas para abrirlas cuando quieras.":
     "Your conversations, this week's and the older ones. Whatever you tick shows up in the left-hand rail, ready to open whenever you want.",
   "Buscar por título, proyecto o carpeta": "Search by title, project or folder",
+  "Buscar otra vez": "Search again",
+  "Vuelve a leer el historial de tus clientes, por si abriste algo desde que entraste aquí":
+    "Reads your clients' history again, in case you opened something since you got here",
   "Leyendo tus sesiones…": "Reading your sessions…",
   "{n} elegidas de {total}": "{n} of {total} picked",
   "{n} sesiones": "{n} sessions",

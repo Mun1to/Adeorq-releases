@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { marked } from "marked";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
+import { listen } from "@tauri-apps/api/event";
 import { openPath } from "@tauri-apps/plugin-opener";
 import {
   boveda,
@@ -34,6 +35,19 @@ import { listSkills, skillText } from "../lib/pty";
 // por familia solo se pinta ya donde dice algo, que es la constelación.
 import { ChevronIcon, RefreshIcon, SearchIcon } from "./Icons";
 import MemoriaGrafo from "./MemoriaGrafo";
+import MemoriaMapa from "./MemoriaMapa";
+import {
+  escanearArbol,
+  foremanMapa,
+  guardarMapa,
+  listProjects,
+  mapaGuardado,
+  pararMapa,
+  resumenTaller,
+  type Project,
+} from "../lib/pty";
+import { leerPerfil } from "../lib/perfil";
+import { esqueletoParaElCapataz, leerMapa, type Mapa } from "../lib/mapa";
 
 /** Cuánto se espera desde la última tecla para buscar. La búsqueda es local y
     va sobrada, pero repintar la lista en cada letra parpadea. */
@@ -158,7 +172,9 @@ function Rama({
           <div key={h.ruta}>
             <button
               className="mem-carpeta"
-              style={{ paddingLeft: `${8 + nivel * 13}px` }}
+              /* Mismo tope que las hojas, y por el mismo motivo: si la carpeta
+                 sangra más que su contenido, el árbol deja de leerse. */
+              style={{ paddingLeft: `${8 + Math.min(nivel, 5) * 13}px` }}
               onClick={() => onAlternar(h.ruta)}
             >
               <ChevronIcon size={13} up={abierta} />
@@ -188,7 +204,13 @@ function Rama({
           key={d.id}
           className="mem-hoja"
           data-on={activo === d.id}
-          style={{ paddingLeft: `${20 + nivel * 13}px` }}
+          /* La sangría TIENE TOPE. Sin él, cada carpeta se come trece píxeles y
+             en un árbol hondo el nombre acababa empezando fuera de la lista: se
+             veía una fila con los tres puntos del recorte y nada más, o una
+             barra gris al pasar el ratón (Munir, 2026-08-14, con la captura de
+             VoCript-Core). A partir del quinto nivel la sangría ya no dice de
+             quién eres, y el nombre sí. */
+          style={{ paddingLeft: `${20 + Math.min(nivel, 5) * 13}px` }}
           onClick={() => onAbrir(d.id)}
           data-tip={d.id}
         >
@@ -213,7 +235,80 @@ export default function MemoriaView() {
   /** Memoria abre por el MAPA, no por un documento en blanco. Es lo que hay que
    *  ver primero: quinientos documentos y de dónde tirar. El documento entra en
    *  cuanto abres uno, aquí o en la lista. */
-  const [modo, setModo] = useState<"doc" | "grafo">("grafo");
+  const [modo, setModo] = useState<"doc" | "grafo" | "esquema">("grafo");
+  /* El Esquema: qué carpeta se está mirando y su mapa.
+     Vive aquí y no dentro del componente porque el selector de arriba es de
+     esta pantalla, y porque así el mapa sobrevive a ir y volver del Cerebro sin
+     tener que leerlo otra vez, que aquí son minutos y no un parpadeo. */
+  const [proyectos, setProyectos] = useState<Project[]>([]);
+  const [queEsquema, setQueEsquema] = useState<string>("");
+  /** La carpeta madre de los proyectos, para la opción «todos». Sale del
+      perfil, que es donde el usuario la eligió; vacía si dijo que no tiene. */
+  const raizProyectos = leerPerfil().raiz;
+  const [mapa, setMapa] = useState<Mapa | null>(null);
+  /** Cuándo se leyó lo que se está viendo. Un mapa sin fecha se lee como si
+      fuera de ahora, y puede ser de la semana pasada. */
+  const [cuandoMapa, setCuandoMapa] = useState("");
+  /** En qué anda el Capataz, con todas las letras. Tres minutos con un punto
+      girando se sienten como una avería; con la frase, como una espera. */
+  const [trabajando, setTrabajando] = useState("");
+  const [errorMapa, setErrorMapa] = useState("");
+
+  /**
+   * Leer el proyecto entero: el Capataz abre su código y dice de qué está
+   * hecho y qué pasa cuando haces algo.
+   *
+   * Lo que devuelve es una cadena escrita por un modelo, así que se valida
+   * entera en `lib/mapa.ts` antes de tocar la pantalla.
+   */
+  const leerProyecto = useCallback(() => {
+    const ruta = queEsquema;
+    if (!ruta || trabajando) return;
+    setErrorMapa("");
+    setTrabajando(t("Mirando el proyecto…"));
+    // El escáner de carpetas no dibuja nada: es la chuleta de dónde mirar, y
+    // eso es lo que evita que el Capataz gaste media conversación buscando los
+    // archivos antes de abrir el primero.
+    const todos = ruta === raizProyectos;
+    // Con «todos» no se escanea el árbol: se le manda un renglón por proyecto
+    // con lo que cada uno dice de sí mismo en su README. Leer veintiocho README
+    // es trabajo de disco y cuesta milisegundos; dejárselo al Capataz costaba
+    // más de seis minutos y no llegaba a terminar.
+    (todos ? resumenTaller(ruta) : escanearArbol(ruta).then((a) => esqueletoParaElCapataz(a.nodos)))
+      .then((esqueleto) => foremanMapa(ruta, esqueleto, todos))
+      .then(async (crudoMapa) => {
+        const m = leerMapa(crudoMapa);
+        if (!m) throw new Error(t("el Capataz no devolvió un mapa que se pueda leer"));
+        setMapa(m);
+        const cuando = new Date().toISOString();
+        setCuandoMapa(cuando);
+        await guardarMapa(ruta, JSON.stringify({ cuando, mapa: crudoMapa })).catch(() => {
+          // Sin guardar se trabaja igual; solo se pagará otra lectura.
+        });
+      })
+      // Pararlo lo pediste tú: eso no es un fallo y no se pinta en rojo.
+      .catch((e) => setErrorMapa(String(e).includes("parado") ? "" : String(e)))
+      .finally(() => setTrabajando(""));
+  }, [queEsquema, trabajando, raizProyectos, t]);
+
+  /* En qué anda el Capataz, en vivo. Rust emite un `mapa-paso` por cada archivo
+     que abre, y esa frase sustituye a la de espera. Dos minutos con un cartel
+     quieto se leen como un cuelgue; los mismos dos minutos diciendo qué archivo
+     está leyendo se leen como trabajo (Munir, 2026-08-14). */
+  const trabajandoRef = useRef(false);
+  trabajandoRef.current = !!trabajando;
+  useEffect(() => {
+    const fuera = listen<string>("mapa-paso", (e) => {
+      if (trabajandoRef.current) setTrabajando(e.payload);
+    });
+    return () => {
+      void fuera.then((f) => f());
+    };
+  }, []);
+
+  const pararLectura = useCallback(() => {
+    void pararMapa().catch(() => {});
+  }, []);
   /** Las bóvedas que Obsidian ya conoce. Se preguntan una vez y solo cuando
       todavía no hay carpeta elegida: después no sirven para nada. */
   const [vaults, setVaults] = useState<VaultInfo[]>([]);
@@ -235,6 +330,19 @@ export default function MemoriaView() {
       bóveda de cuatrocientas notas abierta de par en par es una pared. */
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
   const [soloConectados, setSoloConectados] = useState(true);
+  /** Cómo se mira la bóveda en el Cerebro: la bola de siempre, o la galaxia con
+   *  un cúmulo por proyecto. Se recuerda, porque es una preferencia de cómo
+   *  entiendes tus notas y no algo de este rato. */
+  const [cielo, setCielo] = useState<"esfera" | "galaxia">(() =>
+    localStorage.getItem("adeorq-cerebro-forma") === "galaxia" ? "galaxia" : "esfera",
+  );
+  useEffect(() => {
+    try {
+      localStorage.setItem("adeorq-cerebro-forma", cielo);
+    } catch {
+      // Sin recordarlo se trabaja igual: vuelve a la esfera.
+    }
+  }, [cielo]);
   const cuerpo = useRef<HTMLDivElement>(null);
 
   const escanear = useCallback((ruta: string) => {
@@ -258,6 +366,41 @@ export default function MemoriaView() {
   useEffect(() => {
     memoriaVaults().then(setVaults).catch(() => {});
   }, [raiz]);
+
+  /* Los proyectos, para el selector del Esquema. Solo cuando esa pestaña está
+     delante: quien nunca la abre no paga ni una lectura de disco por ella. */
+  useEffect(() => {
+    if (modo !== "esquema" || proyectos.length) return;
+    listProjects().then(setProyectos).catch(() => {});
+  }, [modo, proyectos.length]);
+
+  /* Y el mapa de lo elegido, el que se guardó la última vez. Se enseña al
+     instante y NO se relee solo: leer un proyecto son minutos, así que hacerlo
+     cada vez que tocas el selector sería cobrarte tres minutos por curiosear.
+     Volver a leer es un botón, con la fecha de lo que ves al lado. */
+  useEffect(() => {
+    setMapa(null);
+    setCuandoMapa("");
+    setErrorMapa("");
+    if (!queEsquema) return;
+    let vivo = true;
+    mapaGuardado(queEsquema)
+      .then((s) => {
+        if (!vivo || !s) return;
+        const g = JSON.parse(s) as { cuando?: string; mapa?: string };
+        const m = leerMapa(g.mapa ?? "");
+        if (!m) return;
+        setMapa(m);
+        setCuandoMapa(typeof g.cuando === "string" ? g.cuando : "");
+      })
+      .catch(() => {
+        // Un guardado ilegible se trata como si no hubiera ninguno: sale el
+        // cartel de «todavía no hay mapa» y el botón de leerlo.
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [queEsquema]);
 
   // La búsqueda, con su respiro entre teclas.
   useEffect(() => {
@@ -516,6 +659,16 @@ export default function MemoriaView() {
           >
             {t("Cerebro")}
           </button>
+          {/* La otra forma de mirar. El Cerebro contesta «qué enlaza con qué» y
+              este «de qué está hecho esto», así que van al lado y no uno dentro
+              del otro (Munir, 2026-08-14). */}
+          <button
+            data-on={modo === "esquema"}
+            data-tip={t("La estructura de un proyecto o de una carpeta")}
+            onClick={() => setModo("esquema")}
+          >
+            {t("Esquema")}
+          </button>
         </div>
         <button
           className="mem-accion"
@@ -637,10 +790,57 @@ export default function MemoriaView() {
         </aside>
 
         <section className="mem-doc">
-          {modo === "grafo" ? (
+          {modo === "esquema" ? (
+            <>
+              <div className="mem-doc-head">
+                <h2>{t("Esquema")}</h2>
+                {/* Un proyecto, o todos a la vez.
+                    «Todos» estuvo quitado un rato porque leer veintiocho
+                    proyectos tarda, y Munir lo pidió de vuelta el mismo día: es
+                    la vista de «qué tengo montado», y esa la quiere. Va con la
+                    hondura recortada (ver `escanearArbol`) para que el Capataz
+                    reciba la foto de arriba y no las novecientas rutas. */}
+                <select
+                  className="esq-elige"
+                  value={queEsquema}
+                  onChange={(e) => setQueEsquema(e.currentTarget.value)}
+                >
+                  <option value="">{t("Elige un proyecto…")}</option>
+                  {raizProyectos && (
+                    <option value={raizProyectos}>{t("Todos mis proyectos")}</option>
+                  )}
+                  {proyectos.map((p) => (
+                    <option key={p.path} value={p.path}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <MemoriaMapa
+                mapa={mapa}
+                ruta={queEsquema}
+                trabajando={trabajando}
+                cuando={cuandoMapa}
+                error={errorMapa}
+                onLeer={leerProyecto}
+                onParar={pararLectura}
+              />
+            </>
+          ) : modo === "grafo" ? (
             <>
               <div className="mem-doc-head">
                 <h2>{t("Cerebro")}</h2>
+                {/* Los dos cielos, con los MISMOS datos. La esfera lo pone todo
+                    sobre un cascarón y por eso nada tapa a nada; la galaxia
+                    separa los proyectos en cúmulos que flotan. Son dos formas
+                    de mirar la misma bóveda, así que van juntas aquí y no en
+                    dos pestañas distintas. */}
+                <div className="mapa-vistas">
+                  <button data-on={cielo === "esfera"} onClick={() => setCielo("esfera")}>
+                    {t("Esfera")}
+                  </button>
+                  <button data-on={cielo === "galaxia"} onClick={() => setCielo("galaxia")}>
+                    {t("Galaxia")}
+                  </button>
+                </div>
                 <label className="mem-check">
                   <input
                     type="checkbox"
@@ -654,6 +854,7 @@ export default function MemoriaView() {
                 docs={vault?.docs ?? []}
                 activo={abierto?.id}
                 onAbrir={abrir}
+                forma={cielo}
                 soloConectados={soloConectados}
                 skills={skills}
                 onAbrirSkill={(folder) => {

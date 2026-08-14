@@ -316,6 +316,80 @@ export function repartir<T>(
   return { pos, regiones };
 }
 
+/**
+ * El otro reparto: una GALAXIA, con un cúmulo por proyecto flotando en el
+ * espacio.
+ *
+ * La esfera de arriba pone todas las notas sobre un cascarón, y eso es lo que
+ * la hace legible: no hay nada delante de nada. La galaxia renuncia a eso a
+ * cambio de otra cosa: los proyectos se ven como islas separadas y a distinta
+ * distancia, que es lo que Munir pidió con «una galaxia con sus planetas en 3D,
+ * estilo Obsidian» (2026-08-14).
+ *
+ * Cada cúmulo tiene su centro repartido con la misma espiral (así ninguno nace
+ * pegado a otro) y dentro las notas se colocan por grado: las más enlazadas
+ * cerca del núcleo del cúmulo y las sueltas por fuera. Todo CALCULADO y sin
+ * simulación: dos visitas dan el mismo cielo.
+ */
+export function repartirGalaxia<T>(
+  items: T[],
+  familiaDe: (x: T) => string,
+  gradoDe: (x: T) => number,
+): { pos: Array<{ x: number; y: number; z: number }>; regiones: Region[] } {
+  const total = items.length;
+  const pos: Array<{ x: number; y: number; z: number }> = new Array(total);
+  const regiones: Region[] = [];
+  if (total === 0) return { pos, regiones };
+
+  const familias = [...new Set(items.map(familiaDe))].sort();
+  const N = familias.length;
+  const suyos = new Map<string, number[]>(familias.map((f) => [f, []]));
+  items.forEach((it, i) => suyos.get(familiaDe(it))!.push(i));
+
+  /* CUÁNTO CABE ENTRE DOS CÚMULOS VECINOS.
+     Es el número que decide si esto se ve como una galaxia o como una bola.
+     Con N centros repartidos por una esfera, dos vecinos quedan a más o menos
+     2/√N de distancia; el cúmulo se queda en poco más de un tercio de eso y así
+     JAMÁS se tocan, tenga el proyecto tres notas o doscientas.
+     Sin este tope, veinte proyectos con muchas notas daban cúmulos que se
+     solapaban entre sí y el cielo entero se veía como una sola mancha (Munir,
+     2026-08-14, con su bóveda de verdad). */
+  const hueco = 2 / Math.sqrt(Math.max(1, N));
+
+  familias.forEach((f, fi) => {
+    const gente = [...suyos.get(f)!].sort((a, b) => gradoDe(items[b]) - gradoDe(items[a]));
+    // El centro del cúmulo, repartido con la espiral y a una distancia que
+    // varía un poco: todo a la misma da una cáscara, no una galaxia. La
+    // variación sale del índice, así que es la misma cada vez.
+    const c = fib(fi, Math.max(1, N));
+    const lejos = 0.92 + 0.16 * (((fi * 3) % 5) / 4);
+    const cx = c.x * lejos, cy = c.y * lejos, cz = c.z * lejos;
+    // El cúmulo crece con lo que tiene dentro, pero nunca invade al vecino.
+    const radio = Math.min(hueco * 0.36, 0.045 + 0.03 * Math.sqrt(gente.length));
+    gente.forEach((idx, k) => {
+      if (gente.length === 1) {
+        pos[idx] = { x: cx, y: cy, z: cz };
+        return;
+      }
+      // Espiral otra vez, pero hacia DENTRO: la distancia al centro del cúmulo
+      // crece con el puesto, así que lo más enlazado queda en su corazón.
+      const d = fib(k, gente.length);
+      const r = radio * Math.cbrt((k + 0.6) / gente.length);
+      pos[idx] = { x: cx + d.x * r, y: cy + d.y * r, z: cz + d.z * r };
+    });
+    regiones.push({
+      fam: f,
+      x: cx,
+      y: cy,
+      z: cz,
+      n: gente.length,
+      radio,
+      color: colorDeProyecto(fi, N),
+    });
+  });
+  return { pos, regiones };
+}
+
 /** Las skills, en un anillo dentro del cascarón. Se ven a través de él. */
 export function nucleo(n: number): Array<{ x: number; y: number; z: number }> {
   if (n === 0) return [];

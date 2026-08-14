@@ -1590,6 +1590,10 @@ function App() {
       const p = fueraRef.current.get(id);
       if (!p) return;
       fueraRef.current.delete(id);
+      // La marca de mudanza, fuera. Si la ventana murió tan pronto que el panel
+      // ni llegó a desmontarse, nadie la habría gastado, y una marca olvidada
+      // deja esa terminal sin poder matarse nunca con su X.
+      cancelaMudanza(id);
       // Por si acaso llegara dos veces: un panel duplicado en la lista son dos
       // terminales pintando el mismo proceso y el teclado yendo por duplicado.
       setPanes((prev) => (prev.some((x) => x.id === id) ? prev : [...prev, p]));
@@ -1824,30 +1828,43 @@ function App() {
    *
    *   1. Se marca la mudanza. Si no, al quitar el panel React lo desmonta, el
    *      desmontaje llama a `killPty` y el agente muere por haberlo movido.
-   *   2. Se abre la ventana Y SE ESPERA. Quitar el panel antes de saber que la
+   *   2. Se APUNTA como fuera antes de pedir la ventana. Ver abajo: es lo que
+   *      arregla la terminal que desaparecía sin dejar ventana.
+   *   3. Se abre la ventana Y SE ESPERA. Quitar el panel antes de saber que la
    *      ventana ha abierto dejaría la terminal en tierra de nadie: fuera del
    *      tablero y sin ventana donde aparecer.
-   *   3. Solo entonces se quita de aquí, que es lo que impide que el teclado
+   *   4. Solo entonces se quita de aquí, que es lo que impide que el teclado
    *      llegue por duplicado al mismo agente.
+   *
+   * ⚠ LA CARRERA QUE SE PERDÍA UNA TERMINAL (Munir, 2026-08-14: «se ha ido la
+   * sesión pero no se ha abierto la ventana»). El apunte de «esta está fuera»
+   * se hacía DESPUÉS de que la ventana abriera. Si esa ventana moría nada más
+   * nacer, su aviso de vuelta llegaba antes que el apunte, no encontraba nada
+   * que devolver y se iba de vacío; medio segundo después el `then` quitaba el
+   * panel del tablero para siempre. El panel seguía vivo en Rust, pintándose en
+   * ningún sitio. Se apunta ANTES, y el `then` solo lo quita si sigue apuntado.
    */
   const sacarFuera = useCallback((id: number) => {
     const p = panesRef.current.find((x) => x.id === id);
     if (!p) return;
     empiezaMudanza(id);
+    // Se GUARDA entero, no se tira. Al volver hay que devolverla con su
+    // cuadrilla, su cuenta, su entorno y su grupo, y eso no se puede
+    // reconstruir preguntándole a Rust: Rust solo sabe la carpeta y el
+    // comando, lo demás es cosa del tablero.
+    fueraRef.current.set(id, p);
     void sacarPanel(id, p.name)
       .then(() => {
-        // Se GUARDA entero, no se tira. Al volver hay que devolverla con su
-        // cuadrilla, su cuenta, su entorno y su grupo, y eso no se puede
-        // reconstruir preguntándole a Rust: Rust solo sabe la carpeta y el
-        // comando, lo demás es cosa del tablero.
-        fueraRef.current.set(id, p);
-        setPanes((prev) => prev.filter((x) => x.id !== id));
+        // Si mientras se abría la ventana ya llegó su aviso de vuelta, el panel
+        // ya no está apuntado: entonces NO se quita del tablero, porque volvió.
+        if (fueraRef.current.has(id)) setPanes((prev) => prev.filter((x) => x.id !== id));
       })
       .catch((e) => {
-        // No salió: se deshace la marca o esa terminal se quedaría sin poder
+        // No salió: se deshace todo o esa terminal se quedaría sin poder
         // matarse nunca, que es peor que no haberla sacado. Y queda anotado,
         // porque esta ventana no tiene consola y un catch mudo convierte esto
         // en un «le doy al botón y no pasa nada» imposible de mirar.
+        fueraRef.current.delete(id);
         cancelaMudanza(id);
         void anotarRastro(`sacar_panel(${id}) falló: ${e}`);
       });

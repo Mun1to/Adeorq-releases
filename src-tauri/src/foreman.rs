@@ -198,6 +198,310 @@ Responde SOLO con JSON válido, sin markdown, sin nada antes ni después:
 
 Devuelve UNA entrada por tarea recibida, en el mismo orden, sin juntarlas ni partirlas."#;
 
+/* ── El mapa de cómo funciona un proyecto ───────────────────────────────────
+ *
+ * Esto SUSTITUYE al esquema de carpetas de arriba, y el motivo es de fondo:
+ * Munir pidió un mapa de la infraestructura enseñando un diagrama de flujo, y
+ * un diagrama de flujo dice quién llama a quién. Eso NO ESTÁ EN EL DISCO: una
+ * carpeta `src/` no sabe que la llama nadie. Hay que leer el código.
+ *
+ * Por eso este oficio del Capataz es el único que tiene manos de LECTURA, y por
+ * eso cuesta minutos en vez de segundos. El escáner de carpetas no se tira: se
+ * le manda ya masticado como chuleta de dónde mirar, que es lo que evita que se
+ * gaste media conversación en `Glob` antes de abrir el primer archivo.
+ *
+ * Y como tarda minutos, NO se espera en silencio: la salida viene en streaming
+ * y cada archivo que el Capataz abre se emite como evento para que la pantalla
+ * diga en qué anda. Dos minutos con una frase quieta se leen como un cuelgue
+ * (Munir, 2026-08-14: «tarda mucho, no funciona bien»); los mismos dos minutos
+ * diciendo «leyendo src/App.tsx» se leen como trabajo. */
+
+/// Leer código y entender quién llama a quién es criterio, no recado: aquí sí
+/// se paga el cerebro mediano. Medido el 2026-08-14 sobre Adeorq entero
+/// (438 archivos): 125 s para el mapa y 87 s para los caminos.
+const MAPA_MODEL: &str = "sonnet";
+
+/// Seis minutos. No es un número de miedo: leer diez archivos de verdad con el
+/// antivirus de por medio no entra en los 120 s del resto de oficios, y morir a
+/// mitad después de dos minutos de espera es peor que tardar.
+const MAPA_TIMEOUT: Duration = Duration::from_secs(360);
+
+const MAPA_SYSTEM: &str = r#"Eres el Capataz de Adeorq. Te dan un proyecto y tienes que explicar CÓMO FUNCIONA POR DENTRO, no qué carpetas tiene.
+
+El resultado es un diagrama de flujo: cajas con una explicación dentro, unidas por flechas que dicen quién le pide qué a quién. Alguien que no conoce el proyecto tiene que entender, mirándolo, por dónde entra una acción suya y qué pasa después.
+
+CÓMO TRABAJAS:
+- Tienes el esqueleto del proyecto abajo. Úsalo para saber DÓNDE mirar, no para describirlo.
+- LEE el código: los puntos de entrada primero (main, index, App, lib/, mod.rs, el manifiesto), y después lo que ellos llaman. Con leer entre 8 y 15 archivos bien elegidos basta; no hace falta abrirlo todo.
+- Lo que digas tiene que salir de algo que has leído. Si no lo has comprobado, no lo pongas.
+
+LAS PIEZAS:
+- Entre 6 y 12. Una pieza es algo que HACE algo (guardar sesiones, hablar con la terminal, pintar el lienzo), no una carpeta.
+- "nombre": en español, tal como lo llamaría quien usa el programa. Nada de nombres de archivo como nombre.
+- "que": UNA frase de OCHO A DIECIOCHO palabras diciendo para qué está esa pieza. Empieza por el verbo.
+- "donde": el archivo o la carpeta donde vive de verdad, tal como aparece en el esqueleto.
+- "capa": una de estas cuatro, y solo estas:
+  - "gente": lo que la persona toca (ventanas, pantallas, botones).
+  - "interfaz": lo que dibuja y decide en el navegador o en la vista.
+  - "nucleo": lo que corre nativo o en el servidor (Rust, Node, Python), lo que tiene permisos de verdad.
+  - "fuera": lo que NO es del proyecto y este usa: el disco, otros programas, la red, una base de datos.
+
+LAS FLECHAS:
+- Entre 6 y 14. Una flecha es una llamada real que has visto en el código, no un parecido.
+- "de" y "a" son "id" de piezas de tu propia lista, nunca inventados.
+- "que": DE DOS A CINCO palabras, en presente, diciendo qué se le pide: "abre una terminal", "pide el listado", "avisa de que llegó texto".
+- No dibujes la flecha obvia de "todo llama a todo": elige las que cuentan el camino principal.
+
+LOS CAMINOS (el mapa mental):
+- Además del mapa, cuenta entre 4 y 6 RECORRIDOS: qué pasa, paso a paso, cuando la persona hace algo.
+- Un recorrido es una línea recta de piezas: empieza donde empieza la acción y termina donde termina. Sirve para entender una cosa entera sin ver las demás.
+- Cada uno, de 3 a 5 pasos. Si necesita más, es que son dos recorridos.
+- Entre todos tienen que salir CASI TODAS las piezas. Una pieza que no sale en ningún recorrido es una pieza que el lector no sabrá que existe.
+- Un recorrido termina donde la persona VE el resultado, cuando lo ve. Un camino que acaba en el disco y nunca vuelve a la pantalla cuenta media historia.
+- Una pieza puede salir en varios: eso es bueno, es lo que enseña cuál es el centro.
+- "titulo": lo que pasa, en 2 a 5 palabras, empezando por un verbo en presente y en segunda persona cuando lo hace la persona ("Abres una terminal", "Un agente te pide algo").
+- "porque": UNA frase de DIEZ A VEINTE palabras de qué se consigue con ese recorrido.
+- "pasos": la lista de piezas en orden. El primero no lleva "como"; los demás llevan "como": DE DOS A CINCO palabras de qué le pide el paso anterior a este.
+
+EL RESUMEN:
+- DOS frases: qué es el programa y por dónde empieza a entenderse.
+- Si es un patrón conocido (app de escritorio con front web y núcleo nativo, web estática, librería, servicio), dilo con esas palabras.
+
+Responde SOLO con JSON válido, sin markdown, sin nada antes ni después:
+{"resumen": "dos frases", "piezas": [{"id": "corto-sin-espacios", "nombre": "…", "capa": "gente|interfaz|nucleo|fuera", "que": "…", "donde": "ruta/del/esqueleto"}], "flechas": [{"de": "id", "a": "id", "que": "…"}], "caminos": [{"titulo": "…", "porque": "…", "pasos": [{"pieza": "id"}, {"pieza": "id", "como": "…"}]}]}"#;
+
+
+/// Si Munir ha pulsado «Parar». Global y no por llamada porque solo puede haber
+/// un mapa leyéndose a la vez: la pantalla no deja pedir otro mientras.
+static PARAR_MAPA: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Parar la lectura a medias. Sin esto, equivocarse de proyecto costaba seis
+/// minutos de espera obligatoria mirando una pantalla vacía.
+#[tauri::command]
+pub async fn parar_mapa() {
+    PARAR_MAPA.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Qué está haciendo el Capataz ahora mismo, en cristiano.
+///
+/// Sale del `tool_use` que emite el CLI: se traduce a una frase corta y nada
+/// más. Enseñar el nombre de la herramienta («Grep») sería enseñar la tubería;
+/// lo que dice algo es QUÉ archivo está abriendo.
+fn frase_de_paso(bloque: &serde_json::Value) -> Option<String> {
+    let nombre = bloque["name"].as_str()?;
+    let entrada = &bloque["input"];
+    let hoja = |v: &serde_json::Value| -> String {
+        v.as_str()
+            .unwrap_or("")
+            .replace('\\', "/")
+            .rsplit('/')
+            .next()
+            .unwrap_or("")
+            .to_owned()
+    };
+    Some(match nombre {
+        "Read" => format!("Leyendo {}", hoja(&entrada["file_path"])),
+        "Glob" => format!("Buscando {}", entrada["pattern"].as_str().unwrap_or("archivos")),
+        "Grep" => format!("Rastreando «{}»", entrada["pattern"].as_str().unwrap_or("")),
+        _ => return None,
+    })
+}
+
+/// Y el mismo oficio, pero para la carpeta que tiene DENTRO todos los
+/// proyectos.
+///
+/// Es otro encargo, no el mismo con más archivos: veintiocho proyectos no
+/// tienen un «cómo funciona» común, y pedírselo con el prompt de arriba mandaba
+/// al Capataz a buscar puntos de entrada donde solo hay carpetas hermanas. Aquí
+/// cada pieza es UN PROYECTO, y las flechas son lo que un proyecto usa de otro.
+/// Munir lo pidió de vuelta el mismo día que se quitó: es la vista de «qué
+/// tengo montado» (2026-08-14).
+const TALLER_SYSTEM: &str = r#"Eres el Capataz de Adeorq. Te dan una carpeta que contiene VARIOS proyectos distintos, uno por subcarpeta. Explica QUÉ TIENE MONTADO su dueño y cómo se apoyan unos en otros.
+
+Cada pieza es UN PROYECTO, no un archivo ni un módulo. Esto no es el mapa de un programa: es el mapa de un taller.
+
+CÓMO TRABAJAS:
+- Abajo tienes la lista de proyectos, cada uno con lo que dice de sí mismo en su README o su AGENTS.md y con qué tecnología está hecho. Con eso basta: NO abras ningún archivo, ya está todo leído.
+- Si un proyecto no trae descripción, ponlo igual y di en su "que" que no se puede saber sin abrirlo. Es mejor que inventárselo.
+
+LAS PIEZAS:
+- Entre 8 y 14, las que de verdad tengan algo dentro. Deja fuera lo archivado, las pruebas y las carpetas de apoyo, y dilo en el resumen si dejas algo fuera.
+- "id": el nombre de la carpeta, tal cual.
+- "nombre": cómo se llama el proyecto de cara a una persona.
+- "que": UNA frase de OCHO A DIECIOCHO palabras de para qué sirve ese proyecto. Empieza por el verbo.
+- "donde": el nombre de su carpeta.
+- "capa": una de estas cuatro, y solo estas:
+  - "gente": lo que una persona abre y usa (aplicaciones de escritorio o de móvil).
+  - "interfaz": webs, páginas y landings.
+  - "nucleo": librerías, motores y núcleos que usan los demás proyectos.
+  - "fuera": servicios y programas de terceros de los que dependen.
+
+LAS FLECHAS:
+- Entre 5 y 12. Una flecha es que un proyecto USA a otro, comparte su código o publica en él, y tiene que estar dicho en algún sitio que hayas leído.
+- "que": DE DOS A CINCO palabras: "usa su núcleo", "comparte la caché", "publica sus binarios".
+- Si dos proyectos no se tocan, no los unas. Un taller donde todo apunta a todo no dice nada.
+
+LOS CAMINOS:
+- Entre 3 y 5. Aquí un camino es cómo se encadena un trabajo entre proyectos ("dictas por voz y acaba en código"), con las mismas reglas de formato de siempre.
+
+EL RESUMEN:
+- DOS frases: qué clase de taller es esto y qué lo une. Di también qué has dejado fuera.
+
+Responde SOLO con JSON válido, sin markdown, sin nada antes ni después:
+{"resumen": "dos frases", "piezas": [{"id": "carpeta", "nombre": "…", "capa": "gente|interfaz|nucleo|fuera", "que": "…", "donde": "carpeta"}], "flechas": [{"de": "id", "a": "id", "que": "…"}], "caminos": [{"titulo": "…", "porque": "…", "pasos": [{"pieza": "id"}, {"pieza": "id", "como": "…"}]}]}"#;
+
+/// Las piezas de un proyecto y quién llama a quién, leyendo su código.
+///
+/// Las manos son la política entera: `--allowedTools` dice lo que puede, y
+/// `--disallowedTools` cierra la puerta de atrás, porque las de solo lectura de
+/// Claude Code no piden permiso y sin esto podría escribir. Aquí LEER es el
+/// oficio, así que Read/Glob/Grep sí; tocar nada, jamás.
+///
+/// `--output-format stream-json` (con `--verbose`, que el CLI exige para ese
+/// formato en modo `-p`) da una línea JSON por cada cosa que hace. Se leen en un
+/// hilo aparte y se emiten como `mapa-paso`; el último, el de tipo `result`,
+/// trae la respuesta entera.
+#[tauri::command]
+pub async fn foreman_mapa(
+    app: tauri::AppHandle,
+    ruta: String,
+    esqueleto: String,
+    // `todos` en true = la carpeta que contiene TODOS los proyectos. Cambia el
+    // encargo entero, no un detalle: ahí cada pieza es un proyecto y no hay
+    // código que leer, porque la lista viene ya masticada desde Rust.
+    todos: Option<bool>,
+) -> Result<String, String> {
+    if !Path::new(&ruta).is_dir() {
+        return Err(format!("«{ruta}» no es una carpeta"));
+    }
+    let taller = todos.unwrap_or(false);
+    let prompt = if taller {
+        format!("{TALLER_SYSTEM}\n\n## Los proyectos que hay dentro\n{esqueleto}")
+    } else {
+        format!("{MAPA_SYSTEM}\n\n## El esqueleto del proyecto\n{esqueleto}")
+    };
+    PARAR_MAPA.store(false, std::sync::atomic::Ordering::Relaxed);
+
+    tauri::async_runtime::spawn_blocking(move || {
+        use std::io::BufRead;
+        use std::sync::atomic::Ordering;
+        use tauri::Emitter;
+
+        let mut cmd = std::process::Command::new(claude_exe());
+        cmd.args([
+            "-p",
+            &prompt,
+            "--model",
+            MAPA_MODEL,
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--strict-mcp-config",
+        ]);
+        // Manos SOLO cuando hay que leer código. Para el taller la lista viene
+        // ya masticada desde Rust (`resumen_taller`), así que darle herramientas
+        // sería invitarle a recorrer veintiocho proyectos para averiguar lo que
+        // ya se le ha dicho: la primera prueba pasó de los seis minutos y no
+        // llegó a terminar (2026-08-14).
+        if !taller {
+            cmd.args(["--allowedTools", "Read", "Glob", "Grep"]);
+        }
+        let mut child = cmd
+            .args([
+                "--disallowedTools",
+                "Bash",
+                "Write",
+                "Edit",
+                "NotebookEdit",
+                "WebFetch",
+                "WebSearch",
+                "Task",
+            ])
+            // Desde el proyecto que se mira: es lo que hace que un `Read` con
+            // una ruta relativa del esqueleto encuentre el archivo.
+            .current_dir(&ruta)
+            .sin_ventana()
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .stdin(std::process::Stdio::null())
+            .spawn()
+            .map_err(|e| format!("no pude lanzar claude: {e}"))?;
+
+        let salida = child.stdout.take().ok_or("claude no dio salida")?;
+        let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+        let app2 = app.clone();
+        // El lector va en su propio hilo y NUNCA bloquea al que vigila: si el
+        // proceso se cuelga sin cerrar su salida, el de abajo lo mata igual.
+        std::thread::spawn(move || {
+            let mut leidos = 0usize;
+            for linea in std::io::BufReader::new(salida).lines().map_while(Result::ok) {
+                let Ok(v) = serde_json::from_str::<serde_json::Value>(&linea) else {
+                    continue;
+                };
+                match v["type"].as_str() {
+                    Some("assistant") => {
+                        for b in v["message"]["content"].as_array().unwrap_or(&vec![]) {
+                            if b["type"] == "tool_use" {
+                                if let Some(f) = frase_de_paso(b) {
+                                    leidos += 1;
+                                    let _ = app2.emit("mapa-paso", format!("{f} ({leidos})"));
+                                }
+                            }
+                        }
+                    }
+                    Some("result") => {
+                        let _ = tx.send(if v["is_error"].as_bool().unwrap_or(false) {
+                            Err(format!(
+                                "claude devolvió error: {}",
+                                v["result"].as_str().unwrap_or("desconocido")
+                            ))
+                        } else {
+                            v["result"]
+                                .as_str()
+                                .map(|s| s.to_owned())
+                                .ok_or_else(|| "la respuesta no trae texto".to_owned())
+                        });
+                    }
+                    _ => {}
+                }
+            }
+        });
+
+        let start = Instant::now();
+        loop {
+            if PARAR_MAPA.swap(false, Ordering::Relaxed) {
+                let _ = child.kill();
+                return Err("parado".into());
+            }
+            match child.try_wait() {
+                Ok(Some(_)) => break,
+                Ok(None) if start.elapsed() > MAPA_TIMEOUT => {
+                    let _ = child.kill();
+                    return Err("leer el proyecto tardó más de seis minutos; reintenta".into());
+                }
+                Ok(None) => std::thread::sleep(Duration::from_millis(200)),
+                Err(e) => return Err(e.to_string()),
+            }
+        }
+        // Al terminar el proceso, el resultado ya viajó por el canal o está a
+        // punto: se espera un momento y no para siempre, para que un CLI que
+        // muera a media línea no deje esto colgado.
+        match rx.recv_timeout(Duration::from_secs(5)) {
+            Ok(r) => r,
+            Err(_) => {
+                let mut err = String::new();
+                if let Some(mut e) = child.stderr.take() {
+                    use std::io::Read;
+                    let _ = e.read_to_string(&mut err);
+                }
+                Err(format!("claude no devolvió nada: {}", err.trim()))
+            }
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[tauri::command]
 pub async fn foreman_lote(tareas: String, context: String) -> Result<String, String> {
     preguntar(format!(
@@ -350,7 +654,16 @@ CÓMO TRABAJAS:
 - No inventes nombres de proyecto, de sesión ni de panel: usa los que te devuelvan las herramientas, tal cual.
 - Al terminar, di en una frase qué has hecho si has cambiado algo. Si solo has mirado, no hace falta."#;
 
+/// El de siempre, con el cerebro del plan.
 async fn preguntar(prompt: String) -> Result<String, String> {
+    preguntar_con(prompt, PLAN_MODEL).await
+}
+
+/// Y el mismo, eligiendo cerebro. Existe porque no todos los oficios del
+/// Capataz piden lo mismo: montar un tablero es criterio y ponerle nombre a
+/// unas carpetas es un recado, y pagar el mismo modelo para los dos es pagar de
+/// más Y esperar de más.
+async fn preguntar_con(prompt: String, modelo: &'static str) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let mut child = std::process::Command::new(claude_exe())
             // `--strict-mcp-config` sin ningún `--mcp-config` = CERO servidores
@@ -369,7 +682,7 @@ async fn preguntar(prompt: String) -> Result<String, String> {
                 "-p",
                 &prompt,
                 "--model",
-                PLAN_MODEL,
+                modelo,
                 "--output-format",
                 "json",
                 "--strict-mcp-config",

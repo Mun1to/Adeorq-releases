@@ -23,6 +23,7 @@ import {
   nucleo,
   rejilla,
   repartir,
+  repartirGalaxia,
   tiroDelHilo,
   R,
   R_LIBRE,
@@ -369,6 +370,80 @@ const REAL = { "·": 1, "00-inbox": 2, "01-proyectos": 34, "02-areas": 2, "03-re
     ok(`${clase} no intercepta el ratón`, i >= 0 && regla.includes("pointer-events: none"),
       "flota sobre la bola: si captura clics, no se puede señalar lo que hay debajo");
   }
+}
+
+/* ── La galaxia: un cúmulo por proyecto, flotando ────────────────────────── */
+
+{
+  const notas = [
+    { id: "a", fam: "uno", g: 5 },
+    { id: "b", fam: "uno", g: 3 },
+    { id: "c", fam: "uno", g: 0 },
+    { id: "d", fam: "dos", g: 4 },
+    { id: "e", fam: "dos", g: 1 },
+    { id: "f", fam: "tres", g: 2 },
+  ];
+  const { pos, regiones } = repartirGalaxia(notas, (n) => n.fam, (n) => n.g);
+  ok("la galaxia coloca todas las notas", pos.length === 6 && pos.every((p) => p && Number.isFinite(p.x)));
+  ok("un cúmulo por proyecto", regiones.length === 3);
+  ok("cada cúmulo sabe cuántos tiene", regiones.find((r) => r.fam === "uno")!.n === 3);
+
+  const dist = (a: {x:number;y:number;z:number}, b: {x:number;y:number;z:number}) =>
+    Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  const rUno = regiones.find((r) => r.fam === "uno")!;
+  ok("los suyos caen dentro de su cúmulo",
+    [0, 1, 2].every((i) => dist(pos[i], rUno) <= rUno.radio + 1e-9));
+
+  // Lo más enlazado, en el corazón del cúmulo: es lo que hace que un cúmulo se
+  // lea de un vistazo en vez de ser una nube de puntos iguales.
+  ok("lo más enlazado va al centro del cúmulo", dist(pos[0], rUno) < dist(pos[2], rUno));
+
+  // Dos cúmulos distintos no se pisan: sus centros están más lejos que la suma
+  // de sus radios. Si no, la galaxia se ve como una sola mancha.
+  const rDos = regiones.find((r) => r.fam === "dos")!;
+  ok("dos cúmulos no se solapan", dist(rUno, rDos) > rUno.radio + rDos.radio);
+
+  ok("dos veces lo mismo da el mismo cielo",
+    JSON.stringify(repartirGalaxia(notas, (n) => n.fam, (n) => n.g).pos) === JSON.stringify(pos));
+
+  const solo = repartirGalaxia([notas[0]], (n) => n.fam, (n) => n.g);
+  ok("con una sola nota no se rompe", solo.pos.length === 1 && Number.isFinite(solo.pos[0].x));
+  ok("sin notas, cielo vacío", repartirGalaxia([], (n: {fam:string}) => n.fam, () => 0).pos.length === 0);
+}
+
+/* La prueba que de verdad importa: la bóveda de Munir tiene VEINTE proyectos y
+   alguno con doscientas notas. Ahí es donde los cúmulos se solapaban y el cielo
+   se veía como una sola mancha (2026-08-14). */
+{
+  const gordas: Array<{ id: string; fam: string; g: number }> = [];
+  for (let f = 0; f < 20; f++) {
+    const cuantas = f === 0 ? 200 : f % 3 === 0 ? 40 : 6;
+    for (let i = 0; i < cuantas; i++) {
+      gordas.push({ id: `p${f}-${i}`, fam: `proy${f}`, g: i % 12 });
+    }
+  }
+  const { pos, regiones } = repartirGalaxia(gordas, (n) => n.fam, (n) => n.g);
+  const d = (a: {x:number;y:number;z:number}, b: {x:number;y:number;z:number}) =>
+    Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  let choques = 0;
+  let masCerca = Infinity;
+  for (let i = 0; i < regiones.length; i++) {
+    for (let j = i + 1; j < regiones.length; j++) {
+      const dist = d(regiones[i], regiones[j]);
+      const juntos = regiones[i].radio + regiones[j].radio;
+      masCerca = Math.min(masCerca, dist - juntos);
+      if (dist <= juntos) choques++;
+    }
+  }
+  ok("con veinte proyectos ningún cúmulo se solapa", choques === 0, `choques=${choques}`);
+  ok("y siempre queda hueco entre ellos", masCerca > 0.02, `hueco mínimo=${masCerca.toFixed(3)}`);
+  ok("el cielo no se va al infinito",
+    pos.every((p) => Math.hypot(p.x, p.y, p.z) < 1.5));
+  // Un proyecto de doscientas notas no puede comerse el cielo: su cúmulo mide
+  // lo que le dejan sus vecinos, no lo que pide su tamaño.
+  const gordo = regiones.find((r) => r.n === 200)!;
+  const flaco = regiones.find((r) => r.n === 6)!;
+  ok("el proyecto gigante no se come el cielo", gordo.radio <= flaco.radio * 3);
 }
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

@@ -1294,6 +1294,22 @@ export default function Sidebar({
     return ka.every((k) => b[k] === a[k]);
   };
 
+  /**
+   * El sitio que una lista reserva mientras tiene el hueco abierto.
+   *
+   * Las filas se apartan con `transform`, que mueve el dibujo pero NO ocupa
+   * sitio, y la que llevas en la mano ya salió del flujo. O sea que la lista se
+   * encoge justo lo que las de abajo se han desplazado: la última se salía por
+   * el borde y se pintaba ENCIMA de la cabecera del proyecto siguiente, con los
+   * dos nombres montados uno sobre otro (Munir, 2026-08-14, con la captura de
+   * «ORQUIO VA…» encima de «VoCript»).
+   *
+   * Devolviéndole ese alto por abajo, la lista mide lo mismo durante todo el
+   * gesto y nada se sale de su caja.
+   */
+  const reservaHueco = (ids: string[]): React.CSSProperties | undefined =>
+    hueco && ids.some((id) => hueco.dy[id]) ? { paddingBottom: hueco.alto } : undefined;
+
   const abrirHueco = (
     li: HTMLElement | null | undefined,
     id: string,
@@ -2385,7 +2401,7 @@ export default function Sidebar({
     );
     const loose = g.sessions.filter((s) => !grouped.has(s.id));
     return (
-      <ul className="sessions">
+      <ul className="sessions" style={reservaHueco(g.archivedSessions.map((s) => s.id))}>
         {projectGroups.map((pg) => {
           // An emptied group stays visible so it can be refilled or dissolved.
           const inside = g.sessions.filter((s) => ui.sessionGroup[s.id] === pg.id);
@@ -2544,7 +2560,11 @@ export default function Sidebar({
                    misma, que es la única que lo sabe con seguridad.
                    (`data-lista` NO vale: la zona de sueltas ya lo usa para otra
                    cosa, marcar que llevas algo en la mano.) */
-                <ul className="sessions sgroup-list" data-orden={`g:${pg.id}`}>
+                <ul
+                  className="sessions sgroup-list"
+                  data-orden={`g:${pg.id}`}
+                  style={reservaHueco(inside.map((s) => s.id))}
+                >
                   {conOrdenManual(inside, ui.ordenLista[`g:${pg.id}`] ?? []).map((s) =>
                     sessionRow(s, g, false),
                   )}
@@ -2605,7 +2625,11 @@ export default function Sidebar({
               proyecto, pero su clave es `sueltas` y no `p:<nombre>`: es la que
               ya venía escrita de antes, y cambiársela le barajaría a Munir el
               orden que tiene puesto. */}
-          <ul className="sessions sueltas-lista" data-orden={claveLista(g)}>
+          <ul
+            className="sessions sueltas-lista"
+            data-orden={claveLista(g)}
+            style={reservaHueco(loose.map((s) => s.id))}
+          >
             {conOrdenManual(loose, ui.ordenLista[claveLista(g)] ?? []).map((s) =>
               sessionRow(s, g, false),
             )}

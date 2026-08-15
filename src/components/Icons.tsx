@@ -220,6 +220,18 @@ export function SacarIcon({ size = 17 }: Props) {
   );
 }
 
+/** La vuelta del de arriba: la flecha ENTRA en la caja. Es el botón con el que
+    una terminal suelta regresa al mosaico de Adeorq. */
+export function DevolverIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M13.5 4.5H5.5a1.5 1.5 0 0 0-1.5 1.5v12a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-8" opacity="0.4" strokeDasharray="3 2.5" />
+      <path d="M20 4l-8 8" />
+      <path d="M12 6.5V12h5.5" />
+    </svg>
+  );
+}
+
 export function MinimizeIcon({ size = 17 }: Props) {
   return (
     <svg {...svg(size)}>

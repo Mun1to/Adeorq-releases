@@ -116,6 +116,10 @@ export default function VentanaSuelta({ id, nombre }: Props) {
         hidden={false}
         focused
         maximized={false}
+        /* Es lo que convierte la ✕ del panel en el botón de VOLVER: aquí cerrar
+           devuelve la terminal al mosaico, y el botón lo dice con su icono y
+           sus palabras en vez de amenazar con «Cerrar terminal». */
+        suelta
         fontSize={AJUSTES.fontSize()}
         autoFont={AJUSTES.autoFont()}
         stream={AJUSTES.stream()}

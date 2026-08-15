@@ -4394,6 +4394,14 @@ body {
   background: color-mix(in srgb, #ff8f8f 16%, transparent);
 }
 
+/* En una ventana suelta ese botón no cierra nada: DEVUELVE la terminal al
+   mosaico. El rojo de peligro ahí mentía, y era la mentira que hacía que nadie
+   lo pulsara y pareciera que no había forma de volver (Munir, 2026-08-15). */
+.pane-close[data-suelta]:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
 .pane-term {
   flex: 1;
   min-height: 0;

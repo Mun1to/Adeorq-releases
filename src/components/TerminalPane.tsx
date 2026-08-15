@@ -39,6 +39,7 @@ import {
   GitBranchIcon,
   MaximizeIcon,
   MinimizeIcon,
+  DevolverIcon,
   SacarIcon,
   RestoreIcon,
   RobotIcon,
@@ -134,6 +135,14 @@ interface Props {
   /** Sacar esta terminal a su propia ventana de Windows. Ausente cuando ya
       está fuera, que es lo que quita el botón sin tener que preguntarlo. */
   onSacar?: (id: number) => void;
+  /** Este panel vive SUELTO, en su propia ventana. Cambia lo que significa
+      cerrar: aquí `onClose` DEVUELVE la terminal a Adeorq, no la mata, y el
+      botón tiene que decirlo con su icono y sus palabras. Con la ✕ de siempre
+      y su «Cerrar terminal», nadie la pulsaba por miedo a perder al agente, y
+      Munir buscaba un botón de volver que «no existía» (2026-08-15). También
+      esconde el maximizar del panel: en una ventana de verdad eso ya lo hace
+      la barra de título de Windows, y el del panel ahí no hacía nada. */
+  suelta?: boolean;
   /** Lo ya dicho en este panel, para escribirlo al nacer. Solo lo usa la
       terminal que renace en su propia ventana: el proceso lleva rato vivo y sin
       esto la ventana nueva empezaría en negro con la conversación perdida. */
@@ -388,6 +397,7 @@ export default function TerminalPane({
   alone,
   shadow,
   onSacar,
+  suelta,
   volcar,
   onVolcado,
 }: Props) {
@@ -1551,7 +1561,9 @@ export default function TerminalPane({
               ]
             : []),
           { label: "", separator: true },
-          { label: t("Cerrar terminal"), danger: true, onClick: () => onClose(id) },
+          suelta
+            ? { label: t("Devolver a Adeorq"), onClick: () => onClose(id) }
+            : { label: t("Cerrar terminal"), danger: true, onClick: () => onClose(id) },
         ]);
       }}
       onDragOver={(e) => {
@@ -1791,13 +1803,15 @@ export default function TerminalPane({
               <SacarIcon />
             </button>
           )}
-          <button
-            className="pane-btn"
-            data-tip={maximized ? "Restaurar" : "Maximizar (Ctrl+Mayús+F)"}
-            onClick={() => onToggleMax(id)}
-          >
-            {maximized ? <RestoreIcon /> : <MaximizeIcon />}
-          </button>
+          {!suelta && (
+            <button
+              className="pane-btn"
+              data-tip={maximized ? "Restaurar" : "Maximizar (Ctrl+Mayús+F)"}
+              onClick={() => onToggleMax(id)}
+            >
+              {maximized ? <RestoreIcon /> : <MaximizeIcon />}
+            </button>
+          )}
           {/* Solo cuando se sabe QUÉ sesión enseña este panel: uno sin transcript
               detrás no tiene nada que tirar.
               Esto eran dos clics con cuatro segundos de margen, con el argumento
@@ -1821,10 +1835,15 @@ export default function TerminalPane({
         </div>
         <button
           className="pane-close"
-          data-tip={t("Cerrar terminal")}
+          data-suelta={suelta || undefined}
+          data-tip={
+            suelta
+              ? t("Devolver a Adeorq: la terminal vuelve al mosaico y el agente ni se entera")
+              : t("Cerrar terminal")
+          }
           onClick={() => onClose(id)}
         >
-          <CloseIcon />
+          {suelta ? <DevolverIcon size={15} /> : <CloseIcon />}
         </button>
       </header>
       {(needsLogin || ask || note || avisoCtx > 0 || colgado) && (

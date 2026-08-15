@@ -633,6 +633,9 @@ const EN: Record<string, string> = {
   "Abriendo tu navegador…": "Opening your browser…",
   "No se pudo meter tu navegador aquí": "Your browser could not be brought in here",
   "Usar el de dentro": "Use the built-in one",
+  "Devolver a Adeorq": "Return to Adeorq",
+  "Devolver a Adeorq: la terminal vuelve al mosaico y el agente ni se entera":
+    "Return to Adeorq: the terminal goes back to the mosaic and the agent never notices",
   "Abre un proyecto para ver sus archivos.": "Open a project to see its files.",
   "Esta carpeta está vacía.": "This folder is empty.",
   "{n} líneas": "{n} lines",

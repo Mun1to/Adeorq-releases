@@ -4782,11 +4782,12 @@ body {
   box-shadow: var(--glass-edge);
 }
 
+/* Solo el título: el botón de cerrar se fue el 2026-08-15, porque el icono de
+   la franja ya hace las dos cosas. */
 .lateral-head {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 12px 12px 8px;
 }
 

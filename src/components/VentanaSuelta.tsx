@@ -18,7 +18,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import TerminalPane from "./TerminalPane";
-import { datosPanel, devolverPanel, ptyHistorial } from "../lib/pty";
+import { anotarRastro, datosPanel, devolverPanel, ptyHistorial } from "../lib/pty";
 import { NOTIFY_KEY, type NotifyMode } from "../lib/notify";
 import { useT } from "../lib/i18n";
 
@@ -48,6 +48,25 @@ export default function VentanaSuelta({ id, nombre }: Props) {
       volcar cien mil caracteres en el xterm. */
   const volcado = useRef(false);
 
+  /* Esta ventana no tiene consola, así que si su JavaScript se cae no queda
+     rastro en ninguna parte y desde fuera se ve igual que si no se hubiera
+     abierto (Munir, 2026-08-15: «se popea un segundo y desaparece»). Estas tres
+     líneas son lo que distingue «no llegó a montarse» de «se montó y algo la
+     cerró después». */
+  useEffect(() => {
+    void anotarRastro(`ventana suelta ${id}: su página ha arrancado`);
+    const alFallar = (e: ErrorEvent) =>
+      void anotarRastro(`ventana suelta ${id}: se cayó su página — ${e.message}`);
+    const alRechazar = (e: PromiseRejectionEvent) =>
+      void anotarRastro(`ventana suelta ${id}: promesa sin recoger — ${String(e.reason)}`);
+    window.addEventListener("error", alFallar);
+    window.addEventListener("unhandledrejection", alRechazar);
+    return () => {
+      window.removeEventListener("error", alFallar);
+      window.removeEventListener("unhandledrejection", alRechazar);
+    };
+  }, [id]);
+
   useEffect(() => {
     let vivo = true;
     Promise.all([datosPanel(id), ptyHistorial(id).catch(() => "")])
@@ -55,8 +74,13 @@ export default function VentanaSuelta({ id, nombre }: Props) {
         if (!vivo) return;
         setDatos({ cwd: d.cwd, command: d.command ?? undefined });
         setHistorial(h);
+        void anotarRastro(`ventana suelta ${id}: tiene su terminal y su historial`);
       })
-      .catch((e) => vivo && setError(String(e)));
+      .catch((e) => {
+        if (!vivo) return;
+        setError(String(e));
+        void anotarRastro(`ventana suelta ${id}: no pudo con los datos — ${e}`);
+      });
     return () => {
       vivo = false;
     };

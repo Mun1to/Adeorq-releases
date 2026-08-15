@@ -183,7 +183,13 @@ pub fn anotar(mensaje: &str) {
         .append(true)
         .open(&ruta)
     {
-        let _ = writeln!(f, "[{}] {mensaje}", ahora());
+        // La línea ENTERA en una sola escritura. `writeln!` escribe por trozos,
+        // y aquí escriben a la vez varios hilos Y varios procesos (la app y la
+        // ventana de desarrollo comparten este archivo): el rastro de agosto
+        // tenía líneas partidas por la mitad y pegadas unas dentro de otras,
+        // que es justo lo que hace ilegible un rastro el día que hace falta.
+        // En modo añadir, una escritura única no se mezcla.
+        let _ = f.write_all(format!("[{}] {mensaje}\n", ahora()).as_bytes());
     }
 }
 

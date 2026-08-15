@@ -189,6 +189,15 @@ enum Fin {
 /// en silencio. Ya no. Un pánico se recoge, se tira lo único que pudo quedar en
 /// un estado raro —lo que se acumula— y se SIGUE VACIANDO, que es lo que de
 /// verdad importa. Rendirse solo si el pánico vuelve en cada vuelta.
+///
+/// El respiro entre intentos, en una constante para que los tests no se lo
+/// coman entero: el del pánico permanente daría diez cabezadas de medio
+/// segundo por pasada.
+#[cfg(not(test))]
+const RESPIRO_TRAS_PANICO_MS: u64 = 500;
+#[cfg(test)]
+const RESPIRO_TRAS_PANICO_MS: u64 = 1;
+
 fn vaciar_pase_lo_que_pase<R: Read>(
     id: u32,
     reader: &mut R,
@@ -204,18 +213,38 @@ fn vaciar_pase_lo_que_pase<R: Read>(
         }));
         match vuelta {
             Ok(fin) => return fin,
-            Err(_) => {
+            Err(carga) => {
                 sustos += 1;
+                // La CARGA del pánico se apunta aquí porque el gancho global no
+                // la vio nunca: en el rastro de Munir hay meses de «entró en
+                // pánico» y ni UNA línea del gancho con su sitio (comprobado el
+                // 2026-08-15). Un pánico relanzado con `resume_unwind` no pasa
+                // por el gancho, así que este es el único lugar que lo tiene en
+                // la mano. Sin esto, el fallo del panel 7 es invisible.
+                let que = carga
+                    .downcast_ref::<&str>()
+                    .map(|s| (*s).to_owned())
+                    .or_else(|| carga.downcast_ref::<String>().cloned())
+                    .unwrap_or_else(|| "una carga que no es texto".to_owned());
                 crate::anotar(&format!(
-                    "el lector del panel {id} entró en pánico ({sustos}ª vez) y sigue vaciando"
+                    "el lector del panel {id} entró en pánico ({sustos}ª vez) y sigue vaciando: {que}"
                 ));
                 tomar(history).clear();
                 pending.clear();
-                // Tres seguidos es que el pánico está en CADA vuelta: se corta
+                // Diez seguidos es que el pánico está en CADA vuelta: se corta
                 // antes de convertir un fallo en un hilo girando en el vacío.
-                if sustos >= 3 {
+                //
+                // Eran tres, y con el reintento inmediato los tres cabían en el
+                // MISMO segundo (rastro del 2026-08-15, panel 7: las tres veces
+                // a las 17:31:36): un tropiezo pasajero se convertía en rendirse
+                // al instante, y rendirse aquí es una terminal MUDA con el
+                // agente vivo, que es lo peor que sabe hacer este archivo. El
+                // respiro de abajo hace además que diez intentos sean unos
+                // cinco segundos de margen de verdad, no diez vueltas de bucle.
+                if sustos >= 10 {
                     return Fin::Roto;
                 }
+                std::thread::sleep(std::time::Duration::from_millis(RESPIRO_TRAS_PANICO_MS));
             }
         }
     }

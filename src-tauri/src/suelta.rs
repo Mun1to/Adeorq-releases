@@ -87,70 +87,112 @@ pub async fn sacar_panel(
         return Ok(());
     }
 
-    let mut b = WebviewWindowBuilder::new(
-        &app,
-        etiqueta(id),
-        // La misma página que la ventana principal: es `main.tsx` quien mira
-        // este parámetro y decide montar una sola terminal en vez de la app
-        // entera. Un HTML aparte sería un segundo sitio donde arreglar cada
-        // cosa de una terminal.
-        // El nombre va codificado: lo escribe el usuario y puede llevar
-        // espacios, tildes o un `&`, que partiría la dirección en dos.
-        WebviewUrl::App(
-            format!(
-                "index.html?suelta={id}&nombre={}",
-                para_url(nombre.as_deref().unwrap_or_default())
-            )
-            .into(),
-        ),
-    )
-    .title(nombre.as_deref().unwrap_or("Adeorq"))
-    .inner_size(ancho.unwrap_or(900.0), alto.unwrap_or(600.0))
-    .min_inner_size(360.0, 240.0)
-    // Con marco, que es lo que la hace «una ventana normal y corriente».
-    .decorations(true)
-    // Y SIN transparencia ni acrílico, al revés que la principal: una ventana
-    // suelta se va a poner encima de un editor o de un navegador, y un fondo
-    // translúcido sobre eso deja el texto de la terminal ilegible.
-    .transparent(false)
-    // Al frente y con el foco puesto. Sin esto puede nacer DETRÁS de Adeorq,
-    // que suele estar maximizada, y entonces sacar una terminal se ve como que
-    // la terminal ha desaparecido (Munir, 2026-08-14).
-    .focused(true)
-    .visible(true);
-
-    if let (Some(x), Some(y)) = (x, y) {
-        b = b.position(x, y);
-    } else {
-        b = b.center();
-    }
-
-    let v = b.build().map_err(|e| format!("no pude abrir la ventana: {e}"))?;
-
-    // Cuando esa ventana se cierre, la terminal tiene que VOLVER al tablero, no
-    // desaparecer del mundo. Se avisa desde aquí y no desde el front de la
-    // ventana suelta porque cerrarla con la X de Windows no le da tiempo a
-    // ejecutar nada: para cuando React se entera, ya no hay ventana.
+    // ── Y AQUÍ LA PARTE QUE COSTÓ UNA TARDE ────────────────────────────────
     //
-    // El aviso se emite a TODAS las ventanas, así que la principal lo oye. La
-    // que se está muriendo también, y le da igual.
+    // La ventana se construye EN EL HILO PRINCIPAL, no aquí.
     //
-    // Y queda ESCRITO cuándo se cierra. Una ventana que muriera nada más nacer
-    // se ve exactamente igual que una que no se abrió, y sin esta línea no hay
-    // forma de distinguir los dos casos: la app no tiene consola.
-    let app2 = app.clone();
-    v.on_window_event(move |e| {
-        if matches!(e, tauri::WindowEvent::Destroyed) {
-            use tauri::Emitter;
-            crate::anotar(&format!("la ventana suelta de la terminal {id} se cerró"));
-            let _ = app2.emit("suelta:vuelve", id);
+    // Este comando es `async`, así que corre en un hilo del runtime, no en el de
+    // la ventana. Y en Windows una ventana pertenece al hilo que la crea: es ese
+    // hilo el que tiene que bombear sus mensajes, y cuando el runtime da ese
+    // hilo por terminado y lo recicla, la ventana se queda sin quien la atienda
+    // y Windows se la lleva. Desde fuera se ve exactamente como lo contó Munir:
+    // «se popea un segundo y se oculta» (2026-08-15). Y encaja con lo demás que
+    // se midió ese día: la ventana no aparecía por ninguna parte —ni oculta, ni
+    // minimizada, ni fuera de pantalla— y su evento de cierre no llegaba nunca,
+    // porque no se cerró por la puerta buena: se murió con su hilo.
+    //
+    // `run_on_main_thread` la construye donde debe. El canal es para traerse el
+    // resultado de vuelta, que si no esto no sabría si salió bien.
+    let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
+    let app_h = app.clone();
+    let nombre_h = nombre.clone();
+    app.run_on_main_thread(move || {
+        let mut b = WebviewWindowBuilder::new(
+            &app_h,
+            etiqueta(id),
+            // La misma página que la ventana principal: es `main.tsx` quien mira
+            // este parámetro y decide montar una sola terminal en vez de la app
+            // entera. Un HTML aparte sería un segundo sitio donde arreglar cada
+            // cosa de una terminal.
+            // El nombre va codificado: lo escribe el usuario y puede llevar
+            // espacios, tildes o un `&`, que partiría la dirección en dos.
+            WebviewUrl::App(
+                format!(
+                    "index.html?suelta={id}&nombre={}",
+                    para_url(nombre_h.as_deref().unwrap_or_default())
+                )
+                .into(),
+            ),
+        )
+        .title(nombre_h.as_deref().unwrap_or("Adeorq"))
+        .inner_size(ancho.unwrap_or(900.0), alto.unwrap_or(600.0))
+        .min_inner_size(360.0, 240.0)
+        // Con marco, que es lo que la hace «una ventana normal y corriente».
+        .decorations(true)
+        // Y SIN transparencia ni acrílico, al revés que la principal: una ventana
+        // suelta se va a poner encima de un editor o de un navegador, y un fondo
+        // translúcido sobre eso deja el texto de la terminal ilegible.
+        .transparent(false)
+        // Al frente y con el foco puesto. Sin esto puede nacer DETRÁS de Adeorq,
+        // que suele estar maximizada, y entonces sacar una terminal se ve como que
+        // la terminal ha desaparecido (Munir, 2026-08-14).
+        .focused(true)
+        .visible(true);
+
+        if let (Some(x), Some(y)) = (x, y) {
+            b = b.position(x, y);
+        } else {
+            b = b.center();
         }
-    });
-    // Y al frente del todo, por si el gestor de ventanas la dejó detrás pese al
-    // `focused`. Falla en silencio: no tenerla enfocada no impide usarla.
-    let _ = v.set_focus();
-    crate::anotar(&format!("terminal {id} sacada a su propia ventana"));
-    Ok(())
+
+        let salida = match b.build() {
+            Ok(v) => {
+                // Cuando esa ventana se cierre, la terminal tiene que VOLVER al
+                // tablero, no desaparecer del mundo. Se avisa desde aquí y no
+                // desde el front de la ventana suelta porque cerrarla con la X
+                // de Windows no le da tiempo a ejecutar nada: para cuando React
+                // se entera, ya no hay ventana.
+                //
+                // El aviso se emite a TODAS las ventanas, así que la principal
+                // lo oye. La que se está muriendo también, y le da igual.
+                let app2 = app_h.clone();
+                v.on_window_event(move |e| {
+                    // TODO lo que le pasa queda escrito, no solo su muerte: con
+                    // un único evento vigilado no había forma de saber si se
+                    // cerró por la puerta buena, si su página se cayó o si nunca
+                    // llegó a pintarse.
+                    let que = match e {
+                        tauri::WindowEvent::CloseRequested { .. } => Some("le han pedido cerrarse"),
+                        tauri::WindowEvent::Destroyed => Some("destruida"),
+                        tauri::WindowEvent::Focused(true) => Some("tiene el foco"),
+                        tauri::WindowEvent::Focused(false) => Some("ha perdido el foco"),
+                        _ => None,
+                    };
+                    if let Some(que) = que {
+                        crate::anotar(&format!("ventana suelta {id}: {que}"));
+                    }
+                    if matches!(e, tauri::WindowEvent::Destroyed) {
+                        use tauri::Emitter;
+                        let _ = app2.emit("suelta:vuelve", id);
+                    }
+                });
+                // Y al frente del todo, por si el gestor de ventanas la dejó
+                // detrás pese al `focused`. Falla en silencio: no tenerla
+                // enfocada no impide usarla.
+                let _ = v.set_focus();
+                crate::anotar(&format!("terminal {id} sacada a su propia ventana"));
+                Ok(())
+            }
+            Err(e) => Err(format!("no pude abrir la ventana: {e}")),
+        };
+        let _ = tx.send(salida);
+    })
+    .map_err(|e| format!("no pude pedirle la ventana al hilo principal: {e}"))?;
+
+    // Diez segundos de espera como mucho. Si el hilo principal estuviera
+    // atascado, es mejor un error que un botón que no contesta nunca.
+    rx.recv_timeout(std::time::Duration::from_secs(10))
+        .map_err(|_| "el hilo principal no contestó a tiempo".to_string())?
 }
 
 /// Lo que la ventana suelta necesita saber del panel que va a pintar.

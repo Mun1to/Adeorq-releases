@@ -13,7 +13,7 @@
 //    gesto, así que no hace falta una ✕ aparte que compita con los iconos.
 
 import { useT } from "../lib/i18n";
-import { BrowserIcon, ChevronIcon, FolderIcon, SparkIcon } from "./Icons";
+import { BrowserIcon, FolderIcon, SparkIcon } from "./Icons";
 
 /** Qué panel se está viendo. Vacío es «ninguno, solo la franja». */
 export type Cara = "" | "skills" | "archivos";
@@ -51,14 +51,15 @@ export default function PanelDerecho({ cara, onCara, skills, archivos, onWeb }: 
     <div className="lateral-zona">
       {actual && (
         <aside className="lateral">
+          {/* Sin botón de cerrar. Lo llevaba, y sobraba desde que la franja
+              existe: el icono de la cara abierta ya la cierra al volver a
+              pulsarlo, así que eran dos botones para lo mismo y uno de ellos
+              en un sitio donde ya no había nada más que hacer (Munir,
+              2026-08-15). */}
           <div className="lateral-head">
             <span className="lateral-title">
               {actual.icono} {t(actual.titulo)}
             </span>
-            {/* Hacia la derecha, que es por donde se va. */}
-            <button className="mini" onClick={() => onCara("")} data-tip={t("Ocultar panel")}>
-              <ChevronIcon size={12} der />
-            </button>
           </div>
           <div className="lateral-cuerpo">
             {cara === "skills" ? skills : archivos}

@@ -170,6 +170,15 @@ fn ruta_rastro() -> Option<std::path::PathBuf> {
 /// que tumbe a la app por no poder escribirse sería peor que no tenerlo.
 pub fn anotar(mensaje: &str) {
     use std::io::Write;
+    // Los tests NO escriben en el rastro de verdad. El simulacro del lector
+    // («un descuido cualquiera dentro del lector», id 7) llevaba DÍAS
+    // apareciendo en el rastro de Munir cada vez que una sesión pasaba la
+    // suite, y se persiguió como si fuera una terminal suya rota (cazado el
+    // 2026-08-15 por la hora exacta: las líneas salían clavadas al minuto de
+    // cada `cargo test`). Un rastro con fallos de mentira es peor que ninguno.
+    if cfg!(test) {
+        return;
+    }
     let Some(ruta) = ruta_rastro() else { return };
     // Sin dejarlo crecer sin fin: lo de hace meses no ayuda a nadie.
     if std::fs::metadata(&ruta)
@@ -239,6 +248,32 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
+            // ── AUTOPRUEBA de la ventana suelta (solo builds de desarrollo) ──
+            //
+            // La ventana suelta se rompió TRES veces sin que ningún test la
+            // cubriera, porque nace de un clic y los agentes no pueden dar
+            // clics en este escritorio. Con la variable ADEORQ_PRUEBA_SUELTA
+            // puesta, la app abre una sola al arrancar y el agente comprueba
+            // desde fuera (enumerando ventanas y leyendo el rastro) que sigue
+            // viva. En release este bloque no existe.
+            #[cfg(debug_assertions)]
+            if std::env::var("ADEORQ_PRUEBA_SUELTA").is_ok() {
+                let app_h = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(3));
+                    let r = crate::suelta::abrir_ventana(
+                        &app_h,
+                        9999,
+                        Some("AUTOPRUEBA".into()),
+                        None,
+                        None,
+                        None,
+                        None,
+                    );
+                    crate::anotar(&format!("autoprueba de la ventana suelta: {r:?}"));
+                });
+            }
+
             mcp::start_mcp_server(app.handle().clone());
             // La ventana de desarrollo dice que lo es.
             //

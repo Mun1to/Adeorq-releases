@@ -87,22 +87,24 @@ pub async fn sacar_panel(
         return Ok(());
     }
 
-    // ── Y AQUÍ LA PARTE QUE COSTÓ UNA TARDE ────────────────────────────────
-    //
-    // La ventana se construye EN EL HILO PRINCIPAL, no aquí.
-    //
-    // Este comando es `async`, así que corre en un hilo del runtime, no en el de
-    // la ventana. Y en Windows una ventana pertenece al hilo que la crea: es ese
-    // hilo el que tiene que bombear sus mensajes, y cuando el runtime da ese
-    // hilo por terminado y lo recicla, la ventana se queda sin quien la atienda
-    // y Windows se la lleva. Desde fuera se ve exactamente como lo contó Munir:
-    // «se popea un segundo y se oculta» (2026-08-15). Y encaja con lo demás que
-    // se midió ese día: la ventana no aparecía por ninguna parte —ni oculta, ni
-    // minimizada, ni fuera de pantalla— y su evento de cierre no llegaba nunca,
-    // porque no se cerró por la puerta buena: se murió con su hilo.
-    //
-    // `run_on_main_thread` la construye donde debe. El canal es para traerse el
-    // resultado de vuelta, que si no esto no sabría si salió bien.
+    abrir_ventana(&app, id, nombre, x, y, ancho, alto)
+}
+
+/// Construye la ventana suelta. Separado de `sacar_panel` para que la
+/// AUTOPRUEBA de abajo pueda abrir una sin necesitar una terminal de verdad:
+/// lo que se rompía era la VENTANA, no la terminal de dentro.
+///
+/// Se construye EN EL HILO PRINCIPAL (`run_on_main_thread`), que es quien
+/// bombea sus mensajes toda su vida; el canal trae el resultado de vuelta.
+pub(crate) fn abrir_ventana(
+    app: &AppHandle,
+    id: u32,
+    nombre: Option<String>,
+    x: Option<f64>,
+    y: Option<f64>,
+    ancho: Option<f64>,
+    alto: Option<f64>,
+) -> Result<(), String> {
     let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
     let app_h = app.clone();
     let nombre_h = nombre.clone();
@@ -143,6 +145,32 @@ pub async fn sacar_panel(
             b = b.position(x, y);
         } else {
             b = b.center();
+        }
+
+        // ── EL FALLO DE VERDAD, cazado el 2026-08-15 tras dos arreglos que no
+        //    eran (el hueco fantasma y el hilo): LOS ARGUMENTOS DEL NAVEGADOR.
+        //
+        // La ventana principal lleva `additionalBrowserArgs` en `tauri.conf.json`
+        // (el permiso falso de micrófono, para dictar sin cuadro de diálogo). En
+        // Windows, WebView2 comparte UN proceso de navegador por app, y una
+        // segunda ventana que pida argumentos DISTINTOS de los del proceso que ya
+        // corre es rechazada: el WebView nace muerto y la ventana se va detrás,
+        // sin pasar por sus eventos. Es el issue 13092 de Tauri (y el 11144), y
+        // el síntoma es literalmente el de Munir: se popea y desaparece.
+        //
+        // Por eso esta ventana pide LOS MISMOS argumentos que la principal, y
+        // LEÍDOS de la configuración, no copiados a mano: si un día cambia el
+        // parámetro en `tauri.conf.json`, esto cambia solo y no vuelve a
+        // separarse. Fuera de Windows el método no existe y no hace falta.
+        #[cfg(windows)]
+        if let Some(args) = app_h
+            .config()
+            .app
+            .windows
+            .first()
+            .and_then(|w| w.additional_browser_args.clone())
+        {
+            b = b.additional_browser_args(&args);
         }
 
         let salida = match b.build() {

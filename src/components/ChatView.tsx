@@ -29,6 +29,7 @@ import {
   projectDirty,
   scanSessions,
   sessionContext,
+  type Account,
   type ContextInfo,
   type DirtyReport,
   type SessionInfo,
@@ -41,6 +42,9 @@ import { PROVIDERS, providerOf } from "../lib/providers";
 import { hueOf } from "../lib/colors";
 import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark from "./ProviderMark";
+import SkillsPanel from "./SkillsPanel";
+import ArchivosPanel from "./ArchivosPanel";
+import PanelDerecho, { type Cara } from "./PanelDerecho";
 import {
   ChatIcon,
   ChevronIcon,
@@ -59,6 +63,21 @@ interface Props {
   onResume: (s: SessionInfo) => void;
   /** El ＋ de siempre: elegir carpeta y herramienta. */
   onNueva: () => void;
+  /** Las cuentas de Claude, para el panel de la derecha. */
+  cuentas: Account[];
+  /** Qué panel de la derecha se ve. Lo lleva App porque es el mismo en las dos
+      vistas y hay dos instancias montadas a la vez. */
+  cara: Cara;
+  onCara: (c: Cara) => void;
+  /** La carpeta del explorador y qué hacer al abrir un archivo. Abrirlo lleva a
+      la Cabina, que es donde vive el mosaico. */
+  raizArchivos: string;
+  onAbrirArchivo: (ruta: string) => void;
+  /** Abrir la vista previa de la web. Igual que un archivo: lleva a la Cabina,
+      que es donde vive el mosaico. */
+  onWeb: () => void;
+  /** Teclear `/usage` en la conversación abierta y llevarte a verla. */
+  onUsage: (s: SessionInfo) => void;
 }
 
 /** Cada cuánto se relee la conversación abierta. El transcript lo escribe el
@@ -94,7 +113,18 @@ const CEREBROS: Array<{ id: ModelAlias; para: string }> = [
 // solo existen esos dos. Ahora salen TODOS los que de verdad tienen
 // conversaciones, y solo por su marca.
 
-export default function ChatView({ onEnviar, onResume, onNueva }: Props) {
+export default function ChatView({
+  onEnviar,
+  onResume,
+  onNueva,
+  cuentas,
+  cara,
+  onCara,
+  raizArchivos,
+  onAbrirArchivo,
+  onWeb,
+  onUsage,
+}: Props) {
   const { t } = useT();
   const [sesiones, setSesiones] = useState<SessionInfo[]>([]);
   const [cliente, setCliente] = useState<string>("claude");
@@ -211,6 +241,14 @@ export default function ChatView({ onEnviar, onResume, onNueva }: Props) {
     onEnviar(abierta, txt, modelo ?? undefined, esfuerzo ?? undefined);
     setTexto("");
   };
+
+  /** Una skill del panel de la derecha entra en la CAJA, no en la terminal.
+      En la Cabina se pega dentro del pane porque allí la conversación ES la
+      terminal; aquí todo lo que sale pasa antes por este cuadro, así que
+      dejarla donde estás escribiendo es lo que permite retocarla o añadirle
+      algo antes de mandarla. */
+  const meterSkill = (txt: string) =>
+    setTexto((v) => (!v ? txt : /\s$/.test(v) ? v + txt : `${v} ${txt}`));
 
   const pliega = (cajon: string) =>
     setPlegados((prev) => {
@@ -527,6 +565,27 @@ export default function ChatView({ onEnviar, onResume, onNueva }: Props) {
           </div>
         )}
       </main>
+
+      {/* ── Derecha: la misma barra que la Cabina ──────────────────────────
+          No es una copia: son los mismos componentes, y lo único que cambia
+          entre las dos vistas va por fuera (dónde cae la skill, y qué es «la
+          terminal» aquí). Sale de la decisión 5 del rumbo del 2026-08-13, que
+          pedía los paneles de la derecha en los DOS modos. */}
+      <PanelDerecho
+        cara={cara}
+        onCara={onCara}
+        onWeb={onWeb}
+        skills={
+          <SkillsPanel
+            canPaste={!!abierta}
+            onUse={meterSkill}
+            onUsage={abierta ? () => onUsage(abierta) : null}
+            cuentas={cuentas}
+            pista={t("Clic en una skill para meterla en la caja de escribir.")}
+          />
+        }
+        archivos={<ArchivosPanel raiz={raizArchivos} onAbrir={onAbrirArchivo} />}
+      />
     </div>
   );
 }

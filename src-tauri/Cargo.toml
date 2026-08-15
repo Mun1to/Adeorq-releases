@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.112"
+version = "0.9.113"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["you"]
 edition = "2021"
@@ -63,6 +63,13 @@ windows-sys = { version = "0.61.2", features = [
     # CreateToolhelp32Snapshot: quién cuelga de quién, para poder sumar lo que
     # gastan las terminales y sus agentes además de la ventana.
     "Win32_System_Diagnostics_ToolHelp",
+    # Meter la ventana del navegador DENTRO de la de Adeorq: SetParent,
+    # SetWindowPos, EnumWindows y compañía. Es reparenting entre procesos, que
+    # Windows permite desde siempre; ver `navegador.rs`.
+    "Win32_UI_WindowsAndMessaging",
+    # Leer del registro cuál es el navegador predeterminado del sistema, que es
+    # justo lo que Munir pidió: el SUYO, no uno elegido por nosotros.
+    "Win32_System_Registry",
     # Job Objects: el corral de `pty.rs`. Es lo que hace que un cierre ANORMAL
     # de Adeorq (colgada, matada desde el Administrador de tareas, caída) no
     # deje agentes sueltos: Windows los mata solo al morir la ventana.

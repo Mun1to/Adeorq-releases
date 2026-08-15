@@ -4755,112 +4755,129 @@ body {
   opacity: 0.55;
 }
 
-.skills {
+/* ── LA BARRA DE LA DERECHA ─────────────────────────────────────────────────
+   Una franja de iconos siempre visible y, a su izquierda, el panel abierto.
+   Hasta el 2026-08-15 aquí solo vivía Skills y plegarlo dejaba una franja con
+   el rótulo de canto; desde que hay más de un inquilino (Archivos), la franja
+   es donde se ELIGE cuál, con un icono por cara, como pidió Munir. */
+/* El panel y su franja van juntos en una sola caja: quien los monte solo tiene
+   que hacerle sitio a UNA cosa, y así valen igual dentro del flex de la Cabina
+   que dentro del grid del Chat. */
+.lateral-zona {
+  flex: none;
+  display: flex;
+  min-height: 0;
+  align-self: stretch;
+}
+
+.lateral {
   flex: none;
   width: 270px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 12px 10px;
+  min-height: 0;
   background: var(--panel);
   backdrop-filter: var(--glass-blur);
   border-left: 1px solid var(--border);
   box-shadow: var(--glass-edge);
 }
 
-/* Cerrada: la misma columna, estrechada a una franja de canto.
-   Es `.skills` otra vez, no una caja aparte, así que comparte el cristal, el
-   borde y la sombra del panel abierto y cerrar se ve como estrechar y no como
-   cambiar una cosa por otra. Munir la eligió entre cinco formas el 2026-08-10,
-   señalando esta y pidiendo la pestañita ARRIBA. */
-.skills-cerrada {
-  width: 34px;
-  align-items: center;
-  padding: 12px 4px 14px;
-  gap: 14px;
-  cursor: pointer;
-}
-
-/* El botón de abrir, ARRIBA del todo. No va centrado ni al pie: arriba es lo
-   primero que cae bajo el ojo al ir al borde derecho, y además queda a la
-   altura de la cabecera del panel que va a abrirse, así que al pulsarlo el
-   botón no se muda de sitio. */
-/* Con CAJA, no un icono suelto (Munir, 2026-08-10, señalando uno). Un chevron
-   a pelo sobre el cristal parece decoración; con su cuadrado redondeado, su
-   fondo y su borde se lee como lo que es, un botón que se pulsa.
-   Cuadrado y no círculo: la franja mide 34 con 4 de relleno a cada lado, así
-   que 26 es exactamente lo que cabe, y a ese tamaño un círculo se ve como una
-   pastilla suelta mientras que el cuadrado acompaña al borde de la franja. */
-.skills-abrir {
+.lateral-head {
   flex: none;
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--r-btn);
-  /* Se ACLARA sobre lo que haya detrás, no se oscurece. Tenía `--panel-solid`
-     al 72 %, que es un azul casi negro, y encima del cristal de la franja
-     quedaba un cuadrado NEGRO en vez del botón translúcido que Munir señaló
-     (2026-08-10). Un velo del color del texto sube el brillo en los temas
-     oscuros y lo baja en los claros, así que funciona en los treinta y dos. */
-  background: color-mix(in srgb, var(--text) 11%, transparent);
-  color: color-mix(in srgb, var(--text) 82%, var(--muted));
-  cursor: pointer;
-  box-shadow: var(--glass-edge);
-  transition:
-    background 0.12s ease,
-    border-color 0.12s ease,
-    color 0.12s ease;
-}
-
-.skills-abrir:hover {
-  background: color-mix(in srgb, var(--text) 19%, transparent);
-  border-color: var(--border-strong);
-  color: var(--text);
-}
-
-/* El chevron mira a la IZQUIERDA, que es por donde va a salir el panel.
-   `ChevronIcon` sabe apuntar arriba, abajo y a la derecha, así que se le da la
-   vuelta al de la derecha en vez de añadirle una cuarta dirección a un icono
-   que usa media app por una sola franja. */
-.skills-abrir > svg {
-  transform: scaleX(-1);
-}
-
-/* El rótulo se centra en lo que queda de alto, debajo del botón. */
-.skills-cerrada .skills-vertical {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-/* El rótulo, de canto porque la franja es más alta que ancha. Estaba a 11 px,
-   en gris apagado y en versalitas: era casi invisible, y es lo único que dice
-   qué hay ahí dentro con el panel cerrado. */
-.skills-vertical {
-  writing-mode: vertical-rl;
-  color: color-mix(in srgb, var(--text) 78%, var(--muted));
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.6px;
-}
-
-.skills-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 12px 12px 8px;
 }
 
-.skills-title {
+.lateral-title {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-weight: 600;
   font-size: 14px;
   color: var(--accent);
+}
+
+/* El cuerpo es quien manda en el alto: los paneles de dentro reparten con
+   `flex: 1` y su propio scroll, así que esto NO puede crecer con ellos. */
+.lateral-cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 12px 10px;
+  overflow: hidden;
+}
+
+/* La franja. Siempre está, con el panel abierto o cerrado: es lo que permite
+   volver. Un panel que al cerrarse no deja nada en pantalla se pierde. */
+.franja {
+  flex: none;
+  width: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--glass-edge);
+}
+
+.franja-btn {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: transparent;
+  color: color-mix(in srgb, var(--text) 76%, var(--muted));
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.franja-btn:hover {
+  background: color-mix(in srgb, var(--text) 13%, transparent);
+  color: var(--text);
+}
+
+.franja-btn[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* Lo que abre un panel AQUÍ y lo que abre uno en el mosaico, separados por una
+   raya. Sin ella, el botón de la web parece una cara más de esta barra y luego
+   no lo es. */
+.franja-raya {
+  flex: none;
+  width: 16px;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--border);
+}
+
+/* La marca de cuál está abierto, pegada al borde de la ventana. Es lo que hace
+   que la franja se lea como pestañas y no como botones sueltos. */
+.franja-btn[data-on="true"]::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  width: 2px;
+  height: 18px;
+  border-radius: 2px 0 0 2px;
+  background: var(--accent);
 }
 
 .skills-hint {
@@ -4919,6 +4936,383 @@ body {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ── EL ÁRBOL DE ARCHIVOS ───────────────────────────────────────────────────
+   Lee una carpeta cada vez, así que la lista crece y encoge al desplegar: el
+   scroll es suyo y no de la barra entera. */
+.arch {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* De qué proyecto son estos archivos. No es un selector: lo decide la terminal
+   que tengas delante, y por eso se lee y no se pulsa. */
+.arch-raiz {
+  flex: none;
+  padding: 4px 8px;
+  border-radius: var(--r-btn);
+  background: var(--row);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arch-arbol {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 -6px;
+}
+
+.arch-fila {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 25px;
+  padding-right: 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.arch-fila:hover {
+  background: var(--row);
+}
+
+.arch-fila[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* El hueco del chevron se reserva SIEMPRE, lo tenga o no: si solo lo ocuparan
+   las carpetas, los archivos de un mismo nivel saldrían 13 px a la izquierda y
+   el árbol dejaría de leerse como columnas. */
+.arch-ico {
+  flex: none;
+  width: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.arch-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arch-fila[data-carpeta="true"] .arch-nom {
+  font-weight: 560;
+}
+
+.arch-fila[data-carpeta="false"] .arch-nom {
+  color: color-mix(in srgb, var(--text) 82%, var(--muted));
+}
+
+.arch-vacio {
+  margin: 8px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ── UN ARCHIVO ABIERTO EN EL MOSAICO ───────────────────────────────────────
+   Es un `.pane` de verdad, así que hereda su cristal, su cabecera y su borde de
+   enfocado: para el mosaico esto es un panel más. */
+.pane-archivo {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Lo que se ha tocado y no se ha guardado. Un punto y no un rótulo: en la
+   cabecera de un panel estrecho no cabe una palabra más. */
+.pane-sucio {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--ask);
+  vertical-align: middle;
+}
+
+.pane-sub {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.pane-chip {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--row);
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El aviso de que un agente te ha cambiado el archivo por debajo. Es la razón
+   de ser de este editor dentro de un ADE, así que no es un `toast` que se va
+   solo: se queda hasta que decidas, y con las dos salidas a la vista. */
+.ed-aviso {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--ask) 22%, var(--panel));
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ed-aviso > span {
+  flex: 1;
+}
+
+.ed-pisar {
+  color: var(--wait);
+}
+
+.ed-nota {
+  margin: 0;
+  padding: 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ── LA VISTA PREVIA DE LA WEB ──────────────────────────────────────────────
+   Lo de dentro (la barra de puertos, el iframe, el aviso de las que no se
+   dejan empotrar) es lo mismo que en el lienzo y usa sus clases `.web-*`: aquí
+   solo cambia el marco, que es el de un panel del mosaico. */
+.pane-web {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* La dirección ocupa la zona de la identidad entera: en un panel, la barra de
+   direcciones ES el título. */
+.pane-web .ph-id > .web-url {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Con TU navegador aquí no se pinta la página: esto es solo el hueco que se
+   mide para colocar una ventana de Windows encima. Se deja a cuadros muy
+   suaves para que, si algo va mal y la ventana no aparece, se vea que el sitio
+   está reservado y no que el panel se ha quedado en blanco. */
+.web-tuyo {
+  display: grid;
+  place-items: center;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--text) 3%, transparent) 0 8px,
+      transparent 8px 16px
+    );
+}
+
+/* ── LAS PESTAÑAS ───────────────────────────────────────────────────────────
+   Como las de un navegador, que es como Munir las pidió (2026-08-15, con una
+   captura de una). Solo salen con dos archivos o más. */
+.ed-pestanas {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 3px 6px 0;
+  background: color-mix(in srgb, var(--panel-head) 70%, transparent);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.ed-pest {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ed-pest:hover {
+  background: var(--row);
+  color: var(--text);
+}
+
+/* La activa se come la línea de abajo, así que su papel y el del código se leen
+   como el mismo. Es el truco de siempre de las pestañas, y sin él parecen
+   botones puestos encima. */
+.ed-pest[data-on="true"] {
+  background: var(--pane-bg);
+  border-color: var(--border);
+  color: var(--text);
+  margin-bottom: -1px;
+  padding-bottom: 6px;
+}
+
+.ed-pest-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-nom {
+  font-style: italic;
+}
+
+.ed-pest-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.ed-pest:hover .ed-pest-x,
+.ed-pest[data-on="true"] .ed-pest-x {
+  opacity: 0.7;
+}
+
+.ed-pest-x:hover {
+  background: var(--row-hover);
+  opacity: 1;
+}
+
+/* Sin guardar: un punto en vez de la ✕, y la ✕ vuelve al pasar el ratón. Así
+   cerrar sin querer algo a medias cuesta un gesto más. */
+.ed-pest[data-sucia="true"] .ed-pest-x::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ask);
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-x {
+  position: relative;
+  opacity: 1;
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-x > svg {
+  opacity: 0;
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-x:hover::after {
+  display: none;
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-x:hover > svg {
+  opacity: 1;
+}
+
+/* ── UNA HOJA ───────────────────────────────────────────────────────────────
+   Todas montadas y solo se ve la activa. Desmontar la que no miras perdería su
+   texto sin guardar, su cursor y su deshacer, que es lo que una pestaña
+   promete conservar. Apiladas con `position: absolute` y no con `display`
+   porque una caja sin medidas hace que CodeMirror se pinte con una línea de
+   alto al volver. */
+/* El hueco que sobra bajo la cabecera y las pestañas. Es él quien tiene la
+   medida, así que las hojas se apilan dentro sin que nadie tenga que saber
+   cuánto miden las dos barras de arriba. */
+.ed-hojas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.ed-hoja {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ed-hoja[data-visible="false"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* La caja de CodeMirror. El editor pone su propio scroll dentro, así que aquí
+   solo hace falta darle el hueco y que no se desborde. */
+.ed-caja {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ed-caja .cm-editor {
+  height: 100%;
+}
+
+.ed-pie {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* La ruta dentro del proyecto. Es lo único del pie que puede ser largo, así
+   que es lo único que cede sitio. */
+.ed-ruta {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.ed-atajo {
+  flex: none;
+  opacity: 0.75;
 }
 
 /* Floating overlay container: alerts/asks/notes sit over the terminal without resizing .pane-term */
@@ -17483,11 +17877,21 @@ textarea.note-body {
    traducido a la firma de la casa: cristal sobre la foto, no un panel opaco.
    Dos columnas de las que solo una scrollea a la vez, porque el chat es lo
    único de la app donde el contenido crece solo mientras lo miras. */
+/* Tres columnas desde el 2026-08-15: la lista, el hilo y el panel de skills y
+   uso, que ya no es solo de la Cabina. La tercera va en `auto` y no en un ancho
+   escrito porque ese panel tiene DOS anchos (270 abierto, 34 plegado) y quien
+   los decide es él: repetirlos aquí sería tener dos sitios que se separan en
+   cuanto uno cambie. */
 .chat-view {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 288px 1fr;
+  grid-template-columns: 288px minmax(0, 1fr) auto;
+  /* La fila, acotada. Sin esto mide lo que mida el hijo más alto, y el panel de
+     la derecha crece con las skills que haya en el disco: con bastantes, el
+     chat entero se estiraba por debajo de la ventana en vez de darle su propia
+     barra a la lista. */
+  grid-template-rows: minmax(0, 1fr);
 }
 
 /* ── Izquierda: las conversaciones ──────────────────────────────────────── */

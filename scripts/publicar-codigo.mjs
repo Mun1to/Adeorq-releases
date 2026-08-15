@@ -31,6 +31,11 @@ const FUERA = [
   "BUZON.md",
   "docs/METAS.md",
   "docs/MEJORAS.md",
+  // Es el plano del explorador de archivos, y la primera mitad es lo que hace
+  // cada competidor y qué le copiamos: mismo tipo de contenido que MEJORAS.md,
+  // así que mismo sitio. Los otros docs de diseño (CHAT, SUPREMA) sí salen
+  // porque explican cómo funciona el producto, no contra quién compite.
+  "docs/ARCHIVOS.md",
   "docs/EMISION.md",
   "web/DISENO.md",
 ];

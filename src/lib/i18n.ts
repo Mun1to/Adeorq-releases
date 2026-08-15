@@ -620,6 +620,33 @@ const EN: Record<string, string> = {
   "Buscar skill": "Search skill",
   "Arrastra uno sobre una terminal para pegarlo, o clic para mandarlo al pane activo.":
     "Drag one onto a terminal to paste it, or click to send it to the active pane.",
+  "Clic en una skill para meterla en la caja de escribir.":
+    "Click a skill to drop it into the message box.",
+
+  // Archivos ("Guardando…" y "Skills · Uso" ya estaban más abajo)
+  Archivos: "Files",
+  "Ver la web en un panel (localhost)": "See the site in a pane (localhost)",
+  "Abrirla en TU navegador, aquí dentro (con tus extensiones y tus sesiones)":
+    "Open it in YOUR browser, right here (with your extensions and sessions)",
+  "Estás viendo tu navegador. Pulsa para volver al de dentro.":
+    "You are looking at your own browser. Click to go back to the built-in one.",
+  "Abriendo tu navegador…": "Opening your browser…",
+  "No se pudo meter tu navegador aquí": "Your browser could not be brought in here",
+  "Usar el de dentro": "Use the built-in one",
+  "Abre un proyecto para ver sus archivos.": "Open a project to see its files.",
+  "Esta carpeta está vacía.": "This folder is empty.",
+  "{n} líneas": "{n} lines",
+  "Releer del disco": "Reload from disk",
+  "Sin guardar": "Unsaved",
+  Guardado: "Saved",
+  "Ctrl+S para guardar": "Ctrl+S to save",
+  "Alguien ha cambiado este archivo mientras lo tenías abierto. No se ha guardado nada.":
+    "Someone changed this file while you had it open. Nothing was saved.",
+  "Traer lo nuevo": "Take theirs",
+  "Guardar lo mío encima": "Save mine over it",
+  "Este archivo pesa {p}. No se abre entero para que la app no se atasque.":
+    "This file is {p}. It is not opened whole so the app does not choke.",
+  "Esto no es texto: son {p} de datos.": "This is not text: {p} of data.",
 
   // Foreman
   "✦ Capataz": "✦ Foreman",

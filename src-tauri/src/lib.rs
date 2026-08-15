@@ -1,4 +1,5 @@
 mod accounts;
+mod archivos;
 mod autostart;
 mod crew;
 mod discord;
@@ -11,6 +12,7 @@ mod pulso;
 mod inbox;
 mod manage;
 mod media;
+mod navegador;
 mod memoria;
 mod metas;
 mod notes;
@@ -264,6 +266,13 @@ pub fn run() {
             suelta::raton_en_pantalla,
             suelta::devolver_panel,
             suelta::datos_panel,
+            navegador::empotrar_navegador,
+            navegador::mover_navegador,
+            navegador::ver_navegador,
+            navegador::soltar_navegador,
+            archivos::listar_carpeta,
+            archivos::leer_archivo,
+            archivos::guardar_archivo,
             esquema::escanear_arbol,
             esquema::resumen_taller,
             esquema::mapa_guardado,
@@ -397,6 +406,10 @@ pub fn run() {
             // abrir aparecían «todavía activos» sin panel al que pertenecer.
             if matches!(event, tauri::RunEvent::Exit) {
                 pty::kill_all(app);
+                // Y las ventanas de navegador que estuvieran metidas dentro se
+                // devuelven al escritorio con su marco. Si no, se quedarían
+                // colgando de una ventana que está a punto de no existir.
+                navegador::soltar_todas();
             }
         });
 }

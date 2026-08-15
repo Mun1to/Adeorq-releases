@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import Sidebar from "./components/Sidebar";
 import SkillsPanel from "./components/SkillsPanel";
+import ArchivosPanel from "./components/ArchivosPanel";
+import PanelDerecho, { type Cara } from "./components/PanelDerecho";
+import EditorPane from "./components/EditorPane";
+import WebPane from "./components/WebPane";
 import TerminalPane, { FONDO_EVENTO, SOLTADO_EVENTO } from "./components/TerminalPane";
 import PanelView from "./components/PanelView";
 import Foreman, { type ForemanExec } from "./components/Foreman";
@@ -120,6 +124,7 @@ import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
 import { exigenciaDeRol, modoAviso, recetar } from "./lib/router";
 import { cerebroPorDefecto } from "./lib/models";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
+import { nombreDeRuta } from "./lib/arbol";
 import { fotoRapida, parteDelEquipo } from "./lib/mundo";
 import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
@@ -163,6 +168,17 @@ interface Pane {
       que estás usando y apartar los demás sin cerrarlos. */
   grupo?: string;
   shadow?: boolean;
+  /** Si esto está puesto, el hueco no es una terminal: son ESOS archivos
+      abiertos, con pestañas. Munir eligió esta colocación tocando un prototipo
+      el 2026-08-15, y el motivo es su propio eje: el archivo se queda al lado
+      del agente que lo está escribiendo. Todo lo que trata un pane como un
+      proceso (matarlo, medir su RAM, leerle el estado) se lo encuentra vacío y
+      no pasa nada: preguntar por un id que no tiene proceso ya devolvía nada. */
+  archivos?: string[];
+  /** Cuál de ellos se está viendo. */
+  activo?: string;
+  /** Y si esto está puesto, el hueco es una vista previa de esa dirección. */
+  web?: string;
 }
 
 /** Una cuadrilla: varias terminales repartiéndose una sola tarea. */
@@ -231,6 +247,12 @@ const OPEN_ALL_STAGGER_MS = 350;
 const SIDEBAR_KEY = "adeorq-sidebar-w";
 const STREAM_KEY = "adeorq-stream";
 const OBJETIVOS_KEY = "adeorq-objetivos-abierto";
+/** Qué panel de la derecha se está viendo, o vacío si solo está la franja de
+    iconos. Vive aquí y no dentro del panel porque desde el 2026-08-15 se monta
+    dos veces, en la Cabina y en el Chat, y la de la Cabina no se desmonta al
+    cambiar de vista: con un estado por instancia, cerrarlo en una dejaba la
+    otra abierta. */
+const LATERAL_KEY = "adeorq-lateral";
 const FONT_KEY = "adeorq-term-font";
 const AUTOFONT_KEY = "adeorq-term-autofont";
 const OPENALL_KEY = "adeorq-open-all";
@@ -267,6 +289,12 @@ interface SavedPane {
       aparte, porque los ids se reparten de nuevo en cada arranque y una lista
       de números viejos apartaría terminales al azar. */
   minimizado?: boolean;
+  /** No era una terminal, eran estos archivos. Vuelven abiertos donde estaban,
+      que cuesta lo mismo que olvidarlos y evita tener que buscarlos otra vez. */
+  archivos?: string[];
+  activo?: string;
+  /** Era una vista previa de esta dirección. */
+  web?: string;
 }
 
 /** The whole board: which panes, and the mosaic they were arranged in. */
@@ -822,6 +850,29 @@ function App() {
     () => ({ panes: panes.length, project: focusProject, stream }),
     [panes.length, focusProject, stream],
   );
+
+  /* Qué carpeta enseña el explorador de la derecha: la de la terminal que
+     tienes delante. Es el eje de Adeorq aplicado a los archivos («gana por
+     saber dónde estás»): no hay que elegir proyecto en ningún desplegable,
+     porque ya lo elegiste al ponerte delante de una terminal.
+     Un pane de ARCHIVO no manda aquí, y por eso solo cuentan los que tienen
+     proceso: si mandara, abrir un archivo del árbol cambiaría la raíz de ese
+     mismo árbol y perderías de vista de dónde había salido. */
+  const [raizArchivos, setRaizArchivos] = useState(() => raiz());
+  useEffect(() => {
+    const foco = panes.find((p) => p.id === focusedId && !p.archivos && p.web == null);
+    if (foco?.cwd) {
+      setRaizArchivos(foco.cwd);
+      return;
+    }
+    // Sin terminal enfocada solo se estrena, y nunca en blanco: con la Cabina
+    // vacía se enseña la carpeta de los proyectos, que es de donde salen todos.
+    // Un panel que dice «abre un proyecto» teniéndolos ahí al lado no sirve de
+    // nada (Munir, 2026-08-15).
+    setRaizArchivos((prev) => prev || panes.find((p) => !p.archivos && p.web == null)?.cwd || raiz());
+  }, [panes, focusedId]);
+  const raizArchivosRef = useRef("");
+  raizArchivosRef.current = raizArchivos;
   useDiscordPresence(discord, presence, setDiscordError, lang);
 
   // Theme lives on <html> so it also tints things rendered outside .app.
@@ -1597,6 +1648,15 @@ function App() {
       // Por si acaso llegara dos veces: un panel duplicado en la lista son dos
       // terminales pintando el mismo proceso y el teclado yendo por duplicado.
       setPanes((prev) => (prev.some((x) => x.id === id) ? prev : [...prev, p]));
+      // Y hay que devolverle su hueco en el mosaico. Un panel que está en la
+      // lista pero no en ninguna columna no se pinta (el render lo salta si no
+      // tiene sitio), así que sin esto la terminal volvía a existir y no se
+      // veía por ninguna parte.
+      setCols((prev) =>
+        prev.some((c) => c.panes.includes(id))
+          ? prev
+          : layoutAdd(prev, id, () => nextCol.current++),
+      );
     });
     return () => {
       vivo = false;
@@ -1857,7 +1917,16 @@ function App() {
       .then(() => {
         // Si mientras se abría la ventana ya llegó su aviso de vuelta, el panel
         // ya no está apuntado: entonces NO se quita del tablero, porque volvió.
-        if (fueraRef.current.has(id)) setPanes((prev) => prev.filter((x) => x.id !== id));
+        if (fueraRef.current.has(id)) {
+          setPanes((prev) => prev.filter((x) => x.id !== id));
+          // Y su hueco del mosaico, TAMBIÉN. Sin esta línea el panel se iba de
+          // la lista pero su sitio seguía reservado, así que quedaba un
+          // agujero transparente donde antes había una terminal y las demás no
+          // se repartían el espacio. Es lo que Munir contó con estas palabras:
+          // «queda como su hueco, pero está invisible» (2026-08-15). `cerrar`
+          // ya lo hacía desde siempre; sacar se lo dejó.
+          setCols((prev) => layoutRemove(prev, id));
+        }
       })
       .catch((e) => {
         // No salió: se deshace todo o esa terminal se quedaría sin poder
@@ -1892,6 +1961,125 @@ function App() {
     setCols((prev) => layoutRemove(prev, id));
     setMaximizedId((m) => (m === id ? null : m));
     setFocusedId((f) => (f === id ? null : f));
+  }, []);
+
+  /**
+   * Abrir un archivo del explorador.
+   *
+   * Va como PESTAÑA al panel de archivos que ya tengas, y solo se crea uno
+   * nuevo si no hay ninguno. Un panel por archivo parte el mosaico en cuatro al
+   * tercero, y entonces ni se lee el código ni se ven las terminales.
+   *
+   * Si ese archivo ya está abierto en algún sitio NO se duplica: se enfoca el
+   * que hay. Dos hojas del mismo archivo serían dos textos distintos del mismo
+   * sitio, y la segunda que guardara pisaría a la primera sin que ninguna
+   * avisara, que es justo lo que este panel existe para evitar.
+   */
+  const abrirArchivo = useCallback((ruta: string) => {
+    setView("cabina");
+    const paneles = panesRef.current;
+
+    const yaAbierto = paneles.find((p) => p.archivos?.includes(ruta));
+    if (yaAbierto) {
+      setPanes((prev) =>
+        prev.map((p) => (p.id === yaAbierto.id ? { ...p, activo: ruta } : p)),
+      );
+      setFocusedId(yaAbierto.id);
+      return;
+    }
+
+    // El que tengas delante manda; si el foco está en una terminal, el primero
+    // que haya. Así abrir dos archivos seguidos no los reparte por el mosaico.
+    const destino =
+      paneles.find((p) => p.id === focusedIdRef2.current && p.archivos) ??
+      paneles.find((p) => p.archivos);
+    if (destino) {
+      setPanes((prev) =>
+        prev.map((p) =>
+          p.id === destino.id
+            ? { ...p, archivos: [...(p.archivos ?? []), ruta], activo: ruta }
+            : p,
+        ),
+      );
+      setFocusedId(destino.id);
+      return;
+    }
+
+    const id = nextId.current++;
+    setPanes((prev) => [
+      ...prev,
+      {
+        id,
+        cwd: raizArchivosRef.current,
+        name: nombreDeRuta(ruta),
+        archivos: [ruta],
+        activo: ruta,
+      },
+    ]);
+    setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
+    setFocusedId(id);
+  }, []);
+
+  /** Cerrar UNA pestaña. Con la última se va el panel entero: un panel de
+      archivos vacío es un hueco del mosaico que no enseña nada. */
+  const cerrarPestana = useCallback(
+    (paneId: number, ruta: string) => {
+      const p = panesRef.current.find((x) => x.id === paneId);
+      const antes = p?.archivos ?? [];
+      const quedan = antes.filter((a) => a !== ruta);
+      if (!quedan.length) {
+        closePane(paneId);
+        return;
+      }
+      // La de al lado, como en cualquier navegador: cerrar no debe dejarte
+      // mirando a otra cosa si todavía queda algo abierto.
+      const donde = Math.min(antes.indexOf(ruta), quedan.length - 1);
+      setPanes((prev) =>
+        prev.map((x) =>
+          x.id === paneId
+            ? {
+                ...x,
+                archivos: quedan,
+                activo: x.activo === ruta ? quedan[donde] : x.activo,
+                name: nombreDeRuta(quedan[donde]),
+              }
+            : x,
+        ),
+      );
+    },
+    [closePane],
+  );
+
+  /**
+   * La vista previa de la web, en un hueco del mosaico.
+   *
+   * Si ya hay una, se enfoca en vez de abrir otra: dos vistas de la misma
+   * página son dos iframes pidiendo lo mismo al mismo servidor de desarrollo,
+   * y ninguna de las dos dice nada que no diga la otra.
+   */
+  const abrirWeb = useCallback(() => {
+    setView("cabina");
+    const ya = panesRef.current.find((p) => p.web != null);
+    if (ya) {
+      setFocusedId(ya.id);
+      return;
+    }
+    const id = nextId.current++;
+    setPanes((prev) => [
+      ...prev,
+      { id, cwd: raizArchivosRef.current, name: "localhost", web: "http://localhost:1420" },
+    ]);
+    setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
+    setFocusedId(id);
+  }, []);
+
+  /** Cambiar de pestaña dentro de un panel de archivos. */
+  const activarPestana = useCallback((paneId: number, ruta: string) => {
+    setPanes((prev) =>
+      prev.map((p) =>
+        p.id === paneId ? { ...p, activo: ruta, name: nombreDeRuta(ruta) } : p,
+      ),
+    );
   }, []);
 
   /**
@@ -2096,6 +2284,9 @@ function App() {
         team: pane.team,
         grupo: pane.grupo,
         minimizado: minimizados.has(pane.id) || undefined,
+        archivos: pane.archivos,
+        activo: pane.activo,
+        web: pane.web,
       });
     });
     const layout: SavedLayout = {
@@ -2138,6 +2329,37 @@ function App() {
       const ids: number[] = [];
       for (const pane of saved.panes) {
         if (cancelled) return;
+        // Un archivo abierto vuelve tal cual: no hay conversación que retomar
+        // ni proceso que arrancar, así que tampoco hace falta el respiro entre
+        // uno y otro (eso es para que no arranquen doce CLIs a la vez).
+        if (pane.web != null) {
+          const id = nextId.current++;
+          ids.push(id);
+          setPanes((prev) => [...prev, { id, cwd: pane.cwd, name: pane.name, web: pane.web }]);
+          if (pane.minimizado) setMinimizados((prev) => new Set(prev).add(id));
+          setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
+          setRestoring((n) => n - 1);
+          continue;
+        }
+        if (pane.archivos?.length) {
+          const abiertos = pane.archivos;
+          const id = nextId.current++;
+          ids.push(id);
+          setPanes((prev) => [
+            ...prev,
+            {
+              id,
+              cwd: pane.cwd,
+              name: pane.name,
+              archivos: abiertos,
+              activo: pane.activo ?? abiertos[0],
+            },
+          ]);
+          if (pane.minimizado) setMinimizados((prev) => new Set(prev).add(id));
+          setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
+          setRestoring((n) => n - 1);
+          continue;
+        }
         const command = await resumeCommandFor(pane);
         const id = nextId.current++;
         ids.push(id);
@@ -2317,6 +2539,30 @@ function App() {
     void writePty(focusedId, "/usage\r").catch(() => {});
     setView("cabina");
   }, [focusedId]);
+
+  /* Qué panel de la derecha se ve. Una sola verdad para las dos vistas: ver
+     `LATERAL_KEY` arriba. La clave vieja (`adeorq-skills-open`) se lee una
+     única vez para que quien lo tenía cerrado no se lo encuentre abierto. */
+  const [cara, setCara] = useState<Cara>(() => {
+    const guardada = localStorage.getItem(LATERAL_KEY);
+    if (guardada != null) return guardada as Cara;
+    return localStorage.getItem("adeorq-skills-open") === "0" ? "" : "skills";
+  });
+  const cambiarCara = useCallback((c: Cara) => {
+    localStorage.setItem(LATERAL_KEY, c);
+    setCara(c);
+  }, []);
+
+  /* Lo mismo que `askUsage` pero desde el Chat, donde no hay pane enfocado: la
+     conversación que estás leyendo ES la sesión, así que el comando va a la
+     suya y te lleva a la Cabina, que es donde se ve la tarjeta. */
+  const usageDeSesion = useCallback(
+    (s: SessionInfo) => {
+      enviarAlChat(s, "/usage");
+      setView("cabina");
+    },
+    [enviarAlChat],
+  );
 
   // Moving a pane: pointer-driven, because HTML5 drag never reaches the page
   // here. Press the header, drag over another pane, release: they swap.
@@ -3078,6 +3324,52 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                       width: `${r!.w * 100}%`,
                       height: `${r!.h * 100}%`,
                     };
+                // No es una terminal, es un archivo abierto. Ocupa el mismo
+                // hueco y se mueve, maximiza y cierra igual: para el mosaico es
+                // un panel más, que es justo lo que Munir eligió.
+                if (p.web != null) {
+                  return (
+                    <WebPane
+                      key={p.id}
+                      id={p.id}
+                      url={p.web}
+                      focused={focusedId === p.id}
+                      hidden={escondido || (maximizedId != null && !max)}
+                      maximized={max}
+                      style={style}
+                      onFocusPane={setFocusedId}
+                      onClose={closePane}
+                      onToggleMax={onToggleMax}
+                      onHeaderDown={onHeaderDown}
+                      onUrl={(paneId, url) =>
+                        setPanes((prev) =>
+                          prev.map((x) => (x.id === paneId ? { ...x, web: url } : x)),
+                        )
+                      }
+                    />
+                  );
+                }
+                if (p.archivos?.length) {
+                  return (
+                    <EditorPane
+                      key={p.id}
+                      id={p.id}
+                      archivos={p.archivos}
+                      activo={p.activo ?? p.archivos[0]}
+                      raiz={p.cwd}
+                      focused={focusedId === p.id}
+                      hidden={escondido || (maximizedId != null && !max)}
+                      maximized={max}
+                      style={style}
+                      onFocusPane={setFocusedId}
+                      onClose={closePane}
+                      onToggleMax={onToggleMax}
+                      onHeaderDown={onHeaderDown}
+                      onActivar={(ruta) => activarPestana(p.id, ruta)}
+                      onCerrarPestana={(ruta) => cerrarPestana(p.id, ruta)}
+                    />
+                  );
+                }
                 return (
                   <TerminalPane
                     key={p.id}
@@ -3220,11 +3512,25 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
             </div>
           )}
         </div>
-        <SkillsPanel
-          canPaste={focusedId != null}
-          onUse={pasteToFocused}
-          onUsage={focusedId != null ? askUsage : null}
-          cuentas={cuentasConCuota}
+        <PanelDerecho
+          cara={cara}
+          onCara={cambiarCara}
+          onWeb={abrirWeb}
+          skills={
+            <SkillsPanel
+              canPaste={focusedId != null}
+              onUse={pasteToFocused}
+              onUsage={focusedId != null ? askUsage : null}
+              cuentas={cuentasConCuota}
+            />
+          }
+          archivos={
+            <ArchivosPanel
+              raiz={raizArchivos}
+              onAbrir={abrirArchivo}
+              abierto={panes.find((p) => p.id === focusedId)?.activo ?? null}
+            />
+          }
         />
       </div>
 
@@ -3290,7 +3596,18 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           pestaña porque no tiene nada vivo dentro: lo que corre son las
           terminales de la Cabina, que siguen en pie donde estaban. */}
       {view === "chat" && (
-        <ChatView onEnviar={enviarAlChat} onResume={onResume} onNueva={() => setWizard(true)} />
+        <ChatView
+          onEnviar={enviarAlChat}
+          onResume={onResume}
+          onNueva={() => setWizard(true)}
+          cuentas={cuentasConCuota}
+          cara={cara}
+          onCara={cambiarCara}
+          raizArchivos={raizArchivos}
+          onAbrirArchivo={abrirArchivo}
+          onWeb={abrirWeb}
+          onUsage={usageDeSesion}
+        />
       )}
       {view === "agenda" && (
         <AgendaView

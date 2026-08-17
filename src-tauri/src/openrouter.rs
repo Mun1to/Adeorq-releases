@@ -81,6 +81,91 @@ pub fn openrouter_forget() -> Result<(), String> {
     secrets::forget(CLAVE)
 }
 
+/* ── La voz del Asistente ─────────────────────────────────────────────────
+   Munir lo pidió el 2026-08-17: «podríamos utilizar Grok TTS, tengo 10$ en
+   OpenRouter, para el Asistente». Va por aquí y no por el front porque la
+   clave no sale de Rust (la regla de este módulo), y porque OpenRouter ya es
+   un vecino conocido: mismo host, misma cabecera, mismo reqwest. */
+
+/// Las voces que Grok ofrece hoy. La primera es la de la casa.
+pub const VOCES: [&str; 5] = ["Eve", "Ara", "Rex", "Sal", "Leo"];
+
+/// El texto dicho en alto: mp3 como data URL, listo para un `<audio>` sin
+/// pasar por archivos temporales. El modelo admite 15.000 caracteres por
+/// petición; se recorta bastante antes porque una respuesta del Asistente que
+/// no cabe en 4.000 tampoco se iba a escuchar entera.
+#[tauri::command]
+pub async fn tts_hablar(texto: String, voz: Option<String>) -> Result<String, String> {
+    let Some(key) = secrets::get(CLAVE) else {
+        return Err("no hay clave de OpenRouter guardada (Cuentas › OpenRouter)".into());
+    };
+    let bytes = decir(&key, &texto, voz.as_deref()).await?;
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    Ok(format!("data:audio/mpeg;base64,{}", STANDARD.encode(&bytes)))
+}
+
+async fn decir(key: &str, texto: &str, voz: Option<&str>) -> Result<Vec<u8>, String> {
+    let texto = texto.trim();
+    if texto.is_empty() {
+        return Err("nada que decir".into());
+    }
+    let texto: String = texto.chars().take(4000).collect();
+    let voz = voz
+        .filter(|v| VOCES.contains(v))
+        .unwrap_or(VOCES[0]);
+    let client = reqwest::Client::builder()
+        // Generar audio tarda más que leer una clave: minuto de margen.
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let res = client
+        .post("https://openrouter.ai/api/v1/audio/speech")
+        .header("Authorization", format!("Bearer {key}"))
+        .json(&serde_json::json!({
+            "model": "x-ai/grok-voice-tts-1.0",
+            "input": texto,
+            "voice": voz,
+            "response_format": "mp3",
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("no he podido hablar con OpenRouter: {e}"))?;
+    if !res.status().is_success() {
+        let code = res.status();
+        let cuerpo = res.text().await.unwrap_or_default();
+        let corto: String = cuerpo.chars().take(200).collect();
+        return Err(format!("OpenRouter devolvió {code}: {corto}"));
+    }
+    res.bytes()
+        .await
+        .map(|b| b.to_vec())
+        .map_err(|e| format!("no he podido bajar el audio: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Contra OpenRouter DE VERDAD, con la clave guardada en esta máquina.
+    /// Gasta unos céntimos, por eso va con #[ignore]:
+    /// `cargo test la_voz_de_verdad -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn la_voz_de_verdad() {
+        let Some(key) = secrets::get(CLAVE) else {
+            eprintln!("sin clave de OpenRouter en esta máquina: nada que probar");
+            return;
+        };
+        let bytes = tauri::async_runtime::block_on(decir(&key, "Klk Munito, la voz ya está puesta.", Some("Eve")))
+            .expect("la llamada de voz falló");
+        // mp3 de verdad: etiqueta ID3 o cabecera de frame MPEG.
+        let es_mp3 = bytes.starts_with(b"ID3") || (bytes.len() > 2 && bytes[0] == 0xFF);
+        assert!(es_mp3, "lo que volvió no parece un mp3 ({} bytes)", bytes.len());
+        assert!(bytes.len() > 4_000, "un audio dicho no puede pesar {} bytes", bytes.len());
+        eprintln!("VOZ OK: {} bytes de mp3", bytes.len());
+    }
+}
+
 async fn pedir(key: &str) -> Result<Datos, String> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(15))

@@ -44,6 +44,7 @@ import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark from "./ProviderMark";
 import SkillsPanel from "./SkillsPanel";
 import ArchivosPanel from "./ArchivosPanel";
+import ActividadPanel from "./ActividadPanel";
 import PanelDerecho, { type Cara } from "./PanelDerecho";
 import {
   ChatIcon,
@@ -585,6 +586,13 @@ export default function ChatView({
           />
         }
         archivos={<ArchivosPanel raiz={raizArchivos} onAbrir={onAbrirArchivo} />}
+        actividad={
+          <ActividadPanel
+            cwd={abierta?.cwd ?? null}
+            sessionId={abierta?.id ?? null}
+            nombre={abierta?.title || null}
+          />
+        }
       />
     </div>
   );

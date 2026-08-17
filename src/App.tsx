@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import SkillsPanel from "./components/SkillsPanel";
 import ArchivosPanel from "./components/ArchivosPanel";
 import PanelDerecho, { type Cara } from "./components/PanelDerecho";
+import ActividadPanel from "./components/ActividadPanel";
 import EditorPane from "./components/EditorPane";
 import WebPane from "./components/WebPane";
 import TerminalPane, { FONDO_EVENTO, SOLTADO_EVENTO } from "./components/TerminalPane";
@@ -3655,6 +3656,21 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
               abierto={panes.find((p) => p.id === focusedId)?.activo ?? null}
             />
           }
+          actividad={(() => {
+            // La terminal que tienes delante; si el foco está en un editor o
+            // en la web, la primera terminal, que algo es mejor que un panel
+            // en blanco pidiendo que enfoques.
+            const p =
+              panes.find((x) => x.id === focusedId && !x.archivos && x.web == null) ??
+              panes.find((x) => !x.archivos && x.web == null);
+            return (
+              <ActividadPanel
+                cwd={p?.cwd ?? null}
+                sessionId={p ? sessionIdOf(p.command) : null}
+                nombre={p?.name ?? null}
+              />
+            );
+          })()}
         />
       </div>
 

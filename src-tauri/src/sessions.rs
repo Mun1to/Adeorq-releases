@@ -1678,6 +1678,216 @@ pub async fn session_messages(
     Ok(turnos_de(&lineas, max.unwrap_or(60)))
 }
 
+/* ── La actividad de una sesión: lo que pasa por detrás de la terminal ────
+   Munir lo pidió el 2026-08-17: «una pestaña a la derecha que te diga cuándo
+   estás utilizando un skill o cuándo está un MCP activo, y una sección de
+   monitoreo de cómo funcionan las requests al servidor». Todo esto YA está
+   escrito en el transcript: cada uso de herramienta es un bloque `tool_use`
+   y cada llamada al modelo deja su `usage`. Aquí solo se lee y se ordena. */
+
+/// Un uso de algo: una skill, una herramienta MCP, una herramienta normal o
+/// un subagente. Los usos SEGUIDOS de lo mismo se agrupan en uno con `veces`,
+/// porque veinte filas de `Read` seguidas no dicen más que una con «×20».
+#[derive(Clone, Serialize)]
+pub struct EventoActividad {
+    /// "skill" | "mcp" | "agente" | "herramienta". Decide el icono y el color.
+    pub clase: String,
+    pub nombre: String,
+    /// El detalle corto que orienta (el comando, el archivo, el patrón).
+    pub detalle: String,
+    /// ISO, tal como lo escribió el CLI; el front lo vuelve «hace 2 min».
+    pub hora: String,
+    pub veces: u32,
+}
+
+/// Una llamada del CLI al servidor del modelo, con lo que costó en tokens.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LlamadaModelo {
+    pub hora: String,
+    pub modelo: String,
+    pub entrada: u64,
+    pub salida: u64,
+    pub cache_leida: u64,
+    pub cache_escrita: u64,
+}
+
+#[derive(Clone, Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Actividad {
+    /// De más viejo a más nuevo, ya agrupados.
+    pub eventos: Vec<EventoActividad>,
+    pub llamadas: Vec<LlamadaModelo>,
+    /// Los totales van aparte porque las listas están recortadas a los últimos.
+    pub total_llamadas: u32,
+    pub entrada_total: u64,
+    pub salida_total: u64,
+}
+
+/// El nombre suelto de una ruta, para que el detalle no ocupe media fila.
+fn base_de_ruta(p: &str) -> String {
+    p.rsplit(['/', '\\']).next().unwrap_or(p).to_owned()
+}
+
+fn recortado(s: &str, max: usize) -> String {
+    let limpio = s.split_whitespace().collect::<Vec<_>>().join(" ");
+    if limpio.chars().count() <= max {
+        return limpio;
+    }
+    let corte: String = limpio.chars().take(max).collect();
+    format!("{corte}…")
+}
+
+/// Qué es cada `tool_use` para el que mira el panel: clase, nombre y detalle.
+fn clasificar_uso(name: &str, input: &Value) -> (String, String, String) {
+    if name == "Skill" {
+        let skill = input["skill"].as_str().unwrap_or("?").to_owned();
+        let args = recortado(input["args"].as_str().unwrap_or_default(), 48);
+        return ("skill".into(), skill, args);
+    }
+    if let Some(resto) = name.strip_prefix("mcp__") {
+        // mcp__servidor__herramienta. El servidor puede llevar guiones bajos
+        // sueltos (claude_ai_Supabase), así que el corte es el PRIMER doble.
+        let (srv, tool) = resto.split_once("__").unwrap_or((resto, ""));
+        return ("mcp".into(), srv.to_owned(), tool.to_owned());
+    }
+    if name == "Task" || name == "Agent" {
+        let quien = input["subagent_type"].as_str().unwrap_or("agente").to_owned();
+        let que = recortado(input["description"].as_str().unwrap_or_default(), 48);
+        return ("agente".into(), quien, que);
+    }
+    let detalle = match name {
+        "Bash" | "PowerShell" => input["description"]
+            .as_str()
+            .map(|s| recortado(s, 48))
+            .unwrap_or_else(|| recortado(input["command"].as_str().unwrap_or_default(), 48)),
+        "Read" | "Edit" | "Write" | "NotebookEdit" => input["file_path"]
+            .as_str()
+            .map(base_de_ruta)
+            .unwrap_or_default(),
+        "Grep" | "Glob" => recortado(input["pattern"].as_str().unwrap_or_default(), 48),
+        "WebFetch" | "WebSearch" => recortado(
+            input["url"].as_str().or(input["query"].as_str()).unwrap_or_default(),
+            48,
+        ),
+        _ => String::new(),
+    };
+    ("herramienta".into(), name.to_owned(), detalle)
+}
+
+/// Convierte las líneas de un transcript en la actividad que se enseña.
+///
+/// Aparte del comando por lo de siempre: esto decide qué se ve, y compilar no
+/// demuestra que cuente bien las llamadas ni que agrupe bien los usos.
+pub fn actividad_de(lineas: &[String], max: usize) -> Actividad {
+    let mut eventos: Vec<EventoActividad> = Vec::new();
+    let mut llamadas: Vec<LlamadaModelo> = Vec::new();
+    let (mut entrada_total, mut salida_total) = (0u64, 0u64);
+    // El CLI parte una respuesta en varios mensajes que comparten `requestId`
+    // y repiten el mismo `usage`: contarlos todos sería inventarse llamadas.
+    let mut ultima_request = String::new();
+    for linea in lineas {
+        // Barato antes de parsear: solo interesan los mensajes del agente.
+        if !linea.contains("\"assistant\"") {
+            continue;
+        }
+        let Ok(v) = serde_json::from_str::<Value>(linea) else {
+            continue;
+        };
+        if v["type"] != "assistant" {
+            continue;
+        }
+        // Los subagentes tienen su propia conversación; aquí se cuenta la
+        // principal (sus despachos ya salen como clase "agente").
+        if v["isSidechain"].as_bool().unwrap_or(false) {
+            continue;
+        }
+        let hora = v["timestamp"].as_str().unwrap_or_default().to_owned();
+        if let Some(bloques) = v["message"]["content"].as_array() {
+            for b in bloques {
+                if b["type"] != "tool_use" {
+                    continue;
+                }
+                let name = b["name"].as_str().unwrap_or_default();
+                if name.is_empty() {
+                    continue;
+                }
+                let (clase, nombre, detalle) = clasificar_uso(name, &b["input"]);
+                match eventos.last_mut() {
+                    Some(u) if u.clase == clase && u.nombre == nombre => {
+                        u.veces += 1;
+                        u.hora = hora.clone();
+                        if !detalle.is_empty() {
+                            u.detalle = detalle;
+                        }
+                    }
+                    _ => eventos.push(EventoActividad {
+                        clase,
+                        nombre,
+                        detalle,
+                        hora: hora.clone(),
+                        veces: 1,
+                    }),
+                }
+            }
+        }
+        let usage = &v["message"]["usage"];
+        if usage.is_null() {
+            continue;
+        }
+        let req = v["requestId"].as_str().unwrap_or_default();
+        if !req.is_empty() && req == ultima_request {
+            continue;
+        }
+        ultima_request = req.to_owned();
+        let ll = LlamadaModelo {
+            hora,
+            modelo: pretty_model(v["message"]["model"].as_str().unwrap_or_default()),
+            entrada: usage["input_tokens"].as_u64().unwrap_or(0),
+            salida: usage["output_tokens"].as_u64().unwrap_or(0),
+            cache_leida: usage["cache_read_input_tokens"].as_u64().unwrap_or(0),
+            cache_escrita: usage["cache_creation_input_tokens"].as_u64().unwrap_or(0),
+        };
+        entrada_total += ll.entrada + ll.cache_escrita;
+        salida_total += ll.salida;
+        llamadas.push(ll);
+    }
+    let total_llamadas = llamadas.len() as u32;
+    if eventos.len() > max {
+        eventos.drain(..eventos.len() - max);
+    }
+    if llamadas.len() > max {
+        llamadas.drain(..llamadas.len() - max);
+    }
+    Actividad {
+        eventos,
+        llamadas,
+        total_llamadas,
+        entrada_total,
+        salida_total,
+    }
+}
+
+/// La actividad de la sesión de un panel: skills, MCP, herramientas y
+/// llamadas al modelo, leídas del transcript que ya está en el disco.
+#[tauri::command]
+pub async fn session_activity(
+    cwd: String,
+    session_id: Option<String>,
+) -> Result<Actividad, String> {
+    // El id viaja en una ruta, así que no se acepta a ojo (igual que en
+    // `session_messages`): sin esto, «../../algo» leería cualquier archivo.
+    if let Some(id) = session_id.as_deref().filter(|i| !i.is_empty()) {
+        if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            return Err("id de sesión no válido".into());
+        }
+    }
+    let path = transcript_de(&cwd, session_id.as_deref())
+        .ok_or("esa conversación no está en el disco")?;
+    let lineas = read_tail(&path).map_err(|e| e.to_string())?;
+    Ok(actividad_de(&lineas, 40))
+}
+
 #[tauri::command]
 pub fn open_in_antigravity(path: String) -> Result<(), String> {
     let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
@@ -1741,6 +1951,76 @@ mod tests {
         let t = turnos_de(&lineas, 60);
         assert_eq!(t.len(), 1);
         assert_eq!(t[0].texto, "esto si");
+    }
+
+    /// Lo que decide qué enseña la pestaña de actividad: una skill se llama
+    /// por su nombre, un MCP por su servidor y herramienta, los usos seguidos
+    /// se agrupan, y los mensajes que comparten `requestId` son UNA llamada.
+    #[test]
+    fn la_actividad_reconoce_skills_mcp_y_agrupa() {
+        let lineas: Vec<String> = vec![
+            r#"{"type":"assistant","requestId":"r1","timestamp":"2026-08-17T10:00:00Z","message":{"model":"claude-opus-5","usage":{"input_tokens":10,"output_tokens":5,"cache_read_input_tokens":100,"cache_creation_input_tokens":20},"content":[{"type":"tool_use","name":"Skill","input":{"skill":"fin"}}]}}"#.into(),
+            // Mismo requestId: es la misma llamada partida en dos mensajes.
+            r#"{"type":"assistant","requestId":"r1","timestamp":"2026-08-17T10:00:01Z","message":{"model":"claude-opus-5","usage":{"input_tokens":10,"output_tokens":5,"cache_read_input_tokens":100,"cache_creation_input_tokens":20},"content":[{"type":"tool_use","name":"mcp__playwright__browser_click","input":{}}]}}"#.into(),
+            // Tres Read seguidos: una fila con veces=3, no tres filas.
+            r#"{"type":"assistant","requestId":"r2","timestamp":"2026-08-17T10:01:00Z","message":{"model":"claude-opus-5","usage":{"input_tokens":7,"output_tokens":3},"content":[{"type":"tool_use","name":"Read","input":{"file_path":"C:\\p\\a.ts"}},{"type":"tool_use","name":"Read","input":{"file_path":"C:\\p\\b.ts"}},{"type":"tool_use","name":"Read","input":{"file_path":"C:\\p\\c.ts"}}]}}"#.into(),
+            // Un subagente no es actividad de esta conversación.
+            r#"{"type":"assistant","isSidechain":true,"requestId":"r9","timestamp":"2026-08-17T10:02:00Z","message":{"usage":{"input_tokens":1,"output_tokens":1},"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]}}"#.into(),
+        ];
+        let a = actividad_de(&lineas, 40);
+        assert_eq!(
+            a.eventos.iter().map(|e| e.clase.as_str()).collect::<Vec<_>>(),
+            vec!["skill", "mcp", "herramienta"],
+        );
+        assert_eq!(a.eventos[0].nombre, "fin");
+        assert_eq!(a.eventos[1].nombre, "playwright");
+        assert_eq!(a.eventos[1].detalle, "browser_click");
+        assert_eq!(a.eventos[2].veces, 3, "los Read seguidos van agrupados");
+        assert_eq!(a.eventos[2].detalle, "c.ts", "el detalle es el último");
+        assert_eq!(a.total_llamadas, 2, "r1 partida en dos mensajes es UNA");
+        assert_eq!(a.entrada_total, 10 + 20 + 7, "entrada + caché escrita");
+        assert_eq!(a.salida_total, 5 + 3);
+        assert_eq!(a.llamadas[0].modelo, "Opus 5");
+        assert_eq!(a.llamadas[0].cache_leida, 100);
+    }
+
+    /// Contra un transcript REAL de esta máquina, que es donde se ve si el
+    /// formato que asume el parser es el que Claude Code escribe de verdad.
+    /// Si no hay ninguno (una máquina limpia), no afirma nada.
+    #[test]
+    fn la_actividad_de_verdad() {
+        let Some(dir) = claude_dir().map(|d| d.join("projects")) else {
+            return;
+        };
+        let mut mejores: Vec<PathBuf> = leer_dirs(&dir)
+            .into_iter()
+            .filter_map(|d| newest_transcript(&d))
+            .collect();
+        mejores.sort_by_key(|p| {
+            std::cmp::Reverse(
+                std::fs::metadata(p)
+                    .and_then(|m| m.modified())
+                    .unwrap_or(SystemTime::UNIX_EPOCH),
+            )
+        });
+        let mut con_eventos = 0;
+        for p in mejores.iter().take(5) {
+            let Ok(lineas) = read_tail(p) else { continue };
+            let a = actividad_de(&lineas, 40);
+            for e in &a.eventos {
+                assert!(!e.nombre.is_empty(), "un evento sin nombre en {p:?}");
+                assert!(e.veces >= 1);
+            }
+            if !a.eventos.is_empty() && a.total_llamadas > 0 {
+                con_eventos += 1;
+            }
+        }
+        if !mejores.is_empty() {
+            assert!(
+                con_eventos > 0,
+                "ningún transcript reciente dio actividad: o esta máquina no ha trabajado o el parser no lee el formato real",
+            );
+        }
     }
 
     /// Un transcript de meses no cabe en una pantalla: se abre por el final,

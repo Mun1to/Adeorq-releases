@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.119"
+version = "0.9.120"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["you"]
 edition = "2021"
@@ -38,6 +38,9 @@ portable-pty = "0.9.0"
 # rustls y no el TLS del sistema: una pila propia se comporta igual en tu
 # equipo que en el de cualquiera, y no depende de qué tenga instalado Windows.
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
+# El mp3 de la voz del Asistente viaja al front como data URL. Ya estaba en el
+# árbol (lo traen tauri y reqwest), así que no añade nada nuevo a los avisos.
+base64 = "0.22"
 auto-launch = "0.6.0"
 tauri-plugin-dialog = "2"
 

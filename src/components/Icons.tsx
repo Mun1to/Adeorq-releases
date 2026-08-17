@@ -1032,3 +1032,14 @@ export function BroadcastIcon({ size = 17 }: Props) {
     </svg>
   );
 }
+
+/** La voz: un altavoz con sus ondas. Es el conmutador del Asistente hablado. */
+export function VozIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" />
+      <path d="M15.5 9.5a3.6 3.6 0 0 1 0 5" />
+      <path d="M18 7a7 7 0 0 1 0 10" />
+    </svg>
+  );
+}

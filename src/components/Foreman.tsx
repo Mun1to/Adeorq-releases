@@ -54,7 +54,8 @@ import {
 import { createPortal } from "react-dom";
 import { useT } from "../lib/i18n";
 import Orbe, { type EstadoOrbe } from "./Orbe";
-import { BoltIcon, CheckIcon, CloseIcon } from "./Icons";
+import { BoltIcon, CheckIcon, CloseIcon, VozIcon } from "./Icons";
+import { decir, parar, vozElegida, VOCES, VOZ_KEY } from "../lib/hablar";
 import { propsDeVelo } from "../lib/velo";
 import { dictar, transcribir, vozLista, type Dictado } from "../lib/voz";
 import { COMMANDS } from "../lib/commands";
@@ -628,6 +629,9 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
   const [elegido, setElegido] = useState<Destino | null>(null);
   /** El automático puesto. Se guarda como el resto de preferencias del panel. */
   const [auto, setAuto] = useState(autoPuesto);
+  /** La voz puesta, o vacío si el Asistente no habla. Vive en localStorage
+      porque es una preferencia, no una decisión por pregunta. */
+  const [voz, setVoz] = useState(vozElegida);
   /** Lo que hizo el automático la última vez, hasta que lo leas. */
   const [recibo, setRecibo] = useState<Recibo | null>(() => {
     try {
@@ -748,6 +752,16 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
       .catch((e) => setError(String(e)))
       .finally(() => setPreguntando(false));
   };
+
+  /* La voz: si está puesta, la respuesta se dice en alto además de escribirse
+     (Munir dicta y escucha, no lee). La limpieza corta el audio cuando llega
+     otra respuesta, se descarta con «Vale» o se apaga la voz: una respuesta
+     vieja sonando sobre una nueva no es hablar, es ruido. */
+  useEffect(() => {
+    if (!respuesta || !voz) return;
+    decir(respuesta, voz).catch((e) => setError(String(e)));
+    return parar;
+  }, [respuesta, voz]);
 
   const redactar = () => {
     const pedido = text.trim();
@@ -1224,6 +1238,35 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
             >
               <BoltIcon size={13} />
               {t("Automático")}
+            </button>
+            {/* La voz. Un clic la pone con la voz de la casa; otro la quita.
+                Elegir entre las cinco voces de Grok se hace con clic derecho,
+                que rota, porque cinco botones para una preferencia serían
+                más mueble que mando. */}
+            <button
+              className="fm-auto"
+              data-on={!!voz}
+              data-tip={
+                voz
+                  ? t("El Asistente habla con la voz {voz} (Grok, con tu clave de OpenRouter). Clic para callarlo; clic derecho para cambiar de voz.", { voz })
+                  : t("Que el Asistente diga sus respuestas en alto (Grok TTS por OpenRouter, con tu clave de Cuentas › OpenRouter).")
+              }
+              onClick={() => {
+                const v = voz ? "" : VOCES[0];
+                if (!v) parar();
+                setVoz(v);
+                localStorage.setItem(VOZ_KEY, v);
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (!voz) return;
+                const v = VOCES[(VOCES.indexOf(voz as (typeof VOCES)[number]) + 1) % VOCES.length];
+                setVoz(v);
+                localStorage.setItem(VOZ_KEY, v);
+              }}
+            >
+              <VozIcon size={13} />
+              {voz ? `${t("Voz")} · ${voz}` : t("Voz")}
             </button>
           </div>
           {/* Los atajos, DEBAJO y en su propio renglón. Iban dentro de la fila

@@ -5053,6 +5053,139 @@ body {
   line-height: 1.5;
 }
 
+/* ── LA ACTIVIDAD: lo que pasa por detrás de la terminal ────────────────────
+   Otra cara de la franja derecha (`ActividadPanel.tsx`): skills, MCP,
+   herramientas y llamadas al modelo, leídas del transcript. Filas pequeñas y
+   sin caja: es un monitor, no una lista para tocar. */
+.act {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.act-vacio,
+.act-nada {
+  margin: 8px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.act-quien {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.act-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.act-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.act-chip[data-clase="mcp"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
+}
+
+.act-tit {
+  margin-top: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.act-totales {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.act-lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.act-fila {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+}
+
+.act-fila:last-child {
+  border-bottom: none;
+}
+
+.act-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  color: var(--muted);
+}
+
+.act-fila[data-clase="skill"] .act-ico {
+  color: var(--ask);
+}
+
+.act-fila[data-clase="mcp"] .act-ico {
+  color: var(--accent);
+}
+
+.act-nom {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.act-veces {
+  margin-left: 4px;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.act-det {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.act-hace {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.act-llamada .act-nom {
+  max-width: 38%;
+}
+
 /* ── UN ARCHIVO ABIERTO EN EL MOSAICO ───────────────────────────────────────
    Es un `.pane` de verdad, así que hereda su cristal, su cabecera y su borde de
    enfocado: para el mosaico esto es un panel más. */

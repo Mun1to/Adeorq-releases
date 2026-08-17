@@ -1834,6 +1834,28 @@ const EN: Record<string, string> = {
   "ver la web mientras se hace": "watch the site while it is being built",
   Recargar: "Reload",
   Adelante: "Forward",
+  // La pestaña de actividad de la franja derecha.
+  Actividad: "Activity",
+  "Enfoca una terminal y aquí verás lo que pasa por detrás: skills, MCP, herramientas y llamadas al modelo.":
+    "Focus a terminal and this shows what happens behind it: skills, MCP, tools and model calls.",
+  "Esta terminal aún no tiene conversación en el disco.":
+    "This terminal has no conversation on disk yet.",
+  "Leyendo el transcript…": "Reading the transcript…",
+  "Qué ha usado": "What it used",
+  "Todavía nada: cuando use una skill, un MCP o una herramienta, saldrá aquí.":
+    "Nothing yet: when it uses a skill, an MCP or a tool, it shows up here.",
+  "Llamadas al modelo": "Model calls",
+  entrada: "input",
+  salida: "output",
+  "Sin llamadas en la cola leída.": "No calls in the tail read.",
+  "entrada · caché leída · salida, en tokens": "input · cache read · output, in tokens",
+  ahora: "now",
+  // La voz del Asistente.
+  Voz: "Voice",
+  "El Asistente habla con la voz {voz} (Grok, con tu clave de OpenRouter). Clic para callarlo; clic derecho para cambiar de voz.":
+    "The Assistant speaks with the {voz} voice (Grok, via your OpenRouter key). Click to mute it; right-click to change the voice.",
+  "Que el Asistente diga sus respuestas en alto (Grok TTS por OpenRouter, con tu clave de Cuentas › OpenRouter).":
+    "Have the Assistant say its answers out loud (Grok TTS via OpenRouter, with your key from Accounts › OpenRouter).",
   "Nueva pestaña": "New tab",
   "Abrir otra pestaña": "Open another tab",
   "Abrirla en tu navegador de verdad": "Open it in your real browser",

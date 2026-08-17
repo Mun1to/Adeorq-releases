@@ -30,6 +30,40 @@ export function sessionMessages(
   return invoke("session_messages", { cwd, sessionId, max });
 }
 
+/* ── La actividad: lo que pasa por detrás de la terminal ──────────────────
+   Mismo motor y misma economía que el chat: se lee del transcript que ya
+   está en el disco, así que mirar no cuesta ni un token. */
+
+export interface EventoActividad {
+  /** Decide el icono y el color: skill, mcp, agente o herramienta. */
+  clase: "skill" | "mcp" | "agente" | "herramienta";
+  nombre: string;
+  detalle: string;
+  hora: string;
+  veces: number;
+}
+
+export interface LlamadaModelo {
+  hora: string;
+  modelo: string;
+  entrada: number;
+  salida: number;
+  cacheLeida: number;
+  cacheEscrita: number;
+}
+
+export interface Actividad {
+  eventos: EventoActividad[];
+  llamadas: LlamadaModelo[];
+  totalLlamadas: number;
+  entradaTotal: number;
+  salidaTotal: number;
+}
+
+export function sessionActivity(cwd: string, sessionId?: string): Promise<Actividad> {
+  return invoke("session_activity", { cwd, sessionId });
+}
+
 /**
  * Las herramientas de un turno, contadas y en cristiano.
  *

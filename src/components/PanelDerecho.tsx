@@ -13,10 +13,10 @@
 //    gesto, así que no hace falta una ✕ aparte que compita con los iconos.
 
 import { useT } from "../lib/i18n";
-import { BrowserIcon, FolderIcon, SparkIcon } from "./Icons";
+import { BoltIcon, BrowserIcon, FolderIcon, SparkIcon } from "./Icons";
 
 /** Qué panel se está viendo. Vacío es «ninguno, solo la franja». */
-export type Cara = "" | "skills" | "archivos";
+export type Cara = "" | "skills" | "archivos" | "actividad";
 
 interface Props {
   cara: Cara;
@@ -26,6 +26,9 @@ interface Props {
       componente no tiene por qué conocerlas. */
   skills: React.ReactNode;
   archivos: React.ReactNode;
+  /** Lo que pasa por detrás de la terminal enfocada: skills, MCP,
+      herramientas y llamadas al modelo (Munir, 2026-08-17). */
+  actividad: React.ReactNode;
   /** Abrir la vista previa de la web. No es una cara de esta barra: es un panel
       del mosaico. Vive aquí porque Munir lo pidió en la franja (2026-08-15) y
       tiene sentido: la franja es «lo que puedes abrir», y da igual dónde acabe
@@ -35,10 +38,18 @@ interface Props {
 
 const CARAS: Array<{ id: Exclude<Cara, "">; titulo: string; icono: React.ReactNode }> = [
   { id: "skills", titulo: "Skills · Uso", icono: <SparkIcon size={16} /> },
+  { id: "actividad", titulo: "Actividad", icono: <BoltIcon size={16} /> },
   { id: "archivos", titulo: "Archivos", icono: <FolderIcon size={16} /> },
 ];
 
-export default function PanelDerecho({ cara, onCara, skills, archivos, onWeb }: Props) {
+export default function PanelDerecho({
+  cara,
+  onCara,
+  skills,
+  archivos,
+  actividad,
+  onWeb,
+}: Props) {
   const { t } = useT();
   const actual = CARAS.find((c) => c.id === cara);
 
@@ -62,7 +73,7 @@ export default function PanelDerecho({ cara, onCara, skills, archivos, onWeb }: 
             </span>
           </div>
           <div className="lateral-cuerpo">
-            {cara === "skills" ? skills : archivos}
+            {cara === "skills" ? skills : cara === "actividad" ? actividad : archivos}
           </div>
         </aside>
       )}

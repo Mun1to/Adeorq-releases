@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Adeorq",
-  "version": "0.9.119",
+  "version": "0.9.120",
   "identifier": "com.orquio.adeorq",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -19,7 +19,7 @@
         "minHeight": 600,
         "maximized": true,
         "transparent": true,
-        "additionalBrowserArgs": "--use-fake-ui-for-media-stream",
+        "additionalBrowserArgs": "--use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required",
         "windowEffects": {
           "effects": [
             "acrylic"

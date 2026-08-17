@@ -2,10 +2,13 @@
   <!--
     El botón de descarga del README.
     En un README de GitHub no hay CSS, así que un botón de verdad solo puede ser
-    una imagen. Se dibuja con los dos azules de la casa (--azul claro y oscuro de
+    una imagen. Se dibuja con los dos azules de la casa (azul claro y oscuro de
     styles/base.css) para que sea el botón de Adeorq y no un badge cualquiera.
     El texto va en fuentes del sistema en cascada: en Windows sale en Segoe UI,
     y donde no la haya, en la sans que toque.
+    OJO: en un comentario XML no puede aparecer un guion doble. Un «(dos guiones)azul»
+    aquí dentro tuvo el botón ROTO en GitHub del 8 al 17 de agosto de 2026: el SVG
+    entero deja de parsear y el navegador enseña el alt. Lo vigila scripts/svg-check.mjs.
   -->
   <defs>
     <linearGradient id="cuerpoWin" x1="0" y1="0" x2="0" y2="1">

@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "i18n": "node scripts/i18n-check.mjs",
     "css": "node scripts/css-check.mjs",
+    "svg": "node scripts/svg-check.mjs",
     "botones": "node scripts/botones-check.mjs",
     "publicar": "node scripts/publicar-codigo.mjs",
     "tauri": "tauri"

@@ -1612,9 +1612,9 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
       <section className="panel-card foreman-card">
         <h2>{t("✦ Capataz")}</h2>
         <p className="card-hint">
-          Pídele el tablero en cristiano: él propone el plan (sesiones, Claudes,
-          terminales, Antigravity) y no ejecuta nada sin tu OK. En la Cabina:
-          Ctrl+Mayús+A.
+          {t(
+            "Pídele el tablero en cristiano: él propone el plan (sesiones, Claudes, terminales, Antigravity) y no ejecuta nada sin tu OK. En la Cabina: Ctrl+Mayús+A.",
+          )}
         </p>
         {body}
       </section>

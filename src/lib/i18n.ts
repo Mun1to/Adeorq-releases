@@ -1850,6 +1850,8 @@ const EN: Record<string, string> = {
   "Sin llamadas en la cola leída.": "No calls in the tail read.",
   "entrada · caché leída · salida, en tokens": "input · cache read · output, in tokens",
   ahora: "now",
+  "Pídele el tablero en cristiano: él propone el plan (sesiones, Claudes, terminales, Antigravity) y no ejecuta nada sin tu OK. En la Cabina: Ctrl+Mayús+A.":
+    "Ask it for the board in plain words: it proposes the plan (sessions, Claudes, terminals, Antigravity) and runs nothing without your OK. In the Cockpit: Ctrl+Shift+A.",
   // La voz del Asistente.
   Voz: "Voice",
   "El Asistente habla con la voz {voz} (Grok, con tu clave de OpenRouter). Clic para callarlo; clic derecho para cambiar de voz.":

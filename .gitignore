@@ -21,3 +21,7 @@ src-tauri/target/
 # Los arboles del Modo Espejo: uno por agente, y son de usar y tirar.
 .adeorq/
 
+# La carpeta de trabajo del MCP de Playwright (capturas, logs y guiones de
+# prueba): material de sesion, nunca del producto.
+.playwright-mcp/
+

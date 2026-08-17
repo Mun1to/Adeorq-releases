@@ -4,122 +4,120 @@
 
 # Adeorq
 
-### Nueve agentes trabajando. Una sola pantalla.
+### Nine agents working. One screen.
 
-Panel de escritorio para Windows que abre tus proyectos en **terminales de verdad** —las
-mismas ConPTY que usa el sistema, no una caja de chat que las imita—, te enseña tus sesiones
-de Claude Code con su estado real y te deja dirigir a varios agentes a la vez sin perder de
-vista a ninguno.
+A Windows desktop panel that opens your projects in **real terminals** — the same ConPTY the
+system uses, not a chat box imitating one — shows your Claude Code sessions with their actual
+state, and lets you run several agents at once without losing track of any of them.
 
 <br>
 
-<!-- Los dos botones van en HTML y no en markdown (`![alt](ruta)`) a propósito.
-     En markdown, el de Windows salía como un enlace roto en GitHub mientras el
-     de Linux se pintaba bien, y las dos imágenes existen y se sirven con un 200
-     (comprobado el 2026-08-08). La forma que SÍ funciona en este mismo archivo
-     es la de la línea del logo de arriba: un `<img>` con su ancho puesto. Con
-     `width` explícito además quedan exactamente a la par, que en markdown
-     dependía de que GitHub respetara el `viewBox`. -->
-<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"><img src="web/assets/descargar-windows.svg" width="330" alt="Descargar Adeorq para Windows"></a>
-<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage"><img src="web/assets/descargar-linux.svg" width="330" alt="Descargar Adeorq para Linux"></a>
+<!-- The buttons are HTML `<img>` with an explicit width (markdown image syntax
+     mis-sized them). And a lesson written in blood: the Windows button was
+     BROKEN on GitHub for nine days because of a double hyphen inside an XML
+     comment of the SVG itself — an SVG served as image/svg+xml parses in
+     strict mode and dies whole. `pnpm svg` now guards every SVG in the repo. -->
+<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"><img src="web/assets/descargar-windows.en.svg" width="330" alt="Download Adeorq for Windows"></a>
+<a href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage"><img src="web/assets/descargar-linux.en.svg" width="330" alt="Download Adeorq for Linux"></a>
 
-**Gratis · sin cuenta · sin API keys · se actualiza sola**
+**Free · no account · no API keys · updates itself**
 
-[![Última versión](https://img.shields.io/github/v/release/Mun1to/Adeorq-releases?label=&color=1C66DE&style=flat-square)](https://github.com/Mun1to/Adeorq-releases/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/Mun1to/Adeorq-releases?label=&color=1C66DE&style=flat-square)](https://github.com/Mun1to/Adeorq-releases/releases/latest)
 &nbsp;
-[Todas las versiones](https://github.com/Mun1to/Adeorq-releases/releases) ·
-[La web](https://mun1to.github.io/Adeorq-releases/) ·
-[La guía](https://mun1to.github.io/Adeorq-releases/guia.html) ·
-[English](README.en.md)
+[All releases](https://github.com/Mun1to/Adeorq-releases/releases) ·
+[Website](https://mun1to.github.io/Adeorq-releases/) ·
+[Guide](https://mun1to.github.io/Adeorq-releases/guia.html) ·
+[Español](README.es.md)
 
 <br>
 
-<img src="web/assets/screens/cockpit.png" alt="La Cabina: nueve terminales reales en un mosaico">
+<img src="web/assets/screens/cockpit.png" alt="The Cockpit: nine real terminals in one grid">
 
 </div>
 
 ---
 
-## Funciona con TU cuenta
+## It runs on YOUR account
 
-Adeorq no vende ni incluye acceso a ningún modelo. **Usa las suscripciones que ya pagas** y
-los CLI que ya tienes instalados: Claude Code, Codex, Gemini CLI, Antigravity, Copilot, Qwen,
-Crush, opencode, Amp, Cursor, pi y Kiro. Si tienes varias cuentas, cada terminal puede nacer
-con la suya.
+Adeorq neither sells nor bundles access to any model. It **uses the subscriptions you already
+pay for** and the CLIs you already have installed: Claude Code, Codex, Gemini CLI,
+Antigravity, Copilot, Qwen, Crush, opencode, Amp, Cursor, pi and Kiro. If you have more than
+one account, each terminal can be born on a different one.
 
-Ese es el motivo de existir: **las novedades de los modelos llegan antes a la línea de
-comandos que a las aplicaciones de escritorio**. Adeorq monta la experiencia encima de esos
-programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo tienes.
+That is the whole reason it exists: **new model features land on the command line before they
+land in desktop apps**. Adeorq builds the experience on top of those programs instead of
+replacing them, so the day something new ships, you have it.
 
-## Qué hay dentro
+## What is inside
 
 | | |
 |---|---|
-| **La Cabina** | Un mosaico de terminales reales. Se parten, se mueven, se apartan sin cerrarse y vuelven donde estaban al reabrir. |
-| **Tus sesiones** | Lee `~/.claude` sin API ninguna: título, estado real (te pregunta / terminó / a medias), cuándo fue y cuáles siguen vivas. Un clic las retoma dentro del panel. |
-| **El Capataz** | Le pides el tablero hablando y te propone un plan. Nada se ejecuta sin tu OK, y el plan pasa por una verja determinista antes de que lo veas. |
-| **El Lienzo** | Tablero infinito con las terminales dentro, notas, imágenes, kanban y flechas que encadenan a un agente con el siguiente. |
-| **Modo Espejo** | Cada agente en su propio worktree de git. Ves el diff y decides si entra o se descarta. |
-| **La Agenda** | Lo que se te viene encima, tus objetivos del día y las ideas que los agentes te dejan por el camino. |
-| **La Memoria** | Tu bóveda de Obsidian dentro del panel, con búsqueda por contenido y el mapa de lo que enlaza con qué. |
+| **The Cockpit** | A grid of real terminals. Split them, move them, set them aside without closing them, and find them where you left them next time. |
+| **Your sessions** | Reads `~/.claude` with no API at all: title, real state (asking you / finished / halfway), how long ago, and which ones are still alive. One click resumes any of them inside the panel. |
+| **The Foreman** | Tell it what you want out loud and it proposes a board. Nothing runs without your OK, and the plan goes through a deterministic gate before you even see it. |
+| **The Canvas** | An infinite board with the terminals living inside it, plus notes, images, a kanban, and arrows that hand one agent's output to the next. |
+| **The web pane** | Your localhost right beside the agent building it: a small browser with tabs, back and forward, and one click to swap in YOUR real browser, extensions and all. |
+| **Activity** | What is going on behind the focused terminal: which skills and MCP servers it is using, every tool call, and each request to the model with its tokens. |
+| **Shadow Mode** | Each agent in its own git worktree. You read the diff and decide whether it lands or gets thrown away. |
+| **The Agenda** | What is coming at you, your goals for the day, and the ideas your agents leave behind along the way. |
+| **Memory** | Your Obsidian vault inside the panel, searchable by what the notes say, with a map of what links to what. |
 
 <div align="center">
-<img src="web/assets/screens/canvas.png" width="49%" alt="El Lienzo">
-<img src="web/assets/screens/dashboard.png" width="49%" alt="El Panel">
+<img src="web/assets/screens/canvas.png" width="49%" alt="The Canvas">
+<img src="web/assets/screens/dashboard.png" width="49%" alt="The Dashboard">
 </div>
 
-## Al instalar: Windows te va a avisar
+## Windows will warn you when you install it
 
-**Es esperado.** El instalador no lleva firma de código —un certificado Authenticode cuesta
-varios cientos de euros al año—, así que SmartScreen enseña *«Windows protegió su PC»* la
-primera vez.
+**That is expected.** The installer is not code-signed — an Authenticode certificate costs
+several hundred euros a year — so SmartScreen shows *"Windows protected your PC"* the first
+time.
 
-Para seguir: **Más información → Ejecutar de todas formas**.
+To carry on: **More info → Run anyway**.
 
-Descárgalo siempre desde
-[la página de releases de este repositorio](https://github.com/Mun1to/Adeorq-releases/releases/latest)
-y de ningún otro sitio. Y una vez instalado, **las actualizaciones sí van firmadas**: Adeorq
-verifica la firma criptográfica de cada una antes de aplicarla, así que ese aviso solo sale
-la primera vez.
+Always download it from
+[this repository's releases page](https://github.com/Mun1to/Adeorq-releases/releases/latest)
+and nowhere else. And once installed, **updates are signed**: Adeorq verifies each one's
+cryptographic signature before applying it, so that warning only ever appears once.
 
-## En Linux
+## On Linux
 
-Descarga
+Download
 **[Adeorq-x86_64.AppImage](https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-x86_64.AppImage)**,
-dale permiso y arráncalo. No hay nada que instalar:
+make it executable and run it. There is nothing to install:
 
 ```bash
 chmod +x Adeorq-x86_64.AppImage
 ./Adeorq-x86_64.AppImage
 ```
 
-En la [página de releases](https://github.com/Mun1to/Adeorq-releases/releases/latest) hay
-también un `.deb` para Debian y Ubuntu (`sudo apt install ./Adeorq_*.deb`).
+The [releases page](https://github.com/Mun1to/Adeorq-releases/releases/latest) also carries a
+`.deb` for Debian and Ubuntu (`sudo apt install ./Adeorq_*.deb`).
 
-**Tres cosas funcionan distinto**, y es mejor saberlas antes que descubrirlas:
+**Three things work differently**, and it is better to know them upfront:
 
-- **Los secretos.** En Windows van al Almacén de credenciales, que los cifra con tu sesión.
-  En Linux no existe ese almacén, así que van a un archivo con permisos `600` dentro de
-  `~/.local/share/adeorq/secretos`: eso los protege de otros usuarios de la máquina, no de
-  otro programa tuyo.
-- **El reproductor de música** (qué suena, siguiente, volumen) es de Windows: lo publica el
-  propio sistema y en Linux el equivalente es MPRIS, que todavía no está.
-- **La ventana es translúcida**, así que necesita un escritorio con composición. Cualquier
-  GNOME o KDE moderno la tiene; en uno sin compositor el cristal se verá opaco.
+- **Secrets.** On Windows they go to the Credential Manager, which encrypts them with your
+  login. Linux has no such vault, so they go to a `600` file under
+  `~/.local/share/adeorq/secretos`: that protects them from other users of the machine, not
+  from another program of yours.
+- **The music controls** (what is playing, next, volume) are Windows-only: the system itself
+  publishes that, and the Linux equivalent is MPRIS, which is not in yet.
+- **The window is translucent**, so it needs a compositing desktop. Any modern GNOME or KDE
+  has one; without a compositor the glass will look opaque.
 
-Se compila sobre **Ubuntu 22.04**, así que hace falta glibc 2.35 o posterior (Ubuntu 22.04+,
-Debian 12+, Fedora 36+, Arch).
+It is built on **Ubuntu 22.04**, so it needs glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+,
+Fedora 36+, Arch).
 
-## Compilarlo tú
+## Building it yourself
 
 ```bash
 pnpm install
-pnpm tauri dev      # ventana de desarrollo
-pnpm tauri build    # instalador
+pnpm tauri dev      # development window
+pnpm tauri build    # installer
 ```
 
-Hace falta [Rust](https://rustup.rs). En Windows, además, las herramientas de compilación de
-Visual Studio; en Linux, las de Tauri 2:
+You need [Rust](https://rustup.rs). On Windows, also the Visual Studio build tools; on Linux,
+Tauri 2's own:
 
 ```bash
 sudo apt install build-essential pkg-config libssl-dev \
@@ -140,36 +138,36 @@ whatever you use. It is the same prompt in every public repository here, so you 
 > y te dirá en tu idioma qué hace este programa de verdad: qué envía por internet, qué toca
 > en tu ordenador y qué ejecuta al instalarse.
 
-## Licencia
+## Licence
 
-**El código está a la vista. Eso no lo hace software libre.**
+**The source is visible. That does not make it free software.**
 
-Puedes instalar Adeorq y usarlo libremente, para ti o para tu empresa, y puedes leer,
-estudiar y compilar este código. Lo que **no** puedes es redistribuirlo, revenderlo ni
-publicar versiones derivadas. Está todo explicado, y en castellano legible, en
-[`LICENSE`](LICENSE).
+You may install and use Adeorq freely, for yourself or for your company, and you may read,
+study and compile this code. What you may **not** do is redistribute it, resell it or publish
+derived versions. It is all spelled out in [`LICENSE`](LICENSE) (in Spanish, in plain
+language).
 
-Los componentes de terceros que incorpora conservan sus propias licencias, con sus avisos de
-copyright recogidos en [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+Third-party components keep their own licences, with every copyright notice collected in
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
-## Construido sobre
+## Built on
 
-Sin estos proyectos Adeorq no existiría. Todos con licencias permisivas, todos acreditados
-uno a uno con su copyright en [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+Adeorq would not exist without these. All permissively licensed, all credited one by one with
+their copyright in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 | | |
 |---|---|
-| [**Tauri**](https://tauri.app) | La ventana y el puente a Rust. Un binario de 5 MB en vez de 150. |
-| [**xterm.js**](https://xtermjs.org) | El emulador de terminal, con su renderizador WebGL. |
-| [**portable-pty**](https://github.com/wezterm/wezterm/tree/main/pty) (WezTerm) | Los ConPTY de verdad, desde Rust. |
-| [**React**](https://react.dev) + [**Vite**](https://vite.dev) | La interfaz. |
-| [**React Flow**](https://reactflow.dev) | El lienzo infinito. |
-| [**Ollama**](https://ollama.com) · [**whisper.cpp**](https://github.com/ggml-org/whisper.cpp) | Lo que corre en tu máquina: resúmenes y dictado, sin salir de casa. |
+| [**Tauri**](https://tauri.app) | The window and the bridge to Rust. A 5 MB binary instead of 150. |
+| [**xterm.js**](https://xtermjs.org) | The terminal emulator, with its WebGL renderer. |
+| [**portable-pty**](https://github.com/wezterm/wezterm/tree/main/pty) (WezTerm) | Real ConPTY, from Rust. |
+| [**React**](https://react.dev) + [**Vite**](https://vite.dev) | The interface. |
+| [**React Flow**](https://reactflow.dev) | The infinite canvas. |
+| [**Ollama**](https://ollama.com) · [**whisper.cpp**](https://github.com/ggml-org/whisper.cpp) | What runs on your own machine: summaries and dictation, without leaving the house. |
 
-## Avisos
+## Notices
 
-No afiliado a Anthropic, OpenAI, Google ni Microsoft. Sus nombres y logotipos son marcas de
-sus respectivos titulares y aquí solo sirven para identificar con qué herramienta estás
-trabajando.
+Not affiliated with Anthropic, OpenAI, Google or Microsoft. Their names and logos are
+trademarks of their respective owners and appear here only to identify which tool you are
+working with.
 
-¿Algo va mal? [Abre una incidencia](https://github.com/Mun1to/Adeorq-releases/issues).
+Something wrong? [Open an issue](https://github.com/Mun1to/Adeorq-releases/issues).

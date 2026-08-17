@@ -113,6 +113,8 @@ import {
   sacarPanel,
   onVuelvePanel,
   anotarRastro,
+  carpetaClaude,
+  renameSession,
   type Account,
   type Project,
   type SessionInfo,
@@ -630,6 +632,29 @@ function App() {
    * hay forma de distinguirlas, porque el estado es el mismo.
    */
   const maxPorSaltoRef = useRef<number | null>(null);
+  /**
+   * El acompañante del maximizado: el panel de archivos que se abre AL LADO de
+   * una sesión a pantalla completa, mitad y mitad.
+   *
+   * Sin esto, abrir un archivo con una terminal maximizada lo mandaba al
+   * mosaico de detrás, o sea a ninguna parte: el clic en el árbol no enseñaba
+   * nada (Munir, 2026-08-16). Solo lo pone `abrirArchivo`; se va solo al salir
+   * de pantalla completa, porque es un acompañante del maximizado, no un
+   * segundo maximizado.
+   */
+  const [ladoMaxId, setLadoMaxId] = useState<number | null>(null);
+  /* Derivado y no usado a pelo: si el panel acompañante se cerró o el
+     maximizado ya es él mismo, no hay lado que pintar. */
+  const ladoMax =
+    maximizedId != null &&
+    ladoMaxId != null &&
+    ladoMaxId !== maximizedId &&
+    panes.some((p) => p.id === ladoMaxId)
+      ? ladoMaxId
+      : null;
+  useEffect(() => {
+    if (maximizedId == null) setLadoMaxId(null);
+  }, [maximizedId]);
   /** Los que terminaron mientras escribías en otra y esperan su turno. */
   const colaSaltoRef = useRef<number[]>([]);
   // Quién tiene el teclado, leído desde callbacks que no se rehacen con cada
@@ -659,6 +684,11 @@ function App() {
   // The canvas keeps its own terminals: mixing them with the grid's would mean
   // one layout stealing panes from the other every time the view changes.
   const [canvasPanes, setCanvasPanes] = useState<CanvasPane[]>([]);
+  /** Las del lienzo, para leerlas desde callbacks estables (como `panesRef`):
+      el renombrado desde la cabecera vive en el `data` de un nodo de React
+      Flow, que se escribe una vez al crearlo y no se vuelve a tocar. */
+  const canvasPanesRef = useRef<CanvasPane[]>([]);
+  canvasPanesRef.current = canvasPanes;
   const [showForeman, setShowForeman] = useState(false);
   /** Cierto cuando quien abre el Asistente es el atajo del dictado: nace
       grabando. Se apaga al cerrarlo, para que la siguiente vez que lo abras a
@@ -1960,7 +1990,38 @@ function App() {
     });
     setCols((prev) => layoutRemove(prev, id));
     setMaximizedId((m) => (m === id ? null : m));
+    setLadoMaxId((l) => (l === id ? null : l));
     setFocusedId((f) => (f === id ? null : f));
+  }, []);
+
+  /**
+   * El nombre nuevo que se tecleó en la cabecera de una terminal (doble clic
+   * en el nombre, Munir 2026-08-16). Vale para las de la Cabina y las del
+   * lienzo, que son dos listas: se cambia en la que lo tenga.
+   *
+   * Y si el panel sabe QUÉ sesión corre dentro (`--resume` o `--session-id` en
+   * su comando), el título va también al transcript, con la misma línea
+   * `custom-title` que escribe el renombrado de la barra lateral: así la
+   * barra, la app oficial y la cabecera dicen lo mismo. Sin id no se toca
+   * ningún transcript: adivinar cuál es y escribirle el título a la sesión de
+   * otro sería peor que quedarse solo con el nombre del panel.
+   */
+  const renombrarPane = useCallback((id: number, nombre: string) => {
+    setPanes((prev) => prev.map((p) => (p.id === id ? { ...p, name: nombre } : p)));
+    setCanvasPanes((prev) => prev.map((p) => (p.id === id ? { ...p, name: nombre } : p)));
+    const p =
+      panesRef.current.find((x) => x.id === id) ??
+      canvasPanesRef.current.find((x) => x.id === id);
+    const sid = p ? sessionIdOf(p.command) : undefined;
+    if (p && sid) {
+      renameSession(carpetaClaude(p.cwd), sid, nombre).catch((e) =>
+        // El panel ya quedó renombrado; esto solo deja constancia de que el
+        // transcript no se pudo tocar (recién abierto sin mensajes, cuenta
+        // rara...), porque desde fuera no se ve y «no pasa nada» no se puede
+        // mirar.
+        void anotarRastro(`renombrar sesión del panel ${id}: ${e}`),
+      );
+    }
   }, []);
 
   /**
@@ -1979,12 +2040,23 @@ function App() {
     setView("cabina");
     const paneles = panesRef.current;
 
+    /* El final común de las tres ramas. Con una sesión a pantalla completa, el
+       archivo se pone A SU LADO en vez de al mosaico de detrás: ahí el clic en
+       el árbol no enseñaba nada y parecía que no había hecho nada (Munir,
+       2026-08-16). */
+    const enfocar = (paneId: number) => {
+      setFocusedId(paneId);
+      if (maximizedRef.current != null && maximizedRef.current !== paneId) {
+        setLadoMaxId(paneId);
+      }
+    };
+
     const yaAbierto = paneles.find((p) => p.archivos?.includes(ruta));
     if (yaAbierto) {
       setPanes((prev) =>
         prev.map((p) => (p.id === yaAbierto.id ? { ...p, activo: ruta } : p)),
       );
-      setFocusedId(yaAbierto.id);
+      enfocar(yaAbierto.id);
       return;
     }
 
@@ -2001,7 +2073,7 @@ function App() {
             : p,
         ),
       );
-      setFocusedId(destino.id);
+      enfocar(destino.id);
       return;
     }
 
@@ -2017,7 +2089,7 @@ function App() {
       },
     ]);
     setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
-    setFocusedId(id);
+    enfocar(id);
   }, []);
 
   /** Cerrar UNA pestaña. Con la última se va el panel entero: un panel de
@@ -2834,6 +2906,20 @@ function App() {
     [gruposOcultos, minimizados],
   );
 
+  /* Si el panel maximizado se aparta (minimizar, esconder su grupo, apartar
+     todas), la pantalla completa se suelta sola. Sin esto, `maximizedId`
+     seguía apuntando a un panel que ya no se pinta, y como la pantalla
+     completa esconde a TODAS las demás, la Cabina se quedaba vacía hasta
+     desminimizarlo (Munir, 2026-08-17: «minimizo una terminal en pantalla
+     completa y las demás desaparecen»). Va aquí, sobre `oculto`, y no en cada
+     botón que aparta: cualquier puerta nueva que esconda paneles queda
+     cubierta sin acordarse de esta regla. */
+  useEffect(() => {
+    if (maximizedId == null) return;
+    const p = panes.find((x) => x.id === maximizedId);
+    if (!p || oculto(p)) setMaximizedId(null);
+  }, [maximizedId, panes, oculto]);
+
   /** Lo que hay fuera del mosaico, para la tira del pie: es la única respuesta
       a «cuántos agentes tengo apartados» que no obliga a contarlos a mano. */
   const apartadas = useMemo(() => panes.filter(oculto), [panes, oculto]);
@@ -3312,12 +3398,18 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                 const r = placement.get(p.id);
                 if (!r && !escondido) return null;
                 const max = maximizedId === p.id;
+                /* El acompañante de la pantalla completa: el editor que se
+                   abrió con una sesión maximizada delante. Mitad y mitad, sin
+                   separador que arrastrar: es una compañía, no otro mosaico. */
+                const lado = ladoMax === p.id;
                 // Escondida: se monta igual (desmontarla mataría su terminal)
                 // pero sin ocupar nada y sin pintarse. Sigue viva y trabajando.
                 const style: React.CSSProperties = escondido
                   ? { left: 0, top: 0, width: 0, height: 0, visibility: "hidden" }
                   : max
-                  ? { left: 0, top: 0, width: "100%", height: "100%" }
+                  ? { left: 0, top: 0, width: ladoMax != null ? "50%" : "100%", height: "100%" }
+                  : lado
+                  ? { left: "50%", top: 0, width: "50%", height: "100%" }
                   : {
                       left: `${r!.x * 100}%`,
                       top: `${r!.y * 100}%`,
@@ -3334,7 +3426,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                       id={p.id}
                       url={p.web}
                       focused={focusedId === p.id}
-                      hidden={escondido || (maximizedId != null && !max)}
+                      hidden={escondido || (maximizedId != null && !max && !lado)}
                       maximized={max}
                       style={style}
                       onFocusPane={setFocusedId}
@@ -3358,7 +3450,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                       activo={p.activo ?? p.archivos[0]}
                       raiz={p.cwd}
                       focused={focusedId === p.id}
-                      hidden={escondido || (maximizedId != null && !max)}
+                      hidden={escondido || (maximizedId != null && !max && !lado)}
                       maximized={max}
                       style={style}
                       onFocusPane={setFocusedId}
@@ -3380,7 +3472,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     env={p.env}
                     account={p.account}
                     team={p.team}
-                    hidden={escondido || (maximizedId != null && !max)}
+                    hidden={escondido || (maximizedId != null && !max && !lado)}
                     focused={focusedId === p.id}
                     pideTeclado={tecladoReq?.id === p.id ? tecladoReq.n : 0}
                     ram={ramPanes.get(p.id)}
@@ -3405,6 +3497,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     }
                     dropTarget={drag?.over === p.id || soltandoEn === p.id}
                     onClose={closePane}
+                    onRename={renombrarPane}
                     onStatus={onPaneStatus}
                     onRevivir={revivirPane}
                     alone={panes.length <= 1}
@@ -3570,6 +3663,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           alVolver={(cwd, command) => resumeCommandFor({ name: "", cwd, command })}
           onCreate={createCanvasPane}
           onClose={closeCanvasPane}
+          onRename={renombrarPane}
           // El asa de las flechas para la sesión suprema: mientras el lienzo
           // esté montado, un agente puede pedir por MCP que se unan dos
           // terminales. Ver `docs/SUPREMA.md`.

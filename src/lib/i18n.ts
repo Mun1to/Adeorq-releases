@@ -843,6 +843,7 @@ const EN: Record<string, string> = {
   "Es la MISMA carpeta, no una copia: lo que escribas lo verán todas tus cuentas, y lo que borres se borrará para todas.":
     "It is the SAME folder, not a copy: whatever you write shows up in every account, and whatever you delete is gone from all of them.",
   "de contexto usado": "of context used",
+  "Doble clic para cambiar el nombre": "Double-click to change the name",
   "Uso semanal": "Weekly usage",
   "Tu cuota": "Your quota",
   "Cuánto uso de tu suscripción llevas esta semana. Solo lo sabe Claude por dentro, así que el botón escribe /usage en la terminal que tengas activa y te lleva allí.":
@@ -1983,6 +1984,8 @@ const EN: Record<string, string> = {
   "Cuánto se ve a través de las terminales": "How much shows through the terminals",
   "Sube esto para que la foto, o el escritorio, se vean a través del texto de las terminales. Al 100% la terminal es un cristal.":
     "Turn this up to see the photo, or the desktop, behind the terminal text. At 100% the terminal is glass.",
+  "Los archivos abiertos en el mosaico van a juego: este mando también los gradúa.":
+    "Open files in the mosaic match: this control grades them too.",
   "Ojo: «cuánto se ve», aquí arriba, manda sobre esto. Si está bajo, la foto llega apagada a todas partes y subir este mando no la trae de vuelta.":
     "Note: “how much shows”, above, overrides this. If it is low the photo arrives dimmed everywhere, and turning this up will not bring it back.",
   "Volver al automático": "Back to automatic",

@@ -990,6 +990,9 @@ export default function SettingsView({
                       {t(
                         "Sube esto para que la foto, o el escritorio, se vean a través del texto de las terminales. Al 100% la terminal es un cristal.",
                       )}{" "}
+                      {t(
+                        "Los archivos abiertos en el mosaico van a juego: este mando también los gradúa.",
+                      )}{" "}
                       {fondo && (
                         <>
                           {t(

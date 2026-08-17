@@ -38,6 +38,13 @@ const FUERA = [
   "docs/ARCHIVOS.md",
   "docs/EMISION.md",
   "web/DISENO.md",
+  // Los punteros por proveedor de la regla AI (CLAUDE.md ya estaba arriba):
+  // cuatro líneas que mandan a leer AGENTS.md, o sea contexto interno. Sin
+  // esto, el barrido los caza por nombrar las reglas de la casa y se niega a
+  // publicar, que es justo lo que pasó con la 0.9.117.
+  "GEMINI.md",
+  ".github/copilot-instructions.md",
+  ".cursor/rules/contexto.mdc",
 ];
 
 /**

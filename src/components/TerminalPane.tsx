@@ -90,6 +90,10 @@ interface Props {
   /** Shrink the type so a crowded pane still fits a usable line. */
   autoFont: boolean;
   onClose: (id: number) => void;
+  /** Cambiarle el nombre a esta sesión: doble clic en el nombre de la
+      cabecera y se teclea ahí mismo. Ausente en la ventana suelta, donde el
+      nombre viaja en la dirección de la ventana y no hay a quién contárselo. */
+  onRename?: (id: number, nombre: string) => void;
   onFocusPane: (id: number) => void;
   onSplit: (id: number, dir: "right" | "down") => void;
   onToggleMax: (id: number) => void;
@@ -377,6 +381,7 @@ export default function TerminalPane({
   fontSize,
   autoFont,
   onClose,
+  onRename,
   onFocusPane,
   onSplit,
   onToggleMax,
@@ -415,6 +420,10 @@ export default function TerminalPane({
   const [note, setNote] = useState<string | null>(null);
   /** La papelera pregunta antes de morder, con el mismo diálogo que la barra. */
   const [borrando, setBorrando] = useState(false);
+  /** El nombre a medio teclear, cuando el doble clic lo puso en edición.
+      `null` es «no se está editando»; el texto vive aquí y no en el DOM para
+      que Escape pueda tirarlo sin tocar nada. */
+  const [nombreEnEdicion, setNombreEnEdicion] = useState<string | null>(null);
   /** Ver `lib/velo.ts`: distingue pinchar el velo de soltar ahí un arrastre. */
   const bajoEnVelo = useRef(false);
   const [agents, setAgents] = useState({ live: 0, total: 0 });
@@ -808,6 +817,16 @@ export default function TerminalPane({
   const label = name.startsWith(`${project} · `)
     ? name.slice(project.length + 3)
     : name;
+  /* Confirmar lo tecleado tras el doble clic en el nombre. Se edita lo que se
+     VE, o sea `label` sin el prefijo del proyecto; si el nombre lo llevaba, se
+     conserva solo, para que renombrar no borre de paso a qué proyecto
+     pertenecía. Vacío o igual: no se molesta a nadie. */
+  const confirmarNombre = () => {
+    const nuevo = (nombreEnEdicion ?? "").trim();
+    setNombreEnEdicion(null);
+    if (!nuevo || nuevo === label || !onRename) return;
+    onRename(id, name.startsWith(`${project} · `) ? `${project} · ${nuevo}` : nuevo);
+  };
   // Cuál de los CLIs corre aquí. Antes solo distinguía Claude, Antigravity y
   // «lo demás», y ese «lo demás» se anunciaba como PowerShell: una sesión de
   // Codex o de Cursor llevaba en la cabecera el nombre de otra herramienta.
@@ -1487,6 +1506,9 @@ export default function TerminalPane({
       cerebro ? `${cerebro}${brain.effort ? ` · ${brain.effort}` : ""}` : "",
       ctx && ctx.percent > 0 ? `${ctx.percent} % ${t("de contexto usado")}` : "",
       ram && ram.ramMb > 0 ? `${bonito(ram.ramMb, lang)} ${t("de memoria")}` : "",
+      // La única pista de que el nombre se puede editar: sin ella, el doble
+      // clic es un secreto que hay que adivinar.
+      onRename ? t("Doble clic para cambiar el nombre") : "",
     ]
       .filter(Boolean)
       .join("\n") || undefined;
@@ -1600,8 +1622,9 @@ export default function TerminalPane({
         className="pane-head"
         data-movable={!!onHeaderDown}
         onPointerDown={(e) => {
-          // Buttons and the tooltip areas keep their own behaviour.
-          if (e.button !== 0 || (e.target as HTMLElement).closest("button")) return;
+          // Buttons keep their own behaviour; so does the rename box, or
+          // selecting text inside it would start dragging the pane around.
+          if (e.button !== 0 || (e.target as HTMLElement).closest("button, input")) return;
           onHeaderDown?.(id, e);
         }}
         /* La cabecera se desplaza con la rueda cuando no cabe.
@@ -1673,9 +1696,34 @@ export default function TerminalPane({
               soltando el esfuerzo, la memoria, el modelo… y todo eso sigue
               aquí, a un puntero de distancia. Antes solo salía el nombre
               largo, y cuando el nombre cabía entero no salía nada. */}
-          <span className="pane-name" data-tip={resumen}>
-            {label}
-          </span>
+          {nombreEnEdicion != null && onRename ? (
+            <input
+              /* `nodrag` es para el lienzo: sin ella, React Flow toma el
+                 mousedown de la caja (vive dentro de `.pane-head`, que es su
+                 asa de arrastre) y seleccionar el texto movería el nodo. En la
+                 Cabina no hay React Flow y la clase no hace nada. */
+              className="pane-rename nodrag"
+              value={nombreEnEdicion}
+              autoFocus
+              /* Con todo seleccionado: lo normal al renombrar es teclear el
+                 nombre entero nuevo, no añadirle letras al viejo. */
+              onFocus={(e) => e.currentTarget.select()}
+              onChange={(e) => setNombreEnEdicion(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") confirmarNombre();
+                else if (e.key === "Escape") setNombreEnEdicion(null);
+              }}
+              onBlur={confirmarNombre}
+            />
+          ) : (
+            <span
+              className="pane-name"
+              data-tip={resumen}
+              onDoubleClick={onRename ? () => setNombreEnEdicion(label) : undefined}
+            >
+              {label}
+            </span>
+          )}
         </div>
         <div className="ph-meta">
           {/* Counted in the transcript: then the total is a fact and it stays on

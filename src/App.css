@@ -4359,6 +4359,22 @@ body {
   white-space: nowrap;
 }
 
+/* El nombre en edición: doble clic encima y se teclea AHÍ, sin diálogo. Ocupa
+   el sitio exacto del nombre (misma letra, mismo flex) para que la cabecera no
+   salte al entrar ni al salir; solo el borde dice que ahora es una caja. */
+.pane-rename {
+  flex: 1 1 112px;
+  min-width: 0;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 650;
+  outline: none;
+}
+
 /* La X cierra la fila, así que era lo PRIMERO que se comía el `overflow:
    hidden` de la cabecera: los textos ceden sitio, pero los siete botones no
    ceden ninguno, y lo que no cabe se recorta por la derecha. El comentario de
@@ -5268,6 +5284,14 @@ body {
   position: relative;
   flex: 1;
   min-height: 0;
+  /* El MISMO velo que pinta xterm detrás de sus terminales. El editor era el
+     único contenido del mosaico sin esta capa: CodeMirror es transparente
+     sobre el cristal del panel a secas, así que con una foto puesta el código
+     se leía con Mickey entero detrás mientras las terminales de al lado
+     llevaban su tinte (Munir, 2026-08-16). Con la variable de la casa, el
+     mando de Ajustes («cuánto se ve a través de las terminales») y el apagón
+     gobiernan las dos cosas a la vez, sin un segundo mando que explicar. */
+  background: var(--xterm-bg);
 }
 
 .ed-hoja {

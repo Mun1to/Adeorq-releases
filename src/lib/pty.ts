@@ -513,6 +513,21 @@ export function renameSession(
   return invoke("rename_session", { folder, sessionId, title });
 }
 
+/**
+ * La carpeta de `~/.claude/projects` que le toca a una carpeta de trabajo.
+ *
+ * Es el espejo EXACTO de `encode_claude` en `sessions.rs` (todo lo que no sea
+ * letra o número ASCII se vuelve un guion: `C:\proyectos\Adeorq` →
+ * `C--proyectos-Adeorq`), que a su vez copia lo que hace Claude Code. Existe
+ * porque `rename_session` habla en nombre de carpeta, no en ruta: la barra
+ * lateral ya lo recibe codificado del escáner, pero un panel vivo solo sabe
+ * su `cwd`. Si algún día las dos reglas se separan, renombrar desde la
+ * cabecera fallará con «no encuentro el transcript», no escribirá donde no es.
+ */
+export function carpetaClaude(cwd: string): string {
+  return cwd.replace(/[^A-Za-z0-9]/g, "-");
+}
+
 /** Throws a session away: its transcript goes to the Windows recycle bin, so
     it is gone from Adeorq and from Claude Code, but still recoverable.
 

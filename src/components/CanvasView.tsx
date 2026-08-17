@@ -235,6 +235,10 @@ interface Props {
    *  cerebros y fronteras antes de gastar nada. */
   onRepartirTarjetas: (texto: string, project: Project, alAbrir: () => void) => void;
   onClose: (id: number) => void;
+  /** Doble clic en el nombre de la cabecera: el mismo renombrado que en la
+   *  Cabina. Lo resuelve App, que tiene las dos listas de paneles. Opcional,
+   *  igual que en `TerminalPane`: sin él, el nombre simplemente no se edita. */
+  onRename?: (id: number, nombre: string) => void;
   /** El asa para que una sesión suprema pida flechas por MCP. La rellena el
    *  lienzo al montarse y la vacía al irse, así que App puede preguntar si hay
    *  lienzo abierto sin saber nada de él. Ver `docs/SUPREMA.md`. */
@@ -299,6 +303,7 @@ interface TermData extends Record<string, unknown> {
   focused: boolean;
   onFocus: (id: number) => void;
   onClose: (id: number) => void;
+  onRename?: (id: number, nombre: string) => void;
   onSplit: (id: number) => void;
   onZoom: (id: number) => void;
   onTurnEnd: (id: number) => void;
@@ -361,6 +366,7 @@ function TermNode({ data, selected }: NodeProps<Node<TermData>>) {
         onSecret={d.onSecret}
         notifyMode={d.notifyMode}
         onClose={d.onClose}
+        onRename={d.onRename}
         onFocusPane={d.onFocus}
         onSplit={(id) => d.onSplit(id)}
         onToggleMax={(id) => d.onZoom(id)}
@@ -403,6 +409,7 @@ function Canvas({
   onLanzarEncargo,
   onRepartirTarjetas,
   onClose,
+  onRename,
   enlazarRef,
 }: Props) {
   const { t } = useT();
@@ -668,6 +675,7 @@ function Canvas({
             focused: false,
             onFocus: setFocusedId,
             onClose: handleClose,
+            onRename,
             onSplit: (id: number) => splitRef.current(id),
             onZoom: zoomTo,
             onTurnEnd,
@@ -1561,6 +1569,7 @@ ${ruta}` : ruta;
             focused: false,
             onFocus: setFocusedId,
             onClose: handleClose,
+            onRename,
             onSplit: (id: number) => splitRef.current(id),
             onZoom: zoomTo,
             onTurnEnd,

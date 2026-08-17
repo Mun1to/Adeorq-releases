@@ -302,10 +302,32 @@ function parseAsk(screen: string): Ask | null {
 // cristal tintado aunque el renderer lo pinte sólido.
 const FONDO_RESERVA = "rgba(13, 21, 36, 0.45)";
 
-/** El tema completo para xterm: las letras del esquema elegido y el fondo de
-    la casa, que es quien sabe si hay una foto detrás. */
+/** El pulgar de la barra de scroll, del color del tema de la casa.
+    Desde xterm 6 la barra la pinta el propio xterm (motor de VS Code) y su
+    color por defecto es un gris que sobre el cristal oscuro casi no existía:
+    parte del «a veces no se ve la barra» (Munir, 2026-08-17). El accent llega
+    como `#rrggbb`, así que el alfa se le pega detrás; si algún tema lo
+    escribiera de otra forma, antes un azul de reserva que un pulgar invisible. */
+function pulgarDeScroll(): { normal: string; hover: string; activo: string } {
+  const accent = getComputedStyle(document.documentElement)
+    .getPropertyValue("--accent")
+    .trim();
+  const base = /^#[0-9a-fA-F]{6}$/.test(accent) ? accent : "#5fb0ff";
+  return { normal: `${base}66`, hover: `${base}b3`, activo: `${base}e6` };
+}
+
+/** El tema completo para xterm: las letras del esquema elegido, el fondo de
+    la casa (que es quien sabe si hay una foto detrás) y la barra de scroll a
+    juego. */
 function temaDeXterm() {
-  return { ...coloresTerm(), background: fondoDeXterm() };
+  const pulgar = pulgarDeScroll();
+  return {
+    ...coloresTerm(),
+    background: fondoDeXterm(),
+    scrollbarSliderBackground: pulgar.normal,
+    scrollbarSliderHoverBackground: pulgar.hover,
+    scrollbarSliderActiveBackground: pulgar.activo,
+  };
 }
 
 // Agent counter: Claude Code and agy both print a Task(...) line when they

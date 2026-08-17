@@ -4452,35 +4452,31 @@ body {
    que el motivo de macOS no aplica. */
 .pane-term .xterm .xterm-viewport {
   background-color: transparent;
-  /* Y aquí SÍ hay barra de scroll, contra la regla global que las quita todas.
-     Esa regla la pidió Munir para la barra lateral, donde seis píxeles de raíl
-     al lado de una lista de proyectos son seis píxeles tirados. En una terminal
-     es otra cosa: la barra es el único sitio donde se ve CUÁNTO historial hay
-     detrás y por dónde vas. Sin ella, subir a leer algo es moverse a ciegas
-     (Munir, 2026-08-07: «la barra de scroll a veces no está bien, no se ve»).
-     Fina y del color de la casa, que no es un raíl de sistema. */
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent) 40%, transparent) transparent;
 }
 
-.pane-term .xterm .xterm-viewport::-webkit-scrollbar {
-  width: 9px;
-}
+/* La barra de las terminales ya NO es la del navegador: desde xterm 6 la pinta
+   el propio xterm, con el motor de scroll de VS Code (un div `.scrollbar` con
+   su `.slider` dentro de `.xterm-scrollable-element`). Aquí había un bloque
+   entero estilizando la barra nativa del viewport (`scrollbar-width: thin` +
+   `::-webkit-scrollbar`), y era doblemente zombi: la barra que estilizaba ya no
+   se usa, y además en Chromium un `scrollbar-width` distinto de `auto` apaga
+   los `::-webkit-scrollbar` de ese elemento. Lo que Munir veía a veces era la
+   overlay fina del sistema resucitada a medias, apareciendo y escondiéndose
+   sola (2026-08-17: «a veces no aparece la barra»).
 
-.pane-term .xterm .xterm-viewport::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.pane-term .xterm .xterm-viewport::-webkit-scrollbar-thumb {
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 40%, transparent);
-  background-clip: content-box;
-}
-
-.pane-term .xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--accent) 75%, transparent);
-  background-clip: content-box;
+   La barra de VS Code nace invisible y se desvanece al dejar de scrollear.
+   En una terminal eso es esconder el único sitio donde se ve CUÁNTO historial
+   hay detrás y por dónde vas, así que con el ratón ENCIMA de la terminal la
+   barra está siempre, pisando sus estados `.invisible`/`.fade`. Sin ratón
+   encima vuelve lo nativo (aparece al scrollear, se desvanece después): así
+   seis paneles quietos no lucen seis franjas permanentes, que la regla de la
+   casa contra los raíles de sistema existe por algo.
+   El color del pulgar no se pone aquí: xterm genera su propio CSS con los
+   `scrollbarSlider*` de su tema, así que viaja por `temaDeXterm`, que es quien
+   ya sabe leer los colores de la casa. */
+.pane-term:hover .xterm .xterm-scrollable-element > .invisible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* Where you are typing has to be obvious at a glance across a wall of panes

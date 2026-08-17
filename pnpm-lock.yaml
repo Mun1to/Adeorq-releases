@@ -57,14 +57,14 @@ importers:
         specifier: ^2.10.1
         version: 2.10.1
       '@xterm/addon-fit':
-        specifier: ^0.11.0
-        version: 0.11.0
+        specifier: 0.12.0-beta.298
+        version: 0.12.0-beta.298(@xterm/xterm@6.1.0-beta.298)
       '@xterm/addon-webgl':
-        specifier: ^0.19.0
-        version: 0.19.0
+        specifier: 0.20.0-beta.298
+        version: 0.20.0-beta.298(@xterm/xterm@6.1.0-beta.298)
       '@xterm/xterm':
-        specifier: ^6.0.0
-        version: 6.0.0
+        specifier: 6.1.0-beta.298
+        version: 6.1.0-beta.298
       '@xyflow/react':
         specifier: ^12.11.2
         version: 12.11.2(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -720,14 +720,18 @@ packages:
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
 
-  '@xterm/addon-fit@0.11.0':
-    resolution: {integrity: sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g==}
+  '@xterm/addon-fit@0.12.0-beta.298':
+    resolution: {integrity: sha512-g45U5dlwo6kWU3dA9age1ojGBeL49HeuomoTT7Ler9GUoQhL0LmrsxuSw/xxv5P2x1pBli0g0tUoG3MRIYG6MQ==}
+    peerDependencies:
+      '@xterm/xterm': ^6.1.0-beta.300
 
-  '@xterm/addon-webgl@0.19.0':
-    resolution: {integrity: sha512-b3fMOsyLVuCeNJWxolACEUED0vm7qC0cy4wRvf3oURSzDTYVQiGPhTnhWZwIHdvC48Y+oLhvYXnY4XDXPoJo6A==}
+  '@xterm/addon-webgl@0.20.0-beta.298':
+    resolution: {integrity: sha512-65jZWGSV3nu2jVyc/r2H31Q+oXnDX8IhcSquREVlDjqmfOINXhAufBj2zcK6BCgYT0jrdx7y64VFgVcQ3vAkRA==}
+    peerDependencies:
+      '@xterm/xterm': ^6.1.0-beta.301
 
-  '@xterm/xterm@6.0.0':
-    resolution: {integrity: sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==}
+  '@xterm/xterm@6.1.0-beta.298':
+    resolution: {integrity: sha512-EfUmtI+jRqgrtMiFtVyNKcRJgkF0HtXLYz1KIgD3Ch+QUj8aPWco6UwIhkpzlltCmeXl630bQxni13AUPZG/MQ==}
 
   '@xyflow/react@12.11.2':
     resolution: {integrity: sha512-eLAlDWJfWnQEhJwGMjlWdAXO9eYllKpliUmPQlAmOLxz6mExXuzMVDUKLMquixgkrtmMFFtug3jGKmYYld12cA==}
@@ -1589,11 +1593,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@xterm/addon-fit@0.11.0': {}
+  '@xterm/addon-fit@0.12.0-beta.298(@xterm/xterm@6.1.0-beta.298)':
+    dependencies:
+      '@xterm/xterm': 6.1.0-beta.298
 
-  '@xterm/addon-webgl@0.19.0': {}
+  '@xterm/addon-webgl@0.20.0-beta.298(@xterm/xterm@6.1.0-beta.298)':
+    dependencies:
+      '@xterm/xterm': 6.1.0-beta.298
 
-  '@xterm/xterm@6.0.0': {}
+  '@xterm/xterm@6.1.0-beta.298': {}
 
   '@xyflow/react@12.11.2(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:

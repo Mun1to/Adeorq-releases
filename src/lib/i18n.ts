@@ -1833,6 +1833,9 @@ const EN: Record<string, string> = {
   "ventanas de localhost": "localhost windows",
   "ver la web mientras se hace": "watch the site while it is being built",
   Recargar: "Reload",
+  Adelante: "Forward",
+  "Nueva pestaña": "New tab",
+  "Abrir otra pestaña": "Open another tab",
   "Abrirla en tu navegador de verdad": "Open it in your real browser",
   "Escribe arriba un puerto o una dirección, o toca uno de los de abajo.":
     "Type a port or an address above, or tap one of the ones below.",

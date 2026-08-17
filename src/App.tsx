@@ -181,6 +181,10 @@ interface Pane {
   activo?: string;
   /** Y si esto está puesto, el hueco es una vista previa de esa dirección. */
   web?: string;
+  /** Todas sus pestañas y cuál se ve. `web` sigue siendo la activa, para que
+      todo lo que ya miraba «¿es un panel web?» siga mirando lo mismo. */
+  webTabs?: string[];
+  webActiva?: number;
 }
 
 /** Una cuadrilla: varias terminales repartiéndose una sola tarea. */
@@ -297,6 +301,10 @@ interface SavedPane {
   activo?: string;
   /** Era una vista previa de esta dirección. */
   web?: string;
+  /** Sus pestañas, si tenía más de una. Un tablero guardado antes de que
+      existieran no las trae y vuelve con la de siempre. */
+  webTabs?: string[];
+  webActiva?: number;
 }
 
 /** The whole board: which panes, and the mosaic they were arranged in. */
@@ -2145,6 +2153,20 @@ function App() {
     setFocusedId(id);
   }, []);
 
+  /** La foto de las pestañas del panel web, para que sobrevivan al reinicio.
+      Estable a propósito: el panel la llama desde un efecto, y una función
+      nueva en cada pintado lo dispararía sin parar y App y el panel se
+      retroalimentarían. */
+  const onWebEstado = useCallback((paneId: number, tabs: string[], activa: number) => {
+    setPanes((prev) =>
+      prev.map((x) =>
+        x.id === paneId
+          ? { ...x, web: tabs[activa] ?? "", webTabs: tabs, webActiva: activa }
+          : x,
+      ),
+    );
+  }, []);
+
   /** Cambiar de pestaña dentro de un panel de archivos. */
   const activarPestana = useCallback((paneId: number, ruta: string) => {
     setPanes((prev) =>
@@ -2359,6 +2381,8 @@ function App() {
         archivos: pane.archivos,
         activo: pane.activo,
         web: pane.web,
+        webTabs: pane.webTabs,
+        webActiva: pane.webActiva,
       });
     });
     const layout: SavedLayout = {
@@ -2407,7 +2431,17 @@ function App() {
         if (pane.web != null) {
           const id = nextId.current++;
           ids.push(id);
-          setPanes((prev) => [...prev, { id, cwd: pane.cwd, name: pane.name, web: pane.web }]);
+          setPanes((prev) => [
+            ...prev,
+            {
+              id,
+              cwd: pane.cwd,
+              name: pane.name,
+              web: pane.web,
+              webTabs: pane.webTabs,
+              webActiva: pane.webActiva,
+            },
+          ]);
           if (pane.minimizado) setMinimizados((prev) => new Set(prev).add(id));
           setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
           setRestoring((n) => n - 1);
@@ -3424,7 +3458,8 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     <WebPane
                       key={p.id}
                       id={p.id}
-                      url={p.web}
+                      tabs={p.webTabs ?? [p.web]}
+                      activa={p.webActiva ?? 0}
                       focused={focusedId === p.id}
                       hidden={escondido || (maximizedId != null && !max && !lado)}
                       maximized={max}
@@ -3433,11 +3468,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                       onClose={closePane}
                       onToggleMax={onToggleMax}
                       onHeaderDown={onHeaderDown}
-                      onUrl={(paneId, url) =>
-                        setPanes((prev) =>
-                          prev.map((x) => (x.id === paneId ? { ...x, web: url } : x)),
-                        )
-                      }
+                      onEstado={onWebEstado}
                     />
                   );
                 }

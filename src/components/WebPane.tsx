@@ -6,6 +6,12 @@
 // el resultado. El agente toca a la izquierda y la página se recarga a la
 // derecha, sin cambiar de ventana ni buscar la pestaña en Brave.
 //
+// El 2026-08-17 ganó pestañas y botones de atrás y adelante, pedidos con una
+// captura de un navegador de verdad. Las pestañas van SIEMPRE a la vista,
+// aunque haya una sola, al revés que en el editor: aquí la fila lleva el
+// título y el icono del sitio, que la cabecera no enseña (lleva la dirección
+// editable), y es donde vive el botón de abrir otra.
+//
 // Lo que sabe de webs NO se ha vuelto a escribir: `comoUrl`, `comoEmpotrable` y
 // `puedeEmpotrarse` son las mismas de allí, con sus casos ya aprendidos (el
 // puerto suelto, los enlaces de YouTube, las páginas que se niegan a entrar en
@@ -28,11 +34,24 @@ import {
   verNavegador,
 } from "../lib/navegador";
 import { comoUrl } from "./CanvasWeb";
-import { BrowserIcon, CloseIcon, ExternalIcon, RefreshIcon, RestoreIcon, MaximizeIcon } from "./Icons";
+import {
+  BrowserIcon,
+  ChevronIcon,
+  CloseIcon,
+  ExternalIcon,
+  PlusIcon,
+  RefreshIcon,
+  RestoreIcon,
+  MaximizeIcon,
+} from "./Icons";
 
 interface Props {
   id: number;
-  url: string;
+  /** Las direcciones abiertas, una por pestaña, y cuál se está viendo. Solo
+      son el ARRANQUE: el panel las hace suyas al montarse y a partir de ahí
+      manda él, avisando por `onEstado` para que sobrevivan al reinicio. */
+  tabs: string[];
+  activa: number;
   focused: boolean;
   hidden: boolean;
   maximized: boolean;
@@ -41,9 +60,28 @@ interface Props {
   onClose: (id: number) => void;
   onToggleMax: (id: number) => void;
   onHeaderDown?: (id: number, e: React.PointerEvent) => void;
-  /** Guardar la dirección en el panel, para que vuelva al reabrir Adeorq. */
-  onUrl: (id: number, url: string) => void;
+  /** Guardar las pestañas en el panel, para que vuelvan al reabrir Adeorq. */
+  onEstado: (id: number, tabs: string[], activa: number) => void;
 }
+
+/** Una pestaña por dentro. La pila es el historial de atrás y adelante, y es
+    el de las direcciones dadas DESDE Adeorq (la barra, los puertos, otra
+    pestaña): lo que la página navegue por dentro no se puede leer desde fuera
+    de un iframe de otro origen, así que prometer más sería mentir. */
+interface Pest {
+  url: string;
+  pila: string[];
+  pos: number;
+  /** Cambia con cada recarga: es lo que obliga al iframe a volver a pedir. */
+  vuelta: number;
+}
+
+const dePestana = (u: string): Pest => ({
+  url: u,
+  pila: u ? [u] : [],
+  pos: u ? 0 : -1,
+  vuelta: 0,
+});
 
 /** Los puertos donde suele estar servido lo que uno acaba de arrancar. Los
     mismos que en el lienzo: si un día cambian, cambian en los dos sitios. */
@@ -54,9 +92,35 @@ const PUERTOS = [1420, 5173, 3000, 4321, 8000, 8080];
 const MODO_KEY = "adeorq-web-modo";
 type Modo = "dentro" | "tuyo";
 
+function origenDe(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "";
+  }
+}
+
+/** El icono del sitio, pedido a su ruta de siempre (`/favicon.ico`). Si no lo
+    tiene, el globo de la casa: mejor un dibujo estable que un hueco roto. */
+function Favicon({ url }: { url: string }) {
+  const [roto, setRoto] = useState(false);
+  const origen = origenDe(url);
+  useEffect(() => setRoto(false), [origen]);
+  if (!origen || roto) return <BrowserIcon size={12} />;
+  return (
+    <img
+      className="web-pest-ico"
+      src={`${origen}/favicon.ico`}
+      alt=""
+      onError={() => setRoto(true)}
+    />
+  );
+}
+
 export default function WebPane({
   id,
-  url,
+  tabs,
+  activa,
   focused,
   hidden,
   maximized,
@@ -65,12 +129,17 @@ export default function WebPane({
   onClose,
   onToggleMax,
   onHeaderDown,
-  onUrl,
+  onEstado,
 }: Props) {
   const { t } = useT();
-  const [texto, setTexto] = useState(url);
-  /** Cambia con cada recarga: es lo que obliga al iframe a volver a pedir. */
-  const [vuelta, setVuelta] = useState(0);
+  /** Las pestañas viven aquí; App solo guarda la foto para el reinicio. */
+  const [pests, setPests] = useState<Pest[]>(() =>
+    (tabs.length ? tabs : [""]).map(dePestana),
+  );
+  const [act, setAct] = useState(() => Math.max(0, Math.min(activa, tabs.length - 1)));
+  const pest = pests[act];
+  const urlAct = pest?.url ?? "";
+  const [texto, setTexto] = useState(urlAct);
   /** Por qué esta página no se puede enseñar aquí, si es que no se puede. Se
       pregunta ANTES de cargarla: un iframe al que le niegan la entrada no avisa
       de nada, se queda en blanco y parece que la app está rota. */
@@ -88,9 +157,71 @@ export default function WebPane({
       a donde ya está sesenta veces por segundo. */
   const ultima = useRef("");
 
+  // Cada cambio sube a App tal cual. `onEstado` es estable (useCallback allí):
+  // si no lo fuera, este efecto se dispararía en cada pintado de App y los dos
+  // se retroalimentarían sin parar.
   useEffect(() => {
-    setTexto(url);
-  }, [url]);
+    onEstado(
+      id,
+      pests.map((p) => p.url),
+      act,
+    );
+  }, [id, pests, act, onEstado]);
+
+  useEffect(() => {
+    setTexto(urlAct);
+  }, [act, urlAct]);
+
+  /** Tocar solo la pestaña activa, que es la única que se navega. */
+  const cambia = useCallback(
+    (f: (p: Pest) => Pest) =>
+      setPests((prev) => prev.map((p, i) => (i === act ? f(p) : p))),
+    [act],
+  );
+
+  const ir = (destino: string) => {
+    const limpia = comoUrl(destino);
+    if (!limpia) return;
+    setTexto(limpia);
+    cambia((p) =>
+      p.url === limpia
+        ? { ...p, vuelta: p.vuelta + 1 }
+        : { ...p, url: limpia, pila: [...p.pila.slice(0, p.pos + 1), limpia], pos: p.pos + 1 },
+    );
+  };
+
+  const atras = () =>
+    cambia((p) => (p.pos > 0 ? { ...p, pos: p.pos - 1, url: p.pila[p.pos - 1] } : p));
+  const adelante = () =>
+    cambia((p) =>
+      p.pos < p.pila.length - 1 ? { ...p, pos: p.pos + 1, url: p.pila[p.pos + 1] } : p,
+    );
+  const recargar = () => cambia((p) => ({ ...p, vuelta: p.vuelta + 1 }));
+
+  const nueva = () => {
+    setPests((prev) => [...prev, dePestana("")]);
+    setAct(pests.length);
+  };
+
+  const cerrar = (i: number) => {
+    // La última pestaña cierra el panel: un navegador sin nada abierto no es
+    // un estado, es un hueco muerto ocupando el mosaico.
+    if (pests.length <= 1) {
+      onClose(id);
+      return;
+    }
+    setPests((prev) => prev.filter((_, j) => j !== i));
+    setAct((a) => (i < a ? a - 1 : Math.min(a, pests.length - 2)));
+  };
+
+  const etiqueta = (url: string) => {
+    if (!url) return t("Nueva pestaña");
+    try {
+      return new URL(url).host;
+    } catch {
+      return url;
+    }
+  };
 
   /* ── Tu navegador, metido dentro ─────────────────────────────────────────
      Es una ventana de verdad puesta sobre el hueco, así que TODO lo que aquí
@@ -109,19 +240,19 @@ export default function WebPane({
   }, [id, modo]);
 
   useEffect(() => {
-    if (modo !== "tuyo" || !url || !hueco.current) return;
+    if (modo !== "tuyo" || !urlAct || !hueco.current) return;
     let vivo = true;
     setFallo("");
     ultima.current = "";
     const caja = enFisicos(hueco.current.getBoundingClientRect());
-    void empotrarNavegador(id, url, caja)
+    void empotrarNavegador(id, urlAct, caja)
       .then((r) => vivo && setPrograma(r.programa))
       .catch((e) => vivo && setFallo(String(e)));
     return () => {
       vivo = false;
       void soltarNavegador(id).catch(() => {});
     };
-  }, [id, url, modo]);
+  }, [id, urlAct, modo]);
 
   /* Cada pintado se comprueba dónde ha quedado el hueco. Suena a bruto y no lo
      es: el panel solo se repinta cuando algo suyo cambia (lo mueves, lo
@@ -154,25 +285,19 @@ export default function WebPane({
     setModo(m);
   };
 
+  // Se comprueba la pestaña ACTIVA, que es la que se ve: cambiar de pestaña o
+  // de dirección vuelve a preguntar.
   useEffect(() => {
-    if (!url) return;
+    if (!urlAct) return;
     let vivo = true;
     setRechaza(null);
-    puedeEmpotrarse(url)
+    puedeEmpotrarse(urlAct)
       .catch((e) => vivo && setRechaza(String(e)))
       .then(() => {});
     return () => {
       vivo = false;
     };
-  }, [url, vuelta]);
-
-  const ir = (destino: string) => {
-    const limpia = comoUrl(destino);
-    if (!limpia) return;
-    setTexto(limpia);
-    onUrl(id, limpia);
-    setVuelta((n) => n + 1);
-  };
+  }, [urlAct, pest?.vuelta]);
 
   return (
     <section
@@ -190,6 +315,27 @@ export default function WebPane({
         }}
       >
         <div className="ph-id">
+          {/* Atrás, adelante y recargar, a la izquierda de la dirección: es el
+              orden de cualquier navegador y el que la mano ya conoce. */}
+          <button
+            className="mini"
+            data-tip={t("Atrás")}
+            disabled={!pest || pest.pos <= 0}
+            onClick={atras}
+          >
+            <ChevronIcon size={13} izq />
+          </button>
+          <button
+            className="mini"
+            data-tip={t("Adelante")}
+            disabled={!pest || pest.pos >= pest.pila.length - 1}
+            onClick={adelante}
+          >
+            <ChevronIcon size={13} der />
+          </button>
+          <button className="mini" data-tip={t("Recargar")} onClick={recargar}>
+            <RefreshIcon size={13} />
+          </button>
           <input
             className="web-url"
             value={texto}
@@ -198,7 +344,7 @@ export default function WebPane({
             onChange={(e) => setTexto(e.currentTarget.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") ir(e.currentTarget.value);
-              if (e.key === "Escape") setTexto(url);
+              if (e.key === "Escape") setTexto(urlAct);
               e.stopPropagation();
             }}
           />
@@ -220,13 +366,10 @@ export default function WebPane({
           >
             <BrowserIcon size={13} />
           </button>
-          <button className="mini" data-tip={t("Recargar")} onClick={() => setVuelta((n) => n + 1)}>
-            <RefreshIcon size={13} />
-          </button>
           <button
             className="mini"
             data-tip={t("Abrirla en tu navegador de verdad")}
-            onClick={() => void openUrl(url).catch(() => {})}
+            onClick={() => void openUrl(urlAct).catch(() => {})}
           >
             <ExternalIcon size={13} />
           </button>
@@ -243,12 +386,49 @@ export default function WebPane({
         </div>
       </header>
 
+      {/* Las pestañas, con la misma ropa que las del editor (`.ed-pest`): dos
+          filas de pestañas con dos estilos serían dos apps. El botón central
+          del ratón cierra, como en el navegador. */}
+      <div className="ed-pestanas web-pestanas">
+        {pests.map((p, i) => (
+          <div
+            key={i}
+            className="ed-pest"
+            data-on={i === act}
+            title={p.url || undefined}
+            onClick={() => setAct(i)}
+            onAuxClick={(e) => {
+              if (e.button === 1) {
+                e.preventDefault();
+                cerrar(i);
+              }
+            }}
+          >
+            <Favicon url={p.url} />
+            <span className="ed-pest-nom">{etiqueta(p.url)}</span>
+            <button
+              className="ed-pest-x"
+              data-tip={t("Cerrar")}
+              onClick={(e) => {
+                e.stopPropagation();
+                cerrar(i);
+              }}
+            >
+              <CloseIcon size={10} />
+            </button>
+          </div>
+        ))}
+        <button className="web-pest-mas" data-tip={t("Abrir otra pestaña")} onClick={nueva}>
+          <PlusIcon size={13} />
+        </button>
+      </div>
+
       <div className="web-bar">
         {PUERTOS.map((p) => (
           <button
             key={p}
             className="web-port"
-            data-on={url === `http://localhost:${p}`}
+            data-on={urlAct === `http://localhost:${p}`}
             onClick={() => ir(String(p))}
           >
             {p}
@@ -283,16 +463,31 @@ export default function WebPane({
                 "No es cosa de Adeorq: lo decide la propia web con una cabecera, y ningún navegador se la salta. Ábrela fuera y sigue aquí con lo demás.",
               )}
             </p>
-            <button className="np-btn" onClick={() => void openUrl(url).catch(() => {})}>
+            <button className="np-btn" onClick={() => void openUrl(urlAct).catch(() => {})}>
               {t("Abrirla en tu navegador")}
             </button>
           </div>
-        ) : url ? (
-          <iframe key={`${url}#${vuelta}`} className="web-frame" src={url} title={url} />
-        ) : (
+        ) : !urlAct ? (
           <p className="web-vacio">
             {t("Escribe arriba un puerto o una dirección, o toca uno de los de abajo.")}
           </p>
+        ) : null}
+        {/* TODAS montadas y solo se ve la activa, como las hojas del editor:
+            cambiar de pestaña no recarga la página ni pierde lo que tuviera. */}
+        {pests.map((p, i) =>
+          p.url ? (
+            <iframe
+              key={`${i}:${p.url}#${p.vuelta}`}
+              className="web-frame"
+              style={
+                i === act && !rechaza
+                  ? undefined
+                  : { visibility: "hidden", pointerEvents: "none" }
+              }
+              src={p.url}
+              title={p.url}
+            />
+          ) : null,
         )}
       </div>
       )}

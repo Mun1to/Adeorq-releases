@@ -12872,6 +12872,55 @@ body[data-redim] .divider {
   border-color: color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
+/* Las pestañas del navegador llevan la ropa de las del editor (`.ed-pest`,
+   definida junto al editor): dos filas de pestañas con dos estilos serían dos
+   apps. Aquí solo va lo que el editor no tiene: el icono del sitio, su globo
+   de repuesto, el botón de abrir otra, y la pintura de la activa, que se
+   funde con la fila de puertos que tiene debajo y no con el papel del editor. */
+.web-pestanas .ed-pest[data-on="true"] {
+  background: color-mix(in srgb, var(--panel-head) 70%, transparent);
+}
+
+/* Sin scroll vertical: la activa mide un píxel de más por su truco de fundirse
+   con lo de abajo, y con `overflow-x: auto` heredado ese píxel invocaba una
+   barrita en la esquina de la fila. */
+.web-pestanas {
+  overflow-y: hidden;
+}
+
+.web-pest-ico {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+}
+
+.ed-pest > svg {
+  flex: none;
+  opacity: 0.75;
+}
+
+.web-pest-mas {
+  flex: none;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.web-pest-mas:hover {
+  background: var(--row);
+  color: var(--text);
+}
+
 .web-bar {
   display: flex;
   align-items: center;
@@ -12936,7 +12985,12 @@ body[data-redim] .divider {
   background: #fff;
 }
 
+/* Apilados en absoluto, como las hojas del editor: TODAS las pestañas están
+   montadas y solo se ve la activa, así que cambiar de pestaña no recarga la
+   página ni pierde lo que tuviera escrito. */
 .web-frame {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   border: 0;

@@ -1,5 +1,8 @@
+import { useEffect, useRef } from "react";
 import { comoFuente, esVideo } from "../lib/fondo";
 import { estiloDe, type Encuadre } from "../lib/encuadre";
+import { modoRendimiento } from "../lib/rendimiento";
+import { TEMA_TERM_EVENTO } from "../lib/temasTerm";
 
 // La capa del fondo. Va debajo de todo y no recibe un solo clic.
 //
@@ -27,6 +30,45 @@ interface Props {
 }
 
 export default function Fondo({ path, sello, opacidad, desenfoque, encuadre }: Props) {
+  const video = useRef<HTMLVideoElement | null>(null);
+
+  /* Lo más caro de toda la app es este vídeo, y por mucho.
+   *
+   * Medido el 2026-08-18 en esta máquina, con doce paneles de cristal
+   * (`backdrop-filter: blur(22px)`) delante: sobre un color plano cuestan
+   * 3,6% de un núcleo, y sobre un vídeo 41,3%. No es reproducirlo, es que cada
+   * fotograma suyo invalida el desenfoque de TODO lo que tiene encima, y
+   * Adeorq apila treinta superficies de esas. Once veces más caro. El
+   * desenfoque del propio vídeo casi no añade (41,7%), o sea que el culpable
+   * es el movimiento, no la nitidez.
+   *
+   * PAUSARLO lo devuelve a 1,8%, y un vídeo pausado se ve exactamente igual
+   * que la foto que sería. Así que se pausa en los dos casos donde nadie está
+   * disfrutándolo:
+   *
+   *   · con la ventana escondida o minimizada, donde no lo mira nadie;
+   *   · en modo rendimiento, que es el interruptor que ya apaga «lo que
+   *     respira» y que en automático se enciende solo a partir de la cuarta
+   *     terminal, o sea justo cuando esos 33 puntos hacen falta para otra cosa.
+   *
+   * Con la ventana delante y sin ahorro, se mueve: eso es una decisión suya. */
+  useEffect(() => {
+    const decidir = () => {
+      const v = video.current;
+      if (!v) return;
+      const sobra = document.visibilityState === "hidden" || modoRendimiento();
+      if (sobra) v.pause();
+      else void v.play().catch(() => {});
+    };
+    decidir();
+    document.addEventListener("visibilitychange", decidir);
+    window.addEventListener(TEMA_TERM_EVENTO, decidir);
+    return () => {
+      document.removeEventListener("visibilitychange", decidir);
+      window.removeEventListener(TEMA_TERM_EVENTO, decidir);
+    };
+  }, [path, sello]);
+
   if (!path) return null;
   const src = comoFuente(path, sello);
   // El encaje, la posición y la escala salen de la MISMA función que usa la
@@ -39,7 +81,7 @@ export default function Fondo({ path, sello, opacidad, desenfoque, encuadre }: P
   return (
     <div className="fondo" aria-hidden="true">
       {esVideo(path) ? (
-        <video key={src} className="fondo-medio" src={src} autoPlay loop muted playsInline style={style} />
+        <video ref={video} key={src} className="fondo-medio" src={src} autoPlay loop muted playsInline style={style} />
       ) : (
         <img key={src} className="fondo-medio" src={src} alt="" style={style} />
       )}

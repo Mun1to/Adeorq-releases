@@ -45,6 +45,10 @@ const FUERA = [
   "GEMINI.md",
   ".github/copilot-instructions.md",
   ".cursor/rules/contexto.mdc",
+  // Las reglas de Antigravity, que son contexto interno igual que AGENTS.md: le
+  // cuentan al agente el stack, los comandos y lo que no debe tocar. Es una
+  // CARPETA, y por eso el borrado de abajo lleva `recursive`.
+  ".agents",
 ];
 
 /**
@@ -158,7 +162,7 @@ try {
   for (const f of FUERA) {
     const p = join(foto, f);
     try {
-      rmSync(p);
+      rmSync(p, { recursive: true });
       quitados++;
       console.log(`  fuera  ${f}`);
     } catch {

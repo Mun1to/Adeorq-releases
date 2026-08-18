@@ -510,7 +510,16 @@ export function agyCommand(exe: string, prompt?: string): string[] {
       `& '${exe}' --mode accept-edits '${prompt.replace(/'/g, "''")}'`,
     );
   }
-  return shellCommand(`"${exe}" --mode accept-edits`);
+  // Sin encargo va por cmd, que es el envoltorio ligero, pero la ruta NO puede
+  // ir entre comillas: `portable-pty` cita cada argumento al estilo MSVC y
+  // convierte cada `"` interna en `\"` (`append_quoted`, en su `cmdbuilder.rs`).
+  // cmd.exe no entiende esa barra, así que recibe literalmente
+  // `"\"C:\...\agy.exe\""` y contesta «no se reconoce como un comando». Por eso
+  // se mete su carpeta en el PATH de esa terminal y se le llama por su nombre:
+  // `path` se traga el resto de la línea hasta el `&&`, así que aguanta rutas
+  // con espacios sin necesitar ni una comilla.
+  const dir = exe.replace(/[\\/][^\\/]*$/, "");
+  return shellCommand(`path ${dir};%path% && agy --mode accept-edits`);
 }
 
 /** Where the draggable seams go, derived from the same rectangles. */

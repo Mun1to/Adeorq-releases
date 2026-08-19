@@ -114,7 +114,13 @@ export default function AgendaSesiones({ modelo, onResume }: Props) {
         if (cancelado || !vivo.current) return;
         // El sello cambia cuando la sesión ha seguido hablando; si no ha
         // cambiado, la línea de antes sigue valiendo y no se vuelve a pedir.
-        const sello = `${s.hours}·${s.sizeKb}`;
+        // Es el TAMAÑO y el estado, y a propósito NO la antigüedad: `hours` es
+        // «cuánto hace del último toque» y crece sola con el reloj (cambia
+        // cada ~6 minutos con el decimal), así que llevaba a re-preguntarle a
+        // Ollama por las mismas sesiones quietas una y otra vez, para siempre,
+        // en una máquina que encima está corriendo agentes. Lo que firma el
+        // CONTENIDO es cuánto pesa el transcript y en qué estado quedó.
+        const sello = `${s.sizeKb}·${s.state}`;
         if (lineas[s.id]?.sello === sello) continue;
 
         const cola = await lastReply(s.cwd, s.id, 2500).catch(() => null);
@@ -149,7 +155,11 @@ export default function AgendaSesiones({ modelo, onResume }: Props) {
     // `lineas` NO va en las dependencias: se escribe dentro del propio efecto,
     // así que meterlo lo relanzaría en cada respuesta del modelo, para siempre.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelo, esperando.map((s) => `${s.id}:${s.hours}:${s.sizeKb}`).join("|")]);
+    // Y `hours` tampoco: es la antigüedad, que crece sola con el reloj y
+    // relanzaba el barrido entero cada ~6 minutos sin que nada hubiera
+    // cambiado. Lo que dispara una vuelta nueva es que una sesión haya
+    // escrito (peso) o cambiado de estado, que es lo mismo que firma el sello.
+  }, [modelo, esperando.map((s) => `${s.id}:${s.sizeKb}:${s.state}`).join("|")]);
 
   if (!sesiones.length) return null;
 

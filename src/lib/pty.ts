@@ -497,8 +497,6 @@ export function mediaNow(): Promise<NowPlayingInfo | null> {
 export const mediaNext = (): Promise<void> => invoke("media_next");
 export const mediaPrev = (): Promise<void> => invoke("media_prev");
 export const mediaPlayPause = (): Promise<void> => invoke("media_playpause");
-export const mediaSetVolume = (percent: number): Promise<void> =>
-  invoke("media_set_volume", { percent });
 
 /** Path to Antigravity CLI (`agy`) if installed, else null. */
 export function findAgy(): Promise<string | null> {
@@ -1011,10 +1009,6 @@ export function noteRead(id: string): Promise<NoteFile> {
   return invoke("note_read", { id });
 }
 
-export function noteDelete(id: string): Promise<void> {
-  return invoke("note_delete", { id });
-}
-
 /** Qué notas hay escritas, por su id. El calendario marca con esto los días
     que ya tienen algo. */
 export function noteList(): Promise<string[]> {
@@ -1041,11 +1035,6 @@ export function readPaste(path: string): Promise<ArrayBuffer> {
 
 export function deletePaste(path: string): Promise<void> {
   return invoke("delete_paste", { path });
-}
-
-/** Dónde vive una nota, para poder decírselo a un agente sin abrirla. */
-export function notePath(id: string): Promise<string> {
-  return noteRead(id).then((f) => f.path);
 }
 
 /**

@@ -162,12 +162,20 @@ export default function Vigia({ panes, status }: Props) {
       guardarMemoria(memoria);
     };
 
-    const primera = window.setTimeout(() => void vuelta(), PRIMERA_MS);
-    const reloj = window.setInterval(() => void vuelta(), CADA_MS);
+    // Encadenado como AvisoCuota, y no un setTimeout + setInterval sueltos: el
+    // intervalo arrancaba en t=0 y disparaba a los 60 s, o sea ANTES de la
+    // «primera» de los 90, saltándose el periodo de gracia que el comentario
+    // de arriba promete y metiendo dos vueltas con 30 s entre ellas.
+    let timer = 0;
+    const tick = () => {
+      void vuelta().finally(() => {
+        if (vivo) timer = window.setTimeout(tick, CADA_MS);
+      });
+    };
+    timer = window.setTimeout(tick, PRIMERA_MS);
     return () => {
       vivo = false;
-      window.clearTimeout(primera);
-      window.clearInterval(reloj);
+      window.clearTimeout(timer);
     };
   }, []);
 

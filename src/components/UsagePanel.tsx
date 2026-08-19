@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   planInfo,
   usageReport,
@@ -88,14 +88,31 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
   /* Preguntar la cuota lanza un proceso `claude` de cinco segundos, así que
      pasa por el portero de `lib/cuota.ts`, que la comparte con el aviso y con
      el router. `forzar` es el botón de refrescar: ahí sí lo has pedido tú. */
+  /* La cuenta que estaba elegida cuando se lanzó cada petición. Leer la cuota
+     tarda unos cinco segundos (lanza un `claude` entero), y en ese hueco da
+     tiempo de sobra a cambiar de pestaña: sin esta marca, la respuesta LENTA
+     de la cuenta A aterrizaba encima de la rápida de la B y el panel enseñaba
+     los porcentajes de una bajo el nombre de la otra. En un panel cuyo único
+     trabajo es decirte a qué cuenta cambiarte, ese cruce es mentir. */
+  const dirVigenteRef = useRef(dir);
+  dirVigenteRef.current = dir;
+
   const refresh = useCallback(
     (forzar = false) => {
+      const mia = dir;
       setBusy(true);
       setError("");
       limitesDe(dir, forzar ? 0 : undefined)
-        .then((limits) => setCache({ at: enCache(dir)?.at ?? Date.now(), limits }))
-        .catch((e) => setError(String(e)))
-        .finally(() => setBusy(false));
+        .then((limits) => {
+          if (dirVigenteRef.current !== mia) return;
+          setCache({ at: enCache(dir)?.at ?? Date.now(), limits });
+        })
+        .catch((e) => {
+          if (dirVigenteRef.current === mia) setError(String(e));
+        })
+        .finally(() => {
+          if (dirVigenteRef.current === mia) setBusy(false);
+        });
     },
     [dir],
   );
@@ -103,11 +120,16 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
   useEffect(() => {
     // Lo último que se leyó de ESTA cuenta, mientras llega lo de ahora: el
     // panel enseña algo desde el primer instante en vez de tres huecos.
+    const mia = dir;
     setCache(enCache(dir));
     setPlan(null);
     setData(null);
-    planInfo(dir || undefined).then(setPlan).catch(() => {});
-    usageReport(dir || undefined).then(setData).catch(() => {});
+    planInfo(dir || undefined)
+      .then((p) => dirVigenteRef.current === mia && setPlan(p))
+      .catch(() => {});
+    usageReport(dir || undefined)
+      .then((d) => dirVigenteRef.current === mia && setData(d))
+      .catch(() => {});
     refresh();
     const timer = setInterval(() => refresh(), REFRESH_MS);
     return () => clearInterval(timer);

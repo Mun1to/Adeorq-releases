@@ -396,10 +396,20 @@ export default function MemoriaView() {
       setHits(null);
       return;
     }
+    // La limpieza mata el temporizador, pero una búsqueda YA lanzada no se
+    // puede cancelar: en una bóveda grande, «log» tarda más que «login» y su
+    // respuesta tardía pisaba a la buena. La bandera hace que la respuesta de
+    // una tecla vieja se tire en vez de pintarse.
+    let vigente = true;
     const id = window.setTimeout(() => {
-      memoriaSearch(q.trim()).then(setHits).catch(() => setHits([]));
+      memoriaSearch(q.trim())
+        .then((h) => vigente && setHits(h))
+        .catch(() => vigente && setHits([]));
     }, ESPERA_MS);
-    return () => clearTimeout(id);
+    return () => {
+      vigente = false;
+      clearTimeout(id);
+    };
   }, [q]);
 
   const elegirCarpeta = async () => {

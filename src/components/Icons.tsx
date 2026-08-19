@@ -135,14 +135,6 @@ export function RefreshIcon({ size = 17 }: Props) {
 }
 
 /** Open every session of this project at once. */
-export function StackIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <rect x="8" y="3.5" width="12.5" height="12.5" rx="2.5" />
-      <path d="M15.5 20.5H6A2.5 2.5 0 0 1 3.5 18V8.5" />
-    </svg>
-  );
-}
 
 export function TerminalIcon({ size = 17 }: Props) {
   return (
@@ -174,25 +166,6 @@ export function EyeOffIcon({ size = 17 }: Props) {
 }
 
 /** Split: the pane divides, and the new half is where the fill is. */
-export function SplitRightIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <rect x="3" y="4" width="18" height="16" rx="2.5" />
-      <path d="M12 4v16" />
-      <path d="M15 8.5h3M15 12h3M15 15.5h3" opacity="0.75" />
-    </svg>
-  );
-}
-
-export function SplitDownIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <rect x="4" y="3" width="16" height="18" rx="2.5" />
-      <path d="M4 12h16" />
-      <path d="M8 15h8M8 18h5" opacity="0.75" />
-    </svg>
-  );
-}
 
 /**
  * Minimizar: de la ventana entera queda solo su barra de abajo.
@@ -472,14 +445,6 @@ export function AccountIcon({ size = 17 }: Props) {
 }
 
 /** Guía: un libro abierto. */
-export function GuideIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <path d="M12 6.5 C10 4.8 7.4 4.3 3.5 4.5 v13 c3.9 -0.2 6.5 0.3 8.5 2 2 -1.7 4.6 -2.2 8.5 -2 v-13 c-3.9 -0.2 -6.5 0.3 -8.5 2 z" />
-      <path d="M12 6.5 v14" />
-    </svg>
-  );
-}
 
 /** Comandos: la tecla de comando, que es lo que la pestaña lista. */
 export function CommandIcon({ size = 17 }: Props) {
@@ -502,13 +467,6 @@ export function SettingsIcon({ size = 17 }: Props) {
 }
 
 /** El Capataz: una estrella de cuatro puntas, la marca que ya lleva. */
-export function ForemanIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <path d="M12 2.8 C12.9 8.2 15.8 11.1 21.2 12 C15.8 12.9 12.9 15.8 12 21.2 C11.1 15.8 8.2 12.9 2.8 12 C8.2 11.1 11.1 8.2 12 2.8 z" />
-    </svg>
-  );
-}
 
 /** Emisión: el punto de grabar. Relleno cuando está puesta, hueco cuando no,
     que es la misma convención de cualquier cámara. */
@@ -549,23 +507,6 @@ export function StreamIcon({ size = 17, on = false }: Props & { on?: boolean }) 
  * El anillo lleva su propio grosor, más fino que el trazo de la casa: es lo
  * que hace que se lea como algo que ORBITA y no como un segundo círculo.
  */
-export function OrbIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <circle cx="12" cy="11.5" r="5.4" />
-      <ellipse
-        cx="12"
-        cy="11.5"
-        rx="10"
-        ry="4.1"
-        strokeWidth={1.2}
-        opacity={0.75}
-        transform="rotate(-22 12 11.5)"
-      />
-      <circle cx="10.1" cy="9.6" r="1.15" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
 
 export function CheckIcon({ size = 17 }: Props) {
   return (
@@ -640,19 +581,6 @@ export function GitBranchIcon({ size = 17 }: Props) {
   );
 }
 
-export function DiffIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-      <line x1="16" y1="8" x2="18" y2="8" />
-      <line x1="6" y1="8" x2="8" y2="8" />
-      <line x1="16" y1="12" x2="18" y2="12" />
-      <line x1="6" y1="12" x2="8" y2="12" />
-    </svg>
-  );
-}
-
 
 /**
  * El Reparto: una lista que se abre en varias manos.
@@ -661,16 +589,6 @@ export function DiffIcon({ size = 17 }: Props) {
  * terminada en su punto. Se lee como «esto se divide» a 17px, que es lo único
  * que tiene que decir al lado del orbe del Asistente.
  */
-export function RepartoIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <path d="M4 12 h4 M8 12 V5 h5 M8 12 h5 M8 12 v7 h5" />
-      <circle cx="15.6" cy="5" r="2.2" />
-      <circle cx="15.6" cy="12" r="2.2" />
-      <circle cx="15.6" cy="19" r="2.2" />
-    </svg>
-  );
-}
 
 /* --------------------------------------------------------------------------
    Los que faltaban, y por qué son tantos de golpe.
@@ -735,14 +653,6 @@ export function TargetIcon({ size = 17 }: Props) {
 }
 
 /** De tus agentes: la bandeja de entrada, con lo que cae dentro. */
-export function InboxIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <path d="M3.5 13.5 6 5.2A1.8 1.8 0 0 1 7.7 4h8.6a1.8 1.8 0 0 1 1.7 1.2l2.5 8.3" />
-      <path d="M3.5 13.5h4.2l1.2 2.6h6.2l1.2-2.6h4.2v4.7a1.8 1.8 0 0 1-1.8 1.8H5.3a1.8 1.8 0 0 1-1.8-1.8z" />
-    </svg>
-  );
-}
 
 /** Una carpeta. */
 export function FolderIcon({ size = 17 }: Props) {
@@ -837,14 +747,6 @@ export function FlagIcon({ size = 17 }: Props) {
 
 /** Aviso: el triángulo. La admiración va en dos trazos porque un punto suelto
     a este tamaño se pierde. */
-export function WarnIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <path d="M10.3 4.1 2.8 17.2A2 2 0 0 0 4.5 20.2h15a2 2 0 0 0 1.7-3L13.7 4.1a2 2 0 0 0-3.4 0z" />
-      <path d="M12 9.5v4.2M12 16.9v.1" />
-    </svg>
-  );
-}
 
 /** El rayo: reanimar una terminal colgada. */
 export function BoltIcon({ size = 17 }: Props) {
@@ -913,30 +815,6 @@ export function EnterIcon({ size = 17 }: Props) {
 }
 
 /** Reproducir, pausar y saltar: el mando del reproductor. */
-export function PlayIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <path d="M7.5 4.6 19 12 7.5 19.4z" />
-    </svg>
-  );
-}
-
-export function PauseIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <path d="M9 4.5v15M15 4.5v15" />
-    </svg>
-  );
-}
-
-export function SkipIcon({ size = 17, back = false }: Props & { back?: boolean }) {
-  return (
-    <svg {...svg(size)} style={back ? { transform: "scaleX(-1)" } : undefined}>
-      <path d="M6 5 16 12 6 19z" />
-      <path d="M18.5 5v14" />
-    </svg>
-  );
-}
 
 /** Enviar: la flecha que sube. */
 export function SendIcon({ size = 17 }: Props) {
@@ -1014,14 +892,6 @@ export function ExternalIcon({ size = 17 }: Props) {
 }
 
 /** Información: el porqué de una decisión del Capataz. */
-export function InfoIcon({ size = 17 }: Props) {
-  return (
-    <svg {...svg(size)}>
-      <circle cx="12" cy="12" r="8.8" />
-      <path d="M12 11v5.2M12 7.9v.1" />
-    </svg>
-  );
-}
 
 /** A todas: una orden que se reparte a varias terminales a la vez. */
 export function BroadcastIcon({ size = 17 }: Props) {

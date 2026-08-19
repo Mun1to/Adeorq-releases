@@ -165,11 +165,26 @@ export function trasBorrarScrollback(
  *
  * @param pendiente A cuánto del final querías estar, o `null` si no hay ningún
  *                  repintado en vuelo y entonces esto no pinta nada.
- * @param movido    Renglones que ha movido el gesto: positivo hacia arriba.
+ * @param movido    Renglones que pide el gesto, con decimales (ver
+ *                  `gestoDeRueda`): positivo hacia arriba.
  */
 export function trasRueda(pendiente: number | null, movido: number): number | null {
   if (pendiente === null) return null;
   return Math.max(0, pendiente + movido);
+}
+
+/** Lo que hay que saber de un evento de rueda para contarlo como xterm. */
+export interface Rueda {
+  /** El `deltaY` del evento: negativo al subir, en la unidad de `deltaMode`. */
+  deltaY: number;
+  /** 0 píxeles, 1 líneas, 2 páginas (el estándar DOM). */
+  deltaMode: number;
+  /** El `wheelDeltaY` heredado (positivo al subir). Es el que xterm PREFIERE
+      cuando existe, y en WebView2 (Chromium) y WebKit existe siempre. */
+  wheelDeltaY?: number | null;
+  /** Alt acelera ×5 en xterm; Shift convierte el gesto en horizontal. */
+  alt?: boolean;
+  shift?: boolean;
 }
 
 /**
@@ -189,28 +204,41 @@ export function trasRueda(pendiente: number | null, movido: number): number | nu
  * cero, el gesto no se apunta y el colocado te devuelve al final: subes y la
  * terminal te baja.
  *
- * La salida de raíz: el gesto se lee del `deltaY` del evento, que no depende
- * de en qué estado esté el búfer. La conversión no replica a xterm al
- * decimal, y no hace falta: equivocarse en un renglón te deja a un renglón de
- * donde querías; leer el búfer en mal momento te dejaba a quinientos.
+ * La salida de raíz: el gesto se lee del evento, que no depende de en qué
+ * estado esté el búfer. Y la conversión REPLICA la ruta viva de xterm
+ * (6.1.0-beta.302, el `scrollableElement` de VS Code que trae dentro), leída
+ * de su código: el evento se pasa a TICS de rueda (`wheelDeltaY / 120` cuando
+ * existe; si no, `-deltaY / 40` en píxeles o `-deltaY` en líneas), cada tic
+ * son 50 px de scroll (`SCROLL_WHEEL_SENSITIVITY`), Alt multiplica ×5
+ * (`fastScrollSensitivity`, incondicional en esa versión) y Shift convierte
+ * el gesto en horizontal fuera de Mac (vertical cero). No replicarla no era
+ * «un renglón de error»: contaba 5 renglones por tic donde xterm mueve 3.
+ *
+ * El resultado va en renglones CON DECIMALES, a propósito: xterm acumula
+ * píxeles y redondea la POSICIÓN, no cada gesto. Redondear aquí cada evento
+ * inflaba los tics pequeños (un flick de trackpad son decenas de eventos de
+ * fracción de celda: xterm mueve ~24 renglones y el redondeo por evento
+ * contaba 60) y perdía los tics suaves hacia abajo. La fracción se acumula en
+ * `pendiente` (`trasRueda` la suma tal cual) y se redondea UNA vez, al
+ * colocar.
  *
  * Positivo = hacia arriba (alejarse del final), como en `trasRueda`.
  *
- * @param deltaY    El del evento: negativo al subir, en la unidad de deltaMode.
- * @param deltaMode 0 píxeles, 1 líneas, 2 páginas (el estándar DOM).
- * @param celda     Alto de una fila en píxeles CSS.
- * @param filas     Filas visibles, para el modo página.
+ * @param rueda El evento, ya reducido a números (ver `Rueda`).
+ * @param celda Alto de una fila en píxeles CSS, SIN el zoom de ningún
+ *              transform: la de xterm (`term.dimensions.css.cell.height`).
  */
-export function gestoDeRueda(
-  deltaY: number,
-  deltaMode: number,
-  celda: number,
-  filas: number,
-): number {
-  const lineas =
-    deltaMode === 1 ? deltaY : deltaMode === 2 ? deltaY * filas : celda > 0 ? deltaY / celda : 0;
-  // El redondeo aleja de cero a propósito: un tic suave de rueda táctil (media
-  // celda) tiene que contar como UN renglón, no como ninguno, porque xterm sí
-  // lo mueve. Perder tics pequeños es la versión lenta del gesto perdido.
-  return lineas < 0 ? Math.ceil(-lineas) : -Math.floor(lineas);
+export function gestoDeRueda(rueda: Rueda, celda: number): number {
+  if (celda <= 0) return 0;
+  // Shift es scroll horizontal para xterm (fuera de Mac): la vista no sube.
+  if (rueda.shift) return 0;
+  // Tics de rueda, positivo hacia arriba, tal y como los cuenta xterm.
+  const tics =
+    rueda.wheelDeltaY != null && rueda.wheelDeltaY !== 0
+      ? rueda.wheelDeltaY / 120
+      : rueda.deltaMode === 1
+        ? -rueda.deltaY
+        : -rueda.deltaY / 40;
+  const px = 50 * tics * (rueda.alt ? 5 : 1);
+  return px / celda;
 }

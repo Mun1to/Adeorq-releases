@@ -20,7 +20,6 @@ import {
   escribirBuzon,
   foremanLote,
   listProjects,
-  mainAccount,
   readInbox,
   type Account,
   type Note,
@@ -41,7 +40,7 @@ import {
   type Reparto,
 } from "../lib/reparto";
 import type { RepartoInicial } from "../App";
-import { PROVIDERS, providerOf } from "../lib/providers";
+import { providerOf } from "../lib/providers";
 import { useT } from "../lib/i18n";
 import { propsDeVelo } from "../lib/velo";
 import { useRef } from "react";
@@ -504,9 +503,4 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
       </div>
     </div>
   );
-}
-
-/** Las cuentas que tienen sentido ofrecer: la de casa de cada cliente y las suyas. */
-export function cuentasDeTodos(propias: Account[]): Account[] {
-  return [...PROVIDERS.map((p) => mainAccount(p.id)), ...propias];
 }

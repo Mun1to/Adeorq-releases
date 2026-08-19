@@ -881,7 +881,12 @@ export default function AccountsView({
     }
     return (
       <>
-        <section className="account-group">
+        {/* SIN la clase `account-group`, y no es un descuido: esa clase es la de
+            un CLI plegable, y su regla esconde la rejilla (`display: none`)
+            hasta que la cabecera le pone `data-abierto`. Aquí no hay cabecera
+            que pulsar, así que heredarla dejaba la sección en blanco con el
+            contador diciendo que había diez (Munir, 2026-08-20). */}
+        <section className="accounts-faltan">
           <div className="panel-grid accounts-grid">
             {missing.map((p) => (
               <article key={p.id} className="panel-card account-card account-missing">

@@ -379,6 +379,212 @@ export const PROVIDERS: Provider[] = [
     // tal como sale en todos los ejemplos de su documentación.
     arranque: "kiro-cli chat",
   },
+  {
+    id: "kimi",
+    // Son DOS y hay que coger el bueno. `MoonshotAI/kimi-cli` es el de Python y
+    // su propio README lo dice: «Kimi CLI is evolving into Kimi Code CLI (…)
+    // This project will be gradually wound down». El vivo es
+    // `MoonshotAI/kimi-code`, en TypeScript, y su programa se llama `kimi` a
+    // secas. Comprobado el 2026-08-18 leyendo los dos repos, no una búsqueda.
+    label: "Kimi Code",
+    exe: "kimi",
+    // Su propia documentación de variables de entorno, que además explica QUÉ
+    // se lleva: «Overrides the data root directory; the default is
+    // ~/.kimi-code. Once set, the config file, sessions, logs, OAuth
+    // credentials, and all other data land under the new path». O sea que sí
+    // mueve el login, que es lo que hace que dos cuentas sean dos cuentas y no
+    // la misma con otra config (la trampa de opencode, tres fichas más arriba).
+    envVar: "KIMI_CODE_HOME",
+    homeDir: ".kimi-code",
+    // Su login vive en `credentials/<name>.json`, y ese `<name>` lo pone quien
+    // hace el login (su `packages/oauth/src/storage.ts` lo recibe como
+    // parámetro). Sin tenerlo instalado no se puede saber cuál escribe el
+    // `/login` de Kimi Code, así que se queda vacío y Adeorq dice que no sabe
+    // leerle el login, en vez de buscar un archivo inventado y declarar
+    // desconectada una cuenta que sí lo está. Mismo criterio que Kiro.
+    creds: [],
+    usage: false,
+    // El azul de su marca, sacado de su propia web
+    // (`docs/.vitepress/theme/styles/vars.css`: `--kimi-brand-1: #0a7aff`), no
+    // de un color que me pareciera. Es más saturado que los dos azules pálidos
+    // que ya hay (Gemini y Antigravity), así que se distingue a 15px.
+    install: "pnpm add -g @moonshot-ai/kimi-code (pide Node 22.19+; también tiene script propio)",
+    hue: "#0a7aff",
+    // Se instala de dos maneras y aquí va la de la casa. La otra es
+    // `irm https://code.kimi.com/kimi-code/install.ps1 | iex`, que descarga un
+    // binario suelto y lo mete en el PATH: funciona, pero deja algo que luego
+    // no se sabe quitar. Por pnpm se desinstala con la misma línea al revés.
+    cmd: "pnpm add -g @moonshot-ai/kimi-code",
+    web: "https://www.kimi.com/code/",
+    // apiEnv VACÍO, y esta vez no es por falta de dato sino porque su
+    // documentación lo dice al revés que todos los demás: «Credential variables
+    // such as KIMI_API_KEY (…) are not read automatically from shell
+    // environment variables (…) they must be written in config.toml». Poner
+    // aquí `KIMI_API_KEY` haría que Adeorq creyera que arranca facturando por
+    // tokens cuando en realidad seguiría con el login de siempre.
+    apiEnv: "",
+    // Lo que NO se declara, y el porqué de cada uno, que es lo que evita
+    // botones que mienten:
+    //
+    //   · `encargoEnLinea`: tiene `-p`, pero su propia tabla de opciones dice
+    //     «Run a single prompt non-interactively (…) This mode does not open
+    //     the TUI». No es el `--prompt` de opencode, que abre la interfaz con
+    //     el encargo puesto: aquí el panel se quedaría con la respuesta impresa
+    //     y sin agente al que seguir hablando.
+    //   · `arranque` con permisos: sus dos banderas son `--yolo` («skips human
+    //     approval (…) including file writes and shell command execution») y
+    //     `--auto`. Ninguna es el `acceptEdits` de Claude, que pasa las
+    //     ediciones y sigue preguntando lo arriesgado: las dos son permiso
+    //     total, y darlo no es nuestro. Mismo criterio que con Copilot y
+    //     opencode.
+    //   · `modelo`, `modoPlan` y `retomable`: los TIENE (`--model`, `--plan`,
+    //     `--session`/`--continue`), pero Adeorq solo sabe pasarlos en la rama
+    //     de Claude de `lib/arranque.ts`, y `revivirPane` reanima SIEMPRE con
+    //     `claude --resume`. Marcarlos aquí sacaría el selector de cerebro sin
+    //     pasar el modelo, y un «Reanimar» que abriría Claude sobre una sesión
+    //     de Kimi. Se declaran el día que la tabla tenga su `banderaModelo`
+    //     como ya tiene `banderaEncargo`, y ese día entran los cinco CLIs que
+    //     están en el mismo caso, no solo este.
+  },
+  // ── Los ocho de la ronda del 2026-08-19 ──────────────────────────────────
+  //
+  // Todos entran con el criterio de Kiro y de Kimi: se declara lo VERIFICADO y
+  // se deja vacío lo que no. Y aquí verificado significa una cosa muy concreta:
+  // el nombre del ejecutable NO es el que parece por el nombre del producto, es
+  // el que declara el campo `bin` de su paquete, y eso se lee del registro sin
+  // instalar nada (`npm view <paquete> bin`). Ahí es donde se ve que Goose se
+  // instala con `goose-cli` pero se llama `goose`, o que Codebuff trae además
+  // un alias `cb`.
+  //
+  // Lo que queda vacío en casi todos es la variable de carpeta y el fichero de
+  // login: eso solo sale leyendo su código o teniéndolos en disco, y ninguno
+  // está instalado aquí. Con `creds` vacío Adeorq dice que no sabe leerles el
+  // login en vez de declarar desconectada una cuenta que sí lo está, y sin
+  // `envVar` salen como de una sola cuenta en vez de apuntar dos a la misma
+  // carpeta sin que nadie se entere. Cuando se instale uno, se rellena su fila.
+  {
+    id: "codewhale",
+    label: "CodeWhale",
+    exe: "codewhale",
+    // El ÚNICO de esta tanda con la ficha entera, porque es Rust y abierto y se
+    // le puede leer: `crates/paths/src/lib.rs` declara `CODEWHALE_APP_DIR =
+    // ".codewhale"` y dice literalmente que sin `CODEWHALE_HOME` la carpeta es
+    // «<user home>/.codewhale».
+    envVar: "CODEWHALE_HOME",
+    homeDir: ".codewhale",
+    // Su login vive en `$CODEWHALE_HOME/credentials` con un nombre por
+    // proveedor, así que pasa lo mismo que con Kimi: sin instalarlo no se sabe
+    // cuál escribe el suyo.
+    creds: [],
+    usage: false,
+    hue: "#38b6d3",
+    install: "pnpm add -g codewhale",
+    cmd: "pnpm add -g codewhale",
+    web: "https://github.com/Hmbown/CodeWhale",
+  },
+  {
+    id: "goose",
+    label: "Goose",
+    // Se instala con `goose-cli` y se llama `goose`: su `bin` lo dice.
+    exe: "goose",
+    envVar: "",
+    homeDir: ".config/goose",
+    creds: [],
+    usage: false,
+    hue: "#9dc93c",
+    install: "pnpm add -g goose-cli",
+    cmd: "pnpm add -g goose-cli",
+    web: "https://github.com/aaif-goose/goose",
+  },
+  {
+    id: "droid",
+    label: "Droid",
+    exe: "droid",
+    envVar: "",
+    homeDir: ".factory",
+    creds: [],
+    usage: false,
+    hue: "#c2410c",
+    install: "pnpm add -g droid",
+    cmd: "pnpm add -g droid",
+    web: "https://factory.ai",
+  },
+  {
+    id: "jules",
+    label: "Jules",
+    exe: "jules",
+    envVar: "",
+    homeDir: ".jules",
+    creds: [],
+    usage: false,
+    hue: "#46bd7e",
+    install: "pnpm add -g @google/jules",
+    cmd: "pnpm add -g @google/jules",
+    web: "https://jules.google",
+  },
+  {
+    id: "auggie",
+    label: "Auggie",
+    exe: "auggie",
+    envVar: "",
+    homeDir: ".augment",
+    creds: [],
+    usage: false,
+    hue: "#00bfa5",
+    install: "pnpm add -g @augmentcode/auggie",
+    cmd: "pnpm add -g @augmentcode/auggie",
+    web: "https://www.augmentcode.com",
+  },
+  {
+    id: "codebuff",
+    label: "Codebuff",
+    // Su paquete declara DOS: `codebuff` y el alias corto `cb`. Se busca el
+    // largo, que es el que no se confunde con nada.
+    exe: "codebuff",
+    envVar: "",
+    homeDir: ".codebuff",
+    creds: [],
+    usage: false,
+    hue: "#f06292",
+    install: "pnpm add -g codebuff",
+    cmd: "pnpm add -g codebuff",
+    web: "https://www.codebuff.com",
+  },
+  {
+    id: "cody",
+    label: "Cody",
+    exe: "cody",
+    envVar: "",
+    homeDir: ".sourcegraph",
+    creds: [],
+    usage: false,
+    hue: "#ff5543",
+    install: "pnpm add -g @sourcegraph/cody",
+    cmd: "pnpm add -g @sourcegraph/cody",
+    web: "https://sourcegraph.com/cody",
+  },
+  {
+    id: "aider",
+    label: "Aider",
+    exe: "aider",
+    // El único de la tanda que NO es de npm: vive en PyPI. Se instala con `uv`,
+    // que ya está en esta máquina (0.12.0), y no con pip suelto, que dejaría el
+    // paquete dentro del Python que toque y no en el PATH.
+    envVar: "",
+    // Aider no tiene carpeta de identidad: su configuración son ficheros
+    // `.aider.*` en el proyecto más `~/.aider.conf.yml`, y su login son las
+    // claves de API del entorno. Por eso `homeDir` queda con el perfil a secas
+    // y `creds` vacío: no hay carpeta que mover ni fichero de sesión que mirar.
+    homeDir: "",
+    creds: [],
+    usage: false,
+    hue: "#8d6e63",
+    install: "uv tool install aider-chat",
+    cmd: "uv tool install aider-chat",
+    web: "https://aider.chat",
+    // Su documentación arranca por ahí en todos sus ejemplos con Claude.
+    apiEnv: "ANTHROPIC_API_KEY",
+  },
 ];
 
 /** Todos los ids de la tabla. Se deriva para que nadie tenga que mantener una

@@ -370,7 +370,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                                     "properties": {
                                         "cli": {
                                             "type": "string",
-                                            "description": "Which agent to run: claude, codex, gemini, qwen, copilot, crush, opencode, amp, cursor, pi, kiro, agy — or 'shell' for a plain terminal. Defaults to claude."
+                                            "description": "Which agent to run: claude, codex, gemini, qwen, copilot, crush, opencode, amp, cursor, pi, kiro, kimi, codewhale, goose, droid, jules, auggie, codebuff, cody, aider, agy — or 'shell' for a plain terminal. Defaults to claude."
                                         },
                                         "project": {
                                             "type": "string",

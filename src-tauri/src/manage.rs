@@ -287,9 +287,20 @@ pub fn read_board() -> Result<String, String> {
 /// único que convierte `C:\proyectos\..\Windows` en lo que de verdad es.
 #[tauri::command]
 pub fn delete_project(path: String) -> Result<(), String> {
+    // La carpeta madre de los proyectos, según el sistema. En Windows es
+    // `C:\proyectos`; en Linux el usuario la elige y queda en la carpeta de
+    // datos (`workspace::raiz_por_defecto`). Sin `cfg`, `C:\proyectos` no
+    // existe en Linux y el botón de borrar fallaba SIEMPRE (canonicalize de
+    // una ruta que no está).
+    #[cfg(windows)]
     let root = Path::new("C:\\proyectos")
         .canonicalize()
         .map_err(|e| e.to_string())?;
+    #[cfg(not(windows))]
+    let root = Some(crate::workspace::raiz_por_defecto())
+        .filter(|r| r.is_dir())
+        .and_then(|r| r.canonicalize().ok())
+        .ok_or_else(|| "todavía no hay carpeta de proyectos".to_owned())?;
     let p = Path::new(&path).canonicalize().map_err(|e| e.to_string())?;
     if !p.is_dir() {
         return Err("eso no es una carpeta".into());
@@ -298,7 +309,7 @@ pub fn delete_project(path: String) -> Result<(), String> {
         return Err("esa es la carpeta de todos los proyectos".into());
     }
     if !p.starts_with(&root) {
-        return Err("solo se pueden tirar proyectos de C:\\proyectos".into());
+        return Err("solo se pueden tirar proyectos de la carpeta de proyectos".into());
     }
     to_recycle_bin(&p)
 }

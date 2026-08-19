@@ -7,7 +7,17 @@ use tauri::Manager;
 /// before. It is only used when the front sends nothing AND the folder is
 /// really there: on anybody else's computer it is not, and falling back to it
 /// is what made a fresh install show an empty panel.
+#[cfg(windows)]
 const PROJECTS_ROOT: &str = "C:\\proyectos";
+
+/// La raíz de proyectos que se propone en Linux, colgando de la casa del
+/// usuario. En Windows no hace falta: manda `PROJECTS_ROOT` y `USERPROFILE`.
+#[cfg(not(windows))]
+fn raiz_default_linux() -> PathBuf {
+    crate::dir_casa()
+        .map(|h| h.join("proyectos"))
+        .unwrap_or_else(|| PathBuf::from("/tmp/adeorq"))
+}
 
 /// Where projects live. The front owns the setting (the onboarding asks for it
 /// and keeps it in localStorage) and sends it with every call, so there is no
@@ -38,13 +48,22 @@ pub fn raiz_por_defecto() -> PathBuf {
             return p;
         }
     }
-    let casa = Path::new(PROJECTS_ROOT);
-    if casa.is_dir() {
-        return casa.to_path_buf();
-    }
-    std::env::var("USERPROFILE")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| casa.to_path_buf())
+    // La raíz de la casa, según el sistema. En Windows manda la carpeta de
+    // Munir (`C:\proyectos`) o el perfil; en Linux, `~/proyectos`.
+    #[cfg(windows)]
+    let casa = {
+        let c = Path::new(PROJECTS_ROOT);
+        if c.is_dir() {
+            c.to_path_buf()
+        } else {
+            std::env::var("USERPROFILE")
+                .map(PathBuf::from)
+                .unwrap_or_else(|_| c.to_path_buf())
+        }
+    };
+    #[cfg(not(windows))]
+    let casa = raiz_default_linux();
+    casa
 }
 
 #[tauri::command]
@@ -77,7 +96,7 @@ pub fn proyectos_aparte() -> ProyectosAparte {
 
 #[tauri::command]
 pub async fn set_extra_projects(sin_raiz: bool, extras: Vec<String>) -> Result<(), String> {
-    let f = archivo_aparte().ok_or("LOCALAPPDATA no disponible")?;
+    let f = archivo_aparte().ok_or("no se puede escribir la carpeta de datos")?;
     if let Some(dir) = f.parent() {
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }
@@ -98,7 +117,7 @@ pub async fn set_projects_root(path: String) -> Result<String, String> {
     if !Path::new(&limpia).is_dir() {
         return Err(format!("No existe {limpia}"));
     }
-    let f = archivo_raiz().ok_or("LOCALAPPDATA no disponible")?;
+    let f = archivo_raiz().ok_or("no se puede escribir la carpeta de datos")?;
     if let Some(dir) = f.parent() {
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }

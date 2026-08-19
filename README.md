@@ -91,6 +91,21 @@ chmod +x Adeorq-x86_64.AppImage
 ./Adeorq-x86_64.AppImage
 ```
 
+### On Fedora
+
+```bash
+# Instalación automática (recomendada)
+./setup-fedora.sh
+
+# O manualmente
+sudo dnf install gcc gcc-c++ make pkgconf-pkg-config openssl-devel \
+  gtk3-devel webkit2gtk4.1-devel libayatana-appindicator-gtk3-devel \
+  librsvg2-devel patchelf squashfs-tools nodejs npm
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+npm install -g pnpm
+pnpm install
+pnpm tauri build
 The [releases page](https://github.com/Mun1to/Adeorq-releases/releases/latest) also carries a
 `.deb` for Debian and Ubuntu (`sudo apt install ./Adeorq_*.deb`).
 

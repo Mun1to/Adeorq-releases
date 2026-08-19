@@ -389,5 +389,55 @@ const volver = (lejos, baseY) => (lejos <= 0 ? null : Math.max(0, baseY - lejos)
   t.dispose();
 }
 
+// -- CICLOS ENCADENADOS: la distancia solo se mide sobre suelo firme --------
+//
+// Claude Code repinta varias veces por segundo mientras trabaja, asi que el
+// ED3 del ciclo siguiente llega con el bufer del anterior a medio crecer.
+// La 0.9.124 re-media la distancia en CADA ED3, y medir sobre un bufer parcial
+// corrompia el sitio del usuario ciclo a ciclo. La regla nueva: el ED3 solo
+// mide si NO hay repintado en vuelo; en vuelo, la distancia buena es la que ya
+// se tiene, y la rueda la ajusta por el deltaY del evento (ver scroll-check).
+{
+  const t = new Terminal({ cols: 100, rows: 24, scrollback: 8000, allowProposedApi: true });
+  let pendiente = null;
+  t.parser.registerCsiHandler({ final: "J" }, (p) => {
+    if (p[0] === 3 && pendiente === null) {
+      const b = t.buffer.active;
+      pendiente = Math.max(0, b.baseY - b.viewportY);
+    }
+    return false;
+  });
+  const colocar = () => {
+    const lejos = pendiente; pendiente = null;
+    if (lejos === null || lejos <= 0) return;
+    t.scrollToLine(Math.max(0, t.buffer.active.baseY - lejos));
+  };
+  t.parser.registerCsiHandler({ prefix: "?", final: "l" }, (p) => {
+    if (pendiente !== null && p.includes(2026)) colocar();
+    return false;
+  });
+
+  t.write(lineas(600, "conversacion"));
+  await vaciar(t);
+  t.scrollLines(-6);
+  await vaciar(t);
+
+  // Tres ciclos encadenados, cada uno entregado a trozos. Con la regla vieja
+  // el segundo ED3 media el bufer parcial del primero y el sitio se corrompia.
+  for (let ciclo = 0; ciclo < 3; ciclo++) {
+    const rep = "[?2026h[H[2J[3J" + lineas(600 + ciclo * 2, "conversacion") + "[?2026l";
+    const tam = Math.ceil(rep.length / 5);
+    for (let i = 0; i < rep.length; i += tam) { t.write(rep.slice(i, i + tam)); await vaciar(t); }
+  }
+  const b = t.buffer.active;
+  ok(
+    "tras tres ciclos encadenados sigues a seis del final",
+    b.baseY - b.viewportY === 6,
+    `a ${b.baseY - b.viewportY}, esperaba 6`,
+  );
+  ok("y la distancia quedo consumida", pendiente === null);
+  t.dispose();
+}
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
 process.exit(fallos === 0 ? 0 : 1);

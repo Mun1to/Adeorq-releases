@@ -55,6 +55,7 @@ import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
 import {
   hayQueAjustar,
   hayQueRecolocar,
+  gestoDeRueda,
   trasBorrarScrollback,
   trasRueda,
   volverA,
@@ -1115,15 +1116,16 @@ export default function TerminalPane({
       // ED 3 es «borra el scrollback». El 2 (borrar pantalla) viene con él pero
       // no se lleva el historial, así que no hay nada que conservar.
       if (params[0] === 3) {
-        const b = term.buffer.active;
-        // Se apunta SIEMPRE, incluido el cero de «estabas al final». Antes el
-        // cero se guardaba como `null` y parecía correcto (al final no hay nada
-        // que restaurar), pero se llevaba por delante el caso que Munir
-        // reportó el 2026-08-19: si mueves la rueda MIENTRAS llega el
-        // repintado, ese gesto tiene que sumarse a algo, y con `null` no había
-        // a qué. Un cero se restaura solo: `trasBorrarScrollback(0, …)` no
-        // mueve nada.
-        pendienteRef.current = Math.max(0, b.baseY - b.viewportY);
+        // La distancia SOLO se mide sobre suelo firme. Con repintados
+        // encadenados (Claude repinta varias veces por segundo mientras
+        // trabaja), el ED3 del ciclo siguiente llega con el búfer del anterior
+        // a medio crecer, y medir ahí corrompía la distancia ciclo a ciclo: es
+        // la mitad del décimo reporte de Munir. Si ya hay un repintado en
+        // vuelo, la distancia buena es la que ya tenemos.
+        if (pendienteRef.current === null) {
+          const b = term.buffer.active;
+          pendienteRef.current = Math.max(0, b.baseY - b.viewportY);
+        }
       }
       return false;
     });
@@ -1160,30 +1162,36 @@ export default function TerminalPane({
 
     /* ── Y la rueda, mientras el repintado va llegando ──────────────────
      *
-     * El noveno reporte de Munir del mismo síntoma (2026-08-19): «sigue el
-     * salto cuando haces solo un pequeño scroll para arriba». Medido en
-     * `pnpm xterm`: subes tres renglones justo cuando el repintado ha entregado
-     * su primer trozo (búfer de 87), y cuando termina de llegar todo (búfer de
-     * 617) tu vista sigue en el 84, o sea a 533 del final.
+     * Noveno y décimo reporte del mismo síntoma (2026-08-19): «sigue el salto
+     * cuando haces solo un pequeño scroll para arriba». Durante un repintado,
+     * tu sitio guardado como número de línea deja de significar nada (el búfer
+     * pasa de 87 renglones a 617 en medio segundo), así que aquí la rueda no
+     * te lleva a una línea: te aleja del final. Ver `trasRueda`.
      *
-     * Nadie se equivoca ahí: xterm respeta que hayas scrolleado y no te
-     * arrastra. Lo que pasa es que tu sitio se guarda como número de línea y el
-     * suelo crece por debajo. Así que durante el repintado la rueda cuenta
-     * DISTINTO: no te lleva a una línea, te aleja del final. Ver `trasRueda`.
-     *
-     * Se mide el gesto en el frame siguiente porque este oyente corre antes que
-     * xterm: en el momento del `wheel` la vista todavía no se ha movido. */
-    const alRodar = () => {
+     * Y el gesto se lee del EVENTO, no del búfer. La versión que lo medía
+     * comparando `viewportY` entre dos instantes tenía dos muertes, las dos
+     * vistas con el ratón real: si el borrado caía entre las dos lecturas, el
+     * colapso del búfer contaba como un gesto de 550 renglones (el salto), y
+     * la rueda que llegaba justo tras el borrado medía cero y se perdía (subes
+     * y la terminal te devuelve al final). Ver `gestoDeRueda`. */
+    const alRodar = (ev: WheelEvent) => {
       if (pendienteRef.current === null) return;
       const t = termRef.current;
       if (!t) return;
-      const antes = t.buffer.active.viewportY;
-      requestAnimationFrame(() => {
-        const b = t.buffer.active;
-        // Positivo hacia arriba, que es como lo cuenta `trasRueda`.
-        const movido = antes - b.viewportY;
-        if (movido !== 0) pendienteRef.current = trasRueda(pendienteRef.current, movido);
-      });
+      // Del EVENTO, nunca del búfer. La 0.9.124 medía viewportY antes y
+      // después del frame, y si el borrado caía entre las dos lecturas la
+      // diferencia era el colapso del búfer entero (617→67), que se sumaba
+      // como un gesto de 550: ese es el «subo una vez y me lleva súper
+      // arriba» del décimo reporte. Y al revés también fallaba: la rueda que
+      // llega justo tras el borrado no mueve nada todavía, medía cero y el
+      // gesto se perdía. El deltaY no depende de en qué estado esté el búfer.
+      const pantalla = el.querySelector(".xterm-screen");
+      const celda =
+        pantalla && t.rows
+          ? pantalla.getBoundingClientRect().height / t.rows
+          : (t.options.fontSize ?? 14) * (t.options.lineHeight ?? 1.2);
+      const movido = gestoDeRueda(ev.deltaY, ev.deltaMode, celda, t.rows);
+      if (movido !== 0) pendienteRef.current = trasRueda(pendienteRef.current, movido);
     };
     // En fase de CAPTURA, y no es un detalle: medido en un navegador de verdad
     // con el ratón real (2026-08-19), en fase de burbuja este oyente NO LLEGA A
@@ -1861,7 +1869,12 @@ export default function TerminalPane({
               className="pane-account"
               data-tip={`Esta terminal usa tu cuenta «${account}», no la principal`}
             >
-              {account}
+              {/* Tres letras y ya. El nombre entero («MUNIRKYLO») se comía la
+                  cabecera y empujaba al proyecto y al título, que son los que
+                  distinguen una terminal de otra (Munir, 2026-08-19). Tres
+                  bastan para separar sus cuentas entre sí, y el nombre entero
+                  sigue a un puntero de distancia, en este mismo globo. */}
+              {account.slice(0, 3)}
             </span>
           )}
           <span

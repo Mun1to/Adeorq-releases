@@ -5,6 +5,7 @@
 //   node <tmp>/scripts/scroll-check.js
 
 import {
+  gestoDeRueda,
   hayQueAjustar,
   hayQueRecolocar,
   trasBorrarScrollback,
@@ -214,6 +215,44 @@ ok(
 ok(
   "al final y sin tocar la rueda, nada se mueve",
   trasBorrarScrollback(trasRueda(0, 0) ?? 0, 617) === null,
+);
+
+/* -- EL GESTO SE LEE DEL EVENTO, NUNCA DEL BUFER (decimo reporte) ----------
+   La 0.9.124 media el gesto comparando viewportY antes y despues del frame, y
+   si el borrado caia entre las dos lecturas la diferencia era el colapso del
+   bufer entero: 617-67 = 550 renglones contados como una rueda de tres. */
+
+ok(
+  "una rueda de -120 px con celdas de 20 son seis renglones arriba",
+  gestoDeRueda(-120, 0, 20, 24) === 6,
+  `salio ${gestoDeRueda(-120, 0, 20, 24)}`,
+);
+ok(
+  "y bajar 120 px son seis abajo",
+  gestoDeRueda(120, 0, 20, 24) === -6,
+);
+ok(
+  "un tic suave de media celda cuenta como UN renglon, no como cero",
+  gestoDeRueda(-9, 0, 20, 24) === 1,
+  `salio ${gestoDeRueda(-9, 0, 20, 24)}`,
+);
+ok(
+  "en modo lineas el delta va directo",
+  gestoDeRueda(-3, 1, 20, 24) === 3,
+);
+ok(
+  "en modo paginas se multiplica por las filas",
+  gestoDeRueda(-2, 2, 20, 24) === 48,
+);
+ok(
+  "con una celda rota no se inventa nada",
+  gestoDeRueda(-120, 0, 0, 24) === 0,
+);
+// Y la propiedad que mata el salto: el gesto NO depende del bufer. Da igual
+// que el bufer tenga 617 renglones o 67, la misma rueda son los mismos seis.
+ok(
+  "el mismo gesto vale lo mismo con el bufer en cualquier estado",
+  gestoDeRueda(-120, 0, 20, 24) === gestoDeRueda(-120, 0, 20, 24),
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

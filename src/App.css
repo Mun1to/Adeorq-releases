@@ -4323,6 +4323,22 @@ html[data-rendimiento="1"] .session-row[data-trabajando] {
   cursor: row-resize;
 }
 
+/* Con las tarjetas sueltas la junta entre dos paneles mide doce píxeles (seis
+   de borde-hueco por lado), así que el agarre se ensancha hasta cubrirla
+   entera y su resalte se redondea: un rectángulo duro flotando en mitad del
+   hueco se veía como una raya pegada, no como el asa de la junta. */
+html[data-panes="tarjetas"] .divider-col {
+  width: 12px;
+  margin-left: -6px;
+  border-radius: 6px;
+}
+
+html[data-panes="tarjetas"] .divider-row {
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 6px;
+}
+
 /* Dragged by its header, a pane announces itself. */
 .pane-head[draggable="true"] {
   cursor: grab;
@@ -4428,6 +4444,18 @@ html[data-panes="tarjetas"] .pane {
 html[data-panes="tarjetas"] .grid > .pane {
   border-right-color: transparent;
   border-bottom-color: transparent;
+}
+
+/* Los ESTADOS no pueden pintar el borde, porque en esta forma el borde ES el
+   hueco: son seis píxeles por lado, y teñirlos convierte una señal fina en una
+   franja gorda alrededor del panel (Munir, 2026-08-19, con captura: la barra
+   azul vertical pegada al panel enfocado). Cada estado conserva su señal por
+   donde ya la daba: el foco lleva anillo, brillo y cabecera teñida; el turno
+   terminado, su halo que respira; la cuadrilla, su inset y su cabecera. */
+html[data-panes="tarjetas"] .pane[data-focused="true"],
+html[data-panes="tarjetas"] .pane[data-done="true"],
+html[data-panes="tarjetas"] .pane[data-team="true"] {
+  border-color: transparent;
 }
 
 .pane-head {

@@ -171,3 +171,46 @@ export function trasRueda(pendiente: number | null, movido: number): number | nu
   if (pendiente === null) return null;
   return Math.max(0, pendiente + movido);
 }
+
+/**
+ * Cuántos renglones pide un gesto de rueda, leído del EVENTO y no del búfer.
+ *
+ * ── EL DÉCIMO REPORTE, Y POR QUÉ ESTA FUNCIÓN EXISTE (2026-08-19, noche) ───
+ *
+ * La 0.9.124 medía el gesto comparando `viewportY` antes y después del frame.
+ * Sonaba exacto y era una bomba de relojería: entre esas dos lecturas puede
+ * caer el BORRADO del repintado, y entonces la diferencia no es tu gesto, es
+ * el colapso del búfer entero. Medido: búfer de 617, rueda de 3, borrado en
+ * medio → «movido» sale 550 → la vista se coloca a 550 renglones del final.
+ * Ese es el «scrolleo una vez para arriba y me lleva súper arriba» de Munir,
+ * el décimo del mismo síntoma. Y el caso simétrico también existía y se vio
+ * con el ratón de verdad: la rueda que llega justo DESPUÉS del borrado no
+ * mueve nada (xterm aún no tiene scrollback que mover), la diferencia da
+ * cero, el gesto no se apunta y el colocado te devuelve al final: subes y la
+ * terminal te baja.
+ *
+ * La salida de raíz: el gesto se lee del `deltaY` del evento, que no depende
+ * de en qué estado esté el búfer. La conversión no replica a xterm al
+ * decimal, y no hace falta: equivocarse en un renglón te deja a un renglón de
+ * donde querías; leer el búfer en mal momento te dejaba a quinientos.
+ *
+ * Positivo = hacia arriba (alejarse del final), como en `trasRueda`.
+ *
+ * @param deltaY    El del evento: negativo al subir, en la unidad de deltaMode.
+ * @param deltaMode 0 píxeles, 1 líneas, 2 páginas (el estándar DOM).
+ * @param celda     Alto de una fila en píxeles CSS.
+ * @param filas     Filas visibles, para el modo página.
+ */
+export function gestoDeRueda(
+  deltaY: number,
+  deltaMode: number,
+  celda: number,
+  filas: number,
+): number {
+  const lineas =
+    deltaMode === 1 ? deltaY : deltaMode === 2 ? deltaY * filas : celda > 0 ? deltaY / celda : 0;
+  // El redondeo aleja de cero a propósito: un tic suave de rueda táctil (media
+  // celda) tiene que contar como UN renglón, no como ninguno, porque xterm sí
+  // lo mueve. Perder tics pequeños es la versión lenta del gesto perdido.
+  return lineas < 0 ? Math.ceil(-lineas) : -Math.floor(lineas);
+}

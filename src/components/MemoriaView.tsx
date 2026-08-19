@@ -11,7 +11,6 @@
 // estaba abierto aquí.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { marked } from "marked";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
 import { openPath } from "@tauri-apps/plugin-opener";
@@ -30,6 +29,7 @@ import {
   type VaultInfo,
 } from "../lib/memoria";
 import { useT } from "../lib/i18n";
+import { aHtml } from "../lib/markdown";
 import { listSkills, skillText } from "../lib/pty";
 // `hueOf` y `familia` se han ido con los puntos de color de la lista: el color
 // por familia solo se pinta ya donde dice algo, que es la constelación.
@@ -69,34 +69,22 @@ function rutaCorta(p: string): string {
 }
 
 /**
- * Markdown a HTML, con dos cosas de la casa:
- * - los `[[wikilinks]]` se convierten a enlaces normales, porque `marked` no
- *   los conoce y en la bóveda existen;
- * - y el HTML resultante se limpia. Los documentos son suyos, pero en
- *   `C:\proyectos` hay READMEs venidos de fuera, y un `<script>` dentro de esta
- *   ventana tendría a mano todo lo que la ventana puede hacer.
+ * Markdown a HTML, con la cosa de la casa: los `[[wikilinks]]` se convierten a
+ * enlaces normales, porque `marked` no los conoce y en la bóveda existen.
+ *
+ * La limpieza la hace `markdown.ts`. Antes vivía aquí, con una lista de lo
+ * prohibido escrita a mano, y aguantaba las pruebas (medido el 2026-08-19: con
+ * ella el `onerror` no llega a disparar). Se cambia igualmente porque una lista
+ * negra solo para lo que alguien pensó en poner, y el siguiente truco no está
+ * en ella. Los documentos son suyos, pero en `C:\proyectos` hay READMEs venidos
+ * de fuera y esta ventana tiene a mano todo lo que la ventana puede hacer.
  */
-function aHtml(md: string): string {
+function conWikilinks(md: string): string {
   const conLinks = md.replace(/\[\[([^\]|#]+)(?:[^\]]*)\]\]/g, (_m, destino) => {
     const limpio = String(destino).trim();
     return `[${limpio}](${encodeURI(limpio)}.md)`;
   });
-  const bruto = marked.parse(conLinks, { async: false }) as string;
-  const caja = document.createElement("div");
-  caja.innerHTML = bruto;
-  for (const malo of caja.querySelectorAll("script,iframe,object,embed,style,link,form")) {
-    malo.remove();
-  }
-  for (const el of caja.querySelectorAll("*")) {
-    for (const attr of [...el.attributes]) {
-      const n = attr.name.toLowerCase();
-      if (n.startsWith("on")) el.removeAttribute(attr.name);
-      if ((n === "href" || n === "src") && /^\s*javascript:/i.test(attr.value)) {
-        el.removeAttribute(attr.name);
-      }
-    }
-  }
-  return caja.innerHTML;
+  return aHtml(conLinks);
 }
 
 /** Una carpeta de la bóveda, con lo que cuelga de ella. */
@@ -534,7 +522,7 @@ export default function MemoriaView() {
   /** El markdown a HTML se calcula una vez por documento. Sin esto se rehacía
       en cada repintado, y un METAS.md de seiscientas líneas se nota. */
   const html = useMemo(
-    () => (abierto && !editando ? aHtml(abierto.text) : ""),
+    () => (abierto && !editando ? conWikilinks(abierto.text) : ""),
     [abierto, editando],
   );
 

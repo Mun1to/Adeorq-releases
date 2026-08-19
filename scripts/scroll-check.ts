@@ -4,7 +4,12 @@
 //     --lib es2022,dom --esModuleInterop --skipLibCheck --outDir <tmp>
 //   node <tmp>/scripts/scroll-check.js
 
-import { hayQueAjustar, hayQueRecolocar, volverA } from "../src/lib/scrollTerm";
+import {
+  hayQueAjustar,
+  hayQueRecolocar,
+  trasBorrarScrollback,
+  volverA,
+} from "../src/lib/scrollTerm";
 
 let fallos = 0;
 function ok(nombre: string, cond: boolean, detalle = "") {
@@ -125,5 +130,49 @@ ok(
   "terminal vacia: nada que recolocar",
   !hayQueRecolocar(null, { baseY: 0, viewportY: 0 }),
 );
+
+/* ── Cuando el CLI borra el scrollback y lo repinta (2026-08-19) ─────────
+   La tercera causa distinta del mismo síntoma. Claude Code no escribe al final:
+   en cada turno borra pantalla y scrollback y repinta la conversación entera
+   (confirmado por los mantenedores de xterm, issue #5620, que además dicen que
+   no piensan tocarlo). Aquí se conserva la DISTANCIA al final y no la línea,
+   porque tras el repintado los números de línea ya no significan lo mismo:
+   medido, `baseY` pasó de 577 a 617 con el mismo texto delante. */
+
+ok(
+  "estabas a 8 del final: vuelves a 8 del final",
+  trasBorrarScrollback(8, 617) === 609,
+  `salió ${trasBorrarScrollback(8, 617)}`,
+);
+ok(
+  "estando al final no se toca nada",
+  trasBorrarScrollback(0, 617) === null,
+);
+ok(
+  "ni con distancia negativa, que pasa mientras llega texto",
+  trasBorrarScrollback(-3, 617) === null,
+);
+ok(
+  "si el repintado deja MENOS texto del que había, no te manda a negativo",
+  trasBorrarScrollback(500, 20) === 0,
+  `salió ${trasBorrarScrollback(500, 20)}`,
+);
+ok(
+  "un buffer que se queda vacío tampoco",
+  trasBorrarScrollback(8, 0) === 0,
+);
+ok(
+  "y con MÁS texto del que había, la distancia se respeta igual",
+  trasBorrarScrollback(8, 2000) === 1992,
+);
+// El caso que separa esta regla de `volverA` con mismoAncho: allí se conserva
+// la LÍNEA, aquí la DISTANCIA. Con el mismo dato dan sitios distintos, y por
+// eso son dos funciones y no una con un parámetro más.
+ok(
+  "no es lo mismo que conservar la línea",
+  trasBorrarScrollback(8, 617) !== volverA({ baseY: 577, viewportY: 569 }, 617, true),
+  `${trasBorrarScrollback(8, 617)} frente a ${volverA({ baseY: 577, viewportY: 569 }, 617, true)}`,
+);
+
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

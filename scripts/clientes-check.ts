@@ -128,6 +128,7 @@ for (const forastero of ["shell", "ollama", "", "inventado"]) {
   ok(
     `«${forastero || "(vacío)"}» no hereda las capacidades de Claude`,
     !sabe(forastero, "modelo") &&
+      !sabe(forastero, "ajustesEnVivo") &&
       !sabe(forastero, "modoPlan") &&
       !sabe(forastero, "retomable") &&
       !sabe(forastero, "usage"),
@@ -135,6 +136,10 @@ for (const forastero of ["shell", "ollama", "", "inventado"]) {
 }
 
 ok("a Claude se le elige el cerebro", sabe("claude", "modelo"));
+// Dentro de una sesión ya abierta, que es OTRA cosa que la línea de arranque.
+// Comprobado en su binario (2026-08-19): «Run /effort xhigh in an interactive
+// terminal». Es lo que decide si el modo chat enseña esas dos pastillas.
+ok("a Claude se le cambia el cerebro en vivo", sabe("claude", "ajustesEnVivo"));
 ok("Claude tiene modo plan", sabe("claude", "modoPlan"));
 ok("una sesión de Claude se puede retomar (revivir y relevo)", sabe("claude", "retomable"));
 ok("Adeorq sabe leer la cuota de Claude", sabe("claude", "usage"));
@@ -144,6 +149,9 @@ ok("Adeorq sabe leer la cuota de Claude", sabe("claude", "usage"));
 // a uno cuya sesión no vuelve.
 for (const p of PROVIDERS.filter((x) => x.id !== "claude")) {
   ok(`«${p.id}» no promete un cerebro elegible que no tiene`, !sabe(p.id, "modelo"));
+  // Si esto se rompe, el modo chat le teclea «/model opus» a un CLI que no
+  // tiene ese comando, y esa línea sale escrita delante de tu mensaje.
+  ok(`«${p.id}» no promete ajustes en vivo que no entiende`, !sabe(p.id, "ajustesEnVivo"));
 }
 ok(
   "solo prometen cuota los que de verdad la publican",

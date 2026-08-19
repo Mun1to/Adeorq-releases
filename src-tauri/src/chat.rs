@@ -57,6 +57,15 @@ pub struct Modelo {
     /// «0.000003» no le dice nada a nadie.
     pub entrada_millon: f64,
     pub salida_millon: f64,
+    /// Lo que cuesta releer lo ya cacheado, y lo que cuesta cachearlo.
+    ///
+    /// Cero significa **que este modelo no cachea**, no que sea gratis: 169 de
+    /// los 415 no publican este precio y en esos la entrada se paga entera en
+    /// cada turno. Y no es un detalle de céntimos: midiendo las sesiones de
+    /// Munir, el 97 % de lo que entra en una petición es caché releída, así que
+    /// ignorar esto multiplica el precio calculado por 37.
+    pub cache_leida_millon: f64,
+    pub cache_escrita_millon: f64,
     pub contexto: u64,
 }
 
@@ -76,12 +85,16 @@ struct ModeloApi {
     pricing: Option<Precio>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct Precio {
     #[serde(default)]
     prompt: String,
     #[serde(default)]
     completion: String,
+    #[serde(default)]
+    input_cache_read: String,
+    #[serde(default)]
+    input_cache_write: String,
 }
 
 fn cliente(segundos: u64) -> Result<reqwest::Client, String> {
@@ -116,10 +129,7 @@ pub async fn chat_modelos() -> Result<Vec<Modelo>, String> {
         .data
         .into_iter()
         .map(|m| {
-            let p = m.pricing.unwrap_or(Precio {
-                prompt: String::new(),
-                completion: String::new(),
-            });
+            let p = m.pricing.unwrap_or_default();
             Modelo {
                 nombre: if m.name.is_empty() { m.id.clone() } else { m.name.clone() },
                 id: m.id,
@@ -127,12 +137,212 @@ pub async fn chat_modelos() -> Result<Vec<Modelo>, String> {
                 // millón, que es la unidad en la que todo el mundo los compara.
                 entrada_millon: p.prompt.parse::<f64>().unwrap_or(0.0) * 1_000_000.0,
                 salida_millon: p.completion.parse::<f64>().unwrap_or(0.0) * 1_000_000.0,
+                cache_leida_millon: p.input_cache_read.parse::<f64>().unwrap_or(0.0) * 1_000_000.0,
+                cache_escrita_millon: p.input_cache_write.parse::<f64>().unwrap_or(0.0)
+                    * 1_000_000.0,
                 contexto: m.context_length.unwrap_or(0),
             }
         })
         .collect();
     out.sort_by(|a, b| a.nombre.to_lowercase().cmp(&b.nombre.to_lowercase()));
     Ok(out)
+}
+
+/* ── Las promociones ──────────────────────────────────────────────────────
+   Lo que está de oferta HOY, que es lo que convierte «este modelo es barato»
+   en «este modelo es barato ahora mismo».
+
+   Va por un endpoint del FRONTEND de OpenRouter y no por `/api/v1/models`, y
+   eso hay que decirlo en voz alta: el catálogo público NO trae el descuento
+   por ningún lado —se comprobó mirando la red de su propia web (2026-08-19)—
+   así que el único sitio donde ese dato existe es el que usa su página. No
+   necesita clave. A cambio, no está documentado y puede cambiar sin avisar,
+   por eso todo lo de aquí falla suave: sin promociones se sigue pudiendo
+   recomendar por precio, que es la respuesta de siempre.
+
+   El precio que devuelve YA viene rebajado, así que no se aplica el descuento
+   otra vez. El porcentaje se guarda solo para poder decir «al 75 %», que es lo
+   que hace que merezca la pena mirar. */
+
+const PROMOS_API: &str =
+    "https://openrouter.ai/api/frontend/v1/models/find?active=true&discount=true&fmt=cards";
+
+/// Cuánto vale una foto de las promociones antes de volver a pedirla. Un
+/// descuento no aparece ni se va en cinco minutos, y esto se consulta cada vez
+/// que alguien pide consejo: sin caché, pedir opinión tres veces seguidas serían
+/// tres llamadas a un servidor que no es nuestro.
+const PROMOS_FRESCAS: Duration = Duration::from_secs(15 * 60);
+
+static PROMOS_CACHE: std::sync::OnceLock<
+    std::sync::Mutex<Option<(std::time::Instant, Vec<Promo>)>>,
+> = std::sync::OnceLock::new();
+
+#[derive(Serialize, Clone, Debug)]
+pub struct Promo {
+    /// El slug con el que se le llama de verdad, con su variante si la tiene
+    /// (`…:batch`, `…:free`). Sin la variante, la llamada iría a otro precio.
+    pub id: String,
+    pub nombre: String,
+    /// De 0 a 1. `0.75` es un 75 % de descuento.
+    pub descuento: f64,
+    /// Dólares por millón, YA rebajados.
+    pub entrada_millon: f64,
+    pub salida_millon: f64,
+    pub contexto: u64,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct Promos {
+    pub lista: Vec<Promo>,
+    /// De cuándo es la foto. La pantalla lo dice, porque un precio sin fecha
+    /// parece de ahora mismo y puede tener un cuarto de hora.
+    pub hace_segundos: u64,
+}
+
+#[derive(Deserialize)]
+struct PromosRes {
+    data: PromosData,
+}
+
+#[derive(Deserialize)]
+struct PromosData {
+    #[serde(default)]
+    models: Vec<PromoApi>,
+}
+
+#[derive(Deserialize)]
+struct PromoApi {
+    #[serde(default)]
+    slug: String,
+    #[serde(default)]
+    short_name: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    context_length: Option<u64>,
+    #[serde(default)]
+    endpoint: Option<PromoEndpoint>,
+}
+
+#[derive(Deserialize)]
+struct PromoEndpoint {
+    #[serde(default)]
+    model_variant_slug: String,
+    #[serde(default)]
+    pricing: Option<PromoPrecio>,
+}
+
+#[derive(Deserialize)]
+struct PromoPrecio {
+    #[serde(default)]
+    prompt: String,
+    #[serde(default)]
+    completion: String,
+    #[serde(default)]
+    discount: Option<f64>,
+}
+
+async fn bajar_promos() -> Result<Vec<Promo>, String> {
+    let res = cliente(20)?
+        .get(PROMOS_API)
+        .header("HTTP-Referer", "https://github.com/Mun1to/Adeorq")
+        .header("X-Title", "Adeorq")
+        .send()
+        .await
+        .map_err(|e| format!("no he podido pedir las promociones: {e}"))?;
+    if !res.status().is_success() {
+        return Err(format!("OpenRouter devolvió {}", res.status()));
+    }
+    let lista = res
+        .json::<PromosRes>()
+        .await
+        .map_err(|e| format!("promociones ilegibles: {e}"))?;
+
+    Ok(promos_de(lista))
+}
+
+/// El mapeo, aparte de la red para poder comprobarlo con una respuesta real.
+/// Es donde puede romperse sin avisar: si OpenRouter renombra un campo, esto
+/// devolvería una lista vacía y las promociones desaparecerían en silencio.
+fn promos_de(lista: PromosRes) -> Vec<Promo> {
+    let mut out: Vec<Promo> = lista
+        .data
+        .models
+        .into_iter()
+        .filter_map(|m| {
+            let e = m.endpoint?;
+            let p = e.pricing?;
+            // Sin porcentaje no es una promoción, es un modelo cualquiera que
+            // se ha colado: no se enseña como oferta lo que no lo es.
+            let descuento = p.discount.filter(|d| *d > 0.0)?;
+            let id = if e.model_variant_slug.is_empty() {
+                m.slug
+            } else {
+                e.model_variant_slug
+            };
+            Some(Promo {
+                nombre: if !m.short_name.is_empty() {
+                    m.short_name
+                } else if !m.name.is_empty() {
+                    m.name
+                } else {
+                    id.clone()
+                },
+                id,
+                descuento,
+                entrada_millon: p.prompt.parse::<f64>().unwrap_or(0.0) * 1_000_000.0,
+                salida_millon: p.completion.parse::<f64>().unwrap_or(0.0) * 1_000_000.0,
+                contexto: m.context_length.unwrap_or(0),
+            })
+        })
+        .collect();
+    // El descuento más gordo primero, que es el orden en el que se miran.
+    out.sort_by(|a, b| b.descuento.partial_cmp(&a.descuento).unwrap_or(std::cmp::Ordering::Equal));
+    out
+}
+
+/// Los modelos que están de oferta ahora mismo.
+///
+/// No falla nunca hacia arriba: si el endpoint no responde o cambia de forma,
+/// devuelve la última foto que hubiera, y si tampoco la hay, una lista vacía.
+/// El recomendador tiene que poder seguir recomendando por precio aunque las
+/// ofertas no se puedan mirar; lo contrario sería que un endpoint sin
+/// documentar tumbara una función que no depende de él.
+#[tauri::command]
+pub async fn chat_promos() -> Result<Promos, String> {
+    let cache = PROMOS_CACHE.get_or_init(|| std::sync::Mutex::new(None));
+    if let Ok(g) = cache.lock() {
+        if let Some((cuando, lista)) = g.as_ref() {
+            let edad = cuando.elapsed();
+            if edad < PROMOS_FRESCAS {
+                return Ok(Promos {
+                    lista: lista.clone(),
+                    hace_segundos: edad.as_secs(),
+                });
+            }
+        }
+    }
+
+    match bajar_promos().await {
+        Ok(lista) => {
+            if let Ok(mut g) = cache.lock() {
+                *g = Some((std::time::Instant::now(), lista.clone()));
+            }
+            Ok(Promos { lista, hace_segundos: 0 })
+        }
+        Err(_) => {
+            // La foto vieja vale más que nada: un descuento de hace media hora
+            // sigue siendo verdad casi siempre, y la pantalla dice su edad.
+            let vieja = cache
+                .lock()
+                .ok()
+                .and_then(|g| g.as_ref().map(|(c, l)| (c.elapsed().as_secs(), l.clone())));
+            match vieja {
+                Some((edad, lista)) => Ok(Promos { lista, hace_segundos: edad }),
+                None => Ok(Promos { lista: Vec::new(), hace_segundos: 0 }),
+            }
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -385,4 +595,82 @@ pub fn chat_olvidar(id: String) -> Result<(), String> {
     let p = chat_path(&id)?;
     let _ = std::fs::remove_file(p);
     Ok(())
+}
+
+#[cfg(test)]
+mod pruebas {
+    use super::*;
+
+    /// Recorte de una respuesta REAL del endpoint (2026-08-19), con solo los
+    /// campos que se leen. Está aquí y no en un archivo aparte porque lo que se
+    /// protege es que el mapeo siga entendiendo esa forma exacta: si OpenRouter
+    /// renombra un campo, este test se pone rojo en vez de que las promociones
+    /// se vacíen en silencio.
+    const REAL: &str = r#"{"data":{"models":[
+      {"slug":"google/gemini-3.7-flash","short_name":"Gemini 3.7 Flash (batch)",
+       "name":"Google: Gemini 3.7 Flash (batch)","context_length":1048576,
+       "endpoint":{"model_variant_slug":"google/gemini-3.7-flash:batch",
+       "pricing":{"prompt":"0.0000001875","completion":"0.0000009375","discount":0.75}}},
+      {"slug":"google/gemini-3.7-flash","short_name":"Gemini 3.7 Flash",
+       "name":"Google: Gemini 3.7 Flash","context_length":1048576,
+       "endpoint":{"model_variant_slug":"google/gemini-3.7-flash",
+       "pricing":{"prompt":"0.000000375","completion":"0.000001875","discount":0.75}}}
+    ]}}"#;
+
+    fn leer(txt: &str) -> Vec<Promo> {
+        promos_de(serde_json::from_str::<PromosRes>(txt).expect("no se pudo leer"))
+    }
+
+    #[test]
+    fn entiende_la_respuesta_de_verdad() {
+        let p = leer(REAL);
+        assert_eq!(p.len(), 2, "se han perdido promociones por el camino");
+        // Por token en la API, por millón aquí, que es como se comparan.
+        assert!((p[0].entrada_millon - 0.1875).abs() < 1e-9, "{}", p[0].entrada_millon);
+        assert!((p[0].salida_millon - 0.9375).abs() < 1e-9, "{}", p[0].salida_millon);
+        assert_eq!(p[0].contexto, 1_048_576);
+        assert!((p[0].descuento - 0.75).abs() < 1e-9);
+    }
+
+    #[test]
+    fn el_id_lleva_su_variante() {
+        // Sin la variante, la llamada iría al precio normal y no al de oferta:
+        // `…:batch` y `…:free` son modelos distintos para la API.
+        let p = leer(REAL);
+        assert!(p.iter().any(|x| x.id == "google/gemini-3.7-flash:batch"));
+        assert!(p.iter().any(|x| x.id == "google/gemini-3.7-flash"));
+    }
+
+    #[test]
+    fn sin_descuento_no_es_promocion() {
+        let sin = r#"{"data":{"models":[{"slug":"a/b","short_name":"B","name":"B",
+          "endpoint":{"model_variant_slug":"a/b","pricing":{"prompt":"0.000001",
+          "completion":"0.000002"}}}]}}"#;
+        assert!(leer(sin).is_empty(), "un modelo sin descuento no se enseña como oferta");
+
+        let cero = r#"{"data":{"models":[{"slug":"a/b","short_name":"B","name":"B",
+          "endpoint":{"model_variant_slug":"a/b","pricing":{"prompt":"0.000001",
+          "completion":"0.000002","discount":0}}}]}}"#;
+        assert!(leer(cero).is_empty(), "un descuento del 0 % tampoco");
+    }
+
+    #[test]
+    fn el_mas_barato_de_verdad_va_primero() {
+        let dos = r#"{"data":{"models":[
+          {"slug":"a/poco","short_name":"Poco","name":"Poco","endpoint":{"model_variant_slug":"a/poco",
+           "pricing":{"prompt":"0.000001","completion":"0.000002","discount":0.2}}},
+          {"slug":"a/mucho","short_name":"Mucho","name":"Mucho","endpoint":{"model_variant_slug":"a/mucho",
+           "pricing":{"prompt":"0.000001","completion":"0.000002","discount":0.9}}}]}}"#;
+        assert_eq!(leer(dos)[0].nombre, "Mucho");
+    }
+
+    #[test]
+    fn una_respuesta_rota_no_revienta_nada() {
+        // El endpoint no está documentado: puede cambiar de forma cualquier día.
+        // Lo que NO puede pasar es que eso tumbe al recomendador.
+        assert!(leer(r#"{"data":{}}"#).is_empty());
+        assert!(leer(r#"{"data":{"models":[]}}"#).is_empty());
+        let sin_endpoint = r#"{"data":{"models":[{"slug":"a/b","short_name":"B","name":"B"}]}}"#;
+        assert!(leer(sin_endpoint).is_empty());
+    }
 }

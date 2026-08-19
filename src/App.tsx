@@ -8,10 +8,12 @@ import ActividadPanel from "./components/ActividadPanel";
 import EditorPane from "./components/EditorPane";
 import WebPane from "./components/WebPane";
 import TerminalPane, { FONDO_EVENTO, SOLTADO_EVENTO } from "./components/TerminalPane";
+import ProviderMark, { tieneMarca } from "./components/ProviderMark";
 import PanelView from "./components/PanelView";
 import Foreman, { type ForemanExec } from "./components/Foreman";
 import AvisoCuota from "./components/AvisoCuota";
 import Vigia from "./components/Vigia";
+import Copiloto from "./components/Copiloto";
 import SettingsView from "./components/SettingsView";
 import CommandsView from "./components/CommandsView";
 import CanvasView, { type CanvasPane } from "./components/CanvasView";
@@ -133,6 +135,7 @@ import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
 import { apagon, aplicarApagon } from "./lib/temasTerm";
 import { aplicarRendimiento, debeAhorrar, prefRendimiento } from "./lib/rendimiento";
+import { aplicarForma, prefForma } from "./lib/formaPaneles";
 import { powershellCommand, sessionIdOf, shellCommand } from "./lib/comandos";
 import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
@@ -953,6 +956,12 @@ function App() {
     );
   }, [panes.length, canvasPanes.length]);
 
+  /* La forma de los paneles, una vez al arrancar. No depende de nada más: es un
+     tema, se marca en el `<html>` y a partir de ahí manda el CSS. */
+  useEffect(() => {
+    aplicarForma(prefForma());
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(LANG_KEY, lang);
     document.documentElement.lang = lang;
@@ -1292,23 +1301,37 @@ function App() {
    * Asistente, que solo deja el encargo escrito.
    */
   const enviarAlChat = useCallback(
-    (s: SessionInfo, texto: string, modelo?: string, esfuerzo?: string) => {
-      const ajustes = [modelo ? `/model ${modelo}` : "", esfuerzo ? `/effort ${esfuerzo}` : ""]
-        .filter(Boolean);
-      const escribir = (id: number) => {
-        ajustes.forEach((linea, i) => {
-          window.setTimeout(() => void writePty(id, `${linea}\r`).catch(() => {}), i * 400);
+    (
+      s: SessionInfo,
+      texto: string,
+      modelo?: string,
+      esfuerzo?: string,
+    ): Promise<boolean> => {
+      // Los ajustes van por la terminal como comandos de barra, y eso solo lo
+      // entiende quien lo declara (`providers.ts`). A los demás se les callan:
+      // un `/model opus` tecleado en un CLI que no tiene ese comando es una
+      // línea de basura justo delante de tu mensaje.
+      const ajustes = sabe(s.fuente ?? "claude", "ajustesEnVivo")
+        ? [modelo ? `/model ${modelo}` : "", esfuerzo ? `/effort ${esfuerzo}` : ""].filter(Boolean)
+        : [];
+      // Devuelve si el TEXTO llegó al PTY. Los ajustes no cuentan: que falle un
+      // `/model` es una preferencia que se pierde, que falle el texto es tu
+      // mensaje que se pierde, y son dos cosas distintas.
+      const escribir = (id: number): Promise<boolean> =>
+        new Promise<boolean>((listo) => {
+          ajustes.forEach((linea, i) => {
+            window.setTimeout(() => void writePty(id, `${linea}\r`).catch(() => {}), i * 400);
+          });
+          window.setTimeout(() => {
+            writePty(id, `${texto}\r`)
+              .then(() => listo(true))
+              .catch(() => listo(false));
+          }, ajustes.length * 400 + 250);
         });
-        window.setTimeout(
-          () => void writePty(id, `${texto}\r`).catch(() => {}),
-          ajustes.length * 400 + 250,
-        );
-      };
 
       const abierto = panesRef.current.find((p) => sessionIdOf(p.command) === s.id);
       if (abierto) {
-        escribir(abierto.id);
-        return;
+        return escribir(abierto.id);
       }
       // Sin panel: se abre y se espera a que exista. `onResume` no devuelve el
       // id (lo crea React), así que se busca el que aparece con esta sesión
@@ -1317,16 +1340,24 @@ function App() {
       // vez de mandar el texto a la terminal equivocada.
       onResume(s);
       const desde = Date.now();
-      const espera = window.setInterval(() => {
-        const p = panesRef.current.find((x) => sessionIdOf(x.command) === s.id);
-        if (p) {
-          window.clearInterval(espera);
-          // Un respiro para que el CLI termine de pintar su pantalla de inicio.
-          window.setTimeout(() => escribir(p.id), 1200);
-        } else if (Date.now() - desde > 5_000) {
-          window.clearInterval(espera);
-        }
-      }, 200);
+      // Se devuelve si el mensaje ha llegado a alguna terminal, y esa respuesta
+      // no es cosmética: quien llama vacía su cuadro de escribir al enviar, así
+      // que un `false` es lo único que le permite devolverte el texto. Antes
+      // esta espera se rendía en silencio y el párrafo que habías escrito no
+      // quedaba en ningún sitio.
+      return new Promise<boolean>((listo) => {
+        const espera = window.setInterval(() => {
+          const p = panesRef.current.find((x) => sessionIdOf(x.command) === s.id);
+          if (p) {
+            window.clearInterval(espera);
+            // Un respiro para que el CLI termine de pintar su pantalla de inicio.
+            window.setTimeout(() => void escribir(p.id).then(listo), 1200);
+          } else if (Date.now() - desde > 5_000) {
+            window.clearInterval(espera);
+            listo(false);
+          }
+        }, 200);
+      });
     },
     [onResume],
   );
@@ -3185,6 +3216,13 @@ function App() {
           atención deja UNA línea en la bandeja de la Agenda. Nunca escribe en
           una terminal ni abre ni cierra nada: propone, decides tú. */}
       <Vigia panes={panes} status={paneStatus} />
+      {/* Y el copiloto, que es el mismo trato mirando al otro lado: el vigía
+          mira una CUADRILLA por su BUZON.md, este mira UNA SESIÓN por lo que ya
+          se sabe de ella (sus herramientas, su contexto, su cuota) y te dice si
+          hay un sitio mejor donde estar haciendo eso. Un CLI no puede saberlo,
+          porque no sabe que existen los otros veinte; un panel sí. Tampoco
+          pinta ni actúa: propone en la misma bandeja. */}
+      <Copiloto panes={panes} cuentas={accounts} />
       <header className="topbar">
         {/* Sin la marca al lado: a 20px el logo pierde la proa y se lee como
             un cuadrado azul cualquiera, y el nombre ya dice de quién es la
@@ -3609,6 +3647,22 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                 const estado = paneStatus[p.id]?.state ?? "";
                 const pinta = PINTA[estado] ?? PINTA[""];
                 const porGrupo = !minimizados.has(p.id) && p.grupo != null;
+                /* Qué cliente corre dentro y en qué cuenta. Las dos cosas
+                   sustituyen al «· claude» que llevaba el nombre: con tres
+                   cuentas de Claude abiertas esa palabra era justo la que menos
+                   distinguía una ficha de otra (Munir, 2026-08-19). El dibujo
+                   dice el cliente; el texto de la derecha, la cuenta. */
+                const cli = kindDeComando(p.command?.join(" ") ?? "");
+                const cuenta =
+                  [MAIN_ACCOUNT, ...accounts].find((a) => a.id === p.account)?.label ??
+                  (p.account ? undefined : MAIN_ACCOUNT.label);
+                /* El sufijo del cliente se cae del nombre SOLO si de verdad es
+                   el nombre del cliente: «Adeorq · Frontend» no puede perder su
+                   segunda mitad por parecerse a un sufijo. */
+                const sinCli = p.name.replace(
+                  new RegExp(`\s·\s(?:${cli}|${providerOf(cli).label})\s*$`, "i"),
+                  "",
+                );
                 return (
                   <button
                     key={p.id}
@@ -3627,9 +3681,14 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     }
                   >
                     <span className="minim-ico">
-                      <EstadoIcon estado={estado} size={13} />
+                      {tieneMarca(cli) ? (
+                        <ProviderMark id={cli} />
+                      ) : (
+                        <EstadoIcon estado={estado} size={13} />
+                      )}
                     </span>
-                    <span className="minim-nombre">{p.name}</span>
+                    <span className="minim-nombre">{sinCli}</span>
+                    {cuenta && <span className="minim-cuenta">· {cuenta}</span>}
                     {pinta.urge && <span className="minim-urge">{t(pinta.label)}</span>}
                     {/* Lo que cuesta tenerla apartada. Aquí es donde de verdad
                         hacía falta: una terminal a la vista se ve trabajando,

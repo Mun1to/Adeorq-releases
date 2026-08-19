@@ -22,6 +22,27 @@ export interface Turno {
   herramientas: string[];
 }
 
+/**
+ * Si dos lecturas del transcript dicen lo mismo.
+ *
+ * Se relee cada tres segundos, pero casi siempre no ha cambiado nada: sin esto
+ * se devolvía un array nuevo igualmente y React repintaba los 60 turnos por
+ * costumbre. Devolviendo el array de antes, el repintado no llega a empezar.
+ *
+ * Se compara el texto y no una fecha porque el CLI reescribe el último turno
+ * mientras lo va escribiendo, sin cambiarle la hora: mirando la hora, la
+ * respuesta se quedaría congelada a medias.
+ */
+export function igualQue(a: Turno[], b: Turno[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every(
+    (t, i) =>
+      t.texto === b[i].texto &&
+      t.rol === b[i].rol &&
+      t.herramientas.length === b[i].herramientas.length,
+  );
+}
+
 export function sessionMessages(
   cwd: string,
   sessionId?: string,

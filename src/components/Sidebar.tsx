@@ -2220,6 +2220,11 @@ export default function Sidebar({
         className="session-row"
         data-archived={isArchived}
         data-wait={wait ?? undefined}
+        /* Encendido SOLO mientras escribe de verdad. Es lo que enciende el hilo
+           de luz del borde, y por eso no vale con «viva»: una sesión abierta y
+           quieta no está trabajando, y treinta hilos girando a la vez para
+           decir «existo» es exactamente el ruido que esto evita. */
+        data-trabajando={s.state === "a_medias" || undefined}
         data-sesion={s.id}
         data-fijada={ui.pinned.includes(s.id) || undefined}
         data-llevando={llevando === s.id || undefined}

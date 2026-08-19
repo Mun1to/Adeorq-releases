@@ -20,7 +20,27 @@ export interface Modelo {
   nombre: string;
   entrada_millon: number;
   salida_millon: number;
+  /** Cero significa que NO cachea, no que sea gratis. Ver `coste.ts`. */
+  cache_leida_millon: number;
+  cache_escrita_millon: number;
   contexto: number;
+}
+
+/** Un modelo que está de oferta hoy. El precio ya viene rebajado. */
+export interface Promo {
+  id: string;
+  nombre: string;
+  /** De 0 a 1. `0.75` es un 75 % de descuento. */
+  descuento: number;
+  entrada_millon: number;
+  salida_millon: number;
+  contexto: number;
+}
+
+export interface Promos {
+  lista: Promo[];
+  /** De cuándo es la foto: se cachean quince minutos, y la pantalla lo dice. */
+  hace_segundos: number;
 }
 
 export interface Gasto {
@@ -51,6 +71,18 @@ export async function chatEnviar(
   } finally {
     off();
   }
+}
+
+/**
+ * Los modelos que están de oferta ahora mismo.
+ *
+ * No falla nunca: sin conexión o con el endpoint cambiado devuelve la lista
+ * vacía, y el recomendador sigue pudiendo recomendar por precio. El dato sale
+ * de un endpoint del frontend de OpenRouter, sin clave y sin documentar, que es
+ * el único sitio donde existe el descuento (`chat.rs` lo explica).
+ */
+export function chatPromos(): Promise<Promos> {
+  return invoke("chat_promos");
 }
 
 export function gastoLeer(): Promise<Gasto> {

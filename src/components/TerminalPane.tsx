@@ -52,7 +52,12 @@ import { seMuda } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
 import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
-import { hayQueAjustar, hayQueRecolocar, volverA } from "../lib/scrollTerm";
+import {
+  hayQueAjustar,
+  hayQueRecolocar,
+  trasBorrarScrollback,
+  volverA,
+} from "../lib/scrollTerm";
 import { EVENTO_REFIT, redimensionando, tocaAjustar } from "../lib/redimension";
 import { modoRendimiento } from "../lib/rendimiento";
 import { sessionIdOf } from "../lib/comandos";
@@ -659,6 +664,9 @@ export default function TerminalPane({
   const tailRef = useRef("");
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
+  /** A cuántos renglones del final estabas cuando el CLI borró el scrollback.
+      `null` = estabas al final, y entonces no hay nada que restaurar. */
+  const pendienteRef = useRef<number | null>(null);
   const pasteRef = useRef<(() => void) | null>(null);
   // Kept in a ref so the bell handler, created once with the terminal, always
   // calls the current callback instead of the one captured at mount.
@@ -1080,6 +1088,37 @@ export default function TerminalPane({
     term.loadAddon(fit);
     termRef.current = term;
     fitRef.current = fit;
+
+    /* ── Que borrar el scrollback no te mueva de sitio ────────────────────
+     *
+     * Claude Code no escribe al final como un programa normal: en cada turno
+     * borra la pantalla Y el scrollback (`ESC[2J` + `ESC[3J`) y repinta la
+     * conversación entera. Los mantenedores de xterm lo confirman (issue
+     * #5620) y no lo consideran cosa suya, así que si no lo resolvemos aquí no
+     * lo resuelve nadie.
+     *
+     * Lo que pasaba, reproducido en `pnpm xterm`: estabas leyendo hacia arriba,
+     * a ocho renglones del final; el agente acababa su turno y la vista
+     * aparecía pegada al final otra vez, con el historial recolocado. Es la
+     * TERCERA causa distinta del mismo síntoma, y la única que no arregla
+     * actualizar xterm: aquí el búfer no se equivoca, es que se ha
+     * reconstruido entero.
+     *
+     * Se apunta ANTES de que borre, porque después ya no hay de dónde sacarlo:
+     * cuando el manejador devuelve `false`, xterm sigue con su trabajo normal y
+     * el búfer viejo desaparece en esa misma línea. */
+    term.parser.registerCsiHandler({ final: "J" }, (params) => {
+      // ED 3 es «borra el scrollback». El 2 (borrar pantalla) viene con él pero
+      // no se lleva el historial, así que no hay nada que conservar.
+      if (params[0] === 3) {
+        const b = term.buffer.active;
+        const lejos = b.baseY - b.viewportY;
+        // Estando al final no se apunta nada: quien mira trabajar a un agente
+        // quiere seguir al final, y restaurar ahí sería moverle sin motivo.
+        pendienteRef.current = lejos > 0 ? lejos : null;
+      }
+      return false;
+    });
     term.open(el);
     try {
       const webgl = new WebglAddon();
@@ -1309,6 +1348,47 @@ export default function TerminalPane({
       if (hintTimer === undefined) {
         hintTimer = window.setTimeout(refreshHints, 150);
       }
+      // Y aquí se deshace el salto del borrado, pero NO en este mismo trozo.
+      //
+      // Un PTY no entrega el repintado de una vez: una conversación de 600
+      // líneas llega partida, y este callback corre en CADA pedazo. Restaurando
+      // en el primero se restaura contra un `baseY` que todavía está creciendo.
+      // Medido: tras el primer trozo `baseY` valía 110, se colocaba la vista en
+      // 102, y cuando terminaba de llegar todo `baseY` era 617 — o sea, a 515
+      // renglones del final en vez de a los 8 en los que estabas. Ese es
+      // exactamente el «subo y me lleva superarriba» de Munir, y era un fallo
+      // del arreglo, no de la versión vieja.
+      //
+      // Así que se espera a que DEJE de llegar. Cada trozo reinicia la cuenta y
+      // solo cuando el búfer lleva un momento quieto se coloca la vista.
+      if (pendienteRef.current === null) return;
+      if (colocarTimer !== undefined) window.clearTimeout(colocarTimer);
+      colocarTimer = window.setTimeout(colocarTrasBorrado, QUIETO_MS);
+    };
+
+    /**
+     * Cuánto hay que esperar sin recibir nada para dar el repintado por
+     * terminado. Suficiente para que no lo corte un hueco entre dos trozos del
+     * PTY, y poco para que no se vea el salto antes de deshacerlo.
+     */
+    const QUIETO_MS = 120;
+    let colocarTimer: number | undefined;
+
+    const colocarTrasBorrado = () => {
+      const lejos = pendienteRef.current;
+      pendienteRef.current = null;
+      const t = termRef.current;
+      if (lejos === null || !t) return;
+      const b = t.buffer.active;
+      // Si ya no estás al final, es que has hecho scroll tú mientras llegaba el
+      // texto. Eso manda sobre cualquier restauración: lo último que hace falta
+      // es que la terminal te mueva de donde acabas de ponerte a mano.
+      if (b.viewportY < b.baseY) return;
+      const destino = trasBorrarScrollback(lejos, b.baseY);
+      if (destino === null) return;
+      // Un renglón de margen: si ya está donde tocaba, moverlo da un tirón peor
+      // que el fallo. Es el mismo criterio de `hayQueRecolocar`.
+      if (Math.abs(b.viewportY - destino) > 1) t.scrollToLine(destino);
     };
 
     // The Claude CLI rings the terminal bell when its turn ends; that is the
@@ -1434,6 +1514,7 @@ export default function TerminalPane({
     return () => {
       disposed = true;
       ro.disconnect();
+      if (colocarTimer !== undefined) window.clearTimeout(colocarTimer);
       if (pedido) cancelAnimationFrame(pedido);
       window.removeEventListener(EVENTO_REFIT, alSoltar);
       el.removeEventListener("paste", pasteNativo, true);

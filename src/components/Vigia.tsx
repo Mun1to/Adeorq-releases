@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { apuntarAviso, ultimoAviso } from "../lib/bandeja";
 import { readCrewInbox, writeInbox, type PaneStatus } from "../lib/pty";
 import {
   anotar,
@@ -137,7 +138,11 @@ export default function Vigia({ panes, status }: Props) {
         c.buzonCambio = buzonRef.current[c.cwd].t;
       }
 
+      // La marca del último aviso se comparte con el copiloto: la bandeja es
+      // una sola y dos líneas seguidas de dos vigilantes distintos son
+      // exactamente lo que el enfriamiento existe para evitar (`bandeja.ts`).
       let memoria = podar(leerMemoria(), ahora);
+      memoria = { ...memoria, ultima: Math.max(memoria.ultima, ultimoAviso()) };
       for (const { cuadrilla, señal } of aProponer(
         [...grupos.values()],
         memoria,
@@ -152,6 +157,7 @@ export default function Vigia({ panes, status }: Props) {
           continue;
         }
         memoria = anotar(memoria, cuadrilla.teamId, señal, ahora);
+        apuntarAviso(ahora);
       }
       guardarMemoria(memoria);
     };

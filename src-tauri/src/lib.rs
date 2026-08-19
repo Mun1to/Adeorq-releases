@@ -371,6 +371,7 @@ pub fn run() {
             apikeys::api_key_forget,
             apikeys::api_keys_estado,
             chat::chat_modelos,
+            chat::chat_promos,
             chat::chat_enviar,
             chat::gasto_leer,
             chat::chat_leer,

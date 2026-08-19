@@ -92,3 +92,39 @@ export function hayQueRecolocar(destino: number | null, ahora: Vista): boolean {
   // dejarlo a uno de distancia y recolocar por eso da un tirón peor que el fallo.
   return Math.abs(ahora.viewportY - destino) > 1;
 }
+
+/**
+ * Dónde volver cuando el CLI ha borrado el scrollback y lo ha repintado.
+ *
+ * ── EL CASO, MEDIDO EL 2026-08-19 ──────────────────────────────────────────
+ *
+ * Claude Code no escribe al final como un programa de terminal normal: borra la
+ * pantalla Y el scrollback entero (`ESC[2J` + `ESC[3J`) y repinta la
+ * conversación completa en cada turno. No es un descuido suyo, es deliberado, y
+ * los mantenedores de xterm lo confirman en el issue #5620: lo hacen para
+ * quedarse con la barra de scroll bonita y el ratón nativo sin gestionar el
+ * buffer alternativo.
+ *
+ * La consecuencia es que estabas leyendo hacia arriba, el agente termina su
+ * turno, y **lo que mirabas deja de existir un instante**. Reproducido en
+ * `scripts/scroll-check.ts` sin navegador: mirando la línea 569, a 8 del final,
+ * tras el ciclo la vista acaba en la 617, pegada al final. Y por eso el arreglo
+ * de la beta.302 (que sí curó otro fallo, el del `ESC[3J` suelto) no tapa este:
+ * aquí el búfer no miente, es que se ha reconstruido entero.
+ *
+ * Se conserva la DISTANCIA AL FINAL y no la línea, al revés que en un cambio de
+ * alto: aunque el texto repintado sea el mismo, sus números de línea no lo son
+ * (`baseY` pasó de 577 a 617 en la medición), así que la línea 569 de antes ya
+ * no es la línea 569 de ahora. Lo único que sobrevive al repintado es «estaba a
+ * ocho renglones del final».
+ *
+ * Devuelve `null` cuando estabas al final, que es el caso de siempre: quien
+ * mira trabajar a un agente quiere el final, y ahí no hay nada que restaurar.
+ */
+export function trasBorrarScrollback(
+  desdeElFinal: number,
+  baseYDespues: number,
+): number | null {
+  if (desdeElFinal <= 0) return null;
+  return Math.max(0, baseYDespues - desdeElFinal);
+}

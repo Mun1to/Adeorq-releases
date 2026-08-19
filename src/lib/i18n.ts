@@ -1110,6 +1110,21 @@ const EN: Record<string, string> = {
   "Peso relativo, tomando haiku como 1": "Relative weight, with haiku as 1",
   "te queda un {p} % de semana": "you have {p}% of the week left",
   "Cuando el cerebro no cuadra": "When the brain does not fit",
+  "Forma de las terminales": "Shape of the terminals",
+  "Si las terminales van pegadas como un mosaico o sueltas como tarjetas. El hueco de las tarjetas se come por dentro del propio panel, así que la rejilla no se mueve: cuesta entre un 3 % y un 4 % del área de texto, medido.":
+    "Whether terminals sit flush like a mosaic or loose like cards. The gap between cards is taken from inside the panel itself, so the grid does not move: it costs between 3% and 4% of the text area, measured.",
+  "Pegadas": "Flush",
+  "Un mosaico sin esquinas, como hasta ahora. Aprovecha cada píxel.":
+    "A mosaic with no corners, as until now. Uses every pixel.",
+  "Esquinas suaves": "Soft corners",
+  "Siguen pegadas pero con las esquinas redondeadas. No pierdes sitio.":
+    "Still flush, but with rounded corners. You lose no room.",
+  "Tarjetas sueltas": "Loose cards",
+  "Cada terminal con su hueco, su esquina y su sombra.":
+    "Each terminal with its own gap, corner and shadow.",
+  "El copiloto de las sesiones": "The session copilot",
+  "Mira lo que está pasando en las terminales abiertas (qué herramientas usa el agente, cuánto contexto lleva, cuánta semana te queda) y te dice si hay un sitio mejor donde estar haciendo eso: otro cliente que tenga cuota, un cerebro más barato para un recado, o lo que costaría por API sin tocar tu suscripción. Un CLI no puede saber esto porque no sabe que existen los otros veinte. Deja una línea en la bandeja de la Agenda, como el vigía, y nunca cambia nada por su cuenta.":
+    "It watches what is going on in your open terminals (which tools the agent is using, how much context it has, how much week you have left) and tells you if there is a better place to be doing that: another client with quota to spare, a cheaper brain for an errand, or what it would cost through the API without touching your subscription. A CLI cannot know this, because it does not know the other twenty exist. It leaves a line in the Agenda tray, like the watcher, and never changes anything on its own.",
   "El vigía de las cuadrillas": "The crew lookout",
   "Con una cuadrilla abierta, mira cada minuto quién ha terminado, quién lleva rato esperándote y si alguien anda tocando los archivos de otro. Cuando algo lo merece deja una línea en la bandeja de la Agenda, para que la aceptes o la descartes. Nunca escribe en una terminal ni abre ni cierra nada.":
     "With a crew open, it checks every minute who has finished, who has been waiting on you for a while, and whether anyone is touching someone else's files. When something is worth it, it leaves a line in the Agenda tray for you to accept or discard. It never types into a terminal and never opens or closes anything.",
@@ -1220,6 +1235,9 @@ const EN: Record<string, string> = {
   "Se lo digo ahora: entra en cuanto termine lo de ahora":
     "Queued: it goes in as soon as the current one finishes",
   "Añade algo más: se lo paso a continuación…": "Add something else: it goes in next…",
+  "No pude enviar tu mensaje a «{s}».": "I could not send your message to {s}.",
+  "No he podido abrir esa conversación, así que te devuelvo lo escrito.":
+    "I could not open that conversation, so here is your text back.",
   "Releer la conversación": "Re-read the conversation",
   "Esta conversación todavía no tiene nada escrito.":
     "Nothing has been written in this conversation yet.",

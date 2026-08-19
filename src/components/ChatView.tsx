@@ -21,9 +21,9 @@
 //     pastilla que enseña un estado que no ha comprobado miente. Vuelve cuando
 //     el CLI lo publique.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { marked } from "marked";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
+import { aHtml } from "../lib/markdown";
 import {
   planInfo,
   projectDirty,
@@ -35,10 +35,16 @@ import {
   type SessionInfo,
 } from "../lib/pty";
 import { encaja } from "../lib/buscar";
-import { cajonDe, resumeHerramientas, sessionMessages, type Turno } from "../lib/conversacion";
+import {
+  cajonDe,
+  igualQue,
+  resumeHerramientas,
+  sessionMessages,
+  type Turno,
+} from "../lib/conversacion";
 import type { ModelAlias } from "../lib/models";
 import { comoPeso, PESO, type Esfuerzo } from "../lib/router";
-import { PROVIDERS, providerOf } from "../lib/providers";
+import { PROVIDERS, providerOf, sabe } from "../lib/providers";
 import { hueOf } from "../lib/colors";
 import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark from "./ProviderMark";
@@ -59,7 +65,15 @@ import {
 
 interface Props {
   /** Manda lo escrito a esa sesión: la abre si hace falta y la enfoca. */
-  onEnviar: (s: SessionInfo, texto: string, modelo?: string, esfuerzo?: string) => void;
+  /** Devuelve si el mensaje llegó de verdad a una terminal. Que sea una
+      promesa no es un detalle de implementación: la caja se vacía al enviar, y
+      un `false` es lo único que permite devolverte lo escrito. */
+  onEnviar: (
+    s: SessionInfo,
+    texto: string,
+    modelo?: string,
+    esfuerzo?: string,
+  ) => Promise<boolean>;
   /** Abrirla como terminal de verdad, para quien quiera ver la consola. */
   onResume: (s: SessionInfo) => void;
   /** El ＋ de siempre: elegir carpeta y herramienta. */
@@ -114,6 +128,35 @@ const CEREBROS: Array<{ id: ModelAlias; para: string }> = [
 // solo existen esos dos. Ahora salen TODOS los que de verdad tienen
 // conversaciones, y solo por su marca.
 
+
+/**
+ * Una burbuja, con su markdown ya convertido.
+ *
+ * Vive FUERA de `ChatView` y memoizada, y las dos cosas por el mismo motivo.
+ * Fuera, porque un componente definido dentro de otro es un tipo nuevo en cada
+ * render y React lo desmonta y lo vuelve a montar entero. Memoizada, porque la
+ * conversación se relee cada tres segundos y convertir los 60 turnos otra vez
+ * cuesta **30,6 ms medidos**, mientras que convertir solo el que ha cambiado
+ * cuesta **0,43 ms**: setenta veces menos por el mismo resultado en pantalla.
+ */
+const Burbuja = memo(function Burbuja({ turno }: { turno: Turno }) {
+  // El transcript es prosa en markdown, que es como lo escribe el agente.
+  // Pintarlo en crudo sería enseñar asteriscos y comillas invertidas.
+  //
+  // Pasa por `markdown.ts` y no por `marked` a pelo: lo que hay aquí lo
+  // escribió un modelo leyendo archivos que no son nuestros, y `marked` deja
+  // pasar el HTML tal cual.
+  const html = useMemo(() => aHtml(turno.texto), [turno.texto]);
+  return (
+    <article className="chat-turno" data-rol={turno.rol}>
+      <div className="chat-burbuja" dangerouslySetInnerHTML={{ __html: html }} />
+      {turno.herramientas.length > 0 && (
+        <p className="chat-tools">{resumeHerramientas(turno.herramientas)}</p>
+      )}
+    </article>
+  );
+});
+
 export default function ChatView({
   onEnviar,
   onResume,
@@ -142,7 +185,17 @@ export default function ChatView({
   const [git, setGit] = useState<DirtyReport | null>(null);
   const [plan, setPlan] = useState<string>("");
   const [plegados, setPlegados] = useState<Set<string>>(new Set());
+  /** Lo que se dice justo encima de la caja cuando el envío no llegó. */
+  const [seCayo, setSeCayo] = useState(false);
+  /** La conversación abierta, mirable desde dentro de una promesa que empezó
+      hace seis segundos. El estado de React de entonces ya no vale. */
+  const abiertaRef = useRef<SessionInfo | null>(null);
+  abiertaRef.current = abierta;
   const finRef = useRef<HTMLDivElement>(null);
+  const hiloRef = useRef<HTMLDivElement>(null);
+  /** Si estás pegado al final. Es un `ref` y no un estado a propósito: cambia
+      con cada rueda del ratón y no tiene que repintar nada. */
+  const pegado = useRef(true);
 
   // Las sesiones, como las lee la barra. Sin las muertas: en un chat, una
   // conversación de hace tres meses no es historia, es ruido.
@@ -172,7 +225,7 @@ export default function ChatView({
     const leer = (primera: boolean) => {
       if (primera) setCargando(true);
       sessionMessages(abierta.cwd, abierta.id, 60)
-        .then((ts) => vivo && setTurnos(ts))
+        .then((ts) => vivo && setTurnos((antes) => (igualQue(antes, ts) ? antes : ts)))
         .catch((e) => vivo && setError(String(e)))
         .finally(() => vivo && setCargando(false));
       // El contexto y el estado salen del mismo transcript, así que se piden a
@@ -202,11 +255,36 @@ export default function ChatView({
     };
   }, [abierta?.cwd]);
 
-  // Abajo del todo al abrir y con cada turno nuevo: una conversación que no
-  // sigue al texto obliga a arrastrar la barra mientras el agente escribe.
+  // Abajo del todo con cada turno nuevo, PERO solo si ya estabas abajo.
+  //
+  // Antes bajaba siempre, y como la conversación se relee cada tres segundos,
+  // subir a leer algo mientras el agente escribía era imposible: al siguiente
+  // turno te devolvía al final. Medido en Chromium con el código de antes: te
+  // arrastraba **694 píxeles** de un salto, y otra vez con cada turno. Es la misma queja que las terminales (el
+  // `ESC[3J` de xterm), con otra causa: aquí el culpable era nuestro código.
+  //
+  // Al cambiar de conversación sí se baja siempre, porque una conversación
+  // recién abierta se lee por el final.
   useEffect(() => {
+    if (pegado.current) finRef.current?.scrollIntoView({ block: "end" });
+  }, [turnos.length]);
+
+  useEffect(() => {
+    pegado.current = true;
     finRef.current?.scrollIntoView({ block: "end" });
-  }, [turnos.length, abierta?.id]);
+    // Y el aviso de «no pude enviar» se va con ella: hablaba de la de antes.
+    setSeCayo(false);
+  }, [abierta?.id]);
+
+  /** Cuánto margen cuenta como «estoy abajo». Con 0 no valdría: el navegador
+      da fracciones de píxel al redimensionar y la vista se despegaría sola. */
+  const MARGEN_FINAL = 64;
+
+  const mirarScroll = useCallback(() => {
+    const el = hiloRef.current;
+    if (!el) return;
+    pegado.current = el.scrollHeight - el.scrollTop - el.clientHeight <= MARGEN_FINAL;
+  }, []);
 
   /** Qué clientes enseñar arriba: los que de verdad tienen conversaciones, en
       el orden de `providers.ts`. Uno sin sesiones no sale: un botón que lleva a
@@ -236,11 +314,52 @@ export default function ChatView({
   /** Está trabajando ahora mismo: es lo que enciende el haz sobre la caja. */
   const trabajando = !!abierta && (ctx?.state === "a_medias" || (abierta.live && !ctx?.state));
 
+  /**
+   * Si a ESTE cliente se le pueden cambiar cerebro y esfuerzo por la terminal.
+   *
+   * El conmutador de arriba abre conversaciones de los 21 clientes de la casa,
+   * pero los ajustes se mandan escribiendo `/model` y `/effort`, y eso solo lo
+   * entiende quien lo declara en `providers.ts`. Enseñar las pastillas al resto
+   * era ofrecer un botón que teclea una orden inventada delante de tu mensaje.
+   */
+  const ajustables = sabe(abierta?.fuente ?? "claude", "ajustesEnVivo");
+
+  /**
+   * Enviar, y devolver el texto si no llegó.
+   *
+   * La caja se vacía en el acto y no al confirmar, porque confirmar puede
+   * tardar seis segundos (abrir la terminal, esperar a que el CLI pinte su
+   * pantalla) y una caja que se queda llena todo ese rato parece que no ha
+   * hecho nada, invita a darle otra vez y manda el mensaje dos veces.
+   *
+   * Lo que NO puede pasar es lo de antes: si la sesión no llegaba a abrirse,
+   * `enviarAlChat` se rendía en silencio y el párrafo que habías escrito no
+   * quedaba en ningún sitio, ni en la caja ni en la terminal.
+   */
   const enviar = () => {
     const txt = texto.trim();
     if (!txt || !abierta) return;
-    onEnviar(abierta, txt, modelo ?? undefined, esfuerzo ?? undefined);
+    // A qué conversación se manda, capturado AHORA. Confirmar puede tardar seis
+    // segundos y en ese rato te da tiempo a pinchar otra en la lista: sin esto,
+    // el texto volvía a la caja de la que estuvieras mirando y el aviso hablaba
+    // de una conversación que no era esa.
+    const suya = abierta;
     setTexto("");
+    setSeCayo(false);
+    void onEnviar(suya, txt, modelo ?? undefined, esfuerzo ?? undefined).then((llego) => {
+      if (llego) return;
+      // Si ya estás en otra, no se toca su caja. El mensaje se ha perdido
+      // igualmente, así que se dice por el sitio que no depende de dónde estés.
+      if (abiertaRef.current?.id !== suya.id) {
+        setError(t("No pude enviar tu mensaje a «{s}».", { s: suya.title || suya.cwd }));
+        return;
+      }
+      setSeCayo(true);
+      // Se devuelve delante de lo que hayas escrito mientras tanto, no encima:
+      // en esos segundos puede haberte dado tiempo a empezar otra frase.
+      setTexto((v) => (v.trim() ? `${txt}
+${v}` : txt));
+    });
   };
 
   /** Una skill del panel de la derecha entra en la CAJA, no en la terminal.
@@ -384,24 +503,13 @@ export default function ChatView({
               </div>
             </header>
 
-            <div className="chat-turnos">
+            <div className="chat-turnos" ref={hiloRef} onScroll={mirarScroll}>
               {cargando && !turnos.length && <p className="chat-vacio">{t("Leyendo…")}</p>}
               {!cargando && !turnos.length && (
                 <p className="chat-vacio">{t("Esta conversación todavía no tiene nada escrito.")}</p>
               )}
               {turnos.map((turno, i) => (
-                <article key={i} className="chat-turno" data-rol={turno.rol}>
-                  <div
-                    className="chat-burbuja"
-                    // El transcript es prosa en markdown, que es como lo
-                    // escribe el agente. Pintarlo en crudo sería enseñar
-                    // asteriscos y comillas invertidas.
-                    dangerouslySetInnerHTML={{ __html: marked.parse(turno.texto) as string }}
-                  />
-                  {turno.herramientas.length > 0 && (
-                    <p className="chat-tools">{resumeHerramientas(turno.herramientas)}</p>
-                  )}
-                </article>
+                <Burbuja key={i} turno={turno} />
               ))}
               <div ref={finRef} />
             </div>
@@ -421,6 +529,11 @@ export default function ChatView({
             <div className="chat-caja-zona">
               <span className="chat-haz" data-on={trabajando} aria-hidden="true" />
               <div className="chat-caja" data-trabajando={trabajando}>
+                {seCayo && (
+                  <span className="chat-cayo">
+                    {t("No he podido abrir esa conversación, así que te devuelvo lo escrito.")}
+                  </span>
+                )}
                 {trabajando && (
                   <span className="chat-live">
                     {t("Se lo digo ahora: entra en cuanto termine lo de ahora")}
@@ -439,7 +552,10 @@ export default function ChatView({
                         ? t("Añade algo más: se lo paso a continuación…")
                         : t("Escribe aquí. Enter envía, Mayús+Enter hace un párrafo.")
                     }
-                    onChange={(e) => setTexto(e.currentTarget.value)}
+                    onChange={(e) => {
+                      setTexto(e.currentTarget.value);
+                      if (seCayo) setSeCayo(false);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -465,72 +581,77 @@ export default function ChatView({
 
                   <span className="chat-hueco" />
 
-                  {/* El cerebro, con su selector en dos familias. Cerrado
-                      enseña lo puesto; abierto, lo que pesa cada uno. */}
-                  <div className="chat-modelo">
-                    <button
-                      className="chat-pastilla chat-pastilla-fuerte"
-                      data-on={eligiendo}
-                      onClick={() => setEligiendo((v) => !v)}
-                    >
-                      {modelo ?? t("Automático")}
-                      <ChevronIcon size={11} up={eligiendo} />
-                    </button>
-                    {eligiendo && (
-                      <div className="chat-menu">
-                        <button
-                          className="chat-menu-fila"
-                          data-on={modelo === null}
-                          onClick={() => {
-                            setModelo(null);
-                            setEligiendo(false);
-                          }}
-                        >
-                          <span className="chat-menu-txt">
-                            <strong>{t("Automático")}</strong>
-                            <em>{t("lo elige el router según la tarea y tu semana")}</em>
-                          </span>
-                        </button>
-                        <span className="chat-menu-raya" />
-                        {CEREBROS.map((c) => (
+                  {ajustables && (
+                    <>
+                    {/* El cerebro, con su selector en dos familias. Cerrado
+                        enseña lo puesto; abierto, lo que pesa cada uno. */}
+                    <div className="chat-modelo">
+                      <button
+                        className="chat-pastilla chat-pastilla-fuerte"
+                        data-on={eligiendo}
+                        onClick={() => setEligiendo((v) => !v)}
+                      >
+                        {modelo ?? t("Automático")}
+                        <ChevronIcon size={11} up={eligiendo} />
+                      </button>
+                      {eligiendo && (
+                        <div className="chat-menu">
                           <button
-                            key={c.id}
                             className="chat-menu-fila"
-                            data-on={modelo === c.id}
+                            data-on={modelo === null}
                             onClick={() => {
-                              setModelo(c.id);
+                              setModelo(null);
                               setEligiendo(false);
                             }}
                           >
                             <span className="chat-menu-txt">
-                              <strong>{c.id}</strong>
-                              <em>{t(c.para)}</em>
-                            </span>
-                            {/* Lo que pesa, dibujado además de escrito: cuatro
-                                muescas dicen «×5 sobre ×10» sin hacer la
-                                cuenta. No es dinero y por eso no lleva €: con
-                                una suscripción no existe esa factura. */}
-                            <span className="chat-peso" data-tip={t("Lo que pesa: {p}", { p: comoPeso(c.id) })}>
-                              {[1, 3, 5, 10].map((n) => (
-                                <i key={n} data-on={PESO[c.id] >= n} />
-                              ))}
+                              <strong>{t("Automático")}</strong>
+                              <em>{t("lo elige el router según la tarea y tu semana")}</em>
                             </span>
                           </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                          <span className="chat-menu-raya" />
+                          {CEREBROS.map((c) => (
+                            <button
+                              key={c.id}
+                              className="chat-menu-fila"
+                              data-on={modelo === c.id}
+                              onClick={() => {
+                                setModelo(c.id);
+                                setEligiendo(false);
+                              }}
+                            >
+                              <span className="chat-menu-txt">
+                                <strong>{c.id}</strong>
+                                <em>{t(c.para)}</em>
+                              </span>
+                              {/* Lo que pesa, dibujado además de escrito: cuatro
+                                  muescas dicen «×5 sobre ×10» sin hacer la
+                                  cuenta. No es dinero y por eso no lleva €: con
+                                  una suscripción no existe esa factura. */}
+                              <span className="chat-peso" data-tip={t("Lo que pesa: {p}", { p: comoPeso(c.id) })}>
+                                {[1, 3, 5, 10].map((n) => (
+                                  <i key={n} data-on={PESO[c.id] >= n} />
+                                ))}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                  {ESFUERZOS_CAJA.map((e) => (
-                    <button
-                      key={e}
-                      className="chat-pastilla"
-                      data-on={esfuerzo === e}
-                      onClick={() => setEsfuerzo(esfuerzo === e ? null : e)}
-                    >
-                      {e}
-                    </button>
-                  ))}
+                    {ESFUERZOS_CAJA.map((e) => (
+                      <button
+                        key={e}
+                        className="chat-pastilla"
+                        data-on={esfuerzo === e}
+                        onClick={() => setEsfuerzo(esfuerzo === e ? null : e)}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                    </>
+                  )}
+
 
                   {/* El anillo del contexto, como en las capturas. Sale del
                       transcript, así que es el de verdad y no una estimación. */}

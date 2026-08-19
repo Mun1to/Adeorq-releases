@@ -14,6 +14,7 @@ import {
   TEMAS_TERM,
 } from "../lib/temasTerm";
 import { guardarRendimiento, prefRendimiento, type ModoRend } from "../lib/rendimiento";
+import { guardarForma, prefForma, type FormaPanel } from "../lib/formaPaneles";
 import {
   A_MANO,
   cerebroPorDefecto,
@@ -26,6 +27,7 @@ import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
 import { autostartGet, autostartSet, ollamaModels } from "../lib/pty";
 import { guardarModoAviso, modoAviso, type ModoAviso } from "../lib/router";
 import { guardarModoVigia, modoVigia, type ModoVigia } from "../lib/vigia";
+import { guardarModoCopiloto, modoCopiloto, type ModoCopiloto } from "../lib/copiloto";
 import EncuadreFondo from "./EncuadreFondo";
 import type { Encuadre } from "../lib/encuadre";
 import {
@@ -384,6 +386,8 @@ export default function SettingsView({
   const [avisoRouter, setAvisoRouter] = useState<ModoAviso>(() => modoAviso());
   /** Cuánto interrumpe el vigía de las cuadrillas. */
   const [avisoVigia, setAvisoVigia] = useState<ModoVigia>(() => modoVigia());
+  const [avisoCopi, setAvisoCopi] = useState<ModoCopiloto>(() => modoCopiloto());
+  const [forma, setForma] = useState<FormaPanel>(() => prefForma());
   const [seccion, setSeccion] = useState<SeccionId>(() => {
     const guardada = localStorage.getItem(RECUERDO);
     return SECCIONES.some((s) => s.id === guardada) ? (guardada as SeccionId) : "aspecto";
@@ -819,6 +823,42 @@ export default function SettingsView({
                     ))}
                   </div>
                 </div>
+                {/* Y la forma de los paneles, aquí porque es la misma familia
+                    que los dos de arriba: lo que cambia es cómo se ve, no lo
+                    que hace. Munir eligió las tarjetas de una referencia
+                    (BridgeMind, 2026-08-19) y pidió que fuese un ajuste, que es
+                    lo correcto: cada píxel de una terminal es texto que se lee,
+                    y el día que aprietas no quieres pagar el hueco. */}
+                <div className="ajuste-bloque">
+                  <b>{t("Forma de las terminales")}</b>
+                  <span className="card-hint">
+                    {t(
+                      "Si las terminales van pegadas como un mosaico o sueltas como tarjetas. El hueco de las tarjetas se come por dentro del propio panel, así que la rejilla no se mueve: cuesta entre un 3 % y un 4 % del área de texto, medido.",
+                    )}
+                  </span>
+                  <div className="chip-row">
+                    {(
+                      [
+                        ["pegadas", "Pegadas", "Un mosaico sin esquinas, como hasta ahora. Aprovecha cada píxel."],
+                        ["suaves", "Esquinas suaves", "Siguen pegadas pero con las esquinas redondeadas. No pierdes sitio."],
+                        ["tarjetas", "Tarjetas sueltas", "Cada terminal con su hueco, su esquina y su sombra."],
+                      ] as Array<[FormaPanel, string, string]>
+                    ).map(([id, label, tip]) => (
+                      <button
+                        key={id}
+                        className="choice"
+                        data-on={forma === id}
+                        data-tip={t(tip)}
+                        onClick={() => {
+                          guardarForma(id);
+                          setForma(id);
+                        }}
+                      >
+                        {t(label)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {/* Seis rayitas de color dentro de un chip no dicen cómo se va
                     a ver una terminal: dicen qué colores tiene. Cada esquema se
                     enseña como lo que es, cuatro líneas de terminal de verdad
@@ -1237,6 +1277,41 @@ export default function SettingsView({
                       onClick={() => {
                         guardarModoVigia(par[0]);
                         setAvisoVigia(par[0]);
+                      }}
+                    >
+                      {t(par[1])}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {/* Y el copiloto, que es el tercero de la misma familia: el
+                  router opina sobre lo que vas a abrir, el vigía sobre una
+                  cuadrilla, y este sobre la sesión que tienes delante. Los tres
+                  escriben en la misma bandeja y por eso los tres mandos viven
+                  juntos: lo que se está regulando aquí es cuánto habla Adeorq. */}
+              <section className="panel-card">
+                <h2>{t("El copiloto de las sesiones")}</h2>
+                <p className="card-hint">
+                  {t(
+                    "Mira lo que está pasando en las terminales abiertas (qué herramientas usa el agente, cuánto contexto lleva, cuánta semana te queda) y te dice si hay un sitio mejor donde estar haciendo eso: otro cliente que tenga cuota, un cerebro más barato para un recado, o lo que costaría por API sin tocar tu suscripción. Un CLI no puede saber esto porque no sabe que existen los otros veinte. Deja una línea en la bandeja de la Agenda, como el vigía, y nunca cambia nada por su cuenta.",
+                  )}
+                </p>
+                <div className="chip-row">
+                  {(
+                    [
+                      ["gordas", "Solo lo gordo"],
+                      ["siempre", "Todo lo que vea"],
+                      ["nunca", "Nunca"],
+                    ] as Array<[ModoCopiloto, string]>
+                  ).map((par) => (
+                    <button
+                      key={par[0]}
+                      className="choice"
+                      data-on={avisoCopi === par[0]}
+                      onClick={() => {
+                        guardarModoCopiloto(par[0]);
+                        setAvisoCopi(par[0]);
                       }}
                     >
                       {t(par[1])}

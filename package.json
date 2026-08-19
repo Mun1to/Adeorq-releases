@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.122",
+  "version": "0.9.123",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,8 @@
     "xterm": "node scripts/xterm-check.mjs",
     "botones": "node scripts/botones-check.mjs",
     "publicar": "node scripts/publicar-codigo.mjs",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "markdown": "node scripts/markdown-check.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",
@@ -37,6 +38,7 @@
     "@xterm/xterm": "6.1.0-beta.302",
     "@xyflow/react": "^12.11.2",
     "codemirror": "^6.0.2",
+    "dompurify": "^3.4.13",
     "marked": "^18.0.7",
     "perfect-freehand": "^1.2.3",
     "react": "^19.2.8",
@@ -48,6 +50,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^30.0.1",
     "typescript": "~5.8.3",
     "vite": "^7.3.6"
   }

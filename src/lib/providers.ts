@@ -120,6 +120,19 @@ export interface Provider {
    * pedirle uno concreto en la línea de arranque y que eso se respete.
    */
   modelo?: boolean;
+  /**
+   * Se le pueden cambiar cerebro y esfuerzo DENTRO de una sesión ya abierta,
+   * escribiéndole `/model` y `/effort` por la terminal.
+   *
+   * No es lo mismo que `modelo`, que habla de la LÍNEA DE ARRANQUE, y por eso
+   * es una columna aparte: un CLI puede aceptar `--model` al nacer y no tener
+   * ningún comando de barra después. Lo usa el modo chat, que enseña esas dos
+   * pastillas encima de la caja; con esto en falso no se enseñan, porque
+   * mandárselas a un CLI que no las entiende le teclea una orden inventada
+   * antes de tu mensaje. Comprobado en el binario de Claude Code (2026-08-19):
+   * «Run /effort xhigh in an interactive terminal».
+   */
+  ajustesEnVivo?: boolean;
   /** Tiene un modo de solo planificar, sin tocar archivos, que se pide al
    *  arrancar. En Claude es `--permission-mode plan`. */
   modoPlan?: boolean;
@@ -161,6 +174,7 @@ export const PROVIDERS: Provider[] = [
     // `newClaudeCommand` en App.tsx y no cabe en una cadena.
     encargoEnLinea: true,
     modelo: true,
+    ajustesEnVivo: true,
     modoPlan: true,
     // El `--session-id` que le pone Adeorq al nacer es justo lo que permite
     // volver con `--resume`. De ahí salen revivir un panel y el relevo.
@@ -613,6 +627,7 @@ export function providerOf(id: string): Provider {
  *  nombre del CLI: `provider === "claude"` repetido en nueve sitios. */
 export type Capacidad =
   | "modelo"
+  | "ajustesEnVivo"
   | "modoPlan"
   | "retomable"
   | "encargoEnLinea"

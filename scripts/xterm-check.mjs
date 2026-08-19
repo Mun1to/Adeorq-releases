@@ -93,5 +93,128 @@ const lineas = (n, texto) => {
   t.dispose();
 }
 
+// ── EL CICLO DE VERDAD DE CLAUDE CODE ──────────────────────────────────────
+//
+// Lo de arriba prueba el `ESC[3J` suelto, que es el fallo que arregló la
+// beta.302. Esto es otra cosa y es la TERCERA causa del mismo síntoma (Munir,
+// 2026-08-19, séptimo reporte): Claude Code no escribe al final, en cada turno
+// borra la pantalla Y el scrollback y REPINTA la conversación entera. Lo
+// confirman los mantenedores de xterm en el issue #5620, y ahí mismo dicen que
+// no lo consideran cosa suya («misusage by the app»), así que si no se resuelve
+// en Adeorq no se resuelve.
+//
+// Aquí se comprueba contra el búfer de verdad. La regla se replica en una línea
+// en vez de importarla, porque este archivo es `.mjs` y `scrollTerm.ts` es
+// TypeScript: quien comprueba la función de verdad es `scripts/scroll-check.ts`,
+// y lo que se prueba AQUÍ es que xterm se comporta como esa regla supone.
+{
+  const volver = (lejos, baseY) => (lejos <= 0 ? null : Math.max(0, baseY - lejos));
+  const ciclo = (dentro) => "\x1b[?2026h\x1b[H\x1b[2J\x1b[3J" + dentro + "\x1b[?2026l";
+
+  const t = new Terminal({ cols: 100, rows: 24, scrollback: 8000, allowProposedApi: true });
+  t.write(lineas(600, "conversacion"));
+  await vaciar(t);
+
+  t.scrollLines(-8);
+  await vaciar(t);
+  const b0 = t.buffer.active;
+  const lejos = b0.baseY - b0.viewportY;
+  ok("subir deja la vista lejos del final", lejos > 0, `a ${lejos} renglones`);
+
+  t.write(ciclo(lineas(600, "conversacion") + lineas(40, "respuesta nueva")));
+  await vaciar(t);
+
+  ok(
+    "sin restaurar, el ciclo te pega al final (es el fallo)",
+    t.buffer.active.viewportY === t.buffer.active.baseY,
+    `viewportY=${t.buffer.active.viewportY} baseY=${t.buffer.active.baseY}`,
+  );
+
+  const destino = volver(lejos, t.buffer.active.baseY);
+  if (destino !== null) t.scrollToLine(destino);
+  await vaciar(t);
+  const b1 = t.buffer.active;
+  ok(
+    "restaurando, vuelves a la misma distancia del final",
+    b1.baseY - b1.viewportY === lejos,
+    `a ${b1.baseY - b1.viewportY} renglones, esperaba ${lejos}`,
+  );
+  ok("y no acabas en el principio de todo", b1.viewportY > 100, `viewportY=${b1.viewportY}`);
+  t.dispose();
+}
+
+// ── Y estando al final, NO se toca nada ────────────────────────────────────
+// Quien mira trabajar a un agente quiere el final. Restaurar ahí sería moverle
+// sin motivo, que es el fallo contrario y molesta igual.
+{
+  const t = new Terminal({ cols: 100, rows: 24, scrollback: 8000, allowProposedApi: true });
+  t.write(lineas(600, "conversacion"));
+  await vaciar(t);
+  ok("estando al final, la distancia es cero",
+     t.buffer.active.baseY - t.buffer.active.viewportY === 0);
+
+  t.write("\x1b[?2026h\x1b[H\x1b[2J\x1b[3J" + lineas(640, "todo otra vez") + "\x1b[?2026l");
+  await vaciar(t);
+  const b1 = t.buffer.active;
+  ok("y tras el ciclo sigues al final", b1.viewportY === b1.baseY);
+  t.dispose();
+}
+
+
+// ── Y EL CASO QUE SE ESCAPÓ: el repintado llega A TROZOS ───────────────────
+//
+// Un PTY no entrega 600 líneas de una vez. La primera versión del arreglo
+// colocaba la vista en el callback del `write`, que corre en CADA pedazo, así
+// que restauraba contra un `baseY` todavía a medio crecer: medido, tras el
+// primer trozo `baseY` valía 110 y la vista quedaba en 102, y cuando terminaba
+// de llegar todo `baseY` era 617 — o sea a 515 renglones del final en vez de a
+// los 8 en los que estabas. Munir lo reportó otra vez el mismo día, y tenía
+// razón: era un fallo del arreglo.
+//
+// La regla nueva es esperar a que DEJE de llegar. Aquí se comprueba contra el
+// búfer de verdad, con el repintado partido en cinco como lo parte un PTY.
+{
+  const volver = (lejos, baseY) => (lejos <= 0 ? null : Math.max(0, baseY - lejos));
+  const t = new Terminal({ cols: 100, rows: 24, scrollback: 8000, allowProposedApi: true });
+  t.write(lineas(600, "conversacion"));
+  await vaciar(t);
+  t.scrollLines(-8);
+  await vaciar(t);
+  const lejos = t.buffer.active.baseY - t.buffer.active.viewportY;
+
+  const repintado = lineas(600, "conversacion") + lineas(40, "respuesta nueva");
+  const tam = Math.ceil(repintado.length / 5);
+  const trozos = [];
+  for (let i = 0; i < repintado.length; i += tam) trozos.push(repintado.slice(i, i + tam));
+
+  // Lo que hacía la primera versión: colocar en el primer trozo.
+  t.write("\x1b[?2026h\x1b[H\x1b[2J\x1b[3J" + trozos[0]);
+  await vaciar(t);
+  const enSeco = volver(lejos, t.buffer.active.baseY);
+  ok(
+    "(control) colocar en el primer trozo se queda corto",
+    enSeco !== null && enSeco < 200,
+    `habria colocado en ${enSeco}, con baseY=${t.buffer.active.baseY} a medio crecer`,
+  );
+
+  for (let i = 1; i < trozos.length; i++) { t.write(trozos[i]); await vaciar(t); }
+  t.write("\x1b[?2026l");
+  await vaciar(t);
+
+  // Y lo que hace ahora: colocar cuando el búfer ya está quieto.
+  const destino = volver(lejos, t.buffer.active.baseY);
+  if (destino !== null) t.scrollToLine(destino);
+  await vaciar(t);
+  const b = t.buffer.active;
+  ok(
+    "esperando a que deje de llegar, vuelves a los mismos renglones",
+    b.baseY - b.viewportY === lejos,
+    `a ${b.baseY - b.viewportY}, esperaba ${lejos}`,
+  );
+  ok("y no acabas quinientas lineas mas arriba", b.viewportY > 500, `viewportY=${b.viewportY}`);
+  t.dispose();
+}
+
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
 process.exit(fallos === 0 ? 0 : 1);

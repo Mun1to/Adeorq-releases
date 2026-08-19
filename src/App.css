@@ -1738,29 +1738,44 @@ body {
 /* Badges as little tokens: gradient, lit top edge and their own drop shadow. */
 /* Counters read as quiet glass, not as buttons: they are information, and a
    solid block of colour next to nine of its siblings shouts over the work. */
+/* ── Los contadores de la barra lateral ────────────────────────────────────
+   Nacieron como cajitas con marco, y en una lista de veinte proyectos eso son
+   cuarenta rectángulos compitiendo con los nombres. Munir eligió el 2026-08-19
+   quedarse con el fondo de siempre, pero en forma de píldora y SIN el borde.
+
+   El `backdrop-filter` se va con el marco, y no solo por gusto: era un
+   desenfoque por contador, o sea una superficie de cristal más por cada
+   proyecto, y con el fondo relleno no se distingue de un color plano. Es lo
+   mismo que enseñó el fondo de vídeo: lo que cuesta no es la capa, es que haya
+   muchas. */
 .badge {
   flex: none;
   min-width: 22px;
   text-align: center;
-  border-radius: 7px;
+  border-radius: var(--r-pastilla);
   padding: 2px 7px;
   font-size: 11px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
-  backdrop-filter: blur(6px);
+  border: none;
 }
 
+/* El contador es un dato que miras cuando lo buscas: se queda suave. Un poco
+   más de fondo que antes, porque sin el marco es lo único que le da cuerpo. */
 .badge-count {
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
+/* Y este es el único que tiene que encontrarte a ti, así que va relleno del
+   todo. El texto NO es un color fijo: hay veinticuatro temas y `--wait` no es
+   el mismo naranja en todos, así que se saca mezclando ese mismo tono con
+   negro. Así el número se lee encima de cualquiera de ellos sin una tabla de
+   excepciones. */
 .badge-wait {
-  color: color-mix(in srgb, var(--wait) 70%, var(--text));
-  background: color-mix(in srgb, var(--wait) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--wait) 38%, transparent);
+  color: color-mix(in srgb, var(--wait) 18%, #000);
+  background: var(--wait);
 }
 
 /* The one that needs you is the one that moves, once, and then holds. */
@@ -2499,6 +2514,67 @@ body {
   background: var(--panel-solid);
   border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+/* ── El hilo de luz: un trazo recorre la tarjeta mientras el agente trabaja ──
+   Munir lo eligió el 2026-08-19 de cuatro variantes. Lo que resuelve es ver de
+   reojo QUIÉN está trabajando sin leer nada, que en una lista de treinta filas
+   es la única forma de enterarse sin repasarlas una a una.
+
+   Cómo funciona: dos fondos a la vez. Uno relleno del color de siempre
+   recortado al `padding-box`, y debajo un cono de color recortado al
+   `border-box`, o sea que solo asoma por el marco de un píxel. Girando el
+   ángulo del cono, el trocito de color da la vuelta al contorno.
+
+   `@property` es lo que permite ANIMAR ese ángulo: sin registrarlo, un
+   `--giro` es texto para el navegador y de un `0turn` a un `1turn` saltaría de
+   golpe en vez de recorrer el camino.
+
+   Y el fondo de dentro sigue siendo `--panel-solid` OPACO, que es la razón por
+   la que este efecto se puede permitir aquí: sobre un fondo con alfa, Windows
+   apaga el ClearType y el título de la sesión se emborrona. */
+@property --hilo-giro {
+  syntax: "<angle>";
+  initial-value: 0turn;
+  inherits: false;
+}
+
+.session-row[data-trabajando] {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--panel-solid), var(--panel-solid)) padding-box,
+    conic-gradient(
+        from var(--hilo-giro),
+        transparent 0 66%,
+        color-mix(in srgb, var(--accent) 85%, transparent) 78%,
+        transparent 90%
+      )
+      border-box;
+  animation: hilo-vuelta 3.2s linear infinite;
+}
+
+@keyframes hilo-vuelta {
+  to {
+    --hilo-giro: 1turn;
+  }
+}
+
+/* Y se apaga donde se apaga todo lo que respira: en el modo ahorro es una
+   animación continua por cada fila que trabaja, y son justo las filas que hay
+   cuando la máquina va cargada. Con `prefers-reduced-motion` también, que esa
+   no es una preferencia nuestra sino del sistema. */
+html[data-rendimiento="1"] .session-row[data-trabajando] {
+  animation: none;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--panel-solid);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-row[data-trabajando] {
+    animation: none;
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    background: var(--panel-solid);
+  }
 }
 
 .session-row:hover {
@@ -3829,9 +3905,13 @@ body {
   flex: none;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px 8px;
+  /* `stretch` y no `center`: una pestaña ocupa el alto de su tira, que es lo
+     que la distingue de una pastilla flotando dentro. Munir eligió esta forma
+     mirando cuatro variantes el 2026-08-19. */
+  align-items: stretch;
+  gap: 0;
+  padding: 0 12px;
+  min-height: 34px;
   border-top: 1px solid var(--border-strong, var(--border));
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
@@ -3840,6 +3920,8 @@ body {
 .minim-eti {
   display: flex;
   align-items: center;
+  align-self: center;
+  margin-right: 14px;
   gap: 5px;
   /* Un punto más de luz que `--muted`: es el rótulo del pie y sobre cristal
      el gris de los textos secundarios se apaga del todo. */
@@ -3865,15 +3947,30 @@ body {
 /* Cada ficha, con cuerpo. Iba sobre `--row`, que es translúcido: encima de la
    tira transparente de antes eran letras flotando sobre una foto. Ahora parte
    del color del panel, que es sólido, y el color de la cuadrilla lo tiñe. */
+/* PESTAÑA, no pastilla (Munir, 2026-08-19: «que fuesen como pestañas normales
+   y corrientes rectangulares, con los bordes rectos»). Tres cosas la hacen
+   pestaña y ninguna es decorativa:
+
+     · esquinas a cero, que es lo que pidió;
+     · `margin-left: -1px`, para que dos vecinas COMPARTAN su borde en vez de
+       dibujar dos líneas juntas, que es lo que hace un navegador;
+     · la franja de arriba, que lleva el color de la cuadrilla o del estado y
+       es lo único que sobresale del gris. En una pastilla ese color teñía el
+       fondo entero y competía con el texto.
+
+   La escala de esquinas de `--r-chico`/`--r-btn` no aplica aquí a propósito:
+   cero no es una esquina fuera de escala, es la ausencia de esquina. */
 .minim-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   max-width: 260px;
-  padding: 4px 10px 4px 8px;
-  border: 1px solid color-mix(in srgb, var(--crew, var(--border)) 45%, var(--border));
-  border-radius: var(--r-pastilla);
-  background: color-mix(in srgb, var(--crew, var(--accent)) 10%, var(--panel));
+  padding: 6px 12px;
+  margin-left: -1px;
+  border: 1px solid var(--border);
+  border-top: 2px solid color-mix(in srgb, var(--crew, var(--accent)) 70%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--crew, var(--accent)) 7%, var(--panel));
   color: var(--text);
   font: inherit;
   font-size: 11.5px;
@@ -3883,9 +3980,17 @@ body {
     border-color 0.12s ease;
 }
 
+/* La primera no se come el borde de nadie. */
+.minim-chip:first-of-type {
+  margin-left: 0;
+}
+
 .minim-chip:hover {
-  background: color-mix(in srgb, var(--crew, var(--accent)) 26%, var(--panel));
-  border-color: color-mix(in srgb, var(--crew, var(--accent)) 70%, var(--border));
+  background: color-mix(in srgb, var(--crew, var(--accent)) 22%, var(--panel));
+  border-top-color: color-mix(in srgb, var(--crew, var(--accent)) 95%, transparent);
+  /* Encima de sus vecinas: si no, la de al lado tapa medio borde resaltado. */
+  position: relative;
+  z-index: 1;
 }
 
 
@@ -3894,17 +3999,31 @@ body {
    apaga del todo sobre cristal, que es la mitad de por qué esta tira no se
    leía. El color de la cuadrilla manda cuando la hay, porque ahí sirve para
    reconocer de quién es la ficha. */
+/* La marca del CLI que corre dentro, teñida con el color de su estado. Dos
+   datos en el sitio de uno: la FORMA dice de quién es la terminal y el COLOR
+   dice cómo está. Antes aquí iba solo el estado, y con varias cuentas y varios
+   clientes abiertos eso dejaba tres fichas idénticas (Munir, 2026-08-19). */
 .minim-ico {
   flex: none;
   display: inline-flex;
   align-items: center;
-  color: var(--crew, color-mix(in srgb, var(--text) 60%, transparent));
+  color: var(--tinte, color-mix(in srgb, var(--text) 60%, transparent));
 }
 
 /* Terminó: el ámbar con el que la app dice «esto ya está y te reclama», el
    mismo del halo de un panel que te espera. */
 .minim-chip[data-estado="lista"] .minim-ico {
   color: var(--done);
+}
+
+/* De quién es la cuenta. Va donde antes ponía «· claude», que con tres cuentas
+   de Claude abiertas era la palabra que MENOS distinguía una ficha de otra
+   (Munir, 2026-08-19). El nombre del cliente ya lo dice el dibujo de al lado. */
+.minim-cuenta {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text) 58%, transparent);
 }
 
 .minim-nombre {
@@ -3917,17 +4036,17 @@ body {
 /* Apartada CON su grupo, no ella sola: el trazo discontinuo avisa de que al
    pulsarla no vuelve una terminal, vuelve el grupo entero. */
 .minim-chip[data-grupo] {
-  border-style: dashed;
+  border-top-style: dashed;
 }
 
 
 /* El que te espera, incluso minimizado. Es el caso entero por el que esta
    tira existe en vez de que la terminal simplemente desaparezca. */
 .minim-chip[data-urge] {
-  border-color: var(--warn, #ffd166);
+  border-top-color: var(--warn, #ffd166);
   /* Sobre `--panel` y no sobre `--row`: es la ficha que MÁS tiene que leerse
      de la tira, y `--row` es translúcido. */
-  background: color-mix(in srgb, var(--warn, #ffd166) 18%, var(--panel));
+  background: color-mix(in srgb, var(--warn, #ffd166) 16%, var(--panel));
 }
 
 .minim-chip[data-urge] .minim-ico,
@@ -4276,6 +4395,47 @@ body {
   border-bottom-color: var(--border);
   border-radius: 0;
   overflow: hidden;
+}
+
+/* ── La forma de los paneles, que se elige en Ajustes ──────────────────────
+   Tres formas, y el mando vive en `lib/formaPaneles.ts`. Se marca en el
+   `<html>` como el modo rendimiento, y por lo mismo: la forma de un panel no
+   es estado de React, es un tema, y así lo ve el CSS entero de una vez.
+
+   El HUECO de las tarjetas se come POR DENTRO, con un borde transparente. No
+   es un truco por gusto: los paneles se colocan con las cuatro medidas en
+   porcentajes escritas en su `style` desde `App.tsx`, y un estilo en línea gana
+   a cualquier hoja, así que desde aquí no se puede encoger un panel. Con
+   `box-sizing: border-box` el borde se resta del tamaño en vez de sumarse, y el
+   panel sigue ocupando su celda exacta.
+
+   El `background-clip: padding-box` es la mitad que hace que se vea: sin él, el
+   fondo del panel se pinta también bajo el borde transparente y el hueco
+   desaparece. */
+
+html[data-panes="suaves"] .pane {
+  border-color: var(--border);
+  border-radius: var(--r-chico);
+}
+
+html[data-panes="tarjetas"] .pane {
+  /* Seis píxeles por lado, o sea doce entre dos paneles vecinos. Medido: a
+     tamaño real cuesta entre un 2,6 % y un 4,3 % del área de terminal, que es
+     lo que hay que pagar por que se vean sueltas. */
+  border: 6px solid transparent;
+  border-radius: 12px;
+  background-clip: padding-box;
+  /* La línea va DENTRO y no en el borde, porque el borde ahora es el hueco. */
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 6px 18px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* Con las tarjetas sueltas, la sombra ya separa: la raya de la rejilla sobra y
+   además se vería flotando en mitad del hueco. */
+html[data-panes="tarjetas"] .grid > .pane {
+  border-right-color: transparent;
+  border-bottom-color: transparent;
 }
 
 .pane-head {
@@ -18595,6 +18755,27 @@ textarea.note-body {
   background: color-mix(in srgb, var(--accent) 22%, #0b1220);
   color: var(--text);
   font-size: 10.5px;
+}
+
+/* «No he podido, toma tu texto». Va al otro lado del mismo borde que
+   `.chat-live` porque las dos pueden salir a la vez (el agente trabajando y un
+   envío que no llega), y una encima de la otra no se leería ninguna.
+   El fondo es opaco a propósito: con alfa, Windows apaga el ClearType y este
+   texto es pequeño. */
+.chat-cayo {
+  position: absolute;
+  top: -11px;
+  right: 14px;
+  max-width: 60%;
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warn) 16%, var(--panel-solid));
+  color: var(--text);
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat-caja-fila {

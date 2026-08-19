@@ -80,7 +80,14 @@ for (const f of arch) {
 }
 
 // Las esquinas de los botones, contra la escala.
-const ESCALA = ["var(--r-chico)", "var(--r-btn)", "var(--r-caja)", "var(--r-pastilla)", "50%"];
+// El `0` entra en la escala y no es una excepción por comodidad: cero no es
+// una esquina mal elegida, es la AUSENCIA de esquina, que es una forma tan
+// deliberada como las otras cuatro. Lo pidió Munir para la tira de apartadas el
+// 2026-08-19 («que fuesen como pestañas normales y corrientes rectangulares,
+// con los bordes rectos»), y una pestaña con esquinas deja de ser una pestaña.
+// Lo que esta lista sigue cazando es lo de siempre: el 6px o el 11px puestos a
+// ojo porque quedaban bien en esa pantalla.
+const ESCALA = ["var(--r-chico)", "var(--r-btn)", "var(--r-caja)", "var(--r-pastilla)", "50%", "0"];
 const fuera = [];
 for (const f of arch) {
   const txt = readFileSync(f, "utf8");

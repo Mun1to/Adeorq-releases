@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { marked } from "marked";
+import { limpiar } from "../lib/markdown";
 import { readGuide } from "../lib/pty";
 import { useT } from "../lib/i18n";
 
@@ -31,7 +32,9 @@ export default function GuideView() {
         hs.forEach((h, i) => {
           h.id = `guia-${i}`;
         });
-        setHtml(doc.body.innerHTML);
+        // Se limpia al final y no antes: los `id` de arriba los pone esta
+        // pantalla, así que el filtro tiene que ver el HTML definitivo.
+        setHtml(limpiar(doc.body.innerHTML));
         setIndice(hs.map((h, i) => ({ id: `guia-${i}`, texto: h.textContent ?? "" })));
       })
       .catch((e) => setHtml(`<p>${t("No pude leer la guía")}: ${String(e)}</p>`));

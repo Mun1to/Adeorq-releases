@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { guardarAccion, podarAcciones } from "../lib/acciones";
 import { apuntarAviso, ultimoAviso } from "../lib/bandeja";
 import {
   anotar,
@@ -243,6 +244,7 @@ export default function Copiloto({ panes, cuentas }: Props) {
       // La marca del último aviso se comparte con el vigía: la bandeja es una
       // sola y dos líneas seguidas de dos vigilantes distintos son exactamente
       // lo que el enfriamiento existe para evitar (`bandeja.ts`).
+      podarAcciones(ahora);
       let memoria = podar(leerMemoria(), ahora);
       memoria = { ...memoria, ultima: Math.max(memoria.ultima, ultimoAviso()) };
       for (const { sesion, consejo } of aProponer(
@@ -259,6 +261,10 @@ export default function Copiloto({ panes, cuentas }: Props) {
           // se vuelve a intentar en la siguiente vuelta.
           continue;
         }
+        // Lo que ese consejo permite hacer, para que la Agenda pueda ofrecer
+        // el botón. Va DESPUÉS de escribir y no antes: una acción guardada
+        // para una nota que no llegó a la bandeja no la ve nunca nadie.
+        if (consejo.accion) guardarAccion(consejo.texto, consejo.accion, ahora);
         memoria = anotar(memoria, sesion.sessionId, consejo, ahora);
         apuntarAviso(ahora);
       }

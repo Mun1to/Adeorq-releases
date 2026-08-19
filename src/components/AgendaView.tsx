@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  BoltIcon,
   BulbIcon,
   CalendarIcon,
   CheckIcon,
@@ -64,7 +65,9 @@ import {
   type Goal,
   type GoalCount,
 } from "../lib/goals";
+import { accionDe, olvidarAccion, type AccionConsejo } from "../lib/acciones";
 import { hueOf } from "../lib/colors";
+import { providerOf } from "../lib/providers";
 import { indiceValido, siguienteNota } from "../lib/agenda";
 import { mesDe, mesVecino, rejillaDelMes } from "../lib/calendario";
 import type { SessionInfo } from "../lib/pty";
@@ -76,6 +79,13 @@ interface Props {
   /** El modelo local elegido en Ajustes, para la línea de «qué necesita». */
   modeloLocal: string;
   onResume: (s: SessionInfo) => void;
+  /** Hacer lo que una propuesta del copiloto propone: abrir el otro cliente,
+      dejar escrito el cambio de cerebro, abrir el chat con ese modelo. Devuelve
+      la frase de qué ha pasado, para poder enseñarla donde ya se enseñan las
+      demás. Es opcional porque la pantalla tiene que seguir en pie sin ella:
+      una nota sin acción es lo normal, y sin este callback simplemente no sale
+      el botón. */
+  onHacer?: (a: AccionConsejo) => Promise<string>;
 }
 
 type Link = "checking" | "out" | "in" | "failing";
@@ -279,7 +289,7 @@ function DiaSuelto({
   );
 }
 
-export default function AgendaView({ current, onOpenProject, modeloLocal, onResume }: Props) {
+export default function AgendaView({ current, onOpenProject, modeloLocal, onResume, onHacer }: Props) {
   const { t, lang } = useT();
   const [projects, setProjects] = useState<Project[]>([]);
   const [icons, setIcons] = useState<Record<string, string>>({});
@@ -491,8 +501,47 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
 
   const dropNote = async (n: Note) => {
     await dropInbox(n.line).catch((e) => setError(String(e)));
+    olvidarAccion(n.text);
     loadNotes();
   };
+
+  /**
+   * Y la cuarta salida, la que faltaba: HACERLO.
+   *
+   * Las otras tres deciden qué pasa con la NOTA (a las metas, a la basura, para
+   * luego). Esta hace lo que la nota propone, que es lo que uno quiere hacer
+   * nueve de cada diez veces cuando lee «Codex está más fresco, ¿sigues ahí?».
+   * Sin ella el consejo estaba a medias: te daba la respuesta y te dejaba el
+   * recado de ejecutarla a mano.
+   *
+   * Solo aparece si la nota trae acción, y eso solo pasa con las que escribe el
+   * copiloto. Una nota escrita a mano por un agente sigue teniendo sus tres
+   * salidas de siempre y ninguna más.
+   */
+  const hacerNota = async (n: Note, a: AccionConsejo) => {
+    if (!onHacer) return;
+    try {
+      const dicho = await onHacer(a);
+      // Se borra DESPUÉS de que haya salido bien: si abrir la terminal falla,
+      // la propuesta sigue en la bandeja y se puede volver a intentar.
+      await dropInbox(n.line);
+      olvidarAccion(n.text);
+      setNote(dicho);
+      loadNotes();
+    } catch (e) {
+      setError(String(e instanceof Error ? e.message : e));
+    }
+  };
+
+  /** Qué pone el botón. Cada acción dice lo que va a pasar al pulsarla, con el
+      nombre concreto dentro: «Hacerlo» no dice si abre algo, escribe algo o
+      gasta dinero, y esas tres cosas no se pulsan con la misma confianza. */
+  const rotuloDe = (a: AccionConsejo): string =>
+    a.hacer === "abrirCli"
+      ? t("Abrir {c} aquí", { c: providerOf(a.cli).label })
+      : a.hacer === "cambiarModelo"
+        ? t("Cambiar a {m}", { m: a.modelo })
+        : t("Probarlo en el chat");
 
   const saveIdea = async () => {
     if (!idea.trim()) return;
@@ -808,6 +857,10 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
         </p>
       );
     }
+    // Lo que esa nota permite hacer, si permite algo. Se lee aquí y no al
+    // cargar la lista: es una lectura de localStorage por nota pintada, y solo
+    // hay una en pantalla a la vez.
+    const acc = accionDe(n.text);
     return (
       <div className="ag-uno">
         <div className="ag-caja" data-kind={n.kind}>
@@ -822,6 +875,21 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
               los botones más transparentes»). Dentro heredan la superficie
               opaca de la caja y el conjunto se lee como una sola decisión. */}
           <div className="ag-botones">
+            {/* La cuarta salida, y va primero porque es la que se quiere pulsar
+                cuando existe: si el copiloto dice que Codex está más fresco, lo
+                que uno hace al estar de acuerdo es abrir Codex, no apuntar en
+                un fichero que Codex estaba más fresco. Solo sale en las notas
+                que traen acción, que son las suyas. */}
+            {acc && onHacer && (
+              <button
+                className="ag-hacer"
+                data-tip={t("Hacerlo ahora. La propuesta se va de la bandeja.")}
+                onClick={() => void hacerNota(n, acc)}
+              >
+                <BoltIcon size={14} />
+                {rotuloDe(acc)}
+              </button>
+            )}
             <button
               className="ag-si"
               data-tip={

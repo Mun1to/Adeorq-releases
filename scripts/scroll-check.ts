@@ -8,6 +8,7 @@ import {
   hayQueAjustar,
   hayQueRecolocar,
   trasBorrarScrollback,
+  trasRueda,
   volverA,
 } from "../src/lib/scrollTerm";
 
@@ -174,5 +175,45 @@ ok(
   `${trasBorrarScrollback(8, 617)} frente a ${volverA({ baseY: 577, viewportY: 569 }, 617, true)}`,
 );
 
+
+/* -- LA RUEDA MIENTRAS EL REPINTADO ESTA EN VUELO --------------------------
+   El noveno reporte (2026-08-19): «sigue el salto cuando haces solo un pequeno
+   scroll para arriba». Durante el repintado la rueda no te lleva a una linea,
+   te aleja del final, porque la linea a la que te llevaria se refiere a un
+   bufer que en medio segundo pasa de 87 renglones a 617. */
+
+ok(
+  "estabas al final y subes tres: quieres estar a tres del final",
+  trasRueda(0, 3) === 3,
+);
+ok(
+  "estabas a ocho y subes tres: once",
+  trasRueda(8, 3) === 11,
+);
+ok(
+  "y si bajas, te acercas",
+  trasRueda(11, -4) === 7,
+);
+ok(
+  "bajar mas de lo que subiste te deja al final, no en negativo",
+  trasRueda(3, -9) === 0,
+);
+ok(
+  "sin repintado en vuelo, la rueda no apunta nada",
+  trasRueda(null, 3) === null,
+);
+// Y el encaje de las dos reglas, que es lo que arregla el caso de Munir: el
+// borrado apunta cero (estaba al final), la rueda lo sube a tres, y al terminar
+// el repintado se coloca a tres del final de 617.
+ok(
+  "el caso entero: cero al borrar, tres de rueda, y acabas en la 614",
+  trasBorrarScrollback(trasRueda(0, 3) ?? 0, 617) === 614,
+  `salio ${trasBorrarScrollback(trasRueda(0, 3) ?? 0, 617)}`,
+);
+// Y el que NO tiene que moverse: al final y sin tocar nada.
+ok(
+  "al final y sin tocar la rueda, nada se mueve",
+  trasBorrarScrollback(trasRueda(0, 0) ?? 0, 617) === null,
+);
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

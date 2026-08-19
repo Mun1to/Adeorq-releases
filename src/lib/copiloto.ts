@@ -40,6 +40,7 @@
 // existe y no se va a inventar (`router.ts` ya lo dice de sí mismo). Lo que se
 // dice es lo medible: qué cuesta, cuánto queda y qué está pasando.
 
+import type { AccionConsejo } from "./acciones";
 import { costeDe, rangoDe, comoRango, type PrecioModelo, type Via } from "./coste";
 import { exigenciaDeRol, PESO, type CuentaViva, type Exigencia, type Trabajo } from "./router";
 import type { ModelAlias } from "./models";
@@ -92,6 +93,12 @@ export interface Consejo {
   sujeto: string;
   /** La línea, ya escrita, tal como irá a la bandeja de la Agenda. */
   texto: string;
+  /** Y lo que se puede hacer con ella de un clic, cuando se puede hacer algo.
+      Sin esto el consejo se queda en información: te dice que Codex está más
+      fresco y te deja el trabajo de ir a abrirlo, que es justo el paso que la
+      frase venía a ahorrarte. Vacío en los consejos que no se pueden ejecutar
+      sin decidir por Munir (ver `acciones.ts`). */
+  accion?: AccionConsejo;
 }
 
 /** Cuánto pesa cada consejo cuando saltan varios a la vez en la misma sesión. */
@@ -284,6 +291,11 @@ export function consejosDe(s: SesionVista, mundo: MundoCopiloto): Consejo[] {
         clase: "relevo",
         sujeto: r.cli,
         texto: `en ${s.proyecto} llevas el ${gastado} % de semana gastado y esto es trabajo de ${ex.trabajo}: ${nombreCli(r.cli)}${queda} ${r.porque}, ¿sigues ahí?`,
+        // La terminal nace LIMPIA, en la misma carpeta y nada más. Nace sin el
+        // encargo dentro a propósito: el último encargo se dijo en otra
+        // conversación y con otro contexto detrás, y soltárselo tal cual a un
+        // cliente distinto es empezar una tarea a medio explicar.
+        accion: { hacer: "abrirCli", cli: r.cli, cwd: s.cwd, proyecto: s.proyecto },
       });
       break;
     }
@@ -299,6 +311,13 @@ export function consejosDe(s: SesionVista, mundo: MundoCopiloto): Consejo[] {
         clase: "derroche",
         sujeto: `${s.modelo}>${toca}`,
         texto: `en ${s.proyecto} llevas ${s.modelo} y lo que estás haciendo es un recado: con ${toca} sale unas ${Math.round(PESO[s.modelo] / PESO[toca])} veces más barato por el mismo resultado`,
+        // Solo a quien se le pueda cambiar el cerebro sin cerrar la sesión. A
+        // los demás el consejo les sigue valiendo (para la próxima que abras),
+        // pero un botón que escribiera «/model» en un CLI que no lo entiende
+        // dejaría esa palabra tirada en su caja de texto.
+        accion: admiteCambioEnVivo(s)
+          ? { hacer: "cambiarModelo", sessionId: s.sessionId, modelo: toca }
+          : undefined,
       });
     }
   }
@@ -326,6 +345,7 @@ export function consejosDe(s: SesionVista, mundo: MundoCopiloto): Consejo[] {
         clase: "porApi",
         sujeto: barato.id,
         texto: `en ${s.proyecto} te queda un ${100 - gastado} % de semana: esto mismo por API con ${barato.nombre}${rebaja} costaría ${comoRango(r)} y no tocaría tu cuota`,
+        accion: { hacer: "abrirChat", modelo: barato.id, nombre: barato.nombre },
       });
     }
   }

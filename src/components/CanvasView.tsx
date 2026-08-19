@@ -234,6 +234,12 @@ interface Props {
   /** Varias tarjetas juntas: abre el Reparto ya escrito para que decida
    *  cerebros y fronteras antes de gastar nada. */
   onRepartirTarjetas: (texto: string, project: Project, alAbrir: () => void) => void;
+  /** Un chat de API que se ha pedido desde FUERA del lienzo: hoy, el botón de
+   *  un consejo del copiloto en la Agenda. El sello es lo que lo hace único, y
+   *  no sobra: pedir dos veces el mismo modelo tiene que abrir dos chats, y con
+   *  un `modelo` a secas el segundo pedido sería igual al primero y no pasaría
+   *  nada. Nulo mientras no haya nada pedido, que es casi siempre. */
+  chatPedido?: { modelo: string; sello: number } | null;
   onClose: (id: number) => void;
   /** Doble clic en el nombre de la cabecera: el mismo renombrado que en la
    *  Cabina. Lo resuelve App, que tiene las dos listas de paneles. Opcional,
@@ -408,6 +414,7 @@ function Canvas({
   onCreate,
   onLanzarEncargo,
   onRepartirTarjetas,
+  chatPedido,
   onClose,
   onRename,
   enlazarRef,
@@ -1351,6 +1358,22 @@ ${ruta}` : ruta;
     },
     [dondeCae, quitarChat, cambiarModelo],
   );
+
+  /**
+   * Un chat pedido desde fuera, que hoy es el botón de un consejo del copiloto.
+   *
+   * Se mira el SELLO y no el modelo: dos consejos seguidos del mismo modelo
+   * tienen que abrir dos chats, y comparando el modelo el segundo no abriría
+   * ninguno. El primero que se ve al montar también cuenta, porque para cuando
+   * el lienzo se monta la petición ya está puesta (App cambia de vista y pide
+   * en el mismo gesto).
+   */
+  const ultimoChatRef = useRef(0);
+  useEffect(() => {
+    if (!chatPedido || chatPedido.sello === ultimoChatRef.current) return;
+    ultimoChatRef.current = chatPedido.sello;
+    ponerChat(undefined, chatPedido.modelo);
+  }, [chatPedido, ponerChat]);
 
   /** El color de un post-it es del tablero y no del archivo: la nota es lo que
       pone, no de qué color la dejaste ese día. */

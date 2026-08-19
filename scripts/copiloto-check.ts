@@ -32,6 +32,7 @@ import {
   type MundoCopiloto,
   type SesionVista,
 } from "../src/lib/copiloto";
+import { accionDe, guardarAccion, olvidarAccion, podarAcciones } from "../src/lib/acciones";
 import type { PrecioModelo } from "../src/lib/coste";
 import type { Account } from "../src/lib/pty";
 import type { CuentaViva } from "../src/lib/router";
@@ -342,6 +343,74 @@ console.log("\n── las frases ──");
     ok(`  ↳ y nombra el proyecto`, c.texto.includes("Adeorq"), c.texto.slice(0, 78) + "…");
     ok(`  ↳ y no lleva «undefined» ni «NaN»`, !/undefined|NaN/.test(c.texto));
   }
+}
+
+/* -- 9. El boton: que el consejo se pueda HACER, no solo leer --------- */
+console.log("\n-- lo que se puede hacer de un clic --");
+{
+  // Un almacen de mentira, que es lo que `acciones.ts` necesita para vivir
+  // fuera de un navegador. Guarda de verdad, para que la ida y la vuelta se
+  // prueben enteras y no solo la mitad que escribe.
+  const caja: Record<string, string> = {};
+  (globalThis as unknown as { localStorage: unknown }).localStorage = {
+    getItem: (k: string) => caja[k] ?? null,
+    setItem: (k: string, v: string) => { caja[k] = v; },
+    removeItem: (k: string) => { delete caja[k]; },
+  };
+
+  const s1 = sesion({ herramientas: Array(30).fill("Read"), ultimoEncargo: "leete los 24 README" });
+  const m1 = mundo({ cuentas: [cuenta("claude", "Principal", 88), cuenta("gemini", "M", 5)] });
+  const relevo = consejosDe(s1, m1).find((c) => c.clase === "relevo");
+  ok("el relevo trae con que abrirlo", relevo?.accion?.hacer === "abrirCli");
+  ok("  y en la MISMA carpeta, que es de lo que iba el consejo",
+     relevo?.accion?.hacer === "abrirCli" && relevo.accion.cwd === "C:/proyectos/Adeorq");
+  ok("  y al cliente que nombra la frase",
+     relevo?.accion?.hacer === "abrirCli" && relevo.accion.cli === "gemini");
+
+  const derr = consejosDe(sesion({ modelo: "opus", ultimoEncargo: "traduce esto" }), mundo())
+    .find((c) => c.clase === "derroche");
+  ok("el derroche en Claude ofrece cambiar el cerebro", derr?.accion?.hacer === "cambiarModelo");
+  ok("  y al que dice la frase, no a otro",
+     derr?.accion?.hacer === "cambiarModelo" && derr.accion.modelo === "haiku");
+  // Codex no entiende «/model» dentro de una sesion: un boton ahi dejaria esa
+  // palabra tirada en su caja de texto. El consejo sigue saliendo, sin boton.
+  const derrCodex = consejosDe(
+    sesion({ cli: "codex", modelo: "opus", ultimoEncargo: "traduce esto" }),
+    mundo({ cuentas: [cuenta("codex", "Principal", 30)] }),
+  ).find((c) => c.clase === "derroche");
+  ok("pero en un cliente que no sabe cambiarlo en vivo, no hay boton",
+     !!derrCodex && derrCodex.accion === undefined);
+
+  const api = consejosDe(
+    sesion({ contexto: 300_000, ultimoEncargo: "renombra" }),
+    mundo({ cuentas: [cuenta("claude", "Principal", 93)], precios: PRECIOS, hayClaveApi: true }),
+  ).find((c) => c.clase === "porApi");
+  ok("el de API ofrece abrir el chat", api?.accion?.hacer === "abrirChat");
+  ok("  y con el modelo que propuso, no con el de por defecto",
+     api?.accion?.hacer === "abrirChat" && api.accion.modelo.includes("/"));
+
+  // El de contexto NO lleva boton, y es a proposito: partir una tarea en dos
+  // es trabajo de Munir. Un boton que hiciera «algo parecido» seria peor.
+  const ctx = consejosDe(sesion({ contexto: 900_000 }), mundo()).find((c) => c.clase === "contexto");
+  ok("el de contexto se queda sin boton, que es lo correcto",
+     !!ctx && ctx.accion === undefined);
+
+  // Y la ida y la vuelta por el TEXTO de la nota, que es como se emparejan al
+  // otro lado: la bandeja es un fichero de texto y no lleva ningun id.
+  const texto = relevo!.texto;
+  guardarAccion(texto, relevo!.accion!, AHORA);
+  ok("la accion vuelve por el texto de la nota", accionDe(texto)?.hacer === "abrirCli");
+  ok("  aunque el texto vuelva con espacios de mas",
+     accionDe(`  ${texto.replace(/ /g, "  ")}  `)?.hacer === "abrirCli");
+  ok("una nota escrita a mano no tiene boton", accionDe("otra cosa cualquiera") === undefined);
+  olvidarAccion(texto);
+  ok("y al resolverla se olvida", accionDe(texto) === undefined);
+
+  guardarAccion("vieja", { hacer: "abrirChat", modelo: "x/y", nombre: "X" }, AHORA - 30 * 60 * MIN);
+  guardarAccion("nueva", { hacer: "abrirChat", modelo: "x/y", nombre: "X" }, AHORA);
+  podarAcciones(AHORA, 25 * MIN);
+  ok("las viejas se barren", accionDe("vieja") === undefined);
+  ok("y las de ahora se quedan", accionDe("nueva")?.hacer === "abrirChat");
 }
 
 console.log(`\numbrales: gracia ${GRACIA / MIN} min · apretada ${APRETADA} % · casi agotada ${CASI_AGOTADA} % · minimo ${MINIMO_HERRAMIENTAS} herramientas`);

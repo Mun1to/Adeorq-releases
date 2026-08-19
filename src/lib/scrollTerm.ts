@@ -128,3 +128,46 @@ export function trasBorrarScrollback(
   if (desdeElFinal <= 0) return null;
   return Math.max(0, baseYDespues - desdeElFinal);
 }
+
+/**
+ * Y qué pasa si mueves la rueda MIENTRAS el repintado está llegando.
+ *
+ * ── EL NOVENO REPORTE, MEDIDO EL 2026-08-19 ────────────────────────────────
+ *
+ * «Sigue el salto cuando haces solo un pequeño scroll para arriba.» Y era
+ * verdad, con un número detrás. Reproducido en `pnpm xterm` contra el búfer de
+ * verdad: estás al final; llega el `ESC[3J` y el primer trozo del repintado, de
+ * forma que el búfer entero mide 87 renglones; subes TRES con la rueda y te
+ * quedas en el 84; siguen llegando trozos hasta que el búfer mide 617. Tu
+ * vista sigue clavada en el 84, que ahora está a **533 renglones del final**.
+ * Subiste tres y acabaste medio historial arriba.
+ *
+ * La causa no es la de las tres veces anteriores. Aquí xterm hace lo correcto:
+ * has scrolleado, así que respeta tu sitio y no te arrastra. Lo que pasa es que
+ * tu sitio se mide en número de línea, y ese número se refería a un búfer que
+ * en medio segundo pasa de 87 líneas a 617. La posición no se movió; el suelo
+ * sí.
+ *
+ * Y por eso el arreglo anterior no lo tapaba: aquel apunta la distancia en el
+ * momento del borrado, y en el momento del borrado estabas al final (distancia
+ * cero, nada que restaurar). El gesto llega DESPUÉS, cuando ya no lo mira
+ * nadie.
+ *
+ * La regla nueva, entonces: mientras el repintado está en vuelo, la rueda no
+ * mueve la vista a una línea, **mueve la distancia al final**. Tres líneas
+ * arriba significa tres líneas arriba del final, y da igual cuánto crezca el
+ * búfer después.
+ *
+ * Se suma el movimiento del gesto en vez de volver a medir la distancia contra
+ * `baseY`, y eso no es un rodeo: durante la entrega `baseY` crece entre un
+ * gesto y el siguiente, así que medirla otra vez daría la distancia al final
+ * NUEVO y cada ruedazo se llevaría por delante el anterior.
+ *
+ * @param pendiente A cuánto del final querías estar, o `null` si no hay ningún
+ *                  repintado en vuelo y entonces esto no pinta nada.
+ * @param movido    Renglones que ha movido el gesto: positivo hacia arriba.
+ */
+export function trasRueda(pendiente: number | null, movido: number): number | null {
+  if (pendiente === null) return null;
+  return Math.max(0, pendiente + movido);
+}

@@ -4049,16 +4049,8 @@ html[data-rendimiento="1"] .session-row[data-trabajando] {
   background: color-mix(in srgb, var(--warn, #ffd166) 16%, var(--panel));
 }
 
-.minim-chip[data-urge] .minim-ico,
-.minim-urge {
+.minim-chip[data-urge] .minim-ico {
   color: var(--warn, #ffd166);
-  font-weight: 700;
-}
-
-.minim-urge {
-  flex: none;
-  font-size: 9.5px;
-  letter-spacing: 0.5px;
 }
 
 /* Lo que cuesta tenerla apartada. Va al final de la píldora y en tono apagado:
@@ -5164,7 +5156,7 @@ html[data-panes="tarjetas"] .grid > .pane {
   height: 25px;
   padding-right: 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -5515,7 +5507,7 @@ html[data-panes="tarjetas"] .grid > .pane {
   height: 16px;
   padding: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--r-chico);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -12523,6 +12515,11 @@ body[data-redim] .divider {
 .ag-botones {
   display: flex;
   justify-content: center;
+  /* Con cuatro salidas y un rótulo largo dentro («Abrir Gemini CLI aquí») la
+     fila ya no cabe siempre. Que baje la ultima antes que partirse el rótulo:
+     medido en el navegador, sin esto el botón se partía en tres líneas y
+     estiraba los otros tres a su alto. */
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 8px;
   padding-top: 20px;
@@ -12564,6 +12561,27 @@ body[data-redim] .divider {
 .ag-botones .ag-si:hover {
   filter: brightness(1.12);
   background: var(--accent);
+}
+
+/* «Hacerlo», que solo sale en las propuestas del copiloto. Lleva el ámbar de
+   la casa y no el acento: el acento ya es de «Aceptar», y las dos cosas no son
+   lo mismo. Aceptar guarda una frase en un fichero y no pasa nada más; esto
+   abre una terminal, escribe en otra o gasta dinero de una clave de API. Un
+   botón que hace algo fuera de la pantalla no puede vestirse igual que uno que
+   solo apunta. */
+.ag-botones .ag-hacer {
+  white-space: nowrap;
+  border-color: transparent;
+  background: var(--warn, #ffd166);
+  /* Sobre ámbar, texto oscuro: el blanco encima de este amarillo da 1,9:1 y no
+     lo lee nadie. Aplanado y sin alfa, que sobre un fondo claro Windows apaga
+     el ClearType en textos pequeños. */
+  color: #211705;
+}
+
+.ag-botones .ag-hacer:hover {
+  filter: brightness(1.08);
+  background: var(--warn, #ffd166);
 }
 
 /* La ruta del archivo, ya dentro de la tarjeta: es el pie de la decisión, no
@@ -13203,7 +13221,7 @@ body[data-redim] .divider {
   margin-left: 2px;
   padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: transparent;
   color: var(--muted);
   cursor: pointer;
@@ -16906,7 +16924,7 @@ textarea.note-body {
   justify-content: center;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: var(--panel-solid);
   color: var(--muted);
   font-size: 9px;
@@ -16932,7 +16950,10 @@ textarea.note-body {
   flex-direction: column;
   gap: 2px;
   padding: 8px 13px;
-  border-radius: 4px 11px 11px 4px;
+  /* El lomo recto a la izquierda, donde va la barra de color de la rama, y
+     la esquina de la escala a la derecha: la ficha se lee como una pestaña
+     colgada de su rama y no como una caja suelta. */
+  border-radius: 0 var(--r-btn) var(--r-btn) 0;
   background: var(--panel-solid);
   border: 1px solid color-mix(in srgb, var(--c) 24%, var(--border));
   border-left: 3px solid var(--c);
@@ -17658,7 +17679,7 @@ textarea.note-body {
 .mem-cerebro-salir {
   padding: 5px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   font: inherit;
   font-size: 11.5px;

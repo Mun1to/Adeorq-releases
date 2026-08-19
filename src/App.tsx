@@ -136,6 +136,7 @@ import { bonito, useRamPanes } from "./lib/ram";
 import { apagon, aplicarApagon } from "./lib/temasTerm";
 import { aplicarRendimiento, debeAhorrar, prefRendimiento } from "./lib/rendimiento";
 import { aplicarForma, prefForma } from "./lib/formaPaneles";
+import type { AccionConsejo } from "./lib/acciones";
 import { powershellCommand, sessionIdOf, shellCommand } from "./lib/comandos";
 import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
@@ -641,6 +642,10 @@ function App() {
   }, []);
   const [cols, setCols] = useState<Col[]>([]);
   const [focusedId, setFocusedId] = useState<number | null>(null);
+  /** Un chat de API que hay que abrir en el lienzo, pedido desde fuera de él
+      (hoy, desde el botón de un consejo del copiloto). El sello lo hace único:
+      pedir dos veces el mismo modelo tiene que abrir dos chats. */
+  const [chatPedido, setChatPedido] = useState<{ modelo: string; sello: number } | null>(null);
   const [maximizedId, setMaximizedId] = useState<number | null>(null);
   /** Lo mismo, para leerlo desde el `onData` de un panel sin rehacer nada. */
   const maximizedRef = useRef<number | null>(null);
@@ -1604,6 +1609,56 @@ function App() {
       addPane(label, cwd, comandoDelPlan(plan), undefined, r.cuenta, team, shadow);
     },
     [addPane, openClaudePrompt],
+  );
+
+  /* ── HACER LO QUE EL COPILOTO PROPONE ────────────────────────────────────
+
+     El copiloto escribe una línea en la bandeja de la Agenda y ahí se paraba:
+     leías «Codex está más fresco, ¿sigues ahí?» y te tocaba ir a abrir Codex a
+     mano, que es justo el trabajo que la frase venía a ahorrarte. Esto es el
+     otro extremo del cable.
+
+     Vive aquí y no en el copiloto, y esa separación es la decisión entera: el
+     copiloto no importa `writePty` ni `addPane`, no puede tocar nada aunque
+     quisiera (regla R). Lo que hay aquí solo corre cuando MUNIR pulsa, así que
+     no es el panel actuando solo, es el panel obedeciendo. Las dos mitades del
+     mismo trato.
+
+     Devuelve la frase de lo que ha pasado, que la Agenda enseña donde ya
+     enseña las suyas. */
+  const hacerConsejo = useCallback(
+    async (a: AccionConsejo): Promise<string> => {
+      if (a.hacer === "abrirCli") {
+        // Nace limpia, en la misma carpeta y sin encargo dentro: el encargo se
+        // dijo en otra conversación con otro contexto detrás.
+        openReceta({ cli: a.cli }, a.cwd, a.proyecto, "");
+        setView("cabina");
+        return t("Abriendo {c} en {p}.", { c: providerOf(a.cli).label, p: a.proyecto });
+      }
+
+      if (a.hacer === "cambiarModelo") {
+        const suyo = panesRef.current.find((p) => sessionIdOf(p.command) === a.sessionId);
+        if (!suyo) {
+          // La sesión se cerró entre que el consejo se escribió y ahora. Se
+          // dice, no se abre otra: abrir una terminal que nadie ha pedido es
+          // peor que no hacer nada.
+          return t("Esa sesión ya no está abierta, así que no hay dónde escribirlo.");
+        }
+        setView("cabina");
+        setFocusedId(suyo.id);
+        // Sin Enter, como todo lo que Adeorq deja escrito en una terminal: la
+        // última tecla es suya.
+        await writePty(suyo.id, `/model ${a.modelo} `);
+        return t("Escrito en esa terminal. El Enter lo das tú.");
+      }
+
+      setView("lienzo");
+      // Con un sello y no con un booleano: pulsar dos veces tiene que abrir dos
+      // chats, y con un booleano el segundo no se enteraría de nada.
+      setChatPedido({ modelo: a.modelo, sello: Date.now() });
+      return t("Chat abierto en el lienzo con {m}.", { m: a.nombre });
+    },
+    [openReceta, t],
   );
 
   /* ── LA SESIÓN SUPREMA ───────────────────────────────────────────────────
@@ -3689,7 +3744,13 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     </span>
                     <span className="minim-nombre">{sinCli}</span>
                     {cuenta && <span className="minim-cuenta">· {cuenta}</span>}
-                    {pinta.urge && <span className="minim-urge">{t(pinta.label)}</span>}
+                    {/* Aquí iba «TE ESPERA» escrito. Se quita porque la ficha
+                        entera YA es ámbar cuando te espera: borde de arriba,
+                        fondo y dibujo, los tres a la vez. La palabra repetía en
+                        letra lo que el color ya decía de un vistazo, y encima
+                        empujaba el nombre de la terminal, que es lo único que
+                        de verdad distingue una ficha de otra en la tira (Munir,
+                        2026-08-19). Sigue escrito en el tooltip. */}
                     {/* Lo que cuesta tenerla apartada. Aquí es donde de verdad
                         hacía falta: una terminal a la vista se ve trabajando,
                         una escondida solo se recuerda si algo dice lo que
@@ -3757,6 +3818,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           estados={paneStatus}
           onStatus={onPaneStatus}
           onLanzarEncargo={lanzarEnLienzo}
+          chatPedido={chatPedido}
           // Varias tarjetas van al Reparto, no directas a terminales: es el
           // único sitio que sabe separarles los archivos para que no se pisen,
           // y de paso enseña lo que van a costar antes de abrir nada.
@@ -3824,6 +3886,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onOpenProject={goProject}
           modeloLocal={modeloLocal}
           onResume={onResume}
+          onHacer={hacerConsejo}
         />
       )}
       {/* La Memoria se monta y se desmonta con su pestaña, al revés que el

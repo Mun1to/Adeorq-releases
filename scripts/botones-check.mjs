@@ -88,6 +88,15 @@ for (const f of arch) {
 // Lo que esta lista sigue cazando es lo de siempre: el 6px o el 11px puestos a
 // ojo porque quedaban bien en esa pantalla.
 const ESCALA = ["var(--r-chico)", "var(--r-btn)", "var(--r-caja)", "var(--r-pastilla)", "50%", "0"];
+
+// Una esquina puede llevar cuatro valores («0 var(--r-btn) var(--r-btn) 0»), y
+// eso no la saca de la escala: una forma asimétrica es deliberada tanto como
+// una redonda, siempre que CADA esquina salga de los cuatro peldaños. Antes se
+// comparaba la cadena entera contra la lista, así que la ficha del árbol (que
+// nace pegada a la barra de color de su rama y solo redondea por la derecha)
+// no tenía forma de pasar sin dejar de ser una ficha.
+const enEscala = (valor) => valor.split(/\s+/).filter(Boolean).every((v) => ESCALA.includes(v));
+
 const fuera = [];
 for (const f of arch) {
   const txt = readFileSync(f, "utf8");
@@ -97,7 +106,7 @@ for (const f of arch) {
       const b = bloque(c);
       if (!b) continue;
       const r = b.match(/border-radius\s*:\s*([^;]+)/);
-      if (r && !ESCALA.includes(r[1].trim()) && !fuera.some((x) => x.startsWith(`  .${c} `))) {
+      if (r && !enEscala(r[1].trim()) && !fuera.some((x) => x.startsWith(`  .${c} `))) {
         fuera.push(`  .${c} → ${r[1].trim()}`);
       }
     }

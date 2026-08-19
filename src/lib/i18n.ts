@@ -1588,6 +1588,18 @@ const EN: Record<string, string> = {
   "{n} de {total} han terminado": "{n} of {total} have finished",
   trabajando: "working",
   "TE ESPERA": "WAITING FOR YOU",
+  // El botón de las propuestas del copiloto, y lo que dice al pulsarlo.
+  "Abrir {c} aquí": "Open {c} here",
+  "Cambiar a {m}": "Switch to {m}",
+  "Probarlo en el chat": "Try it in the chat",
+  "Hacerlo ahora. La propuesta se va de la bandeja.":
+    "Do it now. The proposal leaves the tray.",
+  "Abriendo {c} en {p}.": "Opening {c} in {p}.",
+  "Escrito en esa terminal. El Enter lo das tú.":
+    "Written in that terminal. The Enter is yours to press.",
+  "Esa sesión ya no está abierta, así que no hay dónde escribirlo.":
+    "That session is no longer open, so there is nowhere to write it.",
+  "Chat abierto en el lienzo con {m}.": "Chat opened on the canvas with {m}.",
   "te toca": "your turn",
   "no se sabe": "unknown",
   "Ir a esta terminal": "Go to this terminal",

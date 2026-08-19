@@ -56,6 +56,7 @@ import {
   hayQueAjustar,
   hayQueRecolocar,
   trasBorrarScrollback,
+  trasRueda,
   volverA,
 } from "../lib/scrollTerm";
 import { EVENTO_REFIT, redimensionando, tocaAjustar } from "../lib/redimension";
@@ -664,8 +665,11 @@ export default function TerminalPane({
   const tailRef = useRef("");
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
-  /** A cuántos renglones del final estabas cuando el CLI borró el scrollback.
-      `null` = estabas al final, y entonces no hay nada que restaurar. */
+  /** A cuántos renglones del final hay que dejarte cuando el repintado del CLI
+      termine de llegar. `null` = no hay ningún repintado en vuelo.
+      El CERO sí cuenta, al revés que antes: significa «estabas al final», y
+      hace falta guardarlo porque si mueves la rueda mientras llega el texto ese
+      cero se convierte en tu gesto (ver `trasRueda` en `lib/scrollTerm.ts`). */
   const pendienteRef = useRef<number | null>(null);
   const pasteRef = useRef<(() => void) | null>(null);
   // Kept in a ref so the bell handler, created once with the terminal, always
@@ -1112,13 +1116,83 @@ export default function TerminalPane({
       // no se lleva el historial, así que no hay nada que conservar.
       if (params[0] === 3) {
         const b = term.buffer.active;
-        const lejos = b.baseY - b.viewportY;
-        // Estando al final no se apunta nada: quien mira trabajar a un agente
-        // quiere seguir al final, y restaurar ahí sería moverle sin motivo.
-        pendienteRef.current = lejos > 0 ? lejos : null;
+        // Se apunta SIEMPRE, incluido el cero de «estabas al final». Antes el
+        // cero se guardaba como `null` y parecía correcto (al final no hay nada
+        // que restaurar), pero se llevaba por delante el caso que Munir
+        // reportó el 2026-08-19: si mueves la rueda MIENTRAS llega el
+        // repintado, ese gesto tiene que sumarse a algo, y con `null` no había
+        // a qué. Un cero se restaura solo: `trasBorrarScrollback(0, …)` no
+        // mueve nada.
+        pendienteRef.current = Math.max(0, b.baseY - b.viewportY);
       }
       return false;
     });
+
+    /* ── Cuándo termina el repintado, dicho por el propio CLI ───────────
+     *
+     * Claude Code envuelve cada repintado en el modo de salida sincronizada:
+     * abre con `ESC[?2026h` y cierra con `ESC[?2026l`. Comprobado en su binario
+     * (2026-08-19): las dos secuencias están ahí dentro, literales.
+     *
+     * Eso vale más que el reloj de 120 ms que había: el cierre es una señal del
+     * programa y no una suposición nuestra. Y sobre todo arregla el caso que el
+     * reloj no cubría: mientras el agente trabaja, los repintados se encadenan
+     * sin dejar 120 ms de silencio entre ellos, así que la vista no se colocaba
+     * NUNCA hasta que el agente callaba. Con esto se coloca al cerrarse cada
+     * ciclo, que es cuando el búfer está entero.
+     *
+     * El reloj se queda de red: hay clientes que borran el scrollback sin
+     * anunciar nada, y para esos sigue siendo lo único que hay.
+     *
+     * Se aparta a un `setTimeout(0)` para no mover el búfer desde dentro del
+     * parser, que es quien nos está llamando. */
+    term.parser.registerCsiHandler({ prefix: "?", final: "l" }, (params) => {
+      if (pendienteRef.current !== null && params.includes(2026)) {
+        // Su propio temporizador, sin tocar el del reloj de respaldo. Medido en
+        // el navegador: compartiéndolo, el callback del `write` que traía este
+        // mismo cierre lo reprogramaba a los 120 ms y se perdía la ventaja de
+        // colocar ya. Que salten los dos no molesta: el primero deja
+        // `pendienteRef` en `null` y el segundo se encuentra la mesa recogida.
+        window.setTimeout(colocarTrasBorrado, 0);
+      }
+      return false;
+    });
+
+    /* ── Y la rueda, mientras el repintado va llegando ──────────────────
+     *
+     * El noveno reporte de Munir del mismo síntoma (2026-08-19): «sigue el
+     * salto cuando haces solo un pequeño scroll para arriba». Medido en
+     * `pnpm xterm`: subes tres renglones justo cuando el repintado ha entregado
+     * su primer trozo (búfer de 87), y cuando termina de llegar todo (búfer de
+     * 617) tu vista sigue en el 84, o sea a 533 del final.
+     *
+     * Nadie se equivoca ahí: xterm respeta que hayas scrolleado y no te
+     * arrastra. Lo que pasa es que tu sitio se guarda como número de línea y el
+     * suelo crece por debajo. Así que durante el repintado la rueda cuenta
+     * DISTINTO: no te lleva a una línea, te aleja del final. Ver `trasRueda`.
+     *
+     * Se mide el gesto en el frame siguiente porque este oyente corre antes que
+     * xterm: en el momento del `wheel` la vista todavía no se ha movido. */
+    const alRodar = () => {
+      if (pendienteRef.current === null) return;
+      const t = termRef.current;
+      if (!t) return;
+      const antes = t.buffer.active.viewportY;
+      requestAnimationFrame(() => {
+        const b = t.buffer.active;
+        // Positivo hacia arriba, que es como lo cuenta `trasRueda`.
+        const movido = antes - b.viewportY;
+        if (movido !== 0) pendienteRef.current = trasRueda(pendienteRef.current, movido);
+      });
+    };
+    // En fase de CAPTURA, y no es un detalle: medido en un navegador de verdad
+    // con el ratón real (2026-08-19), en fase de burbuja este oyente NO LLEGA A
+    // CORRER —xterm atiende la rueda en su propio div y el evento no sube—, asi
+    // que el gesto no se apuntaba y el salto seguía igual: 553 renglones en
+    // burbuja, 3 en captura, con la misma secuencia. La captura además mide
+    // bien, porque corre antes de que xterm mueva nada.
+    el.addEventListener("wheel", alRodar, { passive: true, capture: true });
+
     term.open(el);
     try {
       const webgl = new WebglAddon();
@@ -1380,10 +1454,12 @@ export default function TerminalPane({
       const t = termRef.current;
       if (lejos === null || !t) return;
       const b = t.buffer.active;
-      // Si ya no estás al final, es que has hecho scroll tú mientras llegaba el
-      // texto. Eso manda sobre cualquier restauración: lo último que hace falta
-      // es que la terminal te mueva de donde acabas de ponerte a mano.
-      if (b.viewportY < b.baseY) return;
+      // Aquí había una guarda que decía «si ya no estás al final, es que has
+      // hecho scroll tú, no te toco». Sonaba bien y era justo lo que rompía el
+      // caso de la rueda: cuando subes tres renglones durante el repintado, no
+      // estás al final Y ADEMÁS hay que recolocarte, porque tu número de línea
+      // se quedó apuntando a un búfer de 87 renglones que ya tiene 617. Tu
+      // gesto no se ignora, se ha sumado a `pendienteRef` según llegaba.
       const destino = trasBorrarScrollback(lejos, b.baseY);
       if (destino === null) return;
       // Un renglón de margen: si ya está donde tocaba, moverlo da un tirón peor
@@ -1518,6 +1594,7 @@ export default function TerminalPane({
       if (pedido) cancelAnimationFrame(pedido);
       window.removeEventListener(EVENTO_REFIT, alSoltar);
       el.removeEventListener("paste", pasteNativo, true);
+      el.removeEventListener("wheel", alRodar, true);
       pasteRef.current = null;
       unsubs.forEach((un) => un());
       shield.flush();

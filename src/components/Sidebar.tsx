@@ -380,6 +380,13 @@ export default function Sidebar({
 
   useEffect(() => {
     refresh();
+    // También en las RECARGAS (cambio de raíz, borrado de proyecto), no solo
+    // en el arranque: con `cargado` aún en true de la vez anterior, un
+    // arrastre hecho mientras la lectura estaba en vuelo iba por el camino
+    // directo, no se encolaba, y el `llegar` de abajo lo pisaba con la foto
+    // del disco de ANTES de ese arrastre. La organización recién hecha
+    // desaparecía sin aviso.
+    cargado.current = false;
     // Y lo que se haya tocado mientras tanto se reaplica encima, en orden. Ver
     // `mutate`: es lo que impide que el primer segundo borre la organización
     // entera de la barra.

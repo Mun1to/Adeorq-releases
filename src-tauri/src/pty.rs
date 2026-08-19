@@ -687,14 +687,12 @@ pub async fn pty_spawn(
         }
     });
 
-    let app_waiter = app.clone();
-    std::thread::spawn(move || {
-        let code = child.wait().ok().map(|s| s.exit_code());
-        let pty_state = app_waiter.state::<PtyState>();
-        pty_state.0.lock().unwrap().remove(&id);
-        let _ = app_waiter.emit("pty-exit", PtyExit { id, code });
-    });
-
+    // El insert va ANTES de arrancar el hilo que espera al hijo, y el orden es
+    // el arreglo: con un proceso que muere al instante (CLI sin login, un
+    // argumento inválido, un perfil de shell que aborta), el `remove` del
+    // waiter corría antes que este insert, no encontraba nada, y la sesión
+    // muerta se quedaba en el mapa para siempre. `pty_spawn` la veía y devolvía
+    // éxito sin arrancar nada: una terminal en blanco que no revive jamás.
     state.0.lock().unwrap().insert(
         id,
         PtySession {
@@ -707,6 +705,15 @@ pub async fn pty_spawn(
             history,
         },
     );
+
+    let app_waiter = app.clone();
+    std::thread::spawn(move || {
+        let code = child.wait().ok().map(|s| s.exit_code());
+        let pty_state = app_waiter.state::<PtyState>();
+        pty_state.0.lock().unwrap().remove(&id);
+        let _ = app_waiter.emit("pty-exit", PtyExit { id, code });
+    });
+
     Ok(())
 }
 

@@ -556,11 +556,26 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
             let pty_state = app.state::<crate::pty::PtyState>();
             let map = pty_state.0.lock().unwrap();
             let session = map.get(&pane_id).ok_or(format!("Pane {} not found", pane_id))?;
-            let history = session.history.lock().unwrap();
-            
+            // Tolerante al veneno, como TODO lo que toca este candado (la ley
+            // vive en `pty::tomar`): un pánico previo en cualquier lector no
+            // puede dejar al cliente MCP sin transcripts para siempre.
+            let history = session.history.lock().unwrap_or_else(|e| e.into_inner());
+
+            // El corte va por BYTES sobre un String UTF-8, así que hay que
+            // caminar hasta la frontera de un caracter. La primera versión
+            // hacía `history[len - limit..]` a pelo: con el volcado del ConPTY
+            // lleno de `│ ─ ●` y acentos, ese indice cae dentro de un caracter
+            // multi-byte con frecuencia, y el pánico además se llevaba el
+            // candado del mapa entero puesto: TODAS las terminales muertas por
+            // leer un transcript. Es el mismo cálculo de `pty_historial`
+            // (pty.rs), que ya lo hacia bien.
             let len = history.len();
             let text = if len > limit {
-                history[len - limit..].to_string()
+                let mut corte = len - limit;
+                while corte < len && !history.is_char_boundary(corte) {
+                    corte += 1;
+                }
+                history[corte..].to_string()
             } else {
                 history.clone()
             };

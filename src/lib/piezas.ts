@@ -24,7 +24,6 @@ export const UTILIDADES = [
 
 export const WIDGET_KINDS = [...CACHARROS, ...UTILIDADES] as const;
 
-export type CacharroKind = (typeof CACHARROS)[number];
 export type ToolKind = (typeof UTILIDADES)[number];
 export type WidgetKind = (typeof WIDGET_KINDS)[number];
 

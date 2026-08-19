@@ -164,13 +164,6 @@ export function sinFijadas<T extends { id: string }>(sesiones: T[], fijadas: str
   return sesiones.filter((s) => !clavadas.has(s.id));
 }
 
-/** Mover una fijada a otro sitio de la sección, con la misma regla que los
-    proyectos: arrastrada hacia abajo cae DEBAJO del destino, hacia arriba
-    encima. Una sola regla para toda la barra. */
-export function moverFijada(fijadas: string[], movida: string, destino: string): string[] {
-  return moverProyecto(fijadas, movida, destino);
-}
-
 /**
  * Clavar una sesión o soltarla.
  *

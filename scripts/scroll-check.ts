@@ -5,6 +5,7 @@
 //   node <tmp>/scripts/scroll-check.js
 
 import {
+  gestoDeRueda,
   hayQueAjustar,
   hayQueRecolocar,
   trasBorrarScrollback,
@@ -214,6 +215,62 @@ ok(
 ok(
   "al final y sin tocar la rueda, nada se mueve",
   trasBorrarScrollback(trasRueda(0, 0) ?? 0, 617) === null,
+);
+
+/* -- EL GESTO SE LEE DEL EVENTO, NUNCA DEL BUFER (decimo reporte) ----------
+   La 0.9.124 media el gesto comparando viewportY antes y despues del frame, y
+   si el borrado caia entre las dos lecturas la diferencia era el colapso del
+   bufer entero: 617-67 = 550 renglones contados como una rueda de tres.
+
+   La conversion replica la ruta viva de xterm: tics = wheelDeltaY/120, 50 px
+   por tic, Alt x5, Shift horizontal. Y devuelve renglones CON decimales, que
+   `pendiente` acumula y se redondean UNA vez al colocar: xterm redondea la
+   posicion, no cada gesto, y redondear cada evento inflaba un flick de
+   trackpad (decenas de eventos de fraccion de celda) de ~24 renglones reales
+   a 60 contados, ademas de perder los tics suaves hacia abajo. */
+
+const ticArriba = { deltaY: -100, deltaMode: 0, wheelDeltaY: 120 };
+const ticAbajo = { deltaY: 100, deltaMode: 0, wheelDeltaY: -120 };
+ok(
+  "un tic de rueda arriba son los 50 px de xterm: 2,5 renglones con celda de 20",
+  gestoDeRueda(ticArriba, 20) === 2.5,
+  `salio ${gestoDeRueda(ticArriba, 20)}`,
+);
+ok(
+  "y el mismo tic hacia abajo, los mismos 2,5 hacia abajo",
+  gestoDeRueda(ticAbajo, 20) === -2.5,
+);
+// La simetria importa: con el redondeo por evento de antes, subir y bajar el
+// mismo tic dejaba +1 renglon de deriva (ceil hacia arriba, floor hacia abajo).
+ok(
+  "subir y bajar lo mismo te deja donde estabas",
+  trasRueda(trasRueda(0, gestoDeRueda(ticArriba, 20)) ?? 0, gestoDeRueda(ticAbajo, 20)) === 0,
+);
+ok(
+  "un tic suave de trackpad cuenta su fraccion: ni se pierde ni se infla",
+  gestoDeRueda({ deltaY: -8, deltaMode: 0, wheelDeltaY: 12 }, 20) === 0.25,
+  `salio ${gestoDeRueda({ deltaY: -8, deltaMode: 0, wheelDeltaY: 12 }, 20)}`,
+);
+ok(
+  "Alt acelera por cinco, como xterm",
+  gestoDeRueda({ ...ticArriba, alt: true }, 20) === 12.5,
+);
+ok(
+  "Shift es scroll horizontal para xterm: aqui no se apunta nada",
+  gestoDeRueda({ ...ticArriba, shift: true }, 20) === 0,
+);
+ok(
+  "sin wheelDeltaY, los pixeles se pasan a tics como xterm (deltaY/40)",
+  gestoDeRueda({ deltaY: -120, deltaMode: 0 }, 20) === 7.5,
+  `salio ${gestoDeRueda({ deltaY: -120, deltaMode: 0 }, 20)}`,
+);
+ok(
+  "en modo lineas, un delta de linea es un tic (asi lo lee xterm fuera de Firefox)",
+  gestoDeRueda({ deltaY: -3, deltaMode: 1 }, 20) === 7.5,
+);
+ok(
+  "con una celda rota no se inventa nada",
+  gestoDeRueda(ticArriba, 0) === 0,
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

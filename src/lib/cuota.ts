@@ -63,12 +63,6 @@ export function enCache(dir: string): Lectura | null {
   return memoria.get(dir) ?? null;
 }
 
-/** Si lo que hay guardado sigue valiendo. */
-export function esFresca(dir: string, vida = VIDA_MS): boolean {
-  const l = memoria.get(dir);
-  return !!l && Date.now() - l.at < vida;
-}
-
 /**
  * La cuota de una cuenta. `dir` es su carpeta de configuración, vacío para la
  * de siempre.

@@ -1793,18 +1793,6 @@ body {
   }
 }
 
-.live-chip {
-  flex: none;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #7ee08a;
-  border: 1px solid rgba(126, 224, 138, 0.3);
-  background: rgba(126, 224, 138, 0.12);
-  border-radius: 6px;
-  padding: 2px 6px;
-}
-
 .count {
   flex: none;
   font-size: 11px;
@@ -1814,12 +1802,6 @@ body {
   padding: 2px 7px;
   min-width: 22px;
   text-align: center;
-}
-
-.count-wait {
-  color: #1c1a10;
-  background: #e5b567;
-  font-weight: 700;
 }
 
 .project-actions {
@@ -3836,12 +3818,6 @@ html[data-rendimiento="1"] .session-row[data-trabajando] {
   text-overflow: ellipsis;
 }
 
-.crew-count {
-  flex: none;
-  color: var(--muted);
-  font-size: 11px;
-}
-
 /* Cuánto va hecho, de un vistazo y sin desplegar. */
 .crew-prog {
   flex: none;
@@ -4323,6 +4299,22 @@ html[data-rendimiento="1"] .session-row[data-trabajando] {
   cursor: row-resize;
 }
 
+/* Con las tarjetas sueltas la junta entre dos paneles mide doce píxeles (seis
+   de borde-hueco por lado), así que el agarre se ensancha hasta cubrirla
+   entera y su resalte se redondea: un rectángulo duro flotando en mitad del
+   hueco se veía como una raya pegada, no como el asa de la junta. */
+html[data-panes="tarjetas"] .divider-col {
+  width: 12px;
+  margin-left: -6px;
+  border-radius: 6px;
+}
+
+html[data-panes="tarjetas"] .divider-row {
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 6px;
+}
+
 /* Dragged by its header, a pane announces itself. */
 .pane-head[draggable="true"] {
   cursor: grab;
@@ -4428,6 +4420,23 @@ html[data-panes="tarjetas"] .pane {
 html[data-panes="tarjetas"] .grid > .pane {
   border-right-color: transparent;
   border-bottom-color: transparent;
+}
+
+/* Los ESTADOS no pueden pintar el borde, porque en esta forma el borde ES el
+   hueco: son seis píxeles por lado, y teñirlos convierte una señal fina en una
+   franja gorda alrededor del panel (Munir, 2026-08-19, con captura: la barra
+   azul vertical pegada al panel enfocado). Ojo con lo que de verdad decide
+   aquí: la regla del panel-tarjeta de arriba ya gana por especificidad a los
+   `border-color` Y a los `box-shadow` de los estados (html+atributo+clase
+   contra clase+atributo), así que en esta forma el anillo del foco y el inset
+   de la cuadrilla NO se ven; cada estado se señala por su cabecera teñida, y
+   el turno terminado además por su latido, que sobrevive porque una animación
+   gana al cascade normal. Esta regla deja el borde transparente CLAVADO por
+   si algún estado futuro sube de especificidad. */
+html[data-panes="tarjetas"] .pane[data-focused="true"],
+html[data-panes="tarjetas"] .pane[data-done="true"],
+html[data-panes="tarjetas"] .pane[data-team="true"] {
+  border-color: transparent;
 }
 
 .pane-head {
@@ -4900,12 +4909,6 @@ html[data-panes="tarjetas"] .grid > .pane {
   color: var(--k, var(--muted));
 }
 
-.kind-svg {
-  width: 15px;
-  height: 15px;
-  display: block;
-}
-
 /* Un CLI del que todavía no hay dibujo: su inicial. */
 .kind-letra {
   font-size: 12px;
@@ -5357,16 +5360,6 @@ html[data-panes="tarjetas"] .grid > .pane {
   border-radius: 50%;
   background: var(--ask);
   vertical-align: middle;
-}
-
-.pane-sub {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--muted);
-  font-size: 11px;
 }
 
 .pane-chip {
@@ -6539,12 +6532,6 @@ button.stat-card[data-live="false"] {
   margin: 10px 0 0;
 }
 
-.focus-card p {
-  margin: 0 0 8px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
 .mission-text {
   width: 100%;
   background: var(--bg);
@@ -6565,25 +6552,6 @@ button.stat-card[data-live="false"] {
 
 .mission-text:focus {
   border-color: var(--accent);
-}
-
-.mission-select {
-  width: 100%;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 13px;
-  outline: none;
-  margin-bottom: 10px;
-}
-
-.mission-roles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
 }
 
 .role-chip {
@@ -7483,13 +7451,6 @@ button.stat-card[data-live="false"] {
     0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
-.theme-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-}
-
 /* Los temas por familias. El grupo se separa con su nombre en pequeño, no con
    una caja: son treinta chips y meterlos en cuatro cajas habría cambiado una
    pared por cuatro. */
@@ -7560,97 +7521,6 @@ button.stat-card[data-live="false"] {
   .term-prev-cursor {
     animation: none;
   }
-}
-
-.theme-choice[data-theme-dot="azul"] .theme-dot {
-  background: linear-gradient(140deg, #4d9fff, #14284a);
-}
-.theme-choice[data-theme-dot="grafito"] .theme-dot {
-  background: linear-gradient(140deg, #aab2c2, #23252b);
-}
-.theme-choice[data-theme-dot="violeta"] .theme-dot {
-  background: linear-gradient(140deg, #a877ff, #241a3c);
-}
-.theme-choice[data-theme-dot="verde"] .theme-dot {
-  background: linear-gradient(140deg, #46c99a, #12271f);
-}
-.theme-choice[data-theme-dot="carmin"] .theme-dot {
-  background: linear-gradient(140deg, #ff4b6e, #38101a);
-}
-.theme-choice[data-theme-dot="ambar"] .theme-dot {
-  background: linear-gradient(140deg, #fbbf24, #36240d);
-}
-.theme-choice[data-theme-dot="oceano"] .theme-dot {
-  background: linear-gradient(140deg, #22d3ee, #0d2d38);
-}
-.theme-choice[data-theme-dot="neon"] .theme-dot {
-  background: linear-gradient(140deg, #ec4899, #3d1229);
-}
-.theme-choice[data-theme-dot="nord"] .theme-dot {
-  background: linear-gradient(140deg, #88c0d0, #1b2838);
-}
-.theme-choice[data-theme-dot="cyberpunk"] .theme-dot {
-  background: linear-gradient(140deg, #ff007f, #00f0ff);
-}
-.theme-choice[data-theme-dot="dracula"] .theme-dot {
-  background: linear-gradient(140deg, #ff79c6, #bd93f9);
-}
-.theme-choice[data-theme-dot="tokyo"] .theme-dot {
-  background: linear-gradient(140deg, #7aa2f7, #1a1b26);
-}
-.theme-choice[data-theme-dot="esmeralda"] .theme-dot {
-  background: linear-gradient(140deg, #10b981, #064e3b);
-}
-.theme-choice[data-theme-dot="ocaso"] .theme-dot {
-  background: linear-gradient(140deg, #f97316, #ef4444);
-}
-.theme-choice[data-theme-dot="matrix"] .theme-dot {
-  background: linear-gradient(140deg, #00ff66, #04200c);
-}
-.theme-choice[data-theme-dot="synthwave"] .theme-dot {
-  background: linear-gradient(140deg, #ff7edb, #fefe60);
-}
-.theme-choice[data-theme-dot="solarized"] .theme-dot {
-  background: linear-gradient(140deg, #268bd2, #002b36);
-}
-.theme-choice[data-theme-dot="rose"] .theme-dot {
-  background: linear-gradient(140deg, #ebbcba, #191724);
-}
-.theme-choice[data-theme-dot="gruvbox"] .theme-dot {
-  background: linear-gradient(140deg, #fabd2f, #fe8019);
-}
-.theme-choice[data-theme-dot="onedark"] .theme-dot {
-  background: linear-gradient(140deg, #61afef, #98c379);
-}
-.theme-choice[data-theme-dot="catppuccin"] .theme-dot {
-  background: linear-gradient(140deg, #cba6f7, #89b4fa);
-}
-.theme-choice[data-theme-dot="volcano"] .theme-dot {
-  background: linear-gradient(140deg, #ff3300, #ff9900);
-}
-.theme-choice[data-theme-dot="turquesa"] .theme-dot {
-  background: linear-gradient(140deg, #00f5d4, #00bbf9);
-}
-.theme-choice[data-theme-dot="claro"] .theme-dot {
-  background: linear-gradient(140deg, #ffffff, #9dbdea);
-}
-.theme-choice[data-theme-dot="ciruela"] .theme-dot {
-  background: linear-gradient(140deg, #e072b8, #2a1626);
-}
-.theme-choice[data-theme-dot="arena"] .theme-dot {
-  background: linear-gradient(140deg, #d9b06a, #2b2419);
-}
-.theme-choice[data-theme-dot="kanagawa"] .theme-dot {
-  background: linear-gradient(140deg, #7e9cd8, #2a2a37);
-}
-.theme-choice[data-theme-dot="everforest"] .theme-dot {
-  background: linear-gradient(140deg, #a7c080, #374145);
-}
-.theme-choice[data-theme-dot="monokai"] .theme-dot {
-  background: linear-gradient(140deg, #a6e22e, #34352d);
-}
-.theme-choice[data-theme-dot="papel"] .theme-dot {
-  background: linear-gradient(140deg, #fdf8ee, #a3622a);
 }
 
 /* Una fila de ajuste: nombre a la izquierda, mando a la derecha, valor al final.
@@ -9032,12 +8902,6 @@ button.stat-card[data-live="false"] {
   opacity: 0.92;
 }
 
-.cmd-tool {
-  color: var(--muted);
-  font-size: 10.5px;
-  white-space: nowrap;
-}
-
 .commands {
   display: flex;
   flex-direction: column;
@@ -9209,14 +9073,6 @@ button.stat-card[data-live="false"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.cb-list-git {
-  flex: none;
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
 }
 
 .cb-empty {
@@ -11192,12 +11048,6 @@ button.stat-card[data-live="false"] {
   color: var(--muted);
 }
 
-.usage-btn {
-  padding: 5px 12px;
-  font-size: 12px;
-  align-self: flex-start;
-}
-
 /* Commands: one section per tool, cards that fill the width. The old single
    column left a canyon between the name and its description. */
 .cmd-sections {
@@ -11297,11 +11147,6 @@ button.stat-card[data-live="false"] {
   border-radius: 10px;
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-}
-
-.limits-head {
-  font-size: 10px;
-  color: var(--muted);
 }
 
 .limit-top {
@@ -12612,69 +12457,6 @@ body[data-redim] .divider {
   max-width: var(--ag-ancho);
 }
 
-/* The headline: the one date with a deadline attached, alone and readable
-   from across the room. */
-.agenda-next {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 18px;
-  margin-bottom: 14px;
-  border-radius: 16px;
-  background: linear-gradient(
-    100deg,
-    color-mix(in srgb, var(--accent) 16%, transparent),
-    transparent 70%
-  );
-  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
-}
-
-.agenda-next[data-urgency="now"] {
-  background: linear-gradient(
-    100deg,
-    color-mix(in srgb, var(--wait) 22%, transparent),
-    transparent 70%
-  );
-  border-color: color-mix(in srgb, var(--wait) 40%, transparent);
-}
-
-.next-when {
-  flex: none;
-  font-size: 23px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-}
-
-.agenda-next[data-urgency="now"] .next-when {
-  color: var(--wait);
-}
-
-.next-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.next-title {
-  font-size: 16px;
-  font-weight: 650;
-  line-height: 1.35;
-}
-
-.next-date {
-  font-size: 12.5px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.next-go {
-  flex: none;
-  text-decoration: none;
-}
 
 /* Pick a project the way the rail does it: by its mark. */
 .agenda-picker {
@@ -12764,26 +12546,6 @@ body[data-redim] .divider {
   background: none;
 }
 
-.agenda-link {
-  margin-left: auto;
-  font-size: 11.5px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-
-.agenda-link[data-state="in"] {
-  color: #7ee08a;
-  border-color: rgba(126, 224, 138, 0.35);
-  background: rgba(126, 224, 138, 0.1);
-}
-
-.agenda-link[data-state="failing"] {
-  color: var(--wait);
-  border-color: color-mix(in srgb, var(--wait) 35%, transparent);
-}
-
 .agenda-login {
   margin-bottom: 14px;
 }
@@ -12792,18 +12554,6 @@ body[data-redim] .divider {
   margin-top: 12px;
 }
 
-/* The calendar reads in long lines, so it takes the full width and the other
-   two share the row underneath. */
-.agenda-grid {
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  max-width: 1560px;
-  align-items: start;
-  gap: 16px;
-}
-
-.agenda-grid > .card-wide {
-  grid-column: 1 / -1;
-}
 
 .agenda-card {
   padding: 20px 22px;
@@ -13026,91 +12776,6 @@ body[data-redim] .divider {
   border-top: 1px solid var(--border);
 }
 
-/* The tray his agents write into: proposals, not decisions. It only exists on
-   screen when there is something in it. */
-.tray-card {
-  margin-bottom: 14px;
-  border-color: color-mix(in srgb, var(--ask) 30%, transparent);
-}
-
-.tray-count {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ask);
-  background: color-mix(in srgb, var(--ask) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ask) 34%, transparent);
-  border-radius: 999px;
-  padding: 1px 8px;
-}
-
-.tray-list {
-  list-style: none;
-  margin: 12px 0 8px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.tray-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
-  border-radius: 12px;
-  background: var(--row);
-  font-size: 14.5px;
-}
-
-.tray-kind {
-  flex: none;
-  min-width: 54px;
-  text-align: center;
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 2px 0;
-}
-
-.tray-item[data-kind="paso"] .tray-kind {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
-}
-
-.tray-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.tray-text {
-  line-height: 1.4;
-}
-
-.tray-proj {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.tray-yes {
-  color: #7ee08a;
-  border-color: rgba(126, 224, 138, 0.3);
-}
-
-.tray-no {
-  color: var(--wait);
-}
-
-.tray-path {
-  margin: 6px 0 0;
-  font-size: 11px;
-  opacity: 0.7;
-}
 
 /* Renaming what a project is called here. Full width, because a name is what
    you are looking at while you type it. */
@@ -15618,7 +15283,6 @@ textarea.note-body {
   margin: 0;
   cursor: pointer;
 }
-
 
 
 /* ── La bienvenida y el recorrido ───────────────────────────────────────────

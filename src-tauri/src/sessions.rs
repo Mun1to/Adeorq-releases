@@ -352,8 +352,18 @@ fn project_of(cwd: &str, folder: &str, raiz: &str) -> String {
                 return format!("{base_real} (raíz)");
             }
             if low.starts_with(&format!("{base}{SEP}")) {
-                let rest = &c[base.len() + 1..];
-                return rest.split(SEP).next().unwrap_or(rest).to_owned();
+                // Se corta `c` (capitalización original) con la longitud de la
+                // MINÚSCULA solo si miden lo mismo: `to_lowercase` no conserva
+                // los bytes para todos los caracteres (İ son 2 y su minúscula
+                // 3), y con una raíz así el corte caía a mitad de carácter y
+                // reventaba el escaneo entero de sesiones. Si difieren, se
+                // corta con la longitud real, que para un prefijo que acaba de
+                // casar insensible a mayúsculas es la del propio `raiz`.
+                let corte = if base.len() == base_real.len() { base.len() } else { base_real.len() };
+                let rest = c.get(corte + 1..).unwrap_or("");
+                if !rest.is_empty() {
+                    return rest.split(SEP).next().unwrap_or(rest).to_owned();
+                }
             }
         }
         return c.rsplit(SEP).next().unwrap_or(&c).to_owned();

@@ -35,13 +35,6 @@ export const IconoProyectos = () => (
   </Svg>
 );
 
-/** La bandera de la misión. */
-export const IconoMision = () => (
-  <Svg>
-    <path d="M6 21V4" {...P} />
-    <path d="M6 4.4h11.4l-2.2 4 2.2 4H6" {...P} />
-  </Svg>
-);
 
 /** La tarjeta de una cuenta. */
 export const IconoCuentas = () => (
@@ -84,26 +77,5 @@ export const IconoObjetivos = () => (
   </Svg>
 );
 
-/** El calendario. */
-export const IconoCalendario = () => (
-  <Svg>
-    <rect x="3.4" y="5" width="17.2" height="15.6" rx="2.4" {...P} />
-    <path d="M3.4 9.8h17.2M8.2 3.4v3.2M15.8 3.4v3.2" {...P} />
-  </Svg>
-);
 
-/** La bombilla de las ideas. */
-export const IconoIdeas = () => (
-  <Svg>
-    <path d="M9.4 17.4a5.8 5.8 0 1 1 5.2 0v2a1.4 1.4 0 0 1-1.4 1.4h-2.4a1.4 1.4 0 0 1-1.4-1.4Z" {...P} />
-    <path d="M9.8 18.6h4.4" {...P} />
-  </Svg>
-);
 
-/** La lista de los próximos pasos. */
-export const IconoPasos = () => (
-  <Svg>
-    <path d="M9 6.6h11M9 12h11M9 17.4h11" {...P} />
-    <path d="M4.4 6.6h.01M4.4 12h.01M4.4 17.4h.01" {...P} strokeWidth="2.6" />
-  </Svg>
-);

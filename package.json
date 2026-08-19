@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.124",
+  "version": "0.9.126",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -37,7 +37,6 @@
     "@xterm/addon-webgl": "0.20.0-beta.298",
     "@xterm/xterm": "6.1.0-beta.302",
     "@xyflow/react": "^12.11.2",
-    "codemirror": "^6.0.2",
     "dompurify": "^3.4.13",
     "marked": "^18.0.7",
     "perfect-freehand": "^1.2.3",

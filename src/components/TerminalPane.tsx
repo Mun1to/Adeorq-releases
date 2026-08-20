@@ -5,6 +5,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import {
   deleteSession,
+  iniciales,
   killPty,
   onPtyData,
   onPtyExit,
@@ -1917,7 +1918,7 @@ export default function TerminalPane({
                   distinguen una terminal de otra (Munir, 2026-08-19). Tres
                   bastan para separar sus cuentas entre sí, y el nombre entero
                   sigue a un puntero de distancia, en este mismo globo. */}
-              {account.slice(0, 3)}
+              {iniciales(account)}
             </span>
           )}
           <span

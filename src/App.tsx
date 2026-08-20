@@ -100,6 +100,7 @@ import {
 import {
   MAIN_ACCOUNT,
   mainAccount,
+  iniciales,
   accountDir,
   cliEffort,
   findAgy,
@@ -3708,14 +3709,23 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                    distinguía una ficha de otra (Munir, 2026-08-19). El dibujo
                    dice el cliente; el texto de la derecha, la cuenta. */
                 const cli = kindDeComando(p.command?.join(" ") ?? "");
-                const cuenta =
-                  [MAIN_ACCOUNT, ...accounts].find((a) => a.id === p.account)?.label ??
-                  (p.account ? undefined : MAIN_ACCOUNT.label);
+                /* `pane.account` guarda la ETIQUETA de la cuenta, no su id, y
+                   solo la guarda cuando NO es la principal (ver `addPane`). Esto
+                   buscaba por id contra una etiqueta, así que no encontraba
+                   nunca: la ficha de una cuenta secundaria se quedaba sin decir
+                   cuál era, que es justo para lo que está (Munir, 2026-08-20).
+                   Tres letras, las mismas que lleva la cabecera del panel. */
+                const cuenta = p.account ? iniciales(p.account) : "";
                 /* El sufijo del cliente se cae del nombre SOLO si de verdad es
                    el nombre del cliente: «Adeorq · Frontend» no puede perder su
-                   segunda mitad por parecerse a un sufijo. */
+                   segunda mitad por parecerse a un sufijo.
+                   Ojo con las barras: dentro de una plantilla, `\s` es una `s`
+                   pelada, porque JavaScript se come la barra invertida antes de
+                   que la vea `RegExp`. El patrón que salía era `s·s(?:claude)s*$`
+                   y no casaba con nada, así que el «· claude» seguía ahí a la
+                   vista mientras el comentario de al lado juraba que se caía. */
                 const sinCli = p.name.replace(
-                  new RegExp(`\s·\s(?:${cli}|${providerOf(cli).label})\s*$`, "i"),
+                  new RegExp(`\\s·\\s(?:${cli}|${providerOf(cli).label})\\s*$`, "i"),
                   "",
                 );
                 return (
@@ -3743,7 +3753,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                       )}
                     </span>
                     <span className="minim-nombre">{sinCli}</span>
-                    {cuenta && <span className="minim-cuenta">· {cuenta}</span>}
+                    {cuenta && <span className="minim-cuenta">{cuenta}</span>}
                     {/* Aquí iba «TE ESPERA» escrito. Se quita porque la ficha
                         entera YA es ámbar cuando te espera: borde de arriba,
                         fondo y dibujo, los tres a la vez. La palabra repetía en

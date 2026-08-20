@@ -364,6 +364,19 @@ export interface Account {
   provider: string;
 }
 
+/**
+ * How an account is named where there is no room for its name: three letters.
+ *
+ * "MUNIRKYLO" ate the header and pushed the project and the title out of the
+ * way, and three are enough to tell one account from another when they are all
+ * yours. It lives here, next to the account, because two places print it (the
+ * pane header and the parked-pane strip) and a rule written twice is a rule
+ * that will disagree with itself.
+ */
+export function iniciales(label: string): string {
+  return label.trim().slice(0, 3);
+}
+
 /** The account each CLI already had before Adeorq existed. */
 export function mainAccount(provider: string): Account {
   return { id: `main:${provider}`, label: "Principal", dir: "", provider };

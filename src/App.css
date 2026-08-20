@@ -3995,11 +3995,17 @@ html[data-rendimiento="1"] .session-row[data-trabajando] {
 /* De quién es la cuenta. Va donde antes ponía «· claude», que con tres cuentas
    de Claude abiertas era la palabra que MENOS distinguía una ficha de otra
    (Munir, 2026-08-19). El nombre del cliente ya lo dice el dibujo de al lado. */
+/* Las tres letras de la cuenta, con la misma pinta que en la cabecera del panel
+   (`.pane-account`): es el mismo dato y se reconoce por la forma, no por leerlo.
+   Sin recuadro, eso sí: aquí la ficha entera ya es una caja pequeña, y meter
+   otra dentro sería un marco alrededor de tres letras. */
 .minim-cuenta {
   flex: none;
-  font-size: 10px;
-  font-weight: 600;
-  color: color-mix(in srgb, var(--text) 58%, transparent);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
 }
 
 .minim-nombre {

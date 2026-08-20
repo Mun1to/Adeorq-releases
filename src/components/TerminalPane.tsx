@@ -61,7 +61,13 @@ import {
   trasRueda,
   volverA,
 } from "../lib/scrollTerm";
-import { EVENTO_REFIT, redimensionando, tocaAjustar } from "../lib/redimension";
+import {
+  EVENTO_REFIT,
+  anclando,
+  fuenteAnclada,
+  redimensionando,
+  tocaAjustar,
+} from "../lib/redimension";
 import { modoRendimiento } from "../lib/rendimiento";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
@@ -700,6 +706,16 @@ export default function TerminalPane({
   // ref because the ResizeObserver is created once, with the terminal.
   const refitRef = useRef<() => void>(() => {});
   const lastSizeRef = useRef({ cols: 0, rows: 0 });
+  /** Las columnas a las que volver cuando un panel lateral cambie el ancho.
+      Se guardan en cada ajuste NORMAL, así que siempre son las últimas que el
+      usuario eligió de verdad, arrastrando o cambiando la ventana. */
+  const anclaRef = useRef(0);
+  /** La letra con la que esas columnas caben en el ancho de ahora, mientras el
+      panel siga abierto. Cero cuando no hay nada anclado. Es lo que hace que el
+      anclaje sobreviva a los reajustes rutinarios y no solo al momento del
+      clic; se suelta al arrastrar, al mover la ventana, al cambiar de tamaño de
+      letra o al volver al ancho de siempre. */
+  const letraAnclaRef = useRef(0);
   // El PTY no existe hasta que Rust lo ha abierto, y abrirlo tarda más que los
   // primeros reajustes (el ResizeObserver dispara al montar, y xterm remide la
   // celda cuando la fuente termina de cargar). Un `pty_resize` que llega antes
@@ -758,7 +774,51 @@ export default function TerminalPane({
     // mínimo de columnas y al volver a mostrarlo arrastra esa medida.
     if (el.clientWidth === 0 || el.clientHeight === 0) return;
 
-    const size = fontFor(el.clientWidth, fontSize, autoFont);
+    /* El tamaño natural: el de Ajustes, o el que decida la letra automática.
+       Cuando el ancho lo cambia un PANEL, ese tamaño es solo el techo: lo que
+       manda es conservar las columnas, porque cambiarlas parte las palabras del
+       texto que ya está escrito y no hay forma de rehacerlo (ver
+       `lib/redimension.ts`). Si para conservarlas hay que bajar de `MIN_FONT`,
+       se deja reflowar: ilegible es peor que descolocado. */
+    const natural = fontFor(el.clientWidth, fontSize, autoFont);
+    let size = natural;
+
+    /* Arrastrar un separador es pedir columnas con la mano, y gana: suelta el
+       anclaje aunque el panel siga abierto. */
+    if (redimensionando()) letraAnclaRef.current = 0;
+
+    if (anclando() && anclaRef.current > 0) {
+      /* La cuenta se hace UNA vez por transición, no en cada aviso.
+         `proposeDimensions()` mide con la celda que xterm tiene RENDERIZADA, y
+         `options.fontSize` es la que se le acaba de pedir: entre las dos hay un
+         frame de diferencia (por eso existe el `requestAnimationFrame(aplicar)`
+         de más abajo). Mezclarlas en una segunda pasada daría una regla de tres
+         sobre dos estados distintos y la letra bajaría de escalón en escalón
+         hasta el suelo. */
+      if (letraAnclaRef.current === 0) {
+        const caben = fitRef.current?.proposeDimensions()?.cols ?? 0;
+        const propuesta = fuenteAnclada(
+          caben,
+          anclaRef.current,
+          term.options.fontSize ?? natural,
+          MIN_FONT,
+          natural,
+        );
+        // Si la cuenta devuelve el tamaño natural, es que hemos vuelto al ancho
+        // de siempre: no hay nada que anclar y se sigue por el camino normal.
+        letraAnclaRef.current = propuesta === natural ? 0 : propuesta;
+      }
+      size = letraAnclaRef.current || natural;
+    } else if (letraAnclaRef.current > 0) {
+      /* Y AQUÍ está la mitad que faltaba. El panel se queda abierto todo el
+         rato, pero la marca de anclaje dura cuatro décimas: pasado ese momento,
+         cualquier reajuste rutinario —un aviso que aparece, la barra de agentes,
+         volver del lienzo— recalculaba la letra natural, y al aplicarla la
+         terminal perdía las columnas y el texto volvía a partirse. La letra
+         anclada se recuerda hasta que algo la suelte. */
+      size = letraAnclaRef.current;
+    }
+
     const cambiaFuente = term.options.fontSize !== size;
     if (cambiaFuente) term.options.fontSize = size;
 
@@ -794,6 +854,7 @@ export default function TerminalPane({
         // caso que se escapaba: nada que reajustar en pantalla y un agente
         // escribiendo a un ancho que no existe.
         sincronizarPty(t2);
+        if (!anclando() || anclaRef.current === 0) anclaRef.current = t2.cols;
         return;
       }
 
@@ -835,6 +896,15 @@ export default function TerminalPane({
       });
 
       sincronizarPty(t2);
+      /* El ancla se pone solo con los ajustes de verdad. Guardarla también
+         durante un anclaje la movería al valor que se está corrigiendo, y en
+         dos pasadas la terminal habría "olvidado" las columnas a las que volver
+         al cerrar el panel.
+         La excepción es el arranque: la barra lateral avisa de su modo nada más
+         cargar, así que los primeros ajustes de la terminal pueden caer dentro
+         de una marca de anclaje. Sin este `=== 0` el ancla se quedaba a cero
+         para siempre y el primer panel que se abriera no conservaría nada. */
+      if (!anclando() || anclaRef.current === 0) anclaRef.current = t2.cols;
     };
     aplicar();
     if (cambiaFuente) requestAnimationFrame(aplicar);
@@ -1637,6 +1707,12 @@ export default function TerminalPane({
     /* Y el ajuste bueno, el de después de soltar. */
     const alSoltar = () => refitRef.current();
     window.addEventListener(EVENTO_REFIT, alSoltar);
+    /* Mover la ventana entera también es pedir columnas: al agrandarla se
+       quieren más, no la misma rejilla con la letra de antes. */
+    const alMoverVentana = () => {
+      letraAnclaRef.current = 0;
+    };
+    window.addEventListener("resize", alMoverVentana);
     term.focus();
 
     return () => {
@@ -1645,6 +1721,7 @@ export default function TerminalPane({
       if (colocarTimer !== undefined) window.clearTimeout(colocarTimer);
       if (pedido) cancelAnimationFrame(pedido);
       window.removeEventListener(EVENTO_REFIT, alSoltar);
+      window.removeEventListener("resize", alMoverVentana);
       el.removeEventListener("paste", pasteNativo, true);
       el.removeEventListener("wheel", alRodar, true);
       pasteRef.current = null;
@@ -1661,6 +1738,15 @@ export default function TerminalPane({
       window.clearTimeout(hintTimer);
     };
   }, [id, cwd]);
+
+  /* Elegir tamaño de letra o maximizar SÍ son gestos de columnas: sueltan el
+     anclaje del panel, porque quien lo hace está pidiendo otra cosa. Cambiar de
+     vista NO entra aquí: volver del lienzo no mueve ningún panel, y soltar el
+     anclaje ahí devolvería el texto partido que veníamos a evitar.
+     Va antes del efecto que reajusta, que es quien lo lee. */
+  useEffect(() => {
+    letraAnclaRef.current = 0;
+  }, [fontSize, autoFont, maximized]);
 
   // Font size applies to the LIVE terminal: resize in place, never respawn.
   // `maximized` y `hidden` entran aquí a propósito: maximizar no cambiaba nada

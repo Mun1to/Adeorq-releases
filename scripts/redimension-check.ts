@@ -49,9 +49,13 @@ function pintar() {
 }
 
 import {
+  ANCLA_MS,
   CADENCIA_ARRASTRE_MS,
   EVENTO_REFIT,
+  anclando,
+  anclarColumnas,
   empezarRedimension,
+  fuenteAnclada,
   redimensionando,
   terminarRedimension,
   tocaAjustar,
@@ -161,6 +165,85 @@ ok(
   "y aun asi ahorra la mayor parte",
   1000 / CADENCIA_ARRASTRE_MS <= 20,
   "a sesenta por segundo estariamos donde empezamos",
+);
+
+// --- anclar las columnas cuando el ancho lo cambia un panel -----------------
+//
+// Lo que se prueba es la aritmetica de la letra. El fallo que viene a evitar
+// esta medido con xterm de verdad: al pasar de 134 a 107 columnas, el texto que
+// el CLI ya habia envuelto sale con palabras partidas por la mitad ("los mante
+// / nedores"), y volver a 134 las recompone solas. Conservar las columnas es lo
+// unico que lo evita, porque el parrafo original ya no existe en ningun sitio.
+
+ok(
+  "la letra baja lo justo para conservar las columnas",
+  fuenteAnclada(113, 142, 12, 9, 12) === 9.5,
+  "12 x 113 / 142 = 9.5",
+);
+ok(
+  "al cerrar el panel vuelve EXACTO al tamano elegido",
+  fuenteAnclada(142, 113, 9.5, 9, 12) === 12,
+  "la cuenta da 11.9 por los dos redondeos hacia abajo, y a una decima del techo se pega a el",
+);
+ok(
+  "pero el pegado no se lleva por delante una diferencia de verdad",
+  fuenteAnclada(120, 113, 9.5, 9, 12) === 10,
+  "10.08 esta lejos del techo: se queda donde le toca",
+);
+ok(
+  "el techo manda aunque la cuenta pida mas",
+  fuenteAnclada(300, 100, 12, 9, 14) === 14,
+  "una terminal ancha no puede agrandar la letra por su cuenta",
+);
+ok(
+  "y el suelo tambien: ilegible es peor que descolocado",
+  fuenteAnclada(40, 200, 12, 9, 12) === 9,
+  "por debajo del minimo se deja reflowar",
+);
+ok(
+  "sin medida se deja la letra como esta",
+  fuenteAnclada(0, 142, 9.5, 9, 12) === 9.5,
+  "volver al techo por no haber podido medir devolveria las columnas y partiria el texto",
+);
+ok("sin objetivo, igual", fuenteAnclada(113, 0, 9.5, 9, 12) === 9.5);
+ok("y sin nada de nada, el techo", fuenteAnclada(0, 0, 0, 9, 12) === 12);
+ok(
+  "misma anchura, misma letra",
+  fuenteAnclada(142, 142, 12, 9, 12) === 12,
+  "abrir algo que no cambia el ancho no puede mover la letra",
+);
+
+ok("de entrada no se esta anclando", !anclando(0));
+
+// Los dos gestos no se pisan: arrastrar es pedir columnas con la mano, y gana.
+anclarColumnas(1000);
+empezarRedimension();
+ok(
+  "bajar el dedo en un separador cancela el anclaje",
+  !anclando(1000),
+  "si no, arrastrar justo despues de abrir un panel encogeria la letra en vez de dar columnas",
+);
+terminarRedimension();
+pintar();
+
+anclarColumnas(1000);
+ok("tras avisar, la marca esta puesta", anclando(1000));
+ok(
+  "y sigue puesta unos frames despues",
+  anclando(1000 + ANCLA_MS - 1),
+  "un panel tarda dos o tres frames en asentar su layout",
+);
+ok("pero caduca sola", !anclando(1000 + ANCLA_MS));
+ok(
+  "la marca dura lo bastante para varios frames",
+  ANCLA_MS >= 200,
+  "por debajo, el ajuste bueno llega cuando ya ha caducado",
+);
+pintar();
+ok(
+  "y avisa a las terminales de que se reajusten",
+  disparados.includes(EVENTO_REFIT),
+  "sin esto habria que esperar a que algo mas moviera un pixel",
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

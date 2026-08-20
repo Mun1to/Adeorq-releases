@@ -50,6 +50,9 @@ export function tocaAjustar(ahora: number, ultimo: number, arrastrando: boolean)
 }
 
 let arrastrando = false;
+/** Hasta cuándo dura la marca de «esto lo mueve un panel». Ver `anclarColumnas`
+    al final del archivo: se declara aquí porque `empezarRedimension` la borra. */
+let anclaHasta = 0;
 
 /** Si hay un separador (o el borde de la ventana) en movimiento ahora mismo. */
 export function redimensionando(): boolean {
@@ -59,6 +62,11 @@ export function redimensionando(): boolean {
 export function empezarRedimension(): void {
   if (arrastrando) return;
   arrastrando = true;
+  /* Y si había un anclaje en vuelo, se cae aquí. Arrastrar un separador es
+     pedir columnas con la mano; si el gesto cae dentro de los cuatro décimas de
+     segundo de un panel que se acaba de abrir, la terminal se pondría a
+     encoger la letra en vez de dar columnas, que es lo contrario de lo pedido. */
+  anclaHasta = 0;
   /* Marca en el DOM para que el CSS pueda apagar lo que cueste pintar (las
      sombras y el desenfoque del cristal) mientras dura el arrastre. */
   document.body.dataset.redim = "1";
@@ -71,6 +79,93 @@ export function empezarRedimension(): void {
   window.addEventListener("pointerup", terminarRedimension, { once: true });
   window.addEventListener("pointercancel", terminarRedimension, { once: true });
   window.addEventListener("blur", terminarRedimension, { once: true });
+}
+
+/* ── ANCLAR LAS COLUMNAS ────────────────────────────────────────────────────
+   Abrir o cerrar un panel lateral estrecha las terminales, y ahí no vale
+   reajustar como siempre.
+
+   El motivo es que los clientes de agente ENVUELVEN el texto ellos mismos, con
+   saltos duros, al ancho que la terminal tenía cuando lo escribieron. Al
+   estrecharse, esas líneas dejan de caber y el emulador las corta por columna,
+   no por palabra: «los mante / nedores», «bor / ra». Y el texto original ya no
+   existe en ninguna parte, así que nadie puede rehacer el párrafo (Munir,
+   2026-08-20: «como que se desordena»).
+
+   Medido con xterm de verdad: al pasar de 134 a 107 columnas salen palabras
+   partidas; al volver a 134 se recomponen solas. O sea que el daño no está en
+   el reflow, está en CAMBIAR de columnas.
+
+   Por eso, cuando el ancho lo cambia un panel y no la mano de nadie, las
+   columnas se quedan como estaban y lo que se ajusta es el tamaño de la letra.
+   Munir eligió este trato sabiendo el precio: «no estropea nada y se ve todo el
+   texto». La alternativa era que el panel flotara encima tapando una franja.
+
+   Solo se ancla el cambio del PANEL. Arrastrar un separador o redimensionar la
+   ventana siguen dando columnas, que es justo lo que se pide con ese gesto. */
+
+/** Cuánto dura la marca. Un panel que aparece o desaparece se lleva dos o tres
+    frames en asentar el layout; con menos, el reajuste bueno llegaba después de
+    que la marca hubiera caducado y el anclaje no servía de nada. */
+export const ANCLA_MS = 400;
+
+/** Si el cambio de tamaño de ahora mismo viene de un panel lateral. */
+export function anclando(ahora = Date.now()): boolean {
+  return ahora < anclaHasta;
+}
+
+/**
+ * Avisa de que lo que va a cambiar el ancho es un panel, no una mano.
+ *
+ * Se llama ANTES de tocar el estado: entre eso y el reajuste caben varios
+ * frames, y la marca tiene que estar puesta cuando llegue cualquiera de ellos,
+ * venga del ResizeObserver o del evento de refit.
+ */
+export function anclarColumnas(ahora = Date.now()): void {
+  anclaHasta = ahora + ANCLA_MS;
+  requestAnimationFrame(() => window.dispatchEvent(new Event(EVENTO_REFIT)));
+}
+
+/**
+ * Qué tamaño de letra hace que quepan las columnas de antes.
+ *
+ * Se razona con COLUMNAS y no con píxeles a propósito: `proposeDimensions()` ya
+ * descuenta el relleno de la caja y la barra de scroll, así que preguntarle
+ * cuántas caben con la letra de ahora y hacer una regla de tres sale exacto y
+ * no duplica esa aritmética.
+ *
+ * El techo es el tamaño que la terminal tendría sin anclar (el de Ajustes, o el
+ * que calcula la letra automática): al cerrar el panel hay que volver a él y no
+ * pasarse. El suelo es el mínimo legible; si para conservar las columnas hiciera
+ * falta bajar de ahí, se deja reflowar, que es feo pero se lee.
+ */
+export function fuenteAnclada(
+  colsQueCaben: number,
+  colsObjetivo: number,
+  fuenteActual: number,
+  minimo: number,
+  techo: number,
+): number {
+  // Sin medida no se decide: se deja la letra como está. Volver al techo sería
+  // devolverle las columnas al ancho nuevo, que es justo lo que parte el texto,
+  // y hacerlo encima por no haber podido medir.
+  if (colsQueCaben <= 0 || colsObjetivo <= 0 || fuenteActual <= 0) {
+    return fuenteActual > 0 ? Math.max(minimo, Math.min(techo, fuenteActual)) : techo;
+  }
+  const bruta = (fuenteActual * colsQueCaben) / colsObjetivo;
+  // Un decimal, y hacia ABAJO. Fraccionario porque xterm lo acepta y con
+  // enteros el salto de 14 a 13 ya se lleva por delante seis columnas. Y hacia
+  // abajo porque el error tiene un lado bueno: quedarse corto de letra deja una
+  // columna de sobra, y quedarse largo deja una de menos, que es exactamente lo
+  // que parte la palabra que veníamos a salvar.
+  const redondeada = Math.floor(bruta * 10) / 10;
+  /* Y si la cuenta se queda pegada al techo, se pega del todo. Los dos redondeos
+     (este y el de columnas enteras de `proposeDimensions`) tiran hacia abajo, así
+     que el viaje de vuelta aterrizaba en 11,9 en vez de en los 12 de Ajustes, y
+     ahí se quedaba hasta que algo sin relación volviera a medir. Una décima no se
+     ve, pero un tamaño de letra que ya no es el que elegiste, sí. */
+  if (techo - redondeada > 0 && techo - redondeada <= 0.15) return techo;
+  return Math.max(minimo, Math.min(techo, redondeada));
 }
 
 export function terminarRedimension(): void {

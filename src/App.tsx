@@ -41,7 +41,7 @@ import {
   ponerFondo,
   quitarFondo,
 } from "./lib/fondo";
-import { empezarRedimension, terminarRedimension } from "./lib/redimension";
+import { anclarColumnas, empezarRedimension, terminarRedimension } from "./lib/redimension";
 import { aQuienLeToca, encolar, sacarDeCola, tocaDesmaximizar } from "./lib/saltos";
 import { guardarEncuadre, leerEncuadre, type Encuadre } from "./lib/encuadre";
 import { guardarCabecera, leerCabecera, visibles, type Cabecera } from "./lib/cabecera";
@@ -708,6 +708,22 @@ function App() {
   /** Cómo se dibuja la barra. Lo decide y lo guarda ella; aquí solo se sabe
       para quitar el tirador cuando está encogida en tira. */
   const [railMode, setRailMode] = useState<RailMode>("full");
+  /** Lo último que dijo la barra, para no anclar columnas cuando solo está
+      contando cómo nació (avisa una vez al cargar, sin que nadie la toque). */
+  const railModeRef = useRef<RailMode>("full");
+  /* Estable a propósito: el efecto que lo llama vive en la barra y lo tiene en
+     sus dependencias, así que una función nueva en cada render la haría
+     avisar tras cada repintado de la app entera. */
+  const alCambiarRail = useCallback((m: RailMode) => {
+    // Plegar la lista a tira ensancha las terminales de golpe: mismo trato que
+    // el panel de la derecha. Solo si CAMBIA: la barra avisa también al
+    // arrancar, cuando no se ha movido nada.
+    if (m !== railModeRef.current) {
+      railModeRef.current = m;
+      anclarColumnas();
+    }
+    setRailMode(m);
+  }, []);
   // The canvas keeps its own terminals: mixing them with the grid's would mean
   // one layout stealing panes from the other every time the view changes.
   const [canvasPanes, setCanvasPanes] = useState<CanvasPane[]>([]);
@@ -2751,7 +2767,17 @@ function App() {
     if (guardada != null) return guardada as Cara;
     return localStorage.getItem("adeorq-skills-open") === "0" ? "" : "skills";
   });
+  const caraRef = useRef<Cara>("");
   const cambiarCara = useCallback((c: Cara) => {
+    /* Este panel se lleva 270px de las terminales, y perder columnas les parte
+       por la mitad las palabras del texto que ya está escrito. Aquí se avisa de
+       que el ancho lo cambia un panel: las columnas se conservan y lo que se
+       ajusta es la letra (ver `lib/redimension.ts`).
+       Solo cuando de verdad ABRE o CIERRA: cambiar de pestaña con el panel ya
+       abierto no mueve un píxel, y anclar ahí obligaría a cada terminal a
+       remedirse para nada. */
+    if (!c !== !caraRef.current) anclarColumnas();
+    caraRef.current = c;
     localStorage.setItem(LATERAL_KEY, c);
     setCara(c);
   }, []);
@@ -3477,7 +3503,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onOpenAll={onOpenAll}
           gruposOcultos={gruposOcultos}
           onPlegarGrupo={alternarGrupo}
-          onRail={setRailMode}
+          onRail={alCambiarRail}
         />
         <div
           className="resizer"

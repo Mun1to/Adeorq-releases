@@ -101,6 +101,36 @@ export function cleanNotes(body) {
 }
 
 /**
+ * Marker that splits bilingual release notes. Everything above it is Spanish,
+ * everything below is English.
+ *
+ * An HTML comment on purpose: GitHub hides it, so the release page reads as one
+ * document with a rule between the two versions, and the website still gets an
+ * unambiguous machine marker. A heading like "## English" would have been read
+ * as the entry title by `titleFrom`.
+ */
+export const LANG_MARK = /^<!--\s*lang:en\s*-->$/im
+
+/**
+ * Release notes split by language: `{ es, en }`, with `en` null when the author
+ * wrote only one version.
+ *
+ * The site is bilingual but the releases are the single source of truth, so the
+ * translation travels inside the notes instead of living in a parallel file
+ * that nobody remembers to update.
+ */
+export function splitLanguages(body) {
+  const text = cleanNotes(body)
+  const lines = text.split('\n')
+  const at = lines.findIndex((line) => LANG_MARK.test(line.trim()))
+  if (at === -1) return { es: text, en: null }
+
+  const es = lines.slice(0, at).join('\n').replace(/\n*-{3,}\n*$/, '').trim()
+  const en = lines.slice(at + 1).join('\n').trim()
+  return { es, en: en || null }
+}
+
+/**
  * Bullet points for the changelog. Markdown lists win; otherwise the prose is
  * split into sentences so a section can render short lines either way.
  */
@@ -108,17 +138,49 @@ export function highlightsFrom(notes, max = 4) {
   const text = cleanNotes(notes)
   if (!text) return []
 
-  const bullets = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => /^[-*]\s+/.test(line))
-    .map((line) => line.replace(/^[-*]\s+/, '').trim())
-    .filter(Boolean)
+  // A bullet is not a line: notes are hard-wrapped at 90 columns, so a three
+  // line bullet used to reach the website as its first line alone, cut mid
+  // sentence ("...on every turn it"). The continuation lines are folded back in
+  // until a blank line or the next bullet closes it.
+  const bullets = []
+  let open = null
+  for (const raw of text.split('\n')) {
+    const line = raw.trim()
+    if (/^[-*]\s+/.test(line)) {
+      if (open) bullets.push(open)
+      open = line.replace(/^[-*]\s+/, '').trim()
+      continue
+    }
+    if (!open) continue
+    if (!line || /^#{1,6}\s/.test(line) || line.startsWith('|') || /^-{3,}$/.test(line)) {
+      bullets.push(open)
+      open = null
+      continue
+    }
+    open = `${open} ${line}`
+  }
+  if (open) bullets.push(open)
 
-  if (bullets.length) return bullets.slice(0, max)
+  if (bullets.length) return bullets.filter(Boolean).slice(0, max)
 
+  // Headings out before splitting into sentences. They are not prose: the "## "
+  // line is already printed as the entry title, and joining every line into one
+  // string glued it to the first sentence, so the website showed a bullet that
+  // began "## Lo que cambia La pestaña contaba..." (Munir, 2026-08-20).
+  // Markdown tables go out too: a release that lists nine clients in a table was
+  // rendering a bullet that read "| Client | Installs with | |---|---|".
   return text
     .split('\n')
+    .filter((line) => {
+      const l = line.trim()
+      return (
+        l &&
+        !/^#{1,6}\s/.test(l) &&
+        !LANG_MARK.test(l) &&
+        !l.startsWith('|') &&
+        !/^-{3,}$/.test(l)
+      )
+    })
     .join(' ')
     .split(/(?<=\.)\s+/)
     .map((sentence) => sentence.trim())
@@ -135,7 +197,8 @@ export function highlightsFrom(notes, max = 4) {
  * title lets the summary carry the entry.
  */
 export function titleFrom(release) {
-  const heading = cleanNotes(release.body)
+  const body = typeof release === 'string' ? release : release?.body
+  const heading = cleanNotes(body)
     .split('\n')
     .map((line) => line.trim())
     .find((line) => /^#{2,3}\s+/.test(line))

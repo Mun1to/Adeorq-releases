@@ -1,32 +1,32 @@
 {
-  "version": "0.9.51",
-  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.51/Adeorq_0.9.51_x64-setup.exe",
-  "pub_date": "2026-08-03T21:11:38Z",
-  "size_bytes": 4610247,
-  "notes": "## Arreglos\n\n**Bajo el ratón, la fila de un proyecto es su foto y sus accesos directos.**\nEl número de sesiones, la flecha de plegar y el aviso rojo de «te esperan»\ndesaparecen al pasar por encima: competían con los botones por la misma tira\nestrecha, y son datos que ya se leen sin acercar el ratón. La foto se queda,\npara que sepas de qué proyecto es lo que estás a punto de abrir.\n\n**Se va el botón de abrir todas las sesiones de un clic.** Con dieciséis\nsesiones abría doce terminales de golpe sin preguntar, y estaba justo donde\ncae el ratón. La acción sigue estando en el menú del botón derecho del\nproyecto, que pide un clic a propósito antes.\n\n**Las pestañas, los avisos y las etiquetas de estado que nunca llegaron al\ninglés.** «Memoria» se quedaba en español con el idioma en inglés, y con ella\nlas opciones de permiso de Antigravity, los avisos del Modo Espejo, los\nestados de la Agenda y los ajustes de comparación. Trece textos más, todos\ntraducidos.",
-  "generatedAt": "2026-08-03T21:12:14.730Z",
-  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.51",
-  "tag": "v0.9.51",
-  "title": "v0.9.51",
-  "date": "2026-08-03",
-  "publishedAt": "2026-08-03T21:11:38Z",
+  "version": "0.9.127",
+  "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.127/Adeorq-setup.exe",
+  "pub_date": "2026-08-19T23:14:25Z",
+  "size_bytes": 5210846,
+  "notes": "## Lo que cambia\n\n**«No instalados» vuelve a enseñar la lista.** La pestaña contaba los programas que\nte faltan, pero debajo no salía nada: la sección reutilizaba la clase de los CLI\nplegables, cuya rejilla nace escondida hasta que alguien pulsa su cabecera, y ahí\nno hay cabecera que pulsar. Ahora salen las tarjetas de todos los que te faltan,\ncada una con su botón **Descargar** (abre una terminal y lanza la instalación) o\ncon **Abrir su web** para los dos que no tienen un comando de fiar.\n\nRoto desde la 0.9.80.\n\n---\n\n<!-- lang:en -->\n\n## What changes\n\n**\"Not installed\" shows the list again.** The tab counted the programs you are\nmissing, but nothing appeared below it: the section reused the class of the\ncollapsible CLI groups, whose grid starts hidden until someone clicks its header,\nand there is no header to click here. Now every missing program gets a card, each\nwith its **Download** button (opens a terminal and runs the install) or with\n**Open its website** for the two that have no install command worth trusting.\n\nBroken since 0.9.80.",
+  "generatedAt": "2026-08-20T09:29:26.634Z",
+  "source": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.127",
+  "tag": "v0.9.127",
+  "title": "Adeorq 0.9.127",
+  "date": "2026-08-19",
+  "publishedAt": "2026-08-19T23:14:25Z",
   "notesFormat": "markdown",
-  "summary": "**Bajo el ratón, la fila de un proyecto es su foto y sus accesos directos.** El número de sesiones, la flecha de plegar y el aviso rojo de «te esperan» desaparecen al pasar por encima: competían con los botones por la misma tira estrecha, y son datos que ya se leen sin acercar el ratón.",
+  "summary": "**«No instalados» vuelve a enseñar la lista.** La pestaña contaba los programas que te faltan, pero debajo no salía nada: la sección reutilizaba la clase de los CLI plegables, cuya rejilla nace escondida hasta que alguien pulsa su cabecera, y ahí no hay cabecera que pulsar.",
   "windows": {
-    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.51/Adeorq_0.9.51_x64-setup.exe",
-    "filename": "Adeorq_0.9.51_x64-setup.exe",
-    "size": 4610247,
-    "sizeLabel": "4,4 MB",
-    "arch": "x64",
-    "downloadCount": 0
+    "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.127/Adeorq-setup.exe",
+    "filename": "Adeorq-setup.exe",
+    "size": 5210846,
+    "sizeLabel": "5,0 MB",
+    "arch": "unknown",
+    "downloadCount": 1
   },
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.51/Adeorq_0.9.51_x64-setup.exe",
-      "filename": "Adeorq_0.9.51_x64-setup.exe",
-      "size": 4610247
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.127/Adeorq-setup.exe",
+      "filename": "Adeorq-setup.exe",
+      "size": 5210846
     }
   },
-  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.51",
+  "releaseUrl": "https://github.com/Mun1to/Adeorq-releases/releases/tag/v0.9.127",
   "allReleasesUrl": "https://github.com/Mun1to/Adeorq-releases/releases"
 }

@@ -25,6 +25,8 @@
 //         "items": ["...", "..."],      // bullet points, may be empty
 //         "highlights": [...],          // same array, kept as an alias
 //         "headings": ["..."],          // every "## " heading, in order
+//         "en": { title, summary, items, headings, notes } | null,
+//                                       // the English half of bilingual notes
 //         "image": null,                // no screenshots published yet
 //         "notes": "full text as written",
 //         "notesFormat": "markdown",
@@ -44,6 +46,7 @@ import {
   headingsFrom,
   highlightsFrom,
   listReleases,
+  splitLanguages,
   summaryFrom,
   tagsFrom,
   titleFrom,
@@ -60,22 +63,39 @@ export async function buildChangelog() {
 
   const entries = releases.map((release) => {
     const windows = windowsInstaller(release)
-    const items = highlightsFrom(release.body)
+    // The notes may carry both languages; the Spanish half is the one that is
+    // always there, so the entry keeps its shape and English rides along in
+    // `en`. An older release without a translation simply has `en: null`, and
+    // the site falls back to Spanish rather than printing nothing.
+    const { es, en } = splitLanguages(release.body)
+    const items = highlightsFrom(es)
 
     return {
       version: versionOf(release),
       tag: release.tag_name,
       date: dayOf(release.published_at),
       publishedAt: release.published_at,
-      title: titleFrom(release),
+      title: titleFrom(es),
       name: release.name || release.tag_name,
-      summary: summaryFrom(release.body),
-      tags: tagsFrom(release.body),
+      summary: summaryFrom(es),
+      // Read off the Spanish text on purpose, in both languages: the wording
+      // rules are Spanish, and what changes between languages is the word the
+      // badge prints, which is the website's job.
+      tags: tagsFrom(es),
       items,
       highlights: items,
-      headings: headingsFrom(release.body),
+      headings: headingsFrom(es),
+      en: en
+        ? {
+            title: titleFrom(en),
+            summary: summaryFrom(en),
+            items: highlightsFrom(en),
+            headings: headingsFrom(en),
+            notes: en,
+          }
+        : null,
       image: null,
-      notes: cleanNotes(release.body),
+      notes: es,
       notesFormat: 'markdown',
       url: release.html_url,
       download: windows

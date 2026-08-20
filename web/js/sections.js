@@ -128,6 +128,11 @@
      y se guarda aqui porque pintar el idioma reescribe los nodos que lo
      muestran: sin esto, cambiar a ingles borraria el numero. */
   var CUANTAS = 0;
+  var LOG = null;   /* changelog.json, guardado para repintar al cambiar de idioma */
+  /* release.json, por lo mismo. Sin valor mientras no ha contestado el fetch,
+     y null si contesto sin dato: son dos estados distintos, y confundirlos
+     pintaria «ve a la pagina de descargas» antes de haber preguntado. */
+  var REL;
 
   function pintarCuantas() {
     if (!CUANTAS) return;
@@ -144,6 +149,8 @@
 
   function idioma() {
     guardarOriginal();
+    pintarLog();
+    pintarDescarga();
 
     if (raiz.lang !== 'en') { pintar(ORIGINAL); pintarCuantas(); return; }
     if (INGLES) { pintar(INGLES); pintarCuantas(); return; }
@@ -177,50 +184,62 @@
     pedirJson(DATOS + 'release.json')
       .then(function (d) { return d || pedirJson(DATOS + 'latest.json'); })
       .then(function (d) {
-        caja.classList.remove('cargando');
-
-        var v = caja.querySelector('[data-descarga-version]');
-
-        /* Sin dato no se promete ninguna version: el enlace del HTML ya lleva a
-           la pagina de descargas, y el texto lo dice. */
-        if (!d) {
-          if (v) v.textContent = raiz.lang === 'en' ? 'Go to the downloads page'
-                                                    : 'Ir a la página de descargas';
-          return;
-        }
-
-        var url = d.url ||
-          (d.platforms && d.platforms['windows-x86_64'] && d.platforms['windows-x86_64'].url) || '';
-        var version = d.version ? String(d.version).replace(/^v/, '') : '';
-
-        var enlace = caja.querySelector('[data-descarga-enlace]');
-        if (enlace && url) enlace.href = url;
-
-        if (v) v.textContent = version ? 'v' + version
-                                       : (raiz.lang === 'en' ? 'Latest version' : 'Última versión');
-
-        var f = caja.querySelector('[data-descarga-fecha]');
-        if (f && (d.pub_date || d.date)) {
-          var cuando = fecha(d.pub_date || d.date);
-          if (cuando) f.textContent = (raiz.lang === 'en' ? 'published on ' : 'publicada el ') + cuando;
-        }
-
-        var p = caja.querySelector('[data-descarga-peso]');
-        if (p) {
-          /* latest.json ya trae la etiqueta formateada; release.json trae bytes */
-          var etiqueta = (d.windows && d.windows.sizeLabel) || peso(d.size_bytes);
-          if (etiqueta) p.textContent = etiqueta;
-        }
-
-        /* La maqueta del hero lleva la version escrita en su barra: que sea la
-           que de verdad se descarga, no la del dia en que se dibujo. */
-        if (version) {
-          document.querySelectorAll('[data-app-version]').forEach(function (n) {
-            n.textContent = 'v' + version;
-          });
-        }
+        REL = d || null;
+        pintarDescarga();
       })
       .catch(function () { caja.classList.remove('cargando'); });
+  }
+
+  /* Los tres textos de la caja de descarga se arman en JS con el dato del
+     release, asi que tampoco los alcanza el intercambio de [data-content]: la
+     fecha se quedaba en «publicada el 20 de agosto de 2026» con la web en
+     ingles. Repintar entero es mas barato que traducir a mano cada trozo. */
+  function pintarDescarga() {
+    var caja = document.querySelector('[data-descarga]');
+    if (!caja || REL === undefined) return;
+    var d = REL;
+    caja.classList.remove('cargando');
+
+    var v = caja.querySelector('[data-descarga-version]');
+
+    /* Sin dato no se promete ninguna version: el enlace del HTML ya lleva a
+       la pagina de descargas, y el texto lo dice. */
+    if (!d) {
+      if (v) v.textContent = raiz.lang === 'en' ? 'Go to the downloads page'
+                                                : 'Ir a la página de descargas';
+      return;
+    }
+
+    var url = d.url ||
+      (d.platforms && d.platforms['windows-x86_64'] && d.platforms['windows-x86_64'].url) || '';
+    var version = d.version ? String(d.version).replace(/^v/, '') : '';
+
+    var enlace = caja.querySelector('[data-descarga-enlace]');
+    if (enlace && url) enlace.href = url;
+
+    if (v) v.textContent = version ? 'v' + version
+                                   : (raiz.lang === 'en' ? 'Latest version' : 'Última versión');
+
+    var f = caja.querySelector('[data-descarga-fecha]');
+    if (f && (d.pub_date || d.date)) {
+      var cuando = fecha(d.pub_date || d.date);
+      if (cuando) f.textContent = (raiz.lang === 'en' ? 'published on ' : 'publicada el ') + cuando;
+    }
+
+    var p = caja.querySelector('[data-descarga-peso]');
+    if (p) {
+      /* latest.json ya trae la etiqueta formateada; release.json trae bytes */
+      var etiqueta = (d.windows && d.windows.sizeLabel) || peso(d.size_bytes);
+      if (etiqueta) p.textContent = etiqueta;
+    }
+
+    /* La maqueta del hero lleva la version escrita en su barra: que sea la
+       que de verdad se descarga, no la del dia en que se dibujo. */
+    if (version) {
+      document.querySelectorAll('[data-app-version]').forEach(function (n) {
+        n.textContent = 'v' + version;
+      });
+    }
   }
 
   /* ---------------------------------------------------------- 3 · CHANGELOG */
@@ -231,10 +250,8 @@
 
     pedirJson(DATOS + 'changelog.json').then(function (d) {
       if (!d || !d.entries || !d.entries.length) return;
-      var nuevas = d.entries.slice(0, MAX_ENTRADAS).map(nodoEntrada);
-      host.innerHTML = '';
-      nuevas.forEach(function (n) { host.appendChild(n); });
-      revelar(nuevas);
+      LOG = d;
+      pintarLog(host);
 
       /* El enlace del historial y la entradilla dicen cuantas hay de verdad, no
          un numero escrito a mano que envejece a la siguiente publicacion. */
@@ -242,6 +259,39 @@
       pintarCuantas();
     });
   }
+
+  /* Esta lista es lo unico de la seccion que NO vive en el HTML, asi que el
+     intercambio de claves [data-content] no la toca: sin repintarla a mano, la
+     web en ingles enseñaba las novedades en español, que es justo lo que se veia
+     (Munir, 2026-08-20). Cuelga de idioma(), que es el unico camino del cambio. */
+  function pintarLog(host) {
+    host = host || document.querySelector('[data-log-entradas]');
+    if (!LOG || !host) return;
+    var nuevas = LOG.entries.slice(0, MAX_ENTRADAS).map(nodoEntrada);
+    host.innerHTML = '';
+    nuevas.forEach(function (n) { host.appendChild(n); });
+    revelar(nuevas);
+  }
+
+  /* Que texto de una entrada toca pintar.
+     El generador guarda el español siempre y el ingles solo si el autor escribio
+     las notas en los dos idiomas (marca `<!-- lang:en -->` en la release). Una
+     version antigua sin traducir cae al español entera: media entrada en cada
+     idioma se lee peor que una entrada coherente en el idioma equivocado. */
+  function textoDe(e) {
+    if (raiz.lang !== 'en' || !e.en) return e;
+    return {
+      title: e.en.title || e.title,
+      summary: e.en.summary || '',
+      items: (e.en.items && e.en.items.length) ? e.en.items : [],
+      image: e.image,
+    };
+  }
+
+  /* La marca de la izquierda: el generador la deduce de las palabras del texto
+     español, que es el que siempre esta, y aqui solo se dice en el idioma de
+     quien mira. */
+  var MARCAS_EN = { nuevo: 'new', mejora: 'improved', arreglo: 'fix' };
 
   /* El generador arma a veces el resumen juntando los propios puntos. Si el
      resumen no aporta nada sobre la lista, se cae: repetir aburre. */
@@ -285,9 +335,9 @@
       e.tags.forEach(function (tag) {
         var k = String(tag).toLowerCase();
         var m = document.createElement('span');
-        m.className = 'marca-cambio marca-cambio--' +
-          (/nuev|new/.test(k) ? 'nuevo' : /mejor|improv/.test(k) ? 'mejora' : 'arreglo');
-        m.textContent = tag;
+        var clase = /nuev|new/.test(k) ? 'nuevo' : /mejor|improv/.test(k) ? 'mejora' : 'arreglo';
+        m.className = 'marca-cambio marca-cambio--' + clase;
+        m.textContent = raiz.lang === 'en' ? (MARCAS_EN[clase] || tag) : tag;
         marcas.appendChild(m);
       });
       aside.appendChild(marcas);
@@ -295,6 +345,8 @@
 
     var cuerpo = document.createElement('div');
     cuerpo.className = 'entrada__cuerpo';
+
+    e = textoDe(e);
 
     if (e.title) {
       var h = document.createElement('h3');

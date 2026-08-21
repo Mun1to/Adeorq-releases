@@ -4,7 +4,14 @@ Licencia de uso de Adeorq
 Copyright (c) 2026 Munir Torres Athayde. Todos los derechos reservados.
 
 Adeorq no es software libre. Este documento explica qué puedes hacer con los
-binarios que se publican en este repositorio. Está escrito para leerse.
+binarios Y CON EL CÓDIGO FUENTE que se publican en este repositorio. Está
+escrito para leerse.
+
+El código está a la vista a propósito: Adeorq lee tus sesiones de agente, y a un
+programa que hace eso no se le puede pedir confianza a ciegas. Poder leerlo y
+compilarlo es la respuesta a «¿qué hace este binario con mis conversaciones?».
+Eso NO lo convierte en código abierto: código a la vista y código libre son dos
+cosas distintas, y esta licencia es de las primeras.
 
 
 1. Qué se te permite
@@ -14,24 +21,50 @@ Puedes descargar Adeorq, instalarlo en los ordenadores que uses y utilizarlo
 para trabajar, sea para ti o para tu empresa. No hay límite de puestos ni de
 tiempo, y no hace falta pedir permiso.
 
+Puedes leer el código entero, estudiarlo, auditarlo y compilarlo tú mismo para
+usar el resultado en tus propios ordenadores, con los mismos límites que si lo
+hubieras descargado ya compilado.
+
 Puedes hablar de Adeorq, enseñarlo, escribir sobre él, grabar vídeo usándolo y
-enlazar a este repositorio.
+enlazar a este repositorio. Puedes citar fragmentos del código para comentarlo,
+reseñarlo, enseñar con él o reportar un fallo.
 
 
 2. Qué no se te permite
 -----------------------
 
+No puedes COMERCIAR con Adeorq de ninguna forma: ni venderlo, ni alquilarlo, ni
+sublicenciarlo, ni cobrar por darle acceso a otros, ni ofrecerlo como servicio,
+ni incluirlo en un producto o en un paquete por el que cobres, ni cobrar por
+instalarlo o por darle soporte. Esto vale igual para el programa ya compilado y
+para el código fuente, entero o por partes, tal cual o modificado. Vender el
+trabajo que TÚ hagas usando Adeorq sí es cosa tuya: lo que no se vende es
+Adeorq.
+
 No puedes redistribuir el instalador ni sus archivos por tu cuenta: quien lo
 quiera, que lo descargue de aquí. Esto es para que nadie acabe instalando una
 copia modificada creyendo que es la original.
 
-No puedes venderlo, alquilarlo, ni cobrar por darle acceso a otros.
+No puedes publicar, distribuir ni poner a disposición de nadie el código fuente
+ni ninguna obra derivada de él, ni siquiera gratis. Bifurcar el repositorio
+dentro de GitHub para proponer un cambio o guardar tu copia sí está permitido,
+porque es como funciona esa plataforma; lo que no está permitido es publicarlo
+en otro sitio ni presentarlo como un proyecto propio.
 
-No puedes descompilarlo, desensamblarlo ni hacer ingeniería inversa, salvo en
-la medida en que la ley aplicable te lo permita expresamente pese a esta
-prohibición.
+No puedes reutilizar el código, ni completo ni a trozos, dentro de otro
+programa, tuyo o de un tercero.
+
+No puedes entrenar modelos de inteligencia artificial con este código ni con la
+documentación de este repositorio.
+
+No puedes descompilar ni desensamblar los binarios, salvo en la medida en que la
+ley aplicable te lo permita expresamente pese a esta prohibición. La ingeniería
+inversa no hace falta prohibirla: el código está publicado, léelo.
 
 No puedes quitar ni tapar los avisos de autoría, ni presentarlo como propio.
+
+Si algo de lo que quieres hacer no encaja aquí, pregunta antes: el autor puede
+darte permiso por escrito, y esa es la única forma de tenerlo.
 
 
 3. De quién es

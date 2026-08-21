@@ -143,9 +143,17 @@ whatever you use. It is the same prompt in every public repository here, so you 
 **The source is visible. That does not make it free software.**
 
 You may install and use Adeorq freely, for yourself or for your company, and you may read,
-study and compile this code. What you may **not** do is redistribute it, resell it or publish
-derived versions. It is all spelled out in [`LICENSE`](LICENSE) (in Spanish, in plain
-language).
+study, audit and compile this code for your own machines.
+
+What you may **not** do is **trade in Adeorq in any form**: no selling, renting,
+sublicensing, charging for access, offering it as a service, bundling it into anything you
+charge for, or charging to install or support it. That applies to the compiled program and to
+the source alike, whole or in parts, as is or modified. You may not publish the source or any
+derived work anywhere, not even for free, and you may not reuse the code inside another
+program. Selling the work YOU do with Adeorq is your business: what is not for sale is
+Adeorq.
+
+It is all spelled out in [`LICENSE`](LICENSE) (in Spanish, in plain language).
 
 Third-party components keep their own licences, with every copyright notice collected in
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).

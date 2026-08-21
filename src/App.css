@@ -7765,8 +7765,20 @@ button.stat-card[data-live="false"] {
   /* SOLIDO: esto se posa sobre terminales y sobre la foto, y un aviso que no se
      lee no es un aviso (ver la regla encima de `.panel-card`). */
   background: var(--panel-solid);
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  /* Marco de acento con resplandor (Munir, 2026-08-21, eligiendo entre cuatro
+     en el navegador). Antes llevaba el mismo borde gris que cualquier tarjeta y
+     se perdía al pie de una barra llena de filas: esto es lo único de esa
+     columna que aparece solo y pide que lo pulses.
+     Va en `--accent` y no en un azul escrito a mano porque cada uno de los 24
+     temas trae el suyo; el resplandor se compone con `color-mix` sobre esa
+     misma variable, así que en el tema violeta el halo es violeta.
+     Quieto a propósito: se ve desde el otro lado de la pantalla sin gastar un
+     fotograma, y es un aviso que va a estar ahí hasta que lo pulses. */
+  border: 1px solid var(--accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 0 22px color-mix(in srgb, var(--accent) 38%, transparent),
+    0 14px 34px rgba(0, 0, 0, 0.5);
   animation: update-sube 0.18s ease;
 }
 
@@ -7874,8 +7886,14 @@ button.stat-card[data-live="false"] {
   transition: width 0.2s ease;
 }
 
+/* El error manda sobre el marco de acento, resplandor incluido: si no, una
+   actualización que ha fallado seguiría rodeada del halo que dice «púlsame». */
 .update-card[data-phase="error"] {
-  border-color: rgba(224, 110, 110, 0.5);
+  border-color: rgba(224, 110, 110, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(224, 110, 110, 0.3),
+    0 0 20px rgba(224, 110, 110, 0.3),
+    0 14px 34px rgba(0, 0, 0, 0.5);
 }
 
 .update-card[data-phase="error"] .update-mark {

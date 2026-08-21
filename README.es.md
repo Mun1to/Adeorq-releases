@@ -145,9 +145,17 @@ whatever you use. It is the same prompt in every public repository here, so you 
 **El código está a la vista. Eso no lo hace software libre.**
 
 Puedes instalar Adeorq y usarlo libremente, para ti o para tu empresa, y puedes leer,
-estudiar y compilar este código. Lo que **no** puedes es redistribuirlo, revenderlo ni
-publicar versiones derivadas. Está todo explicado, y en castellano legible, en
-[`LICENSE`](LICENSE).
+estudiar, auditar y compilar este código para tus propios ordenadores.
+
+Lo que **no** puedes es **comerciar con Adeorq de ninguna forma**: ni venderlo, ni alquilarlo,
+ni sublicenciarlo, ni cobrar por darle acceso a otros, ni ofrecerlo como servicio, ni
+incluirlo en nada por lo que cobres, ni cobrar por instalarlo o por darle soporte. Vale igual
+para el programa compilado y para el código, entero o por partes, tal cual o modificado.
+Tampoco puedes publicar el código ni una obra derivada en ninguna parte, ni siquiera gratis,
+ni reutilizarlo dentro de otro programa. Vender el trabajo que TÚ hagas usando Adeorq sí es
+cosa tuya: lo que no se vende es Adeorq.
+
+Está todo explicado, y en castellano legible, en [`LICENSE`](LICENSE).
 
 Los componentes de terceros que incorpora conservan sus propias licencias, con sus avisos de
 copyright recogidos en [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).

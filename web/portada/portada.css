@@ -1007,11 +1007,7 @@ body {
   border-top: 1px solid var(--p-linea);
   padding: clamp(70px, 11vh, 130px) 0;
 }
-.pasos__caja {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 0 clamp(18px, 4vw, 54px);
-}
+/* El ancho y el reparto los pone .bloque--dos. */
 
 .pasos__lista {
   display: grid;
@@ -1100,11 +1096,7 @@ body {
   border-top: 1px solid var(--p-linea);
   padding: clamp(70px, 11vh, 130px) 0;
 }
-.descarga__caja {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 0 clamp(18px, 4vw, 54px);
-}
+/* El ancho y el reparto los pone .bloque--dos. */
 .descarga__acciones { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
 
 /* La ficha de datos: monoespaciada porque son datos, y con puntos entre ellos.
@@ -1154,11 +1146,7 @@ body {
   border-top: 1px solid var(--p-linea);
   padding: clamp(70px, 11vh, 130px) 0;
 }
-.novedades__caja {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 0 clamp(18px, 4vw, 54px);
-}
+/* El ancho y el reparto los pone .bloque--dos. */
 .novedades .seccion__entrada b { color: var(--p-texto); }
 
 .log { margin: 0 0 30px; padding: 0; list-style: none; border-top: 1px solid var(--p-linea); }
@@ -1188,30 +1176,44 @@ body {
   border-top: 1px solid var(--p-linea);
   padding: clamp(70px, 11vh, 130px) 0;
 }
-.faq__caja {
+/* ===================== LA RETICULA DE DOS COLUMNAS ======================= */
+
+/* El rotulo a la izquierda y el contenido a la derecha. La usan #trabajo,
+   #descargar, #novedades y #faq, y por eso vive aqui una sola vez.
+
+   Nace de una medida del 2026-08-21: cada seccion tenia su propio ancho y
+   TODAS dejaban media pantalla vacia a la derecha. El titulo ocupaba el 41 %
+   del hueco y la entrada el 45 %, pegados al margen izquierdo. Con esto el
+   texto sigue midiendo lo que tiene que medir para leerse, pero deja de estar
+   solo en una esquina.
+
+   Las secciones centradas (#que-es, #privacidad, #manifiesto) NO la usan a
+   proposito: alternar una centrada entre dos de estas es lo que le da ritmo a
+   la pagina. Si todas fueran iguales, seria una lista. */
+.bloque--dos {
   max-width: 1320px;
   margin: 0 auto;
   padding: 0 clamp(18px, 4vw, 54px);
-  /* Dos columnas: el rotulo a la izquierda y las preguntas a la derecha. A una
-     sola columna con `max-width` la lista se quedaba en la mitad izquierda de
-     una pantalla ancha y la derecha entera vacia. Es el mismo reparto que ya
-     usa el pie (.pie__caja), asi que no se inventa una reticula nueva. */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr);
   gap: clamp(24px, 5vw, 76px);
   align-items: start;
 }
-/* El rotulo se queda a la vista mientras se recorren las preguntas. */
-.faq__rotulo { position: sticky; top: clamp(80px, 12vh, 120px); }
-.faq__rotulo .seccion__tit { margin-bottom: 0; }
+
+/* El rotulo se queda a la vista mientras se recorre el contenido de al lado. */
+.bloque__rotulo { position: sticky; top: clamp(80px, 12vh, 120px); }
+.bloque__rotulo .seccion__tit { margin-bottom: 0; max-width: none; }
+.bloque__rotulo .seccion__entrada { max-width: none; margin-top: 14px; }
+.bloque__cuerpo { min-width: 0; }
 
 /* Por debajo de tablet no hay sitio para dos columnas: el rotulo vuelve arriba
-   y las preguntas ocupan el ancho entero. */
-@media (max-width: 860px) {
-  .faq__caja { grid-template-columns: 1fr; gap: 26px; }
-  .faq__rotulo { position: static; }
+   y el contenido ocupa el ancho entero. */
+@media (max-width: 900px) {
+  .bloque--dos { grid-template-columns: 1fr; gap: 26px; }
+  .bloque__rotulo { position: static; }
 }
 
+.faq__caja { max-width: 1320px; margin: 0 auto; padding: 0 clamp(18px, 4vw, 54px); }
 .faq__lista { border-top: 1px solid var(--p-linea); }
 
 /* `<details>` nativo y no un acordeon de JavaScript: se abre sin scripts, el

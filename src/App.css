@@ -2541,16 +2541,20 @@ body {
   }
 }
 
-/* Y se apaga donde se apaga todo lo que respira: en el modo ahorro es una
-   animación continua por cada fila que trabaja, y son justo las filas que hay
-   cuando la máquina va cargada. Con `prefers-reduced-motion` también, que esa
-   no es una preferencia nuestra sino del sistema. */
-html[data-rendimiento="1"] .session-row[data-trabajando] {
-  animation: none;
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  background: var(--panel-solid);
-}
+/* EL HILO NO SE APAGA CON EL MODO RENDIMIENTO (Munir, 2026-08-21: «me gusta
+   bastante, sácalo del modo rendimiento y que siempre esté disponible»).
+   Se apagaba con lo demás que respira, y era una precaución teórica que el
+   propio commit que lo trajo ya desmentía: 144,5 fps sin nada y 144,1 con DOCE
+   filas girando. Cuatro décimas de fotograma no son un motivo para quitar la
+   única señal que distingue quién está escribiendo de quién está abierto y
+   quieto, que es lo que ese modo dejaba sin respuesta.
+   El motivo por el que es tan barato: la animación son cuatro capas de fondo
+   girando un ángulo registrado con @property, sin tocar el layout ni pedirle
+   nada al hilo principal.
 
+   `prefers-reduced-motion` SÍ se respeta, y no es lo mismo: aquello lo pide el
+   sistema por accesibilidad y no es una preferencia nuestra que negociar. Ahí
+   se queda el borde azul fijo, que sigue diciendo lo mismo sin moverse. */
 @media (prefers-reduced-motion: reduce) {
   .session-row[data-trabajando] {
     animation: none;
@@ -7692,6 +7696,14 @@ button.stat-card[data-live="false"] {
 .setting-line {
   font-size: 13px;
   margin: 4px 0 12px;
+}
+
+/* La línea que dice si el modo rendimiento está puesto AHORA. En acento cuando
+   sí, porque es la respuesta a «¿por qué no se mueve nada?» y tiene que
+   encontrarse sin leer el párrafo entero de arriba. */
+.setting-line[data-on] {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* Un ajuste con nombre, explicación y controles, apilados y con aire.

@@ -135,7 +135,10 @@ for (const url of urls) {
     // si no, probando en local se comprueba la imagen que ya hay publicada y la
     // nueva pasa sin mirarse. Y se mira el content-type, no solo el 200: un
     // servidor con comodin devuelve 200 y HTML para una imagen que no existe.
-    const suya = BASE + new URL(img[1], BASE).pathname
+    // pathname Y search: la tarjeta lleva la huella de su contenido en la query,
+    // y pedirla sin ella es pedir OTRA cosa (la que el borde tenga cacheada).
+    const u = new URL(img[1], BASE)
+    const suya = BASE + u.pathname + u.search
     const i = await fetch(suya)
     const tipo = i.headers.get('content-type') || ''
     if (!i.ok) mal(`og:image devuelve ${i.status}: la tarjeta social sale sin imagen`)

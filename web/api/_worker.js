@@ -45,6 +45,13 @@ export default {
  * release published today shows up today.
  */
 function withCache(response, pathname) {
+  // Only successful responses get cached. Measured on 2026-08-21: /assets/og.png
+  // did not exist yet, the wildcard answered with the home page HTML, and this
+  // function stamped it `immutable` for a year. The real file shipped later and
+  // the edge kept serving the HTML, so every shared link showed a broken card.
+  // A miss must never be cached as if it were the file.
+  if (!response.ok) return response
+
   let value = null
 
   if (pathname.startsWith('/assets/')) {

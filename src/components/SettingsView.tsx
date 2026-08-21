@@ -13,7 +13,12 @@ import {
   temaTermId,
   TEMAS_TERM,
 } from "../lib/temasTerm";
-import { guardarRendimiento, prefRendimiento, type ModoRend } from "../lib/rendimiento";
+import {
+  debeAhorrar,
+  guardarRendimiento,
+  prefRendimiento,
+  type ModoRend,
+} from "../lib/rendimiento";
 import { guardarForma, prefForma, type FormaPanel } from "../lib/formaPaneles";
 import {
   A_MANO,
@@ -366,6 +371,10 @@ export default function SettingsView({
    *  ahorro se aplica ya. No hace falta que el padre la pase: la cuenta que
    *  importa es la que ya está aplicada, y esa vive en el `<html>`. */
   const abiertas = document.querySelectorAll(".pane-term").length;
+  /** Si con esa elección y esas terminales toca ahorrar AHORA. Se pregunta a
+      la misma función pura que lo aplica, no al DOM: así la pantalla no puede
+      decir una cosa distinta de la que está puesta. */
+  const ahorrando = debeAhorrar(rapida, abiertas);
   const [cerebro, setCerebro] = useState<ModelAlias | undefined>(cerebroPorDefecto);
   /** Qué familia de temas se está mirando, y qué se ha escrito para buscar.
       No se guardan: son de este rato delante de la pantalla, no un ajuste. */
@@ -795,7 +804,7 @@ export default function SettingsView({
                   <b>{t("Modo rendimiento")}</b>
                   <span className="card-hint">
                     {t(
-                      "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido con TRES terminales: dibujarlo se lleva dos tercios de un núcleo, sin parar. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.",
+                      "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. El hilo de luz de las sesiones NO se apaga con esto: cuesta cuatro décimas de fotograma con doce filas girando, medido, y es lo único que distingue quién está escribiendo. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido con TRES terminales: dibujarlo se lleva dos tercios de un núcleo, sin parar. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.",
                     )}
                   </span>
                   <div className="chip-row">
@@ -824,6 +833,22 @@ export default function SettingsView({
                       </button>
                     ))}
                   </div>
+                  {/* Qué está pasando AHORA, que es lo que faltaba y lo que
+                      hacía parecer roto lo que funciona: en «Automático» esto
+                      se enciende solo al abrir la cuarta terminal, y desde
+                      fuera lo único que se ve es que el hilo de las sesiones
+                      dejó de moverse. La pantalla decía cuándo DEBERÍA estar
+                      puesto y nunca si lo estaba (Munir, 2026-08-21: «solo hay
+                      como un marco azul, la animación no funciona»). */}
+                  <span className="setting-line" data-on={ahorrando || undefined}>
+                    {ahorrando
+                      ? t("Ahora mismo está puesto: {n} terminales abiertas.", {
+                          n: String(abiertas),
+                        })
+                      : t("Ahora mismo NO está puesto: {n} terminales abiertas.", {
+                          n: String(abiertas),
+                        })}
+                  </span>
                 </div>
                 {/* Y la forma de los paneles, aquí porque es la misma familia
                     que los dos de arriba: lo que cambia es cómo se ve, no lo

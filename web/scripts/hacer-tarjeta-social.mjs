@@ -59,8 +59,44 @@ const AQUI = dirname(fileURLToPath(import.meta.url))
 const WEB = resolve(AQUI, '..')
 
 const BRAVE = process.env.BRAVE || 'C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe'
+const GRANO_OP = process.env.GRANO_OP || '.30'
+const GRANO_MEZCLA = process.env.GRANO_MEZCLA || 'soft-light'
+const SALIDA = process.env.SALIDA || 'assets/og.png'
+
 const ANCHO = 1200
 const ALTO = 630
+
+/**
+ * Los clientes que se nombran en la tarjeta, y cuantos quedan detras.
+ *
+ * Los nombres son los mas reconocibles fuera de casa (Munir, 2026-08-21: «pon
+ * los mas famosos»), pero el NUMERO no se escribe a mano: sale de contar
+ * `src/lib/providers.ts`, que es la lista de verdad. Asi el dia que entre un
+ * cliente nuevo, la tarjeta no se queda mintiendo.
+ */
+function clientes() {
+  const src = readFileSync(resolve(WEB, '../src/lib/providers.ts'), 'utf8')
+  const etiquetas = [...src.matchAll(/label:\s*"([^"]+)"/g)].map((m) => m[1])
+  if (etiquetas.length < 5) throw new Error(`providers.ts solo da ${etiquetas.length} clientes: el patron no encaja`)
+
+  // Los que se nombran. Munir decide cuales: son los que quiere ensenar fuera,
+  // no los que mas se usan en casa. Fuera Copilot y Aider por decision suya
+  // (2026-08-21), aunque los dos SI esten soportados en providers.ts.
+  const nombrados = ['Claude Code', 'Codex', 'Cursor', 'Grok', 'Antigravity', 'opencode', 'Kiro']
+
+  // Cada nombre tiene que existir de verdad. Anunciar en la tarjeta un cliente
+  // que la app no trae es la peor errata posible: se ve en cada enlace que se
+  // comparte y nadie la revisa dos veces. Antes esto no se comprobaba.
+  const inventados = nombrados.filter(
+    (n) => !etiquetas.some((e) => e.toLowerCase().startsWith(n.toLowerCase()))
+  )
+  if (inventados.length) {
+    throw new Error(`estos no estan en providers.ts: ${inventados.join(', ')}`)
+  }
+
+  const resto = etiquetas.length - nombrados.length
+  return `${nombrados.join(', ')} and ${resto} more, in real terminals.`
+}
 
 /** La marca, lista para incrustar. */
 function marca() {
@@ -95,6 +131,17 @@ body{width:${ANCHO}px;height:${ALTO}px;overflow:hidden;background:#05080e;
                    linear-gradient(90deg,rgba(140,170,220,.07) 1px,transparent 1px);
   background-size:64px 64px;
   mask-image:radial-gradient(70% 60% at 50% 40%,#000,transparent)}
+/* Grano. Un degradado liso de 1200x630 sale con bandas visibles, sobre todo en
+   los azules oscuros del resplandor: el ruido las rompe y de paso le da textura
+   de papel en vez de plastico. Es un feTurbulence incrustado, sin peticiones de
+   red, y se mezcla en modo overlay para que oscurezca las zonas oscuras y
+   aclare las claras, en vez de velar la imagen entera de gris.
+   (Sin acentos graves aqui dentro: todo este CSS vive en una plantilla de
+   JavaScript y un acento grave la cerraria a media frase.) */
+.grano{position:absolute;inset:0;z-index:1;pointer-events:none;
+  opacity:${GRANO_OP};mix-blend-mode:${GRANO_MEZCLA};
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:240px 240px}
 .caja{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;
   justify-content:center;padding:0 92px}
 .marca{display:flex;align-items:center;gap:20px;margin-bottom:38px}
@@ -109,11 +156,11 @@ p{margin-top:26px;font-size:26px;line-height:1.45;color:#b7c7e0;max-width:36ch}
   font-size:21px;color:#8fa3c4}
 .pip{width:9px;height:9px;border-radius:50%;background:#48c2ff;box-shadow:0 0 14px 3px rgba(72,194,255,.55)}
 </style></head><body>
-<div class="glow"></div><div class="rejilla"></div>
+<div class="glow"></div><div class="rejilla"></div><div class="grano"></div>
 <div class="caja">
   <div class="marca">${marca()}<b>Adeorq</b></div>
   <h1>All your agents. <em>One single screen.</em></h1>
-  <p>Claude Code, Codex, Gemini and 19 more clients, in real terminals.</p>
+  <p>${clientes()}</p>
 </div>
 <div class="pie"><span class="pip"></span> adeorq.com &#183; Windows and Linux</div>
 </body></html>`
@@ -130,9 +177,9 @@ try {
   // Sin esta espera la tipografia entra a medias y el texto sale con la de respaldo.
   await hoja.evaluate(() => document.fonts.ready)
   await hoja.waitForTimeout(300)
-  const destino = resolve(WEB, 'assets/og.png')
+  const destino = resolve(WEB, SALIDA)
   await hoja.screenshot({ path: destino })
-  console.log(`assets/og.png -> ${ANCHO}x${ALTO}`)
+  console.log(`${SALIDA} -> ${ANCHO}x${ALTO}  (grano ${GRANO_OP} ${GRANO_MEZCLA})`)
 } finally {
   await navegador.close()
   rmSync(carpeta, { recursive: true, force: true })

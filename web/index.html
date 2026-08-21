@@ -24,7 +24,7 @@
 <meta property="og:url" content="https://adeorq.com/">
 <meta property="og:title" content="Adeorq · el panel donde trabajan tus agentes">
 <meta property="og:description" content="Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y 19 clientes mas trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
-<meta property="og:image" content="https://adeorq.com/assets/og.png">
+<meta property="og:image" content="https://adeorq.com/assets/og.png?v=9489ba56">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Adeorq: all your agents, one single screen">
@@ -32,7 +32,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Adeorq · el panel donde trabajan tus agentes">
 <meta name="twitter:description" content="Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y 19 clientes mas trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
-<meta name="twitter:image" content="https://adeorq.com/assets/og.png">
+<meta name="twitter:image" content="https://adeorq.com/assets/og.png?v=9489ba56">
 
 <!-- Datos estructurados. Describen SOLO lo que se ve en la pagina: las
      preguntas salen de la propia seccion #faq, no de una lista aparte. -->
@@ -69,7 +69,7 @@
       },
       "downloadUrl": "https://github.com/Mun1to/Adeorq-releases/releases/latest",
       "softwareHelp": "https://adeorq.com/guia",
-      "screenshot": "https://adeorq.com/assets/og.png",
+      "screenshot": "https://adeorq.com/assets/og.png?v=9489ba56",
       "description": "Panel de escritorio que ejecuta clientes de agente de IA en terminales reales: Claude Code, Codex, Gemini CLI, Copilot, Cursor y otros, en una sola ventana.",
       "offers": {
         "@type": "Offer",
@@ -182,7 +182,6 @@
     <a href="#trabajo">Cómo trabaja</a>
     <a href="#que-es">Qué hace</a>
     <a href="#cinta">Clientes</a>
-    <a href="#descargar">Descargar</a>
   </nav>
   <div class="nav__acciones">
     <a class="nav__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">
@@ -500,7 +499,7 @@
       </p>
     </header>
 
-    <div class="fichas">
+    <div class="fichas" data-aparece>
       <article class="ficha">
         <h3 class="ficha__tit">Cabina</h3>
         <p>Tantos paneles como te quepan, cada uno con su proyecto, su cliente y su
@@ -549,7 +548,7 @@
 <section class="pasos" id="trabajo">
   <div class="pasos__caja">
     <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Cómo trabaja</p>
-    <h2 class="seccion__tit">Tres pasos y ya están trabajando</h2>
+    <h2 class="seccion__tit" data-aparece>Tres pasos y ya están trabajando</h2>
 
     <ol class="pasos__lista">
       <li class="paso">
@@ -614,7 +613,7 @@
 <section class="descarga" id="descargar" data-descarga>
   <div class="descarga__caja">
     <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Descarga</p>
-    <h2 class="seccion__tit">Móntate la cabina en dos minutos</h2>
+    <h2 class="seccion__tit" data-aparece>Móntate la cabina en dos minutos</h2>
     <p class="seccion__entrada">
       Instalador para Windows de 64 bits. Necesitas tener instalado el CLI que ya
       uses, porque Adeorq trabaja con él.
@@ -656,7 +655,7 @@
 <section class="novedades" id="novedades">
   <div class="novedades__caja">
     <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Novedades</p>
-    <h2 class="seccion__tit">Se mueve casi todos los días</h2>
+    <h2 class="seccion__tit" data-aparece>Se mueve casi todos los días</h2>
     <p class="seccion__entrada">
       <b data-log-cuenta>155</b> versiones publicadas desde que arrancó. No es una
       web con un producto detrás: es un producto que se usa mientras se construye.
@@ -674,57 +673,60 @@
      medias es lo que sale caro. -->
 <section class="faq" id="faq">
   <div class="faq__caja">
-    <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Preguntas</p>
-    <h2 class="seccion__tit">Lo que suelen preguntar</h2>
+    <div class="faq__rotulo" data-aparece>
+      <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Preguntas</p>
+    <h2 class="seccion__tit" data-aparece>Lo que suelen preguntar</h2>
+    </div>
 
-    <div class="faq__lista">
-      <details class="pregunta">
-        <summary>¿Necesito una clave de API o pagar algo aparte?</summary>
+
+    <div class="faq__lista" data-aparece>
+      <details class="pregunta" name="faq">
+        <summary>¿Necesito una clave de API o pagar algo aparte?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <p>No. Adeorq usa el CLI que ya tienes instalado y la sesión que ya tienes
            iniciada en él. No pide claves, no guarda credenciales y no manda tu
            código a ningún servidor nuestro. Lo que gastes de cuota lo gastas igual
            que escribiendo en la terminal a mano.</p>
       </details>
 
-      <details class="pregunta">
-        <summary>¿Funciona con algo que no sea Claude Code?</summary>
+      <details class="pregunta" name="faq">
+        <summary>¿Funciona con algo que no sea Claude Code?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <p>Conoce 22 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor,
            opencode, Antigravity, Kiro, Grok y Qwen, y sabe instalar los que te
            falten. Y como las terminales son reales, dentro puedes ejecutar lo que
            quieras, incluidos tus propios scripts.</p>
       </details>
 
-      <details class="pregunta">
-        <summary>¿Es open source?</summary>
+      <details class="pregunta" name="faq">
+        <summary>¿Es open source?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <p>No, y conviene decirlo claro. El código está publicado entero y se puede
            leer, pero la licencia es propia: puedes instalarlo y usarlo, no
            redistribuirlo ni revenderlo. Código a la vista, que no es lo mismo que
            software libre.</p>
       </details>
 
-      <details class="pregunta">
-        <summary>¿Por qué Windows me avisa al instalar?</summary>
+      <details class="pregunta" name="faq">
+        <summary>¿Por qué Windows me avisa al instalar?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <p>Porque el instalador todavía no tiene certificado de editor, y SmartScreen
            desconfía por defecto de lo que se ha descargado poco. Las actualizaciones
            sí van firmadas y las verifica la app. Antes de ejecutar nada, comprueba
            que el archivo viene de nuestra página de versiones en GitHub.</p>
       </details>
 
-      <details class="pregunta">
-        <summary>¿Hay versión para macOS o Linux?</summary>
+      <details class="pregunta" name="faq">
+        <summary>¿Hay versión para macOS o Linux?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <p>Linux sí: cada versión publica su paquete. macOS todavía no.</p>
       </details>
 
-      <details class="pregunta">
-        <summary>¿Cuánto ocupa y cuánto consume?</summary>
+      <details class="pregunta" name="faq">
+        <summary>¿Cuánto ocupa y cuánto consume?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <p>El instalador ronda los 5 MB. Es una aplicación nativa hecha con Tauri, no
            lleva un navegador entero empaquetado dentro, así que arranca al instante
            y en reposo casi no se nota. Lo demás será lo que consuman tus agentes,
            que es lo que ya consumen.</p>
       </details>
 
-      <details class="pregunta">
-        <summary>¿Mis datos salen del ordenador?</summary>
+      <details class="pregunta" name="faq">
+        <summary>¿Mis datos salen del ordenador?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <p>Solo lo que ya salía por tu CLI. Adeorq lee archivos locales para enseñarte
            tus proyectos y tus sesiones, y pregunta si hay una versión nueva. Nada más.</p>
       </details>
@@ -785,6 +787,7 @@
 </footer>
 
 <script type="module" src="./portada/portada.js"></script>
+<script type="module" src="./portada/movimiento.js"></script>
 <script src="./portada/valvula.js" defer></script>
 <script src="./portada/datos.js" defer></script>
 </body>

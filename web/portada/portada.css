@@ -79,21 +79,53 @@ body {
   border-bottom: 1px solid transparent;
 }
 .nav[data-pegada] {
-  background: rgba(5, 8, 14, .72);
+  background: rgba(5, 8, 14, .78);
   backdrop-filter: saturate(150%) blur(14px);
   border-bottom-color: var(--p-linea);
+  /* Se estrecha al bajar: la barra deja de ser el hueco vacio de la captura y
+     devuelve unos pixeles de pantalla justo cuando hacen falta. */
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
+.nav { transition: background .25s ease, backdrop-filter .25s ease,
+                   border-color .25s ease, padding .25s ease; }
 .nav__marca { display: inline-flex; align-items: center; gap: 9px; font-size: 17px; }
 .nav__marca img { width: 21px; height: 21px; display: block; }
 .nav__marca b { font-weight: 650; letter-spacing: -.01em; }
 
 .nav__enlaces { display: flex; gap: 26px; margin-left: 14px; }
 .nav__enlaces a {
+  position: relative;
   color: var(--p-suave);
   font-size: 14.5px;
+  padding: 6px 0;
   transition: color .15s ease;
 }
-.nav__enlaces a:hover { color: var(--p-texto); }
+/* Subrayado que crece desde el centro al pasar por encima, y que se queda
+   puesto en la seccion que se esta mirando. Es `transform: scaleX`, no un
+   `width`, para que no vuelva a calcular la maqueta en cada fotograma. */
+.nav__enlaces a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--p-acento);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform .26s cubic-bezier(.4, 0, .2, 1);
+}
+.nav__enlaces a:hover, .nav__enlaces a:focus-visible { color: var(--p-texto); }
+.nav__enlaces a:hover::after, .nav__enlaces a:focus-visible::after { transform: scaleX(1); }
+
+/* La seccion que se esta leyendo. La marca nav.js con un observador. */
+.nav__enlaces a[aria-current="true"] { color: var(--p-texto); }
+.nav__enlaces a[aria-current="true"]::after { transform: scaleX(1); opacity: .55; }
+
+.nav__gh { position: relative; transition: color .15s ease; }
+.nav__gh:hover { color: var(--p-texto); }
 
 .nav__acciones { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 .nav__gh { color: var(--p-suave); font-size: 14.5px; }
@@ -123,7 +155,41 @@ body {
   box-shadow: 0 0 0 1px rgba(255,255,255,.5),
               0 0 44px 8px rgba(120, 180, 255, calc(.40 * var(--motion-gain) + .12));
 }
-.btn--claro:hover { transform: translateY(-1px); }
+/* El brillo SIGUE al puntero. Las coordenadas las pone botones.js en
+   `--raton-x` / `--raton-y`, y aqui solo se pintan: asi el efecto es una capa de
+   CSS y no un repintado por cada movimiento del raton.
+
+   Este movimiento NO se multiplica por --motion-gain: lo provoca la persona con
+   su propia mano, y el dial solo encoge lo que se mueve sin que nadie lo pida
+   (parallax, reveals, la cinta). Un boton que no responde al puntero no es
+   sobriedad, es un boton roto. */
+.btn { position: relative; overflow: hidden; isolation: isolate; }
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity .22s ease;
+  background: radial-gradient(
+    120px circle at var(--raton-x, 50%) var(--raton-y, 50%),
+    rgba(255, 255, 255, .55), transparent 62%);
+}
+.btn--claro::before {
+  background: radial-gradient(
+    130px circle at var(--raton-x, 50%) var(--raton-y, 50%),
+    rgba(120, 180, 255, .40), transparent 60%);
+}
+.btn:hover::before, .btn:focus-visible::before { opacity: 1; }
+
+.btn--claro:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.62),
+              0 0 56px 10px rgba(120, 180, 255, calc(.52 * var(--motion-gain) + .16));
+}
+.btn--claro:active { transform: translateY(0); transition-duration: .06s; }
+.btn--fantasma:hover { transform: translateY(-2px); }
+.btn--fantasma:active { transform: translateY(0); transition-duration: .06s; }
 .btn--claro em { font-style: normal; font-size: 12.5px; opacity: .62; font-weight: 500; }
 
 .btn--fantasma {
@@ -132,6 +198,41 @@ body {
   background: rgba(255,255,255,.02);
 }
 .btn--fantasma:hover { background: rgba(255,255,255,.06); }
+
+
+/* ========================= APARECER AL ENTRAR ============================= */
+
+/* La pieza YA esta en el HTML con su texto: esto solo la trae desde un poco mas
+   abajo. Si el JavaScript no llega a marcarla, `data-aparece` sin valor sigue
+   escondiendola, asi que la regla de seguridad va primero: sin JS, todo visible.
+   Se hace con :where() para no subir la especificidad y no pisar nada. */
+@media (scripting: none) {
+  [data-aparece] { opacity: 1 !important; transform: none !important; }
+}
+[data-aparece] {
+  opacity: 0;
+  /* El recorrido se multiplica por el dial: con motion=off vale 0 y la pieza
+     solo se funde, que es exactamente el modo sobrio sin escribir otra version. */
+  transform: translate3d(0, calc(22px * var(--motion-gain)), 0);
+  transition:
+    opacity calc(.6s / max(var(--motion-gain), .3)) cubic-bezier(.2, .6, .2, 1),
+    transform calc(.7s / max(var(--motion-gain), .3)) cubic-bezier(.2, .6, .2, 1);
+}
+[data-aparece="visto"] { opacity: 1; transform: translate3d(0, 0, 0); }
+
+/* Escalonado: los hijos de una lista entran uno detras de otro en vez de todos
+   de golpe. Seis pasos bastan; del septimo en adelante repiten el ultimo. */
+[data-aparece] > :nth-child(1) { transition-delay: calc(0ms * var(--motion-gain)); }
+[data-aparece] > :nth-child(2) { transition-delay: calc(60ms * var(--motion-gain)); }
+[data-aparece] > :nth-child(3) { transition-delay: calc(120ms * var(--motion-gain)); }
+[data-aparece] > :nth-child(4) { transition-delay: calc(180ms * var(--motion-gain)); }
+[data-aparece] > :nth-child(5) { transition-delay: calc(240ms * var(--motion-gain)); }
+[data-aparece] > :nth-child(n+6) { transition-delay: calc(300ms * var(--motion-gain)); }
+
+/* Las capas de parallax las mueve movimiento.js con transform. Aqui solo se les
+   dice al navegador que van a moverse, y nada mas: `will-change` de mas gasta
+   memoria de video en balde. */
+[data-parallax] { will-change: transform; }
 
 /* ============================== EL HAZ ==================================== */
 
@@ -987,35 +1088,91 @@ body {
   max-width: 1320px;
   margin: 0 auto;
   padding: 0 clamp(18px, 4vw, 54px);
+  /* Dos columnas: el rotulo a la izquierda y las preguntas a la derecha. A una
+     sola columna con `max-width` la lista se quedaba en la mitad izquierda de
+     una pantalla ancha y la derecha entera vacia. Es el mismo reparto que ya
+     usa el pie (.pie__caja), asi que no se inventa una reticula nueva. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: clamp(24px, 5vw, 76px);
+  align-items: start;
 }
-.faq__lista { border-top: 1px solid var(--p-linea); max-width: 82ch; }
+/* El rotulo se queda a la vista mientras se recorren las preguntas. */
+.faq__rotulo { position: sticky; top: clamp(80px, 12vh, 120px); }
+.faq__rotulo .seccion__tit { margin-bottom: 0; }
 
-/* `<details>` nativo y no un acordeón de JavaScript: se abre sin scripts, el
-   teclado lo maneja solo y el buscador del navegador encuentra dentro. */
-.pregunta { border-bottom: 1px solid var(--p-linea); }
+/* Por debajo de tablet no hay sitio para dos columnas: el rotulo vuelve arriba
+   y las preguntas ocupan el ancho entero. */
+@media (max-width: 860px) {
+  .faq__caja { grid-template-columns: 1fr; gap: 26px; }
+  .faq__rotulo { position: static; }
+}
+
+.faq__lista { border-top: 1px solid var(--p-linea); }
+
+/* `<details>` nativo y no un acordeon de JavaScript: se abre sin scripts, el
+   teclado lo maneja solo, el buscador del navegador encuentra dentro, y el
+   texto de las respuestas esta en el HTML servido, que es de donde salen las
+   preguntas del JSON-LD y lo unico que leen los asistentes de IA. Un acordeon
+   de React que monta el contenido al abrir se lleva por delante las tres cosas.
+
+   Lo que si se le pide prestado a un acordeon moderno es el gesto: el signo se
+   sustituye por una punta de flecha que gira, y la respuesta entra deslizando
+   en vez de aparecer de golpe. */
+.pregunta {
+  border-bottom: 1px solid var(--p-linea);
+  /* Deja que `height: auto` se pueda animar. Donde no exista, la respuesta
+     abre de golpe igual que antes: se pierde el deslizamiento, no el
+     contenido. */
+  interpolate-size: allow-keywords;
+}
 .pregunta summary {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   padding: 20px 0;
   cursor: pointer;
   list-style: none;
   font-size: clamp(1.02rem, .98rem + .35vw, 1.16rem);
   font-weight: 600;
   color: var(--p-texto);
+  transition: color .18s ease;
 }
 .pregunta summary::-webkit-details-marker { display: none; }
-.pregunta summary::after {
-  content: "+";
+
+/* La punta de flecha. Dibujada en CSS y no como SVG suelto para que herede el
+   color del texto y no haya que repetir el mismo icono ocho veces en el HTML. */
+.pregunta__flecha {
   margin-left: auto;
-  font-family: var(--p-mono);
-  font-size: 18px;
-  font-weight: 400;
+  flex: none;
+  width: 18px;
+  height: 18px;
   color: var(--p-tenue);
-  transition: transform .18s ease, color .18s ease;
+  transition: transform .32s cubic-bezier(.4, 0, .2, 1), color .18s ease;
 }
-.pregunta[open] summary::after { content: "−"; color: var(--p-acento); }
+.pregunta[open] .pregunta__flecha { transform: rotate(180deg); color: var(--p-acento); }
 .pregunta summary:hover { color: #fff; }
+.pregunta summary:hover .pregunta__flecha { color: var(--p-suave); }
+.pregunta summary:focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* La respuesta desliza al abrir. `allow-discrete` es lo que hace que
+   `content-visibility` espere a que termine la animacion en vez de cortarla en
+   seco, que es el motivo por el que un `<details>` normal no se puede animar. */
+.pregunta::details-content {
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    height calc(.34s / max(var(--motion-gain), .35)) cubic-bezier(.4, 0, .2, 1),
+    opacity calc(.28s / max(var(--motion-gain), .35)) ease,
+    content-visibility calc(.34s / max(var(--motion-gain), .35)) allow-discrete;
+}
+.pregunta[open]::details-content { height: auto; opacity: 1; }
+
 .pregunta p {
   margin: 0;
   padding: 0 0 22px;

@@ -15,6 +15,7 @@
  */
 
 import { readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
@@ -22,6 +23,22 @@ const AQUI = dirname(fileURLToPath(import.meta.url))
 const WEB = resolve(AQUI, '..')
 
 const SITIO = 'https://adeorq.com'
+
+/**
+ * La tarjeta social, con la huella de su contenido detras. Sin esto, cambiar el
+ * dibujo no cambia la URL, y el borde de Cloudflare sirve el anterior durante un
+ * ano entero: las respuestas de /assets/ se marcan `immutable`. Paso el
+ * 2026-08-21 con la version equivocada de esta misma imagen.
+ */
+function tarjeta() {
+  try {
+    const huella = createHash('sha256').update(readFileSync(resolve(WEB, 'assets/og.png'))).digest('hex').slice(0, 8)
+    return `${SITIO}/assets/og.png?v=${huella}`
+  } catch {
+    // Sin imagen no se anuncia ninguna: una og:image rota se ve peor que ninguna.
+    return null
+  }
+}
 const INICIO = '<!-- METADATOS:INICIO (los escribe scripts/poner-metadatos.mjs, no editar a mano) -->'
 const FIN = '<!-- METADATOS:FIN -->'
 
@@ -77,6 +94,8 @@ function preguntasDe(html) {
     .filter((p) => p.pregunta && p.respuesta)
 }
 
+const IMAGEN = tarjeta()
+
 /** El bloque de cabecera de una pagina. */
 function metadatos(pagina, extras) {
   const abs = SITIO + pagina.url
@@ -100,15 +119,19 @@ function metadatos(pagina, extras) {
     `<meta property="og:url" content="${abs}">`,
     `<meta property="og:title" content="${pagina.titulo}">`,
     `<meta property="og:description" content="${pagina.descripcion}">`,
-    `<meta property="og:image" content="${SITIO}/assets/og.png">`,
-    '<meta property="og:image:width" content="1200">',
-    '<meta property="og:image:height" content="630">',
-    '<meta property="og:image:alt" content="Adeorq: all your agents, one single screen">',
+    ...(IMAGEN
+      ? [
+          `<meta property="og:image" content="${IMAGEN}">`,
+          '<meta property="og:image:width" content="1200">',
+          '<meta property="og:image:height" content="630">',
+          '<meta property="og:image:alt" content="Adeorq: all your agents, one single screen">',
+        ]
+      : []),
     '',
-    '<meta name="twitter:card" content="summary_large_image">',
+    `<meta name="twitter:card" content="${IMAGEN ? 'summary_large_image' : 'summary'}">`,
     `<meta name="twitter:title" content="${pagina.titulo}">`,
     `<meta name="twitter:description" content="${pagina.descripcion}">`,
-    `<meta name="twitter:image" content="${SITIO}/assets/og.png">`,
+    ...(IMAGEN ? [`<meta name="twitter:image" content="${IMAGEN}">`] : []),
     ...extras,
     FIN,
   ].join('\n')
@@ -142,7 +165,7 @@ function jsonLdPortada(preguntas) {
       author: { '@id': `${SITIO}/#autor` },
       downloadUrl: 'https://github.com/Mun1to/Adeorq-releases/releases/latest',
       softwareHelp: `${SITIO}/guia`,
-      screenshot: `${SITIO}/assets/og.png`,
+      screenshot: IMAGEN,
       description:
         'Panel de escritorio que ejecuta clientes de agente de IA en terminales reales: ' +
         'Claude Code, Codex, Gemini CLI, Copilot, Cursor y otros, en una sola ventana.',

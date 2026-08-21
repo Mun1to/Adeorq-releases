@@ -533,8 +533,8 @@ const EN: Record<string, string> = {
   "Que decida Adeorq": "Let Adeorq decide",
   "De fábrica decide Adeorq, mirando lo que exige cada tarea: un renombrado va en haiku y una auditoría en opus. Aquí puedes fijar uno para todo, si prefieres gastar de otra manera. Dos cosas que sigue haciendo igual: la cuota manda (con la semana agotada se abarata lo que se pueda), y una tarea de juicio NO se abarata nunca, porque un ajuste que se pone una vez no puede decidir meses después que una auditoría de seguridad se haga con el modelo barato.":
     "Out of the box Adeorq decides, looking at what each job demands: a rename goes to haiku, an audit to opus. Here you can pin one for everything, if you would rather spend differently. Two things stay the same: quota rules (with the week spent, whatever can be made cheaper is), and a judgement job is NEVER made cheaper, because a setting you pin once cannot decide months later that a security audit runs on the cheap model.",
-  "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido con TRES terminales: dibujarlo se lleva dos tercios de un núcleo, sin parar. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.":
-    "Less glass and solid terminals, for when you have several agents working at once. Adeorq stacks thirty glass surfaces over your photo and the terminals are transparent so you can see it: that is the pretty part and that is the expensive part. Measured with THREE terminals: drawing it eats two thirds of a core, non-stop. It changes nothing about what Adeorq does, only what it spends painting it.",
+  "Menos cristal y terminales sólidas, para cuando tengas varios agentes trabajando a la vez. El hilo de luz de las sesiones NO se apaga con esto: cuesta cuatro décimas de fotograma con doce filas girando, medido, y es lo único que distingue quién está escribiendo. Adeorq apila treinta capas de cristal sobre tu foto y las terminales son transparentes para dejarla ver: eso es lo bonito y es lo que cuesta. Medido con TRES terminales: dibujarlo se lleva dos tercios de un núcleo, sin parar. No cambia nada de lo que Adeorq hace, solo lo que gasta en pintarlo.":
+    "Less glass and solid terminals, for when you have several agents working at once. The thread of light on sessions is NOT switched off by this: it costs four tenths of a frame with twelve rows spinning, measured, and it is the only thing that tells you who is writing. Adeorq stacks thirty glass surfaces over your photo and the terminals are transparent so you can see it: that is the pretty part and that is the expensive part. Measured with THREE terminals: drawing it eats two thirds of a core, non-stop. It changes nothing about what Adeorq does, only what it spends painting it.",
   // Los tres modos del rendimiento, desde que dejó de ser un sí/no (2026-08-09).
   // «Automático» a secas ya vive con los modos de permisos, así que no se repite.
   "Siempre bonita": "Always pretty",
@@ -748,6 +748,10 @@ const EN: Record<string, string> = {
   "El color de las terminales": "The colour of the terminals",
   "Buscar un tema": "Search themes",
   "Buscar en esta terminal": "Search in this terminal",
+  "Ahora mismo está puesto: {n} terminales abiertas.":
+    "It is on right now: {n} terminals open.",
+  "Ahora mismo NO está puesto: {n} terminales abiertas.":
+    "It is NOT on right now: {n} terminals open.",
   "Anterior (Mayús+Intro)": "Previous (Shift+Enter)",
   "Siguiente (Intro)": "Next (Enter)",
   "Cerrar (Esc)": "Close (Esc)",

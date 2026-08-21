@@ -1,123 +1,187 @@
-Licencia de uso de Adeorq
-=========================
+Required Notice: Copyright (c) 2026 Munir Torres Athayde (https://adeorq.com)
 
-Copyright (c) 2026 Munir Torres Athayde. Todos los derechos reservados.
+Licensor Line of Business: Adeorq, panel de escritorio para trabajar con
+clientes de agente de IA en terminales reales (https://adeorq.com)
 
-Adeorq no es software libre. Este documento explica qué puedes hacer con los
-binarios Y CON EL CÓDIGO FUENTE que se publican en este repositorio. Está
-escrito para leerse.
+Adeorq se publica bajo la PolyForm Shield License 1.0.0, cuyo texto oficial es
+todo lo que sigue y no se ha cambiado ni una coma. En corto, y esto NO sustituye
+al texto: puedes usar Adeorq para lo que quieras, incluido tu trabajo y el de tu
+empresa; puedes leer el codigo, estudiarlo, auditarlo, modificarlo, compilarlo y
+distribuirlo. Lo unico que no puedes es usarlo para ofrecer un producto que
+COMPITA con Adeorq, y la propia licencia aclara que competir incluye regalarlo, y
+que vender algo como sustituto practico de Adeorq compite sin discusion.
 
-El código está a la vista a propósito: Adeorq lee tus sesiones de agente, y a un
-programa que hace eso no se le puede pedir confianza a ciegas. Poder leerlo y
-compilarlo es la respuesta a «¿qué hace este binario con mis conversaciones?».
-Eso NO lo convierte en código abierto: código a la vista y código libre son dos
-cosas distintas, y esta licencia es de las primeras.
+Dicho al reves, que es como se pregunta: no se puede vender Adeorq, ni una
+version modificada suya, ni cobrar por darle acceso a otros. Vender el trabajo
+que TU hagas usando Adeorq si es cosa tuya.
 
+Los avisos sobre marcas de terceros y sobre las cuentas de los proveedores de IA
+estan en NOTICE.md. Los componentes de software libre que Adeorq incorpora
+conservan cada uno su propia licencia, recogidas en THIRD-PARTY-NOTICES.md.
 
-1. Qué se te permite
---------------------
+-------------------------------------------------------------------------------
 
-Puedes descargar Adeorq, instalarlo en los ordenadores que uses y utilizarlo
-para trabajar, sea para ti o para tu empresa. No hay límite de puestos ni de
-tiempo, y no hace falta pedir permiso.
+# PolyForm Shield License 1.0.0
 
-Puedes leer el código entero, estudiarlo, auditarlo y compilarlo tú mismo para
-usar el resultado en tus propios ordenadores, con los mismos límites que si lo
-hubieras descargado ya compilado.
+<https://polyformproject.org/licenses/shield/1.0.0>
 
-Puedes hablar de Adeorq, enseñarlo, escribir sobre él, grabar vídeo usándolo y
-enlazar a este repositorio. Puedes citar fragmentos del código para comentarlo,
-reseñarlo, enseñar con él o reportar un fallo.
+## Acceptance
 
+In order to get any license under these terms, you must agree
+to them as both strict obligations and conditions to all
+your licenses.
 
-2. Qué no se te permite
------------------------
+## Copyright License
 
-No puedes COMERCIAR con Adeorq de ninguna forma: ni venderlo, ni alquilarlo, ni
-sublicenciarlo, ni cobrar por darle acceso a otros, ni ofrecerlo como servicio,
-ni incluirlo en un producto o en un paquete por el que cobres, ni cobrar por
-instalarlo o por darle soporte. Esto vale igual para el programa ya compilado y
-para el código fuente, entero o por partes, tal cual o modificado. Vender el
-trabajo que TÚ hagas usando Adeorq sí es cosa tuya: lo que no se vende es
-Adeorq.
+The licensor grants you a copyright license for the
+software to do everything you might do with the software
+that would otherwise infringe the licensor's copyright
+in it for any permitted purpose.  However, you may
+only distribute the software according to [Distribution
+License](#distribution-license) and make changes or new works
+based on the software according to [Changes and New Works
+License](#changes-and-new-works-license).
 
-No puedes redistribuir el instalador ni sus archivos por tu cuenta: quien lo
-quiera, que lo descargue de aquí. Esto es para que nadie acabe instalando una
-copia modificada creyendo que es la original.
+## Distribution License
 
-No puedes publicar, distribuir ni poner a disposición de nadie el código fuente
-ni ninguna obra derivada de él, ni siquiera gratis. Bifurcar el repositorio
-dentro de GitHub para proponer un cambio o guardar tu copia sí está permitido,
-porque es como funciona esa plataforma; lo que no está permitido es publicarlo
-en otro sitio ni presentarlo como un proyecto propio.
+The licensor grants you an additional copyright license
+to distribute copies of the software.  Your license
+to distribute covers distributing the software with
+changes and new works permitted by [Changes and New Works
+License](#changes-and-new-works-license).
 
-No puedes reutilizar el código, ni completo ni a trozos, dentro de otro
-programa, tuyo o de un tercero.
+## Notices
 
-No puedes entrenar modelos de inteligencia artificial con este código ni con la
-documentación de este repositorio.
+You must ensure that anyone who gets a copy of any part of
+the software from you also gets a copy of these terms or the
+URL for them above, as well as copies of any plain-text lines
+beginning with `Required Notice:` that the licensor provided
+with the software.  For example:
 
-No puedes descompilar ni desensamblar los binarios, salvo en la medida en que la
-ley aplicable te lo permita expresamente pese a esta prohibición. La ingeniería
-inversa no hace falta prohibirla: el código está publicado, léelo.
+> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
 
-No puedes quitar ni tapar los avisos de autoría, ni presentarlo como propio.
+## Changes and New Works License
 
-Si algo de lo que quieres hacer no encaja aquí, pregunta antes: el autor puede
-darte permiso por escrito, y esa es la única forma de tenerlo.
+The licensor grants you an additional copyright license to
+make changes and new works based on the software for any
+permitted purpose.
 
+## Patent License
 
-3. De quién es
---------------
+The licensor grants you a patent license for the software that
+covers patent claims the licensor can license, or becomes able
+to license, that you would infringe by using the software.
 
-Adeorq es propiedad de su autor. Instalarlo no te transfiere ninguna propiedad
-sobre él: solo el permiso de uso descrito arriba.
+## Noncompete
 
+Any purpose is a permitted purpose, except for providing any
+product that competes with the software or any product the
+licensor or any of its affiliates provides using the software.
 
-4. Software de terceros
------------------------
+## Competition
 
-Adeorq incorpora componentes de software libre escritos por otras personas,
-cada uno bajo su propia licencia (MIT, Apache-2.0, ISC, BSD y MPL-2.0). Esas
-licencias mandan sobre esos componentes, y esta no las sustituye.
+Goods and services compete even when they provide functionality
+through different kinds of interfaces or for different technical
+platforms.  Applications can compete with services, libraries
+with plugins, frameworks with development tools, and so on,
+even if they're written in different programming languages
+or for different computer architectures.  Goods and services
+compete even when provided free of charge.  If you market a
+product as a practical substitute for the software or another
+product, it definitely competes.
 
-La lista completa, con sus avisos de copyright, está en THIRD-PARTY-NOTICES.md,
-en este mismo repositorio.
+## New Products
 
+If you are using the software to provide a product that does
+not compete, but the licensor or any of its affiliates brings
+your product into competition by providing a new version of
+the software or another product using the software, you may
+continue using versions of the software available under these
+terms beforehand to provide your competing product, but not
+any later versions.
 
-5. Cuentas de otros proveedores
--------------------------------
+## Discontinued Products
 
-Adeorq es un panel que se maneja sobre programas de línea de comandos que ya
-tienes instalados. Funciona con TUS cuentas y TUS suscripciones: no incluye ni
-proporciona acceso a ningún modelo de inteligencia artificial, ni revende ese
-acceso. Lo que hagas con esas cuentas se rige por los términos de cada
-proveedor, no por esta licencia.
+You may begin using the software to compete with a product
+or service that the licensor or any of its affiliates has
+stopped providing, unless the licensor includes a plain-text
+line beginning with `Licensor Line of Business:` with the
+software that mentions that line of business.  For example:
 
-Adeorq no está afiliado, patrocinado ni respaldado por Anthropic, OpenAI,
-Google, Microsoft ni ninguna otra empresa cuyos productos pueda utilizar. Sus
-nombres y logotipos son marcas de sus respectivos titulares y aquí solo se usan
-para identificar con qué herramienta estás trabajando.
+> Licensor Line of Business: YoyodyneCMS Content Management
+System (http://example.com/cms)
 
+## Sales of Business
 
-6. Sin garantía
----------------
+If the licensor or any of its affiliates sells a line of
+business developing the software or using the software
+to provide a product, the buyer can also enforce
+[Noncompete](#noncompete) for that product.
 
-Adeorq se entrega tal cual, sin garantía de ningún tipo, expresa o implícita,
-incluidas las de comerciabilidad, idoneidad para un fin concreto y no
-infracción. En la medida en que lo permita la ley aplicable, el autor no
-responde de ningún daño derivado del uso o de la imposibilidad de uso del
-programa.
+## Fair Use
 
-Adeorq ejecuta procesos y escribe en tus archivos porque para eso sirve. Haz
-copias de seguridad de tu trabajo, como con cualquier otra herramienta.
+You may have "fair use" rights for the software under the
+law. These terms do not limit them.
 
+## No Other Rights
 
-7. Ley aplicable
-----------------
+These terms do not allow you to sublicense or transfer any of
+your licenses to anyone else, or prevent the licensor from
+granting licenses to anyone else.  These terms do not imply
+any other licenses.
 
-Esta licencia se rige por la ley española. Nada en ella limita los derechos
-que la normativa de consumo te reconozca de forma imperativa.
+## Patent Defense
 
+If you make any written claim that the software infringes or
+contributes to infringement of any patent, your patent license
+for the software granted under these terms ends immediately. If
+your company makes such a claim, your patent license ends
+immediately for work on behalf of your company.
 
-Contacto: https://github.com/Mun1to/Adeorq-releases/issues
+## Violations
+
+The first time you are notified in writing that you have
+violated any of these terms, or done anything with the software
+not covered by your licenses, your licenses can nonetheless
+continue if you come into full compliance with these terms,
+and take practical steps to correct past violations, within
+32 days of receiving notice.  Otherwise, all your licenses
+end immediately.
+
+## No Liability
+
+***As far as the law allows, the software comes as is, without
+any warranty or condition, and the licensor will not be liable
+to you for any damages arising out of these terms or the use
+or nature of the software, under any kind of legal claim.***
+
+## Definitions
+
+The **licensor** is the individual or entity offering these
+terms, and the **software** is the software the licensor makes
+available under these terms.
+
+A **product** can be a good or service, or a combination
+of them.
+
+**You** refers to the individual or entity agreeing to these
+terms.
+
+**Your company** is any legal entity, sole proprietorship,
+or other kind of organization that you work for, plus all
+its affiliates.
+
+**Affiliates** means the other organizations than an
+organization has control over, is under the control of, or is
+under common control with.
+
+**Control** means ownership of substantially all the assets of
+an entity, or the power to direct its management and policies
+by vote, contract, or otherwise.  Control can be direct or
+indirect.
+
+**Your licenses** are all the licenses granted to you for the
+software under these terms.
+
+**Use** means anything you do with the software requiring one
+of your licenses.

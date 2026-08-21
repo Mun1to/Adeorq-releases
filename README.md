@@ -140,23 +140,24 @@ whatever you use. It is the same prompt in every public repository here, so you 
 
 ## Licence
 
-**The source is visible. That does not make it free software.**
+**[PolyForm Shield License 1.0.0](LICENSE)** — an off-the-shelf licence written by
+lawyers, not a bespoke EULA.
 
-You may install and use Adeorq freely, for yourself or for your company, and you may read,
-study, audit and compile this code for your own machines.
+You may do **anything** with Adeorq, including using it for your work and your
+company's: read the source, study it, audit it, modify it, compile it, fork it and
+distribute it. The one thing you may not do is use it to provide a product that
+**competes** with Adeorq. The licence spells out that competing includes giving it
+away free, and that marketing something as a practical substitute for Adeorq
+"definitely competes".
 
-What you may **not** do is **trade in Adeorq in any form**: no selling, renting,
-sublicensing, charging for access, offering it as a service, bundling it into anything you
-charge for, or charging to install or support it. That applies to the compiled program and to
-the source alike, whole or in parts, as is or modified. You may not publish the source or any
-derived work anywhere, not even for free, and you may not reuse the code inside another
-program. Selling the work YOU do with Adeorq is your business: what is not for sale is
-Adeorq.
+Put the way people actually ask it: **you cannot sell Adeorq**, nor a modified
+version of it, nor charge others for access to it. Selling the work YOU do with
+Adeorq is your business.
 
-It is all spelled out in [`LICENSE`](LICENSE) (in Spanish, in plain language).
-
-Third-party components keep their own licences, with every copyright notice collected in
+Trademark and AI-provider notices are in [`NOTICE.md`](NOTICE.md). Third-party
+components keep their own licences, with every copyright notice collected in
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+
 
 ## Built on
 

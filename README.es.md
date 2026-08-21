@@ -142,23 +142,25 @@ whatever you use. It is the same prompt in every public repository here, so you 
 
 ## Licencia
 
-**El código está a la vista. Eso no lo hace software libre.**
+**[PolyForm Shield License 1.0.0](LICENSE)** — una licencia de catálogo escrita
+por abogados, no un EULA a medida.
 
-Puedes instalar Adeorq y usarlo libremente, para ti o para tu empresa, y puedes leer,
-estudiar, auditar y compilar este código para tus propios ordenadores.
+Puedes hacer **cualquier cosa** con Adeorq, incluido usarlo para tu trabajo y el
+de tu empresa: leer el código, estudiarlo, auditarlo, modificarlo, compilarlo,
+bifurcarlo y distribuirlo. Lo único que no puedes es usarlo para ofrecer un
+producto que **compita** con Adeorq. La licencia aclara que competir incluye
+regalarlo, y que vender algo como sustituto práctico de Adeorq compite sin
+discusión.
 
-Lo que **no** puedes es **comerciar con Adeorq de ninguna forma**: ni venderlo, ni alquilarlo,
-ni sublicenciarlo, ni cobrar por darle acceso a otros, ni ofrecerlo como servicio, ni
-incluirlo en nada por lo que cobres, ni cobrar por instalarlo o por darle soporte. Vale igual
-para el programa compilado y para el código, entero o por partes, tal cual o modificado.
-Tampoco puedes publicar el código ni una obra derivada en ninguna parte, ni siquiera gratis,
-ni reutilizarlo dentro de otro programa. Vender el trabajo que TÚ hagas usando Adeorq sí es
-cosa tuya: lo que no se vende es Adeorq.
+Dicho como se pregunta de verdad: **no puedes vender Adeorq**, ni una versión
+modificada suya, ni cobrar por darle acceso a otros. Vender el trabajo que TÚ
+hagas usando Adeorq sí es cosa tuya.
 
-Está todo explicado, y en castellano legible, en [`LICENSE`](LICENSE).
+Los avisos sobre marcas y sobre las cuentas de los proveedores de IA están en
+[`NOTICE.md`](NOTICE.md). Los componentes de terceros conservan sus propias
+licencias, con sus avisos de copyright recogidos en
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
-Los componentes de terceros que incorpora conservan sus propias licencias, con sus avisos de
-copyright recogidos en [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 ## Construido sobre
 

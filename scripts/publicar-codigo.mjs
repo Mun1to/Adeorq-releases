@@ -114,10 +114,15 @@ console.log(`Publicando el código de la ${version}\n`);
  * y `perf`, que son los que cuentan algo a quien mira desde fuera; `chore`,
  * `docs` y los propios `release` se caen solos.
  */
-function queTrae() {
+function queTrae(desde) {
   let lineas = [];
   try {
-    lineas = git(["log", "--pretty=%s", "-80"], raiz).split("\n");
+    /* Con `desde`, solo lo que ha entrado DESPUÉS de la última publicación.
+       Sin él (la primera vez), los últimos 80 y que el bucle de abajo pare
+       donde toca. */
+    lineas = desde
+      ? git(["log", "--pretty=%s", `${desde}..HEAD`], raiz).split("\n")
+      : git(["log", "--pretty=%s", "-80"], raiz).split("\n");
   } catch {
     return { titulo: "", cuerpo: "" };
   }
@@ -137,7 +142,24 @@ function queTrae() {
     const m = s.match(/^(feat|fix|perf)(\([^)]*\))?:\s*(.+)$/i);
     if (m) mios.push(m[3].trim());
   }
-  if (!mios.length) return { titulo: "", cuerpo: "" };
+  /* Si en el tramo no hay ningún `feat`, `fix` ni `perf`, esto no se calla: coge
+     el asunto más reciente sea del tipo que sea y le quita el prefijo. Un tramo
+     así existe de verdad (una publicación que solo cambia la licencia o la
+     documentación), y quedarse en «Adeorq 0.9.133» a secas por segunda vez es
+     justo el commit repetido que esto viene a evitar. */
+  if (!mios.length) {
+    /* Los `release:` se saltan aquí también, o el título saldría siendo el
+       número de versión que ya está delante: «Adeorq 0.9.134 — 0.9.134». Lo
+       cazó el simulacro, no el ojo. */
+    const primero = lineas
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .find((x) => !/^release:/i.test(x));
+    const m = (primero || "").match(/^[a-z]+(\([^)]*\))?:\s*(.+)$/i);
+    const suelto = (m ? m[2] : primero || "").trim();
+    if (!suelto) return { titulo: "", cuerpo: "" };
+    return { titulo: suelto.length > 72 ? `${suelto.slice(0, 69)}…` : suelto, cuerpo: "" };
+  }
   /* UNA frase, la del cambio más reciente, y el resto en el cuerpo.
      Encadenar tres da un título de tres renglones con dos «and» dentro, y la
      lista de commits de GitHub lo corta igual: lo que se lee de un vistazo es
@@ -218,14 +240,51 @@ try {
     console.log("El público ya está igual que esta versión: no hay nada que publicar.");
     process.exit(0);
   }
-  const trae = queTrae();
-  const mensaje = trae.titulo ? `Adeorq ${version} — ${trae.titulo}` : `Adeorq ${version}`;
-  git(
-    trae.cuerpo
-      ? ["commit", "-m", mensaje, "-m", trae.cuerpo]
-      : ["commit", "-m", mensaje],
-    publico,
-  );
+  /* DE DÓNDE SE CUENTA, y por qué no basta con el `release:` anterior.
+   *
+   * El público se publica una vez por versión casi siempre, pero no siempre:
+   * el 2026-08-21 salió la 0.9.133 y veinte minutos después se volvió a
+   * publicar con la licencia nueva, sin subir el número. Como el tramo se
+   * medía desde el `release:` anterior, las dos veces salió el mismo texto y
+   * en GitHub quedaron dos commits con el título calcado (Munir: «hay muchos
+   * commits con el nombre repetido»).
+   *
+   * Así que cada commit publicado deja escrito de qué commit privado salió, y
+   * el siguiente cuenta desde ahí. Con eso el mensaje dice siempre lo que ha
+   * cambiado DESDE LA ÚLTIMA VEZ, que es lo único que un lector quiere saber.
+   */
+  const cabezaPrivada = git(["rev-parse", "HEAD"], raiz).trim();
+  let desde = "";
+  try {
+    const ultimo = git(["log", "-1", "--pretty=%B"], publico);
+    const m = ultimo.match(/^Adeorq-origen:\s*([0-9a-f]{7,40})\s*$/m);
+    // Solo si ese commit sigue existiendo aquí: un historial reescrito, o un
+    // clon recién hecho, dejaría un sha que no resuelve y `git log` fallaría.
+    if (m) {
+      git(["cat-file", "-e", `${m[1]}^{commit}`], raiz);
+      desde = m[1];
+    }
+  } catch {
+    /* Público vacío, o el sha ya no está. Se cuenta como la primera vez. */
+  }
+
+  const trae = queTrae(desde);
+  let mensaje = trae.titulo ? `Adeorq ${version} — ${trae.titulo}` : `Adeorq ${version}`;
+
+  /* El cinturón, por si el tramo sale vacío igualmente: un título repetido es
+     peor que uno feo, porque en la lista de GitHub los dos commits se leen como
+     el mismo y nadie sabe cuál mirar. */
+  try {
+    const anterior = git(["log", "-1", "--pretty=%s"], publico).trim();
+    if (anterior === mensaje) mensaje = `${mensaje} (${cabezaPrivada.slice(0, 7)})`;
+  } catch {
+    /* No hay commit anterior: nada que repetir. */
+  }
+
+  const cuerpo = [trae.cuerpo, `Adeorq-origen: ${cabezaPrivada.slice(0, 12)}`]
+    .filter(Boolean)
+    .join("\n\n");
+  git(["commit", "-m", mensaje, "-m", cuerpo], publico);
 
   console.log(git(["show", "--stat", "--oneline", "HEAD"], publico));
   console.log(`

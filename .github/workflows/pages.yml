@@ -1,25 +1,24 @@
-# Publica la web de descargas en GitHub Pages.
+# GitHub Pages, que ahora solo REDIRIGE a adeorq.com.
 #
-# Antes esto era a mano y era el paso que más se rompía: clonar el repo público,
-# borrar a dedo lo que era web dejando `LICENSE` y los avisos, copiar el `dist/`,
-# rescatar con `git checkout` los dos archivos que el build no genera, y empujar.
-# Cinco pasos, y olvidar cualquiera dejaba la web anunciando la versión anterior.
+# Hasta el 2026-08-21 esto construía y publicaba la web entera en
+# `mun1to.github.io/Adeorq-releases`. Ya no: la web vive en Cloudflare Pages,
+# servida en el dominio propio, y la despliega `.github/workflows/web.yml`.
 #
-# Ahora la web se construye aquí y se despliega sola. Lo importante es el
-# disparador `release`: los datos de la página salen de la API de releases, así
-# que publicar una versión es lo que tiene que actualizarla, no un push.
+# Por qué redirigir en vez de apagar Pages: la dirección de GitHub lleva meses
+# publicada y puede estar enlazada en cualquier sitio. Apagarla deja 404 donde
+# antes había una web; redirigir la mantiene útil y de paso le dice al buscador
+# cuál es la buena, con el `canonical`.
+#
+# El día que nadie llegue por ahí, esto se borra entero y se desactiva Pages en
+# los ajustes del repositorio público.
 
-name: Web
+name: Pages (redirección)
 
 on:
   push:
     branches: [main]
     paths:
-      - "web/**"
       - ".github/workflows/pages.yml"
-  # Publicar una release actualiza la descarga y el changelog de la web.
-  release:
-    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -27,46 +26,49 @@ permissions:
   pages: write
   id-token: write
 
-# Ni dos despliegues a la vez ni cancelar el que ya está publicando: lo que se
-# descarta es lo que esté esperando en la cola.
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
   build:
-    # Este archivo viaja en los dos repositorios, y Pages solo existe en el
-    # público. Sin esta condición, cada push al privado arrancaría un despliegue
-    # que no tiene dónde aterrizar: fallaría, y encima gastando minutos.
+    # Pages solo existe en el repositorio público. Este archivo viaja en los dos.
     if: github.repository == 'Mun1to/Adeorq-releases'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Construir la web
-        working-directory: web
-        env:
-          # Sin token, la API de GitHub deja 60 peticiones por hora y por IP
-          # compartida entre todo el que use estos corredores. Con él, 1000.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Escribir la redirección
         run: |
-          pnpm data
-          pnpm build
+          mkdir -p sitio
+          cat > sitio/index.html <<'HTML'
+          <!doctype html>
+          <html lang="es">
+          <head>
+          <meta charset="utf-8">
+          <title>Adeorq</title>
+          <link rel="canonical" href="https://adeorq.com/">
+          <meta name="robots" content="noindex">
+          <meta http-equiv="refresh" content="0; url=https://adeorq.com/">
+          <style>
+            :root { color-scheme: dark }
+            body { margin:0; min-height:100vh; display:grid; place-items:center;
+                   background:#05080e; color:#b7c7e0;
+                   font:16px/1.6 "Segoe UI", system-ui, sans-serif; text-align:center }
+            a { color:#4d9fff }
+          </style>
+          </head>
+          <body>
+            <p>La web de Adeorq está ahora en <a href="https://adeorq.com/">adeorq.com</a>.</p>
+            <script>location.replace('https://adeorq.com/' + location.hash);</script>
+          </body>
+          </html>
+          HTML
+          # La misma página para cualquier ruta antigua: sin esto, un enlace a
+          # /Adeorq-releases/guia.html se queda en un 404 de GitHub.
+          cp sitio/index.html sitio/404.html
 
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: web/dist
+          path: sitio
 
   deploy:
     needs: build

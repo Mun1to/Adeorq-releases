@@ -54,10 +54,12 @@ import GuideView from "./GuideView";
 import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
 
-/** La documentación pública. Vive en el repo de descargas, que es el único
-    sitio público del proyecto: adeorq.com no está comprado. Apunta a la guía
-    directamente, no a la portada: quien pulsa "Ayuda" busca la guía. */
-const DOCS_URL = "https://mun1to.github.io/Adeorq-releases/guia.html";
+/** La documentación pública. Vive en adeorq.com, el sitio del proyecto desde
+    que el dominio se compró. Apunta a la guía directamente, no a la portada:
+    quien pulsa "Ayuda" busca la guía.
+    Exportada porque OpenRouterCard también enlaza aquí, a la sección de
+    Cuentas, para el aparte de vibecoding con Aider. */
+export const DOCS_URL = "https://adeorq.com/guia";
 
 /**
  * Las nueve pestañas, solo con lo que hace falta aquí: su clave y su nombre.
@@ -1009,7 +1011,6 @@ export default function SettingsView({
                     // app sola: 55 % de fondo normalmente y 80 % con foto.
                     onChange={(e) => onTerminalVer(e.currentTarget.checked ? -1 : 0)}
                   />
-                  <span className="setting-value">{terminalVer !== 0 ? t("sí") : t("no")}</span>
                 </label>
                 {terminalVer !== 0 && (
                   <>
@@ -1062,7 +1063,6 @@ export default function SettingsView({
                     checked={autoFont}
                     onChange={(e) => onAutoFont(e.currentTarget.checked)}
                   />
-                  <span className="setting-value">{autoFont ? t("sí") : t("no")}</span>
                 </label>
                 <label className="setting-row">
                   <span>{autoFont ? t("Tamaño máximo de la letra") : t("Tamaño de la letra")}</span>
@@ -1095,7 +1095,6 @@ export default function SettingsView({
                     checked={restore}
                     onChange={(e) => onRestore(e.currentTarget.checked)}
                   />
-                  <span className="setting-value">{restore ? t("sí") : t("no")}</span>
                 </label>
                 <label className="setting-row setting-switch">
                   <span>{t("Saltar a la sesión que termina, a pantalla completa")}</span>
@@ -1104,7 +1103,6 @@ export default function SettingsView({
                     checked={saltar}
                     onChange={(e) => onSaltar(e.currentTarget.checked)}
                   />
-                  <span className="setting-value">{saltar ? t("sí") : t("no")}</span>
                 </label>
                 <label className="setting-row setting-switch">
                   <span>{t("Arrancar Adeorq al encender el ordenador")}</span>
@@ -1114,9 +1112,7 @@ export default function SettingsView({
                     disabled={boot === null}
                     onChange={(e) => setBootTo(e.currentTarget.checked)}
                   />
-                  <span className="setting-value">
-                    {boot === null ? "…" : boot ? t("sí") : t("no")}
-                  </span>
+                  {boot === null && <span className="setting-value">…</span>}
                 </label>
                 {bootError && <p className="setting-line setting-bad">⚠ {bootError}</p>}
                 <p className="card-hint">
@@ -1395,7 +1391,6 @@ export default function SettingsView({
                     checked={discord.on}
                     onChange={(e) => onDiscord({ ...discord, on: e.currentTarget.checked })}
                   />
-                  <span className="setting-value">{discord.on ? t("sí") : t("no")}</span>
                 </label>
                 <label className="setting-row setting-switch">
                   <span>{t("Decir en qué proyecto estoy")}</span>
@@ -1406,9 +1401,6 @@ export default function SettingsView({
                       onDiscord({ ...discord, showProject: e.currentTarget.checked })
                     }
                   />
-                  <span className="setting-value">
-                    {discord.showProject ? t("sí") : t("no")}
-                  </span>
                 </label>
                 <p className="card-hint">
                   {t(

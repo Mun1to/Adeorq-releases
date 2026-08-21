@@ -1,0 +1,1022 @@
+/* ============================================================================
+   Adeorq · demo/piezas.css
+   LAS PIEZAS QUE LA APP NO PUEDE PRESTAR.
+
+   Casi toda la maqueta usa el CSS de verdad (ui.css, generado desde App.css).
+   Aqui solo va lo que en el programa no existe como CSS porque lo resuelve otra
+   cosa:
+
+     · La rejilla de terminales. En la app cada panel se coloca con coordenadas
+       que calcula el motor de reparto en JavaScript, asi que `.grid` no tiene
+       una rejilla que copiar; aqui es un grid de dos por dos y ya esta.
+     · Las lineas de la conversacion. En la app las pinta xterm dentro de un
+       canvas, donde no hay clases: son colores de un esquema. Estos son los del
+       tema de terminal de la casa.
+     · El selector de temas y los avisos, que aqui son de la maqueta.
+
+   Todo con prefijo `ade-` para que se vea de un vistazo que no es de la app.
+   ========================================================================= */
+
+/* ---------------------------- LA LUPA -------------------------------------
+   La maqueta calcula su distribucion a 1920x1080 SIEMPRE y luego se dibuja al
+   tamaño que quepa. No es un capricho: la app suelta los nombres de las
+   pestañas por debajo de 1700 px de ventana, encoge el riel y aprieta las
+   cabeceras, y todos esos umbrales estan medidos sobre una ventana de verdad.
+   Si la maqueta se distribuyera a su ancho real (unos 1500 px en una landing),
+   se pintaria como la app en una ventana pequeña: correcto, pero enseñando
+   MENOS de lo que la app enseña en el monitor de cualquiera.
+
+   Con `transform: scale` la distribucion se calcula a 1920 y solo el dibujo se
+   encoge, asi que lo que se ve es exactamente lo que veria alguien con la app
+   abierta a pantalla completa, en pequeño. El zoom del navegador no valdria:
+   ese SI cambia el tamaño logico y volveriamos al principio. */
+
+.ade-marco {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.ade-marco > .ade {
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+  transform: scale(var(--lupa, 1));
+}
+
+/* ---------------------------- LA REJILLA ---------------------------------- */
+
+.ade .ade-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  /* `minmax(0, 1fr)` y no `1fr` a secas: `1fr` es `minmax(auto, 1fr)`, asi que
+     una fila con mucha salida dentro estira la rejilla y empuja el pie del
+     panel («Escribe un comando…») fuera de la ventana. */
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px;
+}
+
+/* Un panel a solas ocupa la rejilla entera: es lo que hace el boton de
+   maximizar en la app. */
+.ade .ade-grid[data-solo] { grid-template-columns: 1fr; }
+
+.ade .ade-grid > .pane {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: var(--pane-bg);
+  backdrop-filter: var(--glass-blur);
+  overflow: hidden;
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+/* El panel que ya termino su turno se marca en `--done`, que en la app
+   significa exactamente eso: te esta esperando. */
+.ade .ade-grid > .pane[data-done] {
+  border-color: color-mix(in srgb, var(--done) 62%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--done) 34%, transparent);
+}
+.ade .ade-grid > .pane[data-estado="espera"] {
+  border-color: color-mix(in srgb, var(--ask) 55%, transparent);
+}
+.ade .ade-grid > .pane[data-yendose] { opacity: 0; transform: scale(.97); }
+.ade .ade-grid > .pane[data-oculto] .ade-pane-cuerpo { filter: blur(7px); opacity: .35; }
+
+/* ------------------------- LA CABECERA DEL PANEL --------------------------
+   `.pane-head`, `.pane-btn`, `.pane-chip`, `.pane-name` y `.pane-effort` ya
+   vienen de la app con sus medidas. Aqui solo lo que falta. */
+
+.ade .ade-pane-ico { flex: none; display: inline-flex; color: var(--muted); }
+.ade .ade-pane-ico .ade-i { width: 14px; height: 14px; }
+
+.ade .ade-pane-bts { flex: none; display: flex; align-items: center; gap: 2px; margin-left: auto; }
+
+.ade .pane-ctx { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.ade .ade-ctx-barra {
+  width: 44px; height: 3px;
+  border-radius: 999px;
+  background: var(--row);
+  overflow: hidden;
+}
+.ade .ade-ctx-barra i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.ade .ade-ctx-n { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* --------------------------- EL CUERPO Y EL PIE --------------------------- */
+
+.ade .ade-pane-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 9px 11px;
+  font-family: var(--tipo-mono, "JetBrains Mono", "Cascadia Code", ui-monospace, Consolas, monospace);
+  font-size: 11.5px;
+  line-height: 1.62;
+  transition: filter .2s ease, opacity .2s ease;
+}
+
+.ade .ade-pane-pie {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel-solid) 40%, transparent);
+  font-size: 11px;
+}
+.ade .ade-pane-prompt { color: var(--muted); }
+.ade .ade-pane-done,
+.ade .ade-pane-espera {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.ade .ade-pane-done {
+  /* El tono se acerca al del texto del tema: el naranja puro sobre un tema
+     claro se queda en 2:1 y no se lee. Asi vale en los 32. */
+  color: color-mix(in srgb, var(--done) 45%, var(--text));
+  background: color-mix(in srgb, var(--done) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--done) 34%, transparent);
+}
+.ade .ade-pane-espera {
+  color: color-mix(in srgb, var(--ask) 45%, var(--text));
+  background: color-mix(in srgb, var(--ask) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ask) 34%, transparent);
+}
+
+/* ------------------------ LAS LINEAS DE LA TERMINAL -----------------------
+   Lo que en la app pinta xterm. Los papeles son los del programa: lo que tu
+   escribes, lo que responde el agente, sus subpasos y el rastro de sistema. */
+
+.ade .t-tu   { color: var(--text); font-weight: 600; margin-top: 7px; }
+.ade .t-di   { color: var(--text); display: flex; gap: 7px; }
+.ade .t-cont { padding-left: 14px; }
+.ade .t-punto {
+  flex: none;
+  width: 6px; height: 6px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--ade-ok);
+}
+.ade .t-sub  { color: var(--muted); padding-left: 8px; }
+.ade .t-ruta { color: var(--accent); padding-left: 8px; }
+.ade .t-meta { color: var(--muted); margin: 5px 0; }
+.ade .t-dim  { color: var(--muted); }
+.ade .t-ok   { color: var(--ade-ok); }
+.ade .t-ask  { color: color-mix(in srgb, var(--ask) 68%, var(--text)); }
+
+/* ------------------------------- EL RIEL ---------------------------------- */
+
+/* El riel es de la Cabina y de nadie mas, igual que en la app: el Panel y los
+   Ajustes se ven a pantalla completa. El `hidden` que le pone el JS no bastaba
+   porque `.sidebar` trae `display: flex` de App.css y eso le gana. */
+.ade .sidebar[hidden] { display: none; }
+
+.ade .sidebar { width: 208px; }
+.ade .projects { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; min-height: 0; }
+
+/* Las iniciales del avatar, un pelin mas contrastadas que en la app. Alli casi
+   todos los proyectos tienen logo y este caso se ve poco; aqui son todas
+   iniciales, y con el color del proyecto a pelo se quedan en 2,6:1 sobre los
+   temas claros. Mezclado con el texto del tema vale para los 32. */
+.ade .pavatar[data-plate="tint"] { color: color-mix(in srgb, var(--c) 38%, var(--text)); }
+
+/* El riel entero (fila, avatar, nombre, badges, hueco) lo pinta la app: sus
+   medidas estan en ui.css y aqui NO se tocan. Lo que habia escrito antes a ojo
+   era la mitad de pequeño que lo de verdad: el avatar a 26 px cuando la app lo
+   tiene a 38, y el nombre a 12,5 cuando es 15. Eso era el "slop": no un color
+   mal elegido, sino toda la escala encogida. */
+
+.ade .rail-top { flex: none; }
+
+/* En la captura de la app el riel ocupa unos 300 px de 1920, que es el ancho
+   con el que Munir la usa (se arrastra y se guarda en `adeorq-sidebar-w`). Con
+   los 208 que le habia puesto, los nombres se cortaban y la fila no tenia sitio
+   para que el logo hiciera de portada. */
+.ade .sidebar { width: 300px; }
+
+/* --------------------------- EL PANEL (vista) ----------------------------- */
+
+/* `min-height` y no `height`: con alto fijo, una pantalla mas larga que la
+   ventana (Cuentas, con sus seis CLIs) se salia 360 px por abajo en vez de
+   dejar que la hoja hiciera scroll. */
+.ade .ade-vista { min-height: 100%; }
+/* Con `[data-vista]` de mas a proposito: mas abajo hay un
+   `.ade .ade-vista[data-vista="cabina"] { display: flex }` que empataba en
+   especificidad con esto y, por ir despues, ganaba. Resultado: la Cabina se
+   quedaba pintada debajo de la pantalla que abrieras. */
+.ade .ade-vista[data-vista][hidden] { display: none; }
+.ade .panel { padding: 26px 34px 40px; max-width: 1320px; }
+.ade .panel-hero h1 { font-size: 21px; font-weight: 650; margin: 0 0 4px; }
+.ade .panel-hero p { margin: 0 0 22px; color: var(--muted); font-size: 12.5px; }
+
+.ade .ade-fila-bts { display: flex; gap: 8px; margin-top: 12px; }
+.ade .ade-fila-bts .finder { flex: 1; }
+
+.ade textarea {
+  width: 100%;
+  resize: none;              /* nunca el tirador del navegador (regla U) */
+  padding: 11px 13px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  outline: none;
+}
+.ade textarea:focus { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.ade textarea::placeholder { color: var(--muted); }
+
+/* --------------------------- EL SELECTOR DE TEMAS ------------------------- */
+
+.ade .ade-temas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(122px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.ade .ade-tema {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: var(--panel-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .12s ease, background .12s ease;
+}
+.ade .ade-tema:hover { border-color: var(--border-strong); }
+.ade .ade-tema[data-on] {
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* La miniatura se pinta con LOS COLORES DE SU TEMA, no con los del activo: para
+   eso existe `data-tema-prev` en App.css, que redeclara los tokens en su propia
+   caja. Sin el, las treinta y dos miniaturas saldrian iguales. */
+.ade .ade-tema-mini {
+  flex: none;
+  width: 30px; height: 22px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel-solid);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+.ade .ade-tema-fondo  { background: var(--bg); grid-column: 1 / -1; }
+.ade .ade-tema-panel  { background: var(--panel); }
+.ade .ade-tema-acento { background: var(--accent); }
+.ade .ade-tema-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ------------------------------ LO DE ARRIBA ------------------------------ */
+
+.ade .ade-ram {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ade .ade-ram b { color: var(--text); font-weight: 650; font-size: 12px; }
+.ade .ade-ram i { font-style: normal; font-size: 9px; letter-spacing: .06em; opacity: .8; }
+
+.ade #ade-emision[data-on] {
+  color: var(--done);
+  border-color: color-mix(in srgb, var(--done) 45%, transparent);
+  background: color-mix(in srgb, var(--done) 14%, transparent);
+}
+
+/* ------------------------------- LO QUE FALTA ----------------------------- */
+
+.ade .ade-vista--pronto { display: grid; place-items: center; }
+.ade .ade-pronto { text-align: center; color: var(--muted); max-width: 34ch; }
+.ade .ade-pronto .ade-i { width: 30px; height: 30px; margin: 0 auto 12px; color: var(--accent); opacity: .8; }
+.ade .ade-pronto h2 { margin: 0 0 6px; font-size: 16px; color: var(--text); font-weight: 600; }
+.ade .ade-pronto p { margin: 0; font-size: 12.5px; }
+
+/* --------------------------------- AVISOS --------------------------------- */
+
+.ade .ade-toast {
+  position: absolute;
+  right: 14px;
+  bottom: 38px;
+  z-index: 20;
+  max-width: 300px;
+  padding: 9px 13px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border-strong);
+  background: var(--popover);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .45);
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.ade .ade-toast[data-on] { opacity: 1; transform: none; }
+
+/* -------------------------------- ESTRECHO -------------------------------- */
+
+@container ade (max-width: 900px) {
+  .ade .ade-grid { grid-template-columns: 1fr; }
+  .ade .sidebar { display: none; }
+  .ade .tab-label { display: none; }
+}
+
+/* ------------------------- LA FRANJA DE LA DERECHA ------------------------
+   `.franja` y `.franja-btn` vienen de la app; aqui solo el boton con texto
+   girado, que en el programa lo pinta su propio componente. */
+
+.ade .franja { flex: none; }
+.ade .franja-btn--txt {
+  writing-mode: vertical-rl;
+  /* Alto automatico: con uno fijo, el texto girado se salia 47 px por abajo y
+     se comia el borde de la franja. */
+  height: auto;
+  min-height: 0;
+  padding: 14px 0;
+  font-size: 11px;
+  letter-spacing: .06em;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+/* ---------------------------- EL REPRODUCTOR ------------------------------
+   `.np-row` y sus hijas salen de la app. El ecualizador de tres barritas es lo
+   unico de aqui: en el programa lo anima el audio de verdad. */
+
+.ade .ade-np-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+.ade .ade-np-eq i {
+  width: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  animation: ade-eq 1.1s ease-in-out infinite;
+}
+.ade .ade-np-eq i:nth-child(1) { height: 60%; animation-delay: -.2s; }
+.ade .ade-np-eq i:nth-child(2) { height: 100%; animation-delay: -.6s; }
+.ade .ade-np-eq i:nth-child(3) { height: 40%; }
+@keyframes ade-eq { 0%,100% { transform: scaleY(.45); } 50% { transform: scaleY(1); } }
+.ade .ade-np[data-parado] .np-eq i { animation-play-state: paused; }
+
+/* ------------------------- EL BADGE DEL BOTON DE GIT ----------------------- */
+
+.ade .pane-btn { position: relative; }
+.ade .shadow-badge {
+  position: absolute;
+  top: -5px; right: -5px;
+  min-width: 14px; height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+/* El reproductor en UNA linea. `.np-row` de la app vive en una barra que le da
+   sitio de sobra; dentro de la maqueta hay que decirle que no parta, o el
+   titulo y el artista se apilan y suben la barra a dos alturas. */
+.ade .ade-np {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  white-space: nowrap;
+  max-width: 260px;
+}
+.ade .ade-np-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--muted); }
+.ade .ade-np-title { color: var(--text); font-weight: 600; }
+.ade .ade-np-tira { display: inline-flex; gap: 2px; }
+.ade .ade-np-btn {
+  min-width: 20px; height: 20px;
+  display: grid; place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chico);
+  background: color-mix(in srgb, var(--row) 60%, transparent);
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+.ade .ade-np-btn:hover { color: var(--text); }
+
+/* El pie de la terminal cuando el CLI esta en modo automatico: es lo que sale
+   en la app debajo del prompt, y sin el la sesion parece parada. */
+.ade .t-modo {
+  margin-top: 6px;
+  color: color-mix(in srgb, var(--ask) 62%, var(--text));
+  font-size: 11px;
+}
+.ade .t-modo b { color: color-mix(in srgb, var(--done) 45%, var(--text)); font-weight: 600; }
+
+/* Avisos y errores de la terminal, y los botones de opcion que saca un CLI
+   cuando te pregunta. Esos botones son de lo mas reconocible del oficio. */
+.ade .t-warn { color: color-mix(in srgb, var(--ask) 68%, var(--text)); }
+.ade .t-err  { color: color-mix(in srgb, var(--wait) 68%, var(--text)); }
+
+.ade .t-ops { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.ade .t-op {
+  padding: 3px 10px;
+  border-radius: var(--r-chico);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease;
+}
+.ade .t-op:hover { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.ade .t-op[data-elegida] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ------------------------- ESCRIBIR EN LA TERMINAL ------------------------ */
+
+.ade .ade-pane-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: var(--tipo-mono, "JetBrains Mono", ui-monospace, Consolas, monospace);
+  font-size: 11.5px;
+  outline: none;
+  padding: 0;
+}
+.ade .ade-pane-input::placeholder { color: var(--muted); }
+.ade .ade-pane-pie:focus-within {
+  border-top-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+/* Los tres puntos de «esta pensando» mientras el CLI no suelta la primera
+   palabra. Es opacidad, no movimiento: el dial no la toca. */
+.ade .t-pensando span { color: var(--muted); }
+.ade .t-pensando b { font-weight: 400; animation: ade-pensar 1.2s infinite; }
+.ade .t-pensando b:nth-child(2) { animation-delay: .2s; }
+.ade .t-pensando b:nth-child(3) { animation-delay: .4s; }
+@keyframes ade-pensar { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
+
+/* ==========================================================================
+   LAS OTRAS CUATRO PANTALLAS
+   Agenda, Cuentas, Lienzo y Comandos. Las tarjetas, las cifras y las pestañas
+   ya vienen de la app (ui.css); esto es lo que cada pantalla tiene de suyo.
+   ========================================================================== */
+
+.ade .ade-ancho { width: 100%; margin-top: 10px; }
+.ade .ade-nota { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+
+/* -------------------------------- AGENDA --------------------------------- */
+
+.ade .ade-aviso {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.ade .ade-aviso-dias {
+  flex: none;
+  color: var(--wait);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+.ade .ade-aviso-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ade .ade-aviso-txt b { font-size: 13.5px; font-weight: 600; }
+.ade .ade-aviso-txt i { font-style: normal; font-size: 11.5px; color: var(--muted); }
+
+.ade .ade-metas { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; }
+.ade .ade-meta {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.ade .ade-meta[data-hecha] span { color: var(--muted); text-decoration: line-through; }
+.ade .ade-check {
+  flex: none;
+  width: 17px; height: 17px;
+  display: grid; place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: none;
+  color: var(--on-accent);
+  font-size: 10px;
+  cursor: pointer;
+}
+.ade .ade-meta[data-hecha] .ade-check { background: var(--accent); border-color: var(--accent); }
+
+/* Una lista de filas con su marca de color. Sirve para el calendario, la
+   bandeja de ideas, los pasos y los comandos: es la misma forma. */
+.ade .ade-lista { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
+.ade .ade-fila {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.ade .ade-fila:last-child { border-bottom: 0; }
+.ade .ade-fila-marca {
+  flex: none;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--c, var(--accent));
+}
+.ade .ade-fila-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ade .ade-fila-txt b { font-weight: 600; }
+.ade .ade-fila-txt i { font-style: normal; font-size: 11.5px; color: var(--muted); }
+
+/* ------------------------------- CUENTAS --------------------------------- */
+
+.ade .ade-cli { margin-bottom: 22px; }
+.ade .ade-cli-tit {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 0 10px;
+  font-size: 11.5px; font-weight: 650;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted);
+}
+.ade .ade-cli-punto {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--c, var(--accent));
+  flex: none;
+}
+.ade .ade-cli-caja { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.ade .ade-cuenta { margin: 0; }
+.ade .ade-cuenta h4 {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 6px; font-size: 14px; font-weight: 600;
+}
+.ade .ade-mas {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  min-height: 108px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-caja);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color .12s ease, color .12s ease;
+}
+.ade .ade-mas:hover { border-color: var(--accent); color: var(--text); }
+.ade .ade-mas span { font-size: 19px; }
+
+/* -------------------------------- LIENZO --------------------------------- */
+
+.ade .ade-lienzo { height: 100%; display: flex; flex-direction: column; }
+.ade .ade-lienzo-barra {
+  flex: none;
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel-solid) 55%, transparent);
+}
+.ade .ade-lienzo-pista { font-size: 11.5px; color: var(--muted); }
+.ade .ade-lienzo-suelo {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  /* La cuadricula del tablero, como en el Lienzo de la app. */
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--border) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--border) 60%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.ade .ade-pieza {
+  position: absolute;
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-btn);
+  background: var(--panel-solid);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  overflow: hidden;
+}
+.ade .ade-pieza[data-llevando] { box-shadow: 0 18px 44px rgba(0,0,0,.5); border-color: var(--accent); }
+.ade .ade-pieza > header {
+  flex: none;
+  padding: 5px 9px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-head);
+  font-size: 10.5px; font-weight: 650;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--muted);
+  cursor: grab;
+  user-select: none;
+}
+.ade .ade-pieza[data-llevando] > header { cursor: grabbing; }
+.ade .ade-pieza-cuerpo {
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 9px 10px;
+  font-size: 12px; line-height: 1.5;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.ade .ade-pieza-cuerpo [contenteditable]:focus { outline: none; }
+.ade .ade-tarea {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chico);
+  background: var(--row);
+  font-size: 11.5px;
+}
+
+/* ------------------------------- COMANDOS -------------------------------- */
+
+.ade .ade-comandos .ade-fila { cursor: pointer; }
+.ade .ade-comandos .ade-fila:hover { background: var(--row); }
+.ade .ade-kbd {
+  flex: none;
+  padding: 2px 7px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--row);
+  color: var(--muted);
+  font-family: var(--tipo-mono, ui-monospace, Consolas, monospace);
+  font-size: 10.5px;
+}
+
+/* ========================= LA PALETA DE COMANDOS ==========================
+   Ctrl+K con el raton dentro de la maqueta. Fuera no: ahi Ctrl+K es del
+   navegador y no se le quita a nadie. */
+
+.ade .ade-paleta {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: start center;
+  padding-top: 12%;
+  background: color-mix(in srgb, #04070d 55%, transparent);
+  backdrop-filter: blur(3px);
+}
+.ade .ade-paleta[hidden] { display: none; }
+
+.ade .ade-paleta-caja {
+  width: min(560px, 78%);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-caja);
+  background: var(--popover);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .55);
+  overflow: hidden;
+}
+.ade .ade-paleta-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.ade .ade-paleta-input::placeholder { color: var(--muted); }
+.ade .ade-paleta-lista { list-style: none; margin: 0; padding: 6px; max-height: 280px; overflow: auto; }
+.ade .ade-paleta-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-chico);
+  font-size: 13px;
+  cursor: pointer;
+}
+.ade .ade-paleta-fila span { flex: 1; }
+.ade .ade-paleta-fila[data-on] { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.ade .ade-paleta-fila:hover { background: var(--row); }
+.ade .ade-paleta-vacio { padding: 14px; color: var(--muted); font-size: 13px; }
+.ade .ade-paleta-pie {
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ============================ MODOS DEL RIEL ==============================
+   Los mismos tres que la app: solo las marcas, marca y nombre, o una tira
+   estrecha. Cambian el ancho de la barra, no el contenido. */
+
+/* ⚠ LOS BOTONES DE MODO NO SE ESCONDEN NUNCA.
+   Aqui se ocultaba `.side-label > span` entero, y esa fila tiene DOS hijos: el
+   rotulo «Proyectos» y `.rail-tabs`, que son los tres botones para cambiar de
+   modo. Resultado: pulsabas «solo los logos» y se iba tambien el boton para
+   volver, asi que el riel se quedaba estrecho para siempre y no habia forma de
+   deshacerlo sin recargar. En el programa no pasa: en la tira los botones
+   siguen arriba, en columna (`.rail-mini` de App.css).
+   Solo se esconde el ROTULO. */
+
+.ade .sidebar[data-modo="logo"] { width: 84px; }
+.ade .sidebar[data-modo="logo"] .project-name,
+.ade .sidebar[data-modo="logo"] .project-badges,
+.ade .sidebar[data-modo="logo"] .side-label > span:first-child,
+.ade .sidebar[data-modo="logo"] .rail-top { display: none; }
+.ade .sidebar[data-modo="logo"] .project-main { justify-content: center; padding: 0; }
+
+.ade .sidebar[data-modo="tira"] { width: 54px; }
+.ade .sidebar[data-modo="tira"] .project-name,
+.ade .sidebar[data-modo="tira"] .project-badges,
+.ade .sidebar[data-modo="tira"] .side-label > span:first-child,
+.ade .sidebar[data-modo="tira"] .rail-top { display: none; }
+.ade .sidebar[data-modo="tira"] .project-mark { width: 30px; height: 30px; }
+.ade .sidebar[data-modo="tira"] .project { min-height: 34px; }
+
+/* Con el riel estrecho, los botones se apilan y ocupan su ancho, como la
+   `.rail-mini` de la app. El de refrescar sobra ahi: son cinco en 54 px. */
+.ade .sidebar[data-modo="logo"] .side-label,
+.ade .sidebar[data-modo="tira"] .side-label {
+  justify-content: center;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.ade .sidebar[data-modo="logo"] .rail-tabs,
+.ade .sidebar[data-modo="tira"] .rail-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 4px;
+  justify-content: center;
+}
+.ade .sidebar[data-modo="tira"] .rail-tabs { grid-template-columns: auto; }
+.ade .sidebar[data-modo="tira"] .rail-tabs .mini:last-child { display: none; }
+
+/* --------------------------- LA MARCA DEL CLI -----------------------------
+   Quien esta trabajando en cada panel, con su dibujo y su color. `.prov-mark`
+   trae de la app el tamaño (15 px); el color es el que la app le da a cada
+   chapa, y es lo que hace que se distingan de lejos sin leer. */
+
+.ade .prov-mark { color: var(--cli, var(--muted)); flex: none; }
+
+/* Claude va en un circulo, como en el programa: es el que mas sale y asi se
+   reconoce de un vistazo aunque el panel este al otro lado de la pantalla. */
+.ade .pane[data-cli="claude"] .prov-mark {
+  width: 20px; height: 20px;
+  padding: 2.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cli) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cli) 45%, transparent);
+  box-sizing: border-box;
+}
+
+/* ------------------ EL RIEL ESTRECHO, DE VERDAD ESTRECHO ------------------
+   `.sidebar` trae de App.css `min-width: 200px`, asi que un `width` menor no
+   servia de nada: la barra se quedaba a 200 y cada fila dejaba un rectangulo
+   vacio al lado del logo. El minimo tiene que bajar con el ancho. */
+
+.ade .sidebar[data-modo="logo"] { width: 84px; min-width: 84px; }
+.ade .sidebar[data-modo="tira"] { width: 54px; min-width: 54px; padding-inline: 6px; }
+.ade .sidebar[data-modo="logo"] .project,
+.ade .sidebar[data-modo="tira"] .project { justify-content: center; }
+
+/* ------------------------ LA TIRA DE APARTADAS ---------------------------
+   `.minim`, `.minim-eti` y `.minim-chip` vienen de la app con su forma. Aqui
+   solo lo que su componente pinta por dentro. */
+
+/* `height` y no solo `min-height`: sin altura fija, `grid-auto-rows: minmax(0,
+   1fr)` se resuelve contra un padre de alto automatico, las filas miden lo que
+   mida la salida mas larga y los dos paneles de abajo se salen de la ventana
+   con su pie por delante. */
+.ade .ade-vista[data-vista="cabina"] { display: flex; flex-direction: column; height: 100%; }
+.ade .ade-vista[data-vista="cabina"] .ade-grid { flex: 1; min-height: 0; height: auto; }
+.ade .minim[hidden] { display: none; }
+
+.ade .minim-ico {
+  display: inline-grid;
+  place-items: center;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cli) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cli) 45%, transparent);
+  color: var(--cli);
+  flex: none;
+}
+.ade .minim-ico .prov-mark { width: 11px; height: 11px; }
+.ade .minim-nom { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.ade .minim-ram {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ade .minim-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.ade .minim-chip:hover { background: var(--row); }
+
+/* La que te habia preguntado algo se lleva su marca al apartarse: la app no
+   deja que un agente parado se pierda de vista solo por minimizarlo. */
+.ade .minim-chip[data-urge] { box-shadow: inset 0 -2px 0 var(--ask); }
+.ade .minim-chip[data-urge] .minim-nom { color: var(--ask); }
+
+/* --------------------------- LOS LOGOS DE PROYECTO -------------------------
+   En el programa, cada proyecto lleva SU logo, y por eso la columna izquierda
+   es una tira de colores distintos. La maqueta los pintaba con iniciales sobre
+   el mismo azul para todos, que es lo que la delataba a un metro de distancia.
+
+   Estos salen recortados de la captura de la Cabina que ya se publica en esta
+   misma web (web/assets/screens/cockpit.png), asi que no enseñan nada nuevo. Y
+   como el recorte YA trae el fondo del avatar, llena el marco entero en vez de
+   flotar dentro con el hueco que la app le deja a un logo transparente. */
+.ade .pavatar[data-foto] {
+  background: none;
+  border-color: transparent;
+}
+.ade .pavatar[data-foto] img {
+  padding: 0;
+  object-fit: cover;
+}
+
+/* ------------------- LAS DOS PANTALLAS NUEVAS: CHAT Y MEMORIA -------------
+   En la app las dos son `flex: 1` dentro de una columna que ya tiene alto; aqui
+   su seccion no lo es, asi que se lo damos. Sin esto, el Chat se cortaba a
+   mitad de pantalla y debajo quedaba el hueco negro de la ventana. */
+.ade .ade-vista[data-vista="chat"],
+.ade .ade-vista[data-vista="memoria"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* La marca del CLI en el selector de clientes del Chat: el SVG necesita medida
+   propia o el navegador le da la suya, que son 300x150. */
+.ade .chat-cliente .prov-mark { width: 18px; height: 18px; }
+
+/* --------------------- LA BARRA, CUANDO NO CABE ESCRITA -------------------
+   Medido: con las NUEVE pestañas de hoy, la fila entera escrita de corrida
+   necesita 1968 px. La app suelta los nombres por debajo de 1700 (App.css, el
+   número lo midió Munir el 2026-08-02 con OCHO pestañas), así que entre 1700 y
+   1968 el último botón de la fila se sale sin recortarse. Eso pasa igual en el
+   programa: es el mismo fallo que ya se arregló una vez y que volvió al añadir
+   el Chat y la Memoria.
+
+   Aquí se compacta ANTES, y solo el grupo de la derecha, que es el que sobra:
+   quitarle el nombre a esos tres ahorra 287 px y las nueve pestañas se quedan
+   con el suyo, que es lo que hay que poder leer. */
+@container ade (max-width: 1970px) {
+  .ade .topbar-acciones .tab-label { display: none; }
+}
+
+/* ------------- LO QUE NO SE LEE EN LOS TEMAS CLAROS (Chat y Memoria) ------
+   Medido con el barrido: en Claro y en Papel, la lista de conversaciones del
+   Chat se queda entre 2,6:1 y 3,2:1, y el minimo legible para texto pequeño es
+   4,5:1. Viene de `--muted` del tema, no de la maqueta, asi que es un fallo del
+   programa y esta reportado; aqui se acerca al color del texto, que sirve para
+   los 32 temas sin cambiar el tono de ninguno. */
+.ade .chat-fila-sub,
+.ade .chat-cajon-tit,
+.ade .chat-modo-b,
+.ade .mem-fila-sub {
+  color: color-mix(in srgb, var(--muted) 45%, var(--text));
+}
+.ade .mem-fila-tit { color: var(--text); }
+
+/* ===================== EL PANEL DE LA DERECHA ============================
+   `.lateral-zona`, `.lateral`, `.franja` y `.skill` vienen de la app con sus
+   medidas. Aqui solo el contenido que su componente pinta por dentro. */
+
+.ade .ade-lat-uso {
+  margin-top: auto;
+  padding: 12px 2px 2px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 6px;
+  font-size: 11.5px;
+}
+.ade .ade-lat-barra {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--row);
+  overflow: hidden;
+}
+.ade .ade-lat-barra i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.ade .ade-lat-pie { color: var(--muted); font-size: 11px; }
+
+.ade .ade-lat-lista { display: grid; gap: 2px; overflow: auto; }
+
+.ade .ade-lat-fila {
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 6px;
+  border-radius: var(--r-chico);
+  font-size: 11.5px;
+}
+.ade .ade-lat-fila:hover { background: var(--row); }
+.ade .ade-lat-tipo {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: color-mix(in srgb, var(--accent) 55%, var(--text));
+}
+.ade .ade-lat-txt { display: grid; gap: 2px; min-width: 0; }
+.ade .ade-lat-txt b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ade .ade-lat-txt i { font-style: normal; color: var(--muted); font-size: 11px; }
+.ade .ade-lat-cuando { color: var(--muted); font-size: 10.5px; white-space: nowrap; }
+
+.ade .ade-lat-arch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--r-chico);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.ade .ade-lat-arch:hover { background: var(--row); }
+.ade .ade-lat-arch[data-tipo="carpeta"] { color: color-mix(in srgb, var(--accent) 45%, var(--text)); font-weight: 600; }
+.ade .ade-lat-arch .ade-i { width: 14px; height: 14px; }
+.ade .ade-lat-arch em { margin-left: auto; font-style: normal; color: var(--muted); font-size: 10.5px; }
+
+/* ------------------------ LOS BOTONES DE LA VENTANA -----------------------
+   Maximizar quita el margen y las esquinas, que es lo que se ve al maximizar
+   de verdad; minimizar hace el gesto de irse y vuelve. */
+.ade[data-maximizada] { border-radius: 0; }
+.ade[data-encogida] {
+  transform-origin: 50% 100%;
+  transition: transform .18s ease, opacity .18s ease;
+  transform: scale(.965);
+  opacity: .55;
+}
+
+/* ==================== EMBEBIDA: SE PULSA, NO SE SCROLLEA ==================
+   Dentro de un <iframe> (la portada de la web), la maqueta es un escaparate
+   que se puede tocar. Sus contenedores con scroll propio —las terminales, el
+   riel de proyectos, el hilo del Chat, la lista de la Memoria, el panel de la
+   derecha— se tragaban la rueda del raton: al pasar por encima, la pagina de
+   fuera dejaba de bajar y parecia que se quedaba enganchada.
+
+   Sin NADA scrolleable dentro, el navegador le pasa la rueda a la pagina de
+   fuera, que es lo que tiene que hacer. Los clics siguen funcionando enteros:
+   cambiar de pestaña, abrir el panel lateral, pulsar los botones de un panel.
+
+   El `!important` es a proposito y va acotado a `[data-embebida]`: aqui hay que
+   ganarle a `overflow: auto` de ui.css, que viene de App.css, y a las reglas de
+   esta misma hoja. Fuera del iframe no cambia absolutamente nada. */
+
+html[data-embebida],
+html[data-embebida] body { overflow: hidden; }
+
+html[data-embebida] .ade,
+html[data-embebida] .ade * {
+  overflow: hidden !important;
+  /* Y que ni la barra oculta ni el gesto tactil se lleven el arrastre. */
+  overscroll-behavior: auto !important;
+}
+
+/* Los campos de texto se quedan como estan: escribir en una terminal de la
+   maqueta es de lo poco que de verdad se puede hacer aqui. */
+html[data-embebida] .ade input,
+html[data-embebida] .ade textarea { overflow: auto !important; }
+
+/* Sin scroll, un contenedor enseña su PRINCIPIO, y una terminal se mira por el
+   final. Alineando al final, lo que no cabe se sale por arriba, que es
+   exactamente lo que hace una consola de verdad. */
+html[data-embebida] .ade .ade-pane-cuerpo,
+html[data-embebida] .ade .chat-turnos {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}

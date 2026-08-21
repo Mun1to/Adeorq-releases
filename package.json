@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.129",
+  "version": "0.9.130",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -34,6 +34,7 @@
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
     "@xterm/addon-fit": "0.12.0-beta.299",
+    "@xterm/addon-search": "0.17.0-beta.299",
     "@xterm/addon-webgl": "0.20.0-beta.298",
     "@xterm/xterm": "6.1.0-beta.302",
     "@xyflow/react": "^12.11.2",

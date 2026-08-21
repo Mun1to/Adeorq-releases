@@ -168,6 +168,89 @@ export function fuenteAnclada(
   return Math.max(minimo, Math.min(techo, redondeada));
 }
 
+/* -- LA LETRA AUTOMATICA, Y SU OTRO EXTREMO -------------------------------
+   Nueve paneles en pantalla significa que cada uno es estrecho, y por debajo de
+   unas 76 columnas las cajas que dibuja un CLI se convierten en pure. Por eso
+   el tamano de Ajustes es un TECHO: un panel apretado baja la letra hasta que
+   la linea vuelve a caber. Eso llevaba puesto desde el principio y funciona.
+
+   Lo que no estaba es el extremo contrario, y es de donde salia el hueco negro
+   que reporto Munir el 2026-08-20 con una terminal maximizada. Medido con xterm
+   de verdad, con su Ajustes en 17 px:
+
+       panel de  222 px  ->  letra  9 px  ->   42 columnas
+       panel de  356 px  ->  letra  9 px  ->   69 columnas
+       panel de  890 px  ->  letra 17 px  ->   93 columnas
+       panel de 1780 px  ->  letra 17 px  ->  188 columnas   <-- aqui
+
+   La letra sabia bajar pero no subir: al llegar al techo de Ajustes se quedaba
+   ahi y las columnas se disparaban. Y 188 columnas no las quiere nadie, por dos
+   motivos que se suman. El primero es el que se ve: el texto que el CLI ya
+   habia escrito a 42 columnas se queda a 42 y deja el 77 % de la pantalla en
+   negro, porque ese texto lleva saltos de linea DUROS y no hay forma de
+   rehacerlo (todo el porque, arriba, en ANCLAR LAS COLUMNAS). El segundo es el
+   que se sufre luego: lo que el agente escriba a partir de entonces sale en
+   lineas de 188 caracteres, que se leen fatal.
+
+   Asi que la letra automatica gana un techo de COLUMNAS. Si en el hueco caben
+   mas de `MAX_COLS`, la letra sube hasta que quepan justo esas: el texto viejo
+   ocupa mucho mas ancho y el nuevo nace legible. Solo con la letra automatica
+   puesta, que es el modo donde Munir ya dijo "decide tu"; con un tamano fijo
+   elegido a mano, manda el suyo y no se toca. */
+
+/** Las columnas objetivo cuando el panel es estrecho: el suelo de legibilidad
+    de las cajas que dibujan los CLI. */
+export const TARGET_COLS = 76;
+/** Y el techo, cuando sobra sitio. Ciento diez columnas es una linea larga pero
+    todavia comoda; a partir de ahi la letra sube en vez de dar mas rejilla. */
+export const MAX_COLS = 110;
+/**
+ * Ancho de celda de Cascadia Mono como fraccion del tamano de letra.
+ *
+ * Estaba en 0,6 desde el principio, a ojo, y esta MEDIDO en 0,55: se montaron
+ * nueve terminales de xterm de verdad (9, 12, 14, 17, 20, 24, 27, 30 y 34 px,
+ * con el `lineHeight: 1.2` y el `letterSpacing: 0.2` de la app) y se dividio el
+ * ancho real de `.xterm-screen` entre sus columnas. Salio 0,5497 - 0,5500 en
+ * los NUEVE, sin desviarse.
+ *
+ * El 0,6 no daba la cara mientras la letra solo sabia bajar, porque ahi
+ * pasarse de ancho es conservador: calcula menos columnas de las que caben y
+ * la letra sale un poco mas pequena de lo necesario, que no rompe nada. En el
+ * techo de columnas el mismo error va justo al reves y se lo come entero: la
+ * letra sale corta y caben mas columnas de las que se querian. Medido antes de
+ * corregirlo: 117 columnas donde el techo pedia 110.
+ */
+export const CELL_RATIO = 0.55;
+
+/**
+ * El tamano de letra para un hueco de `ancho` pixeles.
+ *
+ * `techo` es el de Ajustes. Con la letra automatica apagada se devuelve tal
+ * cual, porque entonces el numero lo eligio una persona.
+ */
+export function fuenteAuto(
+  ancho: number,
+  techo: number,
+  auto: boolean,
+  minimo: number,
+): number {
+  if (!auto || ancho <= 0) return techo;
+  // Lo de siempre: bajar hasta que quepan las columnas objetivo.
+  const cabe = Math.floor(ancho / (TARGET_COLS * CELL_RATIO));
+  if (cabe < techo) return Math.max(minimo, cabe);
+  /* Y lo nuevo: si con el techo de Ajustes caben mas de MAX_COLS, subir la
+     letra hasta dejarlas en MAX_COLS.
+
+     Hacia ARRIBA, y esto lo cazo la prueba y no el ojo: redondeando hacia abajo
+     la letra sale un pelin mas pequena de la cuenta exacta, y con la letra mas
+     pequena caben MAS columnas, que es justo lo que se venia a evitar. Salian
+     114 y 115 donde el techo son 110. Una decima de letra de mas no se ve; cinco
+     columnas de mas son cinco columnas de mas. */
+  const conElTecho = Math.floor(ancho / (techo * CELL_RATIO));
+  if (conElTecho <= MAX_COLS) return techo;
+  return Math.max(techo, Math.ceil(ancho / (MAX_COLS * CELL_RATIO)));
+}
+
 export function terminarRedimension(): void {
   if (!arrastrando) return;
   arrastrando = false;

@@ -5,15 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Guía de Adeorq · cómo se usa la cabina</title>
 <meta name="description" content="La guía de Adeorq: qué hace cada pantalla, cómo se instala, los estados de una sesión, los objetivos del día, los atajos y dónde guarda tus cosas.">
+<!-- METADATOS:INICIO (los escribe scripts/poner-metadatos.mjs, no editar a mano) -->
+<link rel="canonical" href="https://adeorq.com/guia">
+
+<!-- Verificacion de Bing Webmaster Tools. No es un secreto: esta etiqueta
+     existe justo para ser publica, y es lo que demuestra que el sitio es de
+     Munir. Si se borra, Bing deja de aceptar el sitemap. -->
+<meta name="msvalidate.01" content="CD7CA7AEA44C5A3B1F2A0850BFC21F57">
+
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#05080e">
+
+<!-- Open Graph: esto es lo que se ve al pegar el enlace en WhatsApp,
+     LinkedIn o Slack. No posiciona, pero es lo primero que nota alguien. -->
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Adeorq">
 <meta property="og:locale" content="es_ES">
-<meta property="og:locale:alternate" content="en_US">
-<meta property="og:title" content="Guía de Adeorq">
-<meta property="og:description" content="Qué hace cada pantalla, cómo se instala y dónde guarda tus cosas.">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#F6F8FC" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#090D16" media="(prefers-color-scheme: dark)">
+<meta property="og:url" content="https://adeorq.com/guia">
+<meta property="og:title" content="Guía de Adeorq · cómo se usa la cabina">
+<meta property="og:description" content="Que hace cada pantalla de Adeorq, como se instala, los estados de una sesion, los objetivos del dia, los atajos y donde guarda tus cosas.">
+<meta property="og:image" content="https://adeorq.com/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Adeorq: all your agents, one single screen">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Guía de Adeorq · cómo se usa la cabina">
+<meta name="twitter:description" content="Que hace cada pantalla de Adeorq, como se instala, los estados de una sesion, los objetivos del dia, los atajos y donde guarda tus cosas.">
+<meta name="twitter:image" content="https://adeorq.com/assets/og.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Guia de Adeorq",
+  "description": "Como se usa Adeorq: cada pantalla, la instalacion, los atajos y donde guarda tus cosas.",
+  "inLanguage": "es-ES",
+  "url": "https://adeorq.com/guia",
+  "author": {
+    "@type": "Person",
+    "name": "Munir Torres"
+  },
+  "about": {
+    "@type": "SoftwareApplication",
+    "name": "Adeorq"
+  }
+}
+</script>
+<!-- METADATOS:FIN -->
 
 <!-- Mismo interruptor de movimiento que la portada: va arriba del todo, antes
      de cualquier CSS que anime. Las animaciones se ven para todos; lo que
@@ -479,6 +518,26 @@
           <span class="doc-caja__titulo">Varias cuentas tuyas, sin problema.</span>
           Turnarte cuentas de otras personas para estirar los límites incumple los términos de
           los proveedores, y lo que te juegas es el cierre de la cuenta.
+        </p>
+      </div>
+
+      <h3 data-i18n="guia.cuentas.h3v">Vibecoding con OpenRouter (Aider)</h3>
+      <p data-i18n-html="guia.cuentas.pv1">
+        La tarjeta de OpenRouter, dentro de <b>Claves de API</b>, es una sola clave que abre
+        modelos de muchos proveedores, incluidos los que no tienen CLI propio (Kimi, DeepSeek,
+        Grok…). Con la clave puesta, debajo aparece una segunda tarjeta, <b>Vibecoding</b>, que
+        abre una terminal real de <a href="https://aider.chat" target="_blank" rel="noopener">Aider</a>
+        apuntando al modelo que escribas ahí (por defecto, <code>moonshotai/kimi-k3</code>). La
+        primera vez el botón instala Aider solo; las siguientes, abre la terminal directamente
+        con la clave puesta.
+      </p>
+      <div class="doc-caja doc-caja--ojo">
+        <p data-i18n-html="guia.cuentas.pv2">
+          <span class="doc-caja__titulo">Si abres Aider a mano, en vez de con el botón:</span>
+          dile siempre el modelo (<code>aider --model openrouter/&lt;modelo&gt;</code>) — sin
+          eso coge la primera clave que encuentre en tu entorno y prueba con OTRO proveedor — y
+          pon la clave en <code>OPENROUTER_API_KEY</code> en ESA terminal. La tarjeta hace las
+          dos cosas sola.
         </p>
       </div>
     </section>

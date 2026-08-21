@@ -1,0 +1,133 @@
+/* ===========================================================================
+   EL FOCO: una linterna que descubre lo que ya estaba dibujado debajo.
+
+   PIEZA SUELTA, no montada en ninguna portada. Vive aquí porque `web/portada/`
+   la está escribiendo otra sesión y esto se escribió a la vez; enchufarla son
+   dos líneas (abajo, en «Cómo se monta»). La primera versión se escribió dentro
+   de `web/portada-b/` y se perdió cuando esa carpeta se borró entera a media
+   escritura, así que ahora vive donde nadie tiene trabajo abierto.
+
+   ── DE DÓNDE SALE ────────────────────────────────────────────────────────
+   De medir el hero de huly.io con el navegador el 2026-08-20, no de mirarlo.
+   El desglose entero está en `docs/REFERENCIA-HULY.md`. Su capa más difícil de
+   ver es esta: encima de la escena hay un círculo que sigue al puntero y
+   descubre debajo un plano técnico con sus etiquetas. Lo montan con dos
+   variables CSS y nada más:
+
+       clip-path:  circle(var(--hero-mask-size) at var(--hero-mask-x) var(--hero-mask-y))
+       mask-image: radial-gradient(var(--hero-mask-size) at var(--hero-mask-x) var(--hero-mask-y),
+                                   #000 20%, transparent)
+
+   Su JavaScript solo escribe la posición del puntero, y NO interpola: medido en
+   vivo, al parar el ratón el valor se queda clavado. Aquí igual, por dos
+   razones: el suavizado se nota como retraso justo donde el ojo espera la luz
+   pegada al dedo, y sin bucle propio esto no gasta un frame cuando nadie mueve
+   nada.
+
+   ── LA REGLA QUE LO HACE FUNCIONAR ───────────────────────────────────────
+   El foco no dibuja nada nuevo: sube a plena luz un dibujo que YA está en la
+   página a media luz. Si debajo no hay nada, esto es una mancha que persigue al
+   ratón. Por eso la capa `.foco__luz` repite la trama de la página en vez de
+   inventarse una: se cambia ese `background-image` por el que tenga la portada
+   donde se monte, y el efecto cuenta lo mismo que la referencia.
+
+   ── LA POLÍTICA DE MOVIMIENTO ────────────────────────────────────────────
+   No lo escala `--motion-gain`, y es la regla 3 de la política de la casa: el
+   dial gradúa el movimiento NO solicitado (parallax, zoom, deriva). Esto lo
+   dirige la mano de quien mira, y el oído interno no protesta por lo que uno
+   mismo provoca. Con `?motion=off` sigue respondiendo, porque una portada que
+   deja de reaccionar al puntero no es sobria, está rota.
+
+   ── CÓMO SE MONTA ────────────────────────────────────────────────────────
+       <link rel="stylesheet" href="/piezas/foco.css">
+       <script src="/piezas/foco.js" defer></script>
+
+   Y, si la portada no define `--foco-trama`, cambiar el `background-image` de
+   `.foco__luz` por el de su propia trama.
+   ========================================================================= */
+
+.foco {
+  /* Nace apagado y solo se enciende cuando el JS confirma que hay un puntero
+     de verdad. `pointer-events: none` porque debajo hay enlaces. */
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+body[data-foco] .foco { opacity: 1; }
+
+.foco__luz {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  /* La trama de la página, a plena luz. Se define aquí con un valor por defecto
+     para que la pieza funcione sola, y se sobreescribe con `--foco-trama` desde
+     la portada que la monte. */
+  background-image: var(
+    --foco-trama,
+    linear-gradient(to right, rgba(150, 185, 240, 0.5) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(150, 185, 240, 0.5) 1px, transparent 1px)
+  );
+  background-size: var(--foco-paso, 64px) var(--foco-paso, 64px);
+  /* El borde del foco es suave, no un recorte: `#000 20%` deja el quinto
+     interior a plena luz y el resto se desvanece. Un círculo de canto duro se
+     ve como una lupa de videojuego, no como una linterna. */
+  mask-image: radial-gradient(
+    var(--foco-r, 260px) at var(--foco-x, -999px) var(--foco-y, -999px),
+    #000 20%,
+    transparent
+  );
+}
+
+/* El halo: un tinte tan flojo que no se lee como color, solo hace que la zona
+   iluminada parezca tener temperatura. Va aparte porque su radio es MAYOR que
+   el del plano; con el mismo, los dos bordes coincidirían y se vería el
+   círculo, que es justo lo que no debe verse. */
+.foco__halo {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    calc(var(--foco-r, 260px) * 1.5) at var(--foco-x, -999px) var(--foco-y, -999px),
+    var(--foco-tinte, rgba(77, 159, 255, 0.09)),
+    transparent 70%
+  );
+}
+
+/* Bajo esta anchura casi todo es táctil: el foco no llega ni a montarse (lo
+   decide el JS con `matchMedia`), y esto es el cinturón por si acaso. En la
+   referencia hacen lo mismo, esconder la capa por debajo de su punto de ruptura
+   mediano: no hay versión degradada, hay ausencia, y es una decisión. */
+@media (max-width: 900px) {
+  .foco { display: none; }
+}
+
+/* ===========================================================================
+   EL REMATE DE LA VENTANA: el detalle que sostiene la ilusión.
+
+   En la referencia hay un degradado al pie que apaga el borde inferior de la
+   captura contra el fondo de la página (340 px, medidos). Sin él la imagen
+   tiene un canto duro y se lee como una foto pegada encima; con él, parece que
+   sale de la oscuridad. Es la pieza que más barato sale y la que más se olvida.
+
+   Aquí va en porcentaje y no en píxeles a propósito: la referencia tiene su
+   ventana a sangre y una portada puede tenerla encajada, así que lo que importa
+   es que cubra el tramo final, no que mida lo mismo.
+   ========================================================================= */
+
+.remate {
+  position: relative;
+}
+
+.remate::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--remate-alto, 34%);
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--remate-color, #090d16) 88%);
+}

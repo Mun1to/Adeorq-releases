@@ -747,6 +747,10 @@ const EN: Record<string, string> = {
   "Cuánto tapa lo que hay detrás": "How much it covers what is behind",
   "El color de las terminales": "The colour of the terminals",
   "Buscar un tema": "Search themes",
+  "Buscar en esta terminal": "Search in this terminal",
+  "Anterior (Mayús+Intro)": "Previous (Shift+Enter)",
+  "Siguiente (Intro)": "Next (Enter)",
+  "Cerrar (Esc)": "Close (Esc)",
   // Elegir el cerebro a mano, en el Reparto.
   "Qué cerebro le pones": "Which brain it gets",
   "lo que decida el router": "whatever the router decides",

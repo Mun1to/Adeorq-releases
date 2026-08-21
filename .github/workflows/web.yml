@@ -1,0 +1,99 @@
+# Publica la web de Adeorq en Cloudflare Pages.
+#
+# Sustituye al despliegue manual (`pnpm build` + `wrangler pages deploy`), que
+# es el paso que se olvida y deja el dominio anunciando la versión anterior.
+#
+# Por qué Actions y no la integración de Git de Cloudflare, que también existe:
+#   1. El proyecto `adeorq-web` se creó como Direct Upload y Cloudflare NO deja
+#      convertirlo a Git. Habría que borrarlo y volver a conectar los dominios.
+#   2. Esa integración necesita acceso de lectura al repositorio, y este es el
+#      privado, con el cuaderno interno dentro.
+#   3. Aquí se despliega desde donde se trabaja de verdad. El repo público solo
+#      recibe una foto cuando se lanza `scripts/publicar-codigo.mjs`, así que
+#      conectarlo a él publicaría siempre con retraso.
+#
+# Necesita dos secretos en el repositorio:
+#   CLOUDFLARE_API_TOKEN   token con permiso «Cloudflare Pages: Edit»
+#   CLOUDFLARE_ACCOUNT_ID  f9d98835616098da424be091163657b1
+
+name: Web (Cloudflare)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/web.yml"
+  # Publicar una versión cambia la descarga y el changelog de la web, que salen
+  # de la API de releases: por eso también dispara aquí.
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Ni dos despliegues a la vez ni cancelar el que ya está subiendo.
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    # Este archivo viaja en los dos repositorios y el despliegue sale del
+    # privado, que es donde están los secretos. Sin esta condición, cada push al
+    # público arrancaría un despliegue que fallaría por falta de token.
+    if: github.repository == 'Mun1to/Adeorq'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Construir la web
+        working-directory: web
+        env:
+          # Sin token, la API de GitHub da 60 peticiones por hora y por IP
+          # compartida entre todos los corredores. Con él, 1000.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pnpm data
+          pnpm build
+
+      # Antes de publicar: que el HTML construido traiga de verdad la portada y
+      # no un `dist/` a medias. Cuesta un segundo y evita dejar el dominio
+      # sirviendo una página rota durante horas.
+      - name: Comprobar el build
+        working-directory: web
+        run: |
+          grep -q "cinta__grupo" dist/index.html || { echo "el build no trae la cinta de clientes"; exit 1; }
+          grep -q "No es open source" dist/index.html || { echo "falta el aviso de licencia"; exit 1; }
+
+      # Sin credencial no se puede desplegar, y el error que da wrangler en ese
+      # caso no lo entiende nadie. Se dice aqui, con una frase.
+      - name: Comprobar que hay credenciales
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "Falta el secreto CLOUDFLARE_API_TOKEN del repositorio."
+            echo "Crealo en Cloudflare con permiso «Cloudflare Pages: Edit» y guardalo con:"
+            echo "  gh secret set CLOUDFLARE_API_TOKEN --repo Mun1to/Adeorq"
+            echo "Mientras tanto la web se publica a mano con: cd web && pnpm deploy"
+            exit 1
+          fi
+
+      # `npx wrangler@4` y no `cloudflare/wrangler-action`: esa accion instala
+      # wrangler 3.90 con pnpm, y pnpm 10 bloquea el postinstall de workerd
+      # (ERR_PNPM_IGNORED_BUILDS), asi que el paso muere antes de desplegar.
+      # Medido el 2026-08-21 en la ejecucion 32426391872.
+      - name: Subir a Cloudflare Pages
+        working-directory: web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 pages deploy dist --project-name adeorq-web --branch main --commit-dirty=true

@@ -115,6 +115,8 @@ export default defineConfig({
       input: {
         index: resolve(ROOT, 'index.html'),
         guia: resolve(ROOT, 'guia.html'),
+        // La web anterior, hasta que sus secciones (descarga, changelog, FAQ
+        // y pie) esten portadas a la portada nueva de `index.html`.
       },
     },
   },

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
 import { WebglAddon } from "@xterm/addon-webgl";
 import {
   deleteSession,
@@ -31,6 +32,7 @@ import {
 import { raiz } from "../lib/perfil";
 import { useT } from "../lib/i18n";
 import { useMenu } from "./Overlays";
+import BuscarEnTerminal from "./BuscarEnTerminal";
 import { RedactStream, type Hit } from "../lib/redact";
 import {
   CheckIcon,
@@ -65,6 +67,7 @@ import {
   EVENTO_REFIT,
   anclando,
   fuenteAnclada,
+  fuenteAuto,
   redimensionando,
   tocaAjustar,
 } from "../lib/redimension";
@@ -377,19 +380,13 @@ const SPAWN_RE = /^\s*[●•*]\s*(?:Task|Agent)\(/gm;
 const DONE_RE = /⎿\s+Done \(/g;
 const TAIL = 24;
 
-// Nine panes on screen means each one is narrow, and the CLI's boxes wrap into
-// mush below ~76 columns. So the Settings size is a ceiling: a cramped pane
-// steps the type down until the line fits again.
-const TARGET_COLS = 76;
+// El suelo de la letra. Por debajo de esto no se baja ni para conservar las
+// columnas: ilegible es peor que descolocado.
+//
+// La cuenta en si vive en `lib/redimension.ts` (`fuenteAuto`), con su porque y
+// con las mediciones detras, porque desde alli se puede probar sin montar un
+// navegador entero.
 const MIN_FONT = 9;
-/** Cascadia Mono advance width as a fraction of the font size. */
-const CELL_RATIO = 0.6;
-
-function fontFor(width: number, ceiling: number, auto: boolean): number {
-  if (!auto || width <= 0) return ceiling;
-  const fits = Math.floor(width / (TARGET_COLS * CELL_RATIO));
-  return Math.max(MIN_FONT, Math.min(ceiling, fits));
-}
 
 function countNew(re: RegExp, text: string, from: number): number {
   re.lastIndex = 0;
@@ -673,6 +670,12 @@ export default function TerminalPane({
   const tailRef = useRef("");
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
+  /** El buscador (Ctrl+F). Se carga siempre y no bajo demanda: el addon solo
+      recorre el búfer cuando se le pide, así que tenerlo puesto no cuesta
+      nada, y cargarlo al vuelo obligaría a esperar a que llegue el módulo
+      justo cuando acabas de pulsar la tecla. */
+  const searchRef = useRef<SearchAddon | null>(null);
+  const [buscando, setBuscando] = useState(false);
   /** A cuántos renglones del final hay que dejarte cuando el repintado del CLI
       termine de llegar. `null` = no hay ningún repintado en vuelo.
       El CERO sí cuenta, al revés que antes: significa «estabas al final», y
@@ -780,7 +783,7 @@ export default function TerminalPane({
        texto que ya está escrito y no hay forma de rehacerlo (ver
        `lib/redimension.ts`). Si para conservarlas hay que bajar de `MIN_FONT`,
        se deja reflowar: ilegible es peor que descolocado. */
-    const natural = fontFor(el.clientWidth, fontSize, autoFont);
+    const natural = fuenteAuto(el.clientWidth, fontSize, autoFont, MIN_FONT);
     let size = natural;
 
     /* Arrastrar un separador es pedir columnas con la mano, y gana: suelta el
@@ -1162,8 +1165,11 @@ export default function TerminalPane({
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
+    const search = new SearchAddon();
+    term.loadAddon(search);
     termRef.current = term;
     fitRef.current = fit;
+    searchRef.current = search;
 
     /* ── Que borrar el scrollback no te mueva de sitio ────────────────────
      *
@@ -1383,6 +1389,13 @@ export default function TerminalPane({
       }
       if (key === "v") {
         pasteClipboard();
+        return false;
+      }
+      /* Ctrl+F abre el buscador y NO llega al agente. Es la única tecla que se
+         le quita a un CLI aquí, y se le quita porque ninguno de ellos la usa:
+         en todos, buscar en lo ya escrito es cosa del emulador. */
+      if (key === "f" && !ev.shiftKey) {
+        setBuscando(true);
         return false;
       }
       return true;
@@ -2319,6 +2332,17 @@ export default function TerminalPane({
           )}
           {note && <div className="pane-note">{t(note)}</div>}
         </div>
+      )}
+      {/* El buscador, encima de la terminal y no en la cabecera: la cabecera
+          es de la sesión (quién es, qué cuenta, qué estado) y esto es de lo que
+          hay escrito dentro. Se monta solo cuando se abre, así que un panel sin
+          buscar no paga ni un nodo. */}
+      {buscando && searchRef.current && termRef.current && (
+        <BuscarEnTerminal
+          addon={searchRef.current}
+          term={termRef.current}
+          onCerrar={() => setBuscando(false)}
+        />
       )}
       <div className="pane-term" ref={holder} style={{ display: showDiff ? "none" : (blurred ? "none" : "block") }} />
       {showDiff && (

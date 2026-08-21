@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es" data-tema="oscuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esta página no existe · Adeorq</title>
+<meta name="description" content="La dirección que has abierto no existe en adeorq.com.">
+<!-- Una página de error no se indexa. Y `follow` a propósito: que el buscador
+     siga los enlaces de vuelta al sitio en vez de tratar esto como un callejón. -->
+<meta name="robots" content="noindex, follow">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#05080e">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --p-fondo:  #05080e;
+    --p-texto:  #e6edfa;
+    --p-suave:  #b7c7e0;
+    --p-tenue:  #8fa3c4;
+    --p-acento: #4d9fff;
+    --p-linea:  rgba(140, 170, 220, .16);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    background: var(--p-fondo);
+    color: var(--p-texto);
+    font: 16px/1.6 "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  /* El mismo resplandor de la portada, para que un 404 siga pareciendo Adeorq
+     y no la pantalla en blanco de un servidor. */
+  .glow {
+    position: absolute;
+    left: 50%;
+    bottom: -40%;
+    width: min(160%, 1400px);
+    height: 130%;
+    transform: translateX(-50%);
+    background:
+      radial-gradient(44% 47% at 50% 80%, rgba(255,255,255,.30) 0%, rgba(214,235,255,.18) 22%, rgba(110,175,255,.10) 48%, transparent 76%),
+      radial-gradient(92% 37% at 50% 80%, rgba(160,200,255,.10) 0%, rgba(118,172,255,.05) 46%, transparent 82%);
+    filter: blur(8px);
+    pointer-events: none;
+  }
+  .caja { position: relative; z-index: 2; max-width: 34rem; }
+  .marca {
+    display: inline-flex; align-items: center; gap: .7rem;
+    margin-bottom: 2.4rem; color: var(--p-suave);
+    text-decoration: none; font-weight: 600; font-size: 1.15rem;
+  }
+  .marca svg { width: 30px; height: 30px; display: block; }
+  .codigo {
+    font: 600 clamp(3.4rem, 2rem + 5vw, 5.4rem)/1 "JetBrains Mono", ui-monospace, Consolas, monospace;
+    letter-spacing: -.03em;
+    background: linear-gradient(135deg, #48c2ff, #2f9df3);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h1 {
+    margin: 1.1rem 0 .8rem;
+    font-size: clamp(1.4rem, 1.1rem + 1vw, 1.9rem);
+    font-weight: 600;
+    letter-spacing: -.02em;
+  }
+  p { color: var(--p-tenue); }
+  .enlaces {
+    margin-top: 2.2rem;
+    display: flex; flex-wrap: wrap; gap: .7rem; justify-content: center;
+  }
+  .enlaces a {
+    padding: .62rem 1.15rem;
+    border: 1px solid var(--p-linea);
+    border-radius: 999px;
+    color: var(--p-suave);
+    text-decoration: none;
+    font-size: .95rem;
+    transition: border-color .18s, color .18s;
+  }
+  .enlaces a:hover, .enlaces a:focus-visible { border-color: var(--p-acento); color: var(--p-texto); }
+  .enlaces a.principal { background: var(--p-acento); border-color: var(--p-acento); color: #04101f; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="caja">
+  <a class="marca" href="/">
+    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  
+  <defs>
+    <linearGradient id="marca404" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#48c2ff"/>
+      <stop offset="1" stop-color="#2f9df3"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#marca404)" fill-rule="evenodd" d="
+    M 236 112
+    L 788 112
+    L 1016 756
+    L 944 848
+    L 80 848
+    L 8 756
+    Z
+    M 512 240
+    L 712 730
+    Q 512 572 312 730
+    Z"/>
+</svg>
+    Adeorq
+  </a>
+  <div class="codigo">404</div>
+  <h1>Esta página no existe</h1>
+  <p>La dirección que has abierto no está en el sitio. Puede que el enlace fuera antiguo o que tenga una errata.</p>
+  <nav class="enlaces">
+    <a class="principal" href="/">Ir a la portada</a>
+    <a href="/guia">Leer la guía</a>
+    <a href="https://github.com/Mun1to/Adeorq-releases/releases/latest">Descargar Adeorq</a>
+  </nav>
+</div>
+</body>
+</html>

@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useT } from "../lib/i18n";
+import { providerOf } from "../lib/providers";
+import { DOCS_URL } from "./SettingsView";
 import {
   openrouterConnect,
   openrouterForget,
@@ -18,6 +21,14 @@ import {
 // Credenciales de Windows y a partir de ahí se piden datos, no la llave. Por eso
 // aquí no hay ningún estado que la contenga después de guardarla, y por eso al
 // volver a esta pantalla el campo sale vacío aunque estés conectado.
+//
+// El vibecoding de aquí abajo reutiliza ESA MISMA clave para abrir una terminal
+// de Aider (github.com/Aider-AI/aider) contra el modelo de OpenRouter que
+// escribas: es el único CLI de la casa que acepta un modelo de OpenRouter con
+// un simple `--model openrouter/<lo-que-sea>`, sin fichero de configuración de
+// por medio (comprobado en aider.chat/docs/llms/openrouter.html, 2026-08-20).
+// No pasa por `providers.ts`: esa tabla es de programas con su propio login, y
+// esto es un CLI cualquiera hablando con una clave que ya vive aquí.
 
 /** Dólares, como los enseña OpenRouter. Cuatro decimales cuando es calderilla:
     con dos, todo lo que has gastado en un día pone $0.00 y parece roto. */
@@ -25,13 +36,51 @@ function money(n: number): string {
   return n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`;
 }
 
-export default function OpenRouterCard() {
+/** El modelo que se propone la primera vez: el que trajo esta tarjeta al
+    mundo (Munir, 2026-08-20). Las veces siguientes gana el último que usaste. */
+const MODELO_POR_DEFECTO = "moonshotai/kimi-k3";
+const MODELO_KEY = "adeorq-vibecoding-modelo";
+
+/** Un slug de OpenRouter es `organización/modelo`, a veces con `:variante`
+    detrás. Esto se cuela en una línea de cmd.exe sin comillas (ver
+    `shellCommand` en lib/comandos.ts), así que se valida el alfabeto ANTES de
+    dejarlo salir de esta tarjeta: un modelo mal escrito tiene que devolver
+    "OpenRouter no lo conoce", nunca partir el comando por la mitad. */
+const MODELO_VALIDO = /^[a-z0-9]([a-z0-9._-]*\/)+[a-z0-9](?:[a-z0-9._:-]*[a-z0-9])?$/i;
+
+interface Props {
+  /** Si `aider` está instalado en este equipo. Sin él, el botón instala en vez
+      de abrir: una terminal que empieza con "aider: command not found" no
+      enseña nada. */
+  aiderInstalado: boolean;
+  onInstalarAider: () => void;
+  onVibecoding: (modelo: string) => void;
+}
+
+export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibecoding }: Props) {
   const { t } = useT();
+  const aider = providerOf("aider");
   const [info, setInfo] = useState<OpenRouterInfo | null>(null);
   const [cargando, setCargando] = useState(true);
   const [clave, setClave] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [modelo, setModelo] = useState(
+    () => localStorage.getItem(MODELO_KEY) || MODELO_POR_DEFECTO,
+  );
+  const [errorModelo, setErrorModelo] = useState<string | null>(null);
+
+  const vibecoding = () => {
+    const limpio = modelo.trim();
+    if (!MODELO_VALIDO.test(limpio)) {
+      setErrorModelo(t("Eso no parece un modelo de OpenRouter (va así: organización/modelo)"));
+      return;
+    }
+    setErrorModelo(null);
+    localStorage.setItem(MODELO_KEY, limpio);
+    if (aiderInstalado) onVibecoding(limpio);
+    else onInstalarAider();
+  };
 
   const mirar = () => {
     setCargando(true);
@@ -166,6 +215,66 @@ export default function OpenRouterCard() {
 
           {error && <p className="setting-line setting-bad">⚠ {error}</p>}
         </article>
+
+        {/* Solo con la clave puesta: sin ella, abrir la terminal es enseñarle
+            a Aider un "OpenRouter dice que esa clave no vale" en vez de un
+            campo vacío que explica lo mismo mejor. */}
+        {info && (
+          <article className="panel-card account-card" style={{ ["--c" as string]: aider.hue }}>
+            <div className="account-top">
+              <span className="pavatar" data-plate="tint" style={{ ["--c" as string]: aider.hue }}>
+                {aider.label.slice(0, 2)}
+              </span>
+              <span className="account-name">{t("Vibecoding")}</span>
+            </div>
+            <p className="account-empty">
+              {t(
+                "Abre una terminal de Aider con esta misma clave, contra el modelo que escribas.",
+              )}
+            </p>
+            {/* La confusión de siempre, escrita aquí porque el botón la evita
+                pero abrir Aider a mano no: sin --model coge la primera clave
+                que encuentre (Gemini, Anthropic…) y prueba con OTRO
+                proveedor, sin tocar OpenRouter. Vista en vivo (Munir,
+                2026-08-20): arrancó "aider" a secas y acabó pidiéndole a un
+                Gemini que ya no existe. */}
+            <p className="card-hint">
+              {t(
+                "Con el botón no hace falta pensar en esto. Si lo abres a mano: dile siempre el modelo (",
+              )}
+              <code>aider --model openrouter/…</code>
+              {t(") y pon la clave en ")}
+              <code>OPENROUTER_API_KEY</code>
+              {t(" en esa terminal, o cogerá otra clave que tengas puesta y ni tocará OpenRouter.")}
+            </p>
+            <input
+              className="or-key"
+              type="text"
+              placeholder={MODELO_POR_DEFECTO}
+              value={modelo}
+              spellCheck={false}
+              onChange={(e) => {
+                setModelo(e.currentTarget.value);
+                setErrorModelo(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && modelo.trim()) vibecoding();
+              }}
+            />
+            <div className="account-actions">
+              <button className="np-btn" disabled={!modelo.trim()} onClick={vibecoding}>
+                {aiderInstalado ? t("Abrir terminal") : t("Instalar Aider primero")}
+              </button>
+              <button
+                className="mini"
+                onClick={() => void openUrl(`${DOCS_URL}#cuentas`).catch(() => {})}
+              >
+                {t("Ver cómo se hace")}
+              </button>
+            </div>
+            {errorModelo && <p className="setting-line setting-bad">⚠ {errorModelo}</p>}
+          </article>
+        )}
       </div>
     </section>
   );

@@ -27,7 +27,7 @@ vista a ninguno.
 &nbsp;
 [Todas las versiones](https://github.com/Mun1to/Adeorq-releases/releases) ·
 [La web](https://adeorq.com) ·
-[La guía](https://adeorq.com/guia.html) ·
+[La guía](https://adeorq.com/guia) ·
 [English](README.md)
 
 <br>

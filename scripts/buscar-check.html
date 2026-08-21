@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>El buscador de la terminal, probado</title>
+<!--
+  Que el buscador de la terminal (Ctrl+F) encuentre de verdad.
+
+  COMO SE LANZA:
+      pnpm dev                    (vite, en el 1420)
+      y abrir este archivo servido por HTTP, no con file://
+      (por ejemplo: npx serve scripts, o copiarlo a web/)
+
+  POR QUE ES UNA PAGINA Y NO UN `scripts/*-check.mjs` COMO LOS DEMAS: se intento
+  primero en Node, con el mismo truco de `xterm-check.mjs` (globalThis.self), y
+  NO se puede. `findNext` llama al servicio de seleccion de xterm, que solo
+  existe despues de `term.open(elemento)`: sin DOM revienta con «Cannot read
+  properties of undefined (reading 'setSelection')». Doblar ese servicio a mano
+  seria meter la mano en las interioridades privadas de la libreria, y se
+  romperia en la siguiente actualizacion, que es justo de lo que esta prueba
+  tiene que avisar.
+
+  Lo que se comprueba no es que el CSS quede bonito: es que el addon RECORRE el
+  scrollback entero (la primera aguja se fue de la vista hace novecientas
+  lineas), que el contador dice la verdad, y que te LLEVA hasta ella. Encontrar
+  sin mover la vista es saber que existe y seguir sin verlo.
+
+  Verde el 2026-08-21 con xterm 6.1.0-beta.302 y addon-search 0.17.0-beta.299:
+  las diez.
+-->
+<style>
+  body { margin: 0; background: #0b0e15; color: #e6edfa;
+         font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; }
+  #term { height: 340px; margin: 12px; }
+  #salida { margin: 12px; font-family: ui-monospace, "Cascadia Mono", monospace;
+            font-size: 13px; white-space: pre-wrap; line-height: 1.7; }
+  .ok { color: #7ee2a8; } .falla { color: #ff8f8f; }
+</style>
+</head>
+<body>
+<div id="term"></div>
+<div id="salida">arrancando…</div>
+
+<script type="module">
+import { Terminal } from "http://localhost:1420/node_modules/@xterm/xterm/lib/xterm.mjs";
+import { SearchAddon } from "http://localhost:1420/node_modules/@xterm/addon-search/lib/addon-search.mjs";
+
+const out = document.getElementById("salida");
+let fallos = 0;
+const ok = (n, cond, det = "") => {
+  if (!cond) fallos++;
+  out.innerHTML += `<span class="${cond ? "ok" : "falla"}">${cond ? "ok   " : "FALLA"}</span> ${n}${det ? " — " + det : ""}\n`;
+};
+
+const term = new Terminal({ cols: 100, rows: 20, scrollback: 5000, allowProposedApi: true });
+const search = new SearchAddon();
+term.loadAddon(search);
+term.open(document.getElementById("term"));
+
+// Mil lineas como las que escribe un agente, con tres agujas plantadas a
+// distintas alturas para comprobar que busca en TODO el scrollback y no solo
+// en lo que se ve.
+let texto = "";
+for (let i = 1; i <= 1000; i++) {
+  if (i === 12) texto += "el hueco negro de la terminal\r\n";
+  else if (i === 500) texto += "otra vez el hueco negro, a media conversacion\r\n";
+  else if (i === 990) texto += "y el hueco negro del final\r\n";
+  else texto += `turno ${i}: texto cualquiera que rellena la conversacion\r\n`;
+}
+await new Promise((r) => term.write(texto, r));
+
+out.textContent = "";
+
+// El contador llega por evento, asi que hay que esperarlo.
+let ultimo = null;
+search.onDidChangeResults((r) => { ultimo = r; });
+const esperar = () => new Promise((r) => setTimeout(r, 60));
+
+const MARCAS = { decorations: {
+  matchBackground: "#2a5f9e", matchBorder: "#4d9fff", matchOverviewRuler: "#4d9fff",
+  activeMatchBackground: "#4d9fff", activeMatchBorder: "#cfe4ff", activeMatchColorOverviewRuler: "#cfe4ff",
+} };
+
+ok("el buffer tiene las mil lineas", term.buffer.active.length >= 1000, `${term.buffer.active.length}`);
+
+const hallado = search.findNext("hueco negro", { ...MARCAS, incremental: true });
+await esperar();
+ok("encuentra la aguja", hallado === true);
+ok("y las cuenta las tres", ultimo?.resultCount === 3, `dice ${ultimo?.resultCount}`);
+ok("empieza por la primera", ultimo?.resultIndex === 0, `indice ${ultimo?.resultIndex}`);
+
+search.findNext("hueco negro", MARCAS);
+await esperar();
+ok("siguiente avanza", ultimo?.resultIndex === 1, `indice ${ultimo?.resultIndex}`);
+
+search.findPrevious("hueco negro", MARCAS);
+await esperar();
+ok("anterior retrocede", ultimo?.resultIndex === 0, `indice ${ultimo?.resultIndex}`);
+
+// Da la vuelta: es lo que uno espera de un buscador, y si no lo hiciera se
+// quedaria clavado en la ultima.
+search.findNext("hueco negro", MARCAS);
+search.findNext("hueco negro", MARCAS);
+search.findNext("hueco negro", MARCAS);
+await esperar();
+ok("da la vuelta al llegar al final", ultimo?.resultIndex === 0, `indice ${ultimo?.resultIndex}`);
+
+const nada = search.findNext("esto no esta escrito en ninguna parte", MARCAS);
+await esperar();
+ok("lo que no esta, no lo inventa", nada === false && ultimo?.resultCount === 0);
+
+// Buscar mueve la vista hasta la coincidencia, que es la mitad del trabajo:
+// encontrar sin llevarte alli no sirve de nada.
+term.scrollToBottom();
+const abajo = term.buffer.active.viewportY;
+search.findNext("hueco negro de la terminal", MARCAS);
+await esperar();
+ok("te lleva hasta ella", term.buffer.active.viewportY < abajo,
+   `de la linea ${abajo} a la ${term.buffer.active.viewportY}`);
+
+search.clearDecorations();
+await esperar();
+ok("limpiar no revienta", true);
+
+out.innerHTML += `\n${fallos === 0 ? '<span class="ok">TODO BIEN</span>' : `<span class="falla">${fallos} FALLOS</span>`}`;
+document.body.dataset.fallos = String(fallos);
+document.body.dataset.hecho = "1";
+</script>
+</body>
+</html>

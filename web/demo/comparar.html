@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adeorq · la maqueta contra la app</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 18px 20px 60px;
+    background: #070c15; color: #e6edfa;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  }
+  h1 { margin: 0 0 4px; font-size: 20px; font-weight: 650; }
+  p.pie { margin: 0 0 18px; color: #93a4c2; font-size: 13px; max-width: 74ch; }
+
+  .par { display: grid; gap: 10px; }
+  .lado { position: relative; border: 1px solid rgba(140,170,220,.2); border-radius: 10px; overflow: hidden; }
+  .lado > h2 {
+    position: absolute; z-index: 3; top: 8px; left: 10px; margin: 0;
+    padding: 3px 9px; border-radius: 999px;
+    background: rgba(7,12,21,.82); border: 1px solid rgba(140,170,220,.3);
+    font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+  }
+  .lado img, .lado iframe { display: block; width: 100%; border: 0; }
+
+  /* La maqueta se mete en un iframe de 1920 de ancho y se encoge igual que la
+     foto, asi que las dos se ven a la misma escala y se pueden comparar de
+     verdad en vez de por sensacion. */
+  .marco { position: relative; width: 100%; }
+  .marco iframe {
+    width: 1920px; height: 1080px;
+    transform-origin: top left;
+  }
+
+  .mandos { display: flex; gap: 14px; align-items: center; margin: 0 0 14px; font-size: 12.5px; color: #93a4c2; }
+  .mandos button {
+    padding: 6px 12px; border-radius: 10px; cursor: pointer;
+    border: 1px solid rgba(140,170,220,.28); background: #101624; color: #e6edfa;
+    font: inherit; font-size: 12.5px;
+  }
+  .mandos button[data-on] { background: #4d9fff; color: #071019; border-color: #4d9fff; }
+
+  /* Superponer: la foto encima de la maqueta con opacidad, para ver que se
+     mueve de sitio. Es la unica forma de cazar dos pixeles de diferencia. */
+  body[data-modo="encima"] .par { position: relative; }
+  body[data-modo="encima"] .lado--real {
+    position: absolute; inset: 0; z-index: 2;
+    opacity: var(--velo, .5);
+    mix-blend-mode: difference;
+    pointer-events: none;
+  }
+  body[data-modo="encima"] .lado--real h2 { display: none; }
+</style>
+</head>
+<body data-modo="lado">
+
+<h1>La maqueta contra la app</h1>
+<p class="pie">Arriba la captura de la app de verdad; debajo, la maqueta, a la misma escala.
+   En «superpuestas» se pintan una encima de otra en modo diferencia: lo que queda
+   negro es lo que cuadra, y lo que se enciende es lo que no.</p>
+
+<div class="mandos">
+  <button type="button" data-modo="lado" data-on>Una debajo de otra</button>
+  <button type="button" data-modo="encima">Superpuestas</button>
+  <label>Velo <input type="range" id="velo" min="0" max="100" value="50"></label>
+</div>
+
+<div class="par" id="par">
+  <div class="lado lado--real">
+    <h2>La app</h2>
+    <img src="../assets/screens/cockpit.png" alt="Captura real de Adeorq">
+  </div>
+  <div class="lado lado--maq">
+    <h2>La maqueta</h2>
+    <div class="marco" id="marco">
+      <iframe id="maq" src="index.html?desnuda=1" title="La maqueta"></iframe>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+
+// La maqueta va en un iframe de 1920 y se encoge al ancho de la columna, que es
+// exactamente lo que le pasa a la foto: asi las dos comparten escala.
+function ajustar() {
+  const marco = $('#marco');
+  const k = marco.clientWidth / 1920;
+  const alto = $('.lado--real img')?.clientHeight || 1080 * k;
+  $('#maq').style.transform = `scale(${k})`;
+  marco.style.height = Math.round(1080 * k) + 'px';
+}
+addEventListener('resize', ajustar);
+$('#maq').addEventListener('load', ajustar);
+ajustar();
+
+for (const b of document.querySelectorAll('.mandos button')) {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.mandos button').forEach(x => delete x.dataset.on);
+    b.dataset.on = 'true';
+    document.body.dataset.modo = b.dataset.modo;
+    ajustar();
+  });
+}
+$('#velo').addEventListener('input', e => {
+  document.body.style.setProperty('--velo', e.target.value / 100);
+});
+</script>
+</body>
+</html>

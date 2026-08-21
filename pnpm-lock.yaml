@@ -59,6 +59,9 @@ importers:
       '@xterm/addon-fit':
         specifier: 0.12.0-beta.299
         version: 0.12.0-beta.299(@xterm/xterm@6.1.0-beta.302)
+      '@xterm/addon-search':
+        specifier: 0.17.0-beta.299
+        version: 0.17.0-beta.299(@xterm/xterm@6.1.0-beta.302)
       '@xterm/addon-webgl':
         specifier: 0.20.0-beta.298
         version: 0.20.0-beta.298(@xterm/xterm@6.1.0-beta.302)
@@ -782,6 +785,11 @@ packages:
 
   '@xterm/addon-fit@0.12.0-beta.299':
     resolution: {integrity: sha512-LnofeCMLCf4e3eHN6qz27OdDgcNVh/L2oMqCHHgKraNTCGyKmf1BFWQczFF4PEg63LQvNFiItK62YOQhzDyHMw==}
+    peerDependencies:
+      '@xterm/xterm': ^6.1.0-beta.301
+
+  '@xterm/addon-search@0.17.0-beta.299':
+    resolution: {integrity: sha512-We4bbjOuLY9oZD5WN93P6STqwlJg3Q7ECSE4UIuzEmWG009yEu4di5HPW/8u7UERUdrg0+8Ds+wGWrDR0687jw==}
     peerDependencies:
       '@xterm/xterm': ^6.1.0-beta.301
 
@@ -1801,6 +1809,10 @@ snapshots:
       - supports-color
 
   '@xterm/addon-fit@0.12.0-beta.299(@xterm/xterm@6.1.0-beta.302)':
+    dependencies:
+      '@xterm/xterm': 6.1.0-beta.302
+
+  '@xterm/addon-search@0.17.0-beta.299(@xterm/xterm@6.1.0-beta.302)':
     dependencies:
       '@xterm/xterm': 6.1.0-beta.302
 

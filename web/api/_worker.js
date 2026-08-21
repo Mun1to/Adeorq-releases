@@ -20,6 +20,17 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url)
 
+    // One canonical hostname. Both adeorq.com and www.adeorq.com point at this
+    // project, and both answering 200 splits every ranking signal in two, so
+    // www is redirected here with a permanent 301. Cloudflare already upgrades
+    // http to https, so this is the only case left.
+    if (url.hostname === 'www.adeorq.com') {
+      url.hostname = 'adeorq.com'
+      // Forced, not inherited: one hop, never http -> https -> apex.
+      url.protocol = 'https:'
+      return Response.redirect(url.toString(), 301)
+    }
+
     if (url.pathname === '/api/latest') {
       return latest(request)
     }

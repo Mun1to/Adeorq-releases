@@ -66,6 +66,10 @@ interface Props {
   /** Abre una terminal que lo descarga y, si al acabar ya se le puede llamar,
       lo arranca para que hagas el login ahí mismo. */
   onInstall: (provider: Provider) => void;
+  /** Abre una terminal de Aider apuntando a un modelo de OpenRouter, con la
+      clave que ya está guardada en la tarjeta de OpenRouter. Vive en App.tsx
+      porque necesita `addPane` y la raíz del árbol, igual que `onInstall`. */
+  onVibecoding: (modelo: string) => void;
 }
 
 /** "Current week (all models)" does not fit a row. */
@@ -111,6 +115,7 @@ export default function AccountsView({
   onSetDefault,
   onTerminal,
   onInstall,
+  onVibecoding,
 }: Props) {
   const { t } = useT();
   const [installed, setInstalled] = useState<Set<string> | null>(null);
@@ -639,7 +644,11 @@ export default function AccountsView({
             {activa === "cuentas" && <SeccionCuentas />}
             {activa === "claves" && (
               <>
-                <OpenRouterCard />
+                <OpenRouterCard
+                  aiderInstalado={!!installed?.has("aider")}
+                  onInstalarAider={() => onInstall(providerOf("aider"))}
+                  onVibecoding={onVibecoding}
+                />
                 <ApiKeysCard />
               </>
             )}

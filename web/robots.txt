@@ -1,0 +1,97 @@
+# robots.txt de adeorq.com
+#
+# Postura elegida por Munir el 2026-08-21: se bloquea el ENTRENAMIENTO de
+# modelos y se deja entrar a los bots de BUSQUEDA Y RESPUESTA, que son los que
+# hacen que ChatGPT, Claude o Perplexity citen Adeorq cuando alguien pregunta
+# por un panel de agentes. Cerrarles la puerta a esos no protege nada: solo
+# borra la web de las respuestas, que hoy es de donde llega la visita con mas
+# intencion.
+#
+# Los tokens de abajo se comprobaron uno a uno en la documentacion oficial de
+# cada proveedor el 2026-08-21. Caducan: aparecen bots nuevos cada pocos meses,
+# asi que antes de dar esta lista por buena hay que releer esas paginas.
+
+# ---------------------------------------------------------------------------
+# Buscadores de toda la vida: bienvenidos, sin condiciones.
+# ---------------------------------------------------------------------------
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# ---------------------------------------------------------------------------
+# Busqueda y respuesta de las IA: ENTRAN. Son los que citan.
+#
+#   OAI-SearchBot ...... indice de busqueda de ChatGPT
+#   ChatGPT-User ....... visita en directo cuando alguien pregunta
+#   Claude-SearchBot ... indice de busqueda de Claude
+#   Claude-User ........ visita en directo cuando alguien pregunta
+#   PerplexityBot ...... indice de busqueda de Perplexity
+#   Perplexity-User .... visita en directo (su doc avisa de que suele IGNORAR
+#                        este fichero, porque la peticion nace de una persona)
+# ---------------------------------------------------------------------------
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+# ---------------------------------------------------------------------------
+# Entrenamiento de modelos: FUERA.
+#
+# Ojo con Google-Extended, que es donde mas gente se dispara al pie: solo
+# controla el entrenamiento de Gemini. Su propia documentacion dice que "does
+# not impact a site's inclusion in Google Search nor is it used as a ranking
+# signal in Google Search". El que te borraria del buscador es Googlebot, que
+# es otro token distinto y esta permitido arriba.
+#
+# Y esto es un cartel, no un candado: quien raspa contenido a mala fe se lo
+# salta entero.
+# ---------------------------------------------------------------------------
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+# ---------------------------------------------------------------------------
+# Todo lo demas
+# ---------------------------------------------------------------------------
+User-agent: *
+Allow: /
+# El endpoint que devuelve la ultima version en JSON. No es una pagina, no
+# aporta nada en un resultado de busqueda y gasta presupuesto de rastreo.
+Disallow: /api/
+
+Sitemap: https://adeorq.com/sitemap.xml

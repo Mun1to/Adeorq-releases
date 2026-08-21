@@ -5,6 +5,7 @@
 //   node <tmp>/scripts/saltos-check.js
 
 import {
+  aDondeSaltar,
   aQuienLeToca,
   encolar,
   esInputDeVerdad,
@@ -87,6 +88,49 @@ ok(
   "una marca vieja de otro pane no desmaximiza",
   !tocaDesmaximizar(4, 9, 4, "hola"),
   "el salto fue de otro y luego maximizaste esta a mano",
+);
+
+// --- DONDE se salta (2026-08-21: «no funciona del todo bien») ----------------
+//
+// Los dos primeros son los fallos que se reportaron, escritos como casos para
+// que no vuelvan. Los dos fallaban en SILENCIO, que es lo peor que le puede
+// pasar a un ajuste: encendido, el agente termina, y no se ve nada.
+
+const sitio = (enCabina: boolean, enLienzo: boolean, apartada: boolean) => ({
+  enCabina,
+  enLienzo,
+  apartada,
+});
+
+ok(
+  "una del mosaico, a la Cabina",
+  aDondeSaltar(sitio(true, false, false)) === "cabina",
+  "el caso de siempre, que ya funcionaba",
+);
+ok(
+  "una del LIENZO se queda en el lienzo",
+  aDondeSaltar(sitio(false, true, false)) === "lienzo",
+  "antes te sacaba a la Cabina y alli no maximizaba nada, porque no esta en el mosaico",
+);
+ok(
+  "una APARTADA se trae antes de maximizar",
+  aDondeSaltar(sitio(true, false, true)) === "traer",
+  "antes se maximizaba y la red de los paneles ocultos la desmaximizaba en el acto",
+);
+ok(
+  "una que ya no esta en ninguna vista no mueve nada",
+  aDondeSaltar(sitio(false, false, false)) === "nadie",
+  "sacada a su ventana, o cerrada mientras esperaba su turno",
+);
+ok(
+  "el lienzo manda aunque el mosaico crea tenerla",
+  aDondeSaltar(sitio(true, true, false)) === "lienzo",
+  "un id en las dos listas solo puede ser una foto a medio actualizar; llevarla a la Cabina es el fallo que se arregla",
+);
+ok(
+  "apartada no cuenta si esta en el lienzo",
+  aDondeSaltar(sitio(false, true, true)) === "lienzo",
+  "apartar es del mosaico; el lienzo no tiene apartadero",
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

@@ -32,7 +32,7 @@ export type Escena = {
 export const TITULO = "Adeorq";
 export const LEMA = "El taller donde trabajan tus agentes";
 export const CIERRE = "Descárgalo gratis";
-export const WEB = "mun1to.github.io/Adeorq-releases";
+export const WEB = "adeorq.com";
 
 export const ESCENAS: Escena[] = [
   {

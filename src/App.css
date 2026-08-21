@@ -4608,6 +4608,99 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   background: var(--xterm-bg);
 }
 
+/* ── Buscar dentro de la terminal (Ctrl+F) ────────────────────────────────
+ *
+ * Flota sobre la terminal, arriba a la derecha, y no empuja nada: si robara
+ * sitio, abrir el buscador cambiaría las columnas y el CLI volvería a partir
+ * las palabras del texto que estás intentando leer, que es el fallo que costó
+ * dos sesiones enteras arreglar.
+ *
+ * Arriba y a la derecha porque abajo está la caja donde escribes al agente y a
+ * la izquierda empieza cada línea: es la esquina que menos tapa. */
+.buscar-term {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px;
+  border-radius: 10px;
+  background: var(--panel-head);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.buscar-term-caja {
+  width: 190px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+}
+
+.buscar-term-caja:focus {
+  border-color: var(--accent);
+}
+
+/* Escrito y sin ninguna coincidencia. En rojo el BORDE y no el texto: teñir lo
+   que estás escribiendo hace pensar que lo escrito está mal, cuando lo que no
+   hay es resultado. */
+.buscar-term-nada {
+  /* El mismo rojo que la papelera del panel, que es el que ya usa la casa para
+     decir «ojo con esto». No hay variable para él, y aquí no se inventa una. */
+  border-color: #ff8f8f;
+}
+
+.buscar-term-cuenta {
+  min-width: 40px;
+  padding: 0 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+  /* Los dígitos de la misma anchura, o el contador da saltos al pasar de 9 a
+     10 y arrastra los tres botones de al lado. */
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.buscar-term-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.buscar-term-btn:hover {
+  background: rgba(140, 170, 220, 0.16);
+  color: var(--text);
+}
+
+.buscar-term-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* El chevron del catálogo mira hacia abajo, así que el de «anterior» es el
+   mismo girado. Un segundo icono para esto serían dos dibujos que mantener
+   sincronizados para siempre. */
+.buscar-term-arriba {
+  display: grid;
+  place-items: center;
+  transform: rotate(180deg);
+}
+
 .pane-term .xterm {
   height: 100%;
 }
@@ -8243,7 +8336,16 @@ button.stat-card[data-live="false"] {
   grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
   gap: 40px;
   align-items: start;
+  /* El `justify-content: center` de aquí arriba no hacía nada: la segunda
+     columna es `1fr` y se come todo el ancho que sobra, así que el índice y
+     el artículo quedaban pegados a la izquierda y en un monitor ancho el
+     resto de la ventana se quedaba en negro (Munir, 2026-08-20, "no
+     aprovecha todo el espacio"). Con un tope y centrado en el propio
+     contenedor, ese hueco se reparte a los dos lados en vez de amontonarse
+     en uno solo. */
   justify-content: center;
+  max-width: 1200px;
+  margin-inline: auto;
 }
 
 /* Sin índice (guía corta o error de lectura) el texto se queda solo y
@@ -8307,6 +8409,17 @@ button.stat-card[data-live="false"] {
   max-width: 860px;
   line-height: 1.7;
   font-size: 15px;
+  /* El artículo se pintaba suelto, directamente sobre la foto del escritorio:
+     bastaba una foto con detalle para que un párrafo entero se leyera mal
+     (Munir, 2026-08-20, "se ve muy transparente"). El índice de al lado YA
+     lleva este mismo tratamiento sólido y por el mismo motivo, dicho arriba
+     en su propio comentario (2026-08-12); ahora el artículo es una tarjeta
+     como él, no texto suelto encima de la foto. */
+  padding: 28px 32px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  box-shadow: var(--glass-edge);
 }
 
 .guide h1 {
@@ -8325,19 +8438,19 @@ button.stat-card[data-live="false"] {
   margin: 20px 0 6px;
 }
 
-/* Sólidos, los tres.
-   Las citas, el código y las cabeceras de tabla usaban `--panel` y
-   `--panel-head`, que son translúcidos: dentro de un panel se leen, pero la
-   guía se pinta directamente sobre la foto del escritorio y ahí se veía el
-   fondo a través de ellos (Munir, 2026-08-12: «hay cosas muy transparentes»).
-   Es la misma trampa de siempre: un color pensado para ir encima de otro, usado
-   donde no hay nada debajo. */
+/* Sólidos, los tres, y encima de una tarjeta que AHORA también es sólida
+   (`.guide` de más arriba, 2026-08-20): antes esto contrastaba porque el
+   artículo entero era texto suelto sobre la foto del escritorio, y
+   `--panel-solid` a secas destacaba solo. Con el artículo ya opaco, el
+   mismo tono liso se confundía con su propio fondo, así que llevan la
+   MISMA capa de tinte (`--row`) que ya usaba `.guide code` para separarse
+   de un panel sólido de alrededor, en vez de inventar un tono nuevo. */
 .guide blockquote {
   margin: 0 0 16px;
   padding: 10px 16px;
   border-left: 3px solid var(--accent-dim);
   color: var(--text);
-  background: var(--panel-solid);
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
   border-radius: 0 var(--r-btn) var(--r-btn) 0;
 }
 
@@ -8350,7 +8463,7 @@ button.stat-card[data-live="false"] {
 }
 
 .guide pre {
-  background: var(--panel-solid);
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
   border: 1px solid var(--border);
   border-radius: var(--r-btn);
   padding: 12px 14px;
@@ -10679,12 +10792,93 @@ button.stat-card[data-live="false"] {
   color: var(--warn, #f3cf8a);
 }
 
-/* Settings: a plain checkbox row, aligned with the sliders above it. */
-.setting-switch input[type="checkbox"] {
+/* Settings: an on/off switch, not a tick box (Munir, 2026-08-21).
+ *
+ * It is still a real <input type="checkbox">: the label, the keyboard, the
+ * space bar and the screen reader all keep working, and nothing in the .tsx
+ * changed. Only its skin is redrawn, with `appearance: none` and the knob as
+ * an ::before, so a switch is one selector and not a new component.
+ *
+ * A tick box says "this is on the list". A switch says "this is running right
+ * now", which is what every one of these rows actually means. */
+.setting-switch input[type="checkbox"],
+.apagon-fila input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  margin: 0;
+  border-radius: 999px;
+  /* Off is glass, not grey: everything else in this app sits on the photo, and
+     a solid grey pill is the one thing that would look pasted on. Measured on
+     screen: at 0.16 the track disappeared into the card and the row read as a
+     lone white dot, so it carries its own border to keep the pill legible. */
+  background: rgba(140, 170, 220, 0.22);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.setting-switch input[type="checkbox"]::before,
+.apagon-fila input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3px;
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
-  cursor: pointer;
+  border-radius: 50%;
+  background: #f2f6ff;
+  /* Moving the knob with translate keeps it on the GPU, and `top: 50%` plus a
+     translate on Y centres it whatever the border does to the box. */
+  transform: translate(0, -50%);
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.setting-switch input[type="checkbox"]:checked,
+.apagon-fila input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.setting-switch input[type="checkbox"]:checked::before,
+.apagon-fila input[type="checkbox"]:checked::before {
+  transform: translate(16px, -50%);
+}
+
+.setting-switch input[type="checkbox"]:disabled,
+.apagon-fila input[type="checkbox"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* El apagón lleva su texto en dos líneas y se alinea por arriba, así que un
+   interruptor de 22 px sobresale de su propio título. Se baja el título en vez
+   de subir el interruptor: mover el mando es lo que se ve. */
+.apagon-fila input[type="checkbox"] {
+  margin-top: 1px;
+}
+
+/* The focus ring is not optional: without the native tick box there is no
+   other way to see where the keyboard is. */
+.setting-switch input[type="checkbox"]:focus-visible,
+.apagon-fila input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setting-switch input[type="checkbox"],
+  .setting-switch input[type="checkbox"]::before,
+  .apagon-fila input[type="checkbox"],
+  .apagon-fila input[type="checkbox"]::before {
+    transition: none;
+  }
 }
 
 /* Diagrams inside the guide: they scale with the panel and take the theme's

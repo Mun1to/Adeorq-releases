@@ -1,0 +1,133 @@
+<!-- ============================================================================
+     Adeorq · demo/marcas.svg
+     GENERADO. No editar a mano: sale de src/components/ProviderMark.tsx con
+     scripts/extraer-marcas.mjs.
+
+     La marca de cada CLI, tal como la dibuja la app. Se usan asi:
+       <svg class="prov-mark"><use href="#m-claude"/></svg>
+
+     ⚠ Este sprite hay que PEGARLO en la pagina (lo hace demo/sprites.js), no
+     referenciarlo como fichero externo. Tres de las diez marcas (Codex, Copilot
+     y Qwen) se dibujan con una mascara, y un mask="url(#pm-codex)" se resuelve
+     SIEMPRE contra el documento que lo pinta: desde otro fichero no encuentra
+     nada y la mascara no recorta, asi que Codex salia como un cuadrado relleno.
+     Por lo mismo el svg de aqui no lleva display:none, que tambien anula las
+     mascaras de dentro: se esconde con tamaño cero.
+     ============================================================================ -->
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true"
+     style="position:absolute;width:0;height:0;overflow:hidden">
+  <symbol id="m-claude" viewBox="0 0 24 24">
+    <path d="M12 10.8V2.8M12.65 10.99 16.97 4.26M13.09 11.5 20.37 8.18M13.19 12.17 21.11 13.31M12.91 12.79 18.95 18.02M12.34 13.15 14.59 20.83M11.66 13.15 9.41 20.83M11.09 12.79 5.05 18.02M10.81 12.17 2.89 13.31M10.91 11.5 3.63 8.18M11.35 10.99 7.03 4.26" stroke-width="2.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" />
+  </symbol>
+  <symbol id="m-codex" viewBox="0 0 24 24">
+    <mask id="pm-codex" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+        
+        <g fill="#fff">
+          <circle cx="12" cy="12" r="7.1" />
+          <circle cx="8.7" cy="6.7" r="4.9" />
+          <circle cx="15.4" cy="7" r="4.8" />
+          <circle cx="18.4" cy="12.6" r="4.8" />
+          <circle cx="15" cy="17.9" r="4.8" />
+          <circle cx="8.2" cy="17.6" r="4.8" />
+          <circle cx="5.2" cy="11.8" r="4.8" />
+        </g>
+        
+        <g fill="none" stroke="#000" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6.6 8.5 9.9 11.9 6.6 15.3" />
+          <path d="M12.9 15.3h5" />
+        </g>
+      </mask>
+      <rect x="0" y="0" width="24" height="24" fill="currentColor" mask="url(#pm-codex)" />
+  </symbol>
+  <symbol id="m-gemini" viewBox="0 0 24 24">
+    <path
+      d="M12 1.6c0 5.7 4.7 10.4 10.4 10.4C16.7 12 12 16.7 12 22.4 12 16.7 7.3 12 1.6 12 7.3 12 12 7.3 12 1.6Z"
+      fill="currentColor"
+    />
+  </symbol>
+  <symbol id="m-qwen" viewBox="0 0 24 24">
+    <mask id="pm-qwen" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+        <rect width="24" height="24" fill="#fff" />
+        <path
+          d="M12 2.6 20.1 16.6 3.9 16.6Z"
+          fill="none"
+          stroke="#000"
+          stroke-width="7.4"
+          stroke-linejoin="miter"
+        />
+      </mask>
+      <path
+        d="M12 21.4 3.9 7.4h16.2Z"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="4.6"
+        stroke-linejoin="miter"
+        mask="url(#pm-qwen)"
+      />
+      <path
+        d="M12 2.6 20.1 16.6 3.9 16.6Z"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="4.6"
+        stroke-linejoin="miter"
+      />
+      
+      <path d="M12 15.4 9.5 10.9h5Z" fill="currentColor" />
+  </symbol>
+  <symbol id="m-copilot" viewBox="0 0 24 24">
+    <mask id="pm-copilot" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+        <path
+          d="M2.6 13.4a9.4 9.4 0 0 1 18.8 0c0 4.7-4.2 7.8-9.4 7.8s-9.4-3.1-9.4-7.8Z"
+          fill="#fff"
+        />
+        <g fill="#000">
+          <rect x="4.9" y="6.9" width="6.1" height="6.5" rx="2.7" />
+          <rect x="13" y="6.9" width="6.1" height="6.5" rx="2.7" />
+          <rect x="4.8" y="13.5" width="14.4" height="5.7" rx="2.5" />
+        </g>
+        <g fill="#fff">
+          <rect x="9.2" y="15" width="1.6" height="3.2" rx="0.8" />
+          <rect x="13.2" y="15" width="1.6" height="3.2" rx="0.8" />
+        </g>
+      </mask>
+      <rect x="0" y="0" width="24" height="24" fill="currentColor" mask="url(#pm-copilot)" />
+  </symbol>
+  <symbol id="m-opencode" viewBox="0 0 24 24">
+    <path
+      d="M4.6 2.4h14.8v19.2H4.6ZM8.3 6.3h7.4v11.4H8.3Z"
+      fill="currentColor"
+      fill-rule="evenodd"
+    />
+  </symbol>
+  <symbol id="m-agy" viewBox="0 0 24 24">
+    <path
+      d="M2.2 21.3C3.4 13.5 6.8 1.4 12 1.4s8.6 12.1 9.8 19.9c.1.8-1 1.1-1.4.4-2-3.5-5-8.1-8.4-8.1s-6.4 4.6-8.4 8.1c-.4.7-1.5.4-1.4-.4Z"
+      fill="currentColor"
+    />
+  </symbol>
+  <symbol id="m-cursor" viewBox="0 0 24 24">
+    <path
+      d="M12 1.6 21.4 7v10L12 22.4 2.6 17V7ZM4.3 7.4h15.4L12 21Z"
+      fill="currentColor"
+      fill-rule="evenodd"
+    />
+  </symbol>
+  <symbol id="m-grok" viewBox="0 0 24 24">
+    <path
+      d="M2.6 2.6h3.7l15.1 18.8h-3.7Zm15.2 0h3.6l-6.1 7.3-1.8-2.2Zm-7.9 11 1.8 2.2-5.6 5.6H2.6Z"
+      fill="currentColor"
+    />
+  </symbol>
+  <symbol id="m-kiro" viewBox="0 0 24 24">
+    <g stroke-width="1.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4.6 20.2V10.4a7.4 7.4 0 0 1 14.8 0v9.8l-2.5-1.8-2.4 1.8-2.5-1.8-2.4 1.8-2.5-1.8Z" />
+      <path d="M9.6 10.6v1.6M14.4 10.6v1.6" stroke-width="2.2" />
+    </g>
+  </symbol>
+  <symbol id="m-shell" viewBox="0 0 24 24">
+    <g stroke-width="2.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4.5 7.5 9 12l-4.5 4.5" />
+      <path d="M12 17h7.5" />
+    </g>
+  </symbol>
+</svg>

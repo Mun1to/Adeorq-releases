@@ -1,0 +1,89 @@
+/* ===========================================================================
+   LA VÁLVULA DEL MOVIMIENTO, y el porqué de que sea obligatoria.
+
+   La política de la casa dice que el movimiento no se apaga, se le baja la
+   amplitud, y eso lo resuelve el dial `--motion-gain` del `<head>`. Pero el
+   dial NO basta para dos cosas, y las dos son de norma, no de gusto:
+
+     · WCAG 2.3.3 exige poder DESACTIVAR el movimiento, no solo reducirlo, y
+       una válvula que solo existe en la URL (`?motion=off`) no la encuentra
+       quien la necesita. Por eso tiene que verse.
+
+     · WCAG 2.2.2 «Pause, Stop, Hide» es NIVEL A, o sea obligatorio: toda
+       animación automática en bucle de más de cinco segundos necesita un
+       control de pausa. Esta portada tiene dos (medidas el 2026-08-20):
+       `glow-late` a 9 s y `cinta-rodar` a 42 s. El dial no las
+       cubre porque el dial gradúa recorrido, no detiene bucles.
+
+   Un solo control resuelve las dos: parar es cerrar el dial Y congelar los
+   bucles.
+   ========================================================================= */
+
+.valvula {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 90;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  /* Sin alfa en el fondo: el texto de encima es de 12px y sobre una superficie
+     translúcida Windows apaga el ClearType y se ve pastoso. El color va
+     aplanado contra el fondo de la portada. */
+  background: #14161c;
+  color: rgba(233, 238, 247, 0.72);
+  font: 500 12px/1 system-ui, "Segoe UI", sans-serif;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.valvula:hover,
+.valvula:focus-visible {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* El icono cambia de forma, no solo de color: quien no distingue bien los
+   colores tiene que poder saber en qué estado está. */
+.valvula__ico {
+  width: 9px;
+  height: 10px;
+  flex: none;
+  background: currentColor;
+  /* dos barras = pausa */
+  clip-path: polygon(0 0, 35% 0, 35% 100%, 0 100%, 0 0, 65% 0, 100% 0, 100% 100%, 65% 100%, 65% 0);
+}
+
+:root[data-quieto] .valvula__ico {
+  /* un triángulo = reanudar */
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* ── Lo que hace parar ────────────────────────────────────────────────────
+   Un solo atributo en la raíz congela TODO lo que se mueva solo, incluido lo
+   que se añada mañana y nadie se acuerde de apuntar aquí. Lo que el visitante
+   dirige con su propio dedo o su puntero no entra: una portada que deja de
+   responder al ratón no es sobria, está rota (regla 3 del dial). */
+:root[data-quieto] *,
+:root[data-quieto] *::before,
+:root[data-quieto] *::after {
+  animation-play-state: paused !important;
+}
+
+/* Y las transiciones se quedan, pero cortas: parar el movimiento de fondo no
+   debería convertir un hover en un salto seco. */
+:root[data-quieto] * {
+  transition-duration: 0.08s !important;
+}
+
+@media (max-width: 640px) {
+  .valvula {
+    right: 10px;
+    bottom: 10px;
+    padding: 6px 10px;
+  }
+}

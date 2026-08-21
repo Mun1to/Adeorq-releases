@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adeorq · la maqueta del panel</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+<!-- ============================================================================
+     BANCO DE PRUEBAS DE LA MAQUETA
+
+     Esta pagina NO es la landing: es donde se construye y se mira la maqueta del
+     panel a tamaño real, sin el ruido del resto de la web. Cuando este bien, el
+     bloque `.ade` de abajo es lo que se lleva a index.html.
+
+     Las tres hojas de la maqueta salen de la app de verdad y estan GENERADAS:
+       temas.css   32 temas          <- src/App.css
+       ui.css      278 reglas        <- src/App.css
+       iconos.svg  42 iconos         <- src/components/Icons.tsx
+     Se regeneran con `node scripts/extraer-temas.mjs` y sus dos hermanos.
+     ============================================================================ -->
+
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="temas.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="piezas.css">
+<link rel="stylesheet" href="banco.css">
+</head>
+
+<body>
+
+<div class="banco">
+  <header class="banco__cab">
+    <div>
+      <h1>La maqueta del panel</h1>
+      <p>Rehecha desde cero contra el codigo de la app. Los temas, las medidas y los
+         iconos salen de <code>src/</code>, no estan copiados a ojo.</p>
+    </div>
+    <div class="banco__mandos">
+      <label>Tema
+        <select id="mando-tema"></select>
+      </label>
+      <label>Vista
+        <select id="mando-vista">
+          <option value="panel">Panel</option>
+          <option value="cabina" selected>Cabina</option>
+          <option value="agenda">Agenda</option>
+          <option value="lienzo">Lienzo</option>
+          <option value="cuentas">Cuentas</option>
+          <option value="comandos">Comandos</option>
+          <option value="ajustes">Ajustes</option>
+        </select>
+      </label>
+      <label class="banco__check">
+        <input type="checkbox" id="mando-fondo" checked> Fondo
+      </label>
+    </div>
+  </header>
+
+  <!-- ======================================================================
+       LA MAQUETA. Todo lo de aqui abajo cuelga de `.ade`.
+       ====================================================================== -->
+  <div class="ade-marco" id="ade-marco">
+  <div class="ade" id="ade" data-tema="azul" data-vista="cabina">
+
+    <!-- La foto de fondo de la app. Es un degradado nuestro, nada con dueño
+         detras. Dentro de la familia azul de la marca a proposito: en la app el
+         fondo lo pone la foto del usuario, y una foto de siete colores es justo
+         lo que hace que un panel parezca un arcoiris. -->
+    <span class="ade__fondo" id="ade-fondo" aria-hidden="true"
+          style="background:
+            radial-gradient(66% 52% at 20% 14%, rgba(150,205,255,.95), transparent 60%),
+            radial-gradient(58% 48% at 82% 24%, rgba(120,220,255,.72), transparent 62%),
+            radial-gradient(72% 56% at 62% 92%, rgba(96,168,255,.68), transparent 66%),
+            linear-gradient(150deg, #3f6fc0 0%, #2b4a94 40%, #2a3a7c 74%, #1d2a52 100%)"></span>
+
+    <!-- ---------------------- BARRA DE TITULO ------------------------- -->
+    <div class="ade__barra">
+      <span class="ade__barra-marca">
+        <svg class="ade-i" aria-hidden="true"><use href="iconos.svg#i-marca"/></svg>
+        Adeorq
+      </span>
+      <span class="ade__barra-botones">
+        <button type="button" title="Minimizar" aria-label="Minimizar">
+          <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor" stroke-width="1"/></svg>
+        </button>
+        <button type="button" title="Maximizar" aria-label="Maximizar">
+          <svg viewBox="0 0 10 10" aria-hidden="true"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+        </button>
+        <button type="button" title="Cerrar" aria-label="Cerrar">
+          <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1"/></svg>
+        </button>
+      </span>
+    </div>
+
+    <!-- ------------------------- BARRA SUPERIOR -----------------------
+         42 px de alto, gap 14, relleno lateral 12: las medidas de .topbar
+         en App.css, no una aproximacion.                                -->
+    <header class="topbar">
+      <span class="brand">Adeorq</span>
+
+      <nav class="tabs" id="ade-tabs">
+        <button type="button" class="tab" data-vista="panel">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-panel"/></svg></span>
+          <span class="tab-label">Panel</span>
+        </button>
+        <button type="button" class="tab" data-vista="cabina" data-active="true">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-cabina"/></svg></span>
+          <span class="tab-label">Cabina</span>
+          <span class="tab-count">4</span>
+        </button>
+        <!-- Justo detrás de la Cabina porque es la misma cosa vista de otra
+             manera: las mismas sesiones, sin la consola delante. -->
+        <button type="button" class="tab" data-vista="chat">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-chat"/></svg></span>
+          <span class="tab-label">Chat</span>
+          <span class="tab-beta">beta</span>
+        </button>
+        <button type="button" class="tab" data-vista="agenda">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-agenda"/></svg></span>
+          <span class="tab-label">Agenda</span>
+        </button>
+        <button type="button" class="tab" data-vista="lienzo">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-lienzo"/></svg></span>
+          <span class="tab-label">Lienzo</span>
+          <span class="tab-count">2</span>
+        </button>
+        <button type="button" class="tab" data-vista="memoria">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-memoria"/></svg></span>
+          <span class="tab-label">Memoria</span>
+        </button>
+        <button type="button" class="tab" data-vista="cuentas">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-cuentas"/></svg></span>
+          <span class="tab-label">Cuentas</span>
+        </button>
+        <button type="button" class="tab" data-vista="comandos" id="ade-comandos-tab">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-comandos"/></svg></span>
+          <span class="tab-label">Comandos</span>
+        </button>
+        <button type="button" class="tab" data-vista="ajustes">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-ajustes"/></svg></span>
+          <span class="tab-label">Ajustes</span>
+        </button>
+      </nav>
+
+      <!-- La derecha de la barra, con lo que lleva HOY App.tsx y en su orden:
+           los objetivos, el Pulso de la máquina, lo que suena, el modo emisión
+           y el orbe del Asistente. Aquí ponía tres botones con rótulo
+           («Emisión», «Reparto», «Capataz») copiados de una captura vieja: en
+           el programa la emisión perdió el rótulo el 10 de agosto y el Capataz
+           es el orbe desde el 6, así que la maqueta imitaba una versión que ya
+           no existe. Los tres últimos solo salen en la Cabina y con más de un
+           panel abierto, igual que allí. -->
+      <div class="topbar-acciones">
+        <button type="button" class="tab objetivos-toggle" id="ade-objetivos" title="Tus objetivos de hoy">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-diana"/></svg></span>
+        </button>
+
+        <!-- El Pulso. La CPU va la primera porque es la que se mueve y la que
+             explica un tirón; la RAM apenas cambia en horas. -->
+        <div class="pulso-caja">
+          <button type="button" class="tab pulso" id="ade-pulso" title="Lo que Adeorq está gastando en tu equipo">
+            <span class="pulso-dato"><b>7%</b><span>CPU</span></span>
+            <span class="pulso-sep"></span>
+            <span class="pulso-dato"><b>1,2 GB</b><span>RAM</span></span>
+            <span class="pulso-sep"></span>
+            <span class="pulso-dato"><b>4</b><span>AG</span></span>
+          </button>
+        </div>
+
+        <span class="ade-np" id="ade-np" title="Lo que está sonando">
+          <span class="ade-np-eq" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="ade-np-text"><span class="ade-np-title">Bumpy Ride</span> · Mohombi</span>
+          <span class="ade-np-tira">
+            <button type="button" class="ade-np-btn" title="Anterior">‹‹</button>
+            <button type="button" class="ade-np-btn" id="ade-np-play" title="Pausa">॥</button>
+            <button type="button" class="ade-np-btn" title="Siguiente">››</button>
+          </span>
+        </span>
+
+        <button type="button" class="tab stream-toggle" id="ade-emision"
+                title="Modo emisión: tapa rutas, claves y datos personales (Ctrl+Mayús+E)">
+          <span class="tab-icon">
+            <!-- El único icono que el extractor no puede traer: el punto de
+                 dentro se rellena o no según esté puesto, así que en Icons.tsx
+                 no es un dibujo fijo. Los trazos son los suyos, copiados. -->
+            <svg class="ade-i" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5.6 4.6a10 10 0 0 0 0 14.8"/>
+              <path d="M18.4 4.6a10 10 0 0 1 0 14.8"/>
+              <path d="M8.9 8.3a5.2 5.2 0 0 0 0 7.4"/>
+              <path d="M15.1 8.3a5.2 5.2 0 0 1 0 7.4"/>
+              <circle cx="12" cy="12" r="2.3"/>
+            </svg>
+          </span>
+        </button>
+
+        <!-- El orbe del Asistente: un planeta azul y un satélite blanco dando
+             vueltas. La geometría es la de Orbe.tsx, número a número, porque el
+             satélite tiene que recorrer LA MISMA elipse que se dibuja. -->
+        <button type="button" class="tab foreman-call" id="ade-capataz-btn"
+                title="Llamar al Asistente (Ctrl+Mayús+A)">
+          <span class="orbe" id="ade-orbe" data-estado="reposo" style="width:28px;height:28px">
+            <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+              <ellipse class="orbe-orbita" cx="12" cy="11.5" rx="10" ry="4.1" transform="rotate(-22 12 11.5)"/>
+              <circle class="orbe-planeta" cx="12" cy="11.5" r="5.4"/>
+              <circle class="orbe-satelite" id="ade-orbe-sat" cx="22" cy="11.5" r="1.5"/>
+            </svg>
+          </span>
+        </button>
+
+        <button type="button" class="tab" id="ade-min-todas"
+                title="Apartar todas las terminales: siguen vivas en la tira de abajo">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-minimizar"/></svg></span>
+          <span class="tab-label">Minimizar todas</span>
+        </button>
+        <button type="button" class="tab layout-btn" id="ade-layout"
+                title="Repartir las terminales en una plantilla">
+          <span class="tab-icon">⊞</span>
+          <span class="tab-label">Disposición</span>
+        </button>
+        <button type="button" class="tab tab-danger" id="ade-cerrar-todas"
+                title="Cerrar las terminales: mata a sus agentes">
+          <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-cerrar"/></svg></span>
+          <span class="tab-label">Cerrar todas</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- --------------------------- EL CUERPO -------------------------- -->
+    <div class="ade__cuerpo">
+
+      <!-- ==================== EL RIEL DE PROYECTOS ==================== -->
+      <aside class="sidebar" id="ade-rail">
+        <div class="rail-top">
+          <input class="finder" type="search" placeholder="Filtrar proyectos y sesiones" aria-label="Filtrar proyectos y sesiones">
+        </div>
+
+        <!-- La fila de modos, con las clases de Sidebar.tsx: `.mini` mide 32x30
+             con su caja y su borde, y el modo elegido va RELLENO de color, que
+             es lo que la app hace para que se distinga de un vistazo. -->
+        <div class="side-label">
+          <span>Proyectos</span>
+          <span class="rail-tabs">
+            <button type="button" class="mini rail-new" title="Abrir una sesión"><svg class="ade-i"><use href="iconos.svg#i-mas"/></svg></button>
+            <button type="button" class="mini rail-tab" data-modo="logo" title="Solo los logos, en grande"><svg class="ade-i"><use href="iconos.svg#i-rejilla"/></svg></button>
+            <button type="button" class="mini rail-tab" data-modo="full" data-active="true" title="Logo y nombre"><svg class="ade-i"><use href="iconos.svg#i-filas"/></svg></button>
+            <button type="button" class="mini rail-tab" data-modo="tira" title="Tira estrecha"><svg class="ade-i"><use href="iconos.svg#i-tira"/></svg></button>
+            <button type="button" class="mini" title="Volver a mirar"><svg class="ade-i"><use href="iconos.svg#i-refrescar"/></svg></button>
+          </span>
+        </div>
+
+        <ul class="projects" id="ade-proys"></ul>
+      </aside>
+
+      <!-- ========================== LA HOJA =========================== -->
+      <div class="ade__hoja" id="ade-hoja">
+
+        <!-- ------------------------- CABINA ------------------------- -->
+        <section class="ade-vista" data-vista="cabina">
+          <div class="grid" id="ade-grid"></div>
+        </section>
+
+        <!-- -------------------------- PANEL ------------------------- -->
+        <section class="ade-vista" data-vista="panel" hidden>
+          <div class="panel">
+            <header class="panel-hero">
+              <h1 id="ade-saludo">Buenas tardes, Munito.</h1>
+              <p>3 sesiones en marcha y nada pendiente de ti.</p>
+            </header>
+
+            <div class="stats">
+              <button type="button" class="stat-card" data-live="true" data-va="cabina">
+                <span class="stat-num">3</span>
+                <span class="stat-label">trabajando ahora</span>
+                <span class="stat-foot">sin subagentes fuera</span>
+              </button>
+              <div class="stat-card">
+                <span class="stat-num">0</span>
+                <span class="stat-label">te esperan</span>
+                <span class="stat-foot">nada pendiente de ti</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-num">59</span>
+                <span class="stat-label">sesiones esta semana</span>
+                <span class="stat-foot">en 17 proyectos</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-num">19</span>
+                <span class="stat-label">proyectos</span>
+                <span class="stat-foot">C:\proyectos</span>
+              </div>
+            </div>
+
+            <div class="set-marco">
+              <nav class="set-nav" id="ade-panel-nav">
+                <button type="button" class="set-tab" data-sec="ahora" data-on>
+                  <svg class="ade-i"><use href="iconos.svg#i-diana"/></svg>
+                  <span class="set-tab-nom">Ahora</span>
+                  <span class="set-tab-badge">3</span>
+                </button>
+                <button type="button" class="set-tab" data-sec="proyectos">
+                  <svg class="ade-i"><use href="iconos.svg#i-carpetas"/></svg>
+                  <span class="set-tab-nom">Proyectos</span>
+                  <span class="set-tab-badge">19</span>
+                </button>
+                <button type="button" class="set-tab" data-sec="mision">
+                  <svg class="ade-i"><use href="iconos.svg#i-bandera"/></svg>
+                  <span class="set-tab-nom">Misión</span>
+                </button>
+              </nav>
+
+              <div class="set-hoja">
+                <div class="ade-sec" data-sec="ahora">
+                  <section class="panel-card">
+                    <h2>✦ Capataz</h2>
+                    <p class="card-hint">Pídele el tablero en cristiano: él propone el plan (sesiones,
+                      Claudes, terminales, Antigravity) y no ejecuta nada sin tu OK. En la Cabina: Ctrl+Mayús+A.</p>
+                    <textarea id="ade-capataz" rows="4"
+                      placeholder='Pídeme el tablero: "ábreme las sesiones del panel de Orquio" o "en Layco: Antigravity al frontend y un Claude al backend para el formulario de pago"'></textarea>
+                    <div class="ade-fila-bts">
+                      <button type="button" class="mini" id="ade-planear">Planear</button>
+                      <button type="button" class="mini" id="ade-encargo">Escribir el encargo</button>
+                    </div>
+                  </section>
+
+                  <section class="panel-card">
+                    <h2>Proyectos calientes</h2>
+                    <p class="card-hint">Donde más se ha trabajado esta semana. Clic para ir.</p>
+                    <div class="hot-list" id="ade-hot"></div>
+                  </section>
+                </div>
+
+                <div class="ade-sec" data-sec="proyectos" hidden>
+                  <section class="panel-card">
+                    <h2>＋ Nuevo proyecto</h2>
+                    <p class="card-hint">Nace con AGENTS.md (tus reglas), docs/METAS.md, .gitignore y git,
+                      y aparece solo en el panel.</p>
+                    <div class="ade-fila-bts">
+                      <input class="finder" type="text" placeholder="Nombre del proyecto">
+                      <button type="button" class="mini">Crear</button>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="ade-sec" data-sec="mision" hidden>
+                  <section class="panel-card">
+                    <h2>La misión de hoy</h2>
+                    <p class="card-hint">Lo que has dicho que importa, para que la Cabina lo tenga a la vista.</p>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ------------------------- AJUSTES ------------------------ -->
+        <section class="ade-vista" data-vista="ajustes" hidden>
+          <div class="panel">
+            <header class="panel-hero">
+              <h1>Ajustes</h1>
+              <p>Los 32 temas de la app, con sus colores de verdad.</p>
+            </header>
+            <section class="panel-card">
+              <h2>Tema</h2>
+              <p class="card-hint">Solo cambia el juego de colores: el cristal, el desenfoque y la forma
+                se quedan igual. Clic para probarlo aquí mismo.</p>
+              <div class="ade-temas" id="ade-temas"></div>
+            </section>
+          </div>
+        </section>
+
+        <!-- Las que aun no estan hechas dicen lo que hacen en vez de
+             enseñar una pantalla en blanco. -->
+        <section class="ade-vista" data-vista="chat" hidden></section>
+        <section class="ade-vista" data-vista="memoria" hidden></section>
+        <section class="ade-vista" data-vista="agenda" hidden></section>
+        <section class="ade-vista" data-vista="lienzo" hidden></section>
+        <section class="ade-vista" data-vista="cuentas" hidden></section>
+        <section class="ade-vista" data-vista="comandos" hidden></section>
+      </div>
+
+      <!-- La franja de la derecha. En la app esta siempre, aunque su panel este
+           plegado: son los atajos a Skills y al Uso. -->
+      <div class="lateral-zona" id="ade-lateral-zona">
+        <!-- El panel que abre cada cara de la franja. Sin botón de cerrar: se
+             cierra volviendo a pulsar su icono, que es lo que hace la app. -->
+        <aside class="lateral" id="ade-lateral" hidden>
+          <div class="lateral-head">
+            <span class="lateral-title" id="ade-lateral-tit"></span>
+          </div>
+          <div class="lateral-cuerpo" id="ade-lateral-cuerpo"></div>
+        </aside>
+
+        <nav class="franja" id="ade-franja">
+          <button type="button" class="franja-btn" data-cara="skills" title="Skills · Uso">
+            <svg class="ade-i"><use href="iconos.svg#i-chispa"/></svg>
+          </button>
+          <button type="button" class="franja-btn" data-cara="actividad" title="Actividad">
+            <svg class="ade-i"><use href="iconos.svg#i-rayo"/></svg>
+          </button>
+          <button type="button" class="franja-btn" data-cara="archivos" title="Archivos">
+            <svg class="ade-i"><use href="iconos.svg#i-carpeta"/></svg>
+          </button>
+          <!-- La web va separada por la rayita porque no abre un panel aquí,
+               sino uno en el mosaico: hace otra cosa. -->
+          <span class="franja-raya" aria-hidden="true"></span>
+          <button type="button" class="franja-btn" id="ade-franja-web" title="Ver la web en un panel (localhost)">
+            <svg class="ade-i"><use href="iconos.svg#i-navegador"/></svg>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ---------------------------- EL PIE ---------------------------- -->
+    <div class="ade__pie">
+      <span class="ade__vivo" aria-hidden="true"></span>
+      <span id="ade-pie-txt">4 terminales ConPTY activas · 0 errores</span>
+      <span class="ade__pie-der">Ctrl+Mayús+? = Atajos</span>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script>
+// Con ?desnuda=1 se quita todo lo del banco de pruebas y queda solo la maqueta,
+// a 1920x1080 y sin encoger: asi comparar.html la puede poner al lado de la
+// captura de la app a la misma escala.
+(function () {
+  var q = new URLSearchParams(location.search);
+  if (q.has('desnuda')) document.documentElement.dataset.desnuda = '1';
+
+  // EMBEBIDA: dentro de un <iframe> la maqueta se mira, se pulsa, y ya está.
+  // Sus contenedores con scroll propio (las terminales, el riel, el hilo del
+  // Chat, la lista de la Memoria) se tragaban la rueda del ratón, así que al
+  // pasar por encima la página de fuera dejaba de bajar y parecía que se
+  // quedaba enganchada. Sin nada scrolleable dentro, el navegador le pasa la
+  // rueda a la página de fuera, que es lo que tiene que hacer.
+  if (window.top !== window.self || q.has('quieta')) {
+    document.documentElement.dataset.embebida = '1';
+  }
+})();
+</script>
+<style>
+[data-desnuda] body { margin: 0; background: #070c15; }
+[data-desnuda] .banco { max-width: none; margin: 0; padding: 0; }
+[data-desnuda] .banco__cab { display: none; }
+[data-desnuda] .ade-marco { border-radius: 0; }
+[data-desnuda] .ade-marco > .ade { transform: none; border-radius: 0; }
+</style>
+<!-- Los dibujos de los CLIs, pegados en la pagina. Va el primero porque tres de
+     las diez marcas llevan mascara y una mascara desde otro fichero no recorta:
+     Codex salia como un cuadrado azul. -->
+<script src="sprites.js" type="module"></script>
+<script src="demo.js" type="module"></script>
+<!-- Escribir en la terminal y que conteste. Va detras porque usa la rejilla que
+     monta demo.js y su avisador. -->
+<script src="terminal.js" type="module"></script>
+<!-- Agenda, Lienzo, Cuentas y Comandos: se montan desde JS porque son cuatro
+     pantallas con listas y a mano serian mil lineas de etiquetas repetidas. -->
+<script src="vistas.js" type="module"></script>
+<!-- El Chat y la Memoria: las dos pestañas que la maqueta no tenia y el
+     programa si. Van aparte de vistas.js porque son pantallas enteras, no
+     listas, y asi cada archivo se puede quitar sin romper al resto. -->
+<script src="pantallas.js" type="module"></script>
+<!-- La paleta de comandos (Ctrl+K), los modos del riel y abrir sesiones. Va la
+     ultima porque usa lo que montan las anteriores. -->
+<script src="mandos.js" type="module"></script>
+<!-- La tira de sesiones apartadas al pie de la Cabina. -->
+<script src="apartadas.js" type="module"></script>
+<!-- La franja de la derecha con sus tres caras, los tres botones de la ventana
+     y el reproductor: lo que estaba dibujado y no respondia al pulsarlo. -->
+<script src="lateral.js" type="module"></script>
+</body>
+</html>

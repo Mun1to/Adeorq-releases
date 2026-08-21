@@ -200,6 +200,18 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.cuentas.caja': '<span class="doc-caja__titulo">Several accounts of your own, no problem.</span> ' +
                          'Rotating other people’s accounts to stretch the limits breaks the providers’ ' +
                          'terms, and what you are risking is having the account closed.',
+    'guia.cuentas.h3v': 'Vibecoding with OpenRouter (Aider)',
+    'guia.cuentas.pv1': 'The OpenRouter card, inside <b>API keys</b>, is a single key that unlocks models from ' +
+                        'many providers, including ones with no CLI of their own (Kimi, DeepSeek, Grok…). Once ' +
+                        'the key is set, a second card appears below it, <b>Vibecoding</b>, which opens a real ' +
+                        'terminal of <a href="https://aider.chat" target="_blank" rel="noopener">Aider</a> ' +
+                        'pointed at whichever model you type in there (default: <code>moonshotai/kimi-k3</code>). ' +
+                        'The first time, the button installs Aider on its own; every time after, it opens the ' +
+                        'terminal directly with the key already set.',
+    'guia.cuentas.pv2': '<span class="doc-caja__titulo">If you open Aider by hand instead of through the button:</span> ' +
+                        'always tell it the model (<code>aider --model openrouter/&lt;model&gt;</code>) — without ' +
+                        'that it grabs the first key it finds in your environment and tries a DIFFERENT provider — ' +
+                        'and set the key in <code>OPENROUTER_API_KEY</code> in that terminal. The card does both on its own.',
 
     /* --------------------------------- AJUSTES --------------------------- */
     'guia.ajustes.h': 'Settings',

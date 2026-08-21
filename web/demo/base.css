@@ -1,0 +1,172 @@
+/* ============================================================================
+   Adeorq · demo/base.css
+   EL MARCO DE LA MAQUETA.
+
+   Aqui va lo que NO sale de la app: la ventana que la contiene, el fondo sobre
+   el que flota y las cuatro medidas que en App.css viven en un `:root` suelto.
+   Todo lo demas (los 32 temas, las 278 reglas de interfaz y los 42 iconos) esta
+   generado desde src/ por los scripts de web/scripts/extraer-*.mjs, y este
+   archivo no los pisa nunca.
+
+   Todo cuelga de `.ade`. Fuera de esa clase, esta hoja no existe.
+   ========================================================================= */
+
+/* Las cuatro medidas de App.css que no son de tema (su bloque de la escala de
+   esquinas, medido alli sobre 412 botones: tres radios y una pastilla). */
+.ade {
+  --line: var(--border);
+  --r-chico: 8px;
+  --r-btn: 10px;
+  --r-caja: 16px;
+  --r-pastilla: 999px;
+  --pane-abre: 1;
+
+  /* El verde de «esto ha ido bien». Mezclado con el texto del tema y no fijo:
+     un verde claro sobre el tema Papel se queda en 1,5:1 y no se lee. */
+  --ade-ok: color-mix(in srgb, #10b981 58%, var(--text));
+
+  /* La app es Segoe UI Variable. Inter es el sustituto de la web para quien no
+     la tenga: el orden importa, porque en Windows sale la de verdad. */
+  font-family: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI",
+               "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  color-scheme: dark;
+}
+
+.ade *,
+.ade *::before,
+.ade *::after { box-sizing: border-box; }
+
+/* En la app no hay barras de scroll en ningun sitio: la rueda y las teclas
+   hacen el trabajo, y una raya de seis pixeles al lado de un panel es ruido
+   (App.css lo dice con esas palabras). La maqueta se comporta igual. */
+.ade * { scrollbar-width: none; -ms-overflow-style: none; }
+.ade *::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ----------------------------- LA VENTANA --------------------------------
+   La maqueta es una ventana de Windows 11: barra de titulo con sus tres
+   botones, esquinas redondeadas y sombra. Sin esto parece una captura pegada;
+   con esto, un programa. */
+
+.ade {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--glass-edge), 0 40px 120px rgba(0, 0, 0, .55);
+  background: var(--panel-solid);
+  container-type: inline-size;
+  container-name: ade;
+}
+
+/* ------------------------------- EL FONDO --------------------------------
+   La firma visual de Adeorq: la ventana es CRISTAL sobre una foto, y por eso
+   todo lo de encima es translucido. Sin foto detras, las terminales se ven como
+   rectangulos grises y la app deja de parecerse a si misma.
+
+   Es un degradado nuestro, no una foto con dueño. */
+
+.ade__fondo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.ade__fondo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--page-tint);
+  backdrop-filter: blur(2px);
+}
+
+/* Todo lo de la ventana va por encima de la foto. */
+.ade__barra,
+.ade > .topbar,
+.ade__cuerpo,
+.ade__pie { position: relative; z-index: 1; }
+
+/* --------------------------- BARRA DE TITULO ------------------------------ */
+
+.ade__barra {
+  flex: none;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 0 11px;
+  background: color-mix(in srgb, var(--panel-solid) 72%, transparent);
+  border-bottom: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.ade__barra-marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+}
+.ade__barra-marca svg { width: 13px; height: 13px; color: var(--accent); }
+.ade__barra-botones { margin-left: auto; display: flex; height: 100%; }
+.ade__barra-botones button {
+  width: 44px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background .12s ease, color .12s ease;
+}
+.ade__barra-botones button:hover { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); }
+.ade__barra-botones button:last-child:hover { background: #c42b1c; color: #fff; }
+.ade__barra-botones svg { width: 10px; height: 10px; }
+
+/* ------------------------------ EL CUERPO --------------------------------- */
+
+.ade__cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.ade__hoja {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--page-tint);
+}
+
+/* Los iconos de la app: trazo 1.9 sobre rejilla de 24, como en Icons.tsx. */
+.ade-i {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  display: block;
+}
+
+/* ------------------------------- EL PIE ----------------------------------- */
+
+.ade__pie {
+  flex: none;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel-solid) 62%, transparent);
+  font-size: 11px;
+  color: var(--muted);
+}
+.ade__pie-der { margin-left: auto; }
+.ade__vivo {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #4ade80 22%, transparent);
+}

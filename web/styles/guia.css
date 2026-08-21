@@ -8,7 +8,12 @@
    ========================================================================= */
 
 .doc {
-  width: min(100% - var(--e6), 1240px);
+  /* Era 1240px: en un monitor ancho eso deja el índice, la prosa Y un tercio
+     de la ventana en blanco a la derecha (Munir, 2026-08-20, "no aprovecha
+     todo el espacio"). 1440 da a las tablas y figuras sitio de verdad sin
+     que la prosa dejе de leerse cómoda, porque ESA sigue capada a 76ch más
+     abajo, no por este ancho. */
+  width: min(100% - var(--e6), 1440px);
   margin-inline: auto;
   padding-top: calc(var(--nav-alto) + var(--e7));
   padding-bottom: var(--e9);
@@ -172,8 +177,19 @@
 
 .doc-cuerpo {
   min-width: 0;
-  max-width: 76ch;
   color: var(--tinta-media);
+}
+
+/* El tope de lectura va en el TEXTO, no en la columna entera: antes
+   `.doc-cuerpo` capaba a 76ch todo lo de dentro, así que una tabla de
+   ocho columnas se apretaba al mismo ancho que un párrafo (Munir,
+   2026-08-20). Los párrafos siguen a 76ch porque esa medida es la que se
+   lee cómoda; las tablas y figuras usan el ancho real de la columna. */
+.doc-cuerpo section > p,
+.doc-cuerpo section > ul.doc-lista,
+.doc-cuerpo section > ol.doc-pasos,
+.doc-cuerpo .doc-caja {
+  max-width: 76ch;
 }
 
 .doc-cuerpo section { scroll-margin-top: calc(var(--nav-alto) + var(--e5)); }
@@ -336,7 +352,13 @@ h2:hover .doc-ancla, h3:hover .doc-ancla, .doc-ancla:focus-visible { opacity: 1;
   overflow-x: auto;
   border: 1px solid var(--borde);
   border-radius: var(--radio-m);
-  background: color-mix(in oklab, var(--superficie) 60%, transparent);
+  /* Era `color-mix(superficie 60%, transparent)`, y superficie YA es
+     translúcida de fábrica (0.55 en oscuro): las dos capas de transparencia
+     se multiplicaban a un ~33% real, así que la tabla apenas se distinguía
+     del fondo (Munir, 2026-08-20, "se ve muy transparente"). Mismo tono
+     casi sólido que ya usa el buscador de comandos (`.comando` en
+     base.css), no un valor inventado aquí. */
+  background: color-mix(in oklab, var(--superficie-solida) 92%, var(--fondo));
 }
 
 .doc-tabla table {

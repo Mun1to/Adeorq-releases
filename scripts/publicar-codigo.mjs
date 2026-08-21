@@ -36,6 +36,12 @@ const FUERA = [
   // así que mismo sitio. Los otros docs de diseño (CHAT, SUPREMA) sí salen
   // porque explican cómo funciona el producto, no contra quién compite.
   "docs/ARCHIVOS.md",
+  // La medición del hero de huly.io, pieza por pieza, con su vídeo, su máscara
+  // y lo que le copiamos. Es el mismo tipo de documento que MEJORAS.md, así que
+  // el mismo sitio: mirar de cerca cómo lo hace otro es trabajo interno, y
+  // publicar la disección de la web de una empresa desde el repo del producto
+  // que se inspira en ella se lee distinto de como es.
+  "docs/REFERENCIA-HULY.md",
   "docs/EMISION.md",
   "web/DISENO.md",
   // Los punteros por proveedor de la regla AI (CLAUDE.md ya estaba arriba):

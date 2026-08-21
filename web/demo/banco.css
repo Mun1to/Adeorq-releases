@@ -1,0 +1,65 @@
+/* ============================================================================
+   Adeorq · demo/banco.css
+   SOLO EL BANCO DE PRUEBAS.
+
+   Lo que rodea a la maqueta en esta pagina y que NO viaja con ella: el titulo,
+   los mandos de arriba y el fondo sobre el que se mira. Cuando la maqueta se
+   lleve a la landing, este archivo se queda aqui.
+   ========================================================================= */
+
+:root { color-scheme: dark; }
+
+body {
+  margin: 0;
+  background: #070c15;
+  color: #e6edfa;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.banco {
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 28px 24px 60px;
+}
+
+.banco__cab {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.banco__cab h1 { margin: 0 0 6px; font-size: 24px; font-weight: 650; letter-spacing: -0.02em; }
+.banco__cab p { margin: 0; max-width: 62ch; color: #93a4c2; font-size: 13.5px; }
+.banco__cab code {
+  font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  font-size: 12.5px;
+  color: #8fc6ff;
+}
+
+.banco__mandos { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.banco__mandos label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #93a4c2;
+}
+.banco__mandos select {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 170, 220, .26);
+  background: #101624;
+  color: #e6edfa;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.banco__check { cursor: pointer; }
+.banco__check input { accent-color: #4d9fff; }
+
+/* El alto lo pone la lupa (demo.js): la maqueta mide 1920x1080 por dentro y se
+   dibuja a la escala que quepa, asi que aqui no se le fija nada. */

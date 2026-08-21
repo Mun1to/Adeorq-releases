@@ -26,7 +26,7 @@ state, and lets you run several agents at once without losing track of any of th
 &nbsp;
 [All releases](https://github.com/Mun1to/Adeorq-releases/releases) ·
 [Website](https://adeorq.com) ·
-[Guide](https://adeorq.com/guia.html) ·
+[Guide](https://adeorq.com/guia) ·
 [Español](README.es.md)
 
 <br>

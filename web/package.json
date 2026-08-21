@@ -6,11 +6,16 @@
   "description": "Public website for Adeorq",
   "scripts": {
     "dev": "node scripts/update-data.mjs --soft && vite",
-    "build": "node scripts/update-data.mjs --soft && vite build",
+    "build": "node scripts/update-data.mjs --soft && node scripts/poner-metadatos.mjs && vite build",
     "preview": "vite preview",
     "data": "node scripts/update-data.mjs",
     "data:latest": "node scripts/fetch-latest.mjs",
-    "data:changelog": "node scripts/build-changelog.mjs"
+    "data:changelog": "node scripts/build-changelog.mjs",
+    "maqueta": "node scripts/extraer-temas.mjs && node scripts/extraer-ui.mjs && node scripts/extraer-iconos.mjs && node scripts/extraer-marcas.mjs",
+    "metadatos": "node scripts/poner-metadatos.mjs",
+    "tarjeta": "node scripts/hacer-tarjeta-social.mjs",
+    "probar:indexacion": "node scripts/probar-indexacion.mjs",
+    "deploy": "pnpm build && npx wrangler pages deploy dist --project-name adeorq-web --branch main --commit-dirty=true"
   },
   "devDependencies": {
     "vite": "^7.3.6"

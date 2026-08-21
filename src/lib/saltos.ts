@@ -13,6 +13,10 @@
 //      nuevo, debería desmaximizarse». La pantalla completa es para atender
 //      algo; en cuanto le contestas, ya está atendido y el mosaico vuelve.
 //
+// Y una tercera decisión, del 2026-08-21 («no funciona del todo bien»): DÓNDE
+// se salta. Hasta hoy el salto daba por hecho que toda terminal vive en el
+// mosaico de la Cabina, y hay dos que no. Ver `aDondeSaltar`.
+//
 // Todo lo que se puede decidir sin React vive aquí, para poder probarlo
 // (`scripts/saltos-check.ts`).
 
@@ -90,4 +94,56 @@ export function tocaDesmaximizar(
   if (maximizado !== paneQueRecibe) return false;
   if (porElSalto !== paneQueRecibe) return false;
   return esInputDeVerdad(data);
+}
+
+/** Dónde vive la terminal que acaba de terminar, que es lo que decide el salto. */
+export interface Sitio {
+  /** Está en el mosaico de la Cabina. */
+  enCabina: boolean;
+  /** Está en el lienzo, que es otra vista y tiene su propia cámara. */
+  enLienzo: boolean;
+  /** Está apartada: minimizada, o dentro de un grupo escondido. */
+  apartada: boolean;
+}
+
+/** Lo que hay que hacer para ponerla delante. */
+export type Destino =
+  /** Cambiar a la Cabina y maximizarla. Lo de siempre. */
+  | "cabina"
+  /** Traerla de vuelta al mosaico ANTES de maximizarla. */
+  | "traer"
+  /** Cambiar al lienzo y acercar la cámara. Allí no hay nada que maximizar. */
+  | "lienzo"
+  /** No hacer nada: no está en ninguna vista. */
+  | "nadie";
+
+/**
+ * A dónde saltar, que hasta hoy no se preguntaba.
+ *
+ * El salto hacía SIEMPRE lo mismo: ir a la Cabina y maximizar. Eso es correcto
+ * para una terminal del mosaico y está mal para las otras dos, y las dos fallan
+ * en silencio, que es lo que hacía que el ajuste pareciera roto:
+ *
+ *   · **En el lienzo.** El lienzo reporta el estado de sus terminales por el
+ *     mismo camino que la Cabina, así que una que termine allí disparaba el
+ *     salto igual. Te sacaba de la vista en la que estabas trabajando, te
+ *     plantaba en la Cabina, y allí no maximizaba nada porque ese panel no está
+ *     en el mosaico. O sea: te cambiaba de vista para no enseñarte nada.
+ *   · **Apartada.** Una minimizada, o de un grupo escondido, se maximizaba
+ *     igual, y la red que suelta la pantalla completa de un panel que no se
+ *     pinta (Munir, 2026-08-17) la desmaximizaba en el mismo suspiro. El
+ *     ajuste estaba encendido, el agente terminaba, y no pasaba nada de nada.
+ *     Aquí sí hay que ponerla delante: apartar es «ahora no me hace falta», y
+ *     terminar es justo el momento en que vuelve a hacer falta.
+ *
+ * El cuarto caso es una terminal que ya no está en ninguna vista, y no es
+ * hipotético: sacarla a su propia ventana la quita del mosaico, y entre que
+ * termina y que le toca su turno en la cola puede haberse cerrado.
+ */
+export function aDondeSaltar(sitio: Sitio): Destino {
+  // El lienzo primero: una terminal suya nunca está en el mosaico, y llevarla
+  // allí sería justo el fallo que esto viene a arreglar.
+  if (sitio.enLienzo) return "lienzo";
+  if (!sitio.enCabina) return "nadie";
+  return sitio.apartada ? "traer" : "cabina";
 }

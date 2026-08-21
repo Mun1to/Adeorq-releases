@@ -238,6 +238,39 @@ export const PROVIDERS: Provider[] = [
     cmd: "pnpm add -g @github/copilot",
   },
   {
+    id: "grok",
+    label: "Grok",
+    // Todo lo de aqui sale de SU PROPIO instalador oficial
+    // (https://x.ai/cli/install.ps1), leido el 2026-08-20. No esta instalado en
+    // esta maquina, asi que entra como entro Kiro: con lo que se comprueba solo
+    // y sin una sola capacidad marcada, porque una capacidad inventada no falla
+    // a la vista, falla en silencio.
+    //
+    // El instalador deja `grok.exe` y `agent.exe` en `~/.grok/bin` y anade esa
+    // carpeta al PATH del usuario, asi que el ejecutable se encuentra solo.
+    exe: "grok",
+    // `GROK_BIN_DIR` mueve los BINARIOS, no la identidad: la carpeta de
+    // configuracion es `Join-Path $env:USERPROFILE '.grok'` a pelo, sin ninguna
+    // variable que la mueva. Vacio a proposito, la misma regla que Copilot: una
+    // cuenta, y Adeorq lo dice en vez de inventarse un nombre de variable que
+    // apuntaria una cuenta a la carpeta de otra.
+    envVar: "",
+    homeDir: ".grok",
+    // Su propia cabecera, literal: "Auth: GROK_DEPLOYMENT_KEY env var (takes
+    // precedence) or ~/.grok/auth.json from `grok login`".
+    creds: ["auth.json"],
+    usage: false,
+    // Blanco frio: xAI firma en blanco y negro, y el negro no existe sobre un
+    // panel oscuro.
+    hue: "#e6e8ec",
+    // PowerShell, que es donde Adeorq lanza los instaladores (`App.tsx` los
+    // envuelve en `powershell.exe`). En Linux y Mac es
+    // `curl -fsSL https://x.ai/cli/install.sh | bash`, segun el mismo archivo.
+    install: "irm https://x.ai/cli/install.ps1 | iex",
+    apiEnv: "GROK_DEPLOYMENT_KEY",
+    cmd: "irm https://x.ai/cli/install.ps1 | iex",
+  },
+  {
     id: "crush",
     label: "Crush",
     exe: "crush",

@@ -51,7 +51,11 @@ function pintar() {
 import {
   ANCLA_MS,
   CADENCIA_ARRASTRE_MS,
+  CELL_RATIO,
   EVENTO_REFIT,
+  MAX_COLS,
+  TARGET_COLS,
+  fuenteAuto,
   anclando,
   anclarColumnas,
   empezarRedimension,
@@ -245,5 +249,132 @@ ok(
   disparados.includes(EVENTO_REFIT),
   "sin esto habria que esperar a que algo mas moviera un pixel",
 );
+
+// --- la letra automatica, por sus dos extremos ------------------------------
+//
+// Los numeros de referencia estan medidos con xterm de verdad el 2026-08-20,
+// con el techo de Ajustes de Munir (17 px), y son los que motivan todo esto:
+//
+//     222 px ->  42 columnas   (un panel de una rejilla apretada)
+//    1780 px -> 188 columnas   (maximizado: el hueco negro que reporto)
+
+/* El ancho de celda MEDIDO en xterm de verdad el 2026-08-20, montando nueve
+   terminales de 9 a 34 px con el lineHeight y el letterSpacing de la app y
+   dividiendo el ancho real de `.xterm-screen` entre sus columnas. Salio
+   0,5497-0,5500 en los nueve, asi que aqui se usa el peor de los dos: si la
+   celda real fuera un pelin mas estrecha, caben MAS columnas, que es la
+   direccion en la que el techo se rompe.
+
+   Esta escrito a mano y NO se lee de `CELL_RATIO` a proposito: una prueba que
+   mide con la misma constante que el codigo solo demuestra que la constante es
+   igual a si misma. Con 0,6 puesto, estos casos salian verdes y en pantalla
+   cabian 117 columnas donde el techo pedia 110. */
+const CELDA_MEDIDA = 0.5497;
+
+/** Cuantas columnas caben DE VERDAD con esa letra en ese ancho. */
+function columnas(ancho: number, letra: number): number {
+  return Math.floor(ancho / (letra * CELDA_MEDIDA));
+}
+
+ok(
+  "la constante de la celda es la medida, no una a ojo",
+  Math.abs(CELL_RATIO - CELDA_MEDIDA) < 0.01,
+  `CELL_RATIO es ${CELL_RATIO} y lo medido en pantalla es ${CELDA_MEDIDA}`,
+);
+
+ok(
+  "con la letra a mano, manda la de Ajustes",
+  fuenteAuto(1780, 17, false, 9) === 17,
+  "apagar la letra automatica es decir que el numero lo elijo yo",
+);
+ok("sin nada que medir, tampoco se inventa nada", fuenteAuto(0, 17, true, 9) === 17);
+
+// El extremo de siempre: panel estrecho, la letra baja.
+ok(
+  "un panel apretado baja la letra",
+  fuenteAuto(400, 17, true, 9) < 17,
+  `400 px da ${fuenteAuto(400, 17, true, 9)} px`,
+);
+ok(
+  "pero nunca por debajo del minimo legible",
+  fuenteAuto(120, 17, true, 9) === 9,
+  "ilegible es peor que descolocado",
+);
+ok(
+  "el ancho justo para las columnas objetivo deja el techo",
+  fuenteAuto(Math.ceil(TARGET_COLS * CELL_RATIO * 17), 17, true, 9) === 17,
+);
+
+// El extremo NUEVO: panel ancho, la letra sube en vez de dar mas rejilla.
+{
+  const letra = fuenteAuto(1780, 17, true, 9);
+  const cols = columnas(1780, letra);
+  ok(
+    "maximizado, la letra sube por encima del techo de Ajustes",
+    letra > 17,
+    `1780 px da ${letra} px en vez de quedarse en 17`,
+  );
+  ok(
+    "y las columnas se quedan en el techo, no en 188",
+    cols <= MAX_COLS,
+    `${cols} columnas, antes 188`,
+  );
+  ok(
+    "sin quedarse corto: no se desperdicia media pantalla de rejilla",
+    cols >= MAX_COLS - 3,
+    `${cols} de ${MAX_COLS}`,
+  );
+  ok(
+    "y el texto ya escrito pasa de ocupar un quinto a ocupar un tercio largo",
+    42 / cols > 0.3,
+    `42 columnas viejas sobre ${cols}`,
+  );
+}
+
+ok(
+  "un panel normal no se entera de nada de esto",
+  fuenteAuto(890, 17, true, 9) === 17,
+  "890 px caben dentro del techo de columnas, asi que manda Ajustes",
+);
+ok(
+  "y justo en el limite, tampoco",
+  fuenteAuto(Math.floor(MAX_COLS * CELL_RATIO * 17), 17, true, 9) === 17,
+  "exactamente MAX_COLS columnas: no hay nada que corregir",
+);
+
+// La propiedad que tiene que cumplirse SIEMPRE, no solo en los casos elegidos.
+{
+  let peor = 0;
+  let dondePeor = 0;
+  let anchos = 0;
+  for (let w = 200; w <= 4000; w += 10) {
+    anchos++;
+    const c = columnas(w, fuenteAuto(w, 17, true, 9));
+    if (c > peor) {
+      peor = c;
+      dondePeor = w;
+    }
+  }
+  ok(
+    `en ${anchos} anchos distintos, ninguno se pasa del techo`,
+    peor <= MAX_COLS,
+    `el peor fue ${peor} columnas a ${dondePeor} px`,
+  );
+}
+
+{
+  let malos = 0;
+  let anterior = 0;
+  for (let w = 200; w <= 4000; w += 10) {
+    const l = fuenteAuto(w, 17, true, 9);
+    if (l < anterior) malos++;
+    anterior = l;
+  }
+  ok(
+    "la letra nunca encoge al ensanchar el panel",
+    malos === 0,
+    `${malos} anchos en los que ensanchar hacia la letra mas pequena`,
+  );
+}
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

@@ -188,6 +188,20 @@ const MARCAS: Record<string, (uid: string) => ReactElement> = {
     />
   ),
 
+  // Grok: la X de xAI, que no es una equis de teclado.
+  //
+  // Su logo son dos cunas que se cruzan y cuyos brazos NO tienen el mismo
+  // grosor de punta a punta: nacen anchos y acaban en filo. Por eso va con
+  // `fill` y no con trazo: una X de linea uniforme se lee como una cruz de
+  // cerrar ventana, que es justo lo que hay que evitar en una fila de botones
+  // donde al lado hay una aspa de verdad.
+  grok: () => (
+    <path
+      d="M2.6 2.6h3.7l15.1 18.8h-3.7Zm15.2 0h3.6l-6.1 7.3-1.8-2.2Zm-7.9 11 1.8 2.2-5.6 5.6H2.6Z"
+      fill="currentColor"
+    />
+  ),
+
   // Kiro: su fantasma.
   kiro: () => (
     <g strokeWidth="1.8" {...T}>

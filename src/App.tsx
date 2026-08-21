@@ -42,7 +42,7 @@ import {
   quitarFondo,
 } from "./lib/fondo";
 import { anclarColumnas, empezarRedimension, terminarRedimension } from "./lib/redimension";
-import { aQuienLeToca, encolar, sacarDeCola, tocaDesmaximizar } from "./lib/saltos";
+import { aDondeSaltar, aQuienLeToca, encolar, sacarDeCola, tocaDesmaximizar } from "./lib/saltos";
 import { guardarEncuadre, leerEncuadre, type Encuadre } from "./lib/encuadre";
 import { guardarCabecera, leerCabecera, visibles, type Cabecera } from "./lib/cabecera";
 import {
@@ -597,6 +597,14 @@ function App() {
     });
   }, []);
 
+  /* Lo apartado, por ref: el salto de «la que termina» tiene que saber si el
+     panel está escondido para traerlo antes de maximizarlo, y corre desde un
+     callback estable que no puede depender de estos dos estados. */
+  const minimizadosRef = useRef<Set<number>>(minimizados);
+  minimizadosRef.current = minimizados;
+  const gruposOcultosRef = useRef<Set<string>>(gruposOcultos);
+  gruposOcultosRef.current = gruposOcultos;
+
   /** Los paneles de ahora, para leerlos desde un callback estable sin volver a
       crearlo cada vez que se abre o se cierra una terminal. */
   const panesRef = useRef<Pane[]>([]);
@@ -1145,9 +1153,15 @@ function App() {
       team?: Team,
       shadow?: boolean,
       grupo?: string,
+      // Encima de lo que `entornoDePane` infiere de la cuenta, para el caso
+      // que no tiene cuenta: el vibecoding con OpenRouter nace con una clave
+      // que no vive en ninguna fila de `providers.ts` (ver OpenRouterCard).
+      envOverride?: Record<string, string>,
     ) => {
       const id = nextId.current++;
-      const { env, etiqueta } = entornoDePane(command, account);
+      const inferido = entornoDePane(command, account);
+      const env = envOverride ? { ...inferido.env, ...envOverride } : inferido.env;
+      const etiqueta = inferido.etiqueta;
 
       /* Estando en el LIENZO, la terminal nace en el lienzo.
          Antes esto acababa siempre en `setView("cabina")`, así que pulsar
@@ -2343,6 +2357,47 @@ function App() {
    * llegaba a ocurrir nunca. Ver lib/tecleando.
    */
   const saltarA = useCallback((id: number) => {
+    /* Dónde vive decide el salto. Antes esto era «a la Cabina y maximizar»
+       para todas, y por eso el ajuste parecía roto en dos casos enteros: ver
+       `aDondeSaltar` en lib/saltos. */
+    const enLienzo = canvasPanesRef.current.some((p) => p.id === id);
+    const enCabina = panesRef.current.some((p) => p.id === id);
+    const p = panesRef.current.find((x) => x.id === id);
+    const apartada =
+      !!p && (minimizadosRef.current.has(p.id) || (p.grupo != null && gruposOcultosRef.current.has(p.grupo)));
+
+    switch (aDondeSaltar({ enCabina, enLienzo, apartada })) {
+      case "nadie":
+        return;
+      case "lienzo":
+        // Allí no hay pantalla completa que dar: el lienzo lleva su propia
+        // cámara y acercarla ES ponerla delante.
+        setView("lienzo");
+        setTecladoReq((prev) => ({ id, n: (prev?.n ?? 0) + 1 }));
+        return;
+      case "traer":
+        // Estaba apartada. Se trae ANTES de maximizar, o la red que suelta la
+        // pantalla completa de un panel que no se pinta la devolvería al sitio.
+        setMinimizados((prev) => {
+          if (!prev.has(id)) return prev;
+          const s = new Set(prev);
+          s.delete(id);
+          return s;
+        });
+        if (p?.grupo != null) {
+          const g = p.grupo;
+          setGruposOcultos((prev) => {
+            if (!prev.has(g)) return prev;
+            const s = new Set(prev);
+            s.delete(g);
+            return s;
+          });
+        }
+        break;
+      case "cabina":
+        break;
+    }
+
     setView("cabina");
     setMaximizedId(id);
     maxPorSaltoRef.current = id;
@@ -3965,6 +4020,19 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                   providerInner(p.id),
                 ),
               ),
+            )
+          }
+          onVibecoding={(modelo) =>
+            addPane(
+              `Aider · ${modelo}`,
+              raiz(),
+              shellCommand(`aider --model openrouter/${modelo}`),
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              { OPENROUTER_API_KEY: "@secreto:openrouter" },
             )
           }
         />

@@ -1,0 +1,1109 @@
+/* ============================================================================
+   Adeorq · web/portada/portada.css
+   LA PORTADA DEL HAZ.
+
+   La escena de arriba es SIEMPRE oscura, aunque la web sea bitema. No es un
+   descuido: el haz es luz, y la luz solo se lee sobre un fondo oscuro. Por eso
+   aqui los colores van en hexadecimal literal y no con los tokens del tema —
+   `var(--acento)` sobre el tema claro es un azul oscuro, y pintaria luz negra
+   sobre fondo negro. De la seccion siguiente hacia abajo mandan los tokens de
+   styles/base.css y el bitema vuelve a funcionar.
+
+   Los azules NO son inventados: son los del tema «Azul noche» de la app
+   (src/App.css), para que quien vea la web y luego abra el programa sienta que
+   son la misma cosa.
+   ========================================================================= */
+
+:root {
+  /* Del tema Azul noche de la app, literales */
+  --p-fondo:   #05080e;
+  --p-panel:   #101624;
+  --p-texto:   #e6edfa;
+  --p-suave:   #b7c7e0;
+  --p-tenue:   #8fa3c4;
+  --p-acento:  #4d9fff;
+  --p-linea:   rgba(140, 170, 220, .16);
+  --p-linea2:  rgba(150, 185, 240, .30);
+
+  --p-tipo: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --p-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, Consolas, monospace;
+
+  /* Por si esta hoja se carga suelta: el interruptor del <head> lo pisa. */
+  --motion-gain: 1;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--p-fondo);
+  color: var(--p-texto);
+  font-family: var(--p-tipo);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.saltar {
+  position: absolute; left: -9999px; top: 0; z-index: 99;
+  padding: 10px 16px; border-radius: 0 0 10px 0;
+  background: var(--p-acento); color: #071019; font-weight: 650;
+}
+.saltar:focus { left: 0; }
+
+:where(a) { color: inherit; text-decoration: none; }
+:where(a):focus-visible,
+:where(button):focus-visible {
+  outline: 2px solid var(--p-acento);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ------------------------------ LA BARRA ---------------------------------
+   Flotando sobre la escena, sin fondo hasta que se hace scroll: sobre un
+   cielo negro una barra opaca es una raya que parte la portada en dos. */
+
+.nav {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 16px clamp(18px, 4vw, 54px);
+  transition: background .25s ease, backdrop-filter .25s ease, border-color .25s ease;
+  border-bottom: 1px solid transparent;
+}
+.nav[data-pegada] {
+  background: rgba(5, 8, 14, .72);
+  backdrop-filter: saturate(150%) blur(14px);
+  border-bottom-color: var(--p-linea);
+}
+.nav__marca { display: inline-flex; align-items: center; gap: 9px; font-size: 17px; }
+.nav__marca img { width: 21px; height: 21px; display: block; }
+.nav__marca b { font-weight: 650; letter-spacing: -.01em; }
+
+.nav__enlaces { display: flex; gap: 26px; margin-left: 14px; }
+.nav__enlaces a {
+  color: var(--p-suave);
+  font-size: 14.5px;
+  transition: color .15s ease;
+}
+.nav__enlaces a:hover { color: var(--p-texto); }
+
+.nav__acciones { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.nav__gh { color: var(--p-suave); font-size: 14.5px; }
+.nav__gh:hover { color: var(--p-texto); }
+
+@media (max-width: 860px) { .nav__enlaces { display: none; } }
+
+/* ------------------------------ BOTONES ---------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  border-radius: 999px;
+  font-weight: 620;
+  white-space: nowrap;
+  transition: transform .14s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn--chico  { padding: 8px 17px; font-size: 14px; }
+.btn--grande { padding: 14px 26px; font-size: 15.5px; }
+
+/* El claro lleva el halo de la portada: es el unico sitio de la web donde un
+   boton brilla, y por eso se ve sin necesidad de ser mas grande. */
+.btn--claro {
+  background: linear-gradient(180deg, #ffffff, #dfe9fb);
+  color: #071019;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.5),
+              0 0 44px 8px rgba(120, 180, 255, calc(.40 * var(--motion-gain) + .12));
+}
+.btn--claro:hover { transform: translateY(-1px); }
+.btn--claro em { font-style: normal; font-size: 12.5px; opacity: .62; font-weight: 500; }
+
+.btn--fantasma {
+  border: 1px solid var(--p-linea2);
+  color: var(--p-texto);
+  background: rgba(255,255,255,.02);
+}
+.btn--fantasma:hover { background: rgba(255,255,255,.06); }
+
+/* ============================== EL HAZ ==================================== */
+
+.haz {
+  position: relative;
+  /* Mas alto que la pantalla a proposito: la ventana asoma por abajo y pide
+     seguir bajando sin que haga falta una flechita que lo diga. */
+  min-height: 122svh;
+  padding: clamp(120px, 17vh, 210px) 0 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* -------- el cielo -------- */
+.haz__cielo { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+
+.haz__nube {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+}
+.haz__nube--a {
+  left: -6%; top: -10%; width: 62%; height: 62%;
+  /* Medido: la referencia deja el fondo lejos del haz en #090b0d, negro casi
+     puro, y estas nubes lo estaban subiendo a #151b24, un azul marino que
+     apagaba la luz por comparacion. Bajadas a menos de la mitad. */
+  background: radial-gradient(circle, rgba(38, 74, 140, .24), transparent 66%);
+}
+.haz__nube--b {
+  right: -12%; top: 22%; width: 70%; height: 70%;
+  background: radial-gradient(circle, rgba(24, 52, 108, .20), transparent 68%);
+}
+
+/* El grano. Sin el, un degradado tan grande se ve a bandas en cualquier
+   pantalla de 8 bits, y eso delata una web hecha con prisa. */
+.haz__grano {
+  position: absolute; inset: 0;
+  opacity: .22;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+}
+
+/* -------- la luz --------
+   Vive dentro de `.ventana`, anclada con `bottom: 100%`, asi que nace SIEMPRE
+   en su borde de arriba mida lo que mida la pantalla. Tres piezas y no una:
+   el nucleo tiene que ser DURO (un degradado con blur nunca lo da), el abanico
+   es lo que se abre, y el rayo es el filamento que sube. */
+.ventana__luz {
+  position: absolute;
+  left: 50%; bottom: 100%;
+  width: 100%; height: 92vh;
+  transform: translateX(-50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* El rayo se ha quitado (Munir, 2026-08-20, dos veces). Una raya vertical
+   nitida de lado a lado NO es lo que le gustaba: lo que le gustaba es el
+   resplandor. Queda el abanico y el nucleo, que son luz sin filo. */
+/* El abanico: lo que se abre al llegar abajo. Ancho de sobra a proposito, que
+   el degradado se apaga solo mucho antes del borde. */
+/* El nucleo, pegado al borde de la ventana: el punto de donde sale todo. Sin
+   el, el rayo y el abanico se tocan pero no se encienden. */
+/* -------- el texto -------- */
+.haz__texto {
+  position: relative;
+  z-index: 3;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+}
+
+.titular {
+  margin: 0 0 20px;
+  /* 80px es la medida del sector para esto, comprobada. Con `clamp` baja sola
+     en un portatil sin partirse en cuatro lineas. */
+  font-size: clamp(2.4rem, 1.1rem + 4.4vw, 5rem);
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  /* 600 y no 800: a este tamaño una negra se lee como un grito. */
+  font-weight: 600;
+  /* 20ch y no 15: con 15 el titular se partia en TRES lineas y a este tamaño
+     una tercera linea corta le quita el golpe. */
+  max-width: 20ch;
+}
+
+/* Cada linea entra desde debajo de su propia caja, no desde la nada: es lo que
+   hace que parezca que el titular se IMPRIME en vez de aparecer. */
+.titular__linea { display: block; overflow: hidden; }
+.titular__linea > span {
+  display: block;
+  transform: translateY(calc(100% * var(--motion-gain)));
+  opacity: 0;
+  transition: transform .9s cubic-bezier(.16,1,.3,1), opacity .7s ease;
+}
+.titular__linea:nth-child(2) > span { transition-delay: .10s; }
+.haz[data-entrada] .titular__linea > span { transform: none; opacity: 1; }
+
+.entrada {
+  margin: 0 0 30px;
+  max-width: 44ch;
+  color: var(--p-suave);
+  font-size: clamp(1rem, .95rem + .35vw, 1.22rem);
+  line-height: 1.55;
+}
+
+.acciones { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 26px; }
+
+.notas {
+  display: flex; flex-wrap: wrap; gap: 8px 22px;
+  margin: 0; padding: 0; list-style: none;
+  color: var(--p-tenue); font-size: 13px;
+}
+.notas li { display: flex; align-items: center; gap: 8px; }
+.notas li + li::before {
+  content: ""; width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; opacity: .5; margin-right: 14px;
+}
+
+/* La entrada del texto de abajo del titular, con el dial aplicado al recorrido
+   y NUNCA a la opacidad: con `gain: 0` esto sigue siendo un fundido. */
+.entrada, .acciones, .notas {
+  opacity: 0;
+  transform: translateY(calc(18px * var(--motion-gain)));
+  transition: opacity .6s ease, transform .7s cubic-bezier(.16,1,.3,1);
+}
+.haz[data-entrada] .entrada  { opacity: 1; transform: none; transition-delay: .18s; }
+.haz[data-entrada] .acciones { opacity: 1; transform: none; transition-delay: .26s; }
+.haz[data-entrada] .notas    { opacity: 1; transform: none; transition-delay: .34s; }
+
+/* -------- la ventana --------
+   A sangre por abajo, como la referencia: cortarla dice «hay mas» mejor que
+   cualquier flecha. Y dentro va la maqueta VIVA, que es lo que ninguna captura
+   puede hacer: se toca desde la portada. */
+.ventana {
+  position: relative;
+  z-index: 2;
+  width: min(1500px, 88vw);
+  margin: clamp(40px, 7vh, 90px) auto 0;
+  aspect-ratio: 16 / 9;
+  /* Se corta contra el borde de abajo de la seccion. */
+  margin-bottom: -14vh;
+}
+
+/* El filo de luz del borde de arriba: es lo que ata la ventana al haz. Sin
+   esto la ventana parece pegada encima del fondo, no salida de la luz. */
+/* El filo del borde superior se ha quitado (Munir, 2026-08-20): era una raya
+   de 2 px a opacidad .95 pintada sobre la barra de titulo de la ventana, y
+   con el filamento fuera ya no representaba nada. Cruzaba los botones de
+   minimizar y cerrar de la maqueta como una banda blanca. */
+
+.ventana__caja {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--p-linea2);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+  overflow: hidden;
+  background: var(--p-panel);
+  box-shadow: 0 -18px 90px rgba(90, 150, 255, .14),
+              0 40px 120px rgba(0, 0, 0, .6);
+}
+
+/* La maqueta se distribuye a 1920x1080 SIEMPRE y se encoge con `transform`, que
+   es lo que hace que enseñe lo mismo que la app en un monitor de verdad en vez
+   de su version apretada. El JS calcula la escala. */
+.ventana__caja iframe {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1920px; height: 1080px;
+  border: 0;
+  transform-origin: top left;
+  transform: scale(var(--esc, .5));
+}
+
+.ventana__pie {
+  position: absolute;
+  left: 0; right: 0; bottom: 14px;
+  z-index: 4;
+  margin: 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--p-tenue);
+  text-shadow: 0 1px 12px rgba(0,0,0,.9);
+  pointer-events: none;
+}
+
+/* La ventana sube al entrar. Recorrido por el dial; la opacidad no se toca. */
+.ventana {
+  opacity: 0;
+  transform: translateY(calc(46px * var(--motion-gain)));
+  transition: opacity .8s ease .30s, transform 1s cubic-bezier(.16,1,.3,1) .30s;
+}
+.haz[data-entrada] .ventana { opacity: 1; transform: none; }
+
+@media (max-width: 700px) {
+  .haz { min-height: auto; padding-bottom: 40px; }
+  .ventana { width: 94vw; margin-bottom: -8vh; }
+  .ventana__pie { display: none; }
+}
+
+/* -------- LA LUZ --------
+   Un GRADIENTE y nada más (Munir, 2026-08-20). Aquí hubo cinco versiones en
+   WebGL, después una imagen prerrenderizada con filamento y humo, y las rechazó
+   todas. Se queda lo único que le gustaba desde el principio: el resplandor.
+   Sin filamento, porque una raya vertical nítida es un láser y no una luz; y
+   sin humo, porque costaba 216 KB de WebP y dos animaciones para acabar
+   leyéndose como suciedad por encima del titular.
+
+   Todo en CSS: escala a cualquier pantalla sin recortarse, no baja ni un byte
+   de más y no gasta GPU. Va por debajo del texto, así que la luz pasa por
+   detrás del titular y no por encima. */
+
+/* `--haz-x` la pone el JS midiendo el centro del botón «Descargar»: el botón se
+   mueve con el ancho de la ventana, así que un porcentaje escrito a mano estaba
+   mal en cuanto alguien redimensionaba. Por eso el eje no caía bajo el botón. */
+.ventana__luz { --haz-x: 76%; }
+
+.haz__glow {
+  position: absolute;
+  left: var(--haz-x);
+  /* Baja por debajo del borde de la ventana a proposito: ahi cae el maximo
+     del degradado, que es lo que se veia como una banda con filo. */
+  bottom: -30%;
+  width: min(170%, 1700px);
+  height: 150%;
+  transform: translateX(-50%);
+  z-index: 2;
+  pointer-events: none;
+  /* Dos capas y las dos ANCHAS. Antes había una tercera de un 5 % de ancho que
+     subía el 118 % de la altura: eso, con el núcleo encendido, es justo lo que
+     se leía como un láser. La segunda es el derrame, y hace con un degradado el
+     trabajo que antes hacía el humo: darle cuerpo a la luz para que no acabe
+     siendo un halo redondo recortado. */
+  background:
+    radial-gradient(44% 47% at 50% 80%,
+      rgba(255,255,255,.70) 0%,
+      rgba(214,235,255,.40) 20%,
+      rgba(110,175,255,.18) 44%,
+      transparent 74%),
+    radial-gradient(92% 37% at 50% 80%,
+      rgba(160,200,255,.15) 0%,
+      rgba(118,172,255,.07) 46%,
+      transparent 80%);
+  /* Poco desenfoque y suficiente: los degradados ya son suaves, esto solo mata
+     el banding de estirar tan poco color sobre tanto negro. */
+  /* Y aqui se apaga. Sin esto la luz llega entera al borde y se corta en seco;
+     con esto muere unos pixeles antes y parece que sale de la ventana. Va en
+     mascara y no en otra capa de degradado, porque tiene que apagar todas las
+     capas a la vez, el desenfoque incluido. */
+  mask-image: linear-gradient(180deg, #000 0 80%, rgba(0,0,0,.45) 90%, transparent 100%);
+  filter: blur(6px);
+  animation: glow-late 9s ease-in-out infinite alternate;
+}
+
+/* Las motas. Van en su lienzo porque cuarenta puntos moviendose cada uno a lo
+   suyo con CSS serian cuarenta elementos y cuarenta animaciones. */
+.haz__motas {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* El latido del resplandor. Muy poco y muy lento: una luz que parpadea se mira,
+   y aqui lo que hay que mirar es el titular. Va en `opacity`, que la politica
+   de la casa no escala, mas un `scaleY` que si pasa por el dial. */
+@keyframes glow-late {
+  from { opacity: .82; transform: translateX(-50%) scaleY(1); }
+  to   { opacity: 1;   transform: translateX(-50%) scaleY(calc(1 + .045 * var(--motion-gain))); }
+}
+
+/* Con la fila de notas partida en dos lineas, el punto separador se queda
+   colgando al principio de la de abajo. Se va: en columna estrecha las notas ya
+   se leen sueltas y no hacen falta puntos entre ellas. */
+@media (max-width: 700px) {
+  .notas li + li::before { display: none; }
+  .notas { gap: 6px 16px; }
+}
+
+/* ============================================================================
+   LA CINTA DE CLIENTES
+   Una fila de logos que rueda sin parar. Tres decisiones que no son de gusto:
+
+     1. El grupo va DOS veces en el HTML (lo escribe scripts/extraer-clientes.mjs)
+        y la pista se desplaza justo el 50 % de su ancho. Al llegar al final, la
+        segunda copia esta exactamente donde empezo la primera, asi que el salto
+        no se ve. Con una sola copia hay que esperar a que salga por la izquierda
+        para volver a entrar por la derecha, y eso deja un hueco vacio.
+     2. El movimiento es del contenedor, no de cada pieza: una animacion sobre un
+        `transform` en vez de veintidos.
+     3. La velocidad pasa por el dial de la casa. En un bucle continuo el dial
+        multiplica VELOCIDAD, no recorrido, asi que divide la duracion. El `max()`
+        es el suelo: sin el, con el dial en cero la duracion seria cero y el
+        navegador reparte una animacion de 0 s en cada fotograma.
+
+   La pausa la resuelve la valvula de abajo a la derecha (`:root[data-quieto]`
+   congela toda animacion), que es lo que exige el 2.2.2 de WCAG para un bucle
+   de mas de cinco segundos. Aqui ademas se para al pasar el raton o al entrar
+   con el tabulador, para poder leer un nombre sin perseguirlo.
+   ========================================================================= */
+
+.cinta {
+  position: relative;
+  z-index: 4;
+  border-top: 1px solid var(--p-linea);
+  border-bottom: 1px solid var(--p-linea);
+  background: linear-gradient(180deg, rgba(16, 22, 36, .55), rgba(5, 8, 14, .85));
+  padding: 26px 0 20px;
+}
+
+.cinta__caja {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+}
+
+.cinta__rotulo {
+  flex: none;
+  max-width: 24ch;
+  margin: 0;
+  color: var(--p-tenue);
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+.cinta__rotulo b { color: var(--p-suave); font-weight: 620; }
+
+.cinta__link {
+  display: block;
+  margin-top: 3px;
+  color: var(--p-acento);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cinta__link:hover { text-decoration: underline; }
+
+/* La ventana por la que se ve rodar la cinta. La mascara de los bordes es lo
+   que hace que los logos se desvanezcan al entrar y al salir en vez de
+   aparecer de golpe contra el filo. */
+.cinta__ventana {
+  --cinta-seg: 78s;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 94%, transparent);
+}
+
+/* Lo unico que se mueve. Separado de la ventana a proposito: si el elemento que
+   recorta es el mismo que se anima, se va entero hacia la izquierda con su
+   recorte puesto y el contenido sale por donde no debe. */
+.cinta__pista {
+  display: flex;
+  width: max-content;
+  animation: cinta-rodar calc(var(--cinta-seg) / max(var(--motion-gain), .025)) linear infinite;
+  will-change: transform;
+}
+.cinta__ventana:hover .cinta__pista,
+.cinta__ventana:focus-within .cinta__pista { animation-play-state: paused; }
+
+@keyframes cinta-rodar {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+.cinta__grupo {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  flex: none;
+  margin: 0;
+  padding: 0 15px;
+  list-style: none;
+}
+
+/* El punto separador va en el hueco, no dentro de la pieza: asi la distancia
+   entre dos marcas es siempre la misma y el punto cae justo en medio. */
+.cinta__grupo .cli + .cli::before {
+  content: "";
+  width: 3px; height: 3px;
+  margin-right: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--p-tenue) 40%, transparent);
+  flex: none;
+}
+
+.cli {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex: none;
+  color: var(--p-tenue);
+  font-size: 15.5px;
+  font-weight: 580;
+  white-space: nowrap;
+  transition: color .16s ease;
+}
+.cli:hover { color: var(--p-texto); }
+
+/* La marca en el color que le da la app a ese cliente, apagada a la mitad: en
+   fila y a todo color, diez marcas distintas son diez focos peleandose. Al
+   pasar por encima se enciende la suya. */
+.cli__marca {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: color-mix(in srgb, var(--cli, var(--p-tenue)) 62%, var(--p-tenue));
+  transition: color .16s ease;
+}
+.cli:hover .cli__marca { color: var(--cli, var(--p-acento)); }
+
+/* Las iniciales de los CLI de los que no tenemos dibujo. Misma caja que una
+   marca, para que la fila no cojee, y el color del cliente al 22 % de fondo:
+   es lo que hace la app cuando ProviderMark devuelve null, asi que la web y el
+   programa cuentan lo mismo. */
+.cli__sigla {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  flex: none;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--cli, var(--p-tenue)) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cli, var(--p-tenue)) 34%, transparent);
+  color: color-mix(in srgb, var(--cli, var(--p-tenue)) 75%, var(--p-texto));
+  font-family: var(--p-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  transition: background .16s ease, border-color .16s ease;
+}
+.cli:hover .cli__sigla {
+  background: color-mix(in srgb, var(--cli, var(--p-acento)) 34%, transparent);
+  border-color: color-mix(in srgb, var(--cli, var(--p-acento)) 55%, transparent);
+}
+
+.cli--mas a {
+  color: var(--p-tenue);
+  border-bottom: 1px dashed var(--p-linea2);
+  padding-bottom: 1px;
+}
+.cli--mas a:hover { color: var(--p-texto); }
+
+/* El aviso de marcas. Chico y sin dramatismo, pero visible: los logos de arriba
+   son marcas registradas y AGENTS.md lo pone como condicion para vender. */
+.cinta__legal {
+  max-width: 1320px;
+  margin: 16px auto 0;
+  padding: 0 clamp(18px, 4vw, 54px);
+  color: color-mix(in srgb, var(--p-tenue) 58%, transparent);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .cinta__caja { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .cinta__rotulo { max-width: none; }
+  .cinta__ventana { width: 100%; }
+}
+
+/* ============================================================================
+   EL MANIFIESTO
+   Una frase a tamano de cartel en tres tonos. El contraste NO es decoracion:
+   marca lo que haces tu (blanco), lo que pasa despues (gris) y el remate
+   (azul), y por eso se lee como una idea con principio y final. Va en un solo
+   <p> con tres elementos en linea: partirla en tres bloques la dejaria sin
+   sentido para quien la escucha con un lector de pantalla.
+   ========================================================================= */
+
+.manifiesto {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: clamp(78px, 13vh, 150px) clamp(18px, 4vw, 54px) clamp(56px, 9vh, 104px);
+}
+
+.manifiesto__frase {
+  margin: 0;
+  max-width: 46ch;
+  font-size: clamp(1.75rem, .95rem + 2.3vw, 3.05rem);
+  line-height: 1.18;
+  letter-spacing: -.03em;
+  font-weight: 680;
+  /* Ancho corto y lineas equilibradas: una frase de cartel se lee de un golpe
+     de vista, y con sesenta caracteres por linea deja de serlo. */
+  text-wrap: balance;
+}
+.manifiesto__frase b { color: var(--p-texto); font-weight: inherit; }
+.manifiesto__frase span { color: color-mix(in srgb, var(--p-tenue) 88%, transparent); }
+.manifiesto__frase em { color: var(--p-acento); font-style: normal; }
+
+.manifiesto__firma {
+  margin: 30px 0 0;
+  color: var(--p-tenue);
+  font-size: 14.5px;
+}
+.manifiesto__firma a {
+  color: var(--p-suave);
+  border-bottom: 1px solid var(--p-linea2);
+}
+.manifiesto__firma a:hover { color: var(--p-texto); }
+
+/* La firma, en la misma linea si cabe y debajo si no. Monoespaciada porque es
+   la letra con la que escribe la app, y aqui hace de rubrica. */
+.manifiesto__autor {
+  display: inline-block;
+  margin-left: 6px;
+  font-family: var(--p-mono);
+  font-size: 13px;
+  color: color-mix(in srgb, var(--p-tenue) 78%, transparent);
+}
+
+/* ============================================================================
+   QUE ES, EN LARGO
+   Prosa de verdad para quien quiere saber de que va antes de descargar nada.
+   Una sola columna estrecha: setenta caracteres por linea es lo que se lee sin
+   perder el renglon, y a pantalla completa un parrafo de 1.300 px no se lee,
+   se escanea.
+   ========================================================================= */
+
+.explica {
+  border-top: 1px solid var(--p-linea);
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(77, 159, 255, .07), transparent 70%),
+    var(--p-fondo);
+  padding: clamp(80px, 13vh, 150px) 0 clamp(72px, 11vh, 130px);
+}
+
+.explica__caja {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+}
+
+.explica__cabecera { margin: 0 0 clamp(38px, 6vh, 58px); }
+
+.explica__tit {
+  margin: 0 0 20px;
+  max-width: 24ch;
+  font-size: clamp(1.7rem, 1.1rem + 2.1vw, 2.7rem);
+  line-height: 1.14;
+  letter-spacing: -.028em;
+  font-weight: 660;
+}
+.explica__tit b { font-weight: inherit; }
+.explica__tit span { color: color-mix(in srgb, var(--p-tenue) 85%, transparent); }
+
+.explica__entrada {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--p-suave);
+  font-size: clamp(1.1rem, 1rem + .45vw, 1.35rem);
+  line-height: 1.62;
+}
+
+/* Las fichas. Cuatro, en dos filas de dos: la rejilla es lo que convierte esto
+   en algo que se mira en tres segundos en vez de algo que hay que leer. Las
+   separan lineas de un pixel y no cajas con fondo, que en una portada oscura
+   cuatro rectangulos claros pesan mas que el propio texto. */
+.fichas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--p-linea);
+  border: 1px solid var(--p-linea);
+}
+
+.ficha {
+  padding: clamp(22px, 2.4vw, 34px);
+  background: var(--p-fondo);
+}
+
+.ficha__tit {
+  margin: 0 0 10px;
+  font-size: clamp(1.12rem, 1rem + .5vw, 1.4rem);
+  font-weight: 640;
+  letter-spacing: -.015em;
+  color: var(--p-texto);
+}
+
+.ficha p {
+  margin: 0;
+  color: var(--p-suave);
+  font-size: clamp(1rem, .96rem + .3vw, 1.14rem);
+  line-height: 1.6;
+  max-width: 46ch;
+}
+
+@media (max-width: 720px) {
+  .fichas { grid-template-columns: 1fr; }
+}
+
+.explica__preguntas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: clamp(34px, 5vh, 52px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.explica__preguntas a {
+  display: inline-block;
+  padding: 11px 18px;
+  border: 1px solid var(--p-linea);
+  color: var(--p-suave);
+  font-size: 15px;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.explica__preguntas a:hover {
+  border-color: var(--p-linea2);
+  background: rgba(255, 255, 255, .03);
+  color: var(--p-texto);
+}
+
+/* ============================================================================
+   LAS SECCIONES DE ABAJO
+   Cómo trabaja, Tu cuenta, Descargar, Novedades, Preguntas y el pie. Todas
+   comparten tres piezas para que la página se lea como una sola cosa: la
+   etiqueta con su punto, el titular de sección y la entradilla.
+   ========================================================================= */
+
+/* La etiqueta. Monoespaciada y con un punto delante: es lo que le dice al ojo
+   «empieza una sección» sin gastar un titular en ello. */
+.etiqueta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 18px;
+  font-family: var(--p-mono);
+  font-size: 12px;
+  letter-spacing: .02em;
+  color: var(--p-tenue);
+}
+.etiqueta__punto {
+  width: 5px; height: 5px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--p-acento);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--p-acento) 70%, transparent);
+}
+
+.seccion__tit {
+  margin: 0 0 18px;
+  max-width: 22ch;
+  font-size: clamp(1.7rem, 1.1rem + 2.1vw, 2.7rem);
+  line-height: 1.14;
+  letter-spacing: -.028em;
+  font-weight: 660;
+}
+.seccion__tit--centro { max-width: none; }
+
+.seccion__entrada {
+  max-width: 58ch;
+  margin: 0 0 clamp(34px, 5vh, 52px);
+  color: var(--p-suave);
+  font-size: clamp(1.02rem, .97rem + .35vw, 1.18rem);
+  line-height: 1.65;
+}
+
+/* -------------------------------- CÓMO TRABAJA --------------------------- */
+
+.pasos {
+  border-top: 1px solid var(--p-linea);
+  padding: clamp(70px, 11vh, 130px) 0;
+}
+.pasos__caja {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+}
+
+.pasos__lista {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(24px, 3vw, 48px);
+  margin: clamp(34px, 5vh, 52px) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: paso;
+}
+
+/* Cada paso cuelga de una línea de un píxel arriba: es la que hace que se lean
+   como una secuencia y no como tres párrafos sueltos. */
+.paso { border-top: 1px solid var(--p-linea2); padding-top: 18px; }
+
+.paso__num {
+  display: block;
+  margin-bottom: 12px;
+  font-family: var(--p-mono);
+  font-size: 12px;
+  color: var(--p-acento);
+}
+.paso__tit {
+  margin: 0 0 8px;
+  font-size: clamp(1.08rem, 1rem + .4vw, 1.3rem);
+  font-weight: 640;
+  letter-spacing: -.015em;
+}
+.paso p {
+  margin: 0;
+  color: var(--p-suave);
+  font-size: clamp(.98rem, .95rem + .28vw, 1.1rem);
+  line-height: 1.6;
+}
+
+.pasos__cierre {
+  max-width: 62ch;
+  margin: clamp(34px, 5vh, 52px) 0 0;
+  color: var(--p-tenue);
+  font-size: clamp(.98rem, .95rem + .28vw, 1.1rem);
+  line-height: 1.65;
+}
+
+@media (max-width: 800px) {
+  .pasos__lista { grid-template-columns: 1fr; }
+}
+
+/* --------------------------------- TU CUENTA ----------------------------- */
+
+.cuenta {
+  border-top: 1px solid var(--p-linea);
+  background:
+    radial-gradient(52% 60% at 50% 0%, rgba(77, 159, 255, .06), transparent 72%),
+    var(--p-fondo);
+  padding: clamp(70px, 11vh, 130px) 0;
+  text-align: center;
+}
+.cuenta__caja {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+}
+.cuenta__datos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(24px, 3vw, 52px);
+  margin-top: clamp(34px, 5vh, 52px);
+  text-align: left;
+}
+.cuenta__datos h3 {
+  margin: 0 0 8px;
+  font-size: clamp(1.02rem, .98rem + .35vw, 1.18rem);
+  font-weight: 640;
+}
+.cuenta__datos p {
+  margin: 0;
+  color: var(--p-suave);
+  font-size: clamp(.96rem, .93rem + .26vw, 1.06rem);
+  line-height: 1.6;
+}
+@media (max-width: 800px) { .cuenta__datos { grid-template-columns: 1fr; } }
+
+/* --------------------------------- DESCARGA ------------------------------ */
+
+.descarga {
+  border-top: 1px solid var(--p-linea);
+  padding: clamp(70px, 11vh, 130px) 0;
+}
+.descarga__caja {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+}
+.descarga__acciones { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+
+/* La ficha de datos: monoespaciada porque son datos, y con puntos entre ellos.
+   La rellena datos.js con el JSON de verdad. */
+.descarga__datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin: 0 0 26px;
+  font-family: var(--p-mono);
+  font-size: 12.5px;
+  color: var(--p-tenue);
+}
+.descarga__datos b { color: var(--p-suave); font-weight: 600; }
+.descarga__datos span:empty { display: none; }
+.descarga__datos > *:not(:last-child)::after {
+  content: "·";
+  margin-left: 18px;
+  color: color-mix(in srgb, var(--p-tenue) 45%, transparent);
+}
+
+.descarga__precio {
+  margin: 0 0 20px;
+  font-size: clamp(1.05rem, 1rem + .4vw, 1.25rem);
+  font-weight: 620;
+  color: var(--p-texto);
+}
+
+/* El aviso de SmartScreen. Aquí y no escondido en las preguntas: es la objeción
+   que aparece justo después de pulsar, y contestarla antes es lo que evita que
+   alguien cierre el instalador pensando que le hemos colado algo. */
+.descarga__nota {
+  max-width: 62ch;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--p-linea);
+  border-left: 2px solid color-mix(in srgb, var(--p-acento) 55%, transparent);
+  color: var(--p-tenue);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* -------------------------------- NOVEDADES ------------------------------ */
+
+.novedades {
+  border-top: 1px solid var(--p-linea);
+  padding: clamp(70px, 11vh, 130px) 0;
+}
+.novedades__caja {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+}
+.novedades .seccion__entrada b { color: var(--p-texto); }
+
+.log { margin: 0 0 30px; padding: 0; list-style: none; border-top: 1px solid var(--p-linea); }
+
+/* Versión y fecha a la izquierda, texto a la derecha: la misma retícula que la
+   sección de piezas, para que la página no cambie de idioma a mitad. */
+.log__fila {
+  display: grid;
+  grid-template-columns: 110px 150px minmax(0, 1fr);
+  gap: 16px;
+  align-items: baseline;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--p-linea);
+}
+.log__ver { font-family: var(--p-mono); font-size: 13px; color: var(--p-acento); font-weight: 600; }
+.log__fecha { font-family: var(--p-mono); font-size: 12px; color: var(--p-tenue); }
+.log__texto { margin: 0; color: var(--p-suave); font-size: 15px; line-height: 1.58; max-width: 66ch; }
+
+@media (max-width: 760px) {
+  .log__fila { grid-template-columns: auto 1fr; }
+  .log__texto { grid-column: 1 / -1; }
+}
+
+/* -------------------------------- PREGUNTAS ------------------------------ */
+
+.faq {
+  border-top: 1px solid var(--p-linea);
+  padding: clamp(70px, 11vh, 130px) 0;
+}
+.faq__caja {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+}
+.faq__lista { border-top: 1px solid var(--p-linea); max-width: 82ch; }
+
+/* `<details>` nativo y no un acordeón de JavaScript: se abre sin scripts, el
+   teclado lo maneja solo y el buscador del navegador encuentra dentro. */
+.pregunta { border-bottom: 1px solid var(--p-linea); }
+.pregunta summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: clamp(1.02rem, .98rem + .35vw, 1.16rem);
+  font-weight: 600;
+  color: var(--p-texto);
+}
+.pregunta summary::-webkit-details-marker { display: none; }
+.pregunta summary::after {
+  content: "+";
+  margin-left: auto;
+  font-family: var(--p-mono);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--p-tenue);
+  transition: transform .18s ease, color .18s ease;
+}
+.pregunta[open] summary::after { content: "−"; color: var(--p-acento); }
+.pregunta summary:hover { color: #fff; }
+.pregunta p {
+  margin: 0;
+  padding: 0 0 22px;
+  max-width: 68ch;
+  color: var(--p-suave);
+  font-size: clamp(.98rem, .95rem + .28vw, 1.08rem);
+  line-height: 1.66;
+}
+
+/* ----------------------------------- PIE --------------------------------- */
+
+.pie {
+  border-top: 1px solid var(--p-linea);
+  background: linear-gradient(180deg, var(--p-fondo), #04060a);
+  padding: clamp(56px, 8vh, 88px) 0 26px;
+}
+.pie__caja {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr);
+  gap: clamp(30px, 5vw, 80px);
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px);
+}
+.pie__lema {
+  max-width: 34ch;
+  margin: 16px 0 14px;
+  color: var(--p-tenue);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+.pie__estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--p-suave);
+  font-size: 13.5px;
+}
+.pie__punto {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, .6);
+}
+
+.pie__cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 48px);
+}
+.pie__cols h2 {
+  margin: 0 0 14px;
+  font-family: var(--p-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--p-tenue);
+}
+.pie__cols a {
+  display: block;
+  padding: 5px 0;
+  color: var(--p-suave);
+  font-size: 14.5px;
+  transition: color .14s ease;
+}
+.pie__cols a:hover { color: var(--p-texto); }
+
+.pie__linea {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 30px;
+  max-width: 1320px;
+  margin: clamp(40px, 6vh, 64px) auto 0;
+  padding: 20px clamp(18px, 4vw, 54px) 0;
+  border-top: 1px solid var(--p-linea);
+  color: color-mix(in srgb, var(--p-tenue) 72%, transparent);
+  font-size: 12.5px;
+}
+.pie__linea p { margin: 0; max-width: 68ch; }
+/* Esta frase es la que evita el malentendido caro: código publicado NO es open
+   source, y Adeorq lleva EULA propietario. Va en el color del texto, no en gris
+   de aviso legal, porque no es letra pequeña. */
+.pie__linea b { color: var(--p-suave); font-weight: 620; }
+
+@media (max-width: 900px) {
+  .pie__caja { grid-template-columns: 1fr; }
+  .pie__cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

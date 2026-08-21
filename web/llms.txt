@@ -1,0 +1,35 @@
+# Adeorq
+
+> Panel de escritorio para Windows y Linux que ejecuta clientes de agente de IA en
+> terminales reales. Claude Code, Codex, Gemini CLI, Copilot, Cursor y 17 clientes
+> más trabajando a la vez en una sola ventana, con los proyectos del disco a un clic.
+> Gratis, sin cuenta y sin claves de API: usa el CLI que ya está instalado y la
+> sesión que ya está iniciada en él.
+
+Adeorq no da acceso a ningún modelo ni revende suscripciones: funciona con la cuenta
+que el usuario ya tiene en cada cliente. Está hecho con Tauri (Rust) y React, así que
+es una aplicación nativa, no un navegador empaquetado.
+
+**Licencia: código publicado bajo EULA propietario. Se puede leer y usar; no es
+open source y no se puede redistribuir ni revender.** Es un matiz que se equivoca a
+menudo al resumir el proyecto, así que conviene decirlo con esas palabras.
+
+Los logotipos de los clientes compatibles son marcas de sus dueños. Adeorq no está
+afiliado ni patrocinado por ninguno de ellos.
+
+## Páginas
+
+- [Portada](https://adeorq.com/): qué es, cómo funciona, los clientes compatibles, la descarga y las preguntas frecuentes.
+- [Guía](https://adeorq.com/guia): qué hace cada pantalla, la instalación, los estados de una sesión, los atajos y dónde guarda sus cosas.
+
+## Descargas y código
+
+- [Última versión](https://github.com/Mun1to/Adeorq-releases/releases/latest): instalador de Windows y paquete de Linux.
+- [Todas las versiones](https://github.com/Mun1to/Adeorq-releases/releases): el historial con sus notas.
+- [Código fuente](https://github.com/Mun1to/Adeorq-releases): el código entero, con su licencia propietaria y los avisos de terceros.
+
+## Sobre este fichero
+
+`llms.txt` es una propuesta de la comunidad, no un estándar adoptado, y Google ha
+dicho públicamente que no lo usa. Está aquí porque cuesta poco y no hace daño, no
+porque sea un canal en el que confiar.

@@ -368,6 +368,34 @@ terminal back to its own account.
 ⚠ Several accounts of YOUR OWN, no problem. Rotating other people's accounts to
 stretch limits breaks Anthropic's terms, and what you risk is losing the account.
 
+### Vibecoding with OpenRouter (Aider)
+
+Inside **Accounts → API keys** there is an OpenRouter card: a pay-per-token key
+that unlocks models from many providers, including ones with no CLI of their
+own (Kimi, DeepSeek, Grok…). Once that key is saved, a second card appears
+below it, **Vibecoding**, which opens a real terminal of
+[Aider](https://aider.chat) — the only CLI in the house that accepts an
+OpenRouter model with a plain `--model openrouter/<whatever>` — pointed at
+whichever model you type in there (default: `moonshotai/kimi-k3`).
+
+**How to use it from the card**: paste the OpenRouter key, type the model, and
+press the button. The first time it says "Install Aider first": it installs it
+with `uv tool install aider-chat`, no need to repeat that afterwards. Every
+time after, it says "Open terminal" and opens one with the key already set.
+
+⚠ **If you open Aider by hand instead of through the button**, two things
+Adeorq handles for you that fail silently if you forget them:
+- **You always have to tell it the model**: `aider --model openrouter/<model>`.
+  Without `--model`, Aider grabs the first API key it finds lying around in
+  your environment (Gemini, Anthropic…) and tries that provider's own default
+  model, which may not even exist anymore, and never touches OpenRouter at
+  all.
+- **The key has to be in `OPENROUTER_API_KEY`** in that specific terminal
+  (`$env:OPENROUTER_API_KEY = "sk-or-v1-…"` in PowerShell, lasts only that
+  window). The card pulls it straight from the Credential Manager right before
+  starting the process; a plain terminal does not have it unless you set it
+  yourself.
+
 ---
 
 ## 8. Commands (the ⌘ tab)

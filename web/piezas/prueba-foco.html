@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El foco, probado</title>
+<!--
+  El banco de pruebas de la pieza. No es una portada ni pretende serlo: es la
+  página mínima donde se puede ver la linterna encendida y comprobar que hace lo
+  que dice, sin depender de una portada que otra sesión esté escribiendo.
+  Se abre en `localhost:<puerto>/piezas/prueba-foco.html`.
+-->
+<style>
+  :root {
+    color-scheme: dark;
+    --fondo: #090d16;
+    --tinta: #e6edfa;
+    --muted: #93a4c2;
+    --linea: rgba(150, 185, 240, 0.5);
+    /* Los dos ganchos de la pieza: su trama y su tinte. */
+    --foco-trama:
+      linear-gradient(to right, var(--linea) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--linea) 1px, transparent 1px);
+    --foco-tinte: rgba(77, 159, 255, 0.09);
+    --remate-color: #090d16;
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--fondo); color: var(--tinta); }
+
+  /* La trama de la página, a media luz: es lo que el foco sube a plena luz. Si
+     esto no estuviera, la linterna sería una mancha persiguiendo al ratón. */
+  .plano {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.08;
+    background-image: var(--foco-trama);
+    background-size: 64px 64px;
+  }
+  main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 90px 24px 60px; }
+  h1 { font-size: 34px; margin: 0 0 10px; letter-spacing: -0.6px; }
+  p { color: var(--muted); line-height: 1.6; max-width: 60ch; }
+  code { font-family: ui-monospace, "Cascadia Mono", monospace; color: var(--tinta); font-size: 13px; }
+  .caja { margin-top: 44px; border: 1px solid rgba(150,185,240,.2); }
+  .caja iframe { display: block; width: 100%; aspect-ratio: 16/9; border: 0; background: #0b0e15; }
+</style>
+<link rel="stylesheet" href="/piezas/foco.css">
+</head>
+<body>
+
+<div class="plano" aria-hidden="true"></div>
+
+<main>
+  <h1>Mueve el ratón</h1>
+  <p>
+    La rejilla del fondo está pintada al 8 % de opacidad y no se lee. El foco no
+    dibuja nada nuevo: sube a plena luz la que ya estaba, dentro de un círculo
+    que sigue al puntero. Es la capa que casi nadie ve del hero de la referencia,
+    medida el 2026-08-20 y contada entera en <code>docs/REFERENCIA-HULY.md</code>.
+  </p>
+  <p>
+    La caja de abajo lleva <code>data-src</code> en vez de <code>src</code>: no se
+    pide hasta que se acerca a la pantalla o hasta el primer gesto, con un
+    <code>setTimeout</code> de rescate detrás por si el observador se queda mudo.
+  </p>
+
+  <div class="caja remate">
+    <iframe title="Adeorq en marcha" data-src="/demo/?desnuda=1"></iframe>
+  </div>
+</main>
+
+<script src="/piezas/foco.js" defer></script>
+</body>
+</html>

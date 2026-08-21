@@ -26,8 +26,8 @@ vista a ninguno.
 [![Última versión](https://img.shields.io/github/v/release/Mun1to/Adeorq-releases?label=&color=1C66DE&style=flat-square)](https://github.com/Mun1to/Adeorq-releases/releases/latest)
 &nbsp;
 [Todas las versiones](https://github.com/Mun1to/Adeorq-releases/releases) ·
-[La web](https://mun1to.github.io/Adeorq-releases/) ·
-[La guía](https://mun1to.github.io/Adeorq-releases/guia.html) ·
+[La web](https://adeorq.com) ·
+[La guía](https://adeorq.com/guia.html) ·
 [English](README.md)
 
 <br>

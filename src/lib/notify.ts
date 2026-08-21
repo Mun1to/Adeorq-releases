@@ -157,9 +157,70 @@ export function alarm(): void {
   }
 }
 
+/**
+ * Cuánto se espera antes de avisar, para ver si la cosa aguanta.
+ *
+ * Tres segundos es lo que tarda un agente en encadenar el siguiente paso
+ * después de tocar la campana: los turnos intermedios de un CLI que sigue
+ * trabajando caen todos dentro de esa ventana. Y es poco para quien de verdad
+ * ha terminado, que va a tardar mucho más que eso en volver a mirar.
+ */
+export const ESPERA_MS = 3000;
+
+/** Los avisos en vuelo, para poder cancelarlos si el panel se cierra. */
+const enVuelo = new Map<string, ReturnType<typeof setTimeout>>();
+
+export interface AvisoOpts extends NotifyOpts {
+  /** Cuál de las dos campanas. */
+  sonido: "done" | "ask";
+  /**
+   * Si al cumplirse la espera esto sigue siendo verdad, se avisa. Si no, no
+   * pasó nada: el agente siguió trabajando, o la pregunta se contestó sola.
+   */
+  sigueIgual: () => boolean;
+}
+
+/**
+ * Avisar, pero solo si al cabo de un momento la cosa sigue igual.
+ *
+ * Un agente que termina un turno intermedio y arranca el siguiente un segundo
+ * después disparaba el sonido y la notificación igual que uno que ha terminado
+ * de verdad. Con nueve terminales eso son nueve pitidos por nada, y un aviso
+ * que casi siempre miente es un aviso que se acaba apagando entero, que es
+ * perder también los que sí importaban.
+ *
+ * La idea es de herdr, y su tamaño es el argumento: son diez líneas y se llevan
+ * por delante la mayor parte de las alarmas falsas.
+ *
+ * El sonido va DENTRO de la espera, no antes: si sonara ya y luego se
+ * cancelara el aviso, habría pitado por nada, que es justo lo que se evita.
+ */
+export function avisar(o: AvisoOpts): void {
+  const antes = enVuelo.get(o.tag);
+  if (antes) clearTimeout(antes);
+  enVuelo.set(
+    o.tag,
+    setTimeout(() => {
+      enVuelo.delete(o.tag);
+      if (!o.sigueIgual()) return;
+      chime(o.sonido, o.mode, o.looking);
+      void notify(o);
+    }, ESPERA_MS),
+  );
+}
+
 /** Forgets a pane's cooldowns when it closes. */
 export function forgetPane(id: number): void {
   for (const key of [...last.keys()]) {
     if (key.startsWith(`${id}:`)) last.delete(key);
+  }
+  // Y los avisos que estaban esperando su turno: un panel cerrado no tiene
+  // nada que decirte, y el `sigueIgual` de un componente desmontado leería un
+  // ref congelado en su último valor.
+  for (const key of [...enVuelo.keys()]) {
+    if (key.startsWith(`${id}:`)) {
+      clearTimeout(enVuelo.get(key));
+      enVuelo.delete(key);
+    }
   }
 }

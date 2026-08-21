@@ -1154,6 +1154,22 @@ const EN: Record<string, string> = {
   Conectar: "Connect",
   "Comprobando…": "Checking…",
   "Olvidar la clave": "Forget the key",
+  // El aparte de vibecoding con Aider, que llegó sin sus traducciones (commit
+  // 4dbeed0). No es de esta sesión, pero dejaba `pnpm i18n` en rojo para todos,
+  // y una comprobación que siempre falla deja de mirarse.
+  Vibecoding: "Vibecoding",
+  "Abre una terminal de Aider con esta misma clave, contra el modelo que escribas.":
+    "Opens an Aider terminal with this same key, against whatever model you type.",
+  "Con el botón no hace falta pensar en esto. Si lo abres a mano: dile siempre el modelo (":
+    "With the button you do not have to think about this. Opening it by hand: always tell it the model (",
+  ") y pon la clave en ": ") and put the key in ",
+  " en esa terminal, o cogerá otra clave que tengas puesta y ni tocará OpenRouter.":
+    " in that terminal, or it will pick up some other key you have set and never touch OpenRouter.",
+  "Eso no parece un modelo de OpenRouter (va así: organización/modelo)":
+    "That does not look like an OpenRouter model (it goes: organisation/model)",
+  "Abrir terminal": "Open terminal",
+  "Instalar Aider primero": "Install Aider first",
+  "Ver cómo se hace": "See how it works",
   "Te queda": "You have left",
   "Tope de la clave": "Key limit",
   "sin tope": "no limit",

@@ -50,7 +50,7 @@ import {
 } from "./Icons";
 import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
-import { chime, forgetPane, notify, type NotifyMode } from "../lib/notify";
+import { avisar, forgetPane, type NotifyMode } from "../lib/notify";
 import { seMuda } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
 import { bonito, type PanePulso } from "../lib/ram";
@@ -449,6 +449,13 @@ export default function TerminalPane({
   const [needsLogin, setNeedsLogin] = useState(false);
   const [done, setDone] = useState(false);
   const [ask, setAsk] = useState<Ask | null>(null);
+  /* Los dos por ref, y no por estado, porque quien los lee es el `sigueIgual`
+     de un aviso que se programó hace tres segundos: una función guardada
+     entonces vería el valor de entonces, que es justo el que ya no vale. */
+  const doneRef = useRef(false);
+  doneRef.current = done;
+  const askRef = useRef<Ask | null>(null);
+  askRef.current = ask;
   const dismissedAskRef = useRef(0);
   const [note, setNote] = useState<string | null>(null);
   /** La papelera pregunta antes de morder, con el mismo diálogo que la barra. */
@@ -1498,13 +1505,17 @@ export default function TerminalPane({
           const n = notifyRef.current;
           const isFocused = n.focused && document.hasFocus();
           if (!isFocused) {
-            chime("ask", n.mode, n.focused);
-            void notify({
+            /* Con espera: una pregunta que se contesta sola en tres segundos
+               (el propio CLI la retira, o llega un `--yes` de una automatización)
+               no llega a sonar. Ver `avisar` en lib/notify. */
+            avisar({
+              sonido: "ask",
               mode: n.mode,
               tag: `${id}:ask`,
               title: `${n.project || "Adeorq"} · espera tu OK`,
               body: question.options.map((o) => `${o.n}. ${o.label}`).join("  ·  ").slice(0, 120),
               looking: n.focused,
+              sigueIgual: () => askRef.current !== null,
             });
           }
         }
@@ -1615,13 +1626,18 @@ export default function TerminalPane({
       const n = notifyRef.current;
       const isFocused = n.focused && document.hasFocus();
       if (!isFocused) {
-        chime("done", n.mode, n.focused);
-        void notify({
+        /* El caso que esto se lleva por delante: el CLI toca la campana al
+           acabar un turno INTERMEDIO y arranca el siguiente un segundo
+           después. Sonaba igual que uno que ha terminado de verdad, y con
+           nueve terminales eso son nueve pitidos por nada. */
+        avisar({
+          sonido: "done",
           mode: n.mode,
           tag: `${id}:done`,
           title: `${n.project || "Adeorq"} · terminó`,
           body: n.name,
           looking: n.focused,
+          sigueIgual: () => doneRef.current,
         });
       }
     });

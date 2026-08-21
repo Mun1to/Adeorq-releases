@@ -171,6 +171,7 @@
 <a class="saltar" href="#contenido">Saltar al contenido</a>
 
 <!-- ============================ LA BARRA ============================ -->
+<div class="progreso" aria-hidden="true"><div class="progreso__linea"></div></div>
 <header class="nav" id="nav">
   <a class="nav__marca" href="/">
     <!-- <img> y no <use>: el SVG del logo no expone un símbolo con id propio,
@@ -790,5 +791,11 @@
 <script type="module" src="./portada/movimiento.js"></script>
 <script src="./portada/valvula.js" defer></script>
 <script src="./portada/datos.js" defer></script>
+<button class="subir" type="button" aria-label="Volver arriba">
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
 </body>
 </html>

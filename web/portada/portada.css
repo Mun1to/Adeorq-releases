@@ -37,6 +37,7 @@
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
+
 body {
   margin: 0;
   background: var(--p-fondo);
@@ -75,20 +76,34 @@ body {
   align-items: center;
   gap: 30px;
   padding: 16px clamp(18px, 4vw, 54px);
-  transition: background .25s ease, backdrop-filter .25s ease, border-color .25s ease;
+  transition: background .25s ease, border-color .25s ease;
   border-bottom: 1px solid transparent;
 }
 .nav[data-pegada] {
-  background: rgba(5, 8, 14, .78);
-  backdrop-filter: saturate(150%) blur(14px);
+  /* Color PLANO, y no cristal, por dos medidas del 2026-08-21.
+  
+     La primera es de velocidad: un `backdrop-filter` en una barra fija tiene que
+     recomponer el desenfoque en CADA fotograma, porque lo que hay detras cambia
+     mientras se hace scroll. Apagandolo, el peor fotograma del scroll paso de
+     181 ms a 35 ms y los fotogramas lentos de 2,3 % a 1,3 %. Se probaron cuatro
+     variantes (saturate+blur 14px, blur 10px, blur 6px con mas opacidad, y
+     esto): ninguna con filtro bajaba de 69 ms.
+  
+     La segunda es de nitidez: en Windows, un fondo con transparencia apaga el
+     subpixel del ClearType y el texto de la barra se ve mas sucio. El color
+     plano lo devuelve.
+  
+     Lo que se pierde es el efecto cristal, que si es la firma visual de la app.
+     Sobre un fondo tan oscuro la diferencia se ve poco; a tirones se veia
+     siempre. */
+  background: #080c15;
   border-bottom-color: var(--p-linea);
   /* Se estrecha al bajar: la barra deja de ser el hueco vacio de la captura y
      devuelve unos pixeles de pantalla justo cuando hacen falta. */
   padding-top: 10px;
   padding-bottom: 10px;
 }
-.nav { transition: background .25s ease, backdrop-filter .25s ease,
-                   border-color .25s ease, padding .25s ease; }
+.nav { transition: background .25s ease, border-color .25s ease, padding .25s ease; }
 .nav__marca { display: inline-flex; align-items: center; gap: 9px; font-size: 17px; }
 .nav__marca img { width: 21px; height: 21px; display: block; }
 .nav__marca b { font-weight: 650; letter-spacing: -.01em; }
@@ -233,6 +248,95 @@ body {
    dice al navegador que van a moverse, y nada mas: `will-change` de mas gasta
    memoria de video en balde. */
 [data-parallax] { will-change: transform; }
+
+
+/* ===================== PROGRESO, VOLVER ARRIBA Y TILT ==================== */
+
+/* La linea de progreso de lectura. Se pinta con `scaleX` desde la izquierda:
+   un `width` que cambia en cada fotograma vuelve a calcular la maqueta entera,
+   y esto tiene que costar cero. */
+.progreso {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 41;
+  height: 2px;
+  pointer-events: none;
+}
+.progreso__linea {
+  height: 100%;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #48c2ff, #a877ff);
+  box-shadow: 0 0 12px rgba(72, 194, 255, .55);
+}
+
+/* Volver arriba. Sale pasada la primera pantalla y nunca tapa la valvula de
+   movimiento, que vive en la misma esquina. */
+.subir {
+  position: fixed;
+  right: clamp(14px, 3vw, 26px);
+  bottom: calc(clamp(14px, 3vw, 26px) + 46px);
+  z-index: 39;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--p-linea2);
+  /* Plano por lo mismo que la barra: esta fijo y lo de detras se mueve. */
+  background: #141a28;
+  color: var(--p-suave);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(calc(10px * var(--motion-gain))) scale(.94);
+  transition: opacity .28s ease, transform .28s ease, visibility .28s,
+              border-color .18s ease, color .18s ease;
+}
+.subir--visible { opacity: 1; visibility: visible; transform: none; }
+.subir:hover { border-color: var(--p-acento); color: var(--p-texto); }
+.subir:focus-visible { outline: 2px solid var(--p-acento); outline-offset: 3px; }
+.subir svg { width: 17px; height: 17px; }
+
+/* El iman de los botones grandes: la variable la pone movimiento.js y aqui solo
+   se compone con el desplazamiento del hover. Va en la misma propiedad para no
+   pelearse con `.btn--claro:hover`. */
+.btn--grande {
+  transform: translate3d(var(--iman-x, 0), var(--iman-y, 0), 0);
+  transition: transform .18s cubic-bezier(.2, .8, .3, 1), box-shadow .2s ease, background .2s ease;
+}
+.btn--grande:hover {
+  transform: translate3d(var(--iman-x, 0), calc(var(--iman-y, 0px) - 2px), 0);
+}
+.btn--grande:active {
+  transform: translate3d(var(--iman-x, 0), var(--iman-y, 0), 0);
+  transition-duration: .07s;
+}
+
+/* El tilt de las fichas. `perspective` en el padre y el giro en la pieza: si la
+   perspectiva va en cada ficha, todas se inclinan como si fueran el centro de
+   la pantalla y el efecto se lee plano. */
+.fichas { perspective: 1100px; }
+.ficha {
+  position: relative;
+  transform: rotateX(var(--giro-x, 0deg)) rotateY(var(--giro-y, 0deg));
+  transform-style: preserve-3d;
+  transition: transform .34s cubic-bezier(.2, .8, .3, 1);
+}
+.ficha:hover { transition-duration: .08s; }
+/* Un reflejo que sigue al puntero, para que la inclinacion se lea como una
+   superficie y no como un giro suelto. */
+.ficha::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+  background: radial-gradient(220px circle at var(--raton-x, 50%) var(--raton-y, 50%),
+    rgba(140, 190, 255, .10), transparent 62%);
+}
+.ficha:hover::after { opacity: 1; }
 
 /* ============================== EL HAZ ==================================== */
 

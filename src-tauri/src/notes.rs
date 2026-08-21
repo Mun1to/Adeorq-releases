@@ -69,11 +69,54 @@ fn stamp_of(path: &std::path::Path) -> u64 {
         .unwrap_or(0)
 }
 
+/// Si lo escrito no dice nada, una vez quitada la plantilla.
+///
+/// Una nota nace con `- [ ]` puesto, así que «vacía» no es `text.is_empty()`:
+/// es lo que queda al retirar los andamios del formato. Medido en su carpeta el
+/// 2026-08-14: de ocho notas guardadas, CINCO eran uno de 0 bytes, uno de 2, un
+/// `- [ ]` pelado de 6, un `- [ ] r` de 7 y un `# yuujrehf` de 12. O sea que
+/// quien luego repasa las notas se come cinco archivos de basura por cada tres
+/// buenos, y todos los creó abrir el capturador y cerrarlo.
+///
+/// El `- [ ] r` de 7 bytes SÍ se guarda, y tiene que ser así: es una letra que
+/// alguien tecleó. Esto quita andamios, no juzga si lo escrito vale la pena.
+fn esta_vacia(texto: &str) -> bool {
+    texto.lines().all(|linea| {
+        let l = linea.trim();
+        let l = l
+            .strip_prefix("- [ ]")
+            .or_else(|| l.strip_prefix("- [x]"))
+            .or_else(|| l.strip_prefix("- [X]"))
+            .or_else(|| l.strip_prefix('#'))
+            .or_else(|| l.strip_prefix('-'))
+            .or_else(|| l.strip_prefix('*'))
+            .unwrap_or(l);
+        l.trim().is_empty()
+    })
+}
+
 /// Writes a note and answers with what it looks like on disk now. The stamp
 /// comes back so the canvas does not immediately re-read what it just wrote.
+///
+/// Una nota que no dice nada NO se guarda, y si ya existía se borra: ver
+/// `esta_vacia`. Se borra en vez de dejarla a cero bytes porque un archivo
+/// vacío en esa carpeta es exactamente igual de molesto que uno con la
+/// plantilla dentro, y el lienzo ya sabe leer una nota que no existe (devuelve
+/// texto vacío, sin error).
 #[tauri::command]
 pub fn note_write(id: String, text: String) -> Result<NoteFile, String> {
     let path = note_path(&id)?;
+    if esta_vacia(&text) {
+        // `remove_file` de algo que no está no es un fallo: es el caso normal
+        // de abrir el capturador y cerrarlo sin escribir.
+        let _ = std::fs::remove_file(&path);
+        return Ok(NoteFile {
+            id,
+            text,
+            stamp: 0,
+            path: path.to_string_lossy().into_owned(),
+        });
+    }
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }
@@ -187,12 +230,60 @@ mod tests {
 
     /// Una nota vacía no cuenta como escrita: es lo que decide si un día del
     /// calendario lleva su punto o no.
+    ///
+    /// Desde el 2026-08-21 además NO LLEGA AL DISCO. Antes se escribía el
+    /// archivo igual y solo se le negaba el punto, y por eso su carpeta acabó
+    /// con cinco archivos de basura de ocho.
     #[test]
     fn an_empty_note_does_not_count_as_written() {
         let id = "pruebavaciadeadeorq";
         let f = note_write(id.into(), String::new()).expect("se escribe");
         assert!(!note_list().contains(&id.to_owned()), "vacía no lleva punto");
-        std::fs::remove_file(&f.path).unwrap();
+        assert!(
+            !std::path::Path::new(&f.path).exists(),
+            "y tampoco deja el archivo puesto"
+        );
+    }
+
+    /// Lo que de verdad crea la basura: abrir el capturador, que nace con su
+    /// plantilla dentro, y cerrarlo sin escribir nada.
+    #[test]
+    fn the_template_on_its_own_is_not_a_note() {
+        for plantilla in ["- [ ]", "#", "- [ ]\n- [ ]\n", "  \n\n  ", "# \n- [x]  ", "-", "*"] {
+            assert!(
+                esta_vacia(plantilla),
+                "esto es andamio, no una nota: {plantilla:?}"
+            );
+        }
+    }
+
+    /// Y la otra mitad, que es la que se puede estropear al afinar la de
+    /// arriba: en cuanto hay UNA letra tecleada, eso es de él y se guarda.
+    #[test]
+    fn one_typed_letter_is_already_a_note() {
+        for escrita in ["- [ ] r", "# yuujrehf", "llamar al gestor", "- [x] publicar", "0"] {
+            assert!(
+                !esta_vacia(escrita),
+                "alguien tecleó esto y hay que guardarlo: {escrita:?}"
+            );
+        }
+    }
+
+    /// Vaciar una nota que ya existía la borra, en vez de dejarla a cero bytes.
+    /// Un archivo vacío en esa carpeta molesta exactamente igual que uno con la
+    /// plantilla dentro.
+    #[test]
+    fn emptying_an_existing_note_removes_it() {
+        let id = "pruebavaciadadeadeorq";
+        let escrita = note_write(id.into(), "# algo\n- [ ] una cosa".into()).unwrap();
+        assert!(std::path::Path::new(&escrita.path).exists(), "primero existe");
+
+        let vaciada = note_write(id.into(), "- [ ]".into()).unwrap();
+        assert!(
+            !std::path::Path::new(&vaciada.path).exists(),
+            "y al quedarse en la plantilla, se va"
+        );
+        assert!(!note_list().contains(&id.to_owned()));
     }
 
     #[test]

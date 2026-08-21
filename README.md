@@ -25,8 +25,8 @@ state, and lets you run several agents at once without losing track of any of th
 [![Latest release](https://img.shields.io/github/v/release/Mun1to/Adeorq-releases?label=&color=1C66DE&style=flat-square)](https://github.com/Mun1to/Adeorq-releases/releases/latest)
 &nbsp;
 [All releases](https://github.com/Mun1to/Adeorq-releases/releases) ·
-[Website](https://mun1to.github.io/Adeorq-releases/) ·
-[Guide](https://mun1to.github.io/Adeorq-releases/guia.html) ·
+[Website](https://adeorq.com) ·
+[Guide](https://adeorq.com/guia.html) ·
 [Español](README.es.md)
 
 <br>

@@ -510,5 +510,107 @@ const volver = (lejos, baseY) => (lejos <= 0 ? null : Math.max(0, baseY - lejos)
   t.dispose();
 }
 
+// ── EL RELOJ DE RESPALDO NO PUEDE VENCER A MEDIO REPINTADO ─────────────────
+//
+// Undecimo reporte (2026-08-22): «sigue abriendo un salto a la mitad de la
+// conversacion cuando haces un scroll para arriba y te responde el agente».
+//
+// La causa: el reloj de respaldo de TerminalPane forzaba el colocado tras 120
+// ms sin recibir nada, dando por hecho que ese silencio era el final del
+// repintado. No lo es. Un PTY entrega la conversacion a rafagas y con varios
+// paneles pasan de sobra 120 ms ENTRE DOS TROZOS del mismo repintado. Cuando
+// vencia ahi, colocaba contra un bufer a medio crecer y ADEMAS consumia la
+// distancia, asi que el `?2026l` de verdad llegaba despues y ya no tenia nada
+// que colocar.
+//
+// Medido en un navegador de verdad antes de escribir esto (repintado en diez
+// trozos separados 150 ms): subes 40 renglones y acabas en 0. Con la espera,
+// 40 y 40. Aqui se fija sin navegador, que es donde se detecta una regresion.
+//
+// Los dos bloques replican la maquina de TerminalPane entera, incluido el
+// reloj, y solo se diferencian en si el reloj respeta el bloque abierto.
+const conReloj = async (respetaElBloque) => {
+  const t = new Terminal({ cols: 100, rows: 24, scrollback: 8000, allowProposedApi: true });
+  let pendiente = null;
+  let abierto = false;
+  let timer;
+  const QUIETO = 20; // el 120 real, encogido para no eternizar la prueba
+
+  const colocar = () => {
+    const lejos = pendiente;
+    pendiente = null;
+    if (lejos === null || lejos <= 0) return;
+    t.scrollToLine(Math.max(0, Math.round(t.buffer.active.baseY - lejos)));
+  };
+  const vencer = () => {
+    timer = undefined;
+    // La linea del arreglo: si el CLI dice que esta a medias, el silencio no es
+    // el final del repintado.
+    if (respetaElBloque && abierto) {
+      timer = setTimeout(vencer, QUIETO);
+      return;
+    }
+    colocar();
+  };
+  const trasEscribir = () => {
+    if (pendiente === null) return;
+    if (timer !== undefined) clearTimeout(timer);
+    timer = setTimeout(vencer, QUIETO);
+  };
+
+  t.parser.registerCsiHandler({ prefix: "?", final: "h" }, (p) => {
+    if (p.includes(2026)) abierto = true;
+    return false;
+  });
+  t.parser.registerCsiHandler({ final: "J" }, (p) => {
+    if (p[0] === 3 && pendiente === null) {
+      const b = t.buffer.active;
+      pendiente = Math.max(0, b.baseY - b.viewportY);
+    }
+    return false;
+  });
+  t.parser.registerCsiHandler({ prefix: "?", final: "l" }, (p) => {
+    if (p.includes(2026)) {
+      abierto = false;
+      if (pendiente !== null) setTimeout(colocar, 0);
+    }
+    return false;
+  });
+
+  t.write(lineas(600, "conversacion"), trasEscribir);
+  await vaciar(t);
+  t.scrollLines(-40); // Munir sube cuarenta a leer
+  await vaciar(t);
+
+  // El repintado, a trozos separados MAS que el plazo del reloj: eso es un PTY
+  // real con el agente pensando entre rafaga y rafaga.
+  const rep = "\x1b[?2026h\x1b[H\x1b[2J\x1b[3J" + lineas(620, "conversacion") + "\x1b[?2026l";
+  const tam = Math.ceil(rep.length / 10);
+  for (let i = 0; i < rep.length; i += tam) {
+    t.write(rep.slice(i, i + tam), trasEscribir);
+    await vaciar(t);
+    await new Promise((r) => setTimeout(r, QUIETO + 15));
+  }
+  await new Promise((r) => setTimeout(r, QUIETO * 4));
+  const b = t.buffer.active;
+  const salida = b.baseY - b.viewportY;
+  if (timer !== undefined) clearTimeout(timer);
+  t.dispose();
+  return salida;
+};
+
+const viejo = await conReloj(false);
+const nuevo = await conReloj(true);
+ok(
+  "(control) con el reloj forzando a medio repintado, te pega al final",
+  viejo !== 40,
+  `pediste 40 y acabaste a ${viejo} del final`,
+);
+ok(
+  "esperando al cierre del bloque, acabas donde pediste",
+  nuevo === 40,
+  `pediste 40 y acabaste a ${nuevo} del final`,
+);
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
 process.exit(fallos === 0 ? 0 : 1);

@@ -1572,9 +1572,7 @@ export default function TerminalPane({
       // solo cuando el búfer lleva un momento quieto se coloca la vista.
       if (pendienteRef.current === null) return;
       if (colocarTimer !== undefined) window.clearTimeout(colocarTimer);
-      // A la fuerza: tras 120 ms sin recibir nada el suelo está tan firme como
-      // va a estar, aunque un `?2026h` se quedara abierto sin su cierre.
-      colocarTimer = window.setTimeout(() => colocarTrasBorrado(true), QUIETO_MS);
+      colocarTimer = window.setTimeout(vencerColocado, QUIETO_MS);
     };
 
     /**
@@ -1585,6 +1583,67 @@ export default function TerminalPane({
     const QUIETO_MS = 120;
     let colocarTimer: number | undefined;
 
+    /**
+     * Y cuánto se le espera COMO MUCHO a un bloque sincronizado que no cierra.
+     *
+     * Un cliente puede abrir el modo y morirse; pasado esto se coloca igual,
+     * porque quedarse esperando para siempre deja la vista donde el repintado
+     * la dejó y eso es el fallo de vuelta.
+     */
+    const RED_MS = 5000;
+
+    /** Cuándo empezó la espera de ahora, para que la red se mida sobre ella. */
+    let esperandoDesde = 0;
+
+    /**
+     * ── EL UNDÉCIMO REPORTE, Y POR QUÉ ESTA FUNCIÓN EXISTE (2026-08-22) ──────
+     *
+     * «Sigue abriendo un salto a la mitad de la conversación cuando haces un
+     * scroll para arriba y te responde el agente.» Y era este reloj.
+     *
+     * El reloj de respaldo forzaba el colocado tras 120 ms sin recibir nada,
+     * `aunqueAbierto` incluido, dando por hecho que ese silencio significaba
+     * «el repintado ha terminado». No lo significa: un PTY entrega la
+     * conversación a ráfagas, y con cuatro paneles y el agente pensando pasan
+     * de sobra 120 ms ENTRE DOS TROZOS del mismo repintado. Cuando eso pasaba,
+     * el colocado corría contra un búfer a medio crecer Y CONSUMÍA la
+     * distancia, así que el `?2026l` de verdad llegaba después y ya no tenía
+     * nada que colocar: te quedabas donde el repintado te hubiera dejado.
+     *
+     * Medido en un navegador de verdad con este mismo código (laboratorio de la
+     * sesión, repintado en diez trozos separados 150 ms): subes 40 renglones y
+     * acabas en 0, o sea pegado al final, que es justo lo contrario de lo que
+     * pediste. Con esta espera: pides 40 y acabas en 40.
+     *
+     * La regla, entonces: si el CLI ha dicho que está a medias (bloque
+     * sincronizado abierto), el silencio NO es el final del repintado, y el
+     * reloj no vence: se vuelve a armar. Quien coloca es el cierre del bloque.
+     * La red de `RED_MS` está para que un cliente que abra el bloque y se muera
+     * no deje la vista sin colocar para siempre.
+     *
+     * ── LO QUE ESTO NO ARREGLA, Y ESTÁ MEDIDO ───────────────────────────────
+     *
+     * Los CLI que borran el scrollback SIN anunciar el bloque (Codex es el de
+     * casa) tienen este mismo fallo y se quedan con él: en el laboratorio se
+     * piden 40 renglones y se acaba a 595 del final, igual antes que después de
+     * este cambio. No es una regresión, es un agujero que ya estaba. Se probó
+     * taparlo mirando si el búfer seguía creciendo entre vuelta y vuelta, y NO
+     * VALE: entre dos ráfagas del PTY el búfer está quieto y no hay forma de
+     * distinguir esa pausa del final del repintado sin que el cliente lo diga.
+     * Lo único que quedaría es alargar `QUIETO_MS` a ojo, y eso es un número
+     * más, no un arreglo. Si hay que atacarlo, es por otro camino.
+     */
+    const vencerColocado = () => {
+      colocarTimer = undefined;
+      if (esperandoDesde === 0) esperandoDesde = performance.now();
+      if (repintadoAbierto && performance.now() - esperandoDesde < RED_MS) {
+        colocarTimer = window.setTimeout(vencerColocado, QUIETO_MS);
+        return;
+      }
+      esperandoDesde = 0;
+      colocarTrasBorrado(true);
+    };
+
     const colocarTrasBorrado = (aunqueAbierto = false) => {
       // Con un ciclo nuevo YA abierto este colocado llega tarde: el búfer está
       // a medio crecer y colocar contra él es el salto otra vez. La distancia
@@ -1592,6 +1651,10 @@ export default function TerminalPane({
       // reloj de respaldo entra con `aunqueAbierto`: tras 120 ms de silencio
       // no va a llegar ningún cierre.
       if (repintadoAbierto && !aunqueAbierto) return;
+      // La distancia se consume aquí, así que aquí muere también la espera del
+      // reloj: sin esto, el ciclo siguiente mediría su red de 5 s desde el
+      // arranque del ciclo anterior y vencería en la primera vuelta.
+      esperandoDesde = 0;
       const lejos = pendienteRef.current;
       pendienteRef.current = null;
       const t = termRef.current;

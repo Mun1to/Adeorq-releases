@@ -1145,6 +1145,11 @@ const EN: Record<string, string> = {
 
   // Qué se abre de un clic desde cada proyecto
   "Atajos en tus proyectos": "Shortcuts on your projects",
+
+  // Leer en paz: la terminal se queda quieta mientras miras hacia arriba.
+  "En pausa · {n} líneas nuevas": "Paused · {n} new lines",
+  "En pausa mientras lees": "Paused while you read",
+  "Volver al final y ver lo que ha llegado": "Jump to the end and see what came in",
   "Los botones que salen al pasar el ratón por un proyecto en la barra lateral. Elige los que uses de verdad: los demás siguen estando en el clic derecho, que los lista todos.":
     "The buttons that appear when you hover a project in the sidebar. Pick the ones you actually use: the rest stay in the right-click menu, which lists them all.",
 

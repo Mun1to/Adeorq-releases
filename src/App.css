@@ -5886,6 +5886,49 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   box-shadow: none;
 }
 
+/* «En pausa mientras lees», la píldora de leer en paz.
+ *
+ * Cuando subes a leer, la terminal deja de escribir y lo que llega espera en
+ * cola: así el texto no se te mueve debajo, que era el salto del scroll de
+ * doce reportes. Pero una terminal parada y muda se lee como una terminal
+ * colgada, así que esto tiene DOS trabajos: decir que está en pausa a
+ * propósito, y ser el botón que te devuelve al día.
+ *
+ * Abajo y centrada, encima del texto, donde ya está mirando quien acaba de
+ * scrollear. Con el acento del tema, porque no es un error: es un modo. */
+.pane-pausa {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  padding: 6px 14px;
+  border-radius: 999px;
+  /* En una sola línea SIEMPRE: partida en dos, una píldora deja de leerse como
+     una etiqueta y parece un cuadro de diálogo a medio pintar. */
+  white-space: nowrap;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  /* Fondo aplanado y NO translúcido: sobre una foto, un alfa aquí apaga el
+     ClearType y el texto pequeño sale sucio. */
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel-solid));
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 6px 18px rgba(0, 0, 0, 0.42);
+  animation: update-sube 0.16s ease;
+}
+
+.pane-pausa:hover {
+  background: color-mix(in srgb, var(--accent) 34%, var(--panel-solid));
+}
+
 .pane-note {
   padding: 7px 12px;
   background: color-mix(in srgb, var(--row) 75%, rgba(13, 21, 36, 0.94));

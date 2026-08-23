@@ -81,21 +81,41 @@ function shortLabel(label: string): string {
   return label.replace(/^current\s+/i, "");
 }
 
-/** Lo que se puede poner en la fila de un proyecto: los CLIs que Adeorq sabe
-    abrir, más la terminal pelada, que ya no está de fábrica pero puede volver
-    si a alguien le sirve. Se listan aquí y no se sacan de PROVIDERS enteros
-    porque no todos los de ese catálogo se abren en una terminal. */
-const ATAJOS_POSIBLES: Array<{ id: string; label: string }> = [
-  { id: "claude", label: "Claude Code" },
-  { id: "agy", label: "Antigravity" },
-  { id: "codex", label: "Codex" },
-  { id: "cursor", label: "Cursor" },
-  { id: "gemini", label: "Gemini" },
-  { id: "qwen", label: "Qwen" },
-  { id: "copilot", label: "Copilot" },
-  { id: "crush", label: "Crush" },
-  { id: "shell", label: "PowerShell" },
+/** Lo que se puede poner en la fila de un proyecto: TODOS los CLIs del catálogo
+    que Adeorq sabe abrir, más la terminal pelada, que ya no está de fábrica pero
+    puede volver si a alguien le sirve.
+
+    Antes era una lista de nueve escrita a mano, con el motivo de que «no todos
+    los de PROVIDERS se abren en una terminal». Ya no es verdad y puede que nunca
+    lo fuera del todo: los veintidós tienen su `exe`. Lo que pasaba es lo de
+    siempre con una lista copiada, que se queda atrás sola: cada CLI que entraba
+    en el catálogo NO llegaba aquí, y a la captura de Munir del 2026-08-23 le
+    faltaban catorce, opencode incluido. Ahora se saca del catálogo y ese hueco
+    no puede volver.
+
+    El ORDEN sí se conserva a mano, y a propósito: los que ya estaban salían en
+    un orden que Munir conoce y los nuevos entran DETRÁS, sin moverle de sitio lo
+    que ya usaba. */
+const ATAJOS_PRIMEROS = [
+  "claude",
+  "agy",
+  "codex",
+  "cursor",
+  "gemini",
+  "qwen",
+  "copilot",
+  "crush",
 ];
+
+const ATAJOS_POSIBLES: Array<{ id: string; label: string }> = [
+  ...ATAJOS_PRIMEROS.map((id) => PROVIDERS.find((p) => p.id === id)).filter(
+    (p): p is Provider => Boolean(p),
+  ),
+  ...PROVIDERS.filter((p) => !ATAJOS_PRIMEROS.includes(p.id)),
+]
+  .map((p) => ({ id: p.id, label: p.label }))
+  // PowerShell no sale de PROVIDERS: no es un proveedor, es la terminal pelada.
+  .concat([{ id: "shell", label: "PowerShell" }]);
 
 /** El color de cada chip. PowerShell no es un proveedor de PROVIDERS, así que
     sin esto heredaría el naranja de Claude, que es a donde cae providerOf(). */

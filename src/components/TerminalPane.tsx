@@ -483,6 +483,32 @@ export default function TerminalPane({
    *  En los dos casos se ofrece el Reanimar delante de la cara, no escondido
    *  en el menú. */
   const [colgado, setColgado] = useState<"vigia" | "mudo" | null>(null);
+
+  /* ── LEER EN PAZ: mientras miras hacia arriba, la terminal no se mueve ─────
+   *
+   * Doce reportes del salto del scroll, seis causas arregladas, y seguía. Todos
+   * los intentos anteriores hacían lo mismo: dejar que el CLI borrara y
+   * repintara la conversación entera, y luego DEVOLVERTE a tu sitio. Esto es lo
+   * contrario y por eso no puede fallar igual: mientras estés leyendo hacia
+   * arriba, lo que llega del proceso **se queda en cola y no se escribe**. El
+   * búfer no cambia, así que no hay sitio del que sacarte.
+   *
+   * No depende de entender por qué saltaba, que es justo lo que no se
+   * conseguía: si nada toca el búfer, no puede saltar, venga el destrozo de
+   * donde venga. Y vale para CUALQUIER CLI, también para los que borran el
+   * scrollback sin anunciarlo (Codex), que con el arreglo del reloj se
+   * quedaron fuera.
+   *
+   * El precio, dicho en pantalla y no escondido: mientras lees no ves entrar lo
+   * nuevo. Por eso hay una píldora que dice cuánto se está acumulando y te baja
+   * de un clic. */
+  /** Renglones esperando en cola, o `null` si la terminal va al día. */
+  const [pausa, setPausa] = useState<number | null>(null);
+  const congeladoRef = useRef(false);
+  const colaRef = useRef<string[]>([]);
+  const colaLargoRef = useRef(0);
+  /** Y el que suelta la cola, puesto por el efecto que monta la terminal. */
+  const soltarRef = useRef<(() => void) | null>(null);
   const ultimoDatoRef = useRef(Date.now());
   const [brain, setBrain] = useState<{ model?: string; effort?: string }>({});
   
@@ -1277,6 +1303,22 @@ export default function TerminalPane({
      * la rueda que llegaba justo tras el borrado medía cero y se perdía (subes
      * y la terminal te devuelve al final). Ver `gestoDeRueda`. */
     const alRodar = (ev: WheelEvent) => {
+      /* Leer en paz: subir congela la terminal, llegar al final la suelta.
+       *
+       * Se decide con el GESTO y no con el búfer, por lo mismo de siempre: el
+       * búfer miente mientras el CLI repinta. Bajar no suelta por sí solo, lo
+       * que suelta es LLEGAR al final, que es lo único que significa «ya no
+       * estoy leyendo atrás». Y ahí medir sí vale, porque con la terminal
+       * congelada nada mueve el búfer por debajo. */
+      if (ev.deltaY < 0) {
+        if (!congeladoRef.current) {
+          congeladoRef.current = true;
+          avisarCola();
+        }
+      } else if (congeladoRef.current) {
+        const b = term.buffer.active;
+        if (b.viewportY >= b.baseY - 1) soltarCola();
+      }
       if (pendienteRef.current === null) return;
       const t = termRef.current;
       if (!t) return;
@@ -1474,6 +1516,9 @@ export default function TerminalPane({
       .catch(() => {});
 
     const dataSub = term.onData((data) => {
+      // Si escribes, ya no estás leyendo hacia atrás: la terminal vuelve al día
+      // sola. Sin esto, teclear con la cola llena parece que no responde.
+      soltarCola();
       // Queda apuntado que AQUÍ se está escribiendo: es la única señal fiable
       // de eso, y de ella depende que otro pane que termine no te quite la
       // pantalla a mitad de frase. Ver lib/tecleando.
@@ -1706,11 +1751,76 @@ export default function TerminalPane({
     });
     unsubs.push(() => bellSub.dispose());
 
+    /* ── La cola de «leer en paz» ─────────────────────────────────────────
+     *
+     * Todo lo que va a la pantalla pasa por aquí. Congelado, se guarda; si no,
+     * se escribe como siempre. Ver el bloque de `pausa` arriba. */
+    const TOPE_COLA = 8_000_000;
+    const aPantalla = (texto: string) => {
+      if (congeladoRef.current) {
+        colaRef.current.push(texto);
+        colaLargoRef.current += texto.length;
+        // Un tope, porque un agente puede estar horas escribiendo mientras tú
+        // lees: pasado eso se suelta lo más viejo. Perder el principio de una
+        // cola de ocho megas es mejor que comerse la memoria de la máquina.
+        while (colaLargoRef.current > TOPE_COLA && colaRef.current.length > 1) {
+          colaLargoRef.current -= colaRef.current.shift()!.length;
+        }
+        renglonesEnCola += texto.split("\n").length - 1;
+        avisarCola();
+        return;
+      }
+      term.write(texto, scheduleHints);
+    };
+
+    /** Cuántos renglones lleva la cola, y el aviso a React sin inundarlo. */
+    let renglonesEnCola = 0;
+    let avisoTimer: number | undefined;
+    const avisarCola = () => {
+      if (avisoTimer !== undefined) return;
+      avisoTimer = window.setTimeout(() => {
+        avisoTimer = undefined;
+        setPausa(congeladoRef.current ? renglonesEnCola : null);
+      }, 200);
+    };
+
+    const soltarCola = () => {
+      if (!congeladoRef.current) return;
+      congeladoRef.current = false;
+      const texto = colaRef.current.join("");
+      colaRef.current = [];
+      colaLargoRef.current = 0;
+      renglonesEnCola = 0;
+      if (avisoTimer !== undefined) window.clearTimeout(avisoTimer);
+      avisoTimer = undefined;
+      setPausa(null);
+      // Al día otra vez, y la distancia guardada del repintado ya no significa
+      // nada: se apuntó para un búfer que se acaba de rehacer entero. Dejarla
+      // puesta es pedirle al colocado que te lleve a un renglón inventado.
+      pendienteRef.current = null;
+      // El `scrollToBottom` va DENTRO del callback: `write` es asíncrono, y
+      // fuera corría antes de que xterm hubiera procesado nada, así que bajaba
+      // al final del búfer VIEJO y se quedaba a medio camino.
+      if (texto) {
+        term.write(texto, () => {
+          scheduleHints();
+          term.scrollToBottom();
+        });
+      } else {
+        term.scrollToBottom();
+      }
+    };
+    soltarRef.current = soltarCola;
+    unsubs.push(() => {
+      soltarRef.current = null;
+      if (avisoTimer !== undefined) window.clearTimeout(avisoTimer);
+    });
+
     // The shield sits between the PTY and the screen: in streaming mode the
     // bytes are masked before they are painted, so a key that scrolls past is
     // never visible even to someone recording the stream.
     const shield = new RedactStream(
-      (text) => term.write(text, scheduleHints),
+      (text) => aPantalla(text),
       (hits, severe) => onSecretRef.current(hits, severe),
     );
 
@@ -1723,7 +1833,7 @@ export default function TerminalPane({
       } else {
         // Leaving streaming mode: whatever was held back goes out first.
         shield.flush();
-        term.write(p.data, scheduleHints);
+        aPantalla(p.data);
       }
       const text = tailRef.current + p.data;
       const spawned = countNew(SPAWN_RE, text, tailRef.current.length);
@@ -1751,7 +1861,9 @@ export default function TerminalPane({
     void onPtyExit((p) => {
       if (p.id !== id) return;
       setExited(true);
-      term.write("\r\n\x1b[90m[proceso terminado]\x1b[0m\r\n");
+      // Por la cola: si estás leyendo hacia atrás, este aviso no puede colarse
+      // por delante de las últimas líneas que escribió el proceso.
+      aPantalla("\r\n\x1b[90m[proceso terminado]\x1b[0m\r\n");
     }).then((un) => {
       if (disposed) un();
       else unsubs.push(un);
@@ -2424,6 +2536,20 @@ export default function TerminalPane({
         />
       )}
       <div className="pane-term" ref={holder} style={{ display: showDiff ? "none" : (blurred ? "none" : "block") }} />
+      {/* Leer en paz: mientras miras hacia arriba la terminal se queda quieta y
+          lo que llega espera. Esto lo dice y te devuelve al día de un clic. Sin
+          este aviso, una terminal parada se lee como una terminal colgada. */}
+      {pausa !== null && !showDiff && !blurred && (
+        <button
+          className="pane-pausa"
+          onClick={() => soltarRef.current?.()}
+          title={t("Volver al final y ver lo que ha llegado")}
+        >
+          {pausa > 0
+            ? t("En pausa · {n} líneas nuevas").replace("{n}", String(pausa))
+            : t("En pausa mientras lees")}
+        </button>
+      )}
       {showDiff && (
         <div className="pane-diff-panel">
           <div className="diff-panel-header">

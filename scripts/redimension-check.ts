@@ -53,7 +53,6 @@ import {
   CADENCIA_ARRASTRE_MS,
   CELL_RATIO,
   EVENTO_REFIT,
-  MAX_COLS,
   TARGET_COLS,
   fuenteAuto,
   anclando,
@@ -305,60 +304,55 @@ ok(
   fuenteAuto(Math.ceil(TARGET_COLS * CELL_RATIO * 17), 17, true, 9) === 17,
 );
 
-// El extremo NUEVO: panel ancho, la letra sube en vez de dar mas rejilla.
+/* EL EXTREMO ANCHO: la letra NO sube, y esto es lo que hay que fijar.
+   Hubo cuatro dias (del 20 al 24 de agosto de 2026) en que la letra crecia al
+   maximizar, para dejar las columnas en un techo de 110. Munir lo vio y lo dijo:
+   "se ve super grande el texto". Medido en su pantalla, 15 px se convertian en
+   32. Se retiro porque atacaba el sintoma equivocado, y estos casos existen para
+   que no vuelva sin querer: el porque completo, con las mediciones del ConPTY y
+   del reflow de xterm, esta en la cabecera de `lib/redimension.ts`. */
 {
   const letra = fuenteAuto(1780, 17, true, 9);
-  const cols = columnas(1780, letra);
   ok(
-    "maximizado, la letra sube por encima del techo de Ajustes",
-    letra > 17,
-    `1780 px da ${letra} px en vez de quedarse en 17`,
+    "maximizado, la letra se queda en la de Ajustes",
+    letra === 17,
+    `1780 px da ${letra} px, y el de Ajustes es 17`,
   );
   ok(
-    "y las columnas se quedan en el techo, no en 188",
-    cols <= MAX_COLS,
-    `${cols} columnas, antes 188`,
-  );
-  ok(
-    "sin quedarse corto: no se desperdicia media pantalla de rejilla",
-    cols >= MAX_COLS - 3,
-    `${cols} de ${MAX_COLS}`,
-  );
-  ok(
-    "y el texto ya escrito pasa de ocupar un quinto a ocupar un tercio largo",
-    42 / cols > 0.3,
-    `42 columnas viejas sobre ${cols}`,
+    "y sobran columnas, que es lo normal en una terminal ancha",
+    columnas(1780, letra) > 150,
+    `${columnas(1780, letra)} columnas, como cualquier terminal maximizada`,
   );
 }
 
 ok(
-  "un panel normal no se entera de nada de esto",
+  "un panel normal tampoco se entera",
   fuenteAuto(890, 17, true, 9) === 17,
-  "890 px caben dentro del techo de columnas, asi que manda Ajustes",
+  "manda Ajustes",
 );
 ok(
-  "y justo en el limite, tampoco",
-  fuenteAuto(Math.floor(MAX_COLS * CELL_RATIO * 17), 17, true, 9) === 17,
-  "exactamente MAX_COLS columnas: no hay nada que corregir",
+  "ni una pantalla enorme",
+  fuenteAuto(3840, 12, true, 9) === 12,
+  "4K con 12 px de Ajustes sigue dando 12 px",
 );
 
 // La propiedad que tiene que cumplirse SIEMPRE, no solo en los casos elegidos.
 {
-  let peor = 0;
-  let dondePeor = 0;
+  let mayor = 0;
+  let dondeMayor = 0;
   let anchos = 0;
   for (let w = 200; w <= 4000; w += 10) {
     anchos++;
-    const c = columnas(w, fuenteAuto(w, 17, true, 9));
-    if (c > peor) {
-      peor = c;
-      dondePeor = w;
+    const l = fuenteAuto(w, 17, true, 9);
+    if (l > mayor) {
+      mayor = l;
+      dondeMayor = w;
     }
   }
   ok(
-    `en ${anchos} anchos distintos, ninguno se pasa del techo`,
-    peor <= MAX_COLS,
-    `el peor fue ${peor} columnas a ${dondePeor} px`,
+    `en ${anchos} anchos distintos, la letra nunca pasa del techo de Ajustes`,
+    mayor <= 17,
+    `la mayor fue ${mayor} px a ${dondeMayor} px de ancho`,
   );
 }
 

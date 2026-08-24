@@ -4463,6 +4463,24 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border);
   font-size: 12px;
+  /* Esta barra es el ASA con la que se mueve el panel: en la Cabina por el
+     `onPointerDown` de la cabecera y en el lienzo porque React Flow la tiene
+     puesta como `dragHandle`. Sin esto, arrastrar por ella hace las dos cosas a
+     la vez y el nombre y las píldoras se van quedando seleccionados en azul
+     detrás del panel que se mueve. Nadie viene aquí a copiar texto: lo que se
+     lee está en el globo de ayuda, y lo que se escribe tiene su excepción
+     debajo. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* La excepción, que es la única cosa de la cabecera hecha para escribir dentro:
+   el cuadro de renombrar. Sin esto no se podría ni seleccionar una palabra para
+   corregirla. */
+.pane-head input,
+.pane-rename {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* ZONA 1 — quién es esta terminal. Es la que crece: si sobra sitio, se lo
@@ -5904,7 +5922,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   transform: translateX(-50%);
   z-index: 8;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   /* En una sola línea SIEMPRE: partida en dos, una píldora deja de leerse como
      una etiqueta y parece un cuadro de diálogo a medio pintar. */
   white-space: nowrap;

@@ -192,18 +192,41 @@ export function fuenteAnclada(
    que se sufre luego: lo que el agente escriba a partir de entonces sale en
    lineas de 188 caracteres, que se leen fatal.
 
-   Asi que la letra automatica gana un techo de COLUMNAS. Si en el hueco caben
-   mas de `MAX_COLS`, la letra sube hasta que quepan justo esas: el texto viejo
-   ocupa mucho mas ancho y el nuevo nace legible. Solo con la letra automatica
-   puesta, que es el modo donde Munir ya dijo "decide tu"; con un tamano fijo
-   elegido a mano, manda el suyo y no se toca. */
+   La primera respuesta fue subir la letra: un techo de columnas, y por encima de
+   el la letra crecia hasta dejarlas en 110. RETIRADO el 2026-08-24, porque
+   atacaba el sintoma equivocado y Munir lo dijo en cuanto lo vio: "cuando abres
+   una terminal en pantalla completa se ve super grande el texto". Medido en su
+   pantalla de 1920 con su tamano de 15 px, la letra subia a 32 px, mas del doble
+   de la que eligio.
+
+   POR QUE ESTABA MAL, con lo que se midio lanzando un ConPTY de verdad con el
+   mismo `portable-pty` que usa la app:
+
+   1. El cliente REPINTA solo, y se estira a lo que le den. Al cambiarle el ancho
+      sin teclear nada, Claude Code escribio entre 7 y 10 KB, borro la pantalla,
+      llevo el cursor a casa y volvio a dibujar su interfaz. Y no tiene techo
+      propio: con la terminal a 60, 93, 188, 200 y 300 columnas, dibujo su caja a
+      60, 93, 188, 200 y 300. O sea que la parte VIVA nunca deja hueco, haga lo
+      que haga la letra.
+   2. Lo que quedaba estrecho era el HISTORIAL, y eso no lo arregla ninguna
+      terminal del mundo. Medido en xterm 6.1 de verdad: al ensanchar de 42 a 107
+      columnas, un parrafo que envolvio la TERMINAL se recompone solo (`reflow`,
+      las lineas llevan su marca `isWrapped`), y el mismo parrafo envuelto por el
+      CLI con saltos duros se queda clavado al ancho viejo. Subir la letra no
+      rehacia ese texto: solo lo hacia mas grande, y de paso rompia lo unico que
+      ya funcionaba.
+   3. Y por eso una terminal normal "reescala bien", que es justo lo que pidio
+      Munir: NO toca la letra jamas. Avisa al proceso del ancho nuevo, el proceso
+      repinta lo vivo a pantalla completa, y el historial viejo se queda como
+      estaba sin que nadie lo llame fallo, porque lo que se mira es lo vivo.
+
+   Asi que la letra automatica solo BAJA, que es para lo que se hizo: que nueve
+   paneles estrechos sigan siendo legibles. Por arriba manda el numero de
+   Ajustes, y de ahi no se pasa. */
 
 /** Las columnas objetivo cuando el panel es estrecho: el suelo de legibilidad
     de las cajas que dibujan los CLI. */
 export const TARGET_COLS = 76;
-/** Y el techo, cuando sobra sitio. Ciento diez columnas es una linea larga pero
-    todavia comoda; a partir de ahi la letra sube en vez de dar mas rejilla. */
-export const MAX_COLS = 110;
 /**
  * Ancho de celda de Cascadia Mono como fraccion del tamano de letra.
  *
@@ -235,20 +258,12 @@ export function fuenteAuto(
   minimo: number,
 ): number {
   if (!auto || ancho <= 0) return techo;
-  // Lo de siempre: bajar hasta que quepan las columnas objetivo.
+  // Bajar hasta que quepan las columnas objetivo, y nunca subir por encima del
+  // numero de Ajustes: el porque, arriba. Sobrar sitio no es un problema que
+  // tenga que resolver la letra, lo resuelve el cliente repintandose mas ancho.
   const cabe = Math.floor(ancho / (TARGET_COLS * CELL_RATIO));
   if (cabe < techo) return Math.max(minimo, cabe);
-  /* Y lo nuevo: si con el techo de Ajustes caben mas de MAX_COLS, subir la
-     letra hasta dejarlas en MAX_COLS.
-
-     Hacia ARRIBA, y esto lo cazo la prueba y no el ojo: redondeando hacia abajo
-     la letra sale un pelin mas pequena de la cuenta exacta, y con la letra mas
-     pequena caben MAS columnas, que es justo lo que se venia a evitar. Salian
-     114 y 115 donde el techo son 110. Una decima de letra de mas no se ve; cinco
-     columnas de mas son cinco columnas de mas. */
-  const conElTecho = Math.floor(ancho / (techo * CELL_RATIO));
-  if (conElTecho <= MAX_COLS) return techo;
-  return Math.max(techo, Math.ceil(ancho / (MAX_COLS * CELL_RATIO)));
+  return techo;
 }
 
 export function terminarRedimension(): void {

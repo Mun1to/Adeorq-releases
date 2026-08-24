@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.136",
+  "version": "0.9.137",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "svg": "node scripts/svg-check.mjs",
     "xterm": "node scripts/xterm-check.mjs",
     "botones": "node scripts/botones-check.mjs",
+    "textarea": "node scripts/textarea-check.mjs",
     "publicar": "node scripts/publicar-codigo.mjs",
     "tauri": "tauri",
     "markdown": "node scripts/markdown-check.mjs"

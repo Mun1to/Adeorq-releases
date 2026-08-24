@@ -189,7 +189,9 @@ export const PROVIDERS: Provider[] = [
     envVar: "CODEX_HOME",
     homeDir: ".codex",
     creds: ["auth.json"],
-    usage: false,
+    // Y gratis: lo apunta el solo en sus rollouts, asi que no hay que lanzarle
+    // ningun proceso ni esperar. Lo lee `src-tauri/src/uso_clientes.rs`.
+    usage: true,
     hue: "#9aa4b2",
     install: "pnpm add -g @openai/codex",
     apiEnv: "OPENAI_API_KEY",

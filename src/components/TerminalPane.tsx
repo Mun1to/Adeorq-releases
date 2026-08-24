@@ -34,6 +34,7 @@ import { useT } from "../lib/i18n";
 import { useMenu } from "./Overlays";
 import BuscarEnTerminal from "./BuscarEnTerminal";
 import { RedactStream, type Hit } from "../lib/redact";
+import { cola, localesEn } from "../lib/puertos";
 import {
   CheckIcon,
   CloseIcon,
@@ -228,6 +229,29 @@ export const FONDO_EVENTO = "adeorq:fondo";
  * tiene dentro va a entender esa ruta o no.
  */
 export const SOLTADO_EVENTO = "adeorq:soltado";
+
+/**
+ * Una terminal ha anunciado un servidor local.
+ *
+ * Lo dispara el panel porque es el único que ve pasar los bytes del PTY, y lo
+ * recoge `App.tsx`, que es quien sabe abrir la vista de la web. Viaja por un
+ * evento y no por una prop porque el panel no tiene por qué conocer al
+ * navegador: aquí solo se dice «alguien ha levantado algo en este puerto».
+ *
+ * Encontrar la dirección NO basta para abrir nada, y quien escucha lo sabe:
+ * antes pregunta si ese puerto contesta de verdad (`puertoEscucha`). Un agente
+ * escribe «mira en http://localhost:3000» sin que haya nada ahí, y abrir una
+ * pestaña cada vez sería un castigo.
+ */
+export const WEB_EVENTO = "adeorq:web";
+
+/** Lo que viaja en ese evento. */
+export interface WebAvisada {
+  url: string;
+  puerto: number;
+  /** Qué panel lo dijo, para poder contarlo si hace falta. */
+  paneId: number;
+}
 
 // The CLI's TUI dialogs are cryptic for someone who doesn't live in a
 // terminal. Detect them in the stream and surface real buttons instead:
@@ -701,6 +725,16 @@ export default function TerminalPane({
   const ctxRef = useRef<ContextInfo | null>(null);
   ctxRef.current = ctx;
   const tailRef = useRef("");
+  /* La cola para cazar direcciones locales, aparte de `tailRef`.
+     `tailRef` guarda 24 caracteres, que le sobran para lo suyo (contar
+     subagentes) y no le llegan ni de lejos a una línea de Vite con sus colores
+     dentro: la dirección se partiría entre dos entregas del PTY y no la vería
+     nadie. Ver `lib/puertos.ts`. */
+  const colaWebRef = useRef("");
+  /* Los puertos ya avisados de ESTA terminal. Un servidor de desarrollo repite
+     su dirección cada vez que recarga, y sin esto la vista se reabriría sola
+     cada pocos segundos. */
+  const puertosVistosRef = useRef<Set<number>>(new Set());
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   /** El buscador (Ctrl+F). Se carga siempre y no bajo demanda: el addon solo
@@ -1839,6 +1873,20 @@ export default function TerminalPane({
       const spawned = countNew(SPAWN_RE, text, tailRef.current.length);
       const ended = countNew(DONE_RE, text, tailRef.current.length);
       tailRef.current = text.slice(-TAIL);
+
+      // ¿Ha anunciado alguien un servidor local? Se mira sobre la cola larga,
+      // no sobre `p.data` a secas, porque la dirección puede venir partida.
+      const conCola = colaWebRef.current + p.data;
+      colaWebRef.current = cola(conCola);
+      for (const local of localesEn(conCola)) {
+        if (puertosVistosRef.current.has(local.puerto)) continue;
+        puertosVistosRef.current.add(local.puerto);
+        window.dispatchEvent(
+          new CustomEvent<WebAvisada>(WEB_EVENTO, {
+            detail: { url: local.url, puerto: local.puerto, paneId: id },
+          }),
+        );
+      }
       if (spawned || ended) {
         setAgents((a) => ({
           live: Math.max(0, a.live + spawned - ended),

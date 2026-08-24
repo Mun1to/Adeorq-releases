@@ -15,6 +15,15 @@ export interface Colocable {
   name: string;
   /** Tiene algo abierto AHORA (una sesión viva o una terminal recién abierta). */
   hasLive: boolean;
+  /**
+   * Hay un agente ESCRIBIENDO en él ahora mismo.
+   *
+   * No es lo mismo que `hasLive`, y la diferencia es justo lo que hace que esto
+   * sirva: tener seis terminales abiertas es lo normal, así que si subieran
+   * todas no subiría ninguna. Trabajando hay una o dos, y son las que quieres
+   * mirar.
+   */
+  trabajando?: boolean;
   /** Horas desde su sesión más reciente. `Infinity` si no tiene ninguna. */
   minHours: number;
   /** Es un repo de git, que en igualdad de condiciones pesa más. */
@@ -27,17 +36,32 @@ export interface Colocable {
  *
  * Las reglas, en este orden:
  *
- * 1. Lo que TÚ has colocado va primero, en tu orden, y no se mueve nunca más.
+ * 0. Lo que tiene un agente ESCRIBIENDO ahora sube del todo, y baja solo cuando
+ *    ese agente para. Es prestado y reversible: no toca tu orden, se pone por
+ *    encima mientras dura (Munir, 2026-08-24: «cuando estés trabajando en un
+ *    proyecto que se vaya arriba, y cuando dejen de trabajar vuelven a su
+ *    sitio»).
+ * 1. Lo que TÚ has colocado va después, en tu orden, y no se mueve nunca más.
  * 2. Lo que no has colocado va detrás: primero lo que tiene algo abierto,
  *    luego lo más reciente, luego los repos de git, y a igualdad, por nombre.
  *
  * Que lo nuevo vaya DETRÁS y no al final del todo por orden alfabético es a
  * propósito: un proyecto recién creado tiene que verse, no esconderse debajo de
  * treinta que ya estaban.
+ *
+ * ⚠ La regla 0 y la 1 se contradicen a propósito, y conviene saberlo antes de
+ * tocarlas. El 2026-08-06 Munir pidió lo contrario («los proyectos saltan de
+ * sitio», «quiero fijar yo el orden»), y por eso existe la 1. Lo que pidió el
+ * 24 de agosto NO la deroga: entonces la barra se recolocaba sola por actividad
+ * RECIENTE (`minHours`), que cambia con cada mensaje y no vuelve nunca atrás;
+ * esto sube solo mientras alguien teclea y devuelve al proyecto a su sitio en
+ * cuanto para. Lo que se prometió el 6 de agosto era que tu orden no se
+ * perdiera, y no se pierde.
  */
 export function ordenarProyectos<T extends Colocable>(lista: T[], manual: string[]): T[] {
   const mio = new Map(manual.map((n, i) => [n, i]));
   return [...lista].sort((a, b) => {
+    if (!!a.trabajando !== !!b.trabajando) return a.trabajando ? -1 : 1;
     const ia = mio.get(a.name);
     const ib = mio.get(b.name);
     if (ia !== undefined && ib !== undefined) return ia - ib;

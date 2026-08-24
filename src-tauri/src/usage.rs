@@ -312,6 +312,13 @@ pub struct LimitLine {
     pub percent: u8,
     /// When it goes back to zero, as the CLI words it.
     pub resets: String,
+    /// Lo mismo, pero en milisegundos, cuando el cliente lo da como numero.
+    ///
+    /// Claude solo lo escribe en su tarjeta ("Aug 26, 9am") y ahi se queda a 0;
+    /// Codex lo guarda como epoch, que es un dato y no un texto que haya que
+    /// adivinar. Con el numero, el panel dice "manana a las 9:00" sin parsear
+    /// nada, y ese parseo es justo por donde se colaba media frase en ingles.
+    pub resets_at: i64,
 }
 
 #[derive(Serialize)]
@@ -320,6 +327,13 @@ pub struct Limits {
     pub lines: Vec<LimitLine>,
     /// The "Last 24h · N requests · N sessions" summary, if present.
     pub note: String,
+    /// El plan de esa cuenta, cuando el cliente lo dice al dar la cuota.
+    ///
+    /// Vacio en Claude a proposito: el suyo ya lo lee `plan_info` de sus
+    /// propios archivos, sin lanzar nada. Codex, en cambio, lo mete dentro del
+    /// mismo bloque de cuota, y tirarlo para volver a buscarlo en otro sitio
+    /// seria trabajo de mas para saber lo mismo.
+    pub plan: String,
 }
 
 fn claude_exe() -> PathBuf {
@@ -468,12 +482,19 @@ pub async fn usage_limits(config_dir: Option<String>) -> Result<Limits, String> 
                 label: label.trim().to_owned(),
                 percent,
                 resets,
+                // Claude no da la fecha como numero: solo la escribe en su
+                // tarjeta. Se lee en el front, que es donde ya vivia.
+                resets_at: 0,
             });
         }
         if lines.is_empty() {
             return Err("el CLI no devolvió límites".into());
         }
-        Ok(Limits { lines, note })
+        Ok(Limits {
+            lines,
+            note,
+            plan: String::new(),
+        })
     })
     .await
     .map_err(|e| e.to_string())?

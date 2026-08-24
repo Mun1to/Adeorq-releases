@@ -40,23 +40,39 @@ export default function SkillsPanel({ canPaste, onUse, onUsage, cuentas, pista }
   // la derecha que había.
   return (
     <>
-      <p className="skills-hint">
-        {pista ??
-          t("Arrastra uno sobre una terminal para pegarlo, o clic para mandarlo al pane activo.")}
-      </p>
+      {/* Una línea, no tres. Lo que decía («arrástrala, o clic para mandarla al
+          panel activo») ahora lo dice el globo de cada skill, que es donde se
+          lee cuando hace falta; aquí solo robaba dos renglones a la lista. */}
+      <p className="skills-hint">{pista ?? t("Clic la manda · arrastrar la pega")}</p>
       <input
         className="finder"
         placeholder={t("Buscar skill")}
         value={q}
         onChange={(e) => setQ(e.currentTarget.value)}
       />
+      {/* Solo el NOMBRE, y lo demás al pasar el ratón (Munir, 2026-08-24).
+          Cada skill ocupaba tres renglones porque llevaba dos líneas de
+          descripción debajo, así que en una columna de 270 px cabían seis de
+          las que tiene: la lista era un scroll de párrafos donde buscar un
+          nombre. Ahora cabe entera de un vistazo, que es para lo que existe una
+          lista, y la descripción sigue estando a un gesto. */}
       <div className="skills-list">
         {shown.map((s) => (
           <div
             key={s.invocation}
             className="skill"
             draggable
-            data-tip={`${s.invocation}\n${s.description}`}
+            /* Tres piezas y en este orden: el nombre (el globo pinta la primera
+               línea en negrita), para qué sirve, y qué pasa si la pulsas. Lo
+               último es lo que la pista de arriba ya no alcanza a decir cuando
+               cada fila es un renglón pelado. */
+            data-tip={[
+              s.invocation,
+              s.description || s.name,
+              canPaste ? t("Clic para mandarla · arrástrala sobre una terminal") : "",
+            ]
+              .filter(Boolean)
+              .join("\n")}
             onDragStart={(e) => {
               e.dataTransfer.setData("text/plain", `${s.invocation} `);
               e.dataTransfer.effectAllowed = "copy";
@@ -67,7 +83,6 @@ export default function SkillsPanel({ canPaste, onUse, onUsage, cuentas, pista }
             data-disabled={!canPaste}
           >
             <span className="skill-name">{s.invocation}</span>
-            <span className="skill-desc">{s.description || s.name}</span>
           </div>
         ))}
         {shown.length === 0 && (

@@ -128,7 +128,7 @@ export async function mirarMundo(cuentas: Account[]): Promise<CuentaViva[]> {
       // Por el portero, que puede tener la respuesta ya leída por el aviso de
       // cuota o por el panel de uso. Antes cada uno lanzaba su propio proceso
       // `claude` de cinco segundos para enterarse de lo mismo.
-      const l = await limitesDe(cuenta.dir).catch(() => null);
+      const l = await limitesDe(cuenta).catch(() => null);
       if (l) {
         gastado = loQueTePara(l).percent;
         anotarCuota(cuenta.id, gastado);

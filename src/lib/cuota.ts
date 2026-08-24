@@ -19,7 +19,8 @@
 // Lo leído sobrevive al arranque en `localStorage`, así que el panel pinta
 // números de verdad desde el primer instante en vez de tres huecos.
 
-import { usageLimits, type Limits } from "./pty";
+import { usageLimits, usageOf, type Limits } from "./pty";
+import { sabe } from "./providers";
 
 export interface Lectura {
   /** Cuándo se leyó, en milisegundos. */
@@ -34,15 +35,38 @@ export const VIDA_MS = 9 * 60 * 1000;
 
 const CLAVE = "adeorq-cuota";
 
-/** La cuenta de siempre no tiene carpeta propia, así que su clave es "". */
+/**
+ * La clave de una cuenta: su cliente y su carpeta.
+ *
+ * Era solo la carpeta, y con un solo cliente eso bastaba. Con dos ya no: la
+ * cuenta de siempre de Claude y la de siempre de Codex tienen las DOS la
+ * carpeta vacía, así que compartían casilla y la cuota de una se pintaba bajo
+ * el nombre de la otra (2026-08-24, al encender Codex).
+ */
+export function claveDe(cuenta: Cuenta): string {
+  return `${cuenta.provider}|${cuenta.dir}`;
+}
+
+/** Lo que hace falta saber de una cuenta para preguntarle su cuota. */
+export interface Cuenta {
+  provider: string;
+  /** Su carpeta de configuración; vacía es la de siempre de ese cliente. */
+  dir: string;
+}
+
 const memoria = new Map<string, Lectura>();
 const enVuelo = new Map<string, Promise<Limits>>();
 
 function cargar(): void {
   try {
     const crudo = JSON.parse(localStorage.getItem(CLAVE) ?? "{}") as Record<string, Lectura>;
-    for (const [dir, l] of Object.entries(crudo)) {
-      if (l && typeof l.at === "number" && l.limits?.lines) memoria.set(dir, l);
+    for (const [clave, l] of Object.entries(crudo)) {
+      // Las de antes del 2026-08-24 eran solo la carpeta, sin cliente delante.
+      // No se pueden atribuir a nadie, así que se tiran: preguntar otra vez
+      // cuesta unos segundos y darle a una cuenta la cuota de otra no tiene
+      // arreglo una vez pintado.
+      if (!clave.includes("|")) continue;
+      if (l && typeof l.at === "number" && l.limits?.lines) memoria.set(clave, l);
     }
   } catch {
     // Un archivo de estado ilegible no puede impedir arrancar: se empieza de cero.
@@ -59,35 +83,49 @@ function guardar(): void {
 }
 
 /** Lo último que se sabe de esa cuenta, sin preguntar nada ni esperar. */
-export function enCache(dir: string): Lectura | null {
-  return memoria.get(dir) ?? null;
+export function enCache(cuenta: Cuenta): Lectura | null {
+  return memoria.get(claveDe(cuenta)) ?? null;
 }
 
 /**
- * La cuota de una cuenta. `dir` es su carpeta de configuración, vacío para la
- * de siempre.
+ * La cuota de una cuenta.
  *
  * - `vida`: cuánto se acepta una lectura guardada. Con `0` se pregunta seguro.
  * - Dos llamadas a la vez para la misma cuenta comparten un solo proceso.
+ *
+ * Cada cliente la publica a su manera y eso se decide AQUÍ, no en quien
+ * pregunta: Claude hay que preguntársela (un proceso de cinco segundos que no
+ * gasta cuota) y Codex ya la tiene escrita en su rastro (gratis del todo). Un
+ * cliente que no la publique falla con esas palabras, que es información y no
+ * un error a esconder.
  */
-export function limitesDe(dir: string, vida = VIDA_MS): Promise<Limits> {
-  const guardado = memoria.get(dir);
+export function limitesDe(cuenta: Cuenta, vida = VIDA_MS): Promise<Limits> {
+  const clave = claveDe(cuenta);
+  const guardado = memoria.get(clave);
   if (guardado && Date.now() - guardado.at < vida) {
     return Promise.resolve(guardado.limits);
   }
-  const yendo = enVuelo.get(dir);
+  const yendo = enVuelo.get(clave);
   if (yendo) return yendo;
 
-  const p = usageLimits(dir || undefined)
+  if (!sabe(cuenta.provider, "usage")) {
+    return Promise.reject(new Error(`${cuenta.provider} no publica su cuota`));
+  }
+  const pedir =
+    cuenta.provider === "claude"
+      ? usageLimits(cuenta.dir || undefined)
+      : usageOf(cuenta.provider, cuenta.dir || undefined);
+
+  const p = pedir
     .then((limits) => {
-      memoria.set(dir, { at: Date.now(), limits });
+      memoria.set(clave, { at: Date.now(), limits });
       guardar();
       return limits;
     })
     .finally(() => {
-      enVuelo.delete(dir);
+      enVuelo.delete(clave);
     });
-  enVuelo.set(dir, p);
+  enVuelo.set(clave, p);
   return p;
 }
 

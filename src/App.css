@@ -5177,19 +5177,25 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 1px;
   padding-right: 2px;
 }
 
+/* Una skill es UN renglon, no una tarjeta con parrafo (Munir, 2026-08-24).
+   Llevaba dos lineas de descripcion debajo del nombre, asi que en esta columna
+   cabian seis: la lista era un scroll de parrafos donde buscar un nombre. La
+   descripcion no se ha perdido, esta en el globo del raton. */
 .skill {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   cursor: grab;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
   user-select: none;
 }
 
@@ -5208,19 +5214,14 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
 
 .skill-name {
   color: var(--accent);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   font-family: "Cascadia Mono", Consolas, monospace;
-}
-
-.skill-desc {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  /* Un nombre largo se recorta antes que partirse en dos: con la fila de un
+     solo renglon, partirse la descoloca y rompe la rejilla de la lista. */
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── EL ÁRBOL DE ARCHIVOS ───────────────────────────────────────────────────
@@ -11530,6 +11531,69 @@ button.stat-card[data-live="false"] {
   border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
+/* QUE CLIENTE estas mirando, con su marca delante (Munir, 2026-08-24: «que
+   salga el de todos tus proveedores y cuentas, como en el modo chat»).
+   Va arriba de las cuentas porque manda sobre ellas: primero de quien es el
+   deposito y luego cual de tus cuentas de ese cliente. Los dos niveles se
+   distinguen a simple vista sin leerlos, que es de lo que va tener dos filas:
+   arriba con logo, abajo sin el. */
+.usage-clientes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Solo el dibujo, sin el nombre al lado (Munir, 2026-08-24). Con el nombre,
+   dos clientes ya no cabian en una fila, y son dos cosas que se reconocen por
+   su logo mucho antes que por su rotulo. Quien es cada uno lo dice el globo. */
+.usage-cliente {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-btn);
+  background: none;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.usage-cliente .prov-mark {
+  width: 17px;
+  height: 17px;
+  /* La marca en gris mientras no es la elegida: en color, dos logos compiten
+     entre si y la fila se lee como una barra de herramientas en vez de como
+     una eleccion. */
+  opacity: 0.55;
+  transition: opacity 0.12s ease;
+}
+
+.usage-cliente:hover {
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, transparent);
+}
+
+.usage-cliente:hover .prov-mark,
+.usage-cliente[aria-selected="true"] .prov-mark {
+  opacity: 1;
+}
+
+.usage-cliente[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 60%, transparent);
+  background: color-mix(in srgb, var(--c, var(--accent)) 18%, transparent);
+}
+
+/* El modelo de una linea de limite («semana · Fable»). Aparte del rotulo
+   porque no se traduce: Fable se llama Fable en todos los idiomas. */
+.limit-modelo {
+  margin-left: 5px;
+  font-style: normal;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 70%, var(--muted));
+}
+
 /* Qué cuenta estás mirando. Cada una es una suscripción distinta con su propio
    límite, así que esto no es un filtro: es de quién son los números de abajo, y
    por eso la elegida va rellena y no solo subrayada. Se envuelve en varias
@@ -11540,10 +11604,12 @@ button.stat-card[data-live="false"] {
   gap: 4px;
 }
 
+/* Tres letras, no el nombre entero: al lado de la fila de logos de arriba, un
+   nombre largo volvia a partir la fila en dos renglones. El nombre completo lo
+   dice el globo. */
 .usage-cuenta {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 34px;
+  text-align: center;
   white-space: nowrap;
   padding: 3px 8px;
   border: 1px solid var(--line);

@@ -27,6 +27,7 @@ mod sessions;
 mod suelta;
 mod skills;
 mod usage;
+mod uso_clientes;
 mod workspace;
 mod mcp;
 mod git_shadow;
@@ -223,9 +224,69 @@ fn registrar_panicos() {
 // el desarrollo para ponerle a la suya el nombre que la distingue.
 use tauri::Manager;
 
+/// El AppImage de Linux trae su propio WebKitGTK dentro, y en Fedora eso se
+/// cae.
+///
+/// Reportado por Izan (`Mun1to/Adeorq-releases`, issue 2, 2026-08-23) sobre
+/// Fedora 44: la ventana sale TRANSPARENTE y sin nada, y al rato
+/// `WebKitWebProcess` aborta. El rastro lo explica entero: el proceso que muere
+/// vive en `/tmp/.mount_Adeorq.../usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/`,
+/// que es la ruta multiarch de DEBIAN (Fedora usa `/usr/lib64`), mientras que
+/// TODOS los modulos que carga a su lado son de Fedora: mesa 26.1.6, libglvnd,
+/// libX11, harfbuzz 14. Un WebKit compilado contra Ubuntu 22.04 hablando con
+/// los drivers graficos de Fedora 44.
+///
+/// Donde se rompe esa mezcla es en el renderizador DMA-BUF de WebKitGTK, que
+/// es el que negocia buffers con el driver: si el ABI no coincide, el proceso
+/// del render aborta y la ventana se queda transparente, que es literalmente
+/// el sintoma descrito. Apagarlo hace que WebKit pinte por el camino de
+/// siempre.
+///
+/// Tres decisiones, y las tres importan:
+///
+///  1. SOLO dentro del AppImage (`APPIMAGE` la pone su propio arrancador). Un
+///     `.deb` o un `.rpm` usan el WebKit del sistema, que si coincide consigo
+///     mismo, y ahi apagar la aceleracion seria pagar un precio por un
+///     problema que no tienen.
+///  2. SOLO si el usuario no ha dicho nada. Quien pone la variable a mano
+///     manda, en el sentido que sea.
+///  3. El arreglo de verdad es no empaquetar WebKit: por eso desde esta misma
+///     version el CI publica tambien un `.rpm` (`.github/workflows/linux.yml`),
+///     que instala Adeorq contra el WebKit de Fedora. Esto es la red para quien
+///     use el AppImage.
+///
+/// ⚠ NO PROBADO en Fedora: aqui no hay ninguna. Lo que se sabe es el rastro y
+/// que la mezcla de ABI es real; lo que falta es que alguien con Fedora abra el
+/// AppImage y diga si la ventana pinta.
+#[cfg(target_os = "linux")]
+fn apanar_webkit_del_appimage() {
+    if std::env::var_os("APPIMAGE").is_none() {
+        return;
+    }
+    // UNA variable, no dos. La pareja de siempre en los foros es esta y
+    // `WEBKIT_DISABLE_COMPOSITING_MODE`, y la segunda NO entra: apaga el
+    // compositor acelerado, y con el se lleva por delante el WebGL. Adeorq
+    // dibuja SUS TERMINALES con WebGL (xterm.js, `TerminalPane.tsx`), asi que
+    // eso seria arreglarle la ventana a alguien dejandole la aplicacion lenta
+    // en lo unico que hace todo el rato. La de DMA-BUF solo cambia como se
+    // transportan los buffers hasta el compositor; la aceleracion sigue ahi.
+    for var in ["WEBKIT_DISABLE_DMABUF_RENDERER"] {
+        if std::env::var_os(var).is_none() {
+            // Sin `unsafe`: este crate es edicion 2021, donde `set_var` todavia
+            // es una funcion segura (en la 2024 pasa a ser insegura y habra que
+            // envolverla). Lo que la 2024 exige de verdad se cumple igual: se
+            // llama ANTES de que Tauri levante nada, asi que aqui no hay mas
+            // hilos que este.
+            std::env::set_var(var, "1");
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     registrar_panicos();
+    #[cfg(target_os = "linux")]
+    apanar_webkit_del_appimage();
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
 
@@ -311,6 +372,7 @@ pub fn run() {
             navegador::mover_navegador,
             navegador::ver_navegador,
             navegador::soltar_navegador,
+            navegador::puerto_escucha,
             archivos::listar_carpeta,
             archivos::leer_archivo,
             archivos::guardar_archivo,
@@ -335,6 +397,7 @@ pub fn run() {
             usage::plan_info,
             usage::usage_limits,
             usage::stats_historia,
+            uso_clientes::usage_of,
             accounts::account_dir,
             accounts::account_ready,
             accounts::detect_clis,

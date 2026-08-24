@@ -156,6 +156,9 @@ interface Group {
   sessions: SessionInfo[];
   archivedSessions: SessionInfo[];
   hasLive: boolean;
+  /** Hay un agente ESCRIBIENDO en él ahora mismo. Lo usa `ordenarProyectos`
+      para subirlo mientras dura, y para bajarlo en cuanto para. */
+  trabajando: boolean;
   waiting: number;
   minHours: number;
   /** Las sueltas: sesiones que no viven en ningún proyecto de C:\proyectos.
@@ -216,6 +219,7 @@ const GRUPO_FIJADAS: Group = {
   sessions: [],
   archivedSessions: [],
   hasLive: false,
+  trabajando: false,
   waiting: 0,
   minHours: Infinity,
   suelto: true,
@@ -679,6 +683,14 @@ export default function Sidebar({
         sessions: sinFijadas(active, ui.pinned),
         archivedSessions: all.filter((s) => archived.has(s.id)),
         hasLive: active.some((s) => s.live) || vivas.length > 0,
+        /* Viva Y a medias, las dos cosas. `live` sola es «tiene una terminal
+           abierta», que con seis abiertas es todo el rato y no distingue nada;
+           `a_medias` sola cuenta transcripts de anteayer que se quedaron sin
+           cerrar. Juntas son lo único que significa «hay alguien escribiendo
+           ahí ahora». Un estado vacío no entra: es una terminal recién abierta
+           que todavía no ha dicho nada, y subirla sería subir cualquier cosa
+           que abras. */
+        trabajando: active.some((s) => s.live && s.state === "a_medias"),
         waiting: active.filter((s) => s.state === "pregunta" || s.state === "ofrece")
           .length,
         minHours: active.length ? Math.min(...active.map((s) => s.hours)) : Infinity,

@@ -618,6 +618,7 @@ const EN: Record<string, string> = {
   // Skills
   Skills: "Skills",
   "Buscar skill": "Search skill",
+  "Clic la manda · arrastrar la pega": "Click sends it · drag pastes it",
   "Arrastra uno sobre una terminal para pegarlo, o clic para mandarlo al pane activo.":
     "Drag one onto a terminal to paste it, or click to send it to the active pane.",
   "Clic en una skill para meterla en la caja de escribir.":
@@ -904,6 +905,30 @@ const EN: Record<string, string> = {
   "No pude leerlos": "I could not read them",
   "Ver la tarjeta entera en la terminal": "See the full card in the terminal",
   "se renueva": "renews",
+  // Cuándo se renueva, dicho como lo diría una persona. Las claves salen de
+  // `lib/uso.ts`; la tarjeta del CLI viene siempre en inglés y sus fechas se
+  // reescriben enteras, que es lo que dejaba «se renueva Aug 26, 9am».
+  "en {n} min": "in {n} min",
+  "en {n} h": "in {n} h",
+  "hoy a las {hora}": "today at {hora}",
+  "mañana a las {hora}": "tomorrow at {hora}",
+  "el {fecha}": "on {fecha}",
+  "ahora mismo": "just now",
+  "hace {n} min": "{n} min ago",
+  "hace {n} h": "{n} h ago",
+  "hace {n} d": "{n} d ago",
+  semana: "week",
+  mes: "month",
+  "{n} sesión": "{n} session",
+  // «{n} sesiones» ya estaba puesta más abajo, en la lista de sesiones.
+  "Ver el gasto de {cli}": "See {cli} usage",
+  // La cuenta de siempre. Es un DATO del `Account` y no una cadena suelta, así
+  // que se traduce justo al pintarla (`nombreDeCuenta`, en `lib/pty.ts`).
+  Principal: "Main",
+  "Preguntando a {cli}…": "Asking {cli}…",
+  "Sin datos todavía": "No data yet",
+  "Clic para mandarla · arrástrala sobre una terminal":
+    "Click to send it · drag it onto a terminal",
   "Actualizar límites": "Refresh limits",
   "Los límites llegan de Claude: pulsa para pedirlos de nuevo.":
     "The limits come from Claude: press to ask again.",
@@ -941,6 +966,8 @@ const EN: Record<string, string> = {
 
   // Restore
   "Recuperar las terminales al abrir": "Bring the terminals back on start",
+  "Abrir la web cuando una terminal levanta un servidor":
+    "Open the web view when a terminal starts a server",
   "Saltar a la sesión que termina, a pantalla completa":
     "Jump to the session that finishes, full screen",
 

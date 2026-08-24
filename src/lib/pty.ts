@@ -336,17 +336,36 @@ export interface UsageLimit {
   label: string;
   percent: number;
   resets: string;
+  /** Cuando se renueva, en milisegundos. 0 cuando el cliente solo lo escribe
+      como texto dentro de su tarjeta, que es el caso de Claude. */
+  resetsAt: number;
 }
 
 export interface Limits {
   lines: UsageLimit[];
   note: string;
+  /** El plan de esa cuenta, cuando el cliente lo dice al dar la cuota. Vacío
+      en Claude, que tiene el suyo en `planInfo`. */
+  plan: string;
 }
 
 /** The plan's limits, asked in the background. Costs nothing: /usage is a
  *  local slash command, so no model turn ever happens. */
 export function usageLimits(configDir?: string): Promise<Limits> {
   return invoke("usage_limits", { configDir: configDir ?? null });
+}
+
+/**
+ * La cuota de un cliente que NO es Claude.
+ *
+ * Mismo tipo de vuelta a proposito: el panel pinta una barra de porcentaje de
+ * una sola manera, y en cuanto hubiera dos caminos empezarian a diferenciarse
+ * solos. De donde sale el numero es cosa de Rust (`uso_clientes.rs`), que hoy
+ * sabe leer Codex de su propio rastro y dice con estas palabras quien no
+ * publica el suyo.
+ */
+export function usageOf(provider: string, configDir?: string): Promise<Limits> {
+  return invoke("usage_of", { provider, configDir: configDir ?? null });
 }
 
 /**
@@ -375,6 +394,22 @@ export interface Account {
  */
 export function iniciales(label: string): string {
   return label.trim().slice(0, 3);
+}
+
+/**
+ * El nombre de una cuenta tal y como se lee en pantalla.
+ *
+ * Solo hay uno que traducir, y es el de la cuenta de siempre: nace con la
+ * etiqueta «Principal», que es un DATO (viaja en el `Account`, sirve de clave
+ * de color y de iniciales) y no una cadena de interfaz. Traducirlo en el sitio
+ * donde nace lo rompería todo; traducirlo aquí, justo antes de pintarlo, lo
+ * deja en «Main» con la ventana en inglés y en «Principal» en español (Munir,
+ * 2026-08-24: «en inglés que ponga main, no principal»).
+ *
+ * Los demás nombres son suyos, se los inventó él, y no se tocan.
+ */
+export function nombreDeCuenta(label: string, t: (s: string) => string): string {
+  return label === "Principal" ? t("Principal") : label;
 }
 
 /** The account each CLI already had before Adeorq existed. */

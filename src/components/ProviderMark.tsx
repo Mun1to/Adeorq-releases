@@ -223,6 +223,55 @@ export function tieneMarca(id: string): boolean {
   return id in MARCAS;
 }
 
+/* ── Los del 2026-08-23, y por qué solo son DOS ────────────────────────────
+ *
+ * Munir pidió los doce logos que faltaban. En julio ya se intentó y los rechazó
+ * con razón, porque estaban dibujados de memoria. Así que esta vez el método
+ * fue otro: bajar el SVG REAL de cada uno, mirarlo ampliado en pantalla,
+ * redibujarlo, y **volver a mirarlo al lado del original a 24 y a 15 píxeles**,
+ * que es el tamaño en el que de verdad vive. Salieron dos.
+ *
+ * Los que se quedan fuera, y el motivo de cada uno, para no repetir el trabajo:
+ *
+ * - `droid` (Factory): su flor de ocho pétalos. DOS intentos, macizo y de
+ *   trazo, y ninguno se le parece: macizo sale un copo de nieve y en trazo un
+ *   mandala, y a 15px las dos cosas son una mancha. A la segunda se para.
+ * - `goose` (Block): es un cocodrilo ilustrado con un cuaderno. No hay silueta
+ *   que sobreviva a 15px.
+ * - `aider`: no tiene símbolo, su logo es la palabra escrita. Nada que dibujar.
+ * - `pi`: su marca es un patrón geométrico que no se leyó con claridad.
+ * - `amp`, `kimi`, `codebuff`: su web no sirve un SVG, devuelve la página.
+ * - `crush`, `codewhale`, `cody`: no se encontró el archivo en su repositorio.
+ *
+ * Todos esos salen con sus iniciales, que es lo honesto: dos letras no
+ * pretenden ser el logo de nadie. */
+Object.assign(MARCAS, {
+  // Jules: su pulpo. Cúpula con dos ojos y cuatro tentáculos, que es lo que
+  // queda de él cuando se le quita el relleno y se reduce a 24 píxeles.
+  jules: () => (
+    <g strokeWidth="1.8" {...T}>
+      <path d="M5.4 15.2V9.6a6.6 6.6 0 0 1 13.2 0v5.6" />
+      <path d="M6.4 15.2v4.6a1.7 1.7 0 0 1-3.4 0v-.7" />
+      <path d="M17.6 15.2v4.6a1.7 1.7 0 0 0 3.4 0v-.7" />
+      <path d="M10.1 15.2v4.4M13.9 15.2v4.4" />
+      <path d="M9.3 9.8h.01M14.7 9.8h.01" strokeWidth="2.4" />
+    </g>
+  ),
+
+  // Auggie (Augment): su cara de corchetes. Dos llaves enfrentadas que casi
+  // cierran un cuadrado, dos ojos dentro y las dos antenas asomando arriba. El
+  // primer intento las tenía demasiado separadas y bajas, y a 15px no se leía
+  // nada: aquí van juntas y ocupando la caja entera.
+  auggie: () => (
+    <g strokeWidth="1.8" {...T}>
+      <path d="M10.6 6.4H8.1A2.1 2.1 0 0 0 6 8.5v6.6a2.1 2.1 0 0 0 2.1 2.1h2.5" />
+      <path d="M13.4 6.4h2.5A2.1 2.1 0 0 1 18 8.5v6.6a2.1 2.1 0 0 1-2.1 2.1h-2.5" />
+      <path d="M10.4 3.1v3M13.6 3.1v3" />
+      <path d="M10.2 11.5h.01M13.8 11.5h.01" strokeWidth="2.3" />
+    </g>
+  ),
+});
+
 /**
  * La marca del proveedor. Devuelve null si no tenemos dibujo suyo, para que
  * quien la use caiga en las iniciales en vez de pintar un hueco.

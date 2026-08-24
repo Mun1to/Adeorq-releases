@@ -61,6 +61,10 @@ jobs:
       # el motor de la ventana (el equivalente de WebView2 en Windows) y
       # `patchelf` es lo que empaqueta el AppImage. Adeorq no necesita nada más:
       # ni audio, ni Vulkan, ni modelos.
+      #
+      # Y no hace falta `rpm` ni `rpmbuild` para el .rpm: el empaquetador de
+      # Tauri 2 escribe el paquete él mismo desde Rust, así que se genera igual
+      # en un Ubuntu pelado.
       - name: Instalar las dependencias del sistema
         run: |
           sudo apt-get update
@@ -95,9 +99,16 @@ jobs:
           tagName: ${{ github.event.release.tag_name }}
           releaseId: ${{ github.event.release.id }}
           includeUpdaterJson: true
-          # deb y AppImage, no rpm: los dos cubren casi cualquier distribución,
-          # y el AppImage es además el formato que usa el actualizador.
-          args: --bundles deb,appimage
+          # deb, rpm y AppImage. El rpm entró el 2026-08-24 y no por gusto:
+          # el AppImage de Tauri EMPAQUETA su propio WebKitGTK (compilado aquí,
+          # contra Ubuntu 22.04), y en Fedora 44 ese WebKit se cae al hablar con
+          # los drivers gráficos de la distribución. Un rpm instala Adeorq
+          # contra el WebKit de Fedora, que es el único que sabe entenderse con
+          # el resto de Fedora (issue 2 de Adeorq-releases, reportado por Izan).
+          #
+          # El AppImage se queda: es el formato que usa el actualizador y el que
+          # corre en cualquier distribución sin instalar nada.
+          args: --bundles deb,rpm,appimage
 
       # Compilar sin publicar, que es lo que se hace desde `ci/linux`.
       #
@@ -109,14 +120,14 @@ jobs:
       - name: Construir sin publicar
         if: github.event_name != 'release'
         run: >
-          pnpm tauri build --bundles deb,appimage
+          pnpm tauri build --bundles deb,rpm,appimage
           --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
       # Una copia con nombre FIJO, sin la versión dentro, para que el botón del
       # README pueda apuntar a `releases/latest/download/Adeorq-x86_64.AppImage`
       # y no caduque en cada publicación. Es lo mismo que ya se hace con
       # `Adeorq-setup.exe` en Windows.
-      - name: Subir la copia de nombre fijo
+      - name: Subir las copias de nombre fijo
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -124,6 +135,12 @@ jobs:
           appimage=$(find src-tauri/target/release/bundle/appimage -maxdepth 1 -name "*.AppImage" | head -n1)
           cp "$appimage" Adeorq-x86_64.AppImage
           gh release upload "${{ github.event.release.tag_name }}" Adeorq-x86_64.AppImage \
+            --clobber --repo ${{ github.repository }}
+          # Y lo mismo con el rpm, que es lo que hay que poder darle a alguien
+          # que está en Fedora sin hacerle buscar el número de versión.
+          rpm=$(find src-tauri/target/release/bundle/rpm -maxdepth 1 -name "*.rpm" | head -n1)
+          cp "$rpm" Adeorq-x86_64.rpm
+          gh release upload "${{ github.event.release.tag_name }}" Adeorq-x86_64.rpm \
             --clobber --repo ${{ github.repository }}
 
       - name: Guardar los paquetes
@@ -133,5 +150,6 @@ jobs:
           name: adeorq-linux
           path: |
             src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
             src-tauri/target/release/bundle/appimage/*.AppImage
           if-no-files-found: error

@@ -13,6 +13,7 @@ import PanelView from "./components/PanelView";
 import Foreman, { type ForemanExec } from "./components/Foreman";
 import AvisoCuota from "./components/AvisoCuota";
 import Vigia from "./components/Vigia";
+import WebAuto from "./components/WebAuto";
 import Copiloto from "./components/Copiloto";
 import SettingsView from "./components/SettingsView";
 import CommandsView from "./components/CommandsView";
@@ -271,6 +272,8 @@ const OPENALL_KEY = "adeorq-open-all";
 const LAYOUT_KEY = "adeorq-layout";
 const RESTORE_KEY = "adeorq-restore";
 const JUMP_KEY = "adeorq-saltar-al-que-termina";
+/** Abrir la web sola cuando una terminal anuncia un servidor local. */
+const WEB_AUTO_KEY = "adeorq-web-automatica";
 const OLLAMA_KEY = "adeorq-modelo-local";
 /** Con qué modo nace cada Claude nuevo, hasta que se cambie a mano con Mayús+Tab. */
 const PERMISSION_MODE_KEY = "adeorq-permission-mode";
@@ -834,6 +837,15 @@ function App() {
   const [saltarAlQueTermina, setSaltarAlQueTermina] = useState(
     () => localStorage.getItem(JUMP_KEY) === "1",
   );
+  /* Encendido de fábrica: es lo que Munir pidió (2026-08-24, «que se abra
+     automáticamente»), y lo caro de este ajuste es tenerlo apagado sin saberlo.
+     El interruptor existe porque abrir una pestaña sola es de las pocas cosas
+     que hace la app sin que la toques, y eso siempre tiene que poder apagarse. */
+  const [webAutomatica, setWebAutomatica] = useState(
+    () => localStorage.getItem(WEB_AUTO_KEY) !== "0",
+  );
+  /** La dirección que una terminal acaba de anunciar, con su sello. */
+  const [webPedida, setWebPedida] = useState<{ url: string; sello: number } | null>(null);
   // Solo los que él haya cambiado: los de fábrica no se guardan, así que si
   // algún día cambia uno por defecto, quien no lo tocó se lleva el nuevo.
   const [atajos, setAtajos] = useState<Atajos>(() => leerAtajos());
@@ -1029,7 +1041,24 @@ function App() {
    *  así que no se pierde nada aunque algún día las dos listas dejen de
    *  coincidir. */
   const cuentasConCuota = useMemo(
-    () => [MAIN_ACCOUNT, ...accounts.filter((a) => sabe(a.provider, "usage"))],
+    () => [MAIN_ACCOUNT, ...accounts.filter((a) => a.provider === "claude")],
+    [accounts],
+  );
+
+  /** Y las del PANEL DE USO, que son más: todas las de cualquier cliente que
+   *  publique su gasto (Munir, 2026-08-24: «que salga el de todos tus
+   *  proveedores y cuentas»).
+   *
+   *  Son dos listas y no una a propósito, aunque nacieron siendo la misma. La
+   *  de arriba alimenta el aviso de plan y el relevo, y ahí meter a Codex sería
+   *  ofrecerte relevar una terminal de Claude con una cuenta de otro cliente:
+   *  el aviso se lee igual de bien y te manda a un sitio donde tu sesión no
+   *  existe. El panel de uso solo MIRA, así que ahí caben todos. */
+  const cuentasDeUso = useMemo(
+    () => [
+      ...PROVIDERS.filter((p) => p.usage).map((p) => mainAccount(p.id)),
+      ...accounts.filter((a) => sabe(a.provider, "usage")),
+    ],
     [accounts],
   );
 
@@ -2264,21 +2293,36 @@ function App() {
    * página son dos iframes pidiendo lo mismo al mismo servidor de desarrollo,
    * y ninguna de las dos dice nada que no diga la otra.
    */
-  const abrirWeb = useCallback(() => {
-    setView("cabina");
+  const abrirWeb = useCallback((url?: string, traer = true) => {
+    // `traer` es la diferencia entre pulsar el botón y que lo pida una
+    // terminal. Pulsándolo, quieres ir a la web y se te lleva. Sola, NO: si
+    // estás en el lienzo o en el chat, cambiarte de vista porque un servidor
+    // acaba de arrancar es sacarte de donde estabas trabajando por algo que no
+    // has pedido. Se abre igual y te espera en la Cabina.
+    if (traer) setView("cabina");
     const ya = panesRef.current.find((p) => p.web != null);
     if (ya) {
-      setFocusedId(ya.id);
+      if (traer) setFocusedId(ya.id);
+      // Con el panel ya abierto, la dirección no puede entrar por sus `tabs`:
+      // el panel se hace dueño de sus pestañas al montarse. Entra por `pedida`,
+      // que lleva sello para que la misma dirección pueda pedirse dos veces.
+      if (url) setWebPedida({ url, sello: Date.now() });
       return;
     }
     const id = nextId.current++;
     setPanes((prev) => [
       ...prev,
-      { id, cwd: raizArchivosRef.current, name: "localhost", web: "http://localhost:1420" },
+      {
+        id,
+        cwd: raizArchivosRef.current,
+        name: "localhost",
+        web: url ?? "http://localhost:1420",
+      },
     ]);
     setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
-    setFocusedId(id);
+    if (traer) setFocusedId(id);
   }, []);
+
 
   /** La foto de las pestañas del panel web, para que sobrevivan al reinicio.
       Estable a propósito: el panel la llama desde un efecto, y una función
@@ -3359,6 +3403,13 @@ function App() {
           hay un sitio mejor donde estar haciendo eso. Un CLI no puede saberlo,
           porque no sabe que existen los otros veinte; un panel sí. Tampoco
           pinta ni actúa: propone en la misma bandeja. */}
+      {/* La web se abre sola cuando una terminal levanta un servidor. Sin
+          pintura, como el aviso de cuota y el vigía: escucha y avisa.
+          `traer: false` a propósito, ver `abrirWeb`. */}
+      <WebAuto
+        activo={webAutomatica}
+        onAbrir={useCallback((url: string) => abrirWeb(url, false), [abrirWeb])}
+      />
       <Copiloto panes={panes} cuentas={accounts} />
       <header className="topbar">
         {/* Sin la marca al lado: a 20px el logo pierde la proa y se lee como
@@ -3654,6 +3705,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                       onToggleMax={onToggleMax}
                       onHeaderDown={onHeaderDown}
                       onEstado={onWebEstado}
+                      pedida={webPedida ?? undefined}
                     />
                   );
                 }
@@ -3866,7 +3918,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
               canPaste={focusedId != null}
               onUse={pasteToFocused}
               onUsage={focusedId != null ? askUsage : null}
-              cuentas={cuentasConCuota}
+              cuentas={cuentasDeUso}
             />
           }
           archivos={
@@ -3962,7 +4014,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onEnviar={enviarAlChat}
           onResume={onResume}
           onNueva={() => setWizard(true)}
-          cuentas={cuentasConCuota}
+          cuentas={cuentasDeUso}
           cara={cara}
           onCara={cambiarCara}
           raizArchivos={raizArchivos}
@@ -4082,6 +4134,11 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onSaltar={(v) => {
             setSaltarAlQueTermina(v);
             localStorage.setItem(JUMP_KEY, v ? "1" : "0");
+          }}
+          webAuto={webAutomatica}
+          onWebAuto={(v) => {
+            setWebAutomatica(v);
+            localStorage.setItem(WEB_AUTO_KEY, v ? "1" : "0");
           }}
           atajos={atajos}
           onAtajos={(next) => {

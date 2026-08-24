@@ -62,6 +62,20 @@ interface Props {
   onHeaderDown?: (id: number, e: React.PointerEvent) => void;
   /** Guardar las pestañas en el panel, para que vuelvan al reabrir Adeorq. */
   onEstado: (id: number, tabs: string[], activa: number) => void;
+  /**
+   * Una dirección que llega de fuera con el panel ya abierto.
+   *
+   * Existe para lo que pidió Munir el 2026-08-24: que al levantar un servidor
+   * en una terminal, la web se abra sola. Y va con SELLO en vez de solo la
+   * dirección por un motivo concreto: si el mismo servidor vuelve a anunciarse
+   * (recargas, reinicios), la dirección es idéntica y sin el sello React no
+   * vería ningún cambio; y al revés, un pintado cualquiera no puede reabrirla,
+   * porque el sello no ha cambiado.
+   *
+   * Las `tabs` de arriba NO valen para esto: son el arranque, y este panel se
+   * hace dueño de sus pestañas en cuanto se monta.
+   */
+  pedida?: { url: string; sello: number };
 }
 
 /** Una pestaña por dentro. La pila es el historial de atrás y adelante, y es
@@ -130,6 +144,7 @@ export default function WebPane({
   onToggleMax,
   onHeaderDown,
   onEstado,
+  pedida,
 }: Props) {
   const { t } = useT();
   /** Las pestañas viven aquí; App solo guarda la foto para el reinicio. */
@@ -202,6 +217,33 @@ export default function WebPane({
     setPests((prev) => [...prev, dePestana("")]);
     setAct(pests.length);
   };
+
+  /* Una dirección que llega de fuera (una terminal acaba de levantar algo).
+     Va a una pestaña NUEVA salvo que la activa esté en blanco, que es el caso
+     de acabar de abrir el panel: ahí meterla en una pestaña aparte dejaría una
+     vacía al lado sin motivo. Y si ese servidor ya tiene su pestaña, se salta a
+     ella en vez de duplicarla. */
+  const selloRef = useRef(0);
+  useEffect(() => {
+    if (!pedida || pedida.sello === selloRef.current) return;
+    selloRef.current = pedida.sello;
+    const url = comoUrl(pedida.url);
+    if (!url) return;
+    setPests((prev) => {
+      const ya = prev.findIndex((p) => p.url === url);
+      if (ya >= 0) {
+        setAct(ya);
+        return prev;
+      }
+      const enBlanco = prev.findIndex((p) => !p.url);
+      if (enBlanco >= 0) {
+        setAct(enBlanco);
+        return prev.map((p, i) => (i === enBlanco ? dePestana(url) : p));
+      }
+      setAct(prev.length);
+      return [...prev, dePestana(url)];
+    });
+  }, [pedida]);
 
   const cerrar = (i: number) => {
     // La última pestaña cierra el panel: un navegador sin nada abierto no es

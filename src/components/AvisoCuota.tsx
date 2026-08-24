@@ -85,7 +85,7 @@ export default function AvisoCuota({ cuentas, paneles, onAbrir }: Props) {
           // proceso `claude` de cinco segundos y aquí se preguntaba una vez por
           // cuenta cada veinte minutos, aparte de lo que preguntaran el panel de
           // uso y el router por su cuenta. Ahora la lectura se comparte.
-          const l = await limitesDe(acc.dir);
+          const l = await limitesDe(acc);
           const peor = loQueTePara(l);
           if (stop) return;
           setLecturas((prev) => ({

@@ -91,6 +91,52 @@ caso(
   ["Orquio", "zeta", "Adeorq", "froede"],
 );
 
+// --- el que trabaja sube, y baja solo (Munir, 2026-08-24) -------------------
+//
+// Es la unica regla que se pone POR ENCIMA del orden manual, asi que lo que hay
+// que demostrar es que es prestada: mientras el agente escribe sube, y en
+// cuanto para la barra vuelve exactamente a como la habias dejado.
+const conAgente = (name: string, trabajando: boolean): Colocable => ({
+  ...p(name, true, 0),
+  trabajando,
+});
+const MI_ORDEN = ["Orquio", "zeta", "Adeorq", "froede"];
+caso(
+  "el proyecto donde escribe un agente sube por encima de tu orden",
+  nombres(
+    ordenarProyectos(
+      [conAgente("Orquio", false), conAgente("zeta", false), conAgente("Adeorq", true), conAgente("froede", false)],
+      MI_ORDEN,
+    ),
+  ),
+  ["Adeorq", "Orquio", "zeta", "froede"],
+);
+caso(
+  "cuando para, la barra vuelve EXACTAMENTE a tu orden",
+  nombres(
+    ordenarProyectos(
+      [conAgente("Orquio", false), conAgente("zeta", false), conAgente("Adeorq", false), conAgente("froede", false)],
+      MI_ORDEN,
+    ),
+  ),
+  MI_ORDEN,
+);
+caso(
+  "con dos trabajando, entre ellos manda tu orden y no el azar",
+  nombres(
+    ordenarProyectos(
+      [conAgente("Orquio", false), conAgente("zeta", true), conAgente("Adeorq", true), conAgente("froede", false)],
+      MI_ORDEN,
+    ),
+  ),
+  ["zeta", "Adeorq", "Orquio", "froede"],
+);
+caso(
+  "sin orden manual tambien sube, y los demas siguen con sus reglas de siempre",
+  nombres(ordenarProyectos([p("Adeorq", false, 50), { ...p("zeta", false, 900, false), trabajando: true }, p("froede", false, 3)], [])),
+  ["zeta", "froede", "Adeorq"],
+);
+
 // --- mover ------------------------------------------------------------------
 // Cae donde lo llevas: subiendo, encima del destino; bajando, debajo. Antes
 // caia siempre delante y bajar algo al final de la lista era imposible.

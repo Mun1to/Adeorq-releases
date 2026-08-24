@@ -335,3 +335,60 @@ pub fn soltar_todas() {
     #[cfg(windows)]
     win::soltar_todas();
 }
+
+/// ¿Hay alguien escuchando en ese puerto de esta máquina?
+///
+/// Es la mitad que le falta al cazador de localhost del front
+/// (`src/lib/puertos.ts`). Encontrar `http://localhost:3000` en la salida de
+/// una terminal NO significa que ahí haya un servidor: un agente escribe esa
+/// dirección en su respuesta todo el rato, y abrir una pestaña cada vez sería
+/// un castigo. Preguntándole al puerto, la prosa se cae sola y solo queda lo
+/// que de verdad está levantado.
+///
+/// Se prueba con IPv4 y con IPv6, porque un servidor que se anuncia como
+/// `localhost` puede estar escuchando solo en `::1` (Node lo hace desde la 17)
+/// o solo en `127.0.0.1`. Probar una sola de las dos deja fuera la mitad de los
+/// servidores por un detalle que el usuario no tiene por qué saber.
+#[tauri::command(async)]
+pub async fn puerto_escucha(puerto: u16) -> bool {
+    use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream};
+    use std::time::Duration;
+    // Corto a propósito: es un servidor de esta misma máquina, así que o
+    // contesta en un parpadeo o no está. Un plazo largo dejaría la pestaña
+    // abriéndose medio segundo después de que la terminal lo dijera.
+    const PLAZO: Duration = Duration::from_millis(250);
+    let candidatos = [
+        SocketAddr::from((Ipv4Addr::LOCALHOST, puerto)),
+        SocketAddr::from((Ipv6Addr::LOCALHOST, puerto)),
+    ];
+    candidatos
+        .iter()
+        .any(|d| TcpStream::connect_timeout(d, PLAZO).is_ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Que la pregunta del puerto responda la verdad por los dos lados.
+    ///
+    /// Se levanta un servidor de mentira aquí mismo en vez de mirar uno real:
+    /// así el caso vale en cualquier máquina y no depende de que Munir tenga
+    /// algo arrancado. El puerto lo elige el sistema (`:0`) para no chocar con
+    /// nada que ya esté escuchando.
+    #[test]
+    fn el_puerto_dice_la_verdad() {
+        use std::net::TcpListener;
+        use tauri::async_runtime::block_on;
+
+        let oido = TcpListener::bind(("127.0.0.1", 0)).expect("no pude abrir un puerto");
+        let puerto = oido.local_addr().unwrap().port();
+        assert!(block_on(puerto_escucha(puerto)), "con alguien escuchando debía ser true");
+
+        drop(oido);
+        assert!(
+            !block_on(puerto_escucha(puerto)),
+            "sin nadie escuchando debía ser false",
+        );
+    }
+}

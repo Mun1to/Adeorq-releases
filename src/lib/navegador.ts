@@ -43,6 +43,18 @@ export function verNavegador(id: number, visible: boolean): Promise<void> {
   return invoke("ver_navegador", { id, visible });
 }
 
+/**
+ * ¿Hay alguien escuchando en ese puerto de esta máquina?
+ *
+ * La usa la apertura automática de la web: encontrar `http://localhost:3000` en
+ * la salida de una terminal no significa que ahí haya un servidor, y sin esta
+ * pregunta la app abriría una pestaña cada vez que un agente escribe esa
+ * dirección en una frase. Rust prueba IPv4 e IPv6, con un plazo de 250 ms.
+ */
+export function puertoEscucha(puerto: number): Promise<boolean> {
+  return invoke("puerto_escucha", { puerto });
+}
+
 /** Devolverle su marco y dejarla en el escritorio. La página no se pierde. */
 export function soltarNavegador(id: number): Promise<void> {
   return invoke("soltar_navegador", { id });

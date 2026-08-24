@@ -104,6 +104,9 @@ interface Props {
   /** Cuando un agente acaba su turno, ponerlo delante a pantalla completa. */
   saltar: boolean;
   onSaltar: (v: boolean) => void;
+  /** Abrir la vista de la web sola en cuanto una terminal anuncia un servidor. */
+  webAuto: boolean;
+  onWebAuto: (v: boolean) => void;
   atajos: Atajos;
   onAtajos: (next: Atajos) => void;
   /** El modelo de Ollama que resume qué necesita cada sesión, o "" para ninguno. */
@@ -320,6 +323,8 @@ export default function SettingsView({
   restore,
   onRestore,
   saltar,
+  webAuto,
+  onWebAuto,
   onSaltar,
   atajos,
   onAtajos,
@@ -1127,6 +1132,14 @@ export default function SettingsView({
                     type="checkbox"
                     checked={saltar}
                     onChange={(e) => onSaltar(e.currentTarget.checked)}
+                  />
+                </label>
+                <label className="setting-row setting-switch">
+                  <span>{t("Abrir la web cuando una terminal levanta un servidor")}</span>
+                  <input
+                    type="checkbox"
+                    checked={webAuto}
+                    onChange={(e) => onWebAuto(e.currentTarget.checked)}
                   />
                 </label>
                 <label className="setting-row setting-switch">

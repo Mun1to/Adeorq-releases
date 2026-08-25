@@ -1099,12 +1099,35 @@ export default function SettingsView({
                   <input
                     type="range"
                     min={11}
-                    max={22}
+                    /* Hasta 32, y el motivo tiene fecha. Hasta la 0.9.136 la letra
+                       automática se inflaba sola en cualquier panel de más de unos
+                       910 px, hasta 32 px en una pantalla de 1920. Eso se retiró en
+                       la 0.9.137 porque rompía la terminal a pantalla completa, y
+                       entonces este deslizador se quedó corto: su tope de 22 no
+                       llegaba a lo que Munir llevaba semanas viendo, así que la
+                       letra le pareció pequeña de golpe («se ve súper pequeña»,
+                       2026-08-25). El número vuelve a ser suyo, y ahora el rango le
+                       da para pedir lo mismo que antes salía solo. */
+                    max={32}
                     value={fontSize}
                     onChange={(e) => onFontSize(Number(e.currentTarget.value))}
                   />
                   <span className="setting-value">{fontSize}px</span>
                 </label>
+                {/* La muestra. Sin esto, elegir el número es adivinar: el
+                    deslizador dice «24px» y nadie sabe si eso es mucho hasta que
+                    cierra Ajustes, mira una terminal y vuelve. Lleva la misma
+                    familia, el mismo interlineado y el mismo espaciado que
+                    `TerminalPane`, así que lo que se ve aquí es lo que se verá
+                    ahí. Con la letra automática puesta es el tamaño de una
+                    terminal ancha; una estrecha lo baja sola. */}
+                <div
+                  className="muestra-letra"
+                  style={{ fontSize: `${fontSize}px` }}
+                  aria-hidden="true"
+                >
+                  <span className="ml-verde">❯</span> pnpm tauri dev
+                </div>
                 <label className="setting-row">
                   {/* Antes se llamaba «Cuántas sesiones abre el botón ⧉», que
                       obliga a saberse un símbolo para entender un ajuste. */}

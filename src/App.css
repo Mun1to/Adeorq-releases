@@ -19531,3 +19531,36 @@ textarea.note-body {
   align-items: center;
   margin: 0;
 }
+
+/* La muestra del tamaño de letra, en Ajustes.
+   Elegir el número era adivinar: el deslizador dice «24px» y para saber si eso
+   es mucho había que cerrar Ajustes, mirar una terminal y volver. Lleva la misma
+   familia, el mismo interlineado y el mismo espaciado que `TerminalPane`, así
+   que lo que se ve aquí es lo que sale ahí.
+   El tamaño lo pone React en línea, porque es el valor que se está moviendo. */
+.muestra-letra {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+  /* El tinte de una terminal, pero APLANADO sobre un color sólido. `--pane-bg`
+     es un rgba, y sobre un fondo con alfa Windows no sabe de qué color pinta
+     detrás, así que apaga el ClearType y cae al suavizado gris: la muestra se
+     vería más blanda que la terminal a la que imita, que es justo lo que
+     arruinaría la comparación. Pintarlo con un gradiente plano encima de
+     `--panel-solid` deja el mismo aspecto y el elemento opaco. */
+  background: linear-gradient(var(--pane-bg), var(--pane-bg)), var(--panel-solid);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 12px 0 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  /* No es un control: no se selecciona ni se pulsa, solo se mira. */
+  user-select: none;
+}
+
+.muestra-letra .ml-verde {
+  color: #7fd88f;
+  margin-right: 0.6em;
+}

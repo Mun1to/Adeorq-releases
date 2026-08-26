@@ -19608,3 +19608,80 @@ textarea.note-body {
   background: color-mix(in srgb, var(--bad, #ff6b6b) 24%, transparent);
   color: var(--bad, #ff6b6b);
 }
+
+/* La pantalla de una caída de la interfaz. Ver `components/Salvavidas.tsx`.
+   Antes aquí no había nada: React desmontaba el árbol y quedaba el fondo de la
+   página, o sea la foto con su cristal y ni una palabra. Munir lo vivió como un
+   cuelgue y salió con Ctrl+Shift+R (2026-08-26). */
+.caida {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  /* Opaco de verdad: esta pantalla aparece justo cuando el resto ha
+     desaparecido, así que no hay nada detrás que merezca transparentarse, y un
+     fondo con alfa dejaría el texto sin ClearType en Windows. */
+  background: var(--panel-solid);
+  color: var(--text);
+}
+
+.caida-caja {
+  max-width: 560px;
+  text-align: left;
+}
+
+.caida-caja h1 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.caida-caja p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.caida-error {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bad, #ff6b6b);
+  border-radius: 0 9px 9px 0;
+  background: var(--panel);
+  color: var(--text);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  /* El mensaje de un error puede ser larguísimo y no puede empujar la caja. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 40vh;
+  overflow-y: auto;
+  /* Este SÍ se selecciona: está aquí para poder copiarlo y pegarlo. */
+  user-select: text;
+}
+
+.caida-pie {
+  font-size: 13px;
+}
+
+.caida-boton {
+  padding: 9px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: var(--r-pastilla, 10px);
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.caida-boton:hover {
+  background: color-mix(in srgb, var(--accent) 26%, var(--panel));
+}

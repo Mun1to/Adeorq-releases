@@ -597,6 +597,8 @@ const EN: Record<string, string> = {
   "◈ Antigravity": "◈ Antigravity",
   ">_ shell": ">_ shell",
   "Cerrar terminal": "Close terminal",
+  "Mata al agente que hay dentro": "Kills the agent inside",
+  "Pulsa otra vez para cerrarla": "Press again to close it",
   "Tapar esta terminal (para emitir)": "Cover this terminal (for streaming)",
   "Mostrar esta terminal": "Show this terminal",
   "terminal tapada": "terminal covered",

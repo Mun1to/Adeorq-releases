@@ -591,6 +591,14 @@ function App() {
    * necesita se pinta en ámbar. Apartar no puede ser perder de vista.
    */
   const [minimizados, setMinimizados] = useState<Set<number>>(() => new Set());
+  /* Qué ficha de la tira ha pedido cerrarse y espera el segundo clic.
+     La X de una ficha apartada mata al agente igual que la de la cabecera, y ahí
+     un clic mal dado es caro: la terminal no está a la vista, así que no ves lo
+     que se lleva por delante. Con el agente parado cierra al primer clic, que es
+     el caso normal de esa tira; con uno trabajando o esperándote, el primer clic
+     pinta la X de rojo y hace falta otro. Se cancela solo al sacar el ratón de
+     la ficha, así que no deja ningún estado raro puesto. */
+  const [porCerrar, setPorCerrar] = useState<number | null>(null);
 
   const alternarMinimizado = useCallback((id: number) => {
     setMinimizados((prev) => {
@@ -3903,6 +3911,52 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                         {bonito(ramPanes.get(p.id)!.ramMb, lang)}
                       </span>
                     ) : null}
+                    {/* Cerrar sin tener que traerla de vuelta (Munir, 2026-08-25).
+                        Va como `<span>` y no como `<button>`: la ficha entera YA
+                        es un botón, y un botón dentro de otro no es HTML válido
+                        ni reparte bien los clics. Envolverlo todo en un div
+                        tampoco valía: las fichas se pegan por `:first-of-type`
+                        (`.minim-chip` en App.css) y con un envoltorio cada una
+                        sería la primera de la suya, así que el borde compartido
+                        se rompería. */}
+                    <span
+                      className="minim-x"
+                      /* Mismo nombre y mismos dos tiempos que `.crew-cerrar` en
+                         CrewBoard, que ya cerraba una cuadrilla entera así. Un
+                         segundo vocabulario para el mismo gesto solo sirve para
+                         que el día que se retoque uno el otro se quede atrás. */
+                      data-armado={porCerrar === p.id || undefined}
+                      role="button"
+                      aria-label={t("Cerrar terminal")}
+                      data-tip={
+                        porCerrar === p.id
+                          ? t("Pulsa otra vez para cerrarla")
+                          : `${t("Cerrar terminal")}\n${t("Mata al agente que hay dentro")}`
+                      }
+                      onClick={(e) => {
+                        // El clic no puede llegar a la ficha, o la traería de
+                        // vuelta al mosaico justo mientras se cierra.
+                        e.stopPropagation();
+                        if (porCerrar === p.id) {
+                          setPorCerrar(null);
+                          closePane(p.id);
+                          return;
+                        }
+                        /* Con el agente parado se cierra al primer clic, que es
+                           el caso normal de esta tira. Si está trabajando o
+                           esperándote, hace falta un segundo: ahí un clic mal
+                           dado se lleva por delante trabajo que no ves, porque
+                           la terminal está justamente apartada. */
+                        if (estado !== "a_medias" && !pinta.urge) return closePane(p.id);
+                        setPorCerrar(p.id);
+                        window.setTimeout(
+                          () => setPorCerrar((v) => (v === p.id ? null : v)),
+                          4000,
+                        );
+                      }}
+                    >
+                      {porCerrar === p.id ? "?" : <CloseIcon size={11} />}
+                    </span>
                   </button>
                 );
               })}

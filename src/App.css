@@ -19564,3 +19564,47 @@ textarea.note-body {
   color: #7fd88f;
   margin-right: 0.6em;
 }
+
+/* La X de una ficha apartada. Cierra la terminal sin traerla de vuelta al
+   mosaico (Munir, 2026-08-25: «que en la barra de abajo haya un botón de cerrar
+   la sesión»).
+
+   Se ve SIEMPRE, tenue. La otra opción era enseñarla solo al pasar el ratón,
+   como las pestañas de un navegador, y aquí eso sale caro: en esta casa lo que
+   no se ve se da por no hecho, y una X que aparece sola es justo lo que hace
+   preguntar «¿dónde está el botón?» (pasó ya con otros mandos). Al acercarse
+   sube de contraste, que es lo que dice «esto se pulsa». */
+.minim-x {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  margin: -2px -6px -2px 1px;
+  border-radius: 5px;
+  color: color-mix(in srgb, var(--text) 38%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
+}
+
+.minim-chip:hover .minim-x {
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+}
+
+.minim-x:hover {
+  background: color-mix(in srgb, var(--bad, #ff6b6b) 18%, transparent);
+  color: var(--bad, #ff6b6b);
+}
+
+/* Armada: el agente está trabajando o esperándote, así que el primer clic no
+   cierra, solo avisa. El color hace el trabajo que haría un diálogo, sin
+   detener a nadie que solo quiera cerrar una terminal parada. */
+.minim-x[data-armado] {
+  background: color-mix(in srgb, var(--bad, #ff6b6b) 24%, transparent);
+  color: var(--bad, #ff6b6b);
+}

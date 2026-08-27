@@ -1182,3 +1182,20 @@ export function onPedidoMcp(cb: (p: PedidoMcp) => void): Promise<UnlistenFn> {
 export function mcpReply(peticion: number, respuesta: RespuestaMcp): Promise<void> {
   return invoke("mcp_reply", { peticion, respuesta });
 }
+
+/**
+ * Marca una carpeta como de confianza para Claude Code ANTES de abrir en ella.
+ *
+ * Sin esto, la terminal que abre un agente nace parada en «¿confías en esta
+ * carpeta?» y no arranca nunca, porque no hay nadie mirando. Devuelve `true` si
+ * de verdad hizo falta escribirlo (o sea, si acaba de ahorrarse el diálogo) y
+ * `false` si Munir ya había confiado en esa carpeta.
+ *
+ * El porqué, lo que NO toca y la carrera que no se puede cerrar están escritos
+ * en `mcp.rs`. Aquí solo importa una cosa: **si falla, no pasa nada**. Es una
+ * comodidad, no un requisito, así que quien la llama se traga el error y abre
+ * igual.
+ */
+export function confiarCarpeta(cwd: string, configDir?: string): Promise<boolean> {
+  return invoke<boolean>("confiar_carpeta", { cwd, configDir: configDir || null });
+}

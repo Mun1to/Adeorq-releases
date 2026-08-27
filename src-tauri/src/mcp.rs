@@ -104,6 +104,112 @@ fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Resu
     }
 }
 
+/// ==========================================================================
+/// QUE LA TERMINAL ARRANQUE TRABAJANDO
+///
+/// Una terminal recién abierta por un agente no arranca: se queda parada en
+/// «Quick safety check: is this a project you created or one you trust?», y ahí
+/// sigue hasta que alguien contesta. Medido el 2026-08-27 abriendo tres.
+///
+/// Para una persona es un clic. Para el flujo que esto existe para hacer —un
+/// agente monta su cuadrilla y se va a trabajar— es el final: la terminal nace
+/// muerta y nadie se entera, porque desde fuera parece que está pensando.
+///
+/// El diálogo lo guarda Claude Code en `.claude.json`, una clave por carpeta.
+/// Aquí se pone esa clave ANTES de abrir, y solo esa. Lo que NO se toca:
+///
+///   - `hasClaudeMdExternalIncludesApproved`, el segundo diálogo. Ese autoriza a
+///     un `CLAUDE.md` a leer ficheros de FUERA de su carpeta, que es justo el
+///     agujero por el que entraría un repositorio ajeno. Solo sale cuando el
+///     proyecto tiene imports externos, así que bloquea mucho menos, y cuando
+///     salga lo contesta el agente leyendo la pantalla.
+///   - Cualquier carpeta que no exista. Marcar como de confianza un sitio que
+///     todavía no está es firmar en blanco.
+///
+/// Se escribe de forma atómica (temporal al lado y renombrar) porque ese fichero
+/// es la configuración ENTERA de Munir, con sus cincuenta proyectos y sus
+/// servidores MCP dentro: una escritura a medias se la lleva toda. Y aun así hay
+/// una carrera que no se puede cerrar desde aquí: Claude Code reescribe ese
+/// mismo fichero al terminar cada sesión, con lo que tuviera en memoria, así que
+/// puede pisar esto. Si pasa, el único síntoma es que el diálogo vuelve a salir
+/// una vez, y el agente lo contesta. Por eso el fallo aquí nunca corta la
+/// apertura: es una comodidad, no un requisito.
+/// ==========================================================================
+#[tauri::command]
+pub fn confiar_carpeta(cwd: String, config_dir: Option<String>) -> Result<bool, String> {
+    let carpeta = std::path::Path::new(cwd.trim());
+    if cwd.trim().is_empty() || !carpeta.is_dir() {
+        return Err(format!("«{}» no es una carpeta que exista.", cwd));
+    }
+
+    // Con cuenta propia (`CLAUDE_CONFIG_DIR`) el fichero vive DENTRO de esa
+    // carpeta, no en la casa del usuario. Comprobado el 2026-08-27 en
+    // `%LOCALAPPDATA%\Adeorq\accounts\claude-*\.claude.json`.
+    let fichero = match config_dir.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
+        Some(dir) => std::path::PathBuf::from(dir).join(".claude.json"),
+        None => crate::dir_casa()
+            .ok_or("no sé cuál es la carpeta del usuario")?
+            .join(".claude.json"),
+    };
+    if !fichero.is_file() {
+        return Err("no hay ningún .claude.json que tocar".into());
+    }
+
+    let crudo = std::fs::read_to_string(&fichero).map_err(|e| e.to_string())?;
+    let mut raiz: Value = serde_json::from_str(&crudo)
+        .map_err(|e| format!("el .claude.json no se pudo leer, así que no lo toco: {}", e))?;
+
+    // En ese fichero conviven las dos formas de escribir la misma carpeta
+    // («C:\x» y «C:/x»): Munir tiene diecisiete entradas duplicadas por eso.
+    //
+    // La que hay que ESCRIBIR es la de barras normales, y esto no se dedujo, se
+    // midió (2026-08-27): se abrió una terminal en `C:\proyectos\Skills\SiteIndex`
+    // —con barras invertidas, que es como Adeorq se lo pasa al PTY— y Claude Code
+    // 2.1.247 la guardó como `C:/proyectos/Skills/SiteIndex`. Normaliza. Las
+    // diecisiete con barra invertida son de versiones viejas, y escribir así hoy
+    // crearía una entrada duplicada que el CLI no mira: el diálogo saldría igual
+    // y esto no serviría de nada, sin dar ningún error.
+    //
+    // Al COMPROBAR se miran las dos, porque una carpeta aceptada hace meses en el
+    // formato antiguo sigue estando aceptada.
+    let con_slash = cwd.trim().replace('\\', "/");
+    let con_barra = cwd.trim().replace('/', "\\");
+
+    let proyectos = raiz
+        .get("projects")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    let ya = [&con_slash, &con_barra].iter().any(|k| {
+        proyectos
+            .get(*k)
+            .and_then(|p| p.get("hasTrustDialogAccepted"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+    });
+    if ya {
+        return Ok(false);
+    }
+
+    // Solo esa clave, y respetando lo que ya hubiera de esa carpeta.
+    let entrada = raiz
+        .get_mut("projects")
+        .and_then(Value::as_object_mut)
+        .map(|m| m.entry(con_slash.clone()).or_insert_with(|| json!({})))
+        .ok_or("el .claude.json no tiene la forma que esperaba, así que no lo toco")?;
+    entrada["hasTrustDialogAccepted"] = json!(true);
+
+    // Atómico: al lado (mismo volumen, si no `rename` falla) y encima.
+    let temporal = fichero.with_extension("json.adeorq-tmp");
+    std::fs::write(&temporal, serde_json::to_vec_pretty(&raiz).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?;
+    std::fs::rename(&temporal, &fichero).map_err(|e| {
+        let _ = std::fs::remove_file(&temporal);
+        e.to_string()
+    })?;
+    Ok(true)
+}
+
 /// ¿Queda presupuesto para abrir otra? Devuelve el motivo si no.
 fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
     let puente = app.state::<Puente>();
@@ -417,6 +523,20 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                                     },
                                     "required": ["from", "to"]
                                 }
+                            },
+                            {
+                                "name": "close_pane",
+                                "description": "Closes a terminal you opened and KILLS the agent inside it. Use it to tidy up after yourself: a pane you opened by mistake, or one whose job is done. It frees a slot against the 6-alive limit. It does not undo the quota that pane already spent, and there is no undo: read its transcript first if anything in there matters.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "paneId": {
+                                            "type": "number",
+                                            "description": "The ID of the pane to close, as listed by get_active_panes."
+                                        }
+                                    },
+                                    "required": ["paneId"]
+                                }
                             }
                         ]
                     }
@@ -681,19 +801,21 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 .unwrap()
                 .push((Instant::now(), pane_id));
 
-            // El parte lo redacta la ventana, que es la que sabe con qué CLI
-            // acabó y si ese acepta encargo al arrancar. Aquí solo se le añade
-            // el recordatorio de cómo hablarle, que es igual para todos.
-            let parte = r
-                .parte
-                .unwrap_or_else(|| format!("Terminal {} abierta con «{}».", pane_id, cli));
+            // El parte entero lo redacta la ventana, que es la única que sabe con
+            // qué CLI acabó, si ese acepta encargo al arrancar y dónde cayó. Aquí
+            // ya no se le añade nada: hasta el 2026-08-27 esto pegaba un «lee lo
+            // que va haciendo…» fijo, y cuando la ventana empezó a decir eso
+            // mismo mejor, el agente recibía la instrucción dos veces.
+            let parte = r.parte.unwrap_or_else(|| {
+                format!(
+                    "Terminal {} abierta con «{}». Míralo con read_pane_transcript({}) antes de darla por trabajando, y háblale con send_command({}, \"...\").",
+                    pane_id, cli, pane_id, pane_id
+                )
+            });
             Ok(json!({
                 "content": [{
                     "type": "text",
-                    "text": format!(
-                        "{}\nLee lo que va haciendo con read_pane_transcript({}), y háblale con send_command({}, \"...\").",
-                        parte, pane_id, pane_id
-                    )
+                    "text": parte
                 }]
             }))
         }
@@ -723,6 +845,257 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 }]
             }))
         }
+        // Quien abre, recoge. Hasta el 2026-08-27 un agente podía abrir seis
+        // terminales y no cerrar ninguna: el tope le decía «cierra alguna» y no
+        // tenía con qué, así que la única salida era que un humano las cerrara a
+        // mano. Un presupuesto que solo se puede gastar y nunca devolver no es un
+        // presupuesto, es una cuenta atrás.
+        "close_pane" => {
+            let pane_id = args["paneId"].as_u64().ok_or("Falta `paneId`: el número de la terminal que quieres cerrar.")? as u32;
+
+            // Que exista se comprueba AQUÍ y no en la ventana, porque el mapa del
+            // PTY es la verdad sobre qué corre de verdad. Un id inventado tiene
+            // que sonar a error, no a «hecho».
+            {
+                let pty = app.state::<crate::pty::PtyState>();
+                let map = pty.0.lock().unwrap();
+                if !map.contains_key(&pane_id) {
+                    return Err(format!(
+                        "No hay ninguna terminal {}. Mira get_active_panes: puede que ya esté cerrada.",
+                        pane_id
+                    ));
+                }
+            }
+
+            // La ventana es la dueña del panel (cabina, lienzo, layout), así que
+            // el cierre se le pide a ella por el mismo puente que la apertura.
+            // Ella llama a `closePane`, que mata el proceso y retira el panel.
+            pedir_a_la_ventana(app, "close_pane", json!({ "paneId": pane_id }))?;
+
+            // Cuántas quedan de las tuyas. El tope de vivas se calcula mirando el
+            // mapa del PTY, así que cerrar una libera su sitio sola; lo que NO se
+            // devuelve es el tope por hora, que existe justo para que abrir y
+            // cerrar en bucle no salga gratis.
+            let vivas = {
+                let puente = app.state::<Puente>();
+                let aperturas = puente.aperturas.lock().unwrap();
+                let pty = app.state::<crate::pty::PtyState>();
+                let map = pty.0.lock().unwrap();
+                aperturas.iter().filter(|(_, id)| map.contains_key(id)).count()
+            };
+
+            Ok(json!({
+                "content": [{
+                    "type": "text",
+                    "text": format!(
+                        "Terminal {} cerrada y su agente parado. Te quedan {} de las {} vivas que puedes tener abiertas por MCP.",
+                        pane_id, vivas, MAX_VIVOS
+                    )
+                }]
+            }))
+        }
         _ => Err(format!("Unknown tool: {}", name))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+
+    /// Un `.claude.json` de mentira en su propia carpeta, que es justo lo que
+    /// `config_dir` permite. Así esto se prueba de verdad sin acercarse al
+    /// fichero real, que es la configuración entera de Munir.
+    fn banco(nombre: &str, contenido: &str) -> (PathBuf, PathBuf) {
+        let base = std::env::temp_dir().join(format!("adeorq-confiar-{}", nombre));
+        let _ = fs::remove_dir_all(&base);
+        let cuenta = base.join("cuenta");
+        let proyecto = base.join("proyecto");
+        fs::create_dir_all(&cuenta).unwrap();
+        fs::create_dir_all(&proyecto).unwrap();
+        fs::write(cuenta.join(".claude.json"), contenido).unwrap();
+        (cuenta, proyecto)
+    }
+
+    fn leer(cuenta: &PathBuf) -> Value {
+        serde_json::from_str(&fs::read_to_string(cuenta.join(".claude.json")).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn marca_una_carpeta_nueva_y_no_toca_nada_mas() {
+        let (cuenta, proyecto) = banco(
+            "nueva",
+            r#"{"numStartups":9,"projects":{"C:\\otro":{"allowedTools":["Read"]}}}"#,
+        );
+        let hizo_falta = confiar_carpeta(
+            proyecto.to_string_lossy().into(),
+            Some(cuenta.to_string_lossy().into()),
+        )
+        .unwrap();
+        assert!(hizo_falta, "una carpeta nunca vista necesita que se marque");
+
+        let j = leer(&cuenta);
+        // Lo de al lado sigue entero: esto escribe el fichero completo, así que
+        // perder una clave ajena sería perder configuración de verdad.
+        assert_eq!(j["numStartups"], 9);
+        assert_eq!(j["projects"]["C:\\otro"]["allowedTools"][0], "Read");
+        let clave = proyecto.to_string_lossy().replace('\\', "/");
+        assert_eq!(j["projects"][&clave]["hasTrustDialogAccepted"], true);
+    }
+
+    /// El que de verdad decide si esto sirve para algo, y el que se falló
+    /// primero. Claude Code normaliza la ruta a barras normales aunque se la
+    /// pasen con barras invertidas (medido el 2026-08-27 con la 2.1.247), así
+    /// que escribir la forma con barra invertida crea una entrada que el CLI no
+    /// mira nunca: el diálogo saldría igual, sin un solo error por ningún lado.
+    ///
+    /// Solo en Windows, y no por comodidad: le pasa a propósito una ruta con
+    /// barras invertidas, y en Linux eso no es una carpeta, es un nombre de
+    /// fichero con barras dentro. La que reventó el trabajo de Linux la primera
+    /// vez que se lanzó, que es justo para lo que sirve lanzarlo antes.
+    #[test]
+    #[cfg(windows)]
+    fn escribe_la_ruta_con_barras_normales_que_es_la_que_el_cli_lee() {
+        let (cuenta, proyecto) = banco("formato", r#"{"projects":{}}"#);
+        confiar_carpeta(
+            // Se la pasamos con barras invertidas a propósito: así es como
+            // Adeorq se la da al PTY.
+            proyecto.to_string_lossy().replace('/', "\\"),
+            Some(cuenta.to_string_lossy().into()),
+        )
+        .unwrap();
+
+        let j = leer(&cuenta);
+        let claves: Vec<String> = j["projects"].as_object().unwrap().keys().cloned().collect();
+        assert_eq!(claves.len(), 1, "una sola entrada, no una por cada forma de escribirla");
+        assert!(
+            claves[0].contains('/') && !claves[0].contains('\\'),
+            "escrita como «{}», y el CLI busca la de barras normales",
+            claves[0]
+        );
+    }
+
+    #[test]
+    fn una_carpeta_aceptada_en_el_formato_antiguo_sigue_valiendo() {
+        // Diecisiete de las cincuenta entradas de Munir están con barra
+        // invertida, de versiones viejas. Volver a escribirlas sería duplicar.
+        let (cuenta, proyecto) = banco("antiguo", r#"{"projects":{}}"#);
+        let antigua = proyecto.to_string_lossy().replace('/', "\\");
+        fs::write(
+            cuenta.join(".claude.json"),
+            json!({ "projects": { antigua: { "hasTrustDialogAccepted": true } } }).to_string(),
+        )
+        .unwrap();
+
+        let hizo_falta = confiar_carpeta(
+            proyecto.to_string_lossy().into(),
+            Some(cuenta.to_string_lossy().into()),
+        )
+        .unwrap();
+        assert!(!hizo_falta, "ya estaba aceptada, aunque sea con la otra barra");
+    }
+
+    #[test]
+    fn no_toca_lo_que_ya_estaba_aceptado() {
+        let (cuenta, proyecto) = banco("ya", r#"{"projects":{}}"#);
+        let clave = proyecto.to_string_lossy().replace('\\', "/");
+        fs::write(
+            cuenta.join(".claude.json"),
+            json!({ "projects": { clave.clone(): { "hasTrustDialogAccepted": true } } }).to_string(),
+        )
+        .unwrap();
+
+        let hizo_falta = confiar_carpeta(
+            proyecto.to_string_lossy().into(),
+            Some(cuenta.to_string_lossy().into()),
+        )
+        .unwrap();
+        assert!(!hizo_falta, "si ya estaba, no hay nada que escribir");
+    }
+
+    #[test]
+    #[cfg(windows)] // Le pasa una ruta con barras invertidas: en Linux eso no existe.
+    fn la_misma_ruta_con_barras_al_reves_cuenta_igual() {
+        // En el fichero real de Munir conviven «C:\x» y «C:/x» para la misma
+        // carpeta. Si solo se mirara una forma, se escribiría una entrada
+        // duplicada y el diálogo saldría igual.
+        let (cuenta, proyecto) = banco("barras", r#"{"projects":{}}"#);
+        let con_slash = proyecto.to_string_lossy().replace('\\', "/");
+        fs::write(
+            cuenta.join(".claude.json"),
+            json!({ "projects": { con_slash: { "hasTrustDialogAccepted": true } } }).to_string(),
+        )
+        .unwrap();
+
+        let hizo_falta = confiar_carpeta(
+            proyecto.to_string_lossy().replace('/', "\\"),
+            Some(cuenta.to_string_lossy().into()),
+        )
+        .unwrap();
+        assert!(!hizo_falta, "es la misma carpeta escrita de la otra forma");
+    }
+
+    #[test]
+    fn conserva_lo_que_ya_hubiera_de_esa_misma_carpeta() {
+        let (cuenta, proyecto) = banco("conserva", r#"{"projects":{}}"#);
+        let clave = proyecto.to_string_lossy().replace('\\', "/");
+        fs::write(
+            cuenta.join(".claude.json"),
+            json!({ "projects": { clave.clone(): { "lastCost": 1.5, "hasTrustDialogAccepted": false } } })
+                .to_string(),
+        )
+        .unwrap();
+
+        confiar_carpeta(
+            proyecto.to_string_lossy().into(),
+            Some(cuenta.to_string_lossy().into()),
+        )
+        .unwrap();
+
+        let j = leer(&cuenta);
+        assert_eq!(j["projects"][&clave]["hasTrustDialogAccepted"], true);
+        assert_eq!(j["projects"][&clave]["lastCost"], 1.5, "lo demás de esa carpeta se queda");
+    }
+
+    #[test]
+    fn un_json_roto_se_deja_en_paz() {
+        let (cuenta, proyecto) = banco("roto", "{esto no es json");
+        let r = confiar_carpeta(
+            proyecto.to_string_lossy().into(),
+            Some(cuenta.to_string_lossy().into()),
+        );
+        assert!(r.is_err(), "no se puede reescribir lo que no se sabe leer");
+        // Y sobre todo: sigue siendo el mismo fichero, no uno vacío.
+        assert_eq!(
+            fs::read_to_string(cuenta.join(".claude.json")).unwrap(),
+            "{esto no es json"
+        );
+    }
+
+    #[test]
+    fn una_carpeta_que_no_existe_no_se_marca() {
+        let (cuenta, proyecto) = banco("fantasma", r#"{"projects":{}}"#);
+        let inventada = proyecto.join("no-existe");
+        let r = confiar_carpeta(
+            inventada.to_string_lossy().into(),
+            Some(cuenta.to_string_lossy().into()),
+        );
+        assert!(r.is_err(), "marcar como de confianza un sitio que no está es firmar en blanco");
+    }
+
+    #[test]
+    fn sin_fichero_de_configuracion_falla_sin_crear_uno() {
+        let (cuenta, proyecto) = banco("sinfichero", r#"{}"#);
+        fs::remove_file(cuenta.join(".claude.json")).unwrap();
+        let r = confiar_carpeta(
+            proyecto.to_string_lossy().into(),
+            Some(cuenta.to_string_lossy().into()),
+        );
+        assert!(r.is_err());
+        assert!(
+            !cuenta.join(".claude.json").exists(),
+            "inventarle un .claude.json a una cuenta que no lo tiene es peor que no hacer nada"
+        );
     }
 }

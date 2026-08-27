@@ -137,4 +137,29 @@ ok(
   "va dentro de una respuesta de herramienta",
 );
 
+/* El aviso de mirar antes de dar la terminal por trabajando (2026-08-27).
+   Sale SIEMPRE, y por eso se prueba en el caso mas limpio de todos: si solo
+   apareciera cuando algo va mal, faltaria justo cuando el agente esta mas
+   convencido de que todo fue bien. Medido ese dia abriendo tres terminales:
+   las tres nacieron paradas en un dialogo, y desde fuera eso no se distingue
+   de estar pensando. */
+const limpio = parteDeApertura({ paneId: 4, cli: "claude", donde: "lienzo", conEncargo: true });
+ok(
+  "aun saliendo todo bien, se dice que hay que mirar la pantalla",
+  limpio.includes("read_pane_transcript(4)"),
+  "una terminal parada en un dialogo parece una terminal pensando",
+);
+ok(
+  "y se dice como desbloquearla, no solo que mire",
+  limpio.includes("send_command(4"),
+  "un aviso que no trae la salida es una tarea, no una decision",
+);
+ok(
+  "el numero del aviso es el de SU panel",
+  !parteDeApertura({ paneId: 12, cli: "claude", donde: "cabina", conEncargo: true }).includes(
+    "read_pane_transcript(4)",
+  ),
+  "mandar a leer el panel de otro es peor que no decir nada",
+);
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

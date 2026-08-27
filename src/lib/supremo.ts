@@ -25,6 +25,10 @@ export interface PedidoMcp {
   from?: number | null;
   to?: number | null;
   auto?: boolean;
+  /** La terminal sobre la que va el pedido, cuando no se abre una nueva
+   *  (`close_pane`). Rust ya comprobó que existe, pero llega de un modelo
+   *  igual que el resto: aquí tampoco se da por bueno sin mirar. */
+  paneId?: number;
 }
 
 /** Lo que se le devuelve a Rust, que se lo devuelve al agente. */
@@ -142,5 +146,14 @@ export function parteDeApertura(a: {
   if (a.flecha === "hecha") lineas.push("Y le he dibujado la flecha que pediste.");
   if (a.flecha === "sin-lienzo")
     lineas.push("La flecha NO se ha dibujado: esa terminal no está en el lienzo.");
+  // Siempre, y esto no sobra. Un CLI recién abierto puede pararse a preguntar
+  // algo (confiar en la carpeta, permitir una lectura, elegir un número) y desde
+  // fuera eso no se distingue de estar pensando: el agente se queda esperando un
+  // trabajo que no ha empezado. Adeorq le quita de en medio el diálogo de la
+  // carpeta antes de abrir, pero no todos, y quien abrió tiene que saber que
+  // mirar la pantalla es parte de abrir.
+  lineas.push(
+    `Míralo con read_pane_transcript(${a.paneId}) antes de darla por trabajando: si se ha parado a preguntarte algo, está esperando, no pensando, y se le contesta con send_command(${a.paneId}, "1").`,
+  );
   return lineas.join(" ");
 }

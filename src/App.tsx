@@ -104,6 +104,7 @@ import {
   iniciales,
   accountDir,
   cliEffort,
+  confiarCarpeta,
   findAgy,
   forgetAccount,
   killPty,
@@ -1739,6 +1740,12 @@ function App() {
      presupuesto, y el presupuesto no lo guarda quien lo gasta. El plano entero
      está en `docs/SUPREMA.md`. */
   const enlazarRef = useRef<((from: number, to: number, auto: boolean) => boolean) | null>(null);
+  /* `closePane` se declara cuatrocientas líneas más abajo, y el array de
+     dependencias de un efecto se evalúa DURANTE el render: nombrarla ahí la
+     leería antes de existir y reventaría el arranque entero. Por ref, que
+     además es estable (`useCallback` sin dependencias) y no vuelve a montar
+     este oyente cada vez. Se rellena en el efecto que hay justo detrás de ella. */
+  const cerrarRef = useRef<((id: number) => void) | null>(null);
 
   useEffect(() => {
     const atender = async (p: PedidoMcp) => {
@@ -1755,6 +1762,26 @@ function App() {
                     "No se pudo dibujar: las flechas solo existen en el Lienzo, y esas dos terminales tienen que estar las dos allí.",
                 },
           );
+          return;
+        }
+        /* Cerrar. Rust ya comprobó que la terminal existe en el mapa del PTY, así
+           que aquí no se vuelve a juzgar: se hace. `closePane` mata el proceso y
+           retira el panel de las dos listas (cabina y lienzo), que es exactamente
+           lo mismo que hace la X, y por eso no hay un camino de muerte aparte
+           para el MCP: dos formas de matar un agente se separan con el tiempo y
+           una de las dos se queda sin arreglar. */
+        if (p.clase === "close_pane") {
+          const id = Number(p.paneId);
+          if (!Number.isFinite(id) || id <= 0) {
+            responder({ error: "`paneId` tiene que ser el número de una terminal." });
+            return;
+          }
+          if (!cerrarRef.current) {
+            responder({ error: "la ventana todavía no está lista para cerrar terminales" });
+            return;
+          }
+          cerrarRef.current(id);
+          responder({});
           return;
         }
         // Cuánto queda en cada cuenta. Lo contesta la ventana y no Rust porque
@@ -1792,6 +1819,20 @@ function App() {
         // una terminal con un error dentro.
         const conEncargo = !!brief && ARRANCAN_CON_ENCARGO.has(cli);
         const command = comandoDe({ cli, encargo: brief, agyExe: agyExe.current });
+
+        /* Antes de abrirla, que pueda arrancar. Una terminal de Claude en una
+           carpeta donde Munir no ha entrado nunca nace parada en «¿confías en
+           esta carpeta?», y ahí se queda: quien la abrió es un agente, no hay
+           nadie mirando la pantalla. Se marca la confianza primero (ver
+           `confiar_carpeta` en `mcp.rs`, que explica qué NO toca y por qué).
+
+           Se ignora el fallo A PROPÓSITO: esto ahorra un clic, no autoriza nada
+           que el agente no pudiera hacer igual. Si no se puede escribir, la
+           terminal se abre lo mismo y el diálogo lo contesta el agente leyendo
+           la pantalla, que es lo que hacía antes de existir esto. */
+        if (cli === "claude") {
+          await confiarCarpeta(cwd).catch(() => false);
+        }
 
         const abierto = addPane(label, cwd, command);
         if (!abierto) return responder({ error: "no pude abrir la terminal" });
@@ -2165,6 +2206,12 @@ function App() {
     setLadoMaxId((l) => (l === id ? null : l));
     setFocusedId((f) => (f === id ? null : f));
   }, []);
+
+  /* El oyente del MCP se monta mucho antes que esto, así que recibe `closePane`
+     por la ref y no por dependencia (el porqué está donde se declara la ref). */
+  useEffect(() => {
+    cerrarRef.current = closePane;
+  }, [closePane]);
 
   /**
    * El nombre nuevo que se tecleó en la cabecera de una terminal (doble clic

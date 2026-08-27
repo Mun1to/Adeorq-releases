@@ -359,6 +359,7 @@ pub fn run() {
         .manage(mcp::Puente::default())
         .invoke_handler(tauri::generate_handler![
             mcp::mcp_reply,
+            mcp::confiar_carpeta,
             pty::pty_spawn,
             pty::pty_write,
             pty::pty_resize,

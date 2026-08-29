@@ -95,8 +95,13 @@ export default function EditorWeb({ marco, sello, url, onAlAgente }: Props) {
   const raizRef = useRef("");
   const reloj = useRef(0);
 
-  const decir = useCallback((texto: string) => {
-    setAviso(texto);
+  /* Lo que se enseña abajo a la derecha. Se fuerza a texto A PROPÓSITO: es lo
+     único de este componente que se pinta tal cual, y si alguna vez le llegara
+     un objeto (un error de Rust, un evento por descuido) React tira la
+     interfaz entera con «Objects are not valid as a React child» en vez de
+     enseñar un aviso feo. Un aviso feo se ve; una caída, no se perdona. */
+  const decir = useCallback((texto: unknown) => {
+    setAviso(typeof texto === "string" ? texto : String(texto));
     window.clearTimeout(reloj.current);
     reloj.current = window.setTimeout(() => setAviso(""), 4000);
   }, []);

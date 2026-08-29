@@ -33,12 +33,16 @@ import { anotarRastro } from "../lib/pty";
 import { useT } from "../lib/i18n";
 
 /** Un texto corto y útil para el rastro: sin esto solo queda «Error». */
-function resumir(e: unknown): string {
+function resumir(e: unknown, tope = 0): string {
   if (e instanceof Error) {
     // La primera línea de la pila basta para saber en qué componente fue, y el
     // comando de Rust recorta a 500 caracteres de todas formas.
     const donde = (e.stack ?? "").split("\n")[1]?.trim() ?? "";
-    return `${e.name}: ${e.message}${donde ? ` · ${donde}` : ""}`;
+    // El mensaje se recorta ANTES de pegarle nada detrás: en producción
+    // React manda a una URL con TODAS las claves del objeto dentro, y eso
+    // pasa de los 500 caracteres que guarda el rastro.
+    const msg = tope && e.message.length > tope ? `${e.message.slice(0, tope)}…` : e.message;
+    return `${e.name}: ${msg}${donde ? ` · ${donde}` : ""}`;
   }
   return String(e);
 }
@@ -62,7 +66,13 @@ export default class Salvavidas extends Component<Props, Estado> {
     // El componente que lo lanzó, que es el dato que ahorra la mitad del
     // trabajo: sin él solo se sabe que «algo» falló.
     const pila = (info.componentStack ?? "").split("\n").slice(1, 4).join(" ← ").trim();
-    void anotarRastro(`la interfaz se cayó · ${resumir(error)}${pila ? ` · en ${pila}` : ""}`);
+    // El COMPONENTE va delante, que es el dato que ahorra la mitad del
+    // trabajo. Iba detrás, y con un mensaje largo el recorte de Rust se lo
+    // llevaba: en la caída del 2026-08-29 el apunte terminaba a media URL de
+    // React y no decía dónde había sido, así que hubo que adivinarlo.
+    void anotarRastro(
+      `la interfaz se cayó${pila ? ` en ${pila}` : ""} · ${resumir(error, 200)}`,
+    );
   }
 
   render() {

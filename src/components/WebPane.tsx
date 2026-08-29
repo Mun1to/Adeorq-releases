@@ -346,15 +346,23 @@ export default function WebPane({
   };
 
   /* Cuál es el iframe que se está viendo, que es con quien habla el editor.
-     Se busca en el DOM en cada pintado en vez de ponerle un `ref` a cada
-     pestaña: un `ref` inline se vuelve a crear en cada render y dispararía
-     otro pintado, y aquí hay uno por pestaña. Poner el MISMO elemento en el
-     estado no repinta, así que esto se para solo. */
+     Se busca en el DOM en vez de ponerle un `ref` a cada pestaña: un `ref`
+     inline se vuelve a crear en cada render y dispararía otro pintado, y aquí
+     hay uno por pestaña.
+
+     Y LLEVA DEPENDENCIAS, que es lo que faltaba. Sin ellas corría en cada
+     pintado, y como el efecto pinta, el pintado volvía a correr el efecto: al
+     encender el editor la interfaz entera se caía con «Maximum update depth
+     exceeded». Di por hecho que poner el mismo elemento en el estado no
+     repintaba y que eso lo pararía solo; ni lo comprobé ni era verdad. */
   useLayoutEffect(() => {
-    if (!editor) return;
+    if (!editor) {
+      setMarcoAct(null);
+      return;
+    }
     const marcos = cuerpo.current?.querySelectorAll("iframe");
     setMarcoAct((marcos?.[act] as HTMLIFrameElement | undefined) ?? null);
-  });
+  }, [editor, act, pests]);
 
   // Se comprueba la pestaña ACTIVA, que es la que se ve: cambiar de pestaña o
   // de dirección vuelve a preguntar.

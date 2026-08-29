@@ -14,36 +14,16 @@
 //   1. contar desde `Adeorq-origen:` en vez de desde el release anterior
 //   2. caer al asunto suelto cuando no hay feat/fix/perf en el tramo
 //   3. el desempate por sha si aun así saldría repetido
+//
+// Ojo: la decisión del TÍTULO ya no está copiada aquí, vive en
+// `titulo-publico.mjs` y se importa. Cuando estaba copiada se cambió en un
+// sitio y no en el otro, y esta prueba dio verde sobre código que ya no era el
+// que se ejecutaba. Lo que sigue escrito abajo es solo el envoltorio.
+import { queTrae as tituloDe } from "./titulo-publico.mjs";
+
 const version = "0.9.133";
 
-function queTrae(lineas) {
-  const mios = [];
-  for (const linea of lineas) {
-    const s = linea.trim();
-    const rel = s.match(/^release:\s*([\d]+\.[\d]+\.[\d]+)/i);
-    if (rel) {
-      if (rel[1] === version) continue;
-      break;
-    }
-    const m = s.match(/^(feat|fix|perf)(\([^)]*\))?:\s*(.+)$/i);
-    if (m) mios.push(m[3].trim());
-  }
-  if (!mios.length) {
-    const primero = lineas
-      .map((x) => x.trim())
-      .filter(Boolean)
-      .find((x) => !/^release:/i.test(x));
-    const m = (primero || "").match(/^[a-z]+(\([^)]*\))?:\s*(.+)$/i);
-    const suelto = (m ? m[2] : primero || "").trim();
-    if (!suelto) return { titulo: "", cuerpo: "" };
-    return { titulo: suelto.length > 72 ? suelto.slice(0, 69) + "…" : suelto, cuerpo: "" };
-  }
-  const t = mios[0];
-  return {
-    titulo: t.length > 72 ? t.slice(0, 69) + "…" : t,
-    cuerpo: mios.map((x) => "- " + x).join("\n"),
-  };
-}
+const queTrae = (lineas) => tituloDe(lineas, version);
 
 function titular(lineas, anterior, sha) {
   const trae = queTrae(lineas);
@@ -77,6 +57,33 @@ ok("y dice lo que de verdad cambio", t2.includes("PolyForm Shield"), t2);
 // Y si aun así el tramo saliera idéntico, el sha desempata.
 const comoEraAntes = titular(primeraVez, t1, "bbbbbbbbbbbb");
 ok("si el tramo saliera igual, el sha desempata", comoEraAntes !== t1, comoEraAntes);
+
+// ── El titulo dice la NOVEDAD, no el ultimo retoque ────────────────────────
+// Salio mal dos veces seguidas: la 0.9.141 se titulo con el arreglo de dos
+// tests y la 0.9.142 con un aviso, cuando lo que traian era el MCP con manos y
+// el editor de la web. Un arreglo hecho despues no es mas importante que la
+// novedad, solo es mas nuevo.
+const conFixEncima = [
+  "release: 0.9.133",
+  "fix(web): say why nothing happens when the page has no plugin",
+  "feat(web): edit your localhost page by clicking",
+  "release: 0.9.132",
+];
+const t3 = titular(conFixEncima, "otro", "dddddddddddd");
+ok("el titulo coge el feat, no el fix mas reciente", t3.includes("edit your localhost"), t3);
+
+// Y sin ningun feat, sigue mandando el mas reciente.
+const soloFixes = [
+  "release: 0.9.133",
+  "fix(a): lo ultimo",
+  "fix(b): lo anterior",
+  "release: 0.9.132",
+];
+ok(
+  "sin feat, manda el mas reciente",
+  titular(soloFixes, "otro", "eeeeeeeeeeee").includes("lo ultimo"),
+  titular(soloFixes, "otro", "eeeeeeeeeeee"),
+);
 
 // ── Los bordes ─────────────────────────────────────────────────────────────
 ok("un tramo vacio no revienta", titular([], "otro", "cccccccccccc") === "Adeorq 0.9.133");

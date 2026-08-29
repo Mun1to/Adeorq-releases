@@ -20,6 +20,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, readdirSync, statSync, readFileSync, cpSync } from "node:fs";
 import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
+import { queTrae as titulo } from "./titulo-publico.mjs";
 
 const REPO_PUBLICO = "https://github.com/Mun1to/Adeorq-releases.git";
 
@@ -118,7 +119,7 @@ function queTrae(desde) {
   let lineas = [];
   try {
     /* Con `desde`, solo lo que ha entrado DESPUÉS de la última publicación.
-       Sin él (la primera vez), los últimos 80 y que el bucle de abajo pare
+       Sin él (la primera vez), los últimos 80 y que el corte de `queTrae` pare
        donde toca. */
     lineas = desde
       ? git(["log", "--pretty=%s", `${desde}..HEAD`], raiz).split("\n")
@@ -126,47 +127,7 @@ function queTrae(desde) {
   } catch {
     return { titulo: "", cuerpo: "" };
   }
-  const mios = [];
-  /* Se para en el `release:` de OTRA versión, no en el primero que aparezca.
-     Los de esta (el del número y el del manifiesto) se saltan, porque son parte
-     de publicarla. Contar posiciones no vale: encima del release puede haber un
-     `docs:` de otra sesión trabajando en paralelo, y con eso la lista salía
-     vacía. */
-  for (const linea of lineas) {
-    const s = linea.trim();
-    const rel = s.match(/^release:\s*([\d]+\.[\d]+\.[\d]+)/i);
-    if (rel) {
-      if (rel[1] === version) continue;
-      break;
-    }
-    const m = s.match(/^(feat|fix|perf)(\([^)]*\))?:\s*(.+)$/i);
-    if (m) mios.push(m[3].trim());
-  }
-  /* Si en el tramo no hay ningún `feat`, `fix` ni `perf`, esto no se calla: coge
-     el asunto más reciente sea del tipo que sea y le quita el prefijo. Un tramo
-     así existe de verdad (una publicación que solo cambia la licencia o la
-     documentación), y quedarse en «Adeorq 0.9.133» a secas por segunda vez es
-     justo el commit repetido que esto viene a evitar. */
-  if (!mios.length) {
-    /* Los `release:` se saltan aquí también, o el título saldría siendo el
-       número de versión que ya está delante: «Adeorq 0.9.134 — 0.9.134». Lo
-       cazó el simulacro, no el ojo. */
-    const primero = lineas
-      .map((x) => x.trim())
-      .filter(Boolean)
-      .find((x) => !/^release:/i.test(x));
-    const m = (primero || "").match(/^[a-z]+(\([^)]*\))?:\s*(.+)$/i);
-    const suelto = (m ? m[2] : primero || "").trim();
-    if (!suelto) return { titulo: "", cuerpo: "" };
-    return { titulo: suelto.length > 72 ? `${suelto.slice(0, 69)}…` : suelto, cuerpo: "" };
-  }
-  /* UNA frase, la del cambio más reciente, y el resto en el cuerpo.
-     Encadenar tres da un título de tres renglones con dos «and» dentro, y la
-     lista de commits de GitHub lo corta igual: lo que se lee de un vistazo es
-     el principio, así que ahí va lo que mejor resume la versión. El detalle
-     entero está a un clic, en el cuerpo. */
-  const titulo = mios[0].length > 72 ? `${mios[0].slice(0, 69)}…` : mios[0];
-  return { titulo, cuerpo: mios.map((x) => `- ${x}`).join("\n") };
+  return titulo(lineas, version);
 }
 
 const tmp = mkdtempSync(join(tmpdir(), "adeorq-pub-"));

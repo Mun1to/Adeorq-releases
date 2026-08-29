@@ -445,23 +445,32 @@ export default function WebPane({
           >
             <BrowserIcon size={13} />
           </button>
-          {/* Editar por clic. Solo con la página pintada aquí dentro: sobre tu
-              navegador es una ventana de otro proceso y no hay forma de
-              hablarle, así que el botón ni aparece. */}
-          {modo === "dentro" && (
-            <button
-              className="mini"
-              data-on={editor}
-              data-tip={
-                editor
+          {/* Editar por clic. Sobre tu navegador no se puede: es una ventana de
+              otro proceso y no hay forma de hablarle. Pero el botón NO
+              desaparece, porque un botón que falta se lee como que algo se ha
+              roto: se queda, y desde ahí te devuelve al de dentro con el editor
+              ya encendido, que es lo que ibas a hacer de todas formas. */}
+          <button
+            className="mini"
+            data-on={editor}
+            data-tip={
+              modo === "tuyo"
+                ? t("Editar por clic necesita la página aquí dentro. Pulsa para volver y editar.")
+                : editor
                   ? t("Salir del editor")
                   : t("Editar esta página haciendo clic, y guardarlo en el código")
+            }
+            onClick={() => {
+              if (modo === "tuyo") {
+                cambiarModo("dentro");
+                setEditor(true);
+                return;
               }
-              onClick={() => setEditor((e) => !e)}
-            >
-              <PicarIcon size={13} />
-            </button>
-          )}
+              setEditor((e) => !e);
+            }}
+          >
+            <PicarIcon size={13} />
+          </button>
           <button
             className="mini"
             data-tip={t("Abrirla en tu navegador de verdad")}

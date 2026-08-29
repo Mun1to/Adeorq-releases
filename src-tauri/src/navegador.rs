@@ -51,12 +51,13 @@ mod win {
     use std::collections::HashMap;
     use std::sync::{Mutex, OnceLock};
 
-    use windows_sys::Win32::Foundation::{HWND, LPARAM};
+    use windows_sys::Win32::Foundation::{HWND, LPARAM, RECT};
     use windows_sys::Win32::System::Registry::{
         RegGetValueW, HKEY, HKEY_CLASSES_ROOT, HKEY_CURRENT_USER, RRF_RT_REG_SZ,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        EnumWindows, GetClassNameW, GetWindowLongPtrW, IsWindow, IsWindowVisible, PostMessageW,
+        EnumWindows, GetClassNameW, GetWindowLongPtrW, GetWindowRect, GetWindowTextW, IsWindow,
+        IsWindowVisible, PostMessageW,
         SetParent, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_STYLE, HWND_TOP,
         SWP_NOACTIVATE, SWP_NOZORDER, SW_HIDE, SW_SHOWNA, WM_CLOSE, WS_CAPTION, WS_CHILD, WS_POPUP,
         WS_THICKFRAME, WS_VISIBLE,
@@ -91,6 +92,56 @@ mod win {
         let mut buf = [0u16; 128];
         let n = unsafe { GetClassNameW(hwnd, buf.as_mut_ptr(), buf.len() as i32) };
         String::from_utf16_lossy(&buf[..n.max(0) as usize])
+    }
+
+    fn titulo_de(hwnd: HWND) -> String {
+        let mut buf = [0u16; 512];
+        let n = unsafe { GetWindowTextW(hwnd, buf.as_mut_ptr(), buf.len() as i32) };
+        String::from_utf16_lossy(&buf[..n.max(0) as usize])
+    }
+
+    fn medida_de(hwnd: HWND) -> (i32, i32) {
+        let mut r = RECT { left: 0, top: 0, right: 0, bottom: 0 };
+        if unsafe { GetWindowRect(hwnd, &mut r) } == 0 {
+            return (0, 0);
+        }
+        (r.right - r.left, r.bottom - r.top)
+    }
+
+    /// Como se llama una ventana NORMAL del navegador. La de `--app` no lleva
+    /// esta coletilla, porque no es del navegador: es de la pagina.
+    const COLETILLAS: &[&str] = &[
+        " - brave",
+        " - google chrome",
+        " - chromium",
+        " - microsoft edge",
+        " - vivaldi",
+        " - opera",
+    ];
+
+    /// Si esta es la ventana que pedimos, o una de las que Chromium abre por su
+    /// cuenta. Los dos filtros salen de medirlo lanzando el navegador a mano
+    /// (2026-08-29), no de suponer:
+    ///
+    ///  - Chromium abre ventanas auxiliares VISIBLES y de la MISMA clase, de
+    ///    22x15 y de 128x22. Coger una de esas metia un fantasma en el hueco y
+    ///    dejaba la de verdad tirada en el escritorio, que es justo el «se me
+    ///    popea una ventana» que se veia.
+    ///  - Con el navegador ya abierto, `--app` a veces lo atiende la instancia
+    ///    que ya corre y lo que sale es una ventana NORMAL, con sus pestanas.
+    ///    Meter eso en el panel seria secuestrarle el navegador al usuario.
+    fn es_la_nuestra(hwnd: HWND) -> bool {
+        let (ancho, alto) = medida_de(hwnd);
+        vale_la_ventana(ancho, alto, &titulo_de(hwnd))
+    }
+
+    /// La decisión sola, sin Win32 delante, para poder probarla.
+    pub fn vale_la_ventana(ancho: i32, alto: i32, titulo: &str) -> bool {
+        if ancho < 300 || alto < 200 {
+            return false;
+        }
+        let titulo = titulo.to_lowercase();
+        !COLETILLAS.iter().any(|c| titulo.ends_with(c))
     }
 
     fn ventanas_de_navegador() -> Vec<isize> {
@@ -151,7 +202,7 @@ mod win {
         for _ in 0..160 {
             std::thread::sleep(std::time::Duration::from_millis(50));
             for h in ventanas_de_navegador() {
-                if !antes.contains(&h) {
+                if !antes.contains(&h) && es_la_nuestra(h as HWND) {
                     return Some(h);
                 }
             }
@@ -174,9 +225,11 @@ mod win {
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "navegador".into());
 
-        // Si ya había una en este panel, primero se suelta: dos ventanas
-        // superpuestas en el mismo hueco es peor que ninguna.
-        soltar(id);
+        // Si ya había una en este panel se CIERRA. Soltarla la devolvía al
+        // escritorio, así que una carrera entre dos peticiones (el panel
+        // navegando mientras el navegador todavía arranca) dejaba la anterior
+        // flotando por ahí en vez de quitarla.
+        cerrar(id);
 
         let antes = ventanas_de_navegador();
         std::process::Command::new(&exe)
@@ -301,6 +354,35 @@ mod win {
     #[cfg(test)]
     mod pruebas {
         use super::*;
+
+        /// Las medidas y los títulos son REALES, medidos el 2026-08-29 lanzando
+        /// el navegador a mano y enumerando lo que aparecía. Sin este filtro,
+        /// `empotrar` metía en el hueco la primera ventana nueva que veía y la
+        /// de verdad se quedaba suelta en el escritorio.
+        #[test]
+        fn solo_pasa_la_ventana_de_la_pagina() {
+            // Las auxiliares que abre Chromium, de su misma clase y visibles.
+            assert!(!vale_la_ventana(22, 15, ""));
+            assert!(!vale_la_ventana(128, 22, "Nueva pestaña - Brave"));
+
+            // Una ventana NORMAL del navegador: grande, pero con su coletilla.
+            assert!(!vale_la_ventana(1554, 930, "Nueva pestaña - Brave"));
+            assert!(!vale_la_ventana(1554, 930, "GitHub - Google Chrome"));
+            assert!(!vale_la_ventana(1554, 930, "Inicio - Microsoft Edge"));
+
+            // La de `--app`: lleva el título de la PÁGINA y nada más.
+            assert!(vale_la_ventana(1200, 800, "localhost:1420"));
+            assert!(vale_la_ventana(1200, 800, "Adeorq"));
+            // Sin título todavía (la página aún no ha cargado) pero con tamaño
+            // de ventana de verdad: vale, o se perdería la buena por llegar
+            // antes que su título.
+            assert!(vale_la_ventana(1200, 800, ""));
+
+            // Justo en el borde, para que el umbral no se mueva sin querer.
+            assert!(!vale_la_ventana(299, 800, "x"));
+            assert!(!vale_la_ventana(1200, 199, "x"));
+            assert!(vale_la_ventana(300, 200, "x"));
+        }
 
         /// Que cerrar CIERRE, que es justo lo que no hacía.
         ///

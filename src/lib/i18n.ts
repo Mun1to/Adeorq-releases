@@ -2276,6 +2276,8 @@ const EN: Record<string, string> = {
   "Editar esta página haciendo clic, y guardarlo en el código":
     "Edit this page by clicking, and have it saved into the code",
   "Salir del editor": "Leave the editor",
+  "Editar por clic necesita la página aquí dentro. Pulsa para volver y editar.":
+    "Click-to-edit needs the page rendered in here. Click to come back and edit.",
   Seleccionar: "Select",
   "Mover y estirar": "Move and resize",
   "Recuadro al agente": "Box to the agent",

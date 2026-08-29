@@ -33,8 +33,10 @@
 //    y con X11 sería otra API distinta (XEmbed).
 //  · Las medidas van en PÍXELES FÍSICOS. Munir tiene tres monitores y uno al
 //    125 %: pasar píxeles de CSS coloca la ventana en otro sitio.
-//  · Al soltarla se le devuelven el marco y el escritorio. Si no, se queda
-//    colgando de una ventana que va a desaparecer.
+//  · Salir de aquí tiene DOS formas y no dan igual. `cerrar` la cierra, que es
+//    lo que espera quien cierra la pestaña. `soltar` le devuelve el marco y la
+//    deja en el escritorio, y eso solo vale al cerrar Adeorq entero, para que
+//    la página no se pierda con la ventana de la que colgaba.
 
 #[derive(serde::Serialize)]
 pub struct Empotrada {
@@ -54,10 +56,10 @@ mod win {
         RegGetValueW, HKEY, HKEY_CLASSES_ROOT, HKEY_CURRENT_USER, RRF_RT_REG_SZ,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        EnumWindows, GetClassNameW, GetWindowLongPtrW, IsWindow, IsWindowVisible, SetParent,
-        SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_STYLE, HWND_TOP, SWP_NOACTIVATE,
-        SWP_NOZORDER, SW_HIDE, SW_SHOWNA, WS_CAPTION, WS_CHILD, WS_POPUP, WS_THICKFRAME,
-        WS_VISIBLE,
+        EnumWindows, GetClassNameW, GetWindowLongPtrW, IsWindow, IsWindowVisible, PostMessageW,
+        SetParent, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_STYLE, HWND_TOP,
+        SWP_NOACTIVATE, SWP_NOZORDER, SW_HIDE, SW_SHOWNA, WM_CLOSE, WS_CAPTION, WS_CHILD, WS_POPUP,
+        WS_THICKFRAME, WS_VISIBLE,
     };
 
     /// Las ventanas que hemos metido dentro, por id de panel. Hace falta para
@@ -263,10 +265,85 @@ mod win {
         }
     }
 
+    /// La cierra de verdad, como si le hubieras dado a su X.
+    ///
+    /// Es lo que hace falta al cerrar la pestaña o el panel, y es distinto de
+    /// `soltar`: soltar la devuelve al escritorio, así que cerrar el panel
+    /// hacía APARECER una ventana de navegador en vez de quitarla. Y al cambiar
+    /// de dirección pasaba lo mismo sin que nadie cerrara nada, porque el panel
+    /// suelta la vieja y abre otra: navegar diez veces dejaba diez ventanas.
+    ///
+    /// Se manda `WM_CLOSE`, que es el mismo mensaje que la X: si la página
+    /// tuviera algo que preguntar antes de irse, lo pregunta. No se mata el
+    /// proceso, que es el navegador entero de Munir con todo lo demás dentro.
+    pub fn cerrar(id: u32) {
+        let Some(h) = metidas().lock().unwrap().remove(&id) else {
+            return;
+        };
+        unsafe {
+            if IsWindow(h as HWND) == 0 {
+                return;
+            }
+            // Esconderla primero: sigue siendo hija del panel, y verla
+            // desaparecer es más limpio que ver el hueco vacío repintarse.
+            ShowWindow(h as HWND, SW_HIDE);
+            PostMessageW(h as HWND, WM_CLOSE, 0, 0);
+        }
+    }
+
     pub fn soltar_todas() {
         let ids: Vec<u32> = metidas().lock().unwrap().keys().copied().collect();
         for id in ids {
             soltar(id);
+        }
+    }
+
+    #[cfg(test)]
+    mod pruebas {
+        use super::*;
+
+        /// Que cerrar CIERRE, que es justo lo que no hacía.
+        ///
+        /// Va marcada `ignore` porque abre una ventana de navegador de verdad
+        /// en el escritorio de quien la lance, y eso no puede pasar en cada
+        /// `cargo test`. Se corre a mano:
+        ///
+        /// ```text
+        /// cargo test --manifest-path src-tauri/Cargo.toml cierra_la_ventana -- --ignored --nocapture
+        /// ```
+        #[test]
+        #[ignore = "abre una ventana de navegador de verdad; se lanza a mano"]
+        fn cerrar_cierra_la_ventana_de_verdad() {
+            let exe = por_defecto().expect("no se pudo saber cuál es el navegador por defecto");
+            let antes = ventanas_de_navegador();
+            std::process::Command::new(&exe)
+                .arg("--app=about:blank")
+                .spawn()
+                .expect("no arrancó el navegador");
+            let nueva = esperar_ventana_nueva(&antes).expect("no llegó a abrir su ventana");
+
+            // Sin `SetParent`: lo que se prueba es el cierre, y meterla dentro
+            // de otra ventana pediría una ventana padre que aquí no hay.
+            metidas().lock().unwrap().insert(u32::MAX, nueva);
+            assert_eq!(unsafe { IsWindow(nueva as HWND) }, 1, "debería estar viva");
+
+            cerrar(u32::MAX);
+
+            // Se le da tiempo a Chromium a atender el `WM_CLOSE`: es un mensaje
+            // en su cola, no una orden inmediata.
+            let mut viva = true;
+            for _ in 0..60 {
+                if unsafe { IsWindow(nueva as HWND) } == 0 {
+                    viva = false;
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            assert!(!viva, "la ventana seguía viva seis segundos después de cerrarla");
+            assert!(
+                !metidas().lock().unwrap().contains_key(&u32::MAX),
+                "cerrarla tiene que sacarla del mapa, o el panel siguiente la creería suya"
+            );
         }
     }
 }
@@ -324,6 +401,17 @@ pub async fn ver_navegador(id: u32, visible: bool) -> Result<(), String> {
 pub async fn soltar_navegador(id: u32) -> Result<(), String> {
     #[cfg(windows)]
     win::soltar(id);
+    #[cfg(not(windows))]
+    let _ = id;
+    Ok(())
+}
+
+/// Cerrarla. Es lo que quiere el panel al cerrar su pestaña: que la ventana se
+/// vaya, no que reaparezca en el escritorio.
+#[tauri::command]
+pub async fn cerrar_navegador(id: u32) -> Result<(), String> {
+    #[cfg(windows)]
+    win::cerrar(id);
     #[cfg(not(windows))]
     let _ = id;
     Ok(())

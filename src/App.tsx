@@ -3292,6 +3292,28 @@ function App() {
 
   const placement = layoutRects(colsVisibles);
 
+  /**
+   * Lo que el editor de la web le manda al agente.
+   *
+   * Se ESCRIBE, no se envía: es la misma regla que el Capataz, y aquí vale
+   * doble porque el parte lo ha redactado la sonda mirando el DOM y a veces se
+   * le quiere añadir algo antes de soltarlo.
+   *
+   * Va a la terminal enfocada, y si la que tienes delante es el propio panel
+   * de web (que es lo normal, acabas de hacer clic ahí), a la primera terminal
+   * que haya. Devuelve si encontró alguna: el aviso lo da la propia barra del
+   * editor, que es donde estás mirando, y no un cartel al otro lado de la app.
+   */
+  const alAgenteDeLaWeb = (texto: string): boolean => {
+    const esTerminal = (p: Pane) => !p.web && !p.archivos?.length;
+    const enfocada = panes.find((p) => p.id === focusedIdRef2.current && esTerminal(p));
+    const destino = enfocada ?? panes.find(esTerminal);
+    if (!destino) return false;
+    setFocusedId(destino.id);
+    void writePty(destino.id, texto).catch(() => {});
+    return true;
+  };
+
   const foremanExec: ForemanExec = {
     focused: () => focusedIdRef2.current,
     // Se ESCRIBE en el panel, no se envía: el encargo lo manda él dándole a
@@ -3761,6 +3783,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                       onHeaderDown={onHeaderDown}
                       onEstado={onWebEstado}
                       pedida={webPedida ?? undefined}
+                      onAlAgente={alAgenteDeLaWeb}
                     />
                   );
                 }

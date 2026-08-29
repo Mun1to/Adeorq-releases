@@ -27,10 +27,10 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useT } from "../lib/i18n";
 import { puedeEmpotrarse } from "../lib/pty";
 import {
+  cerrarNavegador,
   empotrarNavegador,
   enFisicos,
   moverNavegador,
-  soltarNavegador,
   verNavegador,
 } from "../lib/navegador";
 import { comoUrl } from "./CanvasWeb";
@@ -43,7 +43,9 @@ import {
   RefreshIcon,
   RestoreIcon,
   MaximizeIcon,
+  PicarIcon,
 } from "./Icons";
+import EditorWeb from "./EditorWeb";
 
 interface Props {
   id: number;
@@ -76,6 +78,9 @@ interface Props {
    * hace dueño de sus pestañas en cuanto se monta.
    */
   pedida?: { url: string; sello: number };
+  /** Dejar un encargo escrito en la terminal que tengas delante. Lo usa el
+      editor por clic para mandarle al agente el elemento que has señalado. */
+  onAlAgente?: (texto: string) => boolean;
 }
 
 /** Una pestaña por dentro. La pila es el historial de atrás y adelante, y es
@@ -145,6 +150,7 @@ export default function WebPane({
   onHeaderDown,
   onEstado,
   pedida,
+  onAlAgente,
 }: Props) {
   const { t } = useT();
   /** Las pestañas viven aquí; App solo guarda la foto para el reinicio. */
@@ -168,6 +174,13 @@ export default function WebPane({
   );
   const [programa, setPrograma] = useState("");
   const [fallo, setFallo] = useState("");
+  /** El editor por clic. Solo con la página pintada aquí dentro: sobre tu
+      navegador no hay forma de hablarle, que es una ventana de otro proceso. */
+  const [editor, setEditor] = useState(false);
+  /** El cuerpo, para poder dar con el iframe de la pestaña que se está viendo
+      sin ponerle un `ref` a cada uno y provocar un pintado en cadena. */
+  const cuerpo = useRef<HTMLDivElement>(null);
+  const [marcoAct, setMarcoAct] = useState<HTMLIFrameElement | null>(null);
   /** Dónde estaba la última vez, para no pedirle a Windows que mueva la ventana
       a donde ya está sesenta veces por segundo. */
   const ultima = useRef("");
@@ -290,9 +303,14 @@ export default function WebPane({
     void empotrarNavegador(id, urlAct, caja)
       .then((r) => vivo && setPrograma(r.programa))
       .catch((e) => vivo && setFallo(String(e)));
+    /* Al irse el panel, o al cambiar de dirección, la ventana de antes se
+       CIERRA. Soltarla la devolvía al escritorio, así que cerrar la pestaña
+       hacía aparecer una ventana de navegador en vez de quitarla, y como este
+       efecto también se rehace al navegar, cada dirección nueva dejaba la
+       anterior tirada por ahí. */
     return () => {
       vivo = false;
-      void soltarNavegador(id).catch(() => {});
+      void cerrarNavegador(id).catch(() => {});
     };
   }, [id, urlAct, modo]);
 
@@ -326,6 +344,17 @@ export default function WebPane({
     localStorage.setItem(MODO_KEY, m);
     setModo(m);
   };
+
+  /* Cuál es el iframe que se está viendo, que es con quien habla el editor.
+     Se busca en el DOM en cada pintado en vez de ponerle un `ref` a cada
+     pestaña: un `ref` inline se vuelve a crear en cada render y dispararía
+     otro pintado, y aquí hay uno por pestaña. Poner el MISMO elemento en el
+     estado no repinta, así que esto se para solo. */
+  useLayoutEffect(() => {
+    if (!editor) return;
+    const marcos = cuerpo.current?.querySelectorAll("iframe");
+    setMarcoAct((marcos?.[act] as HTMLIFrameElement | undefined) ?? null);
+  });
 
   // Se comprueba la pestaña ACTIVA, que es la que se ve: cambiar de pestaña o
   // de dirección vuelve a preguntar.
@@ -408,6 +437,23 @@ export default function WebPane({
           >
             <BrowserIcon size={13} />
           </button>
+          {/* Editar por clic. Solo con la página pintada aquí dentro: sobre tu
+              navegador es una ventana de otro proceso y no hay forma de
+              hablarle, así que el botón ni aparece. */}
+          {modo === "dentro" && (
+            <button
+              className="mini"
+              data-on={editor}
+              data-tip={
+                editor
+                  ? t("Salir del editor")
+                  : t("Editar esta página haciendo clic, y guardarlo en el código")
+              }
+              onClick={() => setEditor((e) => !e)}
+            >
+              <PicarIcon size={13} />
+            </button>
+          )}
           <button
             className="mini"
             data-tip={t("Abrirla en tu navegador de verdad")}
@@ -495,7 +541,16 @@ export default function WebPane({
           ) : null}
         </div>
       ) : (
-      <div className="web-body">
+      <div className="web-coneditor">
+        {editor && (
+          <EditorWeb
+            marco={marcoAct}
+            sello={pest?.vuelta ?? 0}
+            url={urlAct}
+            onAlAgente={(texto) => onAlAgente?.(texto) ?? false}
+          />
+        )}
+      <div className="web-body" ref={cuerpo}>
         {rechaza ? (
           <div className="web-nope">
             <p className="web-nope-tit">{t("Esta página no se deja abrir aquí dentro")}</p>
@@ -531,6 +586,7 @@ export default function WebPane({
             />
           ) : null,
         )}
+      </div>
       </div>
       )}
     </section>

@@ -19685,3 +19685,359 @@ textarea.note-body {
 .caida-boton:hover {
   background: color-mix(in srgb, var(--accent) 26%, var(--panel));
 }
+
+
+/* ══ El editor de la web ═══════════════════════════════════════════════════
+   La columna de herramientas que FLOTA sobre tu localhost cuando enciendes el
+   modo edición del panel de web. Vive fuera del iframe, así que se pinta con
+   el cristal de Adeorq y no hereda ni una regla de tu página.
+
+   Flota encima en vez de partir el panel en dos por una razón de sitio: un
+   panel de web ya suele ser estrecho, y quitarle 240 px fijos a la página deja
+   la web que estás mirando en una columna que no se parece a la de verdad. */
+
+.editor-web {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  bottom: 12px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: 15px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.45), var(--glass-edge);
+}
+
+/* La lista de herramientas ocupa lo que necesita y empuja el pie abajo del
+   todo, que es donde vive «Mandar al agente». */
+.ew-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ew-tool {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.ew-tool svg {
+  flex: 0 0 auto;
+}
+.ew-tool span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ew-tool:hover {
+  background: var(--row);
+  color: var(--text);
+}
+/* El acento de la app, oscurecido lo justo para que el texto pueda ir en
+   blanco. El `--accent` a pelo es demasiado claro en el tema azul y el blanco
+   encima no se lee. */
+.ew-tool[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 76%, #08172b);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── Plegada a solo iconos, y se abre al acercarte ───────────────────────
+   Munir, con la barra ya montada: «¿por qué no hay una opción para que se vean
+   solo los iconos, para que no estorbe tanto?». Y tiene razón: 238 px encima de
+   una web que a lo mejor mide 700 tapan media página.
+
+   Se probaron cuatro formas de plegarla y eligió esta: vive estrecha y se abre
+   sola al pasar el ratón. Antes hubo un tirador pegado al borde y lo rechazó,
+   con motivo: un botón para plegar una barra es una cosa más que mirar, y esto
+   no la necesita. Sin botón, sin ajuste y sin nada que recordar.
+
+   El retardo al ABRIR (y ninguno al cerrar) es lo que evita que se despliegue
+   sola cada vez que cruzas por la izquierda camino de otra cosa. */
+
+.editor-web {
+  width: 58px;
+  transition: width 0.15s ease;
+}
+.editor-web:hover {
+  width: 238px;
+  transition-delay: 0.12s;
+}
+
+/* Plegada, los botones son solo su icono, centrado. */
+.editor-web .ew-tool,
+.editor-web .ew-enviar {
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+.editor-web .ew-tool span,
+.editor-web .ew-enviar span {
+  display: none;
+}
+/* Red por si algún día algo se cuela: plegada, la barra no deja salir nada.
+   El texto del envío llegó a desbordarse por la derecha, encima de la web. */
+.editor-web {
+  overflow: hidden;
+}
+.editor-web:hover .ew-tool,
+.editor-web:hover .ew-enviar {
+  justify-content: flex-start;
+  padding: 0 14px;
+  gap: 15px;
+}
+.editor-web:hover .ew-tool span,
+.editor-web:hover .ew-enviar span {
+  display: inline;
+}
+
+/* Con el modo rendimiento puesto cambia de golpe, como todo lo demás. */
+:root[data-rendimiento="1"] .editor-web {
+  transition: none;
+}
+
+/* El hueco que separa las herramientas del pie. Vacío a propósito: es lo que
+   deja «Mandar al agente» abajo del todo por mucho que crezca la lista. */
+.ew-hueco {
+  flex: 1;
+  min-height: 12px;
+}
+
+.ew-pie {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.ew-enviar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.ew-enviar:hover:not(:disabled) {
+  background: var(--row);
+  color: var(--text);
+}
+.ew-enviar:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── Los controles, en su propio panel ────────────────────────────────────
+   Aparte de la columna y solo cuando hay algo señalado: la columna tiene que
+   verse igual siempre, y un panel que le crece por debajo la convierte en
+   otra cosa cada vez que tocas la página. */
+
+.ew-panel {
+  position: absolute;
+  left: 82px;
+  bottom: 12px;
+  width: 232px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 13px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.ew-quien {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.ew-tag {
+  font: 600 11px/1.4 var(--mono, ui-monospace, monospace);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.ew-clases {
+  font: 11px/1.4 var(--mono, ui-monospace, monospace);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 96px;
+}
+.ew-medida {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ew-fila {
+  display: grid;
+  grid-template-columns: 56px 1fr 44px;
+  align-items: center;
+  gap: 7px;
+}
+.ew-fila label {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.ew-fila input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.ew-fila input[type="color"] {
+  width: 100%;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+.ew-fila select {
+  grid-column: 2 / -1;
+  background: var(--row);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 11.5px;
+}
+.ew-num {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+
+.ew-accion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--row);
+  color: var(--text);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.ew-accion:hover {
+  background: var(--row-hover);
+}
+.ew-accion.peligro:hover {
+  border-color: var(--wait);
+  color: var(--wait);
+}
+.ew-pareja {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.ew-pista {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.ew-pista.alerta {
+  color: var(--ask);
+}
+
+/* Cuando la página no lleva el plugin. Va en medio y no como un aviso de paso,
+   porque sin él el editor no puede hacer nada: es lo primero que hay que
+   resolver, no una nota al margen. */
+.ew-sinplugin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  width: 330px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 18px 20px;
+  border-radius: 13px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+.ew-sinplugin-tit {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.ew-sinplugin-txt {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* Lo que acaba de pasar, flotando abajo a la derecha para no robarle sitio a
+   nada. Solo aparece cuando hay algo que decir. */
+.ew-estado {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 6;
+  margin: 0;
+  max-width: 320px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 11.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* El panel entero, que ahora es el lienzo sobre el que flota la columna. */
+.web-coneditor {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.web-coneditor > .web-body {
+  flex: 1;
+  min-width: 0;
+}

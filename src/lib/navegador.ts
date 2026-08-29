@@ -55,7 +55,14 @@ export function puertoEscucha(puerto: number): Promise<boolean> {
   return invoke("puerto_escucha", { puerto });
 }
 
-/** Devolverle su marco y dejarla en el escritorio. La página no se pierde. */
+/** Devolverle su marco y dejarla en el escritorio. La página no se pierde.
+    Solo tiene sentido al cerrar Adeorq entero; para cerrar la pestaña o el
+    panel es `cerrarNavegador`, o la ventana reaparece en el escritorio. */
 export function soltarNavegador(id: number): Promise<void> {
   return invoke("soltar_navegador", { id });
+}
+
+/** Cerrarla, como si le dieras a su X. */
+export function cerrarNavegador(id: number): Promise<void> {
+  return invoke("cerrar_navegador", { id });
 }

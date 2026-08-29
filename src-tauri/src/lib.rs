@@ -3,6 +3,7 @@ mod archivos;
 mod autostart;
 mod crew;
 mod discord;
+mod editor;
 mod encargos;
 mod esquema;
 mod foreman;
@@ -373,7 +374,10 @@ pub fn run() {
             navegador::mover_navegador,
             navegador::ver_navegador,
             navegador::soltar_navegador,
+            navegador::cerrar_navegador,
             navegador::puerto_escucha,
+            editor::editor_escribir_estilo,
+            editor::editor_escribir_texto,
             archivos::listar_carpeta,
             archivos::leer_archivo,
             archivos::guardar_archivo,

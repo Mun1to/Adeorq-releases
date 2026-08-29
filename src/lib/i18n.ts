@@ -2270,6 +2270,58 @@ const EN: Record<string, string> = {
   "Entran {n} de golpe; el resto se queda para la próxima tanda.":
     "{n} go in at once; the rest waits for the next batch.",
   "No pude escribir el BUZON.md": "I could not write BUZON.md",
+
+  // ── El editor de la web: la columna de herramientas del panel de web ──────
+  "Editar la página": "Edit the page",
+  "Editar esta página haciendo clic, y guardarlo en el código":
+    "Edit this page by clicking, and have it saved into the code",
+  "Salir del editor": "Leave the editor",
+  Seleccionar: "Select",
+  "Mover y estirar": "Move and resize",
+  "Recuadro al agente": "Box to the agent",
+  Esquinas: "Corners",
+  Espaciado: "Spacing",
+  "Recorte y sombra": "Crop and shadow",
+  "Color y degradado": "Color and gradient",
+  "Girar y capa": "Rotate and layer",
+  "Duplicar y borrar": "Duplicate and delete",
+  "Mandar al agente": "Send to the agent",
+  "Señala algo en la página para empezar": "Point at something on the page to start",
+  "Arrastra un recuadro sobre la página": "Drag a box over the page",
+  "Doble clic sobre el texto para cambiarlo": "Double-click the text to change it",
+  Ancho: "Width",
+  Alto: "Height",
+  Redondeo: "Radius",
+  Margen: "Margin",
+  Opacidad: "Opacity",
+  Sombra: "Shadow",
+  "Sin sombra": "No shadow",
+  "Con sombra": "With shadow",
+  Fondo: "Background",
+  "Ponerle un degradado": "Give it a gradient",
+  Tamaño: "Size",
+  Alineado: "Align",
+  Izquierda: "Left",
+  Centro: "Center",
+  Derecha: "Right",
+  Giro: "Rotation",
+  Capa: "Layer",
+  "Guardado en {f}": "Saved in {f}",
+  "Elemento mandado al agente": "Element sent to the agent",
+  "{n} elementos mandados al agente": "{n} elements sent to the agent",
+  "Se lo he pedido al agente": "Asked the agent to do it",
+  "Abre una terminal para poder mandarle esto": "Open a terminal to send this to",
+  "Ahí dentro no había ningún elemento entero": "There was no whole element in there",
+  "Buscando la sonda en la página…": "Looking for the probe in the page…",
+  "Esta página no lleva el plugin de Adeorq": "This page does not have the Adeorq plugin",
+  "Esta página no se puede editar todavía": "This page cannot be edited yet",
+  "Le falta el plugin de Adeorq, que es quien marca cada elemento con el trozo de fichero del que salió. Se añade una vez por proyecto.":
+    "It is missing the Adeorq plugin, the piece that marks every element with the bit of file it came from. You add it once per project.",
+  "Que lo añada el agente": "Have the agent add it",
+  "Ese elemento no lleva marca de origen: el cambio se ve, pero no se guarda":
+    "That element has no origin mark: you can see the change, but it will not be saved",
+  "Sin marca de origen: se ve el cambio pero no se guarda":
+    "No origin mark: the change shows but is not saved",
 };
 
 export function detectLang(): Lang {

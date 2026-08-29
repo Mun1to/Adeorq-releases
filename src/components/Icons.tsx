@@ -913,3 +913,112 @@ export function VozIcon({ size = 17 }: Props) {
     </svg>
   );
 }
+
+/* ── El editor de la web: las herramientas de la columna ─────────────────── */
+
+/** Seleccionar: la flecha del puntero. */
+export function PicarIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M5.5 3.5 19 12l-6.2 1.4L10 20 5.5 3.5Z" />
+    </svg>
+  );
+}
+
+/** Mover y estirar: el marco con sus asas en las esquinas. */
+export function MoverIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+    </svg>
+  );
+}
+
+/** Recuadro al agente: dibujar una caja sobre la página. */
+export function RecuadroIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+    </svg>
+  );
+}
+
+/** Esquinas: un ángulo redondeado con su radio marcado. */
+export function EsquinaIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 20V10a6 6 0 0 1 6-6h10" />
+      <circle cx="11.5" cy="12.5" r="1.6" />
+    </svg>
+  );
+}
+
+/** Espaciado: dos topes y la distancia entre ellos. */
+export function EspaciadoIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 5v14M20 5v14" />
+      <path d="M8 12h8M8 12l2.2-2.2M8 12l2.2 2.2M16 12l-2.2-2.2M16 12l-2.2 2.2" />
+    </svg>
+  );
+}
+
+/** Recorte y sombra: la pluma que suaviza un borde. */
+export function RecorteIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4 20c0-7 4.5-13 12-15 1.5 6.5-1 15-8.5 15H4Z" />
+      <path d="M4 20 12 12" />
+    </svg>
+  );
+}
+
+/** Color y degradado: el bote de pintura volcado. */
+export function PinturaIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M11 3.5 4.5 10a1.6 1.6 0 0 0 0 2.3l5.2 5.2a1.6 1.6 0 0 0 2.3 0l6.5-6.5L11 3.5Z" />
+      <path d="M20.5 15.5c0 1.1-.8 2-1.8 2s-1.8-.9-1.8-2 1.8-3 1.8-3 1.8 1.9 1.8 3Z" />
+    </svg>
+  );
+}
+
+/** Texto: la T de toda la vida. */
+export function TextoIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M5 5.5h14M12 5.5V19" />
+    </svg>
+  );
+}
+
+/** Girar y capa: la flecha que da la vuelta. */
+export function GirarIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+      <path d="M20 4v4.5h-4.5" />
+    </svg>
+  );
+}
+
+/** Duplicar y borrar: dos hojas, una sobre otra. */
+export function DuplicarIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="2" />
+      <path d="M15.5 5.5h-9a2 2 0 0 0-2 2v9" />
+    </svg>
+  );
+}
+
+/** Mandar al agente: el avión de papel. */
+export function EnviarIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M20.5 3.5 3.5 10.2l7 2.8 2.8 7 7.2-16.5Z" />
+      <path d="m10.5 13 4-4" />
+    </svg>
+  );
+}

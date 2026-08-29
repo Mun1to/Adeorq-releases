@@ -99,7 +99,9 @@ export default function PanelDerecho({
             <button
               className="franja-btn"
               data-tip={t("Ver la web en un panel (localhost)")}
-              onClick={onWeb}
+              /* `onClick={onWeb}` NO: React le pasaría el evento del ratón como
+                 primer argumento, y `abrirWeb(url?)` lo tomaría por la dirección. */
+              onClick={() => onWeb()}
             >
               <BrowserIcon size={16} />
             </button>

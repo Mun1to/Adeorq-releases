@@ -2349,6 +2349,13 @@ function App() {
    * y ninguna de las dos dice nada que no diga la otra.
    */
   const abrirWeb = useCallback((url?: string, traer = true) => {
+    /* La dirección, solo si de verdad es una dirección. Un `onClick={onWeb}`
+       mete aquí el evento del ratón, y ese objeto acababa guardado en
+       `pane.web`, de ahí a la pestaña del panel y de ahí al suelo: React
+       no sabe pintar un objeto y tiraba la interfaz entera (error #31).
+       El tipo no lo caza porque `abrirWeb` encaja en una prop `() => void`
+       teniendo todos sus parámetros opcionales. */
+    const dir = typeof url === "string" ? url : undefined;
     // `traer` es la diferencia entre pulsar el botón y que lo pida una
     // terminal. Pulsándolo, quieres ir a la web y se te lleva. Sola, NO: si
     // estás en el lienzo o en el chat, cambiarte de vista porque un servidor
@@ -2361,7 +2368,7 @@ function App() {
       // Con el panel ya abierto, la dirección no puede entrar por sus `tabs`:
       // el panel se hace dueño de sus pestañas al montarse. Entra por `pedida`,
       // que lleva sello para que la misma dirección pueda pedirse dos veces.
-      if (url) setWebPedida({ url, sello: Date.now() });
+      if (dir) setWebPedida({ url: dir, sello: Date.now() });
       return;
     }
     const id = nextId.current++;
@@ -2371,7 +2378,7 @@ function App() {
         id,
         cwd: raizArchivosRef.current,
         name: "localhost",
-        web: url ?? "http://localhost:1420",
+        web: dir ?? "http://localhost:1420",
       },
     ]);
     setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));

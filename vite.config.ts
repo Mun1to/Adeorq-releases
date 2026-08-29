@@ -8,6 +8,13 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [react()],
 
+  // Los nombres de las funciones sobreviven al minificado. Cuestan unos pocos
+  // KB y a cambio, cuando la interfaz se cae, el rastro dice «at EditorWeb» en
+  // vez de «at bg»: sin esto, la pila de componentes en producción son letras
+  // sueltas y solo quedan las etiquetas HTML, que no señalan a ningún fichero
+  // (2026-08-29, persiguiendo un error #31 a ciegas).
+  esbuild: { keepNames: true },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors

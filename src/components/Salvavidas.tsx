@@ -33,6 +33,11 @@ import { anotarRastro } from "../lib/pty";
 import { useT } from "../lib/i18n";
 
 /** Un texto corto y útil para el rastro: sin esto solo queda «Error». */
+/** Las etiquetas del navegador, que en la pila de React no dicen nada: lo que
+    señala a un fichero es el nombre del componente que hay detrás. */
+const ETIQUETA =
+  /^at (div|span|p|a|b|i|em|strong|small|button|input|textarea|select|option|label|form|ul|ol|li|nav|header|footer|main|section|article|aside|figure|h[1-6]|table|thead|tbody|tr|td|th|img|svg|path|g|circle|rect|line|polyline|polygon|pre|code|br|hr|iframe|video|audio|canvas|details|summary|dialog|template|slot)/;
+
 function resumir(e: unknown, tope = 0): string {
   if (e instanceof Error) {
     // La primera línea de la pila basta para saber en qué componente fue, y el
@@ -65,7 +70,18 @@ export default class Salvavidas extends Component<Props, Estado> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     // El componente que lo lanzó, que es el dato que ahorra la mitad del
     // trabajo: sin él solo se sabe que «algo» falló.
-    const pila = (info.componentStack ?? "").split("\n").slice(1, 4).join(" ← ").trim();
+    /* Del árbol que da React interesa el primer COMPONENTE, no las
+       etiquetas. La primera vez que esto funcionó escupió «at span, at div,
+       at div», que no señala a ningún fichero: los tres niveles que se
+       guardaban eran elementos del DOM y el componente venía detrás.
+       Ahora se saltan las etiquetas y, si no quedara ninguna línea, se
+       vuelve a las primeras tal cual para no perder el sitio del todo. */
+    const niveles = (info.componentStack ?? "")
+      .split("\n")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    const propios = niveles.filter((x) => !ETIQUETA.test(x));
+    const pila = (propios.length ? propios : niveles).slice(0, 3).join(" ← ");
     // El COMPONENTE va delante, que es el dato que ahorra la mitad del
     // trabajo. Iba detrás, y con un mensaje largo el recorte de Rust se lo
     // llevaba: en la caída del 2026-08-29 el apunte terminaba a media URL de

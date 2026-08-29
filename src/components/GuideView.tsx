@@ -28,6 +28,23 @@ export default function GuideView() {
            HTML ya generado en vez de con un renderer propio: son tres líneas y
            no hay que mantener una copia de cómo pinta marked un `h2`. */
         const doc = new DOMParser().parseFromString(marked.parse(text) as string, "text/html");
+        /* Fuera el índice que trae el propio fichero. Aquí sobra dos veces: al
+           lado ya hay uno que sí funciona, y los enlaces de ese van a anclas
+           que en esta pantalla no existen (los `id` los pone la línea de abajo,
+           por posición). Era lo primero que se leía al abrir la guía y no
+           llevaba a ningún sitio. En GitHub y en la web sí sirve, así que se
+           quita aquí y no del fichero. */
+        for (const h of Array.from(doc.querySelectorAll("h2"))) {
+          const nom = (h.textContent ?? "").trim().toLowerCase();
+          if (nom !== "índice" && nom !== "indice" && nom !== "contents") continue;
+          let n: Element | null = h.nextElementSibling;
+          while (n && n.tagName !== "H2") {
+            const sig: Element | null = n.nextElementSibling;
+            n.remove();
+            n = sig;
+          }
+          h.remove();
+        }
         const hs = Array.from(doc.querySelectorAll("h2"));
         hs.forEach((h, i) => {
           h.id = `guia-${i}`;

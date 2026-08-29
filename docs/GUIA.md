@@ -9,22 +9,25 @@
 
 0. [Por qué usar Adeorq](#0-por-qué-usar-adeorq)
 1. [Qué es Adeorq](#1-qué-es-adeorq)
-2. [Las DOS barras de arriba](#2-las-dos-barras-de-arriba-la-duda-de-la-captura)
+2. [Las DOS barras de arriba (la duda de la captura)](#2-las-dos-barras-de-arriba-la-duda-de-la-captura)
 3. [Las nueve pestañas](#3-las-nueve-pestañas)
-4. [Panel (la pestaña ◱)](#4-panel-la-pestaña-)
-5. [Cabina (la pestaña ▦)](#5-cabina-la-pestaña-)
-5b. [Lienzo (la pestaña ⬡)](#5b-lienzo-la-pestaña-)
-6. [La cabecera de cada terminal, campo por campo](#6-la-cabecera-de-cada-terminal-campo-por-campo)
-7. [Las barras que salen dentro de una terminal](#7-las-barras-que-salen-dentro-de-una-terminal)
-8. [Comandos (la pestaña ⌘)](#8-comandos-la-pestaña-)
-9. [Ajustes (la pestaña ⚙)](#9-ajustes-la-pestaña-)
-10. [El Capataz](#10-el-capataz)
-11. [Clic derecho y globos de ayuda](#11-clic-derecho-y-globos-de-ayuda)
-12. [Atajos de teclado](#12-atajos-de-teclado)
-13. [Leyenda de colores](#13-leyenda-de-colores)
-14. [Glosario en cristiano](#14-glosario-en-cristiano)
-15. [Dudas que ya has tenido](#15-dudas-que-ya-has-tenido)
-16. [Lo que aún no hace](#16-lo-que-aún-no-hace)
+4. [Panel (la pestaña ◱)](#4-panel-la-pestaña)
+5. [Cabina (la pestaña ▦)](#5-cabina-la-pestaña)
+6. [Lienzo (la pestaña ⬡)](#6-lienzo-la-pestaña)
+7. [La cabecera de cada terminal, campo por campo](#7-la-cabecera-de-cada-terminal-campo-por-campo)
+8. [Las barras que salen dentro de una terminal](#8-las-barras-que-salen-dentro-de-una-terminal)
+9. [Cuentas (la pestaña ◍)](#9-cuentas-la-pestaña)
+10. [Comandos (la pestaña ⌘)](#10-comandos-la-pestaña)
+11. [Ajustes (la pestaña ⚙)](#11-ajustes-la-pestaña)
+12. [Modo emisión (para directos)](#12-modo-emisión-para-directos)
+13. [El Capataz](#13-el-capataz)
+14. [El Reparto (varias tareas de golpe)](#14-el-reparto-varias-tareas-de-golpe)
+15. [Clic derecho y globos de ayuda](#15-clic-derecho-y-globos-de-ayuda)
+16. [Atajos de teclado](#16-atajos-de-teclado)
+17. [Leyenda de colores](#17-leyenda-de-colores)
+18. [Glosario en cristiano](#18-glosario-en-cristiano)
+19. [Dudas que ya has tenido](#19-dudas-que-ya-has-tenido)
+20. [Lo que aún no hace](#20-lo-que-aún-no-hace)
 
 ---
 
@@ -154,7 +157,7 @@ De izquierda a derecha:
 | **El botón de Objetivos** | Abre un panel flotante con lo que quieres dejar cerrado hoy. Lo escribes, lo marcas con un clic en la fila entera (no hace falta apuntar a una casilla diminuta) y se guarda en un archivo del día, no en localStorage, para que un agente también pueda tacharlo cuando termine lo que le pediste. Se arrastra donde quieras y se puede plegar a solo el contador (por ejemplo 2/3). **Son de un día**: al cambiar la fecha la lista nace vacía, pero nada se borra. Si el día anterior dejaste algo sin tachar, arriba sale un botón para traértelo («Traer los 3 que dejaste ayer»); lo que ya tachaste se queda donde estaba. |
 | **El Pulso** | La píldora con lo que Adeorq y sus agentes están gastando en RAM ahora mismo, y cuántos procesos de agente hay corriendo. Clic para abrir el detalle: memoria de Adeorq frente a memoria de todo el equipo. Se pone ámbar si el que aprieta es Adeorq y roja si el equipo entero va apretado, así sabes de quién es la culpa antes de abrir el Administrador de tareas. |
 | **La tira de música** | Solo aparece si algo suena en el PC. Título, artista, ⏮ anterior, ❚❚/▶ pausa y ⏭ siguiente. El volumen se queda en el mezclador de Windows, para no llenar la barra. |
-| **○ Emisión / ◉ En emisión** | El escudo para retransmitir: tapa rutas y datos personales, y enmascara las claves que escupan las terminales. Atajo Ctrl+Mayús+E, detalle en el [punto 9b](#9b-modo-emisión-para-directos). |
+| **○ Emisión / ◉ En emisión** | El escudo para retransmitir: tapa rutas y datos personales, y enmascara las claves que escupan las terminales. Atajo Ctrl+Mayús+E, detalle en el [punto 12](#12-modo-emisión-para-directos). |
 | **El orbe** | Llama al Asistente. Atajo Ctrl+Mayús+A. Da vueltas más deprisa mientras piensa. |
 
 Encima de todo eso puede aparecer una **barra de actualización** azul cuando hay
@@ -400,7 +403,7 @@ skill nuevo, aparece solo.
 
 ---
 
-## 5b. Lienzo (la pestaña ⬡)
+## 6. Lienzo (la pestaña ⬡)
 
 La Cabina te da una rejilla ordenada. El Lienzo te da un tablero infinito: las
 terminales se colocan donde quieras, se agrandan a mano y, sobre todo, **se
@@ -485,7 +488,7 @@ Además de terminales y agentes, en el Lienzo puedes añadir utilidades que vive
 
 ---
 
-## 6. La cabecera de cada terminal, campo por campo
+## 7. La cabecera de cada terminal, campo por campo
 
 Esta es la barra de tu captura. De izquierda a derecha:
 
@@ -538,7 +541,7 @@ un vistazo quién ha acabado sin leer nada.
 
 ---
 
-## 7. Las barras que salen dentro de una terminal
+## 8. Las barras que salen dentro de una terminal
 
 Adeorq vigila lo que aparece en pantalla y traduce lo críptico a botones:
 
@@ -555,7 +558,7 @@ Adeorq vigila lo que aparece en pantalla y traduce lo críptico a botones:
 
 ---
 
-## 7b. Cuentas (la pestaña ◍)
+## 9. Cuentas (la pestaña ◍)
 
 Todas tus cuentas de agentes en un sitio, agrupadas por programa.
 
@@ -679,7 +682,7 @@ resuelve solas y que si las olvidas fallan en silencio:
 
 ---
 
-## 8. Comandos (la pestaña ⌘)
+## 10. Comandos (la pestaña ⌘)
 
 La chuleta de la casa: 66 comandos de Claude Code y Antigravity más tus skills,
 leídas del disco.
@@ -695,7 +698,7 @@ comando para X?» y te lo deja escrito.
 
 ---
 
-## 9. Ajustes (la pestaña ⚙)
+## 11. Ajustes (la pestaña ⚙)
 
 - **Idioma**: español o inglés. Cambia la app entera, incluida esta guía. Las
   terminales siguen hablando lo que hable cada agente.
@@ -726,7 +729,7 @@ comando para X?» y te lo deja escrito.
 
 ---
 
-## 9b. Modo emisión (para directos)
+## 12. Modo emisión (para directos)
 
 Pensado para que puedas emitir sin regalar tus claves. Tiene cuatro piezas:
 
@@ -766,7 +769,7 @@ de 30 segundos en OBS**. El razonamiento entero está en `docs/EMISION.md`.
 
 ---
 
-## 10. El Capataz
+## 13. El Capataz
 
 Tu agente orquestador. Le escribes lo que quieres y te propone un plan; NADA se
 ejecuta sin tu OK. Vive en dos sitios: la tarjeta fija del Panel y el flotante
@@ -868,7 +871,7 @@ solo las diferencias gordas (de fábrica), cualquiera, o nunca.
 
 ---
 
-## 10b. El Reparto (varias tareas de golpe)
+## 14. El Reparto (varias tareas de golpe)
 
 **Ya no tiene botón propio: es el mismo Asistente.** Eran dos botones seguidos
 para la misma pregunta, así que ahora escribes y el número de líneas decide.
@@ -909,7 +912,7 @@ sigue saliendo en opus, porque repetirla cuesta más que el turno.
 
 ---
 
-## 11. Clic derecho y globos de ayuda
+## 15. Clic derecho y globos de ayuda
 
 Adeorq no usa los menús del navegador: son suyos, en español y con los atajos
 escritos.
@@ -924,7 +927,7 @@ escritos.
 
 ---
 
-## 12. Atajos de teclado
+## 16. Atajos de teclado
 
 | Atajo | Qué hace |
 |---|---|
@@ -964,7 +967,7 @@ tenías cogido. El clic derecho suelto sigue abriendo el menú de añadir.
 
 ---
 
-## 13. Leyenda de colores
+## 17. Leyenda de colores
 
 - **Verde**: vivo ahora mismo (sesión abierta, proceso corriendo).
 - **Ámbar**: te espera a ti (pregunta pendiente, o contexto por encima del 80%).
@@ -975,7 +978,7 @@ tenías cogido. El clic derecho suelto sigue abriendo el menú de añadir.
 
 ---
 
-## 14. Glosario en cristiano
+## 18. Glosario en cristiano
 
 - **Terminal**: una ventana de texto donde vive un programa. No es magia: es la
   forma original de hablar con el ordenador, sin botones.
@@ -1000,7 +1003,7 @@ tenías cogido. El clic derecho suelto sigue abriendo el menú de añadir.
 
 ---
 
-## 15. Dudas que ya has tenido
+## 19. Dudas que ya has tenido
 
 - **«¿Qué es ese 100%?»**: era un fallo del medidor, ya arreglado. Sumaba todas
   las llamadas del turno en vez de leer la última, y no detectaba los modelos
@@ -1022,7 +1025,7 @@ tenías cogido. El clic derecho suelto sigue abriendo el menú de añadir.
 
 ---
 
-## 16. Lo que aún no hace
+## 20. Lo que aún no hace
 
 - **Guardar la disposición del lienzo**: al cerrar Adeorq se pierden las
   posiciones y las flechas (las terminales tampoco sobreviven al cierre).

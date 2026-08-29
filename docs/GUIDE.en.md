@@ -3,6 +3,29 @@
 > English version of `GUIA.md`, rewritten on 1 August 2026 for version 0.9.42.
 > It walks through every element on screen: what it is and what it does.
 
+## Contents
+
+0. [Why use Adeorq](#0-why-use-adeorq)
+1. [Adeorq in one sentence](#1-adeorq-in-one-sentence)
+2. [The TWO bars at the top](#2-the-two-bars-at-the-top)
+3. [The nine tabs](#3-the-seven-tabs)
+4. [Dashboard (the ◱ tab)](#4-dashboard-the-tab)
+5. [Cockpit (the ▦ tab)](#5-cockpit-the-tab)
+6. [Canvas (the ⬡ tab)](#6-canvas-the-tab)
+7. [Each terminal's header, field by field](#7-each-terminals-header-field-by-field)
+8. [The bars that appear inside a terminal](#8-the-bars-that-appear-inside-a-terminal)
+9. [Accounts (the ◍ tab)](#9-accounts-the-tab)
+10. [Commands (the ⌘ tab)](#10-commands-the-tab)
+11. [Settings (the ⚙ tab)](#11-settings-the-tab)
+12. [Streaming mode](#12-streaming-mode)
+13. [The Foreman](#13-the-foreman)
+14. [The Split (several tasks at once)](#14-the-split-several-tasks-at-once)
+15. [Right click and tooltips](#15-right-click-and-tooltips)
+16. [Keyboard shortcuts](#16-keyboard-shortcuts)
+17. [Colour legend](#17-colour-legend)
+18. [Glossary](#18-glossary)
+19. [Not there yet](#19-not-there-yet)
+
 ## 0. Why use Adeorq
 
 If you already have the Claude desktop app, it is a fair question. The reasons,
@@ -119,7 +142,7 @@ There are two bars up there and they are different things.
 | **The Goals button** | Opens a floating panel with what you want to close out today. Type it, tick it off with a click anywhere on the row (no tiny checkbox to aim for), and it is saved to a file for the day, not localStorage, so an agent can also tick it off once it finishes what you asked. Drag it anywhere and fold it down to just the counter (say, 2/3). |
 | **The Pulse** | The pill showing what Adeorq and its agents are using in RAM right now, and how many agent processes are running. Click to open the detail: Adeorq's memory versus the whole machine's. It turns amber when Adeorq itself is the one squeezing memory and red when the whole machine is under pressure, so you know whose fault it is before opening Task Manager. |
 | **The music strip** | Only shows when something is playing. Title, artist, ⏮ previous, ❚❚/▶ pause and ⏭ next. Volume stays in Windows' own mixer. |
-| **○ Streaming / ◉ Streaming on** | The streaming shield: masks paths, personal data and any key the terminals print. Ctrl+Shift+E, details in section 9b. |
+| **○ Streaming / ◉ Streaming on** | The streaming shield: masks paths, personal data and any key the terminals print. Ctrl+Shift+E, details in section 12. |
 | **✦ Foreman** | Summons the orchestrator overlay. Ctrl+Shift+A. |
 
 Above all of that, a blue **update bar** appears when a new version of Adeorq is
@@ -134,7 +157,7 @@ model and the folder. Field by field in [section 6](#6-each-terminals-header-fie
 Rule of thumb: if it says "Adeorq" and shows tabs, it is the app bar. If it
 shows a session name and a folder, it is a terminal's bar.
 
-## 3. The seven tabs
+## 3. The nine tabs
 
 - **◱ Dashboard**: your numbers, the Foreman, hot projects, new project,
   missions and the focus.
@@ -236,7 +259,7 @@ Your own commands from `~/.claude/skills`. **Drag one onto a terminal** to drop
 it into its prompt, or click to send it to the focused pane. The ▸ button folds
 the panel away.
 
-## 5b. Canvas (the ⬡ tab)
+## 6. Canvas (the ⬡ tab)
 
 The Cockpit gives you a tidy grid. The Canvas gives you an infinite board:
 terminals anywhere, resized by hand, and above all **wired together**.
@@ -261,7 +284,7 @@ The answer is read from the session transcript (clean prose), not from the
 screen. If you open two brand new terminals in the same folder, the relay can
 read the wrong one: for chaining, prefer one per project or resumed sessions.
 
-## 6. Each terminal's header, field by field
+## 7. Each terminal's header, field by field
 
 | Element | What it means |
 |---|---|
@@ -280,7 +303,7 @@ read the wrong one: for chaining, prefer one per project or resumed sessions.
 colour; when an agent finishes its turn and waits for you, its pane lights up
 with a **blue glow** until you open it.
 
-## 7. The bars that appear inside a terminal
+## 8. The bars that appear inside a terminal
 
 1. **Blue question bar**: when the agent asks with a numbered menu, real
    BUTTONS appear. It disappears on its own when the question does.
@@ -289,7 +312,7 @@ with a **blue glow** until you open it.
 3. **Plain-language notes**: when the agent is compacting the conversation or
    is busy and what you type is queued.
 
-## 7b. Accounts (the ◍ tab)
+## 9. Accounts (the ◍ tab)
 
 Every agent CLI keeps everything it owns (your login, your history, its
 settings) in one folder. Point it at a different folder and it behaves like a
@@ -398,14 +421,14 @@ Adeorq handles for you that fail silently if you forget them:
 
 ---
 
-## 8. Commands (the ⌘ tab)
+## 10. Commands (the ⌘ tab)
 
 66 Claude Code and Antigravity commands plus your skills, read from disk.
 Search by what you want to do ("undo", "quota", "context"), filter by tool, and
 click one to type it into the active terminal. You press Enter, so nothing ever
 runs by accident. The Foreman knows this same list.
 
-## 9. Settings (the ⚙ tab)
+## 11. Settings (the ⚙ tab)
 
 - **Language**: Spanish or English, the whole app including this guide.
 - **Theme**: Midnight blue, Graphite, Violet, Forest, Crimson, Amber, Ocean, Neon, Nord, Cyberpunk, Dracula, Tokyo Night, Emerald, Sunset, Matrix, Synthwave '84, Solarized Dark, Rosé Pine, Gruvbox, One Dark, Catppuccin Mocha, Volcano, Turquoise and Light.
@@ -425,7 +448,7 @@ runs by accident. The Foreman knows this same list.
 - **Your quota**: the button types `/usage` into the active terminal, which is
   the only place that number lives.
 
-## 9b. Streaming mode
+## 12. Streaming mode
 
 Built so you can go live without giving away your keys:
 
@@ -456,7 +479,7 @@ does not cover your browser or Windows notifications, and no pattern list is
 ever complete. The single most effective measure is still a **30 second delay
 in OBS**. The full reasoning lives in `docs/EMISION.md`.
 
-## 10. The Foreman
+## 13. The Foreman
 
 Your orchestrator. You write what you want, it proposes a plan, and NOTHING
 runs without your OK. It lives in the Dashboard card and in the Cockpit overlay
@@ -506,7 +529,7 @@ publishes how much is left**, so for other CLIs Adeorq knows whether they are
 connected, not how much they have. Settings → Alerts controls how much it says
 about the model you already have running.
 
-## 10b. The Split (several tasks at once)
+## 14. The Split (several tasks at once)
 
 The three-branch button next to the Assistant. The Assistant solves ONE thing;
 this one solves a whole day.
@@ -539,14 +562,14 @@ one after the other.
 judgement work. With no subscription it will not suggest opus for an errand, but
 an audit still comes out as opus, because redoing it costs more than the turn.
 
-## 11. Right click and tooltips
+## 15. Right click and tooltips
 
 Adeorq uses its own menus, not the browser's: right click a terminal (copy,
 paste, split, maximise, blur, close), a project (new Claude, terminal,
 Antigravity, open all) or a session (resume, rename, group, archive). Hovering
 almost anything explains what it is and its shortcut.
 
-## 12. Keyboard shortcuts
+## 16. Keyboard shortcuts
 
 | Shortcut | What it does |
 |---|---|
@@ -582,7 +605,7 @@ the program running there: Ctrl+C interrupts Claude, Ctrl+R searches history.
 drawing at once, with no trip to the toolbar. Hold Shift to add to what you
 already had. A plain right-click still opens the add menu.
 
-## 13. Colour legend
+## 17. Colour legend
 
 - **Green**: alive right now.
 - **Amber**: waiting for you (a pending question, or context over 80%).
@@ -591,7 +614,7 @@ already had. A plain right-click still opens the add menu.
 - **Blue glow on a pane**: that agent finished its turn.
 - **Grey**: nothing pending.
 
-## 14. Glossary
+## 18. Glossary
 
 - **Terminal**: a text window where a program lives.
 - **Pane**: each terminal box inside the Cockpit.
@@ -608,7 +631,7 @@ already had. A plain right-click still opens the add menu.
 - **Subagent**: a helper the agent dispatches for a side task. That is what ▣
   counts.
 
-## 15. Not there yet
+## 19. Not there yet
 
 - **Saving the canvas layout**: positions and arrows are lost when Adeorq
   closes (the terminals do not survive a close either).

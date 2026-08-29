@@ -21,18 +21,23 @@
 // página, porque el nodo se arrastra desde cualquier punto y un iframe se queda
 // con todo lo que pasa por encima. En el mosaico se arrastra por la cabecera,
 // así que la página se usa directamente, sin un clic previo.
+//
+// Aquí hubo un segundo modo, «tu navegador», que metía una ventana de Chromium
+// dentro del hueco con `SetParent`. Se quitó el 2026-08-29 después de tres
+// reportes seguidos de lo mismo: la ventana se salía y quedaba flotando en el
+// escritorio. La causa no era un ajuste, era la técnica: para empotrarla hay
+// que ADIVINAR cuál de las ventanas que abre el navegador es la tuya, y
+// Chromium abre auxiliares de 22x15 y, si ya estaba abierto, devuelve una
+// ventana normal con las pestañas del usuario. Encima ahí no había editor por
+// clic, porque es otro proceso y no hay canal. `navegador.rs` sigue en su sitio
+// con sus pruebas por si algún día se hace bien, pero desde el front ya no se
+// llama. Lo que se ve aquí es siempre un iframe, que es lo que la gente quería
+// desde el principio: la página dentro de la app, y editable.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useT } from "../lib/i18n";
 import { puedeEmpotrarse } from "../lib/pty";
-import {
-  cerrarNavegador,
-  empotrarNavegador,
-  enFisicos,
-  moverNavegador,
-  verNavegador,
-} from "../lib/navegador";
 import { comoUrl } from "./CanvasWeb";
 import {
   BrowserIcon,
@@ -108,8 +113,6 @@ const PUERTOS = [1420, 5173, 3000, 4321, 8000, 8080];
 
 /** Con qué se pinta la página. Se recuerda porque es una preferencia, no una
     decisión por panel. */
-const MODO_KEY = "adeorq-web-modo";
-type Modo = "dentro" | "tuyo";
 
 function origenDe(url: string): string {
   try {
@@ -165,26 +168,12 @@ export default function WebPane({
       pregunta ANTES de cargarla: un iframe al que le niegan la entrada no avisa
       de nada, se queda en blanco y parece que la app está rota. */
   const [rechaza, setRechaza] = useState<string | null>(null);
-  /** El hueco donde va la página. Con tu navegador no se pinta nada dentro: es
-      solo la MEDIDA, porque quien pinta ahí es una ventana de Windows puesta
-      encima. */
-  const hueco = useRef<HTMLDivElement>(null);
-  const [modo, setModo] = useState<Modo>(
-    () => (localStorage.getItem(MODO_KEY) as Modo) ?? "dentro",
-  );
-  const [programa, setPrograma] = useState("");
-  const [fallo, setFallo] = useState("");
-  /** El editor por clic. Solo con la página pintada aquí dentro: sobre tu
-      navegador no hay forma de hablarle, que es una ventana de otro proceso. */
+  /** El editor por clic, que habla con el iframe por `postMessage`. */
   const [editor, setEditor] = useState(false);
   /** El cuerpo, para poder dar con el iframe de la pestaña que se está viendo
       sin ponerle un `ref` a cada uno y provocar un pintado en cadena. */
   const cuerpo = useRef<HTMLDivElement>(null);
   const [marcoAct, setMarcoAct] = useState<HTMLIFrameElement | null>(null);
-  /** Dónde estaba la última vez, para no pedirle a Windows que mueva la ventana
-      a donde ya está sesenta veces por segundo. */
-  const ultima = useRef("");
-
   // Cada cambio sube a App tal cual. `onEstado` es estable (useCallback allí):
   // si no lo fuera, este efecto se dispararía en cada pintado de App y los dos
   // se retroalimentarían sin parar.
@@ -278,73 +267,6 @@ export default function WebPane({
     }
   };
 
-  /* ── Tu navegador, metido dentro ─────────────────────────────────────────
-     Es una ventana de verdad puesta sobre el hueco, así que TODO lo que aquí
-     es CSS allí es Win32: colocarla, taparla y soltarla. Y por eso se pinta
-     siempre por encima del resto de la app: un menú de Adeorq que caiga sobre
-     ella queda debajo. Es el precio de que sea tu navegador con tus
-     extensiones y tus sesiones, y no un motor web pelado. */
-
-  const colocar = useCallback(() => {
-    if (modo !== "tuyo" || !hueco.current) return;
-    const caja = enFisicos(hueco.current.getBoundingClientRect());
-    const firma = `${caja.x},${caja.y},${caja.ancho},${caja.alto}`;
-    if (firma === ultima.current) return;
-    ultima.current = firma;
-    void moverNavegador(id, caja).catch(() => {});
-  }, [id, modo]);
-
-  useEffect(() => {
-    if (modo !== "tuyo" || !urlAct || !hueco.current) return;
-    let vivo = true;
-    setFallo("");
-    ultima.current = "";
-    const caja = enFisicos(hueco.current.getBoundingClientRect());
-    void empotrarNavegador(id, urlAct, caja)
-      .then((r) => vivo && setPrograma(r.programa))
-      .catch((e) => vivo && setFallo(String(e)));
-    /* Al irse el panel, o al cambiar de dirección, la ventana de antes se
-       CIERRA. Soltarla la devolvía al escritorio, así que cerrar la pestaña
-       hacía aparecer una ventana de navegador en vez de quitarla, y como este
-       efecto también se rehace al navegar, cada dirección nueva dejaba la
-       anterior tirada por ahí. */
-    return () => {
-      vivo = false;
-      void cerrarNavegador(id).catch(() => {});
-    };
-  }, [id, urlAct, modo]);
-
-  /* Cada pintado se comprueba dónde ha quedado el hueco. Suena a bruto y no lo
-     es: el panel solo se repinta cuando algo suyo cambia (lo mueves, lo
-     estiras, se maximiza otro), que es exactamente cuando hay que mover la
-     ventana. Un observador de tamaño no valdría solo, porque mover el panel
-     por el mosaico le cambia el sitio sin cambiarle las medidas. */
-  useLayoutEffect(colocar);
-
-  useEffect(() => {
-    if (modo !== "tuyo") return;
-    const ro = new ResizeObserver(colocar);
-    if (hueco.current) ro.observe(hueco.current);
-    window.addEventListener("resize", colocar);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", colocar);
-    };
-  }, [colocar, modo]);
-
-  /* Escondida con el panel. Una ventana de Windows no sabe nada del CSS que la
-     tapa: si no se le dice, se queda flotando sobre la app cuando otro panel se
-     pone a pantalla completa. */
-  useEffect(() => {
-    if (modo !== "tuyo") return;
-    void verNavegador(id, !hidden).catch(() => {});
-  }, [id, hidden, modo]);
-
-  const cambiarModo = (m: Modo) => {
-    localStorage.setItem(MODO_KEY, m);
-    setModo(m);
-  };
-
   /* Cuál es el iframe que se está viendo, que es con quien habla el editor.
      Se busca en el DOM en vez de ponerle un `ref` a cada pestaña: un `ref`
      inline se vuelve a crear en cada render y dispararía otro pintado, y aquí
@@ -429,45 +351,18 @@ export default function WebPane({
           />
         </div>
         <div className="ph-acts">
-          {/* Con qué se pinta la página. No es un ajuste escondido porque las
-              dos formas son distintas de verdad: la de dentro se porta como
-              parte de la app, y la tuya trae tus extensiones y tus sesiones
-              pero se pinta ENCIMA de todo lo demás. */}
-          <button
-            className="mini"
-            data-on={modo === "tuyo"}
-            data-tip={
-              modo === "tuyo"
-                ? t("Estás viendo tu navegador. Pulsa para volver al de dentro.")
-                : t("Abrirla en TU navegador, aquí dentro (con tus extensiones y tus sesiones)")
-            }
-            onClick={() => cambiarModo(modo === "tuyo" ? "dentro" : "tuyo")}
-          >
-            <BrowserIcon size={13} />
-          </button>
-          {/* Editar por clic. Sobre tu navegador no se puede: es una ventana de
-              otro proceso y no hay forma de hablarle. Pero el botón NO
-              desaparece, porque un botón que falta se lee como que algo se ha
-              roto: se queda, y desde ahí te devuelve al de dentro con el editor
-              ya encendido, que es lo que ibas a hacer de todas formas. */}
+          {/* Editar por clic: el motivo de que la página se pinte AQUÍ y no en
+              una ventana de fuera. Con un iframe hay canal (`postMessage`) y
+              por eso el editor puede señalar, medir y escribir. */}
           <button
             className="mini"
             data-on={editor}
             data-tip={
-              modo === "tuyo"
-                ? t("Editar por clic necesita la página aquí dentro. Pulsa para volver y editar.")
-                : editor
-                  ? t("Salir del editor")
-                  : t("Editar esta página haciendo clic, y guardarlo en el código")
+              editor
+                ? t("Salir del editor")
+                : t("Editar esta página haciendo clic, y guardarlo en el código")
             }
-            onClick={() => {
-              if (modo === "tuyo") {
-                cambiarModo("dentro");
-                setEditor(true);
-                return;
-              }
-              setEditor((e) => !e);
-            }}
+            onClick={() => setEditor((e) => !e)}
           >
             <PicarIcon size={13} />
           </button>
@@ -541,23 +436,6 @@ export default function WebPane({
         ))}
       </div>
 
-      {/* CON TU NAVEGADOR: aquí no se pinta nada. Este hueco solo existe para
-          medir dónde hay que poner la ventana de verdad. */}
-      {modo === "tuyo" ? (
-        <div className="web-body web-tuyo" ref={hueco}>
-          {fallo ? (
-            <div className="web-nope">
-              <p className="web-nope-tit">{t("No se pudo meter tu navegador aquí")}</p>
-              <p className="web-nope-txt">{fallo}</p>
-              <button className="np-btn" onClick={() => cambiarModo("dentro")}>
-                {t("Usar el de dentro")}
-              </button>
-            </div>
-          ) : !programa ? (
-            <p className="web-vacio">{t("Abriendo tu navegador…")}</p>
-          ) : null}
-        </div>
-      ) : (
       <div className="web-coneditor">
         {editor && (
           <EditorWeb
@@ -605,7 +483,6 @@ export default function WebPane({
         )}
       </div>
       </div>
-      )}
     </section>
   );
 }

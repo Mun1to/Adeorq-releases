@@ -135,6 +135,15 @@ mod win {
         vale_la_ventana(ancho, alto, &titulo_de(hwnd))
     }
 
+    /// El nombre del sitio, sin esquema ni puerto ni ruta. Es lo que Chromium
+    /// pone de título mientras la página no dice el suyo, y lo que permite
+    /// reconocer después una ventana que abrimos nosotros.
+    pub fn host_de(url: &str) -> String {
+        let sin_esquema = url.split("://").last().unwrap_or(url);
+        let host_puerto = sin_esquema.split('/').next().unwrap_or(sin_esquema);
+        host_puerto.split(':').next().unwrap_or(host_puerto).to_lowercase()
+    }
+
     /// La decisión sola, sin Win32 delante, para poder probarla.
     pub fn vale_la_ventana(ancho: i32, alto: i32, titulo: &str) -> bool {
         if ancho < 300 || alto < 200 {
@@ -210,6 +219,30 @@ mod win {
         None
     }
 
+    /// Cierra las ventanas que abrimos nosotros y no supimos reconocer.
+    fn recoger_huerfanas(antes: &[isize], url: &str) {
+        let host = host_de(url);
+        if host.is_empty() {
+            return;
+        }
+        for h in ventanas_de_navegador() {
+            if antes.contains(&h) {
+                continue;
+            }
+            let titulo = titulo_de(h as HWND).to_lowercase();
+            if !titulo.contains(&host) {
+                continue;
+            }
+            // Una ventana normal del navegador es del usuario, no nuestra.
+            if COLETILLAS.iter().any(|c| titulo.ends_with(c)) {
+                continue;
+            }
+            unsafe {
+                PostMessageW(h as HWND, WM_CLOSE, 0, 0);
+            }
+        }
+    }
+
     pub fn empotrar(
         padre: isize,
         id: u32,
@@ -237,8 +270,19 @@ mod win {
             .spawn()
             .map_err(|e| format!("no arrancó {programa}: {e}"))?;
 
-        let nueva = esperar_ventana_nueva(&antes)
-            .ok_or_else(|| format!("{programa} no llegó a abrir su ventana"))?;
+        let nueva = match esperar_ventana_nueva(&antes) {
+            Some(h) => h,
+            None => {
+                /* No se reconoció ninguna, pero el navegador ha podido abrir la
+                   suya igual, y una ventana que no queda registrada no la puede
+                   cerrar ya nadie: se queda huérfana en el escritorio para
+                   siempre, y ni el panel ni cambiar de modo la quitan. Se cierra
+                   la que lleva el nombre del sitio que pedimos, que es nuestra y
+                   de nadie más, y nunca una ventana normal del navegador. */
+                recoger_huerfanas(&antes, url);
+                return Err(format!("{programa} no llegó a abrir su ventana"));
+            }
+        };
 
         unsafe {
             // Fuera el marco, la barra de título y el borde de estirar: eso lo
@@ -354,6 +398,20 @@ mod win {
     #[cfg(test)]
     mod pruebas {
         use super::*;
+
+        /// El título de la ventana de `--app` es el de la PÁGINA, y mientras
+        /// no carga es el nombre del sitio pelado: `localhost`, no
+        /// `http://localhost:1420`. Sin esto no se reconocía la ventana propia
+        /// para cerrarla cuando el empotrado fallaba.
+        #[test]
+        fn el_host_sale_pelado() {
+            assert_eq!(host_de("http://localhost:1420"), "localhost");
+            assert_eq!(host_de("https://localhost:5173/ruta/larga"), "localhost");
+            assert_eq!(host_de("http://127.0.0.1:8877/p.html"), "127.0.0.1");
+            assert_eq!(host_de("https://Adeorq.com/precio"), "adeorq.com");
+            assert_eq!(host_de("localhost:3000"), "localhost");
+            assert_eq!(host_de(""), "");
+        }
 
         /// Las medidas y los títulos son REALES, medidos el 2026-08-29 lanzando
         /// el navegador a mano y enumerando lo que aparecía. Sin este filtro,

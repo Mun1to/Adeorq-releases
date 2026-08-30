@@ -2326,8 +2326,8 @@ const EN: Record<string, string> = {
   "Buscando la sonda en la página…": "Looking for the probe in the page…",
   "Esta página no lleva el plugin de Adeorq": "This page does not have the Adeorq plugin",
   "Esta página no se puede editar todavía": "This page cannot be edited yet",
-  "Le falta el plugin de Adeorq, que es quien marca cada elemento con el trozo de fichero del que salió. Se añade una vez por proyecto.":
-    "It is missing the Adeorq plugin, the piece that marks every element with the bit of file it came from. You add it once per project.",
+  "Le falta el plugin de Adeorq, que es quien marca cada elemento con el trozo de fichero del que salió. Se añade una vez por proyecto, y solo si la web la sirve Vite: con Expo, Next o Astro todavía no se puede.":
+    "It is missing the Adeorq plugin, the piece that marks every element with the bit of file it came from. You add it once per project, and only if Vite serves the site: with Expo, Next or Astro it is not possible yet.",
   "Que lo añada el agente": "Have the agent add it",
   "Ese elemento no lleva marca de origen: el cambio se ve, pero no se guarda":
     "That element has no origin mark: you can see the change, but it will not be saved",

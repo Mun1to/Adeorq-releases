@@ -423,17 +423,20 @@ export default function EditorWeb({ marco, sello, url, onAlAgente }: Props) {
           <p className="ew-sinplugin-tit">{t("Esta página no se puede editar todavía")}</p>
           <p className="ew-sinplugin-txt">
             {t(
-              "Le falta el plugin de Adeorq, que es quien marca cada elemento con el trozo de fichero del que salió. Se añade una vez por proyecto.",
+              "Le falta el plugin de Adeorq, que es quien marca cada elemento con el trozo de fichero del que salió. Se añade una vez por proyecto, y solo si la web la sirve Vite: con Expo, Next o Astro todavía no se puede.",
             )}
           </p>
           <button
             className="ew-accion"
             onClick={() =>
               onAlAgente(
-                "Añade el plugin del editor de Adeorq a este proyecto: en su vite.config, " +
-                  'importa `adeorq` desde "C:/proyectos/Adeorq/vite-plugin-adeorq/index.js" ' +
-                  "y ponlo el PRIMERO del array de plugins, antes del de React. " +
-                  "Es solo para desarrollo y no toca la web publicada." + SALTOS,
+                "Añade el plugin del editor de Adeorq a este proyecto. PRIMERO comprueba " +
+                  "que la web la sirva Vite (que haya un vite.config): el plugin es de Vite, " +
+                  "así que con Expo, Metro, Next o Astro NO se puede, y en ese caso dímelo en " +
+                  "vez de buscarle una vuelta. Si es Vite: importa `adeorq` desde " +
+                  '"C:/proyectos/Adeorq/vite-plugin-adeorq/index.js" y ponlo el PRIMERO del ' +
+                  "array de plugins, antes del de React. Es solo para desarrollo y no toca la " +
+                  "web publicada." + SALTOS,
               )
                 ? decir(t("Se lo he pedido al agente"))
                 : decir(t("Abre una terminal para poder mandarle esto"))

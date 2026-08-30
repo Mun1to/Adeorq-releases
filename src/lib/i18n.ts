@@ -2276,6 +2276,15 @@ const EN: Record<string, string> = {
   "Editar esta página haciendo clic, y guardarlo en el código":
     "Edit this page by clicking, and have it saved into the code",
   "Salir del editor": "Leave the editor",
+  "Un agente necesita una clave": "An agent needs a key",
+  "La pide con el nombre": "It asks for it under the name",
+  "Pégala aquí y entra directa en su comando. No se escribe en la terminal, así que el agente no la lee ni se queda en su historial.":
+    "Paste it here and it goes straight into its command. It is never typed into the terminal, so the agent cannot read it and it does not stay in its history.",
+  "Guardarla para la próxima vez (en el Gestor de Credenciales de Windows)":
+    "Keep it for next time (in the Windows Credential Manager)",
+  "Guardarla para la próxima vez (en un archivo solo tuyo, permisos 600)":
+    "Keep it for next time (in a file only you can read, mode 600)",
+  "Dársela": "Hand it over",
   "Editar por clic necesita la página aquí dentro. Pulsa para volver y editar.":
     "Click-to-edit needs the page rendered in here. Click to come back and edit.",
   Seleccionar: "Select",

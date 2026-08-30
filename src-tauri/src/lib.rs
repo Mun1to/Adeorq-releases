@@ -14,6 +14,7 @@ mod inbox;
 mod manage;
 mod media;
 mod navegador;
+pub mod pedir_secreto;
 mod memoria;
 mod metas;
 mod notes;
@@ -502,6 +503,9 @@ pub fn run() {
             secrets::secret_get,
             secrets::secret_forget,
             secrets::secretos_donde,
+            pedir_secreto::secreto_responder,
+            pedir_secreto::secretos_de_agente,
+            pedir_secreto::secreto_de_agente_olvidar,
             autostart::autostart_get,
             autostart::autostart_set,
             git_shadow::shadow_init,

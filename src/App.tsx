@@ -12,6 +12,7 @@ import ProviderMark, { tieneMarca } from "./components/ProviderMark";
 import PanelView from "./components/PanelView";
 import Foreman, { type ForemanExec } from "./components/Foreman";
 import AvisoCuota from "./components/AvisoCuota";
+import PedirSecreto from "./components/PedirSecreto";
 import Vigia from "./components/Vigia";
 import WebAuto from "./components/WebAuto";
 import Copiloto from "./components/Copiloto";
@@ -3462,6 +3463,11 @@ function App() {
       {/* Que enterarse de que se acabó el plan no sea el agente plantándose a
           mitad de una tarea. Solo mira si hay alguien trabajando, y solo las
           cuentas de Claude, que son las únicas que publican su porcentaje. */}
+      {/* La ventana para pegar un token que ha pedido un agente. Montada
+          siempre y sin pintar nada hasta que llega la petición, como el aviso
+          de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
+      <PedirSecreto />
+
       <AvisoCuota
         cuentas={cuentasConCuota}
         paneles={panes

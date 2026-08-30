@@ -20055,3 +20055,59 @@ textarea.note-body {
   flex: 1;
   min-width: 0;
 }
+
+/* ── La ventana de pegar un token ────────────────────────────────────────────
+   Sale sola cuando un agente pide una clave (`adeorq secreto <nombre>`). El
+   nombre va en monoespaciada porque es un identificador que hay que reconocer
+   de un vistazo, no una frase. */
+.secreto-nombre {
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  font-family: var(--mono, ui-monospace, "Cascadia Mono", monospace);
+  font-size: 12.5px;
+  color: var(--acc);
+}
+
+.secreto-como {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.secreto-caja {
+  width: 100%;
+  margin: 4px 0 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja, 10px);
+  background: var(--panel-solid);
+  color: var(--text);
+  font-family: var(--mono, ui-monospace, "Cascadia Mono", monospace);
+  font-size: 13px;
+  /* El texto va oculto igual, pero un token pegado no se selecciona por
+     palabras: si se desborda, que se pueda recorrer. */
+  text-overflow: ellipsis;
+}
+
+.secreto-caja:focus {
+  outline: none;
+  border-color: var(--acc);
+}
+
+.secreto-guardar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.secreto-guardar input {
+  margin-top: 2px;
+  flex: none;
+  accent-color: var(--acc);
+}

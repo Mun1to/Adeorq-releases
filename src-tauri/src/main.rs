@@ -10,5 +10,15 @@ fn main() {
         }
         std::process::exit(0);
     }
+    // `adeorq secreto <nombre> [para qué]`: trae un token sin que pase por la
+    // pantalla del agente. Ver `pedir_secreto.rs`.
+    if args.len() > 2 && args[1] == "secreto" {
+        let motivo = args.get(3..).map(|r| r.join(" ")).unwrap_or_default();
+        if let Err(e) = adeorq_lib::pedir_secreto::puente(&args[2], &motivo) {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
+        std::process::exit(0);
+    }
     adeorq_lib::run()
 }

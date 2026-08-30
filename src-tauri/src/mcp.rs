@@ -357,6 +357,35 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
             continue;
         }
 
+        // Por este mismo puerto entra otra cosa además de MCP: la petición de
+        // un secreto (`adeorq secreto <nombre>`). Se distingue por su propia
+        // llave y se contesta con una línea, no es JSON-RPC. Va antes de
+        // parsear como petición MCP porque no lo es, y compartir puerto evita
+        // abrir un segundo socket para dos líneas de conversación.
+        if let Ok(v) = serde_json::from_str::<Value>(&line) {
+            if v["adeorq"].as_str() == Some("secreto") {
+                let nombre = v["nombre"].as_str().unwrap_or_default();
+                let motivo = v["motivo"].as_str().unwrap_or_default();
+                // Acuse de recibo ANTES de esperar a nadie. Sin esto, un
+                // Adeorq viejo sirviendo el puerto dejaba al que preguntaba
+                // colgado para siempre, porque una petición sin `method` no le
+                // parece nada y no contesta. Con el acuse, quien pregunta sabe
+                // en un segundo si está hablando con alguien que le entiende.
+                writer.write_all(b"{\"adeorq\":\"esperando\"}
+")?;
+                writer.flush()?;
+                let res = match crate::pedir_secreto::atender(&app, nombre, motivo) {
+                    Ok(valor) => json!({ "valor": valor }),
+                    Err(e) => json!({ "error": e }),
+                };
+                writer.write_all(format!("{}
+", res).as_bytes())?;
+                writer.flush()?;
+                // Una petición por conexión: el que la abrió ya tiene lo suyo.
+                return Ok(());
+            }
+        }
+
         let req: Value = match serde_json::from_str(&line) {
             Ok(v) => v,
             Err(e) => {

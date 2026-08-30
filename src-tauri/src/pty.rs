@@ -540,6 +540,21 @@ pub async fn pty_spawn(
     // panel y de otra forma no podría identificarse.
     // Ver `docs/SUPREMA.md`.
     cmd.env("ADEORQ_PANE_ID", id.to_string());
+    // Y que `adeorq` se pueda escribir a secas. Hace falta para pedir un token
+    // sin enseñarlo (`adeorq secreto <nombre>`, ver `pedir_secreto.rs`), y la
+    // app no está en el PATH del sistema: se instala en su propia carpeta. Se
+    // añade DELANTE por lo de siempre, que un `adeorq` de otro sitio no gane, y
+    // solo si no estaba ya, para que reabrir terminales no vaya alargando la
+    // variable sin freno.
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(carpeta) = exe.parent().map(|p| p.to_string_lossy().to_string()) {
+            let sep = if cfg!(windows) { ';' } else { ':' };
+            let actual = std::env::var("PATH").unwrap_or_default();
+            if !actual.split(sep).any(|t| t == carpeta) {
+                cmd.env("PATH", format!("{carpeta}{sep}{actual}"));
+            }
+        }
+    }
     // Last, so a pane's own settings win over the defaults above.
     for (key, value) in env.into_iter().flatten() {
         if value.is_empty() {

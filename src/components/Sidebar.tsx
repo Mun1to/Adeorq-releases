@@ -51,6 +51,7 @@ import { propsDeVelo } from "../lib/velo";
 import { PROVIDERS, providerOf } from "../lib/providers";
 import { ATAJOS_PROV_EVENTO, leerAtajosProv } from "../lib/atajosProveedor";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import { encaja } from "../lib/buscar";
 import { useMenu } from "./Overlays";
 import ProjectAvatar, { initials } from "./ProjectAvatar";
@@ -412,10 +413,11 @@ export default function Sidebar({
     detectClis(OTHER_CLIS.map((p) => [p.id, p.exe] as [string, string]))
       .then((list) => setClis(list.map((c) => c.id)))
       .catch(() => {});
-    const timer = setInterval(() => {
+    // Ver `lib/latido.ts`: barrer `~/.claude` entero es la consulta más cara
+    // que se repite sola, y con la ventana tapada la lista no la mira nadie.
+    return latido(() => {
       scanSessions().then(setSessions).catch(() => {});
     }, SCAN_EVERY_MS);
-    return () => clearInterval(timer);
   }, [refreshKey]);
 
   // Logos are read from disk once per project and kept in Rust: this fires on

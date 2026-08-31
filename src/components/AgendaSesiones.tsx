@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import {
   lastReply,
   ollamaLine,
@@ -79,8 +80,8 @@ export default function AgendaSesiones({ modelo, onResume }: Props) {
 
   useEffect(() => {
     releer();
-    const id = setInterval(releer, REFRESCO_MS);
-    return () => clearInterval(id);
+    // Ver `lib/latido.ts`: con la ventana tapada esta lista no se ve.
+    return latido(releer, REFRESCO_MS);
   }, [releer]);
 
   const ordenadas = useMemo(

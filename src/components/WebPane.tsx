@@ -38,7 +38,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useT } from "../lib/i18n";
 import { puedeEmpotrarse } from "../lib/pty";
-import { comoUrl } from "./CanvasWeb";
+import { comoUrl, PUERTOS } from "../lib/urlweb";
 import {
   BrowserIcon,
   ChevronIcon,
@@ -107,9 +107,6 @@ const dePestana = (u: string): Pest => ({
   vuelta: 0,
 });
 
-/** Los puertos donde suele estar servido lo que uno acaba de arrancar. Los
-    mismos que en el lienzo: si un día cambian, cambian en los dos sitios. */
-const PUERTOS = [1420, 5173, 3000, 4321, 8000, 8080];
 
 /** Con qué se pinta la página. Se recuerda porque es una preferencia, no una
     decisión por panel. */

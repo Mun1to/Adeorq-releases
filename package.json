@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.150",
+  "version": "0.9.151",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,10 @@
     "textarea": "node scripts/textarea-check.mjs",
     "publicar": "node scripts/publicar-codigo.mjs",
     "tauri": "tauri",
-    "markdown": "node scripts/markdown-check.mjs"
+    "markdown": "node scripts/markdown-check.mjs",
+    "arranque": "node scripts/arranque-check.mjs",
+    "latido": "node scripts/latido-check.mjs",
+    "lienzo": "node scripts/lienzo-check.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",

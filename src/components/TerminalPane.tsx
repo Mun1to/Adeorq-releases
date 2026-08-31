@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
-import { WebglAddon } from "@xterm/addon-webgl";
 import {
   deleteSession,
   iniciales,
@@ -1393,19 +1392,32 @@ export default function TerminalPane({
     // bien, porque corre antes de que xterm mueva nada.
     el.addEventListener("wheel", alRodar, { passive: true, capture: true });
 
+    let disposed = false;
+
     term.open(el);
-    try {
-      const webgl = new WebglAddon();
-      // El navegador solo aguanta unos cuantos lienzos WebGL a la vez, y cada
-      // panel abre el suyo: al abrir uno de más, el sistema le quita el
-      // contexto a otro. Sin esto, ese panel se queda con lo último pintado y
-      // parpadea; soltando el addon vuelve al pintado normal, que va algo más
-      // lento pero se ve.
-      webgl.onContextLoss(() => webgl.dispose());
-      term.loadAddon(webgl);
-    } catch {
-      // WebGL unavailable: xterm falls back to the DOM renderer on its own
-    }
+    // El pintor de WebGL llega TARDE, y a propósito: son 249 kB, el trozo de
+    // librería más gordo que quedaba en el arranque, y hasta que llega xterm
+    // pinta con su renderizador normal. Eso no es un apaño: es exactamente lo
+    // que ya pasaba cuando el sistema le quitaba el contexto (ver abajo), así
+    // que el camino de repuesto lleva probado desde siempre. Lo que se gana es
+    // que la ventana se vea antes, porque son 249 kB menos de JavaScript que
+    // compilar para poder pintar nada.
+    void import("@xterm/addon-webgl")
+      .then(({ WebglAddon }) => {
+        // Si la terminal se ha ido mientras llegaba, no hay a quién cargárselo.
+        if (disposed) return;
+        const webgl = new WebglAddon();
+        // El navegador solo aguanta unos cuantos lienzos WebGL a la vez, y cada
+        // panel abre el suyo: al abrir uno de más, el sistema le quita el
+        // contexto a otro. Sin esto, ese panel se queda con lo último pintado y
+        // parpadea; soltando el addon vuelve al pintado normal, que va algo más
+        // lento pero se ve.
+        webgl.onContextLoss(() => webgl.dispose());
+        term.loadAddon(webgl);
+      })
+      .catch(() => {
+        // WebGL unavailable: xterm falls back to the DOM renderer on its own
+      });
     refitRef.current();
 
     // Clipboard like a normal Windows app: the WebView doesn't deliver the
@@ -1485,7 +1497,6 @@ export default function TerminalPane({
     });
     pasteRef.current = pasteClipboard;
 
-    let disposed = false;
     const unsubs: Array<() => void> = [];
 
     // env decides which account this terminal belongs to, and it can only be

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { latido } from "./latido";
 
 // Los objetivos del día. Viven en un markdown por día dentro de la carpeta de
 // Adeorq (ver `goals.rs`), no en localStorage, para que un agente pueda tachar
@@ -97,7 +98,7 @@ export function diaCorto(date: string, lang: string, ayerTxt: string): string {
 
 let cache: GoalDay | null = null;
 const oyentes = new Set<(d: GoalDay) => void>();
-let reloj: number | undefined;
+let reloj: (() => void) | undefined;
 
 /** Cada cuánto se relee el archivo. */
 const MIRAR_CADA_MS = 20_000;
@@ -119,13 +120,16 @@ export function useDiaDeHoy(): GoalDay | null {
     oyentes.add(setDia);
     // Siempre se relee al montar: el panel puede llevar horas cerrado.
     releerDia();
-    if (reloj === undefined) reloj = window.setInterval(releerDia, MIRAR_CADA_MS);
+    // Y con la ventana tapada tampoco: ver `lib/latido.ts`. Es la misma idea
+    // que la de abajo llevada un paso más allá, porque «nadie montado» y
+    // «nadie mirando» no son lo mismo cuando la app se deja abierta todo el día.
+    if (reloj === undefined) reloj = latido(releerDia, MIRAR_CADA_MS);
     return () => {
       oyentes.delete(setDia);
       // El último que se va apaga el reloj: sin nadie mirando, releer un
       // archivo cada veinte segundos es trabajo que no ve ninguna persona.
       if (oyentes.size === 0 && reloj !== undefined) {
-        clearInterval(reloj);
+        reloj();
         reloj = undefined;
       }
     };

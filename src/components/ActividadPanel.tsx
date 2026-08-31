@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from "react";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import {
   sessionActivity,
   type Actividad,
@@ -79,10 +80,12 @@ export default function ActividadPanel({ cwd, sessionId, nombre }: Props) {
         .catch((e) => vivo && setFallo(String(e)));
     };
     pedir();
-    const reloj = setInterval(pedir, SONDEO_MS);
+    // Ver `lib/latido.ts`: con la ventana tapada este panel no se ve, y leerle
+    // la cola al transcript cada cinco segundos es trabajo tirado.
+    const parar = latido(pedir, SONDEO_MS);
     return () => {
       vivo = false;
-      clearInterval(reloj);
+      parar();
     };
   }, [cwd, sessionId]);
 

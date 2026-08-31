@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import { nodragEnControles } from "../lib/arrastre";
 import { noteRead, noteWrite } from "../lib/pty";
 import { conCuerpo, conTitulo, cuerpoDe, leerLineas, tituloDe, voltear } from "../lib/notas";
@@ -68,7 +69,7 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
   // último que quiere uno es que le reescriban el texto bajo el cursor.
   useEffect(() => {
     if (editando) return;
-    const id = window.setInterval(() => {
+    return latido(() => {
       void noteRead(data.noteId).then((f) => {
         if (f.stamp > sello.current) {
           sello.current = f.stamp;
@@ -76,7 +77,6 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
         }
       });
     }, MIRA_MS);
-    return () => window.clearInterval(id);
   }, [data.noteId, editando]);
 
   /** Guarda con retardo: escribir no puede ser un viaje a disco por tecla. */

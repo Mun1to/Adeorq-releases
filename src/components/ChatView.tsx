@@ -23,6 +23,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import { aHtml } from "../lib/markdown";
 import {
   planInfo,
@@ -235,10 +236,14 @@ export default function ChatView({
         .catch(() => {});
     };
     leer(true);
-    const id = window.setInterval(() => leer(false), REFRESCO_MS);
+    // Ver `lib/latido.ts`: son DOS lecturas del transcript cada tres segundos,
+    // o sea cuarenta viajes al disco por minuto que con la ventana tapada no
+    // ve nadie. Al destapar se relee en el acto, así que no se ve una
+    // conversación vieja ni un instante.
+    const parar = latido(() => leer(false), REFRESCO_MS);
     return () => {
       vivo = false;
-      window.clearInterval(id);
+      parar();
     };
   }, [abierta?.id, abierta?.cwd]);
 

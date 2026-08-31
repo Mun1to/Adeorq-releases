@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { readCrewInbox, type CrewNote, type PaneStatus, type WorkState } from "../lib/pty";
 import { PINTA, haceCuanto } from "../lib/estados";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import type { Team } from "../App";
 import {
   ChevronIcon,
@@ -134,8 +135,9 @@ export default function CrewBoard({
   // El reloj de «lleva 4 min esperándote». Cada 20 s basta y no da guerra.
   useEffect(() => {
     if (cuadrillas.length === 0) return;
-    const id = setInterval(() => setAhora(Date.now()), 20_000);
-    return () => clearInterval(id);
+    // Ver `lib/latido.ts`: repintar «lleva 4 min» con la ventana tapada no lo
+    // lee nadie, y al volver se pone al día de golpe.
+    return latido(() => setAhora(Date.now()), 20_000);
   }, [cuadrillas.length]);
 
   // El buzón de cada cuadrilla, releído cada pocos segundos. Es un archivo de
@@ -154,10 +156,12 @@ export default function CrewBoard({
       }
     };
     leer();
-    const id = setInterval(leer, 6_000);
+    // Un archivo por cuadrilla cada seis segundos: barato de uno en uno, pero
+    // con seis cuadrillas y la ventana tapada son sesenta lecturas por minuto.
+    const parar = latido(leer, 6_000);
     return () => {
       vivo = false;
-      clearInterval(id);
+      parar();
     };
   }, [carpetas]);
 

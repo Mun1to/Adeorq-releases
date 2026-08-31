@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use tauri::State;
 #[cfg(windows)]
@@ -98,9 +98,66 @@ pub fn raices_claude() -> Vec<(String, PathBuf)> {
     out
 }
 
-fn read_tail(path: &Path) -> std::io::Result<Vec<String>> {
+/// La cola de los transcripts leídos hace poco, mientras el archivo no cambie.
+///
+/// Medido en esta máquina el 2026-08-31: 472 transcripts, 1,5 GB en total, y el
+/// mayor de 227 MB. De cada uno se lee el último mega y medio, y eso se hacía
+/// entero en CADA vuelta: con el Chat abierto son dos comandos distintos
+/// (`session_messages` y `session_context`) leyendo EL MISMO archivo cada tres
+/// segundos, más `session_activity` cada cinco. Tres megas por vuelta para
+/// volver a partir en líneas exactamente lo mismo que la vez anterior.
+///
+/// La llave es (tamaño, fecha), la misma que usa `analyze`, y vale porque un
+/// transcript solo CRECE: si no ha cambiado de tamaño ni de fecha, su cola es
+/// la de antes byte a byte. Mientras el agente escribe, el tamaño cambia y se
+/// relee, que es justo lo que se quiere.
+///
+/// Se guardan pocas a propósito: cada entrada puede ocupar su mega y medio, y
+/// quien mira una conversación mira una, no doce. Lo que hay que evitar es
+/// releer la misma tres veces en el mismo segundo.
+///
+/// Lo que ahorra, medido sobre el transcript más gordo de esta máquina (227 MB,
+/// 2026-08-31): la primera lectura tarda **672 ms** y la segunda **249 µs**.
+/// Esos 672 ms son un comando de Tauri bloqueado, y se pagaban dos veces cada
+/// tres segundos por tener el Chat abierto.
+static COLAS: Mutex<Vec<(PathBuf, u64, u64, Arc<Vec<String>>)>> = Mutex::new(Vec::new());
+const COLAS_MAX: usize = 6;
+
+fn read_tail(path: &Path) -> std::io::Result<Arc<Vec<String>>> {
+    let meta = std::fs::metadata(path)?;
+    let size = meta.len();
+    // En segundos, como la de `analyze`: es gruesa, pero no viaja sola. Lo que
+    // de verdad delata un transcript que ha crecido es el tamaño.
+    let mtime = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    if let Ok(colas) = COLAS.lock() {
+        if let Some((_, s, m, lineas)) = colas.iter().find(|(p, ..)| p == path) {
+            if *s == size && *m == mtime {
+                return Ok(Arc::clone(lineas));
+            }
+        }
+    }
+
+    let lineas = Arc::new(leer_cola(path, size)?);
+
+    if let Ok(mut colas) = COLAS.lock() {
+        colas.retain(|(p, ..)| p != path);
+        colas.insert(0, (path.to_owned(), size, mtime, Arc::clone(&lineas)));
+        colas.truncate(COLAS_MAX);
+    }
+    Ok(lineas)
+}
+
+/// El trabajo de verdad: el último trozo del archivo, partido en líneas. La
+/// primera se tira cuando el corte cae a mitad: media línea de JSON no se puede
+/// leer y ensuciaría todo lo que viniera detrás.
+fn leer_cola(path: &Path, size: u64) -> std::io::Result<Vec<String>> {
     let mut f = std::fs::File::open(path)?;
-    let size = f.metadata()?.len();
     let mut data = Vec::new();
     if size > TAIL_BYTES {
         f.seek(SeekFrom::Start(size - TAIL_BYTES))?;
@@ -1914,6 +1971,64 @@ pub fn open_in_antigravity(path: String) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
+
+
+    /// El caché de la cola no puede servir lo de antes cuando el archivo ha
+    /// crecido, que es lo único que lo haría peligroso: un transcript que crece
+    /// es un agente escribiendo, y enseñar su mensaje anterior es peor que no
+    /// tener caché. Se comprueban las dos mitades del trato, porque una sola no
+    /// vale: que ahorre cuando puede, y que NO ahorre cuando no debe.
+    #[test]
+    fn la_cola_se_guarda_pero_no_se_queda_vieja() {
+        let dir = std::env::temp_dir().join(format!("adeorq-cola-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("transcript.jsonl");
+        std::fs::write(&f, "uno
+dos
+").unwrap();
+
+        let a = read_tail(&f).unwrap();
+        assert_eq!(a.as_slice(), ["uno", "dos"]);
+
+        // Sin tocar el archivo, la segunda vez es LA MISMA memoria: no se ha
+        // vuelto a leer el disco ni a partir nada.
+        let b = read_tail(&f).unwrap();
+        assert!(Arc::ptr_eq(&a, &b), "sin cambios tendría que salir del caché");
+
+        // Y en cuanto crece, se relee. La fecha en disco tiene el grano de un
+        // segundo, así que lo que delata el cambio aquí es el tamaño, que es
+        // justo el caso real: un transcript solo crece.
+        std::fs::write(&f, "uno
+dos
+tres
+").unwrap();
+        let c = read_tail(&f).unwrap();
+        assert_eq!(c.as_slice(), ["uno", "dos", "tres"], "un archivo que ha crecido se relee");
+        assert!(!Arc::ptr_eq(&a, &c));
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// Un corte a mitad de línea tira esa línea y no la entrega a medias: media
+    /// línea de JSON no se puede leer, y colada en la lista ensucia todo lo que
+    /// venga detrás.
+    #[test]
+    fn el_corte_no_entrega_media_linea() {
+        let dir = std::env::temp_dir().join(format!("adeorq-corte-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("largo.jsonl");
+        // Una línea más larga que la ventana, y detrás dos enteras.
+        let gorda = "x".repeat(TAIL_BYTES as usize + 10);
+        std::fs::write(&f, format!("{gorda}
+buena
+otra
+")).unwrap();
+
+        let lineas = read_tail(&f).unwrap();
+        assert_eq!(lineas.as_slice(), ["buena", "otra"], "la línea cortada no sale");
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
 
     /// Los nombres de modelo que de verdad aparecen en los transcripts, y el
     /// que rompía: uno con fecha salía como "Opus 4.5.20250929".

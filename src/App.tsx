@@ -5,7 +5,6 @@ import SkillsPanel from "./components/SkillsPanel";
 import ArchivosPanel from "./components/ArchivosPanel";
 import PanelDerecho, { type Cara } from "./components/PanelDerecho";
 import ActividadPanel from "./components/ActividadPanel";
-import EditorPane from "./components/EditorPane";
 import WebPane from "./components/WebPane";
 import TerminalPane, { FONDO_EVENTO, SOLTADO_EVENTO } from "./components/TerminalPane";
 import ProviderMark, { tieneMarca } from "./components/ProviderMark";
@@ -16,18 +15,11 @@ import PedirSecreto from "./components/PedirSecreto";
 import Vigia from "./components/Vigia";
 import WebAuto from "./components/WebAuto";
 import Copiloto from "./components/Copiloto";
-import SettingsView from "./components/SettingsView";
-import CommandsView from "./components/CommandsView";
-import CanvasView, { type CanvasPane } from "./components/CanvasView";
-import ChatView from "./components/ChatView";
-import AgendaView from "./components/AgendaView";
-import MemoriaView from "./components/MemoriaView";
+import type { CanvasPane } from "./components/CanvasView";
 import NewSession, { type Launch } from "./components/NewSession";
 import Onboarding from "./components/Onboarding";
 import Orbe from "./components/Orbe";
-import RepartoView from "./components/RepartoView";
 import Tour from "./components/Tour";
-import AccountsView from "./components/AccountsView";
 import { Overlays } from "./components/Overlays";
 import LayoutPicker from "./components/LayoutPicker";
 import CrewBoard from "./components/CrewBoard";
@@ -159,8 +151,22 @@ import {
   type PedidoMcp,
 } from "./lib/supremo";
 import { type Hit } from "./lib/redact";
+import { perezoso } from "./lib/perezoso";
 import "@xterm/xterm/css/xterm.css";
 import "./App.css";
+
+// Las vistas que no se abren en cada arranque viajan en su propio archivo y
+// se piden al pintarlas. Ver `lib/perezoso.tsx`: esto es lo que saca del
+// arranque el editor de código, el lienzo y sus librerías de dibujo.
+const EditorPane = perezoso(() => import("./components/EditorPane"));
+const SettingsView = perezoso(() => import("./components/SettingsView"));
+const CommandsView = perezoso(() => import("./components/CommandsView"));
+const CanvasView = perezoso(() => import("./components/CanvasView"));
+const ChatView = perezoso(() => import("./components/ChatView"));
+const AgendaView = perezoso(() => import("./components/AgendaView"));
+const MemoriaView = perezoso(() => import("./components/MemoriaView"));
+const RepartoView = perezoso(() => import("./components/RepartoView"));
+const AccountsView = perezoso(() => import("./components/AccountsView"));
 
 interface Pane {
   id: number;
@@ -2059,6 +2065,24 @@ function App() {
    * token en no tenerlo. Y queda apuntado por su id de sesión, que es lo que
    * luego permite saber para qué se abrió cada una.
    */
+  /* Las dos únicas props del Lienzo que se escribían en el sitio, y por eso
+     nacían con identidad nueva en cada render de App. El Lienzo está montado
+     SIEMPRE (escondido con `display:none`, para no matarle las terminales), así
+     que mientras trabajas en la Cabina se repintaban sus cuatro mil líneas y sus
+     nodos de React Flow en cada latido. Sacadas aquí, sus otras diecinueve props
+     ya eran estables, y el `memo` de abajo puede por fin frenar.
+     Las dos cierran sobre cosas que no cambian: `setReparto` es un `setState` y
+     `resumeCommandFor` vive fuera del componente. */
+  const repartirDesdeLienzo = useCallback(
+    (texto: string, project: Project, alAbrir?: () => void) =>
+      setReparto({ texto, proyecto: project.path, alAbrir }),
+    [],
+  );
+  const volverASuConversacion = useCallback(
+    (cwd: string, command?: string[]) => resumeCommandFor({ name: "", cwd, command }),
+    [],
+  );
+
   const lanzarEnLienzo = useCallback(
     async (texto: string, project: Project) => {
       const limpio = texto.trim();
@@ -3435,8 +3459,17 @@ function App() {
   // botones de otras pantallas que llevan a ella también. Ver `lib/cabecera.ts`.
   const tabsVisibles = visibles(tabs, cabecera);
 
+  /* El idioma se reparte por contexto, y React reparte por IDENTIDAD del valor:
+     un `value={{ lang, t }}` escrito en el sitio es un objeto NUEVO en cada
+     render de App, así que cualquier repintado de aquí arriba —el latido de la
+     RAM, cambiar el panel con foco, mover una columna— obligaba a repintar a los
+     54 componentes que llaman a `useT()`, aunque el idioma llevara horas sin
+     tocarse. Y se lo saltaba todo, porque el contexto pasa por encima de
+     cualquier `memo`. Ahora solo cambia cuando cambia el idioma. */
+  const contextoIdioma = useMemo(() => ({ lang, t }), [lang, t]);
+
   return (
-    <LangContext.Provider value={{ lang, t }}>
+    <LangContext.Provider value={contextoIdioma}>
     <Overlays>
     <div className="app" data-stream={stream} data-peek={peek}>
       {/* Debajo de todo lo demás, y sin recibir un clic. */}
@@ -4102,9 +4135,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           // Varias tarjetas van al Reparto, no directas a terminales: es el
           // único sitio que sabe separarles los archivos para que no se pisen,
           // y de paso enseña lo que van a costar antes de abrir nada.
-          onRepartirTarjetas={(texto, project, alAbrir) =>
-            setReparto({ texto, proyecto: project.path, alAbrir })
-          }
+          onRepartirTarjetas={repartirDesdeLienzo}
           fontSize={fontSize}
           autoFont={autoFont}
           stream={stream}
@@ -4117,7 +4148,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           // comando que la devuelve a SU conversación es lo mismo que hace la
           // Cabina al arrancar, y se hace en el mismo sitio para que no haya
           // dos versiones de esa regla.
-          alVolver={(cwd, command) => resumeCommandFor({ name: "", cwd, command })}
+          alVolver={volverASuConversacion}
           onCreate={createCanvasPane}
           onClose={closeCanvasPane}
           onRename={renombrarPane}

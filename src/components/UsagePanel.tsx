@@ -14,6 +14,7 @@ import { hueOf } from "../lib/colors";
 import { providerOf } from "../lib/providers";
 import { etiquetaCorta, hace, leerRenovacion, renovacion } from "../lib/uso";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import { ChevronIcon, RefreshIcon } from "./Icons";
 import ProviderMark from "./ProviderMark";
 
@@ -160,8 +161,7 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
         .catch(() => {});
     }
     refresh();
-    const timer = setInterval(() => refresh(), REFRESH_MS);
-    return () => clearInterval(timer);
+    return latido(() => refresh(), REFRESH_MS);
   }, [refresh, cuenta]);
 
   const limits = cache?.limits.lines ?? [];

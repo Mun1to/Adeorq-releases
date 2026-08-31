@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addEdge,
   Background,
@@ -38,7 +38,8 @@ import WidgetNode, { ES_UTILIDAD, WIDGETS, type WidgetData, type WidgetKind } fr
 import ImageNode, { type ImageData, type Shape } from "./CanvasImage";
 import NoteNode, { NOTE_COLORS, type NoteData } from "./CanvasNote";
 import GalleryNode, { type GalleryData } from "./CanvasGallery";
-import WebNode, { comoUrl, type WebData } from "./CanvasWeb";
+import WebNode, { type WebData } from "./CanvasWeb";
+import { comoUrl } from "../lib/urlweb";
 import { encargoDeNota } from "../lib/notas";
 import CanvasDraw, { DRAW_TOOLS } from "./CanvasDraw";
 import {
@@ -4082,10 +4083,26 @@ ${ruta}` : ruta;
 }
 
 /** The provider has to sit above the board for useReactFlow to work. */
-export default function CanvasView(props: Props) {
+function CanvasView(props: Props) {
   return (
     <ReactFlowProvider>
       <Canvas {...props} />
     </ReactFlowProvider>
   );
 }
+
+/**
+ * Y con freno, que aquí no es un adorno: el Lienzo se monta SIEMPRE, escondido
+ * con `display:none`, porque desmontarlo mataría las terminales que tenga
+ * dentro. Escondido no se PINTA, pero React seguía ejecutando estas cuatro mil
+ * líneas y rehaciendo sus nodos en cada render de App —cada latido de la RAM,
+ * cada cambio de foco, cada columna que se mueve—, aunque estuvieras trabajando
+ * en la Cabina y aquí no hubiera cambiado nada.
+ *
+ * Funciona porque sus veintiuna props son estables (las dos que no lo eran se
+ * arreglaron en `App.tsx` a la vez que esto). Lo que SÍ lo despierta, y está
+ * bien que lo haga, es que cambie el estado de cualquier panel: `estados` llega
+ * entero, también con los de la Cabina. Frenar eso además pedía comparar
+ * contenidos, y eso ya no es gratis.
+ */
+export default memo(CanvasView);

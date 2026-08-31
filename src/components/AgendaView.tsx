@@ -51,6 +51,7 @@ import {
   type Project,
 } from "../lib/pty";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import ProjectAvatar from "./ProjectAvatar";
 import AgendaSesiones, { ESPERAN } from "./AgendaSesiones";
 import Objetivos from "./Objetivos";
@@ -369,8 +370,9 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
 
   useEffect(() => {
     contarSesiones();
-    const beat = window.setInterval(contarSesiones, 60_000);
-    return () => window.clearInterval(beat);
+    // Ver `lib/latido.ts`: barrer las sesiones para un número que no está en
+    // pantalla es la definición de trabajo tirado.
+    return latido(contarSesiones, 60_000);
   }, [contarSesiones]);
 
   useEffect(() => {
@@ -378,8 +380,7 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
     inboxWhere().then(setTrayPath).catch(() => {});
     // Cheap enough to re-read on a slow beat: it is one small text file, and
     // an agent can drop a note at any moment while he is looking at this.
-    const beat = window.setInterval(loadNotes, 20_000);
-    return () => window.clearInterval(beat);
+    return latido(loadNotes, 20_000);
   }, [loadNotes]);
 
   useEffect(() => {

@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import { COLUMNAS, PINTA, TITULO, columnaDe, haceCuanto, type Columna } from "../lib/estados";
 import type { WorkState } from "../lib/pty";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
@@ -101,8 +102,7 @@ export default function KanbanNode({ data, selected }: NodeProps<Node<KanbanData
   // min», así que un reloj por segundo repintaría sesenta veces para nada.
   useEffect(() => {
     if (!d.agentes.length) return;
-    const id = window.setInterval(() => setAhora(Date.now()), 60_000);
-    return () => window.clearInterval(id);
+    return latido(() => setAhora(Date.now()), 60_000);
   }, [d.agentes.length]);
 
   const porColumna = useMemo(() => {

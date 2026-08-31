@@ -8,6 +8,7 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import { useT } from "../lib/i18n";
+import { latido } from "../lib/latido";
 import { nodragEnControles } from "../lib/arrastre";
 import { alarm, notify } from "../lib/notify";
 import { noteList, noteRead, noteWrite } from "../lib/pty";
@@ -133,8 +134,11 @@ function useTicker(active: boolean, everyMs = 250): number {
   const [, force] = useState(0);
   useEffect(() => {
     if (!active) return;
-    const id = window.setInterval(() => force((n) => n + 1), everyMs);
-    return () => window.clearInterval(id);
+    // Y con la ventana tapada no se repinta nada: cuatro veces por segundo
+    // para un reloj que no está en pantalla era el latido más caro de la app
+    // (ver `lib/latido.ts`). La cuenta no se para, solo el dibujo: la hora
+    // sale de `Date.now()`, así que al volver está bien de golpe.
+    return latido(() => force((n) => n + 1), everyMs);
   }, [active, everyMs]);
   return 0;
 }

@@ -20,6 +20,7 @@ import {
   type ModoRend,
 } from "../lib/rendimiento";
 import { guardarForma, prefForma, type FormaPanel } from "../lib/formaPaneles";
+import { ponerSuavizado, suavizado, SUAVIZADOS, type Suavizado } from "../lib/suavizado";
 import {
   A_MANO,
   cerebroPorDefecto,
@@ -372,6 +373,7 @@ export default function SettingsView({
   const [termTheme, setTermTheme] = useState(temaTermId);
   const [apagada, setApagada] = useState(apagon);
   const [rapida, setRapida] = useState<ModoRend>(prefRendimiento);
+  const [suave, setSuave] = useState<Suavizado>(suavizado);
   /** Cuántas terminales hay abiertas ahora mismo, para decidir en el acto si el
    *  ahorro se aplica ya. No hace falta que el padre la pase: la cuenta que
    *  importa es la que ya está aplicada, y esa vive en el `<html>`. */
@@ -810,6 +812,38 @@ export default function SettingsView({
                     siempre, y la respuesta buena depende de lo que tengas
                     abierto: con dos terminales el cristal no cuesta, con seis
                     se nota al escribir. */}
+                {/* El suavizado del scroll.
+                    Es un ajuste y no una decisión nuestra por un motivo
+                    concreto: lo que se puede medir es que la vista pase por una
+                    posición o por cuatro, y eso está medido; lo que NO se puede
+                    medir desde aquí es cómo se siente en el panel táctil de un
+                    portátil, donde llegan decenas de eventos por segundo. Se
+                    prueba con el dedo puesto, que para eso cambia en caliente
+                    (Munir, 2026-09-01, dos veces sobre lo mismo). */}
+                <div className="ajuste-bloque">
+                  <b>{t("Suavidad del scroll")}</b>
+                  <span className="card-hint">
+                    {t(
+                      "Cómo se mueve la vista al rodar en una terminal. En «Seco» salta de golpe al sitio nuevo, que es lo de siempre; en los otros dos se desliza hasta allí. Cambia al momento en las terminales abiertas, así que se elige rodando con el dedo en el panel táctil y mirando cuál se siente mejor.",
+                    )}
+                  </span>
+                  <div className="chip-row">
+                    {SUAVIZADOS.map(({ valor, etiqueta }) => (
+                      <button
+                        key={valor}
+                        className="choice"
+                        data-on={suave === valor}
+                        onClick={() => {
+                          ponerSuavizado(valor);
+                          setSuave(valor);
+                        }}
+                      >
+                        {t(etiqueta)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="ajuste-bloque">
                   <b>{t("Modo rendimiento")}</b>
                   <span className="card-hint">

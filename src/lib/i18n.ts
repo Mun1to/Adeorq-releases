@@ -2276,6 +2276,12 @@ const EN: Record<string, string> = {
   "Editar esta página haciendo clic, y guardarlo en el código":
     "Edit this page by clicking, and have it saved into the code",
   "Salir del editor": "Leave the editor",
+  "Suavidad del scroll": "Scroll smoothness",
+  "Cómo se mueve la vista al rodar en una terminal. En «Seco» salta de golpe al sitio nuevo, que es lo de siempre; en los otros dos se desliza hasta allí. Cambia al momento en las terminales abiertas, así que se elige rodando con el dedo en el panel táctil y mirando cuál se siente mejor.":
+    "How the view moves when you scroll a terminal. On «Seco» it jumps straight to the new spot, which is what it always did; on the other two it glides there. It changes right away in open terminals, so you pick it by scrolling with your finger on the trackpad and seeing which one feels better.",
+  "Seco": "Snap",
+  "Suave": "Smooth",
+  "Muy suave": "Very smooth",
   "Un agente necesita una clave": "An agent needs a key",
   "La pide con el nombre": "It asks for it under the name",
   "Pégala aquí y entra directa en su comando. No se escribe en la terminal, así que el agente no la lee ni se queda en su historial.":

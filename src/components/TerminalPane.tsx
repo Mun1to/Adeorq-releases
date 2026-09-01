@@ -55,6 +55,7 @@ import { seMuda } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
 import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
+import { suavizado, SUAVIZADO_EVENTO } from "../lib/suavizado";
 import {
   hayQueAjustar,
   hayQueRecolocar,
@@ -1175,11 +1176,20 @@ export default function TerminalPane({
       // ya no hay nada que dejar ver es pagar por nada (2026-08-07).
       t.options.allowTransparency = !esFondoSolido();
     };
+    /* El suavizado del scroll se relee aparte y EN CALIENTE: se elige con el
+       dedo en el panel táctil, probando, así que tiene que cambiar sin cerrar
+       la terminal ni esperar a otra versión. */
+    const alSuavizado = () => {
+      const t = termRef.current;
+      if (t) t.options.smoothScrollDuration = suavizado();
+    };
     window.addEventListener(FONDO_EVENTO, alCambiar);
     window.addEventListener(TEMA_TERM_EVENTO, alCambiar);
+    window.addEventListener(SUAVIZADO_EVENTO, alSuavizado);
     return () => {
       window.removeEventListener(FONDO_EVENTO, alCambiar);
       window.removeEventListener(TEMA_TERM_EVENTO, alCambiar);
+      window.removeEventListener(SUAVIZADO_EVENTO, alSuavizado);
     };
   }, []);
 
@@ -1232,6 +1242,14 @@ export default function TerminalPane({
        * tiene, así que se pregunta: en el modo rendimiento baja a 2.500, que
        * siguen siendo cien pantallas, y en modo normal se queda como estaba. */
       scrollback: modoRendimiento() ? 2500 : 8000,
+      /* Que la vista se DESLICE en vez de dar un salto seco.
+       *
+       * Medido en un xterm de verdad: un salto de tres renglones sin esto pasa
+       * por una sola posición, en un fotograma; con esto pasa por cuatro,
+       * repartidas en el tiempo. Es un ajuste y no una decisión nuestra porque
+       * con un panel táctil puede sentirse arrastrado, y eso no hay forma de
+       * medirlo desde aquí. Ver `lib/suavizado.ts`. */
+      smoothScrollDuration: suavizado(),
       // Solo cuando de verdad hay algo que dejar ver detrás. Ver `esFondoSolido`.
       allowTransparency: !esFondoSolido(),
       theme: temaDeXterm(),

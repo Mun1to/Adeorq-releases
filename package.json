@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.152",
+  "version": "0.9.153",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +11,8 @@
     "css": "node scripts/css-check.mjs",
     "svg": "node scripts/svg-check.mjs",
     "xterm": "node scripts/xterm-check.mjs",
+    "prueba": "node scripts/prueba-check-check.mjs",
+    "publicar-version": "node scripts/publicar-version.mjs",
     "botones": "node scripts/botones-check.mjs",
     "textarea": "node scripts/textarea-check.mjs",
     "publicar": "node scripts/publicar-codigo.mjs",

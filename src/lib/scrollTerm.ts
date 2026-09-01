@@ -242,3 +242,32 @@ export function gestoDeRueda(rueda: Rueda, celda: number): number {
   const px = 50 * tics * (rueda.alt ? 5 : 1);
   return px / celda;
 }
+
+/**
+ * Si un gesto de rueda tiene que congelar la terminal para poder leer atrás.
+ *
+ * ── POR QUÉ NO BASTA CON «HA SUBIDO» (2026-08-30) ──────────────────────────
+ *
+ * La condición era `deltaY < 0`: cualquier evento hacia arriba congelaba. Con
+ * un ratón eso está bien, porque un clic de rueda son unos cien píxeles y de
+ * verdad te has ido del final. Con el panel táctil de un portátil NO: manda dos
+ * o tres píxeles por evento, o sea fracciones de renglón, así que la terminal se
+ * quedaba en «Pausada · N líneas nuevas» sin que la vista se hubiera movido ni
+ * una línea, y bastaba con rozarlo sin querer (Munir: «no me gusta nada el
+ * scroll en las terminales con el panel táctil del portátil»).
+ *
+ * Así que se exige un renglón ENTERO, acumulando las fracciones. Y bajar RESTA:
+ * un roce arriba y abajo se queda en cero y no congela nada, que es justo lo que
+ * hace un dedo apoyado en el trackpad.
+ *
+ * @param subido  Lo acumulado hasta ahora, en renglones (nunca negativo).
+ * @param movido  El gesto de ESTE evento, de `gestoDeRueda`: positivo arriba.
+ * @returns Lo acumulado nuevo y si toca congelar.
+ */
+export function trasGestoParaCongelar(
+  subido: number,
+  movido: number,
+): { subido: number; congelar: boolean } {
+  const acumulado = Math.max(0, subido + movido);
+  return { subido: acumulado, congelar: acumulado >= 1 };
+}

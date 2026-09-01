@@ -9,6 +9,7 @@ import {
   hayQueAjustar,
   hayQueRecolocar,
   trasBorrarScrollback,
+  trasGestoParaCongelar,
   trasRueda,
   volverA,
 } from "../src/lib/scrollTerm";
@@ -272,5 +273,51 @@ ok(
   "con una celda rota no se inventa nada",
   gestoDeRueda(ticArriba, 0) === 0,
 );
+
+// ── El panel táctil ya no pausa la terminal con un roce ────────────────────
+//
+// Munir, 2026-08-30: «no me gusta nada el scroll en las terminales con el panel
+// táctil del portátil». Un trackpad manda dos o tres píxeles por evento, o sea
+// fracciones de renglón; la condición vieja (`deltaY < 0`) congelaba con el
+// primero, y la terminal se quedaba en «Pausada» sin haberse movido.
+
+/** Pasar una ráfaga de eventos, como la que manda un dedo en el trackpad. */
+function rafaga(deltas: number[], celda = 20): { subido: number; congelo: boolean } {
+  let subido = 0;
+  let congelo = false;
+  for (const dy of deltas) {
+    const movido = gestoDeRueda({ deltaY: dy, deltaMode: 0 }, celda);
+    const r = trasGestoParaCongelar(subido, movido);
+    subido = r.subido;
+    if (r.congelar) congelo = true;
+  }
+  return { subido, congelo };
+}
+
+ok(
+  "un roce del trackpad hacia arriba NO pausa la terminal",
+  !rafaga([-3, -3, -3]).congelo,
+  `subido ${rafaga([-3, -3, -3]).subido.toFixed(3)} renglones`,
+);
+ok(
+  "un roce arriba y abajo se queda en cero: el dedo apoyado no cuenta",
+  !rafaga([-3, -3, 3, 3, -2, 2]).congelo && rafaga([-3, -3, 3, 3, -2, 2]).subido === 0,
+);
+ok(
+  "un gesto de verdad con el trackpad SI pausa",
+  rafaga([-4, -4, -4, -4, -4, -4, -4, -4, -4]).congelo,
+);
+ok(
+  "un clic de rueda de raton pausa al instante, como antes",
+  rafaga([-100]).congelo,
+);
+ok("bajar no pausa nunca, por mucho que bajes", !rafaga([100, 100, 100]).congelo);
+ok("y lo acumulado no se va por debajo de cero", rafaga([100, 100]).subido === 0);
+ok(
+  "shift es scroll horizontal: no pausa aunque el delta sea grande",
+  !trasGestoParaCongelar(0, gestoDeRueda({ deltaY: -300, deltaMode: 0, shift: true }, 20))
+    .congelar,
+);
+
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

@@ -60,6 +60,7 @@ import {
   hayQueRecolocar,
   gestoDeRueda,
   trasBorrarScrollback,
+  trasGestoParaCongelar,
   trasRueda,
   volverA,
 } from "../lib/scrollTerm";
@@ -528,6 +529,12 @@ export default function TerminalPane({
   /** Renglones esperando en cola, o `null` si la terminal va al día. */
   const [pausa, setPausa] = useState<number | null>(null);
   const congeladoRef = useRef(false);
+  /** Cuánto llevas subido sin llegar a congelar, en renglones.
+   *
+   * Existe por el panel táctil: manda dos o tres píxeles por evento, o sea
+   * fracciones de renglón, y con la condición vieja (`deltaY < 0`) la
+   * terminal se pausaba con un roce, sin que la vista se hubiera movido. */
+  const subidoRef = useRef(0);
   const colaRef = useRef<string[]>([]);
   const colaLargoRef = useRef(0);
   /** Y el que suelta la cola, puesto por el efecto que monta la terminal. */
@@ -1336,33 +1343,8 @@ export default function TerminalPane({
      * la rueda que llegaba justo tras el borrado medía cero y se perdía (subes
      * y la terminal te devuelve al final). Ver `gestoDeRueda`. */
     const alRodar = (ev: WheelEvent) => {
-      /* Leer en paz: subir congela la terminal, llegar al final la suelta.
-       *
-       * Se decide con el GESTO y no con el búfer, por lo mismo de siempre: el
-       * búfer miente mientras el CLI repinta. Bajar no suelta por sí solo, lo
-       * que suelta es LLEGAR al final, que es lo único que significa «ya no
-       * estoy leyendo atrás». Y ahí medir sí vale, porque con la terminal
-       * congelada nada mueve el búfer por debajo. */
-      if (ev.deltaY < 0) {
-        if (!congeladoRef.current) {
-          congeladoRef.current = true;
-          avisarCola();
-        }
-      } else if (congeladoRef.current) {
-        const b = term.buffer.active;
-        if (b.viewportY >= b.baseY - 1) soltarCola();
-      }
-      if (pendienteRef.current === null) return;
       const t = termRef.current;
       if (!t) return;
-      // Del EVENTO, nunca del búfer. La 0.9.124 medía viewportY antes y
-      // después del frame, y si el borrado caía entre las dos lecturas la
-      // diferencia era el colapso del búfer entero (617→67), que se sumaba
-      // como un gesto de 550: ese es el «subo una vez y me lleva súper
-      // arriba» del décimo reporte. Y al revés también fallaba: la rueda que
-      // llega justo tras el borrado no mueve nada todavía, medía cero y el
-      // gesto se perdía. El evento no depende de en qué estado esté el búfer.
-      //
       // La celda se le pregunta a xterm, no al DOM: medir `.xterm-screen` con
       // getBoundingClientRect devolvía la altura CON el zoom del lienzo (en el
       // canvas los paneles viven bajo un `scale()` de React Flow que nunca es
@@ -1372,6 +1354,13 @@ export default function TerminalPane({
       const celda =
         t.dimensions?.css.cell.height ??
         (t.options.fontSize ?? 14) * (t.options.lineHeight ?? 1.2);
+      // Del EVENTO, nunca del búfer, y en RENGLONES con decimales. La 0.9.124
+      // medía viewportY antes y después del frame, y si el borrado caía entre
+      // las dos lecturas la diferencia era el colapso del búfer entero
+      // (617→67), que se sumaba como un gesto de 550: ese es el «subo una vez
+      // y me lleva súper arriba» del décimo reporte. Y al revés también
+      // fallaba: la rueda que llega justo tras el borrado no mueve nada
+      // todavía, medía cero y el gesto se perdía.
       const movido = gestoDeRueda(
         {
           deltaY: ev.deltaY,
@@ -1382,6 +1371,34 @@ export default function TerminalPane({
         },
         celda,
       );
+
+      /* Leer en paz: subir congela la terminal, llegar al final la suelta.
+       *
+       * Se decide con el GESTO y no con el búfer, por lo mismo de siempre: el
+       * búfer miente mientras el CLI repinta. Bajar no suelta por sí solo, lo
+       * que suelta es LLEGAR al final, que es lo único que significa «ya no
+       * estoy leyendo atrás». Y ahí medir sí vale, porque con la terminal
+       * congelada nada mueve el búfer por debajo.
+       *
+       * Y se exige UN RENGLÓN de verdad, no un `deltaY < 0` cualquiera. Con un
+       * ratón daba igual, porque un clic de rueda son unos cien píxeles; con el
+       * panel táctil de un portátil, que manda dos o tres píxeles por evento,
+       * la terminal se quedaba en «Pausada» sin que la vista se hubiera movido
+       * ni una línea, y bastaba rozarlo (Munir, 2026-08-30: «no me gusta nada
+       * el scroll en las terminales con el panel táctil»). Bajar RESTA de lo
+       * subido, así que un roce arriba y abajo no congela nada. */
+      if (!congeladoRef.current) {
+        const r = trasGestoParaCongelar(subidoRef.current, movido);
+        subidoRef.current = r.subido;
+        if (r.congelar) {
+          congeladoRef.current = true;
+          avisarCola();
+        }
+      } else if (movido < 0) {
+        const b = term.buffer.active;
+        if (b.viewportY >= b.baseY - 1) soltarCola();
+      }
+      if (pendienteRef.current === null) return;
       if (movido !== 0) pendienteRef.current = trasRueda(pendienteRef.current, movido);
     };
     // En fase de CAPTURA, y no es un detalle: medido en un navegador de verdad
@@ -1832,6 +1849,9 @@ export default function TerminalPane({
     const soltarCola = () => {
       if (!congeladoRef.current) return;
       congeladoRef.current = false;
+      // A cero, o el siguiente roce hacia arriba congelaría de inmediato con lo
+      // que quedó apuntado de la vez anterior.
+      subidoRef.current = 0;
       const texto = colaRef.current.join("");
       colaRef.current = [];
       colaLargoRef.current = 0;

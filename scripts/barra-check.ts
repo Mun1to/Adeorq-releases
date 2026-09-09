@@ -7,12 +7,16 @@
 // (El porqué de ese camino, en `docs/` y en la memoria: Adeorq no tiene runner
 // de tests y la lógica pura se prueba compilando a CommonJS.)
 //
-// Lo que se defiende aquí es UNA cosa: que la barra y el asistente del ＋
-// contesten lo mismo a «¿ya la tengo?». Cuando cada uno tenía su regla, el ＋
-// te ofrecía traer sesiones que ya estaban en la barra y te las seguía
-// ofreciendo después de traerlas.
+// Lo que se defiende aquí son DOS cosas:
+//
+//   1. que la barra y el asistente del ＋ contesten lo mismo a «¿ya la tengo?».
+//      Cuando cada uno tenía su regla, el ＋ te ofrecía traer sesiones que ya
+//      estaban en la barra y te las seguía ofreciendo después de traerlas.
+//   2. que la barra mire treinta días hacia atrás y no siete. El corte de una
+//      semana dejaba 13 sesiones a la vista de 452 en el disco, y Munir
+//      preguntó el 2026-09-09 por qué habían «desaparecido».
 
-import { porQueSale, saleEnLaBarra, type Mirable } from "../src/lib/enLaBarra";
+import { HORAS_EN_LA_BARRA, porQueSale, saleEnLaBarra, type Mirable } from "../src/lib/enLaBarra";
 
 let fallos = 0;
 function ok(nombre: string, real: boolean, porque?: string) {
@@ -20,15 +24,37 @@ function ok(nombre: string, real: boolean, porque?: string) {
   console.log(`${real ? "ok  " : "FALLA"} ${nombre}${!real && porque ? ` — ${porque}` : ""}`);
 }
 
-const vieja: Mirable = { id: "v", fresh: "muerta" };
-const deAyer: Mirable = { id: "a", fresh: "dormida" };
-const viva: Mirable = { id: "x", fresh: "activa" };
+const dias = (n: number): number => n * 24;
+
+const vieja: Mirable = { id: "v", hours: dias(45) };
+const deAyer: Mirable = { id: "a", hours: dias(1) };
+const viva: Mirable = { id: "x", hours: 1 };
+/** La que el corte de una semana escondía y el de un mes enseña. */
+const deHaceDiezDias: Mirable = { id: "d", hours: dias(10) };
 const nada = { enPantalla: new Set<string>(), traidas: new Set<string>() };
+
+// ── El corte de la barra ────────────────────────────────────────────────────
+ok("la barra mira un mes hacia atrás", HORAS_EN_LA_BARRA === dias(30));
+ok(
+  "una de hace diez días SE VE",
+  saleEnLaBarra(deHaceDiezDias, nada),
+  "es el caso de Munir del 2026-09-09: con el corte de una semana se veían 13 de 452 y parecían borradas",
+);
+ok(
+  "y una de hace diez días no sale como que falta por traer",
+  porQueSale(deHaceDiezDias, nada) === "reciente",
+  "si la barra ya la enseña, el ＋ no puede ofrecerte traerla",
+);
+ok(
+  "justo en el límite del mes ya NO se ve",
+  !saleEnLaBarra({ id: "l", hours: HORAS_EN_LA_BARRA }, nada),
+  "el corte es estricto por abajo, si no el límite no significa nada",
+);
 
 // ── Lo que se ve ────────────────────────────────────────────────────────────
 ok("una de esta semana se ve sin más", saleEnLaBarra(deAyer, nada));
 ok("una activa también", saleEnLaBarra(viva, nada));
-ok("una de hace un mes NO se ve", !saleEnLaBarra(vieja, nada));
+ok("una de hace mes y medio NO se ve", !saleEnLaBarra(vieja, nada));
 ok(
   "salvo que la tengas abierta en un panel",
   saleEnLaBarra(vieja, { ...nada, enPantalla: new Set(["v"]) }),
@@ -37,7 +63,7 @@ ok(
 ok(
   "o que la hayas traído tú a mano",
   saleEnLaBarra(vieja, { ...nada, traidas: new Set(["v"]) }),
-  "ir a buscar una de hace un mes y que la regla de la semana la esconda justo después es el fallo que traidas resuelve",
+  "ir a buscar una de hace dos meses y que la regla de la edad la esconda justo después es el fallo que traidas resuelve",
 );
 ok(
   "con «ver las viejas» puesto se ve todo",
@@ -52,7 +78,7 @@ ok(
   "es el fallo de Munir del 2026-08-12: marcabas las 60 que faltaban, las ponías, y al volver seguían saliendo como que faltaban",
 );
 ok(
-  "y una de esta semana NO falta nunca, aunque no la hayas traído",
+  "y una reciente NO falta nunca, aunque no la hayas traído",
   porQueSale(deAyer, nada) !== null,
   "ya sale sola en la barra por ser reciente: ofrecerla es ofrecer algo que ya tienes",
 );
@@ -82,7 +108,7 @@ const mundos = [
   { enPantalla: new Set(["x"]), traidas: new Set(["a"]), verViejas: false },
 ];
 let coherente = true;
-for (const s of [vieja, deAyer, viva]) {
+for (const s of [vieja, deAyer, viva, deHaceDiezDias]) {
   for (const e of mundos) {
     if (saleEnLaBarra(s, e) !== (porQueSale(s, e) !== null)) coherente = false;
   }

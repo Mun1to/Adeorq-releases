@@ -19356,6 +19356,25 @@ textarea.note-body {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
+/* El mismo botón cuando la barra es la tira o el raíl está en logo: ahí solo
+   hay 44 px de ancho y la frase no entra, así que queda el número («+261») o el
+   ojo tachado para volver, y la frase entera vive en el `data-tip`. Antes el
+   botón sencillamente no se pintaba en estos dos modos, y era justo donde más
+   falta hacía: sin él no quedaba ninguna pista de que hubiera más sesiones y
+   parecían borradas (Munir, 2026-09-09). */
+.mas-viejas-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-height: 28px;
+  margin: 6px auto 10px;
+  padding: 5px 4px;
+  font-size: 11px;
+  /* Los dígitos de un contador no deben bailar de ancho al cambiar. */
+  font-variant-numeric: tabular-nums;
+}
+
 /* ==========================================================================
    Lo que llevas trabajado, en la pantalla vacía de la Cabina.
    Va dentro de `.empty`, que ya está sobre el fondo de la casa, así que aquí

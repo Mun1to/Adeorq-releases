@@ -652,6 +652,18 @@ export interface UiState {
    * de una decisión que ya tomaste.
    */
   traidasVisto?: number;
+  /**
+   * Enseñar también las de más de un mes, sin límite de edad.
+   *
+   * Antes era un `useState` que arrancaba apagado siempre, y se justificaba como
+   * «una mirada al pasado, no un ajuste». Con el corte en una semana era
+   * defendible; el 2026-09-09 Munir preguntó por qué habían «desaparecido»
+   * muchas sesiones, y la respuesta era que la barra enseñaba 13 de 452 y el
+   * interruptor se apagaba solo en cada arranque. Si alguien decide ver su
+   * historial entero, esa decisión aguanta al reinicio como todas las demás de
+   * esta pantalla.
+   */
+  verViejas?: boolean;
   /** Logos chosen by hand, project name → small data URI. Beats detection. */
   projectIcon: Record<string, string>;
   /**

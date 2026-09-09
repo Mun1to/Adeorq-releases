@@ -341,7 +341,9 @@ export default function Sidebar({
    * nada dijera que existía. No se guarda a propósito: es una mirada al pasado,
    * no un ajuste, y al abrir Adeorq lo que quieres ver es lo de ahora.
    */
-  const [verViejas, setVerViejas] = useState(false);
+  /* Se guarda en `ui`, no en un `useState`: ver el porqué en `UiState.verViejas`.
+     Antes se apagaba solo en cada arranque y había que volver a pedirlo. */
+  const verViejas = ui.verViejas ?? false;
   /** Lo tecleado en la casilla de confirmación: hay que escribir el nombre del
       proyecto para que el botón se encienda, como al borrar un repo en GitHub.
       El 31-jul-2026 se fueron 17 carpetas a la papelera en veinte minutos con
@@ -598,6 +600,17 @@ export default function Sidebar({
 
   const archived = useMemo(() => new Set(ui.archived), [ui.archived]);
   const traidas = useMemo(() => new Set(ui.traidas), [ui.traidas]);
+  /* Las que tienes abiertas en un panel ahora mismo. Vive aquí fuera y no dentro
+     del memo grande porque lo necesitan DOS sitios: el filtro de las filas y el
+     contador del botón de abajo. Cuando el contador tenía su propia cuenta, el
+     botón te ofrecía cargar sesiones que ya estaban en la barra. */
+  const enPantalla = useMemo(
+    () =>
+      new Set(
+        abiertas.map((a) => sessionIdOf(a.command)).filter((x): x is string => !!x),
+      ),
+    [abiertas],
+  );
   /* Los proyectos que quitaste de la barra. Ojo con el nombre: `gruposOcultos`,
      que llega por props, es otra cosa (los grupos de sesiones plegados). */
   const ocultos = useMemo(() => new Set(ui.hiddenProjects), [ui.hiddenProjects]);
@@ -609,10 +622,7 @@ export default function Sidebar({
   }>(() => {
     /** Las conversaciones que tienes AHORA en un panel. Lo dice el propio
         comando del panel, que lleva su `--resume <id>` dentro. */
-    const enPantalla = new Set(
-      abiertas.map((a) => sessionIdOf(a.command)).filter((x): x is string => !!x),
-    );
-    // Las de más de una semana no se enseñan... salvo que las tengas abiertas o
+    // Las de más de un mes no se enseñan... salvo que las tengas abiertas o
     // que las hayas traído tú desde el ＋. La regla entera, con su porqué, en
     // `lib/enLaBarra.ts`: la comparte el asistente del ＋, que es quien decide
     // cuáles te FALTAN, y tenerla escrita dos veces era justo el fallo (ofrecía
@@ -774,10 +784,19 @@ export default function Sidebar({
   ]);
 
   /** Cuántas hay escondidas por edad, para que el botón diga un número y no
-      «cargar más» a ciegas. Si son cero, el botón no existe. */
+      «cargar más» a ciegas. Si son cero, el botón no existe.
+      Se pregunta con `saleEnLaBarra`, la MISMA función que decide qué filas se
+      pintan, así que el número no puede desviarse de lo que se ve. Contando por
+      su cuenta (`fresh === "muerta"`) se colaban en la cuenta las que ya estaban
+      a la vista por tenerlas abiertas o traídas a mano. */
   const viejasOcultas = useMemo(
-    () => (verViejas ? 0 : sessions.filter((s) => s.fresh === "muerta").length),
-    [sessions, verViejas],
+    () =>
+      verViejas
+        ? 0
+        : sessions.filter(
+            (s) => !saleEnLaBarra(s, { enPantalla, traidas, verViejas: false }),
+          ).length,
+    [sessions, verViejas, enPantalla, traidas],
   );
 
   /* Los que quitaste de la barra salen de la lista aquí, y no dentro del memo
@@ -3115,16 +3134,55 @@ export default function Sidebar({
         )}
 
         {/* Abajo del todo, lo que la barra estaba escondiendo por viejo.
-            La barra corta por edad (una semana) para no crecer sin fin, y ese
-            corte era mudo: una conversación de hace ocho días no estaba y nada
-            decía que existiera. Ahora dice cuántas son y se traen con un clic
-            (Munir, 2026-08-08). No hay botón para volver a esconderlas porque
-            se van solas al reiniciar: es una mirada al pasado, no un ajuste. */}
-        {!tira && rail !== "logo" && viejasOcultas > 0 && (
-          <button className="mas-viejas" onClick={() => setVerViejas(true)}>
-            {t("Cargar {n} sesiones más antiguas", { n: viejasOcultas })}
-          </button>
-        )}
+            La barra corta por edad (un mes) para no crecer sin fin, y ese corte
+            era mudo: una conversación de hace ocho días no estaba y nada decía
+            que existiera. Desde el 2026-08-08 dice cuántas son y se traen con
+            un clic.
+
+            Tres cosas cambiaron el 2026-09-09, cuando Munir preguntó por qué
+            habían «desaparecido» muchas sesiones (se veían 13 de 452):
+
+            · el corte pasó de una semana a un mes (`HORAS_EN_LA_BARRA`);
+            · este botón se pinta TAMBIÉN en la tira y con el raíl en logo, en
+              versión de un número, porque escondiéndolo justo ahí no quedaba
+              ninguna pista de que existieran más y parecían borradas de verdad;
+            · y ahora hay vuelta atrás, que antes no hacía falta porque el
+              interruptor se apagaba solo al reiniciar. Al guardarse en `ui`
+              (ver `UiState.verViejas`) sin este botón te quedabas dentro. */}
+        {viejasOcultas > 0 &&
+          (tira || rail === "logo" ? (
+            <button
+              className="mas-viejas mas-viejas-mini"
+              data-tip={t("Cargar {n} sesiones más antiguas", { n: viejasOcultas })}
+              onClick={() => mutate((prev) => ({ ...prev, verViejas: true }))}
+            >
+              +{viejasOcultas}
+            </button>
+          ) : (
+            <button
+              className="mas-viejas"
+              onClick={() => mutate((prev) => ({ ...prev, verViejas: true }))}
+            >
+              {t("Cargar {n} sesiones más antiguas", { n: viejasOcultas })}
+            </button>
+          ))}
+        {verViejas &&
+          (tira || rail === "logo" ? (
+            <button
+              className="mas-viejas mas-viejas-mini"
+              data-tip={t("Ver solo las recientes")}
+              onClick={() => mutate((prev) => ({ ...prev, verViejas: false }))}
+            >
+              <EyeOffIcon size={13} />
+            </button>
+          ) : (
+            <button
+              className="mas-viejas"
+              onClick={() => mutate((prev) => ({ ...prev, verViejas: false }))}
+            >
+              {t("Ver solo las recientes")}
+            </button>
+          ))}
       </div>
       {/* La tarjeta de actualizar, al final de la barra y FUERA de la lista con
           scroll: si fuera dentro, con veinte proyectos habría que bajar hasta

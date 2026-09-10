@@ -661,7 +661,7 @@ export default function AccountsView({
       >
         {(activa) => (
           <>
-            {activa === "cuentas" && <SeccionCuentas />}
+            {activa === "cuentas" && SeccionCuentas()}
             {activa === "claves" && (
               <>
                 <OpenRouterCard
@@ -672,8 +672,8 @@ export default function AccountsView({
                 <ApiKeysCard />
               </>
             )}
-            {activa === "atajos" && <SeccionAtajos />}
-            {activa === "faltan" && <SeccionFaltan />}
+            {activa === "atajos" && SeccionAtajos()}
+            {activa === "faltan" && SeccionFaltan()}
           </>
         )}
       </Secciones>
@@ -739,6 +739,19 @@ export default function AccountsView({
     </div>
   );
 
+  /* ── Estas tres NO son componentes, y por eso se llaman `SeccionCuentas()` ──
+
+     Están escritas aquí dentro porque usan el estado de la vista sin arrastrar
+     una docena de props. El precio, mientras fueron COMPONENTES, es que se
+     declaraban de nuevo en cada render: React compara el tipo de
+     `<SeccionCuentas />` con la función del render anterior, la ve distinta, y
+     en vez de actualizar el `<input>` lo tira y monta otro. El foco del teclado
+     se queda en el nodo que acaba de desaparecer.
+
+     Llamadas como funciones, su JSX entra en el árbol de la vista sin ser un
+     tipo que React compare, y no hay nada que remontar. La condición es que no
+     usen hooks, que es el caso; `scripts/anidado-check.mjs` lo vigila y
+     `scripts/remonte-check.tsx` mide el efecto con React de verdad. */
   function SeccionCuentas() {
     return (
       <>

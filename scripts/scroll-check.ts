@@ -5,6 +5,7 @@
 //   node <tmp>/scripts/scroll-check.js
 
 import {
+  esDelRaton,
   gestoDeRueda,
   hayQueAjustar,
   hayQueRecolocar,
@@ -319,5 +320,34 @@ ok(
     .congelar,
 );
 
+// ── EL CLIC QUE BAJABA LA TERMINAL (undécimo reporte, 2026-09-10) ───────────
+// Munir: «hago clic en otra terminal que estaba scrolleada arriba y se vuelve
+// abajo sola». Con el modo ratón activo, un clic viaja por `onData` igual que
+// una tecla, y bajar por eso es el fallo. Medido en un navegador de verdad:
+// mirando la 100 de 189, un mousedown entregaba `\x1b[<0;5;2M` y saltaba a 189.
+ok("un clic en SGR es del raton", esDelRaton("\x1b[<0;5;2M"));
+ok("y soltarlo tambien", esDelRaton("\x1b[<0;5;2m"));
+ok(
+  "el par entero que llega de un clic, junto",
+  esDelRaton("\x1b[<0;5;2M\x1b[<0;5;2m"),
+  "xterm puede entregar la pulsación y la soltada en la misma tanda",
+);
+ok("arrastrar con el boton pulsado tambien", esDelRaton("\x1b[<32;10;4M"));
+ok("la codificacion vieja de tres bytes, tambien", esDelRaton("\x1b[M !!"));
+ok("una tecla NO es del raton", !esDelRaton("a"));
+ok("un Enter tampoco", !esDelRaton("\r"));
+ok("ni una flecha", !esDelRaton("\x1b[A"));
+ok("ni un pegado largo", !esDelRaton("git status\r"));
+ok("nada no es del raton", !esDelRaton(""));
+ok(
+  "raton MAS una tecla cuenta como tecleo",
+  !esDelRaton("\x1b[<0;5;2Ma"),
+  "si en la misma tanda viene una tecla, es que además estás escribiendo: hay que bajar",
+);
+ok(
+  "una respuesta del terminal no se confunde con un clic",
+  !esDelRaton("\x1b[?1;2c"),
+  "no es ratón, así que se comporta como hasta hoy: este arreglo no cambia ese caso",
+);
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

@@ -290,6 +290,38 @@ function DiaSuelto({
   );
 }
 
+/**
+ * Uno de los cuatro números de la portada de la Agenda.
+ *
+ * Vive fuera de `AgendaView` porque puede: no toca nada de su estado, solo sus
+ * propias props. Dentro se declaraba de nuevo en cada render y React remontaba
+ * los cuatro botones enteros cada vez que se movía cualquiera de los
+ * veinticinco `useState` de la vista.
+ */
+function Cifra({
+  n,
+  que,
+  pie,
+  viva,
+  onClick,
+}: {
+  n: number;
+  que: string;
+  pie: string;
+  viva?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button className="ag-cifra" data-viva={!!(viva && n)} data-cero={n === 0} onClick={onClick}>
+      <span className="ag-n">{n}</span>
+      <span className="ag-q">
+        {que}
+        <small className="stream-hide">{pie}</small>
+      </span>
+    </button>
+  );
+}
+
 export default function AgendaView({ current, onOpenProject, modeloLocal, onResume, onHacer }: Props) {
   const { t, lang } = useT();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -563,10 +595,45 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
      documento no se lee de un vistazo. Así que el texto no aparece hasta que
      se entra a algo, y las propuestas se revisan de UNA EN UNA, porque cada
      una es una decisión y doce decisiones a la vez no se toman. */
+  /* Los dos cálculos del calendario viven AQUÍ, en el cuerpo de la vista, y no
+     dentro de `Calendario`. Ese dejó de ser un componente para no remontarse en
+     cada render (el porqué está en el bloque de justo debajo), y un `useMemo`
+     dentro de una función que se llama en una rama del `switch` sería un hook
+     condicional: React cuenta los hooks por render y ahí ya no cuadrarían. */
+  const diasDelMes = useMemo(() => rejillaDelMes(anio, mes), [anio, mes]);
+  const porFecha = useMemo(() => {
+    const m = new Map<string, { objetivos?: GoalCount; ventanas: Ventana[] }>();
+    for (const g of cuenta) m.set(g.date, { objetivos: g, ventanas: [] });
+    for (const v of ventanas) {
+      const e = m.get(v.date) ?? { ventanas: [] };
+      e.ventanas.push(v);
+      m.set(v.date, e);
+    }
+    return m;
+  }, [cuenta, ventanas]);
+
+  /* ── Estas ocho NO son componentes, y no pueden serlo ──────────────────────
+
+     Están escritas dentro de la vista porque usan su estado (veinticinco
+     `useState`) sin arrastrar quince props cada una. El precio es que, como
+     COMPONENTES, se declaraban de nuevo en cada render: React compara el tipo
+     de `{Login()}` con la función anterior, la ve distinta, y en vez de
+     actualizar el `<input>` lo tira y monta otro. El foco del teclado se queda
+     en el nodo que acaba de desaparecer, así que escribías una letra en el
+     correo y salías del campo.
+
+     Medido con React de verdad en `scripts/remonte-check.tsx`: con el hijo
+     dentro, dos montajes y el foco perdido en UN solo render del padre; con el
+     hijo fuera, uno y el foco intacto.
+
+     Por eso se llaman `{Login()}` y no `{Login()}`: así su JSX entra en el
+     árbol de la vista sin ser un tipo que React compare, y no hay nada que
+     remontar. La condición para que esto valga es que NINGUNA use hooks, y por
+     eso los del calendario están arriba. */
   const contenido = () => {
     switch (modo) {
       case "propuestas":
-        return <Revision />;
+        return Revision();
       case "sesiones":
         return <AgendaSesiones modelo={modeloLocal} onResume={onResume} />;
       case "objetivos":
@@ -580,14 +647,14 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
           <Objetivos />
         );
       case "fechas":
-        return link === "out" ? <Login /> : <CardCalendario />;
+        return link === "out" ? Login() : CardCalendario();
       case "ideas":
-        return link === "out" ? <Login /> : <CardIdeas />;
+        return link === "out" ? Login() : CardIdeas();
       case "metas":
         return (
           <>
-            <Picker />
-            <CardPasos />
+            {Picker()}
+            {CardPasos()}
           </>
         );
       default:
@@ -713,7 +780,7 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
           />
         </div>
 
-        <Calendario />
+        {Calendario()}
       </div>
     </div>
   );
@@ -727,18 +794,8 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
    * todos hechos, el punto se apaga. Pinchar un día abre el suyo.
    */
   function Calendario() {
-    const dias = useMemo(() => rejillaDelMes(anio, mes), [anio, mes]);
+    const dias = diasDelMes;
     const hoyTxt = hoy();
-    const porFecha = useMemo(() => {
-      const m = new Map<string, { objetivos?: GoalCount; ventanas: Ventana[] }>();
-      for (const g of cuenta) m.set(g.date, { objetivos: g, ventanas: [] });
-      for (const v of ventanas) {
-        const e = m.get(v.date) ?? { ventanas: [] };
-        e.ventanas.push(v);
-        m.set(v.date, e);
-      }
-      return m;
-    }, [cuenta, ventanas]);
 
     return (
       <section className="ag-cal">
@@ -824,30 +881,6 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
 
   /** Una cifra de la portada. El número manda, la frase lo explica y el pie da
       el matiz que evita tener que entrar solo para comprobar algo. */
-  function Cifra({
-    n,
-    que,
-    pie,
-    viva,
-    onClick,
-  }: {
-    n: number;
-    que: string;
-    pie: string;
-    viva?: boolean;
-    onClick: () => void;
-  }) {
-    return (
-      <button className="ag-cifra" data-viva={!!(viva && n)} data-cero={n === 0} onClick={onClick}>
-        <span className="ag-n">{n}</span>
-        <span className="ag-q">
-          {que}
-          <small className="stream-hide">{pie}</small>
-        </span>
-      </button>
-    );
-  }
-
   /** Las propuestas, de una en una: la nota entera, y tres salidas. */
   function Revision() {
     const n = notes[rev];

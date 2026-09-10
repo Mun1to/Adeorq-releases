@@ -76,7 +76,7 @@ pub async fn openrouter_info() -> Result<Option<Datos>, String> {
 
 /// Olvida la clave. Solo borra la de Adeorq: la cuenta de OpenRouter sigue
 /// existiendo y la clave sigue siendo válida hasta que la revoques allí.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn openrouter_forget() -> Result<(), String> {
     secrets::forget(CLAVE)
 }

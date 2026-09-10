@@ -112,7 +112,7 @@ pub fn atender(app: &tauri::AppHandle, nombre: &str, motivo: &str) -> Result<Str
 ///
 /// `guardar` decide si queda en el almacén para la próxima vez o si vale solo
 /// para este comando: un token de una tarde no tiene por qué quedarse a vivir.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn secreto_responder(nombre: String, valor: Option<String>, guardar: bool) -> Result<(), String> {
     if !nombre_valido(&nombre) {
         return Err("nombre no válido".into());
@@ -171,13 +171,13 @@ fn apuntar(nombre: &str) {
 
 /// Los secretos de agente que ya están guardados, para poder verlos y borrarlos
 /// desde Ajustes. Solo los NOMBRES: el valor no vuelve nunca al front.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn secretos_de_agente() -> Vec<String> {
     leer_indice()
 }
 
 /// Olvidar uno.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn secreto_de_agente_olvidar(nombre: String) -> Result<(), String> {
     if !nombre_valido(&nombre) {
         return Err("nombre no válido".into());

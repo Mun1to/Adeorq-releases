@@ -103,7 +103,7 @@ fn esta_vacia(texto: &str) -> bool {
 /// vacío en esa carpeta es exactamente igual de molesto que uno con la
 /// plantilla dentro, y el lienzo ya sabe leer una nota que no existe (devuelve
 /// texto vacío, sin error).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn note_write(id: String, text: String) -> Result<NoteFile, String> {
     let path = note_path(&id)?;
     if esta_vacia(&text) {
@@ -131,7 +131,7 @@ pub fn note_write(id: String, text: String) -> Result<NoteFile, String> {
 
 /// Reads one note. A missing file is not an error worth shouting about: a note
 /// deleted from the folder should leave an empty card, not a red banner.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn note_read(id: String) -> Result<NoteFile, String> {
     let path = note_path(&id)?;
     let text = std::fs::read_to_string(&path).unwrap_or_default();
@@ -146,7 +146,7 @@ pub fn note_read(id: String) -> Result<NoteFile, String> {
 /// Qué notas existen en disco. La usa el calendario para poner un punto en los
 /// días que ya tienen algo escrito: preguntar archivo por archivo serían 31
 /// viajes por mes para pintar una rejilla.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn note_list() -> Vec<String> {
     let Ok(dir) = notes_dir() else {
         return vec![];
@@ -169,7 +169,7 @@ pub fn note_list() -> Vec<String> {
 
 /// Removing a note from the board also removes its file. It goes to the
 /// recycle bin for the same reason a session does: the button is small.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn note_delete(id: String) -> Result<(), String> {
     let path = note_path(&id)?;
     if !path.is_file() {

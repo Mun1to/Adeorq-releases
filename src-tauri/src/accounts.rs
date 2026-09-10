@@ -34,7 +34,7 @@ fn slugify(label: &str) -> String {
 
 /// Creates (or reuses) the config folder for an account and returns its path.
 /// Nothing is written inside: the CLI fills it in on its first login.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn account_dir(label: String) -> Result<String, String> {
     let root = accounts_root()?;
     let mut dir = root.join(slugify(&label));
@@ -62,7 +62,7 @@ pub fn account_dir(label: String) -> Result<String, String> {
 /// An empty config_dir means that CLI's own default account, which lives at
 /// `%USERPROFILE%\<home_dir>`: the renderer cannot expand that, so it arrives
 /// as the relative path and is resolved here.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn account_ready(config_dir: String, files: Vec<String>, home_dir: Option<String>) -> bool {
     let dir = if config_dir.trim().is_empty() {
         let Some(rel) = home_dir.filter(|h| !h.trim().is_empty()) else {
@@ -167,7 +167,7 @@ pub struct CliFound {
  * and Munir read that as "the effort changed on its own". Now the pane is
  * launched with --effort, so the answer is known before the first line.
  */
-#[tauri::command]
+#[tauri::command(async)]
 pub fn cli_effort(config_dir: Option<String>) -> Option<String> {
     let base = match config_dir.as_deref().filter(|d| !d.is_empty()) {
         Some(dir) => PathBuf::from(dir),
@@ -186,7 +186,7 @@ pub fn cli_effort(config_dir: Option<String>) -> Option<String> {
 /// Which of these CLIs are actually installed. Walks PATH by hand instead of
 /// shelling out to `where`: no process per lookup, no console flash, and it
 /// answers in microseconds while the accounts screen paints.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn detect_clis(exes: Vec<(String, String)>) -> Vec<CliFound> {
     let path = std::env::var("PATH").unwrap_or_default();
     // El separador del PATH no es el mismo en los dos sitios: `;` en Windows,
@@ -235,7 +235,7 @@ pub fn detect_clis(exes: Vec<(String, String)>) -> Vec<CliFound> {
 
 /// Config folders that exist on disk, so an account cannot go missing just
 /// because the UI state was lost.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_account_dirs() -> Vec<String> {
     let Ok(root) = accounts_root() else {
         return Vec::new();
@@ -253,7 +253,7 @@ pub fn list_account_dirs() -> Vec<String> {
 /// Deletes an account's folder, which signs it out and drops its history.
 /// Refuses anything that is not one of ours: this removes a directory tree,
 /// and the string comes from the UI. `~/.claude` can never be reached here.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn forget_account(config_dir: String) -> Result<(), String> {
     let root = accounts_root()?;
     let target = PathBuf::from(&config_dir);

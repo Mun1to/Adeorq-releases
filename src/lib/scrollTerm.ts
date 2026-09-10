@@ -244,6 +244,40 @@ export function gestoDeRueda(rueda: Rueda, celda: number): number {
 }
 
 /**
+ * Si lo que llega por `onData` es el RATÓN y no alguien tecleando.
+ *
+ * ── EL UNDÉCIMO REPORTE, MEDIDO EL 2026-09-10 ──────────────────────────────
+ *
+ * Munir: «cuando hago clic en otra terminal que estaba scrolleada para arriba,
+ * se vuelve abajo de repente y automáticamente». Disparador nuevo: no es el
+ * repintado, ni el alto del panel, ni la rueda. Es el CLIC para enfocar.
+ *
+ * Con el modo ratón activo (lo encienden Claude Code, Codex y copilot-cli para
+ * sus menús), un clic no es solo un clic: xterm lo convierte en una secuencia y
+ * la manda por el MISMO canal que el teclado. Reproducido en un navegador de
+ * verdad, con xterm suelto y sin Adeorq delante: mirando la línea 100 de 189,
+ * un `mousedown` entrega `\x1b[<0;5;2M` por `onData` y la vista salta a la 189.
+ * Con `scrollOnUserInput: false` en las opciones del terminal, la misma prueba
+ * deja el viewport clavado en la 100.
+ *
+ * Así que el arreglo son dos piezas y esta es la segunda: xterm deja de bajar
+ * por su cuenta (`scrollOnUserInput: false`) y **el que decide es Adeorq**, que
+ * baja cuando de verdad tecleas y no cuando solo pinchas para mirar. Sin esta
+ * función, apagar la opción de xterm rompería lo otro: teclear con la terminal
+ * congelada dejaría de devolverte al día.
+ *
+ * Cubre las dos codificaciones que puede pedir un programa: la SGR de hoy
+ * (`ESC [ < botón ; col ; fila M/m`, modos 1006 y 1016) y la vieja de tres
+ * bytes (`ESC [ M ...`, modos 1000/1002/1003). Y exige que TODO lo que llega
+ * sea ratón: si viene mezclado con una tecla, es que además estás escribiendo.
+ */
+const SOLO_RATON = /^(?:\x1b\[<[\d;]+[Mm]|\x1b\[M[\s\S]{3})+$/;
+
+export function esDelRaton(datos: string): boolean {
+  return datos !== "" && SOLO_RATON.test(datos);
+}
+
+/**
  * Si un gesto de rueda tiene que congelar la terminal para poder leer atrás.
  *
  * ── POR QUÉ NO BASTA CON «HA SUBIDO» (2026-08-30) ──────────────────────────

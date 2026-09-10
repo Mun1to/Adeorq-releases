@@ -88,7 +88,7 @@ fn parse_line(line: &str, at: usize) -> Option<Note> {
     })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn read_inbox() -> Vec<Note> {
     let Some(path) = inbox_path() else {
         return Vec::new();
@@ -105,7 +105,7 @@ pub fn read_inbox() -> Vec<Note> {
 
 /// Removes one line, by the index it was read at. Accepting and discarding
 /// both end here: once he has decided, the note has done its job.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn drop_inbox(line: usize) -> Result<(), String> {
     let path = inbox_path().ok_or("no encuentro la carpeta de Adeorq")?;
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
@@ -132,7 +132,7 @@ pub fn inbox_where() -> String {
 
 /// Used by Adeorq itself when he writes a note from the panel, so both ends
 /// speak the same format.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn write_inbox(kind: String, project: String, text: String) -> Result<(), String> {
     let clean = text.trim().replace(['\n', '\r'], " ");
     if clean.is_empty() {

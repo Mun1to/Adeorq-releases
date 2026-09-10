@@ -79,7 +79,7 @@ fn whisper_model() -> Option<PathBuf> {
 
 /// Si se puede dictar ahora mismo, y si no, por qué no. El front lo usa para
 /// decirlo en Ajustes en vez de dejar un botón que no hace nada.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn voz_lista() -> Result<String, String> {
     match (whisper_exe(), whisper_model()) {
         (Some(_), Some(m)) => Ok(m.file_name().unwrap_or_default().to_string_lossy().into()),

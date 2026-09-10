@@ -57,6 +57,7 @@ import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
 import { suavizado, SUAVIZADO_EVENTO } from "../lib/suavizado";
 import {
+  esDelRaton,
   hayQueAjustar,
   hayQueRecolocar,
   gestoDeRueda,
@@ -1242,6 +1243,23 @@ export default function TerminalPane({
        * tiene, así que se pregunta: en el modo rendimiento baja a 2.500, que
        * siguen siendo cien pantallas, y en modo normal se queda como estaba. */
       scrollback: modoRendimiento() ? 2500 : 8000,
+      /* Quien decide bajar al final es Adeorq, no xterm.
+       *
+       * Por defecto xterm baja «cuando el usuario escribe», y cuenta como
+       * escribir CUALQUIER cosa que salga por `onData`. Con el modo ratón
+       * encendido (lo encienden Claude Code, Codex y copilot-cli) un clic para
+       * enfocar sale por ahí, así que pinchar una terminal que estabas leyendo
+       * hacia arriba te devolvía al final (Munir, 2026-09-10, undécimo reporte
+       * del mismo síntoma con un disparador nuevo). Medido con xterm suelto en
+       * un navegador: mirando la línea 100 de 189, el `mousedown` entregaba
+       * `\x1b[<0;5;2M` y la vista saltaba a la 189; con esto en `false` se
+       * queda en la 100.
+       *
+       * Apagarlo NO quita el comportamiento bueno: `onData` sigue llamando a
+       * `soltarCola()`, que baja al final cuando de verdad tecleas. Lo único
+       * que cambia es quién lo decide, y ahora puede distinguir un clic de una
+       * tecla (`esDelRaton`, en `lib/scrollTerm.ts`). */
+      scrollOnUserInput: false,
       /* Que la vista se DESLICE en vez de dar un salto seco.
        *
        * Medido en un xterm de verdad: un salto de tres renglones sin esto pasa
@@ -1596,9 +1614,23 @@ export default function TerminalPane({
       .catch(() => {});
 
     const dataSub = term.onData((data) => {
+      // Un CLIC no es escribir. Con el modo ratón activo llega por aquí igual
+      // que una tecla, y tratarlo como tecleo es lo que devolvía al final una
+      // terminal que estabas leyendo hacia arriba (Munir, 2026-09-10). Se sale
+      // antes de tocar el scroll, pero DESPUÉS no: el clic sí tiene que llegar
+      // al proceso, que para eso lo pidió.
+      if (esDelRaton(data)) {
+        void writePty(id, data).catch(() => {});
+        return;
+      }
       // Si escribes, ya no estás leyendo hacia atrás: la terminal vuelve al día
       // sola. Sin esto, teclear con la cola llena parece que no responde.
       soltarCola();
+      // Y si NO había cola (subiste poco, o nada llegó mientras leías),
+      // `soltarCola` se va sin hacer nada. Antes bajaba xterm por su cuenta;
+      // ahora que no lo hace (`scrollOnUserInput: false`), le toca a esto, o
+      // teclear desde arriba dejaría la vista donde estaba.
+      term.scrollToBottom();
       // Queda apuntado que AQUÍ se está escribiendo: es la única señal fiable
       // de eso, y de ella depende que otro pane que termine no te quite la
       // pantalla a mitad de frase. Ver lib/tecleando.

@@ -53,7 +53,7 @@ fn leer_todos() -> HashMap<String, Encargo> {
 /// lee entero en cada arranque no puede depender de que nadie trabaje mucho.
 const MAX: usize = 500;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn save_encargo(session_id: String, encargo: Encargo) -> Result<(), String> {
     if session_id.trim().is_empty() {
         return Err("sin id de sesión".into());
@@ -82,7 +82,7 @@ pub fn save_encargo(session_id: String, encargo: Encargo) -> Result<(), String> 
     std::fs::rename(&tmp, &p).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn read_encargos() -> Result<HashMap<String, Encargo>, String> {
     Ok(leer_todos())
 }

@@ -145,7 +145,7 @@ pub async fn read_paste(path: String) -> Result<tauri::ipc::Response, String> {
 
 /// Tira una captura a la papelera de Windows: la galería enseña todo lo que
 /// has pegado, y ahí acaba habiendo pruebas y descartes.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn delete_paste(path: String) -> Result<(), String> {
     let dir = pastes_dir()?;
     let p = Path::new(&path)
@@ -161,7 +161,7 @@ pub fn delete_paste(path: String) -> Result<(), String> {
 /// sistema. La ruta llega del front, así que aquí se comprueba igual: absoluta
 /// y `.json`. No es paranoia teórica, es que este comando escribe donde le
 /// digan y un día lo llamará algo que no sea el botón de exportar.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn save_canvas_file(path: String, content: String) -> Result<(), String> {
     let p = Path::new(&path);
     if !p.is_absolute() {
@@ -183,7 +183,7 @@ pub fn save_canvas_file(path: String, content: String) -> Result<(), String> {
 /// juntarlos obligaría a aceptar las dos en los dos sitios. Los bytes llegan
 /// crudos y no en base64 porque un PNG de un tablero grande pesa, y base64 le
 /// suma un tercio para nada.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn save_drawing(path: String, bytes: Vec<u8>) -> Result<(), String> {
     let p = Path::new(&path);
     if !p.is_absolute() {
@@ -202,7 +202,7 @@ pub fn save_drawing(path: String, bytes: Vec<u8>) -> Result<(), String> {
 /// Lee un lienzo exportado. El tope existe porque el archivo lleva dentro las
 /// capturas pegadas en base64: un lienzo con fotos pesa, pero 64 MB ya no es
 /// un lienzo, es otra cosa, y no se carga en memoria para averiguarlo.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn read_canvas_file(path: String) -> Result<String, String> {
     let p = Path::new(&path);
     if !p.is_absolute() || !path.to_lowercase().ends_with(".json") {
@@ -225,7 +225,7 @@ fn board_path() -> Result<std::path::PathBuf, String> {
     Ok(crate::dir_datos_creado()?.join("lienzo.json"))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn save_board(content: String) -> Result<(), String> {
     let p = board_path()?;
     // Se escribe al lado y se cambia el nombre de golpe. Sin esto, cerrar la
@@ -261,7 +261,7 @@ pub async fn anotar_rastro(mensaje: String) {
 
 /// Devuelve "" cuando todavía no hay tablero guardado: no tenerlo es lo normal
 /// la primera vez, no un error que haya que enseñarle a nadie.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn read_board() -> Result<String, String> {
     let p = board_path()?;
     if !p.exists() {
@@ -285,7 +285,7 @@ pub fn read_board() -> Result<String, String> {
 /// un día alguien le pasa otra cosa —una ruta compuesta, un `..`— y se lleva
 /// por delante lo que no era. Se canonicaliza antes de comparar, que es lo
 /// único que convierte `C:\proyectos\..\Windows` en lo que de verdad es.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn delete_project(path: String) -> Result<(), String> {
     let root = Path::new("C:\\proyectos")
         .canonicalize()
@@ -303,7 +303,7 @@ pub fn delete_project(path: String) -> Result<(), String> {
     to_recycle_bin(&p)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn rename_session(folder: String, session_id: String, title: String) -> Result<(), String> {
     let title = title.trim();
     if title.is_empty() {
@@ -336,7 +336,7 @@ pub fn rename_session(folder: String, session_id: String, title: String) -> Resu
  * sitting next to four others, so a slip has to cost a trip to the recycle
  * bin and not a day of work. Windows keeps the undo, and we do not have to.
  */
-#[tauri::command]
+#[tauri::command(async)]
 /// `fuente` es de qué CLI es la sesión. Llega vacía desde las llamadas antiguas
 /// y entonces se entiende «claude», que es lo único que sabía borrar esto.
 pub fn delete_session(
@@ -501,7 +501,7 @@ fn state_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("adeorq-state.json"))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn load_ui_state(app: tauri::AppHandle) -> Result<String, String> {
     let path = state_path(&app)?;
     match std::fs::read_to_string(&path) {
@@ -511,7 +511,7 @@ pub fn load_ui_state(app: tauri::AppHandle) -> Result<String, String> {
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn save_ui_state(app: tauri::AppHandle, content: String) -> Result<(), String> {
     serde_json::from_str::<serde_json::Value>(&content).map_err(|e| e.to_string())?;
     std::fs::write(state_path(&app)?, content).map_err(|e| e.to_string())
@@ -686,7 +686,7 @@ fn fondo_actual() -> Option<std::path::PathBuf> {
 }
 
 /// Copia el archivo elegido y devuelve su ruta ya dentro de la carpeta.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn set_fondo(path: String) -> Result<String, String> {
     let src = Path::new(&path);
     let ext = src
@@ -714,14 +714,14 @@ pub fn set_fondo(path: String) -> Result<String, String> {
 }
 
 /// La ruta del fondo puesto, o "" si no hay ninguno.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_fondo() -> String {
     fondo_actual()
         .map(|p| p.to_string_lossy().into_owned())
         .unwrap_or_default()
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn clear_fondo() -> Result<(), String> {
     if let Some(p) = fondo_actual() {
         std::fs::remove_file(p).map_err(|e| e.to_string())?;

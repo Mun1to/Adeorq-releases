@@ -67,7 +67,7 @@ pub fn parse_inbox(text: &str) -> Vec<CrewNote> {
 
 /// Lee el BUZON.md de un proyecto. Un buzón que no existe todavía no es un
 /// error: es una cuadrilla que aún no ha tenido nada que decirse.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn read_crew_inbox(cwd: String) -> Vec<CrewNote> {
     let dir = Path::new(&cwd);
     if !dir.is_absolute() {

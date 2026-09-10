@@ -1169,7 +1169,7 @@ fn pi_transcript_en(raiz: &Path, session_id: &str) -> Option<PathBuf> {
 /// Antigravity CLI (`agy`, Google's terminal agent, successor to Gemini CLI).
 /// Its Windows installer drops the binary in %LOCALAPPDATA%\Antigravity\;
 /// a PATH install counts too. Returns the command Adeorq should run in a pane.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn find_agy() -> Option<String> {
     if let Ok(local) = std::env::var("LOCALAPPDATA") {
         // 1.1.7 installs to %LOCALAPPDATA%\agy\bin; older docs said \Antigravity.
@@ -1955,7 +1955,7 @@ pub async fn session_activity(
     Ok(actividad_de(&lineas, 40))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn open_in_antigravity(path: String) -> Result<(), String> {
     let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
     let exe = Path::new(&local).join("Programs\\Antigravity\\Antigravity.exe");

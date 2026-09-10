@@ -44,7 +44,7 @@ pub struct EstadoClave {
 /// cada proveedor valida de una forma y algunos cobran por intentarlo. La que
 /// sí se comprueba es la de OpenRouter, porque su endpoint de cuenta es gratis
 /// (ver openrouter.rs).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn api_key_put(proveedor: String, clave: String) -> Result<(), String> {
     let clave = clave.trim();
     if clave.is_empty() {
@@ -53,13 +53,13 @@ pub fn api_key_put(proveedor: String, clave: String) -> Result<(), String> {
     secrets::put(&nombre(&proveedor)?, clave)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn api_key_forget(proveedor: String) -> Result<(), String> {
     secrets::forget(&nombre(&proveedor)?)
 }
 
 /// Qué claves hay guardadas. Devuelve la cola de cada una y nunca la clave.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn api_keys_estado(proveedores: Vec<String>) -> Vec<EstadoClave> {
     let mut out = Vec::new();
     for p in proveedores {

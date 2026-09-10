@@ -8,6 +8,7 @@ mod encargos;
 mod esquema;
 mod foreman;
 mod goals;
+mod hilo;
 mod icons;
 mod pulso;
 mod inbox;

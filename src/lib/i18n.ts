@@ -803,6 +803,7 @@ const EN: Record<string, string> = {
   "Nombres": "Labels",
   "Volver a lo de fábrica": "Back to defaults",
   "Ver solo este proyecto": "Show only this project",
+  "Ver solo las recientes": "Show only the recent ones",
   "Ver la bola entera": "Back to the whole sphere",
   "Volver al mapa de la bóveda": "Back to the vault map",
   "Solo los que tienen enlaces": "Only the linked ones",

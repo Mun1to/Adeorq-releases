@@ -137,7 +137,7 @@ fn parked_end(text: &str) -> Option<usize> {
     start.map(|_| text.len())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn read_metas(project: String) -> Metas {
     let path = metas_path(Path::new(&project));
     let shown = path.to_string_lossy().into_owned();
@@ -166,7 +166,7 @@ pub fn read_metas(project: String) -> Metas {
  * Adds one bullet to the Aparcadero, creating the file or the section when
  * they are missing. Never touches a line that was already there.
  */
-#[tauri::command]
+#[tauri::command(async)]
 pub fn add_parked(project: String, text: String) -> Result<(), String> {
     let item = text.trim();
     if item.is_empty() {

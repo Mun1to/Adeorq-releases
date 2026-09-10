@@ -54,14 +54,14 @@ fn launcher() -> Result<auto_launch::AutoLaunch, String> {
         .map_err(|e| format!("no he podido preparar el arranque automático: {e}"))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn autostart_get() -> Result<bool, String> {
     launcher()?
         .is_enabled()
         .map_err(|e| format!("no he podido leer el arranque automático: {e}"))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn autostart_set(on: bool) -> Result<(), String> {
     let app = launcher()?;
     if on {

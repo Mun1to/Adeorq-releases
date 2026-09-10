@@ -181,7 +181,7 @@ dist/\n\
 .env\n\
 .env.*\n";
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn create_project(name: String, raiz: Option<String>) -> Result<CreatedProject, String> {
     let trimmed = name.trim();
     if trimmed.is_empty() {

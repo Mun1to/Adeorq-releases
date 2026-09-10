@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.154",
+  "version": "0.9.155",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,7 +20,10 @@
     "markdown": "node scripts/markdown-check.mjs",
     "arranque": "node scripts/arranque-check.mjs",
     "latido": "node scripts/latido-check.mjs",
-    "lienzo": "node scripts/lienzo-check.mjs"
+    "lienzo": "node scripts/lienzo-check.mjs",
+    "hilo": "node scripts/hilo-check.mjs",
+    "anidado": "node scripts/anidado-check.mjs && node scripts/anidado-check-check.mjs",
+    "handler": "node scripts/handler-check.mjs && node scripts/handler-check-check.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",

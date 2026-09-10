@@ -786,7 +786,7 @@ async fn preguntar_con(prompt: String, modelo: &'static str) -> Result<String, S
 
 /// Writes the MISION.md brief inside a project (Antigravity + Claude teams
 /// coordinate through it). Path must stay under C:\proyectos.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn write_mission(project_path: String, content: String) -> Result<String, String> {
     let base = Path::new(&project_path);
     let canon = base

@@ -179,7 +179,7 @@ pub fn forget(key: &str) -> Result<(), String> {
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn secret_put(key: String, value: String) -> Result<(), String> {
     put(&key, &value)
 }
@@ -198,7 +198,7 @@ fn es_privada(key: &str) -> bool {
     key == "openrouter" || key.starts_with("api:")
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn secret_get(key: String) -> Option<String> {
     if es_privada(&key) {
         return None;
@@ -206,7 +206,7 @@ pub fn secret_get(key: String) -> Option<String> {
     get(&key)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn secret_forget(key: String) -> Result<(), String> {
     forget(&key)
 }

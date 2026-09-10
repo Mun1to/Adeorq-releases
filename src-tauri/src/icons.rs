@@ -125,8 +125,22 @@ fn b64(data: &[u8]) -> String {
 
 type Found = Option<(u32, std::path::PathBuf, &'static str)>;
 
+/// One comparable number per candidate, and the LOWEST wins.
+///
+/// Three tiers packed into a single integer so a plain `<` can rank them:
+/// the folder outranks the file name, and the name outranks the extension.
+/// It lives in a function because the tests used to spell the same arithmetic
+/// out by hand, and a formula written twice keeps the tests green on the day
+/// the real one changes.
+fn rank(folder: u32, name: u32, ext: u32) -> u32 {
+    folder * 100 + name * 10 + ext
+}
+
+/// El tramo del barrido de subcarpetas: justo detrás de la última de `DIRS`.
+const SUELTO: u32 = DIRS.len() as u32;
+
 /// Looks at the files of ONE folder (never recurses) and keeps the best.
-fn scan_dir(dir: &Path, base: u32, best: &mut Found) {
+fn scan_dir(dir: &Path, folder: u32, best: &mut Found) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
@@ -148,7 +162,7 @@ fn scan_dir(dir: &Path, base: u32, best: &mut Found) {
         {
             continue;
         }
-        let score = base + ns * 10 + es;
+        let score = rank(folder, ns, es);
         if best.as_ref().is_none_or(|(b, _, _)| score < *b) {
             *best = Some((score, path, mime));
         }
@@ -164,7 +178,7 @@ fn best_icon(root: &Path) -> Option<(std::path::PathBuf, &'static str)> {
         } else {
             root.join(rel)
         };
-        scan_dir(&dir, (i as u32) * 100, &mut best);
+        scan_dir(&dir, i as u32, &mut best);
     }
     // Nobody agrees on folder names: hotkeyconfig keeps its logo in branding/,
     // SECBRAIN in orki/. One sweep of the project's own subfolders catches the
@@ -178,10 +192,15 @@ fn best_icon(root: &Path) -> Option<(std::path::PathBuf, &'static str)> {
             if name.starts_with('.') || SKIP_DIRS.contains(&name.as_str()) {
                 continue;
             }
+            // Este barrido puntúa por DEBAJO de toda ubicación conocida, así
+            // que arranca donde acaba DIRS en vez de en un número escrito a
+            // mano: con el 2_000 fijo que había, la entrada número veintiuna de
+            // DIRS (hoy `docs`) caía en ese mismo tramo y el desempate pasaba a
+            // decidirlo el orden del bucle en vez de la lista.
             let sub = entry.path();
-            scan_dir(&sub, 2_000, &mut best);
-            scan_dir(&sub.join("public"), 2_100, &mut best);
-            scan_dir(&sub.join("assets"), 2_100, &mut best);
+            scan_dir(&sub, SUELTO, &mut best);
+            scan_dir(&sub.join("public"), SUELTO + 1, &mut best);
+            scan_dir(&sub.join("assets"), SUELTO + 1, &mut best);
         }
     }
     best.map(|(_, p, m)| (p, m))
@@ -293,9 +312,25 @@ mod tests {
 
     #[test]
     fn a_brand_svg_beats_a_buried_favicon() {
-        let brand = 0 * 100 + 1 * 10 + 0; // brand/layco-logo.svg
-        let buried = 14 * 100 + 5 * 10 + 3; // web/public/favicon.ico
+        let brand = rank(0, 1, 0); // brand/layco-logo.svg
+        let buried = rank(14, 5, 3); // web/public/favicon.ico
         assert!(brand < buried);
+    }
+
+    /// The loose sweep must lose against EVERY folder on the list, which is
+    /// what its comment promises. It used to be a hand-written 2_000 while
+    /// DIRS grew to twenty-one entries, so `docs` landed on that same tier and
+    /// only won the tie because it happened to be scanned first.
+    #[test]
+    fn the_loose_sweep_ranks_below_every_listed_folder() {
+        let last = (DIRS.len() - 1) as u32;
+        let best_possible_sweep = rank(SUELTO, 0, 0);
+        let worst_listed = rank(last, 9, 9);
+        assert!(
+            worst_listed < best_possible_sweep,
+            "a folder nobody listed cannot tie with `{}`",
+            DIRS[DIRS.len() - 1]
+        );
     }
 
     /// The order that matters in practice, checked so a reordered DIRS list
@@ -303,9 +338,9 @@ mod tests {
     #[test]
     fn the_owners_folder_icon_sits_between_brand_and_a_sub_app() {
         let root = DIRS.iter().position(|d| d.is_empty()).unwrap() as u32;
-        let folder_icon = root * 100 + name_score(".foldericon").unwrap() * 10 + 3;
-        let brand_svg = 0 * 100 + name_score("layco-logo").unwrap() * 10 + 0;
-        let sub_favicon = 2_100 + name_score("favicon").unwrap() * 10 + 3;
+        let folder_icon = rank(root, name_score(".foldericon").unwrap(), 3);
+        let brand_svg = rank(0, name_score("layco-logo").unwrap(), 0);
+        let sub_favicon = rank(SUELTO + 1, name_score("favicon").unwrap(), 3);
         assert!(brand_svg < folder_icon, "a brand vector should still win");
         assert!(
             folder_icon < sub_favicon,

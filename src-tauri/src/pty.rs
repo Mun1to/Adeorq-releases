@@ -895,7 +895,7 @@ pub fn kill_all(app: &AppHandle) {
 /// `sin_raiz` es quien no tiene carpeta madre y no la quiere: sus proyectos son
 /// exactamente los `extras`, y sin este flag habría que inventarle una carpeta
 /// para leerla, que es como sus Descargas acababan pareciendo un repositorio.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_projects(
     raiz: Option<String>,
     sin_raiz: Option<bool>,

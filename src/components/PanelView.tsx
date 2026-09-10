@@ -179,14 +179,24 @@ export default function PanelView({
       >
         {(activa) => (
           <>
-            {activa === "ahora" && <SeccionAhora />}
-            {activa === "proyectos" && <SeccionProyectos />}
+            {activa === "ahora" && SeccionAhora()}
+            {activa === "proyectos" && SeccionProyectos()}
           </>
         )}
       </Secciones>
     </div>
   );
 
+  /* ── Estas dos NO son componentes, y por eso se llaman `SeccionAhora()` ─────
+
+     Un componente declarado dentro de otro es una función nueva en cada render
+     del padre: React lo ve como otro tipo, desmonta lo que había y monta uno
+     nuevo, con lo que lo de dentro pierde su estado, su scroll y el foco del
+     teclado. Llamadas como funciones, su JSX entra en el árbol de la vista sin
+     ser un tipo que React compare, y no hay nada que remontar.
+
+     Lo vigila `scripts/anidado-check.mjs`; el efecto está medido con React de
+     verdad en `scripts/remonte-check.tsx`. */
   function SeccionAhora() {
     return (
       <>

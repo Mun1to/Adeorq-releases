@@ -536,7 +536,7 @@ fn apuntar_gasto(coste: f64) -> Result<(), String> {
 
 /// Lo gastado por API. Es SOLO lo que ha pasado por Adeorq: lo que gastes con
 /// tu clave fuera de aquí no lo ve, y por eso la pantalla lo dice.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn gasto_leer() -> Gasto {
     gasto_path()
         .ok()
@@ -567,7 +567,7 @@ fn chat_path(id: &str) -> Result<PathBuf, String> {
 }
 
 /// Una conversación guardada. Vacía si todavía no existe, que no es un error.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn chat_leer(id: String) -> Result<Vec<Mensaje>, String> {
     let p = chat_path(&id)?;
     match std::fs::read_to_string(&p) {
@@ -576,7 +576,7 @@ pub fn chat_leer(id: String) -> Result<Vec<Mensaje>, String> {
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn chat_guardar(id: String, mensajes: Vec<Mensaje>) -> Result<(), String> {
     let p = chat_path(&id)?;
     let texto = serde_json::to_string(&mensajes).map_err(|e| e.to_string())?;
@@ -590,7 +590,7 @@ pub fn chat_guardar(id: String, mensajes: Vec<Mensaje>) -> Result<(), String> {
 
 /// Borra una conversación. La pieza que la enseñaba ya no está, y guardar para
 /// siempre una charla que quitaste del tablero es guardar basura.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn chat_olvidar(id: String) -> Result<(), String> {
     let p = chat_path(&id)?;
     let _ = std::fs::remove_file(p);

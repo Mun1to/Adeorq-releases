@@ -135,7 +135,7 @@ fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Resu
 /// una vez, y el agente lo contesta. Por eso el fallo aquí nunca corta la
 /// apertura: es una comodidad, no un requisito.
 /// ==========================================================================
-#[tauri::command]
+#[tauri::command(async)]
 pub fn confiar_carpeta(cwd: String, config_dir: Option<String>) -> Result<bool, String> {
     let carpeta = std::path::Path::new(cwd.trim());
     if cwd.trim().is_empty() || !carpeta.is_dir() {

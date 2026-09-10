@@ -7,6 +7,7 @@ import PanelDerecho, { type Cara } from "./components/PanelDerecho";
 import ActividadPanel from "./components/ActividadPanel";
 import WebPane from "./components/WebPane";
 import TerminalPane, { FONDO_EVENTO, SOLTADO_EVENTO } from "./components/TerminalPane";
+import ResguardoPanel from "./components/ResguardoPanel";
 import ProviderMark, { tieneMarca } from "./components/ProviderMark";
 import PanelView from "./components/PanelView";
 import Foreman, { type ForemanExec } from "./components/Foreman";
@@ -412,7 +413,7 @@ async function loadEffort(): Promise<void> {
 
 /** Adds --effort unless the caller already chose one. */
 function withEffort(args: string): string {
-  if (!defaultEffort || /--effort/.test(args)) return args;
+  if (!defaultEffort || /--effort\b/.test(args)) return args;
   return `${args} --effort ${defaultEffort}`;
 }
 
@@ -3855,8 +3856,11 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                   );
                 }
                 return (
+                  /* El resguardo: si xterm revienta dentro de ESTA terminal, se
+                     vuelve a montar ella sola (el agente sigue en Rust) en vez
+                     de caerse la app entera. Ver `ResguardoPanel`. */
+                  <ResguardoPanel key={p.id} id={p.id} style={style}>
                   <TerminalPane
-                    key={p.id}
                     id={p.id}
                     cwd={p.cwd}
                     name={p.name}
@@ -3900,6 +3904,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     onTurnEnd={alTerminar}
                     onEscribir={alEscribirEn}
                   />
+                  </ResguardoPanel>
                 );
               })}
               {/* Las barras salen del mosaico que SE VE, no del completo: con

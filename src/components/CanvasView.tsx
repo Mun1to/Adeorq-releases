@@ -34,6 +34,7 @@ import {
 } from "../lib/atajos";
 import { tecleandoEnOtro } from "../lib/tecleando";
 import TerminalPane from "./TerminalPane";
+import ResguardoPanel from "./ResguardoPanel";
 import WidgetNode, { ES_UTILIDAD, WIDGETS, type WidgetData, type WidgetKind } from "./CanvasWidgets";
 import ImageNode, { type ImageData, type Shape } from "./CanvasImage";
 import NoteNode, { NOTE_COLORS, type NoteData } from "./CanvasNote";
@@ -357,6 +358,7 @@ function TermNode({ data, selected }: NodeProps<Node<TermData>>) {
     <div className="rf-term nowheel" data-selected={selected}>
       <NodeResizer minWidth={360} minHeight={220} isVisible={selected} />
       <Handle type="target" position={Position.Left} className="rf-handle" />
+      <ResguardoPanel id={d.pane.id}>
       <TerminalPane
         id={d.pane.id}
         cwd={d.pane.cwd}
@@ -381,6 +383,7 @@ function TermNode({ data, selected }: NodeProps<Node<TermData>>) {
         onStatus={d.onStatus}
         shadow={d.pane.shadow}
       />
+      </ResguardoPanel>
       <Handle type="source" position={Position.Right} className="rf-handle" />
     </div>
   );

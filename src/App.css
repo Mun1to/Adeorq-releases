@@ -4698,7 +4698,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   height: 24px;
   padding: 0;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: transparent;
   color: var(--muted);
   cursor: pointer;
@@ -19706,7 +19706,7 @@ textarea.note-body {
 .caida-boton {
   padding: 9px 18px;
   border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
-  border-radius: var(--r-pastilla, 10px);
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--accent) 16%, var(--panel));
   color: var(--text);
   font: inherit;
@@ -19716,6 +19716,74 @@ textarea.note-body {
 }
 
 .caida-boton:hover {
+  background: color-mix(in srgb, var(--accent) 26%, var(--panel));
+}
+
+/* ── Una terminal caída, en su propio sitio ─────────────────────────────────
+   Lo que enseña `ResguardoPanel` cuando un panel revienta dos veces seguidas.
+   Ocupa la celda del mosaico que ocupaba la terminal (le llega su `style`),
+   y no toca a las demás: eso es justo lo que lo distingue de `.caida`. */
+.pane-caido {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  background: var(--panel);
+  color: var(--text);
+}
+
+.pane-caido-caja {
+  max-width: 420px;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.pane-caido-caja strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14.5px;
+}
+
+.pane-caido-caja p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.pane-caido-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bad, #ff6b6b);
+  border-radius: 0 var(--r-chico) var(--r-chico) 0;
+  background: var(--panel-solid);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 30vh;
+  overflow-y: auto;
+  user-select: text;
+}
+
+.pane-caido-boton {
+  padding: 7px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pane-caido-boton:hover {
   background: color-mix(in srgb, var(--accent) 26%, var(--panel));
 }
 
@@ -19761,7 +19829,7 @@ textarea.note-body {
   height: 44px;
   padding: 0 14px;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: transparent;
   color: var(--muted);
   font: inherit;
@@ -19978,7 +20046,7 @@ textarea.note-body {
   width: 100%;
   padding: 6px 10px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: var(--row);
   color: var(--text);
   font: inherit;

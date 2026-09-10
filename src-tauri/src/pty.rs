@@ -1108,3 +1108,88 @@ mod tests {
         );
     }
 }
+
+/// La carrera de los `pty_resize`, medida en un ConPTY de verdad.
+///
+/// `cargo test --lib carrera -- --ignored --nocapture`
+///
+/// Cada `pty_resize` es un comando `async`, y Tauri lanza cada llamada como
+/// una tarea INDEPENDIENTE del runtime (`respond_async_serialized` →
+/// `async_runtime::spawn`). Si el front manda varios tamaños seguidos, nada
+/// garantiza que se ejecuten en el orden en que se pidieron: el ConPTY se queda
+/// con el último que se EJECUTA. Aquí se lanzan igual que las lanzaría Tauri
+/// (mismo `spawn`, mismo candado sobre el `master`) y se mira con qué tamaño
+/// acaba el proceso. El arreglo vive en el front (`lib/tamanoPty.ts`): uno en
+/// vuelo por terminal, y al volver se manda lo último.
+#[cfg(all(test, windows))]
+mod carrera {
+    use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
+    use std::sync::{Arc, Mutex};
+
+    #[test]
+    #[ignore = "abre un ConPTY de verdad y mide una carrera; se lanza a mano"]
+    fn varios_resize_en_vuelo_no_acaban_en_el_ultimo_pedido() {
+        let pair = native_pty_system()
+            .openpty(PtySize { rows: 28, cols: 80, pixel_width: 0, pixel_height: 0 })
+            .expect("no se pudo abrir el ConPTY");
+        let mut hijo = pair
+            .slave
+            .spawn_command(CommandBuilder::new("cmd.exe"))
+            .expect("no arrancó cmd.exe");
+        // Alguien tiene que LEER lo que el ConPTY escribe, o su tubería se llena
+        // y `ResizePseudoConsole` no vuelve jamás (cada resize hace que conhost
+        // repinte la pantalla entera por esa tubería). Es la misma razón por la
+        // que en la app el lector vive en su propio hilo; sin esto, el primer
+        // intento de este banco se quedó colgado un cuarto de hora.
+        let mut lector = pair.master.try_clone_reader().expect("sin lector del ConPTY");
+        std::thread::spawn(move || {
+            use std::io::Read;
+            let mut basura = [0u8; 8192];
+            while let Ok(n) = lector.read(&mut basura) {
+                if n == 0 {
+                    break;
+                }
+            }
+        });
+        let master: Arc<Mutex<Box<dyn MasterPty + Send>>> = Arc::new(Mutex::new(pair.master));
+
+        // Lo que manda un panel al animarse y luego rebotar: 77 → … → 110 → 77 → 110.
+        let mut pedidos: Vec<u16> = (77..=110).step_by(3).collect();
+        pedidos.extend([77, 110]);
+        let ultimo = *pedidos.last().unwrap();
+
+        let rondas = 200;
+        let mut mal = 0;
+        for _ in 0..rondas {
+            let tareas: Vec<_> = pedidos
+                .iter()
+                .map(|&cols| {
+                    let m = master.clone();
+                    // Exactamente lo que hace `pty_resize`: coger el candado y redimensionar.
+                    tauri::async_runtime::spawn(async move {
+                        let m = m.lock().unwrap();
+                        let _ = m.resize(PtySize { rows: 28, cols, pixel_width: 0, pixel_height: 0 });
+                    })
+                })
+                .collect();
+            tauri::async_runtime::block_on(async {
+                for t in tareas {
+                    let _ = t.await;
+                }
+            });
+            let tiene = master.lock().unwrap().get_size().unwrap().cols;
+            if tiene != ultimo {
+                mal += 1;
+            }
+        }
+        let _ = hijo.kill();
+        println!(
+            "\n{rondas} rondas de {} tamaños en vuelo: el ConPTY acabó con un tamaño que NO era el último pedido en {mal}\n",
+            pedidos.len()
+        );
+        assert!(
+            mal > 0,
+            "la carrera no se ha visto esta vez; si deja de verse nunca, este banco sobra"
+        );
+    }
+}

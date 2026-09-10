@@ -2,8 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { colaDeTamanos, type ColaDeTamanos } from "../lib/tamanoPty";
+import { apuntarDiagnostico } from "../lib/diagnosticoPanel";
+import { repararBufer } from "../lib/xtermReparar";
 import { SearchAddon } from "@xterm/addon-search";
 import {
+  anotarRastro,
   deleteSession,
   iniciales,
   killPty,
@@ -783,7 +787,10 @@ export default function TerminalPane({
   // Re-fits the terminal AND its type to the box it currently has. Lives in a
   // ref because the ResizeObserver is created once, with the terminal.
   const refitRef = useRef<() => void>(() => {});
-  const lastSizeRef = useRef({ cols: 0, rows: 0 });
+  /* La cola de tamaños del PTY: UN `pty_resize` en vuelo por terminal, y al
+     volver se manda lo último pedido. Nace en el efecto de arranque, con el
+     `id` de esa terminal. El porqué entero, en `lib/tamanoPty.ts`. */
+  const colaTamanoRef = useRef<ColaDeTamanos | null>(null);
   /** Las columnas a las que volver cuando un panel lateral cambie el ancho.
       Se guardan en cada ajuste NORMAL, así que siempre son las últimas que el
       usuario eligió de verdad, arrastrando o cambiando la ventana. */
@@ -794,42 +801,6 @@ export default function TerminalPane({
       clic; se suelta al arrastrar, al mover la ventana, al cambiar de tamaño de
       letra o al volver al ancho de siempre. */
   const letraAnclaRef = useRef(0);
-  // El PTY no existe hasta que Rust lo ha abierto, y abrirlo tarda más que los
-  // primeros reajustes (el ResizeObserver dispara al montar, y xterm remide la
-  // celda cuando la fuente termina de cargar). Un `pty_resize` que llega antes
-  // responde "no such pty", se traga en el catch y el tamaño se da por enviado:
-  // el CLI se queda creyendo que tiene otras filas que las que se ven, y como
-  // repinta su pie con saltos de cursor relativos, cada tick del spinner cae
-  // una línea más arriba o más abajo. Eso es el temblor. Por eso el tamaño se
-  // encola detrás del arranque y se manda cuando hay a quién mandárselo.
-  const ptyReadyRef = useRef<Promise<unknown>>(Promise.resolve());
-  /** Lo último que el PTY ha CONFIRMADO, que no es lo mismo que lo último que
-      se le pidió. Marcar un tamaño como puesto antes de saber si llegó es lo
-      que dejaba al proceso escribiendo a un ancho y a la terminal pintando a
-      otro, sin que nada lo volviera a intentar nunca (Munir, 2026-08-14: «el
-      texto se bugea y aparece mal estructurado»). */
-  const confirmadoRef = useRef({ cols: 0, rows: 0 });
-  const enviarTamano = (cols: number, rows: number) => {
-    // Ese pedido ya está en vuelo: repetirlo sería otro viaje para lo mismo.
-    if (lastSizeRef.current.cols === cols && lastSizeRef.current.rows === rows) return;
-    lastSizeRef.current = { cols, rows };
-    void ptyReadyRef.current
-      .then(() => {
-        // Entre la cola y ahora el panel ha podido cambiar de tamaño otra vez:
-        // solo se manda el último, nunca uno viejo que volvería a descuadrarlo.
-        const now = lastSizeRef.current;
-        if (now.cols !== cols || now.rows !== rows) return;
-        return resizePty(id, cols, rows).then(() => {
-          confirmadoRef.current = { cols, rows };
-        });
-      })
-      .catch(() => {
-        // No llegó. Se borra la marca del pedido para que el siguiente ajuste
-        // lo vuelva a intentar: un fallo tragado en silencio dejaba al proceso
-        // descuadrado hasta cerrar la terminal.
-        lastSizeRef.current = { cols: -1, rows: -1 };
-      });
-  };
   /** Que el proceso sepa el tamaño que la terminal tiene AHORA.
    *
    * Va aparte y se llama SIEMPRE, incluso cuando no hay que tocar la rejilla.
@@ -837,11 +808,18 @@ export default function TerminalPane({
    * dibujo ya está bien, así que un proceso que se hubiera quedado con un ancho
    * viejo no se enteraba jamás: la terminal se veía correcta y el agente seguía
    * escribiendo líneas más largas que el panel, que salen partidas por donde no
-   * toca y con el resto colgando del margen. */
+   * toca y con el resto colgando del margen.
+   *
+   * Y desde el 2026-09-10 pasa por la COLA, no directo a Rust. Aquí se mandaba
+   * cada tamaño en cuanto llegaba y se marcaba confirmado al contestar; con
+   * varios en vuelo (un panel animándose dispara uno por frame), el ConPTY se
+   * quedaba con el último que se EJECUTABA y el front daba por bueno el último
+   * que CONTESTABA. Con eso el agente escribía a 77 columnas en un panel de
+   * 110 y nada lo volvía a mandar. La cola lo hace imposible: uno en vuelo,
+   * y al volver, lo último. Lo que había antes está reproducido, con su
+   * número, en `scripts/tamano-check.ts`. */
   const sincronizarPty = (t: { cols: number; rows: number }) => {
-    if (t.cols !== confirmadoRef.current.cols || t.rows !== confirmadoRef.current.rows) {
-      enviarTamano(t.cols, t.rows);
-    }
+    colaTamanoRef.current?.pedir({ cols: t.cols, rows: t.rows });
   };
   refitRef.current = () => {
     const term = termRef.current;
@@ -945,6 +923,20 @@ export default function TerminalPane({
       const anchoAntes = t2.cols;
 
       f2.fit();
+      /* Y si el `resize` dejó el búfer con menos líneas de las que promete, se
+         cuadra AQUÍ, antes de que el proceso escriba nada: el siguiente salto de
+         línea en la última fila reventaría el `lineFeed` de xterm y con él la
+         terminal entera (3 y 10 de septiembre de 2026). El porqué y el cómo, en
+         `lib/xtermReparar.ts`. Queda anotado cuando pasa, que es el dato que
+         dirá por qué camino llega en esta casa. */
+      const rebotes = repararBufer(t2);
+      if (rebotes !== 0) {
+        void anotarRastro(
+          `terminal ${id}: el resize a ${t2.cols}x${t2.rows} dejó el búfer corto (${
+            rebotes < 0 ? "y NO se pudo cuadrar" : `cuadrado con ${rebotes} rebote(s)`
+          })`,
+        );
+      }
 
       const destino = volverA(antes, t2.buffer.active.baseY, t2.cols === anchoAntes);
       const colocar = () => {
@@ -1551,6 +1543,17 @@ export default function TerminalPane({
     pasteRef.current = pasteClipboard;
 
     const unsubs: Array<() => void> = [];
+    /* Lo que esta terminal dice de sí misma si se cae: la rejilla y el estado
+       del búfer. Es el dato que faltó las dos veces que xterm reventó con
+       `isWrapped` de undefined (3 y 10 de septiembre de 2026) y que deja ver
+       si el búfer tenía menos líneas que `baseY + rows`, que es lo que rompe
+       su `lineFeed`. Lo lee `ResguardoPanel` al anotar la caída. */
+    unsubs.push(
+      apuntarDiagnostico(id, () => {
+        const b = term.buffer.active;
+        return `${term.cols}x${term.rows} ${b.type} baseY=${b.baseY} cursorY=${b.cursorY} viewportY=${b.viewportY} length=${b.length}`;
+      }),
+    );
 
     // env decides which account this terminal belongs to, and it can only be
     // set at birth: the CLI reads it once, on start.
@@ -1596,19 +1599,26 @@ export default function TerminalPane({
       volcarRef.current = "";
       onVolcado?.();
     }
-    ptyReadyRef.current = arranque;
+    // El PTY no existe hasta que Rust lo ha abierto, y abrirlo tarda más que
+    // los primeros reajustes (el ResizeObserver dispara al montar, y xterm
+    // remide la celda cuando la fuente termina de cargar). Un `pty_resize` que
+    // llegara antes respondería "no such pty" y el tamaño se daría por puesto:
+    // el CLI se quedaría creyendo que tiene otras filas que las que se ven, y
+    // como repinta su pie con saltos de cursor relativos, cada tick del spinner
+    // caería una línea más arriba o más abajo. Eso era el temblor. Por eso la
+    // cola espera al arranque antes de mandar nada.
+    const colaTamano = colaDeTamanos((t) => resizePty(id, t.cols, t.rows));
+    colaTamano.esperar(arranque);
+    colaTamanoRef.current = colaTamano;
     void arranque
       .then(() => {
-        // Ya hay PTY. Se olvida lo que se dio por enviado mientras no lo había
-        // y se vuelve a medir: es la única pasada que garantiza que las filas
-        // del proceso son las que se ven en pantalla.
-        //
-        // Y se olvida también lo CONFIRMADO, que es lo que hace que este ajuste
-        // sirva de algo cuando la terminal renace sobre un PTY que ya existía
-        // (una sacada a su propia ventana): allí el proceso lleva el ancho de la
-        // ventana de la que viene, y sin esto nadie le diría el nuevo.
-        lastSizeRef.current = { cols: 0, rows: 0 };
-        confirmadoRef.current = { cols: 0, rows: 0 };
+        // Ya hay PTY. Se olvida lo que se diera por confirmado y se vuelve a
+        // medir: es la única pasada que garantiza que las filas del proceso son
+        // las que se ven en pantalla. Y hace falta sobre todo cuando la
+        // terminal renace sobre un PTY que ya existía (una sacada a su propia
+        // ventana): allí el proceso lleva el ancho de la ventana de la que
+        // viene, y sin esto nadie le diría el nuevo.
+        colaTamano.olvidar();
         refitRef.current();
       })
       .catch(() => {});
@@ -2068,6 +2078,7 @@ export default function TerminalPane({
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
+      colaTamanoRef.current = null;
       window.clearTimeout(hintTimer);
     };
   }, [id, cwd]);

@@ -612,5 +612,32 @@ ok(
   `pediste 40 y acabaste a ${nuevo} del final`,
 );
 
+// ── El búfer corto al estrechar (fallo de la LIBRERÍA, 2026-09-10) ─────────
+//
+// `lineFeed` hace `lines.get(ybase + y).isWrapped = false` sin mirar si la
+// línea existe, y `Buffer.resize` puede dejar el búfer con `length < ybase +
+// rows` al estrechar cuando la lista circular está llena (sin scrollback: el
+// búfer alternativo, siempre). Cazado a ciegas con un fuzz y reducido a tres
+// pasos. Tiró la app entera el 3 y el 10 de septiembre de 2026.
+//
+// Aquí se comprueba que el fallo SIGUE en la versión instalada. Mientras
+// siga, Adeorq lo cuadra a mano tras cada `fit()` (`src/lib/xtermReparar.ts`,
+// con su banco en `scripts/reparar-check.ts`). El día que esto FALLE es que la
+// beta nueva lo arregló: entonces `repararBufer` sobra y se quita.
+{
+  const t = new Terminal({ cols: 2, rows: 46, scrollback: 0, allowProposedApi: true });
+  t.resize(135, 51);
+  t.write("x".repeat(70) + "\n" + "x".repeat(36) + "\n");
+  await vaciar(t);
+  t.resize(3, 60);
+  const b = t.buffer.active;
+  ok(
+    "(control de librería) estrechar con la lista llena deja el búfer corto; si esto falla, quita repararBufer",
+    b.length < b.baseY + t.rows,
+    `length=${b.length} baseY=${b.baseY} rows=${t.rows}`,
+  );
+  t.dispose();
+}
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
 process.exit(fallos === 0 ? 0 : 1);

@@ -598,6 +598,10 @@ const EN: Record<string, string> = {
   ">_ shell": ">_ shell",
   "Cerrar terminal": "Close terminal",
   "Adeorq se ha tropezado": "Adeorq tripped",
+  "Esta terminal se ha tropezado dos veces seguidas": "This terminal tripped twice in a row",
+  "El agente sigue vivo; lo que se ha caído es solo el dibujo de este panel.":
+    "The agent is still alive; only this pane's drawing went down.",
+  "Reabrir": "Reopen",
   "La ventana sigue viva y tus terminales también: lo que se ha caído es solo el dibujo de la interfaz. Al recargar vuelven donde estaban.": "The window is still alive and so are your terminals: what fell over is only the drawing of the interface. Reloading brings them back where they were.",
   "Queda anotado en el rastro, así que se puede mirar después.": "It is written to the trace log, so it can be looked at later.",
   "Mata al agente que hay dentro": "Kills the agent inside",

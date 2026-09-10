@@ -61,6 +61,58 @@ if (dentro !== version) {
   process.exit(1);
 }
 
+/* 1-bis. Y que el CÓDIGO del repo público ya sea el de esta versión.
+ *
+ * ── EL FALLO QUE ESTO CORTA, MEDIDO DOS VECES SEGUIDAS ─────────────────────
+ *
+ * `Adeorq-releases` tiene su propio `.github/workflows/linux.yml`, que se
+ * dispara con `release: published`, compila el AppImage y sube su `latest.json`
+ * con `tauri-action`. Ese workflow compila **el código que haya en el público en
+ * ese momento**, y hasta hoy el orden era publicar la release primero y el
+ * código después. O sea que el workflow compilaba la versión ANTERIOR y su
+ * `latest.json` pisaba el bueno con un número viejo.
+ *
+ * Consecuencia: la release está publicada, el instalador está bien, y el
+ * updater compara contra la versión de antes, así que **a nadie le sale la
+ * actualización**. Y no salta ninguna alarma, porque todo lo demás está bien.
+ *
+ * Medido el 2026-09-09 y otra vez el 2026-09-10, con trece minutos exactos de
+ * retraso las dos veces (lo que tarda el AppImage en compilar):
+ *
+ *   0.9.154 publicada 20:53:38 · workflow 20:53:39 · asset pisado a las 21:06
+ *   0.9.155 publicada 09:05:00 · workflow 09:05:22 · asset pisado a las 09:18
+ *
+ * El orden correcto, entonces: **primero el código, después la release.**
+ * `node scripts/publicar-codigo.mjs`, empujar, y solo entonces publicar. Así el
+ * workflow compila lo mismo que hay dentro del instalador y su `latest.json`
+ * dice el mismo número.
+ */
+try {
+  const publico = execFileSync(
+    "gh",
+    ["api", "repos/Mun1to/Adeorq-releases/contents/package.json", "--jq", ".content"],
+    { encoding: "utf8" },
+  );
+  const suVersion = JSON.parse(Buffer.from(publico, "base64").toString("utf8")).version;
+  if (suVersion !== version) {
+    console.error(
+      `\nESTA VERSIÓN NO SALE.\n\n` +
+        `  El código del repo público va por la ${suVersion} y esto es la ${version}.\n` +
+        `  Si se publica ahora, el workflow de Linux del público compilará la\n` +
+        `  ${suVersion} y su latest.json pisará al tuyo: nadie recibirá la\n` +
+        `  actualización. Pasó con la 0.9.154 y con la 0.9.155.\n\n` +
+        `  Publica el código PRIMERO y vuelve:\n` +
+        `      node scripts/publicar-codigo.mjs\n` +
+        `      cd <la carpeta que te diga> && git push origin main\n`,
+    );
+    process.exit(1);
+  }
+} catch (e) {
+  // Sin red o sin `gh` no se bloquea la publicación, pero se avisa: es una
+  // comprobación, no un permiso.
+  console.error(`  (no se pudo comprobar el código del público: ${e.message.trim()})`);
+}
+
 // 2. La copia de nombre fijo: sin ella, los tres botones de descarga dan 404.
 fs.copyFileSync(exe, fijo);
 

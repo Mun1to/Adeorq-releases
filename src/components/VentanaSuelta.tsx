@@ -18,6 +18,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import TerminalPane from "./TerminalPane";
+import ResguardoPanel from "./ResguardoPanel";
 import { anotarRastro, datosPanel, devolverPanel, ptyHistorial } from "../lib/pty";
 import { NOTIFY_KEY, type NotifyMode } from "../lib/notify";
 import { useT } from "../lib/i18n";
@@ -104,6 +105,7 @@ export default function VentanaSuelta({ id, nombre }: Props) {
 
   return (
     <div className="suelta">
+      <ResguardoPanel id={id}>
       <TerminalPane
         id={id}
         cwd={datos.cwd}
@@ -138,6 +140,7 @@ export default function VentanaSuelta({ id, nombre }: Props) {
           volcado.current = true;
         }}
       />
+      </ResguardoPanel>
     </div>
   );
 }

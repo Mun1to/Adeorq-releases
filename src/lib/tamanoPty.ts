@@ -43,6 +43,12 @@ export interface Tamano {
 export interface ColaDeTamanos {
   /** Que el proceso acabe con ESTE tamaño. Se puede llamar en cada frame. */
   pedir(t: Tamano): void;
+  /**
+   * El vigilante: si el proceso no tiene lo que la rejilla tiene y no hay
+   * nada en vuelo, se vuelve a pedir. Devuelve si hizo falta. Es lo que hace
+   * que un desacuerdo no pueda DURAR, venga de donde venga.
+   */
+  asegurar(t: Tamano): boolean;
   /** Lo último que el proceso ha CONFIRMADO, que no es lo último pedido. */
   confirmado(): Tamano;
   /** Un PTY nuevo no sabe nada: el siguiente `pedir` manda seguro. */
@@ -51,7 +57,22 @@ export interface ColaDeTamanos {
   esperar(puerta: Promise<unknown>): void;
   /** Resuelve cuando no queda nada en vuelo ni pendiente. Para los bancos. */
   quieta(): Promise<void>;
+  /** Una línea con lo que hay dentro, para el rastro. */
+  estado(): string;
 }
+
+/**
+ * Cuánto se espera la respuesta de un viaje antes de darlo por perdido.
+ *
+ * Un `pty_resize` tarda unos 140 ms en un ConPTY normal (medido), y el propio
+ * `pty.rs` avisa de que el ConPTY de un panel colgado puede no contestar
+ * JAMÁS. Con un solo viaje en vuelo por terminal, uno que no vuelve dejaría la
+ * cola muda para siempre: el 2026-09-10, un minuto después de reiniciar la
+ * 0.9.156, dos paneles tenían el proceso a 80 columnas y la rejilla más
+ * estrecha, y nada volvía a mandar nada. Pasado esto, el viaje se da por
+ * perdido (sin confirmar) y sale el siguiente.
+ */
+export const SIN_RESPUESTA_MS = 5_000;
 
 const NADA: Tamano = { cols: 0, rows: 0 };
 const igual = (a: Tamano, b: Tamano) => a.cols === b.cols && a.rows === b.rows;
@@ -60,9 +81,13 @@ const igual = (a: Tamano, b: Tamano) => a.cols === b.cols && a.rows === b.rows;
  * `mandar` es lo que habla con Rust (`resizePty`). Puede fallar: un PTY que
  * todavía no existe contesta «no such pty», y un panel colgado puede no
  * contestar. Un fallo no confirma nada, y el siguiente `pedir` lo vuelve a
- * intentar. No se reintenta solo, a propósito: sin PTY sería un bucle.
+ * intentar. No se reintenta solo, a propósito: sin PTY sería un bucle. Quien
+ * reintenta es `asegurar`, desde un reloj lento y solo si hay desacuerdo.
  */
-export function colaDeTamanos(mandar: (t: Tamano) => Promise<void>): ColaDeTamanos {
+export function colaDeTamanos(
+  mandar: (t: Tamano) => Promise<void>,
+  sinRespuestaMs = SIN_RESPUESTA_MS,
+): ColaDeTamanos {
   let confirmado: Tamano = NADA;
   let pendiente: Tamano | null = null;
   let enVuelo = false;
@@ -86,29 +111,42 @@ export function colaDeTamanos(mandar: (t: Tamano) => Promise<void>): ColaDeTaman
       return;
     }
     enVuelo = true;
-    void puerta
-      .then(() => mandar(t))
+    let reloj: ReturnType<typeof setTimeout> | undefined;
+    const tope = new Promise<never>((_, rechazar) => {
+      reloj = setTimeout(() => rechazar(new Error("sin respuesta")), sinRespuestaMs);
+    });
+    void Promise.race([puerta.then(() => mandar(t)), tope])
       .then(
         () => {
           confirmado = t;
         },
         () => {
-          /* No llegó. `confirmado` se queda como estaba, que es la verdad:
-             el proceso sigue con lo de antes. El siguiente `pedir` lo manda. */
+          /* No llegó, o no a tiempo. `confirmado` se queda como estaba, que es
+             la verdad: el proceso sigue con lo de antes. Si el viaje tardío
+             acaba llegando, el proceso tendrá otro tamaño del que aquí consta,
+             y `asegurar` lo vuelve a cuadrar en la siguiente vuelta. */
         },
       )
       .then(() => {
+        clearTimeout(reloj);
         enVuelo = false;
         bombear();
       });
   };
 
+  const pedir = (t: Tamano) => {
+    // Una rejilla de cero no es un tamaño: es un panel oculto o sin medir.
+    if (!(t.cols > 0) || !(t.rows > 0)) return;
+    pendiente = { cols: t.cols, rows: t.rows };
+    bombear();
+  };
+
   return {
-    pedir(t) {
-      // Una rejilla de cero no es un tamaño: es un panel oculto o sin medir.
-      if (!(t.cols > 0) || !(t.rows > 0)) return;
-      pendiente = { cols: t.cols, rows: t.rows };
-      bombear();
+    pedir,
+    asegurar(t) {
+      if (enVuelo || !(t.cols > 0) || !(t.rows > 0) || igual(t, confirmado)) return false;
+      pedir(t);
+      return true;
     },
     confirmado: () => confirmado,
     olvidar() {
@@ -120,6 +158,10 @@ export function colaDeTamanos(mandar: (t: Tamano) => Promise<void>): ColaDeTaman
     quieta() {
       if (quietaYa()) return Promise.resolve();
       return new Promise((r) => avisos.push(r));
+    },
+    estado() {
+      const p = pendiente ? `${pendiente.cols}x${pendiente.rows}` : "-";
+      return `confirmado=${confirmado.cols}x${confirmado.rows} enVuelo=${enVuelo} pendiente=${p}`;
     },
   };
 }

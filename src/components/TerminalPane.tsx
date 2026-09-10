@@ -2047,6 +2047,27 @@ export default function TerminalPane({
     };
     const ro = new ResizeObserver(pedirRefit);
     ro.observe(el);
+    /* El vigilante del tamaño. Cada tres segundos, si el proceso no tiene lo
+       que tiene la rejilla y no hay ningún viaje en vuelo, se le vuelve a
+       mandar. Existe porque el 2026-09-10, un minuto después de reiniciar la
+       0.9.156, dos paneles seguían con el proceso a 80 columnas y la rejilla
+       más estrecha, y por lectura no se encontró por dónde se perdía el
+       tamaño. En vez de buscar la séptima causa, esto hace que el desacuerdo
+       no pueda durar, y deja en el rastro el estado exacto cuando tiene que
+       actuar: ese apunte es el que dirá la causa. Con `confirmado` a cero es
+       el arranque y no se anota, que ahí no hay desacuerdo que contar. */
+    const vigilante = window.setInterval(() => {
+      const t = termRef.current;
+      const c = colaTamanoRef.current;
+      if (!t || !c || el.clientWidth === 0 || el.clientHeight === 0) return;
+      const tenia = c.confirmado();
+      const antes = c.estado();
+      if (c.asegurar({ cols: t.cols, rows: t.rows }) && tenia.cols > 0) {
+        void anotarRastro(
+          `terminal ${id}: el proceso no tenía el tamaño del panel (rejilla ${t.cols}x${t.rows}, ${antes}); reenviado`,
+        );
+      }
+    }, 3000);
     /* Y el ajuste bueno, el de después de soltar. */
     const alSoltar = () => refitRef.current();
     window.addEventListener(EVENTO_REFIT, alSoltar);
@@ -2061,6 +2082,7 @@ export default function TerminalPane({
     return () => {
       disposed = true;
       ro.disconnect();
+      window.clearInterval(vigilante);
       if (colocarTimer !== undefined) window.clearTimeout(colocarTimer);
       if (pedido) cancelAnimationFrame(pedido);
       window.removeEventListener(EVENTO_REFIT, alSoltar);

@@ -239,6 +239,55 @@ ok(
   ok("pero tras `olvidar` (PTY nuevo) sí", viajes2 === 2);
 }
 
+/* ── Lo que se vio en la 0.9.156: un viaje que no vuelve, y el vigilante ──
+   Un minuto después de reiniciar, dos paneles con el proceso a 80 columnas y
+   la rejilla más estrecha. Con un solo viaje en vuelo por terminal, uno que no
+   contesta dejaría la cola muda para siempre. */
+{
+  const pty = ptyDeMentira(azar(11));
+  let viajes3 = 0;
+  const cola = colaDeTamanos((t) => {
+    viajes3++;
+    // El primer viaje no contesta JAMÁS; los demás, normal.
+    return viajes3 === 1 ? new Promise<void>(() => {}) : pty.mandar(t);
+  }, 40);
+  cola.pedir({ cols: 80, rows: 17 });
+  await new Promise((r) => setTimeout(r, 5));
+  cola.pedir({ cols: 68, rows: 17 });
+  await new Promise((r) => setTimeout(r, 15));
+  ok("mientras el viaje mudo está en vuelo, no sale otro", viajes3 === 1 && pty.tiene().cols === 0);
+  await cola.quieta();
+  ok(
+    "pasado el tope, el viaje mudo se da por perdido y sale el siguiente",
+    viajes3 === 2 && pty.tiene().cols === 68,
+    `viajes=${viajes3} pty=${pty.tiene().cols}`,
+  );
+  ok("y lo confirmado es lo que el PTY tiene", cola.confirmado().cols === 68);
+}
+{
+  // El vigilante: reenvía si hay desacuerdo, calla si no.
+  const pty = ptyDeMentira(azar(12));
+  let viajes4 = 0;
+  const cola = colaDeTamanos((t) => {
+    viajes4++;
+    return pty.mandar(t);
+  });
+  cola.pedir({ cols: 80, rows: 17 });
+  await cola.quieta();
+  ok("con el proceso al día, asegurar no viaja", !cola.asegurar({ cols: 80, rows: 17 }) && viajes4 === 1);
+  // El proceso se quedó con otra cosa sin que la cola lo sepa (un viaje tardío,
+  // un reinicio del ConPTY, lo que sea): la rejilla dice 68.
+  ok("con desacuerdo, asegurar reenvía", cola.asegurar({ cols: 68, rows: 17 }));
+  await cola.quieta();
+  ok("y el PTY acaba con lo de la rejilla", pty.tiene().cols === 68 && viajes4 === 2);
+  ok("mientras hay un viaje en vuelo, asegurar espera", (() => {
+    cola.pedir({ cols: 70, rows: 17 });
+    return !cola.asegurar({ cols: 70, rows: 17 });
+  })());
+  await cola.quieta();
+  ok("estado() cuenta lo que hay", /confirmado=70x17 enVuelo=false pendiente=-/.test(cola.estado()), cola.estado());
+}
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
 process.exit(fallos === 0 ? 0 : 1);
 }

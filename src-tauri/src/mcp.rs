@@ -648,7 +648,23 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 let cmd_str = session.command.as_ref()
                     .map(|v| v.join(" "))
                     .unwrap_or_else(|| "default shell".to_string());
-                text.push_str(&format!("ID: {}, CWD: {}, Command: {}\n", id, session.cwd, cmd_str));
+                // El tamaño que el PROCESO cree tener. Es el dato que faltó el
+                // 2026-09-10 para saber desde fuera si un panel y su proceso
+                // estaban de acuerdo: el búfer decía 80 columnas y el panel se
+                // veía más estrecho, y no había forma de preguntarlo. `try_lock`
+                // y no `lock`: un ConPTY colgado en mitad de un resize tiene el
+                // candado cogido, y una consulta no puede quedarse colgada con él.
+                let size = match session.master.try_lock() {
+                    Ok(m) => m
+                        .get_size()
+                        .map(|s| format!("{}x{}", s.cols, s.rows))
+                        .unwrap_or_else(|_| "?".to_string()),
+                    Err(_) => "ocupado".to_string(),
+                };
+                text.push_str(&format!(
+                    "ID: {}, CWD: {}, Size: {}, Command: {}\n",
+                    id, session.cwd, size, cmd_str
+                ));
             }
             if text.is_empty() {
                 text = "No active panes.".to_string();

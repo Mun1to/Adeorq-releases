@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { RescateContext } from "./ResguardoPanel";
 import { createPortal } from "react-dom";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -370,7 +371,18 @@ function temaDeXterm() {
   const pulgar = pulgarDeScroll();
   return {
     ...coloresTerm(),
-    background: fondoDeXterm(),
+    /* Con fondo translúcido, xterm NO pinta fondo: lo pinta `.pane-term` una
+       sola vez (App.css). Antes se le daba el mismo rgba y xterm lo ponía en
+       línea en `.xterm` y en `.xterm-scrollable-element`, y el renderer lo
+       pintaba otra vez en el canvas: el área del texto llevaba cuatro capas del
+       tinte y la franja de la derecha (la reserva de 14 px de la barra más el
+       resto de celda) y la de abajo solo tres o dos. Con una foto detrás esa
+       franja se veía de otro color. Medido en Brave con píxeles (2026-09-12):
+       texto (55,51,54) contra franja (54,49,49) y franja de abajo (64,65,72);
+       con esto, (76,65,57) en los tres sitios. El alfa de `--xterm-bg` va
+       compensado para que una capa oscurezca lo que oscurecían tres. Con fondo
+       sólido no hay transparencia y xterm pinta el suyo, como siempre. */
+    background: esFondoSolido() ? fondoDeXterm() : "rgba(0, 0, 0, 0)",
     scrollbarSliderBackground: pulgar.normal,
     scrollbarSliderHoverBackground: pulgar.hover,
     scrollbarSliderActiveBackground: pulgar.activo,
@@ -780,7 +792,10 @@ export default function TerminalPane({
   /** En un ref y no leído directo: el efecto que monta el xterm corre una sola
       vez, y si mirara la prop se quedaría con la del primer render para
       siempre. Vaciarlo tras escribirlo es lo que impide volcar dos veces. */
-  const volcarRef = useRef(volcar ?? "");
+  /* O lo que Rust guardaba de este panel cuando la terminal renace tras una
+     caída: lo trae `ResguardoPanel` por contexto, que es quien la remonta. */
+  const rescate = useContext(RescateContext);
+  const volcarRef = useRef(volcar ?? rescate ?? "");
   const envRef = useRef(env);
   const notifyRef = useRef({ mode: notifyMode, name, focused, project: "" });
   notifyRef.current = { ...notifyRef.current, mode: notifyMode, name, focused };
@@ -843,7 +858,19 @@ export default function TerminalPane({
        anclaje aunque el panel siga abierto. */
     if (redimensionando()) letraAnclaRef.current = 0;
 
-    if (anclando() && anclaRef.current > 0) {
+    /* Y en la pantalla alternativa NO se ancla nada. El anclaje existe porque
+       el historial envuelto con saltos duros por el CLI se parte al cambiar de
+       columnas; un programa en pantalla alternativa (Claude Code con su
+       renderizador «fullscreen», `less`, `vim`) no tiene historial en xterm:
+       dibuja su pantalla entera y la vuelve a dibujar al ancho nuevo en cuanto
+       se lo dicen (medido en `pty.rs`, `fullscreen_en_conpty`: la caja pasa de
+       100 a 140 columnas sola). Ahí cambiar la letra para conservar columnas
+       le quita al programa justo el ancho que sabe aprovechar. Se hace lo que
+       hace cualquier terminal: la letra se queda y las columnas cambian. */
+    const enAlternativa = term.buffer.active.type === "alternate";
+    if (enAlternativa) letraAnclaRef.current = 0;
+
+    if (!enAlternativa && anclando() && anclaRef.current > 0) {
       /* La cuenta se hace UNA vez por transición, no en cada aviso.
          `proposeDimensions()` mide con la celda que xterm tiene RENDERIZADA, y
          `options.fontSize` es la que se le acaba de pedir: entre las dos hay un
@@ -1293,7 +1320,9 @@ export default function TerminalPane({
     term.parser.registerCsiHandler({ final: "J" }, (params) => {
       // ED 3 es «borra el scrollback». El 2 (borrar pantalla) viene con él pero
       // no se lleva el historial, así que no hay nada que conservar.
-      if (params[0] === 3) {
+      // En la pantalla alternativa no hay scrollback que borrar ni sitio al que
+      // volver: el programa dibuja su pantalla entera y el scroll es suyo.
+      if (params[0] === 3 && term.buffer.active.type !== "alternate") {
         // La distancia SOLO se mide sobre suelo firme. Con repintados
         // encadenados (Claude repinta varias veces por segundo mientras
         // trabaja), el ED3 del ciclo siguiente llega con el búfer del anterior
@@ -1835,6 +1864,11 @@ export default function TerminalPane({
       const t = termRef.current;
       if (lejos === null || !t) return;
       const b = t.buffer.active;
+      // Si entre el borrado y ahora el programa entró en la pantalla
+      // alternativa, la distancia era de la otra pantalla: no hay nada que
+      // colocar, y moverle el viewport a un programa que lo dibuja todo él es
+      // justo lo que no hace una terminal normal.
+      if (b.type === "alternate") return;
       // Aquí había una guarda que decía «si ya no estás al final, es que has
       // hecho scroll tú, no te toco». Sonaba bien y era justo lo que rompía el
       // caso de la rueda: cuando subes tres renglones durante el repintado, no
@@ -1904,6 +1938,18 @@ export default function TerminalPane({
         // cola de ocho megas es mejor que comerse la memoria de la máquina.
         while (colaLargoRef.current > TOPE_COLA && colaRef.current.length > 1) {
           colaLargoRef.current -= colaRef.current.shift()!.length;
+        }
+        // Lo que queda delante empieza donde le tocó a un `read` de 8 KB, que
+        // puede ser en mitad de una secuencia de escape: el parser arrancaría
+        // con media orden y dejaría colores o modos a medias. Se recorta hasta
+        // el primer salto de línea, que sí es un sitio limpio para empezar.
+        if (colaLargoRef.current > TOPE_COLA - texto.length && colaRef.current.length > 0) {
+          const primero = colaRef.current[0];
+          const salto = primero.indexOf("\n");
+          if (salto >= 0 && salto + 1 < primero.length) {
+            colaRef.current[0] = primero.slice(salto + 1);
+            colaLargoRef.current -= salto + 1;
+          }
         }
         renglonesEnCola += texto.split("\n").length - 1;
         avisarCola();
@@ -2017,6 +2063,11 @@ export default function TerminalPane({
     void onPtyExit((p) => {
       if (p.id !== id) return;
       setExited(true);
+      // Sin proceso no hay a quién contarle el tamaño: la cola se retira, o el
+      // vigilante seguiría reenviando cada tres segundos a un PTY que Rust ya
+      // borró (contesta «no such pty», nunca confirma) y apuntándolo en el
+      // rastro hasta que cerraras el panel.
+      colaTamanoRef.current = null;
       // Por la cola: si estás leyendo hacia atrás, este aviso no puede colarse
       // por delante de las últimas líneas que escribió el proceso.
       aPantalla("\r\n\x1b[90m[proceso terminado]\x1b[0m\r\n");

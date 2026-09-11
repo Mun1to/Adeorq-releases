@@ -1028,7 +1028,9 @@ body {
      exactamente el 0.34 que había aquí escrito a mano, pero el tema rojo sigue
      siendo rojo y el verde verde, que antes no. */
   --pane-abre: 0.5;
-  --xterm-bg: rgba(13, 21, 36, 0.2);
+  /* Era 0.2 cuando el tinte se apilaba tres veces (ver `--xterm-bg` abajo):
+     1 − (1 − 0.2)³ = 0.49 oscurece igual en una sola capa. */
+  --xterm-bg: rgba(13, 21, 36, 0.49);
 }
 
 /* El fondo del lienzo de xterm NO es CSS: lo pinta el renderer con el color de
@@ -1044,7 +1046,17 @@ body {
      un var() dentro le llegaba texto sin resolver, no lo entendía y pintaba las
      terminales NEGRAS (roto y arreglado el 2026-07-31, en la 0.9.35). */
   --xterm-rgb: 13, 21, 36;
-  --xterm-bg: rgba(13, 21, 36, 0.45);
+  /* UNA capa desde la 0.9.159. Hasta entonces este rgba se pintaba en
+     `.pane-term`, xterm lo repetía en línea en `.xterm` y en
+     `.xterm-scrollable-element`, y el canvas lo pintaba otra vez: el texto
+     llevaba cuatro capas y la franja de la derecha (reserva de la barra más
+     el resto de celda) tres, y con una foto detrás se veía de otro color.
+     Ahora xterm recibe un fondo transparente y el tinte se pinta aquí una vez,
+     con el alfa que oscurece lo mismo que oscurecían tres: 1 − (1 − a)³. El
+     0.45 de antes es este 0.83; el mando de Ajustes hace la misma cuenta en
+     `App.tsx`. Medido con píxeles en Brave (2026-09-12): la diferencia entre el
+     texto y la franja pasa de (1, 2, 5) a cero. */
+  --xterm-bg: rgba(13, 21, 36, 0.83);
 }
 
 /* La barra de arriba, en tres zonas: la marca, dónde estás, y qué haces.
@@ -4622,11 +4634,14 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
      (0.9.39), ese hueco se convirtió en un marco de foto alrededor del texto
      (Munir, 2026-07-31: «no sé por qué tiene como unos huecos»). */
   padding: 0;
-  /* Y el mismo color que el lienzo, que si no reaparece una franja a la derecha.
-     El canvas de xterm solo mide COLUMNAS ENTERAS: los pocos píxeles que sobran
-     hasta el borde no son suyos y se quedaban sin su tinte, así que con el
-     fondo visible se notaban más claros que el resto. Pintándolos igual, el
-     sobrante deja de existir a la vista. */
+  /* Y el tinte de las terminales se pinta AQUÍ, una sola vez. El canvas de
+     xterm solo mide COLUMNAS ENTERAS: los píxeles que sobran hasta el borde
+     (14 px de reserva de la barra de scroll, más el resto de una celda, y
+     abajo el resto de una fila) no son suyos. Pintarlos «del mismo color» no
+     bastaba mientras xterm también pintara el suyo: el texto acababa con
+     cuatro capas del tinte y la franja con tres, y con una foto detrás se
+     notaba (medido, ver `--xterm-bg`). Desde la 0.9.159 xterm recibe un fondo
+     transparente cuando el tinte lo es, y esta es la única capa. */
   background: var(--xterm-bg);
 }
 
@@ -4741,6 +4756,12 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
 .pane-term .xterm .xterm-viewport {
   background-color: transparent;
 }
+/* Y la regla de arriba es de xterm 5. En xterm 6.1 el fondo del tema ya no cae
+   en `.xterm-viewport`: va EN LÍNEA en `.xterm` y en `.xterm-scrollable-element`,
+   donde ninguna hoja de estilos lo pisa. Por eso el fondo translúcido se resuelve
+   dándole a xterm un tema transparente (`temaDeXterm`), no con CSS. Se deja la
+   regla porque no hace daño y porque si algún día vuelve a haber un viewport con
+   fondo, esto es lo que lo apaga. */
 
 /* La barra de las terminales ya NO es la del navegador: desde xterm 6 la pinta
    el propio xterm, con el motor de scroll de VS Code (un div `.scrollbar` con
@@ -4762,10 +4783,16 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
    El color del pulgar no se pone aquí: xterm genera su propio CSS con los
    `scrollbarSlider*` de su tema, así que viaja por `temaDeXterm`, que es quien
    ya sabe leer los colores de la casa. */
-.pane-term:hover .xterm .xterm-scrollable-element > .invisible {
+.pane-term:hover .xterm .xterm-scrollable-element > .xterm-invisible {
   opacity: 1;
   pointer-events: auto;
 }
+/* `.xterm-invisible` y no `.invisible`: xterm 6.1 prefija sus clases, y esta
+   regla estuvo tres semanas apuntando a una clase que no existe (comprobado en
+   el DOM de un xterm de verdad el 2026-09-12: la barra en reposo lleva
+   `xterm-invisible xterm-scrollbar xterm-vertical xterm-fade`). O sea que el
+   arreglo del «a veces no se ve la barra» del 2026-08-17 nunca llegó a
+   aplicar, y lo que se veía era el desvanecido de VS Code tal cual. */
 
 /* Where you are typing has to be obvious at a glance across a wall of panes
    (Munir: "se nota muy poco"): a full accent ring plus a real halo. */

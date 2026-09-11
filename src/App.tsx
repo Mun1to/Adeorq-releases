@@ -911,7 +911,13 @@ function App() {
       const rgb =
         getComputedStyle(root).getPropertyValue("--xterm-rgb").trim() || "13, 21, 36";
       const abre = 1 - terminalVer / 100;
-      root.style.setProperty("--xterm-bg", `rgba(${rgb}, ${abre.toFixed(2)})`);
+      // El tinte se pinta UNA vez (`.pane-term`) desde la 0.9.159; hasta
+      // entonces xterm lo apilaba tres veces sobre el texto. Para que el mando
+      // oscurezca lo mismo que oscurecía, una capa lleva 1 − (1 − a)³: el 0.45
+      // de siempre es 0.83, y los extremos (0 y 1) se quedan donde estaban.
+      // El porqué entero, junto a `--xterm-bg` en App.css.
+      const tinte = 1 - Math.pow(1 - abre, 3);
+      root.style.setProperty("--xterm-bg", `rgba(${rgb}, ${tinte.toFixed(2)})`);
       // Y el panel que hay DEBAJO del lienzo, o el mando no cumple lo que
       // promete: con la terminal al 100 % seguías viendo este color en vez de
       // la foto, porque son dos capas en serie y ayer solo se abrió una.

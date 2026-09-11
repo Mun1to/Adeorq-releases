@@ -532,25 +532,29 @@ pub async fn pty_spawn(
     cmd.env_remove("NO_COLOR");
     cmd.env("FORCE_COLOR", "3");
     cmd.env("CLICOLOR_FORCE", "1");
-    // El renderizador CLÁSICO de Claude Code, no el de pantalla completa.
+    // El renderizador de Claude Code lo elige Claude Code, no Adeorq.
     //
-    // La 2.1.268 (instalada el 2026-09-10 a las 22:48) estrena un renderizador
-    // «fullscreen»: entra en la pantalla alternativa (`ESC[?1049h`), enciende el
-    // seguimiento del ratón y desplaza su conversación él solo. En esa pantalla
-    // xterm no tiene scrollback y la rueda ya no mueve la terminal: se la manda
-    // al programa. Todo el scroll de Adeorq (congelar mientras lees, la píldora
-    // «Pausada», el colocado tras cada repintado, la búsqueda en el búfer, el
-    // vigía del «to interrupt», el transcript por MCP) está construido sobre el
-    // renderizador clásico, y con el nuevo Munir se encontró sin poder subir
-    // por su conversación al minuto de reiniciar (2026-09-11).
+    // La 0.9.158 (2026-09-11) ponía aquí `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1`
+    // para forzar el renderizador clásico, porque el «fullscreen» (pantalla
+    // alternativa, ratón, scroll propio) había dejado a Munir sin poder subir por
+    // sus conversaciones. Pero la causa no era ese renderizador: era que
+    // `TerminalPane` congelaba la salida al ver la rueda, y en la pantalla
+    // alternativa la rueda es del programa. Eso se arregló en el front ese mismo
+    // día, y la variable sobraba. Peor: pisaba una decisión suya. Ese modo está
+    // en SUS ajustes (`~/.claude/settings.json`, `"tui": "fullscreen"`, puesto el
+    // 2026-09-10 a las 20:30), y en Windows Terminal lo tendría; aquí no.
     //
-    // El propio binario documenta el interruptor: «the next launch will use the
-    // classic renderer (CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1 forces that any
-    // time)». Está medido en un ConPTY de verdad: sin la variable la 2.1.268
-    // escribe `ESC[?1049h` al arrancar; con ella, no
-    // (`cargo test --lib pantalla_alternativa -- --ignored --nocapture`). Los
-    // demás programas ignoran una variable que no conocen.
-    cmd.env("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN", "1");
+    // Y es justo el modo que resuelve lo que ninguna terminal puede resolver:
+    // con el clásico, el texto viejo queda envuelto con saltos duros al ancho
+    // de entonces (el «hueco» al maximizar, las palabras partidas al abrir un
+    // panel); con el fullscreen es el propio Claude Code quien vuelve a dibujar
+    // la conversación entera al ancho nuevo. Medido en un ConPTY de verdad
+    // (`cargo test --lib fullscreen_en_conpty -- --ignored --nocapture`, 2.1.269):
+    // al ensanchar de 100 a 140 columnas redibuja a 140, y seis golpes de rueda
+    // SGR (lo que manda xterm) devuelven 42 KB con el principio de la
+    // conversación. Si un día hace falta el clásico, `/tui default` dentro de
+    // Claude Code lo pone para todas las terminales, incluida esta; y una
+    // variable puesta en el sistema se hereda igual que siempre.
     // QUIÉN ERES. Un agente dentro de una terminal de Adeorq no tenía forma de
     // saber en qué panel vive, y sin eso no puede pedir por MCP que se dibuje
     // una flecha DESDE él: sabe los números de los demás (`get_active_panes`) y
@@ -797,6 +801,18 @@ pub fn pty_historial(state: State<'_, PtyState>, id: u32, bytes: Option<usize>) 
 // hilo de la ventana y la app entera moría con ella — ni teclado, ni menús,
 // ni el panel sano de al lado (2026-07-30, la última pieza del «no me deja
 // ni escribir»). En async, un resize atascado se pudre él solo en su hilo.
+//
+// Y desde la 0.9.159 se pudre en un hilo de BLOQUEO, no en uno del runtime, y
+// no espera al candado. `async fn` no basta: el `resize` del ConPTY es una
+// llamada síncrona (`ResizePseudoConsole`) y `master.lock()` un `Mutex` de la
+// biblioteca estándar, así que un resize colgado se quedaba con un hilo
+// trabajador de Tokio entero. Con el tope de 5 s de la cola del front y su
+// vigilante de 3 s, cada nuevo intento se ponía a la cola del mismo candado y
+// se llevaba otro hilo: con tantos hilos como núcleos, en un par de minutos
+// ningún comando `async` de la app contestaba. El congelón otra vez, con
+// retardo. `spawn_blocking` usa el conjunto de hilos de bloqueo (cientos), y
+// `try_lock` contesta «ocupado» en el acto si hay otro resize en curso en ese
+// panel: la cola del front no lo confirma y el vigilante lo vuelve a pedir.
 #[tauri::command]
 pub async fn pty_resize(state: State<'_, PtyState>, id: u32, cols: u16, rows: u16) -> Result<(), String> {
     // El candado del mapa se suelta ANTES de tocar el ConPTY.
@@ -804,15 +820,22 @@ pub async fn pty_resize(state: State<'_, PtyState>, id: u32, cols: u16, rows: u1
         let map = state.0.lock().unwrap();
         map.get(&id).ok_or("no such pty")?.master.clone()
     };
-    let master = master.lock().map_err(|_| "master envenenado".to_string())?;
-    master
-        .resize(PtySize {
-            rows,
-            cols,
-            pixel_width: 0,
-            pixel_height: 0,
-        })
-        .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        let master = master.try_lock().map_err(|e| match e {
+            std::sync::TryLockError::WouldBlock => "ocupado: otro resize en curso en este panel".to_string(),
+            std::sync::TryLockError::Poisoned(_) => "master envenenado".to_string(),
+        })?;
+        master
+            .resize(PtySize {
+                rows,
+                cols,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Mata un proceso Y TODO LO QUE CUELGA DE ÉL.
@@ -1135,7 +1158,9 @@ mod tests {
 /// Arranca `claude` de verdad en un ConPTY, con `CLAUDE_CODE_EXIT_AFTER_FIRST_RENDER=1`
 /// para que se vaya tras el primer dibujo, y mira si escribe `ESC[?1049h` (la
 /// pantalla alternativa). Dos veces: sin la variable, como control de que esta
-/// versión de Claude Code SÍ entra; y con ella, que es lo que hace `pty_spawn`.
+/// versión de Claude Code SÍ entra (con el `tui: "fullscreen"` de los ajustes
+/// del usuario); y con ella, que es el interruptor que la 0.9.158 ponía en
+/// `pty_spawn` y la 0.9.159 retiró. Se queda como medida del interruptor.
 /// Contesta al `ESC[6n` del ConPTY, que sin respuesta deja el proceso mudo y el
 /// veredicto al revés (ver la memoria del laboratorio del PTY).
 #[cfg(all(test, windows))]
@@ -1215,6 +1240,203 @@ mod pantalla_alternativa {
             !alternativa(&con_variable),
             "con CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1 no debería entrar"
         );
+    }
+}
+
+/// Qué hace el renderizador «fullscreen» de Claude Code en un ConPTY cuando le
+/// cambian el ancho y cuando le llega la rueda, medido y no supuesto.
+///
+/// ```text
+/// ADEORQ_BANCO_SESION=<id> ADEORQ_BANCO_CWD=<carpeta> \
+///   cargo test --lib fullscreen_en_conpty -- --ignored --nocapture
+/// ```
+///
+/// Hace falta una sesión con conversación: se copia su `.jsonl` a la carpeta de
+/// proyecto que Claude Code asocia al `cwd` (`~/.claude/projects/<cwd con «:» y
+/// «\» cambiados por «-»>/`) y se arranca `claude --resume <id>` en ese `cwd`.
+/// Con el `tui: "fullscreen"` de los ajustes del usuario, el programa entra en
+/// la pantalla alternativa; aquí se mira (1) si al ensanchar el ConPTY vuelve a
+/// dibujar su caja al ancho nuevo (la tira de `─` más larga antes y después) y
+/// (2) si contesta a un evento de rueda SGR (`ESC[<64;x;yM`, lo que manda xterm
+/// con el seguimiento del ratón encendido) con un dibujo nuevo. Es lo que
+/// decide si Adeorq puede ser una terminal normal con ese renderizador o tiene
+/// que seguir forzando el clásico.
+#[cfg(all(test, windows))]
+mod fullscreen_en_conpty {
+    use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+    use std::io::{Read, Write};
+    use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
+
+    fn contiene(b: &[u8], s: &[u8]) -> bool {
+        b.windows(s.len()).any(|w| w == s)
+    }
+
+    /// La tira más larga de `─` (E2 94 80): el ancho al que se dibujó una caja.
+    fn tira_mas_larga(b: &[u8]) -> usize {
+        let mut mejor = 0;
+        let mut actual = 0;
+        let mut i = 0;
+        while i + 3 <= b.len() {
+            if &b[i..i + 3] == b"\xe2\x94\x80" {
+                actual += 1;
+                mejor = mejor.max(actual);
+                i += 3;
+            } else {
+                actual = 0;
+                i += 1;
+            }
+        }
+        mejor
+    }
+
+    /// El texto visible de un trozo, sin secuencias de escape, para leerlo.
+    fn texto_plano(b: &[u8]) -> String {
+        let s = String::from_utf8_lossy(b);
+        let mut fuera = String::new();
+        let mut chars = s.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c == '\x1b' {
+                match chars.next() {
+                    Some('[') | Some('?') => {
+                        while let Some(&n) = chars.peek() {
+                            chars.next();
+                            if n.is_ascii_alphabetic() || n == '@' || n == '~' {
+                                break;
+                            }
+                        }
+                    }
+                    Some(']') => {
+                        while let Some(n) = chars.next() {
+                            if n == '\x07' {
+                                break;
+                            }
+                            if n == '\x1b' {
+                                chars.next();
+                                break;
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            } else if !c.is_control() || c == '\n' {
+                fuera.push(c);
+            }
+        }
+        fuera.split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+
+    /// Espera a que la salida lleve `quieto` sin crecer, o `tope` en total.
+    fn esperar_quieto(salida: &Arc<Mutex<Vec<u8>>>, quieto: Duration, tope: Duration) {
+        let inicio = Instant::now();
+        let mut ultimo = salida.lock().unwrap().len();
+        let mut desde = Instant::now();
+        while inicio.elapsed() < tope {
+            std::thread::sleep(Duration::from_millis(100));
+            let ahora = salida.lock().unwrap().len();
+            if ahora != ultimo {
+                ultimo = ahora;
+                desde = Instant::now();
+            } else if desde.elapsed() >= quieto {
+                return;
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "arranca claude --resume de verdad sobre una sesión copiada; se lanza a mano"]
+    fn el_fullscreen_redibuja_al_ancho_nuevo_y_atiende_la_rueda() {
+        let sesion = std::env::var("ADEORQ_BANCO_SESION")
+            .expect("ADEORQ_BANCO_SESION=<id de la sesión copiada a la carpeta de proyecto del cwd>");
+        let cwd = std::env::var("ADEORQ_BANCO_CWD").expect("ADEORQ_BANCO_CWD=<carpeta donde arrancar>");
+
+        let pair = native_pty_system()
+            .openpty(PtySize { rows: 30, cols: 100, pixel_width: 0, pixel_height: 0 })
+            .expect("no se pudo abrir el ConPTY");
+        let mut cmd = CommandBuilder::new("cmd.exe");
+        cmd.args(["/c", "claude", "--resume", &sesion]);
+        cmd.cwd(&cwd);
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("COLORTERM", "truecolor");
+        cmd.env_remove("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN");
+        cmd.env_remove("CLAUDE_CODE_CHILD_SESSION");
+        let hijo = pair.slave.spawn_command(cmd).expect("no arrancó claude");
+        let pid = hijo.process_id().expect("sin pid");
+        drop(pair.slave);
+        let mut lector = pair.master.try_clone_reader().expect("sin lector");
+        let escritor = Arc::new(Mutex::new(pair.master.take_writer().expect("sin escritor")));
+        let salida = Arc::new(Mutex::new(Vec::new()));
+        let recogida = salida.clone();
+        let contesta = escritor.clone();
+        std::thread::spawn(move || {
+            let mut buf = [0u8; 8192];
+            while let Ok(n) = lector.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+                let trozo = &buf[..n];
+                if contiene(trozo, b"\x1b[6n") {
+                    let _ = contesta.lock().unwrap().write_all(b"\x1b[1;1R");
+                }
+                recogida.lock().unwrap().extend_from_slice(trozo);
+            }
+        });
+
+        // 1. Que arranque y dibuje la conversación a 100 columnas.
+        let inicio = Instant::now();
+        while inicio.elapsed() < Duration::from_secs(40) {
+            if contiene(&salida.lock().unwrap(), b"\x1b[?1049h") {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        esperar_quieto(&salida, Duration::from_secs(3), Duration::from_secs(30));
+        let a = salida.lock().unwrap().clone();
+        let alternativa = contiene(&a, b"\x1b[?1049h");
+        let raton = contiene(&a, b"\x1b[?1006h") || contiene(&a, b"\x1b[?1000h");
+        let tira_a = tira_mas_larga(&a);
+
+        // 2. Ensanchar: ¿vuelve a dibujar a 140?
+        pair.master
+            .resize(PtySize { rows: 40, cols: 140, pixel_width: 0, pixel_height: 0 })
+            .expect("no se pudo redimensionar");
+        esperar_quieto(&salida, Duration::from_secs(2), Duration::from_secs(15));
+        let b = salida.lock().unwrap()[a.len()..].to_vec();
+        let tira_b = tira_mas_larga(&b);
+
+        // 3. La rueda hacia arriba, como la manda xterm con SGR (botón 64).
+        for _ in 0..6 {
+            let _ = escritor.lock().unwrap().write_all(b"\x1b[<64;50;15M");
+            std::thread::sleep(Duration::from_millis(60));
+        }
+        esperar_quieto(&salida, Duration::from_secs(2), Duration::from_secs(10));
+        let c = salida.lock().unwrap()[a.len() + b.len()..].to_vec();
+
+        super::matar_rama(pid);
+        std::thread::sleep(Duration::from_millis(500));
+
+        println!(
+            "\narranque: {} bytes · pantalla alternativa: {alternativa} · ratón pedido: {raton} · caja más ancha: {tira_a}\n\
+             tras ensanchar a 140: {} bytes · caja más ancha: {tira_b}\n\
+             tras 6 golpes de rueda: {} bytes · vuelve a posicionar el cursor: {}\n",
+            a.len(),
+            b.len(),
+            c.len(),
+            contiene(&c, b"\x1b[") && (contiene(&c, b"H") || contiene(&c, b"\x1b[2J")),
+        );
+        let recorte = |b: &[u8], n: usize| texto_plano(b).chars().take(n).collect::<String>();
+        println!("texto del arranque (recortado): {}\n", recorte(&a, 700));
+        println!("texto tras ensanchar (recortado): {}\n", recorte(&b, 700));
+        println!("texto tras la rueda (recortado): {}\n", recorte(&c, 500));
+
+        assert!(alternativa, "(control) con tui=fullscreen esta versión debería entrar en pantalla alternativa");
+        assert!(raton, "el renderizador fullscreen debería pedir el seguimiento del ratón");
+        assert!(tira_a >= 60, "no llegó a dibujar la caja a 100 columnas (tira {tira_a})");
+        assert!(
+            tira_b > tira_a + 20,
+            "al ensanchar no redibujó más ancho (antes {tira_a}, después {tira_b})"
+        );
+        assert!(!c.is_empty(), "la rueda no provocó ninguna respuesta del programa");
     }
 }
 

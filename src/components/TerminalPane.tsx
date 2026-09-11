@@ -1373,6 +1373,14 @@ export default function TerminalPane({
     const alRodar = (ev: WheelEvent) => {
       const t = termRef.current;
       if (!t) return;
+      /* En la pantalla alternativa la rueda es del PROGRAMA, no de la terminal.
+         Ahí xterm no tiene scrollback y no mueve nada: se la manda al programa
+         como evento de ratón (o como flechas), y es `less`, `vim` o el Claude
+         Code 2.1.268 con su renderizador «fullscreen» quien desplaza su
+         contenido. Congelar aquí encolaba justo la respuesta a la rueda y no se
+         movía nada: «no puedo hacer scroll dentro de mis conversaciones»
+         (Munir, 2026-09-11). Nada que congelar ni que colocar: fuera. */
+      if (t.buffer.active.type === "alternate") return;
       // La celda se le pregunta a xterm, no al DOM: medir `.xterm-screen` con
       // getBoundingClientRect devolvía la altura CON el zoom del lienzo (en el
       // canvas los paneles viven bajo un `scale()` de React Flow que nunca es
@@ -1879,6 +1887,15 @@ export default function TerminalPane({
      * se escribe como siempre. Ver el bloque de `pausa` arriba. */
     const TOPE_COLA = 8_000_000;
     const aPantalla = (texto: string) => {
+      /* Si lo que llega abre la pantalla alternativa con la terminal congelada,
+         se suelta la cola ANTES: lo encolado es de la pantalla normal y tiene
+         que entrar antes de que el programa se ponga a pintar la otra. `write`
+         conserva el orden, así que sale la cola y detrás este trozo. Sin esto,
+         un `less` o un Claude Code en «fullscreen» arrancado mientras leías
+         hacia arriba pintaba dentro de una cola que nadie soltaba. */
+      if (congeladoRef.current && (texto.includes("\x1b[?1049h") || texto.includes("\x1b[?47h"))) {
+        soltarCola();
+      }
       if (congeladoRef.current) {
         colaRef.current.push(texto);
         colaLargoRef.current += texto.length;

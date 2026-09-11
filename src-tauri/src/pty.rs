@@ -532,6 +532,25 @@ pub async fn pty_spawn(
     cmd.env_remove("NO_COLOR");
     cmd.env("FORCE_COLOR", "3");
     cmd.env("CLICOLOR_FORCE", "1");
+    // El renderizador CLÁSICO de Claude Code, no el de pantalla completa.
+    //
+    // La 2.1.268 (instalada el 2026-09-10 a las 22:48) estrena un renderizador
+    // «fullscreen»: entra en la pantalla alternativa (`ESC[?1049h`), enciende el
+    // seguimiento del ratón y desplaza su conversación él solo. En esa pantalla
+    // xterm no tiene scrollback y la rueda ya no mueve la terminal: se la manda
+    // al programa. Todo el scroll de Adeorq (congelar mientras lees, la píldora
+    // «Pausada», el colocado tras cada repintado, la búsqueda en el búfer, el
+    // vigía del «to interrupt», el transcript por MCP) está construido sobre el
+    // renderizador clásico, y con el nuevo Munir se encontró sin poder subir
+    // por su conversación al minuto de reiniciar (2026-09-11).
+    //
+    // El propio binario documenta el interruptor: «the next launch will use the
+    // classic renderer (CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1 forces that any
+    // time)». Está medido en un ConPTY de verdad: sin la variable la 2.1.268
+    // escribe `ESC[?1049h` al arrancar; con ella, no
+    // (`cargo test --lib pantalla_alternativa -- --ignored --nocapture`). Los
+    // demás programas ignoran una variable que no conocen.
+    cmd.env("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN", "1");
     // QUIÉN ERES. Un agente dentro de una terminal de Adeorq no tenía forma de
     // saber en qué panel vive, y sin eso no puede pedir por MCP que se dibuje
     // una flecha DESDE él: sabe los números de los demás (`get_active_panes`) y
@@ -1105,6 +1124,96 @@ mod tests {
         assert!(
             hist.starts_with('y'),
             "deberia arrancar justo despues del salto de linea"
+        );
+    }
+}
+
+/// Que la variable de entorno deje a Claude Code en su renderizador clásico.
+///
+/// `cargo test --lib pantalla_alternativa -- --ignored --nocapture`
+///
+/// Arranca `claude` de verdad en un ConPTY, con `CLAUDE_CODE_EXIT_AFTER_FIRST_RENDER=1`
+/// para que se vaya tras el primer dibujo, y mira si escribe `ESC[?1049h` (la
+/// pantalla alternativa). Dos veces: sin la variable, como control de que esta
+/// versión de Claude Code SÍ entra; y con ella, que es lo que hace `pty_spawn`.
+/// Contesta al `ESC[6n` del ConPTY, que sin respuesta deja el proceso mudo y el
+/// veredicto al revés (ver la memoria del laboratorio del PTY).
+#[cfg(all(test, windows))]
+mod pantalla_alternativa {
+    use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+    use std::io::{Read, Write};
+    use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
+
+    fn arranque_de_claude(sin_pantalla_alternativa: bool) -> Vec<u8> {
+        let pair = native_pty_system()
+            .openpty(PtySize { rows: 30, cols: 100, pixel_width: 0, pixel_height: 0 })
+            .expect("no se pudo abrir el ConPTY");
+        let mut cmd = CommandBuilder::new("cmd.exe");
+        cmd.args(["/c", "claude"]);
+        // Una carpeta sin proyecto: que la prueba no deje sesiones en los suyos.
+        cmd.cwd(std::env::temp_dir());
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("CLAUDE_CODE_EXIT_AFTER_FIRST_RENDER", "1");
+        if sin_pantalla_alternativa {
+            cmd.env("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN", "1");
+        }
+        let mut hijo = pair.slave.spawn_command(cmd).expect("no arrancó claude");
+        drop(pair.slave);
+        let mut lector = pair.master.try_clone_reader().expect("sin lector");
+        let mut escritor = pair.master.take_writer().expect("sin escritor");
+        let salida = Arc::new(Mutex::new(Vec::new()));
+        let recogida = salida.clone();
+        std::thread::spawn(move || {
+            let mut buf = [0u8; 8192];
+            while let Ok(n) = lector.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+                let trozo = &buf[..n];
+                if trozo.windows(4).any(|w| w == b"\x1b[6n") {
+                    let _ = escritor.write_all(b"\x1b[1;1R");
+                }
+                recogida.lock().unwrap().extend_from_slice(trozo);
+            }
+        });
+        let inicio = Instant::now();
+        while inicio.elapsed() < Duration::from_secs(25) {
+            if let Ok(Some(_)) = hijo.try_wait() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        let _ = hijo.kill();
+        std::thread::sleep(Duration::from_millis(300));
+        let v = salida.lock().unwrap().clone();
+        v
+    }
+
+    #[test]
+    #[ignore = "arranca claude de verdad; se lanza a mano"]
+    fn la_variable_deja_a_claude_en_el_renderizador_clasico() {
+        let alternativa = |b: &[u8]| b.windows(8).any(|w| w == b"\x1b[?1049h");
+        let sin_variable = arranque_de_claude(false);
+        let con_variable = arranque_de_claude(true);
+        println!(
+            "\nsin la variable: {} bytes, pantalla alternativa: {}\ncon la variable: {} bytes, pantalla alternativa: {}\n",
+            sin_variable.len(),
+            alternativa(&sin_variable),
+            con_variable.len(),
+            alternativa(&con_variable)
+        );
+        assert!(
+            !sin_variable.is_empty() && !con_variable.is_empty(),
+            "claude no escribió nada: mira si se contesta al ESC[6n"
+        );
+        assert!(
+            alternativa(&sin_variable),
+            "(control) esta versión de Claude Code debería entrar en pantalla alternativa sin la variable"
+        );
+        assert!(
+            !alternativa(&con_variable),
+            "con CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1 no debería entrar"
         );
     }
 }

@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { colaDeTamanos, type ColaDeTamanos } from "../lib/tamanoPty";
-import { apuntarDiagnostico } from "../lib/diagnosticoPanel";
+import { apuntarDiagnostico, describirPanel } from "../lib/diagnosticoPanel";
 import { repararBufer } from "../lib/xtermReparar";
 import { SearchAddon } from "@xterm/addon-search";
 import {
@@ -63,6 +63,8 @@ import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
 import { suavizado, SUAVIZADO_EVENTO } from "../lib/suavizado";
 import {
   esDelRaton,
+  esRespuestaDelTerminal,
+  esUnSalto,
   hayQueAjustar,
   hayQueRecolocar,
   gestoDeRueda,
@@ -553,6 +555,9 @@ export default function TerminalPane({
    * fracciones de renglón, y con la condición vieja (`deltaY < 0`) la
    * terminal se pausaba con un roce, sin que la vista se hubiera movido. */
   const subidoRef = useRef(0);
+  /** Cuándo tocaste tú algo (rueda, tecla o clic), para que el testigo del
+      salto no apunte lo que has pedido. Ver `esUnSalto`. */
+  const ultimoGestoRef = useRef(0);
   const colaRef = useRef<string[]>([]);
   const colaLargoRef = useRef(0);
   /** Y el que suelta la cola, puesto por el efecto que monta la terminal. */
@@ -1426,6 +1431,9 @@ export default function TerminalPane({
       // y me lleva súper arriba» del décimo reporte. Y al revés también
       // fallaba: la rueda que llega justo tras el borrado no mueve nada
       // todavía, medía cero y el gesto se perdía.
+      // Lo tuyo, apuntado: el testigo del salto solo avisa de lo que se mueve
+      // SIN que nadie lo pida.
+      ultimoGestoRef.current = performance.now();
       const movido = gestoDeRueda(
         {
           deltaY: ev.deltaY,
@@ -1473,6 +1481,39 @@ export default function TerminalPane({
     // burbuja, 3 en captura, con la misma secuencia. La captura además mide
     // bien, porque corre antes de que xterm mueva nada.
     el.addEventListener("wheel", alRodar, { passive: true, capture: true });
+
+    /* ── EL TESTIGO DEL SALTO ───────────────────────────────────────────────
+     *
+     * Trece reportes del mismo síntoma, seis causas distintas encontradas, y la
+     * última vez se cerró sin saber por qué había parado. El 2026-09-12 volvió.
+     * Desde este escritorio no se puede reproducir un gesto de rueda, así que
+     * cada vuelta se ha diagnosticado leyendo código y proponiendo una causa; eso
+     * ya ha fallado seis veces. Esto no arregla el salto: lo ATRAPA, y deja en el
+     * rastro cuánto se alejó la vista del final sin que nadie tocara nada y en
+     * qué estado estaba la terminal. El próximo reporte viene con la causa
+     * dentro. La regla y sus casos, en `lib/scrollTerm.ts` (`esUnSalto`). */
+    let distanciaVista = 0;
+    let ultimoSaltoApuntado = 0;
+    const saltoSub = term.onScroll(() => {
+      const t = termRef.current;
+      if (!t) return;
+      const b = t.buffer.active;
+      const ahora = Math.max(0, b.baseY - b.viewportY);
+      const antes = distanciaVista;
+      distanciaVista = ahora;
+      const salto = esUnSalto(antes, ahora, performance.now() - ultimoGestoRef.current);
+      if (!salto) return;
+      // Uno cada diez segundos como mucho: un salto suele venir con una ráfaga
+      // de scrolls detrás, y el rastro tiene que quedar legible.
+      if (performance.now() - ultimoSaltoApuntado < 10_000) return;
+      ultimoSaltoApuntado = performance.now();
+      void anotarRastro(
+        `terminal ${id}: la vista se alejó ${salto.renglones} renglones del final sola ` +
+          `(de ${antes} a ${ahora}) · ${describirPanel(id)} · ` +
+          `${congeladoRef.current ? "congelada" : "al día"}, ` +
+          `repintado ${pendienteRef.current === null ? "no" : `a ${pendienteRef.current} del final`}`,
+      );
+    });
 
     let disposed = false;
 
@@ -1579,7 +1620,7 @@ export default function TerminalPane({
     });
     pasteRef.current = pasteClipboard;
 
-    const unsubs: Array<() => void> = [];
+    const unsubs: Array<() => void> = [() => saltoSub.dispose()];
     /* Lo que esta terminal dice de sí misma si se cae: la rejilla y el estado
        del búfer. Es el dato que faltó las dos veces que xterm reventó con
        `isWrapped` de undefined (3 y 10 de septiembre de 2026) y que deja ver
@@ -1666,6 +1707,21 @@ export default function TerminalPane({
       // terminal que estabas leyendo hacia arriba (Munir, 2026-09-10). Se sale
       // antes de tocar el scroll, pero DESPUÉS no: el clic sí tiene que llegar
       // al proceso, que para eso lo pidió.
+      // Y una RESPUESTA del propio terminal tampoco: cuando el programa le
+      // pregunta quién es, dónde está el cursor o si el panel tiene el foco,
+      // xterm contesta por este mismo canal. Nadie teclea eso. Ver
+      // `esRespuestaDelTerminal`: el aviso de foco (`ESC[I`/`ESC[O`) llegaba
+      // cada vez que Munir pinchaba de un panel a otro, y bajaba al final la
+      // terminal que estaba leyendo, la marcaba como «escribiendo aquí» y
+      // devolvía al mosaico la que tuviera a pantalla completa.
+      if (esRespuestaDelTerminal(data)) {
+        void writePty(id, data).catch(() => {});
+        return;
+      }
+      // Un clic SÍ es tuyo aunque no sea tecleo: cuenta para el testigo del
+      // salto, que si no apuntaría como «se movió sola» la vista que acabas de
+      // mover pinchando.
+      ultimoGestoRef.current = performance.now();
       if (esDelRaton(data)) {
         void writePty(id, data).catch(() => {});
         return;

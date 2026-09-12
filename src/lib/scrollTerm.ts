@@ -278,6 +278,53 @@ export function esDelRaton(datos: string): boolean {
 }
 
 /**
+ * Y lo que el TERMINAL contesta por su cuenta tampoco es escribir.
+ *
+ * Por `onData` no sale solo lo que teclea una persona: sale también todo lo que
+ * xterm le responde al programa cuando este le pregunta algo, y eso viaja por el
+ * mismo canal que las teclas. Nadie puede escribir estas secuencias con el
+ * teclado, así que tratarlas como tecleo es siempre un fallo: baja la terminal
+ * al final aunque estuvieras leyendo atrás, la marca como «aquí se está
+ * escribiendo» y devuelve al mosaico un panel que habías puesto a pantalla
+ * completa.
+ *
+ * Lo que llega por aquí, todo comprobado en el xterm 6.1 de la app:
+ *
+ * | qué | cuándo | ejemplo |
+ * |---|---|---|
+ * | aviso de FOCO (`ESC[I` / `ESC[O`) | cada vez que un panel gana o pierde el foco, con `?1004h` puesto | `ESC[I` |
+ * | quién eres (XTVERSION) | al arrancar, y de ello depende cómo desplaza Claude Code | `ESC P>|xterm.js(6.1.0-beta.302) ESC \` |
+ * | identidad (DA1 y DA2) | al arrancar | `ESC[?1;2c` |
+ * | dónde está el cursor (DSR) | al arrancar y al medir | `ESC[24;80R` |
+ * | si un modo está puesto (DECRPM) | al preguntar por la salida sincronizada | `ESC[?2026;2$y` |
+ * | banderas del teclado de kitty | al negociarlas | `ESC[?0u` |
+ * | colores del tema (OSC) | al preguntarlos | `ESC]11;rgb:0d/15/24 ESC \` |
+ *
+ * El aviso de foco es el que más daño hacía: pinchar de un panel a otro son dos
+ * de estos, uno por terminal, sin que nadie haya tocado una tecla.
+ *
+ * Igual que con el ratón, se exige que TODO lo que llega sea respuesta: si viene
+ * pegado a una tecla, es que además estás escribiendo.
+ */
+const SOLO_RESPUESTA = new RegExp(
+  "^(?:" +
+    [
+      "\\x1b\\[[IO]", // foco dentro / fuera
+      // Con al menos un número dentro, que sin él `ESC[R` es la F3 de algunos
+      // terminales y `ESC[u` restaurar el cursor: teclas, no respuestas.
+      "\\x1b\\[\\??[\\d;]+[Rcu]", // cursor, identidad, teclado de kitty
+      "\\x1b\\[\\??[\\d;]+\\$y", // estado de un modo
+      "\\x1bP[\\s\\S]*?\\x1b\\\\", // DCS: quién eres, y las respuestas largas
+      "\\x1b\\][\\s\\S]*?(?:\\x1b\\\\|\\x07)", // OSC: colores del tema
+    ].join("|") +
+    ")+$",
+);
+
+export function esRespuestaDelTerminal(datos: string): boolean {
+  return datos !== "" && SOLO_RESPUESTA.test(datos);
+}
+
+/**
  * Si un gesto de rueda tiene que congelar la terminal para poder leer atrás.
  *
  * ── POR QUÉ NO BASTA CON «HA SUBIDO» (2026-08-30) ──────────────────────────
@@ -304,4 +351,58 @@ export function trasGestoParaCongelar(
 ): { subido: number; congelar: boolean } {
   const acumulado = Math.max(0, subido + movido);
   return { subido: acumulado, congelar: acumulado >= 1 };
+}
+
+/* ── EL TESTIGO DEL SALTO ─────────────────────────────────────────────────────
+ *
+ * Trece reportes del mismo síntoma en un mes («subo una vez y se me va a la
+ * mitad de la conversación»), seis causas distintas encontradas y arregladas, y
+ * la última vez se cerró SIN saber por qué había parado. El 2026-09-12 volvió.
+ *
+ * El problema no es arreglarlo, es que no se puede reproducir desde aquí: un
+ * gesto de rueda de verdad no se puede sintetizar en este escritorio (ni
+ * Playwright llega, ni xterm hace caso a un `WheelEvent` inventado), así que
+ * cada vuelta se ha diagnosticado leyendo código y proponiendo una causa. Eso ya
+ * ha fallado seis veces.
+ *
+ * Así que esto no arregla el salto: lo ATRAPA. Si la vista se aleja del final
+ * sin que nadie haya tocado la rueda ni el teclado, queda anotado en el rastro
+ * con cuánto saltó y en qué estado estaba la terminal. El siguiente reporte de
+ * Munir llegará con la causa dentro, en vez de con una hipótesis.
+ *
+ * La medida buena es la DISTANCIA AL FINAL (`baseY - viewportY`), no la posición:
+ * mientras llega texto nuevo la posición sube sola en cada línea y eso es lo
+ * normal, seguir el final. Lo que no puede cambiar solo es cuánto te has alejado.
+ */
+
+/** Cuántos renglones de más ya no son un ajuste, son un salto. */
+export const SALTO_SOSPECHOSO = 12;
+
+/** Cuánto después de un gesto tuyo deja de contar como tuyo. */
+export const GESTO_RECIENTE_MS = 400;
+
+export interface Salto {
+  /** Renglones que la vista se alejó del final sin que nadie lo pidiera. */
+  renglones: number;
+}
+
+/**
+ * Decide si un movimiento de la vista es un salto que hay que apuntar.
+ *
+ * @param antes     Distancia al final de la última vez, en renglones.
+ * @param ahora     Distancia al final ahora mismo.
+ * @param desdeGesto Milisegundos desde la última rueda, tecla o clic.
+ */
+export function esUnSalto(
+  antes: number,
+  ahora: number,
+  desdeGesto: number,
+): Salto | null {
+  // Lo que hiciste tú no es un salto, y lo que pasa justo después tampoco: el
+  // reflow de un gesto llega en el frame siguiente.
+  if (desdeGesto < GESTO_RECIENTE_MS) return null;
+  const renglones = ahora - antes;
+  // Acercarse al final no es el síntoma: eso es la terminal volviendo al día.
+  if (renglones < SALTO_SOSPECHOSO) return null;
+  return { renglones };
 }

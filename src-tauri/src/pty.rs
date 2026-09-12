@@ -59,6 +59,10 @@ pub struct PtySession {
     pub cwd: String,
     pub command: Option<Vec<String>>,
     pub history: std::sync::Arc<Mutex<String>>,
+    /// Si el programa de este panel está dibujando en la pantalla alternativa,
+    /// o sea si el scroll es SUYO y no de Adeorq. Lo mantiene el lector (ver
+    /// `marcar_pantalla`) y lo cuenta `get_active_panes` del MCP.
+    pub pantalla_alternativa: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 #[derive(Default)]
@@ -205,11 +209,13 @@ fn vaciar_pase_lo_que_pase<R: Read>(
     history: &Mutex<String>,
     tx: &std::sync::mpsc::Sender<String>,
     escuchan: &mut bool,
+    alternativa: &std::sync::atomic::AtomicBool,
+    cola_modos: &mut Vec<u8>,
 ) -> Fin {
     let mut sustos = 0u32;
     loop {
         let vuelta = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            vaciar(reader, pending, history, tx, escuchan)
+            vaciar(reader, pending, history, tx, escuchan, alternativa, cola_modos)
         }));
         match vuelta {
             Ok(fin) => return fin,
@@ -265,12 +271,44 @@ fn vaciar_pase_lo_que_pase<R: Read>(
 /// ya no estaba. Las dos salidas condenaban al hijo al bloqueo. Ahora: los
 /// errores pasajeros se reintentan, y si ya no hay a quién enviarle nada se
 /// sigue leyendo y se tira lo leído, porque vaciar importa más que entregar.
+/// Si el programa de un panel está dibujando en la PANTALLA ALTERNATIVA.
+///
+/// Se mira aquí, en el lector, porque es el único sitio por el que pasan todos
+/// los bytes del proceso: `ESC[?1049h` la abre y `ESC[?1049l` la cierra. Sirve
+/// para contestar de un vistazo la pregunta que costó dos sesiones enteras
+/// («¿este panel va con el renderizador fullscreen de Claude Code o con el
+/// clásico?»), que decide QUIÉN hace el scroll: el programa o Adeorq. Sale por
+/// `get_active_panes` del MCP, al lado del tamaño.
+fn marcar_pantalla(trozo: &[u8], cola: &mut Vec<u8>, alternativa: &std::sync::atomic::AtomicBool) {
+    // Una secuencia de siete bytes puede llegar partida entre dos lecturas, así
+    // que se mira sobre la cola anterior más el trozo nuevo.
+    let mut visto: Vec<u8> = Vec::with_capacity(cola.len() + trozo.len());
+    visto.extend_from_slice(cola);
+    visto.extend_from_slice(trozo);
+    let ultima = |aguja: &[u8]| visto.windows(aguja.len()).rposition(|w| w == aguja);
+    // Manda la ÚLTIMA de las dos: en un mismo trozo puede haber un ciclo entero.
+    let abre = ultima(b"\x1b[?1049h");
+    let cierra = ultima(b"\x1b[?1049l");
+    match (abre, cierra) {
+        (Some(a), Some(c)) => {
+            alternativa.store(a > c, std::sync::atomic::Ordering::Relaxed)
+        }
+        (Some(_), None) => alternativa.store(true, std::sync::atomic::Ordering::Relaxed),
+        (None, Some(_)) => alternativa.store(false, std::sync::atomic::Ordering::Relaxed),
+        (None, None) => {}
+    }
+    let desde = visto.len().saturating_sub(7);
+    *cola = visto[desde..].to_vec();
+}
+
 fn vaciar<R: Read>(
     reader: &mut R,
     pending: &mut Vec<u8>,
     history: &Mutex<String>,
     tx: &std::sync::mpsc::Sender<String>,
     escuchan: &mut bool,
+    alternativa: &std::sync::atomic::AtomicBool,
+    cola_modos: &mut Vec<u8>,
 ) -> Fin {
     let mut buf = [0u8; 8192];
     let mut fallos = 0u32;
@@ -294,6 +332,7 @@ fn vaciar<R: Read>(
             }
             Ok(n) => {
                 fallos = 0;
+                marcar_pantalla(&buf[..n], cola_modos, alternativa);
                 pending.extend_from_slice(&buf[..n]);
                 let text = drain_utf8(pending);
                 if !text.is_empty() {
@@ -643,6 +682,8 @@ pub async fn pty_spawn(
 
     let history = std::sync::Arc::new(Mutex::new(String::new()));
     let history_reader = history.clone();
+    let alternativa = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let alternativa_lector = alternativa.clone();
 
     // El hilo que LEE la terminal ya no es el que la EMITE, y esa separación es
     // todo el arreglo.
@@ -669,6 +710,7 @@ pub async fn pty_spawn(
     std::thread::spawn(move || {
         let mut pending: Vec<u8> = Vec::new();
         let mut escuchan = true;
+        let mut cola_modos: Vec<u8> = Vec::new();
         let fin = vaciar_pase_lo_que_pase(
             id,
             &mut reader,
@@ -676,6 +718,8 @@ pub async fn pty_spawn(
             &history_reader,
             &tx,
             &mut escuchan,
+            &alternativa_lector,
+            &mut cola_modos,
         );
         if !pending.is_empty() {
             let text = String::from_utf8_lossy(&pending).into_owned();
@@ -741,6 +785,7 @@ pub async fn pty_spawn(
             cwd,
             command: command_clone,
             history,
+            pantalla_alternativa: alternativa,
         },
     );
 
@@ -996,8 +1041,68 @@ pub fn list_projects(
 
 #[cfg(test)]
 mod tests {
-    use super::{recortar_historial, tomar, vaciar_pase_lo_que_pase, Fin, HIST_OBJETIVO, HIST_TOPE};
+    use super::{
+        marcar_pantalla, recortar_historial, tomar, vaciar_pase_lo_que_pase, Fin, HIST_OBJETIVO,
+        HIST_TOPE,
+    };
+    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
+
+    /// Quién hace el scroll en un panel, leído del propio flujo de bytes.
+    ///
+    /// Importa acertar: si la marca dice «normal» cuando el programa está
+    /// dibujando en la alternativa, un reporte de scroll manda a buscar la causa
+    /// en la capa de Adeorq, que ahí ni siquiera actúa.
+    mod quien_hace_el_scroll {
+        use super::*;
+
+        /// Pasa los trozos por el lector como llegarían de la tubería.
+        fn tras(trozos: &[&[u8]]) -> bool {
+            let alternativa = AtomicBool::new(false);
+            let mut cola = Vec::new();
+            for t in trozos {
+                marcar_pantalla(t, &mut cola, &alternativa);
+            }
+            alternativa.load(Ordering::Relaxed)
+        }
+
+        #[test]
+        fn al_abrir_la_pantalla_alternativa_manda_el_programa() {
+            assert!(tras(&[b"[?1049h[2Jhola"]));
+        }
+
+        #[test]
+        fn al_cerrarla_vuelve_a_mandar_adeorq() {
+            assert!(!tras(&[b"[?1049h", b"texto", b"[?1049l"]));
+        }
+
+        #[test]
+        fn una_secuencia_partida_entre_dos_lecturas_tambien_cuenta() {
+            // El caso real: `read` corta donde le toca, no donde conviene.
+            assert!(tras(&[b"antes[?10", b"49h[2J"]));
+        }
+
+        #[test]
+        fn en_el_mismo_trozo_manda_la_ultima() {
+            assert!(!tras(&[b"[?1049h dentro [?1049l fuera"]));
+            assert!(tras(&[b"[?1049l fuera [?1049h dentro"]));
+        }
+
+        #[test]
+        fn el_texto_normal_no_cambia_nada() {
+            assert!(!tras(&[b"una salida cualquiera
+"]));
+            assert!(tras(&[b"[?1049h", b"una salida cualquiera
+"]));
+        }
+
+        #[test]
+        fn no_se_confunde_con_otros_modos_parecidos() {
+            // `?1049` es el del historial; `?1047` y `?47` son otros búferes que
+            // Claude Code no usa, y `?104` a secas no es nada.
+            assert!(!tras(&[b"[?1047h[?104h[?47h"]));
+        }
+    }
 
     /// Silencia el mensaje de pánico mientras corre el bloque: estos tests los
     /// PROVOCAN a propósito y su rastro en la salida solo confunde al leerla.
@@ -1047,7 +1152,16 @@ mod tests {
         };
 
         let fin = sin_ruido(|| {
-            vaciar_pase_lo_que_pase(7, &mut terminal, &mut pending, &hist, &tx, &mut escuchan)
+            vaciar_pase_lo_que_pase(
+                7,
+                &mut terminal,
+                &mut pending,
+                &hist,
+                &tx,
+                &mut escuchan,
+                &AtomicBool::new(false),
+                &mut Vec::new(),
+            )
         });
 
         assert_eq!(fin, Fin::Limpio, "tenia que llegar hasta el final del todo");
@@ -1072,7 +1186,16 @@ mod tests {
         };
 
         let fin = sin_ruido(|| {
-            vaciar_pase_lo_que_pase(7, &mut terminal, &mut pending, &hist, &tx, &mut escuchan)
+            vaciar_pase_lo_que_pase(
+                7,
+                &mut terminal,
+                &mut pending,
+                &hist,
+                &tx,
+                &mut escuchan,
+                &AtomicBool::new(false),
+                &mut Vec::new(),
+            )
         });
 
         assert_eq!(fin, Fin::Roto, "tenia que rendirse contandolo");
@@ -1260,7 +1383,10 @@ mod pantalla_alternativa {
 /// (2) si contesta a un evento de rueda SGR (`ESC[<64;x;yM`, lo que manda xterm
 /// con el seguimiento del ratón encendido) con un dibujo nuevo. Es lo que
 /// decide si Adeorq puede ser una terminal normal con ese renderizador o tiene
-/// que seguir forzando el clásico.
+/// que seguir forzando el clásico. Que la sesión copiada tenga conversación de
+/// verdad (con una de un solo mensaje la rueda «no hace nada»), y al acabar,
+/// borrar esa carpeta de `~/.claude/projects/`: si se queda, la sesión copiada
+/// sale en la lista de sesiones de Adeorq como un proyecto más.
 #[cfg(all(test, windows))]
 mod fullscreen_en_conpty {
     use portable_pty::{native_pty_system, CommandBuilder, PtySize};
@@ -1360,7 +1486,7 @@ mod fullscreen_en_conpty {
         cmd.env("COLORTERM", "truecolor");
         cmd.env_remove("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN");
         cmd.env_remove("CLAUDE_CODE_CHILD_SESSION");
-        let hijo = pair.slave.spawn_command(cmd).expect("no arrancó claude");
+        let mut hijo = pair.slave.spawn_command(cmd).expect("no arrancó claude");
         let pid = hijo.process_id().expect("sin pid");
         drop(pair.slave);
         let mut lector = pair.master.try_clone_reader().expect("sin lector");
@@ -1412,8 +1538,23 @@ mod fullscreen_en_conpty {
         esperar_quieto(&salida, Duration::from_secs(2), Duration::from_secs(10));
         let c = salida.lock().unwrap()[a.len() + b.len()..].to_vec();
 
-        super::matar_rama(pid);
-        std::thread::sleep(Duration::from_millis(500));
+        /* Por las buenas, no a taskkill: un Claude Code matado a media vida en
+           fullscreen deja su marca de arranque huérfana en el `.claude.json` del
+           usuario, y a los dos el renderizador se apaga en la máquina ENTERA
+           (pasó el 2026-09-12). El porqué entero, en `cerrar_limpio`. */
+        let _ = escritor.lock().unwrap().write_all(b"/exit\r");
+        let inicio_salida = Instant::now();
+        while inicio_salida.elapsed() < Duration::from_secs(10) {
+            if matches!(hijo.try_wait(), Ok(Some(_))) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        if !matches!(hijo.try_wait(), Ok(Some(_))) {
+            super::matar_rama(pid);
+            std::thread::sleep(Duration::from_millis(500));
+        }
+        super::rueda_en_fullscreen::comprobar_config_limpia();
 
         println!(
             "\narranque: {} bytes · pantalla alternativa: {alternativa} · ratón pedido: {raton} · caja más ancha: {tira_a}\n\
@@ -1437,6 +1578,491 @@ mod fullscreen_en_conpty {
             "al ensanchar no redibujó más ancho (antes {tira_a}, después {tira_b})"
         );
         assert!(!c.is_empty(), "la rueda no provocó ninguna respuesta del programa");
+    }
+}
+
+/// Cuánto salta la conversación de Claude Code por CADA golpe de rueda, y si
+/// depende de que la terminal diga quién es.
+///
+/// ```text
+/// python <scratchpad>/sesion-numerada.py <carpeta> 400     # deja el id por stdout
+/// ADEORQ_BANCO_SESION=<id> ADEORQ_BANCO_CWD=<carpeta> \
+///   cargo test --lib rueda_en_fullscreen -- --ignored --nocapture
+/// ```
+///
+/// ── POR QUÉ NUMERADA ─────────────────────────────────────────────────────────
+///
+/// Munir, 2026-09-12: *«cuando hago scroll hacia arriba una vez sube a la mitad
+/// de la conversación al instante»*. Para medir eso hay que saber DÓNDE está la
+/// vista antes y después, y con una conversación normal habría que comparar
+/// texto y adivinar. `sesion-numerada.py` fabrica una sesión donde cada
+/// respuesta es `HITO 0001`, `HITO 0002`… así que los números que el programa
+/// dibuja dicen el sitio exacto, y la resta es el salto en renglones.
+///
+/// ── LO QUE SE MIDE ───────────────────────────────────────────────────────────
+///
+/// Un golpe de rueda del ratón es UN evento para el programa: xterm manda un
+/// solo `ESC[<64;x;yM` por `WheelEvent`, aunque el gesto valga tres renglones
+/// (`MouseService._sendEvent`, un único `_triggerMouseEvent`). Así que si un
+/// golpe mueve media conversación, quien multiplica es Claude Code, no Adeorq.
+/// Y su binario dice de qué depende: `wheelScrollAccelerationEnabled` (por
+/// defecto encendida) usa una **curva de decaimiento** en Windows salvo que
+/// reconozca al emulador como xterm.js, que responde muchos eventos por gesto
+/// («wheelFlood»); lo reconoce por la respuesta a XTVERSION (`ESC[>0q`), que
+/// xterm.js contesta con `ESC P>|xterm.js(<versión>) ESC \`
+/// (`InputHandler.ts:1775`). Por eso el banco mide las dos: contestando esa
+/// consulta y sin contestarla.
+#[cfg(all(test, windows))]
+mod rueda_en_fullscreen {
+    use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
+    use std::io::{Read, Write};
+    use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
+
+    /// La versión de `@xterm/xterm` del `package.json`: lo que contesta el xterm
+    /// de un panel cuando le preguntan quién es.
+    const XTERM: &str = "6.1.0-beta.302";
+
+    pub(super) struct Panel {
+        salida: Arc<Mutex<Vec<u8>>>,
+        escritor: Arc<Mutex<Box<dyn Write + Send>>>,
+        _master: Box<dyn MasterPty + Send>,
+        hijo: Box<dyn portable_pty::Child + Send + Sync>,
+        pid: u32,
+    }
+
+    /// Cerrar un Claude Code de laboratorio POR LAS BUENAS, y por qué importa.
+    ///
+    /// ── LO QUE COSTÓ (2026-09-12) ────────────────────────────────────────────
+    ///
+    /// Claude Code apunta cada arranque en fullscreen como «pendiente» en el
+    /// `~/.claude.json` DEL USUARIO y lo borra al salir bien. Un proceso matado
+    /// deja esa marca huérfana, y el arranque siguiente la cuenta como un
+    /// arranque fallido; a los dos, escribe `fullscreenAutoDisabled` y **apaga
+    /// el renderizador fullscreen en la máquina entera**, no solo en el
+    /// laboratorio. Este banco lo hizo: mató cuatro procesos con `taskkill` y
+    /// dejó a Munir en el renderizador clásico sin que nadie lo pidiera, además
+    /// de estropear su propia medida (las pasadas salían alternando fullscreen
+    /// sí y no, y parecía que dependía de lo que se medía).
+    ///
+    /// Así que se sale con `/exit`, que es lo que hace una persona, y solo se
+    /// mata si no obedece. Y al final de cada test, `comprobar_config_limpia()`.
+    pub(super) fn cerrar_limpio(p: &mut Panel) {
+        let _ = p.escritor.lock().unwrap().write_all(b"/exit\r");
+        let inicio = Instant::now();
+        while inicio.elapsed() < Duration::from_secs(10) {
+            if matches!(p.hijo.try_wait(), Ok(Some(_))) {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        // Por las malas, y que se note en la salida del test.
+        eprintln!("  (no salió con /exit: se mata, mira el .claude.json al acabar)");
+        super::matar_rama(p.pid);
+        std::thread::sleep(Duration::from_millis(400));
+    }
+
+    /// Que el laboratorio no se haya llevado por delante los ajustes de nadie.
+    ///
+    /// Se llama al final de cada test de este archivo que arranque un Claude
+    /// Code de verdad. Si salta, el arreglo está escrito en el propio mensaje.
+    pub(super) fn comprobar_config_limpia() {
+        let Ok(perfil) = std::env::var("USERPROFILE") else { return };
+        let ruta = std::path::Path::new(&perfil).join(".claude.json");
+        let Ok(texto) = std::fs::read_to_string(&ruta) else { return };
+        assert!(
+            !texto.contains("\"fullscreenAutoDisabled\""),
+            "este banco ha dejado el renderizador fullscreen APAGADO en esta máquina \
+             (`fullscreenAutoDisabled` en {}). Se quita con el guion \
+             `restaurar-fullscreen.py`, o con `/tui fullscreen` dentro de Claude Code.",
+            ruta.display()
+        );
+    }
+
+    fn contiene(b: &[u8], s: &[u8]) -> bool {
+        b.windows(s.len()).any(|w| w == s)
+    }
+
+    /// El texto que se VE, sin las secuencias de escape que lo colocan.
+    ///
+    /// Hace falta para leer los hitos: el renderizador no escribe «HITO 0394»
+    /// seguido, escribe `HITO` y luego `ESC[1C` para saltar la columna del
+    /// espacio, así que buscar la cadena entera no encuentra ni uno (primera
+    /// versión de este banco: cuatro pasadas diciendo «no dibujó ningún hito»
+    /// con los hitos delante).
+    fn sin_escapes(b: &[u8]) -> String {
+        let s = String::from_utf8_lossy(b);
+        let mut fuera = String::new();
+        let mut chars = s.chars().peekable();
+        while let Some(c) = chars.next() {
+            match c {
+                '\x1b' => match chars.next() {
+                    Some('[') => {
+                        // CSI: parámetros e intermedios hasta la letra final.
+                        for n in chars.by_ref() {
+                            if n.is_ascii_alphabetic() || n == '@' || n == '~' {
+                                break;
+                            }
+                        }
+                        // Un salto de columna deja hueco, como el espacio que sustituye.
+                        fuera.push(' ');
+                    }
+                    Some(']') | Some('P') => {
+                        // OSC y DCS: hasta la campana o el ST.
+                        while let Some(n) = chars.next() {
+                            if n == '\x07' {
+                                break;
+                            }
+                            if n == '\x1b' {
+                                chars.next();
+                                break;
+                            }
+                        }
+                    }
+                    _ => {}
+                },
+                c if c.is_control() && c != '\n' => fuera.push(' '),
+                c => fuera.push(c),
+            }
+        }
+        fuera
+    }
+
+    /// Los `HITO NNNN` que aparecen en un trozo de salida, en orden.
+    fn hitos(b: &[u8]) -> Vec<u32> {
+        let s = sin_escapes(b);
+        let mut fuera = Vec::new();
+        let bytes = s.as_bytes();
+        let mut i = 0;
+        while i + 4 <= bytes.len() {
+            if &bytes[i..i + 4] == b"HITO" {
+                let resto: String = s[i + 4..]
+                    .chars()
+                    .skip_while(|c| c.is_whitespace())
+                    .take(4)
+                    .collect();
+                if resto.len() == 4 && resto.chars().all(|c| c.is_ascii_digit()) {
+                    if let Ok(v) = resto.parse() {
+                        fuera.push(v);
+                    }
+                }
+                i += 4;
+            } else {
+                i += 1;
+            }
+        }
+        fuera
+    }
+
+    /// Abre un panel con `claude --resume` y un hilo que contesta como xterm.
+    ///
+    /// `decir_quien_soy` es lo único que cambia entre las dos pasadas: contestar
+    /// o no a `ESC[>0q`. A `ESC[6n` se contesta SIEMPRE, porque sin eso el
+    /// proceso se queda mudo y la medida sale al revés (ver la memoria del
+    /// laboratorio del PTY).
+    pub(super) fn abrir(sesion: &str, cwd: &str, cols: u16, rows: u16, decir_quien_soy: bool) -> Panel {
+        let pair = native_pty_system()
+            .openpty(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
+            .expect("no se pudo abrir el ConPTY");
+        let mut cmd = CommandBuilder::new("cmd.exe");
+        cmd.args(["/c", "claude", "--resume", sesion]);
+        cmd.cwd(cwd);
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("COLORTERM", "truecolor");
+        cmd.env_remove("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN");
+        cmd.env_remove("CLAUDE_CODE_CHILD_SESSION");
+        cmd.env_remove("CLAUDE_CODE_SCROLL_SPEED");
+        let mut hijo = pair.slave.spawn_command(cmd).expect("no arrancó claude");
+        let pid = hijo.process_id().expect("sin pid");
+        let _ = &mut hijo;
+        drop(pair.slave);
+        let mut lector = pair.master.try_clone_reader().expect("sin lector");
+        let escritor: Arc<Mutex<Box<dyn Write + Send>>> =
+            Arc::new(Mutex::new(pair.master.take_writer().expect("sin escritor")));
+        let salida = Arc::new(Mutex::new(Vec::new()));
+        let recogida = salida.clone();
+        let contesta = escritor.clone();
+        std::thread::spawn(move || {
+            let mut buf = [0u8; 8192];
+            while let Ok(n) = lector.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+                let trozo = &buf[..n];
+                let mut respuesta: Vec<u8> = Vec::new();
+                if contiene(trozo, b"\x1b[6n") {
+                    respuesta.extend_from_slice(b"\x1b[1;1R");
+                }
+                if decir_quien_soy && contiene(trozo, b"\x1b[>0q") {
+                    respuesta.extend_from_slice(format!("\x1bP>|xterm.js({XTERM})\x1b\\").as_bytes());
+                }
+                if contiene(trozo, b"\x1b[c") {
+                    respuesta.extend_from_slice(b"\x1b[?1;2c");
+                }
+                if !respuesta.is_empty() {
+                    let _ = contesta.lock().unwrap().write_all(&respuesta);
+                }
+                recogida.lock().unwrap().extend_from_slice(trozo);
+            }
+        });
+        Panel { salida, escritor, _master: pair.master, hijo, pid }
+    }
+
+    /// Espera a que la salida lleve `quieto` sin crecer, o `tope` en total.
+    fn esperar_quieto(salida: &Arc<Mutex<Vec<u8>>>, quieto: Duration, tope: Duration) {
+        let inicio = Instant::now();
+        let mut ultimo = salida.lock().unwrap().len();
+        let mut desde = Instant::now();
+        while inicio.elapsed() < tope {
+            std::thread::sleep(Duration::from_millis(100));
+            let ahora = salida.lock().unwrap().len();
+            if ahora != ultimo {
+                ultimo = ahora;
+                desde = Instant::now();
+            } else if desde.elapsed() >= quieto {
+                return;
+            }
+        }
+    }
+
+    /// Un golpe de rueda hacia arriba: lo que manda xterm por cada `WheelEvent`.
+    fn rueda_arriba(p: &Panel, veces: usize, pausa: Duration) {
+        for _ in 0..veces {
+            let _ = p.escritor.lock().unwrap().write_all(b"\x1b[<64;40;12M");
+            std::thread::sleep(pausa);
+        }
+    }
+
+    /// Dónde está la vista: el hito más pequeño y el más grande de lo último
+    /// dibujado. Devuelve `None` si el programa no pintó ningún hito.
+    fn donde(b: &[u8]) -> Option<(u32, u32)> {
+        let h = hitos(b);
+        if h.is_empty() {
+            return None;
+        }
+        Some((*h.iter().min().unwrap(), *h.iter().max().unwrap()))
+    }
+
+    fn medir(sesion: &str, cwd: &str, decir_quien_soy: bool, golpes: usize, pausa_ms: u64) -> String {
+        let mut p = abrir(sesion, cwd, 100, 30, decir_quien_soy);
+        // Hasta que dibuje la conversación de verdad, no hasta que se calle: un
+        // `--resume` de 400 turnos tarda en pintar, y medir antes deja la vista
+        // de partida vacía, que parece un fallo del programa y no lo es.
+        let inicio = Instant::now();
+        while inicio.elapsed() < Duration::from_secs(60) {
+            if !hitos(&p.salida.lock().unwrap()).is_empty() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        esperar_quieto(&p.salida, Duration::from_secs(3), Duration::from_secs(40));
+        let arranque = p.salida.lock().unwrap().clone();
+        let alternativa = contiene(&arranque, b"\x1b[?1049h");
+        let pregunto = contiene(&arranque, b"\x1b[>0q");
+        let antes = donde(&arranque);
+
+        rueda_arriba(&p, golpes, Duration::from_millis(pausa_ms));
+        esperar_quieto(&p.salida, Duration::from_millis(1200), Duration::from_secs(12));
+        let tras = p.salida.lock().unwrap()[arranque.len()..].to_vec();
+        let despues = donde(&tras);
+
+        cerrar_limpio(&mut p);
+
+        /* Cuando no hay hitos, lo que hace falta es lo que el programa DIJO: sin
+           esto el banco solo sabe decir «no dibujó nada», que es justo la frase
+           que obliga a adivinar. */
+        let plano = |b: &[u8], n: usize| -> String {
+            let s = String::from_utf8_lossy(b);
+            let limpio: String = s
+                .chars()
+                .filter(|c| !c.is_control() || *c == '\n')
+                .collect::<String>()
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            limpio.chars().take(n).collect()
+        };
+        let salto = match (antes, despues) {
+            (Some((_, a_max)), Some((d_min, d_max))) => {
+                format!("saltó {} renglones (de ~{a_max} a {d_min}..{d_max})", a_max as i64 - d_max as i64)
+            }
+            (_, None) => format!(
+                "el programa no dibujó ningún hito al rodar · dijo: «{}»",
+                plano(&tras, 300)
+            ),
+            (None, _) => format!(
+                "no se vio ningún hito en el arranque · dijo: «{}»",
+                plano(&arranque, 300)
+            ),
+        };
+        format!(
+            "xtversion contestado: {decir_quien_soy} (lo preguntó: {pregunto}) · pantalla alternativa: {alternativa} · \
+             {golpes} golpe(s) cada {pausa_ms} ms · vista antes: {antes:?} · después: {despues:?} · {salto} · {} bytes",
+            tras.len()
+        )
+    }
+
+    /// Cuántas veces aparece una secuencia en lo que escribió el programa.
+    fn cuantas(b: &[u8], aguja: &[u8]) -> usize {
+        if aguja.is_empty() || b.len() < aguja.len() {
+            return 0;
+        }
+        b.windows(aguja.len()).filter(|w| *w == aguja).count()
+    }
+
+    /// Las señales sobre las que Adeorq monta su anti-salto en el renderizador
+    /// CLÁSICO, contadas en el de hoy.
+    ///
+    /// `TerminalPane` no adivina cuándo el CLI rehace la pantalla: escucha dos
+    /// cosas que el programa dice en voz alta. `ESC[3J` (borrar el historial)
+    /// es cuándo apuntar a qué distancia del final estabas, y el bloque de
+    /// salida sincronizada (`ESC[?2026h` … `ESC[?2026l`) es cuándo el repintado
+    /// terminó y se puede volver a colocar la vista. Si una versión nueva de
+    /// Claude Code deja de mandarlas, esa capa no falla: deja de existir, y
+    /// vuelve el salto de los doce reportes sin que nadie haya tocado Adeorq.
+    /// Por eso se cuentan aquí, y por eso este test dice los números en vez de
+    /// limitarse a pasar.
+    #[test]
+    #[ignore = "arranca claude de verdad en el renderizador clásico; se lanza a mano"]
+    fn el_renderizador_clasico_sigue_anunciando_sus_repintados() {
+        let sesion = std::env::var("ADEORQ_BANCO_SESION").expect("ADEORQ_BANCO_SESION=<id>");
+        let cwd = std::env::var("ADEORQ_BANCO_CWD").expect("ADEORQ_BANCO_CWD=<carpeta>");
+
+        let pair = native_pty_system()
+            .openpty(PtySize { rows: 30, cols: 100, pixel_width: 0, pixel_height: 0 })
+            .expect("no se pudo abrir el ConPTY");
+        let mut cmd = CommandBuilder::new("cmd.exe");
+        cmd.args(["/c", "claude", "--resume", &sesion]);
+        cmd.cwd(&cwd);
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("COLORTERM", "truecolor");
+        // El clásico a propósito: es el que usa quien pide `/tui default`, y el
+        // que le toca a Codex y a cualquier CLI que no entre en la alternativa.
+        cmd.env("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN", "1");
+        cmd.env_remove("CLAUDE_CODE_CHILD_SESSION");
+        let mut hijo = pair.slave.spawn_command(cmd).expect("no arrancó claude");
+        let pid = hijo.process_id().expect("sin pid");
+        drop(pair.slave);
+        let mut lector = pair.master.try_clone_reader().expect("sin lector");
+        let escritor = Arc::new(Mutex::new(pair.master.take_writer().expect("sin escritor")));
+        let salida = Arc::new(Mutex::new(Vec::new()));
+        let recogida = salida.clone();
+        let contesta = escritor.clone();
+        std::thread::spawn(move || {
+            let mut buf = [0u8; 8192];
+            while let Ok(n) = lector.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+                let trozo = &buf[..n];
+                if contiene(trozo, b"\x1b[6n") {
+                    let _ = contesta.lock().unwrap().write_all(b"\x1b[1;1R");
+                }
+                if contiene(trozo, b"\x1b[>0q") {
+                    let _ = contesta
+                        .lock()
+                        .unwrap()
+                        .write_all(format!("\x1bP>|xterm.js({XTERM})\x1b\\").as_bytes());
+                }
+                recogida.lock().unwrap().extend_from_slice(trozo);
+            }
+        });
+
+        let inicio = Instant::now();
+        while inicio.elapsed() < Duration::from_secs(60) {
+            if !hitos(&salida.lock().unwrap()).is_empty() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        esperar_quieto(&salida, Duration::from_secs(3), Duration::from_secs(40));
+        let visto = salida.lock().unwrap().clone();
+
+        // Y que repinte de verdad: se le escribe una letra, que le hace redibujar
+        // su caja de entrada, y se mira si anuncia ese repintado como antes.
+        let antes = visto.len();
+        let _ = escritor.lock().unwrap().write_all(b"h");
+        esperar_quieto(&salida, Duration::from_secs(2), Duration::from_secs(10));
+        let tras_teclear = salida.lock().unwrap()[antes..].to_vec();
+
+        let _ = escritor.lock().unwrap().write_all(b"\x1b");
+        let _ = escritor.lock().unwrap().write_all(b"/exit\r");
+        let fin = Instant::now();
+        while fin.elapsed() < Duration::from_secs(10) {
+            if matches!(hijo.try_wait(), Ok(Some(_))) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        if !matches!(hijo.try_wait(), Ok(Some(_))) {
+            super::matar_rama(pid);
+            std::thread::sleep(Duration::from_millis(400));
+        }
+
+        let alternativa = contiene(&visto, b"\x1b[?1049h");
+        let ed3 = cuantas(&visto, b"\x1b[3J");
+        let ed2 = cuantas(&visto, b"\x1b[2J");
+        let sync_abre = cuantas(&visto, b"\x1b[?2026h");
+        let sync_cierra = cuantas(&visto, b"\x1b[?2026l");
+        // Y qué modos enciende, que deciden quién recibe la rueda: con el ratón
+        // puesto, xterm deja de mover su historial y le manda el gesto al
+        // programa (`Viewport`: `handleMouseWheel: !(type & WHEEL)`).
+        let raton = cuantas(&visto, b"\x1b[?1000h") + cuantas(&visto, b"\x1b[?1002h")
+            + cuantas(&visto, b"\x1b[?1003h");
+        let raton_sgr = cuantas(&visto, b"\x1b[?1006h");
+        let foco = cuantas(&visto, b"\x1b[?1004h");
+        println!(
+            "\nrenderizador clásico · pantalla alternativa: {alternativa} · {} bytes al arrancar\n\
+             borrar historial (ESC[3J): {ed3} · borrar pantalla (ESC[2J): {ed2} · \
+             bloque sincronizado: {sync_abre} aperturas y {sync_cierra} cierres\n\
+             seguimiento del ratón: {raton} (SGR: {raton_sgr}) · aviso de foco: {foco}\n\
+             al teclear una letra: {} bytes · ESC[3J: {} · bloque sincronizado: {}\n",
+            visto.len(),
+            tras_teclear.len(),
+            cuantas(&tras_teclear, b"\x1b[3J"),
+            cuantas(&tras_teclear, b"\x1b[?2026h"),
+        );
+        comprobar_config_limpia();
+        assert!(!alternativa, "(control) con la variable no debería entrar en la alternativa");
+        /* Y aquí NO hay assert de que mande `ESC[3J` ni el bloque sincronizado,
+           porque medido el 2026-09-12 con la 2.1.269 no manda NINGUNO de los
+           dos (cero y cero, ni al arrancar ni al teclear). Ese es el dato: la
+           capa de colocado de `TerminalPane` se quedó sin sus dos señales, así
+           que en el renderizador clásico de hoy no hace nada. No se pone en
+           rojo permanente (una comprobación que siempre falla ya está muerta):
+           lo que hace este banco es DECIR los números cada vez que se lanza. */
+    }
+
+    #[test]
+    #[ignore = "arranca claude --resume de verdad sobre una sesión numerada; se lanza a mano"]
+    fn un_golpe_de_rueda_no_deberia_mover_media_conversacion() {
+        let sesion = std::env::var("ADEORQ_BANCO_SESION").expect("ADEORQ_BANCO_SESION=<id de la sesión numerada>");
+        let cwd = std::env::var("ADEORQ_BANCO_CWD").expect("ADEORQ_BANCO_CWD=<carpeta donde arrancar>");
+
+        let mudo_1 = medir(&sesion, &cwd, false, 1, 0);
+        let dicho_1 = medir(&sesion, &cwd, true, 1, 0);
+        let mudo_5 = medir(&sesion, &cwd, false, 5, 60);
+        let dicho_5 = medir(&sesion, &cwd, true, 5, 60);
+        /* Y un GIRO de rueda, que es lo que hace una mano: no un clic suelto,
+           sino veinte eventos en trescientos milisegundos. Es donde entra la
+           aceleración de Claude Code, que crece con los eventos seguidos y es
+           la única forma conocida de que un gesto se lleve media conversación
+           por delante. Las dos, porque de reconocer al emulador depende qué
+           curva usa: con «wheelFlood» (xterm.js, que manda muchos eventos por
+           gesto) multiplica poco, y sin reconocerlo usa la curva de decaimiento
+           de Windows. */
+        let mudo_giro = medir(&sesion, &cwd, false, 20, 15);
+        let dicho_giro = medir(&sesion, &cwd, true, 20, 15);
+        println!(
+            "\nSIN decir quién soy, 1 golpe: {mudo_1}\nDICIENDO quién soy, 1 golpe: {dicho_1}\n\
+             SIN decir quién soy, 5 golpes: {mudo_5}\nDICIENDO quién soy, 5 golpes: {dicho_5}\n\
+             SIN decir quién soy, GIRO de 20: {mudo_giro}\nDICIENDO quién soy, GIRO de 20: {dicho_giro}\n"
+        );
+        comprobar_config_limpia();
+        assert!(
+            dicho_1.contains("saltó") && mudo_1.contains("saltó"),
+            "alguna pasada no llegó a medir el salto; mira la línea de arriba"
+        );
     }
 }
 

@@ -6,6 +6,10 @@
 
 import {
   esDelRaton,
+  esRespuestaDelTerminal,
+  esUnSalto,
+  GESTO_RECIENTE_MS,
+  SALTO_SOSPECHOSO,
   gestoDeRueda,
   hayQueAjustar,
   hayQueRecolocar,
@@ -347,7 +351,95 @@ ok(
 ok(
   "una respuesta del terminal no se confunde con un clic",
   !esDelRaton("\x1b[?1;2c"),
-  "no es ratón, así que se comporta como hasta hoy: este arreglo no cambia ese caso",
+  "el ratón es otra cosa: de las respuestas se encarga esRespuestaDelTerminal",
+);
+
+// --- lo que el terminal contesta solo, que tampoco es escribir ---------------
+//
+// Todo esto sale por `onData`, igual que una tecla, y hasta la 0.9.159 se
+// trataba como tecleo: bajaba la terminal al final, la marcaba como «se está
+// escribiendo aquí» y devolvía al mosaico un panel maximizado. El aviso de foco
+// es el caro: pinchar de un panel a otro son dos, uno por terminal.
+ok("el aviso de que el panel gana el foco", esRespuestaDelTerminal("\x1b[I"));
+ok("y el de que lo pierde", esRespuestaDelTerminal("\x1b[O"));
+ok(
+  "los dos juntos, que es lo que llega al cambiar de panel",
+  esRespuestaDelTerminal("\x1b[O\x1b[I"),
+);
+ok(
+  "quién eres (XTVERSION), de lo que depende cómo desplaza Claude Code",
+  esRespuestaDelTerminal("\x1bP>|xterm.js(6.1.0-beta.302)\x1b\\"),
+);
+ok("la identidad del terminal (DA1)", esRespuestaDelTerminal("\x1b[?1;2c"));
+ok("dónde está el cursor (DSR)", esRespuestaDelTerminal("\x1b[24;80R"));
+ok("y su forma con prefijo", esRespuestaDelTerminal("\x1b[?24;80R"));
+ok("si un modo está puesto (DECRPM)", esRespuestaDelTerminal("\x1b[?2026;2$y"));
+ok("las banderas del teclado de kitty", esRespuestaDelTerminal("\x1b[?0u"));
+ok(
+  "un color del tema por OSC, que acaba en campana",
+  esRespuestaDelTerminal("\x1b]11;rgb:0d/15/24\x07"),
+);
+ok("y el mismo acabado en ST", esRespuestaDelTerminal("\x1b]11;rgb:0d/15/24\x1b\\"));
+
+ok("una tecla NO es una respuesta", !esRespuestaDelTerminal("a"));
+ok("un Enter tampoco", !esRespuestaDelTerminal("\r"));
+ok(
+  "y una FLECHA tampoco, que se parece mucho",
+  !esRespuestaDelTerminal("\x1b[A"),
+  "ESC[A es subir el cursor: lo teclea quien busca el comando anterior",
+);
+ok("ni Inicio ni Fin", !esRespuestaDelTerminal("\x1b[H") && !esRespuestaDelTerminal("\x1b[F"));
+ok("ni un Escape suelto", !esRespuestaDelTerminal("\x1b"));
+ok(
+  "ni ESC[R ni ESC[u, que sin número dentro son teclas",
+  !esRespuestaDelTerminal("\x1b[R") && !esRespuestaDelTerminal("\x1b[u"),
+  "por eso el patrón exige al menos un dígito: la respuesta de verdad lleva la posición",
+);
+ok("ni nada", !esRespuestaDelTerminal(""));
+ok(
+  "respuesta MÁS una tecla cuenta como tecleo",
+  !esRespuestaDelTerminal("\x1b[Ia"),
+  "si en la misma tanda viene una tecla, es que además estás escribiendo",
+);
+ok(
+  "un clic no es una respuesta (cada uno por su camino)",
+  !esRespuestaDelTerminal("\x1b[<0;5;2M"),
+);
+
+// --- el testigo del salto -----------------------------------------------------
+//
+// No arregla el salto: lo atrapa. Trece reportes del mismo síntoma y seis causas
+// distintas; desde este escritorio no se puede sintetizar un gesto de rueda, así
+// que cada vuelta se diagnosticó leyendo código. Esto deja el número en el rastro
+// cuando pasa de verdad. Lo que se mide es la DISTANCIA AL FINAL, no la posición:
+// mientras llega texto la posición sube sola en cada línea y eso es lo normal.
+ok(
+  "alejarse doce renglones del final sin tocar nada es un salto",
+  esUnSalto(3, 3 + SALTO_SOSPECHOSO, GESTO_RECIENTE_MS + 1)?.renglones === SALTO_SOSPECHOSO,
+);
+ok(
+  "y se apunta CUÁNTO, que es el dato que faltaba",
+  esUnSalto(8, 320, 5000)?.renglones === 312,
+);
+ok(
+  "un salto justo después de tu gesto NO se apunta",
+  esUnSalto(3, 300, GESTO_RECIENTE_MS - 1) === null,
+  "el reflow de un gesto llega en el frame siguiente; sería culparte a ti",
+);
+ok(
+  "acercarse al final no es el síntoma",
+  esUnSalto(300, 0, 5000) === null,
+  "eso es la terminal volviendo al día, que es lo que se quiere",
+);
+ok(
+  "seguir el final mientras llega texto tampoco",
+  esUnSalto(0, 0, 5000) === null,
+  "la posición sube en cada línea, pero la distancia al final no se mueve",
+);
+ok(
+  "un ajuste pequeño tampoco",
+  esUnSalto(4, 4 + SALTO_SOSPECHOSO - 1, 5000) === null,
+  "el reflow de un panel que cambia de alto mueve unos pocos renglones",
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

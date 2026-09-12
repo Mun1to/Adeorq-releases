@@ -661,9 +661,23 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                         .unwrap_or_else(|_| "?".to_string()),
                     Err(_) => "ocupado".to_string(),
                 };
+                // Y QUIÉN HACE EL SCROLL en ese panel, que es la pregunta que
+                // costó dos sesiones enteras. En la pantalla alternativa manda el
+                // programa (el renderizador «fullscreen» de Claude Code, `less`,
+                // `vim`): xterm no tiene historial ahí y la rueda va a él, así
+                // que un reporte de scroll en ese panel no es de Adeorq. En la
+                // normal manda Adeorq, con toda su capa de congelar y colocar.
+                let pantalla = if session
+                    .pantalla_alternativa
+                    .load(std::sync::atomic::Ordering::Relaxed)
+                {
+                    "alternativa (el scroll lo hace el programa)"
+                } else {
+                    "normal (el scroll lo hace Adeorq)"
+                };
                 text.push_str(&format!(
-                    "ID: {}, CWD: {}, Size: {}, Command: {}\n",
-                    id, session.cwd, size, cmd_str
+                    "ID: {}, CWD: {}, Size: {}, Pantalla: {}, Command: {}\n",
+                    id, session.cwd, size, pantalla, cmd_str
                 ));
             }
             if text.is_empty() {

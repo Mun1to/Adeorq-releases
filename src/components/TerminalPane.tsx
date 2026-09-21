@@ -56,7 +56,7 @@ import {
 import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
 import { avisar, forgetPane, type NotifyMode } from "../lib/notify";
-import { seMuda } from "../lib/mudanza";
+import { seMuda, tomarVolcado } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
 import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
@@ -68,6 +68,7 @@ import {
   hayQueAjustar,
   hayQueRecolocar,
   gestoDeRueda,
+  laRuedaEsDelPrograma,
   trasBorrarScrollback,
   trasGestoParaCongelar,
   trasRueda,
@@ -1413,8 +1414,15 @@ export default function TerminalPane({
          Code 2.1.268 con su renderizador «fullscreen» quien desplaza su
          contenido. Congelar aquí encolaba justo la respuesta a la rueda y no se
          movía nada: «no puedo hacer scroll dentro de mis conversaciones»
-         (Munir, 2026-09-11). Nada que congelar ni que colocar: fuera. */
-      if (t.buffer.active.type === "alternate") return;
+         (Munir, 2026-09-11). Nada que congelar ni que colocar: fuera.
+         Y lo mismo con el ratón pedido por el programa, aunque esté en la
+         pantalla normal: la rueda también es suya (`laRuedaEsDelPrograma`). Si
+         la terminal llegó aquí congelada de antes, se suelta, porque una pausa
+         que la rueda no puede quitar se queda puesta para siempre. */
+      if (laRuedaEsDelPrograma(t.buffer.active.type, t.modes.mouseTrackingMode)) {
+        if (congeladoRef.current) soltarCola();
+        return;
+      }
       // La celda se le pregunta a xterm, no al DOM: medir `.xterm-screen` con
       // getBoundingClientRect devolvía la altura CON el zoom del lienzo (en el
       // canvas los paneles viven bajo un `scale()` de React Flow que nunca es
@@ -1672,8 +1680,13 @@ export default function TerminalPane({
     // la conversación aparecería por encima del principio. Es texto crudo con
     // sus colores y sus saltos: xterm lo interpreta igual que si acabara de
     // salir del proceso, porque es exactamente lo que salió de él.
-    if (volcarRef.current) {
-      term.write(volcarRef.current);
+    // Y lo mismo cuando VUELVE de su ventana al tablero: eso lo deja apuntado
+    // `App` antes de devolverla (`tomarVolcado`). Empieza por los modos que el
+    // programa tenía puestos (`modos_terminal.rs`), así que la terminal renace en
+    // su misma pantalla y con su ratón, no en la normal con la rueda para Adeorq.
+    const volcado = volcarRef.current || tomarVolcado(id);
+    if (volcado) {
+      term.write(volcado);
       volcarRef.current = "";
       onVolcado?.();
     }

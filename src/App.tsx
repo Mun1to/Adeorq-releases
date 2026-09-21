@@ -112,6 +112,7 @@ import {
   onPedidoMcp,
   sacarPanel,
   onVuelvePanel,
+  ptyHistorial,
   anotarRastro,
   carpetaClaude,
   renameSession,
@@ -139,7 +140,7 @@ import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
 import { guardarAtajos, leerAtajos, type Atajos } from "./lib/atajos";
 import { tecleandoEnOtro } from "./lib/tecleando";
-import { cancelaMudanza, empiezaMudanza } from "./lib/mudanza";
+import { cancelaMudanza, dejarVolcado, empiezaMudanza } from "./lib/mudanza";
 import { lineaDeArranque, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
 import { planDeArranque, type Peticion, type Plan } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
@@ -1902,18 +1903,30 @@ function App() {
       // ni llegó a desmontarse, nadie la habría gastado, y una marca olvidada
       // deja esa terminal sin poder matarse nunca con su X.
       cancelaMudanza(id);
-      // Por si acaso llegara dos veces: un panel duplicado en la lista son dos
-      // terminales pintando el mismo proceso y el teclado yendo por duplicado.
-      setPanes((prev) => (prev.some((x) => x.id === id) ? prev : [...prev, p]));
-      // Y hay que devolverle su hueco en el mosaico. Un panel que está en la
-      // lista pero no en ninguna columna no se pinta (el render lo salta si no
-      // tiene sitio), así que sin esto la terminal volvía a existir y no se
-      // veía por ninguna parte.
-      setCols((prev) =>
-        prev.some((c) => c.panes.includes(id))
-          ? prev
-          : layoutAdd(prev, id, () => nextCol.current++),
-      );
+      // Renace con lo que llevaba dicho, como al salir: sin esto volvía a una
+      // xterm en blanco y en la pantalla NORMAL, con un Claude Code en pantalla
+      // completa dibujando la otra y la rueda en manos de Adeorq (2026-09-21).
+      // El historial empieza por los modos del programa (`modos_terminal.rs`).
+      // Si el proceso ya murió no hay historial, y vuelve como antes.
+      void ptyHistorial(id)
+        .catch(() => "")
+        .then((historial) => {
+          if (!vivo) return;
+          if (!panesRef.current.some((x) => x.id === id)) dejarVolcado(id, historial);
+          // Por si acaso llegara dos veces: un panel duplicado en la lista son
+          // dos terminales pintando el mismo proceso y el teclado yendo por
+          // duplicado.
+          setPanes((prev) => (prev.some((x) => x.id === id) ? prev : [...prev, p]));
+          // Y hay que devolverle su hueco en el mosaico. Un panel que está en
+          // la lista pero no en ninguna columna no se pinta (el render lo salta
+          // si no tiene sitio), así que sin esto la terminal volvía a existir y
+          // no se veía por ninguna parte.
+          setCols((prev) =>
+            prev.some((c) => c.panes.includes(id))
+              ? prev
+              : layoutAdd(prev, id, () => nextCol.current++),
+          );
+        });
     });
     return () => {
       vivo = false;

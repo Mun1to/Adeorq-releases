@@ -13,6 +13,7 @@ import {
   gestoDeRueda,
   hayQueAjustar,
   hayQueRecolocar,
+  laRuedaEsDelPrograma,
   trasBorrarScrollback,
   trasGestoParaCongelar,
   trasRueda,
@@ -440,6 +441,32 @@ ok(
   "un ajuste pequeño tampoco",
   esUnSalto(4, 4 + SALTO_SOSPECHOSO - 1, 5000) === null,
   "el reflow de un panel que cambia de alto mueve unos pocos renglones",
+);
+
+// ── LA RUEDA DEL PROGRAMA NO SE CONGELA (2026-09-21) ────────────────────────
+//
+// «No se puede hacer scroll bien», con «En pausa · 52 líneas nuevas» encima de
+// un Claude Code en pantalla completa. La terminal había renacido en la pantalla
+// normal, pero con el ratón del programa puesto: la rueda iba al programa y
+// Adeorq congelaba igual, así que su respuesta se quedaba en la cola.
+ok(
+  "en la pantalla alternativa la rueda es del programa",
+  laRuedaEsDelPrograma("alternate", "none") && laRuedaEsDelPrograma("alternate", "any"),
+);
+ok(
+  "con el ratón pedido también, aunque sea en la pantalla normal",
+  laRuedaEsDelPrograma("normal", "vt200") &&
+    laRuedaEsDelPrograma("normal", "drag") &&
+    laRuedaEsDelPrograma("normal", "any"),
+  "xterm le manda cada golpe al programa y no mueve su vista",
+);
+ok(
+  "una shell normal sigue siendo de Adeorq, y se puede leer atrás en paz",
+  !laRuedaEsDelPrograma("normal", "none"),
+);
+ok(
+  "el ratón X10 no informa de la rueda: esa sigue siendo de Adeorq",
+  !laRuedaEsDelPrograma("normal", "x10"),
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

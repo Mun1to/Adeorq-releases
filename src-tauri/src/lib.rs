@@ -25,6 +25,7 @@ mod chat;
 mod openrouter;
 mod voz;
 mod pty;
+mod modos_terminal;
 mod secrets;
 mod sessions;
 mod suelta;

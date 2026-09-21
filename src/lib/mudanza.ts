@@ -46,3 +46,32 @@ export function seMuda(id: number): boolean {
 export function cancelaMudanza(id: number): void {
   enMudanza.delete(id);
 }
+
+// ── LO QUE TIENE QUE PINTAR AL VOLVER ────────────────────────────────────────
+//
+// La terminal que vuelve de su ventana al tablero renace igual que la que sale:
+// es un `TerminalPane` nuevo sobre un proceso que ya existía. La que sale se
+// pinta con su historial (`VentanaSuelta`); la que volvía no se pintaba con
+// NADA, y un Claude Code en pantalla completa seguía dibujando su pantalla
+// alternativa dentro de la normal de un xterm recién nacido, con el ratón sin
+// pedir y la rueda para Adeorq (Munir, 2026-09-21: «no se puede hacer scroll
+// bien»). Va en un mapa de módulo por lo mismo que la marca de arriba: quien lo
+// deja es `App` al recibir la vuelta, y quien lo recoge es el efecto que monta
+// la terminal, dos sitios sin nada en común por donde pasar una prop.
+//
+// De UN SOLO USO, como la marca: una terminal que volviera a montarse después
+// no puede escribir dos veces el mismo historial.
+
+const volcados = new Map<number, string>();
+
+/** Apunta lo que la terminal de este panel tiene que escribir al renacer. */
+export function dejarVolcado(id: number, texto: string): void {
+  if (texto) volcados.set(id, texto);
+}
+
+/** Lo recoge y lo borra. Vacío si no había nada apuntado. */
+export function tomarVolcado(id: number): string {
+  const texto = volcados.get(id) ?? "";
+  volcados.delete(id);
+  return texto;
+}

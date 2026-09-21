@@ -148,6 +148,13 @@ const HIST_TOPE: usize = 200_000;
 ///
 /// Ahora el corte se lleva hasta un límite de carácter antes de tocar nada, y
 /// se prefiere empezar en una línea limpia si hay una cerca.
+///
+/// Y lo que queda EMPIEZA por los modos que el programa tenía puestos en el
+/// corte (`modos_terminal`). Sin eso, el `ESC[?1049h` con el que Claude Code
+/// abre su pantalla completa se caía por delante a los pocos minutos, y toda
+/// terminal que renacía de aquí (ventana suelta, vuelta al tablero, rescate)
+/// nacía en la pantalla normal con el programa dibujando la otra: la rueda la
+/// cogía Adeorq y congelaba la salida (Munir, 2026-09-21).
 fn recortar_historial(hist: &mut String) {
     if hist.len() <= HIST_TOPE {
         return;
@@ -162,7 +169,9 @@ fn recortar_historial(hist: &mut String) {
     if let Some(pos) = hist[corte..].find('\n') {
         corte += pos + 1;
     }
+    let (corte, preambulo) = crate::modos_terminal::cortar(hist, corte);
     hist.drain(..corte);
+    hist.insert_str(0, &preambulo);
 }
 
 /// El candado del historial NO puede tumbar a nadie: guarda un búfer de texto,
@@ -824,6 +833,11 @@ pub fn pty_write(state: State<'_, PtyState>, id: u32, data: String) -> Result<()
 /// en medio parte el carácter, y en Rust eso no devuelve texto raro, entra en
 /// pánico. Es exactamente el fallo que ya se arregló una vez en
 /// `recortar_historial`.
+///
+/// Y tampoco parte una secuencia de escape, y lo que devuelve empieza por los
+/// modos que el programa tenía puestos en el corte: la terminal que nace de
+/// esto tiene que acabar en la MISMA pantalla que la de verdad, con el mismo
+/// ratón y el mismo pegado. Ver `modos_terminal`.
 #[tauri::command]
 pub fn pty_historial(state: State<'_, PtyState>, id: u32, bytes: Option<usize>) -> Result<String, String> {
     let map = state.0.lock().unwrap();
@@ -833,11 +847,8 @@ pub fn pty_historial(state: State<'_, PtyState>, id: u32, bytes: Option<usize>) 
     if hist.len() <= tope {
         return Ok(hist.clone());
     }
-    let mut corte = hist.len() - tope;
-    while corte < hist.len() && !hist.is_char_boundary(corte) {
-        corte += 1;
-    }
-    Ok(hist[corte..].to_string())
+    let (corte, preambulo) = crate::modos_terminal::cortar(&hist, hist.len() - tope);
+    Ok(format!("{preambulo}{}", &hist[corte..]))
 }
 
 // async por la misma ley que todo lo que toca la tubería de un panel: el
@@ -1260,6 +1271,77 @@ mod tests {
         assert_eq!(hist.len(), HIST_TOPE, "no debia recortar nada todavia");
     }
 
+    /// El fallo del 2026-09-21: tras un rato de repintados, el historial de un
+    /// Claude Code en pantalla completa ya no decía que lo estaba, y la terminal
+    /// que renacía de él nacía en la pantalla normal con el ratón del programa
+    /// puesto. Aquí se recorta como lo hace el lector, fotograma a fotograma.
+    #[test]
+    fn el_historial_recortado_sigue_diciendo_en_que_pantalla_esta_el_programa() {
+        let arranque = "\x1b[?1049h\x1b[2J\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h\x1b[?2004h";
+        let fotograma =
+            "\x1b[?25l\x1b[H● Treinta minutos sin caídas: el radar lleva arriba\x1b[K\r\n\x1b[?25h";
+        let mut hist = String::from(arranque);
+        for _ in 0..20_000 {
+            hist.push_str(fotograma);
+            recortar_historial(&mut hist);
+        }
+        assert!(hist.len() <= HIST_TOPE + 64, "tiene que haber recortado");
+        // Lo que se conserva empieza por la pantalla y el ratón del programa,
+        // con el cursor como estaba justo en el corte (oculto a mitad de
+        // fotograma)...
+        assert!(
+            hist.starts_with("\x1b[?1049h\x1b[?25l\x1b[?1003h\x1b[?1006h\x1b[?2004h\x1b[?25h"),
+            "el historial no empieza por los modos del programa: {:?}",
+            &hist[..80]
+        );
+        // ...y reproducido entero deja la terminal como está la de verdad.
+        let (_, al_final) = crate::modos_terminal::cortar(&hist, hist.len());
+        assert_eq!(al_final, "\x1b[?1049h\x1b[?1003h\x1b[?1006h\x1b[?2004h");
+    }
+
+    /// Lo mismo con los fotogramas DE VERDAD de un panel, para que los mire una
+    /// xterm de verdad. El historial se saca del Adeorq en marcha con
+    /// `node scripts/laboratorio/renacer-panel.mjs <panel> --guardar <fichero>`,
+    /// y aquí se le pone delante el arranque de Claude Code (que ese historial ya
+    /// perdió), se pasa por el recorte como lo haría el lector (en vueltas hasta
+    /// que haya recortado varias veces) y se corta como `pty_historial`. Lo que sale se juzga con
+    /// `node scripts/laboratorio/renacer-panel.mjs --fichero <salida> <cols> <filas>`.
+    ///
+    /// `ADEORQ_BANCO_HISTORIAL=<fichero> cargo test --lib renacer_con_fotogramas_reales -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn renacer_con_fotogramas_reales() {
+        let origen = std::env::var("ADEORQ_BANCO_HISTORIAL").expect("falta ADEORQ_BANCO_HISTORIAL");
+        let real = std::fs::read_to_string(&origen).expect("no se pudo leer el historial");
+        let arranque = "\x1b[?1049h\x1b[2J\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h\x1b[?2004h\x1b[?1004h";
+        let mut hist = String::from(arranque);
+        let mut entrado = 0usize;
+        while entrado < 3 * HIST_TOPE {
+            // De 8 KB en 8 KB, que es lo que lee el lector del PTY.
+            let mut resto = real.as_str();
+            while !resto.is_empty() {
+                let mut n = resto.len().min(8192);
+                while !resto.is_char_boundary(n) {
+                    n += 1;
+                }
+                hist.push_str(&resto[..n]);
+                recortar_historial(&mut hist);
+                entrado += n;
+                resto = &resto[n..];
+            }
+        }
+        let (corte, preambulo) = crate::modos_terminal::cortar(&hist, hist.len().saturating_sub(HIST_OBJETIVO));
+        let entregado = format!("{preambulo}{}", &hist[corte..]);
+        let salida = format!("{origen}.renacido");
+        std::fs::write(&salida, &entregado).unwrap();
+        println!(
+            "entraron {entrado} bytes, el historial guarda {} y pty_historial entrega {} empezando por {:?}\nescrito en {salida}",
+            hist.len(),
+            entregado.len(),
+            preambulo
+        );
+    }
+
     /// Recortar deja el historial empezando en una línea limpia cuando puede.
     #[test]
     fn empieza_en_una_linea_limpia() {
@@ -1585,7 +1667,7 @@ mod fullscreen_en_conpty {
 /// depende de que la terminal diga quién es.
 ///
 /// ```text
-/// python <scratchpad>/sesion-numerada.py <carpeta> 400     # deja el id por stdout
+/// python scripts/laboratorio/sesion-numerada.py <carpeta> 400     # deja el id por stdout
 /// ADEORQ_BANCO_SESION=<id> ADEORQ_BANCO_CWD=<carpeta> \
 ///   cargo test --lib rueda_en_fullscreen -- --ignored --nocapture
 /// ```
@@ -1674,7 +1756,7 @@ mod rueda_en_fullscreen {
             !texto.contains("\"fullscreenAutoDisabled\""),
             "este banco ha dejado el renderizador fullscreen APAGADO en esta máquina \
              (`fullscreenAutoDisabled` en {}). Se quita con el guion \
-             `restaurar-fullscreen.py`, o con `/tui fullscreen` dentro de Claude Code.",
+             `scripts/laboratorio/restaurar-fullscreen.py`, o con `/tui fullscreen` dentro de Claude Code.",
             ruta.display()
         );
     }

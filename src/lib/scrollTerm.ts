@@ -353,6 +353,31 @@ export function trasGestoParaCongelar(
   return { subido: acumulado, congelar: acumulado >= 1 };
 }
 
+/**
+ * Si la rueda es del PROGRAMA y no de Adeorq, y entonces no hay nada que congelar.
+ *
+ * Dos casos, los dos medidos en el xterm 6.1 de la app:
+ *
+ * - En la pantalla alternativa xterm no tiene historial: la rueda se la manda al
+ *   programa (como ratón, o como flechas si no lo pidió), y es él quien se
+ *   desplaza. Es el Claude Code en pantalla completa, `less` y `vim`.
+ * - Con el ratón pedido por el programa (`?1000h`, `?1002h`, `?1003h`), xterm
+ *   tampoco mueve su vista: `MouseService` le manda cada golpe al programa y ni
+ *   deja pasar el evento. El X10 (`?9h`) no cuenta, porque no informa de la rueda.
+ *
+ * El segundo caso existía solo: el 2026-09-21 un Claude Code en pantalla completa
+ * cuya terminal había renacido en la pantalla normal (el historial ya no decía
+ * que estaba en la otra, ver `modos_terminal.rs`) conservaba el ratón. La rueda
+ * iba al programa, Adeorq congelaba igual, y la respuesta del programa se quedaba
+ * en la cola con la píldora de «En pausa · 52 líneas nuevas» encima.
+ *
+ * @param bufer  `term.buffer.active.type`
+ * @param raton  `term.modes.mouseTrackingMode`
+ */
+export function laRuedaEsDelPrograma(bufer: string, raton: string): boolean {
+  return bufer === "alternate" || raton === "vt200" || raton === "drag" || raton === "any";
+}
+
 /* ── EL TESTIGO DEL SALTO ─────────────────────────────────────────────────────
  *
  * Trece reportes del mismo síntoma en un mes («subo una vez y se me va a la

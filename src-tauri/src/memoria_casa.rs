@@ -170,15 +170,23 @@ fn trocear(texto: &str) -> Vec<String> {
 /// todo (un proyecto con un guion en el nombre se confunde), así que se prueba
 /// si la ruta existe y, si no, se devuelve la carpeta tal cual.
 fn proyecto_de(carpeta: &str) -> String {
-    let sin_unidad = carpeta.replacen("--", ":\\", 1);
-    let ruta = sin_unidad.replace('-', "\\");
+    // Claude Code nombra la carpeta cambiando cada separador por «-»: en Windows
+    // `C:\proyectos\Adeorq` es `C--proyectos-Adeorq`, y en Linux y Mac
+    // `/home/muni/proyectos/Adeorq` es `-home-muni-proyectos-Adeorq`. Solo con
+    // lo de Windows, en Linux ninguna nota sabía de qué proyecto era.
+    let (sin_unidad, sep) = if cfg!(windows) {
+        (carpeta.replacen("--", ":\\", 1), "\\")
+    } else {
+        (carpeta.to_string(), "/")
+    };
+    let ruta = sin_unidad.replace('-', sep);
     if Path::new(&ruta).is_dir() {
         return ruta;
     }
     // Un guion del nombre de verdad: se prueba cambiando solo los primeros.
     let partes: Vec<&str> = sin_unidad.split('-').collect();
     for corte in (1..partes.len()).rev() {
-        let intento = format!("{}\\{}", partes[..corte].join("\\"), partes[corte..].join("-"));
+        let intento = format!("{}{sep}{}", partes[..corte].join(sep), partes[corte..].join("-"));
         if Path::new(&intento).is_dir() {
             return intento;
         }
@@ -255,15 +263,17 @@ fn rutas_muertas(texto: &str, proyecto: &str) -> Vec<String> {
                 continue;
             }
             PathBuf::from(cita)
-        } else if proyecto.contains(":\\") {
-            let relativa = cita.replace('/', "\\");
+        } else if !cita.starts_with('/') && Path::new(proyecto).is_absolute() && Path::new(proyecto).is_dir() {
+            // Por piezas y no cambiando una barra por otra: así vale con los
+            // separadores de cualquier sistema.
+            let partes: Vec<&str> = cita.split(['/', '\\']).filter(|p| !p.is_empty()).collect();
             // Su primera carpeta tiene que existir en ESTE proyecto, o la nota
             // está hablando de otro sitio.
-            let primera = relativa.split('\\').next().unwrap_or_default();
-            if primera.is_empty() || !PathBuf::from(proyecto).join(primera).exists() {
+            let Some(primera) = partes.first() else { continue };
+            if !Path::new(proyecto).join(primera).exists() {
                 continue;
             }
-            PathBuf::from(proyecto).join(relativa)
+            partes.iter().fold(PathBuf::from(proyecto), |r, p| r.join(p))
         } else {
             continue;
         };
@@ -721,7 +731,10 @@ mod tests {
     fn se_avisa_de_las_rutas_que_ya_no_existen() {
         let vivo = "src-tauri/src/memoria_casa.rs"; // este mismo fichero
         let texto = format!("Vive en `{vivo}` y antes estaba en `src/lo_que_ya_no_esta.rs`.");
-        let muertas = rutas_muertas(&texto, "C:\\proyectos\\Adeorq");
+        // La raíz de este repo, esté donde esté: con `C:\proyectos\Adeorq` a
+        // mano solo pasaba en la máquina de Munir, y en Linux salía vacío.
+        let raiz = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_string_lossy().into_owned();
+        let muertas = rutas_muertas(&texto, &raiz);
         assert_eq!(muertas, vec!["src/lo_que_ya_no_esta.rs"]);
     }
 
@@ -952,9 +965,17 @@ mod tests {
         assert!(vacio.contains("Nada."), "y que no ha salido nada:\n{vacio}");
     }
 
+    /// Con una carpeta que existe de verdad (y un guion en su nombre), escrita
+    /// como la nombra Claude Code en el sistema donde corre la prueba.
     #[test]
     fn la_carpeta_de_claude_code_se_lee_como_su_proyecto() {
-        assert_eq!(proyecto_de("C--proyectos-Adeorq"), "C:\\proyectos\\Adeorq");
+        let base = std::env::temp_dir().join(format!("adeorqmemoria{}", std::process::id()));
+        let proyecto = base.join("mi-proyecto");
+        std::fs::create_dir_all(&proyecto).unwrap();
+        let como_claude = proyecto.to_string_lossy().replace([':', '\\', '/'], "-");
+        let leido = proyecto_de(&como_claude);
+        let _ = std::fs::remove_dir_all(&base);
+        assert_eq!(Path::new(&leido), proyecto.as_path(), "leído de «{como_claude}»");
         // Una carpeta que no existe se queda como está en vez de inventarse una ruta.
         assert_eq!(proyecto_de("C--no-existe-esto-de-aqui"), "C--no-existe-esto-de-aqui");
     }

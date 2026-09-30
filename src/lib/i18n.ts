@@ -1278,8 +1278,8 @@ const EN: Record<string, string> = {
   "Nueva conversación": "New conversation",
   "Buscar conversaciones…": "Search conversations…",
   "Ninguna conversación con esas palabras.": "No conversation matches those words.",
-  "Todavía no hay conversaciones. Empieza una con el botón de arriba.":
-    "No conversations yet. Start one with the button above.",
+  "Todavía no tienes sesiones. Empieza una con «Nueva conversación».":
+    "No sessions yet. Start one with “New conversation”.",
   Limpio: "Clean",
   // El selector del cerebro. Cada uno con PARA QUÉ es, que es lo único que
   // ayuda a elegir; pasan por `t(c.para)`, así que el revisor no los ve.
@@ -2344,6 +2344,54 @@ const EN: Record<string, string> = {
     "That element has no origin mark: you can see the change, but it will not be saved",
   "Sin marca de origen: se ve el cambio pero no se guarda":
     "No origin mark: the change shows but is not saved",
+  // El conserje del chat (`Conserje.tsx`).
+  "Conserje": "Concierge",
+  "Hablar con el conserje": "Talk to the concierge",
+  "Conversación nueva": "New conversation",
+  "1 sesión": "1 session",
+  "nada en marcha": "nothing running",
+  "1 sesión en marcha": "1 session running",
+  "{n} sesiones en marcha": "{n} sessions running",
+  "{n} te espera": "{n} waiting for you",
+  "{n} te esperan": "{n} waiting for you",
+  "{n} ha terminado": "{n} finished",
+  "{n} han terminado": "{n} finished",
+  "{n} trabajando": "{n} working",
+  "dime qué hacemos": "tell me what to do",
+  "el router elige el modelo": "the router picks the model",
+  "el router está apagado": "the router is off",
+  "Router: automático": "Router: automatic",
+  "Router: apagado": "Router: off",
+  "Encendido: el router elige el mejor modelo para cada trabajo":
+    "On: the router picks the best model for each job",
+  "Mejorar": "Improve",
+  "Mejorando…": "Improving…",
+  "Reescribe lo que has puesto más claro, sin añadir nada": "Rewrites what you wrote more clearly, adding nothing",
+  "Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.":
+    "Improved: the same thing you said, in order. If you do not like it, Undo.",
+  "Escribe o dicta. Enter lo manda al conserje.": "Type or dictate. Enter sends it to the concierge.",
+  "Dime qué hay que hacer.": "Tell me what needs doing.",
+  "Lo parto en trabajos y abro una sesión para cada uno, con el modelo que toque. Las verás arriba como pestañas; un clic y estás dentro.":
+    "I split it into jobs and open a session for each one, with the right model. You will see them above as tabs; one click and you are in.",
+  "Pensando…": "Thinking…",
+  "Ir a esta sesión": "Go to this session",
+  "Lo eligió el router.": "The router picked it.",
+  "Elegido por ti: el router estaba apagado.": "Picked by you: the router was off.",
+  "La sesión está arrancando…": "The session is starting…",
+  "En cuanto escriba su primera línea aparece aquí. Si prefieres verla ya, está en la Cabina.":
+    "It shows up here as soon as it writes its first line. If you want to see it now, it is in the Cabin.",
+  "te pregunta algo": "is asking you something",
+  "ha terminado": "has finished",
+  "cerrada": "closed",
+  "No he podido contestar.": "I could not answer.",
+  "Esto no lo he hecho:": "I did not do this:",
+  "Reintentar": "Retry",
+  "Quitar esta pestaña": "Remove this tab",
+  "Ver menos": "Show fewer",
+  "Ver todas ({n})": "Show all ({n})",
+  "Esta sesión se cerró sin llegar a escribir nada.": "This session closed before writing anything.",
+  "Puedes quitar su pestaña con la ✕, o pedirle al conserje que la abra otra vez.":
+    "You can remove its tab with the ✕, or ask the concierge to open it again.",
 };
 
 export function detectLang(): Lang {

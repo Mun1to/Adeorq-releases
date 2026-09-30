@@ -54,6 +54,15 @@ import ArchivosPanel from "./ArchivosPanel";
 import ActividadPanel from "./ActividadPanel";
 import PanelDerecho, { type Cara } from "./PanelDerecho";
 import {
+  HiloConserje,
+  ListaConserje,
+  PestanasConserje,
+  useArranque,
+  useConversacion,
+  type ConserjeExec,
+} from "./Conserje";
+import { claveDe, conserjeSesion, conserjeSoltar, nuevoId, paneDe, type Trabajo } from "../lib/conserje";
+import {
   ChatIcon,
   ChevronIcon,
   GitBranchIcon,
@@ -94,6 +103,9 @@ interface Props {
   onWeb: () => void;
   /** Teclear `/usage` en la conversación abierta y llevarte a verla. */
   onUsage: (s: SessionInfo) => void;
+  /** Lo que el conserje necesita para abrir sesiones y escribir en ellas. Sin
+      esto (la instancia que no es la principal) no se enseña el conserje. */
+  conserjeExec?: ConserjeExec;
 }
 
 /** Cada cuánto se relee la conversación abierta. El transcript lo escribe el
@@ -169,9 +181,17 @@ export default function ChatView({
   onAbrirArchivo,
   onWeb,
   onUsage,
+  conserjeExec,
 }: Props) {
   const { t } = useT();
   const [sesiones, setSesiones] = useState<SessionInfo[]>([]);
+  /** La conversación del conserje que está abierta, si lo está. */
+  const [conserjeId, setConserjeId] = useState<string | null>(null);
+  /** Dentro del conserje, qué pestaña se mira (`claveDe`): `null` es él. */
+  const [mirando, setMirando] = useState<string | null>(null);
+  const [versionLista, setVersionLista] = useState(0);
+  const [conv, recargarConv] = useConversacion(conserjeId);
+  const arranque = useArranque();
   const [cliente, setCliente] = useState<string>("claude");
   const [abierta, setAbierta] = useState<SessionInfo | null>(null);
   const [turnos, setTurnos] = useState<Turno[]>([]);
@@ -383,10 +403,288 @@ ${v}` : txt));
       return s;
     });
 
+  /* ── Las pestañas del conserje ────────────────────────────────────────────
+     Una pestaña es un PANEL; lo que se pinta al pulsarla es la SESIÓN que corre
+     en él, con la vista de siempre. La sesión se encuentra por el id que lleva
+     el panel. Recién abierta puede no estar aún en el escaneo (el CLI tarda un
+     segundo en escribir su transcript), así que se relee hasta que aparece. */
+  const trabajoDe = useCallback(
+    (clave: string): Trabajo | undefined => conv?.trabajos.find((w) => claveDe(w) === clave),
+    [conv],
+  );
+  /** El panel de la pestaña, si sigue siendo el suyo (ver `paneDe`). */
+  const panelDe = useCallback(
+    (clave: string) => {
+      const w = trabajoDe(clave);
+      return w && conserjeExec ? paneDe(w, conserjeExec.panes(), arranque) : undefined;
+    },
+    [trabajoDe, conserjeExec, arranque],
+  );
+  const sesionDePanel = useCallback(
+    (clave: string): SessionInfo | null => {
+      // Del panel si sigue abierto; si ya se cerró, del id que se apuntó en la
+      // pestaña. La conversación sigue en el disco aunque el panel no exista.
+      const sid = panelDe(clave)?.sessionId || trabajoDe(clave)?.sesion;
+      return sid ? (sesiones.find((s) => s.id === sid) ?? null) : null;
+    },
+    [panelDe, trabajoDe, sesiones],
+  );
+
+  // Apuntar en cada pestaña su sesión en cuanto el panel la dice. Es lo que
+  // deja volver a ella cuando cierres el panel. Solo con SU panel: el de otro
+  // arranque con el mismo número le apuntaría la sesión de otra terminal.
+  useEffect(() => {
+    if (!conserjeId || !conserjeExec || !conv) return;
+    const panes = conserjeExec.panes();
+    const sinSesion = conv.trabajos.filter((w) => !w.sesion);
+    const cambios = sinSesion
+      .map((w) => ({ w, sid: paneDe(w, panes, arranque)?.sessionId }))
+      .filter((x): x is { w: typeof x.w; sid: string } => !!x.sid);
+    if (!cambios.length) return;
+    void Promise.all(cambios.map(({ w, sid }) => conserjeSesion(conserjeId, w, sid))).then(recargarConv);
+  }, [conserjeId, conserjeExec, conv, recargarConv, arranque]);
+
+  const soltarPestana = (w: Trabajo) => {
+    if (!conserjeId) return;
+    if (mirando === claveDe(w)) {
+      setMirando(null);
+      setAbierta(null);
+    }
+    void conserjeSoltar(conserjeId, w).then(recargarConv);
+  };
+
+  const irAPestana = (clave: string | null) => {
+    setMirando(clave);
+    setAbierta(clave === null ? null : sesionDePanel(clave));
+  };
+
+  useEffect(() => {
+    if (mirando === null || abierta) return;
+    const s = sesionDePanel(mirando);
+    if (s) return setAbierta(s);
+    const otra = window.setTimeout(releer, 1500);
+    return () => window.clearTimeout(otra);
+  }, [mirando, abierta, sesionDePanel, releer]);
+
+  const abrirConserje = (id: string) => {
+    setConserjeId(id);
+    setMirando(null);
+    setAbierta(null);
+  };
+
+  /** La vista de una sesión: la misma dentro del conserje (al pulsar su
+      pestaña) y fuera (al elegirla en la lista). Se llama como función y no
+      como componente a propósito: usa el estado de aquí y no tiene hooks, y
+      declararla como componente dentro de este la remontaría en cada render. */
+  const pintarSesion = (abierta: SessionInfo) => (
+    <>
+      <header className="chat-cabecera">
+        <ProjectAvatar name={abierta.project} className="pavatar-mini" />
+        <span className="chat-cab-id">
+          <strong>{abierta.title || t("sin título")}</strong>
+          <em>{abierta.cwd}</em>
+        </span>
+        {/* El par de la referencia: la misma sesión, limpia o en crudo.
+            La consola no desaparece, se aparta. */}
+        <div className="chat-modo">
+          <button className="chat-modo-b" data-on>
+            {t("Limpio")}
+          </button>
+          <button className="chat-modo-b" onClick={() => onResume(abierta)}>
+            <TerminalIcon size={13} /> {t("Terminal")}
+          </button>
+        </div>
+      </header>
+
+      <div className="chat-turnos" ref={hiloRef} onScroll={mirarScroll}>
+        {cargando && !turnos.length && <p className="chat-vacio">{t("Leyendo…")}</p>}
+        {!cargando && !turnos.length && (
+          <p className="chat-vacio">{t("Esta conversación todavía no tiene nada escrito.")}</p>
+        )}
+        {turnos.map((turno, i) => (
+          <Burbuja key={i} turno={turno} />
+        ))}
+        <div ref={finRef} />
+      </div>
+
+      {/* ── La caja ───────────────────────────────────────────────
+          El cuadro de composición propio, que es lo que permite que un
+          agente lea lo que escribes ANTES de que salga: dentro de una
+          terminal el texto va directo al CLI y Adeorq no lo tiene
+          (`docs/CHAT.md` §2).
+
+          El haz de luz de la referencia se hace con CSS y no con el
+          componente WebGL que mandó Munir: aquel revela el contenido
+          capturándolo con `drawElementImage`, que es experimental de
+          Chromium y NO está en el WebView2 que embarca Adeorq. Con CSS
+          sale la luz, que es lo que se ve, y sin un lienzo por encima
+          del texto. */}
+      <div className="chat-caja-zona">
+        <span className="chat-haz" data-on={trabajando} aria-hidden="true" />
+        <div className="chat-caja" data-trabajando={trabajando}>
+          {seCayo && (
+            <span className="chat-cayo">
+              {t("No he podido abrir esa conversación, así que te devuelvo lo escrito.")}
+            </span>
+          )}
+          {trabajando && (
+            <span className="chat-live">
+              {t("Se lo digo ahora: entra en cuanto termine lo de ahora")}
+            </span>
+          )}
+          <div className="chat-caja-fila">
+            <button className="chat-mas" data-tip={t("Nueva conversación")} onClick={onNueva}>
+              <PlusIcon size={15} />
+            </button>
+            <textarea
+              className="chat-input"
+              value={texto}
+              rows={2}
+              placeholder={
+                trabajando
+                  ? t("Añade algo más: se lo paso a continuación…")
+                  : t("Escribe aquí. Enter envía, Mayús+Enter hace un párrafo.")
+              }
+              onChange={(e) => {
+                setTexto(e.currentTarget.value);
+                if (seCayo) setSeCayo(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  enviar();
+                }
+              }}
+            />
+            <button
+              className="chat-enviar"
+              disabled={!texto.trim()}
+              data-tip={t("Enviar")}
+              onClick={enviar}
+            >
+              <SendIcon size={15} />
+            </button>
+          </div>
+
+          <div className="chat-pastillas">
+            <span className="chat-donde">
+              <ProjectAvatar name={abierta.project} className="pavatar-mini" />
+              {abierta.project}
+            </span>
+
+            <span className="chat-hueco" />
+
+            {ajustables && (
+              <>
+              {/* El cerebro, con su selector en dos familias. Cerrado
+                  enseña lo puesto; abierto, lo que pesa cada uno. */}
+              <div className="chat-modelo">
+                <button
+                  className="chat-pastilla chat-pastilla-fuerte"
+                  data-on={eligiendo}
+                  onClick={() => setEligiendo((v) => !v)}
+                >
+                  {modelo ?? t("Automático")}
+                  <ChevronIcon size={11} up={eligiendo} />
+                </button>
+                {eligiendo && (
+                  <div className="chat-menu">
+                    <button
+                      className="chat-menu-fila"
+                      data-on={modelo === null}
+                      onClick={() => {
+                        setModelo(null);
+                        setEligiendo(false);
+                      }}
+                    >
+                      <span className="chat-menu-txt">
+                        <strong>{t("Automático")}</strong>
+                        <em>{t("lo elige el router según la tarea y tu semana")}</em>
+                      </span>
+                    </button>
+                    <span className="chat-menu-raya" />
+                    {CEREBROS.map((c) => (
+                      <button
+                        key={c.id}
+                        className="chat-menu-fila"
+                        data-on={modelo === c.id}
+                        onClick={() => {
+                          setModelo(c.id);
+                          setEligiendo(false);
+                        }}
+                      >
+                        <span className="chat-menu-txt">
+                          <strong>{c.id}</strong>
+                          <em>{t(c.para)}</em>
+                        </span>
+                        {/* Lo que pesa, dibujado además de escrito: cuatro
+                            muescas dicen «×5 sobre ×10» sin hacer la
+                            cuenta. No es dinero y por eso no lleva €: con
+                            una suscripción no existe esa factura. */}
+                        <span className="chat-peso" data-tip={t("Lo que pesa: {p}", { p: comoPeso(c.id) })}>
+                          {[1, 3, 5, 10].map((n) => (
+                            <i key={n} data-on={PESO[c.id] >= n} />
+                          ))}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {ESFUERZOS_CAJA.map((e) => (
+                <button
+                  key={e}
+                  className="chat-pastilla"
+                  data-on={esfuerzo === e}
+                  onClick={() => setEsfuerzo(esfuerzo === e ? null : e)}
+                >
+                  {e}
+                </button>
+              ))}
+              </>
+            )}
+
+
+            {/* El anillo del contexto, como en las capturas. Sale del
+                transcript, así que es el de verdad y no una estimación. */}
+            {ctx && (
+              <span
+                className="chat-ctx"
+                data-tip={t("{u} de {w} tokens usados", {
+                  u: ctx.used.toLocaleString(),
+                  w: ctx.window.toLocaleString(),
+                })}
+              >
+                <span
+                  className="chat-ctx-anillo"
+                  data-alto={ctx.percent >= 80}
+                  style={{ ["--p" as string]: `${Math.min(ctx.percent, 100)}%` }}
+                />
+                {ctx.percent}%
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="chat-view">
       {/* ── Izquierda: las conversaciones ─────────────────────────────── */}
       <aside className="chat-lista">
+        {/* El conserje, arriba del todo: es el chat principal, el que lo
+            conecta todo, y lo de debajo son las sesiones de siempre. */}
+        {conserjeExec && (
+          <ListaConserje
+            abierta={conserjeId}
+            onAbrir={abrirConserje}
+            onNueva={() => abrirConserje(nuevoId())}
+            version={versionLista}
+          />
+        )}
+
         {/* Solo las marcas, en fila. El nombre lo dice el tooltip: con nueve
             clientes posibles, escribirlos se come la columna y además obliga a
             elegir cuáles caben. */}
@@ -402,6 +700,7 @@ ${v}` : txt));
                 onClick={() => {
                   setCliente(id);
                   setAbierta(null);
+                  setConserjeId(null);
                 }}
               >
                 <ProviderMark id={id} />
@@ -436,9 +735,15 @@ ${v}` : txt));
                   <button
                     key={s.id}
                     className="chat-fila"
-                    data-on={abierta?.id === s.id}
+                    data-on={!conserjeId && abierta?.id === s.id}
                     style={{ ["--c" as string]: hueOf(s.project) }}
-                    onClick={() => setAbierta(s)}
+                    onClick={() => {
+                      // Una sesión de la lista se abre FUERA del conserje: es
+                      // la vista de siempre, sin sus pestañas encima.
+                      setConserjeId(null);
+                      setMirando(null);
+                      setAbierta(s);
+                    }}
                   >
                     <span className="chat-fila-txt">
                       <span className="chat-fila-tit">{s.title || t("sin título")}</span>
@@ -455,7 +760,9 @@ ${v}` : txt));
             <p className="chat-vacio">
               {filtro.trim()
                 ? t("Ninguna conversación con esas palabras.")
-                : t("Todavía no hay conversaciones. Empieza una con el botón de arriba.")}
+                : // «Conversaciones» a secas contradecía a las del conserje, que
+                  // van justo encima: lo que falta aquí son sesiones.
+                  t("Todavía no tienes sesiones. Empieza una con «Nueva conversación».")}
             </p>
           )}
         </div>
@@ -488,198 +795,46 @@ ${v}` : txt));
 
       {/* ── Centro: la conversación ───────────────────────────────────── */}
       <main className="chat-hilo">
-        {abierta ? (
+        {conserjeId && conserjeExec ? (
           <>
-            <header className="chat-cabecera">
-              <ProjectAvatar name={abierta.project} className="pavatar-mini" />
-              <span className="chat-cab-id">
-                <strong>{abierta.title || t("sin título")}</strong>
-                <em>{abierta.cwd}</em>
-              </span>
-              {/* El par de la referencia: la misma sesión, limpia o en crudo.
-                  La consola no desaparece, se aparta. */}
-              <div className="chat-modo">
-                <button className="chat-modo-b" data-on>
-                  {t("Limpio")}
-                </button>
-                <button className="chat-modo-b" onClick={() => onResume(abierta)}>
-                  <TerminalIcon size={13} /> {t("Terminal")}
-                </button>
+            <PestanasConserje
+              trabajos={conv?.trabajos ?? []}
+              panes={conserjeExec.panes()}
+              viendo={mirando}
+              onIr={irAPestana}
+              onSoltar={soltarPestana}
+            />
+            {mirando === null ? (
+              <HiloConserje
+                id={conserjeId}
+                conv={conv}
+                exec={conserjeExec}
+                onIr={irAPestana}
+                onCambio={() => {
+                  recargarConv();
+                  setVersionLista((v) => v + 1);
+                }}
+              />
+            ) : abierta ? (
+              pintarSesion(abierta)
+            ) : panelDe(mirando) ? (
+              <div className="chat-elige">
+                <p className="chat-elige-tit">{t("La sesión está arrancando…")}</p>
+                <p className="chat-elige-sub">
+                  {t("En cuanto escriba su primera línea aparece aquí. Si prefieres verla ya, está en la Cabina.")}
+                </p>
               </div>
-            </header>
-
-            <div className="chat-turnos" ref={hiloRef} onScroll={mirarScroll}>
-              {cargando && !turnos.length && <p className="chat-vacio">{t("Leyendo…")}</p>}
-              {!cargando && !turnos.length && (
-                <p className="chat-vacio">{t("Esta conversación todavía no tiene nada escrito.")}</p>
-              )}
-              {turnos.map((turno, i) => (
-                <Burbuja key={i} turno={turno} />
-              ))}
-              <div ref={finRef} />
-            </div>
-
-            {/* ── La caja ───────────────────────────────────────────────
-                El cuadro de composición propio, que es lo que permite que un
-                agente lea lo que escribes ANTES de que salga: dentro de una
-                terminal el texto va directo al CLI y Adeorq no lo tiene
-                (`docs/CHAT.md` §2).
-
-                El haz de luz de la referencia se hace con CSS y no con el
-                componente WebGL que mandó Munir: aquel revela el contenido
-                capturándolo con `drawElementImage`, que es experimental de
-                Chromium y NO está en el WebView2 que embarca Adeorq. Con CSS
-                sale la luz, que es lo que se ve, y sin un lienzo por encima
-                del texto. */}
-            <div className="chat-caja-zona">
-              <span className="chat-haz" data-on={trabajando} aria-hidden="true" />
-              <div className="chat-caja" data-trabajando={trabajando}>
-                {seCayo && (
-                  <span className="chat-cayo">
-                    {t("No he podido abrir esa conversación, así que te devuelvo lo escrito.")}
-                  </span>
-                )}
-                {trabajando && (
-                  <span className="chat-live">
-                    {t("Se lo digo ahora: entra en cuanto termine lo de ahora")}
-                  </span>
-                )}
-                <div className="chat-caja-fila">
-                  <button className="chat-mas" data-tip={t("Nueva conversación")} onClick={onNueva}>
-                    <PlusIcon size={15} />
-                  </button>
-                  <textarea
-                    className="chat-input"
-                    value={texto}
-                    rows={2}
-                    placeholder={
-                      trabajando
-                        ? t("Añade algo más: se lo paso a continuación…")
-                        : t("Escribe aquí. Enter envía, Mayús+Enter hace un párrafo.")
-                    }
-                    onChange={(e) => {
-                      setTexto(e.currentTarget.value);
-                      if (seCayo) setSeCayo(false);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        enviar();
-                      }
-                    }}
-                  />
-                  <button
-                    className="chat-enviar"
-                    disabled={!texto.trim()}
-                    data-tip={t("Enviar")}
-                    onClick={enviar}
-                  >
-                    <SendIcon size={15} />
-                  </button>
-                </div>
-
-                <div className="chat-pastillas">
-                  <span className="chat-donde">
-                    <ProjectAvatar name={abierta.project} className="pavatar-mini" />
-                    {abierta.project}
-                  </span>
-
-                  <span className="chat-hueco" />
-
-                  {ajustables && (
-                    <>
-                    {/* El cerebro, con su selector en dos familias. Cerrado
-                        enseña lo puesto; abierto, lo que pesa cada uno. */}
-                    <div className="chat-modelo">
-                      <button
-                        className="chat-pastilla chat-pastilla-fuerte"
-                        data-on={eligiendo}
-                        onClick={() => setEligiendo((v) => !v)}
-                      >
-                        {modelo ?? t("Automático")}
-                        <ChevronIcon size={11} up={eligiendo} />
-                      </button>
-                      {eligiendo && (
-                        <div className="chat-menu">
-                          <button
-                            className="chat-menu-fila"
-                            data-on={modelo === null}
-                            onClick={() => {
-                              setModelo(null);
-                              setEligiendo(false);
-                            }}
-                          >
-                            <span className="chat-menu-txt">
-                              <strong>{t("Automático")}</strong>
-                              <em>{t("lo elige el router según la tarea y tu semana")}</em>
-                            </span>
-                          </button>
-                          <span className="chat-menu-raya" />
-                          {CEREBROS.map((c) => (
-                            <button
-                              key={c.id}
-                              className="chat-menu-fila"
-                              data-on={modelo === c.id}
-                              onClick={() => {
-                                setModelo(c.id);
-                                setEligiendo(false);
-                              }}
-                            >
-                              <span className="chat-menu-txt">
-                                <strong>{c.id}</strong>
-                                <em>{t(c.para)}</em>
-                              </span>
-                              {/* Lo que pesa, dibujado además de escrito: cuatro
-                                  muescas dicen «×5 sobre ×10» sin hacer la
-                                  cuenta. No es dinero y por eso no lleva €: con
-                                  una suscripción no existe esa factura. */}
-                              <span className="chat-peso" data-tip={t("Lo que pesa: {p}", { p: comoPeso(c.id) })}>
-                                {[1, 3, 5, 10].map((n) => (
-                                  <i key={n} data-on={PESO[c.id] >= n} />
-                                ))}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {ESFUERZOS_CAJA.map((e) => (
-                      <button
-                        key={e}
-                        className="chat-pastilla"
-                        data-on={esfuerzo === e}
-                        onClick={() => setEsfuerzo(esfuerzo === e ? null : e)}
-                      >
-                        {e}
-                      </button>
-                    ))}
-                    </>
-                  )}
-
-
-                  {/* El anillo del contexto, como en las capturas. Sale del
-                      transcript, así que es el de verdad y no una estimación. */}
-                  {ctx && (
-                    <span
-                      className="chat-ctx"
-                      data-tip={t("{u} de {w} tokens usados", {
-                        u: ctx.used.toLocaleString(),
-                        w: ctx.window.toLocaleString(),
-                      })}
-                    >
-                      <span
-                        className="chat-ctx-anillo"
-                        data-alto={ctx.percent >= 80}
-                        style={{ ["--p" as string]: `${Math.min(ctx.percent, 100)}%` }}
-                      />
-                      {ctx.percent}%
-                    </span>
-                  )}
-                </div>
+            ) : (
+              // Un panel que ya no existe y cuya sesión no llegó a escribir
+              // nada: esperar a que «arranque» sería esperar para siempre.
+              <div className="chat-elige">
+                <p className="chat-elige-tit">{t("Esta sesión se cerró sin llegar a escribir nada.")}</p>
+                <p className="chat-elige-sub">{t("Puedes quitar su pestaña con la ✕, o pedirle al conserje que la abra otra vez.")}</p>
               </div>
-            </div>
+            )}
           </>
+        ) : abierta ? (
+          pintarSesion(abierta)
         ) : (
           <div className="chat-elige">
             <ChatIcon size={22} />

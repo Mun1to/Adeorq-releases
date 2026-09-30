@@ -1210,6 +1210,10 @@ function App() {
       // que no tiene cuenta: el vibecoding con OpenRouter nace con una clave
       // que no vive en ninguna fila de `providers.ts` (ver OpenRouterCard).
       envOverride?: Record<string, string>,
+      /** `quieto`: abrirla sin moverte de donde estás. Lo usa el conserje del
+          chat, que abre sesiones de trabajo mientras hablas con él: llevarte a
+          la Cabina en cada una sería sacarte de la conversación que las pidió. */
+      opciones?: { quieto?: boolean },
     ) => {
       const id = nextId.current++;
       const inferido = entornoDePane(command, account);
@@ -1241,8 +1245,10 @@ function App() {
         { id, cwd, name, command, env, account: etiqueta, team, shadow, grupo },
       ]);
       setCols((prev) => layoutAdd(prev, id, () => nextCol.current++, at));
-      setFocusedId(id);
-      setView("cabina");
+      if (!opciones?.quieto) {
+        setFocusedId(id);
+        setView("cabina");
+      }
       // Devuelve QUÉ abrió y DÓNDE. Casi nadie lo mira, y a los que no lo miran
       // no les cambia nada; lo necesita el puente del MCP, que tiene que
       // contestarle al agente con el número de su terminal nueva y decirle si
@@ -1577,9 +1583,10 @@ function App() {
       model?: string,
       team?: Team,
       shadow?: boolean,
-      /** Lo que añade el router: con cuánto esfuerzo nace, y en qué cuenta. */
-      extras?: { esfuerzo?: string; cuenta?: Account },
-    ) => {
+      /** Lo que añade el router: con cuánto esfuerzo nace, y en qué cuenta.
+          `quieto`, abrirla sin moverte de vista (ver `addPane`). */
+      extras?: { esfuerzo?: string; cuenta?: Account; quieto?: boolean },
+    ): number | undefined => {
       // Single-quote for PowerShell -Command; embedded quotes double up. El
       // `true` del `newClaudeCommand` de abajo es lo que garantiza que el
       // envoltorio sea PowerShell y estas comillas signifiquen algo.
@@ -1613,7 +1620,12 @@ function App() {
       // Su cuadrilla ES su grupo, con el mismo id: así apartarla desde la barra
       // de la Cabina y desde la barra lateral son la misma acción sobre la
       // misma cosa, en vez de dos mecanismos que hay que mantener a la par.
-      addPane(label, cwd, command, undefined, extras?.cuenta, team, shadow, team?.id);
+      // Devuelve el panel: quien lo abre desde el conserje tiene que saber cuál
+      // es para convertirlo en una pestaña. En el lienzo no hay pestaña posible.
+      const abierto = addPane(label, cwd, command, undefined, extras?.cuenta, team, shadow, team?.id, undefined, {
+        quieto: extras?.quieto,
+      });
+      return abierto.id;
     },
     [addPane, meterEnGrupoDeCuadrilla],
   );
@@ -1668,7 +1680,9 @@ function App() {
           Claude la perdía por el camino. */
       team?: Team,
       shadow?: boolean,
-    ) => {
+      /** `quieto`, abrirla sin moverte de vista. Devuelve el panel que abrió. */
+      opciones?: { quieto?: boolean },
+    ): number | undefined => {
       const plan = planDeArranque({
         cli: r.cli,
         encargo,
@@ -1681,16 +1695,18 @@ function App() {
       // suyo. Lo que ya NO se pregunta aquí es «¿eres Claude?», sino en qué
       // acabó el plan.
       if (plan.tipo === "claude") {
-        openClaudePrompt(label, cwd, encargo, r.modelo, team, shadow, {
+        return openClaudePrompt(label, cwd, encargo, r.modelo, team, shadow, {
           esfuerzo: r.esfuerzo,
           cuenta: r.cuenta,
+          quieto: opciones?.quieto,
         });
-        return;
       }
       if (plan.tipo === "linea" && plan.alPortapapeles) {
         void navigator.clipboard.writeText(plan.alPortapapeles).catch(() => {});
       }
-      addPane(label, cwd, comandoDelPlan(plan), undefined, r.cuenta, team, shadow);
+      return addPane(label, cwd, comandoDelPlan(plan), undefined, r.cuenta, team, shadow, undefined, undefined, {
+        quieto: opciones?.quieto,
+      }).id;
     },
     [addPane, openClaudePrompt],
   );
@@ -3437,6 +3453,11 @@ function App() {
             // Un panel que aún no ha reportado es un desconocido, y a un
             // desconocido no se le cierra.
             state: "" as const,
+            // Su sesión, si nació con ella en la línea de arranque (las de
+            // Claude la llevan). Sin esto, la pestaña del conserje de una sesión
+            // recién abierta no sabría a qué conversación llevar hasta que el
+            // panel reportara su primer estado.
+            sessionId: sessionIdOf(p.command) ?? undefined,
           },
       ),
     onClosePane: closePane,
@@ -4213,6 +4234,18 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onAbrirArchivo={abrirArchivo}
           onWeb={abrirWeb}
           onUsage={usageDeSesion}
+          conserjeExec={{
+            // Sin moverte del chat: el conserje abre mientras hablas con él.
+            abrir: (r, cwd, label, encargo) =>
+              openReceta(r, cwd, label, encargo, undefined, undefined, { quieto: true }),
+            // Igual que `enviarAlChat`: el texto y el Enter juntos.
+            escribir: (panel, texto) =>
+              writePty(panel, `${texto}\r`)
+                .then(() => true)
+                .catch(() => false),
+            panes: foremanExec.panes,
+            cuentas: foremanExec.cuentas,
+          }}
         />
       )}
       {view === "agenda" && (

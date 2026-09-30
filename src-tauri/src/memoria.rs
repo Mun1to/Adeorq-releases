@@ -583,7 +583,7 @@ pub async fn memoria_search(
 /// Minúsculas y sin tildes, para que buscar «brujula» encuentre «brújula».
 /// A mano y no con un crate: son seis vocales y una eñe que se conserva,
 /// porque en castellano «año» y «ano» no son la misma palabra.
-fn plano(s: &str) -> String {
+pub(crate) fn plano(s: &str) -> String {
     s.chars()
         .map(|c| match c {
             'á' | 'à' | 'ä' | 'â' | 'Á' | 'À' | 'Ä' | 'Â' => 'a',
@@ -601,6 +601,22 @@ fn plano(s: &str) -> String {
 /// La posición se busca en la versión sin tildes y el texto se corta de la
 /// ORIGINAL: las dos tienen la misma longitud en caracteres, así que se cuenta
 /// en caracteres y no en bytes, que es donde esto se rompería con acentos.
+/// Lo mismo, pero cuando la pregunta trae VARIAS palabras: se enseña el trozo
+/// de la primera que aparezca. Lo usa la memoria de la casa
+/// (`memoria_casa.rs`), donde nadie busca una palabra suelta sino una frase
+/// dicha en voz alta, y el trozo tiene que caer donde está la respuesta.
+pub(crate) fn trozo_de(original: &str, palabras: &[String]) -> String {
+    let plano_txt = plano(original);
+    let primera = palabras
+        .iter()
+        .filter_map(|p| plano_txt.find(p.as_str()).map(|pos| (pos, p)))
+        .min_by_key(|(pos, _)| *pos);
+    match primera {
+        Some((_, palabra)) => trozo(original, &plano_txt, palabra),
+        None => trozo(original, &plano_txt, ""),
+    }
+}
+
 fn trozo(original: &str, plano_txt: &str, aguja: &str) -> String {
     const ANTES: usize = 40;
     const LARGO: usize = 180;

@@ -26,6 +26,9 @@ mod openrouter;
 mod voz;
 mod pty;
 mod modos_terminal;
+mod memoria_casa;
+mod vectores;
+mod conserje;
 mod secrets;
 mod sessions;
 mod suelta;
@@ -340,6 +343,23 @@ pub fn run() {
             }
 
             mcp::start_mcp_server(app.handle().clone());
+
+            // El significado de las notas de memoria, calculado por detrás.
+            //
+            // En su propio hilo y con un respiro al empezar, porque la primera
+            // vez son treinta segundos de GPU y eso no puede competir con el
+            // arranque de la app. Luego, cada media hora, solo lo que haya
+            // cambiado. Si Ollama no está abierto no pasa nada: la memoria se
+            // busca por palabras, que es lo que hará la mitad de los días
+            // (los modelos de esta máquina viven en un disco que se conecta y
+            // se desconecta). Ver `memoria_casa.rs` y `vectores.rs`.
+            std::thread::spawn(|| {
+                std::thread::sleep(std::time::Duration::from_secs(20));
+                loop {
+                    memoria_casa::refrescar_significados();
+                    std::thread::sleep(std::time::Duration::from_secs(1800));
+                }
+            });
             // La ventana de desarrollo dice que lo es.
             //
             // `pnpm tauri dev` abre una Adeorq al lado de la instalada, y las
@@ -358,6 +378,10 @@ pub fn run() {
         .manage(SessionCache::default())
         .manage(discord::DiscordState::default())
         .manage(memoria::MemoriaCache::default())
+        // Las notas que TODAS las sesiones han ido dejando, en un índice que se
+        // rehace solo. Lo consultan las herramientas del MCP, o sea cualquier
+        // panel de cualquier proyecto.
+        .manage(memoria_casa::MemoriaCasa::default())
         // El puente del MCP con la ventana: lo que un agente pide (abrir un
         // panel, unir dos) lo hace React, no Rust. Ver `docs/SUPREMA.md`.
         .manage(mcp::Puente::default())
@@ -472,6 +496,17 @@ pub fn run() {
             foreman::foreman_agente,
             foreman::foreman_mapa,
             foreman::parar_mapa,
+            conserje::conserje_lista,
+            conserje::conserje_leer,
+            conserje::conserje_router,
+            conserje::conserje_trabajo,
+            conserje::conserje_soltar,
+            conserje::conserje_arranque,
+            conserje::conserje_sesion,
+            conserje::conserje_olvidar,
+            conserje::conserje_enviar,
+            conserje::conserje_parar,
+            conserje::conserje_mejorar,
             voz::voz_lista,
             voz::transcribir,
             foreman::write_mission,

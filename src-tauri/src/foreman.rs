@@ -70,7 +70,7 @@ Reglas duras:
 {"resumen": "una frase de qué montas", "acciones": [ ... ]}
 - No uses herramientas ni leas archivos: responde inmediatamente con el plan."#;
 
-fn claude_exe() -> PathBuf {
+pub(crate) fn claude_exe() -> PathBuf {
     if let Some(home) = crate::dir_casa() {
         let p = Path::new(&home)
             .join(".local")
@@ -98,13 +98,13 @@ fn claude_exe() -> PathBuf {
 /// `--session-id` y se borra su archivo al terminar. Va en un `Drop` y no en
 /// una línea al final porque estos oficios salen por muchas puertas (parado por
 /// Munir, timeout, error del CLI, éxito) y ninguna debe dejar rastro.
-struct SinRastro(String);
+pub(crate) struct SinRastro(String);
 
 impl SinRastro {
-    fn nueva() -> Self {
+    pub(crate) fn nueva() -> Self {
         Self(crate::usage::throwaway_id())
     }
-    fn id(&self) -> &str {
+    pub(crate) fn id(&self) -> &str {
         &self.0
     }
 }
@@ -579,7 +579,7 @@ pub async fn foreman_lote(tareas: String, context: String) -> Result<String, Str
 /// Apunta a `current_exe()` y no a una ruta escrita: así el Capataz habla con
 /// ESTA ventana y no con la que hubiera instalada en otro sitio. Se reescribe
 /// en cada llamada porque una actualización cambia el binario de sitio.
-fn config_mcp() -> Result<PathBuf, String> {
+pub(crate) fn config_mcp() -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|e| format!("no sé dónde estoy: {e}"))?;
     // Barras normales: en un JSON, `C:\Apps\...` son escapes inválidos y el CLI
     // lo rechaza con «MCP config is not a valid JSON», que no dice nada de
@@ -705,7 +705,7 @@ async fn preguntar(prompt: String) -> Result<String, String> {
 /// Capataz piden lo mismo: montar un tablero es criterio y ponerle nombre a
 /// unas carpetas es un recado, y pagar el mismo modelo para los dos es pagar de
 /// más Y esperar de más.
-async fn preguntar_con(prompt: String, modelo: &'static str) -> Result<String, String> {
+pub(crate) async fn preguntar_con(prompt: String, modelo: &'static str) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let sesion = SinRastro::nueva();
         let mut child = std::process::Command::new(claude_exe())

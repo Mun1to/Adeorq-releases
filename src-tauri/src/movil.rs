@@ -1,0 +1,1464 @@
+// El conserje en el móvil, estés donde estés.
+//
+// Munir, 2026-09-30: «¿puedes hacer que el chat principal se pueda conectar
+// desde el móvil si estoy, por ejemplo, en Italia?», y ante los cuatro caminos
+// que se le enseñaron, «elige las mejores opciones». Se eligió Tailscale: una
+// red privada entre su PC y su móvil, con `tailscale serve` llevando HTTPS
+// hasta aquí. El 13 de agosto había decidido «solo por el mismo wifi»; este
+// camino lo sustituye y, en casa, entra igual por Tailscale.
+//
+// Lo que hace que esto se pueda dejar encendido:
+//
+//   1. Solo escucha en 127.0.0.1. Desde la red de casa no se ve, y desde
+//      internet menos: al móvil le llega por Tailscale, que solo deja entrar a
+//      los aparatos de su cuenta.
+//   2. Aun así, cada petición lleva la clave de un móvil emparejado. Hace falta
+//      porque 127.0.0.1 no es solo Tailscale: cualquier web abierta en este PC
+//      puede intentar hablarle, y el conserje hace que los agentes editen
+//      código. La clave va en una cabecera, y una web de otro sitio no puede
+//      ponerla sin que el navegador pregunte antes; aquí no se le contesta.
+//   3. Se empareja con un código de seis cifras que enseña Ajustes, vale diez
+//      minutos y aguanta cinco fallos. En disco no queda la clave: queda su
+//      huella (sha256), que no sirve para entrar.
+//   4. Un `Host` que no sea este PC ni un nombre de Tailscale se rechaza: es lo
+//      que corta el truco de apuntar un dominio ajeno a 127.0.0.1.
+//   5. Desde el móvil solo se habla con el CONSERJE, nunca con una terminal: su
+//      reja de Rust sigue decidiendo qué se abre y dónde se escribe.
+//
+// Lo que NO está aquí, a propósito: abrir paneles. Eso lo monta la ventana, así
+// que se le pide por un puente con la misma forma que el del MCP
+// (`movil:pedido` / `movil_reply`), y el envío corre por el MISMO camino que el
+// hilo del PC (`enviarAlConserje` en `lib/conserjeEnvio.ts`).
+//
+// El HTTP es de mano y mínimo, como el IPC de `discord.rs`: una petición por
+// conexión, con `Content-Length` y topes duros. Quien habla con él es
+// `tailscale serve` o el navegador del móvil, nada más.
+
+use std::collections::HashMap;
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{mpsc, Mutex};
+use std::time::{Duration, Instant};
+
+use base64::Engine;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use tauri::{Emitter, Manager};
+
+use crate::SinVentana;
+
+pub const PUERTO: u16 = 3013;
+const TOPE_CABECERAS: usize = 16 * 1024;
+const TOPE_CUERPO: usize = 64 * 1024;
+const TOPE_TEXTO: usize = 8_000;
+const VIDA_CODIGO: Duration = Duration::from_secs(10 * 60);
+const INTENTOS: u8 = 5;
+/// Lo que se espera a la ventana. Contestar el estado es leer un fichero, y
+/// empezar un envío es solo apuntarlo: si pasa de aquí, la ventana está mal.
+const ESPERA_VENTANA: Duration = Duration::from_secs(20);
+const LECTURA: Duration = Duration::from_secs(15);
+/// Para leer la petición ENTERA, no cada trozo: con el plazo solo por lectura,
+/// quien mandara un byte cada catorce segundos retenía un hilo durante días.
+const PLAZO_PETICION: Duration = Duration::from_secs(10);
+/// Conexiones a la vez. Un móvil pregunta de una en una; muchas más es alguien
+/// abriendo hilos para tumbar la app que lleva tus terminales.
+const TOPE_CONEXIONES: usize = 32;
+/// Cada cuánto se apunta en disco que un móvil se ha visto: con el sondeo cada
+/// pocos segundos, apuntarlo siempre sería escribir el fichero sin parar.
+const APUNTAR_VISTO: u64 = 60;
+
+static PAGINA: &str = include_str!("movil.html");
+
+const ICONO: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="22" fill="#0d1a33"/><path d="M48 18l7.5 17.5L73 43l-17.5 7.5L48 68l-7.5-17.5L23 43l17.5-7.5z" fill="#4d9fff"/><path d="M71 60l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#9cc7ff"/></svg>"##;
+
+const MANIFIESTO: &str = r##"{"name":"Conserje de Adeorq","short_name":"Conserje","start_url":"/","display":"standalone","background_color":"#0b1220","theme_color":"#0b1220","icons":[{"src":"/icono.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}"##;
+
+// ─── Lo que se guarda ───────────────────────────────────────────────────────
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq)]
+pub struct Dispositivo {
+    pub nombre: String,
+    /// sha256 de su clave, en hexadecimal. La clave no se guarda nunca.
+    pub huella: String,
+    pub creado: u64,
+    #[serde(default)]
+    pub visto: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+pub struct Ajustes {
+    #[serde(default)]
+    pub encendido: bool,
+    #[serde(default)]
+    pub dispositivos: Vec<Dispositivo>,
+}
+
+fn ruta_ajustes() -> Result<PathBuf, String> {
+    Ok(crate::dir_datos_creado()?.join("movil.json"))
+}
+
+fn leer_ajustes() -> Ajustes {
+    ruta_ajustes()
+        .ok()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+/// Al lado y encima: a medias, se perderían los móviles emparejados.
+fn guardar_ajustes(a: &Ajustes) -> Result<(), String> {
+    let ruta = ruta_ajustes()?;
+    let temporal = ruta.with_extension("json.tmp");
+    std::fs::write(&temporal, serde_json::to_vec_pretty(a).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?;
+    std::fs::rename(&temporal, &ruta).map_err(|e| {
+        let _ = std::fs::remove_file(&temporal);
+        e.to_string()
+    })
+}
+
+// ─── El emparejamiento y las claves ─────────────────────────────────────────
+
+struct Codigo {
+    valor: String,
+    hasta: Instant,
+    fallos: u8,
+}
+
+/// Quién puede entrar. Sin disco dentro, para poder probarlo: quien la usa
+/// guarda los ajustes cuando algo cambia.
+#[derive(Default)]
+pub struct Guardia {
+    pub ajustes: Ajustes,
+    codigo: Option<Codigo>,
+}
+
+impl Guardia {
+    pub fn con(ajustes: Ajustes) -> Self {
+        Guardia { ajustes, codigo: None }
+    }
+
+    pub fn nuevo_codigo(&mut self, ahora: Instant) -> Result<String, String> {
+        let valor = seis_cifras()?;
+        self.codigo = Some(Codigo { valor: valor.clone(), hasta: ahora + VIDA_CODIGO, fallos: 0 });
+        Ok(valor)
+    }
+
+    fn codigo_visible(&self, ahora: Instant) -> Option<(String, u64)> {
+        let c = self.codigo.as_ref()?;
+        (ahora < c.hasta).then(|| (c.valor.clone(), (c.hasta - ahora).as_secs()))
+    }
+
+    /// La clave nueva si el código vale. Cada fallo cuenta, y al quinto el
+    /// código deja de valer aunque después se acierte: seis cifras no aguantan
+    /// que se prueben todas.
+    pub fn emparejar(&mut self, codigo: &str, nombre: &str, ahora: Instant, cuando: u64) -> Result<String, String> {
+        let Some(c) = self.codigo.as_mut() else {
+            return Err("No hay ningún emparejamiento abierto: pídelo en Ajustes > Móvil.".into());
+        };
+        if ahora >= c.hasta {
+            self.codigo = None;
+            return Err("El código ha caducado: pide otro en Ajustes > Móvil.".into());
+        }
+        if !iguales(codigo.trim().as_bytes(), c.valor.as_bytes()) {
+            c.fallos += 1;
+            if c.fallos >= INTENTOS {
+                self.codigo = None;
+                return Err("Demasiados intentos: pide otro código en Ajustes > Móvil.".into());
+            }
+            return Err("Ese código no es.".into());
+        }
+        self.codigo = None;
+        let clave = clave_nueva()?;
+        self.ajustes.dispositivos.push(Dispositivo {
+            nombre: limpiar_nombre(nombre),
+            huella: huella(&clave),
+            creado: cuando,
+            visto: cuando,
+        });
+        Ok(clave)
+    }
+
+    /// De quién es esta clave, y si hay que guardar que se acaba de ver.
+    pub fn quien(&mut self, clave: &str, cuando: u64) -> Option<(String, bool)> {
+        let h = huella(clave);
+        let d = self.ajustes.dispositivos.iter_mut().find(|d| iguales(d.huella.as_bytes(), h.as_bytes()))?;
+        let apuntar = cuando.saturating_sub(d.visto) >= APUNTAR_VISTO;
+        if apuntar {
+            d.visto = cuando;
+        }
+        Some((d.nombre.clone(), apuntar))
+    }
+
+    /// Quita un móvil por el principio de su huella, que es lo que enseña Ajustes.
+    pub fn olvidar(&mut self, id: &str) -> bool {
+        let antes = self.ajustes.dispositivos.len();
+        self.ajustes.dispositivos.retain(|d| id.is_empty() || !d.huella.starts_with(id));
+        self.ajustes.dispositivos.len() != antes
+    }
+}
+
+fn aleatorio(buf: &mut [u8]) -> Result<(), String> {
+    getrandom::fill(buf).map_err(|e| format!("sin aleatoriedad del sistema: {e}"))
+}
+
+fn seis_cifras() -> Result<String, String> {
+    // Por debajo de un múltiplo exacto de un millón, o unos códigos saldrían
+    // más que otros.
+    loop {
+        let mut b = [0u8; 4];
+        aleatorio(&mut b)?;
+        let n = u32::from_le_bytes(b);
+        if n < 4_294_000_000 {
+            return Ok(format!("{:06}", n % 1_000_000));
+        }
+    }
+}
+
+fn clave_nueva() -> Result<String, String> {
+    let mut b = [0u8; 32];
+    aleatorio(&mut b)?;
+    Ok(base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(b))
+}
+
+fn huella(clave: &str) -> String {
+    format!("{:x}", Sha256::digest(clave.as_bytes()))
+}
+
+/// Comparar sin cortar al primer byte distinto, para que el tiempo no cuente
+/// cuánto se acertó.
+fn iguales(a: &[u8], b: &[u8]) -> bool {
+    a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+fn limpiar_nombre(n: &str) -> String {
+    let s: String = n.chars().filter(|c| !c.is_control()).take(40).collect();
+    let s = s.trim();
+    if s.is_empty() { "Móvil".into() } else { s.into() }
+}
+
+// ─── HTTP, lo justo ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Default)]
+pub struct Peticion {
+    pub metodo: String,
+    pub ruta: String,
+    pub consulta: HashMap<String, String>,
+    /// Con el nombre en minúsculas.
+    pub cabeceras: HashMap<String, String>,
+    pub cuerpo: Vec<u8>,
+}
+
+fn buscar(pajar: &[u8], aguja: &[u8]) -> Option<usize> {
+    pajar.windows(aguja.len()).position(|w| w == aguja)
+}
+
+/// `%20` y compañía; `+` es espacio solo en la consulta.
+fn descodificar(s: &str, mas_es_espacio: bool) -> String {
+    let b = s.as_bytes();
+    let mut fuera = Vec::with_capacity(b.len());
+    let mut i = 0;
+    // Los dos dígitos se leen como bytes: cortar el texto por posición partiría
+    // una letra con tilde que viniera detrás del `%`, y eso es un pánico.
+    let hex = |c: u8| (c as char).to_digit(16).map(|d| d as u8);
+    while i < b.len() {
+        match b[i] {
+            b'%' if i + 2 < b.len() => match (hex(b[i + 1]), hex(b[i + 2])) {
+                (Some(a), Some(z)) => {
+                    fuera.push(a * 16 + z);
+                    i += 3;
+                    continue;
+                }
+                _ => fuera.push(b'%'),
+            },
+            b'+' if mas_es_espacio => fuera.push(b' '),
+            c => fuera.push(c),
+        }
+        i += 1;
+    }
+    String::from_utf8_lossy(&fuera).into_owned()
+}
+
+fn consulta_de(q: &str) -> HashMap<String, String> {
+    q.split('&')
+        .filter(|p| !p.is_empty())
+        .map(|p| match p.split_once('=') {
+            Some((k, v)) => (descodificar(k, true), descodificar(v, true)),
+            None => (descodificar(p, true), String::new()),
+        })
+        .collect()
+}
+
+pub fn leer_peticion(r: &mut impl Read) -> Result<Peticion, (u16, &'static str)> {
+    let mut buf = Vec::with_capacity(2048);
+    let mut trozo = [0u8; 4096];
+    let fin = loop {
+        if let Some(p) = buscar(&buf, b"\r\n\r\n") {
+            break p;
+        }
+        if buf.len() > TOPE_CABECERAS {
+            return Err((431, "cabeceras demasiado largas"));
+        }
+        let n = r.read(&mut trozo).map_err(|_| (408, "no ha llegado la petición entera"))?;
+        if n == 0 {
+            return Err((400, "petición cortada"));
+        }
+        buf.extend_from_slice(&trozo[..n]);
+    };
+    let cabeza = std::str::from_utf8(&buf[..fin]).map_err(|_| (400, "cabeceras que no son texto"))?;
+    let mut lineas = cabeza.split("\r\n");
+    let mut primera = lineas.next().unwrap_or("").split(' ');
+    let metodo = primera.next().unwrap_or("").to_string();
+    let destino = primera.next().unwrap_or("");
+    if metodo.is_empty() || !destino.starts_with('/') {
+        return Err((400, "petición mal formada"));
+    }
+    let (ruta, consulta) = destino.split_once('?').unwrap_or((destino, ""));
+    let mut cabeceras = HashMap::new();
+    for l in lineas {
+        if let Some((k, v)) = l.split_once(':') {
+            cabeceras.insert(k.trim().to_ascii_lowercase(), v.trim().to_string());
+        }
+    }
+    if cabeceras.contains_key("transfer-encoding") {
+        return Err((411, "hace falta Content-Length"));
+    }
+    let largo = match cabeceras.get("content-length") {
+        Some(v) => v.parse::<usize>().map_err(|_| (400, "Content-Length raro"))?,
+        None => 0,
+    };
+    if largo > TOPE_CUERPO {
+        return Err((413, "demasiado grande"));
+    }
+    let mut cuerpo = buf[fin + 4..].to_vec();
+    while cuerpo.len() < largo {
+        let n = r.read(&mut trozo).map_err(|_| (408, "no ha llegado el cuerpo entero"))?;
+        if n == 0 {
+            return Err((400, "cuerpo cortado"));
+        }
+        cuerpo.extend_from_slice(&trozo[..n]);
+    }
+    cuerpo.truncate(largo);
+    Ok(Peticion {
+        metodo,
+        ruta: descodificar(ruta, false),
+        consulta: consulta_de(consulta),
+        cabeceras,
+        cuerpo,
+    })
+}
+
+#[derive(Debug)]
+pub struct Respuesta {
+    pub estado: u16,
+    pub tipo: &'static str,
+    pub cuerpo: Vec<u8>,
+}
+
+impl Respuesta {
+    fn json(estado: u16, v: Value) -> Self {
+        Respuesta { estado, tipo: "application/json; charset=utf-8", cuerpo: v.to_string().into_bytes() }
+    }
+    fn error(estado: u16, mensaje: &str) -> Self {
+        Self::json(estado, json!({ "error": mensaje }))
+    }
+    fn texto(tipo: &'static str, cuerpo: &str) -> Self {
+        Respuesta { estado: 200, tipo, cuerpo: cuerpo.as_bytes().to_vec() }
+    }
+}
+
+fn razon(estado: u16) -> &'static str {
+    match estado {
+        200 => "OK",
+        202 => "Accepted",
+        400 => "Bad Request",
+        401 => "Unauthorized",
+        403 => "Forbidden",
+        404 => "Not Found",
+        405 => "Method Not Allowed",
+        408 => "Request Timeout",
+        411 => "Length Required",
+        413 => "Payload Too Large",
+        421 => "Misdirected Request",
+        431 => "Request Header Fields Too Large",
+        502 => "Bad Gateway",
+        503 => "Service Unavailable",
+        _ => "Error",
+    }
+}
+
+fn escribir(w: &mut impl Write, r: &Respuesta) -> std::io::Result<()> {
+    let mut cabeza = format!(
+        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\
+         Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n\
+         X-Frame-Options: DENY\r\n",
+        r.estado,
+        razon(r.estado),
+        r.tipo,
+        r.cuerpo.len()
+    );
+    if r.tipo.starts_with("text/html") {
+        // Todo lo de la página va dentro de ella; fuera no se carga nada.
+        cabeza.push_str(
+            "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; \
+             style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; \
+             frame-ancestors 'none'; base-uri 'none'; form-action 'none'\r\n",
+        );
+    }
+    cabeza.push_str("\r\n");
+    w.write_all(cabeza.as_bytes())?;
+    w.write_all(&r.cuerpo)?;
+    w.flush()
+}
+
+/// Este PC o un nombre de Tailscale, con o sin puerto. Lo demás es alguien
+/// apuntando un dominio suyo a 127.0.0.1.
+pub fn host_valido(host: &str) -> bool {
+    let h = host.trim().to_ascii_lowercase();
+    let sin_puerto = h.rsplit_once(':').map(|(a, p)| if p.chars().all(|c| c.is_ascii_digit()) { a } else { h.as_str() }).unwrap_or(&h);
+    sin_puerto == "127.0.0.1"
+        || sin_puerto == "localhost"
+        || (sin_puerto.ends_with(".ts.net") && sin_puerto.len() > ".ts.net".len() && !sin_puerto.contains('/'))
+}
+
+/// Si el navegador dice de dónde viene la petición, tiene que ser de aquí.
+pub fn origen_valido(origen: &str, host: &str) -> bool {
+    let sin_esquema = origen.split_once("://").map(|(_, r)| r).unwrap_or("");
+    !sin_esquema.is_empty() && sin_esquema.eq_ignore_ascii_case(host.trim())
+}
+
+/// Lo mismo que acepta `conserje.rs` para el nombre de su fichero.
+fn id_valido(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+// ─── Lo que se atiende ──────────────────────────────────────────────────────
+
+/// Lo que el servidor necesita de la casa. Con una casa de mentira se prueba
+/// entero sin abrir la app.
+pub trait Casa {
+    fn lista(&self) -> Value;
+    fn leer(&self, id: &str) -> Result<Value, String>;
+    /// Pedirle algo a la ventana y esperar su respuesta.
+    fn ventana(&self, clase: &str, datos: Value) -> Result<Value, String>;
+    fn mejorar(&self, texto: &str) -> Result<String, String>;
+    fn router(&self, id: &str, encendido: bool) -> Result<(), String>;
+    /// Con qué modelo piensa el conserje en esa conversación.
+    fn cerebro(&self, id: &str, cerebro: &str) -> Result<(), String>;
+    fn parar(&self, id: &str);
+    fn sesion(&self, cwd: &str, sesion: &str) -> Result<Value, String>;
+}
+
+pub fn atender(
+    p: &Peticion,
+    guardia: &Mutex<Guardia>,
+    casa: &dyn Casa,
+    persistir: &dyn Fn(&Ajustes),
+    reloj: (Instant, u64),
+) -> Respuesta {
+    let host = p.cabeceras.get("host").map(String::as_str).unwrap_or("");
+    if !host_valido(host) {
+        return Respuesta::error(421, "Esta dirección no es de este PC.");
+    }
+    if let Some(o) = p.cabeceras.get("origin") {
+        if !origen_valido(o, host) {
+            return Respuesta::error(403, "Esa página no es la del conserje.");
+        }
+    }
+
+    match (p.metodo.as_str(), p.ruta.as_str()) {
+        ("GET", "/") | ("GET", "/index.html") => return Respuesta::texto("text/html; charset=utf-8", PAGINA),
+        ("GET", "/manifest.webmanifest") => return Respuesta::texto("application/manifest+json", MANIFIESTO),
+        ("GET", "/icono.svg") => return Respuesta::texto("image/svg+xml", ICONO),
+        ("POST", "/api/emparejar") => {
+            let v: Value = serde_json::from_slice(&p.cuerpo).unwrap_or(Value::Null);
+            let codigo = v["codigo"].as_str().unwrap_or("");
+            let nombre = v["nombre"].as_str().unwrap_or("");
+            let mut g = guardia.lock().unwrap();
+            return match g.emparejar(codigo, nombre, reloj.0, reloj.1) {
+                Ok(clave) => {
+                    persistir(&g.ajustes);
+                    Respuesta::json(200, json!({ "clave": clave, "nombre": limpiar_nombre(nombre) }))
+                }
+                Err(e) => Respuesta::error(403, &e),
+            };
+        }
+        _ => {}
+    }
+
+    if !p.ruta.starts_with("/api/") {
+        return Respuesta::error(404, "Aquí no hay nada.");
+    }
+
+    // A partir de aquí, solo un móvil emparejado.
+    let clave = p
+        .cabeceras
+        .get("authorization")
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .unwrap_or("")
+        .trim();
+    let nombre = {
+        let mut g = guardia.lock().unwrap();
+        match g.quien(clave, reloj.1) {
+            Some((n, apuntar)) => {
+                if apuntar {
+                    persistir(&g.ajustes);
+                }
+                n
+            }
+            None => return Respuesta::error(401, "Este móvil no está emparejado."),
+        }
+    };
+
+    let cuerpo: Value = serde_json::from_slice(&p.cuerpo).unwrap_or(Value::Null);
+    let id_de = |v: Option<&str>| -> Result<String, Respuesta> {
+        let id = v.unwrap_or("");
+        if id_valido(id) { Ok(id.to_string()) } else { Err(Respuesta::error(400, "Esa conversación no existe.")) }
+    };
+
+    match (p.metodo.as_str(), p.ruta.as_str()) {
+        ("GET", "/api/yo") => Respuesta::json(200, json!({ "nombre": nombre })),
+        ("GET", "/api/lista") => Respuesta::json(200, casa.lista()),
+        ("GET", "/api/conversacion") => {
+            let id = match id_de(p.consulta.get("id").map(String::as_str)) {
+                Ok(id) => id,
+                Err(r) => return r,
+            };
+            match casa.leer(&id) {
+                Ok(conv) => {
+                    // Si la ventana no contesta, la conversación se enseña igual:
+                    // sin estados es peor, pero no mentira.
+                    let vivo = casa.ventana("estados", json!({ "id": id })).unwrap_or_else(|e| json!({ "error": e }));
+                    Respuesta::json(200, json!({ "conversacion": conv, "vivo": vivo }))
+                }
+                Err(e) => Respuesta::error(404, &e),
+            }
+        }
+        ("POST", "/api/enviar") => {
+            let id = match id_de(cuerpo["id"].as_str()) {
+                Ok(id) => id,
+                Err(r) => return r,
+            };
+            let texto = cuerpo["texto"].as_str().unwrap_or("").trim();
+            if texto.is_empty() {
+                return Respuesta::error(400, "No hay nada que mandar.");
+            }
+            if texto.chars().count() > TOPE_TEXTO {
+                return Respuesta::error(413, "Es demasiado largo para mandarlo de una vez.");
+            }
+            match casa.ventana("enviar", json!({ "id": id, "texto": texto })) {
+                Ok(_) => Respuesta::json(202, json!({ "ok": true })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
+        ("POST", "/api/mejorar") => {
+            let texto = cuerpo["texto"].as_str().unwrap_or("").trim();
+            if texto.is_empty() || texto.chars().count() > TOPE_TEXTO {
+                return Respuesta::error(400, "No hay nada que mejorar.");
+            }
+            match casa.mejorar(texto) {
+                Ok(t) => Respuesta::json(200, json!({ "texto": t })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
+        ("POST", "/api/router") => {
+            let id = match id_de(cuerpo["id"].as_str()) {
+                Ok(id) => id,
+                Err(r) => return r,
+            };
+            match casa.router(&id, cuerpo["encendido"].as_bool().unwrap_or(true)) {
+                Ok(()) => Respuesta::json(200, json!({ "ok": true })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
+        ("POST", "/api/cerebro") => {
+            let id = match id_de(cuerpo["id"].as_str()) {
+                Ok(id) => id,
+                Err(r) => return r,
+            };
+            match casa.cerebro(&id, cuerpo["cerebro"].as_str().unwrap_or("")) {
+                Ok(()) => Respuesta::json(200, json!({ "ok": true })),
+                Err(e) => Respuesta::error(400, &e),
+            }
+        }
+        ("POST", "/api/parar") => {
+            let id = match id_de(cuerpo["id"].as_str()) {
+                Ok(id) => id,
+                Err(r) => return r,
+            };
+            casa.parar(&id);
+            Respuesta::json(200, json!({ "ok": true }))
+        }
+        ("GET", "/api/sesion") => {
+            let cwd = p.consulta.get("cwd").map(String::as_str).unwrap_or("");
+            let sesion = p.consulta.get("id").map(String::as_str).unwrap_or("");
+            if cwd.is_empty() || sesion.is_empty() {
+                return Respuesta::error(400, "Falta qué sesión.");
+            }
+            match casa.sesion(cwd, sesion) {
+                Ok(v) => Respuesta::json(200, v),
+                Err(e) => Respuesta::error(404, &e),
+            }
+        }
+        (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router"
+            | "/api/cerebro" | "/api/parar" | "/api/sesion") => Respuesta::error(405, "Así no."),
+        _ => Respuesta::error(404, "Aquí no hay nada."),
+    }
+}
+
+/// Un socket que, antes de cada lectura, se pone de plazo lo que queda hasta
+/// `hasta`, y pasado eso no lee más.
+struct ConPlazo<'a> {
+    s: &'a TcpStream,
+    hasta: Instant,
+}
+
+impl Read for ConPlazo<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let queda = self.hasta.saturating_duration_since(Instant::now());
+        if queda.is_zero() {
+            return Err(std::io::ErrorKind::TimedOut.into());
+        }
+        self.s.set_read_timeout(Some(queda))?;
+        let mut s = self.s;
+        s.read(buf)
+    }
+}
+
+/// Lleva la cuenta de las conexiones abiertas y la baja al acabar, pase lo que pase.
+struct Abierta<'a>(&'a AtomicUsize);
+
+impl Drop for Abierta<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+fn servir_conexion(
+    mut s: TcpStream,
+    guardia: &Mutex<Guardia>,
+    casa: &dyn Casa,
+    persistir: &dyn Fn(&Ajustes),
+) {
+    // Una conexión que viene de un escuchador sin bloqueo puede heredarlo.
+    let _ = s.set_nonblocking(false);
+    let _ = s.set_write_timeout(Some(LECTURA));
+    let leida = leer_peticion(&mut ConPlazo { s: &s, hasta: Instant::now() + PLAZO_PETICION });
+    let r = match leida {
+        Ok(p) => atender(&p, guardia, casa, persistir, (Instant::now(), crate::conserje::ahora())),
+        Err((estado, por)) => Respuesta::error(estado, por),
+    };
+    let _ = escribir(&mut s, &r);
+}
+
+// ─── La casa de verdad, el puente y el servidor ─────────────────────────────
+
+#[derive(Default)]
+pub struct Movil {
+    guardia: Mutex<Guardia>,
+    esperando: Mutex<HashMap<u64, mpsc::Sender<Value>>>,
+    siguiente: AtomicU64,
+    conexiones: AtomicUsize,
+    sirviendo: AtomicBool,
+    apagar: AtomicBool,
+}
+
+struct CasaDeVerdad {
+    app: tauri::AppHandle,
+}
+
+impl Casa for CasaDeVerdad {
+    fn lista(&self) -> Value {
+        json!(crate::conserje::conserje_lista())
+    }
+    fn leer(&self, id: &str) -> Result<Value, String> {
+        crate::conserje::leer(id).map(|c| json!(c))
+    }
+    fn ventana(&self, clase: &str, datos: Value) -> Result<Value, String> {
+        pedir_a_la_ventana(&self.app, clase, datos)
+    }
+    fn mejorar(&self, texto: &str) -> Result<String, String> {
+        tauri::async_runtime::block_on(crate::conserje::conserje_mejorar(texto.to_string()))
+    }
+    fn router(&self, id: &str, encendido: bool) -> Result<(), String> {
+        crate::conserje::conserje_router(id.to_string(), encendido)
+    }
+    fn cerebro(&self, id: &str, cerebro: &str) -> Result<(), String> {
+        crate::conserje::conserje_cerebro(id.to_string(), cerebro.to_string())
+    }
+    fn parar(&self, id: &str) {
+        crate::conserje::conserje_parar(id.to_string());
+    }
+    fn sesion(&self, cwd: &str, sesion: &str) -> Result<Value, String> {
+        tauri::async_runtime::block_on(crate::sessions::session_messages(
+            cwd.to_string(),
+            Some(sesion.to_string()),
+            Some(80),
+        ))
+        .map(|t| json!(t))
+    }
+}
+
+fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Result<Value, String> {
+    let m = app.state::<Movil>();
+    let peticion = m.siguiente.fetch_add(1, Ordering::Relaxed) + 1;
+    let (tx, rx) = mpsc::channel::<Value>();
+    m.esperando.lock().unwrap().insert(peticion, tx);
+    let mut cuerpo = datos;
+    cuerpo["peticion"] = json!(peticion);
+    cuerpo["clase"] = json!(clase);
+    if app.emit("movil:pedido", &cuerpo).is_err() {
+        m.esperando.lock().unwrap().remove(&peticion);
+        return Err("La ventana de Adeorq no responde.".into());
+    }
+    match rx.recv_timeout(ESPERA_VENTANA) {
+        Ok(v) => match v.get("error").and_then(Value::as_str) {
+            Some(e) => Err(e.to_string()),
+            None => Ok(v),
+        },
+        Err(_) => {
+            // Siempre, o el mapa crece con peticiones muertas.
+            m.esperando.lock().unwrap().remove(&peticion);
+            Err("La ventana de Adeorq no contestó a tiempo.".into())
+        }
+    }
+}
+
+/// La ventana ya hizo lo que se le pidió: suelta al hilo que espera.
+#[tauri::command(async)]
+pub fn movil_reply(state: tauri::State<'_, Movil>, peticion: u64, datos: Value) {
+    if let Some(tx) = state.esperando.lock().unwrap().remove(&peticion) {
+        let _ = tx.send(datos);
+    }
+}
+
+fn persistir_de_verdad(a: &Ajustes) {
+    if let Err(e) = guardar_ajustes(a) {
+        crate::anotar(&format!("Móvil: no he podido guardar movil.json ({e})"));
+    }
+}
+
+fn arrancar(app: &tauri::AppHandle) {
+    let m = app.state::<Movil>();
+    if m.sirviendo.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    m.apagar.store(false, Ordering::SeqCst);
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let m = app.state::<Movil>();
+        // Se insiste un rato, como el MCP: al reinstalar, el Adeorq viejo aún
+        // suelta el puerto cuando el nuevo arranca.
+        let mut escucha = None;
+        for _ in 0..40 {
+            match TcpListener::bind(("127.0.0.1", PUERTO)) {
+                Ok(l) => {
+                    escucha = Some(l);
+                    break;
+                }
+                Err(_) if !m.apagar.load(Ordering::SeqCst) => std::thread::sleep(Duration::from_millis(500)),
+                Err(_) => break,
+            }
+        }
+        let Some(escucha) = escucha else {
+            crate::anotar(&format!(
+                "Móvil: el {PUERTO} ya lo sirve otro programa (¿otro Adeorq abierto?), así que el conserje no está en el móvil."
+            ));
+            m.sirviendo.store(false, Ordering::SeqCst);
+            return;
+        };
+        // Sin bloqueo, para poder apagarlo desde Ajustes sin cerrar la app.
+        let _ = escucha.set_nonblocking(true);
+        while !m.apagar.load(Ordering::SeqCst) {
+            match escucha.accept() {
+                Ok((mut s, _)) => {
+                    if m.conexiones.fetch_add(1, Ordering::SeqCst) >= TOPE_CONEXIONES {
+                        m.conexiones.fetch_sub(1, Ordering::SeqCst);
+                        let _ = s.set_nonblocking(false);
+                        let _ = s.set_write_timeout(Some(Duration::from_secs(1)));
+                        let _ = escribir(&mut s, &Respuesta::error(503, "Hay demasiadas conexiones abiertas."));
+                        continue;
+                    }
+                    let app = app.clone();
+                    std::thread::spawn(move || {
+                        let m = app.state::<Movil>();
+                        let _abierta = Abierta(&m.conexiones);
+                        let casa = CasaDeVerdad { app: app.clone() };
+                        servir_conexion(s, &m.guardia, &casa, &persistir_de_verdad);
+                    });
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => std::thread::sleep(Duration::from_millis(120)),
+                Err(_) => std::thread::sleep(Duration::from_millis(500)),
+            }
+        }
+        m.sirviendo.store(false, Ordering::SeqCst);
+    });
+}
+
+/// Al abrir la app: lo que se guardó, y si estaba encendido, a servir.
+pub fn cargar(app: &tauri::AppHandle) {
+    let ajustes = leer_ajustes();
+    let encendido = ajustes.encendido;
+    *app.state::<Movil>().guardia.lock().unwrap() = Guardia::con(ajustes);
+    if encendido {
+        arrancar(app);
+    }
+}
+
+// ─── Lo que ve Ajustes ──────────────────────────────────────────────────────
+
+#[derive(Serialize)]
+pub struct DispositivoVisible {
+    pub id: String,
+    pub nombre: String,
+    pub creado: u64,
+    pub visto: u64,
+}
+
+#[derive(Serialize)]
+pub struct CodigoVisible {
+    pub valor: String,
+    pub quedan: u64,
+}
+
+#[derive(Serialize)]
+pub struct EstadoMovil {
+    pub encendido: bool,
+    pub sirviendo: bool,
+    pub puerto: u16,
+    pub dispositivos: Vec<DispositivoVisible>,
+    pub codigo: Option<CodigoVisible>,
+}
+
+fn estado(m: &Movil) -> EstadoMovil {
+    let g = m.guardia.lock().unwrap();
+    EstadoMovil {
+        encendido: g.ajustes.encendido,
+        sirviendo: m.sirviendo.load(Ordering::SeqCst),
+        puerto: PUERTO,
+        dispositivos: g
+            .ajustes
+            .dispositivos
+            .iter()
+            .map(|d| DispositivoVisible {
+                id: d.huella.chars().take(12).collect(),
+                nombre: d.nombre.clone(),
+                creado: d.creado,
+                visto: d.visto,
+            })
+            .collect(),
+        codigo: g.codigo_visible(Instant::now()).map(|(valor, quedan)| CodigoVisible { valor, quedan }),
+    }
+}
+
+#[tauri::command(async)]
+pub fn movil_estado(state: tauri::State<'_, Movil>) -> EstadoMovil {
+    estado(&state)
+}
+
+#[tauri::command(async)]
+pub fn movil_encender(app: tauri::AppHandle, encendido: bool) -> Result<EstadoMovil, String> {
+    let m = app.state::<Movil>();
+    {
+        let mut g = m.guardia.lock().unwrap();
+        g.ajustes.encendido = encendido;
+        if !encendido {
+            // Apagado, un código a medias no puede seguir valiendo.
+            g.codigo = None;
+        }
+        guardar_ajustes(&g.ajustes)?;
+    }
+    if encendido {
+        arrancar(&app);
+    } else {
+        m.apagar.store(true, Ordering::SeqCst);
+    }
+    // Un momento para que el hilo coja (o suelte) el puerto antes de contarlo.
+    std::thread::sleep(Duration::from_millis(300));
+    Ok(estado(&m))
+}
+
+#[tauri::command(async)]
+pub fn movil_emparejar(state: tauri::State<'_, Movil>) -> Result<CodigoVisible, String> {
+    let mut g = state.guardia.lock().unwrap();
+    if !g.ajustes.encendido {
+        return Err("Enciende primero el conserje en el móvil.".into());
+    }
+    let valor = g.nuevo_codigo(Instant::now())?;
+    Ok(CodigoVisible { valor, quedan: VIDA_CODIGO.as_secs() })
+}
+
+#[tauri::command(async)]
+pub fn movil_olvidar(state: tauri::State<'_, Movil>, id: String) -> Result<EstadoMovil, String> {
+    if id.trim().len() < 8 {
+        return Err("Ese móvil no se reconoce.".into());
+    }
+    {
+        let mut g = state.guardia.lock().unwrap();
+        if g.olvidar(id.trim()) {
+            guardar_ajustes(&g.ajustes)?;
+        }
+    }
+    Ok(estado(&state))
+}
+
+// ─── Tailscale ──────────────────────────────────────────────────────────────
+
+/// El puerto de Tailscale por el que entra el móvil. No el 443: ahí pudo poner
+/// Munir (o un agente) otra cosa con `tailscale serve`, y lo que cuelga del
+/// mismo host y puerto comparte origen con esta página, o sea que su JS podría
+/// leer la clave del móvil del `localStorage`. Un puerto propio es un origen propio.
+pub const PUERTO_TAILSCALE: u16 = 8443;
+
+#[derive(Serialize, Default)]
+pub struct Tailscale {
+    pub instalado: bool,
+    pub conectado: bool,
+    /// Que `tailscale serve` de verdad lleva `PUERTO_TAILSCALE` hasta el conserje,
+    /// leído de su configuración y no de lo que contestó al pedirlo: sin HTTPS
+    /// activado en la cuenta, sale bien y no pone nada.
+    pub llevado: bool,
+    /// `https://tu-pc.xxxx.ts.net:8443`, si Tailscale dice su nombre.
+    pub direccion: Option<String>,
+    /// Lo que ya ocupa ese puerto de Tailscale, si no es el conserje: no se pisa.
+    pub ajeno: Option<String>,
+    /// En Linux, tu usuario no puede tocar `serve` sin ser el operador.
+    pub denegado: bool,
+    /// Lo que contestó `tailscale serve`, tal cual: si pide activar HTTPS en tu
+    /// cuenta, trae el enlace.
+    pub salida: String,
+}
+
+fn tailscale_exe() -> Option<PathBuf> {
+    let nombre = if cfg!(windows) { "tailscale.exe" } else { "tailscale" };
+    if let Some(path) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path) {
+            let p = dir.join(nombre);
+            if p.is_file() {
+                return Some(p);
+            }
+        }
+    }
+    // Donde lo deja su instalador en Windows: el PATH de una app que ya estaba
+    // abierta al instalarlo no se entera.
+    if !cfg!(windows) {
+        return None;
+    }
+    let programas = std::env::var_os("ProgramW6432")
+        .or_else(|| std::env::var_os("ProgramFiles"))
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(r"C:\Program Files"));
+    Some(programas.join("Tailscale").join("tailscale.exe")).filter(|p| p.is_file())
+}
+
+/// Lo que dijo un programa por cada salida, por separado: un aviso en la de
+/// errores no tiene que estropear el JSON de la normal.
+struct Dijo {
+    bien: bool,
+    normal: String,
+    errores: String,
+}
+
+impl Dijo {
+    fn todo(&self) -> String {
+        format!("{}\n{}", self.normal, self.errores).trim().to_string()
+    }
+}
+
+/// Lanza, espera con tope y devuelve lo que dijo.
+fn correr(exe: &PathBuf, args: &[&str], tope: Duration) -> Result<Dijo, String> {
+    let mut hijo = std::process::Command::new(exe)
+        .args(args)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .sin_ventana()
+        .spawn()
+        .map_err(|e| format!("no he podido lanzar Tailscale: {e}"))?;
+    let mut out = hijo.stdout.take();
+    let mut err = hijo.stderr.take();
+    let lector_out = std::thread::spawn(move || {
+        let mut s = String::new();
+        if let Some(o) = out.as_mut() {
+            let _ = o.read_to_string(&mut s);
+        }
+        s
+    });
+    let lector_err = std::thread::spawn(move || {
+        let mut s = String::new();
+        if let Some(e) = err.as_mut() {
+            let _ = e.read_to_string(&mut s);
+        }
+        s
+    });
+    let inicio = Instant::now();
+    let bien = loop {
+        match hijo.try_wait() {
+            Ok(Some(st)) => break st.success(),
+            Ok(None) if inicio.elapsed() < tope => std::thread::sleep(Duration::from_millis(100)),
+            _ => {
+                let _ = hijo.kill();
+                let _ = hijo.wait();
+                break false;
+            }
+        }
+    };
+    Ok(Dijo { bien, normal: lector_out.join().unwrap_or_default(), errores: lector_err.join().unwrap_or_default() })
+}
+
+/// Si está conectado y el nombre de este PC en Tailscale, de `tailscale status --json`.
+pub fn direccion_de_estado(json_estado: &str) -> (bool, Option<String>) {
+    let v: Value = serde_json::from_str(json_estado).unwrap_or(Value::Null);
+    let conectado = v["BackendState"].as_str() == Some("Running");
+    let dns = v["Self"]["DNSName"].as_str().unwrap_or("").trim_end_matches('.').to_string();
+    (conectado, (!dns.is_empty()).then_some(dns))
+}
+
+/// Lo que hay puesto en `PUERTO_TAILSCALE`.
+#[derive(Debug, Default, PartialEq)]
+pub struct Puesto {
+    /// La raíz va al conserje.
+    pub nuestro: bool,
+    /// Lo primero que hay ahí y no es el conserje, como «/ruta → destino».
+    pub ajeno: Option<String>,
+}
+
+fn es_el_conserje(proxy: &str) -> bool {
+    let p = proxy.trim().trim_end_matches('/');
+    let p = p.strip_prefix("http://").unwrap_or(p);
+    p == format!("127.0.0.1:{PUERTO}") || p == format!("localhost:{PUERTO}") || p == PUERTO.to_string()
+}
+
+/// De `tailscale serve status --json`, que es su `ipn.ServeConfig` tal cual:
+/// `TCP` va de puerto a qué se hace con él, y `Web` de «nombre:puerto» a sus
+/// rutas, cada una con su `Proxy`, `Path` o `Text`.
+pub fn en_el_puerto(json_serve: &str) -> Puesto {
+    let v: Value = serde_json::from_str(json_serve).unwrap_or(Value::Null);
+    let puerto = PUERTO_TAILSCALE.to_string();
+    let mut puesto = Puesto::default();
+    if let Some(destino) = v["TCP"][&puerto]["TCPForward"].as_str().filter(|d| !d.is_empty()) {
+        puesto.ajeno = Some(format!("tcp → {destino}"));
+    }
+    let sufijo = format!(":{puerto}");
+    for (host, web) in v["Web"].as_object().into_iter().flatten() {
+        if !host.ends_with(&sufijo) {
+            continue;
+        }
+        for (ruta, h) in web["Handlers"].as_object().into_iter().flatten() {
+            let proxy = h["Proxy"].as_str().unwrap_or("");
+            if ruta == "/" && es_el_conserje(proxy) {
+                puesto.nuestro = true;
+            } else if puesto.ajeno.is_none() {
+                let que = [proxy, h["Path"].as_str().unwrap_or("")].into_iter().find(|s| !s.is_empty()).unwrap_or("un texto");
+                puesto.ajeno = Some(format!("{ruta} → {que}"));
+            }
+        }
+    }
+    puesto
+}
+
+/// Mira Tailscale y, si se pide, lleva el conserje a tu red con
+/// `tailscale serve --bg`. Deja la configuración puesta en Tailscale, no en
+/// Adeorq: sobrevive a reinicios y se quita con `tailscale serve --https=8443 off`.
+#[tauri::command(async)]
+pub fn movil_tailscale(conectar: bool) -> Tailscale {
+    let Some(exe) = tailscale_exe() else { return Tailscale::default() };
+    let mut t = Tailscale { instalado: true, ..Default::default() };
+    let Ok(estado) = correr(&exe, &["status", "--json"], Duration::from_secs(8)) else { return t };
+    let (conectado, nombre) = direccion_de_estado(&estado.normal);
+    t.conectado = conectado;
+    t.direccion = nombre.map(|n| format!("https://{n}:{PUERTO_TAILSCALE}"));
+    if !conectado {
+        return t;
+    }
+    let mirar = || {
+        correr(&exe, &["serve", "status", "--json"], Duration::from_secs(8))
+            .map(|d| en_el_puerto(&d.normal))
+            .unwrap_or_default()
+    };
+    let mut puesto = mirar();
+    // Lo que ya ocupa el puerto no se pisa: `serve` lo reemplazaría sin preguntar.
+    if conectar && !puesto.nuestro && puesto.ajeno.is_none() {
+        let https = format!("--https={PUERTO_TAILSCALE}");
+        let destino = format!("http://127.0.0.1:{PUERTO}");
+        match correr(&exe, &["serve", "--bg", &https, &destino], Duration::from_secs(20)) {
+            Ok(d) => {
+                t.salida = d.todo();
+                t.denegado = t.salida.to_ascii_lowercase().contains("denied");
+                // Sin HTTPS en la cuenta, `serve` se puede quedar esperando a que
+                // lo actives, y a los 20 s se le corta sin que haya puesto nada.
+                if !d.bien && t.salida.is_empty() {
+                    t.salida = "Tailscale no contestó en 20 s.".into();
+                }
+            }
+            Err(e) => t.salida = e,
+        }
+        puesto = mirar();
+    }
+    t.llevado = puesto.nuestro;
+    t.ajeno = puesto.ajeno;
+    t
+}
+
+// ─── Pruebas ────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    #[test]
+    fn solo_este_pc_o_un_nombre_de_tailscale() {
+        for bien in ["127.0.0.1:3013", "localhost:3013", "localhost", "mi-pc.tail1234.ts.net", "Mi-PC.tail1234.TS.NET:443"] {
+            assert!(host_valido(bien), "{bien} tenía que valer");
+        }
+        for mal in ["", "evil.com", "127.0.0.1.evil.com", "ts.net", ".ts.net", "evil.com:3013", "10.0.0.5:3013"] {
+            assert!(!host_valido(mal), "{mal} no tenía que valer");
+        }
+    }
+
+    #[test]
+    fn el_origen_tiene_que_ser_el_mismo_sitio() {
+        assert!(origen_valido("https://mi-pc.tail1234.ts.net", "mi-pc.tail1234.ts.net"));
+        assert!(origen_valido("http://127.0.0.1:3013", "127.0.0.1:3013"));
+        assert!(!origen_valido("https://evil.com", "127.0.0.1:3013"));
+        assert!(!origen_valido("null", "127.0.0.1:3013"));
+    }
+
+    #[test]
+    fn un_codigo_bueno_da_una_clave_y_la_clave_abre() {
+        let mut g = Guardia::default();
+        let t = Instant::now();
+        let codigo = g.nuevo_codigo(t).unwrap();
+        assert_eq!(codigo.len(), 6);
+        let clave = g.emparejar(&codigo, "Mi Android", t, 100).unwrap();
+        assert!(clave.len() >= 40, "32 bytes en base64 son 43 letras");
+        assert_eq!(g.quien(&clave, 101).map(|(n, _)| n), Some("Mi Android".to_string()));
+        assert_eq!(g.quien("otra-clave", 101), None);
+        assert!(!g.ajustes.dispositivos[0].huella.contains(&clave), "en disco solo va la huella");
+        assert!(g.emparejar(&codigo, "Otro", t, 100).is_err(), "un código sirve una vez");
+    }
+
+    #[test]
+    fn cinco_fallos_queman_el_codigo_aunque_luego_se_acierte() {
+        let mut g = Guardia::default();
+        let t = Instant::now();
+        let codigo = g.nuevo_codigo(t).unwrap();
+        let malo = if codigo == "000000" { "111111" } else { "000000" };
+        for _ in 0..INTENTOS {
+            assert!(g.emparejar(malo, "x", t, 0).is_err());
+        }
+        assert!(g.emparejar(&codigo, "x", t, 0).is_err(), "seis cifras no aguantan que se prueben todas");
+        assert!(g.ajustes.dispositivos.is_empty());
+    }
+
+    #[test]
+    fn un_codigo_caducado_no_vale() {
+        let mut g = Guardia::default();
+        let t = Instant::now();
+        let codigo = g.nuevo_codigo(t).unwrap();
+        assert!(g.emparejar(&codigo, "x", t + VIDA_CODIGO, 0).is_err());
+    }
+
+    #[test]
+    fn visto_se_apunta_cada_minuto_y_no_en_cada_peticion() {
+        let mut g = Guardia::default();
+        let t = Instant::now();
+        let codigo = g.nuevo_codigo(t).unwrap();
+        let clave = g.emparejar(&codigo, "x", t, 1000).unwrap();
+        assert_eq!(g.quien(&clave, 1010).map(|(_, a)| a), Some(false));
+        assert_eq!(g.quien(&clave, 1000 + APUNTAR_VISTO).map(|(_, a)| a), Some(true));
+    }
+
+    /// Una lectura que suelta los bytes de a poco, como un socket de verdad.
+    struct AGotas(Vec<u8>, usize);
+    impl Read for AGotas {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            let n = (self.0.len() - self.1).min(7).min(buf.len());
+            buf[..n].copy_from_slice(&self.0[self.1..self.1 + n]);
+            self.1 += n;
+            Ok(n)
+        }
+    }
+
+    #[test]
+    fn la_peticion_se_lee_aunque_llegue_a_trozos() {
+        let crudo = b"POST /api/enviar?x=a%20b&y=c+d HTTP/1.1\r\nHost: 127.0.0.1:3013\r\nContent-Length: 11\r\n\r\n{\"id\":\"ab\"}";
+        let p = leer_peticion(&mut AGotas(crudo.to_vec(), 0)).unwrap();
+        assert_eq!(p.metodo, "POST");
+        assert_eq!(p.ruta, "/api/enviar");
+        assert_eq!(p.consulta.get("x").map(String::as_str), Some("a b"));
+        assert_eq!(p.consulta.get("y").map(String::as_str), Some("c d"));
+        assert_eq!(p.cabeceras.get("host").map(String::as_str), Some("127.0.0.1:3013"));
+        assert_eq!(p.cuerpo, b"{\"id\":\"ab\"}");
+    }
+
+    #[test]
+    fn un_por_ciento_raro_no_tumba_el_hilo() {
+        assert_eq!(descodificar("a%C3%B1o", false), "año");
+        assert_eq!(descodificar("%é", false), "%é");
+        assert_eq!(descodificar("100%", false), "100%");
+        assert_eq!(descodificar("%zz", false), "%zz");
+    }
+
+    #[test]
+    fn lo_desmedido_se_corta_antes_de_leerlo() {
+        let grande = format!("POST / HTTP/1.1\r\nHost: x\r\nContent-Length: {}\r\n\r\n", TOPE_CUERPO + 1);
+        assert_eq!(leer_peticion(&mut AGotas(grande.into_bytes(), 0)).unwrap_err().0, 413);
+        let cabecera_eterna = format!("GET / HTTP/1.1\r\nX: {}", "a".repeat(TOPE_CABECERAS + 10));
+        assert_eq!(leer_peticion(&mut AGotas(cabecera_eterna.into_bytes(), 0)).unwrap_err().0, 431);
+        let troceado = b"POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n";
+        assert_eq!(leer_peticion(&mut AGotas(troceado.to_vec(), 0)).unwrap_err().0, 411);
+    }
+
+    #[derive(Default)]
+    struct CasaDeMentira {
+        enviados: RefCell<Vec<Value>>,
+    }
+    impl Casa for CasaDeMentira {
+        fn lista(&self) -> Value {
+            json!([{ "id": "abc", "titulo": "Una" }])
+        }
+        fn leer(&self, id: &str) -> Result<Value, String> {
+            if id == "abc" { Ok(json!({ "id": "abc", "turnos": [] })) } else { Err("no existe".into()) }
+        }
+        fn ventana(&self, clase: &str, datos: Value) -> Result<Value, String> {
+            if clase == "enviar" {
+                self.enviados.borrow_mut().push(datos);
+            }
+            Ok(json!({ "estados": {} }))
+        }
+        fn mejorar(&self, texto: &str) -> Result<String, String> {
+            Ok(format!("{texto}, mejorado"))
+        }
+        fn router(&self, _: &str, _: bool) -> Result<(), String> {
+            Ok(())
+        }
+        fn cerebro(&self, _: &str, cerebro: &str) -> Result<(), String> {
+            if cerebro == "opus" { Ok(()) } else { Err("no es de la lista".into()) }
+        }
+        fn parar(&self, _: &str) {}
+        fn sesion(&self, _: &str, _: &str) -> Result<Value, String> {
+            Ok(json!([]))
+        }
+    }
+
+    fn pedir(metodo: &str, ruta: &str, clave: Option<&str>, cuerpo: &str) -> Peticion {
+        let (ruta, consulta) = ruta.split_once('?').unwrap_or((ruta, ""));
+        let mut cabeceras = HashMap::new();
+        cabeceras.insert("host".into(), "127.0.0.1:3013".into());
+        if let Some(c) = clave {
+            cabeceras.insert("authorization".into(), format!("Bearer {c}"));
+        }
+        Peticion {
+            metodo: metodo.into(),
+            ruta: ruta.into(),
+            consulta: consulta_de(consulta),
+            cabeceras,
+            cuerpo: cuerpo.as_bytes().to_vec(),
+        }
+    }
+
+    /// Una guardia con un móvil ya emparejado, y su clave.
+    fn emparejada() -> (Mutex<Guardia>, String) {
+        let mut g = Guardia::default();
+        let t = Instant::now();
+        let c = g.nuevo_codigo(t).unwrap();
+        let clave = g.emparejar(&c, "Pixel", t, 0).unwrap();
+        (Mutex::new(g), clave)
+    }
+
+    fn cuerpo_de(r: &Respuesta) -> Value {
+        serde_json::from_slice(&r.cuerpo).unwrap_or(Value::Null)
+    }
+
+    #[test]
+    fn sin_clave_no_hay_conserje() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        assert_eq!(atender(&pedir("GET", "/", None, ""), &g, &casa, &nada, reloj).estado, 200, "la página sí");
+        assert_eq!(atender(&pedir("GET", "/api/lista", None, ""), &g, &casa, &nada, reloj).estado, 401);
+        assert_eq!(atender(&pedir("GET", "/api/lista", Some("inventada"), ""), &g, &casa, &nada, reloj).estado, 401);
+        let r = atender(&pedir("GET", "/api/lista", Some(&clave), ""), &g, &casa, &nada, reloj);
+        assert_eq!(r.estado, 200);
+        assert_eq!(cuerpo_de(&r)[0]["id"], "abc");
+    }
+
+    #[test]
+    fn un_host_o_un_origen_ajeno_se_rechaza_antes_de_nada() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let mut p = pedir("POST", "/api/enviar", Some(&clave), r#"{"id":"abc","texto":"hola"}"#);
+        p.cabeceras.insert("host".into(), "atacante.com".into());
+        assert_eq!(atender(&p, &g, &casa, &nada, (Instant::now(), 0)).estado, 421);
+        let mut p = pedir("POST", "/api/enviar", Some(&clave), r#"{"id":"abc","texto":"hola"}"#);
+        p.cabeceras.insert("origin".into(), "https://atacante.com".into());
+        assert_eq!(atender(&p, &g, &casa, &nada, (Instant::now(), 0)).estado, 403);
+        assert!(casa.enviados.borrow().is_empty(), "no llegó nada a la ventana");
+    }
+
+    #[test]
+    fn enviar_llega_a_la_ventana_con_lo_escrito() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 0);
+        let r = atender(&pedir("POST", "/api/enviar", Some(&clave), r#"{"id":"abc","texto":"  abre el radar  "}"#), &g, &casa, &nada, reloj);
+        assert_eq!(r.estado, 202);
+        assert_eq!(casa.enviados.borrow()[0]["texto"], "abre el radar");
+        assert_eq!(atender(&pedir("POST", "/api/enviar", Some(&clave), r#"{"id":"abc","texto":"  "}"#), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("POST", "/api/enviar", Some(&clave), r#"{"id":"../x","texto":"hola"}"#), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("GET", "/api/enviar", Some(&clave), ""), &g, &casa, &nada, reloj).estado, 405);
+        assert_eq!(atender(&pedir("GET", "/api/otra", Some(&clave), ""), &g, &casa, &nada, reloj).estado, 404);
+    }
+
+    #[test]
+    fn el_modelo_del_conserje_se_elige_tambien_desde_el_movil() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 0);
+        let bien = atender(&pedir("POST", "/api/cerebro", Some(&clave), r#"{"id":"abc","cerebro":"opus"}"#), &g, &casa, &nada, reloj);
+        assert_eq!(bien.estado, 200);
+        let mal = atender(&pedir("POST", "/api/cerebro", Some(&clave), r#"{"id":"abc","cerebro":"gpt"}"#), &g, &casa, &nada, reloj);
+        assert_eq!(mal.estado, 400, "lo que no es de la lista se dice, no se calla");
+        assert_eq!(atender(&pedir("POST", "/api/cerebro", None, r#"{"id":"abc","cerebro":"opus"}"#), &g, &casa, &nada, reloj).estado, 401);
+    }
+
+    #[test]
+    fn emparejar_por_la_red_guarda_el_movil() {
+        let g = Mutex::new(Guardia::default());
+        let codigo = g.lock().unwrap().nuevo_codigo(Instant::now()).unwrap();
+        let casa = CasaDeMentira::default();
+        let guardados = RefCell::new(0);
+        let contar = |_: &Ajustes| *guardados.borrow_mut() += 1;
+        let r = atender(
+            &pedir("POST", "/api/emparejar", None, &format!(r#"{{"codigo":"{codigo}","nombre":"Pixel"}}"#)),
+            &g,
+            &casa,
+            &contar,
+            (Instant::now(), 0),
+        );
+        assert_eq!(r.estado, 200);
+        let clave = cuerpo_de(&r)["clave"].as_str().unwrap().to_string();
+        assert_eq!(*guardados.borrow(), 1, "se guarda al emparejar");
+        let yo = atender(&pedir("GET", "/api/yo", Some(&clave), ""), &g, &casa, &contar, (Instant::now(), 0));
+        assert_eq!(cuerpo_de(&yo)["nombre"], "Pixel");
+    }
+
+    /// Con un socket de verdad: lo que ve `tailscale serve`.
+    #[test]
+    fn por_un_socket_de_verdad() {
+        let escucha = TcpListener::bind("127.0.0.1:0").unwrap();
+        let puerto = escucha.local_addr().unwrap().port();
+        let (g, clave) = emparejada();
+        let hilo = std::thread::spawn(move || {
+            let casa = CasaDeMentira::default();
+            for _ in 0..2 {
+                let (s, _) = escucha.accept().unwrap();
+                servir_conexion(s, &g, &casa, &|_| {});
+            }
+        });
+        let pide = |crudo: String| {
+            let mut s = TcpStream::connect(("127.0.0.1", puerto)).unwrap();
+            s.write_all(crudo.as_bytes()).unwrap();
+            let mut fuera = String::new();
+            s.read_to_string(&mut fuera).unwrap();
+            fuera
+        };
+        let pagina = pide(format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{puerto}\r\n\r\n"));
+        assert!(pagina.starts_with("HTTP/1.1 200"), "{pagina:.80}");
+        assert!(pagina.contains("Content-Security-Policy"));
+        assert!(pagina.contains("<title>Conserje</title>"), "sale la página del móvil");
+        let lista = pide(format!(
+            "GET /api/lista HTTP/1.1\r\nHost: 127.0.0.1:{puerto}\r\nAuthorization: Bearer {clave}\r\n\r\n"
+        ));
+        assert!(lista.starts_with("HTTP/1.1 200"), "{lista:.80}");
+        assert!(lista.ends_with(r#"[{"id":"abc","titulo":"Una"}]"#));
+        hilo.join().unwrap();
+    }
+
+    /// Quien manda la petición de byte en byte, sin acabarla nunca. Con el plazo
+    /// solo por lectura (lo de antes) cada byte lo renueva y el hilo no se
+    /// suelta; con el plazo de la petición entera se suelta a su hora.
+    #[test]
+    fn una_peticion_a_cuentagotas_suelta_el_hilo_a_su_hora() {
+        let escucha = TcpListener::bind("127.0.0.1:0").unwrap();
+        let puerto = escucha.local_addr().unwrap().port();
+        let gotero = |dura: Duration| {
+            std::thread::spawn(move || {
+                let mut s = TcpStream::connect(("127.0.0.1", puerto)).unwrap();
+                let inicio = Instant::now();
+                while inicio.elapsed() < dura && s.write_all(b"G").is_ok() {
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+            })
+        };
+
+        // Lo de antes: plazo de 500 ms por lectura, y a los dos segundos sigue leyendo.
+        let g = gotero(Duration::from_millis(2500));
+        let (s, _) = escucha.accept().unwrap();
+        s.set_read_timeout(Some(Duration::from_millis(500))).unwrap();
+        let inicio = Instant::now();
+        let _ = leer_peticion(&mut &s);
+        assert!(inicio.elapsed() >= Duration::from_secs(2), "el plazo por lectura no lo corta");
+        g.join().unwrap();
+
+        // Lo de ahora: 500 ms para la petición entera.
+        let g = gotero(Duration::from_millis(2500));
+        let (s, _) = escucha.accept().unwrap();
+        let inicio = Instant::now();
+        let r = leer_peticion(&mut ConPlazo { s: &s, hasta: Instant::now() + Duration::from_millis(500) });
+        assert!(inicio.elapsed() < Duration::from_millis(1200), "tardó {:?}", inicio.elapsed());
+        assert_eq!(r.err().map(|(estado, _)| estado), Some(408));
+        drop(s);
+        g.join().unwrap();
+    }
+
+    #[test]
+    fn la_direccion_sale_del_estado_de_tailscale() {
+        let estado = r#"{"BackendState":"Running","Self":{"DNSName":"mi-pc.tail1234.ts.net.","HostName":"mi-pc"}}"#;
+        assert_eq!(direccion_de_estado(estado), (true, Some("mi-pc.tail1234.ts.net".into())));
+        assert_eq!(direccion_de_estado(r#"{"BackendState":"NeedsLogin","Self":{"DNSName":""}}"#), (false, None));
+        assert_eq!(direccion_de_estado("no es json"), (false, None));
+    }
+
+    /// Con la forma de `ipn.ServeConfig` (tailscale/ipn/serve.go): lo que vale
+    /// es lo que está PUESTO, no lo que contestó `serve` al pedírselo.
+    #[test]
+    fn se_sabe_si_el_conserje_esta_puesto_y_si_hay_otra_cosa_en_su_puerto() {
+        let puesto = |web: &str| en_el_puerto(&format!(r#"{{"TCP":{{"8443":{{"HTTPS":true}}}},"Web":{web}}}"#));
+        // Sin HTTPS activado en la cuenta, `serve` contesta y no pone nada.
+        assert_eq!(en_el_puerto("null"), Puesto::default());
+        assert_eq!(en_el_puerto("{}"), Puesto::default());
+        assert_eq!(
+            puesto(r#"{"mi-pc.tail1234.ts.net:8443":{"Handlers":{"/":{"Proxy":"http://127.0.0.1:3013"}}}}"#),
+            Puesto { nuestro: true, ajeno: None }
+        );
+        // Lo que Munir tuviera en el 443 no es asunto del conserje.
+        assert_eq!(
+            puesto(r#"{"mi-pc.tail1234.ts.net:443":{"Handlers":{"/":{"Proxy":"http://127.0.0.1:5173"}}},
+                      "mi-pc.tail1234.ts.net:8443":{"Handlers":{"/":{"Proxy":"http://localhost:3013/"}}}}"#),
+            Puesto { nuestro: true, ajeno: None }
+        );
+        // Otra cosa en su puerto: no se pisa, y si comparte origen se avisa.
+        assert_eq!(
+            puesto(r#"{"mi-pc.tail1234.ts.net:8443":{"Handlers":{"/":{"Proxy":"http://127.0.0.1:5173"}}}}"#),
+            Puesto { nuestro: false, ajeno: Some("/ → http://127.0.0.1:5173".into()) }
+        );
+        assert_eq!(
+            puesto(r#"{"mi-pc.tail1234.ts.net:8443":{"Handlers":{"/":{"Proxy":"http://127.0.0.1:3013"},"/docs":{"Path":"C:\\web"}}}}"#),
+            Puesto { nuestro: true, ajeno: Some("/docs → C:\\web".into()) }
+        );
+        assert_eq!(
+            en_el_puerto(r#"{"TCP":{"8443":{"TCPForward":"127.0.0.1:22"}}}"#),
+            Puesto { nuestro: false, ajeno: Some("tcp → 127.0.0.1:22".into()) }
+        );
+    }
+}

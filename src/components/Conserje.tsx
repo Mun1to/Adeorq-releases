@@ -22,32 +22,32 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { useT } from "../lib/i18n";
 import { aHtml } from "../lib/markdown";
 import {
+  arranqueDeAhora,
+  CEREBROS_CONSERJE,
+  CONSERJE_CAMBIO,
+  cerebroDe,
   claveDe,
-  conserjeArranque,
-  conserjeEnviar,
+  conserjeCerebro,
   conserjeLeer,
   conserjeLista,
   conserjeMejorar,
   conserjeParar,
   conserjeRouter,
-  conserjeTrabajo,
-  ejecutar,
   enMarcha,
   estadoDe,
-  estadosParaElConserje,
   hoja,
   onPaso,
   PALABRA,
   paneDe,
   resumenDePestanas,
+  type ConserjeExec,
   type Conversacion,
   type Ficha,
   type Trabajo,
   type Turno,
 } from "../lib/conserje";
-import type { Account, PaneStatus } from "../lib/pty";
-import { recetar, type Receta } from "../lib/router";
-import { fotoRapida } from "../lib/mundo";
+import { enviarAlConserje } from "../lib/conserjeEnvio";
+import type { PaneStatus } from "../lib/pty";
 import { hace } from "../lib/uso";
 import { A_MANO, cerebroPorDefecto, type ModelAlias } from "../lib/models";
 import { providerOf } from "../lib/providers";
@@ -62,26 +62,17 @@ import {
   UndoIcon,
 } from "./Icons";
 
-/** Lo que el conserje necesita del resto de la app. Llega por props desde App,
- *  que es quien sabe abrir paneles y escribir en ellos. */
-export interface ConserjeExec {
-  /** Abre la sesión sin sacarte del chat; devuelve su panel. */
-  abrir: (r: Pick<Receta, "cli" | "cuenta" | "modelo" | "esfuerzo">, cwd: string, label: string, encargo: string) => number | undefined;
-  escribir: (panel: number, texto: string) => Promise<boolean>;
-  /** El estado de todos los paneles, de las dos vistas. */
-  panes: () => PaneStatus[];
-  /** Todas las cuentas: el router necesita las de los OTROS CLIs para proponerlos. */
-  cuentas: () => Account[];
-}
+/** Vive en `lib/conserje.ts`, que lo comparte con el envío desde el móvil. */
+export type { ConserjeExec } from "../lib/conserje";
 
-/** El arranque de esta app, pedido una vez: no cambia hasta cerrarla. Mientras
- *  llega es `null`, y `paneDe` no da ningún panel por suyo. */
+/** El arranque de esta app. Mientras llega es `null`, y `paneDe` no da ningún
+ *  panel por suyo. */
 let arranqueGuardado: number | null = null;
 export function useArranque(): number | null {
   const [a, setA] = useState(arranqueGuardado);
   useEffect(() => {
     if (arranqueGuardado !== null) return;
-    conserjeArranque()
+    arranqueDeAhora()
       .then((n) => {
         arranqueGuardado = n;
         setA(n);
@@ -90,6 +81,14 @@ export function useArranque(): number | null {
   }, []);
   return a;
 }
+
+/** Para qué sirve cada modelo como cerebro del conserje, en una línea: lo que
+ *  hace él es entender el encargo y repartirlo, no hacerlo. */
+const PARA_QUE: Record<string, string> = {
+  haiku: "Rápido y barato; entiende peor un encargo enredado.",
+  sonnet: "El de siempre: entiende bien y no tarda.",
+  opus: "Piensa más el reparto; tarda más y gasta más.",
+};
 
 /** Cómo se llama lo que trabaja: «Claude Opus», «Codex». La etiqueta de
  *  `providers.ts` es «Claude Code», que al lado del modelo en minúscula se leía
@@ -136,11 +135,18 @@ export function ListaConserje({
       sesiones de siempre, y con veinte conversaciones las empujaría fuera. Antes
       se cortaba en seis sin decirlo, y las viejas no se podían abrir. */
   const [todas, setTodas] = useState(false);
+  /** Sube cuando el móvil cambia una conversación: una nueva tiene que salir aquí. */
+  const [fuera, setFuera] = useState(0);
+  useEffect(() => {
+    const alCambiar = () => setFuera((v) => v + 1);
+    window.addEventListener(CONSERJE_CAMBIO, alCambiar);
+    return () => window.removeEventListener(CONSERJE_CAMBIO, alCambiar);
+  }, []);
   useEffect(() => {
     conserjeLista()
       .then(setFichas)
       .catch(() => setFichas([]));
-  }, [version]);
+  }, [version, fuera]);
   const VISIBLES = 5;
   const vistas = todas ? fichas : fichas.slice(0, VISIBLES);
   // La abierta se ve siempre, aunque sea vieja: si no, al abrirla desde «ver
@@ -381,6 +387,7 @@ export function HiloConserje({
   const [fallo, setFallo] = useState<{ texto: string; error: string } | null>(null);
   const [fijo, setFijo] = useState<ModelAlias>(() => cerebroPorDefecto() ?? "sonnet");
   const [eligiendo, setEligiendo] = useState(false);
+  const [eligiendoCerebro, setEligiendoCerebro] = useState(false);
   /** Si Mejorar no pudo: se dice junto a la caja, que es donde lo pulsaste. */
   const [noMejora, setNoMejora] = useState<string | null>(null);
   const finRef = useRef<HTMLDivElement>(null);
@@ -462,42 +469,12 @@ export function HiloConserje({
     setPaso("");
     setPendiente(txt);
     setPensando(true);
-    try {
-      const panes = exec.panes();
-      const r = await conserjeEnviar(id, txt, estadosParaElConserje(conv?.trabajos ?? [], panes));
-      onCambio();
-      if (r.acciones.length) {
-        const vivas = await fotoRapida(exec.cuentas());
-        const hecho = await ejecutar(r.acciones, {
-          router,
-          recetar: (ex) => recetar(ex, { cuentas: vivas, avisos: "nunca" }, undefined, cerebroPorDefecto()),
-          fijo: { cli: "claude", modelo: fijo },
-          abrir: exec.abrir,
-          escribir: exec.escribir,
-        });
-        // En qué turno lo pidió: el último de la conversación ya guardada, que
-        // es su respuesta. Contarlo a mano (el último que había, más dos)
-        // fallaba con un reintento, que no apunta tu mensaje otra vez.
-        const guardada = await conserjeLeer(id).catch(() => null);
-        const turno = guardada?.turnos[guardada.turnos.length - 1]?.n ?? 0;
-        for (const w of hecho.abiertos) await conserjeTrabajo(id, { ...w, turno });
-        const fuera = [...r.descartes, ...hecho.fallos];
-        if (fuera.length) setAviso(fuera.join(" · "));
-        onCambio();
-      } else if (r.descartes.length) {
-        setAviso(r.descartes.join(" · "));
-      }
-    } catch (e) {
-      const s = String(e);
-      // Parar no es un error: es lo que pediste. Tu mensaje ya está guardado
-      // (Rust lo apunta antes de llamar al modelo), así que no vuelve a la
-      // caja: se ofrece reintentarlo desde el hilo.
-      if (s !== "parado") setFallo({ texto: txt, error: s });
-      onCambio();
-    } finally {
-      setPensando(false);
-      setPaso("");
-    }
+    // El mismo camino que usa el móvil (`lib/conserjeEnvio.ts`).
+    const r = await enviarAlConserje(id, txt, { exec, conv, fijo, alCambio: onCambio });
+    if (r.aviso) setAviso(r.aviso);
+    if (r.error) setFallo({ texto: txt, error: r.error });
+    setPensando(false);
+    setPaso("");
   };
 
   const trabajosDe = (n: number) => (conv?.trabajos ?? []).filter((w) => w.turno === n);
@@ -514,7 +491,9 @@ export function HiloConserje({
           <strong>{conv?.titulo || t("Conserje")}</strong>
           <em>
             {t(marcha.clave, { n: marcha.n })} ·{" "}
-            {router ? t("el router elige el modelo") : t("el router está apagado")}
+            {/* «el modelo» a secas, al lado de «Conserje: Claude Opus», se leía
+                como si el router eligiera también el del conserje. */}
+            {router ? t("el router elige el de cada sesión") : t("el router está apagado")}
           </em>
         </span>
       </header>
@@ -612,7 +591,7 @@ export function HiloConserje({
               }}
             />
             {pensando ? (
-              <button className="chat-enviar" data-tip={t("Parar")} onClick={() => void conserjeParar()}>
+              <button className="chat-enviar" data-tip={t("Parar")} onClick={() => void conserjeParar(id)}>
                 <CloseIcon size={14} />
               </button>
             ) : (
@@ -632,6 +611,42 @@ export function HiloConserje({
               {antes !== null ? <UndoIcon size={13} /> : <SparkIcon size={13} />}
               {mejorando ? t("Mejorando…") : antes !== null ? t("Deshacer") : t("Mejorar")}
             </button>
+            {/* Con qué piensa el CONSERJE. No es lo mismo que el router: el
+                router elige el modelo de las sesiones que abre. */}
+            <div className="chat-modelo">
+              <button
+                className="chat-pastilla cj-pastilla"
+                data-tip={t("El modelo con el que piensa el conserje. El de las sesiones que abre lo elige el router.")}
+                onClick={() => {
+                  setEligiendo(false);
+                  setEligiendoCerebro((v) => !v);
+                }}
+              >
+                <SparkIcon size={13} />
+                {t("Conserje: {m}", { m: nombreDe({ cli: "claude", modelo: cerebroDe(conv) }) })}
+                <ChevronIcon size={11} up={eligiendoCerebro} />
+              </button>
+              {eligiendoCerebro && (
+                <div className="chat-menu">
+                  {CEREBROS_CONSERJE.map((m) => (
+                    <button
+                      key={m}
+                      className="chat-menu-fila"
+                      data-on={cerebroDe(conv) === m}
+                      onClick={() => {
+                        setEligiendoCerebro(false);
+                        void conserjeCerebro(id, m).then(onCambio);
+                      }}
+                    >
+                      <span className="chat-menu-txt">
+                        <strong>{nombreDe({ cli: "claude", modelo: m })}</strong>
+                        <em>{t(PARA_QUE[m])}</em>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               className="chat-pastilla cj-pastilla"
               data-on={router}
@@ -645,7 +660,14 @@ export function HiloConserje({
               <div className="chat-modelo">
                 {/* Con el mismo nombre que las pestañas y las tarjetas
                     («Claude Sonnet»), no el alias en minúscula. */}
-                <button className="chat-pastilla chat-pastilla-fuerte cj-pastilla" data-on onClick={() => setEligiendo((v) => !v)}>
+                <button
+                  className="chat-pastilla chat-pastilla-fuerte cj-pastilla"
+                  data-on
+                  onClick={() => {
+                    setEligiendoCerebro(false);
+                    setEligiendo((v) => !v);
+                  }}
+                >
                   {nombreDe({ cli: "claude", modelo: fijo })}
                   <ChevronIcon size={11} up={eligiendo} />
                 </button>
@@ -692,5 +714,14 @@ export function useConversacion(id: string | null): [Conversacion | null, () => 
       vivo = false;
     };
   }, [id, vuelta]);
+  // Lo que se le dice desde el móvil cambia la conversación sin pasar por esta
+  // ventana: sin esto, el PC seguía enseñando la de antes.
+  useEffect(() => {
+    const alCambiar = (ev: Event) => {
+      if ((ev as CustomEvent<{ id: string }>).detail?.id === id) setVuelta((v) => v + 1);
+    };
+    window.addEventListener(CONSERJE_CAMBIO, alCambiar);
+    return () => window.removeEventListener(CONSERJE_CAMBIO, alCambiar);
+  }, [id]);
   return [conv, useCallback(() => setVuelta((v) => v + 1), [])];
 }

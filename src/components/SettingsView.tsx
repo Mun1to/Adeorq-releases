@@ -56,6 +56,7 @@ import {
 } from "../lib/perfil";
 import { open as pickFile } from "@tauri-apps/plugin-dialog";
 import AtajosEditor from "./AtajosEditor";
+import AjustesMovil from "./AjustesMovil";
 import GuideView from "./GuideView";
 import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
@@ -161,6 +162,7 @@ const SECCIONES = [
   { id: "atajos", label: "Atajos" },
   { id: "modelo", label: "Modelo local" },
   { id: "discord", label: "Discord" },
+  { id: "movil", label: "Móvil" },
   { id: "ayuda", label: "Ayuda" },
   { id: "adeorq", label: "Adeorq" },
 ] as const;
@@ -189,6 +191,7 @@ const CUANTOS: Record<string, number> = {
   atajos: 1,
   modelo: 1,
   discord: 1,
+  movil: 1,
   ayuda: 2,
   adeorq: 3,
 };
@@ -284,6 +287,13 @@ function IconoSeccion({ id }: { id: SeccionId }) {
             d="M9.4 2.6v2.8M14.6 2.6v2.8M9.4 18.6v2.8M14.6 18.6v2.8M2.6 9.4h2.8M2.6 14.6h2.8M18.6 9.4h2.8M18.6 14.6h2.8"
             {...P}
           />
+        </>
+      )}
+      {/* El móvil: el marco con su botón abajo. */}
+      {id === "movil" && (
+        <>
+          <rect x="6.6" y="2.6" width="10.8" height="18.8" rx="2.6" {...P} />
+          <path d="M10.6 18.2h2.8" {...P} />
         </>
       )}
       {/* Discord: su silueta, con las dos patas de abajo, que es lo que la
@@ -1560,6 +1570,7 @@ export default function SettingsView({
               </section>
             </>
           )}
+          {seccion === "movil" && <AjustesMovil />}
           {/* La guía dejó de ser una pestaña de la barra de arriba. Ocupaba
               sitio permanente para algo que se mira el primer día y casi nunca
               más, mientras que Cabina, Lienzo y Agenda son el trabajo diario.

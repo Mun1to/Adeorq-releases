@@ -15,7 +15,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { Exigencia, Receta } from "./router";
-import type { PaneStatus, WorkState } from "./pty";
+import type { Account, PaneStatus, WorkState } from "./pty";
 
 export interface Turno {
   n: number;
@@ -67,7 +67,16 @@ export interface Conversacion {
   trabajos: Trabajo[];
   router: boolean;
   creada: number;
+  /** Con qué modelo piensa el propio conserje; vacío es Sonnet. El router
+   *  elige el de las sesiones que abre, no este. */
+  cerebro?: string;
 }
+
+/** Los modelos con los que puede pensar el conserje: los mismos que acepta
+ *  `conserje_cerebro` en Rust. */
+export const CEREBROS_CONSERJE = ["haiku", "sonnet", "opus"] as const;
+export const cerebroDe = (c: Conversacion | null) =>
+  (CEREBROS_CONSERJE as readonly string[]).includes(c?.cerebro ?? "") ? (c?.cerebro as string) : "sonnet";
 
 export interface Ficha {
   id: string;
@@ -98,12 +107,36 @@ export const conserjeLista = () => invoke<Ficha[]>("conserje_lista");
 export const conserjeLeer = (id: string) => invoke<Conversacion>("conserje_leer", { id });
 export const conserjeRouter = (id: string, encendido: boolean) =>
   invoke<void>("conserje_router", { id, encendido });
+export const conserjeCerebro = (id: string, cerebro: string) =>
+  invoke<void>("conserje_cerebro", { id, cerebro });
 /** Apunta una sesión que se ACABA de abrir; Rust le pone el arranque. */
 export const conserjeTrabajo = (id: string, trabajo: Trabajo) =>
   invoke<void>("conserje_trabajo", { id, trabajo });
 export const conserjeSoltar = (id: string, w: Trabajo) =>
   invoke<void>("conserje_soltar", { id, panel: w.panel, arranque: w.arranque ?? 0 });
 export const conserjeArranque = () => invoke<number>("conserje_arranque");
+
+/** El aviso, dentro de la ventana, de que una conversación cambió por otro
+ *  camino (el móvil): quien la esté pintando, que la relea. */
+export const CONSERJE_CAMBIO = "adeorq:conserje-cambio";
+export const avisarCambio = (id: string) =>
+  window.dispatchEvent(new CustomEvent(CONSERJE_CAMBIO, { detail: { id } }));
+
+/** El arranque de esta app, pedido una vez: no cambia hasta cerrarla. */
+let arranquePedido: Promise<number> | null = null;
+export const arranqueDeAhora = () => (arranquePedido ??= conserjeArranque());
+
+/** Lo que el conserje necesita del resto de la app. Llega desde App, que es
+ *  quien sabe abrir paneles y escribir en ellos. */
+export interface ConserjeExec {
+  /** Abre la sesión sin sacarte del chat; devuelve su panel. */
+  abrir: (r: Pick<Receta, "cli" | "cuenta" | "modelo" | "esfuerzo">, cwd: string, label: string, encargo: string) => number | undefined;
+  escribir: (panel: number, texto: string) => Promise<boolean>;
+  /** El estado de todos los paneles, de las dos vistas. */
+  panes: () => PaneStatus[];
+  /** Todas las cuentas: el router necesita las de los OTROS CLIs para proponerlos. */
+  cuentas: () => Account[];
+}
 /** Apunta la sesión de una pestaña que ya estaba. `conserjeTrabajo` es solo
  *  para las que se acaban de abrir. */
 export const conserjeSesion = (id: string, w: Trabajo, sesion: string) =>
@@ -111,7 +144,8 @@ export const conserjeSesion = (id: string, w: Trabajo, sesion: string) =>
 export const conserjeOlvidar = (id: string) => invoke<void>("conserje_olvidar", { id });
 export const conserjeEnviar = (id: string, texto: string, estados: Record<string, string>) =>
   invoke<Respuesta>("conserje_enviar", { id, texto, estados });
-export const conserjeParar = () => invoke<void>("conserje_parar");
+/** Solo esa conversación: la de al lado (o la del móvil) sigue pensando. */
+export const conserjeParar = (id: string) => invoke<void>("conserje_parar", { id });
 export const conserjeMejorar = (texto: string) => invoke<string>("conserje_mejorar", { texto });
 
 /** Lo que va haciendo mientras piensa: «Mirando tus proyectos»… */

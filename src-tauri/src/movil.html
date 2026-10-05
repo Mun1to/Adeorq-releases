@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f6fb" media="(prefers-color-scheme: light)">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icono.svg">
+<title>Conserje</title>
+<!--
+  El conserje de Adeorq en el móvil. Lo sirve `src-tauri/src/movil.rs` desde
+  el PC, y llega aquí por Tailscale. Todo va dentro de este archivo: la
+  política de la página no deja cargar nada de fuera.
+
+  Lo que el móvil hace es HABLAR con el conserje y MIRAR sus sesiones. Abrir
+  sesiones y escribirles lo decide el conserje en el PC, con su reja: aquí no
+  hay ninguna terminal.
+-->
+<style>
+  :root {
+    --fondo: #0b1220;
+    --capa: rgba(255, 255, 255, 0.045);
+    --capa-fuerte: rgba(255, 255, 255, 0.08);
+    --borde: rgba(150, 170, 210, 0.16);
+    --borde-fuerte: rgba(150, 170, 210, 0.3);
+    --tinta: #e6ecf7;
+    --suave: #95a3bd;
+    --acento: #4d9fff;
+    --acento-capa: rgba(77, 159, 255, 0.14);
+    --sobre-acento: #06101f;
+    --vivo: #7ee08a;
+    --pregunta: #f5c451;
+    --termino: #ff9a3c;
+    --cerrada: #95a3bd;
+    --grave: #ffd166;
+    --grave-capa: rgba(255, 209, 102, 0.1);
+    --mal: #ff8a80;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --fondo: #f3f6fb;
+      --capa: #ffffff;
+      --capa-fuerte: #eef2f9;
+      --borde: rgba(40, 70, 120, 0.14);
+      --borde-fuerte: rgba(40, 70, 120, 0.28);
+      --tinta: #16213a;
+      --suave: #5a6a86;
+      --acento: #1f6fe0;
+      --acento-capa: rgba(31, 111, 224, 0.1);
+      --sobre-acento: #ffffff;
+      --vivo: #15803d;
+      --pregunta: #9a6b12;
+      --termino: #c2410c;
+      --cerrada: #5a6a86;
+      --grave: #9a4b06;
+      --grave-capa: #fff4e5;
+      --mal: #b42318;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--tinta);
+    font: 16px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+  .vista { display: flex; flex-direction: column; height: 100dvh; }
+  .barra {
+    display: flex; align-items: center; gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    border-bottom: 1px solid var(--borde);
+    background: var(--fondo);
+  }
+  .barra h1 { font-size: 17px; margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .barra small { display: block; font-size: 12px; font-weight: 400; color: var(--suave); overflow: hidden; text-overflow: ellipsis; }
+  .atras {
+    flex: none; width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid var(--borde); background: var(--capa); display: grid; place-items: center; cursor: pointer;
+  }
+  .avatar {
+    flex: none; width: 34px; height: 34px; display: grid; place-items: center;
+    border-radius: 12px 4px 4px 12px; background: var(--acento-capa); color: var(--acento);
+  }
+  .cuerpo { flex: 1; overflow-y: auto; padding: 14px 14px 20px; overscroll-behavior: contain; }
+
+  /* ── Emparejar ── */
+  .emparejar { max-width: 420px; margin: 8vh auto 0; padding: 0 20px; display: grid; gap: 14px; }
+  .emparejar h1 { font-size: 26px; line-height: 1.2; margin: 8px 0 0; }
+  .emparejar p { margin: 0; color: var(--suave); }
+  .campo {
+    width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--borde-fuerte);
+    background: var(--capa); color: var(--tinta); font: inherit; outline: none;
+  }
+  .campo:focus { border-color: var(--acento); }
+  .codigo { font-size: 30px; letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
+
+  .boton {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 16px; border-radius: 12px; border: 0; cursor: pointer;
+    background: var(--acento); color: var(--sobre-acento); font-weight: 600;
+  }
+  .boton:disabled { opacity: 0.5; cursor: default; }
+  .nota { padding: 10px 12px; border-radius: 12px; font-size: 14px; background: var(--grave-capa); color: var(--grave); }
+  .nota b { color: var(--tinta); }
+  .nota .mini { margin-left: 8px; }
+
+  /* ── Lista ── */
+  .nueva {
+    width: 100%; display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    padding: 13px 14px; border-radius: 14px; cursor: pointer; text-align: left; font-weight: 600;
+    border: 1px solid color-mix(in srgb, var(--acento) 45%, transparent);
+    background: var(--acento-capa);
+  }
+  .fila {
+    width: 100%; display: block; text-align: left; cursor: pointer;
+    padding: 12px 14px; margin-bottom: 8px; border-radius: 14px;
+    border: 1px solid var(--borde); background: var(--capa);
+  }
+  .fila b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fila span { font-size: 13px; color: var(--suave); }
+  .vacio { color: var(--suave); text-align: center; margin-top: 12vh; padding: 0 20px; }
+
+  /* ── Hilo ── */
+  .turno { display: flex; margin: 10px 0; }
+  .turno[data-rol="tu"] { justify-content: flex-end; }
+  .burbuja { max-width: 88%; overflow-wrap: anywhere; }
+  .turno[data-rol="tu"] .burbuja {
+    padding: 10px 14px; border-radius: 18px 18px 6px 18px;
+    background: var(--acento-capa); border: 1px solid color-mix(in srgb, var(--acento) 35%, transparent);
+  }
+  .burbuja p { margin: 0 0 8px; }
+  .burbuja p:last-child, .burbuja ul:last-child, .burbuja ol:last-child { margin-bottom: 0; }
+  .burbuja ul, .burbuja ol { margin: 0 0 8px; padding-left: 22px; }
+  .burbuja code { font: 0.9em Consolas, "Cascadia Mono", ui-monospace, monospace; background: var(--capa-fuerte); padding: 1px 5px; border-radius: 5px; }
+  .burbuja pre { margin: 0 0 8px; padding: 10px; border-radius: 10px; background: var(--capa-fuerte); overflow-x: auto; font: 13px/1.45 Consolas, ui-monospace, monospace; }
+  .herramientas { display: block; font-size: 12px; color: var(--suave); font-style: italic; margin-top: 4px; }
+
+  .tarjeta {
+    --c: var(--cerrada);
+    display: grid; gap: 6px; width: 100%; text-align: left; cursor: pointer;
+    margin: 8px 0; padding: 12px 14px; border-radius: 16px;
+    border: 1px solid var(--borde); background: var(--capa);
+    box-shadow: inset 3px 0 0 var(--c);
+  }
+  .tarjeta[data-estado="trabajando"] { --c: var(--vivo); }
+  .tarjeta[data-estado="pregunta"] { --c: var(--pregunta); }
+  .tarjeta[data-estado="termino"] { --c: var(--termino); }
+  .tarjeta-cab { display: flex; align-items: baseline; gap: 8px; }
+  .tarjeta-cab b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .estado { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--c); font-weight: 600; }
+  .estado i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .para { font-size: 15px; }
+  .porque { font-size: 13px; color: var(--suave); }
+  .porque b { color: var(--tinta); font-weight: 600; }
+
+  .pensando { display: flex; align-items: center; gap: 8px; color: var(--suave); margin: 12px 0; }
+  .pensando i { width: 8px; height: 8px; border-radius: 50%; background: var(--vivo); animation: latido 1.2s ease-in-out infinite; }
+  @keyframes latido { 50% { opacity: 0.3; } }
+  @media (prefers-reduced-motion: reduce) { .pensando i { animation-duration: 3s; } }
+
+  /* ── La caja ── */
+  .caja {
+    border-top: 1px solid var(--borde); background: var(--fondo);
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  .caja[data-mejorado="true"] .fila-caja { border-color: color-mix(in srgb, var(--acento) 55%, transparent); }
+  .aviso-mejora { font-size: 12.5px; color: var(--acento); margin: 0 4px 6px; }
+  .fila-caja {
+    display: flex; align-items: flex-end; gap: 8px;
+    padding: 6px 6px 6px 12px; border-radius: 18px;
+    border: 1px solid var(--borde-fuerte); background: var(--capa);
+  }
+  textarea {
+    flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--tinta);
+    font: inherit; line-height: 1.45; padding: 6px 0; max-height: 160px;
+    resize: none;
+  }
+  .enviar {
+    flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--acento); color: var(--sobre-acento); display: grid; place-items: center;
+  }
+  .enviar:disabled { opacity: 0.4; cursor: default; }
+  .pastillas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .pastilla {
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 13px;
+    border: 1px solid var(--borde); background: none; color: var(--suave);
+  }
+  .pastilla[data-on="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
+  .pastilla select { appearance: none; border: 0; background: none; color: inherit; font: inherit; padding: 0; cursor: pointer; outline: none; }
+  .pastilla:has(select:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
+  .pastilla:disabled { opacity: 0.45; cursor: default; }
+  .mini { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--borde-fuerte); background: var(--capa); cursor: pointer; font-size: 13px; }
+
+  .solo-lectura { font-size: 13px; color: var(--suave); text-align: center; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--borde); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+
+// ─── Lo pequeño ─────────────────────────────────────────────────────────────
+
+const app = document.getElementById("app");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const LLAVE = "adeorq-movil-clave";
+
+let clave = null;
+try { clave = localStorage.getItem(LLAVE); } catch (_) { /* sin almacén: se empareja cada vez */ }
+
+const PALABRA = { trabajando: "trabajando", pregunta: "te pregunta algo", termino: "ha terminado", cerrada: "cerrada" };
+const MARCA = { claude: "Claude", codex: "Codex", gemini: "Gemini", agy: "Antigravity", kimi: "Kimi", opencode: "opencode" };
+
+const ICONO = {
+  chispa: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>',
+  atras: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
+  subir: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+  parar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+  diana: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
+  deshacer: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>',
+};
+
+function hace(segundos) {
+  const ms = segundos * 1000;
+  const min = Math.round((Date.now() - ms) / 60000);
+  if (min < 1) return "ahora mismo";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.round(h / 24);
+  if (d <= 7) return `hace ${d} d`;
+  return new Date(ms).toLocaleDateString("es", { day: "numeric", month: "short" });
+}
+
+const hoja = (ruta) => String(ruta || "").split(/[\\/]/).filter(Boolean).pop() || ruta;
+const claveDe = (w) => `${w.arranque ?? 0}:${w.panel}`;
+function nombreDe(w) {
+  const marca = MARCA[w.cli] || w.cli || "";
+  const m = w.modelo ? ` ${w.modelo.charAt(0).toUpperCase()}${w.modelo.slice(1)}` : "";
+  return `${marca}${m}`;
+}
+const nuevoId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/** Markdown del conserje, lo justo: párrafos, listas, negrita, código. Se
+    escapa TODO antes, así que nada de lo que diga el modelo es HTML. */
+function md(texto) {
+  const lineas = esc(texto).split("\n");
+  const enLinea = (s) => s.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  let html = "", lista = null, parrafo = [], codigo = null;
+  const cierraParrafo = () => { if (parrafo.length) { html += `<p>${parrafo.map(enLinea).join("<br>")}</p>`; parrafo = []; } };
+  const cierraLista = () => { if (lista) { html += `</${lista}>`; lista = null; } };
+  for (const l of lineas) {
+    if (l.trim().startsWith("```")) {
+      if (codigo) { html += `<pre>${codigo.join("\n")}</pre>`; codigo = null; }
+      else { cierraParrafo(); cierraLista(); codigo = []; }
+      continue;
+    }
+    if (codigo) { codigo.push(l); continue; }
+    const m = l.match(/^\s*(?:([-*•])|(\d+)[.)])\s+(.*)$/);
+    if (m) {
+      cierraParrafo();
+      const tipo = m[1] ? "ul" : "ol";
+      if (lista !== tipo) { cierraLista(); html += `<${tipo}>`; lista = tipo; }
+      html += `<li>${enLinea(m[3])}</li>`;
+      continue;
+    }
+    if (!l.trim()) { cierraParrafo(); cierraLista(); continue; }
+    cierraLista();
+    parrafo.push(l);
+  }
+  if (codigo) html += `<pre>${codigo.join("\n")}</pre>`;
+  cierraParrafo(); cierraLista();
+  return html;
+}
+
+async function api(metodo, ruta, cuerpo) {
+  const cabeceras = { Authorization: `Bearer ${clave || ""}` };
+  if (cuerpo) cabeceras["Content-Type"] = "application/json";
+  let r;
+  try {
+    r = await fetch(ruta, { method: metodo, headers: cabeceras, body: cuerpo ? JSON.stringify(cuerpo) : undefined, cache: "no-store" });
+  } catch (_) {
+    throw new Error("No llego a tu PC. ¿Está encendido, con Adeorq abierto y Tailscale activo en los dos?");
+  }
+  const v = await r.json().catch(() => ({}));
+  if (r.status === 401) {
+    olvidarClave();
+    throw new Error(v.error || "Este móvil no está emparejado.");
+  }
+  if (!r.ok) throw new Error(v.error || `Algo ha fallado (${r.status}).`);
+  return v;
+}
+
+function olvidarClave() {
+  clave = null;
+  try { localStorage.removeItem(LLAVE); } catch (_) {}
+  ir({ vista: "emparejar" });
+}
+
+// ─── El estado y quien lo pinta ─────────────────────────────────────────────
+
+let e = { vista: clave ? "lista" : "emparejar" };
+let reloj = null;
+
+function ir(cambio) {
+  clearTimeout(reloj);
+  e = { vista: cambio.vista, ...cambio };
+  pintar();
+}
+
+function sondear(ms, fn) {
+  clearTimeout(reloj);
+  reloj = setTimeout(async () => {
+    if (document.visibilityState === "visible") await fn().catch(() => {});
+    sondear(ms, fn);
+  }, ms);
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && e.vista === "hilo") cargarHilo().catch(() => {});
+});
+
+function pintar() {
+  if (e.vista === "emparejar") return pintarEmparejar();
+  if (e.vista === "lista") return pintarLista();
+  if (e.vista === "hilo") return pintarHiloEntero();
+  if (e.vista === "sesion") return pintarSesion();
+}
+
+// ─── Emparejar ──────────────────────────────────────────────────────────────
+
+function pintarEmparejar() {
+  const ua = navigator.userAgent;
+  const sugerido = /Android/i.test(ua) ? "Android" : /iPhone|iPad/i.test(ua) ? "iPhone" : "Móvil";
+  app.innerHTML = `
+    <div class="emparejar">
+      <span class="avatar">${ICONO.chispa}</span>
+      <h1>Conecta este móvil con tu conserje</h1>
+      <p>En tu PC, abre Adeorq y ve a <b>Ajustes &gt; Móvil &gt; Emparejar</b>. Escribe aquí el código de seis cifras que sale. Solo hace falta una vez.</p>
+      <input id="codigo" class="campo codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-label="Código de seis cifras">
+      <input id="nombre" class="campo" maxlength="40" value="${esc(sugerido)}" aria-label="Nombre de este móvil">
+      <button id="entrar" class="boton">Emparejar</button>
+      <div id="error"></div>
+    </div>`;
+  const entrar = document.getElementById("entrar");
+  const codigo = document.getElementById("codigo");
+  codigo.addEventListener("input", () => { codigo.value = codigo.value.replace(/\D/g, "").slice(0, 6); });
+  entrar.addEventListener("click", async () => {
+    entrar.disabled = true;
+    try {
+      const r = await fetch("/api/emparejar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: codigo.value, nombre: document.getElementById("nombre").value }),
+      });
+      const v = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(v.error || "No se ha podido emparejar.");
+      clave = v.clave;
+      try { localStorage.setItem(LLAVE, clave); } catch (_) {}
+      ir({ vista: "lista" });
+    } catch (err) {
+      document.getElementById("error").innerHTML = `<p class="nota">${esc(err.message)}</p>`;
+      entrar.disabled = false;
+    }
+  });
+}
+
+// ─── La lista ───────────────────────────────────────────────────────────────
+
+async function pintarLista() {
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra"><span class="avatar">${ICONO.chispa}</span><h1>Conserje<small id="yo">tu PC</small></h1></header>
+      <main class="cuerpo">
+        <button id="nueva" class="nueva"><span class="avatar">${ICONO.chispa}</span>Hablar con el conserje</button>
+        <div id="filas"></div>
+      </main>
+    </div>`;
+  document.getElementById("nueva").addEventListener("click", () => ir({ vista: "hilo", id: nuevoId(), nueva: true }));
+  const cargar = async () => {
+    const lista = await api("GET", "/api/lista");
+    const filas = document.getElementById("filas");
+    if (!filas) return;
+    filas.innerHTML = lista.length
+      ? lista.map((f) => `<button class="fila" data-id="${esc(f.id)}"><b>${esc(f.titulo || "Conversación nueva")}</b><span>${esc(hace(f.cuando))}${f.trabajos ? ` · ${f.trabajos === 1 ? "1 sesión" : `${f.trabajos} sesiones`}` : ""}</span></button>`).join("")
+      : `<p class="vacio">Todavía no has hablado con el conserje. Empieza con el botón de arriba.</p>`;
+    filas.querySelectorAll(".fila").forEach((b) => b.addEventListener("click", () => ir({ vista: "hilo", id: b.dataset.id })));
+  };
+  api("GET", "/api/yo").then((v) => { const yo = document.getElementById("yo"); if (yo) yo.textContent = v.nombre; }).catch(() => {});
+  try { await cargar(); } catch (err) { document.getElementById("filas").innerHTML = `<p class="nota">${esc(err.message)}</p>`; }
+  sondear(15000, cargar);
+}
+
+// ─── El hilo ────────────────────────────────────────────────────────────────
+
+function pintarHiloEntero() {
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra">
+        <button class="atras" id="atras" aria-label="Volver">${ICONO.atras}</button>
+        <h1 id="titulo">Conserje<small id="sub">cargando…</small></h1>
+      </header>
+      <main class="cuerpo" id="hilo"></main>
+      <footer class="caja" id="caja">
+        <p class="aviso-mejora" id="aviso-mejora" hidden>Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.</p>
+        <div class="fila-caja">
+          <textarea id="texto" rows="1" placeholder="Dile qué hay que hacer" aria-label="Mensaje al conserje"></textarea>
+          <button class="enviar" id="enviar" aria-label="Enviar">${ICONO.subir}</button>
+        </div>
+        <div class="pastillas">
+          <button class="pastilla" id="mejorar">${ICONO.chispa}<span>Mejorar</span></button>
+          <label class="pastilla" title="Con qué piensa el conserje. Las sesiones que abre las elige el router.">${ICONO.chispa}<select id="cerebro" aria-label="Con qué modelo piensa el conserje">
+            <option value="haiku">Conserje: Claude Haiku</option>
+            <option value="sonnet">Conserje: Claude Sonnet</option>
+            <option value="opus">Conserje: Claude Opus</option>
+          </select></label>
+          <button class="pastilla" id="router" data-on="true">${ICONO.diana}<span>Router: automático</span></button>
+        </div>
+      </footer>
+    </div>`;
+  document.getElementById("atras").addEventListener("click", () => ir({ vista: "lista" }));
+  const texto = document.getElementById("texto");
+  const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
+  texto.addEventListener("input", () => {
+    crecer();
+    // En cuanto lo tocas es tuyo: ya no hay nada que deshacer.
+    e.antes = null;
+    pintarCaja();
+  });
+  document.getElementById("enviar").addEventListener("click", () => (e.enCurso?.pensando ? parar() : enviar()));
+  document.getElementById("mejorar").addEventListener("click", mejorar);
+  document.getElementById("router").addEventListener("click", alternarRouter);
+  document.getElementById("cerebro").addEventListener("change", (ev) => elegirCerebro(ev.target.value));
+  e.crecer = crecer;
+  pintarHilo();
+  pintarCaja();
+  cargarHilo().catch((err) => mostrarFallo(err.message));
+}
+
+async function cargarHilo() {
+  const v = await api("GET", `/api/conversacion?id=${encodeURIComponent(e.id)}`);
+  if (e.vista !== "hilo") return;
+  e.conv = v.conversacion;
+  e.vivo = v.vivo || {};
+  e.enCurso = e.vivo.en_curso || null;
+  if (e.pendiente && e.conv.turnos.some((t) => t.rol === "tu" && t.texto === e.pendiente)) {
+    if (!e.enCurso || !e.enCurso.pensando) e.pendiente = null;
+  }
+  pintarHilo();
+  pintarCaja();
+  // Deprisa mientras piensa o alguna sesión trabaja; despacio si todo está quieto.
+  const trabaja = Object.values(e.vivo.estados || {}).some((x) => x === "trabajando");
+  sondear(e.enCurso?.pensando || e.pendiente ? 2000 : trabaja ? 4000 : 10000, cargarHilo);
+}
+
+function tarjeta(w) {
+  const estado = (e.vivo?.estados || {})[claveDe(w)] || "cerrada";
+  const porque = w.eligio === "router" ? `<b>Lo eligió el router.</b> ${esc(w.porque)}` : "<b>Elegido por ti: el router estaba apagado.</b>";
+  const encargo = w.encargo.length > 180 ? `${w.encargo.slice(0, 180)}…` : w.encargo;
+  return `<button class="tarjeta" data-estado="${estado}" data-clave="${esc(claveDe(w))}">
+    <span class="tarjeta-cab"><b>${esc(hoja(w.carpeta))} · ${esc(nombreDe(w))}</b><span class="estado"><i></i>${PALABRA[estado] || estado}</span></span>
+    <span class="para">${esc(encargo)}</span>
+    <span class="porque">${porque}</span>
+  </button>`;
+}
+
+function pintarHilo() {
+  const hilo = document.getElementById("hilo");
+  if (!hilo) return;
+  const conv = e.conv;
+  const titulo = document.getElementById("titulo");
+  if (conv) {
+    const vivas = conv.trabajos.filter((w) => !w.soltado && (e.vivo?.estados || {})[claveDe(w)] && (e.vivo.estados[claveDe(w)] !== "cerrada")).length;
+    titulo.innerHTML = `${esc(conv.titulo || "Conserje")}<small>${vivas === 0 ? "nada en marcha" : vivas === 1 ? "1 sesión en marcha" : `${vivas} sesiones en marcha`} · ${conv.router ? "el router elige el de cada sesión" : "el router está apagado"}</small>`;
+  }
+  const abajo = hilo.scrollHeight - hilo.scrollTop - hilo.clientHeight < 60;
+  let html = "";
+  if (conv && !conv.turnos.length && !e.pendiente) {
+    html += `<p class="vacio">Dime qué hay que hacer. Lo parto en trabajos y abro una sesión para cada uno en tu PC; aquí verás cómo va cada una.</p>`;
+  }
+  const colocadas = new Set();
+  for (const t of conv?.turnos || []) {
+    html += `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}</div></div>`;
+    if (t.rol === "conserje") {
+      for (const w of conv.trabajos.filter((x) => x.turno === t.n)) { html += tarjeta(w); colocadas.add(claveDe(w)); }
+    }
+  }
+  for (const w of (conv?.trabajos || []).filter((x) => !colocadas.has(claveDe(x)))) html += tarjeta(w);
+  if (e.pendiente && !(conv?.turnos || []).some((t) => t.rol === "tu" && t.texto === e.pendiente)) {
+    html += `<div class="turno" data-rol="tu"><div class="burbuja">${md(e.pendiente)}</div></div>`;
+  }
+  if (e.enCurso?.pensando || (e.pendiente && !e.enCurso)) {
+    html += `<p class="pensando"><i></i>${esc(e.enCurso?.paso || "Pensando…")}</p>`;
+  }
+  if (e.enCurso?.aviso && !e.enCurso.pensando) {
+    html += `<p class="nota"><b>Esto no lo he hecho:</b> ${esc(e.enCurso.aviso)}</p>`;
+  }
+  if (e.enCurso?.error && !e.enCurso.pensando) {
+    html += `<p class="nota"><b>No he podido contestar.</b> ${esc(e.enCurso.error)}<button class="mini" id="reintentar">Reintentar</button></p>`;
+  }
+  if (e.fallo) html += `<p class="nota">${esc(e.fallo)}</p>`;
+  if (e.vivo?.error) html += `<p class="nota">No sé cómo va cada sesión: ${esc(e.vivo.error)}</p>`;
+  hilo.innerHTML = html;
+  hilo.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => abrirSesion(b.dataset.clave)));
+  const re = document.getElementById("reintentar");
+  if (re) re.addEventListener("click", () => enviar(e.enCurso.texto));
+  if (abajo) hilo.scrollTop = hilo.scrollHeight;
+}
+
+function pintarCaja() {
+  const caja = document.getElementById("caja");
+  if (!caja) return;
+  const texto = document.getElementById("texto");
+  const pensando = !!e.enCurso?.pensando;
+  caja.dataset.mejorado = String(e.antes != null);
+  document.getElementById("aviso-mejora").hidden = e.antes == null;
+  const enviarB = document.getElementById("enviar");
+  enviarB.innerHTML = pensando ? ICONO.parar : ICONO.subir;
+  enviarB.setAttribute("aria-label", pensando ? "Parar" : "Enviar");
+  enviarB.disabled = !pensando && !texto.value.trim();
+  const mejorarB = document.getElementById("mejorar");
+  mejorarB.innerHTML = e.antes != null ? `${ICONO.deshacer}<span>Deshacer</span>` : `${ICONO.chispa}<span>${e.mejorando ? "Mejorando…" : "Mejorar"}</span>`;
+  mejorarB.disabled = !!e.mejorando || (e.antes == null && !texto.value.trim());
+  const cerebro = document.getElementById("cerebro");
+  const elegido = ["haiku", "sonnet", "opus"].includes(e.conv?.cerebro) ? e.conv.cerebro : "sonnet";
+  if (document.activeElement !== cerebro) cerebro.value = elegido;
+  const routerB = document.getElementById("router");
+  const on = e.conv ? e.conv.router : true;
+  routerB.dataset.on = String(on);
+  routerB.innerHTML = `${ICONO.diana}<span>${on ? "Router: automático" : "Router: apagado"}</span>`;
+}
+
+function mostrarFallo(mensaje) {
+  e.fallo = mensaje;
+  pintarHilo();
+}
+
+async function enviar(repetir) {
+  const texto = document.getElementById("texto");
+  const txt = (repetir ?? texto.value).trim();
+  if (!txt) return;
+  if (repetir === undefined) { texto.value = ""; e.antes = null; e.crecer?.(); }
+  e.pendiente = txt;
+  e.fallo = null;
+  e.enCurso = { pensando: true, paso: "Mandándolo a tu PC…" };
+  pintarHilo();
+  pintarCaja();
+  try {
+    await api("POST", "/api/enviar", { id: e.id, texto: txt });
+  } catch (err) {
+    e.enCurso = null;
+    e.pendiente = null;
+    if (repetir === undefined) { texto.value = txt; e.crecer?.(); }
+    mostrarFallo(err.message);
+    pintarCaja();
+    return;
+  }
+  cargarHilo().catch((err) => mostrarFallo(err.message));
+}
+
+async function parar() {
+  await api("POST", "/api/parar", { id: e.id }).catch(() => {});
+  cargarHilo().catch(() => {});
+}
+
+async function mejorar() {
+  const texto = document.getElementById("texto");
+  if (e.antes != null) {
+    texto.value = e.antes;
+    e.antes = null;
+    e.crecer?.();
+    pintarCaja();
+    return;
+  }
+  const original = texto.value;
+  if (!original.trim()) return;
+  e.mejorando = true;
+  pintarCaja();
+  try {
+    const v = await api("POST", "/api/mejorar", { texto: original });
+    texto.value = v.texto;
+    e.antes = original;
+    e.crecer?.();
+  } catch (err) {
+    mostrarFallo(err.message);
+  } finally {
+    e.mejorando = false;
+    pintarCaja();
+  }
+}
+
+async function elegirCerebro(cerebro) {
+  try {
+    await api("POST", "/api/cerebro", { id: e.id, cerebro });
+    await cargarHilo();
+  } catch (err) {
+    mostrarFallo(err.message);
+  }
+}
+
+async function alternarRouter() {
+  const on = e.conv ? e.conv.router : true;
+  try {
+    await api("POST", "/api/router", { id: e.id, encendido: !on });
+    await cargarHilo();
+  } catch (err) {
+    mostrarFallo(err.message);
+  }
+}
+
+// ─── Una sesión, para leerla ────────────────────────────────────────────────
+
+function abrirSesion(cl) {
+  const w = (e.conv?.trabajos || []).find((x) => claveDe(x) === cl);
+  if (!w) return;
+  const sid = (e.vivo?.sesiones || {})[cl] || w.sesion;
+  ir({ vista: "sesion", w, sid, volver: { id: e.id } });
+}
+
+function pintarSesion() {
+  const w = e.w;
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra">
+        <button class="atras" id="atras" aria-label="Volver al conserje">${ICONO.atras}</button>
+        <h1>${esc(hoja(w.carpeta))}<small>${esc(nombreDe(w))} · ${esc(w.encargo)}</small></h1>
+      </header>
+      <main class="cuerpo" id="sesion"></main>
+      <p class="solo-lectura">Solo para leer. Si quieres decirle algo, díselo al conserje.</p>
+    </div>`;
+  document.getElementById("atras").addEventListener("click", () => ir({ vista: "hilo", id: e.volver.id }));
+  const cuerpo = document.getElementById("sesion");
+  if (!e.sid) {
+    cuerpo.innerHTML = `<p class="vacio">Esta sesión todavía no ha escrito nada. En cuanto empiece, aparece aquí.</p>`;
+    return;
+  }
+  const cargar = async () => {
+    const turnos = await api("GET", `/api/sesion?cwd=${encodeURIComponent(w.carpeta)}&id=${encodeURIComponent(e.sid)}`);
+    const aqui = document.getElementById("sesion");
+    if (!aqui) return;
+    const abajo = aqui.scrollHeight - aqui.scrollTop - aqui.clientHeight < 60;
+    aqui.innerHTML = turnos.length
+      ? turnos.map((t) => `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}${t.herramientas?.length ? `<span class="herramientas">${esc(t.herramientas.join(" · "))}</span>` : ""}</div></div>`).join("")
+      : `<p class="vacio">Todavía no hay nada que leer.</p>`;
+    if (abajo) aqui.scrollTop = aqui.scrollHeight;
+  };
+  cargar().catch((err) => { cuerpo.innerHTML = `<p class="nota">${esc(err.message)}</p>`; });
+  sondear(5000, cargar);
+}
+
+pintar();
+</script>
+</body>
+</html>

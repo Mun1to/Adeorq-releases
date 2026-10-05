@@ -1747,6 +1747,50 @@ const EN: Record<string, string> = {
   Galería: "Gallery",
   "lo que has pegado": "what you have pasted",
   "Volver a mirar": "Look again",
+  // El modelo con el que piensa el conserje (`Conserje.tsx`).
+  "Conserje: {m}": "Concierge: {m}",
+  "El modelo con el que piensa el conserje. El de las sesiones que abre lo elige el router.":
+    "The model the concierge thinks with. The router picks the one for the sessions it opens.",
+  "Rápido y barato; entiende peor un encargo enredado.": "Fast and cheap; reads a tangled request less well.",
+  "El de siempre: entiende bien y no tarda.": "The usual one: understands well and is quick.",
+  "Piensa más el reparto; tarda más y gasta más.": "Thinks the split through more; slower and costlier.",
+  // Ajustes > Móvil (`AjustesMovil.tsx`).
+  "Móvil": "Mobile",
+  "El conserje en el móvil": "The concierge on your phone",
+  "Habla con el conserje desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí. Desde el móvil hablas con el conserje y lees sus sesiones; ninguna terminal.":
+    "Talk to the concierge from your phone, wherever you are. It travels over Tailscale, a private network between your devices: it cannot be seen from the internet, and only the phones you pair here get in. From the phone you talk to the concierge and read its sessions; no terminals.",
+  "Conserje en el móvil": "Concierge on my phone",
+  "El puerto {p} lo tiene otro programa (¿otra Adeorq abierta?), así que el móvil no llega.":
+    "Port {p} is taken by another program (another Adeorq open?), so the phone cannot reach it.",
+  "1. Tailscale, en este PC y en tu móvil": "1. Tailscale, on this PC and on your phone",
+  "Mirando Tailscale…": "Checking Tailscale…",
+  "Tailscale no está instalado en este PC.": "Tailscale is not installed on this PC.",
+  "Instálalo aquí y en tu móvil, entra con la misma cuenta en los dos y vuelve. Es gratis para uso personal.":
+    "Install it here and on your phone, sign in with the same account on both, and come back. It is free for personal use.",
+  "Descargar Tailscale": "Download Tailscale",
+  "Tailscale está instalado pero sin sesión: ábrelo y entra con tu cuenta.":
+    "Tailscale is installed but signed out: open it and sign in.",
+  "Tailscale conectado.": "Tailscale connected.",
+  "Pulsa para que Tailscale lleve el conserje a tu red. Solo hace falta una vez: se queda puesto aunque reinicies. La primera vez puede pedirte activar HTTPS en tu cuenta; si sale un enlace, ábrelo, actívalo y vuelve a pulsar.":
+    "Press to have Tailscale bring the concierge to your network. You only do it once: it stays set even after a restart. The first time it may ask you to enable HTTPS on your account; if a link shows up, open it, enable it and press again.",
+  "Conectando…": "Connecting…",
+  "Llevar el conserje a Tailscale": "Bring the concierge to Tailscale",
+  "Abrir el enlace de Tailscale": "Open the Tailscale link",
+  "2. Empareja tu móvil": "2. Pair your phone",
+  "En el móvil, abre {d} y escribe el código que salga aquí.": "On your phone, open {d} and type the code shown here.",
+  "Cuando el paso 1 esté hecho, aquí saldrá la dirección que abrir en el móvil.":
+    "Once step 1 is done, the address to open on your phone will show up here.",
+  "El conserje ya está en tu red de Tailscale.": "The concierge is already on your Tailscale network.",
+  "En su mismo puerto de Tailscale hay otra cosa ({a}): comparte dirección con el conserje y podría leer la clave del móvil. Quítala de tailscale serve.":
+    "Something else is on the same Tailscale port ({a}): it shares the concierge's address and could read the phone's key. Remove it from tailscale serve.",
+  "El puerto {p} de Tailscale ya lo usa otra cosa ({a}), y no la piso. Quítala con «tailscale serve --https={p} off» y vuelve a pulsar.":
+    "Tailscale port {p} is already used by something else ({a}), and I won't overwrite it. Remove it with “tailscale serve --https={p} off” and press again.",
+  "Tailscale no deja a tu usuario ponerlo. Ejecuta una vez «sudo tailscale set --operator=$USER» y vuelve a pulsar.":
+    "Tailscale won't let your user set it up. Run “sudo tailscale set --operator=$USER” once and press again.",
+  "Vale {m}:{s}": "Valid for {m}:{s}",
+  "Emparejar un móvil": "Pair a phone",
+  "Móviles emparejados": "Paired phones",
+  "visto {c}": "seen {c}",
   "Mirando…": "Looking…",
   "Aquí aparecerán las capturas que pegues en el lienzo con Ctrl+V.":
     "Screenshots you paste on the canvas with Ctrl+V will show up here.",
@@ -2358,7 +2402,7 @@ const EN: Record<string, string> = {
   "{n} han terminado": "{n} finished",
   "{n} trabajando": "{n} working",
   "dime qué hacemos": "tell me what to do",
-  "el router elige el modelo": "the router picks the model",
+  "el router elige el de cada sesión": "the router picks each session's",
   "el router está apagado": "the router is off",
   "Router: automático": "Router: automatic",
   "Router: apagado": "Router: off",

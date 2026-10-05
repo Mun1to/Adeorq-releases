@@ -58,6 +58,10 @@ async (page) => {
       arranque: 0, soltado: false,
     }]);
     const ARRANQUE = Date.now();
+    const movil = {
+      encendido: false, sirviendo: false, puerto: 3013, codigo: null,
+      dispositivos: [{ id: "a1b2c3d4", nombre: "Android", creado: ahora - 86400, visto: ahora - 600 }],
+    };
 
     const llamadas = [];
     window.__llamadas = llamadas;
@@ -90,6 +94,7 @@ async (page) => {
             .map(({ c, ultimo }) => ({ id: c.id, titulo: c.titulo, cuando: ultimo, trabajos: c.trabajos.length }));
         case "conserje_leer": return JSON.parse(JSON.stringify(nueva(args.id)));
         case "conserje_router": nueva(args.id).router = args.encendido; return null;
+        case "conserje_cerebro": nueva(args.id).cerebro = args.cerebro; return null;
         case "conserje_mejorar":
           return tarde(500, "Dos encargos, por orden:\n1. El radar se cae cada dos horas: busca la causa.\n2. El scroll de las terminales: mira qué pasa.");
         case "conserje_enviar": {
@@ -150,6 +155,30 @@ async (page) => {
           const sid = linea.match(/--session-id\s+([0-9a-f-]{8,})/i)?.[1];
           if (sid) window.__sesiones.push({ id: sid, cwd: args.cwd, title: "Sesión abierta por el conserje", project: args.cwd.split("\\").pop() });
           return null;
+        }
+        // Ajustes > Móvil, como `movil.rs`. Lo que diga Tailscale se elige con
+        // `window.__ts` antes de abrir la sección: "falta", "sin-sesion",
+        // "ajeno" (otra cosa en su puerto), "denegado" (Linux sin operador) o nada:
+        // conectado; la primera vez que se lleva pide activar HTTPS y no pone
+        // nada, y la segunda ya queda puesto.
+        case "movil_estado": return JSON.parse(JSON.stringify(movil));
+        case "movil_encender": movil.encendido = args.encendido; movil.sirviendo = args.encendido; return JSON.parse(JSON.stringify(movil));
+        case "movil_emparejar": movil.codigo = { valor: "482913", quedan: 600 }; return movil.codigo;
+        case "movil_olvidar": movil.dispositivos = movil.dispositivos.filter((d) => d.id !== args.id); return JSON.parse(JSON.stringify(movil));
+        case "movil_tailscale": {
+          const base = { instalado: true, conectado: true, llevado: false, direccion: "https://portatil-munito.tail4c2e1.ts.net:8443", ajeno: null, denegado: false, salida: "" };
+          if (window.__ts === "falta") return { ...base, instalado: false, conectado: false, direccion: null };
+          if (window.__ts === "sin-sesion") return { ...base, conectado: false, direccion: null };
+          if (window.__ts === "ajeno") return tarde(700, { ...base, ajeno: "/ → http://127.0.0.1:5173" });
+          if (window.__ts === "denegado") return tarde(700, { ...base, denegado: args.conectar, salida: args.conectar ? "sending serve config: Access denied: serve config denied" : "" });
+          if (window.__tsPuesto) return tarde(300, { ...base, llevado: true });
+          if (!args.conectar) return tarde(300, base);
+          if (!window.__tsYaPidio) {
+            window.__tsYaPidio = true;
+            return tarde(700, { ...base, salida: "Serve is not enabled on your tailnet.\nTo enable, visit:\n\n         https://login.tailscale.com/f/serve?node=nXk3pQ7CNTRL" });
+          }
+          window.__tsPuesto = true;
+          return tarde(700, { ...base, llevado: true });
         }
         case "conserje_parar":
         case "pty_write":

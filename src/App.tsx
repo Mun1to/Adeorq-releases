@@ -13,6 +13,8 @@ import PanelView from "./components/PanelView";
 import Foreman, { type ForemanExec } from "./components/Foreman";
 import AvisoCuota from "./components/AvisoCuota";
 import PedirSecreto from "./components/PedirSecreto";
+import PuenteMovil from "./components/PuenteMovil";
+import type { ConserjeExec } from "./lib/conserje";
 import Vigia from "./components/Vigia";
 import WebAuto from "./components/WebAuto";
 import Copiloto from "./components/Copiloto";
@@ -3476,6 +3478,19 @@ function App() {
     },
   };
 
+  /** Las manos del conserje, las mismas para el Chat y para el móvil. */
+  const conserjeExec: ConserjeExec = {
+    // Sin moverte de donde estés: el conserje abre mientras hablas con él.
+    abrir: (r, cwd, label, encargo) => openReceta(r, cwd, label, encargo, undefined, undefined, { quieto: true }),
+    // Igual que `enviarAlChat`: el texto y el Enter juntos.
+    escribir: (panel, texto) =>
+      writePty(panel, `${texto}\r`)
+        .then(() => true)
+        .catch(() => false),
+    panes: foremanExec.panes,
+    cuentas: foremanExec.cuentas,
+  };
+
   /* `beta` marca lo que todavía no está terminado. No es adorno: quien abre una
      sección sin saberlo la juzga como si estuviera acabada, y luego no vuelve. */
   const tabs: Array<{ key: View; icon: React.ReactElement; label: string; beta?: boolean }> = [
@@ -3541,6 +3556,9 @@ function App() {
           siempre y sin pintar nada hasta que llega la petición, como el aviso
           de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
       <PedirSecreto />
+      {/* Lo que pide el conserje desde el móvil. Montado siempre: el móvil no
+          sabe en qué pantalla está la ventana. Ver `lib/movil.ts`. */}
+      <PuenteMovil exec={conserjeExec} />
 
       <AvisoCuota
         cuentas={cuentasConCuota}
@@ -4234,18 +4252,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onAbrirArchivo={abrirArchivo}
           onWeb={abrirWeb}
           onUsage={usageDeSesion}
-          conserjeExec={{
-            // Sin moverte del chat: el conserje abre mientras hablas con él.
-            abrir: (r, cwd, label, encargo) =>
-              openReceta(r, cwd, label, encargo, undefined, undefined, { quieto: true }),
-            // Igual que `enviarAlChat`: el texto y el Enter juntos.
-            escribir: (panel, texto) =>
-              writePty(panel, `${texto}\r`)
-                .then(() => true)
-                .catch(() => false),
-            panes: foremanExec.panes,
-            cuentas: foremanExec.cuentas,
-          }}
+          conserjeExec={conserjeExec}
         />
       )}
       {view === "agenda" && (

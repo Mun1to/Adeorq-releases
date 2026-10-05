@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.162"
+version = "0.9.163"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["you"]
 edition = "2021"
@@ -41,6 +41,11 @@ reqwest = { version = "0.13", default-features = false, features = ["json", "rus
 # El mp3 de la voz del Asistente viaja al front como data URL. Ya estaba en el
 # árbol (lo traen tauri y reqwest), así que no añade nada nuevo a los avisos.
 base64 = "0.22"
+# El conserje en el móvil (`movil.rs`): la clave de cada móvil emparejado sale
+# de aleatoriedad del sistema, y en disco solo queda su huella. Los dos ya
+# estaban en el árbol (los traen tauri y reqwest): no añaden nada a los avisos.
+getrandom = "0.3"
+sha2 = "0.10"
 auto-launch = "0.6.0"
 tauri-plugin-dialog = "2"
 

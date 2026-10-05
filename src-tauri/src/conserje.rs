@@ -143,10 +143,30 @@ pub struct Conversacion {
     pub router: bool,
     #[serde(default)]
     pub creada: u64,
+    /// Con qué modelo piensa el PROPIO conserje en esta conversación. El router
+    /// elige el de las sesiones que abre, no este. Munir, 2026-10-05: «¿por qué
+    /// no puedes elegir el modelo del conserje?». Vacío es el de siempre.
+    #[serde(default)]
+    pub cerebro: String,
 }
 
 fn encendido() -> bool {
     true
+}
+
+/// Los modelos con los que puede pensar el conserje. Lista cerrada: el nombre
+/// va a la línea de órdenes de `claude`, así que no entra nada que no esté aquí.
+pub const CEREBROS: [&str; 3] = ["haiku", "sonnet", "opus"];
+
+/// Sonnet por lo mismo que el Capataz (`foreman.rs`): de acertar aquí depende
+/// qué sesiones se abren, y eso no es un recado; pero tampoco hace el trabajo.
+const CEREBRO_POR_DEFECTO: &str = "sonnet";
+
+impl Conversacion {
+    /// El modelo con el que piensa: el elegido si es de la lista, si no el de siempre.
+    pub fn cerebro(&self) -> &'static str {
+        CEREBROS.iter().copied().find(|c| *c == self.cerebro).unwrap_or(CEREBRO_POR_DEFECTO)
+    }
 }
 
 pub fn ahora() -> u64 {
@@ -197,6 +217,21 @@ pub fn guardar(c: &Conversacion) -> Result<(), String> {
     std::fs::rename(&tmp, &p).map_err(|e| e.to_string())
 }
 
+/// Los comandos corren cada uno en su hilo y un envío tarda minutos: sin esto,
+/// lo que cambiaras mientras el conserje piensa (el modelo, el router, una
+/// pestaña cerrada) se perdía al guardar él su respuesta encima.
+static ESCRIBIENDO: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Leer, cambiar y guardar una conversación sin que otro cambio se cuele entre
+/// medias.
+fn cambiar<T>(id: &str, f: impl FnOnce(&mut Conversacion) -> T) -> Result<T, String> {
+    let _cerrojo = ESCRIBIENDO.lock().unwrap_or_else(|e| e.into_inner());
+    let mut c = leer(id)?;
+    let r = f(&mut c);
+    guardar(&c)?;
+    Ok(r)
+}
+
 /// Todas las conversaciones, la más reciente primero, sin sus turnos: para la
 /// lista de la izquierda no hace falta leer cien mil caracteres de cada una.
 pub fn lista() -> Vec<(String, String, u64, usize)> {
@@ -210,6 +245,11 @@ pub fn lista() -> Vec<(String, String, u64, usize)> {
         }
         let Ok(s) = std::fs::read_to_string(&p) else { continue };
         let Ok(c) = serde_json::from_str::<Conversacion>(&s) else { continue };
+        // Elegir el modelo o el router antes de hablar ya guarda el fichero:
+        // sin un solo mensaje, en la lista sería una fila vacía.
+        if c.turnos.is_empty() {
+            continue;
+        }
         let ultimo = c.turnos.last().map(|t| t.cuando).unwrap_or(c.creada);
         fuera.push((c.id, c.titulo, ultimo, c.trabajos.len()));
     }
@@ -689,35 +729,27 @@ pub fn conserje_leer(id: String) -> Result<Conversacion, String> {
 /// El interruptor del router, que es de cada conversación.
 #[tauri::command(async)]
 pub fn conserje_router(id: String, encendido: bool) -> Result<(), String> {
-    let mut c = leer(&id)?;
-    c.router = encendido;
-    guardar(&c)
+    cambiar(&id, |c| c.router = encendido)
 }
 
 /// La app apunta aquí la sesión que acaba de abrir por orden del conserje:
 /// así se convierte en una pestaña y el conserje la ve en su contexto.
 #[tauri::command(async)]
 pub fn conserje_trabajo(id: String, trabajo: Trabajo) -> Result<(), String> {
-    let mut c = leer(&id)?;
-    c.apuntar_trabajo(trabajo);
-    guardar(&c)
+    cambiar(&id, |c| c.apuntar_trabajo(trabajo))
 }
 
 /// El id de la sesión de una pestaña, en cuanto el panel lo dice: es lo que
 /// deja volver a ella cuando el panel ya se cerró.
 #[tauri::command(async)]
 pub fn conserje_sesion(id: String, panel: u32, arranque: u64, sesion: String) -> Result<(), String> {
-    let mut c = leer(&id)?;
-    c.apuntar_sesion(panel, arranque, &sesion);
-    guardar(&c)
+    cambiar(&id, |c| c.apuntar_sesion(panel, arranque, &sesion))
 }
 
 /// Quitar una pestaña (la sesión se cerró). La tarjeta se queda en el hilo.
 #[tauri::command(async)]
 pub fn conserje_soltar(id: String, panel: u32, arranque: u64) -> Result<(), String> {
-    let mut c = leer(&id)?;
-    c.soltar(panel, arranque);
-    guardar(&c)
+    cambiar(&id, |c| c.soltar(panel, arranque))
 }
 
 /// El arranque de ahora, para que el front sepa qué pestañas son de su panel.
@@ -733,22 +765,54 @@ pub fn conserje_olvidar(id: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Con qué cerebro piensa el conserje. Sonnet por lo mismo que el Capataz
-/// (`foreman.rs`): de acertar aquí depende qué sesiones se abren, y eso no es
-/// un recado; pero tampoco hace el trabajo, así que Opus sería pagar de más y
-/// esperar de más.
-const MODELO_CONSERJE: &str = "sonnet";
+/// Con qué modelo piensa el conserje en esta conversación (ver `cerebro`).
+#[tauri::command(async)]
+pub fn conserje_cerebro(id: String, cerebro: String) -> Result<(), String> {
+    if !CEREBROS.contains(&cerebro.as_str()) {
+        return Err(format!("«{cerebro}» no es un modelo con el que pueda pensar el conserje"));
+    }
+    cambiar(&id, |c| c.cerebro = cerebro)
+}
 
 /// Más que una llamada suelta: el conserje mira antes de hablar, y a veces
 /// repasa un turno viejo o busca en la memoria.
 const TIEMPO_CONSERJE: std::time::Duration = std::time::Duration::from_secs(180);
 
-static PARAR: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+/// Las conversaciones que están pensando ahora, cada una con su botón de parar.
+/// Una sola por conversación: el PC y el móvil podían mandar a la vez, y la que
+/// acababa última borraba los turnos de la otra.
+static EN_CURSO: std::sync::Mutex<Vec<(String, std::sync::Arc<std::sync::atomic::AtomicBool>)>> =
+    std::sync::Mutex::new(Vec::new());
 
-/// El botón de parar del chat.
+/// Mientras vive, esa conversación está pensando; al soltarse (con respuesta,
+/// con error o parada) deja de estarlo.
+struct Pensando(String);
+
+impl Pensando {
+    fn empezar(id: &str) -> Result<(Self, std::sync::Arc<std::sync::atomic::AtomicBool>), String> {
+        let mut en_curso = EN_CURSO.lock().unwrap_or_else(|e| e.into_inner());
+        if en_curso.iter().any(|(i, _)| i == id) {
+            return Err("el conserje todavía está con lo anterior en esta conversación".into());
+        }
+        let parar = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        en_curso.push((id.to_string(), parar.clone()));
+        Ok((Pensando(id.to_string()), parar))
+    }
+}
+
+impl Drop for Pensando {
+    fn drop(&mut self) {
+        EN_CURSO.lock().unwrap_or_else(|e| e.into_inner()).retain(|(i, _)| *i != self.0);
+    }
+}
+
+/// El botón de parar del chat: solo para la conversación que lo pulsa.
 #[tauri::command]
-pub fn conserje_parar() {
-    PARAR.store(true, std::sync::atomic::Ordering::Relaxed);
+pub fn conserje_parar(id: String) {
+    let en_curso = EN_CURSO.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((_, parar)) = en_curso.iter().find(|(i, _)| *i == id) {
+        parar.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 /// Un mensaje al conserje. Lo que dice vuelve en la respuesta; lo que va
@@ -768,12 +832,13 @@ pub async fn conserje_enviar(
     if texto.is_empty() {
         return Err("no hay nada que mandar".into());
     }
-    let mut conv = leer(&id)?;
+    let (_pensando, parar) = Pensando::empezar(&id)?;
     // El contexto se arma ANTES de apuntar el mensaje nuevo: va aparte, al
-    // final del prompt, y si no saldría dos veces.
-    let contexto = conv.preparar(&texto, &|p| estados.get(&p.to_string()).cloned().unwrap_or_default());
-    // Lo tuyo se guarda YA: si la llamada falla, lo que dijiste no se pierde.
-    guardar(&conv)?;
+    // final del prompt, y si no saldría dos veces. Y lo tuyo se guarda YA: si
+    // la llamada falla, lo que dijiste no se pierde.
+    let (contexto, modelo) = cambiar(&id, |c| {
+        (c.preparar(&texto, &|p| estados.get(&p.to_string()).cloned().unwrap_or_default()), c.cerebro())
+    })?;
 
     let prompt = format!(
         "{SISTEMA}\n\n## Esta conversación\nconversacion: {id}\n\n{contexto}\n\n## Lo que te dice Munir ahora\n{texto}"
@@ -784,17 +849,20 @@ pub async fn conserje_enviar(
         use tauri::Emitter;
         let _ = app.emit("conserje-paso", serde_json::json!({ "id": id2, "paso": paso }));
     });
-    let bruta = tauri::async_runtime::spawn_blocking(move || correr(&prompt, Some(&cfg), pasos))
+    let bruta = tauri::async_runtime::spawn_blocking(move || correr(&prompt, modelo, Some(&cfg), &parar, pasos))
         .await
         .map_err(|e| e.to_string())??;
 
     let (dice, acciones, resumen, mut descartes) = leer_respuesta(&bruta);
     let raiz = crate::workspace::raiz_por_defecto();
-    let (acciones, fuera) = filtrar(acciones, &conv, &raiz, &|p| p.is_dir());
-    descartes.extend(fuera);
     let dice = if dice.is_empty() { "Hecho.".to_string() } else { dice };
-    conv.apuntar("conserje", &dice, &resumen);
-    guardar(&conv)?;
+    // Sobre la conversación de AHORA, no la de hace un minuto.
+    let acciones = cambiar(&id, |conv| {
+        let (acciones, fuera) = filtrar(acciones, conv, &raiz, &|p| p.is_dir());
+        descartes.extend(fuera);
+        conv.apuntar("conserje", &dice, &resumen);
+        acciones
+    })?;
     Ok(Respuesta { texto: dice, acciones, descartes })
 }
 
@@ -811,16 +879,17 @@ pub async fn conserje_enviar(
 /// conserje contesta sin herramientas. `pasos` recibe lo que va haciendo.
 fn correr(
     prompt: &str,
+    modelo: &str,
     cfg: Option<&std::path::Path>,
+    parar: &std::sync::atomic::AtomicBool,
     pasos: Box<dyn Fn(String) + Send>,
 ) -> Result<String, String> {
     use crate::SinVentana;
     use std::io::BufRead;
 
-    PARAR.store(false, std::sync::atomic::Ordering::Relaxed);
     let sesion = crate::foreman::SinRastro::nueva();
     let mut cmd = std::process::Command::new(crate::foreman::claude_exe());
-    cmd.args(["-p", prompt, "--model", MODELO_CONSERJE, "--output-format", "stream-json", "--verbose"])
+    cmd.args(["-p", prompt, "--model", modelo, "--output-format", "stream-json", "--verbose"])
         .args(["--session-id", sesion.id()])
         .arg("--strict-mcp-config");
     if let Some(cfg) = cfg {
@@ -869,7 +938,7 @@ fn correr(
 
     let inicio = std::time::Instant::now();
     loop {
-        if PARAR.swap(false, std::sync::atomic::Ordering::Relaxed) {
+        if parar.load(std::sync::atomic::Ordering::Relaxed) {
             let _ = child.kill();
             let _ = child.wait();
             return Err("parado".into());
@@ -1058,6 +1127,35 @@ mod tests {
         let mut c = Conversacion { id: "t".into(), ..Default::default() };
         c.apuntar("tu", "Quiero que arregles el scroll de las terminales. Y luego lo otro.", "");
         assert_eq!(c.titulo, "Quiero que arregles el scroll de las terminales");
+    }
+
+    /// Desde el PC y desde el móvil a la vez: la segunda se rechaza en vez de
+    /// pisar los turnos de la primera, y Parar solo toca la suya.
+    #[test]
+    fn una_conversacion_piensa_de_una_en_una_y_se_para_sola() {
+        use std::sync::atomic::Ordering;
+        let (a, parar_a) = Pensando::empezar("banco-una-en-una-a").unwrap();
+        let (_b, parar_b) = Pensando::empezar("banco-una-en-una-b").unwrap();
+        assert!(Pensando::empezar("banco-una-en-una-a").is_err(), "dos envíos a la vez a la misma");
+        conserje_parar("banco-una-en-una-b".into());
+        assert!(parar_b.load(Ordering::Relaxed));
+        assert!(!parar_a.load(Ordering::Relaxed), "parar la B no para la A");
+        drop(a);
+        assert!(Pensando::empezar("banco-una-en-una-a").is_ok(), "al acabar se puede volver a mandar");
+    }
+
+    /// El modelo del conserje: el elegido si es de la lista; si no, ni vacío ni
+    /// inventado llegan a la línea de órdenes, sale el de siempre.
+    #[test]
+    fn el_conserje_piensa_con_el_modelo_elegido_y_solo_con_uno_de_la_lista() {
+        let mut c = Conversacion::default();
+        assert_eq!(c.cerebro(), "sonnet", "sin elegir, el de siempre");
+        c.cerebro = "opus".into();
+        assert_eq!(c.cerebro(), "opus");
+        c.cerebro = "opus --dangerously-skip-permissions".into();
+        assert_eq!(c.cerebro(), "sonnet", "lo que no es de la lista no pasa");
+        let viejo: Conversacion = serde_json::from_str(r#"{"id":"x"}"#).unwrap();
+        assert_eq!(viejo.cerebro(), "sonnet", "una conversación de antes del campo sigue igual");
     }
 
     /// Lo que devuelve Mejorar: cabecera y lista. Antes el título y el índice
@@ -1321,9 +1419,15 @@ mod tests {
     /// de Adeorq, que en un test no hay ventana a la que hablar.
     ///
     /// `cargo test --lib el_conserje_de_verdad -- --ignored --nocapture`
+    ///
+    /// Con otro cerebro, `CEREBRO=opus` (o `haiku`) delante: el formato lo tiene
+    /// que cumplir cualquiera de los que se pueden elegir, no solo el de fábrica.
     #[test]
     #[ignore]
     fn el_conserje_de_verdad_contesta_en_su_formato() {
+        let cerebro = std::env::var("CEREBRO").unwrap_or_default();
+        let cerebro = CEREBROS.iter().copied().find(|m| *m == cerebro).unwrap_or(CEREBRO_POR_DEFECTO);
+        println!("piensa con {cerebro}");
         let mut c = Conversacion { id: "banco".into(), router: true, ..Default::default() };
         c.apuntar("tu", "hola, soy Munir", "saludo");
         c.apuntar("conserje", "Hola, dime qué hacemos.", "saludé");
@@ -1333,17 +1437,21 @@ mod tests {
             c.contexto(&|_| String::new())
         );
         let inicio = std::time::Instant::now();
-        let bruta = correr(&prompt, None, Box::new(|p| println!("  paso: {p}"))).expect("el conserje no contestó");
+        let parar = std::sync::atomic::AtomicBool::new(false);
+        let bruta = correr(&prompt, cerebro, None, &parar, Box::new(|p| println!("  paso: {p}"))).expect("el conserje no contestó");
         println!("--- contestó en {:.1} s ---\n{bruta}\n---", inicio.elapsed().as_secs_f32());
         let (dice, acciones, resumen, descartes) = leer_respuesta(&bruta);
         let (buenas, fuera) = filtrar(acciones, &c, std::path::Path::new("C:\\proyectos"), &|p| p.is_dir());
         println!("texto: {dice}\nacciones buenas: {buenas:?}\nfuera: {fuera:?}\ndescartes: {descartes:?}\nresumen: {resumen}");
         assert!(!dice.is_empty(), "tiene que decirle algo a Munir");
         assert!(descartes.is_empty(), "el bloque de acciones tiene que ser JSON válido");
-        assert_eq!(
-            buenas.iter().filter(|a| matches!(a, Accion::Abrir { .. })).count(),
-            2,
-            "son dos trabajos distintos: dos sesiones"
+        // Son dos trabajos distintos: dos sesiones. «Lo del scroll» no dice qué
+        // fallo es, y Opus (medido el 2026-10-06) abre el radar y pregunta por el
+        // scroll antes de abrirlo a ciegas; eso también es partirlo bien.
+        let abiertas = buenas.iter().filter(|a| matches!(a, Accion::Abrir { .. })).count();
+        assert!(
+            abiertas == 2 || (abiertas == 1 && dice.contains('?')),
+            "son dos trabajos distintos: dos sesiones, o una y la pregunta por la otra (abrió {abiertas})"
         );
         assert!(!resumen.is_empty() && resumen.chars().count() <= 141, "falta la línea de índice");
 

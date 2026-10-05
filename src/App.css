@@ -7765,6 +7765,74 @@ button.stat-card[data-live="false"] {
   color: var(--text);
 }
 
+/* ── Ajustes > Móvil (`AjustesMovil.tsx`) ─────────────────────────────── */
+.movil-paso {
+  margin: 18px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.movil-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+/* Lo que contestó Tailscale, tal cual: si pide activar algo, trae el enlace. */
+.movil-salida {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chico);
+  background: color-mix(in srgb, var(--row) 70%, transparent);
+  color: var(--muted);
+  font: 12px/1.5 "Cascadia Mono", Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* El código se lee desde el otro lado de la mesa, con el móvil en la mano. */
+.movil-codigo {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 10px 0;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--r-caja);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.movil-codigo strong {
+  font-size: 34px;
+  letter-spacing: 0.28em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.movil-codigo span {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.movil-lista {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.movil-lista li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+.movil-lista li:last-child { border-bottom: 0; }
+.movil-lista li > span { flex: 1; min-width: 0; display: grid; }
+.movil-lista strong { font-size: 13px; }
+.movil-lista em { font-size: 12px; font-style: normal; color: var(--muted); }
+
 .setting-row span:first-child {
   flex: 1;
   min-width: 0;

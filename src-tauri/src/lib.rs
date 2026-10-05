@@ -29,6 +29,7 @@ mod modos_terminal;
 mod memoria_casa;
 mod vectores;
 mod conserje;
+mod movil;
 mod secrets;
 mod sessions;
 mod suelta;
@@ -343,6 +344,9 @@ pub fn run() {
             }
 
             mcp::start_mcp_server(app.handle().clone());
+            // El conserje en el móvil, solo si lo encendiste en Ajustes. Escucha
+            // en 127.0.0.1 y llega al móvil por Tailscale: ver `movil.rs`.
+            movil::cargar(app.handle());
 
             // El significado de las notas de memoria, calculado por detrás.
             //
@@ -385,8 +389,16 @@ pub fn run() {
         // El puente del MCP con la ventana: lo que un agente pide (abrir un
         // panel, unir dos) lo hace React, no Rust. Ver `docs/SUPREMA.md`.
         .manage(mcp::Puente::default())
+        // El móvil: quién está emparejado y el puente con la ventana.
+        .manage(movil::Movil::default())
         .invoke_handler(tauri::generate_handler![
             mcp::mcp_reply,
+            movil::movil_reply,
+            movil::movil_estado,
+            movil::movil_encender,
+            movil::movil_emparejar,
+            movil::movil_olvidar,
+            movil::movil_tailscale,
             mcp::confiar_carpeta,
             pty::pty_spawn,
             pty::pty_write,
@@ -499,6 +511,7 @@ pub fn run() {
             conserje::conserje_lista,
             conserje::conserje_leer,
             conserje::conserje_router,
+            conserje::conserje_cerebro,
             conserje::conserje_trabajo,
             conserje::conserje_soltar,
             conserje::conserje_arranque,

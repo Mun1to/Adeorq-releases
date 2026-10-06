@@ -20,6 +20,7 @@ import {
   claveDe,
   conserjeLeer,
   estadoDe,
+  fijoDe,
   onPaso,
   paneDe,
   type ConserjeExec,
@@ -39,6 +40,10 @@ export interface EstadoMovil {
   encendido: boolean;
   /** Si el hilo tiene el puerto de verdad (otro Adeorq abierto se lo quita). */
   sirviendo: boolean;
+  /** Mientras sirve, el PC no se duerme solo (Windows, enchufado). */
+  despierto: boolean;
+  /** Cuántos móviles pidieron avisos. */
+  avisos: number;
   puerto: number;
   dispositivos: Dispositivo[];
   codigo: { valor: string; quedan: number } | null;
@@ -62,6 +67,9 @@ export const movilEncender = (encendido: boolean) => invoke<EstadoMovil>("movil_
 export const movilEmparejar = () => invoke<{ valor: string; quedan: number }>("movil_emparejar");
 export const movilOlvidar = (id: string) => invoke<EstadoMovil>("movil_olvidar", { id });
 export const movilTailscale = (conectar: boolean) => invoke<Tailscale>("movil_tailscale", { conectar });
+/** Un aviso a los móviles que los pidieron; devuelve a cuántos se intentó. */
+export const movilAvisar = (titulo: string, cuerpo: string, url = "/") =>
+  invoke<number>("movil_avisar", { titulo, cuerpo, url });
 
 /** Lo que llega de Rust. Viene de una petición del móvil: se valida aquí. */
 export interface PedidoMovil {
@@ -112,9 +120,9 @@ export async function atenderPedido(p: PedidoMovil, exec: ConserjeExec): Promise
       const r = await enviarAlConserje(id, texto, {
         exec,
         conv,
-        // Con el router apagado se usa tu modelo por defecto: el que eliges en
-        // la caja del PC vive en esa caja y el móvil no lo ve.
-        fijo: cerebroPorDefecto() ?? "sonnet",
+        // Con el router apagado, el modelo que se fijó en esta conversación
+        // (desde el PC o desde el móvil), y si no el de por defecto.
+        fijo: fijoDe(conv) ?? cerebroPorDefecto() ?? "sonnet",
         alCambio: () => avisarCambio(id),
       });
       enCurso.set(id, { ...estado, pensando: false, paso: "", aviso: r.aviso, error: r.error });

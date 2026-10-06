@@ -19,7 +19,11 @@ suscripciones a pagar tokens por API, que es otro bolsillo y otro negocio.
 **No es un MCP nuevo.** El de Adeorq ya existe (`mcp.rs`, puerto 3012) y ya
 expone las tres primitivas duras: `get_active_panes`, `read_pane_transcript` y
 `send_command`. Una sesión con ese MCP puesto ya puede leer y escribir en las
-demás; lo que le falta es **crear** sesiones y **conectarlas**.
+demás; lo que le falta es **crear** sesiones y **conectarlas**. (Desde la
+0.9.164 hay tres más, salidas de usarlo de verdad: `send_keys` para Escape y
+Ctrl+C, `read_pane_screen` para leer lo que se VE en la pantalla alternativa, y
+`send_command` pulsa el Intro aparte y avisa si el texto se quedó en la caja;
+ver «Escribirle a una sesión desde fuera» en `AGENTS.md`.)
 
 Y el MCP es lo que hace esto multi-proveedor sin esfuerzo: es el único idioma que
 hablan todos los CLIs a la vez, así que la suprema puede ser Codex dirigiendo a
@@ -102,7 +106,8 @@ la suprema lo cuente en su respuesta en vez de quedarse esperando.
 - **Cuesta cuota de verdad.** Un árbol de seis retroalimentándose puede quemar la
   semana en veinte minutos. De ahí los topes.
 - **La suprema lee el terminal, no la mente.** `read_pane_transcript` devuelve el
-  buffer con su ruido ANSI; el transcript limpio lo sabe leer `sessions.rs` por
+  buffer con su ruido ANSI (y en la pantalla alternativa, solo repintados: ahí
+  va `read_pane_screen`); el transcript limpio lo sabe leer `sessions.rs` por
   otro lado, y a la larga es de donde debería leer.
 - **No todos los CLIs hablan MCP igual.** Que la suprema pueda SER Codex o Gemini
   depende de cómo registre cada uno sus servidores, y eso se verifica CLI a CLI

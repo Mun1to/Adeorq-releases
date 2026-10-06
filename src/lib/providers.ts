@@ -141,6 +141,49 @@ export interface Provider {
    *  conversación nueva y el hilo anterior se queda donde estaba. */
   retomable?: boolean;
   /**
+   * Lo que hace falta para que el ROUTER abra este CLI con lo que decidió, y
+   * no solo Claude (verificado leyendo cada `--help` y su código el
+   * 2026-10-06; ver `arranque.ts`). Cada columna es un trozo de la línea de
+   * arranque; la que falte, no se pone.
+   */
+  /** La bandera del modelo (`-m`, `--model`). */
+  banderaModelo?: string;
+  /** Cómo se llama en ese CLI cada escalón de la casa: lo barato, lo normal y
+   *  lo caro. Sin esto, `modelo` no sirve de nada al router. */
+  modelos?: Partial<Record<"haiku" | "sonnet" | "opus", string>>;
+  /** La bandera del esfuerzo; si acaba en `=` va pegada al valor. */
+  banderaEsfuerzo?: string;
+  /** Cómo se retoma una sesión por su id: `{id}` se sustituye. */
+  retomar?: string;
+  /** La bandera con la que admite un id de sesión al nacer, como el
+   *  `--session-id` de Claude; es lo que deja reconocer la terminal después. */
+  banderaSesionNueva?: string;
+  /** No admite un id al nacer, pero deja su sesión en disco con el primer
+   *  turno y Adeorq sabe leérsela de ahí (`codex_session_since`): el panel la
+   *  aprende después, y con ella se retoma y se guarda. */
+  sesionDelDisco?: boolean;
+  /**
+   * Cinco cosas que hasta el 2026-10-06 se preguntaban por el nombre
+   * (`provider === "claude"`) en siete sitios entrados después de la limpieza
+   * de agosto, y que `scripts/clientes-check.ts` contaba de más. Hoy solo las
+   * tiene Claude; el día que otro CLI tenga alguna, entra marcándola aquí.
+   */
+  /** La marca a secas, para ponerla delante del modelo («Claude Opus»): con la
+   *  etiqueta entera se leía «Claude Code opus». Sin ella vale la etiqueta. */
+  marca?: string;
+  /** Deja en disco su plan y el trabajo de la semana y Adeorq sabe leerlos
+   *  (`planInfo`, `usageReport`); su CLI enseña además la tarjeta entera. */
+  estadisticas?: boolean;
+  /** Su cuota se le pregunta a su cuenta (OAuth, `usageLimits`); la de los
+   *  demás que la publican se lee de sus ficheros (`usageOf`). */
+  cuotaPorCuenta?: boolean;
+  /** Se le puede pasar el testigo a OTRA cuenta suya con un acta de dónde iba
+   *  (`lib/relevo.ts`), y el aviso de cuota ofrece esa salida. */
+  relevo?: boolean;
+  /** Pregunta si confías en la carpeta al abrirse, y Adeorq sabe dejarlo
+   *  contestado antes (`confiar_carpeta` en `mcp.rs`). */
+  confianza?: boolean;
+  /**
    * Lee una imagen de una RUTA escrita en el prompt.
    *
    * Los que no, la quieren pegada con Ctrl+V desde el portapapeles. No es un
@@ -181,6 +224,11 @@ export const PROVIDERS: Provider[] = [
     retomable: true,
     leeRutaDeImagen: true,
     skills: true,
+    marca: "Claude",
+    estadisticas: true,
+    cuotaPorCuenta: true,
+    relevo: true,
+    confianza: true,
   },
   {
     id: "codex",
@@ -197,6 +245,23 @@ export const PROVIDERS: Provider[] = [
     apiEnv: "OPENAI_API_KEY",
     cmd: "pnpm add -g @openai/codex",
     arranque: "codex --sandbox workspace-write",
+    // Verificado el 2026-10-06 con `codex --help` (0.147.0) y su código
+    // (`codex-rs/tui/src/cli.rs`): el encargo va como argumento suelto
+    // («Optional user prompt to start the session»), el modelo con `-m`, el
+    // esfuerzo como ajuste (`model_reasoning_effort`, con las mismas cinco
+    // palabras que Claude) y se retoma con `codex resume <uuid>`. Lo que NO
+    // tiene es un id de sesión al nacer: se lo pone él en su rollout.
+    encargoEnLinea: true,
+    banderaEncargo: "",
+    modelo: true,
+    banderaModelo: "-m",
+    // Los nombres de su `models_cache.json` de hoy: «Fast and affordable»,
+    // «Balanced» y el de más arriba. Cuando OpenAI los cambie, cambian aquí.
+    modelos: { haiku: "gpt-5.6-luna", sonnet: "gpt-5.6-terra", opus: "gpt-6-luna" },
+    banderaEsfuerzo: "-c model_reasoning_effort=",
+    retomable: true,
+    retomar: "codex resume {id}",
+    sesionDelDisco: true,
   },
   {
     id: "gemini",
@@ -211,6 +276,20 @@ export const PROVIDERS: Provider[] = [
     apiEnv: "GEMINI_API_KEY",
     cmd: "pnpm add -g @google/gemini-cli",
     arranque: "gemini --approval-mode auto_edit",
+    // Verificado el 2026-10-06 con `gemini --help` (0.52.0) y su código
+    // (`packages/cli/src/config/config.ts`): el encargo con
+    // `--prompt-interactive` (el `-p` a secas es sin terminal y dejaría el
+    // panel sin agente), el modelo con `-m` y sus alias `flash-lite`, `flash` y
+    // `pro`, un id propio al nacer con `--session-id`, y se retoma con
+    // `--resume <id>` solo desde la misma carpeta. Esfuerzo no tiene.
+    encargoEnLinea: true,
+    banderaEncargo: "--prompt-interactive",
+    modelo: true,
+    banderaModelo: "-m",
+    modelos: { haiku: "flash-lite", sonnet: "flash", opus: "pro" },
+    retomable: true,
+    retomar: "gemini --resume {id}",
+    banderaSesionNueva: "--session-id",
   },
   {
     id: "qwen",
@@ -486,14 +565,30 @@ export const PROVIDERS: Provider[] = [
     //     ediciones y sigue preguntando lo arriesgado: las dos son permiso
     //     total, y darlo no es nuestro. Mismo criterio que con Copilot y
     //     opencode.
-    //   · `modelo`, `modoPlan` y `retomable`: los TIENE (`--model`, `--plan`,
-    //     `--session`/`--continue`), pero Adeorq solo sabe pasarlos en la rama
-    //     de Claude de `lib/arranque.ts`, y `revivirPane` reanima SIEMPRE con
-    //     `claude --resume`. Marcarlos aquí sacaría el selector de cerebro sin
-    //     pasar el modelo, y un «Reanimar» que abriría Claude sobre una sesión
-    //     de Kimi. Se declaran el día que la tabla tenga su `banderaModelo`
-    //     como ya tiene `banderaEncargo`, y ese día entran los cinco CLIs que
-    //     están en el mismo caso, no solo este.
+    //   · `modoPlan`: tiene `--plan`, pero la tabla todavía no sabe decir cómo
+    //     se pide el plan a un CLI que no es Claude (solo hay `modoPlan` a
+    //     secas, y `lib/arranque.ts` lo usa en la rama de Claude). El día que
+    //     haya una `banderaPlan`, es `--plan`.
+    //   · `banderaEsfuerzo`: K3 admite `low`, `high` y `max`, pero por el
+    //     fichero de configuración (`[thinking] effort`), no por la línea de
+    //     órdenes; su tabla de opciones no trae nada parecido a `--effort`.
+    //
+    // Lo que SÍ, verificado el 2026-10-06 en `apps/kimi-code/src/cli/commands.ts`
+    // y en su referencia (`docs/en/reference/kimi-command.md`), de la 2.1.1:
+    // el modelo es `-m <alias>` y los alias son los que escribe su propio
+    // `config.toml` al primer arranque (`docs/en/configuration/config-files.md`:
+    // `kimi-code/k3` con un millón de contexto, `kimi-code/kimi-for-coding` y
+    // `kimi-code/kimi-for-coding-highspeed`); se retoma con `--session <id>`,
+    // y un id al nacer no se le puede dar, igual que a Codex: se lo pone él.
+    modelo: true,
+    banderaModelo: "-m",
+    modelos: {
+      haiku: "kimi-code/kimi-for-coding-highspeed",
+      sonnet: "kimi-code/kimi-for-coding",
+      opus: "kimi-code/k3",
+    },
+    retomable: true,
+    retomar: "kimi --session {id}",
   },
   // ── Los ocho de la ronda del 2026-08-19 ──────────────────────────────────
   //
@@ -647,9 +742,24 @@ export function lineaDeArranque(id: string): string {
   return p ? (p.arranque ?? p.exe) : id;
 }
 
-/** Con qué bandera acepta el encargo, si lo acepta así. */
+/** Con qué bandera acepta el encargo, si lo acepta así. Vacía es «como
+ *  argumento suelto» (Codex); `undefined` es que no lo acepta. */
 export function banderaDeEncargo(id: string): string | undefined {
   return PROVIDERS.find((x) => x.id === id)?.banderaEncargo;
+}
+
+/** La fila entera, para quien arma la línea de arranque. `undefined` para lo
+ *  que no está en la tabla (`shell`, `ollama`). */
+export function proveedorDe(id: string): Provider | undefined {
+  return PROVIDERS.find((x) => x.id === id);
+}
+
+/** La línea con la que se retoma una sesión de ese CLI por su id, o nada si
+ *  no se puede. Claude no pasa por aquí: su línea la arma `App.tsx` con el
+ *  modo y el esfuerzo. */
+export function lineaDeRetomar(id: string, sesion: string): string | undefined {
+  const plantilla = PROVIDERS.find((x) => x.id === id)?.retomar;
+  return plantilla?.replace("{id}", sesion);
 }
 
 export const CLAUDE = PROVIDERS[0];
@@ -664,6 +774,12 @@ export type Capacidad =
   | "modelo"
   | "ajustesEnVivo"
   | "modoPlan"
+  | "sesionDelDisco"
+  | "banderaSesionNueva"
+  | "estadisticas"
+  | "cuotaPorCuenta"
+  | "relevo"
+  | "confianza"
   | "retomable"
   | "encargoEnLinea"
   | "usage"

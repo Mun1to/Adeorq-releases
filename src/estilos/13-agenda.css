@@ -1,0 +1,1524 @@
+/* ── Agenda ─────────────────────────────────────────────────────────────────
+   Three blocks reading from where each thing already lives: his dashboard for
+   the dates and the ideas, the project's own METAS.md for the next steps.
+   Redesigned the same day it was born: the first version leaned on a native
+   <select>, and with twenty-five projects Windows painted a grey wall over the
+   whole window. The rail already solved "pick a project", so it does it here. */
+
+/* ---------------------------------------------------- objetivos del día
+   Lo único de la Agenda que decides tú y para hoy. Va lo primero por eso: el
+   calendario trae lo que viene te guste o no, y las ideas y los pasos son del
+   proyecto que estés mirando. */
+.objetivos {
+  margin: 20px 0 8px;
+}
+
+.obj-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.obj-title h2 {
+  margin: 0;
+}
+
+/* La fecha en pequeño y en mayúsculas, debajo del título: dice de qué día son
+   estos objetivos sin robarle sitio al título. */
+.obj-date {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* El anillo de avance: dice lo mismo que «2/3» y se lee sin leerlo. */
+.obj-anillo {
+  flex: none;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+}
+.obj-anillo svg {
+  position: absolute;
+  inset: 0;
+  /* Empieza arriba y no a la derecha, que es por donde empieza un reloj. */
+  transform: rotate(-90deg);
+}
+.obj-anillo-pista {
+  fill: none;
+  stroke: var(--row);
+  stroke-width: 3.4;
+}
+.obj-anillo-avance {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  transition: stroke-dasharray .35s ease;
+}
+.obj-anillo[data-full="true"] .obj-anillo-avance {
+  stroke: #7ee0a8;
+}
+.obj-anillo-num {
+  position: relative;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.obj-anillo[data-full="true"] .obj-anillo-num {
+  color: #7ee0a8;
+}
+
+/* La barra de avance, a todo el ancho y finísima: marca el progreso sin pedir
+   sitio ni competir con el texto de los objetivos. */
+.obj-barra {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--row);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.obj-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width .35s ease;
+}
+.obj-barra[data-full="true"] span {
+  background: #7ee0a8;
+}
+
+.obj-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.obj-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 7px 8px 7px 10px;
+  transition: background .12s ease;
+}
+.obj-item:hover {
+  background: var(--row);
+}
+
+/* La fila entera es el botón de marcar: apuntar a una casilla de diecinueve
+   píxeles para tachar algo que ya has hecho sobra. */
+.obj-fila {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* La casilla, dibujada. La del sistema no acepta color ni tamaño en Windows y
+   quedaba como una pieza prestada de otra aplicación (Munir, 2026-07-31). */
+.obj-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 6px;
+  border: 1.8px solid color-mix(in srgb, var(--text) 32%, transparent);
+  color: transparent;
+  transition: border-color .13s ease, background .13s ease, color .13s ease;
+}
+.obj-fila:hover .obj-mark {
+  border-color: var(--accent);
+}
+.obj-item[data-done="true"] .obj-mark {
+  border-color: #7ee0a8;
+  background: #7ee0a8;
+  color: var(--on-accent);
+}
+
+.obj-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+/* Tachado y apagado, no escondido: ver lo que ya cerraste es media gracia de
+   tener una lista del día. */
+.obj-item[data-done="true"] .obj-text {
+  text-decoration: line-through;
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+/* La equis solo aparece al pasar por encima: con cinco objetivos, cinco equis
+   fijas son cinco invitaciones a borrar algo sin querer. */
+.obj-del {
+  flex: none;
+  opacity: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--r-chico);
+  cursor: pointer;
+  transition: opacity .12s ease, color .12s ease;
+}
+.obj-item:hover .obj-del,
+.obj-del:focus-visible {
+  opacity: 1;
+}
+.obj-del:hover {
+  color: #ff8f8f;
+  background: color-mix(in srgb, #ff8f8f 16%, transparent);
+}
+
+.obj-empty {
+  color: var(--muted);
+  font-size: 13.5px;
+  padding: 6px 10px 10px;
+}
+
+/* Lo que quedó pendiente del último día. Ocupa el ancho entero y no es un
+   `.mini` en una esquina: cuando la lista de hoy está vacía, esto es lo único
+   que hay que leer, y es además lo que contesta a «se me han borrado». */
+.obj-atras {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 2px 0 4px;
+  padding: 9px 11px;
+  border-radius: var(--r-btn);
+  border: 1px dashed color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: color-mix(in srgb, var(--text) 82%, var(--accent));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.obj-atras:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.obj-atras svg {
+  flex: none;
+  color: var(--accent);
+}
+
+/* Escribir un objetivo es lo que más se hace aquí, así que la línea de añadir
+   deja de ser un formulario: un «+» y una raya, alineados con la columna de
+   las casillas de arriba, para que lo que escribes caiga donde va a aparecer.
+   La caja con borde pesaba más que la propia lista y era lo que hacía que el
+   panel pareciera un cuadro de diálogo (Munir, 2026-08-02). */
+.obj-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 4px 10px;
+  border-radius: 10px;
+  border-top: 1px solid var(--border);
+  transition: background .12s ease;
+}
+.obj-add:focus-within {
+  background: var(--row);
+}
+
+.obj-add-mas {
+  flex: none;
+  display: grid;
+  place-items: center;
+  /* Exactamente el tamaño de una casilla, para compartir columna con ellas. */
+  width: 19px;
+  height: 19px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--muted);
+  transition: color .12s ease;
+}
+.obj-add:focus-within .obj-add-mas,
+.obj-add[data-lleno="true"] .obj-add-mas {
+  color: var(--accent);
+}
+
+.obj-add-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  padding: 7px 0;
+  outline: none;
+}
+.obj-add-input::placeholder {
+  color: color-mix(in srgb, var(--muted) 85%, transparent);
+}
+
+.obj-add-btn {
+  flex: none;
+}
+
+.obj-file {
+  margin-top: 12px;
+}
+
+/* Sin la caja del panel: dentro del flotante la caja la pone el flotante. */
+.objetivos-compacto {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 14px 14px;
+}
+.objetivos-compacto .obj-list {
+  /* Con quince objetivos el panel no puede crecer hasta el techo: la lista se
+     queda con el hueco que haya y hace su propio scroll, que aquí sí toca. */
+  overflow-y: auto;
+  max-height: 46vh;
+  margin-bottom: 10px;
+}
+
+/* ---------------------------------------------- el panel flotante del día
+   Una lista del día que solo se ve entrando a la Agenda se mira por la mañana
+   y se olvida. Aquí queda a un clic desde la Cabina, el Lienzo o donde estés,
+   y recuerda si lo dejaste abierto (Munir, 2026-07-31).
+   Abajo a la derecha y no en medio: en medio taparía la terminal, que es donde
+   se trabaja, y este panel acompaña al trabajo en vez de sustituirlo. */
+/* `.app > .obj-flota` y no `.obj-flota` a secas, y esto NO es adorno: la regla
+   `.app > *:not(.fondo) { z-index: 1 }` de arriba tiene dos clases de
+   especificidad y le ganaba a una sola, así que el panel se quedaba en el mismo
+   plano que la Cabina y, al ir la Cabina después en el árbol, lo tapaba. Se veía
+   apagado por detrás de las terminales y los clics se los llevaba la terminal,
+   no la casilla (Munir, 2026-07-31: «no me deja clicar»). */
+.app > .obj-flota {
+  position: fixed;
+  z-index: 70;
+}
+
+.obj-flota {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: min(370px, calc(100vw - 36px));
+  display: flex;
+  flex-direction: column;
+  /* Cuánto tapa lo que hay detrás, elegido por quien lo usa: encima de una
+     terminal se quiere traslúcido para seguir leyendo debajo, y en una esquina
+     vacía, opaco. Al 100 % es exactamente el cristal de siempre. */
+  background: color-mix(in srgb, var(--popover) var(--obj-alpha, 100%), transparent);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  box-shadow:
+    var(--glass-edge),
+    0 18px 50px rgba(0, 0, 0, 0.45);
+  animation: obj-sube .16s ease-out;
+}
+
+@keyframes obj-sube {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .obj-flota {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------- el pulso
+   Lo que Adeorq le cuesta al equipo, en la barra y en pequeño: es un dato de
+   fondo, no el trabajo. Se mira de reojo y solo se abre cuando algo va raro. */
+.pulso-caja {
+  position: relative;
+  flex: none;
+}
+
+.pulso {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 11px;
+  font-variant-numeric: tabular-nums;
+}
+.pulso-dato {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+.pulso-dato b {
+  font-size: 12px;
+  font-weight: 700;
+}
+.pulso-dato span {
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.pulso-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+/* Ámbar cuando el que aprieta es Adeorq, rojo cuando es el equipo entero.
+   Distinguirlo es media gracia: con el sistema al 90 % y Adeorq al 6 %, el
+   problema no es este programa. */
+.pulso[data-nivel="medio"] b {
+  color: var(--done);
+}
+.pulso[data-nivel="alto"] b {
+  color: #ff8f8f;
+}
+.pulso[data-nivel="alto"] {
+  border-color: color-mix(in srgb, #ff8f8f 45%, transparent);
+}
+
+.pulso-detalle {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 80;
+  width: 320px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 15px 16px;
+  box-shadow: var(--glass-edge), 0 16px 44px rgba(0, 0, 0, 0.45);
+}
+.pulso-detalle h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.pulso-detalle .card-hint {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+}
+
+.pulso-fila {
+  margin-bottom: 12px;
+}
+.pulso-fila-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.pulso-fila-top strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.pulso-barra {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--row);
+  overflow: hidden;
+}
+.pulso-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width .4s ease;
+}
+.pulso-barra span[data-alto="true"] {
+  background: #ff8f8f;
+}
+.pulso-linea {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* La cabecera es el asa: se agarra ahí y se lleva donde quieras. El cursor lo
+   dice, que si no nadie descubre que se puede mover. */
+.obj-flota-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px 10px;
+  cursor: grab;
+  user-select: none;
+}
+
+/* Título y fecha apilados, y el título empuja al resto a la derecha. */
+.obj-flota-titulo {
+  flex: 1;
+  min-width: 0;
+}
+.obj-flota-titulo .obj-date {
+  margin-top: 3px;
+  font-size: 10.5px;
+}
+.obj-flota-head:active {
+  cursor: grabbing;
+}
+
+.obj-flota-btns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Plegado: se queda en su barra de título y nada más. Para tenerlo puesto sin
+   que ocupe, que es la mayor parte del día.
+   El ancho mínimo cuenta lo que hay dentro: título, contador y CUATRO botones.
+   Con 240px el título se partía en dos líneas y «Objetivos de / hoy» ocupaba
+   más alto que el propio panel plegado (Munir, 2026-08-02). */
+.obj-flota[data-plegado="true"] {
+  width: auto;
+  min-width: 310px;
+}
+.obj-flota[data-plegado="true"] .obj-flota-head {
+  padding: 10px 12px;
+}
+.obj-flota[data-plegado="true"] h3 {
+  font-size: 13.5px;
+}
+
+/* El avance sube al título cuando está recogido: es lo único que hace falta
+   ver, y evita tener que desplegarlo solo para saber si queda algo. */
+.obj-plegado-num {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  background: var(--row);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.obj-plegado-num[data-full="true"] {
+  color: #7ee0a8;
+  background: color-mix(in srgb, #7ee0a8 15%, transparent);
+}
+
+/* Mientras se arrastra, nada de la app se selecciona ni cambia de cursor: sin
+   esto, pasar por encima de una terminal la seleccionaba entera. */
+body.arrastrando,
+body.arrastrando * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+/* Y el panel no se anima al reaparecer en su sitio nuevo. */
+body.arrastrando .obj-flota {
+  animation: none;
+}
+.obj-flota-head h3 {
+  margin: 0;
+  font-size: 14.5px;
+  letter-spacing: -0.01em;
+  /* En una barra de título, un salto de línea no es un texto que sigue: es un
+     panel que ha crecido sin permiso. Antes que partirse, se recorta. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dibujados, no tecleados. Eran los glifos ⤓ — ×, tres caracteres de tres
+   fuentes distintas con tres pesos y tres alturas, y se notaba: parecían
+   pegados encima del panel en vez de formar parte de él. Ahora los tres son el
+   mismo trazo y el mismo cuadrado, como en el resto de la app (ver Icons.tsx). */
+.obj-flota-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 0;
+  /* Casi el color del texto, no el apagado de las cosas secundarias. Estos
+     cuatro botones son lo único que se pulsa de esta barra, y en `--muted`
+     sobre cristal no se veían (Munir, 2026-08-02). */
+  background: transparent;
+  color: color-mix(in srgb, var(--text) 78%, transparent);
+  border-radius: var(--r-chico);
+  cursor: pointer;
+  transition: color .12s ease, background .12s ease;
+}
+.obj-flota-x:hover {
+  color: var(--text);
+  background: var(--row);
+}
+.obj-flota-x[data-on="true"] {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* El deslizador de la transparencia. Va dentro del panel y no en Ajustes a
+   propósito: esto se elige mirando lo que hay detrás, y para eso hay que verlo
+   cambiar encima de la terminal. */
+.obj-alpha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 14px 10px;
+}
+.obj-alpha input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.obj-alpha span {
+  flex: none;
+  min-width: 4ch;
+  text-align: right;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* En el flotante la lista manda, así que el pie del archivo no sale y el
+   contador va arriba, dentro de su cabecera. */
+.objetivos-compacto .obj-file {
+  display: none;
+}
+
+/* El anillo, algo más pequeño aquí: en la Agenda encabeza una sección y aquí
+   comparte fila con tres botones. */
+.obj-flota-head .obj-anillo {
+  width: 30px;
+  height: 30px;
+}
+.obj-flota-head .obj-anillo svg {
+  width: 30px;
+  height: 30px;
+}
+.obj-flota-head .obj-anillo-num {
+  font-size: 9.5px;
+}
+
+/* MIENTRAS ARRASTRAS UN SEPARADOR, EL CRISTAL SE APAGA.
+   ------------------------------------------------------------------
+   `backdrop-filter` obliga al WebView a releer y desenfocar todo lo que hay
+   DEBAJO del elemento, y eso se rehace entero en cada frame en el que el
+   elemento cambia de tamaño. Con nueve terminales son nueve desenfoques por
+   frame, más los de la barra y la sidebar, justo mientras el ratón pide 60
+   frames por segundo. Es la mitad cara del lag que Munir notaba el 2026-08-11;
+   la otra mitad, el reflow de xterm, se apaga desde `lib/redimension.ts`.
+
+   Solo mientras el dedo está abajo: al soltar, `data-redim` desaparece y el
+   cristal vuelve sin que se note. Lo que queda debajo es el color sólido del
+   tema, que ya está puesto en todas estas reglas. */
+body[data-redim] .pane-head,
+body[data-redim] .pane,
+body[data-redim] .topbar,
+body[data-redim] .sidebar,
+body[data-redim] .panel-card {
+  backdrop-filter: none;
+}
+
+/* Y ni una transición mientras se arrastra: animar un ancho que ya cambia
+   sesenta veces por segundo solo añade trabajo y deja la barra por detrás del
+   puntero. */
+body[data-redim] .pane,
+body[data-redim] .divider {
+  transition: none !important;
+}
+
+/* LA PORTADA DE LA AGENDA: cifras, no contenido.
+   ------------------------------------------------------------------
+   Munir, 2026-08-11: «me sigue pareciendo mucho texto, la Agenda debe aclarar
+   las cosas, no hacerlas más difíciles». Tenía doce notas de doscientos
+   caracteres apiladas, o sea tres mil caracteres de párrafo antes de llegar a
+   nada. Aquí el texto no se pinta hasta que se entra a algo: la portada son
+   seis números y una frase corta cada uno. Ancho tope de 720 px porque una
+   línea de mil cuatrocientos obliga a barrer con la cabeza para leerla. */
+.agenda {
+  /* El ancho de lo que se LEE, no el de la pantalla. Una línea de texto de mil
+     cuatrocientos píxeles obliga a barrer con la cabeza; una rejilla de
+     calendario, en cambio, cuanto más ancha mejor, y por eso está fuera de
+     este tope. */
+  --ag-ancho: 720px;
+}
+
+/* Dos zonas: el rail de proyectos, como en la cabina, y todo lo demás. */
+.ag-marco {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* El rail de la Agenda es LA PARED DE MARCAS de la cabina, la misma rejilla
+   de `.projects[data-rail="logo"]` (unas nueve mil líneas más arriba): mismas
+   columnas de 64 px, mismo hueco de 8, mismas piezas dentro (`.project-logo`
+   con `.pavatar-xl`). Munir, 2026-08-11, dos veces: «igualito que el cockpit,
+   cuando tienes solo los logos apareciendo a la izquierda» y «hazlo
+   literalmente como el cockpit». Compartiendo clase y medidas no se pueden
+   separar mañana, que es justo lo que le había pasado a la anterior: unas
+   chapas propias de 40 px al 62 % de opacidad, apagadas y más pequeñas que las
+   de la barra de al lado. */
+.ag-rail {
+  display: grid;
+  position: sticky;
+  top: 0;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  align-content: start;
+  gap: 8px;
+  /* Una columna de marcas: el ancho de la rejilla del cockpit, ni más ni
+     menos. El `auto-fill` sigue ahí por si un día este rail se ensancha.
+     La cuenta va explícita porque el `box-sizing: border-box` global se come
+     el hueco y el borde por dentro: sin sumarlos, la marca saldría de 47 px y
+     habríamos vuelto al tamaño de antes. */
+  width: calc(64px + 16px + 1px);
+  max-height: calc(100vh - 90px);
+  padding-right: 16px;
+  overflow-y: auto;
+  border-right: 1px solid var(--stroke);
+  /* Sin barra a la vista: son cuarenta iconos en columna y una barra al lado
+     de un rail estrecho ocupa casi tanto como los iconos. */
+  scrollbar-width: none;
+}
+
+.ag-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.ag-cuerpo {
+  min-width: 0;
+}
+
+/* EL CALENDARIO. Lo pidió literal, y es lo que da sentido al ancho: aquí
+   caben a la vez las dos cosas que tienen fecha (tus objetivos, un archivo por
+   día, y las ventanas de la brújula) que antes vivían en dos pestañas que no
+   se veían nunca juntas. */
+/* El calendario es UNA superficie, no treinta y una casillas sueltas sobre la
+   foto de escritorio. Con el cristal en el marco, las celdas de dentro ya
+   pueden ser sutiles sin que se transparente el fondo a través del texto: la
+   opacidad la pone la caja, no cada celda. */
+.ag-cal {
+  margin-top: 26px;
+  padding: 16px 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+}
+
+.ag-cal-cab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.ag-cal-cab h2 {
+  margin: 0 6px;
+  font-size: 14px;
+  font-weight: 640;
+  text-transform: capitalize;
+}
+
+.ag-cal-mover {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-chico);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--dim);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ag-cal-mover:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.ag-cal-hoy {
+  margin-left: auto;
+}
+
+.ag-cal-dias,
+.ag-cal-rejilla {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ag-cal-inicial {
+  padding-bottom: 6px;
+  color: var(--dim);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ag-cal-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: stretch;
+  /* Alto mínimo y no fijo: un día con dos ventanas crece y arrastra a toda su
+     semana, que es como se lee un calendario de papel. */
+  min-height: 78px;
+  padding: 7px 8px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-btn);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ag-cal-celda:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.ag-cal-celda[data-fuera="true"] {
+  opacity: 0.32;
+}
+
+/* Hoy se marca con el color, no con un borde más gordo: engordar un borde
+   mueve un píxel toda la rejilla. */
+.ag-cal-celda[data-hoy="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.ag-cal-num {
+  font-size: 12.5px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-cal-celda[data-hoy="true"] .ag-cal-num {
+  color: var(--accent);
+}
+
+.ag-cal-obj {
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: rgba(255, 190, 120, 0.16);
+  color: var(--warn);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un día cerrado del todo deja de pedir atención: es información, no una
+   tarea pendiente. */
+.ag-cal-obj[data-todo="true"] {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--dim);
+}
+
+.ag-cal-ventana {
+  overflow: hidden;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  font-size: 10.5px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-cal-ventana[data-urgency="now"] {
+  background: rgba(255, 120, 120, 0.22);
+}
+
+.ag-cal-ventana[data-urgency="past"] {
+  opacity: 0.5;
+}
+
+.ag-dia-suelto .np-row {
+  margin-top: 14px;
+}
+
+@media (max-width: 860px) {
+  .ag-marco {
+    grid-template-columns: 1fr;
+  }
+
+  /* Sin sitio para una columna, la misma rejilla se tumba y las marcas llenan
+     lo ancho: es lo que hace la pared de la cabina en una barra ancha, no una
+     forma distinta inventada aquí. */
+  .ag-rail {
+    position: static;
+    width: auto;
+    max-height: none;
+    padding: 0 0 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  .ag-cal-celda {
+    min-height: 56px;
+  }
+}
+
+.ag-dia {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.ag-dia h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  /* Los días y los meses vienen en minúscula de toLocaleDateString, y en un
+     encabezado eso se lee como un descuido. */
+  text-transform: capitalize;
+}
+
+/* VOLVER, Y TODOS LOS DE ATRÁS DE LA APP: la receta de la casa con el texto
+   dentro (ver `.volver`, aquí abajo). Estuvo un rato siendo una flecha suelta
+   sin caja, y sobre el fondo de escritorio eso no parece un botón (Munir,
+   2026-08-11: «me gustaría que todos se parezcan a un estilo de botón como
+   este, pero con texto dentro»). Aquí solo queda su sitio en la cabecera. */
+.ag-volver {
+  margin-right: 2px;
+}
+
+.ag-dia .ag-quedan {
+  font-size: 12px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-dia .ag-salir {
+  margin-left: auto;
+}
+
+/* Las cifras se reparten el ancho del calendario: cuatro en fila en una
+   pantalla ancha, dos en una estrecha. Antes iban a 720 px y quedaban en media
+   pantalla con el calendario debajo ocupándola entera, que es la desalineación
+   que hacía que la Agenda pareciese dos pantallas pegadas. */
+.ag-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+/* Sobre el fondo de escritorio y no sobre un panel: necesitan su propio
+   cristal, como cualquier tarjeta de la app. Con un blanco al 4 % la foto se
+   veía enterita a través del número (Munir, 2026-08-11: «muy transparente»). */
+.ag-cifra {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  /* `--popover` y no `--panel`: es el tono que la app usa para lo que TIENE
+     que leerse (los modales, los menús). Con `--panel`, que es un 62 %, la
+     foto de escritorio se veía a través del número. */
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.ag-cifra:hover {
+  background: var(--panel-head);
+}
+
+.ag-n {
+  min-width: 42px;
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-q {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ag-q small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+
+/* Lo que reclama algo de ti se distingue por el color, no por el tamaño: si
+   todo pudiera crecer, la rejilla dejaría de leerse de un vistazo. */
+.ag-cifra[data-viva="true"] {
+  border-color: rgba(255, 190, 120, 0.32);
+  background: rgba(255, 190, 120, 0.06);
+}
+
+.ag-cifra[data-viva="true"] .ag-n {
+  color: var(--warn);
+}
+
+.ag-cifra[data-cero="true"] {
+  opacity: 0.45;
+}
+
+@media (max-width: 620px) {
+  .ag-cifras {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* LAS PROPUESTAS, DE UNA EN UNA.
+   Cada nota es una decisión, y doce decisiones a la vez no se toman: se
+   posponen todas. Una sola en pantalla y tres salidas. */
+/* Una decisión ocupa la pantalla, no una esquina. Estaba acotada a 720 px sin
+   centrar, o sea arriba a la izquierda con dos tercios de escritorio a la
+   vista (Munir, 2026-08-11: «hay que aprovechar bien el espacio entero»). Se
+   centra en los dos ejes y la caja crece; lo que NO crece es el ancho del
+   texto, que por eso lleva su propio tope dentro. */
+.ag-uno {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 860px;
+  min-height: calc(100vh - 210px);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.ag-caja {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+  padding: 34px 34px 26px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+}
+
+.ag-caja-cab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+
+.ag-k {
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(120, 170, 255, 0.14);
+  color: #8fb6ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ag-caja[data-kind="paso"] .ag-k {
+  background: rgba(255, 190, 120, 0.14);
+  color: var(--warn);
+}
+
+/* La caja se ensancha, la línea no: el texto sigue con su tope de lectura y
+   centrado dentro de una tarjeta más grande. */
+.ag-caja-texto {
+  max-width: 62ch;
+  margin: 0 auto;
+  font-size: 17px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.ag-botones {
+  display: flex;
+  justify-content: center;
+  /* Con cuatro salidas y un rótulo largo dentro («Abrir Gemini CLI aquí») la
+     fila ya no cabe siempre. Que baje la ultima antes que partirse el rótulo:
+     medido en el navegador, sin esto el botón se partía en tres líneas y
+     estiraba los otros tres a su alto. */
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* Con superficie de verdad. El `rgba(255,255,255,.05)` de antes es el error
+   de siempre en esta casa: un 5 % de blanco existe sobre un panel opaco y
+   desaparece sobre la foto del escritorio, y «Luego» directamente no se veía.
+   Ahora van dentro de la tarjeta y con el mismo relleno que cualquier fila de
+   la app, que ahí sí es un color y no una insinuación. */
+.ag-botones button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 24px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--row);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 620;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.ag-botones button:hover {
+  background: var(--row-hover);
+  border-color: var(--border-strong);
+}
+
+.ag-botones .ag-si {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.ag-botones .ag-si:hover {
+  filter: brightness(1.12);
+  background: var(--accent);
+}
+
+/* «Hacerlo», que solo sale en las propuestas del copiloto. Lleva el ámbar de
+   la casa y no el acento: el acento ya es de «Aceptar», y las dos cosas no son
+   lo mismo. Aceptar guarda una frase en un fichero y no pasa nada más; esto
+   abre una terminal, escribe en otra o gasta dinero de una clave de API. Un
+   botón que hace algo fuera de la pantalla no puede vestirse igual que uno que
+   solo apunta. */
+.ag-botones .ag-hacer {
+  white-space: nowrap;
+  border-color: transparent;
+  background: var(--warn, #ffd166);
+  /* Sobre ámbar, texto oscuro: el blanco encima de este amarillo da 1,9:1 y no
+     lo lee nadie. Aplanado y sin alfa, que sobre un fondo claro Windows apaga
+     el ClearType en textos pequeños. */
+  color: #211705;
+}
+
+.ag-botones .ag-hacer:hover {
+  filter: brightness(1.08);
+  background: var(--warn, #ffd166);
+}
+
+/* La ruta del archivo, ya dentro de la tarjeta: es el pie de la decisión, no
+   una línea suelta sobre la foto. */
+.ag-donde {
+  margin: 2px 0 0;
+}
+
+.ag-fin {
+  display: grid;
+  place-content: center;
+  min-height: calc(100vh - 210px);
+  max-width: var(--ag-ancho);
+  margin: 0 auto;
+  color: var(--dim);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Lo que se LEE sí se acota: una línea de texto de lado a lado de la ventana
+   obliga a barrer con la cabeza. La rejilla del calendario no entra aquí,
+   porque es lo contrario: cuanto más ancha, mejor se lee. */
+.agenda .agenda-picker,
+.agenda .agenda-where,
+.agenda .panel-card,
+.agenda .agenda-note,
+.agenda .sesiones {
+  max-width: var(--ag-ancho);
+}
+
+
+/* Pick a project the way the rail does it: by its mark. */
+.agenda-picker {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+}
+
+.pick-item {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: var(--r-btn);
+  background: var(--row);
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0.62;
+  transition: opacity 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+}
+
+.pick-item:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.pick-item[data-on="true"] {
+  opacity: 1;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.pavatar.pavatar-pick {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+
+.pick-all {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+}
+
+.agenda-where {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 14px;
+}
+
+.where-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+}
+
+/* EMITIENDO, el nombre del proyecto se tapa, pero no así.
+   El tapón de `.stream-hide` está pensado para texto pequeño: pinta una barra
+   del color del texto con la forma exacta de lo que oculta, y en un renglón de
+   once píxeles pasa desapercibido. Sobre un título de 22 px es un ladrillo gris
+   en la esquina de la pantalla, y encima con la forma del nombre, que es medio
+   dato (Munir, 2026-08-11: «mira qué feo el título»).
+   Aquí va una caja de ancho FIJO, con el borde punteado de lo que está
+   guardado: se lee como «esto no se enseña», no como un borrón. Y al ser fija
+   ya no dice si el proyecto se llama Adeorq o VoCript-Core. */
+.app[data-stream="true"] .where-name {
+  min-width: 168px;
+  padding: 2px 14px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--text) 26%, transparent);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+/* Con Alt pulsado se enseña, como todo lo demás: vuelve a ser un título. */
+.app[data-stream="true"][data-peek="true"] .where-name {
+  min-width: 0;
+  padding: 0;
+  border-color: transparent;
+  background: none;
+}
+
+.agenda-login {
+  margin-bottom: 14px;
+}
+
+.agenda-note {
+  margin-top: 12px;
+}
+
+
+.agenda-card {
+  padding: 20px 22px;
+}
+
+.agenda-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 4px;
+  font-size: 19px;
+  letter-spacing: -0.2px;
+}
+
+.agenda-card .card-hint {
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.cal-list,
+.idea-list,
+.meta-list,
+.parked-list {
+  list-style: none;
+  margin: 12px 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cal-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 15px;
+  border-radius: 12px;
+  background: var(--row);
+  border-left: 4px solid transparent;
+  font-size: 14.5px;
+  line-height: 1.4;
+}
+
+/* Each window shouts according to ITS OWN notice period, not a fixed rule: an
+   AI Act deadline at 7 days is red, a hackathon at 40 is not. */
+.cal-item[data-urgency="now"] {
+  border-left-color: var(--wait);
+  background: color-mix(in srgb, var(--wait) 13%, var(--row));
+}
+
+.cal-item[data-urgency="soon"] {
+  border-left-color: var(--ask);
+}
+
+.cal-item[data-urgency="past"] {
+  opacity: 0.45;
+}
+
+.cal-when {
+  flex: none;
+  min-width: 112px;
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.cal-item[data-urgency="now"] .cal-when {
+  color: var(--wait);
+}
+
+.cal-item[data-urgency="soon"] .cal-when {
+  color: var(--ask);
+}
+
+.cal-title {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.cal-title a {
+  color: inherit;
+  text-decoration-color: var(--border-strong);
+}
+
+.cal-date {
+  flex: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.idea-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 15px;
+  border-radius: 12px;
+  background: var(--row);
+  border-left: 4px solid transparent;
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+/* Alive means someone is working on it; parked means it is waiting for its
+   condition. Only the first one earns the accent. */
+.idea-item[data-status="live"] {
+  border-left-color: var(--accent);
+}
+
+.idea-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.idea-title {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.idea-state,
+.idea-proj {
+  flex: none;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.idea-item[data-status="live"] .idea-state {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.idea-proj {
+  align-self: flex-start;
+  border: none;
+  padding: 0;
+}
+
+.idea-cond {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* A met condition is the interesting one: that idea is waiting for nothing. */
+.idea-cond[data-cond="met"] {
+  color: #7ee08a;
+}
+
+.idea-cond[data-cond="near"] {
+  color: var(--ask);
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 15px;
+  border-radius: 12px;
+  background: var(--row);
+  border-left: 4px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  font-size: 14.5px;
+}
+
+.meta-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.pavatar.pavatar-mini {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  font-size: 9px;
+}
+
+.meta-when {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  padding-left: 30px;
+}
+
+.parked-list {
+  gap: 7px;
+  margin-top: 8px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.parked-list li {
+  padding-left: 16px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.parked-list li::before {
+  content: "·";
+  position: absolute;
+  left: 4px;
+}
+
+/* The two writing boxes sit at the bottom of their card, always in the same
+   place, so adding something is muscle memory. */
+.agenda-card .np-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+
+/* Renaming what a project is called here. Full width, because a name is what
+   you are looking at while you type it. */
+.name-input {
+  width: 100%;
+  margin: 6px 0 2px;
+  font-size: 15px;
+}
+
+/* Any number of terminals, beside the shortcuts for the usual ones. */
+.count-any {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 4px;
+}
+
+.count-input {
+  width: 74px;
+  text-align: center;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.count-max {
+  color: var(--muted);
+  font-size: 12px;
+}
+

@@ -28,6 +28,8 @@ import {
   cerebroDe,
   claveDe,
   conserjeCerebro,
+  conserjeFijo,
+  fijoDe,
   conserjeLeer,
   conserjeLista,
   conserjeMejorar,
@@ -52,6 +54,7 @@ import { hace } from "../lib/uso";
 import { A_MANO, cerebroPorDefecto, type ModelAlias } from "../lib/models";
 import { providerOf } from "../lib/providers";
 import ProviderMark from "./ProviderMark";
+import { abrirEnlacesFuera } from "../lib/enlacesFuera";
 import {
   ChevronIcon,
   CloseIcon,
@@ -94,7 +97,8 @@ const PARA_QUE: Record<string, string> = {
  *  `providers.ts` es «Claude Code», que al lado del modelo en minúscula se leía
  *  «Claude Code opus»; con el modelo detrás basta con la marca. */
 export function nombreDe(w: Pick<Trabajo, "cli" | "modelo">): string {
-  const marca = w.cli === "claude" ? "Claude" : providerOf(w.cli).label;
+  const p = providerOf(w.cli);
+  const marca = p.marca ?? p.label;
   const modelo = w.modelo ? ` ${w.modelo.charAt(0).toUpperCase()}${w.modelo.slice(1)}` : "";
   return `${marca}${modelo}`;
 }
@@ -309,7 +313,7 @@ const TurnoConserje = memo(function TurnoConserje({ turno }: { turno: Turno }) {
   const html = useMemo(() => aHtml(turno.texto), [turno.texto]);
   return (
     <article className="chat-turno" data-rol={turno.rol === "tu" ? "tu" : "agente"}>
-      <div className="chat-burbuja" dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="chat-burbuja" onClick={abrirEnlacesFuera} dangerouslySetInnerHTML={{ __html: html }} />
     </article>
   );
 });
@@ -385,7 +389,13 @@ export function HiloConserje({
   /** Si el conserje no pudo contestar: el error y lo que mandaste, para
       reintentarlo con un clic (Rust no lo apunta dos veces). */
   const [fallo, setFallo] = useState<{ texto: string; error: string } | null>(null);
-  const [fijo, setFijo] = useState<ModelAlias>(() => cerebroPorDefecto() ?? "sonnet");
+  // El de la conversación, si se fijó uno (también desde el móvil); si no, el
+  // de por defecto de Ajustes. Al elegirlo se guarda en la conversación.
+  const [fijo, setFijo] = useState<ModelAlias>(() => fijoDe(conv) ?? cerebroPorDefecto() ?? "sonnet");
+  useEffect(() => {
+    const f = fijoDe(conv);
+    if (f) setFijo(f);
+  }, [conv?.fijo]);
   const [eligiendo, setEligiendo] = useState(false);
   const [eligiendoCerebro, setEligiendoCerebro] = useState(false);
   /** Si Mejorar no pudo: se dice junto a la caja, que es donde lo pulsaste. */
@@ -681,6 +691,7 @@ export function HiloConserje({
                         onClick={() => {
                           setFijo(m);
                           setEligiendo(false);
+                          void conserjeFijo(id, m).then(onCambio).catch(() => {});
                         }}
                       >
                         <span className="chat-menu-txt">

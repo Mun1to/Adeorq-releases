@@ -5,6 +5,9 @@ import { getVersion } from "@tauri-apps/api/app";
 import { useEffect } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { FAMILIAS_TEMA, THEMES, useT, type Lang, type ThemeId } from "../lib/i18n";
+import type { TemaSistema } from "../lib/temaSistema";
+import { temaDeLaFoto } from "../lib/temaDeLaFoto";
+import { comoFuente, esVideo } from "../lib/fondo";
 import {
   apagon,
   FAMILIAS_TERM,
@@ -27,7 +30,7 @@ import {
   guardarCerebroPorDefecto,
   type ModelAlias,
 } from "../lib/models";
-import type { PermissionMode } from "../App";
+import type { PermissionMode } from "../lib/lanzar";
 import type { NotifyMode } from "../lib/notify";
 import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
 import { autostartGet, autostartSet, ollamaModels } from "../lib/pty";
@@ -95,6 +98,9 @@ interface Props {
   onLang: (l: Lang) => void;
   theme: ThemeId;
   onTheme: (t: ThemeId) => void;
+  /** Seguir el claro/oscuro de Windows (`lib/temaSistema.ts`). */
+  temaSistema: TemaSistema;
+  onTemaSistema: (c: TemaSistema) => void;
   fontSize: number;
   onFontSize: (n: number) => void;
   autoFont: boolean;
@@ -325,6 +331,8 @@ export default function SettingsView({
   onLang,
   theme,
   onTheme,
+  temaSistema,
+  onTemaSistema,
   fontSize,
   onFontSize,
   autoFont,
@@ -377,6 +385,18 @@ export default function SettingsView({
   /** null = todavía preguntando; [] = Ollama no está escuchando. */
   const [modelos, setModelos] = useState<string[] | null>(null);
   const [fondoError, setFondoError] = useState<string | null>(null);
+  /* El tema a juego con la foto (`lib/temaDeLaFoto.ts`): qué dijo la última vez. */
+  const [temaFoto, setTemaFoto] = useState<string | null>(null);
+  const proponerDeLaFoto = async () => {
+    try {
+      const id = await temaDeLaFoto(comoFuente(fondo, fondoSello));
+      const th = THEMES.find((x) => x.id === id);
+      onTheme(id);
+      setTemaFoto(`${t("Tu foto pide")} ${th ? (lang === "es" ? th.es : th.en) : id}`);
+    } catch {
+      setTemaFoto(t("No pude leer la foto"));
+    }
+  };
   /** El esquema de colores de las terminales. Vive en localStorage y no en el
       estado de la app porque quien lo lee es cada panel al abrirse; aquí solo
       hace falta para saber cuál sale marcado. */
@@ -746,6 +766,58 @@ export default function SettingsView({
                     </button>
                   ))}
                 </div>
+                {/* Un tema para cuando Windows está en oscuro y otro para claro,
+                    y que cambie solo. Elegir uno a mano en la rejilla lo apaga. */}
+                <label className="setting-row setting-switch tema-sistema">
+                  <span>{t("Seguir el claro/oscuro de Windows")}</span>
+                  <input
+                    type="checkbox"
+                    checked={temaSistema.activo}
+                    onChange={(e) => onTemaSistema({ ...temaSistema, activo: e.currentTarget.checked })}
+                  />
+                </label>
+                {temaSistema.activo && (
+                  <div className="tema-sistema-pares">
+                    <label>
+                      <span>{t("Con Windows en oscuro")}</span>
+                      <select
+                        value={temaSistema.oscuro}
+                        onChange={(e) => onTemaSistema({ ...temaSistema, oscuro: e.currentTarget.value as ThemeId })}
+                      >
+                        {THEMES.filter((th) => th.familia !== "claro").map((th) => (
+                          <option key={th.id} value={th.id}>
+                            {lang === "es" ? th.es : th.en}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      <span>{t("Con Windows en claro")}</span>
+                      <select
+                        value={temaSistema.claro}
+                        onChange={(e) => onTemaSistema({ ...temaSistema, claro: e.currentTarget.value as ThemeId })}
+                      >
+                        {THEMES.filter((th) => th.familia === "claro").map((th) => (
+                          <option key={th.id} value={th.id}>
+                            {lang === "es" ? th.es : th.en}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <p className="card-hint">{t("Elegir un tema a mano en la lista de abajo lo desactiva.")}</p>
+                  </div>
+                )}
+                {/* La foto decide cuál de los temas de la casa: el de acento más
+                    parecido a su color. Solo con una imagen puesta; un vídeo no
+                    tiene un color. */}
+                {fondo && !esVideo(fondo) && (
+                  <div className="tema-foto">
+                    <button className="mini" onClick={() => void proponerDeLaFoto()}>
+                      {t("A juego con tu foto")}
+                    </button>
+                    {temaFoto && <span className="card-hint">{temaFoto}</span>}
+                  </div>
+                )}
                 <div className="tema-buscar">
                   <SearchIcon size={14} />
                   <input

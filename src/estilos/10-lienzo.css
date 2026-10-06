@@ -1,0 +1,1320 @@
+/* ── El lienzo (META 5): la cabina como tablero ─────────────────────────── */
+
+.view-lienzo {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+.canvas-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* La barra del lienzo manda tres cosas que no se parecen en nada: dónde abro
+   trabajo, con qué dibujo encima, y qué le hago al tablero entero. Antes eran
+   nueve botones iguales en fila y había que leerlos todos para encontrar uno.
+   Ahora cada cosa es un grupo con su propia caja, y dentro del grupo el orden
+   es el de uso: primero el proyecto, luego lo que se abre en él. */
+.canvas-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--topbar);
+}
+
+.cb-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--text) 9%, transparent);
+  border-radius: 13px;
+  /* El grupo tiene que leerse COMO grupo sobre la barra, y la barra ya es
+     translúcida: con el color del panel a secas quedaba invisible. El relieve
+     lo dan el borde y la luz de arriba, no un fondo más oscuro. */
+  background: color-mix(in srgb, var(--pane-bg) 85%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.cb-div {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+.cb-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+/* El proyecto es el sujeto de la frase «abre una terminal AQUÍ», así que va
+   primero y con más peso que los verbos que le siguen. */
+.cb-proj-wrap {
+  position: relative;
+}
+
+.cb-proj {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 210px;
+  padding: 5px 9px 5px 8px;
+  border: none;
+  border-radius: var(--r-btn);
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.cb-proj:hover,
+.cb-proj[data-open="true"] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.cb-proj-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-caret {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* Un velo para cerrar el desplegable al pinchar fuera sin robarle el clic a
+   nadie más: el propio popover va por encima. */
+.cb-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.cb-pop {
+  position: absolute;
+  z-index: 61;
+  top: calc(100% + 7px);
+  left: 0;
+  width: 268px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.cb-find {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+/* Veinte proyectos no caben en una lista sin scroll, y el desplegable nativo
+   los soltaba de golpe con la tipografía del sistema. */
+.cb-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cb-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cb-list button:hover {
+  background: var(--panel-head);
+}
+
+.cb-list button[data-on="true"] {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.cb-list-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-empty {
+  padding: 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+/* Tres maneras de abrir trabajo, pero solo una es la habitual: Claude lleva el
+   acento y las otras dos se quedan en secundarias en vez de competir. */
+.cb-spawn,
+.cb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: none;
+  color: color-mix(in srgb, var(--text) 78%, var(--muted));
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.cb-spawn:hover:not(:disabled),
+.cb-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
+
+.cb-spawn:disabled,
+.cb-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cb-primary {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 80%, white 20%),
+    color-mix(in srgb, var(--accent) 80%, black 20%)
+  );
+  border-color: color-mix(in srgb, var(--accent) 55%, white 45%);
+  color: #f7fbff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 3px 10px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.cb-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 80%, white 20%),
+    color-mix(in srgb, var(--accent) 80%, black 20%)
+  );
+  color: #f7fbff;
+}
+
+/* Los tres lienzos: un selector de tres, no tres botones sueltos.
+   Van dentro de una misma pastilla hundida y solo uno está encendido, que es la
+   forma de decir «elige uno» sin escribirlo. Si fueran tres botones normales se
+   leerían como tres acciones que se pueden pulsar a la vez, y no lo son. */
+.cb-modos {
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.cb-modo {
+  padding: 5px 11px;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.cb-modo:hover {
+  color: var(--text);
+}
+
+.cb-modo[data-on="true"] {
+  color: var(--text);
+  /* Sólido y no un tinte con alfa: es la pastilla que va encima de otra
+     superficie ya translúcida, y ahí el texto pierde el suavizado de Windows
+     (ver la regla de `.session-row`). */
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+.cb-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: none;
+  color: color-mix(in srgb, var(--text) 72%, var(--muted));
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.cb-tool:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
+
+.cb-tool[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: #f4f8ff;
+}
+
+/* Segunda fila: color y grosor solo existen mientras hay una herramienta
+   puesta, así que la barra no carga con ellos el resto del tiempo. */
+/* Los ajustes del trazo: un PANEL de pie a la izquierda, con sus grupos
+   titulados. Estilo Excalidraw, y por el mismo motivo que ellos.
+
+   Era una tira horizontal pegada bajo la barra de herramientas, y ahí no cabía:
+   veinte controles en una línea, sin una sola etiqueta, así que había que
+   pasar el ratón por encima de cada icono para saber qué era, uno a uno, cada
+   vez (Munir, 2026-08-09: «más intuitivo, como el de Excalidraw»). De pie hay
+   sitio para escribir «Color», «Grosor» o «Relleno» encima de cada fila, que es
+   lo único que hacía falta para no tener que adivinar.
+
+   Va FLOTANDO y no en el flujo: en la tira, aparecer y desaparecer empujaba el
+   lienzo entero hacia abajo y hacia arriba cada vez que cogías o soltabas algo,
+   y con él todas las terminales. */
+.canvas-props {
+  position: absolute;
+  left: 10px;
+  /* ⚠ POR DEBAJO DE LA BARRA. `.canvas-wrap` empieza arriba del todo, así que un
+     `top` pequeño mete el panel encima de los botones del lienzo y los tapa
+     (Munir, 2026-08-09, con «Terminal» y «Antigravity» medio comidos). Este
+     número es el alto de `.canvas-bar` más un dedo de aire. */
+  top: 56px;
+  z-index: 6;
+  width: 186px;
+  max-height: calc(100% - 68px);
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  /* Opaca: se posa sobre las terminales y sobre la foto de la casa, y encima
+     lleva texto pequeño, que sobre un fondo con alfa pierde el suavizado de
+     Windows (ver la regla de `.session-row`). */
+  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  box-shadow: var(--glass-edge), 0 12px 34px rgba(0, 0, 0, 0.4);
+}
+
+/* El nombre de lo que estás ajustando, arriba del todo y a lo ancho. */
+.cp-title {
+  flex-basis: 100%;
+  margin-bottom: 2px;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+/* El título de cada grupo. Ocupa la fila entera, así que además de nombrar el
+   grupo es lo que hace que los botones de abajo empiecen en una línea nueva:
+   aquí no hace falta envolver cada grupo en su div. */
+.cp-grupo {
+  flex-basis: 100%;
+  /* Pegado a SU fila y despegado de la de arriba: un título a la misma
+     distancia de los dos grupos no dice de cuál es. */
+  margin: 8px 0 1px;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.75;
+}
+
+/* El primero no necesita separarse de nada: encima solo está el título. */
+.cp-grupo:first-of-type {
+  margin-top: 2px;
+}
+
+/* «Listo» cierra el panel, así que va SOLO y al final, no en la misma fila que
+   los botones de deshacer: es la única acción que se lleva el panel entero. */
+.canvas-props .cp-done {
+  flex-basis: 100%;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+
+.cp-color {
+  width: 19px;
+  height: 19px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.cp-color[data-on="true"] {
+  border-color: var(--text);
+  transform: scale(1.1);
+}
+
+/* El séptimo color: la rueda del sistema. Se ve como los otros seis, con un
+   anillo de arcoíris que dice que ahí cabe cualquiera, y el input de verdad
+   queda encima transparente para que el clic abra el selector nativo. */
+.cp-pick {
+  position: relative;
+  display: inline-flex;
+  padding: 0;
+  overflow: hidden;
+  background: conic-gradient(#ff6b6b, #ffd166, #6fe0bb, #5fd0ff, #c4b5fd, #ff6b6b);
+}
+
+.cp-pick-face {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.cp-pick input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.cp-width {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: var(--r-chico);
+  background: none;
+  cursor: pointer;
+}
+
+.cp-width span {
+  width: 16px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--text) 80%, transparent);
+}
+
+.cp-width[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.cp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-btn);
+  background: none;
+  color: color-mix(in srgb, var(--text) 78%, var(--muted));
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cp-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+}
+
+.cp-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cp-btn[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: #f4f8ff;
+}
+
+.cp-done {
+  margin-left: auto;
+}
+
+/* La capa de dibujo va SIEMPRE encima de los nodos, pero solo intercepta el
+   ratón mientras hay una herramienta puesta: con la mano, un trazo encima de
+   una terminal no impide teclear en ella. */
+.canvas-draw {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Un dibujo no se selecciona como se selecciona un párrafo. Sin esto, al
+     arrastrar un texto el navegador empezaba a SELECCIONARLO (ese resaltado
+     azul) y el gesto dejaba de ser un arrastre a medio camino: parecía que el
+     texto no se podía mover, y lo que pasaba es que se estaba subrayando. */
+  user-select: none;
+}
+
+.canvas-draw[data-activo="true"] {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.canvas-draw[data-goma="true"] {
+  cursor: cell;
+}
+
+.canvas-draw-label {
+  font-family: inherit;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.45);
+  stroke-width: 3px;
+}
+
+/* Con la flecha, la capa entera sigue siendo transparente al ratón (si no,
+   no podrías arrastrar el lienzo ni tocar una terminal) y son los trazos los
+   que se dejan coger, uno a uno. Un hijo puede recuperar los eventos que su
+   padre renunció, y es justo lo que hace falta aquí. */
+.canvas-draw-shape[data-grab="true"] {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.canvas-draw-shape[data-grab="true"]:active {
+  cursor: grabbing;
+}
+
+/* El agarre invisible: ancho para el ratón, inexistente para el ojo. */
+.canvas-draw-grab,
+.canvas-draw-grab * {
+  pointer-events: stroke;
+}
+
+.canvas-draw-shape[data-grab="true"] > :not(.canvas-draw-grab) {
+  pointer-events: none;
+}
+
+/* El texto no tiene trazo que engordar, así que se coge por su propia tinta
+   y, sobre todo, por el rectángulo invisible que lleva debajo: `stroke` solo
+   atrapa el borde de una figura, y de un texto hay que poder agarrar el hueco
+   entre dos letras igual que la letra. */
+.canvas-draw-shape[data-grab="true"] .canvas-draw-label {
+  pointer-events: visiblePainted;
+}
+
+.canvas-draw-grab .canvas-draw-hit {
+  pointer-events: all;
+}
+
+/* Los tiradores de lo seleccionado: un punto en cada extremo de una flecha, en
+   las cuatro esquinas de una caja, y uno a la derecha de un texto para cambiar
+   el tamaño de la letra. Blancos con el borde de acento, que es lo que todo el
+   mundo ya sabe leer como "de aquí se estira". */
+.canvas-draw-tirador {
+  fill: var(--panel-solid);
+  stroke: var(--accent);
+  pointer-events: all;
+}
+
+.canvas-draw-tirador:hover {
+  fill: var(--accent);
+}
+
+/* Los puntos de conectar.
+   Venían con el tamaño de fábrica de React Flow, 6 px y casi del color del
+   fondo: había que buscarlos con lupa, y son la puerta de entrada a lo que
+   hace distinto a este lienzo, que es unir piezas. Ahora son un anillo del
+   color de acento, se ven siempre, y crecen al acercarte al nodo. */
+.react-flow__handle {
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  background: var(--panel-solid);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+  opacity: 0.75;
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+/* A caballo sobre el borde, asomando hacia fuera: así los quiere Munir y así
+   es como se leen, como el enganche de la pieza y no como un botón de dentro.
+   Los metí un momento por dentro al quitar las asas de las esquinas y no era
+   eso: lo que sobraba eran las esquinas. */
+.react-flow__handle-left {
+  left: -7px;
+}
+
+.react-flow__handle-right {
+  right: -7px;
+}
+
+/* Y el área que atrapa el ratón es mayor que el círculo: acertarle a 14 px
+   sigue siendo puntería, y esto no cambia nada de lo que se ve. */
+.react-flow__handle::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+}
+
+.react-flow__node:hover .react-flow__handle {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* Lo que está fuera de la pantalla NO se pinta.
+ *
+ * Medido en el equipo de Munir el 2026-08-09 con el tablero lleno: el motor de
+ * Adeorq al 0,3 % de CPU y el WebView en veinte procesos con 1,8 GB. El trabajo
+ * no cuesta nada; lo que cuesta es dibujar, y se estaba dibujando TODO el
+ * tablero, incluidas las piezas que quedan fuera de la vista. Con doce piezas
+ * repartidas por un lienzo enorme, eso es la mayor parte del gasto.
+ *
+ * ⚠ Y se hace desde CSS a propósito, NO con el `onlyRenderVisibleElements` de
+ * React Flow, que es lo que parece la respuesta y habría sido un desastre: ese
+ * DESMONTA los nodos que salen de la vista, y al desmontarse un `TerminalPane`
+ * llama a `killPty` en su limpieza. O sea que mover el lienzo habría MATADO a
+ * los agentes que salieran por el borde. `content-visibility` no desmonta nada:
+ * el nodo sigue en el DOM, el PTY sigue vivo y el navegador solo se salta el
+ * trabajo de pintarlo.
+ *
+ * `contain-intrinsic-size` es obligatorio y no es un adorno: sin él, una pieza
+ * que no se pinta mide cero, y el tablero entero se recolocaría cada vez que
+ * una entra o sale de la vista. Son las medidas con las que nacen las piezas.
+ */
+.react-flow__node {
+  content-visibility: auto;
+  contain-intrinsic-size: 640px 420px;
+}
+
+/* Menos la que estás arrastrando o tienes cogida: ahí no se puede saltar ni un
+   fotograma, y además siempre está a la vista por definición. */
+.react-flow__node.dragging,
+.react-flow__node.selected {
+  content-visibility: visible;
+}
+
+.react-flow__handle:hover {
+  opacity: 1;
+  transform: scale(1.45);
+  background: var(--accent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* Mientras arrastras una conexión, todos los destinos posibles se encienden:
+   así se ve dónde puedes soltar sin ir probando. */
+.react-flow__handle-connecting,
+.react-flow__handle-valid {
+  opacity: 1;
+  background: var(--accent);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Seleccionado: se levanta con un halo del color de acento, sin repintar el
+   trazo, para que se vea cuál has cogido sin falsear cómo quedará. */
+.canvas-draw-shape[data-sel="true"] {
+  filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 9px rgba(77, 159, 255, 0.55));
+}
+
+/* El marco mientras se barre: el guion se ve enseguida como "estoy cogiendo",
+   y el relleno tenue deja claro hasta dónde llega sin tapar lo de debajo. */
+/* El recuadro blanco que salía al tocar una tecla en el lienzo.
+   React Flow hace su contenedor enfocable para poder moverse con el teclado, y
+   nadie estilaba ese foco: al pulsar cualquier tecla el navegador entra en modo
+   teclado y le pinta su contorno de fábrica alrededor de TODO el tablero. Una
+   caja del tamaño de la pantalla no señala nada, y encima aparecía justo al
+   usar un atajo, que es cuando menos falta hace.
+   Va contra TODOS los div del lienzo y no contra los tres que sospechábamos:
+   React Flow enfoca varios contenedores suyos según lo que hagas (el espacio,
+   sin ir más lejos, le activa el modo mover y enfoca el suyo), y cazarlos de
+   uno en uno era ir detrás del siguiente cada vez. Los botones y los campos de
+   escribir conservan su anillo, que es donde de verdad hace falta; dentro del
+   lienzo no hay ningún div editable, así que nadie se queda sin señal. */
+.view-lienzo div:focus,
+.view-lienzo div:focus-visible {
+  outline: none;
+}
+
+.canvas-marco {
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: var(--accent);
+  pointer-events: none;
+}
+
+/* Las guías de alineación, mientras dibujas o estiras. Rosa y finísimas, como
+   en Figma: tienen que verse encima de cualquier cosa —una foto clara, una
+   terminal negra— y desaparecer en cuanto sueltas, así que el color no puede
+   ser ninguno de los que ya significan algo aquí. */
+.canvas-guia {
+  stroke: #ff5cc8;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* La pieza a la que se va a pegar la flecha que estás dibujando. Verde y no del
+   color de la casa a propósito: el azul ya significa «esto está seleccionado»,
+   y aquí se está diciendo otra cosa —«suelta y se queda pegada aquí»—, que es
+   una promesa sobre lo que va a pasar, no un estado. */
+.canvas-imana {
+  fill: none;
+  stroke: #7ee08a;
+  stroke-dasharray: none;
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(126, 224, 138, 0.55));
+}
+
+/* ==========================================================================
+   El editor de atajos, en Ajustes. Una tecla se lee de un vistazo o no sirve
+   de nada, así que van en su propia caja con letra de máquina de escribir.
+   ========================================================================== */
+.atajos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.atajos-h {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.atajos-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.atajos-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atajos-tecla {
+  min-width: 108px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: var(--row);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.atajos-tecla:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* Esperando la tecla: tiene que verse desde la otra punta de la pantalla, que
+   es justo cuando el teclado deja de hacer lo de siempre. */
+.atajos-tecla[data-grabando="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  color: #f4f8ff;
+  animation: atajo-latido 1.1s ease-in-out infinite;
+}
+
+@keyframes atajo-latido {
+  50% {
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+  }
+}
+
+.atajos-tecla[data-vacio="true"] {
+  color: var(--muted);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.atajos-x {
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: var(--r-chico);
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Con fondo, y no solo con borde. Este era el único de los tres botones que se
+   apoyaban en `var(--line)` para su estado de ratón encima que no tenía otra
+   señal: mientras la variable no existía, ese borde caía a currentColor y salía
+   del color del texto, o sea CLARO y bien visible. Al declarar `--line` como el
+   borde sutil de la casa, ese hover se habría quedado casi sin marcar. */
+.atajos-x:hover:not(:disabled) {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+}
+
+.atajos-x:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.atajos-pie {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.atajos-hint {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+/* El marco del botón derecho. Es el mismo gesto que el de la barra, pero en
+   píxeles de pantalla: no hace zoom con el tablero porque no está PUESTO en el
+   tablero, es el barrido de tu mano. */
+.canvas-marco-der {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  border: 1px dashed var(--accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* Lo cogido, marcado por fuera de la pieza y sin tocarla: cada tipo de pieza
+   tiene su propio borde y su propio redondeo, y pintarles por dentro obligaría
+   a un caso por cada una. Solo se enciende con un grupo de verdad; una pieza
+   suelta seleccionada de un clic ya se distingue por su propio resaltado. */
+.canvas-flow[data-grupo="true"] .react-flow__node.selected::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+  pointer-events: none;
+}
+
+/* Con un grupo cogido, los tiradores de cambiar el tamaño se quitan de en
+   medio: ahí lo que se hace es mover y borrar el conjunto, y diez tiradores
+   encendidos a la vez solo son diez sitios donde el arrastre hace otra cosa. */
+.canvas-flow[data-grupo="true"] .react-flow__resize-control {
+  display: none;
+}
+
+/* La barra de lo cogido: abajo y centrada, entre los mandos del zoom y el
+   mapa, que son las dos esquinas ya ocupadas. */
+.canvas-sel {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  transform: translateX(-50%);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 12px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.cs-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: #f4f8ff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cs-txt,
+.cs-ask {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cs-ask {
+  margin-left: 4px;
+  color: #ffd7d7;
+}
+
+.cs-danger {
+  border-color: color-mix(in srgb, #d66060 55%, transparent);
+  color: #ffd7d7;
+}
+
+.cs-danger:hover:not(:disabled) {
+  background: rgba(214, 96, 96, 0.22);
+  color: #fff;
+}
+
+.canvas-draw-text {
+  position: absolute;
+  z-index: 8;
+  min-width: 160px;
+  padding: 2px 6px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--popover) 92%, transparent);
+  font-family: inherit;
+  font-weight: 600;
+  outline: none;
+  /* Es un <textarea> desde que el texto puede tener varias líneas, así que
+     nunca lleva el tirador de agrandar (regla U de la casa): crece solo con
+     `rows`, y ese puñito de rayas dentro de una caja de cristal es una pegatina
+     que no ha diseñado nadie. */
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.canvas-import {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  list-style: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.canvas-import b {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.canvas-flow {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* React Flow paints its own surface: hand it the theme's variables so the
+   board looks like the rest of the house instead of a bolted-on library. */
+.canvas-flow .react-flow {
+  --xy-background-color: transparent;
+  --xy-edge-stroke: color-mix(in srgb, var(--accent) 70%, transparent);
+  --xy-edge-stroke-selected: var(--accent);
+  --xy-controls-button-background-color: var(--popover);
+  --xy-controls-button-color: var(--text);
+  --xy-controls-button-border-color: var(--line);
+  background: transparent;
+}
+
+.canvas-flow .react-flow__background {
+  color: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.canvas-flow .react-flow__edge-text {
+  fill: var(--text);
+  font-size: 10.5px;
+}
+
+.canvas-flow .react-flow__edge-textbg {
+  fill: var(--popover);
+}
+
+/* El minimapa y los mandos del zoom, de cristal como el resto: antes eran los
+   crudos de la librería, un rectángulo gris opaco y tres cuadrados pegados. */
+.canvas-map {
+  background: var(--panel) !important;
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  box-shadow: var(--glass-edge), 0 10px 26px rgba(0, 0, 0, 0.35);
+}
+
+.canvas-flow .react-flow__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-btn);
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-edge), 0 10px 26px rgba(0, 0, 0, 0.35);
+}
+
+.canvas-flow .react-flow__controls-button {
+  width: 30px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--text);
+}
+
+.canvas-flow .react-flow__controls-button:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.canvas-flow .react-flow__controls-button svg {
+  max-width: 14px;
+  max-height: 14px;
+  fill: currentColor;
+}
+
+.rf-term {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+}
+
+.rf-term[data-selected="true"] {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+/* The pane fills its node, and its header is the drag handle. */
+.rf-term .pane {
+  border-radius: 12px;
+}
+
+.rf-term .pane-head {
+  cursor: grab;
+}
+
+.rf-handle {
+  width: 11px;
+  height: 11px;
+  background: var(--accent);
+  border: 2px solid var(--pane-bg);
+}
+
+/* ── Las terminales del lienzo tienen dueño (2026-10-06) ─────────────────────
+   Cada terminal lleva el color de su proyecto (`--c`, el mismo del chip y del
+   avatar): una franja arriba, la cabecera teñida y las iniciales del proyecto
+   de marca de agua. Así un lienzo con tres proyectos se lee sin acercarse
+   (Munir: «en cada terminal de un proyecto en específico un color diferente»). */
+.rf-term {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--c) 35%, var(--border));
+}
+
+.rf-term::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: var(--c);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.rf-term .pane-head {
+  background: color-mix(in srgb, var(--c) 12%, var(--panel-head));
+}
+
+/* El chip del proyecto trae su `--c` puesto en línea (el azul de la casa, de
+   `hueOf`). En el lienzo manda el del nodo, o el chip y la franja dirían dos
+   colores distintos del mismo proyecto; `!important` es la única forma de que
+   una hoja le gane a un estilo en línea. */
+.rf-term .pane-proj {
+  --c: inherit !important;
+}
+
+.rf-term .pane[data-focused="true"] .pane-head {
+  background: color-mix(in srgb, var(--c) 22%, var(--panel-head));
+}
+
+.rf-marca {
+  position: absolute;
+  right: 18px;
+  bottom: 8px;
+  z-index: 2;
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: var(--c);
+  opacity: 0.1;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Con logo (el mismo que enseña la barra lateral), el logo; sin él, las
+   iniciales de arriba. */
+.rf-marca-logo {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  opacity: 0.14;
+}
+
+.rf-tapa-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin-bottom: 2px;
+}
+
+/* Una sola selección: el marco del nodo. El halo del panel es de la Cabina,
+   donde no hay marco; aquí se pintaban los dos. */
+.rf-term .pane[data-focused="true"] {
+  box-shadow: none;
+  border-color: transparent;
+}
+
+/* Las acciones salen al pasar el ratón; la ✕ se queda. Siete botones en una
+   fila de 34 px, en una terminal de 360 de ancho, eran la mitad de la cabecera. */
+.rf-term .ph-acts {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.rf-term:hover .ph-acts,
+.rf-term:focus-within .ph-acts {
+  opacity: 1;
+}
+
+/* El cristal, un punto más cerrado que en la Cabina: aquí cada terminal flota
+   sola sobre la foto, sin vecinas que la tapen, y el texto peleaba con ella.
+   Sigue al mando de «cuánto se ve» de Ajustes (parte de su `--xterm-bg`). */
+.rf-term .pane-term {
+  background: color-mix(in srgb, var(--xterm-bg), black 30%);
+}
+
+/* Lejos (zoom por debajo del 55 %) una terminal es un rectángulo con hormigas:
+   enseña su tapa y el cuerpo deja de pintarse. La cabecera queda a la vista
+   porque es el asa para moverla. */
+.rf-tapa {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 39px;
+  bottom: 0;
+  z-index: 4;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--pane-bg) 85%, transparent);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.rf-tapa-ini {
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--c);
+}
+
+.rf-tapa b {
+  max-width: 90%;
+  overflow: hidden;
+  font-size: 26px;
+  font-weight: 650;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rf-tapa span:last-child {
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.rf-term[data-lejos="true"] .rf-tapa {
+  display: flex;
+}
+
+.rf-term[data-lejos="true"] .pane-term {
+  visibility: hidden;
+}
+
+/* ── El carril: una franja que separa un espacio de trabajo (2026-10-06) ────
+   Va debajo de las terminales y deja pasar el ratón: solo el rótulo se coge
+   (es el `dragHandle`), se renombra con doble clic y se quita con su ✕. */
+.react-flow__node-carril {
+  pointer-events: none;
+}
+
+.carril {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-caja);
+  background: color-mix(in srgb, var(--carril) 7%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--carril) 35%, transparent);
+  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--carril) 70%, transparent);
+}
+
+.carril[data-selected="true"] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--carril) 60%, transparent);
+}
+
+.carril .react-flow__resize-control {
+  pointer-events: auto;
+}
+
+.carril-rotulo {
+  pointer-events: auto;
+  position: absolute;
+  top: 3px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 12px;
+  border-radius: 0 0 var(--r-btn) var(--r-btn);
+  background: color-mix(in srgb, var(--carril) 22%, var(--panel));
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid color-mix(in srgb, var(--carril) 45%, var(--border));
+  border-top: 0;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  color: var(--text);
+  cursor: grab;
+}
+
+.carril-rotulo:active {
+  cursor: grabbing;
+}
+
+.carril-nombre-txt {
+  white-space: nowrap;
+}
+
+.carril-nombre {
+  width: 180px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.carril-cerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.carril-rotulo:hover .carril-cerrar {
+  opacity: 1;
+}
+
+.carril-cerrar:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* En el minimapa el carril es una franja tenue debajo de sus terminales. */
+.canvas-map .mapa-carril {
+  opacity: 0.25;
+}
+
+/* La tarjeta de una clave de API, en Cuentas. */
+.api-modo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.api-modo input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.api-var {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.api-var code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 10px;
+}
+

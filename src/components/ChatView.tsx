@@ -62,6 +62,7 @@ import {
   type ConserjeExec,
 } from "./Conserje";
 import { claveDe, conserjeSesion, conserjeSoltar, nuevoId, paneDe, type Trabajo } from "../lib/conserje";
+import { abrirEnlacesFuera } from "../lib/enlacesFuera";
 import {
   ChatIcon,
   ChevronIcon,
@@ -152,6 +153,22 @@ const CEREBROS: Array<{ id: ModelAlias; para: string }> = [
  * cuesta **30,6 ms medidos**, mientras que convertir solo el que ha cambiado
  * cuesta **0,43 ms**: setenta veces menos por el mismo resultado en pantalla.
  */
+/** Los turnos en bloques: cada pregunta tuya con lo que le contestaron. */
+function enPares(turnos: Turno[]): Turno[][] {
+  const pares: Turno[][] = [];
+  for (const t of turnos) {
+    if (t.rol === "tu" || !pares.length) pares.push([t]);
+    else pares[pares.length - 1].push(t);
+  }
+  return pares;
+}
+
+/** La primera línea con algo, recortada: lo que cabe en la cabecera pegajosa. */
+function primeraLinea(texto: string): string {
+  const l = texto.split("\n").map((x) => x.trim()).find(Boolean) ?? "";
+  return l.length > 140 ? `${l.slice(0, 139)}…` : l;
+}
+
 const Burbuja = memo(function Burbuja({ turno }: { turno: Turno }) {
   // El transcript es prosa en markdown, que es como lo escribe el agente.
   // Pintarlo en crudo sería enseñar asteriscos y comillas invertidas.
@@ -162,7 +179,7 @@ const Burbuja = memo(function Burbuja({ turno }: { turno: Turno }) {
   const html = useMemo(() => aHtml(turno.texto), [turno.texto]);
   return (
     <article className="chat-turno" data-rol={turno.rol}>
-      <div className="chat-burbuja" dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="chat-burbuja" onClick={abrirEnlacesFuera} dangerouslySetInnerHTML={{ __html: html }} />
       {turno.herramientas.length > 0 && (
         <p className="chat-tools">{resumeHerramientas(turno.herramientas)}</p>
       )}
@@ -501,8 +518,25 @@ ${v}` : txt));
         {!cargando && !turnos.length && (
           <p className="chat-vacio">{t("Esta conversación todavía no tiene nada escrito.")}</p>
         )}
-        {turnos.map((turno, i) => (
-          <Burbuja key={i} turno={turno} />
+        {/* Cada pregunta tuya con las respuestas que le siguen, en un mismo
+            bloque: así la línea pegada (`.chat-ancla`) se queda arriba
+            mientras bajas por ESA respuesta y la siguiente pregunta la empuja.
+            Sueltas en el hilo, dos pegadas se apilaban una encima de otra
+            (medido en el banco: las dos a 21 px del borde). */}
+        {enPares(turnos).map((par, i) => (
+          <section key={i} className="chat-par">
+            <Burbuja turno={par[0]} />
+            {/* Entre la pregunta y las respuestas: solo pegada mientras hay
+                respuesta por debajo que leer. */}
+            {par[0].rol === "tu" && par.length > 1 && (
+              <div className="chat-ancla" aria-hidden="true">
+                {primeraLinea(par[0].texto)}
+              </div>
+            )}
+            {par.slice(1).map((turno, j) => (
+              <Burbuja key={j} turno={turno} />
+            ))}
+          </section>
         ))}
         <div ref={finRef} />
       </div>

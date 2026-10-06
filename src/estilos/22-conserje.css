@@ -1,0 +1,378 @@
+/* ==========================================================================
+   El conserje: el chat principal que lo conecta todo (`Conserje.tsx`).
+   Salió de una maqueta con este mismo CSS sobre la foto de Munir, antes de
+   construirlo. Las piezas nuevas son tres (la sección de la lista, las
+   pestañas y la tarjeta de un trabajo) y el color de cada estado es el de
+   toda la app:
+     verde   = trabajando, algo vivo dentro (el de `.live-dot`)
+     ámbar   = te pregunta algo (--ask)
+     naranja = ha terminado su turno (--done)
+   Todo esto va DENTRO de `.chat-hilo`, que ya pone la superficie de cristal:
+   aquí no se inventa otra, se hunde un poco por encima con `--cj-hueco`.
+   ========================================================================== */
+/* Oscurecer en los temas oscuros y aclarar en los claros. Con el negro
+   escrito a mano, en «Claro» las pestañas y las tarjetas eran cajas grises. */
+:root { --cj-hueco: rgba(0, 0, 0, 0.22); --cj-vivo: #7ee08a; }
+/* El verde de `.live-dot` sobre blanco no se lee como texto (1,6:1); este da
+   5:1 y sigue siendo el mismo verde de «vivo». */
+:root:is([data-theme="claro"], [data-theme="papel"]) { --cj-hueco: rgba(255, 255, 255, 0.72); --cj-vivo: #15803d; }
+
+[data-estado="trabajando"] { --cj-c: var(--cj-vivo); }
+[data-estado="pregunta"]   { --cj-c: var(--ask); }
+[data-estado="termino"]    { --cj-c: var(--done); }
+/* El --done de «Claro» es #ff9a3c, que como texto sobre blanco da 2:1. */
+:root[data-theme="claro"] [data-estado="termino"] { --cj-c: #c2410c; }
+[data-estado="cerrada"]    { --cj-c: var(--muted); }
+[data-estado="conserje"]   { --cj-c: var(--accent); }
+
+.cj-punto {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cj-c, #7ee08a);
+}
+[data-estado="trabajando"] .cj-punto,
+.cj-pensando .cj-punto {
+  box-shadow: 0 0 7px color-mix(in srgb, var(--cj-c, #7ee08a) 60%, transparent);
+  animation: cj-late 1.6s ease-in-out infinite;
+}
+@keyframes cj-late {
+  50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-estado="trabajando"] .cj-punto,
+  .cj-pensando .cj-punto { animation: none; }
+}
+
+.cj-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cj-c);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* El avatar del conserje: la esquina asimétrica de los avatares de proyecto. */
+.cj-avatar {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 11px 4px 4px 11px;
+  background: color-mix(in srgb, var(--accent) 22%, rgba(0, 0, 0, 0.3));
+  color: var(--accent);
+}
+.cj-avatar-mini {
+  width: 20px;
+  height: 20px;
+  border-radius: 8px 3px 3px 8px;
+}
+.cj-avatar-grande {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px 6px 6px 16px;
+}
+
+/* ── La sección de la lista: el conserje va arriba del todo ────────────── */
+.cj-lista {
+  display: grid;
+  /* Sin el `minmax(0, …)` la columna crecía con el título más largo y se
+     salía del cajón en vez de cortarse con puntos suspensivos. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.cj-nueva {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 4px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--accent) 16%, var(--cj-hueco));
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.cj-nueva:hover {
+  background: color-mix(in srgb, var(--accent) 26%, var(--cj-hueco));
+}
+
+/* ── Las pestañas ─────────────────────────────────────────────────────── */
+/* Las pestañas ENCOGEN antes de desbordar, como las de un navegador: con tres
+   sesiones en un panel estrecho salía una barra de scroll gorda debajo de la
+   tira (visto en la prueba de la interfaz). Si aun así no caben, se desliza con
+   la rueda, pero sin barra. */
+.cj-pestanas {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+/* Lo que se desplaza son solo las sesiones; el conserje se queda quieto. */
+.cj-pestanas-rueda {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cj-pestanas-rueda::-webkit-scrollbar { display: none; }
+/* El borde que tiene más pestañas detrás se difumina: la barra está escondida
+   y sin esto las de la derecha no se sabía que existían. */
+.cj-pestanas-rueda[data-der="true"] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent);
+}
+.cj-pestanas-rueda[data-izq="true"] {
+  mask-image: linear-gradient(to right, transparent, #000 44px);
+}
+.cj-pestanas-rueda[data-izq="true"][data-der="true"] {
+  mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+}
+.cj-pestana {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 132px;
+  max-width: 320px;
+  padding: 7px 12px 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: var(--cj-hueco);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  /* La franja de color a la izquierda dice el estado sin leer nada. */
+  box-shadow: inset 3px 0 0 var(--cj-c);
+}
+/* La del conserje es la ancla de la tira: encogen las demás, ella no. */
+.cj-pestana[data-estado="conserje"] { flex: none; }
+.cj-pestana:hover { border-color: var(--border-strong); }
+.cj-pestana[data-on="true"] {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--cj-hueco));
+}
+.cj-pestana .prov-mark { width: 16px; height: 16px; flex: none; }
+.cj-pestana-txt { display: grid; min-width: 0; }
+.cj-pestana-txt strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cj-pestana-txt .cj-estado { font-size: 11px; }
+.cj-pestana-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+/* En una pestaña estrecha el modelo quedaba en una «C» suelta. Ahora, si no
+   cabe entero, salta a un segundo renglón que no se ve (sigue en el tooltip y
+   en su tarjeta). Con `container-type` no se podía: la pestaña dejaría de
+   medirse por lo que lleva dentro. */
+.cj-pestana-sub {
+  flex-wrap: wrap;
+  row-gap: 0;
+  height: 16px;
+  overflow: hidden;
+}
+.cj-pestana-modelo {
+  font-size: 11px;
+  line-height: 16px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.cj-pestana-sub .cj-estado {
+  min-width: 0;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── La tarjeta de un trabajo, dentro de la conversación ──────────────── */
+.cj-grupo { display: contents; }
+.cj-trabajo {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  max-width: 560px;
+  margin: 2px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  background: var(--cj-hueco);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 3px 0 0 var(--cj-c);
+}
+.cj-trabajo:hover { border-color: var(--border-strong); }
+.cj-trabajo-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cj-trabajo-cab .prov-mark { width: 18px; height: 18px; flex: none; }
+.cj-trabajo-cab strong { font-size: 13.5px; }
+.cj-trabajo-cab .cj-estado { margin-left: auto; }
+.cj-trabajo-para {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.cj-porque {
+  display: flex;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.8;
+}
+.cj-porque svg { flex: none; margin-top: 1px; color: var(--accent); }
+.cj-trabajo-ir {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ── Mientras piensa, y la caja con sus dos mandos ────────────────────── */
+.cj-pensando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.85;
+}
+.cj-pastilla {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+/* El menú de modelos del chat se ancla por la derecha porque allí su botón va
+   al final de la fila; aquí va a la izquierda, y anclado por la derecha se
+   salía de la columna por encima de la lista. Tres modelos caben en menos. */
+.cj-pastillas .chat-menu {
+  left: 0;
+  right: auto;
+  width: 220px;
+}
+.cj-pastilla:disabled { opacity: 0.45; cursor: default; }
+/* Lo mejorado se marca en el borde de la caja entera: un marco alrededor del
+   texto dejaba una caja dentro de otra. */
+.chat-caja:has(.chat-input[data-mejorado="true"]) {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.cj-aviso-mejora {
+  margin: 0;
+  padding: 10px 16px 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--accent);
+}
+.cj-bienvenida .cj-avatar { margin-bottom: 6px; }
+.cj-aviso-mejora[data-grave] { color: var(--warn); }
+
+/* La ✕ de una pestaña cerrada: hermana de la pestaña (un botón no va dentro
+   de otro), puesta encima de su lado derecho. */
+/* Los mínimos van en la caja y no en la pestaña: con la caja a `min-width: 0`
+   encogía por debajo de su pestaña, y la siguiente se le montaba encima. */
+.cj-pestana-caja {
+  position: relative;
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 132px;
+  max-width: 320px;
+}
+.cj-pestana-caja > .cj-pestana {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+}
+/* Dentro de la pestaña y a su derecha, como en un navegador. En la esquina y
+   por fuera se leía como un aviso sin leer, no como «cerrar». */
+.cj-pestana-caja:has(.cj-pestana-quitar) .cj-pestana { padding-right: 34px; }
+.cj-pestana-quitar {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.cj-pestana-quitar:hover { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+
+.cj-ver-todas {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-self: start;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: var(--r-pastilla);
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+.cj-ver-todas:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+
+/* Lo que no se pudo hacer, en el sitio del hilo donde pasó. Con su superficie
+   propia: puede quedar sobre la foto del fondo. */
+.cj-nota {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 560px;
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--ask) 45%, transparent);
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--ask) 12%, var(--popover));
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.cj-nota[data-grave] {
+  border-color: color-mix(in srgb, var(--wait) 50%, transparent);
+  background: color-mix(in srgb, var(--wait) 12%, var(--popover));
+}
+.cj-nota > span { flex: 1; min-width: 0; }
+.cj-reintentar { flex: none; }
+
+/* El foco del teclado, visible en todo lo que se pulsa del conserje. */
+.cj-pestana:focus-visible,
+.cj-trabajo:focus-visible,
+.cj-nueva:focus-visible,
+.cj-ver-todas:focus-visible,
+.cj-pestana-quitar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+

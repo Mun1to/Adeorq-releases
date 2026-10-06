@@ -1,0 +1,1206 @@
+/* ── El tablero del trabajo ─────────────────────────────────────────────────
+   Ver CanvasKanban.tsx. Cuatro columnas, tres de ellas llenas de lo que hacen
+   los agentes ahora mismo y una tuya. */
+.rf-kanban {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.rf-kanban[data-selected="true"] {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.kb-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--row);
+  /* La cabecera ES el asidero: el cuerpo lleva `nodrag` porque ahí dentro se
+     arrastran tarjetas, y las dos cosas a la vez no pueden ser. */
+  cursor: grab;
+}
+
+.kb-titulo {
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+.kb-cuenta {
+  flex: 1;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-x,
+.kb-mia-x {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: var(--r-chico);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.kb-x:hover,
+.kb-mia-x:hover {
+  color: var(--text);
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.kb-cols {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  min-height: 0;
+}
+
+.kb-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--panel-solid);
+  transition: background 0.12s ease;
+}
+
+/* La columna tuya se distingue del resto: en las otras tres no se puede soltar
+   nada porque el estado es del agente, y eso hay que verlo antes de intentarlo. */
+.kb-col[data-col="porhacer"] {
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel-solid));
+}
+
+.kb-col[data-suelta] {
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel-solid));
+}
+
+.kb-col-tit {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+  padding: 7px 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.kb-col[data-col="espera"] .kb-col-tit {
+  color: #e5b567;
+}
+
+.kb-col-n {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.kb-col-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px;
+  scrollbar-width: thin;
+}
+
+.kb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: var(--r-chico);
+  border: 1px solid var(--border);
+  background: var(--row);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.kb-card-agente:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--row));
+}
+
+/* Una de la cabina: se ve, se cuenta, pero desde aquí no se va a ella. */
+.kb-card-agente:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+/* El que te espera lleva el ámbar de la casa, el mismo que el contador de la
+   barra lateral: es el único estado que te pide algo. */
+.kb-card[data-urge] {
+  border-color: color-mix(in srgb, #e5b567 55%, transparent);
+  background: color-mix(in srgb, #e5b567 12%, var(--row));
+}
+
+.kb-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.kb-cli {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.kb-cli .prov-mark {
+  width: 14px;
+  height: 14px;
+}
+
+.kb-cli[data-cli="claude"] {
+  color: #d97757;
+}
+
+.kb-cli[data-cli="agy"] {
+  color: #7aa6ff;
+}
+
+.kb-card-nombre {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 620;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kb-card-pie,
+.kb-card-extra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.kb-proy {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+.kb-estado {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-card[data-urge] .kb-estado {
+  color: #e5b567;
+  font-weight: 700;
+}
+
+.kb-sub,
+.kb-ctx {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Las tuyas: no llevan estado porque no lo tienen, y sí llevan el agarre. */
+.kb-card-mia {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
+  cursor: grab;
+  background: color-mix(in srgb, var(--accent) 9%, var(--row));
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  /* El arrastre es por puntero, no por el HTML5 nativo: sin esto, moverte
+     rápido por encima del texto selecciona la frase en vez de mover la
+     tarjeta, y en una pantalla táctil el gesto se lo queda el scroll. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.kb-card-mia[data-llevando] {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+.kb-mia-txt {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* Reescribir la tarjeta en su sitio, sin diálogos. */
+.kb-mia-edit {
+  flex: 1;
+  min-width: 0;
+  padding: 1px 5px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+/* Marcar varias para que salgan como cuadrilla. Discreta hasta que se usa: lo
+   normal sigue siendo arrastrar una sola. */
+.kb-mia-check {
+  flex: none;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.kb-repartir {
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+}
+
+.kb-nueva {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.kb-nueva-in {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 7px;
+  border-radius: 7px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 11.5px;
+}
+
+.kb-nueva-in:focus {
+  outline: none;
+  border-style: solid;
+  border-color: var(--accent);
+}
+
+.kb-nueva-mas {
+  flex: none;
+  width: 26px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border);
+  background: var(--row);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.kb-nueva-mas:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.kb-pista,
+.kb-vacia {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.kb-vacia {
+  padding: 10px 2px;
+  text-align: center;
+  opacity: 0.75;
+}
+
+.canvas-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 0 40px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.canvas-auto {
+  align-self: flex-start;
+}
+
+.relay-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 12%, var(--topbar));
+}
+
+.relay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
+  background: var(--popover);
+}
+
+.relay-text {
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* Un relevo frenado: el de arriba está listo para entregar y este no, así que
+   no puede parecer lo mismo. En ámbar, que es como avisa el resto de la app,
+   y con el motivo escrito en vez de un relevo quieto sin explicación. */
+.relay-parado {
+  border-color: color-mix(in srgb, var(--warn, #f3cf8a) 55%, transparent);
+  background: color-mix(in srgb, var(--warn, #f3cf8a) 12%, var(--popover));
+}
+
+.relay-parado .relay-text {
+  color: var(--warn, #f3cf8a);
+}
+
+.relay-btn {
+  padding: 4px 10px;
+  font-size: 11.5px;
+}
+
+.relay-note {
+  font-size: 11.5px;
+  color: var(--warn, #f3cf8a);
+}
+
+/* Settings: an on/off switch, not a tick box (Munir, 2026-08-21).
+ *
+ * It is still a real <input type="checkbox">: the label, the keyboard, the
+ * space bar and the screen reader all keep working, and nothing in the .tsx
+ * changed. Only its skin is redrawn, with `appearance: none` and the knob as
+ * an ::before, so a switch is one selector and not a new component.
+ *
+ * A tick box says "this is on the list". A switch says "this is running right
+ * now", which is what every one of these rows actually means. */
+.setting-switch input[type="checkbox"],
+.apagon-fila input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  margin: 0;
+  border-radius: 999px;
+  /* Off is glass, not grey: everything else in this app sits on the photo, and
+     a solid grey pill is the one thing that would look pasted on. Measured on
+     screen: at 0.16 the track disappeared into the card and the row read as a
+     lone white dot, so it carries its own border to keep the pill legible. */
+  background: rgba(140, 170, 220, 0.22);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.setting-switch input[type="checkbox"]::before,
+.apagon-fila input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f2f6ff;
+  /* Moving the knob with translate keeps it on the GPU, and `top: 50%` plus a
+     translate on Y centres it whatever the border does to the box. */
+  transform: translate(0, -50%);
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.setting-switch input[type="checkbox"]:checked,
+.apagon-fila input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.setting-switch input[type="checkbox"]:checked::before,
+.apagon-fila input[type="checkbox"]:checked::before {
+  transform: translate(16px, -50%);
+}
+
+.setting-switch input[type="checkbox"]:disabled,
+.apagon-fila input[type="checkbox"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* El apagón lleva su texto en dos líneas y se alinea por arriba, así que un
+   interruptor de 22 px sobresale de su propio título. Se baja el título en vez
+   de subir el interruptor: mover el mando es lo que se ve. */
+.apagon-fila input[type="checkbox"] {
+  margin-top: 1px;
+}
+
+/* The focus ring is not optional: without the native tick box there is no
+   other way to see where the keyboard is. */
+.setting-switch input[type="checkbox"]:focus-visible,
+.apagon-fila input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setting-switch input[type="checkbox"],
+  .setting-switch input[type="checkbox"]::before,
+  .apagon-fila input[type="checkbox"],
+  .apagon-fila input[type="checkbox"]::before {
+    transition: none;
+  }
+}
+
+/* Diagrams inside the guide: they scale with the panel and take the theme's
+   colour through currentColor, so they work in light and dark alike. */
+.guide svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 16px 0;
+  color: var(--text);
+}
+
+/* Quiet line while the board comes back after a restart. */
+.restore-bar {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9997;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--popover);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
+}
+
+/* Layout picker: Windows-style snap thumbnails for the cockpit. */
+.layout-pop {
+  position: fixed;
+  z-index: 9995;
+  width: 268px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--popover);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  backdrop-filter: var(--glass-blur);
+}
+
+.layout-pop-title {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.layout-choice {
+  padding: 4px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--accent);
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.layout-choice:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.layout-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.layout-pop-foot {
+  margin-top: 10px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* Which project this terminal belongs to: its name, in the project's own
+   colour, always readable even while streaming. */
+/* Shrinkable, not fixed. As a `flex: none` pill it kept its 130px whatever
+   happened and pushed the buttons off the right edge of a narrow pane, the
+   close one first. It already has an ellipsis: let it use it. */
+.pane-proj {
+  flex: 0 1 auto;
+  min-width: 0;
+  /* 130 eran para una cabecera donde el chip crecía y el título encogía. Ahora
+     manda el título, y un proyecto se reconoce de sobra en catorce letras: los
+     26px que sobraban se los queda el nombre, que los necesita más. */
+  max-width: 104px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  padding: 2px 8px;
+  border-radius: 7px;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+}
+
+/* The focused pane also wears its project's colour on the edge. */
+.pane[data-focused="true"] .pane-proj {
+  background: color-mix(in srgb, var(--c) 26%, transparent);
+}
+
+/* EL ORDEN EN QUE UNA CABECERA ESTRECHA SUELTA LASTRE.
+   Los umbrales estaban calibrados para una cabecera que ya no existe: el
+   primero saltaba a 430px, y a 430px hacía rato que el título estaba en tres
+   letras y había botones fuera de la vista. Sumando anchos, la fila entera pide
+   unos 620px, así que el primer escalón tiene que estar AHÍ, no doscientos
+   píxeles más abajo.
+   El orden lo dicen los propios elementos: primero el esfuerzo (un adverbio del
+   modelo), luego la memoria (que su comentario ya llama «el dato más callado»),
+   luego el modelo, luego el medidor y por último los agentes. Nada de esto se
+   pierde al esconderse: todo está en el globo del título, que no se va nunca. */
+@container (max-width: 620px) {
+  .pane-effort {
+    display: none;
+  }
+}
+
+@container (max-width: 545px) {
+  .pane-ram {
+    display: none;
+  }
+}
+
+/* LA BARRITA SE VA ANTES QUE SU NÚMERO.
+   Son dos formas de decir lo mismo, y una ocupa 32px y la otra 26. Con sitio,
+   la barra se lee de un vistazo sin leer; sin sitio, el número solo dice
+   exactamente igual de bien y le devuelve ese ancho al título, que es quien
+   distingue una terminal de otra (Munir, 2026-08-10: «si no soporta todo el
+   espacio, que solo ponga el porcentaje y no la barrita»).
+   Y a la vez se aprietan los botones: 26px en vez de 28 y un pelo menos de
+   hueco. Nadie nota dos píxeles por botón, y son catorce de vuelta. */
+@container (max-width: 500px) {
+  .ctx-bar {
+    display: none;
+  }
+
+  .pane-ctx {
+    gap: 0;
+    padding: 2px 6px;
+  }
+
+  .ph-acts {
+    gap: 2px;
+    padding-left: 7px;
+  }
+
+  .ph-acts .pane-btn {
+    min-width: 26px;
+    padding: 2px 4px;
+  }
+}
+
+@container (max-width: 470px) {
+  .pane-brain {
+    display: none;
+  }
+}
+
+@container (max-width: 395px) {
+  .pane-ctx {
+    display: none;
+  }
+}
+
+/* Last stop. Below this the labels have all gone and the row is the buttons,
+   which is the right answer: a pane you cannot close is worse than one you
+   cannot read. Dragging cannot get here any more, only shrinking the window. */
+@container (max-width: 330px) {
+  .pane-agents {
+    display: none;
+  }
+
+  /* Y aquí el título deja de pedir catorce caracteres: con la zona de estado
+     vacía, lo que queda es él contra los botones, y a estos anchos pedir de más
+     solo sirve para quitarle sitio al chip del proyecto. */
+  .pane-name {
+    flex-basis: 48px;
+  }
+
+  .ph-acts {
+    padding-left: 6px;
+  }
+}
+
+/* LOS BOTONES YA NO SE ESCONDEN NUNCA.
+   Aquí había cinco reglas que los iban quitando uno a uno según se estrechaba
+   la terminal: a 430px se iba el de partir, a 380 el de tapar, a 330 el de
+   espejo, y a 250 la papelera. Eso es esconder ACCIONES sin decirlo, y con tres
+   terminales en pantalla pasaba siempre: Munir buscaba el menú de su terminal y
+   la mitad no estaba (2026-08-07).
+   Lo que se esconde ahora es solo TEXTO informativo (el esfuerzo, el modelo, el
+   medidor), que además está entero en el globo de ayuda. Los botones se quedan,
+   y si no caben se llega a ellos rodando la rueda encima de la cabecera. */
+.pane-head {
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Sin barra a la vista: una barra de 15px en una fila de 30 se come media
+     cabecera. La rueda ya lo mueve, y la X vive pegada al borde derecho
+     (`position: sticky`, más abajo), así que siempre se ve dónde acaba. */
+  scrollbar-width: none;
+}
+
+.pane-head::-webkit-scrollbar {
+  height: 0;
+}
+
+/* Nada de la cabecera se encoge hasta desaparecer: o cabe, o se desplaza. El
+   nombre es el único que cede sitio, porque es el que puede recortarse y
+   seguir diciendo algo.
+   Va por DENTRO de cada zona: las que ceden son las zonas (`.ph-id` y
+   `.ph-meta`, ambas con su `flex` propio), y dentro de ellas ninguna píldora se
+   estruja hasta ser ilegible. Antes esto era `.pane-head > *` y ahora esos
+   hijos son tres cajas, así que el selector viejo habría congelado justo lo que
+   tiene que ceder. */
+.ph-id > *,
+.ph-meta > * {
+  flex-shrink: 0;
+}
+
+/* EL ORDEN EN QUE CEDE LA IDENTIDAD, Y POR QUÉ NO ES «1».
+   El título cede primero y el chip del proyecto después, nunca a la vez. Con un
+   solo elemento flexible (el título, `flex-shrink: 1`) y todos los demás
+   congelados, en cuanto el título llegaba a cero la zona seguía encogiéndose
+   por debajo de lo que su contenido necesita: el chip del proyecto se salía por
+   la derecha y el medidor de contexto, que va justo detrás en el DOM, se le
+   pintaba ENCIMA. Munir lo vio así: «MarcaPerso» con la barrita del 38 % tapando
+   el resto de la palabra (2026-08-20). Y como el desbordamiento pasaba DENTRO de
+   `.ph-id`, la cabecera no se enteraba de que le faltaba sitio y nunca aparecía
+   el desplazamiento que existe justo para eso.
+   1000 contra 1 no es un número mágico: el reparto de flexbox es proporcional a
+   `shrink x base`, así que con esa diferencia el título absorbe todo el recorte
+   hasta quedarse en nada, y solo entonces el chip empieza a soltar letras, que
+   además las suelta con sus puntos suspensivos. Medido: a 400 y 360px el
+   resultado es idéntico al de antes; a 330 y 300, donde antes había pisón, el
+   chip pasa a 69 y 39px y no se solapa nada.
+   El cuadro de renombrar va en la misma regla porque OCUPA EL SITIO del título:
+   sin esto, renombrar en una terminal estrecha traía de vuelta el mismo pisón. */
+.ph-id > .pane-name,
+.ph-id > .pane-rename {
+  flex-shrink: 1000;
+}
+
+.ph-id > .pane-proj {
+  flex-shrink: 1;
+}
+
+/* Moving a pane: the label follows the cursor and the target lights up. */
+.drag-ghost {
+  position: fixed;
+  z-index: 9996;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--popover);
+  border: 1px solid var(--accent);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pane[data-drop="true"] {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+}
+
+.pane[data-drop="true"] .pane-head {
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel-head));
+}
+
+.pane-head[data-movable="true"] {
+  cursor: grab;
+  touch-action: none;
+}
+
+/* The Windows-snap preview: where the pane will land if you let go now. */
+.snap-preview {
+  position: fixed;
+  z-index: 9994;
+  pointer-events: none;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 12px 34px rgba(0, 0, 0, 0.35);
+  transition:
+    left 0.09s ease,
+    top 0.09s ease,
+    width 0.09s ease,
+    height 0.09s ease;
+}
+
+/* Usage panel, under the skills: the week's real work, read from the CLI's
+   own stats cache. Compact by design, it lives in a narrow column. */
+.usage {
+  flex: none;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.usage-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.usage-title {
+  flex: 1;
+  text-align: left;
+  color: var(--accent);
+}
+
+.usage-week {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.usage-caret {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+.usage-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 42px;
+  padding: 2px 0;
+}
+
+.usage-bar {
+  flex: 1;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 75%, transparent),
+    color-mix(in srgb, var(--accent) 28%, transparent)
+  );
+}
+
+.usage-bar:last-child {
+  background: linear-gradient(
+    180deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 40%, transparent)
+  );
+}
+
+.usage-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.usage-line strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-model {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-foot {
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Commands: one section per tool, cards that fill the width. The old single
+   column left a canyon between the name and its description. */
+.cmd-sections {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 2px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.cmd-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.3px;
+  color: var(--accent);
+}
+
+.cmd-section-count {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: color-mix(in srgb, var(--accent) 62%, var(--text));
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: 7px;
+  padding: 1px 7px;
+}
+
+/* La rejilla lleva el cristal, y lo lleva UNA vez.
+   Las tarjetas iban sobre `--row` al 45%, o sea translúcido sobre translúcido,
+   y encima de la foto de escritorio no se leía ni un comando: cincuenta y dos
+   nombres flotando sobre unos gatos (Munir, 2026-08-08, y es la cuarta vez con
+   esta misma causa esta semana).
+   El desenfoque va AQUÍ y no en cada tarjeta a propósito: cincuenta y dos
+   `backdrop-filter` de 22 píxeles en una pantalla son exactamente el gasto que
+   acabamos de quitar de encima. Uno por sección, y las tarjetas encima con un
+   color sólido, que no cuesta nada. */
+.cmd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+}
+
+.cmd-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border);
+  background: var(--row);
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.cmd-card:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.cmd-card:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.cmd-card[data-sent="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.cmd-card .cmd-desc {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* Plan limits, above the weekly bars. */
+.limits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.limit-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.limit-top strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.limit-top strong[data-hot="true"] {
+  color: var(--ask);
+}
+
+.limit-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.limit-track {
+  display: block;
+  height: 5px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 25%, transparent);
+  overflow: hidden;
+}
+
+.limit-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.limit-fill[data-hot="true"] {
+  background: var(--ask);
+}
+
+.limit-reset {
+  margin-top: 3px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.usage-plan {
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+
+/* Usage panel in two blocks: the plan's limits first, the week's work after. */
+.usage-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 10px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* QUE CLIENTE estas mirando, con su marca delante (Munir, 2026-08-24: «que
+   salga el de todos tus proveedores y cuentas, como en el modo chat»).
+   Va arriba de las cuentas porque manda sobre ellas: primero de quien es el
+   deposito y luego cual de tus cuentas de ese cliente. Los dos niveles se
+   distinguen a simple vista sin leerlos, que es de lo que va tener dos filas:
+   arriba con logo, abajo sin el. */
+.usage-clientes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Solo el dibujo, sin el nombre al lado (Munir, 2026-08-24). Con el nombre,
+   dos clientes ya no cabian en una fila, y son dos cosas que se reconocen por
+   su logo mucho antes que por su rotulo. Quien es cada uno lo dice el globo. */
+.usage-cliente {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-btn);
+  background: none;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.usage-cliente .prov-mark {
+  width: 17px;
+  height: 17px;
+  /* La marca en gris mientras no es la elegida: en color, dos logos compiten
+     entre si y la fila se lee como una barra de herramientas en vez de como
+     una eleccion. */
+  opacity: 0.55;
+  transition: opacity 0.12s ease;
+}
+
+.usage-cliente:hover {
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, transparent);
+}
+
+.usage-cliente:hover .prov-mark,
+.usage-cliente[aria-selected="true"] .prov-mark {
+  opacity: 1;
+}
+
+.usage-cliente[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 60%, transparent);
+  background: color-mix(in srgb, var(--c, var(--accent)) 18%, transparent);
+}
+
+/* El modelo de una linea de limite («semana · Fable»). Aparte del rotulo
+   porque no se traduce: Fable se llama Fable en todos los idiomas. */
+.limit-modelo {
+  margin-left: 5px;
+  font-style: normal;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 70%, var(--muted));
+}
+
+/* Qué cuenta estás mirando. Cada una es una suscripción distinta con su propio
+   límite, así que esto no es un filtro: es de quién son los números de abajo, y
+   por eso la elegida va rellena y no solo subrayada. Se envuelve en varias
+   líneas si hay muchas; una columna de 260px no da para una tira que se corte. */
+.usage-cuentas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Tres letras, no el nombre entero: al lado de la fila de logos de arriba, un
+   nombre largo volvia a partir la fila en dos renglones. El nombre completo lo
+   dice el globo. */
+.usage-cuenta {
+  min-width: 34px;
+  text-align: center;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pastilla);
+  background: none;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.usage-cuenta:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, transparent);
+}
+
+.usage-cuenta[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--c, var(--accent)) 60%, transparent);
+  background: color-mix(in srgb, var(--c, var(--accent)) 20%, transparent);
+  color: var(--text);
+}
+
+.usage-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.usage-refresh {
+  padding: 0 6px;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.usage-open {
+  align-self: flex-start;
+  font-size: 10.5px;
+}
+

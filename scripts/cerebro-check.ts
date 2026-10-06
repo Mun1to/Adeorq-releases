@@ -363,7 +363,8 @@ const REAL = { "·": 1, "00-inbox": 2, "01-proyectos": 34, "02-areas": 2, "03-re
 
   // Y que nadie interactivo más se cuele encima del canvas sin pensarlo: los
   // otros dos que hay flotando tienen que ser transparentes al ratón.
-  const css = readFileSync(raiz + "/src/App.css", "utf8");
+  // La hoja entera: `App.css` ya solo es el índice de sus tramos.
+  const css = (require(raiz + "/scripts/hoja.cjs") as unknown as { hojaDeLaApp(r: string): string }).hojaDeLaApp(raiz);
   for (const clase of [".mem-cerebro-eti", ".mem-cerebro-ayuda"]) {
     const i = css.indexOf(`${clase} {`);
     const regla = i < 0 ? "" : css.slice(i, css.indexOf("}", i));

@@ -1,0 +1,150 @@
+/* ===========================================================================
+   EL ORBE DEL ASISTENTE
+   ===========================================================================
+   Un planeta azul y un satélite blanco dando vueltas. Tres formas, y solo una
+   se mueve: ver `Orbe.tsx` para el porqué, y también para QUIÉN la mueve, que
+   es un `<animateMotion>` del propio SVG y no esta hoja.
+   =========================================================================== */
+
+.orbe {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.orbe svg {
+  overflow: visible;
+}
+
+.orbe-planeta {
+  fill: var(--accent);
+}
+
+.orbe-orbita {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  opacity: 0.6;
+  transition: opacity 0.4s ease;
+}
+
+/* EL SATÉLITE.
+   Blanco, y no es decisión de gusto: es lo único que hace que se distinga de
+   su propio planeta justo cuando pasa por delante, que es donde el movimiento
+   se tiene que leer.
+
+   Quién lo mueve NO está aquí: lo mueve el propio componente, frame a frame
+   (ver `Orbe.tsx`). Se probaron `offset-path` de CSS y `<animateMotion>` de
+   SVG y en este WebView no movió nada ninguno. Aquí solo queda cómo se ve, y
+   la transición de opacidad, que es lo que hace que aparecer y desaparecer
+   detrás del planeta no sea un parpadeo. */
+.orbe-satelite {
+  fill: #ffffff;
+  transition: opacity 0.12s linear;
+}
+
+/* Escuchando: has empezado a escribir. */
+.orbe[data-estado="escucha"] .orbe-orbita {
+  opacity: 0.85;
+}
+
+/* Pensando: vuela. Es el estado que tiene que verse desde la otra punta de la
+   pantalla, porque es el que responde a «¿se ha colgado?». */
+.orbe[data-estado="piensa"] .orbe-orbita {
+  opacity: 1;
+}
+
+/* El botón que lo envuelve cuando se puede pulsar: sin caja y sin fondo. */
+.orbe-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--r-pastilla);
+  transition: transform 0.16s ease;
+}
+
+.orbe-boton:active {
+  transform: scale(0.92);
+}
+
+/* La mini guía del Asistente.
+   Un cuadro de texto vacío no dice qué acepta, y este acepta lenguaje normal:
+   sin esto hay que adivinar si entiende «ábreme tres claudes» o si hay que
+   hablarle como a una consola. Cada fila se pulsa y se escribe sola, porque
+   leer un ejemplo no te dice si al pulsar Enter va a pasar lo que crees. */
+.fm-guia {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.fm-guia-tit {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.fm-guia ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fm-guia-fila {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: var(--r-chico);
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.fm-guia-fila:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.fm-guia-que {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* El ejemplo, en la letra de la terminal: dice sin decirlo que eso es lo que
+   se puede teclear tal cual. Se corta con puntos suspensivos porque una fila
+   que crece a dos renglones rompe la columna de la izquierda. */
+.fm-guia-ej {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.fm-guia-pie {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  opacity: 0.85;
+}
+

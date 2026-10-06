@@ -1762,6 +1762,8 @@ const EN: Record<string, string> = {
   "Conserje en el móvil": "Concierge on my phone",
   "El puerto {p} lo tiene otro programa (¿otra Adeorq abierta?), así que el móvil no llega.":
     "Port {p} is taken by another program (another Adeorq open?), so the phone cannot reach it.",
+  "Mientras esté encendido, este PC no se duerme solo; la pantalla sí se apaga. Déjalo enchufado y con la tapa abierta: con batería se duerme a los pocos minutos.":
+    "While it is on, this PC won't fall asleep by itself; the screen still turns off. Leave it plugged in with the lid open: on battery it sleeps after a few minutes.",
   "1. Tailscale, en este PC y en tu móvil": "1. Tailscale, on this PC and on your phone",
   "Mirando Tailscale…": "Checking Tailscale…",
   "Tailscale no está instalado en este PC.": "Tailscale is not installed on this PC.",
@@ -1777,7 +1779,8 @@ const EN: Record<string, string> = {
   "Llevar el conserje a Tailscale": "Bring the concierge to Tailscale",
   "Abrir el enlace de Tailscale": "Open the Tailscale link",
   "2. Empareja tu móvil": "2. Pair your phone",
-  "En el móvil, abre {d} y escribe el código que salga aquí.": "On your phone, open {d} and type the code shown here.",
+  "Escanéalo con la cámara del móvil, o abre {d}, y escribe el código que salga aquí.":
+    "Scan it with your phone's camera, or open {d}, and type the code shown here.",
   "Cuando el paso 1 esté hecho, aquí saldrá la dirección que abrir en el móvil.":
     "Once step 1 is done, the address to open on your phone will show up here.",
   "El conserje ya está en tu red de Tailscale.": "The concierge is already on your Tailscale network.",
@@ -1790,6 +1793,15 @@ const EN: Record<string, string> = {
   "Vale {m}:{s}": "Valid for {m}:{s}",
   "Emparejar un móvil": "Pair a phone",
   "Móviles emparejados": "Paired phones",
+  "3. Los avisos": "3. Notifications",
+  "{n} móvil(es) con avisos: cuando una sesión te pregunte o termine y no estés delante del PC, le llega.":
+    "{n} phone(s) with notifications: when a session asks you something or finishes and you are not at the PC, it gets it.",
+  "Ningún móvil ha pedido avisos todavía. En el móvil, en la lista del conserje, toca «Avisarme en este móvil».":
+    "No phone has asked for notifications yet. On the phone, in the concierge list, tap “Notify me on this phone”.",
+  "Prueba de Adeorq": "Adeorq test",
+  "Si lees esto, los avisos llegan a tu móvil.": "If you can read this, notifications reach your phone.",
+  "Mandado a {n} móvil(es). Si no llega en un minuto, mira rastro.log.": "Sent to {n} phone(s). If it does not arrive within a minute, check rastro.log.",
+  "Mandar un aviso de prueba": "Send a test notification",
   "visto {c}": "seen {c}",
   "Mirando…": "Looking…",
   "Aquí aparecerán las capturas que pegues en el lienzo con Ctrl+V.":
@@ -1797,6 +1809,27 @@ const EN: Record<string, string> = {
   "Clic: al lienzo": "Click: onto the canvas",
   "A la papelera de Windows": "To the Windows recycle bin",
   "Ver más": "See more",
+  "Abrir la sesión que la escribió": "Open the session that wrote it",
+  "Esta nota la escribió una sesión; se abre esa conversación.": "A session wrote this note; this opens that conversation.",
+  "Seguir el claro/oscuro de Windows": "Follow Windows light/dark",
+  "A juego con tu foto": "To match your photo",
+  "Carril": "Lane",
+  "una franja que separa un espacio de trabajo": "a band that separates a work area",
+  "Doble clic para renombrar; con el nombre de un proyecto, sus terminales nacen aquí": "Double-click to rename; named after a project, its terminals are born here",
+  "Quitar el carril (las terminales se quedan)": "Remove the lane (the terminals stay)",
+  "Tu foto pide": "Your photo calls for",
+  "No pude leer la foto": "Couldn't read the photo",
+  "Con Windows en oscuro": "With Windows in dark",
+  "Con Windows en claro": "With Windows in light",
+  "Elegir un tema a mano en la lista de abajo lo desactiva.": "Picking a theme by hand in the list below turns this off.",
+  "Primero el que te reclama": "Whoever needs you first",
+  "Por antigüedad": "By age",
+  "Ordenadas por quién te reclama. Pulsa para ordenar por antigüedad.": "Sorted by who needs you. Press to sort by age.",
+  "Ordenadas por antigüedad. Pulsa para poner primero las que te reclaman.": "Sorted by age. Press to put the ones that need you first.",
+  "Modo simple ACTIVO: la barra en tira, las cabeceras al mínimo y sin bordes (Ctrl+Mayús+S)":
+    "Simple mode ON: the sidebar as a strip, minimal headers, no borders (Ctrl+Shift+S)",
+  "Modo simple: solo lo que estás mirando, la foto se queda (Ctrl+Mayús+S)":
+    "Simple mode: only what you are looking at, the photo stays (Ctrl+Shift+S)",
 
   // Las utilidades
   JSON: "JSON",

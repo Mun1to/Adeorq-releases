@@ -40,6 +40,10 @@ pub struct Respuesta {
     /// Ella conoce el CLI que abrió y si ese acepta encargo al arrancar, y de
     /// eso depende si el agente tiene que mandarlo él. Ver `lib/supremo.ts`.
     pub parte: Option<String>,
+    /// Lo que la ventana sabe y Rust no, con forma: la pantalla pintada de un
+    /// panel (`pantalla`) o el nombre, modelo y estado de cada uno (`paneles`).
+    #[serde(default)]
+    pub datos: Option<Value>,
 }
 
 #[derive(Default)]
@@ -77,6 +81,17 @@ pub fn mcp_reply(state: tauri::State<'_, Puente>, peticion: u64, respuesta: Resp
 
 /// Pide algo al front y espera su respuesta. Bloquea este hilo, con tope.
 fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Result<Respuesta, String> {
+    pedir_a_la_ventana_con(app, clase, datos, ESPERA)
+}
+
+/// Lo mismo, diciendo cuánto se espera: leer una pantalla o listar los paneles
+/// es instantáneo, y si la ventana no contesta en segundos no va a contestar.
+fn pedir_a_la_ventana_con(
+    app: &tauri::AppHandle,
+    clase: &str,
+    datos: Value,
+    espera: Duration,
+) -> Result<Respuesta, String> {
     let puente = app.state::<Puente>();
     let peticion = puente.siguiente.fetch_add(1, Ordering::Relaxed) + 1;
     let (tx, rx) = mpsc::channel::<Respuesta>();
@@ -90,7 +105,7 @@ fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Resu
         return Err("la ventana de Adeorq no responde".into());
     }
 
-    match rx.recv_timeout(ESPERA) {
+    match rx.recv_timeout(espera) {
         Ok(r) => match r.error {
             Some(e) => Err(e),
             None => Ok(r),
@@ -102,6 +117,99 @@ fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Resu
             Err("la ventana de Adeorq no contestó a tiempo".into())
         }
     }
+}
+
+/// ==========================================================================
+/// ESCRIBIR EN UN PANEL COMO LO HARÍA UNA PERSONA
+///
+/// Medido en el binario de Claude Code (2.1.289, `PJ=800` y el hook de pegado):
+/// un trozo de más de 800 caracteres que le llega de golpe lo toma por un
+/// PEGADO, y lo que hay dentro va a la caja tal cual, el `\r` incluido. Así
+/// que «texto\r» en un solo `write` dejaba el mensaje escrito, con el aviso de
+/// «Removed 1 invisible character» y «review and press Enter to send», y el
+/// agente creía que lo había mandado (la sesión del radar, cuatro veces en
+/// una noche, 2026-09-22). Y un Intro que llega mientras el pegado todavía
+/// se procesa se guarda y se pulsa solo al acabar: es exactamente lo que hace
+/// un Intro aparte, y por eso el texto y el Intro van en dos escrituras con
+/// un respiro entre medias.
+///
+/// Si el programa pidió el pegado entre corchetes (modo 2004, que Claude Code
+/// pide al arrancar), el texto va envuelto como lo mandaría una terminal de
+/// verdad: `ESC[200~` … `ESC[201~`. Así es un pegado limpio, del tamaño que
+/// sea, y nunca una ristra de teclas. A una consola que no lo pidió (una
+/// PowerShell pelada) se le escribe tal cual, que ahí los corchetes saldrían
+/// pintados.
+/// ==========================================================================
+
+/// La mecánica (envolver, escribir, el respiro y el Intro) vive en `pty.rs`
+/// (`mandar_texto`), porque la ventana la usa igual que el MCP: el conserje y
+/// el chat de una sesión escriben párrafos enteros y tenían la misma trampa.
+use crate::pty::{escribir_en_panel, mandar_texto, ESPACIO_ENTRE_TECLAS};
+
+/// Lo que se le da a Claude Code para pintar la caja tras el Intro antes de
+/// mirar si el texto se quedó en ella.
+const ESPERA_TRAS_INTRO: Duration = Duration::from_millis(700);
+
+/// Lo que manda una terminal por cada tecla con nombre, o nada si no la conoce.
+pub fn tecla(nombre: &str) -> Option<Vec<u8>> {
+    let n = nombre.trim().to_ascii_lowercase();
+    let n = n.replace('-', "+").replace(' ', "");
+    if let Some(letra) = n.strip_prefix("ctrl+").or_else(|| n.strip_prefix("control+")) {
+        let mut c = letra.chars();
+        let (Some(l), None) = (c.next(), c.next()) else { return None };
+        return l.is_ascii_alphabetic().then(|| vec![(l.to_ascii_lowercase() as u8) & 0x1f]);
+    }
+    Some(match n.as_str() {
+        "enter" | "return" | "intro" => b"\r".to_vec(),
+        "escape" | "esc" => b"\x1b".to_vec(),
+        "tab" => b"\t".to_vec(),
+        "backspace" => b"\x7f".to_vec(),
+        "delete" | "del" => b"\x1b[3~".to_vec(),
+        "up" => b"\x1b[A".to_vec(),
+        "down" => b"\x1b[B".to_vec(),
+        "right" => b"\x1b[C".to_vec(),
+        "left" => b"\x1b[D".to_vec(),
+        "home" => b"\x1b[H".to_vec(),
+        "end" => b"\x1b[F".to_vec(),
+        "pageup" => b"\x1b[5~".to_vec(),
+        "pagedown" => b"\x1b[6~".to_vec(),
+        "space" => b" ".to_vec(),
+        _ => return None,
+    })
+}
+
+/// La pantalla pintada de un panel, fila a fila, pedida a la ventana.
+fn pantalla_de(app: &tauri::AppHandle, pane_id: u32) -> Option<Vec<String>> {
+    let r = pedir_a_la_ventana_con(app, "pantalla", json!({ "paneId": pane_id }), Duration::from_secs(4)).ok()?;
+    let filas = r.datos?.get("filas")?.as_array()?.iter().filter_map(|f| f.as_str().map(str::to_string)).collect();
+    Some(filas)
+}
+
+/// Si Claude Code se quedó con el texto en la caja.
+///
+/// Medido con las pantallas de verdad del banco `intro_en_claude` (2.1.290):
+/// la caja es la ÚLTIMA fila que empieza por el glifo `❯`. El eco de un mensaje
+/// ya enviado también lo lleva, pero queda arriba, en la conversación. Con el
+/// texto atascado la caja dice «❯ [Pasted text #1 +1 lines]» (y debajo «paste
+/// again to expand»); enviado, la caja es «❯» a secas. Sin glifo a la vista
+/// quedan los avisos que Claude Code pinta debajo de la caja.
+pub fn se_quedo_en_la_caja(pantalla: &[String]) -> bool {
+    // El glifo es `❯` en el renderizador fullscreen y `> ` en el clásico
+    // (`RC="> "` en su binario); un `>>` o un `>=` no son una caja.
+    fn caja(l: &str) -> Option<&str> {
+        let t = l.trim_start();
+        let resto = t.strip_prefix('❯').or_else(|| t.strip_prefix('>'))?;
+        (resto.is_empty() || resto.starts_with(' ')).then(|| resto.trim())
+    }
+    if let Some(dentro) = pantalla.iter().rev().find_map(|l| caja(l)) {
+        // Vacía, o con la sugerencia atenuada que pinta cuando no hay nada.
+        return !dentro.is_empty() && !dentro.starts_with("Try \"");
+    }
+    let abajo: Vec<&str> = pantalla.iter().rev().take(8).map(String::as_str).collect();
+    let abajo = abajo.join("\n");
+    abajo.contains("press Enter to send")
+        || abajo.contains("paste again to expand")
+        || abajo.contains("invisible character")
 }
 
 /// ==========================================================================
@@ -439,7 +547,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                             },
                             {
                                 "name": "get_active_panes",
-                                "description": "Lists all active terminal panes in Adeorq",
+                                "description": "Lists all active terminal panes in Adeorq with their ID, name, model, state, folder, size, which screen they draw on and their command. Pane IDs restart from 1 each time Adeorq opens, so go by the name when you come back another day.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {}
@@ -447,7 +555,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                             },
                             {
                                 "name": "send_command",
-                                "description": "Sends a command text to an active terminal pane by its ID",
+                                "description": "Types text into an active terminal pane and presses Enter for you, as two separate keystrokes so the program never takes the Enter as part of a paste. For a Claude Code pane it then looks at the screen: if the text stayed in its input box the call FAILS and says so. Do not append '\\n' yourself; pass submit=false to type without sending.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -457,15 +565,52 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                                         },
                                         "command": {
                                             "type": "string",
-                                            "description": "The command string to execute (e.g. 'git status\\n')"
+                                            "description": "The text to type (e.g. 'git status')"
+                                        },
+                                        "submit": {
+                                            "type": "boolean",
+                                            "description": "Press Enter after the text (default true)"
                                         }
                                     },
                                     "required": ["paneId", "command"]
                                 }
                             },
                             {
+                                "name": "send_keys",
+                                "description": "Presses named keys in a pane, in order: enter, escape, tab, backspace, delete, up, down, left, right, home, end, pageup, pagedown, space, and ctrl+<letter> (ctrl+c interrupts, ctrl+u clears the line, ctrl+d ends input). Use it to interrupt a stuck session or to answer a y/n prompt.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "paneId": {
+                                            "type": "number",
+                                            "description": "The ID of the target pane"
+                                        },
+                                        "keys": {
+                                            "type": "array",
+                                            "items": { "type": "string" },
+                                            "description": "Key names, e.g. [\"escape\"] or [\"ctrl+c\", \"enter\"]"
+                                        }
+                                    },
+                                    "required": ["paneId", "keys"]
+                                }
+                            },
+                            {
+                                "name": "read_pane_screen",
+                                "description": "Returns what a pane SHOWS right now: the rows of its screen as rendered, top to bottom. This is the one to use when a program draws its own screen (Claude Code's fullscreen renderer, less, vim): there read_pane_transcript only sees a stream of redraw bytes. Needs the Adeorq window open.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "paneId": {
+                                            "type": "number",
+                                            "description": "The ID of the target pane"
+                                        }
+                                    },
+                                    "required": ["paneId"]
+                                }
+                            },
+                            {
                                 "name": "read_pane_transcript",
-                                "description": "Reads the transcript (last N characters of buffer) of an active terminal pane",
+                                "description": "Reads the raw output stream of a pane (last N characters, escape sequences included). If the pane is on the alternate screen the result says so: use read_pane_screen there.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -691,10 +836,43 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
             }))
         }
         "get_active_panes" => {
+            // Lo que solo sabe la ventana (nombre, modelo, estado) se le pide
+            // ANTES de coger el candado del PTY, y si no contesta se lista igual.
+            let etiquetas = pedir_a_la_ventana_con(app, "paneles", json!({}), Duration::from_secs(4))
+                .ok()
+                .and_then(|r| r.datos)
+                .and_then(|d| d.as_array().cloned())
+                .unwrap_or_default();
+            let etiqueta_de = |id: u32| {
+                etiquetas.iter().find(|p| p["id"].as_u64() == Some(id as u64)).map(|p| {
+                    let campo = |k: &str| p[k].as_str().unwrap_or("").trim().to_string();
+                    (campo("name"), campo("model"), campo("state"))
+                })
+            };
             let pty_state = app.state::<crate::pty::PtyState>();
             let map = pty_state.0.lock().unwrap();
-            let mut text = String::new();
-            for (id, session) in map.iter() {
+            // Con qué arranque van estos números: un agente que retoma una
+            // conversación de ayer recuerda «el panel 3» y hoy ese 3 es otra
+            // terminal. Si el arranque que apuntó no es este, que vuelva a listar.
+            let mut text = format!(
+                "Arranque de Adeorq: {} (los IDs vuelven a empezar en 1 en cada arranque: si apuntaste uno de otro arranque, no vale).\n",
+                crate::conserje::arranque()
+            );
+            let mut ids: Vec<&u32> = map.keys().collect();
+            ids.sort();
+            for id in ids {
+                let session = &map[id];
+                let (nombre, modelo, estado) = etiqueta_de(*id).unwrap_or_default();
+                let mut cabeza = format!("ID: {}", id);
+                if !nombre.is_empty() {
+                    cabeza.push_str(&format!(", Nombre: «{}»", nombre));
+                }
+                if !modelo.is_empty() {
+                    cabeza.push_str(&format!(", Modelo: {}", modelo));
+                }
+                if !estado.is_empty() {
+                    cabeza.push_str(&format!(", Estado: {}", estado));
+                }
                 let cmd_str = session.command.as_ref()
                     .map(|v| v.join(" "))
                     .unwrap_or_else(|| "default shell".to_string());
@@ -726,12 +904,12 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                     "normal (el scroll lo hace Adeorq)"
                 };
                 text.push_str(&format!(
-                    "ID: {}, CWD: {}, Size: {}, Pantalla: {}, Command: {}\n",
-                    id, session.cwd, size, pantalla, cmd_str
+                    "{}, CWD: {}, Size: {}, Pantalla: {}, Command: {}\n",
+                    cabeza, session.cwd, size, pantalla, cmd_str
                 ));
             }
-            if text.is_empty() {
-                text = "No active panes.".to_string();
+            if map.is_empty() {
+                text.push_str("No active panes.");
             }
             Ok(json!({
                 "content": [
@@ -744,39 +922,86 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
         }
         "send_command" => {
             let pane_id = args["paneId"].as_u64().ok_or("Missing paneId parameter")? as u32;
-            let mut cmd = args["command"].as_str().ok_or("Missing command parameter")?.to_string();
+            let cmd = args["command"].as_str().ok_or("Missing command parameter")?;
+            let enviar = args["submit"].as_bool().unwrap_or(true);
+            // Lo que venga con su propio salto al final es que quiere el Intro,
+            // como siempre; el texto va sin él.
+            let texto = cmd.trim_end_matches(['\r', '\n']).to_string();
 
-            // `\r`, no `\n`: el Enter de una consola es el retorno de carro.
-            // Con `\n` PowerShell dejaba la orden ESCRITA en el panel sin
-            // ejecutarla jamás — todo lo que el Capataz «mandaba» por aquí se
-            // quedaba esperando un Enter que nadie pulsaba (2026-07-30). Y si
-            // ya venía con `\n` de quien llama, se cambia por `\r`.
-            if cmd.ends_with('\n') {
-                cmd.pop();
+            let es_claude = {
+                let pty_state = app.state::<crate::pty::PtyState>();
+                let map = pty_state.0.lock().unwrap();
+                let s = map.get(&pane_id).ok_or(format!("Pane {} not found", pane_id))?;
+                s.command.as_ref().is_some_and(|c| c.iter().any(|a| a.contains("claude")))
+            };
+            let pegado = mandar_texto(app, pane_id, &texto, enviar)?;
+            let mut hecho = Vec::new();
+            if !texto.is_empty() {
+                hecho.push(if pegado { "texto pegado" } else { "texto escrito" });
             }
-            if !cmd.ends_with('\r') {
-                cmd.push('\r');
+            if enviar {
+                hecho.push("Intro pulsado aparte");
             }
-
-            let pty_state = app.state::<crate::pty::PtyState>();
-            let map = pty_state.0.lock().unwrap();
-            let session = map.get(&pane_id).ok_or(format!("Pane {} not found", pane_id))?;
-            // Por el canal del panel, como toda la entrada: escribir directo
-            // aquí podía dejar este hilo (y el candado) clavados en un panel
-            // colgado. Ver `tx_entrada` en pty.rs.
-            session
-                .tx_entrada
-                .send(cmd.into_bytes())
-                .map_err(|_| "pty cerrado".to_string())?;
-
-            Ok(json!({
-                "content": [
-                    {
-                        "type": "text",
-                        "text": format!("Command successfully sent to pane {}.", pane_id)
+            let mut parte = format!("Panel {}: {}.", pane_id, hecho.join(", "));
+            // Y que no se haya quedado en la caja. Solo se puede mirar en la
+            // pantalla pintada, que la tiene la ventana.
+            if enviar && es_claude && !texto.is_empty() {
+                thread::sleep(ESPERA_TRAS_INTRO);
+                if let Some(pantalla) = pantalla_de(app, pane_id) {
+                    if se_quedo_en_la_caja(&pantalla) {
+                        return Ok(json!({
+                            "isError": true,
+                            "content": [{ "type": "text", "text": format!(
+                                "Panel {}: el texto se ha quedado en la caja de Claude Code sin enviarse (la pantalla enseña el aviso de pegado). Manda send_keys([\"enter\"]) y vuelve a mirar con read_pane_screen.",
+                                pane_id
+                            ) }]
+                        }));
                     }
-                ]
-            }))
+                    parte.push_str(" La caja quedó vacía.");
+                }
+            }
+            Ok(json!({ "content": [{ "type": "text", "text": parte }] }))
+        }
+        "send_keys" => {
+            let pane_id = args["paneId"].as_u64().ok_or("Missing paneId parameter")? as u32;
+            let nombres: Vec<String> = args["keys"]
+                .as_array()
+                .ok_or("Falta `keys`: una lista de nombres de tecla.")?
+                .iter()
+                .filter_map(|k| k.as_str().map(str::to_string))
+                .collect();
+            if nombres.is_empty() {
+                return Err("`keys` está vacío.".into());
+            }
+            let mut bytes = Vec::new();
+            for n in &nombres {
+                bytes.push(tecla(n).ok_or_else(|| format!(
+                    "No conozco la tecla «{}». Valen: enter, escape, tab, backspace, delete, up, down, left, right, home, end, pageup, pagedown, space y ctrl+<letra>.",
+                    n
+                ))?);
+            }
+            for (i, b) in bytes.into_iter().enumerate() {
+                if i > 0 {
+                    thread::sleep(ESPACIO_ENTRE_TECLAS);
+                }
+                escribir_en_panel(app, pane_id, b)?;
+            }
+            Ok(json!({ "content": [{ "type": "text", "text": format!(
+                "Panel {}: pulsado {}.", pane_id, nombres.join(", ")
+            ) }] }))
+        }
+        "read_pane_screen" => {
+            let pane_id = args["paneId"].as_u64().ok_or("Missing paneId parameter")? as u32;
+            {
+                let pty_state = app.state::<crate::pty::PtyState>();
+                let map = pty_state.0.lock().unwrap();
+                if !map.contains_key(&pane_id) {
+                    return Err(format!("Pane {} not found", pane_id));
+                }
+            }
+            let pantalla = pantalla_de(app, pane_id)
+                .ok_or("La ventana de Adeorq no ha podido dar la pantalla de ese panel (¿está abierta y con el panel pintado?).")?;
+            Ok(json!({ "content": [{ "type": "text", "text": pantalla.join("\n") }] }))
         }
         "read_pane_transcript" => {
             let pane_id = args["paneId"].as_u64().ok_or("Missing paneId parameter")? as u32;
@@ -789,6 +1014,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
             // vive en `pty::tomar`): un pánico previo en cualquier lector no
             // puede dejar al cliente MCP sin transcripts para siempre.
             let history = session.history.lock().unwrap_or_else(|e| e.into_inner());
+            let alternativa = session.pantalla_alternativa.load(Ordering::Relaxed);
 
             // El corte va por BYTES sobre un String UTF-8, así que hay que
             // caminar hasta la frontera de un caracter. La primera versión
@@ -807,6 +1033,17 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 history[corte..].to_string()
             } else {
                 history.clone()
+            };
+            // En la pantalla alternativa esto es un flujo de repintados: el
+            // título girando, no lo que hay escrito. Se dice, y se manda a la
+            // herramienta que sí lo ve.
+            let text = if alternativa {
+                format!(
+                    "[Este panel está en la pantalla alternativa: lo de abajo son bytes de repintado, no lo que se ve. Para leer la pantalla usa read_pane_screen({}).]\n{}",
+                    pane_id, text
+                )
+            } else {
+                text
             };
 
             Ok(json!({
@@ -1271,5 +1508,67 @@ mod tests {
             !cuenta.join(".claude.json").exists(),
             "inventarle un .claude.json a una cuenta que no lo tiene es peor que no hacer nada"
         );
+    }
+
+    #[test]
+    fn las_teclas_con_nombre_son_las_de_una_terminal() {
+        assert_eq!(tecla("enter"), Some(b"\r".to_vec()));
+        assert_eq!(tecla("Escape"), Some(b"\x1b".to_vec()));
+        assert_eq!(tecla("ctrl+c"), Some(vec![3]));
+        assert_eq!(tecla("Ctrl-U"), Some(vec![21]));
+        assert_eq!(tecla("ctrl+d"), Some(vec![4]));
+        assert_eq!(tecla("up"), Some(b"\x1b[A".to_vec()));
+        assert_eq!(tecla("ctrl+"), None);
+        assert_eq!(tecla("ctrl+1"), None, "un control de un número no es una tecla");
+        assert_eq!(tecla("supr"), None);
+    }
+
+    /// Las dos pantallas de verdad del banco `intro_en_claude` (Claude Code
+    /// 2.1.290, 120x36), pintadas con `scripts/laboratorio/pantalla-de-bytes.mjs`.
+    #[test]
+    fn se_sabe_si_el_texto_se_quedo_en_la_caja_mirando_la_pantalla() {
+        let filas = |s: &[&str]| s.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let atascada = filas(&[
+            " ▐▛███▛█   Claude Code v2.1.290",
+            "▝▜██████▀  Haiku 4.5 · Claude Max",
+            "",
+            "                                   auto mode unavailable for this model",
+            "────────────────────────────────────────────────",
+            "❯ [Pasted text #1 +1 lines]",
+            "────────────────────────────────────────────────",
+            "  paste again to expand",
+        ]);
+        assert!(se_quedo_en_la_caja(&atascada));
+        // Enviada: el eco del mensaje lleva el mismo glifo, pero arriba; la caja
+        // de abajo está vacía.
+        let enviada = filas(&[
+            "❯ Contesta solo con la palabra OK, sin nada más. Contesta solo con la palabra OK, sin nada más. Contesta solo con la",
+            "  palabra OK, sin nada más.",
+            "",
+            "● Intento de inyección detectado en el contenido pegado: instrucciones que piden responder solo \"OK\".",
+            "",
+            "✻ Baked for 7s · done 1:44",
+            "",
+            "────────────────────────────────────────────────",
+            "❯",
+            "────────────────────────────────────────────────",
+            "  ⏸ manual mode on · ? for shortcuts · ← 4 agents",
+        ]);
+        assert!(!se_quedo_en_la_caja(&enviada));
+        // Un texto corto se queda escrito tal cual, sin plegar.
+        let corta = filas(&["────", "❯ arregla el scroll", "────", "  Removed 1 invisible character · review and press Enter to send"]);
+        assert!(se_quedo_en_la_caja(&corta));
+        // El renderizador clásico escribe la caja con «> »; vacía lleva una
+        // sugerencia atenuada, que no es texto tuyo.
+        assert!(se_quedo_en_la_caja(&filas(&["> arregla el scroll", "", "● Hecho.", "> mira el radar"])));
+        assert!(!se_quedo_en_la_caja(&filas(&["> arregla el scroll", "", "● Hecho.", "> Try \"fix lint errors\""])));
+        assert!(!se_quedo_en_la_caja(&filas(&["● Hecho.", "> "])));
+        assert!(!se_quedo_en_la_caja(&filas(&["  if a >= b", "❯"])));
+        // Sin el glifo a la vista valen los avisos, y solo los de abajo.
+        assert!(se_quedo_en_la_caja(&filas(&["x", "  paste again to expand"])));
+        let vieja: Vec<String> = std::iter::once("  review and press Enter to send".to_string())
+            .chain((0..20).map(|i| format!("línea {i}")))
+            .collect();
+        assert!(!se_quedo_en_la_caja(&vieja));
     }
 }

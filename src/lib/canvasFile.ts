@@ -123,6 +123,19 @@ export interface NodoChat {
   modelo: string;
 }
 
+/** Un carril: la franja que separa un espacio de trabajo. Solo su nombre y
+    su color; lo que haya encima son nodos normales con su propia posición. */
+export interface NodoCarril {
+  tipo: "carril";
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  nombre: string;
+  color: string;
+}
+
 export type NodoGuardado =
   | NodoTerm
   | NodoWidget
@@ -130,7 +143,8 @@ export type NodoGuardado =
   | NodoNota
   | NodoWeb
   | NodoKanban
-  | NodoChat;
+  | NodoChat
+  | NodoCarril;
 
 export interface FlechaGuardada {
   id: string;
@@ -294,6 +308,20 @@ export function parsear(raw: string): CanvasFile | null {
       // puede servir para que su archivo elija qué carga la app en su marco.
       if (!/^https?:\/\//i.test(url)) continue;
       nodos.push({ ...base, tipo: "web", url });
+    } else if (r.tipo === "carril") {
+      // El nombre va a un rótulo y a una comparación con los proyectos, y el
+      // color a una variable de CSS: los dos acotados, que esto viene de fuera.
+      const nombre = txt(r.nombre).slice(0, 80).trim();
+      if (!nombre) continue;
+      const color = txt(r.color);
+      nodos.push({
+        ...base,
+        w: num(r.w, 2400),
+        h: num(r.h, 520),
+        tipo: "carril",
+        nombre,
+        color: /^(#[0-9a-fA-F]{6}|hsl\([0-9.]+ [0-9.]+% [0-9.]+%\))$/.test(color) ? color : "#4d9fff",
+      });
     }
   }
 

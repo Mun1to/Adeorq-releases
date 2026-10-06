@@ -1,0 +1,242 @@
+/* ================================================================ el apagón
+   Negro sólido detrás de las terminales, y solo detrás de ellas.
+
+   Va AL FINAL del archivo y no junto a los temas, y no es manía de orden: la
+   regla que abre el panel cuando hay foto (`:root:has(.fondo)`) tiene la misma
+   especificidad que esta, así que entre dos empates gana la última escrita. Si
+   esto viviera arriba, poner un fondo de pantalla apagaría el apagón, que es
+   justo lo contrario de lo que pide quien lo enciende. */
+:root[data-apagon="1"] {
+  --xterm-bg: #000000;
+  --pane-bg: #000000;
+  /* Y el panel deja de abrirse: con el fondo cerrado, media transparencia solo
+     serviría para colar un halo de la foto por el borde del texto. */
+  --pane-abre: 1;
+}
+
+/* ======================================================= modo rendimiento
+   Lo que cuesta dibujar Adeorq, apagado. Ver `lib/rendimiento.ts` para las
+   medidas que llevaron aquí; en resumen, el motor iba al 4% y dibujarlo se
+   comía núcleo y medio.
+
+   Va DESPUÉS del apagón por lo mismo que el apagón va al final: son reglas de
+   la misma especificidad y la última escrita gana. Aquí eso es lo correcto,
+   porque quien enciende el modo rendimiento quiere que mande sobre todo lo
+   demás; y el apagón, que también deja el fondo sólido, sigue funcionando
+   igual porque los dos piden lo mismo. */
+:root[data-rendimiento="1"] {
+  /* Seis píxeles en vez de veintidós. El coste de un desenfoque crece con el
+     radio, y a seis todavía se distingue de un panel plano. */
+  --glass-blur: blur(6px);
+  /* Las terminales, sólidas: con el color de su tema, pero sin nada que
+     componer detrás. Es lo que le devuelve a xterm su camino rápido, y es el
+     gasto de fondo debajo de todo lo demás. */
+  --xterm-bg: var(--pane-bg);
+  --pane-abre: 1;
+}
+
+/* Y lo que respira deja de respirar. Son las dos animaciones que corren
+   siempre: el halo del panel que te espera (media pantalla) y el ecualizador
+   de la música. El panel que te espera se sigue distinguiendo, con su borde y
+   su aro fijos; lo que se va es el latido. */
+:root[data-rendimiento="1"] .pane[data-done="true"],
+:root[data-rendimiento="1"] .np-eq[data-on="true"] i {
+  animation: none;
+  will-change: auto;
+}
+
+/* ================================================ el selector de temas
+   Con treinta y dos temas, una fila de chips con un puntito de color no es un
+   selector: es una lista de nombres. Un punto dice de qué color es un tema, no
+   cómo se ve. Así que cada uno se enseña como lo que es, una app en pequeño
+   pintada con SU paleta de verdad, y encima hay filtro por familia y buscador,
+   que es lo que hace falta cuando ya sabes cuál quieres. */
+
+/* Las pestañas de familia, en píldoras. */
+.tema-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.tema-tab {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 13px;
+  border-radius: var(--r-pastilla);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .12s ease, color .12s ease;
+}
+.tema-tab:hover {
+  color: var(--text);
+  background: var(--row);
+}
+.tema-tab[data-on="true"] {
+  color: var(--text);
+  background: var(--row-hover);
+  border-color: var(--border);
+}
+
+.tema-buscar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  background: var(--row);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.tema-buscar:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+.tema-buscar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 0;
+  outline: none;
+}
+
+/* La reja. Se adapta sola al ancho de Ajustes en vez de llevar un número de
+   columnas escrito, que en una ventana estrecha dejaría las tarjetas
+   aplastadas. */
+.tema-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+}
+
+.tema-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* La miniatura. El borde se enciende con el tema puesto, no un tick suelto en
+   una esquina: lo que se elige es la imagen, así que la marca va en ella. */
+.tema-prev {
+  display: flex;
+  height: 76px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  /* El fondo opaco del tema, no su `--bg`, que es translúcido y dejaría ver
+     el panel de Ajustes por debajo: la miniatura estaría mintiendo. */
+  background: var(--panel-solid);
+  transition: border-color .12s ease, transform .12s ease;
+}
+.tema-tarjeta:hover .tema-prev {
+  transform: translateY(-2px);
+}
+.tema-tarjeta[data-on="true"] .tema-prev {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* La barra lateral de la miniatura: es lo primero que distingue a un tema de
+   otro en la app de verdad. */
+.tema-prev-barra {
+  flex: none;
+  width: 26px;
+  background: var(--panel-head);
+  border-right: 1px solid var(--border);
+}
+
+.tema-prev-cuerpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+}
+
+.tema-prev-linea {
+  display: block;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 55%, transparent);
+}
+.tema-prev-linea.tema-prev-acento {
+  background: var(--accent);
+  width: 62%;
+}
+.tema-prev-corta {
+  width: 44%;
+  background: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+
+.tema-nombre {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.tema-tarjeta[data-on="true"] .tema-nombre {
+  color: var(--accent);
+}
+
+/* El apagón, encima de sus esquemas y con aire alrededor: manda sobre todos
+   ellos, así que no puede parecer uno más de la lista. */
+.apagon-fila {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--row);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.apagon-fila > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.apagon-fila .card-hint {
+  margin: 0;
+}
+
+/* Un icono metido en un rótulo de texto.
+   Los glifos se sentaban solos en la línea base; un SVG no, así que sin esto
+   la papelera de «Borrar la carpeta del disco…» queda medio renglón más baja que su
+   palabra. El menú flotante no está aquí porque ya coloca los suyos: tenía
+   sitio para un icono desde el principio (`ctx-ico` en Overlays.tsx) y la
+   barra lateral seguía pegando el emoji dentro del texto. */
+.agenda-card > h2 > svg,
+.ag-ses-encargo svg,
+.idea-cond svg,
+.wiz-alt svg {
+  flex: none;
+  vertical-align: -0.14em;
+  margin-right: 2px;
+}
+
+.agenda-card > h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+

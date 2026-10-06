@@ -59,7 +59,7 @@ async (page) => {
     }]);
     const ARRANQUE = Date.now();
     const movil = {
-      encendido: false, sirviendo: false, puerto: 3013, codigo: null,
+      encendido: false, sirviendo: false, despierto: false, avisos: 1, puerto: 3013, codigo: null,
       dispositivos: [{ id: "a1b2c3d4", nombre: "Android", creado: ahora - 86400, visto: ahora - 600 }],
     };
 
@@ -68,6 +68,13 @@ async (page) => {
     window.__sesiones = [];
     window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
     let escucha = 1;
+    // Los eventos que emite Rust, a mano. `window.__emitir("pty-data", { id: 1,
+    // data: "\x07" })` hace sonar la campana del panel 1, que es como la app se
+    // entera de que su CLI acabó el turno.
+    const oyentes = {};
+    window.__emitir = (evento, payload) => {
+      for (const h of oyentes[evento] ?? []) window[`_${h}`]?.({ event: evento, id: h, payload });
+    };
     const nueva = (id) => (convs[id] ??= { id, titulo: "", turnos: [], trabajos: [], router: true, creada: Math.floor(Date.now() / 1000) });
     const tarde = (ms, v) => new Promise((r) => setTimeout(() => r(v), ms));
     // Como `titulo_de` de Rust: con cabecera y lista, se titula con la lista.
@@ -84,9 +91,31 @@ async (page) => {
     const contestar = (cmd, args) => {
       llamadas.push([cmd, args]);
       switch (cmd) {
-        case "plugin:event|listen": return escucha++;
+        case "plugin:event|listen": (oyentes[args.event] ??= []).push(args.handler); return escucha++;
         case "plugin:event|unlisten": return null;
         case "get_fondo": return "C:\\fondo.png";
+        // Proyectos, para que el lienzo pueda abrir terminales (sin ninguno sus
+        // botones de abrir van apagados). Tres, y no por adorno: Adeorq y Vidorq eran el mismo azul con el color
+        // de la casa (196° y 195°), que es lo que el lienzo tiene que separar.
+        case "list_projects":
+          return [
+            { name: "Adeorq", path: "C:\\proyectos\\Adeorq", hasGit: true },
+            { name: "Vidorq", path: "C:\\proyectos\\Vidorq", hasGit: true },
+            { name: "VoCript", path: "C:\\proyectos\\VoCript", hasGit: true },
+          ];
+        // El tablero del lienzo, como `save_board`/`read_board`: en
+        // `sessionStorage`, que aguanta una recarga de la pestaña (el
+        // `localStorage` se vacía arriba en cada carga). Así se prueba la vuelta
+        // entera: montar, recargar y ver que todo sigue en su sitio.
+        case "save_board": sessionStorage.setItem("__tablero", args.content); return null;
+        case "read_board": return sessionStorage.getItem("__tablero") ?? "";
+        // El logo del proyecto (la foto del banco sirve): la marca de agua y la
+        // tapa de las terminales del lienzo lo enseñan en vez de las iniciales.
+        case "project_icons": return { "C:\\proyectos\\Adeorq": "http://localhost:1420/__fondo/logo.png" };
+        // Como `codex_session_since`: el primer turno tarda, así que la primera
+        // pregunta no trae nada y la segunda ya trae el hilo.
+        case "codex_session_since":
+          return llamadas.filter(([c]) => c === "codex_session_since").length >= 2 ? "01a0cafe-0d0b-7201-b479-050ab2e5bde8" : null;
         case "conserje_lista":
           return Object.values(convs)
             .filter((c) => c.turnos.length)
@@ -95,6 +124,7 @@ async (page) => {
         case "conserje_leer": return JSON.parse(JSON.stringify(nueva(args.id)));
         case "conserje_router": nueva(args.id).router = args.encendido; return null;
         case "conserje_cerebro": nueva(args.id).cerebro = args.cerebro; return null;
+        case "conserje_fijo": nueva(args.id).fijo = args.modelo; return null;
         case "conserje_mejorar":
           return tarde(500, "Dos encargos, por orden:\n1. El radar se cae cada dos horas: busca la causa.\n2. El scroll de las terminales: mira qué pasa.");
         case "conserje_enviar": {
@@ -162,8 +192,9 @@ async (page) => {
         // conectado; la primera vez que se lleva pide activar HTTPS y no pone
         // nada, y la segunda ya queda puesto.
         case "movil_estado": return JSON.parse(JSON.stringify(movil));
-        case "movil_encender": movil.encendido = args.encendido; movil.sirviendo = args.encendido; return JSON.parse(JSON.stringify(movil));
+        case "movil_encender": movil.encendido = movil.sirviendo = movil.despierto = args.encendido; return JSON.parse(JSON.stringify(movil));
         case "movil_emparejar": movil.codigo = { valor: "482913", quedan: 600 }; return movil.codigo;
+        case "movil_avisar": return movil.avisos;
         case "movil_olvidar": movil.dispositivos = movil.dispositivos.filter((d) => d.id !== args.id); return JSON.parse(JSON.stringify(movil));
         case "movil_tailscale": {
           const base = { instalado: true, conectado: true, llevado: false, direccion: "https://portatil-munito.tail4c2e1.ts.net:8443", ajeno: null, denegado: false, salida: "" };
@@ -180,22 +211,33 @@ async (page) => {
           window.__tsPuesto = true;
           return tarde(700, { ...base, llevado: true });
         }
+        case "sacar_panel":
         case "conserje_parar":
         case "pty_write":
+        case "pty_send":
+        case "pty_kill":
         case "pty_resize":
         case "save_encargo":
           return null;
+        // Las sembradas a mano pueden traer `estado`, `live`, `hours` y `mtime`
+        // (para la barra: el orden por quién te reclama y el círculo hueco).
         case "scan_sessions":
           return window.__sesiones.map((s) => ({
-            id: s.id, title: s.title, state: "a_medias", fresh: "activa", hours: 0, ago: "ahora",
-            cwd: s.cwd, resumeCwd: s.cwd, project: s.project, folder: s.cwd, live: true, sizeKb: 3,
+            id: s.id, title: s.title, state: s.estado ?? "a_medias", fresh: "activa", hours: s.hours ?? 0, ago: s.ago ?? "ahora",
+            mtime: s.mtime, cwd: s.cwd, resumeCwd: s.cwd, project: s.project, folder: s.cwd, live: s.live ?? true, sizeKb: 3,
             agentsLive: 0, agentsTotal: 0, fuente: "claude",
           }));
         case "session_messages":
           return [
             { rol: "tu", texto: "Que el scroll de las terminales no salte al cambiar el ancho", hora: "", herramientas: [] },
             { rol: "agente", texto: "Lo reproduzco antes de tocar nada: con el panel a 180 columnas y bajándolo a 73, la distancia al final pasa de 0 a 332.", hora: "", herramientas: ["Read", "Grep"] },
+            // Una respuesta larga, para ver la pregunta pegada arriba al bajar.
+            { rol: "tu", texto: "Y de paso mira por qué el radar se cae cada dos horas", hora: "", herramientas: [] },
+            { rol: "agente", texto: Array.from({ length: 40 }, (_, i) => `Paso ${i + 1}: miro el registro de las ${i}:00 y anoto lo que pasó justo antes de la caída.`).join("\n\n"), hora: "", herramientas: ["Read"] },
           ];
+        // Lo último que contestó el agente de un panel: lo que una flecha del
+        // lienzo le entrega al siguiente. Se siembra en `window.__respuesta`.
+        case "last_reply": return window.__respuesta ?? "";
         case "session_context":
           return { model: "opus", used: 41000, window: 1000000, percent: 4, agentsLive: 0, agentsTotal: 0, sessionId: args.sessionId, folder: args.cwd, state: "a_medias" };
         default:

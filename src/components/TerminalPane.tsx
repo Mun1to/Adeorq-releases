@@ -18,6 +18,7 @@ import {
   resizePty,
   savePastedImage,
   sessionContext,
+  codexSessionSince,
   spawnPty,
   writePty,
   type Account,
@@ -86,6 +87,8 @@ import { modoRendimiento } from "../lib/rendimiento";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
 import { sabe } from "../lib/providers";
+import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
+import { arranqueDeAhora } from "../lib/conserje";
 
 interface Props {
   id: number;
@@ -146,7 +149,11 @@ interface Props {
       sitio. El CLI de Claude se cuelga a veces a mitad de turno (fallo suyo,
       conocido y sin arreglo oficial); antes eso costaba Administrador de
       tareas y sesión perdida, ahora un clic — el transcript se conserva. */
-  onRevivir?: (id: number, sessionId: string | undefined, cwd: string, name: string) => void;
+  onRevivir?: (id: number, sessionId: string | undefined, cwd: string, name: string, kind?: string) => void;
+  /** Codex no da un id al abrirse: cuando el panel lo aprende del disco
+      (`codex_session_since`), se lo sube a App para que el tablero lo guarde
+      y «Reanimar» lo retome. */
+  onSessionId?: (id: number, sessionId: string) => void;
   /** Las cuentas de Claude que hay configuradas, para poder relevar a otra. */
   cuentas?: Account[];
   /** Sigue ESTA terminal en otra cuenta, con un acta de dónde iba. */
@@ -471,6 +478,7 @@ export default function TerminalPane({
   onSecret,
   style,
   onRevivir,
+  onSessionId,
   cuentas,
   onRelevar,
   onSwap,
@@ -565,6 +573,12 @@ export default function TerminalPane({
   const soltarRef = useRef<(() => void) | null>(null);
   const ultimoDatoRef = useRef(Date.now());
   const [brain, setBrain] = useState<{ model?: string; effort?: string }>({});
+  /* La sesión aprendida del disco (Codex) y cuándo nació el panel, para
+     preguntar solo por hilos posteriores. El efecto que pregunta va más abajo. */
+  const nacidoRef = useRef(Math.floor(Date.now() / 1000));
+  const [sidAprendido, setSidAprendido] = useState<string | undefined>();
+  const sessionIdRef = useRef(onSessionId);
+  sessionIdRef.current = onSessionId;
   
   // Shadow Mode (SVFS v1) States
   const [shadowActive, setShadowActive] = useState(false);
@@ -580,6 +594,8 @@ export default function TerminalPane({
   const shadowActiveRef = useRef(shadowActive);
   shadowActiveRef.current = shadowActive;
   const shadowSessionRef = useRef(shadowSession);
+  /** Con qué nombre se montó el espejo de este panel: el número y el arranque. */
+  const espejoRef = useRef<string>(String(id));
   shadowSessionRef.current = shadowSession;
 
   // Helper for SVFS: get project root path from cwd. The projects folder is a
@@ -641,7 +657,7 @@ export default function TerminalPane({
     if (!shadowSession) return;
     const projRoot = getProjectRoot(cwd);
 
-    shadowAccept(projRoot, shadowSession.worktreePath, String(id))
+    shadowAccept(projRoot, shadowSession.worktreePath, espejoRef.current)
       .then((resumen) => {
         setShadowActive(false);
         setShadowSession(null);
@@ -665,7 +681,7 @@ export default function TerminalPane({
     if (!shadowSession) return;
     const projRoot = getProjectRoot(cwd);
 
-    shadowDiscard(projRoot, shadowSession.worktreePath, String(id))
+    shadowDiscard(projRoot, shadowSession.worktreePath, espejoRef.current)
       .then(() => {
         setShadowActive(false);
         setShadowSession(null);
@@ -1076,7 +1092,7 @@ export default function TerminalPane({
       // propio panel mandan sobre los que contó el fichero.
       agentsLive: Math.max(agents.live, ctx?.agentsLive ?? 0),
       state,
-      sessionId: ctx?.sessionId || undefined,
+      sessionId: ctx?.sessionId || sidAprendido || undefined,
     };
     // Un panel que no ha cambiado no vuelve a subir: si no, cada dato del PTY
     // haría re-renderizar App entera y con nueve terminales eso se nota.
@@ -1084,7 +1100,7 @@ export default function TerminalPane({
     if (key === statusRef.current) return;
     statusRef.current = key;
     onStatus(next);
-  }, [onStatus, id, name, cwd, command, exited, ask, needsLogin, brain, ctx, agents.live]);
+  }, [onStatus, id, name, cwd, command, exited, ask, needsLogin, brain, ctx, agents.live, sidAprendido]);
 
   const answerAsk = (n: string, enter: boolean) => {
     void writePty(id, enter ? `${n}\r` : n).catch(() => {});
@@ -1185,6 +1201,38 @@ export default function TerminalPane({
       window.clearTimeout(timer);
     };
   }, [cwd, joined, kind]);
+
+  // Un panel de Codex nace sin saber su sesión: Codex se la pone él en su
+  // rollout, con el primer turno. Hasta tenerla se le pregunta al disco cada
+  // quince segundos por el primer hilo principal nacido en esta carpeta
+  // después del panel (`codex_session_since`); con ella, «Reanimar» retoma y
+  // el tablero guardado sabe a qué volver mañana. Gemini no lo necesita, nace
+  // con `--session-id`, y a Claude se lo lee `sessionContext` del transcript.
+  useEffect(() => {
+    if (!sabe(kind, "sesionDelDisco") || sessionIdOf(joined) || sidAprendido) return;
+    let timer = 0;
+    let stop = false;
+    const mira = () => {
+      codexSessionSince(cwd, nacidoRef.current)
+        .then((sid) => {
+          if (stop) return;
+          if (sid) {
+            setSidAprendido(sid);
+            sessionIdRef.current?.(id, sid);
+          } else {
+            timer = window.setTimeout(mira, 15_000);
+          }
+        })
+        .catch(() => {
+          if (!stop) timer = window.setTimeout(mira, 30_000);
+        });
+    };
+    timer = window.setTimeout(mira, 5_000);
+    return () => {
+      stop = true;
+      window.clearTimeout(timer);
+    };
+  }, [cwd, joined, kind, id, sidAprendido]);
 
   // El fondo de la casa se puede poner y quitar con las terminales abiertas, y
   // el color del lienzo de xterm no lo alcanza ninguna regla de CSS: hay que
@@ -1304,6 +1352,7 @@ export default function TerminalPane({
     termRef.current = term;
     fitRef.current = fit;
     searchRef.current = search;
+    registrarTerminal(id, term);
 
     /* ── Que borrar el scrollback no te mueva de sitio ────────────────────
      *
@@ -1646,7 +1695,16 @@ export default function TerminalPane({
     let arranque: Promise<void>;
     if (shadow) {
       const projRoot = getProjectRoot(cwd);
-      arranque = shadowInit(projRoot, String(id))
+      // El espejo se llama por el panel Y el arranque de Adeorq: los números
+      // de panel vuelven a 1 al abrir la app, y con el número a secas una
+      // terminal nueva se reenganchaba en silencio al espejo de otro agente de
+      // ayer, con su trabajo sin fusionar dentro (revisión del 2026-10-06).
+      arranque = arranqueDeAhora()
+        .catch(() => 0)
+        .then((a) => {
+          espejoRef.current = `${id}-${a.toString(36)}`;
+          return shadowInit(projRoot, espejoRef.current);
+        })
         .then((sess) => {
           setShadowActive(true);
           setShadowSession(sess);
@@ -2234,6 +2292,7 @@ export default function TerminalPane({
       // aquí, pero su agente sigue trabajando al otro lado; matarlo ahora sería
       // perder el trabajo por haberla sacado de sitio (ver lib/mudanza.ts).
       if (!seMuda(id)) void killPty(id);
+      olvidarTerminal(id, term);
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
@@ -2303,8 +2362,15 @@ export default function TerminalPane({
   // llegó a este panel con 885.023 tokens y el aviso rojo puesto, y aun así
   // el botón le habría devuelto el mismo cadáver (2026-07-31).
   const reanimarLimpio = ctxNivel >= 2;
-  const reanimar = () =>
-    onRevivir?.(id, reanimarLimpio ? undefined : ctx?.sessionId, cwd, name);
+  // `ctx` sale del transcript, y solo Claude lo tiene. A los demás su sesión
+  // les va en la línea (los que nacen con un id, como Gemini) o se aprendió del
+  // disco (Codex); sin esto, «Reanimar» les abría siempre una sesión nueva
+  // aunque la tabla supiera retomarla. Un Claude sin transcript todavía sigue
+  // naciendo limpio, como antes.
+  const sidPropio =
+    ctx?.sessionId ??
+    (sabe(kind, "banderaSesionNueva") || sabe(kind, "sesionDelDisco") ? (sessionIdOf(joined) ?? sidAprendido) : undefined);
+  const reanimar = () => onRevivir?.(id, reanimarLimpio ? undefined : sidPropio, cwd, name, kind);
   const etiquetaReanimar = reanimarLimpio
     ? t("⚡ Reanimar EN LIMPIO (esta sesión pesa demasiado para recuperarla)")
     : t("⚡ Reanimar (si se ha quedado colgada)");

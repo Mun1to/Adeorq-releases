@@ -39,6 +39,9 @@ export interface RespuestaMcp {
   /** El parte para el agente. Lo redacta la ventana porque es la única que sabe
    *  con qué CLI acabó abriendo y si ese acepta encargo al arrancar. */
   parte?: string;
+  /** Con forma: la pantalla pintada de un panel (`pantalla`) o el nombre,
+   *  modelo y estado de cada uno (`paneles`). */
+  datos?: unknown;
 }
 
 /**

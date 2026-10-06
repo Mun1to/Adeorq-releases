@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.163"
+version = "0.9.164"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["you"]
 edition = "2021"
@@ -46,6 +46,12 @@ base64 = "0.22"
 # estaban en el árbol (los traen tauri y reqwest): no añaden nada a los avisos.
 getrandom = "0.3"
 sha2 = "0.10"
+# Los avisos Web Push al móvil (`push.rs`): la curva P-256 para la firma VAPID
+# (RFC 8292) y el secreto compartido, y HKDF + AES-128-GCM para cifrar el aviso
+# como manda RFC 8291. RustCrypto, MIT o Apache-2.0, sin C detrás.
+p256 = { version = "0.13", features = ["ecdsa", "ecdh"] }
+hkdf = "0.12"
+aes-gcm = "0.10"
 auto-launch = "0.6.0"
 tauri-plugin-dialog = "2"
 
@@ -86,6 +92,9 @@ windows-sys = { version = "0.61.2", features = [
     # `CreateJobObjectW`. Le pasamos un puntero nulo, pero sin esta feature
     # windows-sys ni siquiera declara la función.
     "Win32_Security",
+    # SetThreadExecutionState: con el conserje en el móvil encendido, el PC no
+    # se duerme solo (ver `movil.rs`). CallNtPowerInformation, para comprobarlo.
+    "Win32_System_Power",
 ] }
 # WinRT media transport controls (what is playing, next/previous) plus Core
 # Audio for per-app volume: no Spotify account, no OAuth, no Premium needed.

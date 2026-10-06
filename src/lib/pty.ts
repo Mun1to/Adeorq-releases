@@ -29,6 +29,8 @@ export interface SessionInfo {
   state: "pregunta" | "ofrece" | "lista" | "a_medias" | "tuya" | "";
   fresh: "activa" | "dormida" | "muerta";
   hours: number;
+  /** Cuándo cambió por última vez, en segundos (ver `lib/vistos.ts`). */
+  mtime?: number;
   ago: string;
   cwd: string;
   resumeCwd: string;
@@ -71,6 +73,15 @@ export function spawnPty(
 
 export function writePty(id: number, data: string): Promise<void> {
   return invoke("pty_write", { id, data });
+}
+
+/** Un TEXTO al panel, como lo haría una persona: pegado si el programa pidió
+ *  el pegado entre corchetes, y el Intro aparte y un respiro después. Con
+ *  `writePty(id, texto + "\r")` Claude Code tomaba un párrafo por un pegado y
+ *  se quedaba con él en la caja sin enviarlo (ver `mandar_texto` en pty.rs).
+ *  Para una tecla o un comando de barra corto sigue valiendo `writePty`. */
+export function sendPty(id: number, texto: string, enviar = true): Promise<void> {
+  return invoke("pty_send", { id, texto, enviar });
 }
 
 export function resizePty(id: number, cols: number, rows: number): Promise<void> {
@@ -284,6 +295,12 @@ export function sessionContext(
   sessionId?: string,
 ): Promise<ContextInfo | null> {
   return invoke("session_context", { cwd, sessionId: sessionId ?? null });
+}
+
+/** The Codex thread born in `cwd` since `since` (epoch seconds), once its
+ *  first turn has written a rollout; Codex gives no id at launch. */
+export function codexSessionSince(cwd: string, since: number): Promise<string | null> {
+  return invoke("codex_session_since", { cwd, since });
 }
 
 /** Did this session ever write a transcript? (restore uses it) */
@@ -555,8 +572,10 @@ export function renameSession(
   folder: string,
   sessionId: string,
   title: string,
+  /** De qué CLI es: a las de Codex y Pi el título se les guarda en Adeorq. */
+  fuente?: FuenteSesion,
 ): Promise<void> {
-  return invoke("rename_session", { folder, sessionId, title });
+  return invoke("rename_session", { folder, sessionId, title, fuente: fuente ?? null });
 }
 
 /**

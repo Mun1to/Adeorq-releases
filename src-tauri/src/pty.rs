@@ -63,6 +63,9 @@ pub struct PtySession {
     /// o sea si el scroll es SUYO y no de Adeorq. Lo mantiene el lector (ver
     /// `marcar_pantalla`) y lo cuenta `get_active_panes` del MCP.
     pub pantalla_alternativa: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    /// Si el programa pidió el pegado entre corchetes (modo 2004). Claude Code
+    /// lo pide; una PowerShell pelada, no. Lo usa `send_command` del MCP.
+    pub pegado: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 #[derive(Default)]
@@ -219,12 +222,13 @@ fn vaciar_pase_lo_que_pase<R: Read>(
     tx: &std::sync::mpsc::Sender<String>,
     escuchan: &mut bool,
     alternativa: &std::sync::atomic::AtomicBool,
+    pegado: &std::sync::atomic::AtomicBool,
     cola_modos: &mut Vec<u8>,
 ) -> Fin {
     let mut sustos = 0u32;
     loop {
         let vuelta = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            vaciar(reader, pending, history, tx, escuchan, alternativa, cola_modos)
+            vaciar(reader, pending, history, tx, escuchan, alternativa, pegado, cola_modos)
         }));
         match vuelta {
             Ok(fin) => return fin,
@@ -288,7 +292,12 @@ fn vaciar_pase_lo_que_pase<R: Read>(
 /// («¿este panel va con el renderizador fullscreen de Claude Code o con el
 /// clásico?»), que decide QUIÉN hace el scroll: el programa o Adeorq. Sale por
 /// `get_active_panes` del MCP, al lado del tamaño.
-fn marcar_pantalla(trozo: &[u8], cola: &mut Vec<u8>, alternativa: &std::sync::atomic::AtomicBool) {
+fn marcar_pantalla(
+    trozo: &[u8],
+    cola: &mut Vec<u8>,
+    alternativa: &std::sync::atomic::AtomicBool,
+    pegado: &std::sync::atomic::AtomicBool,
+) {
     // Una secuencia de siete bytes puede llegar partida entre dos lecturas, así
     // que se mira sobre la cola anterior más el trozo nuevo.
     let mut visto: Vec<u8> = Vec::with_capacity(cola.len() + trozo.len());
@@ -296,16 +305,18 @@ fn marcar_pantalla(trozo: &[u8], cola: &mut Vec<u8>, alternativa: &std::sync::at
     visto.extend_from_slice(trozo);
     let ultima = |aguja: &[u8]| visto.windows(aguja.len()).rposition(|w| w == aguja);
     // Manda la ÚLTIMA de las dos: en un mismo trozo puede haber un ciclo entero.
-    let abre = ultima(b"\x1b[?1049h");
-    let cierra = ultima(b"\x1b[?1049l");
-    match (abre, cierra) {
-        (Some(a), Some(c)) => {
-            alternativa.store(a > c, std::sync::atomic::Ordering::Relaxed)
+    let marcar = |abre: &[u8], cierra: &[u8], modo: &std::sync::atomic::AtomicBool| {
+        match (ultima(abre), ultima(cierra)) {
+            (Some(a), Some(c)) => modo.store(a > c, std::sync::atomic::Ordering::Relaxed),
+            (Some(_), None) => modo.store(true, std::sync::atomic::Ordering::Relaxed),
+            (None, Some(_)) => modo.store(false, std::sync::atomic::Ordering::Relaxed),
+            (None, None) => {}
         }
-        (Some(_), None) => alternativa.store(true, std::sync::atomic::Ordering::Relaxed),
-        (None, Some(_)) => alternativa.store(false, std::sync::atomic::Ordering::Relaxed),
-        (None, None) => {}
-    }
+    };
+    marcar(b"\x1b[?1049h", b"\x1b[?1049l", alternativa);
+    // Y si el programa pidió el pegado entre corchetes (2004): es lo que decide
+    // cómo le manda texto `send_command` del MCP, ver `mcp.rs`.
+    marcar(b"\x1b[?2004h", b"\x1b[?2004l", pegado);
     let desde = visto.len().saturating_sub(7);
     *cola = visto[desde..].to_vec();
 }
@@ -317,6 +328,7 @@ fn vaciar<R: Read>(
     tx: &std::sync::mpsc::Sender<String>,
     escuchan: &mut bool,
     alternativa: &std::sync::atomic::AtomicBool,
+    pegado: &std::sync::atomic::AtomicBool,
     cola_modos: &mut Vec<u8>,
 ) -> Fin {
     let mut buf = [0u8; 8192];
@@ -341,7 +353,7 @@ fn vaciar<R: Read>(
             }
             Ok(n) => {
                 fallos = 0;
-                marcar_pantalla(&buf[..n], cola_modos, alternativa);
+                marcar_pantalla(&buf[..n], cola_modos, alternativa, pegado);
                 pending.extend_from_slice(&buf[..n]);
                 let text = drain_utf8(pending);
                 if !text.is_empty() {
@@ -693,6 +705,8 @@ pub async fn pty_spawn(
     let history_reader = history.clone();
     let alternativa = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let alternativa_lector = alternativa.clone();
+    let pegado = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let pegado_lector = pegado.clone();
 
     // El hilo que LEE la terminal ya no es el que la EMITE, y esa separación es
     // todo el arreglo.
@@ -728,6 +742,7 @@ pub async fn pty_spawn(
             &tx,
             &mut escuchan,
             &alternativa_lector,
+            &pegado_lector,
             &mut cola_modos,
         );
         if !pending.is_empty() {
@@ -795,6 +810,7 @@ pub async fn pty_spawn(
             command: command_clone,
             history,
             pantalla_alternativa: alternativa,
+            pegado,
         },
     );
 
@@ -807,6 +823,80 @@ pub async fn pty_spawn(
     });
 
     Ok(())
+}
+
+/// ==========================================================================
+/// ESCRIBIR UN TEXTO EN UN PANEL COMO LO HARÍA UNA PERSONA
+///
+/// Medido en el binario de Claude Code (2.1.289, `PJ=800` y su hook de pegado):
+/// un trozo de más de 800 caracteres que le llega de golpe lo toma por un
+/// PEGADO, y lo que hay dentro va a la caja tal cual, el `\r` incluido. Así
+/// que «texto\r» en un solo `write` dejaba el mensaje escrito, con el aviso
+/// «Removed 1 invisible character · review and press Enter to send», y quien
+/// lo mandó creía que había salido (la sesión del radar, cuatro veces en una
+/// noche, 2026-09-22; y el conserje y el chat de una sesión hacían lo mismo).
+/// Un Intro que llega mientras el pegado aún se procesa lo guarda y lo pulsa
+/// al acabar: justo lo que hace un Intro aparte. Por eso el texto y el Intro
+/// van en dos escrituras con un respiro entre medias.
+///
+/// Si el programa pidió el pegado entre corchetes (modo 2004, que Claude Code
+/// pide al arrancar), el texto va envuelto como lo mandaría una terminal de
+/// verdad: `ESC[200~` … `ESC[201~`. Así es un pegado limpio, del tamaño que
+/// sea. A una consola que no lo pidió (una PowerShell pelada) se le escribe
+/// tal cual, que ahí los corchetes saldrían pintados.
+/// ==========================================================================
+
+/// Entre dos teclas, o entre el texto y su Intro. El pegado de Claude Code se
+/// cierra en el tick siguiente; esto son muchos.
+pub const ESPACIO_ENTRE_TECLAS: std::time::Duration = std::time::Duration::from_millis(120);
+
+/// Por el canal del panel, como toda la entrada (ver `tx_entrada`).
+pub fn escribir_en_panel(app: &AppHandle, id: u32, bytes: Vec<u8>) -> Result<(), String> {
+    let state = app.state::<PtyState>();
+    let map = state.0.lock().unwrap();
+    let session = map.get(&id).ok_or(format!("Pane {} not found", id))?;
+    session.tx_entrada.send(bytes).map_err(|_| "pty cerrado".to_string())
+}
+
+/// El texto como lo mandaría una terminal al pegar, si el programa lo pidió.
+/// Los saltos van como `\r`, que es lo que una terminal manda por cada línea
+/// pegada; dentro de los corchetes Claude Code los toma como líneas, no como
+/// Intros.
+pub fn envuelto_para_pegar(texto: &str, pegado: bool) -> Vec<u8> {
+    let normal = texto.replace("\r\n", "\n").replace('\n', "\r");
+    if pegado {
+        format!("\x1b[200~{normal}\x1b[201~").into_bytes()
+    } else {
+        normal.into_bytes()
+    }
+}
+
+/// Escribe el texto y, si se pide, pulsa Intro aparte. Devuelve si fue como
+/// pegado. Duerme entre medias: nunca desde el hilo de la ventana.
+pub fn mandar_texto(app: &AppHandle, id: u32, texto: &str, enviar: bool) -> Result<bool, String> {
+    let pegado = {
+        let state = app.state::<PtyState>();
+        let map = state.0.lock().unwrap();
+        let s = map.get(&id).ok_or(format!("Pane {} not found", id))?;
+        s.pegado.load(std::sync::atomic::Ordering::Relaxed)
+    };
+    if !texto.is_empty() {
+        escribir_en_panel(app, id, envuelto_para_pegar(texto, pegado))?;
+    }
+    if enviar {
+        if !texto.is_empty() {
+            std::thread::sleep(ESPACIO_ENTRE_TECLAS);
+        }
+        escribir_en_panel(app, id, b"\r".to_vec())?;
+    }
+    Ok(pegado)
+}
+
+/// Lo mismo, para la ventana: el conserje y el chat de una sesión mandan
+/// párrafos enteros, y tenían la misma trampa que el MCP.
+#[tauri::command(async)]
+pub fn pty_send(app: AppHandle, id: u32, texto: String, enviar: bool) -> Result<(), String> {
+    mandar_texto(&app, id, &texto, enviar).map(|_| ())
 }
 
 #[tauri::command]
@@ -1053,8 +1143,8 @@ pub fn list_projects(
 #[cfg(test)]
 mod tests {
     use super::{
-        marcar_pantalla, recortar_historial, tomar, vaciar_pase_lo_que_pase, Fin, HIST_OBJETIVO,
-        HIST_TOPE,
+        envuelto_para_pegar, marcar_pantalla, recortar_historial, tomar, vaciar_pase_lo_que_pase, Fin,
+        HIST_OBJETIVO, HIST_TOPE,
     };
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
@@ -1070,11 +1160,38 @@ mod tests {
         /// Pasa los trozos por el lector como llegarían de la tubería.
         fn tras(trozos: &[&[u8]]) -> bool {
             let alternativa = AtomicBool::new(false);
+            let pegado = AtomicBool::new(false);
             let mut cola = Vec::new();
             for t in trozos {
-                marcar_pantalla(t, &mut cola, &alternativa);
+                marcar_pantalla(t, &mut cola, &alternativa, &pegado);
             }
             alternativa.load(Ordering::Relaxed)
+        }
+
+        /// Lo que se le escribe a un panel: a Claude Code, como un pegado de
+        /// verdad y sin ningún `\r` suelto dentro; a una consola pelada, tal cual.
+        #[test]
+        fn el_texto_va_como_pegado_solo_si_el_programa_lo_pidio() {
+            assert_eq!(envuelto_para_pegar("hola", true), b"\x1b[200~hola\x1b[201~".to_vec());
+            assert_eq!(envuelto_para_pegar("hola", false), b"hola".to_vec());
+            // Un salto dentro del texto va como lo manda una terminal al pegar.
+            assert_eq!(envuelto_para_pegar("a\nb\r\nc", true), b"\x1b[200~a\rb\rc\x1b[201~".to_vec());
+        }
+
+        /// El pegado entre corchetes va por el mismo lector: Claude Code lo pide
+        /// al arrancar y lo quita al salir, y `send_command` tiene que saberlo.
+        #[test]
+        fn el_pegado_entre_corchetes_se_marca_igual() {
+            let alternativa = AtomicBool::new(false);
+            let pegado = AtomicBool::new(false);
+            let mut cola = Vec::new();
+            marcar_pantalla(b"\x1b[?1049h\x1b[?20", &mut cola, &alternativa, &pegado);
+            assert!(!pegado.load(Ordering::Relaxed));
+            marcar_pantalla(b"04h", &mut cola, &alternativa, &pegado);
+            assert!(pegado.load(Ordering::Relaxed), "partido entre dos lecturas también cuenta");
+            marcar_pantalla(b"\x1b[?2004l\x1b[?1049l", &mut cola, &alternativa, &pegado);
+            assert!(!pegado.load(Ordering::Relaxed));
+            assert!(!alternativa.load(Ordering::Relaxed));
         }
 
         #[test]
@@ -1171,6 +1288,7 @@ mod tests {
                 &tx,
                 &mut escuchan,
                 &AtomicBool::new(false),
+                &AtomicBool::new(false),
                 &mut Vec::new(),
             )
         });
@@ -1204,6 +1322,7 @@ mod tests {
                 &hist,
                 &tx,
                 &mut escuchan,
+                &AtomicBool::new(false),
                 &AtomicBool::new(false),
                 &mut Vec::new(),
             )
@@ -1706,8 +1825,8 @@ mod rueda_en_fullscreen {
     const XTERM: &str = "6.1.0-beta.302";
 
     pub(super) struct Panel {
-        salida: Arc<Mutex<Vec<u8>>>,
-        escritor: Arc<Mutex<Box<dyn Write + Send>>>,
+        pub(super) salida: Arc<Mutex<Vec<u8>>>,
+        pub(super) escritor: Arc<Mutex<Box<dyn Write + Send>>>,
         _master: Box<dyn MasterPty + Send>,
         hijo: Box<dyn portable_pty::Child + Send + Sync>,
         pid: u32,
@@ -1772,7 +1891,7 @@ mod rueda_en_fullscreen {
     /// espacio, así que buscar la cadena entera no encuentra ni uno (primera
     /// versión de este banco: cuatro pasadas diciendo «no dibujó ningún hito»
     /// con los hitos delante).
-    fn sin_escapes(b: &[u8]) -> String {
+    pub(super) fn sin_escapes(b: &[u8]) -> String {
         let s = String::from_utf8_lossy(b);
         let mut fuera = String::new();
         let mut chars = s.chars().peekable();
@@ -1843,11 +1962,18 @@ mod rueda_en_fullscreen {
     /// proceso se queda mudo y la medida sale al revés (ver la memoria del
     /// laboratorio del PTY).
     pub(super) fn abrir(sesion: &str, cwd: &str, cols: u16, rows: u16, decir_quien_soy: bool) -> Panel {
+        abrir_con(&["--resume", sesion], cwd, cols, rows, decir_quien_soy)
+    }
+
+    /// Lo mismo con los argumentos que sean (una sesión nueva con `--session-id`,
+    /// otro modelo…).
+    pub(super) fn abrir_con(args: &[&str], cwd: &str, cols: u16, rows: u16, decir_quien_soy: bool) -> Panel {
         let pair = native_pty_system()
             .openpty(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
             .expect("no se pudo abrir el ConPTY");
         let mut cmd = CommandBuilder::new("cmd.exe");
-        cmd.args(["/c", "claude", "--resume", sesion]);
+        cmd.args(["/c", "claude"]);
+        cmd.args(args);
         cmd.cwd(cwd);
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
@@ -1891,7 +2017,7 @@ mod rueda_en_fullscreen {
     }
 
     /// Espera a que la salida lleve `quieto` sin crecer, o `tope` en total.
-    fn esperar_quieto(salida: &Arc<Mutex<Vec<u8>>>, quieto: Duration, tope: Duration) {
+    pub(super) fn esperar_quieto(salida: &Arc<Mutex<Vec<u8>>>, quieto: Duration, tope: Duration) {
         let inicio = Instant::now();
         let mut ultimo = salida.lock().unwrap().len();
         let mut desde = Instant::now();
@@ -2145,6 +2271,202 @@ mod rueda_en_fullscreen {
             dicho_1.contains("saltó") && mudo_1.contains("saltó"),
             "alguna pasada no llegó a medir el salto; mira la línea de arriba"
         );
+    }
+}
+
+/// Que si Adeorq muere, sus agentes mueren con él (META 13), probado con
+/// procesos de verdad y sin tocar ningún panel de Munir.
+///
+/// `cargo test --lib corral_de_procesos`
+#[cfg(all(test, windows))]
+mod corral_de_procesos {
+    use super::*;
+    use std::time::{Duration, Instant};
+    use windows_sys::Win32::System::JobObjects::{IsProcessInJob, QueryInformationJobObject};
+    use windows_sys::Win32::System::Threading::PROCESS_QUERY_LIMITED_INFORMATION;
+
+    /// Un proceso que vive medio minuto si nadie lo mata.
+    fn ping_largo() -> std::process::Child {
+        std::process::Command::new("ping.exe")
+            .args(["-n", "30", "127.0.0.1"])
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .expect("no arrancó ping")
+    }
+
+    /// Lo que hace Adeorq con cada panel: meterlo en SU corral, y ese corral
+    /// tiene puesto «matar al cerrarse».
+    #[test]
+    fn cada_panel_entra_en_el_corral_que_mata_al_cerrarse() {
+        let corral = corral().expect("Windows no dejó crear el corral");
+        let mut hijo = ping_largo();
+        meter_en_el_corral(hijo.id());
+        unsafe {
+            let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, hijo.id());
+            assert!(!h.is_null());
+            let mut dentro: i32 = 0;
+            assert_ne!(IsProcessInJob(h, corral.0, &mut dentro), 0);
+            CloseHandle(h);
+            assert_eq!(dentro, 1, "el proceso tiene que estar dentro del corral");
+            let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
+            let ok = QueryInformationJobObject(
+                corral.0,
+                JobObjectExtendedLimitInformation,
+                &mut info as *mut _ as *mut core::ffi::c_void,
+                std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+                std::ptr::null_mut(),
+            );
+            assert_ne!(ok, 0);
+            assert_ne!(
+                info.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+                0,
+                "el corral tiene que matar al cerrarse"
+            );
+        }
+        let _ = hijo.kill();
+        let _ = hijo.wait();
+    }
+
+    /// Y lo que hace Windows cuando el corral se cierra, que es lo que pasa al
+    /// morir Adeorq muera como muera: lo de dentro muere sin que corra una
+    /// línea nuestra. Con un corral aparte, para no cerrar el de verdad.
+    #[test]
+    fn al_cerrarse_el_corral_muere_lo_que_hay_dentro() {
+        let mut hijo = ping_largo();
+        unsafe {
+            let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
+            assert!(!job.is_null());
+            let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
+            info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            assert_ne!(
+                SetInformationJobObject(
+                    job,
+                    JobObjectExtendedLimitInformation,
+                    &info as *const _ as *const core::ffi::c_void,
+                    std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+                ),
+                0
+            );
+            let h = OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, 0, hijo.id());
+            assert_ne!(AssignProcessToJobObject(job, h), 0, "error {}", GetLastError());
+            CloseHandle(h);
+            assert!(hijo.try_wait().unwrap().is_none(), "antes de cerrar el corral sigue vivo");
+            // El último handle del job: a partir de aquí ya no depende de nadie.
+            CloseHandle(job);
+        }
+        let inicio = Instant::now();
+        while hijo.try_wait().unwrap().is_none() {
+            assert!(
+                inicio.elapsed() < Duration::from_secs(5),
+                "ping sigue vivo cinco segundos después de cerrar el corral"
+            );
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+}
+
+/// El Intro de `send_command`, medido contra un Claude Code de verdad.
+///
+/// `cargo test --lib intro_en_claude -- --ignored --nocapture`
+///
+/// Gasta UN mensaje corto de tu suscripción (Haiku, «contesta OK») y no deja
+/// sesión en tu lista (`SinRastro`). Primero reproduce el fallo de antes (el
+/// texto y el `\r` en una sola escritura: Claude Code lo toma por un pegado y
+/// se queda con todo en la caja, avisando «review and press Enter to send»), y
+/// luego hace lo de ahora (pegado entre corchetes e Intro aparte) y comprueba
+/// que el aviso no sale. Si el CONTROL deja de fallar es que Claude Code cambió
+/// su detección de pegado, y entonces hay que volver a mirar `PJ` en su binario.
+#[cfg(all(test, windows))]
+mod intro_en_claude {
+    use super::rueda_en_fullscreen::{abrir_con, cerrar_limpio, comprobar_config_limpia, esperar_quieto, sin_escapes};
+    use super::{envuelto_para_pegar, ESPACIO_ENTRE_TECLAS};
+    use std::io::Write;
+    use std::time::{Duration, Instant};
+
+    fn atascado(visto: &str) -> bool {
+        visto.contains("press Enter to send") || visto.contains("Pasted text #") || visto.contains("invisible character")
+    }
+
+    #[test]
+    #[ignore = "arranca claude de verdad y gasta un mensaje de tu suscripción"]
+    fn el_intro_aparte_entra_y_el_junto_se_queda_en_la_caja() {
+        let rastro = crate::foreman::SinRastro::nueva();
+        // Una carpeta que ya es de confianza, o el arranque se para en la pregunta.
+        let cwd = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_string_lossy().to_string();
+        let mut p = abrir_con(&["--session-id", rastro.id(), "--model", "haiku"], &cwd, 120, 36, true);
+        let escribir = |p: &super::rueda_en_fullscreen::Panel, b: &[u8]| {
+            p.escritor.lock().unwrap().write_all(b).expect("no se pudo escribir");
+        };
+        let desde_entonces = |p: &super::rueda_en_fullscreen::Panel, desde: usize| {
+            let s = p.salida.lock().unwrap();
+            sin_escapes(&s[desde.min(s.len())..])
+        };
+
+        // Hasta que pida el pegado entre corchetes: ahí ya hay caja.
+        let inicio = Instant::now();
+        loop {
+            let pidio = p.salida.lock().unwrap().windows(8).any(|w| w == b"\x1b[?2004h");
+            if pidio {
+                break;
+            }
+            assert!(inicio.elapsed() < Duration::from_secs(40), "claude no pidió el pegado entre corchetes en 40 s");
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        esperar_quieto(&p.salida, Duration::from_millis(1500), Duration::from_secs(20));
+
+        let texto = "Contesta solo con la palabra OK, sin nada más. ".repeat(20);
+        assert!(texto.len() > 800, "tiene que pasar del umbral de pegado de Claude Code");
+
+        // Lo de antes: el texto y el Intro en UNA escritura.
+        let desde = p.salida.lock().unwrap().len();
+        escribir(&p, format!("{texto}\r").as_bytes());
+        esperar_quieto(&p.salida, Duration::from_millis(1500), Duration::from_secs(10));
+        let visto = desde_entonces(&p, desde);
+        let antes = atascado(&visto);
+        println!("\n  texto y \\r juntos: {}", if antes { "se quedó en la caja (el fallo de siempre)" } else { "entró" });
+        let cola: String = visto.lines().filter(|l| !l.trim().is_empty()).rev().take(12).collect::<Vec<_>>().into_iter().rev().map(|l| format!("    | {}\n", l.trim_end())).collect();
+        println!("  lo último que pintó:\n{cola}");
+        let atascado_bin = std::env::temp_dir().join("adeorq-intro-atascado.bin");
+        std::fs::write(&atascado_bin, p.salida.lock().unwrap().clone()).unwrap();
+        println!("  bytes de la pantalla con el texto atascado: {}", atascado_bin.display());
+
+        // Dos Esc seguidos vacían la caja («double tap esc to clear input»).
+        let desde = p.salida.lock().unwrap().len();
+        escribir(&p, b"\x1b");
+        std::thread::sleep(Duration::from_millis(100));
+        escribir(&p, b"\x1b");
+        esperar_quieto(&p.salida, Duration::from_millis(1000), Duration::from_secs(10));
+        let visto = desde_entonces(&p, desde);
+        let cola: String = visto.lines().filter(|l| !l.trim().is_empty()).rev().take(8).collect::<Vec<_>>().into_iter().rev().map(|l| format!("    | {}\n", l.trim_end())).collect();
+        println!("  tras los dos Esc:\n{cola}");
+
+        // Lo de ahora: pegado entre corchetes, respiro, Intro.
+        let desde = p.salida.lock().unwrap().len();
+        escribir(&p, &envuelto_para_pegar(&texto, true));
+        std::thread::sleep(ESPACIO_ENTRE_TECLAS);
+        escribir(&p, b"\r");
+        esperar_quieto(&p.salida, Duration::from_millis(1500), Duration::from_secs(10));
+        // Que termine de contestar antes de mirar: el mensaje enviado se ve
+        // desplegado en la conversación (en la caja va plegado como
+        // «[Pasted text #N]»), y detrás viene la respuesta.
+        esperar_quieto(&p.salida, Duration::from_secs(3), Duration::from_secs(90));
+        let visto = desde_entonces(&p, desde);
+        let entro = visto.contains("Contesta solo con la palabra OK, sin nada más. Contesta");
+        println!("  pegado e Intro aparte: {}", if entro { "entró" } else { "se quedó en la caja" });
+        let cola: String = visto.lines().filter(|l| !l.trim().is_empty()).rev().take(30).collect::<Vec<_>>().into_iter().rev().map(|l| format!("    | {}\n", l.trim_end())).collect();
+        println!("  lo último que pintó:\n{cola}");
+        // Los bytes enteros, para pintarlos en una xterm sin ventana y ver la
+        // PANTALLA final (`node scripts/laboratorio/pantalla-de-bytes.mjs`):
+        // es lo que lee `se_quedo_en_la_caja` en la app de verdad.
+        let enviado = std::env::temp_dir().join("adeorq-intro-enviado.bin");
+        std::fs::write(&enviado, p.salida.lock().unwrap().clone()).unwrap();
+        println!("  bytes de la pantalla con el mensaje enviado: {}", enviado.display());
+
+        cerrar_limpio(&mut p);
+        comprobar_config_limpia();
+
+        assert!(antes, "(control) lo de antes ya no se queda en la caja: ¿cambió Claude Code su detección de pegado?");
+        assert!(entro, "el Intro aparte tiene que entrar");
     }
 }
 

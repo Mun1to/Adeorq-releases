@@ -148,6 +148,12 @@ pub struct Conversacion {
     /// no puedes elegir el modelo del conserje?». Vacío es el de siempre.
     #[serde(default)]
     pub cerebro: String,
+    /// El modelo de las SESIONES cuando el router está apagado, elegido en la
+    /// pastilla del PC. Va en la conversación para que el móvil use el mismo:
+    /// antes vivía solo en la caja del PC y el móvil caía al de por defecto.
+    /// Vacío es «el de por defecto de Ajustes, o Sonnet».
+    #[serde(default)]
+    pub fijo: String,
 }
 
 fn encendido() -> bool {
@@ -772,6 +778,16 @@ pub fn conserje_cerebro(id: String, cerebro: String) -> Result<(), String> {
         return Err(format!("«{cerebro}» no es un modelo con el que pueda pensar el conserje"));
     }
     cambiar(&id, |c| c.cerebro = cerebro)
+}
+
+/// El modelo de las sesiones con el router apagado (ver `fijo`). Vacío lo
+/// devuelve al de por defecto.
+#[tauri::command(async)]
+pub fn conserje_fijo(id: String, modelo: String) -> Result<(), String> {
+    if !modelo.is_empty() && !CEREBROS.contains(&modelo.as_str()) {
+        return Err(format!("«{modelo}» no es un modelo que se pueda fijar"));
+    }
+    cambiar(&id, |c| c.fijo = modelo)
 }
 
 /// Más que una llamada suelta: el conserje mira antes de hablar, y a veces

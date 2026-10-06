@@ -1,0 +1,1659 @@
+/* ==========================================================================
+   Widgets del lienzo (pomodoro, cronómetro, calculadora, calendario).
+   Mismo material que un panel de la cabina, para que no parezcan pegatinas
+   sobre el lienzo sino piezas de la misma app.
+   ========================================================================== */
+.wdg {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-edge), 0 14px 34px rgba(0, 0, 0, 0.4);
+}
+
+/* La ventana de localhost. La dirección va en la cabecera, donde está en
+   cualquier navegador, y debajo los puertos de siempre para no tener que
+   acordarse de cuál era el de este proyecto. */
+.web .wdg-head {
+  gap: 5px;
+}
+
+.web-url {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--row);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+}
+
+.web-url:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* Las pestañas del navegador llevan la ropa de las del editor (`.ed-pest`,
+   definida junto al editor): dos filas de pestañas con dos estilos serían dos
+   apps. Aquí solo va lo que el editor no tiene: el icono del sitio, su globo
+   de repuesto, el botón de abrir otra, y la pintura de la activa, que se
+   funde con la fila de puertos que tiene debajo y no con el papel del editor. */
+.web-pestanas .ed-pest[data-on="true"] {
+  background: color-mix(in srgb, var(--panel-head) 70%, transparent);
+}
+
+/* Sin scroll vertical: la activa mide un píxel de más por su truco de fundirse
+   con lo de abajo, y con `overflow-x: auto` heredado ese píxel invocaba una
+   barrita en la esquina de la fila. */
+.web-pestanas {
+  overflow-y: hidden;
+}
+
+.web-pest-ico {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+}
+
+.ed-pest > svg {
+  flex: none;
+  opacity: 0.75;
+}
+
+.web-pest-mas {
+  flex: none;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.web-pest-mas:hover {
+  background: var(--row);
+  color: var(--text);
+}
+
+.web-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel-head) 70%, transparent);
+}
+
+.web-port {
+  height: 21px;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-chico);
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.web-port:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.web-port[data-on="true"] {
+  color: #f4f8ff;
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.web-sep {
+  flex: 1;
+}
+
+/* Con superficie propia: se pinta sobre la web que tenga cargada la pieza, y
+   sin fondo era un texto flotando encima de una página cualquiera. */
+.web-froede {
+  height: 21px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: var(--r-btn);
+  background: var(--row);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.web-froede:hover {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.web-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+}
+
+/* Apilados en absoluto, como las hojas del editor: TODAS las pestañas están
+   montadas y solo se ve la activa, así que cambiar de pestaña no recarga la
+   página ni pierde lo que tuviera escrito. */
+.web-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.web-vacio {
+  margin: 0;
+  padding: 18px;
+  height: 100%;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* La tapa: mientras está puesta, la pieza se arrastra desde cualquier sitio
+   como las demás. Un iframe se queda con todo lo que pasa por encima, así que
+   sin esto había que elegir entre poder moverla o poder usar la web. */
+.web-tapa {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12px;
+  border: 0;
+  background: linear-gradient(to bottom, rgba(10, 14, 22, 0) 55%, rgba(10, 14, 22, 0.5));
+  color: #eaf1ff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.web-tapa:hover {
+  opacity: 1;
+}
+
+.web-tapa span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(10, 14, 22, 0.82);
+}
+
+.web-soltar {
+  flex: none;
+  padding: 5px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel-head));
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wdg-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--panel-head);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  font-size: 12px;
+}
+
+.wdg-head:active {
+  cursor: grabbing;
+}
+
+.wdg-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.wdg-name {
+  flex: 1;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+.wdg-x {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.wdg-x:hover {
+  background: rgba(214, 96, 96, 0.22);
+  color: #ffd7d7;
+}
+
+.wdg-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  /* Abajo va más: ese hueco es del tirador de la esquina, que se dibuja encima
+     de la pieza y no debe caer sobre un botón. */
+  padding: 12px 12px 24px;
+  overflow: auto;
+}
+
+.wdg-big {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.wdg-mono {
+  font-family: "Cascadia Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.wdg-cent {
+  font-size: 16px;
+  font-style: normal;
+  color: var(--muted);
+  margin-left: 2px;
+}
+
+.wdg-sub {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.wdg-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* El anillo del pomodoro: una sola capa cónica, sin SVG ni librería. --p va
+   de 0 a 1 y lo escribe el componente en cada pintada. */
+.wdg-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--accent) calc(var(--p, 0) * 360deg),
+    color-mix(in srgb, var(--border) 70%, transparent) 0
+  );
+}
+
+.wdg-ring::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  background: var(--panel);
+}
+
+.wdg-ring > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* El descanso no es la misma tarea con otro nombre: cambia de color para que
+   se sepa de un vistazo en cuál de las dos estás. */
+.wdg-pomo[data-fase="descanso"] .wdg-ring {
+  background: conic-gradient(
+    #6fe0bb calc(var(--p, 0) * 360deg),
+    color-mix(in srgb, var(--border) 70%, transparent) 0
+  );
+}
+
+.wdg-laps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-height: 96px;
+  overflow: auto;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.wdg-laps li {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 4px;
+  border-top: 1px solid var(--border);
+}
+
+/* ------------------------------------------------------------ calculadora */
+.wdg-calc {
+  justify-content: flex-start;
+  gap: 8px;
+  /* El hueco de abajo es del tirador de la esquina: sin él caería justo sobre
+     el `=` y le robaría el clic a la tecla que más se pulsa. */
+  padding-bottom: 22px;
+  /* Para que las teclas puedan medirse contra ESTE cuadro y no contra la
+     ventana: es lo que deja que el número crezca al agrandar la calculadora. */
+  container-type: size;
+}
+
+.wdg-screen {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--row);
+  border: 1px solid var(--border);
+}
+
+.wdg-prev {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.wdg-expr {
+  font-size: 21px;
+  font-weight: 650;
+  word-break: break-all;
+  text-align: right;
+}
+
+/* El resultado antes de pulsar "=": la mitad de las veces con verlo basta. */
+.wdg-preview {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* El teclado ocupa lo que sobre: si agrandas el nodo, crecen las teclas. Antes
+   tenían alto fijo y hacer grande la calculadora solo dejaba un hueco negro
+   debajo, que es justo lo que a Munir le pareció raro. */
+.wdg-pad {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 4px;
+}
+
+.wdg-key {
+  min-height: 30px;
+  border-radius: var(--r-chico);
+  border: 1px solid var(--border);
+  background: var(--row);
+  color: var(--text);
+  /* Con el nodo, dentro de un rango: en una calculadora grande el número se
+     lee de lejos, y en una pequeña sigue cabiendo. */
+  font-size: clamp(13px, 2.6cqmin, 26px);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wdg-key:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--row));
+}
+
+/* Los operadores en color, las funciones apagadas y el igual relleno: se
+   distinguen los tres grupos de un vistazo sin leer ninguna tecla. */
+.wdg-key[data-tipo="op"] {
+  color: var(--accent);
+}
+
+.wdg-key[data-tipo="fn"] {
+  color: var(--muted);
+  background: transparent;
+}
+
+.wdg-key[data-tipo="eq"] {
+  grid-row: span 2;
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+  font-size: clamp(15px, 3.2cqmin, 30px);
+}
+
+.wdg-key[data-tipo="eq"]:hover {
+  background: color-mix(in srgb, var(--accent) 82%, #fff);
+}
+
+.wdg-key[data-tipo="cero"] {
+  grid-column: span 2;
+}
+
+/* Copiar va antes que «Mandar a…» y con menos peso: es la salida de todos los
+   días, pero la que manda a un agente es la que define esta pieza. */
+.img-copy {
+  flex: none;
+  margin-right: 6px;
+}
+
+/* Los atajos de la cuenta atrás: los minutos de un botón. */
+.wdg-atajos {
+  gap: 4px;
+}
+
+.wdg-atajos .mini[data-on="true"] {
+  border-color: var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text);
+}
+
+.wdg-min {
+  width: 52px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--row);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+  outline: none;
+}
+
+.wdg-min:focus {
+  border-color: var(--accent-dim);
+}
+
+/* ------------------------------------------------------------- calendario */
+.wdg-cal {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.wdg-calhead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.wdg-month {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.wdg-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  font-size: 11.5px;
+}
+
+.wdg-dow {
+  text-align: center;
+  color: var(--muted);
+  font-weight: 700;
+  padding-bottom: 2px;
+}
+
+/* Los días son botones desde que se puede escribir en uno: hay que poder
+   elegirlos con el teclado, no solo con el ratón. */
+.wdg-day {
+  display: grid;
+  place-items: center;
+  position: relative;
+  min-height: 24px;
+  border: 0;
+  border-radius: var(--r-chico);
+  background: transparent;
+  font: inherit;
+  color: color-mix(in srgb, var(--text) 82%, var(--muted));
+  cursor: pointer;
+}
+
+.wdg-day:hover {
+  background: var(--row);
+}
+
+.wdg-day[data-today="true"] {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* El elegido se marca con un anillo y no con relleno: el relleno ya es de
+   "hoy", y si fueran iguales no sabrías cuál de los dos estás mirando. */
+.wdg-day[data-sel="true"] {
+  outline: 1.5px solid var(--accent);
+  outline-offset: -1.5px;
+  color: var(--text);
+}
+
+/* Un punto debajo del número: este día tiene algo escrito. */
+.wdg-day[data-escrito="true"]::after {
+  content: "";
+  position: absolute;
+  bottom: 2.5px;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.wdg-caldia {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.wdg-caldia-fecha {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.wdg-caldia-nota {
+  flex: 1;
+  min-height: 44px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--row);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  resize: none;
+  outline: none;
+}
+
+.wdg-caldia-nota:focus {
+  border-color: var(--accent-dim);
+}
+
+/* Separador y botones de widget en la barra del lienzo. */
+/* ==========================================================================
+   Captura pegada en el lienzo: se anota encima y se le entrega a un agente.
+   ========================================================================== */
+.img-node .wdg-head {
+  cursor: grab;
+}
+
+.img-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--row);
+}
+
+.img-tool {
+  width: 26px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-chico);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.img-tool:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.img-tool[data-on="true"] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.img-tool:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.img-color {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.img-color[data-on="true"] {
+  border-color: var(--text);
+}
+
+.img-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--border);
+}
+
+.img-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #0b0f18;
+}
+
+.img-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  user-select: none;
+}
+
+/* La capa de dibujo se estira exactamente sobre la imagen, no sobre el nodo:
+   si cubriera el nodo entero, una flecha dibujada en el borde caería sobre el
+   marco y al exportar aparecería descolocada. */
+.img-layer {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+}
+
+/* Con la mano puesta la capa se aparta del todo: el clic llega a la imagen y
+   al lienzo, que es quien mueve el nodo. Si solo se quitara el cursor seguiría
+   comiéndose los clics, que era justo el problema. */
+.img-layer[data-dibuja="false"] {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* El rótulo sobre la captura. El tamaño va en cqh —proporción del ALTO del
+   escenario— para que sea el mismo que al exportar el PNG: si fuera en px se
+   vería de un tamaño en pantalla y de otro en el archivo. El borde oscuro es
+   lo que lo hace legible sobre cualquier captura, clara u oscura. */
+.img-stage {
+  container-type: size;
+}
+
+.img-txt {
+  position: absolute;
+  margin: 0;
+  max-width: 90%;
+  /* El suelo de 13 px no es estético: en un nodo bajito 4.2cqh se queda en
+     letra de hormiga, y un rótulo que no se lee es un rótulo que no está. */
+  font-size: max(13px, 4.2cqh);
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  text-shadow:
+    0 0 3px rgba(0, 0, 0, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+/* Un rótulo ya puesto se agarra y se lleva a otro sitio, salvo con la mano
+   puesta: ahí el clic es para mover la pieza entera. */
+.img-txt[data-movible="true"] {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.img-txt[data-movible="true"]:active {
+  cursor: grabbing;
+}
+
+.img-txt[data-movible="true"]:hover {
+  outline: 1px dashed currentColor;
+  outline-offset: 3px;
+}
+
+/* Mientras se escribe se ve el cuadro: un recuadro punteado y fondo oscuro.
+   Sin eso, un cursor solo sobre una captura cualquiera no se distingue de
+   nada y parece que el clic no ha hecho efecto. */
+.img-txt-edit {
+  width: 46%;
+  min-height: 2.6em;
+  padding: 2px 4px;
+  border: 1px dashed currentColor;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.25;
+  resize: none;
+  outline: none;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.img-layer svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.img-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--panel-head);
+}
+
+.img-note {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.img-send {
+  position: relative;
+  flex: none;
+}
+
+.img-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  min-width: 190px;
+  max-height: 210px;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 5px;
+  border-radius: 12px;
+  /* Sólido y SIN cristal: es un menú. Ver el porqué entero en `.sess-menu`.
+     El desenfoque se va con la transparencia: detrás de algo opaco no se ve
+     nada, así que era puro coste. */
+  background: var(--panel-solid);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--glass-edge), 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.img-menu button {
+  width: 100%;
+  text-align: left;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.img-menu button:hover {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* La cabecera de una terminal del lienzo ES el asa de arrastre (dragHandle),
+   así que tiene que decirlo con el cursor. En la cabina lo dice porque allí
+   lleva [draggable], que aquí no aplica. */
+.rf-term .pane-head {
+  cursor: grab;
+}
+
+.rf-term .pane-head:active {
+  cursor: grabbing;
+}
+
+/* Los botones de la cabecera siguen siendo botones y no asas: sin esto, ir a
+   pulsar la ✕ del pane arrastraba el nodo un par de píxeles antes de pulsar. */
+.rf-term .pane-head button {
+  cursor: pointer;
+}
+
+/* La nota del lienzo.
+   El color tiñe la nota ENTERA, no solo una esquina: una nota amarilla tiene
+   que verse amarilla de un vistazo, que es para lo que uno les pone color. Lo
+   que no hace es pintarse del amarillo entero, porque sobre un tema oscuro
+   sería una linterna y habría que cambiar el color del texto para poder
+   leerlo. Un velo del color encima del panel de siempre. */
+.note {
+  border-color: color-mix(in srgb, var(--note) 45%, var(--border));
+  background: color-mix(in srgb, var(--note) 13%, var(--panel));
+}
+
+.note-head {
+  background: color-mix(in srgb, var(--note) 26%, var(--panel-head));
+  border-bottom-color: color-mix(in srgb, var(--note) 40%, var(--border));
+}
+
+.note-title,
+.note-title-txt {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  outline: none;
+}
+
+/* El nombre en reposo es texto, no un campo: así la cabecera entera sirve para
+   arrastrar la nota, que es lo que uno intenta hacer al agarrarla de arriba. */
+.note-title-txt {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: grab;
+}
+
+.note-title-txt[data-vacio="true"] {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.note-title::placeholder {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* El color libre de la nota, al final de la fila de colores. */
+.note-pick {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 0 0 1.5px var(--border);
+}
+
+.note-pick span {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.note-pick input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Cuántas tareas llevas. Cuando están todas hechas cambia de tono: es el
+   único premio que da esta nota, y basta. */
+.note-count {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--note) 26%, transparent);
+  color: var(--text);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.note-count[data-full="true"] {
+  background: color-mix(in srgb, var(--done) 30%, transparent);
+}
+
+.note-tint:hover {
+  background: color-mix(in srgb, var(--note) 28%, transparent);
+  color: var(--text);
+}
+
+.note-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--note);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.note-colors {
+  display: flex;
+  gap: 6px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.note-colors button {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.note-colors button[data-on="true"] {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.note-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 9px 11px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+  cursor: text;
+}
+
+textarea.note-body {
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+}
+
+.note-line {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.note-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.note-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.note-task input {
+  margin: 3px 0 0;
+  accent-color: var(--note);
+  cursor: pointer;
+  flex: none;
+}
+
+/* El texto de una tarea se edita como el resto de la nota, así que lleva el
+   cursor de escribir y no el de pulsar: dice lo que va a pasar al tocarlo. */
+.note-task-txt {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  cursor: text;
+}
+
+/* Hecha es hecha: tachada y apagada, para que lo que queda salte a la vista. */
+.note-task[data-done="true"] span {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.note-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* A la derecha, el sitio del tirador de la esquina. */
+  padding: 6px 30px 6px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.note-add {
+  border: 0;
+  border-radius: var(--r-btn);
+  padding: 3px 9px;
+  background: color-mix(in srgb, var(--note) 22%, transparent);
+  color: var(--text);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.note-add:hover {
+  background: color-mix(in srgb, var(--note) 34%, transparent);
+}
+
+.note-where {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+/* ==========================================================================
+   La cuadrilla: varias terminales repartiéndose UNA tarea.
+   ==========================================================================
+   Seis paneles idénticos no dicen que estén trabajando juntos. Con esto sí:
+   comparten un color, cada uno lleva su puesto («2/5 · Backend») y el borde
+   los agrupa a la vista aunque estén separados en el mosaico. */
+.pane[data-team="true"] {
+  border-color: color-mix(in srgb, var(--team) 45%, var(--border));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--team) 22%, transparent),
+    0 0 22px color-mix(in srgb, var(--team) 12%, transparent);
+}
+
+.pane[data-team="true"] .pane-head {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--team) 16%, var(--panel-head)),
+    var(--panel-head) 55%
+  );
+}
+
+.pane-team {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 130px;
+  padding: 1px 7px 1px 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--team) 22%, transparent);
+  color: color-mix(in srgb, var(--team) 60%, var(--text));
+  font-size: 10.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pane-team-n {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--team) 55%, transparent);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El tirador de la esquina de cualquier pieza del lienzo.
+   El redimensionador de React Flow solo sale con el nodo seleccionado, y eso
+   hay que descubrirlo. Esta es la esquina de toda la vida: se ve siempre, con
+   su cursor en diagonal, y no hace falta que nadie te la explique. */
+/* Con `.react-flow__resize-control` delante a propósito: la librería estiliza
+   sus asas con dos clases, y una sola clase nuestra perdía el empate y salía
+   el cuadradito azul de fábrica en vez de esto. */
+/* ==========================================================================
+   Cambiar el tamaño de una pieza: las CUATRO esquinas y los cuatro bordes.
+   ==========================================================================
+   El redimensionador de React Flow ya trae ocho asas, y aquí van SIEMPRE
+   puestas: no hace falta seleccionar la pieza para poder estirarla.
+
+   Las asas NO se pintan. Se pintaron, y quedaban como cuatro pelotas azules
+   flotando medio fuera de la caja: se dibujan CENTRADAS sobre el borde y la
+   pieza recorta lo que se sale, así que salían partidas. Y una caja con seis
+   puntos alrededor es ruido, no información.
+
+   Así que las esquinas y los bordes son área de agarre invisible, y quien
+   avisa es el CURSOR, exactamente como al estirar cualquier ventana del
+   escritorio. Lo único que se ve es el tirador de abajo a la derecha, que está
+   para que se sepa que la pieza se puede estirar. */
+.react-flow__resize-control.handle {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+}
+
+.react-flow__resize-control.handle.bottom.right {
+  display: none;
+}
+
+.react-flow__resize-control.line {
+  border: 0;
+  opacity: 0;
+}
+
+.react-flow__resize-control.wdg-grip {
+  /* Un botón de 24, no un icono de 15: lo que se agarra con el ratón es esto,
+     y apuntar a unas rayitas de once píxeles era puntería, no interfaz. */
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* React Flow centra sus asas SOBRE la esquina; aquí se mete dentro, que es
+     donde se ve entera y no medio comida por el borde. */
+  transform: none;
+  inset: auto 2px 2px auto;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0.55;
+  transition:
+    opacity 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+/* Y el área que atrapa el ratón es algo mayor que el botón: se puede ir a la
+   esquina "a bulto". Poco más, porque el tirador vive ENCIMA del contenido de
+   la pieza y un área enorme le robaría el clic a lo que tenga debajo. Por eso
+   cada pieza le reserva su hueco (ver `.wdg-calc`, `.note-foot`, `.gal-body`)
+   en vez de dejar que se solapen. */
+.react-flow__resize-control.wdg-grip::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+
+.react-flow__resize-control.wdg-grip svg {
+  display: block;
+  pointer-events: none;
+}
+
+.wdg:hover .react-flow__resize-control.wdg-grip,
+.gal:hover .react-flow__resize-control.wdg-grip {
+  opacity: 1;
+  color: color-mix(in srgb, var(--text) 70%, var(--muted));
+}
+
+.react-flow__resize-control.wdg-grip:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  opacity: 1;
+}
+
+.react-flow__resize-control.wdg-grip:active {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* El botón de la tipografía: se pinta con la letra elegida, así que dice cuál
+   es sin escribir su nombre. */
+.cp-font {
+  min-width: 30px;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chico);
+  background: var(--row);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cp-font:hover {
+  border-color: var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 12%, var(--row));
+}
+
+/* El interruptor del brillo: enseña una muestra con el halo puesto, del color
+   que tengas elegido, así que el botón ES la vista previa. */
+.cp-glow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: var(--r-chico);
+  background: transparent;
+  cursor: pointer;
+}
+
+.cp-glow span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  opacity: 0.45;
+  transition: opacity 0.12s ease;
+}
+
+.cp-glow:hover span {
+  opacity: 0.8;
+}
+
+.cp-glow[data-on="true"] {
+  border-color: var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.cp-glow[data-on="true"] span {
+  opacity: 1;
+}
+
+/* El relleno. Misma caja que el halo, pero la muestra es un cuadrado con la
+   esquina redondeada y un borde siempre visible: así se lee «una figura, más o
+   menos llena» en vez de «otro punto de color». La opacidad la pone el propio
+   botón desde el estado, que es lo que se está eligiendo. */
+.cp-fill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: var(--r-chico);
+  background: transparent;
+  cursor: pointer;
+}
+
+.cp-fill span {
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  border: 1.5px solid currentColor;
+  transition: opacity 0.12s ease;
+}
+
+.cp-fill[data-on="true"] {
+  border-color: var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* Apagado, no escondido. El relleno y el trazo de boceto aparecían solo con la
+   figura correspondiente puesta, así que con el lápiz en la mano la barra se
+   veía igual que antes de que existieran: parecía que no estaban. Un botón
+   apagado enseña que la herramienta existe y qué hay que coger para usarla. */
+.cp-fill:disabled {
+  cursor: default;
+  opacity: 0.34;
+}
+
+.cp-fill:disabled span {
+  border-style: dashed;
+}
+
+/* Lo clavado al tablero: ni se coge ni se arrastra, y el cursor lo dice antes
+   de que lo intentes. */
+.canvas-draw-shape[data-bloq] {
+  cursor: default;
+}
+
+.canvas-draw-shape[data-bloq] .canvas-draw-grab {
+  pointer-events: none;
+}
+
+/* Las utilidades del lienzo: todas comparten forma, así que comparten estilo
+   y no hay nueve maneras distintas de enseñar una entrada y un resultado. */
+.tool {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  /* Igual que los demás cuerpos: el hueco de abajo es del tirador. */
+  padding: 10px 10px 26px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.tool-in {
+  flex: 1;
+  min-height: 52px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--row);
+  color: var(--text);
+  font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+  font-size: 11.5px;
+  line-height: 1.45;
+  resize: none;
+  outline: none;
+}
+
+.tool-in:focus,
+.tool-line:focus {
+  border-color: var(--accent-dim);
+}
+
+.tool-line {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--row);
+  color: var(--text);
+  font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+  font-size: 11.5px;
+  outline: none;
+}
+
+.tool-flags {
+  flex: none;
+  width: 52px;
+  text-align: center;
+}
+
+.tool-num {
+  width: 52px;
+  margin-left: 5px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--row);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tool-wrap {
+  flex-wrap: wrap;
+}
+
+.tool-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: var(--row);
+  color: var(--text);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+/* Se levanta como una tecla, igual que `.mini`: es el mismo gesto en la misma
+   app, y aquí se quedaba plano mientras el de al lado subía. */
+.tool-btn:hover {
+  color: #eaf3ff;
+  background: linear-gradient(180deg, rgba(90, 130, 190, 0.62), rgba(46, 68, 104, 0.62));
+  border-color: rgba(140, 185, 255, 0.5);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 3px 9px rgba(0, 0, 0, 0.35);
+}
+
+.tool-btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.tool-out {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 9px;
+  overflow: auto;
+  border-radius: 9px;
+  background: var(--row);
+  border: 1px solid var(--border);
+  font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tool-nota {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.tool-mal {
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--wait) 18%, transparent);
+  color: color-mix(in srgb, var(--wait) 80%, var(--text));
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.tool-mas {
+  color: var(--done);
+}
+
+.tool-menos {
+  color: color-mix(in srgb, var(--wait) 85%, var(--text));
+}
+
+.tool-par {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tool-clave {
+  flex: none;
+  width: 74px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Todo lo que sale de una utilidad se copia con un clic: es para lo que se
+   abre, y obligar a seleccionar a mano un hash de 64 caracteres es cruel. */
+.tool-valor {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 7px;
+  border-radius: 7px;
+  background: var(--row);
+  font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+  font-size: 11px;
+  word-break: break-all;
+  cursor: pointer;
+}
+
+.tool-valor:hover {
+  background: color-mix(in srgb, var(--accent) 16%, var(--row));
+}
+
+.tool-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: auto;
+}
+
+.tool-color {
+  position: relative;
+  display: block;
+  height: 46px;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.tool-color span {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tool-color input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* La galería: la rejilla de todo lo que ha pegado. */
+.gal-count {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gal-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  /* Abajo, el sitio del tirador de la esquina. */
+  padding: 9px 9px 26px;
+}
+
+.gal-vacio {
+  margin: 6px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Se rellena con lo que quepa: la galería es un nodo que se estira, y una
+   rejilla de columnas fijas dejaría una franja muerta a la derecha. */
+.gal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 7px;
+}
+
+.gal-item {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--panel-head);
+  border: 1px solid var(--border);
+}
+
+.gal-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.14s ease;
+}
+
+.gal-item img:hover {
+  transform: scale(1.06);
+}
+
+/* El hueco de una que aún no ha llegado: se marca, no se deja en negro, para
+   que la rejilla no baile cuando entran las imágenes por tandas. */
+.gal-hueco {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--text) 7%, transparent) 50%,
+    transparent 80%
+  );
+}
+
+.gal-x {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 21px;
+  height: 21px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-chico);
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffd7d7;
+  cursor: pointer;
+}
+
+.gal-item:hover .gal-x {
+  display: inline-flex;
+}
+
+.gal-x:hover {
+  background: rgba(214, 96, 96, 0.85);
+  color: #fff;
+}
+
+.gal-mas {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.gal-mas:hover {
+  color: var(--text);
+  border-color: var(--accent-dim);
+}
+
+/* Verla entera sin salir del lienzo. */
+.gal-lupa {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.82);
+  cursor: zoom-out;
+}
+
+.gal-lupa img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+}
+

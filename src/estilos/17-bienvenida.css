@@ -1,0 +1,634 @@
+/* ── La bienvenida y el recorrido ───────────────────────────────────────────
+   La primera pantalla que ve alguien que acaba de instalar Adeorq. Va sobre el
+   fondo real de la app, no sobre un color plano: lo primero que enseña es la
+   casa, con su cristal y su foto detrás. */
+.onb-velo {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 7, 12, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.onb {
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  padding: 24px 26px 20px;
+  box-shadow: var(--glass-edge), 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.onb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.onb-tit {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: 0.2px;
+}
+
+.onb-pips {
+  display: inline-flex;
+  gap: 5px;
+}
+
+/* Cinco rayas en vez de cinco números: dicen cuánto queda sin pedir que las
+   leas, que es lo único que se necesita saber de un paso de bienvenida. */
+.onb-pip {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.onb-pip[data-on="true"] {
+  background: var(--accent);
+}
+
+.onb-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.onb-txt {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.onb-flojo {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.onb-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.onb-campo .finder {
+  font-size: 15px;
+  padding: 9px 12px;
+}
+
+.onb-idioma {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.onb-eti {
+  font-size: 12px;
+  color: var(--muted);
+  margin-right: 2px;
+}
+
+/* `.mini` no tiene estado encendido en ninguna otra parte de la app, así que
+   los dos idiomas salían idénticos y no se veía cuál estaba puesto. */
+.onb-idioma .mini[data-on="true"] {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+}
+
+.onb-ruta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.onb-ruta code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* Sin carpeta madre no hay ruta que enseñar, y la caja tiene que decirlo sin
+   parecer un campo a medio rellenar: el texto va en cursiva y apagado, que es
+   como se lee «esto está así a propósito». */
+.onb-ruta[data-off] code {
+  font-style: italic;
+  font-family: inherit;
+  color: var(--muted);
+}
+
+/* La salida de quien no tiene los repositorios juntos. Va sola en su línea y a
+   la derecha: es una alternativa, no la respuesta que se espera. */
+.onb-sinraiz {
+  align-self: flex-end;
+}
+
+/* Los proyectos que el usuario añadió a mano, en Ajustes. Misma caja de ruta
+   que arriba para que se lean como lo que son, carpetas, y su aspa al lado. */
+.ajuste-extras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ajuste-extras li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ajuste-extras code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.onb-bien {
+  margin: 0;
+  font-size: 12.5px;
+  color: #7ee08a;
+}
+
+.onb-mal {
+  margin: 0;
+  font-size: 12.5px;
+  color: #ff9c9c;
+}
+
+.onb-clis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 8px;
+}
+
+.onb-cli {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.onb-cli .prov-mark {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+
+.onb-cli span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onb-cli small {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.onb-cli[data-on="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Lo que no está instalado se puede marcar igual (lo instalará luego), pero se
+   ve que hoy no está: marcarlo y que nada lo ofrezca sería mentir. */
+.onb-cli[data-hay="false"] {
+  opacity: 0.5;
+}
+
+.onb-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.onb-check input {
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.onb-check span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.onb-check strong {
+  font-size: 13px;
+}
+
+.onb-check small {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.onb-temas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 7px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.onb-tema {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: transparent;
+  color: var(--text);
+  font-size: 11.5px;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* La muestra lleva los colores DEL TEMA que ofrece, no los del que hay puesto:
+   `data-theme` en el propio botón redefine las variables ahí dentro, así que
+   se elige mirando el color y no leyendo su nombre. */
+.onb-tema-muestra {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 5px;
+  background: linear-gradient(135deg, var(--accent), var(--bg));
+  border: 1px solid var(--border-strong);
+}
+
+.onb-tema-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onb-tema[data-on="true"] {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.onb-resumen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.onb-resumen li {
+  display: flex;
+  gap: 10px;
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.onb-resumen b {
+  min-width: 78px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.onb-resumen span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onb-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.onb-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.onb-saltar {
+  color: var(--muted);
+}
+
+/* ── El recorrido ──────────────────────────────────────────────────────────
+   Oscurece la ventana entera menos el trozo del que está hablando. El foco es
+   una sombra gigante hacia fuera, así que el elemento de debajo se ve nítido
+   y sin recortar nada. */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+
+.tour-foco {
+  position: fixed;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 9999px rgba(4, 7, 12, 0.66),
+    0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent);
+  pointer-events: none;
+  transition: all 0.18s ease;
+}
+
+.tour-globo {
+  position: fixed;
+  width: min(360px, calc(100vw - 24px));
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 14px 16px 12px;
+  box-shadow: var(--glass-edge), 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+
+.tour-cuenta {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.6px;
+}
+
+.tour-globo h3 {
+  margin: 4px 0 6px;
+  font-size: 15px;
+}
+
+.tour-globo p {
+  margin: 0 0 12px;
+  font-size: 12.8px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.tour-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tour-nav {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── El Reparto ─────────────────────────────────────────────────────────────
+   El Asistente resuelve una tarea; esto resuelve un día. Es más ancho que un
+   modal normal a propósito: aquí se compara una lista consigo misma, y con las
+   filas estrechas hay que leerlas de una en una para ver si el reparto cuadra. */
+.reparto {
+  width: min(720px, calc(100vw - 48px));
+  max-height: calc(100vh - 72px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rep-cuenta {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* `.finder` es una PÍLDORA (`border-radius: 999px`), y eso está bien en un
+   campo de una línea. En un cuadro de cinco filas la curva se mete dentro del
+   texto y se come la primera letra de cada línea de arriba, que es justo lo que
+   se veía. Aquí manda un radio normal y su propio hueco.
+   Y sin tirador de agrandar: regla de la casa. */
+.rep-texto {
+  width: 100%;
+  resize: none;
+  border-radius: 12px;
+  padding: 11px 13px;
+  line-height: 1.65;
+  font-family: inherit;
+}
+
+.rep-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rep-eti {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.rep-proyecto {
+  flex: 1;
+  min-width: 0;
+}
+
+.rep-casa {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Lo ya apuntado se lee de un vistazo o no se usa: por eso caben unas cuantas
+   sin scroll y la lista solo crece hasta ahí. */
+.rep-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 168px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.rep-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.rep-item:hover {
+  border-color: var(--border-strong);
+}
+
+.rep-item input {
+  accent-color: var(--accent);
+  flex: none;
+}
+
+.rep-item-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 7px;
+  flex: none;
+}
+
+.rep-item-txt {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rep-item-txt em {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.rep-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.rep-objetivo {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.rep-puestos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rep-puesto {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+/* El número importa: es el mismo orden que va a tener el BUZON.md, así que
+   sirve para hablar de «la tres» sin describirla entera. */
+.rep-num {
+  flex: none;
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.rep-cuerpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rep-tarea {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rep-destino {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Los cuatro puestos de siempre, como atajos para escribir. Heredaron el sitio
+   de la sección Misión del Panel, que se retiró al fusionarla con esto. */
+.rep-roles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.rep-roles .rep-eti {
+  margin-right: 2px;
+}
+
+.rep-rol {
+  min-height: 26px;
+  padding: 3px 10px;
+  border-radius: var(--r-pastilla);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.rep-frontera {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.rep-frontera code {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+}
+

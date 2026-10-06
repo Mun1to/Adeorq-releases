@@ -21,7 +21,7 @@
 
 import type { Account } from "./pty";
 import { modelForRole, type ModelAlias } from "./models";
-import { providerOf } from "./providers";
+import { providerOf, sabe } from "./providers";
 
 export const ESFUERZOS = ["low", "medium", "high", "xhigh", "max"] as const;
 export type Esfuerzo = (typeof ESFUERZOS)[number];
@@ -133,7 +133,8 @@ export interface Receta {
   /** Id de proveedor (`providers.ts`): "claude", "codex", "agy"… */
   cli: string;
   cuenta?: Account;
-  /** Solo para Claude: los demás CLIs no aceptan nuestros alias. */
+  /** El escalón de la casa (haiku/sonnet/opus). Claude lo entiende tal cual;
+   *  a Codex y Gemini se lo traduce la tabla de proveedores (`modelos`). */
   modelo?: ModelAlias;
   esfuerzo?: Esfuerzo;
   /** Las razones, en cristiano y en orden de peso. Se pintan tal cual. */
@@ -329,7 +330,7 @@ export function recetar(
     if (relevo) {
       porque.push("No hay ninguna cuenta de Claude conectada ahora mismo.");
       porque.push(`Va a ${providerOf(relevo.cli).label}, que ${relevo.porque}.`);
-      return { cli: relevo.cli, cuenta: relevo.cuenta, esfuerzo, porque };
+      return { cli: relevo.cli, cuenta: relevo.cuenta, modelo: sabe(relevo.cli, "modelo") ? modelo : undefined, esfuerzo, porque };
     }
     porque.push("No hay ninguna cuenta conectada: conecta una en Cuentas.");
     return { cli: "claude", modelo, esfuerzo, porque };
@@ -353,6 +354,9 @@ export function recetar(
       return {
         cli: relevo.cli,
         cuenta: relevo.cuenta,
+        // El escalón también va al relevo: la tabla de proveedores lo traduce a
+        // su nombre (`modelos`), y el que no lo tenga no lo lleva.
+        modelo: sabe(relevo.cli, "modelo") ? modelo : undefined,
         esfuerzo,
         porque,
         alternativa: {

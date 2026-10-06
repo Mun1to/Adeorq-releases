@@ -1,0 +1,844 @@
+/* ==========================================================================
+   El fondo: la imagen o el vídeo de detrás de todo.
+   Los paneles ya eran cristal traslúcido, así que debajo había un color plano
+   sin aprovechar. Esto lo ocupa.
+   ========================================================================== */
+.fondo {
+  position: absolute;
+  inset: 0;
+  /* DETRÁS de sus hermanos, y no en su mismo plano.
+     Estaba en 0, y entonces la única forma de que la barra y los paneles
+     quedaran encima era empujarlos a todos con `position: relative`, que es
+     exactamente lo que rompió los overlays de la 0.9.10 (ver más abajo). En
+     negativo el fondo se aparta solo y nadie tiene que cambiar de posición.
+     No desaparece porque `.app` crea contexto de apilamiento con `isolation`:
+     un z-index negativo se queda detrás del contenido, pero delante del fondo
+     del elemento que abre el contexto. */
+  z-index: -1;
+  overflow: hidden;
+  /* Ni un clic. Un vídeo que se pueda pausar sin querer, o una imagen que se
+     pueda arrastrar, sería un fondo que participa en el trabajo; este mira. */
+  pointer-events: none;
+}
+
+.fondo-medio {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* `object-fit`, `object-position` y `transform` NO se ponen aquí, y antes sí:
+     eran `cover` y `scale(1.06)` clavados, o sea Adeorq recortando tu foto
+     siempre igual sin forma de decirle otra cosa. Ahora los escribe `Fondo.tsx`
+     con lo que él haya encuadrado en Ajustes, usando la misma función que pinta
+     la miniatura del editor (`lib/encuadre.ts`). El 6 % que tapaba la orla del
+     desenfoque no se ha perdido: vive allí, y ahora solo sale cuando hay
+     desenfoque que tapar. */
+}
+
+/* El velo va ENCIMA del medio y no como opacidad suya, y no es lo mismo:
+   bajarle la opacidad a un vídeo lo deja translúcido sobre el color de la app,
+   así que sus negros se vuelven grises y el conjunto se destiñe. Un velo del
+   color del fondo lo APAGA sin cambiarle los colores, que es lo que mantiene
+   legible el texto de las terminales encima. */
+.fondo-velo {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+}
+
+/* Y todo lo demás, por encima del fondo.
+   AQUÍ NO SE TOCA EL `position` DE NADIE, y esa es toda la historia de este
+   bloque. Ponía `position: relative` a cada hijo de la app para levantarlos
+   sobre un fondo que estaba en z-index 0, y con dos clases de especificidad le
+   ganaba a cualquier `.overlay` pelado, que tiene una. Así que al entrar el
+   fondo (0.9.10) convirtió en `relative` a todo lo que volaba sobre la app, y
+   un `fixed` convertido en `relative` no desaparece: se cae al flujo. El aviso
+   de secretos pasó a ser una franja pegada abajo, el Asistente se abría abajo,
+   y el telón de emisión —el que tapa la pantalla cuando salta una clave— dejó
+   de taparla.
+   En la 0.9.11 se arregló listando los tres overlays que se conocían, con la
+   idea de que el cuarto fallaría a la vista. Falló, sí, pero lo encontró Munir:
+   el asistente de sesión nueva se abría pegado abajo (0.9.14). Y detrás había
+   más sin descubrir: las cajas del arrastre y el aviso de restauración.
+   Ahora el fondo se aparta solo con z-index negativo, esta regla ya no cambia
+   la posición de nada, y un overlay nuevo funciona sin que nadie se acuerde de
+   apuntarlo en ninguna lista. El z-index se queda porque ordena a los hermanos
+   que SÍ están posicionados; a uno estático no le hace nada, y no lo necesita. */
+/* ⚠ TRAMPA para lo que flota. Esta regla es `.app > *`, o sea (0,1,1), y le
+   gana a cualquier `.loquesea` (0,1,0): un hijo directo de `.app` que declare
+   su propio z-index NO lo va a tener, va a tener 1. Y con todos a 1 el orden
+   lo decide el árbol, así que un flotante montado arriba del JSX acaba DEBAJO
+   de la barra y de la vista, sin recibir un solo clic. Le pasó a `.obj-flota`
+   y le volvió a pasar a `.cuota-card` (Munir, 2026-08-09: «que es esto?»,
+   señalando un recuadro vacío asomando por el borde de la barra).
+   Si añades otro flotante colgado de `.app`, dale su regla `.app > .lo-tuyo`
+   como las de más abajo, o cuélgalo del body por un portal como hace
+   `Overlays`. */
+.app > *:not(.fondo) {
+  z-index: 1;
+}
+
+/* Los contenedores que antes eran `relative` de rebote y sí lo necesitan: cada
+   uno tiene dentro cosas colocadas respecto a él. Va explícito en su regla,
+   donde se puede leer, en vez de heredado de una regla que hablaba del fondo. */
+.app > .topbar,
+.app > .view-cabina,
+.app > .view-lienzo,
+.app > .panel {
+  position: relative;
+}
+
+/* Con fondo puesto, el lienzo de la cabina deja de pintar su color: si no,
+   taparía la foto justo en la zona donde están las terminales, que es donde
+   se quiere ver. */
+.app:has(.fondo) .view-cabina,
+.app:has(.fondo) .cockpit {
+  background: transparent;
+}
+
+/* Y las terminales se abren de verdad.
+   Aquí estaba el resto del problema del fondo: se veía en toda la app menos
+   donde más se quiere, detrás de las terminales. No era que algo lo tapara del
+   todo, era que lo tapaban DOS capas seguidas y la cuenta no daba: el panel
+   dejaba pasar el 32 % (--pane-bg a 0.68) y el lienzo de xterm el 55 % de eso
+   (su tema, a 0.45). A la foto le llegaba un 17 %, que sobre una imagen oscura
+   es no verse. En el resto de la app sí se veía porque los paneles normales no
+   pintan fondo propio (Munir, 2026-07-30).
+   Con foto puesta las dos capas se abren y pasa cerca de la mitad. El texto
+   sigue mandando: si cuesta leerlo, para eso están «cuánto se ve» y el
+   desenfoque, que es lo que la propia pantalla de Ajustes recomienda. */
+/* En :root y NO en `.app`, que es donde estaba y por eso la foto no se vio
+   nunca a través de las terminales.
+   `.app` es un div: una variable declarada ahí baja a sus hijos, pero
+   TerminalPane no la lee del árbol, la lee con getComputedStyle del
+   documentElement, o sea de <html>, que está POR ENCIMA. Desde ahí
+   `--xterm-bg` valía siempre 0.45 y este 0.2 no llegaba a xterm jamás. El
+   `:has()` funciona igual de bien aquí, porque `.fondo` también es
+   descendiente de <html> (2026-07-31). */
+:root:has(.fondo) {
+  /* La mitad de lo que pinte el tema, en vez de un rgba fijo: así el panel se
+     abre sin perder su tono. Con el azul de casa (--pane-bg a 0.68) sale
+     exactamente el 0.34 que había aquí escrito a mano, pero el tema rojo sigue
+     siendo rojo y el verde verde, que antes no. */
+  --pane-abre: 0.5;
+  /* Era 0.2 cuando el tinte se apilaba tres veces (ver `--xterm-bg` abajo):
+     1 − (1 − 0.2)³ = 0.49 oscurece igual en una sola capa. */
+  --xterm-bg: rgba(13, 21, 36, 0.49);
+}
+
+/* El fondo del lienzo de xterm NO es CSS: lo pinta el renderer con el color de
+   su tema, así que TerminalPane.tsx lee esta variable al abrir la terminal y se
+   la pasa. Vive aquí para que cada tema pueda tener el suyo y para que la regla
+   de arriba pueda cambiarla sin tocar JavaScript. */
+:root {
+  /* El tono va suelto para que el mando de Ajustes pueda componer otro rgba con
+     el mismo color y solo cambiar la transparencia.
+     Pero `--xterm-bg` se escribe SIEMPRE entero, nunca como
+     `rgba(var(--xterm-rgb), …)`: TerminalPane lee esta variable con
+     getPropertyValue y se la pasa a xterm, que espera un color de verdad. Con
+     un var() dentro le llegaba texto sin resolver, no lo entendía y pintaba las
+     terminales NEGRAS (roto y arreglado el 2026-07-31, en la 0.9.35). */
+  --xterm-rgb: 13, 21, 36;
+  /* UNA capa desde la 0.9.159. Hasta entonces este rgba se pintaba en
+     `.pane-term`, xterm lo repetía en línea en `.xterm` y en
+     `.xterm-scrollable-element`, y el canvas lo pintaba otra vez: el texto
+     llevaba cuatro capas y la franja de la derecha (reserva de la barra más
+     el resto de celda) tres, y con una foto detrás se veía de otro color.
+     Ahora xterm recibe un fondo transparente y el tinte se pinta aquí una vez,
+     con el alfa que oscurece lo mismo que oscurecían tres: 1 − (1 − a)³. El
+     0.45 de antes es este 0.83; el mando de Ajustes hace la misma cuenta en
+     `App.tsx`. Medido con píxeles en Brave (2026-09-12): la diferencia entre el
+     texto y la franja pasa de (1, 2, 5) a cero. */
+  --xterm-bg: rgba(13, 21, 36, 0.83);
+}
+
+/* La barra de arriba, en tres zonas: la marca, dónde estás, y qué haces.
+   Antes era una sola fila con 22px entre todo y `overflow-x: auto`, y eso
+   tenía dos consecuencias feas en cuanto la ventana se estrechaba: la barra
+   se ponía a hacer scroll horizontal —en una barra que se ve siempre— y el
+   Capataz, que está al final, se salía de la pantalla. Ahora nada se sale:
+   se aprieta, y lo primero que sobra (los nombres de las pestañas) se va solo.
+
+   Y ocho píxeles más baja. No es capricho: son ocho píxeles de terminal en
+   cada ventana, y esto se mira todo el día. */
+.topbar {
+  flex: none;
+  height: 42px;
+  white-space: nowrap;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 12px;
+  background: var(--topbar);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--glass-edge);
+}
+
+/* Empuja lo de la derecha hasta el borde y es lo primero que cede sitio. */
+.topbar-acciones {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 550;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+/* El icono manda sobre el texto: es lo que queda cuando el nombre se va. */
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  border-color: rgba(160, 200, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.tab:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.35);
+}
+
+/* La única de la barra que no se puede deshacer. En reposo es una más —no se
+   pide atención para algo que casi nunca se pulsa—, pero en cuanto el ratón
+   llega se pone rojo: el aviso llega justo antes del clic, que es cuando
+   sirve. */
+.tab-danger:hover {
+  color: color-mix(in srgb, var(--wait) 30%, #fff);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--wait) 26%, transparent),
+    color-mix(in srgb, var(--wait) 14%, transparent)
+  );
+  border-color: color-mix(in srgb, var(--wait) 55%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 3px 10px color-mix(in srgb, var(--wait) 35%, transparent);
+}
+
+/* The active tab reads as pressed-in and lit, not just tinted. */
+.tab[data-active="true"] {
+  color: var(--text);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 34%, transparent), color-mix(in srgb, var(--accent) 20%, transparent));
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 3px 12px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+
+.tab-count {
+  font-size: 10.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--accent) 62%, var(--text));
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  border-radius: 6px;
+  padding: 0 5px;
+}
+
+/* La marca de «beta». Va en `--ask`, el ámbar con el que la app dice «esto te
+   está esperando», y NO en el de acento: el acento significa «estás aquí» en
+   toda la barra, así que teñir la marca con él la haría parecer parte de la
+   pestaña seleccionada en vez de un aviso sobre ella. Y `--ask` está definido
+   en los cuatro temas, que es lo que un color inventado no tendría.
+   Pequeña y en minúsculas a propósito: tiene que avisar, no gritar por encima
+   del nombre de la sección. */
+.tab-beta {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ask) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ask) 42%, transparent);
+  color: var(--ask);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.view-cabina {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  /* El ancla de la pestaña de skills, que se pega al borde derecho por fuera
+     del flujo para no robarle ancho a las terminales. */
+  position: relative;
+}
+
+
+.sidebar {
+  flex: none;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 10px 10px 12px;
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--glass-edge);
+}
+
+.resizer {
+  flex: none;
+  width: 5px;
+  margin-left: -3px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.12s ease;
+  z-index: 5;
+}
+
+.resizer:hover,
+.resizer:active {
+  background: var(--accent-dim);
+}
+
+.brand {
+  flex: none;
+  color: var(--text);
+  font-weight: 650;
+  letter-spacing: 0.3px;
+  font-size: 15px;
+}
+
+.finder {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.finder:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(77, 159, 255, 0.18);
+}
+
+/* El buscador de la barra, con su X y encendido mientras filtra.
+   Filtrar esconde proyectos ENTEROS, y eso pasaba sin que nada lo dijera: la
+   barra se quedaba a medias y parecía que se habían borrado. Un cuadro que se
+   ve encendido y una X a mano son la mitad del arreglo; la otra mitad es la
+   línea de abajo, que cuenta cuántos faltan (Munir). */
+.finder-caja {
+  position: relative;
+  display: flex;
+}
+
+.finder-caja .finder {
+  flex: 1;
+  min-width: 0;
+}
+
+.finder-caja[data-lleno] .finder {
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  padding-right: 30px;
+}
+
+.finder-x {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  /* Con márgenes no, que aquí hay que centrar sobre una posición absoluta; y
+     sin `transform` en el hover, que es lo que descoloca a los `.mini`. */
+  transform: translateY(-50%);
+  padding: 2px;
+  border: none;
+  /* Redonda del todo, y no la esquina de la escala: es la ✕ que se mete DENTRO
+     del propio campo de búsqueda, y ahí una caja con esquinas se lee como un
+     segundo control encajado en el primero. */
+  border-radius: var(--r-pastilla);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.finder-x:hover {
+  color: var(--text);
+}
+
+/* Lo que el filtro está escondiendo, y las sesiones que trajiste a mano. Las
+   dos son la misma idea: algo que cambia lo que ves y que hasta ahora no se
+   anunciaba en ningún sitio. Se pulsa para deshacerlo. */
+.finder-aviso {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--r-chico);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: color-mix(in srgb, var(--text) 78%, transparent);
+  font-size: 10.5px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.finder-aviso:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text);
+}
+
+/* El cartel con su ✕ al lado: dos acciones distintas, dos botones.
+   El grande hace lo que dice; la ✕ solo lo calla. Antes eran la misma cosa, y
+   por eso callarlo costaba perder las sesiones que habías traído. */
+.finder-aviso-fila {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.finder-aviso-fila > .finder-aviso {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.finder-aviso-x {
+  flex: none;
+  margin-top: 6px;
+  width: 24px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--r-chico);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: color-mix(in srgb, var(--text) 60%, transparent);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.finder-aviso-x:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--text);
+}
+
+.side-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0 4px;
+}
+
+/* Small buttons. They used to be flat and transparent until the mouse arrived,
+   with a text glyph inside: at 12px that is a smudge you cannot identify and
+   cannot even see (Munir: "cuesta ver de qué son" y "no se diferencian").
+   Now: a surface of their own from the start, a real click area, and a drawn
+   icon instead of a character. They still rise like keys under the mouse. */
+.mini {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 32px;
+  min-height: 30px;
+  background: var(--row);
+  border: 1px solid var(--border);
+  color: color-mix(in srgb, var(--text) 72%, var(--muted));
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--r-btn);
+  padding: 4px 8px;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease,
+    transform 0.1s ease,
+    box-shadow 0.12s ease;
+}
+
+.mini:hover {
+  color: #eaf3ff;
+  background: linear-gradient(180deg, rgba(90, 130, 190, 0.62), rgba(46, 68, 104, 0.62));
+  border-color: rgba(140, 185, 255, 0.5);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 3px 9px rgba(0, 0, 0, 0.35);
+}
+
+.mini:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+/* ATRÁS, EN TODA LA APP, Y UNO SOLO.
+   Va SIEMPRE encima de `.mini`, o sea la misma tecla que el resto de acciones,
+   con el chevron dibujado y el texto al lado. Lo único suyo es que la flecha se
+   despega un pelo hacia la izquierda al pasar: dice a dónde lleva sin
+   escribirlo. Antes cada pantalla resolvía «volver» a su manera —la Agenda con
+   un «←» de teclado y sin caja, el asistente y la bienvenida sin dibujo
+   ninguno—, y un botón que no parece un botón no existe (Munir, 2026-08-11). */
+.volver svg {
+  transition: transform 0.14s ease;
+}
+
+.volver:hover svg {
+  transform: translateX(-2px);
+}
+
+/* An icon inside a button never blocks the click on the button itself. */
+.mini svg,
+.pane-btn svg,
+.pane-close svg {
+  pointer-events: none;
+  flex: none;
+}
+
+.projects {
+  margin: 0;
+  padding: 0 2px 0 0;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Workspace card: one solid slate surface shared with its sessions (Munir's
+   mock, 2026-07-25). The project's own colour survives as the left bar. */
+.project {
+  display: flex;
+  align-items: center;
+  /* Held from here, not by whatever is inside: under the mouse the name and
+     the count leave and the row would otherwise shrink as you pass over it.
+     40 y no 54 (Munir, 2026-08-09: «son muy gordas»): con doce proyectos, esos
+     catorce píxeles por fila eran casi tres filas enteras de barra. El alto lo
+     marca el logo, así que los dos bajan a la vez o la fila deja de encogerse. */
+  min-height: 40px;
+  border-radius: 12px;
+  /* ⚠ OPACO, y esto es legibilidad pura, no gusto.
+     `--row` es un rgba al 34 %, y Windows NO aplica ClearType (el suavizado por
+     subpíxeles) sobre un fondo que no es opaco: no sabe de qué color va a estar
+     hecho cada píxel. El texto cae al suavizado en gris y se ve emborronado,
+     que es lo que Munir llamó «baja calidad» (2026-08-09).
+     El truco es aplanar: se pinta `--row` con su alfa ENCIMA de un color sólido
+     del tema, así el tinte de la fila se conserva igual y el resultado final es
+     opaco. Vale para cualquier caja de esta barra que lleve texto dentro. */
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.project:hover,
+.project[data-open="true"] {
+  background: linear-gradient(var(--row-hover), var(--row-hover)), var(--panel-solid);
+  border-color: var(--border);
+}
+
+.side-divider {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 10px 10px 4px;
+  opacity: 0.75;
+}
+
+/* Las sesiones que no son de ningún proyecto. No llevan caja ni cabecera que
+   plegar: eso las convertía en un proyecto falso llamado «Sueltas», que es lo
+   que había que quitar. Solo una línea que separa, y debajo las filas. */
+.sueltas-zona {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.side-divider-sueltas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sueltas-n {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--row);
+  font-size: 9.5px;
+  letter-spacing: 0;
+}
+
+/* El cajón de los proyectos que quitaste de la barra. Vive al final del todo y
+   nace plegado: es la marcha atrás de «Quitar de Adeorq», así que tiene que
+   estar a la vista, pero no puede competir con los proyectos de verdad. Mismo
+   tono que la línea de las sueltas, que es su hermana de arriba. */
+.ocultos-zona {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.ocultos-cab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.ocultos-cab:hover {
+  color: var(--text);
+}
+
+/* La flecha, al otro extremo: el número se queda pegado al nombre y ella marca
+   el borde, que es donde el ojo la busca para plegar. */
+.ocultos-cab svg:last-child {
+  margin-left: auto;
+}
+
+.ocultos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 6px 6px;
+}
+
+.oculto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 6px;
+  border-radius: 8px;
+}
+
+.oculto:hover {
+  background: var(--row);
+}
+
+.oculto-nombre {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.oculto:hover .oculto-nombre {
+  color: var(--text);
+}
+
+.ocultos-pie {
+  margin: 4px 0 0;
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+/* En la pared de marcas, la suya: sin foto de proyecto, porque no son un
+   proyecto, pero con sitio propio para que no desaparezcan en ese modo. */
+.project-logo-sueltas {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.logo-sueltas-mark {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.project-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  /* No padding on the left: the photo starts where the card starts. */
+  padding: 0 4px 0 0;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+/* Discord's server rail, doing a real job here: thirty rows of text all look
+   alike, thirty marks do not. The logo comes from the project's own folder
+   (brand/, public/, src-tauri/icons/…); with none, its initials on its colour.
+   Munir's ask, 2026-07-26. */
+.pavatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  user-select: none;
+  transition: border-radius 0.14s ease;
+}
+
+.pavatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 3px;
+}
+
+/* La marca del CLI dentro de su chapa, en la lista de lo que no tienes
+   instalado: un poco menor que la chapa para que respire. */
+.pavatar .prov-mark {
+  width: 18px;
+  height: 18px;
+}
+
+/* No logo: the initials wear the project's identity colour. */
+.pavatar[data-plate="tint"] {
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 34%, transparent);
+}
+
+.pavatar[data-plate="none"] {
+  background: color-mix(in srgb, var(--c) 11%, transparent);
+  border: 1px solid var(--border);
+}
+
+/* A dark mark on a transparent background would vanish into the panel, so it
+   gets a light plate. Measured once per logo, not guessed. */
+.pavatar[data-plate="light"] {
+  background: #eef1f6;
+  border: 1px solid #c9d2e0;
+}
+
+/* In a named row the photo is the row's cover: full height, flush with the
+   left edge, its outer corners following the card's own radius. It was a 28px
+   icon lost in a 300px row (Munir, twice, with a mock each time). */
+.project-mark {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 38px;
+}
+
+.project-mark .pavatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 9px 3px 3px 9px;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+
+/* El hueco de dentro baja con el marco, o un logo cuadrado se quedaría del
+   mismo tamaño en una caja más pequeña y saldría rozando el borde. */
+.project-mark .pavatar img {
+  padding: 6px;
+}
+
+/* Same signal as the photos-only rail, same corner: one green dot means one
+   session of this project is running. */
+.mark-live {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7ee08a;
+  border: 2px solid var(--panel-solid);
+  box-shadow: 0 0 8px #7ee08a99;
+}
+
+/* Discord rounds the square when you open a server; same idea, quieter. */
+.project[data-open="true"] .project-mark .pavatar {
+  border-radius: 12px 4px 4px 12px;
+}
+
+.project-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Baja con la fila, pero menos que el logo: es lo que se lee, y encogerlo a
+     la misma proporción lo dejaría al tamaño de una sesión, que está un piso
+     por debajo en la jerarquía de esta barra. */
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+.live-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7ee08a;
+  box-shadow: 0 0 7px #7ee08a99;
+}
+
+.project-badges {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-right: 8px;
+}
+
+/* Badges as little tokens: gradient, lit top edge and their own drop shadow. */
+/* Counters read as quiet glass, not as buttons: they are information, and a
+   solid block of colour next to nine of its siblings shouts over the work. */

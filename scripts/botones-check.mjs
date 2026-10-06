@@ -20,8 +20,9 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { hojaDeLaApp } from "./hoja.cjs";
 
-const css = readFileSync("src/App.css", "utf8");
+const css = hojaDeLaApp();
 
 /** Recetas que ya traen superficie, relieve y esquina. */
 const RECETAS = ["mini", "np-btn", "np-btn-mini", "panel-card"];
@@ -122,7 +123,7 @@ if (desnudos.length) {
 if (fuera.length) {
   console.log(`\nESQUINAS FUERA DE LA ESCALA (${fuera.length}):`);
   console.log(fuera.sort().join("\n"));
-  console.log("\nUsa --r-chico, --r-btn, --r-caja o --r-pastilla. Están en App.css, arriba.");
+  console.log("\nUsa --r-chico, --r-btn, --r-caja o --r-pastilla. Están en src/estilos/01-base.css.");
   process.exit(1);
 }
 console.log("\nTodas las esquinas salen de la escala.");

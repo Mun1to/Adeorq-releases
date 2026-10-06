@@ -16,9 +16,10 @@
    abajo, que son los de las dos pantallas que la maqueta enseña.
    ========================================================================= */
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { leerHoja } from '../../scripts/hoja.cjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const APP_CSS = resolve(AQUI, '../../src/App.css');
@@ -54,7 +55,8 @@ const FUERA = [
   'ventana-suelta', 'onboarding',
 ];
 
-const css = readFileSync(APP_CSS, 'utf8');
+// La hoja entera: App.css es el indice y sus tramos viven en src/estilos/.
+const css = leerHoja(APP_CSS);
 
 /* Partir el CSS en reglas de primer nivel. Se hace contando llaves y no con una
    expresion regular porque hay @media y @supports anidados, y una regex se

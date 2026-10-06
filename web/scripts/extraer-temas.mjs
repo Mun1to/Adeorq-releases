@@ -14,15 +14,17 @@
    de la pagina sin pisarle las variables a nadie.
    ========================================================================= */
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { leerHoja } from '../../scripts/hoja.cjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const APP_CSS = resolve(AQUI, '../../src/App.css');
 const SALIDA = resolve(AQUI, '../demo/temas.css');
 
-const css = readFileSync(APP_CSS, 'utf8');
+// La hoja entera: App.css es el indice y sus tramos viven en src/estilos/.
+const css = leerHoja(APP_CSS);
 
 /** Un bloque `selector { ... }` completo desde la posicion del selector. */
 function cuerpoDesde(texto, desde) {

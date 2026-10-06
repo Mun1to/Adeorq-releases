@@ -34,6 +34,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { hojaDeLaApp } from "./hoja.cjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(RAIZ, "src");
@@ -49,8 +50,8 @@ function archivos(dir) {
   });
 }
 
-const hojas = archivos(SRC).filter((f) => f.endsWith(".css"));
-const css = [join(SRC, "App.css"), ...hojas].map((f) => readFileSync(f, "utf8")).join("\n");
+// La hoja entera, con sus tramos de `src/estilos/` metidos en su sitio.
+const css = hojaDeLaApp(RAIZ);
 
 // Los selectores declarados: `.loquesea` sin comerse el siguiente guion, para
 // que `.diff-empty` no dé por buena a `.diff-empty-state`.

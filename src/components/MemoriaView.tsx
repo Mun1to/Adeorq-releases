@@ -209,7 +209,12 @@ function Rama({
   );
 }
 
-export default function MemoriaView() {
+export default function MemoriaView({
+  onAbrirSesion,
+}: {
+  /** Abrir la sesión que escribió la nota abierta (`originSessionId`). */
+  onAbrirSesion?: (sessionId: string) => void;
+}) {
   const { t } = useT();
   const [raiz, setRaiz] = useState(boveda);
   const [vault, setVault] = useState<Vault | null>(null);
@@ -887,6 +892,17 @@ export default function MemoriaView() {
                 <button className="mini" onClick={() => void openPath(abierto.path).catch(() => {})}>
                   {t("Abrir fuera")}
                 </button>
+                {/* La nota sabe de qué sesión salió (`originSessionId` en su
+                    cabecera): un clic y estás en esa conversación. */}
+                {abierto.origen && onAbrirSesion && (
+                  <button
+                    className="mini"
+                    data-tip={t("Esta nota la escribió una sesión; se abre esa conversación.")}
+                    onClick={() => onAbrirSesion(abierto.origen!)}
+                  >
+                    {t("Abrir la sesión que la escribió")}
+                  </button>
+                )}
               </div>
 
               <div className="mem-doc-cuerpo" ref={cuerpo}>

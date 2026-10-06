@@ -27,6 +27,8 @@ export interface DocText {
   text: string;
   stamp: number;
   path: string;
+  /** La sesión que escribió la nota, si su cabecera lo dice (`originSessionId`). */
+  origen?: string | null;
 }
 
 export interface Hit {

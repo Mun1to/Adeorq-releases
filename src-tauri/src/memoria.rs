@@ -92,6 +92,30 @@ pub struct DocText {
     pub stamp: u64,
     /// La ruta entera, para poder abrirla fuera de Adeorq.
     pub path: String,
+    /// La sesión que escribió la nota, si lo dice en su cabecera
+    /// (`originSessionId`, que es lo que apunta la memoria de Claude Code).
+    /// Con eso la pestaña puede llevarte a la conversación de la que salió.
+    pub origen: Option<String>,
+}
+
+/// El `originSessionId` de la cabecera YAML, si la nota lo trae.
+pub fn sesion_de_origen(texto: &str) -> Option<String> {
+    let mut lineas = texto.lines();
+    if lineas.next()?.trim() != "---" {
+        return None;
+    }
+    for l in lineas {
+        if l.trim() == "---" {
+            break;
+        }
+        if let Some(v) = l.trim().strip_prefix("originSessionId:") {
+            let v = v.trim().trim_matches('"').trim_matches('\'');
+            if !v.is_empty() && v.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+                return Some(v.to_string());
+            }
+        }
+    }
+    None
 }
 
 #[derive(Serialize, Debug)]
@@ -326,8 +350,7 @@ pub struct VaultInfo {
 ///
 /// Las que ya no existen en disco se descartan: la lista de Obsidian recuerda
 /// bóvedas borradas, y ofrecer una carpeta que no está es ofrecer un error.
-#[tauri::command(async)]
-pub async fn memoria_vaults() -> Vec<VaultInfo> {
+fn bovedas_obsidian() -> Vec<VaultInfo> {
     let Ok(appdata) = std::env::var("APPDATA") else {
         return Vec::new();
     };
@@ -371,6 +394,38 @@ pub async fn memoria_vaults() -> Vec<VaultInfo> {
             docs: vistos,
             abierta: v.get("open").and_then(|o| o.as_bool()).unwrap_or(false),
         });
+    }
+    out
+}
+
+/// Las bóvedas que ofrece la pestaña: las de Obsidian y, detrás, las carpetas
+/// de markdown que Adeorq ya guarda por su cuenta.
+#[tauri::command(async)]
+pub async fn memoria_vaults() -> Vec<VaultInfo> {
+    let mut out = bovedas_obsidian();
+    // Y lo que Adeorq ya guarda en markdown por su cuenta (METAS, «el resto del
+    // cerebro ya estaba en markdown a propósito»): las notas del lienzo y los
+    // objetivos de cada día. Son carpetas de `.md` como cualquier bóveda, así
+    // que entran por la misma puerta, al final y solo si existen.
+    if let Ok(datos) = crate::dir_datos() {
+        for (carpeta, nombre) in [("notas", "Notas del lienzo (Adeorq)"), ("objetivos", "Objetivos de cada día (Adeorq)")] {
+            let ruta = datos.join(carpeta);
+            if !ruta.is_dir() {
+                continue;
+            }
+            let mut archivos = Vec::new();
+            let mut vistos = 0u32;
+            recoger(&ruta, &ruta, 0, &mut archivos, &mut vistos);
+            if vistos == 0 {
+                continue;
+            }
+            out.push(VaultInfo {
+                name: nombre.to_string(),
+                path: ruta.to_string_lossy().into_owned(),
+                docs: vistos,
+                abierta: false,
+            });
+        }
     }
     out
 }
@@ -468,6 +523,7 @@ pub async fn memoria_read(root: String, id: String) -> Result<DocText, String> {
     Ok(DocText {
         stamp: stamp_de(&p),
         path: p.to_string_lossy().into_owned(),
+        origen: sesion_de_origen(&text),
         id,
         text,
     })
@@ -530,6 +586,7 @@ pub async fn memoria_write(
     Ok(DocText {
         stamp: nuevo,
         path: p.to_string_lossy().into_owned(),
+        origen: sesion_de_origen(&text),
         id,
         text,
     })
@@ -736,5 +793,16 @@ mod tests {
         assert!(ruta_de(raiz, "C:/otro/sitio.md").is_err());
         assert!(ruta_de(raiz, "notas/una.txt").is_err(), "solo markdown");
         assert!(ruta_de(raiz, "notas/una.md").is_ok());
+    }
+
+    /// La cabecera de una nota de la memoria de Claude Code, tal cual la
+    /// escribe (`metadata:` anidado y todo): de ahí sale la sesión de origen.
+    #[test]
+    fn la_sesion_de_origen_sale_de_la_cabecera_y_solo_de_ahi() {
+        let nota = "---\nname: x\nmetadata:\n  type: project\n  originSessionId: 572c3eb8-4cba-4c56-8923-bddd346e5626\n---\n\ntexto\noriginSessionId: no-vale\n";
+        assert_eq!(sesion_de_origen(nota).as_deref(), Some("572c3eb8-4cba-4c56-8923-bddd346e5626"));
+        assert_eq!(sesion_de_origen("# sin cabecera\noriginSessionId: abc\n"), None);
+        assert_eq!(sesion_de_origen("---\noriginSessionId: ../raro\n---\n"), None, "solo letras, cifras y guiones");
+        assert_eq!(sesion_de_origen("---\nname: y\n---\n"), None);
     }
 }

@@ -20,6 +20,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { revisar } from "./prueba-check.mjs";
+import { todoEnVerde } from "./comprobar.mjs";
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BUNDLE = "C:/ct/release/bundle/nsis";
@@ -42,6 +43,23 @@ if (!r.ok) {
   process.exit(1);
 }
 console.log(`Prueba declarada — ${r.escalon}: ${r.detalle}\n`);
+
+// Y los comprobadores de la casa, todos (`comprobar.mjs`). Cada uno nació de un fallo
+// ya pagado, y hasta el 2026-10-06 se lanzaban a mano y de uno en uno: dos
+// bancos llevaban semanas en rojo sin que nadie lo viera. Aquí no se pueden
+// olvidar. Son unos cuatro minutos, y van después del guardián de las notas
+// (que es instantáneo) y antes de tocar nada de fuera.
+//
+// `--sin-comprobar` existe por una sola razón: un arreglo de seguridad o de
+// pérdida de datos sale SIEMPRE de inmediato (regla Z), y no puede esperar a
+// que alguien ponga en verde un banco que no tiene que ver. Se dice en voz alta.
+if (process.argv.includes("--sin-comprobar")) {
+  console.log("AVISO: esta versión sale SIN pasar los comprobadores (--sin-comprobar).\n");
+} else if (!todoEnVerde()) {
+  console.error("\nESTA VERSIÓN NO SALE.\n\n  Hay comprobadores en rojo: arriba dice cuáles y por qué.\n");
+  process.exit(1);
+}
+console.log("");
 
 const version = JSON.parse(fs.readFileSync(path.join(RAIZ, "package.json"), "utf8")).version;
 const exe = `${BUNDLE}/Adeorq_${version}_x64-setup.exe`;

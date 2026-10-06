@@ -202,6 +202,19 @@ comprueba("rol «Seguridad» -> juicio y consecuencia alta", (() => {
 comprueba("rol «Traducciones» -> recado", exigenciaDeRol("Traducciones").clase === "recado", exigenciaDeRol("Traducciones"));
 comprueba("rol «Frontend» -> oficio", exigenciaDeRol("Frontend").clase === "oficio", exigenciaDeRol("Frontend"));
 comprueba("un rol raro -> oficio, que es el término medio", exigenciaDeRol("Pepito").clase === "oficio", exigenciaDeRol("Pepito"));
+// Una frase entera no es una etiqueta: una palabra suelta no la manda a opus
+// (bandeja: «una web de seguridad social» salía como auditoría).
+comprueba(
+  "frase larga con una palabra de juicio suelta -> oficio",
+  exigenciaDeRol("hacer una web de la seguridad social para el ayuntamiento").clase === "oficio",
+  exigenciaDeRol("hacer una web de la seguridad social para el ayuntamiento"),
+);
+comprueba(
+  "frase larga que sí es de juicio -> juicio",
+  exigenciaDeRol("revisar la seguridad del login y buscar vulnerabilidades").clase === "juicio",
+  exigenciaDeRol("revisar la seguridad del login y buscar vulnerabilidades"),
+);
+comprueba("etiqueta corta sigue mandando por orden", exigenciaDeRol("Bugs de pago").clase === "juicio", exigenciaDeRol("Bugs de pago"));
 
 // Y el caso que motivó todo: una cuadrilla de seis con la semana agotada.
 const cuadrilla = ["Seguridad", "Frontend", "Backend", "Tests", "Traducciones", "Docs"];

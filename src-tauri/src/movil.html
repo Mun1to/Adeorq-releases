@@ -124,6 +124,23 @@
   .fila b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .fila span { font-size: 13px; color: var(--suave); }
   .vacio { color: var(--suave); text-align: center; margin-top: 12vh; padding: 0 20px; }
+  /* Pedir (o quitar) los avisos, al pie de la lista. */
+  .avisos {
+    display: block;
+    width: 100%;
+    margin: 18px 0 8px;
+    padding: 12px 14px;
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    background: transparent;
+    color: var(--suave);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .avisos[data-on="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
+  .avisos:disabled { opacity: 0.6; }
 
   /* ── Hilo ── */
   .turno { display: flex; margin: 10px 0; }
@@ -308,6 +325,77 @@ function olvidarClave() {
 let e = { vista: clave ? "lista" : "emparejar" };
 let reloj = null;
 
+// Un toque en un aviso abre la página con `#conv=<id>`: se va a esa
+// conversación y se limpia la dirección, que no es para guardarla.
+{
+  const m = /#conv=([A-Za-z0-9_-]{1,64})/.exec(location.hash);
+  if (m && clave) e = { vista: "hilo", id: m[1] };
+  if (location.hash) history.replaceState(null, "", location.pathname);
+}
+
+// ─── Los avisos, aunque la página esté cerrada ─────────────────────────────
+// El service worker (`/sw.js`) recibe el aviso y lo enseña; aquí solo se pide
+// permiso, se suscribe con la clave de esta app y se le manda al PC lo que
+// devuelve el navegador (ver `push.rs`).
+
+const hayPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+if (hayPush) navigator.serviceWorker.register("/sw.js").catch(() => {});
+
+function claveAServidor(b64url) {
+  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4));
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+function aB64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function suscripcionActual() {
+  if (!hayPush) return null;
+  const reg = await navigator.serviceWorker.ready;
+  return reg.pushManager.getSubscription();
+}
+
+async function pedirAvisos() {
+  const reg = await navigator.serviceWorker.ready;
+  if ((await Notification.requestPermission()) !== "granted") throw new Error("Sin permiso para avisar.");
+  const { clave: publica } = await api("GET", "/api/push/clave");
+  const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: claveAServidor(publica) });
+  await api("POST", "/api/push/suscribir", {
+    endpoint: sub.endpoint,
+    p256dh: aB64url(sub.getKey("p256dh")),
+    auth: aB64url(sub.getKey("auth")),
+  });
+}
+
+async function quitarAvisos() {
+  const sub = await suscripcionActual();
+  if (sub) await sub.unsubscribe();
+  await api("POST", "/api/push/olvidar", {});
+}
+
+async function pintarAvisos() {
+  const b = document.getElementById("avisos");
+  if (!b || !hayPush) return;
+  let puestos = false;
+  try { puestos = !!(await suscripcionActual()) && Notification.permission === "granted"; } catch (_) {}
+  b.hidden = false;
+  b.dataset.on = String(puestos);
+  b.textContent = puestos ? "Avisos puestos en este móvil · tocar para quitarlos" : "Avisarme en este móvil cuando una sesión me pregunte o termine";
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      if (puestos) await quitarAvisos(); else await pedirAvisos();
+    } catch (err) {
+      b.textContent = `No se pudo: ${err.message}`;
+      b.disabled = false;
+      return;
+    }
+    b.disabled = false;
+    pintarAvisos();
+  };
+}
+
 function ir(cambio) {
   clearTimeout(reloj);
   e = { vista: cambio.vista, ...cambio };
@@ -380,9 +468,11 @@ async function pintarLista() {
       <main class="cuerpo">
         <button id="nueva" class="nueva"><span class="avatar">${ICONO.chispa}</span>Hablar con el conserje</button>
         <div id="filas"></div>
+        <button id="avisos" class="avisos" hidden></button>
       </main>
     </div>`;
   document.getElementById("nueva").addEventListener("click", () => ir({ vista: "hilo", id: nuevoId(), nueva: true }));
+  pintarAvisos().catch(() => {});
   const cargar = async () => {
     const lista = await api("GET", "/api/lista");
     const filas = document.getElementById("filas");
@@ -421,6 +511,11 @@ function pintarHiloEntero() {
             <option value="opus">Conserje: Claude Opus</option>
           </select></label>
           <button class="pastilla" id="router" data-on="true">${ICONO.diana}<span>Router: automático</span></button>
+          <label class="pastilla" id="fijo-caja" hidden title="El modelo de las sesiones que abre, con el router apagado. El mismo que en el PC."><select id="fijo" aria-label="Modelo de las sesiones con el router apagado">
+            <option value="haiku">Sesiones: Claude Haiku</option>
+            <option value="sonnet">Sesiones: Claude Sonnet</option>
+            <option value="opus">Sesiones: Claude Opus</option>
+          </select></label>
         </div>
       </footer>
     </div>`;
@@ -437,6 +532,7 @@ function pintarHiloEntero() {
   document.getElementById("mejorar").addEventListener("click", mejorar);
   document.getElementById("router").addEventListener("click", alternarRouter);
   document.getElementById("cerebro").addEventListener("change", (ev) => elegirCerebro(ev.target.value));
+  document.getElementById("fijo").addEventListener("change", (ev) => elegirFijo(ev.target.value));
   e.crecer = crecer;
   pintarHilo();
   pintarCaja();
@@ -534,6 +630,13 @@ function pintarCaja() {
   const on = e.conv ? e.conv.router : true;
   routerB.dataset.on = String(on);
   routerB.innerHTML = `${ICONO.diana}<span>${on ? "Router: automático" : "Router: apagado"}</span>`;
+  // Con el router apagado, qué modelo llevan las sesiones: el fijado en la
+  // conversación (en el PC o aquí), y si no Sonnet.
+  const fijoCaja = document.getElementById("fijo-caja");
+  const fijo = document.getElementById("fijo");
+  fijoCaja.hidden = on;
+  const fijado = ["haiku", "sonnet", "opus"].includes(e.conv?.fijo) ? e.conv.fijo : "sonnet";
+  if (document.activeElement !== fijo) fijo.value = fijado;
 }
 
 function mostrarFallo(mensaje) {
@@ -598,6 +701,15 @@ async function mejorar() {
 async function elegirCerebro(cerebro) {
   try {
     await api("POST", "/api/cerebro", { id: e.id, cerebro });
+    await cargarHilo();
+  } catch (err) {
+    mostrarFallo(err.message);
+  }
+}
+
+async function elegirFijo(modelo) {
+  try {
+    await api("POST", "/api/fijo", { id: e.id, modelo });
     await cargarHilo();
   } catch (err) {
     mostrarFallo(err.message);

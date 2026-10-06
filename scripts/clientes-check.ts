@@ -147,26 +147,81 @@ ok("Adeorq sabe leer la cuota de Claude", sabe("claude", "usage"));
 // Y lo contrario, que es lo que de verdad se rompería sin querer: a un CLI que
 // no admite elección de modelo no se le puede ofrecer el selector, ni el relevo
 // a uno cuya sesión no vuelve.
-for (const p of PROVIDERS.filter((x) => x.id !== "claude")) {
+// Codex, Gemini y Kimi SÍ lo tienen desde el 2026-10-06 (verificado en su
+// ayuda y su código), y con la traducción de cada escalón de la casa a su nombre.
+for (const p of PROVIDERS.filter((x) => !["claude", "codex", "gemini", "kimi"].includes(x.id))) {
   ok(`«${p.id}» no promete un cerebro elegible que no tiene`, !sabe(p.id, "modelo"));
   // Si esto se rompe, el modo chat le teclea «/model opus» a un CLI que no
   // tiene ese comando, y esa línea sale escrita delante de tu mensaje.
   ok(`«${p.id}» no promete ajustes en vivo que no entiende`, !sabe(p.id, "ajustesEnVivo"));
 }
+{
+  const codex = PROVIDERS.find((p) => p.id === "codex");
+  const gemini = PROVIDERS.find((p) => p.id === "gemini");
+  ok(
+    "a Codex y a Gemini se les elige el cerebro, con cada escalón traducido a su nombre",
+    sabe("codex", "modelo") &&
+      sabe("gemini", "modelo") &&
+      codex?.banderaModelo === "-m" &&
+      gemini?.banderaModelo === "-m" &&
+      codex?.modelos?.opus === "gpt-6-luna" &&
+      gemini?.modelos?.haiku === "flash-lite" &&
+      !!codex?.retomar?.includes("{id}") &&
+      !!gemini?.retomar?.includes("{id}"),
+  );
+  // Codex no da un id al nacer: el panel se lo aprende del disco, y es la
+  // tabla quien lo dice, no un `kind === "codex"` en el panel.
+  ok(
+    "Codex deja su sesión en disco y Gemini la trae en la línea; ninguno las dos cosas",
+    sabe("codex", "sesionDelDisco") &&
+      !sabe("codex", "banderaSesionNueva") &&
+      sabe("gemini", "banderaSesionNueva") &&
+      !sabe("gemini", "sesionDelDisco"),
+  );
+  // Cinco preguntas que se hacían por el nombre en siete sitios (el panel de
+  // uso, la cuota, el aviso, el conserje y el puente del MCP) y ahora son de la
+  // tabla. Hoy solo las tiene Claude: si otro CLI aparece aquí sin haberlo
+  // medido, el panel de uso le pide un plan que no tiene, o el relevo le pasa
+  // una sesión que no puede abrir.
+  for (const que of ["estadisticas", "cuotaPorCuenta", "relevo", "confianza"] as const) {
+    ok(
+      `solo Claude promete «${que}»`,
+      PROVIDERS.filter((p) => sabe(p.id, que)).map((p) => p.id).join() === "claude",
+    );
+  }
+  ok(
+    "la marca a secas de Claude es «Claude», y quien no la declara usa su etiqueta",
+    PROVIDERS.find((p) => p.id === "claude")?.marca === "Claude" && codex?.marca === undefined,
+  );
+  // Kimi Code entró el mismo día con lo que su tabla de opciones confirma:
+  // `-m <alias>`, los tres alias de su config.toml y `--session <id>`.
+  const kimi = PROVIDERS.find((p) => p.id === "kimi");
+  ok(
+    "a Kimi Code se le elige el cerebro y se le retoma la sesión",
+    sabe("kimi", "modelo") &&
+      kimi?.banderaModelo === "-m" &&
+      kimi?.modelos?.opus === "kimi-code/k3" &&
+      kimi?.retomar === "kimi --session {id}" &&
+      !kimi?.banderaEsfuerzo &&
+      !kimi?.banderaSesionNueva,
+  );
+}
+// Codex la apunta solo en sus rollouts (`uso_clientes.rs`), igual que Claude.
 ok(
   "solo prometen cuota los que de verdad la publican",
-  PROVIDERS.filter((p) => sabe(p.id, "usage")).map((p) => p.id).join() === "claude",
+  PROVIDERS.filter((p) => sabe(p.id, "usage")).map((p) => p.id).join() === "claude,codex",
 );
 ok(
   "quien acepta encargo al arrancar lo declara en su fila",
   PROVIDERS.filter((p) => p.encargoEnLinea).map((p) => p.id).sort().join() ===
-    "agy,claude,opencode",
+    "agy,claude,codex,gemini,opencode",
 );
 // Claude y Antigravity lo toman como argumento suelto y tienen su rama propia;
 // cualquier OTRO que acepte encargo necesita decir CON QUÉ, o el texto se
-// perdería por el camino sin que nadie se entere.
+// perdería por el camino sin que nadie se entere. Vacía vale: es «como
+// argumento suelto» (Codex); lo que no vale es no decirlo.
 for (const p of PROVIDERS.filter((x) => x.encargoEnLinea && x.id !== "claude" && x.id !== "agy")) {
-  ok(`«${p.id}» dice con qué bandera recibe el encargo`, !!p.banderaEncargo);
+  ok(`«${p.id}» dice con qué bandera recibe el encargo`, p.banderaEncargo !== undefined);
 }
 
 // Cómo recibe cada uno una imagen. Decir la equivocada hace que Munir se pelee
@@ -233,6 +288,35 @@ for (const p of PROVIDERS.filter((x) => x.creds.length)) {
 const pl = (x: Parameters<typeof planDeArranque>[0]) => planDeArranque(x);
 
 ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" }).tipo === "consola");
+
+// Los otros dos del router, con lo que verificó su ayuda el 2026-10-06.
+{
+  const r = pl({ cli: "codex", encargo: "arregla el login", modelo: "opus", esfuerzo: "high" });
+  ok(
+    "Codex: modelo traducido, esfuerzo como ajuste y el encargo suelto al final",
+    r.tipo === "linea" &&
+      r.inner === "codex --sandbox workspace-write -m gpt-6-luna -c model_reasoning_effort=high 'arregla el login'" &&
+      r.conTexto === true &&
+      !r.sesion,
+    JSON.stringify(r),
+  );
+}
+{
+  const r = pl({ cli: "gemini", encargo: "traduce el README", modelo: "haiku", esfuerzo: "low" });
+  ok(
+    "Gemini: su alias barato, sin esfuerzo (no tiene), con id propio y el encargo interactivo",
+    r.tipo === "linea" &&
+      /^gemini --approval-mode auto_edit -m flash-lite --session-id [0-9a-f-]{36} --prompt-interactive 'traduce el README'$/.test(r.inner) &&
+      r.conTexto === true &&
+      !!r.sesion &&
+      r.inner.includes(r.sesion),
+    JSON.stringify(r),
+  );
+}
+{
+  const r = pl({ cli: "codex", modelo: "turbo" });
+  ok("un alias que ese CLI no traduce no se le pone", r.tipo === "linea" && r.inner === "codex --sandbox workspace-write", JSON.stringify(r));
+}
 
 {
   const r = pl({ cli: "ollama", modeloLocal: "llama3" });
@@ -319,12 +403,12 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   );
 }
 {
-  const r = pl({ cli: "codex", encargo: "traduce los tooltips" });
+  // Amp no declara cómo recibe un encargo, así que se le copia. (Antes el
+  // ejemplo era Codex, que desde el 2026-10-06 sí lo acepta suelto.)
+  const r = pl({ cli: "amp", encargo: "traduce los tooltips" });
   ok(
     "a quien no acepta el encargo al arrancar se le copia, no se le mete en la línea",
-    r.tipo === "linea" &&
-      r.inner === "codex --sandbox workspace-write" &&
-      r.alPortapapeles === "traduce los tooltips",
+    r.tipo === "linea" && r.inner === "amp" && r.alPortapapeles === "traduce los tooltips",
   );
 }
 {
@@ -345,7 +429,10 @@ for (const id of IDS) {
   const esperado = id === "claude" ? "claude" : id === "agy" ? "agy" : "linea";
   ok(`«${id}» se abre sin ninguna rama escrita para él`, r.tipo === esperado);
   if (r.tipo === "linea") {
-    ok(`  ↳ y con la línea que dice su fila`, r.inner === lineaDeArranque(id));
+    // Sin contar el id de sesión que Adeorq acuña para quien lo admite al
+    // nacer (Gemini): cambia en cada arranque y no es de la fila.
+    const sinSesion = r.inner.replace(/ --session-id [0-9a-f-]{36}$/, "");
+    ok(`  ↳ y con la línea que dice su fila`, sinSesion === lineaDeArranque(id));
   }
 }
 

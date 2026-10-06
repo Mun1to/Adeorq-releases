@@ -93,10 +93,28 @@ const TABLE: Array<{ hints: string[]; model: ModelAlias }> = [
     nine terminals quietly becomes expensive. */
 export function modelForRole(role: string): ModelAlias {
   const r = role.toLowerCase();
-  for (const row of TABLE) {
-    if (row.hints.some((h) => r.includes(h))) return row.model;
+  // Una etiqueta corta («Seguridad», «Bugs de pago») se juzga por la primera
+  // pista que case, en el orden de la tabla. Una frase entera no: «una web de
+  // seguridad social» salía como auditoría por una palabra suelta (bandeja).
+  // Ahí cuentan los votos de cada fila, y en empate gana el oficio, que es lo
+  // que casi siempre es una frase que describe un trabajo.
+  if (r.split(/\s+/).filter(Boolean).length <= 4) {
+    for (const row of TABLE) {
+      if (row.hints.some((h) => r.includes(h))) return row.model;
+    }
+    return "sonnet";
   }
-  return "sonnet";
+  let mejor: ModelAlias = "sonnet";
+  let votos = 0;
+  for (const row of TABLE) {
+    const v = row.hints.filter((h) => r.includes(h)).length;
+    if (v > votos) {
+      votos = v;
+      mejor = row.model;
+    }
+  }
+  const empate = TABLE.filter((row) => row.hints.filter((h) => r.includes(h)).length === votos).length > 1;
+  return votos > 0 && !empate ? mejor : "sonnet";
 }
 
 /** One line for the Foreman's prompt, so it proposes from the same table it

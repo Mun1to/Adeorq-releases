@@ -38,7 +38,9 @@ import {
   ponerFondo,
   quitarFondo,
 } from "./lib/fondo";
-import { anclarColumnas, empezarRedimension, terminarRedimension } from "./lib/redimension";
+import { anclarColumnas } from "./lib/redimension";
+import { dividers, useCosturas } from "./lib/costuras";
+import { useMoverPanel } from "./lib/moverPanel";
 import { aDondeSaltar, aQuienLeToca, encolar, sacarDeCola, tocaDesmaximizar } from "./lib/saltos";
 import { guardarEncuadre, leerEncuadre, type Encuadre } from "./lib/encuadre";
 import { guardarCabecera, leerCabecera, visibles, type Cabecera } from "./lib/cabecera";
@@ -67,21 +69,12 @@ import {
 } from "./lib/discord";
 import {
   addPane as layoutAdd,
-  aplicarVistas,
   applyPreset,
   presetFor,
   rects as layoutRects,
   removePane as layoutRemove,
-  edgeAt,
-  floorFor,
-  MIN_PANE_H,
-  MIN_PANE_W,
-  movePane,
-  resizeCol,
-  resizeRow,
   swapPanes,
   type Col,
-  type Edge,
   type Preset,
 } from "./lib/layout";
 import NowPlaying from "./components/NowPlaying";
@@ -99,19 +92,15 @@ import {
   mainAccount,
   iniciales,
   accountDir,
-  cliEffort,
-  confiarCarpeta,
   findAgy,
   forgetAccount,
   killPty,
-  transcriptExists,
   saveEncargo,
   loadUiState,
   saveUiState,
   writePty,
-  listProjects,
-  mcpReply,
-  onPedidoMcp,
+  sendPty,
+  scanSessions,
   sacarPanel,
   onVuelvePanel,
   ptyHistorial,
@@ -130,30 +119,48 @@ import { exigenciaDeRol, modoAviso, recetar } from "./lib/router";
 import { cerebroPorDefecto } from "./lib/models";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
 import { nombreDeRuta } from "./lib/arbol";
-import { fotoRapida, parteDelEquipo } from "./lib/mundo";
+import { fotoRapida } from "./lib/mundo";
+import { usePuenteMcp } from "./lib/puenteMcp";
+import { useTableroGuardado } from "./lib/tablero";
 import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
 import { apagon, aplicarApagon } from "./lib/temasTerm";
 import { aplicarRendimiento, debeAhorrar, prefRendimiento } from "./lib/rendimiento";
 import { aplicarForma, prefForma } from "./lib/formaPaneles";
 import type { AccionConsejo } from "./lib/acciones";
-import { powershellCommand, sessionIdOf, shellCommand } from "./lib/comandos";
+import { sessionIdOf, shellCommand } from "./lib/comandos";
+import {
+  agyCommand,
+  claudeCommand,
+  comandoDe,
+  comandoDelPlan,
+  installCommand,
+  loadEffort,
+  modoGuardado,
+  newClaudeCommand,
+  PERMISSION_MODE_KEY,
+  providerCommand,
+  providerInner,
+  resumeCommandFor,
+  withEffort,
+  type PermissionMode,
+} from "./lib/lanzar";
 import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
 import { guardarAtajos, leerAtajos, type Atajos } from "./lib/atajos";
 import { tecleandoEnOtro } from "./lib/tecleando";
 import { cancelaMudanza, dejarVolcado, empiezaMudanza } from "./lib/mudanza";
-import { lineaDeArranque, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
-import { planDeArranque, type Peticion, type Plan } from "./lib/arranque";
-import { actaDeRelevo } from "./lib/relevo";
+import { marcarVisto } from "./lib/vistos";
 import {
-  ARRANCAN_CON_ENCARGO,
-  carpetaDe,
-  cliPedido,
-  nombreDe,
-  parteDeApertura,
-  type PedidoMcp,
-} from "./lib/supremo";
+  escucharSistema,
+  guardarTemaSistema,
+  leerTemaSistema,
+  temaQueToca,
+  type TemaSistema,
+} from "./lib/temaSistema";
+import { lineaDeArranque, lineaDeRetomar, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
+import { planDeArranque } from "./lib/arranque";
+import { actaDeRelevo } from "./lib/relevo";
 import { type Hit } from "./lib/redact";
 import { perezoso } from "./lib/perezoso";
 import "@xterm/xterm/css/xterm.css";
@@ -172,7 +179,7 @@ const MemoriaView = perezoso(() => import("./components/MemoriaView"));
 const RepartoView = perezoso(() => import("./components/RepartoView"));
 const AccountsView = perezoso(() => import("./components/AccountsView"));
 
-interface Pane {
+export interface Pane {
   id: number;
   cwd: string;
   name: string;
@@ -271,6 +278,7 @@ const MAX_OPEN_ALL = 12;
 const OPEN_ALL_STAGGER_MS = 350;
 const SIDEBAR_KEY = "adeorq-sidebar-w";
 const STREAM_KEY = "adeorq-stream";
+const SIMPLE_KEY = "adeorq-simple";
 const OBJETIVOS_KEY = "adeorq-objetivos-abierto";
 /** Qué panel de la derecha se está viendo, o vacío si solo está la franja de
     iconos. Vive aquí y no dentro del panel porque desde el 2026-08-15 se monta
@@ -281,17 +289,13 @@ const LATERAL_KEY = "adeorq-lateral";
 const FONT_KEY = "adeorq-term-font";
 const AUTOFONT_KEY = "adeorq-term-autofont";
 const OPENALL_KEY = "adeorq-open-all";
-const LAYOUT_KEY = "adeorq-layout";
 const RESTORE_KEY = "adeorq-restore";
 const JUMP_KEY = "adeorq-saltar-al-que-termina";
 /** Abrir la web sola cuando una terminal anuncia un servidor local. */
 const WEB_AUTO_KEY = "adeorq-web-automatica";
 const OLLAMA_KEY = "adeorq-modelo-local";
-/** Con qué modo nace cada Claude nuevo, hasta que se cambie a mano con Mayús+Tab. */
-const PERMISSION_MODE_KEY = "adeorq-permission-mode";
 /** Cuánto se ve a través de las terminales. -1 = automático (lo que diga el CSS). */
 const TERMINAL_VER_KEY = "adeorq-terminal-ver";
-const RESTORE_STAGGER_MS = 400;
 // Accounts live here and not in the UI-state file because the sidebar owns
 // that file: two writers with their own copy would overwrite each other.
 const ACCOUNTS_KEY = "adeorq-accounts";
@@ -300,7 +304,7 @@ const ACCOUNTS_KEY = "adeorq-accounts";
 // carry a live process across a restart. What CAN be carried is the board: the
 // same panes, in the same folders, with each Claude resuming ITS OWN
 // conversation. That is why every Claude is launched with its own session id.
-interface SavedPane {
+export interface SavedPane {
   name: string;
   cwd: string;
   command?: string[];
@@ -329,7 +333,7 @@ interface SavedPane {
 }
 
 /** The whole board: which panes, and the mosaic they were arranged in. */
-interface SavedLayout {
+export interface SavedLayout {
   panes: SavedPane[];
   cols: Array<{ w: number; hs: number[]; idx: number[] }>;
   /**
@@ -341,229 +345,6 @@ interface SavedLayout {
   ocultos?: string[];
 }
 
-
-/** The six modes `claude --permission-mode` accepts, checked against its own
-    `--help` on 2026-08-01. */
-export type PermissionMode =
-  | "acceptEdits"
-  | "auto"
-  | "bypassPermissions"
-  | "manual"
-  | "dontAsk"
-  | "plan";
-
-// Munir's choice 2026-07-25: every Claude used to start in acceptEdits (edits
-// go through, risky commands still ask), the terminal twin of the desktop
-// app's Auto. That is now Ajustes' default and not a fixed value, so it stays
-// exactly as before for anyone who never opens that screen.
-const DEFAULT_PERMISSION_MODE: PermissionMode = "acceptEdits";
-
-/** Los seis, como lista, para poder comprobar que lo guardado es uno de ellos. */
-const PERMISSION_MODES: PermissionMode[] = [
-  "acceptEdits",
-  "auto",
-  "bypassPermissions",
-  "manual",
-  "dontAsk",
-  "plan",
-];
-
-/**
- * Lo guardado, SOLO si es uno de los seis.
- *
- * Lo que salga de aquí se pega dentro de una línea de comandos, y localStorage
- * es texto que cualquiera puede dejar a medias: una versión futura que renombre
- * un modo, un valor cortado, o algo pegado a mano. Sin esta verja, ese texto
- * viajaría tal cual a la terminal. Con ella, lo que no reconozcamos vuelve al
- * modo de siempre en vez de convertirse en un argumento inventado.
- */
-function modoGuardado(): PermissionMode {
-  const v = localStorage.getItem(PERMISSION_MODE_KEY);
-  return PERMISSION_MODES.find((m) => m === v) ?? DEFAULT_PERMISSION_MODE;
-}
-
-// claudeCommand sits above the App component, next to every other function
-// that spawns a Claude, so a mode chosen from a single opener (the wizard's
-// "modo plan", for instance) can override it without touching the rest. When
-// nobody overrides it, it reads Ajustes' setting straight from localStorage:
-// there is no React state to hand it here, and localStorage is the one store
-// both sides can already see. Shift+Tab inside a pane still cycles the mode
-// for that one session, same as always.
-function claudeCommand(args = "", mode?: PermissionMode, conTexto = false): string[] {
-  const m = mode ?? modoGuardado();
-  const inner = `claude --permission-mode ${m}${args ? ` ${args}` : ""}`;
-  // `conTexto` = en `args` viaja un encargo escrito por una persona, entre las
-  // comillas simples de PowerShell. Entonces el envoltorio TIENE que ser
-  // PowerShell, aunque pese diez veces más: en cmd esas comillas no agrupan
-  // nada (llegarían al CLI como parte del texto y el encargo se partiría por
-  // cada espacio) y un «&» dictado ejecutaría lo que venga detrás. Sin encargo
-  // —abrir una terminal, retomar una sesión, restaurar el tablero, que es la
-  // mayoría— va el envoltorio ligero. Ver `shellCommand` para los números.
-  return conTexto ? powershellCommand(inner) : shellCommand(inner);
-}
-
-// The effort his settings.json is set to, read once at startup. Every Claude
-// is launched with it: a resumed session used to come back without repainting
-// the footer Adeorq reads the effort from, and a pane that says nothing about
-// its effort looks exactly like a pane whose effort changed on its own.
-let defaultEffort: string | null = null;
-
-/** Reads it once and remembers it; safe to call again. */
-async function loadEffort(): Promise<void> {
-  if (defaultEffort !== null) return;
-  defaultEffort = await cliEffort(null).catch(() => null);
-}
-
-/** Adds --effort unless the caller already chose one. */
-function withEffort(args: string): string {
-  if (!defaultEffort || /--effort\b/.test(args)) return args;
-  return `${args} --effort ${defaultEffort}`;
-}
-
-/** A fresh Claude, tagged with an id we choose so it can be resumed later. */
-function newClaudeCommand(extra = "", mode?: PermissionMode, conTexto = false): string[] {
-  return claudeCommand(
-    withEffort(`--session-id ${crypto.randomUUID()}${extra ? ` ${extra}` : ""}`),
-    mode,
-    conTexto,
-  );
-}
-
-/** Turns a pane's command into the one that brings its conversation back. */
-async function resumeCommandFor(pane: SavedPane): Promise<string[] | undefined> {
-  const joined = pane.command?.join(" ") ?? "";
-  const id = joined.match(/--(?:session-id|resume)\s+([0-9a-f-]{8,})/i)?.[1];
-  if (!id) return pane.command;
-  // A session that never got a message has no transcript, and --resume on it
-  // fails with "No conversation found": reopen it as a fresh one instead.
-  const exists = await transcriptExists(pane.cwd, id).catch(() => false);
-  // Restoring the board is exactly where the effort went missing, so it is
-  // put back on the command line rather than hoped for.
-  return exists
-    ? claudeCommand(withEffort(`--resume ${id}`))
-    : claudeCommand(withEffort(`--session-id ${id}`));
-}
-
-/**
- * The other agent CLIs. Where its own --help confirmed an equivalent of
- * Claude's acceptEdits, the pane starts there, so it behaves the same whoever
- * is inside: edits go through, risky things still ask. Where it did not, the
- * CLI starts plain: a made-up flag is worse than one less convenience, and
- * Copilot's --allow-all-tools is full permission, which is not ours to grant.
- *
- * Cada una de esas líneas vive AHORA en la tabla de proveedores, en su columna
- * `arranque`. Aquí había un `switch` con los nombres escritos otra vez, que era
- * uno de los diecinueve archivos que había que visitar para añadir un cliente
- * (2026-08-13).
- */
-const providerInner = lineaDeArranque;
-
-/** Abrirlo sin nada dentro: ni encargo, ni modelo, ni modo. Es el caso de
- *  todos los días (el botón de la barra, un atajo de proyecto). */
-function providerCommand(provider: string): string[] {
-  // El `?? shellCommand(...)` no es defensa por si acaso: `comandoDe` devuelve
-  // `undefined` para la consola pelada, y aquí siempre llega un CLI de verdad.
-  return comandoDe({ cli: provider }) ?? shellCommand(providerInner(provider));
-}
-
-/**
- * El comando con el que nace una terminal, sea del CLI que sea.
- *
- * Es la única traducción de un plan de arranque a un comando de verdad. La
- * DECISIÓN vive aparte y es pura (`lib/arranque.ts`, comprobada sin abrir la
- * app); esto es la mitad que no se puede probar, porque necesita un id de
- * sesión nuevo y el modo guardado en `localStorage`.
- *
- * Devuelve `undefined` solo para la consola pelada, que es una terminal sin
- * nada dentro y no un fallo.
- */
-function comandoDe(p: Peticion): string[] | undefined {
-  return comandoDelPlan(planDeArranque(p));
-}
-
-/** La misma traducción, cuando quien llama ya tiene el plan en la mano y
- *  necesita mirarlo (para copiar el encargo, o para saber en qué se abre). */
-function comandoDelPlan(plan: Plan): string[] | undefined {
-  switch (plan.tipo) {
-    case "consola":
-      return undefined;
-    case "claude":
-      return newClaudeCommand(plan.extra, plan.modo, plan.conTexto);
-    case "agy":
-      return agyCommand(plan.exe, plan.encargo);
-    case "linea":
-      // Con un encargo dictado dentro, PowerShell: en cmd las comillas simples
-      // no agrupan nada y un «&» ejecutaría lo que venga detrás. Ver la nota de
-      // `claudeCommand`, que es la misma razón.
-      return plan.conTexto ? powershellCommand(plan.inner) : shellCommand(plan.inner);
-  }
-}
-
-/**
- * Descargar un CLI desde el centro de cuentas, en una terminal de las de aquí.
- *
- * Descarga y para. No encadena el arranque del programa, que es lo que dispara
- * su login: tener el cliente en el equipo y darle tu cuenta son dos decisiones
- * distintas, y la segunda es suya (Munir, 2026-07-28). Al acabar dice en verde
- * qué escribir el día que quiera conectarlo, y la terminal se queda ahí.
- */
-function installCommand(p: Provider, listo: string): string[] {
-  // PowerShell a propósito: `$?` y `Write-Host -ForegroundColor` son suyos y en
-  // cmd no existen. Es una terminal que dura lo que tarda la descarga, así que
-  // sus 74 MB de envoltorio no son los que hay que perseguir (ver `shellCommand`).
-  return powershellCommand(
-    `${p.cmd}; if ($?) { Write-Host ''; Write-Host '${listo.replace(/'/g, "''")}' -ForegroundColor Green }`,
-  );
-}
-
-// Antigravity CLI (agy): same shape as claude, so it lives in a pane too.
-// Its installer only adds %LOCALAPPDATA%\agy\bin to the PATH for NEW shells,
-// so call it through the path Rust found. --mode accept-edits is agy's Auto.
-export function agyCommand(exe: string, prompt?: string): string[] {
-  // Con encargo va por PowerShell, y no por ahorrar trabajo: ese texto lo ha
-  // dictado Munir y en una línea de cmd un «&» o un «%» lo partiría o, peor,
-  // ejecutaría lo de detrás. Las comillas simples de PowerShell no interpretan
-  // nada de lo que llevan dentro. Sin encargo no hay texto de nadie, así que se
-  // lleva el envoltorio ligero, que es el caso de todos los días (el botón AG).
-  if (prompt) {
-    return powershellCommand(
-      `& '${exe}' --mode accept-edits '${prompt.replace(/'/g, "''")}'`,
-    );
-  }
-  // Sin encargo va por cmd, que es el envoltorio ligero, pero la ruta NO puede
-  // ir entre comillas: `portable-pty` cita cada argumento al estilo MSVC y
-  // convierte cada `"` interna en `\"` (`append_quoted`, en su `cmdbuilder.rs`).
-  // cmd.exe no entiende esa barra, así que recibe literalmente
-  // `"\"C:\...\agy.exe\""` y contesta «no se reconoce como un comando». Por eso
-  // se mete su carpeta en el PATH de esa terminal y se le llama por su nombre:
-  // `path` se traga el resto de la línea hasta el `&&`, así que aguanta rutas
-  // con espacios sin necesitar ni una comilla.
-  const dir = exe.replace(/[\\/][^\\/]*$/, "");
-  return shellCommand(`path ${dir};%path% && agy --mode accept-edits`);
-}
-
-/** Where the draggable seams go, derived from the same rectangles. */
-type Divider =
-  | { kind: "col"; i: number; at: number }
-  | { kind: "row"; ci: number; ri: number; at: number; x: number; w: number };
-
-function dividers(cols: Col[]): Divider[] {
-  const out: Divider[] = [];
-  const total = cols.reduce((a, c) => a + c.w, 0) || 1;
-  let x = 0;
-  cols.forEach((col, i) => {
-    const w = col.w / total;
-    if (i < cols.length - 1) out.push({ kind: "col", i, at: x + w });
-    const hTotal = col.hs.reduce((a, b) => a + b, 0) || 1;
-    let y = 0;
-    col.panes.forEach((_, ri) => {
-      y += (col.hs[ri] ?? 1) / hTotal;
-      if (ri < col.panes.length - 1) out.push({ kind: "row", ci: i, ri, at: y, x, w });
-    });
-    x += w;
-  });
-  return out;
-}
 
 function App() {
   const nextId = useRef(1);
@@ -1000,6 +781,49 @@ function App() {
     localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
 
+  /* Seguir el claro/oscuro de Windows (`lib/temaSistema.ts`): con esto puesto,
+     el tema lo decide el sistema y cambia solo; elegir uno a mano lo apaga. */
+  const [temaSistema, setTemaSistema] = useState<TemaSistema>(leerTemaSistema);
+  const cambiarTemaSistema = useCallback((c: TemaSistema) => {
+    guardarTemaSistema(c);
+    setTemaSistema(c);
+  }, []);
+  useEffect(() => {
+    if (!temaSistema.activo) return;
+    setTheme(temaQueToca(temaSistema));
+    return escucharSistema((oscuro) => setTheme(temaQueToca(temaSistema, oscuro)));
+  }, [temaSistema]);
+
+  /* El modo simple (MEJORAS, pedido el 2026-08-03): la barra en tira, las
+     cabeceras con solo el nombre y el estado (el resto al pasar el ratón), y
+     sin bordes entre paneles. La foto se queda. Se enciende y se apaga de golpe
+     con Ctrl+Mayús+S, y al salir la barra vuelve a como estaba. */
+  const [simple, setSimple] = useState(() => localStorage.getItem(SIMPLE_KEY) === "1");
+  const [railPedido, setRailPedido] = useState<RailMode | null>(null);
+  const railAntesDeSimple = useRef<RailMode>("full");
+  const alternarSimple = useCallback(() => {
+    setSimple((v) => {
+      const ahora = !v;
+      localStorage.setItem(SIMPLE_KEY, ahora ? "1" : "0");
+      if (ahora) {
+        railAntesDeSimple.current = railModeRef.current === "tira" ? "full" : railModeRef.current;
+        setRailPedido("tira");
+      } else {
+        setRailPedido(railAntesDeSimple.current);
+      }
+      return ahora;
+    });
+  }, []);
+
+  /* Lo que miras, se apunta: al darle el foco a un panel, su sesión deja de
+     reclamarte en la barra (`lib/vistos.ts`). */
+  useEffect(() => {
+    if (focusedId == null) return;
+    const p = panesRef.current.find((x) => x.id === focusedId);
+    const sid = sessionIdOf(p?.command);
+    if (sid) marcarVisto(sid);
+  }, [focusedId]);
+
   // El apagón también vive en <html>, y se pone una vez al arrancar: quien lo
   // dejó encendido ayer no tiene que volver a Ajustes hoy.
   useEffect(() => {
@@ -1057,17 +881,17 @@ function App() {
   /** El panel sobre el que se está soltando un archivo ahora mismo. */
   const [soltandoEn, setSoltandoEn] = useState<number | null>(null);
 
-  /** Las cuentas cuya cuota Adeorq sabe leer, que son las que alimentan el
-   *  aviso de plan y el panel de uso. Se filtran por la capacidad `usage` de la
-   *  tabla y no por «¿eres Claude?», que era lo que ponía aquí: el día que otro
-   *  CLI publique su porcentaje entra solo con marcarlo en su fila.
+  /** Las cuentas a las que se puede RELEVAR una sesión: alimentan el aviso de
+   *  cuota (que ofrece esa salida) y el menú de relevo de cada panel. Se
+   *  filtran por la capacidad `relevo` de la tabla, no por «¿eres Claude?».
    *
-   *  El relevo también las usa, y ahí hace falta ADEMÁS que la sesión se pueda
-   *  retomar; eso lo comprueba `TerminalPane` con `sabe(kind, "retomable")`,
-   *  así que no se pierde nada aunque algún día las dos listas dejen de
-   *  coincidir. */
+   *  No es `usage`, y lo fue: desde que Codex publica su cuota, una cuenta suya
+   *  tiene porcentaje pero no se le puede pasar el testigo de una sesión de
+   *  Claude, así que las dos listas dejaron de coincidir (la del panel de uso
+   *  es la de abajo). `TerminalPane` comprueba además `sabe(kind, "retomable")`
+   *  antes de ofrecer el relevo. */
   const cuentasConCuota = useMemo(
-    () => [MAIN_ACCOUNT, ...accounts.filter((a) => a.provider === "claude")],
+    () => [MAIN_ACCOUNT, ...accounts.filter((a) => sabe(a.provider, "relevo"))],
     [accounts],
   );
 
@@ -1420,7 +1244,7 @@ function App() {
             window.setTimeout(() => void writePty(id, `${linea}\r`).catch(() => {}), i * 400);
           });
           window.setTimeout(() => {
-            writePty(id, `${texto}\r`)
+            sendPty(id, texto)
               .then(() => listo(true))
               .catch(() => listo(false));
           }, ajustes.length * 400 + 250);
@@ -1779,132 +1603,12 @@ function App() {
      además es estable (`useCallback` sin dependencias) y no vuelve a montar
      este oyente cada vez. Se rellena en el efecto que hay justo detrás de ella. */
   const cerrarRef = useRef<((id: number) => void) | null>(null);
+  /** El estado de cada panel para el MCP (`paneles`); se rellena más abajo,
+   *  cuando `foremanExec` existe. */
+  const panelesRef = useRef<() => PaneStatus[]>(() => []);
 
-  useEffect(() => {
-    const atender = async (p: PedidoMcp) => {
-      const responder = (r: Parameters<typeof mcpReply>[1]) =>
-        void mcpReply(p.peticion, r).catch(() => {});
-      try {
-        if (p.clase === "link_panes") {
-          const hecho = enlazarRef.current?.(Number(p.from), Number(p.to), !!p.auto);
-          responder(
-            hecho
-              ? {}
-              : {
-                  error:
-                    "No se pudo dibujar: las flechas solo existen en el Lienzo, y esas dos terminales tienen que estar las dos allí.",
-                },
-          );
-          return;
-        }
-        /* Cerrar. Rust ya comprobó que la terminal existe en el mapa del PTY, así
-           que aquí no se vuelve a juzgar: se hace. `closePane` mata el proceso y
-           retira el panel de las dos listas (cabina y lienzo), que es exactamente
-           lo mismo que hace la X, y por eso no hay un camino de muerte aparte
-           para el MCP: dos formas de matar un agente se separan con el tiempo y
-           una de las dos se queda sin arreglar. */
-        if (p.clase === "close_pane") {
-          const id = Number(p.paneId);
-          if (!Number.isFinite(id) || id <= 0) {
-            responder({ error: "`paneId` tiene que ser el número de una terminal." });
-            return;
-          }
-          if (!cerrarRef.current) {
-            responder({ error: "la ventana todavía no está lista para cerrar terminales" });
-            return;
-          }
-          cerrarRef.current(id);
-          responder({});
-          return;
-        }
-        // Cuánto queda en cada cuenta. Lo contesta la ventana y no Rust porque
-        // aquí ya está leído y guardado: preguntárselo otra vez a los CLIs
-        // costaría un proceso de cinco segundos por cuenta para saber lo mismo.
-        if (p.clase === "uso") {
-          // Con reloj: el puente de Rust espera 25 s como mucho, y refrescar la
-          // cuota de tres cuentas frías son tres procesos de cinco segundos.
-          // Ocho segundos dan de sobra para refrescar lo que haga falta, y si
-          // no llega se contesta con lo último que se supo, que es infinitamente
-          // mejor que dejar al agente sin respuesta.
-          const vivas = await fotoRapida(accountsRef.current.list, 8000);
-          responder({ parte: parteDelEquipo(vivas) });
-          return;
-        }
-        if (p.clase !== "open_pane") {
-          responder({ error: `No sé atender «${p.clase}».` });
-          return;
-        }
-
-        const elegido = cliPedido(p.cli);
-        if ("error" in elegido) return responder({ error: elegido.error });
-        const { cli } = elegido;
-
-        const proyectos = await listProjects().catch(() => []);
-        const donde = carpetaDe(p, proyectos);
-        if ("error" in donde) return responder({ error: donde.error });
-        const cwd = donde.cwd;
-
-        const brief = (p.brief ?? "").trim();
-        const label = nombreDe(p, cwd, cli);
-        // Solo Claude y Antigravity aceptan el encargo en la línea de arranque.
-        // Al resto se les abre la terminal y se le DICE al agente que lo mande
-        // él: meterle texto suelto a un CLI que espera un subcomando es abrirle
-        // una terminal con un error dentro.
-        const conEncargo = !!brief && ARRANCAN_CON_ENCARGO.has(cli);
-        const command = comandoDe({ cli, encargo: brief, agyExe: agyExe.current });
-
-        /* Antes de abrirla, que pueda arrancar. Una terminal de Claude en una
-           carpeta donde Munir no ha entrado nunca nace parada en «¿confías en
-           esta carpeta?», y ahí se queda: quien la abrió es un agente, no hay
-           nadie mirando la pantalla. Se marca la confianza primero (ver
-           `confiar_carpeta` en `mcp.rs`, que explica qué NO toca y por qué).
-
-           Se ignora el fallo A PROPÓSITO: esto ahorra un clic, no autoriza nada
-           que el agente no pudiera hacer igual. Si no se puede escribir, la
-           terminal se abre lo mismo y el diálogo lo contesta el agente leyendo
-           la pantalla, que es lo que hacía antes de existir esto. */
-        if (cli === "claude") {
-          await confiarCarpeta(cwd).catch(() => false);
-        }
-
-        const abierto = addPane(label, cwd, command);
-        if (!abierto) return responder({ error: "no pude abrir la terminal" });
-
-        // La flecha de paso, si la pidió: así el árbol le queda hecho sin una
-        // segunda llamada. Solo cuela en el lienzo, y se dice cuando no.
-        let flecha: "hecha" | "sin-lienzo" | undefined;
-        if (typeof p.from === "number" && p.from > 0) {
-          const ok =
-            abierto.donde === "lienzo" &&
-            !!enlazarRef.current?.(p.from, abierto.id, false);
-          flecha = ok ? "hecha" : "sin-lienzo";
-        }
-
-        responder({
-          pane_id: abierto.id,
-          donde: abierto.donde,
-          parte: parteDeApertura({
-            paneId: abierto.id,
-            cli,
-            donde: abierto.donde,
-            conEncargo: conEncargo || !brief,
-            flecha,
-          }),
-        });
-      } catch (e) {
-        responder({ error: String(e) });
-      }
-    };
-
-    let vivo = true;
-    const un = onPedidoMcp((p) => {
-      if (vivo) void atender(p);
-    });
-    return () => {
-      vivo = false;
-      void un.then((f) => f()).catch(() => {});
-    };
-  }, [addPane]);
+  // El oyente de esos pedidos vive en `lib/puenteMcp.ts`.
+  usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accountsRef, agyExe });
 
   /* Una terminal que estaba fuera ha cerrado su ventana: vuelve al tablero tal
      como se fue. Vuelve y NO muere, que es la diferencia entre esto y la X de
@@ -2210,7 +1914,9 @@ function App() {
    * panel del tablero para siempre. El panel seguía vivo en Rust, pintándose en
    * ningún sitio. Se apunta ANTES, y el `then` solo lo quita si sigue apuntado.
    */
-  const sacarFuera = useCallback((id: number) => {
+  /** `x` e `y`, en píxeles físicos, cuando se sabe dónde soltarla (arrastre
+   *  fuera de la ventana); sin ellos, Rust la coloca donde le toque. */
+  const sacarFuera = useCallback((id: number, x?: number, y?: number) => {
     const p = panesRef.current.find((x) => x.id === id);
     if (!p) return;
     empiezaMudanza(id);
@@ -2219,7 +1925,7 @@ function App() {
     // reconstruir preguntándole a Rust: Rust solo sabe la carpeta y el
     // comando, lo demás es cosa del tablero.
     fueraRef.current.set(id, p);
-    void sacarPanel(id, p.name)
+    void sacarPanel(id, p.name, x, y)
       .then(() => {
         // Si mientras se abría la ventana ya llegó su aviso de vuelta, el panel
         // ya no está apuntado: entonces NO se quita del tablero, porque volvió.
@@ -2288,6 +1994,25 @@ function App() {
    * ningún transcript: adivinar cuál es y escribirle el título a la sesión de
    * otro sería peor que quedarse solo con el nombre del panel.
    */
+  /**
+   * Un panel de Codex ha aprendido su sesión del disco (Codex no da un id al
+   * abrirse). Su línea pasa a ser la que la retoma: es lo que guarda el
+   * tablero para mañana y lo que lee todo lo que pregunta
+   * `sessionIdOf(p.command)`, con la barra lateral delante, que así ya marca
+   * esa sesión de Codex como abierta. El proceso no se entera: el efecto que
+   * lo lanza en `TerminalPane` solo depende del id y de la carpeta, y el
+   * modelo de la cabecera se lee de lo que imprime el CLI, no de la línea.
+   */
+  const aprenderSesion = useCallback((id: number, sessionId: string) => {
+    const conSesion = (p: { command?: string[] }) => {
+      if (sessionIdOf(p.command)) return p.command;
+      const linea = lineaDeRetomar(kindDeComando(p.command?.join(" ") ?? ""), sessionId);
+      return linea ? shellCommand(linea) : p.command;
+    };
+    setPanes((prev) => prev.map((p) => (p.id === id ? { ...p, command: conSesion(p) } : p)));
+    setCanvasPanes((prev) => prev.map((p) => (p.id === id ? { ...p, command: conSesion(p) } : p)));
+  }, []);
+
   const renombrarPane = useCallback((id: number, nombre: string) => {
     setPanes((prev) => prev.map((p) => (p.id === id ? { ...p, name: nombre } : p)));
     setCanvasPanes((prev) => prev.map((p) => (p.id === id ? { ...p, name: nombre } : p)));
@@ -2482,11 +2207,19 @@ function App() {
    * `--resume` recupera la conversación intacta.
    */
   const revivirPane = useCallback(
-    (id: number, sessionId: string | undefined, cwd: string, name: string) => {
+    (id: number, sessionId: string | undefined, cwd: string, name: string, kind?: string) => {
       closePane(id); // ya mata la rama del panel
-      const command = sessionId
-        ? claudeCommand(withEffort(`--resume ${sessionId}`))
-        : newClaudeCommand();
+      // Codex y Gemini se retoman con su propia línea (`retomar` en la tabla
+      // de proveedores); sin sesión, nacen de nuevo con la suya.
+      const ajena = kind && kind !== "claude" ? lineaDeRetomar(kind, sessionId ?? "") : undefined;
+      const command =
+        kind && kind !== "claude"
+          ? sessionId && ajena
+            ? shellCommand(ajena)
+            : shellCommand(lineaDeArranque(kind))
+          : sessionId
+            ? claudeCommand(withEffort(`--resume ${sessionId}`))
+            : newClaudeCommand();
       // Un respiro para que el cierre suelte el PTY y el proceso muera antes
       // de que el nuevo intente retomar el mismo transcript.
       window.setTimeout(() => addPane(name, cwd, command), 400);
@@ -2698,159 +2431,23 @@ function App() {
     [goProject],
   );
 
-  // Remember the board on every change, so a crash or an update loses nothing:
-  // the same panes, in the same folders, with the same sizes.
-  useEffect(() => {
-    if (!restored.current) return;
-    const order = new Map<number, number>();
-    const saved: SavedPane[] = [];
-    panes.forEach((pane) => {
-      order.set(pane.id, saved.length);
-      saved.push({
-        name: pane.name,
-        cwd: pane.cwd,
-        command: pane.command,
-        env: pane.env,
-        account: pane.account,
-        team: pane.team,
-        grupo: pane.grupo,
-        minimizado: minimizados.has(pane.id) || undefined,
-        archivos: pane.archivos,
-        activo: pane.activo,
-        web: pane.web,
-        webTabs: pane.webTabs,
-        webActiva: pane.webActiva,
-      });
-    });
-    const layout: SavedLayout = {
-      panes: saved,
-      cols: cols.map((c) => ({
-        w: c.w,
-        hs: c.hs,
-        idx: c.panes.map((id) => order.get(id) ?? -1).filter((i) => i >= 0),
-      })),
-      ocultos: [...gruposOcultos],
-    };
-    localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
-  }, [panes, cols, minimizados, gruposOcultos]);
-
-  // ...and bring it back when Adeorq opens, one pane at a time so twelve CLIs
-  // do not start at once. Each Claude resumes ITS OWN conversation.
-  useEffect(() => {
-    if (restored.current) return;
-    restored.current = true;
-    if (!restoreOnStart) return;
-    let layout: SavedLayout | null = null;
-    try {
-      layout = JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? "null") as SavedLayout;
-    } catch {
-      layout = null;
-    }
-    if (!layout?.panes?.length) return;
-    const saved = layout;
-    let cancelled = false;
-    setRestoring(saved.panes.length);
-    // Antes de abrir nada: si los grupos apartados llegaran después de sus
-    // terminales, se verían un instante todas encima, que es justo lo que se
-    // había apartado.
-    if (saved.ocultos?.length) setGruposOcultos(new Set(saved.ocultos));
-    void (async () => {
-      // Before rebuilding anything: the restored panes are precisely the ones
-      // that were coming back without their effort, so the answer has to be in
-      // hand before the first command line is written.
-      await loadEffort();
-      const ids: number[] = [];
-      for (const pane of saved.panes) {
-        if (cancelled) return;
-        // Un archivo abierto vuelve tal cual: no hay conversación que retomar
-        // ni proceso que arrancar, así que tampoco hace falta el respiro entre
-        // uno y otro (eso es para que no arranquen doce CLIs a la vez).
-        if (pane.web != null) {
-          const id = nextId.current++;
-          ids.push(id);
-          setPanes((prev) => [
-            ...prev,
-            {
-              id,
-              cwd: pane.cwd,
-              name: pane.name,
-              web: pane.web,
-              webTabs: pane.webTabs,
-              webActiva: pane.webActiva,
-            },
-          ]);
-          if (pane.minimizado) setMinimizados((prev) => new Set(prev).add(id));
-          setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
-          setRestoring((n) => n - 1);
-          continue;
-        }
-        if (pane.archivos?.length) {
-          const abiertos = pane.archivos;
-          const id = nextId.current++;
-          ids.push(id);
-          setPanes((prev) => [
-            ...prev,
-            {
-              id,
-              cwd: pane.cwd,
-              name: pane.name,
-              archivos: abiertos,
-              activo: pane.activo ?? abiertos[0],
-            },
-          ]);
-          if (pane.minimizado) setMinimizados((prev) => new Set(prev).add(id));
-          setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
-          setRestoring((n) => n - 1);
-          continue;
-        }
-        const command = await resumeCommandFor(pane);
-        const id = nextId.current++;
-        ids.push(id);
-        // env comes back with the pane: a terminal that belonged to an account
-        // must be reborn in that same account, or it would resume a
-        // conversation the main account cannot see.
-        setPanes((prev) => [
-          ...prev,
-          {
-            id,
-            cwd: pane.cwd,
-            name: pane.name,
-            command,
-            env: pane.env,
-            account: pane.account,
-            team: pane.team,
-            grupo: pane.grupo,
-          },
-        ]);
-        // Lo apartado sigue apartado: el id es nuevo, así que se marca aquí,
-        // con el panel en la mano, y no con la lista de ids del arranque
-        // anterior, que ya no señala a estas terminales.
-        if (pane.minimizado) setMinimizados((prev) => new Set(prev).add(id));
-        setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
-        setRestoring((n) => n - 1);
-        await new Promise((r) => window.setTimeout(r, RESTORE_STAGGER_MS));
-      }
-      if (cancelled) return;
-      // The mosaic goes back exactly as it was, sizes included.
-      const cols: Col[] = (saved.cols ?? [])
-        .map((c) => ({
-          cid: nextCol.current++,
-          w: c.w || 1,
-          panes: c.idx.map((i) => ids[i]).filter((x) => x !== undefined),
-          hs: c.idx.map((_, k) => c.hs?.[k] || 1),
-        }))
-        .filter((c) => c.panes.length > 0);
-      setCols(
-        cols.length
-          ? cols
-          : [{ cid: nextCol.current++, w: 1, panes: ids, hs: ids.map(() => 1) }],
-      );
-      setView("cabina");
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [restoreOnStart]);
+  // El tablero se guarda en cada cambio y vuelve al abrir (ver `lib/tablero.ts`).
+  useTableroGuardado({
+    restored,
+    nextId,
+    nextCol,
+    panes,
+    cols,
+    minimizados,
+    gruposOcultos,
+    restoreOnStart,
+    setPanes,
+    setCols,
+    setMinimizados,
+    setGruposOcultos,
+    setRestoring,
+    setView,
+  });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -2881,6 +2478,9 @@ function App() {
       } else if (k === "p") {
         e.preventDefault();
         setPanic((v) => !v);
+      } else if (k === "s") {
+        e.preventDefault();
+        alternarSimple();
       } else if (k === "e") {
         e.preventDefault();
         setStream((v) => {
@@ -3017,94 +2617,8 @@ function App() {
     [enviarAlChat],
   );
 
-  // Moving a pane: pointer-driven, because HTML5 drag never reaches the page
-  // here. Press the header, drag over another pane, release: they swap.
-  const [drag, setDrag] = useState<{
-    id: number;
-    name: string;
-    x: number;
-    y: number;
-    over: number | null;
-    /** Which half or edge of the target it would land on. */
-    edge: Edge;
-    /** The preview rectangle, in screen pixels. */
-    box: { left: number; top: number; width: number; height: number } | null;
-    moved: boolean;
-  } | null>(null);
-
-  const onHeaderDown = useCallback(
-    (id: number, e: React.PointerEvent) => {
-      const pane = panes.find((p) => p.id === id);
-      setFocusedId(id);
-      setDrag({
-        id,
-        name: pane?.name ?? "",
-        x: e.clientX,
-        y: e.clientY,
-        over: null,
-        edge: "center",
-        box: null,
-        moved: false,
-      });
-    },
-    [panes],
-  );
-
-  useEffect(() => {
-    if (!drag) return;
-    // Windows-style snap: what is under the cursor, and which zone of it. The
-    // preview box is the target's own rectangle, halved when landing on a side.
-    const aim = (x: number, y: number) => {
-      const el = document.elementFromPoint(x, y) as HTMLElement | null;
-      const host = el?.closest?.("[data-pane-id]") as HTMLElement | null;
-      const id = host ? Number(host.dataset.paneId) : null;
-      if (id == null || id === drag.id || !host) {
-        return { over: null, edge: "center" as Edge, box: null };
-      }
-      const r = host.getBoundingClientRect();
-      const edge = edgeAt((x - r.left) / r.width, (y - r.top) / r.height);
-      const box =
-        edge === "left"
-          ? { left: r.left, top: r.top, width: r.width / 2, height: r.height }
-          : edge === "right"
-            ? { left: r.left + r.width / 2, top: r.top, width: r.width / 2, height: r.height }
-            : edge === "top"
-              ? { left: r.left, top: r.top, width: r.width, height: r.height / 2 }
-              : edge === "bottom"
-                ? { left: r.left, top: r.top + r.height / 2, width: r.width, height: r.height / 2 }
-                : { left: r.left, top: r.top, width: r.width, height: r.height };
-      return { over: id, edge, box };
-    };
-    const move = (e: PointerEvent) => {
-      setDrag((d) => {
-        if (!d) return d;
-        // A few pixels of slack, so a plain click on the header is not a move.
-        const moved = d.moved || Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 6;
-        const hit = moved ? aim(e.clientX, e.clientY) : { over: null, edge: "center" as Edge, box: null };
-        return { ...d, x: e.clientX, y: e.clientY, moved, ...hit };
-      });
-    };
-    const up = (e: PointerEvent) => {
-      const hit = aim(e.clientX, e.clientY);
-      setDrag((d) => {
-        if (d?.moved && hit.over != null) {
-          setCols((prev) => movePane(prev, d.id, hit.over as number, hit.edge, () => nextCol.current++));
-          setFocusedId(d.id);
-        }
-        return null;
-      });
-    };
-    const cancel = () => setDrag(null);
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", cancel);
-    return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", cancel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drag?.id]);
+  // Mover un panel por su cabecera, con su vista previa (ver `lib/moverPanel.ts`).
+  const { drag, onHeaderDown } = useMoverPanel({ panes, setFocusedId, setCols, nextCol, sacarFuera });
 
   const onSwap = useCallback((from: number, to: number) => {
     setCols((prev) => swapPanes(prev, from, to));
@@ -3116,166 +2630,9 @@ function App() {
     setMaximizedId(null);
   }, []);
 
-  // Dragging a divider: the grid's own size turns pixels into fractions.
-  const gridRef = useRef<HTMLElement>(null);
-  const dragDiv = useRef<
-    | { kind: "col"; i: number; from: number }
-    | { kind: "row"; ci: number; ri: number; from: number }
-    | null
-  >(null);
-  /** El mosaico que se está viendo, para el arrastre de las barras. */
-  const colsVisiblesRef = useRef<Col[]>([]);
-  /**
-   * El reparto MIENTRAS se arrastra, que no pasa por React.
-   *
-   * Aquí estaba el lag de verdad, y las dos primeras vueltas lo buscaron en el
-   * sitio equivocado (Munir, 2026-08-11, después de dos intentos: «sigue yendo
-   * lag, tiene que ser más directo y fluido»). Cada movimiento llamaba a
-   * `setCols`, y eso vuelve a renderizar la cabina ENTERA con sus nueve
-   * `TerminalPane` dentro, que no están memoizados y son mil quinientas líneas
-   * de JSX cada uno. Bajar la cadencia del reflow de xterm no lo tocaba
-   * siquiera: el trabajo caro era el de React, y ocurría igual.
-   *
-   * Así que durante el arrastre React no se entera: el reparto vive en este
-   * ref y los anchos se escriben directamente en el DOM, que es lo que hacen
-   * los separadores que van finos (split.js, Allotment, react-resizable-panels
-   * hacen exactamente esto). Al soltar se hace UN `setCols` con el resultado y
-   * el estado vuelve a mandar.
-   */
-  const enVueloRef = useRef<Col[] | null>(null);
-
-  const onDividerDown = (
-    e: React.PointerEvent<HTMLDivElement>,
-    spec: { kind: "col"; i: number } | { kind: "row"; ci: number; ri: number },
-  ) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    // Las terminales bajan la cadencia de su reflow: ver `lib/redimension.ts`.
-    empezarRedimension();
-    // Y el reparto sale de React hasta que sueltes.
-    enVueloRef.current = colsVisiblesRef.current;
-    dragDiv.current =
-      spec.kind === "col"
-        ? { kind: "col", i: spec.i, from: e.clientX }
-        : { kind: "row", ci: spec.ci, ri: spec.ri, from: e.clientY };
-  };
-
-  /* Un cambio de reparto por frame, no uno por aviso del ratón.
-   *
-   * Un ratón moderno manda entre 125 y 1000 posiciones por segundo, y cada una
-   * que pasara el umbral llamaba a `setCols`, que vuelve a renderizar el panel
-   * con sus nueve terminales dentro (`TerminalPane` no está memoizado, así que
-   * se re-renderizan todas). Pintar más de una vez por frame no se ve: lo
-   * único que hace es competir con el propio arrastre. Se guarda la última
-   * posición y se aplica en el frame siguiente. */
-  const arrastrePedido = useRef(0);
-  const ultimoPuntero = useRef({ x: 0, y: 0 });
-
-  const onDividerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragDiv.current) return;
-    ultimoPuntero.current = { x: e.clientX, y: e.clientY };
-    if (arrastrePedido.current) return;
-    arrastrePedido.current = requestAnimationFrame(() => {
-      arrastrePedido.current = 0;
-      aplicarArrastre();
-    });
-  };
-
-  const aplicarArrastre = () => {
-    const d = dragDiv.current;
-    const box = gridRef.current?.getBoundingClientRect();
-    if (!d || !box) return;
-    const p = ultimoPuntero.current;
-    // Se estira lo que SE VE, y el resultado se copia al mosaico de verdad
-    // (ver `aplicarVistas`): los índices de una barra son los del mosaico
-    // visible, y aplicarlos al completo movía la columna equivocada en cuanto
-    // había una terminal apartada.
-    const vistas = enVueloRef.current ?? colsVisiblesRef.current;
-    // The floor is worked out here and not in the model, because only the
-    // cockpit knows how many pixels a fraction is worth right now.
-    // El umbral es el mínimo que mueve un píxel de verdad, y no medio por
-    // ciento: ahora que esto no cuesta un render, pedirle al arrastre que
-    // avance a saltos de trece píxeles era lo que lo hacía sentir pastoso.
-    const minimo = 0.0005;
-    let tras: Col[] | null = null;
-    if (d.kind === "col") {
-      // El delta se ACUMULA entre frames: `from` solo avanza cuando el
-      // movimiento supera el umbral, así que arrastrar despacio sigue moviendo
-      // la barra en vez de quedarse muerto por debajo del mínimo.
-      const delta = (p.x - d.from) / box.width;
-      if (Math.abs(delta) < minimo) return;
-      dragDiv.current = { ...d, from: p.x };
-      tras = resizeCol(vistas, d.i, delta, floorFor(MIN_PANE_W, box.width, vistas.length));
-    } else {
-      const delta = (p.y - d.from) / box.height;
-      if (Math.abs(delta) < minimo) return;
-      dragDiv.current = { ...d, from: p.y };
-      tras = resizeRow(
-        vistas,
-        d.ci,
-        d.ri,
-        delta,
-        floorFor(MIN_PANE_H, box.height, vistas[d.ci]?.panes.length ?? 1),
-      );
-    }
-    enVueloRef.current = tras;
-    pintarEnCrudo(tras);
-  };
-
-  /**
-   * Escribe el reparto en el DOM, sin pasar por React.
-   *
-   * Son las mismas cuentas que hace el render (`rects` y `dividers`, los
-   * mismos del modelo), puestas a mano en los elementos que ya existen. No se
-   * crea ni se destruye nada: solo cambian cuatro propiedades por panel, que
-   * es lo único que de verdad cambia al mover una barra.
-   */
-  const pintarEnCrudo = (vistas: Col[]) => {
-    const grid = gridRef.current;
-    if (!grid) return;
-    for (const [id, caja] of layoutRects(vistas)) {
-      const el = grid.querySelector<HTMLElement>(`[data-pane-id="${id}"]`);
-      if (!el) continue;
-      el.style.left = `${caja.x * 100}%`;
-      el.style.top = `${caja.y * 100}%`;
-      el.style.width = `${caja.w * 100}%`;
-      el.style.height = `${caja.h * 100}%`;
-    }
-    // Y las barras, que si no se quedan quietas mientras arrastras justo la
-    // que tienes cogida.
-    for (const d of dividers(vistas)) {
-      const clave = d.kind === "col" ? `c${d.i}` : `r${d.ci}-${d.ri}`;
-      const el = grid.querySelector<HTMLElement>(`[data-div="${clave}"]`);
-      if (!el) continue;
-      if (d.kind === "col") {
-        el.style.left = `${d.at * 100}%`;
-      } else {
-        el.style.top = `${d.at * 100}%`;
-        el.style.left = `${d.x * 100}%`;
-        el.style.width = `${d.w * 100}%`;
-      }
-    }
-  };
-
-  const onDividerUp = () => {
-    // El último movimiento se aplica ANTES de soltar el arrastre, que si no se
-    // perdería: soltar justo después de mover dejaba la barra un frame por
-    // detrás de donde apuntabas. Y `aplicarArrastre` necesita `dragDiv`, así
-    // que anularlo va al final.
-    if (arrastrePedido.current) {
-      cancelAnimationFrame(arrastrePedido.current);
-      arrastrePedido.current = 0;
-      aplicarArrastre();
-    }
-    dragDiv.current = null;
-    // Y AHORA se entera React, una sola vez, del reparto definitivo. Hasta
-    // esta línea el estado seguía siendo el de antes de empezar a arrastrar:
-    // sin esto, el primer re-render por cualquier otro motivo devolvería las
-    // barras a su sitio de partida.
-    const tras = enVueloRef.current;
-    enVueloRef.current = null;
-    if (tras) setCols((prev) => aplicarVistas(prev, tras));
-    terminarRedimension();
-  };
+  // Las costuras del mosaico y su arrastre, que no pasa por React hasta que
+  // sueltas (ver `lib/costuras.ts`).
+  const { gridRef, colsVisiblesRef, onDividerDown, onDividerMove, onDividerUp } = useCosturas(setCols);
 
   /**
    * Qué terminales se ven ahora mismo. Escondida NO es cerrada: su panel se
@@ -3478,13 +2835,15 @@ function App() {
     },
   };
 
+  panelesRef.current = foremanExec.panes;
+
   /** Las manos del conserje, las mismas para el Chat y para el móvil. */
   const conserjeExec: ConserjeExec = {
     // Sin moverte de donde estés: el conserje abre mientras hablas con él.
     abrir: (r, cwd, label, encargo) => openReceta(r, cwd, label, encargo, undefined, undefined, { quieto: true }),
-    // Igual que `enviarAlChat`: el texto y el Enter juntos.
+    // Igual que `enviarAlChat`: el texto como pegado y el Intro aparte.
     escribir: (panel, texto) =>
-      writePty(panel, `${texto}\r`)
+      sendPty(panel, texto)
         .then(() => true)
         .catch(() => false),
     panes: foremanExec.panes,
@@ -3527,7 +2886,7 @@ function App() {
   return (
     <LangContext.Provider value={contextoIdioma}>
     <Overlays>
-    <div className="app" data-stream={stream} data-peek={peek}>
+    <div className="app" data-stream={stream} data-peek={peek} data-simple={simple || undefined}>
       {/* Debajo de todo lo demás, y sin recibir un clic. */}
       <Fondo
         path={fondo}
@@ -3661,6 +3020,18 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
         <Pulso />
         <NowPlaying />
         <button
+          className="tab simple-toggle"
+          data-on={simple}
+          data-tip={t(
+            simple
+              ? "Modo simple ACTIVO: la barra en tira, las cabeceras al mínimo y sin bordes (Ctrl+Mayús+S)"
+              : "Modo simple: solo lo que estás mirando, la foto se queda (Ctrl+Mayús+S)",
+          )}
+          onClick={alternarSimple}
+        >
+          <span className="simple-toggle-icono" aria-hidden="true" />
+        </button>
+        <button
           className="tab stream-toggle"
           data-on={stream}
           data-tip={t(
@@ -3792,6 +3163,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           gruposOcultos={gruposOcultos}
           onPlegarGrupo={alternarGrupo}
           onRail={alCambiarRail}
+          railPedido={railPedido}
         />
         <div
           className="resizer"
@@ -3952,6 +3324,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     dropTarget={drag?.over === p.id || soltandoEn === p.id}
                     onClose={closePane}
                     onRename={renombrarPane}
+                    onSessionId={aprenderSesion}
                     onStatus={onPaneStatus}
                     onRevivir={revivirPane}
                     alone={panes.length <= 1}
@@ -4215,6 +3588,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onCreate={createCanvasPane}
           onClose={closeCanvasPane}
           onRename={renombrarPane}
+          onSessionId={aprenderSesion}
           // El asa de las flechas para la sesión suprema: mientras el lienzo
           // esté montado, un agente puede pedir por MCP que se unan dos
           // terminales. Ver `docs/SUPREMA.md`.
@@ -4268,7 +3642,20 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           Lienzo: aquí no hay ninguna terminal viva que perder, y guardar en pie
           un índice de quinientos documentos que no se está mirando no le hace
           bien a nadie. El índice de verdad vive en Rust y sobrevive igual. */}
-      {view === "memoria" && <MemoriaView />}
+      {view === "memoria" && (
+        <MemoriaView
+          onAbrirSesion={(sid) => {
+            // La sesión de origen de una nota: se busca en el disco y se retoma
+            // como desde la barra. Si ya no existe, no pasa nada.
+            void scanSessions()
+              .then((lista) => {
+                const s = lista.find((x) => x.id === sid);
+                if (s) onResume(s);
+              })
+              .catch(() => {});
+          }}
+        />
+      )}
       {view === "cuentas" && (
         <AccountsView
           accounts={accounts}
@@ -4331,7 +3718,13 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           lang={lang}
           onLang={setLang}
           theme={theme}
-          onTheme={setTheme}
+          onTheme={(th) => {
+            // Elegir uno a mano apaga el automático: lo acabas de elegir.
+            if (temaSistema.activo) cambiarTemaSistema({ ...temaSistema, activo: false });
+            setTheme(th);
+          }}
+          temaSistema={temaSistema}
+          onTemaSistema={cambiarTemaSistema}
           fontSize={fontSize}
           onFontSize={(n) => {
             setFontSize(n);

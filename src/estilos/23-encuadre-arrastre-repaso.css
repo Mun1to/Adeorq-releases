@@ -1,0 +1,655 @@
+/* ==========================================================================
+   El editor del encuadre del fondo (Ajustes > El fondo).
+   Una ventana de Adeorq en pequeño con la foto dentro, para elegir qué trozo
+   se ve. Vive dentro de una `.panel-card`, que ya pone la superficie: aquí NO
+   se inventa otra (ver la regla escrita encima de `.panel-card`).
+   ========================================================================== */
+.enc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+
+/* La caja tiene la proporción de la ventana de verdad, y la pone el componente
+   con `aspect-ratio` porque solo él sabe cuánto mide la ventana ahora mismo.
+   El ancho se limita para que en una pantalla grande no ocupe media pestaña. */
+.enc-caja {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  cursor: grab;
+  /* Sin esto, arrastrar sobre la miniatura en un portátil hace scroll de la
+     pestaña en vez de mover la foto: el navegador se queda el gesto. */
+  touch-action: none;
+  user-select: none;
+}
+
+.enc-caja:active {
+  cursor: grabbing;
+}
+
+.enc-medio {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* `object-fit`, `object-position` y `transform` los escribe el componente con
+     los MISMOS números que la capa del fondo de verdad. Si se pusieran aquí,
+     la vista previa mentiría en cuanto una de las dos cambiara. */
+  pointer-events: none;
+}
+
+.enc-pie {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text) 62%, var(--muted));
+}
+
+.enc-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* El botón del modo que está puesto. Relleno de acento, no un gris un poco más
+   claro: un conmutador se lee cuando el lado elegido va relleno. */
+.mini.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.mini.on:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* La fila del zoom: menos, deslizador, más y el porcentaje. El hueco baja de
+   14 a 8 px porque los dos botones y su barra son UN mando, no tres cosas
+   sueltas puestas en fila. */
+.enc-zoom {
+  gap: 8px;
+  cursor: default;
+}
+
+.enc-zoom .mini {
+  padding: 0;
+  min-width: 30px;
+}
+
+/* Al tope del zoom el botón se apaga en vez de desaparecer: un mando que se va
+   deja un hueco y mueve de sitio a sus vecinos justo mientras los estás
+   usando. Y sin el `translateY` del hover, que en un botón muerto parece que
+   ha respondido. */
+.mini:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.mini:disabled:hover {
+  color: color-mix(in srgb, var(--text) 72%, var(--muted));
+  background: var(--row);
+  border-color: var(--border);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   Lo que llevas en la mano al arrastrar en la barra (ver `lib/fantasma.ts`).
+   Es una copia del DOM colgada del <body>, no un componente: así se lleva el
+   logo, las insignias y los colores tal y como estaban, y ninguna lista con
+   scroll puede recortarla mientras la mueves.
+   ========================================================================== */
+.fantasma {
+  position: fixed;
+  left: 0;
+  top: 0;
+  /* Por encima de todo lo de la barra y de los menús: lo que va en la mano no
+     puede pasar por detrás de nada. */
+  z-index: 9999;
+  /* Un dibujo, no un control. Sin esto se comería el `elementFromPoint` que
+     busca el destino y estarías soltando siempre encima de ti mismo. */
+  pointer-events: none;
+  /* Levantada del papel: un poco más grande, con sombra y ligeramente girada.
+     La inclinación es lo que más hace: dice «esto está en el aire» sin tapar
+     nada, y el ojo la lee antes que cualquier cambio de color. */
+  transform-origin: 0 0;
+  opacity: 0.92;
+  border-radius: 12px;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  /* SUPERFICIE PROPIA Y SÓLIDA, que es la regla escrita encima de `.panel-card`
+     y aquí es obligatoria: un proyecto se pinta con `--row` (translúcido), una
+     sesión no tiene fondo ninguno y la cabecera de un grupo es un 6 % de color.
+     Los tres funcionan DENTRO de la barra, que ya es una superficie; colgados
+     del <body> caen directamente sobre la foto de escritorio y se leerían a
+     trozos. Sólido y no cristal a propósito: esto se mueve con cada evento del
+     puntero, y un `backdrop-filter` que se mueve recalcula el desenfoque de
+     todo lo que tiene debajo en cada paso. */
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  /* `will-change` porque esto se mueve en cada evento del puntero por encima de
+     treinta cristales: sin su propia capa, cada paso repinta el fondo entero
+     (ver la memoria del rendimiento). */
+  will-change: transform;
+  /* Ni animaciones ni transiciones heredadas: tiene que ir clavada al ratón, y
+     una transición de 140 ms se traduce en un elemento que va por detrás. */
+  transition: none;
+}
+
+/* Dentro de la copia no late nada: el punto de «sesión abierta» y cualquier
+   otra animación gastarían capa nueva por cada paso del arrastre. */
+.fantasma *,
+.fantasma::before,
+.fantasma::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Los tooltips de la casa se pintan con ::after sobre `data-tip`. En la copia
+   sobran: la fila real ya está debajo y saldrían dos. */
+.fantasma [data-tip]::after,
+.fantasma [data-tip]::before {
+  content: none !important;
+}
+
+/* La zona de sueltas de un proyecto: donde una sesión sale de su grupo.
+   Normalmente no se ve, porque no es una caja: es el sitio donde ya viven las
+   sesiones que no están agrupadas. Solo se dibuja cuando llevas en la mano una
+   que SÍ está en un grupo, que es la única vez que significa algo. */
+.sueltas-de {
+  list-style: none;
+  border-radius: 10px;
+  border: 1px dashed transparent;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.sueltas-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Llevas una sesión agrupada: aquí se puede soltar. */
+.sueltas-de[data-lista] {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  min-height: 34px;
+}
+
+/* Y encima de ella. */
+.sueltas-de[data-suelta] {
+  border-color: var(--accent);
+  border-style: solid;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.sueltas-pista {
+  display: block;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  /* No `--muted`: esto puede quedar sobre la foto si la barra es estrecha. */
+  color: color-mix(in srgb, var(--text) 66%, transparent);
+}
+
+/* «Cargar N sesiones más antiguas», abajo del todo de la barra. Discreto de
+   fábrica: es una salida por si buscas algo viejo, no una acción del día. */
+.mas-viejas {
+  width: 100%;
+  margin: 6px 0 10px;
+  padding: 9px 10px;
+  border-radius: var(--r-btn);
+  border: 1px dashed var(--border);
+  background: transparent;
+  /* Ni `--muted`: la barra puede quedar sobre la foto. */
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.mas-viejas:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* El mismo botón cuando la barra es la tira o el raíl está en logo: ahí solo
+   hay 44 px de ancho y la frase no entra, así que queda el número («+261») o el
+   ojo tachado para volver, y la frase entera vive en el `data-tip`. Antes el
+   botón sencillamente no se pintaba en estos dos modos, y era justo donde más
+   falta hacía: sin él no quedaba ninguna pista de que hubiera más sesiones y
+   parecían borradas (Munir, 2026-09-09). */
+.mas-viejas-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-height: 28px;
+  margin: 6px auto 10px;
+  padding: 5px 4px;
+  font-size: 11px;
+  /* Los dígitos de un contador no deben bailar de ancho al cambiar. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   Lo que llevas trabajado, en la pantalla vacía de la Cabina.
+   Va dentro de `.empty`, que ya está sobre el fondo de la casa, así que aquí
+   SÍ hace falta superficie propia: ver la regla escrita encima de
+   `.panel-card`. Una sola vez, en el contenedor, nunca por tarjeta.
+
+   ⚠ SE LLAMABA `.stats`, Y ESE NOMBRE YA ESTABA COGIDO: las tarjetas del Panel
+   usan `.stats` + `.stat-card` (búscalo más arriba en este mismo archivo). Las
+   dos reglas se aplicaban a la vez a esta pantalla, y como la del Panel trae
+   `display: flex` y esta no declaraba ninguno, sobrevivía el flex ajeno. De ahí
+   salía todo lo que Munir vio el 2026-08-08: los datos y el mapa uno al lado
+   del otro en vez de uno debajo del otro, la columna de datos encogida a su
+   mínimo (esa torre estrecha de ocho cajas), y el mapa estirando su alto al de
+   esa torre y creciendo a lo ancho por su `aspect-ratio: 1` hasta SALIRSE del
+   panel y quedar dibujado sobre su foto de fondo.
+   Por eso lleva prefijo propio, y por eso declara su `display` aunque hoy no
+   choque con nadie: dos pantallas distintas no pueden compartir nombre de clase
+   por parecido que sea lo que enseñan.
+   ========================================================================== */
+.repaso {
+  display: flex;
+  flex-direction: column;
+  width: min(580px, 100%);
+  margin: 20px 0 6px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-edge);
+  text-align: left;
+}
+
+/* Cuatro y cuatro, en dos filas. Fijas y no `auto-fit`: con `auto-fit` el
+   número de columnas depende del ancho que le sobre al contenedor, que es
+   justo lo que se descuadró antes. */
+.repaso-datos {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+/* Cada dato sobre un color SÓLIDO del tema, no un blanco al 7 %: dentro de una
+   tarjeta translúcida ese blanco desaparece contra la foto de detrás. */
+.repaso-dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--panel-solid) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  min-width: 0;
+}
+
+.repaso-tag {
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+  /* «Modelo favorito» no cabe en una columna de cuatro y partirlo en dos
+     renglones descuadraría esa fila entera. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.repaso-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  /* Los números de una rejilla se leen en columna: sin esto, un 1 y un 8
+     ocupan distinto y las cifras bailan de tarjeta a tarjeta. */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nueve semanas en columnas de siete, que es como se lee un calendario.
+   ⚠ Las casillas van en PÍXELES, filas y columnas, y no en `1fr` con
+   `aspect-ratio`. Con `1fr` el tamaño de la casilla sale del alto que le toque
+   al mapa, así que el mapa crecía o menguaba según lo que midiera lo de al
+   lado: es lo que lo sacó del panel. En píxeles, un mapa de nueve semanas mide
+   siempre lo mismo y no puede desbordar nada. */
+.repaso-mapa {
+  display: grid;
+  grid-template-rows: repeat(7, 19px);
+  grid-auto-flow: column;
+  grid-auto-columns: 19px;
+  gap: 4px;
+  margin-top: 14px;
+  justify-content: start;
+}
+
+.repaso-dia {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+/* Cuatro escalones del mismo azul: el color dice cuánto, no qué. */
+.repaso-dia[data-n="1"] {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.repaso-dia[data-n="2"] {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.repaso-dia[data-n="3"] {
+  background: color-mix(in srgb, var(--accent) 74%, transparent);
+}
+.repaso-dia[data-n="4"] {
+  background: var(--accent);
+}
+
+.repaso-pie {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text) 58%, transparent);
+}
+
+/* La zona de «sesiones no agrupadas», al final de la barra, como destino de
+   arrastre. Mientras llevas una sesión en la mano se dibuja su borde, y al
+   pasar por encima se enciende: sin eso era un sitio al que se podía soltar sin
+   que nada lo dijera, o sea un sitio que no existía. */
+.sueltas-zona[data-lista] {
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.sueltas-zona[data-suelta] {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* La lista de la cabecera, en Ajustes: qué pestañas salen arriba y en qué
+   orden. Dentro de una `.panel-card`, que ya pone la superficie. */
+.cab-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 10px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.cab-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  font-size: 13px;
+}
+
+.cab-fila:last-child {
+  border-bottom: none;
+}
+
+/* Una apagada se atenúa PERO se sigue leyendo: es la fila que hay que
+   encontrar para volver a encenderla, así que un gris de adorno la escondería
+   justo cuando hace falta. */
+.cab-fila[data-fuera] .cab-nombre {
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+.cab-nombre {
+  flex: 1;
+  min-width: 0;
+}
+
+.cab-flechas {
+  display: flex;
+  gap: 3px;
+}
+
+.cab-flechas .mini {
+  padding: 0;
+  min-width: 26px;
+  min-height: 26px;
+}
+
+/* Los botones de la cabecera de Cuentas. `.account-actions` ya sabe repartir
+   botones en fila; esto solo los pega a la derecha de la cabecera, que es una
+   fila con el título a la izquierda. */
+.accounts-hero-btns {
+  flex: none;
+  align-items: center;
+  margin: 0;
+}
+
+/* La muestra del tamaño de letra, en Ajustes.
+   Elegir el número era adivinar: el deslizador dice «24px» y para saber si eso
+   es mucho había que cerrar Ajustes, mirar una terminal y volver. Lleva la misma
+   familia, el mismo interlineado y el mismo espaciado que `TerminalPane`, así
+   que lo que se ve aquí es lo que sale ahí.
+   El tamaño lo pone React en línea, porque es el valor que se está moviendo. */
+.muestra-letra {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+  /* El tinte de una terminal, pero APLANADO sobre un color sólido. `--pane-bg`
+     es un rgba, y sobre un fondo con alfa Windows no sabe de qué color pinta
+     detrás, así que apaga el ClearType y cae al suavizado gris: la muestra se
+     vería más blanda que la terminal a la que imita, que es justo lo que
+     arruinaría la comparación. Pintarlo con un gradiente plano encima de
+     `--panel-solid` deja el mismo aspecto y el elemento opaco. */
+  background: linear-gradient(var(--pane-bg), var(--pane-bg)), var(--panel-solid);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 12px 0 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  /* No es un control: no se selecciona ni se pulsa, solo se mira. */
+  user-select: none;
+}
+
+.muestra-letra .ml-verde {
+  color: #7fd88f;
+  margin-right: 0.6em;
+}
+
+/* La X de una ficha apartada. Cierra la terminal sin traerla de vuelta al
+   mosaico (Munir, 2026-08-25: «que en la barra de abajo haya un botón de cerrar
+   la sesión»).
+
+   Se ve SIEMPRE, tenue. La otra opción era enseñarla solo al pasar el ratón,
+   como las pestañas de un navegador, y aquí eso sale caro: en esta casa lo que
+   no se ve se da por no hecho, y una X que aparece sola es justo lo que hace
+   preguntar «¿dónde está el botón?» (pasó ya con otros mandos). Al acercarse
+   sube de contraste, que es lo que dice «esto se pulsa». */
+.minim-x {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  margin: -2px -6px -2px 1px;
+  border-radius: 5px;
+  color: color-mix(in srgb, var(--text) 38%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
+}
+
+.minim-chip:hover .minim-x {
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+}
+
+.minim-x:hover {
+  background: color-mix(in srgb, var(--bad, #ff6b6b) 18%, transparent);
+  color: var(--bad, #ff6b6b);
+}
+
+/* Armada: el agente está trabajando o esperándote, así que el primer clic no
+   cierra, solo avisa. El color hace el trabajo que haría un diálogo, sin
+   detener a nadie que solo quiera cerrar una terminal parada. */
+.minim-x[data-armado] {
+  background: color-mix(in srgb, var(--bad, #ff6b6b) 24%, transparent);
+  color: var(--bad, #ff6b6b);
+}
+
+/* La pantalla de una caída de la interfaz. Ver `components/Salvavidas.tsx`.
+   Antes aquí no había nada: React desmontaba el árbol y quedaba el fondo de la
+   página, o sea la foto con su cristal y ni una palabra. Munir lo vivió como un
+   cuelgue y salió con Ctrl+Shift+R (2026-08-26). */
+.caida {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  /* Opaco de verdad: esta pantalla aparece justo cuando el resto ha
+     desaparecido, así que no hay nada detrás que merezca transparentarse, y un
+     fondo con alfa dejaría el texto sin ClearType en Windows. */
+  background: var(--panel-solid);
+  color: var(--text);
+}
+
+.caida-caja {
+  max-width: 560px;
+  text-align: left;
+}
+
+.caida-caja h1 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.caida-caja p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.caida-error {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bad, #ff6b6b);
+  border-radius: 0 9px 9px 0;
+  background: var(--panel);
+  color: var(--text);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  /* El mensaje de un error puede ser larguísimo y no puede empujar la caja. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 40vh;
+  overflow-y: auto;
+  /* Este SÍ se selecciona: está aquí para poder copiarlo y pegarlo. */
+  user-select: text;
+}
+
+.caida-pie {
+  font-size: 13px;
+}
+
+.caida-boton {
+  padding: 9px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.caida-boton:hover {
+  background: color-mix(in srgb, var(--accent) 26%, var(--panel));
+}
+
+/* ── Una terminal caída, en su propio sitio ─────────────────────────────────
+   Lo que enseña `ResguardoPanel` cuando un panel revienta dos veces seguidas.
+   Ocupa la celda del mosaico que ocupaba la terminal (le llega su `style`),
+   y no toca a las demás: eso es justo lo que lo distingue de `.caida`. */
+.pane-caido {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  background: var(--panel);
+  color: var(--text);
+}
+
+.pane-caido-caja {
+  max-width: 420px;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.pane-caido-caja strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14.5px;
+}
+
+.pane-caido-caja p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.pane-caido-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bad, #ff6b6b);
+  border-radius: 0 var(--r-chico) var(--r-chico) 0;
+  background: var(--panel-solid);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 30vh;
+  overflow-y: auto;
+  user-select: text;
+}
+
+.pane-caido-boton {
+  padding: 7px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pane-caido-boton:hover {
+  background: color-mix(in srgb, var(--accent) 26%, var(--panel));
+}
+
+

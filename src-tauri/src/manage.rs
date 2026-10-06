@@ -304,10 +304,21 @@ pub fn delete_project(path: String) -> Result<(), String> {
 }
 
 #[tauri::command(async)]
-pub fn rename_session(folder: String, session_id: String, title: String) -> Result<(), String> {
+pub fn rename_session(
+    folder: String,
+    session_id: String,
+    title: String,
+    fuente: Option<String>,
+) -> Result<(), String> {
     let title = title.trim();
     if title.is_empty() {
         return Err("El título está vacío".into());
+    }
+    // Codex y Pi: su fichero es de su programa y no lleva carpeta de Claude,
+    // así que el título se guarda en Adeorq (ver `sessions::titulos_propios`).
+    // La misma rama por CLI que tiene `delete_session` más abajo.
+    if matches!(fuente.as_deref(), Some("codex") | Some("pi")) {
+        return crate::sessions::guardar_titulo_propio(&session_id, title);
     }
     let path = transcript_path(&folder, &session_id)?;
     if !path.is_file() {

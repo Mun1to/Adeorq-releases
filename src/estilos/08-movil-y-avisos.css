@@ -1,0 +1,521 @@
+/* ── Ajustes > Móvil (`AjustesMovil.tsx`) ─────────────────────────────── */
+.movil-paso {
+  margin: 18px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.movil-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+/* Lo que contestó Tailscale, tal cual: si pide activar algo, trae el enlace. */
+.movil-salida {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chico);
+  background: color-mix(in srgb, var(--row) 70%, transparent);
+  color: var(--muted);
+  font: 12px/1.5 "Cascadia Mono", Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* El código se lee desde el otro lado de la mesa, con el móvil en la mano. */
+.movil-codigo {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 10px 0;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--r-caja);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.movil-codigo strong {
+  font-size: 34px;
+  letter-spacing: 0.28em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.movil-codigo span {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+/* La dirección en QR y su texto al lado; en una columna estrecha, uno encima de otro. */
+.movil-direccion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0;
+}
+.movil-direccion .card-hint {
+  flex: 1 1 220px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.movil-qr {
+  width: 148px;
+  height: 148px;
+  flex: none;
+  border-radius: var(--r-chico);
+}
+.movil-lista {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.movil-lista li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+.movil-lista li:last-child { border-bottom: 0; }
+.movil-lista li > span { flex: 1; min-width: 0; display: grid; }
+.movil-lista strong { font-size: 13px; }
+.movil-lista em { font-size: 12px; font-style: normal; color: var(--muted); }
+
+.setting-row span:first-child {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.setting-row input[type="range"] {
+  flex: none;
+  width: 160px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.setting-row input[type="checkbox"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.setting-value {
+  flex: none;
+  min-width: 42px;
+  text-align: right;
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.setting-line {
+  font-size: 13px;
+  margin: 4px 0 12px;
+}
+
+/* La línea que dice si el modo rendimiento está puesto AHORA. En acento cuando
+   sí, porque es la respuesta a «¿por qué no se mueve nada?» y tiene que
+   encontrarse sin leer el párrafo entero de arriba. */
+.setting-line[data-on] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Un ajuste con nombre, explicación y controles, apilados y con aire.
+   `.setting-line` no vale para esto: es un div sin `display`, así que sus hijos
+   quedan en línea y el título se pegaba a la primera palabra del texto
+   («Modo rendimientoMenos cristal y…»), y de ahí los botones salían pisando el
+   final del párrafo (Munir, 2026-08-10). Aquí cada cosa va en su renglón y el
+   hueco lo pone el `gap`, no los márgenes de cada uno. */
+.ajuste-bloque {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 16px 0 6px;
+  font-size: 13px;
+}
+
+/* Sus márgenes propios sobran: aquí separa el `gap`, y sumar los dos deja el
+   texto flotando lejos de su título. */
+.ajuste-bloque > .card-hint {
+  margin: 0;
+}
+
+/* A field in a settings row: same pill as the finder, but it takes the width
+   the label leaves rather than sitting at its own size. */
+.setting-input {
+  flex: none;
+  width: 190px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.setting-bad {
+  color: var(--wait);
+}
+
+.setting-good {
+  color: #7ee08a;
+}
+
+/* El aviso de version nueva: una TARJETA abajo a la izquierda.
+   Era una franja que cruzaba la ventana y empujaba la app entera hacia abajo,
+   recolocando la barra, la Cabina y todas las terminales por un aviso que se
+   lee en dos segundos. Ahora se posa encima sin mover nada. */
+.update-card {
+  /* En su sitio de la barra, no flotando sobre el contenido. Flotante se posaba
+     encima de lo que estuvieras leyendo, y Munir pidio el sitio de su
+     referencia: al final de la columna, como en la app de escritorio de Claude
+     (2026-08-08). `relative` solo por la barra de descarga, que va absoluta
+     contra este borde. */
+  position: relative;
+  flex: none;
+  /* Sin margen propio: `.sidebar` es una columna con `gap`, y sumar los dos
+     dejaria esta tarjeta mas separada de la lista que todo lo demas. */
+  display: flex;
+  align-items: stretch;
+  border-radius: 14px;
+  overflow: hidden;
+  /* SOLIDO: esto se posa sobre terminales y sobre la foto, y un aviso que no se
+     lee no es un aviso (ver la regla encima de `.panel-card`). */
+  background: var(--panel-solid);
+  /* Marco de acento con resplandor (Munir, 2026-08-21, eligiendo entre cuatro
+     en el navegador). Antes llevaba el mismo borde gris que cualquier tarjeta y
+     se perdía al pie de una barra llena de filas: esto es lo único de esa
+     columna que aparece solo y pide que lo pulses.
+     Va en `--accent` y no en un azul escrito a mano porque cada uno de los 24
+     temas trae el suyo; el resplandor se compone con `color-mix` sobre esa
+     misma variable, así que en el tema violeta el halo es violeta.
+     Quieto a propósito: se ve desde el otro lado de la pantalla sin gastar un
+     fotograma, y es un aviso que va a estar ahí hasta que lo pulses. */
+  border: 1px solid var(--accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 0 22px color-mix(in srgb, var(--accent) 38%, transparent),
+    0 14px 34px rgba(0, 0, 0, 0.5);
+  animation: update-sube 0.18s ease;
+}
+
+@keyframes update-sube {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.update-card-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 11px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.update-card-main:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.update-card-main:disabled {
+  cursor: default;
+}
+
+.update-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* `flex: 1` para que empuje el icono al borde derecho. Sin esto el texto solo
+   ocupaba lo suyo y la flecha se quedaba pegada a el, con un hueco muerto
+   detras hasta la X (Munir, 2026-08-08: «el icono deberia estar a la derecha»). */
+.update-texto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.update-tit {
+  font-size: 13.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.update-sub {
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--text) 58%, transparent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.update-flecha {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  color: var(--accent);
+}
+
+/* Cerrar: pequeno y a la derecha, con una linea que lo separa del boton
+   grande para que no parezca parte de el. */
+.update-no {
+  flex: none;
+  width: 32px;
+  background: none;
+  border: none;
+  border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.update-no:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+/* La descarga, pegada al borde de abajo: crece sin mover nada. */
+.update-barra {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+/* El error manda sobre el marco de acento, resplandor incluido: si no, una
+   actualización que ha fallado seguiría rodeada del halo que dice «púlsame». */
+.update-card[data-phase="error"] {
+  border-color: rgba(224, 110, 110, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(224, 110, 110, 0.3),
+    0 0 20px rgba(224, 110, 110, 0.3),
+    0 14px 34px rgba(0, 0, 0, 0.5);
+}
+
+.update-card[data-phase="error"] .update-mark {
+  background: rgba(214, 96, 96, 0.2);
+}
+
+.update-card[data-phase="error"] .update-flecha {
+  color: #ff9a9a;
+}
+
+/* Aquí vivía `.update-btn`, el botón «Actualizar ahora» de la franja de arriba.
+   La franja ya no existe (la sustituyó `.update-card`) y con ella se fue su
+   botón: ahora la tarjeta entera es el botón. Se quita en vez de dejarlo por si
+   acaso, que una regla sin dueño es una pista falsa para el siguiente. */
+
+/* La marca del cliente en cada fila de sesión. Pequeña y con su tono, porque
+   distingue de quién es la conversación sin robarle sitio al título, que en una
+   sidebar estrecha ya va justo. */
+.sess-prov {
+  display: inline-flex;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--c, currentColor);
+  opacity: 0.8;
+}
+
+.sess-prov .prov-mark {
+  width: 100%;
+  height: 100%;
+}
+
+/* El aviso de cuota. Ámbar mientras queda margen y rojo cuando ya no queda:
+   son dos noticias distintas («ve pensando en cambiarte» y «se acabó»), y a la
+   segunda hay que poder llegar sin leer el número. */
+/* ── Se te acaba la cuota de una cuenta ─────────────────────────────────────
+   Tarjeta abajo a la izquierda, con la misma forma que la de versión nueva.
+   Era una franja de una línea cruzando la ventana entera por arriba, y ahí
+   el porcentaje, la hora de renovación, el botón de relevo y la × iban todos
+   en fila, compitiendo además con el contador de FPS de esa esquina. Munir ya
+   había pedido este mismo cambio para el aviso de actualizar (2026-08-09).
+   SÓLIDA: se posa sobre terminales y sobre la foto de la casa, y un aviso que
+   no se lee no es un aviso (ver la regla encima de `.panel-card`). */
+/* Y su z-index, otra vez, porque colgada de `.app` el de abajo no le llega:
+   ver la trampa comentada encima de `.app > *:not(.fondo)`. Sin esta línea la
+   tarjeta sale al 99 % de una cuenta y nadie la lee, porque queda debajo de la
+   barra y de la Cabina: se ve el trozo que asoma por el borde de la barra, el
+   texto se pierde bajo el cristal y la × no recibe el clic. */
+.app > .cuota-card {
+  z-index: 60;
+}
+
+.cuota-card {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 60;
+  width: min(330px, calc(100vw - 28px));
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: var(--panel-solid);
+  border: 1px solid rgba(240, 180, 80, 0.5);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  animation: update-sube 0.18s ease;
+}
+
+/* Al 99 % ya no es un aviso, es un tope: cambia de color y no de tamaño. */
+.cuota-card[data-lleno="true"] {
+  border-color: rgba(224, 110, 110, 0.55);
+}
+
+.cuota-cab {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cuota-titulo {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* La × pegada arriba a la derecha y pequeña: cerrar un aviso no es la acción
+   principal de un aviso. */
+.cuota-x {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--r-chico);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.cuota-x:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+
+.cuota-sep {
+  font-size: 12px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--text) 66%, transparent);
+}
+
+.cuota-salidas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* The Foreman (Capataz): static card in Panel + volatile overlay in Cabina */
+/* El orbe va solo, sin palabra al lado: era un botón con texto ocupando como
+   una pestaña más, y lo que hace no es ir a ningún sitio, es llamar a alguien.
+   Y va SIN CAJA: el borde azul que traía le dibujaba una celda alrededor
+   (Munir, 2026-08-13: «más grande y fuera de la cárcel»). Lo que responde al
+   ratón es el propio Orbe, encendiéndose, que es lo que hace un planeta y no
+   una pestaña.
+   El 28 del icono es el tope que NO estira la barra: los botones con texto
+   miden 33 de alto, así que el Orbe puede llegar a 30 con su hueco sin mover
+   de sitio a nada de su alrededor. */
+/* El botón del Asistente: un CUADRADO con la bola en su centro exacto.
+   Tenía ancho pero no alto, así que era un rectángulo de 38x28 y su bola caía
+   descentrada respecto a los botones de al lado, que sí son cuadrados (Munir,
+   2026-08-14: «la bola del asistente no está bien centrada, está muy hacia la
+   izquierda»). El `gap` heredado de `.tab` también se va: aquí dentro no hay
+   dos cosas que separar, y sumaba siete píxeles a un lado. */
+.foreman-call {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  padding: 0;
+  gap: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  border-color: transparent;
+  transition: filter 0.14s ease;
+}
+
+/* Y la bola, centrada dentro del botón pase lo que pase con su órbita: el SVG
+   desborda a propósito (`overflow: visible`) para que el satélite pueda salirse,
+   y sin esto ese desbordamiento arrastraría el conjunto hacia un lado. */
+.foreman-call .orbe {
+  margin: 0 auto;
+}
+
+/* Los tres estados juntos a propósito: `.tab:hover` trae fondo, borde, sombra
+   Y un salto de un píxel, y basta con que se cuele uno de los cuatro para que
+   la celda vuelva a aparecer. */
+.foreman-call:hover,
+.foreman-call:active,
+.foreman-call:focus-visible {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+  color: var(--accent);
+}
+
+.foreman-call:hover {
+  filter: brightness(1.3);
+}
+
+.foreman-card h2 {
+  color: var(--accent);
+}
+
+.foreman-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+/* Ningún botón de esta fila cede ancho. Es la regla que faltaba: en un flex
+   todo hijo trae `flex-shrink: 1` de fábrica, así que se encogían por debajo de
+   su propio texto y el navegador lo partía en dos renglones («Plan / it»). Y
+   `nowrap` además, que es el cinturón: aunque un día vuelva a caber algo justo
+   al lado, una etiqueta de botón no se parte nunca. */
+.foreman-row > button {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* La nota de los atajos, ya fuera de la fila y a lo ancho de la tarjeta. */
+.foreman-hint {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+

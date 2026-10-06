@@ -44,6 +44,25 @@ export const MANOS = {
   enlazar: "mcp__adeorq__link_panes",
   /** ⚠ Teclear DENTRO de una terminal viva. La única que puede pisar trabajo. */
   teclear: "mcp__adeorq__send_command",
+  /* Las seis que el MCP ganó después y nadie había repartido (el comprobador
+     llevaba en rojo desde entonces, y como no se lanzaba, nadie lo vio hasta
+     el 2026-10-06). Van con el mismo criterio de arriba: las cuatro que solo
+     leen, a todos los escalones; las dos que pueden pisar trabajo ajeno, solo
+     al último, junto a `send_command`. */
+  /** Las filas de la pantalla de una terminal tal como se ven: lo único que
+      sirve cuando el programa está en la pantalla alternativa. */
+  pantalla: "mcp__adeorq__read_pane_screen",
+  /** Buscar en la memoria de la casa (las notas de todas las sesiones). */
+  memoria: "mcp__adeorq__buscar_memoria",
+  /** Leer una de esas notas entera. */
+  nota: "mcp__adeorq__leer_memoria",
+  /** Leer un turno entero de una conversación del conserje. */
+  turno: "mcp__adeorq__leer_turno",
+  /** ⚠ Teclas sueltas dentro de una terminal viva (Escape, Ctrl+C…): un
+      Ctrl+C corta a un agente a medio trabajo, así que va con `teclear`. */
+  teclas: "mcp__adeorq__send_keys",
+  /** ⚠ Cerrar una terminal, que es matar al agente de dentro. */
+  cerrar: "mcp__adeorq__close_pane",
 } as const;
 
 /**
@@ -58,8 +77,20 @@ export type ModoCapataz = "mirar" | "plan" | "auto";
 
 export const MODOS: ModoCapataz[] = ["mirar", "plan", "auto"];
 
-const LECTURA = [MANOS.proyectos, MANOS.panes, MANOS.transcripcion, MANOS.agenda, MANOS.uso];
+const LECTURA = [
+  MANOS.proyectos,
+  MANOS.panes,
+  MANOS.transcripcion,
+  MANOS.agenda,
+  MANOS.uso,
+  MANOS.pantalla,
+  MANOS.memoria,
+  MANOS.nota,
+  MANOS.turno,
+];
 const MONTAR = [MANOS.abrir, MANOS.enlazar];
+/** Lo que puede pisar el trabajo de otro: escribirle, mandarle teclas o cerrarlo. */
+const PISAR = [MANOS.teclear, MANOS.teclas, MANOS.cerrar];
 
 /** Las manos de un modo. El orden es estable a propósito: se comparan en el
     comprobador y una lista que baila haría fallar casos por nada. */
@@ -70,7 +101,7 @@ export function manosDe(modo: ModoCapataz): string[] {
     case "plan":
       return [...LECTURA, ...MONTAR];
     case "auto":
-      return [...LECTURA, ...MONTAR, MANOS.teclear];
+      return [...LECTURA, ...MONTAR, ...PISAR];
   }
 }
 
@@ -122,8 +153,8 @@ export function aviso(modo: ModoCapataz): string {
     case "mirar":
       return "MODO MIRAR: hoy solo puedes consultar. Si lo que te piden exige abrir, enlazar o escribir en una terminal, dilo en una frase y para: no tienes esas herramientas.";
     case "plan":
-      return "MODO PLAN: puedes abrir terminales y enlazarlas, pero NO escribir dentro de una que ya está trabajando. Y antes de hacer nada que cambie algo, pregunta lo que te falte por saber: un objetivo sin día, un encargo sin proyecto o una tarea sin archivos son preguntas, no suposiciones. Pregunta una vez y espera respuesta.";
+      return "MODO PLAN: puedes abrir terminales y enlazarlas, pero NO escribir dentro de una que ya está trabajando, ni mandarle teclas, ni cerrarla. Y antes de hacer nada que cambie algo, pregunta lo que te falte por saber: un objetivo sin día, un encargo sin proyecto o una tarea sin archivos son preguntas, no suposiciones. Pregunta una vez y espera respuesta.";
     case "auto":
-      return "MODO AUTO: puedes hacerlo tú y contarlo después, incluido escribir dentro de una terminal en marcha. Aun así, si vas a interrumpir a un agente a mitad de un trabajo, dilo en la respuesta con el nombre del panel.";
+      return "MODO AUTO: puedes hacerlo tú y contarlo después, incluido escribir dentro de una terminal en marcha, mandarle teclas (Escape, Ctrl+C) o cerrarla. Aun así, si vas a interrumpir o a cerrar a un agente a mitad de un trabajo, dilo en la respuesta con el nombre del panel, y antes de cerrar una vuelve a listar los paneles: sus números cambian al reiniciar Adeorq.";
   }
 }

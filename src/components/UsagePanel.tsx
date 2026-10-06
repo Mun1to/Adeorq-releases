@@ -11,7 +11,7 @@ import {
 } from "../lib/pty";
 import { enCache, limitesDe } from "../lib/cuota";
 import { hueOf } from "../lib/colors";
-import { providerOf } from "../lib/providers";
+import { providerOf, sabe } from "../lib/providers";
 import { etiquetaCorta, hace, leerRenovacion, renovacion } from "../lib/uso";
 import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
@@ -150,9 +150,10 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
     setPlan(null);
     setData(null);
     // El plan y el trabajo de la semana los lee Adeorq de los archivos de
-    // Claude Code. Ningún otro cliente escribe nada parecido, así que a los
-    // demás ni se les pregunta en vez de dejar dos bloques en blanco.
-    if (cuenta.provider === "claude") {
+    // Claude Code. Ningún otro cliente escribe nada parecido (`estadisticas` en
+    // la tabla), así que a los demás ni se les pregunta en vez de dejar dos
+    // bloques en blanco.
+    if (sabe(cuenta.provider, "estadisticas")) {
       planInfo(cuenta.dir || undefined)
         .then((p) => vigenteRef.current === mia && setPlan(p))
         .catch(() => {});
@@ -390,13 +391,13 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
               entero desaparecía y parecía que el panel se había roto al
               cambiar. A los demás clientes ni se les pide, así que tampoco se
               les echa de menos nada. */}
-          {!data && cuenta.provider === "claude" && (
+          {!data && sabe(cuenta.provider, "estadisticas") && (
             <div className="usage-foot">
               {t("Todavía no hay trabajo apuntado en esta cuenta.")}
             </div>
           )}
 
-          {onUsage && cuenta.provider === "claude" && (
+          {onUsage && sabe(cuenta.provider, "estadisticas") && (
             <button className="mini usage-open" onClick={() => onUsage()}>
               {t("Ver la tarjeta entera en la terminal")}
             </button>

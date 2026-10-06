@@ -4,6 +4,7 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 
 // Desktop notifications for the two moments that actually matter: an agent
 // finished its turn, or an agent is waiting for a yes/no. Nine terminals means
@@ -55,6 +56,12 @@ export async function notify(o: NotifyOpts): Promise<void> {
   const before = last.get(o.tag) ?? 0;
   if (now - before < COOLDOWN_MS) return;
   last.set(o.tag, now);
+
+  // Y al móvil, si hay alguno con avisos y no estás delante del PC: ahí el
+  // aviso del escritorio no lo ve nadie (`movil_avisar`, ver `push.rs`).
+  if (!focused) {
+    void invoke("movil_avisar", { titulo: o.title, cuerpo: o.body, url: "/" }).catch(() => {});
+  }
 
   if (!(await allowed())) return;
   try {

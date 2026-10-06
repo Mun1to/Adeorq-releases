@@ -112,7 +112,7 @@ export function limitesDe(cuenta: Cuenta, vida = VIDA_MS): Promise<Limits> {
     return Promise.reject(new Error(`${cuenta.provider} no publica su cuota`));
   }
   const pedir =
-    cuenta.provider === "claude"
+    sabe(cuenta.provider, "cuotaPorCuenta")
       ? usageLimits(cuenta.dir || undefined)
       : usageOf(cuenta.provider, cuenta.dir || undefined);
 

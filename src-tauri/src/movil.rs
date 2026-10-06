@@ -74,7 +74,34 @@ static PAGINA: &str = include_str!("movil.html");
 
 const ICONO: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="22" fill="#0d1a33"/><path d="M48 18l7.5 17.5L73 43l-17.5 7.5L48 68l-7.5-17.5L23 43l17.5-7.5z" fill="#4d9fff"/><path d="M71 60l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#9cc7ff"/></svg>"##;
 
-const MANIFIESTO: &str = r##"{"name":"Conserje de Adeorq","short_name":"Conserje","start_url":"/","display":"standalone","background_color":"#0b1220","theme_color":"#0b1220","icons":[{"src":"/icono.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}"##;
+/// El service worker de la página: recibe el aviso cifrado (el navegador ya lo
+/// descifró con su clave) y lo enseña aunque la página esté cerrada; un toque
+/// abre el conserje. Solo `showNotification` y `openWindow`: nada más.
+const SERVICE_WORKER: &str = r##"self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { cuerpo: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.titulo || "Conserje", {
+    body: d.cuerpo || "",
+    icon: "/icono.svg",
+    badge: "/icono.svg",
+    tag: d.titulo || "conserje",
+    data: { url: d.url || "/" },
+  }));
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || "/", self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((lista) => {
+    const abierta = lista.find((c) => "focus" in c);
+    if (abierta) { abierta.navigate(url); return abierta.focus(); }
+    return self.clients.openWindow(url);
+  }));
+});
+"##;
+
+const MANIFIESTO: &str =r##"{"name":"Conserje de Adeorq","short_name":"Conserje","start_url":"/","display":"standalone","background_color":"#0b1220","theme_color":"#0b1220","icons":[{"src":"/icono.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}"##;
 
 // ─── Lo que se guarda ───────────────────────────────────────────────────────
 
@@ -86,6 +113,9 @@ pub struct Dispositivo {
     pub creado: u64,
     #[serde(default)]
     pub visto: u64,
+    /// Si pidió avisos: lo que dio su navegador al suscribirse (ver `push.rs`).
+    #[serde(default)]
+    pub push: Option<crate::push::Suscripcion>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
@@ -178,6 +208,7 @@ impl Guardia {
             huella: huella(&clave),
             creado: cuando,
             visto: cuando,
+            push: None,
         });
         Ok(clave)
     }
@@ -198,6 +229,41 @@ impl Guardia {
         let antes = self.ajustes.dispositivos.len();
         self.ajustes.dispositivos.retain(|d| id.is_empty() || !d.huella.starts_with(id));
         self.ajustes.dispositivos.len() != antes
+    }
+
+    /// Guarda (o quita, con `None`) la suscripción de avisos del móvil que
+    /// lleva esa clave. Devuelve si cambió algo.
+    pub fn poner_push(&mut self, clave: &str, sub: Option<crate::push::Suscripcion>) -> bool {
+        let h = huella(clave);
+        let Some(d) = self.ajustes.dispositivos.iter_mut().find(|d| iguales(d.huella.as_bytes(), h.as_bytes())) else {
+            return false;
+        };
+        if d.push == sub {
+            return false;
+        }
+        d.push = sub;
+        true
+    }
+
+    /// Los móviles que pidieron avisos, con su suscripción.
+    pub fn suscripciones(&self) -> Vec<(String, crate::push::Suscripcion)> {
+        self.ajustes
+            .dispositivos
+            .iter()
+            .filter_map(|d| d.push.clone().map(|s| (d.nombre.clone(), s)))
+            .collect()
+    }
+
+    /// El servicio de push dijo que esa suscripción ya no existe.
+    pub fn caduco_push(&mut self, endpoint: &str) -> bool {
+        let mut cambio = false;
+        for d in self.ajustes.dispositivos.iter_mut() {
+            if d.push.as_ref().is_some_and(|s| s.endpoint == endpoint) {
+                d.push = None;
+                cambio = true;
+            }
+        }
+        cambio
     }
 }
 
@@ -448,6 +514,8 @@ pub trait Casa {
     fn router(&self, id: &str, encendido: bool) -> Result<(), String>;
     /// Con qué modelo piensa el conserje en esa conversación.
     fn cerebro(&self, id: &str, cerebro: &str) -> Result<(), String>;
+    /// El modelo de las sesiones con el router apagado.
+    fn fijo(&self, id: &str, modelo: &str) -> Result<(), String>;
     fn parar(&self, id: &str);
     fn sesion(&self, cwd: &str, sesion: &str) -> Result<Value, String>;
 }
@@ -473,6 +541,7 @@ pub fn atender(
         ("GET", "/") | ("GET", "/index.html") => return Respuesta::texto("text/html; charset=utf-8", PAGINA),
         ("GET", "/manifest.webmanifest") => return Respuesta::texto("application/manifest+json", MANIFIESTO),
         ("GET", "/icono.svg") => return Respuesta::texto("image/svg+xml", ICONO),
+        ("GET", "/sw.js") => return Respuesta::texto("application/javascript; charset=utf-8", SERVICE_WORKER),
         ("POST", "/api/emparejar") => {
             let v: Value = serde_json::from_slice(&p.cuerpo).unwrap_or(Value::Null);
             let codigo = v["codigo"].as_str().unwrap_or("");
@@ -521,6 +590,34 @@ pub fn atender(
 
     match (p.metodo.as_str(), p.ruta.as_str()) {
         ("GET", "/api/yo") => Respuesta::json(200, json!({ "nombre": nombre })),
+        // Los avisos (`push.rs`): la clave con la que se suscribe el navegador,
+        // y guardar o quitar lo que devuelve. Van atados a ESTE móvil (su clave).
+        ("GET", "/api/push/clave") => match crate::push::claves_vapid() {
+            Ok(c) => Respuesta::json(200, json!({ "clave": c.publica })),
+            Err(e) => Respuesta::error(500, &e),
+        },
+        ("POST", "/api/push/suscribir") => {
+            let sub = crate::push::Suscripcion {
+                endpoint: cuerpo["endpoint"].as_str().unwrap_or("").trim().to_string(),
+                p256dh: cuerpo["p256dh"].as_str().unwrap_or("").trim().to_string(),
+                auth: cuerpo["auth"].as_str().unwrap_or("").trim().to_string(),
+            };
+            if !sub.endpoint.starts_with("https://") || sub.p256dh.is_empty() || sub.auth.is_empty() {
+                return Respuesta::error(400, "La suscripción no está completa.");
+            }
+            let mut g = guardia.lock().unwrap();
+            if g.poner_push(clave, Some(sub)) {
+                persistir(&g.ajustes);
+            }
+            Respuesta::json(200, json!({ "ok": true }))
+        }
+        ("POST", "/api/push/olvidar") => {
+            let mut g = guardia.lock().unwrap();
+            if g.poner_push(clave, None) {
+                persistir(&g.ajustes);
+            }
+            Respuesta::json(200, json!({ "ok": true }))
+        }
         ("GET", "/api/lista") => Respuesta::json(200, casa.lista()),
         ("GET", "/api/conversacion") => {
             let id = match id_de(p.consulta.get("id").map(String::as_str)) {
@@ -584,6 +681,16 @@ pub fn atender(
                 Err(e) => Respuesta::error(400, &e),
             }
         }
+        ("POST", "/api/fijo") => {
+            let id = match id_de(cuerpo["id"].as_str()) {
+                Ok(id) => id,
+                Err(r) => return r,
+            };
+            match casa.fijo(&id, cuerpo["modelo"].as_str().unwrap_or("")) {
+                Ok(()) => Respuesta::json(200, json!({ "ok": true })),
+                Err(e) => Respuesta::error(400, &e),
+            }
+        }
         ("POST", "/api/parar") => {
             let id = match id_de(cuerpo["id"].as_str()) {
                 Ok(id) => id,
@@ -604,7 +711,8 @@ pub fn atender(
             }
         }
         (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router"
-            | "/api/cerebro" | "/api/parar" | "/api/sesion") => Respuesta::error(405, "Así no."),
+            | "/api/cerebro" | "/api/fijo" | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
+            | "/api/push/olvidar") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -663,6 +771,8 @@ pub struct Movil {
     siguiente: AtomicU64,
     conexiones: AtomicUsize,
     sirviendo: AtomicBool,
+    /// Que Windows aceptó la petición de no dormirse (ver `no_dormir`).
+    despierto: AtomicBool,
     apagar: AtomicBool,
 }
 
@@ -688,6 +798,9 @@ impl Casa for CasaDeVerdad {
     }
     fn cerebro(&self, id: &str, cerebro: &str) -> Result<(), String> {
         crate::conserje::conserje_cerebro(id.to_string(), cerebro.to_string())
+    }
+    fn fijo(&self, id: &str, modelo: &str) -> Result<(), String> {
+        crate::conserje::conserje_fijo(id.to_string(), modelo.to_string())
     }
     fn parar(&self, id: &str) {
         crate::conserje::conserje_parar(id.to_string());
@@ -772,6 +885,7 @@ fn arrancar(app: &tauri::AppHandle) {
         };
         // Sin bloqueo, para poder apagarlo desde Ajustes sin cerrar la app.
         let _ = escucha.set_nonblocking(true);
+        m.despierto.store(no_dormir(true), Ordering::SeqCst);
         while !m.apagar.load(Ordering::SeqCst) {
             match escucha.accept() {
                 Ok((mut s, _)) => {
@@ -794,8 +908,34 @@ fn arrancar(app: &tauri::AppHandle) {
                 Err(_) => std::thread::sleep(Duration::from_millis(500)),
             }
         }
+        no_dormir(false);
+        m.despierto.store(false, Ordering::SeqCst);
         m.sirviendo.store(false, Ordering::SeqCst);
     });
+}
+
+/// Mientras el conserje está en el móvil, el PC no se duerme solo: dormido, el
+/// móvil no tiene a quién preguntar, y el de Munir se dormía a las 3 h sin
+/// tocarlo (`powercfg`, 2026-10-06). La pantalla sí se apaga.
+///
+/// Es una petición del HILO que llama, así que la hace el del servidor y la
+/// suelta al apagarlo; si la app se cierra, Windows la quita con el hilo. Con
+/// el reposo moderno (el de su portátil) aguanta lo que dure enchufado y cinco
+/// minutos con batería, y no frena la tapa ni el botón de encendido: eso lo
+/// decide Microsoft, no Adeorq (learn.microsoft.com, «Prepare software for
+/// modern standby» y `SetThreadExecutionState`). En Linux todavía no hace nada.
+#[cfg(windows)]
+fn no_dormir(si: bool) -> bool {
+    use windows_sys::Win32::System::Power::{SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED};
+    let banderas = if si { ES_CONTINUOUS | ES_SYSTEM_REQUIRED } else { ES_CONTINUOUS };
+    // Devuelve el estado de antes, o 0 si falla.
+    let antes = unsafe { SetThreadExecutionState(banderas) };
+    si && antes != 0
+}
+
+#[cfg(not(windows))]
+fn no_dormir(_: bool) -> bool {
+    false
 }
 
 /// Al abrir la app: lo que se guardó, y si estaba encendido, a servir.
@@ -828,6 +968,10 @@ pub struct CodigoVisible {
 pub struct EstadoMovil {
     pub encendido: bool,
     pub sirviendo: bool,
+    /// Mientras sirve, el PC no se duerme solo (solo en Windows, por ahora).
+    pub despierto: bool,
+    /// Cuántos móviles pidieron avisos (ver `push.rs`).
+    pub avisos: usize,
     pub puerto: u16,
     pub dispositivos: Vec<DispositivoVisible>,
     pub codigo: Option<CodigoVisible>,
@@ -838,6 +982,8 @@ fn estado(m: &Movil) -> EstadoMovil {
     EstadoMovil {
         encendido: g.ajustes.encendido,
         sirviendo: m.sirviendo.load(Ordering::SeqCst),
+        despierto: m.despierto.load(Ordering::SeqCst),
+        avisos: g.ajustes.dispositivos.iter().filter(|d| d.push.is_some()).count(),
         puerto: PUERTO,
         dispositivos: g
             .ajustes
@@ -889,6 +1035,60 @@ pub fn movil_emparejar(state: tauri::State<'_, Movil>) -> Result<CodigoVisible, 
     }
     let valor = g.nuevo_codigo(Instant::now())?;
     Ok(CodigoVisible { valor, quedan: VIDA_CODIGO.as_secs() })
+}
+
+/// El mismo aviso no se manda dos veces en un minuto, aunque la ventana lo pida.
+static AVISADOS: Mutex<Vec<(String, Instant)>> = Mutex::new(Vec::new());
+
+/// Un aviso a todos los móviles que los pidieron. Lo llama la ventana con las
+/// mismas campanas que el escritorio (`lib/notify.ts`), y el botón de prueba
+/// de Ajustes. Devuelve a cuántos se intentó mandar; el envío va aparte, que
+/// el servicio de push puede tardar segundos.
+#[tauri::command(async)]
+pub fn movil_avisar(app: tauri::AppHandle, titulo: String, cuerpo: String, url: Option<String>) -> usize {
+    let subs = {
+        let m = app.state::<Movil>();
+        let g = m.guardia.lock().unwrap();
+        g.suscripciones()
+    };
+    if subs.is_empty() {
+        return 0;
+    }
+    {
+        let mut avisados = AVISADOS.lock().unwrap_or_else(|e| e.into_inner());
+        let ahora = Instant::now();
+        avisados.retain(|(_, cuando)| ahora.duration_since(*cuando) < Duration::from_secs(60));
+        let marca = format!("{titulo}\n{cuerpo}");
+        if avisados.iter().any(|(m, _)| *m == marca) {
+            return 0;
+        }
+        avisados.push((marca, ahora));
+    }
+    let url = url.unwrap_or_else(|| "/".into());
+    let n = subs.len();
+    for (nombre, sub) in subs {
+        let app = app.clone();
+        let (titulo, cuerpo, url) = (titulo.clone(), cuerpo.clone(), url.clone());
+        tauri::async_runtime::spawn(async move {
+            match crate::push::enviar(&sub, &titulo, &cuerpo, &url).await {
+                Ok(crate::push::Entregado::Si) => {}
+                Ok(crate::push::Entregado::Caducada) => {
+                    // Ese móvil ya no escucha: se le quita el aviso y lo dirá Ajustes.
+                    let m = app.state::<Movil>();
+                    let mut g = m.guardia.lock().unwrap();
+                    if g.caduco_push(&sub.endpoint) {
+                        persistir_de_verdad(&g.ajustes);
+                    }
+                    crate::anotar(&format!("Móvil: la suscripción de avisos de «{nombre}» caducó; que la vuelva a pedir"));
+                }
+                Ok(crate::push::Entregado::No(codigo)) => {
+                    crate::anotar(&format!("Móvil: el servicio de push de «{nombre}» contestó {codigo}"));
+                }
+                Err(e) => crate::anotar(&format!("Móvil: no se pudo mandar el aviso a «{nombre}»: {e}")),
+            }
+        });
+    }
+    n
 }
 
 #[tauri::command(async)]
@@ -1240,6 +1440,9 @@ mod tests {
         fn cerebro(&self, _: &str, cerebro: &str) -> Result<(), String> {
             if cerebro == "opus" { Ok(()) } else { Err("no es de la lista".into()) }
         }
+        fn fijo(&self, _: &str, modelo: &str) -> Result<(), String> {
+            if modelo == "haiku" { Ok(()) } else { Err("no es de la lista".into()) }
+        }
         fn parar(&self, _: &str) {}
         fn sesion(&self, _: &str, _: &str) -> Result<Value, String> {
             Ok(json!([]))
@@ -1427,6 +1630,29 @@ mod tests {
         assert_eq!(direccion_de_estado(estado), (true, Some("mi-pc.tail1234.ts.net".into())));
         assert_eq!(direccion_de_estado(r#"{"BackendState":"NeedsLogin","Self":{"DNSName":""}}"#), (false, None));
         assert_eq!(direccion_de_estado("no es json"), (false, None));
+    }
+
+    /// Que Windows de verdad apunta la petición: se le pregunta su estado con
+    /// `CallNtPowerInformation`, que es lo que mira para decidir si se duerme.
+    #[cfg(windows)]
+    #[test]
+    fn con_el_movil_encendido_windows_sabe_que_no_debe_dormirse() {
+        use windows_sys::Win32::System::Power::{CallNtPowerInformation, SystemExecutionState, ES_SYSTEM_REQUIRED};
+        let estado = || {
+            let mut e: u32 = 0;
+            let r = unsafe {
+                CallNtPowerInformation(SystemExecutionState, std::ptr::null(), 0, (&mut e as *mut u32).cast(), 4)
+            };
+            assert_eq!(r, 0, "CallNtPowerInformation falló");
+            e
+        };
+        std::thread::spawn(move || {
+            assert!(no_dormir(true), "Windows rechazó la petición");
+            assert_ne!(estado() & ES_SYSTEM_REQUIRED, 0, "con la petición puesta, el sistema tiene que estar requerido");
+            assert!(!no_dormir(false));
+        })
+        .join()
+        .unwrap();
     }
 
     /// Con la forma de `ipn.ServeConfig` (tailscale/ipn/serve.go): lo que vale

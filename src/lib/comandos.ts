@@ -84,5 +84,7 @@ export function powershellCommand(inner: string): string[] {
  */
 export function sessionIdOf(command: string | string[] | undefined): string | undefined {
   const txt = Array.isArray(command) ? command.join(" ") : command;
-  return txt?.match(/--(?:resume|session-id)\s+([0-9a-f-]{8,})/i)?.[1];
+  // `--resume <id>` y `--session-id <id>` (Claude y Gemini), y el
+  // `codex resume <id>` de Codex, que va sin guiones.
+  return txt?.match(/(?:--(?:resume|session-id)|\bresume)\s+([0-9a-f-]{8,})/i)?.[1];
 }

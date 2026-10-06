@@ -1,0 +1,508 @@
+/* ==========================================================================
+   Todas tus sesiones, en la Agenda. Una fila por sesión, dos alturas: arriba
+   lo que la identifica y en qué estado está, y debajo lo que necesita de ti.
+   La segunda línea sale del modelo local y puede no estar: la fila tiene que
+   leerse igual de bien sin ella, y por eso el estado va arriba y no abajo.
+   ========================================================================== */
+.ag-ses {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ag-ses-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ag-ses-row:hover {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+/* Las que te esperan llevan una barra a la izquierda. Es la única señal de
+   color de la lista: si todo se subraya, no se subraya nada. */
+.ag-ses-row[data-urge="true"] {
+  border-left: 2px solid var(--accent);
+  border-radius: 3px 9px 9px 3px;
+}
+
+.ag-ses-cuerpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ag-ses-cab {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ag-ses-tit {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ag-ses-proj,
+.ag-ses-ago {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ag-ses-estado {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.ag-ses-estado[data-k="pregunta"],
+.ag-ses-estado[data-k="ofrece"],
+.ag-ses-estado[data-k="tuya"] {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: #f2f7ff;
+}
+
+/* Lo que el modelo entendió, y el encargo cuando no hay modelo. El primero se
+   lee, el segundo se consulta: por eso uno va en el color del texto y el otro
+   apagado. */
+.ag-ses-necesita {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--text) 82%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-ses-encargo {
+  font-size: 11.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-pensando {
+  color: var(--accent);
+}
+
+/* La tarjeta de OpenRouter. Las cifras en columna y alineadas por la derecha:
+   son dinero y se comparan de un vistazo, no se leen como una frase. */
+.or-lines {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.or-lines li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.or-lines b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.or-key {
+  width: 100%;
+  height: 30px;
+  margin-top: 10px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--row);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+}
+
+.or-key:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* La ficha del encargo: qué se pide, a quién se le pide y por qué a ese.
+   Los porqués ocupan sitio a propósito: son lo que separa una recomendación
+   de una orden, y sin ellos no hay forma de estar en desacuerdo. */
+.fm-ficha {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.fm-ficha-tit {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fm-ficha-tit:not(:first-child) {
+  margin-top: 12px;
+}
+
+/* Editable: esto es un ayudante, no un oráculo. */
+.fm-ficha-txt {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  color: var(--fg);
+  /* Sin tirador de agrandar: regla de la casa. */
+  resize: none;
+  white-space: pre-wrap;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.fm-ficha-txt:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+
+.fm-destino {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.fm-pastilla {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pastilla);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.fm-pastilla.fm-cli {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent);
+}
+
+/* El cerebro es la decisión que cuesta dinero, así que va marcado y con su
+   peso al lado: «sonnet ×3» dice en dos caracteres lo que una frase. */
+.fm-pastilla.fm-cerebro {
+  border-color: color-mix(in srgb, var(--done) 55%, var(--border));
+  color: var(--done);
+}
+
+/* Y ahora se puede cambiar: la pastilla es un botón. Se le nota que se pulsa
+   solo al pasar por encima, porque en una lista de seis puestos, seis botones
+   marcados serían seis invitaciones a tocar lo que ya estaba bien. */
+.fm-cerebro-btn {
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease;
+}
+.fm-cerebro-btn::after {
+  content: "▾";
+  margin-left: 4px;
+  opacity: 0.55;
+  font-size: 9px;
+}
+.fm-cerebro-btn:hover {
+  background: color-mix(in srgb, var(--done) 18%, transparent);
+  border-color: var(--done);
+}
+
+/* Elegido a mano: relleno, para distinguir de un vistazo lo que decidiste tú
+   de lo que decidió el router. Si no, al volver a mirar el reparto no hay
+   forma de saber cuáles tocaste. */
+.fm-cerebro-btn[data-mano="true"] {
+  background: color-mix(in srgb, var(--done) 24%, transparent);
+  border-color: var(--done);
+  font-weight: 700;
+}
+
+.fm-pastilla em {
+  opacity: 0.7;
+  font-style: normal;
+  font-size: 10.5px;
+}
+
+.fm-porque {
+  margin: 9px 0 0;
+  padding-left: 15px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.fm-porque li {
+  margin-bottom: 2px;
+}
+
+/* El interruptor del automático, pegado a su botón. Apagado es un botón más;
+   encendido se enciende de verdad, porque a partir de ahí el Asistente deja de
+   preguntar y eso hay que verlo de un vistazo. */
+.fm-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pastilla);
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fm-auto:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.fm-auto[data-on="true"] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* El recibo de lo que hizo el automático. Va en verde de «hecho», no en ámbar
+   de aviso: no ha salido nada mal, es una decisión que se tomó sin ti y que
+   tienes derecho a leer. */
+.fm-recibo {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 9px 0 0;
+  padding: 8px 9px;
+  border-left: 3px solid var(--done);
+  border-radius: 0 7px 7px 0;
+  background: color-mix(in srgb, var(--done) 10%, transparent);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fm-recibo > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--done);
+}
+
+.fm-recibo-txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fm-recibo-txt em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 11.5px;
+}
+
+.fm-aviso {
+  margin: 9px 0 0;
+  padding: 7px 9px;
+  border-left: 3px solid var(--done);
+  border-radius: 0 7px 7px 0;
+  background: color-mix(in srgb, var(--done) 11%, transparent);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fm-cambiar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 11px;
+}
+
+.fm-cambiar-tit {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fm-op[data-on="true"] {
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--border));
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--fg);
+}
+
+/* ==========================================================================
+   La barra de arriba cuando la ventana no da de sí.
+   Tres escalones, y en cada uno se va lo MENOS necesario primero. Nada
+   desaparece de golpe y nada se sale de la pantalla: los botones siguen
+   estando todos, solo que más apretados.
+   ========================================================================== */
+
+/* 1. Por debajo de 1700px se van los nombres de las pestañas y quedan los
+      iconos. Por eso hubo que dibujarlos: un glifo suelto sin su nombre al
+      lado no se reconoce, un icono de verdad sí. El globo dice cuál es.
+
+      El corte estaba en 1400 y se subió a 1700 midiendo con capturas reales
+      (PrintWindow sobre el dev, no a ojo): con la Cabina abierta y música
+      sonando, la fila ENTERA —ocho pestañas, RAM, reproductor, emisión,
+      Capataz y el grupo de Minimizar/Disposición/Cerrar— no cabe escrita de
+      corrida hasta pasados los 1700px; entre 1400 y 1700 lo último de la
+      fila («Cerrar todas», el más nuevo) se salía de la ventana sin
+      recortarse, así que no había ni rastro de él (Munir, 2026-08-02, con
+      un portátil de por medio). Si algún día se le quita peso a la barra
+      (menos botones o más cortos), este número puede bajar; hasta entonces
+      1700 es el que de verdad se comprobó que cabe. */
+@media (max-width: 1700px) {
+  /* Toda la barra se compacta a la vez, no solo la navegación: un botón
+     escrito junto a siete iconos no ahorraba sitio, solo cambiaba QUÉ se
+     desbordaba. `.topbar-acciones .tab-label` coge de una vez «Minimizar
+     todas»/«Traer todas», «Disposición» y «Cerrar todas» — los tres únicos
+     de ese grupo que aún llevaban nombre (Munir, 2026-08-02). El globo de
+     cada botón (`data-tip`) sigue diciendo qué es al pasar el ratón. */
+  .tabs .tab-label,
+  .topbar-acciones .tab-label {
+    display: none;
+  }
+  .tabs .tab {
+    padding: 5px 9px;
+  }
+}
+
+/* 2. Por debajo de 1150px el reproductor se queda en los mandos: el título de
+      la canción era lo que se comía el sitio, y encima truncado no dice qué
+      suena, solo que algo suena. Los botones sí sirven sin él. */
+@media (max-width: 1150px) {
+  .np .np-text {
+    display: none;
+  }
+  .np {
+    gap: 2px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}
+
+/* Y no hay un tercer escalón a propósito. La ventana tiene un `minWidth` de
+   940 en tauri.conf.json, así que cualquier regla por debajo de eso sería CSS
+   que no se ejecuta nunca y que aun así habría que mantener. A 940, con los
+   nombres fuera, el título de la canción cortado y el grupo de Minimizar/
+   Disposición/Cerrar todas también en solo icono, cabe todo con holgura:
+   comprobado con capturas reales del dev a 940×600 (Munir, 2026-08-02), no
+   solo sumando a mano. Si algún día baja ese mínimo o crece la barra con un
+   botón más, el siguiente en irse es el reproductor entero. */
+
+/* Cuando la página se niega a abrirse dentro. Antes esto era un cuadro blanco
+   sin más: la app parecía rota cuando el que decía que no era el otro. */
+.web-nope {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  height: 100%;
+  padding: 20px;
+  background: var(--panel);
+  overflow: auto;
+}
+
+.web-nope-tit {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.web-nope-txt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Grabando. Sustituye al icono del micrófono, que ocupaba sitio en la fila y
+   apagado no decía nada. Un punto rojo latiendo y la palabra REC: la señal
+   que todo el mundo reconoce sin que se la expliquen. */
+.fm-rec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, #ff5f5f 45%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, #ff5f5f 14%, transparent);
+  color: #ffc9c9;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.fm-rec-punto {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: #ff5f5f;
+}
+
+.fm-rec[data-on="true"] .fm-rec-punto {
+  animation: rec-late 1s ease-in-out infinite;
+}
+
+@keyframes rec-late {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* La explicación del selector de atajos: va antes de las pastillas y sin la
+   caja de una tarjeta, porque el grupo entero ya es la caja. */
+.atajos-prov-hint {
+  margin: 0 0 10px;
+  max-width: 62ch;
+}
+

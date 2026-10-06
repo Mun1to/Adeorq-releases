@@ -1,0 +1,289 @@
+/* ── El chat por API ────────────────────────────────────────────────────────
+   Ver CanvasChat.tsx. Una conversación normal con un modelo, al lado de las
+   terminales. Lo que cuesta se ve siempre, arriba a la derecha. */
+.rf-chat {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.rf-chat[data-selected="true"] {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.ch-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--row);
+  /* La cabecera es el asidero: dentro se escribe y se selecciona texto. */
+  cursor: grab;
+}
+
+.ch-modelo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border-radius: var(--r-chico);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 620;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.ch-modelo:hover {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.ch-caret {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+/* En verde y en cifra pequeña: es un dato que tiene que estar, no una alarma.
+   Con suscripción no puedes pasarte; con clave de API sí, y sin verlo. */
+.ch-coste {
+  flex: none;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: #5bd18b;
+}
+
+.ch-x {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: var(--r-chico);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ch-x:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* El selector de modelo, desplegado sobre la charla. */
+.ch-lista {
+  position: absolute;
+  top: 34px;
+  left: 6px;
+  right: 6px;
+  z-index: 4;
+  max-height: 60%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-solid);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.ch-buscar {
+  flex: none;
+  margin: 6px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--row);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.ch-buscar:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.ch-lista-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 6px 6px;
+  scrollbar-width: thin;
+}
+
+.ch-opcion {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ch-opcion:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.ch-opcion[data-on] {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.ch-opcion-nombre {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ch-opcion-precio {
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ch-charla {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  scrollbar-width: thin;
+  /* Se puede seleccionar y copiar: es texto, no un adorno. */
+  user-select: text;
+  cursor: text;
+}
+
+.ch-msg {
+  max-width: 88%;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ch-msg[data-de="user"] {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--accent) 24%, var(--row));
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.ch-msg[data-de="assistant"] {
+  align-self: flex-start;
+  background: var(--row);
+  border: 1px solid var(--border);
+}
+
+/* Mientras llega, el borde late: dice que sigue vivo sin mover el texto. */
+.ch-msg[data-escribiendo] {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  animation: ch-late 1.4s ease-in-out infinite;
+}
+
+@keyframes ch-late {
+  50% {
+    border-color: color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-msg[data-escribiendo] {
+    animation: none;
+  }
+}
+
+.ch-vacio {
+  margin: auto;
+  max-width: 30ch;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.ch-error {
+  margin: 0;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #e06e6e 45%, transparent);
+  background: color-mix(in srgb, #e06e6e 12%, transparent);
+  color: #e58f8f;
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
+.ch-pie {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+  background: var(--row);
+}
+
+.ch-in {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.ch-in:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.ch-enviar {
+  flex: none;
+  width: 34px;
+  border-radius: var(--r-chico);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 22%, var(--row));
+  color: var(--text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.ch-enviar:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 36%, var(--row));
+}
+
+.ch-enviar:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+

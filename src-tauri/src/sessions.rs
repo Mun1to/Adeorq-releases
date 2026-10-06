@@ -33,6 +33,9 @@ pub struct SessionInfo {
     pub state: String,
     pub fresh: String,
     pub hours: f64,
+    /// Cuándo cambió por última vez, en segundos: `hours` va redondeado a
+    /// décimas y para saber si ya MIRASTE lo último hace falta el instante.
+    pub mtime: u64,
     pub ago: String,
     pub cwd: String,
     pub resume_cwd: String,
@@ -270,12 +273,9 @@ fn ago_text(hours: f64) -> String {
     if hours < 24.0 {
         return format!("{} h", hours as u32);
     }
-    let days = (hours / 24.0) as u32;
-    if days == 1 {
-        "1 día".into()
-    } else {
-        format!("{} días", days)
-    }
+    // «d», como «min» y «h»: se lee igual con la app en inglés, que es donde
+    // «1 día» salía sin traducir en la barra, la Agenda y Abrir una sesión.
+    format!("{} d", (hours / 24.0) as u32)
 }
 
 fn clean(text: &str, max: usize) -> String {
@@ -611,6 +611,7 @@ fn analyze_uncached(path: &Path, folder: &str, mtime: u64, size: u64) -> Option<
         state,
         fresh: fresh.into(),
         hours: (hours * 10.0).round() / 10.0,
+        mtime,
         ago: ago_text(hours),
         project: project_of(&cwd, folder, ""),
         resume_cwd: resume_dir(&cwd, folder),
@@ -657,6 +658,17 @@ pub async fn scan_sessions(
     // proyecto enseña su día entero de una vez.
     out.extend(scan_codex());
     out.extend(scan_pi());
+    // Los títulos que Munir les puso desde Adeorq a las de Codex y Pi: sus
+    // ficheros los escribe el otro CLI, así que el título va aparte (ver
+    // `titulos_propios`). Las de Claude llevan el suyo dentro del transcript.
+    let propios = titulos_propios();
+    if !propios.is_empty() {
+        for s in out.iter_mut() {
+            if let Some(t) = propios.get(&s.id) {
+                s.title = clean(t, 90);
+            }
+        }
+    }
 
     // El proyecto se decide AQUÍ y no dentro de `analyze`, que va por caché:
     // si se cacheara, cambiar la carpeta de proyectos en Ajustes no movería de
@@ -739,6 +751,39 @@ fn codex_dir() -> Option<PathBuf> {
 /// olvido: se miró el disco el 2026-07-30 y Gemini solo guarda con `/chat save`
 /// (su carpeta estaba vacía), y Qwen, Copilot y Crush no dejan historial
 /// legible. Cuando alguno empiece a guardarlo, se añade aquí al lado.
+/// Dónde se guardan los títulos puestos desde Adeorq a sesiones que no son de
+/// Claude (`<dir_datos>/titulos.json`, id → título). A un transcript de Claude
+/// se le añade una línea `custom-title` y su CLI la entiende; al de Codex o Pi
+/// no se le puede escribir nada, que es de su programa. Antes renombrar una de
+/// esas fallaba igual que fallaba borrarla (bandeja, 2026-08).
+fn ruta_titulos() -> Option<PathBuf> {
+    crate::dir_datos().ok().map(|d| d.join("titulos.json"))
+}
+
+pub fn titulos_propios() -> HashMap<String, String> {
+    ruta_titulos()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+pub fn guardar_titulo_propio(session_id: &str, titulo: &str) -> Result<(), String> {
+    let ruta = ruta_titulos().ok_or("no sé dónde guardar los títulos")?;
+    let mut todos = titulos_propios();
+    if titulo.trim().is_empty() {
+        todos.remove(session_id);
+    } else {
+        todos.insert(session_id.to_string(), titulo.trim().to_string());
+    }
+    let texto = serde_json::to_string_pretty(&todos).map_err(|e| e.to_string())?;
+    if let Some(dir) = ruta.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    let tmp = ruta.with_extension("tmp");
+    std::fs::write(&tmp, texto).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp, &ruta).map_err(|e| e.to_string())
+}
+
 fn scan_codex() -> Vec<SessionInfo> {
     let Some(raiz) = codex_dir() else {
         return Vec::new();
@@ -825,6 +870,110 @@ fn codex_transcript_en(raiz: &Path, session_id: &str) -> Option<PathBuf> {
     None
 }
 
+/// El hilo de Codex que nació en esa carpeta a partir de ese momento.
+///
+/// Codex no acepta un id al abrirse (se lo pone él en su rollout), así que un
+/// panel recién abierto no sabe qué sesión es y no podía ni retomarla ni
+/// guardarla para el día siguiente. Esto la aprende mirando el disco. Tres
+/// cosas que no son opinables, leídas en los rollouts de verdad de esta
+/// máquina el 2026-10-06:
+///
+///  · Solo hilos PRINCIPALES. Codex escribe un rollout por cada subagente y por
+///    cada revisión «guardian», todos con el mismo `cwd` y con
+///    `parent_thread_id` puesto; el que se retoma es el padre.
+///  · Se compara la hora de NACER (`payload.timestamp`), no la del fichero: la
+///    del fichero cambia con cada turno, y una sesión de ayer en esa carpeta
+///    que siga escribiendo pasaría por nueva.
+///  · Gana el MÁS VIEJO de los que nacieron después de `desde`, no el más
+///    nuevo: dos paneles abiertos seguidos en la misma carpeta se llevan cada
+///    uno el suyo, porque el de un panel es el primero que nace después de él.
+pub fn codex_session_since_en(raiz: &Path, cwd: &str, desde: u64) -> Option<String> {
+    let mut mejor: Option<(u64, String)> = None;
+    for anyo in leer_dirs(raiz) {
+        for mes in leer_dirs(&anyo) {
+            for dia in leer_dirs(&mes) {
+                let Ok(ficheros) = std::fs::read_dir(&dia) else {
+                    continue;
+                };
+                for f in ficheros.flatten() {
+                    let path = f.path();
+                    if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+                        continue;
+                    }
+                    // Un fichero que nadie ha tocado desde antes de `desde` no
+                    // puede ser de este panel: se ahorra leerlo.
+                    let tocado = f
+                        .metadata()
+                        .ok()
+                        .and_then(|m| m.modified().ok())
+                        .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+                        .map(|d| d.as_secs());
+                    if tocado.is_some_and(|t| t < desde) {
+                        continue;
+                    }
+                    let Some(cabecera) = primera_linea(&path) else {
+                        continue;
+                    };
+                    let Ok(v) = serde_json::from_str::<Value>(&cabecera) else {
+                        continue;
+                    };
+                    if v["type"].as_str() != Some("session_meta") {
+                        continue;
+                    }
+                    let p = &v["payload"];
+                    if p["cwd"].as_str() != Some(cwd) || !p["parent_thread_id"].is_null() {
+                        continue;
+                    }
+                    let Some(nacio) = p["timestamp"].as_str().and_then(iso_a_segundos) else {
+                        continue;
+                    };
+                    if nacio < desde {
+                        continue;
+                    }
+                    let Some(id) = p["id"].as_str().or(p["session_id"].as_str()) else {
+                        continue;
+                    };
+                    if mejor.as_ref().is_none_or(|(n, _)| nacio < *n) {
+                        mejor = Some((nacio, id.to_owned()));
+                    }
+                }
+            }
+        }
+    }
+    mejor.map(|(_, id)| id)
+}
+
+/// `2026-09-22T20:22:52.825Z` → segundos desde 1970. Solo lo que escribe Codex
+/// (UTC con `Z`); cualquier otra cosa es `None`, y mejor no aprender nada que
+/// aprender la sesión de otro. Sin `chrono`: son veinte líneas y un test.
+fn iso_a_segundos(s: &str) -> Option<u64> {
+    let s = s.strip_suffix('Z')?;
+    let (fecha, hora) = s.split_once('T')?;
+    let mut f = fecha.split('-').map(|x| x.parse::<i64>().ok());
+    let (y, m, d) = (f.next()??, f.next()??, f.next()??);
+    let hora = hora.split('.').next()?;
+    let mut h = hora.split(':').map(|x| x.parse::<i64>().ok());
+    let (hh, mm, ss) = (h.next()??, h.next()??, h.next()??);
+    if !(1..=12).contains(&m) || !(1..=31).contains(&d) || hh > 23 || mm > 59 || ss > 60 {
+        return None;
+    }
+    // Días desde 1970 (Howard Hinnant, «days_from_civil»).
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = if y >= 0 { y } else { y - 399 } / 400;
+    let yoe = y - era * 400;
+    let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let dias = era * 146097 + doe - 719468;
+    u64::try_from(dias * 86400 + hh * 3600 + mm * 60 + ss).ok()
+}
+
+/// Para el panel: la sesión de Codex que nació en `cwd` desde `since`
+/// (segundos de época), o nada todavía.
+#[tauri::command(async)]
+pub fn codex_session_since(cwd: String, since: u64) -> Option<String> {
+    codex_session_since_en(&codex_dir()?, &cwd, since)
+}
+
 fn analyze_codex(path: &Path) -> Option<SessionInfo> {
     let meta = std::fs::metadata(path).ok()?;
     let size = meta.len();
@@ -873,6 +1022,7 @@ fn analyze_codex(path: &Path) -> Option<SessionInfo> {
         state: String::new(),
         fresh: fresh.into(),
         hours: (hours * 10.0).round() / 10.0,
+        mtime,
         ago: ago_text(hours),
         project: project_of(&cwd, "", ""),
         resume_cwd: cwd.clone(),
@@ -1091,6 +1241,7 @@ fn analyze_pi(path: &Path) -> Option<SessionInfo> {
         state: String::new(),
         fresh: fresh.into(),
         hours: (hours * 10.0).round() / 10.0,
+        mtime,
         ago: ago_text(hours),
         project: project_of(&cwd, "", ""),
         resume_cwd: cwd.clone(),
@@ -2753,6 +2904,66 @@ otra
         );
 
         let _ = std::fs::remove_dir_all(&raiz);
+    }
+
+    /// Un panel de Codex aprende su sesión del disco, y tiene que ser LA SUYA.
+    /// El árbol calca los rollouts de verdad de esta máquina (2026-10-06): un
+    /// hilo principal viejo en la carpeta, sus subagentes y su «guardian» (con
+    /// `parent_thread_id`), uno principal de otra carpeta, y dos principales
+    /// nuevos en la carpeta, uno por panel abierto.
+    #[test]
+    fn a_codex_pane_learns_the_first_main_thread_born_after_it_in_its_folder() {
+        let raiz = std::env::temp_dir().join(format!("adeorq-codex-nace-{}", std::process::id()));
+        let dia = raiz.join("2026").join("10").join("06");
+        let _ = std::fs::remove_dir_all(&raiz);
+        std::fs::create_dir_all(&dia).unwrap();
+        let meta = |id: &str, cwd: &str, cuando: &str, padre: Option<&str>| {
+            let padre = padre.map_or("null".to_string(), |p| format!("\"{p}\""));
+            format!(
+                r#"{{"timestamp":"{cuando}","type":"session_meta","payload":{{"session_id":"{id}","id":"{id}","parent_thread_id":{padre},"timestamp":"{cuando}","cwd":"{cwd}","originator":"codex_cli_rs"}}}}"#
+            )
+        };
+        let aq = r"C:\\proyectos\\Adeorq";
+        let escribe = |nombre: &str, texto: String| std::fs::write(dia.join(nombre), texto).unwrap();
+        escribe("rollout-A-viejo.jsonl", meta("viejo", aq, "2026-10-06T09:00:00.000Z", None));
+        escribe("rollout-B-sub.jsonl", meta("sub", aq, "2026-10-06T10:00:30.000Z", Some("viejo")));
+        escribe("rollout-C-guardian.jsonl", meta("guardian", aq, "2026-10-06T10:00:40.000Z", Some("viejo")));
+        escribe("rollout-D-otra.jsonl", meta("otra", r"C:\\proyectos\\VoCript", "2026-10-06T10:00:50.000Z", None));
+        escribe("rollout-E-panel1.jsonl", meta("panel1", aq, "2026-10-06T10:01:00.000Z", None));
+        escribe("rollout-F-panel2.jsonl", meta("panel2", aq, "2026-10-06T10:02:00.000Z", None));
+
+        // 10:00:00Z del 6 de octubre de 2026.
+        let diez = iso_a_segundos("2026-10-06T10:00:00.000Z").unwrap();
+        let cwd = "C:\\proyectos\\Adeorq";
+        assert_eq!(
+            codex_session_since_en(&raiz, cwd, diez).as_deref(),
+            Some("panel1"),
+            "el primer hilo principal que nace después del panel, no un subagente ni el más nuevo",
+        );
+        assert_eq!(
+            codex_session_since_en(&raiz, cwd, diez + 90).as_deref(),
+            Some("panel2"),
+            "el segundo panel, abierto minuto y medio después, se lleva el suyo",
+        );
+        assert!(
+            codex_session_since_en(&raiz, cwd, diez + 200).is_none(),
+            "antes del primer turno no hay rollout, y entonces no se aprende nada",
+        );
+        assert!(
+            codex_session_since_en(&raiz, "C:\\proyectos\\Otro", diez).is_none(),
+            "otra carpeta no se lleva el hilo de esta",
+        );
+        let _ = std::fs::remove_dir_all(&raiz);
+    }
+
+    #[test]
+    fn codex_timestamps_turn_into_seconds() {
+        assert_eq!(iso_a_segundos("1970-01-01T00:00:00.000Z"), Some(0));
+        // 2026-01-01 son 1 767 225 600; el 22 de septiembre es el día 265.
+        assert_eq!(iso_a_segundos("2026-09-22T20:22:52.825Z"), Some(1_790_108_572));
+        assert_eq!(iso_a_segundos("2026-03-01T00:00:00Z"), Some(1_772_323_200), "año bisiesto por en medio");
+        assert_eq!(iso_a_segundos("2026-09-22T20:22:52"), None, "sin la Z no se sabe la zona");
+        assert_eq!(iso_a_segundos("ayer"), None);
     }
 
     /// Y lo MISMO con Pi, que volvió a caer en el agujero cuatro días después

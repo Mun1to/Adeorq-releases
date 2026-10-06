@@ -3,6 +3,7 @@ import { marked } from "marked";
 import { limpiar } from "../lib/markdown";
 import { readGuide } from "../lib/pty";
 import { useT } from "../lib/i18n";
+import { abrirEnlacesFuera } from "../lib/enlacesFuera";
 
 /** Un apartado de la guía, para el índice de al lado. */
 interface Apartado {
@@ -105,7 +106,7 @@ export default function GuideView() {
           ))}
         </nav>
       )}
-      <article className="guide" dangerouslySetInnerHTML={{ __html: html }} />
+      <article className="guide" onClick={abrirEnlacesFuera} dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 }

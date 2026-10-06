@@ -1,0 +1,1218 @@
+/* ── Modo simple ───────────────────────────────────────────────────────────
+   Solo lo que estás mirando: la barra en tira (la pide la app), las cabeceras
+   con el nombre y el estado y el resto al pasar el ratón, sin bordes entre
+   paneles ni piezas de la barra de arriba. La foto se queda. */
+.app[data-simple="true"] .pane-head:not(:hover) .ph-meta {
+  display: none;
+}
+
+.app[data-simple="true"] .pane {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.app[data-simple="true"] .topbar .objetivos-toggle,
+.app[data-simple="true"] .topbar .pulso-caja,
+.app[data-simple="true"] .topbar .np {
+  display: none;
+}
+
+.simple-toggle-icono {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  position: relative;
+}
+
+.simple-toggle-icono::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.35;
+}
+
+.simple-toggle[data-on="true"] .simple-toggle-icono::after {
+  opacity: 1;
+}
+
+/* El orden de las sesiones, debajo del buscador de la barra. */
+.finder-orden {
+  margin: 4px 10px 2px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-chico);
+  cursor: pointer;
+  text-align: left;
+}
+
+.finder-orden:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.finder-orden[data-on="true"] {
+  color: var(--accent);
+}
+
+/* Seguir el claro/oscuro de Windows, en Ajustes > Tema. */
+.tema-sistema {
+  margin: 2px 0 6px;
+}
+
+.tema-sistema-pares {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+
+.tema-sistema-pares label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.tema-sistema-pares select {
+  min-width: 180px;
+}
+
+/* El tema a juego con la foto, en Ajustes > Tema: la tecla y lo que dijo. */
+.tema-foto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 8px;
+}
+
+.tema-foto .card-hint {
+  margin: 0;
+}
+
+.session-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* Aquí vivía `.sess-donde`, la pastilla con la carpeta de una sesión suelta.
+   Se fue entera el 2026-08-09 y el porqué está en el JSX: en una lista donde
+   todas las sueltas cuelgan de `C:\proyectos`, las treinta y tres decían
+   «proyectos» y ninguna se distinguía de la de al lado, mientras el título se
+   leía «S..». La carpeta vive ahora en el globo de la fila y su acción en el
+   menú. Se quita en vez de dejarla apagada por si acaso: una regla sin dueño
+   es una pista falsa para el siguiente. */
+
+.session-ago {
+  flex: none;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* Session rows: the ⋯ menu button appears on hover, like project actions */
+.session-row {
+  display: flex;
+  align-items: center;
+}
+
+.session-row .session {
+  flex: 1;
+  min-width: 0;
+}
+
+.sess-more {
+  flex: none;
+  visibility: hidden;
+  padding: 3px 7px;
+}
+
+.session-row:hover .sess-more {
+  visibility: visible;
+}
+
+/* The bin, in the row and in the pane header. Hidden until the mouse is on
+   the row it would delete, and red only once you are pointing at it: a button
+   that destroys should be easy to reach and hard to press by accident. */
+.sess-bin {
+  flex: none;
+  visibility: hidden;
+  padding: 3px 6px;
+  margin-left: 1px;
+}
+
+.session-row:hover .sess-bin {
+  visibility: visible;
+}
+
+.sess-bin:hover,
+.pane-bin:hover {
+  color: #ff8f8f;
+  background: color-mix(in srgb, #ff8f8f 18%, transparent);
+  border-color: rgba(255, 143, 143, 0.5);
+}
+
+/* Aquí vivía el estado «armado» de la papelera, cuando borrar una sesión desde
+   el encabezado eran dos clics con cuatro segundos de margen. Desde la 0.9.69
+   pregunta con el mismo diálogo que la barra, así que ese estado ya no existe.
+   Se quita en vez de dejarlo por si acaso: una regla que no puede activarse es
+   una pista falsa para el siguiente que venga a leer esto. */
+
+/* An archived row already shows its restore button; the bin joins it. */
+.session-row[data-archived="true"] .sess-bin {
+  visibility: visible;
+}
+
+.session-row[data-archived="true"] .session {
+  opacity: 0.45;
+}
+
+.session-row[data-archived="true"] .sess-more {
+  visibility: visible;
+  color: var(--accent);
+}
+
+.rename-row {
+  display: flex;
+  padding: 2px 0;
+}
+
+.rename-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+/* Manual session groups inside a project (like the desktop app's groups) */
+.sgroup {
+  display: flex;
+  flex-direction: column;
+  margin: 2px 0;
+  border-radius: 9px;
+}
+
+/* El grupo bajo el cursor mientras arrastras una sesión: se enciende entero,
+   para que se vea DÓNDE va a caer antes de soltar. */
+.sgroup[data-suelta] {
+  background: color-mix(in srgb, var(--sg, var(--accent)) 14%, transparent);
+  outline: 1px dashed color-mix(in srgb, var(--sg, var(--accent)) 60%, transparent);
+  outline-offset: -1px;
+}
+
+.sgroup-input {
+  flex: 1;
+  min-width: 0;
+  padding: 1px 6px;
+  font-size: 11px;
+}
+
+/* La sesión que va en el aire, y la que está debajo esperándola. Soltar una
+   encima de otra suelta es lo que crea un grupo nuevo con las dos. */
+.session-row {
+  touch-action: none;
+}
+
+/* La fila que llevas en la mano SALE del flujo, no se queda medio borrosa en su
+   sitio. Antes iba a `opacity: .45` y seguía ocupando su hueco, así que con las
+   vecinas apartadas había una fila de más y se montaban unas encima de otras
+   (Munir, 2026-08-09, con la captura al lado). Quitándola, las de abajo suben
+   solas a tapar su sitio y solo queda UN hueco en pantalla: el nuevo.
+   Copiarla ya la ves: la lleva el puntero (`lib/fantasma.ts`).
+
+   ⚠ SALE DEL FLUJO, PERO NO CON `display: none`, y esto no se puede "limpiar"
+   luego. Un elemento con `display: none` se va del árbol de renderizado y el
+   navegador LE QUITA LA CAPTURA DEL PUNTERO. Como el `pointerup` que aplica el
+   cambio vive en esa misma fila, dejaba de llegar: el arrastre terminaba por la
+   red de seguridad de `window`, que solo limpia, y el orden nuevo no se
+   guardaba NUNCA. Se veía como «la suelto y vuelve a su sitio» (Munir,
+   2026-08-09), y el hueco se quedaba abierto por el mismo motivo.
+   Con `position: absolute` la fila sigue renderizada —conserva la captura— pero
+   no ocupa sitio, que es justo lo que hacía falta. */
+.session-row[data-llevando] {
+  position: absolute;
+  width: 1px;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  z-index: -1;
+}
+
+.session-row[data-suelta] {
+  outline: 1px dashed color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: -1px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* El proyecto bajo el cursor: soltar ahí manda la sesión a ese proyecto. Mismo
+   trazo discontinuo que el grupo, que ya significa «aquí cae». */
+.project[data-suelta] {
+  outline: 1px dashed color-mix(in srgb, var(--c, var(--accent)) 70%, transparent);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--c, var(--accent)) 12%, transparent);
+}
+
+/* Ordenar la barra a mano. El que llevas se apaga (lo tienes en la mano, no en
+   la lista) y el sitio donde va a caer se marca con una línea gruesa: un
+   recuadro entero se confunde con soltar DENTRO, que es lo que hace un arrastre
+   de sesión.
+   La línea va ARRIBA o ABAJO según dónde vaya a caer de verdad, y ese lado lo
+   dice `ladoDeCaida` con los mismos índices que hacen el movimiento. Estaba
+   clavada arriba, o sea que decía «encima de este» siempre: bajabas un proyecto
+   y acababa DEBAJO del que te había marcado. */
+.project[data-moviendo],
+.sgroup[data-moviendo] {
+  opacity: 0.4;
+}
+
+.project[data-encima="antes"] {
+  box-shadow: inset 0 3px 0 -1px var(--c, var(--accent));
+}
+
+.project[data-encima="despues"] {
+  box-shadow: inset 0 -3px 0 -1px var(--c, var(--accent));
+}
+
+/* El hueco: las filas de al lado se apartan y dejan el sitio libre donde va a
+   caer la que llevas. Munir rechazó dos veces la raya y pidió esto con un
+   nombre propio: «que cuando lo muevas se mueva lo que tiene cerca».
+
+   Y es la otra mitad del mensaje: sobre una fila caben dos gestos y hay que
+   distinguirlos ANTES de soltar. Hueco = «me coloco aquí»; la fila encendida
+   (`[data-suelta]`, más arriba) = «me agrupo con esta». Si los dos se vieran
+   igual, el gesto sería una apuesta.
+
+   El desplazamiento llega en PÍXELES desde el componente y no como un 100 %:
+   las filas de esta barra no miden todas lo mismo (la que enseña su carpeta
+   debajo es más alta), así que apartarse «su propio alto» abriría huecos de
+   distinto tamaño según por dónde pasaras. */
+.session-row[data-apartada] {
+  transform: translateY(var(--dy, 0));
+}
+
+.session-row {
+  /* Solo `transform`: animar `top` o `margin` obliga a recalcular la posición
+     de toda la lista en cada fotograma, y esto se mueve con el ratón.
+
+     220 ms y una curva que ARRANCA suave (0.25, 0.1) en vez de salir disparada:
+     a 160 ms con una curva de entrada dura, las filas daban un respingo y el
+     hueco parecía abrirse a tirones (Munir, 2026-08-09: «más fluido y menos
+     rápido»). El tirón no era de rendimiento, era de la curva; lo de
+     rendimiento se arregló aparte, en `sesionMove`.
+
+     `will-change` NO se pone aquí a propósito: son treinta y tres filas y
+     promoverlas todas a capa propia para un gesto que dura un segundo cuesta
+     más memoria de vídeo de lo que ahorra. */
+  transition: transform 0.22s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Menos la que llevas en la mano: esa la mueve el fantasma y una transición
+   encima la dejaría persiguiendo al puntero con retraso. */
+.session-row[data-llevando] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-row {
+    transition: none;
+  }
+}
+
+/* Los grupos usan su color cuando lo traen (una cuadrilla), y el acento cuando
+   no: la raya tiene que decir dónde cae, no de qué color es el grupo. */
+.sgroup[data-encima="antes"] .sgroup-head {
+  box-shadow: inset 0 3px 0 -1px var(--sg, var(--accent));
+}
+
+.sgroup[data-encima="despues"] .sgroup-head {
+  box-shadow: inset 0 -3px 0 -1px var(--sg, var(--accent));
+}
+
+/* Un grupo se agarra por su cabecera, no por la lista de sesiones que cuelga
+   de ella: ahí dentro cada sesión tiene su propio arrastre. */
+.sgroup-head {
+  cursor: grab;
+}
+
+.sgroup[data-moviendo] .sgroup-head {
+  cursor: grabbing;
+}
+
+/* La cabecera ES la barra del grupo, y hasta ahora no se distinguía de las
+   sesiones que cuelgan de ella: mismo fondo, misma altura, y dos botones
+   redondos más altos que su propio texto, que era lo que descuadraba la fila
+   (Munir, 2026-08-02). Ahora tiene su propio fondo y una altura fija: la
+   cabecera manda y la lista se lee debajo. */
+.sgroup-head {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 30px;
+  padding: 1px 4px;
+  border-radius: 9px;
+  /* Opaca, como las filas: sobre un fondo con alfa Windows apaga ClearType y el
+     nombre del grupo se ve emborronado. Es la misma trampa de siempre. */
+  background: linear-gradient(
+      color-mix(in srgb, var(--sg, var(--text)) 9%, transparent),
+      color-mix(in srgb, var(--sg, var(--text)) 9%, transparent)
+    ),
+    var(--panel-solid);
+  border-left: 3px solid color-mix(in srgb, var(--sg, var(--border)) 60%, transparent);
+}
+
+.sgroup:hover .sgroup-head {
+  background: color-mix(in srgb, var(--sg, var(--text)) 10%, transparent);
+}
+
+/* La cabecera ES el botón que abre y cierra el grupo. Antes era un rótulo
+   muerto: se veía el nombre y no se podía hacer nada con él (Munir,
+   2026-08-02). */
+.sgroup-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sgroup-main:hover {
+  background: color-mix(in srgb, var(--sg, var(--text)) 12%, transparent);
+}
+
+.sgroup-main:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* El lápiz solo aparece con el ratón encima o con la ficha abierta: en reposo
+   la barra es una lista de nombres, no una botonera. */
+.sgroup-edit {
+  visibility: hidden;
+  flex: none;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 1px 4px;
+  border-radius: var(--r-chico);
+  font-size: 11px;
+}
+
+/* Este SÍ está siempre: es la única forma de apartar un grupo, y esconderla
+   bajo el ratón deja la barra sin salida visible. */
+.sgroup-fold {
+  flex: none;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 1px 4px;
+  border-radius: var(--r-chico);
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Ninguno de los dos salta al pasar el ratón. `.mini` sube un píxel para que un
+   botón de barra se sienta pulsable, pero aquí van DENTRO de una fila de 30px
+   junto a un texto de 10px: lo que se ve no es un botón vivo, es la cabecera
+   descuadrándose al pasar por encima. */
+.sgroup-edit:hover,
+.sgroup-fold:hover,
+.sgroup-edit:active,
+.sgroup-fold:active {
+  transform: none;
+}
+
+/* Apartado: el botón se queda encendido, porque es lo único que dice dónde
+   fueron a parar esas terminales. */
+.sgroup-fold[data-activo] {
+  color: var(--sg, var(--accent));
+  border-color: color-mix(in srgb, var(--sg, var(--accent)) 55%, var(--border));
+  background: color-mix(in srgb, var(--sg, var(--accent)) 16%, transparent);
+}
+
+.sgroup:hover .sgroup-edit,
+.sgroup-edit[data-active="true"] {
+  visibility: visible;
+}
+
+.sgroup-edit[data-active="true"] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+/* La ficha del grupo: su nombre, su color y la salida. */
+.sgroup-ficha {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0 6px 4px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--sg, var(--accent)) 30%, var(--border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--sg, var(--accent)) 8%, transparent);
+}
+
+.sgroup-colores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.sgroup-color {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--r-pastilla);
+  background: var(--sc);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.sgroup-color:hover {
+  transform: scale(1.15);
+}
+
+.sgroup-color[data-on="true"] {
+  border-color: var(--text);
+}
+
+.sgroup-color-no {
+  background: transparent;
+  border: 1px dashed var(--border-strong, var(--border));
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.sgroup-disolver {
+  align-self: flex-start;
+  min-height: 24px;
+  padding: 2px 10px;
+  font-size: 11px;
+}
+
+/* La cuadrilla trae su color de siempre (el mismo que ya llevan sus
+   terminales); un grupo hecho a mano no, y se queda gris. */
+.sgroup-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--sg);
+}
+
+/* El nombre del grupo, en letra de LEER.
+   Iba en versalitas de 10,5 px con separación entre letras, y ese es el
+   tratamiento de un rótulo de sección, no de un nombre propio: «Orquio
+   comunidad» se convertía en ORQUIO CO… dentro de una caja que además tenía
+   doble sangría (Munir, 2026-08-14). Un nombre que tú escribes se enseña como
+   lo escribiste. */
+.sgroup-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.sgroup[data-cuadrilla="true"] .sgroup-name {
+  color: var(--text);
+}
+
+/* Cuántas sesiones tiene dentro. Va pegado al nombre y con cifras de ancho
+   fijo: es una columna que se lee de arriba abajo comparando grupos, y con
+   ancho variable cada número caía en un sitio distinto. */
+.sgroup-count {
+  flex: none;
+  min-width: 18px;
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+
+/* La ✕ de disolver vive ahora dentro de la ficha del lápiz, con su palabra
+   escrita: disolver un grupo a un clic, junto al nombre, era demasiado fácil
+   de darle sin querer. */
+
+/* Las sesiones de un grupo van al MISMO ancho que las de fuera.
+   Tenían diez píxeles de sangría más un borde, encima de los catorce que ya
+   mete `.sessions`: veinticuatro píxeles menos de título en una barra donde el
+   nombre ya iba justo. Lo que agrupaba esa caja lo dice ahora el filo de color
+   de cada fila, que además se ve sin tener que seguir una raya con la vista. */
+.sgroup-list {
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.sgroup[data-cuadrilla="true"] .sgroup-list .session-row {
+  border-left: 3px solid color-mix(in srgb, var(--sg) 70%, transparent);
+  border-radius: 4px 10px 10px 4px;
+}
+
+.side-label .mini[data-active="true"] {
+  color: var(--accent);
+  background: rgba(77, 159, 255, 0.14);
+}
+
+/* The two ways to read the rail, as one segmented pair. */
+.rail-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* The chosen mode is filled, not merely outlined: two thin borders side by side
+   is a difference you have to look for. */
+.side-label .rail-tab[data-active="true"] {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.side-label .rail-tab[data-active="true"]:hover {
+  background: color-mix(in srgb, var(--accent) 88%, #fff);
+  border-color: color-mix(in srgb, var(--accent) 88%, #fff);
+}
+
+/* The one that starts something new wears the accent as its outline. */
+.rail-new {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+/* Floating session menu (fixed position, escapes the sidebar scroll) */
+.sess-menu {
+  position: fixed;
+  /* Arriba del todo, junto al menú del clic derecho (9990) y por encima del
+     globo de ayuda (9989), que si no lo tapa justo cuando lo acabas de abrir.
+     Solo el aviso de pánico (9999) y lo que va en la mano quedan por encima.
+
+     ⚠ Este número NO servía de nada hasta el 2026-08-11, y ese es el fallo que
+     costó cinco intentos: el menú se pintaba DENTRO del `<aside class="sidebar">`,
+     y el sidebar tiene `backdrop-filter` (línea ~1182), que le da una capa
+     propia. Un z-index dentro de una capa propia solo compite contra sus
+     hermanos, nunca contra la ventana: por muy alto que fuera, el menú salía
+     DEBAJO de las terminales de al lado. Se arregla en el TSX, colgándolo del
+     `body` por un portal, no aquí. Este número solo ordena a los que ya están
+     arriba. Lo mismo ya le había pasado a `.ctx-menu` y a `.tip` (ver el porqué
+     entero en `Overlays.tsx`) y al `.rail-flyout` (en `Sidebar.tsx`): es el
+     tercer sitio, así que si nace un menú nuevo, nace por portal. */
+  z-index: 9991;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  /* SÓLIDO y del TEMA. Tenía un `rgba(16, 22, 36, 0.92)` escrito a mano más el
+     cristal de la casa, y eso son dos fallos a la vez:
+
+     · el 8 % que dejaba pasar era suficiente para leer el texto de la terminal
+       de detrás A TRAVÉS de las opciones, porque ese texto es verde o blanco
+       brillante sobre negro. El `backdrop-filter` no lo tapaba: desenfoca lo que
+       hay detrás DENTRO de su propia capa, y este menú va colgado arriba del
+       todo, así que no tiene nada suyo detrás que desenfocar. La prueba está en
+       la captura: el texto de detrás salía NÍTIDO, no borroso;
+     · y el color iba a mano, así que en cualquier tema que no fuera el azul de
+       casa el menú salía con el color de otro tema.
+
+     ⚠ Munir lo pidió CUATRO veces (2026-08-09) y las tres primeras se arregló
+     `.ctx-menu`, que es el menú del clic derecho, mientras él usaba el del
+     botón «⋯», que es este. Son cuatro menús distintos con cuatro superficies
+     distintas: `.ctx-menu`, `.sess-menu`, `.img-menu` y `.chat-menu`. Si
+     aparece un quinto, que nazca con esta línea.
+
+     ⚠⚠ Y a la QUINTA (2026-08-11) resultó que el color llevaba dos días bien:
+     lo que se veía a través no era este menú siendo translúcido, era este menú
+     quedando por DEBAJO de una terminal. La pista estaba en sus palabras («se
+     ve detrás de las terminales») y no en el color. Si vuelve a pasar, mirar
+     la CAPA antes que el alfa: ver el z-index de aquí arriba. */
+  background: var(--panel-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--glass-edge), 0 12px 34px rgba(0, 0, 0, 0.45);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: var(--r-chico);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.menu-item:hover {
+  background: var(--panel-head);
+}
+
+.menu-item[data-active="true"] {
+  color: var(--accent);
+}
+
+.menu-warn:hover {
+  color: #f5d67b;
+}
+
+.menu-label {
+  color: var(--muted);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 5px 10px 3px;
+}
+
+.menu-new {
+  display: flex;
+  gap: 6px;
+  padding: 5px 4px 2px;
+}
+
+.menu-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  padding: 6px 10px;
+}
+
+.menu-create {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+/* Archive confirmation modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  /* Above the rail's flyout, which floats at 90: a dialog that opened behind
+     something else would be a dialog you cannot answer. */
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 7, 12, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  width: min(480px, calc(100vw - 60px));
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: var(--glass-edge), 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.modal-text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.modal-dim {
+  color: var(--muted);
+}
+
+.modal-ok {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #7ee08a;
+}
+
+.modal-warn {
+  border: 1px solid #f5d67b55;
+  background: #f5d67b14;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+}
+
+.modal-warn-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f5d67b;
+}
+
+.modal-files {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.modal-warn-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.modal-cancel {
+  font-size: 13px;
+  padding: 6px 14px;
+}
+
+/* The button that throws something away wears it. */
+.modal-danger {
+  background: linear-gradient(180deg, #ff8f8f, #e05a5a);
+  border-color: rgba(255, 143, 143, 0.6);
+  color: #1a0d10;
+}
+
+/* La puerta de atrás del cuadro de borrar: hace lo que casi todo el mundo venía
+   a hacer, así que va ancha y a la vista, pero en gris. Si se pintara del azul
+   de un botón principal, competiría con el rojo y el cuadro pasaría a tener
+   dos protagonistas. */
+.modal-salida {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+/* ── Opening a session by hand ──────────────────────────────────────────────
+   Two steps, where and with what, so the cockpit can start work without going
+   through the Dashboard and without dictating a job to the Foreman. */
+.wizard {
+  width: min(520px, calc(100vw - 60px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wiz-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wiz-steps {
+  display: inline-flex;
+  gap: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.wiz-pip {
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+.wiz-pip[data-on="true"] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.wiz-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wiz-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: var(--r-btn);
+  background: var(--row);
+  border: 1px solid transparent;
+  color: var(--text);
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.wiz-item:hover {
+  background: var(--row-hover);
+}
+
+.wiz-item[data-on="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.wiz-item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiz-git {
+  flex: none;
+  font-size: 10px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.wiz-none {
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 8px 2px;
+}
+
+.wiz-row {
+  display: flex;
+  gap: 8px;
+  /* Desde que son tres (con la suelta), en un modal estrecho el tercero cabe
+     debajo en vez de aplastar a los otros dos hasta cortarles el rótulo. */
+  flex-wrap: wrap;
+}
+
+.wiz-alt {
+  flex: 1 1 auto;
+  min-width: 150px;
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border-color: var(--border);
+}
+
+/* «Retomar las que ya tienes» ocupa su propia línea: no es una alternativa más
+   a la carpeta, es el otro camino entero del asistente. */
+.wiz-alt-ancho {
+  flex: 1 0 100%;
+}
+
+/* ── Retomar sesiones ─────────────────────────────────────────────────────
+   La lista de conversaciones que ya existen, con casillas. Comparte la caja
+   con la lista de proyectos (`wiz-list`) para que las dos pantallas del
+   asistente midan lo mismo y no dé un salto al cambiar. */
+/* El buscador y el botón de volver a leer, en el mismo renglón: leer otra vez
+   es lo mismo que buscar, solo que fuera de la lista que ya tienes. */
+.ret-busca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* El buscador se lleva el hueco; el botón no encoge nunca, que si no su texto
+   se parte en dos líneas y sube la altura del renglón entero. */
+.ret-busca .finder {
+  flex: 1;
+  min-width: 0;
+}
+
+.ret-recargar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* El recuento a la izquierda y sus dos botones a la derecha.
+   Con `wrap`: si el idioma alarga la frase (en inglés pasa) los botones bajan
+   ENTEROS a su propio renglón en vez de estrujarse contra el borde derecho
+   mientras el texto se parte en dos líneas a su lado, que es como se veía
+   (Munir, 2026-08-12: «los botones casi se van para la derecha del todo»). */
+.ret-cuenta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin: 2px 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Se lleva el hueco que sobra y puede encoger; los botones no. Sin el
+   `min-width`, una palabra larga ensancha el elemento por debajo de su propio
+   contenido y empuja a los botones fuera de la caja. */
+.ret-cuenta > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.45;
+}
+
+.ret-todas {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+}
+
+.ret-lista {
+  max-height: 320px;
+}
+
+.ret-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--row);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.ret-item:hover {
+  background: var(--row-hover);
+}
+
+.ret-item[data-on="true"] {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--row));
+}
+
+.ret-item input {
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.ret-marca {
+  flex: none;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+}
+
+.ret-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ret-tit {
+  font-size: 13px;
+  color: var(--text);
+  /* Un título largo no puede empujar la casilla fuera de la fila. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ret-pie {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--muted);
+  min-width: 0;
+}
+
+/* Dónde vive y cuándo fue. Es lo único de la fila que puede encoger: la
+   pastilla de al lado es corta y dice algo que no se puede adivinar. */
+.ret-donde {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Que ya esté abierta en otro sitio se dice aquí, ANTES de traerla: abrir dos
+   veces la misma conversación las bloquea a las dos. */
+.ret-viva {
+  flex: none;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: #7ee08a;
+  background: rgba(126, 224, 138, 0.14);
+  border: 1px solid rgba(126, 224, 138, 0.34);
+}
+
+/* Las que ya tienes puestas, en dorado.
+   Dorado y no gris: gris es «esto no funciona», y aquí lo que pasa es lo
+   contrario, que ya la tienes. El renglón entero se apaga un poco para que la
+   vista caiga sola en las que sí puedes traer, pero el título se sigue leyendo:
+   la lista sirve también para comprobar que una conversación ya está abierta. */
+.ret-ya {
+  flex: none;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: #f0c46a;
+  background: rgba(240, 196, 106, 0.14);
+  border: 1px solid rgba(240, 196, 106, 0.36);
+}
+
+.ret-item[data-ya="true"] {
+  cursor: default;
+  border-color: rgba(240, 196, 106, 0.24);
+  background: rgba(240, 196, 106, 0.05);
+}
+
+.ret-item[data-ya="true"] .ret-tit {
+  color: #f0c46a;
+}
+
+.ret-item[data-ya="true"] input[type="checkbox"] {
+  opacity: 0.28;
+  cursor: default;
+}
+
+/* Cuántas de las de la lista ya están puestas, al lado del total. */
+.ret-ya-n {
+  margin-left: 6px;
+  color: #f0c46a;
+  opacity: 0.75;
+}
+
+/* Lo que cuesta traerse una tanda grande. En ámbar y no en rojo: no es un
+   error ni una prohibición, es el precio de algo que se pidió a propósito. */
+.ret-aviso {
+  margin: 8px 0 0;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(240, 196, 106, 0.34);
+  background: rgba(240, 196, 106, 0.09);
+  color: color-mix(in srgb, #f0c46a 62%, var(--text));
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.wiz-label {
+  margin: 6px 0 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+}
+
+.wiz-summary {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  font-size: 12.5px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+/* The ＋ of the rail and the one in the empty cockpit: same door. */
+.rail-new {
+  font-size: 14px;
+  padding: 3px 7px;
+  color: var(--accent);
+}
+
+.empty-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+}
+
+/* La letra pequeña de la cabina vacía: dónde mirar si te pierdes. Va separada
+   del párrafo de arriba y en el tono de las pistas, porque es lo que se lee la
+   primera vez y ya no se vuelve a leer nunca. */
+.empty-pie {
+  margin-top: 18px;
+  max-width: 46ch;
+}
+
+.side-error {
+  color: #ff8f8f;
+  font-size: 12px;
+  margin: 0;
+  padding: 0 4px;
+}
+
+.side-foot {
+  color: var(--muted);
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+/* The cockpit: a row of columns, each column a stack of panes (tmux-style) */
+/* Panes sit flush against each other (Munir, 2026-07-25): no gap, no outer
+   padding, so the cabin reads as one surface split by hairlines. */
+/* The mosaic: every pane is a sibling placed by percentage, so dragging one
+   somewhere else is a style change and never a remount (which would kill it). */
+/* La columna de trabajo: el tablero de cuadrilla arriba y el mosaico debajo.
+   El mosaico sigue midiéndose solo, así que los paneles se recolocan sin más
+   cuando el tablero aparece o se pliega. */
+.cabina-work {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.grid {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+

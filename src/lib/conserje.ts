@@ -16,6 +16,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { Exigencia, Receta } from "./router";
 import type { Account, PaneStatus, WorkState } from "./pty";
+import type { ModelAlias } from "./models";
 
 export interface Turno {
   n: number;
@@ -70,6 +71,9 @@ export interface Conversacion {
   /** Con qué modelo piensa el propio conserje; vacío es Sonnet. El router
    *  elige el de las sesiones que abre, no este. */
   cerebro?: string;
+  /** El modelo de las sesiones con el router apagado, el mismo en el PC y en
+   *  el móvil; vacío es el de por defecto de Ajustes, o Sonnet. */
+  fijo?: string;
 }
 
 /** Los modelos con los que puede pensar el conserje: los mismos que acepta
@@ -77,6 +81,9 @@ export interface Conversacion {
 export const CEREBROS_CONSERJE = ["haiku", "sonnet", "opus"] as const;
 export const cerebroDe = (c: Conversacion | null) =>
   (CEREBROS_CONSERJE as readonly string[]).includes(c?.cerebro ?? "") ? (c?.cerebro as string) : "sonnet";
+/** El modelo fijo de la conversación, si se eligió uno de la lista. */
+export const fijoDe = (c: Conversacion | null): ModelAlias | undefined =>
+  (CEREBROS_CONSERJE as readonly string[]).includes(c?.fijo ?? "") ? (c?.fijo as ModelAlias) : undefined;
 
 export interface Ficha {
   id: string;
@@ -109,6 +116,7 @@ export const conserjeRouter = (id: string, encendido: boolean) =>
   invoke<void>("conserje_router", { id, encendido });
 export const conserjeCerebro = (id: string, cerebro: string) =>
   invoke<void>("conserje_cerebro", { id, cerebro });
+export const conserjeFijo = (id: string, modelo: string) => invoke<void>("conserje_fijo", { id, modelo });
 /** Apunta una sesión que se ACABA de abrir; Rust le pone el arranque. */
 export const conserjeTrabajo = (id: string, trabajo: Trabajo) =>
   invoke<void>("conserje_trabajo", { id, trabajo });

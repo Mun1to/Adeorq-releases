@@ -1,0 +1,1133 @@
+/* ── LA BARRA DE LA DERECHA ─────────────────────────────────────────────────
+   Una franja de iconos siempre visible y, a su izquierda, el panel abierto.
+   Hasta el 2026-08-15 aquí solo vivía Skills y plegarlo dejaba una franja con
+   el rótulo de canto; desde que hay más de un inquilino (Archivos), la franja
+   es donde se ELIGE cuál, con un icono por cara, como pidió Munir. */
+/* El panel y su franja van juntos en una sola caja: quien los monte solo tiene
+   que hacerle sitio a UNA cosa, y así valen igual dentro del flex de la Cabina
+   que dentro del grid del Chat. */
+.lateral-zona {
+  flex: none;
+  display: flex;
+  min-height: 0;
+  align-self: stretch;
+}
+
+.lateral {
+  flex: none;
+  width: 270px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--glass-edge);
+}
+
+/* Solo el título: el botón de cerrar se fue el 2026-08-15, porque el icono de
+   la franja ya hace las dos cosas. */
+.lateral-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 12px 12px 8px;
+}
+
+.lateral-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+/* El cuerpo es quien manda en el alto: los paneles de dentro reparten con
+   `flex: 1` y su propio scroll, así que esto NO puede crecer con ellos. */
+.lateral-cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 12px 10px;
+  overflow: hidden;
+}
+
+/* La franja. Siempre está, con el panel abierto o cerrado: es lo que permite
+   volver. Un panel que al cerrarse no deja nada en pantalla se pierde. */
+.franja {
+  flex: none;
+  width: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--glass-edge);
+}
+
+.franja-btn {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: transparent;
+  color: color-mix(in srgb, var(--text) 76%, var(--muted));
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.franja-btn:hover {
+  background: color-mix(in srgb, var(--text) 13%, transparent);
+  color: var(--text);
+}
+
+.franja-btn[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* Lo que abre un panel AQUÍ y lo que abre uno en el mosaico, separados por una
+   raya. Sin ella, el botón de la web parece una cara más de esta barra y luego
+   no lo es. */
+.franja-raya {
+  flex: none;
+  width: 16px;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--border);
+}
+
+/* La marca de cuál está abierto, pegada al borde de la ventana. Es lo que hace
+   que la franja se lea como pestañas y no como botones sueltos. */
+.franja-btn[data-on="true"]::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  width: 2px;
+  height: 18px;
+  border-radius: 2px 0 0 2px;
+  background: var(--accent);
+}
+
+.skills-hint {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.skills-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-right: 2px;
+}
+
+/* Una skill es UN renglon, no una tarjeta con parrafo (Munir, 2026-08-24).
+   Llevaba dos lineas de descripcion debajo del nombre, asi que en esta columna
+   cabian seis: la lista era un scroll de parrafos donde buscar un nombre. La
+   descripcion no se ha perdido, esta en el globo del raton. */
+.skill {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: grab;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+  user-select: none;
+}
+
+.skill:hover {
+  background: var(--panel-head);
+  border-color: var(--accent-dim);
+}
+
+.skill:active {
+  cursor: grabbing;
+}
+
+.skill[data-disabled="true"] {
+  cursor: grab;
+}
+
+.skill-name {
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  /* Un nombre largo se recorta antes que partirse en dos: con la fila de un
+     solo renglon, partirse la descoloca y rompe la rejilla de la lista. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── EL ÁRBOL DE ARCHIVOS ───────────────────────────────────────────────────
+   Lee una carpeta cada vez, así que la lista crece y encoge al desplegar: el
+   scroll es suyo y no de la barra entera. */
+.arch {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* De qué proyecto son estos archivos. No es un selector: lo decide la terminal
+   que tengas delante, y por eso se lee y no se pulsa. */
+.arch-raiz {
+  flex: none;
+  padding: 4px 8px;
+  border-radius: var(--r-btn);
+  background: var(--row);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arch-arbol {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 -6px;
+}
+
+.arch-fila {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 25px;
+  padding-right: 8px;
+  border: none;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.arch-fila:hover {
+  background: var(--row);
+}
+
+.arch-fila[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* El hueco del chevron se reserva SIEMPRE, lo tenga o no: si solo lo ocuparan
+   las carpetas, los archivos de un mismo nivel saldrían 13 px a la izquierda y
+   el árbol dejaría de leerse como columnas. */
+.arch-ico {
+  flex: none;
+  width: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.arch-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arch-fila[data-carpeta="true"] .arch-nom {
+  font-weight: 560;
+}
+
+.arch-fila[data-carpeta="false"] .arch-nom {
+  color: color-mix(in srgb, var(--text) 82%, var(--muted));
+}
+
+.arch-vacio {
+  margin: 8px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ── LA ACTIVIDAD: lo que pasa por detrás de la terminal ────────────────────
+   Otra cara de la franja derecha (`ActividadPanel.tsx`): skills, MCP,
+   herramientas y llamadas al modelo, leídas del transcript. Filas pequeñas y
+   sin caja: es un monitor, no una lista para tocar. */
+.act {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.act-vacio,
+.act-nada {
+  margin: 8px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.act-quien {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.act-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.act-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.act-chip[data-clase="mcp"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
+}
+
+.act-tit {
+  margin-top: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.act-totales {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.act-lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.act-fila {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+}
+
+.act-fila:last-child {
+  border-bottom: none;
+}
+
+.act-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  color: var(--muted);
+}
+
+.act-fila[data-clase="skill"] .act-ico {
+  color: var(--ask);
+}
+
+.act-fila[data-clase="mcp"] .act-ico {
+  color: var(--accent);
+}
+
+.act-nom {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.act-veces {
+  margin-left: 4px;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.act-det {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.act-hace {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.act-llamada .act-nom {
+  max-width: 38%;
+}
+
+/* ── UN ARCHIVO ABIERTO EN EL MOSAICO ───────────────────────────────────────
+   Es un `.pane` de verdad, así que hereda su cristal, su cabecera y su borde de
+   enfocado: para el mosaico esto es un panel más. */
+.pane-archivo {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Lo que se ha tocado y no se ha guardado. Un punto y no un rótulo: en la
+   cabecera de un panel estrecho no cabe una palabra más. */
+.pane-sucio {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--ask);
+  vertical-align: middle;
+}
+
+.pane-chip {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--row);
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El aviso de que un agente te ha cambiado el archivo por debajo. Es la razón
+   de ser de este editor dentro de un ADE, así que no es un `toast` que se va
+   solo: se queda hasta que decidas, y con las dos salidas a la vista. */
+.ed-aviso {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--ask) 22%, var(--panel));
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ed-aviso > span {
+  flex: 1;
+}
+
+.ed-pisar {
+  color: var(--wait);
+}
+
+.ed-nota {
+  margin: 0;
+  padding: 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ── LA VISTA PREVIA DE LA WEB ──────────────────────────────────────────────
+   Lo de dentro (la barra de puertos, el iframe, el aviso de las que no se
+   dejan empotrar) es lo mismo que en el lienzo y usa sus clases `.web-*`: aquí
+   solo cambia el marco, que es el de un panel del mosaico. */
+.pane-web {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* La dirección ocupa la zona de la identidad entera: en un panel, la barra de
+   direcciones ES el título. */
+.pane-web .ph-id > .web-url {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Con TU navegador aquí no se pinta la página: esto es solo el hueco que se
+   mide para colocar una ventana de Windows encima. Se deja a cuadros muy
+   suaves para que, si algo va mal y la ventana no aparece, se vea que el sitio
+   está reservado y no que el panel se ha quedado en blanco. */
+.web-tuyo {
+  display: grid;
+  place-items: center;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--text) 3%, transparent) 0 8px,
+      transparent 8px 16px
+    );
+}
+
+/* ── LAS PESTAÑAS ───────────────────────────────────────────────────────────
+   Como las de un navegador, que es como Munir las pidió (2026-08-15, con una
+   captura de una). Solo salen con dos archivos o más. */
+.ed-pestanas {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 3px 6px 0;
+  background: color-mix(in srgb, var(--panel-head) 70%, transparent);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.ed-pest {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ed-pest:hover {
+  background: var(--row);
+  color: var(--text);
+}
+
+/* La activa se come la línea de abajo, así que su papel y el del código se leen
+   como el mismo. Es el truco de siempre de las pestañas, y sin él parecen
+   botones puestos encima. */
+.ed-pest[data-on="true"] {
+  background: var(--pane-bg);
+  border-color: var(--border);
+  color: var(--text);
+  margin-bottom: -1px;
+  padding-bottom: 6px;
+}
+
+.ed-pest-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-nom {
+  font-style: italic;
+}
+
+.ed-pest-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.ed-pest:hover .ed-pest-x,
+.ed-pest[data-on="true"] .ed-pest-x {
+  opacity: 0.7;
+}
+
+.ed-pest-x:hover {
+  background: var(--row-hover);
+  opacity: 1;
+}
+
+/* Sin guardar: un punto en vez de la ✕, y la ✕ vuelve al pasar el ratón. Así
+   cerrar sin querer algo a medias cuesta un gesto más. */
+.ed-pest[data-sucia="true"] .ed-pest-x::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ask);
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-x {
+  position: relative;
+  opacity: 1;
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-x > svg {
+  opacity: 0;
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-x:hover::after {
+  display: none;
+}
+
+.ed-pest[data-sucia="true"] .ed-pest-x:hover > svg {
+  opacity: 1;
+}
+
+/* ── UNA HOJA ───────────────────────────────────────────────────────────────
+   Todas montadas y solo se ve la activa. Desmontar la que no miras perdería su
+   texto sin guardar, su cursor y su deshacer, que es lo que una pestaña
+   promete conservar. Apiladas con `position: absolute` y no con `display`
+   porque una caja sin medidas hace que CodeMirror se pinte con una línea de
+   alto al volver. */
+/* El hueco que sobra bajo la cabecera y las pestañas. Es él quien tiene la
+   medida, así que las hojas se apilan dentro sin que nadie tenga que saber
+   cuánto miden las dos barras de arriba. */
+.ed-hojas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  /* El MISMO velo que pinta xterm detrás de sus terminales. El editor era el
+     único contenido del mosaico sin esta capa: CodeMirror es transparente
+     sobre el cristal del panel a secas, así que con una foto puesta el código
+     se leía con Mickey entero detrás mientras las terminales de al lado
+     llevaban su tinte (Munir, 2026-08-16). Con la variable de la casa, el
+     mando de Ajustes («cuánto se ve a través de las terminales») y el apagón
+     gobiernan las dos cosas a la vez, sin un segundo mando que explicar. */
+  background: var(--xterm-bg);
+}
+
+.ed-hoja {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ed-hoja[data-visible="false"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* La caja de CodeMirror. El editor pone su propio scroll dentro, así que aquí
+   solo hace falta darle el hueco y que no se desborde. */
+.ed-caja {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ed-caja .cm-editor {
+  height: 100%;
+}
+
+.ed-pie {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* La ruta dentro del proyecto. Es lo único del pie que puede ser largo, así
+   que es lo único que cede sitio. */
+.ed-ruta {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.ed-atajo {
+  flex: none;
+  opacity: 0.75;
+}
+
+/* Floating overlay container: alerts/asks/notes sit over the terminal without resizing .pane-term */
+.pane-overlays {
+  position: absolute;
+  top: 42px;
+  left: 10px;
+  right: 10px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.pane-overlays > * {
+  pointer-events: auto;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  backdrop-filter: blur(16px);
+  animation: paneOverlayIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes paneOverlayIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pane-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ask) 26%, rgba(13, 21, 36, 0.94)),
+    color-mix(in srgb, var(--ask) 15%, rgba(13, 21, 36, 0.94))
+  );
+  border: 1px solid color-mix(in srgb, var(--ask) 45%, transparent);
+  color: color-mix(in srgb, var(--ask) 72%, var(--text));
+  font-size: 12px;
+}
+
+.pane-alert span:first-child {
+  flex: 1;
+}
+
+/* Same relief as the house buttons, in the alert's own hue. */
+.alert-btn {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ask) 30%, transparent),
+    color-mix(in srgb, var(--ask) 16%, transparent)
+  );
+  color: color-mix(in srgb, var(--ask) 78%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--ask) 45%, transparent);
+  border-radius: var(--r-pastilla);
+  padding: 4px 13px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 2px 10px color-mix(in srgb, var(--ask) 22%, transparent);
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.12s ease,
+    filter 0.12s ease;
+}
+
+.alert-btn:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.alert-btn:active {
+  transform: translateY(1px);
+  filter: brightness(0.96);
+}
+
+/* TUI dialog translator: the CLI asks in cryptic text, Adeorq answers with buttons */
+.pane-ask {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 26%, rgba(13, 21, 36, 0.94)),
+    color-mix(in srgb, var(--accent) 15%, rgba(13, 21, 36, 0.94))
+  );
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  font-size: 12px;
+}
+
+.ask-hint {
+  color: color-mix(in srgb, var(--accent) 34%, var(--text));
+  flex: 1 1 100%;
+}
+
+.ask-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ask-btn {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 34%, transparent),
+    color-mix(in srgb, var(--accent) 18%, transparent)
+  );
+  color: color-mix(in srgb, var(--accent) 40%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  border-radius: var(--r-pastilla);
+  padding: 4px 13px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 10px color-mix(in srgb, var(--accent) 22%, transparent);
+  transition:
+    transform 0.1s ease,
+    filter 0.12s ease;
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-btn:hover {
+  filter: brightness(1.14);
+  transform: translateY(-1px);
+}
+
+.ask-btn:active {
+  transform: translateY(1px);
+}
+
+/* The first option is the recommended one, the rest step back a shade. */
+.ask-btn:nth-child(n + 2) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: color-mix(in srgb, var(--accent) 30%, var(--text));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: none;
+}
+
+/* «En pausa mientras lees», la píldora de leer en paz.
+ *
+ * Cuando subes a leer, la terminal deja de escribir y lo que llega espera en
+ * cola: así el texto no se te mueve debajo, que era el salto del scroll de
+ * doce reportes. Pero una terminal parada y muda se lee como una terminal
+ * colgada, así que esto tiene DOS trabajos: decir que está en pausa a
+ * propósito, y ser el botón que te devuelve al día.
+ *
+ * Abajo y centrada, encima del texto, donde ya está mirando quien acaba de
+ * scrollear. Con el acento del tema, porque no es un error: es un modo. */
+.pane-pausa {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  padding: 6px 14px;
+  border-radius: var(--r-pastilla);
+  /* En una sola línea SIEMPRE: partida en dos, una píldora deja de leerse como
+     una etiqueta y parece un cuadro de diálogo a medio pintar. */
+  white-space: nowrap;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  /* Fondo aplanado y NO translúcido: sobre una foto, un alfa aquí apaga el
+     ClearType y el texto pequeño sale sucio. */
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel-solid));
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 6px 18px rgba(0, 0, 0, 0.42);
+  animation: update-sube 0.16s ease;
+}
+
+.pane-pausa:hover {
+  background: color-mix(in srgb, var(--accent) 34%, var(--panel-solid));
+}
+
+.pane-note {
+  padding: 7px 12px;
+  background: color-mix(in srgb, var(--row) 75%, rgba(13, 21, 36, 0.94));
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* «Esa sesión ya está abierta en otro sitio». Arriba y centrada, porque es la
+   respuesta a un clic que acaba de dar y que NO ha hecho lo que esperaba: si
+   apareciera en una esquina, daría por hecho que el clic no funcionó y volvería
+   a pulsar. Roja porque es lo mismo que le colgó la terminal media tarde. */
+.ocupada-bar {
+  position: fixed;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  max-width: 620px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 138, 146, 0.24),
+    rgba(13, 21, 36, 0.96)
+  );
+  border: 1px solid rgba(255, 138, 146, 0.5);
+  color: #ffb3b8;
+  font-size: 12.5px;
+  line-height: 1.5;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
+}
+
+/* El aviso de sesión cargada. Dos tonos a propósito: ámbar mientras solo va
+   cara («ciérrala pronto»), y rojo cuando compactar ya sale peor que empezar de
+   cero, que es una decisión distinta y merece leerse distinta. Va arriba del
+   todo del panel, con el resto de avisos, porque es donde se mira. */
+.pane-ctx-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  background: linear-gradient(
+    180deg,
+    rgba(240, 180, 100, 0.22),
+    rgba(13, 21, 36, 0.94)
+  );
+  border: 1px solid rgba(240, 180, 100, 0.45);
+  color: #ffd08a;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pane-ctx-warn span:first-child {
+  flex: 1;
+}
+
+.pane-ctx-warn[data-grave="true"] {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 138, 146, 0.22),
+    rgba(13, 21, 36, 0.94)
+  );
+  border-color: rgba(255, 138, 146, 0.5);
+  color: #ffb3b8;
+}
+
+.panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 48px;
+}
+
+/* La cabecera de una pantalla: el título y la frase que lo explica.
+   No tenía NADA de margen por abajo, así que en las cinco pantallas que la usan
+   esa frase quedaba pegada a lo primero que viniera: al índice en Ajustes, a la
+   primera cuenta en Cuentas, a la cita en la Agenda (Munir, 2026-07-30).
+   Donde lo que sigue ya trae su propio margen, como las tarjetas del Panel con
+   sus 26px, los dos colapsan y gana el mayor: no se suma un hueco de más. */
+.panel-hero {
+  margin-bottom: 24px;
+}
+
+.panel-hero h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+/* El título y la frase de una pestaña van SUELTOS sobre el fondo de la casa,
+   que es una foto. Un texto sin caja encima de una foto necesita una sombra
+   para despegarse, o se lee a trozos según lo que tenga detrás: en Comandos la
+   frase caía sobre un gato claro y desaparecía a la mitad. */
+.panel-hero h1,
+.panel-hero p,
+.cmd-hint {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+}
+
+.panel-hero p {
+  margin: 4px 0 0;
+  /* Y con más luz que `--muted`, que es un gris pensado para leerse dentro de
+     un panel opaco. */
+  color: color-mix(in srgb, var(--text) 74%, transparent);
+  /* La frase es una línea de contexto, no un párrafo: sin tope se estira a lo
+     ancho de la pantalla y el ojo tiene que recorrerla entera para volver. */
+  max-width: 78ch;
+  line-height: 1.5;
+}
+
+/* Y que se LEA con una foto detrás.
+   El encabezado es lo único de estas pantallas que va directo sobre el fondo,
+   sin panel debajo, así que con una foto clara el subtítulo en `--muted`
+   desaparecía del todo (Munir, 2026-07-31: «los textos no son claros y a veces
+   no se ven»). La sombra hace el trabajo de un panel sin poner una caja: pinta
+   un halo del color del fondo alrededor de cada letra, así que la foto se
+   sigue viendo entre palabra y palabra y el texto queda legible encima de lo
+   que sea. Solo con foto puesta: sin ella no hace falta y sería suciedad. */
+:root:has(.fondo) .panel-hero h1 {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 2px 14px rgba(0, 0, 0, 0.4);
+}
+:root:has(.fondo) .panel-hero p {
+  /* Sube de `--muted` a `--text` con opacidad: mantiene la jerarquía (sigue
+     siendo más apagado que el título) sin depender de un gris que sobre una
+     pared blanca no existe. */
+  color: color-mix(in srgb, var(--text) 82%, transparent);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.6),
+    0 1px 10px rgba(0, 0, 0, 0.45);
+}
+/* Y lo mismo para TODO texto que vuele sobre el fondo sin panel debajo.
+   La regla es esa y no una lista de clases: dentro de una tarjeta el cristal ya
+   hace de fondo y se lee bien, pero un título de grupo o una explicación suelta
+   caen directos sobre la foto. Munir tenía los títulos «Por clave» y «Claves de
+   API» y su párrafo entero borrados por una pared blanca (2026-07-31).
+   El `:not(.panel-card *)` es lo que distingue los dos casos, así que un texto
+   nuevo que se ponga suelto queda cubierto sin acordarse de esta regla. */
+:root:has(.fondo) .account-group-title:not(.panel-card *),
+:root:has(.fondo) .agenda-where .where-name,
+:root:has(.fondo) .accounts-note:not(.panel-card *),
+:root:has(.fondo) .card-hint:not(.panel-card *) {
+  color: color-mix(in srgb, var(--text) 80%, transparent);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.65),
+    0 1px 10px rgba(0, 0, 0, 0.5);
+}
+/* Los títulos, con su color y algo más de peso: la sombra los salva de la foto,
+   pero un título en gris apagado sigue pareciendo texto secundario. */
+:root:has(.fondo) .account-group-title:not(.panel-card *),
+:root:has(.fondo) .agenda-where .where-name {
+  color: var(--text);
+}
+
+/* El índice de Ajustes se quedó fuera de la regla de arriba: no encaja en
+   ningún selector de la lista, así que «Terminales», «Notificaciones»… volaban
+   sobre la foto sin sombra, y en un tema claro (fondo de foto casi siempre
+   vivo) el gris de `--muted` desaparecía (Munir, 2026-08-02: «las letras más
+   visibles» en los temas claros). Solo la pestaña SIN seleccionar: la
+   seleccionada ya lleva su propia píldora de color detrás y con eso se lee. */
+:root:has(.fondo) .set-tab:not([data-on]) {
+  color: color-mix(in srgb, var(--text) 78%, transparent);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 1px 10px rgba(0, 0, 0, 0.4);
+}
+
+.stats {
+  display: flex;
+  gap: 14px;
+  margin: 26px 0;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 160px;
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
+  /* Una de ellas es un <button> que lleva a la Cabina: sin esto heredaría el
+     centrado y la tipografía del navegador y sería la única distinta. */
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+/* El dato de debajo del número: es lo que convierte una cifra en una noticia.
+   «3 trabajando ahora» no dice si hay que hacer algo; «3 · 7 agentes
+   desplegados» sí. */
+.stat-foot {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* La única que se puede pulsar se comporta como tal, y solo cuando lleva a
+   algún sitio: con cero sesiones en marcha no hay nada que ir a ver. */
+button.stat-card[data-live="true"] {
+  cursor: pointer;
+  transition: border-color .14s ease, transform .14s ease;
+}
+button.stat-card[data-live="true"]:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  transform: translateY(-2px);
+}
+button.stat-card[data-live="true"] .stat-num {
+  color: var(--accent);
+}
+button.stat-card[data-live="false"] {
+  cursor: default;
+}
+
+.stat-num {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  max-width: 1100px;
+}
+

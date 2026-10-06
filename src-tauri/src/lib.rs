@@ -30,6 +30,7 @@ mod memoria_casa;
 mod vectores;
 mod conserje;
 mod movil;
+mod push;
 mod secrets;
 mod sessions;
 mod suelta;
@@ -398,10 +399,12 @@ pub fn run() {
             movil::movil_encender,
             movil::movil_emparejar,
             movil::movil_olvidar,
+            movil::movil_avisar,
             movil::movil_tailscale,
             mcp::confiar_carpeta,
             pty::pty_spawn,
             pty::pty_write,
+            pty::pty_send,
             pty::pty_resize,
             pty::pty_kill,
             pty::pty_historial,
@@ -431,6 +434,7 @@ pub fn run() {
             sessions::session_context,
             sessions::last_reply,
             sessions::transcript_exists,
+            sessions::codex_session_since,
             sessions::session_messages,
             sessions::session_activity,
             skills::list_skills,
@@ -512,6 +516,7 @@ pub fn run() {
             conserje::conserje_leer,
             conserje::conserje_router,
             conserje::conserje_cerebro,
+            conserje::conserje_fijo,
             conserje::conserje_trabajo,
             conserje::conserje_soltar,
             conserje::conserje_arranque,

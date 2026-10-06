@@ -97,6 +97,11 @@ http
       if (url.pathname === "/api/emparejar") {
         return v.codigo === "123456" ? json(res, 200, { clave: CLAVE, nombre: v.nombre }) : json(res, 403, { error: "Ese código no es." });
       }
+      // El service worker de los avisos, en corto: lo de verdad está en `movil.rs`.
+      if (url.pathname === "/sw.js") {
+        res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
+        return res.end(`self.addEventListener("push", (e) => { const d = e.data ? e.data.json() : {}; e.waitUntil(self.registration.showNotification(d.titulo || "Conserje", { body: d.cuerpo || "" })); });`);
+      }
       if (!url.pathname.startsWith("/api/")) return json(res, 404, { error: "Aquí no hay nada." });
       if (req.headers.authorization !== `Bearer ${CLAVE}`) return json(res, 401, { error: "Este móvil no está emparejado." });
       const id = url.searchParams.get("id") || v.id;
@@ -126,6 +131,21 @@ http
         case "/api/cerebro":
           if (!["haiku", "sonnet", "opus"].includes(v.cerebro)) return json(res, 400, { error: "No es de la lista." });
           nueva(id).cerebro = v.cerebro;
+          return json(res, 200, { ok: true });
+        // Los avisos: la clave pública del ejemplo de la RFC 8291 (un punto
+        // P-256 válido, que el navegador comprueba) y la suscripción guardada.
+        case "/api/push/clave":
+          return json(res, 200, { clave: "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8" });
+        case "/api/push/suscribir":
+          if (!String(v.endpoint || "").startsWith("https://") || !v.p256dh || !v.auth) return json(res, 400, { error: "La suscripción no está completa." });
+          console.log(`suscrito a avisos: ${v.endpoint.slice(0, 60)}…`);
+          return json(res, 200, { ok: true });
+        case "/api/push/olvidar":
+          console.log("avisos quitados");
+          return json(res, 200, { ok: true });
+        case "/api/fijo":
+          if (v.modelo && !["haiku", "sonnet", "opus"].includes(v.modelo)) return json(res, 400, { error: "No es de la lista." });
+          nueva(id).fijo = v.modelo;
           return json(res, 200, { ok: true });
         case "/api/parar":
           return json(res, 200, { ok: true });

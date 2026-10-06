@@ -1,7 +1,7 @@
 /**
  * La identidad de Adeorq, copiada de donde vive de verdad.
  *
- * Los colores salen del bloque `:root` de `src/App.css` (el tema azul, que es
+ * Los colores salen del bloque `:root` de `src/estilos/01-base.css` (el tema azul, que es
  * el de fábrica) y las dos fuentes son las mismas que ya sirve la web en
  * `web/fonts`. Nada de esto se inventa: un vídeo que se parece a la app "por
  * aproximación" es justo lo que Munir devuelve diciendo que no es fiel, y el

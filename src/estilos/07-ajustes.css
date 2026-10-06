@@ -1,0 +1,1543 @@
+/* ── Ajustes, por secciones ─────────────────────────────────────────────────
+   Eran diez tarjetas en una rejilla, y una tenía dos botones mientras otra
+   tenía veinticuatro temas: la rejilla se llenaba de huecos y no había forma de
+   saber por dónde ibas. Ahora los grupos van a la izquierda y solo se pinta uno,
+   a todo el ancho, que es lo que hace que no sobre ni falte sitio. */
+.set-marco {
+  display: grid;
+  /* 196px y no 172: desde que las pestañas llevan contador, «Próximos pasos» o
+     «Your accounts» y su número no cabían en una línea y el número se montaba
+     encima del nombre (Munir, 2026-07-31). */
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  max-width: 1100px;
+}
+
+/* En Ayuda no: ahí dentro va la guía, que es un texto para leer con su índice
+   al lado, y el tope de arriba la dejaba en una tira estrecha con media
+   pantalla en negro (Munir, 2026-08-29). El ancho lo pone ella. */
+.set-marco[data-ancha] {
+  max-width: none;
+}
+
+
+/* El contador de la pestaña: cuántas cosas hay dentro, para no tener que
+   entrar a mirar si está vacío. Va a la derecha del nombre y en pequeño: es un
+   dato de apoyo, no el titular. */
+.set-tab-badge {
+  margin-left: auto;
+  flex: none;
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  background: var(--row);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.set-tab[data-on] .set-tab-badge {
+  color: var(--on-accent);
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+/* El índice de secciones (Ajustes y el Panel usan el mismo).
+   No tenía fondo, así que sus ocho nombres en gris caían sueltos sobre la foto
+   de escritorio y no se leía ninguno (Munir, 2026-08-07, por tercera vez con
+   la misma causa). Superficie propia y cristal, que es la regla de la casa
+   para todo lo que puede acabar sobre el fondo. */
+.set-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  /* Se queda a la vista mientras el contenido baja: en Discord o en Terminales
+     hay texto de sobra para perder de vista dónde estás.
+     El `-40px` compensa el padding de arriba de `.panel`: sin él, la barra se
+     pegaba al borde superior de la ventana y quedaba tocando la barra de
+     pestañas de la app. */
+  position: sticky;
+  top: -40px;
+  /* Y con tope, ahora que puede crecer: el grupo abierto despliega sus bloques
+     debajo, así que en una pantalla baja el índice podía pasar de largo la
+     ventana, y un `sticky` más alto que la ventana deja lo de abajo fuera de
+     alcance para siempre. Con esto se hace su propia rueda y siempre se llega
+     al último grupo. */
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+}
+
+/* Un grupo del índice: su nombre y, si es el abierto, sus bloques debajo. */
+.set-grupo {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Los bloques del grupo abierto. Sangrados y colgando de una línea vertical,
+   que es lo que dice «esto es de ahí arriba» sin escribirlo: sin la línea,
+   ocho nombres seguidos de dos tamaños distintos se leen como una lista sola.
+   Aparece y desaparece con el grupo, así que nunca hay más de una abierta.
+
+   ⚠ Esta línea NO SE PINTABA, y fue lo que destapó el fallo de `--line`: la
+   variable no estaba declarada en ninguna parte y se usaba en 25 sitios más
+   (ver el bloque «LA RAYA QUE FALTABA», arriba del todo). Se dejó en `--border`
+   escrito a mano, que es exactamente lo que `--line` vale ahora. */
+.set-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 3px 0 5px 20px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+  /* Se despliega, no aparece de golpe: el movimiento es la mitad de lo que
+     hace que esto se lea como un desplegable y no como una lista que cambia.
+     Con `opacity` y `transform`, que son las dos que no obligan a recalcular
+     el desenfoque de los cristales de debajo. */
+  animation: set-sub-abre 0.18s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+@keyframes set-sub-abre {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.set-sub-item {
+  padding: 6px 9px;
+  border: none;
+  border-radius: var(--r-chico);
+  background: none;
+  color: color-mix(in srgb, var(--text) 58%, transparent);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  /* Un título largo no ensancha la columna: se recorta. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.set-sub-item:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.set-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: var(--r-btn);
+  border: 1px solid transparent;
+  background: transparent;
+  /* Un punto más de luz que `--muted`: son ocho nombres seguidos y es lo único
+     que hay que leer de esta columna. */
+  color: color-mix(in srgb, var(--text) 70%, transparent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.set-tab:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.set-tab[data-on] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.set-tab svg {
+  flex: none;
+  opacity: 0.85;
+}
+
+.set-tab[data-on] svg {
+  color: var(--accent);
+  opacity: 1;
+}
+
+/* La flecha del desplegable, que es lo que le faltaba al índice para leerse
+   como uno (Munir, 2026-08-10: «no hay un desplegable como tal»). Los bloques
+   ya se desplegaban debajo del grupo abierto, pero nada decía CUÁLES de los
+   ocho nombres esconden algo: había que ir pulsando a ver.
+   De lado significa «aquí dentro hay más», y gira noventa grados al abrirse. La
+   llevan solo los grupos que de verdad se abren, así que su ausencia también
+   informa: Atajos, Modelo local y Discord son de una sola tarjeta. */
+.set-tab-chev {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  color: color-mix(in srgb, var(--text) 38%, transparent);
+  transition:
+    transform 0.18s cubic-bezier(0.3, 0.7, 0.4, 1),
+    color 0.12s ease;
+}
+
+.set-tab:hover .set-tab-chev {
+  color: color-mix(in srgb, var(--text) 70%, transparent);
+}
+
+.set-tab[data-on] .set-tab-chev {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+/* Y vuelve a apuntar de lado si el grupo está a la vista pero con su lista
+   recogida: la flecha describe lo que hay DEBAJO de ella, no cuál es la
+   sección abierta. Con `[data-on][data-plegado]` para ganarle a la regla de
+   arriba, que es la que gira. */
+.set-tab[data-on][data-plegado] .set-tab-chev {
+  transform: none;
+}
+
+/* Solo el nombre. Llevaba debajo una línea explicando qué había dentro, y con
+   siete grupos eso convertía el índice en más texto que el contenido. */
+.set-tab-nom {
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.set-hoja {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* En un panel estrecho la columna se convierte en una fila de pestañas: 232px
+   de índice más el contenido no caben, y el índice no es lo que se lee. */
+@media (max-width: 900px) {
+  .set-marco {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .set-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .set-tab {
+    width: auto;
+  }
+
+  /* En fila, el contador va pegado al nombre: `margin-left: auto` lo empujaría
+     al final de una pestaña que ya no ocupa toda la anchura. */
+  .set-tab-badge {
+    margin-left: 4px;
+  }
+}
+
+/* LA TARJETA DE CONTENIDO. Léase esto antes de inventarse otra.
+ *
+ * El fondo de Adeorq es una FOTO, así que cualquier cosa que se pinte suelta
+ * encima de una pestaña cae sobre ella. Esta tarjeta es la que resuelve eso, y
+ * mientras una pantalla la use, se lee. Cuentas, Agenda y Ajustes la usan.
+ *
+ * Los cuatro sitios donde se ha roto esta semana son los cuatro que se
+ * inventaron su propia superficie: la Memoria, la tira de apartadas, el índice
+ * de secciones y la rejilla de Comandos. Siempre por lo mismo, `--row` de
+ * fondo (que es translúcido) o `--muted` de texto (que es un gris para leer
+ * dentro de un panel opaco). Si haces una rejilla nueva: fondo `--popover` con
+ * `backdrop-filter`, y el desenfoque UNA vez en el contenedor, nunca en cada
+ * tarjeta, que cincuenta y dos desenfoques cuestan lo que costaba el lag. */
+.panel-card {
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  padding: 18px 20px;
+  box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+
+.panel-card h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+/* En Ajustes las tarjetas ya no compiten por sitio en una rejilla, así que
+   pueden respirar: título con más aire y el texto de ayuda separado de los
+   controles en vez de pegado a ellos. */
+.set-hoja .panel-card {
+  padding: 20px 22px;
+}
+
+.set-hoja .panel-card h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+/* El texto largo del final de una tarjeta: es contexto, no una instrucción, y
+   con el mismo peso que los controles se lee como si hiciera falta leerlo. */
+.set-hoja .panel-card > .card-hint:last-child,
+.set-hoja .panel-card > .card-hint + .card-hint {
+  margin-bottom: 0;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  opacity: 0.85;
+}
+
+.card-hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+/* Dónde acaba tu clave, con el aspecto de lo que es.
+   En Windows es una nota verde: el sistema la guarda cifrada. En Linux es un
+   aviso ámbar, porque allí es un archivo con permisos y hay que saberlo ANTES
+   de pegar nada. Se distingue por color y por texto, no solo por texto: la
+   diferencia entre las dos frases importa de verdad. */
+.apikeys-donde {
+  display: flex;
+  gap: 8px;
+  padding: 10px 13px;
+  border-radius: var(--r-btn);
+  border: 1px solid color-mix(in srgb, var(--done) 40%, transparent);
+  /* SÓLIDO: el tinte por encima de un color del tema, no mezclado con
+     `transparent`. Con `color-mix(--done 9%, transparent)` el fondo dejaba
+     pasar el 91 %, así que la foto del escritorio se leía A TRAVÉS del aviso y
+     el aviso no se leía (Munir, 2026-08-12). Y da la casualidad de que este es
+     el párrafo que dice dónde acaba tu clave de API, o sea el que más se tiene
+     que poder leer de esta pantalla. */
+  background: linear-gradient(
+      color-mix(in srgb, var(--done) 12%, transparent),
+      color-mix(in srgb, var(--done) 12%, transparent)
+    ),
+    var(--panel-solid);
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.apikeys-donde::before {
+  content: "⚠";
+  flex: none;
+  color: var(--done);
+}
+
+.apikeys-donde[data-seguro="true"] {
+  border-color: color-mix(in srgb, #4ec98a 34%, transparent);
+  background: linear-gradient(
+      color-mix(in srgb, #4ec98a 11%, transparent),
+      color-mix(in srgb, #4ec98a 11%, transparent)
+    ),
+    var(--panel-solid);
+}
+
+.apikeys-donde[data-seguro="true"]::before {
+  content: "🔒";
+  color: #4ec98a;
+}
+
+/* A setting almost nobody needs, folded away. Present for whoever looks for
+   it, absent for everyone else: the card should read as one switch. */
+.setting-more {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 2px;
+}
+
+.setting-more > summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  list-style: none;
+  padding: 2px 0;
+}
+
+.setting-more > summary::before {
+  content: "▸ ";
+}
+
+.setting-more[open] > summary::before {
+  content: "▾ ";
+}
+
+.setting-more > summary:hover {
+  color: var(--text);
+}
+
+/* En columnas, no en una tira.
+   Con diecinueve proyectos uno debajo de otro, la lista se salía de la pantalla
+   y obligaba a hacer scroll con media ventana vacía al lado (Munir,
+   2026-07-31: «el usuario a veces tiene que hacer scroll, y eso es muy
+   crítico»). `auto-fill` reparte en las columnas que quepan y baja a una sola
+   en una ventana estrecha, que es donde el scroll sí es lo razonable. */
+.hot-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 2px 10px;
+  align-content: start;
+}
+
+.hot-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: var(--r-pastilla);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.12s ease;
+}
+
+.hot-item:hover {
+  background: var(--panel-head);
+}
+
+.hot-name {
+  flex: 1;
+}
+
+/* El punto del color del proyecto. Nunca se había visto: el span va vacío y
+   solo lleva el color en línea, así que sin tamaño aquí un `display:inline`
+   sin contenido ocupa cero píxeles y la fila salía directamente sin punto. */
+.ws-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  box-shadow: 0 0 6px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.np-row {
+  display: flex;
+  gap: 8px;
+}
+
+.np-row .finder {
+  flex: 1;
+}
+
+/* Primary button, the one with presence: gradient body, a lit top edge and a
+   coloured glow underneath, and it physically sinks when pressed. */
+.np-btn {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, white 18%), color-mix(in srgb, var(--accent) 78%, black 22%));
+  color: #f7fbff;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, white 45%);
+  border-radius: var(--r-btn);
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent);
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.12s ease,
+    filter 0.12s ease;
+}
+
+.np-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  box-shadow: none;
+  filter: grayscale(0.4);
+}
+
+.np-btn:not(:disabled):hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 7px 20px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.np-btn:not(:disabled):active {
+  transform: translateY(1px);
+  filter: brightness(0.95);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.35),
+    0 1px 4px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* El mismo botón, pero sin voz: el de al lado del que sí manda. Seis lo pedían
+   («Olvidar la cuenta», «Volver a lo de fábrica», los secundarios del Capataz)
+   y esta clase no existía, así que salían los dos del mismo azul y con el
+   mismo brillo. Dos botones principales juntos son cero botones principales. */
+.np-btn.ghost {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text) 22%, transparent);
+  box-shadow: none;
+}
+
+.np-btn.ghost:not(:disabled):hover {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+  border-color: color-mix(in srgb, var(--text) 34%, transparent);
+  box-shadow: none;
+}
+
+.np-btn.ghost:not(:disabled):active {
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.28);
+}
+
+.np-ok {
+  color: #7ee08a;
+  font-size: 12px;
+  margin: 10px 0 0;
+}
+
+.np-err {
+  color: #ff8f8f;
+  font-size: 12px;
+  margin: 10px 0 0;
+}
+
+.mission-text {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: inherit;
+  /* Fixed on purpose: the drag handle in the corner only ever got in the way,
+     and the box is now tall enough that nothing has to be resized to be read. */
+  resize: none;
+  min-height: 108px;
+  outline: none;
+  margin-bottom: 8px;
+}
+
+.mission-text:focus {
+  border-color: var(--accent);
+}
+
+.role-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.role-chip:hover {
+  background: var(--panel-head);
+}
+
+.role-chip:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(77, 159, 255, 0.16);
+}
+
+.role-chip input {
+  accent-color: var(--accent);
+}
+
+/* Stream mode (Ctrl+Mayús+E): Munir streams his vibe coding, so one switch
+   hides what is his and nobody else's. Paths, the footer and the session
+   folder go; each pane can also be covered on its own with its ○ button.
+
+   Lo que el velo NO tapa, y no es un olvido (Munir, 2026-08-05): los TÍTULOS
+   de las sesiones y los objetivos del día. Ese es el hilo de lo que estás
+   haciendo, y taparlo dejaba una emisión donde no se entiende nada: una
+   columna de barras grises y un panel de objetivos con las tareas en blanco.
+   Lo que de verdad no puede salir —rutas, cuentas, encargos, la respuesta del
+   agente, cualquier clave— sigue tapado, y esa parte no se toca. */
+/* Sin rótulo, así que ocupa lo que ocupa su icono, igual que el orbe del
+   Asistente de al lado. `relative` para poder colgarle los anillos. */
+.stream-toggle {
+  position: relative;
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+}
+
+.stream-toggle[data-on="true"] {
+  color: #ff9c6e;
+  border-color: rgba(255, 156, 110, 0.45);
+  background: rgba(255, 156, 110, 0.14);
+}
+
+/* Los anillos de emisión: dos ondas que salen del botón y se apagan.
+   Es lo que Munir señaló de reactbits (Munir, 2026-08-10), hecho aquí con dos
+   pseudoelementos en vez de traerse un canvas: son dos bordes que crecen, y a
+   este tamaño no se distingue de lo otro.
+
+   Solo `transform` y `opacity`, que es la regla de la casa para lo que se anima
+   encima del cristal (ver `.np-eq i`): animar el tamaño obligaría a recalcular
+   la maqueta en cada fotograma e invalidaría el desenfoque de todo lo que hay
+   debajo, que en esta cabecera es la app entera.
+
+   Y solo con `data-on`: apagado no hay nada que anunciar, así que no se anima
+   nada y no cuesta nada. */
+.stream-toggle[data-on="true"]::before,
+.stream-toggle[data-on="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px solid #ff7c00;
+  opacity: 0;
+  pointer-events: none;
+  animation: emision-anillo 2.4s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+}
+
+/* El segundo sale a mitad de camino del primero: dos ondas seguidas se leen
+   como algo que EMITE; una sola parece un parpadeo. */
+.stream-toggle[data-on="true"]::after {
+  animation-delay: 1.2s;
+  border-color: #eb0000;
+}
+
+@keyframes emision-anillo {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.12;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+/* Lo que respira deja de respirar cuando se pide rendimiento, como el halo del
+   panel que te espera y el ecualizador de la música. El botón sigue encendido
+   con su color: se pierde la onda, no la información. */
+:root[data-rendimiento="1"] .stream-toggle[data-on="true"]::before,
+:root[data-rendimiento="1"] .stream-toggle[data-on="true"]::after {
+  animation: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-toggle[data-on="true"]::before,
+  .stream-toggle[data-on="true"]::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  /* El desplegable del índice de Ajustes: sigue abriéndose, sin el deslizamiento
+     ni el giro de la flecha. La flecha se queda apuntando adonde tiene que
+     apuntar, que es lo que informa; lo que se va es cómo llega. */
+  .set-sub {
+    animation: none;
+  }
+
+  .set-tab-chev {
+    transition: color 0.12s ease;
+  }
+}
+
+/* Streaming: cover, never blur. A light blur over monospaced text can be
+   undone from a recording, so the masked bits get a solid bar instead. */
+.app[data-stream="true"] .side-foot,
+.app[data-stream="true"] .stream-hide,
+.app[data-stream="true"] .foreman-summary {
+  color: transparent !important;
+  background: color-mix(in srgb, var(--muted) 42%, var(--panel-solid));
+  border-radius: 5px;
+  text-shadow: none;
+  user-select: none;
+}
+
+/* Hover no longer reveals: on a stream, moving the mouse would expose it.
+   Holding Alt does, and letting go or losing focus hides it again. */
+.app[data-stream="true"][data-peek="true"] .side-foot,
+.app[data-stream="true"][data-peek="true"] .stream-hide,
+.app[data-stream="true"][data-peek="true"] .foreman-summary {
+  color: inherit !important;
+  background: none;
+  user-select: auto;
+}
+
+/* Covering one terminal: blur, because Munir prefers how it looks, but a
+   HEAVY blur plus a veil on top. A soft blur over monospaced text can be
+   recovered from a recording; at this radius, and with the veil flattening
+   the contrast, there is nothing left to read. */
+.pane[data-blurred="true"] .pane-term {
+  filter: blur(18px) saturate(0.6) contrast(0.75);
+  pointer-events: none;
+  user-select: none;
+}
+
+.pane[data-blurred="true"]::after {
+  content: "terminal tapada";
+  position: absolute;
+  inset: 36px 0 0 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  background: color-mix(in srgb, var(--panel-solid) 45%, transparent);
+  pointer-events: none;
+}
+
+/* Panic curtain: opaque, instant, over everything including the top bar. */
+.panic {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--panel-solid);
+  cursor: pointer;
+}
+
+.panic-title {
+  font-size: 20px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.panic-hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* What the shield just masked. Two tones on purpose: red is for a credential
+   you may have to rotate, and a path with your username is not one. Dressing
+   both the same taught the bar to cry wolf. */
+/* Era una banda de lado a lado pegada al techo, encima de la barra de arriba:
+   el aviso más discreto de la app se comportaba como el más grave. Y no hace
+   falta, porque el enmascarado ocurre ANTES de pintar: cuando lo lees, lo que
+   avisa ya no puede pasar. Ahora es una tarjeta pequeña abajo a la derecha, con
+   el mismo aspecto que los demás avisos de la casa, y no le quita ni un píxel a
+   las terminales. */
+.burnt-bar {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 9998;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(360px, calc(100vw - 28px));
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), 0 10px 26px rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  line-height: 1.45;
+  animation: burnt-in 0.14s ease;
+}
+
+@keyframes burnt-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* El color ya no es el fondo entero, solo el borde: distingue igual y deja de
+   pintar una franja de alarma a lo ancho de la ventana. */
+.burnt-bar[data-sev="alta"] {
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--wait) 55%, transparent);
+}
+
+/* Nothing to do about it: says its piece, then leaves on its own. */
+.burnt-bar[data-sev="baja"] {
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.burnt-bar span {
+  flex: 1;
+}
+
+.burnt-bar .mini {
+  flex: none;
+}
+
+/* META 6, the account manager. One card per account: who it is, what its plan
+   allows, how much of it is left. Everything here is free to read. */
+.accounts-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* El resumen de cabecera, en UN RENGLÓN.
+   Fueron tres tarjetas del tamaño de las del Panel, y allí están bien porque
+   allí ese número es el titular de la pantalla. Aquí no: aquí el titular es la
+   lista, y estos tres datos vuelven a salir cada uno en su sitio unas líneas
+   más abajo. Se llevaban la quinta parte de la ventana para repetirse (Munir,
+   2026-08-09: «más profesional, no tan grande»). */
+.accounts-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 26px;
+  margin: 14px 0 14px;
+  /* Su superficie, por lo mismo que la lista de abajo: una raya de separación
+     no sirve de nada cuando lo que hay detrás es una foto. Aplanada, opaca. */
+  padding: 11px 16px;
+  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.accounts-linea > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.accounts-linea b {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El nombre de la cuenta de siempre va donde los otros dos llevan una cifra, y
+   un nombre largo no puede empujar a los demás fuera del renglón. */
+.accounts-linea b:not(.stream-hide) {
+  flex: none;
+}
+
+.accounts-linea .stream-hide {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 190px;
+}
+
+/* Lo de después del dato, en gris y más pequeño: es el pie de la cifra, el
+   mismo papel que hacía `.stat-foot` cuando esto eran tarjetas. */
+.accounts-linea em {
+  font-style: normal;
+  font-size: 11px;
+  opacity: 0.62;
+}
+
+/* Y cuando el límite más apretado ya aprieta de verdad, se ve desde la puerta. */
+.accounts-linea > span[data-hot] b {
+  color: var(--done);
+}
+
+.accounts-grid {
+  align-items: start;
+  /* Aquí no aplica el tope de 1100 px de .panel-grid: en una pantalla ancha
+     dejaba la mitad derecha en negro mientras los CLIs se apilaban hacia
+     abajo y había que hacer scroll para verlos. */
+  max-width: none;
+  /* Con TOPE por columna, que es lo que le faltaba. `.panel-grid` reparte en
+     `1fr`, así que dos tarjetas en un monitor ancho se estiraban a 600 px cada
+     una para enseñar un nombre, tres barras de 84 px y dos botones: todo el
+     ancho que sobraba se convertía en hueco DENTRO de la tarjeta. Ahora una
+     tarjeta mide lo que necesita y el sitio que sobra queda fuera, que es
+     donde no molesta. */
+  grid-template-columns: repeat(auto-fill, minmax(340px, 460px));
+  justify-content: start;
+}
+
+/* Aquí repartía los CLIs en DOS COLUMNAS a partir de 1700 px, y tenía sentido
+   mientras cada uno era una tarjeta alta: seis apilados dejaban media pantalla
+   en negro. Se va con las tarjetas (2026-08-09). Ahora un CLI plegado es un
+   renglón y los diez caben sin bajar, así que la segunda columna no ahorraría
+   ningún scroll; y peor: `column-count` reparte por altura, así que abrir un
+   CLI recolocaba los de la otra columna y la lista entera saltaba bajo el
+   ratón. Una lista que se pliega tiene que quedarse quieta. */
+/* Y la lista va SOBRE UNA SUPERFICIE, que es lo que traía cada tarjeta y se fue
+   con ellas: sin esto los diez CLIs quedaban sueltos sobre la foto de la casa y
+   el nombre de cada uno competía con lo que hubiera detrás (Munir, 2026-08-09:
+   «hazlo menos transparente», con un Mickey de fondo atravesando la pantalla).
+   Es exactamente el error del que avisa el comentario de `.panel-card`, y van
+   cinco esta semana: quien monta una rejilla nueva se inventa su superficie.
+
+   OPACA y no cristal, por dos motivos a la vez: es lo que él ha pedido, y sobre
+   un fondo con alfa Windows apaga ClearType y estos nombres se leen blandos.
+   Se APLANA en vez de cambiar de color: el mismo `--panel` de siempre pintado
+   encima de un sólido del tema, así que el tono es idéntico al del resto de la
+   app y el elemento acaba opaco. Sin `backdrop-filter`: detrás de algo opaco no
+   se ve, y un desenfoque que no se ve es puro coste. */
+.accounts-groups {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+
+/* Una raya finísima entre CLIs, menos bajo el que está abierto: ahí el que
+   separa es el propio hueco de lo que hay dentro. */
+.accounts-groups > .account-group + .account-group::before {
+  content: "";
+  display: block;
+  height: 1px;
+  margin: 0 10px;
+  background: var(--line);
+  opacity: 0.5;
+}
+
+.accounts-groups > .account-group[data-abierto] + .account-group::before,
+.accounts-groups > .account-group[data-abierto]::before {
+  opacity: 0;
+}
+
+/* Cuentas y el Panel necesitan más ancho que Ajustes: dentro de la hoja hay
+   tarjetas y listas en varias columnas, no filas de un ajuste. El tope de 1100
+   dejaba media pantalla vacía a la derecha en un monitor ancho, y encima
+   obligaba a hacer scroll con ese hueco al lado, que es lo peor de los dos
+   mundos (Munir, 2026-07-31). */
+.accounts .set-marco,
+.panel:not(.settings):not(.agenda) .set-marco {
+  max-width: 1500px;
+}
+
+/* One section per CLI: they are not interchangeable, and each has its own
+   idea of what it will tell you about itself. */
+.account-group {
+  margin-top: 6px;
+}
+
+/* Lo que falta por instalar no se pliega (no hay nada que esconder: es UNA
+   lista), así que va en su propia clase y no en `.account-group`, cuya rejilla
+   nace escondida a la espera de `data-abierto`. */
+.accounts-faltan {
+  margin-top: 6px;
+}
+
+/* La entradilla de una sección de Cuentas: su nombre y lo que explica antes de
+   las tarjetas.
+   Con SUPERFICIE, y esto sustituye a un apaño que llevaba meses. Estos textos
+   caían directos sobre la foto del escritorio, y lo que había era ponerles
+   sombra para que se despegaran (`:root:has(.fondo) .account-group-title…`).
+   Una sombra salva un título suelto; no salva tres párrafos seguidos, que es lo
+   que hay aquí, y menos sobre una foto clara: Munir seguía viendo el fondo a
+   través del texto (2026-08-12). Un panel se lee siempre y además AGRUPA, que
+   era la otra mitad de lo que pedía: con dos secciones seguidas y ningún
+   contorno, «Por clave» y «Claves de API» parecían dos títulos del mismo
+   bloque. */
+.account-intro {
+  margin: 0 0 12px;
+  padding: 14px 16px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+}
+
+/* Dentro ya hay panel debajo, así que el título recupera su tamaño de título y
+   deja de necesitar la sombra que lo despegaba de la foto. */
+.account-intro > .account-group-title {
+  padding: 0 0 8px;
+  font-size: 15.5px;
+  color: var(--text);
+  cursor: default;
+}
+
+.account-intro > .account-group-title:hover {
+  background: none;
+  border-color: transparent;
+}
+
+/* La cabecera de cada CLI es el interruptor que lo abre, así que es un BOTÓN de
+   ancho completo y no un título con algo pulsable dentro: lo que uno intenta
+   pulsar es la fila. Plegada, este renglón es todo lo que ocupa un CLI, que era
+   el objetivo: diez instalados caben en una pantalla sin bajar. */
+.account-group-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: none;
+  /* Cada CLI se llama como se llama. Esto iba en versales con un punto de
+     espaciado y peso 700, que es tipografía de ETIQUETA: valía cuando era el
+     título de una sección, y dejó de valer en cuanto pasó a ser el contenido de
+     una fila. Diez renglones gritando en mayúsculas se leen peor, y encima las
+     versales pisaban el nombre real de las marcas: «GITHUB COPILOT» y, el peor,
+     «OPENCODE», que se escribe todo en minúscula a propósito. Es la misma regla
+     que este repo ya aplica a los temas prestados: se llaman por su nombre de
+     verdad, que es lo honesto y además lo que hace que se reconozcan. */
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.account-group-title:hover {
+  color: var(--text);
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
+  border-color: color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+/* Abierto, el nombre manda: es el que tiene algo debajo. */
+.account-group[data-abierto] > .account-group-title {
+  color: var(--text);
+}
+
+.account-group-title > svg {
+  flex: none;
+  opacity: 0.55;
+}
+
+/* Cuántas cuentas hay dentro, al final de la fila. Sin esto, plegado no se
+   sabe si abrirlo trae algo, y abrirlos todos para mirar es justo el paseo que
+   este rediseño quita. En minúscula y sin espaciar: no es un título. */
+.account-group-tras {
+  margin-left: auto;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+/* Lo de dentro, sangrado bajo su cabecera y solo cuando está abierto. */
+.account-group > .accounts-grid {
+  display: none;
+  margin: 8px 0 16px 22px;
+}
+
+.account-group[data-abierto] > .accounts-grid {
+  display: grid;
+}
+
+.account-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex: none;
+}
+
+/* Con su marca dentro deja de ser un punto: no lleva fondo y ocupa lo que
+   ocupa el dibujo. El color va en `color` porque el SVG es de trazo. */
+.account-dot.account-dot-marca {
+  width: 17px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+}
+
+.account-dot-marca .prov-mark {
+  width: 17px;
+  height: 17px;
+}
+
+/* «una sola cuenta»: una nota, no una chapa. Enmarcada competía con el nombre
+   que tiene al lado, y en siete filas seguidas eran siete marcos para decir
+   siete veces lo mismo. Sin caja y en gris claro se lee cuando la buscas y
+   desaparece cuando no. */
+.account-note {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.account-missing {
+  opacity: 0.72;
+}
+
+.account-missing code {
+  font-size: 11.5px;
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+  border-radius: 5px;
+  padding: 1px 5px;
+  word-break: break-all;
+}
+
+/* La tarjeta se apila y punto: la altura la pone lo que hay dentro.
+   ⚠ Aquí hubo un grid de dos columnas con las chapas en `grid-row: 1 / span 20`
+   para que ocuparan todo el alto. Eso CREA veinte filas: aunque diecisiete
+   estén vacías, el `gap` entre ellas sigue contando, y la tarjeta salía con
+   casi doscientos píxeles de aire muerto debajo de los botones (Munir,
+   2026-08-09: «fatal»). Una fila de rejilla vacía no es gratis.
+   Las chapas van ANCLADAS a la esquina, que es lo que hacen de verdad: se
+   posan encima, no forman columna con nadie. */
+/* El sitio de las chapas se reserva en la tarjeta ENTERA, y a mano, porque un
+   elemento anclado no reserva nada por su cuenta. Va así porque van CENTRADAS
+   de arriba abajo: con eso esa franja no es sitio muerto, es la columna en la
+   que viven. Reservarla mientras colgaban de la esquina de arriba es lo que
+   dejaba el hueco largo del lado derecho (Munir, 2026-08-09). */
+/* ⚠ `.account-card.panel-card` y no `.account-card` a secas, y esto NO se puede
+   "simplificar" luego: unas líneas más arriba vive `.set-hoja .panel-card`, que
+   vale (0,2,0) y declara el `padding` ENTERO. Cuentas se pinta dentro de
+   `.set-hoja`, así que a un `.account-card` de (0,1,0) le pisaba el
+   `padding-right` y lo devolvía a 22 px. Se veía como que las chapas se comían
+   el texto de la izquierda, y aguantó tres intentos porque el CSS que yo leía
+   era correcto: el que perdía era el que ganaba (Munir, 2026-08-09).
+   Con las dos clases del propio elemento empata a (0,2,0) y gana por ir
+   después, sin depender de ningún ancestro. */
+.account-card.panel-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* 90 de la tira + 16 que la separan del borde + 12 de aire. La cuenta tiene
+     que salir: con 76 a ojo, «CONNECTED» (y peor, «NOT CONNECTED») era más
+     ancha que su reserva. Si algún día la tira cambia de ancho, este número
+     cambia con ella. */
+  padding-right: 118px;
+}
+
+/* Centradas a lo alto de la tarjeta: son tres palabras sueltas, y un grupo
+   suelto pegado a una esquina se lee como algo que se ha caído. */
+.account-chips {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  right: 16px;
+  /* Ancho FIJO, y de él sale el relleno que le reserva la tarjeta. Sin fijarlo,
+     cada chapa medía lo que midiera su palabra y no había número que reservar:
+     unas cabían y otras no. */
+  width: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+/* SOLO TEXTO. Cada una traía su caja (borde, fondo y esquinas), y en fila eso
+   las separaba del nombre que tenían al lado; puestas en columna, tres cajas
+   apiladas de tres anchos distintos son tres jaulas y nada más (Munir,
+   2026-08-09: «quita las cárceles»). Lo que distingue a las tres es el COLOR,
+   que se queda: gris el plan, el de la casa la predeterminada, verde la
+   conectada.
+   Hace falta `.account-card` delante para ganarle a `.account-badge` y a
+   `.account-state`, que declaran su fondo y su borde más abajo en la hoja y
+   con la misma especificidad se llevarían el empate por ir después. */
+.account-card .account-chips > * {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  max-width: 100%;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  text-align: right;
+  text-transform: uppercase;
+  /* Que pueda partir en dos renglones antes que salirse de su columna: la
+     única que no cabe de una es «not connected», y prefiero verla en dos
+     líneas a que se coma el texto de al lado. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.account-card[data-default="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* Conectada o no, dicho en la cabecera de la tarjeta. Estaba solo dentro del
+   párrafo de contenido, así que para saber si una cuenta respondía había que
+   leerse la tarjeta entera: con nueve delante, nadie lo hace. */
+.account-state {
+  margin-left: auto;
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.account-state[data-ok="true"] {
+  color: #7ee0a8;
+  border-color: color-mix(in srgb, #7ee0a8 40%, transparent);
+  background: color-mix(in srgb, #7ee0a8 12%, transparent);
+}
+.account-state[data-off="true"] {
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.account-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.account-name {
+  font-size: 16px;
+  font-weight: 650;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-plan {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 7px;
+}
+
+.account-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: color-mix(in srgb, var(--accent) 75%, var(--text));
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
+.account-limits {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Un límite en un renglón, en rejilla para que las tres barras arranquen y
+   acaben en la misma vertical: eso es lo que deja comparar «16» con «42» sin
+   leer los números, y con las barras a lo ancho de la tarjeta no pasaba porque
+   todas medían lo mismo. Columnas fijas y no `auto`, por lo mismo. */
+.acc-uso {
+  display: grid;
+  grid-template-columns: 76px 84px 32px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.acc-uso-que {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* GRUESA y CORTA. Antes eran 5 px de alto ocupando los 590 de la tarjeta: a esa
+   proporción no se lee como un depósito que se llena, se lee como una raya
+   debajo del texto. Con 92 px de largo y 8 de alto vuelve a parecer lo que es. */
+.acc-uso-barra {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 25%, transparent);
+  overflow: hidden;
+}
+
+.acc-uso-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.acc-uso-fill[data-hot="true"] {
+  background: var(--ask);
+}
+
+.acc-uso strong {
+  text-align: right;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.acc-uso strong[data-hot="true"] {
+  color: var(--ask);
+}
+
+/* Cuándo se renueva, al final del mismo renglón y en gris: es el dato que se
+   mira DESPUÉS del porcentaje, nunca antes. Si la tarjeta se estrecha, se
+   recorta aquí y no en la cifra, y el globo lo dice entero. */
+.acc-uso-cuando {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  opacity: 0.72;
+}
+
+.account-empty {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.account-rename {
+  flex: 1;
+  min-width: 120px;
+}
+
+.account-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* Baja de 150 con la tarjeta de al lado: la de una cuenta cabe ahora en tres
+     renglones de uso, y un «＋ Añadir cuenta» del alto de la anterior se
+     quedaba como una caja vacía enorme al lado de la que sí dice cosas. */
+  min-height: 92px;
+  color: var(--muted);
+  border-style: dashed;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.account-add:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.account-plus {
+  font-size: 26px;
+  line-height: 1;
+}
+
+/* El aviso de los términos. También iba suelto sobre la foto, y este es de los
+   que hay que poder leer: dice qué te juegas. Su superficie, como las otras. */
+.accounts-note {
+  max-width: 1100px;
+  margin: 14px 0 0;
+  padding: 11px 16px;
+  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Settings: choices as pressable chips, sliders with their value in sight */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Los chips de elegir, en toda la app (Ajustes, Comandos, los filtros).
+   Iban con un degradado de blanco al 7%, que dentro de una tarjeta opaca se ve
+   y sobre la foto de escritorio no existe: en Comandos, los filtros «Claude
+   Code / Antigravity / Tus skills» eran texto gris flotando sobre unos gatos.
+   Ahora parten de un color SÓLIDO del tema, así que se ven donde caigan. */
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: var(--r-btn);
+  font-size: 13px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text) 72%, transparent);
+  background: color-mix(in srgb, var(--text) 8%, var(--panel-solid));
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.choice:hover {
+  color: var(--text);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.choice:active {
+  transform: translateY(1px);
+}
+
+/* El chip que elige un atajo lleva la misma marca que va a salir luego en la
+   fila del proyecto: eliges el dibujo que vas a buscar después, no un nombre
+   que ahí ya no aparece. */
+.choice-prov .prov-mark {
+  width: 16px;
+  height: 16px;
+  color: var(--c);
+}
+
+/* Apagado, el color de la marca es lo único que distingue un chip de otro, así
+   que ahí manda el tono del CLI. Encendido, el fondo ya es el acento de la
+   casa y una marca de color propio encima se ensucia: pasa a blanco. */
+.choice-prov[data-on="true"] .prov-mark {
+  color: currentColor;
+}
+
+.choice[data-on="true"] {
+  color: #f2f8ff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, white 18%), color-mix(in srgb, var(--accent) 78%, black 22%));
+  border-color: color-mix(in srgb, var(--accent) 55%, white 45%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* Los temas por familias. El grupo se separa con su nombre en pequeño, no con
+   una caja: son treinta chips y meterlos en cuatro cajas habría cambiado una
+   pared por cuatro. */
+.tema-familia + .tema-familia {
+  margin-top: 16px;
+}
+
+.tema-familia-eti {
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* La muestra de un esquema de terminal.
+   Empezó siendo seis rayitas de color dentro de un chip, y eso decía qué
+   colores tiene el esquema, no cómo se va a ver una terminal con él. Ahora es
+   una terminal en pequeño con cuatro líneas de verdad —un comando, un acierto,
+   un aviso y un error—, que son justo las cuatro cosas que se leen todo el día
+   y las que hacen que un esquema canse o no (Munir, 2026-08-02). */
+.term-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
+  gap: 12px;
+}
+
+.term-prev {
+  display: block;
+  padding: 10px 11px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  /* El fondo del panel de verdad: el esquema NO trae fondo (ver temasTerm.ts),
+     así que enseñarlo con uno inventado sería enseñar otra cosa. */
+  background: var(--pane-bg);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.75;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: border-color .12s ease, transform .12s ease;
+}
+.term-tarjeta:hover .term-prev {
+  transform: translateY(-2px);
+}
+.term-tarjeta[data-on="true"] .term-prev {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* El cursor, que es la única parte de una terminal que se mueve. Parpadea
+   porque un cursor quieto no parece un cursor, parece un guion. */
+.term-prev-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 11px;
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  animation: term-cursor 1.1s steps(2, start) infinite;
+}
+@keyframes term-cursor {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .term-prev-cursor {
+    animation: none;
+  }
+}
+
+/* Una fila de ajuste: nombre a la izquierda, mando a la derecha, valor al final.
+   Iban con `margin` suelto y todo pegado; ahora cada una es una fila de una
+   lista, con su raya de separación, que es lo que hace que seis seguidas se
+   lean como seis y no como un párrafo con controles dentro. */
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  padding: 11px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* La última no lleva raya: una línea al final del grupo parece que corta algo
+   que viene después, y no viene nada. */
+.setting-row:last-of-type {
+  border-bottom: none;
+}
+
+.setting-row:hover {
+  color: var(--text);
+}
+

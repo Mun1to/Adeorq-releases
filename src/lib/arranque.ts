@@ -26,7 +26,7 @@
 // Un cliente nuevo NO añade una rama: cae en `linea` y se abre con lo que diga
 // su fila.
 
-import { banderaDeEncargo, lineaDeArranque, sabe } from "./providers";
+import { banderaDeEncargo, lineaDeArranque, proveedorDe, sabe } from "./providers";
 
 /** Lo que se quiere abrir. Todo opcional menos el CLI: cada camino que llama
  *  aquí sabe unas cosas y otras no. */
@@ -59,7 +59,14 @@ export type Plan =
   /** Todos los demás: su línea, tal cual la declara la tabla. `conTexto` avisa
    *  de que dentro va un encargo escrito por una persona, y entonces el
    *  envoltorio tiene que ser PowerShell y no el cmd ligero. */
-  | { tipo: "linea"; inner: string; alPortapapeles?: string; conTexto?: boolean };
+  | {
+      tipo: "linea";
+      inner: string;
+      alPortapapeles?: string;
+      conTexto?: boolean;
+      /** El id de sesión que lleva dentro, si ese CLI admite uno al nacer. */
+      sesion?: string;
+    };
 
 /**
  * Entrecomillado para PowerShell.
@@ -110,22 +117,43 @@ export function planDeArranque(p: Peticion): Plan {
 
   // Y aquí está lo que hace que la tabla valga para algo: un CLI que acepta el
   // encargo con una bandera entra SOLO declarándola, sin una rama con su nombre.
-  // opencode fue el primero (`--prompt`, el 2026-08-13).
+  // opencode fue el primero (`--prompt`, el 2026-08-13). Desde el 2026-10-06 la
+  // tabla también dice cómo se le pide el modelo, el esfuerzo y un id de
+  // sesión, y con eso el router abre Codex y Gemini con lo que decidió.
+  const prov = proveedorDe(p.cli);
+  const partes = [lineaDeArranque(p.cli)];
+  const nativo = p.modelo && prov?.modelos?.[p.modelo as "haiku" | "sonnet" | "opus"];
+  if (prov?.banderaModelo && nativo) partes.push(`${prov.banderaModelo} ${nativo}`);
+  if (prov?.banderaEsfuerzo && p.esfuerzo) {
+    partes.push(prov.banderaEsfuerzo.endsWith("=") ? `${prov.banderaEsfuerzo}${p.esfuerzo}` : `${prov.banderaEsfuerzo} ${p.esfuerzo}`);
+  }
+  let sesion: string | undefined;
+  if (prov?.banderaSesionNueva) {
+    sesion = idDeSesionNuevo();
+    partes.push(`${prov.banderaSesionNueva} ${sesion}`);
+  }
   const bandera = banderaDeEncargo(p.cli);
-  if (enLinea && bandera) {
-    return {
-      tipo: "linea",
-      inner: `${lineaDeArranque(p.cli)} ${bandera} ${entrecomillar(encargo)}`,
-      conTexto: true,
-    };
+  if (enLinea && bandera !== undefined) {
+    partes.push(bandera ? `${bandera} ${entrecomillar(encargo)}` : entrecomillar(encargo));
+    return { tipo: "linea", inner: partes.join(" "), conTexto: true, sesion };
   }
 
   return {
     tipo: "linea",
-    inner: lineaDeArranque(p.cli),
+    inner: partes.join(" "),
     // Se devuelve el texto en vez de un booleano para que quien copie no tenga
     // que acordarse de cuál era: el encargo y la decisión de copiarlo viajan
     // juntos o se separan a la primera.
     alPortapapeles: encargo || undefined,
+    sesion,
   };
+}
+
+/** Un id de sesión acuñado por Adeorq, como el `--session-id` de Claude. */
+function idDeSesionNuevo(): string {
+  const c = globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  // Sin `crypto` (un banco viejo): algo único igual, con la misma forma.
+  const hex = () => Math.floor(Math.random() * 0xffff).toString(16).padStart(4, "0");
+  return `${hex()}${hex()}-${hex()}-4${hex().slice(1)}-a${hex().slice(1)}-${hex()}${hex()}${hex()}`;
 }

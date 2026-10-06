@@ -1,0 +1,1337 @@
+/* ------------------------------------------------------- tablero de cuadrilla */
+
+.crew {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  /* El de abajo NO es cero: el glow de la caja se sale de su borde, y con el
+     padding a cero lo recortaba justo por donde más se ve. */
+  padding: 10px 12px 6px;
+}
+
+.crew-box {
+  flex: 1;
+  min-width: 240px;
+  /* Sin tope de ancho: con UNA cuadrilla abierta, que es el caso normal, un
+     tope de 460 px la dejaba de cajita pequeña con media fila vacía al lado
+     (Munir, 2026-08-02). Con varias, el `flex: 1` ya las reparte. */
+  border: 1px solid color-mix(in srgb, var(--crew) 40%, var(--border));
+  border-radius: 10px;
+  /* `--card` NO EXISTE: no está definida en ninguna de las paletas, así que
+     este `color-mix` era un valor inválido, el navegador tiraba la regla
+     entera y la caja salía TRANSPARENTE del todo, con la foto del escritorio
+     leyéndose a través del texto. Cristal de verdad: casi opaco y con desenfoque
+     detrás, como el resto de la app, en vez de un agujero. */
+  background: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--crew) 12%, var(--panel-solid)) 94%,
+    transparent
+  );
+  backdrop-filter: blur(10px);
+  /* El halo de su color por detrás. Es lo que hace que una cuadrilla se lea
+     como una pieza encendida y no como una barra más del montón, y de paso
+     ata visualmente la caja con el color que llevan sus terminales. */
+  box-shadow:
+    0 0 22px -4px color-mix(in srgb, var(--crew) 45%, transparent),
+    0 0 60px -18px color-mix(in srgb, var(--crew) 70%, transparent),
+    0 6px 18px -12px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+/* Centrada de verdad, no «izquierda con las insignias donde caigan».
+   El objetivo llevaba `flex: 1`, así que se estiraba hasta el borde y
+   empujaba «3 puestos» y «te espera» a la otra punta de la pantalla: todo el
+   peso a un lado y un pasillo vacío en medio. Ahora el bloque entero va
+   centrado y el plegador vive fuera del flujo, en su esquina, así que el aire
+   a izquierda y derecha es el mismo. */
+.crew-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* El centrado se hace con dos márgenes automáticos, uno en cada punta: el
+   sobrante se reparte solo a partes iguales y el bloque de en medio queda
+   centrado, con el plegador en su esquina.
+
+   NO con `position: absolute` + `translateY(-50%)`, que fue el primer intento
+   y duró un asalto: `.mini:hover` lleva su propio `transform` y, al ser clase
+   más pseudoclase, gana en especificidad. El botón se centraba bien hasta que
+   le pasabas el ratón por encima, y entonces se caía fuera de la caja. */
+.crew-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--crew);
+}
+
+.crew-goal {
+  /* Encoge, pero NO se estira: un objetivo de tres palabras deja las insignias
+     pegadas a él en vez de mandarlas al borde. Y uno largo se corta antes de
+     empujar nada, que es lo que descuadraba la fila. */
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 78ch;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cuánto va hecho, de un vistazo y sin desplegar. */
+.crew-prog {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.crew-prog-riel {
+  width: 46px;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--crew) 22%, transparent);
+  overflow: hidden;
+}
+
+.crew-prog-lleno {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--crew);
+  transition: width 0.3s ease;
+}
+
+.crew-prog-txt {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lo único del tablero que pide algo de ti, así que es lo único con color. */
+.crew-wait {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warn, #ffd166) 22%, transparent);
+  color: var(--warn, #ffd166);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* El otro margen automático del par: entre los dos dejan el contenido
+   centrado y este botón pegado a su esquina, sin tocar `transform`, así que
+   conserva el mismo hover que todos los demás botones de la app. */
+.crew-fold {
+  flex: none;
+  margin-left: auto;
+}
+
+/* La tira de las minimizadas, al pie del mosaico. No es una lista de nombres:
+   es el sitio donde una terminal apartada SIGUE contando qué hace, porque un
+   agente que te pregunta desde ahí tiene que poder encontrarte. */
+/* La tira de las apartadas. Tenía un borde arriba y NADA más: ni fondo propio,
+   así que caía directamente sobre la foto de escritorio y sus letras grises se
+   perdían encima (Munir, 2026-08-07: «se ve muy transparente»). Es la misma
+   trampa de siempre en esta app, y la regla de la casa ya está escrita: lo que
+   puede quedar sobre el fondo lleva superficie propia (`--popover` y cristal),
+   nunca `--row`, que es translúcido y solo funciona dentro de un panel opaco.
+   Aquí además es un pie fijo, así que se lee mejor cuanto más asentado se ve. */
+.minim {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  /* `stretch` y no `center`: una pestaña ocupa el alto de su tira, que es lo
+     que la distingue de una pastilla flotando dentro. Munir eligió esta forma
+     mirando cuatro variantes el 2026-08-19. */
+  align-items: stretch;
+  gap: 0;
+  padding: 0 12px;
+  min-height: 34px;
+  border-top: 1px solid var(--border-strong, var(--border));
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+}
+
+.minim-eti {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  margin-right: 14px;
+  gap: 5px;
+  /* Un punto más de luz que `--muted`: es el rótulo del pie y sobre cristal
+     el gris de los textos secundarios se apaga del todo. */
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+/* Cuántas hay fuera. El número es el dato que faltaba: apartar un grupo dejaba
+   agentes trabajando sin que nada dijera cuántos, y contarlos exigía volver a
+   desplegarlos uno a uno. */
+.minim-eti b {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--row-hover, var(--row));
+  color: var(--text);
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+/* Cada ficha, con cuerpo. Iba sobre `--row`, que es translúcido: encima de la
+   tira transparente de antes eran letras flotando sobre una foto. Ahora parte
+   del color del panel, que es sólido, y el color de la cuadrilla lo tiñe. */
+/* PESTAÑA, no pastilla (Munir, 2026-08-19: «que fuesen como pestañas normales
+   y corrientes rectangulares, con los bordes rectos»). Tres cosas la hacen
+   pestaña y ninguna es decorativa:
+
+     · esquinas a cero, que es lo que pidió;
+     · `margin-left: -1px`, para que dos vecinas COMPARTAN su borde en vez de
+       dibujar dos líneas juntas, que es lo que hace un navegador;
+     · la franja de arriba, que lleva el color de la cuadrilla o del estado y
+       es lo único que sobresale del gris. En una pastilla ese color teñía el
+       fondo entero y competía con el texto.
+
+   La escala de esquinas de `--r-chico`/`--r-btn` no aplica aquí a propósito:
+   cero no es una esquina fuera de escala, es la ausencia de esquina. */
+.minim-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 260px;
+  padding: 6px 12px;
+  margin-left: -1px;
+  border: 1px solid var(--border);
+  border-top: 2px solid color-mix(in srgb, var(--crew, var(--accent)) 70%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--crew, var(--accent)) 7%, var(--panel));
+  color: var(--text);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+/* La primera no se come el borde de nadie. */
+.minim-chip:first-of-type {
+  margin-left: 0;
+}
+
+.minim-chip:hover {
+  background: color-mix(in srgb, var(--crew, var(--accent)) 22%, var(--panel));
+  border-top-color: color-mix(in srgb, var(--crew, var(--accent)) 95%, transparent);
+  /* Encima de sus vecinas: si no, la de al lado tapa medio borde resaltado. */
+  position: relative;
+  z-index: 1;
+}
+
+
+/* El estado, ahora un dibujo y no un glifo de la fuente (ver `EstadoIcon`).
+   Sin `font-size`, que ya no es texto, y sin `--muted` de base: ese gris se
+   apaga del todo sobre cristal, que es la mitad de por qué esta tira no se
+   leía. El color de la cuadrilla manda cuando la hay, porque ahí sirve para
+   reconocer de quién es la ficha. */
+/* La marca del CLI que corre dentro, teñida con el color de su estado. Dos
+   datos en el sitio de uno: la FORMA dice de quién es la terminal y el COLOR
+   dice cómo está. Antes aquí iba solo el estado, y con varias cuentas y varios
+   clientes abiertos eso dejaba tres fichas idénticas (Munir, 2026-08-19). */
+.minim-ico {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--tinte, color-mix(in srgb, var(--text) 60%, transparent));
+}
+
+/* Terminó: el ámbar con el que la app dice «esto ya está y te reclama», el
+   mismo del halo de un panel que te espera. */
+.minim-chip[data-estado="lista"] .minim-ico {
+  color: var(--done);
+}
+
+/* De quién es la cuenta. Va donde antes ponía «· claude», que con tres cuentas
+   de Claude abiertas era la palabra que MENOS distinguía una ficha de otra
+   (Munir, 2026-08-19). El nombre del cliente ya lo dice el dibujo de al lado. */
+/* Las tres letras de la cuenta, con la misma pinta que en la cabecera del panel
+   (`.pane-account`): es el mismo dato y se reconoce por la forma, no por leerlo.
+   Sin recuadro, eso sí: aquí la ficha entera ya es una caja pequeña, y meter
+   otra dentro sería un marco alrededor de tres letras. */
+.minim-cuenta {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
+}
+
+.minim-nombre {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Apartada CON su grupo, no ella sola: el trazo discontinuo avisa de que al
+   pulsarla no vuelve una terminal, vuelve el grupo entero. */
+.minim-chip[data-grupo] {
+  border-top-style: dashed;
+}
+
+
+/* El que te espera, incluso minimizado. Es el caso entero por el que esta
+   tira existe en vez de que la terminal simplemente desaparezca. */
+.minim-chip[data-urge] {
+  border-top-color: var(--warn, #ffd166);
+  /* Sobre `--panel` y no sobre `--row`: es la ficha que MÁS tiene que leerse
+     de la tira, y `--row` es translúcido. */
+  background: color-mix(in srgb, var(--warn, #ffd166) 16%, var(--panel));
+}
+
+.minim-chip[data-urge] .minim-ico {
+  color: var(--warn, #ffd166);
+}
+
+/* Lo que cuesta tenerla apartada. Va al final de la píldora y en tono apagado:
+   la pregunta que responde esta tira sigue siendo «quién me espera», y la
+   memoria es la respuesta a la segunda, no a la primera. */
+.minim-ram {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  /* Era `--muted` al 70%, o sea gris translúcido sobre gris translúcido: el
+     dato estaba ahí y no se leía. Sigue siendo secundario, pero legible. */
+  color: color-mix(in srgb, var(--text) 52%, transparent);
+}
+
+.crew-min,
+.crew-cerrar {
+  flex: none;
+  min-width: 28px;
+}
+
+/* Apartada: el botón se queda encendido, porque es lo único que dice dónde
+   fueron a parar esas terminales. */
+.crew-min[data-activo] {
+  color: var(--crew);
+  border-color: color-mix(in srgb, var(--crew) 55%, var(--border));
+  background: color-mix(in srgb, var(--crew) 16%, transparent);
+}
+
+
+/* Armado: ya no es una ✕, es una pregunta, y se pinta como lo que va a hacer. */
+.crew-cerrar[data-armado] {
+  border-color: color-mix(in srgb, var(--bad, #ff6b6b) 60%, var(--border));
+  background: color-mix(in srgb, var(--bad, #ff6b6b) 18%, transparent);
+  color: var(--bad, #ff6b6b);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Los puestos, en tarjetas que se reparten el ancho. `auto-fit` y no un número
+   fijo de columnas: una cuadrilla son tres puestos o son seis, y la caja ocupa
+   ahora todo el largo de la ventana. */
+.crew-puestos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 7px;
+  padding: 2px 8px 9px;
+}
+
+/* Una tarjeta por puesto. Todo lo que hay dentro está ordenado por lo que
+   necesitas primero: el estado arriba (que es lo que decide si vas o no), el
+   puesto después (para saber a cuál vas) y el encargo debajo (para acordarte
+   de qué era). El borde izquierdo lleva el color del estado, así que la fila
+   de tarjetas se escanea sin leer nada. */
+.crew-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 7px 9px 8px;
+  border: 1px solid color-mix(in srgb, var(--crew) 22%, var(--border));
+  border-left: 3px solid color-mix(in srgb, var(--crew) 60%, var(--border));
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--crew) 6%, transparent);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.crew-card:hover {
+  background: color-mix(in srgb, var(--crew) 15%, transparent);
+  border-color: color-mix(in srgb, var(--crew) 45%, var(--border));
+}
+
+/* El que te espera manda sobre el color de su cuadrilla: es lo único de todo
+   el tablero que te pide algo, y tiene que encontrarse sin buscarlo. */
+.crew-card[data-urge] {
+  border-left-color: var(--warn, #ffd166);
+  background: color-mix(in srgb, var(--warn, #ffd166) 11%, transparent);
+}
+
+.crew-card[data-hecho] {
+  border-left-color: color-mix(in srgb, var(--done, #6fe0bb) 70%, transparent);
+  opacity: 0.72;
+}
+
+.crew-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.crew-card-ico {
+  flex: none;
+  color: var(--crew);
+  font-size: 11px;
+}
+
+.crew-card-estado {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.crew-card[data-urge] .crew-card-ico,
+.crew-card[data-urge] .crew-card-estado {
+  color: var(--warn, #ffd166);
+}
+
+.crew-card[data-hecho] .crew-card-ico {
+  color: var(--done, #6fe0bb);
+}
+
+.crew-card-rato {
+  flex: none;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.crew-card-rol {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+/* El «2 de 3» del puesto, pegado a su nombre y en pequeño: sitúa la tarjeta
+   dentro de la cuadrilla sin competir con el nombre. */
+.crew-card-rol em {
+  flex: none;
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dos líneas y corta. El encargo es para acordarte de qué iba, no para leerlo
+   entero: eso es lo que hacía que la lista pareciera un muro de texto. */
+.crew-card-encargo {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.crew-card-frontera {
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--crew) 55%, var(--muted));
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+}
+
+/* El único sitio de la app con barra de scroll a la vista. La regla global de
+   arriba las quita todas (Munir, 2026-07-26: «seis píxeles de taller»), y sigue
+   valiendo para el resto; aquí NO, porque este bloque es un texto que crece
+   solo mientras los agentes hablan, y sin barra no hay forma de saber que
+   sigue habiendo líneas debajo (Munir, 2026-08-02). */
+.crew-buzon {
+  border-top: 1px solid color-mix(in srgb, var(--crew) 25%, var(--border));
+  padding: 7px 11px 9px;
+  max-height: 168px;
+  overflow-y: auto;
+  /* Al llegar al final, la rueda deja de empujar lo que hay detrás. */
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--crew) 55%, transparent) transparent;
+}
+
+.crew-buzon::-webkit-scrollbar {
+  width: 10px;
+}
+
+.crew-buzon::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.crew-buzon::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--crew) 50%, transparent);
+  /* Sin esto el borde transparente se pinta del color del pulgar y la barra
+     sale del ancho entero, gorda y pegada al texto. */
+  background-clip: padding-box;
+}
+
+.crew-buzon::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--crew) 85%, transparent);
+  background-clip: padding-box;
+}
+
+/* «Se han dicho» y no «BUZON.md»: lo que hay debajo son los recados que los
+   puestos se dejan entre ellos, y el nombre del archivo donde viven no es lo
+   que necesitas saber para leerlos. */
+.crew-buzon-tit {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.crew-buzon ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.crew-buzon li {
+  color: var(--text);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.crew-buzon b {
+  color: var(--crew);
+  font-weight: 600;
+}
+
+.grid > .pane {
+  position: absolute;
+}
+
+/* The seams between panes: grab and share out the space. */
+.divider {
+  position: absolute;
+  z-index: 5;
+  background: transparent;
+  transition: background 0.12s ease;
+}
+
+.divider:hover,
+.divider:active {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.divider-col {
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  margin-left: -4px;
+  cursor: col-resize;
+}
+
+.divider-row {
+  height: 8px;
+  margin-top: -4px;
+  cursor: row-resize;
+}
+
+/* Con las tarjetas sueltas la junta entre dos paneles mide doce píxeles (seis
+   de borde-hueco por lado), así que el agarre se ensancha hasta cubrirla
+   entera y su resalte se redondea: un rectángulo duro flotando en mitad del
+   hueco se veía como una raya pegada, no como el asa de la junta. */
+html[data-panes="tarjetas"] .divider-col {
+  width: 12px;
+  margin-left: -6px;
+  border-radius: 6px;
+}
+
+html[data-panes="tarjetas"] .divider-row {
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 6px;
+}
+
+/* Dragged by its header, a pane announces itself. */
+.pane-head[draggable="true"] {
+  cursor: grab;
+}
+
+.pane-head[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+/* Fills the cockpit so the message sits in the middle of it. It used to rely
+   on `flex: 1` inside a flex .grid, but the mosaic made .grid a positioning
+   context for absolute panes instead: with no flex parent the box was only as
+   tall as its own text, so "centred" meant centred in nothing, up top. Same
+   shape as .canvas-empty, which never had the bug. */
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  gap: 6px;
+  text-align: center;
+  padding: 0 40px;
+}
+
+.empty-title {
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.pane {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  /* `--pane-abre` es el mando de «cuánto se ve» de Ajustes, y está aquí porque
+     el lienzo de xterm no es la única capa que tapa la foto: DEBAJO de él está
+     este panel. Abrir solo la terminal no enseña el fondo, enseña este color,
+     que es justo lo que pasaba (Munir, 2026-07-31: «sigue sin funcionar»).
+     Va con `color-mix` y no componiendo otro rgba desde JavaScript porque cada
+     uno de los 24 temas trae su propio tono en `--pane-bg`: así se le baja la
+     opacidad sin tener que saber de qué color es. Sin mando puesto vale 1, o
+     sea exactamente lo de siempre. */
+  background: linear-gradient(
+      180deg,
+      rgba(77, 159, 255, 0.05),
+      transparent 90px
+    ),
+    color-mix(
+      in srgb,
+      var(--pane-bg) calc(var(--pane-abre, 1) * 100%),
+      transparent
+    );
+  border: 1px solid transparent;
+  border-right-color: var(--border);
+  border-bottom-color: var(--border);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* ── La forma de los paneles, que se elige en Ajustes ──────────────────────
+   Tres formas, y el mando vive en `lib/formaPaneles.ts`. Se marca en el
+   `<html>` como el modo rendimiento, y por lo mismo: la forma de un panel no
+   es estado de React, es un tema, y así lo ve el CSS entero de una vez.
+
+   El HUECO de las tarjetas se come POR DENTRO, con un borde transparente. No
+   es un truco por gusto: los paneles se colocan con las cuatro medidas en
+   porcentajes escritas en su `style` desde `App.tsx`, y un estilo en línea gana
+   a cualquier hoja, así que desde aquí no se puede encoger un panel. Con
+   `box-sizing: border-box` el borde se resta del tamaño en vez de sumarse, y el
+   panel sigue ocupando su celda exacta.
+
+   El `background-clip: padding-box` es la mitad que hace que se vea: sin él, el
+   fondo del panel se pinta también bajo el borde transparente y el hueco
+   desaparece. */
+
+html[data-panes="suaves"] .pane {
+  border-color: var(--border);
+  border-radius: var(--r-chico);
+}
+
+html[data-panes="tarjetas"] .pane {
+  /* Seis píxeles por lado, o sea doce entre dos paneles vecinos. Medido: a
+     tamaño real cuesta entre un 2,6 % y un 4,3 % del área de terminal, que es
+     lo que hay que pagar por que se vean sueltas. */
+  border: 6px solid transparent;
+  border-radius: 12px;
+  background-clip: padding-box;
+  /* La línea va DENTRO y no en el borde, porque el borde ahora es el hueco. */
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 6px 18px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* Con las tarjetas sueltas, la sombra ya separa: la raya de la rejilla sobra y
+   además se vería flotando en mitad del hueco. */
+html[data-panes="tarjetas"] .grid > .pane {
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+}
+
+/* Los ESTADOS no pueden pintar el borde, porque en esta forma el borde ES el
+   hueco: son seis píxeles por lado, y teñirlos convierte una señal fina en una
+   franja gorda alrededor del panel (Munir, 2026-08-19, con captura: la barra
+   azul vertical pegada al panel enfocado). Ojo con lo que de verdad decide
+   aquí: la regla del panel-tarjeta de arriba ya gana por especificidad a los
+   `border-color` Y a los `box-shadow` de los estados (html+atributo+clase
+   contra clase+atributo), así que en esta forma el anillo del foco y el inset
+   de la cuadrilla NO se ven; cada estado se señala por su cabecera teñida, y
+   el turno terminado además por su latido, que sobrevive porque una animación
+   gana al cascade normal. Esta regla deja el borde transparente CLAVADO por
+   si algún estado futuro sube de especificidad. */
+html[data-panes="tarjetas"] .pane[data-focused="true"],
+html[data-panes="tarjetas"] .pane[data-done="true"],
+html[data-panes="tarjetas"] .pane[data-team="true"] {
+  border-color: transparent;
+}
+
+.pane-head {
+  container-type: inline-size;
+  display: flex;
+  align-items: center;
+  /* El hueco entre ZONAS. Dentro de cada una es más estrecho, y esa diferencia
+     es la que hace que se lean como tres bloques y no como trece cosas. */
+  gap: 10px;
+  /* Menos por la derecha que por la izquierda: los botones ya traen su propio
+     aire dentro, y ahí es donde primero se nota que falta sitio. */
+  padding: 6px 8px 6px 11px;
+  background: var(--panel-head);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  /* Esta barra es el ASA con la que se mueve el panel: en la Cabina por el
+     `onPointerDown` de la cabecera y en el lienzo porque React Flow la tiene
+     puesta como `dragHandle`. Sin esto, arrastrar por ella hace las dos cosas a
+     la vez y el nombre y las píldoras se van quedando seleccionados en azul
+     detrás del panel que se mueve. Nadie viene aquí a copiar texto: lo que se
+     lee está en el globo de ayuda, y lo que se escribe tiene su excepción
+     debajo. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* La excepción, que es la única cosa de la cabecera hecha para escribir dentro:
+   el cuadro de renombrar. Sin esto no se podría ni seleccionar una palabra para
+   corregirla. */
+.pane-head input,
+.pane-rename {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ZONA 1 — quién es esta terminal. Es la que crece: si sobra sitio, se lo
+   queda el título, que es lo único que distingue una terminal de otra. */
+.ph-id {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  /* La red, para cuando ya no queda nada que ceder. El chip del proyecto no
+     puede bajar de sus 18px de relleno y borde, así que en una terminal de
+     menos de 290px hasta él se sale de la zona. Recortado se lee a medias;
+     desbordado se le pinta el medidor encima, que es peor y es justo lo que
+     había que quitar (ver el `flex-shrink: 1000` del final del archivo). */
+  overflow: hidden;
+}
+
+/* ZONA 2 — cómo va. Ni crece ni se estruja: suelta datos ENTEROS por orden
+   según se estrecha la cabecera (los `@container` de más abajo), que es la
+   única forma de que ninguna píldora se lea a medias. Vacía no existe, para no
+   dejar un hueco de 10px de nada. */
+.ph-meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ph-meta:empty {
+  display: none;
+}
+
+/* ZONA 3 — qué puedes hacer. No cede NUNCA, y va detrás de una línea: es la
+   frontera entre leer y actuar, y sin ella los botones eran seis cuadros más
+   en una fila de trece cosas. Juntos y con poco hueco, que son de la misma
+   familia. */
+.ph-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding-left: 9px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+}
+
+/* Identity first. The path used to be the one that grew and the name the one
+   that shrank, so a narrow pane squeezed its own name down to nothing: three
+   terminals side by side looked identical. Now the name takes the room and
+   the secondary bits step aside as the pane gets narrower. */
+.pane-name {
+  /* PIDE 112px, pero no los EXIGE, y esa diferencia es todo.
+     Con `min-width: 112px` el título no podía encogerse por debajo de eso, así
+     que en una terminal estrecha —las del lienzo lo son— su zona desbordaba y
+     el nombre acababa pintado DEBAJO del medidor de contexto: «Adeorq: sesione»
+     y encima un «40 %» (Munir, 2026-08-10). Un mínimo duro no reparte espacio,
+     lo reclama, y cuando no hay, alguien se pisa.
+     Como base flexible pide lo mismo (catorce caracteres, que es donde un
+     título empieza a servir para algo) y cede cuando de verdad no cabe, así que
+     el solape es imposible por construcción: o entra entero, o sale con sus
+     puntos suspensivos. */
+  flex: 1 1 112px;
+  min-width: 0;
+  /* Medio punto por encima del resto de la fila, y con más cuerpo: en una
+     cabecera donde todo pesaba igual, el ojo no encontraba el título. */
+  font-size: 12.5px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* El nombre en edición: doble clic encima y se teclea AHÍ, sin diálogo. Ocupa
+   el sitio exacto del nombre (misma letra, mismo flex) para que la cabecera no
+   salte al entrar ni al salir; solo el borde dice que ahora es una caja. */
+.pane-rename {
+  flex: 1 1 112px;
+  min-width: 0;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 650;
+  outline: none;
+}
+
+/* La X cierra la fila, así que era lo PRIMERO que se comía el `overflow:
+   hidden` de la cabecera: los textos ceden sitio, pero los siete botones no
+   ceden ninguno, y lo que no cabe se recorta por la derecha. El comentario de
+   más abajo prometía «un panel que no puedes cerrar es peor que uno que no
+   puedes leer» y pasaba exactamente lo contrario.
+   `sticky` la ancla al borde derecho de lo que se ve: cuando sobra sitio no se
+   nota nada, y cuando falta es lo último que queda en pie en vez de lo primero
+   que desaparece. El fondo heredado evita que se lea encima de otro icono, y
+   vale tanto para la cabecera normal como para la del panel enfocado, que es
+   de otro color. */
+.pane-close {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 26px;
+  border-radius: var(--r-chico);
+  background: inherit;
+  border: none;
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0 5px;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.pane-close:hover {
+  color: #ff8f8f;
+  background: color-mix(in srgb, #ff8f8f 16%, transparent);
+}
+
+/* En una ventana suelta ese botón no cierra nada: DEVUELVE la terminal al
+   mosaico. El rojo de peligro ahí mentía, y era la mentira que hacía que nadie
+   lo pulsara y pareciera que no había forma de volver (Munir, 2026-08-15). */
+.pane-close[data-suelta]:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.pane-term {
+  flex: 1;
+  min-height: 0;
+  /* Sin margen: la terminal ocupa el recuadro entero.
+     Tenía 10px arriba y 14px a la izquierda, y no se notaban mientras el lienzo
+     era negro sobre un panel negro. En cuanto el fondo empezó a verse a través
+     (0.9.39), ese hueco se convirtió en un marco de foto alrededor del texto
+     (Munir, 2026-07-31: «no sé por qué tiene como unos huecos»). */
+  padding: 0;
+  /* Y el tinte de las terminales se pinta AQUÍ, una sola vez. El canvas de
+     xterm solo mide COLUMNAS ENTERAS: los píxeles que sobran hasta el borde
+     (14 px de reserva de la barra de scroll, más el resto de una celda, y
+     abajo el resto de una fila) no son suyos. Pintarlos «del mismo color» no
+     bastaba mientras xterm también pintara el suyo: el texto acababa con
+     cuatro capas del tinte y la franja con tres, y con una foto detrás se
+     notaba (medido, ver `--xterm-bg`). Desde la 0.9.159 xterm recibe un fondo
+     transparente cuando el tinte lo es, y esta es la única capa. */
+  background: var(--xterm-bg);
+}
+
+/* ── Buscar dentro de la terminal (Ctrl+F) ────────────────────────────────
+ *
+ * Flota sobre la terminal, arriba a la derecha, y no empuja nada: si robara
+ * sitio, abrir el buscador cambiaría las columnas y el CLI volvería a partir
+ * las palabras del texto que estás intentando leer, que es el fallo que costó
+ * dos sesiones enteras arreglar.
+ *
+ * Arriba y a la derecha porque abajo está la caja donde escribes al agente y a
+ * la izquierda empieza cada línea: es la esquina que menos tapa. */
+.buscar-term {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px;
+  border-radius: 10px;
+  background: var(--panel-head);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.buscar-term-caja {
+  width: 190px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+}
+
+.buscar-term-caja:focus {
+  border-color: var(--accent);
+}
+
+/* Escrito y sin ninguna coincidencia. En rojo el BORDE y no el texto: teñir lo
+   que estás escribiendo hace pensar que lo escrito está mal, cuando lo que no
+   hay es resultado. */
+.buscar-term-nada {
+  /* El mismo rojo que la papelera del panel, que es el que ya usa la casa para
+     decir «ojo con esto». No hay variable para él, y aquí no se inventa una. */
+  border-color: #ff8f8f;
+}
+
+.buscar-term-cuenta {
+  min-width: 40px;
+  padding: 0 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+  /* Los dígitos de la misma anchura, o el contador da saltos al pasar de 9 a
+     10 y arrastra los tres botones de al lado. */
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.buscar-term-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.buscar-term-btn:hover {
+  background: rgba(140, 170, 220, 0.16);
+  color: var(--text);
+}
+
+.buscar-term-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* El chevron del catálogo mira hacia abajo, así que el de «anterior» es el
+   mismo girado. Un segundo icono para esto serían dos dibujos que mantener
+   sincronizados para siempre. */
+.buscar-term-arriba {
+  display: grid;
+  place-items: center;
+  transform: rotate(180deg);
+}
+
+.pane-term .xterm {
+  height: 100%;
+}
+
+/* AQUÍ estaba el fondo que no se veía, y no era nuestro.
+   `xterm.css` trae `.xterm-viewport { background-color: #000 }`, con este
+   comentario suyo: «On OS X this is required in order for the scroll bar to
+   appear fully opaque». Es un div en `position: absolute` que cubre la
+   terminal ENTERA, así que daba igual lo que hiciéramos por arriba: el lienzo
+   de xterm sí pintaba con su alfa, y justo debajo había una capa negra opaca.
+   Probado el 2026-07-31 poniendo el fondo del tema a alfa 0 (transparencia
+   total) y a rojo: la terminal seguía negra, y también sin el renderer WebGL,
+   que es lo que descartó al addon y dejó a este de único sospechoso.
+   La barra de scroll no la usamos (está estilizada aparte, más arriba), así
+   que el motivo de macOS no aplica. */
+.pane-term .xterm .xterm-viewport {
+  background-color: transparent;
+}
+/* Y la regla de arriba es de xterm 5. En xterm 6.1 el fondo del tema ya no cae
+   en `.xterm-viewport`: va EN LÍNEA en `.xterm` y en `.xterm-scrollable-element`,
+   donde ninguna hoja de estilos lo pisa. Por eso el fondo translúcido se resuelve
+   dándole a xterm un tema transparente (`temaDeXterm`), no con CSS. Se deja la
+   regla porque no hace daño y porque si algún día vuelve a haber un viewport con
+   fondo, esto es lo que lo apaga. */
+
+/* La barra de las terminales ya NO es la del navegador: desde xterm 6 la pinta
+   el propio xterm, con el motor de scroll de VS Code (un div `.scrollbar` con
+   su `.slider` dentro de `.xterm-scrollable-element`). Aquí había un bloque
+   entero estilizando la barra nativa del viewport (`scrollbar-width: thin` +
+   `::-webkit-scrollbar`), y era doblemente zombi: la barra que estilizaba ya no
+   se usa, y además en Chromium un `scrollbar-width` distinto de `auto` apaga
+   los `::-webkit-scrollbar` de ese elemento. Lo que Munir veía a veces era la
+   overlay fina del sistema resucitada a medias, apareciendo y escondiéndose
+   sola (2026-08-17: «a veces no aparece la barra»).
+
+   La barra de VS Code nace invisible y se desvanece al dejar de scrollear.
+   En una terminal eso es esconder el único sitio donde se ve CUÁNTO historial
+   hay detrás y por dónde vas, así que con el ratón ENCIMA de la terminal la
+   barra está siempre, pisando sus estados `.invisible`/`.fade`. Sin ratón
+   encima vuelve lo nativo (aparece al scrollear, se desvanece después): así
+   seis paneles quietos no lucen seis franjas permanentes, que la regla de la
+   casa contra los raíles de sistema existe por algo.
+   El color del pulgar no se pone aquí: xterm genera su propio CSS con los
+   `scrollbarSlider*` de su tema, así que viaja por `temaDeXterm`, que es quien
+   ya sabe leer los colores de la casa. */
+.pane-term:hover .xterm .xterm-scrollable-element > .xterm-invisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* `.xterm-invisible` y no `.invisible`: xterm 6.1 prefija sus clases, y esta
+   regla estuvo tres semanas apuntando a una clase que no existe (comprobado en
+   el DOM de un xterm de verdad el 2026-09-12: la barra en reposo lleva
+   `xterm-invisible xterm-scrollbar xterm-vertical xterm-fade`). O sea que el
+   arreglo del «a veces no se ve la barra» del 2026-08-17 nunca llegó a
+   aplicar, y lo que se veía era el desvanecido de VS Code tal cual. */
+
+/* Where you are typing has to be obvious at a glance across a wall of panes
+   (Munir: "se nota muy poco"): a full accent ring plus a real halo. */
+.pane[data-focused="true"] {
+  border-color: var(--accent);
+  box-shadow:
+    var(--glass-edge),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--accent) 75%, transparent),
+    0 0 26px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 10px 30px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+
+/* Its header lights up too, so the eye lands on the right pane instantly. */
+.pane[data-focused="true"] .pane-head {
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel-head));
+  border-bottom-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* The Claude CLI finished its turn and is waiting for you: brighter still,
+   and it breathes so you catch it out of the corner of your eye. */
+.pane[data-done="true"] {
+  border-color: var(--done);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--done) 85%, transparent),
+    0 0 34px color-mix(in srgb, var(--done) 55%, transparent);
+  animation: pane-waiting 1.9s ease-in-out infinite;
+  /* A su propia capa MIENTRAS late, y solo mientras late.
+     Este halo respira sobre un panel del tamaño de media pantalla, y sin capa
+     propia cada latido obliga a repintar también todo lo que hay detrás: la
+     foto de fondo y el desenfoque de cada cristal que la tapa. Con `will-change`
+     el navegador lo pinta aparte una vez y luego solo lo compone, que es lo que
+     hace la tarjeta gráfica sin despeinarse. Y este estado no es raro: se
+     enciende cada vez que un agente termina su turno (2026-08-07). */
+  will-change: transform;
+  z-index: 3;
+}
+
+@keyframes pane-waiting {
+  50% {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--done) 60%, transparent),
+      0 0 18px color-mix(in srgb, var(--done) 30%, transparent);
+  }
+}
+
+.pane-hidden {
+  display: none;
+}
+
+.pane-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 26px;
+  background: color-mix(in srgb, var(--row) 60%, transparent);
+  border: 1px solid var(--border);
+  color: color-mix(in srgb, var(--text) 66%, var(--muted));
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: var(--r-chico);
+  padding: 2px 5px;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease,
+    transform 0.1s ease,
+    box-shadow 0.12s ease;
+}
+
+.pane-btn:hover {
+  color: #cfe6ff;
+  background: linear-gradient(180deg, rgba(90, 130, 190, 0.55), rgba(40, 62, 98, 0.55));
+  border-color: rgba(140, 185, 255, 0.35);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 8px rgba(0, 0, 0, 0.35);
+}
+
+.pane-btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Project identity now lives in .ws-bar (the coloured edge of the card). */
+
+/* Which model is driving this pane, and how hard it is thinking */
+.pane-brain {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(77, 159, 255, 0.12);
+  border: 1px solid rgba(77, 159, 255, 0.25);
+  border-radius: 6px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+/* Which account a terminal belongs to. Only shows when it is NOT the main one:
+   a label on every pane would be noise, and the main account is the norm. */
+.pane-account {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 6px;
+  padding: 1px 6px;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pane-effort {
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+.pane-agents {
+  flex: none;
+  /* El robot y su cifra, alineados por el centro y no por la línea base: un
+     SVG no se sienta solo donde se sienta una letra. */
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 650;
+  border-radius: 6px;
+  padding: 2px 8px;
+  /* Back from their errand: still worth knowing, no longer worth shouting. */
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.pane-agents[data-live="true"] {
+  color: #0e1a2b;
+  background: var(--accent);
+}
+
+/* The same count in the session list, so you can see which sessions have a
+   crew working without opening them. Quieter than the pane's badge: the
+   sidebar shows many rows at once. */
+/* El puesto que ocupaba en su cuadrilla ("Frontend"). Discreto y en gris: no
+   compite con el título ni con el punto de estado, solo distingue seis
+   sesiones que nacieron del mismo encargo y por eso se llaman casi igual. */
+/* Una terminal ABIERTA que no deja historial, en el cajón de las sueltas. Va en
+   verde y no en el gris de `.sess-rol` porque no es una etiqueta descriptiva:
+   dice que eso está vivo ahora mismo, y desaparece de la lista al cerrarla. */
+.sess-abierta {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, #5bd18b 45%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, #5bd18b 14%, transparent);
+  color: #5bd18b;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* La cuenta con la que se escribió una sesión, cuando no es la de siempre.
+   Va TEÑIDA y no en el gris de `.sess-rol` a propósito: no es un dato más de
+   la fila, es la respuesta a «¿esta de quién es?», y tiene que contestarse sin
+   leer. El color es el mismo que lleva esa cuenta en la cabecera del proyecto,
+   así que las dos cosas se reconocen como una. */
+.sess-cuenta {
+  flex: none;
+  max-width: 78px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: var(--c);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sess-rol {
+  flex: none;
+  max-width: 78px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.sess-agents {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: color-mix(in srgb, var(--accent) 75%, var(--text));
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+/* ── Las fijadas, en la cabeza de la barra ──────────────────────────────────
+   Una sección con su nombre escrito, como la de los proyectos, y no una fila
+   marcada dentro de su proyecto: subirla ahí no servía de nada, porque ese
+   proyecto puede estar plegado o ser el décimo de la lista, y la sesión seguía
+   sin estar a la vista (Munir, 2026-08-09). Se reordenan arrastrando, con la
+   misma raya de destino y el mismo fantasma que los proyectos. */
+.fijadas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+/* El encabezado: minúscula alta y tenue, que nombra la sección sin competir
+   con los proyectos, que son la fila principal de esta barra. */
+.fijadas-tag {
+  padding: 2px 10px 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text) 52%, transparent);
+  /* Sobre la foto de la casa un gris tenue se pierde: ver la regla de encima
+     de `.panel-card`. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* A glyph instead of a word: the header is narrow and the name lives in the
+   tooltip. Each agent keeps its own hue so panes are told apart at a glance. */
+.pane-kind {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  /* El tono del CLI lo pone KindIcon en --k. Va aquí y no en línea para que las
+     dos reglas de abajo, la consola y el proceso muerto, puedan ganarle. */
+  color: var(--k, var(--muted));
+}
+
+/* Un CLI del que todavía no hay dibujo: su inicial. */
+.kind-letra {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pane-kind[data-kind="shell"] {
+  color: var(--muted);
+  background: transparent;
+}
+
+/* The green square used to carry this on its own: 9px of header for one bit of
+   information. Now the mark itself goes cold when the process is gone. Last of
+   the three, so it wins over the per-agent hues above. */
+.pane-kind[data-exited="true"] {
+  color: var(--muted);
+  background: transparent;
+  opacity: 0.55;
+}
+

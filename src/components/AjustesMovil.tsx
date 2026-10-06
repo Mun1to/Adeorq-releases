@@ -1,11 +1,13 @@
 // Ajustes > Móvil: encender el conserje en el móvil, llevarlo a Tailscale,
 // emparejar un móvil y quitarlo. El servidor es `src-tauri/src/movil.rs`.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { encode } from "uqr";
 import { useT } from "../lib/i18n";
 import { hace } from "../lib/uso";
 import {
+  movilAvisar,
   movilEmparejar,
   movilEncender,
   movilEstado,
@@ -19,6 +21,28 @@ const DESCARGA = "https://tailscale.com/download";
 /** Como `PUERTO_TAILSCALE` de `movil.rs`. */
 const PUERTO_TAILSCALE = 8443;
 
+/** La dirección en QR, para no teclear `https://…ts.net:8443` en el móvil.
+ *  Módulos oscuros sobre blanco y con su margen de cuatro: invertido o sin
+ *  margen, hay cámaras que no lo leen. Un solo `path`, no un `rect` por módulo. */
+function QrDireccion({ texto }: { texto: string }) {
+  const { d, lado } = useMemo(() => {
+    const qr = encode(texto, { ecc: "M", border: 4 });
+    let d = "";
+    qr.data.forEach((fila, y) =>
+      fila.forEach((oscuro, x) => {
+        if (oscuro) d += `M${x} ${y}h1v1h-1z`;
+      }),
+    );
+    return { d, lado: qr.size };
+  }, [texto]);
+  return (
+    <svg className="movil-qr" viewBox={`0 0 ${lado} ${lado}`} shapeRendering="crispEdges" role="img" aria-label={texto}>
+      <rect width={lado} height={lado} fill="#fff" />
+      <path d={d} fill="#000" />
+    </svg>
+  );
+}
+
 export default function AjustesMovil() {
   const { t } = useT();
   const [estado, setEstado] = useState<EstadoMovil | null>(null);
@@ -26,6 +50,7 @@ export default function AjustesMovil() {
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [codigo, setCodigo] = useState<{ valor: string; hasta: number } | null>(null);
+  const [prueba, setPrueba] = useState<string | null>(null);
   const [ahora, setAhora] = useState(Date.now());
 
   const releer = useCallback(() => {
@@ -106,6 +131,12 @@ export default function AjustesMovil() {
         </p>
       )}
 
+      {estado?.encendido && estado.despierto && (
+        <p className="setting-line setting-good">
+          ✓ {t("Mientras esté encendido, este PC no se duerme solo; la pantalla sí se apaga. Déjalo enchufado y con la tapa abierta: con batería se duerme a los pocos minutos.")}
+        </p>
+      )}
+
       {estado?.encendido && (
         <>
           <h3 className="movil-paso">{t("1. Tailscale, en este PC y en tu móvil")}</h3>
@@ -177,11 +208,16 @@ export default function AjustesMovil() {
           )}
 
           <h3 className="movil-paso">{t("2. Empareja tu móvil")}</h3>
-          <p className="card-hint">
-            {direccion
-              ? t("En el móvil, abre {d} y escribe el código que salga aquí.", { d: direccion })
-              : t("Cuando el paso 1 esté hecho, aquí saldrá la dirección que abrir en el móvil.")}
-          </p>
+          {direccion ? (
+            <div className="movil-direccion">
+              <QrDireccion texto={direccion} />
+              <p className="card-hint">
+                {t("Escanéalo con la cámara del móvil, o abre {d}, y escribe el código que salga aquí.", { d: direccion })}
+              </p>
+            </div>
+          ) : (
+            <p className="card-hint">{t("Cuando el paso 1 esté hecho, aquí saldrá la dirección que abrir en el móvil.")}</p>
+          )}
           {codigo && quedan > 0 ? (
             <div className="movil-codigo" aria-live="polite">
               <strong>{codigo.valor}</strong>
@@ -197,6 +233,29 @@ export default function AjustesMovil() {
 
           {!!estado.dispositivos.length && (
             <>
+              <h3 className="movil-paso">{t("3. Los avisos")}</h3>
+              <p className="card-hint">
+                {estado.avisos
+                  ? t("{n} móvil(es) con avisos: cuando una sesión te pregunte o termine y no estés delante del PC, le llega.", { n: estado.avisos })
+                  : t("Ningún móvil ha pedido avisos todavía. En el móvil, en la lista del conserje, toca «Avisarme en este móvil».")}
+              </p>
+              {!!estado.avisos && (
+                <div className="movil-botones">
+                  <button
+                    className="mini"
+                    disabled={ocupado}
+                    onClick={() => {
+                      setPrueba(null);
+                      movilAvisar(t("Prueba de Adeorq"), t("Si lees esto, los avisos llegan a tu móvil."))
+                        .then((n) => setPrueba(t("Mandado a {n} móvil(es). Si no llega en un minuto, mira rastro.log.", { n })))
+                        .catch((e) => setError(String(e)));
+                    }}
+                  >
+                    {t("Mandar un aviso de prueba")}
+                  </button>
+                  {prueba && <span className="setting-line">{prueba}</span>}
+                </div>
+              )}
               <h3 className="movil-paso">{t("Móviles emparejados")}</h3>
               <ul className="movil-lista">
                 {estado.dispositivos.map((d) => {

@@ -4,10 +4,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
-  Handle,
   MiniMap,
-  NodeResizer,
-  Position,
   ReactFlow,
   ReactFlowProvider,
   applyEdgeChanges,
@@ -18,12 +15,11 @@ import {
   type EdgeChange,
   type Node,
   type NodeChange,
-  type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { open as abrirArchivo, save as guardarComo } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { shellCommand, sessionIdOf } from "../lib/comandos";
+import { shellCommand } from "../lib/comandos";
 import {
   accionDe,
   comoTexto,
@@ -33,11 +29,16 @@ import {
   type Atajos,
 } from "../lib/atajos";
 import { tecleandoEnOtro } from "../lib/tecleando";
-import TerminalPane from "./TerminalPane";
-import ResguardoPanel from "./ResguardoPanel";
 import WidgetNode, { ES_UTILIDAD, WIDGETS, type WidgetData, type WidgetKind } from "./CanvasWidgets";
 import ImageNode, { type ImageData, type Shape } from "./CanvasImage";
 import NoteNode, { NOTE_COLORS, type NoteData } from "./CanvasNote";
+import CarrilNode, { CARRIL_H, CARRIL_W, colorDeCarril, type CarrilData } from "./CanvasCarril";
+import TermNode, { type TermData } from "./CanvasTerm";
+import { pasteInto, useFlechas, type Relay } from "../lib/flechas";
+import { hueOf } from "../lib/colors";
+import { coloresDeProyectos } from "../lib/colorLienzo";
+import { ColoresLienzo, colorDeProyecto } from "./ColoresLienzo";
+import { projectIcons } from "../lib/pty";
 import GalleryNode, { type GalleryData } from "./CanvasGallery";
 import WebNode, { type WebData } from "./CanvasWeb";
 import { comoUrl } from "../lib/urlweb";
@@ -82,6 +83,7 @@ import {
   NoteIcon,
   PencilIcon,
   PinIcon,
+  RowsIcon,
   TrashIcon,
   UndoIcon,
 } from "./Icons";
@@ -97,7 +99,6 @@ import {
   type NodoGuardado,
 } from "../lib/canvasFile";
 import {
-  lastReply,
   listProjects,
   noteRead,
   readBoard,
@@ -106,11 +107,8 @@ import {
   saveCanvasFile,
   saveDrawing,
   savePastedImage,
-  sessionContext,
-  writePty,
   type PaneStatus,
   type Project,
-  type WorkState,
 } from "../lib/pty";
 import { useT } from "../lib/i18n";
 import { propsDeVelo } from "../lib/velo";
@@ -176,7 +174,7 @@ export interface CanvasPane {
   shadow?: boolean;
 }
 
-type SpawnKind = "claude" | "shell" | "agy";
+export type SpawnKind = "claude" | "shell" | "agy";
 
 /** Todo lo que puede vivir en el lienzo. */
 type CanvasNode =
@@ -187,7 +185,8 @@ type CanvasNode =
   | Node<GalleryData>
   | Node<WebData>
   | Node<KanbanData>
-  | Node<ChatData>;
+  | Node<ChatData>
+  | Node<CarrilData>;
 
 interface Props {
   /** Si la vista del Lienzo es la que se está viendo AHORA.
@@ -247,6 +246,9 @@ interface Props {
    *  Cabina. Lo resuelve App, que tiene las dos listas de paneles. Opcional,
    *  igual que en `TerminalPane`: sin él, el nombre simplemente no se edita. */
   onRename?: (id: number, nombre: string) => void;
+  /** Un panel de Codex ha aprendido su sesión del disco; lo resuelve App,
+   *  igual que el renombrado. */
+  onSessionId?: (id: number, sessionId: string) => void;
   /** El asa para que una sesión suprema pida flechas por MCP. La rellena el
    *  lienzo al montarse y la vacía al irse, así que App puede preguntar si hay
    *  lienzo abierto sin saber nada de él. Ver `docs/SUPREMA.md`. */
@@ -254,33 +256,6 @@ interface Props {
     ((from: number, to: number, auto: boolean) => boolean) | null
   >;
 }
-
-/** What travels along an arrow when the upstream agent finishes. */
-interface Relay {
-  edgeId: string;
-  fromId: number;
-  toId: number;
-  fromName: string;
-  toName: string;
-  brief: string;
-  /** Arrows marked auto skip the button and hand over on their own. */
-  auto: boolean;
-  /** Por qué este relevo sigue parado, cuando lo está. La entrega automática
-   *  se frena sola si el agente de origen no terminó (te preguntó algo) o si
-   *  la flecha se ha desbocado; el motivo se enseña en la barra en vez de
-   *  dejar un relevo quieto sin explicación. */
-  espera?: string;
-}
-
-/** Los estados en los que el agente NO ha terminado: te está hablando a ti.
- *  Entregar aquí le manda media respuesta al siguiente de la cadena. */
-const TE_HABLA_A_TI = new Set<WorkState>(["pregunta", "ofrece", "tuya"]);
-
-/** Cuántas entregas automáticas seguidas admite una flecha, y en cuánto rato.
- *  Dos flechas automáticas que se apuntan la una a la otra se pasan el relevo
- *  para siempre, y cada vuelta es un turno de agente que se paga. */
-const TOPE_AUTO = 3;
-const VENTANA_AUTO = 10 * 60_000;
 
 /** ¿Se llega de `desde` hasta `hasta` siguiendo flechas? Sirve para avisar de
  *  que la flecha que acabas de dibujar cierra un círculo. */
@@ -295,28 +270,6 @@ function alcanza(desde: string, hasta: string, list: Edge[]): boolean {
     for (const e of list) if (e.source === n) pila.push(e.target);
   }
   return false;
-}
-
-interface TermData extends Record<string, unknown> {
-  pane: CanvasPane;
-  /** Qué se abrió aquí y en qué proyecto. Un PTY vivo no cabe en un archivo:
-   *  para poder reabrir el tablero hay que guardar la receta, no el proceso. */
-  kind: SpawnKind;
-  proyecto: string;
-  fontSize: number;
-  autoFont: boolean;
-  stream: boolean;
-  onSecret: (hits: Hit[], severe: boolean) => void;
-  notifyMode: NotifyMode;
-  focused: boolean;
-  onFocus: (id: number) => void;
-  onClose: (id: number) => void;
-  onRename?: (id: number, nombre: string) => void;
-  onSplit: (id: number) => void;
-  onZoom: (id: number) => void;
-  onTurnEnd: (id: number) => void;
-  /** Su estado hacia arriba: lo consume el kanban y el Capataz. */
-  onStatus: (s: PaneStatus) => void;
 }
 
 const NODE_W = 640;
@@ -341,63 +294,9 @@ const cajaNodo = (n: CanvasNode): Caja => ({
   ...medida(n, NODE_W, NODE_H),
 });
 
-/** A live terminal inside a node. The header doubles as the drag handle. */
-function TermNode({ data, selected }: NodeProps<Node<TermData>>) {
-  const d = data;
-  return (
-    // `nodrag` estaba aquí, en la raíz del nodo, y hacía imposible arrastrar la
-    // terminal por su cabecera. React Flow exige LAS DOS cosas a la vez:
-    //   (!noDragClassName || !hasSelector(target, '.nodrag')) &&
-    //   (!handleSelector  ||  hasSelector(target, handleSelector))
-    // y como `.pane-head` vive dentro de este div, la primera siempre daba
-    // falso. Parecía intermitente porque el borde del nodo sí queda fuera.
-    // Con `dragHandle: ".pane-head"` puesto, `nodrag` sobra: la segunda
-    // condición ya impide que un arrastre empiece dentro del terminal.
-    // `nowheel` se queda: eso es la rueda, y ahí sí hay que scrollear el
-    // terminal en vez del lienzo.
-    <div className="rf-term nowheel" data-selected={selected}>
-      <NodeResizer minWidth={360} minHeight={220} isVisible={selected} />
-      <Handle type="target" position={Position.Left} className="rf-handle" />
-      <ResguardoPanel id={d.pane.id}>
-      <TerminalPane
-        id={d.pane.id}
-        cwd={d.pane.cwd}
-        name={d.pane.name}
-        command={d.pane.command}
-        env={d.pane.env}
-        account={d.pane.account}
-        hidden={false}
-        focused={d.focused}
-        maximized={false}
-        fontSize={d.fontSize}
-        autoFont={d.autoFont}
-        stream={d.stream}
-        onSecret={d.onSecret}
-        notifyMode={d.notifyMode}
-        onClose={d.onClose}
-        onRename={d.onRename}
-        onFocusPane={d.onFocus}
-        onSplit={(id) => d.onSplit(id)}
-        onToggleMax={(id) => d.onZoom(id)}
-        onTurnEnd={d.onTurnEnd}
-        onStatus={d.onStatus}
-        shadow={d.pane.shadow}
-      />
-      </ResguardoPanel>
-      <Handle type="source" position={Position.Right} className="rf-handle" />
-    </div>
-  );
-}
-
-/** Bracketed paste: without it every newline of a brief would hit Enter and
- *  send the message in pieces. This is how a real paste reaches the CLI. */
-function pasteInto(id: number, text: string, send: boolean): void {
-  const body = `\x1b[200~${text}\x1b[201~`;
-  void writePty(id, send ? `${body}\r` : body).catch(() => {});
-}
-
-function sidOf(pane: CanvasPane): string | undefined {
-  return sessionIdOf(pane.command);
+/** En el minimapa, un carril se pinta como franja tenue y no como pieza. */
+function claseDeNodo(n: Node): string {
+  return n.type === "carril" ? "mapa-carril" : "";
 }
 
 function Canvas({
@@ -421,6 +320,7 @@ function Canvas({
   chatPedido,
   onClose,
   onRename,
+  onSessionId,
   enlazarRef,
 }: Props) {
   const { t } = useT();
@@ -460,6 +360,26 @@ function Canvas({
   const [focusedId, setFocusedId] = useState<number | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [project, setProject] = useState("");
+  /* Los logos de los proyectos (los mismos de la barra lateral), por ruta:
+     cada terminal nueva se lleva el suyo para su marca de agua y su tapa. */
+  const iconosRef = useRef<Record<string, string>>({});
+  /** El logo que le toca a una carpeta: el de su proyecto, aunque la terminal
+   *  viva en una subcarpeta suya. */
+  const logoDe = useCallback((cwd: string) => {
+    const m = iconosRef.current;
+    if (m[cwd]) return m[cwd];
+    const c = cwd.toLowerCase();
+    const raiz = Object.keys(m).find((k) => c.startsWith(k.toLowerCase()));
+    return raiz ? m[raiz] : undefined;
+  }, []);
+  useEffect(() => {
+    if (!projects.length) return;
+    projectIcons(projects.map((p) => p.path))
+      .then((m) => {
+        iconosRef.current = m;
+      })
+      .catch(() => {});
+  }, [projects]);
   const [relays, setRelays] = useState<Relay[]>([]);
   const [editing, setEditing] = useState<Edge | null>(null);
   const [brief, setBrief] = useState("");
@@ -644,6 +564,87 @@ function Canvas({
     [flow],
   );
 
+  /**
+   * Dónde nace una terminal, y ya no «encima de la anterior».
+   *
+   * El escalón de 28 px de arriba dejaba tres seguidas casi tapadas del todo
+   * (captura del banco, 2026-10-06). Ahora:
+   *   1. Si hay un carril con el nombre del proyecto, nace DENTRO, en fila, y
+   *      pasa a la fila siguiente cuando no cabe: es lo que hace del carril
+   *      un espacio de trabajo y no una raya.
+   *   2. Si no, a la derecha de la pieza que más a la derecha se ve, con un
+   *      dedo de aire; y si así se saldría de lo que ves, debajo de todas.
+   *   3. Sin nada a la vista, en el centro de la cámara, como antes.
+   */
+  const dondeNace = useCallback(
+    (proyecto: string, prev: CanvasNode[]) => {
+      const ancho = (n: CanvasNode) => n.measured?.width || Number(n.style?.width) || NODE_W;
+      const alto = (n: CanvasNode) => n.measured?.height || Number(n.style?.height) || NODE_H;
+      const carril = prev.find(
+        (n) => n.type === "carril" && (n.data as CarrilData).nombre.trim().toLowerCase() === proyecto.toLowerCase(),
+      );
+      if (carril) {
+        const cw = ancho(carril);
+        const ch = alto(carril);
+        const dentro = prev.filter(
+          (n) =>
+            n.type === "term" &&
+            n.position.x >= carril.position.x &&
+            n.position.x < carril.position.x + cw &&
+            n.position.y >= carril.position.y &&
+            n.position.y < carril.position.y + ch,
+        ).length;
+        const porFila = Math.max(1, Math.floor((cw - 24) / (NODE_W + 24)));
+        return {
+          x: carril.position.x + 24 + (dentro % porFila) * (NODE_W + 24),
+          y: carril.position.y + 44 + Math.floor(dentro / porFila) * (NODE_H + 24),
+        };
+      }
+      const caja = hoja.current?.getBoundingClientRect();
+      if (!caja) return centroDeLaVista(prev.length);
+      const a = flow.screenToFlowPosition({ x: caja.left, y: caja.top });
+      const b = flow.screenToFlowPosition({ x: caja.right, y: caja.bottom });
+      const visibles = prev.filter(
+        (n) =>
+          n.type !== "carril" &&
+          n.position.x + ancho(n) > a.x &&
+          n.position.x < b.x &&
+          n.position.y + alto(n) > a.y &&
+          n.position.y < b.y,
+      );
+      // Sin nada a la vista, arriba a la izquierda de lo que ves (y no en el
+      // centro): es lo que deja sitio a la derecha para la siguiente.
+      if (!visibles.length) {
+        return a.x + 24 + NODE_W <= b.x ? { x: a.x + 24, y: a.y + 24 } : centroDeLaVista(prev.length);
+      }
+      const derecha = visibles.reduce((m, n) => (n.position.x + ancho(n) > m.position.x + ancho(m) ? n : m));
+      const x = derecha.position.x + ancho(derecha) + 24;
+      if (x + NODE_W <= b.x) return { x, y: derecha.position.y };
+      // Debajo de todas las que se ven. Si eso queda fuera de la vista, la
+      // cámara va a buscarla (`place` lo hace al colocarla): «no la veo» era
+      // el fallo del que venimos, y taparla con otra no es verla.
+      return {
+        x: Math.min(...visibles.map((n) => n.position.x)),
+        y: Math.max(...visibles.map((n) => n.position.y + alto(n))) + 24,
+      };
+    },
+    [flow, centroDeLaVista],
+  );
+
+  /** La cámara va a enseñar una pieza recién nacida si no se ve entera. */
+  const enseñar = useCallback(
+    (x: number, y: number, w: number, h: number) => {
+      const caja = hoja.current?.getBoundingClientRect();
+      if (!caja) return;
+      const a = flow.screenToFlowPosition({ x: caja.left, y: caja.top });
+      const b = flow.screenToFlowPosition({ x: caja.right, y: caja.bottom });
+      if (x >= a.x && x + w <= b.x && y >= a.y && y + h <= b.y) return;
+      const { zoom } = flow.getViewport();
+      void flow.setCenter(x + w / 2, y + h / 2, { zoom, duration: 300 });
+    },
+    [flow],
+  );
+
   const place = useCallback(
     (
       kind: SpawnKind,
@@ -664,7 +665,11 @@ function Canvas({
            terminal se abría perfectamente y él no la veía, así que parecía que
            el botón no hacía nada (2026-08-09). Un contador no sabe dónde estás
            mirando; la cámara sí. */
-        const position = en ?? centroDeLaVista(prev.length);
+        const position = en ?? dondeNace(p.name, prev);
+        // Un instante después, cuando el nodo ya existe: si nació fuera de lo
+        // que ves, la cámara va a por él. Es idempotente, así que no importa
+        // que React llame dos veces a este actualizador en desarrollo.
+        if (!en) window.setTimeout(() => enseñar(position.x, position.y, NODE_W, NODE_H), 60);
         // Anotado a mano: con el estado ya en unión (terminales + widgets),
         // un literal suelto haría que TypeScript fundiese los dos `data` y no
         // encajaría en ninguno de los dos.
@@ -678,6 +683,7 @@ function Canvas({
             pane,
             kind,
             proyecto: p.name,
+            logo: logoDe(p.path),
             fontSize,
             autoFont,
             stream,
@@ -687,6 +693,7 @@ function Canvas({
             onFocus: setFocusedId,
             onClose: handleClose,
             onRename,
+            onSessionId,
             onSplit: (id: number) => splitRef.current(id),
             onZoom: zoomTo,
             onTurnEnd,
@@ -700,6 +707,8 @@ function Canvas({
     },
     [
       onCreate,
+      dondeNace,
+      enseñar,
       fontSize,
       autoFont,
       stream,
@@ -889,123 +898,23 @@ function Canvas({
     [flow, pasarNota, setNodes, t],
   );
 
-  const saveBrief = () => {
-    if (!editing) return;
-    setEdges((prev) =>
-      prev.map((e) =>
-        e.id === editing.id
-          ? { ...e, label: brief.trim() || "encargo…", data: { ...e.data, brief: brief.trim() } }
-          : e,
-      ),
-    );
-    setEditing(null);
-  };
-
-  const toggleAuto = () => {
-    if (!editing) return;
-    const next = !editing.data?.auto;
-    setEditing({ ...editing, data: { ...editing.data, auto: next } });
-    setEdges((prev) =>
-      prev.map((e) => (e.id === editing.id ? { ...e, data: { ...e.data, auto: next } } : e)),
-    );
-  };
-
-  /** Deja el relevo parado con su motivo, en vez de descartarlo. Vuelve a
-   *  intentarse solo en la campana siguiente. */
-  const frenar = (edgeId: string, motivo: string) =>
-    setRelays((prev) =>
-      prev.map((x) => (x.edgeId === edgeId && x.espera !== motivo ? { ...x, espera: motivo } : x)),
-    );
-
-  /** `auto` distingue quién manda el relevo: el reloj o tú. Solo el automático
-   *  comprueba nada — si le das al botón, entregas y punto. */
-  const runRelay = async (r: Relay, send: boolean, auto = false) => {
-    const from = panes.find((p) => p.id === r.fromId);
-    // La campana del CLI suena al acabar el turno Y cuando el agente se para a
-    // preguntarte algo: desde fuera son la misma señal. El transcript sí las
-    // distingue, así que en automático se le pregunta antes de entregar; si no,
-    // el siguiente de la cadena recibe media respuesta y se pone a trabajar
-    // sobre ella. Es el fallo que hacía que encadenar no saliese a cuenta.
-    if (auto && from) {
-      // La campana llega un pelo antes de que el transcript tenga escrita la
-      // última línea. Sin esta pausa se lee el estado de la vuelta anterior.
-      await new Promise((ok) => window.setTimeout(ok, 400));
-      let estado: WorkState = "";
-      try {
-        estado = (await sessionContext(from.cwd, sidOf(from)))?.state ?? "";
-      } catch {
-        // Sin transcript no hay nada que comprobar (una PowerShell, por
-        // ejemplo): se entrega, que es lo que se hacía siempre.
-        estado = "";
-      }
-      if (TE_HABLA_A_TI.has(estado)) {
-        frenar(r.edgeId, t("«{n}» te preguntó algo antes de terminar", { n: r.fromName }));
-        return;
-      }
-    }
-    setRelays((prev) => prev.filter((x) => x.edgeId !== r.edgeId));
-    let result = "";
-    if (from) {
-      try {
-        result = (await lastReply(from.cwd, sidOf(from))) ?? "";
-      } catch {
-        result = "";
-      }
-    }
-    if (!result) {
-      setNote(
-        t("No pude leer la respuesta del agente anterior: se manda solo tu encargo."),
-      );
-      window.setTimeout(() => setNote(null), 6000);
-    }
-    const text = [
-      r.brief,
-      result && `Resultado de «${r.fromName}»:\n"""\n${result}\n"""`,
-    ]
-      .filter(Boolean)
-      .join("\n\n");
-    if (!text.trim()) return;
-    pasteInto(r.toId, text, send);
-    setFocusedId(r.toId);
-    zoomTo(r.toId);
-    firedRef.current.delete(r.edgeId);
-  };
-
-  // Arrows set to automatic hand over on their own; the rest wait for the
-  // button, because the house rule is that nothing runs without an OK.
-  useEffect(() => {
-    for (const r of relays) {
-      if (!r.auto || firedRef.current.has(r.edgeId)) continue;
-      const ahora = Date.now();
-      const marcas = (autoRef.current.get(r.edgeId) ?? []).filter(
-        (t0) => ahora - t0 < VENTANA_AUTO,
-      );
-      if (marcas.length >= TOPE_AUTO) {
-        // Se ha desbocado: casi siempre es un círculo de flechas automáticas,
-        // y cada vuelta cuesta un turno de agente de verdad. Se pasa a mano y
-        // se deja el relevo en la barra para que decidas tú.
-        autoRef.current.set(r.edgeId, []);
-        firedRef.current.add(r.edgeId);
-        setEdges((prev) =>
-          prev.map((e) => (e.id === r.edgeId ? { ...e, data: { ...e.data, auto: false } } : e)),
-        );
-        frenar(
-          r.edgeId,
-          t("«{a}» → «{b}» se pasó el relevo {n} veces seguidas: la he puesto a mano", {
-            a: r.fromName,
-            b: r.toName,
-            n: String(TOPE_AUTO),
-          }),
-        );
-        continue;
-      }
-      autoRef.current.set(r.edgeId, [...marcas, ahora]);
-      firedRef.current.add(r.edgeId);
-      void runRelay(r, true, true);
-    }
-    // runRelay reads fresh state through refs and removes the relay itself.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [relays]);
+  // Lo que viaja por una flecha: su encargo, su modo automático y la entrega
+  // (ver `lib/flechas.ts`).
+  const { saveBrief, toggleAuto, runRelay } = useFlechas({
+    panes,
+    relays,
+    setRelays,
+    editing,
+    setEditing,
+    brief,
+    setEdges,
+    setNote,
+    setFocusedId,
+    zoomTo,
+    firedRef,
+    autoRef,
+    t,
+  });
 
   const nodeTypes = useMemo(
     () => ({
@@ -1017,6 +926,7 @@ function Canvas({
       web: WebNode,
       kanban: KanbanNode,
       chat: ChatNode,
+      carril: CarrilNode,
     }),
     [],
   );
@@ -1412,6 +1322,65 @@ ${ruta}` : ruta;
     [quitarWidget, colorNota, dondeCae],
   );
 
+  /* ------------------------------------------------------------ los carriles */
+
+  /** Renombrar un carril. El color no se toca aquí: con el nombre de un
+   *  proyecto lo toma solo al pintarse (`ColoresLienzo`). */
+  const renombrarCarril = useCallback((nodeId: string, nombre: string) => {
+    setNodes((prev) =>
+      prev.map((n) =>
+        n.id === nodeId && n.type === "carril"
+          ? ({ ...n, data: { ...(n.data as CarrilData), nombre } } as CanvasNode)
+          : n,
+      ),
+    );
+  }, []);
+
+  /**
+   * Un carril nuevo. Nace debajo de todo lo que hay (es una franja, no una
+   * pieza que se coloque donde cae el ratón) y VA PRIMERO en la lista, que es
+   * lo que lo deja debajo de las terminales en el dibujo. Con el nombre de un
+   * proyecto toma su color, y las terminales nuevas de ese proyecto nacen en él.
+   */
+  const ponerCarril = useCallback(
+    (nombre?: string, color?: string, en?: { x: number; y: number; w: number; h: number }) => {
+      setNodes((prev) => {
+        const nodeId = `c${Date.now().toString(36)}${prev.length}`;
+        const n = prev.filter((x) => x.type === "carril").length;
+        const nombreFinal = nombre ?? `${t("Carril")} ${n + 1}`;
+        const alto = (x: CanvasNode) => x.measured?.height || Number(x.style?.height) || NODE_H;
+        const sitio = en
+          ? { x: en.x, y: en.y }
+          : prev.length
+            ? {
+                x: Math.min(...prev.map((x) => x.position.x)) - 24,
+                y: Math.max(...prev.map((x) => x.position.y + alto(x))) + 40,
+              }
+            : flow.screenToFlowPosition({
+                x: (hoja.current?.getBoundingClientRect().left ?? 0) + 40,
+                y: (hoja.current?.getBoundingClientRect().top ?? 0) + 40,
+              });
+        const nodo: Node<CarrilData> = {
+          id: nodeId,
+          type: "carril",
+          position: sitio,
+          style: { width: en?.w ?? CARRIL_W, height: en?.h ?? CARRIL_H },
+          zIndex: -1,
+          dragHandle: ".carril-rotulo",
+          data: {
+            nombre: nombreFinal,
+            color: color ?? colorDeCarril(n),
+            nodeId,
+            onClose: quitarWidget,
+            onRename: renombrarCarril,
+          },
+        };
+        return [nodo, ...prev];
+      });
+    },
+    [flow, t, quitarWidget, renombrarCarril],
+  );
+
   /* -------------------------------------------------- el kanban del trabajo */
 
   /**
@@ -1588,6 +1557,7 @@ ${ruta}` : ruta;
             pane,
             kind: cli === "agy" ? "agy" : cli === "claude" ? "claude" : "shell",
             proyecto: pane.cwd.split(/[\\/]/).filter(Boolean).pop() ?? pane.cwd,
+            logo: logoDe(pane.cwd),
             fontSize,
             autoFont,
             stream,
@@ -1597,6 +1567,7 @@ ${ruta}` : ruta;
             onFocus: setFocusedId,
             onClose: handleClose,
             onRename,
+            onSessionId,
             onSplit: (id: number) => splitRef.current(id),
             onZoom: zoomTo,
             onTurnEnd,
@@ -2141,6 +2112,43 @@ ${ruta}` : ruta;
    * Esto es distinto de las flechas de React Flow, que unen dos terminales para
    * pasarles el relevo: aquellas son una tubería de trabajo, estas son dibujo.
    * Se puede rodear tres cosas y señalarlas sin montar ningún encadenado. */
+  /* El color de cada proyecto que hay en el lienzo: los de sus terminales y
+     los de los carriles que se llaman como un proyecto (un carril vacío ya
+     reserva el suyo). La clave solo cambia cuando cambia ese conjunto, así que
+     arrastrar una pieza no recalcula la paleta ni repinta los nodos. */
+  const clavesColor = useMemo(() => {
+    const s = new Set<string>();
+    for (const n of nodes) {
+      if (n.type === "term") s.add((n.data as TermData).proyecto);
+      else if (n.type === "carril") {
+        const nombre = (n.data as CarrilData).nombre.trim().toLowerCase();
+        const p = projects.find((x) => x.name.toLowerCase() === nombre);
+        if (p) s.add(p.name);
+      }
+    }
+    return [...s].sort().join("\n");
+  }, [nodes, projects]);
+  const coloresLienzo = useMemo(
+    () => coloresDeProyectos(clavesColor ? clavesColor.split("\n") : []),
+    [clavesColor],
+  );
+  /** El color de cada pieza en el minimapa: el de su proyecto si es una
+   *  terminal o un carril suyo, y el gris de la casa para el resto. */
+  const colorDeNodo = useCallback(
+    (n: Node): string => {
+      if (n.type === "term") {
+        const p = String((n.data as TermData).proyecto ?? "");
+        return coloresLienzo[p] ?? hueOf(p);
+      }
+      if (n.type === "carril") {
+        const d = n.data as CarrilData;
+        return colorDeProyecto(coloresLienzo, d.nombre) ?? d.color;
+      }
+      return "#6b7a90";
+    },
+    [coloresLienzo],
+  );
+
   const cajasNodos = useMemo(() => {
     const m = new Map<string, Caja>();
     for (const n of nodes) m.set(n.id, cajaNodo(n));
@@ -2711,6 +2719,15 @@ ${ruta}` : ruta;
           chat: dd.chatId,
           modelo: dd.modelo,
         });
+      } else if (n.type === "carril") {
+        const d = (n as Node<CarrilData>).data;
+        guardados.push({
+          ...pos,
+          ...medida(n, CARRIL_W, CARRIL_H),
+          tipo: "carril",
+          nombre: d.nombre,
+          color: d.color,
+        });
       } else if (n.type === "kanban") {
         // Solo las tarjetas tuyas: las otras tres columnas son el estado de los
         // agentes de AHORA, y guardar eso sería guardar una foto que al abrir
@@ -2836,6 +2853,8 @@ ${ruta}` : ruta;
               },
             } as Node<NoteData>,
           ]);
+        } else if (n.tipo === "carril") {
+          ponerCarril(n.nombre, n.color, { x: n.x, y: n.y, w: n.w, h: n.h });
         } else if (n.tipo === "chat") {
           // Con su archivo y su modelo: la conversación la lee él solo del
           // disco, así que un tablero reabierto trae la charla donde la dejaste.
@@ -3034,6 +3053,12 @@ ${ruta}` : ruta;
         onClick: () => ponerNota(),
       },
       {
+        icon: <RowsIcon size={15} />,
+        label: t("Carril"),
+        hint: t("una franja que separa un espacio de trabajo"),
+        onClick: () => ponerCarril(),
+      },
+      {
         icon: <GalleryIcon size={15} />,
         label: t("Galería"),
         hint: comoTexto(mapaRef.current.galeria) || t("lo que has pegado"),
@@ -3072,7 +3097,7 @@ ${ruta}` : ruta;
         onClick: () => ponerWidget(w.kind),
       })),
     ],
-    [t, ponerNota, ponerGaleria, ponerWeb, ponerWidget, ponerKanban, ponerChat],
+    [t, ponerNota, ponerCarril, ponerGaleria, ponerWeb, ponerWidget, ponerKanban, ponerChat],
   );
 
   const menuPiezas = (e: React.MouseEvent) => menu(e, itemsPiezas());
@@ -3756,6 +3781,7 @@ ${ruta}` : ruta;
           e.stopPropagation();
         }}
       >
+        <ColoresLienzo.Provider value={coloresLienzo}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -3875,9 +3901,22 @@ ${ruta}` : ruta;
             onMoverNodos={moverNodosSel}
           />
           )}
-          <MiniMap pannable zoomable className="canvas-map" />
+          {/* Cada pieza con el color de su proyecto y la ventana que estás
+              viendo en el acento: antes era un rectángulo gris con cajas
+              grises, que no decía qué había ni dónde. */}
+          <MiniMap
+            pannable
+            zoomable
+            className="canvas-map"
+            nodeColor={colorDeNodo}
+            nodeClassName={claseDeNodo}
+            nodeStrokeWidth={0}
+            nodeBorderRadius={3}
+            maskColor="rgba(8, 12, 20, 0.45)"
+          />
           <Controls showInteractive={false} />
         </ReactFlow>
+        </ColoresLienzo.Provider>
 
         {/* El marco del botón derecho mientras se barre. Va aquí fuera y en
             píxeles de pantalla: no tiene que hacer zoom con el tablero, es el

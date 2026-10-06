@@ -58,6 +58,7 @@ import ProjectAvatar, { initials } from "./ProjectAvatar";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
 import FilaBotones from "./FilaBotones";
 import { ClaudeMark } from "./KindIcon";
+import { CAMBIO_VISTOS, marcarVisto, yaVisto } from "../lib/vistos";
 import {
   ArchiveIcon,
   ChevronIcon,
@@ -119,6 +120,8 @@ interface Props {
   /** Cómo se está dibujando la barra. Lo necesita fuera el tirador de
       ensanchar: en la tira no hay ancho que elegir, así que se quita. */
   onRail?: (mode: RailMode) => void;
+  /** Un modo que la app pide (el modo simple pone la tira); `null` es no pedir nada. */
+  railPedido?: RailMode | null;
 }
 
 /**
@@ -278,6 +281,22 @@ function shrinkToDataUri(file: File): Promise<string> {
   });
 }
 
+/** Cuánto te reclama una sesión, de más a menos: para ordenar por eso. */
+function reclama(s: SessionInfo): number {
+  if (s.state === "pregunta") return 0;
+  if (s.state === "ofrece") return 1;
+  if (s.state === "lista") return 2;
+  if (s.live) return 3;
+  return 4;
+}
+
+/** Los estados en los que tiene sentido saber si ya miraste lo último. */
+function esperaTuMirada(s: SessionInfo): boolean {
+  return !s.live && (s.state === "pregunta" || s.state === "ofrece" || s.state === "lista");
+}
+
+const ORDEN_RECLAMA_KEY = "adeorq-orden-reclama";
+
 function stateDotClass(s: SessionInfo): string {
   if (s.live) return "dot-live";
   if (s.state === "pregunta" || s.state === "ofrece") return "dot-ask";
@@ -312,6 +331,7 @@ export default function Sidebar({
   gruposOcultos,
   onPlegarGrupo,
   onRail,
+  railPedido,
 }: Props) {
   const { t } = useT();
   const showMenu = useMenu();
@@ -615,6 +635,10 @@ export default function Sidebar({
      que llega por props, es otra cosa (los grupos de sesiones plegados). */
   const ocultos = useMemo(() => new Set(ui.hiddenProjects), [ui.hiddenProjects]);
 
+  /** El orden dentro de cada proyecto (ver `reclama`). Va ANTES del memo que
+      lo usa: declararlo después era leerlo antes de existir. */
+  const [ordenReclama, setOrdenReclama] = useState(() => localStorage.getItem(ORDEN_RECLAMA_KEY) === "1");
+
   const todo = useMemo<{
     proyectos: Group[];
     sueltas: Group | null;
@@ -678,6 +702,9 @@ export default function Sidebar({
 
     const build = (name: string, path: string, hasGit: boolean, all: SessionInfo[]): Group => {
       const active = all.filter((s) => !archived.has(s.id));
+      // «Primero el que te reclama»: las que te dejaron una pregunta, luego
+      // las que terminaron, y dentro de cada grupo la más reciente arriba.
+      if (ordenReclama) active.sort((a, b) => reclama(a) - reclama(b) || a.hours - b.hours);
       // Lo fijado se ve arriba, en su propia sección, así que sale de la LISTA
       // del proyecto: una sesión en dos sitios a la vez es una sesión que
       // parece dos.
@@ -768,6 +795,7 @@ export default function Sidebar({
     projects,
     sessions,
     archived,
+    ordenReclama,
     traidas,
     abiertas,
     ui.sessionProject,
@@ -849,6 +877,15 @@ export default function Sidebar({
 
   const rail: RailMode = ui.railMode;
 
+  /* Que el círculo pase a hueco en cuanto miras una sesión, sin esperar al
+     siguiente repaso del disco. */
+  const [, tocaVistos] = useState(0);
+  useEffect(() => {
+    const f = () => tocaVistos((n) => n + 1);
+    window.addEventListener(CAMBIO_VISTOS, f);
+    return () => window.removeEventListener(CAMBIO_VISTOS, f);
+  }, []);
+
   const setRail = (mode: RailMode) => {
     setFlyout(null);
     // En la tira no se ve el buscador, así que un filtro escrito antes dejaría
@@ -862,6 +899,13 @@ export default function Sidebar({
   useEffect(() => {
     onRail?.(rail);
   }, [rail, onRail]);
+
+  // El modo simple de la app pide la tira al entrar y devuelve lo que había
+  // al salir; la barra sigue siendo la dueña del modo, solo obedece el cambio.
+  useEffect(() => {
+    if (railPedido && railPedido !== ui.railMode) setRail(railPedido);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [railPedido]);
 
   /**
    * The panel starts ON the logo, not next to it: same corner, same size of
@@ -936,7 +980,7 @@ export default function Sidebar({
     setSessions((prev) =>
       prev.map((x) => (x.id === s.id ? { ...x, title } : x)),
     );
-    renameSession(s.folder, s.id, title)
+    renameSession(s.folder, s.id, title, s.fuente)
       .then(() => refresh())
       .catch((e) => setError(String(e)));
   };
@@ -2383,10 +2427,12 @@ export default function Sidebar({
             // Si viene de soltar un arrastre, el clic no es un clic: es la
             // cola del gesto, y abrir la sesión ahí no lo ha pedido nadie.
             if (soltoRecien.current) return;
+            marcarVisto(s.id);
             onResume(s);
           }}
         >
-          <span className={`dot ${stateDotClass(s)}`} />
+          {/* Hueco si ya miraste lo último que hizo (ver `lib/vistos.ts`). */}
+          <span className={`dot ${stateDotClass(s)}`} data-visto={esperaTuMirada(s) && yaVisto(s.id, s.mtime) ? "true" : undefined} />
           {tieneMarca(fuente) && (
             <span className="sess-prov" style={{ ["--c" as string]: providerOf(fuente).hue }}>
               <ProviderMark id={fuente} />
@@ -2779,6 +2825,22 @@ export default function Sidebar({
           </button>
         )}
       </div>
+      {/* El orden de cada proyecto: por antigüedad, o primero lo que te
+          reclama (una pregunta, un turno acabado), que con seis terminales es
+          lo que responde a «¿cuál me faltaba por mirar?». */}
+      <button
+        className="finder-orden"
+        data-on={ordenReclama || undefined}
+        data-tip={t(ordenReclama ? "Ordenadas por quién te reclama. Pulsa para ordenar por antigüedad." : "Ordenadas por antigüedad. Pulsa para poner primero las que te reclaman.")}
+        onClick={() => {
+          setOrdenReclama((v) => {
+            localStorage.setItem(ORDEN_RECLAMA_KEY, v ? "0" : "1");
+            return !v;
+          });
+        }}
+      >
+        {ordenReclama ? t("Primero el que te reclama") : t("Por antigüedad")}
+      </button>
       {filter.trim() && ocultosPorFiltro > 0 && (
         <button className="finder-aviso" onClick={() => setFilter("")}>
           {t("{n} proyectos escondidos por el filtro. Pulsa para verlos.", {

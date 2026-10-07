@@ -273,6 +273,13 @@ async (page) => {
         // Las skills de ~/.claude/skills, sembradas en `window.__skills` (con
         // `{ folder: "fin" }` el traspaso antes de compactar manda `/fin`).
         case "list_skills": return JSON.parse(JSON.stringify(window.__skills ?? []));
+        // El plan del Capataz, sembrado en `window.__planCapataz` como el objeto
+        // `{ resumen, acciones }` que escribe el modelo: así se ve la lista
+        // revisada (y sus cerebros) sin gastar una llamada a `claude -p`.
+        case "foreman_plan": return JSON.stringify(window.__planCapataz ?? { resumen: "", acciones: [] });
+        // ¿Contesta ese puerto? Los de `window.__puertosVivos` sí (ninguno si no
+        // se dice), para ver la pregunta de abrir la web al levantar un servidor.
+        case "puerto_escucha": return (window.__puertosVivos ?? []).includes(args.puerto);
         // Los clientes del MCP y su escalón (decisión D1), sembrados en
         // `window.__clientesMcp` con la forma que devuelve Rust.
         case "mcp_clientes_leer": return JSON.parse(JSON.stringify(window.__clientesMcp ?? []));

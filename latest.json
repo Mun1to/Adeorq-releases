@@ -1,11 +1,11 @@
 {
-  "version": "0.9.166",
-  "notes": "Las terminales del lienzo se estiran de verdad por cualquier borde, esquina o tirador (en la 0.9.165 no se podia). Cada proyecto de la barra dice cuantas conversaciones esconde por tener mas de un mes (N mas antiguas) y las abre con un clic. La esfera de Memoria avisa de que el modo rendimiento la para y puede girar aunque ahorre. Compactar y Nueva con traspaso mandan /fin si tienes esa skill. MEDIDO: todo recorrido en la interfaz con un Tauri de mentira y con los bancos; no se ha visto en la app instalada.",
-  "pub_date": "2026-10-07T19:47:07Z",
+  "version": "0.9.167",
+  "notes": "Adeorq pregunta antes de abrir la web de un localhost: cuando una terminal levanta un servidor sale abajo a la derecha Abrir o Ahora no, y se va sola a los veinte segundos. El Capataz deja elegir el modelo de cada agente de un plan, como el Reparto. Los avisos flotantes (el Deshacer al cerrar una terminal) ya no quedan debajo de las terminales. MEDIDO: recorrido en la interfaz con un Tauri de mentira; no se ha visto en la app instalada.",
+  "pub_date": "2026-10-07T20:51:01Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzBuSExIcjl6ZXdmY0hUWXhiTHFLLzI1b0hZcWovNjlZZTFMMXRKVEY3MXJ4NnB0WVk3Y2VMMm0zcTl0NHArWDFVZXYxRDhQK0JuL3R0YzJzL0VIQXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDAyNDE3CWZpbGU6QWRlb3JxXzAuOS4xNjZfeDY0LXNldHVwLmV4ZQpOeDhpMXBaU1F1VlpROVlQSVB4VlplSGNrbG5uMlQ0aHY4KzRzTERES1hxR280WHZabDBaTlVyZkxuMHNud2srWHlIZy8vTDlkQXNPaXVZNmNVZnZCdz09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.166/Adeorq_0.9.166_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzNMNE04TTRSdUdMTklsUHMrRjhBMytyQmNNTWM3WUhyRlFUaXRZbmY3WnkwbDVqVGl2QVB6T0NtU3NJTTlCeHZicko0MXZZTWpEbGcrQXhTMnZTemdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDA2MjI2CWZpbGU6QWRlb3JxXzAuOS4xNjdfeDY0LXNldHVwLmV4ZQpPK3NJMWVCOHl0eEt5R0dXcVRIcXovL0xqZTBoTEhNL2ZPcGJNdUlLK2xUWFdJSFNzU256Y0NkWEpxN2NISU5YYjBEQTl3a3JYN044eXI5dFpRbjhEUT09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.167/Adeorq_0.9.167_x64-setup.exe"
     }
   }
 }

@@ -1,0 +1,4 @@
+# Los guiones de bash corren dentro de Linux (WSL, el runner de Actions) y un
+# \r al final de cada línea los rompe: con core.autocrlf puesto en Windows, un
+# clon nuevo los sacaría con saltos de Windows.
+*.sh text eol=lf

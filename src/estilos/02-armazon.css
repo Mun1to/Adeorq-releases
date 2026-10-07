@@ -63,17 +63,23 @@
    la posición de nada, y un overlay nuevo funciona sin que nadie se acuerde de
    apuntarlo en ninguna lista. El z-index se queda porque ordena a los hermanos
    que SÍ están posicionados; a uno estático no le hace nada, y no lo necesita. */
-/* ⚠ TRAMPA para lo que flota. Esta regla es `.app > *`, o sea (0,1,1), y le
-   gana a cualquier `.loquesea` (0,1,0): un hijo directo de `.app` que declare
-   su propio z-index NO lo va a tener, va a tener 1. Y con todos a 1 el orden
-   lo decide el árbol, así que un flotante montado arriba del JSX acaba DEBAJO
-   de la barra y de la vista, sin recibir un solo clic. Le pasó a `.obj-flota`
-   y le volvió a pasar a `.cuota-card` (Munir, 2026-08-09: «que es esto?»,
-   señalando un recuadro vacío asomando por el borde de la barra).
-   Si añades otro flotante colgado de `.app`, dale su regla `.app > .lo-tuyo`
-   como las de más abajo, o cuélgalo del body por un portal como hace
-   `Overlays`. */
-.app > *:not(.fondo) {
+/* `:where()` y no `.app > *:not(.fondo)`, y esto cerró una trampa que se pagó
+   CUATRO veces. Escrita a pelo, la regla pesaba dos clases y le ganaba a
+   cualquier `.loquesea` de una: un hijo directo de `.app` que declarara su
+   propio z-index se quedaba con 1, y con todos a 1 manda el orden del árbol, así
+   que lo que se monta arriba del JSX acababa DEBAJO de la barra y de la vista,
+   sin recibir un clic. Le pasó a `.obj-flota`, a `.cuota-card` (Munir,
+   2026-08-09: «que es esto?», un recuadro vacío asomando por la barra), al
+   «Deshacer» de cerrar una terminal y a la pregunta de abrir la web (2026-10-07,
+   medido con `elementsFromPoint`: la pastilla por detrás del panel lateral).
+   La salida de entonces era acordarse de escribir `.app > .lo-tuyo`, y nadie se
+   acordaba. `:where()` no pesa nada, así que esto queda en una sola clase y
+   cualquier regla posterior con su z-index gana sola. Medido en las nueve
+   vistas al cambiarlo: la barra y las vistas siguen en 1, y todos los
+   flotantes declaran 60 o más (ninguno se hunde por debajo). Las reglas
+   `.app > .cuota-card` y `.app > .obj-flota` de otros tramos son de antes y
+   ya no hacen falta. */
+.app > :where(*:not(.fondo)) {
   z-index: 1;
 }
 

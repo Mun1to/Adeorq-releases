@@ -1280,7 +1280,7 @@ export default function SettingsView({
                   />
                 </label>
                 <label className="setting-row setting-switch">
-                  <span>{t("Abrir la web cuando una terminal levanta un servidor")}</span>
+                  <span>{t("Preguntar si abro la web cuando una terminal levanta un servidor")}</span>
                   <input
                     type="checkbox"
                     checked={webAuto}

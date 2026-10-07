@@ -13,7 +13,8 @@
 //   1. el guardián sobre las notas,
 //   2. la copia de nombre fijo (`Adeorq-setup.exe`), de la que cuelgan los
 //      botones del README y de la web,
-//   3. `gh release create` con el exe, su firma, la copia y el `latest.json`.
+//   3. `gh release create` con el exe, su firma, la copia y el `latest.json`,
+//   4. y el despliegue de adeorq.com, que la release no dispara sola.
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -148,3 +149,28 @@ const salida = execFileSync(
   { encoding: "utf8" },
 );
 console.log(salida.trim());
+
+/* 4. Y la web, que no se entera sola.
+ *
+ * `web.yml` vive en el repo PRIVADO, que es donde están los secretos de
+ * Cloudflare, y espera un `release: published`; pero la release se crea en el
+ * PÚBLICO, y ese evento solo salta en el repo donde ocurre. O sea que nunca ha
+ * llegado. Se lanzaba a mano y se olvidaba: la 0.9.165 y la 0.9.166 salieron
+ * con adeorq.com anunciando la 0.9.164 (medido el 2026-10-07; en agosto se
+ * quedó cuatro versiones atrás por lo mismo).
+ *
+ * Va aquí y no al acabar Linux porque la web solo lee el instalador de Windows
+ * (`windowsInstaller` en `web/scripts/github.mjs`), que ya está subido.
+ */
+try {
+  execFileSync("gh", ["workflow", "run", "web.yml", "--repo", "Mun1to/Adeorq", "--ref", "main"], {
+    encoding: "utf8",
+  });
+  console.log("\nWeb: despliegue lanzado; adeorq.com tendrá la " + version + " en unos dos minutos.");
+} catch (e) {
+  console.error(
+    `\nLA RELEASE ESTÁ FUERA, PERO LA WEB NO SE HA LANZADO (${e.message.trim()}).\n` +
+      `  Lánzala a mano:  gh workflow run web.yml --repo Mun1to/Adeorq --ref main\n`,
+  );
+  process.exitCode = 1;
+}

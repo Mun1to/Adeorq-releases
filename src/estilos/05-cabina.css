@@ -1357,6 +1357,16 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   white-space: nowrap;
 }
 
+/* La pregunta de abrir la web (`WebAuto`): la misma pastilla, pero abajo a la
+   derecha, junto al panel donde se abriría, y así no tapa al «Deshacer» si
+   salen los dos a la vez. */
+.web-pregunta {
+  left: auto;
+  right: 22px;
+  transform: none;
+  gap: 8px;
+}
+
 .deshacer-pill kbd {
   margin-left: 6px;
   padding: 1px 6px;

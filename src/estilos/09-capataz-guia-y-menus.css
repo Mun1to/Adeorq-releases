@@ -164,7 +164,7 @@
   margin-left: auto;
   padding: 2px 8px;
   border: 1px solid color-mix(in srgb, var(--done) 45%, var(--border));
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--done) 10%, transparent);
   color: var(--done);
   font-size: 11px;

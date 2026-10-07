@@ -2865,8 +2865,8 @@ function App() {
           hay un sitio mejor donde estar haciendo eso. Un CLI no puede saberlo,
           porque no sabe que existen los otros veinte; un panel sí. Tampoco
           pinta ni actúa: propone en la misma bandeja. */}
-      {/* La web se abre sola cuando una terminal levanta un servidor. Sin
-          pintura, como el aviso de cuota y el vigía: escucha y avisa.
+      {/* Cuando una terminal levanta un servidor, pregunta si abre la web
+          (Munir, 2026-10-07: antes se abría sola). Escucha y pregunta.
           `traer: false` a propósito, ver `abrirWeb`. */}
       <WebAuto
         activo={webAutomatica}

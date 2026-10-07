@@ -768,6 +768,7 @@ const EN: Record<string, string> = {
   // Elegir el cerebro a mano, en el Reparto.
   "Qué cerebro le pones": "Which brain it gets",
   "lo que decida el router": "whatever the router decides",
+  "Todos con {m}": "All on {m}",
   "Lo eligió el router. Pulsa para llevarle la contraria.":
     "The router picked this. Click to overrule it.",
   "Lo elegiste tú. Pulsa para cambiarlo o volver al automático.":
@@ -976,8 +977,9 @@ const EN: Record<string, string> = {
 
   // Restore
   "Recuperar las terminales al abrir": "Bring the terminals back on start",
-  "Abrir la web cuando una terminal levanta un servidor":
-    "Open the web view when a terminal starts a server",
+  "Preguntar si abro la web cuando una terminal levanta un servidor":
+    "Ask to open the web view when a terminal starts a server",
+  "¿Abro {u} en la web?": "Open {u} in the web view?",
   "Saltar a la sesión que termina, a pantalla completa":
     "Jump to the session that finishes, full screen",
 

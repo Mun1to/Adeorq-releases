@@ -54,6 +54,7 @@ import {
 } from "../lib/manos";
 import { createPortal } from "react-dom";
 import { useT } from "../lib/i18n";
+import { useMenu } from "./Overlays";
 import Orbe, { type EstadoOrbe } from "./Orbe";
 import { BoltIcon, CheckIcon, CloseIcon, VozIcon } from "./Icons";
 import { decir, parar, vozElegida, VOCES, VOZ_KEY } from "../lib/hablar";
@@ -176,6 +177,28 @@ interface Ficha {
 function cerebrosDe(c: Checked): ModelAlias[] {
   if (c.partes) return c.partes.map((p) => p.model);
   return isModelAlias(c.model) ? [c.model] : [];
+}
+
+/**
+ * El plan con los cerebros que elegiste a mano puestos encima.
+ *
+ * Es lo que se revisa Y lo que se ejecuta: si la lista enseñara uno y `run`
+ * abriera otro, aceptar el plan sería aceptar algo que no has visto. El cerebro
+ * elegido entra como si el plan lo hubiera escrito, así que el router lo toma de
+ * punto de partida y solo la cuota lo puede bajar, igual que en el Reparto. En
+ * una cuadrilla se aplica a todos sus puestos.
+ */
+function conAMano(plan: ForemanPlan, aMano: Record<number, ModelAlias>): ForemanPlan {
+  if (Object.keys(aMano).length === 0) return plan;
+  return {
+    ...plan,
+    acciones: plan.acciones.map((a, i) => {
+      const m = aMano[i];
+      if (!m) return a;
+      if (a.tipo === "cuadrilla") return { ...a, partes: (a.partes ?? []).map((p) => ({ ...p, modelo: m })) };
+      return { ...a, modelo: m };
+    }),
+  };
 }
 
 /** «sonnet», o «2 opus + 4 sonnet» cuando es una cuadrilla. */
@@ -660,6 +683,24 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
   const [error, setError] = useState("");
   const [plan, setPlan] = useState<ForemanPlan | null>(null);
   const [shadowEnabled, setShadowEnabled] = useState<Record<number, boolean>>({});
+  /**
+   * Los cerebros que elegiste a mano, por acción. Van atados al plan en que se
+   * eligieron (`de`): con un plan nuevo dejan de valer solos, sin tener que
+   * acordarse de borrarlos en cada sitio que cambia el plan.
+   */
+  const [aMano, setAMano] = useState<{ de: ForemanPlan | null; m: Record<number, ModelAlias> }>({
+    de: null,
+    m: {},
+  });
+  const elegidos = plan && aMano.de === plan ? aMano.m : {};
+  const elegirCerebro = (i: number, m: ModelAlias | undefined) => {
+    if (!plan) return;
+    const sigue = { ...elegidos };
+    if (m) sigue[i] = m;
+    else delete sigue[i];
+    setAMano({ de: plan, m: sigue });
+  };
+  const menu = useMenu();
   /** Cuentas, sesión iniciada y semana restante: lo que el router necesita
    *  para que el plan no se coma la cuota sin avisar. Se pide con el plan. */
   const [mundo, setMundo] = useState<CuentaViva[]>([]);
@@ -682,9 +723,9 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
   // that finished in between must be closeable, and one that started working
   // must stop being closeable.
   const checked = useMemo(
-    () => (plan ? checkActions(plan, projects, sessions, exec.panes(), mundo) : []),
+    () => (plan ? checkActions(conAMano(plan, elegidos), projects, sessions, exec.panes(), mundo) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [plan, projects, sessions, mundo],
+    [plan, aMano, projects, sessions, mundo],
   );
   const valid = checked.filter((c) => c.ok);
   /** Todos los cerebros que este plan va a encender, la cuadrilla desplegada. */
@@ -977,7 +1018,9 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
     // aceptarla un panel puede haber empezado a trabajar o haberle hecho una
     // pregunta. Lo que se ejecuta tiene que validarse contra el ahora, no
     // contra el rato en el que se dibujó la lista.
-    const ahora = checkActions(plan, projects, sessions, exec.panes(), mundo).filter((c) => c.ok);
+    const ahora = checkActions(conAMano(plan, elegidos), projects, sessions, exec.panes(), mundo).filter(
+      (c) => c.ok,
+    );
     if (ahora.length === 0) {
       setDoneNote(t("Ya no procede: los paneles han cambiado desde que se hizo el plan."));
       setPhase("done");
@@ -1532,22 +1575,40 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
                     escrito dentro del texto; ahora va en todas las que abren un
                     agente, porque es la diferencia entre aceptar un plan y
                     aceptarlo sabiendo lo que cuesta. */}
+                {/* Y se cambia aquí mismo, como en el Reparto: antes lo decidía
+                    la receta y la única salida era un /model dentro de cada
+                    terminal ya abierta, o sea después de haberla pagado. */}
                 {c.ok && cerebrosDe(c).length > 0 && (
-                  <span
-                    className="plan-cerebro"
-                    data-tip={
-                      [
-                        c.porque,
-                        c.esfuerzo && `Esfuerzo ${c.esfuerzo}.`,
-                        "Se cambia dentro del pane con /model y /effort.",
-                      ]
-                        .filter(Boolean)
-                        .join("\n")
+                  <button
+                    className="plan-cerebro fm-cerebro-btn"
+                    data-mano={elegidos[c.originalIndex] != null}
+                    data-tip={[
+                      c.porque,
+                      c.esfuerzo && `Esfuerzo ${c.esfuerzo}.`,
+                      elegidos[c.originalIndex] != null
+                        ? t("Lo elegiste tú. Pulsa para cambiarlo o volver al automático.")
+                        : t("Lo eligió el router. Pulsa para llevarle la contraria."),
+                    ]
+                      .filter(Boolean)
+                      .join("\n")}
+                    onClick={(e) =>
+                      menu(e, [
+                        { label: t("Qué cerebro le pones"), heading: true },
+                        {
+                          label: t("Automático"),
+                          hint: t("lo que decida el router"),
+                          onClick: () => elegirCerebro(c.originalIndex, undefined),
+                        },
+                        ...A_MANO.map((m) => ({
+                          label: c.action.tipo === "cuadrilla" ? t("Todos con {m}", { m }) : m,
+                          hint: comoPeso(m),
+                          onClick: () => elegirCerebro(c.originalIndex, m),
+                        })),
+                      ])
                     }
                   >
                     {resumeCerebros(cerebrosDe(c))}
-                    {c.porque && " ⓘ"}
-                  </span>
+                  </button>
                 )}
                 {c.ok && (c.action.tipo === "claude_nuevo" || c.action.tipo === "revisar" || c.action.tipo === "cuadrilla") && (
                   <label

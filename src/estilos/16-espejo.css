@@ -299,6 +299,12 @@
   transition: all 0.12s ease;
   align-self: center;
 }
+/* Con la pastilla del cerebro delante, la casilla va pegada a ella: los dos con
+   `margin-left: auto` se repartían el hueco y las pastillas quedaban cada una a
+   una altura distinta de la fila, sin columna que leer de un vistazo. */
+.plan-cerebro + .plan-shadow-chk {
+  margin-left: 0;
+}
 .plan-shadow-chk:hover {
   background: rgba(34, 211, 238, 0.1);
   color: #22d3ee;

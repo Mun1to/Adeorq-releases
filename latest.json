@@ -1,11 +1,11 @@
 {
-  "version": "0.9.168",
-  "notes": "Una actualizacion ya no corta a un agente que acaba de ponerse a trabajar: espera a cualquier terminal de agente que se haya movido en los ultimos segundos, y descarga antes de instalar. Ojo: el paso de la 0.9.167 a esta lo hace todavia la tarjeta vieja, espera a que no trabaje nadie antes de pulsar. MEDIDO: recorrido en la interfaz con un Tauri de mentira.",
-  "pub_date": "2026-10-07T23:18:12Z",
+  "version": "0.9.169",
+  "notes": "El Capataz ya no le teclea ordenes de Claude a otros CLI: al dejarte un encargo en modo automatico, cada CLI recibe su orden de modelo (Claude /model y /effort, Gemini /model set) y a Codex y Kimi no se les teclea nada. PROBADO en la interfaz con un Tauri de mentira.",
+  "pub_date": "2026-10-07T23:45:58Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlsNGVUa3RPcG1RRjdwbDBLdU53YkUxdTVTSnlzS010SVpuRmJYNGtLTTVMbTBRSVk5UXpTcG53QXowUTdxbTVkY25QVXlLYUZ2OGV4MUFkNUFTbUEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDE1MDcyCWZpbGU6QWRlb3JxXzAuOS4xNjhfeDY0LXNldHVwLmV4ZQpZNEFRQzJPdksrWVZWWWZzZCs2b3VlR2FaRzhNNnZqZEMwMXY3ME9kUHFUbU9TbXZscFBrZXpISDNmdm0zQ1RBOG9UOE9zdE9SakNYcjlPU1EvNHlCZz09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.168/Adeorq_0.9.168_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzMzN2RxUSttalJtV2NENkM0UTZDQXdkU2Zob1hxaDJabERPMHZmVUI1SDE5QlFSbVpwQ3F5K0pyR0RrckF5eXdlaDlBQURTL2xMSHR4K1crOTdyMEFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDE2NzM4CWZpbGU6QWRlb3JxXzAuOS4xNjlfeDY0LXNldHVwLmV4ZQpYbmt5WXg1K3FPM2RybENETlRHT2o5UDlpcnFGc1JqRjRWMVRCcE1wS1F0U2E1SGtodUVUZ1pOZE1NZjBLNmR1QVlkY1M3K0dZWmxEb0VOMktncS9DQT09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.169/Adeorq_0.9.169_x64-setup.exe"
     }
   }
 }

@@ -29,7 +29,7 @@
 //     --lib es2022,dom --esModuleInterop --skipLibCheck --outDir <tmp>
 //   node <tmp>/scripts/clientes-check.js
 
-import { CLAUDE, IDS, lineaDeArranque, PROVIDERS, sabe } from "../src/lib/providers";
+import { CLAUDE, IDS, lineaDeArranque, lineasEnVivo, PROVIDERS, sabe } from "../src/lib/providers";
 import { planDeArranque } from "../src/lib/arranque";
 import { ARRANCAN_CON_ENCARGO, CLIS_CONOCIDOS, cliPedido } from "../src/lib/supremo";
 
@@ -504,6 +504,20 @@ ok(
 );
 if (total < TECHO) {
   console.log(`     ↳ bajaron a ${total}: baja el TECHO en scripts/clientes-check.ts`);
+}
+
+// Cambiar de cerebro DENTRO de una sesión abierta (2026-10-08, leído en el
+// código de cada CLI): Claude con `/model` y `/effort`; Gemini con `/model set`
+// y su alias, sin esfuerzo; Codex y Kimi, nada, porque su `/model` abre un menú
+// (y el de Codex, con un nombre detrás, se lo toma como mensaje y trabaja).
+{
+  const j = (xs: string[]) => xs.join(" | ");
+  ok("Claude cambia modelo y esfuerzo en vivo", j(lineasEnVivo("claude", "opus", "xhigh")) === "/model opus | /effort xhigh", j(lineasEnVivo("claude", "opus", "xhigh")));
+  ok("Gemini cambia el modelo con /model set y su alias", j(lineasEnVivo("gemini", "sonnet", "high")) === "/model set flash", j(lineasEnVivo("gemini", "sonnet", "high")));
+  ok("a Codex no se le teclea ningún /model", lineasEnVivo("codex", "sonnet", "high").length === 0);
+  ok("a Kimi no se le teclea ni /model ni /effort", lineasEnVivo("kimi", "opus", "high").length === 0);
+  ok("a una consola, nada", lineasEnVivo("shell", "opus", "high").length === 0);
+  ok("un cerebro sin traducción en ese CLI se calla", lineasEnVivo("gemini", "fable").length === 0);
 }
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

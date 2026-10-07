@@ -100,6 +100,7 @@ import {
   saveUiState,
   writePty,
   sendPty,
+  teclearOrden,
   scanSessions,
   sacarPanel,
   onVuelvePanel,
@@ -162,7 +163,7 @@ import {
   temaQueToca,
   type TemaSistema,
 } from "./lib/temaSistema";
-import { lineaDeArranque, lineaDeRetomar, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
+import { lineaDeArranque, lineaDeRetomar, lineasEnVivo, PROVIDERS, providerOf, sabe, type Provider } from "./lib/providers";
 import { planDeArranque } from "./lib/arranque";
 import { actaDeRelevo } from "./lib/relevo";
 import { type Hit } from "./lib/redact";
@@ -1103,20 +1104,17 @@ function App() {
       modelo?: string,
       esfuerzo?: string,
     ): Promise<boolean> => {
-      // Los ajustes van por la terminal como comandos de barra, y eso solo lo
-      // entiende quien lo declara (`providers.ts`). A los demás se les callan:
-      // un `/model opus` tecleado en un CLI que no tiene ese comando es una
-      // línea de basura justo delante de tu mensaje.
-      const ajustes = sabe(s.fuente ?? "claude", "ajustesEnVivo")
-        ? [modelo ? `/model ${modelo}` : "", esfuerzo ? `/effort ${esfuerzo}` : ""].filter(Boolean)
-        : [];
+      // Los ajustes van por la terminal como comandos de barra, en el idioma de
+      // cada CLI (`lineasEnVivo`). A quien no los entiende se le callan: un
+      // `/model opus` en un CLI sin ese comando es basura delante de tu mensaje.
+      const ajustes = lineasEnVivo(s.fuente ?? "claude", modelo, esfuerzo);
       // Devuelve si el TEXTO llegó al PTY. Los ajustes no cuentan: que falle un
       // `/model` es una preferencia que se pierde, que falle el texto es tu
       // mensaje que se pierde, y son dos cosas distintas.
       const escribir = (id: number): Promise<boolean> =>
         new Promise<boolean>((listo) => {
           ajustes.forEach((linea, i) => {
-            window.setTimeout(() => void writePty(id, `${linea}\r`).catch(() => {}), i * 400);
+            window.setTimeout(() => void teclearOrden(id, linea).catch(() => {}), i * 400);
           });
           window.setTimeout(() => {
             sendPty(id, texto)
@@ -2657,12 +2655,12 @@ function App() {
     onDespachar: (encargo, modelo, esfuerzo) => {
       const id = focusedIdRef2.current;
       if (id == null) return;
-      const ajustes = [
-        modelo ? `/model ${modelo}` : "",
-        esfuerzo ? `/effort ${esfuerzo}` : "",
-      ].filter(Boolean);
+      // En el idioma del CLI de ESE panel, no del que eligió el router: a un
+      // Codex, un `/model sonnet` se le iría como mensaje y se pondría a trabajar.
+      const cli = kindDeComando(panesRef.current.find((p) => p.id === id)?.command?.join(" ") ?? "");
+      const ajustes = lineasEnVivo(cli, modelo, esfuerzo);
       ajustes.forEach((linea, i) => {
-        window.setTimeout(() => void writePty(id, `${linea}\r`).catch(() => {}), i * 400);
+        window.setTimeout(() => void teclearOrden(id, linea).catch(() => {}), i * 400);
       });
       window.setTimeout(
         () => void writePty(id, encargo).catch(() => {}),

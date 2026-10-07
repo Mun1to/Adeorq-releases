@@ -281,6 +281,9 @@ async (page) => {
         // `{ resumen, acciones }` que escribe el modelo: así se ve la lista
         // revisada (y sus cerebros) sin gastar una llamada a `claude -p`.
         case "foreman_plan": return JSON.stringify(window.__planCapataz ?? { resumen: "", acciones: [] });
+        // El encargo reescrito por el Capataz (lo que interpreta `interpretar`
+        // en `lib/router.ts`), sembrado en `window.__encargoCapataz`.
+        case "foreman_prompt": return JSON.stringify(window.__encargoCapataz ?? { encargo: "Revisa el login.", clase: "oficio", consecuencia: "baja", trabajo: "codigo" });
         // ¿Contesta ese puerto? Los de `window.__puertosVivos` sí (ninguno si no
         // se dice), para ver la pregunta de abrir la web al levantar un servidor.
         case "puerto_escucha": return (window.__puertosVivos ?? []).includes(args.puerto);

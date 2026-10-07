@@ -133,6 +133,20 @@ export interface Provider {
    * «Run /effort xhigh in an interactive terminal».
    */
   ajustesEnVivo?: boolean;
+  /**
+   * La línea exacta que cambia cerebro o esfuerzo DENTRO de una sesión abierta,
+   * sin abrir ningún menú: `{m}` es el nombre que entiende este CLI (el de
+   * `modelos`, o el alias de la casa si no tiene tabla) y `{e}` el esfuerzo.
+   * Lo que no está aquí no se le teclea nunca: la usa `lineasEnVivo`.
+   *
+   * Leído en el código de cada uno el 2026-10-08, no supuesto. Codex no tiene
+   * línea: su `/model` no admite argumento, y con un nombre detrás se lo toma
+   * como mensaje y arranca un turno (`codex-rs/tui/src/slash_command.rs`, commit
+   * f73a478). Kimi Code tampoco: `/model k3` abre su selector, y su `/effort`
+   * cambia el predeterminado de `config.toml` para siempre (`tui/commands/
+   * config.ts`, commit 21406fb).
+   */
+  enVivo?: { modelo?: string; esfuerzo?: string };
   /** Tiene un modo de solo planificar, sin tocar archivos, que se pide al
    *  arrancar. En Claude es `--permission-mode plan`. */
   modoPlan?: boolean;
@@ -218,6 +232,7 @@ export const PROVIDERS: Provider[] = [
     encargoEnLinea: true,
     modelo: true,
     ajustesEnVivo: true,
+    enVivo: { modelo: "/model {m}", esfuerzo: "/effort {e}" },
     modoPlan: true,
     // El `--session-id` que le pone Adeorq al nacer es justo lo que permite
     // volver con `--resume`. De ahí salen revivir un panel y el relevo.
@@ -282,6 +297,10 @@ export const PROVIDERS: Provider[] = [
     // panel sin agente), el modelo con `-m` y sus alias `flash-lite`, `flash` y
     // `pro`, un id propio al nacer con `--session-id`, y se retoma con
     // `--resume <id>` solo desde la misma carpeta. Esfuerzo no tiene.
+    // Dentro de la sesión, `/model set <alias>` se aplica sin menú y solo a esa
+    // sesión (`ui/commands/modelCommand.ts`, commit 44d764e); `/model flash`
+    // sin el `set` abre el diálogo e ignora el nombre. Esfuerzo en vivo, tampoco.
+    enVivo: { modelo: "/model set {m}" },
     encargoEnLinea: true,
     banderaEncargo: "--prompt-interactive",
     modelo: true,
@@ -805,4 +824,26 @@ export function sabe(id: string, que: Capacidad): boolean {
   if (!p) return false;
   if (que === "variasCuentas") return !!p.envVar;
   return !!p[que];
+}
+
+/**
+ * Lo que hay que teclearle a una sesión ABIERTA de `id` para ponerle ese
+ * cerebro y ese esfuerzo, ya traducido a su idioma; vacío si no sabe hacerlo.
+ *
+ * `modelo` es un cerebro de la casa (haiku, sonnet, opus) o, para quien no
+ * tiene tabla de `modelos`, su nombre tal cual. Lo que este CLI no entienda se
+ * calla en vez de teclearse: una orden inventada delante de un encargo es una
+ * línea de basura, y en Codex es peor, porque la toma por un mensaje y trabaja.
+ * Mismo criterio que `sabe` con lo desconocido: «no sé», nunca «lo de Claude».
+ */
+export function lineasEnVivo(id: string, modelo?: string, esfuerzo?: string): string[] {
+  const vivo = PROVIDERS.find((x) => x.id === id);
+  if (!vivo?.enVivo) return [];
+  const lineas: string[] = [];
+  if (modelo && vivo.enVivo.modelo) {
+    const suyo = vivo.modelos ? vivo.modelos[modelo as keyof NonNullable<Provider["modelos"]>] : modelo;
+    if (suyo) lineas.push(vivo.enVivo.modelo.replace("{m}", suyo));
+  }
+  if (esfuerzo && vivo.enVivo.esfuerzo) lineas.push(vivo.enVivo.esfuerzo.replace("{e}", esfuerzo));
+  return lineas;
 }

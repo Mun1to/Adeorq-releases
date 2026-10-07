@@ -84,6 +84,18 @@ export function sendPty(id: number, texto: string, enviar = true): Promise<void>
   return invoke("pty_send", { id, texto, enviar });
 }
 
+/**
+ * Una orden de barra (`/model …`, `/effort …`) tecleada, y su Intro aparte
+ * 150 ms después. Junto en la misma escritura, Gemini CLI toma el Intro que
+ * llega a menos de 40 ms de una ráfaga por un salto de línea dentro del texto
+ * (`InputPrompt.tsx`), y la orden se queda escrita sin aplicarse.
+ */
+export function teclearOrden(id: number, linea: string): Promise<void> {
+  return writePty(id, linea)
+    .then(() => new Promise<void>((listo) => window.setTimeout(listo, 150)))
+    .then(() => writePty(id, "\r"));
+}
+
 export function resizePty(id: number, cols: number, rows: number): Promise<void> {
   return invoke("pty_resize", { id, cols, rows });
 }

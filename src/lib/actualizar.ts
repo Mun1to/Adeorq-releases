@@ -17,12 +17,41 @@
 // te espera o que terminó no se corta nada por reiniciarlo: al volver, su
 // pregunta sigue en el transcript.
 
+//
+// Y el estado no basta (2026-10-08, pasando de la 0.9.165 a la 0.9.167): cada
+// panel relee su transcript cada 20 segundos, así que un agente al que acabas
+// de escribirle sigue constando como «lista» hasta la vuelta siguiente. A Munir
+// le cortó así el de munito.dev: el mensaje a las 00:47:17 y la app reiniciada
+// ocho segundos después. Por eso cuenta también lo que se MUEVE: un agente cuya
+// terminal ha sacado algo, o en la que se ha escrito, hace menos de `QUIETO_MS`.
+// Claude Code mientras trabaja redibuja su spinner sin parar; quieto, no saca
+// nada. Lo apunta `TerminalPane` en cada dato del PTY y en cada tecla.
+
 import type { PaneStatus } from "./pty";
 
+/** Cuánto tiene que llevar callada la terminal de un agente para darlo por quieto. */
+export const QUIETO_MS = 8_000;
+
+/** Lo último que se movió en cada panel, por su número: la hora en milisegundos. */
+const movimientos = new Map<number, number>();
+
+/** Algo acaba de salir por la terminal de ese panel, o alguien ha escrito en ella. */
+export function apuntarMovimiento(id: number, ahora = Date.now()): void {
+  movimientos.set(id, ahora);
+}
+
 /** Los agentes a los que una actualización cortaría a medio trabajo. */
-export function trabajando(estados: Record<number, PaneStatus>): PaneStatus[] {
+export function trabajando(
+  estados: Record<number, PaneStatus>,
+  ultimos: ReadonlyMap<number, number> = movimientos,
+  ahora = Date.now(),
+): PaneStatus[] {
   return Object.values(estados)
-    .filter((s) => s.agent && (s.state === "a_medias" || s.agentsLive > 0))
+    .filter((s) => {
+      if (!s.agent) return false;
+      const movido = ultimos.get(s.id);
+      return s.state === "a_medias" || s.agentsLive > 0 || (movido != null && ahora - movido < QUIETO_MS);
+    })
     .sort((a, b) => a.id - b.id);
 }
 

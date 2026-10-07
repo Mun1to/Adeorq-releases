@@ -1,11 +1,11 @@
 {
-  "version": "0.9.167",
-  "notes": "Adeorq pregunta antes de abrir la web de un localhost: cuando una terminal levanta un servidor sale abajo a la derecha Abrir o Ahora no, y se va sola a los veinte segundos. El Capataz deja elegir el modelo de cada agente de un plan, como el Reparto. Los avisos flotantes (el Deshacer al cerrar una terminal) ya no quedan debajo de las terminales. MEDIDO: recorrido en la interfaz con un Tauri de mentira; no se ha visto en la app instalada.",
-  "pub_date": "2026-10-07T20:51:01Z",
+  "version": "0.9.168",
+  "notes": "Una actualizacion ya no corta a un agente que acaba de ponerse a trabajar: espera a cualquier terminal de agente que se haya movido en los ultimos segundos, y descarga antes de instalar. Ojo: el paso de la 0.9.167 a esta lo hace todavia la tarjeta vieja, espera a que no trabaje nadie antes de pulsar. MEDIDO: recorrido en la interfaz con un Tauri de mentira.",
+  "pub_date": "2026-10-07T23:18:12Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzNMNE04TTRSdUdMTklsUHMrRjhBMytyQmNNTWM3WUhyRlFUaXRZbmY3WnkwbDVqVGl2QVB6T0NtU3NJTTlCeHZicko0MXZZTWpEbGcrQXhTMnZTemdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDA2MjI2CWZpbGU6QWRlb3JxXzAuOS4xNjdfeDY0LXNldHVwLmV4ZQpPK3NJMWVCOHl0eEt5R0dXcVRIcXovL0xqZTBoTEhNL2ZPcGJNdUlLK2xUWFdJSFNzU256Y0NkWEpxN2NISU5YYjBEQTl3a3JYN044eXI5dFpRbjhEUT09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.167/Adeorq_0.9.167_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlsNGVUa3RPcG1RRjdwbDBLdU53YkUxdTVTSnlzS010SVpuRmJYNGtLTTVMbTBRSVk5UXpTcG53QXowUTdxbTVkY25QVXlLYUZ2OGV4MUFkNUFTbUEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDE1MDcyCWZpbGU6QWRlb3JxXzAuOS4xNjhfeDY0LXNldHVwLmV4ZQpZNEFRQzJPdksrWVZWWWZzZCs2b3VlR2FaRzhNNnZqZEMwMXY3ME9kUHFUbU9TbXZscFBrZXpISDNmdm0zQ1RBOG9UOE9zdE9SakNYcjlPU1EvNHlCZz09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.168/Adeorq_0.9.168_x64-setup.exe"
     }
   }
 }

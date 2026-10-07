@@ -258,9 +258,11 @@ function App() {
    * grupo (que aparta los demás). Antes había un «espacio activo» por un lado
    * y unas «cuadrillas ocultas» por otro, con una cinta que explicaba el
    * invento: dos estados para una idea, y un cartel para disimularlo (Munir,
-   * 2026-08-02). Vive en App porque lo miran la Cabina y la barra a la vez.
+   * 2026-08-02). Lo miran la Cabina, la barra y el tablero: vive en el almacén
+   * de la Cabina (`lib/cabina.ts`, segundo tramo), igual que lo minimizado.
    */
-  const [gruposOcultos, setGruposOcultos] = useState<Set<string>>(() => new Set());
+  const gruposOcultos = useCabina((s) => s.gruposOcultos);
+  const setGruposOcultos = useCabina((s) => s.ponerGruposOcultos);
   /**
    * Terminales minimizadas: fuera del mosaico, vivas y trabajando.
    *
@@ -270,7 +272,8 @@ function App() {
    * Por eso baja a una tira donde SIGUE diciendo qué hace, y el que te
    * necesita se pinta en ámbar. Apartar no puede ser perder de vista.
    */
-  const [minimizados, setMinimizados] = useState<Set<number>>(() => new Set());
+  const minimizados = useCabina((s) => s.minimizados);
+  const setMinimizados = useCabina((s) => s.ponerMinimizados);
   /* Qué ficha de la tira ha pedido cerrarse y espera el segundo clic.
      La X de una ficha apartada mata al agente igual que la de la cabecera, y ahí
      un clic mal dado es caro: la terminal no está a la vista, así que no ves lo
@@ -280,13 +283,7 @@ function App() {
      la ficha, así que no deja ningún estado raro puesto. */
   const [porCerrar, setPorCerrar] = useState<number | null>(null);
 
-  const alternarMinimizado = useCallback((id: number) => {
-    setMinimizados((prev) => {
-      const s = new Set(prev);
-      if (!s.delete(id)) s.add(id);
-      return s;
-    });
-  }, []);
+  const alternarMinimizado = useCabina((s) => s.alternarMinimizado);
 
   /* Lo apartado, por ref: el salto de «la que termina» tiene que saber si el
      panel está escondido para traerlo antes de maximizarlo, y corre desde un
@@ -306,18 +303,8 @@ function App() {
   /** Todo de vuelta al mosaico. Entrar en un grupo aparta lo demás de golpe,
       así que salir tiene que costar lo mismo: sin esto había que ir trayendo
       una a una lo que se apartó con un solo clic. */
-  const traerTodo = useCallback(() => {
-    setMinimizados(new Set());
-    setGruposOcultos(new Set());
-  }, []);
-
-  const alternarGrupo = useCallback((id: string) => {
-    setGruposOcultos((prev) => {
-      const s = new Set(prev);
-      if (!s.delete(id)) s.add(id);
-      return s;
-    });
-  }, []);
+  const traerTodo = useCabina((s) => s.traerTodo);
+  const alternarGrupo = useCabina((s) => s.alternarGrupo);
   // Lo que hace cada panel AHORA, reportado por él mismo. Existe para el
   // Capataz, que sin esto no distinguía una que te espera de una que entregó.
   // Vive en el almacén de la Cabina (`lib/cabina.ts`, el primer tramo mudado).
@@ -2350,13 +2337,9 @@ function App() {
     nextCol,
     panes,
     cols,
-    minimizados,
-    gruposOcultos,
     restoreOnStart,
     setPanes,
     setCols,
-    setMinimizados,
-    setGruposOcultos,
     setRestoring,
     setView,
   });
@@ -3081,7 +3064,6 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           }
           onResume={onResume}
           onOpenAll={onOpenAll}
-          gruposOcultos={gruposOcultos}
           onPlegarGrupo={alternarGrupo}
           onRail={alCambiarRail}
           railPedido={railPedido}

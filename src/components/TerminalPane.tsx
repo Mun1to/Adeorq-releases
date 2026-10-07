@@ -59,6 +59,7 @@ import { hueOf } from "../lib/colors";
 import { avisar, forgetPane, type NotifyMode } from "../lib/notify";
 import { seMuda, tomarVolcado } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
+import { apuntarMovimiento } from "../lib/actualizar";
 import { bonito, type PanePulso } from "../lib/ram";
 import { coloresTerm, TEMA_TERM_EVENTO } from "../lib/temasTerm";
 import { suavizado, SUAVIZADO_EVENTO } from "../lib/suavizado";
@@ -1808,17 +1809,14 @@ export default function TerminalPane({
       // Si escribes, ya no estás leyendo hacia atrás: la terminal vuelve al día
       // sola. Sin esto, teclear con la cola llena parece que no responde.
       soltarCola();
-      // Y si NO había cola (subiste poco, o nada llegó mientras leías),
-      // `soltarCola` se va sin hacer nada. Antes bajaba xterm por su cuenta;
-      // ahora que no lo hace (`scrollOnUserInput: false`), le toca a esto, o
-      // teclear desde arriba dejaría la vista donde estaba.
+      // Y si NO había cola (subiste poco, o nada llegó mientras leías), xterm ya no
+      // baja solo (`scrollOnUserInput: false`): teclear desde arriba dejaría la vista.
       term.scrollToBottom();
-      // Queda apuntado que AQUÍ se está escribiendo: es la única señal fiable
-      // de eso, y de ella depende que otro pane que termine no te quite la
-      // pantalla a mitad de frase. Ver lib/tecleando.
+      // Queda apuntado que AQUÍ se está escribiendo (lib/tecleando: que otro que
+      // termine no te quite la pantalla), y que se movió (lib/actualizar).
       apuntaTecla(id);
-      // Y hacia arriba, que es lo que devuelve al mosaico una terminal puesta
-      // a pantalla completa por el salto en cuanto le contestas.
+      apuntarMovimiento(id);
+      // Y hacia arriba: devuelve al mosaico la que el salto puso a pantalla completa.
       alEscribirRef.current?.(id, data);
       void writePty(id, data).catch(() => {});
     });
@@ -2156,6 +2154,8 @@ export default function TerminalPane({
     void onPtyData((p) => {
       if (p.id !== id) return;
       ultimoDatoRef.current = Date.now();
+      // Una actualización no instala mientras esta terminal se mueva (`lib/actualizar.ts`).
+      apuntarMovimiento(id);
       setColgado(null);
       if (streamRef.current) {
         shield.push(p.data);

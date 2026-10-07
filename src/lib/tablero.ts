@@ -13,6 +13,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { addPane as layoutAdd, type Col } from "./layout";
 import { loadEffort, resumeCommandFor } from "./lanzar";
+import { useCabina } from "./cabina";
 /* Los tipos del tablero. Vivían en App.tsx.
    `Team` es el puesto de una cuadrilla, y va aquí porque `Pane` y `SavedPane`
    lo llevan dentro. */
@@ -139,14 +140,10 @@ export interface ManosDelTablero {
   nextCol: Ref<number>;
   panes: Pane[];
   cols: Col[];
-  minimizados: Set<number>;
-  gruposOcultos: Set<string>;
   /** El ajuste «devolver el tablero al abrir». */
   restoreOnStart: boolean;
   setPanes: Dispatch<SetStateAction<Pane[]>>;
   setCols: Dispatch<SetStateAction<Col[]>>;
-  setMinimizados: Dispatch<SetStateAction<Set<number>>>;
-  setGruposOcultos: Dispatch<SetStateAction<Set<string>>>;
   /** Cuántos paneles quedan por renacer, para el aviso de la Cabina. */
   setRestoring: Dispatch<SetStateAction<number>>;
   setView: (v: "cabina") => void;
@@ -158,16 +155,18 @@ export function useTableroGuardado({
   nextCol,
   panes,
   cols,
-  minimizados,
-  gruposOcultos,
   restoreOnStart,
   setPanes,
   setCols,
-  setMinimizados,
-  setGruposOcultos,
   setRestoring,
   setView,
 }: ManosDelTablero): void {
+  // Lo apartado y los grupos viven en el almacén de la Cabina (segundo tramo de
+  // la decisión B1): se guardan con el tablero y renacen con él.
+  const minimizados = useCabina((s) => s.minimizados);
+  const gruposOcultos = useCabina((s) => s.gruposOcultos);
+  const setMinimizados = useCabina((s) => s.ponerMinimizados);
+  const setGruposOcultos = useCabina((s) => s.ponerGruposOcultos);
   // Remember the board on every change, so a crash or an update loses nothing:
   // the same panes, in the same folders, with the same sizes.
   useEffect(() => {

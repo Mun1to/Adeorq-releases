@@ -1759,8 +1759,8 @@ const EN: Record<string, string> = {
   // Ajustes > Móvil (`AjustesMovil.tsx`).
   "Móvil": "Mobile",
   "El conserje en el móvil": "The concierge on your phone",
-  "Habla con el conserje desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí. Desde el móvil hablas con el conserje y lees sus sesiones; ninguna terminal.":
-    "Talk to the concierge from your phone, wherever you are. It travels over Tailscale, a private network between your devices: it cannot be seen from the internet, and only the phones you pair here get in. From the phone you talk to the concierge and read its sessions; no terminals.",
+  "Habla con el conserje desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí. Desde el móvil hablas con el conserje, lees sus sesiones y escribes en cualquiera de tus terminales.":
+    "Talk to the concierge from your phone, wherever you are. It travels over Tailscale, a private network between your devices: it cannot be seen from the internet, and only the phones you pair here get in. From the phone you talk to the concierge, read its sessions and type into any of your terminals.",
   "Conserje en el móvil": "Concierge on my phone",
   "El puerto {p} lo tiene otro programa (¿otra Adeorq abierta?), así que el móvil no llega.":
     "Port {p} is taken by another program (another Adeorq open?), so the phone cannot reach it.",

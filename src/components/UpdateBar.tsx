@@ -33,12 +33,24 @@ export default function UpdateBar() {
   const [error, setError] = useState("");
   // Una actualización no corta a un agente a medio trabajo (decisión C3 de
   // Munir, 2026-10-07): instalar y reiniciar matan el proceso, así que si hay
-  // agentes en `a_medias` se espera a que terminen y se hace solo. Lo que
-  // cuenta como «a medio trabajo» está en `lib/actualizar.ts`; los estados
-  // salen del almacén de la Cabina, sin pasar por props.
+  // agentes trabajando se espera a que terminen y se hace solo. Lo que cuenta
+  // como «a medio trabajo» está en `lib/actualizar.ts`; los estados salen del
+  // almacén de la Cabina, sin pasar por props.
+  //
+  // Instalar va en DOS pasos (2026-10-08): primero se descarga, que no cierra
+  // nada, y se instala después, que en Windows es lo que cierra la app. Antes
+  // se miraba quién trabajaba al pulsar y luego bajaba: lo que empezara en
+  // esos segundos se cortaba. Ahora se mira en el instante de instalar, y
+  // mientras se espera se vuelve a mirar cada segundo, porque lo que se mueve
+  // en una terminal no es estado de React.
   const estados = useCabina((s) => s.estados);
-  const frenan = useMemo(() => trabajando(estados), [estados]);
+  const [ahora, setAhora] = useState(() => Date.now());
+  const frenan = useMemo(() => trabajando(estados, undefined, ahora), [estados, ahora]);
   const [pendiente, setPendiente] = useState<Pendiente | null>(null);
+  /** Ya bajada y esperando a instalarse. */
+  const [descargada, setDescargada] = useState(false);
+  /** «Pulsa para no esperar»: se instala en cuanto esté bajada, trabaje quien trabaje. */
+  const [sinEsperar, setSinEsperar] = useState(false);
 
   // A Windows toast on top of the in-app bar: Adeorq lives minimised for days,
   // so the bar alone would go unseen. Announced once per version.
@@ -105,44 +117,63 @@ export default function UpdateBar() {
     };
   }, []);
 
-  const install = () => {
-    if (!update) return;
+  const fallo = (e: unknown) => {
+    setError(String(e));
+    setPhase("error");
+    setPendiente(null);
+  };
+  /** El primer paso: bajar la versión. No cierra nada, así que no espera a nadie. */
+  const descargar = () => {
+    if (!update || descargada || phase === "downloading") return;
     setPhase("downloading");
     let total = 0;
     let got = 0;
     update
-      .downloadAndInstall((e) => {
+      .download((e) => {
         if (e.event === "Started") total = e.data.contentLength ?? 0;
         else if (e.event === "Progress") {
           got += e.data.chunkLength;
           if (total > 0) setPct(Math.min(99, Math.round((got / total) * 100)));
         } else if (e.event === "Finished") setPct(100);
       })
-      .then(() => setPhase("done"))
-      .catch((e) => {
-        setError(String(e));
-        setPhase("error");
-      });
+      .then(() => {
+        setDescargada(true);
+        setPhase("found");
+      })
+      .catch(fallo);
+  };
+  /** El segundo: instalar lo bajado. En Windows la app se cierra aquí. */
+  const instalar = () => {
+    if (!update) return;
+    setPhase("downloading");
+    update.install().then(() => setPhase("done")).catch(fallo);
   };
 
-  const hacer = (que: Pendiente) => {
-    if (que === "instalar") install();
-    else void relaunch();
-  };
-  /** Lo que pide el botón: ahora si nadie está a medio trabajo, y si no, en cuanto acaben. */
+  /** Lo que pide el botón. Instalar siempre empieza bajando; el resto lo decide el efecto de abajo. */
   const pedir = (que: Pendiente) => {
-    if (frenan.length > 0) setPendiente(que);
-    else hacer(que);
+    setSinEsperar(false);
+    setPendiente(que);
+    if (que === "instalar") descargar();
   };
+  // Mientras algo espera, se vuelve a mirar cada segundo quién se mueve.
   useEffect(() => {
-    if (pendiente && frenan.length === 0) {
-      setPendiente(null);
-      hacer(pendiente);
-    }
-    // `hacer` cambia en cada render (cierra sobre `update`); lo que decide es
-    // que la lista se vacíe con algo pendiente.
+    if (!pendiente) return;
+    const reloj = window.setInterval(() => setAhora(Date.now()), 1000);
+    return () => window.clearInterval(reloj);
+  }, [pendiente]);
+  useEffect(() => {
+    if (!pendiente) return;
+    if (pendiente === "instalar" && !descargada) return;
+    // Lo de ESTE instante, no lo del último render: es lo que se va a cortar.
+    if (!sinEsperar && trabajando(useCabina.getState().estados).length > 0) return;
+    setPendiente(null);
+    setSinEsperar(false);
+    if (pendiente === "instalar") instalar();
+    else void relaunch();
+    // `instalar` cierra sobre `update` y cambia en cada render; lo que decide
+    // es que haya algo pendiente y que el reloj de arriba vuelva a mirar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendiente, frenan.length]);
+  }, [pendiente, descargada, sinEsperar, ahora]);
 
   if (phase === "idle" || !update) return null;
 
@@ -155,7 +186,11 @@ export default function UpdateBar() {
   // usa la app de escritorio de Claude (2026-08-08): una tarjeta pequeña que se
   // posa sobre el contenido sin moverlo, con la marca a la izquierda y un solo
   // gesto a la derecha.
-  const esperando = pendiente !== null && frenan.length > 0;
+  const esperando =
+    pendiente !== null &&
+    (pendiente === "reiniciar" || descargada) &&
+    !sinEsperar &&
+    frenan.length > 0;
   const nombre = esperando
     ? t("Espera a que terminen")
     : phase === "done"
@@ -164,11 +199,7 @@ export default function UpdateBar() {
   // Esperando, el mismo botón es «no esperes»: lo hace ya, con los agentes a
   // medias. Es su decisión, y la tarjeta lo dice en la línea de debajo.
   const accion = esperando
-    ? () => {
-        const que = pendiente;
-        setPendiente(null);
-        hacer(que);
-      }
+    ? () => setSinEsperar(true)
     : phase === "done"
       ? () => pedir("reiniciar")
       : () => pedir("instalar");

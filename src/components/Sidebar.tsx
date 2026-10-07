@@ -55,6 +55,7 @@ import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
 import { encaja } from "../lib/buscar";
 import { useMenu } from "./Overlays";
+import { useCabina } from "../lib/cabina";
 import ProjectAvatar, { initials } from "./ProjectAvatar";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
 import FilaBotones from "./FilaBotones";
@@ -113,10 +114,9 @@ interface Props {
   abiertas: Abierta[];
   /** Llevarte a una terminal viva, cambiando de vista si hace falta. */
   onFocusPane: (paneId: number, enLienzo: boolean) => void;
-  /** Los grupos apartados: su lista se pliega aquí Y sus terminales salen del
-      mosaico de la Cabina, sin cerrarse. Lo lleva App porque es lo mismo que
-      mira la barra de la cuadrilla. */
-  gruposOcultos: Set<string>;
+  /** Plegar un grupo: su lista se pliega aquí Y sus terminales salen del
+      mosaico de la Cabina, sin cerrarse. Qué grupos están apartados se lee del
+      almacén de la Cabina (`lib/cabina.ts`). */
   onPlegarGrupo: (groupId: string) => void;
   /** Cómo se está dibujando la barra. Lo necesita fuera el tirador de
       ensanchar: en la tira no hay ancho que elegir, así que se quita. */
@@ -334,13 +334,13 @@ export default function Sidebar({
   topeAbrirTodas,
   abiertas,
   onFocusPane,
-  gruposOcultos,
   onPlegarGrupo,
   onRail,
   railPedido,
 }: Props) {
   const { t } = useT();
   const showMenu = useMenu();
+  const gruposOcultos = useCabina((s) => s.gruposOcultos);
   const [agy, setAgy] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);

@@ -118,7 +118,7 @@ export default function AjustesMovil() {
       <h2>{t("El conserje en el móvil")}</h2>
       <p className="card-hint">
         {t(
-          "Habla con el conserje desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí. Desde el móvil hablas con el conserje y lees sus sesiones; ninguna terminal.",
+          "Habla con el conserje desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí. Desde el móvil hablas con el conserje, lees sus sesiones y escribes en cualquiera de tus terminales.",
         )}
       </p>
       <label className="setting-row setting-switch">

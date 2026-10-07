@@ -255,6 +255,10 @@ async (page) => {
             ? { rid: 7, available: true, currentVersion: "0.9.164", version: window.__actualizacion, date: null, body: "", rawJson: {} }
             : null;
         case "plugin:updater|download_and_install": return null;
+        // Descargar y luego instalar por separado: la tarjeta comprueba quién
+        // trabaja justo antes de instalar, que en Windows es lo que cierra la app.
+        case "plugin:updater|download": return 8;
+        case "plugin:updater|install": return null;
         case "plugin:process|restart": return null;
         case "plugin:resources|close": return null;
         // La Memoria, con una bóveda de tres notas enlazadas: lo justo para que

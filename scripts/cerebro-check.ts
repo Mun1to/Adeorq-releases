@@ -303,7 +303,12 @@ const REAL = { "·": 1, "00-inbox": 2, "01-proyectos": 34, "02-areas": 2, "03-re
 
   // Todo mando tiene su tope, y al revés: si se añade uno y se olvida su rango,
   // el deslizador saldría sin extremos y guardaría cualquier cosa.
-  const mandos = Object.keys(AJUSTES_FABRICA).filter((k) => k !== "gira" && k !== "nombres");
+  ok("«girar aunque ahorre» se guarda y lo raro cae a fábrica (apagado)",
+    ajustesGuardados({ giraPese: true }).giraPese === true &&
+    ajustesGuardados({ giraPese: "sí" }).giraPese === AJUSTES_FABRICA.giraPese &&
+    AJUSTES_FABRICA.giraPese === false);
+  // Los tres interruptores no son mandos con tope: gira, giraPese y nombres.
+  const mandos = Object.keys(AJUSTES_FABRICA).filter((k) => k !== "gira" && k !== "giraPese" && k !== "nombres");
   ok("cada mando tiene su rango declarado",
     mandos.every((k) => k in TOPES) && Object.keys(TOPES).length === mandos.length,
     mandos.join(", "));

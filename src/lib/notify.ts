@@ -39,6 +39,9 @@ export interface NotifyOpts {
   body: string;
   /** True when the user is already looking at this very pane. */
   looking?: boolean;
+  /** Dónde abre la página del móvil al tocar el aviso (`/#terminal=<panel>`
+      lleva a la pantalla de esa terminal, decisión E3). La raíz si no se dice. */
+  url?: string;
 }
 
 /**
@@ -60,7 +63,7 @@ export async function notify(o: NotifyOpts): Promise<void> {
   // Y al móvil, si hay alguno con avisos y no estás delante del PC: ahí el
   // aviso del escritorio no lo ve nadie (`movil_avisar`, ver `push.rs`).
   if (!focused) {
-    void invoke("movil_avisar", { titulo: o.title, cuerpo: o.body, url: "/" }).catch(() => {});
+    void invoke("movil_avisar", { titulo: o.title, cuerpo: o.body, url: o.url ?? "/" }).catch(() => {});
   }
 
   if (!(await allowed())) return;

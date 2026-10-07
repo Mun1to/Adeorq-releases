@@ -4,7 +4,9 @@
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 && args[1] == "--mcp" {
-        if let Err(e) = adeorq_lib::run_mcp_bridge() {
+        // `--de-casa`: lo lanza Adeorq mismo (Capataz, conserje), ver `mcp_clientes.rs`.
+        let de_casa = args.iter().skip(2).any(|a| a == "--de-casa");
+        if let Err(e) = adeorq_lib::run_mcp_bridge(de_casa) {
             eprintln!("Error in MCP bridge: {}", e);
             std::process::exit(1);
         }

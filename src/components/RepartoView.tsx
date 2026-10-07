@@ -26,7 +26,7 @@ import {
   type Project,
 } from "../lib/pty";
 import { goalsRead, hoy, type Goal } from "../lib/goals";
-import { mirarMundo, mundoEnCache } from "../lib/mundo";
+import { mirarMundo, mundoEnCache, reglasDeLaMemoria } from "../lib/mundo";
 import { leerPerfil } from "../lib/perfil";
 import { comoPeso, modoAviso, PESO, techoDelPlan, type Mundo } from "../lib/router";
 import { MODEL_ALIASES, type ModelAlias } from "../lib/models";
@@ -39,7 +39,7 @@ import {
   MAX_TAREAS,
   type Reparto,
 } from "../lib/reparto";
-import type { RepartoInicial } from "../App";
+import type { RepartoInicial } from "../lib/reparto";
 import { providerOf } from "../lib/providers";
 import { useT } from "../lib/i18n";
 import { propsDeVelo } from "../lib/velo";
@@ -209,8 +209,10 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
     Promise.all([
       foremanLote(lista, contexto),
       mirarMundo(cuentas).catch(() => mundoEnCache(cuentas)),
+      // Y las reglas que Munir dejó en la memoria (`router: … -> …`).
+      reglasDeLaMemoria(),
     ])
-      .then(([raw, vivas]) => {
+      .then(([raw, vivas, reglas]) => {
         const { objetivo, tareas } = interpretarLote(raw, crudas);
         // Lo que escribió Munir manda sobre lo que deduzca el modelo: si él
         // dijo cuál era la misión, resumírsela de vuelta es cambiársela.
@@ -221,6 +223,7 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
           cuentas: vivas,
           avisos: modoAviso(),
           usa: leerPerfil().clis,
+          reglas,
         };
         setMundo(elMundo);
         setReparto(repartir(conProyecto, elMundo, meta, new Date().toLocaleString()));

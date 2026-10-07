@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import {
@@ -8,6 +8,8 @@ import {
 } from "@tauri-apps/plugin-notification";
 import { useT } from "../lib/i18n";
 import { anotarRastro } from "../lib/pty";
+import { useCabina } from "../lib/cabina";
+import { quienFrena, trabajando } from "../lib/actualizar";
 import { AdeorqMark, CloseIcon, DownloadIcon } from "./Icons";
 
 // Auto-update like VoCript: check once on start (and every few hours for the
@@ -20,6 +22,8 @@ const MIN_ENTRE_MS = 5 * 60 * 1000;
 const NOTIFIED_KEY = "adeorq-update-notified";
 
 type Phase = "idle" | "found" | "downloading" | "done" | "error";
+/** Lo que Munir pidió y está esperando a que los agentes terminen. */
+type Pendiente = "instalar" | "reiniciar";
 
 export default function UpdateBar() {
   const { t } = useT();
@@ -27,6 +31,14 @@ export default function UpdateBar() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [pct, setPct] = useState(0);
   const [error, setError] = useState("");
+  // Una actualización no corta a un agente a medio trabajo (decisión C3 de
+  // Munir, 2026-10-07): instalar y reiniciar matan el proceso, así que si hay
+  // agentes en `a_medias` se espera a que terminen y se hace solo. Lo que
+  // cuenta como «a medio trabajo» está en `lib/actualizar.ts`; los estados
+  // salen del almacén de la Cabina, sin pasar por props.
+  const estados = useCabina((s) => s.estados);
+  const frenan = useMemo(() => trabajando(estados), [estados]);
+  const [pendiente, setPendiente] = useState<Pendiente | null>(null);
 
   // A Windows toast on top of the in-app bar: Adeorq lives minimised for days,
   // so the bar alone would go unseen. Announced once per version.
@@ -113,6 +125,25 @@ export default function UpdateBar() {
       });
   };
 
+  const hacer = (que: Pendiente) => {
+    if (que === "instalar") install();
+    else void relaunch();
+  };
+  /** Lo que pide el botón: ahora si nadie está a medio trabajo, y si no, en cuanto acaben. */
+  const pedir = (que: Pendiente) => {
+    if (frenan.length > 0) setPendiente(que);
+    else hacer(que);
+  };
+  useEffect(() => {
+    if (pendiente && frenan.length === 0) {
+      setPendiente(null);
+      hacer(pendiente);
+    }
+    // `hacer` cambia en cada render (cierra sobre `update`); lo que decide es
+    // que la lista se vacíe con algo pendiente.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendiente, frenan.length]);
+
   if (phase === "idle" || !update) return null;
 
   // Una TARJETA abajo a la izquierda, no una franja arriba del todo.
@@ -124,19 +155,36 @@ export default function UpdateBar() {
   // usa la app de escritorio de Claude (2026-08-08): una tarjeta pequeña que se
   // posa sobre el contenido sin moverlo, con la marca a la izquierda y un solo
   // gesto a la derecha.
-  const nombre = phase === "done" ? t("Reinicia para estrenar") : t("Actualizar Adeorq");
-  const accion = phase === "done" ? () => void relaunch() : install;
+  const esperando = pendiente !== null && frenan.length > 0;
+  const nombre = esperando
+    ? t("Espera a que terminen")
+    : phase === "done"
+      ? t("Reinicia para estrenar")
+      : t("Actualizar Adeorq");
+  // Esperando, el mismo botón es «no esperes»: lo hace ya, con los agentes a
+  // medias. Es su decisión, y la tarjeta lo dice en la línea de debajo.
+  const accion = esperando
+    ? () => {
+        const que = pendiente;
+        setPendiente(null);
+        hacer(que);
+      }
+    : phase === "done"
+      ? () => pedir("reiniciar")
+      : () => pedir("instalar");
 
   return (
-    <div className="update-card" data-phase={phase} role="status">
+    <div className="update-card" data-phase={esperando ? "esperando" : phase} role="status">
       <button
         className="update-card-main"
         onClick={accion}
         disabled={phase === "downloading"}
         data-tip={
-          phase === "done"
-            ? t("Reiniciar Adeorq")
-            : t("Descargar e instalar la versión {v}", { v: update.version })
+          esperando
+            ? t("Actualizar en cuanto terminen {quien}", { quien: quienFrena(frenan) })
+            : phase === "done"
+              ? t("Reiniciar Adeorq")
+              : t("Descargar e instalar la versión {v}", { v: update.version })
         }
       >
         <span className="update-mark">
@@ -147,11 +195,13 @@ export default function UpdateBar() {
             {phase === "error" ? t("No pude actualizar") : nombre}
           </span>
           <span className="update-sub">
-            {phase === "downloading"
-              ? `${pct}%`
-              : phase === "error"
-                ? error
-                : `v${update.version}`}
+            {esperando
+              ? t("{quien} a medio trabajo · pulsa para no esperar", { quien: quienFrena(frenan) })
+              : phase === "downloading"
+                ? `${pct}%`
+                : phase === "error"
+                  ? error
+                  : `v${update.version}`}
           </span>
         </span>
         {/* La flecha a la derecha del original de Claude es «ir a», y esto no
@@ -173,8 +223,8 @@ export default function UpdateBar() {
       {phase !== "downloading" && (
         <button
           className="update-no"
-          data-tip={t("Ahora no")}
-          onClick={() => setUpdate(null)}
+          data-tip={esperando ? t("Dejar de esperar") : t("Ahora no")}
+          onClick={() => (esperando ? setPendiente(null) : setUpdate(null))}
         >
           <CloseIcon size={13} />
         </button>

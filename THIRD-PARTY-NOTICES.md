@@ -8,14 +8,14 @@ Cada componente sigue siendo de quien lo escribió y se usa bajo su propia
 licencia, que es la que manda sobre ese componente. Nada de lo que hay aquí es
 de Adeorq ni cambia por estar en esta lista.
 
-Resumen: **71** componentes de la interfaz y **557** del núcleo en Rust. No hay
+Resumen: **72** componentes de la interfaz y **557** del núcleo en Rust. No hay
 ninguna dependencia con licencia GPL o AGPL. Hay 5 con MPL-2.0 (cssparser,
 cssparser-macros, dtoa-short, option-ext, selectors): la MPL solo obliga a
 publicar los cambios de SUS propios archivos, y Adeorq no modifica ninguno.
 
 El texto íntegro de cada licencia viaja dentro del paquete de la dependencia
-correspondiente y puede consultarse en su repositorio de origen. De 628
-componentes, 465 declaran un titular de copyright explícito, recogido abajo.
+correspondiente y puede consultarse en su repositorio de origen. De 629
+componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 
 ## Interfaz (npm, dependencias de producción)
 
@@ -92,6 +92,7 @@ componentes, 465 declaran un titular de copyright explícito, recogido abajo.
 | use-sync-external-store | 1.6.0 | MIT | Copyright Meta Platforms, Inc. and affiliates |
 | w3c-keyname | 2.2.8 | MIT | Copyright 2016 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | zustand | 4.5.7 | MIT | Copyright 2019 Paul Henschel |
+| zustand | 5.0.15 | MIT | Copyright 2019 Paul Henschel |
 
 ## Núcleo (Rust, crates)
 
@@ -657,6 +658,6 @@ componentes, 465 declaran un titular de copyright explícito, recogido abajo.
 
 ---
 
-Generado el 2026-10-06 con `pnpm terceros` a partir de `pnpm licenses list --prod`
+Generado el 2026-10-07 con `pnpm terceros` a partir de `pnpm licenses list --prod`
 y `cargo metadata`. Si eres autor de alguno de estos componentes y ves algo mal
 atribuido, escribe y se corrige.

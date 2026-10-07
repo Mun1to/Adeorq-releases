@@ -1335,3 +1335,34 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   opacity: 0.55;
 }
 
+/* ── Cerrada «tal»: el Deshacer de una terminal recién cerrada ─────────────
+   Abajo y centrada, de cristal, quince segundos. Dice qué se cerró y cómo
+   volver (Ctrl+Z fuera de una terminal, o el botón). */
+.deshacer-pill {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 16px;
+  border-radius: var(--r-pastilla);
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.deshacer-pill kbd {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--r-chico);
+  border: 1px solid var(--border);
+  font: 11px/1.4 ui-monospace, Consolas, monospace;
+  color: var(--muted);
+}
+

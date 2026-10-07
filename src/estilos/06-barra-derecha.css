@@ -932,7 +932,7 @@
    todo del panel, con el resto de avisos, porque es donde se mira. */
 .pane-ctx-warn {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   padding: 8px 12px;
   background: linear-gradient(
@@ -948,6 +948,14 @@
 
 .pane-ctx-warn span:first-child {
   flex: 1;
+}
+
+/* El botón de compactar con traspaso, a la derecha del aviso, en su color. */
+.pane-ctx-warn .pane-ctx-compactar {
+  flex: none;
+  color: inherit;
+  border-color: currentColor;
+  font-size: 12px;
 }
 
 .pane-ctx-warn[data-grave="true"] {

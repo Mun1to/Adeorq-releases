@@ -1198,7 +1198,8 @@ textarea.note-body {
 }
 
 .wdg:hover .react-flow__resize-control.wdg-grip,
-.gal:hover .react-flow__resize-control.wdg-grip {
+.gal:hover .react-flow__resize-control.wdg-grip,
+.rf-term:hover .react-flow__resize-control.wdg-grip {
   opacity: 1;
   color: color-mix(in srgb, var(--text) 70%, var(--muted));
 }

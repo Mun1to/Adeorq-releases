@@ -241,8 +241,9 @@ export function hoja(carpeta: string): string {
  *  se pueda probar sin la app (`scripts/conserje-check.ts`). */
 export interface Manos {
   router: boolean;
-  /** El router ya con su foto de cuentas dentro. */
-  recetar: (ex: Exigencia) => Receta;
+  /** El router ya con su foto de cuentas dentro. `de` es para las reglas de
+      la memoria, que encajan por proyecto o por encargo. */
+  recetar: (ex: Exigencia, de: { proyecto: string; encargo: string }) => Receta;
   /** Lo que se usa con el router apagado: lo que Munir tenga puesto. */
   fijo: { cli: string; modelo?: string };
   /** Abre la sesión sin moverte del chat y devuelve su panel. */
@@ -263,7 +264,7 @@ export async function ejecutar(acciones: Accion[], m: Manos): Promise<Hecho> {
   for (const a of acciones) {
     if (a.tipo === "abrir") {
       const receta: Pick<Receta, "cli" | "cuenta" | "modelo" | "esfuerzo" | "porque"> = m.router
-        ? m.recetar(exigenciaDe(a))
+        ? m.recetar(exigenciaDe(a), { proyecto: hoja(a.carpeta), encargo: a.encargo })
         : { cli: m.fijo.cli, modelo: m.fijo.modelo as Receta["modelo"], porque: [] };
       const label = `${hoja(a.carpeta)} · ${receta.cli}`;
       const panel = m.abrir(receta, a.carpeta, label, a.encargo);

@@ -1541,3 +1541,33 @@
   color: var(--text);
 }
 
+/* Ajustes > Terminales > el escalón de cada cliente del MCP (decisión D1):
+   una fila por cliente, con quién es a la izquierda y sus tres chips. */
+.mcp-cliente {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.mcp-cliente-quien {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.mcp-cliente-quien b {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mcp-cliente-quien span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.mcp-cliente .chip-row {
+  margin: 0;
+}
+

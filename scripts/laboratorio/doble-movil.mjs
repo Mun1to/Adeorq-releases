@@ -10,6 +10,8 @@
 //   · contiene «error»      la primera vez no contesta (sin cuota)
 //   · contiene «pregunta»   contesta con una pregunta y no abre nada
 // Una sesión pasa de «trabajando» a «te pregunta algo» a los veinte segundos.
+// Y tres terminales (decisión E3): lo que se les escribe o la tecla que se les
+// manda aparece en su pantalla en la vuelta siguiente, y queda en la consola.
 
 import http from "node:http";
 import fs from "node:fs";
@@ -39,6 +41,19 @@ vieja.trabajos = [{ panel: 4, cli: "claude", modelo: "sonnet", carpeta: "C:\\pro
 const enCurso = new Map();
 const abiertas = new Map(); // clave -> momento en que se abrió
 let yaFallo = false;
+
+// Las terminales de la Cabina, como las devuelve `atenderTerminal` de `lib/movil.ts`.
+const terminales = [
+  { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "opus", estado: "a_medias", sesion: "s-1" },
+  { panel: 2, nombre: "codex", carpeta: "C:\\proyectos\\crypto\\radar-bot", agente: true, modelo: "gpt-5.6-terra", estado: "pregunta", sesion: "s-2" },
+  { panel: 3, nombre: "consola", carpeta: "C:\\proyectos\\Vidorq", agente: false, modelo: null, estado: "", sesion: null },
+];
+const pantallas = new Map([
+  [1, ["❯ Reproduzco el fallo antes de tocar nada.", "", "● Read(src/App.tsx)", "  ⎿  120 líneas", "", "● Buscando el culpable en lib/scrollTerm.ts…", "", "❯ "]],
+  [2, ["Do you want to run `cargo check`?", "", "  1. Yes", "  2. No, and tell Codex what to do differently", "", "> "]],
+  [3, ["PS C:\\proyectos\\Vidorq> "]],
+]);
+const terminalDe = (panel) => terminales.find((t) => t.panel === Number(panel));
 
 function estadosDe(conv) {
   const estados = {};
@@ -149,6 +164,30 @@ http
           return json(res, 200, { ok: true });
         case "/api/parar":
           return json(res, 200, { ok: true });
+        case "/api/terminales":
+          return json(res, 200, { terminales });
+        case "/api/terminal": {
+          const t = terminalDe(url.searchParams.get("panel"));
+          if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
+          return json(res, 200, { ...t, filas: pantallas.get(t.panel) || [] });
+        }
+        case "/api/terminal/escribir": {
+          const t = terminalDe(v.panel);
+          if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
+          const f = pantallas.get(t.panel);
+          f[f.length - 1] += v.texto;
+          f.push("", `● (el agente leyó: ${v.texto})`, "", "❯ ");
+          console.log(`escrito en ${t.panel}: ${v.texto}`);
+          return json(res, 202, { ok: true });
+        }
+        case "/api/terminal/tecla": {
+          if (!["intro", "esc", "ctrl+c"].includes(v.tecla)) return json(res, 400, { error: "Esa tecla no se manda desde el móvil." });
+          const f = pantallas.get(Number(v.panel));
+          if (!f) return json(res, 404, { error: "Esa terminal ya no está." });
+          f.push(`(tecla: ${v.tecla})`, "❯ ");
+          console.log(`tecla en ${v.panel}: ${v.tecla}`);
+          return json(res, 202, { ok: true });
+        }
         case "/api/sesion":
           return json(res, 200, [
             { rol: "tu", texto: "Que el scroll de las terminales no salte al cambiar el ancho", hora: "", herramientas: [] },

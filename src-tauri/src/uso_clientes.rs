@@ -29,6 +29,11 @@
 // El resto no están instalados aquí, así que no se dice nada de ellos: una
 // columna inventada en este panel es peor que un hueco, porque un hueco se ve.
 //
+// Vuelto a mirar el 2026-10-07: Gemini CLI 0.52.0 sigue sin guardar tokens ni
+// cuota en `~/.gemini` (ni en `tmp/<proyecto>/chats`, ni en `logs.json`, ni en
+// `state.json`), y Kimi Code no tiene carpeta en esta máquina, así que no hay
+// nada que leer de él todavía.
+//
 // La regla de la casa que esto respeta es la de siempre: se guarda por lo que
 // el CLI SABE HACER (`usage` en `providers.ts`), no por su nombre, así que
 // añadir el siguiente es escribir su lector aquí y encender su columna allí.

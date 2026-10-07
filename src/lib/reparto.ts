@@ -16,7 +16,7 @@ import {
   comoPeso,
   exigenciaDeRol,
   PESO,
-  recetar,
+  recetarConMemoria,
   type Exigencia,
   type Mundo,
   type Receta,
@@ -202,7 +202,10 @@ export function actaDeReparto(puestos: Puesto[], objetivo?: string, cuando?: str
 export function repartir(tareas: Tarea[], mundo: Mundo, objetivo?: string, cuando?: string): Reparto {
   const dentro = tareas.slice(0, MAX_TAREAS);
   const puestos: Puesto[] = dentro.map((tarea) => {
-    const receta = recetar(tarea.ex, mundo, tarea.pedido, cerebroPorDefecto());
+    const receta = recetarConMemoria(tarea.ex, mundo, tarea.pedido, cerebroPorDefecto(), {
+      proyecto: tarea.proyecto,
+      encargo: tarea.encargo ?? tarea.texto,
+    });
     const otras = dentro.filter((o) => o !== tarea);
     return { tarea, receta, prompt: promptPara(receta.cli, tarea, otras, objetivo) };
   });
@@ -318,3 +321,17 @@ export function tituloDelReparto(r: Reparto): string {
 }
 
 export { comoPeso };
+
+/** Lo que trae quien abre el Reparto sin ser el botón de la barra. La Misión
+    del Panel y el kanban del lienzo lo abren ya escrito, para que lo último
+    que se vea antes de gastar sea siempre la misma vista previa. Vivía en
+    App.tsx. */
+export interface RepartoInicial {
+  texto?: string;
+  proyecto?: string;
+  objetivo?: string;
+  /** Qué hacer SI se abrió la cuadrilla de verdad. Cerrar sin abrir no lo
+      llama: es lo que quita las tarjetas del kanban, y quitarlas por haber
+      mirado sería perderlas. */
+  alAbrir?: () => void;
+}

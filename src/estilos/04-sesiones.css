@@ -751,6 +751,17 @@
   color: var(--muted);
 }
 
+/* Una lista de consejos dentro de una ventana (la ayuda del lienzo). */
+.modal-lista {
+  margin: 0 0 14px;
+  padding: 0 0 0 18px;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
 .modal-ok {
   margin: 0 0 6px;
   font-size: 13px;

@@ -2052,6 +2052,32 @@ const EN: Record<string, string> = {
   "a un .json": "to a .json",
   "Guardar este tablero en un archivo o abrir otro":
     "Save this board to a file, or open another",
+  "Cómo va el lienzo": "How the canvas works",
+  "Cada terminal se estira por sus bordes y esquinas, y el botón de ampliar de su cabecera la pone a lo grande y la devuelve.":
+    "Each terminal stretches by its edges and corners, and the enlarge button in its header makes it big and brings it back.",
+  "Un carril (Añadir > Carril) separa un espacio de trabajo; con el nombre de un proyecto, sus terminales nacen dentro.":
+    "A lane (Add > Lane) separates a work area; named after a project, its terminals are born inside.",
+  "El tablero se guarda solo; «Lienzo» lo exporta a un archivo o abre otro.":
+    "The board saves itself; “Canvas” exports it to a file or opens another.",
+  "Cerrada «{n}»": "Closed “{n}”",
+  "{pct} % de contexto: mejor una terminal nueva que compactar.":
+    "{pct}% of context: a new terminal beats compacting now.",
+  "{pct} % de contexto: cada mensaje lo vuelve a pagar entero.":
+    "{pct}% of context: every message pays for all of it again.",
+  "Primero el traspaso (BUZON.md y docs vivos), después /compact":
+    "First the handoff (BUZON.md and living docs), then /compact",
+  Compactar: "Compact",
+  "Nueva con traspaso": "New with handoff",
+  "Primero el traspaso (BUZON.md y docs vivos), después una terminal nueva aquí mismo que sigue desde ahí":
+    "First the handoff (BUZON.md and living docs), then a new terminal right here that carries on from it",
+  "Esta sesión ya pesa demasiado: deja al día el traspaso, el BUZON.md del proyecto y sus docs vivos, con lo hecho (rutas exactas), lo pendiente y las trampas de hoy. Sin commits. Cuando acabes, abro una terminal nueva que sigue desde ahí.":
+    "This session weighs too much now: bring the handoff up to date, the project's BUZON.md and its living docs, with what was done (exact paths), what is pending and today's traps. No commits. When you finish, I open a new terminal that carries on from there.",
+  "Retomas el trabajo de la sesión anterior, que se quedó sin contexto: lee el BUZON.md del proyecto y sus docs vivos, y sigue desde lo pendiente.":
+    "You pick up the previous session's work, which ran out of context: read the project's BUZON.md and its living docs, and carry on from what is pending.",
+  "Conserva el estado real del repo, lo hecho con sus rutas exactas, lo pendiente y las trampas de hoy; lo demás, resumido.":
+    "Keep the real state of the repo, what was done with its exact paths, what is pending and today's traps; summarise the rest.",
+  "Antes de compactar, deja al día el traspaso: el BUZON.md del proyecto y sus docs vivos, con lo hecho (rutas exactas), lo pendiente y las trampas de hoy. Sin commits. Cuando acabes, te compacto yo.":
+    "Before compacting, bring the handoff up to date: the project's BUZON.md and its living docs, with what was done (exact paths), what is pending and today's traps. No commits. When you finish, I will compact you.",
   "Encajar todo en la pantalla": "Fit everything on screen",
   "Abrir este lienzo": "Open this canvas",
   "Ese archivo no es un lienzo de Adeorq.": "That file is not an Adeorq canvas.",
@@ -2088,8 +2114,8 @@ const EN: Record<string, string> = {
     "Board typed into that terminal. The Enter is yours to press.",
   "Captura entregada. Dale al Enter en esa terminal.":
     "Screenshot handed over. Press Enter in that terminal.",
-  "Arrastra de un borde a otro para encadenar: cuando el primero termina, su resultado pasa al siguiente.\nCtrl+V pega una captura. Ctrl+A coge todo el lienzo y Supr se lo lleva. Esc suelta.":
-    "Drag from one edge to another to chain them: when the first finishes, its result goes to the next.\nCtrl+V pastes a screenshot. Ctrl+A picks the whole canvas and Del takes it away. Esc drops.",
+  "Ctrl+V pega una captura. Ctrl+A coge todo el lienzo y Supr se lo lleva. Esc suelta.":
+    "Ctrl+V pastes a screenshot. Ctrl+A picks the whole canvas and Del takes it away. Esc drops.",
   Soltar: "Drop",
   Listo: "Done",
 
@@ -2469,6 +2495,21 @@ const EN: Record<string, string> = {
   "Esta sesión se cerró sin llegar a escribir nada.": "This session closed before writing anything.",
   "Puedes quitar su pestaña con la ✕, o pedirle al conserje que la abra otra vez.":
     "You can remove its tab with the ✕, or ask the concierge to open it again.",
+  // Ajustes > Terminales > el escalón de cada cliente del MCP (decisión D1).
+  "Qué puede hacer cada cliente por el MCP": "What each client may do through the MCP",
+  "Cada programa que se conecta al MCP de Adeorq (Codex, Gemini, Kimi, un Claude Code tuyo…) tiene su escalón, los mismos tres del Capataz. De fábrica, plan: puede mirar y abrir terminales, nunca escribir en una que ya está trabajando. Claude Code nace en auto porque es lo que ya hace hoy. El Capataz y el conserje no cuentan: llevan su propio recorte.":
+    "Every program that connects to Adeorq's MCP (Codex, Gemini, Kimi, a Claude Code of yours…) has its level, the same three as the Foreman. Factory default is plan: it may look and open terminals, never type into one that is already working. Claude Code starts in auto because that is what it already does today. The Foreman and the concierge do not count: they carry their own cut.",
+  "Todavía no se ha conectado ninguno. Aparecen aquí la primera vez que hablan con el MCP.":
+    "None has connected yet. They show up here the first time they talk to the MCP.",
+  "{n} veces, la última {cuando}": "{n} times, last {cuando}",
+  "nunca se ha conectado": "never connected",
+  "de fábrica": "factory default",
+  "Como de fábrica": "Back to factory",
+  // La tarjeta de actualizar espera a los agentes (decisión C3).
+  "Espera a que terminen": "Waiting for them to finish",
+  "{quien} a medio trabajo · pulsa para no esperar": "{quien} mid-task · press to stop waiting",
+  "Dejar de esperar": "Stop waiting",
+  "Actualizar en cuanto terminen {quien}": "Update as soon as {quien} finish",
 };
 
 export function detectLang(): Lang {

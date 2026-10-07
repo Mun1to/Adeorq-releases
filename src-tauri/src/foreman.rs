@@ -586,7 +586,10 @@ pub(crate) fn config_mcp() -> Result<PathBuf, String> {
     // barras. Windows acepta las de dividir igual de bien.
     let ruta = exe.to_string_lossy().replace('\\', "/");
     let json = serde_json::json!({
-        "mcpServers": { "adeorq": { "type": "stdio", "command": ruta, "args": ["--mcp"], "env": {} } }
+        // `--de-casa`: este puente es de Adeorq (el Capataz o el conserje), así
+        // que el servidor no le aplica el escalón por cliente: ya lleva su
+        // propio recorte de manos (`lib/manos.ts`). Ver `mcp_clientes.rs`.
+        "mcpServers": { "adeorq": { "type": "stdio", "command": ruta, "args": ["--mcp", "--de-casa"], "env": {} } }
     });
     let destino = std::env::temp_dir().join("adeorq-capataz-mcp.json");
     std::fs::write(&destino, json.to_string()).map_err(|e| format!("no pude escribirlo: {e}"))?;

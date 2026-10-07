@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { Handle, NodeResizer, Position, useStore, type Node, type NodeProps } from "@xyflow/react";
 import TerminalPane from "./TerminalPane";
 import ResguardoPanel from "./ResguardoPanel";
+import { Grip } from "./CanvasWidgets";
 import { ColoresLienzo } from "./ColoresLienzo";
 import { initials } from "./ProjectAvatar";
 import { hueOf } from "../lib/colors";
@@ -33,8 +34,13 @@ export interface TermData extends Record<string, unknown> {
   onClose: (id: number) => void;
   onRename?: (id: number, nombre: string) => void;
   onSessionId?: (id: number, sessionId: string) => void;
+  onNuevaConTraspaso?: (id: number) => void;
   onSplit: (id: number) => void;
-  onZoom: (id: number) => void;
+  /** A lo grande (lo que se ve del lienzo) o de vuelta a su tamaño. */
+  onAmpliar: (id: number) => void;
+  grande?: boolean;
+  /** Dónde y cómo era antes de ampliarla, para volver. */
+  previo?: { x: number; y: number; w: number; h: number };
   onTurnEnd: (id: number) => void;
   /** Su estado hacia arriba: lo consume el kanban y el Capataz. */
   onStatus: (s: PaneStatus) => void;
@@ -71,7 +77,12 @@ export default function TermNode({ data, selected }: NodeProps<Node<TermData>>) 
       // salen de aquí.
       style={{ ["--c" as string]: color }}
     >
-      <NodeResizer minWidth={360} minHeight={220} isVisible={selected} />
+      {/* Se estira por bordes y esquinas SIN tener que seleccionarla antes, y
+          el tirador de abajo a la derecha sale al pasar el ratón, como en los
+          widgets: estaba solo al seleccionar y nadie lo encontraba (Munir,
+          2026-10-07: «no se puede ampliar fácilmente la terminal»). */}
+      <NodeResizer minWidth={360} minHeight={220} isVisible />
+      <Grip minWidth={360} minHeight={220} />
       <Handle type="target" position={Position.Left} className="rf-handle" />
       <ResguardoPanel id={d.pane.id}>
       <TerminalPane
@@ -83,7 +94,7 @@ export default function TermNode({ data, selected }: NodeProps<Node<TermData>>) 
         account={d.pane.account}
         hidden={false}
         focused={d.focused}
-        maximized={false}
+        maximized={!!d.grande}
         fontSize={d.fontSize}
         autoFont={d.autoFont}
         stream={d.stream}
@@ -92,9 +103,10 @@ export default function TermNode({ data, selected }: NodeProps<Node<TermData>>) 
         onClose={d.onClose}
         onRename={d.onRename}
         onSessionId={d.onSessionId}
+        onNuevaConTraspaso={d.onNuevaConTraspaso}
         onFocusPane={d.onFocus}
         onSplit={(id) => d.onSplit(id)}
-        onToggleMax={(id) => d.onZoom(id)}
+        onToggleMax={(id) => d.onAmpliar(id)}
         onTurnEnd={d.onTurnEnd}
         onStatus={d.onStatus}
         shadow={d.pane.shadow}

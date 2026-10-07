@@ -3,7 +3,7 @@ import { readCrewInbox, type CrewNote, type PaneStatus, type WorkState } from ".
 import { PINTA, haceCuanto } from "../lib/estados";
 import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
-import type { Team } from "../App";
+import type { Team } from "../lib/tablero";
 import {
   ChevronIcon,
   CloseIcon,

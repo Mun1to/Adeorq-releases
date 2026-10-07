@@ -351,10 +351,19 @@ fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 /// Run the stdio-to-TCP bridge for MCP clients executing from console.
-pub fn run_mcp_bridge() -> Result<(), Box<dyn std::error::Error>> {
+///
+/// `de_casa`: el puente lo lanzó Adeorq mismo (el Capataz o el conserje, ver
+/// `foreman::config_mcp`). Se presenta con una línea propia antes del protocolo
+/// y el servidor no le aplica el escalón por cliente (`mcp_clientes.rs`): ya
+/// lleva su propio recorte de manos.
+pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
     let stream = TcpStream::connect("127.0.0.1:3012")?;
     let mut stream_writer = stream.try_clone()?;
     let mut stream_reader = BufReader::new(stream);
+    if de_casa {
+        stream_writer.write_all(b"{\"adeorq\":\"de-casa\"}\n")?;
+        stream_writer.flush()?;
+    }
 
     // Spawn a thread to read from TCP and write to stdout
     thread::spawn(move || {
@@ -458,6 +467,11 @@ pub fn start_mcp_server(app: tauri::AppHandle) {
 fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let mut writer = stream.try_clone()?;
     let reader = BufReader::new(stream);
+    // Quién habla por esta conexión, tal como se presentó en `initialize`, y si
+    // es un puente de casa (Capataz, conserje), que no pasa por el escalón por
+    // cliente. Ver `mcp_clientes.rs`.
+    let mut cliente: Option<String> = None;
+    let mut de_casa = false;
 
     for line in reader.lines() {
         let line = line?;
@@ -471,6 +485,10 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
         // parsear como petición MCP porque no lo es, y compartir puerto evita
         // abrir un segundo socket para dos líneas de conversación.
         if let Ok(v) = serde_json::from_str::<Value>(&line) {
+            if v["adeorq"].as_str() == Some("de-casa") {
+                de_casa = true;
+                continue;
+            }
             if v["adeorq"].as_str() == Some("secreto") {
                 let nombre = v["nombre"].as_str().unwrap_or_default();
                 let motivo = v["motivo"].as_str().unwrap_or_default();
@@ -516,6 +534,13 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
 
         let res = match method {
             "initialize" => {
+                let ci = &req["params"]["clientInfo"];
+                if let Some(n) = ci["name"].as_str().map(str::trim).filter(|n| !n.is_empty()) {
+                    cliente = Some(n.to_string());
+                    if !de_casa {
+                        crate::mcp_clientes::apuntar_visto(n, ci["version"].as_str().unwrap_or(""));
+                    }
+                }
                 json!({
                     "jsonrpc": "2.0",
                     "id": id,
@@ -535,8 +560,68 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 json!({
                     "jsonrpc": "2.0",
                     "id": id,
-                    "result": {
-                        "tools": [
+                    "result": { "tools": herramientas_visibles(&cliente, de_casa) }
+                })
+            }
+            "tools/call" => {
+                let name = req["params"]["name"].as_str().unwrap_or_default();
+                let args = req["params"]["arguments"].clone();
+                // El escalón del cliente (decisión D1): lo que no le toca no se
+                // ejecuta, y se le dice por qué. Lo de casa no pasa por aquí.
+                let result = match escalon_que_falta(&cliente, de_casa, name) {
+                    Some(porque) => Err(porque),
+                    None => handle_tool_call(name, args, &app),
+                };
+                match result {
+                    Ok(val) => {
+                        json!({
+                            "jsonrpc": "2.0",
+                            "id": id,
+                            "result": val
+                        })
+                    }
+                    Err(e) => {
+                        json!({
+                            "jsonrpc": "2.0",
+                            "id": id,
+                            "error": {
+                                "code": -32603,
+                                "message": e
+                            }
+                        })
+                    }
+                }
+            }
+            _ => {
+                if is_notification {
+                    continue;
+                }
+                json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "error": {
+                        "code": -32601,
+                        "message": format!("Method not found: {}", method)
+                    }
+                })
+            }
+        };
+
+        if !is_notification {
+            writer.write_all(format!("{}\n", res).as_bytes())?;
+            writer.flush()?;
+        }
+    }
+
+    Ok(())
+}
+
+
+/// Las herramientas que anuncia el servidor, en un solo sitio: el escalón de
+/// cada cliente (`mcp_clientes.rs`) las filtra y un test comprueba que todas
+/// tienen escalón.
+pub fn lista_de_herramientas() -> Vec<Value> {
+    let v = json!([
                             {
                                 "name": "get_projects",
                                 "description": "Lists all projects inside C:\\proyectos",
@@ -762,56 +847,36 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                                     "required": ["paneId"]
                                 }
                             }
-                        ]
-                    }
-                })
-            }
-            "tools/call" => {
-                let name = req["params"]["name"].as_str().unwrap_or_default();
-                let args = req["params"]["arguments"].clone();
-                let result = handle_tool_call(name, args, &app);
-                match result {
-                    Ok(val) => {
-                        json!({
-                            "jsonrpc": "2.0",
-                            "id": id,
-                            "result": val
-                        })
-                    }
-                    Err(e) => {
-                        json!({
-                            "jsonrpc": "2.0",
-                            "id": id,
-                            "error": {
-                                "code": -32603,
-                                "message": e
-                            }
-                        })
-                    }
-                }
-            }
-            _ => {
-                if is_notification {
-                    continue;
-                }
-                json!({
-                    "jsonrpc": "2.0",
-                    "id": id,
-                    "error": {
-                        "code": -32601,
-                        "message": format!("Method not found: {}", method)
-                    }
-                })
-            }
-        };
+    ]);
+    v.as_array().cloned().unwrap_or_default()
+}
 
-        if !is_notification {
-            writer.write_all(format!("{}\n", res).as_bytes())?;
-            writer.flush()?;
-        }
+/// Las que ve ESTE cliente: todas si es de casa; si no, las de su escalón.
+fn herramientas_visibles(cliente: &Option<String>, de_casa: bool) -> Vec<Value> {
+    let todas = lista_de_herramientas();
+    if de_casa {
+        return todas;
     }
+    let nombre = cliente.as_deref().unwrap_or("desconocido");
+    let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), nombre);
+    todas
+        .into_iter()
+        .filter(|h| h["name"].as_str().is_some_and(|n| crate::mcp_clientes::permite(nivel, n)))
+        .collect()
+}
 
-    Ok(())
+/// Por qué este cliente no puede llamar a esa herramienta, o `None` si puede.
+fn escalon_que_falta(cliente: &Option<String>, de_casa: bool, herramienta: &str) -> Option<String> {
+    if de_casa {
+        return None;
+    }
+    let nombre = cliente.as_deref().unwrap_or("desconocido");
+    let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), nombre);
+    if crate::mcp_clientes::permite(nivel, herramienta) {
+        None
+    } else {
+        Some(crate::mcp_clientes::mensaje_denegado(nombre, nivel, herramienta))
+    }
 }
 
 fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<Value, String> {

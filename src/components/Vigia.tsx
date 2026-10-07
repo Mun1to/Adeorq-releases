@@ -10,7 +10,7 @@ import {
   type CuadrillaVista,
   type Memoria,
 } from "../lib/vigia";
-import type { Team } from "../App";
+import type { Team } from "../lib/tablero";
 
 /**
  * El vigía: mira las cuadrillas y, si algo merece tu atención, lo PROPONE.

@@ -22,6 +22,7 @@
 import type { Account } from "./pty";
 import { modelForRole, type ModelAlias } from "./models";
 import { providerOf, sabe } from "./providers";
+import { reglaQueManda, type ReglaRouter } from "./reglasRouter";
 
 export const ESFUERZOS = ["low", "medium", "high", "xhigh", "max"] as const;
 export type Esfuerzo = (typeof ESFUERZOS)[number];
@@ -103,6 +104,9 @@ export interface Mundo {
   /** Los clientes que el usuario dijo que usa (bienvenida). Vacío o sin poner:
       valen todos los que estén instalados y conectados. */
   usa?: string[];
+  /** Las reglas que Munir dejó escritas en la memoria (`reglasRouter.ts`).
+      Solo las mira `recetarConMemoria`; `recetar` a secas no sabe de ellas. */
+  reglas?: ReglaRouter[];
 }
 
 /**
@@ -558,4 +562,34 @@ export function interpretar(raw: string): { encargo: string; ex: Exigencia; porq
 
 function unaDe<T extends string>(v: unknown, ok: readonly T[], def: T): T {
   return typeof v === "string" && (ok as readonly string[]).includes(v) ? (v as T) : def;
+}
+
+/**
+ * El router con las notas de Munir delante (decisión D1, 2026-10-07).
+ *
+ * Si una regla de la memoria encaja con el proyecto o el encargo, su modelo
+ * entra como `pedido`, o sea como si lo hubiera elegido a mano para esta tarea:
+ * la cuota sigue mandando hacia abajo. Su esfuerzo y su cliente se imponen, y
+ * el porqué termina con la línea de la nota, para que se vea de dónde sale.
+ * Sin regla que encaje, es `recetar` tal cual.
+ */
+export function recetarConMemoria(
+  ex: Exigencia,
+  mundo: Mundo,
+  pedido: ModelAlias | undefined,
+  preferido: ModelAlias | undefined,
+  de: { proyecto?: string; encargo?: string },
+): Receta {
+  const regla = reglaQueManda(mundo.reglas ?? [], de);
+  const r = recetar(ex, mundo, regla?.modelo ?? pedido, preferido);
+  if (!regla) return r;
+  const cambiaCli = !!regla.cli && regla.cli !== r.cli;
+  return {
+    ...r,
+    cli: regla.cli ?? r.cli,
+    // Con otro cliente, la cuenta elegida (que era de Claude) ya no vale.
+    cuenta: cambiaCli ? undefined : r.cuenta,
+    esfuerzo: regla.esfuerzo ?? r.esfuerzo,
+    porque: [...r.porque, `Tu nota${regla.nota ? ` «${regla.nota}»` : ""} manda: ${regla.texto}`],
+  };
 }

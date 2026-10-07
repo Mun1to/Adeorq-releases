@@ -299,6 +299,11 @@ export function sessionContext(
 
 /** The Codex thread born in `cwd` since `since` (epoch seconds), once its
  *  first turn has written a rollout; Codex gives no id at launch. */
+/** Las líneas `router: …` de la memoria de la casa, tal cual, con su nota. */
+export function memoriaReglasRouter(): Promise<Array<{ linea: string; nota: string; proyecto: string }>> {
+  return invoke("memoria_reglas_router");
+}
+
 export function codexSessionSince(cwd: string, since: number): Promise<string | null> {
   return invoke("codex_session_since", { cwd, since });
 }

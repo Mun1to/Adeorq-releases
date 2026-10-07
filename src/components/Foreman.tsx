@@ -31,6 +31,7 @@ import {
   interpretar,
   modoAviso,
   recetar,
+  recetarConMemoria,
   PESO,
   exigenciaDeRol,
   pesoDelPlan,
@@ -39,7 +40,7 @@ import {
   type Exigencia,
   type Receta,
 } from "../lib/router";
-import { mirarMundo, mundoEnCache } from "../lib/mundo";
+import { mirarMundo, mundoEnCache, reglasDeLaMemoria } from "../lib/mundo";
 import { leerPerfil } from "../lib/perfil";
 import { providerOf, sabe } from "../lib/providers";
 import {
@@ -779,14 +780,18 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
       // lo último que se supo: una recomendación con datos de hace un rato es
       // muchísimo mejor que ninguna.
       mirarMundo(cuentas).catch(() => mundoEnCache(cuentas)),
+      // Y las reglas que Munir dejó en la memoria (`router: … -> …`), que
+      // mandan sobre lo que decida el router para este proyecto o encargo.
+      reglasDeLaMemoria(),
     ])
-      .then(([raw, vivas]) => {
+      .then(([raw, vivas, reglas]) => {
         const { encargo, ex, porque } = interpretar(raw);
-        const receta = recetar(
+        const receta = recetarConMemoria(
           ex,
-          { cuentas: vivas, panel: p, avisos: modoAviso(), usa: leerPerfil().clis },
+          { cuentas: vivas, panel: p, avisos: modoAviso(), usa: leerPerfil().clis, reglas },
           undefined,
           cerebroPorDefecto(),
+          { proyecto: p?.name, encargo },
         );
 
         // El camino automático: se aplica y ya. Solo cuando de verdad hay dónde

@@ -39,6 +39,7 @@ mod usage;
 mod uso_clientes;
 mod workspace;
 mod mcp;
+mod mcp_clientes;
 mod git_shadow;
 
 pub use mcp::run_mcp_bridge;
@@ -395,6 +396,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             mcp::mcp_reply,
             movil::movil_reply,
+            mcp_clientes::mcp_clientes_leer,
+            mcp_clientes::mcp_clientes_poner,
             movil::movil_estado,
             movil::movil_encender,
             movil::movil_emparejar,
@@ -435,6 +438,7 @@ pub fn run() {
             sessions::last_reply,
             sessions::transcript_exists,
             sessions::codex_session_since,
+            memoria_casa::memoria_reglas_router,
             sessions::session_messages,
             sessions::session_activity,
             skills::list_skills,

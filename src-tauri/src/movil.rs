@@ -503,6 +503,11 @@ fn id_valido(id: &str) -> bool {
 
 // ─── Lo que se atiende ──────────────────────────────────────────────────────
 
+/// Las teclas sueltas que se pueden mandar a una terminal desde el móvil
+/// (decisión E3). Las mismas que `TECLAS` en `src/lib/movil.ts`, que es quien
+/// pone los bytes.
+pub const TECLAS_DEL_MOVIL: &[&str] = &["intro", "esc", "ctrl+c"];
+
 /// Lo que el servidor necesita de la casa. Con una casa de mentira se prueba
 /// entero sin abrir la app.
 pub trait Casa {
@@ -699,6 +704,55 @@ pub fn atender(
             casa.parar(&id);
             Respuesta::json(200, json!({ "ok": true }))
         }
+        // Las terminales, desde el móvil (decisión E3 de Munir, 2026-10-07):
+        // la lista, la pantalla de una y escribirle texto o una tecla. Lo
+        // contesta la ventana, que es quien tiene los paneles y el búfer de
+        // xterm; aquí solo se mira que haya un móvil emparejado (arriba) y que
+        // lo que llega tenga forma. Munir eligió texto libre a cualquier
+        // terminal sabiendo que es lo más cómodo y lo más peligroso: la red que
+        // queda es la de siempre (emparejado, por Tailscale) y ninguna más.
+        ("GET", "/api/terminales") => match casa.ventana("terminales", json!({})) {
+            Ok(v) => Respuesta::json(200, v),
+            Err(e) => Respuesta::error(502, &e),
+        },
+        ("GET", "/api/terminal") => {
+            let Some(panel) = p.consulta.get("panel").and_then(|s| s.parse::<u64>().ok()) else {
+                return Respuesta::error(400, "Falta qué terminal.");
+            };
+            match casa.ventana("pantalla", json!({ "panel": panel })) {
+                Ok(v) => Respuesta::json(200, v),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
+        ("POST", "/api/terminal/escribir") => {
+            let Some(panel) = cuerpo["panel"].as_u64() else {
+                return Respuesta::error(400, "Falta qué terminal.");
+            };
+            let texto = cuerpo["texto"].as_str().unwrap_or("").trim();
+            if texto.is_empty() {
+                return Respuesta::error(400, "No hay nada que mandar.");
+            }
+            if texto.chars().count() > TOPE_TEXTO {
+                return Respuesta::error(413, "Es demasiado largo para mandarlo de una vez.");
+            }
+            match casa.ventana("escribir", json!({ "panel": panel, "texto": texto })) {
+                Ok(_) => Respuesta::json(202, json!({ "ok": true })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
+        ("POST", "/api/terminal/tecla") => {
+            let Some(panel) = cuerpo["panel"].as_u64() else {
+                return Respuesta::error(400, "Falta qué terminal.");
+            };
+            let tecla = cuerpo["tecla"].as_str().unwrap_or("");
+            if !TECLAS_DEL_MOVIL.contains(&tecla) {
+                return Respuesta::error(400, "Esa tecla no se manda desde el móvil.");
+            }
+            match casa.ventana("tecla", json!({ "panel": panel, "tecla": tecla })) {
+                Ok(_) => Respuesta::json(202, json!({ "ok": true })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
         ("GET", "/api/sesion") => {
             let cwd = p.consulta.get("cwd").map(String::as_str).unwrap_or("");
             let sesion = p.consulta.get("id").map(String::as_str).unwrap_or("");
@@ -712,7 +766,8 @@ pub fn atender(
         }
         (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router"
             | "/api/cerebro" | "/api/fijo" | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
-            | "/api/push/olvidar") => Respuesta::error(405, "Así no."),
+            | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
+            | "/api/terminal/tecla") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -1476,6 +1531,32 @@ mod tests {
 
     fn cuerpo_de(r: &Respuesta) -> Value {
         serde_json::from_slice(&r.cuerpo).unwrap_or(Value::Null)
+    }
+
+    /// Las terminales desde el móvil (decisión E3): la lista y la pantalla van
+    /// a la ventana; escribir exige texto y un panel; las teclas, solo las de
+    /// la lista; y todo, solo con un móvil emparejado.
+    #[test]
+    fn las_terminales_se_escriben_solo_emparejado_y_con_forma() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        assert_eq!(atender(&pedir("GET", "/api/terminales", None, ""), &g, &casa, &nada, reloj).estado, 401);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", None, r#"{"panel":1,"texto":"hola"}"#), &g, &casa, &nada, reloj).estado, 401);
+        assert_eq!(atender(&pedir("GET", "/api/terminales", c, ""), &g, &casa, &nada, reloj).estado, 200);
+        assert_eq!(atender(&pedir("GET", "/api/terminal?panel=3", c, ""), &g, &casa, &nada, reloj).estado, 200);
+        assert_eq!(atender(&pedir("GET", "/api/terminal?panel=x", c, ""), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("GET", "/api/terminal", c, ""), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"panel":1,"texto":"  "}"#), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"texto":"hola"}"#), &g, &casa, &nada, reloj).estado, 400);
+        let largo = format!(r#"{{"panel":1,"texto":"{}"}}"#, "a".repeat(TOPE_TEXTO + 1));
+        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, &largo), &g, &casa, &nada, reloj).estado, 413);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"panel":1,"texto":"sí, adelante"}"#), &g, &casa, &nada, reloj).estado, 202);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+c"}"#), &g, &casa, &nada, reloj).estado, 202);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+z"}"#), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("GET", "/api/terminal/escribir", c, ""), &g, &casa, &nada, reloj).estado, 405, "con el método que no es, 405 y no 404");
     }
 
     #[test]

@@ -13,9 +13,10 @@
   el PC, y llega aquí por Tailscale. Todo va dentro de este archivo: la
   política de la página no deja cargar nada de fuera.
 
-  Lo que el móvil hace es HABLAR con el conserje y MIRAR sus sesiones. Abrir
-  sesiones y escribirles lo decide el conserje en el PC, con su reja: aquí no
-  hay ninguna terminal.
+  Lo que el móvil hace es HABLAR con el conserje, MIRAR sus sesiones y, desde
+  el 2026-10-07 (decisión E3 de Munir), ESCRIBIR en cualquier terminal: la
+  lista de las abiertas, la pantalla de una y una caja para mandarle texto o
+  una tecla (Intro, Esc, Ctrl+C). Abrir sesiones sigue siendo del conserje.
 -->
 <style>
   :root {
@@ -215,6 +216,16 @@
   .mini { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--borde-fuerte); background: var(--capa); cursor: pointer; font-size: 13px; }
 
   .solo-lectura { font-size: 13px; color: var(--suave); text-align: center; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--borde); }
+
+  /* ── Las terminales (decisión E3) ── */
+  .segunda { border-color: var(--borde); background: var(--capa); font-weight: 500; }
+  .pantalla-marco { display: flex; padding: 10px; }
+  .pantalla {
+    flex: 1; min-width: 0; margin: 0; padding: 10px 12px; overflow: auto; -webkit-overflow-scrolling: touch;
+    border-radius: 12px; border: 1px solid var(--borde); background: var(--capa); color: var(--tinta);
+    font: 12px/1.4 "Cascadia Mono", Consolas, ui-monospace, monospace; white-space: pre;
+  }
+  .aviso-terminal { font-size: 12.5px; color: var(--suave); margin: 8px 4px 0; }
 </style>
 </head>
 <body>
@@ -241,7 +252,20 @@ const ICONO = {
   parar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
   diana: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
   deshacer: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>',
+  terminal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7l5 5-5 5"/><path d="M12 17h7"/></svg>',
 };
+
+/* Cómo se dice el estado de una terminal (los `WorkState` de lib/pty.ts), y
+   con qué tono se pinta: el de las tarjetas del conserje. */
+const ESTADO_TERMINAL = {
+  a_medias: ["trabajando", "trabajando"],
+  pregunta: ["te pregunta", "pregunta"],
+  ofrece: ["te espera", "pregunta"],
+  tuya: ["te toca", "pregunta"],
+  lista: ["terminó", "termino"],
+  "": ["quieta", "cerrada"],
+};
+const estadoTerminal = (t) => ESTADO_TERMINAL[t.estado] || ESTADO_TERMINAL[""];
 
 function hace(segundos) {
   const ms = segundos * 1000;
@@ -330,8 +354,22 @@ let reloj = null;
 {
   const m = /#conv=([A-Za-z0-9_-]{1,64})/.exec(location.hash);
   if (m && clave) e = { vista: "hilo", id: m[1] };
+  // Y un aviso de una terminal («te pregunta») abre su pantalla directamente.
+  const mt = /#terminal=(\d{1,6})/.exec(location.hash);
+  if (mt && clave) e = { vista: "terminal", panel: Number(mt[1]) };
   if (location.hash) history.replaceState(null, "", location.pathname);
 }
+
+// Con la página YA abierta, tocar un aviso no la recarga: el service worker la
+// lleva a la dirección nueva y eso es solo un cambio de `#`. Se atiende igual.
+window.addEventListener("hashchange", () => {
+  const mc = /#conv=([A-Za-z0-9_-]{1,64})/.exec(location.hash);
+  const mt = /#terminal=(\d{1,6})/.exec(location.hash);
+  if (location.hash) history.replaceState(null, "", location.pathname);
+  if (!clave) return;
+  if (mt) ir({ vista: "terminal", panel: Number(mt[1]) });
+  else if (mc) ir({ vista: "hilo", id: mc[1] });
+});
 
 // ─── Los avisos, aunque la página esté cerrada ─────────────────────────────
 // El service worker (`/sw.js`) recibe el aviso y lo enseña; aquí solo se pide
@@ -419,6 +457,8 @@ function pintar() {
   if (e.vista === "lista") return pintarLista();
   if (e.vista === "hilo") return pintarHiloEntero();
   if (e.vista === "sesion") return pintarSesion();
+  if (e.vista === "terminales") return pintarTerminales();
+  if (e.vista === "terminal") return pintarTerminal();
 }
 
 // ─── Emparejar ──────────────────────────────────────────────────────────────
@@ -467,11 +507,13 @@ async function pintarLista() {
       <header class="barra"><span class="avatar">${ICONO.chispa}</span><h1>Conserje<small id="yo">tu PC</small></h1></header>
       <main class="cuerpo">
         <button id="nueva" class="nueva"><span class="avatar">${ICONO.chispa}</span>Hablar con el conserje</button>
+        <button id="terminales" class="nueva segunda"><span class="avatar">${ICONO.terminal}</span>Tus terminales</button>
         <div id="filas"></div>
         <button id="avisos" class="avisos" hidden></button>
       </main>
     </div>`;
   document.getElementById("nueva").addEventListener("click", () => ir({ vista: "hilo", id: nuevoId(), nueva: true }));
+  document.getElementById("terminales").addEventListener("click", () => ir({ vista: "terminales" }));
   pintarAvisos().catch(() => {});
   const cargar = async () => {
     const lista = await api("GET", "/api/lista");
@@ -724,6 +766,114 @@ async function alternarRouter() {
   } catch (err) {
     mostrarFallo(err.message);
   }
+}
+
+// ─── Las terminales (decisión E3) ───────────────────────────────────────────
+// Munir, 2026-10-07: texto libre desde el móvil a cualquier terminal, sabiendo
+// que es lo más cómodo y lo más peligroso. La red que queda es la de siempre
+// (solo un móvil emparejado, por Tailscale) y ninguna más: lo que se escribe
+// aquí va directo al PTY del PC, sin pasar por el conserje ni por su reja.
+
+async function pintarTerminales() {
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra">
+        <button class="atras" id="atras" aria-label="Volver">${ICONO.atras}</button>
+        <h1>Terminales<small>las que tienes abiertas en el PC</small></h1>
+      </header>
+      <main class="cuerpo" id="terminales"></main>
+    </div>`;
+  document.getElementById("atras").addEventListener("click", () => ir({ vista: "lista" }));
+  const cargar = async () => {
+    const v = await api("GET", "/api/terminales");
+    const aqui = document.getElementById("terminales");
+    if (!aqui) return;
+    // Los agentes primero; las consolas al final.
+    const lista = (v.terminales || []).slice().sort((a, b) => Number(b.agente) - Number(a.agente) || a.panel - b.panel);
+    aqui.innerHTML = lista.length
+      ? lista.map((t) => {
+        const [palabra, tono] = estadoTerminal(t);
+        const que = t.agente ? (t.modelo ? esc(t.modelo) : "agente") : "consola";
+        return `<button class="tarjeta" data-estado="${tono}" data-panel="${t.panel}">
+          <span class="tarjeta-cab"><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span class="estado"><i></i>${palabra}</span></span>
+          <span class="porque">${que} · panel ${t.panel}</span>
+        </button>`;
+      }).join("")
+      : `<p class="vacio">No hay ninguna terminal abierta en Adeorq.</p>`;
+    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel) })));
+  };
+  try { await cargar(); } catch (err) {
+    // Un 401 ya ha cambiado de vista (`olvidarClave`): entonces no hay dónde pintarlo.
+    const aqui = document.getElementById("terminales");
+    if (aqui) aqui.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
+  }
+  sondear(5000, cargar);
+}
+
+function pintarTerminal() {
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra">
+        <button class="atras" id="atras" aria-label="Volver a las terminales">${ICONO.atras}</button>
+        <h1 id="titulo">Terminal ${e.panel}<small id="sub">cargando…</small></h1>
+      </header>
+      <main class="cuerpo pantalla-marco"><pre class="pantalla" id="pantalla"></pre></main>
+      <footer class="caja" id="caja">
+        <div class="fila-caja">
+          <textarea id="texto" rows="1" placeholder="Escríbele a esta terminal" aria-label="Texto para la terminal"></textarea>
+          <button class="enviar" id="enviar" aria-label="Enviar" disabled>${ICONO.subir}</button>
+        </div>
+        <div class="pastillas">
+          <button class="pastilla" data-tecla="intro">Intro</button>
+          <button class="pastilla" data-tecla="esc">Esc</button>
+          <button class="pastilla" data-tecla="ctrl+c">Ctrl+C</button>
+        </div>
+        <p class="aviso-terminal">Va directo a la terminal del PC, sin pasar por el conserje. Un Intro aquí es un Intro allí.</p>
+      </footer>
+    </div>`;
+  document.getElementById("atras").addEventListener("click", () => ir({ vista: "terminales" }));
+  const texto = document.getElementById("texto");
+  const enviarB = document.getElementById("enviar");
+  const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
+  texto.addEventListener("input", () => { crecer(); enviarB.disabled = !texto.value.trim(); });
+  const fallo = (m) => { const s = document.getElementById("sub"); if (s) s.textContent = m; };
+  const cargar = async () => {
+    const v = await api("GET", `/api/terminal?panel=${e.panel}`);
+    const pre = document.getElementById("pantalla");
+    if (!pre) return;
+    const [palabra] = estadoTerminal(v);
+    document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small>${esc(hoja(v.carpeta))} · ${palabra}</small>`;
+    const abajo = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 40;
+    pre.textContent = (v.filas || []).join("\n") || "(la pantalla está vacía)";
+    if (abajo) pre.scrollTop = pre.scrollHeight;
+  };
+  // Tras escribir, la pantalla tarda un instante en reflejarlo: se vuelve a
+  // pedir en seguida en vez de esperar a la vuelta siguiente del sondeo.
+  const enSeguida = () => setTimeout(() => cargar().catch(() => {}), 700);
+  enviarB.addEventListener("click", async () => {
+    const txt = texto.value.trim();
+    if (!txt) return;
+    enviarB.disabled = true;
+    try {
+      await api("POST", "/api/terminal/escribir", { panel: e.panel, texto: txt });
+      texto.value = "";
+      crecer();
+      enSeguida();
+    } catch (err) {
+      fallo(err.message);
+      enviarB.disabled = false;
+    }
+  });
+  document.querySelectorAll(".pastilla[data-tecla]").forEach((b) => b.addEventListener("click", async () => {
+    try {
+      await api("POST", "/api/terminal/tecla", { panel: e.panel, tecla: b.dataset.tecla });
+      enSeguida();
+    } catch (err) {
+      fallo(err.message);
+    }
+  }));
+  cargar().catch((err) => fallo(err.message));
+  sondear(3000, cargar);
 }
 
 // ─── Una sesión, para leerla ────────────────────────────────────────────────

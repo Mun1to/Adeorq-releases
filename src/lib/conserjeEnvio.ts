@@ -15,7 +15,8 @@ import {
   type ConserjeExec,
   type Conversacion,
 } from "./conserje";
-import { recetar } from "./router";
+import { recetarConMemoria } from "./router";
+import { reglasDeLaMemoria } from "./mundo";
 import { fotoRapida } from "./mundo";
 import { cerebroPorDefecto, type ModelAlias } from "./models";
 
@@ -47,9 +48,11 @@ export async function enviarAlConserje(
       return { aviso: r.descartes.length ? r.descartes.join(" · ") : null, error: null };
     }
     const vivas = await fotoRapida(exec.cuentas());
+    const reglas = await reglasDeLaMemoria();
     const hecho = await ejecutar(r.acciones, {
       router: conv?.router ?? true,
-      recetar: (ex) => recetar(ex, { cuentas: vivas, avisos: "nunca" }, undefined, cerebroPorDefecto()),
+      recetar: (ex, de) =>
+        recetarConMemoria(ex, { cuentas: vivas, avisos: "nunca", reglas }, undefined, cerebroPorDefecto(), de),
       fijo: { cli: "claude", modelo: fijo },
       abrir: exec.abrir,
       escribir: exec.escribir,

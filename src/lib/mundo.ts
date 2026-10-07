@@ -14,7 +14,21 @@
 // hay caché y por eso la comparte con el aviso de cuota, que ya sondeaba solo
 // cada veinte minutos: lo normal es que el dato ya esté cuando se pregunte.
 
-import { accountReady, detectClis, planInfo, type Account } from "./pty";
+import { accountReady, detectClis, memoriaReglasRouter, planInfo, type Account } from "./pty";
+import { reglasDe, type ReglaRouter } from "./reglasRouter";
+
+/* Las reglas del router que hay en la memoria de la casa, leídas de Rust y
+   entendidas aquí (`reglasRouter.ts`). Un minuto de caché: el router se llama
+   varias veces seguidas al repartir, y las notas no cambian a ese ritmo. Sin
+   Rust (el banco, un fallo del índice) no hay reglas, y el router sigue igual. */
+let reglasCache: { cuando: number; reglas: ReglaRouter[] } | null = null;
+export async function reglasDeLaMemoria(): Promise<ReglaRouter[]> {
+  if (reglasCache && Date.now() - reglasCache.cuando < 60_000) return reglasCache.reglas;
+  const crudas = await memoriaReglasRouter().catch(() => []);
+  const reglas = crudas.flatMap((r) => reglasDe(r.linea, r.nota));
+  reglasCache = { cuando: Date.now(), reglas };
+  return reglas;
+}
 import { limitesDe, loQueTePara } from "./cuota";
 import { PROVIDERS, providerOf } from "./providers";
 import type { CuentaViva } from "./router";

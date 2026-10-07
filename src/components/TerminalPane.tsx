@@ -88,6 +88,7 @@ import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
 import { sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
+import { nivelDeContexto, useTraspaso } from "../lib/contexto";
 import { arranqueDeAhora } from "../lib/conserje";
 
 interface Props {
@@ -154,6 +155,9 @@ interface Props {
       (`codex_session_since`), se lo sube a App para que el tablero lo guarde
       y «Reanimar» lo retome. */
   onSessionId?: (id: number, sessionId: string) => void;
+  /** Abrir una terminal nueva en la misma carpeta que siga desde el traspaso
+      que este panel acaba de dejar escrito (el «recuperar» del 80 %). */
+  onNuevaConTraspaso?: (id: number) => void;
   /** Las cuentas de Claude que hay configuradas, para poder relevar a otra. */
   cuentas?: Account[];
   /** Sigue ESTA terminal en otra cuenta, con un acta de dónde iba. */
@@ -479,6 +483,7 @@ export default function TerminalPane({
   style,
   onRevivir,
   onSessionId,
+  onNuevaConTraspaso,
   cuentas,
   onRelevar,
   onSwap,
@@ -766,6 +771,9 @@ export default function TerminalPane({
       no un booleano para que ocultar el aviso del 60 % no te tape el del 80 %,
       que es el que de verdad cuesta dinero. */
   const [ctxVisto, setCtxVisto] = useState(0);
+  /** Lo que toca al sonar la campana si se pidió compactar o recuperar
+   *  (`useTraspaso`, más abajo); por ref, que la campana se suscribe una vez. */
+  const traspasoRef = useRef<() => void>(() => {});
   // Lo leído del transcript, alcanzable desde el lector de pantalla, que se
   // construye una sola vez con la terminal y no se entera de los cambios.
   const ctxRef = useRef<ContextInfo | null>(null);
@@ -1846,6 +1854,9 @@ export default function TerminalPane({
               title: `${n.project || "Adeorq"} · espera tu OK`,
               body: question.options.map((o) => `${o.n}. ${o.label}`).join("  ·  ").slice(0, 120),
               looking: n.focused,
+              // En el móvil, tocar el aviso abre la pantalla de ESTA terminal,
+              // con su caja para contestar (decisión E3).
+              url: `/#terminal=${id}`,
               sigueIgual: () => askRef.current !== null,
             });
           }
@@ -2019,6 +2030,8 @@ export default function TerminalPane({
       // Turn over: whatever was running has finished, keep only the total.
       setAgents((a) => ({ live: 0, total: a.total }));
       turnEndRef.current?.(id);
+      // Compactar o recuperar con traspaso, segunda mitad (`useTraspaso`).
+      traspasoRef.current();
       if (shadowActiveRef.current) {
         refreshShadowStatus();
       }
@@ -2036,6 +2049,7 @@ export default function TerminalPane({
           title: `${n.project || "Adeorq"} · terminó`,
           body: n.name,
           looking: n.focused,
+          url: `/#terminal=${id}`,
           sigueIgual: () => doneRef.current,
         });
       }
@@ -2323,37 +2337,12 @@ export default function TerminalPane({
     return () => cancelAnimationFrame(f);
   }, [fontSize, autoFont, id, maximized, hidden]);
 
-  // Lo que cuesta una sesión cargada, dicho ANTES de que sea tarde.
-  //
-  // La cabecera ya pintaba el porcentaje en naranja, y eso no basta: un número
-  // no dice que a partir de cierto punto CADA mensaje vuelve a pagar el
-  // contexto entero, ni que compactar paga de golpe todo lo acumulado. Munir
-  // llegó al 88 % de un millón sin saberlo, le dio a `/compact` tres veces
-  // creyendo que arreglaba algo, y esos tres intentos gastaron más cuota que
-  // un día completo de trabajo (2026-07-30). El aviso es para que esa decisión
-  // se tome con el dato delante, que es lo único que faltaba.
-  //
-  // 0 = nada que decir · 1 = ya pesa · 2 = compactar sale peor que empezar.
-  //
-  // Se mide SOLO en porcentaje de la ventana, y eso corrige lo anterior.
-  //
-  // Antes había una doble vara: saltaba por tokens (150.000 y 400.000) o por
-  // porcentaje, lo que ocurriera antes. La idea era que lo que cuesta dinero
-  // son los tokens y no la fracción; el efecto real fue el contrario. Opus 5 y
-  // Sonnet 5 declaran un MILLÓN de ventana, así que la vara de los tokens
-  // disparaba siempre primero: el primer aviso al 15 % y el «compactar sale
-  // peor que empezar de cero» al 40 %, con el 60 % de la ventana todavía libre.
-  // Dicho de otra forma: cualquier sesión de trabajo de verdad nacía avisada, y
-  // el aviso grave mentía (Munir, 2026-08-06: «son muy molestas y aunque el
-  // contexto esté por debajo del 50 % siguen apareciendo»).
-  //
-  // Con una sola vara el aviso vuelve a querer decir algo en cualquier modelo:
-  // con Haiku el 60 % son 120.000 tokens y con Opus 600.000, que es justo la
-  // diferencia que la doble vara borraba. Y lo que cuesta la sesión sigue
-  // estando a la vista sin que nadie avise: la píldora de la cabecera lleva el
-  // número puesto todo el rato.
-  const ctxNivel = !ctx ? 0 : ctx.percent >= 80 ? 2 : ctx.percent >= 60 ? 1 : 0;
+  const ctxNivel = nivelDeContexto(ctx?.percent);
   const avisoCtx = ctxNivel > ctxVisto ? ctxNivel : 0;
+
+  /* Compactar y recuperar con traspaso: el porqué y los textos, en `lib/contexto.ts`. */
+  const traspaso = useTraspaso({ id, t, avisoCtx, setCtxVisto, onNueva: onNuevaConTraspaso });
+  traspasoRef.current = traspaso.alSonarCampana;
 
   // Reanimar una sesión PASADA DE TAMAÑO es volver a cargarle los mismos
   // tokens que la ahogaron: se cuelga otra vez en cuanto respira. A partir
@@ -2821,17 +2810,30 @@ export default function TerminalPane({
                   píldora del contexto, que está siempre a mano. Y pasa por
                   `t()`: estaba escrito en duro y salía en español con la app
                   puesta en inglés. */}
+              {/* Una frase, no dos renglones: «son muy largos y estorban» (Munir,
+                  2026-10-07). Los tokens y el porqué siguen en el globo de la
+                  píldora del contexto. */}
               <span>
                 {avisoCtx === 2
-                  ? t("{pct} % de contexto ({n} tokens). Compactar ahora sale peor que empezar: abre una terminal nueva.", {
-                      pct: ctx.percent,
-                      n: ctx.used.toLocaleString(lang === "en" ? "en-GB" : "es-ES"),
-                    })
-                  : t("{pct} % de contexto ({n} tokens). Cada mensaje vuelve a pagarlos enteros, así que irá más lenta y más cara.", {
-                      pct: ctx.percent,
-                      n: ctx.used.toLocaleString(lang === "en" ? "en-GB" : "es-ES"),
-                    })}
+                  ? t("{pct} % de contexto: mejor una terminal nueva que compactar.", { pct: ctx.percent })
+                  : t("{pct} % de contexto: cada mensaje lo vuelve a pagar entero.", { pct: ctx.percent })}
               </span>
+              {avisoCtx === 2 && onNuevaConTraspaso && (
+                <button
+                  className="mini pane-ctx-compactar"
+                  data-tip={t("Primero el traspaso (BUZON.md y docs vivos), después una terminal nueva aquí mismo que sigue desde ahí")}
+                  onClick={traspaso.nueva}
+                >
+                  {t("Nueva con traspaso")}
+                </button>
+              )}
+              <button
+                className="mini pane-ctx-compactar"
+                data-tip={t("Primero el traspaso (BUZON.md y docs vivos), después /compact")}
+                onClick={traspaso.compactar}
+              >
+                {t("Compactar")}
+              </button>
               <button
                 className="pane-close"
                 data-tip={t("Ocultar aviso (vuelve si la sesión sigue creciendo)")}

@@ -60,6 +60,7 @@ import {
 import { open as pickFile } from "@tauri-apps/plugin-dialog";
 import AtajosEditor from "./AtajosEditor";
 import AjustesMovil from "./AjustesMovil";
+import AjustesMcp from "./AjustesMcp";
 import GuideView from "./GuideView";
 import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
@@ -1329,6 +1330,7 @@ export default function SettingsView({
                 </div>
                 <p className="card-hint">{t(PERMISSION_MODE_HINT[permissionMode])}</p>
               </section>
+              <AjustesMcp />
             </>
           )}
           {seccion === "avisos" && (

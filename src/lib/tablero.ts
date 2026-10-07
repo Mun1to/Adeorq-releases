@@ -13,7 +13,113 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { addPane as layoutAdd, type Col } from "./layout";
 import { loadEffort, resumeCommandFor } from "./lanzar";
-import type { Pane, SavedLayout, SavedPane } from "../App";
+/* Los tipos del tablero. Vivían en App.tsx.
+   `Team` es el puesto de una cuadrilla, y va aquí porque `Pane` y `SavedPane`
+   lo llevan dentro. */
+
+export interface Pane {
+  id: number;
+  cwd: string;
+  name: string;
+  command?: string[];
+  /** Which account it was born with: CLAUDE_CONFIG_DIR, set once at spawn. */
+  env?: Record<string, string>;
+  account?: string;
+  /** La cuadrilla a la que pertenece, si nació dentro de un reparto. Sirve
+      para que se VEA que esas terminales van juntas: seis paneles iguales no
+      dicen que estén trabajando en lo mismo. */
+  team?: Team;
+  /** El grupo de la barra lateral del que salió, si vino de abrir uno entero.
+      Es lo que permite tratar un grupo como un espacio de trabajo: enseñar el
+      que estás usando y apartar los demás sin cerrarlos. */
+  grupo?: string;
+  shadow?: boolean;
+  /** Si esto está puesto, el hueco no es una terminal: son ESOS archivos
+      abiertos, con pestañas. Munir eligió esta colocación tocando un prototipo
+      el 2026-08-15, y el motivo es su propio eje: el archivo se queda al lado
+      del agente que lo está escribiendo. Todo lo que trata un pane como un
+      proceso (matarlo, medir su RAM, leerle el estado) se lo encuentra vacío y
+      no pasa nada: preguntar por un id que no tiene proceso ya devolvía nada. */
+  archivos?: string[];
+  /** Cuál de ellos se está viendo. */
+  activo?: string;
+  /** Y si esto está puesto, el hueco es una vista previa de esa dirección. */
+  web?: string;
+  /** Todas sus pestañas y cuál se ve. `web` sigue siendo la activa, para que
+      todo lo que ya miraba «¿es un panel web?» siga mirando lo mismo. */
+  webTabs?: string[];
+  webActiva?: number;
+}
+
+/** Una cuadrilla: varias terminales repartiéndose una sola tarea. */
+export interface Team {
+  id: string;
+  /** El objetivo común, para poder enseñarlo en cada panel. */
+  objetivo: string;
+  /** El color con el que se marcan todos sus paneles. */
+  color: string;
+  /** Qué puesto ocupa este panel dentro de la cuadrilla. */
+  rol: string;
+  /** Lo que se le mandó a ESTE puesto, no a la cuadrilla. El objetivo de
+      arriba es común a todos y por eso no distingue: seis filas con el mismo
+      objetivo y un rol de una palabra no dicen quién hace qué. */
+  encargo: string;
+  /** Los archivos que son SUYOS, cuando el reparto los calculó. Es la única
+      respuesta a «¿y estos dos no se van a pisar?», y hasta ahora se calculaba
+      para el prompt y se tiraba. */
+  frontera?: string;
+  /** Cuándo se abrió la cuadrilla entera. Lo comparten todos sus puestos, así
+      que sirve para saber cuánto lleva viva sin preguntárselo a nadie. */
+  desde?: number;
+  /** Cuántos son en total, para el "2 de 5". */
+  de: number;
+  n: number;
+}
+
+// A terminal is a running program: closing Adeorq kills it, and no update can
+// carry a live process across a restart. What CAN be carried is the board: the
+// same panes, in the same folders, with each Claude resuming ITS OWN
+// conversation. That is why every Claude is launched with its own session id.
+export interface SavedPane {
+  name: string;
+  cwd: string;
+  command?: string[];
+  env?: Record<string, string>;
+  account?: string;
+  // Sin esto una cuadrilla se deshacía al reabrir Adeorq: los paneles volvían
+  // pero ya no se veían como el mismo encargo. Opcional a propósito, porque un
+  // tablero guardado antes de que este campo existiera no lo trae.
+  team?: Team;
+  /** El grupo de la barra al que pertenece, para poder volver a apartarlo. */
+  grupo?: string;
+  /** Estaba minimizada. Se guarda EN el panel y no como una lista de ids
+      aparte, porque los ids se reparten de nuevo en cada arranque y una lista
+      de números viejos apartaría terminales al azar. */
+  minimizado?: boolean;
+  /** No era una terminal, eran estos archivos. Vuelven abiertos donde estaban,
+      que cuesta lo mismo que olvidarlos y evita tener que buscarlos otra vez. */
+  archivos?: string[];
+  activo?: string;
+  /** Era una vista previa de esta dirección. */
+  web?: string;
+  /** Sus pestañas, si tenía más de una. Un tablero guardado antes de que
+      existieran no las trae y vuelve con la de siempre. */
+  webTabs?: string[];
+  webActiva?: number;
+}
+
+/** The whole board: which panes, and the mosaic they were arranged in. */
+export interface SavedLayout {
+  panes: SavedPane[];
+  cols: Array<{ w: number; hs: number[]; idx: number[] }>;
+  /**
+   * Los grupos que estaban apartados. Al reiniciar, Adeorq se olvidaba de en
+   * qué estabas trabajando y te devolvía las doce terminales encima (Munir,
+   * 2026-08-02): apartar es una decisión y sobrevive al cierre, como el resto
+   * del tablero. Los ids son los del estado de la barra, que sí son estables.
+   */
+  ocultos?: string[];
+}
 
 /** Dónde vive el tablero guardado. */
 export const LAYOUT_KEY = "adeorq-layout";

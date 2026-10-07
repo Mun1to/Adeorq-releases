@@ -35,6 +35,9 @@ import NoteNode, { NOTE_COLORS, type NoteData } from "./CanvasNote";
 import CarrilNode, { CARRIL_H, CARRIL_W, colorDeCarril, type CarrilData } from "./CanvasCarril";
 import TermNode, { type TermData } from "./CanvasTerm";
 import { pasteInto, useFlechas, type Relay } from "../lib/flechas";
+import { textoDelTablero } from "../lib/tableroTexto";
+import { alternarGrande, MARGEN_GRANDE } from "../lib/ampliarPieza";
+import CanvasAyuda from "./CanvasAyuda";
 import { hueOf } from "../lib/colors";
 import { coloresDeProyectos } from "../lib/colorLienzo";
 import { ColoresLienzo, colorDeProyecto } from "./ColoresLienzo";
@@ -77,6 +80,7 @@ import {
 import {
   BrowserIcon,
   ChatIcon,
+  FolderIcon,
   GalleryIcon,
   GridIcon,
   KanbanIcon,
@@ -249,6 +253,8 @@ interface Props {
   /** Un panel de Codex ha aprendido su sesión del disco; lo resuelve App,
    *  igual que el renombrado. */
   onSessionId?: (id: number, sessionId: string) => void;
+  /** Una terminal nueva que siga desde el traspaso de otra (ver TerminalPane). */
+  onNuevaConTraspaso?: (id: number) => void;
   /** El asa para que una sesión suprema pida flechas por MCP. La rellena el
    *  lienzo al montarse y la vacía al irse, así que App puede preguntar si hay
    *  lienzo abierto sin saber nada de él. Ver `docs/SUPREMA.md`. */
@@ -321,6 +327,7 @@ function Canvas({
   onClose,
   onRename,
   onSessionId,
+  onNuevaConTraspaso,
   enlazarRef,
 }: Props) {
   const { t } = useT();
@@ -384,6 +391,9 @@ function Canvas({
   const [editing, setEditing] = useState<Edge | null>(null);
   const [brief, setBrief] = useState("");
   const [note, setNote] = useState<string | null>(null);
+  /** La ayuda del lienzo, abierta con el «?»: era solo un globo al pasar el
+   *  ratón, y al pulsarlo no pasaba nada (Munir, 2026-10-07). */
+  const [ayuda, setAyuda] = useState(false);
   // Dibujo: la herramienta viva y lo ya dibujado. Los trazos son del lienzo y
   // no de un nodo, porque su gracia es rodear y unir varios a la vez.
   const [tool, setTool] = useState<DrawTool>("sel");
@@ -539,6 +549,9 @@ function Canvas({
   }, [zoomTo]);
 
   const splitRef = useRef<(id: number) => void>(() => {});
+  /** Ampliar una terminal o devolverla a su tamaño. Por ref, como `splitRef`:
+   *  quien la declara necesita el contenedor del lienzo, que va más abajo. */
+  const ampliarRef = useRef<(id: number) => void>(() => {});
 
   /**
    * Dónde nace una pieza nueva: centrada en lo que la cámara enseña ahora.
@@ -694,8 +707,9 @@ function Canvas({
             onClose: handleClose,
             onRename,
             onSessionId,
+            onNuevaConTraspaso,
             onSplit: (id: number) => splitRef.current(id),
-            onZoom: zoomTo,
+            onAmpliar: (id: number) => ampliarRef.current(id),
             onTurnEnd,
             onStatus,
           },
@@ -958,61 +972,11 @@ ${ruta}` : ruta;
     [t],
   );
 
-  // El tablero, contado en texto para que un agente pueda razonar sobre él.
-  //
-  // Es la diferencia entre un lienzo donde dibujas y un lienzo que la IA
-  // entiende: el agente deja de ver solo su terminal y pasa a saber quién más
-  // está trabajando, en qué proyecto, y qué flechas salen de dónde. Se arma
-  // aquí y no en el agente porque esto es un hecho comprobable, no algo que
-  // deba adivinar.
-  const tableroTexto = useCallback((paraId: number): string => {
-    const term = nodes.filter((n) => n.type === "term") as Node<TermData>[];
-    const otros = nodes.filter((n) => n.type !== "term");
-    const nombre = (id: string) =>
-      term.find((n) => n.id === id)?.data.pane.name ?? `nodo ${id}`;
-
-    const lineas: string[] = ["## El tablero del lienzo de Adeorq", ""];
-    lineas.push(`Terminales abiertas (${term.length}):`);
-    for (const n of term) {
-      const yo = n.data.pane.id === paraId ? "  ← ESTA ERES TÚ" : "";
-      lineas.push(`- ${n.data.pane.name} · ${n.data.pane.cwd}${yo}`);
-    }
-    if (otros.length) {
-      const cuenta = new Map<string, number>();
-      for (const n of otros) {
-        const k =
-          n.type === "img"
-            ? "captura"
-            : n.type === "note"
-              ? "nota"
-              : String((n.data as { kind?: string }).kind ?? n.type);
-        cuenta.set(k, (cuenta.get(k) ?? 0) + 1);
-      }
-      lineas.push(
-        "",
-        `Otras piezas: ${[...cuenta].map(([k, v]) => `${v} ${k}`).join(", ")}.`,
-      );
-    }
-    if (edges.length) {
-      lineas.push("", "Flechas (la salida de la primera alimenta a la segunda):");
-      for (const e of edges) {
-        const brief = String(e.data?.brief ?? "").trim();
-        lineas.push(
-          `- ${nombre(e.source)} → ${nombre(e.target)}${brief ? `: ${brief}` : ""}${
-            e.data?.auto ? " (automática)" : ""
-          }`,
-        );
-      }
-    } else {
-      lineas.push("", "No hay flechas: nadie alimenta a nadie todavía.");
-    }
-    lineas.push(
-      "",
-      "Es una foto de ahora mismo, no una orden. Úsala para no pisar el trabajo",
-      "de otro y para saber a quién le toca lo que tú no vas a hacer.",
-    );
-    return lineas.join("\n");
-  }, [nodes, edges]);
+  // El tablero contado en texto para un agente (ver `lib/tableroTexto.ts`).
+  const tableroTexto = useCallback(
+    (paraId: number): string => textoDelTablero(nodes, edges, paraId),
+    [nodes, edges],
+  );
 
   const mandarTablero = useCallback(
     (paneId: number) => {
@@ -1037,6 +1001,22 @@ ${ruta}` : ruta;
    */
   const hoja = useRef<HTMLDivElement>(null);
   const raton = useRef<{ x: number; y: number } | null>(null);
+
+  /** Una terminal a lo grande, o de vuelta (ver `lib/ampliarPieza.ts`). */
+  const ampliar = useCallback(
+    (id: number) => {
+      const caja = hoja.current?.getBoundingClientRect();
+      if (!caja) return;
+      const zoom = flow.getViewport().zoom || 1;
+      const esquina = flow.screenToFlowPosition({ x: caja.left + MARGEN_GRANDE, y: caja.top + MARGEN_GRANDE });
+      setNodes((prev) =>
+        prev.map((n) => (n.id === String(id) && n.type === "term" ? alternarGrande(n as Node<TermData>, caja, zoom, esquina) : n)),
+      );
+    },
+    [flow, setNodes],
+  );
+  ampliarRef.current = ampliar;
+
   const dondeCae = useCallback(
     (w: number, h: number, ya: CanvasNode[]) => {
       const lienzo = hoja.current?.getBoundingClientRect();
@@ -1568,8 +1548,9 @@ ${ruta}` : ruta;
             onClose: handleClose,
             onRename,
             onSessionId,
+            onNuevaConTraspaso,
             onSplit: (id: number) => splitRef.current(id),
-            onZoom: zoomTo,
+            onAmpliar: (id: number) => ampliarRef.current(id),
             onTurnEnd,
             onStatus,
           },
@@ -3324,14 +3305,16 @@ ${ruta}` : ruta;
         <span className="cb-spacer" />
 
         <div className="cb-group">
+          {/* La carpeta del árbol de archivos (decisión A1 de Munir, 2026-10-07):
+              lo que hay detrás es un ARCHIVO del lienzo, guardar y abrir viven
+              ahí. Antes era un «⤓» que no decía nada. */}
           <button className="cb-btn" data-tip={t("Guardar este tablero en un archivo o abrir otro")} onClick={menuLienzo}>
-            <span aria-hidden="true">⤓</span> {t("Lienzo")} <span className="cb-caret">▾</span>
+            <FolderIcon size={14} /> {t("Lienzo")} <span className="cb-caret">▾</span>
           </button>
           <button
             className="cb-tool"
-            data-tip={t(
-              "Arrastra de un borde a otro para encadenar: cuando el primero termina, su resultado pasa al siguiente.\nCtrl+V pega una captura. Ctrl+A coge todo el lienzo y Supr se lo lleva. Esc suelta.",
-            )}
+            data-tip={t("Cómo va el lienzo")}
+            onClick={() => setAyuda(true)}
           >
             ?
           </button>
@@ -3992,6 +3975,7 @@ ${ruta}` : ruta;
         )}
       </div>
 
+      {ayuda && <CanvasAyuda velo={bajoEnVelo} onCerrar={() => setAyuda(false)} />}
       {editing && (
         <div className="modal-overlay" {...propsDeVelo(bajoEnVelo, () => setEditing(null))}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

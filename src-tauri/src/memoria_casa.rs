@@ -642,6 +642,45 @@ impl Indice {
 
 /// El índice de la app, rehecho si se ha quedado viejo. Cualquier error de
 /// candado se resuelve escaneando otra vez: esto es una caché, no un dato.
+/// Una línea `router: …` de una nota, tal cual, con la nota de la que sale.
+/// Quien la entiende es el front (`lib/reglasRouter.ts`): aquí solo se recogen,
+/// de todas las notas de todas las cuentas, en una pasada.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ReglaRouter {
+    pub linea: String,
+    pub nota: String,
+    pub proyecto: String,
+}
+
+impl Indice {
+    /// Las reglas del router que Munir ha dejado escritas en la memoria
+    /// (decisión D1, 2026-10-07: el router aprende del pasado SOLO por lo
+    /// explícito). Una regla es una línea que empieza por `router:`, con o sin
+    /// viñeta delante; el orden es el de las notas y, dentro, el del texto.
+    pub fn reglas_router(&self) -> Vec<ReglaRouter> {
+        let mut salida = Vec::new();
+        for n in &self.notas {
+            for cruda in n.texto.lines() {
+                let l = cruda.trim().trim_start_matches(['-', '*']).trim_start();
+                if l.len() > 7 && l[..7].eq_ignore_ascii_case("router:") {
+                    salida.push(ReglaRouter {
+                        linea: l.to_string(),
+                        nota: n.titulo.clone(),
+                        proyecto: n.proyecto.clone(),
+                    });
+                }
+            }
+        }
+        salida
+    }
+}
+
+/// Para la ventana: las reglas del router, para que `recetar` las tenga delante.
+#[tauri::command(async)]
+pub fn memoria_reglas_router(estado: tauri::State<'_, MemoriaCasa>) -> Vec<ReglaRouter> {
+    con_indice(&estado, |i| i.reglas_router())
+}
+
 pub fn con_indice<T>(estado: &MemoriaCasa, f: impl FnOnce(&Indice) -> T) -> T {
     let mut guardia = estado.0.lock().unwrap_or_else(|e| e.into_inner());
     if guardia.as_ref().map(|i| i.viejo()).unwrap_or(true) {
@@ -684,6 +723,21 @@ mod tests {
             })
             .collect();
         armar(hechas)
+    }
+
+    /// Las reglas del router salen de cualquier nota, con o sin viñeta y sin
+    /// mirar mayúsculas; lo que no empieza por `router:` no es una regla.
+    #[test]
+    fn las_reglas_del_router_se_recogen_de_todas_las_notas() {
+        let i = con(&[
+            ("rumbo", "Lo que decidió.\n\n- router: radar -> opus xhigh\nY una línea que habla del router: sin ser regla.\nROUTER: Vidorq -> sonnet"),
+            ("otra", "Nada que ver con el reparto."),
+        ]);
+        let r = i.reglas_router();
+        assert_eq!(r.len(), 2, "salieron {:?}", r.iter().map(|x| &x.linea).collect::<Vec<_>>());
+        assert_eq!(r[0].linea, "router: radar -> opus xhigh");
+        assert_eq!(r[1].linea, "ROUTER: Vidorq -> sonnet");
+        assert_eq!(r[0].nota, i.notas[0].titulo);
     }
 
     /// EL CASO QUE LO PROVOCÓ. Con la puntuación vieja (título 1000, aparición

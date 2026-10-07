@@ -238,8 +238,37 @@ async (page) => {
         // Lo último que contestó el agente de un panel: lo que una flecha del
         // lienzo le entrega al siguiente. Se siembra en `window.__respuesta`.
         case "last_reply": return window.__respuesta ?? "";
+        // Las reglas del router que habría en la memoria de la casa: se siembran
+        // en `window.__reglas` como líneas crudas, igual que las da Rust.
+        case "memoria_reglas_router": return (window.__reglas ?? []).map((linea) => ({ linea, nota: "Nota de prueba", proyecto: "C:\\proyectos\\Adeorq" }));
+        // El porcentaje de contexto se siembra con `window.__ctxPercent`, para
+        // ver el aviso de sesión cargada y su botón de compactar.
         case "session_context":
-          return { model: "opus", used: 41000, window: 1000000, percent: 4, agentsLive: 0, agentsTotal: 0, sessionId: args.sessionId, folder: args.cwd, state: "a_medias" };
+          // Y el estado del panel con `window.__estadoPanel` («a_medias» si no
+          // se dice), para ver a la tarjeta de actualizar esperando a un agente.
+          return { model: "opus", used: Math.round((window.__ctxPercent ?? 4) * 10000), window: 1000000, percent: window.__ctxPercent ?? 4, agentsLive: 0, agentsTotal: 0, sessionId: args.sessionId, folder: args.cwd, state: window.__estadoPanel ?? "a_medias" };
+        // La actualización (decisión C3): con `window.__actualizacion = "9.9.9"`
+        // el comprobador dice que hay una; instalar y reiniciar solo quedan
+        // apuntados en `__llamadas`, que es lo que se mira.
+        case "plugin:updater|check":
+          return window.__actualizacion
+            ? { rid: 7, available: true, currentVersion: "0.9.164", version: window.__actualizacion, date: null, body: "", rawJson: {} }
+            : null;
+        case "plugin:updater|download_and_install": return null;
+        case "plugin:process|restart": return null;
+        case "plugin:resources|close": return null;
+        // Los clientes del MCP y su escalón (decisión D1), sembrados en
+        // `window.__clientesMcp` con la forma que devuelve Rust.
+        case "mcp_clientes_leer": return JSON.parse(JSON.stringify(window.__clientesMcp ?? []));
+        case "mcp_clientes_poner": {
+          const lista = window.__clientesMcp ?? [];
+          for (const c of lista) {
+            if (c.nombre !== args.nombre) continue;
+            c.nivel = args.nivel ?? (c.nombre.toLowerCase().includes("claude") ? "auto" : "plan");
+            c.fabrica = args.nivel == null;
+          }
+          return JSON.parse(JSON.stringify(lista));
+        }
         default:
           throw new Error(`sin doble: ${cmd}`);
       }

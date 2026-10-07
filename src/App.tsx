@@ -115,13 +115,17 @@ import {
   type WorkState,
 } from "./lib/pty";
 import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
-import { exigenciaDeRol, modoAviso, recetar } from "./lib/router";
+import { exigenciaDeRol, modoAviso, recetarConMemoria } from "./lib/router";
 import { cerebroPorDefecto } from "./lib/models";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
 import { nombreDeRuta } from "./lib/arbol";
-import { fotoRapida } from "./lib/mundo";
+import { fotoRapida, reglasDeLaMemoria } from "./lib/mundo";
 import { usePuenteMcp } from "./lib/puenteMcp";
-import { useTableroGuardado } from "./lib/tablero";
+import { useTableroGuardado, type Pane, type Team } from "./lib/tablero";
+import { useDeshacerCierre } from "./lib/deshacerCierre";
+import { encargoDeRecuperar } from "./lib/contexto";
+import { useCabina } from "./lib/cabina";
+import type { RepartoInicial } from "./lib/reparto";
 import { NOTIFY_KEY, type NotifyMode } from "./lib/notify";
 import { bonito, useRamPanes } from "./lib/ram";
 import { apagon, aplicarApagon } from "./lib/temasTerm";
@@ -179,81 +183,9 @@ const MemoriaView = perezoso(() => import("./components/MemoriaView"));
 const RepartoView = perezoso(() => import("./components/RepartoView"));
 const AccountsView = perezoso(() => import("./components/AccountsView"));
 
-export interface Pane {
-  id: number;
-  cwd: string;
-  name: string;
-  command?: string[];
-  /** Which account it was born with: CLAUDE_CONFIG_DIR, set once at spawn. */
-  env?: Record<string, string>;
-  account?: string;
-  /** La cuadrilla a la que pertenece, si nació dentro de un reparto. Sirve
-      para que se VEA que esas terminales van juntas: seis paneles iguales no
-      dicen que estén trabajando en lo mismo. */
-  team?: Team;
-  /** El grupo de la barra lateral del que salió, si vino de abrir uno entero.
-      Es lo que permite tratar un grupo como un espacio de trabajo: enseñar el
-      que estás usando y apartar los demás sin cerrarlos. */
-  grupo?: string;
-  shadow?: boolean;
-  /** Si esto está puesto, el hueco no es una terminal: son ESOS archivos
-      abiertos, con pestañas. Munir eligió esta colocación tocando un prototipo
-      el 2026-08-15, y el motivo es su propio eje: el archivo se queda al lado
-      del agente que lo está escribiendo. Todo lo que trata un pane como un
-      proceso (matarlo, medir su RAM, leerle el estado) se lo encuentra vacío y
-      no pasa nada: preguntar por un id que no tiene proceso ya devolvía nada. */
-  archivos?: string[];
-  /** Cuál de ellos se está viendo. */
-  activo?: string;
-  /** Y si esto está puesto, el hueco es una vista previa de esa dirección. */
-  web?: string;
-  /** Todas sus pestañas y cuál se ve. `web` sigue siendo la activa, para que
-      todo lo que ya miraba «¿es un panel web?» siga mirando lo mismo. */
-  webTabs?: string[];
-  webActiva?: number;
-}
-
-/** Una cuadrilla: varias terminales repartiéndose una sola tarea. */
-export interface Team {
-  id: string;
-  /** El objetivo común, para poder enseñarlo en cada panel. */
-  objetivo: string;
-  /** El color con el que se marcan todos sus paneles. */
-  color: string;
-  /** Qué puesto ocupa este panel dentro de la cuadrilla. */
-  rol: string;
-  /** Lo que se le mandó a ESTE puesto, no a la cuadrilla. El objetivo de
-      arriba es común a todos y por eso no distingue: seis filas con el mismo
-      objetivo y un rol de una palabra no dicen quién hace qué. */
-  encargo: string;
-  /** Los archivos que son SUYOS, cuando el reparto los calculó. Es la única
-      respuesta a «¿y estos dos no se van a pisar?», y hasta ahora se calculaba
-      para el prompt y se tiraba. */
-  frontera?: string;
-  /** Cuándo se abrió la cuadrilla entera. Lo comparten todos sus puestos, así
-      que sirve para saber cuánto lleva viva sin preguntárselo a nadie. */
-  desde?: number;
-  /** Cuántos son en total, para el "2 de 5". */
-  de: number;
-  n: number;
-}
-
 /** Los colores de las cuadrillas, en orden. Se van rotando para que dos
     equipos abiertos a la vez no se confundan entre sí. */
 const TEAM_COLORS = ["#5fd0ff", "#6fe0bb", "#ffd166", "#c4b5fd", "#ff9f6b"];
-
-/** Lo que trae quien abre el Reparto sin ser el botón de la barra. La Misión
-    del Panel y el kanban del lienzo lo abren ya escrito, para que lo último
-    que se vea antes de gastar sea siempre la misma vista previa. */
-export interface RepartoInicial {
-  texto?: string;
-  proyecto?: string;
-  objetivo?: string;
-  /** Qué hacer SI se abrió la cuadrilla de verdad. Cerrar sin abrir no lo
-      llama: es lo que quita las tarjetas del kanban, y quitarlas por haber
-      mirado sería perderlas. */
-  alAbrir?: () => void;
-}
 
 // The mosaic model lives in lib/layout.ts. Panes are rendered as siblings and
 // positioned from it, so moving one never changes its place in the React tree
@@ -299,51 +231,6 @@ const TERMINAL_VER_KEY = "adeorq-terminal-ver";
 // Accounts live here and not in the UI-state file because the sidebar owns
 // that file: two writers with their own copy would overwrite each other.
 const ACCOUNTS_KEY = "adeorq-accounts";
-
-// A terminal is a running program: closing Adeorq kills it, and no update can
-// carry a live process across a restart. What CAN be carried is the board: the
-// same panes, in the same folders, with each Claude resuming ITS OWN
-// conversation. That is why every Claude is launched with its own session id.
-export interface SavedPane {
-  name: string;
-  cwd: string;
-  command?: string[];
-  env?: Record<string, string>;
-  account?: string;
-  // Sin esto una cuadrilla se deshacía al reabrir Adeorq: los paneles volvían
-  // pero ya no se veían como el mismo encargo. Opcional a propósito, porque un
-  // tablero guardado antes de que este campo existiera no lo trae.
-  team?: Team;
-  /** El grupo de la barra al que pertenece, para poder volver a apartarlo. */
-  grupo?: string;
-  /** Estaba minimizada. Se guarda EN el panel y no como una lista de ids
-      aparte, porque los ids se reparten de nuevo en cada arranque y una lista
-      de números viejos apartaría terminales al azar. */
-  minimizado?: boolean;
-  /** No era una terminal, eran estos archivos. Vuelven abiertos donde estaban,
-      que cuesta lo mismo que olvidarlos y evita tener que buscarlos otra vez. */
-  archivos?: string[];
-  activo?: string;
-  /** Era una vista previa de esta dirección. */
-  web?: string;
-  /** Sus pestañas, si tenía más de una. Un tablero guardado antes de que
-      existieran no las trae y vuelve con la de siempre. */
-  webTabs?: string[];
-  webActiva?: number;
-}
-
-/** The whole board: which panes, and the mosaic they were arranged in. */
-export interface SavedLayout {
-  panes: SavedPane[];
-  cols: Array<{ w: number; hs: number[]; idx: number[] }>;
-  /**
-   * Los grupos que estaban apartados. Al reiniciar, Adeorq se olvidaba de en
-   * qué estabas trabajando y te devolvía las doce terminales encima (Munir,
-   * 2026-08-02): apartar es una decisión y sobrevive al cierre, como el resto
-   * del tablero. Los ids son los del estado de la barra, que sí son estables.
-   */
-  ocultos?: string[];
-}
 
 
 function App() {
@@ -432,9 +319,10 @@ function App() {
     });
   }, []);
   // Lo que hace cada panel AHORA, reportado por él mismo. Existe para el
-  // Capataz: sin esto solo conocía los nombres de las terminales abiertas, que
-  // no distinguen una que te espera de una que ya entregó.
-  const [paneStatus, setPaneStatus] = useState<Record<number, PaneStatus>>({});
+  // Capataz, que sin esto no distinguía una que te espera de una que entregó.
+  // Vive en el almacén de la Cabina (`lib/cabina.ts`, el primer tramo mudado).
+  const paneStatus = useCabina((s) => s.estados);
+  const apuntarEstado = useCabina((s) => s.apuntarEstado);
   /* El estado que tenía cada panel la última vez, para saber cuándo CAMBIA.
      Es lo que dispara el salto a pantalla completa: ver `alTerminarRef`. */
   const estadoAntes = useRef<Record<number, WorkState>>({});
@@ -451,8 +339,8 @@ function App() {
        de aquí cubre además el «o necesita mi feedback», que la campana no sabe
        decir. Las reglas y sus casos, en `lib/estados.ts`. */
     if (acabaDeReclamar(antes, st.state)) alTerminarRef.current?.(st.id);
-    setPaneStatus((prev) => ({ ...prev, [st.id]: st }));
-  }, []);
+    apuntarEstado(st);
+  }, [apuntarEstado]);
   const [cols, setCols] = useState<Col[]>([]);
   const [focusedId, setFocusedId] = useState<number | null>(null);
   /** Un chat de API que hay que abrir en el lienzo, pedido desde fuera de él
@@ -1834,14 +1722,15 @@ function App() {
       // «traduce los tooltips» y «audita el login» salían iguales. Deducirlo de
       // las palabras de la tarjeta no cuesta un token, es una tabla, así que la
       // tarjeta sigue abriéndose de un tirón.
-      const receta = recetar(exigenciaDeRol(limpio), {
+      const receta = recetarConMemoria(exigenciaDeRol(limpio), {
         cuentas: await fotoRapida([
           ...PROVIDERS.map((p) => mainAccount(p.id)),
           ...accountsRef.current.list,
         ]),
         avisos: modoAviso(),
         usa: leerPerfil().clis,
-      }, undefined, cerebroPorDefecto());
+        reglas: await reglasDeLaMemoria(),
+      }, undefined, cerebroPorDefecto(), { proyecto: project.name, encargo: limpio });
       const titulo = limpio.length > 30 ? `${limpio.slice(0, 30)}…` : limpio;
       const nombre = `${project.name} · ${titulo}`;
 
@@ -1883,12 +1772,38 @@ function App() {
     [createCanvasPane],
   );
 
+  // Lo último cerrado y su Ctrl+Z (ver `lib/deshacerCierre.ts`).
+  const { deshacer, apuntarCerrada, reabrirCerrada } = useDeshacerCierre({
+    panesRef,
+    canvasPanesRef,
+    viewRef,
+    nextId,
+    nextCol,
+    setPanes,
+    setCanvasPanes,
+    setCols,
+    setFocusedId,
+    setView,
+  });
+
+  /** Recuperar (E2): una terminal nueva aquí mismo con el traspaso de la vieja (`useTraspaso`). */
+  const nuevaConTraspaso = useCallback(
+    (id: number) => {
+      const src = panesRef.current.find((p) => p.id === id) ?? canvasPanesRef.current.find((p) => p.id === id);
+      if (!src) return;
+      openClaudePrompt(`${src.name} · sigue`, src.cwd, encargoDeRecuperar(t));
+    },
+    [openClaudePrompt, t],
+  );
+
   const closeCanvasPane = useCallback((id: number) => {
+    apuntarCerrada(id);
     // La X de un panel del lienzo es una X de verdad, no un movimiento: mata
     // igual que la de la cabina. Ver el comentario de `closePane`.
     void killPty(id).catch(() => {});
     setCanvasPanes((prev) => prev.filter((p) => p.id !== id));
-  }, []);
+    useCabina.getState().olvidarEstado(id);
+  }, [apuntarCerrada]);
 
   /**
    * Sacar una terminal a su propia ventana de Windows.
@@ -1952,6 +1867,7 @@ function App() {
   }, []);
 
   const closePane = useCallback((id: number) => {
+    apuntarCerrada(id);
     // Cerrar MATA, y lo hace aquí mismo. Antes el proceso moría por el camino
     // largo —quitar el panel, que React lo desmonte, y que la limpieza del
     // desmontaje llamara a `killPty`—, o sea que la muerte del agente dependía
@@ -1965,16 +1881,12 @@ function App() {
     // cerrar una, y este es el único camino por el que llega ese cierre. El
     // lienzo se entera solo y retira su nodo (ver el efecto de sincronía allí).
     setCanvasPanes((prev) => prev.filter((p) => p.id !== id));
-    setPaneStatus((prev) => {
-      if (!(id in prev)) return prev;
-      const { [id]: _gone, ...rest } = prev;
-      return rest;
-    });
+    useCabina.getState().olvidarEstado(id);
     setCols((prev) => layoutRemove(prev, id));
     setMaximizedId((m) => (m === id ? null : m));
     setLadoMaxId((l) => (l === id ? null : l));
     setFocusedId((f) => (f === id ? null : f));
-  }, []);
+  }, [apuntarCerrada]);
 
   /* El oyente del MCP se monta mucho antes que esto, así que recibe `closePane`
      por la ref y no por dependencia (el porqué está donde se declara la ref). */
@@ -2915,6 +2827,15 @@ function App() {
           siempre y sin pintar nada hasta que llega la petición, como el aviso
           de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
       <PedirSecreto />
+      {/* Lo último cerrado, con su Deshacer: quince segundos y se va. */}
+      {deshacer && (
+        <div className="deshacer-pill" role="status">
+          <span>{t("Cerrada «{n}»", { n: deshacer })}</span>
+          <button className="mini" onClick={() => void reabrirCerrada()}>
+            {t("Deshacer")} <kbd>Ctrl+Z</kbd>
+          </button>
+        </div>
+      )}
       {/* Lo que pide el conserje desde el móvil. Montado siempre: el móvil no
           sabe en qué pantalla está la ventana. Ver `lib/movil.ts`. */}
       <PuenteMovil exec={conserjeExec} />
@@ -3325,6 +3246,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     onClose={closePane}
                     onRename={renombrarPane}
                     onSessionId={aprenderSesion}
+                    onNuevaConTraspaso={nuevaConTraspaso}
                     onStatus={onPaneStatus}
                     onRevivir={revivirPane}
                     alone={panes.length <= 1}
@@ -3589,6 +3511,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onClose={closeCanvasPane}
           onRename={renombrarPane}
           onSessionId={aprenderSesion}
+          onNuevaConTraspaso={nuevaConTraspaso}
           // El asa de las flechas para la sesión suprema: mientras el lienzo
           // esté montado, un agente puede pedir por MCP que se unan dos
           // terminales. Ver `docs/SUPREMA.md`.

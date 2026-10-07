@@ -43,6 +43,9 @@ export interface Mirable {
   id: string;
   /** Horas desde la última vez que se escribió en ella. */
   hours: number;
+  /** El proyecto donde la barra la lista, ya con el traslado a mano de Munir
+      aplicado (`ui.sessionProject`). Solo hace falta para `viejasDe`. */
+  project?: string;
 }
 
 /** El estado de la barra que influye en lo que se ve. */
@@ -54,6 +57,38 @@ export interface Estanteria {
   /** El interruptor de «ver también las viejas» de la barra. Con él puesto se
       ven todas, así que no hay nada que traer. */
   verViejas?: boolean;
+  /** Los proyectos donde pediste ver las antiguas, de uno en uno (`ui.viejasDe`).
+      Munir, 2026-10-07, segunda vez con la misma pregunta («desaparecen
+      sesiones de los proyectos… la de Vibeset no está»): el botón global del
+      final de la barra no lo ve nadie, así que cada proyecto dice cuántas
+      esconde y las abre solo él. */
+  viejasDe?: ReadonlySet<string>;
+}
+
+/** ¿Pediste ver las antiguas de este proyecto en concreto? */
+function abiertaPorProyecto(s: Mirable, e: Estanteria): boolean {
+  return s.project !== undefined && Boolean(e.viejasDe?.has(s.project));
+}
+
+/**
+ * Cuántas esconde cada proyecto por viejas: ni abiertas, ni traídas, ni
+ * pedidas. Las archivadas quedan fuera, que ya tienen su propio sitio. Es lo
+ * que pinta la fila «N más antiguas» de cada proyecto.
+ */
+export function viejasPorProyecto<S extends Mirable>(
+  sesiones: readonly S[],
+  archivadas: ReadonlySet<string>,
+  e: Estanteria,
+  dondeDe: (s: S) => string,
+): Map<string, number> {
+  const cuenta = new Map<string, number>();
+  for (const s of sesiones) {
+    if (archivadas.has(s.id)) continue;
+    const donde = dondeDe(s);
+    if (saleEnLaBarra({ ...s, project: donde }, e)) continue;
+    cuenta.set(donde, (cuenta.get(donde) ?? 0) + 1);
+  }
+  return cuenta;
 }
 
 /** ¿Es de las que la barra enseña sin que se lo pidas? */
@@ -73,6 +108,7 @@ export function esReciente(s: Mirable): boolean {
 export function saleEnLaBarra(s: Mirable, e: Estanteria): boolean {
   return (
     Boolean(e.verViejas) ||
+    abiertaPorProyecto(s, e) ||
     esReciente(s) ||
     e.enPantalla.has(s.id) ||
     e.traidas.has(s.id)
@@ -92,6 +128,6 @@ export function porQueSale(
 ): "abierta" | "traida" | "reciente" | null {
   if (e.enPantalla.has(s.id)) return "abierta";
   if (e.traidas.has(s.id)) return "traida";
-  if (Boolean(e.verViejas) || esReciente(s)) return "reciente";
+  if (Boolean(e.verViejas) || abiertaPorProyecto(s, e) || esReciente(s)) return "reciente";
   return null;
 }

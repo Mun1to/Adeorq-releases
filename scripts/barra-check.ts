@@ -119,4 +119,18 @@ ok(
   "si se separan, la barra pinta una cosa y el asistente cuenta otra, que es de donde venía todo esto",
 );
 
+// ── Las antiguas, proyecto a proyecto ───────────────────────────────────────
+// Munir, 2026-10-07, segunda vez con la misma pregunta: el botón global del
+// final de la barra no lo veía, así que cada proyecto abre solo las suyas.
+{
+  const viejaDeVibeset: Mirable = { id: "vb", hours: dias(37), project: "Vibeset" };
+  const viejaDeOtro: Mirable = { id: "ot", hours: dias(37), project: "Orquio" };
+  const soloVibeset = { ...nada, viejasDe: new Set(["Vibeset"]) };
+  ok("sin pedirlo, la de Vibeset de hace 37 días no se ve", !saleEnLaBarra(viejaDeVibeset, nada));
+  ok("pedidas las antiguas de Vibeset, se ve", saleEnLaBarra(viejaDeVibeset, soloVibeset));
+  ok("y la de otro proyecto sigue escondida", !saleEnLaBarra(viejaDeOtro, soloVibeset), "abrir un proyecto no abre los demás");
+  ok("la que sale por eso cuenta como reciente para el ＋", porQueSale(viejaDeVibeset, soloVibeset) === "reciente");
+  ok("sin proyecto en la ficha, pedirlo no la enseña", !saleEnLaBarra({ id: "sp", hours: dias(37) }, soloVibeset));
+}
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

@@ -1141,28 +1141,110 @@ textarea.note-body {
    avisa es el CURSOR, exactamente como al estirar cualquier ventana del
    escritorio. Lo único que se ve es el tirador de abajo a la derecha, que está
    para que se sepa que la pieza se puede estirar. */
-.react-flow__resize-control.handle {
-  width: 16px;
-  height: 16px;
+/* Con `.react-flow__node` delante porque la hoja de React Flow entra DESPUÉS
+   que esta y sus 5 px ganaban a estos 16 (medido el 2026-10-07: las asas salían
+   a 5×5 y las líneas a 1 px, y la terminal no se estiraba por ningún lado). Y
+   por ENCIMA del contenido: el cuerpo de una terminal va con `z-index: 2` y
+   tapaba las asas, así que el ratón pinchaba en la terminal y no en el borde. */
+.react-flow__node .react-flow__resize-control.handle {
+  width: 18px;
+  height: 18px;
   border: 0;
   background: transparent;
   opacity: 0;
+  z-index: 6;
 }
 
-.react-flow__resize-control.handle.bottom.right {
+/* El asa de fábrica de abajo a la derecha sobra: ahí va el tirador (`.wdg-grip`),
+   que lleva las mismas clases y por eso hay que dejarlo fuera de esta regla.
+   Sin el `:not`, el tirador se escondía con ella (0×0, medido). */
+.react-flow__node .react-flow__resize-control.handle.bottom.right:not(.wdg-grip) {
   display: none;
 }
 
-.react-flow__resize-control.line {
+/* Los bordes: React Flow los pinta de 1 px, que es un hilo imposible de coger.
+   Aquí son una franja de 8 px POR DENTRO del borde, invisible, con su cursor.
+   Por dentro y no a caballo: la pieza recorta lo que se sale (`overflow:
+   hidden`, por las esquinas redondas), así que una franja centrada en el borde
+   se quedaba en la mitad de dentro y el ratón la cogía una vez de cada tres
+   (medido el 2026-10-07). Lo mismo con las esquinas, que React Flow centra
+   SOBRE el vértice con un `translate(-50%, -50%)`: aquí van enteras dentro. */
+.react-flow__node .react-flow__resize-control.line {
   border: 0;
   opacity: 0;
+  z-index: 6;
+  /* React Flow centra cada línea sobre el borde con un `translate(-50%)`: sin
+     esto, de los 8 px solo quedaban 4 dentro de la pieza (medido). */
+  transform: none;
+  translate: none;
+}
+.react-flow__node .react-flow__resize-control.line.left,
+.react-flow__node .react-flow__resize-control.line.right {
+  width: 8px;
+}
+.react-flow__node .react-flow__resize-control.line.left {
+  left: 0;
+}
+.react-flow__node .react-flow__resize-control.line.right {
+  left: auto;
+  right: 0;
+}
+.react-flow__node .react-flow__resize-control.line.top,
+.react-flow__node .react-flow__resize-control.line.bottom {
+  height: 8px;
+}
+.react-flow__node .react-flow__resize-control.line.top {
+  top: 0;
+}
+.react-flow__node .react-flow__resize-control.line.bottom {
+  top: auto;
+  bottom: 0;
+}
+/* Las esquinas, enteras dentro y dos píxeles hacia el centro, para que su
+   medio no caiga en el recorte de la esquina redonda. */
+.react-flow__node .react-flow__resize-control.handle.top.left,
+.react-flow__node .react-flow__resize-control.handle.top.right,
+.react-flow__node .react-flow__resize-control.handle.bottom.left {
+  transform: none;
+  /* React Flow las centra sobre el vértice con la propiedad `translate`
+     (no `transform`): la de arriba a la izquierda quedaba a 9 px fuera de la
+     pieza y el ratón no la encontraba (medido con `getComputedStyle().translate`). */
+  translate: none;
+}
+.react-flow__node .react-flow__resize-control.handle.top.left {
+  top: 2px;
+  left: 2px;
+}
+.react-flow__node .react-flow__resize-control.handle.top.right {
+  top: 2px;
+  right: 2px;
+  left: auto;
+}
+.react-flow__node .react-flow__resize-control.handle.bottom.left {
+  bottom: 2px;
+  left: 2px;
+  top: auto;
 }
 
-.react-flow__resize-control.wdg-grip {
+/* Y que se vea que se puede: al pasar el ratón por una terminal del lienzo, el
+   borde se marca. La terminal no cambia de sitio ni de tamaño por esto. */
+.rf-term:hover {
+  outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 0;
+}
+
+/* Cinco clases a propósito: la hoja de React Flow centra su asa de abajo a la
+   derecha SOBRE la esquina con `transform: translate(50%, 50%)` y cuatro
+   clases, y con menos peso este `transform: none` perdía: el tirador quedaba
+   medio fuera, la pieza (`overflow: hidden`) se comía esa mitad y su centro
+   caía fuera de la caja, donde el ratón ya no lo encontraba (medido el
+   2026-10-07 con `elementsFromPoint`). */
+.react-flow__node .react-flow__resize-control.handle.bottom.right.wdg-grip {
   /* Un botón de 24, no un icono de 15: lo que se agarra con el ratón es esto,
      y apuntar a unas rayitas de once píxeles era puntería, no interfaz. */
   width: 24px;
   height: 24px;
+  z-index: 7;
   display: flex;
   align-items: center;
   justify-content: center;

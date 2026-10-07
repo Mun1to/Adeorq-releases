@@ -3104,3 +3104,28 @@ mod coste_tests {
         }
     }
 }
+
+/// Pasar UN transcript de verdad por el escáner y ver qué saca, o por qué lo
+/// descarta. Para «¿por qué no sale la sesión de tal proyecto?»:
+///   TRANSCRIPT="C:\Users\...\x.jsonl" cargo test --lib mira_un_transcript -- --ignored --nocapture
+#[cfg(test)]
+mod mira_transcript {
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn mira_un_transcript() {
+        let ruta = std::env::var("TRANSCRIPT").expect("TRANSCRIPT=<ruta del .jsonl>");
+        let path = Path::new(&ruta);
+        let folder = path.parent().and_then(|p| p.file_name()).map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
+        let meta = std::fs::metadata(path).expect("no existe");
+        let lines = read_tail(path).expect("no se lee");
+        println!("líneas en la cola: {}", lines.len());
+        println!("vacío: {} · sonda propia: {} · de programa: {}", lines.is_empty(), is_own_usage_probe(&lines), es_de_programa(&lines));
+        println!("último mensaje: {:?}", last_message_state(&lines));
+        match analyze_uncached(path, &folder, 0, meta.len()) {
+            Some(info) => println!("SALE: {}", serde_json::to_string_pretty(&info).unwrap()),
+            None => println!("NO SALE"),
+        }
+    }
+}

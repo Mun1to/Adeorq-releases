@@ -257,6 +257,22 @@ async (page) => {
         case "plugin:updater|download_and_install": return null;
         case "plugin:process|restart": return null;
         case "plugin:resources|close": return null;
+        // La Memoria, con una bóveda de tres notas enlazadas: lo justo para que
+        // el Cerebro pinte su bola (hay que sembrar `adeorq-boveda` en
+        // localStorage DESPUÉS de este guion, que lo vacía al cargar).
+        case "memoria_vaults": return [{ path: "C:\\proyectos\\memoria", name: "memoria", docs: 3, abierta: false }];
+        case "memoria_scan": return { root: args.root, vistos: 3, obsidian: false, docs: [
+          // Tres carpetas distintas: con una sola, el Cerebro no enseña su panel de mandos.
+          { id: "radar", title: "El radar", folder: "radar-bot", stamp: 1, words: 120, links: ["scroll"] },
+          { id: "scroll", title: "El scroll", folder: "Adeorq", stamp: 1, words: 80, links: ["radar", "movil"] },
+          { id: "movil", title: "El móvil", folder: "Vidorq", stamp: 1, words: 60, links: [] },
+        ] };
+        case "memoria_read": return { id: args.id, text: `# ${args.id}\n\nUna nota de prueba.`, stamp: 1, path: `C:\\proyectos\\memoria\\${args.id}.md`, origen: null };
+        case "memoria_write": return { id: args.id, text: args.text, stamp: args.stamp + 1, path: `C:\\proyectos\\memoria\\${args.id}.md`, origen: null };
+        case "memoria_search": return [];
+        // Las skills de ~/.claude/skills, sembradas en `window.__skills` (con
+        // `{ folder: "fin" }` el traspaso antes de compactar manda `/fin`).
+        case "list_skills": return JSON.parse(JSON.stringify(window.__skills ?? []));
         // Los clientes del MCP y su escalón (decisión D1), sembrados en
         // `window.__clientesMcp` con la forma que devuelve Rust.
         case "mcp_clientes_leer": return JSON.parse(JSON.stringify(window.__clientesMcp ?? []));

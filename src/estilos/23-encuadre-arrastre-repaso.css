@@ -221,6 +221,19 @@
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
+/* La misma pista, pero DENTRO de cada proyecto: «3 más antiguas». El botón
+   global de abajo no lo veía nadie y las conversaciones de más de un mes
+   parecían borradas (Munir, 2026-09-09 y otra vez el 2026-10-07). Va al final
+   de la lista del proyecto, más pequeño, y abre solo las de ese proyecto. */
+.mas-viejas.en-proyecto {
+  margin: 2px 0 4px;
+  padding: 5px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-style: dotted;
+  text-align: left;
+}
+
 /* El mismo botón cuando la barra es la tira o el raíl está en logo: ahí solo
    hay 44 px de ancho y la frase no entra, así que queda el número («+261») o el
    ojo tachado para volver, y la frase entera vive en el `data-tip`. Antes el

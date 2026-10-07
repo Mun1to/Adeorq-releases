@@ -688,6 +688,9 @@ export interface UiState {
    * esta pantalla.
    */
   verViejas?: boolean;
+  /** Los proyectos donde pediste ver las conversaciones de más de un mes, de
+      uno en uno (la fila «N más antiguas» de cada proyecto). Ver `enLaBarra`. */
+  viejasDe?: string[];
   /** Logos chosen by hand, project name → small data URI. Beats detection. */
   projectIcon: Record<string, string>;
   /**
@@ -785,6 +788,8 @@ export async function loadUiState(): Promise<UiState> {
       hiddenProjects: Array.isArray(parsed.hiddenProjects) ? parsed.hiddenProjects : [],
       projectOrder: Array.isArray(parsed.projectOrder) ? parsed.projectOrder : [],
       pinned: Array.isArray(parsed.pinned) ? parsed.pinned : [],
+      verViejas: parsed.verViejas === true ? true : undefined,
+      viejasDe: Array.isArray(parsed.viejasDe) ? parsed.viejasDe.filter((p) => typeof p === "string") : [],
       // La regla vive en `ordenBarra` con el resto del orden de la barra, y
       // ahí se prueba (`scripts/orden-check.ts`): incluye subir a su clave el
       // `sueltasOrder` suelto que escribía la 0.9.99 y anteriores.

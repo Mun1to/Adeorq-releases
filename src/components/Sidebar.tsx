@@ -43,7 +43,8 @@ import {
   type Lado,
 } from "../lib/ordenBarra";
 import { levantar, type Fantasma } from "../lib/fantasma";
-import { saleEnLaBarra } from "../lib/enLaBarra";
+import { saleEnLaBarra, viejasPorProyecto } from "../lib/enLaBarra";
+import { MasAntiguas, MasAntiguasGlobal } from "./MasAntiguas";
 import UpdateBar from "./UpdateBar";
 import { hueOf } from "../lib/colors";
 import { sessionIdOf } from "../lib/comandos";
@@ -165,6 +166,9 @@ interface Group {
   trabajando: boolean;
   waiting: number;
   minHours: number;
+  /** Las que esconde por tener más de un mes, y si pediste verlas (`MasAntiguas`). */
+  viejas: number;
+  viejasAbiertas: boolean;
   /** Las sueltas: sesiones que no viven en ningún proyecto de C:\proyectos.
       No es un proyecto, así que no tiene una carpeta suya y los botones de
       «abre algo AQUÍ» no le valen: cada sesión trae la suya. */
@@ -226,6 +230,8 @@ const GRUPO_FIJADAS: Group = {
   trabajando: false,
   waiting: 0,
   minHours: Infinity,
+  viejas: 0,
+  viejasAbiertas: false,
   suelto: true,
 };
 /** La última carpeta de una ruta, que es como se reconoce de un vistazo. */
@@ -364,6 +370,12 @@ export default function Sidebar({
   /* Se guarda en `ui`, no en un `useState`: ver el porqué en `UiState.verViejas`.
      Antes se apagaba solo en cada arranque y había que volver a pedirlo. */
   const verViejas = ui.verViejas ?? false;
+  /** Los proyectos donde pediste ver las antiguas, de uno en uno (la fila «N
+      más antiguas» de cada proyecto). Ver `enLaBarra` y `MasAntiguas`. */
+  const viejasDe = useMemo(() => new Set(ui.viejasDe ?? []), [ui.viejasDe]);
+  const abrirViejas = (p: string) => mutate((prev) => ({ ...prev, viejasDe: [...(prev.viejasDe ?? []), p] }));
+  const cerrarViejas = (p: string) => mutate((prev) => ({ ...prev, viejasDe: (prev.viejasDe ?? []).filter((x) => x !== p) }));
+  const verTodasLasViejas = () => mutate((prev) => ({ ...prev, verViejas: true }));
   /** Lo tecleado en la casilla de confirmación: hay que escribir el nombre del
       proyecto para que el botón se encienda, como al borrar un repo en GitHub.
       El 31-jul-2026 se fueron 17 carpetas a la papelera en veinte minutos con
@@ -651,18 +663,23 @@ export default function Sidebar({
     // `lib/enLaBarra.ts`: la comparte el asistente del ＋, que es quien decide
     // cuáles te FALTAN, y tenerla escrita dos veces era justo el fallo (ofrecía
     // traer las que ya estaban aquí, una y otra vez).
+    // Donde tú la mandaste gana a donde la puso su carpeta: si arrastraste
+    // una suelta a un proyecto, ahí es donde vive a partir de entonces. Y es
+    // también el proyecto que cuenta para «ver las antiguas de este proyecto».
+    const dondeDe = (s: SessionInfo) => ui.sessionProject[s.id] ?? s.project;
+    const estanteria = { enPantalla, traidas, verViejas, viejasDe };
     const fresh = sessions.filter((s) =>
-      saleEnLaBarra(s, { enPantalla, traidas, verViejas }),
+      saleEnLaBarra({ ...s, project: dondeDe(s) }, estanteria),
     );
     const byProject = new Map<string, SessionInfo[]>();
     for (const s of fresh) {
-      // Donde tú la mandaste gana a donde la puso su carpeta: si arrastraste
-      // una suelta a un proyecto, ahí es donde vive a partir de entonces.
-      const donde = ui.sessionProject[s.id] ?? s.project;
+      const donde = dondeDe(s);
       const list = byProject.get(donde) ?? [];
       list.push(s);
       byProject.set(donde, list);
     }
+    // Las que cada proyecto esconde por viejas, para su fila «N más antiguas».
+    const ocultasDe = viejasPorProyecto(sessions, archived, estanteria, dondeDe);
 
     // Las que de verdad han quedado listadas, no todas las escaneadas: una que
     // se haya quedado fuera por vieja tiene que poder salir al menos como
@@ -733,6 +750,8 @@ export default function Sidebar({
         waiting: active.filter((s) => s.state === "pregunta" || s.state === "ofrece")
           .length,
         minHours: active.length ? Math.min(...active.map((s) => s.hours)) : Infinity,
+        viejas: ocultasDe.get(name) ?? 0,
+        viejasAbiertas: viejasDe.has(name),
         vivas,
       };
     };
@@ -809,6 +828,7 @@ export default function Sidebar({
     // esta lista de abajo, o miente.
     ui.ordenLista,
     verViejas,
+    viejasDe,
   ]);
 
   /** Cuántas hay escondidas por edad, para que el botón diga un número y no
@@ -822,9 +842,13 @@ export default function Sidebar({
       verViejas
         ? 0
         : sessions.filter(
-            (s) => !saleEnLaBarra(s, { enPantalla, traidas, verViejas: false }),
+            (s) =>
+              !saleEnLaBarra(
+                { ...s, project: ui.sessionProject[s.id] ?? s.project },
+                { enPantalla, traidas, verViejas: false, viejasDe },
+              ),
           ).length,
-    [sessions, verViejas, enPantalla, traidas],
+    [sessions, verViejas, enPantalla, traidas, viejasDe, ui.sessionProject],
   );
 
   /* Los que quitaste de la barra salen de la lista aquí, y no dentro del memo
@@ -2755,6 +2779,10 @@ export default function Sidebar({
               sessionRow(s, g, false),
             )}
           </ul>
+          {/* «N más antiguas»: lo que este proyecto esconde por edad (ver `MasAntiguas`). */}
+          {!g.suelto && (
+            <MasAntiguas nombre={g.name} viejas={g.viejas} abiertas={g.viejasAbiertas} t={t} onAbrir={abrirViejas} onCerrar={cerrarViejas} />
+          )}
         </li>
         {showArchived && g.archivedSessions.map((s) => sessionRow(s, g, true))}
       </ul>
@@ -3195,39 +3223,12 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Abajo del todo, lo que la barra estaba escondiendo por viejo.
-            La barra corta por edad (un mes) para no crecer sin fin, y ese corte
-            era mudo: una conversación de hace ocho días no estaba y nada decía
-            que existiera. Desde el 2026-08-08 dice cuántas son y se traen con
-            un clic.
-
-            Tres cosas cambiaron el 2026-09-09, cuando Munir preguntó por qué
-            habían «desaparecido» muchas sesiones (se veían 13 de 452):
-
-            · el corte pasó de una semana a un mes (`HORAS_EN_LA_BARRA`);
-            · este botón se pinta TAMBIÉN en la tira y con el raíl en logo, en
-              versión de un número, porque escondiéndolo justo ahí no quedaba
-              ninguna pista de que existieran más y parecían borradas de verdad;
-            · y ahora hay vuelta atrás, que antes no hacía falta porque el
-              interruptor se apagaba solo al reiniciar. Al guardarse en `ui`
-              (ver `UiState.verViejas`) sin este botón te quedabas dentro. */}
-        {viejasOcultas > 0 &&
-          (tira || rail === "logo" ? (
-            <button
-              className="mas-viejas mas-viejas-mini"
-              data-tip={t("Cargar {n} sesiones más antiguas", { n: viejasOcultas })}
-              onClick={() => mutate((prev) => ({ ...prev, verViejas: true }))}
-            >
-              +{viejasOcultas}
-            </button>
-          ) : (
-            <button
-              className="mas-viejas"
-              onClick={() => mutate((prev) => ({ ...prev, verViejas: true }))}
-            >
-              {t("Cargar {n} sesiones más antiguas", { n: viejasOcultas })}
-            </button>
-          ))}
+        {/* Abajo del todo, lo que la barra esconde por viejo (un mes,
+            `HORAS_EN_LA_BARRA`), con su número. Desde el 2026-10-07 cada
+            proyecto tiene además su propia fila «N más antiguas»: este botón
+            no lo veía nadie y las sesiones parecían borradas (Munir,
+            2026-09-09 y 2026-10-07). Historia y porqués en `MasAntiguas.tsx`. */}
+        <MasAntiguasGlobal ocultas={viejasOcultas} mini={tira || rail === "logo"} t={t} onVer={verTodasLasViejas} />
         {verViejas &&
           (tira || rail === "logo" ? (
             <button

@@ -2341,7 +2341,8 @@ export default function TerminalPane({
   const avisoCtx = ctxNivel > ctxVisto ? ctxNivel : 0;
 
   /* Compactar y recuperar con traspaso: el porqué y los textos, en `lib/contexto.ts`. */
-  const traspaso = useTraspaso({ id, t, avisoCtx, setCtxVisto, onNueva: onNuevaConTraspaso });
+  // `esClaude`: solo Claude Code entiende `/fin`; en Codex o Gemini va el texto de la casa.
+  const traspaso = useTraspaso({ id, t, avisoCtx, setCtxVisto, onNueva: onNuevaConTraspaso, esClaude: /\bclaude\b/i.test((command ?? []).join(" ")) });
   traspasoRef.current = traspaso.alSonarCampana;
 
   // Reanimar una sesión PASADA DE TAMAÑO es volver a cargarle los mismos

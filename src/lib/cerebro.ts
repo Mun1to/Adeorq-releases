@@ -43,6 +43,11 @@ export interface AjustesCerebro {
   corte: number;
   /** Si gira sola cuando no la estás tocando. */
   gira: boolean;
+  /** Si gira aunque esté puesto el modo rendimiento (que se enciende solo con
+      cuatro terminales y, hasta el 2026-10-07, paraba la bola sin decirlo:
+      Munir, «no sé por qué no gira la esfera»). Lo explícito manda sobre lo
+      automático, pero hay que pedirlo. */
+  giraPese: boolean;
   /** Si se escriben los nombres encima. */
   nombres: boolean;
 }
@@ -55,12 +60,13 @@ export const AJUSTES_FABRICA: AjustesCerebro = {
   rejilla: 1,
   corte: 1,
   gira: true,
+  giraPese: false,
   nombres: true,
 };
 
 /** Los topes de cada mando, en un solo sitio: los usan el que guarda (para no
     aceptar basura) y el que pinta los deslizadores (para su rango). */
-export const TOPES: Record<keyof Omit<AjustesCerebro, "gira" | "nombres">, [number, number]> = {
+export const TOPES: Record<keyof Omit<AjustesCerebro, "gira" | "giraPese" | "nombres">, [number, number]> = {
   brillo: [0, 24],
   alto: [0, 2.2],
   enlaces: [0, 2.4],
@@ -92,6 +98,7 @@ export function ajustesGuardados(crudo: unknown): AjustesCerebro {
     out[k] = Math.max(min, Math.min(max, v));
   }
   if (typeof o.gira === "boolean") out.gira = o.gira;
+  if (typeof o.giraPese === "boolean") out.giraPese = o.giraPese;
   if (typeof o.nombres === "boolean") out.nombres = o.nombres;
   return out;
 }

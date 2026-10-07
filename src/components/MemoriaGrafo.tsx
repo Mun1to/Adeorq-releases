@@ -335,10 +335,14 @@ export default function MemoriaGrafo({
 
   /* ─────────────────────────────────────────────────────── EL BUCLE ────── */
   useEffect(() => {
-    // Ni gira ni se anima con el modo rendimiento puesto ni con la preferencia
-    // del sistema de reducir animaciones: una bola girando es adorno.
-    const sinMovimiento =
-      modoRendimiento() || matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // No gira con la preferencia del sistema de reducir animaciones, ni con el
+    // modo rendimiento puesto, SALVO que se haya pedido («Girar aunque
+    // ahorre»): el modo se enciende solo con cuatro terminales y paraba la
+    // bola sin decirlo (Munir, 2026-10-07: «no sé por qué no gira la esfera»).
+    // El modo se mira en cada fotograma porque cambia solo al abrir y cerrar
+    // terminales; la preferencia del sistema, una vez.
+    const reducir = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sinMovimiento = () => reducir || (modoRendimiento() && !aj.current.giraPese);
 
     let ultimo = 0;
     let cy = 1, sy = 0, cp = 1, sp = 0, escala = 1, cx = 0, cyy = 0;
@@ -449,7 +453,7 @@ export default function MemoriaGrafo({
       const A = aj.current;
 
       const quieto = (ratonEncima.current && sobreLaBola.current) || arrastre.current !== null;
-      const girando = !sinMovimiento && A.gira && !quieto;
+      const girando = !sinMovimiento() && A.gira && !quieto;
       if (girando) {
         c.yaw += dt * 0.115 * Math.min(1, c.dist / 2.4);
         sucio.current = true;
@@ -1309,7 +1313,19 @@ export default function MemoriaGrafo({
                 <button data-on={ajustes.nombres} onClick={() => tocar({ nombres: !ajustes.nombres })}>
                   {t("Nombres")}
                 </button>
+                {modoRendimiento() && (
+                  <button data-on={ajustes.giraPese} onClick={() => tocar({ giraPese: !ajustes.giraPese })}>
+                    {t("Girar aunque ahorre")}
+                  </button>
+                )}
               </div>
+              {modoRendimiento() && ajustes.gira && !ajustes.giraPese && (
+                <p className="mem-cerebro-nota">
+                  {t(
+                    "Quieta: el modo rendimiento está puesto (se enciende solo con cuatro terminales). «Girar aunque ahorre» manda sobre él.",
+                  )}
+                </p>
+              )}
               <button
                 className="mem-cerebro-salir"
                 onClick={() => {

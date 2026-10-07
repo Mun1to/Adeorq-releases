@@ -3,7 +3,7 @@
 
 import { useRef } from "react";
 import type { Translate } from "./i18n";
-import { sendPty } from "./pty";
+import { listSkills, sendPty } from "./pty";
 
 /**
  * Lo que cuesta una sesión cargada, dicho ANTES de que sea tarde.
@@ -50,10 +50,25 @@ export function nivelDeContexto(percent: number | undefined): 0 | 1 | 2 {
  * conservar. Los dos textos pasan por `t()` para que un agente de una app en
  * inglés los reciba en inglés.
  */
-export function traspasoAntesDeCompactar(t: Translate): string {
+export function traspasoAntesDeCompactar(t: Translate, conFin = false): string {
+  if (conFin) return "/fin";
   return t(
     "Antes de compactar, deja al día el traspaso: el BUZON.md del proyecto y sus docs vivos, con lo hecho (rutas exactas), lo pendiente y las trampas de hoy. Sin commits. Cuando acabes, te compacto yo.",
   );
+}
+
+/**
+ * Si hay una skill `/fin` en `~/.claude/skills`, el traspaso ES ese cierre y no
+ * un texto nuestro. Munir, 2026-10-07, al ver el texto escrito en su terminal:
+ * «¿por qué no es un fin? es un mensaje raro». Se mira una vez por ventana.
+ * Solo vale en un panel de Claude Code: en Codex o Gemini «/fin» no es nada.
+ */
+let finPrometido: Promise<boolean> | null = null;
+export function tieneSkillFin(): Promise<boolean> {
+  finPrometido ??= listSkills()
+    .then((lista) => lista.some((s) => s.folder === "fin"))
+    .catch(() => false);
+  return finPrometido;
 }
 
 /**
@@ -62,7 +77,8 @@ export function traspasoAntesDeCompactar(t: Translate): string {
  * Mismo baile que compactar: el agente deja el traspaso, suena su campana, y
  * la nueva nace con el encargo de seguir desde ahí.
  */
-export function traspasoAntesDeNueva(t: Translate): string {
+export function traspasoAntesDeNueva(t: Translate, conFin = false): string {
+  if (conFin) return "/fin";
   return t(
     "Esta sesión ya pesa demasiado: deja al día el traspaso, el BUZON.md del proyecto y sus docs vivos, con lo hecho (rutas exactas), lo pendiente y las trampas de hoy. Sin commits. Cuando acabes, abro una terminal nueva que sigue desde ahí.",
   );
@@ -93,16 +109,22 @@ export function useTraspaso(m: {
   avisoCtx: number;
   setCtxVisto: (n: number) => void;
   onNueva?: (id: number) => void;
+  /** Si en este panel corre Claude Code, que es el único que entiende `/fin`. */
+  esClaude?: boolean;
 }) {
   const compactarPendiente = useRef<string | null>(null);
   const nuevaPendiente = useRef(false);
   const onNuevaRef = useRef(m.onNueva);
   onNuevaRef.current = m.onNueva;
   const CADUCA_MS = 20 * 60_000;
+  /** `/fin` si es Claude Code y la skill existe; si no, el texto de la casa. */
+  const conFin = () => (m.esClaude ? tieneSkillFin() : Promise.resolve(false));
 
   const compactar = () => {
     compactarPendiente.current = ordenDeCompactar(m.t);
-    void sendPty(m.id, traspasoAntesDeCompactar(m.t)).catch(() => {});
+    void conFin()
+      .then((fin) => sendPty(m.id, traspasoAntesDeCompactar(m.t, fin)))
+      .catch(() => {});
     m.setCtxVisto(m.avisoCtx);
     window.setTimeout(() => {
       compactarPendiente.current = null;
@@ -111,7 +133,9 @@ export function useTraspaso(m: {
 
   const nueva = () => {
     nuevaPendiente.current = true;
-    void sendPty(m.id, traspasoAntesDeNueva(m.t)).catch(() => {});
+    void conFin()
+      .then((fin) => sendPty(m.id, traspasoAntesDeNueva(m.t, fin)))
+      .catch(() => {});
     m.setCtxVisto(m.avisoCtx);
     window.setTimeout(() => {
       nuevaPendiente.current = false;

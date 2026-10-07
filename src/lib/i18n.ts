@@ -2510,6 +2510,16 @@ const EN: Record<string, string> = {
   "{quien} a medio trabajo · pulsa para no esperar": "{quien} mid-task · press to stop waiting",
   "Dejar de esperar": "Stop waiting",
   "Actualizar en cuanto terminen {quien}": "Update as soon as {quien} finish",
+  // La esfera de Memoria con el modo rendimiento puesto.
+  // La fila «N más antiguas» de cada proyecto de la barra.
+  "{n} más antiguas": "{n} older",
+  "1 más antigua": "1 older",
+  "Ocultar las antiguas": "Hide the older ones",
+  "De hace más de un mes: la barra las esconde para no alargarse. Pulsa para verlas solo en este proyecto.":
+    "Older than a month: the bar hides them to stay short. Press to show them in this project only.",
+  "Girar aunque ahorre": "Spin even when saving",
+  "Quieta: el modo rendimiento está puesto (se enciende solo con cuatro terminales). «Girar aunque ahorre» manda sobre él.":
+    "Still: performance mode is on (it switches itself on with four terminals). \"Spin even when saving\" overrides it.",
 };
 
 export function detectLang(): Lang {

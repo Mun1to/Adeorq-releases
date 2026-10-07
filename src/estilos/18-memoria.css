@@ -1373,6 +1373,14 @@
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   color: var(--text);
 }
+/* Por qué la bola está quieta cuando el modo rendimiento la para: antes no lo
+   decía nadie y parecía una avería. */
+.mem-cerebro-nota {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
 
 .mem-cerebro-leyenda {
   display: grid;

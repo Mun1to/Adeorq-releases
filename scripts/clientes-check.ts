@@ -452,7 +452,7 @@ const EXENTOS = ["src/lib/providers.ts"];
  * propio donde debería ir una capacidad de la tabla. Si lo baja, bájalo aquí y
  * quédate con el gusto.
  *
- * ⚠ **De 49 se bajó a 20, y de esos 20, DOCE son correctos y no deben bajar.**
+ * ⚠ **De 49 se bajó a 18, y de esos 18, DOCE son correctos y no deben bajar.**
  * Está escrito aquí para que nadie los persiga creyendo que son deuda:
  *
  *   · **10 son `shell` y `ollama`**, que NO son clientes de la tabla. Una
@@ -462,12 +462,13 @@ const EXENTOS = ["src/lib/providers.ts"];
  *     sesión que permite retomarlo, y a Antigravity hay que llamarlo por la
  *     ruta absoluta que encontró Rust. Son diferencias reales, no descuidos.
  *
- * Los 8 restantes sí son deuda, y están medidos: 4 en el lienzo (que solo
- * guarda tres tipos de panel, y eso toca lo que ya hay guardado en disco) y 4
- * de presentación (el orden de la lista del asistente y dos botones de la barra
- * con su propio manejador).
+ * Los 6 restantes sí son deuda, y están medidos: 2 en el archivo del lienzo
+ * (que solo guarda tres tipos de panel, y eso toca lo que ya hay guardado en
+ * disco) y 4 de presentación (el orden de la lista del asistente y dos botones
+ * de la barra con su propio manejador). Los otros dos del lienzo se fueron el
+ * 2026-10-08 a `piezaDelLienzo`, en la tabla.
  */
-const TECHO = 20;
+const TECHO = 18;
 
 function ficheros(dir: string): string[] {
   const salida: string[] = [];

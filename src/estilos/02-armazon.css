@@ -88,7 +88,6 @@
    donde se puede leer, en vez de heredado de una regla que hablaba del fondo. */
 .app > .topbar,
 .app > .view-cabina,
-.app > .view-lienzo,
 .app > .panel {
   position: relative;
 }
@@ -297,6 +296,15 @@
   /* El ancla de la pestaña de skills, que se pega al borde derecho por fuera
      del flujo para no robarle ancho a las terminales. */
   position: relative;
+}
+
+/* El lienzo vive aquí dentro, a la derecha de la misma barra de sesiones (Munir,
+   2026-10-08). En su vista se apartan el mosaico y el panel derecho, con
+   `display: none` y no desmontándolos: el mosaico tiene sus terminales vivas y el
+   panel derecho, la web que tengas abierta. */
+.view-cabina[data-vista="lienzo"] > .cabina-work,
+.view-cabina[data-vista="lienzo"] > .lateral-zona {
+  display: none;
 }
 
 

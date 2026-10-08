@@ -5,6 +5,10 @@
   min-height: 0;
   min-width: 0;
   display: flex;
+  /* Lo que flota dentro del lienzo se coloca respecto a él. Antes lo daba
+     `.app > .view-lienzo`, y desde que vive dentro de `.view-cabina` ya no es
+     hijo de `.app`. */
+  position: relative;
 }
 
 .canvas-wrap {

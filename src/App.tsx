@@ -124,6 +124,7 @@ import { fotoRapida, reglasDeLaMemoria } from "./lib/mundo";
 import { usePuenteMcp } from "./lib/puenteMcp";
 import { useTableroGuardado, type Pane, type Team } from "./lib/tablero";
 import { useDeshacerCierre } from "./lib/deshacerCierre";
+import { useBarraEnLienzo } from "./lib/barraEnLienzo";
 import { encargoDeRecuperar } from "./lib/contexto";
 import { useCabina } from "./lib/cabina";
 import type { RepartoInicial } from "./lib/reparto";
@@ -1048,6 +1049,17 @@ function App() {
     [panes],
   );
 
+  /** Dónde, con qué y en qué cuenta se retoma una conversación: lo mismo en la Cabina y en el lienzo. */
+  const comoRetomar = useCallback(
+    (s: SessionInfo) => ({
+      cwd: s.resumeCwd || s.cwd || raiz(),
+      command: claudeCommand(withEffort(`--resume ${s.id}`)),
+      // En SU cuenta, no en la de por defecto: cada cuenta guarda sus transcripts, y un
+      // `--resume` desde otra contesta «No conversation found» con el panel en blanco.
+      cuenta: s.cuenta ? accountsRef.current.list.find((a) => a.dir === s.cuenta) : undefined,
+    }),
+    [],
+  );
   const onResume = useCallback(
     (s: SessionInfo, grupo?: string) => {
       // Ya abierta AQUÍ: no se abre otra, se va a la que hay. Duplicar el panel
@@ -1070,17 +1082,10 @@ function App() {
         ocupadaTimer.current = window.setTimeout(() => setSesionOcupada(null), 9_000);
         return;
       }
-      const cwd = s.resumeCwd || s.cwd || raiz();
-      // En SU cuenta, no en la que esté por defecto. Cada cuenta guarda sus
-      // propios transcripts, así que un `--resume` lanzado desde otra contesta
-      // «No conversation found» y el panel se queda con una sesión en blanco:
-      // parecía que la conversación se hubiera perdido.
-      const suya = s.cuenta
-        ? accountsRef.current.list.find((a) => a.dir === s.cuenta)
-        : undefined;
-      addPane(s.title, cwd, claudeCommand(withEffort(`--resume ${s.id}`)), undefined, suya, undefined, undefined, grupo);
+      const { cwd, command, cuenta } = comoRetomar(s);
+      addPane(s.title, cwd, command, undefined, cuenta, undefined, undefined, grupo);
     },
-    [addPane, panes],
+    [addPane, panes, comoRetomar],
   );
 
   /**
@@ -2320,6 +2325,27 @@ function App() {
     [irAPuesto],
   );
 
+  // La barra de sesiones también en el lienzo: lo que abre nace donde estás (`lib/barraEnLienzo.ts`).
+  const { manos: barra, pedido: lienzoPedido } = useBarraEnLienzo({
+    enLienzo: view === "lienzo",
+    cabina: {
+      onResume,
+      onOpenTerminal: openTerminal,
+      onOpenClaude: openClaude,
+      onOpenAgy: openAgy,
+      onOpenProvider: (provider, name, cwd) =>
+        addPane(`${name} · ${providerOf(provider).label}`, cwd, providerCommand(provider)),
+      // La pastilla del propio panel dice qué cuenta es, y esa pastilla la tapa el
+      // telón de emisión: la cuenta no va en el título, que se ve siempre.
+      onOpenAccount: (account, name, cwd) =>
+        addPane(`${name} · ${account.provider}`, cwd, providerCommand(account.provider), undefined, account),
+    },
+    delLienzo: canvasPanes,
+    irAlLienzo: (id) => irATerminal(id, true),
+    retomar: comoRetomar,
+    arranque: providerCommand,
+  });
+
   const onCreated = useCallback(
     (name: string) => {
       setRefreshKey((k) => k + 1);
@@ -3031,7 +3057,13 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
         </div>
       </header>
 
-      <div className="view-cabina" style={{ display: view === "cabina" ? "flex" : "none" }}>
+      {/* La barra es UNA para la Cabina y el lienzo, que vive dentro a su derecha: con
+          `data-vista="lienzo"` el mosaico y el panel derecho se apartan sin desmontarse. */}
+      <div
+        className="view-cabina"
+        data-vista={view}
+        style={{ display: view === "cabina" || view === "lienzo" ? "flex" : "none" }}
+      >
         <Sidebar
           width={sideW}
           refreshKey={refreshKey}
@@ -3039,28 +3071,15 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           traerReq={traerReq}
           abiertas={abiertas}
           onFocusPane={irATerminal}
-          onOpenTerminal={openTerminal}
-          onOpenClaude={openClaude}
-          onOpenAgy={openAgy}
+          onOpenTerminal={barra.onOpenTerminal}
+          onOpenClaude={barra.onOpenClaude}
+          onOpenAgy={barra.onOpenAgy}
           accounts={accounts}
           topeAbrirTodas={openAllCap}
           onNewSession={() => setWizard(true)}
-          onOpenProvider={(provider, name, cwd) =>
-            addPane(`${name} · ${providerOf(provider).label}`, cwd, providerCommand(provider))
-          }
-          onOpenAccount={(account, name, cwd) =>
-            // The pane's own pill says which account it is, and that pill is
-            // one of the things the stream curtain hides: keep it out of the
-            // title, which is always on screen.
-            addPane(
-              `${name} · ${account.provider}`,
-              cwd,
-              providerCommand(account.provider),
-              undefined,
-              account,
-            )
-          }
-          onResume={onResume}
+          onOpenProvider={barra.onOpenProvider}
+          onOpenAccount={barra.onOpenAccount}
+          onResume={barra.onResume}
           onOpenAll={onOpenAll}
           onPlegarGrupo={alternarGrupo}
           onRail={alCambiarRail}
@@ -3452,7 +3471,6 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
             );
           })()}
         />
-      </div>
 
       {/* Mounted always, hidden with CSS: unmounting it would kill its PTYs. */}
       <div
@@ -3460,6 +3478,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
         style={{ display: view === "lienzo" ? "flex" : "none" }}
       >
         <CanvasView
+          abrirPedido={lienzoPedido}
           visible={view === "lienzo"}
           panes={canvasPanes}
           // Las de la cabina van solo como DATO, para que el tablero del lienzo
@@ -3497,6 +3516,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           // terminales. Ver `docs/SUPREMA.md`.
           enlazarRef={enlazarRef}
         />
+      </div>
       </div>
 
       {view === "panel" && (

@@ -41,7 +41,7 @@ import CanvasAyuda from "./CanvasAyuda";
 import { hueOf } from "../lib/colors";
 import { coloresDeProyectos } from "../lib/colorLienzo";
 import { ColoresLienzo, colorDeProyecto } from "./ColoresLienzo";
-import { projectIcons } from "../lib/pty";
+import { projectIcons, type Account } from "../lib/pty";
 import GalleryNode, { type GalleryData } from "./CanvasGallery";
 import WebNode, { type WebData } from "./CanvasWeb";
 import { comoUrl } from "../lib/urlweb";
@@ -92,6 +92,7 @@ import {
   UndoIcon,
 } from "./Icons";
 import { kindDeComando } from "./KindIcon";
+import { piezaDelLienzo } from "../lib/providers";
 import {
   CANVAS_FILE_KIND,
   CANVAS_FILE_VERSION,
@@ -180,6 +181,15 @@ export interface CanvasPane {
 
 export type SpawnKind = "claude" | "shell" | "agy";
 
+/** Lo que la barra de sesiones pide abrir aquí (`lib/barraEnLienzo.ts`). El sello lo hace único. */
+export interface AbrirEnLienzo {
+  kind: SpawnKind;
+  project: Project;
+  propio?: { name?: string; command?: string[] };
+  cuenta?: Account;
+  sello: number;
+}
+
 /** Todo lo que puede vivir en el lienzo. */
 type CanvasNode =
   | Node<TermData>
@@ -227,6 +237,7 @@ interface Props {
     kind: SpawnKind,
     project: Project,
     propio?: { name?: string; command?: string[] },
+    cuenta?: Account,
   ) => CanvasPane;
   /** Recuperar el tablero al abrir, el mismo ajuste que usa la Cabina. */
   recuperar: boolean;
@@ -245,6 +256,8 @@ interface Props {
    *  un `modelo` a secas el segundo pedido sería igual al primero y no pasaría
    *  nada. Nulo mientras no haya nada pedido, que es casi siempre. */
   chatPedido?: { modelo: string; sello: number } | null;
+  /** Lo que la barra de sesiones abre estando en esta vista: nace aquí, donde miras. */
+  abrirPedido?: AbrirEnLienzo | null;
   onClose: (id: number) => void;
   /** Doble clic en el nombre de la cabecera: el mismo renombrado que en la
    *  Cabina. Lo resuelve App, que tiene las dos listas de paneles. Opcional,
@@ -324,6 +337,7 @@ function Canvas({
   onLanzarEncargo,
   onRepartirTarjetas,
   chatPedido,
+  abrirPedido,
   onClose,
   onRename,
   onSessionId,
@@ -664,8 +678,9 @@ function Canvas({
       p: Project,
       en?: { x: number; y: number; w?: number; h?: number },
       propio?: { name?: string; command?: string[] },
+      cuenta?: Account,
     ): CanvasPane => {
-      const pane = onCreate(kind, p, propio);
+      const pane = onCreate(kind, p, propio, cuenta);
       setNodes((prev) => {
         /* Nace EN EL CENTRO DE LO QUE ESTÁS MIRANDO. Al importar un lienzo la
            posición viene dada: ahí manda el archivo.
@@ -1253,21 +1268,22 @@ ${ruta}` : ruta;
     [dondeCae, quitarChat, cambiarModelo],
   );
 
-  /**
-   * Un chat pedido desde fuera, que hoy es el botón de un consejo del copiloto.
-   *
-   * Se mira el SELLO y no el modelo: dos consejos seguidos del mismo modelo
-   * tienen que abrir dos chats, y comparando el modelo el segundo no abriría
-   * ninguno. El primero que se ve al montar también cuenta, porque para cuando
-   * el lienzo se monta la petición ya está puesta (App cambia de vista y pide
-   * en el mismo gesto).
-   */
+  /* Un chat pedido desde fuera (el botón de un consejo del copiloto). Se mira el SELLO y
+     no el modelo: dos consejos del mismo modelo abren dos chats. El primero que se ve al
+     montar también cuenta: App cambia de vista y pide en el mismo gesto. */
   const ultimoChatRef = useRef(0);
   useEffect(() => {
     if (!chatPedido || chatPedido.sello === ultimoChatRef.current) return;
     ultimoChatRef.current = chatPedido.sello;
     ponerChat(undefined, chatPedido.modelo);
   }, [chatPedido, ponerChat]);
+  // Y lo que pide la barra de sesiones, por el mismo camino que el botón «Terminal».
+  const ultimoAbrirRef = useRef(0);
+  useEffect(() => {
+    if (!abrirPedido || abrirPedido.sello === ultimoAbrirRef.current) return;
+    ultimoAbrirRef.current = abrirPedido.sello;
+    place(abrirPedido.kind, abrirPedido.project, undefined, abrirPedido.propio, abrirPedido.cuenta);
+  }, [abrirPedido, place]);
 
   /** El color de un post-it es del tablero y no del archivo: la nota es lo que
       pone, no de qué color la dejaste ese día. */
@@ -1535,7 +1551,7 @@ ${ruta}` : ruta;
           dragHandle: ".pane-head",
           data: {
             pane,
-            kind: cli === "agy" ? "agy" : cli === "claude" ? "claude" : "shell",
+            kind: piezaDelLienzo(cli),
             proyecto: pane.cwd.split(/[\\/]/).filter(Boolean).pop() ?? pane.cwd,
             logo: logoDe(pane.cwd),
             fontSize,

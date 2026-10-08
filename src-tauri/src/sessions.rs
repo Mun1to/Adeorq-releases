@@ -1,4 +1,4 @@
-// Claude Code session scanner, ported from Sionorq's sionorq.py (proven logic:
+// Claude Code session scanner (proven logic:
 // titles live near the tail as custom-title/ai-title/last-prompt lines, state
 // is derived from the last real user/assistant message, live sessions are the
 // ~/.claude/sessions/*.json files whose PID is still running).
@@ -52,7 +52,7 @@ pub struct SessionInfo {
     pub agents_total: u32,
     /// Qué cliente escribió esta sesión: `claude`, `codex`, `pi`… El Sidebar
     /// pinta su marca con esto, y sin él todas las sesiones parecían de Claude
-    /// aunque no lo fueran. De primera clase, como en Sionorq: es lo que
+    /// aunque no lo fueran. De primera clase: es lo que
     /// permite que un proyecto enseñe junto lo que ha pasado en él, lo abriera
     /// quien lo abriera.
     pub fuente: String,

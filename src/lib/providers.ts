@@ -827,6 +827,16 @@ export function sabe(id: string, que: Capacidad): boolean {
 }
 
 /**
+ * Qué pieza del lienzo es una terminal de este CLI. El lienzo guarda solo tres
+ * tipos (`SpawnKind`, en `CanvasView.tsx`), y eso toca lo que ya hay guardado en
+ * disco: Claude nace con su id de sesión, Antigravity con la ruta que encontró
+ * Rust, y el resto es una consola con su comando dentro.
+ */
+export function piezaDelLienzo(id: string): "claude" | "agy" | "shell" {
+  return id === "claude" || id === "agy" ? id : "shell";
+}
+
+/**
  * Lo que hay que teclearle a una sesión ABIERTA de `id` para ponerle ese
  * cerebro y ese esfuerzo, ya traducido a su idioma; vacío si no sabe hacerlo.
  *

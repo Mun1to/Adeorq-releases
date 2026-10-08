@@ -1,11 +1,11 @@
 {
-  "version": "0.9.169",
-  "notes": "El Capataz ya no le teclea ordenes de Claude a otros CLI: al dejarte un encargo en modo automatico, cada CLI recibe su orden de modelo (Claude /model y /effort, Gemini /model set) y a Codex y Kimi no se les teclea nada. PROBADO en la interfaz con un Tauri de mentira.",
-  "pub_date": "2026-10-07T23:45:58Z",
+  "version": "0.9.170",
+  "notes": "El lienzo tiene la barra de sesiones a la izquierda, como la Cabina: lo que abres desde ella estando en el lienzo nace en el lienzo, y una sesion ya abierta te lleva a ella. MEDIDO: recorrido en la interfaz con un Tauri de mentira.",
+  "pub_date": "2026-10-08T12:03:56Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzMzN2RxUSttalJtV2NENkM0UTZDQXdkU2Zob1hxaDJabERPMHZmVUI1SDE5QlFSbVpwQ3F5K0pyR0RrckF5eXdlaDlBQURTL2xMSHR4K1crOTdyMEFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDE2NzM4CWZpbGU6QWRlb3JxXzAuOS4xNjlfeDY0LXNldHVwLmV4ZQpYbmt5WXg1K3FPM2RybENETlRHT2o5UDlpcnFGc1JqRjRWMVRCcE1wS1F0U2E1SGtodUVUZ1pOZE1NZjBLNmR1QVlkY1M3K0dZWmxEb0VOMktncS9DQT09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.169/Adeorq_0.9.169_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzd6dGtmUUhqR1hmUm1OMERmalg4WE4xM2twSFgxQUlpbHMyM3BIT1pFeDJpMU16SU1WKzlTcXFxSmt4TlBTcVZTT0o1RWREdUY0WXFYc2hLeXl0L1FjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDYxMDE1CWZpbGU6QWRlb3JxXzAuOS4xNzBfeDY0LXNldHVwLmV4ZQpNM1h0VXQrZ3dtWlFONTVkcmJTZmNURnFFdmQ4UDJOSWNtZmpiZ2VQdUZsSEV2SlNMazlIRzBpeDBNT29EemN5N1hyeUU3aG9MeHdxcUc5SG5IeW5DZz09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.170/Adeorq_0.9.170_x64-setup.exe"
     }
   }
 }

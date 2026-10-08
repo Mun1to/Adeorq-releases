@@ -861,12 +861,8 @@ impl Casa for CasaDeVerdad {
         crate::conserje::conserje_parar(id.to_string());
     }
     fn sesion(&self, cwd: &str, sesion: &str) -> Result<Value, String> {
-        tauri::async_runtime::block_on(crate::sessions::session_messages(
-            cwd.to_string(),
-            Some(sesion.to_string()),
-            Some(80),
-        ))
-        .map(|t| json!(t))
+        crate::sessions::session_messages(cwd.to_string(), Some(sesion.to_string()), Some(80))
+            .map(|t| json!(t))
     }
 }
 

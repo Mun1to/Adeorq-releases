@@ -63,6 +63,28 @@ for (let i = 1; i <= 30; i++) {
   sesionLarga.push({ rol: "tu", texto: `Paso ${i}: sigue con el scroll`, hora: "", herramientas: [] });
   sesionLarga.push({ rol: "agente", texto: `Paso ${i} hecho. Medí la distancia al final con el panel a 180 columnas y bajándolo a 73: pasa de 0 a ${300 + i}.`, hora: "", herramientas: ["Read", "Edit"] });
 }
+// Lo que traen las respuestas de un Claude Code de verdad: títulos, tablas,
+// citas y cientos de herramientas en un turno.
+sesionLarga.push({ rol: "tu", texto: "¿Cómo quedó?", hora: "", herramientas: [] });
+sesionLarga.push({
+  rol: "agente",
+  texto: [
+    "## Resumen de la sesión",
+    "Quedó así:",
+    "",
+    "| Pieza | Antes | Ahora | Por qué |",
+    "|---|---:|---:|---|",
+    "| `scrollTerm.ts` | 0 | 301 | la distancia se guarda antes de cambiar el ancho |",
+    "| `TerminalPane.tsx` | 12 | 0 | ya no repinta dos veces |",
+    "",
+    "> Medido con el panel a 180 columnas y a 73.",
+    "",
+    "### Lo que falta",
+    "- Probarlo en el móvil",
+  ].join("\n"),
+  hora: "",
+  herramientas: [...Array(90).fill("Read"), ...Array(40).fill("Bash"), ...Array(20).fill("mcp__playwright__browser_click"), "Edit"],
+});
 sesionLarga.push({ rol: "tu", texto: "/fin", hora: "", herramientas: [] });
 sesionLarga.push({
   rol: "agente",
@@ -83,6 +105,33 @@ sesionLarga.push({
   hora: "",
   herramientas: [],
 });
+
+// `SESION=<ruta .jsonl>` cambia esa historia por la de un transcript de verdad,
+// leído con las mismas reglas que `turnos_de` (sessions.rs): una sesión real
+// trae títulos, tablas y cientos de herramientas por turno, que el ejemplo no.
+if (process.env.SESION) {
+  const datos = fs.readFileSync(process.env.SESION);
+  const lineas = datos.subarray(Math.max(0, datos.length - 1_500_000)).toString("utf8").split("\n");
+  const fontaneria = /^\s*(<command-name>|<local-command-|<system-reminder>|<command-message>|Caveat: The messages below were generated)/;
+  const turnos = [];
+  for (const l of lineas) {
+    let v;
+    try { v = JSON.parse(l); } catch { continue; }
+    if ((v.type !== "user" && v.type !== "assistant") || v.isSidechain || v.isCompactSummary || v.isMeta) continue;
+    const c = v.message?.content;
+    const texto = (typeof c === "string" ? c : Array.isArray(c) ? c.filter((b) => b.type === "text").map((b) => b.text).join("\n") : "").trim();
+    const herramientas = Array.isArray(c) ? c.filter((b) => b.type === "tool_use").map((b) => b.name) : [];
+    if ((!texto && !herramientas.length) || (texto && fontaneria.test(texto))) continue;
+    const rol = v.type === "assistant" ? "agente" : "tu";
+    const ult = turnos.at(-1);
+    if (ult?.rol === rol) {
+      if (texto) ult.texto += (ult.texto ? "\n\n" : "") + texto;
+      ult.herramientas.push(...herramientas);
+    } else turnos.push({ rol, texto, hora: v.timestamp || "", herramientas });
+  }
+  sesionLarga.splice(0, sesionLarga.length, ...turnos.slice(-80));
+  console.log(`sesión de verdad: ${sesionLarga.length} turnos de ${process.env.SESION}`);
+}
 
 function estadosDe(conv) {
   const estados = {};

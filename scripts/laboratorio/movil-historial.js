@@ -1,7 +1,8 @@
 // La terminal de la página del móvil a 390 px, contra el doble
 // (`node scripts/laboratorio/doble-movil.mjs [puerto]`), con lo que Munir no
-// podía hacer el 2026-10-08: leer el historial entero de una sesión y copiar
-// su mensaje de compactación.
+// podía hacer el 2026-10-08: leer el historial entero de una sesión, leerlo
+// bien (títulos, tablas, herramientas contadas), copiar su mensaje de
+// compactación y dejar `/compact <bloque>` en la caja con un toque.
 //
 //   browser_run_code_unsafe(filename = "scripts/laboratorio/movil-historial.js")
 //
@@ -28,10 +29,11 @@ async (page) => {
       const pre = document.getElementById("pantalla");
       const caja = document.getElementById("caja");
       const texto = (visible(conversa) ? conversa : pre)?.innerText ?? "";
+      const lineas = texto.split("\n");
       return {
         cara: visible(conversa) ? "conversa" : "pantalla",
         pestanas: !document.getElementById("pestanas")?.hidden && !!document.getElementById("pestanas"),
-        lineas: texto.split("\n").length,
+        lineas: lineas.length,
         llegaAlFinDelBloque: texto.includes("FIN-DEL-BLOQUE"),
         empiezaPorElPaso1: texto.includes("Paso 1:"),
         deLado: Math.max(pre?.scrollWidth - pre?.clientWidth || 0, document.documentElement.scrollWidth - innerWidth),
@@ -46,6 +48,12 @@ async (page) => {
           return r.top >= c.top && r.bottom <= c.bottom;
         })(),
         lineasConSangria: pre ? getComputedStyle(pre.querySelector(".l") ?? pre).textIndent : null,
+        // Fuera del bloque de código: dentro, un `##` es texto y está bien.
+        titulosCrudos: [...(conversa?.querySelectorAll(".burbuja > p") ?? [])].filter((p) => /^#{1,6} /.test(p.innerText)).length,
+        tablasCrudas: [...(conversa?.querySelectorAll(".burbuja > p") ?? [])].filter((p) => /^\|.*\|$/m.test(p.innerText)).length,
+        tablas: conversa?.querySelectorAll(".tabla table").length ?? 0,
+        herramientasMax: Math.max(0, ...[...document.querySelectorAll(".herramientas")].map((h) => h.textContent.length)),
+        compactar: document.querySelectorAll(".compactar").length,
       };
     });
 
@@ -58,12 +66,46 @@ async (page) => {
       const t = await page.evaluate(() => navigator.clipboard.readText());
       copiado = { empieza: t.split("\n")[0], acaba: t.trim().split("\n").at(-1), lineas: t.split("\n").length };
     }
+    // Un toque en «Compactar con esto» y la caja lleva la orden con el bloque.
+    let compactado = null;
+    if (claude.compactar) {
+      await page.evaluate(() => [...document.querySelectorAll(".compactar")].at(-1).click());
+      await page.waitForTimeout(200);
+      compactado = await page.evaluate(() => {
+        const t = document.getElementById("texto").value;
+        return { empieza: t.split("\n")[0], acaba: t.trim().split("\n").at(-1), enviarListo: !document.getElementById("enviar").disabled };
+      });
+    }
+    // Subir por el historial saca «Ir al final», y tocarlo vuelve abajo.
+    const irAlFinal = await page.evaluate(async () => {
+      const c = document.getElementById("conversa");
+      const b = document.getElementById("bajar");
+      if (!c || !b || c.hidden) return null;
+      const alPrincipio = b.hidden;
+      c.scrollTop = 0;
+      c.dispatchEvent(new Event("scroll"));
+      const arriba = !b.hidden;
+      b.click();
+      return { escondidoAbajo: alPrincipio, saleAlSubir: arriba, vuelveAbajo: c.scrollHeight - c.scrollTop - c.clientHeight < 60 && b.hidden };
+    });
     await abrir(2);
     const codex = await estado();
     const notaCodex = await page.evaluate(() => document.getElementById("conversa")?.innerText.slice(0, 90) ?? null);
     await abrir(3);
     const consola = await estado();
-    return { puerto, claude, copiado, codex, notaCodex, consola };
+    // Una terminal que ya no está: lo que no se pudo mandar se queda a la
+    // vista aunque el sondeo dé otra vuelta.
+    await abrir(9);
+    const fallo = await page.evaluate(async () => {
+      const t = document.getElementById("texto");
+      t.value = "hola";
+      t.dispatchEvent(new Event("input"));
+      document.getElementById("enviar").click();
+      await new Promise((r) => setTimeout(r, 3800));
+      const f = document.getElementById("fallo");
+      return { subtitulo: document.getElementById("sub")?.textContent ?? null, nota: f && !f.hidden ? f.textContent : null };
+    });
+    return { puerto, claude, copiado, compactado, irAlFinal, codex, notaCodex, consola, fallo };
   };
   return { antes: await medir(4391), ahora: await medir(4390) };
 }

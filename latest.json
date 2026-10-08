@@ -1,11 +1,11 @@
 {
-  "version": "0.9.172",
-  "notes": "En el movil cada terminal de agente abre su conversacion entera, con Copiar en cada bloque; la pantalla trae historial y se ajusta al ancho; y /compact con su mensaje ya compacta",
-  "pub_date": "2026-10-08T13:25:45Z",
+  "version": "0.9.173",
+  "notes": "Movil: el historial entero de una sesion (antes llegaban de 1 a 11 turnos), el resumen de una compactacion ya no sale como mensaje tuyo, titulos y tablas legibles, herramientas contadas y Compactar con esto en el mensaje de un /fin.",
+  "pub_date": "2026-10-08T17:12:06Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVFWjFOa01Pd0NSenJuYW5qaFczWTFKTVRoLzlsTTJmblZUcWpKWXVDWll5YmpzWkUzcHR3L3hSN2ZrL2lHR0gxZ3VHWGNRU2ZXVTllU2pWeER2R0FJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDY1OTMyCWZpbGU6QWRlb3JxXzAuOS4xNzJfeDY0LXNldHVwLmV4ZQpOVVE3T1FsMHJIT2pXclJkQkxOY0U3Wjg0ZHh6MFkvZmZXQS82YVQzV2xEaTYzTzNNWThlaTZJUGZJMStrZW9wcTZNVXJBMXZUckhScWRvV1ZkMjVDdz09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.172/Adeorq_0.9.172_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJnMjBqb3lOVXFXclNWQkp6dnhjTXAyWGRmVUNXbjJxYlRIYzNrenUzd2NWWk9ua1NwaU04RW1LcWF1K1VWNFRYMkdHUkpBODVNNWZqUzc5WGJqWkFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDc5NTEzCWZpbGU6QWRlb3JxXzAuOS4xNzNfeDY0LXNldHVwLmV4ZQpGMDg4bFN1NU9LbXM0RmRsamJzeVhzZTVDeThXVlhMUEhnZ0tTQ2JpeWpMS1lHR3J6NDVFd21KSHVERXFGUy9EUm0wZFNHZ1k5d0xxTURaOUMxa2lCQT09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.173/Adeorq_0.9.173_x64-setup.exe"
     }
   }
 }

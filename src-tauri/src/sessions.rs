@@ -1742,7 +1742,7 @@ pub async fn last_reply(
 }
 
 /// Un turno de la conversación, ya limpio para pintarlo como chat.
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Turno {
     /// "tu" o "agente". No "user"/"assistant": esto se pinta, no se manda a
     /// ninguna API, y el que lee la pantalla no es un modelo.
@@ -1815,6 +1815,18 @@ fn herramientas_del_contenido(content: &Value) -> Vec<String> {
 /// chat es esto, y compilar no demuestra que reparta bien los turnos.
 pub fn turnos_de(lineas: &[String], max: usize) -> Vec<Turno> {
     let mut out: Vec<Turno> = Vec::new();
+    sumar_turnos(&mut out, lineas.iter().map(String::as_str));
+    // Los últimos, que son los que interesan al abrir una conversación.
+    if out.len() > max {
+        out.drain(..out.len() - max);
+    }
+    out
+}
+
+/// Añade a `out` los turnos de unas líneas más del transcript. Aparte de
+/// `turnos_de` para poder seguir una conversación por lo que CRECE: un turno
+/// que el agente sigue escribiendo se junta con el que ya estaba.
+fn sumar_turnos<'a>(out: &mut Vec<Turno>, lineas: impl Iterator<Item = &'a str>) {
     for linea in lineas {
         let Ok(v) = serde_json::from_str::<Value>(linea) else {
             continue;
@@ -1826,6 +1838,13 @@ pub fn turnos_de(lineas: &[String], max: usize) -> Vec<Turno> {
         // Los subagentes tienen su propia conversación paralela. Mezclarla con
         // la principal es lo que convierte un chat en un revoltijo.
         if v["isSidechain"].as_bool().unwrap_or(false) {
+            continue;
+        }
+        // El resumen que deja una compactación y el cuerpo de una skill van
+        // como mensajes tuyos, y no los escribió nadie: los inyecta el CLI.
+        let inyectado = v["isCompactSummary"].as_bool().unwrap_or(false)
+            || v["isMeta"].as_bool().unwrap_or(false);
+        if inyectado {
             continue;
         }
         let content = &v["message"]["content"];
@@ -1862,11 +1881,86 @@ pub fn turnos_de(lineas: &[String], max: usize) -> Vec<Turno> {
             }),
         }
     }
-    // Los últimos, que son los que interesan al abrir una conversación.
-    if out.len() > max {
-        out.drain(..out.len() - max);
+}
+
+/* ── La conversación entera, no la de la cola ─────────────────────────────
+   Munir, 2026-10-08, desde el móvil: «no veo casi el historial del chat». La
+   cola de mega y medio de `read_tail` vale para títulos y estado, pero en una
+   sesión de verdad casi todo son resultados de herramientas: medido ese día en
+   sus diez transcripts más recientes, en mega y medio cabían de 1 a 11 turnos
+   (de 0 a 5 mensajes suyos), y el de esta sesión, de 404 MB, daba 9. Así que la
+   conversación se lee hacia atrás, a trozos cada vez mayores, hasta tener los
+   turnos pedidos o llegar a `TOPE_CONVERSACION`; y luego solo lo que crece. */
+
+/// Hasta dónde se lee hacia atrás buscando turnos. Lo que se pague aquí se paga
+/// UNA vez por conversación abierta: las vueltas siguientes leen solo lo nuevo.
+const TOPE_CONVERSACION: u64 = 32_000_000;
+
+/// Lo leído de la conversación de un transcript: los bytes `desde..hasta` y
+/// sus turnos. `hasta` cae siempre justo detrás de un salto de línea.
+struct Leida {
+    path: PathBuf,
+    max: usize,
+    hasta: u64,
+    turnos: Vec<Turno>,
+}
+static CONVERSACIONES: Mutex<Vec<Leida>> = Mutex::new(Vec::new());
+const CONVERSACIONES_MAX: usize = 4;
+
+/// Las líneas ENTERAS de `desde..hasta`, y dónde acaba la última. Una línea a
+/// medio escribir al final no se cuenta: se lee entera la vuelta siguiente.
+/// Con `partida`, la primera se tira porque el corte cae a mitad de ella.
+fn lineas_entre(path: &Path, desde: u64, hasta: u64, partida: bool) -> std::io::Result<(Vec<String>, u64)> {
+    let mut f = std::fs::File::open(path)?;
+    f.seek(SeekFrom::Start(desde))?;
+    let mut data = Vec::with_capacity((hasta - desde) as usize);
+    f.take(hasta - desde).read_to_end(&mut data)?;
+    let Some(ultimo) = data.iter().rposition(|&b| b == b'\n') else {
+        return Ok((Vec::new(), desde));
+    };
+    data.truncate(ultimo + 1);
+    let mut empieza = 0;
+    if partida {
+        empieza = data.iter().position(|&b| b == b'\n').map_or(data.len(), |c| c + 1);
     }
-    out
+    let lineas = String::from_utf8_lossy(&data[empieza..]).lines().map(|l| l.to_owned()).collect();
+    Ok((lineas, desde + ultimo as u64 + 1))
+}
+
+fn conversacion_de(path: &Path, max: usize) -> std::io::Result<Vec<Turno>> {
+    let size = std::fs::metadata(path)?.len();
+    let mut leidas = CONVERSACIONES.lock().unwrap_or_else(|e| e.into_inner());
+
+    // Ya leída y solo ha crecido: se suma lo nuevo.
+    if let Some(i) = leidas.iter().position(|l| l.path == path && l.max == max && l.hasta <= size) {
+        let mut l = leidas.remove(i);
+        if l.hasta < size {
+            let (lineas, hasta) = lineas_entre(path, l.hasta, size, false)?;
+            sumar_turnos(&mut l.turnos, lineas.iter().map(String::as_str));
+            l.hasta = hasta;
+            if l.turnos.len() > max {
+                l.turnos.drain(..l.turnos.len() - max);
+            }
+        }
+        let turnos = l.turnos.clone();
+        leidas.insert(0, l);
+        return Ok(turnos);
+    }
+
+    let mut trozo = TAIL_BYTES;
+    let (turnos, hasta) = loop {
+        let desde = size.saturating_sub(trozo);
+        let (lineas, hasta) = lineas_entre(path, desde, size, desde > 0)?;
+        let turnos = turnos_de(&lineas, max);
+        if turnos.len() >= max || desde == 0 || trozo >= TOPE_CONVERSACION {
+            break (turnos, hasta);
+        }
+        trozo = (trozo * 4).min(TOPE_CONVERSACION);
+    };
+    leidas.retain(|l| l.path != path || l.max != max);
+    leidas.insert(0, Leida { path: path.to_owned(), max, hasta, turnos: turnos.clone() });
+    leidas.truncate(CONVERSACIONES_MAX);
+    Ok(turnos)
 }
 
 /// La conversación de una sesión, lista para pintarla sin pasar por la consola.
@@ -1874,8 +1968,11 @@ pub fn turnos_de(lineas: &[String], max: usize) -> Vec<Turno> {
 /// Es el motor del modo chat: la misma sesión que en la Cabina sale como una
 /// terminal con sus códigos de escape, aquí sale como lo que de verdad es, una
 /// conversación. No cuesta ni un token: ya está escrita en el disco.
-#[tauri::command]
-pub async fn session_messages(
+///
+/// Síncrono y `(async)`: la primera lectura de una conversación larga puede ir
+/// a buscar decenas de megas hacia atrás, y eso no se hace en un hilo de Tokio.
+#[tauri::command(async)]
+pub fn session_messages(
     cwd: String,
     session_id: Option<String>,
     max: Option<usize>,
@@ -1892,8 +1989,7 @@ pub async fn session_messages(
     } else {
         "ese proyecto no tiene conversaciones"
     })?;
-    let lineas = read_tail(&path).map_err(|e| e.to_string())?;
-    Ok(turnos_de(&lineas, max.unwrap_or(60)))
+    conversacion_de(&path, max.unwrap_or(60)).map_err(|e| e.to_string())
 }
 
 /* ── La actividad de una sesión: lo que pasa por detrás de la terminal ────
@@ -2222,11 +2318,110 @@ otra
             r#"{"type":"user","message":{"content":"<system-reminder>ojo</system-reminder>"}}"#
                 .into(),
             r#"{"type":"assistant","isSidechain":true,"message":{"content":[{"type":"text","text":"soy un subagente"}]}}"#.into(),
+            // Tras compactar (a mano o sola), el resumen va en el mismo
+            // transcript como un mensaje TUYO de varios miles de palabras.
+            r#"{"type":"user","isCompactSummary":true,"isVisibleInTranscriptOnly":true,"message":{"content":"This session is being continued from a previous conversation"}}"#.into(),
+            // El cuerpo de una skill también entra como mensaje tuyo.
+            r#"{"type":"user","isMeta":true,"message":{"content":[{"type":"text","text":"Base directory for this skill: C:\\skills\\fin"}]}}"#.into(),
             r#"{"type":"user","message":{"content":"esto si"}}"#.into(),
         ];
         let t = turnos_de(&lineas, 60);
         assert_eq!(t.len(), 1);
         assert_eq!(t[0].texto, "esto si");
+    }
+
+    /// Las banderas de arriba son formato de Claude Code, no nuestro: si un
+    /// día las renombra, esto se pone rojo contra sus transcripts de verdad.
+    #[test]
+    fn ningun_resumen_de_compactacion_sale_como_tuyo_de_verdad() {
+        let Some(dir) = claude_dir().map(|d| d.join("projects")) else {
+            return;
+        };
+        for p in leer_dirs(&dir).into_iter().filter_map(|d| newest_transcript(&d)) {
+            let Ok(lineas) = read_tail(&p) else { continue };
+            for t in turnos_de(&lineas, usize::MAX) {
+                assert!(
+                    !t.texto.starts_with("This session is being continued")
+                        && !t.texto.starts_with("Base directory for this skill"),
+                    "fontanería pintada como turno en {p:?}",
+                );
+            }
+        }
+    }
+
+    /// Lo que Munir veía desde el móvil: en una sesión de verdad casi todo son
+    /// resultados de herramientas, y en la cola de mega y medio no quedaban
+    /// más que un par de turnos. Aquí hay seis megas de herramientas entre las
+    /// preguntas viejas y las nuevas, y se tienen que ver las de antes también.
+    #[test]
+    fn la_conversacion_se_busca_detras_de_las_herramientas_y_sigue_lo_que_crece() {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join("adeorq-conversacion-larga");
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("s.jsonl");
+        let tu = |t: &str| format!(r#"{{"type":"user","message":{{"content":"{t}"}}}}"#);
+        let agente = |t: &str| {
+            format!(r#"{{"type":"assistant","message":{{"content":[{{"type":"text","text":"{t}"}}]}}}}"#)
+        };
+        let herramienta = format!(
+            r#"{{"type":"user","message":{{"content":[{{"type":"tool_result","content":"{}"}}]}}}}"#,
+            "x".repeat(100_000)
+        );
+        let mut f = std::fs::File::create(&p).unwrap();
+        for i in 0..5 {
+            writeln!(f, "{}\n{}", tu(&format!("vieja {i}")), agente(&format!("respuesta vieja {i}"))).unwrap();
+        }
+        for _ in 0..60 {
+            writeln!(f, "{herramienta}").unwrap();
+        }
+        writeln!(f, "{}\n{}", tu("nueva"), agente("respuesta nueva")).unwrap();
+        drop(f);
+
+        assert_eq!(turnos_de(&read_tail(&p).unwrap(), 80).len(), 2, "la cola sola: el fallo");
+        let t = conversacion_de(&p, 80).unwrap();
+        assert_eq!(t.len(), 12, "las cinco viejas también");
+        assert_eq!(t[0].texto, "vieja 0");
+
+        // El agente sigue escribiendo: media línea no cuenta, entera se junta
+        // con su turno.
+        let mut f = std::fs::OpenOptions::new().append(true).open(&p).unwrap();
+        let mas = agente("y sigue");
+        write!(f, "{}", &mas[..20]).unwrap();
+        f.flush().unwrap();
+        assert_eq!(conversacion_de(&p, 80).unwrap().last().unwrap().texto, "respuesta nueva");
+        writeln!(f, "{}", &mas[20..]).unwrap();
+        drop(f);
+        let t = conversacion_de(&p, 80).unwrap();
+        assert_eq!(t.len(), 12);
+        assert_eq!(t.last().unwrap().texto, "respuesta nueva\n\ny sigue");
+
+        // Y con un tope, los últimos.
+        let t = conversacion_de(&p, 3).unwrap();
+        assert_eq!(t.len(), 3);
+        assert_eq!(t[0].texto, "respuesta vieja 4");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// Contra sus transcripts de verdad: nunca menos turnos que la cola sola,
+    /// y lo que cuesta. `cargo test --lib conversacion_de_verdad -- --nocapture`
+    #[test]
+    fn la_conversacion_de_verdad() {
+        let Some(dir) = claude_dir().map(|d| d.join("projects")) else {
+            return;
+        };
+        for p in leer_dirs(&dir).into_iter().filter_map(|d| newest_transcript(&d)) {
+            let Ok(lineas) = read_tail(&p) else { continue };
+            let cola = turnos_de(&lineas, 80).len();
+            let t0 = std::time::Instant::now();
+            let n = conversacion_de(&p, 80).unwrap().len();
+            let primera = t0.elapsed();
+            let t1 = std::time::Instant::now();
+            assert_eq!(conversacion_de(&p, 80).unwrap().len(), n);
+            let segunda = t1.elapsed();
+            let mb = std::fs::metadata(&p).map(|m| m.len()).unwrap_or(0) as f64 / 1e6;
+            eprintln!("{mb:>6.1} MB: cola {cola:>2} -> {n:>2} turnos, {primera:?} y luego {segunda:?}");
+            assert!(n >= cola, "menos turnos que la cola sola en {p:?}");
+        }
     }
 
     /// Lo que decide qué enseña la pestaña de actividad: una skill se llama

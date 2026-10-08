@@ -156,19 +156,37 @@
   .burbuja ul, .burbuja ol { margin: 0 0 8px; padding-left: 22px; }
   .burbuja code { font: 0.9em Consolas, "Cascadia Mono", ui-monospace, monospace; background: var(--capa-fuerte); padding: 1px 5px; border-radius: 5px; }
   .burbuja pre { margin: 0 0 8px; padding: 10px; border-radius: 10px; background: var(--capa-fuerte); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.45 Consolas, ui-monospace, monospace; }
+  .burbuja h3, .burbuja h4 { margin: 14px 0 6px; line-height: 1.3; }
+  .burbuja h3 { font-size: 16.5px; }
+  .burbuja h4 { font-size: 15px; color: var(--suave); }
+  .burbuja > :first-child { margin-top: 0; }
+  .burbuja blockquote { margin: 0 0 8px; padding: 2px 0 2px 12px; border-left: 3px solid var(--borde-fuerte); color: var(--suave); }
+  .burbuja hr { border: 0; border-top: 1px solid var(--borde); margin: 12px 0; }
+  /* Una tabla no se parte: si no cabe, se mueve de lado ELLA, no la página. */
+  .tabla { overflow-x: auto; margin: 0 0 8px; border: 1px solid var(--borde); border-radius: 10px; }
+  .tabla table { border-collapse: collapse; font-size: 13.5px; min-width: 100%; }
+  /* `normal`, no el `anywhere` de la burbuja: con ese, la tabla se encogía al
+     ancho del móvil partiendo «Antes» en «Ante|s». Mejor que se mueva de lado. */
+  .tabla th, .tabla td {
+    padding: 6px 10px; text-align: left; vertical-align: top; border-top: 1px solid var(--borde);
+    overflow-wrap: normal; max-width: 30ch;
+  }
+  .tabla th, .tabla code { white-space: nowrap; }
+  .tabla thead th { border-top: 0; background: var(--capa-fuerte); font-weight: 600; }
   /* Un bloque de código con su «Copiar»: el mensaje de compactación sale así. */
   .bloque pre { padding-top: 34px; }
   /* Pegado arriba mientras el bloque se vea: el de compactación ocupa más de
      una pantalla, y quien lo lee llega al final, no al principio. */
-  .copiar {
-    position: sticky; top: 6px; float: right; margin: 6px 6px 0 0; z-index: 1;
+  .acciones { position: sticky; top: 6px; float: right; display: flex; gap: 6px; margin: 6px 6px 0 0; z-index: 1; }
+  .acciones button {
     padding: 3px 10px; border-radius: 999px; cursor: pointer;
     font-size: 12.5px; border: 1px solid var(--borde-fuerte); color: var(--suave);
     /* Opaco: al bajar pasa por encima del texto, y con la capa translúcida del
        tema oscuro se leían los dos a la vez. */
     background: var(--fondo); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
   }
-  .copiar[data-hecho="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
+  .acciones .compactar { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
+  .acciones button[data-hecho="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .herramientas { display: block; font-size: 12px; color: var(--suave); font-style: italic; margin-top: 4px; }
 
   .tarjeta {
@@ -250,6 +268,17 @@
   .pantalla .l { display: block; padding-left: 2ch; text-indent: -2ch; min-height: 1.4em; }
   #conversa .turno[data-rol="agente"] .burbuja { max-width: 100%; }
   .aviso-terminal { font-size: 12.5px; color: var(--suave); margin: 8px 4px 0; }
+  /* Escribiendo, con el teclado fuera, cada línea de lectura cuenta. */
+  .caja:focus-within .aviso-terminal { display: none; }
+  .caja { position: relative; }
+  .caja .fallo { margin: 0 0 8px; }
+  .bajar {
+    position: absolute; right: 14px; bottom: calc(100% + 12px); z-index: 2;
+    width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+    border: 1px solid var(--borde-fuerte); background: var(--fondo); color: var(--tinta);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+  .bajar[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -273,6 +302,7 @@ const ICONO = {
   chispa: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>',
   atras: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
   subir: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+  bajar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
   parar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
   diana: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
   deshacer: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>',
@@ -312,21 +342,48 @@ function nombreDe(w) {
 }
 const nuevoId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
-/** Markdown del conserje, lo justo: párrafos, listas, negrita, código. Se
-    escapa TODO antes, así que nada de lo que diga el modelo es HTML. */
+/** Markdown del conserje y de las sesiones, lo justo: párrafos, listas,
+    títulos, tablas, citas, negrita y código. Se escapa TODO antes, así que
+    nada de lo que diga el modelo es HTML. Los títulos y las tablas están
+    porque las respuestas de un Claude Code van llenas: medido el 2026-10-08
+    en sus sesiones de esa semana, cientos de `##` y de filas `| … |` que el
+    móvil enseñaba tal cual, con las almohadillas y las barras. */
 function md(texto) {
   const lineas = esc(texto).split("\n");
   const enLinea = (s) => s.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
-  let html = "", lista = null, parrafo = [], codigo = null;
+  let html = "", lista = null, parrafo = [], codigo = null, tabla = null, cita = null;
   const cierraParrafo = () => { if (parrafo.length) { html += `<p>${parrafo.map(enLinea).join("<br>")}</p>`; parrafo = []; } };
   const cierraLista = () => { if (lista) { html += `</${lista}>`; lista = null; } };
+  const cierraTabla = () => {
+    if (!tabla) return;
+    const [cab, ...filas] = tabla;
+    const celdas = (f, tag) => f.map((c) => `<${tag}>${enLinea(c)}</${tag}>`).join("");
+    html += `<div class="tabla"><table><thead><tr>${celdas(cab, "th")}</tr></thead><tbody>${filas.map((f) => `<tr>${celdas(f, "td")}</tr>`).join("")}</tbody></table></div>`;
+    tabla = null;
+  };
+  const cierraCita = () => { if (cita) { html += `<blockquote>${cita.map(enLinea).join("<br>")}</blockquote>`; cita = null; } };
+  const cierraTodo = () => { cierraParrafo(); cierraLista(); cierraTabla(); cierraCita(); };
   for (const l of lineas) {
     if (l.trim().startsWith("```")) {
       if (codigo) { html += bloque(codigo); codigo = null; }
-      else { cierraParrafo(); cierraLista(); codigo = []; }
+      else { cierraTodo(); codigo = []; }
       continue;
     }
     if (codigo) { codigo.push(l); continue; }
+    if (/^\s*\|.*\|\s*$/.test(l)) {
+      cierraParrafo(); cierraLista(); cierraCita();
+      // La raya de debajo de la cabecera no es una fila.
+      if (/^\s*\|[\s:|-]+\|\s*$/.test(l) && l.includes("-")) continue;
+      (tabla ||= []).push(l.trim().slice(1, -1).split("|").map((c) => c.trim()));
+      continue;
+    }
+    cierraTabla();
+    const q = l.match(/^\s*&gt;\s?(.*)$/);
+    if (q) { cierraParrafo(); cierraLista(); (cita ||= []).push(q[1]); continue; }
+    cierraCita();
+    const t = l.match(/^\s*(#{1,6})\s+(.*)$/);
+    if (t) { cierraParrafo(); cierraLista(); html += t[1].length <= 2 ? `<h3>${enLinea(t[2])}</h3>` : `<h4>${enLinea(t[2])}</h4>`; continue; }
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(l)) { cierraParrafo(); cierraLista(); html += "<hr>"; continue; }
     const m = l.match(/^\s*(?:([-*•])|(\d+)[.)])\s+(.*)$/);
     if (m) {
       cierraParrafo();
@@ -340,11 +397,19 @@ function md(texto) {
     parrafo.push(l);
   }
   if (codigo) html += bloque(codigo);
-  cierraParrafo(); cierraLista();
+  cierraTodo();
   return html;
 }
 
-const bloque = (lineas) => `<div class="bloque"><button class="copiar" type="button">Copiar</button><pre>${lineas.join("\n")}</pre></div>`;
+/* Un bloque de código con su «Copiar». En la terminal, el mensaje de
+   compactación de un `/fin` lleva además «Compactar con esto», que deja
+   `/compact <el bloque>` en la caja: es lo que Munir quería hacer desde el
+   móvil el 2026-10-08 y no podía. Solo lo deja escrito; mandarlo es suyo. */
+const bloque = (lineas) => {
+  const compactar = e.vista === "terminal" && /^#\s*(COMPACTACI[ÓO]N|HANDOFF)\b/i.test(lineas.find((l) => l.trim()) || "");
+  return `<div class="bloque"><div class="acciones">${compactar ? `<button class="compactar" type="button">Compactar con esto</button>` : ""}<button class="copiar" type="button">Copiar</button></div><pre>${lineas.join("\n")}</pre></div>`;
+};
+const textoDelBloque = (b) => b.closest(".bloque")?.querySelector("pre")?.textContent ?? "";
 
 /* El «Copiar» de cualquier bloque, de cualquier vista. El portapapeles solo
    existe en una página segura (la de Tailscale lo es, va por https); si no
@@ -352,7 +417,7 @@ const bloque = (lineas) => `<div class="bloque"><button class="copiar" type="but
 document.addEventListener("click", async (ev) => {
   const b = ev.target.closest?.(".copiar");
   if (!b) return;
-  const texto = b.nextElementSibling?.textContent ?? "";
+  const texto = textoDelBloque(b);
   let hecho = false;
   try { await navigator.clipboard.writeText(texto); hecho = true; } catch (_) {
     const t = document.createElement("textarea");
@@ -878,6 +943,8 @@ function pintarTerminal() {
       <main class="cuerpo" id="conversa" hidden></main>
       <main class="cuerpo" id="marco"><pre class="pantalla" id="pantalla"></pre></main>
       <footer class="caja" id="caja">
+        <button class="bajar" id="bajar" hidden aria-label="Ir al final">${ICONO.bajar}</button>
+        <p class="nota fallo" id="fallo" hidden></p>
         <div class="fila-caja">
           <textarea id="texto" rows="1" placeholder="Escríbele a esta terminal" aria-label="Texto para la terminal"></textarea>
           <button class="enviar" id="enviar" aria-label="Enviar" disabled>${ICONO.subir}</button>
@@ -887,7 +954,7 @@ function pintarTerminal() {
           <button class="pastilla" data-tecla="esc">Esc</button>
           <button class="pastilla" data-tecla="ctrl+c">Ctrl+C</button>
         </div>
-        <p class="aviso-terminal">Va directo a la terminal del PC, sin pasar por el conserje. Un Intro aquí es un Intro allí.</p>
+        <p class="aviso-terminal">Va directo a la terminal, sin pasar por el conserje.</p>
       </footer>
     </div>`;
   document.getElementById("atras").addEventListener("click", () => ir({ vista: "terminales" }));
@@ -895,21 +962,37 @@ function pintarTerminal() {
   const enviarB = document.getElementById("enviar");
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
   texto.addEventListener("input", () => { crecer(); enviarB.disabled = !texto.value.trim(); });
-  const fallo = (m) => { const s = document.getElementById("sub"); if (s) s.textContent = m; };
+  // Lo que no se pudo mandar se queda a la vista hasta que algo salga bien:
+  // antes iba al subtítulo, que la vuelta siguiente del sondeo reescribía.
+  const fallo = (m) => { const f = document.getElementById("fallo"); if (f) { f.textContent = m; f.hidden = false; } };
+  const salioBien = () => { const f = document.getElementById("fallo"); if (f) f.hidden = true; };
   // Lo último pintado en cada cara. Solo se repinta lo que cambió: rehacerlo
   // cada 3 s le quitaba la selección a quien estaba copiando un trozo.
   const pintado = { pantalla: null, conversa: null };
   const pegadoAbajo = (el) => el.scrollHeight - el.scrollTop - el.clientHeight < 60;
   let ultima = null;
   const cara = () => (e.cara === "pantalla" || !ultima?.conversa ? "pantalla" : "conversa");
-  const cargar = async () => {
+  const visible = () => document.getElementById(cara() === "pantalla" ? "marco" : "conversa");
+  // «Ir al final», solo cuando has subido: lo que llega mientras lees el
+  // historial se pinta debajo y sin esto no se sabría.
+  const bajar = document.getElementById("bajar");
+  const mirarBajar = () => { const el = visible(); if (el && bajar) bajar.hidden = pegadoAbajo(el); };
+  ["marco", "conversa"].forEach((id) => document.getElementById(id).addEventListener("scroll", mirarBajar, { passive: true }));
+  bajar.addEventListener("click", () => { const el = visible(); if (el) el.scrollTop = el.scrollHeight; mirarBajar(); });
+  const cargar = () => leer().then(mirarBajar, (err) => {
+    // Una terminal cerrada en el PC deja de contestar: se dice arriba en vez
+    // de dejar la última pantalla como si siguiera viva.
+    const s = document.getElementById("sub");
+    if (s) s.textContent = err.message;
+  });
+  const leer = async () => {
     const v = await api("GET", `/api/terminal?panel=${e.panel}`);
     const marco = document.getElementById("marco");
     const conversa = document.getElementById("conversa");
     if (!marco || !conversa) return;
     ultima = { ...v, conversa: Boolean(v.agente && v.sesion && v.carpeta) };
     const [palabra] = estadoTerminal(v);
-    document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small>${esc(hoja(v.carpeta))} · ${palabra}</small>`;
+    document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small id="sub">${esc(hoja(v.carpeta))} · ${palabra}</small>`;
     const ahora = cara();
     document.getElementById("pestanas").hidden = !ultima.conversa;
     document.querySelectorAll(".pestanas .pastilla").forEach((b) => { b.dataset.on = String(b.dataset.cara === ahora); });
@@ -948,11 +1031,11 @@ function pintarTerminal() {
     e.cara = b.dataset.cara;
     // Al volver a una cara, se repinta y se baja al final, como al entrar.
     pintado[e.cara] = null;
-    cargar().catch((err) => fallo(err.message));
+    cargar();
   }));
   // Tras escribir, la pantalla tarda un instante en reflejarlo: se vuelve a
   // pedir en seguida en vez de esperar a la vuelta siguiente del sondeo.
-  const enSeguida = () => setTimeout(() => cargar().catch(() => {}), 700);
+  const enSeguida = () => setTimeout(cargar, 700);
   enviarB.addEventListener("click", async () => {
     const txt = texto.value.trim();
     if (!txt) return;
@@ -961,28 +1044,56 @@ function pintarTerminal() {
       await api("POST", "/api/terminal/escribir", { panel: e.panel, texto: txt });
       texto.value = "";
       crecer();
+      salioBien();
       enSeguida();
     } catch (err) {
-      fallo(err.message);
+      fallo(`No se ha mandado: ${err.message}`);
       enviarB.disabled = false;
     }
   });
   document.querySelectorAll(".pastilla[data-tecla]").forEach((b) => b.addEventListener("click", async () => {
     try {
       await api("POST", "/api/terminal/tecla", { panel: e.panel, tecla: b.dataset.tecla });
+      salioBien();
       enSeguida();
     } catch (err) {
-      fallo(err.message);
+      fallo(`No se ha mandado: ${err.message}`);
     }
   }));
-  cargar().catch((err) => fallo(err.message));
+  cargar();
   sondear(3000, cargar);
 }
 
+/* «Compactar con esto»: el bloque, con la orden delante, en la caja de la
+   terminal. `mandar_texto` (pty.rs) teclea la orden y pega el resto, así que
+   le llega a Claude Code como orden y no como un mensaje. */
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest?.(".compactar");
+  const caja = document.getElementById("texto");
+  if (!b || !caja || e.vista !== "terminal") return;
+  caja.value = `/compact ${textoDelBloque(b).trim()}`;
+  caja.dispatchEvent(new Event("input"));
+  caja.scrollTop = 0;
+  b.textContent = "En la caja: dale a enviar";
+  b.dataset.hecho = "true";
+  setTimeout(() => { b.textContent = "Compactar con esto"; b.dataset.hecho = "false"; }, 2400);
+});
+
 // ─── Una sesión, para leerla ────────────────────────────────────────────────
 
+/** Las herramientas de un turno, contadas: uno de una sesión de verdad usa
+    cientos, y en fila salía un párrafo de «Read · Read · Bash · Read…». */
+function resumenHerramientas(lista) {
+  const n = new Map();
+  for (const h of lista) {
+    const k = h.startsWith("mcp__") ? h.split("__")[1] : h;
+    n.set(k, (n.get(k) || 0) + 1);
+  }
+  return [...n].map(([k, v]) => (v > 1 ? `${k} ×${v}` : k)).join(" · ");
+}
+
 /** Los turnos de un transcript (`session_messages`), como burbujas. */
-const turnosHtml = (turnos) => turnos.map((t) => `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}${t.herramientas?.length ? `<span class="herramientas">${esc(t.herramientas.join(" · "))}</span>` : ""}</div></div>`).join("");
+const turnosHtml = (turnos) => turnos.map((t) => `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}${t.herramientas?.length ? `<span class="herramientas">${esc(resumenHerramientas(t.herramientas))}</span>` : ""}</div></div>`).join("");
 
 function abrirSesion(cl) {
   const w = (e.conv?.trabajos || []).find((x) => claveDe(x) === cl);

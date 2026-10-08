@@ -871,6 +871,26 @@ pub fn envuelto_para_pegar(texto: &str, pegado: bool) -> Vec<u8> {
     }
 }
 
+/// Una respuesta a un menú: un número suelto del 1 al 9. Se TECLEA y sin Intro
+/// detrás. Medido el 2026-10-08 contra una pregunta de verdad de Claude Code
+/// 2.1.295 (`menu_en_claude`, leyendo su transcript): el «2» pegado no lo ve
+/// nadie y el Intro coge la opción marcada, la 1; tecleado, elige la 2 al
+/// momento, y un Intro detrás ya contestaría la pregunta SIGUIENTE. Así una
+/// sesión que contestó «2» a otra subió con la 1 un commit ajeno a la web
+/// pública de Munir.
+pub fn es_tecla_de_menu(texto: &str) -> bool {
+    matches!(texto.trim().as_bytes(), [b'1'..=b'9'])
+}
+
+/// Lo que hizo `mandar_texto` con el texto.
+#[derive(Debug, PartialEq)]
+pub enum Mandado {
+    Pegado,
+    Escrito,
+    /// Un número de menú: tecleado y sin Intro, aunque se pidiera.
+    Tecla,
+}
+
 /// Una orden de barra con un bloque de varias líneas detrás (`/compact` con el
 /// mensaje de compactación) se parte en la orden y el resto. Pegada entera,
 /// Claude Code la toma por un pegado y se la manda al modelo como un prompt
@@ -889,15 +909,21 @@ pub fn orden_y_resto(texto: &str) -> Option<(&str, &str)> {
     (nombre_valido && !resto.is_empty()).then_some((orden, resto))
 }
 
-/// Escribe el texto y, si se pide, pulsa Intro aparte. Devuelve si fue como
-/// pegado. Duerme entre medias: nunca desde el hilo de la ventana.
-pub fn mandar_texto(app: &AppHandle, id: u32, texto: &str, enviar: bool) -> Result<bool, String> {
+/// Escribe el texto y, si se pide, pulsa Intro aparte. Duerme entre medias:
+/// nunca desde el hilo de la ventana.
+pub fn mandar_texto(app: &AppHandle, id: u32, texto: &str, enviar: bool) -> Result<Mandado, String> {
     let pegado = {
         let state = app.state::<PtyState>();
         let map = state.0.lock().unwrap();
         let s = map.get(&id).ok_or(format!("Pane {} not found", id))?;
         s.pegado.load(std::sync::atomic::Ordering::Relaxed)
     };
+    // Solo en un programa que pidió el pegado entre corchetes, que es donde
+    // hay menús así; en una consola, un «2» es un «2» y lleva su Intro.
+    if pegado && es_tecla_de_menu(texto) {
+        escribir_en_panel(app, id, texto.trim().as_bytes().to_vec())?;
+        return Ok(Mandado::Tecla);
+    }
     match orden_y_resto(texto).filter(|_| pegado) {
         Some((orden, resto)) => {
             escribir_en_panel(app, id, format!("{orden} ").into_bytes())?;
@@ -913,7 +939,7 @@ pub fn mandar_texto(app: &AppHandle, id: u32, texto: &str, enviar: bool) -> Resu
         }
         escribir_en_panel(app, id, b"\r".to_vec())?;
     }
-    Ok(pegado)
+    Ok(if pegado { Mandado::Pegado } else { Mandado::Escrito })
 }
 
 /// Lo mismo, para la ventana: el conserje y el chat de una sesión mandan
@@ -1200,6 +1226,18 @@ mod tests {
             assert_eq!(envuelto_para_pegar("hola", false), b"hola".to_vec());
             // Un salto dentro del texto va como lo manda una terminal al pegar.
             assert_eq!(envuelto_para_pegar("a\nb\r\nc", true), b"\x1b[200~a\rb\rc\x1b[201~".to_vec());
+        }
+
+        /// Un número suelto contesta a un menú; lo demás es un mensaje.
+        #[test]
+        fn solo_un_numero_suelto_es_respuesta_de_menu() {
+            use super::super::es_tecla_de_menu;
+            for si in ["1", "2", " 9 ", "3\n"] {
+                assert!(es_tecla_de_menu(si), "{si:?}");
+            }
+            for no in ["", "0", "10", "y", "2 por favor", "sí", "1."] {
+                assert!(!es_tecla_de_menu(no), "{no:?}");
+            }
         }
 
         /// `/compact` con su bloque: la orden aparte y el bloque entero detrás.
@@ -2015,8 +2053,15 @@ mod rueda_en_fullscreen {
         cmd.cwd(cwd);
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
+        // Lanzado desde una sesión de Claude Code, el hijo hereda sus `CLAUDE*`
+        // y se cree su subagente: no guarda transcript, y otras cosas que no se
+        // ven. Fuera todas menos la ruta del Git Bash, que la necesita.
+        for (k, _) in std::env::vars() {
+            if k.starts_with("CLAUDE") && k != "CLAUDE_CODE_GIT_BASH_PATH" {
+                cmd.env_remove(&k);
+            }
+        }
         cmd.env_remove("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN");
-        cmd.env_remove("CLAUDE_CODE_CHILD_SESSION");
         cmd.env_remove("CLAUDE_CODE_SCROLL_SPEED");
         let mut hijo = pair.slave.spawn_command(cmd).expect("no arrancó claude");
         let pid = hijo.process_id().expect("sin pid");
@@ -2505,6 +2550,99 @@ mod intro_en_claude {
 
         assert!(antes, "(control) lo de antes ya no se queda en la caja: ¿cambió Claude Code su detección de pegado?");
         assert!(entro, "el Intro aparte tiene que entrar");
+    }
+}
+
+/// Contestar a un menú de Claude Code con `send_command`, medido de verdad.
+///
+/// `cargo test --lib menu_en_claude -- --ignored --nocapture`
+///
+/// Lo que pasó el 2026-10-08: una sesión le contestó «2» a la pregunta de otra
+/// terminal («¿subo solo lo del panel?») y salió la opción 1, que subía también
+/// un commit ajeno a la web pública. Aquí Claude Code (Haiku) hace una pregunta
+/// de verdad con AskUserQuestion y se le contesta «la 2» de tres maneras; el
+/// oráculo es la respuesta que queda en su transcript, no la pantalla.
+///
+/// Lo que salió en la 2.1.295: pegado e Intro, «Rojo» (la 1); tecleado y sin
+/// Intro, «Azul» (elige al momento); flecha abajo e Intro, «Azul». Antes de
+/// esto se probó el menú del tema de la bienvenida y NO sirve: ese no hace caso
+/// a los números, solo a las flechas.
+#[cfg(all(test, windows))]
+mod menu_en_claude {
+    use super::rueda_en_fullscreen::{cerrar_limpio, comprobar_config_limpia, esperar_quieto, sin_escapes};
+    use super::ESPACIO_ENTRE_TECLAS;
+    use std::io::Write;
+    use std::time::{Duration, Instant};
+
+    /// La respuesta que quedó apuntada en el transcript de una sesión.
+    fn respuesta_apuntada(id: &str) -> Option<String> {
+        let perfil = std::env::var("USERPROFILE").ok()?;
+        let proyectos = std::path::Path::new(&perfil).join(".claude").join("projects");
+        let archivo = std::fs::read_dir(&proyectos).ok()?.filter_map(|d| d.ok()).map(|d| d.path().join(format!("{id}.jsonl"))).find(|p| p.exists())?;
+        let texto = std::fs::read_to_string(archivo).ok()?;
+        texto.lines().filter(|l| l.contains("tool_result")).find_map(|l| {
+            let v: serde_json::Value = serde_json::from_str(l).ok()?;
+            v["message"]["content"].as_array()?.iter().find_map(|b| {
+                let c = &b["content"];
+                c.as_str().map(str::to_owned).or_else(|| c.as_array()?.iter().find_map(|x| x["text"].as_str().map(str::to_owned)))
+            })
+        })
+    }
+
+    /// Una pregunta de verdad (AskUserQuestion, la de «¿subo los dos?») y tres
+    /// maneras de contestarle «la 2». Gasta mensajes cortos de Haiku.
+    #[test]
+    #[ignore = "arranca claude de verdad y gasta seis mensajes cortos de Haiku"]
+    fn contestar_la_dos_a_una_pregunta_de_claude() {
+        let cwd = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_string_lossy().to_string();
+        let maneras: [(&str, &[&[u8]]); 3] = [
+            ("pegado e Intro (lo de antes)", &[b"\x1b[200~2\x1b[201~", b"\r"]),
+            ("tecleado y sin Intro (lo que hace ahora mandar_texto)", &[b"2"]),
+            ("flecha abajo e Intro (send_keys)", &[b"\x1b[B", b"\r"]),
+        ];
+        let mut fuera = Vec::new();
+        for (nombre, teclas) in maneras {
+            let rastro = crate::foreman::SinRastro::nueva();
+            let mut p = super::rueda_en_fullscreen::abrir_con(&["--session-id", rastro.id(), "--model", "haiku"], &cwd, 120, 40, true);
+            let inicio = Instant::now();
+            while !p.salida.lock().unwrap().windows(8).any(|w| w == b"\x1b[?2004h") {
+                assert!(inicio.elapsed() < Duration::from_secs(40), "claude no pidió el pegado entre corchetes");
+                std::thread::sleep(Duration::from_millis(200));
+            }
+            esperar_quieto(&p.salida, Duration::from_millis(1500), Duration::from_secs(20));
+            let pide = "Usa ahora la herramienta AskUserQuestion con UNA pregunta, «¿Qué color?», y dos opciones en este orden: «Rojo» y «Azul». No hagas nada más.";
+            let desde = p.salida.lock().unwrap().len();
+            p.escritor.lock().unwrap().write_all(&super::envuelto_para_pegar(pide, true)).unwrap();
+            std::thread::sleep(ESPACIO_ENTRE_TECLAS);
+            p.escritor.lock().unwrap().write_all(b"\r").unwrap();
+            let inicio = Instant::now();
+            loop {
+                let visto = sin_escapes(&p.salida.lock().unwrap()[desde..]);
+                if visto.contains("Azul") && (visto.contains("to select") || visto.contains("navigate")) {
+                    break;
+                }
+                assert!(inicio.elapsed() < Duration::from_secs(120), "no salió la pregunta");
+                std::thread::sleep(Duration::from_millis(300));
+            }
+            esperar_quieto(&p.salida, Duration::from_millis(1500), Duration::from_secs(10));
+            for t in teclas {
+                p.escritor.lock().unwrap().write_all(t).unwrap();
+                std::thread::sleep(ESPACIO_ENTRE_TECLAS);
+            }
+            esperar_quieto(&p.salida, Duration::from_secs(3), Duration::from_secs(60));
+            let apuntada = respuesta_apuntada(rastro.id());
+            println!("  {nombre}: {}", apuntada.as_deref().unwrap_or("(no contestó nada)"));
+            fuera.push(apuntada);
+            // Por si se quedó la pregunta abierta: Esc la cancela.
+            let _ = p.escritor.lock().unwrap().write_all(b"\x1b");
+            std::thread::sleep(Duration::from_millis(500));
+            cerrar_limpio(&mut p);
+        }
+        comprobar_config_limpia();
+        let dice = |i: usize, que: &str| fuera[i].as_deref().is_some_and(|s| s.contains(que));
+        assert!(dice(0, "Rojo"), "(control) el «2» pegado ya no elige la 1: ¿cambió Claude Code?");
+        assert!(dice(1, "Azul"), "el «2» tecleado tiene que elegir la 2");
+        assert!(dice(2, "Azul"), "la flecha abajo e Intro tienen que elegir la 2");
     }
 }
 

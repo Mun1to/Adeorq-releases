@@ -1,11 +1,11 @@
 {
-  "version": "0.9.174",
-  "notes": "Movil: adjuntar fotos y archivos desde las dos cajas, y la pagina se puede meter en tu panel personal (solo ahi) con la clave guardada en el panel.",
-  "pub_date": "2026-10-08T19:21:18Z",
+  "version": "0.9.175",
+  "notes": "Un numero suelto mandado a una terminal de Claude Code ahora contesta a su menu con esa opcion (antes un 2 acababa eligiendo la 1).",
+  "pub_date": "2026-10-08T20:54:36Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3paZGJnenR0eEVTQ21lSXhaclNmQzV0dndnQm45ZEJNRWVRd3kyVVcwaTJMZndTL1lLS0U3SG42akQ4ZVNMRWlrYXdiL0tqMWxKWlNNVk5QVkY4eUFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDg3MjY5CWZpbGU6QWRlb3JxXzAuOS4xNzRfeDY0LXNldHVwLmV4ZQpYUnQvYjBQd215eU1jeHNvWFZLYTlTc3RWK0NRUytJbERKb3VlQTRpYVFwci9tZktSem1QUUNsOXJJTUNmamNEWTFqNnFHVUFXL21QOGt0WEhQMWVDUT09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.174/Adeorq_0.9.174_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzB3WkRMakpuaThzTFFvYUtHN1FCY3JlTmQxbGl0THhGMlZZdDY5dGlZQXNlOEZVSC9lN0V1TFQ5ak1WRGVxUGdXWjg4Rk9vYXJRSFpiUFQ0b0RZTWdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDkyODY4CWZpbGU6QWRlb3JxXzAuOS4xNzVfeDY0LXNldHVwLmV4ZQowK0FyK1FMbnBtOTc1VHNXdzZSSEM0ZFBqOEowV1cvUzBKb2xLRlRqOEZCeWZqSWZMaFZNNVc1ci9ySzJ5dERBejVYTmRUNWtWOGNxZWNFTS9OUzNDQT09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.175/Adeorq_0.9.175_x64-setup.exe"
     }
   }
 }

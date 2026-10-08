@@ -999,7 +999,15 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 let s = map.get(&pane_id).ok_or(format!("Pane {} not found", pane_id))?;
                 s.command.as_ref().is_some_and(|c| c.iter().any(|a| a.contains("claude")))
             };
-            let pegado = mandar_texto(app, pane_id, &texto, enviar)?;
+            let mandado = mandar_texto(app, pane_id, &texto, enviar)?;
+            if mandado == crate::pty::Mandado::Tecla {
+                return Ok(json!({ "content": [{ "type": "text", "text": format!(
+                    "Panel {}: «{}» tecleado como respuesta a un menú, sin Intro: en un menú de Claude Code el número ya elige, y un Intro detrás contestaría la pregunta siguiente. Si era un mensaje y no un menú, se ha quedado en la caja: send_keys([\"enter\"]).",
+                    pane_id,
+                    texto.trim()
+                ) }] }));
+            }
+            let pegado = mandado == crate::pty::Mandado::Pegado;
             let mut hecho = Vec::new();
             if !texto.is_empty() {
                 hecho.push(if pegado { "texto pegado" } else { "texto escrito" });

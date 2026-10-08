@@ -35,3 +35,23 @@ export function pantallaDe(id: number): string[] | null {
   while (filas.length && !filas[filas.length - 1]) filas.pop();
   return filas;
 }
+
+/** Las últimas `max` líneas del búfer, el historial incluido, con las que
+ *  xterm partió por el ancho vueltas a juntar (el móvil las envuelve al suyo).
+ *  En la pantalla alternativa no hay historial y sale la pantalla. */
+export function historiaDe(id: number, max: number): string[] | null {
+  const term = vivas.get(id);
+  if (!term) return null;
+  const buf = term.buffer.active;
+  const filas: string[] = [];
+  for (let y = Math.max(0, buf.length - max); y < buf.length; y++) {
+    const linea = buf.getLine(y);
+    if (!linea) continue;
+    const sigue = buf.getLine(y + 1)?.isWrapped ?? false;
+    const texto = linea.translateToString(!sigue);
+    if (linea.isWrapped && filas.length) filas[filas.length - 1] += texto;
+    else filas.push(texto);
+  }
+  while (filas.length && !filas[filas.length - 1].trim()) filas.pop();
+  return filas;
+}

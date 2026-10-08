@@ -1,7 +1,7 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.171",
+  "version": "0.9.172",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "xterm": "node scripts/xterm-check.mjs",
     "prueba": "node scripts/prueba-check-check.mjs",
     "publicar-version": "node scripts/publicar-version.mjs",
+    "latest": "node scripts/escribir-latest.mjs",
     "botones": "node scripts/botones-check.mjs",
     "textarea": "node scripts/textarea-check.mjs",
     "publicar": "node scripts/publicar-codigo.mjs",

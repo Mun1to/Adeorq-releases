@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f3f6fb" media="(prefers-color-scheme: light)">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -155,7 +155,20 @@
   .burbuja p:last-child, .burbuja ul:last-child, .burbuja ol:last-child { margin-bottom: 0; }
   .burbuja ul, .burbuja ol { margin: 0 0 8px; padding-left: 22px; }
   .burbuja code { font: 0.9em Consolas, "Cascadia Mono", ui-monospace, monospace; background: var(--capa-fuerte); padding: 1px 5px; border-radius: 5px; }
-  .burbuja pre { margin: 0 0 8px; padding: 10px; border-radius: 10px; background: var(--capa-fuerte); overflow-x: auto; font: 13px/1.45 Consolas, ui-monospace, monospace; }
+  .burbuja pre { margin: 0 0 8px; padding: 10px; border-radius: 10px; background: var(--capa-fuerte); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.45 Consolas, ui-monospace, monospace; }
+  /* Un bloque de código con su «Copiar»: el mensaje de compactación sale así. */
+  .bloque pre { padding-top: 34px; }
+  /* Pegado arriba mientras el bloque se vea: el de compactación ocupa más de
+     una pantalla, y quien lo lee llega al final, no al principio. */
+  .copiar {
+    position: sticky; top: 6px; float: right; margin: 6px 6px 0 0; z-index: 1;
+    padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    font-size: 12.5px; border: 1px solid var(--borde-fuerte); color: var(--suave);
+    /* Opaco: al bajar pasa por encima del texto, y con la capa translúcida del
+       tema oscuro se leían los dos a la vez. */
+    background: var(--fondo); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+  .copiar[data-hecho="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .herramientas { display: block; font-size: 12px; color: var(--suave); font-style: italic; margin-top: 4px; }
 
   .tarjeta {
@@ -219,12 +232,23 @@
 
   /* ── Las terminales (decisión E3) ── */
   .segunda { border-color: var(--borde); background: var(--capa); font-weight: 500; }
-  .pantalla-marco { display: flex; padding: 10px; }
+  /* Las dos caras de una terminal de agente: lo que se ha dicho y lo que se ve. */
+  .pestanas { display: flex; gap: 6px; padding: 8px 14px 0; }
+  .pestanas[hidden] { display: none; }
+  .pestanas .pastilla { flex: 1; justify-content: center; }
+  .cuerpo[hidden] { display: none; }
+  /* Una sola cosa hace scroll, el `.cuerpo`, y la letra se ajusta al ancho del
+     móvil: con `pre` sin ajustar, una línea de 77 columnas no cabía en 390 px y
+     había que ir de lado línea a línea para leer un mensaje entero. */
   .pantalla {
-    flex: 1; min-width: 0; margin: 0; padding: 10px 12px; overflow: auto; -webkit-overflow-scrolling: touch;
-    border-radius: 12px; border: 1px solid var(--borde); background: var(--capa); color: var(--tinta);
-    font: 12px/1.4 "Cascadia Mono", Consolas, ui-monospace, monospace; white-space: pre;
+    margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--borde);
+    background: var(--capa); color: var(--tinta);
+    font: 12px/1.4 "Cascadia Mono", Consolas, ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere;
   }
+  /* Cada línea en su caja, y lo que no cabe sigue con sangría: así se ve
+     dónde empieza una línea nueva y dónde sigue la de antes. */
+  .pantalla .l { display: block; padding-left: 2ch; text-indent: -2ch; min-height: 1.4em; }
+  #conversa .turno[data-rol="agente"] .burbuja { max-width: 100%; }
   .aviso-terminal { font-size: 12.5px; color: var(--suave); margin: 8px 4px 0; }
 </style>
 </head>
@@ -298,7 +322,7 @@ function md(texto) {
   const cierraLista = () => { if (lista) { html += `</${lista}>`; lista = null; } };
   for (const l of lineas) {
     if (l.trim().startsWith("```")) {
-      if (codigo) { html += `<pre>${codigo.join("\n")}</pre>`; codigo = null; }
+      if (codigo) { html += bloque(codigo); codigo = null; }
       else { cierraParrafo(); cierraLista(); codigo = []; }
       continue;
     }
@@ -315,10 +339,35 @@ function md(texto) {
     cierraLista();
     parrafo.push(l);
   }
-  if (codigo) html += `<pre>${codigo.join("\n")}</pre>`;
+  if (codigo) html += bloque(codigo);
   cierraParrafo(); cierraLista();
   return html;
 }
+
+const bloque = (lineas) => `<div class="bloque"><button class="copiar" type="button">Copiar</button><pre>${lineas.join("\n")}</pre></div>`;
+
+/* El «Copiar» de cualquier bloque, de cualquier vista. El portapapeles solo
+   existe en una página segura (la de Tailscale lo es, va por https); si no
+   está, se cae al `execCommand` de toda la vida. */
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest?.(".copiar");
+  if (!b) return;
+  const texto = b.nextElementSibling?.textContent ?? "";
+  let hecho = false;
+  try { await navigator.clipboard.writeText(texto); hecho = true; } catch (_) {
+    const t = document.createElement("textarea");
+    t.value = texto;
+    t.setAttribute("readonly", "");
+    t.style.cssText = "position:fixed;opacity:0;resize:none";
+    document.body.appendChild(t);
+    t.select();
+    try { hecho = document.execCommand("copy"); } catch (_) {}
+    t.remove();
+  }
+  b.textContent = hecho ? "Copiado" : "No se pudo";
+  b.dataset.hecho = String(hecho);
+  setTimeout(() => { b.textContent = "Copiar"; b.dataset.hecho = "false"; }, 1600);
+});
 
 async function api(metodo, ruta, cuerpo) {
   const cabeceras = { Authorization: `Bearer ${clave || ""}` };
@@ -810,6 +859,11 @@ async function pintarTerminales() {
   sondear(5000, cargar);
 }
 
+/* Munir, 2026-10-08: «no veo mucho historial de la terminal», y sin verlo no
+   podía copiar el mensaje de compactación. La pantalla de un Claude Code a
+   pantalla completa no tiene historial ninguno (lo que no cabe, no está en el
+   búfer), así que en una terminal de agente se abre por defecto lo que se ha
+   dicho, leído de su transcript, y la pantalla queda en la otra pestaña. */
 function pintarTerminal() {
   app.innerHTML = `
     <div class="vista">
@@ -817,7 +871,12 @@ function pintarTerminal() {
         <button class="atras" id="atras" aria-label="Volver a las terminales">${ICONO.atras}</button>
         <h1 id="titulo">Terminal ${e.panel}<small id="sub">cargando…</small></h1>
       </header>
-      <main class="cuerpo pantalla-marco"><pre class="pantalla" id="pantalla"></pre></main>
+      <nav class="pestanas" id="pestanas" hidden>
+        <button class="pastilla" data-cara="conversa">Conversación</button>
+        <button class="pastilla" data-cara="pantalla">Pantalla</button>
+      </nav>
+      <main class="cuerpo" id="conversa" hidden></main>
+      <main class="cuerpo" id="marco"><pre class="pantalla" id="pantalla"></pre></main>
       <footer class="caja" id="caja">
         <div class="fila-caja">
           <textarea id="texto" rows="1" placeholder="Escríbele a esta terminal" aria-label="Texto para la terminal"></textarea>
@@ -837,16 +896,60 @@ function pintarTerminal() {
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
   texto.addEventListener("input", () => { crecer(); enviarB.disabled = !texto.value.trim(); });
   const fallo = (m) => { const s = document.getElementById("sub"); if (s) s.textContent = m; };
+  // Lo último pintado en cada cara. Solo se repinta lo que cambió: rehacerlo
+  // cada 3 s le quitaba la selección a quien estaba copiando un trozo.
+  const pintado = { pantalla: null, conversa: null };
+  const pegadoAbajo = (el) => el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  let ultima = null;
+  const cara = () => (e.cara === "pantalla" || !ultima?.conversa ? "pantalla" : "conversa");
   const cargar = async () => {
     const v = await api("GET", `/api/terminal?panel=${e.panel}`);
-    const pre = document.getElementById("pantalla");
-    if (!pre) return;
+    const marco = document.getElementById("marco");
+    const conversa = document.getElementById("conversa");
+    if (!marco || !conversa) return;
+    ultima = { ...v, conversa: Boolean(v.agente && v.sesion && v.carpeta) };
     const [palabra] = estadoTerminal(v);
     document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small>${esc(hoja(v.carpeta))} · ${palabra}</small>`;
-    const abajo = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 40;
-    pre.textContent = (v.filas || []).join("\n") || "(la pantalla está vacía)";
-    if (abajo) pre.scrollTop = pre.scrollHeight;
+    const ahora = cara();
+    document.getElementById("pestanas").hidden = !ultima.conversa;
+    document.querySelectorAll(".pestanas .pastilla").forEach((b) => { b.dataset.on = String(b.dataset.cara === ahora); });
+    marco.hidden = ahora !== "pantalla";
+    conversa.hidden = ahora !== "conversa";
+
+    if (ahora === "pantalla") {
+      const filas = v.filas?.length ? v.filas : ["(la pantalla está vacía)"];
+      const texto = filas.join("\n");
+      if (texto !== pintado.pantalla) {
+        const abajo = pintado.pantalla === null || pegadoAbajo(marco);
+        document.getElementById("pantalla").innerHTML = filas.map((f) => `<span class="l">${esc(f)}</span>`).join("");
+        pintado.pantalla = texto;
+        if (abajo) marco.scrollTop = marco.scrollHeight;
+      }
+      return;
+    }
+    let turnos;
+    try {
+      turnos = await api("GET", `/api/sesion?cwd=${encodeURIComponent(v.carpeta)}&id=${encodeURIComponent(v.sesion)}`);
+    } catch (err) {
+      // Codex, Gemini y compañía no escriben en `~/.claude`: ahí solo queda la pantalla.
+      if (pintado.conversa !== err.message) conversa.innerHTML = `<p class="vacio">No encuentro lo que ha dicho esta sesión (${esc(err.message)}). Lo que se ve está en «Pantalla».</p>`;
+      pintado.conversa = err.message;
+      return;
+    }
+    const fin = turnos.at(-1);
+    const firma = `${v.sesion}:${turnos.length}:${fin?.texto.length ?? 0}:${fin?.herramientas?.length ?? 0}`;
+    if (firma === pintado.conversa) return;
+    const abajo = pintado.conversa === null || pegadoAbajo(conversa);
+    conversa.innerHTML = turnos.length ? turnosHtml(turnos) : `<p class="vacio">Esta sesión todavía no ha dicho nada.</p>`;
+    pintado.conversa = firma;
+    if (abajo) conversa.scrollTop = conversa.scrollHeight;
   };
+  document.querySelectorAll(".pestanas .pastilla").forEach((b) => b.addEventListener("click", () => {
+    e.cara = b.dataset.cara;
+    // Al volver a una cara, se repinta y se baja al final, como al entrar.
+    pintado[e.cara] = null;
+    cargar().catch((err) => fallo(err.message));
+  }));
   // Tras escribir, la pantalla tarda un instante en reflejarlo: se vuelve a
   // pedir en seguida en vez de esperar a la vuelta siguiente del sondeo.
   const enSeguida = () => setTimeout(() => cargar().catch(() => {}), 700);
@@ -878,6 +981,9 @@ function pintarTerminal() {
 
 // ─── Una sesión, para leerla ────────────────────────────────────────────────
 
+/** Los turnos de un transcript (`session_messages`), como burbujas. */
+const turnosHtml = (turnos) => turnos.map((t) => `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}${t.herramientas?.length ? `<span class="herramientas">${esc(t.herramientas.join(" · "))}</span>` : ""}</div></div>`).join("");
+
 function abrirSesion(cl) {
   const w = (e.conv?.trabajos || []).find((x) => claveDe(x) === cl);
   if (!w) return;
@@ -907,9 +1013,7 @@ function pintarSesion() {
     const aqui = document.getElementById("sesion");
     if (!aqui) return;
     const abajo = aqui.scrollHeight - aqui.scrollTop - aqui.clientHeight < 60;
-    aqui.innerHTML = turnos.length
-      ? turnos.map((t) => `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}${t.herramientas?.length ? `<span class="herramientas">${esc(t.herramientas.join(" · "))}</span>` : ""}</div></div>`).join("")
-      : `<p class="vacio">Todavía no hay nada que leer.</p>`;
+    aqui.innerHTML = turnos.length ? turnosHtml(turnos) : `<p class="vacio">Todavía no hay nada que leer.</p>`;
     if (abajo) aqui.scrollTop = aqui.scrollHeight;
   };
   cargar().catch((err) => { cuerpo.innerHTML = `<p class="nota">${esc(err.message)}</p>`; });

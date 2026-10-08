@@ -19,7 +19,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const PAGINA = path.join(RAIZ, "src-tauri", "src", "movil.html");
+// `PAGINA=<ruta>` sirve otra versión de la página, para mirar el antes y el después.
+const PAGINA = process.env.PAGINA || path.join(RAIZ, "src-tauri", "src", "movil.html");
 const PUERTO = Number(process.argv[2]) || 4390;
 const CLAVE = "clave-de-mentira";
 const ARRANQUE = 111;
@@ -51,9 +52,37 @@ const terminales = [
 const pantallas = new Map([
   [1, ["❯ Reproduzco el fallo antes de tocar nada.", "", "● Read(src/App.tsx)", "  ⎿  120 líneas", "", "● Buscando el culpable en lib/scrollTerm.ts…", "", "❯ "]],
   [2, ["Do you want to run `cargo check`?", "", "  1. Yes", "  2. No, and tell Codex what to do differently", "", "> "]],
-  [3, ["PS C:\\proyectos\\Vidorq> "]],
+  // Una consola con historial: 150 líneas de un `cargo build`, más anchas que el móvil.
+  [3, [...Array.from({ length: 150 }, (_, i) => `   Compiling crate-numero-${i} v0.${i}.0 (C:\\Users\\Muni\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\crate-${i})`), "PS C:\\proyectos\\Vidorq> "]],
 ]);
 const terminalDe = (panel) => terminales.find((t) => t.panel === Number(panel));
+// La del panel 1 tiene historia larga y acaba en un cierre con su bloque de
+// compactación, que es lo que Munir no podía leer entero desde el móvil.
+const sesionLarga = [];
+for (let i = 1; i <= 30; i++) {
+  sesionLarga.push({ rol: "tu", texto: `Paso ${i}: sigue con el scroll`, hora: "", herramientas: [] });
+  sesionLarga.push({ rol: "agente", texto: `Paso ${i} hecho. Medí la distancia al final con el panel a 180 columnas y bajándolo a 73: pasa de 0 a ${300 + i}.`, hora: "", herramientas: ["Read", "Edit"] });
+}
+sesionLarga.push({ rol: "tu", texto: "/fin", hora: "", herramientas: [] });
+sesionLarga.push({
+  rol: "agente",
+  texto: [
+    "**El scroll ya no salta al cambiar el ancho.**",
+    "",
+    "## Mensaje de compactación",
+    "```",
+    "# COMPACTACIÓN, Sesión Adeorq (2026-10-08)",
+    "",
+    "## Qué se hizo (en orden)",
+    ...Array.from({ length: 24 }, (_, i) => `${i + 1}. src/lib/scrollTerm.ts: la distancia al final se guarda antes de cambiar el ancho y se repone después, paso ${i + 1} de una línea bastante larga para un móvil`),
+    "",
+    "## Pendiente",
+    "- FIN-DEL-BLOQUE",
+    "```",
+  ].join("\n"),
+  hora: "",
+  herramientas: [],
+});
 
 function estadosDe(conv) {
   const estados = {};
@@ -189,10 +218,9 @@ http
           return json(res, 202, { ok: true });
         }
         case "/api/sesion":
-          return json(res, 200, [
-            { rol: "tu", texto: "Que el scroll de las terminales no salte al cambiar el ancho", hora: "", herramientas: [] },
-            { rol: "agente", texto: "Lo reproduzco antes de tocar nada: con el panel a 180 columnas y bajándolo a 73, la distancia al final pasa de 0 a 332.", hora: "", herramientas: ["Read", "Grep"] },
-          ]);
+          // Codex no escribe en `~/.claude`: su sesión no está en el disco.
+          if (url.searchParams.get("id") === "s-2") return json(res, 404, { error: "esa conversación no está en el disco" });
+          return json(res, 200, sesionLarga);
         default:
           return json(res, 404, { error: "Aquí no hay nada." });
       }

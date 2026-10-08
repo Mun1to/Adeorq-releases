@@ -871,6 +871,24 @@ pub fn envuelto_para_pegar(texto: &str, pegado: bool) -> Vec<u8> {
     }
 }
 
+/// Una orden de barra con un bloque de varias líneas detrás (`/compact` con el
+/// mensaje de compactación) se parte en la orden y el resto. Pegada entera,
+/// Claude Code la toma por un pegado y se la manda al modelo como un prompt
+/// (`<pasted_content>/compact …`) sin ejecutar nada; con la orden tecleada y
+/// el resto pegado, el bloque le llega entero en `<command-args>`. Medido en la
+/// 2.1.294 con un PTY suelto, leyendo su transcript (2026-10-08).
+pub fn orden_y_resto(texto: &str) -> Option<(&str, &str)> {
+    if !texto.starts_with('/') || !texto.contains('\n') {
+        return None;
+    }
+    let fin = texto.find(char::is_whitespace)?;
+    let orden = &texto[..fin];
+    let nombre_valido = orden.len() > 1
+        && orden[1..].chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | ':' | '.'));
+    let resto = texto[fin..].trim_start();
+    (nombre_valido && !resto.is_empty()).then_some((orden, resto))
+}
+
 /// Escribe el texto y, si se pide, pulsa Intro aparte. Devuelve si fue como
 /// pegado. Duerme entre medias: nunca desde el hilo de la ventana.
 pub fn mandar_texto(app: &AppHandle, id: u32, texto: &str, enviar: bool) -> Result<bool, String> {
@@ -880,8 +898,14 @@ pub fn mandar_texto(app: &AppHandle, id: u32, texto: &str, enviar: bool) -> Resu
         let s = map.get(&id).ok_or(format!("Pane {} not found", id))?;
         s.pegado.load(std::sync::atomic::Ordering::Relaxed)
     };
-    if !texto.is_empty() {
-        escribir_en_panel(app, id, envuelto_para_pegar(texto, pegado))?;
+    match orden_y_resto(texto).filter(|_| pegado) {
+        Some((orden, resto)) => {
+            escribir_en_panel(app, id, format!("{orden} ").into_bytes())?;
+            std::thread::sleep(ESPACIO_ENTRE_TECLAS);
+            escribir_en_panel(app, id, envuelto_para_pegar(resto, true))?;
+        }
+        None if !texto.is_empty() => escribir_en_panel(app, id, envuelto_para_pegar(texto, pegado))?,
+        None => {}
     }
     if enviar {
         if !texto.is_empty() {
@@ -1143,8 +1167,8 @@ pub fn list_projects(
 #[cfg(test)]
 mod tests {
     use super::{
-        envuelto_para_pegar, marcar_pantalla, recortar_historial, tomar, vaciar_pase_lo_que_pase, Fin,
-        HIST_OBJETIVO, HIST_TOPE,
+        envuelto_para_pegar, marcar_pantalla, orden_y_resto, recortar_historial, tomar, vaciar_pase_lo_que_pase,
+        Fin, HIST_OBJETIVO, HIST_TOPE,
     };
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
@@ -1176,6 +1200,20 @@ mod tests {
             assert_eq!(envuelto_para_pegar("hola", false), b"hola".to_vec());
             // Un salto dentro del texto va como lo manda una terminal al pegar.
             assert_eq!(envuelto_para_pegar("a\nb\r\nc", true), b"\x1b[200~a\rb\rc\x1b[201~".to_vec());
+        }
+
+        /// `/compact` con su bloque: la orden aparte y el bloque entero detrás.
+        /// Lo de una línea, lo que no es una orden y la orden sola, tal cual.
+        #[test]
+        fn una_orden_con_bloque_se_parte_en_orden_y_resto() {
+            assert_eq!(orden_y_resto("/compact # Resumen\nlínea 2"), Some(("/compact", "# Resumen\nlínea 2")));
+            assert_eq!(orden_y_resto("/compact\n# Resumen\nlínea 2"), Some(("/compact", "# Resumen\nlínea 2")));
+            assert_eq!(orden_y_resto("/plugin:orden a\nb"), Some(("/plugin:orden", "a\nb")));
+            assert_eq!(orden_y_resto("/compact céntrate en el scroll"), None);
+            assert_eq!(orden_y_resto("/compact\n"), None);
+            assert_eq!(orden_y_resto("mira /compact\nesto"), None);
+            assert_eq!(orden_y_resto("/ruta/de/un/fichero es esta\ny más"), None);
+            assert_eq!(orden_y_resto("/ hola\nadiós"), None);
         }
 
         /// El pegado entre corchetes va por el mismo lector: Claude Code lo pide

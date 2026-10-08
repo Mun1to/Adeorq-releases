@@ -1,11 +1,11 @@
 {
-  "version": "0.9.171",
-  "notes": "El panel de Archivos se pone al dia solo y pinta cada archivo: amarillo si se esta escribiendo ahora, sin guardar si lo tienes abierto con cambios, verde si es nuevo, azul si cambio desde el ultimo commit, rojo si esta en conflicto. MEDIDO: recorrido en la interfaz con un Tauri de mentira.",
-  "pub_date": "2026-10-08T12:24:48Z",
+  "version": "0.9.172",
+  "notes": "En el movil cada terminal de agente abre su conversacion entera, con Copiar en cada bloque; la pantalla trae historial y se ajusta al ancho; y /compact con su mensaje ya compacta",
+  "pub_date": "2026-10-08T13:25:45Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy9yNUhQMnR1Zm85dG56SzBLbDk0cTkxelYzeThvM29wenRuT2RMK0NDUGZveFRGeE0wOFZVdWdoQ3pnV1hZd2ZUYURIVmJlL21lMkJudDlJbGZHd3dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDYyMjczCWZpbGU6QWRlb3JxXzAuOS4xNzFfeDY0LXNldHVwLmV4ZQpZU0s3VWZWSEtxZXh2SXh5dVNpQmYxZFlrN1RJdUJVUFJWcXpCUzBFdFR3Nm9rMjc2aUJxU1IxdjlwZGxmYUxtRktZcHRsWFVadVgwOTJOUHEwMHZCdz09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.171/Adeorq_0.9.171_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVFWjFOa01Pd0NSenJuYW5qaFczWTFKTVRoLzlsTTJmblZUcWpKWXVDWll5YmpzWkUzcHR3L3hSN2ZrL2lHR0gxZ3VHWGNRU2ZXVTllU2pWeER2R0FJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDY1OTMyCWZpbGU6QWRlb3JxXzAuOS4xNzJfeDY0LXNldHVwLmV4ZQpOVVE3T1FsMHJIT2pXclJkQkxOY0U3Wjg0ZHh6MFkvZmZXQS82YVQzV2xEaTYzTzNNWThlaTZJUGZJMStrZW9wcTZNVXJBMXZUckhScWRvV1ZkMjVDdz09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.172/Adeorq_0.9.172_x64-setup.exe"
     }
   }
 }

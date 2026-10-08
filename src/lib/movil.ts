@@ -16,8 +16,8 @@
 // móvil a cualquier terminal):
 //
 //   terminales  la lista de paneles de las dos vistas, con su estado.
-//   pantalla    las filas de la pantalla de uno, del búfer de xterm
-//               (`pantallaDe`): lo mismo que `read_pane_screen` del MCP.
+//   pantalla    las últimas líneas de uno, del búfer de xterm con su historial
+//               (`historiaDe`); en la pantalla alternativa, la pantalla.
 //   escribir    texto a un panel por `sendPty`, que es el camino del pegado
 //               entre corchetes y el Intro aparte (ver `mandar_texto` en pty.rs).
 //   tecla       Intro, Esc o Ctrl+C sueltos, por `writePty`.
@@ -25,7 +25,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { sendPty, writePty, type PaneStatus } from "./pty";
-import { pantallaDe } from "./terminales";
+import { historiaDe } from "./terminales";
 import {
   arranqueDeAhora,
   avisarCambio,
@@ -96,9 +96,10 @@ export interface PedidoMovil {
 /** Las teclas sueltas que el móvil puede mandar, y sus bytes. Como
     `TECLAS_DEL_MOVIL` en `movil.rs`, que es quien las deja pasar. */
 const TECLAS: Record<string, string> = { intro: "\r", esc: "\x1b", "ctrl+c": "\x03" };
-/** Cuántas filas de pantalla se mandan como mucho: la pantalla entera son
-    hasta 50 y casi siempre media está vacía. */
-const TOPE_FILAS = 60;
+/** Cuántas líneas se mandan como mucho. Con la pantalla sola (60) desde el
+    móvil no se veía el historial de una consola (Munir, 2026-10-08); el
+    móvil las pide cada 3 s, así que tampoco el búfer entero. */
+const TOPE_FILAS = 400;
 
 const resumen = (s: PaneStatus) => ({
   panel: s.id,
@@ -110,19 +111,12 @@ const resumen = (s: PaneStatus) => ({
   sesion: s.sessionId ?? null,
 });
 
-/** Las últimas filas con algo escrito. */
-function recortar(filas: string[]): string[] {
-  let fin = filas.length;
-  while (fin > 0 && !filas[fin - 1].trim()) fin--;
-  return filas.slice(Math.max(0, fin - TOPE_FILAS), fin);
-}
-
 async function atenderTerminal(p: PedidoMovil, exec: ConserjeExec): Promise<Record<string, unknown>> {
   if (p.clase === "terminales") return { terminales: exec.panes().map(resumen) };
   const panel = Number(p.panel);
   const st = Number.isInteger(panel) ? exec.panes().find((s) => s.id === panel) : undefined;
   if (!st) return { error: "Esa terminal ya no está." };
-  if (p.clase === "pantalla") return { ...resumen(st), filas: recortar(pantallaDe(panel) ?? []) };
+  if (p.clase === "pantalla") return { ...resumen(st), filas: historiaDe(panel, TOPE_FILAS) ?? [] };
   if (p.clase === "escribir") {
     const texto = typeof p.texto === "string" ? p.texto.trim() : "";
     if (!texto) return { error: "No hay nada que mandar." };

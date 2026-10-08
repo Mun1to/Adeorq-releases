@@ -31,6 +31,7 @@ import { useT } from "../lib/i18n";
 import { guardarArchivo, leerArchivo, type Archivo } from "../lib/archivos";
 import { nombreDeRuta, peso, rutaCorta } from "../lib/arbol";
 import { lenguajeDe } from "../lib/lenguajes";
+import { useCabina } from "../lib/cabina";
 import { CloseIcon, MaximizeIcon, RefreshIcon, RestoreIcon } from "./Icons";
 
 interface Props {
@@ -220,6 +221,12 @@ function Hoja({
   useEffect(() => {
     onParte(ruta, { sucio, chip });
   }, [ruta, sucio, chip, onParte]);
+  // Y al árbol de Archivos, que la pinta como «sin guardar» (`lib/estadoArchivos.ts`).
+  // Al cerrar la pestaña deja de estarlo: lo que no está abierto no tiene nada sin guardar.
+  useEffect(() => {
+    useCabina.getState().marcarSinGuardar(ruta, sucio);
+  }, [ruta, sucio]);
+  useEffect(() => () => useCabina.getState().marcarSinGuardar(ruta, false), [ruta]);
 
   return (
     <div className="ed-hoja" data-visible={visible}>

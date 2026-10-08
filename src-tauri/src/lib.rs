@@ -425,6 +425,7 @@ pub fn run() {
             editor::editor_escribir_texto,
             archivos::listar_carpeta,
             archivos::leer_archivo,
+            archivos::estado_archivos,
             archivos::guardar_archivo,
             esquema::escanear_arbol,
             esquema::resumen_taller,

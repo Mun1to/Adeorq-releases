@@ -1,11 +1,11 @@
 {
-  "version": "0.9.170",
-  "notes": "El lienzo tiene la barra de sesiones a la izquierda, como la Cabina: lo que abres desde ella estando en el lienzo nace en el lienzo, y una sesion ya abierta te lleva a ella. MEDIDO: recorrido en la interfaz con un Tauri de mentira.",
-  "pub_date": "2026-10-08T12:03:56Z",
+  "version": "0.9.171",
+  "notes": "El panel de Archivos se pone al dia solo y pinta cada archivo: amarillo si se esta escribiendo ahora, sin guardar si lo tienes abierto con cambios, verde si es nuevo, azul si cambio desde el ultimo commit, rojo si esta en conflicto. MEDIDO: recorrido en la interfaz con un Tauri de mentira.",
+  "pub_date": "2026-10-08T12:24:48Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzd6dGtmUUhqR1hmUm1OMERmalg4WE4xM2twSFgxQUlpbHMyM3BIT1pFeDJpMU16SU1WKzlTcXFxSmt4TlBTcVZTT0o1RWREdUY0WXFYc2hLeXl0L1FjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDYxMDE1CWZpbGU6QWRlb3JxXzAuOS4xNzBfeDY0LXNldHVwLmV4ZQpNM1h0VXQrZ3dtWlFONTVkcmJTZmNURnFFdmQ4UDJOSWNtZmpiZ2VQdUZsSEV2SlNMazlIRzBpeDBNT29EemN5N1hyeUU3aG9MeHdxcUc5SG5IeW5DZz09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.170/Adeorq_0.9.170_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy9yNUhQMnR1Zm85dG56SzBLbDk0cTkxelYzeThvM29wenRuT2RMK0NDUGZveFRGeE0wOFZVdWdoQ3pnV1hZd2ZUYURIVmJlL21lMkJudDlJbGZHd3dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNDYyMjczCWZpbGU6QWRlb3JxXzAuOS4xNzFfeDY0LXNldHVwLmV4ZQpZU0s3VWZWSEtxZXh2SXh5dVNpQmYxZFlrN1RJdUJVUFJWcXpCUzBFdFR3Nm9rMjc2aUJxU1IxdjlwZGxmYUxtRktZcHRsWFVadVgwOTJOUHEwMHZCdz09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.171/Adeorq_0.9.171_x64-setup.exe"
     }
   }
 }

@@ -270,6 +270,75 @@
   color: color-mix(in srgb, var(--text) 82%, var(--muted));
 }
 
+/* ── Los colores de estado (`lib/estadoArchivos.ts`, Munir 2026-10-08) ──────
+   Un punto a la derecha de cada fila y el nombre teñido, mezclado con el color
+   del texto para que se lea también en los temas claros. El amarillo es lo que
+   se está escribiendo AHORA, y por eso es lo único que late: lo demás ya no se
+   mueve. Una carpeta lleva el punto de lo más importante que tiene dentro. */
+.arch {
+  --arch-conflicto: #ff6b81;
+  --arch-tocando: var(--warn);
+  --arch-sin-guardar: var(--text);
+  --arch-nuevo: #5fd38d;
+  --arch-cambiado: #6cb7ff;
+  --arch-borrado: #b9a2a6;
+}
+.arch [data-estado="conflicto"] { --arch-c: var(--arch-conflicto); }
+.arch [data-estado="tocando"] { --arch-c: var(--arch-tocando); }
+.arch [data-estado="sinGuardar"] { --arch-c: var(--arch-sin-guardar); }
+.arch [data-estado="nuevo"] { --arch-c: var(--arch-nuevo); }
+.arch [data-estado="cambiado"] { --arch-c: var(--arch-cambiado); }
+.arch [data-estado="borrado"] { --arch-c: var(--arch-borrado); }
+
+.arch-punto {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--arch-c);
+}
+
+.arch-fila[data-estado] .arch-nom {
+  color: color-mix(in srgb, var(--arch-c) 62%, var(--text));
+}
+
+.arch-fila[data-estado="tocando"]:not([data-on="true"]) {
+  background: color-mix(in srgb, var(--arch-tocando) 14%, transparent);
+}
+
+.arch-fila[data-estado="tocando"] .arch-punto {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--arch-tocando) 28%, transparent);
+  animation: arch-latido 1.1s ease-in-out infinite;
+}
+
+@keyframes arch-latido {
+  50% { opacity: 0.35; }
+}
+
+/* Cuántos hay de cada uno, debajo del nombre del proyecto. Solo los que hay:
+   con todo como en el commit, la línea no se pinta. */
+.arch-cuentas {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.arch-cuenta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.arch-cuenta .arch-punto {
+  margin-left: 0;
+}
+
 .arch-vacio {
   margin: 8px 4px;
   color: var(--muted);

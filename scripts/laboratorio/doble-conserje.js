@@ -284,6 +284,17 @@ async (page) => {
         // El encargo reescrito por el Capataz (lo que interpreta `interpretar`
         // en `lib/router.ts`), sembrado en `window.__encargoCapataz`.
         case "foreman_prompt": return JSON.stringify(window.__encargoCapataz ?? { encargo: "Revisa el login.", clase: "oficio", consecuencia: "baja", trabajo: "codigo" });
+        // El panel de Archivos: las carpetas, sembradas en `window.__carpetas`
+        // como { ruta: [{ nombre, carpeta?, cuando? }] }, y lo que diría git, en
+        // `window.__git` ({ git, cambios }). Una carpeta sin sembrar no existe.
+        case "listar_carpeta": {
+          const filas = (window.__carpetas ?? {})[args.ruta];
+          if (!filas) throw new Error("no existe");
+          return { ruta: args.ruta, filas: filas.map((f) => ({ carpeta: false, peso: 1, cuando: 0, ...f, ruta: `${args.ruta}\\${f.nombre}` })) };
+        }
+        case "estado_archivos": return JSON.parse(JSON.stringify(window.__git ?? { git: false, cambios: [] }));
+        // Abrir un archivo en el editor: un texto corto, leído hace un minuto.
+        case "leer_archivo": return { ruta: args.ruta, texto: "const hola = 1;\n", pega: null, peso: 16, cuando: Date.now() - 60_000, crlf: false };
         // ¿Contesta ese puerto? Los de `window.__puertosVivos` sí (ninguno si no
         // se dice), para ver la pregunta de abrir la web al levantar un servidor.
         case "puerto_escucha": return (window.__puertosVivos ?? []).includes(args.puerto);

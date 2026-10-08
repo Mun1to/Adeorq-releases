@@ -43,7 +43,31 @@ pub struct Entrada {
     pub ruta: String,
     pub carpeta: bool,
     pub peso: u64,
+    /// Cuándo se tocó por última vez, en milisegundos: es lo que pinta en
+    /// amarillo un archivo que un agente está escribiendo ahora mismo.
+    pub cuando: f64,
 }
+
+/// Un archivo que git ve distinto del último commit.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Cambio {
+    pub ruta: String,
+    /// "M" cambiado, "A" nuevo, "D" borrado, "R" renombrado, "U" en conflicto.
+    pub estado: String,
+    /// Cuándo se tocó, en milisegundos; 0 si ya no existe.
+    pub cuando: f64,
+}
+
+#[derive(Serialize)]
+pub struct EstadoArchivos {
+    /// La carpeta está dentro de un repositorio de git.
+    pub git: bool,
+    pub cambios: Vec<Cambio>,
+}
+
+/// Cuántos cambios se devuelven como mucho: una carpeta con veinte mil archivos
+/// sin ignorar no puede colgar la barra cada dos segundos y medio.
+const TOPE_CAMBIOS: usize = 3000;
 
 #[derive(Serialize)]
 pub struct Carpeta {
@@ -117,6 +141,7 @@ pub async fn listar_carpeta(ruta: String) -> Result<Carpeta, String> {
             nombre,
             carpeta,
             peso: if carpeta { 0 } else { meta.len() },
+            cuando: cuando_de(&meta),
         });
     }
 
@@ -209,9 +234,111 @@ pub async fn guardar_archivo(
     Ok(Guardado { cuando: cuando_de(&meta), pisaria: false })
 }
 
+/// Lo que git dice de cada archivo cambiado, sacado de
+/// `git status --porcelain=v1 -z`. Las rutas llegan relativas a la raíz del
+/// repositorio y salen absolutas con las barras del sistema, para casar con las
+/// del listado. Con `-z` no van entrecomilladas aunque lleven tildes.
+fn leer_porcelana(salida: &str, raiz_repo: &Path) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let mut partes = salida.split('\0');
+    while let Some(p) = partes.next() {
+        if p.len() < 4 || !p.is_char_boundary(3) {
+            continue;
+        }
+        let (xy, ruta) = p.split_at(3);
+        let b = xy.as_bytes();
+        let (x, y) = (b[0] as char, b[1] as char);
+        // En un renombrado o una copia viene detrás la ruta de antes, que no se pinta.
+        if x == 'R' || x == 'C' {
+            partes.next();
+        }
+        let estado = match (x, y) {
+            ('U', _) | (_, 'U') | ('A', 'A') | ('D', 'D') => "U",
+            ('?', '?') | ('A', _) => "A",
+            ('D', _) | (_, 'D') => "D",
+            ('R', _) | ('C', _) => "R",
+            _ => "M",
+        };
+        let abs = raiz_repo.join(ruta.trim_end_matches('/'));
+        let abs = abs.to_string_lossy().replace('/', std::path::MAIN_SEPARATOR_STR);
+        out.push((abs, estado.to_string()));
+    }
+    out
+}
+
+/// Qué archivos de la carpeta están distintos del último commit, y cuándo se
+/// tocó cada uno. Lo pide el panel de Archivos cada pocos segundos mientras está
+/// a la vista, que es lo que lo pone al día solo y lo pinta de colores
+/// (`lib/estadoArchivos.ts`). Fuera de un repositorio de git no es un error: se
+/// contesta que no hay git y el panel se queda con las horas del listado.
+#[tauri::command(async)]
+pub fn estado_archivos(raiz: String) -> Result<EstadoArchivos, String> {
+    use crate::SinVentana;
+    let dir = ruta_de(&raiz)?;
+    let git = |args: &[&str]| {
+        std::process::Command::new("git").arg("-C").arg(&dir).args(args).sin_ventana().output()
+    };
+    let sin_git = || Ok(EstadoArchivos { git: false, cambios: Vec::new() });
+    let Ok(top) = git(&["rev-parse", "--show-toplevel"]) else { return sin_git() };
+    if !top.status.success() {
+        return sin_git();
+    }
+    let raiz_repo = PathBuf::from(String::from_utf8_lossy(&top.stdout).trim());
+    let st = git(&["status", "--porcelain=v1", "-z", "--untracked-files=all", "--", "."])
+        .map_err(|e| e.to_string())?;
+    if !st.status.success() {
+        return Err(String::from_utf8_lossy(&st.stderr).trim().to_string());
+    }
+    let cambios = leer_porcelana(&String::from_utf8_lossy(&st.stdout), &raiz_repo)
+        .into_iter()
+        .take(TOPE_CAMBIOS)
+        .map(|(ruta, estado)| {
+            let cuando = std::fs::metadata(&ruta).map(|m| cuando_de(&m)).unwrap_or(0.0);
+            Cambio { ruta, estado, cuando }
+        })
+        .collect();
+    Ok(EstadoArchivos { git: true, cambios })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn la_porcelana_de_git_se_lee_entera() {
+        let raiz = Path::new("C:/repo");
+        let salida = " M src/App.tsx\0?? nuevo.txt\0R  b.rs\0a.rs\0UU choque.ts\0D  ido.md\0A  añadido.ts\0MM doble.ts\0";
+        let sep = std::path::MAIN_SEPARATOR_STR;
+        let r = |p: &str| format!("C:{sep}repo{sep}{}", p.replace('/', sep));
+        assert_eq!(
+            leer_porcelana(salida, raiz),
+            vec![
+                (r("src/App.tsx"), "M".to_string()),
+                (r("nuevo.txt"), "A".to_string()),
+                (r("b.rs"), "R".to_string()),
+                (r("choque.ts"), "U".to_string()),
+                (r("ido.md"), "D".to_string()),
+                (r("añadido.ts"), "A".to_string()),
+                (r("doble.ts"), "M".to_string()),
+            ]
+        );
+        assert!(leer_porcelana("", raiz).is_empty());
+    }
+
+    /// Con el git de verdad, sobre este mismo repositorio:
+    /// `cargo test --lib estado_de_este_repo -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn estado_de_este_repo() {
+        let raiz = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_string_lossy().to_string();
+        let e = estado_archivos(raiz.clone()).expect("git status");
+        println!("git: {} · {} cambios en {raiz}", e.git, e.cambios.len());
+        for c in e.cambios.iter().take(12) {
+            println!("  {} {} ({})", c.estado, c.ruta, c.cuando);
+        }
+        assert!(e.git);
+        assert!(estado_archivos(std::env::temp_dir().to_string_lossy().to_string()).map(|e| !e.git).unwrap_or(true));
+    }
 
     #[test]
     fn una_ruta_relativa_no_se_acepta() {
@@ -237,10 +364,10 @@ mod tests {
     #[test]
     fn las_carpetas_van_antes_y_luego_por_nombre() {
         let mut filas = vec![
-            Entrada { nombre: "zeta.ts".into(), ruta: "z".into(), carpeta: false, peso: 1 },
-            Entrada { nombre: "src".into(), ruta: "s".into(), carpeta: true, peso: 0 },
-            Entrada { nombre: "App.tsx".into(), ruta: "a".into(), carpeta: false, peso: 1 },
-            Entrada { nombre: "docs".into(), ruta: "d".into(), carpeta: true, peso: 0 },
+            Entrada { nombre: "zeta.ts".into(), ruta: "z".into(), carpeta: false, peso: 1, cuando: 0.0 },
+            Entrada { nombre: "src".into(), ruta: "s".into(), carpeta: true, peso: 0, cuando: 0.0 },
+            Entrada { nombre: "App.tsx".into(), ruta: "a".into(), carpeta: false, peso: 1, cuando: 0.0 },
+            Entrada { nombre: "docs".into(), ruta: "d".into(), carpeta: true, peso: 0, cuando: 0.0 },
         ];
         filas.sort_by(|a, b| match (a.carpeta, b.carpeta) {
             (true, false) => std::cmp::Ordering::Less,

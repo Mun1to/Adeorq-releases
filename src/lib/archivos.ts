@@ -8,6 +8,28 @@ export interface Entrada {
   ruta: string;
   carpeta: boolean;
   peso: number;
+  /** Cuándo se tocó por última vez, en milisegundos. */
+  cuando: number;
+}
+
+/** Un archivo distinto del último commit, según git. */
+export interface Cambio {
+  ruta: string;
+  /** "M" cambiado, "A" nuevo, "D" borrado, "R" renombrado, "U" en conflicto. */
+  estado: "M" | "A" | "D" | "R" | "U";
+  /** Cuándo se tocó, en milisegundos; 0 si ya no existe. */
+  cuando: number;
+}
+
+export interface EstadoArchivos {
+  /** La carpeta está dentro de un repositorio de git. */
+  git: boolean;
+  cambios: Cambio[];
+}
+
+/** Qué está distinto del último commit en esa carpeta (`estado_archivos`). */
+export function estadoArchivos(raiz: string): Promise<EstadoArchivos> {
+  return invoke("estado_archivos", { raiz });
 }
 
 export interface Carpeta {

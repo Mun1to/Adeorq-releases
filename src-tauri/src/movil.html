@@ -234,6 +234,23 @@
     background: var(--acento); color: var(--sobre-acento); display: grid; place-items: center;
   }
   .enviar:disabled { opacity: 0.4; cursor: default; }
+  .adjuntar {
+    flex: none; width: 34px; height: 38px; margin-left: -6px; border: 0; border-radius: 50%; cursor: pointer;
+    background: none; color: var(--suave); display: grid; place-items: center;
+  }
+  .adjuntos { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+  .adjuntos[hidden] { display: none; }
+  .adjunto {
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+    padding: 3px 4px 3px 4px; border-radius: 10px; font-size: 13px;
+    border: 1px solid var(--borde); background: var(--capa); color: var(--suave);
+  }
+  .adjunto img { width: 30px; height: 30px; object-fit: cover; border-radius: 7px; flex: none; }
+  .adjunto svg { flex: none; margin: 0 2px 0 4px; }
+  .adjunto .que { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .adjunto[data-estado="listo"] { color: var(--tinta); }
+  .adjunto[data-estado="mal"] { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 45%, transparent); }
+  .adjunto .quitar { flex: none; width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; font-size: 17px; line-height: 1; }
   .pastillas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .pastilla {
     display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
@@ -307,6 +324,7 @@ const ICONO = {
   diana: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
   deshacer: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>',
   terminal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7l5 5-5 5"/><path d="M12 17h7"/></svg>',
+  clip: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 01-7.1-7.1l8.6-8.6a3.3 3.3 0 014.7 4.7l-8.6 8.6a1.7 1.7 0 01-2.4-2.4l7.9-7.9"/></svg>',
 };
 
 /* Cómo se dice el estado de una terminal (los `WorkState` de lib/pty.ts), y
@@ -434,6 +452,108 @@ document.addEventListener("click", async (ev) => {
   setTimeout(() => { b.textContent = "Copiar"; b.dataset.hecho = "false"; }, 1600);
 });
 
+// ─── Los adjuntos ───────────────────────────────────────────────────────────
+// Munir, 2026-10-08: «que también se puedan adjuntar archivos, imágenes». Se
+// suben al PC a trozos (`/api/adjuntar`, cada trozo una petición normal) y al
+// mandar se añade su RUTA al texto, que es lo que lee Claude Code.
+
+const TROZO = 45000; // el `TROZO_ADJUNTO` de movil.rs
+const LADO_MAXIMO = 2048;
+
+/* Una foto del móvil son 3-8 MB y quien la lee la reduce igual: se achica
+   aquí, que por datos sube en segundos en vez de en un minuto. Lo que el
+   navegador no sabe abrir (HEIC, un PDF) va tal cual. */
+async function achicar(archivo) {
+  if (!/^image\/(jpeg|png|webp)$/.test(archivo.type) || !window.createImageBitmap) return archivo;
+  try {
+    const bmp = await createImageBitmap(archivo);
+    const lado = Math.max(bmp.width, bmp.height);
+    if (lado <= LADO_MAXIMO && archivo.size <= 2500000) { bmp.close?.(); return archivo; }
+    const k = Math.min(1, LADO_MAXIMO / lado);
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(bmp.width * k);
+    lienzo.height = Math.round(bmp.height * k);
+    lienzo.getContext("2d").drawImage(bmp, 0, 0, lienzo.width, lienzo.height);
+    bmp.close?.();
+    const blob = await new Promise((r) => lienzo.toBlob(r, "image/jpeg", 0.88));
+    return blob ? new File([blob], `${archivo.name.replace(/\.[^.]+$/, "") || "foto"}.jpg`, { type: "image/jpeg" }) : archivo;
+  } catch (_) {
+    return archivo;
+  }
+}
+
+function aBase64(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+async function subir(archivo, progreso) {
+  const f = await achicar(archivo);
+  const bytes = new Uint8Array(await f.arrayBuffer());
+  if (!bytes.length) throw new Error("está vacío");
+  const total = Math.ceil(bytes.length / TROZO);
+  const id = nuevoId();
+  let ruta = null;
+  for (let i = 0; i < total; i++) {
+    const v = await api("POST", "/api/adjuntar", { id, nombre: f.name, parte: i, total, datos: aBase64(bytes.subarray(i * TROZO, (i + 1) * TROZO)) });
+    progreso((i + 1) / total);
+    if (v.ruta) ruta = v.ruta;
+  }
+  if (!ruta) throw new Error("el PC no dijo dónde lo guardó");
+  return { ruta, nombre: f.name, imagen: f.type.startsWith("image/") ? URL.createObjectURL(f) : null };
+}
+
+/* El clip y la bandeja de una caja. `cambio` avisa para encender o apagar el
+   botón de enviar; `rutas()` es lo que se añade al texto al mandarlo. */
+function montarAdjuntos(caja, cambio) {
+  const input = caja.querySelector('input[type="file"]');
+  const bandeja = caja.querySelector(".adjuntos");
+  const lista = [];
+  const pintarBandeja = () => {
+    bandeja.hidden = !lista.length;
+    bandeja.innerHTML = lista.map((a, i) => {
+      const que = a.error ? `No se ha subido: ${a.error}` : a.ruta ? a.nombre : `${a.nombre} · ${Math.round(a.progreso * 100)} %`;
+      return `<span class="adjunto" data-estado="${a.error ? "mal" : a.ruta ? "listo" : "subiendo"}">${a.imagen ? `<img src="${a.imagen}" alt="">` : ICONO.clip}<span class="que">${esc(que)}</span><button type="button" class="quitar" data-i="${i}" aria-label="Quitar ${esc(a.nombre)}">×</button></span>`;
+    }).join("");
+    bandeja.querySelectorAll(".quitar").forEach((b) => b.addEventListener("click", () => {
+      const [a] = lista.splice(Number(b.dataset.i), 1);
+      if (a?.imagen) URL.revokeObjectURL(a.imagen);
+      pintarBandeja();
+    }));
+    cambio();
+  };
+  caja.querySelector(".adjuntar").addEventListener("click", () => input.click());
+  input.addEventListener("change", async () => {
+    const elegidos = [...input.files];
+    input.value = "";
+    for (const f of elegidos) {
+      const a = { nombre: f.name, ruta: null, imagen: null, progreso: 0, error: null };
+      lista.push(a);
+      pintarBandeja();
+      try {
+        Object.assign(a, await subir(f, (p) => { a.progreso = p; pintarBandeja(); }));
+      } catch (err) {
+        a.error = err.message;
+      }
+      pintarBandeja();
+    }
+  });
+  return {
+    subiendo: () => lista.some((a) => !a.ruta && !a.error),
+    // Entre comillas si la ruta lleva espacios (una carpeta de usuario con dos nombres).
+    rutas: () => lista.filter((a) => a.ruta).map((a) => (/\s/.test(a.ruta) ? `"${a.ruta}"` : a.ruta)),
+    vaciar: () => {
+      lista.forEach((a) => a.imagen && URL.revokeObjectURL(a.imagen));
+      lista.length = 0;
+      pintarBandeja();
+    },
+  };
+}
+
+const CLIP = `<button class="adjuntar" type="button" aria-label="Adjuntar una foto o un archivo">${ICONO.clip}</button><input type="file" multiple hidden>`;
+const conRutas = (texto, rutas) => [texto, ...rutas].filter(Boolean).join(" ");
+
 async function api(metodo, ruta, cuerpo) {
   const cabeceras = { Authorization: `Bearer ${clave || ""}` };
   if (cuerpo) cabeceras["Content-Type"] = "application/json";
@@ -455,13 +575,42 @@ async function api(metodo, ruta, cuerpo) {
 function olvidarClave() {
   clave = null;
   try { localStorage.removeItem(LLAVE); } catch (_) {}
+  alPanel({ tipo: "adeorq:olvidar" });
   ir({ vista: "emparejar" });
 }
 
+/* Dentro del panel personal de Munir (decisión del 2026-10-08): ahí esta
+   página va en un marco, y el navegador le da un almacén aparte que Brave
+   vacía al cerrar la pestaña. Emparejar exige ir al PC, así que sin esto
+   habría que volver a casa cada vez. La clave la guarda el panel y se la da
+   al abrir; se habla SOLO con esa dirección, la misma que deja `movil.rs` en
+   `frame-ancestors` (`PANEL_DE_MUNIR`). */
+const PANEL = "https://munito-panel.pages.dev";
+const enMarco = window.top !== window.self;
+function alPanel(mensaje) {
+  if (enMarco) try { window.parent.postMessage(mensaje, PANEL); } catch (_) {}
+}
+window.addEventListener("message", (ev) => {
+  if (ev.origin !== PANEL || ev.source !== window.parent || ev.data?.tipo !== "adeorq:clave") return;
+  const llegada = typeof ev.data.clave === "string" && /^[A-Za-z0-9_-]{16,128}$/.test(ev.data.clave) ? ev.data.clave : null;
+  if (e.vista !== "esperando") return;
+  if (llegada) {
+    clave = llegada;
+    try { localStorage.setItem(LLAVE, clave); } catch (_) {}
+  }
+  ir({ vista: clave ? "lista" : "emparejar" });
+});
+
 // ─── El estado y quien lo pinta ─────────────────────────────────────────────
 
-let e = { vista: clave ? "lista" : "emparejar" };
+let e = { vista: clave ? "lista" : enMarco ? "esperando" : "emparejar" };
 let reloj = null;
+// En el panel y sin clave propia: se le pide la suya, y si no contesta en un
+// momento (no la tiene, o el panel es viejo) se empareja como siempre.
+if (e.vista === "esperando") {
+  alPanel({ tipo: "adeorq:clave?" });
+  setTimeout(() => { if (e.vista === "esperando") ir({ vista: "emparejar" }); }, 1500);
+}
 
 // Un toque en un aviso abre la página con `#conv=<id>`: se va a esa
 // conversación y se limpia la dirección, que no es para guardarla.
@@ -528,7 +677,8 @@ async function quitarAvisos() {
 
 async function pintarAvisos() {
   const b = document.getElementById("avisos");
-  if (!b || !hayPush) return;
+  // En un marco el navegador no deja pedir avisos: se ponen abriendo la página aparte.
+  if (!b || !hayPush || enMarco) return;
   let puestos = false;
   try { puestos = !!(await suscripcionActual()) && Notification.permission === "granted"; } catch (_) {}
   b.hidden = false;
@@ -567,6 +717,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function pintar() {
+  if (e.vista === "esperando") { app.innerHTML = `<p class="vacio">Conectando con tu PC…</p>`; return; }
   if (e.vista === "emparejar") return pintarEmparejar();
   if (e.vista === "lista") return pintarLista();
   if (e.vista === "hilo") return pintarHiloEntero();
@@ -605,6 +756,7 @@ function pintarEmparejar() {
       if (!r.ok) throw new Error(v.error || "No se ha podido emparejar.");
       clave = v.clave;
       try { localStorage.setItem(LLAVE, clave); } catch (_) {}
+      alPanel({ tipo: "adeorq:clave-nueva", clave });
       ir({ vista: "lista" });
     } catch (err) {
       document.getElementById("error").innerHTML = `<p class="nota">${esc(err.message)}</p>`;
@@ -639,7 +791,11 @@ async function pintarLista() {
     filas.querySelectorAll(".fila").forEach((b) => b.addEventListener("click", () => ir({ vista: "hilo", id: b.dataset.id })));
   };
   api("GET", "/api/yo").then((v) => { const yo = document.getElementById("yo"); if (yo) yo.textContent = v.nombre; }).catch(() => {});
-  try { await cargar(); } catch (err) { document.getElementById("filas").innerHTML = `<p class="nota">${esc(err.message)}</p>`; }
+  try { await cargar(); } catch (err) {
+    // Un 401 ya ha cambiado de vista (`olvidarClave`): entonces no hay dónde pintarlo.
+    const filas = document.getElementById("filas");
+    if (filas) filas.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
+  }
   sondear(15000, cargar);
 }
 
@@ -655,7 +811,9 @@ function pintarHiloEntero() {
       <main class="cuerpo" id="hilo"></main>
       <footer class="caja" id="caja">
         <p class="aviso-mejora" id="aviso-mejora" hidden>Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.</p>
+        <div class="adjuntos" hidden></div>
         <div class="fila-caja">
+          ${CLIP}
           <textarea id="texto" rows="1" placeholder="Dile qué hay que hacer" aria-label="Mensaje al conserje"></textarea>
           <button class="enviar" id="enviar" aria-label="Enviar">${ICONO.subir}</button>
         </div>
@@ -690,6 +848,7 @@ function pintarHiloEntero() {
   document.getElementById("cerebro").addEventListener("change", (ev) => elegirCerebro(ev.target.value));
   document.getElementById("fijo").addEventListener("change", (ev) => elegirFijo(ev.target.value));
   e.crecer = crecer;
+  e.adj = montarAdjuntos(document.getElementById("caja"), () => pintarCaja());
   pintarHilo();
   pintarCaja();
   cargarHilo().catch((err) => mostrarFallo(err.message));
@@ -775,7 +934,7 @@ function pintarCaja() {
   const enviarB = document.getElementById("enviar");
   enviarB.innerHTML = pensando ? ICONO.parar : ICONO.subir;
   enviarB.setAttribute("aria-label", pensando ? "Parar" : "Enviar");
-  enviarB.disabled = !pensando && !texto.value.trim();
+  enviarB.disabled = !pensando && ((!texto.value.trim() && !e.adj?.rutas().length) || !!e.adj?.subiendo());
   const mejorarB = document.getElementById("mejorar");
   mejorarB.innerHTML = e.antes != null ? `${ICONO.deshacer}<span>Deshacer</span>` : `${ICONO.chispa}<span>${e.mejorando ? "Mejorando…" : "Mejorar"}</span>`;
   mejorarB.disabled = !!e.mejorando || (e.antes == null && !texto.value.trim());
@@ -802,9 +961,10 @@ function mostrarFallo(mensaje) {
 
 async function enviar(repetir) {
   const texto = document.getElementById("texto");
-  const txt = (repetir ?? texto.value).trim();
-  if (!txt) return;
-  if (repetir === undefined) { texto.value = ""; e.antes = null; e.crecer?.(); }
+  const escrito = (repetir ?? texto.value).trim();
+  const txt = repetir === undefined ? conRutas(escrito, e.adj?.rutas() || []) : escrito;
+  if (!txt || (repetir === undefined && e.adj?.subiendo())) return;
+  if (repetir === undefined) { texto.value = ""; e.antes = null; e.crecer?.(); e.adj?.vaciar(); }
   e.pendiente = txt;
   e.fallo = null;
   e.enCurso = { pensando: true, paso: "Mandándolo a tu PC…" };
@@ -945,7 +1105,9 @@ function pintarTerminal() {
       <footer class="caja" id="caja">
         <button class="bajar" id="bajar" hidden aria-label="Ir al final">${ICONO.bajar}</button>
         <p class="nota fallo" id="fallo" hidden></p>
+        <div class="adjuntos" hidden></div>
         <div class="fila-caja">
+          ${CLIP}
           <textarea id="texto" rows="1" placeholder="Escríbele a esta terminal" aria-label="Texto para la terminal"></textarea>
           <button class="enviar" id="enviar" aria-label="Enviar" disabled>${ICONO.subir}</button>
         </div>
@@ -961,7 +1123,10 @@ function pintarTerminal() {
   const texto = document.getElementById("texto");
   const enviarB = document.getElementById("enviar");
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
-  texto.addEventListener("input", () => { crecer(); enviarB.disabled = !texto.value.trim(); });
+  // Se manda con texto, con adjuntos o con las dos cosas; mientras sube uno, no.
+  const listo = () => { enviarB.disabled = (!texto.value.trim() && !adj.rutas().length) || adj.subiendo(); };
+  const adj = montarAdjuntos(document.getElementById("caja"), () => listo());
+  texto.addEventListener("input", () => { crecer(); listo(); });
   // Lo que no se pudo mandar se queda a la vista hasta que algo salga bien:
   // antes iba al subtítulo, que la vuelta siguiente del sondeo reescribía.
   const fallo = (m) => { const f = document.getElementById("fallo"); if (f) { f.textContent = m; f.hidden = false; } };
@@ -1037,18 +1202,19 @@ function pintarTerminal() {
   // pedir en seguida en vez de esperar a la vuelta siguiente del sondeo.
   const enSeguida = () => setTimeout(cargar, 700);
   enviarB.addEventListener("click", async () => {
-    const txt = texto.value.trim();
-    if (!txt) return;
+    const txt = conRutas(texto.value.trim(), adj.rutas());
+    if (!txt || adj.subiendo()) return;
     enviarB.disabled = true;
     try {
       await api("POST", "/api/terminal/escribir", { panel: e.panel, texto: txt });
       texto.value = "";
+      adj.vaciar();
       crecer();
       salioBien();
       enSeguida();
     } catch (err) {
       fallo(`No se ha mandado: ${err.message}`);
-      enviarB.disabled = false;
+      listo();
     }
   });
   document.querySelectorAll(".pastilla[data-tecla]").forEach((b) => b.addEventListener("click", async () => {

@@ -39,6 +39,10 @@ vieja.turnos = [
 ];
 vieja.trabajos = [{ panel: 4, cli: "claude", modelo: "sonnet", carpeta: "C:\\proyectos\\Webs", encargo: "Revisar el contraste de la portada", eligio: "router", porque: "Es oficio del día a día.", turno: 2, sesion: "s-vieja", arranque: 0, abierto: 0 }];
 
+const subidas = new Map();
+const adjuntos = [];
+// Lo último que se le escribió a cada terminal, para que el banco lo lea.
+const escrito = new Map();
 const enCurso = new Map();
 const abiertas = new Map(); // clave -> momento en que se abrió
 let yaFallo = false;
@@ -255,9 +259,12 @@ http
           const f = pantallas.get(t.panel);
           f[f.length - 1] += v.texto;
           f.push("", `● (el agente leyó: ${v.texto})`, "", "❯ ");
+          escrito.set(t.panel, v.texto);
           console.log(`escrito en ${t.panel}: ${v.texto}`);
           return json(res, 202, { ok: true });
         }
+        case "/api/escrito":
+          return json(res, 200, { texto: escrito.get(Number(url.searchParams.get("panel"))) ?? null });
         case "/api/terminal/tecla": {
           if (!["intro", "esc", "ctrl+c"].includes(v.tecla)) return json(res, 400, { error: "Esa tecla no se manda desde el móvil." });
           const f = pantallas.get(Number(v.panel));
@@ -266,6 +273,24 @@ http
           console.log(`tecla en ${v.panel}: ${v.tecla}`);
           return json(res, 202, { ok: true });
         }
+        // Los adjuntos, a trozos como en `guardar_trozo`: se cuentan los bytes y
+        // con el último se contesta la ruta donde quedaría en el PC.
+        case "/api/adjuntar": {
+          const s = subidas.get(v.id) || { siguiente: 0, bytes: 0 };
+          if (v.parte === 0) Object.assign(s, { siguiente: 0, bytes: 0 });
+          if (v.parte !== s.siguiente || !v.datos) return json(res, 400, { error: "Ese trozo no toca ahora: vuelve a adjuntarlo." });
+          s.siguiente++;
+          s.bytes += Buffer.from(v.datos, "base64").length;
+          subidas.set(v.id, s);
+          if (s.siguiente < v.total) return json(res, 200, { ok: true });
+          subidas.delete(v.id);
+          const ruta = `C:\\Users\\Muni\\AppData\\Local\\Adeorq\\pastes\\movil-${Date.now()}-${String(v.nombre).replace(/[^A-Za-z0-9._-]/g, "_")}`;
+          adjuntos.push({ ruta, bytes: s.bytes });
+          console.log(`adjunto: ${ruta} (${s.bytes} bytes)`);
+          return json(res, 200, { ruta });
+        }
+        case "/api/adjuntos":
+          return json(res, 200, adjuntos);
         case "/api/sesion":
           // Codex no escribe en `~/.claude`: su sesión no está en el disco.
           if (url.searchParams.get("id") === "s-2") return json(res, 404, { error: "esa conversación no está en el disco" });

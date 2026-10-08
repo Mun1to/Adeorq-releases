@@ -53,7 +53,17 @@ use crate::SinVentana;
 pub const PUERTO: u16 = 3013;
 const TOPE_CABECERAS: usize = 16 * 1024;
 const TOPE_CUERPO: usize = 64 * 1024;
-const TOPE_TEXTO: usize = 8_000;
+/// En caracteres. Era 8.000 y el mensaje de compactación de un `/fin` largo,
+/// con su `/compact` delante, no cabía; 16.000 siguen siendo 32 KB como mucho.
+const TOPE_TEXTO: usize = 16_000;
+/// Un adjunto llega a TROZOS, cada uno una petición normal con su clave, sus
+/// 64 KB y sus diez segundos: así subir una foto no obliga a aflojar ningún
+/// tope de arriba. 45.000 bytes son 60.000 en base64, y caben con su JSON.
+const TROZO_ADJUNTO: usize = 45_000;
+const TOPE_ADJUNTO: usize = 25 * 1024 * 1024;
+const SUBIDAS_A_LA_VEZ: usize = 4;
+/// Una subida a medias (el móvil se quedó sin cobertura) se tira a los diez minutos.
+const VIDA_SUBIDA: Duration = Duration::from_secs(10 * 60);
 const VIDA_CODIGO: Duration = Duration::from_secs(10 * 60);
 const INTENTOS: u8 = 5;
 /// Lo que se espera a la ventana. Contestar el estado es leer un fichero, y
@@ -456,23 +466,33 @@ fn razon(estado: u16) -> &'static str {
     }
 }
 
+/// La única página que puede llevar dentro la del móvil: el panel personal de
+/// Munir, que desde el 2026-10-08 tiene un apartado «Conexión remota a Adeorq»
+/// (lo eligió él frente a una tarjeta con un enlace). Una sola dirección, y
+/// exacta: cualquier otra que la metiera en un marco podría tapar sus botones
+/// con los de encima y hacerle pulsar lo que no ve.
+pub const PANEL_DE_MUNIR: &str = "https://munito-panel.pages.dev";
+
 fn escribir(w: &mut impl Write, r: &Respuesta) -> std::io::Result<()> {
     let mut cabeza = format!(
         "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\
-         Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n\
-         X-Frame-Options: DENY\r\n",
+         Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n",
         r.estado,
         razon(r.estado),
         r.tipo,
         r.cuerpo.len()
     );
     if r.tipo.starts_with("text/html") {
-        // Todo lo de la página va dentro de ella; fuera no se carga nada.
-        cabeza.push_str(
+        // Todo lo de la página va dentro de ella; fuera no se carga nada. Y en
+        // un marco, solo dentro del panel (`X-Frame-Options` no sabe decir «solo
+        // esta», así que la página va sin él y con `frame-ancestors`).
+        cabeza.push_str(&format!(
             "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; \
-             style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; \
-             frame-ancestors 'none'; base-uri 'none'; form-action 'none'\r\n",
-        );
+             style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; \
+             frame-ancestors 'self' {PANEL_DE_MUNIR}; base-uri 'none'; form-action 'none'\r\n",
+        ));
+    } else {
+        cabeza.push_str("X-Frame-Options: DENY\r\n");
     }
     cabeza.push_str("\r\n");
     w.write_all(cabeza.as_bytes())?;
@@ -501,6 +521,106 @@ fn id_valido(id: &str) -> bool {
     !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
+// ─── Los adjuntos ───────────────────────────────────────────────────────────
+// Munir, 2026-10-08: «haz que también se puedan adjuntar archivos, imágenes».
+// Van a la carpeta de las capturas pegadas en el PC (`pastes`), así que las
+// imágenes salen también en la galería del lienzo, y a la terminal o al
+// conserje les llega la RUTA, que es lo que lee Claude Code.
+
+struct Subida {
+    id: String,
+    nombre: String,
+    siguiente: u32,
+    total: u32,
+    bytes: usize,
+    desde: Instant,
+}
+static SUBIDAS: Mutex<Vec<Subida>> = Mutex::new(Vec::new());
+
+/// El nombre que dio el móvil, sin nada que no sea letra, cifra, punto o raya:
+/// nada de rutas, ni de nombres que empiecen por punto.
+fn nombre_de_adjunto(nombre: &str) -> String {
+    let limpio: String = nombre
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_') { c } else { '_' })
+        .collect();
+    let limpio = limpio.trim_start_matches(['.', '_']);
+    // Largo, se recorta por delante y se conserva la extensión.
+    let (base, ext) = match limpio.rsplit_once('.') {
+        Some((b, e)) if !b.is_empty() && e.len() <= 8 => (b, Some(e)),
+        _ => (limpio, None),
+    };
+    let base: String = base.chars().take(48).collect();
+    match (base.is_empty(), ext) {
+        (true, _) => "adjunto".into(),
+        (false, Some(e)) => format!("{base}.{e}"),
+        (false, None) => base,
+    }
+}
+
+/// Un trozo más de un adjunto. Con el último, el archivo pasa a su sitio y se
+/// devuelve su ruta. Los trozos van en orden: uno fuera de sitio es un móvil
+/// que reintenta mal, y se le dice en vez de coser un archivo roto.
+pub fn guardar_trozo(
+    dir: &std::path::Path,
+    id: &str,
+    nombre: &str,
+    parte: u32,
+    total: u32,
+    datos: &[u8],
+    ahora: Instant,
+) -> Result<Option<PathBuf>, String> {
+    if !id_valido(id) || total == 0 || parte >= total || datos.is_empty() || datos.len() > TROZO_ADJUNTO {
+        return Err("Ese trozo no tiene forma.".into());
+    }
+    let subiendo = dir.join(".subiendo");
+    std::fs::create_dir_all(&subiendo).map_err(|e| e.to_string())?;
+    let temporal = subiendo.join(id);
+    let mut subidas = SUBIDAS.lock().unwrap_or_else(|e| e.into_inner());
+    subidas.retain(|s| {
+        let viva = ahora.saturating_duration_since(s.desde) < VIDA_SUBIDA;
+        if !viva {
+            let _ = std::fs::remove_file(subiendo.join(&s.id));
+        }
+        viva
+    });
+    if parte == 0 {
+        subidas.retain(|s| s.id != id);
+        if subidas.len() >= SUBIDAS_A_LA_VEZ {
+            return Err("Hay demasiadas subidas a la vez; espera a que acabe una.".into());
+        }
+        std::fs::write(&temporal, b"").map_err(|e| e.to_string())?;
+        subidas.push(Subida { id: id.into(), nombre: nombre_de_adjunto(nombre), siguiente: 0, total, bytes: 0, desde: ahora });
+    }
+    let Some(i) = subidas.iter().position(|s| s.id == id) else {
+        return Err("Esa subida ya no está: vuelve a adjuntarlo.".into());
+    };
+    if parte != subidas[i].siguiente || total != subidas[i].total {
+        return Err("Ese trozo no toca ahora: vuelve a adjuntarlo.".into());
+    }
+    if subidas[i].bytes + datos.len() > TOPE_ADJUNTO {
+        subidas.remove(i);
+        let _ = std::fs::remove_file(&temporal);
+        return Err("Pesa demasiado: como mucho 25 MB.".into());
+    }
+    let mut f = std::fs::OpenOptions::new().append(true).open(&temporal).map_err(|e| e.to_string())?;
+    f.write_all(datos).map_err(|e| e.to_string())?;
+    subidas[i].siguiente += 1;
+    subidas[i].bytes += datos.len();
+    if subidas[i].siguiente < subidas[i].total {
+        return Ok(None);
+    }
+    let hecha = subidas.remove(i);
+    drop(f);
+    let sello = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let destino = dir.join(format!("movil-{sello}-{}", hecha.nombre));
+    std::fs::rename(&temporal, &destino).map_err(|e| e.to_string())?;
+    Ok(Some(destino))
+}
+
 // ─── Lo que se atiende ──────────────────────────────────────────────────────
 
 /// Las teclas sueltas que se pueden mandar a una terminal desde el móvil
@@ -523,6 +643,8 @@ pub trait Casa {
     fn fijo(&self, id: &str, modelo: &str) -> Result<(), String>;
     fn parar(&self, id: &str);
     fn sesion(&self, cwd: &str, sesion: &str) -> Result<Value, String>;
+    /// Dónde se guardan los adjuntos que llegan del móvil.
+    fn adjuntos(&self) -> Result<PathBuf, String>;
 }
 
 pub fn atender(
@@ -764,10 +886,29 @@ pub fn atender(
                 Err(e) => Respuesta::error(404, &e),
             }
         }
+        ("POST", "/api/adjuntar") => {
+            let id = cuerpo["id"].as_str().unwrap_or("");
+            let nombre = cuerpo["nombre"].as_str().unwrap_or("");
+            let parte = cuerpo["parte"].as_u64().and_then(|n| u32::try_from(n).ok());
+            let total = cuerpo["total"].as_u64().and_then(|n| u32::try_from(n).ok());
+            let datos = base64::engine::general_purpose::STANDARD.decode(cuerpo["datos"].as_str().unwrap_or(""));
+            let (Some(parte), Some(total), Ok(datos)) = (parte, total, datos) else {
+                return Respuesta::error(400, "Ese trozo no tiene forma.");
+            };
+            let dir = match casa.adjuntos() {
+                Ok(d) => d,
+                Err(e) => return Respuesta::error(500, &e),
+            };
+            match guardar_trozo(&dir, id, nombre, parte, total, &datos, reloj.0) {
+                Ok(Some(ruta)) => Respuesta::json(200, json!({ "ruta": ruta.to_string_lossy() })),
+                Ok(None) => Respuesta::json(200, json!({ "ok": true })),
+                Err(e) => Respuesta::error(400, &e),
+            }
+        }
         (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router"
             | "/api/cerebro" | "/api/fijo" | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
-            | "/api/terminal/tecla") => Respuesta::error(405, "Así no."),
+            | "/api/terminal/tecla" | "/api/adjuntar") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -863,6 +1004,11 @@ impl Casa for CasaDeVerdad {
     fn sesion(&self, cwd: &str, sesion: &str) -> Result<Value, String> {
         crate::sessions::session_messages(cwd.to_string(), Some(sesion.to_string()), Some(80))
             .map(|t| json!(t))
+    }
+    fn adjuntos(&self) -> Result<PathBuf, String> {
+        let dir = crate::dir_datos()?.join("pastes");
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        Ok(dir)
     }
 }
 
@@ -1498,6 +1644,76 @@ mod tests {
         fn sesion(&self, _: &str, _: &str) -> Result<Value, String> {
             Ok(json!([]))
         }
+        fn adjuntos(&self) -> Result<PathBuf, String> {
+            let dir = std::env::temp_dir().join("adeorq-movil-adjuntos");
+            std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+            Ok(dir)
+        }
+    }
+
+    /// Una foto en tres trozos llega entera y con su nombre limpio; un trozo
+    /// fuera de orden, sin clave o desmedido no cose nada.
+    #[test]
+    fn un_adjunto_llega_a_trozos_y_solo_emparejado() {
+        use base64::Engine;
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        let foto: Vec<u8> = (0..100_000u32).map(|i| (i % 251) as u8).collect();
+        let trozos: Vec<&[u8]> = foto.chunks(TROZO_ADJUNTO).collect();
+        let trozo = |i: usize, id: &str| {
+            json!({
+                "id": id, "nombre": "../Foto del móvil.JPG", "parte": i, "total": trozos.len(),
+                "datos": base64::engine::general_purpose::STANDARD.encode(trozos[i]),
+            })
+            .to_string()
+        };
+        assert_eq!(atender(&pedir("POST", "/api/adjuntar", None, &trozo(0, "f1")), &g, &casa, &nada, reloj).estado, 401);
+        assert_eq!(atender(&pedir("POST", "/api/adjuntar", c, &trozo(1, "f1")), &g, &casa, &nada, reloj).estado, 400, "sin empezar");
+        let mut ruta = Value::Null;
+        for i in 0..trozos.len() {
+            let r = atender(&pedir("POST", "/api/adjuntar", c, &trozo(i, "f1")), &g, &casa, &nada, reloj);
+            assert_eq!(r.estado, 200);
+            ruta = cuerpo_de(&r)["ruta"].clone();
+            assert_eq!(ruta.is_string(), i == trozos.len() - 1, "la ruta solo con el último");
+        }
+        let ruta = PathBuf::from(ruta.as_str().unwrap());
+        assert_eq!(std::fs::read(&ruta).unwrap(), foto);
+        let nombre = ruta.file_name().unwrap().to_string_lossy().into_owned();
+        assert!(nombre.starts_with("movil-") && nombre.ends_with("-Foto_del_m_vil.JPG"), "{nombre}");
+        assert_eq!(ruta.parent().unwrap(), casa.adjuntos().unwrap());
+        std::fs::remove_file(&ruta).unwrap();
+
+        // Fuera de orden: el 2 sin el 1.
+        assert_eq!(atender(&pedir("POST", "/api/adjuntar", c, &trozo(0, "f2")), &g, &casa, &nada, reloj).estado, 200);
+        assert_eq!(atender(&pedir("POST", "/api/adjuntar", c, &trozo(2, "f2")), &g, &casa, &nada, reloj).estado, 400);
+        // Un trozo mayor que el tope no se acepta, ni un id con ruta dentro.
+        let gordo = json!({ "id": "f3", "nombre": "x", "parte": 0, "total": 1,
+            "datos": base64::engine::general_purpose::STANDARD.encode(vec![1u8; TROZO_ADJUNTO + 1]) }).to_string();
+        assert_eq!(atender(&pedir("POST", "/api/adjuntar", c, &gordo), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("POST", "/api/adjuntar", c, &trozo(0, "../f4")), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("GET", "/api/adjuntar", c, ""), &g, &casa, &nada, reloj).estado, 405);
+        // Y el JSON de un trozo cabe en el tope del cuerpo.
+        assert!(trozo(0, "f5").len() < TOPE_CUERPO);
+    }
+
+    /// La página y el servidor dicen lo mismo: el tamaño del trozo, y la única
+    /// dirección con la que la página habla cuando va dentro del panel.
+    #[test]
+    fn la_pagina_y_el_servidor_dicen_lo_mismo() {
+        assert!(PAGINA.contains(&format!("const TROZO = {TROZO_ADJUNTO};")));
+        assert!(PAGINA.contains(&format!("const PANEL = \"{PANEL_DE_MUNIR}\";")));
+    }
+
+    #[test]
+    fn el_nombre_de_un_adjunto_no_lleva_rutas() {
+        assert_eq!(nombre_de_adjunto("..\\..\\Windows\\win.ini"), "Windows_win.ini");
+        assert_eq!(nombre_de_adjunto(".bashrc"), "bashrc");
+        assert_eq!(nombre_de_adjunto(""), "adjunto");
+        assert_eq!(nombre_de_adjunto("captura 2026-10-08.png"), "captura_2026-10-08.png");
+        assert_eq!(nombre_de_adjunto(&format!("{}.pdf", "a".repeat(200))).len(), 48 + 4);
     }
 
     fn pedir(metodo: &str, ruta: &str, clave: Option<&str>, cuerpo: &str) -> Peticion {
@@ -1656,10 +1872,15 @@ mod tests {
         assert!(pagina.starts_with("HTTP/1.1 200"), "{pagina:.80}");
         assert!(pagina.contains("Content-Security-Policy"));
         assert!(pagina.contains("<title>Conserje</title>"), "sale la página del móvil");
+        // En un marco, solo dentro del panel de Munir, y nada de X-Frame-Options,
+        // que con DENY lo bloquearía también ahí.
+        assert!(pagina.contains(&format!("frame-ancestors 'self' {PANEL_DE_MUNIR};")));
+        assert!(!pagina.contains("X-Frame-Options"));
         let lista = pide(format!(
             "GET /api/lista HTTP/1.1\r\nHost: 127.0.0.1:{puerto}\r\nAuthorization: Bearer {clave}\r\n\r\n"
         ));
         assert!(lista.starts_with("HTTP/1.1 200"), "{lista:.80}");
+        assert!(lista.contains("X-Frame-Options: DENY"));
         assert!(lista.ends_with(r#"[{"id":"abc","titulo":"Una"}]"#));
         hilo.join().unwrap();
     }

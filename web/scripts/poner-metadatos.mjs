@@ -14,7 +14,7 @@
  * Se lanza con `pnpm metadatos` desde web/.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
@@ -42,17 +42,47 @@ function tarjeta() {
 const INICIO = '<!-- METADATOS:INICIO (los escribe scripts/poner-metadatos.mjs, no editar a mano) -->'
 const FIN = '<!-- METADATOS:FIN -->'
 
+/**
+ * La portada existe en dos idiomas, cada uno en su URL (la inglesa la genera
+ * scripts/hacer-ingles.mjs). Las dos llevan EXACTAMENTE la misma lista de
+ * hreflang, cada una se incluye a sí misma y su canonical apunta a sí misma:
+ * con un canonical cruzado, el buscador borraría una de las dos. x-default es
+ * la inglesa, la que mejor sirve a quien no lee ninguna de las dos.
+ */
+const PORTADAS = [
+  { idioma: 'es', url: '/' },
+  { idioma: 'en', url: '/en/' },
+  { idioma: 'x-default', url: '/en/' },
+]
+
 /** Las paginas indexables, con lo suyo. El orden es el del sitemap. */
 const PAGINAS = [
   {
     archivo: 'index.html',
     url: '/',
     tipo: 'website',
+    idioma: 'es',
+    locale: 'es_ES',
+    alternos: PORTADAS,
     titulo: 'Adeorq · todos tus agentes en una sola pantalla',
     descripcion:
       'Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y 19 clientes mas ' +
       'trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.',
     prioridad: '1.0',
+    frecuencia: 'weekly',
+  },
+  {
+    archivo: 'en/index.html',
+    url: '/en/',
+    tipo: 'website',
+    idioma: 'en',
+    locale: 'en_US',
+    alternos: PORTADAS,
+    titulo: 'Adeorq · all your agents on one single screen',
+    descripcion:
+      'Desktop panel for Windows and Linux: Claude Code, Codex, Gemini and 19 more clients working ' +
+      'at once in real terminals, with your projects one click away. Free, no account and no API keys.',
+    prioridad: '0.9',
     frecuencia: 'weekly',
   },
   {
@@ -99,9 +129,12 @@ const IMAGEN = tarjeta()
 /** El bloque de cabecera de una pagina. */
 function metadatos(pagina, extras) {
   const abs = SITIO + pagina.url
+  const locale = pagina.locale || 'es_ES'
+  const otros = (pagina.alternos || []).filter((a) => a.idioma !== 'x-default' && a.idioma !== pagina.idioma)
   return [
     INICIO,
     `<link rel="canonical" href="${abs}">`,
+    ...(pagina.alternos || []).map((a) => `<link rel="alternate" hreflang="${a.idioma}" href="${SITIO}${a.url}">`),
     '',
     '<!-- Verificacion de Bing Webmaster Tools. No es un secreto: esta etiqueta',
     '     existe justo para ser publica, y es lo que demuestra que el sitio es de',
@@ -115,7 +148,8 @@ function metadatos(pagina, extras) {
     '     LinkedIn o Slack. No posiciona, pero es lo primero que nota alguien. -->',
     `<meta property="og:type" content="${pagina.tipo}">`,
     '<meta property="og:site_name" content="Adeorq">',
-    '<meta property="og:locale" content="es_ES">',
+    `<meta property="og:locale" content="${locale}">`,
+    ...otros.map((a) => `<meta property="og:locale:alternate" content="${a.idioma === 'en' ? 'en_US' : 'es_ES'}">`),
     `<meta property="og:url" content="${abs}">`,
     `<meta property="og:title" content="${pagina.titulo}">`,
     `<meta property="og:description" content="${pagina.descripcion}">`,
@@ -138,14 +172,15 @@ function metadatos(pagina, extras) {
 }
 
 /** Los datos estructurados de la portada. Solo describen lo que se ve. */
-function jsonLdPortada(preguntas) {
+function jsonLdPortada(preguntas, pagina) {
+  const ingles = pagina.idioma === 'en'
   const grafo = [
     {
       '@type': 'WebSite',
       '@id': `${SITIO}/#sitio`,
       url: `${SITIO}/`,
       name: 'Adeorq',
-      inLanguage: 'es-ES',
+      inLanguage: ['es-ES', 'en'],
       publisher: { '@id': `${SITIO}/#autor` },
     },
     {
@@ -166,9 +201,11 @@ function jsonLdPortada(preguntas) {
       downloadUrl: 'https://github.com/Mun1to/Adeorq-releases/releases/latest',
       softwareHelp: `${SITIO}/guia`,
       screenshot: IMAGEN,
-      description:
-        'Panel de escritorio que ejecuta clientes de agente de IA en terminales reales: ' +
-        'Claude Code, Codex, Gemini CLI, Copilot, Cursor y otros, en una sola ventana.',
+      description: ingles
+        ? 'Desktop panel that runs AI agent clients in real terminals: Claude Code, Codex, ' +
+          'Gemini CLI, Copilot, Cursor and others, in one single window.'
+        : 'Panel de escritorio que ejecuta clientes de agente de IA en terminales reales: ' +
+          'Claude Code, Codex, Gemini CLI, Copilot, Cursor y otros, en una sola ventana.',
       // Sin softwareVersion a proposito: un numero escrito aqui envejece solo, y
       // la version real ya la pinta datos.js desde data/latest.json.
       // Sin aggregateRating: no hay valoraciones reales que declarar.
@@ -184,7 +221,8 @@ function jsonLdPortada(preguntas) {
   if (preguntas.length) {
     grafo.push({
       '@type': 'FAQPage',
-      '@id': `${SITIO}/#preguntas`,
+      '@id': `${SITIO}${pagina.url}#preguntas`,
+      inLanguage: ingles ? 'en' : 'es-ES',
       mainEntity: preguntas.map((p) => ({
         '@type': 'Question',
         name: p.pregunta,
@@ -220,7 +258,7 @@ function jsonLdGuia() {
 
 /** El <title> que ya trae la pagina. Es la fuente del og:title. */
 function tituloDe(html, porDefecto) {
-  const m = html.match(/<title>([^<]*)<\/title>/)
+  const m = html.match(/<title[^>]*>([^<]*)<\/title>/)
   return m && m[1].trim() ? m[1].trim() : porDefecto
 }
 
@@ -248,17 +286,18 @@ function escribir(pagina, bloque) {
 
 // ---------------------------------------------------------------------------
 
-const portada = readFileSync(resolve(WEB, 'index.html'), 'utf8')
-const preguntas = preguntasDe(portada)
-
 for (const pagina of PAGINAS) {
-  const extras = pagina.archivo === 'index.html' ? jsonLdPortada(preguntas) : jsonLdGuia()
+  if (!existsSync(resolve(WEB, pagina.archivo))) {
+    throw new Error(`${pagina.archivo} no existe: la portada inglesa sale de \`node scripts/hacer-ingles.mjs\`, que va antes`)
+  }
   const html = readFileSync(resolve(WEB, pagina.archivo), 'utf8')
+  // Las preguntas de cada portada salen de SU HTML, en su idioma.
+  const preguntas = pagina.alternos ? preguntasDe(html) : []
+  const extras = pagina.alternos ? jsonLdPortada(preguntas, pagina) : jsonLdGuia()
   pagina.titulo = tituloDe(html, pagina.titulo)
   escribir(pagina, metadatos(pagina, extras))
-  console.log(`${pagina.archivo.padEnd(12)} -> ${SITIO}${pagina.url}`)
+  console.log(`${pagina.archivo.padEnd(14)} -> ${SITIO}${pagina.url}${pagina.alternos ? `  (${preguntas.length} preguntas)` : ''}`)
 }
-console.log(`preguntas frecuentes marcadas: ${preguntas.length}`)
 
 // --- sitemap ---------------------------------------------------------------
 // Solo las paginas indexables. Nada que lleve noindex ni nada que redirija:

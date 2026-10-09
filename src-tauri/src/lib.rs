@@ -29,6 +29,7 @@ mod modos_terminal;
 mod memoria_casa;
 mod vectores;
 mod conserje;
+mod decisiones;
 mod movil;
 mod push;
 mod secrets;

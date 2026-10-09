@@ -64,155 +64,43 @@ body {
   border-radius: 6px;
 }
 
-/* ------------------------------ LA BARRA ---------------------------------
-   Flotando sobre la escena, sin fondo hasta que se hace scroll: sobre un
-   cielo negro una barra opaca es una raya que parte la portada en dos. */
+/* La barra de arriba y los botones viven en barra.css: los comparte con la guía. */
 
-.nav {
+/* El aviso que sugiere el otro idioma (portada/idioma.js). Abajo a la izquierda,
+   lejos de la válvula y de «volver arriba», que viven a la derecha; en el móvil
+   sube debajo de la barra para no pisarlos. Fondo sin alfa por el ClearType. */
+.aviso-idioma {
   position: fixed;
-  inset: 0 0 auto 0;
-  z-index: 40;
+  left: 14px;
+  bottom: 14px;
+  z-index: 90;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 30px;
-  padding: 16px clamp(18px, 4vw, 54px);
-  transition: background .25s ease, border-color .25s ease;
-  border-bottom: 1px solid transparent;
+  gap: 8px 14px;
+  max-width: min(460px, calc(100vw - 28px));
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 14px;
+  background: #14161c;
+  color: rgba(233, 238, 247, .86);
+  font-size: 13.5px;
+  line-height: 1.4;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
 }
-.nav[data-pegada] {
-  /* Color PLANO, y no cristal, por dos medidas del 2026-08-21.
-  
-     La primera es de velocidad: un `backdrop-filter` en una barra fija tiene que
-     recomponer el desenfoque en CADA fotograma, porque lo que hay detras cambia
-     mientras se hace scroll. Apagandolo, el peor fotograma del scroll paso de
-     181 ms a 35 ms y los fotogramas lentos de 2,3 % a 1,3 %. Se probaron cuatro
-     variantes (saturate+blur 14px, blur 10px, blur 6px con mas opacidad, y
-     esto): ninguna con filtro bajaba de 69 ms.
-  
-     La segunda es de nitidez: en Windows, un fondo con transparencia apaga el
-     subpixel del ClearType y el texto de la barra se ve mas sucio. El color
-     plano lo devuelve.
-  
-     Lo que se pierde es el efecto cristal, que si es la firma visual de la app.
-     Sobre un fondo tan oscuro la diferencia se ve poco; a tirones se veia
-     siempre. */
-  background: #080c15;
-  border-bottom-color: var(--p-linea);
-  /* Se estrecha al bajar: la barra deja de ser el hueco vacio de la captura y
-     devuelve unos pixeles de pantalla justo cuando hacen falta. */
-  padding-top: 10px;
-  padding-bottom: 10px;
+.aviso-idioma__ir { color: var(--p-texto); text-decoration: underline; text-underline-offset: 3px; }
+.aviso-idioma__no {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(233, 238, 247, .6);
+  font: inherit;
+  cursor: pointer;
 }
-.nav { transition: background .25s ease, border-color .25s ease, padding .25s ease; }
-.nav__marca { display: inline-flex; align-items: center; gap: 9px; font-size: 17px; }
-.nav__marca img { width: 21px; height: 21px; display: block; }
-.nav__marca b { font-weight: 650; letter-spacing: -.01em; }
-
-.nav__enlaces { display: flex; gap: 26px; margin-left: 14px; }
-.nav__enlaces a {
-  position: relative;
-  color: var(--p-suave);
-  font-size: 14.5px;
-  padding: 6px 0;
-  transition: color .15s ease;
+.aviso-idioma__no:hover, .aviso-idioma__no:focus-visible { color: var(--p-texto); }
+@media (max-width: 640px) {
+  .aviso-idioma { left: 10px; right: 10px; bottom: auto; top: 68px; max-width: none; }
 }
-/* Subrayado que crece desde el centro al pasar por encima, y que se queda
-   puesto en la seccion que se esta mirando. Es `transform: scaleX`, no un
-   `width`, para que no vuelva a calcular la maqueta en cada fotograma. */
-.nav__enlaces a::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 1.5px;
-  border-radius: 2px;
-  background: var(--p-acento);
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform .26s cubic-bezier(.4, 0, .2, 1);
-}
-.nav__enlaces a:hover, .nav__enlaces a:focus-visible { color: var(--p-texto); }
-.nav__enlaces a:hover::after, .nav__enlaces a:focus-visible::after { transform: scaleX(1); }
-
-/* La seccion que se esta leyendo. La marca nav.js con un observador. */
-.nav__enlaces a[aria-current="true"] { color: var(--p-texto); }
-.nav__enlaces a[aria-current="true"]::after { transform: scaleX(1); opacity: .55; }
-
-.nav__gh { position: relative; transition: color .15s ease; }
-.nav__gh:hover { color: var(--p-texto); }
-
-.nav__acciones { margin-left: auto; display: flex; align-items: center; gap: 16px; }
-.nav__gh { color: var(--p-suave); font-size: 14.5px; }
-.nav__gh:hover { color: var(--p-texto); }
-
-@media (max-width: 860px) { .nav__enlaces { display: none; } }
-
-/* ------------------------------ BOTONES ---------------------------------- */
-
-.btn {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  border-radius: 999px;
-  font-weight: 620;
-  white-space: nowrap;
-  transition: transform .14s ease, box-shadow .2s ease, background .2s ease;
-}
-.btn--chico  { padding: 8px 17px; font-size: 14px; }
-.btn--grande { padding: 14px 26px; font-size: 15.5px; }
-
-/* El claro lleva el halo de la portada: es el unico sitio de la web donde un
-   boton brilla, y por eso se ve sin necesidad de ser mas grande. */
-.btn--claro {
-  background: linear-gradient(180deg, #ffffff, #dfe9fb);
-  color: #071019;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.5),
-              0 0 44px 8px rgba(120, 180, 255, calc(.40 * var(--motion-gain) + .12));
-}
-/* El brillo SIGUE al puntero. Las coordenadas las pone botones.js en
-   `--raton-x` / `--raton-y`, y aqui solo se pintan: asi el efecto es una capa de
-   CSS y no un repintado por cada movimiento del raton.
-
-   Este movimiento NO se multiplica por --motion-gain: lo provoca la persona con
-   su propia mano, y el dial solo encoge lo que se mueve sin que nadie lo pida
-   (parallax, reveals, la cinta). Un boton que no responde al puntero no es
-   sobriedad, es un boton roto. */
-.btn { position: relative; overflow: hidden; isolation: isolate; }
-.btn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity .22s ease;
-  background: radial-gradient(
-    120px circle at var(--raton-x, 50%) var(--raton-y, 50%),
-    rgba(255, 255, 255, .55), transparent 62%);
-}
-.btn--claro::before {
-  background: radial-gradient(
-    130px circle at var(--raton-x, 50%) var(--raton-y, 50%),
-    rgba(120, 180, 255, .40), transparent 60%);
-}
-.btn:hover::before, .btn:focus-visible::before { opacity: 1; }
-
-.btn--claro:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 0 1px rgba(255,255,255,.62),
-              0 0 56px 10px rgba(120, 180, 255, calc(.52 * var(--motion-gain) + .16));
-}
-.btn--claro:active { transform: translateY(0); transition-duration: .06s; }
-.btn--fantasma:hover { transform: translateY(-2px); }
-.btn--fantasma:active { transform: translateY(0); transition-duration: .06s; }
-.btn--claro em, .btn--fantasma em { font-style: normal; font-size: 12.5px; opacity: .62; font-weight: 500; }
-
-.btn--fantasma {
-  border: 1px solid var(--p-linea2);
-  color: var(--p-texto);
-  background: rgba(255,255,255,.02);
-}
-.btn--fantasma:hover { background: rgba(255,255,255,.06); }
 
 
 /* ========================= APARECER AL ENTRAR ============================= */
@@ -467,6 +355,12 @@ body {
   transform: translateY(calc(18px * var(--motion-gain)));
   transition: opacity .6s ease, transform .7s cubic-bezier(.16,1,.3,1);
 }
+/* La entrada es lo más grande que pinta un móvil (su LCP), y con opacidad 0 no
+   cuenta como pintada hasta que el JavaScript la enciende. Medido el
+   2026-10-09 en un Chromium a 390 px con la CPU a 4x y 4G lenta, mediana de
+   cinco: LCP de 3,6 s con el fundido y de 1,8 s sin él (el tope de la casa es
+   2,5). Sale ya visible y solo se asienta. */
+.entrada { opacity: 1; }
 .haz[data-entrada] .entrada  { opacity: 1; transform: none; transition-delay: .18s; }
 .haz[data-entrada] .acciones { opacity: 1; transform: none; transition-delay: .26s; }
 .haz[data-entrada] .notas    { opacity: 1; transform: none; transition-delay: .34s; }

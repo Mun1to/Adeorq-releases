@@ -25,9 +25,23 @@ que conviene decirlo con esas palabras.
 Los logotipos de los clientes compatibles son marcas de sus dueños. Adeorq no está
 afiliado ni patrocinado por ninguno de ellos.
 
+## In English
+
+Adeorq is a desktop panel for Windows and Linux that runs AI agent clients (Claude
+Code, Codex, Gemini CLI, Copilot, Cursor and 17 more) in real terminals, all at once,
+with the projects on disk one click away. Free, no account and no API keys: it uses
+the CLI already installed and the session already signed in. It can also be used
+from a phone or any browser, over Tailscale. The code is published under the
+PolyForm Shield License 1.0.0: it can be read, used, modified, forked and shared;
+the only thing it forbids is offering a product that competes with Adeorq, which
+includes selling it. It is not open source.
+
+- [Home page in English](https://adeorq.com/en/): what it is, how it works, the clients, the download and the FAQ.
+
 ## Páginas
 
 - [Portada](https://adeorq.com/): qué es, cómo funciona, los clientes compatibles, la descarga y las preguntas frecuentes.
+- [Portada en inglés](https://adeorq.com/en/): la misma portada, en su propia dirección.
 - [Guía](https://adeorq.com/guia): qué hace cada pantalla, la instalación, los estados de una sesión, los atajos y dónde guarda sus cosas.
 - [En el móvil](https://adeorq.com/guia#movil): cómo usar Adeorq desde el móvil o desde otro navegador, paso a paso.
 

@@ -95,7 +95,12 @@ export interface PedidoMovil {
 
 /** Las teclas sueltas que el móvil puede mandar, y sus bytes. Como
     `TECLAS_DEL_MOVIL` en `movil.rs`, que es quien las deja pasar. */
-const TECLAS: Record<string, string> = { intro: "\r", esc: "\x1b", "ctrl+c": "\x03" };
+const TECLAS: Record<string, string> = {
+  intro: "\r", esc: "\x1b", "ctrl+c": "\x03",
+  // Shift+Tab cambia de modo en Claude Code; las flechas, para los menús que no
+  // hacen caso a los números (el del tema de la bienvenida).
+  "shift+tab": "\x1b[Z", arriba: "\x1b[A", abajo: "\x1b[B",
+};
 /** Cuántas líneas se mandan como mucho. Con la pantalla sola (60) desde el
     móvil no se veía el historial de una consola (Munir, 2026-10-08); el
     móvil las pide cada 3 s, así que tampoco el búfer entero. */

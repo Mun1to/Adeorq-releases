@@ -3,10 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Adeorq · el panel donde trabajan tus agentes</title>
-<meta name="description" content="Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y los demás CLI a la vez, en terminales de verdad, y también desde el móvil.">
+<title data-en="meta.titulo">Adeorq · el panel donde trabajan tus agentes</title>
+<meta name="description" data-en-attr="content:meta.desc" content="Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y los demás CLI a la vez, en terminales de verdad, y también desde el móvil.">
 <!-- METADATOS:INICIO (los escribe scripts/poner-metadatos.mjs, no editar a mano) -->
 <link rel="canonical" href="https://adeorq.com/">
+<link rel="alternate" hreflang="es" href="https://adeorq.com/">
+<link rel="alternate" hreflang="en" href="https://adeorq.com/en/">
+<link rel="alternate" hreflang="x-default" href="https://adeorq.com/en/">
 
 <!-- Verificacion de Bing Webmaster Tools. No es un secreto: esta etiqueta
      existe justo para ser publica, y es lo que demuestra que el sitio es de
@@ -21,6 +24,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Adeorq">
 <meta property="og:locale" content="es_ES">
+<meta property="og:locale:alternate" content="en_US">
 <meta property="og:url" content="https://adeorq.com/">
 <meta property="og:title" content="Adeorq · el panel donde trabajan tus agentes">
 <meta property="og:description" content="Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y 19 clientes mas trabajando a la vez en terminales de verdad, con tus proyectos a un clic. Gratis, sin cuenta y sin claves de API.">
@@ -45,7 +49,10 @@
       "@id": "https://adeorq.com/#sitio",
       "url": "https://adeorq.com/",
       "name": "Adeorq",
-      "inLanguage": "es-ES",
+      "inLanguage": [
+        "es-ES",
+        "en"
+      ],
       "publisher": {
         "@id": "https://adeorq.com/#autor"
       }
@@ -81,6 +88,7 @@
     {
       "@type": "FAQPage",
       "@id": "https://adeorq.com/#preguntas",
+      "inLanguage": "es-ES",
       "mainEntity": [
         {
           "@type": "Question",
@@ -171,12 +179,13 @@
 })();
 </script>
 
+<link rel="stylesheet" href="./portada/barra.css">
 <link rel="stylesheet" href="./portada/portada.css">
 <link rel="stylesheet" href="./portada/valvula.css">
 </head>
 <body>
 
-<a class="saltar" href="#contenido">Saltar al contenido</a>
+<a class="saltar" href="#contenido" data-en="saltar">Saltar al contenido</a>
 
 <!-- ============================ LA BARRA ============================ -->
 <div class="progreso" aria-hidden="true"><div class="progreso__linea"></div></div>
@@ -187,19 +196,48 @@
     <img src="/assets/adeorq.svg" alt="" width="21" height="21">
     <b>Adeorq</b>
   </a>
-  <nav class="nav__enlaces" aria-label="Secciones">
-    <a href="#trabajo">Cómo trabaja</a>
-    <a href="#que-es">Qué hace</a>
-    <a href="#cinta">Clientes</a>
-    <a href="#movil">En el móvil</a>
+  <nav class="nav__enlaces" aria-label="Secciones" data-en-attr="aria-label:nav.aria">
+    <a href="#trabajo" data-en="nav.trabajo">Cómo trabaja</a>
+    <a href="#que-es" data-en="nav.queEs">Qué hace</a>
+    <a href="#cinta" data-en="nav.clientes">Clientes</a>
+    <a href="#movil" data-en="nav.movil">En el móvil</a>
+    <a href="/guia" data-en="nav.guia">Guía</a>
   </nav>
   <div class="nav__acciones">
-    <a class="nav__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">
-      Código
-    </a>
-    <a class="btn btn--claro btn--chico" href="#descargar">Descargar</a>
+    <!-- Un enlace de verdad y no un botón de JavaScript: es el camino por el
+         que el buscador descubre la otra versión (cada idioma es su URL). -->
+    <a class="nav__idioma" href="/en/" hreflang="en" lang="en" data-idioma="en"
+       data-en="nav.idioma" data-en-attr="href:nav.idioma.href|hreflang:nav.idioma.lang|lang:nav.idioma.lang|data-idioma:nav.idioma.lang">English</a>
+    <a class="nav__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-en="nav.codigo">Código</a>
+    <a class="btn btn--claro btn--chico" href="#descargar" data-en="nav.descargar">Descargar</a>
+    <button class="nav__menu" type="button" aria-label="Abrir el menú" aria-haspopup="dialog"
+            aria-controls="menu-movil" aria-expanded="false" data-menu-abrir data-en-attr="aria-label:menu.abrir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
   </div>
 </header>
+
+<!-- El menú del móvil (por debajo de 860 px): una hoja modal, que lleva lo
+     que la barra esconde, el idioma incluido. Lo abre y lo cierra portada/menu.js. -->
+<dialog class="hoja-menu" id="menu-movil" aria-label="Menú" data-en-attr="aria-label:menu.titulo">
+  <button class="hoja-menu__cerrar" type="button" aria-label="Cerrar el menú" data-menu-cerrar data-en-attr="aria-label:menu.cerrar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <p class="hoja-menu__titulo" data-en="menu.titulo">Menú</p>
+  <nav aria-label="Secciones" data-en-attr="aria-label:nav.aria">
+    <a href="#trabajo" autofocus data-en="nav.trabajo">Cómo trabaja</a>
+    <a href="#que-es" data-en="nav.queEs">Qué hace</a>
+    <a href="#cinta" data-en="nav.clientes">Clientes</a>
+    <a href="#movil" data-en="nav.movil">En el móvil</a>
+    <a href="#descargar" data-en="nav.descargar">Descargar</a>
+    <a href="#faq" data-en="pie.preguntas">Preguntas</a>
+    <a href="/guia" data-en="nav.guia">Guía</a>
+    <hr>
+    <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-en="menu.codigo">Código en GitHub</a>
+    <a href="/en/" hreflang="en" lang="en" data-idioma="en"
+       data-en="nav.idioma" data-en-attr="href:nav.idioma.href|hreflang:nav.idioma.lang|lang:nav.idioma.lang|data-idioma:nav.idioma.lang">English</a>
+  </nav>
+</dialog>
 
 <main id="contenido"><span id="top" aria-hidden="true"></span>
 
@@ -221,10 +259,10 @@
 
   <div class="haz__texto">
     <h1 class="titular" id="titular">
-      <span class="titular__linea"><span>Todos tus agentes,</span></span>
-      <span class="titular__linea"><span>en una sola pantalla</span></span>
+      <span class="titular__linea"><span data-en="hero.linea1">Todos tus agentes,</span></span>
+      <span class="titular__linea"><span data-en="hero.linea2">en una sola pantalla</span></span>
     </h1>
-    <p class="entrada">
+    <p class="entrada" data-en="hero.entrada">
       Claude Code, Codex, Gemini y otros diecinueve clientes, cada uno en su
       terminal de verdad, con tus proyectos a un clic. Tú sueltas el encargo y
       ellos trabajan.
@@ -235,15 +273,15 @@
       <a class="btn btn--claro btn--grande"
          href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"
          data-descarga-hero rel="noopener">
-        <span data-descarga-hero-texto>Descargar para Windows</span>
-        <em>gratis, sin cuenta</em>
+        <span data-descarga-hero-texto data-en="descarga.windows">Descargar para Windows</span>
+        <em data-en="descarga.gratis">gratis, sin cuenta</em>
       </a>
-      <a class="btn btn--fantasma btn--grande" href="#trabajo">Ver cómo trabaja</a>
+      <a class="btn btn--fantasma btn--grande" href="#trabajo" data-en="hero.verComo">Ver cómo trabaja</a>
     </div>
     <ul class="notas">
-      <li>Windows y Linux · 64 bits</li>
-      <li>Actualizaciones firmadas</li>
-      <li>Usa la sesión que ya tienes</li>
+      <li data-en="hero.nota1">Windows y Linux · 64 bits</li>
+      <li data-en="hero.nota2">Actualizaciones firmadas</li>
+      <li data-en="hero.nota3">Usa la sesión que ya tienes</li>
     </ul>
   </div>
 
@@ -270,10 +308,12 @@
            valvula.js la trae en cuanto la ventana se acerca a la pantalla o la
            persona hace el primer gesto, con su cinturon de seguridad detras. -->
       <iframe id="ventana-demo" title="Adeorq en marcha, se puede usar"
+              data-en-attr="title:hero.demo|data-src:hero.demo.src"
               data-src="/demo/?desnuda=1"></iframe>
-      <noscript><iframe title="Adeorq en marcha" src="/demo/?desnuda=1"></iframe></noscript>
+      <noscript><iframe title="Adeorq en marcha" src="/demo/?desnuda=1"
+              data-en-attr="title:hero.demo.corto|src:hero.demo.src"></iframe></noscript>
     </div>
-    <p class="ventana__pie">Esto no es una captura: pruébalo aquí mismo.</p>
+    <p class="ventana__pie" data-en="hero.pie">Esto no es una captura: pruébalo aquí mismo.</p>
   </div>
 </section>
 
@@ -401,7 +441,7 @@
 </svg>
 <section class="cinta" id="cinta" aria-labelledby="cinta-tit">
   <div class="cinta__caja">
-    <p class="cinta__rotulo" id="cinta-tit">
+    <p class="cinta__rotulo" id="cinta-tit" data-en="cinta.rotulo">
       Los <b>22 clientes</b><br>que sabe abrir
     </p>
     <div class="cinta__ventana">
@@ -461,7 +501,7 @@
        REGISTRADAS de sus titulares. Nada puede insinuar patrocinio, y la
        frase de producto es siempre «funciona con TU cuenta», nunca «te damos
        acceso a». Está en AGENTS.md como condición para poder vender Adeorq. -->
-  <p class="cinta__legal">
+  <p class="cinta__legal" data-en="cinta.legal">
     Todas son marcas de sus titulares. Adeorq no está afiliado a ninguna ni
     revende su acceso: funciona con la sesión que ya tienes en tu equipo.
   </p>
@@ -479,12 +519,12 @@
      sentido para quien la escucha con un lector de pantalla. -->
 <section class="manifiesto" id="manifiesto">
   <p class="manifiesto__frase">
-    <b>Escribe el encargo, díctalo, o suéltale la misión entera a seis agentes a la vez.</b>
-    <span>Cada uno abre su terminal, trabaja en tu carpeta y te deja el resultado.
+    <b data-en="manifiesto.b">Escribe el encargo, díctalo, o suéltale la misión entera a seis agentes a la vez.</b>
+    <span data-en="manifiesto.span">Cada uno abre su terminal, trabaja en tu carpeta y te deja el resultado.
     Tú revisas lo que sale, no la sintaxis.</span>
-    <em>Vibe coding por terminal, con cara de aplicación.</em>
+    <em data-en="manifiesto.em">Vibe coding por terminal, con cara de aplicación.</em>
   </p>
-  <p class="manifiesto__firma">
+  <p class="manifiesto__firma" data-en="manifiesto.firma">
     Adeorq se construye usándolo todos los días. Su código está
     <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">publicado</a>
     y se puede leer entero.
@@ -500,9 +540,9 @@
   <div class="explica__caja">
 
     <header class="explica__cabecera">
-      <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Qué hace</p>
-      <h2 class="explica__tit"><b>Nueve pantallas,</b> <span>una ventana</span></h2>
-      <p class="explica__entrada">
+      <p class="etiqueta" data-en="queEs.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Qué hace</p>
+      <h2 class="explica__tit" data-en="queEs.tit"><b>Nueve pantallas,</b> <span>una ventana</span></h2>
+      <p class="explica__entrada" data-en="queEs.entrada">
         Panel, Cabina, Chat, Agenda, Lienzo, Memoria, Cuentas, Comandos y Ajustes.
         Todo dentro de una aplicación nativa de unos 6 MB, sin un navegador entero
         empaquetado dentro.
@@ -511,38 +551,38 @@
 
     <div class="fichas" data-aparece>
       <article class="ficha">
-        <h3 class="ficha__tit">Cabina</h3>
-        <p>Tantos paneles como te quepan, cada uno con su proyecto, su cliente y su
+        <h3 class="ficha__tit" data-en="ficha.cabina.tit">Cabina</h3>
+        <p data-en="ficha.cabina.p">Tantos paneles como te quepan, cada uno con su proyecto, su cliente y su
            modelo. Se parten a la derecha o abajo, como tú los quieras.</p>
       </article>
 
       <article class="ficha">
-        <h3 class="ficha__tit">Panel</h3>
-        <p>La portada del día: qué sesiones tienes, en qué proyecto, cuáles siguen
+        <h3 class="ficha__tit" data-en="ficha.panel.tit">Panel</h3>
+        <p data-en="ficha.panel.p">La portada del día: qué sesiones tienes, en qué proyecto, cuáles siguen
            vivas y cuáles te están esperando.</p>
       </article>
 
       <article class="ficha">
-        <h3 class="ficha__tit">Capataz</h3>
-        <p>Le sueltas un encargo grande, lo parte por archivos y monta una cuadrilla
+        <h3 class="ficha__tit" data-en="ficha.capataz.tit">Capataz</h3>
+        <p data-en="ficha.capataz.p">Le sueltas un encargo grande, lo parte por archivos y monta una cuadrilla
            de hasta seis terminales. Antes de abrirlas te enseña lo que va a costar.</p>
       </article>
 
       <article class="ficha">
-        <h3 class="ficha__tit">Chat</h3>
-        <p>Las mismas sesiones sin la consola delante. Por debajo sigue siendo tu CLI,
+        <h3 class="ficha__tit" data-en="ficha.chat.tit">Chat</h3>
+        <p data-en="ficha.chat.p">Las mismas sesiones sin la consola delante. Por debajo sigue siendo tu CLI,
            así que gasta tu suscripción y no una factura por tokens. En pruebas.</p>
       </article>
 
       <article class="ficha">
-        <h3 class="ficha__tit">Lienzo</h3>
-        <p>Una mesa infinita con notas, kanban, imágenes y terminales sueltas encima.
+        <h3 class="ficha__tit" data-en="ficha.lienzo.tit">Lienzo</h3>
+        <p data-en="ficha.lienzo.p">Una mesa infinita con notas, kanban, imágenes y terminales sueltas encima.
            Arrastras una tarjeta del tablero y sale un agente a hacerla.</p>
       </article>
 
       <article class="ficha">
-        <h3 class="ficha__tit">Memoria y Agenda</h3>
-        <p>Tus notas se buscan por lo que dicen, no por cómo se llaman. Y las ideas
+        <h3 class="ficha__tit" data-en="ficha.memoria.tit">Memoria y Agenda</h3>
+        <p data-en="ficha.memoria.p">Tus notas se buscan por lo que dicen, no por cómo se llaman. Y las ideas
            que salen al vuelo caen en una bandeja: los agentes proponen, tú aceptas
            o descartas.</p>
       </article>
@@ -558,33 +598,33 @@
 <section class="pasos" id="trabajo">
   <div class="pasos__caja bloque--dos">
     <div class="bloque__rotulo">
-    <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Cómo trabaja</p>
-    <h2 class="seccion__tit" data-aparece>Tres pasos y ya están trabajando</h2>
+    <p class="etiqueta" data-en="trabajo.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Cómo trabaja</p>
+    <h2 class="seccion__tit" data-aparece data-en="trabajo.tit">Tres pasos y ya están trabajando</h2>
     </div>
 
     <div class="bloque__cuerpo">
     <ol class="pasos__lista">
       <li class="paso">
         <span class="paso__num" aria-hidden="true">01</span>
-        <h3 class="paso__tit">Elige el proyecto</h3>
-        <p>Tus carpetas salen en la lista. Un clic y se abre una terminal dentro,
+        <h3 class="paso__tit" data-en="trabajo.p1.tit">Elige el proyecto</h3>
+        <p data-en="trabajo.p1.p">Tus carpetas salen en la lista. Un clic y se abre una terminal dentro,
            con tu PATH y tu perfil.</p>
       </li>
       <li class="paso">
         <span class="paso__num" aria-hidden="true">02</span>
-        <h3 class="paso__tit">Elige el cliente</h3>
-        <p>Claude Code, Codex, Gemini o el que uses. Entra con la sesión que ese
+        <h3 class="paso__tit" data-en="trabajo.p2.tit">Elige el cliente</h3>
+        <p data-en="trabajo.p2.p">Claude Code, Codex, Gemini o el que uses. Entra con la sesión que ese
            CLI ya tiene en tu equipo: ni te pide una clave ni te crea otra cuenta.</p>
       </li>
       <li class="paso">
         <span class="paso__num" aria-hidden="true">03</span>
-        <h3 class="paso__tit">Suelta el encargo</h3>
-        <p>Escríbelo o díctalo. Si es grande, el Capataz lo parte por archivos y
+        <h3 class="paso__tit" data-en="trabajo.p3.tit">Suelta el encargo</h3>
+        <p data-en="trabajo.p3.p">Escríbelo o díctalo. Si es grande, el Capataz lo parte por archivos y
            lo reparte entre hasta seis terminales, cada una con lo suyo.</p>
       </li>
     </ol>
 
-    <p class="pasos__cierre">
+    <p class="pasos__cierre" data-en="trabajo.cierre">
       Cuando uno termina, su panel se enciende. El tablero de la cuadrilla te dice
       quién trabaja, quién ha acabado y quién lleva rato esperándote.
     </p>
@@ -599,9 +639,9 @@
 <section class="pasos" id="movil">
   <div class="pasos__caja bloque--dos">
     <div class="bloque__rotulo">
-    <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>En el móvil</p>
-    <h2 class="seccion__tit" data-aparece>Tu cabina, también en el bolsillo</h2>
-    <p class="seccion__entrada">
+    <p class="etiqueta" data-en="movil.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>En el móvil</p>
+    <h2 class="seccion__tit" data-aparece data-en="movil.tit">Tu cabina, también en el bolsillo</h2>
+    <p class="seccion__entrada" data-en="movil.entrada">
       Desde el móvil, una tablet u otro ordenador, estés donde estés: hablas con
       el conserje, lees tus sesiones y contestas a cualquier terminal.
     </p>
@@ -611,25 +651,25 @@
     <ol class="pasos__lista">
       <li class="paso">
         <span class="paso__num" aria-hidden="true">01</span>
-        <h3 class="paso__tit">Instala Tailscale</h3>
-        <p>En el PC y en el móvil, con la misma cuenta. Es una red privada entre
+        <h3 class="paso__tit" data-en="movil.p1.tit">Instala Tailscale</h3>
+        <p data-en="movil.p1.p">En el PC y en el móvil, con la misma cuenta. Es una red privada entre
            tus aparatos, gratis para uso personal.</p>
       </li>
       <li class="paso">
         <span class="paso__num" aria-hidden="true">02</span>
-        <h3 class="paso__tit">Enciéndelo en Adeorq</h3>
-        <p>En Ajustes › Móvil, activa el interruptor y pulsa «Llevar el conserje
+        <h3 class="paso__tit" data-en="movil.p2.tit">Enciéndelo en Adeorq</h3>
+        <p data-en="movil.p2.p">En Ajustes › Móvil, activa el interruptor y pulsa «Llevar el conserje
            a Tailscale». Solo la primera vez.</p>
       </li>
       <li class="paso">
         <span class="paso__num" aria-hidden="true">03</span>
-        <h3 class="paso__tit">Empareja el móvil</h3>
-        <p>Escanea el QR, escribe el código de seis cifras y ya está. Si quieres,
+        <h3 class="paso__tit" data-en="movil.p3.tit">Empareja el móvil</h3>
+        <p data-en="movil.p3.p">Escanea el QR, escribe el código de seis cifras y ya está. Si quieres,
            instálala como una app y te avisa cuando un agente te pregunta.</p>
       </li>
     </ol>
 
-    <p class="pasos__cierre">
+    <p class="pasos__cierre" data-en="movil.cierre">
       Desde internet no se ve: solo entran los aparatos que emparejas, y lo que
       ves llega directo de tu PC, sin pasar por ningún servidor nuestro.
       <a href="/guia#movil">Todos los pasos en la guía</a>.
@@ -644,22 +684,22 @@
      funciones parece una limitación. -->
 <section class="cuenta" id="privacidad">
   <div class="cuenta__caja">
-    <h2 class="seccion__tit seccion__tit--centro">Tu código no pasa por aquí</h2>
+    <h2 class="seccion__tit seccion__tit--centro" data-en="cuenta.tit">Tu código no pasa por aquí</h2>
     <div class="cuenta__datos">
       <article>
-        <h3>Sin cuenta y sin claves</h3>
-        <p>Adeorq entra con la sesión que tus CLI ya tienen instalada. Lo que gastes
+        <h3 data-en="cuenta.c1.tit">Sin cuenta y sin claves</h3>
+        <p data-en="cuenta.c1.p">Adeorq entra con la sesión que tus CLI ya tienen instalada. Lo que gastes
            va contra tu cuenta, igual que si escribieras en la terminal a mano.</p>
       </article>
       <article>
-        <h3>Y si usas claves, al llavero</h3>
-        <p>En Windows, las claves de API se guardan cifradas en el Gestor de
+        <h3 data-en="cuenta.c2.tit">Y si usas claves, al llavero</h3>
+        <p data-en="cuenta.c2.p">En Windows, las claves de API se guardan cifradas en el Gestor de
            Credenciales y no vuelven a salir de ahí, ni siquiera a la propia
            interfaz. En Linux, en un archivo que solo lee tu usuario.</p>
       </article>
       <article>
-        <h3>Modo emisión</h3>
-        <p>Un atajo tapa rutas, correos y claves en todas las terminales a la vez,
+        <h3 data-en="cuenta.c3.tit">Modo emisión</h3>
+        <p data-en="cuenta.c3.p">Un atajo tapa rutas, correos y claves en todas las terminales a la vez,
            para cuando compartes pantalla o grabas.</p>
       </article>
     </div>
@@ -674,9 +714,9 @@
 <section class="descarga" id="descargar" data-descarga>
   <div class="descarga__caja bloque--dos">
     <div class="bloque__rotulo">
-    <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Descarga</p>
-    <h2 class="seccion__tit" data-aparece>Móntate la cabina en dos minutos</h2>
-    <p class="seccion__entrada">
+    <p class="etiqueta" data-en="descarga.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Descarga</p>
+    <h2 class="seccion__tit" data-aparece data-en="descarga.tit">Móntate la cabina en dos minutos</h2>
+    <p class="seccion__entrada" data-en="descarga.entrada">
       Para Windows y Linux de 64 bits. Necesitas tener instalado el CLI que ya
       uses, porque Adeorq trabaja con él.
     </p>
@@ -686,12 +726,12 @@
     <div class="descarga__acciones">
       <a class="btn btn--claro btn--grande"
          href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"
-         data-descarga-enlace rel="noopener">
+         data-descarga-enlace rel="noopener" data-en="descarga.btnWindows">
         Descargar para Windows
         <em>gratis, sin cuenta</em>
       </a>
       <a class="btn btn--fantasma btn--grande"
-         href="https://github.com/Mun1to/Adeorq-releases/releases/latest" rel="noopener">
+         href="https://github.com/Mun1to/Adeorq-releases/releases/latest" rel="noopener" data-en="descarga.btnLinux">
         Descargar para Linux
         <em>AppImage, .deb o .rpm</em>
       </a>
@@ -701,12 +741,12 @@
       <b data-descarga-version>v0.9.175</b>
       <span data-descarga-fecha></span>
       <span data-descarga-peso></span>
-      <span>Windows 10 y 11 · Linux con glibc 2.35 o más</span>
+      <span data-en="descarga.requisitos">Windows 10 y 11 · Linux con glibc 2.35 o más</span>
     </p>
 
-    <p class="descarga__precio">Gratis. Ni cuenta, ni prueba de 14 días, ni tarjeta.</p>
+    <p class="descarga__precio" data-en="descarga.precio">Gratis. Ni cuenta, ni prueba de 14 días, ni tarjeta.</p>
 
-    <p class="descarga__nota">
+    <p class="descarga__nota" data-en="descarga.nota">
       Windows puede avisarte de que el instalador viene de un editor desconocido.
       Es el aviso normal de SmartScreen con una aplicación joven y poco descargada:
       más abajo te contamos cómo comprobar que el paquete es el nuestro.
@@ -721,9 +761,9 @@
 <section class="novedades" id="novedades">
   <div class="novedades__caja bloque--dos">
     <div class="bloque__rotulo">
-    <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Novedades</p>
-    <h2 class="seccion__tit" data-aparece>Se mueve casi todos los días</h2>
-    <p class="seccion__entrada">
+    <p class="etiqueta" data-en="novedades.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Novedades</p>
+    <h2 class="seccion__tit" data-aparece data-en="novedades.tit">Se mueve casi todos los días</h2>
+    <p class="seccion__entrada" data-en="novedades.entrada">
       <b data-log-cuenta>155</b> versiones publicadas desde que arrancó. No es una
       web con un producto detrás: es un producto que se usa mientras se construye.
     </p>
@@ -731,7 +771,7 @@
 
     <div class="bloque__cuerpo">
     <ol class="log" data-log></ol>
-    <a class="btn btn--fantasma" href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener">
+    <a class="btn btn--fantasma" href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener" data-en="novedades.todas">
       Ver todas las versiones
     </a>
     </div>
@@ -745,31 +785,31 @@
 <section class="faq" id="faq">
   <div class="faq__caja bloque--dos">
     <div class="bloque__rotulo" data-aparece>
-      <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Preguntas</p>
-    <h2 class="seccion__tit" data-aparece>Lo que suelen preguntar</h2>
+      <p class="etiqueta" data-en="faq.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Preguntas</p>
+    <h2 class="seccion__tit" data-aparece data-en="faq.tit">Lo que suelen preguntar</h2>
     </div>
 
 
     <div class="faq__lista" data-aparece>
       <details class="pregunta" name="faq">
-        <summary>¿Necesito una clave de API o pagar algo aparte?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>No. Adeorq usa el CLI que ya tienes instalado y la sesión que ya tienes
+        <summary><span data-en="faq.q1">¿Necesito una clave de API o pagar algo aparte?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <p data-en="faq.r1">No. Adeorq usa el CLI que ya tienes instalado y la sesión que ya tienes
            iniciada en él. No pide claves, no guarda credenciales y no manda tu
            código a ningún servidor nuestro. Lo que gastes de cuota lo gastas igual
            que escribiendo en la terminal a mano.</p>
       </details>
 
       <details class="pregunta" name="faq">
-        <summary>¿Funciona con algo que no sea Claude Code?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>Conoce 22 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor,
+        <summary><span data-en="faq.q2">¿Funciona con algo que no sea Claude Code?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <p data-en="faq.r2">Conoce 22 clientes, entre ellos Codex, Gemini CLI, Copilot, Cursor,
            opencode, Antigravity, Kiro, Grok y Qwen, y sabe instalar los que te
            falten. Y como las terminales son reales, dentro puedes ejecutar lo que
            quieras, incluidos tus propios scripts.</p>
       </details>
 
       <details class="pregunta" name="faq">
-        <summary>¿Es open source?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>No, y conviene decirlo claro. El código está publicado entero con la
+        <summary><span data-en="faq.q3">¿Es open source?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <p data-en="faq.r3">No, y conviene decirlo claro. El código está publicado entero con la
            licencia PolyForm Shield: puedes leerlo, usarlo en tu trabajo,
            modificarlo y compartirlo. Lo único que no deja es usarlo para ofrecer
            un producto que compita con Adeorq, y eso incluye venderlo. Código a la
@@ -777,22 +817,22 @@
       </details>
 
       <details class="pregunta" name="faq">
-        <summary>¿Por qué Windows me avisa al instalar?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>Porque el instalador todavía no tiene certificado de editor, y SmartScreen
+        <summary><span data-en="faq.q4">¿Por qué Windows me avisa al instalar?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <p data-en="faq.r4">Porque el instalador todavía no tiene certificado de editor, y SmartScreen
            desconfía por defecto de lo que se ha descargado poco. Las actualizaciones
            sí van firmadas y las verifica la app. Antes de ejecutar nada, comprueba
            que el archivo viene de nuestra página de versiones en GitHub.</p>
       </details>
 
       <details class="pregunta" name="faq">
-        <summary>¿Hay versión para macOS o Linux?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>Linux sí: cada versión publica un AppImage, un .deb y un .rpm. macOS
+        <summary><span data-en="faq.q5">¿Hay versión para macOS o Linux?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <p data-en="faq.r5">Linux sí: cada versión publica un AppImage, un .deb y un .rpm. macOS
            todavía no.</p>
       </details>
 
       <details class="pregunta" name="faq">
-        <summary>¿Puedo usarlo desde el móvil?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>Sí, desde cualquier navegador y estés donde estés, con Tailscale: una red
+        <summary><span data-en="faq.q6">¿Puedo usarlo desde el móvil?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <p data-en="faq.r6">Sí, desde cualquier navegador y estés donde estés, con Tailscale: una red
            privada entre tus aparatos, gratis para uso personal. Hablas con el
            conserje, lees tus sesiones, escribes en tus terminales, adjuntas fotos
            y recibes avisos. El PC tiene que estar encendido y con Adeorq abierto,
@@ -800,16 +840,16 @@
       </details>
 
       <details class="pregunta" name="faq">
-        <summary>¿Cuánto ocupa y cuánto consume?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>El instalador de Windows ronda los 6 MB. Es una aplicación nativa hecha con Tauri, no
+        <summary><span data-en="faq.q7">¿Cuánto ocupa y cuánto consume?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <p data-en="faq.r7">El instalador de Windows ronda los 6 MB. Es una aplicación nativa hecha con Tauri, no
            lleva un navegador entero empaquetado dentro, así que arranca al instante
            y en reposo casi no se nota. Lo demás será lo que consuman tus agentes,
            que es lo que ya consumen.</p>
       </details>
 
       <details class="pregunta" name="faq">
-        <summary>¿Mis datos salen del ordenador?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>Solo lo que ya salía por tu CLI. Adeorq lee archivos locales para enseñarte
+        <summary><span data-en="faq.q8">¿Mis datos salen del ordenador?</span><svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <p data-en="faq.r8">Solo lo que ya salía por tu CLI. Adeorq lee archivos locales para enseñarte
            tus proyectos y tus sesiones, y pregunta si hay una versión nueva. Si lo
            usas desde el móvil, va de tu PC a tu móvil por tu red de Tailscale,
            cifrado y sin pasar por nosotros. Los avisos del móvil, si los pides,
@@ -834,44 +874,44 @@
         <img src="/assets/adeorq.svg" alt="" width="21" height="21">
         <b>Adeorq</b>
       </a>
-      <p class="pie__lema">
+      <p class="pie__lema" data-en="pie.lema">
         El panel donde trabajan todos tus agentes. En Windows y en Linux, y
         contigo en el móvil.
       </p>
-      <p class="pie__estado"><span class="pie__punto" aria-hidden="true"></span>Gratis, y en marcha.</p>
+      <p class="pie__estado" data-en="pie.estado"><span class="pie__punto" aria-hidden="true"></span>Gratis, y en marcha.</p>
     </div>
 
-    <nav class="pie__cols" aria-label="Pie">
+    <nav class="pie__cols" aria-label="Pie" data-en-attr="aria-label:pie.aria">
       <div>
-        <h2>Producto</h2>
-        <a href="#trabajo">Cómo trabaja</a>
-        <a href="#que-es">Qué hace</a>
-        <a href="#cinta">Clientes</a>
-        <a href="#movil">En el móvil</a>
-        <a href="#descargar">Descargar</a>
+        <h2 data-en="pie.producto">Producto</h2>
+        <a href="#trabajo" data-en="nav.trabajo">Cómo trabaja</a>
+        <a href="#que-es" data-en="nav.queEs">Qué hace</a>
+        <a href="#cinta" data-en="nav.clientes">Clientes</a>
+        <a href="#movil" data-en="nav.movil">En el móvil</a>
+        <a href="#descargar" data-en="nav.descargar">Descargar</a>
       </div>
       <div>
-        <h2>Recursos</h2>
-        <a href="#novedades">Novedades</a>
-        <a href="#faq">Preguntas</a>
-        <a href="/guia">La guía</a>
-        <a href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener">Todas las versiones</a>
+        <h2 data-en="pie.recursos">Recursos</h2>
+        <a href="#novedades" data-en="pie.novedades">Novedades</a>
+        <a href="#faq" data-en="pie.preguntas">Preguntas</a>
+        <a href="/guia" data-en="pie.guia">La guía</a>
+        <a href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener" data-en="pie.versiones">Todas las versiones</a>
       </div>
       <div>
-        <h2>Código</h2>
-        <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">El repositorio</a>
-        <a href="https://github.com/Mun1to/Adeorq-releases/issues" rel="noopener">Incidencias e ideas</a>
+        <h2 data-en="pie.codigo">Código</h2>
+        <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-en="pie.repositorio">El repositorio</a>
+        <a href="https://github.com/Mun1to/Adeorq-releases/issues" rel="noopener" data-en="pie.incidencias">Incidencias e ideas</a>
       </div>
     </nav>
   </div>
 
   <div class="pie__linea">
-    <p>
+    <p data-en="pie.licencia">
       Código publicado en GitHub con la licencia PolyForm Shield: se puede leer,
       usar, modificar y compartir, no competir con él ni venderlo.
       <b>No es open source.</b>
     </p>
-    <p>© 2026 Adeorq · Esta web no usa cookies ni te sigue.</p>
+    <p data-en="pie.cookies">© 2026 Adeorq · Esta web no usa cookies ni te sigue.</p>
   </div>
 </footer>
 
@@ -879,7 +919,9 @@
 <script type="module" src="./portada/movimiento.js"></script>
 <script src="./portada/valvula.js" defer></script>
 <script src="./portada/datos.js" defer></script>
-<button class="subir" type="button" aria-label="Volver arriba">
+<script src="./portada/idioma.js" defer></script>
+<script src="./portada/menu.js" defer></script>
+<button class="subir" type="button" aria-label="Volver arriba" data-en-attr="aria-label:subir">
   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="1.8"
           stroke-linecap="round" stroke-linejoin="round"/>

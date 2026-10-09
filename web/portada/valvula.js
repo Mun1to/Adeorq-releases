@@ -27,6 +27,7 @@
   'use strict';
 
   var raiz = document.documentElement;
+  var EN = raiz.lang === 'en';
 
   /* ── 1. La válvula ────────────────────────────────────────────────────── */
 
@@ -57,12 +58,12 @@
          parar las dos familias o el control miente. */
       raiz.style.setProperty('--motion-gain', '0');
       raiz.classList.remove('motion');
-      texto.textContent = 'Reanudar el movimiento';
+      texto.textContent = EN ? 'Resume motion' : 'Reanudar el movimiento';
     } else {
       raiz.removeAttribute('data-quieto');
       raiz.style.setProperty('--motion-gain', gainDeCasa());
       raiz.classList.add('motion');
-      texto.textContent = 'Parar el movimiento';
+      texto.textContent = EN ? 'Stop motion' : 'Parar el movimiento';
     }
     boton.setAttribute('aria-pressed', parado ? 'true' : 'false');
   }

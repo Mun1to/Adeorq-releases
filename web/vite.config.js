@@ -29,6 +29,8 @@ const NEVER_COPY = new Set([
   // version procesada y dejaria sus rutas apuntando a archivos sin hashear.
   'index.html',
   'guia.html',
+  // La portada inglesa, que también es una entrada (la genera hacer-ingles.mjs).
+  'en',
 ])
 
 async function exists(path) {
@@ -101,10 +103,10 @@ function escapeHtml(text) {
   return String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 }
 
-function longDate(iso) {
+function longDate(iso, lang = 'es') {
   const d = new Date(iso || '')
   if (isNaN(d)) return ''
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+  return d.toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 /**
@@ -120,27 +122,33 @@ function bakeReleaseData() {
     name: 'adeorq-bake-release-data',
     apply: 'build',
     async transformIndexHtml(html, ctx) {
-      if (!ctx.filename.endsWith('index.html')) return html
+      // The front page in both languages: /index.html and /en/index.html.
+      if (!ctx.filename.replace(/\\/g, '/').endsWith('index.html')) return html
+      const lang = /<html lang="en"/.test(html) ? 'en' : 'es'
       const latest = await readJson('latest.json')
       const log = await readJson('changelog.json')
       let out = html
       if (latest?.version) {
         out = out.replace(/(<b data-descarga-version>)[^<]*(<\/b>)/, `$1v${escapeHtml(latest.version)}$2`)
-        out = out.replace(/(<span data-descarga-fecha>)[^<]*(<\/span>)/, `$1${escapeHtml(longDate(latest.pub_date))}$2`)
+        out = out.replace(/(<span data-descarga-fecha>)[^<]*(<\/span>)/, `$1${escapeHtml(longDate(latest.pub_date, lang))}$2`)
         if (latest.size_bytes) {
-          const mb = (latest.size_bytes / 1048576).toFixed(1).replace('.', ',') + ' MB'
-          out = out.replace(/(<span data-descarga-peso>)[^<]*(<\/span>)/, `$1${mb}$2`)
+          const mb = (latest.size_bytes / 1048576).toFixed(1)
+          out = out.replace(/(<span data-descarga-peso>)[^<]*(<\/span>)/, `$1${lang === 'en' ? mb : mb.replace('.', ',')} MB$2`)
         }
       }
       if (log?.count) out = out.replace(/(<b data-log-cuenta>)[^<]*(<\/b>)/, `$1${log.count}$2`)
       if (log?.entries?.length) {
-        // The same three rows, and the same trimming, as portada/datos.js.
+        // The same three rows, and the same trimming, as portada/datos.js. In
+        // English, a release written before the notes carried English keeps
+        // its Spanish summary, marked as such for screen readers.
         const rows = log.entries.slice(0, 3).map((e) => {
-          const text = (e.summary || e.title || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()
+          const enSummary = lang === 'en' && e.en ? e.en.summary || e.en.title : ''
+          const text = (enSummary || e.summary || e.title || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()
           const short = text.length > 190 ? `${text.slice(0, 187).trimEnd()}…` : text
+          const marca = lang === 'en' && !enSummary ? ' lang="es"' : ''
           return `<li class="log__fila"><b class="log__ver">${escapeHtml(e.version ? `v${e.version}` : e.tag || '')}</b>` +
-            `<span class="log__fecha">${escapeHtml(longDate(e.publishedAt || e.date))}</span>` +
-            `<p class="log__texto">${escapeHtml(short)}</p></li>`
+            `<span class="log__fecha">${escapeHtml(longDate(e.publishedAt || e.date, lang))}</span>` +
+            `<p class="log__texto"${marca}>${escapeHtml(short)}</p></li>`
         })
         out = out.replace(/(<ol class="log" data-log>)\s*(<\/ol>)/, `$1${rows.join('')}$2`)
       }
@@ -175,6 +183,7 @@ export default defineConfig({
       input: {
         index: resolve(ROOT, 'index.html'),
         guia: resolve(ROOT, 'guia.html'),
+        en: resolve(ROOT, 'en/index.html'),
         // La web anterior, hasta que sus secciones (descarga, changelog, FAQ
         // y pie) esten portadas a la portada nueva de `index.html`.
       },

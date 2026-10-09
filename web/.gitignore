@@ -3,6 +3,10 @@ node_modules/
 dist/
 .wrangler/
 
+# La portada inglesa: la genera scripts/hacer-ingles.mjs desde index.html en
+# cada build. Versionarla sería tener dos fuentes del mismo texto.
+en/
+
 # Local secrets (never commit)
 .dev.vars
 .froede-token

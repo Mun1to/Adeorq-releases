@@ -17,6 +17,19 @@ window.ADEORQ_I18N_EXTRA = {
   en: {
     /* ------------------------------ NAV Y PORTADA ------------------------ */
     'nav.guia': 'Guide',
+    /* La barra de la portada, que la guía comparte desde el 2026-10-09 */
+    'guia.barra.aria': 'Sections',
+    'guia.barra.trabajo': 'How it works',
+    'guia.barra.queEs': 'What it does',
+    'guia.barra.clientes': 'Clients',
+    'guia.barra.movil': 'On your phone',
+    'guia.barra.codigo': 'Code',
+    'guia.barra.idioma': 'Change language',
+    'guia.menu.abrir': 'Open the menu',
+    'guia.menu.cerrar': 'Close the menu',
+    'guia.menu.titulo': 'Menu',
+    'guia.menu.codigo': 'Code on GitHub',
+    'guia.menu.idioma': 'Español',
     'guia.eyebrow': 'Documentation',
     'guia.titulo': 'How the cockpit works.',
     'guia.entrada': 'Adeorq is a desktop panel for Windows and Linux where your agents work in real ' +
@@ -263,6 +276,11 @@ window.ADEORQ_I18N_EXTRA = {
                      'Mozilla), which delivers them without being able to read them. On iPhone it only works ' +
                      'with the app added to the Home Screen. In Settings → Mobile ' +
                      'you can send a test notification.',
+    'guia.movil.l4': '<b>Decisions.</b> When an agent needs you to choose something, it asks you with its ' +
+                     'numbered options and a notification reaches you. You answer it in <b>Decisiones</b>, with an ' +
+                     'option or in your own words, and the answer goes back on its own to the terminal that asked.',
+    'guia.movil.l5': '<b>Switching mode.</b> In a Claude Code terminal, the <b>Cambiar modo</b> button does what ' +
+                     'Shift+Tab does on the PC (normal, accept edits, plan, auto) and shows which mode it is in.',
     'guia.movil.l3': '<b>Several devices.</b> Settings → Mobile lists each one by name, and you remove it from ' +
                      'there whenever you like.',
     'guia.movil.caja': '<span class="doc-caja__titulo">Why it is safe to leave it on.</span> Adeorq only listens ' +

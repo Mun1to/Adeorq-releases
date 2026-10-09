@@ -74,6 +74,8 @@ jobs:
         run: |
           grep -q "cinta__grupo" dist/index.html || { echo "el build no trae la cinta de clientes"; exit 1; }
           grep -q "No es open source" dist/index.html || { echo "falta el aviso de licencia"; exit 1; }
+          grep -q '<html lang="en"' dist/en/index.html || { echo "falta la portada inglesa en /en/"; exit 1; }
+          grep -q "It is not open source" dist/en/index.html || { echo "la portada inglesa no trae el aviso de licencia"; exit 1; }
 
       # Sin credencial no se puede desplegar, y el error que da wrangler en ese
       # caso no lo entiende nadie. Se dice aqui, con una frase.

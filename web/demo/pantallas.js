@@ -169,7 +169,10 @@ function chat(host) {
     window.adeOrbe?.('piensa');
     const art = burbuja('agente', '');
     const cuerpo = $('.chat-burbuja', art);
-    const dice = RESPUESTAS[cual++ % RESPUESTAS.length];
+    // En /en/ la respuesta se traduce entera antes de teclearla (demo/traducir.js):
+    // a trozos y con innerHTML, el traductor por nodos no la alcanzaría.
+    const respuesta = RESPUESTAS[cual++ % RESPUESTAS.length];
+    const dice = window.adeTraducir ? window.adeTraducir(respuesta) : respuesta;
     let i = 0;
     const teclear = () => {
       i += 2;

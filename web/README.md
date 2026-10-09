@@ -37,9 +37,29 @@ starts: it keeps the data files already on disk and prints a warning.
 | `pnpm data`          | Refresh `data/` only. Fails loudly if GitHub is down      |
 | `pnpm data:latest`   | Rebuild `data/latest.json` and `data/release.json`        |
 | `pnpm data:changelog`| Rebuild `data/changelog.json`                             |
+| `pnpm ingles`        | Write the English front page `en/index.html`             |
 
 `GITHUB_TOKEN` is read from the environment if present, only to raise the API
 rate limit. It is never written to a file. The site itself needs no token.
+
+## Two languages
+
+The front page lives at `/` in Spanish and at `/en/` in English, each at its own
+URL so search engines and assistants that do not run JavaScript can read both.
+`index.html` is the only source: every translatable element carries
+`data-en="key"` (attributes: `data-en-attr="name:key|name:key"`), the English
+text is in `portada/en.mjs`, and `pnpm ingles` (also run by `dev`, `build` and
+`metadatos`) writes `en/index.html`, which is not committed. It stops if a key
+is missing and warns about Spanish left in the English page.
+`scripts/poner-metadatos.mjs` then gives both pages the same `hreflang` list,
+each its own canonical. Nobody is redirected by language: `portada/idioma.js`
+only suggests the other version and remembers the choice in `adeorq-lang`, the
+same key the guide reads.
+
+The demo inside the hero follows with `?lang=en`: `demo/traducir.js` swaps
+every text that is exactly a key of `demo/en-app.js` (generated from the app's
+own dictionary by `scripts/extraer-ingles-app.mjs`, part of `pnpm maqueta`) or
+`demo/en.js` (what only the demo says).
 
 ## Layout
 

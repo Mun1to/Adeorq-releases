@@ -174,9 +174,9 @@
           <span class="ade-np-eq" aria-hidden="true"><i></i><i></i><i></i></span>
           <span class="ade-np-text"><span class="ade-np-title">Bumpy Ride</span> · Mohombi</span>
           <span class="ade-np-tira">
-            <button type="button" class="ade-np-btn" title="Anterior">‹‹</button>
+            <button type="button" class="ade-np-btn" data-np="-1" title="Anterior">‹‹</button>
             <button type="button" class="ade-np-btn" id="ade-np-play" title="Pausa">॥</button>
-            <button type="button" class="ade-np-btn" title="Siguiente">››</button>
+            <button type="button" class="ade-np-btn" data-np="1" title="Siguiente">››</button>
           </span>
         </span>
 
@@ -453,6 +453,12 @@
 <!-- Los dibujos de los CLIs, pegados en la pagina. Va el primero porque tres de
      las diez marcas llevan mascara y una mascara desde otro fichero no recorta:
      Codex salia como un cuadrado azul. -->
+<!-- La maqueta en inglés para adeorq.com/en/ (con ?lang=en). Clásicos y
+     delante de los módulos: dejan puesta window.adeTraducir antes de que las
+     terminales empiecen a teclear. -->
+<script src="en-app.js"></script>
+<script src="en.js"></script>
+<script src="traducir.js"></script>
 <script src="sprites.js" type="module"></script>
 <script src="demo.js" type="module"></script>
 <!-- Escribir en la terminal y que conteste. Va detras porque usa la rejilla que

@@ -163,6 +163,8 @@ pub fn tecla(nombre: &str) -> Option<Vec<u8>> {
         "enter" | "return" | "intro" => b"\r".to_vec(),
         "escape" | "esc" => b"\x1b".to_vec(),
         "tab" => b"\t".to_vec(),
+        // Cambia de modo en Claude Code (normal, aceptar ediciones, plan, auto).
+        "shift+tab" | "backtab" => b"\x1b[Z".to_vec(),
         "backspace" => b"\x7f".to_vec(),
         "delete" | "del" => b"\x1b[3~".to_vec(),
         "up" => b"\x1b[A".to_vec(),
@@ -662,7 +664,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "send_keys",
-                                "description": "Presses named keys in a pane, in order: enter, escape, tab, backspace, delete, up, down, left, right, home, end, pageup, pagedown, space, and ctrl+<letter> (ctrl+c interrupts, ctrl+u clears the line, ctrl+d ends input). Use it to interrupt a stuck session or to answer a y/n prompt.",
+                                "description": "Presses named keys in a pane, in order: enter, escape, tab, shift+tab (cycles Claude Code modes: normal, accept edits, plan, auto), backspace, delete, up, down, left, right, home, end, pageup, pagedown, space, and ctrl+<letter> (ctrl+c interrupts, ctrl+u clears the line, ctrl+d ends input). Use it to interrupt a stuck session or to answer a y/n prompt.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -845,6 +847,65 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                         }
                                     },
                                     "required": ["paneId"]
+                                }
+                            }
+    ]);
+    let mut todas = v.as_array().cloned().unwrap_or_default();
+    todas.extend(herramientas_de_decisiones());
+    todas
+}
+
+/// Las de las decisiones (`decisiones.rs`), aparte: en el `json!` de arriba no
+/// cabían, que la macro tiene un tope de anidamiento.
+fn herramientas_de_decisiones() -> Vec<Value> {
+    let v = json!([
+                            {
+                                "name": "ask_decision",
+                                "description": "Asks Munir to decide something, and reaches him wherever he is: it shows up in the Decisions section of his phone (with a notification) and of any browser paired with Adeorq. Use it whenever he has to choose between options (designs, plans, names) instead of only an HTML page on the PC, which he cannot see when he is away. Each question has 2 to 6 numbered options, at most one recommended, and he can always answer in his own words. Pass paneId (your ADEORQ_PANE_ID) and his answer will be typed into your pane when he replies; you can also read it with get_decision. Do not go on with anything that depends on the answer until you have it.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": { "type": "string", "description": "What is being decided, in Spanish, short (e.g. \"Diseño de la guía\")." },
+                                        "context": { "type": "string", "description": "Optional. One or two sentences of why, in Spanish." },
+                                        "project": { "type": "string", "description": "Optional. The project it belongs to." },
+                                        "paneId": { "type": "number", "description": "Optional. Your own pane ID (ADEORQ_PANE_ID), so the answer is typed back into you." },
+                                        "questions": {
+                                            "type": "array",
+                                            "description": "1 to 8 questions, in Spanish. They are labelled A, B, C… in order.",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "title": { "type": "string" },
+                                                    "context": { "type": "string" },
+                                                    "options": {
+                                                        "type": "array",
+                                                        "description": "2 to 6 options, numbered from 1 in this order.",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "text": { "type": "string" },
+                                                                "detail": { "type": "string", "description": "Optional. What it implies or costs, one sentence." },
+                                                                "recommended": { "type": "boolean", "description": "Mark at most one per question." }
+                                                            },
+                                                            "required": ["text"]
+                                                        }
+                                                    }
+                                                },
+                                                "required": ["title", "options"]
+                                            }
+                                        }
+                                    },
+                                    "required": ["title", "questions"]
+                                }
+                            },
+                            {
+                                "name": "get_decision",
+                                "description": "Reads Munir's answer to a decision created with ask_decision, or says it is still pending. Without an id, lists the latest decisions and their state.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": { "type": "string", "description": "The decision id returned by ask_decision (like d19a2b3c4d5)." }
+                                    }
                                 }
                             }
     ]);
@@ -1329,6 +1390,88 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 }]
             }))
         }
+        // Una decisión para Munir, que le llega al móvil (`decisiones.rs`). Los
+        // nombres de los campos van en inglés, como el resto del MCP, y se
+        // guardan con los del almacén.
+        "ask_decision" => {
+            let texto = |v: &Value| v.as_str().map(str::to_string);
+            let preguntas = args["questions"]
+                .as_array()
+                .ok_or("Falta `questions`: entre 1 y 8 preguntas, cada una con `title` y `options`.")?
+                .iter()
+                .map(|q| crate::decisiones::PedidoPregunta {
+                    titulo: texto(&q["title"]).unwrap_or_default(),
+                    contexto: texto(&q["context"]),
+                    opciones: q["options"]
+                        .as_array()
+                        .map(|os| {
+                            os.iter()
+                                .map(|o| crate::decisiones::Opcion {
+                                    texto: texto(&o["text"]).unwrap_or_default(),
+                                    detalle: texto(&o["detail"]),
+                                    recomendada: o["recommended"].as_bool().unwrap_or(false),
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default(),
+                })
+                .collect();
+            let pedido = crate::decisiones::Pedido {
+                titulo: texto(&args["title"]).unwrap_or_default(),
+                contexto: texto(&args["context"]),
+                proyecto: texto(&args["project"]),
+                panel: args["paneId"].as_u64().and_then(|n| u32::try_from(n).ok()),
+                preguntas,
+            };
+            let ahora = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0);
+            let d = crate::decisiones::validar(&pedido, ahora, crate::conserje::arranque())?;
+            let d = crate::decisiones::crear(&crate::decisiones::dir_de_verdad()?, d)?;
+            // El aviso al móvil, si los pidió: tocarlo abre la decisión.
+            let avisados = crate::movil::movil_avisar(
+                app.clone(),
+                "Te piden una decisión".into(),
+                d.titulo.clone(),
+                Some(format!("/#decision={}", d.id)),
+            );
+            let vuelta = match d.panel {
+                Some(p) => format!("Cuando conteste, su respuesta se teclea en el panel {p}; también la puedes leer con get_decision."),
+                None => "Léela con get_decision cuando quieras (sin paneId no se teclea en ninguna terminal).".into(),
+            };
+            Ok(json!({
+                "content": [{ "type": "text", "text": format!(
+                    "Decisión {} creada: «{}». Le llega a Munir a «Decisiones» en el móvil y en cualquier navegador emparejado{}. {} No sigas con lo que dependa de ella hasta tener la respuesta.",
+                    d.id,
+                    d.titulo,
+                    if avisados > 0 { ", con aviso" } else { " (no tiene avisos puestos: la verá al abrir la página)" },
+                    vuelta
+                ) }]
+            }))
+        }
+        "get_decision" => {
+            let dir = crate::decisiones::dir_de_verdad()?;
+            let texto = match args["id"].as_str().filter(|s| !s.trim().is_empty()) {
+                Some(id) => crate::decisiones::leer(&dir, id.trim())
+                    .map(|d| crate::decisiones::como_texto(&d))
+                    .ok_or_else(|| format!("No hay ninguna decisión {id}."))?,
+                None => {
+                    let todas = crate::decisiones::listar(&dir);
+                    if todas.is_empty() {
+                        "No hay ninguna decisión guardada.".to_string()
+                    } else {
+                        todas
+                            .iter()
+                            .take(10)
+                            .map(|d| format!("{} · {} · {}", d.id, if d.respuesta.is_some() { "contestada" } else { "pendiente" }, d.titulo))
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    }
+                }
+            };
+            Ok(json!({ "content": [{ "type": "text", "text": texto }] }))
+        }
         // Quien abre, recoge. Hasta el 2026-08-27 un agente podía abrir seis
         // terminales y no cerrar ninguna: el tope le decía «cierra alguna» y no
         // tenía con qué, así que la única salida era que un humano las cerrara a
@@ -1591,6 +1734,7 @@ mod tests {
         assert_eq!(tecla("Ctrl-U"), Some(vec![21]));
         assert_eq!(tecla("ctrl+d"), Some(vec![4]));
         assert_eq!(tecla("up"), Some(b"\x1b[A".to_vec()));
+        assert_eq!(tecla("shift+tab"), Some(b"\x1b[Z".to_vec()), "cambia de modo en Claude Code");
         assert_eq!(tecla("ctrl+"), None);
         assert_eq!(tecla("ctrl+1"), None, "un control de un número no es una tecla");
         assert_eq!(tecla("supr"), None);

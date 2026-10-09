@@ -100,40 +100,67 @@
 <link rel="stylesheet" href="styles/base.css">
 <link rel="stylesheet" href="styles/footer.css">
 <link rel="stylesheet" href="styles/guia.css">
+<link rel="stylesheet" href="portada/barra.css">
 
 <!-- El diccionario ingles de esta pagina va ANTES de boot.js: boot.js lo
      recoge de window.ADEORQ_I18N_EXTRA al arrancar. -->
 <script src="js/guia-i18n.js"></script>
 <script src="js/boot.js" type="module"></script>
 <script src="js/guia.js" type="module"></script>
+<script src="portada/menu.js" defer></script>
 </head>
 
 <body>
 <a class="skip-link" href="#doc-inicio" data-i18n="skip">Saltar al contenido</a>
 
-<!-- ============================ NAV ============================ -->
-<header class="nav is-posado" id="nav">
-  <div class="nav__inner">
-    <a class="marca" href="index.html" aria-label="Adeorq, ir al inicio">
-      <img class="marca__logo" src="assets/adeorq.svg" width="32" height="32" alt="" decoding="async">
-      <span class="marca__texto">Adeorq</span>
-    </a>
-
-    <nav class="nav__enlaces" aria-label="Secciones">
-      <a href="index.html#que-es" data-i18n="nav.queEs">Qué es</a>
-      <a href="index.html#trabajo" data-i18n="nav.funciones">Funciones</a>
-      <a href="index.html#novedades" data-i18n="nav.novedades">Novedades</a>
-      <a href="guia.html" aria-current="page" data-i18n="nav.guia">Guía</a>
-    </nav>
-
-    <div class="nav__acciones">
-      <button type="button" class="idioma-toggle" id="idioma-toggle" aria-label="Cambiar idioma">
-        <span class="idioma-toggle__texto" id="idioma-toggle-texto">English</span>
-      </button>
-      <a class="boton boton--solido nav__cta" href="index.html#descargar" data-i18n="cta.descargar">Descargar</a>
-    </div>
+<!-- ============================ LA BARRA ============================
+     La misma que la portada (portada/barra.css), con su fondo puesto desde el
+     principio (`nav--fija`) y «Guía» marcada. Hasta el 2026-10-09 la guía
+     tenía una barra propia con otros enlaces; Munir eligió esta. -->
+<header class="nav nav--fija" id="nav">
+  <a class="nav__marca" href="/">
+    <img src="assets/adeorq.svg" alt="" width="21" height="21">
+    <b>Adeorq</b>
+  </a>
+  <nav class="nav__enlaces" aria-label="Secciones" data-i18n-aria="guia.barra.aria">
+    <a href="/#trabajo" data-i18n="guia.barra.trabajo">Cómo trabaja</a>
+    <a href="/#que-es" data-i18n="guia.barra.queEs">Qué hace</a>
+    <a href="/#cinta" data-i18n="guia.barra.clientes">Clientes</a>
+    <a href="/#movil" data-i18n="guia.barra.movil">En el móvil</a>
+    <a href="/guia" aria-current="page" data-i18n="nav.guia">Guía</a>
+  </nav>
+  <div class="nav__acciones">
+    <button type="button" class="nav__idioma" id="idioma-toggle" aria-label="Cambiar idioma" data-i18n-aria="guia.barra.idioma">
+      <span id="idioma-toggle-texto">English</span>
+    </button>
+    <a class="nav__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-i18n="guia.barra.codigo">Código</a>
+    <a class="btn btn--claro btn--chico" href="/#descargar" data-i18n="cta.descargar">Descargar</a>
+    <button class="nav__menu" type="button" aria-label="Abrir el menú" aria-haspopup="dialog"
+            aria-controls="menu-movil" aria-expanded="false" data-menu-abrir data-i18n-aria="guia.menu.abrir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
   </div>
 </header>
+
+<!-- El menú del móvil: lo que la barra esconde por debajo de 860 px, el idioma
+     incluido (aquí cambia la guía en el sitio, como el botón de la barra). -->
+<dialog class="hoja-menu" id="menu-movil" aria-label="Menú" data-i18n-aria="guia.menu.titulo">
+  <button class="hoja-menu__cerrar" type="button" aria-label="Cerrar el menú" data-menu-cerrar data-i18n-aria="guia.menu.cerrar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <p class="hoja-menu__titulo" data-i18n="guia.menu.titulo">Menú</p>
+  <nav aria-label="Secciones" data-i18n-aria="guia.barra.aria">
+    <a href="/#trabajo" autofocus data-i18n="guia.barra.trabajo">Cómo trabaja</a>
+    <a href="/#que-es" data-i18n="guia.barra.queEs">Qué hace</a>
+    <a href="/#cinta" data-i18n="guia.barra.clientes">Clientes</a>
+    <a href="/#movil" data-i18n="guia.barra.movil">En el móvil</a>
+    <a href="/#descargar" data-i18n="cta.descargar">Descargar</a>
+    <a href="/guia" aria-current="page" data-i18n="nav.guia">Guía</a>
+    <hr>
+    <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-i18n="guia.menu.codigo">Código en GitHub</a>
+    <button type="button" class="hoja-menu__fila" data-idioma-toggle data-i18n="guia.menu.idioma">English</button>
+  </nav>
+</dialog>
 
 <main class="doc" id="doc-inicio">
 
@@ -632,6 +659,16 @@
           servicio de avisos de tu navegador (Google, Apple o Mozilla), que los entrega sin
           poder leerlos. En iPhone solo funciona con la app añadida a la pantalla de inicio. En
           Ajustes → Móvil puedes mandar un aviso de prueba.
+        </li>
+        <li data-i18n-html="guia.movil.l4">
+          <b>Decisiones.</b> Cuando un agente necesita que elijas algo, te lo pregunta con sus
+          opciones numeradas y te llega un aviso. Lo contestas en <b>Decisiones</b>, con una
+          opción o con tus palabras, y la respuesta vuelve sola a la terminal que preguntó.
+        </li>
+        <li data-i18n-html="guia.movil.l5">
+          <b>Cambiar de modo.</b> En una terminal de Claude Code, el botón <b>Cambiar modo</b>
+          hace lo que Mayús+Tab en el PC (normal, aceptar ediciones, plan, auto) y dice en qué
+          modo está.
         </li>
         <li data-i18n-html="guia.movil.l3">
           <b>Varios aparatos.</b> En Ajustes → Móvil sale cada uno con su nombre, y desde ahí lo

@@ -399,8 +399,10 @@ function comandos(host) {
     </div>`;
 
   const pinta = (q = '') => {
+    // En el texto español y en el que se ve (en /en/, la traducción).
+    const ver = window.adeTraducir || (s => s);
     const filtrados = COMANDOS.filter(c =>
-      (c.t + ' ' + c.g).toLowerCase().includes(q.toLowerCase()));
+      (c.t + ' ' + c.g + ' ' + ver(c.t) + ' ' + ver(c.g)).toLowerCase().includes(q.toLowerCase()));
     $('#cm-lista', host).innerHTML = filtrados.length
       ? filtrados.map(c => `
         <li class="ade-fila" data-cmd="${c.t}">

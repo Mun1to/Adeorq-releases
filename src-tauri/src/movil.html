@@ -61,6 +61,10 @@
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  /* `hidden` esconde SIEMPRE. Cada `display` de una clase le ganaba y salían
+     cosas que no tocaban: el recuadro vacío de los avisos y, al contestar una
+     decisión, el botón de enviar otra vez. Una regla en vez de un parche por pieza. */
+  [hidden] { display: none !important; }
   html, body { height: 100%; }
   body {
     margin: 0;
@@ -213,6 +217,49 @@
   .porque { font-size: 13px; color: var(--suave); }
   .porque b { color: var(--tinta); font-weight: 600; }
 
+  /* ── Decisiones ──
+     Lo que piden los agentes (decisiones.rs). Ninguna opción sale marcada: la
+     recomendada lleva su etiqueta y su porqué, pero elegirla es de Munir
+     (GOV.UK: «Do not pre-select radio options»). Mismo orden y mismos números
+     que puso el agente, que es lo que se dicta («la 2»). */
+  .cuenta-dec {
+    margin-left: auto; min-width: 24px; padding: 1px 8px; border-radius: 999px; text-align: center;
+    background: var(--pregunta); color: var(--sobre-acento); font-size: 13px; font-weight: 700;
+  }
+  .cuenta-dec[hidden] { display: none; }
+  .dec-cab { display: grid; gap: 6px; margin: 0 0 14px; }
+  .dec-cab p { margin: 0; color: var(--suave); }
+  .dec-hecha { padding: 10px 12px; border-radius: 12px; background: var(--acento-capa); font-size: 14px; }
+  .pregunta-d { border: 1px solid var(--borde); border-radius: 16px; background: var(--capa); padding: 12px 12px 14px; margin: 0 0 14px; min-width: 0; }
+  .pregunta-d legend { padding: 0 6px; font-weight: 650; font-size: 16px; display: flex; gap: 8px; align-items: baseline; }
+  .letra { color: var(--acento); font-variant-numeric: tabular-nums; }
+  .pregunta-d > p { margin: 2px 2px 10px; font-size: 14px; color: var(--suave); }
+  .opcion {
+    display: flex; align-items: flex-start; gap: 10px; min-height: 48px; padding: 11px 12px; margin: 0 0 8px;
+    border: 1px solid var(--borde); border-radius: 12px; cursor: pointer;
+  }
+  .opcion:has(input:checked) { border-color: var(--acento); background: var(--acento-capa); }
+  .opcion input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--acento); }
+  .opcion .num { flex: none; min-width: 1.2em; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .opcion .txt { display: grid; gap: 3px; min-width: 0; }
+  .opcion small { color: var(--suave); font-size: 13.5px; }
+  .rec {
+    justify-self: start; font-style: normal; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+    color: var(--vivo); border: 1px solid color-mix(in srgb, var(--vivo) 45%, transparent);
+  }
+  .o { display: flex; align-items: center; gap: 10px; color: var(--suave); font-size: 13px; margin: 4px 2px 8px; }
+  .o::before, .o::after { content: ""; flex: 1; border-top: 1px solid var(--borde); }
+  .libre {
+    display: block; width: 100%; min-height: 64px; padding: 10px 12px; border-radius: 12px; resize: none;
+    border: 1px solid var(--borde-fuerte); background: var(--fondo); color: var(--tinta); font: inherit; max-height: none;
+  }
+  .libre:focus { outline: none; border-color: var(--acento); }
+  .pregunta-d[disabled] .opcion { cursor: default; }
+  .pregunta-d[disabled] .opcion:not(:has(input:checked)) { opacity: 0.55; }
+  .enviar-dec { width: 100%; min-height: 48px; }
+  .estado-envio { margin: 0 0 8px; font-size: 14px; color: var(--suave); }
+  .estado-envio:empty { display: none; }
+
   .pensando { display: flex; align-items: center; gap: 8px; color: var(--suave); margin: 12px 0; }
   .pensando i { width: 8px; height: 8px; border-radius: 50%; background: var(--vivo); animation: latido 1.2s ease-in-out infinite; }
   @keyframes latido { 50% { opacity: 0.3; } }
@@ -292,6 +339,11 @@
   #conversa .turno[data-rol="agente"] .burbuja { max-width: 100%; }
   .aviso-terminal { font-size: 12.5px; color: var(--suave); margin: 8px 4px 0; }
   /* Escribiendo, con el teclado fuera, cada línea de lectura cuenta. */
+  /* Ojo con el foco: si un toque cambia lo que está enfocado, esta nota aparece
+     o desaparece, todo se mueve una fila entre el «mousedown» y el «mouseup» y
+     el clic se pierde (medido el 2026-10-09: con un botón de tecla, al pasar
+     del cuerpo a la caja; y con «enviar», al pasar de la caja a fuera). Por eso
+     los botones de tecla no cogen el foco al pulsarlos (`noRobarFoco`). */
   .caja:focus-within .aviso-terminal { display: none; }
   .caja { position: relative; }
   .caja .fallo { margin: 0 0 8px; }
@@ -322,6 +374,7 @@ const PALABRA = { trabajando: "trabajando", pregunta: "te pregunta algo", termin
 const MARCA = { claude: "Claude", codex: "Codex", gemini: "Gemini", agy: "Antigravity", kimi: "Kimi", opencode: "opencode" };
 
 const ICONO = {
+  decision: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5"/><circle cx="5" cy="18" r="1.4"/></svg>',
   chispa: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>',
   atras: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
   subir: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
@@ -574,7 +627,11 @@ async function api(metodo, ruta, cuerpo) {
     olvidarClave();
     throw new Error(v.error || "Este móvil no está emparejado.");
   }
-  if (!r.ok) throw new Error(v.error || `Algo ha fallado (${r.status}).`);
+  if (!r.ok) {
+    const err = new Error(v.error || `Algo ha fallado (${r.status}).`);
+    err.estado = r.status;
+    throw err;
+  }
   return v;
 }
 
@@ -626,6 +683,9 @@ if (e.vista === "esperando") {
   // Y un aviso de una terminal («te pregunta») abre su pantalla directamente.
   const mt = /#terminal=(\d{1,6})/.exec(location.hash);
   if (mt && clave) e = { vista: "terminal", panel: Number(mt[1]) };
+  // El de una decisión (`ask_decision`), la decisión.
+  const md = /#decision=(d[0-9a-f]{1,22})/.exec(location.hash);
+  if (md && clave) e = { vista: "decision", id: md[1] };
   if (location.hash) history.replaceState(null, "", location.pathname);
 }
 
@@ -634,9 +694,11 @@ if (e.vista === "esperando") {
 window.addEventListener("hashchange", () => {
   const mc = /#conv=([A-Za-z0-9_-]{1,64})/.exec(location.hash);
   const mt = /#terminal=(\d{1,6})/.exec(location.hash);
+  const md = /#decision=(d[0-9a-f]{1,22})/.exec(location.hash);
   if (location.hash) history.replaceState(null, "", location.pathname);
   if (!clave) return;
-  if (mt) ir({ vista: "terminal", panel: Number(mt[1]) });
+  if (md) ir({ vista: "decision", id: md[1] });
+  else if (mt) ir({ vista: "terminal", panel: Number(mt[1]) });
   else if (mc) ir({ vista: "hilo", id: mc[1] });
 });
 
@@ -767,6 +829,8 @@ function pintar() {
   if (e.vista === "sesion") return pintarSesion();
   if (e.vista === "terminales") return pintarTerminales();
   if (e.vista === "terminal") return pintarTerminal();
+  if (e.vista === "decisiones") return pintarDecisiones();
+  if (e.vista === "decision") return pintarDecision();
 }
 
 // ─── Emparejar ──────────────────────────────────────────────────────────────
@@ -815,6 +879,7 @@ async function pintarLista() {
       <header class="barra"><span class="avatar">${ICONO.chispa}</span><h1>Conserje<small id="yo">tu PC</small></h1></header>
       <main class="cuerpo">
         <button id="nueva" class="nueva"><span class="avatar">${ICONO.chispa}</span>Hablar con el conserje</button>
+        <button id="decisiones" class="nueva segunda"><span class="avatar">${ICONO.decision}</span>Decisiones<b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
         <button id="terminales" class="nueva segunda"><span class="avatar">${ICONO.terminal}</span>Tus terminales</button>
         <div id="filas"></div>
         <button id="avisos" class="avisos" hidden></button>
@@ -823,8 +888,20 @@ async function pintarLista() {
     </div>`;
   document.getElementById("nueva").addEventListener("click", () => ir({ vista: "hilo", id: nuevoId(), nueva: true }));
   document.getElementById("terminales").addEventListener("click", () => ir({ vista: "terminales" }));
+  document.getElementById("decisiones").addEventListener("click", () => ir({ vista: "decisiones" }));
   pintarAvisos().catch(() => {});
   pintarInstalar();
+  // Cuántas te esperan, en el botón: se mira con la lista.
+  const contarDecisiones = async () => {
+    const v = await api("GET", "/api/decisiones").catch(() => null);
+    const c = document.getElementById("cuenta-dec");
+    if (!c || !v) return;
+    const n = (v.decisiones || []).filter((d) => !d.contestada).length;
+    c.hidden = !n;
+    c.textContent = String(n);
+    c.setAttribute("aria-label", `${n} sin contestar`);
+  };
+  contarDecisiones();
   const cargar = async () => {
     const lista = await api("GET", "/api/lista");
     const filas = document.getElementById("filas");
@@ -840,7 +917,7 @@ async function pintarLista() {
     const filas = document.getElementById("filas");
     if (filas) filas.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
   }
-  sondear(15000, cargar);
+  sondear(15000, () => Promise.all([cargar(), contarDecisiones()]));
 }
 
 // ─── El hilo ────────────────────────────────────────────────────────────────
@@ -1128,6 +1205,189 @@ async function pintarTerminales() {
   sondear(5000, cargar);
 }
 
+// ─── Decisiones ─────────────────────────────────────────────────────────────
+// Lo que un agente le pregunta a Munir con `ask_decision` (decisiones.rs). Se
+// contesta aquí, desde cualquier aparato emparejado, y la respuesta vuelve a la
+// terminal que preguntó.
+
+async function pintarDecisiones() {
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra">
+        <button class="atras" id="atras" aria-label="Volver">${ICONO.atras}</button>
+        <h1>Decisiones<small>lo que te preguntan tus agentes</small></h1>
+      </header>
+      <main class="cuerpo" id="decisiones"></main>
+    </div>`;
+  document.getElementById("atras").addEventListener("click", () => ir({ vista: "lista" }));
+  const cargar = async () => {
+    const v = await api("GET", "/api/decisiones");
+    const aqui = document.getElementById("decisiones");
+    if (!aqui) return;
+    const lista = v.decisiones || [];
+    aqui.innerHTML = lista.length
+      ? lista.map((d) => {
+        const de = [d.proyecto, d.panel ? `panel ${d.panel}` : ""].filter(Boolean).join(" · ");
+        const n = `${d.preguntas} ${d.preguntas === 1 ? "pregunta" : "preguntas"}`;
+        return `<button class="tarjeta" data-estado="${d.contestada ? "cerrada" : "pregunta"}" data-id="${esc(d.id)}">
+          <span class="tarjeta-cab"><b>${esc(d.titulo)}</b><span class="estado"><i></i>${d.contestada ? "contestada" : "te espera"}</span></span>
+          <span class="porque">${esc([de, n, hace(d.creada / 1000)].filter(Boolean).join(" · "))}</span>
+        </button>`;
+      }).join("")
+      : `<p class="vacio">No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.</p>`;
+    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id })));
+  };
+  try { await cargar(); } catch (err) {
+    const aqui = document.getElementById("decisiones");
+    if (aqui) aqui.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
+  }
+  sondear(5000, cargar);
+}
+
+/* Lo marcado y lo escrito se guarda solo mientras no se manda: cerrar la
+   página a medias no lo pierde. */
+const borradorDe = (id) => `adeorq-decision-${id}`;
+function leerBorrador(id) {
+  try { return JSON.parse(localStorage.getItem(borradorDe(id)) || "{}"); } catch (_) { return {}; }
+}
+function guardarBorrador(id, b) {
+  try { localStorage.setItem(borradorDe(id), JSON.stringify(b)); } catch (_) {}
+}
+
+async function pintarDecision() {
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra">
+        <button class="atras" id="atras" aria-label="Volver a las decisiones">${ICONO.atras}</button>
+        <h1 id="titulo">Decisión<small>cargando…</small></h1>
+      </header>
+      <main class="cuerpo" id="decision"></main>
+      <footer class="caja" id="pie-dec" hidden>
+        <p class="estado-envio" id="estado-envio" role="status" aria-live="polite"></p>
+        <button class="boton enviar-dec" id="enviar-dec" disabled>Enviar respuesta</button>
+      </footer>
+    </div>`;
+  document.getElementById("atras").addEventListener("click", () => ir({ vista: "decisiones" }));
+  let d;
+  try {
+    d = await api("GET", `/api/decision?id=${encodeURIComponent(e.id)}`);
+  } catch (err) {
+    document.getElementById("decision").innerHTML = `<p class="nota">${esc(err.message)}</p>`;
+    return;
+  }
+  const contestada = Boolean(d.respuesta);
+  const borrador = contestada ? {} : leerBorrador(d.id);
+  const elegida = (q) => contestada ? d.respuesta.elecciones[q.id]?.opcion : borrador[q.id]?.opcion;
+  const escrita = (q) => contestada ? d.respuesta.elecciones[q.id]?.texto : borrador[q.id]?.texto;
+  const de = [d.proyecto, d.panel ? `panel ${d.panel}` : ""].filter(Boolean).join(" · ");
+  document.getElementById("titulo").innerHTML = `${esc(d.titulo)}<small>${esc([de, hace(d.creada / 1000)].filter(Boolean).join(" · "))}</small>`;
+
+  const hecha = contestada
+    ? `<p class="dec-hecha">Contestada desde ${esc(d.respuesta.desde)}, ${hace(d.respuesta.cuando / 1000)}. ${d.respuesta.entregada ? `Se tecleó en el panel ${d.panel}.` : "El agente la lee cuando la pide."}</p>`
+    : "";
+  document.getElementById("decision").innerHTML = `
+    <div class="dec-cab">${hecha}${d.contexto ? `<p>${esc(d.contexto)}</p>` : ""}</div>
+    ${d.preguntas.map((q) => `
+      <fieldset class="pregunta-d" data-q="${esc(q.id)}"${contestada ? " disabled" : ""}>
+        <legend><span class="letra">${esc(q.id)}</span>${esc(q.titulo)}</legend>
+        ${q.contexto ? `<p>${esc(q.contexto)}</p>` : ""}
+        ${q.opciones.map((o, i) => `
+          <label class="opcion">
+            <input type="radio" name="q-${esc(q.id)}" value="${i + 1}"${elegida(q) === i + 1 ? " checked" : ""}>
+            <span class="num">${i + 1}</span>
+            <span class="txt"><b>${esc(o.texto)}</b>${o.recomendada ? `<em class="rec">Recomendada</em>` : ""}${o.detalle ? `<small>${esc(o.detalle)}</small>` : ""}</span>
+          </label>`).join("")}
+        ${contestada && !escrita(q) ? "" : `
+        <div class="o">o</div>
+        <textarea class="libre" data-q="${esc(q.id)}" rows="2" placeholder="Otra cosa, con tus palabras" aria-label="Otra cosa para la pregunta ${esc(q.id)}, con tus palabras">${esc(escrita(q) || "")}</textarea>`}
+      </fieldset>`).join("")}`;
+  if (contestada) return;
+
+  const pie = document.getElementById("pie-dec");
+  const boton = document.getElementById("enviar-dec");
+  const estado = document.getElementById("estado-envio");
+  pie.hidden = false;
+  const leerForm = () => {
+    const el = {};
+    for (const q of d.preguntas) {
+      const marcada = document.querySelector(`input[name="q-${CSS.escape(q.id)}"]:checked`);
+      const texto = document.querySelector(`.libre[data-q="${CSS.escape(q.id)}"]`)?.value.trim();
+      el[q.id] = { opcion: marcada ? Number(marcada.value) : undefined, texto: texto || undefined };
+    }
+    return el;
+  };
+  const completa = (el) => d.preguntas.every((q) => el[q.id].opcion || el[q.id].texto);
+  const faltan = (el) => d.preguntas.filter((q) => !el[q.id].opcion && !el[q.id].texto).map((q) => q.id);
+  const repasar = () => {
+    const el = leerForm();
+    guardarBorrador(d.id, el);
+    boton.disabled = !completa(el);
+    const f = faltan(el);
+    if (!cuenta) {
+      estado.textContent = !f.length ? ""
+        : f.length === 1 ? `Falta la pregunta ${f[0]}.`
+        : `Faltan las preguntas ${f.slice(0, -1).join(", ")} y ${f.at(-1)}.`;
+    }
+  };
+  document.getElementById("decision").addEventListener("input", repasar);
+  document.getElementById("decision").addEventListener("change", repasar);
+
+  /* Se manda a los cinco segundos, con «Deshacer» mientras tanto: un toque de
+     más no le llega al agente (Material, «display an Undo action»). */
+  let cuenta = null;
+  const parar = () => { clearInterval(cuenta); cuenta = null; boton.textContent = "Enviar respuesta"; repasar(); };
+  boton.addEventListener("click", () => {
+    if (cuenta) { parar(); estado.textContent = "No se ha mandado."; return; }
+    const el = leerForm();
+    if (!completa(el)) return;
+    let quedan = 5;
+    boton.textContent = `Deshacer (${quedan})`;
+    estado.textContent = `Se manda en ${quedan} s.`;
+    cuenta = setInterval(async () => {
+      quedan -= 1;
+      if (quedan > 0) { boton.textContent = `Deshacer (${quedan})`; estado.textContent = `Se manda en ${quedan} s.`; return; }
+      clearInterval(cuenta);
+      cuenta = null;
+      boton.disabled = true;
+      boton.textContent = "Mandando…";
+      try {
+        const r = await api("POST", "/api/decision/responder", { id: d.id, elecciones: el });
+        try { localStorage.removeItem(borradorDe(d.id)); } catch (_) {}
+        await pintarDecision();
+        const est = document.getElementById("estado-envio");
+        const f = document.getElementById("pie-dec");
+        if (f && est) {
+          f.hidden = false;
+          document.getElementById("enviar-dec").hidden = true;
+          est.textContent = r.entregada ? `Enviada. Se ha tecleado en el panel ${r.panel}.` : "Enviada. El agente la leerá cuando la pida.";
+        }
+      } catch (err) {
+        boton.textContent = "Enviar respuesta";
+        boton.disabled = false;
+        // Ya contestada (desde otro aparato): se enseña cómo quedó, y lo tuyo
+        // sigue en el borrador por si lo quieres copiar.
+        estado.textContent = err.estado === 409 ? "Ya estaba contestada desde otro sitio. Lo que escribiste sigue guardado aquí." : `No se ha mandado: ${err.message}`;
+      }
+    }, 1000);
+  });
+  repasar();
+}
+
+/* El modo de Claude Code, leído de su propia pantalla: la línea de abajo dice
+   «auto mode on», «plan mode on» o «accept edits on» (y nada en el normal).
+   Shift+Tab pasa al siguiente; desde el PC es una tecla, desde el móvil no
+   había forma, y el modo auto se para ante lo que su clasificador no deja
+   (publicar, tocar ajustes) hasta que alguien cambia de modo. */
+function modoDe(v) {
+  const filas = v.filas || [];
+  for (let i = filas.length - 1; i >= 0 && i >= filas.length - 12; i--) {
+    const m = /(auto mode|plan mode|accept edits|bypass permissions) on/i.exec(filas[i]);
+    if (m) return { "auto mode": "auto", "plan mode": "plan", "accept edits": "aceptar ediciones", "bypass permissions": "sin permisos" }[m[1].toLowerCase()];
+  }
+  // En el modo normal Claude Code no pinta nada: no se sabe, y no se inventa.
+  return null;
+}
+
 /* Munir, 2026-10-08: «no veo mucho historial de la terminal», y sin verlo no
    podía copiar el mensaje de compactación. La pantalla de un Claude Code a
    pantalla completa no tiene historial ninguno (lo que no cabe, no está en el
@@ -1159,6 +1419,9 @@ function pintarTerminal() {
           <button class="pastilla" data-tecla="intro">Intro</button>
           <button class="pastilla" data-tecla="esc">Esc</button>
           <button class="pastilla" data-tecla="ctrl+c">Ctrl+C</button>
+          <button class="pastilla" data-tecla="shift+tab" id="modo" title="Shift+Tab: pasa al siguiente modo de Claude Code">Cambiar modo</button>
+          <button class="pastilla" data-tecla="arriba" aria-label="Flecha arriba">↑</button>
+          <button class="pastilla" data-tecla="abajo" aria-label="Flecha abajo">↓</button>
         </div>
         <p class="aviso-terminal">Va directo a la terminal, sin pasar por el conserje.</p>
       </footer>
@@ -1200,6 +1463,9 @@ function pintarTerminal() {
     const conversa = document.getElementById("conversa");
     if (!marco || !conversa) return;
     ultima = { ...v, conversa: Boolean(v.agente && v.sesion && v.carpeta) };
+    const modo = modoDe(v);
+    const bModo = document.getElementById("modo");
+    if (bModo) bModo.textContent = modo ? `Modo: ${modo} ⇄` : "Cambiar modo";
     const [palabra] = estadoTerminal(v);
     document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small id="sub">${esc(hoja(v.carpeta))} · ${palabra}</small>`;
     const ahora = cara();
@@ -1261,6 +1527,10 @@ function pintarTerminal() {
       listo();
     }
   });
+  // Pulsar una tecla no le quita el foco a la caja ni se lo da al botón: así no
+  // cambia nada de sitio a mitad del toque, y si estabas escribiendo, el
+  // teclado sigue fuera.
+  document.querySelectorAll(".pastilla[data-tecla]").forEach((b) => b.addEventListener("mousedown", (ev) => ev.preventDefault()));
   document.querySelectorAll(".pastilla[data-tecla]").forEach((b) => b.addEventListener("click", async () => {
     try {
       await api("POST", "/api/terminal/tecla", { panel: e.panel, tecla: b.dataset.tecla });

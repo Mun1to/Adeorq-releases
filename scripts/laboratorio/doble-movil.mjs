@@ -60,6 +60,36 @@ const pantallas = new Map([
   [3, [...Array.from({ length: 150 }, (_, i) => `   Compiling crate-numero-${i} v0.${i}.0 (C:\\Users\\Muni\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\crate-${i})`), "PS C:\\proyectos\\Vidorq> "]],
 ]);
 const terminalDe = (panel) => terminales.find((t) => t.panel === Number(panel));
+// El modo de Claude Code del panel 1: Shift+Tab pasa al siguiente, y la línea
+// de abajo lo dice como lo pinta Claude Code (nada en el normal).
+const MODOS = ["", "⏵⏵ accept edits on (shift+tab to cycle)", "⏸ plan mode on (shift+tab to cycle)", "⏵⏵ auto mode on (shift+tab to cycle)"];
+const modo = new Map([[1, 3]]);
+
+// Las decisiones que pide un agente con `ask_decision` (decisiones.rs): una
+// pendiente de dos preguntas, con su recomendada, y otra ya contestada.
+const decisiones = [
+  {
+    id: "d19a2b3c4d5", titulo: "Diseño de la web", contexto: "Dos cosas que se ven en adeorq.com y en la guía.",
+    proyecto: "Adeorq", panel: 1, arranque: 1, creada: Date.now() - 6 * 60000,
+    preguntas: [
+      { id: "A", titulo: "La barra de la guía", contexto: "Hoy la guía tiene su propia barra, con otros enlaces.", opciones: [
+        { texto: "Como está", recomendada: false },
+        { texto: "La barra de la portada", detalle: "Una sola barra que mantener; la guía sigue el tema del sistema", recomendada: true },
+        { texto: "Barra de la portada y guía siempre oscura", recomendada: false },
+      ] },
+      { id: "B", titulo: "El menú en el móvil", opciones: [
+        { texto: "Como está", recomendada: false },
+        { texto: "Un botón de menú", detalle: "Cerrado no ocupa nada", recomendada: true },
+        { texto: "Una fila que se desliza", recomendada: false },
+      ] },
+    ],
+  },
+  {
+    id: "d19a2b3c4d0", titulo: "Nombre de la rama", proyecto: "Vidorq", panel: 3, arranque: 1, creada: Date.now() - 3 * 3600000,
+    preguntas: [{ id: "A", titulo: "¿Cómo la llamo?", opciones: [{ texto: "feat/timeline" }, { texto: "timeline-v2", recomendada: true }] }],
+    respuesta: { cuando: Date.now() - 2 * 3600000, desde: "Android · Chrome", entregada: true, elecciones: { A: { opcion: 2 } } },
+  },
+];
 // La del panel 1 tiene historia larga y acaba en un cierre con su bloque de
 // compactación, que es lo que Munir no podía leer entero desde el móvil.
 const sesionLarga = [];
@@ -251,7 +281,8 @@ http
         case "/api/terminal": {
           const t = terminalDe(url.searchParams.get("panel"));
           if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
-          return json(res, 200, { ...t, filas: pantallas.get(t.panel) || [] });
+          const linea = MODOS[modo.get(t.panel) ?? 0];
+          return json(res, 200, { ...t, filas: [...(pantallas.get(t.panel) || []), ...(linea ? [linea] : [])] });
         }
         case "/api/terminal/escribir": {
           const t = terminalDe(v.panel);
@@ -266,9 +297,13 @@ http
         case "/api/escrito":
           return json(res, 200, { texto: escrito.get(Number(url.searchParams.get("panel"))) ?? null });
         case "/api/terminal/tecla": {
-          if (!["intro", "esc", "ctrl+c"].includes(v.tecla)) return json(res, 400, { error: "Esa tecla no se manda desde el móvil." });
+          if (!["intro", "esc", "ctrl+c", "shift+tab", "arriba", "abajo"].includes(v.tecla)) return json(res, 400, { error: "Esa tecla no se manda desde el móvil." });
           const f = pantallas.get(Number(v.panel));
           if (!f) return json(res, 404, { error: "Esa terminal ya no está." });
+          if (v.tecla === "shift+tab") {
+            modo.set(Number(v.panel), ((modo.get(Number(v.panel)) ?? 0) + 1) % MODOS.length);
+            return json(res, 202, { ok: true });
+          }
           f.push(`(tecla: ${v.tecla})`, "❯ ");
           console.log(`tecla en ${v.panel}: ${v.tecla}`);
           return json(res, 202, { ok: true });
@@ -291,6 +326,30 @@ http
         }
         case "/api/adjuntos":
           return json(res, 200, adjuntos);
+        case "/api/decisiones":
+          return json(res, 200, { decisiones: decisiones
+            .slice()
+            .sort((a, b) => Boolean(a.respuesta) - Boolean(b.respuesta) || b.creada - a.creada)
+            .map((d) => ({ id: d.id, titulo: d.titulo, proyecto: d.proyecto, panel: d.panel, creada: d.creada, preguntas: d.preguntas.length, contestada: Boolean(d.respuesta) })) });
+        case "/api/decision": {
+          const d = decisiones.find((x) => x.id === url.searchParams.get("id"));
+          return d ? json(res, 200, d) : json(res, 404, { error: "Esa decisión ya no está." });
+        }
+        case "/api/decision/responder": {
+          const d = decisiones.find((x) => x.id === v.id);
+          if (!d) return json(res, 400, { error: "Esa decisión ya no está." });
+          if (d.respuesta) return json(res, 409, { error: "Esa decisión ya está contestada." });
+          for (const q of d.preguntas) {
+            const e = v.elecciones?.[q.id] || {};
+            if (e.opcion && (e.opcion < 1 || e.opcion > q.opciones.length)) return json(res, 400, { error: `La pregunta ${q.id} no tiene opción ${e.opcion}.` });
+            if (!e.opcion && !e.texto) return json(res, 400, { error: `Falta contestar la pregunta ${q.id}.` });
+          }
+          d.respuesta = { cuando: Date.now(), desde: "el banco", entregada: true, elecciones: v.elecciones };
+          const texto = `Munir ha contestado a «${d.titulo}» (decisión ${d.id}): ${JSON.stringify(v.elecciones)}`;
+          escrito.set(d.panel, texto);
+          console.log(`decisión ${d.id} contestada: ${JSON.stringify(v.elecciones)}`);
+          return json(res, 200, { ok: true, entregada: true, panel: d.panel });
+        }
         case "/api/sesion":
           // Codex no escribe en `~/.claude`: su sesión no está en el disco.
           if (url.searchParams.get("id") === "s-2") return json(res, 404, { error: "esa conversación no está en el disco" });

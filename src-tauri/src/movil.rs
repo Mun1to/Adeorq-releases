@@ -462,6 +462,7 @@ fn razon(estado: u16) -> &'static str {
         404 => "Not Found",
         405 => "Method Not Allowed",
         408 => "Request Timeout",
+        409 => "Conflict",
         411 => "Length Required",
         413 => "Payload Too Large",
         421 => "Misdirected Request",
@@ -632,7 +633,7 @@ pub fn guardar_trozo(
 /// Las teclas sueltas que se pueden mandar a una terminal desde el móvil
 /// (decisión E3). Las mismas que `TECLAS` en `src/lib/movil.ts`, que es quien
 /// pone los bytes.
-pub const TECLAS_DEL_MOVIL: &[&str] = &["intro", "esc", "ctrl+c"];
+pub const TECLAS_DEL_MOVIL: &[&str] = &["intro", "esc", "ctrl+c", "shift+tab", "arriba", "abajo"];
 
 /// Lo que el servidor necesita de la casa. Con una casa de mentira se prueba
 /// entero sin abrir la app.
@@ -651,6 +652,10 @@ pub trait Casa {
     fn sesion(&self, cwd: &str, sesion: &str) -> Result<Value, String>;
     /// Dónde se guardan los adjuntos que llegan del móvil.
     fn adjuntos(&self) -> Result<PathBuf, String>;
+    /// Dónde viven las decisiones que piden los agentes (`decisiones.rs`).
+    fn decisiones(&self) -> Result<PathBuf, String>;
+    /// El arranque de Adeorq: los números de panel solo valen dentro de uno.
+    fn arranque(&self) -> u64;
 }
 
 pub fn atender(
@@ -912,10 +917,70 @@ pub fn atender(
                 Err(e) => Respuesta::error(400, &e),
             }
         }
+        // Las decisiones que piden los agentes (`decisiones.rs`): la lista, una
+        // entera, y contestarla. La respuesta se teclea en la terminal que
+        // preguntó solo si es del mismo arranque de Adeorq: en otro, ese número
+        // de panel puede ser ya otra terminal.
+        ("GET", "/api/decisiones") => match casa.decisiones() {
+            Ok(dir) => {
+                let lista: Vec<Value> = crate::decisiones::listar(&dir)
+                    .iter()
+                    .map(|d| {
+                        json!({
+                            "id": d.id, "titulo": d.titulo, "proyecto": d.proyecto, "panel": d.panel,
+                            "creada": d.creada, "preguntas": d.preguntas.len(), "contestada": d.respuesta.is_some(),
+                        })
+                    })
+                    .collect();
+                Respuesta::json(200, json!({ "decisiones": lista }))
+            }
+            Err(e) => Respuesta::error(500, &e),
+        },
+        ("GET", "/api/decision") => {
+            let id = p.consulta.get("id").map(String::as_str).unwrap_or("");
+            match casa.decisiones().ok().and_then(|dir| crate::decisiones::leer(&dir, id)) {
+                Some(d) => Respuesta::json(200, json!(d)),
+                None => Respuesta::error(404, "Esa decisión ya no está."),
+            }
+        }
+        ("POST", "/api/decision/responder") => {
+            let id = cuerpo["id"].as_str().unwrap_or("");
+            let Ok(elecciones) = serde_json::from_value::<std::collections::BTreeMap<String, crate::decisiones::Eleccion>>(
+                cuerpo["elecciones"].clone(),
+            ) else {
+                return Respuesta::error(400, "Las respuestas no tienen forma.");
+            };
+            let dir = match casa.decisiones() {
+                Ok(d) => d,
+                Err(e) => return Respuesta::error(500, &e),
+            };
+            // Contestada ya (desde otro aparato): 409, y la página enseña cómo
+            // quedó sin perder lo que escribió esta (RFC 9110, 409 Conflict).
+            if crate::decisiones::leer(&dir, id).is_some_and(|d| d.respuesta.is_some()) {
+                return Respuesta::error(409, "Esa decisión ya está contestada.");
+            }
+            match crate::decisiones::responder(&dir, id, elecciones, &nombre, reloj.1.saturating_mul(1000)) {
+                Ok(d) => {
+                    let mut entregada = false;
+                    if let (Some(panel), Some(arranque)) = (d.panel, d.arranque) {
+                        if arranque == casa.arranque() {
+                            let texto = crate::decisiones::como_texto(&d);
+                            entregada = casa.ventana("escribir", json!({ "panel": panel, "texto": texto })).is_ok_and(|v| v.get("error").is_none());
+                            if entregada {
+                                crate::decisiones::marcar_entregada(&dir, &d.id);
+                            }
+                        }
+                    }
+                    Respuesta::json(200, json!({ "ok": true, "entregada": entregada, "panel": d.panel }))
+                }
+                Err(e) => Respuesta::error(400, &e),
+            }
+        }
         (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router"
             | "/api/cerebro" | "/api/fijo" | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
-            | "/api/terminal/tecla" | "/api/adjuntar") => Respuesta::error(405, "Así no."),
+            | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
+            | "/api/decision/responder") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -1016,6 +1081,12 @@ impl Casa for CasaDeVerdad {
         let dir = crate::dir_datos()?.join("pastes");
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         Ok(dir)
+    }
+    fn decisiones(&self) -> Result<PathBuf, String> {
+        crate::decisiones::dir_de_verdad()
+    }
+    fn arranque(&self) -> u64 {
+        crate::conserje::arranque()
     }
 }
 
@@ -1630,7 +1701,7 @@ mod tests {
             if id == "abc" { Ok(json!({ "id": "abc", "turnos": [] })) } else { Err("no existe".into()) }
         }
         fn ventana(&self, clase: &str, datos: Value) -> Result<Value, String> {
-            if clase == "enviar" {
+            if clase == "enviar" || clase == "escribir" {
                 self.enviados.borrow_mut().push(datos);
             }
             Ok(json!({ "estados": {} }))
@@ -1656,6 +1727,61 @@ mod tests {
             std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
             Ok(dir)
         }
+        fn decisiones(&self) -> Result<PathBuf, String> {
+            Ok(std::env::temp_dir().join(format!("adeorq-movil-decisiones-{}", std::process::id())))
+        }
+        fn arranque(&self) -> u64 {
+            77
+        }
+    }
+
+    /// Una decisión de un agente se lista, se lee, se contesta una vez desde un
+    /// móvil emparejado y su respuesta se teclea en la terminal que preguntó;
+    /// de otro arranque, no se teclea en ninguna.
+    #[test]
+    fn una_decision_se_contesta_desde_el_movil_y_vuelve_a_su_terminal() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        let dir = casa.decisiones().unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        let pedido: crate::decisiones::Pedido = serde_json::from_value(json!({
+            "titulo": "Diseño", "panel": 4,
+            "preguntas": [{ "titulo": "La barra", "opciones": [{ "texto": "Como está" }, { "texto": "La de la portada", "recomendada": true }] }]
+        }))
+        .unwrap();
+        let d = crate::decisiones::crear(&dir, crate::decisiones::validar(&pedido, 5000, 77).unwrap()).unwrap();
+        let mut viejo = pedido.clone();
+        viejo.titulo = "De ayer".into();
+        let ayer = crate::decisiones::crear(&dir, crate::decisiones::validar(&viejo, 4000, 12).unwrap()).unwrap();
+
+        assert_eq!(atender(&pedir("GET", "/api/decisiones", None, ""), &g, &casa, &nada, reloj).estado, 401);
+        let lista = cuerpo_de(&atender(&pedir("GET", "/api/decisiones", c, ""), &g, &casa, &nada, reloj));
+        assert_eq!(lista["decisiones"].as_array().unwrap().len(), 2);
+        let una = atender(&pedir("GET", &format!("/api/decision?id={}", d.id), c, ""), &g, &casa, &nada, reloj);
+        assert_eq!(cuerpo_de(&una)["preguntas"][0]["opciones"][1]["recomendada"], true);
+        assert_eq!(atender(&pedir("GET", "/api/decision?id=../movil", c, ""), &g, &casa, &nada, reloj).estado, 404);
+
+        let responde = |id: &str, n: u64| {
+            let cuerpo = json!({ "id": id, "elecciones": { "A": { "opcion": n } } }).to_string();
+            atender(&pedir("POST", "/api/decision/responder", c, &cuerpo), &g, &casa, &nada, reloj)
+        };
+        assert_eq!(responde(&d.id, 9).estado, 400, "una opción que no existe");
+        let r = responde(&d.id, 2);
+        assert_eq!((r.estado, cuerpo_de(&r)["entregada"].clone()), (200, json!(true)));
+        let escrito = casa.enviados.borrow().last().cloned().unwrap();
+        assert_eq!(escrito["panel"], 4);
+        assert!(escrito["texto"].as_str().unwrap().contains("opción 2, «La de la portada»"));
+        assert_eq!(responde(&d.id, 1).estado, 409, "contestada no se vuelve a contestar");
+        // La de otro arranque se guarda, pero no se teclea en el panel 4 de hoy.
+        let antes = casa.enviados.borrow().len();
+        let r = responde(&ayer.id, 1);
+        assert_eq!((r.estado, cuerpo_de(&r)["entregada"].clone()), (200, json!(false)));
+        assert_eq!(casa.enviados.borrow().len(), antes);
+        assert_eq!(atender(&pedir("GET", "/api/decision/responder", c, ""), &g, &casa, &nada, reloj).estado, 405);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// Una foto en tres trozos llega entera y con su nombre limpio; un trozo
@@ -1712,6 +1838,18 @@ mod tests {
     fn la_pagina_y_el_servidor_dicen_lo_mismo() {
         assert!(PAGINA.contains(&format!("const TROZO = {TROZO_ADJUNTO};")));
         assert!(PAGINA.contains(&format!("const PANEL = \"{PANEL_DE_MUNIR}\";")));
+    }
+
+    /// Las tres listas de teclas dicen lo mismo: lo que deja pasar el servidor,
+    /// lo que pone los bytes en la ventana (src/lib/movil.ts) y los botones de
+    /// la página. Una tecla en una sola de ellas es un botón que da error.
+    #[test]
+    fn las_teclas_del_movil_estan_en_los_tres_sitios() {
+        let ventana = include_str!("../../src/lib/movil.ts");
+        for t in TECLAS_DEL_MOVIL {
+            assert!(ventana.contains(&format!("\"{t}\":")) || ventana.contains(&format!(" {t}:")), "{t} en movil.ts");
+            assert!(PAGINA.contains(&format!("data-tecla=\"{t}\"")), "{t} en la página");
+        }
     }
 
     /// Instalada como app: el manifiesto apunta a un PNG que existe, sin clave,
@@ -1792,6 +1930,11 @@ mod tests {
         assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"panel":1,"texto":"sí, adelante"}"#), &g, &casa, &nada, reloj).estado, 202);
         assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+c"}"#), &g, &casa, &nada, reloj).estado, 202);
         assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+z"}"#), &g, &casa, &nada, reloj).estado, 400);
+        // El cambio de modo de Claude Code y las flechas de los menús, sí.
+        for t in ["shift+tab", "arriba", "abajo"] {
+            let cuerpo = format!(r#"{{"panel":1,"tecla":"{t}"}}"#);
+            assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, &cuerpo), &g, &casa, &nada, reloj).estado, 202, "{t}");
+        }
         assert_eq!(atender(&pedir("GET", "/api/terminal/escribir", c, ""), &g, &casa, &nada, reloj).estado, 405, "con el método que no es, 405 y no 404");
     }
 

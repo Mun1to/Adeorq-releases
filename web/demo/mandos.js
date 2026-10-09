@@ -50,7 +50,10 @@ const pLista = $('.ade-paleta-lista', paleta);
 let elegido = 0;
 
 function pintaPaleta(q = '') {
-  const filtradas = ACCIONES.filter(a => a.t.toLowerCase().includes(q.toLowerCase()));
+  // Busca en el texto español y en el que se ve: en /en/ lo que se lee es la
+  // traducción (demo/traducir.js), y es lo que alguien teclea.
+  const ver = window.adeTraducir || (s => s);
+  const filtradas = ACCIONES.filter(a => (a.t + ' ' + ver(a.t)).toLowerCase().includes(q.toLowerCase()));
   elegido = Math.min(elegido, Math.max(0, filtradas.length - 1));
   pLista.innerHTML = filtradas.length
     ? filtradas.map((a, i) => `

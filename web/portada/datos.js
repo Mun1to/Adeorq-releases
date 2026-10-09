@@ -20,6 +20,9 @@
   'use strict';
 
   var DATOS = '/data/';
+  /* La misma portada sirve en / y en /en/ (scripts/hacer-ingles.mjs): lo que se
+     escribe desde aquí sigue el idioma de la página. */
+  var EN = document.documentElement.lang === 'en';
 
   function traer(nombre) {
     return fetch(DATOS + nombre, { cache: 'no-cache' })
@@ -32,15 +35,15 @@
     if (el && texto) el.textContent = texto;
   }
 
-  /* Fecha larga en español. `toLocaleDateString` con 'es-ES' lo resuelve solo,
-     y si el navegador no trae ese idioma cae en su formato por defecto, que
-     sigue siendo una fecha legible. */
+  /* Fecha larga en el idioma de la página. `toLocaleDateString` lo resuelve
+     solo, y si el navegador no trae ese idioma cae en su formato por defecto,
+     que sigue siendo una fecha legible. */
   function fecha(iso) {
     if (!iso) return '';
     var d = new Date(iso);
     if (isNaN(d)) return '';
     try {
-      return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+      return d.toLocaleDateString(EN ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
     } catch (e) {
       return d.toISOString().slice(0, 10);
     }
@@ -48,7 +51,8 @@
 
   function peso(bytes) {
     if (!bytes) return '';
-    return (bytes / 1048576).toFixed(1).replace('.', ',') + ' MB';
+    var mb = (bytes / 1048576).toFixed(1);
+    return (EN ? mb : mb.replace('.', ',')) + ' MB';
   }
 
   /* ── La descarga ──────────────────────────────────────────────────────── */
@@ -63,7 +67,7 @@
     var t = document.querySelector('[data-descarga-hero-texto]');
     if (!a || !t) return;
     a.href = 'https://github.com/Mun1to/Adeorq-releases/releases/latest';
-    t.textContent = 'Descargar para Linux';
+    t.textContent = EN ? 'Download for Linux' : 'Descargar para Linux';
   })();
 
   traer('latest.json').then(function (d) {
@@ -109,7 +113,11 @@
       /* `summary` viene en Markdown: aqui solo se limpian los asteriscos de
          negrita y se corta. Meter un parser de Markdown por tres lineas seria
          cargar una libreria entera para nada. */
-      var texto = (e.summary || e.title || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+      /* En inglés, una versión de antes de que las notas trajeran inglés se
+         queda con su resumen en español, marcado como tal. */
+      var enIngles = EN && e.en ? (e.en.summary || e.en.title) : '';
+      if (EN && !enIngles) t.lang = 'es';
+      var texto = (enIngles || e.summary || e.title || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
       t.textContent = texto.length > 190 ? texto.slice(0, 187).trimEnd() + '…' : texto;
 
       li.appendChild(v);

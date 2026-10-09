@@ -205,11 +205,12 @@ function pinta() {
   fila.innerHTML = `<span class="ade-np-title">${nombre}</span> · ${artista}`;
 }
 
-$$('#ade-np .ade-np-btn').forEach(b => {
-  const q = b.getAttribute('title');
-  if (q !== 'Anterior' && q !== 'Siguiente') return;
+// Por `data-np` y no por el `title`: en la portada inglesa el title ya llega
+// traducido (demo/traducir.js) y «Anterior» y «Siguiente» no casaban nunca.
+$$('#ade-np .ade-np-btn[data-np]').forEach(b => {
+  const paso = Number(b.dataset.np);
   b.addEventListener('click', () => {
-    canción = (canción + (q === 'Siguiente' ? 1 : SUENA.length - 1)) % SUENA.length;
+    canción = (canción + (paso > 0 ? 1 : SUENA.length - 1)) % SUENA.length;
     pinta();
     // Al cambiar de canción vuelve a sonar, aunque estuviera en pausa.
     const fila = $('#ade-np');

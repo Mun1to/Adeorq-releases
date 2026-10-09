@@ -291,6 +291,7 @@
   var ORIGINAL = {};          // Dicc en español
   var ORIGINAL_PH = {};
   var ORIGINAL_HTML = {};     // Parrafos que llevan <b>, <code> o un enlace dentro
+  var ORIGINAL_ARIA = {};     // aria-label de botones y diálogos
 
   function registrarOriginales() {
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (n) {
@@ -304,6 +305,11 @@
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-html]'), function (n) {
       var k = n.getAttribute('data-i18n-html');
       if (!ORIGINAL_HTML[k]) ORIGINAL_HTML[k] = n.innerHTML.trim();
+    });
+    // Los nombres para el lector de pantalla (el botón del menú, la hoja).
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-aria]'), function (n) {
+      var k = n.getAttribute('data-i18n-aria');
+      if (!ORIGINAL_ARIA[k]) ORIGINAL_ARIA[k] = n.getAttribute('aria-label') || '';
     });
   }
 
@@ -332,6 +338,21 @@
       var clave = n.getAttribute('data-i18n-html');
       var txt = dic[clave] != null ? dic[clave] : ORIGINAL_HTML[clave];
       if (txt != null && n.innerHTML !== txt) n.innerHTML = txt;
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-aria]'), function (n) {
+      var clave = n.getAttribute('data-i18n-aria');
+      var txt = lang === 'es' ? ORIGINAL_ARIA[clave] : (TEXTOS.en[clave] || ORIGINAL_ARIA[clave]);
+      if (txt) n.setAttribute('aria-label', txt);
+    });
+
+    /* La portada tiene una URL por idioma (/ y /en/): los enlaces de la guía a
+       ella siguen el idioma en que se está leyendo («/», «/#seccion» o el
+       antiguo «index.html#seccion»). */
+    Array.prototype.forEach.call(document.querySelectorAll('a[href^="index.html"], a[href="/"], a[href^="/#"], a[data-href-es]'), function (a) {
+      if (!a.hasAttribute('data-href-es')) a.setAttribute('data-href-es', a.getAttribute('href'));
+      var es = a.getAttribute('data-href-es');
+      a.setAttribute('href', lang === 'en' ? es.replace(/^(index\.html|\/)/, '/en/') : es);
     });
 
     raiz.lang = lang;

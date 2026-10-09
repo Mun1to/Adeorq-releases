@@ -63,6 +63,13 @@ export const MANOS = {
   teclas: "mcp__adeorq__send_keys",
   /** ⚠ Cerrar una terminal, que es matar al agente de dentro. */
   cerrar: "mcp__adeorq__close_pane",
+  /* Las de las decisiones (0.9.177, src-tauri/src/decisiones.rs). Preguntarle
+     algo a Munir no pisa ninguna terminal, así que va con montar trabajo, como
+     en el escalón del MCP (`mcp_clientes.rs`); leer la respuesta, con mirar. */
+  /** Pedirle a Munir que elija: le llega a «Decisiones» en el móvil. */
+  decidir: "mcp__adeorq__ask_decision",
+  /** Leer lo que contestó a una decisión. */
+  decision: "mcp__adeorq__get_decision",
 } as const;
 
 /**
@@ -87,8 +94,9 @@ const LECTURA = [
   MANOS.memoria,
   MANOS.nota,
   MANOS.turno,
+  MANOS.decision,
 ];
-const MONTAR = [MANOS.abrir, MANOS.enlazar];
+const MONTAR = [MANOS.abrir, MANOS.enlazar, MANOS.decidir];
 /** Lo que puede pisar el trabajo de otro: escribirle, mandarle teclas o cerrarlo. */
 const PISAR = [MANOS.teclear, MANOS.teclas, MANOS.cerrar];
 

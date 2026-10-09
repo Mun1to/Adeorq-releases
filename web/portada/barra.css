@@ -1,0 +1,298 @@
+/* ============================================================================
+   Adeorq · web/portada/barra.css
+   LA BARRA DE ARRIBA Y LOS BOTONES, LOS MISMOS EN TODA LA WEB.
+
+   La cargan la portada (/ y /en/) y la guía. Hasta el 2026-10-09 la guía tenía
+   su propia barra, con otros enlaces que la portada, y en el móvil perdía hasta
+   «Descargar»; Munir eligió «la barra de la portada en la guía». Una barra en
+   un solo archivo es una barra que no se separa con el tiempo (el patrón de
+   Tailwind, que usa la misma en / y en /docs).
+
+   La barra es siempre oscura, también sobre la guía en claro: es la cabecera
+   de la marca, y los colores van en literal con los del tema «Azul noche» de
+   la app (los mismos que `--p-*` en portada.css), que aquí se repiten sobre la
+   propia barra para que funcione en una página que no carga portada.css.
+   ========================================================================= */
+
+.nav, .hoja-menu {
+  --p-texto:  #e6edfa;
+  --p-suave:  #b7c7e0;
+  --p-acento: #4d9fff;
+  --p-linea:  rgba(140, 170, 220, .16);
+  --p-linea2: rgba(150, 185, 240, .30);
+}
+
+/* ------------------------------ LA BARRA ---------------------------------
+   En la portada flota sobre la escena, sin fondo hasta que se hace scroll:
+   sobre un cielo negro una barra opaca es una raya que parte la portada en
+   dos. En la guía (`.nav--fija`) lleva su fondo desde el principio. */
+
+.nav {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 16px clamp(18px, 4vw, 54px);
+  border-bottom: 1px solid transparent;
+  color: var(--p-texto);
+  font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  transition: background .25s ease, border-color .25s ease, padding .25s ease;
+}
+/* Con `:where`, que no pesa nada: con `.nav a` el «Descargar» de la barra
+   (un `.btn--claro`, que es un enlace) heredaba el texto claro y se leía blanco
+   sobre blanco. */
+:where(.nav a) { color: inherit; text-decoration: none; }
+.nav[data-pegada], .nav--fija {
+  /* Color PLANO, y no cristal, por dos medidas del 2026-08-21.
+
+     La primera es de velocidad: un `backdrop-filter` en una barra fija tiene que
+     recomponer el desenfoque en CADA fotograma, porque lo que hay detras cambia
+     mientras se hace scroll. Apagandolo, el peor fotograma del scroll paso de
+     181 ms a 35 ms y los fotogramas lentos de 2,3 % a 1,3 %. Se probaron cuatro
+     variantes (saturate+blur 14px, blur 10px, blur 6px con mas opacidad, y
+     esto): ninguna con filtro bajaba de 69 ms.
+
+     La segunda es de nitidez: en Windows, un fondo con transparencia apaga el
+     subpixel del ClearType y el texto de la barra se ve mas sucio. El color
+     plano lo devuelve.
+
+     Lo que se pierde es el efecto cristal, que si es la firma visual de la app.
+     Sobre un fondo tan oscuro la diferencia se ve poco; a tirones se veia
+     siempre. */
+  background: #080c15;
+  border-bottom-color: var(--p-linea);
+  /* Se estrecha al bajar: la barra deja de ser el hueco vacio de la captura y
+     devuelve unos pixeles de pantalla justo cuando hacen falta. */
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.nav__marca { display: inline-flex; align-items: center; gap: 9px; font-size: 17px; }
+.nav__marca img { width: 21px; height: 21px; display: block; }
+.nav__marca b { font-weight: 650; letter-spacing: -.01em; }
+
+.nav__enlaces { display: flex; gap: 26px; margin-left: 14px; }
+.nav__enlaces a {
+  position: relative;
+  color: var(--p-suave);
+  font-size: 14.5px;
+  padding: 6px 0;
+  transition: color .15s ease;
+}
+/* Subrayado que crece desde el centro al pasar por encima, y que se queda
+   puesto en la seccion que se esta mirando. Es `transform: scaleX`, no un
+   `width`, para que no vuelva a calcular la maqueta en cada fotograma. */
+.nav__enlaces a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--p-acento);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform .26s cubic-bezier(.4, 0, .2, 1);
+}
+.nav__enlaces a:hover, .nav__enlaces a:focus-visible { color: var(--p-texto); }
+.nav__enlaces a:hover::after, .nav__enlaces a:focus-visible::after { transform: scaleX(1); }
+
+/* La seccion que se esta leyendo (la marca movimiento.js), y la página en la
+   que se está: «Guía» dentro de la guía, con `aria-current="page"`. */
+.nav__enlaces a[aria-current="true"], .nav__enlaces a[aria-current="page"] { color: var(--p-texto); }
+.nav__enlaces a[aria-current="true"]::after { transform: scaleX(1); opacity: .55; }
+.nav__enlaces a[aria-current="page"]::after { transform: scaleX(1); }
+
+.nav__acciones { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.nav__gh { position: relative; color: var(--p-suave); font-size: 14.5px; transition: color .15s ease; }
+.nav__gh:hover { color: var(--p-texto); }
+/* El cambio de idioma: un enlace a la otra URL en la portada, un botón en la
+   guía (que cambia el texto en el sitio); los dos con el peso de «Código». */
+.nav__idioma {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--p-suave);
+  font: inherit;
+  font-size: 14.5px;
+  cursor: pointer;
+  transition: color .15s ease;
+}
+.nav__idioma:hover, .nav__idioma:focus-visible { color: var(--p-texto); }
+
+/* El botón del menú, solo cuando las secciones no caben. 44 px: el tamaño de
+   toque de Apple y el «enhanced» de WCAG 2.5.5. */
+.nav__menu {
+  display: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -6px;
+  padding: 0;
+  border: 1px solid var(--p-linea2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .03);
+  color: var(--p-texto);
+  cursor: pointer;
+}
+.nav__menu:hover { background: rgba(255, 255, 255, .07); }
+.nav__menu svg { width: 18px; height: 18px; }
+
+@media (max-width: 860px) {
+  .nav__enlaces, .nav__gh, .nav__idioma { display: none; }
+  .nav__menu { display: inline-grid; }
+}
+
+/* ------------------------------ EL MENÚ -----------------------------------
+   Una hoja modal con `<dialog>` (portada/menu.js): tapa la página, así que es
+   un diálogo y no un desplegable (APG de WAI, «Dialog (Modal)»). El navegador
+   da el foco dentro, Esc y el resto de la página inerte; el clic fuera y el
+   bloqueo del scroll del fondo los pone menu.js. */
+.hoja-menu {
+  position: fixed;
+  inset: 64px 10px auto 10px;
+  width: auto;
+  max-width: 520px;
+  max-height: calc(100dvh - 80px);
+  margin: 0 0 0 auto;
+  padding: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--p-linea2);
+  border-radius: 16px;
+  background: #101624;
+  color: var(--p-texto);
+  font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+}
+.hoja-menu::backdrop { background: rgba(3, 6, 12, .55); }
+.hoja-menu[open] { animation: hoja-entra .2s cubic-bezier(.16, 1, .3, 1); }
+@keyframes hoja-entra {
+  from { opacity: 0; transform: translateY(calc(-8px * var(--motion-gain, 1))); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Un fundido en vez de un desplazamiento (Apple, «Reduced motion»). */
+  @keyframes hoja-entra { from { opacity: 0; } }
+}
+/* Con el movimiento parado (la válvula o `?motion=off`) la portada congela
+   todas las animaciones, y esta se quedaba en su primer fotograma: la hoja
+   abierta pero invisible. Abrirla lo pide quien toca, así que no se para
+   (regla 3 del dial): sale sin animación. */
+:root[data-quieto] .hoja-menu[open] { animation: none !important; }
+.hoja-menu nav { display: grid; }
+.hoja-menu a, .hoja-menu button.hoja-menu__fila {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--p-suave);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.hoja-menu a:hover, .hoja-menu a:focus-visible,
+.hoja-menu button.hoja-menu__fila:hover, .hoja-menu button.hoja-menu__fila:focus-visible {
+  background: rgba(77, 159, 255, .10);
+  color: var(--p-texto);
+  outline: none;
+}
+.hoja-menu a[aria-current="page"] { color: var(--p-texto); background: rgba(77, 159, 255, .14); }
+.hoja-menu hr { margin: 6px 8px; border: 0; border-top: 1px solid var(--p-linea); }
+.hoja-menu__cerrar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--p-suave);
+  cursor: pointer;
+}
+.hoja-menu__cerrar:hover, .hoja-menu__cerrar:focus-visible { color: var(--p-texto); background: rgba(255, 255, 255, .06); outline: none; }
+.hoja-menu__titulo { margin: 6px 14px 4px; color: var(--p-suave); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+/* Bloquear el scroll del fondo mientras la hoja está abierta. */
+html:has(.hoja-menu[open]) { overflow: hidden; }
+
+/* ------------------------------ BOTONES ---------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  border-radius: 999px;
+  font-weight: 620;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: transform .14s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn--chico  { padding: 8px 17px; font-size: 14px; }
+.btn--grande { padding: 14px 26px; font-size: 15.5px; }
+
+/* El claro lleva el halo de la portada: es el unico sitio de la web donde un
+   boton brilla, y por eso se ve sin necesidad de ser mas grande. */
+.btn--claro {
+  background: linear-gradient(180deg, #ffffff, #dfe9fb);
+  color: #071019;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.5),
+              0 0 44px 8px rgba(120, 180, 255, calc(.40 * var(--motion-gain, 1) + .12));
+}
+/* El brillo SIGUE al puntero. Las coordenadas las pone botones.js en
+   `--raton-x` / `--raton-y`, y aqui solo se pintan: asi el efecto es una capa de
+   CSS y no un repintado por cada movimiento del raton.
+
+   Este movimiento NO se multiplica por --motion-gain: lo provoca la persona con
+   su propia mano, y el dial solo encoge lo que se mueve sin que nadie lo pida
+   (parallax, reveals, la cinta). Un boton que no responde al puntero no es
+   sobriedad, es un boton roto. */
+.btn { position: relative; overflow: hidden; isolation: isolate; }
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity .22s ease;
+  background: radial-gradient(
+    120px circle at var(--raton-x, 50%) var(--raton-y, 50%),
+    rgba(255, 255, 255, .55), transparent 62%);
+}
+.btn--claro::before {
+  background: radial-gradient(
+    130px circle at var(--raton-x, 50%) var(--raton-y, 50%),
+    rgba(120, 180, 255, .40), transparent 60%);
+}
+.btn:hover::before, .btn:focus-visible::before { opacity: 1; }
+
+.btn--claro:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.62),
+              0 0 56px 10px rgba(120, 180, 255, calc(.52 * var(--motion-gain, 1) + .16));
+}
+.btn--claro:active { transform: translateY(0); transition-duration: .06s; }
+/* En la guía la barra va sobre una página que puede ser clara: el halo, que es
+   luz sobre la escena oscura de la portada, ahí era una mancha azul. */
+.nav--fija .btn--claro, .nav--fija .btn--claro:hover { box-shadow: 0 0 0 1px rgba(255,255,255,.5); }
+.btn--fantasma:hover { transform: translateY(-2px); }
+.btn--fantasma:active { transform: translateY(0); transition-duration: .06s; }
+.btn--claro em, .btn--fantasma em { font-style: normal; font-size: 12.5px; opacity: .62; font-weight: 500; }
+
+.btn--fantasma {
+  border: 1px solid var(--p-linea2, rgba(150, 185, 240, .30));
+  color: var(--p-texto, #e6edfa);
+  background: rgba(255,255,255,.02);
+}
+.btn--fantasma:hover { background: rgba(255,255,255,.06); }

@@ -88,6 +88,10 @@ has to be on with Adeorq open. Set it up once:
 5. On your phone, with Tailscale on, scan the QR code, type the code and press **Emparejar**
    (Pair). Each browser pairs once.
 
+When an agent needs you to choose something, it asks you with its numbered options and the
+question reaches your phone, under **Decisions**; your answer goes straight back to the terminal
+that asked. And a **mode button** does what Shift+Tab does on the PC in Claude Code.
+
 On Android the page installs as an app with its own icon; on iPhone, Safari → Share → Add to
 Home Screen. **Why it is safe to leave on:** Adeorq only listens inside your PC and Tailscale
 carries it to your devices through an encrypted tunnel, so it cannot be seen from the

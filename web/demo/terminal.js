@@ -86,6 +86,8 @@ function fila(tipo) {
 /* Escribe letra a letra. Con el dial a cero sale de golpe: es movimiento, y aqui
    no aporta nada que no diga ya el texto. */
 function teclear(donde, texto, listo) {
+  // En /en/ la frase se traduce entera antes de teclearla (demo/traducir.js).
+  if (window.adeTraducir) texto = window.adeTraducir(texto);
   const gain = parseFloat(getComputedStyle(document.documentElement)
     .getPropertyValue('--motion-gain'));
   if (!gain) { donde.textContent = texto; listo(); return; }

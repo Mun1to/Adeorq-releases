@@ -88,6 +88,10 @@ encendido y con Adeorq abierto. Se prepara una vez:
 5. En el móvil, con Tailscale encendido, escanea el QR, escribe el código y pulsa
    **Emparejar**. Cada navegador se empareja una vez.
 
+Cuando un agente necesita que elijas algo, te lo pregunta con sus opciones numeradas y la
+pregunta te llega al móvil, a **Decisiones**; tu respuesta vuelve sola a la terminal que
+preguntó. Y un **botón de modo** hace lo que Mayús+Tab en el PC con Claude Code.
+
 En Android la página se instala como una app con su icono; en iPhone, Safari → Compartir →
 Añadir a la pantalla de inicio. **Por qué se puede dejar encendido:** Adeorq solo escucha
 dentro de tu PC y Tailscale lo lleva a tus aparatos por un túnel cifrado, así que desde

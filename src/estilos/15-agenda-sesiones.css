@@ -384,9 +384,15 @@
    estando todos, solo que más apretados.
    ========================================================================== */
 
-/* 1. Por debajo de 1700px se van los nombres de las pestañas y quedan los
+/* 1. Por debajo de 1800px se van los nombres de las pestañas y quedan los
       iconos. Por eso hubo que dibujarlos: un glifo suelto sin su nombre al
       lado no se reconoce, un icono de verdad sí. El globo dice cuál es.
+
+      Era 1700 hasta que entró la pestaña Decisiones (2026-10-09), que con su
+      nombre y su cuenta ocupa 139px: a 1701 la fila se desbordaba 76px y no
+      cabía hasta 1777. 1800 deja veinte de margen. Lo mide
+      `scripts/laboratorio/barra-cabe.js` en el peor caso, y una pestaña nueva
+      con nombre tiene que volver a pasarlo.
 
       El corte estaba en 1400 y se subió a 1700 midiendo con capturas reales
       (PrintWindow sobre el dev, no a ojo): con la Cabina abierta y música
@@ -396,9 +402,9 @@
       fila («Cerrar todas», el más nuevo) se salía de la ventana sin
       recortarse, así que no había ni rastro de él (Munir, 2026-08-02, con
       un portátil de por medio). Si algún día se le quita peso a la barra
-      (menos botones o más cortos), este número puede bajar; hasta entonces
-      1700 es el que de verdad se comprobó que cabe. */
-@media (max-width: 1700px) {
+      (menos botones o más cortos), este número puede bajar, pero midiéndolo
+      con el banco de arriba, no a ojo. */
+@media (max-width: 1800px) {
   /* Toda la barra se compacta a la vez, no solo la navegación: un botón
      escrito junto a siete iconos no ahorraba sitio, solo cambiaba QUÉ se
      desbordaba. `.topbar-acciones .tab-label` coge de una vez «Minimizar

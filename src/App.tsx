@@ -44,23 +44,10 @@ import { useMoverPanel } from "./lib/moverPanel";
 import { aDondeSaltar, aQuienLeToca, encolar, sacarDeCola, tocaDesmaximizar } from "./lib/saltos";
 import { guardarEncuadre, leerEncuadre, type Encuadre } from "./lib/encuadre";
 import { guardarCabecera, leerCabecera, visibles, type Cabecera } from "./lib/cabecera";
-import {
-  AccountIcon,
-  AgendaIcon,
-  CanvasIcon,
-  ChatIcon,
-  CloseIcon,
-  CockpitIcon,
-  EstadoIcon,
-  CommandIcon,
-  MemoryIcon,
-  MinimizeIcon,
-  UnminimizeIcon,
-  PanelIcon,
-  PlusIcon,
-  SettingsIcon,
-  StreamIcon,
-} from "./components/Icons";
+import { CloseIcon, EstadoIcon, MinimizeIcon, UnminimizeIcon, PlusIcon, StreamIcon } from "./components/Icons";
+import IconoPestana from "./components/IconoPestana";
+import { PESTANAS, type View } from "./lib/vistas";
+import { pendientes, useDecisiones } from "./lib/decisiones";
 import {
   DISCORD_KEY,
   loadDiscord,
@@ -181,6 +168,7 @@ const CommandsView = perezoso(() => import("./components/CommandsView"));
 const CanvasView = perezoso(() => import("./components/CanvasView"));
 const ChatView = perezoso(() => import("./components/ChatView"));
 const AgendaView = perezoso(() => import("./components/AgendaView"));
+const DecisionesView = perezoso(() => import("./components/DecisionesView"));
 const MemoriaView = perezoso(() => import("./components/MemoriaView"));
 const RepartoView = perezoso(() => import("./components/RepartoView"));
 const AccountsView = perezoso(() => import("./components/AccountsView"));
@@ -193,16 +181,6 @@ const TEAM_COLORS = ["#5fd0ff", "#6fe0bb", "#ffd166", "#c4b5fd", "#ff9f6b"];
 // positioned from it, so moving one never changes its place in the React tree
 // (which would unmount it and kill its terminal).
 
-type View =
-  | "panel"
-  | "cabina"
-  | "chat"
-  | "agenda"
-  | "lienzo"
-  | "memoria"
-  | "cuentas"
-  | "comandos"
-  | "ajustes";
 type SplitDir = "right" | "down";
 
 // Opening a whole project spawns one claude per session (~200 MB each), so the
@@ -545,6 +523,8 @@ function App() {
   const [fondoEncuadre, setFondoEncuadre] = useState<Encuadre>(() => leerEncuadre());
   /** Qué pestañas salen arriba y en qué orden. Ver `lib/cabecera.ts`. */
   const [cabecera, setCabecera] = useState<Cabecera>(() => leerCabecera());
+  /** Lo que te preguntan los agentes (`ask_decision`), para su pestaña y su cuenta. */
+  const decisiones = useDecisiones();
   /**
    * Cuánto se ve a TRAVÉS de las terminales: 0 opacas, 100 invisibles.
    *
@@ -2769,29 +2749,16 @@ function App() {
     cuentas: foremanExec.cuentas,
   };
 
-  /* `beta` marca lo que todavía no está terminado. No es adorno: quien abre una
-     sección sin saberlo la juzga como si estuviera acabada, y luego no vuelve. */
-  const tabs: Array<{ key: View; icon: React.ReactElement; label: string; beta?: boolean }> = [
-    { key: "panel", icon: <PanelIcon size={16} />, label: "Panel" },
-    { key: "cabina", icon: <CockpitIcon size={16} />, label: "Cabina" },
-    // Justo detrás de la Cabina porque es la misma cosa vista de otra manera:
-    // las mismas sesiones, sin la consola delante.
-    { key: "chat", icon: <ChatIcon size={16} />, label: "Chat", beta: true },
-    { key: "agenda", icon: <AgendaIcon size={16} />, label: "Agenda" },
-    { key: "lienzo", icon: <CanvasIcon size={16} />, label: "Lienzo" },
-    { key: "memoria", icon: <MemoryIcon size={16} />, label: "Memoria" },
-    { key: "cuentas", icon: <AccountIcon size={16} />, label: "Cuentas" },
-    // La Guía ya no está aquí: se mira el primer día y casi nunca más, y una
-    // pestaña permanente es sitio que le quitaba a lo que se usa a diario. Vive
-    // entera en Ajustes › Ayuda, junto al enlace a la documentación de la web.
-    { key: "comandos", icon: <CommandIcon size={16} />, label: "Comandos" },
-    { key: "ajustes", icon: <SettingsIcon size={16} />, label: "Ajustes" },
-  ];
-
   // Las que él quiere ver, en el orden que él ha puesto. Apagar una la quita de
   // la fila pero NO de la app: su atajo de teclado sigue abriéndola, y los
   // botones de otras pantallas que llevan a ella también. Ver `lib/cabecera.ts`.
-  const tabsVisibles = visibles(tabs, cabecera);
+  const tabsVisibles = visibles(PESTANAS, cabecera);
+  // Lo que cuenta cada pestaña: en la de Decisiones, las que te esperan.
+  const cuentaDe: Partial<Record<View, number>> = {
+    cabina: panes.length,
+    lienzo: canvasPanes.length,
+    decisiones: pendientes(decisiones),
+  };
 
   /* El idioma se reparte por contexto, y React reparte por IDENTIDAD del valor:
      un `value={{ lang, t }}` escrito en el sitio es un objeto NUEVO en cada
@@ -2905,7 +2872,9 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
               }
               onClick={() => setView(tab.key)}
             >
-              <span className="tab-icon">{tab.icon}</span>
+              <span className="tab-icon">
+                <IconoPestana vista={tab.key} />
+              </span>
               {/* El nombre se va solo cuando la ventana no da: en una pantalla
                   estrecha la barra hacía scroll horizontal y el Capataz se
                   quedaba fuera, que es el botón que más falta hace. Con el
@@ -2913,11 +2882,10 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                   globo dice cuál es. */}
               <span className="tab-label">{t(tab.label)}</span>
               {tab.beta && <span className="tab-beta">{t("beta")}</span>}
-              {tab.key === "cabina" && panes.length > 0 && (
-                <span className="tab-count">{panes.length}</span>
-              )}
-              {tab.key === "lienzo" && canvasPanes.length > 0 && (
-                <span className="tab-count">{canvasPanes.length}</span>
+              {(cuentaDe[tab.key] ?? 0) > 0 && (
+                <span className="tab-count" data-espera={tab.key === "decisiones"}>
+                  {cuentaDe[tab.key]}
+                </span>
               )}
             </button>
           ))}
@@ -3009,7 +2977,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
             izquierda: nacieron mudos, con solo el icono, y en una barra donde
             todo lo demás se lee no había forma de encontrarlos (Munir,
             2026-08-02). Pero el nombre se va con el resto de la barra por
-            debajo de 1700px (misma regla que las pestañas, ver App.css):
+            debajo de 1800px (misma regla que las pestañas, en 15-agenda-sesiones.css):
             tres botones más escritos es lo que desbordaba la barra entera en
             un portátil y dejaba «Cerrar todas» cortado fuera de la ventana
             sin que se notara que estaba ahí (Munir, 2026-08-02). */}
@@ -3552,6 +3520,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           conserjeExec={conserjeExec}
         />
       )}
+      {view === "decisiones" && <DecisionesView decisiones={decisiones} />}
       {view === "agenda" && (
         <AgendaView
           current={focusProject}

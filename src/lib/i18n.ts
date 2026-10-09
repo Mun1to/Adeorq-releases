@@ -2537,6 +2537,40 @@ const EN: Record<string, string> = {
   "Girar aunque ahorre": "Spin even when saving",
   "Quieta: el modo rendimiento está puesto (se enciende solo con cuatro terminales). «Girar aunque ahorre» manda sobre él.":
     "Still: performance mode is on (it switches itself on with four terminals). \"Spin even when saving\" overrides it.",
+  // La pestaña Decisiones (DecisionesView.tsx). «Decisiones» entra por
+  // t(tab.label), igual que Memoria, y el comprobador no la ve.
+  Decisiones: "Decisions",
+  "Lo que te preguntan tus agentes. Se contestan aquí o desde el móvil, y la respuesta vuelve sola a su terminal.":
+    "What your agents ask you. Answer here or from your phone, and the answer goes back to its terminal on its own.",
+  "No hay ninguna decisión. Cuando un agente te pregunte algo con ask_decision, sale aquí y en el móvil.":
+    "No decisions yet. When an agent asks you something with ask_decision, it shows up here and on your phone.",
+  "Te esperan": "Waiting for you",
+  Contestadas: "Answered",
+  "panel {n}": "pane {n}",
+  "1 pregunta": "1 question",
+  "{n} preguntas": "{n} questions",
+  Recomendada: "Recommended",
+  o: "or",
+  "Otra cosa, con tus palabras": "Something else, in your own words",
+  "Otra cosa para la pregunta {q}, con tus palabras": "Something else for question {q}, in your own words",
+  "Contestada desde {desde}, {cuando}.": "Answered from {desde}, {cuando}.",
+  "el PC": "the PC",
+  "Se tecleó en el panel {n}.": "It was typed into pane {n}.",
+  "El agente la lee cuando la pide.": "The agent reads it when it asks for it.",
+  "Falta la pregunta {q}.": "Question {q} still needs an answer.",
+  "Faltan las preguntas {lista} y {ultima}.": "Questions {lista} and {ultima} still need an answer.",
+  "Se manda en {n} s.": "Sending in {n} s.",
+  "Deshacer ({n})": "Undo ({n})",
+  "Mandando…": "Sending…",
+  "Enviar respuesta": "Send answer",
+  "No se ha mandado.": "Not sent.",
+  "No se ha mandado: {e}": "Not sent: {e}",
+  "Enviada. El agente la leerá cuando la pida.": "Sent. The agent will read it when it asks for it.",
+  "Enviada. Se ha tecleado en el panel {n}.": "Sent. It was typed into pane {n}.",
+  "Enviada, pero el panel {n} ya no está: el agente la leerá cuando la pida.":
+    "Sent, but pane {n} is gone: the agent will read it when it asks for it.",
+  "Ya estaba contestada desde otro sitio. Lo que escribiste sigue guardado aquí.":
+    "It was already answered from somewhere else. What you wrote is still saved here.",
 };
 
 export function detectLang(): Lang {

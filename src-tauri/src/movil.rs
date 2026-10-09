@@ -667,6 +667,8 @@ pub trait Casa {
     fn decisiones(&self) -> Result<PathBuf, String>;
     /// El arranque de Adeorq: los números de panel solo valen dentro de uno.
     fn arranque(&self) -> u64;
+    /// Que la pestaña «Decisiones» de la app se entere de que una cambió.
+    fn decisiones_cambian(&self) {}
 }
 
 pub fn atender(
@@ -986,15 +988,13 @@ pub fn atender(
             match crate::decisiones::responder(&dir, id, elecciones, &nombre, reloj.1.saturating_mul(1000)) {
                 Ok(d) => {
                     let mut entregada = false;
-                    if let (Some(panel), Some(arranque)) = (d.panel, d.arranque) {
-                        if arranque == casa.arranque() {
-                            let texto = crate::decisiones::como_texto(&d);
-                            entregada = casa.ventana("escribir", json!({ "panel": panel, "texto": texto })).is_ok_and(|v| v.get("error").is_none());
-                            if entregada {
-                                crate::decisiones::marcar_entregada(&dir, &d.id);
-                            }
+                    if let Some((panel, texto)) = crate::decisiones::a_teclear(&d, casa.arranque()) {
+                        entregada = casa.ventana("escribir", json!({ "panel": panel, "texto": texto })).is_ok_and(|v| v.get("error").is_none());
+                        if entregada {
+                            crate::decisiones::marcar_entregada(&dir, &d.id);
                         }
                     }
+                    casa.decisiones_cambian();
                     Respuesta::json(200, json!({ "ok": true, "entregada": entregada, "panel": d.panel }))
                 }
                 Err(e) => Respuesta::error(400, &e),
@@ -1111,6 +1111,9 @@ impl Casa for CasaDeVerdad {
     }
     fn arranque(&self) -> u64 {
         crate::conserje::arranque()
+    }
+    fn decisiones_cambian(&self) {
+        crate::decisiones::avisar_cambio(&self.app);
     }
 }
 

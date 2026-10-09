@@ -397,6 +397,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             mcp::mcp_reply,
             movil::movil_reply,
+            decisiones::decisiones_listar,
+            decisiones::decision_responder,
+            decisiones::decision_entregada,
             mcp_clientes::mcp_clientes_leer,
             mcp_clientes::mcp_clientes_poner,
             movil::movil_estado,

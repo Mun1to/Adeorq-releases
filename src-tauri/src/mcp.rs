@@ -1429,6 +1429,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 .unwrap_or(0);
             let d = crate::decisiones::validar(&pedido, ahora, crate::conserje::arranque())?;
             let d = crate::decisiones::crear(&crate::decisiones::dir_de_verdad()?, d)?;
+            crate::decisiones::avisar_cambio(app);
             // El aviso al móvil, si los pidió: tocarlo abre la decisión.
             let avisados = crate::movil::movil_avisar(
                 app.clone(),

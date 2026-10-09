@@ -91,3 +91,6 @@
 
 /* La ventana de pegar un token. */
 @import "./estilos/25-secreto.css";
+
+/* Las decisiones que piden los agentes. */
+@import "./estilos/26-decisiones.css";

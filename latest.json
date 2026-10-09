@@ -1,11 +1,11 @@
 {
-  "version": "0.9.178",
-  "notes": "El chat de una terminal en el movil dice que hace el agente ahora, sus preguntas salen como botones, se ve la decision pendiente y la Pantalla se lee mejor.",
-  "pub_date": "2026-10-09T18:19:44Z",
+  "version": "0.9.179",
+  "notes": "Las decisiones que te piden los agentes tienen su pestana Decisiones en la app del PC, con el numero de las que te esperan, y la respuesta se teclea sola en su terminal.",
+  "pub_date": "2026-10-09T20:00:11Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZ3OEFKcVVtZlBSSXZ5N3NVb29UVVF2eFErSldUOFZhSThxOENmcGswclF4MU9wK295S24wbEZQblhwOFA4czN4ZW9vT2tlNXh3ZnM3QkRMb3loRUF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTY5OTcyCWZpbGU6QWRlb3JxXzAuOS4xNzhfeDY0LXNldHVwLmV4ZQp4K0VKRG1SYkVJUG84V1JYYUl6cnZicHV6ZWQ3UEJBdFhoVUh0TExXWndQSGw0WTh2V3lHTjdtSldpMFdzUzZYbmplaDdaZ05TT0I5Slh3empuQjhDZz09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.178/Adeorq_0.9.178_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3hlNnk2SGhOZk5DRTJadXkzNXdOZEp3RmE2Qzhjd3ZBdkdJQTZlazE4VWlvNXJTV0VteU4rdWE1QXY3Tllzdm1YbXJYZGo1Z1Y2T1NXTnA0K3NvN0FBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTc2MDAxCWZpbGU6QWRlb3JxXzAuOS4xNzlfeDY0LXNldHVwLmV4ZQp6TUtTa0pZOERmd2F1ckVnd0NmcDRWelNLRWR3NG10Y2pwNGZHUTA3UHhkK1ZEcnpLVlgrekxISHJkQWIydVVzTXFMYlB0N1l2LzArZnNRUFZnbmtDdz09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.179/Adeorq_0.9.179_x64-setup.exe"
     }
   }
 }

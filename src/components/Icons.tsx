@@ -423,6 +423,16 @@ export function AgendaIcon({ size = 17 }: Props) {
   );
 }
 
+/** Decisiones: un camino que se abre en dos, que es lo que te toca elegir. */
+export function DecisionIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 21 V12 L5 5 M12 12 L19 5" />
+      <path d="M5 10 V5 h5 M19 10 V5 h-5" />
+    </svg>
+  );
+}
+
 /** Lienzo: piezas unidas por una flecha, que es de lo que va. */
 export function CanvasIcon({ size = 17 }: Props) {
   return (

@@ -132,7 +132,7 @@ fs.rmSync(casa, { recursive: true, force: true });
   const hoja = hojaDeLaApp(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
   ok("la hoja de la app trae sus tramos y ningún @import suyo por resolver",
     lineas(hoja) > 20000 && !/^@import\s+["']\.\//m.test(hoja), `${lineas(hoja)} líneas`);
-  ok("y va de la escala de esquinas a la ventana del token", hoja.includes("--r-pastilla: 999px;") && hoja.slice(-3000).includes(".secreto"));
+  ok("y va de la escala de esquinas a las decisiones", hoja.includes("--r-pastilla: 999px;") && hoja.slice(-3000).includes(".dec-libre"));
 }
 
 console.log(fallos ? `\n${fallos} FALLAN.` : "\nTODO BIEN.");

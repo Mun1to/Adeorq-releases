@@ -49,6 +49,7 @@ import {
   TAB_FIJA,
   type Cabecera,
 } from "../lib/cabecera";
+import { PESTANAS } from "../lib/vistas";
 
 import {
   anadirProyecto,
@@ -72,26 +73,8 @@ import type { Atajos } from "../lib/atajos";
     Cuentas, para el aparte de vibecoding con Aider. */
 export const DOCS_URL = "https://adeorq.com/guia";
 
-/**
- * Las nueve pestañas, solo con lo que hace falta aquí: su clave y su nombre.
- *
- * Se escriben otra vez en vez de importarlas de `App.tsx` porque allí cada una
- * lleva su icono ya construido, o sea JSX, y arrastrar eso hasta Ajustes obliga
- * a que App exporte parte de su render. Aquí solo se listan y se ordenan.
- * El orden ES el de fábrica y tiene que coincidir con el de allí: si algún día
- * entra una pestaña nueva, se añade en los dos sitios.
- */
-const TABS_CABECERA = [
-  { key: "panel", label: "Panel" },
-  { key: "cabina", label: "Cabina" },
-  { key: "chat", label: "Chat" },
-  { key: "agenda", label: "Agenda" },
-  { key: "lienzo", label: "Lienzo" },
-  { key: "memoria", label: "Memoria" },
-  { key: "cuentas", label: "Cuentas" },
-  { key: "comandos", label: "Comandos" },
-  { key: "ajustes", label: "Ajustes" },
-];
+/** Las pestañas de la cabecera, las mismas y en el mismo orden que en `App.tsx`. */
+const TABS_CABECERA = PESTANAS;
 
 
 interface Props {

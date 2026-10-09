@@ -282,9 +282,66 @@ pub fn como_texto(d: &Decision) -> String {
     s
 }
 
+/// En qué terminal se teclea la respuesta, y qué: solo si la decisión es de
+/// este mismo arranque de Adeorq, que en otro ese número de panel puede ser
+/// ya otra terminal. Lo usan el móvil y la pestaña «Decisiones» de la app.
+pub fn a_teclear(d: &Decision, arranque: u64) -> Option<(u32, String)> {
+    match (d.panel, d.arranque, &d.respuesta) {
+        (Some(panel), Some(a), Some(_)) if a == arranque => Some((panel, como_texto(d))),
+        _ => None,
+    }
+}
+
 /// Dónde viven, al lado del resto de datos de Adeorq.
 pub fn dir_de_verdad() -> Result<PathBuf, String> {
     Ok(crate::dir_datos_creado()?.join("decisiones"))
+}
+
+/// Lo que escucha la ventana para tener al día la pestaña «Decisiones» y su
+/// cuenta: una nueva del MCP, una contestada desde el móvil o desde aquí.
+pub const EVENTO_CAMBIAN: &str = "decisiones:cambian";
+
+pub fn avisar_cambio(app: &tauri::AppHandle) {
+    use tauri::Emitter;
+    let _ = app.emit(EVENTO_CAMBIAN, ());
+}
+
+/// Todas, para la pestaña «Decisiones» de la app (Munir, 2026-10-09,
+/// contestando la primera decisión de verdad: «una sección Decisiones dentro
+/// de la app de escritorio»).
+#[tauri::command(async)]
+pub fn decisiones_listar() -> Result<Vec<Decision>, String> {
+    Ok(listar(&dir_de_verdad()?))
+}
+
+/// Contestar desde la app. Devuelve la decisión ya contestada y, si toca, el
+/// panel y el texto que hay que teclear allí: lo teclea la ventana, que es la
+/// que tiene las terminales, y luego lo apunta con `decision_entregada`.
+#[tauri::command(async)]
+pub fn decision_responder(
+    app: tauri::AppHandle,
+    id: String,
+    elecciones: BTreeMap<String, Eleccion>,
+) -> Result<serde_json::Value, String> {
+    let ahora = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let d = responder(&dir_de_verdad()?, &id, elecciones, "el PC", ahora)?;
+    avisar_cambio(&app);
+    let teclear = a_teclear(&d, crate::conserje::arranque());
+    Ok(serde_json::json!({
+        "decision": d,
+        "panel": teclear.as_ref().map(|t| t.0),
+        "texto": teclear.map(|t| t.1),
+    }))
+}
+
+#[tauri::command(async)]
+pub fn decision_entregada(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    marcar_entregada(&dir_de_verdad()?, &id);
+    avisar_cambio(&app);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -381,6 +438,31 @@ mod tests {
         el.insert("A".to_string(), Eleccion { opcion: Some(3), texto: None });
         el.insert("B".to_string(), Eleccion { opcion: Some(1), texto: None });
         assert!(responder(&d, &nueva.id, el, "x", 6).unwrap_err().contains("no tiene opción 3"));
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn la_respuesta_solo_se_teclea_en_el_mismo_arranque() {
+        let d = dir();
+        let nueva = crear(&d, validar(&pedido(), 10, 77).unwrap()).unwrap();
+        assert_eq!(a_teclear(&nueva, 77), None, "sin contestar no hay nada que teclear");
+        let mut el = BTreeMap::new();
+        el.insert("A".to_string(), Eleccion { opcion: Some(1), texto: None });
+        el.insert("B".to_string(), Eleccion { opcion: Some(2), texto: None });
+        let hecha = responder(&d, &nueva.id, el, "el PC", 20).unwrap();
+        let (panel, texto) = a_teclear(&hecha, 77).unwrap();
+        assert_eq!(panel, 3);
+        assert!(texto.starts_with("Munir ha contestado"), "{texto}");
+        // Tras reabrir Adeorq el panel 3 puede ser otra terminal.
+        assert_eq!(a_teclear(&hecha, 78), None);
+        // Sin panel, el agente la lee con get_decision.
+        let mut sin_panel = pedido();
+        sin_panel.panel = None;
+        let suelta = crear(&d, validar(&sin_panel, 30, 77).unwrap()).unwrap();
+        let mut el = BTreeMap::new();
+        el.insert("A".to_string(), Eleccion { opcion: Some(1), texto: None });
+        el.insert("B".to_string(), Eleccion { opcion: None, texto: Some("ya veremos".into()) });
+        assert_eq!(a_teclear(&responder(&d, &suelta.id, el, "el PC", 40).unwrap(), 77), None);
         let _ = std::fs::remove_dir_all(&d);
     }
 

@@ -1756,6 +1756,38 @@ pub struct Turno {
     /// ha pasado; pero el volcado de cada llamada no es conversación, así que
     /// aquí solo van los nombres y el front decide cómo resumirlos.
     pub herramientas: Vec<String>,
+    /// Los mismos usos con lo que hizo cada uno, solo los últimos `TOPE_PASOS`
+    /// del turno. Munir, 2026-10-09, desde el móvil: el chat no decía qué
+    /// estaba pasando, y «Bash ×11» no lo cuenta; «Publicar la versión» sí.
+    pub pasos: Vec<Paso>,
+}
+
+/// Un uso de algo dentro de un turno, como lo clasifica `clasificar_uso`.
+#[derive(Clone, Serialize)]
+pub struct Paso {
+    pub clase: String,
+    pub nombre: String,
+    pub detalle: String,
+}
+
+/// Cuántos pasos se guardan por turno. Un turno de una sesión de verdad lleva
+/// cientos, y viajan al móvil en cada vuelta: con los últimos se ve por dónde va.
+const TOPE_PASOS: usize = 30;
+
+fn pasos_del_contenido(content: &Value) -> Vec<Paso> {
+    content
+        .as_array()
+        .map(|bloques| {
+            bloques
+                .iter()
+                .filter(|b| b["type"] == "tool_use")
+                .filter_map(|b| {
+                    let (clase, nombre, detalle) = clasificar_uso(b["name"].as_str()?, &b["input"]);
+                    Some(Paso { clase, nombre, detalle })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// Lo que el CLI se dice a sí mismo y no es conversación de nadie.
@@ -1850,6 +1882,7 @@ fn sumar_turnos<'a>(out: &mut Vec<Turno>, lineas: impl Iterator<Item = &'a str>)
         let content = &v["message"]["content"];
         let texto = texto_del_contenido(content);
         let herramientas = herramientas_del_contenido(content);
+        let mut pasos = pasos_del_contenido(content);
         if texto.is_empty() && herramientas.is_empty() {
             continue;
         }
@@ -1872,13 +1905,23 @@ fn sumar_turnos<'a>(out: &mut Vec<Turno>, lineas: impl Iterator<Item = &'a str>)
                     ult.texto.push_str(&texto);
                 }
                 ult.herramientas.extend(herramientas);
+                ult.pasos.append(&mut pasos);
+                if ult.pasos.len() > TOPE_PASOS {
+                    ult.pasos.drain(..ult.pasos.len() - TOPE_PASOS);
+                }
             }
-            _ => out.push(Turno {
-                rol: rol.to_owned(),
-                texto,
-                hora,
-                herramientas,
-            }),
+            _ => {
+                if pasos.len() > TOPE_PASOS {
+                    pasos.drain(..pasos.len() - TOPE_PASOS);
+                }
+                out.push(Turno {
+                    rol: rol.to_owned(),
+                    texto,
+                    hora,
+                    herramientas,
+                    pasos,
+                })
+            }
         }
     }
 }
@@ -2307,6 +2350,39 @@ otra
         assert_eq!(t[0].rol, "tu");
         assert_eq!(t[1].texto, "Voy.\n\nHecho.");
         assert_eq!(t[1].herramientas, vec!["Edit".to_owned()]);
+    }
+
+    /// El chat del móvil dice QUÉ hizo cada paso, no solo cómo se llama la
+    /// herramienta, y en un turno de cientos guarda solo los últimos.
+    #[test]
+    fn cada_paso_lleva_lo_que_hizo_y_solo_quedan_los_ultimos() {
+        let mut lineas: Vec<String> = vec![
+            r#"{"type":"user","message":{"content":"publica"}}"#.into(),
+            r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"pnpm publicar-version notas.md","description":"Publicar la versión"}}]}}"#.into(),
+            r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"C:\\proyectos\\Adeorq\\src-tauri\\src\\movil.html"}}]}}"#.into(),
+            r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__adeorq__ask_decision","input":{}}]}}"#.into(),
+        ];
+        let t = turnos_de(&lineas, 60);
+        let p: Vec<(&str, &str, &str)> =
+            t[1].pasos.iter().map(|p| (p.clase.as_str(), p.nombre.as_str(), p.detalle.as_str())).collect();
+        assert_eq!(
+            p,
+            vec![
+                ("herramienta", "Bash", "Publicar la versión"),
+                ("herramienta", "Read", "movil.html"),
+                ("mcp", "adeorq", "ask_decision"),
+            ]
+        );
+
+        for i in 0..TOPE_PASOS + 7 {
+            lineas.push(format!(
+                r#"{{"type":"assistant","message":{{"content":[{{"type":"tool_use","name":"Grep","input":{{"pattern":"p{i}"}}}}]}}}}"#
+            ));
+        }
+        let t = turnos_de(&lineas, 60);
+        assert_eq!(t[1].herramientas.len(), TOPE_PASOS + 10, "los nombres se cuentan todos");
+        assert_eq!(t[1].pasos.len(), TOPE_PASOS);
+        assert_eq!(t[1].pasos.last().unwrap().detalle, format!("p{}", TOPE_PASOS + 6));
     }
 
     /// La fontanería del CLI no es conversación de nadie: pintarla sería

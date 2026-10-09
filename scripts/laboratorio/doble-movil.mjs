@@ -13,6 +13,7 @@
 // Y tres terminales (decisión E3): lo que se les escribe o la tecla que se les
 // manda aparece en su pantalla en la vuelta siguiente, y queda en la consola.
 
+import crypto from "node:crypto";
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -44,6 +45,8 @@ const adjuntos = [];
 // Lo último que se le escribió a cada terminal, para que el banco lo lea.
 const escrito = new Map();
 const enCurso = new Map();
+// Lo que pidió el chat a `/api/sesion` con `si`: «entera» o «igual», para el banco.
+const pedidasSesion = [];
 const abiertas = new Map(); // clave -> momento en que se abrió
 let yaFallo = false;
 
@@ -52,9 +55,27 @@ const terminales = [
   { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "opus", estado: "a_medias", sesion: "s-1" },
   { panel: 2, nombre: "codex", carpeta: "C:\\proyectos\\crypto\\radar-bot", agente: true, modelo: "gpt-5.6-terra", estado: "pregunta", sesion: "s-2" },
   { panel: 3, nombre: "consola", carpeta: "C:\\proyectos\\Vidorq", agente: false, modelo: null, estado: "", sesion: null },
+  { panel: 4, nombre: "claude", carpeta: "C:\\proyectos\\Webs", agente: true, modelo: "sonnet", estado: "pregunta", sesion: "s-4" },
 ];
+// La raya de lado a lado de Claude Code mide lo que el panel del PC: 78 columnas.
+const RAYA = "─".repeat(78);
 const pantallas = new Map([
-  [1, ["❯ Reproduzco el fallo antes de tocar nada.", "", "● Read(src/App.tsx)", "  ⎿  120 líneas", "", "● Buscando el culpable en lib/scrollTerm.ts…", "", "❯ "]],
+  // Como la pinta Claude Code trabajando (copiada de la de Munir del 2026-10-09):
+  // el paso en marcha, su comando, el giro con el tiempo, y la barra de abajo.
+  [1, [
+    "❯ Reproduzco el fallo antes de tocar nada.", "", "● Read(src/App.tsx)", "  ⎿  120 líneas", "",
+    "● Listing 1 directory, calling adeorq 2 times, running 1 shell command…",
+    "  ⎿  $ curl -s -m 5 http://127.0.0.1:3013/ | grep -c -E \"pintarDecisiones|Decisiones\"",
+    "", "· Gallivanting… (26s · ↓ 1.7k tokens)", "  ⎿  Tip: You have 2 plugins you haven't used lately.", "",
+    `${"─".repeat(46)} Adeorq: sesiones y terminales ─`, "❯ ", RAYA,
+  ]],
+  // Un permiso de Claude Code esperando respuesta.
+  [4, [
+    "● Bash(pnpm publicar-version notas.md)", "", RAYA, " Bash command", "",
+    "   pnpm publicar-version notas.md", "   Publish the release", "",
+    " Do you want to proceed?", " ❯ 1. Yes", "   2. Yes, and don't ask again for pnpm publicar-version commands in C:\\proyectos\\Webs",
+    "   3. No, and tell Claude what to do differently (esc)", "",
+  ]],
   [2, ["Do you want to run `cargo check`?", "", "  1. Yes", "  2. No, and tell Codex what to do differently", "", "> "]],
   // Una consola con historial: 150 líneas de un `cargo build`, más anchas que el móvil.
   [3, [...Array.from({ length: 150 }, (_, i) => `   Compiling crate-numero-${i} v0.${i}.0 (C:\\Users\\Muni\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\crate-${i})`), "PS C:\\proyectos\\Vidorq> "]],
@@ -95,7 +116,11 @@ const decisiones = [
 const sesionLarga = [];
 for (let i = 1; i <= 30; i++) {
   sesionLarga.push({ rol: "tu", texto: `Paso ${i}: sigue con el scroll`, hora: "", herramientas: [] });
-  sesionLarga.push({ rol: "agente", texto: `Paso ${i} hecho. Medí la distancia al final con el panel a 180 columnas y bajándolo a 73: pasa de 0 a ${300 + i}.`, hora: "", herramientas: ["Read", "Edit"] });
+  sesionLarga.push({
+    rol: "agente", texto: `Paso ${i} hecho. Medí la distancia al final con el panel a 180 columnas y bajándolo a 73: pasa de 0 a ${300 + i}.`,
+    hora: `2026-10-09T10:${String(i).padStart(2, "0")}:00Z`, herramientas: ["Read", "Edit"],
+    pasos: [{ clase: "herramienta", nombre: "Read", detalle: "scrollTerm.ts" }, { clase: "herramienta", nombre: "Edit", detalle: "scrollTerm.ts" }],
+  });
 }
 // Lo que traen las respuestas de un Claude Code de verdad: títulos, tablas,
 // citas y cientos de herramientas en un turno.
@@ -118,6 +143,10 @@ sesionLarga.push({
   ].join("\n"),
   hora: "",
   herramientas: [...Array(90).fill("Read"), ...Array(40).fill("Bash"), ...Array(20).fill("mcp__playwright__browser_click"), "Edit"],
+  pasos: [
+    ...Array.from({ length: 29 }, (_, i) => ({ clase: "herramienta", nombre: "Bash", detalle: `Medir el scroll con el panel a ${180 - i * 3} columnas` })),
+    { clase: "herramienta", nombre: "Edit", detalle: "scrollTerm.ts" },
+  ],
 });
 sesionLarga.push({ rol: "tu", texto: "/fin", hora: "", herramientas: [] });
 sesionLarga.push({
@@ -154,14 +183,24 @@ if (process.env.SESION) {
     if ((v.type !== "user" && v.type !== "assistant") || v.isSidechain || v.isCompactSummary || v.isMeta) continue;
     const c = v.message?.content;
     const texto = (typeof c === "string" ? c : Array.isArray(c) ? c.filter((b) => b.type === "text").map((b) => b.text).join("\n") : "").trim();
-    const herramientas = Array.isArray(c) ? c.filter((b) => b.type === "tool_use").map((b) => b.name) : [];
+    const usos = Array.isArray(c) ? c.filter((b) => b.type === "tool_use") : [];
+    const herramientas = usos.map((b) => b.name);
+    // Como `clasificar_uso` (sessions.rs), lo justo para ver los pasos.
+    const pasos = usos.map((b) => {
+      const mcp = /^mcp__(.+?)__(.+)$/.exec(b.name);
+      if (mcp) return { clase: "mcp", nombre: mcp[1], detalle: mcp[2] };
+      const i = b.input || {};
+      const detalle = i.description || (i.file_path ? String(i.file_path).split(/[\\/]/).pop() : "") || i.pattern || i.command || "";
+      return { clase: "herramienta", nombre: b.name, detalle: String(detalle).replace(/\s+/g, " ").slice(0, 48) };
+    });
     if ((!texto && !herramientas.length) || (texto && fontaneria.test(texto))) continue;
     const rol = v.type === "assistant" ? "agente" : "tu";
     const ult = turnos.at(-1);
     if (ult?.rol === rol) {
       if (texto) ult.texto += (ult.texto ? "\n\n" : "") + texto;
       ult.herramientas.push(...herramientas);
-    } else turnos.push({ rol, texto, hora: v.timestamp || "", herramientas });
+      ult.pasos = [...ult.pasos, ...pasos].slice(-30);
+    } else turnos.push({ rol, texto, hora: v.timestamp || "", herramientas, pasos: pasos.slice(-30) });
   }
   sesionLarga.splice(0, sesionLarga.length, ...turnos.slice(-80));
   console.log(`sesión de verdad: ${sesionLarga.length} turnos de ${process.env.SESION}`);
@@ -353,7 +392,15 @@ http
         case "/api/sesion":
           // Codex no escribe en `~/.claude`: su sesión no está en el disco.
           if (url.searchParams.get("id") === "s-2") return json(res, 404, { error: "esa conversación no está en el disco" });
+          // Con `si`, como `/api/sesion` en movil.rs: «igual» si la firma es la de ahora.
+          if (url.searchParams.has("si")) {
+            const firma = crypto.createHash("sha1").update(JSON.stringify(sesionLarga)).digest("hex").slice(0, 16);
+            pedidasSesion.push(url.searchParams.get("si") === firma ? "igual" : "entera");
+            return json(res, 200, url.searchParams.get("si") === firma ? { firma, igual: true } : { firma, turnos: sesionLarga });
+          }
           return json(res, 200, sesionLarga);
+        case "/api/pedidas-sesion":
+          return json(res, 200, pedidasSesion);
         default:
           return json(res, 404, { error: "Aquí no hay nada." });
       }

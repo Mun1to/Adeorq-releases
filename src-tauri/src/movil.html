@@ -198,6 +198,57 @@
   .acciones .compactar { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .acciones button[data-hecho="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .herramientas { display: block; font-size: 12px; color: var(--suave); font-style: italic; margin-top: 4px; }
+  /* Los pasos de un turno, plegados: «13 pasos» y, al abrir, qué hizo cada uno. */
+  .pasos { margin-top: 8px; font-size: 13px; color: var(--suave); }
+  .pasos summary {
+    display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 12px; border-radius: 999px;
+    border: 1px solid var(--borde); cursor: pointer; list-style: none; width: fit-content; max-width: 100%;
+  }
+  .pasos summary::-webkit-details-marker { display: none; }
+  .pasos summary::before { content: "›"; font-size: 15px; line-height: 1; transition: transform 0.15s; }
+  .pasos[open] summary::before { transform: rotate(90deg); }
+  .pasos summary b { flex: none; font-weight: 600; color: var(--tinta); }
+  .pasos summary span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pasos ol { list-style: none; margin: 8px 0 0 6px; padding: 0 0 0 12px; display: grid; gap: 5px; border-left: 2px solid var(--borde); }
+  .pasos li { display: flex; gap: 8px; min-width: 0; }
+  .pasos li b { flex: none; font-weight: 600; color: var(--tinta); }
+  .pasos li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pasos .antes { font-style: italic; }
+  .chip-img {
+    display: inline-block; padding: 0 8px; margin-right: 4px; border-radius: 999px; font-size: 12.5px;
+    border: 1px solid var(--borde-fuerte); color: var(--suave);
+  }
+
+  /* Lo que hace una terminal AHORA, al pie del chat: el transcript solo se
+     escribe al acabar cada paso, y sin esto el chat parecía parado. */
+  .ahora { display: grid; gap: 4px; margin: 14px 0 4px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--borde); background: var(--capa); }
+  .ahora-cab { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--suave); }
+  .ahora-cab i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--vivo); animation: latido 1.2s ease-in-out infinite; }
+  .ahora-que { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .ahora-det { font: 12.5px/1.4 "Cascadia Mono", Consolas, ui-monospace, monospace; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ahora[data-tipo="pregunta"] { border-color: color-mix(in srgb, var(--pregunta) 55%, transparent); }
+  .ahora[data-tipo="pregunta"] .ahora-cab { color: var(--pregunta); font-weight: 600; }
+  .ahora[data-tipo="pregunta"] .ahora-cab i { background: var(--pregunta); animation: none; }
+  .opciones-menu { display: grid; gap: 6px; margin-top: 6px; }
+  .opciones-menu button {
+    display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 10px 12px; border-radius: 12px;
+    border: 1px solid var(--borde-fuerte); background: none; color: var(--tinta); font: inherit; text-align: left; cursor: pointer;
+  }
+  .opciones-menu button .num { flex: none; min-width: 1.2em; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .opciones-menu button:disabled { opacity: 0.55; cursor: default; }
+
+  /* Una decisión pendiente se ve desde dentro de una terminal: antes solo
+     estaba en la lista, y quien entraba directo a una terminal no la veía. */
+  .aviso-dec {
+    display: flex; align-items: center; gap: 10px; width: calc(100% - 28px); margin: 8px 14px 0; padding: 10px 12px;
+    border-radius: 12px; border: 1px solid color-mix(in srgb, var(--pregunta) 55%, transparent);
+    background: color-mix(in srgb, var(--pregunta) 12%, transparent); color: var(--tinta); font: inherit; font-size: 14px;
+    text-align: left; cursor: pointer;
+  }
+  .aviso-dec svg { flex: none; color: var(--pregunta); }
+  .aviso-dec span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .aviso-dec b { font-weight: 650; }
+  .aviso-dec em { flex: none; font-style: normal; font-weight: 600; color: var(--pregunta); }
 
   .tarjeta {
     --c: var(--cerrada);
@@ -263,7 +314,7 @@
   .pensando { display: flex; align-items: center; gap: 8px; color: var(--suave); margin: 12px 0; }
   .pensando i { width: 8px; height: 8px; border-radius: 50%; background: var(--vivo); animation: latido 1.2s ease-in-out infinite; }
   @keyframes latido { 50% { opacity: 0.3; } }
-  @media (prefers-reduced-motion: reduce) { .pensando i { animation-duration: 3s; } }
+  @media (prefers-reduced-motion: reduce) { .pensando i, .ahora-cab i { animation-duration: 3s; } }
 
   /* ── La caja ── */
   .caja {
@@ -336,6 +387,18 @@
   /* Cada línea en su caja, y lo que no cabe sigue con sangría: así se ve
      dónde empieza una línea nueva y dónde sigue la de antes. */
   .pantalla .l { display: block; padding-left: 2ch; text-indent: -2ch; min-height: 1.4em; }
+  /* Las rayas de lado a lado de Claude Code miden lo que el panel del PC, y en
+     el móvil se partían en dos filas: se pintan como una línea del ancho que haya. */
+  .pantalla .regla { background: linear-gradient(var(--borde-fuerte), var(--borde-fuerte)) center / 100% 1px no-repeat; }
+  .pantalla .regla-titulo { display: flex; align-items: center; gap: 8px; padding-left: 0; text-indent: 0; color: var(--suave); }
+  .pantalla .regla-titulo::before, .pantalla .regla-titulo::after { content: ""; flex: 1; min-width: 12px; border-top: 1px solid var(--borde-fuerte); }
+  .nota-pantalla { margin: 0 0 10px; font-size: 13px; color: var(--suave); }
+  .nota-pantalla button { padding: 0; border: 0; background: none; color: var(--acento); font: inherit; text-decoration: underline; cursor: pointer; }
+  /* Las teclas en UNA fila: partida en dos, la flecha de abajo quedaba sola y
+     la caja crecía una fila más. Si un día no caben, la fila se mueve de lado. */
+  .teclas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .teclas::-webkit-scrollbar { display: none; }
+  .teclas .pastilla { flex: none; padding: 6px 11px; }
   #conversa .turno[data-rol="agente"] .burbuja { max-width: 100%; }
   .aviso-terminal { font-size: 12.5px; color: var(--suave); margin: 8px 4px 0; }
   /* Escribiendo, con el teclado fuera, cada línea de lectura cuenta. */
@@ -1219,7 +1282,7 @@ async function pintarDecisiones() {
       </header>
       <main class="cuerpo" id="decisiones"></main>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir({ vista: "lista" }));
+  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel } : { vista: "lista" }));
   const cargar = async () => {
     const v = await api("GET", "/api/decisiones");
     const aqui = document.getElementById("decisiones");
@@ -1235,7 +1298,7 @@ async function pintarDecisiones() {
         </button>`;
       }).join("")
       : `<p class="vacio">No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.</p>`;
-    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id })));
+    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volverPanel: e.volverPanel })));
   };
   try { await cargar(); } catch (err) {
     const aqui = document.getElementById("decisiones");
@@ -1267,7 +1330,7 @@ async function pintarDecision() {
         <button class="boton enviar-dec" id="enviar-dec" disabled>Enviar respuesta</button>
       </footer>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir({ vista: "decisiones" }));
+  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel } : { vista: "decisiones" }));
   let d;
   try {
     d = await api("GET", `/api/decision?id=${encodeURIComponent(e.id)}`);
@@ -1388,6 +1451,93 @@ function modoDe(v) {
   return null;
 }
 
+/* Lo que está haciendo una terminal de agente AHORA, leído de su pantalla.
+   Munir, 2026-10-09, desde el móvil: «¿qué pasa?», con el chat parado en lo
+   último dicho mientras el agente trabajaba, porque el transcript solo se
+   escribe al acabar cada paso. Claude Code lo pinta así:
+     ● Listing 1 directory, calling adeorq 2 times, running 1 shell command…
+       ⎿  $ curl -s -m 5 http://127.0.0.1:3013/
+     · Gallivanting… (26s · ↓ 1.7k tokens)
+   y Codex, «• Working (12s • esc to interrupt)». Lo que no se reconoce no se
+   inventa: queda «Trabajando» y nada más. */
+const GIRO = /^\s*[·✻✳✢✶✽*•◦]\s+\S[^(]*\((\d[^)·•]*)/;
+function ahoraDe(v) {
+  const filas = (v.filas || []).map((f) => f.replace(/\s+$/, ""));
+  if (["pregunta", "ofrece", "tuya"].includes(v.estado)) {
+    const m = menuDe(filas);
+    return m ? { tipo: "pregunta", ...m } : null;
+  }
+  if (v.estado !== "a_medias") return null;
+  const desde = Math.max(0, filas.length - 40);
+  let giro = filas.length;
+  for (let i = filas.length - 1; i >= desde; i--) if (GIRO.test(filas[i])) { giro = i; break; }
+  const tiempo = giro < filas.length ? GIRO.exec(filas[giro])[1].trim() : "";
+  let que = "";
+  let det = "";
+  for (let j = giro - 1; j >= desde; j--) {
+    const m = /^\s*[●⏺]\s+(.+)$/.exec(filas[j]);
+    if (!m) continue;
+    // La línea sigue en las de debajo si el panel del PC era más estrecho.
+    const partes = [m[1]];
+    let k = j + 1;
+    for (; k < giro && partes.length < 3 && /^ {2,}\S/.test(filas[k]) && !/^\s*⎿/.test(filas[k]); k++) partes.push(filas[k].trim());
+    // Solo si es un paso en marcha («…» al final) o una herramienta, «Bash(…)»:
+    // un párrafo suyo ya terminado está en el chat, y aquí parecería la tarea.
+    const linea = partes.join(" ");
+    if (/…$/.test(linea) || /^[\w.-]+(?: - [\w.-]+ \(MCP\))?\(/.test(linea)) {
+      que = linea;
+      const d = /^\s*⎿\s+(.+)$/.exec(filas[k] || "");
+      det = d ? d[1] : "";
+    }
+    break;
+  }
+  return { tipo: "trabajando", que, det, tiempo };
+}
+
+/* Una pregunta con opciones numeradas al pie de la pantalla («Do you want to
+   proceed? ❯ 1. Yes  2. No…»). Solo se busca cuando la terminal ya está en
+   «te pregunta», que si no, cualquier lista numerada de un mensaje lo parecía. */
+function menuDe(filas) {
+  const abajo = filas.slice(-24).map((f) => f.replace(/^\s*[│┃|]\s?/, "").replace(/\s?[│┃|]\s*$/, ""));
+  let opciones = [];
+  let primera = -1;
+  abajo.forEach((f, k) => {
+    const m = /^\s*([❯›>]\s*)?(\d{1,2})[.)]\s+(.+?)\s*$/.exec(f);
+    if (!m) return;
+    const n = Number(m[2]);
+    if (n === 1) { opciones = []; primera = k; }
+    if (n === opciones.length + 1) opciones.push({ n, texto: m[3], sel: Boolean(m[1]) });
+  });
+  if (opciones.length < 2) return null;
+  let pregunta = "";
+  for (let k = primera - 1; k >= 0; k--) {
+    const t = abajo[k].trim();
+    if (t && !/^[─━═╭╮╰╯\s]+$/.test(t)) { pregunta = t; break; }
+  }
+  return { pregunta, opciones };
+}
+
+function ahoraHtml(a) {
+  if (!a) return "";
+  if (a.tipo === "pregunta") {
+    return `<div class="ahora-cab"><i></i>Te pregunta</div>${a.pregunta ? `<div class="ahora-que">${esc(a.pregunta)}</div>` : ""}
+      <div class="opciones-menu">${a.opciones.map((o) => `<button data-num="${o.n}"><span class="num">${o.n}</span><span>${esc(o.texto)}</span></button>`).join("")}</div>`;
+  }
+  return `<div class="ahora-cab"><i></i>Trabajando${a.tiempo ? ` · ${esc(a.tiempo)}` : ""}</div>${a.que ? `<div class="ahora-que">${esc(a.que)}</div>` : ""}${a.det ? `<div class="ahora-det">${esc(a.det)}</div>` : ""}`;
+}
+
+/* Una fila de la pantalla, legible en el móvil. Los ⏵ y ⏸ de Claude Code no
+   están en la letra del móvil y salían como cajitas; y sus rayas de lado a
+   lado, más anchas que el móvil, se partían en dos filas. */
+const GLIFOS = { "⏵": "›", "⏸": "‖", "⏺": "●" };
+function filaHtml(f) {
+  const t = String(f).replace(/[⏵⏸⏺]/g, (c) => GLIFOS[c]);
+  if (/^\s*[─━═]{3,}\s*$/.test(t)) return `<span class="l regla" aria-hidden="true"></span>`;
+  const m = /^\s*[─━═]{3,}\s+(.+?)\s+[─━═]+\S?\s*$/.exec(t);
+  if (m) return `<span class="l regla-titulo">${esc(m[1])}</span>`;
+  return `<span class="l">${esc(t)}</span>`;
+}
+
 /* Munir, 2026-10-08: «no veo mucho historial de la terminal», y sin verlo no
    podía copiar el mensaje de compactación. La pantalla de un Claude Code a
    pantalla completa no tiene historial ninguno (lo que no cabe, no está en el
@@ -1401,11 +1551,15 @@ function pintarTerminal() {
         <h1 id="titulo">Terminal ${e.panel}<small id="sub">cargando…</small></h1>
       </header>
       <nav class="pestanas" id="pestanas" hidden>
-        <button class="pastilla" data-cara="conversa">Conversación</button>
+        <button class="pastilla" data-cara="conversa">Chat</button>
         <button class="pastilla" data-cara="pantalla">Pantalla</button>
       </nav>
-      <main class="cuerpo" id="conversa" hidden></main>
-      <main class="cuerpo" id="marco"><pre class="pantalla" id="pantalla"></pre></main>
+      <button class="aviso-dec" id="aviso-dec" hidden></button>
+      <main class="cuerpo" id="conversa" hidden><div id="turnos"></div><div class="ahora" id="ahora" hidden></div></main>
+      <main class="cuerpo" id="marco">
+        <p class="nota-pantalla" id="nota-pantalla" hidden>Aquí solo cabe lo que se ve ahora en el PC. Todo lo hablado está en el <button data-ir-chat>Chat</button>.</p>
+        <pre class="pantalla" id="pantalla"></pre>
+      </main>
       <footer class="caja" id="caja">
         <button class="bajar" id="bajar" hidden aria-label="Ir al final">${ICONO.bajar}</button>
         <p class="nota fallo" id="fallo" hidden></p>
@@ -1415,7 +1569,7 @@ function pintarTerminal() {
           <textarea id="texto" rows="1" placeholder="Escríbele a esta terminal" aria-label="Texto para la terminal"></textarea>
           <button class="enviar" id="enviar" aria-label="Enviar" disabled>${ICONO.subir}</button>
         </div>
-        <div class="pastillas">
+        <div class="pastillas teclas">
           <button class="pastilla" data-tecla="intro">Intro</button>
           <button class="pastilla" data-tecla="esc">Esc</button>
           <button class="pastilla" data-tecla="ctrl+c">Ctrl+C</button>
@@ -1451,12 +1605,15 @@ function pintarTerminal() {
   const mirarBajar = () => { const el = visible(); if (el && bajar) bajar.hidden = pegadoAbajo(el); };
   ["marco", "conversa"].forEach((id) => document.getElementById(id).addEventListener("scroll", mirarBajar, { passive: true }));
   bajar.addEventListener("click", () => { const el = visible(); if (el) el.scrollTop = el.scrollHeight; mirarBajar(); });
-  const cargar = () => leer().then(mirarBajar, (err) => {
-    // Una terminal cerrada en el PC deja de contestar: se dice arriba en vez
-    // de dejar la última pantalla como si siguiera viva.
-    const s = document.getElementById("sub");
-    if (s) s.textContent = err.message;
-  });
+  const cargar = () => {
+    if (vueltas++ % 4 === 0) mirarDecisiones().catch(() => {});
+    return leer().then(mirarBajar, (err) => {
+      // Una terminal cerrada en el PC deja de contestar: se dice arriba en vez
+      // de dejar la última pantalla como si siguiera viva.
+      const s = document.getElementById("sub");
+      if (s) s.textContent = err.message;
+    });
+  };
   const leer = async () => {
     const v = await api("GET", `/api/terminal?panel=${e.panel}`);
     const marco = document.getElementById("marco");
@@ -1475,32 +1632,87 @@ function pintarTerminal() {
     conversa.hidden = ahora !== "conversa";
 
     if (ahora === "pantalla") {
+      // En una de agente la pantalla no tiene historial (Claude Code pinta la
+      // suya entera): se dice, con el camino al chat, que es donde está.
+      document.getElementById("nota-pantalla").hidden = !ultima.conversa;
       const filas = v.filas?.length ? v.filas : ["(la pantalla está vacía)"];
       const texto = filas.join("\n");
       if (texto !== pintado.pantalla) {
         const abajo = pintado.pantalla === null || pegadoAbajo(marco);
-        document.getElementById("pantalla").innerHTML = filas.map((f) => `<span class="l">${esc(f)}</span>`).join("");
+        document.getElementById("pantalla").innerHTML = filas.map(filaHtml).join("");
         pintado.pantalla = texto;
         if (abajo) marco.scrollTop = marco.scrollHeight;
       }
       return;
     }
-    let turnos;
+    // Lo de ahora antes que el transcript: se ve aunque este tarde o falle.
+    const seguia = pegadoAbajo(conversa);
+    pintarAhora(ahoraDe(v));
+    if (seguia) conversa.scrollTop = conversa.scrollHeight;
+    const lista = document.getElementById("turnos");
+    let r;
     try {
-      turnos = await api("GET", `/api/sesion?cwd=${encodeURIComponent(v.carpeta)}&id=${encodeURIComponent(v.sesion)}`);
+      // `si`: la firma de lo pintado. Si no cambió, el PC contesta solo «igual».
+      r = await api("GET", `/api/sesion?cwd=${encodeURIComponent(v.carpeta)}&id=${encodeURIComponent(v.sesion)}&si=${encodeURIComponent(pintado.conversa ?? "")}`);
     } catch (err) {
       // Codex, Gemini y compañía no escriben en `~/.claude`: ahí solo queda la pantalla.
-      if (pintado.conversa !== err.message) conversa.innerHTML = `<p class="vacio">No encuentro lo que ha dicho esta sesión (${esc(err.message)}). Lo que se ve está en «Pantalla».</p>`;
+      if (pintado.conversa !== err.message) lista.innerHTML = `<p class="vacio">No encuentro lo que ha dicho esta sesión (${esc(err.message)}). Lo que se ve está en «Pantalla».</p>`;
       pintado.conversa = err.message;
       return;
     }
-    const fin = turnos.at(-1);
-    const firma = `${v.sesion}:${turnos.length}:${fin?.texto.length ?? 0}:${fin?.herramientas?.length ?? 0}`;
-    if (firma === pintado.conversa) return;
+    if (r.igual || !document.getElementById("turnos")) return;
     const abajo = pintado.conversa === null || pegadoAbajo(conversa);
-    conversa.innerHTML = turnos.length ? turnosHtml(turnos) : `<p class="vacio">Esta sesión todavía no ha dicho nada.</p>`;
-    pintado.conversa = firma;
+    // Repintar cerraba los pasos que tenías abiertos: se recuerdan por su hora.
+    const abiertos = new Set([...lista.querySelectorAll("details.pasos[open]")].map((d) => d.dataset.k));
+    lista.innerHTML = r.turnos.length ? turnosHtml(r.turnos) : `<p class="vacio">Esta sesión todavía no ha dicho nada.</p>`;
+    lista.querySelectorAll("details.pasos").forEach((d) => { if (abiertos.has(d.dataset.k)) d.open = true; });
+    pintado.conversa = r.firma;
     if (abajo) conversa.scrollTop = conversa.scrollHeight;
+  };
+  let ahoraPintado = null;
+  const pintarAhora = (a) => {
+    const el = document.getElementById("ahora");
+    const html = ahoraHtml(a);
+    if (!el || html === ahoraPintado) return;
+    ahoraPintado = html;
+    el.hidden = !a;
+    el.dataset.tipo = a?.tipo || "";
+    el.innerHTML = html;
+  };
+  // Las opciones de una pregunta mandan su número, que `mandar_texto` (pty.rs)
+  // teclea como tecla suelta, sin Intro, porque así lo esperan esos menús.
+  const ahoraEl = document.getElementById("ahora");
+  ahoraEl.addEventListener("mousedown", (ev) => { if (ev.target.closest("button")) ev.preventDefault(); });
+  ahoraEl.addEventListener("click", async (ev) => {
+    const b = ev.target.closest("button[data-num]");
+    if (!b) return;
+    const botones = [...ahoraEl.querySelectorAll("button[data-num]")];
+    botones.forEach((x) => { x.disabled = true; });
+    try {
+      await api("POST", "/api/terminal/escribir", { panel: e.panel, texto: b.dataset.num });
+      salioBien();
+      enSeguida();
+    } catch (err) {
+      fallo(`No se ha mandado: ${err.message}`);
+      botones.forEach((x) => { x.disabled = false; });
+    }
+  });
+  document.querySelector("[data-ir-chat]").addEventListener("click", () => {
+    e.cara = "conversa";
+    pintado.conversa = null;
+    cargar();
+  });
+  // Las decisiones pendientes, cada cuatro vueltas (12 s): no cambian a menudo.
+  let vueltas = 0;
+  const mirarDecisiones = async () => {
+    const v = await api("GET", "/api/decisiones");
+    const b = document.getElementById("aviso-dec");
+    if (!b) return;
+    const pend = (v.decisiones || []).filter((d) => !d.contestada);
+    b.hidden = !pend.length;
+    if (!pend.length) return;
+    b.innerHTML = `${ICONO.decision}<span><b>${pend.length === 1 ? "Una decisión te espera" : `${pend.length} decisiones te esperan`}</b> · ${esc(pend[0].titulo)}</span><em>Contestar</em>`;
+    b.onclick = () => ir(pend.length === 1 ? { vista: "decision", id: pend[0].id, volverPanel: e.panel } : { vista: "decisiones", volverPanel: e.panel });
   };
   document.querySelectorAll(".pestanas .pastilla").forEach((b) => b.addEventListener("click", () => {
     e.cara = b.dataset.cara;
@@ -1573,7 +1785,24 @@ function resumenHerramientas(lista) {
 }
 
 /** Los turnos de un transcript (`session_messages`), como burbujas. */
-const turnosHtml = (turnos) => turnos.map((t) => `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}${t.herramientas?.length ? `<span class="herramientas">${esc(resumenHerramientas(t.herramientas))}</span>` : ""}</div></div>`).join("");
+const turnosHtml = (turnos) => turnos.map((t) => {
+  // «[Image #1]» es como Claude Code apunta una imagen pegada: aquí, una etiqueta.
+  const texto = md(t.texto).replace(/\[Image #(\d+)\]/g, '<span class="chip-img">imagen $1</span>');
+  return `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${texto}${pasosHtml(t)}</div></div>`;
+}).join("");
+
+/** Los pasos de un turno, plegados: cuántos, de qué, y al abrir qué hizo cada
+    uno (`pasos`, de sessions.rs; los últimos 30 del turno). */
+function pasosHtml(t) {
+  const n = t.herramientas?.length || 0;
+  if (!n) return "";
+  const resumen = esc(resumenHerramientas(t.herramientas));
+  if (!t.pasos?.length) return `<span class="herramientas">${resumen}</span>`;
+  const antes = n - t.pasos.length;
+  const filas = t.pasos.map((p) => `<li><b>${esc(p.nombre)}</b>${p.detalle ? `<span>${esc(p.detalle)}</span>` : ""}</li>`).join("");
+  return `<details class="pasos" data-k="${esc(t.hora)}"><summary><b>${n === 1 ? "1 paso" : `${n} pasos`}</b><span>${resumen}</span></summary>
+    <ol>${antes > 0 ? `<li class="antes">y ${antes} antes</li>` : ""}${filas}</ol></details>`;
+}
 
 function abrirSesion(cl) {
   const w = (e.conv?.trabajos || []).find((x) => claveDe(x) === cl);

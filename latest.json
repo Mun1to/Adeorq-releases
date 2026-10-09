@@ -1,11 +1,11 @@
 {
-  "version": "0.9.177",
-  "notes": "Tus agentes te preguntan al movil y contestas en Decisiones; boton para cambiar de modo desde el movil",
-  "pub_date": "2026-10-09T13:38:15Z",
+  "version": "0.9.178",
+  "notes": "El chat de una terminal en el movil dice que hace el agente ahora, sus preguntas salen como botones, se ve la decision pendiente y la Pantalla se lee mejor.",
+  "pub_date": "2026-10-09T18:19:44Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzg0ZEhHbTcyTEx3eW1XMXBuY2RiVHF4NVgyeTZnSEczZFhBRElLR0cwZE4xcjVRR2hRRk9pMnpRd2pKUWlNNmdUNFJQNjhYK0VvN1IvMjJUTHZUSGdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTUzMDgzCWZpbGU6QWRlb3JxXzAuOS4xNzdfeDY0LXNldHVwLmV4ZQovVll4N1ZtK2RSaW9CWW4zdmhJaUV3MmI2SXl6eTFFSjdEWUF1akNuS0ROZTdOQXJEdUZsRUd6ZnErV1VEQXpVenhpZVNmYW9LYm04dW9aS2ZRUG9Bdz09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.177/Adeorq_0.9.177_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZ3OEFKcVVtZlBSSXZ5N3NVb29UVVF2eFErSldUOFZhSThxOENmcGswclF4MU9wK295S24wbEZQblhwOFA4czN4ZW9vT2tlNXh3ZnM3QkRMb3loRUF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTY5OTcyCWZpbGU6QWRlb3JxXzAuOS4xNzhfeDY0LXNldHVwLmV4ZQp4K0VKRG1SYkVJUG84V1JYYUl6cnZicHV6ZWQ3UEJBdFhoVUh0TExXWndQSGw0WTh2V3lHTjdtSldpMFdzUzZYbmplaDdaZ05TT0I5Slh3empuQjhDZz09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.178/Adeorq_0.9.178_x64-setup.exe"
     }
   }
 }

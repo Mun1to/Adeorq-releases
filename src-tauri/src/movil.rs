@@ -452,6 +452,17 @@ impl Respuesta {
     }
 }
 
+/// Una huella corta de un JSON (FNV-1a de 64 bits): no protege nada, solo dice
+/// si dos respuestas son la misma sin mandar la segunda.
+fn firma_de(v: &Value) -> String {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in v.to_string().bytes() {
+        h ^= u64::from(b);
+        h = h.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    format!("{h:016x}")
+}
+
 fn razon(estado: u16) -> &'static str {
     match estado {
         200 => "OK",
@@ -894,7 +905,20 @@ pub fn atender(
                 return Respuesta::error(400, "Falta qué sesión.");
             }
             match casa.sesion(cwd, sesion) {
-                Ok(v) => Respuesta::json(200, v),
+                // Con `si`, el chat del móvil pregunta si algo cambió desde esa
+                // firma: lo vigila cada 3 s, a menudo con datos móviles, y una
+                // conversación de verdad pesa 100 KB que casi nunca cambian.
+                Ok(v) => match p.consulta.get("si") {
+                    Some(si) => {
+                        let firma = firma_de(&v);
+                        if *si == firma {
+                            Respuesta::json(200, json!({ "firma": firma, "igual": true }))
+                        } else {
+                            Respuesta::json(200, json!({ "firma": firma, "turnos": v }))
+                        }
+                    }
+                    None => Respuesta::json(200, v),
+                },
                 Err(e) => Respuesta::error(404, &e),
             }
         }
@@ -1720,7 +1744,7 @@ mod tests {
         }
         fn parar(&self, _: &str) {}
         fn sesion(&self, _: &str, _: &str) -> Result<Value, String> {
-            Ok(json!([]))
+            Ok(json!([{ "rol": "tu", "texto": "hola", "hora": "", "herramientas": [], "pasos": [] }]))
         }
         fn adjuntos(&self) -> Result<PathBuf, String> {
             let dir = std::env::temp_dir().join("adeorq-movil-adjuntos");
@@ -1738,6 +1762,31 @@ mod tests {
     /// Una decisión de un agente se lista, se lee, se contesta una vez desde un
     /// móvil emparejado y su respuesta se teclea en la terminal que preguntó;
     /// de otro arranque, no se teclea en ninguna.
+    #[test]
+    fn el_chat_que_no_cambia_no_se_vuelve_a_mandar() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        let leer = |ruta: &str| {
+            let r = atender(&pedir("GET", ruta, c, ""), &g, &casa, &nada, reloj);
+            assert_eq!(r.estado, 200);
+            serde_json::from_slice::<Value>(&r.cuerpo).unwrap()
+        };
+        // Sin `si`, como siempre: la lista de turnos (la vista de solo leer).
+        assert_eq!(leer("/api/sesion?cwd=C:%5Cp&id=s1")[0]["texto"], "hola");
+        // Con `si` vacío, los turnos con su firma; con esa firma, solo «igual».
+        let primera = leer("/api/sesion?cwd=C:%5Cp&id=s1&si=");
+        let firma = primera["firma"].as_str().unwrap().to_owned();
+        assert_eq!(primera["turnos"][0]["texto"], "hola");
+        let segunda = leer(&format!("/api/sesion?cwd=C:%5Cp&id=s1&si={firma}"));
+        assert_eq!(segunda, json!({ "firma": firma, "igual": true }));
+        assert!(serde_json::to_vec(&segunda).unwrap().len() < 64, "lo que viaja cuando nada cambia");
+        // Una firma vieja trae los turnos otra vez.
+        assert!(leer("/api/sesion?cwd=C:%5Cp&id=s1&si=0000000000000000")["turnos"].is_array());
+    }
+
     #[test]
     fn una_decision_se_contesta_desde_el_movil_y_vuelve_a_su_terminal() {
         let (g, clave) = emparejada();

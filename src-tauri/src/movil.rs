@@ -111,7 +111,13 @@ self.addEventListener("notificationclick", (e) => {
 });
 "##;
 
-const MANIFIESTO: &str =r##"{"name":"Conserje de Adeorq","short_name":"Conserje","start_url":"/","display":"standalone","background_color":"#0b1220","theme_color":"#0b1220","icons":[{"src":"/icono.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}"##;
+/// Instalada en el móvil ya no es solo el conserje: también lleva las
+/// terminales, así que se llama Adeorq y lleva su logo. El PNG es el de la web,
+/// con su fondo oscuro: un iPhone pinta de negro lo transparente, y Chrome pide
+/// un icono de 144 px o más para dejar instalarla.
+const MANIFIESTO: &str =r##"{"name":"Adeorq","short_name":"Adeorq","start_url":"/","display":"standalone","background_color":"#0b1220","theme_color":"#0b1220","icons":[{"src":"/icono-180.png","sizes":"180x180","type":"image/png","purpose":"any"}]}"##;
+
+static ICONO_APP: &[u8] = include_bytes!("../../web/assets/favicon-180.png");
 
 // ─── Lo que se guarda ───────────────────────────────────────────────────────
 
@@ -668,6 +674,7 @@ pub fn atender(
         ("GET", "/") | ("GET", "/index.html") => return Respuesta::texto("text/html; charset=utf-8", PAGINA),
         ("GET", "/manifest.webmanifest") => return Respuesta::texto("application/manifest+json", MANIFIESTO),
         ("GET", "/icono.svg") => return Respuesta::texto("image/svg+xml", ICONO),
+        ("GET", "/icono-180.png") => return Respuesta { estado: 200, tipo: "image/png", cuerpo: ICONO_APP.to_vec() },
         ("GET", "/sw.js") => return Respuesta::texto("application/javascript; charset=utf-8", SERVICE_WORKER),
         ("POST", "/api/emparejar") => {
             let v: Value = serde_json::from_slice(&p.cuerpo).unwrap_or(Value::Null);
@@ -1707,6 +1714,23 @@ mod tests {
         assert!(PAGINA.contains(&format!("const PANEL = \"{PANEL_DE_MUNIR}\";")));
     }
 
+    /// Instalada como app: el manifiesto apunta a un PNG que existe, sin clave,
+    /// y la página lo enlaza también para el iPhone.
+    #[test]
+    fn se_instala_con_el_icono_de_adeorq() {
+        let g = Mutex::new(Guardia::default());
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let m: Value = serde_json::from_str(MANIFIESTO).unwrap();
+        assert_eq!(m["name"], "Adeorq");
+        let ruta = m["icons"][0]["src"].as_str().unwrap();
+        let r = atender(&pedir("GET", ruta, None, ""), &g, &casa, &nada, reloj);
+        assert_eq!((r.estado, r.tipo), (200, "image/png"));
+        assert!(r.cuerpo.starts_with(b"\x89PNG"));
+        assert!(PAGINA.contains(&format!("rel=\"apple-touch-icon\" href=\"{ruta}\"")));
+    }
+
     #[test]
     fn el_nombre_de_un_adjunto_no_lleva_rutas() {
         assert_eq!(nombre_de_adjunto("..\\..\\Windows\\win.ini"), "Windows_win.ini");
@@ -1871,7 +1895,7 @@ mod tests {
         let pagina = pide(format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{puerto}\r\n\r\n"));
         assert!(pagina.starts_with("HTTP/1.1 200"), "{pagina:.80}");
         assert!(pagina.contains("Content-Security-Policy"));
-        assert!(pagina.contains("<title>Conserje</title>"), "sale la página del móvil");
+        assert!(pagina.contains("<title>Adeorq</title>"), "sale la página del móvil");
         // En un marco, solo dentro del panel de Munir, y nada de X-Frame-Options,
         // que con DENY lo bloquearía también ahí.
         assert!(pagina.contains(&format!("frame-ancestors 'self' {PANEL_DE_MUNIR};")));

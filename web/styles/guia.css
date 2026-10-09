@@ -144,7 +144,9 @@
     -webkit-backdrop-filter: var(--cristal);
     padding: var(--e3) var(--e4);
   }
-  .doc-indice > .doc-indice__titulo { display: none; }
+  /* El título va dentro del <details>: con `>` la regla no casaba y en el móvil
+     salía «En esta guía» dos veces, la del summary y esta. */
+  .doc-indice .doc-indice__titulo { display: none; }
   .doc-indice ol { border-left: 0; margin-top: var(--e3); }
   .doc-indice summary {
     cursor: pointer;

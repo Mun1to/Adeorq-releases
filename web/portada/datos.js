@@ -53,6 +53,19 @@
 
   /* ── La descarga ──────────────────────────────────────────────────────── */
 
+  /* Quien llega desde un Linux de escritorio ve arriba el botón de Linux, que
+     lleva a la versión con sus tres paquetes. Android también dice «Linux» en
+     su agente: a ese se le deja el de Windows, que es el del PC. */
+  (function () {
+    var ua = navigator.userAgent || '';
+    if (!/Linux/i.test(ua) || /Android/i.test(ua)) return;
+    var a = document.querySelector('[data-descarga-hero]');
+    var t = document.querySelector('[data-descarga-hero-texto]');
+    if (!a || !t) return;
+    a.href = 'https://github.com/Mun1to/Adeorq-releases/releases/latest';
+    t.textContent = 'Descargar para Linux';
+  })();
+
   traer('latest.json').then(function (d) {
     if (!d) return;
     if (d.version) poner('[data-descarga-version]', 'v' + d.version);
@@ -76,7 +89,9 @@
     if (!lista || !d.entries || !d.entries.length) return;
 
     /* Tres, y no todas: esto es una prueba de vida, no el changelog. Quien
-       quiera el resto tiene el boton de debajo. */
+       quiera el resto tiene el boton de debajo. El build ya las deja escritas
+       en el HTML (vite.config.js, bakeReleaseData): se cambian, no se suman. */
+    lista.textContent = '';
     d.entries.slice(0, 3).forEach(function (e) {
       var li = document.createElement('li');
       li.className = 'log__fila';

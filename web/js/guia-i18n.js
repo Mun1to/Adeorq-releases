@@ -19,10 +19,11 @@ window.ADEORQ_I18N_EXTRA = {
     'nav.guia': 'Guide',
     'guia.eyebrow': 'Documentation',
     'guia.titulo': 'How the cockpit works.',
-    'guia.entrada': 'Adeorq is a Windows desktop panel where your agents work in real terminals. ' +
+    'guia.entrada': 'Adeorq is a desktop panel for Windows and Linux where your agents work in real ' +
+                    'terminals, and you can also use it from your phone. ' +
                     'This guide explains what each screen does, in the order you meet them. ' +
                     'You do not have to read it all: the index on the left goes straight to what you need.',
-    'guia.meta1': 'Windows 10 and 11, 64-bit',
+    'guia.meta1': 'Windows 10 and 11 · Linux',
     'guia.meta2': 'Free, no account',
     'guia.meta3': 'Works with your own subscriptions',
     'guia.indice': 'In this guide',
@@ -37,6 +38,7 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.nav.lienzo': 'The Canvas',
     'guia.nav.cuentas': 'Accounts',
     'guia.nav.ajustes': 'Settings',
+    'guia.nav.movil': 'On your phone',
     'guia.nav.emision': 'Streaming mode',
     'guia.nav.pulso': 'The pulse',
     'guia.nav.atajos': 'Shortcuts',
@@ -68,12 +70,15 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.instalar.p1': 'Download the installer from <a href="index.html#descargar">the downloads page</a>.',
     'guia.instalar.p2': 'Run it. Windows may warn that it does not recognise the publisher: that is normal ' +
                         'for programs without a commercial signature, and you get past it with ' +
-                        '<em>More info → Run anyway</em>.',
+                        '<em>More info → Run anyway</em>. On Linux the AppImage does not install: make it ' +
+                        'executable (<code>chmod +x</code>) and open it; or install the <code>.deb</code> or ' +
+                        'the <code>.rpm</code> for your distribution.',
     'guia.instalar.p3': 'Open Adeorq. There is no account to create and nothing to type in.',
     'guia.instalar.p4': 'From then on <b>it updates itself</b>: it checks for a new version at startup and ' +
                         'every six hours, and tells you with a bar at the top. No need to come back to the site.',
-    'guia.instalar.p5': '<b>Requirements:</b> 64-bit Windows 10 or 11. The installer is around 4 MB, because ' +
-                        'the app is native and does not ship a whole browser inside.',
+    'guia.instalar.p5': '<b>Requirements:</b> 64-bit Windows 10 or 11, or a 64-bit Linux with glibc 2.35 or ' +
+                        'newer (Ubuntu 22.04, Debian 12, Fedora 36 or later). The Windows installer is around ' +
+                        '6 MB, because the app is native and does not ship a whole browser inside.',
 
     /* ----------------------------- PRIMEROS PASOS ------------------------ */
     'guia.primeros.h': 'First steps',
@@ -148,11 +153,11 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.agenda.h': 'The Agenda',
     'guia.agenda.p': 'What is coming, what you thought of and what is due. Every block reads from wherever ' +
                      'that thing already lives, without keeping a second copy of anything.',
-    'guia.agenda.l1': '<b>Today</b> — your goals for the day and all your sessions, whatever is waiting on you first.',
-    'guia.agenda.l2': '<b>Calendar</b> — things with a date because someone else set it. Each one warns you as ' +
+    'guia.agenda.l1': '<b>Today</b>: your goals for the day and all your sessions, whatever is waiting on you first.',
+    'guia.agenda.l2': '<b>Calendar</b>: things with a date because someone else set it. Each one warns you as ' +
                       'far ahead as you told it to, not on a fixed threshold.',
-    'guia.agenda.l3': '<b>Ideas</b> — the live ones and the parked ones, each with the condition that would unblock it.',
-    'guia.agenda.l4': '<b>Next steps</b> — the <code>METAS.md</code> of the project you are looking at, read ' +
+    'guia.agenda.l3': '<b>Ideas</b>: the live ones and the parked ones, each with the condition that would unblock it.',
+    'guia.agenda.l4': '<b>Next steps</b>: the <code>METAS.md</code> of the project you are looking at, read ' +
                       'from its folder and extendable from here.',
     'guia.agenda.caja': '<span class="doc-caja__titulo">The tray.</span> ' +
                         'Loose ends turn up while you work that are not for right now. Instead of interrupting ' +
@@ -190,13 +195,13 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.cuentas.p': 'An account is one login of the same program, with its own configuration folder. You can ' +
                       'have several of the same one and split the work between them.',
     'guia.cuentas.pie': 'Accounts. Up top, how much is left of the tightest limit and which one is the default.',
-    'guia.cuentas.l1': '<b>Your accounts</b> — one card per installed program, saying whether it is connected ' +
+    'guia.cuentas.l1': '<b>Your accounts</b>: one card per installed program, saying whether it is connected ' +
                        'and how much of its limits you have used.',
-    'guia.cuentas.l2': '<b>API keys</b> — the other way to pay for what a program consumes: by tokens instead ' +
+    'guia.cuentas.l2': '<b>API keys</b>: the other way to pay for what a program consumes: by tokens instead ' +
                        'of with your subscription. They are stored encrypted in the Windows Credential Manager, ' +
                        'never in a configuration file, and they do not come back out.',
-    'guia.cuentas.l3': '<b>Shortcuts</b> — which programs appear when you hover over a project in the sidebar.',
-    'guia.cuentas.l4': '<b>Not installed</b> — what you are missing, with its download button.',
+    'guia.cuentas.l3': '<b>Shortcuts</b>: which programs appear when you hover over a project in the sidebar.',
+    'guia.cuentas.l4': '<b>Not installed</b>: what you are missing, with its download button.',
     'guia.cuentas.caja': '<span class="doc-caja__titulo">Several accounts of your own, no problem.</span> ' +
                          'Rotating other people’s accounts to stretch the limits breaks the providers’ ' +
                          'terms, and what you are risking is having the account closed.',
@@ -209,25 +214,69 @@ window.ADEORQ_I18N_EXTRA = {
                         'The first time, the button installs Aider on its own; every time after, it opens the ' +
                         'terminal directly with the key already set.',
     'guia.cuentas.pv2': '<span class="doc-caja__titulo">If you open Aider by hand instead of through the button:</span> ' +
-                        'always tell it the model (<code>aider --model openrouter/&lt;model&gt;</code>) — without ' +
-                        'that it grabs the first key it finds in your environment and tries a DIFFERENT provider — ' +
+                        'always tell it the model (<code>aider --model openrouter/&lt;model&gt;</code>), because without ' +
+                        'that it grabs the first key it finds in your environment and tries a DIFFERENT provider, ' +
                         'and set the key in <code>OPENROUTER_API_KEY</code> in that terminal. The card does both on its own.',
 
     /* --------------------------------- AJUSTES --------------------------- */
     'guia.ajustes.h': 'Settings',
     'guia.ajustes.p': 'How your workshop looks and how it talks.',
-    'guia.ajustes.l1': '<b>Appearance</b> — language (Spanish or English), twenty-four themes and the ' +
+    'guia.ajustes.l1': '<b>Appearance</b>: language (Spanish or English), twenty-four themes and the ' +
                        'background: you can put an image or a video behind everything, dial how much of it ' +
                        'shows, and make the terminals transparent so the picture comes through the text.',
-    'guia.ajustes.l2': '<b>Terminals</b> — font size, how many sessions the open-all button opens, and ' +
+    'guia.ajustes.l2': '<b>Terminals</b>: font size, how many sessions the open-all button opens, and ' +
                        'restoring what you had open.',
-    'guia.ajustes.l3': '<b>Notifications</b> — how it tells you when an agent finishes or asks you something.',
-    'guia.ajustes.l4': '<b>Shortcuts</b> — every key combination, editable.',
-    'guia.ajustes.l5': '<b>Local model</b> — if you have Ollama, Adeorq uses it for small tasks without ' +
+    'guia.ajustes.l3': '<b>Notifications</b>: how it tells you when an agent finishes or asks you something.',
+    'guia.ajustes.l4': '<b>Shortcuts</b>: every key combination, editable.',
+    'guia.ajustes.l5': '<b>Local model</b>: if you have Ollama, Adeorq uses it for small tasks without ' +
                        'spending your quota.',
-    'guia.ajustes.l6': '<b>Discord</b> — so your Discord status says what you are working on.',
-    'guia.ajustes.l7': '<b>Help</b> — the full guide inside the app and the link to this documentation.',
-    'guia.ajustes.l8': '<b>Adeorq</b> — installed version, check for updates and your weekly usage.',
+    'guia.ajustes.l6': '<b>Discord</b>: so your Discord status says what you are working on.',
+    'guia.ajustes.l7': '<b>Help</b>: the full guide inside the app and the link to this documentation.',
+    'guia.ajustes.l8': '<b>Adeorq</b>: installed version, check for updates and your weekly usage.',
+    'guia.ajustes.l9': '<b>Mobile</b>: Adeorq on your phone or in another browser, wherever you are. The steps ' +
+                       'are in <a href="#movil">On your phone</a>.',
+
+    /* ---------------------------------- MOVIL ---------------------------- */
+    'guia.movil.h': 'On your phone',
+    'guia.movil.p1': 'Adeorq comes with you. From your phone, a tablet or another computer you talk to the ' +
+                     'concierge, read your sessions, type into any of your terminals, attach photos and files, ' +
+                     'and get a notification when an agent finishes or asks you something. What you see is ' +
+                     'your PC, not a copy in the cloud: it has to be on, with Adeorq open.',
+    'guia.movil.h3a': 'Set it up once',
+    'guia.movil.p2': 'Install <a href="https://tailscale.com/download" rel="noopener">Tailscale</a> on the PC ' +
+                     'and on your phone, and sign in with the same account on both. It is a private network ' +
+                     'between your devices, free for personal use.',
+    'guia.movil.p3': 'In Adeorq, open <b>Settings → Mobile</b> and turn on <b>Concierge on my phone</b>.',
+    'guia.movil.p4': 'Press <b>Bring the concierge to Tailscale</b>. The first time, Tailscale may ask you to ' +
+                     'enable HTTPS on your account: if a link appears, open it, enable it and press again.',
+    'guia.movil.p5': 'Press <b>Pair a phone</b>. You get a QR code with your address, something like ' +
+                     '<code>https://your-pc.your-net.ts.net:8443</code>, and a six-digit code that lasts ten minutes.',
+    'guia.movil.p6': 'On your phone, with Tailscale on, scan the QR code or type the address, enter the code ' +
+                     'and press <b>Emparejar</b> (Pair). Each browser is paired only once.',
+    'guia.movil.h3b': 'To keep it handy',
+    'guia.movil.l1': '<b>As an app.</b> On Android the list has <b>Instalar Adeorq como app en este aparato</b> ' +
+                     '(install as an app; if it does not show, the browser menu → Add to Home screen), and it ' +
+                     'stays there with its icon. On iPhone, from Safari: Share → Add to Home Screen.',
+    'guia.movil.l2': '<b>Notifications.</b> At the bottom of the list, <b>Avisarme en este móvil</b> (notify me ' +
+                     'on this phone) tells you when a session asks you something or finishes, even with the page ' +
+                     'closed. They travel encrypted through your browser’s push service (Google, Apple or ' +
+                     'Mozilla), which delivers them without being able to read them. On iPhone it only works ' +
+                     'with the app added to the Home Screen. In Settings → Mobile ' +
+                     'you can send a test notification.',
+    'guia.movil.l3': '<b>Several devices.</b> Settings → Mobile lists each one by name, and you remove it from ' +
+                     'there whenever you like.',
+    'guia.movil.caja': '<span class="doc-caja__titulo">Why it is safe to leave it on.</span> Adeorq only listens ' +
+                       'inside your PC, and Tailscale carries it to your devices through an encrypted tunnel: ' +
+                       'it cannot be seen from the internet. Even so, every request carries the key of a paired ' +
+                       'device, the code expires after ten minutes or five failed tries, and only a fingerprint ' +
+                       'of each key is kept on disk. While it is on, the PC does not go to sleep by itself; on ' +
+                       'battery, it does.',
+    'guia.movil.h3c': 'If something does not work',
+    'guia.movil.f1': '<b>The address does not load:</b> check that Tailscale is on on your phone.',
+    'guia.movil.f2': '<b>“La ventana de Adeorq no contestó a tiempo”</b> (the Adeorq window did not answer in ' +
+                     'time): Adeorq has to be open on the PC, and the PC awake.',
+    'guia.movil.f3': '<b>On Linux, “Tailscale no deja a tu usuario ponerlo”</b> (Tailscale will not let your user ' +
+                     'set it up): run <code>sudo tailscale set --operator=$USER</code> once and press again.',
 
     /* --------------------------------- EMISION --------------------------- */
     'guia.emision.h': 'Streaming mode',
@@ -299,8 +348,8 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.cierre.cta': 'Report a problem',
 
     /* ----------------------------------- PIE ----------------------------- */
-    'guia.pie.lema': 'The panel where your agents work in real terminals. Made on Windows, for people who ' +
-                     'live on Windows.',
+    'guia.pie.lema': 'The panel where your agents work in real terminals. On Windows and Linux, and with ' +
+                     'you on your phone.',
     'guia.pie.producto': 'Product',
     'guia.pie.recursos': 'Resources',
     'guia.pie.ecosistema': 'Ecosystem',

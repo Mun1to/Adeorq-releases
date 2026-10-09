@@ -1,5 +1,10 @@
 # web/content · los textos de la web
 
+> **OJO, desde el 2026-08-20 esto ya no es la fuente.** La portada nueva (`index.html`) y la guía
+> (`guia.html`, con su inglés en `js/guia-i18n.js`) llevan el texto dentro y no leen estos
+> archivos, que se quedaron en la web de antes: aquí aún se lee que no hay versión para Linux, y
+> la hay desde la 0.9.136. No copies nada de aquí a la web sin compararlo con lo que hay publicado.
+
 Aquí viven **todos** los textos de la web, en español y en inglés. Nadie escribe copy
 directamente en el HTML: si falta un texto, se pide por `BUZON.md` y se escribe aquí.
 

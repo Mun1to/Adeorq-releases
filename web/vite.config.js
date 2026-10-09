@@ -4,7 +4,7 @@
 // reasons only: a dev server with hot reload, and a production bundle. It does
 // not impose a framework, and it never rewrites the markup.
 
-import { cp, copyFile, readdir, access } from 'node:fs/promises'
+import { cp, copyFile, readdir, access, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 
@@ -89,6 +89,66 @@ function copyStaticExtras() {
   }
 }
 
+async function readJson(name) {
+  try {
+    return JSON.parse(await readFile(resolve(ROOT, 'data', name), 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+}
+
+function longDate(iso) {
+  const d = new Date(iso || '')
+  if (isNaN(d)) return ''
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+/**
+ * Writes the version, the release count and the last three releases INTO the
+ * served front page. portada/datos.js still refreshes them in the browser, but
+ * whoever reads the page without running JavaScript (the assistants that answer
+ * questions do not run it) was reading the values typed by hand months ago:
+ * v0.9.129 and 155 releases, with an empty list, on 2026-10-09. The build runs
+ * `update-data.mjs` first, so data/ is the fresh copy from the API.
+ */
+function bakeReleaseData() {
+  return {
+    name: 'adeorq-bake-release-data',
+    apply: 'build',
+    async transformIndexHtml(html, ctx) {
+      if (!ctx.filename.endsWith('index.html')) return html
+      const latest = await readJson('latest.json')
+      const log = await readJson('changelog.json')
+      let out = html
+      if (latest?.version) {
+        out = out.replace(/(<b data-descarga-version>)[^<]*(<\/b>)/, `$1v${escapeHtml(latest.version)}$2`)
+        out = out.replace(/(<span data-descarga-fecha>)[^<]*(<\/span>)/, `$1${escapeHtml(longDate(latest.pub_date))}$2`)
+        if (latest.size_bytes) {
+          const mb = (latest.size_bytes / 1048576).toFixed(1).replace('.', ',') + ' MB'
+          out = out.replace(/(<span data-descarga-peso>)[^<]*(<\/span>)/, `$1${mb}$2`)
+        }
+      }
+      if (log?.count) out = out.replace(/(<b data-log-cuenta>)[^<]*(<\/b>)/, `$1${log.count}$2`)
+      if (log?.entries?.length) {
+        // The same three rows, and the same trimming, as portada/datos.js.
+        const rows = log.entries.slice(0, 3).map((e) => {
+          const text = (e.summary || e.title || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()
+          const short = text.length > 190 ? `${text.slice(0, 187).trimEnd()}…` : text
+          return `<li class="log__fila"><b class="log__ver">${escapeHtml(e.version ? `v${e.version}` : e.tag || '')}</b>` +
+            `<span class="log__fecha">${escapeHtml(longDate(e.publishedAt || e.date))}</span>` +
+            `<p class="log__texto">${escapeHtml(short)}</p></li>`
+        })
+        out = out.replace(/(<ol class="log" data-log>)\s*(<\/ol>)/, `$1${rows.join('')}$2`)
+      }
+      return out
+    },
+  }
+}
+
 export default defineConfig({
   root: ROOT,
   // Relative URLs so the bundle works at a domain root, in a subpath and from
@@ -97,7 +157,7 @@ export default defineConfig({
   // Multi page: an unknown path returns a real 404 instead of the home page.
   appType: 'mpa',
   publicDir: false,
-  plugins: [reloadOnPartials(), copyStaticExtras()],
+  plugins: [reloadOnPartials(), bakeReleaseData(), copyStaticExtras()],
   server: {
     port: 5173,
     strictPort: false,

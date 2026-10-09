@@ -7,7 +7,8 @@
 <meta name="theme-color" content="#f3f6fb" media="(prefers-color-scheme: light)">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icono.svg">
-<title>Conserje</title>
+<link rel="apple-touch-icon" href="/icono-180.png">
+<title>Adeorq</title>
 <!--
   El conserje de Adeorq en el móvil. Lo sirve `src-tauri/src/movil.rs` desde
   el PC, y llega aquí por Tailscale. Todo va dentro de este archivo: la
@@ -98,6 +99,8 @@
     background: var(--capa); color: var(--tinta); font: inherit; outline: none;
   }
   .campo:focus { border-color: var(--acento); }
+  /* Pegada a su campo: el hueco de la rejilla la dejaba a medio camino del código. */
+  .etiqueta-campo { font-size: 13px; color: var(--suave); margin: 4px 0 -8px 2px; }
   .codigo { font-size: 30px; letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
 
   .boton {
@@ -140,6 +143,9 @@
     text-align: left;
     cursor: pointer;
   }
+  /* El `display: block` de arriba le ganaba al `hidden`: dentro del panel, o en
+     un navegador sin avisos, quedaba al pie un recuadro vacío que no hacía nada. */
+  .avisos[hidden] { display: none; }
   .avisos[data-on="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .avisos:disabled { opacity: 0.6; }
 
@@ -698,6 +704,43 @@ async function pintarAvisos() {
   };
 }
 
+// ─── Llevarla como una app ──────────────────────────────────────────────────
+// Chrome, Edge y Brave avisan de que la página se puede instalar: se guarda el
+// aviso y la lista enseña el botón. Safari no avisa nunca (allí es Compartir >
+// Añadir a la pantalla de inicio), así que en un iPhone no sale nada.
+let instalable = null;
+window.addEventListener("beforeinstallprompt", (ev) => {
+  ev.preventDefault();
+  instalable = ev;
+  pintarInstalar();
+});
+window.addEventListener("appinstalled", () => { instalable = null; pintarInstalar(); });
+
+function pintarInstalar() {
+  const b = document.getElementById("instalar");
+  if (!b) return;
+  b.hidden = !instalable || enMarco;
+  b.onclick = async () => {
+    const aviso = instalable;
+    if (!aviso) return;
+    instalable = null;
+    aviso.prompt();
+    await aviso.userChoice.catch(() => {});
+    pintarInstalar();
+  };
+}
+
+/* El nombre con el que sale en Ajustes > Móvil, para saber luego cuál quitar:
+   sistema y navegador, que es lo que distingue el móvil del portátil. */
+function nombreSugerido() {
+  const ua = navigator.userAgent;
+  const sistema = /Android/i.test(ua) ? "Android" : /iPhone/i.test(ua) ? "iPhone" : /iPad/i.test(ua) ? "iPad"
+    : /Windows/i.test(ua) ? "Windows" : /Mac OS X/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : "Móvil";
+  const navegador = navigator.brave ? "Brave" : /EdgA?\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung"
+    : /Firefox\/|FxiOS/.test(ua) ? "Firefox" : /Chrome\/|CriOS/.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "";
+  return navegador ? `${sistema} · ${navegador}` : sistema;
+}
+
 function ir(cambio) {
   clearTimeout(reloj);
   e = { vista: cambio.vista, ...cambio };
@@ -729,15 +772,14 @@ function pintar() {
 // ─── Emparejar ──────────────────────────────────────────────────────────────
 
 function pintarEmparejar() {
-  const ua = navigator.userAgent;
-  const sugerido = /Android/i.test(ua) ? "Android" : /iPhone|iPad/i.test(ua) ? "iPhone" : "Móvil";
   app.innerHTML = `
     <div class="emparejar">
       <span class="avatar">${ICONO.chispa}</span>
-      <h1>Conecta este móvil con tu conserje</h1>
-      <p>En tu PC, abre Adeorq y ve a <b>Ajustes &gt; Móvil &gt; Emparejar</b>. Escribe aquí el código de seis cifras que sale. Solo hace falta una vez.</p>
+      <h1>Conecta este aparato con tu Adeorq</h1>
+      <p>En tu PC, abre Adeorq y ve a <b>Ajustes &gt; Móvil &gt; Emparejar un móvil</b>. Escribe aquí el código de seis cifras que sale. Solo hace falta una vez por navegador.</p>
       <input id="codigo" class="campo codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-label="Código de seis cifras">
-      <input id="nombre" class="campo" maxlength="40" value="${esc(sugerido)}" aria-label="Nombre de este móvil">
+      <label class="etiqueta-campo" for="nombre">Cómo se llamará en Ajustes</label>
+      <input id="nombre" class="campo" maxlength="40" value="${esc(nombreSugerido())}">
       <button id="entrar" class="boton">Emparejar</button>
       <div id="error"></div>
     </div>`;
@@ -776,11 +818,13 @@ async function pintarLista() {
         <button id="terminales" class="nueva segunda"><span class="avatar">${ICONO.terminal}</span>Tus terminales</button>
         <div id="filas"></div>
         <button id="avisos" class="avisos" hidden></button>
+        <button id="instalar" class="avisos" hidden>Instalar Adeorq como app en este aparato</button>
       </main>
     </div>`;
   document.getElementById("nueva").addEventListener("click", () => ir({ vista: "hilo", id: nuevoId(), nueva: true }));
   document.getElementById("terminales").addEventListener("click", () => ir({ vista: "terminales" }));
   pintarAvisos().catch(() => {});
+  pintarInstalar();
   const cargar = async () => {
     const lista = await api("GET", "/api/lista");
     const filas = document.getElementById("filas");

@@ -6,10 +6,11 @@
 
 ### Nueve agentes trabajando. Una sola pantalla.
 
-Panel de escritorio para Windows que abre tus proyectos en **terminales de verdad** —las
-mismas ConPTY que usa el sistema, no una caja de chat que las imita—, te enseña tus sesiones
-de Claude Code con su estado real y te deja dirigir a varios agentes a la vez sin perder de
-vista a ninguno.
+Panel de escritorio para Windows y Linux que abre tus proyectos en **terminales de verdad**
+(las mismas ConPTY que usa el sistema, no una caja de chat que las imita), te enseña tus
+sesiones de Claude Code con su estado real y te deja dirigir a varios agentes a la vez sin
+perder de vista a ninguno. Y se viene contigo: **desde el móvil o cualquier navegador**,
+estés donde estés.
 
 <br>
 
@@ -62,11 +63,37 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 | **Modo Espejo** | Cada agente en su propio worktree de git. Ves el diff y decides si entra o se descarta. |
 | **La Agenda** | Lo que se te viene encima, tus objetivos del día y las ideas que los agentes te dejan por el camino. |
 | **La Memoria** | Tu bóveda de Obsidian dentro del panel, con búsqueda por contenido y el mapa de lo que enlaza con qué. |
+| **El conserje** | Un solo chat que te abre sesiones como pestañas, con un router que elige qué modelo o qué cliente coge cada encargo. |
+| **En el móvil** | El conserje, tus sesiones y cada terminal, desde cualquier navegador y estés donde estés. Adjuntas fotos y te avisa cuando un agente te pregunta. |
 
 <div align="center">
 <img src="web/assets/screens/canvas.png" width="49%" alt="El Lienzo">
 <img src="web/assets/screens/dashboard.png" width="49%" alt="El Panel">
 </div>
+
+## Desde el móvil, o desde cualquier navegador
+
+Adeorq se viene contigo: desde el móvil, una tablet u otro ordenador hablas con el conserje,
+lees tus sesiones, escribes en cualquier terminal y te llega un aviso cuando un agente termina
+o te pregunta. Lo que ves es **tu PC**, no una copia en la nube, así que tiene que estar
+encendido y con Adeorq abierto. Se prepara una vez:
+
+1. Instala [Tailscale](https://tailscale.com/download) en el PC y en el móvil, y entra con la
+   misma cuenta en los dos. Es una red privada entre tus aparatos, gratis para uso personal.
+2. En Adeorq, abre **Ajustes → Móvil** y activa **Conserje en el móvil**.
+3. Pulsa **Llevar el conserje a Tailscale**. La primera vez Tailscale puede pedirte activar
+   HTTPS en tu cuenta: si sale un enlace, ábrelo, actívalo y vuelve a pulsar.
+4. Pulsa **Emparejar un móvil**. Sale un QR con tu dirección
+   (`https://tu-pc.tu-red.ts.net:8443`) y un código de seis cifras que vale diez minutos.
+5. En el móvil, con Tailscale encendido, escanea el QR, escribe el código y pulsa
+   **Emparejar**. Cada navegador se empareja una vez.
+
+En Android la página se instala como una app con su icono; en iPhone, Safari → Compartir →
+Añadir a la pantalla de inicio. **Por qué se puede dejar encendido:** Adeorq solo escucha
+dentro de tu PC y Tailscale lo lleva a tus aparatos por un túnel cifrado, así que desde
+internet no se ve; aun así, cada petición necesita la clave de un aparato emparejado, y en el
+disco solo queda la huella de cada clave. Todos los pasos, en
+[la guía](https://adeorq.com/guia#movil).
 
 ## Al instalar: Windows te va a avisar
 
@@ -94,7 +121,8 @@ chmod +x Adeorq-x86_64.AppImage
 ```
 
 En la [página de releases](https://github.com/Mun1to/Adeorq-releases/releases/latest) hay
-también un `.deb` para Debian y Ubuntu (`sudo apt install ./Adeorq_*.deb`).
+también un `.deb` para Debian y Ubuntu (`sudo apt install ./Adeorq_*.deb`) y un `.rpm` para
+Fedora (`sudo dnf install ./Adeorq-*.rpm`).
 
 **Tres cosas funcionan distinto**, y es mejor saberlas antes que descubrirlas:
 

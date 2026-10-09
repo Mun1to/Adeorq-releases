@@ -6,9 +6,10 @@
 
 ### Nine agents working. One screen.
 
-A Windows desktop panel that opens your projects in **real terminals** — the same ConPTY the
-system uses, not a chat box imitating one — shows your Claude Code sessions with their actual
-state, and lets you run several agents at once without losing track of any of them.
+A desktop panel for Windows and Linux that opens your projects in **real terminals** — the
+same ConPTY the system uses, not a chat box imitating one — shows your Claude Code sessions
+with their actual state, and lets you run several agents at once without losing track of any
+of them. And it comes with you: **from your phone or any browser**, wherever you are.
 
 <br>
 
@@ -61,11 +62,37 @@ replacing them, so the day something new ships, you have it.
 | **Shadow Mode** | Each agent in its own git worktree. You read the diff and decide whether it lands or gets thrown away. |
 | **The Agenda** | What is coming at you, your goals for the day, and the ideas your agents leave behind along the way. |
 | **Memory** | Your Obsidian vault inside the panel, searchable by what the notes say, with a map of what links to what. |
+| **The Concierge** | One chat that opens sessions for you as tabs, with a router that picks which model or client takes each job. |
+| **On your phone** | The Concierge, your sessions and every terminal, from any browser and wherever you are. Attach photos, get a notification when an agent asks you something. |
 
 <div align="center">
 <img src="web/assets/screens/canvas.png" width="49%" alt="The Canvas">
 <img src="web/assets/screens/dashboard.png" width="49%" alt="The Dashboard">
 </div>
+
+## From your phone, or any browser
+
+Adeorq can travel with you: from your phone, a tablet or another computer you talk to the
+Concierge, read your sessions, type into any terminal and get a notification when an agent
+finishes or asks you something. What you see is **your PC**, not a copy in the cloud, so it
+has to be on with Adeorq open. Set it up once:
+
+1. Install [Tailscale](https://tailscale.com/download) on the PC and on your phone, and sign
+   in with the same account on both. It is a private network between your devices, free for
+   personal use.
+2. In Adeorq, open **Settings → Mobile** and turn on **Concierge on my phone**.
+3. Press **Bring the concierge to Tailscale**. The first time, Tailscale may ask you to enable
+   HTTPS on your account: if a link appears, open it, enable it and press again.
+4. Press **Pair a phone**. You get a QR code with your address
+   (`https://your-pc.your-net.ts.net:8443`) and a six-digit code that lasts ten minutes.
+5. On your phone, with Tailscale on, scan the QR code, type the code and press **Emparejar**
+   (Pair). Each browser pairs once.
+
+On Android the page installs as an app with its own icon; on iPhone, Safari → Share → Add to
+Home Screen. **Why it is safe to leave on:** Adeorq only listens inside your PC and Tailscale
+carries it to your devices through an encrypted tunnel, so it cannot be seen from the
+internet; every request still needs the key of a paired device, and only a fingerprint of
+each key is kept on disk. Full steps in [the guide](https://adeorq.com/guia#movil).
 
 ## Windows will warn you when you install it
 
@@ -92,7 +119,8 @@ chmod +x Adeorq-x86_64.AppImage
 ```
 
 The [releases page](https://github.com/Mun1to/Adeorq-releases/releases/latest) also carries a
-`.deb` for Debian and Ubuntu (`sudo apt install ./Adeorq_*.deb`).
+`.deb` for Debian and Ubuntu (`sudo apt install ./Adeorq_*.deb`) and an `.rpm` for Fedora
+(`sudo dnf install ./Adeorq-*.rpm`).
 
 **Three things work differently**, and it is better to know them upfront:
 

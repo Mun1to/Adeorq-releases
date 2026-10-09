@@ -215,12 +215,24 @@ export function headingsFrom(notes) {
     .map((line) => line.replace(/^#{2,3}\s+/, '').trim())
 }
 
-/** The first paragraph of prose, headings and bullets removed. */
+/**
+ * The first paragraph of prose, headings, bullets and quotes removed. Quotes
+ * because every note opens with `> PROBADO|MEDIDO|NO PROBADO: ...`, the line
+ * `scripts/prueba-check.mjs` demands: it says how the release was tested, for
+ * whoever reviews it, and the front page was showing it as the news. With no
+ * paragraph at all (notes that are only a list), the first bullet stands in.
+ */
 export function summaryFrom(notes, maxLength = 220) {
-  const paragraph = cleanNotes(notes)
+  const blocks = cleanNotes(notes)
     .split('\n\n')
     .map((block) => block.trim())
-    .find((block) => block && !/^#{1,6}\s/.test(block) && !/^[-*]\s/.test(block))
+  const firstBullet = blocks
+    .flatMap((block) => block.split('\n'))
+    .map((line) => line.trim())
+    .find((line) => /^[-*]\s/.test(line))
+  const paragraph =
+    blocks.find((block) => block && !/^#{1,6}\s/.test(block) && !/^[-*]\s/.test(block) && !/^>/.test(block)) ||
+    (firstBullet && firstBullet.replace(/^[-*]\s+/, ''))
 
   if (!paragraph) return ''
 

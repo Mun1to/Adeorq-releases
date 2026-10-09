@@ -121,8 +121,8 @@
 
     <nav class="nav__enlaces" aria-label="Secciones">
       <a href="index.html#que-es" data-i18n="nav.queEs">Qué es</a>
-      <a href="index.html#features" data-i18n="nav.funciones">Funciones</a>
-      <a href="index.html#changelog" data-i18n="nav.novedades">Novedades</a>
+      <a href="index.html#trabajo" data-i18n="nav.funciones">Funciones</a>
+      <a href="index.html#novedades" data-i18n="nav.novedades">Novedades</a>
       <a href="guia.html" aria-current="page" data-i18n="nav.guia">Guía</a>
     </nav>
 
@@ -142,12 +142,12 @@
     <p class="doc-portada__eyebrow" data-i18n="guia.eyebrow">Documentación</p>
     <h1 data-i18n="guia.titulo">Cómo se usa la cabina.</h1>
     <p data-i18n="guia.entrada">
-      Adeorq es un panel de escritorio para Windows donde tus agentes trabajan en terminales de
-      verdad. Esta guía cuenta qué hace cada pantalla, en el orden en que te las vas encontrando.
+      Adeorq es un panel de escritorio para Windows y Linux donde tus agentes trabajan en
+      terminales de verdad, y que también se usa desde el móvil. Esta guía cuenta qué hace cada pantalla, en el orden en que te las vas encontrando.
       No hace falta leerla entera: el índice de la izquierda lleva directo a lo que buscas.
     </p>
     <div class="doc-portada__meta">
-      <span data-i18n="guia.meta1">Windows 10 y 11, 64 bits</span>
+      <span data-i18n="guia.meta1">Windows 10 y 11 · Linux</span>
       <span data-i18n="guia.meta2">Gratis, sin cuenta</span>
       <span data-i18n="guia.meta3">Funciona con tus suscripciones</span>
     </div>
@@ -169,6 +169,7 @@
         <li><a href="#lienzo" data-i18n="guia.nav.lienzo">El Lienzo</a></li>
         <li><a href="#cuentas" data-i18n="guia.nav.cuentas">Las Cuentas</a></li>
         <li><a href="#ajustes" data-i18n="guia.nav.ajustes">Ajustes</a></li>
+        <li><a href="#movil" data-i18n="guia.nav.movil">En el móvil</a></li>
         <li><a href="#emision" data-i18n="guia.nav.emision">El modo emisión</a></li>
         <li><a href="#pulso" data-i18n="guia.nav.pulso">El pulso</a></li>
         <li><a href="#atajos" data-i18n="guia.nav.atajos">Atajos</a></li>
@@ -225,7 +226,9 @@
         <li data-i18n-html="guia.instalar.p2">
           Ejecútalo. Windows puede avisar de que no reconoce al editor: es lo normal en
           programas sin firma comercial, y se pasa con
-          <em>Más información → Ejecutar de todas formas</em>.
+          <em>Más información → Ejecutar de todas formas</em>. En Linux, el AppImage no se
+          instala: dale permiso de ejecución (<code>chmod +x</code>) y ábrelo; o instala el
+          <code>.deb</code> o el <code>.rpm</code> de tu distribución.
         </li>
         <li data-i18n-html="guia.instalar.p3">
           Abre Adeorq. No hace falta crear ninguna cuenta ni introducir nada.
@@ -236,8 +239,10 @@
         cada seis horas, y te avisa con una barra arriba. No hace falta volver a la web.
       </p>
       <p data-i18n-html="guia.instalar.p5">
-        <b>Requisitos:</b> Windows 10 u 11 de 64 bits. El instalador ocupa unos 4 MB, porque
-        la aplicación es nativa y no lleva un navegador entero empaquetado dentro.
+        <b>Requisitos:</b> Windows 10 u 11 de 64 bits, o un Linux de 64 bits con glibc 2.35 o
+        más (Ubuntu 22.04, Debian 12, Fedora 36 o posteriores). El instalador de Windows ocupa
+        unos 6 MB, porque la aplicación es nativa y no lleva un navegador entero empaquetado
+        dentro.
       </p>
     </section>
 
@@ -399,16 +404,16 @@
         cosa ya vive, sin guardar una segunda copia de nada.
       </p>
       <ul class="doc-lista">
-        <li data-i18n-html="guia.agenda.l1"><b>Hoy</b> — tus objetivos del día y todas tus sesiones, lo que te espera primero.</li>
+        <li data-i18n-html="guia.agenda.l1"><b>Hoy</b>: tus objetivos del día y todas tus sesiones, lo que te espera primero.</li>
         <li data-i18n-html="guia.agenda.l2">
-          <b>Calendario</b> — lo que tiene fecha porque la pone otro. Cada cosa avisa con la
+          <b>Calendario</b>: lo que tiene fecha porque la pone otro. Cada cosa avisa con la
           antelación que tú le pusiste, no con un umbral fijo.
         </li>
         <li data-i18n-html="guia.agenda.l3">
-          <b>Ideas</b> — las que tienes vivas o aparcadas, cada una con su condición de desbloqueo.
+          <b>Ideas</b>: las que tienes vivas o aparcadas, cada una con su condición de desbloqueo.
         </li>
         <li data-i18n-html="guia.agenda.l4">
-          <b>Próximos pasos</b> — el <code>METAS.md</code> del proyecto que estés mirando, leído
+          <b>Próximos pasos</b>: el <code>METAS.md</code> del proyecto que estés mirando, leído
           de su carpeta y ampliable desde aquí.
         </li>
       </ul>
@@ -498,19 +503,19 @@
       </figure>
       <ul class="doc-lista">
         <li data-i18n-html="guia.cuentas.l1">
-          <b>Tus cuentas</b> — una tarjeta por programa instalado, diciendo si está conectada y
+          <b>Tus cuentas</b>: una tarjeta por programa instalado, diciendo si está conectada y
           cuánto llevas gastado de sus límites.
         </li>
         <li data-i18n-html="guia.cuentas.l2">
-          <b>Claves de API</b> — la otra forma de pagar lo que consume un programa: por tokens en
+          <b>Claves de API</b>: la otra forma de pagar lo que consume un programa: por tokens en
           vez de con tu suscripción. Se guardan cifradas en el Gestor de Credenciales de Windows,
           nunca en un archivo de configuración, y no vuelven a salir de ahí.
         </li>
         <li data-i18n-html="guia.cuentas.l3">
-          <b>Atajos</b> — qué programas aparecen al pasar el ratón por un proyecto en la barra lateral.
+          <b>Atajos</b>: qué programas aparecen al pasar el ratón por un proyecto en la barra lateral.
         </li>
         <li data-i18n-html="guia.cuentas.l4">
-          <b>No instalados</b> — lo que te falta, con su botón de descarga.
+          <b>No instalados</b>: lo que te falta, con su botón de descarga.
         </li>
       </ul>
       <div class="doc-caja doc-caja--ojo">
@@ -534,8 +539,8 @@
       <div class="doc-caja doc-caja--ojo">
         <p data-i18n-html="guia.cuentas.pv2">
           <span class="doc-caja__titulo">Si abres Aider a mano, en vez de con el botón:</span>
-          dile siempre el modelo (<code>aider --model openrouter/&lt;modelo&gt;</code>) — sin
-          eso coge la primera clave que encuentre en tu entorno y prueba con OTRO proveedor — y
+          dile siempre el modelo (<code>aider --model openrouter/&lt;modelo&gt;</code>), porque sin
+          eso coge la primera clave que encuentre en tu entorno y prueba con OTRO proveedor, y
           pon la clave en <code>OPENROUTER_API_KEY</code> en ESA terminal. La tarjeta hace las
           dos cosas sola.
         </p>
@@ -548,27 +553,115 @@
       <p data-i18n="guia.ajustes.p">Cómo se ve y cómo habla tu taller.</p>
       <ul class="doc-lista">
         <li data-i18n-html="guia.ajustes.l1">
-          <b>Aspecto</b> — idioma (español o inglés), veinticuatro temas y el fondo: puedes poner
+          <b>Aspecto</b>: idioma (español o inglés), veinticuatro temas y el fondo: puedes poner
           una imagen o un vídeo detrás de todo, graduar cuánto se ve y hacer que las terminales
           sean transparentes para que la foto se vea a través del texto.
         </li>
         <li data-i18n-html="guia.ajustes.l2">
-          <b>Terminales</b> — tamaño de letra, cuántas sesiones abre el botón de abrir todo y la
+          <b>Terminales</b>: tamaño de letra, cuántas sesiones abre el botón de abrir todo y la
           recuperación de lo que tenías abierto.
         </li>
-        <li data-i18n-html="guia.ajustes.l3"><b>Avisos</b> — cómo te avisa cuando un agente termina o te pregunta.</li>
-        <li data-i18n-html="guia.ajustes.l4"><b>Atajos</b> — todas las combinaciones de teclas, editables.</li>
+        <li data-i18n-html="guia.ajustes.l3"><b>Avisos</b>: cómo te avisa cuando un agente termina o te pregunta.</li>
+        <li data-i18n-html="guia.ajustes.l4"><b>Atajos</b>: todas las combinaciones de teclas, editables.</li>
         <li data-i18n-html="guia.ajustes.l5">
-          <b>Modelo local</b> — si tienes Ollama, Adeorq lo usa para tareas pequeñas sin gastar cuota.
+          <b>Modelo local</b>: si tienes Ollama, Adeorq lo usa para tareas pequeñas sin gastar cuota.
         </li>
         <li data-i18n-html="guia.ajustes.l6">
-          <b>Discord</b> — para que tu estado en Discord diga en qué estás trabajando.
+          <b>Discord</b>: para que tu estado en Discord diga en qué estás trabajando.
         </li>
         <li data-i18n-html="guia.ajustes.l7">
-          <b>Ayuda</b> — la guía completa dentro de la aplicación y el enlace a esta documentación.
+          <b>Ayuda</b>: la guía completa dentro de la aplicación y el enlace a esta documentación.
         </li>
         <li data-i18n-html="guia.ajustes.l8">
-          <b>Adeorq</b> — versión instalada, buscar actualizaciones y tu consumo semanal.
+          <b>Adeorq</b>: versión instalada, buscar actualizaciones y tu consumo semanal.
+        </li>
+        <li data-i18n-html="guia.ajustes.l9">
+          <b>Móvil</b>: Adeorq en el móvil o en otro navegador, estés donde estés. Los pasos, en
+          <a href="#movil">En el móvil</a>.
+        </li>
+      </ul>
+    </section>
+
+    <!-- ----------------------------- MOVIL ----------------------------- -->
+    <!-- Los botones se citan con sus palabras de src/components/AjustesMovil.tsx
+         y de la página del móvil (src-tauri/src/movil.html). -->
+    <section id="movil">
+      <h2 data-i18n="guia.movil.h">En el móvil<a class="doc-ancla" href="#movil" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n-html="guia.movil.p1">
+        Adeorq se viene contigo. Desde el móvil, una tablet u otro ordenador hablas con el
+        conserje, lees tus sesiones, escribes en cualquiera de tus terminales, adjuntas fotos y
+        archivos, y te llega un aviso cuando un agente termina o te pregunta. Lo que ves es tu
+        PC, no una copia en la nube: tiene que estar encendido y con Adeorq abierto.
+      </p>
+
+      <h3 data-i18n="guia.movil.h3a">Se prepara una vez</h3>
+      <ol class="doc-pasos">
+        <li data-i18n-html="guia.movil.p2">
+          Instala <a href="https://tailscale.com/download" rel="noopener">Tailscale</a> en el PC
+          y en el móvil, y entra con la misma cuenta en los dos. Es una red privada entre tus
+          aparatos, gratis para uso personal.
+        </li>
+        <li data-i18n-html="guia.movil.p3">
+          En Adeorq, abre <b>Ajustes → Móvil</b> y activa <b>Conserje en el móvil</b>.
+        </li>
+        <li data-i18n-html="guia.movil.p4">
+          Pulsa <b>Llevar el conserje a Tailscale</b>. La primera vez Tailscale puede pedirte
+          activar HTTPS en tu cuenta: si sale un enlace, ábrelo, actívalo y vuelve a pulsar.
+        </li>
+        <li data-i18n-html="guia.movil.p5">
+          Pulsa <b>Emparejar un móvil</b>. Sale un QR con tu dirección, del estilo
+          <code>https://tu-pc.tu-red.ts.net:8443</code>, y un código de seis cifras que vale diez
+          minutos.
+        </li>
+        <li data-i18n-html="guia.movil.p6">
+          En el móvil, con Tailscale encendido, escanea el QR o escribe la dirección, pon el
+          código y pulsa <b>Emparejar</b>. Cada navegador se empareja una sola vez.
+        </li>
+      </ol>
+
+      <h3 data-i18n="guia.movil.h3b">Para tenerlo a mano</h3>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.movil.l1">
+          <b>Como una app.</b> En Android, la lista trae <b>Instalar Adeorq como app en este
+          aparato</b> (si no sale, el menú del navegador → Añadir a la pantalla de inicio), y
+          queda con su icono. En iPhone, desde Safari: Compartir → Añadir a la pantalla de inicio.
+        </li>
+        <li data-i18n-html="guia.movil.l2">
+          <b>Avisos.</b> Al pie de la lista, <b>Avisarme en este móvil</b> te avisa cuando una
+          sesión te pregunta o termina, aunque tengas la página cerrada. Viajan cifrados por el
+          servicio de avisos de tu navegador (Google, Apple o Mozilla), que los entrega sin
+          poder leerlos. En iPhone solo funciona con la app añadida a la pantalla de inicio. En
+          Ajustes → Móvil puedes mandar un aviso de prueba.
+        </li>
+        <li data-i18n-html="guia.movil.l3">
+          <b>Varios aparatos.</b> En Ajustes → Móvil sale cada uno con su nombre, y desde ahí lo
+          quitas cuando quieras.
+        </li>
+      </ul>
+
+      <div class="doc-caja">
+        <p data-i18n-html="guia.movil.caja">
+          <span class="doc-caja__titulo">Por qué se puede dejar encendido.</span>
+          Adeorq solo escucha dentro de tu PC, y Tailscale lo lleva hasta tus aparatos por un
+          túnel cifrado: desde internet no se ve. Aun así, cada petición lleva la clave de un
+          aparato emparejado, el código caduca a los diez minutos o a los cinco fallos, y en el
+          disco solo queda la huella de cada clave. Mientras está encendido, el PC no se duerme
+          solo; con batería, sí.
+        </p>
+      </div>
+
+      <h3 data-i18n="guia.movil.h3c">Si algo no va</h3>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.movil.f1">
+          <b>La dirección no carga:</b> mira que Tailscale esté encendido en el móvil.
+        </li>
+        <li data-i18n-html="guia.movil.f2">
+          <b>«La ventana de Adeorq no contestó a tiempo»:</b> Adeorq tiene que estar abierto en
+          el PC, y el PC despierto.
+        </li>
+        <li data-i18n-html="guia.movil.f3">
+          <b>En Linux, «Tailscale no deja a tu usuario ponerlo»:</b> ejecuta una vez
+          <code>sudo tailscale set --operator=$USER</code> y vuelve a pulsar.
         </li>
       </ul>
     </section>
@@ -727,8 +820,8 @@
           <span class="marca__texto">Adeorq</span>
         </a>
         <p class="pie__lema" data-i18n="guia.pie.lema">
-          El panel donde tus agentes trabajan en terminales de verdad. Hecho en Windows, para
-          quien vive en Windows.
+          El panel donde tus agentes trabajan en terminales de verdad. En Windows y en Linux, y
+          contigo en el móvil.
         </p>
       </div>
 
@@ -736,16 +829,16 @@
         <h2 class="pie__titulo" data-i18n="guia.pie.producto">Producto</h2>
         <ul>
           <li><a href="index.html#que-es" data-i18n="nav.queEs">Qué es</a></li>
-          <li><a href="index.html#features" data-i18n="nav.funciones">Funciones</a></li>
+          <li><a href="index.html#trabajo" data-i18n="nav.funciones">Funciones</a></li>
           <li><a href="index.html#descargar" data-i18n="cta.descargar">Descargar</a></li>
-          <li><a href="index.html#roadmap" data-i18n="guia.pie.roadmap">Lo que viene</a></li>
+          <li><a href="#movil" data-i18n="guia.nav.movil">En el móvil</a></li>
         </ul>
       </nav>
 
       <nav class="pie__col" aria-label="Recursos">
         <h2 class="pie__titulo" data-i18n="guia.pie.recursos">Recursos</h2>
         <ul>
-          <li><a href="index.html#changelog" data-i18n="nav.novedades">Novedades</a></li>
+          <li><a href="index.html#novedades" data-i18n="nav.novedades">Novedades</a></li>
           <li><a href="#dudas" data-i18n="guia.pie.preguntas">Preguntas</a></li>
           <li>
             <a href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener"

@@ -205,7 +205,7 @@ body {
 .btn--claro:active { transform: translateY(0); transition-duration: .06s; }
 .btn--fantasma:hover { transform: translateY(-2px); }
 .btn--fantasma:active { transform: translateY(0); transition-duration: .06s; }
-.btn--claro em { font-style: normal; font-size: 12.5px; opacity: .62; font-weight: 500; }
+.btn--claro em, .btn--fantasma em { font-style: normal; font-size: 12.5px; opacity: .62; font-weight: 500; }
 
 .btn--fantasma {
   border: 1px solid var(--p-linea2);
@@ -426,10 +426,13 @@ body {
 
 /* Cada linea entra desde debajo de su propia caja, no desde la nada: es lo que
    hace que parezca que el titular se IMPRIME en vez de aparecer. */
-.titular__linea { display: block; overflow: hidden; }
+/* El recorte baja .1em más que la línea (y el margen lo devuelve): con un
+   interlineado de 1.02 la caja acaba en la línea base y se comía la «g» de
+   «agentes» y la «p» de «pantalla». Por eso el texto sale desde un 112 %. */
+.titular__linea { display: block; overflow: hidden; padding-bottom: .1em; margin-bottom: -.1em; }
 .titular__linea > span {
   display: block;
-  transform: translateY(calc(100% * var(--motion-gain)));
+  transform: translateY(calc(112% * var(--motion-gain)));
   opacity: 0;
   transition: transform .9s cubic-bezier(.16,1,.3,1), opacity .7s ease;
 }
@@ -1050,6 +1053,14 @@ body {
   font-size: clamp(.98rem, .95rem + .28vw, 1.1rem);
   line-height: 1.65;
 }
+
+.pasos__cierre a {
+  color: var(--p-texto);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--p-linea2);
+}
+.pasos__cierre a:hover { text-decoration-color: currentColor; }
 
 @media (max-width: 800px) {
   .pasos__lista { grid-template-columns: 1fr; }

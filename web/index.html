@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Adeorq · el panel donde trabajan tus agentes</title>
-<meta name="description" content="Panel de escritorio para Windows: trabaja con Claude Code, Codex, Gemini y los demás CLI a la vez, en terminales de verdad, con tus proyectos a un clic.">
+<meta name="description" content="Panel de escritorio para Windows y Linux: Claude Code, Codex, Gemini y los demás CLI a la vez, en terminales de verdad, y también desde el móvil.">
 <!-- METADATOS:INICIO (los escribe scripts/poner-metadatos.mjs, no editar a mano) -->
 <link rel="canonical" href="https://adeorq.com/">
 
@@ -103,7 +103,7 @@
           "name": "¿Es open source?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No, y conviene decirlo claro. El código está publicado entero y se puede leer, pero la licencia es propia: puedes instalarlo y usarlo, no redistribuirlo ni revenderlo. Código a la vista, que no es lo mismo que software libre."
+            "text": "No, y conviene decirlo claro. El código está publicado entero con la licencia PolyForm Shield: puedes leerlo, usarlo en tu trabajo, modificarlo y compartirlo. Lo único que no deja es usarlo para ofrecer un producto que compita con Adeorq, y eso incluye venderlo. Código a la vista, que no es lo mismo que software libre."
           }
         },
         {
@@ -119,7 +119,15 @@
           "name": "¿Hay versión para macOS o Linux?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Linux sí: cada versión publica su paquete. macOS todavía no."
+            "text": "Linux sí: cada versión publica un AppImage, un .deb y un .rpm. macOS todavía no."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Puedo usarlo desde el móvil?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sí, desde cualquier navegador y estés donde estés, con Tailscale: una red privada entre tus aparatos, gratis para uso personal. Hablas con el conserje, lees tus sesiones, escribes en tus terminales, adjuntas fotos y recibes avisos. El PC tiene que estar encendido y con Adeorq abierto, porque lo que ves en el móvil es tu PC."
           }
         },
         {
@@ -127,7 +135,7 @@
           "name": "¿Cuánto ocupa y cuánto consume?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "El instalador ronda los 5 MB. Es una aplicación nativa hecha con Tauri, no lleva un navegador entero empaquetado dentro, así que arranca al instante y en reposo casi no se nota. Lo demás será lo que consuman tus agentes, que es lo que ya consumen."
+            "text": "El instalador de Windows ronda los 6 MB. Es una aplicación nativa hecha con Tauri, no lleva un navegador entero empaquetado dentro, así que arranca al instante y en reposo casi no se nota. Lo demás será lo que consuman tus agentes, que es lo que ya consumen."
           }
         },
         {
@@ -135,7 +143,7 @@
           "name": "¿Mis datos salen del ordenador?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Solo lo que ya salía por tu CLI. Adeorq lee archivos locales para enseñarte tus proyectos y tus sesiones, y pregunta si hay una versión nueva. Nada más."
+            "text": "Solo lo que ya salía por tu CLI. Adeorq lee archivos locales para enseñarte tus proyectos y tus sesiones, y pregunta si hay una versión nueva. Si lo usas desde el móvil, va de tu PC a tu móvil por tu red de Tailscale, cifrado y sin pasar por nosotros. Los avisos del móvil, si los pides, van cifrados por el servicio de avisos de tu navegador (Google, Apple o Mozilla), que los entrega sin poder leerlos. Nada más."
           }
         }
       ]
@@ -183,6 +191,7 @@
     <a href="#trabajo">Cómo trabaja</a>
     <a href="#que-es">Qué hace</a>
     <a href="#cinta">Clientes</a>
+    <a href="#movil">En el móvil</a>
   </nav>
   <div class="nav__acciones">
     <a class="nav__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">
@@ -225,14 +234,14 @@
            un nombre estable siempre entrega la ultima y este href no caduca. -->
       <a class="btn btn--claro btn--grande"
          href="https://github.com/Mun1to/Adeorq-releases/releases/latest/download/Adeorq-setup.exe"
-         rel="noopener">
-        Descargar para Windows
+         data-descarga-hero rel="noopener">
+        <span data-descarga-hero-texto>Descargar para Windows</span>
         <em>gratis, sin cuenta</em>
       </a>
       <a class="btn btn--fantasma btn--grande" href="#trabajo">Ver cómo trabaja</a>
     </div>
     <ul class="notas">
-      <li>Windows 10 y 11 · 64 bits</li>
+      <li>Windows y Linux · 64 bits</li>
       <li>Actualizaciones firmadas</li>
       <li>Usa la sesión que ya tienes</li>
     </ul>
@@ -495,7 +504,7 @@
       <h2 class="explica__tit"><b>Nueve pantallas,</b> <span>una ventana</span></h2>
       <p class="explica__entrada">
         Panel, Cabina, Chat, Agenda, Lienzo, Memoria, Cuentas, Comandos y Ajustes.
-        Todo dentro de una aplicación nativa de 5 MB, sin un navegador entero
+        Todo dentro de una aplicación nativa de unos 6 MB, sin un navegador entero
         empaquetado dentro.
       </p>
     </header>
@@ -583,6 +592,52 @@
   </div>
 </section>
 
+<!-- ==================== EN EL MÓVIL ====================
+     Desde la 0.9.163. Los pasos dicen los botones de Ajustes > Móvil con sus
+     mismas palabras (src/components/AjustesMovil.tsx): si cambia uno allí,
+     cambia aquí y en la guía. -->
+<section class="pasos" id="movil">
+  <div class="pasos__caja bloque--dos">
+    <div class="bloque__rotulo">
+    <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>En el móvil</p>
+    <h2 class="seccion__tit" data-aparece>Tu cabina, también en el bolsillo</h2>
+    <p class="seccion__entrada">
+      Desde el móvil, una tablet u otro ordenador, estés donde estés: hablas con
+      el conserje, lees tus sesiones y contestas a cualquier terminal.
+    </p>
+    </div>
+
+    <div class="bloque__cuerpo">
+    <ol class="pasos__lista">
+      <li class="paso">
+        <span class="paso__num" aria-hidden="true">01</span>
+        <h3 class="paso__tit">Instala Tailscale</h3>
+        <p>En el PC y en el móvil, con la misma cuenta. Es una red privada entre
+           tus aparatos, gratis para uso personal.</p>
+      </li>
+      <li class="paso">
+        <span class="paso__num" aria-hidden="true">02</span>
+        <h3 class="paso__tit">Enciéndelo en Adeorq</h3>
+        <p>En Ajustes › Móvil, activa el interruptor y pulsa «Llevar el conserje
+           a Tailscale». Solo la primera vez.</p>
+      </li>
+      <li class="paso">
+        <span class="paso__num" aria-hidden="true">03</span>
+        <h3 class="paso__tit">Empareja el móvil</h3>
+        <p>Escanea el QR, escribe el código de seis cifras y ya está. Si quieres,
+           instálala como una app y te avisa cuando un agente te pregunta.</p>
+      </li>
+    </ol>
+
+    <p class="pasos__cierre">
+      Desde internet no se ve: solo entran los aparatos que emparejas, y lo que
+      ves llega directo de tu PC, sin pasar por ningún servidor nuestro.
+      <a href="/guia#movil">Todos los pasos en la guía</a>.
+    </p>
+    </div>
+  </div>
+</section>
+
 <!-- ==================== TU CUENTA ====================
      Va ANTES de la descarga a propósito: es la objeción que frena el clic. Y
      las tres van en positivo, que una garantía enunciada en negativo entre
@@ -598,8 +653,9 @@
       </article>
       <article>
         <h3>Y si usas claves, al llavero</h3>
-        <p>Las claves de API se guardan cifradas en el Gestor de Credenciales de
-           Windows y no vuelven a salir de ahí, ni siquiera a la propia interfaz.</p>
+        <p>En Windows, las claves de API se guardan cifradas en el Gestor de
+           Credenciales y no vuelven a salir de ahí, ni siquiera a la propia
+           interfaz. En Linux, en un archivo que solo lee tu usuario.</p>
       </article>
       <article>
         <h3>Modo emisión</h3>
@@ -621,7 +677,7 @@
     <p class="etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Descarga</p>
     <h2 class="seccion__tit" data-aparece>Móntate la cabina en dos minutos</h2>
     <p class="seccion__entrada">
-      Instalador para Windows de 64 bits. Necesitas tener instalado el CLI que ya
+      Para Windows y Linux de 64 bits. Necesitas tener instalado el CLI que ya
       uses, porque Adeorq trabaja con él.
     </p>
     </div>
@@ -635,16 +691,17 @@
         <em>gratis, sin cuenta</em>
       </a>
       <a class="btn btn--fantasma btn--grande"
-         href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener">
-        Ver todas las versiones
+         href="https://github.com/Mun1to/Adeorq-releases/releases/latest" rel="noopener">
+        Descargar para Linux
+        <em>AppImage, .deb o .rpm</em>
       </a>
     </div>
 
     <p class="descarga__datos">
-      <b data-descarga-version>v0.9.129</b>
+      <b data-descarga-version>v0.9.175</b>
       <span data-descarga-fecha></span>
       <span data-descarga-peso></span>
-      <span>Windows 10 y 11, 64 bits</span>
+      <span>Windows 10 y 11 · Linux con glibc 2.35 o más</span>
     </p>
 
     <p class="descarga__precio">Gratis. Ni cuenta, ni prueba de 14 días, ni tarjeta.</p>
@@ -683,7 +740,7 @@
 
 <!-- ==================== PREGUNTAS ====================
      Incluidas las incómodas, y en particular la de si esto es open source. Se
-     contesta que NO con esas palabras: la licencia es propietaria y decirlo a
+     contesta que NO con esas palabras: la licencia no es libre y decirlo a
      medias es lo que sale caro. -->
 <section class="faq" id="faq">
   <div class="faq__caja bloque--dos">
@@ -712,10 +769,11 @@
 
       <details class="pregunta" name="faq">
         <summary>¿Es open source?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>No, y conviene decirlo claro. El código está publicado entero y se puede
-           leer, pero la licencia es propia: puedes instalarlo y usarlo, no
-           redistribuirlo ni revenderlo. Código a la vista, que no es lo mismo que
-           software libre.</p>
+        <p>No, y conviene decirlo claro. El código está publicado entero con la
+           licencia PolyForm Shield: puedes leerlo, usarlo en tu trabajo,
+           modificarlo y compartirlo. Lo único que no deja es usarlo para ofrecer
+           un producto que compita con Adeorq, y eso incluye venderlo. Código a la
+           vista, que no es lo mismo que software libre.</p>
       </details>
 
       <details class="pregunta" name="faq">
@@ -728,12 +786,22 @@
 
       <details class="pregunta" name="faq">
         <summary>¿Hay versión para macOS o Linux?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>Linux sí: cada versión publica su paquete. macOS todavía no.</p>
+        <p>Linux sí: cada versión publica un AppImage, un .deb y un .rpm. macOS
+           todavía no.</p>
+      </details>
+
+      <details class="pregunta" name="faq">
+        <summary>¿Puedo usarlo desde el móvil?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <p>Sí, desde cualquier navegador y estés donde estés, con Tailscale: una red
+           privada entre tus aparatos, gratis para uso personal. Hablas con el
+           conserje, lees tus sesiones, escribes en tus terminales, adjuntas fotos
+           y recibes avisos. El PC tiene que estar encendido y con Adeorq abierto,
+           porque lo que ves en el móvil es tu PC.</p>
       </details>
 
       <details class="pregunta" name="faq">
         <summary>¿Cuánto ocupa y cuánto consume?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <p>El instalador ronda los 5 MB. Es una aplicación nativa hecha con Tauri, no
+        <p>El instalador de Windows ronda los 6 MB. Es una aplicación nativa hecha con Tauri, no
            lleva un navegador entero empaquetado dentro, así que arranca al instante
            y en reposo casi no se nota. Lo demás será lo que consuman tus agentes,
            que es lo que ya consumen.</p>
@@ -742,7 +810,11 @@
       <details class="pregunta" name="faq">
         <summary>¿Mis datos salen del ordenador?<svg class="pregunta__flecha" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m4.5 7.2 3.793 3.793a1 1 0 0 0 1.414 0L13.5 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <p>Solo lo que ya salía por tu CLI. Adeorq lee archivos locales para enseñarte
-           tus proyectos y tus sesiones, y pregunta si hay una versión nueva. Nada más.</p>
+           tus proyectos y tus sesiones, y pregunta si hay una versión nueva. Si lo
+           usas desde el móvil, va de tu PC a tu móvil por tu red de Tailscale,
+           cifrado y sin pasar por nosotros. Los avisos del móvil, si los pides,
+           van cifrados por el servicio de avisos de tu navegador (Google, Apple o
+           Mozilla), que los entrega sin poder leerlos. Nada más.</p>
       </details>
     </div>
   </div>
@@ -752,8 +824,9 @@
 
 <!-- ==================== EL PIE ====================
      Aquí va la frase que más importa de toda la página en lo legal: código a la
-     vista NO es open source. Adeorq lleva EULA propietario, y decirlo a medias
-     en la portada es el error que sale caro (AGENTS.md, regla Z). -->
+     vista NO es open source. Adeorq lleva PolyForm Shield (desde el 2026-08-21;
+     antes un EULA propio), y decirlo a medias en la portada es el error que
+     sale caro (AGENTS.md, regla Z). -->
 <footer class="pie" id="pie">
   <div class="pie__caja">
     <div class="pie__marca">
@@ -762,8 +835,8 @@
         <b>Adeorq</b>
       </a>
       <p class="pie__lema">
-        El panel donde trabajan todos tus agentes. Hecho en Windows, para quien
-        vive en Windows.
+        El panel donde trabajan todos tus agentes. En Windows y en Linux, y
+        contigo en el móvil.
       </p>
       <p class="pie__estado"><span class="pie__punto" aria-hidden="true"></span>Gratis, y en marcha.</p>
     </div>
@@ -774,13 +847,14 @@
         <a href="#trabajo">Cómo trabaja</a>
         <a href="#que-es">Qué hace</a>
         <a href="#cinta">Clientes</a>
+        <a href="#movil">En el móvil</a>
         <a href="#descargar">Descargar</a>
       </div>
       <div>
         <h2>Recursos</h2>
         <a href="#novedades">Novedades</a>
         <a href="#faq">Preguntas</a>
-        <a href="/guia.html">La guía</a>
+        <a href="/guia">La guía</a>
         <a href="https://github.com/Mun1to/Adeorq-releases/releases" rel="noopener">Todas las versiones</a>
       </div>
       <div>
@@ -793,8 +867,9 @@
 
   <div class="pie__linea">
     <p>
-      Código publicado en GitHub con licencia propia: se puede leer y usar, no
-      redistribuir. <b>No es open source.</b>
+      Código publicado en GitHub con la licencia PolyForm Shield: se puede leer,
+      usar, modificar y compartir, no competir con él ni venderlo.
+      <b>No es open source.</b>
     </p>
     <p>© 2026 Adeorq · Esta web no usa cookies ni te sigue.</p>
   </div>

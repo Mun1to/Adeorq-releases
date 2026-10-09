@@ -379,69 +379,74 @@
 
 /* ==========================================================================
    La barra de arriba cuando la ventana no da de sí.
-   Tres escalones, y en cada uno se va lo MENOS necesario primero. Nada
-   desaparece de golpe y nada se sale de la pantalla: los botones siguen
-   estando todos, solo que más apretados.
+   Se va lo MENOS necesario primero. Nada desaparece de golpe y nada se sale
+   de la pantalla: los botones siguen estando todos, solo que más apretados.
    ========================================================================== */
 
-/* 1. Por debajo de 1800px se van los nombres de las pestañas y quedan los
-      iconos. Por eso hubo que dibujarlos: un glifo suelto sin su nombre al
-      lado no se reconoce, un icono de verdad sí. El globo dice cuál es.
+/* Lo que sobra lo dice `data-sin` en `.topbar`, una palabra por pieza, y lo
+   decide `lib/barraQueCabe.ts` MIDIENDO si la fila cabe, no un ancho fijo. El
+   ORDEN en que se quitan vive allí, en `RETIRADAS`; aquí solo está cómo se
+   quita cada una. Antes eran dos `@media`: el de los nombres pasó de 1400 a
+   1700 en agosto, a 1800 con la pestaña Decisiones, y aun así a Munir la fila
+   no le cabía a 1920 con el pulso de CPU y RAM y la música sonando
+   (2026-10-10). Un número vale para la barra del día en que se midió; esto vale
+   para la que haya. Su banco es `scripts/laboratorio/barra-cabe.js`, con ese
+   peor caso dentro. */
 
-      Era 1700 hasta que entró la pestaña Decisiones (2026-10-09), que con su
-      nombre y su cuenta ocupa 139px: a 1701 la fila se desbordaba 76px y no
-      cabía hasta 1777. 1800 deja veinte de margen. Lo mide
-      `scripts/laboratorio/barra-cabe.js` en el peor caso, y una pestaña nueva
-      con nombre tiene que volver a pasarlo.
-
-      El corte estaba en 1400 y se subió a 1700 midiendo con capturas reales
-      (PrintWindow sobre el dev, no a ojo): con la Cabina abierta y música
-      sonando, la fila ENTERA —ocho pestañas, RAM, reproductor, emisión,
-      Capataz y el grupo de Minimizar/Disposición/Cerrar— no cabe escrita de
-      corrida hasta pasados los 1700px; entre 1400 y 1700 lo último de la
-      fila («Cerrar todas», el más nuevo) se salía de la ventana sin
-      recortarse, así que no había ni rastro de él (Munir, 2026-08-02, con
-      un portátil de por medio). Si algún día se le quita peso a la barra
-      (menos botones o más cortos), este número puede bajar, pero midiéndolo
-      con el banco de arriba, no a ojo. */
-@media (max-width: 1800px) {
-  /* Toda la barra se compacta a la vez, no solo la navegación: un botón
-     escrito junto a siete iconos no ahorraba sitio, solo cambiaba QUÉ se
-     desbordaba. `.topbar-acciones .tab-label` coge de una vez «Minimizar
-     todas»/«Traer todas», «Disposición» y «Cerrar todas» — los tres únicos
-     de ese grupo que aún llevaban nombre (Munir, 2026-08-02). El globo de
-     cada botón (`data-tip`) sigue diciendo qué es al pasar el ratón. */
-  .tabs .tab-label,
-  .topbar-acciones .tab-label {
-    display: none;
-  }
-  .tabs .tab {
-    padding: 5px 9px;
-  }
+/* «acciones»: los nombres de «Minimizar todas»/«Traer todas», «Disposición» y
+   «Cerrar todas». Se quedan en icono y dicen su nombre al pasar el ratón
+   (`data-tip`). */
+.topbar[data-sin~="acciones"] .topbar-acciones .tab-label {
+  display: none;
 }
 
-/* 2. Por debajo de 1150px el reproductor se queda en los mandos: el título de
-      la canción era lo que se comía el sitio, y encima truncado no dice qué
-      suena, solo que algo suena. Los botones sí sirven sin él. */
-@media (max-width: 1150px) {
-  .np .np-text {
-    display: none;
-  }
-  .np {
-    gap: 2px;
-    padding-left: 4px;
-    padding-right: 4px;
-  }
+/* «titulo»: el reproductor se queda en los mandos. El título de la canción era
+   lo que se comía el sitio, y encima truncado no dice qué suena, solo que algo
+   suena. Los botones sí sirven sin él.
+   Mientras está, su caja no se encoge: `.np-title` lleva `min-width: 0`, así
+   que podía quedarse en 0 px sin desbordar nada, y así estaba a 1760 (el
+   título entero en una caja de nada) sin que `cuantoSeSale` lo viera. Sin
+   encoger, lo que no cabe se desborda, se mide y se quita entero. Es la caja y
+   no el texto: con el texto fijo, el texto se salía de su caja de 190 px y
+   montaba encima del botón de la canción anterior. */
+.topbar .np .np-title {
+  flex-shrink: 0;
+}
+.topbar[data-sin~="titulo"] .np .np-text {
+  display: none;
+}
+.topbar[data-sin~="titulo"] .np {
+  gap: 2px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
-/* Y no hay un tercer escalón a propósito. La ventana tiene un `minWidth` de
-   940 en tauri.conf.json, así que cualquier regla por debajo de eso sería CSS
-   que no se ejecuta nunca y que aun así habría que mantener. A 940, con los
-   nombres fuera, el título de la canción cortado y el grupo de Minimizar/
-   Disposición/Cerrar todas también en solo icono, cabe todo con holgura:
-   comprobado con capturas reales del dev a 940×600 (Munir, 2026-08-02), no
-   solo sumando a mano. Si algún día baja ese mínimo o crece la barra con un
-   botón más, el siguiente en irse es el reproductor entero. */
+/* «pestanas»: se van los nombres de las pestañas y quedan los iconos. Por eso
+   hubo que dibujarlos: un glifo suelto sin su nombre al lado no se reconoce, un
+   icono de verdad sí. El globo dice cuál es. */
+.topbar[data-sin~="pestanas"] .tabs .tab-label {
+  display: none;
+}
+.topbar[data-sin~="pestanas"] .tabs .tab {
+  padding: 5px 9px;
+}
+
+/* «musica»: el reproductor entero. Con el pulso dentro hace falta por debajo
+   de unos 1150. */
+.topbar[data-sin~="musica"] .np {
+  display: none;
+}
+
+/* «marca»: lo último, cerca del `minWidth` de 940 de la ventana. El nombre
+   «Adeorq» (ya lo dice el título de la ventana) y el relleno de las pestañas,
+   que con solo el icono puede ser más justo. No se quita ninguna información:
+   a 940 con el pulso y la Cabina faltaban 111 px aun sin reproductor. */
+.topbar[data-sin~="marca"] .brand {
+  display: none;
+}
+.topbar[data-sin~="marca"] .tabs .tab {
+  padding: 5px 6px;
+}
 
 /* Cuando la página se niega a abrirse dentro. Antes esto era un cuadro blanco
    sin más: la app parecía rota cuando el que decía que no era el otro. */

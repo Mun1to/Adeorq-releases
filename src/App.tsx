@@ -48,6 +48,7 @@ import { CloseIcon, EstadoIcon, MinimizeIcon, UnminimizeIcon, PlusIcon, StreamIc
 import IconoPestana from "./components/IconoPestana";
 import { PESTANAS, type View } from "./lib/vistas";
 import { pendientes, useDecisiones } from "./lib/decisiones";
+import { useBarraQueCabe } from "./lib/barraQueCabe";
 import {
   DISCORD_KEY,
   loadDiscord,
@@ -2761,6 +2762,8 @@ function App() {
      tocarse. Y se lo saltaba todo, porque el contexto pasa por encima de
      cualquier `memo`. Ahora solo cambia cuando cambia el idioma. */
   const contextoIdioma = useMemo(() => ({ lang, t }), [lang, t]);
+  const barraRef = useRef<HTMLElement>(null);
+  useBarraQueCabe(barraRef);
 
   return (
     <LangContext.Provider value={contextoIdioma}>
@@ -2840,7 +2843,7 @@ function App() {
         onAbrir={useCallback((url: string) => abrirWeb(url, false), [abrirWeb])}
       />
       <Copiloto panes={panes} cuentas={accounts} />
-      <header className="topbar">
+      <header className="topbar" ref={barraRef}>
         {/* Sin la marca al lado: a 20px el logo pierde la proa y se lee como
             un cuadrado azul cualquiera, y el nombre ya dice de quién es la
             ventana. El logo sigue donde sí se ve, que es el icono de la app. */}
@@ -2969,11 +2972,11 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
             Los tres llevan su nombre escrito, igual que las pestañas de la
             izquierda: nacieron mudos, con solo el icono, y en una barra donde
             todo lo demás se lee no había forma de encontrarlos (Munir,
-            2026-08-02). Pero el nombre se va con el resto de la barra por
-            debajo de 1800px (misma regla que las pestañas, en 15-agenda-sesiones.css):
-            tres botones más escritos es lo que desbordaba la barra entera en
-            un portátil y dejaba «Cerrar todas» cortado fuera de la ventana
-            sin que se notara que estaba ahí (Munir, 2026-08-02). */}
+            2026-08-02). Pero su nombre es lo PRIMERO que se va cuando la
+            barra no cabe (`lib/barraQueCabe.ts`): tres botones más escritos es
+            lo que desbordaba la barra entera en un portátil y dejaba «Cerrar
+            todas» cortado fuera de la ventana sin que se notara que estaba
+            ahí (Munir, 2026-08-02). */}
         {view === "cabina" && panes.length > 1 && (
           <>
             {/* Despejar la pantalla entera, o recuperarla. Va aquí, con la

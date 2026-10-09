@@ -1,11 +1,11 @@
 {
-  "version": "0.9.180",
-  "notes": "El encargo de una terminal llega entero aunque lleve comillas, y mandar una captura del lienzo a una terminal vuelve a funcionar.",
-  "pub_date": "2026-10-09T21:57:58Z",
+  "version": "0.9.182",
+  "notes": "Adeorq ya no se cae al actualizarse (Tauri 2.12 arregla el cierre que pedia el instalador) y la barra de arriba cabe siempre: quita por orden lo menos necesario",
+  "pub_date": "2026-10-09T23:49:51Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzBJNkJ1V2k1VWZXV2V3VXBnV2lrQ2dIa0VtcW5teEkzNDZZczJGTTM0blFUQmlCbTMwZDRQOG5McUVvUWRoSmpEbjJCdmMxV1VjT0QzVTlJTWQxVFFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTgzMDU4CWZpbGU6QWRlb3JxXzAuOS4xODBfeDY0LXNldHVwLmV4ZQpnWmpBV1o4ZlVrVFN3TGczZysrcEU1WEpiWStFekVVM1dqMTV0ci9RcEF5N3lBWEsyRzhabSs5M0RpNmZDeTEzOU1QWFFpQzFFZjJWdkhITlh5d2xBdz09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.180/Adeorq_0.9.180_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzljMXBuTndVd1Zjc29Xb3VpZVBxWlpSYkZmMGVrYkdWejhWRUltTVdmYzRhWHMrYzBoNEIrcm1nVlFBYnV5Z0cwQXlHUVFkQ1pXQnRaQjFIdTlza3dNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTg5NzgzCWZpbGU6QWRlb3JxXzAuOS4xODJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODIKOXRPNGpDMTlzeTJ2eVAraUgvRUF2OG1RbmhLQmxsNDlRVllXUk1NWnVDQ2pYT3Mra1Z5SnNrcmRKRCs4RERMbWF2TG9ld2ZGYmdhYlEwT0lhQmgwQlE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.182/Adeorq_0.9.182_x64-setup.exe"
     }
   }
 }

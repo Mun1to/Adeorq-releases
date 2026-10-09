@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useT } from "../lib/i18n";
 import { nodragEnControles } from "../lib/arrastre";
@@ -147,6 +148,15 @@ function pintar(ctx: CanvasRenderingContext2D, s: Shape, w: number, h: number, e
   ctx.fill();
 }
 
+/** Dónde va «Mandar a…» en la pantalla: encima del botón y alineado a su
+    derecha, como iba dentro de la tarjeta, o debajo si arriba no cabe. */
+function sitioDelMenu(boton: HTMLElement | null): React.CSSProperties | null {
+  if (!boton) return null;
+  const r = boton.getBoundingClientRect();
+  const right = Math.max(8, window.innerWidth - r.right);
+  return r.top > 230 ? { right, bottom: window.innerHeight - r.top + 6 } : { right, top: r.bottom + 6 };
+}
+
 export default function ImageNode({ data, selected }: NodeProps<Node<ImageData>>) {
   const { t } = useT();
   const [shapes, setShapes] = useState<Shape[]>(data.formas ?? []);
@@ -155,9 +165,32 @@ export default function ImageNode({ data, selected }: NodeProps<Node<ImageData>>
   const [tool, setTool] = useState<Modo>("mano");
   const [color, setColor] = useState(COLORES[0]);
   const [dibujando, setDibujando] = useState<Shape | null>(null);
-  const [menu, setMenu] = useState(false);
+  /** Dónde se pinta «Mandar a…», en la pantalla; null, cerrado. */
+  const [menu, setMenu] = useState<React.CSSProperties | null>(null);
   const [nota, setNota] = useState("");
   const capa = useRef<HTMLDivElement>(null);
+  const botonMandar = useRef<HTMLButtonElement>(null);
+  const lista = useRef<HTMLUListElement>(null);
+
+  // Colgado del `body`, el menú ya no se mueve con la tarjeta: se cierra al
+  // pulsar fuera, al hacer zoom o al mover el lienzo, y con Esc.
+  useEffect(() => {
+    if (!menu) return;
+    const fuera = (e: Event) => {
+      const t = e.target as Element | null;
+      if (t && (lista.current?.contains(t) || botonMandar.current?.contains(t))) return;
+      setMenu(null);
+    };
+    const tecla = (e: KeyboardEvent) => e.key === "Escape" && setMenu(null);
+    window.addEventListener("pointerdown", fuera, true);
+    window.addEventListener("wheel", fuera, true);
+    window.addEventListener("keydown", tecla);
+    return () => {
+      window.removeEventListener("pointerdown", fuera, true);
+      window.removeEventListener("wheel", fuera, true);
+      window.removeEventListener("keydown", tecla);
+    };
+  }, [menu]);
 
   // El lienzo necesita las anotaciones para poder exportarlas, pero quien las
   // dibuja es este nodo. Se avisa por referencia y solo cuando cambian: meter
@@ -330,7 +363,7 @@ export default function ImageNode({ data, selected }: NodeProps<Node<ImageData>>
   };
 
   const enviar = async (paneId: number) => {
-    setMenu(false);
+    setMenu(null);
     const png = await aplanar();
     if (png) data.onEnviar(paneId, png, nota.trim());
   };
@@ -521,19 +554,25 @@ export default function ImageNode({ data, selected }: NodeProps<Node<ImageData>>
                 ? t("Abre una terminal en el lienzo para poder mandársela")
                 : t("Guardar el PNG con las anotaciones y darle la ruta a un agente")
             }
-            onClick={() => setMenu((m) => !m)}
+            ref={botonMandar}
+            onClick={() => setMenu((m) => (m ? null : sitioDelMenu(botonMandar.current)))}
           >
             {t("Mandar a…")}
           </button>
-          {menu && (
-            <ul className="img-menu">
-              {data.terminales.map((x) => (
-                <li key={x.id}>
-                  <button onClick={() => void enviar(x.id)}>{x.name}</button>
-                </li>
-              ))}
-            </ul>
-          )}
+          {/* Por portal, como `.sess-menu`: dentro de la tarjeta su z-index solo
+              competía con sus hermanos, y la tarjeta de encima (otro nodo del
+              lienzo) le tapaba el trozo que sobresalía. */}
+          {menu &&
+            createPortal(
+              <ul className="img-menu" ref={lista} style={menu}>
+                {data.terminales.map((x) => (
+                  <li key={x.id}>
+                    <button onClick={() => void enviar(x.id)}>{x.name}</button>
+                  </li>
+                ))}
+              </ul>,
+              document.body,
+            )}
         </div>
       </div>
       </div>

@@ -9,6 +9,14 @@
     falta al construir cada comando. */
 export const ES_WINDOWS = /win/i.test(navigator.userAgent.split(")")[0] ?? "");
 
+/** El comando de una terminal sin el encargo de PowerShell que lleva dentro
+ *  (lo pone `lineaConEncargo`, de `arranque.ts`), para quien lo lee buscando
+ *  qué CLI es o qué sesión retoma: un encargo que nombre «codex» o traiga un
+ *  «--session-id» no puede confundirlos. */
+export function sinEncargo(linea: string): string {
+  return linea.replace(/\$env:ADEORQ_ENCARGO = '(?:[^'‘’‚‛]|['‘’‚‛]{2})*';\s*/i, "");
+}
+
 /**
  * Un comando, envuelto en la shell del sistema para que valgan el PATH y el
  * perfil del usuario. Sin ese envoltorio, `claude` no se encuentra en la mitad
@@ -83,7 +91,8 @@ export function powershellCommand(inner: string): string[] {
  * que quien escriba la siguiente copia se acuerde.
  */
 export function sessionIdOf(command: string | string[] | undefined): string | undefined {
-  const txt = Array.isArray(command) ? command.join(" ") : command;
+  const crudo = Array.isArray(command) ? command.join(" ") : command;
+  const txt = crudo === undefined ? undefined : sinEncargo(crudo);
   // `--resume <id>` y `--session-id <id>` (Claude y Gemini), y el
   // `codex resume <id>` de Codex, que va sin guiones.
   return txt?.match(/(?:--(?:resume|session-id)|\bresume)\s+([0-9a-f-]{8,})/i)?.[1];

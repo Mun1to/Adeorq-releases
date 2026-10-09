@@ -9,10 +9,17 @@
 // nuevo.
 
 import { cliEffort, transcriptExists } from "./pty";
-import { powershellCommand, sessionIdOf, shellCommand } from "./comandos";
+import { ES_WINDOWS, powershellCommand, sessionIdOf, shellCommand } from "./comandos";
 import { kindDeComando } from "../components/KindIcon";
 import { lineaDeArranque, lineaDeRetomar, type Provider } from "./providers";
-import { planDeArranque, type Peticion, type Plan } from "./arranque";
+import { lineaConEncargo, planDeArranque, type Peticion, type Plan } from "./arranque";
+
+/** Una línea con un encargo escrito por una persona al final. Va SIEMPRE por
+ *  PowerShell (o bash), nunca por el cmd ligero: en cmd un «&» dictado
+ *  ejecutaría lo que venga detrás. Ver `lineaConEncargo` para las comillas. */
+function conEncargo(linea: string, encargo: string): string[] {
+  return powershellCommand(lineaConEncargo(linea, encargo, ES_WINDOWS ? "powershell" : "bash"));
+}
 
 /** Con qué modo nace cada Claude nuevo, hasta que se cambie a mano con Mayús+Tab. */
 export const PERMISSION_MODE_KEY = "adeorq-permission-mode";
@@ -64,17 +71,14 @@ export function modoGuardado(): PermissionMode {
 // there is no React state to hand it here, and localStorage is the one store
 // both sides can already see. Shift+Tab inside a pane still cycles the mode
 // for that one session, same as always.
-export function claudeCommand(args = "", mode?: PermissionMode, conTexto = false): string[] {
+export function claudeCommand(args = "", mode?: PermissionMode, encargo?: string): string[] {
   const m = mode ?? modoGuardado();
   const inner = `claude --permission-mode ${m}${args ? ` ${args}` : ""}`;
-  // `conTexto` = en `args` viaja un encargo escrito por una persona, entre las
-  // comillas simples de PowerShell. Entonces el envoltorio TIENE que ser
-  // PowerShell, aunque pese diez veces más: en cmd esas comillas no agrupan
-  // nada (llegarían al CLI como parte del texto y el encargo se partiría por
-  // cada espacio) y un «&» dictado ejecutaría lo que venga detrás. Sin encargo
+  // Con un encargo escrito por una persona, el envoltorio TIENE que ser
+  // PowerShell aunque pese diez veces más (ver `conEncargo`). Sin encargo
   // —abrir una terminal, retomar una sesión, restaurar el tablero, que es la
   // mayoría— va el envoltorio ligero. Ver `shellCommand` para los números.
-  return conTexto ? powershellCommand(inner) : shellCommand(inner);
+  return encargo ? conEncargo(inner, encargo) : shellCommand(inner);
 }
 
 // The effort his settings.json is set to, read once at startup. Every Claude
@@ -96,11 +100,11 @@ export function withEffort(args: string): string {
 }
 
 /** A fresh Claude, tagged with an id we choose so it can be resumed later. */
-export function newClaudeCommand(extra = "", mode?: PermissionMode, conTexto = false): string[] {
+export function newClaudeCommand(extra = "", mode?: PermissionMode, encargo?: string): string[] {
   return claudeCommand(
     withEffort(`--session-id ${crypto.randomUUID()}${extra ? ` ${extra}` : ""}`),
     mode,
-    conTexto,
+    encargo,
   );
 }
 
@@ -171,14 +175,11 @@ export function comandoDelPlan(plan: Plan): string[] | undefined {
     case "consola":
       return undefined;
     case "claude":
-      return newClaudeCommand(plan.extra, plan.modo, plan.conTexto);
+      return newClaudeCommand(plan.extra, plan.modo, plan.encargo);
     case "agy":
       return agyCommand(plan.exe, plan.encargo);
     case "linea":
-      // Con un encargo dictado dentro, PowerShell: en cmd las comillas simples
-      // no agrupan nada y un «&» ejecutaría lo que venga detrás. Ver la nota de
-      // `claudeCommand`, que es la misma razón.
-      return plan.conTexto ? powershellCommand(plan.inner) : shellCommand(plan.inner);
+      return plan.encargo ? conEncargo(plan.inner, plan.encargo) : shellCommand(plan.inner);
   }
 }
 
@@ -205,14 +206,10 @@ export function installCommand(p: Provider, listo: string): string[] {
 export function agyCommand(exe: string, prompt?: string): string[] {
   // Con encargo va por PowerShell, y no por ahorrar trabajo: ese texto lo ha
   // dictado Munir y en una línea de cmd un «&» o un «%» lo partiría o, peor,
-  // ejecutaría lo de detrás. Las comillas simples de PowerShell no interpretan
-  // nada de lo que llevan dentro. Sin encargo no hay texto de nadie, así que se
-  // lleva el envoltorio ligero, que es el caso de todos los días (el botón AG).
-  if (prompt) {
-    return powershellCommand(
-      `& '${exe}' --mode accept-edits '${prompt.replace(/'/g, "''")}'`,
-    );
-  }
+  // ejecutaría lo de detrás (ver `conEncargo`). Sin encargo no hay texto de
+  // nadie, así que se lleva el envoltorio ligero, que es el caso de todos los
+  // días (el botón AG).
+  if (prompt) return conEncargo(`& '${exe.replace(/'/g, "''")}' --mode accept-edits`, prompt);
   // Sin encargo va por cmd, que es el envoltorio ligero, pero la ruta NO puede
   // ir entre comillas: `portable-pty` cita cada argumento al estilo MSVC y
   // convierte cada `"` interna en `\"` (`append_quoted`, en su `cmdbuilder.rs`).

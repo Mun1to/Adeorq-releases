@@ -31,6 +31,7 @@ import {
 import { tecleandoEnOtro } from "../lib/tecleando";
 import WidgetNode, { ES_UTILIDAD, WIDGETS, type WidgetData, type WidgetKind } from "./CanvasWidgets";
 import ImageNode, { type ImageData, type Shape } from "./CanvasImage";
+import { terminalesDe, useTerminalesEnCapturas } from "../lib/capturasLienzo";
 import NoteNode, { NOTE_COLORS, type NoteData } from "./CanvasNote";
 import CarrilNode, { CARRIL_H, CARRIL_W, colorDeCarril, type CarrilData } from "./CanvasCarril";
 import TermNode, { type TermData } from "./CanvasTerm";
@@ -485,6 +486,7 @@ function Canvas({
   mapaRef.current = resolver(atajos);
   const panesRef = useRef(panes);
   panesRef.current = panes;
+  useTerminalesEnCapturas(panes, setNodes);
   /** Flechas que ya han intentado entregar con la campana de ahora, para no
    *  repetir el intento en cada repintado. Se vacía en la campana siguiente. */
   const firedRef = useRef<Set<string>>(new Set());
@@ -1091,9 +1093,7 @@ ${ruta}` : ruta;
             nodeId,
             onClose: quitarWidget,
             onFormas: guardarFormas,
-            terminales: panesRef.current
-              .filter((x) => !!x.command)
-              .map((x) => ({ id: x.id, name: x.name })),
+            terminales: terminalesDe(panesRef.current),
             onEnviar: (id, blob, nota) => void enviarCaptura(id, blob, nota),
           },
         };
@@ -1103,9 +1103,8 @@ ${ruta}` : ruta;
     [quitarWidget, guardarFormas, enviarCaptura, dondeCae],
   );
 
-  // Ctrl+V en el lienzo: la captura entra como nodo. Las terminales vivas se
-  // leen AL MANDARLA y no al pegar, para que una abierta después también salga
-  // en la lista.
+  // Ctrl+V en el lienzo: la captura entra como nodo. A quién se le puede mandar
+  // lo tiene al día `useTerminalesEnCapturas`, también para una abierta después.
   const pegar = useCallback(
     (e: React.ClipboardEvent) => {
       const file = [...(e.clipboardData?.items ?? [])]
@@ -2898,9 +2897,7 @@ ${ruta}` : ruta;
                 formas: n.formas,
                 onClose: quitarWidget,
                 onFormas: guardarFormas,
-                terminales: panesRef.current
-                  .filter((x) => !!x.command)
-                  .map((x) => ({ id: x.id, name: x.name })),
+                terminales: terminalesDe(panesRef.current),
                 onEnviar: (id: number, blob: Blob, nota: string) =>
                   void enviarCaptura(id, blob, nota),
               },

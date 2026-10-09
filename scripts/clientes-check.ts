@@ -30,7 +30,8 @@
 //   node <tmp>/scripts/clientes-check.js
 
 import { CLAUDE, IDS, lineaDeArranque, lineasEnVivo, PROVIDERS, sabe } from "../src/lib/providers";
-import { planDeArranque } from "../src/lib/arranque";
+import { lineaConEncargo, planDeArranque } from "../src/lib/arranque";
+import { kindDeComando } from "../src/components/KindIcon";
 import { ARRANCAN_CON_ENCARGO, CLIS_CONOCIDOS, cliPedido } from "../src/lib/supremo";
 
 // Igual que en `cerebro-check.ts`: esto se compila con `--skipLibCheck` y sin
@@ -295,8 +296,8 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   ok(
     "Codex: modelo traducido, esfuerzo como ajuste y el encargo suelto al final",
     r.tipo === "linea" &&
-      r.inner === "codex --sandbox workspace-write -m gpt-6-luna -c model_reasoning_effort=high 'arregla el login'" &&
-      r.conTexto === true &&
+      r.inner === "codex --sandbox workspace-write -m gpt-6-luna -c model_reasoning_effort=high" &&
+      r.encargo === "arregla el login" &&
       !r.sesion,
     JSON.stringify(r),
   );
@@ -306,8 +307,8 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   ok(
     "Gemini: su alias barato, sin esfuerzo (no tiene), con id propio y el encargo interactivo",
     r.tipo === "linea" &&
-      /^gemini --approval-mode auto_edit -m flash-lite --session-id [0-9a-f-]{36} --prompt-interactive 'traduce el README'$/.test(r.inner) &&
-      r.conTexto === true &&
+      /^gemini --approval-mode auto_edit -m flash-lite --session-id [0-9a-f-]{36} --prompt-interactive$/.test(r.inner) &&
+      r.encargo === "traduce el README" &&
       !!r.sesion &&
       r.inner.includes(r.sesion),
     JSON.stringify(r),
@@ -337,35 +338,100 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   const r = pl({ cli: "claude" });
   ok(
     "un Claude vacío no lleva banderas ni pide el envoltorio pesado",
-    r.tipo === "claude" && r.extra === "" && !r.conTexto && !r.modo,
+    r.tipo === "claude" && r.extra === "" && !r.encargo && !r.modo,
   );
 }
 {
   const r = pl({ cli: "claude", encargo: "arregla el login" });
   ok(
-    "con encargo, Claude lo lleva entrecomillado y pide PowerShell",
-    r.tipo === "claude" && r.extra === "'arregla el login'" && r.conTexto,
+    "con encargo, Claude lo lleva aparte, para ponerlo al final",
+    r.tipo === "claude" && r.extra === "" && r.encargo === "arregla el login",
   );
 }
 {
   const r = pl({ cli: "claude", modelo: "opus", esfuerzo: "high", encargo: "audita" });
   ok(
-    "modelo, esfuerzo y encargo salen en ese orden",
-    r.tipo === "claude" && r.extra === "--model opus --effort high 'audita'",
+    "modelo y esfuerzo en ese orden, y el encargo aparte",
+    r.tipo === "claude" && r.extra === "--model opus --effort high" && r.encargo === "audita",
   );
 }
 {
   const r = pl({ cli: "claude", plan: true });
   ok("el modo plan llega al comando", r.tipo === "claude" && r.modo === "plan");
 }
+/* ── El encargo al final de la línea (`lineaConEncargo`) ─────────────────────
+   El 2026-10-08 un `open_pane` le llegó a claude.exe cortado en
+   `allow="local-network;`: PowerShell 5.1 no escapa las comillas de un
+   argumento nativo. Ahora va en una variable de entorno y detrás de `--%`. */
 {
-  // La razón de ser del entrecomillado: esto lo dicta Munir por voz y en una
-  // línea de cmd un «&» ejecutaría lo que viene detrás.
-  const r = pl({ cli: "claude", encargo: "pon 'esto' & aquello" });
+  const l = lineaConEncargo("claude --permission-mode auto", 'mete allow="local-network; camera" ya', "powershell");
   ok(
-    "una comilla dentro del encargo se dobla y no rompe la línea",
-    r.tipo === "claude" && r.extra === "'pon ''esto'' & aquello'",
+    "en PowerShell, el encargo va en la variable y la línea acaba en --%",
+    l === `$env:ADEORQ_ENCARGO = 'mete allow=\\"local-network; camera\\" ya'; claude --permission-mode auto --% "%ADEORQ_ENCARGO%"`,
+    l,
   );
+  ok(
+    "las comillas simples, también las tipográficas, se doblan",
+    lineaConEncargo("x", "pon 'esto' y it’s ‘así’", "powershell").startsWith("$env:ADEORQ_ENCARGO = 'pon ''esto'' y it’’s ‘‘así’’'"),
+    lineaConEncargo("x", "pon 'esto' y it’s ‘así’", "powershell"),
+  );
+  ok(
+    "una barra al final se dobla, que si no escaparía la comilla de cierre",
+    lineaConEncargo("x", "la ruta C:\\a\\", "powershell").startsWith("$env:ADEORQ_ENCARGO = 'la ruta C:\\a\\\\'"),
+  );
+  ok(
+    "en bash, comilla simple y las de dentro como '\\''",
+    lineaConEncargo("claude", "pon 'esto'", "bash") === "claude 'pon '\\''esto'\\'''",
+    lineaConEncargo("claude", "pon 'esto'", "bash"),
+  );
+}
+{
+  // De quién es una terminal se lee de su comando, y el encargo va dentro: uno
+  // que nombre a otro CLI no puede cambiarle el dueño (`sinEncargo`).
+  const envuelto = (linea: string) => `powershell.exe -NoLogo -NoExit -Command ${linea}`;
+  const op = envuelto(lineaConEncargo("opencode --prompt", "hazlo como lo haría claude", "powershell"));
+  ok("un encargo que nombra a Claude no convierte en Claude una terminal de opencode", kindDeComando(op) === "opencode", kindDeComando(op));
+  const cl = envuelto(lineaConEncargo("claude --permission-mode auto", "compáralo con codex y gemini", "powershell"));
+  ok("ni uno que nombra a Codex y Gemini cambia una de Claude", kindDeComando(cl) === "claude", kindDeComando(cl));
+}
+{
+  // Y de verdad, en Windows: PowerShell 5.1 llamando a un programa nativo
+  // (node imprimiendo su argv, que parte la línea como claude.exe).
+  const os = require("node:os") as unknown as { platform(): string; tmpdir(): string };
+  if (os.platform() === "win32") {
+    const { spawnSync } = require("node:child_process") as unknown as {
+      spawnSync(c: string, a: string[], o: { encoding: string }): { stdout: string; stderr: string };
+    };
+    const { writeFileSync } = require("node:fs") as unknown as { writeFileSync(p: string, t: string): void };
+    const nodo = (require("node:process") as unknown as { execPath: string }).execPath;
+    const imprime = `${os.tmpdir()}\\adeorq-argv-${Date.now()}.js`;
+    writeFileSync(
+      imprime,
+      "process.stdout.write(JSON.stringify(process.argv.slice(2)).replace(/[\\u007f-\\uffff]/g,c=>'\\\\u'+c.charCodeAt(0).toString(16).padStart(4,'0')))",
+    );
+    const casos = [
+      'mete el iframe con allow="local-network; camera" y prueba',
+      '"empieza y acaba con comillas"',
+      "la ruta es C:\\carpeta\\",
+      'escapa \\"esto\\" tal cual',
+      "pon 'esto' & aquello | $HOME %PATH% 100%",
+      "it’s ‘curvas’ y «guillemets» con ñ",
+      'una línea\nOtra con "comillas"',
+    ];
+    const rotos = casos.filter((caso) => {
+      const linea = lineaConEncargo(`& '${nodo}' '${imprime}'`, caso, "powershell");
+      const r = spawnSync("powershell.exe", ["-NoLogo", "-NoProfile", "-Command", linea], { encoding: "utf8" });
+      try {
+        const llego = JSON.parse(r.stdout) as string[];
+        return !(llego.length === 1 && llego[0] === caso);
+      } catch {
+        return true;
+      }
+    });
+    ok(`los ${casos.length} encargos difíciles llegan enteros a un programa nativo por PowerShell 5.1`, rotos.length === 0, JSON.stringify(rotos));
+  } else {
+    console.log("--   la prueba de PowerShell 5.1 solo corre en Windows");
+  }
 }
 
 {
@@ -391,7 +457,7 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   const r = pl({ cli: "opencode", encargo: "arregla el header" });
   ok(
     "opencode nace con el encargo puesto, solo por declarar su bandera",
-    r.tipo === "linea" && r.inner === "opencode --prompt 'arregla el header'" && r.conTexto === true,
+    r.tipo === "linea" && r.inner === "opencode --prompt" && r.encargo === "arregla el header",
   );
   ok("y no se le copia al portapapeles, que ya lo tiene", r.tipo === "linea" && !r.alPortapapeles);
 }
@@ -399,7 +465,7 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   const r = pl({ cli: "opencode" });
   ok(
     "sin encargo, opencode abre pelado y sin envoltorio pesado",
-    r.tipo === "linea" && r.inner === "opencode" && !r.conTexto,
+    r.tipo === "linea" && r.inner === "opencode" && !r.encargo,
   );
 }
 {

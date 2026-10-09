@@ -102,7 +102,7 @@ const LINUX = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36";
   ok(
     "un encargo con metacaracteres de cmd NO puede ir por el envoltorio ligero",
     /[&%>]/.test(encargo) && shellCommand(`claude '${encargo}'`)[2].includes("&"),
-    "queda dicho aquí: por eso openClaudePrompt pasa conTexto = true",
+    "queda dicho aquí: por eso todo encargo va por `conEncargo` (lanzar.ts), que es PowerShell",
   );
   ok(
     "y por PowerShell viaja entero",
@@ -153,6 +153,22 @@ const LINUX = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36";
     "el chcp no se confunde con un id",
     sessionIdOf(shellCommand("claude --permission-mode acceptEdits")) === undefined,
     "65001 no es un identificador de sesión",
+  );
+  // Desde la 0.9.180 el encargo va en `$env:ADEORQ_ENCARGO`, DELANTE del CLI
+  // (`lineaConEncargo`). Un encargo que hable de retomar otra sesión no puede
+  // pasar por el id de esta.
+  const otra = "7c1f4d2e-0000-4000-8000-000000000001";
+  ok(
+    "un --session-id escrito dentro del encargo no se toma por el de la terminal",
+    sessionIdOf(
+      powershellCommand(
+        `$env:ADEORQ_ENCARGO = 'retoma --session-id ${otra} y sigue'; claude --session-id ${id} --% "%ADEORQ_ENCARGO%"`,
+      ),
+    ) === id,
+  );
+  ok(
+    "y sin id propio, el del encargo tampoco cuela",
+    sessionIdOf(powershellCommand(`$env:ADEORQ_ENCARGO = 'mira --resume ${otra}'; codex --% "%ADEORQ_ENCARGO%"`)) === undefined,
   );
 }
 {

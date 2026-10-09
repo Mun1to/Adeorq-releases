@@ -10,8 +10,8 @@
 // fila, así que el número tiene que subir con ella: esto mide el peor caso (la
 // Cabina con tres terminales, que es cuando salen «Minimizar todas»,
 // «Disposición» y «Cerrar todas», música sonando con un título largo y una
-// decisión esperando) a un píxel por encima del corte y en el 1920 de su
-// pantalla principal.
+// decisión esperando) a un píxel por encima del corte, en el 1920 de su
+// pantalla principal y en todos los anchos de 940 a 1920, de 20 en 20.
 //
 // Devuelve { corte, medidas, fallos }: `fallos` vacío es que la fila cabe.
 async (page) => {
@@ -110,6 +110,20 @@ async (page) => {
     if (!m.nombres) fallos.push(`a ${ancho} px los nombres tendrían que verse`);
     if (m.sobra < 0 || m.desborda > 1) fallos.push(`a ${ancho} px la fila no cabe: se desborda ${Math.max(m.desborda, -m.sobra)} px`);
   }
+  // Y de 940 a 1920 de 20 en 20: la fila tiene más escalones que el de los
+  // nombres (el reproductor se encoge por debajo de 1150), y entre dos de ellos
+  // puede quedar un ancho en que algo pise a otra cosa. Desde 940 porque es el
+  // `minWidth` de la ventana en `tauri.conf.json`: más estrecha no se pone (a
+  // 880 ya se desborda 29 px, y da igual porque nunca se ve).
+  const barrido = [];
+  for (let ancho = 940; ancho <= 1920; ancho += 20) {
+    await page.setViewportSize({ width: Math.round(ancho * k), height: Math.round(1000 * k) });
+    await page.waitForTimeout(200);
+    const m = await medir();
+    if (m.sobra < 0 || m.desborda > 1) barrido.push(`${ancho}: se desborda ${Math.max(m.desborda, -m.sobra)} px`);
+  }
+  if (barrido.length) fallos.push(`la fila no cabe en ${barrido.length} anchos: ${barrido.join(" · ")}`);
+
   // Que el peor caso de verdad esté puesto, o la medida no dice nada.
   const peor = medidas[0];
   if (!peor.acciones || !peor.musica || peor.cuenta !== "1") {

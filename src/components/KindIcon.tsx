@@ -14,6 +14,7 @@
 
 import ProviderMark, { CLAUDE_BURST, tieneMarca } from "./ProviderMark";
 import { PROVIDERS, providerOf } from "../lib/providers";
+import { sinEncargo } from "../lib/comandos";
 
 /** El id de un CLI de providers.ts, o "shell" para una consola pelada. */
 export type PaneKind = string;
@@ -37,7 +38,7 @@ export function nombreDeKind(kind: PaneKind): string {
  * anunciara como Amp.
  */
 export function kindDeComando(joined: string): PaneKind {
-  const linea = joined.toLowerCase();
+  const linea = sinEncargo(joined).toLowerCase();
   for (const p of PROVIDERS) {
     const exe = p.exe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     if (new RegExp(`(?:^|[\\\\/\\s"'])${exe}(?:\\.exe|\\.cmd)?(?:\\s|["']|$)`).test(linea)) {

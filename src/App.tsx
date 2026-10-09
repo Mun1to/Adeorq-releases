@@ -1271,22 +1271,15 @@ function App() {
           `quieto`, abrirla sin moverte de vista (ver `addPane`). */
       extras?: { esfuerzo?: string; cuenta?: Account; quieto?: boolean },
     ): number | undefined => {
-      // Single-quote for PowerShell -Command; embedded quotes double up. El
-      // `true` del `newClaudeCommand` de abajo es lo que garantiza que el
-      // envoltorio sea PowerShell y estas comillas signifiquen algo.
-      const safe = prompt.replace(/'/g, "''");
       // The model goes on the command line, not through /model afterwards: a
       // pane born on the right model never spends a token on the wrong one.
       // Y por lo mismo el esfuerzo: `withEffort` respeta el que venga escrito,
-      // así que poner uno aquí gana al de sus ajustes sin pisárselo.
-      const extra = [
-        model ? `--model ${model}` : "",
-        extras?.esfuerzo ? `--effort ${extras.esfuerzo}` : "",
-        `'${safe}'`,
-      ]
+      // así que poner uno aquí gana al de sus ajustes sin pisárselo. El encargo
+      // va aparte y al final, con sus comillas resueltas (`lineaConEncargo`).
+      const extra = [model ? `--model ${model}` : "", extras?.esfuerzo ? `--effort ${extras.esfuerzo}` : ""]
         .filter(Boolean)
         .join(" ");
-      const command = newClaudeCommand(extra, undefined, true);
+      const command = newClaudeCommand(extra, undefined, prompt);
       // Y queda apuntado PARA QUÉ se abrió, indexado por el id de sesión que
       // acaba de acuñar ese comando. El título que verás luego en la lista lo
       // pone Claude resumiendo la charla, y eso no dice de qué encargo salió:

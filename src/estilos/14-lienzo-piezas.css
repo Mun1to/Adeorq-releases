@@ -807,11 +807,13 @@
   flex: none;
 }
 
+/* Colgado del `body` por un portal y con el sitio puesto desde el TSX
+   (`sitioDelMenu`): dentro de la tarjeta, la de encima le tapaba lo que
+   sobresalía (`scripts/laboratorio/menu-imagen.js`). El z-index es el de
+   `.sess-menu`, con el porqué entero allí. */
 .img-menu {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 6px);
-  z-index: 20;
+  position: fixed;
+  z-index: 9991;
   min-width: 190px;
   max-height: 210px;
   overflow: auto;

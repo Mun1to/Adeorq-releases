@@ -50,35 +50,51 @@ export interface Peticion {
 export type Plan =
   /** Una consola pelada, sin nada dentro. */
   | { tipo: "consola" }
-  /** Claude: `extra` son sus banderas ya ordenadas, `conTexto` dice si dentro
-   *  viaja un encargo escrito por una persona y por tanto hace falta el
-   *  envoltorio de PowerShell (ver `shellCommand` en `comandos.ts`). */
-  | { tipo: "claude"; extra: string; conTexto: boolean; modo?: "plan" }
+  /** Claude: `extra` son sus banderas ya ordenadas, y `encargo`, el texto
+   *  escrito por una persona, que va APARTE y al final (`lineaConEncargo`). */
+  | { tipo: "claude"; extra: string; encargo?: string; modo?: "plan" }
   /** Antigravity por su ruta absoluta. */
   | { tipo: "agy"; exe: string; encargo?: string }
-  /** Todos los demás: su línea, tal cual la declara la tabla. `conTexto` avisa
-   *  de que dentro va un encargo escrito por una persona, y entonces el
-   *  envoltorio tiene que ser PowerShell y no el cmd ligero. */
+  /** Todos los demás: su línea, tal cual la declara la tabla, con la bandera
+   *  del encargo al final si la lleva; el texto, aparte en `encargo`. */
   | {
       tipo: "linea";
       inner: string;
+      encargo?: string;
       alPortapapeles?: string;
-      conTexto?: boolean;
       /** El id de sesión que lleva dentro, si ese CLI admite uno al nacer. */
       sesion?: string;
     };
 
-/**
- * Entrecomillado para PowerShell.
- *
- * Las comillas simples de PowerShell no interpretan nada de lo que llevan
- * dentro, y las de dentro se doblan. Sin esto, un «&» o un «%» dictados
- * partirían el encargo o, peor, ejecutarían lo que viniera detrás.
- */
-export function entrecomillar(texto: string): string {
-  return `'${texto.replace(/'/g, "''")}'`;
-}
+/** Quién va a leer la línea: PowerShell 5.1 en Windows, bash en el resto. */
+export type Shell = "powershell" | "bash";
 
+/**
+ * Una línea de arranque con un encargo escrito por una persona AL FINAL.
+ *
+ * En Windows no basta con meterlo entre comillas simples. PowerShell 5.1 decide
+ * él si rodea de comillas un argumento de un programa nativo (solo si tiene un
+ * espacio fuera de comillas, y cuenta también las escapadas) y no escapa las de
+ * dentro: `allow="local-network; camera"` le llegaba partido en dos a
+ * claude.exe (2026-10-08, por `open_pane`), y uno que empieza y acaba entre
+ * comillas no hay forma de escaparlo bien así. Por eso el encargo va en una
+ * variable de entorno y la línea acaba en `--% "%ADEORQ_ENCARGO%"`: después de
+ * `--%` PowerShell pasa el resto tal cual, con la variable ya puesta y sin
+ * volver a expandir lo que traiga dentro, y el texto va escapado con las reglas
+ * de MSVC, que son con las que lo parte el programa. Medido con node y con
+ * claude.exe de verdad, leyendo en su transcript lo que le llegó.
+ *
+ * Las comillas simples tipográficas (‘ ’ ‚ ‛) también cierran una cadena de
+ * PowerShell, así que se doblan igual que la recta: un «it’s» dictado partía la
+ * línea. En bash basta la comilla simple, con las de dentro como '\''.
+ */
+export function lineaConEncargo(linea: string, encargo: string, shell: Shell): string {
+  if (shell === "bash") return `${linea} '${encargo.replace(/'/g, "'\\''")}'`;
+  const msvc = encargo
+    .replace(/(\\*)"/g, (_, barras: string) => `${barras}${barras}\\"`)
+    .replace(/(\\+)$/, "$1$1");
+  return `$env:ADEORQ_ENCARGO = '${msvc.replace(/['‘’‚‛]/g, "$&$&")}'; ${linea} --% "%ADEORQ_ENCARGO%"`;
+}
 export function planDeArranque(p: Peticion): Plan {
   const encargo = (p.encargo ?? "").trim();
   // Ojo con el orden: `shell` y `ollama` NO están en la tabla de proveedores, y
@@ -96,17 +112,13 @@ export function planDeArranque(p: Peticion): Plan {
   const enLinea = !!encargo && sabe(p.cli, "encargoEnLinea");
 
   if (p.cli === "claude") {
-    const extra = [
-      p.modelo ? `--model ${p.modelo}` : "",
-      p.esfuerzo ? `--effort ${p.esfuerzo}` : "",
-      enLinea ? entrecomillar(encargo) : "",
-    ]
+    const extra = [p.modelo ? `--model ${p.modelo}` : "", p.esfuerzo ? `--effort ${p.esfuerzo}` : ""]
       .filter(Boolean)
       .join(" ");
     return {
       tipo: "claude",
       extra,
-      conTexto: enLinea,
+      encargo: enLinea ? encargo : undefined,
       modo: p.plan && sabe(p.cli, "modoPlan") ? "plan" : undefined,
     };
   }
@@ -134,8 +146,8 @@ export function planDeArranque(p: Peticion): Plan {
   }
   const bandera = banderaDeEncargo(p.cli);
   if (enLinea && bandera !== undefined) {
-    partes.push(bandera ? `${bandera} ${entrecomillar(encargo)}` : entrecomillar(encargo));
-    return { tipo: "linea", inner: partes.join(" "), conTexto: true, sesion };
+    if (bandera) partes.push(bandera);
+    return { tipo: "linea", inner: partes.join(" "), encargo, sesion };
   }
 
   return {

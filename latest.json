@@ -1,11 +1,11 @@
 {
-  "version": "0.9.179",
-  "notes": "Las decisiones que te piden los agentes tienen su pestana Decisiones en la app del PC, con el numero de las que te esperan, y la respuesta se teclea sola en su terminal.",
-  "pub_date": "2026-10-09T20:00:11Z",
+  "version": "0.9.180",
+  "notes": "El encargo de una terminal llega entero aunque lleve comillas, y mandar una captura del lienzo a una terminal vuelve a funcionar.",
+  "pub_date": "2026-10-09T21:57:58Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3hlNnk2SGhOZk5DRTJadXkzNXdOZEp3RmE2Qzhjd3ZBdkdJQTZlazE4VWlvNXJTV0VteU4rdWE1QXY3Tllzdm1YbXJYZGo1Z1Y2T1NXTnA0K3NvN0FBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTc2MDAxCWZpbGU6QWRlb3JxXzAuOS4xNzlfeDY0LXNldHVwLmV4ZQp6TUtTa0pZOERmd2F1ckVnd0NmcDRWelNLRWR3NG10Y2pwNGZHUTA3UHhkK1ZEcnpLVlgrekxISHJkQWIydVVzTXFMYlB0N1l2LzArZnNRUFZnbmtDdz09Cg==",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.179/Adeorq_0.9.179_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzBJNkJ1V2k1VWZXV2V3VXBnV2lrQ2dIa0VtcW5teEkzNDZZczJGTTM0blFUQmlCbTMwZDRQOG5McUVvUWRoSmpEbjJCdmMxV1VjT0QzVTlJTWQxVFFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTgzMDU4CWZpbGU6QWRlb3JxXzAuOS4xODBfeDY0LXNldHVwLmV4ZQpnWmpBV1o4ZlVrVFN3TGczZysrcEU1WEpiWStFekVVM1dqMTV0ci9RcEF5N3lBWEsyRzhabSs5M0RpNmZDeTEzOU1QWFFpQzFFZjJWdkhITlh5d2xBdz09Cg==",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.180/Adeorq_0.9.180_x64-setup.exe"
     }
   }
 }

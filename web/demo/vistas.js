@@ -368,21 +368,25 @@ function lienzo(host) {
    COMANDOS
    --------------------------------------------------------------------------- */
 
+// Los atajos son los de la app y ninguno mas (`src/lib/paleta.ts` y su banco,
+// que los coteja con el manejador de `App.tsx`). Hasta el 2026-10-10 esta lista
+// llevaba Ctrl+N, Ctrl+W, Ctrl+1..3, Ctrl+Mayus+O, +V y +?, que no existen:
+// dentro de una terminal Ctrl+N y Ctrl+W son del shell. Lo que no tiene atajo
+// se hace desde la paleta o con su boton.
 const COMANDOS = [
-  { g: 'Sesiones', t: 'Abrir una sesión nueva', k: 'Ctrl+N' },
-  { g: 'Sesiones', t: 'Abrir todo el proyecto', k: 'Ctrl+Mayús+O' },
-  { g: 'Sesiones', t: 'Cerrar la sesión activa', k: 'Ctrl+W' },
+  { g: 'Sesiones', t: 'Abrir una sesión nueva', k: '' },
+  { g: 'Sesiones', t: 'Abrir todo el proyecto', k: '' },
+  { g: 'Sesiones', t: 'Abrir una terminal', k: 'Ctrl+Mayús+T' },
   { g: 'Cabina',   t: 'Dividir el panel a la derecha', k: 'Ctrl+Mayús+→' },
   { g: 'Cabina',   t: 'Dividir el panel abajo', k: 'Ctrl+Mayús+↓' },
   { g: 'Cabina',   t: 'Maximizar el panel activo', k: 'Ctrl+Mayús+F' },
-  { g: 'Cabina',   t: 'Sacar el panel a su ventana', k: 'Ctrl+Mayús+V' },
+  { g: 'Cabina',   t: 'Sacar el panel a su ventana', k: '' },
   { g: 'Capataz',  t: 'Pedirle el tablero al Capataz', k: 'Ctrl+Mayús+A' },
   { g: 'Emisión',  t: 'Tapar rutas y nombres (emitir)', k: 'Ctrl+Mayús+E' },
   { g: 'Emisión',  t: 'Pantalla de pánico', k: 'Ctrl+Mayús+P' },
-  { g: 'Ir a',     t: 'Ir al Panel', k: 'Ctrl+1' },
-  { g: 'Ir a',     t: 'Ir a la Cabina', k: 'Ctrl+2' },
-  { g: 'Ir a',     t: 'Ir a la Agenda', k: 'Ctrl+3' },
-  { g: 'Ayuda',    t: 'Ver todos los atajos', k: 'Ctrl+Mayús+?' },
+  { g: 'Ir a',     t: 'Ir al Panel', k: '' },
+  { g: 'Ir a',     t: 'Ir a la Cabina', k: '' },
+  { g: 'Ir a',     t: 'Ir a la Agenda', k: '' },
 ];
 
 function comandos(host) {
@@ -408,7 +412,7 @@ function comandos(host) {
         <li class="ade-fila" data-cmd="${c.t}">
           <span class="pane-chip">${c.g}</span>
           <span class="ade-fila-txt"><b>${c.t}</b></span>
-          <kbd class="ade-kbd">${c.k}</kbd>
+          ${c.k ? `<kbd class="ade-kbd">${c.k}</kbd>` : ''}
         </li>`).join('')
       : '<li class="card-hint">No encuentro ese comando.</li>';
   };

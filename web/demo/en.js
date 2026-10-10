@@ -55,7 +55,7 @@ window.DEMO_EN = Object.assign(window.DEMO_EN || {}, {
   'Tira estrecha': 'Narrow strip',
   '0 terminales ConPTY activas · 0 errores': '0 ConPTY terminals active · 0 errors',
   '4 terminales ConPTY activas · 0 errores': '4 ConPTY terminals active · 0 errors',
-  'Ctrl+Mayús+? = Atajos': 'Ctrl+Shift+? = Shortcuts',
+  'Ctrl+K = Comandos': 'Ctrl+K = Commands',
   '1,2 GB': '1.2 GB',
 
   /* Los avisos que salen al pulsar */
@@ -186,7 +186,7 @@ window.DEMO_EN = Object.assign(window.DEMO_EN || {}, {
   'Buscar un comando': 'Search for a command',
   'Abrir una sesión nueva': 'Open a new session',
   'Abrir todo el proyecto': 'Open the whole project',
-  'Cerrar la sesión activa': 'Close the active session',
+  'Abrir una terminal': 'Open a terminal',
   'Dividir el panel a la derecha': 'Split the pane to the right',
   'Dividir el panel abajo': 'Split the pane down',
   'Maximizar el panel activo': 'Maximise the active pane',
@@ -198,18 +198,15 @@ window.DEMO_EN = Object.assign(window.DEMO_EN || {}, {
   'Ir al Panel': 'Go to the Dashboard',
   'Ir a la Cabina': 'Go to the Cockpit',
   'Ir a la Agenda': 'Go to the Agenda',
-  'Ver todos los atajos': 'See all shortcuts',
   'Qué quieres hacer': 'What do you want to do',
   '↑↓ para moverte · Enter para ir · Esc para cerrar': '↑↓ to move · Enter to go · Esc to close',
-  'Ctrl+Mayús+O': 'Ctrl+Shift+O',
+  'Ctrl+Mayús+T': 'Ctrl+Shift+T',
   'Ctrl+Mayús+→': 'Ctrl+Shift+→',
   'Ctrl+Mayús+↓': 'Ctrl+Shift+↓',
   'Ctrl+Mayús+F': 'Ctrl+Shift+F',
-  'Ctrl+Mayús+V': 'Ctrl+Shift+V',
   'Ctrl+Mayús+A': 'Ctrl+Shift+A',
   'Ctrl+Mayús+E': 'Ctrl+Shift+E',
   'Ctrl+Mayús+P': 'Ctrl+Shift+P',
-  'Ctrl+Mayús+?': 'Ctrl+Shift+?',
 
   /* Los Ajustes: los temas con nombre español */
   'Los 32 temas de la app, con sus colores de verdad.': 'The app\'s 32 themes, in their real colours.',
@@ -353,7 +350,7 @@ window.DEMO_EN = Object.assign(window.DEMO_EN || {}, {
   'En la app la pieza se guarda en el archivo del lienzo, y sigue ahí mañana.': 'In the app the piece is saved in the canvas file, and it\'s still there tomorrow.',
   '«Abrir una sesión nueva» — en la app se ejecuta al momento.': '"Open a new session": in the app it runs right away.',
   '«Abrir todo el proyecto» — en la app se ejecuta al momento.': '"Open the whole project": in the app it runs right away.',
-  '«Cerrar la sesión activa» — en la app se ejecuta al momento.': '"Close the active session": in the app it runs right away.',
+  '«Abrir una terminal» — en la app se ejecuta al momento.': '"Open a terminal": in the app it runs right away.',
   '«Dividir el panel a la derecha» — en la app se ejecuta al momento.': '"Split the pane to the right": in the app it runs right away.',
   '«Dividir el panel abajo» — en la app se ejecuta al momento.': '"Split the pane down": in the app it runs right away.',
   '«Maximizar el panel activo» — en la app se ejecuta al momento.': '"Maximise the active pane": in the app it runs right away.',
@@ -364,7 +361,6 @@ window.DEMO_EN = Object.assign(window.DEMO_EN || {}, {
   '«Ir al Panel» — en la app se ejecuta al momento.': '"Go to the Dashboard": in the app it runs right away.',
   '«Ir a la Cabina» — en la app se ejecuta al momento.': '"Go to the Cockpit": in the app it runs right away.',
   '«Ir a la Agenda» — en la app se ejecuta al momento.': '"Go to the Agenda": in the app it runs right away.',
-  '«Ver todos los atajos» — en la app se ejecuta al momento.': '"See all shortcuts": in the app it runs right away.',
 
   /* Los avisos del Chat y de la Memoria (pantallas.js; sus RESPUESTAS no van aquí) */
   'Es la misma sesión: el Chat la enseña limpia y la Cabina en crudo.': 'It\'s the same session: the Chat shows it clean and the Cockpit shows it raw.',

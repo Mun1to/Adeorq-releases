@@ -121,8 +121,6 @@ interface Props {
   /** Cómo se está dibujando la barra. Lo necesita fuera el tirador de
       ensanchar: en la tira no hay ancho que elegir, así que se quita. */
   onRail?: (mode: RailMode) => void;
-  /** Un modo que la app pide (el modo simple pone la tira); `null` es no pedir nada. */
-  railPedido?: RailMode | null;
 }
 
 /**
@@ -336,7 +334,6 @@ export default function Sidebar({
   onFocusPane,
   onPlegarGrupo,
   onRail,
-  railPedido,
 }: Props) {
   const { t } = useT();
   const showMenu = useMenu();
@@ -923,13 +920,6 @@ export default function Sidebar({
   useEffect(() => {
     onRail?.(rail);
   }, [rail, onRail]);
-
-  // El modo simple de la app pide la tira al entrar y devuelve lo que había
-  // al salir; la barra sigue siendo la dueña del modo, solo obedece el cambio.
-  useEffect(() => {
-    if (railPedido && railPedido !== ui.railMode) setRail(railPedido);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [railPedido]);
 
   /**
    * The panel starts ON the logo, not next to it: same corner, same size of

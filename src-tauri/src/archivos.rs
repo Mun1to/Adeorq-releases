@@ -200,6 +200,57 @@ pub async fn leer_archivo(ruta: String) -> Result<Archivo, String> {
     Ok(salida(Some(texto), None, crlf))
 }
 
+/// Cuándo se tocó un archivo por última vez, y nada más. El editor lo pregunta
+/// cada poco por el que tienes delante, para enterarse de que un agente lo ha
+/// reescrito sin esperar a que intentes guardar. Cero si ya no está.
+#[tauri::command]
+pub async fn cuando_archivo(ruta: String) -> Result<f64, String> {
+    let f = ruta_de(&ruta)?;
+    Ok(std::fs::metadata(&f).map(|m| cuando_de(&m)).unwrap_or(0.0))
+}
+
+/// Tope de una imagen. Va entera a la ventana, en base64, así que más que esto
+/// es mucha memoria para algo que se mira un momento.
+const TOPE_IMAGEN: u64 = 12 * 1024 * 1024;
+
+/// El tipo con el que se sirve una imagen, por su extensión. El SVG no está a
+/// propósito: es texto y se abre en el editor, que es donde se puede cambiar.
+fn tipo_de_imagen(ruta: &Path) -> Option<&'static str> {
+    let ext = ruta.extension()?.to_string_lossy().to_lowercase();
+    Some(match ext.as_str() {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "avif" => "image/avif",
+        "bmp" => "image/bmp",
+        "ico" => "image/x-icon",
+        _ => return None,
+    })
+}
+
+/// Una imagen lista para un `<img>` (`data:<tipo>;base64,…`), o nada si no lo
+/// es o pesa demasiado.
+///
+/// Va así y no por el protocolo de assets porque ese solo deja leer las
+/// carpetas de datos de Adeorq (`tauri.conf.json`): abrirlo a las de los
+/// proyectos sería dejar que cualquier página metida en la ventana lea el disco.
+#[tauri::command]
+pub async fn leer_imagen(ruta: String) -> Result<Option<String>, String> {
+    use base64::Engine;
+    let f = ruta_de(&ruta)?;
+    let Some(tipo) = tipo_de_imagen(&f) else {
+        return Ok(None);
+    };
+    let meta = std::fs::metadata(&f).map_err(|e| e.to_string())?;
+    if meta.is_dir() || meta.len() > TOPE_IMAGEN {
+        return Ok(None);
+    }
+    let bytes = std::fs::read(&f).map_err(|e| e.to_string())?;
+    let datos = base64::engine::general_purpose::STANDARD.encode(bytes);
+    Ok(Some(format!("data:{tipo};base64,{datos}")))
+}
+
 /// Guarda, salvo que eso fuera a pisar trabajo de otro.
 ///
 /// `visto` es cuándo se leyó lo que hay en pantalla. Si el archivo del disco es
@@ -303,6 +354,32 @@ pub fn estado_archivos(raiz: String) -> Result<EstadoArchivos, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Lo que el editor necesita para enseñar una imagen y para notar que un
+    /// archivo cambió: una imagen sale como `data:`, lo que no lo es no sale, y
+    /// la hora de un archivo que ya no está es cero, no un error.
+    #[test]
+    fn una_imagen_sale_lista_y_un_archivo_dice_cuando_se_toco() {
+        let dir = std::env::temp_dir().join(format!("adeorq-imagen-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let png = dir.join("Foto.PNG");
+        let txt = dir.join("nota.txt");
+        std::fs::write(&png, [0x89, b'P', b'N', b'G', 0, 1, 2, 3]).unwrap();
+        std::fs::write(&txt, "hola").unwrap();
+        let pedir = |f: &Path| tauri::async_runtime::block_on(leer_imagen(f.to_string_lossy().to_string()));
+        let cuando = |f: &Path| tauri::async_runtime::block_on(cuando_archivo(f.to_string_lossy().to_string()));
+
+        assert_eq!(pedir(&png).unwrap().as_deref(), Some("data:image/png;base64,iVBORwABAgM="));
+        assert_eq!(pedir(&txt).unwrap(), None, "un .txt no es una imagen");
+        assert_eq!(tipo_de_imagen(Path::new("logo.svg")), None, "el SVG se abre como texto");
+        assert_eq!(tipo_de_imagen(Path::new("a.JPeG")), Some("image/jpeg"));
+
+        assert!(cuando(&txt).unwrap() > 0.0);
+        assert_eq!(cuando(&dir.join("no-esta.txt")).unwrap(), 0.0);
+        assert!(cuando(Path::new("relativa.txt")).is_err(), "una ruta a medias es un fallo de quien llama");
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
 
     #[test]
     fn la_porcelana_de_git_se_lee_entera() {

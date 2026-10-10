@@ -154,6 +154,11 @@ export function readGuide(lang?: string): Promise<string> {
   return invoke("read_guide", { lang: lang ?? null });
 }
 
+/** Dónde está esa guía en este equipo, para dársela a leer a un agente. */
+export function guidePath(lang?: string): Promise<string> {
+  return invoke("guide_path", { lang: lang ?? null });
+}
+
 export function openInAntigravity(path: string): Promise<void> {
   return invoke("open_in_antigravity", { path });
 }
@@ -275,6 +280,9 @@ export interface ContextInfo {
   /** What the session is doing, in the vocabulary of `last_message_state`
       (Rust). Empty when the transcript cannot say: treated as "do not touch". */
   state: WorkState;
+  /** El nombre de la sesión: el puesto a mano o, si no, el que le pone
+      Claude. Vacío mientras no tiene ninguno. Ver `lib/nombreSolo.ts`. */
+  title: string;
 }
 
 /** What a session or a pane is doing. Empty = unknown, and never actionable. */

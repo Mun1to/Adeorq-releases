@@ -26,7 +26,7 @@
 /* Los contadores, la fila que se queda sin sitio, la barra de solo logos y el hilo de luz. */
 @import "./estilos/03-barra-lateral.css";
 
-/* El modo simple, las filas y los grupos de sesiones, su menú, el cuadro de borrar, abrir una a mano y retomar. */
+/* Las filas y los grupos de sesiones, su menú, el cuadro de borrar, abrir una a mano y retomar. */
 @import "./estilos/04-sesiones.css";
 
 /* El tablero de la cuadrilla, la forma de los paneles, buscar dentro de la terminal y las fijadas. */
@@ -94,3 +94,6 @@
 
 /* Las decisiones que piden los agentes. */
 @import "./estilos/26-decisiones.css";
+
+/* La paleta de comandos (Ctrl+K). */
+@import "./estilos/27-paleta.css";

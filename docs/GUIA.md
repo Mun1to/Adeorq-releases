@@ -931,6 +931,7 @@ escritos.
 
 | Atajo | Qué hace |
 |---|---|
+| Ctrl+K | La paleta: escribe y ve a cualquier pestaña (también a las que quitaste de la cabecera), terminal abierta o proyecto, o lanza cualquiera de los atajos de abajo |
 | Ctrl+Mayús+T | Terminal nueva (en la carpeta del pane activo) |
 | Ctrl+Mayús+→ | Partir el pane activo a la derecha |
 | Ctrl+Mayús+↓ (o D) | Partir el pane activo abajo |

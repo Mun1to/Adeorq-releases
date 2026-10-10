@@ -1,9 +1,49 @@
 // Cuánto pesa el contexto de una sesión, y qué se le dice al agente para
 // compactarla sin perder el hilo. Vivía en TerminalPane.tsx.
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { sessionIdOf } from "./comandos";
 import type { Translate } from "./i18n";
-import { listSkills, sendPty } from "./pty";
+import { listSkills, sendPty, sessionContext, type ContextInfo } from "./pty";
+
+/**
+ * Lo que el transcript dice de la sesión de un panel, releído cada poco: el
+ * contexto gastado, los subagentes que hay fuera, el estado y el título. Más
+ * deprisa mientras hay subagentes, para que el contador siga al trabajo en vez
+ * de ir medio minuto por detrás.
+ */
+export function useContextoDeSesion(kind: string, cwd: string, joined: string): ContextInfo | null {
+  const [ctx, setCtx] = useState<ContextInfo | null>(null);
+  useEffect(() => {
+    // Claude only: agy keeps no transcript here, and reading the folder's
+    // newest one would show it another agent's context and crew as if its own.
+    if (kind !== "claude") return;
+    // Las dos formas de nombrar la sesión, no solo `--resume`: una terminal
+    // recién abierta lleva `--session-id`, y sin él esto acababa leyendo el
+    // transcript más reciente de la carpeta, que es justo lo que el comentario
+    // de arriba dice que no hay que hacer.
+    const sid = sessionIdOf(joined);
+    let timer = 0;
+    let stop = false;
+    const look = () => {
+      sessionContext(cwd, sid)
+        .then((c) => {
+          if (stop) return;
+          setCtx(c);
+          timer = window.setTimeout(look, c && c.agentsLive > 0 ? 6_000 : 20_000);
+        })
+        .catch(() => {
+          if (!stop) timer = window.setTimeout(look, 20_000);
+        });
+    };
+    look();
+    return () => {
+      stop = true;
+      window.clearTimeout(timer);
+    };
+  }, [cwd, joined, kind]);
+  return ctx;
+}
 
 /**
  * Lo que cuesta una sesión cargada, dicho ANTES de que sea tarde.

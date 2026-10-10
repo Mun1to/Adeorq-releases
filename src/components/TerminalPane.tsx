@@ -17,7 +17,6 @@ import {
   onPtyMudo,
   resizePty,
   savePastedImage,
-  sessionContext,
   codexSessionSince,
   spawnPty,
   writePty,
@@ -89,7 +88,8 @@ import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
 import { sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
-import { nivelDeContexto, useTraspaso } from "../lib/contexto";
+import { nivelDeContexto, useContextoDeSesion, useTraspaso } from "../lib/contexto";
+import { useNombreSolo } from "../lib/nombreSolo";
 import { arranqueDeAhora } from "../lib/conserje";
 
 interface Props {
@@ -126,7 +126,7 @@ interface Props {
   /** Cambiarle el nombre a esta sesión: doble clic en el nombre de la
       cabecera y se teclea ahí mismo. Ausente en la ventana suelta, donde el
       nombre viaja en la dirección de la ventana y no hay a quién contárselo. */
-  onRename?: (id: number, nombre: string) => void;
+  onRename?: (id: number, nombre: string, soloPanel?: boolean) => void;
   onFocusPane: (id: number) => void;
   onSplit: (id: number, dir: "right" | "down") => void;
   onToggleMax: (id: number) => void;
@@ -767,7 +767,6 @@ export default function TerminalPane({
     }
   }, [showDiff]);
 
-  const [ctx, setCtx] = useState<ContextInfo | null>(null);
   /** Hasta qué escalón de contexto ya dijo «vale, lo he leído». Es un número y
       no un booleano para que ocultar el aviso del 60 % no te tape el del 80 %,
       que es el que de verdad cuesta dinero. */
@@ -778,7 +777,6 @@ export default function TerminalPane({
   // Lo leído del transcript, alcanzable desde el lector de pantalla, que se
   // construye una sola vez con la terminal y no se entera de los cambios.
   const ctxRef = useRef<ContextInfo | null>(null);
-  ctxRef.current = ctx;
   const tailRef = useRef("");
   /* La cola para cazar direcciones locales, aparte de `tailRef`.
      `tailRef` guarda 24 caracteres, que le sobran para lo suyo (contar
@@ -1065,6 +1063,13 @@ export default function TerminalPane({
   // «lo demás», y ese «lo demás» se anunciaba como PowerShell: una sesión de
   // Codex o de Cursor llevaba en la cabecera el nombre de otra herramienta.
   const kind = kindDeComando(joined);
+  // El contexto, los subagentes, el estado y el título, del transcript de la
+  // sesión (`useContextoDeSesion`). Con título, el panel deja de llamarse
+  // «proyecto · claude»; solo si se sabe cuál es SU sesión, que sin id se lee
+  // la más reciente de la carpeta y puede ser la de otro.
+  const ctx = useContextoDeSesion(kind, cwd, joined);
+  ctxRef.current = ctx;
+  useNombreSolo(id, name, sessionIdOf(joined) ? ctx?.title : undefined, !!team, onRename);
 
   // Lo que este panel está haciendo, hacia arriba. El orden importa y es una
   // decisión, no un detalle:
@@ -1178,38 +1183,6 @@ export default function TerminalPane({
     }, 20_000);
     return () => window.clearInterval(vigia);
   }, [kind, exited]);
-
-  // Context meter and agent count: only for agent panes, both read from the
-  // session's own transcript. Polls faster while subagents are out, so the
-  // counter tracks the work instead of lagging half a minute behind it.
-  useEffect(() => {
-    // Claude only: agy keeps no transcript here, and reading the folder's
-    // newest one would show it another agent's context and crew as if its own.
-    if (kind !== "claude") return;
-    // Las dos formas de nombrar la sesión, no solo `--resume`: una terminal
-    // recién abierta lleva `--session-id`, y sin él esto acababa leyendo el
-    // transcript más reciente de la carpeta, que es justo lo que el comentario
-    // de arriba dice que no hay que hacer.
-    const sid = sessionIdOf(joined);
-    let timer = 0;
-    let stop = false;
-    const look = () => {
-      sessionContext(cwd, sid)
-        .then((c) => {
-          if (stop) return;
-          setCtx(c);
-          timer = window.setTimeout(look, c && c.agentsLive > 0 ? 6_000 : 20_000);
-        })
-        .catch(() => {
-          if (!stop) timer = window.setTimeout(look, 20_000);
-        });
-    };
-    look();
-    return () => {
-      stop = true;
-      window.clearTimeout(timer);
-    };
-  }, [cwd, joined, kind]);
 
   // Un panel de Codex nace sin saber su sesión: Codex se la pone él en su
   // rollout, con el primer turno. Hasta tenerla se le pregunta al disco cada

@@ -1843,10 +1843,37 @@ const EN: Record<string, string> = {
   "Por antigüedad": "By age",
   "Ordenadas por quién te reclama. Pulsa para ordenar por antigüedad.": "Sorted by who needs you. Press to sort by age.",
   "Ordenadas por antigüedad. Pulsa para poner primero las que te reclaman.": "Sorted by age. Press to put the ones that need you first.",
-  "Modo simple ACTIVO: la barra en tira, las cabeceras al mínimo y sin bordes (Ctrl+Mayús+S)":
-    "Simple mode ON: the sidebar as a strip, minimal headers, no borders (Ctrl+Shift+S)",
-  "Modo simple: solo lo que estás mirando, la foto se queda (Ctrl+Mayús+S)":
-    "Simple mode: only what you are looking at, the photo stays (Ctrl+Shift+S)",
+
+  // El editor de archivos vigila el disco
+  "Alguien acaba de cambiar este archivo en el disco, y tú tienes cambios sin guardar.":
+    "Someone has just changed this file on disk, and you have unsaved changes.",
+  "Traído del disco: lo acaba de cambiar otro": "Reloaded from disk: someone else just changed it",
+
+  // «Que me la explique mi agente» (Ajustes › Ayuda)
+  "Que me la explique mi agente": "Have my agent explain it",
+  "Abre una sesión de Claude con la guía delante: tú preguntas y él te enseña la app":
+    "Opens a Claude session with the guide in front of it: you ask, it shows you the app",
+  "guía": "guide",
+  "Lee la guía de Adeorq, que está en {ruta}, y enséñame a usar la app. Antes de explicar nada, pregúntame qué quiero hacer con ella; luego explícame solo esa parte, paso a paso y llamando a cada botón por el nombre que tiene en la guía. No cambies ningún archivo.":
+    "Read the Adeorq guide, which is at {ruta}, and teach me how to use the app. Before explaining anything, ask me what I want to do with it; then explain only that part, step by step, calling each button by the name it has in the guide. Do not change any file.",
+
+  // La paleta de comandos (Ctrl+K)
+  "Qué quieres hacer": "What do you want to do",
+  "Buscar un comando": "Search for a command",
+  "No encuentro eso.": "Nothing matches that.",
+  "↑↓ para moverte · Enter para ir · Esc para cerrar": "↑↓ to move · Enter to go · Esc to close",
+  "Terminal abierta": "Open terminal",
+  "Pestaña": "Tab",
+  "Acción": "Action",
+  "Nueva sesión de Claude": "New Claude session",
+  "Dividir el panel a la derecha": "Split the pane to the right",
+  "Dividir el panel hacia abajo": "Split the pane downwards",
+  "Maximizar o restaurar el panel": "Maximise or restore the pane",
+  "Llamar al Asistente": "Call the Assistant",
+  "Dictarle al Asistente": "Dictate to the Assistant",
+  "Modo emisión: tapar rutas, claves y datos": "Streaming mode: hide paths, keys and personal data",
+  "Tapar la pantalla entera": "Cover the whole screen",
+  "Mayús": "Shift",
 
   // Las utilidades
   JSON: "JSON",

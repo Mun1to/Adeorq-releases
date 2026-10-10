@@ -299,3 +299,15 @@ pub async fn read_guide(app: tauri::AppHandle, lang: Option<String>) -> Result<S
     let es = guide_file(&app, "GUIA.md").ok_or("No encuentro la guía")?;
     std::fs::read_to_string(&es).map_err(|e| e.to_string())
 }
+
+/// Dónde está la guía en ESTE equipo, para dársela a leer a un agente (el
+/// botón «Que me la explique mi agente» de Ajustes › Ayuda). La misma regla
+/// que `read_guide`: la inglesa si se pide y está, y si no la española.
+#[tauri::command]
+pub async fn guide_path(app: tauri::AppHandle, lang: Option<String>) -> Result<String, String> {
+    let pedida = if lang.as_deref() == Some("en") { "GUIDE.en.md" } else { "GUIA.md" };
+    guide_file(&app, pedida)
+        .or_else(|| guide_file(&app, "GUIA.md"))
+        .map(|p| p.to_string_lossy().into_owned())
+        .ok_or_else(|| "No encuentro la guía".to_owned())
+}

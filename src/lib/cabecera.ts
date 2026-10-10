@@ -9,10 +9,12 @@
 //
 //  1. Lo que apagas DESAPARECE, no se esconde en un «⋯». Un menú que guarda lo
 //     que no usas es sitio ocupado por lo que no usas, más un clic.
-//  2. El atajo de teclado sigue funcionando aunque la pestaña no esté. Apagar
-//     es «quítamelo de la vista», no «bórrame la función»: una pestaña fuera de
-//     la cabecera se sigue abriendo con su Alt+letra, y también la abren los
-//     botones de otras pantallas que llevan a ella.
+//  2. El teclado sigue llegando aunque la pestaña no esté. Apagar es
+//     «quítamelo de la vista», no «bórrame la función»: una pestaña fuera de
+//     la cabecera se sigue abriendo desde la paleta (Ctrl+K, `lib/paleta.ts`,
+//     que las lista todas), y también la abren los botones de otras pantallas
+//     que llevan a ella. Hasta el 2026-10-10 aquí ponía «con su Alt+letra», un
+//     atajo que nunca llegó a existir.
 //
 // De ahí sale la única regla dura: `ajustes` no se puede apagar. Es donde se
 // vuelven a encender las demás, y dejar apagar la puerta de vuelta es dejar que

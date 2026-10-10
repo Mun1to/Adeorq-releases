@@ -2,3 +2,9 @@
 # \r al final de cada línea los rompe: con core.autocrlf puesto en Windows, un
 # clon nuevo los sacaría con saltos de Windows.
 *.sh text eol=lf
+
+# Los esquemas de permisos los reescribe `tauri-build` en cada compilación, con
+# saltos de Linux. Sacados con saltos de Windows, cada `cargo build` los dejaba
+# «modificados» sin haber cambiado ni una letra, y había que devolverlos a mano
+# antes de cada commit o de cambiar de rama.
+src-tauri/gen/schemas/*.json text eol=lf

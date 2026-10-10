@@ -573,6 +573,7 @@ almost anything explains what it is and its shortcut.
 
 | Shortcut | What it does |
 |---|---|
+| Ctrl+K | The palette: type to go to any tab (including the ones you removed from the header), open terminal or project, or to run any of the shortcuts below |
 | Ctrl+Shift+T | New terminal |
 | Ctrl+Shift+→ | Split the focused pane right |
 | Ctrl+Shift+↓ (or D) | Split it down |

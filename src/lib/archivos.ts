@@ -66,6 +66,18 @@ export function leerArchivo(ruta: string): Promise<Archivo> {
   return invoke("leer_archivo", { ruta });
 }
 
+/** Cuándo se tocó por última vez, en milisegundos; 0 si ya no está. Es lo que
+    el editor pregunta cada poco por el archivo que tienes delante. */
+export function cuandoArchivo(ruta: string): Promise<number> {
+  return invoke("cuando_archivo", { ruta });
+}
+
+/** Una imagen lista para un `<img>` (`data:…`), o `null` si no lo es o pesa
+    demasiado para traerla entera. */
+export function leerImagen(ruta: string): Promise<string | null> {
+  return invoke("leer_imagen", { ruta });
+}
+
 /** Guarda, salvo que fuera a pisar lo que otro escribió mientras tanto. Con
     `forzar` se escribe igualmente, que es la salida cuando ya has mirado el
     aviso y sabes lo que haces. */

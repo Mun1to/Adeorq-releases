@@ -1401,6 +1401,32 @@ pub struct ContextInfo {
     /// Foreman's gate treats "unknown" as "do not touch", so a pane whose
     /// transcript says nothing is never a candidate for closing.
     pub state: String,
+    /// El nombre de la sesión: el que se le puso a mano (`custom-title`) o,
+    /// si no, el que le pone Claude (`ai-title`). Vacío mientras no tiene
+    /// ninguno; el último mensaje no cuenta, que eso no es un nombre. Con él
+    /// un panel deja de llamarse «proyecto · claude» (`lib/nombreSolo.ts`).
+    pub title: String,
+}
+
+/// El nombre de una sesión, leído de la cola de su transcript. Manda el que se
+/// puso a mano sobre el de Claude, como en la lista de sesiones.
+fn titulo_de(lines: &[String]) -> String {
+    let mut de_claude = String::new();
+    for line in lines.iter().rev() {
+        if line.contains("\"type\":\"custom-title\"") {
+            if let Ok(v) = serde_json::from_str::<Value>(line) {
+                let a_mano = v["customTitle"].as_str().unwrap_or_default();
+                if !a_mano.is_empty() {
+                    return a_mano.to_owned();
+                }
+            }
+        } else if de_claude.is_empty() && line.contains("\"type\":\"ai-title\"") {
+            if let Ok(v) = serde_json::from_str::<Value>(line) {
+                de_claude = v["aiTitle"].as_str().unwrap_or_default().to_owned();
+            }
+        }
+    }
+    de_claude
 }
 
 /// A stale transcript cannot have live subagents: without this an abandoned
@@ -1598,6 +1624,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
     let state = last_message_state(&lines)
         .map(|(_, s)| s)
         .unwrap_or_default();
+    let title = titulo_de(&lines);
     // Compacting throws the whole conversation away and leaves a summary, so
     // the `usage` further back describes tokens that are no longer loaded. The
     // panel kept showing that old figure until the next turn wrote a new one:
@@ -1660,6 +1687,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
             session_id,
             folder,
             state,
+            title,
         });
     }
     // Compacted so recently that the tail we read holds no usage line at all:
@@ -1676,6 +1704,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
             session_id,
             folder,
             state,
+            title,
         });
     }
     // A session with no usage line yet (just started) can still have workers.
@@ -1689,6 +1718,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
         session_id,
         folder,
         state,
+        title,
     })
 }
 
@@ -2295,6 +2325,45 @@ tres
         let c = read_tail(&f).unwrap();
         assert_eq!(c.as_slice(), ["uno", "dos", "tres"], "un archivo que ha crecido se relee");
         assert!(!Arc::ptr_eq(&a, &c));
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// El nombre de una sesión: manda el que se puso a mano, luego el de
+    /// Claude (el más reciente), y lo que se escribió no es un nombre.
+    #[test]
+    fn el_titulo_de_la_sesion_prefiere_el_puesto_a_mano() {
+        let l = |s: &str| s.to_owned();
+        let claude_viejo = l(r#"{"type":"ai-title","aiTitle":"Primer intento"}"#);
+        let claude = l(r#"{"type":"ai-title","aiTitle":"Arreglar la barra"}"#);
+        let a_mano = l(r#"{"type":"custom-title","customTitle":"La barra"}"#);
+        let escrito = l(r#"{"type":"last-prompt","lastPrompt":"se rompió esto"}"#);
+
+        assert_eq!(super::titulo_de(&[escrito.clone()]), "");
+        assert_eq!(super::titulo_de(&[claude_viejo.clone(), claude.clone(), escrito.clone()]), "Arreglar la barra");
+        // El orden en el fichero no decide: uno a mano gana aunque Claude
+        // haya vuelto a titular después.
+        assert_eq!(super::titulo_de(&[a_mano.clone(), claude.clone()]), "La barra");
+        assert_eq!(super::titulo_de(&[claude, a_mano, escrito]), "La barra");
+    }
+
+    /// Y ese título llega al panel por el mismo camino que el contexto: se lee
+    /// de un transcript en disco, que es lo que hace `session_context`.
+    #[test]
+    fn el_contexto_de_un_panel_trae_el_titulo_de_su_sesion() {
+        let dir = std::env::temp_dir().join(format!("adeorq-titulo-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("11111111-1111-4111-8111-111111111111.jsonl");
+        let uso = r#"{"type":"assistant","message":{"model":"claude-opus-5","role":"assistant","content":[{"type":"text","text":"Hecho."}],"usage":{"input_tokens":1200,"cache_read_input_tokens":300,"cache_creation_input_tokens":0}}}"#;
+        std::fs::write(&f, format!("{uso}\n")).unwrap();
+        let sin = super::context_de(&f).expect("con una línea de uso hay contexto");
+        assert_eq!(sin.title, "", "sin título todavía, vacío");
+        assert_eq!(sin.session_id, "11111111-1111-4111-8111-111111111111");
+
+        std::fs::write(&f, format!("{uso}\n{}\n", r#"{"type":"ai-title","aiTitle":"Arreglar la barra de arriba"}"#)).unwrap();
+        let con = super::context_de(&f).expect("sigue habiendo contexto");
+        assert_eq!(con.title, "Arreglar la barra de arriba");
+        assert_eq!(con.used, 1500);
 
         std::fs::remove_dir_all(&dir).ok();
     }

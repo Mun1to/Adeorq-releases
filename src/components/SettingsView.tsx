@@ -33,7 +33,7 @@ import {
 import type { PermissionMode } from "../lib/lanzar";
 import type { NotifyMode } from "../lib/notify";
 import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
-import { autostartGet, autostartSet, ollamaModels } from "../lib/pty";
+import { autostartGet, autostartSet, guidePath, ollamaModels } from "../lib/pty";
 import { guardarModoAviso, modoAviso, type ModoAviso } from "../lib/router";
 import { guardarModoVigia, modoVigia, type ModoVigia } from "../lib/vigia";
 import { guardarModoCopiloto, modoCopiloto, type ModoCopiloto } from "../lib/copiloto";
@@ -137,6 +137,8 @@ interface Props {
   /** Repetir la bienvenida o solo el recorrido por las funciones. */
   onVerBienvenida: () => void;
   onVerTour: () => void;
+  /** Abrir un agente con la guía (su ruta en este equipo) para que la explique. */
+  onExplicarGuia: (ruta: string) => void;
   /** Cambió la carpeta de proyectos: la barra lateral tiene que releerla. */
   onRaizCambiada: () => void;
 }
@@ -357,6 +359,7 @@ export default function SettingsView({
   discordError,
   onVerBienvenida,
   onVerTour,
+  onExplicarGuia,
   onRaizCambiada,
 }: Props) {
   const { t } = useT();
@@ -1674,6 +1677,16 @@ export default function SettingsView({
                     onClick={() => void openUrl(DOCS_URL).catch(() => {})}
                   >
                     {t("Descargas y versiones")}
+                  </button>
+                  {/* La guía de abajo es larga, y quien acaba de llegar no sabe
+                      por dónde empezar a leerla. Su propio agente sí: se le da
+                      el fichero y él pregunta qué quieres hacer. */}
+                  <button
+                    className="mini"
+                    data-tip={t("Abre una sesión de Claude con la guía delante: tú preguntas y él te enseña la app")}
+                    onClick={() => void guidePath(lang).then((ruta) => onExplicarGuia(ruta)).catch(() => {})}
+                  >
+                    {t("Que me la explique mi agente")}
                   </button>
                 </div>
                 <p className="setting-line docs-url">{DOCS_URL}</p>

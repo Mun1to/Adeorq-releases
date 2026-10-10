@@ -21,15 +21,18 @@ const riel = $('#ade-proys');
    1. LA PALETA DE COMANDOS (Ctrl+K)
    --------------------------------------------------------------------------- */
 
+// Solo llevan atajo las que lo tienen en la app (`src/lib/paleta.ts`). Hasta el
+// 2026-10-10 aqui ponia Ctrl+1..7 y Ctrl+N, que la app no tiene ni puede tener:
+// dentro de una terminal esas teclas son del shell.
 const ACCIONES = [
-  { t: 'Ir al Panel',        k: 'Ctrl+1', hace: () => window.adeIrA('panel') },
-  { t: 'Ir a la Cabina',     k: 'Ctrl+2', hace: () => window.adeIrA('cabina') },
-  { t: 'Ir a la Agenda',     k: 'Ctrl+3', hace: () => window.adeIrA('agenda') },
-  { t: 'Ir al Lienzo',       k: 'Ctrl+4', hace: () => window.adeIrA('lienzo') },
-  { t: 'Ir a Cuentas',       k: 'Ctrl+5', hace: () => window.adeIrA('cuentas') },
-  { t: 'Ir a Comandos',      k: 'Ctrl+6', hace: () => window.adeIrA('comandos') },
-  { t: 'Ir a Ajustes',       k: 'Ctrl+7', hace: () => window.adeIrA('ajustes') },
-  { t: 'Abrir una sesión nueva', k: 'Ctrl+N', hace: () => window.adeNuevoPanel() },
+  { t: 'Ir al Panel',        k: '', hace: () => window.adeIrA('panel') },
+  { t: 'Ir a la Cabina',     k: '', hace: () => window.adeIrA('cabina') },
+  { t: 'Ir a la Agenda',     k: '', hace: () => window.adeIrA('agenda') },
+  { t: 'Ir al Lienzo',       k: '', hace: () => window.adeIrA('lienzo') },
+  { t: 'Ir a Cuentas',       k: '', hace: () => window.adeIrA('cuentas') },
+  { t: 'Ir a Comandos',      k: '', hace: () => window.adeIrA('comandos') },
+  { t: 'Ir a Ajustes',       k: '', hace: () => window.adeIrA('ajustes') },
+  { t: 'Abrir una sesión nueva', k: '', hace: () => window.adeNuevoPanel() },
   { t: 'Cambiar el tema',    k: '',       hace: () => { window.adeIrA('ajustes'); avisar('Los 32 temas de la app, con sus colores de verdad.'); } },
   { t: 'Tapar rutas y nombres (emitir)', k: 'Ctrl+Mayús+E', hace: () => $('#ade-emision')?.click() },
 ];

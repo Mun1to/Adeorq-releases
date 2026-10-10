@@ -21,18 +21,32 @@
 // miras, y entonces «guardar» puede borrar su trabajo sin que nadie se entere.
 // Por eso Rust recibe CUÁNDO se leyó esto y se niega a escribir si el disco es
 // más nuevo (`guardar_archivo`, `pisaria: true`). Ver `docs/ARCHIVOS.md`.
+//
+// Y no se espera a que guardes para enterarse (desde el 2026-10-10): la hoja
+// que tienes delante le pregunta al disco cada poco cuándo se tocó el archivo.
+// Si cambió y tú no habías escrito nada, se trae lo nuevo sin moverte de donde
+// estabas; si tenías cambios sin guardar, salta el mismo aviso y decides tú.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EditorState, type Extension } from "@codemirror/state";
+import { Annotation, EditorState, Transaction, type Extension } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLine } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle, indentUnit } from "@codemirror/language";
 import { useT } from "../lib/i18n";
-import { guardarArchivo, leerArchivo, type Archivo } from "../lib/archivos";
+import { cuandoArchivo, guardarArchivo, leerArchivo, leerImagen, type Archivo } from "../lib/archivos";
 import { nombreDeRuta, peso, rutaCorta } from "../lib/arbol";
+import { latido } from "../lib/latido";
 import { lenguajeDe } from "../lib/lenguajes";
 import { useCabina } from "../lib/cabina";
 import { CloseIcon, MaximizeIcon, RefreshIcon, RestoreIcon } from "./Icons";
+
+/** Cada cuánto mira al disco la hoja que tienes delante. El mismo paso que el
+    árbol de Archivos, para que el punto amarillo y el texto cambien a la vez. */
+const VIGILA_MS = 2_500;
+
+/** Marca un cambio del texto que viene del disco y no de tus manos: no cuenta
+    como «sin guardar». */
+const DEL_DISCO = Annotation.define<boolean>();
 
 interface Props {
   id: number;
@@ -107,22 +121,38 @@ function Hoja({
   const caja = useRef<HTMLDivElement>(null);
   const vista = useRef<EditorView | null>(null);
   const [archivo, setArchivo] = useState<Archivo | null>(null);
-  const [estado, setEstado] = useState<"leyendo" | "listo" | "guardando" | "pisaria" | "error">(
-    "leyendo",
-  );
+  /* `pisaria`: quisiste guardar y el disco era más nuevo. `cambiado`: lo mismo,
+     visto antes de que guardaras, con cambios tuyos a medias. */
+  const [estado, setEstado] = useState<
+    "leyendo" | "listo" | "guardando" | "pisaria" | "cambiado" | "error"
+  >("leyendo");
   const [error, setError] = useState("");
   const [sucio, setSucio] = useState(false);
+  /** Sube cada vez que hay que montar el editor de nuevo. Traer del disco lo
+      que cambió un agente NO lo sube: se cambia el texto dentro del mismo
+      editor, que es lo que te deja donde estabas leyendo. */
+  const [carga, setCarga] = useState(0);
+  /** Si no es texto pero es una imagen, lista para un `<img>`; y su tamaño. */
+  const [imagen, setImagen] = useState<string | null>(null);
+  const [medida, setMedida] = useState("");
+  /** Se acaba de traer del disco lo que cambió otro: se dice un momento. */
+  const [fresco, setFresco] = useState(false);
 
   /* Cuándo se leyó lo que hay en pantalla. En un ref y no en el estado porque
      lo consulta el guardado, que corre desde un atajo de teclado: con estado,
      el manejador registrado vería el valor del primer pintado para siempre. */
   const visto = useRef<number | null>(null);
+  const sucioRef = useRef(false);
+  sucioRef.current = sucio;
 
   const cargar = useCallback(async () => {
     setEstado("leyendo");
     try {
       const a = await leerArchivo(ruta);
+      const img = a.texto == null ? await leerImagen(ruta).catch(() => null) : null;
       setArchivo(a);
+      setImagen(img);
+      setCarga((n) => n + 1);
       visto.current = a.cuando;
       setSucio(false);
       setEstado("listo");
@@ -190,7 +220,8 @@ function Hoja({
         ...historyKeymap,
       ]),
       EditorView.updateListener.of((u) => {
-        if (u.docChanged) setSucio(true);
+        // Lo que llega del disco no es un cambio tuyo.
+        if (u.docChanged && !u.transactions.some((tr) => tr.annotation(DEL_DISCO))) setSucio(true);
       }),
     ];
     if (lenguaje) extras.push(lenguaje);
@@ -204,7 +235,60 @@ function Hoja({
       view.destroy();
       vista.current = null;
     };
-  }, [archivo, ruta]);
+    // Por `carga` y no por `archivo`: traer del disco cambia `archivo` sin
+    // querer un editor nuevo, que perdería el sitio por el que ibas leyendo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carga, ruta]);
+
+  /* Un agente puede reescribir esto mientras lo miras. Solo la hoja que se ve
+     pregunta, y con la ventana tapada tampoco (`latido`). */
+  useEffect(() => {
+    if (!visible) return;
+    let viva = true;
+    const mirar = async () => {
+      const ahora = await cuandoArchivo(ruta).catch(() => 0);
+      if (!viva || !ahora || visto.current == null || ahora <= visto.current) return;
+      if (sucioRef.current) {
+        // Tienes cambios sin guardar: no se toca nada, se avisa y decides tú.
+        // `visto` se queda como estaba, para que guardar siga negándose.
+        setEstado((e) => (e === "listo" ? "cambiado" : e));
+        return;
+      }
+      const a = await leerArchivo(ruta).catch(() => null);
+      if (!viva || !a || sucioRef.current) return;
+      const v = vista.current;
+      if (a.texto != null && v) {
+        // El texto nuevo dentro del mismo editor: ni cuenta como cambio tuyo ni
+        // entra en tu deshacer, y la vista se queda por donde ibas.
+        v.dispatch({
+          changes: { from: 0, to: v.state.doc.length, insert: a.texto },
+          annotations: [DEL_DISCO.of(true), Transaction.addToHistory.of(false)],
+        });
+        setArchivo(a);
+      } else {
+        // Dejó de ser texto, o era una imagen: se monta de nuevo lo que haya.
+        const img = a.texto == null ? await leerImagen(ruta).catch(() => null) : null;
+        if (!viva) return;
+        setArchivo(a);
+        setImagen(img);
+        setCarga((n) => n + 1);
+      }
+      visto.current = a.cuando;
+      setFresco(true);
+    };
+    const parar = latido(() => void mirar(), VIGILA_MS);
+    return () => {
+      viva = false;
+      parar();
+    };
+  }, [ruta, visible]);
+
+  // «Traído del disco» se dice cuatro segundos y se va.
+  useEffect(() => {
+    if (!fresco) return;
+    const fin = window.setTimeout(() => setFresco(false), 4_000);
+    return () => window.clearTimeout(fin);
+  }, [fresco]);
 
   /* Al volver a esta pestaña, CodeMirror vuelve a medir. Mientras estaba
      escondida el ancho pudo cambiar (otro panel, otra ventana), y sin esto se
@@ -217,7 +301,9 @@ function Hoja({
   const chip =
     archivo?.texto != null
       ? `${t("{n} líneas", { n: archivo.texto.split("\n").length })} · ${peso(archivo.peso)}`
-      : "";
+      : archivo && imagen
+        ? [medida, peso(archivo.peso)].filter(Boolean).join(" · ")
+        : "";
   useEffect(() => {
     onParte(ruta, { sucio, chip });
   }, [ruta, sucio, chip, onParte]);
@@ -231,10 +317,12 @@ function Hoja({
   return (
     <div className="ed-hoja" data-visible={visible}>
       {/* El aviso que hace que esto sea de un ADE y no un editor cualquiera. */}
-      {estado === "pisaria" && (
+      {(estado === "pisaria" || estado === "cambiado") && (
         <div className="ed-aviso">
           <span>
-            {t("Alguien ha cambiado este archivo mientras lo tenías abierto. No se ha guardado nada.")}
+            {estado === "pisaria"
+              ? t("Alguien ha cambiado este archivo mientras lo tenías abierto. No se ha guardado nada.")
+              : t("Alguien acaba de cambiar este archivo en el disco, y tú tienes cambios sin guardar.")}
           </span>
           <button className="mini" onClick={() => void cargar()}>
             {t("Traer lo nuevo")}
@@ -247,29 +335,43 @@ function Hoja({
 
       {estado === "error" && <p className="side-error">{error}</p>}
 
-      {archivo?.pega === "grande" && (
+      {/* Una imagen se ve. Lo demás que no es texto, se dice lo que es. */}
+      {archivo && imagen && (
+        <div className="ed-imagen">
+          <img
+            src={imagen}
+            alt={nombreDeRuta(ruta)}
+            onLoad={(e) => setMedida(`${e.currentTarget.naturalWidth} × ${e.currentTarget.naturalHeight}`)}
+          />
+        </div>
+      )}
+      {archivo?.pega === "grande" && !imagen && (
         <p className="ed-nota">
           {t("Este archivo pesa {p}. No se abre entero para que la app no se atasque.", {
             p: peso(archivo.peso),
           })}
         </p>
       )}
-      {archivo?.pega === "binario" && (
+      {archivo?.pega === "binario" && !imagen && (
         <p className="ed-nota">{t("Esto no es texto: son {p} de datos.", { p: peso(archivo.peso) })}</p>
       )}
 
-      <div className="ed-caja" ref={caja} />
+      <div className="ed-caja" ref={caja} hidden={!!imagen} />
 
       <footer className="ed-pie">
         <span>
-          {estado === "guardando" ? t("Guardando…") : sucio ? t("Sin guardar") : t("Guardado")}
+          {estado === "guardando"
+            ? t("Guardando…")
+            : sucio
+              ? t("Sin guardar")
+              : fresco
+                ? t("Traído del disco: lo acaba de cambiar otro")
+                : t("Guardado")}
         </span>
         <span className="ed-ruta">{rutaCorta(ruta, raiz)}</span>
-        <span className="ed-atajo">{t("Ctrl+S para guardar")}</span>
-        {/* Traer del disco lo que haya ahora. Hace falta porque nadie vigila la
-            carpeta todavía: si un agente reescribe esto mientras lo lees, aquí
-            sigue lo de antes hasta que lo pidas (o hasta que intentes guardar,
-            que es cuando salta el aviso). */}
+        {!imagen && <span className="ed-atajo">{t("Ctrl+S para guardar")}</span>}
+        {/* Traer del disco lo que haya ahora, a mano. La hoja ya lo vigila sola
+            mientras la miras; esto queda para pedirlo sin esperar su turno. */}
         <button className="mini" data-tip={t("Releer del disco")} onClick={() => void cargar()}>
           <RefreshIcon size={12} />
         </button>

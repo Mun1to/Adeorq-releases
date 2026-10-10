@@ -1,11 +1,11 @@
 {
-  "version": "0.9.182",
-  "notes": "Adeorq ya no se cae al actualizarse (Tauri 2.12 arregla el cierre que pedia el instalador) y la barra de arriba cabe siempre: quita por orden lo menos necesario",
-  "pub_date": "2026-10-09T23:49:51Z",
+  "version": "0.9.183",
+  "notes": "Paleta de comandos con Ctrl+K, los paneles se ponen nombre solos, el editor de archivos se entera cuando un agente cambia lo que miras y ensena imagenes, y el modo simple desaparece",
+  "pub_date": "2026-10-10T02:05:57Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzljMXBuTndVd1Zjc29Xb3VpZVBxWlpSYkZmMGVrYkdWejhWRUltTVdmYzRhWHMrYzBoNEIrcm1nVlFBYnV5Z0cwQXlHUVFkQ1pXQnRaQjFIdTlza3dNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTg5NzgzCWZpbGU6QWRlb3JxXzAuOS4xODJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODIKOXRPNGpDMTlzeTJ2eVAraUgvRUF2OG1RbmhLQmxsNDlRVllXUk1NWnVDQ2pYT3Mra1Z5SnNrcmRKRCs4RERMbWF2TG9ld2ZGYmdhYlEwT0lhQmgwQlE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.182/Adeorq_0.9.182_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3hHbml0VlM5VkJyVVpORkZjSG9ROFY1OXQ3YklkTXY3d09Vd1FNaER6N2plUFRQcktCdXlaNGhuVkZOY3doYk9VYUduNmZ4bXRTbjBhLzdpeFdvM2dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTk3OTQ3CWZpbGU6QWRlb3JxXzAuOS4xODNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODMKSGJIMEpTV2pUdU52dnJ4K1J3ZDMweGs1WDQxdDZtTWh5dGFzbDRiK1J1Ykl4Q2VwV3d3dkFubzdrR1FxR2FkNU9wQkpiOFIwakJ4dkxTaXZHb2tUQVE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.183/Adeorq_0.9.183_x64-setup.exe"
     }
   }
 }

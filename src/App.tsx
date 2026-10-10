@@ -12,6 +12,7 @@ import ProviderMark, { tieneMarca } from "./components/ProviderMark";
 import PanelView from "./components/PanelView";
 import Foreman, { type ForemanExec } from "./components/Foreman";
 import AvisoCuota from "./components/AvisoCuota";
+import Paleta from "./components/Paleta";
 import PedirSecreto from "./components/PedirSecreto";
 import PuenteMovil from "./components/PuenteMovil";
 import type { ConserjeExec } from "./lib/conserje";
@@ -49,6 +50,8 @@ import IconoPestana from "./components/IconoPestana";
 import { PESTANAS, type View } from "./lib/vistas";
 import { pendientes, useDecisiones } from "./lib/decisiones";
 import { useBarraQueCabe } from "./lib/barraQueCabe";
+import { STREAM_KEY, useAtajosGlobales } from "./lib/atajosGlobales";
+import { encargoDeGuia } from "./lib/guia";
 import {
   DISCORD_KEY,
   loadDiscord,
@@ -190,8 +193,6 @@ type SplitDir = "right" | "down";
 const MAX_OPEN_ALL = 12;
 const OPEN_ALL_STAGGER_MS = 350;
 const SIDEBAR_KEY = "adeorq-sidebar-w";
-const STREAM_KEY = "adeorq-stream";
-const SIMPLE_KEY = "adeorq-simple";
 const OBJETIVOS_KEY = "adeorq-objetivos-abierto";
 /** Qué panel de la derecha se está viendo, o vacío si solo está la franja de
     iconos. Vive aquí y no dentro del panel porque desde el 2026-08-15 se monta
@@ -651,27 +652,6 @@ function App() {
     setTheme(temaQueToca(temaSistema));
     return escucharSistema((oscuro) => setTheme(temaQueToca(temaSistema, oscuro)));
   }, [temaSistema]);
-
-  /* El modo simple (MEJORAS, pedido el 2026-08-03): la barra en tira, las
-     cabeceras con solo el nombre y el estado (el resto al pasar el ratón), y
-     sin bordes entre paneles. La foto se queda. Se enciende y se apaga de golpe
-     con Ctrl+Mayús+S, y al salir la barra vuelve a como estaba. */
-  const [simple, setSimple] = useState(() => localStorage.getItem(SIMPLE_KEY) === "1");
-  const [railPedido, setRailPedido] = useState<RailMode | null>(null);
-  const railAntesDeSimple = useRef<RailMode>("full");
-  const alternarSimple = useCallback(() => {
-    setSimple((v) => {
-      const ahora = !v;
-      localStorage.setItem(SIMPLE_KEY, ahora ? "1" : "0");
-      if (ahora) {
-        railAntesDeSimple.current = railModeRef.current === "tira" ? "full" : railModeRef.current;
-        setRailPedido("tira");
-      } else {
-        setRailPedido(railAntesDeSimple.current);
-      }
-      return ahora;
-    });
-  }, []);
 
   /* Lo que miras, se apunta: al darle el foco a un panel, su sesión deja de
      reclamarte en la barra (`lib/vistos.ts`). */
@@ -1889,14 +1869,15 @@ function App() {
     setCanvasPanes((prev) => prev.map((p) => (p.id === id ? { ...p, command: conSesion(p) } : p)));
   }, []);
 
-  const renombrarPane = useCallback((id: number, nombre: string) => {
+  const renombrarPane = useCallback((id: number, nombre: string, soloPanel = false) => {
     setPanes((prev) => prev.map((p) => (p.id === id ? { ...p, name: nombre } : p)));
     setCanvasPanes((prev) => prev.map((p) => (p.id === id ? { ...p, name: nombre } : p)));
     const p =
       panesRef.current.find((x) => x.id === id) ??
       canvasPanesRef.current.find((x) => x.id === id);
     const sid = p ? sessionIdOf(p.command) : undefined;
-    if (p && sid) {
+    // `soloPanel`: el nombre viene del título de la sesión (`lib/nombreSolo.ts`).
+    if (p && sid && !soloPanel) {
       renameSession(carpetaClaude(p.cwd), sid, nombre).catch((e) =>
         // El panel ya quedó renombrado; esto solo deja constancia de que el
         // transcript no se pudo tocar (recién abierto sin mensajes, cuenta
@@ -2342,56 +2323,7 @@ function App() {
     setView,
   });
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || !e.shiftKey) return;
-      const k = e.key.toLowerCase();
-      if ((k === "d" || e.key === "ArrowDown") && focusedId != null) {
-        e.preventDefault();
-        splitPane(focusedId, "down");
-      } else if (e.key === "ArrowRight" && focusedId != null) {
-        e.preventDefault();
-        splitPane(focusedId, "right");
-      } else if (k === "f" && focusedId != null) {
-        e.preventDefault();
-        onToggleMax(focusedId);
-      } else if (k === "a") {
-        e.preventDefault();
-        // Abierto a mano no graba: solo el atajo del micrófono pone esto.
-        setDictarAlAbrir(false);
-        setShowForeman((v) => !v);
-      } else if (k === "m" && !showForeman) {
-        // Dictar desde donde estés: se abre el Asistente ya grabando. Con el
-        // Asistente abierto este atajo es suyo (enciende y apaga), y por eso
-        // aquí solo se coge cuando está cerrado: si lo cogieran los dos, un
-        // Ctrl+Mayús+M abriría dos micrófonos a la vez.
-        e.preventDefault();
-        setDictarAlAbrir(true);
-        setShowForeman(true);
-      } else if (k === "p") {
-        e.preventDefault();
-        setPanic((v) => !v);
-      } else if (k === "s") {
-        e.preventDefault();
-        alternarSimple();
-      } else if (k === "e") {
-        e.preventDefault();
-        setStream((v) => {
-          localStorage.setItem(STREAM_KEY, v ? "0" : "1");
-          return !v;
-        });
-      } else if (k === "t") {
-        e.preventDefault();
-        const src = panes.find((p) => p.id === focusedId);
-        addPane(
-          src ? `${src.name} · shell` : "proyectos · terminal",
-          src?.cwd ?? raiz(),
-        );
-      }
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [focusedId, panes, addPane, splitPane, onToggleMax]);
+  useAtajosGlobales({ focusedId, panes, addPane, splitPane, onToggleMax, showForeman, setDictarAlAbrir, setShowForeman, setPanic, setStream });
 
   useEffect(() => {
     if (!stream) {
@@ -2768,7 +2700,7 @@ function App() {
   return (
     <LangContext.Provider value={contextoIdioma}>
     <Overlays>
-    <div className="app" data-stream={stream} data-peek={peek} data-simple={simple || undefined}>
+    <div className="app" data-stream={stream} data-peek={peek}>
       {/* Debajo de todo lo demás, y sin recibir un clic. */}
       <Fondo
         path={fondo}
@@ -2797,6 +2729,7 @@ function App() {
           siempre y sin pintar nada hasta que llega la petición, como el aviso
           de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
       <PedirSecreto />
+      <Paleta panes={panes} delLienzo={canvasPanes} irA={setView} abrirProyecto={openClaude} irATerminal={irATerminal} />
       {/* Lo último cerrado, con su Deshacer: quince segundos y se va. */}
       {deshacer && (
         <div className="deshacer-pill" role="status">
@@ -2911,18 +2844,6 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
         </button>
         <Pulso />
         <NowPlaying />
-        <button
-          className="tab simple-toggle"
-          data-on={simple}
-          data-tip={t(
-            simple
-              ? "Modo simple ACTIVO: la barra en tira, las cabeceras al mínimo y sin bordes (Ctrl+Mayús+S)"
-              : "Modo simple: solo lo que estás mirando, la foto se queda (Ctrl+Mayús+S)",
-          )}
-          onClick={alternarSimple}
-        >
-          <span className="simple-toggle-icono" aria-hidden="true" />
-        </button>
         <button
           className="tab stream-toggle"
           data-on={stream}
@@ -3047,7 +2968,6 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onOpenAll={onOpenAll}
           onPlegarGrupo={alternarGrupo}
           onRail={alCambiarRail}
-          railPedido={railPedido}
         />
         <div
           className="resizer"
@@ -3717,6 +3637,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           discordError={discordError}
           onVerBienvenida={() => setOnboarding(true)}
           onVerTour={() => setTour(true)}
+          onExplicarGuia={(ruta) => openClaudePrompt(`Adeorq · ${t("guía")}`, raiz(), encargoDeGuia(t, ruta))}
           onRaizCambiada={() => setRefreshKey((k) => k + 1)}
         />
       )}

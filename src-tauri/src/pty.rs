@@ -1099,10 +1099,27 @@ pub async fn pty_kill(state: State<'_, PtyState>, id: u32) -> Result<(), String>
             None => return Ok(()),
         }
     };
+    {
+        let mut a_mano = CERRADAS_A_MANO.lock().unwrap_or_else(|e| e.into_inner());
+        if !a_mano.contains(&id) {
+            a_mano.push(id);
+        }
+    }
     if let Some(pid) = pid {
         matar_rama(pid);
     }
     Ok(())
+}
+
+/// Los paneles que se cerraron DESDE Adeorq (la X, un agente por el MCP, el
+/// Capataz) en este arranque. Es lo único que separa «la cerraste tú» de «se
+/// murió sola», y de eso depende que un encargo programado cuente o no un
+/// fallo (`programados.rs`). Unos cuantos números por sesión de trabajo: no
+/// hace falta podarla.
+static CERRADAS_A_MANO: Mutex<Vec<u32>> = Mutex::new(Vec::new());
+
+pub fn cerrada_a_mano(id: u32) -> bool {
+    CERRADAS_A_MANO.lock().unwrap_or_else(|e| e.into_inner()).contains(&id)
 }
 
 /// Cierra TODAS las terminales. Se llama cuando Adeorq se va a cerrar.

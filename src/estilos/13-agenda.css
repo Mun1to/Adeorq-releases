@@ -1169,8 +1169,7 @@ body[data-redim] .divider {
 .agenda .agenda-picker,
 .agenda .agenda-where,
 .agenda .panel-card,
-.agenda .agenda-note,
-.agenda .sesiones {
+.agenda .agenda-note {
   max-width: var(--ag-ancho);
 }
 

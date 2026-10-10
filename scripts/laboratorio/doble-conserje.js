@@ -252,10 +252,16 @@ async (page) => {
         case "memoria_reglas_router": return (window.__reglas ?? []).map((linea) => ({ linea, nota: "Nota de prueba", proyecto: "C:\\proyectos\\Adeorq" }));
         // El porcentaje de contexto se siembra con `window.__ctxPercent`, para
         // ver el aviso de sesión cargada y su botón de compactar.
-        case "session_context":
+        case "session_context": {
           // Y el estado del panel con `window.__estadoPanel` («a_medias» si no
           // se dice), para ver a la tarjeta de actualizar esperando a un agente.
-          return { model: "opus", used: Math.round((window.__ctxPercent ?? 4) * 10000), window: 1000000, percent: window.__ctxPercent ?? 4, agentsLive: 0, agentsTotal: 0, sessionId: args.sessionId, folder: args.cwd, state: window.__estadoPanel ?? "a_medias" };
+          // Los agentes de la sesión se siembran en `window.__agentes`, con la
+          // forma de `AgenteDeSesion` (sessions.rs): de ahí salen la cuenta del
+          // robot de la cabecera y la lista que enseña (`session_agents`).
+          const agentes = window.__agentes ?? [];
+          return { model: "opus", used: Math.round((window.__ctxPercent ?? 4) * 10000), window: 1000000, percent: window.__ctxPercent ?? 4, agentsLive: agentes.filter((a) => a.vivo).length, agentsTotal: window.__agentesTotal ?? agentes.length, sessionId: args.sessionId, folder: args.cwd, state: window.__estadoPanel ?? "a_medias" };
+        }
+        case "session_agents": return JSON.parse(JSON.stringify(window.__agentes ?? []));
         // La actualización (decisión C3): con `window.__actualizacion = "9.9.9"`
         // el comprobador dice que hay una; instalar y reiniciar solo quedan
         // apuntados en `__llamadas`, que es lo que se mira.
@@ -302,8 +308,60 @@ async (page) => {
           return { ruta: args.ruta, filas: filas.map((f) => ({ carpeta: false, peso: 1, cuando: 0, ...f, ruta: `${args.ruta}\\${f.nombre}` })) };
         }
         case "estado_archivos": return JSON.parse(JSON.stringify(window.__git ?? { git: false, cambios: [] }));
+        // Los archivos del proyecto en hondo, para el buscador de Ctrl+P: se
+        // siembran en `window.__nombres` como rutas relativas con barras normales.
+        case "listar_nombres": return [...(window.__nombres ?? [])];
         // Abrir un archivo en el editor: un texto corto, leído hace un minuto.
-        case "leer_archivo": return { ruta: args.ruta, texto: "const hola = 1;\n", pega: null, peso: 16, cuando: Date.now() - 60_000, crlf: false };
+        // Con otro contenido para una ruta concreta (una ficha de pasos), se
+        // siembra en `window.__archivos` como { ruta: texto }.
+        case "leer_archivo": return { ruta: args.ruta, texto: (window.__archivos ?? {})[args.ruta] ?? "const hola = 1;\n", pega: null, peso: 16, cuando: Date.now() - 60_000, crlf: false };
+        // El Reparto: lo que diría el Capataz al clasificar el lote, sembrado en
+        // `window.__loteCapataz`. Sin sembrar no dice nada, que es el caso de
+        // «no contestó»: cada tarea se clasifica entonces por sus palabras. Y
+        // el acta, que iría al BUZON.md del proyecto, se apunta y ya.
+        case "foreman_lote": return window.__loteCapataz ?? "";
+        case "escribir_buzon": return `${args.proyecto}\\BUZON.md`;
+        // Los encargos programados, como `programados.rs` pero sin reloj: la
+        // lista ({ puede, reloj, encargos }) vive en `sessionStorage`, bajo
+        // `__programados`, para que aguante una recarga igual que el tablero;
+        // ahí mismo se siembra. Guardar valida lo mismo que Rust en lo que la
+        // pantalla puede ver (encargo, carpeta, tope).
+        case "programados_listar":
+        case "programado_guardar":
+        case "programado_borrar":
+        case "programado_activar":
+        case "programado_rearmar":
+        case "programado_probar": {
+          const p = JSON.parse(sessionStorage.getItem("__programados") ?? "null") ?? { puede: true, reloj: true, encargos: [] };
+          const uno = () => {
+            const e = p.encargos.find((x) => x.id === args.id);
+            if (!e) throw new Error("Ese encargo ya no está.");
+            return e;
+          };
+          if (cmd === "programado_guardar") {
+            const q = args.pedido;
+            if (!q.encargo.trim()) throw new Error("Falta el encargo: qué tiene que hacer.");
+            if (/no-existe/.test(q.cwd)) throw new Error(`Esa carpeta no existe: ${q.cwd}`);
+            const campos = { nombre: q.nombre || q.encargo.split("\n")[0].slice(0, 40), encargo: q.encargo, cwd: q.cwd, cuando: q.cuando };
+            if (q.id) {
+              args.id = q.id;
+              Object.assign(uno(), campos, { cortado: null, fallosSeguidos: 0 });
+            } else {
+              if (p.encargos.length >= 20) throw new Error("Ya hay 20 encargos programados, que es el tope. Borra alguno.");
+              p.encargos.push({ id: `p${Date.now().toString(16)}`, ...campos, activo: true, creado: Date.now(), ultima: 0, ultimoDia: "", corrida: null, ultimas: [], fallosSeguidos: 0, cortado: null });
+            }
+          }
+          if (cmd === "programado_borrar") p.encargos = p.encargos.filter((x) => x.id !== args.id);
+          if (cmd === "programado_activar") uno().activo = args.activo;
+          if (cmd === "programado_rearmar") Object.assign(uno(), { cortado: null, fallosSeguidos: 0 });
+          if (cmd === "programado_probar") {
+            const e = uno();
+            if (e.corrida && !e.corrida.juzgada) throw new Error("La vez anterior sigue abierta: ciérrala o espera a que termine.");
+            e.corrida = { inicio: Date.now(), panel: 99, arranque: 1, juzgada: false };
+          }
+          sessionStorage.setItem("__programados", JSON.stringify(p));
+          return p;
+        }
         // ¿Contesta ese puerto? Los de `window.__puertosVivos` sí (ninguno si no
         // se dice), para ver la pregunta de abrir la web al levantar un servidor.
         case "puerto_escucha": return (window.__puertosVivos ?? []).includes(args.puerto);

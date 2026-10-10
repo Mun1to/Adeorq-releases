@@ -96,16 +96,9 @@ const EN: Record<string, string> = {
   Asistente: "Assistant",
   "Llamar al Asistente (Ctrl+Mayús+A · Ctrl+Mayús+M para dictarle)":
     "Call the Assistant (Ctrl+Shift+A · Ctrl+Shift+M to dictate)",
-  "Invocar al Capataz (Ctrl+Mayús+A)": "Summon the Foreman (Ctrl+Shift+A)",
-  "Modo emisión: oculta rutas y datos personales para streamear (Ctrl+Mayús+E)":
-    "Streaming mode: hides paths and personal data (Ctrl+Shift+E)",
-  "Modo emisión ACTIVO: rutas y correos ocultos (Ctrl+Mayús+E)":
-    "Streaming mode ON: paths and emails hidden (Ctrl+Shift+E)",
 
   // Dashboard
-  "Hola, Munito.": "Hey, Munito.",
   "Tu taller, a vista de pájaro.": "Your workshop, from above.",
-  "sesiones en vivo ahora": "sessions live right now",
   "sesiones esta semana": "sessions this week",
   "proyectos en C:\\proyectos": "projects in C:\\proyectos",
   // El saludo según la hora, y el resumen de estado de debajo.
@@ -181,22 +174,10 @@ const EN: Record<string, string> = {
   "Nombre del proyecto": "Project name",
   Crear: "Create",
   "El foco": "The focus",
-  "La única fecha real del sistema:": "The only real deadline in the system:",
-  "distintivo de IA en orquio.com antes del 2 de agosto":
-    "AI disclosure badge on orquio.com before 2 August",
-  "Regla de la casa: terminar antes que abrir. Este panel existe para acelerar lo que ya está en marcha.":
-    "House rule: finish before you start something new. This dashboard exists to speed up what is already moving.",
   "Crea la carpeta en {d} con AGENTS.md (tus reglas), METAS.md y git, listo para la primera sesión.":
     "Creates the folder in {d} with AGENTS.md (your rules), METAS.md and git, ready for its first session.",
   "sesiones de ~/.claude": "sessions from ~/.claude",
-  "Describe qué quieres, elige proyecto y roles: pasa por el Reparto, que decide el cliente y el cerebro de cada puesto, les separa los archivos para que no se pisen y deja el papel común en el BUZON.md. Antes de abrir nada verás lo que va a costar.":
-    "Describe what you want, pick a project and roles: it goes through the Split, which picks each seat's client and brain, separates their files so they do not step on each other's toes, and leaves the shared notes in BUZON.md. You see what it will cost before anything opens.",
-  "Ej.: una landing con formulario de contacto que guarde en SQLite":
-    "e.g. a landing page with a contact form that saves to SQLite",
-  "Preparar el reparto de {n} puestos": "Prepare the split for {n} seats",
   "Cómo se ve y cómo habla tu taller.": "How your workshop looks and speaks.",
-  "⚑ Misión: despliega un equipo": "⚑ Mission: deploy a team",
-  "Elige el proyecto…": "Pick the project…",
   Frontend: "Frontend",
   Backend: "Backend",
   Seguridad: "Security",
@@ -210,8 +191,6 @@ const EN: Record<string, string> = {
   // Agenda, tray and the two-step opener (2026-07-26)
   "Agenda":
     "Agenda",
-  "Lo que viene, lo que pensaste y lo que toca.":
-    "What is coming, what you thought of, and what is next.",
   // Los objetivos del día.
   "Objetivos de hoy": "Today's goals",
   "Tus objetivos de hoy": "Your goals for today",
@@ -250,14 +229,8 @@ const EN: Record<string, string> = {
     "nothing jotted down",
   "objetivos para hoy":
     "goals for today",
-  "{n} de {t} hechos":
-    "{n} of {t} done",
-  "no has puesto ninguno":
-    "you have not set any",
   "con fecha esta semana":
     "dated this week",
-  "nada en el calendario":
-    "nothing on the calendar",
   "metas activas":
     "open goals",
   "elige un proyecto":
@@ -292,14 +265,8 @@ const EN: Record<string, string> = {
     "No proposals left. Your agents will write more while they work.",
   "Ir a sus sesiones":
     "Go to its sessions",
-  "brújula conectada":
-    "compass connected",
   "brújula sin conectar":
     "compass not connected",
-  "brújula con problemas":
-    "compass having trouble",
-  "comprobando…":
-    "checking…",
   "Salir":
     "Sign out",
   "Conecta tu brújula":
@@ -354,8 +321,6 @@ const EN: Record<string, string> = {
   "Apuntado en su METAS.md. Lo verás en el diff antes de commitear.":
     "Written into its METAS.md. You will see it in the diff before committing.",
   "De tus agentes": "From your agents",
-  "Lo que tus sesiones han ido apuntando mientras trabajaban. Aceptar una idea la manda a tu brújula; aceptar un paso lo escribe en el METAS.md de ese proyecto.":
-    "What your sessions noted down while they worked. Accepting an idea sends it to your compass; accepting a step writes it into that project's METAS.md.",
   "idea":
     "idea",
   "paso":
@@ -386,12 +351,8 @@ const EN: Record<string, string> = {
     "Name of the new project",
   "Creando…":
     "Creating…",
-  "📁 Otra carpeta del disco…":
-    "📁 Another folder from disk…",
   "＋ Proyecto nuevo…":
     "＋ New project…",
-  "↯ Suelta, sin proyecto":
-    "↯ Loose, no project",
   // La terminal viva en el cajón de las sueltas. Las dos frases largas van
   // dentro de un ternario, así que el comprobador no las ve: si faltan, la app
   // en inglés las enseña en español sin decir nada.
@@ -429,8 +390,6 @@ const EN: Record<string, string> = {
     "Next",
   "Abrir":
     "Open",
-  "＋ Abrir una sesión…":
-    "＋ Open a session…",
   "Abrir una sesión: eliges carpeta y herramienta":
     "Open a session: you pick the folder and the tool",
   "Usa solo letras, números, espacios, guiones o puntos":
@@ -444,7 +403,6 @@ const EN: Record<string, string> = {
   "Se abrirán {n} {tool} en {path}": "{n} {tool} will open in {path}",
   "Abrir las {n}": "Open all {n}",
   "Tiene una sesión abierta ahora mismo": "It has a session open right now",
-  "✎ Cambiar el nombre que se ve…": "✎ Change the name shown here…",
   "Volver a llamarlo «{n}»": "Call it “{n}” again",
   "Cómo se llama aquí": "What it is called here",
   "Cambia solo lo que ves en Adeorq. La carpeta se queda como está, y por eso tus sesiones de Claude siguen encontrándola: van por su ruta, no por su nombre.":
@@ -469,7 +427,6 @@ const EN: Record<string, string> = {
     "“{a}” ({p}) stops being connected. Nothing else is deleted: its projects, its history and its settings stay where they are, and getting back in means logging in again.",
 
   // El botón de Ajustes, que desde la 0.9.74 instala además de comprobar.
-  "Buscar e instalar": "Check and install",
   "Bajando la {v}…": "Downloading {v}…",
 
   // La cabecera a su gusto, desde la 0.9.73.
@@ -594,8 +551,6 @@ const EN: Record<string, string> = {
   "La terminal te pregunta algo: elige una opción (Esc en el teclado cancela).":
     "The terminal is asking something: pick an option (Esc on the keyboard cancels).",
   "✦ Claude": "✦ Claude",
-  "◈ Antigravity": "◈ Antigravity",
-  ">_ shell": ">_ shell",
   "Cerrar terminal": "Close terminal",
   "Adeorq se ha tropezado": "Adeorq tripped",
   "Esta terminal se ha tropezado dos veces seguidas": "This terminal tripped twice in a row",
@@ -628,21 +583,12 @@ const EN: Record<string, string> = {
   Skills: "Skills",
   "Buscar skill": "Search skill",
   "Clic la manda · arrastrar la pega": "Click sends it · drag pastes it",
-  "Arrastra uno sobre una terminal para pegarlo, o clic para mandarlo al pane activo.":
-    "Drag one onto a terminal to paste it, or click to send it to the active pane.",
   "Clic en una skill para meterla en la caja de escribir.":
     "Click a skill to drop it into the message box.",
 
   // Archivos ("Guardando…" y "Skills · Uso" ya estaban más abajo)
   Archivos: "Files",
   "Ver la web en un panel (localhost)": "See the site in a pane (localhost)",
-  "Abrirla en TU navegador, aquí dentro (con tus extensiones y tus sesiones)":
-    "Open it in YOUR browser, right here (with your extensions and sessions)",
-  "Estás viendo tu navegador. Pulsa para volver al de dentro.":
-    "You are looking at your own browser. Click to go back to the built-in one.",
-  "Abriendo tu navegador…": "Opening your browser…",
-  "No se pudo meter tu navegador aquí": "Your browser could not be brought in here",
-  "Usar el de dentro": "Use the built-in one",
   "Devolver a Adeorq": "Return to Adeorq",
   "Devolver a Adeorq: la terminal vuelve al mosaico y el agente ni se entera":
     "Return to Adeorq: the terminal goes back to the mosaic and the agent never notices",
@@ -654,6 +600,13 @@ const EN: Record<string, string> = {
   "Nuevo, todavía sin commit": "New, not committed yet",
   "Cambiado desde el último commit": "Changed since the last commit",
   "Borrado, todavía sin commit": "Deleted, not committed yet",
+  // Las letras de git del árbol entran por variable (`QUE_LETRA`, ArchivosPanel.tsx).
+  "Modificado desde el último commit": "Modified since the last commit",
+  "Renombrado, todavía sin commit": "Renamed, not committed yet",
+  // El clic derecho de una fila del árbol.
+  "Copiar ruta": "Copy path",
+  "Copiar ruta relativa": "Copy relative path",
+  "Enseñar en el explorador": "Show in file explorer",
   "{n} en conflicto": "{n} in conflict",
   "{n} ahora": "{n} now",
   "{n} sin guardar": "{n} unsaved",
@@ -683,8 +636,6 @@ const EN: Record<string, string> = {
   Descartar: "Discard",
   "Otro pedido": "Another request",
   Cerrar: "Close",
-  "Enter planea · Esc cierra · nada se ejecuta sin tu OK":
-    "Enter plans · Esc closes · nothing runs without your OK",
   "Hecho: mira la Cabina.": "Done: check the Cockpit.",
   "El Capataz no propuso acciones para ese pedido.":
     "The Foreman proposed no actions for that request.",
@@ -705,8 +656,6 @@ const EN: Record<string, string> = {
   "Listo. Reinicia para estrenar la versión nueva.":
     "Ready. Restart to get the new version.",
   "No pude actualizar": "Could not update",
-  "Descargando la actualización…": "Downloading the update…",
-  "Hay una versión nueva de Adeorq": "There is a new version of Adeorq",
 
   // Settings
   Idioma: "Language",
@@ -714,7 +663,6 @@ const EN: Record<string, string> = {
     "The app's language. Terminals still speak whatever each agent speaks.",
   Español: "Spanish",
   Inglés: "English",
-  "Como el sistema": "Match system",
   Tema: "Theme",
   "El color de la casa. El cristal y el desenfoque se mantienen.":
     "The house colour. Glass and blur stay put.",
@@ -764,7 +712,6 @@ const EN: Record<string, string> = {
   "Ya tienes la última versión.": "You already have the latest version.",
   "Comprueba sola al arrancar y cada 6 horas.":
     "It checks on start and every 6 hours by itself.",
-  "Sobre Adeorq": "About Adeorq",
   "Cargando la guía…": "Loading the guide…",
   "En esta guía": "In this guide",
   "No pude leer la guía": "Could not read the guide",
@@ -798,7 +745,6 @@ const EN: Record<string, string> = {
   "Buscar en tus notas": "Search your notes",
   "Dónde vive tu memoria": "Where your memory lives",
   "Elegir la carpeta": "Choose the folder",
-  "Cambiar carpeta": "Change folder",
   "Cambiar bóveda": "Change vault",
   "Buscar otra carpeta…": "Find another folder…",
   "documento": "document",
@@ -852,8 +798,6 @@ const EN: Record<string, string> = {
   "Señalar otra carpeta": "Point to another folder",
   "Vale cualquier carpeta con markdown dentro, sea de Obsidian o no.":
     "Any folder with markdown inside will do, Obsidian or not.",
-  "Rueda para acercar · arrastra para mover · con Shift, gira · clic en un punto para abrirlo":
-    "Wheel to zoom · drag to pan · hold Shift to spin it · click a dot to open it",
   "documentos": "documents",
   "con enlaces": "with links",
   "en la raíz": "at the root",
@@ -878,7 +822,6 @@ const EN: Record<string, string> = {
     "It is the SAME folder, not a copy: whatever you write shows up in every account, and whatever you delete is gone from all of them.",
   "de contexto usado": "of context used",
   "Doble clic para cambiar el nombre": "Double-click to change the name",
-  "Uso semanal": "Weekly usage",
   "Tu cuota": "Your quota",
   "Cuánto uso de tu suscripción llevas esta semana. Solo lo sabe Claude por dentro, así que el botón escribe /usage en la terminal que tengas activa y te lleva allí.":
     "How much of your subscription you have used this week. Only Claude knows it internally, so this button types /usage into your active terminal and takes you there.",
@@ -919,15 +862,11 @@ const EN: Record<string, string> = {
   "esta semana": "this week",
   sesiones: "sessions",
   "Tokens de cada uno de los últimos 7 días": "Tokens for each of the last 7 days",
-  "Trabajo hecho, leído de tus propias estadísticas. El porcentaje de tu suscripción solo lo sabe Claude por dentro:":
-    "Work done, read from your own stats. Only Claude knows your subscription percentage:",
-  "Abre una terminal de Claude para pedirlo.": "Open a Claude terminal to ask for it.",
 
   "Límites del plan": "Plan limits",
   "Trabajo de la semana": "This week's work",
   "Volver a preguntar (no gasta cuota)": "Ask again (costs no quota)",
   "Preguntando a Claude…": "Asking Claude…",
-  "No pude leerlos": "I could not read them",
   "Ver la tarjeta entera en la terminal": "See the full card in the terminal",
   "se renueva": "renews",
   // Cuándo se renueva, dicho como lo diría una persona. Las claves salen de
@@ -954,11 +893,6 @@ const EN: Record<string, string> = {
   "Sin datos todavía": "No data yet",
   "Clic para mandarla · arrástrala sobre una terminal":
     "Click to send it · drag it onto a terminal",
-  "Actualizar límites": "Refresh limits",
-  "Los límites llegan de Claude: pulsa para pedirlos de nuevo.":
-    "The limits come from Claude: press to ask again.",
-  "Trabajo hecho, leído de tus propias estadísticas. Los límites de tu plan solo los sabe Claude: pídelos aquí.":
-    "Work done, read from your own stats. Only Claude knows your plan's limits: ask for them here.",
 
   // Notifications
   Avisos: "Notifications",
@@ -1074,13 +1008,9 @@ const EN: Record<string, string> = {
   "Leer el proyecto": "Read the project",
   "Leer otra vez": "Read again",
   "Leído {c}": "Read {c}",
-  "Leyendo el código del proyecto… (unos minutos)":
-    "Reading the project's code… (a few minutes)",
-  "Ordenando los caminos…": "Sorting out the paths…",
   "Pulsa una pieza para ver con quién habla y qué se piden.":
     "Click a piece to see who it talks to and what they ask each other.",
   "Pulsa otra vez para verlo todo.": "Click again to see everything.",
-  "Todavía no hay caminos de este proyecto": "No paths for this project yet",
   "Vuelve a leer el código del proyecto. Tarda unos minutos.":
     "Reads the project's code again. Takes a few minutes.",
   "el Capataz no devolvió un mapa que se pueda leer":
@@ -1105,8 +1035,6 @@ const EN: Record<string, string> = {
   Esfera: "Sphere",
   Galaxia: "Galaxy",
   usa: "uses",
-  "De este proyecto no salieron caminos": "No paths came out of this project",
-  "sale en {n} de los {total} caminos": "shows up in {n} of the {total} paths",
   "Mirando el proyecto…": "Looking at the project…",
   // («Parar» ya está más abajo: lo usa también la lectura del mapa.)
   "Está abriendo el código y viendo quién llama a quién. Un par de minutos.":
@@ -1143,7 +1071,6 @@ const EN: Record<string, string> = {
     "Automatic is on: it applies whichever brain fits and leaves the brief typed, without showing you the card. It does not send it.",
   "sin cambiar el cerebro": "brain left as it was",
   "Quitar este aviso": "Dismiss this note",
-  "Para la terminal que tienes delante": "For the terminal in front of you",
   Copiarlo: "Copy it",
 
   // La ficha del encargo: a quién se le da y con qué cerebro (lib/router.ts).
@@ -1193,8 +1120,6 @@ const EN: Record<string, string> = {
   "Todo lo que vea": "Everything it sees",
   "Al preparar un encargo, el Asistente mira con qué modelo está la terminal que tienes delante. Si es mucho más caro de lo que la tarea necesita (o mucho más flojo), te lo dice.":
     "When preparing a brief, the Assistant looks at which model the terminal in front of you is running. If it is far pricier than the task needs (or far weaker), it says so.",
-  "Mantén pulsado y habla. Al soltar, lo escribe aquí.":
-    "Hold and speak. Let go and it writes it here.",
 
   // Qué se abre de un clic desde cada proyecto
   "Atajos en tus proyectos": "Shortcuts on your projects",
@@ -1240,7 +1165,6 @@ const EN: Record<string, string> = {
     "One key and you can talk to every model OpenRouter carries. It is stored encrypted in the Windows Credential Manager, never in a settings file, and it never comes back out: this screen only asks for the usage figures.",
 
   // Todas tus sesiones en la Agenda, y el modelo local que las resume
-  "🗂 Todas tus sesiones": "🗂 All your sessions",
   "Lo que tienes vivo ahora mismo, lo que te espera primero. El estado sale del disco y es exacto; la línea de debajo la escribe tu modelo local, solo para las que te esperan.":
     "What you have alive right now, whatever is waiting on you first. The state comes from disk and is exact; the line underneath is written by your local model, only for the ones waiting on you.",
   "Retomar esta sesión aquí": "Resume this session here",
@@ -1320,7 +1244,6 @@ const EN: Record<string, string> = {
   "No pude enviar tu mensaje a «{s}».": "I could not send your message to {s}.",
   "No he podido abrir esa conversación, así que te devuelvo lo escrito.":
     "I could not open that conversation, so here is your text back.",
-  "Releer la conversación": "Re-read the conversation",
   "Esta conversación todavía no tiene nada escrito.":
     "Nothing has been written in this conversation yet.",
   "Escribe aquí. Enter envía, Mayús+Enter hace un párrafo.":
@@ -1409,7 +1332,6 @@ const EN: Record<string, string> = {
   "Exportar el dibujo a SVG": "Export the drawing to SVG",
 
   // Retomar sesiones desde el asistente del ＋.
-  "↻ Retomar las que ya tienes…": "↻ Resume the ones you already have…",
   "Tus conversaciones, las de esta semana y las de antes. Las que marques aparecen en la barra de la izquierda, listas para abrirlas cuando quieras.":
     "Your conversations, this week's and the older ones. Whatever you tick shows up in the left-hand rail, ready to open whenever you want.",
   "Buscar por título, proyecto o carpeta": "Search by title, project or folder",
@@ -1420,7 +1342,6 @@ const EN: Record<string, string> = {
   "{n} elegidas de {total}": "{n} of {total} picked",
   "{n} sesiones": "{n} sessions",
   Todas: "All",
-  "Las {n} primeras": "The first {n}",
   // La mini guía del Asistente: qué se le puede pedir, con ejemplos que se
   // pulsan. Las etiquetas pasan por t() a través de una variable, así que el
   // comprobador no las ve: van aquí a mano y hay que acordarse al tocarlas.
@@ -1486,14 +1407,7 @@ const EN: Record<string, string> = {
   Cuentas: "Accounts",
   "Cada cuenta es un login aparte del mismo CLI, con su propia carpeta. Las terminales nuevas de Claude nacen con la que marques como predeterminada.":
     "Each account is a separate login of the same CLI, with a folder of its own. New Claude terminals are born with whichever one you set as default.",
-  "Sin conectar todavía. Abre una terminal aquí y haz el login.":
-    "Not signed in yet. Open a terminal here and log in.",
-  "Conectada.": "Signed in.",
-  "Este CLI no publica su consumo en el equipo, así que no hay barras que enseñar.":
-    "This CLI publishes no usage on the machine, so there are no bars to show.",
   "una sola cuenta": "one account only",
-  "Instalado. De este programa no sé leer si has iniciado sesión, así que ábrelo y te lo dirá él.":
-    "Installed. I cannot read whether you are signed in to this one, so open it and it will tell you.",
   "No he encontrado forma de moverle la carpeta de configuración, así que solo puede tener una cuenta.":
     "I found no way to move its config folder, so it can only have one account.",
   "No instalados": "Not installed",
@@ -1514,17 +1428,13 @@ const EN: Record<string, string> = {
     "Look again for what is installed and re-read the limits (spends no quota)",
   "Se crea una carpeta suya y se abre una terminal para que hagas el login. Tu cuenta de siempre no se toca.":
     "It gets a folder of its own and a terminal opens so you can log in. Your usual account is left alone.",
-  "Volver a preguntar los límites (no gasta cuota)":
-    "Ask for the limits again (costs no quota)",
   "Las terminales nuevas usan esta": "New terminals use this one",
   predeterminada: "default",
   // El resumen de cabecera de Cuentas y el estado de cada tarjeta.
   "cuentas conectadas": "accounts connected",
-  "de {n} programas instalados": "across {n} installed programs",
   "el límite más apretado": "tightest limit",
   "todavía preguntando…": "still asking…",
   "la predeterminada": "the default one",
-  "con la que nacen las terminales nuevas": "new terminals open with this one",
   conectada: "connected",
   "sin conectar": "not connected",
   "en una terminal aquí": "in a terminal here",
@@ -1716,25 +1626,13 @@ const EN: Record<string, string> = {
   palabras: "words",
   líneas: "lines",
   "tokens (aprox.)": "tokens (approx.)",
-  "Partir a la derecha: terminal al lado (Ctrl+Mayús+→)":
-    "Split right: a terminal beside this one (Ctrl+Shift+→)",
-  "Partir abajo: terminal debajo (Ctrl+Mayús+↓ o D)":
-    "Split down: a terminal below this one (Ctrl+Shift+↓ or D)",
 
   // El panel de la derecha. Estaba escrito en duro, sin pasar por aquí: por
   // eso «Skills · Uso» seguía en español con la app en inglés.
   "Skills · Uso": "Skills · Usage",
-  "Mostrar skills y uso": "Show skills and usage",
   "Ocultar panel": "Hide panel",
   "Sin skills en ~/.claude/skills": "No skills in ~/.claude/skills",
   "Qué pasa este día…": "What happens on this day…",
-
-  // El aviso de contexto de una terminal. Estaba escrito en duro dentro del
-  // JSX, así que salía en español con la app puesta en inglés.
-  "{pct} % de contexto ({n} tokens). Compactar ahora sale peor que empezar: abre una terminal nueva.":
-    "{pct}% of context ({n} tokens). Compacting now costs more than starting over: open a new terminal.",
-  "{pct} % de contexto ({n} tokens). Cada mensaje vuelve a pagarlos enteros, así que irá más lenta y más cara.":
-    "{pct}% of context ({n} tokens). Every message pays for all of them again, so it gets slower and dearer.",
 
   // Los objetivos que quedaron sin tachar el día anterior. Nada se borra nunca,
   // pero la lista de hoy nace vacía y eso se lee como una pérdida.
@@ -1868,6 +1766,11 @@ const EN: Record<string, string> = {
   "Qué quieres hacer": "What do you want to do",
   "Buscar un comando": "Search for a command",
   "No encuentro eso.": "Nothing matches that.",
+  // El segundo modo de la paleta: abrir un archivo por su nombre (Ctrl+P).
+  "Abrir un archivo por su nombre": "Open a file by its name",
+  "Qué archivo abro": "Which file should I open",
+  "Buscar un archivo por su nombre": "Search for a file by its name",
+  "No hay ningún archivo con ese nombre.": "No file with that name.",
   "↑↓ para moverte · Enter para ir · Esc para cerrar": "↑↓ to move · Enter to go · Esc to close",
   "Terminal abierta": "Open terminal",
   "Pestaña": "Tab",
@@ -2193,7 +2096,6 @@ const EN: Record<string, string> = {
 
   // La lista de sesiones
   Borrar: "Delete",
-  "🗑 Borrar la sesión": "🗑 Delete the session",
   "Borrar la sesión: va a la papelera de Windows":
     "Delete the session: it goes to the Windows recycle bin",
   "Esta sesión está abierta ahora mismo.": "This session is open right now.",
@@ -2286,8 +2188,6 @@ const EN: Record<string, string> = {
   "Se renueva {r}. Ábrelo para seguir en otra cuenta.":
     "Renews {r}. Open it to carry on with another account.",
   "Seguir en": "Carry on with",
-  "Abre una terminal nueva en este proyecto con esa cuenta":
-    "Opens a new terminal in this project with that account",
   "No tienes otra cuenta con margen. Se añaden en la pestaña Cuentas.":
     "No other account has room to spare. You add them in the Accounts tab.",
 
@@ -2298,8 +2198,6 @@ const EN: Record<string, string> = {
   "¿Cómo te llamas?": "What is your name?",
   "Tu nombre": "Your name",
   "Dónde viven tus proyectos": "Where your projects live",
-  "La carpeta donde tienes tus repositorios. Cada subcarpeta suya será un proyecto del panel, y lo que abras fuera de ella irá al cajón de sueltas.":
-    "The folder holding your repositories. Every subfolder of it becomes a project in the sidebar, and anything you open outside it lands in the loose drawer.",
   "Si tienes tus repositorios juntos en una carpeta, señálala y cada subcarpeta suya será un proyecto del panel. Si no los tienes así, entra sin carpeta y añade luego los que quieras, estén donde estén.":
     "If your repositories all sit inside one folder, point at it and every subfolder becomes a project here. If they do not, come in with no folder and add the ones you want later, wherever they are.",
   "Entras a una barra vacía y cada terminal que abras vive suelta, con su carpeta a la vista. Cuando una te importe, un botón la convierte en proyecto del panel.":
@@ -2363,8 +2261,6 @@ const EN: Record<string, string> = {
   "Tus proyectos, a la izquierda": "Your projects, on the left",
   "Cada carpeta con sus sesiones dentro, y al final las que no son de ningún proyecto, con su carpeta escrita. Arrastra una a un proyecto para meterla ahí, o pulsa ⊞ para que su carpeta sea un proyecto más. El punto verde es una sesión viva ahora mismo.":
     "Every folder with its sessions inside, and at the end the ones that belong to no project, each showing its folder. Drag one onto a project to file it there, or press ⊞ to turn its folder into a project of its own. The green dot is a session running right now.",
-  "Cada carpeta con sus sesiones dentro, y las que abras fuera de un proyecto caen en el cajón de sueltas del final. El punto verde es una sesión viva ahora mismo.":
-    "Every folder with its sessions inside, and whatever you open outside a project drops into the loose drawer at the bottom. A green dot is a session running right now.",
   "La Cabina: las terminales": "The Cockpit: the terminals",
   "Aquí trabajan los agentes, en terminales de verdad repartidas por la pantalla. Puedes abrir varias y verlas a la vez, que es la gracia de todo esto.":
     "This is where the agents work, in real terminals laid out across the screen. You can open several and watch them at once, which is the whole point.",
@@ -2389,28 +2285,18 @@ const EN: Record<string, string> = {
 
   // El Reparto: varias tareas de golpe.
   "Repartir varias tareas": "Split several tasks",
-  "Repartir varias tareas entre agentes": "Split several tasks across agents",
   Repartir: "Split them",
   "Repartiendo…": "Splitting…",
   "Cambiar las tareas": "Change the tasks",
   "O monta un equipo": "Or build a team",
   "Doble clic para reescribirla": "Double-click to rewrite it",
-  "Doble clic para cambiarle el nombre": "Double-click to rename it",
   Disolver: "Dissolve",
   "Marcar el grupo con este color": "Mark the group with this colour",
   "Nombre del grupo": "Group name",
   "Nombre y color del grupo": "Group name and colour",
-  "Plegar el grupo": "Collapse the group",
   "Sin color": "No colour",
-  "Ver sus {n} sesiones": "See its {n} sessions",
-  "Clic: retomar la sesión aquí. Arrástrala sobre otra para agruparlas.":
-    "Click: resume the session here. Drag it onto another one to group them.",
   "Clic: retomar la sesión aquí. Arrástrala sobre otra para agruparlas, o sobre un proyecto para meterla en él.":
     "Click: resume the session here. Drag it onto another one to group them, or onto a project to file it there.",
-  "↯ Sacarla de este proyecto": "↯ Take it out of this project",
-  "Convertir {d} en un proyecto del panel": "Turn {d} into a project of its own",
-  "Pulsa para convertirla en un proyecto del panel":
-    "Click to turn it into a project of its own",
   "Esa carpeta ya está en el panel.": "That folder is already in the sidebar.",
   "sin proyecto": "no project",
   "tus proyectos, uno a uno · sesiones de ~/.claude":
@@ -2431,7 +2317,6 @@ const EN: Record<string, string> = {
   "No pude escribir el BUZON.md": "I could not write BUZON.md",
 
   // ── El editor de la web: la columna de herramientas del panel de web ──────
-  "Editar la página": "Edit the page",
   "Editar esta página haciendo clic, y guardarlo en el código":
     "Edit this page by clicking, and have it saved into the code",
   "Salir del editor": "Leave the editor",
@@ -2450,8 +2335,6 @@ const EN: Record<string, string> = {
   "Guardarla para la próxima vez (en un archivo solo tuyo, permisos 600)":
     "Keep it for next time (in a file only you can read, mode 600)",
   "Dársela": "Hand it over",
-  "Editar por clic necesita la página aquí dentro. Pulsa para volver y editar.":
-    "Click-to-edit needs the page rendered in here. Click to come back and edit.",
   Seleccionar: "Select",
   "Mover y estirar": "Move and resize",
   "Recuadro al agente": "Box to the agent",
@@ -2462,8 +2345,6 @@ const EN: Record<string, string> = {
   "Girar y capa": "Rotate and layer",
   "Duplicar y borrar": "Duplicate and delete",
   "Mandar al agente": "Send to the agent",
-  "Señala algo en la página para empezar": "Point at something on the page to start",
-  "Arrastra un recuadro sobre la página": "Drag a box over the page",
   "Doble clic sobre el texto para cambiarlo": "Double-click the text to change it",
   Ancho: "Width",
   Alto: "Height",
@@ -2488,14 +2369,10 @@ const EN: Record<string, string> = {
   "Se lo he pedido al agente": "Asked the agent to do it",
   "Abre una terminal para poder mandarle esto": "Open a terminal to send this to",
   "Ahí dentro no había ningún elemento entero": "There was no whole element in there",
-  "Buscando la sonda en la página…": "Looking for the probe in the page…",
-  "Esta página no lleva el plugin de Adeorq": "This page does not have the Adeorq plugin",
   "Esta página no se puede editar todavía": "This page cannot be edited yet",
   "Le falta el plugin de Adeorq, que es quien marca cada elemento con el trozo de fichero del que salió. Se añade una vez por proyecto, y solo si la web la sirve Vite: con Expo, Next o Astro todavía no se puede.":
     "It is missing the Adeorq plugin, the piece that marks every element with the bit of file it came from. You add it once per project, and only if Vite serves the site: with Expo, Next or Astro it is not possible yet.",
   "Que lo añada el agente": "Have the agent add it",
-  "Ese elemento no lleva marca de origen: el cambio se ve, pero no se guarda":
-    "That element has no origin mark: you can see the change, but it will not be saved",
   "Sin marca de origen: se ve el cambio pero no se guarda":
     "No origin mark: the change shows but is not saved",
   // El conserje del chat (`Conserje.tsx`).
@@ -2634,8 +2511,85 @@ const EN: Record<string, string> = {
   "Lanzada: ya la tiene esa terminal.": "Sent: that terminal has it now.",
   "Abriendo una sesión en {p}.": "Opening a session in {p}.",
   "No se pudo abrir ahí.": "It could not be opened there.",
-  "Repartida: sus sesiones ya están abiertas.": "Split up: its sessions are open now.",
+  "Repartida: cada sesión marcará su casilla al terminar.": "Split up: each session will tick its own box when it is done.",
   "te está preguntando algo": "it is asking you something",
+  // Los encargos programados de la Agenda (`components/AgendaProgramados.tsx`).
+  "Encargos programados": "Scheduled orders",
+  "encargos programados": "scheduled orders",
+  "{n} parados por el freno": "{n} stopped by the breaker",
+  "el siguiente, {c}": "next one, {c}",
+  "se lanzan solos a su hora": "they launch on their own, on time",
+  "Un encargo programado abre él solo una sesión de Claude con lo que le dejes escrito, los días y a la hora que digas. Si falla tres veces seguidas se para y te avisa, en vez de insistir.":
+    "A scheduled order opens a Claude session on its own with what you leave written, on the days and at the time you say. If it fails three times in a row it stops and tells you, instead of insisting.",
+  "En este sistema todavía no se lanzan solos: por ahora, solo en Windows. Puedes dejarlos escritos.":
+    "On this system they do not launch on their own yet: for now, only on Windows. You can still write them down.",
+  "En esta ventana el reloj está parado (es la de desarrollo): se lanzan desde la Adeorq instalada, o con «Probar ahora».":
+    "The clock is stopped in this window (it is the development one): they launch from the installed Adeorq, or with “Try now”.",
+  "Nuevo encargo programado": "New scheduled order",
+  "Todavía no hay ninguno.": "There are none yet.",
+  "Qué tiene que hacer. Por ejemplo: revisa las dependencias y dime cuáles tienen versión nueva.":
+    "What it has to do. For example: check the dependencies and tell me which ones have a new version.",
+  "Nombre (opcional)": "Name (optional)",
+  "Días y hora": "Days and time",
+  "Cada N horas": "Every N hours",
+  "a las": "at",
+  cada: "every",
+  horas: "hours",
+  "no se lanzó": "did not launch",
+  "parado por el freno": "stopped by the breaker",
+  "en pausa": "paused",
+  "próxima vez: {c}": "next time: {c}",
+  "Falló tres veces seguidas y no se lanza más hasta que lo rearmes. La última: {m}":
+    "It failed three times in a row and will not launch again until you re-arm it. The last one: {m}",
+  Rearmar: "Re-arm",
+  "Lo lanza ya, sin esperar a su hora y sin gastar el turno de hoy":
+    "Launches it now, without waiting for its time and without using up today's turn",
+  "Probar ahora": "Try now",
+  "¿Borrarlo?": "Delete it?",
+  // Estas pasan por t() dentro de una variable (`lib/programados.ts`), así que
+  // el comprobador no las ve: van aquí a mano.
+  "Cada hora": "Every hour",
+  "Cada {n} horas": "Every {n} hours",
+  "Cada día a las {h}": "Every day at {h}",
+  "De lunes a viernes a las {h}": "Monday to Friday at {h}",
+  "Los {d} a las {h}": "{d}s at {h}",
+  "{d} a las {h}": "{d} at {h}",
+  y: "and",
+  "hoy a las {h}": "today at {h}",
+  "mañana a las {h}": "tomorrow at {h}",
+  "el {d} a las {h}": "on {d} at {h}",
+  lunes: "Monday",
+  martes: "Tuesday",
+  "miércoles": "Wednesday",
+  jueves: "Thursday",
+  viernes: "Friday",
+  "sábado": "Saturday",
+  domingo: "Sunday",
+  "Escribe qué tiene que hacer.": "Write what it has to do.",
+  "Elige el proyecto donde se abre.": "Pick the project it opens in.",
+  "Elige al menos un día.": "Pick at least one day.",
+  "Pon una hora.": "Set a time.",
+  "Las horas van de 1 a 168.": "Hours go from 1 to 168.",
+  // Las fichas de pasos que ofrece una nota vacía (`lib/fichas.ts`).
+  "O empieza desde una ficha": "Or start from a runbook",
+  "Esa ficha no se puede leer.": "That runbook cannot be read.",
+  "Ficha puesta. Lánzala con la flecha de arriba.": "Runbook loaded. Launch it with the arrow above.",
+  // El robot de la cabecera de una terminal y su lista (`components/AgentesDePanel.tsx`).
+  "Agentes de esta sesión": "This session's agents",
+  "en segundo plano": "in the background",
+  falló: "failed",
+  "{n} fuera": "{n} out",
+  "{n} en segundo plano": "{n} in the background",
+  "{n} de vuelta": "{n} back",
+  "{n} con fallo": "{n} failed",
+  "leyendo…": "reading…",
+  "sin descripción": "no description",
+  "Su historial reciente no trae ninguno.": "Its recent history has none.",
+  "{n} desplegados en total; aquí, los que siguen fuera y los últimos.": "{n} dispatched in total; here, the ones still out and the latest.",
+  "Contados en el historial de la sesión: es el dato exacto.": "Counted in the session's history: the exact figure.",
+  "1 agente trabajando ahora dentro de esta sesión": "1 agent working inside this session right now",
+  "{n} agentes trabajando ahora dentro de esta sesión": "{n} agents working inside this session right now",
+  "Estimado por lo que se lee en pantalla.": "Estimated from what is on screen.",
   // La campana de avisos, que es la mascota (`components/Campana.tsx`).
   "{n} terminales te reclaman": "{n} terminals need you",
   "Una terminal te espera": "A terminal is waiting for you",

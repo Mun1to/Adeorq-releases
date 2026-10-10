@@ -312,6 +312,26 @@ export interface PaneStatus {
   sessionId?: string;
 }
 
+/** Un agente que la sesión mandó a trabajar (`AgenteDeSesion`, en sessions.rs). */
+export interface AgenteDeSesion {
+  /** «Explore», «general-purpose»… */
+  tipo: string;
+  /** La descripción corta con que lo mandó. */
+  que: string;
+  /** ISO de cuándo salió, y de cuándo volvió. */
+  desde: string;
+  hasta: string | null;
+  vivo: boolean;
+  fallo: boolean;
+  /** Lanzado en segundo plano: del historial no se sabe si ya terminó. */
+  fondo: boolean;
+}
+
+/** Los agentes de la sesión de un panel: los que siguen fuera primero. */
+export function sessionAgents(cwd: string, sessionId?: string): Promise<AgenteDeSesion[]> {
+  return invoke("session_agents", { cwd, sessionId: sessionId ?? null });
+}
+
 /** How full the context of a pane's session is (read from its transcript). */
 export function sessionContext(
   cwd: string,
@@ -969,8 +989,8 @@ export function ptyHistorial(id: number, bytes?: number): Promise<string> {
  *
  * `x` e `y` van en PÍXELES FÍSICOS de la pantalla, que no son los del
  * navegador: en un monitor al 125 % un píxel del navegador son 1,25 de los de
- * verdad. Quien llama multiplica por `devicePixelRatio` una sola vez, o pide
- * el sitio con `ratonEnPantalla`, que ya viene en físico.
+ * verdad. Quien llama multiplica por `devicePixelRatio` una sola vez (Rust
+ * tiene además `raton_en_pantalla`, que ya lo da en físico).
  */
 export function sacarPanel(
   id: number,
@@ -994,12 +1014,6 @@ export function sacarPanel(
  *  arrancó. Se pregunta a Rust porque es quien tiene el dato de verdad. */
 export function datosPanel(id: number): Promise<{ cwd: string; command: string[] | null }> {
   return invoke("datos_panel", { id });
-}
-
-/** Dónde está el ratón en la pantalla, en píxeles físicos. Lo sabe Windows;
- *  el navegador solo sabe de su propia ventana. */
-export function ratonEnPantalla(): Promise<[number, number]> {
-  return invoke("raton_en_pantalla");
 }
 
 /** Cierra la ventana suelta de ese panel y lo devuelve a Adeorq. */

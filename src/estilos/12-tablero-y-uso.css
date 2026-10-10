@@ -996,17 +996,6 @@
   color: var(--muted);
 }
 
-/* Plan limits, above the weekly bars. */
-.limits {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-}
-
 .limit-top {
   display: flex;
   justify-content: space-between;

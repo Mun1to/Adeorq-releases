@@ -80,13 +80,13 @@ pub fn mcp_reply(state: tauri::State<'_, Puente>, peticion: u64, respuesta: Resp
 }
 
 /// Pide algo al front y espera su respuesta. Bloquea este hilo, con tope.
-fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Result<Respuesta, String> {
+pub(crate) fn pedir_a_la_ventana(app: &tauri::AppHandle, clase: &str, datos: Value) -> Result<Respuesta, String> {
     pedir_a_la_ventana_con(app, clase, datos, ESPERA)
 }
 
 /// Lo mismo, diciendo cuánto se espera: leer una pantalla o listar los paneles
 /// es instantáneo, y si la ventana no contesta en segundos no va a contestar.
-fn pedir_a_la_ventana_con(
+pub(crate) fn pedir_a_la_ventana_con(
     app: &tauri::AppHandle,
     clase: &str,
     datos: Value,

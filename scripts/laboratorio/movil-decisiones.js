@@ -137,6 +137,8 @@ async (page) => {
   // 8. El modo de Claude Code, con Shift+Tab.
   await page.goto(`${B}/#terminal=1`);
   await page.waitForFunction(() => /Modo/.test(document.getElementById("modo")?.textContent || ""));
+  // Las teclas van plegadas: el botón del modo está en esa fila.
+  if (await page.$eval("#teclas", (t) => t.hidden)) await page.click("#abrir-teclas");
   r.modos = [await page.textContent("#modo")];
   await page.click("#modo");
   await page.waitForFunction(() => document.getElementById("modo")?.textContent.includes("Cambiar modo"), null, { timeout: 6000 });

@@ -35,6 +35,7 @@ import {
   interpretarLote,
   repartir,
   rolDePuesto,
+  sinVineta,
   tituloDelReparto,
   MAX_TAREAS,
   type Reparto,
@@ -178,7 +179,7 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
   const crudas = useMemo(() => {
     const escritas = texto
       .split("\n")
-      .map((l) => l.replace(/^\s*[-*\d.)\]]+\s*/, "").trim())
+      .map(sinVineta)
       .filter(Boolean);
     const deLaCasa = [
       ...objetivos.filter((g) => marcadas.has(`o${g.idx}`)).map((g) => g.text),
@@ -226,7 +227,7 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
           reglas,
         };
         setMundo(elMundo);
-        setReparto(repartir(conProyecto, elMundo, meta, new Date().toLocaleString()));
+        setReparto(repartir(conProyecto, elMundo, meta, new Date().toLocaleString(), inicial?.nota));
       })
       .catch((e) => setError(String(e)))
       .finally(() => setPensando(false));
@@ -249,7 +250,7 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
     const tareas = reparto.puestos.map((p, j) =>
       j === i ? { ...p.tarea, pedido } : p.tarea,
     );
-    setReparto(repartir(tareas, mundo, objetivoDelLote, new Date().toLocaleString()));
+    setReparto(repartir(tareas, mundo, objetivoDelLote, new Date().toLocaleString(), inicial?.nota));
   };
 
   /** Abre el lote entero: primero el papel, luego la gente. */

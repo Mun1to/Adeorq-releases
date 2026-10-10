@@ -20,7 +20,12 @@ export type Accion =
   | { tipo: "proyecto"; name: string; cwd: string }
   | { tipo: "terminal"; id: number; enLienzo: boolean }
   /** Pulsa por ti un atajo que la app ya tiene: una sola implementación. */
-  | { tipo: "atajo"; key: string };
+  | { tipo: "atajo"; key: string }
+  /** Pasa la paleta a buscar archivos por su nombre, que es lo que hace Ctrl+P.
+      Desde dentro de una terminal esa tecla es del programa, y se llega por aquí. */
+  | { tipo: "archivos" }
+  /** Un archivo del proyecto, por su ruta relativa: lo que se elige en ese modo. */
+  | { tipo: "archivo"; ruta: string };
 
 export interface Entrada {
   /** Estable entre repintados, para la `key` de React. */
@@ -75,6 +80,13 @@ export function entradasDeLaPaleta(hay: LoQueHay, t: Translate): Entrada[] {
       texto: t(p.label),
       accion: { tipo: "vista", view: p.key },
     })),
+    {
+      id: "archivos",
+      grupo: t("Acción"),
+      texto: t("Abrir un archivo por su nombre"),
+      atajo: "Ctrl+P",
+      accion: { tipo: "archivos" },
+    },
     ...ATAJOS.map((a): Entrada => ({
       id: `atajo:${a.key}`,
       grupo: t("Acción"),

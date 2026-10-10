@@ -74,6 +74,28 @@ export function estadosDe(
   return m;
 }
 
+/** La letra con que git nombra cada cambio: M modificado, A nuevo, D borrado,
+    R renombrado, U en conflicto. */
+export type LetraGit = Cambio["estado"];
+
+/**
+ * La letra de git de cada archivo cambiado, por su `clave`.
+ *
+ * Va aparte del estado y no dentro: el estado es UNO, el que más importa, y un
+ * archivo que se está escribiendo ahora (amarillo) sigue siendo además un «M» o
+ * un «A». El color dice qué pasa ahora; la letra, qué le va a contar git al commit.
+ */
+export function letrasDe(cambios: Cambio[]): Map<string, LetraGit> {
+  const m = new Map<string, LetraGit>();
+  for (const c of cambios) m.set(clave(c.ruta), c.estado);
+  return m;
+}
+
+/** Las rutas de lo borrado y todavía sin commit: el disco ya no las lista. */
+export function borradosDe(cambios: Cambio[]): string[] {
+  return cambios.filter((c) => c.estado === "D").map((c) => c.ruta);
+}
+
 /** Lo más importante que hay dentro de una carpeta, o nada si está todo como en el commit. */
 export function estadoDeCarpeta(carpeta: string, estados: Map<string, EstadoArchivo>): EstadoArchivo | null {
   const dentro = `${clave(carpeta)}/`;

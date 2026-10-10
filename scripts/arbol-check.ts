@@ -8,6 +8,7 @@
 // CommonJS y ejecutándola.)
 
 import {
+  conBorrados,
   dentroDe,
   filasVisibles,
   nombreDeRuta,
@@ -157,5 +158,31 @@ ok(
   "el peso se lee en la unidad que toca",
   peso(512) === "512 B" && peso(2048) === "2 kB" && peso(3 * 1024 * 1024) === "3.0 MB",
 );
+
+/* ── Lo borrado vuelve a su carpeta ─────────────────────────────────────────
+   Un archivo borrado sin commit no está en el disco, así que el listado no lo
+   trae: solo se veía «1 borrado» arriba, sin saber cuál. */
+{
+  const base: Leidas = new Map([
+    [R, [carpeta("src"), archivo("LICENSE"), archivo("package.json")]],
+    [`${R}\\src`, [carpeta("lib", `${R}\\src`), archivo("App.tsx", `${R}\\src`), archivo("main.tsx", `${R}\\src`)]],
+  ]);
+  const nombres = (l: Leidas) => filasVisibles(l, R).map((f) => f.nombre);
+  const con = conBorrados(base, [`${R}\\src\\Index.tsx`, `${R}\\notas.md`, `${R}\\docs\\viejo.md`]);
+  ok(
+    "cada borrado sale en su carpeta, entre los archivos y por su nombre",
+    nombres(con).join() === "src,lib,App.tsx,Index.tsx,main.tsx,LICENSE,notas.md,package.json",
+    nombres(con).join(),
+  );
+  ok("el de una carpeta que no está desplegada no sale", !nombres(con).includes("viejo.md"));
+  ok("no toca lo leído: devuelve otro mapa", base.get(R)?.length === 3 && con !== base);
+  ok("sin borrados, es el mismo mapa (no se repinta por nada)", conBorrados(base, []) === base);
+  ok("uno que el disco sí lista no se repite", nombres(conBorrados(base, [`${R}\\src\\App.tsx`])).filter((n) => n === "App.tsx").length === 1);
+  ok(
+    "las barras y las mayúsculas de la ruta de git no importan",
+    nombres(conBorrados(base, ["c:/proyectos/adeorq/src/Zeta.ts"])).join() === "src,lib,App.tsx,main.tsx,Zeta.ts,LICENSE,package.json",
+    nombres(conBorrados(base, ["c:/proyectos/adeorq/src/Zeta.ts"])).join(),
+  );
+}
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

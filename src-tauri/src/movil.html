@@ -143,7 +143,10 @@
   .barra-portada { border-bottom: 0; padding-bottom: 2px; }
   .barra-portada h1 { font-size: 19px; }
   .barra-portada small { font-size: 13px; }
-  .nueva-txt { font-weight: 400; color: var(--suave); }
+  /* La caja del conserje en la portada: la misma de un chat, con su chispa. */
+  .decir { margin-bottom: 10px; padding-left: 8px; }
+  .decir .avatar { margin-bottom: 2px; }
+  .decir textarea { max-height: 120px; }
   .segunda small { margin-left: auto; font-size: 12.5px; font-weight: 400; color: var(--suave); }
   .segunda small:empty { display: none; }
   .segunda small + .cuenta-dec { margin-left: 8px; }
@@ -425,10 +428,13 @@
     background: var(--acento); color: var(--sobre-acento); display: grid; place-items: center;
   }
   .enviar:disabled { opacity: 0.4; cursor: default; }
-  .adjuntar {
+  .adjuntar, .abrir-teclas {
     flex: none; width: 34px; height: 38px; margin-left: -6px; border: 0; border-radius: 50%; cursor: pointer;
     background: none; color: var(--suave); display: grid; place-items: center;
   }
+  /* El botón que saca y guarda la fila de teclas de una terminal. */
+  .abrir-teclas { margin-left: -4px; }
+  .abrir-teclas[aria-expanded="true"] { color: var(--acento); }
   .adjuntos { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
   .adjuntos[hidden] { display: none; }
   .adjunto {
@@ -809,6 +815,7 @@ const ICONO = {
   deshacer: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>',
   terminal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7l5 5-5 5"/><path d="M12 17h7"/></svg>',
   clip: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 01-7.1-7.1l8.6-8.6a3.3 3.3 0 014.7 4.7l-8.6 8.6a1.7 1.7 0 01-2.4-2.4l7.9-7.9"/></svg>',
+  teclas: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10.2 10h.01M13.8 10h.01M17.5 10h.01M8 14h8"/></svg>',
 };
 
 /* Cómo se dice el estado de una terminal (los `WorkState` de lib/pty.ts), y
@@ -1341,7 +1348,11 @@ async function pintarLista() {
     <div class="vista">
       <header class="barra barra-portada"><span class="avatar avatar-m" id="masc-portada">${mascota(animoPortada, 34, "portada")}</span><h1>Adeorq<small id="yo">tu PC</small></h1></header>
       <main class="cuerpo">
-        <button id="nueva" class="nueva"><span class="avatar">${ICONO.chispa}</span><span class="nueva-txt">Dile al conserje qué hay que hacer</span></button>
+        <div class="fila-caja decir" id="nueva">
+          <span class="avatar">${ICONO.chispa}</span>
+          <textarea id="decir" rows="1" placeholder="Dile al conserje qué hay que hacer" aria-label="Mensaje nuevo al conserje"></textarea>
+          <button class="enviar" id="decir-enviar" aria-label="Enviar al conserje" disabled>${ICONO.subir}</button>
+        </div>
         <div id="reclaman"></div>
         <div id="portada-term"></div>
         <button id="decisiones" class="nueva segunda"><span class="avatar">${ICONO.decision}</span>Decisiones<small id="dec-sobran"></small><b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
@@ -1351,7 +1362,20 @@ async function pintarLista() {
         <button id="instalar" class="avisos" hidden>Instalar Adeorq como app en este aparato</button>
       </main>
     </div>`;
-  document.getElementById("nueva").addEventListener("click", () => ir({ vista: "hilo", id: nuevoId(), nueva: true }));
+  /* Al conserje se le escribe desde aquí mismo: antes esto era un botón que
+     abría la conversación, y había que tocar otra vez para empezar a escribir.
+     Lo que mandas abre su conversación ya con tu mensaje saliendo. */
+  const decir = document.getElementById("decir");
+  const decirB = document.getElementById("decir-enviar");
+  decir.addEventListener("input", () => {
+    decir.style.height = "auto";
+    decir.style.height = `${Math.min(decir.scrollHeight, 120)}px`;
+    decirB.disabled = !decir.value.trim();
+  });
+  decirB.addEventListener("click", () => {
+    const texto = decir.value.trim();
+    if (texto) ir({ vista: "hilo", id: nuevoId(), alEntrar: texto });
+  });
   document.getElementById("terminales").addEventListener("click", () => ir({ vista: "terminales" }));
   document.getElementById("decisiones").addEventListener("click", () => ir({ vista: "decisiones" }));
   pintarAvisos().catch(() => {});
@@ -1491,9 +1515,14 @@ function pintarHiloEntero() {
   e.adj = montarAdjuntos(document.getElementById("caja"), () => pintarCaja());
   pintarHilo();
   pintarCaja();
-  // Una conversación nueva se abre para escribir: el toque que te trajo aquí
-  // ya saca el teclado, sin tener que tocar la caja otra vez.
-  if (e.nueva) texto.focus({ preventScroll: true });
+  // Lo escrito en la portada sale nada más llegar: la conversación se abre con
+  // tu mensaje ya de camino.
+  if (e.alEntrar) {
+    const primero = e.alEntrar;
+    e.alEntrar = null;
+    enviar(primero);
+    return;
+  }
   cargarHilo().catch((err) => mostrarFallo(err.message));
 }
 
@@ -2125,6 +2154,11 @@ function filaHtml(f) {
    búfer), así que en una terminal de agente se abre por defecto lo que se ha
    dicho, leído de su transcript, y la pantalla queda en la otra pestaña. */
 function pintarTerminal() {
+  // Las teclas (Intro, Esc, Ctrl+C, el modo, las flechas) van plegadas tras un
+  // botón de la caja: se usan de vez en cuando y ocupaban una fila siempre. El
+  // aparato recuerda si las dejaste fuera.
+  let teclasFuera = false;
+  try { teclasFuera = localStorage.getItem("adeorq-movil-teclas") === "1"; } catch (_) {}
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
@@ -2147,10 +2181,11 @@ function pintarTerminal() {
         <div class="adjuntos" hidden></div>
         <div class="fila-caja">
           ${CLIP}
+          <button class="abrir-teclas" id="abrir-teclas" type="button" aria-controls="teclas" aria-expanded="${teclasFuera}" aria-label="Teclas: Intro, Esc, Ctrl+C y cambiar de modo">${ICONO.teclas}</button>
           <textarea id="texto" rows="1" placeholder="Escríbele a esta terminal" aria-label="Texto para la terminal"></textarea>
           <button class="enviar" id="enviar" aria-label="Enviar" disabled>${ICONO.subir}</button>
         </div>
-        <div class="pastillas teclas">
+        <div class="pastillas teclas" id="teclas"${teclasFuera ? "" : " hidden"}>
           <button class="pastilla" data-tecla="intro">Intro</button>
           <button class="pastilla" data-tecla="esc">Esc</button>
           <button class="pastilla" data-tecla="ctrl+c">Ctrl+C</button>
@@ -2162,6 +2197,16 @@ function pintarTerminal() {
     </div>`;
   // Se vuelve a donde se entró: a la portada, o a la lista de todas.
   document.getElementById("atras").addEventListener("click", () => ir({ vista: e.volver === "lista" ? "lista" : "terminales" }, true));
+  // Como los botones de tecla, este no coge el foco: si estabas escribiendo,
+  // el teclado sigue fuera y nada se mueve de sitio a mitad del toque.
+  const abrirTeclas = document.getElementById("abrir-teclas");
+  abrirTeclas.addEventListener("mousedown", (ev) => ev.preventDefault());
+  abrirTeclas.addEventListener("click", () => {
+    const fila = document.getElementById("teclas");
+    fila.hidden = !fila.hidden;
+    abrirTeclas.setAttribute("aria-expanded", String(!fila.hidden));
+    try { localStorage.setItem("adeorq-movil-teclas", fila.hidden ? "0" : "1"); } catch (_) {}
+  });
   const texto = document.getElementById("texto");
   const enviarB = document.getElementById("enviar");
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
@@ -2210,7 +2255,8 @@ function pintarTerminal() {
     const bModo = document.getElementById("modo");
     if (bModo) bModo.textContent = modo ? `Modo: ${modo} ⇄` : "Cambiar modo";
     const [palabra] = estadoTerminal(v);
-    document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small id="sub">${esc(hoja(v.carpeta))} · ${palabra}</small>`;
+    // El modo se dice también arriba: con las teclas plegadas, su botón no se ve.
+    document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small id="sub">${esc(hoja(v.carpeta))} · ${palabra}${modo ? ` · modo ${esc(modo)}` : ""}</small>`;
     const ahora = cara();
     document.getElementById("pestanas").hidden = !ultima.conversa;
     document.querySelectorAll(".pestanas .pastilla").forEach((b) => { b.dataset.on = String(b.dataset.cara === ahora); });

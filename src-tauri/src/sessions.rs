@@ -1529,6 +1529,105 @@ fn count_agents(lines: &[String], fresh: bool) -> (u32, u32) {
     (if fresh { open.len() as u32 } else { 0 }, total)
 }
 
+/// Un agente que la sesión mandó a trabajar, para la lista que sale al pasar
+/// el ratón por el robot de la cabecera.
+///
+/// Munir, 2026-10-10: no quería que Adeorq cerrase agentes por su cuenta, pero
+/// sí «un mayor control de los agentes»: el robot decía CUÁNTOS había fuera y
+/// nada de quién era cada uno ni qué estaba haciendo.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgenteDeSesion {
+    /// Qué clase de agente pidió la sesión: «Explore», «general-purpose»…
+    pub tipo: String,
+    /// La descripción corta con que lo mandó.
+    pub que: String,
+    /// Cuándo salió y cuándo volvió, en ISO, tal como lo escribió el CLI.
+    pub desde: String,
+    pub hasta: Option<String>,
+    /// Sigue fuera, trabajando.
+    pub vivo: bool,
+    /// Volvió con error.
+    pub fallo: bool,
+    /// Se lanzó en segundo plano: su resultado inmediato es solo el acuse de
+    /// que salió, así que del historial no se puede saber si ya terminó.
+    pub fondo: bool,
+}
+
+/// Cuántos se enseñan: los que siguen fuera caben siempre; de los que ya
+/// volvieron, los últimos.
+const TOPE_AGENTES: usize = 16;
+
+/// Los mismos despliegues que cuenta `count_agents`, con nombre: cada `tool_use`
+/// Task/Agent es una salida y el `tool_result` con su id, la vuelta. Los que
+/// siguen fuera van primero; después, los que volvieron, el más reciente arriba.
+fn agentes_de(lines: &[String], fresh: bool) -> Vec<AgenteDeSesion> {
+    let mut todos: Vec<(String, AgenteDeSesion)> = Vec::new();
+    for line in lines {
+        if !line.contains("tool_use") && !line.contains("tool_result") {
+            continue;
+        }
+        let Ok(v) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        let Some(blocks) = v["message"]["content"].as_array() else {
+            continue;
+        };
+        let hora = v["timestamp"].as_str().unwrap_or_default();
+        for b in blocks {
+            match b["type"].as_str() {
+                Some("tool_use") if matches!(b["name"].as_str(), Some("Task") | Some("Agent")) => {
+                    let Some(id) = b["id"].as_str() else { continue };
+                    let input = &b["input"];
+                    todos.push((
+                        id.to_owned(),
+                        AgenteDeSesion {
+                            tipo: input["subagent_type"].as_str().unwrap_or("agente").to_owned(),
+                            que: recortado(input["description"].as_str().unwrap_or_default(), 80),
+                            desde: hora.to_owned(),
+                            hasta: None,
+                            vivo: fresh,
+                            fallo: false,
+                            fondo: input["run_in_background"].as_bool().unwrap_or(false),
+                        },
+                    ));
+                }
+                Some("tool_result") => {
+                    let Some(id) = b["tool_use_id"].as_str() else { continue };
+                    if let Some((_, a)) = todos.iter_mut().find(|(i, _)| i == id) {
+                        a.hasta = Some(hora.to_owned());
+                        a.vivo = false;
+                        a.fallo = b["is_error"].as_bool().unwrap_or(false);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    let (fuera, mut vueltos): (Vec<_>, Vec<_>) = todos.into_iter().map(|(_, a)| a).partition(|a| a.vivo);
+    vueltos.reverse();
+    vueltos.truncate(TOPE_AGENTES.saturating_sub(fuera.len().min(TOPE_AGENTES)));
+    fuera.into_iter().chain(vueltos).collect()
+}
+
+/// Los agentes de la sesión de un panel, con qué hace cada uno. Se lee de la
+/// cola del transcript, como el contador de la cabecera: no cuesta una llamada.
+#[tauri::command(async)]
+pub fn session_agents(cwd: String, session_id: Option<String>) -> Vec<AgenteDeSesion> {
+    let Some(path) = transcript_de(&cwd, session_id.as_deref()) else {
+        return Vec::new();
+    };
+    let Ok(lines) = read_tail(&path) else {
+        return Vec::new();
+    };
+    let fresh = std::fs::metadata(&path)
+        .and_then(|m| m.modified())
+        .and_then(|t| t.elapsed().map_err(std::io::Error::other))
+        .map(|age| age.as_secs() < AGENTS_STALE_S)
+        .unwrap_or(false);
+    agentes_de(&lines, fresh)
+}
+
 /// How full the context of a pane's session is. Reads the tail of the
 /// transcript (the CLI records usage on every assistant message), so it costs
 /// nothing and needs no API call. Falls back to the newest transcript of the
@@ -3082,6 +3181,39 @@ otra
         assert_eq!(count_agents(&lines, true), (1, 2));
         // Same transcript gone stale: nothing can still be running.
         assert_eq!(count_agents(&lines, false), (0, 2));
+    }
+
+    /// La lista del robot de la cabecera: quién es cada agente, qué hace y si
+    /// sigue fuera. Tiene que cuadrar con el número que cuenta `count_agents`.
+    #[test]
+    fn cada_agente_sale_con_su_nombre_y_si_sigue_fuera() {
+        let lines: Vec<String> = vec![
+            r#"{"type":"assistant","timestamp":"2026-10-10T18:00:00Z","message":{"content":[{"type":"tool_use","id":"t1","name":"Agent","input":{"subagent_type":"Explore","description":"Mapa del editor"}},{"type":"tool_use","id":"t2","name":"Task","input":{"subagent_type":"Plan","description":"Plan de las terminales"}}]}}"#.into(),
+            r#"{"type":"user","timestamp":"2026-10-10T18:04:00Z","message":{"content":[{"type":"tool_result","tool_use_id":"t1"}]}}"#.into(),
+            r#"{"type":"assistant","timestamp":"2026-10-10T18:05:00Z","message":{"content":[{"type":"tool_use","id":"t3","name":"Agent","input":{"description":"Inventario","run_in_background":true}},{"type":"tool_use","id":"t4","name":"Bash","input":{"command":"ls"}}]}}"#.into(),
+            r#"{"type":"user","timestamp":"2026-10-10T18:05:01Z","message":{"content":[{"type":"tool_result","tool_use_id":"t3"},{"type":"tool_result","tool_use_id":"t4","is_error":true}]}}"#.into(),
+        ];
+        let a = agentes_de(&lines, true);
+        // El que sigue fuera, primero; luego los que volvieron, el último arriba.
+        assert_eq!(a.iter().map(|x| x.que.as_str()).collect::<Vec<_>>(), ["Plan de las terminales", "Inventario", "Mapa del editor"]);
+        assert_eq!((a[0].tipo.as_str(), a[0].vivo, a[0].hasta.clone()), ("Plan", true, None));
+        // En segundo plano: su resultado es solo el acuse de que salió.
+        assert_eq!((a[1].tipo.as_str(), a[1].fondo, a[1].vivo), ("agente", true, false));
+        assert_eq!((a[2].vivo, a[2].hasta.as_deref(), a[2].fallo), (false, Some("2026-10-10T18:04:00Z"), false));
+        // El error de OTRA herramienta (t4, un Bash) no es de ningún agente.
+        assert!(a.iter().all(|x| !x.fallo));
+        // Los vivos de la lista son los que cuenta la cabecera.
+        assert_eq!(a.iter().filter(|x| x.vivo).count() as u32, count_agents(&lines, true).0);
+        // Un transcript parado no tiene a nadie fuera, aunque no conste la vuelta.
+        assert!(agentes_de(&lines, false).iter().all(|x| !x.vivo));
+        // Y con muchos, los que siguen fuera caben siempre.
+        let muchos: Vec<String> = (0..40)
+            .map(|i| format!(r#"{{"type":"assistant","timestamp":"t","message":{{"content":[{{"type":"tool_use","id":"m{i}","name":"Agent","input":{{"description":"n{i}"}}}}]}}}}"#))
+            .chain((0..30).map(|i| format!(r#"{{"type":"user","timestamp":"t","message":{{"content":[{{"type":"tool_result","tool_use_id":"m{i}"}}]}}}}"#)))
+            .collect();
+        let lista = agentes_de(&muchos, true);
+        assert_eq!(lista.iter().filter(|x| x.vivo).count(), 10);
+        assert_eq!(lista.len(), TOPE_AGENTES);
     }
 
     #[test]

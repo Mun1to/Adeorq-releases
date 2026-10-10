@@ -95,6 +95,36 @@ export function rolDePuesto(t: Tarea): string {
   return TRABAJO[t.ex.trabajo] ?? TRABAJO.codigo;
 }
 
+/** La nota del lienzo de la que salen las tareas de un reparto. */
+export interface NotaDeOrigen {
+  titulo: string;
+  /** Dónde está su `.md` en disco: es lo que el agente va a editar. */
+  ruta: string;
+  /** Sus casillas sin marcar, con el texto tal cual está en el archivo. */
+  tareas: string[];
+}
+
+/** Una línea del cuadro del Reparto sin su viñeta ni su número. */
+export function sinVineta(linea: string): string {
+  return linea.replace(/^\s*[-*\d.)\]]+\s*/, "").trim();
+}
+
+/**
+ * La casilla de la nota que corresponde a esta tarea, o `null`.
+ *
+ * Se casa por el texto y no por la posición: en el Reparto puedes quitar una
+ * línea, añadir otra o marcar ideas de la casa, y entonces la tercera tarea ya
+ * no es la tercera casilla. Una tarea reescrita deja de casar, que es lo
+ * correcto: ya no es esa línea, y mandar a un agente a marcar la de otro sería
+ * peor que no marcar ninguna. Las dos se comparan sin viñeta porque el cuadro
+ * se la quita a lo que lee («3 pruebas nuevas» pierde su 3).
+ */
+export function casillaDe(nota: NotaDeOrigen, texto: string): string | null {
+  const busca = sinVineta(texto);
+  if (!busca) return null;
+  return nota.tareas.find((l) => sinVineta(l) === busca) ?? null;
+}
+
 /**
  * El prompt inicial, adaptado al cliente que va a recibirlo.
  *
@@ -105,9 +135,16 @@ export function rolDePuesto(t: Tarea): string {
  * CLI lo cargue solo: así el encargo funciona igual en el que lee `AGENTS.md`
  * por su cuenta y en el que no.
  */
-export function promptPara(cli: string, t: Tarea, otras: Tarea[], objetivo?: string): string {
+export function promptPara(
+  cli: string,
+  t: Tarea,
+  otras: Tarea[],
+  objetivo?: string,
+  nota?: NotaDeOrigen,
+): string {
   const partes: string[] = [];
   const encargo = (t.encargo ?? t.texto).trim();
+  const casilla = nota ? casillaDe(nota, t.texto) : null;
 
   if (objetivo) {
     // «del día» no: un reparto puede ser la misión de la semana o un encargo de
@@ -138,6 +175,17 @@ export function promptPara(cli: string, t: Tarea, otras: Tarea[], objetivo?: str
       "Cuando termines o te bloquees, escribe ahí en una línea qué has hecho y qué te falta.",
   );
   partes.push("Si el proyecto tiene AGENTS.md o CLAUDE.md, síguelos.");
+
+  // La casilla es SUYA y de nadie más: seis agentes editando el mismo archivo
+  // solo no se pisan si cada uno toca una línea, y por eso se le dice cuál.
+  if (nota && casilla !== null) {
+    partes.push(
+      `Esta tarea sale de mi nota «${nota.titulo || "sin título"}».\nArchivo: ${nota.ruta}\n` +
+        `Tu línea es «- [ ] ${casilla}». Cuando la termines DE VERDAD, edita ese archivo y ` +
+        "cambia su «- [ ]» por «- [x]» en ESA línea, sin tocar nada más: las otras son de " +
+        "otros agentes. Si no la terminas, déjala sin marcar.",
+    );
+  }
 
   // Sugerir una skill a un CLI que no las tiene es mandarle a escribir algo que
   // no existe, así que se pregunta por la capacidad y no por el nombre.
@@ -199,7 +247,13 @@ export function actaDeReparto(puestos: Puesto[], objetivo?: string, cuando?: str
  * que todas ven la misma cuota y el mismo plan, y el peso de abajo es el que de
  * verdad se va a gastar si aceptas.
  */
-export function repartir(tareas: Tarea[], mundo: Mundo, objetivo?: string, cuando?: string): Reparto {
+export function repartir(
+  tareas: Tarea[],
+  mundo: Mundo,
+  objetivo?: string,
+  cuando?: string,
+  nota?: NotaDeOrigen,
+): Reparto {
   const dentro = tareas.slice(0, MAX_TAREAS);
   const puestos: Puesto[] = dentro.map((tarea) => {
     const receta = recetarConMemoria(tarea.ex, mundo, tarea.pedido, cerebroPorDefecto(), {
@@ -207,7 +261,7 @@ export function repartir(tareas: Tarea[], mundo: Mundo, objetivo?: string, cuand
       encargo: tarea.encargo ?? tarea.texto,
     });
     const otras = dentro.filter((o) => o !== tarea);
-    return { tarea, receta, prompt: promptPara(receta.cli, tarea, otras, objetivo) };
+    return { tarea, receta, prompt: promptPara(receta.cli, tarea, otras, objetivo, nota) };
   });
 
   const avisos: string[] = [];
@@ -330,6 +384,8 @@ export interface RepartoInicial {
   texto?: string;
   proyecto?: string;
   objetivo?: string;
+  /** La nota del lienzo de la que salen las tareas, si salen de una. */
+  nota?: NotaDeOrigen;
   /** Qué hacer SI se abrió la cuadrilla de verdad. Cerrar sin abrir no lo
       llama: es lo que quita las tarjetas del kanban, y quitarlas por haber
       mirado sería perderlas. */

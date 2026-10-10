@@ -63,9 +63,21 @@ async (page) => {
   await page.waitForSelector("#turnos .turno");
   debe(await page.$eval("#titulo", (h) => /claude/.test(h.textContent)), "«atrás» vuelve a la terminal de la que venía");
 
-  // 6. Las teclas, en una sola fila.
-  const filasTeclas = await page.$$eval(".teclas .pastilla", (b) => new Set(b.map((x) => x.offsetTop)).size);
-  debe(filasTeclas === 1, `las teclas en una fila (${filasTeclas})`);
+  // 6. Las teclas van plegadas tras su botón (una fila menos que leer); al
+  //    sacarlas caben en una sola fila, y el aparato recuerda que las dejaste
+  //    fuera. Con ellas plegadas, el modo se sigue leyendo arriba.
+  debe(await page.$eval("#teclas", (t) => t.hidden), "las teclas empiezan plegadas");
+  debe(/modo auto/.test(await page.textContent("#sub")), `el modo se dice arriba (${await page.textContent("#sub")})`);
+  await page.click("#abrir-teclas");
+  const teclas = await page.evaluate(() => ({
+    fuera: !document.getElementById("teclas").hidden,
+    filas: new Set([...document.querySelectorAll(".teclas .pastilla")].map((x) => x.offsetTop)).size,
+    cuantas: document.querySelectorAll(".teclas .pastilla").length,
+    recordado: localStorage.getItem("adeorq-movil-teclas"),
+    dice: document.getElementById("abrir-teclas").getAttribute("aria-expanded"),
+  }));
+  debe(teclas.fuera && teclas.filas === 1 && teclas.cuantas === 6, `fuera, las seis en una fila (${JSON.stringify(teclas)})`);
+  debe(teclas.recordado === "1" && teclas.dice === "true", `y se recuerda (${JSON.stringify(teclas)})`);
 
   // 7. «Pantalla»: avisa de dónde está el historial, sin cajitas ni rayas partidas.
   await page.click('[data-cara="pantalla"]');
@@ -142,6 +154,20 @@ async (page) => {
   await page.waitForSelector("#turnos .turno");
   await page.click("#atras");
   debe(await page.waitForSelector("#portada-term .fila-t", { timeout: 4000 }).then(() => true, () => false), "«atrás» desde una terminal abierta en la portada vuelve a la portada");
+
+  // 13. Al conserje se le escribe desde la portada: lo que mandas abre su
+  //     conversación con tu mensaje ya saliendo, y él contesta ahí.
+  debe(await page.$eval("#decir-enviar", (b) => b.disabled), "sin texto, la caja de la portada no envía");
+  await page.fill("#decir", "Mira por qué se cae el radar");
+  await page.click("#decir-enviar");
+  await page.waitForSelector("#hilo .turno");
+  const alLlegar = await page.evaluate(() => ({
+    tuyo: document.querySelector('#hilo .turno[data-rol="tu"]')?.innerText,
+    pensando: Boolean(document.querySelector("#hilo .pensando .masc")),
+  }));
+  debe(alLlegar.tuyo === "Mira por qué se cae el radar" && alLlegar.pensando, `abre la conversación con tu mensaje saliendo (${JSON.stringify(alLlegar)})`);
+  await page.waitForSelector('#hilo .turno[data-rol="agente"]', { timeout: 9000 });
+  debe((await page.$$eval("#hilo .turno", (t) => t.length)) === 2, "y el conserje contesta en ella, sin repetir tu mensaje");
 
   return { fallos };
 }

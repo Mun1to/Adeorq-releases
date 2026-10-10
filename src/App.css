@@ -97,3 +97,6 @@
 
 /* La paleta de comandos (Ctrl+K). */
 @import "./estilos/27-paleta.css";
+
+/* Los encargos programados de la Agenda. */
+@import "./estilos/28-programados.css";

@@ -54,6 +54,8 @@ import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
 import ProjectAvatar from "./ProjectAvatar";
 import AgendaSesiones, { ESPERAN } from "./AgendaSesiones";
+import AgendaProgramados, { useProgramados } from "./AgendaProgramados";
+import { cortados, cuandoFalta, elSiguiente } from "../lib/programados";
 import Objetivos from "./Objetivos";
 import {
   goalsAdd,
@@ -118,7 +120,7 @@ function richLine(text: string): React.ReactNode[] {
 }
 
 /** La portada, y una pantalla por cifra. */
-type Modo = null | "propuestas" | "sesiones" | "objetivos" | "fechas" | "metas" | "ideas";
+type Modo = null | "propuestas" | "sesiones" | "objetivos" | "fechas" | "metas" | "ideas" | "programados";
 
 const TITULOS: Record<NonNullable<Modo>, string> = {
   propuestas: "De tus agentes",
@@ -127,6 +129,7 @@ const TITULOS: Record<NonNullable<Modo>, string> = {
   fechas: "Calendario",
   metas: "Próximos pasos",
   ideas: "Ideas",
+  programados: "Encargos programados",
 };
 
 /** «martes, 11 de agosto». Sin el año: hoy no necesita que le recuerden en qué
@@ -346,6 +349,10 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
   /** What the rail calls each project: one name for the same thing everywhere. */
   const [alias, setAlias] = useState<Record<string, string>>({});
   const shownName = (name: string) => alias[name] || name;
+  /** Los encargos que se lanzan solos: su cifra en la portada y su pantalla. */
+  const [programados, setProgramados] = useProgramados();
+  const parados = cortados(programados?.encargos ?? []);
+  const siguiente = elSiguiente(programados?.encargos ?? [], new Date());
   /** En qué está mirando. `null` es la portada: seis cifras y nada más. */
   const [modo, setModo] = useState<Modo>(null);
   /** Qué propuesta se está revisando, dentro del modo propuestas. */
@@ -657,6 +664,15 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
             {CardPasos()}
           </>
         );
+      case "programados":
+        return (
+          <AgendaProgramados
+            proyectos={projects}
+            cwdInicial={projects.find((p) => p.name === project)?.path ?? ""}
+            estado={programados}
+            onEstado={setProgramados}
+          />
+        );
       default:
         return null;
     }
@@ -777,6 +793,19 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
             que={t("ideas vivas")}
             pie={link !== "in" ? t("brújula sin conectar") : t("en tu brújula")}
             onClick={() => setModo("ideas")}
+          />
+          <Cifra
+            n={programados?.encargos.length ?? 0}
+            viva={parados > 0}
+            que={t("encargos programados")}
+            pie={
+              parados
+                ? t("{n} parados por el freno", { n: parados })
+                : siguiente
+                  ? t("el siguiente, {c}", { c: cuandoFalta(siguiente.cuando, new Date(), t) })
+                  : t("se lanzan solos a su hora")
+            }
+            onClick={() => setModo("programados")}
           />
         </div>
 

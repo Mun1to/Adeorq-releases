@@ -95,8 +95,7 @@
 /* Con fondo puesto, el lienzo de la cabina deja de pintar su color: si no,
    taparía la foto justo en la zona donde están las terminales, que es donde
    se quiere ver. */
-.app:has(.fondo) .view-cabina,
-.app:has(.fondo) .cockpit {
+.app:has(.fondo) .view-cabina {
   background: transparent;
 }
 

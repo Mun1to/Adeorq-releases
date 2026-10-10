@@ -251,10 +251,53 @@
    el árbol dejaría de leerse como columnas. */
 .arch-ico {
   flex: none;
-  width: 12px;
+  width: 14px;
   display: grid;
   place-items: center;
   color: var(--muted);
+}
+/* El icono de cada familia de archivo, con un tinte apagado: lo justo para
+   distinguir de un vistazo código, datos y papeles sin competir con el color
+   del estado, que es el que manda en la fila. */
+.arch-ico[data-tipo] {
+  color: color-mix(in srgb, var(--tipo, var(--muted)) 62%, var(--muted));
+}
+.arch-ico[data-tipo="web"] { --tipo: #6cb7ff; }
+.arch-ico[data-tipo="codigo"] { --tipo: #f0a36b; }
+.arch-ico[data-tipo="estilo"] { --tipo: #c9a5f0; }
+.arch-ico[data-tipo="datos"] { --tipo: #e5c770; }
+.arch-ico[data-tipo="imagen"] { --tipo: #7ec9a8; }
+
+/* La letra de git al final de la fila: M, A, D, R o U, con el color de su estado. */
+.arch-letra {
+  flex: none;
+  margin-left: auto;
+  min-width: 10px;
+  text-align: center;
+  font: 650 10.5px/1 "Cascadia Mono", Consolas, ui-monospace, monospace;
+  color: var(--arch-c, var(--muted));
+}
+.arch-punto + .arch-letra {
+  margin-left: 0;
+}
+/* Lo que llevas en la mano hacia una terminal se apaga en su sitio, y la
+   terminal que lo va a recibir se marca como al soltarle un archivo de fuera.
+   `data-recibe` lo pone `lib/arrastrarRuta.ts` a mano: React no lo pinta. */
+.arch-fila[data-moviendo] {
+  opacity: 0.45;
+}
+.pane[data-recibe] {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+}
+
+/* Borrado y sin commit: ya no está en el disco. Tachado, y no se abre. */
+.arch-fila[data-borrado] {
+  cursor: default;
+}
+.arch-fila[data-borrado] .arch-nom {
+  text-decoration: line-through;
+  opacity: 0.75;
 }
 
 .arch-nom {
@@ -557,21 +600,6 @@
 .pane-web .ph-id > .web-url {
   flex: 1;
   min-width: 0;
-}
-
-/* Con TU navegador aquí no se pinta la página: esto es solo el hueco que se
-   mide para colocar una ventana de Windows encima. Se deja a cuadros muy
-   suaves para que, si algo va mal y la ventana no aparece, se vea que el sitio
-   está reservado y no que el panel se ha quedado en blanco. */
-.web-tuyo {
-  display: grid;
-  place-items: center;
-  background:
-    repeating-linear-gradient(
-      45deg,
-      color-mix(in srgb, var(--text) 3%, transparent) 0 8px,
-      transparent 8px 16px
-    );
 }
 
 /* ── LAS PESTAÑAS ───────────────────────────────────────────────────────────

@@ -149,7 +149,6 @@ export interface ConserjeExec {
  *  para las que se acaban de abrir. */
 export const conserjeSesion = (id: string, w: Trabajo, sesion: string) =>
   invoke<void>("conserje_sesion", { id, panel: w.panel, arranque: w.arranque ?? 0, sesion });
-export const conserjeOlvidar = (id: string) => invoke<void>("conserje_olvidar", { id });
 export const conserjeEnviar = (id: string, texto: string, estados: Record<string, string>) =>
   invoke<Respuesta>("conserje_enviar", { id, texto, estados });
 /** Solo esa conversación: la de al lado (o la del móvil) sigue pensando. */

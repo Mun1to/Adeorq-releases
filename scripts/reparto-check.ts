@@ -9,11 +9,14 @@
 // puede salir mal sin que se note: que un agente reciba instrucciones de otro
 // cliente, que el papel común se quede sin alguien, o que el peso mienta.
 import {
+  casillaDe,
   interpretarLote,
   repartir,
   promptPara,
   rolDePuesto,
+  sinVineta,
   tituloDelReparto,
+  type NotaDeOrigen,
   type Tarea,
 } from "../src/lib/reparto";
 import type { CuentaViva, Exigencia } from "../src/lib/router";
@@ -318,6 +321,61 @@ comprueba(
   "una auditoría no se abarata ni con la semana agotada",
   r.puestos[0].receta.modelo === "opus",
   r.puestos[0].receta.modelo,
+);
+
+// Un reparto que sale de una nota del lienzo: cada sesión sabe cuál es SU
+// casilla. Sin esto, las sesiones no sabían de qué nota venían y la nota se
+// quedaba sin marcar aunque hubieran terminado todas.
+const nota: NotaDeOrigen = {
+  titulo: "Antes del lunes",
+  ruta: "C:\\notas\\n1.md",
+  tareas: ["aviso de IA en la web", "3 pruebas nuevas del login", "sube la versión"],
+};
+r = repartir(
+  [tarea("aviso de IA en la web"), tarea("pruebas nuevas del login"), tarea("una que escribí aquí")],
+  { cuentas: max },
+  undefined,
+  undefined,
+  nota,
+);
+comprueba(
+  "la sesión de una tarea de la nota recibe el archivo y su línea exacta",
+  r.puestos[0].prompt.includes("Archivo: C:\\notas\\n1.md") &&
+    r.puestos[0].prompt.includes("«- [ ] aviso de IA en la web»") &&
+    r.puestos[0].prompt.includes("«Antes del lunes»"),
+  r.puestos[0].prompt,
+);
+comprueba(
+  "y solo la suya: la línea de otro agente no sale como «tu línea»",
+  !r.puestos[0].prompt.includes("«- [ ] 3 pruebas nuevas del login»"),
+  r.puestos[0].prompt,
+);
+comprueba(
+  "la que perdió su número al pasar por el cuadro casa con la línea de verdad",
+  r.puestos[1].prompt.includes("«- [ ] 3 pruebas nuevas del login»"),
+  r.puestos[1].prompt,
+);
+comprueba(
+  "una tarea que no está en la nota no recibe ninguna casilla que marcar",
+  !r.puestos[2].prompt.includes("Archivo:") && !r.puestos[2].prompt.includes("- [x]"),
+  r.puestos[2].prompt,
+);
+comprueba(
+  "sin nota, el encargo es el de siempre",
+  !promptPara("claude", tarea("aviso de IA en la web"), []).includes("Archivo:"),
+  promptPara("claude", tarea("aviso de IA en la web"), []),
+);
+comprueba(
+  "casar es por el texto entero, no por un trozo",
+  casillaDe(nota, "sube la versión") === "sube la versión" &&
+    casillaDe(nota, "sube") === null &&
+    casillaDe(nota, "  ") === null,
+  [casillaDe(nota, "sube la versión"), casillaDe(nota, "sube"), casillaDe(nota, "  ")],
+);
+comprueba(
+  "una línea del cuadro pierde su viñeta o su número, y nada más",
+  sinVineta("- hola") === "hola" && sinVineta("2) dos cosas") === "dos cosas" && sinVineta("  * tres") === "tres",
+  [sinVineta("- hola"), sinVineta("2) dos cosas"), sinVineta("  * tres")],
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

@@ -1,0 +1,241 @@
+/* Los encargos programados, dentro de la Agenda (`AgendaProgramados.tsx`).
+   Todo va en UNA tarjeta de cristal, como los demás modos de la Agenda: la
+   explicación, el botón y las filas. Suelto sobre la foto de fondo, el texto
+   de arriba no se leía (visto en la primera captura, 2026-10-10). El ancho lo
+   pone la regla de `.agenda .panel-card`. */
+.prog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prog-que {
+  margin: 0;
+}
+
+.prog-aviso {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-btn);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.prog-nuevo {
+  align-self: flex-start;
+}
+
+.prog-vacio {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.prog-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Una fila. Lo que está en pausa se apaga; lo que paró el freno NO: es justo
+   lo que tiene que verse, y lleva su borde. */
+.prog-fila {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--row) 45%, transparent);
+}
+.prog-fila[data-estado="pausado"] > :not(.prog-acciones) {
+  opacity: 0.55;
+}
+.prog-fila[data-estado="cortado"] {
+  border-color: color-mix(in srgb, var(--wait) 55%, transparent);
+}
+
+.prog-cab {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.prog-nombre {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--text);
+}
+.prog-cuando {
+  flex: none;
+  font-size: 12.5px;
+  color: var(--accent);
+}
+
+/* Las tres últimas veces, la más nueva a la izquierda. El color dice cómo
+   fue, y el hueco de la que no se lanzó dice que no hay nada que juzgar. */
+.prog-ultimas {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+  flex: none;
+}
+.prog-ultimas i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.prog-ultimas i[data-r="fallo"] {
+  background: var(--wait);
+}
+.prog-ultimas i[data-r="saltado"] {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--muted);
+}
+
+.prog-encargo {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text);
+}
+.prog-pie {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.prog-proxima {
+  margin-left: auto;
+}
+.prog-corte {
+  margin: 2px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--wait) 12%, transparent);
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.prog-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.prog-acciones [data-seguro="true"] {
+  color: var(--wait);
+  border-color: color-mix(in srgb, var(--wait) 55%, transparent);
+}
+
+/* El formulario. */
+.prog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--row) 45%, transparent);
+}
+/* `.finder` es una píldora, y un cuadro de cuatro líneas con esa esquina es
+   un óvalo: misma corrección que el cuadro del Reparto (`.rep-texto`). */
+.prog-encargo-in {
+  width: 100%;
+  min-height: 92px;
+  resize: none;
+  border-radius: 12px;
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.prog-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+.prog-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.prog-cuando-in {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prog-tipos {
+  display: flex;
+  gap: 6px;
+}
+.prog-tipos .mini[data-on="true"] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.prog-semana {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.prog-dia {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chico);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.prog-dia:hover {
+  background: var(--row);
+}
+.prog-dia[data-on="true"] {
+  color: var(--on-accent);
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.prog-a-las {
+  margin: 0 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.prog-hora {
+  width: 112px;
+  font-variant-numeric: tabular-nums;
+}
+.prog-horas {
+  width: 78px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.prog-botones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prog-falta {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--muted);
+}

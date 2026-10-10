@@ -7,7 +7,7 @@
 // guardar, cuál gana cuando un archivo está en varios, y que una carpeta lleve
 // lo más importante de lo que tiene dentro.
 
-import { clave, contar, estadoDeCarpeta, estadosDe, TOCANDO_MS } from "../src/lib/estadoArchivos";
+import { borradosDe, clave, contar, estadoDeCarpeta, estadosDe, letrasDe, TOCANDO_MS } from "../src/lib/estadoArchivos";
 import type { Cambio } from "../src/lib/archivos";
 
 let fallos = 0;
@@ -51,6 +51,17 @@ caso("«src2» no es parte de «src»", estadoDeCarpeta(f("sr"), e) === null);
 {
   const luego = estadosDe(entradas, cambios, [], AHORA + TOCANDO_MS + 10_000);
   caso("con el tiempo, lo nuevo vuelve a «nuevo» y lo cambiado a «cambiado»", luego.get(clave(f("src\\nuevo.ts"))) === "nuevo" && luego.get(clave(f("src\\App.tsx"))) === "cambiado");
+}
+
+// La letra de git va aparte del color: un archivo que se escribe ahora (amarillo)
+// sigue siendo un «A», y uno sin guardar sigue siendo un «M».
+{
+  const letras = letrasDe(cambios);
+  const letra = (p: string) => letras.get(clave(f(p))) ?? "-";
+  caso("la letra es la de git aunque el color sea otro", letra("src\\App.tsx") === "M" && letra("src\\nuevo.ts") === "A" && letra("README.md") === "U", `${letra("src\\App.tsx")}${letra("src\\nuevo.ts")}${letra("README.md")}`);
+  caso("lo que git no nombra no lleva letra", letra("notas.txt") === "-");
+  caso("la letra se encuentra aunque la ruta venga con otras barras", letras.get(clave("c:/proyectos/web/viejo.md")) === "D");
+  caso("lo borrado se lista aparte, para devolverlo a su carpeta", borradosDe(cambios).join() === f("viejo.md"), borradosDe(cambios).join());
 }
 
 if (fallos) {

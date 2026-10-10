@@ -57,6 +57,12 @@ export interface Guardado {
   pisaria: boolean;
 }
 
+/** Todos los archivos de una carpeta, en hondo y relativos a ella, con barras
+    normales: lo que alimenta el buscador de Ctrl+P (`listar_nombres`). */
+export function listarNombres(raiz: string): Promise<string[]> {
+  return invoke("listar_nombres", { raiz });
+}
+
 /** Lista UNA carpeta, la que se acaba de desplegar. */
 export function listarCarpeta(ruta: string): Promise<Carpeta> {
   return invoke("listar_carpeta", { ruta });

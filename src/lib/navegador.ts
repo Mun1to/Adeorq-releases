@@ -1,47 +1,10 @@
-// El puente con `src-tauri/src/navegador.rs`: tu navegador metido dentro de la
-// ventana de Adeorq.
+// El puente con `src-tauri/src/navegador.rs`.
 //
-// Todas las medidas van en píxeles FÍSICOS, que es lo que entiende Windows.
-// Quien llame multiplica por `devicePixelRatio`, y para eso está `enFisicos`.
+// Aquí vivían también los envoltorios del modo «tu navegador» (una ventana de
+// Chromium metida en el panel). Desde el 2026-08-29 la web se pinta siempre
+// dentro del panel y nadie los llamaba; los comandos de Rust siguen ahí.
 
 import { invoke } from "@tauri-apps/api/core";
-
-export interface Empotrada {
-  /** Qué navegador se abrió ("brave", "chrome"…), para poder decirlo. */
-  programa: string;
-}
-
-/** Un rectángulo del DOM, en píxeles de la pantalla y ya redondeado. */
-export function enFisicos(r: DOMRect): { x: number; y: number; ancho: number; alto: number } {
-  const p = window.devicePixelRatio || 1;
-  return {
-    x: Math.round(r.left * p),
-    y: Math.round(r.top * p),
-    ancho: Math.round(r.width * p),
-    alto: Math.round(r.height * p),
-  };
-}
-
-export function empotrarNavegador(
-  id: number,
-  url: string,
-  caja: { x: number; y: number; ancho: number; alto: number },
-): Promise<Empotrada> {
-  return invoke("empotrar_navegador", { id, url, ...caja });
-}
-
-export function moverNavegador(
-  id: number,
-  caja: { x: number; y: number; ancho: number; alto: number },
-): Promise<void> {
-  return invoke("mover_navegador", { id, ...caja });
-}
-
-/** Taparla sin cerrarla. Una ventana de verdad no entiende de CSS, así que
-    esconderla con el resto del panel es cosa de Windows. */
-export function verNavegador(id: number, visible: boolean): Promise<void> {
-  return invoke("ver_navegador", { id, visible });
-}
 
 /**
  * ¿Hay alguien escuchando en ese puerto de esta máquina?
@@ -53,16 +16,4 @@ export function verNavegador(id: number, visible: boolean): Promise<void> {
  */
 export function puertoEscucha(puerto: number): Promise<boolean> {
   return invoke("puerto_escucha", { puerto });
-}
-
-/** Devolverle su marco y dejarla en el escritorio. La página no se pierde.
-    Solo tiene sentido al cerrar Adeorq entero; para cerrar la pestaña o el
-    panel es `cerrarNavegador`, o la ventana reaparece en el escritorio. */
-export function soltarNavegador(id: number): Promise<void> {
-  return invoke("soltar_navegador", { id });
-}
-
-/** Cerrarla, como si le dieras a su X. */
-export function cerrarNavegador(id: number): Promise<void> {
-  return invoke("cerrar_navegador", { id });
 }

@@ -53,6 +53,38 @@ export function plegar(leidas: Leidas, ruta: string): Leidas {
   return fuera;
 }
 
+/** Una ruta comparable: sin distinguir barras, mayúsculas ni la barra final. */
+const igualable = (ruta: string) => ruta.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+
+/**
+ * Los archivos borrados y todavía sin commit vuelven a su carpeta como filas.
+ *
+ * No están en el disco, así que el listado no los trae: un borrado solo se veía
+ * en la cuenta de arriba («1 borrado»), sin forma de saber cuál era. Solo se
+ * añaden a carpetas que ya están desplegadas, entre los archivos y por su
+ * nombre, y sin repetir uno que el listado sí traiga (git todavía lo da por
+ * borrado medio segundo después de que alguien lo vuelva a crear).
+ */
+export function conBorrados(leidas: Leidas, borrados: string[]): Leidas {
+  if (!borrados.length) return leidas;
+  const carpetas = new Map([...leidas.keys()].map((k) => [igualable(k), k]));
+  let fuera: Leidas | null = null;
+  for (const ruta of borrados) {
+    const corte = Math.max(ruta.lastIndexOf("\\"), ruta.lastIndexOf("/"));
+    const carpeta = corte > 0 ? carpetas.get(igualable(ruta.slice(0, corte))) : undefined;
+    if (carpeta === undefined) continue;
+    const filas = (fuera ?? leidas).get(carpeta) ?? [];
+    if (filas.some((e) => igualable(e.ruta) === igualable(ruta))) continue;
+    const nombre = ruta.slice(corte + 1);
+    const copia = [...filas];
+    const sitio = copia.findIndex((e) => !e.carpeta && e.nombre.localeCompare(nombre, undefined, { sensitivity: "base" }) > 0);
+    copia.splice(sitio < 0 ? copia.length : sitio, 0, { nombre, ruta, carpeta: false, peso: 0, cuando: 0 });
+    fuera ??= new Map(leidas);
+    fuera.set(carpeta, copia);
+  }
+  return fuera ?? leidas;
+}
+
 /** Si `hijo` cuelga de `padre`. Compara por separador y no por prefijo pelado:
     `C:\p\Adeorq-releases` empieza por `C:\p\Adeorq` y no está dentro. */
 export function dentroDe(hijo: string, padre: string): boolean {

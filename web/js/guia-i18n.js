@@ -172,6 +172,9 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.agenda.l3': '<b>Ideas</b>: the live ones and the parked ones, each with the condition that would unblock it.',
     'guia.agenda.l4': '<b>Next steps</b>: the <code>METAS.md</code> of the project you are looking at, read ' +
                       'from its folder and extendable from here.',
+    'guia.agenda.l5': '<b>Scheduled orders</b>: an order that launches by itself, on the days and at the hour ' +
+                      'you set or every so many hours. After three failures in a row it stops and tells you, ' +
+                      'and it does not run again until you re-arm it. For now, on Windows and with Claude.',
     'guia.agenda.caja': '<span class="doc-caja__titulo">The tray.</span> ' +
                         'Loose ends turn up while you work that are not for right now. Instead of interrupting ' +
                         'you, they drop into a tray you review whenever you like: you accept what is useful and ' +
@@ -198,7 +201,9 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.lienzo.pie': 'The Canvas. Pieces are placed and connected like on a whiteboard.',
     'guia.lienzo.l1': '<b>Terminals</b> wired to each other: when one finishes, it can hand the baton to the ' +
                       'next one along with its answer.',
-    'guia.lienzo.l2': '<b>Notes</b> in Markdown with checkboxes, which are also files and which an agent can tick.',
+    'guia.lienzo.l2': '<b>Notes</b> in Markdown with checkboxes, which are also files and which an agent can tick. ' +
+                      'An empty note offers the runbooks of the project (the <code>.md</code> files in ' +
+                      '<code>docs/fichas</code>) so you start with the steps already written.',
     'guia.lienzo.l3': '<b>The kanban</b>: drag a card from "To do" to "Working" and a terminal opens with that ' +
                       'brief. The other columns fill themselves with whatever each agent reports.',
     'guia.lienzo.l4': '<b>Work widgets</b>: pomodoro, stopwatch, countdown, calculator and a calendar with notes by day.',

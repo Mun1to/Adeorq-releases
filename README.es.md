@@ -61,7 +61,7 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 | **El panel web** | Tu localhost al lado del agente que lo está construyendo: un navegador pequeño con pestañas, atrás y adelante, y un clic para meter TU navegador de verdad, con sus extensiones. |
 | **Actividad** | Lo que pasa por detrás de la terminal que tienes delante: qué skills y servidores MCP usa, cada herramienta, y cada petición al modelo con sus tokens. |
 | **Modo Espejo** | Cada agente en su propio worktree de git. Ves el diff y decides si entra o se descarta. |
-| **La Agenda** | Lo que se te viene encima, tus objetivos del día y las ideas que los agentes te dejan por el camino. |
+| **La Agenda** | Lo que se te viene encima, tus objetivos del día y las ideas que los agentes te dejan por el camino. Y encargos que se lanzan solos, los días y a la hora que digas, con un freno que para uno cuando falla tres veces seguidas. |
 | **La Memoria** | Tu bóveda de Obsidian dentro del panel, con búsqueda por contenido y el mapa de lo que enlaza con qué. |
 | **El conserje** | Un solo chat que te abre sesiones como pestañas, con un router que elige qué modelo o qué cliente coge cada encargo. |
 | **En el móvil** | El conserje, tus sesiones y cada terminal, desde cualquier navegador y estés donde estés. Adjuntas fotos y te avisa cuando un agente te pregunta. |

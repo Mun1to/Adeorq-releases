@@ -33,9 +33,6 @@ export function guardarTemaSistema(c: TemaSistema): void {
   localStorage.setItem(CLAVE, JSON.stringify(c));
 }
 
-/** Los temas de fondo claro, para elegir el del día. */
-export const TEMAS_CLAROS = THEMES.filter((t) => t.familia === "claro").map((t) => t.id);
-
 export function sistemaEnOscuro(): boolean {
   return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-color-scheme: dark)").matches;
 }

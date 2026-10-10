@@ -8,6 +8,8 @@ import { useCabina } from "../lib/cabina";
 import { pasteInto } from "../lib/flechas";
 import { PINTA } from "../lib/estados";
 import { useEncargosDelLienzo } from "../lib/encargosDelLienzo";
+import { leerArchivo, listarCarpeta } from "../lib/archivos";
+import { carpetaDeFichas, fichasDe, notaDesdeFicha, type Ficha } from "../lib/fichas";
 import {
   conCuerpo,
   conTitulo,
@@ -23,7 +25,7 @@ import {
   type DondeNace,
 } from "../lib/notas";
 import { Grip } from "./CanvasWidgets";
-import { CloseIcon, EnviarIcon, EstadoIcon, FolderIcon, GroupIcon } from "./Icons";
+import { CloseIcon, EnviarIcon, EstadoIcon, FolderIcon, GroupIcon, NoteIcon } from "./Icons";
 
 // Una nota del lienzo: lo que apuntas al vuelo, con casillas si hace falta.
 //
@@ -63,6 +65,9 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
   /** El menú de «lanzar», y lo que se dice al lanzarla. */
   const [lanzando, setLanzando] = useState(false);
   const [dicho, setDicho] = useState("");
+  /** Ya se leyó del disco: hasta entonces «vacía» solo quiere decir «aún no sé». */
+  const [leida, setLeida] = useState(false);
+  const [fichas, setFichas] = useState<Ficha[]>([]);
   const estados = useCabina((s) => s.estados);
   const lienzo = useEncargosDelLienzo();
   const sello = useRef(0);
@@ -78,11 +83,33 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
       setTexto(f.text);
       setRuta(f.path);
       sello.current = f.stamp;
+      setLeida(true);
     });
     return () => {
       vivo = false;
     };
   }, [data.noteId]);
+
+  // Una nota VACÍA ofrece las fichas del proyecto del lienzo: las recetas de
+  // pasos que viven en su `docs/fichas`. Solo vacía, y solo después de leerla
+  // del disco: con veinte notas escritas en el tablero no se mira ninguna
+  // carpeta, y una nota a medio escribir no tiene sitio para una lista.
+  const raizFichas = lienzo.proyectos.find((p) => p.name === lienzo.proyecto)?.path ?? "";
+  const vacia = leida && !texto;
+  useEffect(() => {
+    if (!vacia || !raizFichas) {
+      setFichas([]);
+      return;
+    }
+    let vivo = true;
+    listarCarpeta(carpetaDeFichas(raizFichas))
+      .then((c) => vivo && setFichas(fichasDe(c.filas)))
+      // Que no exista la carpeta es lo normal: no hay fichas y no se dice nada.
+      .catch(() => vivo && setFichas([]));
+    return () => {
+      vivo = false;
+    };
+  }, [vacia, raizFichas]);
 
   // Y se vuelve a mirar cada pocos segundos, que es como se entera la nota de
   // que un agente le ha marcado una casilla. Mientras escribes no se toca: lo
@@ -175,13 +202,42 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
    * Varias tareas, al Reparto: el Capataz las clasifica, les separa los
    * archivos y las abre como cuadrilla. La nota no cambia: cerrar el Reparto sin
    * abrir nada no puede costarte lo que tenías apuntado.
+   *
+   * Se guarda antes y viaja la ruta, igual que al lanzarla en una sola
+   * terminal: cada sesión del lote recibe cuál es SU casilla, y tiene que
+   * encontrar en el archivo la misma línea que tú ves.
    */
-  const repartir = () => {
+  const repartir = async () => {
     setLanzando(false);
-    const abierto = lienzo.repartir(tareasPendientes(texto), undefined, () =>
-      decir(t("Repartida: sus sesiones ya están abiertas.")),
-    );
-    if (!abierto) decir(t("No se pudo abrir ahí."));
+    try {
+      const f = await guardarYa();
+      const tareas = tareasPendientes(f.text);
+      const abierto = lienzo.repartir(
+        tareas,
+        undefined,
+        () => decir(t("Repartida: cada sesión marcará su casilla al terminar.")),
+        { titulo: tituloDe(f.text), ruta: f.path, tareas },
+      );
+      if (!abierto) decir(t("No se pudo abrir ahí."));
+    } catch (e) {
+      decir(String(e));
+    }
+  };
+
+  /** La nota nace con los pasos de esa ficha, todos sin marcar. La ficha no se
+      toca: lo que se marca es la copia, que es esta nota. */
+  const ponerFicha = async (f: Ficha) => {
+    try {
+      const a = await leerArchivo(f.ruta);
+      if (a.texto === null) {
+        decir(t("Esa ficha no se puede leer."));
+        return;
+      }
+      guardar(notaDesdeFicha(a.texto, f.nombre));
+      decir(t("Ficha puesta. Lánzala con la flecha de arriba."));
+    } catch (e) {
+      decir(String(e));
+    }
   };
 
   const lineas = leerLineas(cuerpoDe(texto));
@@ -298,7 +354,7 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
           {/* Con una sola tarea no hay nada que repartir: para eso está la
               sesión nueva de abajo. */}
           {pendientes > 1 && (
-            <button role="menuitem" data-repartir onClick={() => repartir()}>
+            <button role="menuitem" data-repartir onClick={() => void repartir()}>
               <GroupIcon size={13} />
               <span>{t("Repartir las {n} tareas", { n: pendientes })}</span>
               <em>{t("Capataz")}</em>
@@ -410,6 +466,19 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
             ),
           )}
           {!texto && <p className="note-empty">{t("Toca para escribir")}</p>}
+          {fichas.length > 0 && (
+            // El clic se queda aquí: el del cuerpo abre el cuadro de escribir,
+            // y elegir una ficha no es ponerse a teclear.
+            <div className="note-fichas nodrag" onClick={(e) => e.stopPropagation()}>
+              <p>{t("O empieza desde una ficha")}</p>
+              {fichas.map((f) => (
+                <button key={f.ruta} data-ficha={f.nombre} onClick={() => void ponerFicha(f)}>
+                  <NoteIcon size={13} />
+                  <span>{f.nombre}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

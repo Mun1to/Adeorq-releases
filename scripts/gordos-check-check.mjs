@@ -132,7 +132,8 @@ fs.rmSync(casa, { recursive: true, force: true });
   const hoja = hojaDeLaApp(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
   ok("la hoja de la app trae sus tramos y ningún @import suyo por resolver",
     lineas(hoja) > 20000 && !/^@import\s+["']\.\//m.test(hoja), `${lineas(hoja)} líneas`);
-  ok("y va de la escala de esquinas a la paleta", hoja.includes("--r-pastilla: 999px;") && hoja.slice(-3000).includes(".paleta-pie"));
+  // El final es el del ÚLTIMO tramo: al añadir uno detrás, esto se mueve con él.
+  ok("y va de la escala de esquinas al último tramo, los programados", hoja.includes("--r-pastilla: 999px;") && hoja.slice(-3000).includes(".prog-falta"));
 }
 
 console.log(fallos ? `\n${fallos} FALLAN.` : "\nTODO BIEN.");

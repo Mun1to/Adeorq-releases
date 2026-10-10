@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import type { Project } from "./pty";
+import type { NotaDeOrigen } from "./reparto";
+
+export type { NotaDeOrigen };
 
 // El cable por el que una pieza del lienzo pide una terminal nueva.
 //
@@ -29,8 +32,14 @@ export interface EncargosDelLienzo {
   /** Abre una terminal nueva con el encargo dentro. Falso si no pudo. */
   lanzar: (texto: string, ruta?: string, aparte?: Aparte) => boolean;
   /** Lleva varias tareas al Reparto. `alAbrir` solo corre si se abrió la
-      cuadrilla: cerrar el Reparto sin abrir nada no lo llama. */
-  repartir: (textos: string[], ruta: string | undefined, alAbrir: () => void) => boolean;
+      cuadrilla: cerrar el Reparto sin abrir nada no lo llama. Con `nota`, cada
+      sesión sabe qué casilla de qué archivo es la suya. */
+  repartir: (
+    textos: string[],
+    ruta: string | undefined,
+    alAbrir: () => void,
+    nota?: NotaDeOrigen,
+  ) => boolean;
 }
 
 export const useEncargosDelLienzo = create<EncargosDelLienzo>(() => ({

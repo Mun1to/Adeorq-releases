@@ -47,7 +47,7 @@ import GalleryNode, { type GalleryData } from "./CanvasGallery";
 import WebNode, { type WebData } from "./CanvasWeb";
 import { comoUrl } from "../lib/urlweb";
 import { encargoDeNota } from "../lib/notas";
-import { useOfrecerEncargos, type Aparte } from "../lib/encargosDelLienzo";
+import { useOfrecerEncargos, type Aparte, type NotaDeOrigen } from "../lib/encargosDelLienzo";
 import CanvasDraw, { DRAW_TOOLS } from "./CanvasDraw";
 import {
   DRAW_COLORS,
@@ -251,7 +251,7 @@ interface Props {
   onLanzarEncargo: (texto: string, project: Project, aparte?: Aparte) => void;
   /** Varias tarjetas juntas: abre el Reparto ya escrito para que decida
    *  cerebros y fronteras antes de gastar nada. */
-  onRepartirTarjetas: (texto: string, project: Project, alAbrir: () => void) => void;
+  onRepartirTarjetas: (texto: string, project: Project, alAbrir: () => void, nota?: NotaDeOrigen) => void;
   /** Un chat de API que se ha pedido desde FUERA del lienzo: hoy, el botón de
    *  un consejo del copiloto en la Agenda. El sello es lo que lo hace único, y
    *  no sobra: pedir dos veces el mismo modelo tiene que abrir dos chats, y con
@@ -1437,7 +1437,7 @@ ${ruta}` : ruta;
   /** Varias tarjetas juntas. Mismo criterio de proyecto que una sola: sin un
       sitio donde nacer no se abre nada, y las tarjetas se quedan. */
   const repartirPendientes = useCallback(
-    (textos: string[], ruta: string | undefined, alAbrir: () => void): boolean => {
+    (textos: string[], ruta: string | undefined, alAbrir: () => void, nota?: NotaDeOrigen): boolean => {
       const p =
         (ruta ? projects.find((x) => x.path === ruta) : undefined) ??
         projects.find((x) => x.name === project);
@@ -1445,7 +1445,7 @@ ${ruta}` : ruta;
         setNote(t("Elige antes un proyecto arriba: la terminal tiene que nacer en algún sitio."));
         return false;
       }
-      onRepartirTarjetas(textos.join("\n"), p, alAbrir);
+      onRepartirTarjetas(textos.join("\n"), p, alAbrir, nota);
       return true;
     },
     [projects, project, onRepartirTarjetas, t],

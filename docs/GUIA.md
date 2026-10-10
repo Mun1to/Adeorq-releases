@@ -186,6 +186,14 @@ Si pone el nombre de una sesión y una carpeta, es la barra de una terminal.
   clave de API.
 - **▤ Agenda**: el día completo en un sitio: tu calendario, las ideas
   guardadas, los objetivos de hoy y los próximos pasos de `docs/METAS.md`.
+  También los **encargos programados**: le dejas escrito qué hacer, en qué
+  proyecto y cuándo («los lunes a las 9», «cada 6 horas»), y Adeorq abre él
+  solo una sesión de Claude a esa hora, también con la ventana en segundo
+  plano. Como mucho una vez al día: si el PC estaba apagado a su hora, se lanza
+  al encenderlo ese mismo día y, si no, espera a la vez siguiente. Cada uno
+  enseña cómo fueron sus tres últimas veces, y si falla tres seguidas se para y
+  te avisa (también en el móvil) hasta que lo rearmes. «Probar ahora» lo lanza
+  ya. Por ahora solo en Windows y solo con Claude.
 - **⬡ Lienzo**: el tablero libre, con terminales que se mueven y se conectan
   con flechas.
 - **Memoria**: tus notas de Obsidian dentro de Adeorq. Busca por lo que dicen,
@@ -485,7 +493,7 @@ Además de terminales y agentes, en el Lienzo puedes añadir utilidades que vive
 - **⌛ Cuenta atrás**: Temporizador personalizable (1, 5, 10, 25 min o a medida).
 - **🧮 Calculadora**: Calculadora integrada con historial y evaluación segura.
 - **🗓️ Calendario**: Calendario mensual con bloc de notas diario guardado automáticamente en Markdown.
-- **Nota** (Alt+N): un post-it con casillas que por dentro es un `.md` de verdad, así que un agente puede marcar la casilla cuando termina. Su botón de lanzar la manda a una terminal abierta, abre una sesión nueva en el proyecto que elijas (arriba salen los que la nota nombra) o, si quedan dos tareas o más, se las pasa al Capataz para que las reparta.
+- **Nota** (Alt+N): un post-it con casillas que por dentro es un `.md` de verdad, así que un agente puede marcar la casilla cuando termina. Su botón de lanzar la manda a una terminal abierta, abre una sesión nueva en el proyecto que elijas (arriba salen los que la nota nombra) o, si quedan dos tareas o más, se las pasa al Capataz para que las reparta; cada sesión de ese reparto sabe cuál es su casilla y la marca al terminar. Una nota **vacía** te ofrece además las **fichas** del proyecto del lienzo: cada `.md` que guardes en su carpeta `docs/fichas` es una receta de pasos que repites (publicar una versión, dar de alta un cliente), y al elegirla la nota nace con esos pasos como casillas sin marcar, lista para lanzarla. Para escribir una ficha basta una lista numerada (`1.`, `2.`); la ficha no se toca, lo que se marca es la nota.
 
 ---
 
@@ -525,7 +533,7 @@ Esta es la barra de tu captura. De izquierda a derecha:
 |---|---|
 | **El icono** (el destello de Claude, la flecha en órbita o el símbolo de consola) | Qué hay dentro: Claude Code, Antigravity o una consola. Y también si sigue vivo: cuando el programa termina, el icono se apaga a gris. Antes esto último era un cuadradito verde aparte; ahora lo dice la propia marca y la barra respira. El nombre sale al pasar el ratón. |
 | **El nombre** (tu «Adeorq: sesiones y terminales») | El título de la sesión, el mismo que ves en la lista de la izquierda. Si lo renombras allí, cambia aquí. |
-| **▣ n.º** | Cuántos subagentes están trabajando AHORA dentro de esa sesión. Se cuentan en el historial (cada ayudante lanzado menos cada uno que ya ha vuelto), así que es el dato exacto, no una estimación. Solo aparece mientras los hay. |
+| **▣ n.º** (el robot) | Cuántos subagentes están trabajando AHORA dentro de esa sesión. Se cuentan en el historial (cada ayudante lanzado menos cada uno que ya ha vuelto), así que es el dato exacto, no una estimación. **Pasa el ratón por encima y sale la lista**: quién es cada uno, qué se le mandó, si sigue fuera, en segundo plano, de vuelta o con fallo, y cuánto lleva o cuánto tardó. Si lo pulsas, la lista se queda hasta que pulses fuera o des a Esc. |
 | **La barra + %** (tu 79%) | El contexto: cuánto lleva ocupado de su memoria de trabajo. Pasa el ratón y te dice los tokens exactos y el total. Se pone ámbar a partir del 80%. Y solo ahí te avisa: a partir del 60% te dice que la sesión pesa, y a partir del 80% que compactarla sale peor que abrir una terminal nueva. Se mide en porcentaje de SU ventana, así que el aviso quiere decir lo mismo con un modelo de 200.000 tokens que con uno de un millón. |
 | **«Opus 5» + «high»** | El modelo que está pensando y su esfuerzo. Se cambian dentro del pane con `/model` y `/effort`. |
 | **La carpeta** (tu `C:\proyectos`) | Dónde está trabajando ese agente. Importante: si aquí no sale la carpeta del proyecto, ese agente no ve el código del proyecto. |
@@ -933,6 +941,7 @@ escritos.
 | Atajo | Qué hace |
 |---|---|
 | Ctrl+K | La paleta: escribe y ve a cualquier pestaña (también a las que quitaste de la cabecera), terminal abierta o proyecto, o lanza cualquiera de los atajos de abajo |
+| Ctrl+P | Abrir un archivo del proyecto que tienes delante escribiendo parte de su nombre. Dentro de una terminal esa tecla es del programa: ahí se llega por Ctrl+K, «Abrir un archivo por su nombre» |
 | Ctrl+Mayús+T | Terminal nueva (en la carpeta del pane activo) |
 | Ctrl+Mayús+→ | Partir el pane activo a la derecha |
 | Ctrl+Mayús+↓ (o D) | Partir el pane activo abajo |

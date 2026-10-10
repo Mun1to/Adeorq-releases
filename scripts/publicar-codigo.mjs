@@ -31,6 +31,11 @@ const FUERA = [
   // que cupiera en lo que leen los agentes: mismo contenido, mismo sitio. Es una
   // CARPETA, como `.agents` más abajo.
   "docs/contexto",
+  // Las fichas de pasos de ESTE repositorio (la de publicar una versión): son
+  // la receta interna de la casa, el mismo contenido que `docs/contexto` en
+  // forma de lista. La función de fichas es del producto y sí se cuenta en la
+  // guía; lo que no sale es cómo publicamos nosotros. Otra CARPETA.
+  "docs/fichas",
   "CLAUDE.md",
   "FEEDBACK.md",
   "BUZON.md",

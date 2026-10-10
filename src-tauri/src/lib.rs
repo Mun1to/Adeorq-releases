@@ -31,6 +31,7 @@ mod memoria_casa;
 mod vectores;
 mod conserje;
 mod decisiones;
+mod programados;
 mod movil;
 mod push;
 mod secrets;
@@ -348,6 +349,9 @@ pub fn run() {
             // El conserje en el móvil, solo si lo encendiste en Ajustes. Escucha
             // en 127.0.0.1 y llega al móvil por Tailscale: ver `movil.rs`.
             movil::cargar(app.handle());
+            // El reloj de los encargos programados («cada lunes a las 9»). En
+            // la ventana de desarrollo no arranca: ver `programados::arrancar`.
+            programados::arrancar(app.handle().clone());
 
             // El significado de las notas de memoria, calculado por detrás.
             //
@@ -417,6 +421,12 @@ pub fn run() {
             decisiones::decision_responder,
             decisiones::decision_entregada,
             decisiones::decision_descartar,
+            programados::programados_listar,
+            programados::programado_guardar,
+            programados::programado_borrar,
+            programados::programado_activar,
+            programados::programado_rearmar,
+            programados::programado_probar,
             mcp_clientes::mcp_clientes_leer,
             mcp_clientes::mcp_clientes_poner,
             movil::movil_estado,
@@ -447,6 +457,7 @@ pub fn run() {
             archivos::listar_carpeta,
             archivos::leer_archivo,
             archivos::estado_archivos,
+            archivos::listar_nombres,
             archivos::guardar_archivo,
             archivos::cuando_archivo,
             archivos::leer_imagen,
@@ -459,6 +470,7 @@ pub fn run() {
             sessions::open_in_antigravity,
             sessions::find_agy,
             sessions::session_context,
+            sessions::session_agents,
             sessions::last_reply,
             sessions::transcript_exists,
             sessions::codex_session_since,

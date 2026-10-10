@@ -50,9 +50,9 @@ import {
   DevolverIcon,
   SacarIcon,
   RestoreIcon,
-  RobotIcon,
   TrashIcon,
 } from "./Icons";
+import AgentesDePanel from "./AgentesDePanel";
 import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
 import { avisar, forgetPane, type NotifyMode } from "../lib/notify";
@@ -2448,23 +2448,7 @@ export default function TerminalPane({
               while they are out, because a wrong number that lingers is worse
               than none. It looked broken because it only ever showed live ones
               and a session with no subagents has nothing to show. */}
-          {(crew.live > 0 || (crew.exact && crew.total > 0)) && (
-            <span
-              className="pane-agents"
-              data-live={crew.live > 0}
-              data-tip={
-                crew.live > 0
-                  ? `${crew.live} ${crew.live === 1 ? "agente trabajando" : "agentes trabajando"} ahora dentro de esta sesión · ${crew.total} desplegados en total\n${
-                      crew.exact
-                        ? "Contados en el historial de la sesión: es el dato exacto."
-                        : "Estimado por lo que se lee en pantalla."
-                    }`
-                  : `${crew.total} ${crew.total === 1 ? "agente desplegado" : "agentes desplegados"} en esta sesión, ninguno trabajando ahora.\nContados en el historial de la sesión: es el dato exacto.`
-              }
-            >
-              <RobotIcon size={13} /> {crew.live > 0 ? crew.live : crew.total}
-            </span>
-          )}
+          <AgentesDePanel live={crew.live} total={crew.total} exact={crew.exact} cwd={cwd} sessionId={sidPropio} />
           {ctx && ctx.percent > 0 && (
             <span
               className="pane-ctx"

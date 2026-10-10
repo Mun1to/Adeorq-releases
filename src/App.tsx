@@ -1639,8 +1639,8 @@ function App() {
      Las dos cierran sobre cosas que no cambian: `setReparto` es un `setState` y
      `resumeCommandFor` vive fuera del componente. */
   const repartirDesdeLienzo = useCallback(
-    (texto: string, project: Project, alAbrir?: () => void) =>
-      setReparto({ texto, proyecto: project.path, alAbrir }),
+    (texto: string, project: Project, alAbrir?: () => void, nota?: RepartoInicial["nota"]) =>
+      setReparto({ texto, proyecto: project.path, alAbrir, nota }),
     [],
   );
   const volverASuConversacion = useCallback(
@@ -2664,7 +2664,7 @@ function App() {
           siempre y sin pintar nada hasta que llega la petición, como el aviso
           de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
       <PedirSecreto />
-      <Paleta panes={panes} delLienzo={canvasPanes} irA={setView} abrirProyecto={openClaude} irATerminal={irATerminal} />
+      <Paleta panes={panes} delLienzo={canvasPanes} irA={setView} abrirProyecto={openClaude} irATerminal={irATerminal} raiz={raizArchivos} abrirArchivo={abrirArchivo} />
       <AlCerrar />
       {/* Lo último cerrado, con su Deshacer: quince segundos y se va. */}
       {deshacer && (

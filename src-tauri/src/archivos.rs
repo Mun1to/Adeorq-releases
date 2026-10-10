@@ -317,6 +317,68 @@ fn leer_porcelana(salida: &str, raiz_repo: &Path) -> Vec<(String, String)> {
     out
 }
 
+/// Cuántos nombres se devuelven como mucho al buscador de Ctrl+P.
+const TOPE_NOMBRES: usize = 20_000;
+/// Hasta dónde baja el recorrido a mano, fuera de git.
+const HONDO_NOMBRES: usize = 8;
+
+/// Lo que devuelve `git ls-files -z`: una ruta por trozo, separadas por NUL.
+fn nombres_de_git(salida: &str) -> Vec<String> {
+    salida.split('\0').filter(|s| !s.is_empty()).map(str::to_owned).collect()
+}
+
+/// El recorrido de respaldo, para una carpeta que no es de git: salta lo de
+/// `FUERA` y las carpetas ocultas, y para al llegar al tope.
+fn recorrer_nombres(raiz: &Path, dir: &Path, hondo: usize, fuera: &mut Vec<String>) {
+    let Ok(leidas) = std::fs::read_dir(dir) else { return };
+    for entrada in leidas.flatten() {
+        if fuera.len() >= TOPE_NOMBRES {
+            return;
+        }
+        let nombre = entrada.file_name().to_string_lossy().to_string();
+        let Ok(tipo) = entrada.file_type() else { continue };
+        if tipo.is_dir() {
+            if hondo < HONDO_NOMBRES && !nombre.starts_with('.') && !FUERA.contains(&nombre.as_str()) {
+                recorrer_nombres(raiz, &entrada.path(), hondo + 1, fuera);
+            }
+        } else if let Ok(rel) = entrada.path().strip_prefix(raiz) {
+            fuera.push(rel.to_string_lossy().replace('\\', "/"));
+        }
+    }
+}
+
+/// Los archivos de una carpeta, todos y en hondo, para abrir uno escribiendo
+/// parte de su nombre (Ctrl+P). Rutas relativas a `raiz`, con barras normales.
+///
+/// Dentro de un repositorio lo dice git (los seguidos y los nuevos sin ignorar,
+/// menos los borrados): respeta `.gitignore` sin traer una dependencia para
+/// leerlo. Fuera de git se recorre la carpeta a mano.
+#[tauri::command(async)]
+pub fn listar_nombres(raiz: String) -> Result<Vec<String>, String> {
+    use crate::SinVentana;
+    let dir = ruta_de(&raiz)?;
+    let git = |args: &[&str]| {
+        std::process::Command::new("git").arg("-C").arg(&dir).args(args).sin_ventana().output()
+    };
+    if let Ok(o) = git(&["ls-files", "-z", "--cached", "--others", "--exclude-standard"]) {
+        if o.status.success() {
+            // Lo borrado sigue en el índice hasta el commit, y ya no se puede abrir.
+            let borrados: std::collections::HashSet<String> = git(&["ls-files", "-z", "--deleted"])
+                .map(|d| nombres_de_git(&String::from_utf8_lossy(&d.stdout)).into_iter().collect())
+                .unwrap_or_default();
+            return Ok(nombres_de_git(&String::from_utf8_lossy(&o.stdout))
+                .into_iter()
+                .filter(|n| !borrados.contains(n))
+                .take(TOPE_NOMBRES)
+                .collect());
+        }
+    }
+    let mut fuera = Vec::new();
+    recorrer_nombres(&dir, &dir, 0, &mut fuera);
+    fuera.sort_by_key(|n| n.to_lowercase());
+    Ok(fuera)
+}
+
 /// Qué archivos de la carpeta están distintos del último commit, y cuándo se
 /// tocó cada uno. Lo pide el panel de Archivos cada pocos segundos mientras está
 /// a la vista, que es lo que lo pone al día solo y lo pinta de colores
@@ -378,6 +440,29 @@ mod tests {
         assert_eq!(cuando(&dir.join("no-esta.txt")).unwrap(), 0.0);
         assert!(cuando(Path::new("relativa.txt")).is_err(), "una ruta a medias es un fallo de quien llama");
 
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// El buscador de Ctrl+P fuera de git: todo lo de dentro en hondo, con
+    /// barras normales, sin lo de `FUERA` ni las carpetas ocultas. Y la salida
+    /// de `git ls-files -z`, partida por sus NUL.
+    #[test]
+    fn los_nombres_de_una_carpeta_sin_git_salen_en_hondo_y_sin_lo_que_sobra() {
+        let dir = std::env::temp_dir().join(format!("adeorq-nombres-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        for sub in ["src/lib", "node_modules/react", ".oculta", "docs"] {
+            std::fs::create_dir_all(dir.join(sub)).unwrap();
+        }
+        for f in ["README.md", "src/App.tsx", "src/lib/pty.ts", "node_modules/react/index.js", ".oculta/x.txt", "docs/guia.md", ".env"] {
+            std::fs::write(dir.join(f), "x").unwrap();
+        }
+        let mut salen = Vec::new();
+        recorrer_nombres(&dir, &dir, 0, &mut salen);
+        salen.sort();
+        assert_eq!(salen, [".env", "README.md", "docs/guia.md", "src/App.tsx", "src/lib/pty.ts"]);
+
+        assert_eq!(nombres_de_git("src/App.tsx\0docs/con espacio.md\0\0"), ["src/App.tsx", "docs/con espacio.md"]);
+        assert!(nombres_de_git("").is_empty());
         std::fs::remove_dir_all(&dir).ok();
     }
 

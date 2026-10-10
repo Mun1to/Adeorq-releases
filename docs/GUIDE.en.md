@@ -164,8 +164,21 @@ shows a session name and a folder, it is a terminal's bar.
 - **▦ Cockpit**: where the work happens. Projects left, terminals centre,
   skills right.
 - **▤ Agenda**: the whole day in one place: your calendar, your saved ideas,
-  today's goals and the next steps from `docs/METAS.md`.
-- **⬡ Canvas**: the free board, with terminals you move and wire together.
+  today's goals and the next steps from `docs/METAS.md`. It also holds your
+  **scheduled orders**: you write what to do, in which project and when
+  ("Mondays at 9", "every 6 hours"), and Adeorq opens a Claude session on its
+  own at that time, even with the window in the background. At most once a
+  day: if the PC was off at that hour it runs when you turn it on that same
+  day, otherwise it waits for the next time. Each one shows how its last three
+  runs went, and after three failures in a row it stops and tells you (on your
+  phone too) until you re-arm it. Windows only and Claude only, for now.
+- **⬡ Canvas**: the free board, with terminals you move and wire together. A
+  note is a real `.md` with checkboxes: its launch button sends it to an open
+  terminal, to a new session or, with two tasks or more, to the Foreman to
+  split, and each of those sessions ticks its own box when it is done. An
+  **empty** note also offers the project's **runbooks**: every `.md` you keep
+  in its `docs/fichas` folder is a recipe of steps, and picking one fills the
+  note with those steps as unticked boxes (a numbered list is enough).
 - **◍ Accounts**: every agent CLI's accounts in one place, grouped by
   program, with which one is signed in and how much you have left.
 - **⌘ Commands**: the searchable cheat sheet for Claude, Antigravity and your
@@ -574,6 +587,7 @@ almost anything explains what it is and its shortcut.
 | Shortcut | What it does |
 |---|---|
 | Ctrl+K | The palette: type to go to any tab (including the ones you removed from the header), open terminal or project, or to run any of the shortcuts below |
+| Ctrl+P | Open a file of the project in front of you by typing part of its name. Inside a terminal that key belongs to the program: from there, use Ctrl+K, "Open a file by its name" |
 | Ctrl+Shift+T | New terminal |
 | Ctrl+Shift+→ | Split the focused pane right |
 | Ctrl+Shift+↓ (or D) | Split it down |

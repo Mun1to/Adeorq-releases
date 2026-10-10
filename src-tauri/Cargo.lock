@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "adeorq"
-version = "0.9.185"
+version = "0.9.186"
 dependencies = [
  "aes-gcm",
  "auto-launch",

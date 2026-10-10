@@ -14,6 +14,7 @@ import Foreman, { type ForemanExec } from "./components/Foreman";
 import AvisoCuota from "./components/AvisoCuota";
 import Paleta from "./components/Paleta";
 import AlCerrar from "./components/AlCerrar";
+import Campana from "./components/Campana";
 import PedirSecreto from "./components/PedirSecreto";
 import PuenteMovil from "./components/PuenteMovil";
 import type { ConserjeExec } from "./lib/conserje";
@@ -2779,11 +2780,12 @@ function App() {
       />
       <Copiloto panes={panes} cuentas={accounts} />
       <header className="topbar" ref={barraRef}>
-        {/* Sin la marca al lado: a 20px el logo pierde la proa y se lee como
-            un cuadrado azul cualquiera, y el nombre ya dice de quién es la
-            ventana. El logo sigue donde sí se ve, que es el icono de la app. */}
+        {/* La mascota es la campana (`Campana.tsx`): dice lo más urgente de tus
+            terminales y abre la lista de avisos. El logo de verdad sigue donde
+            se ve, que es el icono de la app; a 20 px perdía la proa. */}
         <span className="brand">
-          Adeorq
+          <Campana irATerminal={(id) => irATerminal(id, canvasPanesRef.current.some((p) => p.id === id))} />
+          <span className="brand-nombre">Adeorq</span>
         </span>
         <nav className="tabs">
           {tabsVisibles.map((tab) => (

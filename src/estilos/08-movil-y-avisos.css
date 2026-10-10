@@ -519,3 +519,239 @@
   line-height: 1.45;
 }
 
+/* ==========================================================================
+   La campana de avisos, que es la mascota (`components/Campana.tsx`).
+   ========================================================================== */
+
+/* El botón de la barra: sin caja en reposo, como el resto de la cabecera, y
+   una píldora al acercarse. Lo que llama es la mascota, no su marco. */
+.campana {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: none;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.campana:hover,
+.campana[data-abierta] {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--border);
+}
+/* Cuántos te reclaman. En el ámbar de «te espera», no en el de acento: el
+   acento en la barra significa «estás aquí». */
+.campana-n {
+  position: absolute;
+  top: -1px;
+  right: -3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: var(--r-pastilla);
+  background: var(--ask);
+  color: #1b1407;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La mascota. Dos fotogramas que se turnan; el segundo, escondido de fábrica,
+   para que sin animación (modo rendimiento) se vea la postura y nada más. */
+.mascota {
+  display: block;
+  shape-rendering: crispEdges;
+  overflow: visible;
+}
+.mascota-f1 {
+  opacity: 0;
+}
+@keyframes mascota-uno {
+  0%, 49.9% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes mascota-guino {
+  0%, 93.9% { opacity: 1; }
+  94%, 100% { opacity: 0; }
+}
+@keyframes mascota-guino-cerrado {
+  0%, 93.9% { opacity: 0; }
+  94%, 100% { opacity: 1; }
+}
+@keyframes mascota-salto {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+}
+/* Quieta: parpadea cada cuatro segundos. */
+.mascota[data-animo="quieta"] .mascota-f0 {
+  animation: mascota-guino 4.2s steps(1) infinite;
+}
+.mascota[data-animo="quieta"] .mascota-f1 {
+  animation: mascota-guino-cerrado 4.2s steps(1) infinite;
+}
+/* Te espera: saluda con un brazo. Es lo único que no para. */
+.mascota[data-animo="espera"] .mascota-f0 {
+  animation: mascota-uno 0.7s steps(1) infinite;
+}
+.mascota[data-animo="espera"] .mascota-f1 {
+  animation: mascota-uno 0.7s steps(1) infinite;
+  animation-delay: -0.35s;
+}
+/* Terminó: dos saltitos y se queda con los brazos arriba. */
+.mascota[data-animo="lista"] {
+  animation: mascota-salto 0.45s ease-out 2;
+}
+:root[data-rendimiento="1"] .mascota,
+:root[data-rendimiento="1"] .mascota g {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascota,
+  .mascota g {
+    animation: none;
+  }
+}
+
+/* La lista. Va fuera de la barra (un portal), fija bajo la mascota. */
+.avisos {
+  position: fixed;
+  z-index: 95;
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(520px, calc(100vh - 70px));
+  display: flex;
+  flex-direction: column;
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-caja);
+  box-shadow: var(--glass-edge), 0 18px 50px rgba(0, 0, 0, 0.5);
+  color: var(--text);
+  font-size: 13px;
+}
+.avisos-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px 8px;
+  font-size: 14px;
+}
+.avisos-filtros {
+  display: flex;
+  gap: 6px;
+}
+.avisos-filtros .choice {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.avisos-lista {
+  margin: 0;
+  padding: 0 6px 6px;
+  list-style: none;
+  overflow-y: auto;
+  display: grid;
+  gap: 2px;
+}
+.aviso {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 9px;
+  padding: 8px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-chico);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.aviso:hover:not(:disabled) {
+  background: var(--row);
+}
+.aviso:disabled {
+  cursor: default;
+}
+/* Lo que ya pasó (le contestaste, o cerraste la terminal) se apaga: sigue en
+   la lista como historia, pero no compite con lo que te reclama ahora. */
+.aviso[data-vigente="false"] {
+  opacity: 0.55;
+}
+.aviso-icono {
+  display: grid;
+  place-items: center;
+  margin-top: 1px;
+  color: var(--muted);
+}
+.aviso[data-vigente="true"][data-tipo="espera"] .aviso-icono {
+  color: var(--ask);
+}
+.aviso[data-vigente="true"][data-tipo="hecho"] .aviso-icono {
+  color: var(--done);
+}
+.aviso-cuerpo {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.aviso-nombre {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aviso-nombre em {
+  margin-left: 7px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--muted);
+}
+/* El punto de «nuevo»: no lo habías visto cuando abriste la lista. */
+.aviso[data-nuevo] .aviso-nombre::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--ask);
+  vertical-align: middle;
+}
+.aviso-porque {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.aviso-cuando {
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.avisos-vacio {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 22px 16px 24px;
+  color: var(--muted);
+}
+.avisos-vacio p {
+  margin: 0;
+}
+.avisos-pie {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--border);
+}
+

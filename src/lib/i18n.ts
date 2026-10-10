@@ -2616,6 +2616,17 @@ const EN: Record<string, string> = {
   "Le faltan colores:": "It is missing colours:",
   "Es un tema de fondo claro, y sus letras no se leerían sobre el cristal oscuro de Adeorq.":
     "It is a light-background theme, and its text would not be readable over Adeorq's dark glass.",
+  // La campana de avisos, que es la mascota (`components/Campana.tsx`).
+  "{n} terminales te reclaman": "{n} terminals need you",
+  "Una terminal te espera": "A terminal is waiting for you",
+  "Un agente ha terminado": "An agent has finished",
+  "Tus agentes están trabajando": "Your agents are working",
+  "No hay terminales abiertas": "No terminals open",
+  "Nada te reclama ahora": "Nothing needs you right now",
+  "Clic: ver los avisos": "Click: see the notifications",
+  "Nada te reclama ahora.": "Nothing needs you right now.",
+  "Sin avisos.": "No notifications.",
+  "Quitar los que ya pasaron": "Clear the ones that are over",
   // El aviso al cerrar la ventana (`components/AlCerrar.tsx`).
   "¿Cerrar Adeorq?": "Close Adeorq?",
   "Hay 1 agente trabajando.": "1 agent is working.",

@@ -1,11 +1,11 @@
 {
-  "version": "0.9.185",
-  "notes": "Al cerrar la ventana Adeorq pregunta si sigue en segundo plano o cierra todo. Las pestanas de la cabecera van solo con su icono. El editor de archivos pinta el codigo con los colores de tu terminal y trae buscar, ir a una linea y catorce lenguajes mas. Se pueden importar temas de Warp y de Ghostty.",
-  "pub_date": "2026-10-10T13:25:54Z",
+  "version": "0.9.186",
+  "notes": "Una campana de avisos que es la mascota de Adeorq: vive en la barra de arriba, dice lo mas urgente de tus terminales y al pulsarla sale la lista de lo que te reclama. El instalador lleva la licencia y los avisos de terceros.",
+  "pub_date": "2026-10-10T13:47:52Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZ5eEVEUmZ1eGN5U3IvREY0TlFLcWpUMVlXQThCbG5TdVFNWmlrZ2dnc1hsZmorN01aTEgrTVdNMVlWNnlwMTkzUjN3V3RZMlBKMUxnMUxDMWpPUGdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjM4NzQ1CWZpbGU6QWRlb3JxXzAuOS4xODVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODUKcmM2eHVkWHZ2a09DM3RpVlhJclN5ajlqbExqdHFqMWFiTGJQQTlpSWFCZE5jbUQ0K3lUWHVuWWVTT083QmFOT1cxbWhmQ1lIVEllZHRUWFVBNlAzQkE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.185/Adeorq_0.9.185_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVxVlVWSExUdGt3b1gwUVJFTW1OMVlFVHlHbnBETHQzU1FnZTFFWEZFV3pVVEZNL2VIeHJiZlFITnlPa081UkdyV3gweGhPbUoxdXFRSUJlU0VQYlFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjQwMDM4CWZpbGU6QWRlb3JxXzAuOS4xODZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODYKT2lteVNHTS9wcmJBdEFXSEY2RGI4a0FNZm1aYzg3bGYrWjdKU1ZrWlZKNjJtN3Y2REJ6VFZ5RGh0a25RUjRzdG9YYXY0ek0zZEdURHZNNTVXVjJWQkE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.186/Adeorq_0.9.186_x64-setup.exe"
     }
   }
 }

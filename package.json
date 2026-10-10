@@ -1,7 +1,9 @@
 {
   "name": "adeorq",
   "private": true,
-  "version": "0.9.185",
+  "author": "Munir Torres Athayde",
+  "license": "SEE LICENSE IN LICENSE",
+  "version": "0.9.186",
   "type": "module",
   "scripts": {
     "dev": "vite",

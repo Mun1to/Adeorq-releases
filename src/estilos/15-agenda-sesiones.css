@@ -431,7 +431,7 @@
    «Adeorq» (ya lo dice el título de la ventana) y el relleno de las pestañas,
    que con solo el icono puede ser más justo. No se quita ninguna información:
    a 940 con el pulso y la Cabina faltaban 111 px aun sin reproductor. */
-.topbar[data-sin~="marca"] .brand {
+.topbar[data-sin~="marca"] .brand-nombre {
   display: none;
 }
 .topbar[data-sin~="marca"] .tabs .tab {

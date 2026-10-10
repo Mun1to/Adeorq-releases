@@ -327,6 +327,9 @@
 
 .brand {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--text);
   font-weight: 650;
   letter-spacing: 0.3px;

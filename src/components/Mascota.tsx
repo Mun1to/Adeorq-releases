@@ -2,96 +2,137 @@
 //
 // Munir la pidió el 2026-10-10 («la A de Adeorq, el triángulo es el ojo, las
 // patas son las piernas, solo le añades brazos») y de tres dibujos eligió este,
-// el de píxeles. Vive en la barra de arriba y es la campana: su postura dice lo
+// el de píxeles. Vive en la barra de arriba y es la campana: su ánimo dice lo
 // más urgente de todas tus terminales (`animoDe`, en `lib/campana.ts`).
 //
-// Se mueve poco a propósito. Parpadea, y solo se mueve de verdad cuando te
-// esperan (saluda) o cuando algo termina (dos saltitos y se queda con los
-// brazos arriba). Mientras tus agentes trabajan cambia de postura, pero no
-// teclea sin parar: algo que se mueve todo el rato en una esquina cansa en dos
-// días. Con el modo rendimiento se queda quieta del todo. La animación está en
-// `estilos/08-movil-y-avisos.css`.
+// Aquí solo se pinta y se lleva el reloj. Qué posturas hay, qué guion sigue
+// cada ánimo y qué fotograma toca lo decide `lib/mascota.ts`, que se prueba
+// sin ventana. Además de su guion, reacciona a ti: sigue el ratón con el ojo,
+// te saluda si pasas por encima y da un brinco si la pulsas.
+//
+// Con el modo rendimiento, o si el sistema pide menos movimiento, se queda en
+// la postura de su ánimo y no gasta ni un temporizador de animación. Con la
+// ventana tapada tampoco se mueve: nadie la ve.
 
+import { useEffect, useRef, useState } from "react";
 import type { Animo } from "../lib/campana";
+import {
+  ALTO,
+  ANCHO,
+  arrancar,
+  avanzar,
+  cuadrosDe,
+  reaccionar,
+  reposoDe,
+  type Marcha,
+  type Mirada,
+  type Pose,
+  type Reaccion,
+} from "../lib/mascota";
+import { modoRendimiento } from "../lib/rendimiento";
 
-/** Una rejilla de 20 × 12. B cuerpo, W blanco del ojo, P pupila. */
-const CUERPO = [
-  "......BBBBBBBB......",
-  "......BBBWWBBB......",
-  ".....BBBBWWBBBB.....",
-  ".....BBBWWWWBBB.....",
-  ".....BBBWPPWBBB.....",
-  "....BBBBWWWWBBBB....",
-  "....BBBBBBBBBBBB....",
-  "....BBBBBBBBBBBB....",
-  "...BBBBB....BBBBB...",
-  "...BBBB......BBBB...",
-  "...BBBB......BBBB...",
-  "..BBBBB......BBBBB..",
-];
-type Punto = [number, number];
-/** El brazo izquierdo en cada postura; el derecho es su espejo. */
-const ABAJO: Punto[] = [[3, 6], [2, 7], [2, 8]];
-const MEDIO: Punto[] = [[3, 6], [2, 6], [1, 7]];
-const ARRIBA: Punto[] = [[3, 5], [2, 4], [2, 3]];
-const SALUDA: Punto[] = [[3, 5], [2, 4], [1, 3]];
+/** Cada cuánto se vuelve a mirar si ya se puede animar, cuando no se puede. */
+const REVISAR_MS = 1500;
+/** Cuánto sigue mirando hacia donde se fue el ratón. */
+const MIRADA_MS = 2500;
 
-const AZUL = "#39a9f6";
-const BRAZO = "#2389e0";
-const BLANCO = "#f1faff";
-const PUPILA = "#0e2c47";
+const quieta = () =>
+  modoRendimiento() || document.hidden || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-type Ojo = "abierto" | "cerrado" | "bajo";
-interface Cuadro {
-  x: number;
-  y: number;
-  c: string;
-}
+/**
+ * `alto` en píxeles; el ancho sale de la rejilla. `toque` es un contador:
+ * cada vez que sube, da un brinco (lo sube quien la pulsa).
+ */
+export default function Mascota({ animo, alto = 28, toque = 0 }: { animo: Animo; alto?: number; toque?: number }) {
+  const [pose, setPose] = useState<Pose>(() => reposoDe(animo));
+  const [mirada, setMirada] = useState<Mirada>("");
+  const marcha = useRef<Marcha | null>(null);
+  const reloj = useRef(0);
+  const svg = useRef<SVGSVGElement>(null);
+  /** Da el siguiente paso YA, sin esperar al que estaba pendiente. */
+  const paso = useRef<() => void>(() => {});
 
-function fotograma(izq: Punto[], der: Punto[], ojo: Ojo = "abierto"): Cuadro[] {
-  const out: Cuadro[] = [];
-  CUERPO.forEach((fila, y) => {
-    for (let x = 0; x < fila.length; x++) {
-      let ch = fila[x];
-      if (ch === ".") continue;
-      // Cerrado: del ojo queda una raya. Bajo: la pupila mira al teclado.
-      if (ojo === "cerrado" && ch !== "B") ch = y === 4 && x >= 8 && x <= 11 ? "P" : "B";
-      if (ojo === "bajo" && ch !== "B") ch = y === 5 && (x === 9 || x === 10) ? "P" : "W";
-      out.push({ x, y: y + 1, c: ch === "B" ? AZUL : ch === "W" ? BLANCO : PUPILA });
-    }
-  });
-  for (const [x, y] of izq) out.push({ x, y: y + 1, c: BRAZO });
-  for (const [x, y] of der) out.push({ x: 19 - x, y: y + 1, c: BRAZO });
-  return out;
-}
+  // El reloj de la animación: un ánimo, un guion.
+  useEffect(() => {
+    let viva = true;
+    marcha.current = arrancar(animo, Date.now(), Math.random);
+    paso.current = () => {
+      window.clearTimeout(reloj.current);
+      if (!viva || !marcha.current) return;
+      if (quieta()) {
+        setPose(reposoDe(animo));
+        reloj.current = window.setTimeout(() => paso.current(), REVISAR_MS);
+        return;
+      }
+      const r = avanzar(marcha.current, Date.now(), Math.random);
+      marcha.current = r.marcha;
+      setPose(r.marcha.pose);
+      reloj.current = window.setTimeout(() => paso.current(), r.espera);
+    };
+    paso.current();
+    return () => {
+      viva = false;
+      window.clearTimeout(reloj.current);
+    };
+  }, [animo]);
 
-/** Los dos fotogramas de cada ánimo. El segundo solo se ve si hay animación. */
-const FOTOGRAMAS: Record<Animo, [Cuadro[], Cuadro[]]> = {
-  quieta: [fotograma(ABAJO, ABAJO), fotograma(ABAJO, ABAJO, "cerrado")],
-  trabaja: [fotograma(ABAJO, MEDIO, "bajo"), []],
-  espera: [fotograma(ABAJO, ARRIBA), fotograma(ABAJO, SALUDA)],
-  lista: [fotograma(ARRIBA, ARRIBA), []],
-  dormida: [fotograma(ABAJO, ABAJO, "cerrado"), []],
-};
+  const reacciona = (cual: Reaccion) => {
+    if (!marcha.current || quieta()) return;
+    marcha.current = reaccionar(marcha.current, cual);
+    paso.current();
+  };
+  const reaccionaRef = useRef(reacciona);
+  reaccionaRef.current = reacciona;
 
-const pintar = (cuadros: Cuadro[]) =>
-  // Un pelo más ancho que la celda, para que no se vea la rejilla entre cuadros.
-  cuadros.map((q) => <rect key={`${q.x}-${q.y}-${q.c}`} x={q.x} y={q.y} width={1.02} height={1.02} fill={q.c} />);
+  // La pulsan: un brinco. El primer pintado no cuenta.
+  const primerToque = useRef(toque);
+  useEffect(() => {
+    if (toque !== primerToque.current) reaccionaRef.current("toque");
+  }, [toque]);
 
-/** `alto` en píxeles; el ancho sale de la rejilla (20 × 13). */
-export default function Mascota({ animo, alto = 26 }: { animo: Animo; alto?: number }) {
-  const [f0, f1] = FOTOGRAMAS[animo];
+  // El ojo sigue al ratón, y al rato vuelve a lo suyo.
+  useEffect(() => {
+    let vuelve = 0;
+    let ultima = 0;
+    const mover = (e: MouseEvent) => {
+      // Como mucho unas quince veces por segundo: el ratón avisa cientos, y
+      // el ojo solo tiene tres sitios a donde ir. Por reloj y no por fotograma
+      // (`requestAnimationFrame`), que con la ventana tapada no llega nunca.
+      if (e.timeStamp - ultima < 66) return;
+      ultima = e.timeStamp;
+      const caja = svg.current?.getBoundingClientRect();
+      if (!caja) return;
+      const dx = e.clientX - (caja.left + caja.width / 2);
+      const dy = e.clientY - (caja.top + caja.height / 2);
+      // Debajo de ella mira abajo; a los lados, al lado; encima o pegado, de frente.
+      const debajo = dy > caja.height && Math.abs(dx) <= caja.width * 2;
+      setMirada(debajo ? "bajo" : dx < -caja.width ? "izq" : dx > caja.width ? "der" : "");
+      window.clearTimeout(vuelve);
+      vuelve = window.setTimeout(() => setMirada(""), MIRADA_MS);
+    };
+    window.addEventListener("mousemove", mover, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", mover);
+      window.clearTimeout(vuelve);
+    };
+  }, []);
+
   return (
     <svg
+      ref={svg}
       className="mascota"
       data-animo={animo}
-      viewBox="0 0 20 13.2"
-      width={Math.round((alto * 20) / 13.2)}
+      viewBox={`0 0 ${ANCHO} ${ALTO}`}
+      width={Math.round((alto * ANCHO) / ALTO)}
       height={alto}
       aria-hidden="true"
+      // Si te espera o celebra, ya te está llamando: el saludo es para cuando no.
+      onMouseEnter={() => (animo === "espera" || animo === "lista" ? undefined : reacciona("hola"))}
     >
-      <g className="mascota-f0">{pintar(f0)}</g>
-      {f1.length > 0 && <g className="mascota-f1">{pintar(f1)}</g>}
+      {cuadrosDe(pose, mirada).map((q, i) => (
+        // Un pelo más ancho que la celda, para que no se vea la rejilla entre cuadros.
+        <rect key={i} x={q.x} y={q.y} width={1.02} height={1.02} fill={q.c} />
+      ))}
     </svg>
   );
 }

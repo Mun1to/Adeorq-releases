@@ -38,6 +38,8 @@ export default function Campana({ irATerminal }: { irATerminal: (id: number) => 
   const [abierta, setAbierta] = useState(false);
   const [soloAhora, setSoloAhora] = useState(false);
   const [sitio, setSitio] = useState({ x: 12, y: 46 });
+  /** Sube con cada pulsación: la mascota da un brinco. */
+  const [toque, setToque] = useState(0);
   const boton = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
 
@@ -53,6 +55,7 @@ export default function Campana({ irATerminal }: { irATerminal: (id: number) => 
     marcarLeidos();
   };
   const alternar = () => {
+    setToque((n) => n + 1);
     if (abierta) return cerrar();
     const r = boton.current?.getBoundingClientRect();
     if (r) setSitio({ x: Math.max(8, r.left), y: r.bottom + 8 });
@@ -99,7 +102,7 @@ export default function Campana({ irATerminal }: { irATerminal: (id: number) => 
         aria-expanded={abierta}
         onClick={() => alternar()}
       >
-        <Mascota animo={animo} />
+        <Mascota animo={animo} toque={toque} />
         {cuantos > 0 && <span className="campana-n">{cuantos}</span>}
       </button>
       {abierta &&
@@ -120,7 +123,7 @@ export default function Campana({ irATerminal }: { irATerminal: (id: number) => 
             </header>
             {visibles.length === 0 ? (
               <div className="avisos-vacio">
-                <Mascota animo={animo === "dormida" ? "dormida" : "quieta"} alto={52} />
+                <Mascota animo={animo === "dormida" ? "dormida" : "quieta"} alto={56} />
                 <p>{soloAhora || lista.length === 0 ? t("Nada te reclama ahora.") : t("Sin avisos.")}</p>
               </div>
             ) : (

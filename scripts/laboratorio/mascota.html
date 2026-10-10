@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Banco: la mascota</title>
+<!-- La hoja de la mascota: arriba, viva en sus cinco ánimos y a tres tamaños;
+     abajo, TODOS los fotogramas de cada guion puestos en fila, quietos, para
+     mirarlos uno a uno. La sirve el Vite de `pnpm dev`:
+       http://localhost:1420/scripts/laboratorio/mascota.html
+     Un fotograma mal dibujado no lo caza ningún banco: se ve aquí. -->
+<style>
+  /* La hoja de la app deja la página sin scroll (es una ventana); esta sí lo necesita. */
+  html, body { overflow: auto !important; height: auto !important; }
+  body { margin: 0; padding: 24px; background: #0e1420 !important; color: #dce7f8; font: 14px/1.5 "Segoe UI", system-ui, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 26px 0 8px; color: #9fb4d6; font-weight: 600; }
+  p { margin: 0 0 14px; color: #93a4c2; }
+  .fila { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .caja { display: grid; justify-items: center; gap: 6px; padding: 12px 12px 8px; border: 1px solid #ffffff1f; border-radius: 10px; background: #141c2b; }
+  .caja small { color: #93a4c2; font-size: 11.5px; }
+  .barra { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 12px; background: #0c121ecc; border: 1px solid #ffffff1f; border-radius: 8px; font-weight: 650; }
+  .claro { background: #f2f4f8; color: #1d2530; }
+  button { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid #ffffff33; background: #1c2740; color: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>La mascota de Adeorq</h1>
+<p>Arriba se mueve sola. Pasa el ratón por encima de una para que te salude y muévelo a los lados para que te siga con el ojo.</p>
+<div id="raiz"></div>
+<script type="module">
+  import "/src/App.css";
+  import { createElement as h, useState } from "react";
+  import { createRoot } from "react-dom/client";
+  import Mascota from "/src/components/Mascota.tsx";
+  import { ALTO, ANCHO, GUIONES, REACCIONES, cuadrosDe } from "/src/lib/mascota.ts";
+
+  const NOMBRES = { quieta: "Quieta", trabaja: "Trabajando", espera: "Te espera", lista: "Terminó", dormida: "Dormida" };
+  const quieto = (pose, alto) =>
+    h("svg", { className: "mascota", viewBox: `0 0 ${ANCHO} ${ALTO}`, width: Math.round((alto * ANCHO) / ALTO), height: alto },
+      cuadrosDe(pose).map((q, i) => h("rect", { key: i, x: q.x, y: q.y, width: 1.02, height: 1.02, fill: q.c })));
+  const tira = (titulo, pasos) =>
+    h("div", { key: titulo, className: "caja", "data-tira": titulo },
+      h("div", { className: "fila" }, pasos.map(([pose, ms], i) => h("div", { key: i, style: { display: "grid", justifyItems: "center", gap: 2 } }, quieto(pose, 56), h("small", null, `${ms} ms`)))),
+      h("small", null, titulo));
+
+  function Hoja() {
+    const [toque, setToque] = useState(0);
+    return h("div", null,
+      h("h2", null, "Viva"),
+      h("div", { className: "fila" },
+        Object.keys(GUIONES).map((a) =>
+          h("div", { key: a, className: "caja", "data-viva": a },
+            h(Mascota, { animo: a, alto: 112, toque }),
+            h("span", { className: "barra" }, h(Mascota, { animo: a, alto: 28, toque }), "Adeorq"),
+            h("span", { className: "barra claro" }, h(Mascota, { animo: a, alto: 28, toque }), "Adeorq"),
+            h("small", null, NOMBRES[a])))),
+      h("p", { style: { marginTop: 12 } }, h("button", { id: "toque", onClick: () => setToque((n) => n + 1) }, "Pulsarlas a todas")),
+      Object.entries(GUIONES).map(([a, g]) =>
+        h("div", { key: a },
+          h("h2", null, `${NOMBRES[a]}: todos sus fotogramas`),
+          h("div", { className: "fila" },
+            g.entrada && tira("al llegar", g.entrada),
+            tira("lo que repite", g.bucle),
+            (g.gestos ?? []).map((gesto, i) => tira(`gesto ${i + 1}`, gesto))))),
+      h("h2", null, "Reacciones"),
+      h("div", { className: "fila" }, Object.entries(REACCIONES).map(([nombre, pasos]) => tira(nombre === "toque" ? "al pulsarla" : "al pasar el ratón", pasos))));
+  }
+  createRoot(document.getElementById("raiz")).render(h(Hoja));
+</script>
+</body>
+</html>

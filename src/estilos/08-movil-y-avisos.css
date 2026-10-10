@@ -560,60 +560,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* La mascota. Dos fotogramas que se turnan; el segundo, escondido de fábrica,
-   para que sin animación (modo rendimiento) se vea la postura y nada más. */
+/* La mascota. Los fotogramas los cambia `components/Mascota.tsx` (su reloj y
+   sus guiones están en `lib/mascota.ts`); aquí solo va que los cuadros se
+   pinten enteros y sin suavizar, que es lo que la hace de píxeles. */
 .mascota {
   display: block;
   shape-rendering: crispEdges;
   overflow: visible;
-}
-.mascota-f1 {
-  opacity: 0;
-}
-@keyframes mascota-uno {
-  0%, 49.9% { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
-@keyframes mascota-guino {
-  0%, 93.9% { opacity: 1; }
-  94%, 100% { opacity: 0; }
-}
-@keyframes mascota-guino-cerrado {
-  0%, 93.9% { opacity: 0; }
-  94%, 100% { opacity: 1; }
-}
-@keyframes mascota-salto {
-  0%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-4px); }
-}
-/* Quieta: parpadea cada cuatro segundos. */
-.mascota[data-animo="quieta"] .mascota-f0 {
-  animation: mascota-guino 4.2s steps(1) infinite;
-}
-.mascota[data-animo="quieta"] .mascota-f1 {
-  animation: mascota-guino-cerrado 4.2s steps(1) infinite;
-}
-/* Te espera: saluda con un brazo. Es lo único que no para. */
-.mascota[data-animo="espera"] .mascota-f0 {
-  animation: mascota-uno 0.7s steps(1) infinite;
-}
-.mascota[data-animo="espera"] .mascota-f1 {
-  animation: mascota-uno 0.7s steps(1) infinite;
-  animation-delay: -0.35s;
-}
-/* Terminó: dos saltitos y se queda con los brazos arriba. */
-.mascota[data-animo="lista"] {
-  animation: mascota-salto 0.45s ease-out 2;
-}
-:root[data-rendimiento="1"] .mascota,
-:root[data-rendimiento="1"] .mascota g {
-  animation: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .mascota,
-  .mascota g {
-    animation: none;
-  }
 }
 
 /* La lista. Va fuera de la barra (un portal), fija bajo la mascota. */

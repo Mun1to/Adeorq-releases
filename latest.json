@@ -1,11 +1,11 @@
 {
-  "version": "0.9.186",
-  "notes": "Una campana de avisos que es la mascota de Adeorq: vive en la barra de arriba, dice lo mas urgente de tus terminales y al pulsarla sale la lista de lo que te reclama. El instalador lleva la licencia y los avisos de terceros.",
-  "pub_date": "2026-10-10T13:47:52Z",
+  "version": "0.9.187",
+  "notes": "La mascota tiene repertorio: mira a los lados, se estira, teclea, celebra y te sigue con el ojo. El chat del movil deja mas sitio para leer y la mascota dice que hace el agente.",
+  "pub_date": "2026-10-10T14:44:24Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVxVlVWSExUdGt3b1gwUVJFTW1OMVlFVHlHbnBETHQzU1FnZTFFWEZFV3pVVEZNL2VIeHJiZlFITnlPa081UkdyV3gweGhPbUoxdXFRSUJlU0VQYlFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjQwMDM4CWZpbGU6QWRlb3JxXzAuOS4xODZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODYKT2lteVNHTS9wcmJBdEFXSEY2RGI4a0FNZm1aYzg3bGYrWjdKU1ZrWlZKNjJtN3Y2REJ6VFZ5RGh0a25RUjRzdG9YYXY0ek0zZEdURHZNNTVXVjJWQkE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.186/Adeorq_0.9.186_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzI0YUVYYjRtWFBkdFZVZXNUWWVWUHJvYWpwN05BdUZFUjhRYi9SZFZyaFh4VW5wWklNZFVMOC82ZnVBSzRUZ3hnb0Q5ZHlWc1EzNDN2UUhFZjJBcUEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjQzNDM4CWZpbGU6QWRlb3JxXzAuOS4xODdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODcKK0dXaElPaTRoaFFGOEU3cVJEZ2E4eWszclc2UDc0ZG1tdzk0ZGFoOEhKQmltMXE3MWFyVUZrM2VHMXMrdUdTajZLZDVXaWkybXE1WmZXem0vZnd5Q1E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.187/Adeorq_0.9.187_x64-setup.exe"
     }
   }
 }

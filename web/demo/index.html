@@ -101,47 +101,39 @@
     <header class="topbar">
       <span class="brand">Adeorq</span>
 
+      <!-- Solo el icono, como en la app desde el 2026-10-10: el nombre lo dice el
+           globo al pasar el ratón. -->
       <nav class="tabs" id="ade-tabs">
-        <button type="button" class="tab" data-vista="panel">
+        <button type="button" class="tab" data-vista="panel" title="Panel" aria-label="Panel">
           <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-panel"/></svg></span>
-          <span class="tab-label">Panel</span>
         </button>
-        <button type="button" class="tab" data-vista="cabina" data-active="true">
+        <button type="button" class="tab" data-vista="cabina" data-active="true" title="Cabina" aria-label="Cabina">
           <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-cabina"/></svg></span>
-          <span class="tab-label">Cabina</span>
           <span class="tab-count">4</span>
         </button>
         <!-- Justo detrás de la Cabina porque es la misma cosa vista de otra
              manera: las mismas sesiones, sin la consola delante. -->
-        <button type="button" class="tab" data-vista="chat">
+        <button type="button" class="tab" data-vista="chat" title="Chat" aria-label="Chat">
           <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-chat"/></svg></span>
-          <span class="tab-label">Chat</span>
-          <span class="tab-beta">beta</span>
         </button>
-        <button type="button" class="tab" data-vista="agenda">
+        <button type="button" class="tab" data-vista="agenda" title="Agenda" aria-label="Agenda">
           <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-agenda"/></svg></span>
-          <span class="tab-label">Agenda</span>
         </button>
-        <button type="button" class="tab" data-vista="lienzo">
+        <button type="button" class="tab" data-vista="lienzo" title="Lienzo" aria-label="Lienzo">
           <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-lienzo"/></svg></span>
-          <span class="tab-label">Lienzo</span>
           <span class="tab-count">2</span>
         </button>
-        <button type="button" class="tab" data-vista="memoria">
+        <button type="button" class="tab" data-vista="memoria" title="Memoria" aria-label="Memoria">
           <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-memoria"/></svg></span>
-          <span class="tab-label">Memoria</span>
         </button>
-        <button type="button" class="tab" data-vista="cuentas">
+        <button type="button" class="tab" data-vista="cuentas" title="Cuentas" aria-label="Cuentas">
           <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-cuentas"/></svg></span>
-          <span class="tab-label">Cuentas</span>
         </button>
-        <button type="button" class="tab" data-vista="comandos" id="ade-comandos-tab">
+        <button type="button" class="tab" data-vista="comandos" id="ade-comandos-tab" title="Comandos" aria-label="Comandos">
           <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-comandos"/></svg></span>
-          <span class="tab-label">Comandos</span>
         </button>
-        <button type="button" class="tab" data-vista="ajustes">
+        <button type="button" class="tab" data-vista="ajustes" title="Ajustes" aria-label="Ajustes">
           <span class="tab-icon"><svg class="ade-i"><use href="iconos.svg#i-ajustes"/></svg></span>
-          <span class="tab-label">Ajustes</span>
         </button>
       </nav>
 

@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.184"
+version = "0.9.185"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["you"]
 edition = "2021"
@@ -61,6 +61,10 @@ tauri-plugin-dialog = "2"
 # siquiera llegaba a mirar el código: se caía resolviendo las dependencias. Con
 # esto, en Linux no se compilan y los sitios que las usan van bajo `cfg`.
 [target.'cfg(windows)'.dependencies]
+# El icono de la bandeja, para seguir en segundo plano al cerrar la ventana
+# (`cierre.rs`). Solo aquí: en Linux esa pieza pide una librería del escritorio
+# que el AppImage no lleva probada, y allí la X cierra como siempre.
+tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }
 windows-sys = { version = "0.61.2", features = [
     "Win32_System_Threading",
     "Win32_Foundation",

@@ -6,8 +6,8 @@
 //
 // La barra va quitando piezas cuando no cabe (`RETIRADAS` en
 // `lib/barraQueCabe.ts`, cada una en `data-sin`): los nombres de los botones de
-// la Cabina, el título de la canción, los nombres de las pestañas, el
-// reproductor y el nombre «Adeorq». Hasta
+// la Cabina, el título de la canción, el reproductor y el nombre «Adeorq». Las
+// pestañas van solo con su icono en cualquier ancho (2026-10-10). Hasta
 // el 2026-10-10 lo decidían cortes fijos, y este banco los daba por buenos
 // midiendo una barra SIN el pulso de CPU, RAM y agentes: a Munir, con el suyo
 // y la música sonando, la fila no le cabía a 1920 (el reproductor aplastado,
@@ -19,9 +19,10 @@
 // Mide de 940 (el `minWidth` de la ventana en `tauri.conf.json`) a 1920 de 20
 // en 20, y también que si la música empieza a sonar con la ventana quieta la
 // barra se reajusta sola (eso lo ve el MutationObserver, no el de tamaño).
-// Y vigila el orden elegido: a 1920, aun en el peor caso, las pestañas
-// conservan su nombre (para ganar 275 px se quitaban todos y quedaban 600
-// vacíos), y al estrechar la ventana nunca vuelve una pieza que ya se fue.
+// Y vigila dos cosas más: que ninguna pestaña lleve su nombre escrito pero
+// todas lo digan en el globo y en el `aria-label` (una fila de iconos mudos no
+// la entiende nadie), y que al estrechar la ventana nunca vuelva una pieza que
+// ya se fue.
 //
 // Devuelve { quitado, fallos }: `fallos` vacío es que la fila cabe siempre.
 async (page) => {
@@ -133,7 +134,20 @@ async (page) => {
   const conMusica = await medir();
   if (!conMusica.musica) fallos.push("no salió el reproductor: la prueba no prueba nada");
   if (conMusica.desborda > 1 || conMusica.sobra < 0) fallos.push(`con la música recién puesta a 1920 se desborda ${conMusica.desborda} px (sin «${conMusica.sin}»)`);
-  if (conMusica.sin.split(" ").includes("pestanas")) fallos.push(`a 1920 se quitan los nombres de las pestañas (sin «${conMusica.sin}»)`);
+  const pestanas = await page.evaluate(() =>
+    [...document.querySelectorAll(".tabs .tab")].map((b) => ({
+      clave: b.dataset.tab,
+      // Lo escrito dentro, quitando la cuenta (el número de Decisiones sí va).
+      escrito: [...b.childNodes].filter((n) => !n.classList?.contains("tab-count")).map((n) => n.textContent).join("").trim(),
+      nombre: b.getAttribute("aria-label") ?? "",
+      globo: b.dataset.tip ?? "",
+    })),
+  );
+  if (pestanas.length < 4) fallos.push(`solo hay ${pestanas.length} pestañas: la prueba no prueba nada`);
+  for (const p of pestanas) {
+    if (p.escrito) fallos.push(`la pestaña ${p.clave} lleva escrito «${p.escrito}»: van solo con el icono`);
+    if (!p.nombre || !p.globo.startsWith(p.nombre)) fallos.push(`la pestaña ${p.clave} no dice su nombre (aria-label «${p.nombre}», globo «${p.globo}»)`);
+  }
 
   // 2. Todos los anchos, de ancho a estrecho, con el peor caso puesto.
   const quitado = {};

@@ -941,6 +941,20 @@ escritos.
 | Ctrl+V / Ctrl+C | Pegar / copiar dentro de la terminal |
 | Mayús+Tab | Cambiar el modo de permisos DENTRO de Claude |
 
+### En el editor de archivos
+
+Con el teclado dentro de un archivo abierto. El código se pinta con los colores
+del esquema de la terminal que tengas elegido en Ajustes → Aspecto.
+
+| Atajo | Qué hace |
+|---|---|
+| Ctrl+S | Guardar |
+| Ctrl+F | Buscar y reemplazar en el archivo |
+| Ctrl+G | Ir a una línea |
+| Alt+Z | Quitar o poner el ajuste de línea (que las líneas largas bajen a la siguiente) |
+| Ctrl+Z / Ctrl+Y | Deshacer / rehacer |
+| Ctrl+Mayús+[ / Ctrl+Mayús+] | Plegar / desplegar el bloque donde estás |
+
 ### En el lienzo
 
 Estos **se pueden cambiar** en Ajustes → Atajos del lienzo. Solo actúan con el

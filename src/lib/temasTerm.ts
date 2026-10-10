@@ -47,7 +47,7 @@ export interface TemaTerm {
   es: string;
   en: string;
   /** De dónde viene, para poder agruparlos y no mentir sobre su origen. */
-  familia: "casa" | "clasico" | "retro";
+  familia: "casa" | "clasico" | "retro" | "importado";
   colores: ColoresTerm;
 }
 
@@ -416,12 +416,62 @@ export function temaTermId(): string {
     quitó de la lista en una versión nueva), vuelve al de la casa en vez de
     dejar la terminal sin colores. */
 export function coloresTerm(id = temaTermId()): ColoresTerm {
-  return (TEMAS_TERM.find((t) => t.id === id) ?? TEMAS_TERM[0]).colores;
+  return ([...TEMAS_TERM, ...temasImportados()].find((t) => t.id === id) ?? TEMAS_TERM[0]).colores;
 }
 
 export function guardarTemaTerm(id: string): void {
   localStorage.setItem(TEMA_TERM_KEY, id);
   window.dispatchEvent(new Event(TEMA_TERM_EVENTO));
+}
+
+/* ----------------------------------------------------------- los importados
+   Los esquemas que el usuario trae de Warp o de Ghostty (`lib/temasDeFuera.ts`
+   los lee). Viven en este equipo, al lado del ajuste que los elige, y entran
+   en la misma lista que los de la casa. */
+
+export const IMPORTADOS_KEY = "adeorq-temas-importados";
+
+const CAMPOS: ReadonlyArray<keyof ColoresTerm> = [
+  "foreground", "cursor", "cursorAccent", "selectionBackground",
+  "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+  "brightBlack", "brightRed", "brightGreen", "brightYellow", "brightBlue", "brightMagenta", "brightCyan", "brightWhite",
+];
+
+/** Los importados, descartando lo que no tenga la forma entera: un guardado a
+    medias dejaría una terminal con colores sin definir. */
+export function temasImportados(): TemaTerm[] {
+  try {
+    const crudo: unknown = JSON.parse(localStorage.getItem(IMPORTADOS_KEY) || "[]");
+    if (!Array.isArray(crudo)) return [];
+    return crudo.filter(
+      (t): t is TemaTerm =>
+        !!t && typeof t.id === "string" && typeof t.es === "string" && !!t.colores && CAMPOS.every((c) => typeof t.colores[c] === "string"),
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** El id de un importado sale de su nombre: traer otra vez el mismo archivo lo
+    actualiza en vez de apilar copias. */
+export function idDeImportado(nombre: string): string {
+  const limpio = nombre.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return `imp-${limpio || "tema"}`;
+}
+
+export function guardarImportado(nombre: string, colores: ColoresTerm): TemaTerm {
+  const tema: TemaTerm = { id: idDeImportado(nombre), es: nombre, en: nombre, familia: "importado", colores };
+  const resto = temasImportados().filter((t) => t.id !== tema.id);
+  localStorage.setItem(IMPORTADOS_KEY, JSON.stringify([...resto, tema]));
+  // Si era el que estaba puesto, las terminales abiertas cogen los colores nuevos.
+  if (temaTermId() === tema.id) window.dispatchEvent(new Event(TEMA_TERM_EVENTO));
+  return tema;
+}
+
+/** Quita un importado. Si era el elegido, se vuelve al de la casa. */
+export function quitarImportado(id: string): void {
+  localStorage.setItem(IMPORTADOS_KEY, JSON.stringify(temasImportados().filter((t) => t.id !== id)));
+  if (temaTermId() === id) guardarTemaTerm("casa");
 }
 
 /* --------------------------------------------------------------- el apagón

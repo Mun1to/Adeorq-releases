@@ -2,7 +2,7 @@
    Adeorq · demo/ui.css
    GENERADO. No editar a mano: sale de src/App.css con scripts/extraer-ui.mjs.
 
-   Son 640 reglas de la app de verdad, acotadas dentro de `.ade` para que
+   Son 683 reglas de la app de verdad, acotadas dentro de `.ade` para que
    convivan con la landing. Las medidas son las suyas, no una aproximacion.
    ========================================================================= */
 
@@ -41,6 +41,10 @@
 .ade .tabs {
   display: flex;
   gap: 4px;
+}
+
+.ade .tabs .tab {
+  padding: 5px 9px;
 }
 
 .ade .tab {
@@ -109,18 +113,6 @@
   border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
   border-radius: 6px;
   padding: 0 5px;
-}
-
-.ade .tab-beta {
-  padding: 1px 5px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--ask) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ask) 42%, transparent);
-  color: var(--ask);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1.5;
 }
 
 .ade .sidebar {
@@ -895,6 +887,36 @@
   background: #3a4356;
 }
 
+.ade .dot[data-visto="true"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--dot-c, #6b7488);
+}
+
+.ade .dot-ask[data-visto="true"] {
+  --dot-c: var(--ask);
+}
+
+.ade .finder-orden {
+  margin: 4px 10px 2px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-chico);
+  cursor: pointer;
+  text-align: left;
+}
+
+.ade .finder-orden:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.ade .finder-orden[data-on="true"] {
+  color: var(--accent);
+}
+
 .ade .session-title {
   flex: 1;
   min-width: 0;
@@ -1307,6 +1329,21 @@
   backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border);
   font-size: 12px;
+  /* Esta barra es el ASA con la que se mueve el panel: en la Cabina por el
+     `onPointerDown` de la cabecera y en el lienzo porque React Flow la tiene
+     puesta como `dragHandle`. Sin esto, arrastrar por ella hace las dos cosas a
+     la vez y el nombre y las píldoras se van quedando seleccionados en azul
+     detrás del panel que se mueve. Nadie viene aquí a copiar texto: lo que se
+     lee está en el globo de ayuda, y lo que se escribe tiene su excepción
+     debajo. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ade .pane-head input,
+.ade .pane-rename {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .ade .ph-id {
@@ -1418,11 +1455,14 @@
      (0.9.39), ese hueco se convirtió en un marco de foto alrededor del texto
      (Munir, 2026-07-31: «no sé por qué tiene como unos huecos»). */
   padding: 0;
-  /* Y el mismo color que el lienzo, que si no reaparece una franja a la derecha.
-     El canvas de xterm solo mide COLUMNAS ENTERAS: los pocos píxeles que sobran
-     hasta el borde no son suyos y se quedaban sin su tinte, así que con el
-     fondo visible se notaban más claros que el resto. Pintándolos igual, el
-     sobrante deja de existir a la vista. */
+  /* Y el tinte de las terminales se pinta AQUÍ, una sola vez. El canvas de
+     xterm solo mide COLUMNAS ENTERAS: los píxeles que sobran hasta el borde
+     (14 px de reserva de la barra de scroll, más el resto de una celda, y
+     abajo el resto de una fila) no son suyos. Pintarlos «del mismo color» no
+     bastaba mientras xterm también pintara el suyo: el texto acababa con
+     cuatro capas del tinte y la franja con tres, y con una foto detrás se
+     notaba (medido, ver `--xterm-bg`). Desde la 0.9.159 xterm recibe un fondo
+     transparente cuando el tinte lo es, y esta es la única capa. */
   background: var(--xterm-bg);
 }
 
@@ -1762,19 +1802,21 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 1px;
   padding-right: 2px;
 }
 
 .ade .skill {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   cursor: grab;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
   user-select: none;
 }
 
@@ -1793,19 +1835,14 @@
 
 .ade .skill-name {
   color: var(--accent);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   font-family: "Cascadia Mono", Consolas, monospace;
-}
-
-.ade .skill-desc {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  /* Un nombre largo se recorta antes que partirse en dos: con la fila de un
+     solo renglon, partirse la descoloca y rompe la rejilla de la lista. */
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ade .act-vacio,
@@ -2023,6 +2060,39 @@
   font-size: 12px;
 }
 
+.ade .pane-pausa {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  padding: 6px 14px;
+  border-radius: var(--r-pastilla);
+  /* En una sola línea SIEMPRE: partida en dos, una píldora deja de leerse como
+     una etiqueta y parece un cuadro de diálogo a medio pintar. */
+  white-space: nowrap;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  /* Fondo aplanado y NO translúcido: sobre una foto, un alfa aquí apaga el
+     ClearType y el texto pequeño sale sucio. */
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel-solid));
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 6px 18px rgba(0, 0, 0, 0.42);
+  animation: update-sube 0.16s ease;
+}
+
+.ade .pane-pausa:hover {
+  background: color-mix(in srgb, var(--accent) 34%, var(--panel-solid));
+}
+
 .ade .pane-note {
   padding: 7px 12px;
   background: color-mix(in srgb, var(--row) 75%, rgba(13, 21, 36, 0.94));
@@ -2033,7 +2103,7 @@
 
 .ade .pane-ctx-warn {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   padding: 8px 12px;
   background: linear-gradient(
@@ -2049,6 +2119,13 @@
 
 .ade .pane-ctx-warn span:first-child {
   flex: 1;
+}
+
+.ade .pane-ctx-warn .pane-ctx-compactar {
+  flex: none;
+  color: inherit;
+  border-color: currentColor;
+  font-size: 12px;
 }
 
 .ade .pane-ctx-warn[data-grave="true"] {
@@ -2153,6 +2230,10 @@
   gap: 20px;
   align-items: start;
   max-width: 1100px;
+}
+
+.ade .set-marco[data-ancha] {
+  max-width: none;
 }
 
 .ade .set-tab-badge {
@@ -2614,6 +2695,71 @@
 .ade .term-prev-cursor {
     animation: none;
   }
+}
+
+.ade .term-importado {
+  position: relative;
+  display: grid;
+}
+
+.ade .term-quitar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--popover);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+
+.ade .term-importado:hover .term-quitar,
+.ade .term-quitar:focus-visible {
+  opacity: 1;
+}
+
+.ade .term-quitar:hover {
+  color: var(--wait);
+}
+
+.ade .term-traer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.ade .term-traer .card-hint {
+  flex: 1;
+  min-width: 240px;
+  margin: 0;
+}
+
+.ade .term-partes {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.ade .term-partes li[data-ok="false"] {
+  color: var(--wait);
+}
+
+.ade .term-partes b {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .ade .sess-prov {
@@ -3437,14 +3583,34 @@
   font-variant-numeric: tabular-nums;
 }
 
-@container ade (max-width: 1700px) {
-.ade .tabs .tab-label,
-.ade .topbar-acciones .tab-label {
-    display: none;
-  }
-.ade .tabs .tab {
-    padding: 5px 9px;
-  }
+.ade .topbar[data-sin~="acciones"] .topbar-acciones .tab-label {
+  display: none;
+}
+
+.ade .topbar .np .np-title {
+  flex-shrink: 0;
+}
+
+.ade .topbar[data-sin~="titulo"] .np .np-text {
+  display: none;
+}
+
+.ade .topbar[data-sin~="titulo"] .np {
+  gap: 2px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.ade .topbar[data-sin~="musica"] .np {
+  display: none;
+}
+
+.ade .topbar[data-sin~="marca"] .brand {
+  display: none;
+}
+
+.ade .topbar[data-sin~="marca"] .tabs .tab {
+  padding: 5px 6px;
 }
 
 .ade .pane-shadow-toggle {
@@ -4167,6 +4333,13 @@
   color: var(--text);
 }
 
+.ade .mem-cerebro-nota {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
 .ade .mem-cerebro-leyenda {
   display: grid;
   gap: 2px;
@@ -4724,6 +4897,12 @@
   backdrop-filter: blur(18px) saturate(1.1);
 }
 
+.ade:is([data-theme="claro"],
+.ade [data-theme="papel"]) :is(.chat-hilo,
+.ade .chat-lista) {
+  background: var(--page-tint);
+}
+
 .ade .chat-cabecera {
   display: flex;
   align-items: center;
@@ -4813,6 +4992,34 @@
 .ade .chat-burbuja {
   font-size: 14px;
   line-height: 1.62;
+}
+
+.ade .chat-par {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ade .chat-ancla {
+  position: sticky;
+  top: -1px;
+  z-index: 2;
+  align-self: stretch;
+  margin: -2px 0 2px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--panel-solid) 90%, transparent);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ade .chat-ancla::before {
+  content: "▸ ";
+  color: var(--accent);
 }
 
 .ade .chat-turno[data-rol="tu"] .chat-burbuja {
@@ -4988,11 +5195,17 @@
 
 .ade .chat-pastillas {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  row-gap: 4px;
   padding: 8px 12px;
   border-top: 1px solid var(--border);
 }
+
+.ade .chat-pastillas :is(.chat-donde,
+.ade .chat-pastilla,
+.ade .chat-ctx) { white-space: nowrap; }
 
 .ade .chat-hueco {
   flex: 1;
@@ -5183,6 +5396,10 @@
   line-height: 1.55;
 }
 
+.ade .chat-caja:has(.chat-input[data-mejorado="true"]) {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
 .ade .mini.on {
   background: var(--accent);
   border-color: var(--accent);
@@ -5206,4 +5423,106 @@
   border-color: var(--border);
   transform: none;
   box-shadow: none;
+}
+
+.ade .minim-x {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  margin: -2px -6px -2px 1px;
+  border-radius: 5px;
+  color: color-mix(in srgb, var(--text) 38%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
+}
+
+.ade .minim-chip:hover .minim-x {
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+}
+
+.ade .minim-x:hover {
+  background: color-mix(in srgb, var(--bad, #ff6b6b) 18%, transparent);
+  color: var(--bad, #ff6b6b);
+}
+
+.ade .minim-x[data-armado] {
+  background: color-mix(in srgb, var(--bad, #ff6b6b) 24%, transparent);
+  color: var(--bad, #ff6b6b);
+}
+
+.ade .pane-caido {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  background: var(--panel);
+  color: var(--text);
+}
+
+.ade .pane-caido-caja {
+  max-width: 420px;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.ade .pane-caido-caja strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14.5px;
+}
+
+.ade .pane-caido-caja p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.ade .pane-caido-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bad, #ff6b6b);
+  border-radius: 0 var(--r-chico) var(--r-chico) 0;
+  background: var(--panel-solid);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 30vh;
+  overflow-y: auto;
+  user-select: text;
+}
+
+.ade .pane-caido-boton {
+  padding: 7px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ade .pane-caido-boton:hover {
+  background: color-mix(in srgb, var(--accent) 26%, var(--panel));
+}
+
+.ade .tab-count[data-espera="true"] {
+  color: var(--ask);
+  background: color-mix(in srgb, var(--ask) 18%, transparent);
+  border-color: color-mix(in srgb, var(--ask) 42%, transparent);
 }

@@ -1,6 +1,7 @@
 mod accounts;
 mod archivos;
 mod autostart;
+mod cierre;
 mod crew;
 mod discord;
 mod editor;
@@ -306,11 +307,8 @@ pub fn run() {
     #[cfg(not(debug_assertions))]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            if let Some(w) = app.get_webview_window("main") {
-                let _ = w.unminimize();
-                let _ = w.show();
-                let _ = w.set_focus();
-            }
+            // Y si estaba en segundo plano, vuelve de la bandeja (`cierre.rs`).
+            cierre::volver(app);
         }));
     }
 
@@ -382,6 +380,7 @@ pub fn run() {
             Ok(())
         })
         .manage(PtyState::default())
+        .manage(cierre::Cierre::default())
         .manage(SessionCache::default())
         .manage(discord::DiscordState::default())
         .manage(memoria::MemoriaCache::default())
@@ -394,8 +393,25 @@ pub fn run() {
         .manage(mcp::Puente::default())
         // El móvil: quién está emparejado y el puente con la ventana.
         .manage(movil::Movil::default())
+        // La X de la ventana principal pregunta antes de cerrar (`cierre.rs`).
+        // Las ventanas sueltas no pasan por aquí: cerrarlas no cierra nada más.
+        .on_window_event(|ventana, evento| {
+            if ventana.label() != "main" {
+                return;
+            }
+            if let tauri::WindowEvent::CloseRequested { api, .. } = evento {
+                if cierre::al_pedir_cierre(ventana.app_handle()) {
+                    api.prevent_close();
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             mcp::mcp_reply,
+            cierre::cierre_acuse,
+            cierre::cierre_puede_fondo,
+            cierre::cierre_salir,
+            cierre::cierre_a_fondo,
+            cierre::cierre_volver,
             movil::movil_reply,
             decisiones::decisiones_listar,
             decisiones::decision_responder,

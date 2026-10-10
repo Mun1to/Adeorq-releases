@@ -8,14 +8,14 @@ Cada componente sigue siendo de quien lo escribió y se usa bajo su propia
 licencia, que es la que manda sobre ese componente. Nada de lo que hay aquí es
 de Adeorq ni cambia por estar en esta lista.
 
-Resumen: **72** componentes de la interfaz y **557** del núcleo en Rust. No hay
+Resumen: **81** componentes de la interfaz y **552** del núcleo en Rust. No hay
 ninguna dependencia con licencia GPL o AGPL. Hay 5 con MPL-2.0 (cssparser,
 cssparser-macros, dtoa-short, option-ext, selectors): la MPL solo obliga a
 publicar los cambios de SUS propios archivos, y Adeorq no modifica ninguno.
 
 El texto íntegro de cada licencia viaja dentro del paquete de la dependencia
-correspondiente y puede consultarse en su repositorio de origen. De 629
-componentes, 466 declaran un titular de copyright explícito, recogido abajo.
+correspondiente y puede consultarse en su repositorio de origen. De 633
+componentes, 478 declaran un titular de copyright explícito, recogido abajo.
 
 ## Interfaz (npm, dependencias de producción)
 
@@ -28,22 +28,31 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | @codemirror/lang-javascript | 6.2.5 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @codemirror/lang-json | 6.0.2 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @codemirror/lang-markdown | 6.5.2 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
+| @codemirror/lang-python | 6.2.1 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @codemirror/lang-rust | 6.0.2 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
+| @codemirror/lang-yaml | 6.1.3 | MIT | Copyright 2024 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @codemirror/language | 6.12.4 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
+| @codemirror/legacy-modes | 6.5.5 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @codemirror/lint | 6.9.7 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
+| @codemirror/search | 6.7.2 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @codemirror/state | 6.7.1 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
+| @codemirror/streamparser | 6.0.0 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @codemirror/view | 6.43.8 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/common | 1.5.2 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/css | 1.3.6 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/highlight | 1.2.3 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
+| @lezer/highlight | 1.2.5 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/html | 1.3.13 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/javascript | 1.5.4 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/json | 1.0.3 | MIT | Copyright 2020 by Marijn Haverbeke <marijn@haverbeke.berlin>, Arun Srinivasan <rulfzid@gmail.com>, and others |
 | @lezer/lr | 1.4.10 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/markdown | 1.7.2 | MIT | Copyright 2020 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
+| @lezer/python | 1.1.19 | MIT | Copyright 2020 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/rust | 1.0.2 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
+| @lezer/yaml | 1.0.4 | MIT | Copyright 2024 by Marijn Haverbeke <marijnh@gmail.com> and others |
 | @marijn/find-cluster-break | 1.0.3 | MIT | Copyright 2024 by Marijn Haverbeke <marijn@haverbeke.berlin> |
 | @tauri-apps/api | 2.11.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
+| @tauri-apps/api | 2.12.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
 | @tauri-apps/plugin-dialog | 2.7.2 | MIT OR Apache-2.0 | — |
 | @tauri-apps/plugin-notification | 2.3.3 | MIT OR Apache-2.0 | — |
 | @tauri-apps/plugin-opener | 2.5.4 | MIT OR Apache-2.0 | — |
@@ -103,8 +112,8 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | aes | 0.8.4 | MIT OR Apache-2.0 | Copyright 2018 Artyom Pavlov |
 | aes-gcm | 0.10.3 | Apache-2.0 OR MIT | Copyright 2019 The RustCrypto Project Developers |
 | aho-corasick | 1.1.4 | Unlicense OR MIT | Copyright 2015 Andrew Gallant |
-| alloc-no-stdlib | 2.0.4 | BSD-3-Clause | Copyright 2016 Dropbox, Inc |
-| alloc-stdlib | 0.2.4 | BSD-3-Clause | — |
+| alloc-no-stdlib | 3.0.0 | BSD-3-Clause | Copyright 2016 Dropbox, Inc |
+| alloc-stdlib | 0.3.0 | BSD-3-Clause | — |
 | android_system_properties | 0.1.5 | MIT/Apache-2.0 | Copyright 2016 Nicolas Silva |
 | anyhow | 1.0.104 | MIT OR Apache-2.0 | — |
 | arbitrary | 1.4.2 | MIT OR Apache-2.0 | Copyright 2019 Manish Goregaokar |
@@ -135,8 +144,8 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | block-buffer | 0.10.4 | MIT OR Apache-2.0 | Copyright 2018-2019 The RustCrypto Project Developers |
 | block2 | 0.6.2 | MIT | — |
 | blocking | 1.6.2 | Apache-2.0 OR MIT | — |
-| brotli | 8.0.4 | BSD-3-Clause AND MIT | Copyright 2016 Dropbox, Inc |
-| brotli-decompressor | 5.0.3 | BSD-3-Clause/MIT | Copyright 2016 Dropbox, Inc |
+| brotli | 9.0.0 | BSD-3-Clause AND MIT | Copyright 2016 Dropbox, Inc |
+| brotli-decompressor | 6.0.1 | BSD-3-Clause/MIT | Copyright 2016 Dropbox, Inc |
 | bs58 | 0.5.1 | MIT/Apache-2.0 | Copyright 2016 The roaring-rs developers |
 | bumpalo | 3.20.3 | MIT OR Apache-2.0 | Copyright 2019 Nick Fitzgerald |
 | bytemuck | 1.25.2 | Zlib OR Apache-2.0 OR MIT | Copyright 2019 Daniel "Lokathor" Gee |
@@ -149,6 +158,7 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | cargo-platform | 0.1.9 | MIT OR Apache-2.0 | — |
 | cesu8 | 1.1.0 | Apache-2.0/MIT | — |
 | cfb | 0.7.3 | MIT | Copyright 2017 Matthew D. Steele |
+| cfb | 0.14.0 | MIT | Copyright 2017 Matthew D. Steele |
 | cfg-if | 1.0.4 | MIT OR Apache-2.0 | Copyright 2014 Alex Crichton |
 | chrono | 0.4.45 | MIT OR Apache-2.0 | Copyright 2014, Kang Seonghoon |
 | cipher | 0.4.4 | MIT OR Apache-2.0 | Copyright 2016-2020 RustCrypto Developers |
@@ -166,10 +176,9 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | crossbeam-utils | 0.8.22 | MIT OR Apache-2.0 | Copyright 2019 The Crossbeam Project Developers |
 | crypto-bigint | 0.5.5 | Apache-2.0 OR MIT | Copyright 2021 The RustCrypto Project Developers |
 | crypto-common | 0.1.7 | MIT OR Apache-2.0 | Copyright 2021 RustCrypto Developers |
-| cssparser | 0.36.0 | MPL-2.0 | — |
-| cssparser-macros | 0.6.1 | MPL-2.0 | — |
-| ctor | 0.8.0 | Apache-2.0 OR MIT | — |
-| ctor-proc-macro | 0.0.7 | Apache-2.0 OR MIT | — |
+| cssparser | 0.37.0 | MPL-2.0 | — |
+| cssparser-macros | 0.7.1 | MPL-2.0 | — |
+| ctor | 1.0.13 | Apache-2.0 OR MIT | — |
 | ctr | 0.9.2 | MIT OR Apache-2.0 | Copyright 2018-2022 RustCrypto Developers; Copyright 2018 Artyom Pavlov |
 | darling | 0.23.0 | MIT | Copyright 2017 Ted Driggs |
 | darling_core | 0.23.0 | MIT | Copyright 2017 Ted Driggs |
@@ -182,18 +191,17 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | derive_more-impl | 2.1.1 | MIT | Copyright 2016 Jelte Fennema |
 | digest | 0.10.7 | MIT OR Apache-2.0 | Copyright 2017 Artyom Pavlov |
 | dirs | 6.0.0 | MIT OR Apache-2.0 | Copyright 2018-2019 dirs-rs contributors |
+| dirs | 7.0.0 | MIT OR Apache-2.0 | Copyright 2018-2019 dirs-rs contributors |
 | dirs-sys | 0.5.0 | MIT OR Apache-2.0 | Copyright 2018-2019 dirs-rs contributors |
 | dispatch2 | 0.3.1 | Zlib OR Apache-2.0 OR MIT | — |
 | displaydoc | 0.2.6 | MIT OR Apache-2.0 | — |
 | dlopen2 | 0.8.2 | MIT | — |
 | dlopen2_derive | 0.4.3 | MIT | — |
-| dom_query | 0.27.0 | MIT | Copyright 2023 Mykola Humanov |
+| dom_query | 0.28.0 | MIT | Copyright 2023 Mykola Humanov |
 | downcast-rs | 1.2.1 | MIT/Apache-2.0 | Copyright 2020 Ashish Myles and contributors |
 | dpi | 0.1.2 | Apache-2.0 AND MIT | Copyright 2018 Jorge Aparicio; Copyright 2005-2020 Rich Felker, et al; Copyright 1993,2004 Sun Microsystems or; Copyright 2003-2011 David Schultz or; Copyright 2003-2009 Steven G. Kargl or; Copyright 2003-2009 Bruce D. Evans or; Copyright 2008 Stephen L. Moshier or; Copyright 2017-2018 Arm Limited |
 | dtoa | 1.0.11 | MIT OR Apache-2.0 | — |
 | dtoa-short | 0.3.5 | MPL-2.0 | — |
-| dtor | 0.3.0 | Apache-2.0 OR MIT | — |
-| dtor-proc-macro | 0.0.6 | Apache-2.0 OR MIT | — |
 | dunce | 1.0.5 | CC0-1.0 OR MIT-0 OR Apache-2.0 | — |
 | dyn-clone | 1.0.20 | MIT OR Apache-2.0 | — |
 | ecdsa | 0.16.9 | Apache-2.0 OR MIT | Copyright 2018-2022 RustCrypto Developers |
@@ -260,7 +268,7 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | hex | 0.4.3 | MIT OR Apache-2.0 | Copyright 2013-2014 The Rust Project Developers; Copyright 2015-2020 The rust-hex Developers |
 | hkdf | 0.12.4 | MIT OR Apache-2.0 | Copyright 2015-2018 Vlad Filippov; Copyright 2018-2021 RustCrypto Developers |
 | hmac | 0.12.1 | MIT OR Apache-2.0 | Copyright 2017 Artyom Pavlov |
-| html5ever | 0.38.0 | MIT OR Apache-2.0 | Copyright 2014 The html5ever Project Developers |
+| html5ever | 0.39.0 | MIT OR Apache-2.0 | Copyright 2014 The html5ever Project Developers |
 | http | 1.4.2 | MIT OR Apache-2.0 | Copyright 2017 http-rs authors |
 | http-body | 1.1.0 | MIT | Copyright 2019-2026 Sean McArthur & Hyper Contributors |
 | http-body-util | 0.1.4 | MIT | Copyright 2019-2026 Sean McArthur & Hyper Contributors |
@@ -285,6 +293,7 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | indexmap | 1.9.3 | Apache-2.0 OR MIT | Copyright 2016--2017 |
 | indexmap | 2.14.0 | Apache-2.0 OR MIT | Copyright 2016--2017 |
 | infer | 0.19.0 | MIT | Copyright 2019 Bojan |
+| infer | 0.22.0 | MIT | Copyright 2019 Bojan |
 | inout | 0.1.4 | MIT OR Apache-2.0 | Copyright 2022 The RustCrypto Project Developers; Copyright 2022 Artyom Pavlov |
 | ipnet | 2.12.0 | MIT OR Apache-2.0 | Copyright 2017 Juniper Networks, Inc |
 | is-docker | 0.2.0 | MIT | Copyright 2023 Sean Larkin |
@@ -299,9 +308,9 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | jni-sys | 0.4.1 | MIT OR Apache-2.0 | Copyright 2015 The rust-jni-sys Developers |
 | jni-sys-macros | 0.4.1 | MIT OR Apache-2.0 | — |
 | js-sys | 0.3.103 | MIT OR Apache-2.0 | Copyright 2014 Alex Crichton |
-| json-patch | 3.0.1 | MIT/Apache-2.0 | Copyright 2017 Ivan Dubrov |
-| jsonptr | 0.6.3 | MIT OR Apache-2.0 | Copyright 2022 Chance Dinkins |
-| keyboard-types | 0.7.0 | MIT OR Apache-2.0 | Copyright 2017 Pyfisch |
+| json-patch | 4.2.0 | MIT/Apache-2.0 | Copyright 2017 Ivan Dubrov |
+| jsonptr | 0.7.1 | MIT OR Apache-2.0 | Copyright 2022 Chance Dinkins |
+| keyboard-types | 0.8.3 | MIT OR Apache-2.0 | Copyright 2017 Pyfisch |
 | lazy_static | 1.5.0 | MIT OR Apache-2.0 | Copyright 2010 The Rust Project Developers |
 | libappindicator | 0.9.0 | Apache-2.0 OR MIT | Copyright 2017-2021 qDot; Copyright 2021 Tauri Apps Contributors |
 | libappindicator-sys | 0.9.0 | Apache-2.0 OR MIT | — |
@@ -315,15 +324,16 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | log | 0.4.33 | MIT OR Apache-2.0 | Copyright 2014 The Rust Project Developers |
 | lru-slab | 0.1.2 | MIT OR Apache-2.0 OR Zlib | Copyright 2024 The lru-slab Developers |
 | mac-notification-sys | 0.6.15 | MIT/Apache-2.0 | — |
-| markup5ever | 0.38.0 | MIT OR Apache-2.0 | Copyright 2014 The html5ever Project Developers |
+| markup5ever | 0.39.0 | MIT OR Apache-2.0 | Copyright 2014 The html5ever Project Developers |
 | memchr | 2.8.3 | Unlicense OR MIT | Copyright 2015 Andrew Gallant |
 | memoffset | 0.9.1 | MIT | Copyright 2017 Gilad Naaman |
 | mime | 0.3.17 | MIT OR Apache-2.0 | Copyright 2014 Sean McArthur |
 | minisign-verify | 0.2.5 | MIT | Copyright 2019-2025 Frank Denis; Copyright 2006-2009 Graydon Hoare; Copyright 2009-2013 Mozilla Foundation |
 | miniz_oxide | 0.8.9 | MIT OR Zlib OR Apache-2.0 | Copyright 2013-2014 RAD Game Tools and Valve Software; Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC; Copyright 2017 Frommi; Copyright 2017-2024 oyvindln |
 | mio | 1.2.2 | MIT | Copyright 2014 Carl Lerche and other MIO contributors |
-| muda | 0.19.3 | Apache-2.0 OR MIT | Copyright 2022-2022 Tauri Programme within The Commons Conservancy |
+| muda | 0.20.0 | Apache-2.0 OR MIT | Copyright 2022-2022 Tauri Programme within The Commons Conservancy |
 | ndk | 0.9.0 | MIT OR Apache-2.0 | — |
+| ndk-context | 0.1.1 | MIT OR Apache-2.0 | — |
 | ndk-sys | 0.6.0+11769913 | MIT OR Apache-2.0 | — |
 | new_debug_unreachable | 1.0.6 | MIT | Copyright 2015 Jonathan Reem |
 | nix | 0.28.0 | MIT | Copyright 2015 Carl Lerche + nix-rust Authors |
@@ -435,7 +445,7 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | sec1 | 0.7.3 | Apache-2.0 OR MIT | Copyright 2021-2022 The RustCrypto Project Developers |
 | security-framework | 3.7.0 | MIT OR Apache-2.0 | Copyright 2015 Steven Fackler |
 | security-framework-sys | 2.17.0 | MIT OR Apache-2.0 | Copyright 2015 Steven Fackler |
-| selectors | 0.36.1 | MPL-2.0 | — |
+| selectors | 0.38.0 | MPL-2.0 | — |
 | semver | 1.0.28 | MIT OR Apache-2.0 | — |
 | serde | 1.0.229 | MIT OR Apache-2.0 | — |
 | serde_core | 1.0.229 | MIT OR Apache-2.0 | — |
@@ -473,18 +483,18 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | string_cache | 0.9.0 | MIT OR Apache-2.0 | Copyright 2012-2013 Mozilla Foundation |
 | strsim | 0.11.1 | MIT | Copyright 2015 Danny Guo; Copyright 2016 Titus Wormer <tituswormer@gmail.com>; Copyright 2018 Akash Kurdekar |
 | subtle | 2.6.1 | BSD-3-Clause | Copyright 2016-2017 Isis Agora Lovecruft, Henry de Valence. All rights reserved; Copyright 2016-2024 Isis Agora Lovecruft. All rights reserved |
-| swift-rs | 1.0.7 | MIT OR Apache-2.0 | Copyright 2023 The swift-rs Developers |
+| swift-rs | 1.0.8 | MIT OR Apache-2.0 | Copyright 2023 The swift-rs Developers |
 | syn | 1.0.109 | MIT OR Apache-2.0 | — |
 | syn | 2.0.119 | MIT OR Apache-2.0 | — |
 | syn | 3.0.3 | MIT OR Apache-2.0 | — |
 | sync_wrapper | 1.0.2 | Apache-2.0 | — |
 | synstructure | 0.13.2 | MIT | Copyright 2016 Nika Layzell |
-| tao | 0.35.3 | Apache-2.0 | — |
-| tao-macros | 0.1.3 | MIT OR Apache-2.0 | — |
+| tao | 0.37.1 | Apache-2.0 | — |
+| tao-macros | 0.1.4 | MIT OR Apache-2.0 | Copyright 2022 - Present Tauri Apps Contributors |
 | tar | 0.4.46 | MIT OR Apache-2.0 | Copyright The tar-rs Project Contributors |
-| tauri | 2.11.5 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
-| tauri-codegen | 2.6.3 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
-| tauri-macros | 2.6.3 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
+| tauri | 2.12.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
+| tauri-codegen | 2.7.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
+| tauri-macros | 2.7.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
 | tauri-plugin-dialog | 2.7.2 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
 | tauri-plugin-fs | 2.5.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
 | tauri-plugin-notification | 2.3.3 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
@@ -492,9 +502,9 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | tauri-plugin-process | 2.3.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
 | tauri-plugin-single-instance | 2.4.3 | Apache-2.0 OR MIT | Copyright 2017 - Present The Tauri Programme in the Commons Conservancy |
 | tauri-plugin-updater | 2.10.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
-| tauri-runtime | 2.11.3 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
-| tauri-runtime-wry | 2.11.4 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
-| tauri-utils | 2.9.3 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
+| tauri-runtime | 2.12.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
+| tauri-runtime-wry | 2.12.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
+| tauri-utils | 2.10.1 | Apache-2.0 OR MIT | Copyright 2017 - Present Tauri Apps Contributors |
 | tauri-winrt-notification | 0.7.3 | MIT OR Apache-2.0 | Copyright 2017 - Present Tauri Apps Contributors |
 | tempfile | 3.27.0 | MIT OR Apache-2.0 | Copyright 2015 Steven Allen |
 | tendril | 0.5.1 | MIT OR Apache-2.0 | Copyright 2015 Keegan McAllister |
@@ -527,23 +537,18 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | tracing-attributes | 0.1.31 | MIT | Copyright 2019 Tokio Contributors |
 | tracing-core | 0.1.36 | MIT | Copyright 2019 Tokio Contributors |
 | trash | 5.2.6 | MIT | Copyright 2019 Artúr Barnabás Kovács |
-| tray-icon | 0.24.1 | MIT OR Apache-2.0 | Copyright 2022-2022 Tauri Programme within The Commons Conservancy |
+| tray-icon | 0.25.1 | MIT OR Apache-2.0 | Copyright 2022-2022 Tauri Programme within The Commons Conservancy |
 | try-lock | 0.2.5 | MIT | Copyright 2018-2023 Sean McArthur; Copyright 2016 Alex Crichton |
 | typeid | 1.0.3 | MIT OR Apache-2.0 | — |
 | typenum | 1.20.1 | MIT OR Apache-2.0 | Copyright 2014 Paho Lurie-Gregg |
 | uds_windows | 1.2.1 | MIT | Copyright Microsoft Corporation. All rights reserved |
-| unic-char-property | 0.9.0 | MIT/Apache-2.0 | — |
-| unic-char-range | 0.9.0 | MIT/Apache-2.0 | — |
-| unic-common | 0.9.0 | MIT/Apache-2.0 | — |
-| unic-ucd-ident | 0.9.0 | MIT/Apache-2.0 | — |
-| unic-ucd-version | 0.9.0 | MIT/Apache-2.0 | — |
 | unicode-ident | 1.0.24 | (MIT OR Apache-2.0) AND Unicode-3.0 | Copyright 1991-2023 Unicode, Inc |
 | unicode-segmentation | 1.13.3 | MIT OR Apache-2.0 | Copyright 2015 The Rust Project Developers |
 | universal-hash | 0.5.1 | MIT OR Apache-2.0 | Copyright 2019-2020 RustCrypto Developers |
 | untrusted | 0.9.0 | ISC | — |
 | url | 2.5.8 | MIT OR Apache-2.0 | Copyright 2013-2025 The rust-url developers |
 | urlencoding | 2.1.3 | MIT | — |
-| urlpattern | 0.3.0 | MIT | Copyright 2021 the Deno authors |
+| urlpattern | 0.6.0 | MIT | Copyright 2021 the Deno authors |
 | utf8_iter | 1.0.4 | Apache-2.0 OR MIT | Copyright Mozilla Foundation |
 | uuid | 1.24.0 | Apache-2.0 OR MIT | Copyright 2014 The Rust Project Developers; Copyright 2018 Ashley Mannix, Christopher Armstrong, Dylan DPC, Hunar Roop Kahlon |
 | walkdir | 2.5.0 | Unlicense/MIT | Copyright 2015 Andrew Gallant |
@@ -562,14 +567,14 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | webkit2gtk | 2.0.2 | MIT | Copyright 2016 Boucher, Antoni <bouanto@zoho.com>; Copyright 2017-2021, The Gtk-rs Project Developers; Copyright 2021, Tauri Programme within The Commons Conservancy |
 | webkit2gtk-sys | 2.0.2 | MIT | Copyright 2016 Boucher, Antoni <bouanto@zoho.com> |
 | webpki-root-certs | 1.0.9 | CDLA-Permissive-2.0 | — |
-| webview2-com | 0.38.2 | MIT | — |
+| webview2-com | 0.39.1 | MIT | — |
 | webview2-com-macros | 0.8.1 | MIT | — |
-| webview2-com-sys | 0.38.2 | MIT | — |
+| webview2-com-sys | 0.39.1 | MIT | — |
 | winapi | 0.3.9 | MIT/Apache-2.0 | Copyright 2015-2018 The winapi-rs Developers |
 | winapi-i686-pc-windows-gnu | 0.4.0 | MIT/Apache-2.0 | — |
 | winapi-util | 0.1.11 | Unlicense OR MIT | Copyright 2017 Andrew Gallant |
 | winapi-x86_64-pc-windows-gnu | 0.4.0 | MIT/Apache-2.0 | — |
-| window-vibrancy | 0.6.0 | Apache-2.0 OR MIT | Copyright 2020-2022 Tauri Programme within The Commons Conservancy |
+| window-vibrancy | 0.8.1 | Apache-2.0 OR MIT | Copyright 2020-2022 Tauri Programme within The Commons Conservancy |
 | windows | 0.56.0 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
 | windows | 0.61.3 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
 | windows | 0.62.2 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
@@ -619,7 +624,6 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | windows-strings | 0.5.1 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
 | windows-sys | 0.45.0 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
 | windows-sys | 0.52.0 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
-| windows-sys | 0.59.0 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
 | windows-sys | 0.60.2 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
 | windows-sys | 0.61.2 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
 | windows-targets | 0.42.2 | MIT OR Apache-2.0 | Copyright Microsoft Corporation |
@@ -633,7 +637,7 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 | winreg | 0.10.1 | MIT | Copyright 2015 Igor Shaula |
 | wit-bindgen | 0.57.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | — |
 | writeable | 0.6.3 | Unicode-3.0 | Copyright 2020-2024 Unicode, Inc |
-| wry | 0.55.1 | Apache-2.0 OR MIT | Copyright 2020-2023 Ngo Iok Ui & Tauri Programme within The Commons Conservancy |
+| wry | 0.57.0 | Apache-2.0 OR MIT | Copyright 2020-2023 Ngo Iok Ui & Tauri Programme within The Commons Conservancy |
 | x11 | 2.21.0 | MIT | — |
 | x11-dl | 2.21.0 | MIT | — |
 | xattr | 1.6.1 | MIT OR Apache-2.0 | Copyright 2015 Steven Allen |
@@ -658,6 +662,6 @@ componentes, 466 declaran un titular de copyright explícito, recogido abajo.
 
 ---
 
-Generado el 2026-10-07 con `pnpm terceros` a partir de `pnpm licenses list --prod`
+Generado el 2026-10-10 con `pnpm terceros` a partir de `pnpm licenses list --prod`
 y `cargo metadata`. Si eres autor de alguno de estos componentes y ves algo mal
 atribuido, escribe y se corrige.

@@ -194,6 +194,14 @@
   gap: 4px;
 }
 
+/* Las pestañas van solo con su icono, en cualquier ancho (Munir, 2026-10-10:
+   «quitar los nombres del menú del header y que solo queden los iconos»). El
+   nombre lo dicen el globo (`data-tip`) y el `aria-label`. Hasta ese día se
+   iban solo cuando la barra no cabía. */
+.tabs .tab {
+  padding: 5px 9px;
+}
+
 .tab {
   flex: none;
   display: flex;
@@ -267,25 +275,6 @@
   border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
   border-radius: 6px;
   padding: 0 5px;
-}
-
-/* La marca de «beta». Va en `--ask`, el ámbar con el que la app dice «esto te
-   está esperando», y NO en el de acento: el acento significa «estás aquí» en
-   toda la barra, así que teñir la marca con él la haría parecer parte de la
-   pestaña seleccionada en vez de un aviso sobre ella. Y `--ask` está definido
-   en los cuatro temas, que es lo que un color inventado no tendría.
-   Pequeña y en minúsculas a propósito: tiene que avisar, no gritar por encima
-   del nombre de la sección. */
-.tab-beta {
-  padding: 1px 5px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--ask) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ask) 42%, transparent);
-  color: var(--ask);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1.5;
 }
 
 .view-cabina {

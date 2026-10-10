@@ -13,6 +13,7 @@ import PanelView from "./components/PanelView";
 import Foreman, { type ForemanExec } from "./components/Foreman";
 import AvisoCuota from "./components/AvisoCuota";
 import Paleta from "./components/Paleta";
+import AlCerrar from "./components/AlCerrar";
 import PedirSecreto from "./components/PedirSecreto";
 import PuenteMovil from "./components/PuenteMovil";
 import type { ConserjeExec } from "./lib/conserje";
@@ -2730,6 +2731,7 @@ function App() {
           de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
       <PedirSecreto />
       <Paleta panes={panes} delLienzo={canvasPanes} irA={setView} abrirProyecto={openClaude} irATerminal={irATerminal} />
+      <AlCerrar />
       {/* Lo último cerrado, con su Deshacer: quince segundos y se va. */}
       {deshacer && (
         <div className="deshacer-pill" role="status">
@@ -2793,6 +2795,9 @@ function App() {
               // de la vista no.
               data-tab={tab.key}
               data-active={view === tab.key}
+              // Solo el icono (Munir, 2026-10-10): el nombre, y si está en
+              // beta, los dicen el globo y el lector de pantalla.
+              aria-label={t(tab.label)}
               data-tip={
                 tab.beta
                   ? `${t(tab.label)}
@@ -2804,13 +2809,6 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
               <span className="tab-icon">
                 <IconoPestana vista={tab.key} />
               </span>
-              {/* El nombre se va solo cuando la ventana no da: en una pantalla
-                  estrecha la barra hacía scroll horizontal y el Capataz se
-                  quedaba fuera, que es el botón que más falta hace. Con el
-                  icono dibujado, sin nombre sigue siendo reconocible, y el
-                  globo dice cuál es. */}
-              <span className="tab-label">{t(tab.label)}</span>
-              {tab.beta && <span className="tab-beta">{t("beta")}</span>}
               {(cuentaDe[tab.key] ?? 0) > 0 && (
                 <span className="tab-count" data-espera={tab.key === "decisiones"}>
                   {cuentaDe[tab.key]}

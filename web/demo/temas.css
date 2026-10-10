@@ -28,6 +28,7 @@
   --on-accent: #071019;
   --wait: #ff8a92;
   --ask: #f3cf8a;
+  --warn: #ffd166;
   --glass-blur: saturate(150%) blur(22px);
   --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.09);
 }

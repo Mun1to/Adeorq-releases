@@ -421,16 +421,6 @@
   padding-right: 4px;
 }
 
-/* «pestanas»: se van los nombres de las pestañas y quedan los iconos. Por eso
-   hubo que dibujarlos: un glifo suelto sin su nombre al lado no se reconoce, un
-   icono de verdad sí. El globo dice cuál es. */
-.topbar[data-sin~="pestanas"] .tabs .tab-label {
-  display: none;
-}
-.topbar[data-sin~="pestanas"] .tabs .tab {
-  padding: 5px 9px;
-}
-
 /* «musica»: el reproductor entero. Con el pulso dentro hace falta por debajo
    de unos 1150. */
 .topbar[data-sin~="musica"] .np {

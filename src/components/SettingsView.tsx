@@ -34,6 +34,8 @@ import type { PermissionMode } from "../lib/lanzar";
 import type { NotifyMode } from "../lib/notify";
 import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
 import { autostartGet, autostartSet, guidePath, ollamaModels } from "../lib/pty";
+import { AjusteAlCerrar } from "./AlCerrar";
+import { TarjetaTerm, TemasImportados } from "./TemasDeFuera";
 import { guardarModoAviso, modoAviso, type ModoAviso } from "../lib/router";
 import { guardarModoVigia, modoVigia, type ModoVigia } from "../lib/vigia";
 import { guardarModoCopiloto, modoCopiloto, type ModoCopiloto } from "../lib/copiloto";
@@ -388,6 +390,10 @@ export default function SettingsView({
       estado de la app porque quien lo lee es cada panel al abrirse; aquí solo
       hace falta para saber cuál sale marcado. */
   const [termTheme, setTermTheme] = useState(temaTermId);
+  const elegirTemaTerm = (id: string) => {
+    guardarTemaTerm(id);
+    setTermTheme(id);
+  };
   const [apagada, setApagada] = useState(apagon);
   const [rapida, setRapida] = useState<ModoRend>(prefRendimiento);
   const [suave, setSuave] = useState<Suavizado>(suavizado);
@@ -1009,44 +1015,13 @@ export default function SettingsView({
                   <div key={fam.id} className="tema-familia">
                     <h3 className="tema-familia-eti">{lang === "es" ? fam.es : fam.en}</h3>
                     <div className="term-rejilla">
-                      {TEMAS_TERM.filter((tt) => tt.familia === fam.id).map((tt) => {
-                        const c = tt.colores;
-                        return (
-                          <button
-                            key={tt.id}
-                            className="tema-tarjeta term-tarjeta"
-                            data-on={termTheme === tt.id}
-                            onClick={() => {
-                              guardarTemaTerm(tt.id);
-                              setTermTheme(tt.id);
-                            }}
-                          >
-                            <span className="term-prev" aria-hidden="true">
-                              <span style={{ color: c.cyan }}>~/adeorq</span>{" "}
-                              <span style={{ color: c.green }}>❯</span>{" "}
-                              <span style={{ color: c.foreground }}>pnpm build</span>
-                              <br />
-                              <span style={{ color: c.green }}>✓</span>{" "}
-                              <span style={{ color: c.foreground }}>listo en 3,1 s</span>
-                              <br />
-                              <span style={{ color: c.yellow }}>⚠</span>{" "}
-                              <span style={{ color: c.brightBlack }}>2 avisos</span>
-                              <br />
-                              <span style={{ color: c.red }}>✗</span>{" "}
-                              <span style={{ color: c.magenta }}>auth.ts</span>
-                              <span style={{ color: c.brightBlack }}>:42</span>
-                              <span className="term-prev-cursor" style={{ background: c.cursor }} />
-                            </span>
-                            <span className="tema-nombre">
-                              {lang === "es" ? tt.es : tt.en}
-                              {termTheme === tt.id && <CheckIcon size={13} />}
-                            </span>
-                          </button>
-                        );
-                      })}
+                      {TEMAS_TERM.filter((tt) => tt.familia === fam.id).map((tt) => (
+                        <TarjetaTerm key={tt.id} tema={tt} elegido={termTheme === tt.id} onElegir={() => elegirTemaTerm(tt.id)} />
+                      ))}
                     </div>
                   </div>
                 ))}
+                <TemasImportados elegido={termTheme} onElegir={elegirTemaTerm} />
               </section>
               <section className="panel-card">
                 <h2>{t("El fondo")}</h2>
@@ -1295,6 +1270,7 @@ export default function SettingsView({
                   )}
                 </p>
               </section>
+              <AjusteAlCerrar />
               <section className="panel-card">
                 <h2>{t("Modo de permisos")}</h2>
                 <p className="card-hint">

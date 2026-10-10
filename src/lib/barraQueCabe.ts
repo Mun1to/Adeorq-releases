@@ -21,14 +21,13 @@ import { useLayoutEffect, type RefObject } from "react";
  * Lo que se quita cuando no cabe, lo menos necesario primero. Cada palabra
  * entra en `data-sin` de `.topbar` y su CSS está en `15-agenda-sesiones.css`.
  *
- * El orden salió de enseñarle a Munir tres formas a 1920 (2026-10-10, él lo
- * dejó en manos del agente y se aplicó la recomendada): las pestañas son por
- * donde se mueve todo el rato, así que su nombre aguanta más
- * que el de los tres botones de la Cabina (que lo dicen al pasar el ratón) y
- * que el título de la canción. Antes se iban los nombres de las pestañas los
- * primeros, y para ganar 275 px dejaba 600 vacíos en medio de la barra.
+ * Los nombres de las pestañas ya no están en la lista: desde el 2026-10-10 van
+ * solo con su icono en cualquier ancho, porque Munir lo pidió así. Con ese
+ * sitio ganado, lo primero que se va sigue siendo el nombre de los tres
+ * botones de la Cabina (lo dicen al pasar el ratón) y luego el título de la
+ * canción.
  */
-export const RETIRADAS = ["acciones", "titulo", "pestanas", "musica", "marca"] as const;
+export const RETIRADAS = ["acciones", "titulo", "musica", "marca"] as const;
 
 /**
  * Cuánto se sale lo de dentro, en píxeles. No basta con mirar la barra: el

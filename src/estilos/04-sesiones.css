@@ -762,6 +762,26 @@
   margin-top: 14px;
 }
 
+/* El «no volver a preguntar» del aviso al cerrar: una casilla y su frase, en
+   una línea y pulsable entera. */
+.al-cerrar-fijar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  font-size: 12.5px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.al-cerrar-fijar input {
+  accent-color: var(--accent);
+}
+/* Tres botones, y en inglés el principal es largo: si no caben, bajan de línea
+   en vez de salirse del cuadro. */
+.al-cerrar .modal-actions {
+  flex-wrap: wrap;
+}
+
 .modal-cancel {
   font-size: 13px;
   padding: 6px 14px;

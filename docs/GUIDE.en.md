@@ -582,6 +582,20 @@ almost anything explains what it is and its shortcut.
 | Ctrl+Shift+E | Streaming mode |
 | Shift+Tab | Change permission mode INSIDE Claude |
 
+### In the file editor
+
+With the keyboard inside an open file. Code is painted with the colours of the
+terminal scheme you picked under Settings → Appearance.
+
+| Shortcut | What it does |
+|---|---|
+| Ctrl+S | Save |
+| Ctrl+F | Find and replace in the file |
+| Ctrl+G | Go to a line |
+| Alt+Z | Turn line wrapping off or on |
+| Ctrl+Z / Ctrl+Y | Undo / redo |
+| Ctrl+Shift+[ / Ctrl+Shift+] | Fold / unfold the block you are in |
+
 ### On the canvas
 
 These **can be changed** under Settings → Canvas shortcuts. They only fire with

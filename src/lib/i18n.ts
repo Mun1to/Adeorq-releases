@@ -805,7 +805,6 @@ const EN: Record<string, string> = {
   "Volver a leer la carpeta": "Read the folder again",
   "Documento": "Document",
   "Cerebro": "Brain",
-  beta: "beta",
   "En beta: funciona, pero le faltan cosas y puede cambiar":
     "In beta: it works, but it is unfinished and may change",
   "Un nodo clavado: gira alrededor para verlo · clic en el vacío para soltarlo":
@@ -2606,6 +2605,37 @@ const EN: Record<string, string> = {
     "Sent, but pane {n} is gone: the agent will read it when it asks for it.",
   "Ya estaba contestada desde otro sitio. Lo que escribiste sigue guardado aquí.":
     "It was already answered from somewhere else. What you wrote is still saved here.",
+  // Importar esquemas de terminal de Warp y de Ghostty (`components/TemasDeFuera.tsx`).
+  "Traídos de Warp o de Ghostty": "Brought from Warp or Ghostty",
+  "Importar un tema…": "Import a theme…",
+  "Elige el archivo del tema: un .yaml de Warp o un tema de Ghostty. Se traen sus letras y sus colores; el fondo lo sigue poniendo Adeorq.":
+    "Pick the theme file: a Warp .yaml or a Ghostty theme. Its text and colours come in; the background is still Adeorq's.",
+  "importado, era de": "imported, it was a theme for",
+  "No es un tema de Warp ni de Ghostty.": "This is not a Warp or a Ghostty theme.",
+  "Tiene un color que no entiendo:": "It has a colour I cannot read:",
+  "Le faltan colores:": "It is missing colours:",
+  "Es un tema de fondo claro, y sus letras no se leerían sobre el cristal oscuro de Adeorq.":
+    "It is a light-background theme, and its text would not be readable over Adeorq's dark glass.",
+  // El aviso al cerrar la ventana (`components/AlCerrar.tsx`).
+  "¿Cerrar Adeorq?": "Close Adeorq?",
+  "Hay 1 agente trabajando.": "1 agent is working.",
+  "Hay {n} agentes trabajando.": "{n} agents are working.",
+  "Tienes 1 terminal abierta y ningún agente trabajando.": "You have 1 terminal open and no agent working.",
+  "Tienes {n} terminales abiertas y ningún agente trabajando.": "You have {n} terminals open and no agent working.",
+  "En segundo plano la ventana se esconde y los agentes siguen trabajando; Adeorq se queda junto al reloj de Windows y vuelves con un clic. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.":
+    "In the background the window hides and the agents keep working; Adeorq stays next to the Windows clock and one click brings it back. Closing everything closes the terminals too, and you can resume each session later.",
+  "Si cierras se cierran también las terminales, y luego puedes retomar cada sesión.":
+    "Closing closes the terminals too, and you can resume each session later.",
+  "No volver a preguntar": "Don't ask again",
+  "Cerrar todo": "Close everything",
+  "Seguir en segundo plano": "Keep running in the background",
+  "Preguntar cada vez": "Ask every time",
+  "Abrir Adeorq": "Open Adeorq",
+  "Cerrar Adeorq del todo": "Quit Adeorq",
+  "Adeorq sigue en segundo plano": "Adeorq is running in the background",
+  "Al cerrar la ventana": "When you close the window",
+  "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde, los agentes siguen trabajando y Adeorq se queda junto al reloj de Windows: desde ahí vuelves con un clic o lo cierras del todo.":
+    "What happens when you hit the X with terminals open. In the background the window hides, the agents keep working and Adeorq stays next to the Windows clock: from there one click brings it back, or you can quit it for good.",
 };
 
 export function detectLang(): Lang {

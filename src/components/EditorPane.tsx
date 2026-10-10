@@ -29,14 +29,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Annotation, EditorState, Transaction, type Extension } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers, highlightActiveLine } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { syntaxHighlighting, defaultHighlightStyle, indentUnit } from "@codemirror/language";
+import { EditorView } from "@codemirror/view";
 import { useT } from "../lib/i18n";
 import { cuandoArchivo, guardarArchivo, leerArchivo, leerImagen, type Archivo } from "../lib/archivos";
 import { nombreDeRuta, peso, rutaCorta } from "../lib/arbol";
 import { latido } from "../lib/latido";
 import { lenguajeDe } from "../lib/lenguajes";
+import { extensionesDeCodigo, useVarsDeCodigo } from "../lib/editorCodigo";
 import { useCabina } from "../lib/cabina";
 import { CloseIcon, MaximizeIcon, RefreshIcon, RestoreIcon } from "./Icons";
 
@@ -77,33 +76,6 @@ interface Parte {
   chip: string;
 }
 
-/**
- * El aspecto del editor, sacado de las variables de Adeorq.
- *
- * A propósito NO se usa ninguno de los temas que trae CodeMirror. Adeorq tiene
- * doce temas y una firma visual (cristal sobre una foto): un editor con los
- * colores de otro producto se vería pegado encima, y además dejaría de seguir
- * el tema al cambiarlo. Todo sale de `var(--…)`, así que cambia solo.
- */
-const TEMA = EditorView.theme({
-  "&": { backgroundColor: "transparent", color: "var(--text)", height: "100%" },
-  ".cm-content": { fontFamily: "var(--mono, Consolas, 'Cascadia Mono', monospace)" },
-  ".cm-gutters": {
-    backgroundColor: "transparent",
-    color: "var(--muted)",
-    border: "none",
-    opacity: 0.7,
-  },
-  ".cm-activeLine": { backgroundColor: "var(--row)" },
-  ".cm-activeLineGutter": { backgroundColor: "transparent", color: "var(--text)" },
-  "&.cm-focused": { outline: "none" },
-  ".cm-cursor": { borderLeftColor: "var(--accent)" },
-  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection": {
-    backgroundColor: "var(--accent-dim)",
-  },
-  ".cm-scroller": { overflow: "auto" },
-});
-
 /* ── UNA HOJA: un archivo, con su texto, su guardado y su aviso ──────────── */
 
 function Hoja({
@@ -117,7 +89,8 @@ function Hoja({
   visible: boolean;
   onParte: (ruta: string, p: Parte) => void;
 }) {
-  const { t } = useT();
+  const { t, lang } = useT();
+  const colores = useVarsDeCodigo();
   const caja = useRef<HTMLDivElement>(null);
   const vista = useRef<EditorView | null>(null);
   const [archivo, setArchivo] = useState<Archivo | null>(null);
@@ -205,20 +178,8 @@ function Hoja({
 
     const lenguaje = lenguajeDe(nombreDeRuta(ruta));
     const extras: Extension[] = [
-      lineNumbers(),
-      highlightActiveLine(),
-      history(),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-      indentUnit.of("  "),
-      TEMA,
-      EditorView.lineWrapping,
-      keymap.of([
-        // Ctrl+S guarda, que es lo que va a pulsar cualquiera sin pensarlo.
-        { key: "Mod-s", preventDefault: true, run: () => (guardarRef.current(), true) },
-        indentWithTab,
-        ...defaultKeymap,
-        ...historyKeymap,
-      ]),
+      // Los colores, las teclas y las ayudas: `lib/editorCodigo.ts`.
+      ...extensionesDeCodigo({ lang, guardar: () => guardarRef.current() }),
       EditorView.updateListener.of((u) => {
         // Lo que llega del disco no es un cambio tuyo.
         if (u.docChanged && !u.transactions.some((tr) => tr.annotation(DEL_DISCO))) setSucio(true);
@@ -356,7 +317,7 @@ function Hoja({
         <p className="ed-nota">{t("Esto no es texto: son {p} de datos.", { p: peso(archivo.peso) })}</p>
       )}
 
-      <div className="ed-caja" ref={caja} hidden={!!imagen} />
+      <div className="ed-caja" ref={caja} style={colores} hidden={!!imagen} />
 
       <footer className="ed-pie">
         <span>

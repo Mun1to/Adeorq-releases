@@ -1516,6 +1516,69 @@
   }
 }
 
+/* Los esquemas traídos de Warp o de Ghostty (`components/TemasDeFuera.tsx`).
+   La tarjeta es la misma; lo único suyo es el aspa para quitarlo, que va FUERA
+   del botón de la tarjeta (un botón dentro de otro no es HTML válido) y solo
+   se enseña al acercarse, para que la rejilla siga siendo una rejilla de
+   temas y no de aspas. */
+.term-importado {
+  position: relative;
+  display: grid;
+}
+.term-quitar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--popover);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.term-importado:hover .term-quitar,
+.term-quitar:focus-visible {
+  opacity: 1;
+}
+.term-quitar:hover {
+  color: var(--wait);
+}
+.term-traer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.term-traer .card-hint {
+  flex: 1;
+  min-width: 240px;
+  margin: 0;
+}
+/* Lo que pasó con cada archivo: entró, o por qué no. */
+.term-partes {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.term-partes li[data-ok="false"] {
+  color: var(--wait);
+}
+.term-partes b {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* Una fila de ajuste: nombre a la izquierda, mando a la derecha, valor al final.
    Iban con `margin` suelto y todo pegado; ahora cada una es una fila de una
    lista, con su raya de separación, que es lo que hace que seis seguidas se

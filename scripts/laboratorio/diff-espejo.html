@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Banco: el diff del Modo Espejo</title>
+<!-- La página que monta `DiffEspejo` suelto, con la hoja de la app y un diff de
+     ejemplo. La sirve el Vite de `pnpm dev` y la maneja
+     `scripts/laboratorio/diff-espejo.js`. Montar un Modo Espejo de verdad pide
+     un panel nacido en espejo, que solo sale de un plan del Capataz. -->
+</head>
+<body>
+<div class="pane-diff-panel"><div class="diff-viewer-content" id="raiz"></div></div>
+<script type="module">
+  import "/src/App.css";
+  import { createElement } from "react";
+  import { createRoot } from "react-dom/client";
+  import DiffEspejo from "/src/components/DiffEspejo.tsx";
+
+  const DIFF = [
+    "diff --git a/src/uno.ts b/src/uno.ts",
+    "index 111..222 100644",
+    "--- a/src/uno.ts",
+    "+++ b/src/uno.ts",
+    "@@ -10,4 +10,5 @@ function uno() {",
+    "   const a = 1;",
+    "-  const b = 2;",
+    "+  const b = 3;",
+    "+  const c = 4;",
+    "   return a;",
+    " }",
+  ].join("\n");
+
+  window.__notas = [];
+  window.__pintar = (texto) =>
+    raiz.render(createElement(DiffEspejo, { texto, archivo: "src/uno.ts", onNota: (m) => window.__notas.push(m) }));
+  const raiz = createRoot(document.getElementById("raiz"));
+  window.__DIFF = DIFF;
+  window.__pintar(DIFF);
+</script>
+</body>
+</html>

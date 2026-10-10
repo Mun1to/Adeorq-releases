@@ -1844,6 +1844,14 @@ const EN: Record<string, string> = {
   "Ordenadas por quién te reclama. Pulsa para ordenar por antigüedad.": "Sorted by who needs you. Press to sort by age.",
   "Ordenadas por antigüedad. Pulsa para poner primero las que te reclaman.": "Sorted by age. Press to put the ones that need you first.",
 
+  // Una nota al agente sobre una línea de su diff (Modo Espejo)
+  "Clic para dejarle una nota al agente sobre esta línea": "Click to leave the agent a note about this line",
+  "Qué le dices al agente sobre esta línea": "What do you tell the agent about this line",
+  "nota enviada": "note sent",
+  "En {archivo}, sobre la línea {n} que añadiste («{cita}»): {nota}": "In {archivo}, about line {n} that you added («{cita}»): {nota}",
+  "En {archivo}, sobre la línea {n} que quitaste («{cita}»): {nota}": "In {archivo}, about line {n} that you removed («{cita}»): {nota}",
+  "En {archivo}, sobre la línea {n} («{cita}»): {nota}": "In {archivo}, about line {n} («{cita}»): {nota}",
+
   // El editor de archivos vigila el disco
   "Alguien acaba de cambiar este archivo en el disco, y tú tienes cambios sin guardar.":
     "Someone has just changed this file on disk, and you have unsaved changes.",

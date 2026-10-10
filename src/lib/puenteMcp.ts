@@ -110,6 +110,7 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
             name: s.name,
             model: s.model ?? "",
             state: s.state,
+            porque: s.porque,
             sessionId: s.sessionId ?? "",
           }));
           responder({ datos });

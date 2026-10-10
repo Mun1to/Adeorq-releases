@@ -305,6 +305,9 @@ export interface PaneStatus {
   /** Subagents still out. A pane with a crew working is never idle. */
   agentsLive: number;
   state: WorkState;
+  /** Por qué está en ese estado, en una frase: qué regla de pantalla saltó o
+      qué dice su transcript (`estadoDelPanel`, en `lib/reglasPantalla.ts`). */
+  porque: string;
   /** Its transcript, so an action can point at the session, not just the pane. */
   sessionId?: string;
 }

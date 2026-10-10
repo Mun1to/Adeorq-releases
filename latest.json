@@ -1,11 +1,11 @@
 {
-  "version": "0.9.183",
-  "notes": "Paleta de comandos con Ctrl+K, los paneles se ponen nombre solos, el editor de archivos se entera cuando un agente cambia lo que miras y ensena imagenes, y el modo simple desaparece",
-  "pub_date": "2026-10-10T02:05:57Z",
+  "version": "0.9.184",
+  "notes": "Ya se puede comentar una linea del diff del Modo Espejo y que le llegue al agente, y cada terminal dice por que esta como esta",
+  "pub_date": "2026-10-10T02:31:42Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3hHbml0VlM5VkJyVVpORkZjSG9ROFY1OXQ3YklkTXY3d09Vd1FNaER6N2plUFRQcktCdXlaNGhuVkZOY3doYk9VYUduNmZ4bXRTbjBhLzdpeFdvM2dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTk3OTQ3CWZpbGU6QWRlb3JxXzAuOS4xODNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODMKSGJIMEpTV2pUdU52dnJ4K1J3ZDMweGs1WDQxdDZtTWh5dGFzbDRiK1J1Ykl4Q2VwV3d3dkFubzdrR1FxR2FkNU9wQkpiOFIwakJ4dkxTaXZHb2tUQVE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.183/Adeorq_0.9.183_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZZM0hsSjhFNHNSNUE2RkFkMGUvNmo3Vmxnc2ZFMStKbmRMR2RKMzRwczNZWDlDalpNQ3N0bFlyZlpNSnd5elZtRFhTdzEyNE1GaWxIZjZSemFNY0FnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNTk5NDI3CWZpbGU6QWRlb3JxXzAuOS4xODRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODQKU3FIRzdxMFhwTHZ3Yy9Rc2pYMW44UDY0VVk4TDZNUnl1ejdDMXpIeTBjMFBuRXhkbENDL2RyZ0FhTHJ4VDVpYUZBaHBpblhjYTNwNWhQc1B2blN5QkE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.184/Adeorq_0.9.184_x64-setup.exe"
     }
   }
 }

@@ -283,6 +283,50 @@
   font-weight: bold;
 }
 
+/* Una línea que se puede comentar: se nota al pasar, y al pulsarla se abre
+   debajo la caja de la nota para el agente. */
+.diff-line[data-comentable] {
+  cursor: pointer;
+}
+
+.diff-line[data-comentable]:hover {
+  outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: -1px;
+}
+
+.diff-enviada {
+  flex: none;
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--muted);
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-size: 11px;
+  user-select: none;
+}
+
+.diff-nota {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 4px 8px 48px;
+}
+
+.diff-nota input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-chico);
+  background: var(--row);
+  color: var(--text);
+  font: 12.5px/1.4 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  outline: none;
+}
+
+.diff-nota input:focus {
+  border-color: var(--accent);
+}
+
 .plan-shadow-chk {
   display: inline-flex;
   align-items: center;

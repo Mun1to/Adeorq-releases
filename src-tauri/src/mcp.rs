@@ -972,7 +972,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
             let etiqueta_de = |id: u32| {
                 etiquetas.iter().find(|p| p["id"].as_u64() == Some(id as u64)).map(|p| {
                     let campo = |k: &str| p[k].as_str().unwrap_or("").trim().to_string();
-                    (campo("name"), campo("model"), campo("state"))
+                    (campo("name"), campo("model"), campo("state"), campo("porque"))
                 })
             };
             let pty_state = app.state::<crate::pty::PtyState>();
@@ -988,7 +988,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
             ids.sort();
             for id in ids {
                 let session = &map[id];
-                let (nombre, modelo, estado) = etiqueta_de(*id).unwrap_or_default();
+                let (nombre, modelo, estado, porque) = etiqueta_de(*id).unwrap_or_default();
                 let mut cabeza = format!("ID: {}", id);
                 if !nombre.is_empty() {
                     cabeza.push_str(&format!(", Nombre: «{}»", nombre));
@@ -996,8 +996,14 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 if !modelo.is_empty() {
                     cabeza.push_str(&format!(", Modelo: {}", modelo));
                 }
-                if !estado.is_empty() {
-                    cabeza.push_str(&format!(", Estado: {}", estado));
+                // El estado desconocido también dice por qué: «no se sabe» sin
+                // más es justo lo que no deja diagnosticar nada.
+                if !estado.is_empty() || !porque.is_empty() {
+                    let dicho = if estado.is_empty() { "no se sabe" } else { estado.as_str() };
+                    cabeza.push_str(&format!(", Estado: {}", dicho));
+                    if !porque.is_empty() {
+                        cabeza.push_str(&format!(" (por qué: {})", porque));
+                    }
                 }
                 let cmd_str = session.command.as_ref()
                     .map(|v| v.join(" "))

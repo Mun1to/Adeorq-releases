@@ -17,13 +17,13 @@ import {
   onPtyMudo,
   resizePty,
   savePastedImage,
+  sendPty,
   codexSessionSince,
   spawnPty,
   writePty,
   type Account,
   type ContextInfo,
   type PaneStatus,
-  type WorkState,
   // Shadow Git:
   shadowInit,
   shadowDiff,
@@ -90,6 +90,9 @@ import { sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
 import { nivelDeContexto, useContextoDeSesion, useTraspaso } from "../lib/contexto";
 import { useNombreSolo } from "../lib/nombreSolo";
+import { archivoDelDiff } from "../lib/diffEspejo";
+import { estadoDelPanel, loginSegun, parseAsk, type Ask } from "../lib/reglasPantalla";
+import DiffEspejo from "./DiffEspejo";
 import { arranqueDeAhora } from "../lib/conserje";
 
 interface Props {
@@ -275,86 +278,8 @@ export interface WebAvisada {
   paneId: number;
 }
 
-// The CLI's TUI dialogs are cryptic for someone who doesn't live in a
-// terminal. Detect them in the stream and surface real buttons instead:
-// the number key is written back to the PTY exactly as a keypress would be.
-interface AskOption {
-  n: string;
-  label: string;
-  // Sin marcar: el rótulo salió de la PANTALLA de la terminal (lo que dijo el
-  // CLI, que habla en su propio idioma y no se toca). Marcado: lo escribió
-  // Adeorq mismo (el "[y/N]" sin texto no trae opciones que leer), así que sí
-  // pasa por t().
-  propio?: boolean;
-}
-
-interface Ask {
-  hint: string;
-  options: AskOption[];
-  /** Menus footed "Enter to confirm" need the digit followed by Enter. */
-  enter: boolean;
-}
-
-const ASK_TRIGGERS: Array<{ test: string; hint: string; enter?: boolean }> = [
-  {
-    test: "Do you want to proceed?",
-    hint: "Claude te pide permiso antes de ejecutar esto. Elige:",
-  },
-  {
-    test: "Do you trust",
-    hint: "Pregunta si confías en esta carpeta. Es tuya, así que lo normal es la 1:",
-  },
-  {
-    test: "Resume from summary",
-    hint: "Cómo retomar la sesión: el resumen gasta menos cuota que la completa.",
-  },
-  {
-    test: "Allow tool call?",
-    hint: "Antigravity te pide permiso para ejecutar una herramienta:",
-  },
-  {
-    test: "Do you want to run",
-    hint: "Antigravity te pide confirmación para ejecutar el comando:",
-  },
-  {
-    // Generic numbered menus (first-run prompts, /model, etc.). Kept LAST so
-    // the specific hints above win when both match.
-    test: "Enter to confirm",
-    hint: "La terminal te pregunta algo: elige una opción (Esc en el teclado cancela).",
-    enter: true,
-  },
-];
-
-// Parses the VISIBLE screen text (from xterm's buffer): if the dialog shows
-// on screen the bar arms; the moment the CLI erases it, the bar drops. No
-// stream heuristics: the screen is the single source of truth.
-function parseAsk(screen: string): Ask | null {
-  for (const t of ASK_TRIGGERS) {
-    const i = screen.lastIndexOf(t.test);
-    if (i < 0) continue;
-    const seg = screen.slice(i);
-    // Ignore historical output where the trigger test occurred more than 12 lines ago:
-    if (seg.split("\n").length > 12) continue;
-
-    const opts: AskOption[] = [];
-    // \s{1,2} (not 0): "Opus 4.7" must never parse as option 4.
-    const re = /(?:❯\s*)?([1-9])\.\s{1,2}([^\n\r]{2,70})/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(seg))) {
-      const n = m[1];
-      const label = m[2].split("│")[0].replace(/[─│┃└┘┌┐]+/g, " ").trim();
-      if (label && !opts.some((o) => o.n === n)) opts.push({ n, label });
-    }
-    if (opts.length < 2 && /\[[yY]\/[nN]\]|\([yY]\/[nN]\)/i.test(seg)) {
-      opts.push({ n: "y", label: "Permitir (y)", propio: true });
-      opts.push({ n: "n", label: "Denegar (n)", propio: true });
-    }
-    if (opts.length >= 2) {
-      return { hint: t.hint, options: opts.slice(0, 4), enter: t.enter ?? false };
-    }
-  }
-  return null;
-}
+// Las preguntas que se leen de la pantalla (los menús del CLI convertidos en
+// botones) y el estado de un panel con su porqué: `lib/reglasPantalla.ts`.
 
 // El fondo de reserva, y solo eso. Los colores de las letras viven ahora en
 // `lib/temasTerm.ts`, porque se eligen desde Ajustes y son una decisión aparte
@@ -703,56 +628,11 @@ export default function TerminalPane({
       });
   };
 
-  const getFileDiff = (fullDiff: string, filename: string): string => {
-    const lines = fullDiff.split("\n");
-    const result: string[] = [];
-    let capture = false;
-    
-    for (const line of lines) {
-      if (line.startsWith("diff --git")) {
-        const parts = line.split(" ");
-        const bFile = parts[parts.length - 1]; // b/src/App.tsx
-        if (bFile.endsWith("/" + filename) || bFile === filename || bFile.slice(2) === filename) {
-          capture = true;
-        } else {
-          capture = false;
-        }
-      }
-      if (capture) {
-        result.push(line);
-      }
-    }
-    return result.join("\n");
-  };
-
-  const renderDiffLines = (diffText: string) => {
-    if (!diffText) return <div className="diff-empty">{t("Sin diferencias en este archivo")}</div>;
-    const lines = diffText.split("\n");
-    return (
-      <pre className="diff-pre">
-        {lines.map((line, idx) => {
-          let className = "diff-line";
-          if (line.startsWith("+")) className += " diff-add";
-          else if (line.startsWith("-")) className += " diff-del";
-          else if (line.startsWith("@@")) className += " diff-chunk";
-          else if (line.startsWith("diff") || line.startsWith("index") || line.startsWith("---") || line.startsWith("+++")) className += " diff-header";
-          
-          return (
-            <div key={idx} className={className}>
-              <span className="diff-ln">{idx + 1}</span>
-              <span className="diff-content">{line}</span>
-            </div>
-          );
-        })}
-      </pre>
-    );
-  };
-
   useEffect(() => {
     if (selectedFile && shadowActive && shadowSession) {
       shadowDiff(shadowSession.worktreePath, shadowSession.baseBranch)
         .then((fullDiff) => {
-          const fileDiff = getFileDiff(fullDiff, selectedFile);
+          const fileDiff = archivoDelDiff(fullDiff, selectedFile);
           setFileDiffText(fileDiff);
         })
         .catch((err) => {
@@ -1071,25 +951,12 @@ export default function TerminalPane({
   ctxRef.current = ctx;
   useNombreSolo(id, name, sessionIdOf(joined) ? ctx?.title : undefined, !!team, onRename);
 
-  // Lo que este panel está haciendo, hacia arriba. El orden importa y es una
-  // decisión, no un detalle:
-  //   1. Si el proceso murió, murió.
-  //   2. Si hay un menú en pantalla o pide login, te espera A TI. Esto va
-  //      ANTES del transcript porque el menú es de ahora mismo y el transcript
-  //      es de hace un momento.
-  //   3. Si no, manda el transcript, que es quien sabe distinguir una pregunta
-  //      en prosa ("ofrece") de un trabajo entregado ("lista"). La campana del
-  //      terminal no sabe distinguirlas: suena igual en las dos.
-  //   4. Si nada de eso se puede leer, se queda en "" = desconocido, y la reja
-  //      del Capataz no tocará este panel.
+  // Lo que este panel está haciendo, hacia arriba, y por qué: el orden en que
+  // se decide es una decisión y está contado en `estadoDelPanel`.
   const statusRef = useRef("");
   useEffect(() => {
     if (!onStatus) return;
-    const state: WorkState = exited
-      ? ""
-      : ask || needsLogin
-        ? "pregunta"
-        : ((ctx?.state ?? "") as WorkState);
+    const { state, porque } = estadoDelPanel({ exited, ask, needsLogin, transcript: ctx?.state });
     const next: PaneStatus = {
       id,
       name,
@@ -1106,6 +973,7 @@ export default function TerminalPane({
       // propio panel mandan sobre los que contó el fichero.
       agentsLive: Math.max(agents.live, ctx?.agentsLive ?? 0),
       state,
+      porque,
       sessionId: ctx?.sessionId || sidAprendido || undefined,
     };
     // Un panel que no ha cambiado no vuelve a subir: si no, cada dato del PTY
@@ -2161,14 +2029,8 @@ export default function TerminalPane({
           total: a.total + spawned,
         }));
       }
-      if (
-        p.data.includes("Re-authenticate to continue") ||
-        p.data.includes("OAuth access token has expired")
-      ) {
-        setNeedsLogin(true);
-      } else if (p.data.includes("Login successful")) {
-        setNeedsLogin(false);
-      }
+      const login = loginSegun(p.data);
+      if (login !== null) setNeedsLogin(login);
     }).then((un) => {
       if (disposed) un();
       else unsubs.push(un);
@@ -2954,7 +2816,7 @@ export default function TerminalPane({
                 </div>
                 
                 <div className="diff-viewer-content">
-                  {renderDiffLines(fileDiffText)}
+                  <DiffEspejo texto={fileDiffText} archivo={selectedFile} onNota={(m) => void sendPty(id, m)} />
                 </div>
               </>
             )}

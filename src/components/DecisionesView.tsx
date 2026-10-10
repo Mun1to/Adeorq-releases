@@ -15,16 +15,29 @@ import { useT } from "../lib/i18n";
 import { sendPty } from "../lib/pty";
 import { hace } from "../lib/uso";
 import {
+  descartarDecision,
   faltan,
   guardarBorrador,
   leerBorrador,
   limpias,
   marcarEntregada,
   olvidarBorrador,
+  porVigencia,
   responderDecision,
   type Decision,
   type Elecciones,
 } from "../lib/decisiones";
+
+/**
+ * Aparta una decisión sin contestarla. Si una terminal la esperaba, se le dice
+ * (lo teclea esta ventana, que es la que tiene las terminales): un agente que
+ * espera una respuesta que no va a llegar se queda parado sin saber por qué.
+ */
+async function descartar(id: string): Promise<void> {
+  const r = await descartarDecision(id);
+  olvidarBorrador(id);
+  if (r.panel != null && r.texto) await sendPty(r.panel, r.texto).catch(() => {});
+}
 
 /** Lo que tarda en mandarse, con «Deshacer» mientras tanto. */
 const ESPERA_S = 5;
@@ -48,7 +61,7 @@ function Fila({ d, activa, onAbrir }: { d: Decision; activa: boolean; onAbrir: (
     deCuando(d.creada),
   ].filter(Boolean);
   return (
-    <button className="dec-fila" data-on={activa} data-espera={!d.respuesta} onClick={() => onAbrir(d.id)}>
+    <button className="dec-fila" data-on={activa} data-espera={d.vigencia === "viva"} onClick={() => onAbrir(d.id)}>
       <span className="dec-fila-titulo">{d.titulo}</span>
       <span className="dec-fila-de">{de.join(" · ")}</span>
     </button>
@@ -59,7 +72,9 @@ function Abierta({ d }: { d: Decision }) {
   const { t } = useT();
   const deCuando = useHace();
   const contestada = d.respuesta;
-  const [el, setEl] = useState<Elecciones>(() => (contestada ? {} : leerBorrador(d.id)));
+  // Descartada: se enseña como quedó, y ya no se contesta.
+  const cerrada = Boolean(contestada) || d.vigencia === "descartada";
+  const [el, setEl] = useState<Elecciones>(() => (cerrada ? {} : leerBorrador(d.id)));
   const [quedan, setQuedan] = useState<number | null>(null);
   const [mandando, setMandando] = useState(false);
   const [estado, setEstado] = useState("");
@@ -71,7 +86,7 @@ function Abierta({ d }: { d: Decision }) {
 
   const elegida = (q: string) => (contestada ? contestada.elecciones[q]?.opcion : el[q]?.opcion);
   const escrita = (q: string) => (contestada ? contestada.elecciones[q]?.texto : el[q]?.texto) ?? "";
-  const falta = contestada ? [] : faltan(d, el);
+  const falta = cerrada ? [] : faltan(d, el);
 
   const poner = (q: string, cambio: { opcion?: number; texto?: string }) => {
     setEl((antes) => {
@@ -175,11 +190,26 @@ function Abierta({ d }: { d: Decision }) {
               : t("El agente la lee cuando la pide.")}
           </p>
         )}
+        {d.vigencia === "viva" && d.panel != null && (
+          <p className="dec-vigencia" data-v="viva">
+            {t("El panel {n} sigue abierto y espera tu respuesta.", { n: String(d.panel) })}
+          </p>
+        )}
+        {d.vigencia === "huerfana" && (
+          <p className="dec-vigencia" data-v="huerfana">
+            {t("Ya no la espera nadie: la terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio.")}
+          </p>
+        )}
+        {d.vigencia === "descartada" && d.descartada != null && (
+          <p className="dec-vigencia" data-v="descartada">
+            {t("La descartaste {cuando}, sin contestarla.", { cuando: deCuando(d.descartada) })}
+          </p>
+        )}
         {d.contexto && <p className="dec-contexto">{d.contexto}</p>}
       </header>
 
       {d.preguntas.map((q) => (
-        <fieldset key={q.id} className="dec-pregunta" disabled={Boolean(contestada) || quedan != null || mandando}>
+        <fieldset key={q.id} className="dec-pregunta" disabled={cerrada || quedan != null || mandando}>
           <legend>
             <span className="dec-letra">{q.id}</span>
             {q.titulo}
@@ -201,14 +231,14 @@ function Abierta({ d }: { d: Decision }) {
               </span>
             </label>
           ))}
-          {(!contestada || escrita(q.id)) && (
+          {(!cerrada || escrita(q.id)) && (
             <>
               <div className="dec-o">{t("o")}</div>
               <textarea
                 className="dec-libre"
                 rows={2}
                 value={escrita(q.id)}
-                readOnly={Boolean(contestada)}
+                readOnly={cerrada}
                 placeholder={t("Otra cosa, con tus palabras")}
                 aria-label={t("Otra cosa para la pregunta {q}, con tus palabras", { q: q.id })}
                 onChange={(e) => poner(q.id, { texto: e.target.value })}
@@ -218,12 +248,17 @@ function Abierta({ d }: { d: Decision }) {
         </fieldset>
       ))}
 
-      {(!contestada || estado) && (
+      {(!cerrada || estado) && (
         <footer className="dec-pie">
           <p className="dec-estado" role="status" aria-live="polite">
             {estado || (quedan != null ? t("Se manda en {n} s.", { n: String(quedan) }) : avisoFalta)}
           </p>
-          {!contestada && (
+          {!cerrada && quedan == null && !mandando && (
+            <button className="mini" onClick={() => void descartar(d.id)}>
+              {t("Descartar")}
+            </button>
+          )}
+          {!cerrada && (
             <button
               className={quedan != null ? "mini dec-deshacer" : "np-btn"}
               disabled={mandando || (quedan == null && falta.length > 0)}
@@ -244,10 +279,9 @@ function Abierta({ d }: { d: Decision }) {
 
 export default function DecisionesView({ decisiones }: { decisiones: Decision[] }) {
   const { t } = useT();
-  const espera = decisiones.filter((d) => !d.respuesta);
-  const hechas = decisiones.filter((d) => d.respuesta);
+  const { vivas, huerfanas, cerradas } = porVigencia(decisiones);
   const [abierta, setAbierta] = useState<string | null>(null);
-  const d = decisiones.find((x) => x.id === abierta) ?? espera[0] ?? hechas[0];
+  const d = decisiones.find((x) => x.id === abierta) ?? vivas[0] ?? huerfanas[0] ?? cerradas[0];
   // La que se abre sola (la primera que te espera) se queda fijada: al
   // contestarla deja de ser la primera, y sin esto la vista saltaba a la
   // siguiente y se perdía el «Enviada. Se ha tecleado en el panel…».
@@ -268,12 +302,26 @@ export default function DecisionesView({ decisiones }: { decisiones: Decision[] 
       ) : (
         <div className="dec-cuerpo">
           <nav className="dec-lista" aria-label={t("Decisiones")}>
-            {espera.length > 0 && <div className="dec-lista-eti">{t("Te esperan")}</div>}
-            {espera.map((x) => (
+            {vivas.length > 0 && <div className="dec-lista-eti">{t("Te esperan")}</div>}
+            {vivas.map((x) => (
               <Fila key={x.id} d={x} activa={x.id === d?.id} onAbrir={setAbierta} />
             ))}
-            {hechas.length > 0 && <div className="dec-lista-eti">{t("Contestadas")}</div>}
-            {hechas.map((x) => (
+            {/* Sin contestar, pero sin nadie detrás: aparte, y con una salida
+                para todas de una vez. Eran las que hacían que la cuenta de la
+                pestaña no bajase nunca a cero. */}
+            {huerfanas.length > 0 && (
+              <div className="dec-lista-eti">
+                {t("Ya no las espera nadie")}
+                <button className="dec-limpiar" onClick={() => void Promise.all(huerfanas.map((x) => descartar(x.id)))}>
+                  {huerfanas.length === 1 ? t("Descartar") : t("Descartar las {n}", { n: String(huerfanas.length) })}
+                </button>
+              </div>
+            )}
+            {huerfanas.map((x) => (
+              <Fila key={x.id} d={x} activa={x.id === d?.id} onAbrir={setAbierta} />
+            ))}
+            {cerradas.length > 0 && <div className="dec-lista-eti">{t("Cerradas")}</div>}
+            {cerradas.map((x) => (
               <Fila key={x.id} d={x} activa={x.id === d?.id} onAbrir={setAbierta} />
             ))}
           </nav>

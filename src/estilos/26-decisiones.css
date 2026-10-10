@@ -79,6 +79,28 @@
 .dec-lista-eti:first-child {
   padding-top: 4px;
 }
+/* «Descartar las N», a la derecha del rótulo de las que nadie espera. */
+.dec-lista-eti:has(.dec-limpiar) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dec-limpiar {
+  border: 0;
+  padding: 2px 8px;
+  border-radius: var(--r-chico);
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+.dec-limpiar:hover {
+  background: var(--row);
+}
 
 .dec-fila {
   flex: none;
@@ -171,6 +193,22 @@
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   font-size: 13px;
+}
+
+/* Si sigue viva o no, debajo del título: es lo primero que hay que saber
+   antes de ponerse a contestar. Ámbar si te espera, apagado si ya no. */
+.dec-vigencia {
+  margin: 4px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.dec-vigencia[data-v="viva"] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--ask) 42%, transparent);
+  background: color-mix(in srgb, var(--ask) 12%, transparent);
 }
 
 .dec-pregunta {

@@ -2579,7 +2579,14 @@ const EN: Record<string, string> = {
   "No hay ninguna decisión. Cuando un agente te pregunte algo con ask_decision, sale aquí y en el móvil.":
     "No decisions yet. When an agent asks you something with ask_decision, it shows up here and on your phone.",
   "Te esperan": "Waiting for you",
-  Contestadas: "Answered",
+  // Las que siguen vivas y las que no (`Vigencia` en decisiones.rs).
+  "Ya no las espera nadie": "Nobody is waiting for these",
+  "Descartar las {n}": "Discard all {n}",
+  Cerradas: "Closed",
+  "El panel {n} sigue abierto y espera tu respuesta.": "Pane {n} is still open and waiting for your answer.",
+  "Ya no la espera nadie: la terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio.":
+    "Nobody is waiting for it: the terminal that asked is closed. If you answer, it is saved, but not typed anywhere.",
+  "La descartaste {cuando}, sin contestarla.": "You discarded it {cuando}, without answering.",
   "panel {n}": "pane {n}",
   "1 pregunta": "1 question",
   "{n} preguntas": "{n} questions",
@@ -2616,10 +2623,18 @@ const EN: Record<string, string> = {
   "Le faltan colores:": "It is missing colours:",
   "Es un tema de fondo claro, y sus letras no se leerían sobre el cristal oscuro de Adeorq.":
     "It is a light-background theme, and its text would not be readable over Adeorq's dark glass.",
-  // Lanzar una nota del lienzo en una terminal (`components/CanvasNote.tsx`).
-  "Lanzar en una terminal": "Run in a terminal",
+  // Lanzar una nota del lienzo: en una terminal abierta, en una sesión nueva
+  // de un proyecto, o repartida por el Capataz (`components/CanvasNote.tsx`).
+  "Lanzar esta nota": "Run this note",
+  "En una terminal abierta": "In an open terminal",
+  "En una sesión nueva en": "In a new session in",
+  "lo nombra la nota": "the note names it",
+  "el de este lienzo": "this canvas's",
   "No hay terminales abiertas.": "No terminals open.",
   "Lanzada: ya la tiene esa terminal.": "Sent: that terminal has it now.",
+  "Abriendo una sesión en {p}.": "Opening a session in {p}.",
+  "No se pudo abrir ahí.": "It could not be opened there.",
+  "Repartida: sus sesiones ya están abiertas.": "Split up: its sessions are open now.",
   "te está preguntando algo": "it is asking you something",
   // La campana de avisos, que es la mascota (`components/Campana.tsx`).
   "{n} terminales te reclaman": "{n} terminals need you",

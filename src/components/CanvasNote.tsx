@@ -7,9 +7,23 @@ import { noteRead, noteWrite } from "../lib/pty";
 import { useCabina } from "../lib/cabina";
 import { pasteInto } from "../lib/flechas";
 import { PINTA } from "../lib/estados";
-import { conCuerpo, conTitulo, cuerpoDe, destinosDeNota, encargoDeNota, leerLineas, tituloDe, voltear } from "../lib/notas";
+import { useEncargosDelLienzo } from "../lib/encargosDelLienzo";
+import {
+  conCuerpo,
+  conTitulo,
+  cuerpoDe,
+  destinosDeNota,
+  encargoDeNota,
+  leerLineas,
+  proyectosDeNota,
+  sobreNota,
+  tareasPendientes,
+  tituloDe,
+  voltear,
+  type DondeNace,
+} from "../lib/notas";
 import { Grip } from "./CanvasWidgets";
-import { CloseIcon, EnviarIcon, EstadoIcon } from "./Icons";
+import { CloseIcon, EnviarIcon, EstadoIcon, FolderIcon, GroupIcon } from "./Icons";
 
 // Una nota del lienzo: lo que apuntas al vuelo, con casillas si hace falta.
 //
@@ -46,10 +60,11 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
   const [editando, setEditando] = useState(false);
   const [paleta, setPaleta] = useState(false);
   const [renombrando, setRenombrando] = useState(false);
-  /** El menú de «lanzar en una terminal», y lo que se dice al lanzarla. */
+  /** El menú de «lanzar», y lo que se dice al lanzarla. */
   const [lanzando, setLanzando] = useState(false);
   const [dicho, setDicho] = useState("");
   const estados = useCabina((s) => s.estados);
+  const lienzo = useEncargosDelLienzo();
   const sello = useRef(0);
   const timer = useRef<number | undefined>(undefined);
   const area = useRef<HTMLTextAreaElement>(null);
@@ -108,32 +123,76 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
     [],
   );
 
+  /** Una frase que se borra sola. El reloj es uno: con uno por frase, el de la
+      anterior borraba la siguiente antes de que se pudiera leer. */
+  const callar = useRef<number | undefined>(undefined);
+  const decir = (frase: string) => {
+    setDicho(frase);
+    window.clearTimeout(callar.current);
+    callar.current = window.setTimeout(() => setDicho(""), 4000);
+  };
+
   /**
-   * Lanza la nota en una terminal: se la escribe y pulsa Intro.
-   *
-   * Antes se guarda lo último que escribiste, sin esperar al retardo: el
-   * encargo le dice al agente que abra el ARCHIVO, y tiene que encontrar ahí
-   * lo mismo que tú ves.
+   * Lo último que escribiste, a disco ya y sin esperar al retardo: el encargo le
+   * dice al agente que abra el ARCHIVO, y tiene que encontrar ahí lo mismo que
+   * tú ves.
    */
+  const guardarYa = async () => {
+    window.clearTimeout(timer.current);
+    const f = await noteWrite(data.noteId, texto);
+    sello.current = f.stamp;
+    setRuta(f.path);
+    return { ...f, text: texto };
+  };
+
+  /** Lanza la nota en una terminal abierta: se la escribe y pulsa Intro. */
   const lanzarEn = async (paneId: number) => {
     setLanzando(false);
-    window.clearTimeout(timer.current);
     try {
-      const f = await noteWrite(data.noteId, texto);
-      sello.current = f.stamp;
-      setRuta(f.path);
-      pasteInto(paneId, encargoDeNota({ ...f, text: texto }), true);
-      setDicho(t("Lanzada: ya la tiene esa terminal."));
+      pasteInto(paneId, encargoDeNota(await guardarYa()), true);
+      decir(t("Lanzada: ya la tiene esa terminal."));
     } catch (e) {
-      setDicho(String(e));
+      decir(String(e));
     }
-    window.setTimeout(() => setDicho(""), 4000);
+  };
+
+  /**
+   * Una sesión nueva para la nota, en el proyecto que elijas. Con qué cliente y
+   * con qué modelo nace lo decide el router, que es el mismo del Capataz, y lo
+   * decide mirando lo que escribiste y no el envoltorio del encargo.
+   */
+  const nuevaEn = async (d: DondeNace) => {
+    setLanzando(false);
+    try {
+      const abierta = lienzo.lanzar(encargoDeNota(await guardarYa()), d.ruta, sobreNota(texto));
+      decir(abierta ? t("Abriendo una sesión en {p}.", { p: d.nombre }) : t("No se pudo abrir ahí."));
+    } catch (e) {
+      decir(String(e));
+    }
+  };
+
+  /**
+   * Varias tareas, al Reparto: el Capataz las clasifica, les separa los
+   * archivos y las abre como cuadrilla. La nota no cambia: cerrar el Reparto sin
+   * abrir nada no puede costarte lo que tenías apuntado.
+   */
+  const repartir = () => {
+    setLanzando(false);
+    const abierto = lienzo.repartir(tareasPendientes(texto), undefined, () =>
+      decir(t("Repartida: sus sesiones ya están abiertas.")),
+    );
+    if (!abierto) decir(t("No se pudo abrir ahí."));
   };
 
   const lineas = leerLineas(cuerpoDe(texto));
   const titulo = tituloDe(texto);
   const tareas = lineas.filter((l) => l.hecha !== null);
   const hechas = tareas.filter((l) => l.hecha).length;
+  // Lo del menú de lanzar solo se calcula con el menú abierto: los estados de
+  // la Cabina cambian a cada latido y una nota cerrada no tiene nada que decir.
+  const destinos = lanzando ? destinosDeNota(estados) : [];
+  const donde = lanzando ? proyectosDeNota(lienzo.proyectos, lienzo.proyecto, texto) : [];
+  const pendientes = lanzando ? tareasPendientes(texto).length : 0;
 
   /** Dónde empezó el último clic sobre el cuerpo, para distinguirlo de un
       arrastre que solo quería mover la nota. */
@@ -208,7 +267,7 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
             setPaleta(false);
             setLanzando((v) => !v);
           }}
-          data-tip={t("Lanzar en una terminal")}
+          data-tip={t("Lanzar esta nota")}
         >
           <EnviarIcon size={13} />
         </button>
@@ -225,15 +284,41 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
       </header>
 
       {lanzando && (
-        <div className="note-lanzar nodrag" role="menu">
-          {destinosDeNota(estados).length === 0 && <p>{t("No hay terminales abiertas.")}</p>}
-          {destinosDeNota(estados).map((d) => (
-            <button key={d.id} role="menuitem" disabled={!d.puede} onClick={() => void lanzarEn(d.id)}>
+        // `nowheel`: la lista tiene su propia rueda, y sin esto la rueda
+        // acercaba el lienzo en vez de bajar por los proyectos.
+        <div className="note-lanzar nodrag nowheel" role="menu">
+          {destinos.length > 0 && <p>{t("En una terminal abierta")}</p>}
+          {destinos.map((d) => (
+            <button key={d.id} role="menuitem" data-terminal={d.id} disabled={!d.puede} onClick={() => void lanzarEn(d.id)}>
               <EstadoIcon estado={d.estado} size={13} />
               <span>{d.nombre}</span>
               <em>{d.puede ? t(PINTA[d.estado]?.label ?? "") : t("te está preguntando algo")}</em>
             </button>
           ))}
+          {/* Con una sola tarea no hay nada que repartir: para eso está la
+              sesión nueva de abajo. */}
+          {pendientes > 1 && (
+            <button role="menuitem" data-repartir onClick={() => repartir()}>
+              <GroupIcon size={13} />
+              <span>{t("Repartir las {n} tareas", { n: pendientes })}</span>
+              <em>{t("Capataz")}</em>
+            </button>
+          )}
+          {donde.length > 0 && <p>{t("En una sesión nueva en")}</p>}
+          {donde.map((d) => (
+            <button key={d.ruta} role="menuitem" data-proyecto={d.nombre} onClick={() => void nuevaEn(d)}>
+              <FolderIcon size={13} />
+              <span>{d.nombre}</span>
+              <em>
+                {d.porque === "nombrado"
+                  ? t("lo nombra la nota")
+                  : d.porque === "lienzo"
+                    ? t("el de este lienzo")
+                    : ""}
+              </em>
+            </button>
+          ))}
+          {destinos.length === 0 && donde.length === 0 && <p>{t("No hay terminales abiertas.")}</p>}
         </div>
       )}
       {dicho && <p className="note-dicho nodrag">{dicho}</p>}

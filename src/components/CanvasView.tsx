@@ -47,6 +47,7 @@ import GalleryNode, { type GalleryData } from "./CanvasGallery";
 import WebNode, { type WebData } from "./CanvasWeb";
 import { comoUrl } from "../lib/urlweb";
 import { encargoDeNota } from "../lib/notas";
+import { useOfrecerEncargos, type Aparte } from "../lib/encargosDelLienzo";
 import CanvasDraw, { DRAW_TOOLS } from "./CanvasDraw";
 import {
   DRAW_COLORS,
@@ -247,7 +248,7 @@ interface Props {
   alVolver: (cwd: string, command?: string[]) => Promise<string[] | undefined>;
   /** Abre una terminal del lienzo con un encargo dentro, y lo deja apuntado.
    *  Lo resuelve App, que es quien sabe acuñar sesiones y guardar encargos. */
-  onLanzarEncargo: (texto: string, project: Project) => void;
+  onLanzarEncargo: (texto: string, project: Project, aparte?: Aparte) => void;
   /** Varias tarjetas juntas: abre el Reparto ya escrito para que decida
    *  cerebros y fronteras antes de gastar nada. */
   onRepartirTarjetas: (texto: string, project: Project, alAbrir: () => void) => void;
@@ -1418,7 +1419,7 @@ ${ruta}` : ruta;
   /** Lanzar una tarjeta: nace en el proyecto del lienzo si la tarjeta no dice
       otro, que es el caso normal porque el tablero vive en un tablero. */
   const lanzarPendiente = useCallback(
-    (texto: string, ruta?: string): boolean => {
+    (texto: string, ruta?: string, aparte?: Aparte): boolean => {
       const p =
         (ruta ? projects.find((x) => x.path === ruta) : undefined) ??
         projects.find((x) => x.name === project);
@@ -1427,7 +1428,7 @@ ${ruta}` : ruta;
         // Falso: el tablero se queda la tarjeta en vez de tragársela.
         return false;
       }
-      onLanzarEncargo(texto, p);
+      onLanzarEncargo(texto, p, aparte);
       return true;
     },
     [projects, project, onLanzarEncargo, t],
@@ -1449,6 +1450,7 @@ ${ruta}` : ruta;
     },
     [projects, project, onRepartirTarjetas, t],
   );
+  useOfrecerEncargos(projects, project, lanzarPendiente, repartirPendientes);
 
   const ponerKanban = useCallback(
     (pendientes: Pendiente[] = []) => {

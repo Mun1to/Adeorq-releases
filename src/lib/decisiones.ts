@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { useCabina } from "./cabina";
 
 export interface Opcion {
   texto: string;
@@ -35,6 +36,13 @@ export interface Respuesta {
   entregada: boolean;
 }
 
+/**
+ * En qué punto está (`Vigencia` en `decisiones.rs`): «viva» es que la terminal
+ * que preguntó sigue abierta y espera la respuesta; «huerfana», que está sin
+ * contestar pero ya no hay nadie detrás (se cerró, o es de otro arranque).
+ */
+export type Vigencia = "viva" | "huerfana" | "contestada" | "descartada";
+
 export interface Decision {
   id: string;
   titulo: string;
@@ -46,6 +54,9 @@ export interface Decision {
   creada: number;
   preguntas: Pregunta[];
   respuesta?: Respuesta;
+  /** Cuándo la apartaste sin contestarla, en milisegundos. */
+  descartada?: number;
+  vigencia: Vigencia;
 }
 
 export type Elecciones = Record<string, Eleccion>;
@@ -60,13 +71,22 @@ export const responderDecision = (id: string, elecciones: Elecciones) =>
 
 export const marcarEntregada = (id: string) => invoke<void>("decision_entregada", { id });
 
+/** La aparta sin contestarla. Si una terminal la esperaba, vuelve su panel y
+    lo que hay que teclearle para que el agente no se quede esperando. */
+export const descartarDecision = (id: string) =>
+  invoke<{ panel: number | null; texto: string | null }>("decision_descartar", { id });
+
 /**
  * La lista, al día: se lee al abrir Adeorq y cada vez que Rust avisa de un
  * cambio (una nueva del MCP, una contestada desde el móvil o desde aquí). Vive
  * en `App` para que la cuenta de la pestaña esté aunque no la tengas abierta.
+ *
+ * Y cuando se abre o se cierra una terminal: que una decisión siga viva
+ * depende de que la terminal que preguntó esté abierta, y cerrar una no avisa.
  */
 export function useDecisiones(): Decision[] {
   const [lista, setLista] = useState<Decision[]>([]);
+  const paneles = useCabina((s) => Object.keys(s.estados).join(","));
   useEffect(() => {
     let vivo = true;
     const leer = () =>
@@ -79,11 +99,22 @@ export function useDecisiones(): Decision[] {
       vivo = false;
       void quitar.then((f) => f()).catch(() => {});
     };
-  }, []);
+  }, [paneles]);
   return lista;
 }
 
-export const pendientes = (lista: Decision[]) => lista.filter((d) => !d.respuesta).length;
+/** Las que te esperan DE VERDAD: las vivas. Una huérfana no cuenta en el
+    número de la pestaña, que es lo que hacía que nunca bajase a cero. */
+export const pendientes = (lista: Decision[]) => lista.filter((d) => d.vigencia === "viva").length;
+
+/** Los tres montones de la lista, en el orden en que se pintan. */
+export function porVigencia(lista: Decision[]) {
+  return {
+    vivas: lista.filter((d) => d.vigencia === "viva"),
+    huerfanas: lista.filter((d) => d.vigencia === "huerfana"),
+    cerradas: lista.filter((d) => d.vigencia === "contestada" || d.vigencia === "descartada"),
+  };
+}
 
 /** Lo que falta por contestar: una pregunta necesita una opción o tus palabras. */
 export function faltan(d: Decision, el: Elecciones): string[] {

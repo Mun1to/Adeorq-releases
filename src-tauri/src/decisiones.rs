@@ -87,6 +87,61 @@ pub struct Decision {
     pub preguntas: Vec<Pregunta>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub respuesta: Option<Respuesta>,
+    /// Cuándo la apartó Munir sin contestarla (milisegundos).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub descartada: Option<u64>,
+}
+
+/// En qué punto está una decisión, que es lo que se pinta.
+///
+/// Munir, 2026-10-10: «lo de las decisiones, si siguen activas o no». Tenía
+/// seis «pendientes» que ya había contestado de palabra en el chat, o cuya
+/// terminal llevaba días cerrada, mezcladas con la única que de verdad le
+/// esperaba, y todas sumaban igual en el número del botón.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Vigencia {
+    /// Sin contestar, y quien preguntó sigue ahí para recibir la respuesta.
+    Viva,
+    /// Sin contestar, pero su terminal ya no está: nadie la espera.
+    Huerfana,
+    Contestada,
+    Descartada,
+}
+
+/// Una decisión con su vigencia al lado: lo que viaja a la app y al móvil.
+#[derive(Clone, Debug, Serialize)]
+pub struct ConVigencia {
+    #[serde(flatten)]
+    pub decision: Decision,
+    pub vigencia: Vigencia,
+}
+
+/// `abiertos` son los paneles que tienen terminal ahora mismo. Una decisión
+/// sin terminal apuntada no se puede mirar así, y vale el arranque: la de otro
+/// arranque de Adeorq ya no tiene a nadie detrás.
+pub fn vigencia(d: &Decision, arranque: u64, abiertos: &[u32]) -> Vigencia {
+    if d.respuesta.is_some() {
+        return Vigencia::Contestada;
+    }
+    if d.descartada.is_some() {
+        return Vigencia::Descartada;
+    }
+    let sigue = match (d.panel, d.arranque) {
+        (Some(panel), Some(a)) => a == arranque && abiertos.contains(&panel),
+        _ => d.creada >= arranque,
+    };
+    if sigue { Vigencia::Viva } else { Vigencia::Huerfana }
+}
+
+pub fn con_vigencia(d: Decision, arranque: u64, abiertos: &[u32]) -> ConVigencia {
+    let vigencia = vigencia(&d, arranque, abiertos);
+    ConVigencia { decision: d, vigencia }
+}
+
+/// Ya no hay nada que hacer con ella: contestada o descartada.
+fn cerrada(d: &Decision) -> bool {
+    d.respuesta.is_some() || d.descartada.is_some()
 }
 
 /// Lo que pide el agente, antes de tener id ni fecha.
@@ -161,6 +216,7 @@ pub fn validar(p: &Pedido, ahora: u64, arranque: u64) -> Result<Decision, String
         creada: ahora,
         preguntas,
         respuesta: None,
+        descartada: None,
     })
 }
 
@@ -210,13 +266,14 @@ pub fn listar(dir: &Path) -> Vec<Decision> {
         .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
         .filter_map(|e| serde_json::from_slice(&std::fs::read(e.path()).ok()?).ok())
         .collect();
-    todas.sort_by(|a, b| a.respuesta.is_some().cmp(&b.respuesta.is_some()).then(b.creada.cmp(&a.creada)));
+    todas.sort_by(|a, b| cerrada(a).cmp(&cerrada(b)).then(b.creada.cmp(&a.creada)));
     todas
 }
 
-/// Las contestadas más viejas se van cuando pasan de `TOPE_GUARDADAS`.
+/// Las cerradas más viejas (contestadas o descartadas) se van cuando pasan de
+/// `TOPE_GUARDADAS`.
 fn podar(dir: &Path) {
-    let contestadas: Vec<Decision> = listar(dir).into_iter().filter(|d| d.respuesta.is_some()).collect();
+    let contestadas: Vec<Decision> = listar(dir).into_iter().filter(cerrada).collect();
     for d in contestadas.iter().skip(TOPE_GUARDADAS) {
         if let Some(r) = ruta(dir, &d.id) {
             let _ = std::fs::remove_file(r);
@@ -231,6 +288,9 @@ pub fn responder(dir: &Path, id: &str, elecciones: BTreeMap<String, Eleccion>, d
     let mut d = leer(dir, id).ok_or("Esa decisión ya no está.")?;
     if d.respuesta.is_some() {
         return Err("Esa decisión ya está contestada.".into());
+    }
+    if d.descartada.is_some() {
+        return Err("Esa decisión está descartada: al agente ya se le dijo que no esperase respuesta.".into());
     }
     let mut limpias = BTreeMap::new();
     for q in &d.preguntas {
@@ -251,6 +311,31 @@ pub fn responder(dir: &Path, id: &str, elecciones: BTreeMap<String, Eleccion>, d
     Ok(d)
 }
 
+/// La aparta sin contestarla: deja de contar entre las que te esperan y el
+/// agente, si la pide, lee que no hay respuesta. Descartar dos veces no es un
+/// error (dos aparatos a la vez); descartar una contestada, sí.
+pub fn descartar(dir: &Path, id: &str, ahora: u64) -> Result<Decision, String> {
+    let mut d = leer(dir, id).ok_or("Esa decisión ya no está.")?;
+    if d.respuesta.is_some() {
+        return Err("Esa decisión ya está contestada.".into());
+    }
+    if d.descartada.is_none() {
+        d.descartada = Some(ahora);
+        escribir(dir, &d)?;
+    }
+    Ok(d)
+}
+
+/// A quién hay que decirle que su decisión se descartó, y qué: solo a una
+/// terminal que seguía esperándola. `antes` es su vigencia de antes de
+/// descartarla, que después ya es «descartada» para todas.
+pub fn aviso_de_descarte(d: &Decision, antes: Vigencia) -> Option<(u32, String)> {
+    match (d.panel, antes) {
+        (Some(panel), Vigencia::Viva) => Some((panel, como_texto(d))),
+        _ => None,
+    }
+}
+
 /// Apunta que la respuesta ya se tecleó en la terminal que preguntó.
 pub fn marcar_entregada(dir: &Path, id: &str) {
     if let Some(mut d) = leer(dir, id) {
@@ -265,6 +350,12 @@ pub fn marcar_entregada(dir: &Path, id: &str) {
 /// lo que devuelve `get_decision`.
 pub fn como_texto(d: &Decision) -> String {
     let Some(r) = &d.respuesta else {
+        if d.descartada.is_some() {
+            return format!(
+                "Munir ha descartado la decisión «{}» ({}) sin contestarla: no esperes respuesta. Si sigue haciendo falta, pregúntaselo de nuevo.",
+                d.titulo, d.id
+            );
+        }
         return format!("La decisión «{}» ({}) sigue sin contestar.", d.titulo, d.id);
     };
     let mut s = format!("Munir ha contestado a «{}» (decisión {}):", d.titulo, d.id);
@@ -310,8 +401,34 @@ pub fn avisar_cambio(app: &tauri::AppHandle) {
 /// contestando la primera decisión de verdad: «una sección Decisiones dentro
 /// de la app de escritorio»).
 #[tauri::command(async)]
-pub fn decisiones_listar() -> Result<Vec<Decision>, String> {
-    Ok(listar(&dir_de_verdad()?))
+pub fn decisiones_listar(app: tauri::AppHandle) -> Result<Vec<ConVigencia>, String> {
+    let abiertos = crate::pty::paneles_abiertos(&app);
+    let arranque = crate::conserje::arranque();
+    Ok(listar(&dir_de_verdad()?).into_iter().map(|d| con_vigencia(d, arranque, &abiertos)).collect())
+}
+
+fn ahora_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+/// Descartar desde la app. Como al contestar, si hay una terminal esperándola
+/// devuelve el panel y el texto, y lo teclea la ventana.
+#[tauri::command(async)]
+pub fn decision_descartar(app: tauri::AppHandle, id: String) -> Result<serde_json::Value, String> {
+    let dir = dir_de_verdad()?;
+    let antes = leer(&dir, &id)
+        .map(|d| vigencia(&d, crate::conserje::arranque(), &crate::pty::paneles_abiertos(&app)))
+        .ok_or("Esa decisión ya no está.")?;
+    let d = descartar(&dir, &id, ahora_ms())?;
+    avisar_cambio(&app);
+    let teclear = aviso_de_descarte(&d, antes);
+    Ok(serde_json::json!({
+        "panel": teclear.as_ref().map(|t| t.0),
+        "texto": teclear.map(|t| t.1),
+    }))
 }
 
 /// Contestar desde la app. Devuelve la decisión ya contestada y, si toca, el
@@ -323,11 +440,7 @@ pub fn decision_responder(
     id: String,
     elecciones: BTreeMap<String, Eleccion>,
 ) -> Result<serde_json::Value, String> {
-    let ahora = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0);
-    let d = responder(&dir_de_verdad()?, &id, elecciones, "el PC", ahora)?;
+    let d = responder(&dir_de_verdad()?, &id, elecciones, "el PC", ahora_ms())?;
     avisar_cambio(&app);
     let teclear = a_teclear(&d, crate::conserje::arranque());
     Ok(serde_json::json!({
@@ -472,5 +585,45 @@ mod tests {
         assert!(leer(&d, "../movil").is_none());
         assert!(leer(&d, "d12/../x").is_none());
         assert!(responder(&d, "..\\..\\algo", BTreeMap::new(), "x", 1).is_err());
+        assert!(descartar(&d, "..\\..\\algo", 1).is_err());
+    }
+
+    /// Lo que pidió Munir el 2026-10-10: saber cuáles siguen activas. Solo
+    /// espera la de una terminal que sigue abierta en este mismo arranque.
+    #[test]
+    fn solo_espera_la_de_una_terminal_que_sigue_abierta() {
+        let d = dir();
+        let suya = crear(&d, validar(&pedido(), 5000, 77).unwrap()).unwrap();
+        assert_eq!(vigencia(&suya, 77, &[1, 3]), Vigencia::Viva);
+        assert_eq!(vigencia(&suya, 77, &[1, 2]), Vigencia::Huerfana, "su terminal se cerró");
+        assert_eq!(vigencia(&suya, 78, &[1, 3]), Vigencia::Huerfana, "el panel 3 de otro arranque es otra terminal");
+        // Sin terminal apuntada no se puede mirar si sigue abierta: vale cuándo se pidió.
+        let mut sin_panel = pedido();
+        sin_panel.panel = None;
+        let suelta = crear(&d, validar(&sin_panel, 6000, 77).unwrap()).unwrap();
+        assert_eq!(vigencia(&suelta, 5500, &[]), Vigencia::Viva, "pedida después de abrir Adeorq");
+        assert_eq!(vigencia(&suelta, 7000, &[]), Vigencia::Huerfana, "pedida antes de este arranque");
+
+        // Descartada: deja de esperar, el agente lo lee, y ya no se contesta.
+        assert_eq!(aviso_de_descarte(&suya, Vigencia::Huerfana), None, "a una terminal que no está no se le escribe");
+        let fuera = descartar(&d, &suya.id, 9000).unwrap();
+        assert_eq!(vigencia(&fuera, 77, &[3]), Vigencia::Descartada);
+        let (panel, texto) = aviso_de_descarte(&fuera, Vigencia::Viva).unwrap();
+        assert_eq!(panel, 3);
+        assert!(texto.contains("ha descartado la decisión «Diseño de la guía»") && texto.contains("no esperes respuesta"), "{texto}");
+        assert_eq!(descartar(&d, &suya.id, 9999).unwrap().descartada, Some(9000), "descartar otra vez no cambia nada");
+        let mut el = BTreeMap::new();
+        el.insert("A".to_string(), Eleccion { opcion: Some(1), texto: None });
+        el.insert("B".to_string(), Eleccion { opcion: Some(1), texto: None });
+        assert!(responder(&d, &suya.id, el.clone(), "x", 9500).unwrap_err().contains("descartada"));
+        // Las cerradas van detrás de la que sigue abierta, y una contestada no se descarta.
+        assert_eq!(listar(&d).iter().map(|x| x.id.as_str()).collect::<Vec<_>>(), [suelta.id.as_str(), suya.id.as_str()]);
+        let hecha = responder(&d, &suelta.id, el, "x", 9600).unwrap();
+        assert_eq!(vigencia(&hecha, 7000, &[]), Vigencia::Contestada);
+        assert!(descartar(&d, &suelta.id, 9700).unwrap_err().contains("ya está contestada"));
+        // Un archivo de antes de que existiera «descartada» se sigue leyendo.
+        let viejo = serde_json::json!({ "id": "d1", "titulo": "Vieja", "creada": 1, "preguntas": [] });
+        assert_eq!(serde_json::from_value::<Decision>(viejo).unwrap().descartada, None);
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

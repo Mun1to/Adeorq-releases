@@ -1,4 +1,4 @@
-import type { NoteFile, PaneStatus } from "./pty";
+import type { NoteFile, PaneStatus, Project } from "./pty";
 
 // El formato de una nota del lienzo, aparte de su tarjeta.
 //
@@ -136,4 +136,61 @@ export function destinosDeNota(estados: Record<number, PaneStatus>): Destino[] {
     .slice()
     .sort((a, b) => Number(b.agent) - Number(a.agent) || a.id - b.id)
     .map((p) => ({ id: p.id, nombre: p.name, estado: p.state, puede: p.state !== "pregunta" }));
+}
+
+/** Las tareas que quedan sin marcar, con su texto a secas. */
+export function tareasPendientes(texto: string): string[] {
+  return leerLineas(cuerpoDe(texto))
+    .filter((l) => l.hecha === false && l.texto.trim())
+    .map((l) => l.texto.trim());
+}
+
+/**
+ * De qué va la nota, sin el envoltorio del encargo.
+ *
+ * El encargo que recibe el agente trae la ruta del archivo y las reglas de
+ * marcar casillas. Quien le pone nombre a la terminal y elige con qué modelo
+ * nace tiene que mirar lo que escribiste TÚ, no esas instrucciones: lo ya hecho
+ * tampoco cuenta, porque no es trabajo que quede.
+ */
+export function sobreNota(texto: string): { nombre: string; juzgar: string } {
+  const titulo = tituloDe(texto);
+  const queda = leerLineas(cuerpoDe(texto))
+    .filter((l) => l.hecha !== true && l.texto.trim())
+    .map((l) => l.texto.trim());
+  return { nombre: titulo || queda[0] || "nota", juzgar: [titulo, ...queda].filter(Boolean).join("\n") };
+}
+
+/** Un proyecto donde puede nacer la sesión de una nota, y por qué va arriba. */
+export interface DondeNace {
+  nombre: string;
+  ruta: string;
+  /** «nombrado» si la nota lo menciona, «lienzo» si es el de este lienzo. */
+  porque: "nombrado" | "lienzo" | "";
+}
+
+/** Lo que puede formar parte de una palabra, para un `[...]` de expresión regular. */
+const LETRA = "\\p{L}\\p{N}_";
+
+/**
+ * En qué proyectos puede nacer una sesión para esta nota, lo más probable
+ * arriba: primero los que la nota NOMBRA, después el del lienzo, y el resto en
+ * el orden en que venían.
+ *
+ * El nombre tiene que salir como palabra entera: «Layco» dentro de «Laycos» no
+ * cuenta. Y esto no decide nada, solo ordena: una coincidencia tonta sube un
+ * proyecto en la lista, no abre ninguna terminal.
+ */
+export function proyectosDeNota(proyectos: Project[], delLienzo: string, texto: string): DondeNace[] {
+  const nombra = (nombre: string) =>
+    nombre.length >= 3 &&
+    new RegExp(`(^|[^${LETRA}])${nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^${LETRA}])`, "iu").test(texto);
+  const orden = { nombrado: 0, lienzo: 1, "": 2 };
+  return proyectos
+    .map((p, i) => {
+      const porque: DondeNace["porque"] = nombra(p.name) ? "nombrado" : p.name === delLienzo ? "lienzo" : "";
+      return { d: { nombre: p.name, ruta: p.path, porque }, i };
+    })
+    .sort((a, b) => orden[a.d.porque] - orden[b.d.porque] || a.i - b.i)
+    .map((x) => x.d);
 }

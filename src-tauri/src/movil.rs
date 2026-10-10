@@ -667,6 +667,11 @@ pub trait Casa {
     fn decisiones(&self) -> Result<PathBuf, String>;
     /// El arranque de Adeorq: los números de panel solo valen dentro de uno.
     fn arranque(&self) -> u64;
+    /// Los paneles con terminal ahora mismo: una decisión cuya terminal se
+    /// cerró ya no la espera nadie (`decisiones::vigencia`).
+    fn paneles_abiertos(&self) -> Vec<u32> {
+        Vec::new()
+    }
     /// Que la pestaña «Decisiones» de la app se entere de que una cambió.
     fn decisiones_cambian(&self) {}
 }
@@ -944,17 +949,21 @@ pub fn atender(
             }
         }
         // Las decisiones que piden los agentes (`decisiones.rs`): la lista, una
-        // entera, y contestarla. La respuesta se teclea en la terminal que
-        // preguntó solo si es del mismo arranque de Adeorq: en otro, ese número
-        // de panel puede ser ya otra terminal.
+        // entera, contestarla y descartarla. La respuesta se teclea en la
+        // terminal que preguntó solo si es del mismo arranque de Adeorq: en
+        // otro, ese número de panel puede ser ya otra terminal. Cada una lleva
+        // su `vigencia`: si alguien la espera todavía o su terminal ya no está.
         ("GET", "/api/decisiones") => match casa.decisiones() {
             Ok(dir) => {
+                let (arranque, abiertos) = (casa.arranque(), casa.paneles_abiertos());
                 let lista: Vec<Value> = crate::decisiones::listar(&dir)
                     .iter()
                     .map(|d| {
                         json!({
                             "id": d.id, "titulo": d.titulo, "proyecto": d.proyecto, "panel": d.panel,
                             "creada": d.creada, "preguntas": d.preguntas.len(), "contestada": d.respuesta.is_some(),
+                            "vigencia": crate::decisiones::vigencia(d, arranque, &abiertos),
+                            "cerrada": d.respuesta.as_ref().map(|r| r.cuando).or(d.descartada),
                         })
                     })
                     .collect();
@@ -965,8 +974,36 @@ pub fn atender(
         ("GET", "/api/decision") => {
             let id = p.consulta.get("id").map(String::as_str).unwrap_or("");
             match casa.decisiones().ok().and_then(|dir| crate::decisiones::leer(&dir, id)) {
-                Some(d) => Respuesta::json(200, json!(d)),
+                Some(d) => Respuesta::json(
+                    200,
+                    json!(crate::decisiones::con_vigencia(d, casa.arranque(), &casa.paneles_abiertos())),
+                ),
                 None => Respuesta::error(404, "Esa decisión ya no está."),
+            }
+        }
+        ("POST", "/api/decision/descartar") => {
+            let id = cuerpo["id"].as_str().unwrap_or("");
+            let dir = match casa.decisiones() {
+                Ok(d) => d,
+                Err(e) => return Respuesta::error(500, &e),
+            };
+            let Some(antes) = crate::decisiones::leer(&dir, id)
+                .map(|d| crate::decisiones::vigencia(&d, casa.arranque(), &casa.paneles_abiertos()))
+            else {
+                return Respuesta::error(404, "Esa decisión ya no está.");
+            };
+            match crate::decisiones::descartar(&dir, id, reloj.1.saturating_mul(1000)) {
+                Ok(d) => {
+                    // A una terminal que seguía esperándola se le dice, o el
+                    // agente se queda esperando una respuesta que no va a llegar.
+                    let mut avisada = false;
+                    if let Some((panel, texto)) = crate::decisiones::aviso_de_descarte(&d, antes) {
+                        avisada = casa.ventana("escribir", json!({ "panel": panel, "texto": texto })).is_ok_and(|v| v.get("error").is_none());
+                    }
+                    casa.decisiones_cambian();
+                    Respuesta::json(200, json!({ "ok": true, "avisada": avisada, "panel": d.panel }))
+                }
+                Err(e) => Respuesta::error(409, &e),
             }
         }
         ("POST", "/api/decision/responder") => {
@@ -1004,7 +1041,7 @@ pub fn atender(
             | "/api/cerebro" | "/api/fijo" | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
             | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
-            | "/api/decision/responder") => Respuesta::error(405, "Así no."),
+            | "/api/decision/responder" | "/api/decision/descartar") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -1111,6 +1148,9 @@ impl Casa for CasaDeVerdad {
     }
     fn arranque(&self) -> u64 {
         crate::conserje::arranque()
+    }
+    fn paneles_abiertos(&self) -> Vec<u32> {
+        crate::pty::paneles_abiertos(&self.app)
     }
     fn decisiones_cambian(&self) {
         crate::decisiones::avisar_cambio(&self.app);
@@ -1719,6 +1759,10 @@ mod tests {
     #[derive(Default)]
     struct CasaDeMentira {
         enviados: RefCell<Vec<Value>>,
+        /// Los paneles que tienen terminal.
+        abiertos: RefCell<Vec<u32>>,
+        /// Para que dos pruebas de decisiones no compartan carpeta: corren a la vez.
+        sitio: &'static str,
     }
     impl Casa for CasaDeMentira {
         fn lista(&self) -> Value {
@@ -1755,10 +1799,13 @@ mod tests {
             Ok(dir)
         }
         fn decisiones(&self) -> Result<PathBuf, String> {
-            Ok(std::env::temp_dir().join(format!("adeorq-movil-decisiones-{}", std::process::id())))
+            Ok(std::env::temp_dir().join(format!("adeorq-movil-decisiones-{}{}", std::process::id(), self.sitio)))
         }
         fn arranque(&self) -> u64 {
             77
+        }
+        fn paneles_abiertos(&self) -> Vec<u32> {
+            self.abiertos.borrow().clone()
         }
     }
 
@@ -1833,6 +1880,74 @@ mod tests {
         assert_eq!((r.estado, cuerpo_de(&r)["entregada"].clone()), (200, json!(false)));
         assert_eq!(casa.enviados.borrow().len(), antes);
         assert_eq!(atender(&pedir("GET", "/api/decision/responder", c, ""), &g, &casa, &nada, reloj).estado, 405);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Cada decisión dice si alguien la espera todavía: la de una terminal
+    /// abierta sí, la de una cerrada o de otro arranque no. Descartarla la
+    /// quita de en medio, y solo a la que seguía esperando se le avisa.
+    #[test]
+    fn una_decision_dice_si_sigue_viva_y_se_puede_descartar() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira { sitio: "-vigencia", ..Default::default() };
+        casa.abiertos.borrow_mut().push(4);
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        let dir = casa.decisiones().unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        let pedir_una = |titulo: &str, panel: u32, ahora: u64, arranque: u64| {
+            let pedido: crate::decisiones::Pedido = serde_json::from_value(json!({
+                "titulo": titulo, "panel": panel,
+                "preguntas": [{ "titulo": "¿Cuál?", "opciones": [{ "texto": "Una" }, { "texto": "Otra" }] }]
+            }))
+            .unwrap();
+            crate::decisiones::crear(&dir, crate::decisiones::validar(&pedido, ahora, arranque).unwrap()).unwrap()
+        };
+        let viva = pedir_una("Me espera", 4, 5000, 77);
+        let cerrada = pedir_una("Su terminal se cerró", 9, 4000, 77);
+        let de_ayer = pedir_una("De otro arranque", 4, 3000, 12);
+
+        let vigencias = || {
+            let lista = cuerpo_de(&atender(&pedir("GET", "/api/decisiones", c, ""), &g, &casa, &nada, reloj));
+            lista["decisiones"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|d| format!("{}={}", d["titulo"].as_str().unwrap(), d["vigencia"].as_str().unwrap()))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(vigencias(), ["Me espera=viva", "Su terminal se cerró=huerfana", "De otro arranque=huerfana"]);
+        let una = cuerpo_de(&atender(&pedir("GET", &format!("/api/decision?id={}", cerrada.id), c, ""), &g, &casa, &nada, reloj));
+        assert_eq!((una["vigencia"].clone(), una["titulo"].clone()), (json!("huerfana"), json!("Su terminal se cerró")));
+
+        let descarta = |id: &str| {
+            atender(&pedir("POST", "/api/decision/descartar", c, &json!({ "id": id }).to_string()), &g, &casa, &nada, reloj)
+        };
+        assert_eq!(atender(&pedir("POST", "/api/decision/descartar", None, "{}"), &g, &casa, &nada, reloj).estado, 401);
+        assert_eq!(descarta("d999").estado, 404);
+        // La huérfana se va sin escribir en ninguna terminal: el panel 4 de hoy es otra.
+        let r = descarta(&de_ayer.id);
+        assert_eq!((r.estado, cuerpo_de(&r)["avisada"].clone()), (200, json!(false)));
+        assert!(casa.enviados.borrow().is_empty());
+        // A la que seguía esperando se le dice, para que el agente no se quede colgado.
+        let r = descarta(&viva.id);
+        assert_eq!((r.estado, cuerpo_de(&r)["avisada"].clone()), (200, json!(true)));
+        let escrito = casa.enviados.borrow().last().cloned().unwrap();
+        assert_eq!(escrito["panel"], 4);
+        assert!(escrito["texto"].as_str().unwrap().contains("ha descartado la decisión «Me espera»"));
+        assert_eq!(descarta(&viva.id).estado, 200, "descartar dos veces no es un error");
+        assert_eq!(casa.enviados.borrow().len(), 1, "y no se le avisa otra vez");
+        assert_eq!(vigencias(), ["Su terminal se cerró=huerfana", "Me espera=descartada", "De otro arranque=descartada"]);
+        // Una descartada ya no se contesta, y una contestada ya no se descarta.
+        let responde = |id: &str| {
+            let cuerpo = json!({ "id": id, "elecciones": { "A": { "opcion": 1 } } }).to_string();
+            atender(&pedir("POST", "/api/decision/responder", c, &cuerpo), &g, &casa, &nada, reloj)
+        };
+        assert_eq!(responde(&viva.id).estado, 400);
+        assert_eq!(responde(&cerrada.id).estado, 200);
+        assert_eq!(descarta(&cerrada.id).estado, 409);
+        assert_eq!(atender(&pedir("GET", "/api/decision/descartar", c, ""), &g, &casa, &nada, reloj).estado, 405);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

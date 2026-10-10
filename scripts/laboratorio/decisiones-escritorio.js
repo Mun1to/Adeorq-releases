@@ -7,7 +7,9 @@
 //
 // Munir, 2026-10-09, contestando desde el móvil la primera decisión de verdad:
 // quería verlas también en el PC, «una sección Decisiones dentro de la app».
-// Lo que fija esto: la pestaña cuenta las que te esperan; ninguna opción sale
+// Lo que fija esto: la pestaña cuenta las que te esperan DE VERDAD (las de una
+// terminal que sigue abierta); la que ya no espera nadie va aparte, lo dice y
+// se descarta sin teclear en ninguna terminal; ninguna opción sale
 // marcada aunque haya recomendada; «Enviar» no se deja pulsar hasta tener cada
 // pregunta contestada; lo marcado sobrevive a irse de la pestaña; «Deshacer»
 // para el envío; al mandarla se teclea en el panel que preguntó y se apunta
@@ -51,8 +53,15 @@ async (page) => {
         ],
       },
       {
-        id: "d19a2b3c4d00", titulo: "Cómo se llama la sección nueva", proyecto: "VoCript", creada: ahora - 2 * 3_600_000,
+        // Sin terminal apuntada y pedida en este arranque: sigue viva.
+        id: "d19a2b3c4d00", titulo: "Cómo se llama la sección nueva", proyecto: "VoCript", creada: ahora - 20 * 60_000,
         preguntas: [pregunta("A", "El nombre", [op("Dictados"), op("Historial", { recomendada: true })])],
+      },
+      {
+        // De una terminal de otro arranque: ya no la espera nadie.
+        id: "d19a2b3c4b00", titulo: "El color de ayer", proyecto: "Webs", panel: 3, arranque: ARRANQUE - 86_400_000,
+        creada: ahora - 3 * 86_400_000,
+        preguntas: [pregunta("A", "¿Cuál?", [op("Azul"), op("Verde")])],
       },
       {
         id: "d19a2b3c4c00", titulo: "Decisiones: primera prueba de verdad", proyecto: "Adeorq", panel: 1, arranque: ARRANQUE,
@@ -71,19 +80,39 @@ async (page) => {
       for (const h of oyentes[evento] ?? []) window[`_${h}`]?.({ event: evento, id: h, payload });
     };
     const copia = (v) => JSON.parse(JSON.stringify(v));
+    // Como `vigencia` (decisiones.rs).
+    const ABIERTOS = [3];
+    const cerrada = (d) => Number(Boolean(d.respuesta || d.descartada));
+    const vigenciaDe = (d) =>
+      d.respuesta ? "contestada" : d.descartada ? "descartada"
+        : (d.panel != null ? d.arranque === ARRANQUE && ABIERTOS.includes(d.panel) : d.creada >= ARRANQUE) ? "viva" : "huerfana";
     const contestar = (cmd, args) => {
       llamadas.push([cmd, copia(args ?? {})]);
       switch (cmd) {
         case "plugin:event|listen": (oyentes[args.event] ??= []).push(args.handler); return escucha++;
         case "plugin:event|unlisten": return null;
         case "list_projects": return [{ name: "Adeorq", path: "C:\\proyectos\\Adeorq", hasGit: true }];
-        // Como `decisiones.rs`: las pendientes primero.
+        // Como `decisiones.rs`: las pendientes primero, y cada una con su
+        // vigencia. El panel 3 es el único con terminal abierta.
         case "decisiones_listar":
-          return copia([...window.__dec].sort((a, b) => Boolean(a.respuesta) - Boolean(b.respuesta) || b.creada - a.creada));
+          return copia([...window.__dec]
+            .sort((a, b) => cerrada(a) - cerrada(b) || b.creada - a.creada)
+            .map((d) => ({ ...d, vigencia: vigenciaDe(d) })));
+        // Como `decision_descartar`: a la terminal que la esperaba se le dice.
+        case "decision_descartar": {
+          const d = window.__dec.find((x) => x.id === args.id);
+          if (!d) throw "Esa decisión ya no está.";
+          if (d.respuesta) throw "Esa decisión ya está contestada.";
+          const viva = vigenciaDe(d) === "viva" && d.panel != null;
+          d.descartada ??= Date.now();
+          setTimeout(() => window.__emitir("decisiones:cambian"), 0);
+          return { panel: viva ? d.panel : null, texto: viva ? `Munir ha descartado la decisión «${d.titulo}» (${d.id}) sin contestarla: no esperes respuesta.` : null };
+        }
         case "decision_responder": {
           const d = window.__dec.find((x) => x.id === args.id);
           if (!d) throw "Esa decisión ya no está.";
           if (d.respuesta) throw "Esa decisión ya está contestada.";
+          if (d.descartada) throw "Esa decisión está descartada.";
           for (const q of d.preguntas) {
             const e = args.elecciones[q.id] ?? {};
             if (!e.opcion && !e.texto) throw `Falta contestar la pregunta ${q.id}.`;
@@ -120,7 +149,8 @@ async (page) => {
 
   const llamadasDe = (cmd) => page.evaluate((c) => window.__llamadas.filter(([x]) => x === c).map(([, a]) => a), cmd);
   const tab = page.locator('button.tab[data-tab="decisiones"]');
-  const boton = page.locator(".dec-pie button");
+  // El de enviar es el último del pie; delante va «Descartar».
+  const boton = page.locator(".dec-pie button:last-child");
   const estado = page.locator(".dec-estado");
   const preguntas = page.locator(".dec-pregunta");
 
@@ -135,10 +165,24 @@ async (page) => {
   // 2. Abre en la primera que te espera, sin nada marcado aunque haya recomendada.
   await tab.click();
   await page.waitForSelector(".dec-abierta");
-  debe(await page.locator(".dec-fila").count() === 3, "tres en la lista");
+  debe(await page.locator(".dec-fila").count() === 4, "cuatro en la lista");
   const etis = await page.locator(".dec-lista-eti").allTextContents();
-  debe(etis.join() === "Te esperan,Contestadas", `las dos secciones de la lista (${etis})`);
+  debe(etis.join() === "Te esperan,Ya no las espera nadieDescartar,Cerradas", `los tres montones de la lista (${etis})`);
   debe((await page.locator(".dec-abierta h2").textContent()) === "Dónde va la barra de la guía", "abre la primera que te espera");
+  debe(/El panel 3 sigue abierto/.test(await page.locator(".dec-vigencia").textContent()), "la viva dice quién la espera");
+
+  // 2b. La que nadie espera: no cuenta en la pestaña, lo dice, y se descarta
+  //     sin escribir en ninguna terminal (el panel 3 de hoy es otra).
+  await page.locator(".dec-fila", { hasText: "El color de ayer" }).click();
+  debe(/Ya no la espera nadie/.test(await page.locator(".dec-vigencia").textContent()), "la huérfana lo dice");
+  await page.locator(".dec-limpiar").click();
+  await page.waitForTimeout(400);
+  debe((await llamadasDe("decision_descartar")).length === 1 && (await llamadasDe("pty_send")).length === 0, "se descarta sin teclear en ninguna terminal");
+  debe(/La descartaste/.test(await page.locator(".dec-vigencia").textContent()), `queda como descartada (${await page.locator(".dec-vigencia").textContent()})`);
+  debe(await page.locator(".dec-pie").count() === 0 && await page.locator(".dec-pregunta:disabled").count() === 1, "y ya no se contesta");
+  debe((await tab.locator(".tab-count").textContent()) === "2", "la cuenta de la pestaña no cambia: nunca la contó");
+  await page.locator(".dec-fila", { hasText: "Dónde va la barra" }).click();
+  await page.waitForTimeout(200);
   debe(await page.locator(".dec-abierta input:checked").count() === 0, "ninguna opción sale marcada");
   debe(await page.locator(".dec-rec").count() === 1, "la recomendada lleva su etiqueta");
   debe(await boton.isDisabled(), "Enviar apagado sin contestar");
@@ -231,11 +275,13 @@ async (page) => {
   await page.evaluate(() => sessionStorage.setItem("__lang", "en"));
   await page.reload();
   await tab.waitFor({ timeout: 15000 });
-  debe(/Decisions/.test(await tab.textContent()), `en inglés (${await tab.textContent()})`);
+  // La pestaña ya no lleva texto (cabecera solo de iconos): el nombre va en su etiqueta.
+  debe((await tab.getAttribute("aria-label")) === "Decisions", `en inglés (${await tab.getAttribute("aria-label")})`);
   await tab.click();
   await page.waitForSelector(".dec-abierta");
-  const en = await page.evaluate(() => ({ eti: [...document.querySelectorAll(".dec-lista-eti")].map((x) => x.textContent), boton: document.querySelector(".dec-pie button")?.textContent }));
-  debe(en.eti.join() === "Waiting for you,Answered" && en.boton === "Send answer", `la vista en inglés (${JSON.stringify(en)})`);
+  const en = await page.evaluate(() => ({ eti: [...document.querySelectorAll(".dec-lista-eti")].map((x) => x.textContent), botones: [...document.querySelectorAll(".dec-pie button")].map((b) => b.textContent) }));
+  // Recargar deja la casa como al principio: vuelven las vivas y la que nadie espera.
+  debe(en.eti.join() === "Waiting for you,Nobody is waiting for theseDiscard,Closed" && en.botones.join() === "Discard,Send answer", `la vista en inglés (${JSON.stringify(en)})`);
   await page.evaluate(() => sessionStorage.removeItem("__lang"));
 
   return { fallos };

@@ -1322,8 +1322,8 @@
   font-size: 10px;
 }
 
-/* «Lanzar en una terminal», de la nota del lienzo: la lista de las que hay
-   abiertas, con su estado. Sale dentro de la nota, como la fila de colores, y
+/* «Lanzar esta nota», de la nota del lienzo: las terminales abiertas con su
+   estado, y debajo los proyectos. Sale dentro de la nota, como la fila de colores, y
    no flotando: una nota se mueve y se amplía, y un menú suelto se quedaría
    atrás. Vive aquí y no con el resto de la nota (`14-lienzo-piezas.css`)
    porque aquel tramo estaba a tres líneas de su tope. */

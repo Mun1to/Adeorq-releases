@@ -850,6 +850,14 @@ pub async fn pty_spawn(
 /// cierra en el tick siguiente; esto son muchos.
 pub const ESPACIO_ENTRE_TECLAS: std::time::Duration = std::time::Duration::from_millis(120);
 
+/// Los paneles que tienen terminal ahora mismo. Lo usan las decisiones para
+/// saber si quien preguntó sigue ahí (`decisiones::vigencia`).
+pub fn paneles_abiertos(app: &AppHandle) -> Vec<u32> {
+    let state = app.state::<PtyState>();
+    let map = state.0.lock().unwrap();
+    map.keys().copied().collect()
+}
+
 /// Por el canal del panel, como toda la entrada (ver `tx_entrada`).
 pub fn escribir_en_panel(app: &AppHandle, id: u32, bytes: Vec<u8>) -> Result<(), String> {
     let state = app.state::<PtyState>();

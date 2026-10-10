@@ -10,8 +10,12 @@
 //   · contiene «error»      la primera vez no contesta (sin cuota)
 //   · contiene «pregunta»   contesta con una pregunta y no abre nada
 // Una sesión pasa de «trabajando» a «te pregunta algo» a los veinte segundos.
-// Y tres terminales (decisión E3): lo que se les escribe o la tecla que se les
+// Y cinco terminales (decisión E3): lo que se les escribe o la tecla que se les
 // manda aparece en su pantalla en la vuelta siguiente, y queda en la consola.
+//
+// Los bancos de esta carpeta se lanzan contra él sin volcar su código:
+//   browser_run_code_unsafe(code = "async (page) => eval('(' + await (await
+//     fetch('http://127.0.0.1:4390/laboratorio/movil-chat.js')).text() + ')')(page)")
 
 import crypto from "node:crypto";
 import http from "node:http";
@@ -56,6 +60,8 @@ const terminales = [
   { panel: 2, nombre: "codex", carpeta: "C:\\proyectos\\crypto\\radar-bot", agente: true, modelo: "gpt-5.6-terra", estado: "pregunta", sesion: "s-2" },
   { panel: 3, nombre: "consola", carpeta: "C:\\proyectos\\Vidorq", agente: false, modelo: null, estado: "", sesion: null },
   { panel: 4, nombre: "claude", carpeta: "C:\\proyectos\\Webs", agente: true, modelo: "sonnet", estado: "pregunta", sesion: "s-4" },
+  // Una que ya terminó: en el chat, la mascota lo celebra.
+  { panel: 5, nombre: "claude", carpeta: "C:\\proyectos\\VoCript", agente: true, modelo: "sonnet", estado: "lista", sesion: "s-5" },
 ];
 // La raya de lado a lado de Claude Code mide lo que el panel del PC: 78 columnas.
 const RAYA = "─".repeat(78);
@@ -77,6 +83,7 @@ const pantallas = new Map([
     "   3. No, and tell Claude what to do differently (esc)", "",
   ]],
   [2, ["Do you want to run `cargo check`?", "", "  1. Yes", "  2. No, and tell Codex what to do differently", "", "> "]],
+  [5, ["● El dictado ya no se corta al cambiar de ventana.", "", RAYA, "❯ ", RAYA]],
   // Una consola con historial: 150 líneas de un `cargo build`, más anchas que el móvil.
   [3, [...Array.from({ length: 150 }, (_, i) => `   Compiling crate-numero-${i} v0.${i}.0 (C:\\Users\\Muni\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\crate-${i})`), "PS C:\\proyectos\\Vidorq> "]],
 ]);
@@ -87,11 +94,21 @@ const MODOS = ["", "⏵⏵ accept edits on (shift+tab to cycle)", "⏸ plan mode
 const modo = new Map([[1, 3]]);
 
 // Las decisiones que pide un agente con `ask_decision` (decisiones.rs): una
-// pendiente de dos preguntas, con su recomendada, y otra ya contestada.
+// que sigue viva (la pidió el panel 1 de este arranque, que sigue abierto),
+// con dos preguntas y su recomendada; dos que ya no espera nadie (su terminal
+// se cerró, o son de otro arranque de Adeorq) y otra ya contestada.
 const decisiones = [
   {
+    id: "d19a2b3c4c1", titulo: "Nombre del módulo", proyecto: "Vidorq", panel: 7, arranque: ARRANQUE, creada: Date.now() - 26 * 3600000,
+    preguntas: [{ id: "A", titulo: "¿Cómo lo llamo?", opciones: [{ texto: "timeline" }, { texto: "linea-de-tiempo", recomendada: true }] }],
+  },
+  {
+    id: "d19a2b3c4c0", titulo: "Color del botón de pagar", proyecto: "Webs", panel: 1, arranque: 1, creada: Date.now() - 5 * 24 * 3600000,
+    preguntas: [{ id: "A", titulo: "¿Cuál?", opciones: [{ texto: "El azul de la casa", recomendada: true }, { texto: "Verde" }] }],
+  },
+  {
     id: "d19a2b3c4d5", titulo: "Diseño de la web", contexto: "Dos cosas que se ven en adeorq.com y en la guía.",
-    proyecto: "Adeorq", panel: 1, arranque: 1, creada: Date.now() - 6 * 60000,
+    proyecto: "Adeorq", panel: 1, arranque: ARRANQUE, creada: Date.now() - 6 * 60000,
     preguntas: [
       { id: "A", titulo: "La barra de la guía", contexto: "Hoy la guía tiene su propia barra, con otros enlaces.", opciones: [
         { texto: "Como está", recomendada: false },
@@ -111,6 +128,12 @@ const decisiones = [
     respuesta: { cuando: Date.now() - 2 * 3600000, desde: "Android · Chrome", entregada: true, elecciones: { A: { opcion: 2 } } },
   },
 ];
+// Como `vigencia` (decisiones.rs): viva si la terminal que preguntó sigue
+// abierta en este arranque; si no, ya no la espera nadie.
+const cerrada = (d) => Number(Boolean(d.respuesta || d.descartada));
+const vigenciaDe = (d) =>
+  d.respuesta ? "contestada" : d.descartada ? "descartada"
+    : d.arranque === ARRANQUE && terminales.some((t) => t.panel === d.panel) ? "viva" : "huerfana";
 // La del panel 1 tiene historia larga y acaba en un cierre con su bloque de
 // compactación, que es lo que Munir no podía leer entero desde el móvil.
 const sesionLarga = [];
@@ -268,6 +291,16 @@ http
         res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
         return res.end(`self.addEventListener("push", (e) => { const d = e.data ? e.data.json() : {}; e.waitUntil(self.registration.showNotification(d.titulo || "Conserje", { body: d.cuerpo || "" })); });`);
       }
+      // Los bancos de esta carpeta, para lanzarlos sin volcarlos enteros en la
+      // conversación de quien prueba: se piden aquí y se evalúan, en vez de
+      // pasarlos por `filename`. Solo los `.js` de al lado, por su nombre.
+      const banco = /^\/laboratorio\/([a-z-]+\.js)$/.exec(url.pathname);
+      if (banco && req.method === "GET") {
+        const ruta = path.join(RAIZ, "scripts", "laboratorio", banco[1]);
+        if (!fs.existsSync(ruta)) return json(res, 404, { error: "Ese banco no existe." });
+        res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" });
+        return res.end(fs.readFileSync(ruta, "utf8"));
+      }
       if (!url.pathname.startsWith("/api/")) return json(res, 404, { error: "Aquí no hay nada." });
       if (req.headers.authorization !== `Bearer ${CLAVE}`) return json(res, 401, { error: "Este móvil no está emparejado." });
       const id = url.searchParams.get("id") || v.id;
@@ -368,16 +401,39 @@ http
         case "/api/decisiones":
           return json(res, 200, { decisiones: decisiones
             .slice()
-            .sort((a, b) => Boolean(a.respuesta) - Boolean(b.respuesta) || b.creada - a.creada)
-            .map((d) => ({ id: d.id, titulo: d.titulo, proyecto: d.proyecto, panel: d.panel, creada: d.creada, preguntas: d.preguntas.length, contestada: Boolean(d.respuesta) })) });
+            .sort((a, b) => cerrada(a) - cerrada(b) || b.creada - a.creada)
+            .map((d) => ({
+              id: d.id, titulo: d.titulo, proyecto: d.proyecto, panel: d.panel, creada: d.creada, preguntas: d.preguntas.length,
+              contestada: Boolean(d.respuesta), vigencia: vigenciaDe(d), cerrada: d.respuesta?.cuando ?? d.descartada ?? null,
+            })) });
         case "/api/decision": {
           const d = decisiones.find((x) => x.id === url.searchParams.get("id"));
-          return d ? json(res, 200, d) : json(res, 404, { error: "Esa decisión ya no está." });
+          return d ? json(res, 200, { ...d, vigencia: vigenciaDe(d) }) : json(res, 404, { error: "Esa decisión ya no está." });
+        }
+        // Solo del banco: una decisión recién pedida por una terminal abierta.
+        case "/api/sembrar-decision":
+          decisiones.push({
+            id: v.id, titulo: v.titulo, proyecto: v.proyecto, panel: v.panel, arranque: ARRANQUE, creada: Date.now(),
+            preguntas: [{ id: "A", titulo: "¿Sí o no?", opciones: [{ texto: "Sí" }, { texto: "No" }] }],
+          });
+          return json(res, 200, { ok: true });
+        // Como `descartar` y `aviso_de_descarte` (decisiones.rs): a la terminal
+        // que seguía esperándola se le escribe que no espere; a las demás, nada.
+        case "/api/decision/descartar": {
+          const d = decisiones.find((x) => x.id === v.id);
+          if (!d) return json(res, 404, { error: "Esa decisión ya no está." });
+          if (d.respuesta) return json(res, 409, { error: "Esa decisión ya está contestada." });
+          const avisada = vigenciaDe(d) === "viva";
+          d.descartada ??= Date.now();
+          if (avisada) escrito.set(d.panel, `Munir ha descartado la decisión «${d.titulo}» (${d.id}) sin contestarla: no esperes respuesta.`);
+          console.log(`decisión ${d.id} descartada${avisada ? `, y se le dice al panel ${d.panel}` : ""}`);
+          return json(res, 200, { ok: true, avisada, panel: d.panel });
         }
         case "/api/decision/responder": {
           const d = decisiones.find((x) => x.id === v.id);
           if (!d) return json(res, 400, { error: "Esa decisión ya no está." });
           if (d.respuesta) return json(res, 409, { error: "Esa decisión ya está contestada." });
+          if (d.descartada) return json(res, 400, { error: "Esa decisión está descartada." });
           for (const q of d.preguntas) {
             const e = v.elecciones?.[q.id] || {};
             if (e.opcion && (e.opcion < 1 || e.opcion > q.opciones.length)) return json(res, 400, { error: `La pregunta ${q.id} no tiene opción ${e.opcion}.` });

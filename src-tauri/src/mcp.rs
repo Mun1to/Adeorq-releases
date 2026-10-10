@@ -1471,7 +1471,17 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                         todas
                             .iter()
                             .take(10)
-                            .map(|d| format!("{} · {} · {}", d.id, if d.respuesta.is_some() { "contestada" } else { "pendiente" }, d.titulo))
+                            .map(|d| {
+                                // Una descartada no está «pendiente»: Munir no va a contestarla.
+                                let como = if d.respuesta.is_some() {
+                                    "contestada"
+                                } else if d.descartada.is_some() {
+                                    "descartada"
+                                } else {
+                                    "pendiente"
+                                };
+                                format!("{} · {} · {}", d.id, como, d.titulo)
+                            })
                             .collect::<Vec<_>>()
                             .join("\n")
                     }

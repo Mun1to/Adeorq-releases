@@ -250,6 +250,12 @@ export const REACCIONES = {
     [p("abajo", "arriba"), 170],
     [p("abajo", "saluda"), 170],
   ],
+  // Le mandas algo (el chat del móvil): lo mira subir y se queda contenta.
+  enviado: [
+    [p("abajo", "medio", "arriba"), 170],
+    [p("abajo", "arriba", "arriba"), 170],
+    [p("abajo", "abajo", "feliz"), 240],
+  ],
 } as const satisfies Record<string, readonly Paso[]>;
 export type Reaccion = keyof typeof REACCIONES;
 

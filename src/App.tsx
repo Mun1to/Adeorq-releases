@@ -109,12 +109,10 @@ import {
   type WorkState,
 } from "./lib/pty";
 import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
-import { exigenciaDeRol, modoAviso, recetarConMemoria } from "./lib/router";
-import { cerebroPorDefecto } from "./lib/models";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
 import { nombreDeRuta } from "./lib/arbol";
-import { fotoRapida, reglasDeLaMemoria } from "./lib/mundo";
 import { usePuenteMcp } from "./lib/puenteMcp";
+import { useLanzarEnLienzo } from "./lib/lanzarEnLienzo";
 import { useTableroGuardado, type Pane, type Team } from "./lib/tablero";
 import { useDeshacerCierre } from "./lib/deshacerCierre";
 import { useBarraEnLienzo } from "./lib/barraEnLienzo";
@@ -1632,15 +1630,6 @@ function App() {
     [entornoDePane],
   );
 
-  /**
-   * Una terminal del LIENZO que nace con un encargo dentro.
-   *
-   * Es lo que pasa al arrastrar una tarjeta del tablero a «Trabajando». El
-   * encargo va en la línea de comando y no escrito después, por lo mismo que en
-   * `openClaudePrompt`: una terminal que nace con su encargo no gasta ni un
-   * token en no tenerlo. Y queda apuntado por su id de sesión, que es lo que
-   * luego permite saber para qué se abrió cada una.
-   */
   /* Las dos únicas props del Lienzo que se escribían en el sitio, y por eso
      nacían con identidad nueva en cada render de App. El Lienzo está montado
      SIEMPRE (escondido con `display:none`, para no matarle las terminales), así
@@ -1659,64 +1648,8 @@ function App() {
     [],
   );
 
-  const lanzarEnLienzo = useCallback(
-    async (texto: string, project: Project) => {
-      const limpio = texto.trim();
-      if (!limpio) return;
-      // El MISMO router que usa el Asistente decide con qué nace. Hasta ahora
-      // toda tarjeta arrastrada abría un Claude con el modelo por defecto:
-      // «traduce los tooltips» y «audita el login» salían iguales. Deducirlo de
-      // las palabras de la tarjeta no cuesta un token, es una tabla, así que la
-      // tarjeta sigue abriéndose de un tirón.
-      const receta = recetarConMemoria(exigenciaDeRol(limpio), {
-        cuentas: await fotoRapida([
-          ...PROVIDERS.map((p) => mainAccount(p.id)),
-          ...accountsRef.current.list,
-        ]),
-        avisos: modoAviso(),
-        usa: leerPerfil().clis,
-        reglas: await reglasDeLaMemoria(),
-      }, undefined, cerebroPorDefecto(), { proyecto: project.name, encargo: limpio });
-      const titulo = limpio.length > 30 ? `${limpio.slice(0, 30)}…` : limpio;
-      const nombre = `${project.name} · ${titulo}`;
-
-      // Solo Claude y Antigravity aceptan el encargo en la línea de arranque;
-      // al resto se les abre la terminal y el encargo va al portapapeles. Es la
-      // misma regla que `openReceta` aplica en la cabina.
-      const plan = planDeArranque({
-        cli: receta.cli,
-        encargo: limpio,
-        modelo: receta.modelo,
-        esfuerzo: receta.esfuerzo,
-        agyExe: agyExe.current,
-      });
-      // A quien no acepta el encargo al arrancar se le copia y se le abre la
-      // terminal: el plan devuelve el texto justo para esto, así que copiarlo y
-      // decidirlo no pueden separarse.
-      if (plan.tipo === "linea" && plan.alPortapapeles) {
-        void navigator.clipboard.writeText(plan.alPortapapeles).catch(() => {});
-      }
-      const command = comandoDelPlan(plan);
-      if (plan.tipo !== "claude") {
-        createCanvasPane(plan.tipo === "agy" ? "agy" : "shell", project, {
-          name: nombre,
-          command,
-        }, receta.cuenta);
-        return;
-      }
-      const sid = sessionIdOf(command);
-      if (sid) {
-        void saveEncargo(sid, {
-          encargo: limpio.slice(0, 600),
-          cuando: new Date().toISOString(),
-        }).catch(() => {});
-      }
-      // El nombre, con el encargo cortado: siete terminales llamadas «claude»
-      // no se distinguen, y el título que pone Claude tarda en llegar.
-      createCanvasPane("claude", project, { name: nombre, command }, receta.cuenta);
-    },
-    [createCanvasPane],
-  );
+  // Una terminal del lienzo que nace con un encargo dentro (`lib/lanzarEnLienzo.ts`).
+  const lanzarEnLienzo = useLanzarEnLienzo({ createCanvasPane, accountsRef, agyExe });
 
   // Lo último cerrado y su Ctrl+Z (ver `lib/deshacerCierre.ts`).
   const { deshacer, apuntarCerrada, reabrirCerrada } = useDeshacerCierre({

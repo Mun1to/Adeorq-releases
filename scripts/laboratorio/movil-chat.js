@@ -55,7 +55,8 @@ async (page) => {
 
   // 5. La decisión pendiente, desde dentro de la terminal, y vuelta a ella.
   const aviso = await page.$eval("#aviso-dec", (x) => (x.hidden ? "" : x.innerText));
-  debe(/Una decisión te espera/.test(aviso), `se ve la decisión pendiente (${aviso})`);
+  // Es la de ESTA terminal (la pidió el panel 1), y lo dice.
+  debe(/Esta terminal espera tu decisión/.test(aviso), `se ve la decisión pendiente (${aviso})`);
   await page.click("#aviso-dec");
   await page.waitForSelector(".pregunta-d");
   await page.click("#atras");
@@ -100,6 +101,47 @@ async (page) => {
     nota: !document.getElementById("nota-pantalla").hidden,
   }));
   debe(!consola.pestanas && !consola.nota, `la consola sin pestañas ni nota (${JSON.stringify(consola)})`);
+
+  // 10. La mascota del pie está viva: es la del escritorio, con su guion. Cambia
+  //     de postura sola, sigue siendo la misma al repintarse el chat, y si la
+  //     tocas da un brinco (sube una fila).
+  await page.goto(`${B}/#terminal=1`);
+  await page.waitForSelector("#ahora .masc");
+  const masc = () => page.$eval("#ahora .masc", (m) => ({ animo: m.dataset.animo, clave: m.dataset.clave, v: Number(m.dataset.v), cuadros: m.querySelectorAll("rect").length, arriba: Math.min(...[...m.querySelectorAll('rect[fill="#39a9f6"]')].map((q) => Number(q.getAttribute("y")))) }));
+  const m0 = await masc();
+  debe(m0.animo === "trabaja" && m0.clave === "ahora" && m0.cuadros > 100, `al pie, tecleando (${JSON.stringify(m0)})`);
+  await page.waitForTimeout(3600);
+  const m1 = await masc();
+  debe(m1.v > m0.v + 5, `cambia de postura sola, y repintar el chat no la reinicia (${m0.v} → ${m1.v})`);
+  await page.dispatchEvent("#ahora .masc", "pointerdown");
+  await page.waitForTimeout(90);
+  debe((await masc()).arriba === 1, "al tocarla, brinca");
+
+  // 11. Una terminal que terminó lo dice, y la mascota lo celebra.
+  await page.goto(`${B}/#terminal=5`);
+  await page.waitForSelector('#ahora[data-tipo="termino"]');
+  const fin = await page.$eval("#ahora", (x) => ({ texto: x.innerText, animo: x.querySelector(".masc")?.dataset.animo }));
+  debe(/Ha terminado/.test(fin.texto) && fin.animo === "lista", `terminó, y se celebra (${JSON.stringify(fin)})`);
+
+  // 12. La portada dice de un vistazo qué pasa: lo que te reclama arriba, cada
+  //     terminal con su estado, y la mascota con el ánimo de todo.
+  await page.goto(`${B}/`);
+  await page.waitForSelector("#portada-term .fila-t");
+  const portada = await page.evaluate(() => ({
+    resumen: document.getElementById("yo").textContent,
+    reclaman: [...document.querySelectorAll("#reclaman .tarjeta")].map((b) => b.querySelector("b").textContent),
+    terminales: [...document.querySelectorAll("#portada-term .fila-t")].map((b) => b.innerText.replace(/\s+/g, " ")),
+    animo: document.querySelector("#masc-portada .masc")?.dataset.animo,
+  }));
+  debe(/te esperan/.test(portada.resumen) && /1 agente trabajando/.test(portada.resumen), `el resumen de arriba («${portada.resumen}»)`);
+  debe(portada.reclaman.some((x) => /codex/.test(x)) && portada.reclaman.some((x) => /Diseño de la web/.test(x)), `arriba, lo que te reclama (${portada.reclaman})`);
+  debe(portada.terminales.join("|") === "claude · Adeorq trabajando|claude · VoCript terminó|consola · Vidorq quieta", `cada terminal con su estado (${portada.terminales})`);
+  debe(portada.animo === "espera", `la mascota de la portada te llama (${portada.animo})`);
+  // Y de ahí se entra a una terminal, y «atrás» vuelve a la portada.
+  await page.click('#portada-term .fila-t[data-panel="1"]');
+  await page.waitForSelector("#turnos .turno");
+  await page.click("#atras");
+  debe(await page.waitForSelector("#portada-term .fila-t", { timeout: 4000 }).then(() => true, () => false), "«atrás» desde una terminal abierta en la portada vuelve a la portada");
 
   return { fallos };
 }

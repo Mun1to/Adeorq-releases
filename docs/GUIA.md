@@ -485,6 +485,7 @@ Además de terminales y agentes, en el Lienzo puedes añadir utilidades que vive
 - **⌛ Cuenta atrás**: Temporizador personalizable (1, 5, 10, 25 min o a medida).
 - **🧮 Calculadora**: Calculadora integrada con historial y evaluación segura.
 - **🗓️ Calendario**: Calendario mensual con bloc de notas diario guardado automáticamente en Markdown.
+- **Nota** (Alt+N): un post-it con casillas que por dentro es un `.md` de verdad, así que un agente puede marcar la casilla cuando termina. Su botón de lanzar la manda a una terminal abierta, abre una sesión nueva en el proyecto que elijas (arriba salen los que la nota nombra) o, si quedan dos tareas o más, se las pasa al Capataz para que las reparta.
 
 ---
 

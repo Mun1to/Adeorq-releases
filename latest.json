@@ -1,11 +1,11 @@
 {
-  "version": "0.9.188",
-  "notes": "Una nota del lienzo se puede lanzar en la terminal que elijas, con un boton en la propia nota.",
-  "pub_date": "2026-10-10T14:59:06Z",
+  "version": "0.9.189",
+  "notes": "Las decisiones dicen si siguen vivas y solo esas cuentan; el movil abre con una bandeja de lo que te reclama y la mascota vive en el chat con todos sus gestos; una nota del lienzo elige proyecto o Capataz",
+  "pub_date": "2026-10-10T17:43:48Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3pkTGEyYm91aG5renFaWDRyOEwrcWxKNUMwK0YwN3Ixcm93T1l3NlVseitJdi80QVRWeWtwMkhmdW9KZHM3dzNoU3o2QXI3Vldrb01NRThjV1QwRHdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjQ0MzI5CWZpbGU6QWRlb3JxXzAuOS4xODhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODgKcGVSbFVBTmVsaXNrc0xSQzhMVy9wVnVDVjVFSjM3Q0F0MktVajJNWmJUdGNoeXNCUnFqRFFWNkd6RDVSL3JLT1FBRys2bWo4MGsxOXZZZU9iNmRLQlE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.188/Adeorq_0.9.188_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZsRHRRODYrUzNKSitFLzloMDNuM2NwdTJYdkpYZjBvVUxFazJzNHhNTkd5Vm9TWlAyNU1mT1l2NzE1ZmEyUk92N2FFR3k1Ykh5ZEhYZjV5VGZSaFFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjU0MjE2CWZpbGU6QWRlb3JxXzAuOS4xODlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODkKNXplZFdYd1JxT0JWelV4MjcwUmYyRWtkRy9vYUxvc1RZcjF2WEpKZ0JubjJWbjkydGdwcjNjM0xDUHVMZkRVMzBBRkE4ME8yYkxUdzV2dnhqQWxmQ3c9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.189/Adeorq_0.9.189_x64-setup.exe"
     }
   }
 }

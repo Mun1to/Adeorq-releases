@@ -47,7 +47,7 @@ export const HOLGURA = 150;
 
 /** Los que ya eran gordos, con su techo. Solo bajan. */
 export const GORDOS = {
-  "src/App.tsx": 3835,
+  "src/App.tsx": 3800,
   "src/components/CanvasView.tsx": 4150,
   "src/components/Sidebar.tsx": 3710,
   "src/components/TerminalPane.tsx": 2880,

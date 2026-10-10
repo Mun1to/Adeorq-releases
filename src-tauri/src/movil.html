@@ -137,6 +137,23 @@
   }
   .fila b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .fila span { font-size: 13px; color: var(--suave); }
+  /* La portada: la caja del conserje se lee como la de un chat (lo que dice
+     es lo que hay que hacer con ella), y cada terminal es una fila con su
+     punto, como en la barra lateral del escritorio. */
+  .barra-portada { border-bottom: 0; padding-bottom: 2px; }
+  .barra-portada h1 { font-size: 19px; }
+  .barra-portada small { font-size: 13px; }
+  .nueva-txt { font-weight: 400; color: var(--suave); }
+  .segunda small { margin-left: auto; font-size: 12.5px; font-weight: 400; color: var(--suave); }
+  .segunda small:empty { display: none; }
+  .segunda small + .cuenta-dec { margin-left: 8px; }
+  .fila-t { display: flex; align-items: center; gap: 11px; }
+  .fila-t b { flex: 1; min-width: 0; font-weight: 500; }
+  .fila-t span { flex: none; }
+  .punto { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cerrada); opacity: 0.6; }
+  .punto[data-tono="trabajando"] { background: var(--vivo); opacity: 1; animation: late 1.6s ease-in-out infinite; }
+  .punto[data-tono="pregunta"] { background: var(--pregunta); opacity: 1; }
+  .punto[data-tono="termino"] { background: var(--termino); opacity: 1; }
   .vacio { color: var(--suave); text-align: center; margin-top: 12vh; padding: 0 20px; }
   /* Pedir (o quitar) los avisos, al pie de la lista. */
   .avisos {
@@ -229,8 +246,9 @@
      escribe al acabar cada paso, y sin esto el chat parecía parado. */
   .ahora { display: grid; gap: 3px; margin: 18px 0 6px; }
   .ahora-cab { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--suave); }
+  .ahora-cab b { font-weight: 600; color: var(--tinta); }
   /* Lo de debajo, alineado con el texto y no con la mascota. */
-  .ahora-que, .ahora-det { margin-left: 44px; }
+  .ahora-que, .ahora-det { margin-left: 47px; }
   .ahora-que { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .ahora-det { font: 12.5px/1.4 "Cascadia Mono", Consolas, ui-monospace, monospace; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Una pregunta sí va en su caja: lleva botones, y tiene que verse que es para ti. */
@@ -292,6 +310,38 @@
   .dec-cab { display: grid; gap: 6px; margin: 0 0 14px; }
   .dec-cab p { margin: 0; color: var(--suave); }
   .dec-hecha { padding: 10px 12px; border-radius: 12px; background: var(--acento-capa); font-size: 14px; }
+  /* Si sigue viva o no (Munir, 2026-10-10: «si siguen activas o no»). Es lo
+     primero que hay que saber antes de ponerse a contestar: una decisión cuya
+     terminal se cerró ya no la espera nadie, y antes se veía igual que la que
+     tenía a un agente parado esperándola. */
+  .dec-cab .dec-vig {
+    display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; font-size: 14px;
+    border: 1px solid var(--borde); color: var(--suave);
+  }
+  .dec-vig i { flex: none; width: 8px; height: 8px; margin-top: 7px; border-radius: 50%; background: currentColor; }
+  .dec-cab .dec-vig[data-v="viva"] {
+    color: var(--tinta); border-color: color-mix(in srgb, var(--pregunta) 55%, transparent);
+    background: color-mix(in srgb, var(--pregunta) 12%, transparent);
+  }
+  .dec-vig[data-v="viva"] i { background: var(--pregunta); animation: late 1.6s ease-in-out infinite; }
+  .dec-vig[data-v="huerfana"] { border-style: dashed; }
+  /* La lista, por montones: las que te esperan, las que ya no espera nadie
+     (con una salida para todas de una vez) y las cerradas. */
+  .seccion { display: flex; align-items: center; gap: 8px; margin: 18px 4px 2px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; color: var(--suave); }
+  .seccion:first-child { margin-top: 2px; }
+  .seccion span { flex: 1; }
+  .seccion-nota { margin: 0 4px 4px; font-size: 13px; color: var(--suave); }
+  .tarjeta[data-vigencia="viva"] .estado i { animation: late 1.6s ease-in-out infinite; }
+  .tarjeta[data-vigencia="huerfana"] { border-style: dashed; background: none; box-shadow: none; }
+  .tarjeta[data-vigencia="huerfana"] b, .tarjeta[data-vigencia="contestada"] b, .tarjeta[data-vigencia="descartada"] b { font-weight: 500; }
+  .tarjeta[data-vigencia="contestada"], .tarjeta[data-vigencia="descartada"] { background: none; box-shadow: none; margin: 4px 0; padding: 9px 12px; }
+  .tarjeta[data-vigencia="contestada"] .estado { color: var(--vivo); }
+  .calma { display: flex; align-items: center; gap: 12px; margin: 6px 4px 4px; color: var(--suave); font-size: 14.5px; }
+  /* El pie de una decisión: descartarla, discreto, y contestarla, a todo lo ancho. */
+  .pie-dec { display: flex; align-items: center; gap: 10px; }
+  .pie-dec .enviar-dec { flex: 1; width: auto; }
+  .descartar { flex: none; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--borde-fuerte); background: none; color: var(--suave); cursor: pointer; }
+  .descartar:disabled { opacity: 0.5; cursor: default; }
   .pregunta-d { border: 1px solid var(--borde); border-radius: 16px; background: var(--capa); padding: 12px 12px 14px; margin: 0 0 14px; min-width: 0; }
   .pregunta-d legend { padding: 0 6px; font-weight: 650; font-size: 16px; display: flex; gap: 8px; align-items: baseline; }
   .letra { color: var(--acento); font-variant-numeric: tabular-nums; }
@@ -325,23 +375,32 @@
   .pensando { display: flex; align-items: center; gap: 10px; color: var(--suave); margin: 18px 0 6px; font-size: 14px; }
 
   /* ── La mascota ──
-     La A de cuadritos del escritorio, en dos fotogramas que se turnan. Hace de
-     «está pensando»: teclea mientras el agente trabaja y saluda si te pregunta. */
-  .masc { flex: none; display: block; shape-rendering: crispEdges; overflow: visible; }
-  .masc .f1 { opacity: 0; }
-  @keyframes masc-uno { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
-  @keyframes masc-guino { 0%, 93.9% { opacity: 1; } 94%, 100% { opacity: 0; } }
-  @keyframes masc-guino-b { 0%, 93.9% { opacity: 0; } 94%, 100% { opacity: 1; } }
-  .masc[data-animo="quieta"] .f0 { animation: masc-guino 4.2s steps(1) infinite; }
-  .masc[data-animo="quieta"] .f1 { animation: masc-guino-b 4.2s steps(1) infinite; }
-  .masc[data-animo="trabaja"] .f0, .masc[data-animo="trabaja"] .f1 { animation: masc-uno 0.36s steps(1) infinite; }
-  .masc[data-animo="espera"] .f0, .masc[data-animo="espera"] .f1,
-  .masc[data-animo="lista"] .f0, .masc[data-animo="lista"] .f1 { animation: masc-uno 0.64s steps(1) infinite; }
-  .masc[data-animo="trabaja"] .f1 { animation-delay: -0.18s; }
-  .masc[data-animo="espera"] .f1, .masc[data-animo="lista"] .f1 { animation-delay: -0.32s; }
-  @media (prefers-reduced-motion: reduce) { .masc g { animation: none !important; } }
+     La A de cuadritos del escritorio. Sus posturas las cambia el reloj de más
+     abajo (`marchas`), no el CSS: teclea mientras el agente trabaja, se asusta
+     y te llama si te preguntan, celebra cuando terminan, y si la tocas, brinca. */
+  .masc { flex: none; display: block; shape-rendering: crispEdges; overflow: visible; touch-action: manipulation; }
   /* En la cabecera de la portada va suelta, sin la caja de los otros iconos. */
   .avatar-m { width: auto; height: auto; background: none; border-radius: 0; margin: 0 2px 0 4px; }
+
+  /* ── Lo que se mueve ──
+     Poco y con motivo: una pantalla que entra dice de dónde viene (hacia
+     delante por la derecha, hacia atrás por la izquierda), un mensaje nuevo
+     llega desde abajo, y lo que se pulsa cede un pelo. Quien pide menos
+     movimiento al sistema no ve nada de esto. */
+  @keyframes entra { from { opacity: 0; transform: translateX(var(--desde, 14px)); } }
+  @keyframes llega { from { opacity: 0; transform: translateY(10px) scale(0.985); } }
+  @keyframes late { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .vista { animation: entra 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  #app[data-sentido="atras"] .vista { --desde: -14px; }
+  #app[data-sentido="igual"] .vista { animation: none; }
+  .nuevo, .ahora.cambia { animation: llega 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .turno[data-rol="tu"].nuevo { transform-origin: 100% 100%; }
+  .tarjeta, .nueva, .fila, .opcion, .opciones-menu button, .boton { transition: transform 0.09s ease, background 0.15s ease, border-color 0.15s ease; }
+  .tarjeta:active, .nueva:active, .fila:active, .opciones-menu button:active, .boton:active { transform: scale(0.985); }
+  @media (prefers-reduced-motion: reduce) {
+    .vista, .nuevo, .ahora.cambia, .estado i, .punto, .dec-vig i { animation: none !important; }
+    .tarjeta, .nueva, .fila, .opcion, .opciones-menu button, .boton { transition: none; }
+  }
 
   /* ── La caja ── */
   .caja {
@@ -431,14 +490,12 @@
   .teclas::-webkit-scrollbar { display: none; }
   .teclas .pastilla { flex: none; padding: 5px 10px; font-size: 12.5px; }
   #conversa .turno[data-rol="agente"] .burbuja { max-width: 100%; }
-  .aviso-terminal { font-size: 12px; color: var(--suave); margin: 6px 6px 0; }
-  /* Escribiendo, con el teclado fuera, cada línea de lectura cuenta. */
-  /* Ojo con el foco: si un toque cambia lo que está enfocado, esta nota aparece
-     o desaparece, todo se mueve una fila entre el «mousedown» y el «mouseup» y
-     el clic se pierde (medido el 2026-10-09: con un botón de tecla, al pasar
-     del cuerpo a la caja; y con «enviar», al pasar de la caja a fuera). Por eso
-     los botones de tecla no cogen el foco al pulsarlos (`noRobarFoco`). */
-  .caja:focus-within .aviso-terminal { display: none; }
+  /* Aquí debajo había una nota, «Va directo a la terminal, sin pasar por el
+     conserje», que se escondía al escribir. Se quitó el 2026-10-10: eran
+     treinta píxeles de un chat con poco alto, y al aparecer y desaparecer con
+     el foco movía todo una fila a mitad de un toque (el clic perdido del
+     2026-10-09). Lo que queda de aquello: los botones de tecla siguen sin coger
+     el foco al pulsarlos. */
   .caja { position: relative; }
   .caja .fallo { margin: 0 0 8px; }
   .bajar {
@@ -467,54 +524,279 @@ try { clave = localStorage.getItem(LLAVE); } catch (_) { /* sin almacén: se emp
 const PALABRA = { trabajando: "trabajando", pregunta: "te pregunta algo", termino: "ha terminado", cerrada: "cerrada" };
 const MARCA = { claude: "Claude", codex: "Codex", gemini: "Gemini", agy: "Antigravity", kimi: "Kimi", opencode: "opencode" };
 
-// La mascota de Adeorq: la misma A de cuadritos del escritorio
-// (`src/lib/mascota.ts`), en pequeño y con dos fotogramas por ánimo que se
-// turnan con CSS, porque esta página es un archivo suelto, sin React ni reloj.
-// Si cambia el dibujo allí, se cambia aquí.
-const MASC = {
-  cuerpo: [
-    "......BBBBBBBB......", "......BBBWWBBB......", ".....BBBBWWBBBB.....", ".....BBBWWWWBBB.....",
-    ".....BBBWWWWBBB.....", "....BBBBWWWWBBBB....", "....BBBBBBBBBBBB....", "....BBBBBBBBBBBB....",
-    "...BBBBB....BBBBB...", "...BBBB......BBBB...", "...BBBB......BBBB...", "..BBBBB......BBBBB..",
-  ],
-  brazo: {
-    abajo: [[3, 6], [2, 7], [2, 8]], arriba: [[3, 5], [2, 4], [2, 3]], saluda: [[3, 5], [2, 4], [1, 3]],
-    teclaA: [[3, 6], [2, 7], [1, 7]], teclaB: [[3, 6], [2, 7], [1, 8]],
-  },
-  ojo: {
-    abierto: [[9, 4], [10, 4]], bajo: [[9, 5], [10, 5]],
-    cerrado: [[8, 4], [9, 4], [10, 4], [11, 4]], feliz: [[8, 4], [9, 3], [10, 3], [11, 4]],
-  },
-  // Cada fotograma: brazo izquierdo, brazo derecho, ojo y si lleva la exclamación.
-  animo: {
-    quieta: [["abajo", "abajo", "abierto"], ["abajo", "abajo", "cerrado"]],
-    trabaja: [["teclaA", "teclaB", "bajo"], ["teclaB", "teclaA", "bajo"]],
-    espera: [["abajo", "arriba", "abierto", true], ["abajo", "saluda", "abierto"]],
-    lista: [["arriba", "arriba", "feliz"], ["abajo", "saluda", "feliz"]],
-    dormida: [["abajo", "abajo", "cerrado"], ["abajo", "abajo", "cerrado"]],
-  },
+// La mascota de Adeorq: la misma A de cuadritos del escritorio, con sus mismas
+// posturas, sus mismos guiones y el mismo que decide qué fotograma toca. Antes
+// era una copia hecha a mano, con dos fotogramas por ánimo que se turnaban con
+// CSS; Munir pidió el 2026-10-10 que aquí tuviera las animaciones de verdad.
+// <mascota-generada>
+// No se toca a mano: sale de `src/lib/mascota.ts` con
+//   node scripts/mascota-movil-check.mjs --escribir
+const MASCOTA = (() => {
+const ANCHO = 20;
+const ALTO = 14;
+const AIRE = 2;
+const CUERPO = [
+    "......BBBBBBBB......",
+    "......BBBWWBBB......",
+    ".....BBBBWWBBBB.....",
+    ".....BBBWWWWBBB.....",
+    ".....BBBWWWWBBB.....",
+    "....BBBBWWWWBBBB....",
+    "....BBBBBBBBBBBB....",
+    "....BBBBBBBBBBBB....",
+    "...BBBBB....BBBBB...",
+    "...BBBB......BBBB...",
+    "...BBBB......BBBB...",
+    "..BBBBB......BBBBB..",
+];
+const BRAZOS = {
+    abajo: [[3, 6], [2, 7], [2, 8]],
+    medio: [[3, 6], [2, 6], [1, 7]],
+    arriba: [[3, 5], [2, 4], [2, 3]],
+    saluda: [[3, 5], [2, 4], [1, 3]],
+    recto: [[3, 6], [2, 6], [1, 6]],
+    teclaA: [[3, 6], [2, 7], [1, 7]],
+    teclaB: [[3, 6], [2, 7], [1, 8]],
 };
-function mascota(animo, alto = 26) {
-  const cuadro = (x, y, c) => `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${c}"/>`;
-  const fotograma = ([izq, der, ojo, alerta]) => {
-    const pupila = MASC.ojo[ojo];
-    const sinBlanco = ojo === "cerrado" || ojo === "feliz";
-    let s = "";
-    MASC.cuerpo.forEach((fila, y) => {
-      for (let x = 0; x < fila.length; x++) {
-        if (fila[x] === ".") continue;
-        const esPupila = pupila.some(([px, py]) => px === x && py === y);
-        s += cuadro(x, y + 2, esPupila ? "#0e2c47" : fila[x] === "W" && !sinBlanco ? "#f1faff" : "#39a9f6");
-      }
+const OJOS = {
+    abierto: [[9, 4], [10, 4]],
+    izq: [[8, 4], [9, 4]],
+    der: [[10, 4], [11, 4]],
+    bajo: [[9, 5], [10, 5]],
+    arriba: [[9, 3], [10, 3]],
+    grande: [[9, 3], [10, 3], [9, 4], [10, 4]],
+};
+const PARPADOS = {
+    cerrado: [[8, 4], [9, 4], [10, 4], [11, 4]],
+    feliz: [[8, 4], [9, 3], [10, 3], [11, 4]],
+};
+const EXTRAS = {
+    alerta: { color: "#ffb454", puntos: [[16, 0], [16, 1], [16, 2], [16, 4]] },
+    zetaA: { color: "#9fb4d6", puntos: [[15, 0], [16, 0], [17, 0], [18, 0], [17, 1], [16, 2], [15, 3], [16, 3], [17, 3], [18, 3]] },
+    zetaB: { color: "#9fb4d6", puntos: [[16, 0], [17, 0], [18, 0], [19, 0], [18, 1], [17, 2], [16, 3], [17, 3], [18, 3], [19, 3]] },
+    chispaA: { color: "#ffd166", puntos: [[3, 1], [17, 2], [1, 5], [18, 6]] },
+    chispaB: { color: "#ffd166", puntos: [[2, 3], [16, 0], [0, 7], [19, 4]] },
+};
+const AZUL = "#39a9f6";
+const BRAZO_COLOR = "#2389e0";
+const BLANCO = "#f1faff";
+const PUPILA = "#0e2c47";
+function cuadrosDe(pose, mirada = "") {
+    const sube = pose.salta ? 1 : 0;
+    const ojo = pose.ojo === "abierto" && mirada ? mirada : pose.ojo;
+    const parpado = ojo in PARPADOS ? PARPADOS[ojo] : null;
+    const pupila = parpado ?? OJOS[ojo];
+    const esPupila = (x, y) => pupila.some(([px, py]) => px === x && py === y);
+    const out = [];
+    CUERPO.forEach((fila, y) => {
+        if (y === CUERPO.length - 1 && pose.pie)
+            fila = pose.pie === "izq" ? `.......${fila.slice(7)}` : `${fila.slice(0, 13)}.......`;
+        for (let x = 0; x < fila.length; x++) {
+            const ch = fila[x];
+            if (ch === ".")
+                continue;
+            const c = esPupila(x, y) ? PUPILA : ch === "W" && !parpado ? BLANCO : AZUL;
+            out.push({ x, y: y + AIRE - sube, c });
+        }
     });
-    for (const [x, y] of MASC.brazo[izq]) s += cuadro(x, y + 2, "#2389e0");
-    for (const [x, y] of MASC.brazo[der]) s += cuadro(19 - x, y + 2, "#2389e0");
-    if (alerta) for (const y of [0, 1, 2, 4]) s += cuadro(16, y, "#ffb454");
-    return s;
-  };
-  const [a, b] = MASC.animo[animo] || MASC.animo.quieta;
-  return `<svg class="masc" data-animo="${animo}" viewBox="0 0 20 14" width="${Math.round((alto * 20) / 14)}" height="${alto}" aria-hidden="true"><g class="f0">${fotograma(a)}</g><g class="f1">${fotograma(b)}</g></svg>`;
+    for (const [x, y] of BRAZOS[pose.izq])
+        out.push({ x, y: y + AIRE - sube, c: BRAZO_COLOR });
+    for (const [x, y] of BRAZOS[pose.der])
+        out.push({ x: ANCHO - 1 - x, y: y + AIRE - sube, c: BRAZO_COLOR });
+    if (pose.extra)
+        for (const [x, y] of EXTRAS[pose.extra].puntos)
+            out.push({ x, y, c: EXTRAS[pose.extra].color });
+    return out;
 }
+const p = (izq, der, ojo = "abierto", mas = {}) => ({ izq, der, ojo, ...mas });
+const REPOSO = p("abajo", "abajo");
+const SALTITO = [
+    [p("arriba", "arriba", "feliz", { salta: true, extra: "chispaA" }), 170],
+    [p("arriba", "arriba", "feliz", { extra: "chispaB" }), 150],
+];
+const GUIONES = {
+    quieta: {
+        bucle: [
+            [REPOSO, 3200],
+            [p("abajo", "abajo", "cerrado"), 130],
+        ],
+        gestos: [
+            [[p("abajo", "abajo", "izq"), 620], [REPOSO, 240], [p("abajo", "abajo", "der"), 620], [REPOSO, 300]],
+            [[p("recto", "recto", "cerrado"), 320], [p("arriba", "arriba", "cerrado"), 620], [p("recto", "recto"), 260]],
+            [[p("abajo", "abajo", "abierto", { pie: "izq" }), 260], [REPOSO, 180], [p("abajo", "abajo", "abierto", { pie: "der" }), 260], [REPOSO, 180]],
+            [[p("abajo", "arriba"), 200], [p("abajo", "saluda"), 200], [p("abajo", "arriba"), 200], [p("abajo", "saluda"), 200]],
+        ],
+        cada: [6000, 11000],
+    },
+    trabaja: {
+        bucle: [
+            [p("teclaA", "teclaB", "bajo"), 170],
+            [p("teclaB", "teclaA", "bajo"), 170],
+        ],
+        gestos: [
+            [[p("abajo", "medio", "arriba"), 950], [p("abajo", "abajo", "arriba"), 450]],
+            [[REPOSO, 520], [p("abajo", "abajo", "cerrado"), 130], [REPOSO, 320]],
+            [[p("recto", "recto", "cerrado"), 300], [p("recto", "recto", "bajo"), 260]],
+        ],
+        cada: [4500, 8500],
+    },
+    espera: {
+        entrada: [
+            [p("abajo", "abajo", "grande", { salta: true, extra: "alerta" }), 230],
+            [p("abajo", "abajo", "grande", { extra: "alerta" }), 200],
+        ],
+        bucle: [
+            [p("abajo", "arriba", "abierto", { extra: "alerta" }), 280],
+            [p("abajo", "saluda"), 280],
+            [p("abajo", "arriba", "abierto", { extra: "alerta" }), 280],
+            [p("abajo", "saluda"), 280],
+        ],
+        gestos: [
+            [
+                [p("arriba", "arriba", "grande", { salta: true, extra: "alerta" }), 180],
+                [p("arriba", "arriba"), 150],
+                [p("arriba", "arriba", "grande", { salta: true, extra: "alerta" }), 180],
+                [p("abajo", "arriba"), 150],
+            ],
+        ],
+        cada: [2600, 4600],
+    },
+    lista: {
+        entrada: [...SALTITO, ...SALTITO, ...SALTITO],
+        bucle: [
+            [p("arriba", "arriba", "feliz", { extra: "chispaA" }), 620],
+            [p("arriba", "arriba", "feliz", { extra: "chispaB" }), 620],
+        ],
+        gestos: [SALTITO, [[p("abajo", "saluda", "feliz"), 220], [p("abajo", "arriba", "feliz"), 220], [p("abajo", "saluda", "feliz"), 220]]],
+        cada: [3200, 6000],
+    },
+    dormida: {
+        bucle: [
+            [p("abajo", "abajo", "cerrado", { extra: "zetaA" }), 1100],
+            [p("abajo", "abajo", "cerrado", { extra: "zetaB" }), 1100],
+            [p("abajo", "abajo", "cerrado"), 700],
+        ],
+    },
+};
+const REACCIONES = {
+    toque: [
+        [p("abajo", "abajo", "feliz", { salta: true }), 150],
+        [p("arriba", "arriba", "feliz"), 150],
+        [p("abajo", "abajo", "feliz"), 120],
+    ],
+    hola: [
+        [p("abajo", "arriba"), 170],
+        [p("abajo", "saluda"), 170],
+        [p("abajo", "arriba"), 170],
+        [p("abajo", "saluda"), 170],
+    ],
+    enviado: [
+        [p("abajo", "medio", "arriba"), 170],
+        [p("abajo", "arriba", "arriba"), 170],
+        [p("abajo", "abajo", "feliz"), 240],
+    ],
+};
+function reposoDe(animo) {
+    return GUIONES[animo].bucle[0][0];
+}
+const entre = ([de, a], azar) => de + Math.round((a - de) * azar());
+function arrancar(animo, ahora, azar) {
+    const g = GUIONES[animo];
+    return {
+        animo,
+        cola: [...(g.entrada ?? []), ...g.bucle],
+        pose: (g.entrada ?? g.bucle)[0][0],
+        proximoGesto: ahora + (g.cada ? entre(g.cada, azar) : Infinity),
+    };
+}
+function avanzar(m, ahora, azar) {
+    const g = GUIONES[m.animo];
+    let cola = m.cola;
+    let proximoGesto = m.proximoGesto;
+    if (cola.length === 0) {
+        if (g.gestos?.length && g.cada && ahora >= proximoGesto) {
+            const gesto = g.gestos[Math.min(g.gestos.length - 1, Math.floor(azar() * g.gestos.length))];
+            cola = [...gesto, ...g.bucle];
+            proximoGesto = ahora + entre(g.cada, azar);
+        }
+        else
+            cola = g.bucle;
+    }
+    const [pose, espera] = cola[0];
+    return { marcha: { animo: m.animo, cola: cola.slice(1), pose, proximoGesto }, espera };
+}
+function reaccionar(m, cual) {
+    return { ...m, cola: [...REACCIONES[cual], ...m.cola] };
+}
+return { ANCHO, ALTO, GUIONES, REACCIONES, cuadrosDe, reposoDe, arrancar, avanzar, reaccionar };
+})();
+// </mascota-generada>
+
+/* Quién lleva el reloj. La página se repinta a trozos cada pocos segundos, y
+   cada repintado cambia el <svg> por otro: por eso la marcha de cada mascota
+   no vive en su elemento sino aquí, por su clave («portada», «ahora»…). La que
+   nace encuentra a la anterior a mitad de un gesto y sigue por donde iba. */
+const marchas = new Map();
+const sinMovimiento = () => document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches;
+function marchaDe(clave, animo) {
+  let m = marchas.get(clave);
+  if (!m || m.animo !== animo) {
+    // Un ánimo nuevo empieza por su entrada: el susto al enterarse de que la
+    // esperan, los tres saltos al terminar.
+    m = { animo, marcha: MASCOTA.arrancar(animo, Date.now(), Math.random), hasta: 0, mirada: "", miraHasta: 0, v: 0 };
+    marchas.set(clave, m);
+  }
+  return m;
+}
+const cuadrosHtml = (m) =>
+  MASCOTA.cuadrosDe(sinMovimiento() ? MASCOTA.reposoDe(m.animo) : m.marcha.pose, m.mirada)
+    .map((q) => `<rect x="${q.x}" y="${q.y}" width="1.02" height="1.02" fill="${q.c}"/>`).join("");
+/** `clave` es quién es esta mascota en la página; dos con la misma clave son la misma. */
+function mascota(animo, alto = 26, clave = animo) {
+  const m = marchaDe(clave, animo);
+  return `<svg class="masc" data-animo="${animo}" data-clave="${esc(clave)}" data-v="${m.v}" viewBox="0 0 ${MASCOTA.ANCHO} ${MASCOTA.ALTO}" width="${Math.round((alto * MASCOTA.ANCHO) / MASCOTA.ALTO)}" height="${alto}" aria-hidden="true">${cuadrosHtml(m)}</svg>`;
+}
+/** Una reacción, delante de lo que estuviera haciendo: «toque», «hola», «enviado». */
+function reaccionaMascota(clave, cual) {
+  const m = marchas.get(clave);
+  if (!m || sinMovimiento()) return;
+  m.marcha = MASCOTA.reaccionar(m.marcha, cual);
+  m.hasta = 0;
+}
+/* Un reloj para todas. Solo trabaja si hay alguna en pantalla, y solo repinta
+   la que cambia de postura: entre postura y postura pasan de 130 ms a 3 s. */
+setInterval(() => {
+  const enPantalla = document.getElementsByClassName("masc");
+  if (!enPantalla.length || sinMovimiento()) return;
+  const ahora = Date.now();
+  for (const el of enPantalla) {
+    const m = marchaDe(el.dataset.clave, el.dataset.animo);
+    if (m.mirada && ahora >= m.miraHasta) { m.mirada = ""; m.v++; }
+    if (ahora >= m.hasta) {
+      const r = MASCOTA.avanzar(m.marcha, ahora, Math.random);
+      m.marcha = r.marcha;
+      m.hasta = ahora + r.espera;
+      m.v++;
+    }
+    if (el.dataset.v !== String(m.v)) { el.innerHTML = cuadrosHtml(m); el.dataset.v = String(m.v); }
+  }
+}, 50);
+/* La tocas y da un brinco. Y si tocas en otro sitio, mira hacia allí un
+   momento: en el escritorio sigue al ratón, y aquí el ratón es tu dedo. */
+document.addEventListener("pointerdown", (ev) => {
+  const tocada = ev.target.closest?.(".masc");
+  if (tocada) return reaccionaMascota(tocada.dataset.clave, "toque");
+  for (const el of document.getElementsByClassName("masc")) {
+    const m = marchas.get(el.dataset.clave);
+    const caja = el.getBoundingClientRect();
+    if (!m || !caja.width) continue;
+    const dx = ev.clientX - (caja.left + caja.width / 2);
+    const dy = ev.clientY - (caja.top + caja.height / 2);
+    const mirada = dy > caja.height && Math.abs(dx) <= caja.width * 2 ? "bajo" : dx < -caja.width ? "izq" : dx > caja.width ? "der" : "";
+    if (mirada !== m.mirada) { m.mirada = mirada; m.v++; }
+    m.miraHasta = Date.now() + 2500;
+  }
+}, { passive: true });
 
 const ICONO = {
   decision: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5"/><circle cx="5" cy="18" r="1.4"/></svg>',
@@ -551,6 +833,25 @@ function hace(segundos) {
   const d = Math.round(h / 24);
   if (d <= 7) return `hace ${d} d`;
   return new Date(ms).toLocaleDateString("es", { day: "numeric", month: "short" });
+}
+
+/* Lo que acaba de llegar entra desde abajo. Un chat se repinta entero cada
+   pocos segundos, así que cada cosa recuerda cuándo nació: repintada a media
+   entrada sigue por donde iba (el retraso en negativo), y pasada la entrada no
+   vuelve a entrar. Lo del primer pintado ya estaba ahí: no entra.
+   `de(clave)` se pega dentro de un `class="…"`. */
+const ENTRADA_MS = 260;
+function entradas() {
+  const nacio = new Map();
+  let primera = true;
+  return {
+    de(clave) {
+      if (!nacio.has(clave)) nacio.set(clave, primera ? 0 : Date.now());
+      const ms = Date.now() - nacio.get(clave);
+      return ms < ENTRADA_MS ? ` nuevo" style="animation-delay:-${ms}ms` : "";
+    },
+    pintado() { primera = false; },
+  };
 }
 
 const hoja = (ruta) => String(ruta || "").split(/[\\/]/).filter(Boolean).pop() || ruta;
@@ -946,9 +1247,12 @@ function nombreSugerido() {
   return navegador ? `${sistema} · ${navegador}` : sistema;
 }
 
-function ir(cambio) {
+/* `atras` dice por dónde entra la pantalla nueva: hacia delante por la
+   derecha, de vuelta por la izquierda. Volver a la portada siempre es volver. */
+function ir(cambio, atras = cambio.vista === "lista") {
   clearTimeout(reloj);
   e = { vista: cambio.vista, ...cambio };
+  app.dataset.sentido = atras ? "atras" : "adelante";
   pintar();
 }
 
@@ -1016,14 +1320,32 @@ function pintarEmparejar() {
 
 // ─── La lista ───────────────────────────────────────────────────────────────
 
+/* El ánimo de la mascota de la portada, que es el de todo tu PC de un vistazo:
+   la misma cuenta que hace la campana del escritorio (`animoDe`, lib/campana.ts). */
+function animoDeTodo(terminales, esperan) {
+  if (esperan || terminales.some((t) => estadoTerminal(t)[1] === "pregunta")) return "espera";
+  if (terminales.some((t) => t.estado === "a_medias")) return "trabaja";
+  if (terminales.some((t) => t.estado === "lista")) return "lista";
+  return terminales.length ? "quieta" : "dormida";
+}
+
+/* La portada es una bandeja: arriba lo que te reclama (las decisiones que
+   siguen vivas y las terminales que te preguntan), debajo cómo va cada
+   terminal, y al final lo hablado con el conserje. Antes había que entrar en
+   «Tus terminales» y en «Decisiones» para saber si pasaba algo. */
 async function pintarLista() {
+  // Vuelve con el ánimo que tenía: si nace quieta y a los dos segundos se
+  // entera de que te esperan, repetía el susto cada vez que volvías a la portada.
+  const animoPortada = marchas.get("portada")?.animo || "quieta";
   app.innerHTML = `
     <div class="vista">
-      <header class="barra"><span class="avatar avatar-m">${mascota("quieta", 30)}</span><h1>Adeorq<small id="yo">tu PC</small></h1></header>
+      <header class="barra barra-portada"><span class="avatar avatar-m" id="masc-portada">${mascota(animoPortada, 34, "portada")}</span><h1>Adeorq<small id="yo">tu PC</small></h1></header>
       <main class="cuerpo">
-        <button id="nueva" class="nueva"><span class="avatar">${ICONO.chispa}</span>Hablar con el conserje</button>
-        <button id="decisiones" class="nueva segunda"><span class="avatar">${ICONO.decision}</span>Decisiones<b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
-        <button id="terminales" class="nueva segunda"><span class="avatar">${ICONO.terminal}</span>Tus terminales</button>
+        <button id="nueva" class="nueva"><span class="avatar">${ICONO.chispa}</span><span class="nueva-txt">Dile al conserje qué hay que hacer</span></button>
+        <div id="reclaman"></div>
+        <div id="portada-term"></div>
+        <button id="decisiones" class="nueva segunda"><span class="avatar">${ICONO.decision}</span>Decisiones<small id="dec-sobran"></small><b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
+        <button id="terminales" class="nueva segunda"><span class="avatar">${ICONO.terminal}</span>Todas las terminales</button>
         <div id="filas"></div>
         <button id="avisos" class="avisos" hidden></button>
         <button id="instalar" class="avisos" hidden>Instalar Adeorq como app en este aparato</button>
@@ -1034,17 +1356,70 @@ async function pintarLista() {
   document.getElementById("decisiones").addEventListener("click", () => ir({ vista: "decisiones" }));
   pintarAvisos().catch(() => {});
   pintarInstalar();
-  // Cuántas te esperan, en el botón: se mira con la lista.
-  const contarDecisiones = async () => {
-    const v = await api("GET", "/api/decisiones").catch(() => null);
+  // Lo que te reclama y cómo va cada terminal. Solo se repinta si cambió.
+  let pintado = null;
+  let animo = animoPortada;
+  const mirar = async () => {
+    const [vd, vt] = await Promise.all([
+      api("GET", "/api/decisiones").catch(() => null),
+      api("GET", "/api/terminales").catch((err) => ({ fallo: err.message })),
+    ]);
+    const reclaman = document.getElementById("reclaman");
+    if (!reclaman) return;
+    const decisiones = vd?.decisiones || [];
+    const esperan = vivas(decisiones);
+    const sobran = decisiones.filter((d) => d.vigencia === "huerfana").length;
+    const terminales = (vt.terminales || []).slice().sort((a, b) => Number(b.agente) - Number(a.agente) || a.panel - b.panel);
+    const preguntan = terminales.filter((t) => estadoTerminal(t)[1] === "pregunta");
+    const otras = terminales.filter((t) => !preguntan.includes(t));
+
+    // La cuenta del botón: las que te esperan DE VERDAD. Las que ya no espera
+    // nadie se dicen al lado, en pequeño, y no suman.
     const c = document.getElementById("cuenta-dec");
-    if (!c || !v) return;
-    const n = (v.decisiones || []).filter((d) => !d.contestada).length;
-    c.hidden = !n;
-    c.textContent = String(n);
-    c.setAttribute("aria-label", `${n} sin contestar`);
+    c.hidden = !esperan.length;
+    c.textContent = String(esperan.length);
+    c.setAttribute("aria-label", `${esperan.length} te esperan`);
+    document.getElementById("dec-sobran").textContent = sobran ? plural(sobran, "1 sin nadie detrás", "{n} sin nadie detrás") : "";
+
+    const nuevo = animoDeTodo(terminales, esperan.length);
+    if (nuevo !== animo) {
+      animo = nuevo;
+      document.getElementById("masc-portada").innerHTML = mascota(animo, 34, "portada");
+    }
+    const yo = document.getElementById("yo");
+    const trabajan = terminales.filter((t) => t.estado === "a_medias").length;
+    const teLlaman = esperan.length + preguntan.length;
+    yo.textContent = vt.fallo ? "tu PC no contesta"
+      : [teLlaman ? plural(teLlaman, "1 cosa te espera", "{n} cosas te esperan") : "",
+        trabajan ? plural(trabajan, "1 agente trabajando", "{n} agentes trabajando") : ""].filter(Boolean).join(" · ")
+        || (terminales.length ? "todo tranquilo" : "sin terminales abiertas");
+
+    const firma = JSON.stringify([esperan, terminales, vt.fallo || ""]);
+    if (firma === pintado) return;
+    const primera = pintado === null;
+    pintado = firma;
+    const filaTerminal = (t) => {
+      const [palabra, tono] = estadoTerminal(t);
+      return `<button class="fila fila-t" data-panel="${t.panel}"><i class="punto" data-tono="${tono}"></i><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span>${palabra}</span></button>`;
+    };
+    reclaman.innerHTML = teLlaman
+      ? `<h2 class="seccion"><span>Te esperan</span></h2>${esperan.map(tarjetaDecision).join("")}${preguntan.map((t) => {
+        const [palabra] = estadoTerminal(t);
+        return `<button class="tarjeta${primera ? "" : " nuevo"}" data-estado="pregunta" data-vigencia="viva" data-panel="${t.panel}">
+          <span class="tarjeta-cab"><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span class="estado"><i></i>${palabra}</span></span>
+          <span class="porque">Entra y contéstale desde aquí.</span>
+        </button>`;
+      }).join("")}`
+      : "";
+    document.getElementById("portada-term").innerHTML = vt.fallo
+      ? `<h2 class="seccion"><span>Terminales</span></h2><p class="seccion-nota">${esc(vt.fallo)}</p>`
+      : otras.length
+        ? `<h2 class="seccion"><span>Terminales</span></h2>${otras.slice(0, 5).map(filaTerminal).join("")}${otras.length > 5 ? `<p class="seccion-nota">y ${otras.length - 5} más, en «Todas las terminales».</p>` : ""}`
+        : "";
+    reclaman.querySelectorAll(".tarjeta[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volver: "lista" })));
+    document.querySelectorAll("#reclaman [data-panel], #portada-term [data-panel]").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), volver: "lista" })));
   };
-  contarDecisiones();
+  mirar().catch(() => {});
   const cargar = async () => {
     const lista = await api("GET", "/api/lista");
     const filas = document.getElementById("filas");
@@ -1054,13 +1429,14 @@ async function pintarLista() {
       : `<p class="vacio">Todavía no has hablado con el conserje. Empieza con el botón de arriba.</p>`;
     filas.querySelectorAll(".fila").forEach((b) => b.addEventListener("click", () => ir({ vista: "hilo", id: b.dataset.id })));
   };
-  api("GET", "/api/yo").then((v) => { const yo = document.getElementById("yo"); if (yo) yo.textContent = v.nombre; }).catch(() => {});
   try { await cargar(); } catch (err) {
     // Un 401 ya ha cambiado de vista (`olvidarClave`): entonces no hay dónde pintarlo.
     const filas = document.getElementById("filas");
     if (filas) filas.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
   }
-  sondear(15000, () => Promise.all([cargar(), contarDecisiones()]));
+  // Cada seis segundos: es la bandeja de lo que te reclama, y son tres
+  // respuestas pequeñas. La lista de conversaciones va en la misma vuelta.
+  sondear(6000, () => Promise.all([cargar(), mirar()]));
 }
 
 // ─── El hilo ────────────────────────────────────────────────────────────────
@@ -1115,6 +1491,9 @@ function pintarHiloEntero() {
   e.adj = montarAdjuntos(document.getElementById("caja"), () => pintarCaja());
   pintarHilo();
   pintarCaja();
+  // Una conversación nueva se abre para escribir: el toque que te trajo aquí
+  // ya saca el teclado, sin tener que tocar la caja otra vez.
+  if (e.nueva) texto.focus({ preventScroll: true });
   cargarHilo().catch((err) => mostrarFallo(err.message));
 }
 
@@ -1134,11 +1513,11 @@ async function cargarHilo() {
   sondear(e.enCurso?.pensando || e.pendiente ? 2000 : trabaja ? 4000 : 10000, cargarHilo);
 }
 
-function tarjeta(w) {
+function tarjeta(w, ent) {
   const estado = (e.vivo?.estados || {})[claveDe(w)] || "cerrada";
   const porque = w.eligio === "router" ? `<b>Lo eligió el router.</b> ${esc(w.porque)}` : "<b>Elegido por ti: el router estaba apagado.</b>";
   const encargo = w.encargo.length > 180 ? `${w.encargo.slice(0, 180)}…` : w.encargo;
-  return `<button class="tarjeta" data-estado="${estado}" data-clave="${esc(claveDe(w))}">
+  return `<button class="tarjeta${ent.de(`w${claveDe(w)}`)}" data-estado="${estado}" data-clave="${esc(claveDe(w))}">
     <span class="tarjeta-cab"><b>${esc(hoja(w.carpeta))} · ${esc(nombreDe(w))}</b><span class="estado"><i></i>${PALABRA[estado] || estado}</span></span>
     <span class="para">${esc(encargo)}</span>
     <span class="porque">${porque}</span>
@@ -1160,18 +1539,25 @@ function pintarHilo() {
     html += `<p class="vacio">Dime qué hay que hacer. Lo parto en trabajos y abro una sesión para cada uno en tu PC; aquí verás cómo va cada una.</p>`;
   }
   const colocadas = new Set();
+  // Lo que llega desde el último pintado entra desde abajo. Lo tuyo se
+  // reconoce por su texto: así el mensaje que acabas de mandar (pendiente) y
+  // el mismo ya apuntado por el PC son uno, y no entra dos veces.
+  const ent = (e.ent ||= entradas());
+  const claveDeTurno = (t) => (t.rol === "tu" ? `tu:${t.texto}` : `c${t.n}`);
   for (const t of conv?.turnos || []) {
-    html += `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}</div></div>`;
+    html += `<div class="turno${ent.de(claveDeTurno(t))}" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${md(t.texto)}</div></div>`;
     if (t.rol === "conserje") {
-      for (const w of conv.trabajos.filter((x) => x.turno === t.n)) { html += tarjeta(w); colocadas.add(claveDe(w)); }
+      for (const w of conv.trabajos.filter((x) => x.turno === t.n)) { html += tarjeta(w, ent); colocadas.add(claveDe(w)); }
     }
   }
-  for (const w of (conv?.trabajos || []).filter((x) => !colocadas.has(claveDe(x)))) html += tarjeta(w);
+  for (const w of (conv?.trabajos || []).filter((x) => !colocadas.has(claveDe(x)))) html += tarjeta(w, ent);
   if (e.pendiente && !(conv?.turnos || []).some((t) => t.rol === "tu" && t.texto === e.pendiente)) {
-    html += `<div class="turno" data-rol="tu"><div class="burbuja">${md(e.pendiente)}</div></div>`;
+    html += `<div class="turno${ent.de(`tu:${e.pendiente}`)}" data-rol="tu"><div class="burbuja">${md(e.pendiente)}</div></div>`;
   }
+  // Solo cuenta como «ya estaba» lo pintado con la conversación delante.
+  if (conv) ent.pintado();
   if (e.enCurso?.pensando || (e.pendiente && !e.enCurso)) {
-    html += `<p class="pensando">${mascota("trabaja", 22)}${esc(e.enCurso?.paso || "Pensando…")}</p>`;
+    html += `<p class="pensando">${mascota("trabaja", 24, "hilo")}${esc(e.enCurso?.paso || "Pensando…")}</p>`;
   }
   if (e.enCurso?.aviso && !e.enCurso.pensando) {
     html += `<p class="nota"><b>Esto no lo he hecho:</b> ${esc(e.enCurso.aviso)}</p>`;
@@ -1233,6 +1619,7 @@ async function enviar(repetir) {
   e.fallo = null;
   e.enCurso = { pensando: true, paso: "Mandándolo a tu PC…" };
   pintarHilo();
+  reaccionaMascota("hilo", "enviado");
   pintarCaja();
   try {
     await api("POST", "/api/enviar", { id: e.id, texto: txt });
@@ -1353,32 +1740,98 @@ async function pintarTerminales() {
 // contesta aquí, desde cualquier aparato emparejado, y la respuesta vuelve a la
 // terminal que preguntó.
 
+/* Cómo se dice cada vigencia (`Vigencia`, en decisiones.rs) y con qué tono se
+   pinta. «Viva» es que la terminal que preguntó sigue abierta y espera;
+   «huérfana», que está sin contestar pero ya no hay nadie detrás. */
+const VIGENCIA = {
+  viva: ["te espera", "pregunta"],
+  huerfana: ["sin nadie detrás", "cerrada"],
+  contestada: ["contestada", "cerrada"],
+  descartada: ["descartada", "cerrada"],
+};
+const vivas = (lista) => (lista || []).filter((d) => d.vigencia === "viva");
+const plural = (n, una, varias) => (n === 1 ? una : varias.replace("{n}", n));
+
+/** De quién es y si sigue ahí, en una línea. */
+function quienEspera(d) {
+  if (d.vigencia === "viva") return d.panel ? `panel ${d.panel}, abierto` : "";
+  if (d.vigencia === "huerfana") return d.panel ? `su terminal se cerró` : "de otro arranque de Adeorq";
+  return d.panel ? `panel ${d.panel}` : "";
+}
+
+function tarjetaDecision(d) {
+  const [palabra, tono] = VIGENCIA[d.vigencia] || VIGENCIA.huerfana;
+  const n = plural(d.preguntas, "1 pregunta", "{n} preguntas");
+  const cerrada = d.vigencia === "contestada" || d.vigencia === "descartada";
+  const cuando = hace((cerrada ? d.cerrada ?? d.creada : d.creada) / 1000);
+  return `<button class="tarjeta" data-estado="${tono}" data-vigencia="${d.vigencia}" data-id="${esc(d.id)}">
+    <span class="tarjeta-cab"><b>${esc(d.titulo)}</b><span class="estado"><i></i>${palabra}</span></span>
+    <span class="porque">${esc([d.proyecto, quienEspera(d), cerrada ? "" : n, cuando].filter(Boolean).join(" · "))}</span>
+  </button>`;
+}
+
+async function descartarDecision(id) {
+  const r = await api("POST", "/api/decision/descartar", { id });
+  try { localStorage.removeItem(borradorDe(id)); } catch (_) {}
+  return r;
+}
+
 async function pintarDecisiones() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
         <button class="atras" id="atras" aria-label="Volver">${ICONO.atras}</button>
-        <h1>Decisiones<small>lo que te preguntan tus agentes</small></h1>
+        <h1>Decisiones<small id="sub-dec">lo que te preguntan tus agentes</small></h1>
       </header>
       <main class="cuerpo" id="decisiones"></main>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel } : { vista: "lista" }));
+  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel } : { vista: "lista" }, true));
+  // Solo se repinta si algo cambió: rehacerla cada cinco segundos reiniciaba
+  // el latido de las vivas y te quitaba el toque a medio pulsar.
+  let pintado = null;
   const cargar = async () => {
     const v = await api("GET", "/api/decisiones");
     const aqui = document.getElementById("decisiones");
     if (!aqui) return;
     const lista = v.decisiones || [];
-    aqui.innerHTML = lista.length
-      ? lista.map((d) => {
-        const de = [d.proyecto, d.panel ? `panel ${d.panel}` : ""].filter(Boolean).join(" · ");
-        const n = `${d.preguntas} ${d.preguntas === 1 ? "pregunta" : "preguntas"}`;
-        return `<button class="tarjeta" data-estado="${d.contestada ? "cerrada" : "pregunta"}" data-id="${esc(d.id)}">
-          <span class="tarjeta-cab"><b>${esc(d.titulo)}</b><span class="estado"><i></i>${d.contestada ? "contestada" : "te espera"}</span></span>
-          <span class="porque">${esc([de, n, hace(d.creada / 1000)].filter(Boolean).join(" · "))}</span>
-        </button>`;
-      }).join("")
-      : `<p class="vacio">No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.</p>`;
+    const esperan = vivas(lista);
+    const huerfanas = lista.filter((d) => d.vigencia === "huerfana");
+    const cerradas = lista.filter((d) => d.vigencia === "contestada" || d.vigencia === "descartada");
+    const sub = document.getElementById("sub-dec");
+    if (sub) {
+      sub.textContent = !lista.length ? "lo que te preguntan tus agentes"
+        : [esperan.length ? plural(esperan.length, "1 te espera", "{n} te esperan") : "ninguna te espera",
+          huerfanas.length ? plural(huerfanas.length, "1 sin nadie detrás", "{n} sin nadie detrás") : ""].filter(Boolean).join(" · ");
+    }
+    let html = "";
+    if (!lista.length) {
+      html = `<p class="vacio">No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.</p>`;
+    } else {
+      html += esperan.length
+        ? `<h2 class="seccion"><span>Te esperan</span></h2>${esperan.map(tarjetaDecision).join("")}`
+        : `<p class="calma">${mascota("quieta", 26, "decisiones")}Nada te espera ahora mismo.</p>`;
+      if (huerfanas.length) {
+        html += `<h2 class="seccion"><span>Ya no las espera nadie</span><button class="mini" id="limpiar">${plural(huerfanas.length, "Descartar", "Descartar las {n}")}</button></h2>
+          <p class="seccion-nota">La terminal que preguntó se cerró. Contestarlas no le llega a nadie.</p>${huerfanas.map(tarjetaDecision).join("")}`;
+      }
+      if (cerradas.length) html += `<h2 class="seccion"><span>Cerradas</span></h2>${cerradas.map(tarjetaDecision).join("")}`;
+    }
+    // Por lo que dice la lista y no por el HTML, que lleva dentro a la mascota
+    // y esa cambia de postura sola.
+    const firma = JSON.stringify(lista);
+    if (firma === pintado) return;
+    pintado = firma;
+    aqui.innerHTML = html;
     aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volverPanel: e.volverPanel })));
+    const limpiar = document.getElementById("limpiar");
+    if (limpiar) limpiar.addEventListener("click", async () => {
+      limpiar.disabled = true;
+      limpiar.textContent = "Descartando…";
+      // Una a una: son pocas, y así la que falle no se lleva a las demás.
+      for (const d of huerfanas) await descartarDecision(d.id).catch(() => {});
+      pintado = null;
+      cargar().catch(() => {});
+    });
   };
   try { await cargar(); } catch (err) {
     const aqui = document.getElementById("decisiones");
@@ -1407,10 +1860,13 @@ async function pintarDecision() {
       <main class="cuerpo" id="decision"></main>
       <footer class="caja" id="pie-dec" hidden>
         <p class="estado-envio" id="estado-envio" role="status" aria-live="polite"></p>
-        <button class="boton enviar-dec" id="enviar-dec" disabled>Enviar respuesta</button>
+        <div class="pie-dec">
+          <button class="descartar" id="descartar-dec">Descartar</button>
+          <button class="boton enviar-dec" id="enviar-dec" disabled>Enviar respuesta</button>
+        </div>
       </footer>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel } : { vista: "decisiones" }));
+  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel } : { vista: e.volver === "lista" ? "lista" : "decisiones" }, true));
   let d;
   try {
     d = await api("GET", `/api/decision?id=${encodeURIComponent(e.id)}`);
@@ -1419,19 +1875,29 @@ async function pintarDecision() {
     return;
   }
   const contestada = Boolean(d.respuesta);
-  const borrador = contestada ? {} : leerBorrador(d.id);
+  // Descartada: se enseña como quedó, y ya no se contesta.
+  const cerrada = contestada || d.vigencia === "descartada";
+  const borrador = cerrada ? {} : leerBorrador(d.id);
   const elegida = (q) => contestada ? d.respuesta.elecciones[q.id]?.opcion : borrador[q.id]?.opcion;
   const escrita = (q) => contestada ? d.respuesta.elecciones[q.id]?.texto : borrador[q.id]?.texto;
   const de = [d.proyecto, d.panel ? `panel ${d.panel}` : ""].filter(Boolean).join(" · ");
   document.getElementById("titulo").innerHTML = `${esc(d.titulo)}<small>${esc([de, hace(d.creada / 1000)].filter(Boolean).join(" · "))}</small>`;
 
+  // Lo primero, si alguien la espera todavía.
+  const vig = d.vigencia === "viva"
+    ? `<p class="dec-vig" data-v="viva"><i></i><span><b>Te espera.</b> ${d.panel ? `El panel ${d.panel} sigue abierto: tu respuesta se teclea allí.` : "El agente la leerá en cuanto la pida."}</span></p>`
+    : d.vigencia === "huerfana"
+      ? `<p class="dec-vig" data-v="huerfana"><span><b>Ya no la espera nadie.</b> La terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio; lo normal es descartarla.</span></p>`
+      : d.vigencia === "descartada"
+        ? `<p class="dec-vig" data-v="descartada"><span><b>Descartada</b> ${hace((d.descartada ?? d.creada) / 1000)}, sin contestar.</span></p>`
+        : "";
   const hecha = contestada
     ? `<p class="dec-hecha">Contestada desde ${esc(d.respuesta.desde)}, ${hace(d.respuesta.cuando / 1000)}. ${d.respuesta.entregada ? `Se tecleó en el panel ${d.panel}.` : "El agente la lee cuando la pide."}</p>`
     : "";
   document.getElementById("decision").innerHTML = `
-    <div class="dec-cab">${hecha}${d.contexto ? `<p>${esc(d.contexto)}</p>` : ""}</div>
+    <div class="dec-cab">${vig}${hecha}${d.contexto ? `<p>${esc(d.contexto)}</p>` : ""}</div>
     ${d.preguntas.map((q) => `
-      <fieldset class="pregunta-d" data-q="${esc(q.id)}"${contestada ? " disabled" : ""}>
+      <fieldset class="pregunta-d" data-q="${esc(q.id)}"${cerrada ? " disabled" : ""}>
         <legend><span class="letra">${esc(q.id)}</span>${esc(q.titulo)}</legend>
         ${q.contexto ? `<p>${esc(q.contexto)}</p>` : ""}
         ${q.opciones.map((o, i) => `
@@ -1440,16 +1906,43 @@ async function pintarDecision() {
             <span class="num">${i + 1}</span>
             <span class="txt"><b>${esc(o.texto)}</b>${o.recomendada ? `<em class="rec">Recomendada</em>` : ""}${o.detalle ? `<small>${esc(o.detalle)}</small>` : ""}</span>
           </label>`).join("")}
-        ${contestada && !escrita(q) ? "" : `
+        ${cerrada && !escrita(q) ? "" : `
         <div class="o">o</div>
         <textarea class="libre" data-q="${esc(q.id)}" rows="2" placeholder="Otra cosa, con tus palabras" aria-label="Otra cosa para la pregunta ${esc(q.id)}, con tus palabras">${esc(escrita(q) || "")}</textarea>`}
       </fieldset>`).join("")}`;
-  if (contestada) return;
+  if (cerrada) return;
 
   const pie = document.getElementById("pie-dec");
   const boton = document.getElementById("enviar-dec");
   const estado = document.getElementById("estado-envio");
   pie.hidden = false;
+  // Repintar la misma pantalla (al contestar o al descartar) no es llegar a otra.
+  const repintar = async (dicho) => {
+    app.dataset.sentido = "igual";
+    await pintarDecision();
+    const est = document.getElementById("estado-envio");
+    const f = document.getElementById("pie-dec");
+    if (!f || !est) return;
+    f.hidden = false;
+    f.querySelector(".pie-dec").hidden = true;
+    est.textContent = dicho;
+  };
+  /* Descartar: deja de contar entre las que te esperan. A una terminal que
+     seguía esperándola se le dice, para que el agente no se quede parado. */
+  const descartarB = document.getElementById("descartar-dec");
+  descartarB.addEventListener("click", async () => {
+    if (cuenta) parar();
+    descartarB.disabled = true;
+    boton.disabled = true;
+    try {
+      const r = await descartarDecision(d.id);
+      await repintar(r.avisada ? `Descartada. Se le ha dicho al panel ${r.panel} que no espere respuesta.` : "Descartada.");
+    } catch (err) {
+      descartarB.disabled = false;
+      estado.textContent = err.estado === 409 ? "Ya estaba contestada desde otro sitio." : `No se ha descartado: ${err.message}`;
+      repasar();
+    }
+  });
   const leerForm = () => {
     const el = {};
     for (const q of d.preguntas) {
@@ -1496,14 +1989,7 @@ async function pintarDecision() {
       try {
         const r = await api("POST", "/api/decision/responder", { id: d.id, elecciones: el });
         try { localStorage.removeItem(borradorDe(d.id)); } catch (_) {}
-        await pintarDecision();
-        const est = document.getElementById("estado-envio");
-        const f = document.getElementById("pie-dec");
-        if (f && est) {
-          f.hidden = false;
-          document.getElementById("enviar-dec").hidden = true;
-          est.textContent = r.entregada ? `Enviada. Se ha tecleado en el panel ${r.panel}.` : "Enviada. El agente la leerá cuando la pida.";
-        }
+        await repintar(r.entregada ? `Enviada. Se ha tecleado en el panel ${r.panel}.` : "Enviada. El agente la leerá cuando la pida.");
       } catch (err) {
         boton.textContent = "Enviar respuesta";
         boton.disabled = false;
@@ -1545,9 +2031,13 @@ function ahoraDe(v) {
   const filas = (v.filas || []).map((f) => f.replace(/\s+$/, ""));
   if (["pregunta", "ofrece", "tuya"].includes(v.estado)) {
     const m = menuDe(filas);
-    return m ? { tipo: "pregunta", ...m } : null;
+    // Sin menú que pulsar sigue siendo tu turno: se dice, y contestas en la caja.
+    return m ? { tipo: "pregunta", ...m } : { tipo: "espera", que: estadoTerminal(v)[0] };
   }
-  if (v.estado !== "a_medias") return null;
+  // Ni trabaja ni te pregunta: acabó, o está quieta. Antes aquí no se pintaba
+  // nada y el pie del chat se quedaba mudo justo cuando había terminado.
+  if (v.estado === "lista") return { tipo: "termino" };
+  if (v.estado !== "a_medias") return { tipo: "quieta" };
   const desde = Math.max(0, filas.length - 40);
   let giro = filas.length;
   for (let i = filas.length - 1; i >= desde; i--) if (GIRO.test(filas[i])) { giro = i; break; }
@@ -1597,13 +2087,24 @@ function menuDe(filas) {
   return { pregunta, opciones };
 }
 
+/* El pie del chat: la mascota y lo que pasa ahora. Siempre está, porque es
+   quien dice en qué anda la terminal: teclea si trabaja, te llama si te
+   pregunta, celebra si acabó y parpadea (o se estira) si no pasa nada. Es UNA
+   mascota, la de clave «ahora»: al cambiar de estado no nace otra, cambia de
+   ánimo, y por eso se le ve la entrada de cada uno. */
+const ANIMO_AHORA = { trabajando: "trabaja", pregunta: "espera", espera: "espera", termino: "lista", quieta: "quieta", cerrada: "dormida" };
 function ahoraHtml(a) {
   if (!a) return "";
+  const m = mascota(ANIMO_AHORA[a.tipo] || "quieta", 26, "ahora");
   if (a.tipo === "pregunta") {
-    return `<div class="ahora-cab">${mascota("espera", 22)}Te pregunta</div>${a.pregunta ? `<div class="ahora-que">${esc(a.pregunta)}</div>` : ""}
+    return `<div class="ahora-cab">${m}Te pregunta</div>${a.pregunta ? `<div class="ahora-que">${esc(a.pregunta)}</div>` : ""}
       <div class="opciones-menu">${a.opciones.map((o) => `<button data-num="${o.n}"><span class="num">${o.n}</span><span>${esc(o.texto)}</span></button>`).join("")}</div>`;
   }
-  return `<div class="ahora-cab">${mascota("trabaja", 22)}Trabajando${a.tiempo ? ` · ${esc(a.tiempo)}` : ""}</div>${a.que ? `<div class="ahora-que">${esc(a.que)}</div>` : ""}${a.det ? `<div class="ahora-det">${esc(a.det)}</div>` : ""}`;
+  if (a.tipo === "espera") return `<div class="ahora-cab">${m}<span><b>Es tu turno:</b> ${esc(a.que)}. Contéstale abajo.</span></div>`;
+  if (a.tipo === "termino") return `<div class="ahora-cab">${m}<span><b>Ha terminado.</b> Si quieres que siga, díselo abajo.</span></div>`;
+  if (a.tipo === "quieta") return `<div class="ahora-cab">${m}<span>Quieta, esperando a que le digas algo.</span></div>`;
+  if (a.tipo === "cerrada") return `<div class="ahora-cab">${m}<span>${esc(a.que)}</span></div>`;
+  return `<div class="ahora-cab">${m}Trabajando${a.tiempo ? ` · ${esc(a.tiempo)}` : ""}</div>${a.que ? `<div class="ahora-que">${esc(a.que)}</div>` : ""}${a.det ? `<div class="ahora-det">${esc(a.det)}</div>` : ""}`;
 }
 
 /* Una fila de la pantalla, legible en el móvil. Los ⏵ y ⏸ de Claude Code no
@@ -1657,10 +2158,10 @@ function pintarTerminal() {
           <button class="pastilla" data-tecla="arriba" aria-label="Flecha arriba">↑</button>
           <button class="pastilla" data-tecla="abajo" aria-label="Flecha abajo">↓</button>
         </div>
-        <p class="aviso-terminal">Va directo a la terminal, sin pasar por el conserje.</p>
       </footer>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir({ vista: "terminales" }));
+  // Se vuelve a donde se entró: a la portada, o a la lista de todas.
+  document.getElementById("atras").addEventListener("click", () => ir({ vista: e.volver === "lista" ? "lista" : "terminales" }, true));
   const texto = document.getElementById("texto");
   const enviarB = document.getElementById("enviar");
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
@@ -1675,8 +2176,11 @@ function pintarTerminal() {
   // Lo último pintado en cada cara. Solo se repinta lo que cambió: rehacerlo
   // cada 3 s le quitaba la selección a quien estaba copiando un trozo.
   const pintado = { pantalla: null, conversa: null };
+  const ent = entradas();
   const pegadoAbajo = (el) => el.scrollHeight - el.scrollTop - el.clientHeight < 60;
   let ultima = null;
+  // Al entrar, la mascota te saluda una vez (si no te está llamando ya).
+  let saludada = false;
   const cara = () => (e.cara === "pantalla" || !ultima?.conversa ? "pantalla" : "conversa");
   const visible = () => document.getElementById(cara() === "pantalla" ? "marco" : "conversa");
   // «Ir al final», solo cuando has subido: lo que llega mientras lees el
@@ -1689,9 +2193,11 @@ function pintarTerminal() {
     if (vueltas++ % 4 === 0) mirarDecisiones().catch(() => {});
     return leer().then(mirarBajar, (err) => {
       // Una terminal cerrada en el PC deja de contestar: se dice arriba en vez
-      // de dejar la última pantalla como si siguiera viva.
+      // de dejar la última pantalla como si siguiera viva. Y en el chat, la
+      // mascota se duerme: ahí ya no hay nadie.
       const s = document.getElementById("sub");
       if (s) s.textContent = err.message;
+      if (ultima?.conversa) pintarAhora({ tipo: "cerrada", que: err.message });
     });
   };
   const leer = async () => {
@@ -1727,7 +2233,12 @@ function pintarTerminal() {
     }
     // Lo de ahora antes que el transcript: se ve aunque este tarde o falle.
     const seguia = pegadoAbajo(conversa);
-    pintarAhora(ahoraDe(v));
+    const a = ahoraDe(v);
+    pintarAhora(a);
+    if (!saludada) {
+      saludada = true;
+      if (a?.tipo === "quieta" || a?.tipo === "trabajando") reaccionaMascota("ahora", "hola");
+    }
     if (seguia) conversa.scrollTop = conversa.scrollHeight;
     const lista = document.getElementById("turnos");
     let r;
@@ -1744,20 +2255,26 @@ function pintarTerminal() {
     const abajo = pintado.conversa === null || pegadoAbajo(conversa);
     // Repintar cerraba los pasos que tenías abiertos: se recuerdan por su hora.
     const abiertos = new Set([...lista.querySelectorAll("details.pasos[open]")].map((d) => d.dataset.k));
-    lista.innerHTML = r.turnos.length ? turnosHtml(r.turnos) : `<p class="vacio">Esta sesión todavía no ha dicho nada.</p>`;
+    lista.innerHTML = r.turnos.length ? turnosHtml(r.turnos, ent) : `<p class="vacio">Esta sesión todavía no ha dicho nada.</p>`;
     lista.querySelectorAll("details.pasos").forEach((d) => { if (abiertos.has(d.dataset.k)) d.open = true; });
     pintado.conversa = r.firma;
     if (abajo) conversa.scrollTop = conversa.scrollHeight;
   };
+  // Se compara lo que DICE y no el HTML, que lleva dentro a la mascota y esa
+  // cambia de postura sola: comparando el HTML se rehacía en cada vuelta y los
+  // botones de una pregunta nacían de nuevo bajo el dedo.
   let ahoraPintado = null;
   const pintarAhora = (a) => {
     const el = document.getElementById("ahora");
-    const html = ahoraHtml(a);
-    if (!el || html === ahoraPintado) return;
-    ahoraPintado = html;
+    const dice = JSON.stringify(a);
+    if (!el || dice === ahoraPintado) return;
+    ahoraPintado = dice;
+    const cambiaDeTipo = el.dataset.tipo !== (a?.tipo || "");
     el.hidden = !a;
     el.dataset.tipo = a?.tipo || "";
-    el.innerHTML = html;
+    el.innerHTML = ahoraHtml(a);
+    // Solo al cambiar de estado llega desde abajo: que «26s» pase a «27s» no es llegar.
+    if (cambiaDeTipo && a) { el.classList.remove("cambia"); void el.offsetWidth; el.classList.add("cambia"); }
   };
   // Las opciones de una pregunta mandan su número, que `mandar_texto` (pty.rs)
   // teclea como tecla suelta, sin Intro, porque así lo esperan esos menús.
@@ -1771,6 +2288,7 @@ function pintarTerminal() {
     try {
       await api("POST", "/api/terminal/escribir", { panel: e.panel, texto: b.dataset.num });
       salioBien();
+      reaccionaMascota("ahora", "enviado");
       enSeguida();
     } catch (err) {
       fallo(`No se ha mandado: ${err.message}`);
@@ -1788,10 +2306,15 @@ function pintarTerminal() {
     const v = await api("GET", "/api/decisiones");
     const b = document.getElementById("aviso-dec");
     if (!b) return;
-    const pend = (v.decisiones || []).filter((d) => !d.contestada);
+    // Solo las que siguen vivas: una decisión cuya terminal se cerró no es
+    // motivo para ponerte un aviso encima del chat de otra.
+    const pend = vivas(v.decisiones);
     b.hidden = !pend.length;
     if (!pend.length) return;
-    b.innerHTML = `${ICONO.decision}<span><b>${pend.length === 1 ? "Una decisión te espera" : `${pend.length} decisiones te esperan`}</b> · ${esc(pend[0].titulo)}</span><em>Contestar</em>`;
+    // La de ESTA terminal va primero: es la que tiene a este agente parado.
+    pend.sort((x, y) => Number(y.panel === e.panel) - Number(x.panel === e.panel));
+    const suya = pend[0].panel === e.panel;
+    b.innerHTML = `${ICONO.decision}<span><b>${pend.length === 1 ? (suya ? "Esta terminal espera tu decisión" : "Una decisión te espera") : `${pend.length} decisiones te esperan`}</b> · ${esc(pend[0].titulo)}</span><em>Contestar</em>`;
     b.onclick = () => ir(pend.length === 1 ? { vista: "decision", id: pend[0].id, volverPanel: e.panel } : { vista: "decisiones", volverPanel: e.panel });
   };
   document.querySelectorAll(".pestanas .pastilla").forEach((b) => b.addEventListener("click", () => {
@@ -1813,6 +2336,7 @@ function pintarTerminal() {
       adj.vaciar();
       crecer();
       salioBien();
+      reaccionaMascota("ahora", "enviado");
       enSeguida();
     } catch (err) {
       fallo(`No se ha mandado: ${err.message}`);
@@ -1864,12 +2388,20 @@ function resumenHerramientas(lista) {
   return [...n].map(([k, v]) => (v > 1 ? `${k} ×${v}` : k)).join(" · ");
 }
 
-/** Los turnos de un transcript (`session_messages`), como burbujas. */
-const turnosHtml = (turnos) => turnos.map((t) => {
-  // «[Image #1]» es como Claude Code apunta una imagen pegada: aquí, una etiqueta.
-  const texto = md(t.texto).replace(/\[Image #(\d+)\]/g, '<span class="chip-img">imagen $1</span>');
-  return `<div class="turno" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${texto}${pasosHtml(t)}</div></div>`;
-}).join("");
+/** Los turnos de un transcript (`session_messages`), como burbujas. Con `ent`,
+    los que llegan desde el último pintado entran desde abajo; un turno se
+    reconoce por su hora (o por cómo empieza, si no la trae), no por su sitio
+    en la lista, que son «los últimos 80» y se corre con cada turno nuevo. */
+const turnosHtml = (turnos, ent) => {
+  const html = turnos.map((t) => {
+    // «[Image #1]» es como Claude Code apunta una imagen pegada: aquí, una etiqueta.
+    const texto = md(t.texto).replace(/\[Image #(\d+)\]/g, '<span class="chip-img">imagen $1</span>');
+    const llega = ent ? ent.de(`${t.rol}|${t.hora || t.texto.slice(0, 48)}`) : "";
+    return `<div class="turno${llega}" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${texto}${pasosHtml(t)}</div></div>`;
+  }).join("");
+  ent?.pintado();
+  return html;
+};
 
 /** Los pasos de un turno, plegados: cuántos, de qué, y al abrir qué hizo cada
     uno (`pasos`, de sessions.rs; los últimos 30 del turno). */
@@ -1902,7 +2434,7 @@ function pintarSesion() {
       <main class="cuerpo" id="sesion"></main>
       <p class="solo-lectura">Solo para leer. Si quieres decirle algo, díselo al conserje.</p>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir({ vista: "hilo", id: e.volver.id }));
+  document.getElementById("atras").addEventListener("click", () => ir({ vista: "hilo", id: e.volver.id }, true));
   const cuerpo = document.getElementById("sesion");
   if (!e.sid) {
     cuerpo.innerHTML = `<p class="vacio">Esta sesión todavía no ha escrito nada. En cuanto empiece, aparece aquí.</p>`;

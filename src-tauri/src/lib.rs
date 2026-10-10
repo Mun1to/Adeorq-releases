@@ -416,6 +416,7 @@ pub fn run() {
             decisiones::decisiones_listar,
             decisiones::decision_responder,
             decisiones::decision_entregada,
+            decisiones::decision_descartar,
             mcp_clientes::mcp_clientes_leer,
             mcp_clientes::mcp_clientes_poner,
             movil::movil_estado,

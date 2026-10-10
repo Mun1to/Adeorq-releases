@@ -1,4 +1,4 @@
-import type { NoteFile } from "./pty";
+import type { NoteFile, PaneStatus } from "./pty";
 
 // El formato de una nota del lienzo, aparte de su tarjeta.
 //
@@ -112,4 +112,28 @@ export function encargoDeNota(f: NoteFile): string {
     );
   }
   return partes.join("\n\n");
+}
+
+/** Una terminal a la que se le puede lanzar una nota. */
+export interface Destino {
+  id: number;
+  nombre: string;
+  estado: PaneStatus["state"];
+  /** Falso si lanzarle algo ahora haría daño; el motivo lo da el estado. */
+  puede: boolean;
+}
+
+/**
+ * A qué terminales se puede lanzar una nota: los agentes primero, y cada grupo
+ * en el orden en que se abrieron.
+ *
+ * A una que te está preguntando algo NO se le lanza: lo que se le escriba
+ * contestaría a su pregunta (un «1» o un «sí» que nadie quiso dar), no sería
+ * un encargo. A una que trabaja sí: Claude Code lo encola para cuando acabe.
+ */
+export function destinosDeNota(estados: Record<number, PaneStatus>): Destino[] {
+  return Object.values(estados)
+    .slice()
+    .sort((a, b) => Number(b.agent) - Number(a.agent) || a.id - b.id)
+    .map((p) => ({ id: p.id, nombre: p.name, estado: p.state, puede: p.state !== "pregunta" }));
 }

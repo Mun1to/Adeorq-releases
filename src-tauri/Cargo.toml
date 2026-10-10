@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.187"
+version = "0.9.188"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 # PolyForm Shield 1.0.0 no está en la lista SPDX, así que se apunta al archivo.

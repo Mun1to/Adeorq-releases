@@ -2616,6 +2616,11 @@ const EN: Record<string, string> = {
   "Le faltan colores:": "It is missing colours:",
   "Es un tema de fondo claro, y sus letras no se leerían sobre el cristal oscuro de Adeorq.":
     "It is a light-background theme, and its text would not be readable over Adeorq's dark glass.",
+  // Lanzar una nota del lienzo en una terminal (`components/CanvasNote.tsx`).
+  "Lanzar en una terminal": "Run in a terminal",
+  "No hay terminales abiertas.": "No terminals open.",
+  "Lanzada: ya la tiene esa terminal.": "Sent: that terminal has it now.",
+  "te está preguntando algo": "it is asking you something",
   // La campana de avisos, que es la mascota (`components/Campana.tsx`).
   "{n} terminales te reclaman": "{n} terminals need you",
   "Una terminal te espera": "A terminal is waiting for you",

@@ -1,11 +1,11 @@
 {
-  "version": "0.9.187",
-  "notes": "La mascota tiene repertorio: mira a los lados, se estira, teclea, celebra y te sigue con el ojo. El chat del movil deja mas sitio para leer y la mascota dice que hace el agente.",
-  "pub_date": "2026-10-10T14:44:24Z",
+  "version": "0.9.188",
+  "notes": "Una nota del lienzo se puede lanzar en la terminal que elijas, con un boton en la propia nota.",
+  "pub_date": "2026-10-10T14:59:06Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzI0YUVYYjRtWFBkdFZVZXNUWWVWUHJvYWpwN05BdUZFUjhRYi9SZFZyaFh4VW5wWklNZFVMOC82ZnVBSzRUZ3hnb0Q5ZHlWc1EzNDN2UUhFZjJBcUEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjQzNDM4CWZpbGU6QWRlb3JxXzAuOS4xODdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODcKK0dXaElPaTRoaFFGOEU3cVJEZ2E4eWszclc2UDc0ZG1tdzk0ZGFoOEhKQmltMXE3MWFyVUZrM2VHMXMrdUdTajZLZDVXaWkybXE1WmZXem0vZnd5Q1E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.187/Adeorq_0.9.187_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3pkTGEyYm91aG5renFaWDRyOEwrcWxKNUMwK0YwN3Ixcm93T1l3NlVseitJdi80QVRWeWtwMkhmdW9KZHM3dzNoU3o2QXI3Vldrb01NRThjV1QwRHdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjQ0MzI5CWZpbGU6QWRlb3JxXzAuOS4xODhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xODgKcGVSbFVBTmVsaXNrc0xSQzhMVy9wVnVDVjVFSjM3Q0F0MktVajJNWmJUdGNoeXNCUnFqRFFWNkd6RDVSL3JLT1FBRys2bWo4MGsxOXZZZU9iNmRLQlE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.188/Adeorq_0.9.188_x64-setup.exe"
     }
   }
 }

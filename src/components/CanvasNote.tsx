@@ -4,11 +4,12 @@ import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
 import { nodragEnControles } from "../lib/arrastre";
 import { noteRead, noteWrite } from "../lib/pty";
-import { conCuerpo, conTitulo, cuerpoDe, leerLineas, tituloDe, voltear } from "../lib/notas";
+import { useCabina } from "../lib/cabina";
+import { pasteInto } from "../lib/flechas";
+import { PINTA } from "../lib/estados";
+import { conCuerpo, conTitulo, cuerpoDe, destinosDeNota, encargoDeNota, leerLineas, tituloDe, voltear } from "../lib/notas";
 import { Grip } from "./CanvasWidgets";
-import {
-  CloseIcon,
-} from "./Icons";
+import { CloseIcon, EnviarIcon, EstadoIcon } from "./Icons";
 
 // Una nota del lienzo: lo que apuntas al vuelo, con casillas si hace falta.
 //
@@ -45,6 +46,10 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
   const [editando, setEditando] = useState(false);
   const [paleta, setPaleta] = useState(false);
   const [renombrando, setRenombrando] = useState(false);
+  /** El menú de «lanzar en una terminal», y lo que se dice al lanzarla. */
+  const [lanzando, setLanzando] = useState(false);
+  const [dicho, setDicho] = useState("");
+  const estados = useCabina((s) => s.estados);
   const sello = useRef(0);
   const timer = useRef<number | undefined>(undefined);
   const area = useRef<HTMLTextAreaElement>(null);
@@ -102,6 +107,28 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
     },
     [],
   );
+
+  /**
+   * Lanza la nota en una terminal: se la escribe y pulsa Intro.
+   *
+   * Antes se guarda lo último que escribiste, sin esperar al retardo: el
+   * encargo le dice al agente que abra el ARCHIVO, y tiene que encontrar ahí
+   * lo mismo que tú ves.
+   */
+  const lanzarEn = async (paneId: number) => {
+    setLanzando(false);
+    window.clearTimeout(timer.current);
+    try {
+      const f = await noteWrite(data.noteId, texto);
+      sello.current = f.stamp;
+      setRuta(f.path);
+      pasteInto(paneId, encargoDeNota({ ...f, text: texto }), true);
+      setDicho(t("Lanzada: ya la tiene esa terminal."));
+    } catch (e) {
+      setDicho(String(e));
+    }
+    window.setTimeout(() => setDicho(""), 4000);
+  };
 
   const lineas = leerLineas(cuerpoDe(texto));
   const titulo = tituloDe(texto);
@@ -174,6 +201,18 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
           </span>
         )}
         <button
+          className="wdg-x"
+          data-lanzar
+          data-on={lanzando || undefined}
+          onClick={() => {
+            setPaleta(false);
+            setLanzando((v) => !v);
+          }}
+          data-tip={t("Lanzar en una terminal")}
+        >
+          <EnviarIcon size={13} />
+        </button>
+        <button
           className="wdg-x note-tint"
           onClick={() => setPaleta((v) => !v)}
           data-tip={t("Color")}
@@ -184,6 +223,20 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
           <CloseIcon size={13} />
         </button>
       </header>
+
+      {lanzando && (
+        <div className="note-lanzar nodrag" role="menu">
+          {destinosDeNota(estados).length === 0 && <p>{t("No hay terminales abiertas.")}</p>}
+          {destinosDeNota(estados).map((d) => (
+            <button key={d.id} role="menuitem" disabled={!d.puede} onClick={() => void lanzarEn(d.id)}>
+              <EstadoIcon estado={d.estado} size={13} />
+              <span>{d.nombre}</span>
+              <em>{d.puede ? t(PINTA[d.estado]?.label ?? "") : t("te está preguntando algo")}</em>
+            </button>
+          ))}
+        </div>
+      )}
+      {dicho && <p className="note-dicho nodrag">{dicho}</p>}
 
       {paleta && (
         <div className="note-colors nodrag">

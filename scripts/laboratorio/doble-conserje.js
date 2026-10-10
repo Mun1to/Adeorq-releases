@@ -109,6 +109,15 @@ async (page) => {
         // entera: montar, recargar y ver que todo sigue en su sitio.
         case "save_board": sessionStorage.setItem("__tablero", args.content); return null;
         case "read_board": return sessionStorage.getItem("__tablero") ?? "";
+        // Las notas del lienzo: un `.md` por nota, aquí en memoria. Sin esto
+        // una nota no podía ni guardarse (`lanzar-nota.js`).
+        case "note_read":
+        case "note_write": {
+          const notas = (window.__notas ??= {});
+          if (cmd === "note_write") notas[args.id] = { text: args.text, stamp: Date.now() };
+          const n = notas[args.id] ?? { text: "", stamp: 0 };
+          return { id: args.id, text: n.text, stamp: n.stamp, path: `C:\\Users\\Muni\\AppData\\Local\\Adeorq\\notas\\${args.id}.md` };
+        }
         // El logo del proyecto (la foto del banco sirve): la marca de agua y la
         // tapa de las terminales del lienzo lo enseñan en vez de las iniciales.
         case "project_icons": return { "C:\\proyectos\\Adeorq": "http://localhost:1420/__fondo/logo.png" };

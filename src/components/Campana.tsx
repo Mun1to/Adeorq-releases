@@ -7,36 +7,54 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCabina } from "../lib/cabina";
 import { animoDe, conectarAvisos, sinLeer, useAvisos, type Animo, type Aviso } from "../lib/campana";
+import { pendientes, useDecisiones } from "../lib/decisiones";
 import { haceCuanto } from "../lib/estados";
 import { useT, type Translate } from "../lib/i18n";
+import { cortados } from "../lib/programados";
+import { useSuena } from "../lib/suena";
+import { useProgramados } from "./AgendaProgramados";
 import { EstadoIcon } from "./Icons";
 import Mascota from "./Mascota";
 
-/** Lo que dice el globo de la mascota, según cómo esté. */
-function pista(t: Translate, animo: Animo, cuantos: number): string {
+/** Lo que dice el globo de Adeo, según cómo esté. */
+function pista(t: Translate, animo: Animo, cuantos: number, decisiones: number): string {
   const que =
     animo === "espera"
       ? cuantos > 1
         ? t("{n} terminales te reclaman", { n: cuantos })
         : t("Una terminal te espera")
-      : animo === "lista"
-        ? t("Un agente ha terminado")
-        : animo === "trabaja"
-          ? t("Tus agentes están trabajando")
-          : animo === "dormida"
-            ? t("No hay terminales abiertas")
-            : t("Nada te reclama ahora");
-  return `${que}\n${t("Clic: ver los avisos")}`;
+      : animo === "duda"
+        ? decisiones > 1
+          ? t("{n} decisiones te esperan en la pestaña Decisiones", { n: decisiones })
+          : t("Una decisión te espera en la pestaña Decisiones")
+        : animo === "lista"
+          ? t("Un agente ha terminado")
+          : animo === "apurada"
+            ? t("Un encargo programado se ha parado: míralo en la Agenda")
+            : animo === "trabaja"
+              ? t("Tus agentes están trabajando")
+              : animo === "baila"
+                ? t("Nada te reclama, y suena música")
+                : animo === "dormida"
+                  ? t("No hay terminales abiertas")
+                  : t("Nada te reclama ahora");
+  return `${que}\n${t("Soy Adeo. Clic: ver los avisos")}`;
 }
 
-export default function Campana({ irATerminal }: { irATerminal: (id: number) => void }) {
+export default function Campana({
+  irATerminal,
+  enfocado,
+}: {
+  irATerminal: (id: number) => void;
+  /** La terminal en la que estás: al entrar en una, su «terminó» ya está visto. */
+  enfocado: number | null;
+}) {
   const { t } = useT();
   const lista = useAvisos((s) => s.lista);
-  const marcarLeidos = useAvisos((s) => s.marcarLeidos);
-  const vaciar = useAvisos((s) => s.vaciar);
+  const vista = useAvisos((s) => s.vista);
+  const entrar = useAvisos((s) => s.entrar);
   const estados = useCabina((s) => s.estados);
   const [abierta, setAbierta] = useState(false);
-  const [soloAhora, setSoloAhora] = useState(false);
   const [sitio, setSitio] = useState({ x: 12, y: 46 });
   /** Sube con cada pulsación: la mascota da un brinco. */
   const [toque, setToque] = useState(0);
@@ -44,15 +62,25 @@ export default function Campana({ irATerminal }: { irATerminal: (id: number) => 
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => conectarAvisos(), []);
+  // Solo al CAMBIAR de terminal, que es algo que haces tú: si un agente termina
+  // en la que ya tenías delante, puede que no estés mirando.
+  useEffect(() => {
+    if (enfocado != null) entrar(enfocado);
+  }, [enfocado, entrar]);
 
+  // Lo que Adeo sabe además de las terminales: las decisiones que siguen
+  // vivas, los encargos programados que el freno paró y si suena música.
+  const decisiones = pendientes(useDecisiones());
+  const [programados] = useProgramados();
+  const suena = useSuena((s) => s.suena);
   const cuantos = sinLeer(lista);
-  const animo = animoDe(lista, estados);
+  const animo = animoDe(lista, estados, { decisiones, cortados: programados ? cortados(programados.encargos) : 0, suena });
 
   const cerrar = () => {
     setAbierta(false);
-    // Se dan por leídos al CERRAR, no al abrir: mientras miras la lista, los
-    // nuevos siguen marcados como nuevos.
-    marcarLeidos();
+    // Se dan por vistos al CERRAR, no al abrir: mientras miras la lista, los
+    // nuevos siguen marcados como nuevos y los que terminaron siguen ahí.
+    vista();
   };
   const alternar = () => {
     setToque((n) => n + 1);
@@ -84,7 +112,7 @@ export default function Campana({ irATerminal }: { irATerminal: (id: number) => 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierta]);
 
-  const visibles = (soloAhora ? lista.filter((a) => a.vigente) : lista).slice().reverse();
+  const visibles = lista.slice().reverse();
   const ahora = Date.now();
   const ir = (a: Aviso) => {
     irATerminal(a.paneId);
@@ -97,8 +125,8 @@ export default function Campana({ irATerminal }: { irATerminal: (id: number) => 
         ref={boton}
         className="campana"
         data-abierta={abierta || undefined}
-        data-tip={abierta ? undefined : pista(t, animo, cuantos)}
-        aria-label={t("Avisos")}
+        data-tip={abierta ? undefined : pista(t, animo, cuantos, decisiones)}
+        aria-label={t("Adeo: avisos")}
         aria-expanded={abierta}
         onClick={() => alternar()}
       >
@@ -112,35 +140,19 @@ export default function Campana({ irATerminal }: { irATerminal: (id: number) => 
           <div ref={panel} className="avisos" role="dialog" aria-label={t("Avisos")} style={{ left: sitio.x, top: sitio.y }}>
             <header className="avisos-cab">
               <b>{t("Avisos")}</b>
-              <span className="avisos-filtros">
-                <button className="choice" data-on={!soloAhora} onClick={() => setSoloAhora(false)}>
-                  {t("Todos")}
-                </button>
-                <button className="choice" data-on={soloAhora} onClick={() => setSoloAhora(true)}>
-                  {t("Ahora")}
-                </button>
-              </span>
             </header>
             {visibles.length === 0 ? (
               <div className="avisos-vacio">
                 <Mascota animo={animo === "dormida" ? "dormida" : "quieta"} alto={56} />
-                <p>{soloAhora || lista.length === 0 ? t("Nada te reclama ahora.") : t("Sin avisos.")}</p>
+                <p>{t("Nada te reclama ahora.")}</p>
               </div>
             ) : (
               <ul className="avisos-lista">
                 {visibles.map((a) => {
-                  const esta = a.paneId in estados;
                   const hace = haceCuanto(ahora - a.cuando);
                   return (
                     <li key={a.n}>
-                      <button
-                        className="aviso"
-                        data-tipo={a.tipo}
-                        data-vigente={a.vigente}
-                        data-nuevo={!a.leido || undefined}
-                        disabled={!esta}
-                        onClick={() => ir(a)}
-                      >
+                      <button className="aviso" data-tipo={a.tipo} data-nuevo={!a.leido || undefined} onClick={() => ir(a)}>
                         <span className="aviso-icono">
                           <EstadoIcon estado={a.tipo === "hecho" ? "lista" : "pregunta"} size={15} />
                         </span>
@@ -151,19 +163,12 @@ export default function Campana({ irATerminal }: { irATerminal: (id: number) => 
                           </span>
                           {a.porque && <span className="aviso-porque">{a.porque}</span>}
                         </span>
-                        <span className="aviso-cuando">{esta ? hace || t("ahora") : t("cerrada")}</span>
+                        <span className="aviso-cuando">{hace || t("ahora")}</span>
                       </button>
                     </li>
                   );
                 })}
               </ul>
-            )}
-            {lista.some((a) => !a.vigente) && (
-              <footer className="avisos-pie">
-                <button className="mini" onClick={() => vaciar()}>
-                  {t("Quitar los que ya pasaron")}
-                </button>
-              </footer>
             )}
           </div>,
           document.body,

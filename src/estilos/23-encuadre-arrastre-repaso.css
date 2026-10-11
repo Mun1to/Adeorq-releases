@@ -19,7 +19,7 @@
   width: 100%;
   max-width: 420px;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: var(--panel-solid);
   cursor: grab;
@@ -121,10 +121,9 @@
      nada, y el ojo la lee antes que cualquier cambio de color. */
   transform-origin: 0 0;
   opacity: 0.92;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.45),
-    0 2px 6px rgba(0, 0, 0, 0.3);
+    var(--sombra-2);
   /* SUPERFICIE PROPIA Y SÓLIDA, que es la regla escrita encima de `.panel-card`
      y aquí es obligatoria: un proyecto se pinta con `--row` (translúcido), una
      sesión no tiene fondo ninguno y la cabecera de un grupo es un 6 % de color.
@@ -166,7 +165,7 @@
    que SÍ está en un grupo, que es la única vez que significa algo. */
 .sueltas-de {
   list-style: none;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   border: 1px dashed transparent;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
@@ -278,7 +277,7 @@
   width: min(580px, 100%);
   margin: 20px 0 6px;
   padding: 16px;
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
@@ -302,7 +301,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 10px 12px;
-  border-radius: 11px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--panel-solid) 82%, transparent);
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   min-width: 0;
@@ -378,7 +377,7 @@
    pasar por encima se enciende: sin eso era un sitio al que se podía soltar sin
    que nada lo dijera, o sea un sitio que no existía. */
 .sueltas-zona[data-lista] {
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
@@ -462,7 +461,7 @@
   background: linear-gradient(var(--pane-bg), var(--pane-bg)), var(--panel-solid);
   color: var(--text);
   border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   padding: 12px 14px;
   margin: 12px 0 2px;
   overflow: hidden;
@@ -493,7 +492,7 @@
   width: 17px;
   height: 17px;
   margin: -2px -6px -2px 1px;
-  border-radius: 5px;
+  border-radius: var(--r-chico);
   color: color-mix(in srgb, var(--text) 38%, transparent);
   font-size: 11px;
   font-weight: 700;
@@ -562,7 +561,7 @@
   padding: 12px 14px;
   border: 1px solid var(--border);
   border-left: 3px solid var(--bad, #ff6b6b);
-  border-radius: 0 9px 9px 0;
+  border-radius: 0 var(--r-btn) var(--r-btn) 0;
   background: var(--panel);
   color: var(--text);
   font-family: "Cascadia Mono", Consolas, monospace;

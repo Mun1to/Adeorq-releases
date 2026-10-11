@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { encode } from "uqr";
 import { useT } from "../lib/i18n";
+import Espera, { Ocupado } from "./Espera";
 import { hace } from "../lib/uso";
 import {
   movilAvisar,
@@ -141,7 +142,9 @@ export default function AjustesMovil() {
         <>
           <h3 className="movil-paso">{t("1. Tailscale, en este PC y en tu móvil")}</h3>
           {!ts ? (
-            <p className="setting-line">{t("Mirando Tailscale…")}</p>
+            <Espera activo className="setting-line">
+              {t("Mirando Tailscale…")}
+            </Espera>
           ) : !ts.instalado ? (
             <>
               <p className="setting-line setting-bad">⚠ {t("Tailscale no está instalado en este PC.")}</p>
@@ -195,7 +198,9 @@ export default function AjustesMovil() {
               )}
               <div className="movil-botones">
                 <button className="mini" disabled={ocupado} onClick={() => mirarTailscale(true)}>
-                  {ocupado ? t("Conectando…") : t("Llevar el conserje a Tailscale")}
+                  <Ocupado activo={ocupado} mientras={t("Conectando…")}>
+                    {t("Llevar el conserje a Tailscale")}
+                  </Ocupado>
                 </button>
                 {enlace && (
                   <button className="mini" onClick={() => void openUrl(enlace).catch(() => {})}>

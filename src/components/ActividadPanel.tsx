@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from "react";
 import { useT } from "../lib/i18n";
+import Espera from "./Espera";
 import { latido } from "../lib/latido";
 import {
   sessionActivity,
@@ -99,12 +100,12 @@ export default function ActividadPanel({ cwd, sessionId, nombre }: Props) {
     );
   }
   if (!act) {
-    return (
-      <p className="act-vacio">
-        {fallo
-          ? t("Esta terminal aún no tiene conversación en el disco.")
-          : t("Leyendo el transcript…")}
-      </p>
+    return fallo ? (
+      <p className="act-vacio">{t("Esta terminal aún no tiene conversación en el disco.")}</p>
+    ) : (
+      <Espera activo className="act-vacio">
+        {t("Leyendo el transcript…")}
+      </Espera>
     );
   }
 

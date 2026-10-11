@@ -22,9 +22,9 @@
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 18px;
+  border-radius: var(--r-caja);
   padding: 24px 26px 20px;
-  box-shadow: var(--glass-edge), 0 24px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 .onb-head {
@@ -50,7 +50,7 @@
 .onb-pip {
   width: 18px;
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--border);
 }
 
@@ -126,7 +126,7 @@
   font-size: 12.5px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: rgba(0, 0, 0, 0.18);
 }
 
@@ -172,7 +172,7 @@
   font-size: 12px;
   padding: 6px 9px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: rgba(0, 0, 0, 0.18);
 }
 
@@ -244,7 +244,7 @@
   gap: 10px;
   padding: 11px 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   cursor: pointer;
 }
 
@@ -299,7 +299,7 @@
   width: 16px;
   height: 16px;
   flex: none;
-  border-radius: 5px;
+  border-radius: var(--r-chico);
   background: linear-gradient(135deg, var(--accent), var(--bg));
   border: 1px solid var(--border-strong);
 }
@@ -330,7 +330,7 @@
   font-size: 12.5px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r-btn);
 }
 
 .onb-resumen b {
@@ -377,7 +377,7 @@
 
 .tour-foco {
   position: fixed;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   box-shadow:
     0 0 0 9999px rgba(4, 7, 12, 0.66),
     0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent);
@@ -391,9 +391,9 @@
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   padding: 14px 16px 12px;
-  box-shadow: var(--glass-edge), 0 18px 44px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 .tour-cuenta {
@@ -451,7 +451,7 @@
 .rep-texto {
   width: 100%;
   resize: none;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   padding: 11px 13px;
   line-height: 1.65;
   font-family: inherit;
@@ -497,7 +497,7 @@
   gap: 8px;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   font-size: 12.5px;
   cursor: pointer;
 }
@@ -517,7 +517,7 @@
   letter-spacing: 0.5px;
   color: var(--muted);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 1px 7px;
   flex: none;
 }
@@ -562,7 +562,7 @@
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 11px;
+  border-radius: var(--r-btn);
 }
 
 /* El número importa: es el mismo orden que va a tener el BUZON.md, así que
@@ -573,7 +573,7 @@
   height: 21px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   border: 1px solid var(--border-strong);
   font-size: 11px;
   color: var(--muted);

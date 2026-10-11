@@ -21,7 +21,11 @@ function ok(nombre: string, cond: boolean, detalle = "") {
 ok("terminar cuenta", reclamaTuAtencion("lista"));
 ok("preguntarte cuenta", reclamaTuAtencion("pregunta"), "es el «o necesita mi feedback»");
 ok("ofrecerte algo cuenta", reclamaTuAtencion("ofrece"));
-ok("«te toca» cuenta", reclamaTuAtencion("tuya"));
+ok(
+  "un mensaje tuyo sin contestar NO cuenta",
+  !reclamaTuAtencion("tuya"),
+  "acabas de escribirle: casi siempre esta pensando, y ante la duda no se avisa",
+);
 ok("trabajando NO cuenta", !reclamaTuAtencion("a_medias"));
 ok(
   "desconocido NO cuenta",
@@ -30,7 +34,8 @@ ok(
 );
 ok(
   "va de la mano de la columna del kanban",
-  ["lista", "pregunta", "ofrece", "tuya"].every((s) => columnaDe(s as never) !== "trabajando"),
+  ["lista", "pregunta", "ofrece"].every((s) => columnaDe(s as never) !== "trabajando") &&
+    ["a_medias", "tuya", ""].every((s) => columnaDe(s as never) === "trabajando"),
   "un solo vocabulario, no dos",
 );
 
@@ -58,10 +63,24 @@ ok(
   !acabaDeReclamar(undefined, "pregunta"),
 );
 ok(
-  "de desconocido a terminado SI salta",
-  acabaDeReclamar("", "lista"),
-  "una terminal que arranco y acabo enseguida",
+  "de desconocido a terminado NO salta",
+  !acabaDeReclamar("", "lista") && !acabaDeReclamar("", "ofrece"),
+  "un panel restaurado pasa por «» mientras se lee su transcript: saltaba un aviso por terminal en cada arranque",
+);
+ok(
+  "de desconocido a una pregunta SI salta",
+  acabaDeReclamar("", "pregunta"),
+  "un menu en pantalla es de ahora mismo: una terminal nueva que pide permiso",
 );
 ok("de trabajar a desconocido no salta", !acabaDeReclamar("a_medias", ""));
+ok(
+  "le escribes a una que habia terminado: no salta ningun «te espera»",
+  !acabaDeReclamar("lista", "tuya") && !acabaDeReclamar("", "tuya"),
+);
+ok(
+  "y cuando esa contesta, si salta el «termino»",
+  acabaDeReclamar("tuya", "lista") && acabaDeReclamar("tuya", "pregunta"),
+  "aunque no se le llegara a ver trabajar entre medias",
+);
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

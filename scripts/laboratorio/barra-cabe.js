@@ -5,9 +5,10 @@
 //      con la página recién abierta (o cerrada antes con browser_close)
 //
 // La barra va quitando piezas cuando no cabe (`RETIRADAS` en
-// `lib/barraQueCabe.ts`, cada una en `data-sin`): los nombres de los botones de
-// la Cabina, el título de la canción, el reproductor y el nombre «Adeorq». Las
-// pestañas van solo con su icono en cualquier ancho (2026-10-10). Hasta
+// `lib/barraQueCabe.ts`, cada una en `data-sin`): el título de la canción, el
+// reproductor y el nombre «Adeorq». Las pestañas van solo con su icono en
+// cualquier ancho (2026-10-10), y los tres botones de la Cabina también
+// (2026-10-11). Hasta
 // el 2026-10-10 lo decidían cortes fijos, y este banco los daba por buenos
 // midiendo una barra SIN el pulso de CPU, RAM y agentes: a Munir, con el suyo
 // y la música sonando, la fila no le cabía a 1920 (el reproductor aplastado,
@@ -57,7 +58,9 @@ async (page) => {
             ? { title: "Una canción con un título bastante largo de verdad", artist: "Alguien", playing: true, app: "Spotify", volume: 0.5 }
             : null;
         case "decisiones_listar":
-          return [{ id: "d1", titulo: "Una", creada: Date.now(), preguntas: [{ id: "A", titulo: "¿?", opciones: [{ texto: "Sí", recomendada: false }, { texto: "No", recomendada: false }] }] }];
+          // «viva»: desde la 0.9.189 el número de la pestaña cuenta solo las que
+          // tienen detrás una terminal esperando, y sin esto no salía ninguno.
+          return [{ id: "d1", titulo: "Una", creada: Date.now(), vigencia: "viva", preguntas: [{ id: "A", titulo: "¿?", opciones: [{ texto: "Sí", recomendada: false }, { texto: "No", recomendada: false }] }] }];
         default:
           throw new Error(`sin doble: ${cmd}`);
       }
@@ -109,7 +112,15 @@ async (page) => {
       sin: barra.dataset.sin ?? "?",
       sobra: Math.round(innerWidth - derecha),
       desborda: Math.max(0, ...cajas.map((c) => c.scrollWidth - c.clientWidth)),
-      acciones: Boolean(document.querySelector(".topbar-acciones .tab-label")),
+      // Los tres botones de la Cabina, que se reconocen por su nombre: están,
+      // sin nada escrito y con su globo.
+      acciones: [...document.querySelectorAll(".topbar-acciones > .tab")]
+        .filter((b) => ["Minimizar todas", "Traer todas", "Disposición", "Cerrar todas"].includes(b.getAttribute("aria-label") ?? ""))
+        .map((b) => ({
+          escrito: b.querySelector(".tab-label")?.textContent ?? "",
+          nombre: b.getAttribute("aria-label"),
+          globo: b.dataset.tip ?? "",
+        })),
       pulso: /CPU/.test(barra.textContent),
       musica: Boolean(document.querySelector(".np")),
       cuenta: document.querySelector('[data-tab="decisiones"] .tab-count')?.textContent ?? null,
@@ -165,11 +176,15 @@ async (page) => {
     antes = ahora;
   }
   const peor = await medir();
-  if (!peor.acciones) fallos.push("no salen los botones de la Cabina: no está el peor caso");
+  if (peor.acciones.length !== 3) fallos.push(`salen ${peor.acciones.length} botones de la Cabina y no tres: no está el peor caso`);
+  for (const b of peor.acciones) {
+    if (b.escrito) fallos.push(`el botón «${b.nombre}» de la Cabina lleva su nombre escrito: van solo con el icono`);
+    if (!b.globo) fallos.push(`el botón «${b.nombre}» de la Cabina no tiene globo que diga qué hace`);
+  }
   if (!peor.pulso || !peor.musica || peor.cuenta !== "1") {
     fallos.push(`no está el peor caso (pulso ${peor.pulso}, música ${peor.musica}, cuenta ${peor.cuenta})`);
   }
-  // Se resume en tramos: { "sin «acciones titulo»": "1660-1920", … }.
+  // Se resume en tramos: { "sin «titulo musica»": "1100-1400", … }.
   const tramos = {};
   for (const [w, sin] of Object.entries(quitado).sort((a, b) => a[0] - b[0])) {
     const clave = `sin «${sin}»`;

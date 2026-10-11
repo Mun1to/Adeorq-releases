@@ -229,7 +229,7 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
   border-color: rgba(160, 200, 255, 0.2);
   transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 3px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .tab:active {
@@ -272,7 +272,7 @@
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 0 5px;
 }
 
@@ -339,7 +339,7 @@
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 7px 12px;
   font-size: 13px;
   outline: none;
@@ -502,8 +502,7 @@
   border-color: rgba(140, 185, 255, 0.5);
   transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 3px 9px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .mini:active {
@@ -561,7 +560,7 @@
      catorce píxeles por fila eran casi tres filas enteras de barra. El alto lo
      marca el logo, así que los dos bajan a la vez o la fila deja de encogerse. */
   min-height: 40px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   /* ⚠ OPACO, y esto es legibilidad pura, no gusto.
      `--row` es un rgba al 34 %, y Windows NO aplica ClearType (el suavizado por
      subpíxeles) sobre un fondo que no es opaco: no sabe de qué color va a estar
@@ -607,7 +606,7 @@
 
 .sueltas-n {
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--row);
   font-size: 9.5px;
   letter-spacing: 0;
@@ -660,7 +659,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 4px 4px 6px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
 }
 
 .oculto:hover {
@@ -727,7 +726,7 @@
   flex: none;
   width: 28px;
   height: 28px;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -785,7 +784,7 @@
 .project-mark .pavatar {
   width: 100%;
   height: 100%;
-  border-radius: 9px 3px 3px 9px;
+  border-radius: var(--r-btn) 3px 3px var(--r-btn);
   font-size: 13px;
   letter-spacing: 0.3px;
 }
@@ -812,7 +811,7 @@
 
 /* Discord rounds the square when you open a server; same idea, quieter. */
 .project[data-open="true"] .project-mark .pavatar {
-  border-radius: 12px 4px 4px 12px;
+  border-radius: var(--r-btn) 4px 4px var(--r-btn);
 }
 
 .project-name {

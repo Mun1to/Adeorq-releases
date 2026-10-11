@@ -6,10 +6,10 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: var(--panel-solid);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--sombra-3);
   overflow: hidden;
 }
 
@@ -271,7 +271,7 @@
   min-width: 0;
   padding: 1px 5px;
   border: 1px solid var(--accent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: var(--bg);
   color: var(--text);
   font: inherit;
@@ -305,7 +305,7 @@
   flex: 1;
   min-width: 0;
   padding: 5px 7px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   border: 1px dashed color-mix(in srgb, var(--accent) 40%, var(--border));
   background: transparent;
   color: var(--text);
@@ -383,7 +383,7 @@
   gap: 6px;
   padding: 4px 4px 4px 10px;
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--popover);
 }
 
@@ -432,7 +432,7 @@
   width: 38px;
   height: 22px;
   margin: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   /* Off is glass, not grey: everything else in this app sits on the photo, and
      a solid grey pill is the one thing that would look pasted on. Measured on
      screen: at 0.16 the track disappeared into the card and the row read as a
@@ -459,7 +459,7 @@
      translate on Y centres it whatever the border does to the box. */
   transform: translate(0, -50%);
   transition: transform 0.18s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
 }
 
 .setting-switch input[type="checkbox"]:checked,
@@ -521,12 +521,12 @@
   transform: translateX(-50%);
   z-index: 9997;
   padding: 7px 16px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   font-size: 12px;
   color: var(--text);
   background: var(--popover);
   border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--sombra-2);
 }
 
 /* Layout picker: Windows-style snap thumbnails for the cockpit. */
@@ -535,10 +535,10 @@
   z-index: 9995;
   width: 268px;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   background: var(--popover);
   border: 1px solid var(--border-strong);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--sombra-3);
   backdrop-filter: var(--glass-blur);
 }
 
@@ -605,7 +605,7 @@
   font-weight: 650;
   letter-spacing: 0.2px;
   padding: 2px 8px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   color: var(--c);
   background: color-mix(in srgb, var(--c) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
@@ -766,13 +766,13 @@
   position: fixed;
   z-index: 9996;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   font-size: 12px;
   font-weight: 600;
   color: var(--text);
   background: var(--popover);
   border: 1px solid var(--accent);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--sombra-2);
   pointer-events: none;
   white-space: nowrap;
   max-width: 320px;
@@ -799,11 +799,10 @@
   position: fixed;
   z-index: 9994;
   pointer-events: none;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   border: 2px solid var(--accent);
   background: color-mix(in srgb, var(--accent) 20%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
-    0 12px 34px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), var(--sombra-3);
   transition:
     left 0.09s ease,
     top 0.09s ease,
@@ -934,7 +933,7 @@
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   padding: 1px 7px;
 }
 
@@ -953,7 +952,7 @@
   gap: 8px;
   padding: 8px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
 }
@@ -1023,7 +1022,7 @@
   display: block;
   height: 5px;
   margin-top: 4px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--muted) 25%, transparent);
   overflow: hidden;
 }
@@ -1031,7 +1030,7 @@
 .limit-fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--accent);
 }
 
@@ -1053,7 +1052,7 @@
   letter-spacing: 0.5px;
   color: var(--muted);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 5px;
 }
 
@@ -1063,7 +1062,7 @@
   flex-direction: column;
   gap: 7px;
   padding: 9px 10px;
-  border-radius: 11px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--accent) 7%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }

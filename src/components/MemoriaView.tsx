@@ -29,6 +29,7 @@ import {
   type VaultInfo,
 } from "../lib/memoria";
 import { useT } from "../lib/i18n";
+import Espera, { Ocupado } from "./Espera";
 import { aHtml } from "../lib/markdown";
 import { listSkills, skillText } from "../lib/pty";
 // `hueOf` y `familia` se han ido con los puntos de color de la lista: el color
@@ -748,7 +749,7 @@ export default function MemoriaView({
             {hits
               ? `${hits.length} ${hits.length === 1 ? t("resultado") : t("resultados")}`
               : cargando
-                ? t("Leyendo…")
+                ? <Espera activo como="span">{t("Leyendo…")}</Espera>
                 : `${vault?.docs.length ?? 0} ${t("documentos")}`}
           </div>
 
@@ -875,7 +876,9 @@ export default function MemoriaView({
                 </div>
                 {sucio && !skillAbierta && (
                   <button className="np-btn" onClick={guardar} disabled={guardando}>
-                    {guardando ? t("Guardando…") : t("Guardar")}
+                    <Ocupado activo={guardando} mientras={t("Guardando…")}>
+                      {t("Guardar")}
+                    </Ocupado>
                   </button>
                 )}
                 {/* Una skill se lee aquí y se edita fuera: el guardado de esta

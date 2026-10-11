@@ -7,10 +7,13 @@
 // las terminales una a una. Munir pidió la campana ese día.
 //
 // Un aviso nace en el INSTANTE en que un panel pasa de trabajar a reclamarte
-// (la misma regla que el salto a pantalla completa, `acabaDeReclamar`), y deja
-// de estar vigente solo, sin que hagas nada aquí, en cuanto le contestas en su
-// terminal o la cierras. La lista no es otra bandeja que vaciar: es un espejo
-// de lo que hay, con memoria de lo que hubo.
+// (la misma regla que el salto a pantalla completa, `acabaDeReclamar`), y se va
+// solo, sin que hagas nada aquí: uno de «te espera», en cuanto le contestas en
+// su terminal o la cierras; uno de «terminó», además, en cuanto lo has visto
+// (cierras la lista con él dentro, o entras en su terminal). La lista no es
+// otra bandeja que vaciar: es un espejo de lo que hay AHORA. Hasta el
+// 2026-10-11 guardaba también lo que ya había pasado, apagado, y Munir se la
+// encontró llena de cosas atendidas: «¿cómo hacemos para que se limpien?».
 //
 // Lo que decide vive suelto (`alCambiar`, `animoDe`) para probarlo sin
 // ventana: `pnpm bancos campana`. (El nombre es `campana` y no `avisos` porque
@@ -34,11 +37,9 @@ export interface Aviso {
   porque: string;
   cuando: number;
   leido: boolean;
-  /** Sigue siendo verdad: el panel está y sigue reclamándote. */
-  vigente: boolean;
 }
 
-/** Cuántos se guardan. Más atrás de esto ya no es «lo que te reclama». */
+/** Cuántos caben. Como mucho hay uno por panel, así que es un seguro. */
 export const TOPE = 60;
 
 const tipoDe = (estado: WorkState): Aviso["tipo"] => (estado === "lista" ? "hecho" : "espera");
@@ -55,15 +56,13 @@ export function alCambiar(
   ahora: Record<number, PaneStatus>,
   cuando: number,
 ): Aviso[] {
-  let nueva = lista;
-  const tocar = () => (nueva === lista ? (nueva = lista.map((a) => ({ ...a }))) : nueva);
-
-  // Lo que ya no es verdad: el panel se cerró, o le contestaste y volvió a trabajar.
-  lista.forEach((a, i) => {
-    if (!a.vigente) return;
+  // Lo que ya no es verdad se va: el panel se cerró, o le contestaste y volvió
+  // a trabajar.
+  const quedan = lista.filter((a) => {
     const st = ahora[a.paneId];
-    if (!st || !reclamaTuAtencion(st.state)) tocar()[i].vigente = false;
+    return !!st && reclamaTuAtencion(st.state);
   });
+  let nueva = quedan.length === lista.length ? lista : quedan;
 
   // Lo nuevo: el instante en que un panel deja de trabajar y te reclama. O el
   // instante en que te reclama OTRA cosa: uno que había terminado y ahora
@@ -76,61 +75,94 @@ export function alCambiar(
     const otraCosa =
       previo !== undefined && reclamaTuAtencion(previo) && reclamaTuAtencion(st.state) && tipoDe(previo) !== tipoDe(st.state);
     if (!acabaDeReclamar(previo, st.state) && !otraCosa) continue;
-    // Un aviso por panel a la vez: el anterior de ese panel ya no cuenta.
-    tocar().forEach((a) => {
-      if (a.paneId === st.id) a.vigente = false;
-    });
-    nueva.push({
-      n: ++n,
-      paneId: st.id,
-      nombre: st.name,
-      cwd: st.cwd,
-      tipo: tipoDe(st.state),
-      porque: st.porque,
-      cuando,
-      leido: false,
-      vigente: true,
-    });
+    // Un aviso por panel a la vez: el anterior de ese panel se quita.
+    nueva = [
+      ...nueva.filter((a) => a.paneId !== st.id),
+      { n: ++n, paneId: st.id, nombre: st.name, cwd: st.cwd, tipo: tipoDe(st.state), porque: st.porque, cuando, leido: false },
+    ];
   }
   return nueva.length > TOPE ? nueva.slice(nueva.length - TOPE) : nueva;
 }
 
-/** Los que cuentan en el número de la campana: vigentes y sin leer. */
+/** Los que cuentan en el número de la campana: los que no has visto. */
 export function sinLeer(lista: Aviso[]): number {
-  return lista.filter((a) => a.vigente && !a.leido).length;
+  return lista.filter((a) => !a.leido).length;
 }
 
-/** Cómo está la mascota, de lo más urgente a lo menos. */
-export type Animo = "espera" | "lista" | "trabaja" | "quieta" | "dormida";
+/**
+ * La lista después de mirarla: lo que terminó ya lo has visto y se va; lo que
+ * te espera se queda, leído, hasta que le contestes.
+ */
+export function trasVerla(lista: Aviso[]): Aviso[] {
+  if (!lista.some((a) => a.tipo === "hecho" || !a.leido)) return lista;
+  return lista.filter((a) => a.tipo === "espera").map((a) => (a.leido ? a : { ...a, leido: true }));
+}
+
+/** Menos que esto entre el aviso y la entrada no es que hayas ido tú: es el
+    ajuste «saltar a la sesión que termina», que te la pone delante él solo. */
+export const SALTO_MS = 1500;
+
+/**
+ * Entras en una terminal: su «terminó» ya está visto. Si te espera, se queda.
+ *
+ * Uno recién nacido no cuenta: con el salto automático puesto, el panel que
+ * termina coge el foco en ese mismo instante, y si no estás delante el aviso es
+ * lo único que te lo va a contar al volver.
+ */
+export function trasEntrar(lista: Aviso[], paneId: number, ahora: number): Aviso[] {
+  const queda = lista.filter((a) => !(a.paneId === paneId && a.tipo === "hecho" && ahora - a.cuando >= SALTO_MS));
+  return queda.length === lista.length ? lista : queda;
+}
+
+/** Cómo está la mascota (Adeo). `piensa` y `escucha` no salen de aquí: son los
+    del chat, mientras el conserje contesta y mientras le escribes
+    (`animoDelChat`, en `lib/conserje.ts`). */
+export type Animo = "espera" | "duda" | "lista" | "apurada" | "piensa" | "escucha" | "trabaja" | "baila" | "quieta" | "dormida";
+
+/** Lo que Adeo sabe además de tus terminales. */
+export interface Senales {
+  /** Decisiones que una terminal sigue esperando (las vivas). */
+  decisiones?: number;
+  /** Encargos programados que el freno ha parado. */
+  cortados?: number;
+  /** Suena música en el PC. */
+  suena?: boolean;
+}
 
 /**
  * El ánimo de la mascota: lo MÁS urgente de todas tus terminales.
  *
- * Sale de los avisos vigentes, no de los leídos: que hayas abierto la lista no
- * quita que un agente siga esperándote. Sin nada que te reclame, mira si
- * alguien trabaja; y sin terminales, duerme.
+ * Que hayas abierto la lista no quita que un agente siga esperándote. El
+ * orden es una decisión: primero quien te espera (una terminal, y luego una
+ * decisión); después la noticia de que alguien terminó; después lo que se ha
+ * roto y sigue roto (un encargo programado que el freno paró); y solo entonces
+ * lo que no te pide nada: que trabajan, que suena música, o que no hay nadie.
  */
-export function animoDe(lista: Aviso[], estados: Record<number, PaneStatus>): Animo {
-  const vigentes = lista.filter((a) => a.vigente);
-  if (vigentes.some((a) => a.tipo === "espera")) return "espera";
-  if (vigentes.some((a) => a.tipo === "hecho" && !a.leido)) return "lista";
+export function animoDe(lista: Aviso[], estados: Record<number, PaneStatus>, s: Senales = {}): Animo {
+  if (lista.some((a) => a.tipo === "espera")) return "espera";
+  if ((s.decisiones ?? 0) > 0) return "duda";
+  if (lista.some((a) => a.tipo === "hecho" && !a.leido)) return "lista";
+  if ((s.cortados ?? 0) > 0) return "apurada";
   const paneles = Object.values(estados);
-  if (paneles.length === 0) return "dormida";
   if (paneles.some((p) => p.agent && (p.state === "a_medias" || p.agentsLive > 0))) return "trabaja";
-  return "quieta";
+  if (s.suena) return "baila";
+  return paneles.length === 0 ? "dormida" : "quieta";
 }
 
 interface Almacen {
   lista: Aviso[];
-  marcarLeidos: () => void;
-  vaciar: () => void;
+  /** Has cerrado la lista: `trasVerla`. */
+  vista: () => void;
+  /** Has entrado en esa terminal: `trasEntrar`. */
+  entrar: (paneId: number) => void;
 }
+
+const cambia = (s: Almacen, lista: Aviso[]) => (lista === s.lista ? s : { lista });
 
 export const useAvisos = create<Almacen>((set) => ({
   lista: [],
-  marcarLeidos: () => set((s) => (s.lista.some((a) => !a.leido) ? { lista: s.lista.map((a) => ({ ...a, leido: true })) } : s)),
-  // Vaciar quita la historia, no lo que sigue pasando: lo vigente se queda.
-  vaciar: () => set((s) => ({ lista: s.lista.filter((a) => a.vigente) })),
+  vista: () => set((s) => cambia(s, trasVerla(s.lista))),
+  entrar: (paneId) => set((s) => cambia(s, trasEntrar(s.lista, paneId, Date.now()))),
 }));
 
 /**

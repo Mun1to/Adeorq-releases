@@ -1,11 +1,11 @@
 {
-  "version": "0.9.190",
-  "notes": "Encargos programados en la Agenda con su freno a los tres fallos; una nota vacia ofrece las fichas del proyecto y cada sesion marca su casilla; el arbol de archivos gana menu, letras de git, Ctrl+P y arrastrar a una terminal; el robot de la terminal dice quien es cada agente",
-  "pub_date": "2026-10-10T22:55:30Z",
+  "version": "0.9.191",
+  "notes": "La mascota se llama Adeo y tiene diez estados, con teclado y todo; una sola escala de esquinas y sombras en toda la app; una regla para lo que ves mientras algo tarda; la campana se limpia sola y hay menos avisos de mas",
+  "pub_date": "2026-10-11T01:09:40Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJzZmtlRzhVTEFZSVl6eVlzTkxNUUhVVEw3dzRmV2JKRC9jbDE3dHZCSk1DWGZCeEFSZmkwWTR5WGo3VWtGc1JjMFB2UEx2b1QzTVdYZkF0RHl1QUF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjcyODMxCWZpbGU6QWRlb3JxXzAuOS4xOTBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTAKVkZKYVRadDY0VFlZV1IwSjB0dVo2dHVPUldxUGZUOXlGeTVhTm5KYkFERCtLK290ajdVTWVHcXNnTzVZa251TGlCdzcvVFg1cC9lbFhucU5WVHpBQmc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.190/Adeorq_0.9.190_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzhKdlMzV01oMS83a3ZucmNFWGJzTGZzL0tmM21YdFpQYnlyYzFhcFdkbDFOMjAwWHE2Z3Nnb3JId0YrMzlqYmNRVVRHdGVFdSt5UXgwR241YzlHQkFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjgwOTY1CWZpbGU6QWRlb3JxXzAuOS4xOTFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTEKUzRNTFl0K1gwSG56M0kvTTFUQUdsRWpmc0pMWEgzSUI0cjFXTFhnck90aVBMV25vMXowN21TblpzZ2ZsOWhyK0U2UlpNbDhPdnlZdDZFYWpabzVPQ0E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.191/Adeorq_0.9.191_x64-setup.exe"
     }
   }
 }

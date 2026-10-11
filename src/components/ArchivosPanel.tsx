@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useT } from "../lib/i18n";
+import Espera from "./Espera";
 import { estadoArchivos, listarCarpeta, type EstadoArchivos } from "../lib/archivos";
 import { conBorrados, filasVisibles, nombreDeRuta, plegar, rutaCorta, type Fila, type Leidas } from "../lib/arbol";
 import {
@@ -267,7 +268,9 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto }: Props) {
         {!filas.length && !cargando && (
           <p className="arch-vacio">{t("Esta carpeta está vacía.")}</p>
         )}
-        {cargando && !filas.length && <p className="arch-vacio">{t("Leyendo…")}</p>}
+        <Espera activo={cargando && !filas.length} className="arch-vacio">
+          {t("Leyendo…")}
+        </Espera>
         {error && <p className="side-error">{error}</p>}
       </div>
     </div>

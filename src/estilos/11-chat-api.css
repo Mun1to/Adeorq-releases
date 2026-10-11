@@ -6,10 +6,10 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: var(--panel-solid);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--sombra-3);
   overflow: hidden;
 }
 
@@ -99,9 +99,9 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: var(--panel-solid);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--sombra-2);
   overflow: hidden;
 }
 
@@ -109,7 +109,7 @@
   flex: none;
   margin: 6px;
   padding: 6px 8px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   border: 1px solid var(--border);
   background: var(--row);
   color: var(--text);
@@ -182,7 +182,7 @@
 .ch-msg {
   max-width: 88%;
   padding: 7px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   font-size: 12.5px;
   line-height: 1.45;
   white-space: pre-wrap;
@@ -231,7 +231,7 @@
 .ch-error {
   margin: 0;
   padding: 7px 9px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   border: 1px solid color-mix(in srgb, #e06e6e 45%, transparent);
   background: color-mix(in srgb, #e06e6e 12%, transparent);
   color: #e58f8f;
@@ -253,7 +253,7 @@
   min-width: 0;
   resize: none;
   padding: 7px 9px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   border: 1px solid var(--border);
   background: var(--panel-solid);
   color: var(--text);

@@ -150,7 +150,7 @@
   min-height: 26px;
   padding: 4px 9px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   cursor: grab;
   transition:
     background 0.12s ease,
@@ -428,7 +428,7 @@
   gap: 4px;
   padding: 2px 7px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   font-size: 11px;
   color: var(--muted);
 }
@@ -546,7 +546,7 @@
 .pane-chip {
   flex: none;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--row);
   color: var(--muted);
   font-size: 11px;
@@ -626,7 +626,7 @@
   padding: 5px 6px 5px 10px;
   border: 1px solid transparent;
   border-bottom: none;
-  border-radius: 7px 7px 0 0;
+  border-radius: var(--r-chico) var(--r-chico) 0 0;
   color: var(--muted);
   font-size: 12px;
   cursor: pointer;
@@ -822,9 +822,8 @@
 .pane-overlays > * {
   pointer-events: auto;
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+    inset 0 1px 0 rgba(255, 255, 255, 0.12), var(--sombra-2);
+  border-radius: var(--r-btn);
   backdrop-filter: blur(16px);
   animation: paneOverlayIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -995,8 +994,7 @@
   letter-spacing: 0.01em;
   cursor: pointer;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
-    0 6px 18px rgba(0, 0, 0, 0.42);
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--sombra-2);
   animation: update-sube 0.16s ease;
 }
 
@@ -1027,7 +1025,7 @@
   align-items: flex-start;
   gap: 10px;
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: linear-gradient(
     180deg,
     rgba(255, 138, 146, 0.24),
@@ -1037,7 +1035,7 @@
   color: #ffb3b8;
   font-size: 12.5px;
   line-height: 1.5;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--sombra-2);
   backdrop-filter: blur(16px);
 }
 
@@ -1201,7 +1199,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--glass-edge), var(--sombra-2);
   /* Una de ellas es un <button> que lleva a la Cabina: sin esto heredaría el
      centrado y la tipografía del navegador y sería la única distinta. */
   text-align: left;

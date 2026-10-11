@@ -34,6 +34,8 @@ export const COMPROBADORES = [
   "gordos-check-check.mjs",
   "css-check.mjs",
   "botones-check.mjs",
+  "estilo-check.mjs",
+  "estilo-check-check.mjs",
   "textarea-check.mjs",
   "svg-check.mjs",
   "i18n-check.mjs",

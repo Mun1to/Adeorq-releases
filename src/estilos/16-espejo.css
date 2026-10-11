@@ -20,10 +20,10 @@
   color: white;
   font-size: 9px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 4px;
   line-height: 1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
 }
 
 /* Contenedor del panel de diferencias */
@@ -192,7 +192,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   cursor: pointer;
   transition: all 0.12s ease;
   user-select: none;
@@ -338,7 +338,7 @@
   user-select: none;
   background: rgba(255, 255, 255, 0.05);
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.12s ease;
   align-self: center;

@@ -3,7 +3,7 @@
   "private": true,
   "author": "Munir Torres Athayde",
   "license": "SEE LICENSE IN LICENSE",
-  "version": "0.9.190",
+  "version": "0.9.191",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,6 +17,7 @@
     "publicar-version": "node scripts/publicar-version.mjs",
     "latest": "node scripts/escribir-latest.mjs",
     "botones": "node scripts/botones-check.mjs",
+    "estilo": "node scripts/estilo-check.mjs && node scripts/estilo-check-check.mjs",
     "textarea": "node scripts/textarea-check.mjs",
     "publicar": "node scripts/publicar-codigo.mjs",
     "tauri": "tauri",

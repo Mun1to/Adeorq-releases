@@ -39,11 +39,25 @@ const MIRADA_MS = 2500;
 const quieta = () =>
   modoRendimiento() || document.hidden || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/** Tres toques en menos de esto son un mimo, y le sale un corazón. */
+const MIMO_MS = 1500;
+
 /**
- * `alto` en píxeles; el ancho sale de la rejilla. `toque` es un contador:
- * cada vez que sube, da un brinco (lo sube quien la pulsa).
+ * `alto` en píxeles; el ancho sale de la rejilla. `toque` y `envio` son
+ * contadores: cada vez que sube el primero, da un brinco (lo sube quien la
+ * pulsa); cada vez que sube el segundo, mira cómo sale lo que le has mandado.
  */
-export default function Mascota({ animo, alto = 28, toque = 0 }: { animo: Animo; alto?: number; toque?: number }) {
+export default function Mascota({
+  animo,
+  alto = 28,
+  toque = 0,
+  envio = 0,
+}: {
+  animo: Animo;
+  alto?: number;
+  toque?: number;
+  envio?: number;
+}) {
   const [pose, setPose] = useState<Pose>(() => reposoDe(animo));
   const [mirada, setMirada] = useState<Mirada>("");
   const marcha = useRef<Marcha | null>(null);
@@ -84,11 +98,25 @@ export default function Mascota({ animo, alto = 28, toque = 0 }: { animo: Animo;
   const reaccionaRef = useRef(reacciona);
   reaccionaRef.current = reacciona;
 
-  // La pulsan: un brinco. El primer pintado no cuenta.
+  // La pulsan: un brinco, y a la tercera seguida, un mimo. El primer pintado
+  // no cuenta.
   const primerToque = useRef(toque);
+  const toques = useRef<number[]>([]);
   useEffect(() => {
-    if (toque !== primerToque.current) reaccionaRef.current("toque");
+    if (toque === primerToque.current) return;
+    const ahora = Date.now();
+    toques.current = [...toques.current.filter((t) => ahora - t < MIMO_MS), ahora];
+    if (toques.current.length >= 3) {
+      toques.current = [];
+      reaccionaRef.current("mimo");
+    } else reaccionaRef.current("toque");
   }, [toque]);
+
+  // Le mandas algo: lo mira subir.
+  const primerEnvio = useRef(envio);
+  useEffect(() => {
+    if (envio !== primerEnvio.current) reaccionaRef.current("enviado");
+  }, [envio]);
 
   // El ojo sigue al ratón, y al rato vuelve a lo suyo.
   useEffect(() => {
@@ -126,8 +154,9 @@ export default function Mascota({ animo, alto = 28, toque = 0 }: { animo: Animo;
       width={Math.round((alto * ANCHO) / ALTO)}
       height={alto}
       aria-hidden="true"
-      // Si te espera o celebra, ya te está llamando: el saludo es para cuando no.
-      onMouseEnter={() => (animo === "espera" || animo === "lista" ? undefined : reacciona("hola"))}
+      // Si te espera, duda, celebra o está apurada, ya te está diciendo algo:
+      // el saludo es para cuando no.
+      onMouseEnter={() => (["espera", "duda", "lista", "apurada"].includes(animo) ? undefined : reacciona("hola"))}
     >
       {cuadrosDe(pose, mirada).map((q, i) => (
         // Un pelo más ancho que la celda, para que no se vea la rejilla entre cuadros.

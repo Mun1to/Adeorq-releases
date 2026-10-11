@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useT } from "../lib/i18n";
+import Espera, { Ocupado } from "./Espera";
 import { providerOf } from "../lib/providers";
 import { DOCS_URL } from "./SettingsView";
 import {
@@ -142,7 +143,9 @@ export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibe
           </div>
 
           {cargando ? (
-            <p className="account-empty">{t("Mirando…")}</p>
+            <Espera activo className="account-empty">
+              {t("Mirando…")}
+            </Espera>
           ) : info ? (
             <>
               {/* La etiqueta de la clave es un dato de la cuenta: fuera en
@@ -207,7 +210,9 @@ export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibe
                   disabled={!clave.trim() || guardando}
                   onClick={conectar}
                 >
-                  {guardando ? t("Comprobando…") : t("Conectar")}
+                  <Ocupado activo={guardando} mientras={t("Comprobando…")}>
+                    {t("Conectar")}
+                  </Ocupado>
                 </button>
               </div>
             </>

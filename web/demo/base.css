@@ -11,14 +11,19 @@
    Todo cuelga de `.ade`. Fuera de esa clase, esta hoja no existe.
    ========================================================================= */
 
-/* Las cuatro medidas de App.css que no son de tema (su bloque de la escala de
-   esquinas, medido alli sobre 412 botones: tres radios y una pastilla). */
+/* Las medidas de App.css que no son de tema: su escala de esquinas y sus dos
+   sombras (la guia de estilo de la app, src/estilos/01-base.css). Van copiadas
+   a mano porque alli viven en un `:root` suelto: si la app las cambia, hay que
+   cambiarlas aqui tambien, o las reglas extraidas que usan `--sombra-2` se
+   quedan sin sombra. */
 .ade {
   --line: var(--border);
-  --r-chico: 8px;
-  --r-btn: 10px;
-  --r-caja: 16px;
+  --r-chico: 4px;
+  --r-btn: 6px;
+  --r-caja: 8px;
   --r-pastilla: 999px;
+  --sombra-2: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --sombra-3: 0 0 0 1px var(--border-strong), 0 8px 24px rgba(0, 0, 0, 0.35);
   --pane-abre: 1;
 
   /* El verde de «esto ha ido bien». Mezclado con el texto del tema y no fijo:

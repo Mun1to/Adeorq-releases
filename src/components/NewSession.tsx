@@ -28,6 +28,7 @@ import { porQueSale } from "../lib/enLaBarra";
 import { raiz } from "../lib/perfil";
 import { PROVIDERS, providerOf, sabe } from "../lib/providers";
 import { useT } from "../lib/i18n";
+import Espera, { Ocupado } from "./Espera";
 import { encaja } from "../lib/buscar";
 import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark, { tieneMarca } from "./ProviderMark";
@@ -418,12 +419,16 @@ export default function NewSession({
                 onClick={leerSesiones}
               >
                 <RefreshIcon size={13} />
-                {releyendo ? t("Buscando…") : t("Buscar otra vez")}
+                <Ocupado activo={releyendo} mientras={t("Buscando…")}>
+                  {t("Buscar otra vez")}
+                </Ocupado>
               </button>
             </div>
 
             {sesiones === null ? (
-              <p className="wiz-none">{t("Leyendo tus sesiones…")}</p>
+              <Espera activo className="wiz-none">
+                {t("Leyendo tus sesiones…")}
+              </Espera>
             ) : (
               <>
                 <div className="ret-cuenta">

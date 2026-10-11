@@ -65,10 +65,34 @@ for (const a of ANIMOS) {
   ok(`«${a}» tiene más de un fotograma en su bucle`, distintas > 1, `tiene ${distintas}`);
 }
 ok("cada ánimo tiene su propia postura de reposo", new Set(ANIMOS.map((a) => huella(reposoDe(a)))).size === ANIMOS.length);
+const DESPIERTOS = ANIMOS.filter((a) => a !== "dormida");
 ok(
-  "los cuatro ánimos despiertos tienen gestos para no repetirse",
-  (["quieta", "trabaja", "espera", "lista"] as const).every((a) => (GUIONES[a].gestos?.length ?? 0) >= 1 && GUIONES[a].cada),
+  "todos los ánimos despiertos tienen al menos dos gestos para no repetirse",
+  DESPIERTOS.every((a) => (GUIONES[a].gestos?.length ?? 0) >= 2 && GUIONES[a].cada),
+  DESPIERTOS.filter((a) => (GUIONES[a].gestos?.length ?? 0) < 2).join(", "),
 );
+ok("son diez ánimos y cuatro reacciones", ANIMOS.length === 10 && Object.keys(REACCIONES).length === 4, `${ANIMOS.length} y ${Object.keys(REACCIONES).length}`);
+for (const a of DESPIERTOS) {
+  const primeras = GUIONES[a].gestos!.map((g) => huella(g[0][0]));
+  ok(`los gestos de «${a}» empiezan cada uno de una forma: se distinguen al primer fotograma`, new Set(primeras).size === primeras.length);
+}
+const conCorazon = REACCIONES.mimo.filter(([pose]) => pose.extra === "corazon").length;
+ok("el mimo lleva su corazón de principio a fin", conCorazon === REACCIONES.mimo.length);
+
+// --- el teclado: lo que tiene delante tapa lo de detrás ---------------------------------
+const TECLA_PULSADA = "#7ee08a";
+const conTeclado = GUIONES.trabaja.bucle.map(([pose]) => pose);
+ok("trabajando tiene SIEMPRE el teclado delante", conTeclado.every((pose) => pose.cosa?.startsWith("teclado")), conTeclado.map((x) => x.cosa ?? "nada").join());
+const sinNada = cuadrosDe({ ...conTeclado[0], cosa: undefined });
+const detras = cuadrosDe(conTeclado[0]);
+const filasDelTeclado = [ALTO - 3, ALTO - 2, ALTO - 1];
+ok("sin teclado las piernas llegan al suelo", sinNada.some((q) => q.y === ALTO - 1 && q.c === "#39a9f6"));
+ok("y con él, en sus tres filas no asoma ni una pierna", !detras.some((q) => filasDelTeclado.includes(q.y) && q.c === "#39a9f6"));
+ok("el teclado ocupa sus tres filas de lado a lado, dejando un cuadro de margen", filasDelTeclado.every((y) => detras.filter((q) => q.y === y).length === ANCHO - 2));
+const pulsadasEn = (i: number) => cuadrosDe(conTeclado[i]).filter((q) => q.c === TECLA_PULSADA).map((q) => q.x).sort((a, b) => a - b).join();
+ok("la tecla que se enciende es la de la mano que baja: izquierda, derecha", pulsadasEn(0) === "1,2" && pulsadasEn(1) === "17,18", `${pulsadasEn(0)} y ${pulsadasEn(1)}`);
+const manoIzq = (i: number) => Math.max(...cuadrosDe(conTeclado[i]).filter((q) => q.c === "#2389e0" && q.x < ANCHO / 2).map((q) => q.y));
+ok("y esa mano llega justo encima del teclado, mientras la otra espera un cuadro más arriba", manoIzq(0) === ALTO - 4 && manoIzq(1) === ALTO - 5, `${manoIzq(0)} y ${manoIzq(1)}`);
 
 // --- el ojo sigue al ratón solo cuando mira de frente -----------------------------------
 const pupilas = (pose: Pose, mirada: "" | "izq" | "der" | "bajo") => cuadrosDe(pose, mirada).filter((q) => q.c === PUPILA).map((q) => q.x).sort((x, y) => x - y).join();

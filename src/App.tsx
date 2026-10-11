@@ -2717,7 +2717,7 @@ function App() {
             terminales y abre la lista de avisos. El logo de verdad sigue donde
             se ve, que es el icono de la app; a 20 px perdía la proa. */}
         <span className="brand">
-          <Campana irATerminal={(id) => irATerminal(id, canvasPanesRef.current.some((p) => p.id === id))} />
+          <Campana enfocado={focusedId} irATerminal={(id) => irATerminal(id, canvasPanesRef.current.some((p) => p.id === id))} />
           <span className="brand-nombre">Adeorq</span>
         </span>
         <nav className="tabs">
@@ -2823,14 +2823,8 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
             de aquí que solo aparecen a veces (con la Cabina y más de un
             panel), y una cosa que va y viene en mitad de una barra mueve de
             sitio a todas las de su derecha cada vez. Al final no mueve nada.
-            Los tres llevan su nombre escrito, igual que las pestañas de la
-            izquierda: nacieron mudos, con solo el icono, y en una barra donde
-            todo lo demás se lee no había forma de encontrarlos (Munir,
-            2026-08-02). Pero su nombre es lo PRIMERO que se va cuando la
-            barra no cabe (`lib/barraQueCabe.ts`): tres botones más escritos es
-            lo que desbordaba la barra entera en un portátil y dejaba «Cerrar
-            todas» cortado fuera de la ventana sin que se notara que estaba
-            ahí (Munir, 2026-08-02). */}
+            Van solo con su icono, como las pestañas de la izquierda (Munir,
+            2026-10-11): el nombre lo dicen el globo y el `aria-label`. */}
         {view === "cabina" && panes.length > 1 && (
           <>
             {/* Despejar la pantalla entera, o recuperarla. Va aquí, con la
@@ -2844,13 +2838,11 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                   ? t("Devolver al mosaico todo lo que está apartado")
                   : t("Apartar todas las terminales: siguen vivas en la tira de abajo")
               }
+              aria-label={todoApartado ? t("Traer todas") : t("Minimizar todas")}
               onClick={alternarTodas}
             >
               <span className="tab-icon">
                 {todoApartado ? <UnminimizeIcon size={15} /> : <MinimizeIcon size={15} />}
-              </span>
-              <span className="tab-label">
-                {todoApartado ? t("Traer todas") : t("Minimizar todas")}
               </span>
             </button>
             <LayoutPicker onPick={usePreset} />
@@ -2863,12 +2855,12 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
               data-tip={t("Cerrar las {n} terminales: mata a sus agentes", {
                 n: panes.length,
               })}
+              aria-label={t("Cerrar todas")}
               onClick={() => setCerrandoTodas(true)}
             >
               <span className="tab-icon">
                 <CloseIcon size={15} />
               </span>
-              <span className="tab-label">{t("Cerrar todas")}</span>
             </button>
           </>
         )}

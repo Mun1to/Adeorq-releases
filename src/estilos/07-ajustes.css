@@ -33,7 +33,7 @@
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   background: var(--row);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 1px 7px;
 }
 .set-tab[data-on] .set-tab-badge {
@@ -52,7 +52,7 @@
   gap: 3px;
   padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   /* Se queda a la vista mientras el contenido baja: en Discord o en Terminales
@@ -272,7 +272,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r-caja);
   padding: 18px 20px;
-  box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--glass-edge), var(--sombra-2);
 }
 
 .panel-card h2 {
@@ -427,7 +427,7 @@
   flex: none;
   width: 8px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   box-shadow: 0 0 6px color-mix(in srgb, currentColor 30%, transparent);
 }
 
@@ -523,7 +523,7 @@
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   padding: 9px 12px;
   font-size: 13px;
   line-height: 1.5;
@@ -545,7 +545,7 @@
   align-items: center;
   gap: 6px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 5px 12px;
   font-size: 13px;
   cursor: pointer;
@@ -671,7 +671,7 @@
 .app[data-stream="true"] .foreman-summary {
   color: transparent !important;
   background: color-mix(in srgb, var(--muted) 42%, var(--panel-solid));
-  border-radius: 5px;
+  border-radius: var(--r-chico);
   text-shadow: none;
   user-select: none;
 }
@@ -753,10 +753,10 @@
   gap: 10px;
   max-width: min(360px, calc(100vw - 28px));
   padding: 9px 11px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-edge), 0 10px 26px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-edge), var(--sombra-2);
   font-size: 12px;
   line-height: 1.45;
   animation: burnt-in 0.14s ease;
@@ -816,7 +816,7 @@
   padding: 11px 16px;
   background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   font-size: 12.5px;
   color: var(--muted);
 }
@@ -902,9 +902,9 @@
   flex-direction: column;
   background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   padding: 6px;
-  box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--glass-edge), var(--sombra-2);
 }
 
 /* Una raya finísima entre CLIs, menos bajo el que está abierto: ahí el que
@@ -1095,7 +1095,7 @@
 .account-missing code {
   font-size: 11.5px;
   background: color-mix(in srgb, var(--muted) 16%, transparent);
-  border-radius: 5px;
+  border-radius: var(--r-chico);
   padding: 1px 5px;
   word-break: break-all;
 }
@@ -1196,7 +1196,7 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   border: 1px solid var(--border);
   color: var(--muted);
 }
@@ -1235,7 +1235,7 @@
   letter-spacing: 0.6px;
   color: var(--muted);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 7px;
 }
 
@@ -1246,7 +1246,7 @@
   letter-spacing: 0.5px;
   color: color-mix(in srgb, var(--accent) 75%, var(--text));
   background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 2px 7px;
 }
 
@@ -1281,7 +1281,7 @@
 .acc-uso-barra {
   display: block;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--muted) 25%, transparent);
   overflow: hidden;
 }
@@ -1289,7 +1289,7 @@
 .acc-uso-fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--accent);
 }
 
@@ -1372,7 +1372,7 @@
   padding: 11px 16px;
   background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   font-size: 12px;
   color: var(--muted);
   line-height: 1.6;
@@ -1412,7 +1412,7 @@
 .choice:hover {
   color: var(--text);
   transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 3px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .choice:active {
@@ -1475,7 +1475,7 @@
 .term-prev {
   display: block;
   padding: 10px 11px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   border: 1.5px solid var(--border);
   /* El fondo del panel de verdad: el esquema NO trae fondo (ver temasTerm.ts),
      así que enseñarlo con uno inventado sería enseñar otra cosa. */

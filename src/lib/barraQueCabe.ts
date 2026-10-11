@@ -22,12 +22,11 @@ import { useLayoutEffect, type RefObject } from "react";
  * entra en `data-sin` de `.topbar` y su CSS está en `15-agenda-sesiones.css`.
  *
  * Los nombres de las pestañas ya no están en la lista: desde el 2026-10-10 van
- * solo con su icono en cualquier ancho, porque Munir lo pidió así. Con ese
- * sitio ganado, lo primero que se va sigue siendo el nombre de los tres
- * botones de la Cabina (lo dicen al pasar el ratón) y luego el título de la
- * canción.
+ * solo con su icono en cualquier ancho, porque Munir lo pidió así, y desde el
+ * día siguiente también los tres botones de la Cabina. Con ese sitio ganado,
+ * lo primero que se va es el título de la canción.
  */
-export const RETIRADAS = ["acciones", "titulo", "musica", "marca"] as const;
+export const RETIRADAS = ["titulo", "musica", "marca"] as const;
 
 /**
  * Cuánto se sale lo de dentro, en píxeles. No basta con mirar la barra: el

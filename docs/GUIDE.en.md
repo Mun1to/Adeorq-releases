@@ -136,7 +136,7 @@ There are two bars up there and they are different things.
 
 | Element | What it is |
 |---|---|
-| **Logo + "Adeorq"** | The brand, nothing to click. |
+| **Adeo, the mascot, + "Adeorq"** | The A with an eye, arms and legs is called Adeo, and she is the bell. Her posture tells the most urgent thing going on: she calls you with an exclamation mark when a terminal is waiting for you, is left in doubt (a question mark) when a decision is waiting, celebrates when an agent finishes, frets when a scheduled order has stopped, types while your agents work, dances when music is playing and nothing needs you, and sleeps when no terminal is open. Click her and she hops; on the third click in a row she gets a heart. She carries the number of what you have not seen. Click her for the list of notices, with which terminal it is and why; clicking a row takes you there. **The list empties itself**: one that waited for you goes when you answer, and one that finished goes once you have seen it (you close the list, or you enter its terminal). |
 | **◱ Dashboard · ▦ Cockpit · ▤ Agenda · ⬡ Canvas · ◍ Accounts · ⌘ Commands · ⚙ Settings** | The seven views of the app. |
 | **Number next to "Cockpit" or "Canvas"** | How many terminals are open there right now. |
 | **The Goals button** | Opens a floating panel with what you want to close out today. Type it, tick it off with a click anywhere on the row (no tiny checkbox to aim for), and it is saved to a file for the day, not localStorage, so an agent can also tick it off once it finishes what you asked. Drag it anywhere and fold it down to just the counter (say, 2/3). |
@@ -144,6 +144,7 @@ There are two bars up there and they are different things.
 | **The music strip** | Only shows when something is playing. Title, artist, ⏮ previous, ❚❚/▶ pause and ⏭ next. Volume stays in Windows' own mixer. |
 | **○ Streaming / ◉ Streaming on** | The streaming shield: masks paths, personal data and any key the terminals print. Ctrl+Shift+E, details in section 12. |
 | **✦ Foreman** | Summons the orchestrator overlay. Ctrl+Shift+A. |
+| **The last three icons** (only in the Cockpit, with more than one terminal) | Set all terminals aside (they stay alive in the strip below), lay them out on a template, and close them all. They carry no written name, like the tabs: the tooltip says it. Close all asks first, because it kills their agents. |
 
 Above all of that, a blue **update bar** appears when a new version of Adeorq is
 out: "Update now" downloads it and "Restart" puts it live. A Windows

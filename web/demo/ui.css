@@ -2,7 +2,7 @@
    Adeorq · demo/ui.css
    GENERADO. No editar a mano: sale de src/App.css con scripts/extraer-ui.mjs.
 
-   Son 683 reglas de la app de verdad, acotadas dentro de `.ade` para que
+   Son 684 reglas de la app de verdad, acotadas dentro de `.ade` para que
    convivan con la landing. Las medidas son las suyas, no una aproximacion.
    ========================================================================= */
 
@@ -74,7 +74,7 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
   border-color: rgba(160, 200, 255, 0.2);
   transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 3px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .ade .tab:active {
@@ -111,7 +111,7 @@
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 0 5px;
 }
 
@@ -130,6 +130,9 @@
 
 .ade .brand {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--text);
   font-weight: 650;
   letter-spacing: 0.3px;
@@ -140,7 +143,7 @@
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 7px 12px;
   font-size: 13px;
   outline: none;
@@ -287,8 +290,7 @@
   border-color: rgba(140, 185, 255, 0.5);
   transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 3px 9px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .ade .mini:active {
@@ -328,7 +330,7 @@
      catorce píxeles por fila eran casi tres filas enteras de barra. El alto lo
      marca el logo, así que los dos bajan a la vez o la fila deja de encogerse. */
   min-height: 40px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   /* ⚠ OPACO, y esto es legibilidad pura, no gusto.
      `--row` es un rgba al 34 %, y Windows NO aplica ClearType (el suavizado por
      subpíxeles) sobre un fondo que no es opaco: no sabe de qué color va a estar
@@ -394,7 +396,7 @@
   flex: none;
   width: 28px;
   height: 28px;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -444,7 +446,7 @@
 .ade .project-mark .pavatar {
   width: 100%;
   height: 100%;
-  border-radius: 9px 3px 3px 9px;
+  border-radius: var(--r-btn) 3px 3px var(--r-btn);
   font-size: 13px;
   letter-spacing: 0.3px;
 }
@@ -466,7 +468,7 @@
 }
 
 .ade .project[data-open="true"] .project-mark .pavatar {
-  border-radius: 12px 4px 4px 12px;
+  border-radius: var(--r-btn) 4px 4px var(--r-btn);
 }
 
 .ade .project-name {
@@ -530,7 +532,7 @@
   font-size: 11px;
   color: var(--muted);
   background: var(--bg);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 2px 7px;
   min-width: 22px;
   text-align: center;
@@ -564,7 +566,7 @@
   min-height: 28px;
   justify-content: center;
   padding: 0 8px;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: var(--row);
   color: color-mix(in srgb, var(--text) 78%, var(--muted));
@@ -681,7 +683,7 @@
   justify-content: center;
   background: var(--row);
   border: 1px solid transparent;
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   cursor: pointer;
   transition:
     background 0.12s ease,
@@ -695,13 +697,13 @@
   background: var(--row-hover);
   border-color: color-mix(in srgb, var(--c) 50%, transparent);
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+  box-shadow: var(--sombra-2);
 }
 
 .ade .pavatar.pavatar-xl {
   width: 100%;
   height: 100%;
-  border-radius: 15px;
+  border-radius: var(--r-caja);
   font-size: 19px;
   letter-spacing: 0.5px;
 }
@@ -750,8 +752,8 @@
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 14px;
-  box-shadow: var(--glass-edge), 0 14px 38px rgba(0, 0, 0, 0.5);
+  border-radius: var(--r-caja);
+  box-shadow: var(--glass-edge), var(--sombra-3);
   animation: fly-in 0.13s ease;
 }
 
@@ -806,12 +808,12 @@
 }
 
 .ade .session-row {
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   /* Opaca del todo, por lo mismo que `.project`: sobre un fondo con alfa,
      Windows apaga ClearType y el título de la sesión se ve emborronado. */
   background: var(--panel-solid);
   border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  box-shadow: none;
 }
 
 .ade .session-row[data-trabajando] {
@@ -998,7 +1000,7 @@
 .ade .session-row[data-suelta] {
   outline: 1px dashed color-mix(in srgb, var(--accent) 70%, transparent);
   outline-offset: -1px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
@@ -1125,8 +1127,8 @@
      la CAPA antes que el alfa: ver el z-index de aquí arriba. */
   background: var(--panel-solid);
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  box-shadow: var(--glass-edge), 0 12px 34px rgba(0, 0, 0, 0.45);
+  border-radius: var(--r-btn);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 .ade .rail-new {
@@ -1188,7 +1190,7 @@
 
 .ade .minim-eti b {
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--row-hover, var(--row));
   color: var(--text);
   font-size: 10px;
@@ -1408,7 +1410,7 @@
   min-width: 0;
   padding: 1px 6px;
   border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--bg) 80%, transparent);
   color: var(--text);
   font-size: 12.5px;
@@ -1469,11 +1471,7 @@
 .ade .pane[data-focused="true"] {
   border-color: var(--accent);
   box-shadow:
-    var(--glass-edge),
-    inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
-    0 0 0 2px color-mix(in srgb, var(--accent) 75%, transparent),
-    0 0 26px color-mix(in srgb, var(--accent) 45%, transparent),
-    0 10px 30px rgba(0, 0, 0, 0.35);
+    var(--glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 0 2px color-mix(in srgb, var(--accent) 75%, transparent), 0 0 26px color-mix(in srgb, var(--accent) 45%, transparent), var(--sombra-2);
   z-index: 2;
 }
 
@@ -1530,7 +1528,7 @@
   background: linear-gradient(180deg, rgba(90, 130, 190, 0.55), rgba(40, 62, 98, 0.55));
   border-color: rgba(140, 185, 255, 0.35);
   transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .ade .pane-btn:active {
@@ -1548,7 +1546,7 @@
   color: var(--accent);
   background: rgba(77, 159, 255, 0.12);
   border: 1px solid rgba(77, 159, 255, 0.25);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 2px 7px;
   white-space: nowrap;
 }
@@ -1562,7 +1560,7 @@
   color: color-mix(in srgb, var(--accent) 70%, var(--text));
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 6px;
   max-width: 90px;
   overflow: hidden;
@@ -1585,7 +1583,7 @@
   gap: 3px;
   font-size: 11.5px;
   font-weight: 650;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 2px 8px;
   /* Back from their errand: still worth knowing, no longer worth shouting. */
   color: var(--muted);
@@ -1602,7 +1600,7 @@
   flex: none;
   padding: 1px 5px;
   border: 1px solid color-mix(in srgb, #5bd18b 45%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, #5bd18b 14%, transparent);
   color: #5bd18b;
   font-size: 9px;
@@ -1619,7 +1617,7 @@
   white-space: nowrap;
   padding: 1px 5px;
   border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--c) 14%, transparent);
   color: var(--c);
   font-size: 9px;
@@ -1635,7 +1633,7 @@
   white-space: nowrap;
   padding: 1px 5px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   color: var(--muted);
   font-size: 9.5px;
   font-weight: 600;
@@ -1650,7 +1648,7 @@
   font-size: 10px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 6px;
   color: color-mix(in srgb, var(--accent) 75%, var(--text));
   background: color-mix(in srgb, var(--accent) 18%, transparent);
@@ -1664,7 +1662,7 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
   background: color-mix(in srgb, currentColor 14%, transparent);
   /* El tono del CLI lo pone KindIcon en --k. Va aquí y no en línea para que las
@@ -1812,7 +1810,7 @@
   min-height: 26px;
   padding: 4px 9px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   cursor: grab;
   transition:
     background 0.12s ease,
@@ -1845,6 +1843,11 @@
   white-space: nowrap;
 }
 
+.ade .pane[data-recibe] {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+}
+
 .ade .act-vacio,
 .ade .act-nada {
   margin: 8px 4px;
@@ -1873,7 +1876,7 @@
   gap: 4px;
   padding: 2px 7px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   font-size: 11px;
   color: var(--muted);
 }
@@ -1986,7 +1989,7 @@
 .ade .pane-chip {
   flex: none;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--row);
   color: var(--muted);
   font-size: 11px;
@@ -2019,9 +2022,8 @@
 .ade .pane-overlays > * {
   pointer-events: auto;
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+    inset 0 1px 0 rgba(255, 255, 255, 0.12), var(--sombra-2);
+  border-radius: var(--r-btn);
   backdrop-filter: blur(16px);
   animation: paneOverlayIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -2084,8 +2086,7 @@
   letter-spacing: 0.01em;
   cursor: pointer;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
-    0 6px 18px rgba(0, 0, 0, 0.42);
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--sombra-2);
   animation: update-sube 0.16s ease;
 }
 
@@ -2188,7 +2189,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--glass-edge), var(--sombra-2);
   /* Una de ellas es un <button> que lleva a la Cabina: sin esto heredaría el
      centrado y la tipografía del navegador y sería la única distinta. */
   text-align: left;
@@ -2244,7 +2245,7 @@
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   background: var(--row);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 1px 7px;
 }
 
@@ -2259,7 +2260,7 @@
   gap: 3px;
   padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   /* Se queda a la vista mientras el contenido baja: en Discord o en Terminales
@@ -2425,7 +2426,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r-caja);
   padding: 18px 20px;
-  box-shadow: var(--glass-edge), 0 10px 30px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--glass-edge), var(--sombra-2);
 }
 
 .ade .panel-card h2 {
@@ -2492,7 +2493,7 @@
   flex: none;
   width: 8px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   box-shadow: 0 0 6px color-mix(in srgb, currentColor 30%, transparent);
 }
 
@@ -2660,7 +2661,7 @@
 .ade .term-prev {
   display: block;
   padding: 10px 11px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   border: 1.5px solid var(--border);
   /* El fondo del panel de verdad: el esquema NO trae fondo (ver temasTerm.ts),
      así que enseñarlo con uno inventado sería enseñar otra cosa. */
@@ -2858,9 +2859,9 @@
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 18px;
+  border-radius: var(--r-caja);
   padding: 16px 18px;
-  box-shadow: var(--glass-edge), 0 18px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 .ade .foreman-title {
@@ -2892,14 +2893,14 @@
   color: var(--muted);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 2px 7px;
 }
 
 .ade .ctx-bar {
   width: 26px;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--muted) 35%, transparent);
   position: relative;
   overflow: hidden;
@@ -2911,7 +2912,7 @@
   inset: 0 auto 0 0;
   width: var(--p);
   background: var(--accent);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
 }
 
 .ade .pane-ram {
@@ -2944,7 +2945,7 @@
   z-index: 9990;
   min-width: 172px;
   padding: 4px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   /* SÓLIDO, y es el único sitio de la app donde eso es obligatorio.
    *
    * Tenía `--popover` (0.94 de opacidad) más el cristal de la casa, que es la
@@ -2962,7 +2963,7 @@
    */
   background: var(--panel-solid);
   border: 1px solid var(--border-strong);
-  box-shadow: var(--glass-edge), 0 12px 30px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-edge), var(--sombra-2);
   animation: tip-in 0.1s ease;
 }
 
@@ -3156,11 +3157,11 @@
   right: 200px;
   z-index: 150;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  box-shadow: var(--glass-edge), 0 14px 34px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-edge), var(--sombra-3);
   max-width: 320px;
 }
 
@@ -3206,10 +3207,10 @@
   z-index: 9995;
   width: 268px;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   background: var(--popover);
   border: 1px solid var(--border-strong);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--sombra-3);
   backdrop-filter: var(--glass-blur);
 }
 
@@ -3271,7 +3272,7 @@
   font-weight: 650;
   letter-spacing: 0.2px;
   padding: 2px 8px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   color: var(--c);
   background: color-mix(in srgb, var(--c) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
@@ -3446,9 +3447,9 @@
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   padding: 15px 16px;
-  box-shadow: var(--glass-edge), 0 16px 44px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 .ade .pulso-detalle h4 {
@@ -3482,7 +3483,7 @@
 .ade .pulso-barra {
   display: block;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--row);
   overflow: hidden;
 }
@@ -3490,7 +3491,7 @@
 .ade .pulso-barra span {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--accent);
   transition: width .4s ease;
 }
@@ -3512,14 +3513,14 @@
 .ade .pavatar.pavatar-pick {
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   font-size: 12px;
 }
 
 .ade .pavatar.pavatar-mini {
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   font-size: 9px;
 }
 
@@ -3564,7 +3565,7 @@
   gap: 5px;
   max-width: 130px;
   padding: 1px 7px 1px 3px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--team) 22%, transparent);
   color: color-mix(in srgb, var(--team) 60%, var(--text));
   font-size: 10.5px;
@@ -3577,14 +3578,10 @@
 .ade .pane-team-n {
   flex: none;
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--team) 55%, transparent);
   color: var(--text);
   font-variant-numeric: tabular-nums;
-}
-
-.ade .topbar[data-sin~="acciones"] .topbar-acciones .tab-label {
-  display: none;
 }
 
 .ade .topbar .np .np-title {
@@ -3605,7 +3602,7 @@
   display: none;
 }
 
-.ade .topbar[data-sin~="marca"] .brand {
+.ade .topbar[data-sin~="marca"] .brand-nombre {
   display: none;
 }
 
@@ -3632,10 +3629,10 @@
   color: white;
   font-size: 9px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 4px;
   line-height: 1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
 }
 
 .ade .pane-diff-panel {
@@ -3677,7 +3674,7 @@
   align-items: center;
   gap: 9px;
   padding: 0 12px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
@@ -3705,7 +3702,7 @@
   display: flex;
   gap: 3px;
   padding: 3px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
@@ -3719,7 +3716,7 @@
   font-size: 12.5px;
   font-weight: 600;
   padding: 7px 15px;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   cursor: pointer;
   white-space: nowrap;
   transition: background .12s ease, color .12s ease;
@@ -3779,7 +3776,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px;
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--popover) 82%, transparent);
   backdrop-filter: var(--glass-blur);
@@ -3807,7 +3804,7 @@
   font-size: 12px;
   font-weight: 600;
   padding: 6px 0;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   cursor: pointer;
   transition: background .12s ease, color .12s ease;
 }
@@ -3962,7 +3959,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--popover) 82%, transparent);
   backdrop-filter: var(--glass-blur);
@@ -4095,14 +4092,14 @@
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 12.5px;
   background: var(--row);
-  border-radius: 5px;
+  border-radius: var(--r-chico);
   padding: 1px 5px;
 }
 
 .ade .mem-md pre {
   background: var(--row);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   padding: 12px 14px;
   overflow-x: auto;
 }
@@ -4239,7 +4236,7 @@
   max-height: calc(100% - 28px);
   overflow-y: auto;
   padding: 12px 13px;
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
@@ -4263,7 +4260,7 @@
   flex: 1;
   padding: 4px 6px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: none;
   font: inherit;
   font-size: 10.5px;
@@ -4319,7 +4316,7 @@
   flex: 1;
   padding: 5px 6px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: none;
   font: inherit;
   font-size: 11.5px;
@@ -4353,7 +4350,7 @@
   width: 100%;
   padding: 4px 7px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: none;
   font: inherit;
   font-size: 11.5px;
@@ -4417,7 +4414,7 @@
   gap: 2px;
   max-width: 46ch;
   padding: 9px 13px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
@@ -4448,11 +4445,11 @@
   margin: 8vh auto 0;
   padding: 34px 38px 30px;
   text-align: center;
-  border-radius: 20px;
+  border-radius: var(--r-caja);
   border: 1px solid var(--border);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-edge), 0 18px 50px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 .ade .mem-bienvenida h1 {
@@ -4508,7 +4505,7 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--r-caja);
   background: var(--panel-solid);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--sombra-3);
 }
 
 .ade .mem-cambiar-pop .mem-vaults {
@@ -4562,7 +4559,7 @@
   text-transform: uppercase;
   color: var(--accent);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 1px 7px;
 }
 
@@ -4666,7 +4663,7 @@
   display: flex;
   gap: 4px;
   padding: 3px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: rgba(0, 0, 0, 0.26);
 }
 
@@ -4705,8 +4702,7 @@
   border-radius: var(--r-btn);
   background: linear-gradient(180deg, var(--row-hover), var(--row));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 1px 2px rgba(0, 0, 0, 0.28);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
   color: var(--text);
   font-size: 13px;
   cursor: pointer;
@@ -4849,7 +4845,7 @@
   gap: 9px;
   padding: 9px 10px;
   border: 1px solid var(--border);
-  border-radius: 11px;
+  border-radius: var(--r-btn);
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -4940,7 +4936,7 @@
   display: flex;
   gap: 3px;
   padding: 3px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: rgba(0, 0, 0, 0.26);
 }
 
@@ -5024,7 +5020,7 @@
 
 .ade .chat-turno[data-rol="tu"] .chat-burbuja {
   padding: 10px 14px;
-  border-radius: 14px 14px 4px 14px;
+  border-radius: var(--r-caja) var(--r-caja) 4px var(--r-caja);
   background: color-mix(in srgb, var(--accent) 24%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
 }
@@ -5040,7 +5036,7 @@
 .ade .chat-burbuja pre {
   overflow-x: auto;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: rgba(0, 0, 0, 0.32);
   font-size: 12.5px;
 }
@@ -5052,7 +5048,7 @@
 
 .ade .chat-burbuja :not(pre) > code {
   padding: 1px 5px;
-  border-radius: 5px;
+  border-radius: var(--r-chico);
   background: var(--row);
 }
 
@@ -5099,9 +5095,9 @@
 .ade .chat-caja {
   position: relative;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   background: color-mix(in srgb, var(--row) 88%, black);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--sombra-2);
 }
 
 .ade .chat-caja[data-trabajando="true"] {
@@ -5114,7 +5110,7 @@
   left: 14px;
   padding: 2px 10px;
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--accent) 22%, #0b1220);
   color: var(--text);
   font-size: 10.5px;
@@ -5127,7 +5123,7 @@
   max-width: 60%;
   padding: 2px 10px;
   border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--warn) 16%, var(--panel-solid));
   color: var(--text);
   font-size: 10.5px;
@@ -5216,7 +5212,7 @@
   align-items: center;
   gap: 6px;
   padding: 3px 10px 3px 4px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: rgba(0, 0, 0, 0.25);
   color: var(--muted);
   font-size: 11.5px;
@@ -5263,11 +5259,11 @@
   width: 296px;
   padding: 7px;
   border: 1px solid var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   /* Sólido y del tema, no un color a mano con cristal encima: es un menú.
      Ver el porqué entero en `.sess-menu`. */
   background: var(--panel-solid);
-  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--sombra-3);
 }
 
 .ade .chat-menu-raya {
@@ -5354,7 +5350,7 @@
   align-items: center;
   gap: 6px;
   padding: 3px 10px 3px 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: rgba(0, 0, 0, 0.25);
   color: var(--muted);
   font-size: 11.5px;
@@ -5363,7 +5359,7 @@
 .ade .chat-ctx-anillo {
   width: 14px;
   height: 14px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: conic-gradient(var(--accent) var(--p, 0%), rgba(255, 255, 255, 0.14) 0);
   mask: radial-gradient(circle, transparent 52%, black 54%);
 }
@@ -5394,6 +5390,13 @@
   margin: 0;
   font-size: 12.5px;
   line-height: 1.55;
+}
+
+.ade .chat-cabecera > .mascota,
+.ade .cj-pestana > .mascota,
+.ade .cj-nueva > .mascota,
+.ade .cj-pensando > .mascota {
+  flex: none;
 }
 
 .ade .chat-caja:has(.chat-input[data-mejorado="true"]) {
@@ -5433,7 +5436,7 @@
   width: 17px;
   height: 17px;
   margin: -2px -6px -2px 1px;
-  border-radius: 5px;
+  border-radius: var(--r-chico);
   color: color-mix(in srgb, var(--text) 38%, transparent);
   font-size: 11px;
   font-weight: 700;

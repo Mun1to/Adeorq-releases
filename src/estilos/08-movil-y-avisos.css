@@ -181,7 +181,7 @@
      dejaria esta tarjeta mas separada de la lista que todo lo demas. */
   display: flex;
   align-items: stretch;
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   overflow: hidden;
   /* SOLIDO: esto se posa sobre terminales y sobre la foto, y un aviso que no se
      lee no es un aviso (ver la regla encima de `.panel-card`). */
@@ -197,9 +197,7 @@
      fotograma, y es un aviso que va a estar ahí hasta que lo pulses. */
   border: 1px solid var(--accent);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
-    0 0 22px color-mix(in srgb, var(--accent) 38%, transparent),
-    0 14px 34px rgba(0, 0, 0, 0.5);
+    0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 22px color-mix(in srgb, var(--accent) 38%, transparent), var(--sombra-3);
   animation: update-sube 0.18s ease;
 }
 
@@ -239,7 +237,7 @@
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: 11px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
@@ -312,9 +310,7 @@
 .update-card[data-phase="error"] {
   border-color: rgba(224, 110, 110, 0.7);
   box-shadow:
-    0 0 0 1px rgba(224, 110, 110, 0.3),
-    0 0 20px rgba(224, 110, 110, 0.3),
-    0 14px 34px rgba(0, 0, 0, 0.5);
+    0 0 0 1px rgba(224, 110, 110, 0.3), 0 0 20px rgba(224, 110, 110, 0.3), var(--sombra-3);
 }
 
 .update-card[data-phase="error"] .update-mark {
@@ -377,10 +373,10 @@
   flex-direction: column;
   gap: 7px;
   padding: 13px 14px;
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   background: var(--panel-solid);
   border: 1px solid rgba(240, 180, 80, 0.5);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--sombra-3);
   animation: update-sube 0.18s ease;
 }
 
@@ -581,7 +577,7 @@
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-caja);
-  box-shadow: var(--glass-edge), 0 18px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--glass-edge), var(--sombra-3);
   color: var(--text);
   font-size: 13px;
 }
@@ -592,14 +588,6 @@
   gap: 10px;
   padding: 10px 12px 8px;
   font-size: 14px;
-}
-.avisos-filtros {
-  display: flex;
-  gap: 6px;
-}
-.avisos-filtros .choice {
-  padding: 4px 10px;
-  font-size: 12px;
 }
 .avisos-lista {
   margin: 0;
@@ -624,16 +612,8 @@
   text-align: left;
   cursor: pointer;
 }
-.aviso:hover:not(:disabled) {
+.aviso:hover {
   background: var(--row);
-}
-.aviso:disabled {
-  cursor: default;
-}
-/* Lo que ya pasó (le contestaste, o cerraste la terminal) se apaga: sigue en
-   la lista como historia, pero no compite con lo que te reclama ahora. */
-.aviso[data-vigente="false"] {
-  opacity: 0.55;
 }
 .aviso-icono {
   display: grid;
@@ -641,10 +621,10 @@
   margin-top: 1px;
   color: var(--muted);
 }
-.aviso[data-vigente="true"][data-tipo="espera"] .aviso-icono {
+.aviso[data-tipo="espera"] .aviso-icono {
   color: var(--ask);
 }
-.aviso[data-vigente="true"][data-tipo="hecho"] .aviso-icono {
+.aviso[data-tipo="hecho"] .aviso-icono {
   color: var(--done);
 }
 .aviso-cuerpo {
@@ -700,11 +680,5 @@
 }
 .avisos-vacio p {
   margin: 0;
-}
-.avisos-pie {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 10px 10px;
-  border-top: 1px solid var(--border);
 }
 

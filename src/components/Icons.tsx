@@ -550,8 +550,10 @@ export function EstadoIcon({ estado, size = 13 }: Props & { estado: string }) {
     );
   }
   // Te espera: el aviso de siempre, un triángulo con su marca. Es el único de
-  // los cuatro que tiene que llamarte desde el rabillo del ojo.
-  if (estado === "pregunta" || estado === "ofrece" || estado === "tuya") {
+  // los cuatro que tiene que llamarte desde el rabillo del ojo. `tuya` no
+  // entra: en una terminal viva no se sabe si piensa o está parada, y ante la
+  // duda no se llama a nadie (`columnaDe`, en `lib/estados.ts`).
+  if (estado === "pregunta" || estado === "ofrece") {
     return (
       <svg {...svg(size)}>
         <path d="M12 4.5 21 19.5H3z" />

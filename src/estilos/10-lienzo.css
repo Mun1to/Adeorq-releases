@@ -40,7 +40,7 @@
   gap: 3px;
   padding: 3px;
   border: 1px solid color-mix(in srgb, var(--text) 9%, transparent);
-  border-radius: 13px;
+  border-radius: var(--r-btn);
   /* El grupo tiene que leerse COMO grupo sobre la barra, y la barra ya es
      translúcida: con el color del panel a secas quedaba invisible. El relieve
      lo dan el borde y la luz de arriba, no un fondo más oscuro. */
@@ -116,10 +116,10 @@
   width: 268px;
   padding: 7px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--sombra-3);
 }
 
 .cb-find {
@@ -145,7 +145,7 @@
   width: 100%;
   padding: 7px 10px;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: none;
   color: var(--text);
   font-size: 13px;
@@ -241,7 +241,7 @@
 .cb-modos {
   gap: 2px;
   padding: 2px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--text) 7%, transparent);
 }
 
@@ -269,7 +269,7 @@
      superficie ya translúcida, y ahí el texto pierde el suavizado de Windows
      (ver la regla de `.session-row`). */
   background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  box-shadow: none;
 }
 
 .cb-tool {
@@ -334,12 +334,12 @@
   gap: 4px;
   padding: 9px 10px 10px;
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: var(--r-btn);
   /* Opaca: se posa sobre las terminales y sobre la foto de la casa, y encima
      lleva texto pequeño, que sobre un fondo con alfa pierde el suavizado de
      Windows (ver la regla de `.session-row`). */
   background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
-  box-shadow: var(--glass-edge), 0 12px 34px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 /* El nombre de lo que estás ajustando, arriba del todo y a lo ancho. */
@@ -440,7 +440,7 @@
 
 .cp-width span {
   width: 16px;
-  border-radius: 99px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--text) 80%, transparent);
 }
 
@@ -849,7 +849,7 @@
   position: absolute;
   inset: -5px;
   border: 2px solid var(--accent);
-  border-radius: 18px;
+  border-radius: var(--r-caja);
   background: color-mix(in srgb, var(--accent) 9%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
   pointer-events: none;
@@ -875,10 +875,10 @@
   padding: 6px 10px;
   transform: translateX(-50%);
   border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--sombra-2);
 }
 
 .cs-n {
@@ -888,7 +888,7 @@
   min-width: 22px;
   height: 22px;
   padding: 0 6px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 30%, transparent);
   color: #f4f8ff;
   font-size: 12px;
@@ -923,7 +923,7 @@
   min-width: 160px;
   padding: 2px 6px;
   border: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--popover) 92%, transparent);
   font-family: inherit;
   font-weight: 600;
@@ -944,7 +944,7 @@
   margin: 0 0 12px;
   padding: 10px 14px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--bg);
   list-style: none;
   color: var(--muted);
@@ -994,7 +994,7 @@
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
   border-radius: var(--r-caja);
-  box-shadow: var(--glass-edge), 0 10px 26px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--glass-edge), var(--sombra-2);
 }
 
 .canvas-flow .react-flow__controls {
@@ -1006,7 +1006,7 @@
   background: var(--panel);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
-  box-shadow: var(--glass-edge), 0 10px 26px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--glass-edge), var(--sombra-2);
 }
 
 .canvas-flow .react-flow__controls-button {
@@ -1032,9 +1032,9 @@
   width: 100%;
   height: 100%;
   display: flex;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   overflow: hidden;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--sombra-3);
 }
 
 .rf-term[data-selected="true"] {
@@ -1044,7 +1044,7 @@
 
 /* The pane fills its node, and its header is the drag handle. */
 .rf-term .pane {
-  border-radius: 12px;
+  border-radius: var(--r-btn);
 }
 
 .rf-term .pane-head {

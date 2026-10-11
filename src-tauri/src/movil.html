@@ -563,6 +563,10 @@ const BRAZOS = {
     recto: [[3, 6], [2, 6], [1, 6]],
     teclaA: [[3, 6], [2, 7], [1, 7]],
     teclaB: [[3, 6], [2, 7], [1, 8]],
+    cadera: [[3, 6], [2, 6], [3, 7]],
+    oreja: [[3, 5], [3, 4], [4, 3]],
+    cabeza: [[3, 4], [4, 3], [5, 1]],
+    ola: [[3, 6], [2, 5], [1, 4]],
 };
 const OJOS = {
     abierto: [[9, 4], [10, 4]],
@@ -575,6 +579,7 @@ const OJOS = {
 const PARPADOS = {
     cerrado: [[8, 4], [9, 4], [10, 4], [11, 4]],
     feliz: [[8, 4], [9, 3], [10, 3], [11, 4]],
+    triste: [[8, 3], [9, 4], [10, 4], [11, 3]],
 };
 const EXTRAS = {
     alerta: { color: "#ffb454", puntos: [[16, 0], [16, 1], [16, 2], [16, 4]] },
@@ -582,11 +587,46 @@ const EXTRAS = {
     zetaB: { color: "#9fb4d6", puntos: [[16, 0], [17, 0], [18, 0], [19, 0], [18, 1], [17, 2], [16, 3], [17, 3], [18, 3], [19, 3]] },
     chispaA: { color: "#ffd166", puntos: [[3, 1], [17, 2], [1, 5], [18, 6]] },
     chispaB: { color: "#ffd166", puntos: [[2, 3], [16, 0], [0, 7], [19, 4]] },
+    piensaA: { color: "#cfe3ff", puntos: [[15, 3]] },
+    piensaB: { color: "#cfe3ff", puntos: [[15, 3], [16, 1]] },
+    piensaC: { color: "#cfe3ff", puntos: [[15, 3], [16, 1], [18, 0], [19, 0], [18, 1], [19, 1]] },
+    duda: { color: "#c9b8ff", puntos: [[16, 0], [17, 0], [18, 1], [17, 2], [17, 4]] },
+    gotaA: { color: "#8fd3ff", puntos: [[15, 2], [15, 3]] },
+    gotaB: { color: "#8fd3ff", puntos: [[15, 3], [15, 4]] },
+    notaA: { color: "#ffd166", puntos: [[3, 0], [4, 0], [3, 1], [2, 2], [3, 2]] },
+    notaB: { color: "#ffd166", puntos: [[16, 1], [17, 1], [16, 2], [15, 3], [16, 3]] },
+    ondaA: { color: "#9fd0ff", puntos: [[1, 4], [1, 6]] },
+    ondaB: { color: "#9fd0ff", puntos: [[1, 4], [1, 6], [0, 3], [0, 5], [0, 7]] },
+    corazon: { color: "#ff7a9c", puntos: [[16, 0], [18, 0], [16, 1], [17, 1], [18, 1], [17, 2]] },
 };
 const AZUL = "#39a9f6";
 const BRAZO_COLOR = "#2389e0";
 const BLANCO = "#f1faff";
 const PUPILA = "#0e2c47";
+const TABLA = "#56658a";
+const TECLA = "#e6edfa";
+const PULSADA = "#7ee08a";
+function teclado(pulsadas = []) {
+    const FILAS = [
+        [2, 4, 6, 8, 11, 13, 15, 17],
+        [3, 5, 7, 9, 10, 12, 14, 16],
+        [6, 7, 8, 9, 10, 11, 12, 13],
+    ];
+    const out = [];
+    FILAS.forEach((teclas, i) => {
+        for (let x = 1; x <= ANCHO - 2; x++) {
+            const c = i === 0 && pulsadas.includes(x) ? PULSADA : teclas.includes(x) ? TECLA : TABLA;
+            out.push({ x, y: ALTO - FILAS.length + i, c });
+        }
+    });
+    return out;
+}
+const COSAS = {
+    teclado: teclado(),
+    tecladoIzq: teclado([1, 2]),
+    tecladoDer: teclado([17, 18]),
+    tecladoDos: teclado([1, 2, 17, 18]),
+};
 function cuadrosDe(pose, mirada = "") {
     const sube = pose.salta ? 1 : 0;
     const ojo = pose.ojo === "abierto" && mirada ? mirada : pose.ojo;
@@ -594,6 +634,12 @@ function cuadrosDe(pose, mirada = "") {
     const pupila = parpado ?? OJOS[ojo];
     const esPupila = (x, y) => pupila.some(([px, py]) => px === x && py === y);
     const out = [];
+    const delante = pose.cosa ? COSAS[pose.cosa] : [];
+    const tapado = new Set(delante.map((q) => `${q.x},${q.y}`));
+    const pon = (x, y, c) => {
+        if (!tapado.has(`${x},${y}`))
+            out.push({ x, y, c });
+    };
     CUERPO.forEach((fila, y) => {
         if (y === CUERPO.length - 1 && pose.pie)
             fila = pose.pie === "izq" ? `.......${fila.slice(7)}` : `${fila.slice(0, 13)}.......`;
@@ -601,17 +647,17 @@ function cuadrosDe(pose, mirada = "") {
             const ch = fila[x];
             if (ch === ".")
                 continue;
-            const c = esPupila(x, y) ? PUPILA : ch === "W" && !parpado ? BLANCO : AZUL;
-            out.push({ x, y: y + AIRE - sube, c });
+            pon(x, y + AIRE - sube, esPupila(x, y) ? PUPILA : ch === "W" && !parpado ? BLANCO : AZUL);
         }
     });
     for (const [x, y] of BRAZOS[pose.izq])
-        out.push({ x, y: y + AIRE - sube, c: BRAZO_COLOR });
+        pon(x, y + AIRE - sube, BRAZO_COLOR);
     for (const [x, y] of BRAZOS[pose.der])
-        out.push({ x: ANCHO - 1 - x, y: y + AIRE - sube, c: BRAZO_COLOR });
+        pon(ANCHO - 1 - x, y + AIRE - sube, BRAZO_COLOR);
     if (pose.extra)
         for (const [x, y] of EXTRAS[pose.extra].puntos)
-            out.push({ x, y, c: EXTRAS[pose.extra].color });
+            pon(x, y, EXTRAS[pose.extra].color);
+    out.push(...delante);
     return out;
 }
 const p = (izq, der, ojo = "abierto", mas = {}) => ({ izq, der, ojo, ...mas });
@@ -631,20 +677,68 @@ const GUIONES = {
             [[p("recto", "recto", "cerrado"), 320], [p("arriba", "arriba", "cerrado"), 620], [p("recto", "recto"), 260]],
             [[p("abajo", "abajo", "abierto", { pie: "izq" }), 260], [REPOSO, 180], [p("abajo", "abajo", "abierto", { pie: "der" }), 260], [REPOSO, 180]],
             [[p("abajo", "arriba"), 200], [p("abajo", "saluda"), 200], [p("abajo", "arriba"), 200], [p("abajo", "saluda"), 200]],
+            [[p("cadera", "cadera", "abierto", { pie: "izq" }), 300], [p("cadera", "cadera"), 200], [p("cadera", "cadera", "abierto", { pie: "der" }), 300], [p("cadera", "cadera"), 200]],
+            [[p("abajo", "abajo", "arriba"), 700], [REPOSO, 240]],
+            [[p("abajo", "abajo", "feliz"), 280], [REPOSO, 200]],
         ],
         cada: [6000, 11000],
     },
     trabaja: {
         bucle: [
-            [p("teclaA", "teclaB", "bajo"), 170],
-            [p("teclaB", "teclaA", "bajo"), 170],
+            [p("teclaB", "teclaA", "bajo", { cosa: "tecladoIzq" }), 130],
+            [p("teclaA", "teclaB", "bajo", { cosa: "tecladoDer" }), 130],
+            [p("teclaB", "teclaA", "bajo", { cosa: "tecladoIzq" }), 130],
+            [p("teclaA", "teclaB", "bajo", { cosa: "tecladoDer" }), 130],
+            [p("teclaB", "teclaB", "bajo", { cosa: "tecladoDos" }), 150],
+            [p("teclaA", "teclaA", "bajo", { cosa: "teclado" }), 110],
         ],
         gestos: [
-            [[p("abajo", "medio", "arriba"), 950], [p("abajo", "abajo", "arriba"), 450]],
-            [[REPOSO, 520], [p("abajo", "abajo", "cerrado"), 130], [REPOSO, 320]],
-            [[p("recto", "recto", "cerrado"), 300], [p("recto", "recto", "bajo"), 260]],
+            [
+                [p("teclaB", "oreja", "arriba", { cosa: "teclado" }), 700],
+                [p("teclaB", "oreja", "izq", { cosa: "teclado" }), 350],
+                [p("teclaB", "oreja", "arriba", { cosa: "teclado" }), 300],
+            ],
+            [
+                [p("teclaA", "teclaB", "cerrado", { cosa: "tecladoDer" }), 105],
+                [p("teclaB", "teclaA", "cerrado", { cosa: "tecladoIzq" }), 105],
+                [p("teclaA", "teclaB", "cerrado", { cosa: "tecladoDer" }), 105],
+                [p("teclaB", "teclaA", "cerrado", { cosa: "tecladoIzq" }), 105],
+                [p("teclaA", "teclaB", "cerrado", { cosa: "tecladoDer" }), 105],
+                [p("teclaB", "teclaA", "cerrado", { cosa: "tecladoIzq" }), 105],
+                [p("teclaA", "teclaB", "cerrado", { cosa: "tecladoDer" }), 105],
+                [p("teclaB", "teclaA", "cerrado", { cosa: "tecladoIzq" }), 105],
+            ],
+            [
+                [p("arriba", "arriba", "abierto", { cosa: "teclado" }), 220],
+                [p("teclaB", "teclaB", "feliz", { cosa: "tecladoDos" }), 200],
+                [p("recto", "recto", "feliz", { cosa: "teclado", extra: "chispaA" }), 260],
+            ],
+            [
+                [p("recto", "recto", "cerrado", { cosa: "teclado" }), 300],
+                [p("ola", "ola", "cerrado", { cosa: "teclado" }), 260],
+                [p("recto", "recto", "bajo", { cosa: "teclado" }), 200],
+            ],
+            [
+                [p("teclaB", "cabeza", "cerrado", { cosa: "teclado", extra: "gotaA" }), 340],
+                [p("teclaB", "medio", "cerrado", { cosa: "teclado" }), 260],
+            ],
         ],
-        cada: [4500, 8500],
+        cada: [4000, 7500],
+    },
+    piensa: {
+        bucle: [
+            [p("abajo", "medio", "arriba", { extra: "piensaA" }), 380],
+            [p("abajo", "medio", "arriba", { extra: "piensaB" }), 380],
+            [p("abajo", "medio", "arriba", { extra: "piensaC" }), 620],
+            [p("abajo", "medio", "arriba"), 260],
+        ],
+        gestos: [
+            [[p("abajo", "medio", "izq"), 520], [p("abajo", "medio", "der"), 520], [p("abajo", "medio", "arriba"), 240]],
+            [[p("abajo", "arriba", "cerrado"), 230], [p("abajo", "saluda", "cerrado"), 230], [p("abajo", "arriba", "cerrado"), 230], [p("abajo", "saluda", "cerrado"), 230]],
+            [[p("abajo", "abajo", "grande", { salta: true, extra: "chispaA" }), 190], [p("arriba", "arriba", "feliz", { extra: "chispaB" }), 210], [p("abajo", "medio", "arriba"), 260]],
+            [[p("abajo", "medio", "arriba", { pie: "izq" }), 300], [p("abajo", "medio", "arriba"), 200], [p("abajo", "medio", "arriba", { pie: "der" }), 300]],
+        ],
+        cada: [3200, 6200],
     },
     espera: {
         entrada: [
@@ -664,8 +758,73 @@ const GUIONES = {
                 [p("arriba", "arriba", "grande", { salta: true, extra: "alerta" }), 180],
                 [p("abajo", "arriba"), 150],
             ],
+            [
+                [p("cadera", "cadera", "abierto", { pie: "der", extra: "alerta" }), 220],
+                [p("cadera", "cadera", "abierto", { extra: "alerta" }), 180],
+                [p("cadera", "cadera", "abierto", { pie: "der", extra: "alerta" }), 220],
+                [p("cadera", "cadera", "abierto", { extra: "alerta" }), 180],
+            ],
         ],
         cada: [2600, 4600],
+    },
+    duda: {
+        entrada: [
+            [p("abajo", "abajo", "grande", { salta: true, extra: "duda" }), 200],
+            [p("abajo", "abajo", "arriba", { extra: "duda" }), 260],
+        ],
+        bucle: [
+            [p("cadera", "oreja", "arriba", { extra: "duda" }), 700],
+            [p("cadera", "oreja", "izq", { extra: "duda" }), 500],
+            [p("cadera", "oreja", "der", { extra: "duda" }), 500],
+        ],
+        gestos: [
+            [[p("recto", "recto", "arriba", { extra: "duda" }), 320], [p("medio", "medio", "abierto", { extra: "duda" }), 320], [p("recto", "recto", "arriba", { extra: "duda" }), 320]],
+            [[p("abajo", "saluda", "abierto", { extra: "duda" }), 260], [p("abajo", "arriba", "abierto", { extra: "duda" }), 260], [p("abajo", "saluda", "abierto", { extra: "duda" }), 260]],
+            [[p("abajo", "cabeza", "cerrado", { extra: "duda" }), 240], [p("abajo", "arriba", "cerrado", { extra: "duda" }), 240], [p("abajo", "cabeza", "cerrado", { extra: "duda" }), 240]],
+        ],
+        cada: [3000, 5600],
+    },
+    apurada: {
+        entrada: [
+            [p("abajo", "abajo", "grande", { salta: true }), 180],
+            [p("cabeza", "cabeza", "grande", { extra: "gotaA" }), 260],
+        ],
+        bucle: [
+            [p("cabeza", "cabeza", "triste", { extra: "gotaA" }), 520],
+            [p("cabeza", "cabeza", "triste", { extra: "gotaB" }), 520],
+        ],
+        gestos: [
+            [[p("cabeza", "cabeza", "izq"), 420], [p("cabeza", "cabeza", "der"), 420]],
+            [[p("abajo", "cabeza", "cerrado", { extra: "gotaA" }), 300], [p("abajo", "medio", "cerrado"), 300], [p("abajo", "abajo", "triste"), 420]],
+            [[p("cadera", "cadera", "triste", { pie: "izq" }), 200], [p("cadera", "cadera", "triste"), 160], [p("cadera", "cadera", "triste", { pie: "der" }), 200], [p("cadera", "cadera", "triste"), 160]],
+        ],
+        cada: [3200, 6000],
+    },
+    escucha: {
+        bucle: [
+            [p("oreja", "abajo", "abierto", { extra: "ondaA" }), 420],
+            [p("oreja", "abajo", "abierto", { extra: "ondaB" }), 420],
+            [p("oreja", "abajo"), 300],
+        ],
+        gestos: [
+            [[p("oreja", "abajo", "cerrado"), 160], [p("oreja", "abajo", "feliz", { salta: true }), 160], [p("oreja", "abajo"), 200]],
+            [[p("oreja", "medio", "bajo"), 600], [p("oreja", "abajo"), 240]],
+        ],
+        cada: [2600, 4800],
+    },
+    baila: {
+        bucle: [
+            [p("arriba", "abajo", "feliz", { pie: "izq", extra: "notaA" }), 300],
+            [p("ola", "ola"), 220],
+            [p("abajo", "arriba", "feliz", { pie: "der", extra: "notaB" }), 300],
+            [p("ola", "ola"), 220],
+        ],
+        gestos: [
+            [[p("arriba", "arriba", "feliz", { salta: true, extra: "notaA" }), 200], [p("recto", "recto", "feliz", { extra: "notaB" }), 200], [p("arriba", "arriba", "feliz", { salta: true, extra: "notaA" }), 200]],
+            [[p("cadera", "cadera", "izq", { pie: "izq" }), 240], [p("cadera", "cadera"), 160], [p("cadera", "cadera", "der", { pie: "der" }), 240], [p("cadera", "cadera"), 160]],
+            [[p("medio", "teclaA", "cerrado", { extra: "notaB" }), 220], [p("medio", "teclaB", "cerrado"), 220], [p("medio", "teclaA", "cerrado", { extra: "notaA" }), 220], [p("medio", "teclaB", "cerrado"), 220]],
+        ],
+        cada: [3600, 6400],
     },
     lista: {
         entrada: [...SALTITO, ...SALTITO, ...SALTITO],
@@ -673,7 +832,16 @@ const GUIONES = {
             [p("arriba", "arriba", "feliz", { extra: "chispaA" }), 620],
             [p("arriba", "arriba", "feliz", { extra: "chispaB" }), 620],
         ],
-        gestos: [SALTITO, [[p("abajo", "saluda", "feliz"), 220], [p("abajo", "arriba", "feliz"), 220], [p("abajo", "saluda", "feliz"), 220]]],
+        gestos: [
+            SALTITO,
+            [[p("abajo", "saluda", "feliz"), 220], [p("abajo", "arriba", "feliz"), 220], [p("abajo", "saluda", "feliz"), 220]],
+            [
+                [p("arriba", "abajo", "feliz", { pie: "izq", extra: "chispaA" }), 200],
+                [p("abajo", "arriba", "feliz", { pie: "der", extra: "chispaB" }), 200],
+                [p("arriba", "abajo", "feliz", { pie: "izq", extra: "chispaA" }), 200],
+                [p("abajo", "arriba", "feliz", { pie: "der", extra: "chispaB" }), 200],
+            ],
+        ],
         cada: [3200, 6000],
     },
     dormida: {
@@ -700,6 +868,11 @@ const REACCIONES = {
         [p("abajo", "medio", "arriba"), 170],
         [p("abajo", "arriba", "arriba"), 170],
         [p("abajo", "abajo", "feliz"), 240],
+    ],
+    mimo: [
+        [p("abajo", "abajo", "feliz", { extra: "corazon" }), 260],
+        [p("arriba", "arriba", "feliz", { salta: true, extra: "corazon" }), 200],
+        [p("abajo", "abajo", "feliz", { extra: "corazon" }), 320],
     ],
 };
 function reposoDe(animo) {
@@ -819,12 +992,15 @@ const ICONO = {
 };
 
 /* Cómo se dice el estado de una terminal (los `WorkState` de lib/pty.ts), y
-   con qué tono se pinta: el de las tarjetas del conserje. */
+   con qué tono se pinta: el de las tarjetas del conserje. `tuya` (lo último es
+   un mensaje tuyo sin contestar) no reclama: en una terminal viva casi siempre
+   es que acaba de recibirlo y piensa. Lo mismo que en el PC (`columnaDe`, en
+   lib/estados.ts). */
 const ESTADO_TERMINAL = {
   a_medias: ["trabajando", "trabajando"],
   pregunta: ["te pregunta", "pregunta"],
   ofrece: ["te espera", "pregunta"],
-  tuya: ["te toca", "pregunta"],
+  tuya: ["en reposo", "cerrada"],
   lista: ["terminó", "termino"],
   "": ["quieta", "cerrada"],
 };
@@ -2058,7 +2234,7 @@ function modoDe(v) {
 const GIRO = /^\s*[·✻✳✢✶✽*•◦]\s+\S[^(]*\((\d[^)·•]*)/;
 function ahoraDe(v) {
   const filas = (v.filas || []).map((f) => f.replace(/\s+$/, ""));
-  if (["pregunta", "ofrece", "tuya"].includes(v.estado)) {
+  if (["pregunta", "ofrece"].includes(v.estado)) {
     const m = menuDe(filas);
     // Sin menú que pulsar sigue siendo tu turno: se dice, y contestas en la caja.
     return m ? { tipo: "pregunta", ...m } : { tipo: "espera", que: estadoTerminal(v)[0] };

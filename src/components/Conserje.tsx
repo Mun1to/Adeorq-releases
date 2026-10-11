@@ -20,8 +20,10 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
+import { Ocupado } from "./Espera";
 import { aHtml } from "../lib/markdown";
 import {
+  animoDelChat,
   arranqueDeAhora,
   CEREBROS_CONSERJE,
   CONSERJE_CAMBIO,
@@ -54,6 +56,7 @@ import { hace } from "../lib/uso";
 import { A_MANO, cerebroPorDefecto, type ModelAlias } from "../lib/models";
 import { providerOf } from "../lib/providers";
 import ProviderMark from "./ProviderMark";
+import Mascota from "./Mascota";
 import { abrirEnlacesFuera } from "../lib/enlacesFuera";
 import {
   ChevronIcon,
@@ -161,9 +164,7 @@ export function ListaConserje({
   return (
     <section className="cj-lista">
       <button className="cj-nueva" onClick={onNueva}>
-        <span className="cj-avatar cj-avatar-mini">
-          <SparkIcon size={13} />
-        </span>
+        <Mascota animo="quieta" alto={16} />
         {t("Hablar con el conserje")}
       </button>
       {lista.map((f) => (
@@ -207,7 +208,8 @@ export function PestanasConserje({
   const { t } = useT();
   const arranque = useArranque();
   const vivas = trabajos.filter((w) => !w.soltado);
-  const resumen = resumenDePestanas(vivas.map((w) => estadoDe(paneDe(w, panes, arranque))));
+  const estados = vivas.map((w) => estadoDe(paneDe(w, panes, arranque)));
+  const resumen = resumenDePestanas(estados);
 
   /* Con tres pestañas la tira ya no cabe en la columna del chat, y la barra de
      desplazamiento está escondida: sin una pista, las de la derecha no
@@ -244,9 +246,7 @@ export function PestanasConserje({
     // a una pestaña nueva se iba por la izquierda.
     <nav className="cj-pestanas" aria-label={t("Sesiones")}>
       <button className="cj-pestana" data-estado="conserje" data-on={viendo === null} onClick={() => onIr(null)}>
-        <span className="cj-avatar cj-avatar-mini">
-          <SparkIcon size={12} />
-        </span>
+        <Mascota animo={animoDelChat(false, estados)} alto={16} />
         <span className="cj-pestana-txt">
           <strong>{t("Conserje")}</strong>
           <span className="cj-estado">{t(resumen.clave, { n: resumen.n })}</span>
@@ -378,6 +378,8 @@ export function HiloConserje({
   const [antes, setAntes] = useState<string | null>(null);
   const [mejorando, setMejorando] = useState(false);
   const [pensando, setPensando] = useState(false);
+  /** Sube con cada mensaje que mandas: la mascota lo mira salir. */
+  const [envios, setEnvios] = useState(0);
   const [paso, setPaso] = useState("");
   /** Lo que no se pudo hacer (la reja, una sesión que no abrió): una nota en
       el hilo, en el sitio de la conversación donde pasó. */
@@ -478,6 +480,7 @@ export function HiloConserje({
     setFallo(null);
     setPaso("");
     setPendiente(txt);
+    setEnvios((n) => n + 1);
     setPensando(true);
     // El mismo camino que usa el móvil (`lib/conserjeEnvio.ts`).
     const r = await enviarAlConserje(id, txt, { exec, conv, fijo, alCambio: onCambio });
@@ -489,14 +492,17 @@ export function HiloConserje({
 
   const trabajosDe = (n: number) => (conv?.trabajos ?? []).filter((w) => w.turno === n);
   const panes = exec.panes();
-  const marcha = enMarcha((conv?.trabajos ?? []).map((w) => estadoDe(paneDe(w, panes, arranque))));
+  const estados = (conv?.trabajos ?? []).map((w) => estadoDe(paneDe(w, panes, arranque)));
+  const marcha = enMarcha(estados);
 
   return (
     <>
       <header className="chat-cabecera">
-        <span className="cj-avatar">
-          <SparkIcon size={15} />
-        </span>
+        {/* La mascota en vez de un destello en una burbuja (Munir, 2026-10-11:
+            «quita esto cutre y pon a la mascota»). Dice cómo va la conversación:
+            piensa mientras el conserje contesta, teclea si sus sesiones trabajan
+            y te llama si alguna te pregunta. */}
+        <Mascota animo={animoDelChat(pensando, estados, { fallo: !!fallo, escribiendo: !!texto.trim() })} alto={28} envio={envios} />
         <span className="chat-cab-id">
           <strong>{conv?.titulo || t("Conserje")}</strong>
           <em>
@@ -511,9 +517,7 @@ export function HiloConserje({
       <div className="chat-turnos">
         {!conv?.turnos.length && !pendiente && (
           <div className="chat-elige cj-bienvenida">
-            <span className="cj-avatar cj-avatar-grande">
-              <SparkIcon size={22} />
-            </span>
+            <Mascota animo="quieta" alto={64} />
             <p className="chat-elige-tit">{t("Dime qué hay que hacer.")}</p>
             <p className="chat-elige-sub">
               {t(
@@ -544,7 +548,7 @@ export function HiloConserje({
         {pensando && (
           <article className="chat-turno" data-rol="agente">
             <p className="cj-pensando">
-              <span className="cj-punto" />
+              <Mascota animo="piensa" alto={30} />
               {paso || t("Pensando…")}
             </p>
           </article>
@@ -619,7 +623,9 @@ export function HiloConserje({
               onClick={mejorar}
             >
               {antes !== null ? <UndoIcon size={13} /> : <SparkIcon size={13} />}
-              {mejorando ? t("Mejorando…") : antes !== null ? t("Deshacer") : t("Mejorar")}
+              <Ocupado activo={mejorando} mientras={t("Mejorando…")}>
+                {antes !== null ? t("Deshacer") : t("Mejorar")}
+              </Ocupado>
             </button>
             {/* Con qué piensa el CONSERJE. No es lo mismo que el router: el
                 router elige el modelo de las sesiones que abre. */}

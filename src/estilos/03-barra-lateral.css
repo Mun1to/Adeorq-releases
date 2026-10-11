@@ -58,7 +58,7 @@
   font-size: 11px;
   color: var(--muted);
   background: var(--bg);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 2px 7px;
   min-width: 22px;
   text-align: center;
@@ -107,7 +107,7 @@
   min-height: 28px;
   justify-content: center;
   padding: 0 8px;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   border: 1px solid var(--border);
   background: var(--row);
   color: color-mix(in srgb, var(--text) 78%, var(--muted));
@@ -421,7 +421,7 @@
   justify-content: center;
   background: var(--row);
   border: 1px solid transparent;
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   cursor: pointer;
   transition:
     background 0.12s ease,
@@ -435,13 +435,13 @@
   background: var(--row-hover);
   border-color: color-mix(in srgb, var(--c) 50%, transparent);
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+  box-shadow: var(--sombra-2);
 }
 
 .pavatar.pavatar-xl {
   width: 100%;
   height: 100%;
-  border-radius: 15px;
+  border-radius: var(--r-caja);
   font-size: 19px;
   letter-spacing: 0.5px;
 }
@@ -495,8 +495,8 @@
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 14px;
-  box-shadow: var(--glass-edge), 0 14px 38px rgba(0, 0, 0, 0.5);
+  border-radius: var(--r-caja);
+  box-shadow: var(--glass-edge), var(--sombra-3);
   animation: fly-in 0.13s ease;
 }
 
@@ -750,12 +750,12 @@
    Superficie SÓLIDA del tema, borde propio y una sombra corta que la despega
    del fondo. El desenfoque no se toca: va una sola vez en el contenedor. */
 .session-row {
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   /* Opaca del todo, por lo mismo que `.project`: sobre un fondo con alfa,
      Windows apaga ClearType y el título de la sesión se ve emborronado. */
   background: var(--panel-solid);
   border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  box-shadow: none;
 }
 
 /* ── El hilo de luz: un trazo recorre la tarjeta mientras el agente trabaja ──

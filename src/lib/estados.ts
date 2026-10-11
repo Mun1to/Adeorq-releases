@@ -29,21 +29,31 @@ export const PINTA: Record<string, { label: string; urge: boolean }> = {
   a_medias: { label: "trabajando", urge: false },
   pregunta: { label: "TE ESPERA", urge: true },
   ofrece: { label: "TE ESPERA", urge: true },
-  tuya: { label: "te toca", urge: true },
+  tuya: { label: "en reposo", urge: false },
   lista: { label: "terminó", urge: false },
-  "": { label: "no se sabe", urge: false },
+  "": { label: "en reposo", urge: false },
 };
 
 /**
  * En qué columna cae un agente según lo que esté haciendo.
  *
- * El estado desconocido («») cae en «Trabajando» y no en una columna propia:
- * son los primeros segundos de una terminal recién abierta, y una quinta
- * columna que se llena y se vacía sola cada vez que abres algo es ruido. La
- * tarjeta lo dice igualmente, con el punto de «no se sabe».
+ * Ante la duda, callado (Munir, 2026-10-11). Hay dos estados que no dicen qué
+ * pasa, y ninguno reclama nada:
+ *   · «» es que no se ha leído nada todavía: una terminal recién abierta.
+ *   · `tuya` es que lo último del transcript es un mensaje TUYO sin contestar.
+ *     En una terminal viva eso es casi siempre que acabas de escribirle y
+ *     todavía piensa; alguna vez, que se quedó parada. No se distinguen, y
+ *     hasta ese día contaba como «te toca»: cada mensaje que mandabas a una
+ *     sesión terminada hacía saltar un «te espera» mientras el agente
+ *     arrancaba. En la lista de sesiones cerradas sí sigue siendo «te toca»
+ *     (`AgendaSesiones.tsx`), que ahí nadie está pensando.
+ *
+ * Los dos caen en «Trabajando» y no en una columna propia: una quinta columna
+ * que se llena y se vacía sola cada vez que abres algo es ruido. La tarjeta lo
+ * dice igualmente, con el punto de «en reposo».
  */
 export function columnaDe(state: WorkState): Exclude<Columna, "porhacer"> {
-  if (state === "pregunta" || state === "ofrece" || state === "tuya") return "espera";
+  if (state === "pregunta" || state === "ofrece") return "espera";
   if (state === "lista") return "hecho";
   return "trabajando";
 }
@@ -58,7 +68,7 @@ export function columnaDe(state: WorkState): Exclude<Columna, "porhacer"> {
  * activada y no funciona»). El transcript sí lo sabe, y Adeorq ya lo lee para
  * pintar el estado de cada panel.
  *
- * Entran los cuatro estados en los que la pelota es tuya, no solo «terminó»:
+ * Entran los tres estados en los que la pelota es tuya, no solo «terminó»:
  * si el agente se para a preguntarte algo también quieres tenerlo delante, que
  * es literalmente lo que se pide al encender el ajuste.
  */
@@ -77,10 +87,16 @@ export function reclamaTuAtencion(state: WorkState): boolean {
  * Un `antes` desconocido nunca dispara: son los paneles que se restauran al
  * abrir la app, que a menudo nacen ya terminados. Arrancar Adeorq no puede
  * significar que se te ponga a pantalla completa lo último que hiciste ayer.
+ * Y «desconocido» es también «»: un panel restaurado no pasa de nada a
+ * «terminó», pasa por «» mientras se lee su transcript, y por ahí se colaba
+ * un aviso por cada terminal en cada arranque. De «» solo dispara una
+ * pregunta, que es de ahora mismo (un menú en pantalla); un «terminó» que ya
+ * estaba ahí cuando se pudo leer no es una noticia.
  */
 export function acabaDeReclamar(antes: WorkState | undefined, ahora: WorkState): boolean {
   if (antes === undefined) return false;
   if (antes === ahora) return false;
+  if (antes === "") return ahora === "pregunta";
   return reclamaTuAtencion(ahora) && !reclamaTuAtencion(antes);
 }
 

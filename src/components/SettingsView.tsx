@@ -5,6 +5,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { useEffect } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { FAMILIAS_TEMA, THEMES, useT, type Lang, type ThemeId } from "../lib/i18n";
+import Espera, { Ocupado } from "./Espera";
 import type { TemaSistema } from "../lib/temaSistema";
 import { temaDeLaFoto } from "../lib/temaDeLaFoto";
 import { comoFuente, esVideo } from "../lib/fondo";
@@ -1490,7 +1491,9 @@ export default function SettingsView({
                   )}
                 </p>
                 {modelos === null ? (
-                  <p className="setting-line">{t("Mirando si Ollama está abierto…")}</p>
+                  <Espera activo className="setting-line">
+                    {t("Mirando si Ollama está abierto…")}
+                  </Espera>
                 ) : modelos.length === 0 ? (
                   <p className="setting-line setting-bad">
                     {t(
@@ -1798,7 +1801,9 @@ export default function SettingsView({
                 </p>
                 <div className="foreman-row">
                   <button className="np-btn" disabled={checking || bajando} onClick={lookForUpdates}>
-                    {checking ? t("Buscando…") : t("Buscar actualizaciones")}
+                    <Ocupado activo={checking} mientras={t("Buscando…")}>
+                      {t("Buscar actualizaciones")}
+                    </Ocupado>
                   </button>
                   {/* Instalar es el SEGUNDO clic, y solo aparece si de verdad
                       hay algo que instalar. Antes iba pegado a buscar, así que

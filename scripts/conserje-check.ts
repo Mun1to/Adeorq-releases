@@ -13,6 +13,7 @@ import {
   claveDe,
   ejecutar,
   enMarcha,
+  animoDelChat,
   estadoDe,
   estadosParaElConserje,
   exigenciaDe,
@@ -123,6 +124,7 @@ function manos(router: boolean, abrirDa: number | null = 7): Manos & { abiertas:
   ok("una pregunta es que te pregunta", estadoDe(panel(1, "pregunta")) === "pregunta");
   ok("ofrecer algo también te pregunta", estadoDe(panel(1, "ofrece")) === "pregunta");
   ok("lista es que ha terminado", estadoDe(panel(1, "lista")) === "termino");
+  ok("con el encargo recién escrito y sin contestar todavía no ha terminado", estadoDe(panel(1, "tuya")) === "trabajando");
   ok("sin panel es que se cerró", estadoDe(undefined) === "cerrada");
 
   const trabajos = [{ panel: 7 }, { panel: 8 }] as Trabajo[];
@@ -152,6 +154,17 @@ function manos(router: boolean, abrirDa: number | null = 7): Manos & { abiertas:
   ok("todas cerradas no es «todo en marcha»", r(["cerrada", "cerrada"]).clave === "dime qué hacemos");
   ok("las cerradas no cuentan en marcha", enMarcha(["cerrada", "trabajando"]).clave === "1 sesión en marcha");
   ok("ninguna viva es nada en marcha", enMarcha(["cerrada"]).clave === "nada en marcha");
+
+  // ── La mascota del chat ─────────────────────────────────────────────────────
+  ok("mientras el conserje contesta, piensa", animoDelChat(true, []) === "piensa");
+  ok("si una sesión te pregunta, eso va antes que pensar", animoDelChat(true, ["trabajando", "pregunta"]) === "espera");
+  ok("con sesiones trabajando y él callado, teclea", animoDelChat(false, ["trabajando", "termino"]) === "trabaja");
+  ok("una que terminó no la deja celebrando para siempre", animoDelChat(false, ["termino", "cerrada"]) === "quieta");
+  ok("sin nada, quieta", animoDelChat(false, []) === "quieta");
+  ok("mientras le escribes, te escucha", animoDelChat(false, ["trabajando"], { escribiendo: true }) === "escucha");
+  ok("si no pudo contestar, se apura, aunque sigas escribiendo", animoDelChat(false, [], { fallo: true, escribiendo: true }) === "apurada");
+  ok("y si una sesión te pregunta, eso va antes que su apuro", animoDelChat(false, ["pregunta"], { fallo: true }) === "espera");
+  ok("contestando no te escucha: piensa", animoDelChat(true, [], { escribiendo: true }) === "piensa");
 
   ok("la carpeta se nombra por su hoja", hoja("C:\\proyectos\\crypto\\radar-bot") === "radar-bot");
   ok(

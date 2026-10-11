@@ -135,7 +135,7 @@
   gap: 9px;
   padding: 7px 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   font-size: 13px;
   background: var(--bg);
 }
@@ -177,7 +177,7 @@
   margin: 0 0 10px;
   padding: 7px 11px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--accent) 6%, transparent);
   color: var(--muted);
   font-size: 12px;
@@ -226,9 +226,9 @@
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 18px;
+  border-radius: var(--r-caja);
   padding: 16px 18px;
-  box-shadow: var(--glass-edge), 0 18px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 .foreman-title {
@@ -393,7 +393,7 @@
 
 .guide code {
   background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 6px;
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 13px;
@@ -494,14 +494,14 @@
   color: var(--muted);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 2px 7px;
 }
 
 .ctx-bar {
   width: 26px;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--muted) 35%, transparent);
   position: relative;
   overflow: hidden;
@@ -513,7 +513,7 @@
   inset: 0 auto 0 0;
   width: var(--p);
   background: var(--accent);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
 }
 
 /* Lo que ocupa esta terminal. Es el dato más callado de la cabecera a
@@ -557,11 +557,11 @@
   gap: 2px;
   max-width: 340px;
   padding: 7px 11px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  box-shadow: var(--glass-edge), 0 10px 26px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-edge), var(--sombra-2);
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--text);
@@ -596,7 +596,7 @@
   z-index: 9990;
   min-width: 172px;
   padding: 4px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   /* SÓLIDO, y es el único sitio de la app donde eso es obligatorio.
    *
    * Tenía `--popover` (0.94 de opacidad) más el cristal de la casa, que es la
@@ -614,7 +614,7 @@
    */
   background: var(--panel-solid);
   border: 1px solid var(--border-strong);
-  box-shadow: var(--glass-edge), 0 12px 30px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-edge), var(--sombra-2);
   animation: tip-in 0.1s ease;
 }
 
@@ -723,7 +723,7 @@
   align-items: center;
   gap: 4px;
   padding: 3px 6px;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   border: 1px solid var(--border);
   min-width: 0;
@@ -885,11 +885,11 @@
   right: 200px;
   z-index: 150;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  box-shadow: var(--glass-edge), 0 14px 34px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-edge), var(--sombra-3);
   max-width: 320px;
 }
 

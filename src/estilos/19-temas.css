@@ -88,7 +88,7 @@
   gap: 8px;
   padding: 0 11px;
   margin-bottom: 14px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: var(--row);
   border: 1px solid var(--border);
   color: var(--muted);
@@ -135,7 +135,7 @@
 .tema-prev {
   display: flex;
   height: 76px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   overflow: hidden;
   border: 1.5px solid var(--border);
   /* El fondo opaco del tema, no su `--bg`, que es translúcido y dejaría ver
@@ -173,7 +173,7 @@
 .tema-prev-linea {
   display: block;
   height: 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--text) 55%, transparent);
 }
 .tema-prev-linea.tema-prev-acento {
@@ -205,7 +205,7 @@
   gap: 10px;
   margin: 4px 0 18px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--row);
   border: 1px solid var(--border);
   cursor: pointer;

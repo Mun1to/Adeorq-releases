@@ -3,6 +3,8 @@ import { marked } from "marked";
 import { limpiar } from "../lib/markdown";
 import { readGuide } from "../lib/pty";
 import { useT } from "../lib/i18n";
+import Espera from "./Espera";
+import { useEspera } from "../lib/espera";
 import { abrirEnlacesFuera } from "../lib/enlacesFuera";
 
 /** Un apartado de la guía, para el índice de al lado. */
@@ -17,11 +19,15 @@ export default function GuideView() {
   const [indice, setIndice] = useState<Apartado[]>([]);
   const [aqui, setAqui] = useState("");
   const caja = useRef<HTMLDivElement>(null);
+  /* Mientras llega, la guía que hubiera se queda en pantalla, apagada: antes
+     se cambiaba en el acto por un «Cargando la guía…» que duraba un parpadeo
+     (`lib/espera.ts`). */
+  const [cargando, setCargando] = useState(true);
+  const espera = useEspera(cargando);
 
   // Reloads when the language changes: the guide has its own English file.
   useEffect(() => {
-    setHtml(`<p>${t("Cargando la guía…")}</p>`);
-    setIndice([]);
+    setCargando(true);
     readGuide(lang)
       .then((text) => {
         /* Se numeran los apartados para poder saltar a ellos.
@@ -55,7 +61,11 @@ export default function GuideView() {
         setHtml(limpiar(doc.body.innerHTML));
         setIndice(hs.map((h, i) => ({ id: `guia-${i}`, texto: h.textContent ?? "" })));
       })
-      .catch((e) => setHtml(`<p>${t("No pude leer la guía")}: ${String(e)}</p>`));
+      .catch((e) => {
+        setHtml(`<p>${t("No pude leer la guía")}: ${String(e)}</p>`);
+        setIndice([]);
+      })
+      .finally(() => setCargando(false));
   }, [lang]);
 
   /* Qué apartado estás leyendo, para encenderlo en el índice.
@@ -106,7 +116,10 @@ export default function GuideView() {
           ))}
         </nav>
       )}
-      <article className="guide" onClick={abrirEnlacesFuera} dangerouslySetInnerHTML={{ __html: html }} />
+      <Espera activo={cargando && !html} className="guide">
+        {t("Cargando la guía…")}
+      </Espera>
+      <article className="guide" data-espera={espera || undefined} onClick={abrirEnlacesFuera} dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 }

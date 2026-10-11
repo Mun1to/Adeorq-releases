@@ -9,11 +9,11 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   background: var(--panel);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
-  box-shadow: var(--glass-edge), 0 14px 34px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 /* La ventana de localhost. La dirección va en la cabecera, donde está en
@@ -29,7 +29,7 @@
   height: 24px;
   padding: 0 8px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: var(--row);
   color: var(--text);
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -202,7 +202,7 @@
 
 .web-tapa span {
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: rgba(10, 14, 22, 0.82);
 }
 
@@ -384,7 +384,7 @@
   align-items: flex-end;
   gap: 1px;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: var(--row);
   border: 1px solid var(--border);
 }
@@ -487,7 +487,7 @@
   width: 52px;
   padding: 3px 6px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: var(--row);
   color: var(--text);
   font: inherit;
@@ -606,7 +606,7 @@
   min-height: 44px;
   padding: 7px 9px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: var(--row);
   color: var(--text);
   font-family: inherit;
@@ -820,13 +820,13 @@
   list-style: none;
   margin: 0;
   padding: 5px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   /* Sólido y SIN cristal: es un menú. Ver el porqué entero en `.sess-menu`.
      El desenfoque se va con la transparencia: detrás de algo opaco no se ve
      nada, así que era puro coste. */
   background: var(--panel-solid);
   border: 1px solid var(--border-strong);
-  box-shadow: var(--glass-edge), 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 
 .img-menu button {
@@ -834,7 +834,7 @@
   text-align: left;
   padding: 6px 9px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: transparent;
   color: var(--text);
   font-size: 12px;
@@ -941,7 +941,7 @@
 .note-count {
   flex: none;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--note) 26%, transparent);
   color: var(--text);
   font-size: 10.5px;
@@ -1102,7 +1102,7 @@ textarea.note-body {
   gap: 5px;
   max-width: 130px;
   padding: 1px 7px 1px 3px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--team) 22%, transparent);
   color: color-mix(in srgb, var(--team) 60%, var(--text));
   font-size: 10.5px;
@@ -1115,7 +1115,7 @@ textarea.note-body {
 .pane-team-n {
   flex: none;
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--team) 55%, transparent);
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -1255,7 +1255,7 @@ textarea.note-body {
   transform: none;
   inset: auto 2px 2px auto;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: transparent;
   color: var(--muted);
   opacity: 0.55;
@@ -1425,7 +1425,7 @@ textarea.note-body {
   min-height: 52px;
   padding: 7px 9px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: var(--row);
   color: var(--text);
   font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
@@ -1445,7 +1445,7 @@ textarea.note-body {
   min-width: 0;
   padding: 5px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: var(--row);
   color: var(--text);
   font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
@@ -1464,7 +1464,7 @@ textarea.note-body {
   margin-left: 5px;
   padding: 3px 6px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: var(--row);
   color: var(--text);
   font: inherit;
@@ -1499,8 +1499,7 @@ textarea.note-body {
   border-color: rgba(140, 185, 255, 0.5);
   transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 3px 9px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .tool-btn:active {
@@ -1514,7 +1513,7 @@ textarea.note-body {
   margin: 0;
   padding: 8px 9px;
   overflow: auto;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: var(--row);
   border: 1px solid var(--border);
   font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
@@ -1536,7 +1535,7 @@ textarea.note-body {
 .tool-mal {
   margin: 0;
   padding: 6px 9px;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--wait) 18%, transparent);
   color: color-mix(in srgb, var(--wait) 80%, var(--text));
   font-size: 11px;
@@ -1570,7 +1569,7 @@ textarea.note-body {
   flex: 1;
   min-width: 0;
   padding: 3px 7px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: var(--row);
   font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
   font-size: 11px;
@@ -1593,7 +1592,7 @@ textarea.note-body {
   position: relative;
   display: block;
   height: 46px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   overflow: hidden;
   cursor: pointer;
 }
@@ -1615,7 +1614,7 @@ textarea.note-body {
 .gal-count {
   flex: none;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--accent) 20%, transparent);
   font-size: 10.5px;
   font-variant-numeric: tabular-nums;
@@ -1648,7 +1647,7 @@ textarea.note-body {
   position: relative;
   margin: 0;
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   overflow: hidden;
   background: var(--panel-head);
   border: 1px solid var(--border);
@@ -1739,6 +1738,6 @@ textarea.note-body {
 .gal-lupa img {
   max-width: 100%;
   max-height: 100%;
-  border-radius: 8px;
+  border-radius: var(--r-chico);
 }
 

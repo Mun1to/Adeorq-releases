@@ -81,7 +81,7 @@
    sitio ni competir con el texto de los objetivos. */
 .obj-barra {
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--row);
   overflow: hidden;
   margin-bottom: 12px;
@@ -89,7 +89,7 @@
 .obj-barra span {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--accent);
   transition: width .35s ease;
 }
@@ -110,7 +110,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   padding: 7px 8px 7px 10px;
   transition: background .12s ease;
 }
@@ -143,7 +143,7 @@
   place-items: center;
   width: 19px;
   height: 19px;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   border: 1.8px solid color-mix(in srgb, var(--text) 32%, transparent);
   color: transparent;
   transition: border-color .13s ease, background .13s ease, color .13s ease;
@@ -244,7 +244,7 @@
   align-items: center;
   gap: 10px;
   padding: 4px 8px 4px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   border-top: 1px solid var(--border);
   transition: background .12s ease;
 }
@@ -337,10 +337,9 @@
   background: color-mix(in srgb, var(--popover) var(--obj-alpha, 100%), transparent);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   box-shadow:
-    var(--glass-edge),
-    0 18px 50px rgba(0, 0, 0, 0.45);
+    var(--glass-edge), var(--sombra-3);
   animation: obj-sube .16s ease-out;
 }
 
@@ -414,9 +413,9 @@
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   padding: 15px 16px;
-  box-shadow: var(--glass-edge), 0 16px 44px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--glass-edge), var(--sombra-3);
 }
 .pulso-detalle h4 {
   margin: 0 0 12px;
@@ -445,14 +444,14 @@
 .pulso-barra {
   display: block;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--row);
   overflow: hidden;
 }
 .pulso-barra span {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--accent);
   transition: width .4s ease;
 }
@@ -519,7 +518,7 @@
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   background: var(--row);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   padding: 2px 8px;
 }
 .obj-plegado-num[data-full="true"] {
@@ -725,7 +724,7 @@ body[data-redim] .divider {
   margin-top: 26px;
   padding: 16px 18px 18px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-caja);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-edge);
@@ -830,7 +829,7 @@ body[data-redim] .divider {
 .ag-cal-obj {
   align-self: flex-start;
   padding: 1px 6px;
-  border-radius: 20px;
+  border-radius: var(--r-caja);
   background: rgba(255, 190, 120, 0.16);
   color: var(--warn);
   font-size: 10.5px;
@@ -848,7 +847,7 @@ body[data-redim] .divider {
 .ag-cal-ventana {
   overflow: hidden;
   padding: 2px 6px;
-  border-radius: 5px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 22%, transparent);
   font-size: 10.5px;
   line-height: 1.35;
@@ -1033,7 +1032,7 @@ body[data-redim] .divider {
   justify-content: center;
   padding: 34px 34px 26px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-caja);
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-edge);
@@ -1050,7 +1049,7 @@ body[data-redim] .divider {
 
 .ag-k {
   padding: 3px 7px;
-  border-radius: 5px;
+  border-radius: var(--r-chico);
   background: rgba(120, 170, 255, 0.14);
   color: #8fb6ff;
   font-size: 10px;
@@ -1099,7 +1098,7 @@ body[data-redim] .divider {
   gap: 7px;
   padding: 11px 24px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: var(--row);
   color: var(--text);
   font: inherit;
@@ -1213,7 +1212,7 @@ body[data-redim] .divider {
 .pavatar.pavatar-pick {
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   font-size: 12px;
 }
 
@@ -1249,7 +1248,7 @@ body[data-redim] .divider {
 .app[data-stream="true"] .where-name {
   min-width: 168px;
   padding: 2px 14px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   border: 1px dashed color-mix(in srgb, var(--text) 26%, transparent);
   background: color-mix(in srgb, var(--text) 8%, transparent);
 }
@@ -1306,7 +1305,7 @@ body[data-redim] .divider {
   align-items: center;
   gap: 14px;
   padding: 12px 15px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--row);
   border-left: 4px solid transparent;
   font-size: 14.5px;
@@ -1369,7 +1368,7 @@ body[data-redim] .divider {
   flex-direction: column;
   gap: 5px;
   padding: 12px 15px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--row);
   border-left: 4px solid transparent;
   font-size: 14.5px;
@@ -1402,7 +1401,7 @@ body[data-redim] .divider {
   letter-spacing: 0.7px;
   color: var(--muted);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 6px;
 }
 
@@ -1437,7 +1436,7 @@ body[data-redim] .divider {
   flex-direction: column;
   gap: 5px;
   padding: 12px 15px;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background: var(--row);
   border-left: 4px solid color-mix(in srgb, var(--accent) 40%, transparent);
   font-size: 14.5px;
@@ -1454,7 +1453,7 @@ body[data-redim] .divider {
 .pavatar.pavatar-mini {
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   font-size: 9px;
 }
 

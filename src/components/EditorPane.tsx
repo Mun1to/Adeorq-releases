@@ -31,6 +31,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Annotation, EditorState, Transaction, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { useT } from "../lib/i18n";
+import { Ocupado } from "./Espera";
 import { cuandoArchivo, guardarArchivo, leerArchivo, leerImagen, type Archivo } from "../lib/archivos";
 import { nombreDeRuta, peso, rutaCorta } from "../lib/arbol";
 import { latido } from "../lib/latido";
@@ -321,13 +322,9 @@ function Hoja({
 
       <footer className="ed-pie">
         <span>
-          {estado === "guardando"
-            ? t("Guardando…")
-            : sucio
-              ? t("Sin guardar")
-              : fresco
-                ? t("Traído del disco: lo acaba de cambiar otro")
-                : t("Guardado")}
+          <Ocupado activo={estado === "guardando"} mientras={t("Guardando…")}>
+            {sucio ? t("Sin guardar") : fresco ? t("Traído del disco: lo acaba de cambiar otro") : t("Guardado")}
+          </Ocupado>
         </span>
         <span className="ed-ruta">{rutaCorta(ruta, raiz)}</span>
         {!imagen && <span className="ed-atajo">{t("Ctrl+S para guardar")}</span>}

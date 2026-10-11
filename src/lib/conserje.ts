@@ -14,6 +14,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { Animo } from "./campana";
 import type { Exigencia, Receta } from "./router";
 import type { Account, PaneStatus, WorkState } from "./pty";
 import type { ModelAlias } from "./models";
@@ -175,9 +176,12 @@ export function estadoDe(s: PaneStatus | undefined): Estado {
   if (!s) return "cerrada";
   const w: WorkState = s.state;
   if (w === "pregunta" || w === "ofrece") return "pregunta";
-  if (w === "lista" || w === "tuya") return "termino";
+  if (w === "lista") return "termino";
   // «a_medias» es trabajando; «» (no se sabe todavía, está arrancando) también:
-  // una sesión recién abierta no ha terminado nada.
+  // una sesión recién abierta no ha terminado nada. Y «tuya» igual: lo último
+  // es el encargo que se le acaba de escribir, todavía sin contestar. Contaba
+  // como «ha terminado», y eso era decirle al conserje que su sesión había
+  // acabado en el momento de mandarle el trabajo.
   return "trabajando";
 }
 
@@ -200,6 +204,26 @@ export function resumenDePestanas(estados: Estado[]): { clave: string; n: number
   const trabajando = cuantos("trabajando");
   if (trabajando) return { clave: "{n} trabajando", n: trabajando };
   return { clave: "dime qué hacemos", n: 0 };
+}
+
+/**
+ * Cómo está la mascota del chat (Adeo). Lo primero, quien te pregunta; luego,
+ * que el conserje no haya podido contestar; luego, que esté contestando; luego,
+ * que le estés escribiendo tú; y al final, que sus sesiones trabajen. Una que
+ * ha terminado no la pone a celebrar: eso lo hace la de la barra de arriba, una
+ * vez, y aquí celebraría mientras la pestaña siguiera abierta.
+ */
+export function animoDelChat(
+  pensando: boolean,
+  estados: Estado[],
+  mas: { fallo?: boolean; escribiendo?: boolean } = {},
+): Animo {
+  if (estados.includes("pregunta")) return "espera";
+  if (mas.fallo) return "apurada";
+  if (pensando) return "piensa";
+  if (mas.escribiendo) return "escucha";
+  if (estados.includes("trabajando")) return "trabaja";
+  return "quieta";
 }
 
 /** «2 sesiones en marcha»: las cerradas no cuentan, que la cabecera decía

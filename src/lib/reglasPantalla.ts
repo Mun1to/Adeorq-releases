@@ -133,7 +133,7 @@ const DEL_TRANSCRIPT: Record<Exclude<WorkState, "">, string> = {
   ofrece: "su último mensaje acaba en una pregunta",
   lista: "su último mensaje es texto y no acaba en pregunta",
   a_medias: "lo último es una herramienta o su resultado, o sea que sigue trabajando",
-  tuya: "lo último es un mensaje tuyo sin contestar",
+  tuya: "lo último es un mensaje tuyo sin contestar: puede estar empezando a trabajar o haberse quedado parada, y ante la duda no se avisa",
 };
 
 /**

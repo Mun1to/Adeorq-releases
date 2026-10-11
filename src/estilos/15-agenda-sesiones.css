@@ -37,7 +37,7 @@
    color de la lista: si todo se subraya, no se subraya nada. */
 .ag-ses-row[data-urge="true"] {
   border-left: 2px solid var(--accent);
-  border-radius: 3px 9px 9px 3px;
+  border-radius: 3px var(--r-btn) var(--r-btn) 3px;
 }
 
 .ag-ses-cuerpo {
@@ -76,7 +76,7 @@
   flex: none;
   padding: 1px 7px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   color: var(--muted);
   font-size: 10.5px;
   font-weight: 600;
@@ -144,7 +144,7 @@
   margin-top: 10px;
   padding: 0 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: var(--row);
   color: var(--text);
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -163,7 +163,7 @@
   margin-top: 12px;
   padding: 11px 12px;
   border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
-  border-radius: 11px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
@@ -187,7 +187,7 @@
   box-sizing: border-box;
   padding: 8px 9px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--bg) 55%, transparent);
   color: var(--fg);
   /* Sin tirador de agrandar: regla de la casa. */
@@ -318,7 +318,7 @@
   margin: 9px 0 0;
   padding: 8px 9px;
   border-left: 3px solid var(--done);
-  border-radius: 0 7px 7px 0;
+  border-radius: 0 var(--r-chico) var(--r-chico) 0;
   background: color-mix(in srgb, var(--done) 10%, transparent);
   font-size: 12px;
   line-height: 1.5;
@@ -348,7 +348,7 @@
   margin: 9px 0 0;
   padding: 7px 9px;
   border-left: 3px solid var(--done);
-  border-radius: 0 7px 7px 0;
+  border-radius: 0 var(--r-chico) var(--r-chico) 0;
   background: color-mix(in srgb, var(--done) 11%, transparent);
   color: var(--fg);
   font-size: 12px;
@@ -392,13 +392,6 @@
    (2026-10-10). Un número vale para la barra del día en que se midió; esto vale
    para la que haya. Su banco es `scripts/laboratorio/barra-cabe.js`, con ese
    peor caso dentro. */
-
-/* «acciones»: los nombres de «Minimizar todas»/«Traer todas», «Disposición» y
-   «Cerrar todas». Se quedan en icono y dicen su nombre al pasar el ratón
-   (`data-tip`). */
-.topbar[data-sin~="acciones"] .topbar-acciones .tab-label {
-  display: none;
-}
 
 /* «titulo»: el reproductor se queda en los mandos. El título de la canción era
    lo que se comía el sitio, y encima truncado no dice qué suena, solo que algo
@@ -474,7 +467,7 @@
   margin-top: 10px;
   padding: 7px 11px;
   border: 1px solid color-mix(in srgb, #ff5f5f 45%, transparent);
-  border-radius: 9px;
+  border-radius: var(--r-btn);
   background: color-mix(in srgb, #ff5f5f 14%, transparent);
   color: #ffc9c9;
   font-size: 12px;

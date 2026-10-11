@@ -17,7 +17,7 @@
      tope de 460 px la dejaba de cajita pequeña con media fila vacía al lado
      (Munir, 2026-08-02). Con varias, el `flex: 1` ya las reparte. */
   border: 1px solid color-mix(in srgb, var(--crew) 40%, var(--border));
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   /* `--card` NO EXISTE: no está definida en ninguna de las paletas, así que
      este `color-mix` era un valor inválido, el navegador tiraba la regla
      entera y la caja salía TRANSPARENTE del todo, con la foto del escritorio
@@ -33,9 +33,7 @@
      como una pieza encendida y no como una barra más del montón, y de paso
      ata visualmente la caja con el color que llevan sus terminales. */
   box-shadow:
-    0 0 22px -4px color-mix(in srgb, var(--crew) 45%, transparent),
-    0 0 60px -18px color-mix(in srgb, var(--crew) 70%, transparent),
-    0 6px 18px -12px rgba(0, 0, 0, 0.55);
+    0 0 22px -4px color-mix(in srgb, var(--crew) 45%, transparent), 0 0 60px -18px color-mix(in srgb, var(--crew) 70%, transparent), var(--sombra-2);
   overflow: hidden;
 }
 
@@ -96,7 +94,7 @@
 .crew-prog-riel {
   width: 46px;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--crew) 22%, transparent);
   overflow: hidden;
 }
@@ -104,7 +102,7 @@
 .crew-prog-lleno {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--crew);
   transition: width 0.3s ease;
 }
@@ -119,7 +117,7 @@
 .crew-wait {
   flex: none;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--warn, #ffd166) 22%, transparent);
   color: var(--warn, #ffd166);
   font-size: 11px;
@@ -180,7 +178,7 @@
    desplegarlos uno a uno. */
 .minim-eti b {
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: var(--row-hover, var(--row));
   color: var(--text);
   font-size: 10px;
@@ -498,7 +496,7 @@
 
 .crew-buzon::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--crew) 50%, transparent);
   /* Sin esto el borde transparente se pinta del color del pulgar y la barra
      sale del ancho entero, gorda y pegada al texto. */
@@ -579,13 +577,13 @@
 html[data-panes="tarjetas"] .divider-col {
   width: 12px;
   margin-left: -6px;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
 }
 
 html[data-panes="tarjetas"] .divider-row {
   height: 12px;
   margin-top: -6px;
-  border-radius: 6px;
+  border-radius: var(--r-pastilla);
 }
 
 /* Dragged by its header, a pane announces itself. */
@@ -680,12 +678,11 @@ html[data-panes="tarjetas"] .pane {
      tamaño real cuesta entre un 2,6 % y un 4,3 % del área de terminal, que es
      lo que hay que pagar por que se vean sueltas. */
   border: 6px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   background-clip: padding-box;
   /* La línea va DENTRO y no en el borde, porque el borde ahora es el hueco. */
   box-shadow:
-    inset 0 0 0 1px var(--border),
-    0 6px 18px -8px rgba(0, 0, 0, 0.6);
+    inset 0 0 0 1px var(--border), var(--sombra-2);
 }
 
 /* Con las tarjetas sueltas, la sombra ya separa: la raya de la rejilla sobra y
@@ -825,7 +822,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   min-width: 0;
   padding: 1px 6px;
   border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--bg) 80%, transparent);
   color: var(--text);
   font-size: 12.5px;
@@ -914,18 +911,18 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   align-items: center;
   gap: 4px;
   padding: 4px 5px;
-  border-radius: 10px;
+  border-radius: var(--r-btn);
   background: var(--panel-head);
   border: 1px solid var(--border-strong);
   backdrop-filter: blur(14px) saturate(1.2);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--sombra-2);
 }
 
 .buscar-term-caja {
   width: 190px;
   padding: 4px 8px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   background: rgba(0, 0, 0, 0.28);
   color: var(--text);
   font-size: 12.5px;
@@ -1050,11 +1047,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
 .pane[data-focused="true"] {
   border-color: var(--accent);
   box-shadow:
-    var(--glass-edge),
-    inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
-    0 0 0 2px color-mix(in srgb, var(--accent) 75%, transparent),
-    0 0 26px color-mix(in srgb, var(--accent) 45%, transparent),
-    0 10px 30px rgba(0, 0, 0, 0.35);
+    var(--glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 0 2px color-mix(in srgb, var(--accent) 75%, transparent), 0 0 26px color-mix(in srgb, var(--accent) 45%, transparent), var(--sombra-2);
   z-index: 2;
 }
 
@@ -1122,7 +1115,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   background: linear-gradient(180deg, rgba(90, 130, 190, 0.55), rgba(40, 62, 98, 0.55));
   border-color: rgba(140, 185, 255, 0.35);
   transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .pane-btn:active {
@@ -1143,7 +1136,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   color: var(--accent);
   background: rgba(77, 159, 255, 0.12);
   border: 1px solid rgba(77, 159, 255, 0.25);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 2px 7px;
   white-space: nowrap;
 }
@@ -1159,7 +1152,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   color: color-mix(in srgb, var(--accent) 70%, var(--text));
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 6px;
   max-width: 90px;
   overflow: hidden;
@@ -1217,7 +1210,7 @@ button.pane-agents[data-on] {
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-caja);
-  box-shadow: var(--glass-edge), 0 18px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--glass-edge), var(--sombra-3);
   color: var(--text);
   font-size: 12.5px;
 }
@@ -1324,7 +1317,7 @@ button.pane-agents[data-on] {
   flex: none;
   padding: 1px 5px;
   border: 1px solid color-mix(in srgb, #5bd18b 45%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, #5bd18b 14%, transparent);
   color: #5bd18b;
   font-size: 9px;
@@ -1346,7 +1339,7 @@ button.pane-agents[data-on] {
   white-space: nowrap;
   padding: 1px 5px;
   border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--c) 14%, transparent);
   color: var(--c);
   font-size: 9px;
@@ -1362,7 +1355,7 @@ button.pane-agents[data-on] {
   white-space: nowrap;
   padding: 1px 5px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   color: var(--muted);
   font-size: 9.5px;
   font-weight: 600;
@@ -1377,7 +1370,7 @@ button.pane-agents[data-on] {
   font-size: 10px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  border-radius: 6px;
+  border-radius: var(--r-chico);
   padding: 1px 6px;
   color: color-mix(in srgb, var(--accent) 75%, var(--text));
   background: color-mix(in srgb, var(--accent) 18%, transparent);
@@ -1422,7 +1415,7 @@ button.pane-agents[data-on] {
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 7px;
+  border-radius: var(--r-chico);
   border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
   background: color-mix(in srgb, currentColor 14%, transparent);
   /* El tono del CLI lo pone KindIcon en --k. Va aquí y no en línea para que las
@@ -1467,7 +1460,7 @@ button.pane-agents[data-on] {
   border-radius: var(--r-pastilla);
   background: var(--panel-solid);
   border: 1px solid var(--border);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--sombra-2);
   color: var(--text);
   font-size: 13px;
   white-space: nowrap;

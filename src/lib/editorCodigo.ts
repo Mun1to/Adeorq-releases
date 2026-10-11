@@ -143,7 +143,7 @@ const TEMA = EditorView.theme({
   ".cm-foldPlaceholder": {
     backgroundColor: "var(--row)",
     border: "1px solid var(--border)",
-    borderRadius: "999px",
+    borderRadius: "var(--r-pastilla)",
     color: "var(--muted)",
     padding: "0 7px",
     margin: "0 3px",
@@ -171,7 +171,7 @@ const TEMA = EditorView.theme({
     backgroundColor: "var(--bg)",
     color: "var(--text)",
     border: "1px solid var(--border)",
-    borderRadius: "8px",
+    borderRadius: "var(--r-chico)",
     padding: "5px 9px",
     margin: "0",
     fontSize: "12.5px",
@@ -184,7 +184,7 @@ const TEMA = EditorView.theme({
     backgroundColor: "var(--row)",
     color: "var(--text)",
     border: "1px solid var(--border)",
-    borderRadius: "8px",
+    borderRadius: "var(--r-chico)",
     padding: "4px 10px",
     margin: "0",
     fontSize: "12.5px",
@@ -215,7 +215,7 @@ const TEMA = EditorView.theme({
     backgroundColor: "var(--popover)",
     color: "var(--text)",
     border: "1px solid var(--border-strong)",
-    borderRadius: "8px",
+    borderRadius: "var(--r-chico)",
   },
 });
 

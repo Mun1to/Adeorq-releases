@@ -771,11 +771,55 @@
   /* Chico: un botón que solo lleva un icono, o una fila apretada.
      Btn: el botón de acción, con su texto. Es el de `.mini`.
      Caja: una tarjeta o una superficie, el de `.panel-card`.
-     Pastilla: lo que va redondo del todo a propósito. */
-  --r-chico: 8px;
-  --r-btn: 10px;
-  --r-caja: 16px;
+     Pastilla: lo que va redondo del todo a propósito.
+
+     LA GUÍA DE ESTILO (Munir, 2026-10-11, «plano con filo»). Eran 8, 10 y 16:
+     las eligió más rectas viéndolas sobre la app de verdad
+     (`scripts/laboratorio/estilo-muestra.js`). Y ya no son solo de los botones:
+     TODA esquina de la hoja sale de aquí (o es un círculo, `50%`, o un detalle
+     de hasta 4 px), y lo vigila `scripts/estilo-check.mjs`, que falla con una
+     escrita a mano y con `--arreglar` la pasa a su escalón. */
+  --r-chico: 4px;
+  --r-btn: 6px;
+  --r-caja: 8px;
   --r-pastilla: 999px;
+
+  /* LA ESCALA DE SOMBRAS, de la misma guía. Había 119 distintas para tres
+     ideas. Lo que está apoyado no lleva sombra; lo que flota cerca (un menú,
+     una tarjeta que se levanta) lleva la 2; lo que flota encima de todo (un
+     diálogo), la 3. Las dos son cortas y con un filo de una línea, que es lo
+     que separa del fondo ahora que la sombra no lo hace. El brillo de cristal
+     del borde de arriba (`--glass-edge`) se queda como estaba: Munir lo pidió
+     así al elegir. El mismo vigilante falla con una sombra negra escrita a
+     mano. */
+  --sombra-2: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --sombra-3: 0 0 0 1px var(--border-strong), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* QUÉ SE VE MIENTRAS ALGO TARDA, de la misma guía (`lib/espera.ts`): nada si
+   es un suspiro, lo que había apagado hasta el segundo, y la rueda después.
+   La rueda va delante del texto y en línea con él, para no cambiarle la forma
+   a la caja donde cae: cada pantalla ya tenía la suya para su «Leyendo…». */
+.espera-rueda {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  vertical-align: -1px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  animation: espera-gira 0.7s linear infinite;
+}
+@keyframes espera-gira {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .espera-rueda { animation-duration: 2.4s; }
+}
+[data-espera] {
+  opacity: 0.55;
+  transition: opacity 0.12s ease;
 }
 
 * {
@@ -846,7 +890,7 @@
 .ch-charla::-webkit-scrollbar-thumb,
 .kb-col-cuerpo::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--accent) 38%, transparent);
   background-clip: content-box;
 }

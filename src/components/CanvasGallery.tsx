@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useT } from "../lib/i18n";
+import Espera from "./Espera";
 import { nodragEnControles } from "../lib/arrastre";
 import { deletePaste, listPastes, readPaste, type Paste } from "../lib/pty";
 import {
@@ -146,7 +147,9 @@ export default function GalleryNode({ data }: NodeProps<Node<GalleryData>>) {
       </header>
 
       <div className="gal-body nowheel">
-        {cargando && !todas.length && <p className="gal-vacio">{t("Mirando…")}</p>}
+        <Espera activo={cargando && !todas.length} className="gal-vacio">
+          {t("Mirando…")}
+        </Espera>
         {!cargando && !todas.length && (
           <p className="gal-vacio">
             {t("Aquí aparecerán las capturas que pegues en el lienzo con Ctrl+V.")}

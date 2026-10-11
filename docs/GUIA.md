@@ -151,7 +151,7 @@ De izquierda a derecha:
 
 | Elemento | Qué es |
 |---|---|
-| **Logo + «Adeorq»** | La marca, nada que pulsar. |
+| **Adeo, la mascota, + «Adeorq»** | La A con ojo, brazos y piernas se llama Adeo y es la campana. Su postura dice lo más urgente que pasa: te llama con una exclamación si una terminal te espera, se queda con la duda (una interrogación) si hay una decisión esperándote, celebra cuando un agente termina, se apura si un encargo programado se ha parado, teclea si tus agentes trabajan, baila si suena música y nadie te reclama, y duerme si no hay ninguna terminal abierta. Si la pulsas da un brinco, y a la tercera seguida le sale un corazón. Lleva encima el número de lo que no has visto. Al pulsarla sale la lista de avisos, con qué terminal es y por qué; pulsar una fila te lleva a ella. **La lista se limpia sola**: lo que te esperaba se va cuando le contestas, y lo que terminó, cuando ya lo has visto (cierras la lista o entras en su terminal). |
 | **◱ Panel · ▦ Cabina · ▤ Agenda · ⬡ Lienzo · ◍ Cuentas · ⌘ Comandos · ⚙ Ajustes** | Las siete vistas de la app. Cambian lo que ves debajo. |
 | **Número junto a «Cabina» o «Lienzo»** | Cuántas terminales tienes abiertas ahí. Si estás en el Panel y ves un 4, es que hay 4 vivas en la Cabina. |
 | **El botón de Objetivos** | Abre un panel flotante con lo que quieres dejar cerrado hoy. Lo escribes, lo marcas con un clic en la fila entera (no hace falta apuntar a una casilla diminuta) y se guarda en un archivo del día, no en localStorage, para que un agente también pueda tacharlo cuando termine lo que le pediste. Se arrastra donde quieras y se puede plegar a solo el contador (por ejemplo 2/3). **Son de un día**: al cambiar la fecha la lista nace vacía, pero nada se borra. Si el día anterior dejaste algo sin tachar, arriba sale un botón para traértelo («Traer los 3 que dejaste ayer»); lo que ya tachaste se queda donde estaba. |
@@ -159,6 +159,7 @@ De izquierda a derecha:
 | **La tira de música** | Solo aparece si algo suena en el PC. Título, artista, ⏮ anterior, ❚❚/▶ pausa y ⏭ siguiente. El volumen se queda en el mezclador de Windows, para no llenar la barra. |
 | **○ Emisión / ◉ En emisión** | El escudo para retransmitir: tapa rutas y datos personales, y enmascara las claves que escupan las terminales. Atajo Ctrl+Mayús+E, detalle en el [punto 12](#12-modo-emisión-para-directos). |
 | **El orbe** | Llama al Asistente. Atajo Ctrl+Mayús+A. Da vueltas más deprisa mientras piensa. |
+| **Los tres últimos iconos** (solo en la Cabina, con más de una terminal) | Apartar todas (siguen vivas en la tira de abajo), repartirlas en una plantilla y cerrarlas todas. Van sin nombre escrito, como las pestañas: lo dicen al pasar el ratón. Cerrar todas pregunta antes, porque mata a sus agentes. |
 
 Encima de todo eso puede aparecer una **barra de actualización** azul cuando hay
 una versión nueva de Adeorq: «Actualizar ahora» la descarga y «Reiniciar» la

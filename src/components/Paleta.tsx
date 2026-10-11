@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { filtrarArchivos, rutaEntera } from "../lib/abrirPorNombre";
 import { listarNombres } from "../lib/archivos";
 import { useT } from "../lib/i18n";
+import Espera from "./Espera";
 import { entradasDeLaPaleta, filtrarPaleta, type Entrada } from "../lib/paleta";
 import { listProjects, type Project } from "../lib/pty";
 import { PESTANAS, type View } from "../lib/vistas";
@@ -197,7 +198,7 @@ export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATermin
                 : !raiz
                   ? t("Abre un proyecto para ver sus archivos.")
                   : nombres === null
-                    ? t("Leyendo…")
+                    ? <Espera activo como="span">{t("Leyendo…")}</Espera>
                     : t("No hay ningún archivo con ese nombre.")}
             </li>
           )}

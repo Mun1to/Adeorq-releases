@@ -10,8 +10,9 @@
 //   · La mascota cambia de postura con lo que pasa (trabaja, te espera, terminó)
 //     y lleva encima el número de lo que te reclama.
 //   · La lista dice qué terminal es y por qué, y pulsar la fila te lleva a ella.
-//   · Lo que ya pasó se queda en la lista apagado, y «Ahora» lo esconde.
-//   · Cerrar la lista da los avisos por leídos; abrirla, no.
+//   · Lo que ya pasó se va solo: contestarle quita el «te espera», y el
+//     «terminó» se va al cerrar la lista con él dentro.
+//   · Cerrar la lista da los avisos por vistos; abrirla, no.
 //
 // El estado del transcript lo relee cada panel cada veinte segundos, así que
 // la prueba tarda cerca de un minuto. Devuelve { pasos, fallos }.
@@ -49,7 +50,6 @@ async (page) => {
   };
   const filas = () => page.evaluate(() => [...document.querySelectorAll(".avisos .aviso")].map((f) => ({
     tipo: f.dataset.tipo,
-    vigente: f.dataset.vigente,
     nuevo: f.dataset.nuevo !== undefined,
     texto: f.innerText.replace(/\s+/g, " ").trim(),
   })));
@@ -78,7 +78,7 @@ async (page) => {
   else {
     if (!/Adeorq · barra/.test(f.texto) || !/te espera/.test(f.texto)) fallos.push(`la fila no dice qué terminal es ni que te espera: «${f.texto}»`);
     if (!/Do you want to proceed/.test(f.texto)) fallos.push(`la fila no dice por qué: «${f.texto}»`);
-    if (!f.nuevo || f.vigente !== "true") fallos.push(`la fila no sale como nueva y vigente: ${JSON.stringify(f)}`);
+    if (!f.nuevo) fallos.push(`la fila no sale como nueva: ${JSON.stringify(f)}`);
   }
   if ((await numero()) !== "1") fallos.push("abrir la lista quitó el número: se da por leído al cerrar, no al abrir");
 
@@ -95,10 +95,17 @@ async (page) => {
   if (await numero()) fallos.push("tras cerrar la lista sigue el número: no se dieron por leídos");
   if ((await animo()) !== "espera") fallos.push("leído, pero sigue esperándote: la mascota tenía que seguir saludando");
 
-  // 5. Se le contesta: el menú se va y vuelve a trabajar. El aviso pasa a historia.
+  // 5. Se le contesta: el menú se va y vuelve a trabajar. El aviso se quita solo.
   await pintar("\x1b[2J\x1b[H✻ Trabajando…\r\n");
   pasos.vuelve = await hasta("trabaja", 20);
   if (!pasos.vuelve) fallos.push(`contestado, la mascota está «${await animo()}» y no «trabaja»`);
+  await page.locator(".campana").click();
+  await page.waitForTimeout(300);
+  pasos.trasContestar = (await filas()).length;
+  if (pasos.trasContestar !== 0) fallos.push(`contestado, en la lista quedan ${pasos.trasContestar} avisos y tenía que estar vacía`);
+  if (!(await page.locator(".avisos-vacio").count())) fallos.push("la lista vacía no enseña a la mascota con «Nada te reclama ahora.»");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(200);
 
   // 6. Termina (lo dice el transcript, que se relee cada 20 s): salta y número.
   await page.evaluate(() => { window.__estadoPanel = "lista"; });
@@ -107,27 +114,24 @@ async (page) => {
   if (!pasos.termina) fallos.push(`terminado, la mascota está «${await animo()}» y no «lista»`);
   if (pasos.numeroFin !== "1") fallos.push(`al terminar la campana lleva «${pasos.numeroFin}»`);
 
-  // 7. La lista ahora: lo nuevo arriba, lo pasado apagado, y «Ahora» lo esconde.
+  // 7. La lista ahora: solo el «terminó», y del «te espera» de antes no queda nada.
   await page.locator(".campana").click();
   await page.waitForTimeout(300);
   pasos.listaFin = await filas();
-  if (pasos.listaFin.length !== 2) fallos.push(`al final hay ${pasos.listaFin.length} filas y no 2`);
-  else {
-    if (pasos.listaFin[0].tipo !== "hecho" || pasos.listaFin[0].vigente !== "true") fallos.push(`la primera fila no es el «terminó» vigente: ${JSON.stringify(pasos.listaFin[0])}`);
-    if (pasos.listaFin[1].tipo !== "espera" || pasos.listaFin[1].vigente !== "false") fallos.push(`la segunda no es el «te espera» ya pasado: ${JSON.stringify(pasos.listaFin[1])}`);
-  }
-  await page.locator(".avisos-filtros .choice", { hasText: "Ahora" }).click();
-  pasos.soloAhora = (await filas()).length;
-  if (pasos.soloAhora !== 1) fallos.push(`«Ahora» enseña ${pasos.soloAhora} y solo una sigue vigente`);
-  await page.locator(".avisos-filtros .choice", { hasText: "Todos" }).click();
-  await page.locator(".avisos-pie .mini").click();
-  pasos.trasQuitar = (await filas()).length;
-  if (pasos.trasQuitar !== 1) fallos.push(`«Quitar los que ya pasaron» deja ${pasos.trasQuitar} filas`);
+  if (pasos.listaFin.length !== 1 || pasos.listaFin[0].tipo !== "hecho") fallos.push(`al final la lista no es un solo «terminó»: ${JSON.stringify(pasos.listaFin)}`);
+  if (await page.locator(".avisos-filtros, .avisos-pie").count()) fallos.push("siguen los filtros o el botón de quitar: ya no hay historia que filtrar");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
   if (await page.locator(".avisos").count()) fallos.push("Esc no cierra la lista");
   pasos.alFinal = await animo();
   if (pasos.alFinal !== "quieta") fallos.push(`visto todo y nadie trabajando, la mascota está «${pasos.alFinal}» y no «quieta»`);
+
+  // 8. Visto el «terminó», se fue solo: la lista vuelve vacía.
+  await page.locator(".campana").click();
+  await page.waitForTimeout(300);
+  pasos.trasVerlo = (await filas()).length;
+  if (pasos.trasVerlo !== 0) fallos.push(`después de verlo, el «terminó» sigue en la lista (${pasos.trasVerlo} filas)`);
+  await page.keyboard.press("Escape");
 
   return { pasos, fallos };
 }

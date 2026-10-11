@@ -156,7 +156,7 @@
   width: 100%;
   min-height: 92px;
   resize: none;
-  border-radius: 12px;
+  border-radius: var(--r-btn);
   padding: 11px 13px;
   font-family: inherit;
   font-size: 13.5px;

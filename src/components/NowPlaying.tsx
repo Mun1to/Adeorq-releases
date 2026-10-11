@@ -8,6 +8,7 @@ import {
 } from "../lib/pty";
 import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
+import { useSuena } from "../lib/suena";
 
 // The music strip in the top bar. It reads Windows' media session, so it works
 // with Spotify without asking Munir for any account: no login, no tokens.
@@ -30,6 +31,13 @@ export default function NowPlaying() {
     // y esto preguntaba a Windows qué suena cada cuatro segundos igual.
     return latido(look, POLL_MS);
   }, []);
+
+  // Para la mascota, que baila si suena algo (`lib/suena.ts`).
+  const suena = !!info?.playing;
+  useEffect(() => {
+    useSuena.setState({ suena });
+    return () => useSuena.setState({ suena: false });
+  }, [suena]);
 
   useEffect(() => {
     if (!open) return;

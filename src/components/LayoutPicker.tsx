@@ -80,6 +80,7 @@ export default function LayoutPicker({ onPick }: { onPick: (p: Preset) => void }
         className="tab layout-btn"
         data-active={open}
         data-tip={t("Repartir las terminales en una plantilla")}
+        aria-label={t("Disposición")}
         onClick={() => {
           const r = btn.current?.getBoundingClientRect();
           if (r) {
@@ -89,7 +90,6 @@ export default function LayoutPicker({ onPick }: { onPick: (p: Preset) => void }
         }}
       >
         <span className="tab-icon">⊞</span>
-        <span className="tab-label">{t("Disposición")}</span>
       </button>
       {open &&
         createPortal(

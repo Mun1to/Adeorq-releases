@@ -23,6 +23,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
+import Espera from "./Espera";
 import { latido } from "../lib/latido";
 import { aHtml } from "../lib/markdown";
 import {
@@ -514,7 +515,9 @@ ${v}` : txt));
       </header>
 
       <div className="chat-turnos" ref={hiloRef} onScroll={mirarScroll}>
-        {cargando && !turnos.length && <p className="chat-vacio">{t("Leyendo…")}</p>}
+        <Espera activo={cargando && !turnos.length} className="chat-vacio">
+          {t("Leyendo…")}
+        </Espera>
         {!cargando && !turnos.length && (
           <p className="chat-vacio">{t("Esta conversación todavía no tiene nada escrito.")}</p>
         )}

@@ -32,8 +32,7 @@
   border-radius: 50%;
   background: var(--cj-c, #7ee08a);
 }
-[data-estado="trabajando"] .cj-punto,
-.cj-pensando .cj-punto {
+[data-estado="trabajando"] .cj-punto {
   box-shadow: 0 0 7px color-mix(in srgb, var(--cj-c, #7ee08a) 60%, transparent);
   animation: cj-late 1.6s ease-in-out infinite;
 }
@@ -41,8 +40,7 @@
   50% { opacity: 0.45; }
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-estado="trabajando"] .cj-punto,
-  .cj-pensando .cj-punto { animation: none; }
+  [data-estado="trabajando"] .cj-punto { animation: none; }
 }
 
 .cj-estado {
@@ -55,26 +53,14 @@
   white-space: nowrap;
 }
 
-/* El avatar del conserje: la esquina asimétrica de los avatares de proyecto. */
-.cj-avatar {
-  width: 28px;
-  height: 28px;
+/* La cara del conserje es la mascota (`components/Mascota.tsx`), sin caja
+   alrededor: en la cabecera, en su pestaña, en la lista y en la bienvenida.
+   Que no encoja cuando el texto de al lado aprieta. */
+.chat-cabecera > .mascota,
+.cj-pestana > .mascota,
+.cj-nueva > .mascota,
+.cj-pensando > .mascota {
   flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 11px 4px 4px 11px;
-  background: color-mix(in srgb, var(--accent) 22%, rgba(0, 0, 0, 0.3));
-  color: var(--accent);
-}
-.cj-avatar-mini {
-  width: 20px;
-  height: 20px;
-  border-radius: 8px 3px 3px 8px;
-}
-.cj-avatar-grande {
-  width: 46px;
-  height: 46px;
-  border-radius: 16px 6px 6px 16px;
 }
 
 /* ── La sección de la lista: el conserje va arriba del todo ────────────── */
@@ -288,7 +274,7 @@
   line-height: 1.45;
   color: var(--accent);
 }
-.cj-bienvenida .cj-avatar { margin-bottom: 6px; }
+.cj-bienvenida .mascota { margin-bottom: 8px; }
 .cj-aviso-mejora[data-grave] { color: var(--warn); }
 
 /* La ✕ de una pestaña cerrada: hermana de la pestaña (un botón no va dentro

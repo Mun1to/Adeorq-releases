@@ -4,7 +4,8 @@
 // reasons only: a dev server with hot reload, and a production bundle. It does
 // not impose a framework, and it never rewrites the markup.
 
-import { cp, copyFile, readdir, access, readFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { cp, copyFile, readdir, access, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 
@@ -80,6 +81,8 @@ function copyStaticExtras() {
         })
       }
 
+      await stampDemo(outDir)
+
       // Cloudflare Pages advanced mode: a single worker at the root of the
       // output directory serves /api/* and hands everything else to the static
       // assets. Harmless on hosts that ignore it, such as GitHub Pages.
@@ -89,6 +92,31 @@ function copyStaticExtras() {
       }
     },
   }
+}
+
+/**
+ * The demo in the hero (demo/) is copied as it is, so its files keep their
+ * names from one deploy to the next and a browser that has them cached keeps
+ * the old ones. Measured on 2026-10-12: a fix to demo.css was live on the
+ * server and the page still ran the broken sheet, four hours of it. Here the
+ * three files its page loads get `?v=` with a hash of the whole folder, and
+ * vivo.js passes the same stamp on to the data it fetches.
+ */
+async function stampDemo(outDir) {
+  const dir = resolve(outDir, 'demo')
+  const page = resolve(dir, 'index.html')
+  if (!(await exists(page))) return
+
+  const hash = createHash('sha256')
+  for (const entry of (await readdir(dir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+    if (entry.isFile()) hash.update(entry.name).update(await readFile(resolve(dir, entry.name)))
+  }
+  const stamp = hash.digest('hex').slice(0, 10)
+
+  const html = await readFile(page, 'utf8')
+  const stamped = html.replace(/(href|src)="(app\.css|demo\.css|vivo\.js)"/g, `$1="$2?v=${stamp}"`)
+  if (stamped === html) throw new Error('stampDemo: demo/index.html no longer loads app.css, demo.css and vivo.js by those names')
+  await writeFile(page, stamped)
 }
 
 async function readJson(name) {

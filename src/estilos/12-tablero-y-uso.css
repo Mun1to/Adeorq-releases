@@ -1089,7 +1089,7 @@
   height: 28px;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: var(--r-btn);
+  border-radius: var(--r-icono, var(--r-btn));
   background: none;
   cursor: pointer;
   transition:

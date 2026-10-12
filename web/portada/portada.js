@@ -21,8 +21,8 @@ const GAIN = parseFloat(
 
 /* --------------------------------------------------------------------------
    1. LA VENTANA VIVA
-   La maqueta mide 1920x1080 por dentro pase lo que pase (ver demo/piezas.css:
-   los umbrales de la app estan medidos sobre una ventana de verdad). Aqui solo
+   La demostracion mide 1920x1080 por dentro pase lo que pase (ver demo/demo.css:
+   es la app volcada, y sus paneles llevan las medidas de ese dia). Aqui solo
    se encoge el DIBUJO, con transform, para que enseñe lo mismo que veria
    cualquiera con la app abierta a pantalla completa.
    -------------------------------------------------------------------------- */

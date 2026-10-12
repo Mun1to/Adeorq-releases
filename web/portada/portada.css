@@ -230,10 +230,11 @@ body {
 
 .haz {
   position: relative;
-  /* Mas alto que la pantalla a proposito: la ventana asoma por abajo y pide
-     seguir bajando sin que haga falta una flechita que lo diga. */
-  min-height: 122svh;
-  padding: clamp(120px, 17vh, 210px) 0 0;
+  /* La ventana asoma por abajo en la primera pantalla y pide seguir bajando
+     sin que haga falta una flechita que lo diga; al bajar se ve ENTERA, con
+     su rotulo debajo, que es para lo que esta el relleno de abajo. */
+  min-height: 100svh;
+  padding: clamp(120px, 17vh, 210px) 0 clamp(64px, 9vh, 104px);
   overflow: hidden;
   isolation: isolate;
 }
@@ -366,17 +367,19 @@ body {
 .haz[data-entrada] .notas    { opacity: 1; transform: none; transition-delay: .34s; }
 
 /* -------- la ventana --------
-   A sangre por abajo, como la referencia: cortarla dice «hay mas» mejor que
-   cualquier flecha. Y dentro va la maqueta VIVA, que es lo que ninguna captura
+   ENTERA (Munir, 2026-10-12: «se corta, tiene que ser un poco mas pequeña»).
+   Iba a sangre por abajo, con el 14 % de la app siempre fuera de la seccion:
+   nunca se veia el pie de las terminales ni la barra de estado, bajaras lo que
+   bajaras. Ahora cabe completa en la pantalla de quien la mira: el ancho sale
+   del ALTO disponible (la pantalla menos la barra de arriba y un margen), con
+   1400 px de tope. Dentro va la maqueta VIVA, que es lo que ninguna captura
    puede hacer: se toca desde la portada. */
 .ventana {
   position: relative;
   z-index: 2;
-  width: min(1500px, 88vw);
+  width: min(1400px, 88vw, calc((100svh - 150px) * 16 / 9));
   margin: clamp(40px, 7vh, 90px) auto 0;
   aspect-ratio: 16 / 9;
-  /* Se corta contra el borde de abajo de la seccion. */
-  margin-bottom: -14vh;
 }
 
 /* El filo de luz del borde de arriba: es lo que ata la ventana al haz. Sin
@@ -390,8 +393,7 @@ body {
   position: absolute;
   inset: 0;
   border: 1px solid var(--p-linea2);
-  border-bottom: 0;
-  border-radius: 14px 14px 0 0;
+  border-radius: 14px;
   overflow: hidden;
   background: var(--p-panel);
   box-shadow: 0 -18px 90px rgba(90, 150, 255, .14),
@@ -410,15 +412,16 @@ body {
   transform: scale(var(--esc, .5));
 }
 
+/* Debajo de la ventana, no encima: pintado dentro tapaba la barra de estado de
+   la app, que ahora si se ve. */
 .ventana__pie {
   position: absolute;
-  left: 0; right: 0; bottom: 14px;
+  left: 0; right: 0; top: calc(100% + 14px);
   z-index: 4;
   margin: 0;
   text-align: center;
   font-size: 12.5px;
   color: var(--p-tenue);
-  text-shadow: 0 1px 12px rgba(0,0,0,.9);
   pointer-events: none;
 }
 
@@ -432,7 +435,7 @@ body {
 
 @media (max-width: 700px) {
   .haz { min-height: auto; padding-bottom: 40px; }
-  .ventana { width: 94vw; margin-bottom: -8vh; }
+  .ventana { width: 94vw; }
   .ventana__pie { display: none; }
 }
 

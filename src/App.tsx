@@ -2715,10 +2715,10 @@ function App() {
       <header className="topbar" ref={barraRef}>
         {/* La mascota es la campana (`Campana.tsx`): dice lo más urgente de tus
             terminales y abre la lista de avisos. El logo de verdad sigue donde
-            se ve, que es el icono de la app; a 20 px perdía la proa. */}
+            se ve, que es el icono de la app; a 20 px perdía la proa. Va sola,
+            sin «Adeorq» al lado (Munir, 2026-10-12): ya lo dice la ventana. */}
         <span className="brand">
           <Campana enfocado={focusedId} irATerminal={(id) => irATerminal(id, canvasPanesRef.current.some((p) => p.id === id))} />
-          <span className="brand-nombre">Adeorq</span>
         </span>
         <nav className="tabs">
           {tabsVisibles.map((tab) => (
@@ -2730,8 +2730,8 @@ function App() {
               // de la vista no.
               data-tab={tab.key}
               data-active={view === tab.key}
-              // Solo el icono (Munir, 2026-10-10): el nombre, y si está en
-              // beta, los dicen el globo y el lector de pantalla.
+              // El nombre va escrito mientras la barra cabe (`tab-label`); cuando
+              // se queda en el icono, lo dicen el globo y el lector de pantalla.
               aria-label={t(tab.label)}
               data-tip={
                 tab.beta
@@ -2744,6 +2744,12 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
               <span className="tab-icon">
                 <IconoPestana vista={tab.key} />
               </span>
+              {/* Los nombres volvieron el 2026-10-12 (Munir: «que los textos
+                  de los iconos del header vuelvan»), con el sitio que dejó
+                  «Adeorq». Se van solos cuando la barra no cabe (`pestanas`
+                  en `lib/barraQueCabe.ts`) y queda el icono. */}
+              <span className="tab-label">{t(tab.label)}</span>
+              {tab.beta && <span className="tab-beta">{t("beta")}</span>}
               {(cuentaDe[tab.key] ?? 0) > 0 && (
                 <span className="tab-count" data-espera={tab.key === "decisiones"}>
                   {cuentaDe[tab.key]}
@@ -3506,6 +3512,13 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onAtajos={(next) => {
             setAtajos(next);
             guardarAtajos(next);
+          }}
+          // Lo que Ajustes > Mods le escribe al agente. Lleva a la Cabina,
+          // que es donde se ve llegar: escrito, sin enviar.
+          onAlAgente={(texto) => {
+            const llego = alAgenteDeLaWeb(texto);
+            if (llego) setView("cabina");
+            return llego;
           }}
           modeloLocal={modeloLocal}
           onModeloLocal={(m) => {

@@ -41,6 +41,12 @@ const DEMO = {
     note: "",
     plan: "plus",
   },
+  // Lo que cuenta de la MÁQUINA de quien hace la foto: su memoria, sus núcleos,
+  // los modelos que tiene descargados y la versión de su binario de pruebas.
+  // El equipo de Sam es un portátil corriente.
+  pulso: { ramMb: 1650, ramPct: 10, sistemaMb: 9400, sistemaPct: 59, totalMb: 16000, procesos: 41, agentes: 7, cpuPct: 9, nucleos: 8 },
+  modelosLocales: ["qwen3:4b", "nomic-embed-text:latest"],
+  version: JSON.parse(readFileSync(new URL("../../../package.json", import.meta.url), "utf8")).version,
 };
 
 /** Lo que la casa falsa no aísla, tapado en la página antes de que cargue nada.
@@ -56,6 +62,11 @@ const GUARDA = `(() => {
   window.fetch = (a, b) => {
     const url = typeof a === "string" ? a : (a && a.url) || "";
     if (/supabase\\.co|openrouter\\.ai/.test(url)) return Promise.reject(new TypeError("Failed to fetch"));
+    // Los comandos de los complementos viajan como «plugin:app|version».
+    const plugin = decodeURIComponent(url).match(/^https?:\\/\\/ipc\\.localhost\\/plugin:([a-z-]+)\\|([a-z_]+)$/);
+    if (plugin && plugin[1] === "app" && plugin[2] === "version") return responde(DEMO.version);
+    // Sin versión nueva a la vista: la tarjeta de actualizar es de quien hace la foto.
+    if (plugin && plugin[1] === "updater" && plugin[2] === "check") return responde(null);
     const m = url.match(/^https?:\\/\\/ipc\\.localhost\\/([a-z_]+)$/);
     if (m) {
       let args = {};
@@ -68,6 +79,11 @@ const GUARDA = `(() => {
       // el de quien hace la foto ni se le escribe encima.
       if (cmd === "load_ui_state") return responde("{}");
       if (cmd === "save_ui_state") return responde(null);
+      if (cmd === "pulso") return responde(DEMO.pulso);
+      if (cmd === "ollama_models") return responde(DEMO.modelosLocales);
+      // El arranque con Windows gobierna la app INSTALADA: el binario de pruebas
+      // contesta con un aviso de que no lo está, que en la foto no pinta nada.
+      if (cmd === "autostart_get") return responde(false);
       if (cmd === "account_ready") return responde(dir ? dir.includes("claude-work") : DEMO.conectadas.includes(args.homeDir || ""));
       if (cmd === "plan_info") return responde(dir.includes("claude-work") ? DEMO.planTrabajo : DEMO.plan);
       if (cmd === "usage_limits") return responde(dir.includes("claude-work") ? DEMO.limitesTrabajo : DEMO.limites);

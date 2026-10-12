@@ -6,7 +6,8 @@
 //
 // La barra va quitando piezas cuando no cabe (`RETIRADAS` en
 // `lib/barraQueCabe.ts`, cada una en `data-sin`): el título de la canción, el
-// reproductor y el nombre «Adeorq». Las pestañas van solo con su icono en
+// reproductor y el relleno de las pestañas. El nombre «Adeorq» de al lado de
+// Adeo ya no va en ningún ancho (2026-10-12). Las pestañas van solo con su icono en
 // cualquier ancho (2026-10-10), y los tres botones de la Cabina también
 // (2026-10-11). Hasta
 // el 2026-10-10 lo decidían cortes fijos, y este banco los daba por buenos
@@ -20,10 +21,12 @@
 // Mide de 940 (el `minWidth` de la ventana en `tauri.conf.json`) a 1920 de 20
 // en 20, y también que si la música empieza a sonar con la ventana quieta la
 // barra se reajusta sola (eso lo ve el MutationObserver, no el de tamaño).
-// Y vigila dos cosas más: que ninguna pestaña lleve su nombre escrito pero
-// todas lo digan en el globo y en el `aria-label` (una fila de iconos mudos no
-// la entiende nadie), y que al estrechar la ventana nunca vuelva una pieza que
-// ya se fue.
+// Y vigila tres cosas más: que las pestañas lleven su nombre escrito, entero,
+// en cada ancho en que la barra no ha soltado «pestanas», y ninguno cuando sí
+// (volvieron el 2026-10-12; medias tintas, un nombre cortado o unas con nombre
+// y otras sin él, no valen); que todas lo digan siempre en el globo y en el
+// `aria-label` (una fila de iconos mudos no la entiende nadie); y que al
+// estrechar la ventana nunca vuelva una pieza que ya se fue.
 //
 // Devuelve { quitado, fallos }: `fallos` vacío es que la fila cabe siempre.
 async (page) => {
@@ -121,6 +124,10 @@ async (page) => {
           nombre: b.getAttribute("aria-label"),
           globo: b.dataset.tip ?? "",
         })),
+      // Los nombres de las pestañas: cuántos se ven, y cuántos no caben enteros.
+      pestanas: document.querySelectorAll(".tabs .tab").length,
+      nombres: [...document.querySelectorAll(".tabs .tab-label")].filter((n) => n.getBoundingClientRect().width > 0).length,
+      nombresCortados: [...document.querySelectorAll(".tabs .tab-label")].filter((n) => n.getBoundingClientRect().width > 0 && n.scrollWidth > n.clientWidth + 1).length,
       pulso: /CPU/.test(barra.textContent),
       musica: Boolean(document.querySelector(".np")),
       cuenta: document.querySelector('[data-tab="decisiones"] .tab-count')?.textContent ?? null,
@@ -138,6 +145,49 @@ async (page) => {
   const pagina = await page.evaluate(() => innerWidth);
   if (Math.abs(pagina - 1920) > 2) fallos.push(`la página mide ${pagina} y no 1920: el banco no corrige el zoom`);
 
+  // 0. El detalle del Pulso se VE al abrirlo, y abrirlo no le quita nada a la
+  //    barra. Hasta el 2026-10-12 se montaba dentro de ella: la barra lo
+  //    recortaba entero (no se veía nunca) y encima lo contaba como contenido
+  //    suyo, así que al pulsarlo creía que no cabía y soltaba piezas.
+  const DIR = "C:/proyectos/Adeorq/.playwright-mcp/";
+  const fotos = [];
+  const abrirPulso = async (w) => {
+    await ancho(w);
+    const antesDeAbrir = (await medir()).sin;
+    await page.evaluate(() => document.querySelector(".pulso")?.click());
+    await page.waitForTimeout(350);
+    const d = await page.evaluate(() => {
+      const caja = document.querySelector(".pulso-detalle");
+      if (!caja) return null;
+      const r = caja.getBoundingClientRect();
+      const puntos = [[r.left + 14, r.top + 14], [r.left + r.width / 2, r.top + r.height / 2], [r.right - 14, r.bottom - 14]];
+      return {
+        visto: puntos.every(([x, y]) => caja.contains(document.elementFromPoint(x, y))),
+        dentro: r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width > 200 && r.height > 120,
+        enLaBarra: Boolean(caja.closest(".topbar")),
+        sin: document.querySelector(".topbar").dataset.sin ?? "?",
+        caja: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)],
+      };
+    });
+    if (!d) fallos.push(`a ${w} px, al pulsar el Pulso no sale su detalle`);
+    else {
+      if (!d.visto) fallos.push(`a ${w} px el detalle del Pulso está pero no se ve: algo lo tapa o lo recorta`);
+      if (!d.dentro) fallos.push(`a ${w} px el detalle del Pulso se sale de la ventana (${d.caja.join(", ")})`);
+      if (d.enLaBarra) fallos.push("el detalle del Pulso vuelve a montarse dentro de la barra");
+      if (d.sin !== antesDeAbrir) fallos.push(`a ${w} px, abrir el Pulso le quita piezas a la barra (de «${antesDeAbrir}» a «${d.sin}»)`);
+      const [x, y, an, al] = d.caja;
+      const ruta = `${DIR}pulso-${w}.png`;
+      await page.screenshot({ path: ruta, clip: { x: Math.max(0, x - 40) * k, y: 0, width: (an + 80) * k, height: (y + al + 30) * k } });
+      fotos.push(ruta);
+    }
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(200);
+    if (await page.evaluate(() => Boolean(document.querySelector(".pulso-detalle")))) fallos.push(`a ${w} px el detalle del Pulso no se cierra con Escape`);
+  };
+  await abrirPulso(1920);
+  await abrirPulso(1000);
+  await ancho(1920);
+
   // 1. La música empieza a sonar con la ventana quieta: tiene que reajustarse.
   const sinMusica = await medir();
   await page.evaluate(() => { window.__musica = true; });
@@ -148,15 +198,15 @@ async (page) => {
   const pestanas = await page.evaluate(() =>
     [...document.querySelectorAll(".tabs .tab")].map((b) => ({
       clave: b.dataset.tab,
-      // Lo escrito dentro, quitando la cuenta (el número de Decisiones sí va).
-      escrito: [...b.childNodes].filter((n) => !n.classList?.contains("tab-count")).map((n) => n.textContent).join("").trim(),
+      // El nombre escrito, que es su `tab-label` (la cuenta y «beta» van aparte).
+      escrito: b.querySelector(".tab-label")?.textContent ?? "",
       nombre: b.getAttribute("aria-label") ?? "",
       globo: b.dataset.tip ?? "",
     })),
   );
   if (pestanas.length < 4) fallos.push(`solo hay ${pestanas.length} pestañas: la prueba no prueba nada`);
   for (const p of pestanas) {
-    if (p.escrito) fallos.push(`la pestaña ${p.clave} lleva escrito «${p.escrito}»: van solo con el icono`);
+    if (p.escrito !== p.nombre) fallos.push(`la pestaña ${p.clave} lleva escrito «${p.escrito}» y se llama «${p.nombre}»`);
     if (!p.nombre || !p.globo.startsWith(p.nombre)) fallos.push(`la pestaña ${p.clave} no dice su nombre (aria-label «${p.nombre}», globo «${p.globo}»)`);
   }
 
@@ -171,11 +221,17 @@ async (page) => {
     if (m.tituloAplastado > 1) fallos.push(`a ${w} px el título de la canción está aplastado ${m.tituloAplastado} px (sin «${m.sin}»)`);
     if (m.tituloMonta > 1) fallos.push(`a ${w} px el título se sale ${m.tituloMonta} px de su caja y monta encima de los botones (sin «${m.sin}»)`);
     const ahora = m.sin.split(" ").filter(Boolean);
+    const quiere = ahora.includes("pestanas") ? 0 : m.pestanas;
+    if (m.nombres !== quiere) fallos.push(`a ${w} px se ven ${m.nombres} nombres de pestaña y tenían que ser ${quiere} (sin «${m.sin}»)`);
+    if (m.nombresCortados) fallos.push(`a ${w} px hay ${m.nombresCortados} nombres de pestaña cortados (sin «${m.sin}»)`);
     const vuelve = antes.filter((p) => !ahora.includes(p));
     if (vuelve.length) fallos.push(`a ${w} px vuelve ${vuelve.join(", ")}, que con más ancho ya se había quitado`);
     antes = ahora;
   }
   const peor = await medir();
+  // Al lado de Adeo no va «Adeorq», en ningún ancho (Munir, 2026-10-12).
+  const marca = await page.evaluate(() => (document.querySelector(".brand")?.textContent ?? "").trim());
+  if (/adeorq/i.test(marca)) fallos.push(`al lado de Adeo vuelve a poner «${marca}»`);
   if (peor.acciones.length !== 3) fallos.push(`salen ${peor.acciones.length} botones de la Cabina y no tres: no está el peor caso`);
   for (const b of peor.acciones) {
     if (b.escrito) fallos.push(`el botón «${b.nombre}» de la Cabina lleva su nombre escrito: van solo con el icono`);
@@ -185,10 +241,41 @@ async (page) => {
     fallos.push(`no está el peor caso (pulso ${peor.pulso}, música ${peor.musica}, cuenta ${peor.cuenta})`);
   }
   // Se resume en tramos: { "sin «titulo musica»": "1100-1400", … }.
-  const tramos = {};
-  for (const [w, sin] of Object.entries(quitado).sort((a, b) => a[0] - b[0])) {
-    const clave = `sin «${sin}»`;
-    tramos[clave] = tramos[clave] ? tramos[clave].replace(/-\d+$|$/, `-${w}`) : w;
+  const enTramos = (porAncho) => {
+    const tramos = {};
+    for (const [w, sin] of Object.entries(porAncho).sort((a, b) => a[0] - b[0])) {
+      const clave = `sin «${sin}»`;
+      tramos[clave] = tramos[clave] ? tramos[clave].replace(/-\d+$|$/, `-${w}`) : w;
+    }
+    return tramos;
+  };
+  const tramos = enTramos(quitado);
+
+  // 3. Y sin música, que es como está la barra casi todo el día: desde qué
+  //    ancho se leen los nombres de las pestañas. Con fotos de la franja, para
+  //    mirarla y no solo medirla (caen en `.playwright-mcp/`).
+  const foto = async (w, nombre) => {
+    await ancho(w);
+    await page.screenshot({ path: `${DIR}${nombre}.png`, clip: { x: 0, y: 0, width: Math.round(w * k), height: Math.round(64 * k) } });
+    fotos.push(`${DIR}${nombre}.png`);
+  };
+  await foto(1920, "barra-1920-musica");
+  await foto(1536, "barra-1536-musica");
+  await page.evaluate(() => { window.__musica = false; });
+  await ancho(1920);
+  await page.waitForTimeout(4800);
+  if ((await medir()).musica) fallos.push("la música no se apagó: el tramo sin música no prueba nada");
+  const callado = {};
+  for (let w = 1920; w >= 940; w -= 20) {
+    await ancho(w);
+    const m = await medir();
+    callado[w] = m.sin;
+    if (m.desborda > 1 || m.sobra < 0) fallos.push(`sin música, a ${w} px se desborda ${Math.max(m.desborda, -m.sobra)} px (sin «${m.sin}»)`);
+    const quiere = m.sin.split(" ").includes("pestanas") ? 0 : m.pestanas;
+    if (m.nombres !== quiere || m.nombresCortados) fallos.push(`sin música, a ${w} px se ven ${m.nombres} nombres (${m.nombresCortados} cortados) y tenían que ser ${quiere}`);
   }
-  return { sinMusica1920: sinMusica.sin, conMusica1920: conMusica.sin, tramos, fallos };
+  await foto(1920, "barra-1920");
+  await foto(1536, "barra-1536");
+  await foto(1280, "barra-1280");
+  return { sinMusica1920: sinMusica.sin, conMusica1920: conMusica.sin, tramos, tramosSinMusica: enTramos(callado), fotos, fallos };
 }

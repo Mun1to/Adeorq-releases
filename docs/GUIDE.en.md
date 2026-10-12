@@ -136,15 +136,15 @@ There are two bars up there and they are different things.
 
 | Element | What it is |
 |---|---|
-| **Adeo, the mascot, + "Adeorq"** | The A with an eye, arms and legs is called Adeo, and she is the bell. Her posture tells the most urgent thing going on: she calls you with an exclamation mark when a terminal is waiting for you, is left in doubt (a question mark) when a decision is waiting, celebrates when an agent finishes, frets when a scheduled order has stopped, types while your agents work, dances when music is playing and nothing needs you, and sleeps when no terminal is open. Click her and she hops; on the third click in a row she gets a heart. She carries the number of what you have not seen. Click her for the list of notices, with which terminal it is and why; clicking a row takes you there. **The list empties itself**: one that waited for you goes when you answer, and one that finished goes once you have seen it (you close the list, or you enter its terminal). |
-| **◱ Dashboard · ▦ Cockpit · ▤ Agenda · ⬡ Canvas · ◍ Accounts · ⌘ Commands · ⚙ Settings** | The seven views of the app. |
+| **Adeo, the mascot** | She stands alone, without the app's name written beside her. The A with an eye, arms and legs is called Adeo, and she is the bell. Her posture tells the most urgent thing going on: she calls you with an exclamation mark when a terminal is waiting for you, is left in doubt (a question mark) when a decision is waiting, celebrates when an agent finishes, frets when a scheduled order has stopped, types while your agents work, dances when music is playing and nothing needs you, and sleeps when no terminal is open. Click her and she hops; on the third click in a row she gets a heart. She carries the number of what you have not seen. Click her for the list of notices, with which terminal it is and why; clicking a row takes you there. **The list empties itself**: one that waited for you goes when you answer, and one that finished goes once you have seen it (you close the list, or you enter its terminal). |
+| **◱ Dashboard · ▦ Cockpit · ▤ Agenda · ⬡ Canvas · ◍ Accounts · ⌘ Commands · ⚙ Settings** | The seven views of the app. Each carries its name where it fits; on a narrow window they fall back to the icon and the tooltip says the name. |
 | **Number next to "Cockpit" or "Canvas"** | How many terminals are open there right now. |
 | **The Goals button** | Opens a floating panel with what you want to close out today. Type it, tick it off with a click anywhere on the row (no tiny checkbox to aim for), and it is saved to a file for the day, not localStorage, so an agent can also tick it off once it finishes what you asked. Drag it anywhere and fold it down to just the counter (say, 2/3). |
 | **The Pulse** | The pill showing what Adeorq and its agents are using in RAM right now, and how many agent processes are running. Click to open the detail: Adeorq's memory versus the whole machine's. It turns amber when Adeorq itself is the one squeezing memory and red when the whole machine is under pressure, so you know whose fault it is before opening Task Manager. |
 | **The music strip** | Only shows when something is playing. Title, artist, ⏮ previous, ❚❚/▶ pause and ⏭ next. Volume stays in Windows' own mixer. |
 | **○ Streaming / ◉ Streaming on** | The streaming shield: masks paths, personal data and any key the terminals print. Ctrl+Shift+E, details in section 12. |
 | **✦ Foreman** | Summons the orchestrator overlay. Ctrl+Shift+A. |
-| **The last three icons** (only in the Cockpit, with more than one terminal) | Set all terminals aside (they stay alive in the strip below), lay them out on a template, and close them all. They carry no written name, like the tabs: the tooltip says it. Close all asks first, because it kills their agents. |
+| **The last three icons** (only in the Cockpit, with more than one terminal) | Set all terminals aside (they stay alive in the strip below), lay them out on a template, and close them all. They carry no written name: the tooltip says it. Close all asks first, because it kills their agents. |
 
 Above all of that, a blue **update bar** appears when a new version of Adeorq is
 out: "Update now" downloads it and "Restart" puts it live. A Windows
@@ -155,7 +155,7 @@ notification arrives too, in case the app is minimised.
 Every pane carries its own header with the session name, the context meter, the
 model and the folder. Field by field in [section 6](#6-each-terminals-header-field-by-field).
 
-Rule of thumb: if it says "Adeorq" and shows tabs, it is the app bar. If it
+Rule of thumb: if it shows Adeo and the tabs, it is the app bar. If it
 shows a session name and a folder, it is a terminal's bar.
 
 ## 3. The nine tabs
@@ -453,6 +453,17 @@ runs by accident. The Foreman knows this same list.
 - **You and your projects** (under Adeorq): your name and the projects folder.
   Changing it re-reads the whole list, so it is how you move Adeorq to another
   working folder without reinstalling anything.
+- **Mods**: a mod is a change of your own to how Adeorq looks: round icons,
+  another colour, a hidden piece. It lives in your data folder (`mods\`), so an
+  update leaves it alone. You do not have to write it: "Ask your agent for a
+  mod" leaves the request typed in its terminal, unsent. **They are off by
+  default**; you switch them on here, and with them on a new mod applies by
+  itself within seconds. Each one says how it stands: "Applied", "No longer hooks
+  on" (an update changed the piece it held on to, and "Hand it to your agent"
+  gives it back to be redone) or "Not loaded", with the reason. They only change
+  the look: Adeorq loads no code from a mod and does not let its stylesheet ask
+  the internet for anything. If one leaves the screen unusable,
+  Ctrl+Alt+Shift+0 switches them all off.
 - **Help**: "First steps" replays the welcome, or just the tour; below it
   lives this very guide (it stopped being a tab up top), and next to it a
   link to the web documentation, which updates without waiting for a new

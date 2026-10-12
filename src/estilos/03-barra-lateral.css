@@ -387,7 +387,7 @@
 .projects[data-rail="tira"] .project-logo {
   width: 46px;
   flex: none;
-  border-radius: var(--r-caja);
+  border-radius: var(--r-avatar, var(--r-caja));
 }
 
 /* Los dos botones de arriba de la tira, en columna y del tamaño de las marcas
@@ -421,7 +421,7 @@
   justify-content: center;
   background: var(--row);
   border: 1px solid transparent;
-  border-radius: var(--r-caja);
+  border-radius: var(--r-avatar, var(--r-caja));
   cursor: pointer;
   transition:
     background var(--t-rapida) ease,
@@ -441,7 +441,7 @@
 .pavatar.pavatar-xl {
   width: 100%;
   height: 100%;
-  border-radius: var(--r-caja);
+  border-radius: var(--r-avatar, var(--r-caja));
   font-size: 19px;
   letter-spacing: 0.5px;
 }

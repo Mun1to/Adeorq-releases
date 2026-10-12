@@ -112,6 +112,16 @@ const en = {
     ["Cache cart totals that did not change", "storefront-api"],
   ],
   flecha: "Check the pricing copy still matches the totals",
+  // Las notas de Sam, para la Memoria: [ruta dentro de la bóveda, texto].
+  boveda: [
+    ["Projects/storefront-api.md", "# storefront-api\n\nThe shop's API. Every total it returns is a **whole number of cents**, no exceptions.\n\n- How a discount is rounded: [[Rounding]]\n- What an expired code does: [[Discount codes]]\n- Who reviews it: [[Review before merge]]\n"],
+    ["Projects/landing-web.md", "# landing-web\n\nThe page that sells the plans. Dark and light, and the prices come from [[storefront-api]], never typed by hand.\n\nOpen: the FAQ still has no meta description.\n"],
+    ["Projects/mobile-app.md", "# mobile-app\n\nOrders on the phone. It has to work on a bad connection: loading, error and empty states for every list.\n\nSee [[One agent, one branch]].\n"],
+    ["Decisions/Rounding.md", "# Rounding\n\nA discount is rounded **once**, on the discount itself, and never on the total.\n\n## Why\n\nWith 4499 cents and a 10 % code the discount is 449.9. Rounding the total gave 4049.1 in one place and 4049 in another.\n\n## Rule\n\n`cents - Math.round(cents * rate)`. One test per discount in [[storefront-api]].\n"],
+    ["Decisions/Discount codes.md", "# Discount codes\n\nAn expired code is rejected, and the customer reads why. The message is written in the API response, so every client shows the same text.\n\nRelated: [[Rounding]].\n"],
+    ["How we work/Review before merge.md", "# Review before merge\n\nWhoever wrote it does not review it. One agent writes, another reads the diff, and a person says yes.\n\n- Tests green first.\n- The reviewer lists what must change, not what it would have done differently.\n"],
+    ["How we work/One agent, one branch.md", "# One agent, one branch\n\nTwo agents in the same folder step on each other. Each one gets its own branch and its own terminal, and they meet in the pull request.\n"],
+  ],
 };
 
 const es = {
@@ -197,6 +207,15 @@ const es = {
     ["Guardar los totales que no cambian", "storefront-api"],
   ],
   flecha: "Comprueba que el texto de los planes sigue cuadrando con los totales",
+  boveda: [
+    ["Proyectos/storefront-api.md", "# storefront-api\n\nLa API de la tienda. Todos los totales que devuelve son **céntimos enteros**, sin excepción.\n\n- Cómo se redondea un descuento: [[Redondeo]]\n- Qué hace un código caducado: [[Códigos de descuento]]\n- Quién lo revisa: [[Revisar antes de fusionar]]\n"],
+    ["Proyectos/landing-web.md", "# landing-web\n\nLa página que vende los planes. En oscuro y en claro, y los precios salen de [[storefront-api]], nunca escritos a mano.\n\nAbierto: la página de preguntas sigue sin meta descripción.\n"],
+    ["Proyectos/mobile-app.md", "# mobile-app\n\nLos pedidos en el móvil. Tiene que aguantar mala cobertura: cada lista enseña que carga, que falló o que está vacía.\n\nVer [[Un agente, una rama]].\n"],
+    ["Decisiones/Redondeo.md", "# Redondeo\n\nUn descuento se redondea **una vez**, sobre el propio descuento, y nunca sobre el total.\n\n## Por qué\n\nCon 4499 céntimos y un código del 10 % el descuento es 449,9. Redondeando el total salía 4049,1 en un sitio y 4049 en otro.\n\n## Regla\n\n`cents - Math.round(cents * rate)`. Una prueba por descuento en [[storefront-api]].\n"],
+    ["Decisiones/Códigos de descuento.md", "# Códigos de descuento\n\nUn código caducado se rechaza, y el cliente lee por qué. El mensaje se escribe en la respuesta de la API, así todos los clientes enseñan el mismo texto.\n\nRelacionado: [[Redondeo]].\n"],
+    ["Cómo trabajamos/Revisar antes de fusionar.md", "# Revisar antes de fusionar\n\nQuien lo escribió no lo revisa. Un agente escribe, otro lee el diff y una persona dice que sí.\n\n- Primero, las pruebas en verde.\n- Quien revisa dice qué tiene que cambiar, no qué habría hecho distinto.\n"],
+    ["Cómo trabajamos/Un agente, una rama.md", "# Un agente, una rama\n\nDos agentes en la misma carpeta se pisan. Cada uno lleva su rama y su terminal, y se encuentran en el pull request.\n"],
+  ],
 };
 
 en.lienzo = lienzo("en", en);

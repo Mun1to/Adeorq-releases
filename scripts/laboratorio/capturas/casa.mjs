@@ -10,6 +10,7 @@ const AQUI = dirname(fileURLToPath(import.meta.url));
 const CASA = "P:\\home";
 const DATOS = "P:\\data\\Adeorq";
 const PROYECTOS = "P:\\projects";
+export const BOVEDA = "P:\\notes";
 
 function escribir(ruta, texto) {
   mkdirSync(dirname(ruta), { recursive: true });
@@ -87,6 +88,10 @@ export function montarCasa(idioma) {
       }),
     );
   });
+
+  // ── Memoria: las notas de Sam, en una bóveda de mentira ───────────────────
+  rmSync(BOVEDA, { recursive: true, force: true });
+  for (const [ruta, texto] of t.boveda) escribir(join(BOVEDA, ruta), texto);
 
   // ── Lienzo ────────────────────────────────────────────────────────────────
   rmSync(join(DATOS, "notas"), { recursive: true, force: true });

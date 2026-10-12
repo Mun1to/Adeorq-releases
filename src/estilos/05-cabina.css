@@ -850,7 +850,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   justify-content: center;
   min-width: 28px;
   min-height: 26px;
-  border-radius: var(--r-chico);
+  border-radius: var(--r-icono, var(--r-chico));
   background: inherit;
   border: none;
   color: var(--muted);
@@ -1100,7 +1100,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   color: color-mix(in srgb, var(--text) 66%, var(--muted));
   font-size: 12px;
   cursor: pointer;
-  border-radius: var(--r-chico);
+  border-radius: var(--r-icono, var(--r-chico));
   padding: 2px 5px;
   transition:
     background var(--t-rapida) ease,

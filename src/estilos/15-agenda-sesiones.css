@@ -414,20 +414,29 @@
   padding-right: 4px;
 }
 
+/* «pestanas»: se van los nombres de las pestañas y quedan los iconos (y la
+   marca de «beta», que sin nombre al lado no dice de qué). Un icono de verdad
+   se reconoce sin su nombre, y el globo dice cuál es. */
+.topbar[data-sin~="pestanas"] .tabs .tab-label,
+.topbar[data-sin~="pestanas"] .tabs .tab-beta {
+  display: none;
+}
+.topbar[data-sin~="pestanas"] .tabs .tab {
+  padding: 5px 9px;
+}
+
 /* «musica»: el reproductor entero. Con el pulso dentro hace falta por debajo
    de unos 1150. */
 .topbar[data-sin~="musica"] .np {
   display: none;
 }
 
-/* «marca»: lo último, cerca del `minWidth` de 940 de la ventana. El nombre
-   «Adeorq» (ya lo dice el título de la ventana) y el relleno de las pestañas,
-   que con solo el icono puede ser más justo. No se quita ninguna información:
-   a 940 con el pulso y la Cabina faltaban 111 px aun sin reproductor. */
-.topbar[data-sin~="marca"] .brand-nombre {
-  display: none;
-}
-.topbar[data-sin~="marca"] .tabs .tab {
+/* «relleno»: lo último, cerca del `minWidth` de 940 de la ventana. El relleno
+   de las pestañas, que con solo el icono puede ser más justo. No se quita
+   ninguna información. Se llamaba «marca» y se llevaba también el nombre
+   «Adeorq» de al lado de Adeo; ese nombre ya no existe en ningún ancho (Munir,
+   2026-10-12: ya lo dice la ventana, y sin él la barra respira). */
+.topbar[data-sin~="relleno"] .tabs .tab {
   padding: 5px 6px;
 }
 

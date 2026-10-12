@@ -527,7 +527,7 @@
   place-items: center;
   padding: 4px 7px;
   border: 1px solid transparent;
-  border-radius: var(--r-btn);
+  border-radius: var(--r-icono, var(--r-btn));
   background: none;
   cursor: pointer;
   transition: background var(--t-rapida) ease, border-color var(--t-rapida) ease;

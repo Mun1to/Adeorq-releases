@@ -151,15 +151,15 @@ De izquierda a derecha:
 
 | Elemento | Qué es |
 |---|---|
-| **Adeo, la mascota, + «Adeorq»** | La A con ojo, brazos y piernas se llama Adeo y es la campana. Su postura dice lo más urgente que pasa: te llama con una exclamación si una terminal te espera, se queda con la duda (una interrogación) si hay una decisión esperándote, celebra cuando un agente termina, se apura si un encargo programado se ha parado, teclea si tus agentes trabajan, baila si suena música y nadie te reclama, y duerme si no hay ninguna terminal abierta. Si la pulsas da un brinco, y a la tercera seguida le sale un corazón. Lleva encima el número de lo que no has visto. Al pulsarla sale la lista de avisos, con qué terminal es y por qué; pulsar una fila te lleva a ella. **La lista se limpia sola**: lo que te esperaba se va cuando le contestas, y lo que terminó, cuando ya lo has visto (cierras la lista o entras en su terminal). |
-| **◱ Panel · ▦ Cabina · ▤ Agenda · ⬡ Lienzo · ◍ Cuentas · ⌘ Comandos · ⚙ Ajustes** | Las siete vistas de la app. Cambian lo que ves debajo. |
+| **Adeo, la mascota** | Va sola, sin el nombre de la app escrito al lado. La A con ojo, brazos y piernas se llama Adeo y es la campana. Su postura dice lo más urgente que pasa: te llama con una exclamación si una terminal te espera, se queda con la duda (una interrogación) si hay una decisión esperándote, celebra cuando un agente termina, se apura si un encargo programado se ha parado, teclea si tus agentes trabajan, baila si suena música y nadie te reclama, y duerme si no hay ninguna terminal abierta. Si la pulsas da un brinco, y a la tercera seguida le sale un corazón. Lleva encima el número de lo que no has visto. Al pulsarla sale la lista de avisos, con qué terminal es y por qué; pulsar una fila te lleva a ella. **La lista se limpia sola**: lo que te esperaba se va cuando le contestas, y lo que terminó, cuando ya lo has visto (cierras la lista o entras en su terminal). |
+| **◱ Panel · ▦ Cabina · ▤ Agenda · ⬡ Lienzo · ◍ Cuentas · ⌘ Comandos · ⚙ Ajustes** | Las siete vistas de la app. Cambian lo que ves debajo. Llevan su nombre escrito donde cabe; si la ventana es estrecha se quedan en el icono y el nombre sale al pasar el ratón. |
 | **Número junto a «Cabina» o «Lienzo»** | Cuántas terminales tienes abiertas ahí. Si estás en el Panel y ves un 4, es que hay 4 vivas en la Cabina. |
 | **El botón de Objetivos** | Abre un panel flotante con lo que quieres dejar cerrado hoy. Lo escribes, lo marcas con un clic en la fila entera (no hace falta apuntar a una casilla diminuta) y se guarda en un archivo del día, no en localStorage, para que un agente también pueda tacharlo cuando termine lo que le pediste. Se arrastra donde quieras y se puede plegar a solo el contador (por ejemplo 2/3). **Son de un día**: al cambiar la fecha la lista nace vacía, pero nada se borra. Si el día anterior dejaste algo sin tachar, arriba sale un botón para traértelo («Traer los 3 que dejaste ayer»); lo que ya tachaste se queda donde estaba. |
 | **El Pulso** | La píldora con lo que Adeorq y sus agentes están gastando en RAM ahora mismo, y cuántos procesos de agente hay corriendo. Clic para abrir el detalle: memoria de Adeorq frente a memoria de todo el equipo. Se pone ámbar si el que aprieta es Adeorq y roja si el equipo entero va apretado, así sabes de quién es la culpa antes de abrir el Administrador de tareas. |
 | **La tira de música** | Solo aparece si algo suena en el PC. Título, artista, ⏮ anterior, ❚❚/▶ pausa y ⏭ siguiente. El volumen se queda en el mezclador de Windows, para no llenar la barra. |
 | **○ Emisión / ◉ En emisión** | El escudo para retransmitir: tapa rutas y datos personales, y enmascara las claves que escupan las terminales. Atajo Ctrl+Mayús+E, detalle en el [punto 12](#12-modo-emisión-para-directos). |
 | **El orbe** | Llama al Asistente. Atajo Ctrl+Mayús+A. Da vueltas más deprisa mientras piensa. |
-| **Los tres últimos iconos** (solo en la Cabina, con más de una terminal) | Apartar todas (siguen vivas en la tira de abajo), repartirlas en una plantilla y cerrarlas todas. Van sin nombre escrito, como las pestañas: lo dicen al pasar el ratón. Cerrar todas pregunta antes, porque mata a sus agentes. |
+| **Los tres últimos iconos** (solo en la Cabina, con más de una terminal) | Apartar todas (siguen vivas en la tira de abajo), repartirlas en una plantilla y cerrarlas todas. Van sin nombre escrito: lo dicen al pasar el ratón. Cerrar todas pregunta antes, porque mata a sus agentes. |
 
 Encima de todo eso puede aparecer una **barra de actualización** azul cuando hay
 una versión nueva de Adeorq: «Actualizar ahora» la descarga y «Reiniciar» la
@@ -171,7 +171,7 @@ estrena. Además te llega un aviso de Windows aunque tengas la app minimizada.
 cabecera con el nombre de la sesión, el contexto, el modelo y la carpeta. Está
 explicada campo por campo en el [punto 6](#6-la-cabecera-de-cada-terminal-campo-por-campo).
 
-Regla para no liarte: si pone «Adeorq» y las pestañas, es la barra de la app.
+Regla para no liarte: si están Adeo y las pestañas, es la barra de la app.
 Si pone el nombre de una sesión y una carpeta, es la barra de una terminal.
 
 ---
@@ -727,6 +727,17 @@ comando para X?» y te lo deja escrito.
 - **Tú y tus proyectos** (en la sección Adeorq): tu nombre y la carpeta de
   proyectos. Cambiarla vuelve a leer la lista entera, así que es la forma de
   mover Adeorq a otro sitio de trabajo sin reinstalar nada.
+- **Mods**: un mod es un cambio tuyo en cómo se ve Adeorq: los iconos redondos,
+  otro color, una pieza escondida. Vive en tu carpeta de datos (`mods\`), así
+  que una actualización no lo toca. No hace falta escribirlo: «Pedir un mod a tu
+  agente» le deja el encargo escrito en su terminal, sin enviarlo. **De fábrica
+  están apagados**; se encienden aquí, y con ellos encendidos un mod nuevo se
+  aplica solo en unos segundos. Cada uno dice cómo está: «Puesto», «Ya no
+  engancha» (una actualización cambió la pieza a la que se agarraba, y
+  «Pasárselo a tu agente» se lo da para que lo rehaga) o «No se carga», con el
+  motivo. Solo cambian el aspecto: Adeorq no carga código de un mod ni deja que
+  su hoja pida nada a internet. Si uno te deja la pantalla inservible,
+  Ctrl+Alt+Mayús+0 los apaga todos.
 - **Ayuda**: «Primeros pasos» repite la bienvenida o solo el recorrido por las
   funciones; debajo vive esta misma guía completa (dejó de ser una pestaña de
   arriba) y, al lado, el enlace a la documentación de la web, que se actualiza

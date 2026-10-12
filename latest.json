@@ -1,11 +1,11 @@
 {
-  "version": "0.9.192",
-  "notes": "Las terminales pueden aguantar si Adeorq se cae (ajuste en pruebas, apagado de fabrica); Archivos crea, renombra, manda a la papelera, busca texto con Ctrl+K y ensena los PDF; una nota del Lienzo se guarda como ficha; Codex dice si trabaja o termino y su tarjeta de Cuentas ensena su propia cuota; las decisiones se cierran solas; y los encargos programados van tambien en Linux y macOS",
-  "pub_date": "2026-10-12T01:57:40Z",
+  "version": "0.9.193",
+  "notes": "Mods: cambios tuyos en como se ve Adeorq que sobreviven a las actualizaciones, con su seccion en Ajustes (en pruebas, apagados de fabrica); Adeo va solo en la cabecera y las pestanas vuelven a llevar su nombre donde cabe; el detalle del Pulso se abre fuera de la barra y ya se ve; la guia cuenta lo nuevo",
+  "pub_date": "2026-10-12T17:28:27Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzFDeWgwNngwSEpFY0ZBWDYwc2FvVG9ZQ2RqMEgrbVhlcktzdUFnZ1BWQmsyZ3RVNlc1UndPMzRwMEk5N1hzczFJTlhOdGpONTFMQXdRakVpNno0VUFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNzcwMjQzCWZpbGU6QWRlb3JxXzAuOS4xOTJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTIKTHZYN1RkUThiS0xqYjVhb3NOZjRqOW9DcTZTYng3RFN6R1JNdFB5MzY0SWxyNEhWOUtLT2l4NmpPSUhha2poT3dsZnVqUm5aY1BvOG5mSmdSY25EQkE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.192/Adeorq_0.9.192_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLytocTBLUWUvRU1KeWxaUW5ZUFRmMUd1RlhHUXROQ2o2Z010Q3lzVzBTOEFnb0NiOUY0dnM4WVR5eWhJZjJVTXljb3NpbkVYVE9ndFNQWWVtQlhSM3dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxODI1Nzk5CWZpbGU6QWRlb3JxXzAuOS4xOTNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTMKMEtCbkRvRVpLTEhhcGFVMnZZeGlNdmRQbWw5R1YwOWphS1FPOXFyUWc0citOUi82OE5BemtYS3MzdUpiRHhLMVhoMENudVNwciszVVc5Sk43OURiQXc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.193/Adeorq_0.9.193_x64-setup.exe"
     }
   }
 }

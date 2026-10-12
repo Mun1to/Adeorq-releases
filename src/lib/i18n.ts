@@ -751,6 +751,7 @@ const EN: Record<string, string> = {
   "Volver a leer la carpeta": "Read the folder again",
   "Documento": "Document",
   "Cerebro": "Brain",
+  beta: "beta",
   "En beta: funciona, pero le faltan cosas y puede cambiar":
     "In beta: it works, but it is unfinished and may change",
   "Un nodo clavado: gira alrededor para verlo · clic en el vacío para soltarlo":
@@ -2658,6 +2659,32 @@ const EN: Record<string, string> = {
   "Al cerrar la ventana": "When you close the window",
   "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde, los agentes siguen trabajando y Adeorq se queda junto al reloj de Windows: desde ahí vuelves con un clic o lo cierras del todo.":
     "What happens when you hit the X with terminals open. In the background the window hides, the agents keep working and Adeorq stays next to the Windows clock: from there one click brings it back, or you can quit it for good.",
+  // Ajustes > Mods (`AjustesMods.tsx`).
+  Mods: "Mods",
+  "Un mod es un cambio tuyo en cómo se ve Adeorq: los iconos redondos, otro color, una pieza escondida. Vive en tu carpeta de datos, así que una actualización no lo toca. No hace falta escribirlo: pídeselo a tu agente.":
+    "A mod is a change of your own to how Adeorq looks: round icons, another colour, a hidden piece. It lives in your data folder, so an update never touches it. You don't have to write it: ask your agent.",
+  Encendidos: "On",
+  Apagados: "Off",
+  "Si un mod te deja la pantalla inservible, Ctrl+Alt+Mayús+0 los apaga todos desde cualquier sitio. Solo cambian el aspecto: Adeorq no carga código de un mod.":
+    "If a mod leaves the screen unusable, Ctrl+Alt+Shift+0 turns them all off from anywhere. They only change the look: Adeorq does not load code from a mod.",
+  "Pedir un mod a tu agente": "Ask your agent for a mod",
+  "Abrir la carpeta": "Open the folder",
+  "No hay ninguna terminal abierta. Abre una con tu agente y vuelve a pulsar.":
+    "No terminal is open. Open one with your agent and press again.",
+  "Todavía no tienes ninguno.": "You don't have any yet.",
+  "No se carga: {porque}": "Not loaded: {porque}",
+  "Apagado · ya no engancha: {que}": "Off · no longer hooks on: {que}",
+  Apagado: "Off",
+  "Ya no engancha: {que} no existe en esta versión": "No longer hooks on: {que} does not exist in this version",
+  Puesto: "Applied",
+  "Listo para cuando los enciendas": "Ready for when you turn them on",
+  "Le escribe a tu agente el encargo de rehacerlo para esta versión. Lo envías tú.":
+    "Writes your agent the request to redo it for this version. You send it.",
+  "Pasárselo a tu agente": "Hand it to your agent",
+  Encender: "Turn on",
+  Apagar: "Turn off",
+  "Sí, a la papelera": "Yes, to the bin",
+  No: "No",
 };
 
 export function detectLang(): Lang {

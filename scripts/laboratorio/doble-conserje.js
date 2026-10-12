@@ -451,6 +451,22 @@ async (page) => {
           }
           return JSON.parse(JSON.stringify(lista));
         }
+        // Los mods del usuario (`mods.rs`), sembrados en `window.__modsDeMentira`
+        // con la forma que devuelve Rust. Solo se piden con `adeorq-mods` a "1".
+        case "mods_leer": return JSON.parse(JSON.stringify(window.__modsDeMentira ?? []));
+        // La versión de la app solo si el banco la siembra (`window.__version`):
+        // los demás siguen viendo Ajustes sin número, como hasta ahora.
+        case "plugin:app|version":
+          if (window.__version) return window.__version;
+          throw new Error(`sin doble: ${cmd}`);
+        case "mods_carpeta": return "C:\\Users\\tu\\AppData\\Local\\Adeorq\\mods";
+        // La guía que la ventana manda escribir queda en `window.__guiaDeMods`.
+        case "mods_escribir_guia":
+          window.__guiaDeMods = args.texto;
+          return "C:\\Users\\tu\\AppData\\Local\\Adeorq\\mods\\LEEME.md";
+        case "mods_quitar":
+          window.__modsDeMentira = (window.__modsDeMentira ?? []).filter((m) => m.id !== args.id);
+          return null;
         default:
           throw new Error(`sin doble: ${cmd}`);
       }

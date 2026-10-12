@@ -2,12 +2,12 @@
    Adeorq · web/scripts/extraer-marcas.mjs
 
    Saca las marcas de los CLIs (src/components/ProviderMark.tsx) y las escribe
-   como sprite SVG para la maqueta.
+   como sprite SVG para la cinta de clientes de la portada, que monta
+   `extraer-clientes.mjs`.
 
    Son el asterisco de Claude, la nube de Codex, la chispa de Gemini y las
-   demas, dibujadas a mano en la app. Sin ellas, todas las terminales de la
-   maqueta se ven con el mismo icono generico de consola, y en la app se
-   distingue de un vistazo quien esta trabajando en cada panel.
+   demas, dibujadas a mano en la app. (Nacio para la maqueta de la portada; la
+   demostracion de hoy es la app volcada y ya trae sus marcas dentro.)
 
    Se lanza con:  node scripts/extraer-marcas.mjs
 
@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const FUENTE = resolve(AQUI, '../../src/components/ProviderMark.tsx');
-const SALIDA = resolve(AQUI, '../demo/marcas.svg');
+const SALIDA = resolve(AQUI, '../portada/marcas.svg');
 
 const src = readFileSync(FUENTE, 'utf8');
 
@@ -169,14 +169,15 @@ for (const m of marcas) {
 }
 
 const salida = `<!-- ============================================================================
-     Adeorq · demo/marcas.svg
+     Adeorq · portada/marcas.svg
      GENERADO. No editar a mano: sale de src/components/ProviderMark.tsx con
      scripts/extraer-marcas.mjs.
 
      La marca de cada CLI, tal como la dibuja la app. Se usan asi:
        <svg class="prov-mark"><use href="#m-claude"/></svg>
 
-     ⚠ Este sprite hay que PEGARLO en la pagina (lo hace demo/sprites.js), no
+     ⚠ Este sprite hay que PEGARLO en la pagina (lo hace
+     scripts/extraer-clientes.mjs, que lo incrusta en index.html), no
      referenciarlo como fichero externo. Tres de las diez marcas (Codex, Copilot
      y Qwen) se dibujan con una mascara, y un mask="url(#pm-codex)" se resuelve
      SIEMPRE contra el documento que lo pinta: desde otro fichero no encuentra

@@ -65,6 +65,7 @@ import { open as pickFile } from "@tauri-apps/plugin-dialog";
 import AtajosEditor from "./AtajosEditor";
 import AjustesMovil from "./AjustesMovil";
 import AjustesMcp from "./AjustesMcp";
+import AjustesMods from "./AjustesMods";
 import GuideView from "./GuideView";
 import TerminalesAparte from "./TerminalesAparte";
 import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
@@ -105,6 +106,8 @@ interface Props {
   onWebAuto: (v: boolean) => void;
   atajos: Atajos;
   onAtajos: (next: Atajos) => void;
+  /** Escribe un texto en la terminal del agente, sin enviarlo (Ajustes > Mods). */
+  onAlAgente?: (texto: string) => boolean;
   /** El modelo de Ollama que resume qué necesita cada sesión, o "" para ninguno. */
   modeloLocal: string;
   onModeloLocal: (m: string) => void;
@@ -159,6 +162,7 @@ const SECCIONES = [
   { id: "modelo", label: "Modelo local" },
   { id: "discord", label: "Discord" },
   { id: "movil", label: "Móvil" },
+  { id: "mods", label: "Mods" },
   { id: "ayuda", label: "Ayuda" },
   { id: "adeorq", label: "Adeorq" },
 ] as const;
@@ -188,6 +192,7 @@ const CUANTOS: Record<string, number> = {
   modelo: 1,
   discord: 1,
   movil: 1,
+  mods: 1,
   ayuda: 2,
   adeorq: 3,
 };
@@ -292,6 +297,13 @@ function IconoSeccion({ id }: { id: SeccionId }) {
           <path d="M10.6 18.2h2.8" {...P} />
         </>
       )}
+      {/* Las capas: un mod es la tuya, puesta encima de la de la app. */}
+      {id === "mods" && (
+        <>
+          <path d="M12 3.4 20.6 8 12 12.6 3.4 8Z" {...P} />
+          <path d="m3.4 12.4 8.6 4.6 8.6-4.6M3.4 16.6l8.6 4.6 8.6-4.6" {...P} />
+        </>
+      )}
       {/* Discord: su silueta, con las dos patas de abajo, que es lo que la
           distingue de cualquier otro bocadillo con ojos. */}
       {id === "discord" && (
@@ -337,6 +349,7 @@ export default function SettingsView({
   onSaltar,
   atajos,
   onAtajos,
+  onAlAgente,
   modeloLocal,
   onModeloLocal,
   fondo,
@@ -1615,6 +1628,7 @@ export default function SettingsView({
             </>
           )}
           {seccion === "movil" && <AjustesMovil />}
+          {seccion === "mods" && <AjustesMods onAlAgente={onAlAgente} />}
           {/* La guía dejó de ser una pestaña de la barra de arriba. Ocupaba
               sitio permanente para algo que se mira el primer día y casi nunca
               más, mientras que Cabina, Lienzo y Agenda son el trabajo diario.

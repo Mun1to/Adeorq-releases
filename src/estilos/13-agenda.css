@@ -404,11 +404,11 @@
   border-color: color-mix(in srgb, var(--mal) 45%, transparent);
 }
 
+/* Fijo y fuera de la barra (lo monta `Pulso.tsx` en el `body`, debajo de su
+   botón): dentro lo recortaba la barra y no se veía. */
 .pulso-detalle {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 80;
+  position: fixed;
+  z-index: 95;
   width: 320px;
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
@@ -1212,7 +1212,7 @@ body[data-redim] .divider {
 .pavatar.pavatar-pick {
   width: 32px;
   height: 32px;
-  border-radius: var(--r-btn);
+  border-radius: var(--r-avatar, var(--r-btn));
   font-size: 12px;
 }
 
@@ -1453,7 +1453,7 @@ body[data-redim] .divider {
 .pavatar.pavatar-mini {
   width: 20px;
   height: 20px;
-  border-radius: var(--r-chico);
+  border-radius: var(--r-avatar, var(--r-chico));
   font-size: 9px;
 }
 

@@ -96,7 +96,13 @@ const ESCALA = ["var(--r-chico)", "var(--r-btn)", "var(--r-caja)", "var(--r-past
 // comparaba la cadena entera contra la lista, así que la ficha del árbol (que
 // nace pegada a la barra de color de su rama y solo redondea por la derecha)
 // no tenía forma de pasar sin dejar de ser una ficha.
-const enEscala = (valor) => valor.split(/\s+/).filter(Boolean).every((v) => ESCALA.includes(v));
+//
+// Y una pieza con nombre (`var(--r-icono, var(--r-btn))`, desde el 2026-10-12,
+// ver `docs/contexto/mods.md`) tampoco: es su escalón de reserva mientras
+// ningún mod del usuario la cambie, así que se juzga por él. Que el nombre esté
+// en el contrato lo mira `scripts/mods-check.ts`.
+const sinPieza = (valor) => valor.replace(/var\(--[a-z0-9-]+,\s*(var\(--r-[a-z]+\))\)/g, "$1");
+const enEscala = (valor) => sinPieza(valor).split(/\s+/).filter(Boolean).every((v) => ESCALA.includes(v));
 
 const fuera = [];
 for (const f of arch) {

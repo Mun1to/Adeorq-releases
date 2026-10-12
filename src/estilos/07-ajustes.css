@@ -1634,3 +1634,16 @@
   margin: 0;
 }
 
+/* Ajustes > Mods (META 14): la fila es la misma del cliente del MCP, y aquí
+   solo va el color de lo que dice su estado. Ámbar el que ya no engancha, que
+   es el de «esto te espera»; rojo el que Adeorq no carga. */
+.mcp-cliente-quien .mod-estado[data-estado="no_engancha"] {
+  color: var(--ask);
+}
+.mcp-cliente-quien .mod-estado[data-estado="rechazado"] {
+  color: var(--mal);
+}
+.mod-aviso {
+  color: var(--ask);
+}
+

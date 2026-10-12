@@ -3,6 +3,7 @@ import App from "./App";
 import VentanaSuelta from "./components/VentanaSuelta";
 import { leerPerfil, raizPorDefecto, tocarPerfil } from "./lib/perfil";
 import Salvavidas, { vigilarErrores } from "./components/Salvavidas";
+import { vigilarMods } from "./lib/mods";
 import "./App.css";
 
 // La carpeta de proyectos se resuelve ANTES de montar nada. Media app la usa
@@ -12,6 +13,9 @@ import "./App.css";
 // cuanto está en el perfil, ya no se vuelve a preguntar.
 // Antes de montar nada: si algo falla durante el arranque, que quede escrito.
 vigilarErrores();
+// Los mods del usuario, también en una terminal suelta: es la misma página. No
+// se espera a ellos para montar; su hoja llega un instante después.
+vigilarMods();
 
 async function arrancar() {
   /* Una terminal sacada a su propia ventana.

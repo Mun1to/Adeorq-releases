@@ -13,6 +13,8 @@ Qué es verdad y qué es de demostración en una captura, para decirlo igual en 
   en ningún CLI, así que no pueden pensar en directo.
 - **Las consolas de la foto de Archivos** (`node --test`, `git diff`) son en directo.
 - **Las cuentas, su plan y su cuota** son datos de ejemplo, contestados en la página (ver abajo).
+  Y lo que hablaría de la máquina de quien hace la foto (el Pulso, los modelos locales, la versión).
+- **Las notas de la Memoria** son la bóveda de Sam (`P:\notes`), que escribe `casa.mjs`.
 - **Las sesiones de relleno** de la barra, la agenda, las decisiones y las notas: datos del taller
   inventado, en `textos.mjs` y `preparar-sesiones.mjs`.
 
@@ -46,6 +48,37 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
 
 A la web van con `ffmpeg -i salida/en/x.png -compression_level 9 -pred mixed web/assets/screens/en/x.png`.
 El vídeo de `promo/` las coge de ahí con `pnpm capturas`.
+
+## La demostración de la portada sale de aquí también
+
+La ventana que se puede tocar en la portada de adeorq.com (`web/demo/`) no es una maqueta: es el
+DOM de esta misma app de pruebas, volcado vista por vista. Con la app abierta como para las fotos
+(pasos de arriba hasta el 4):
+
+```powershell
+node volcar.mjs es        # deja volcado/es/*.html, volcado/hojas.css
+node volcar.mjs en
+node ..\..\..\web\scripts\hacer-demo.mjs   # o `pnpm demo` desde web/
+```
+
+`volcar.mjs` saca la ventana entera en la Cabina y en el Lienzo, la raíz de cada una de las otras
+vistas con cada una de sus pestañas, los paneles que se abren encima o al lado (objetivos, Pulso,
+paleta, los tres de la derecha, la barra en logos y en tira) y las hojas de estilo que la página
+tiene cargadas. `hacer-demo.mjs` lo empaqueta y **se para si encuentra una ruta o una dirección de
+la máquina que hizo el volcado**. Una parte suelta se repite con `node volcar.mjs es chat barra`.
+
+- **El volcado sale del árbol de trabajo**, no del último commit: el binario de pruebas carga la
+  página de `pnpm dev`. Si otra sesión tiene cambios a medias en `src/`, salen en la demostración.
+  Se hace con el árbol limpio, o desde un worktree.
+- Lo que cuenta de la MÁQUINA de quien vuelca se contesta en `GUARDA` con los datos de Sam: el
+  Pulso (memoria, núcleos, procesos), los modelos locales, la versión del binario y la tarjeta de
+  «hay una versión nueva».
+- Las terminales se vuelcan con el pintado de reserva (`sinWebgl`), que es texto: con WebGL son un
+  lienzo y no hay nada que volcar. Lo mismo el mapa de la Memoria, que por eso se vuelca con un
+  documento abierto.
+- La barra se vuelca con todos los proyectos desplegados (la lista de sesiones de uno plegado no
+  existe en la página) y `hacer-demo.mjs` vuelve a plegar todos menos el primero.
+- Después, `web/scripts/censo-demo.js` pulsa todos los botones en los dos idiomas.
 
 ## Lo que costó averiguar
 

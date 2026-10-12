@@ -9,7 +9,8 @@
 // Se mira de reojo y solo se abre cuando algo va raro (Munir, 2026-07-31: «en
 // algún lado que no estorbe»).
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { useT } from "../lib/i18n";
 import { bonito } from "../lib/ram";
@@ -33,11 +34,16 @@ interface Datos {
 /** Cada cinco segundos. Recorrer la tabla de procesos cuesta poco, pero no es
     gratis, y estos números no cambian de un parpadeo al otro. */
 const CADA_MS = 5000;
+/** El ancho del detalle, el de `.pulso-detalle` en `13-agenda.css`. */
+const ANCHO = 320;
 
 export default function Pulso() {
   const { t, lang } = useT();
   const [d, setD] = useState<Datos | null>(null);
   const [abierto, setAbierto] = useState(false);
+  const [sitio, setSitio] = useState({ x: 0, y: 0 });
+  const boton = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const leer = () => void invoke<Datos>("pulso").then(setD).catch(() => {});
@@ -45,6 +51,35 @@ export default function Pulso() {
     // Ver `lib/latido.ts`: con la ventana oculta no se pregunta nada.
     return latido(leer, CADA_MS);
   }, []);
+
+  // Se cierra pinchando fuera o con Escape, como la lista de avisos de Adeo.
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = (e: MouseEvent) => {
+      const n = e.target as Node;
+      if (!panel.current?.contains(n) && !boton.current?.contains(n)) setAbierto(false);
+    };
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setAbierto(false);
+      }
+    };
+    window.addEventListener("mousedown", fuera, true);
+    window.addEventListener("keydown", tecla, true);
+    return () => {
+      window.removeEventListener("mousedown", fuera, true);
+      window.removeEventListener("keydown", tecla, true);
+    };
+  }, [abierto]);
+
+  const alternar = () => {
+    if (abierto) return setAbierto(false);
+    // Debajo del botón y con su borde derecho, sin salirse de la ventana.
+    const r = boton.current?.getBoundingClientRect();
+    if (r) setSitio({ x: Math.max(8, Math.min(r.right, window.innerWidth - 8) - ANCHO), y: r.bottom + 8 });
+    setAbierto(true);
+  };
 
   if (!d) return null;
 
@@ -59,11 +94,13 @@ export default function Pulso() {
   return (
     <div className="pulso-caja">
       <button
+        ref={boton}
         className="tab pulso"
         data-nivel={nivel || undefined}
         data-on={abierto || undefined}
-        data-tip={t("Lo que Adeorq está gastando en tu equipo")}
-        onClick={() => setAbierto((v) => !v)}
+        data-tip={abierto ? undefined : t("Lo que Adeorq está gastando en tu equipo")}
+        aria-expanded={abierto}
+        onClick={() => alternar()}
       >
         {/* La CPU va la PRIMERA: es la que se mueve, la que explica un tirón, y
             la que a Munir le hacía falta mirar. La RAM apenas cambia en horas. */}
@@ -83,8 +120,15 @@ export default function Pulso() {
         </span>
       </button>
 
-      {abierto && (
-        <div className="pulso-detalle">
+      {abierto &&
+        // FUERA de la barra, como la lista de avisos. Dentro no se veía nunca:
+        // la barra recorta lo que se sale de ella (`overflow: hidden`) y su
+        // cristal hace de caja también para lo fijo. Y encima contaba como
+        // contenido suyo, así que al abrirlo la barra creía que no cabía y
+        // soltaba piezas (`lib/barraQueCabe.ts`); así vio Munir irse el
+        // «Adeorq» de al lado de Adeo el 2026-10-12.
+        createPortal(
+        <div ref={panel} className="pulso-detalle" role="dialog" aria-label={t("Lo que gasta Adeorq")} style={{ left: sitio.x, top: sitio.y }}>
           <h4>{t("Lo que gasta Adeorq")}</h4>
           <Fila
             etiqueta={t("CPU de Adeorq y sus agentes")}
@@ -120,7 +164,8 @@ export default function Pulso() {
               { n: d.nucleos },
             )}
           </p>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

@@ -80,7 +80,7 @@
   place-items: center;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--r-btn);
+  border-radius: var(--r-icono, var(--r-btn));
   background: transparent;
   color: color-mix(in srgb, var(--text) 76%, var(--muted));
   cursor: pointer;

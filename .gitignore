@@ -1,6 +1,10 @@
 # Buzon entre sesiones (regla Q): efimero y local, nunca historial
 BUZON.md
 
+# El seguimiento del proyecto (regla BA): una vista de docs/METAS.md que Munir
+# recarga con F5. Interna y derivada, asi que no se versiona.
+PROGRESO.html
+
 # Dependencies / build output
 node_modules/
 dist/

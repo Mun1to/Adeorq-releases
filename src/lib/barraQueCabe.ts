@@ -21,12 +21,17 @@ import { useLayoutEffect, type RefObject } from "react";
  * Lo que se quita cuando no cabe, lo menos necesario primero. Cada palabra
  * entra en `data-sin` de `.topbar` y su CSS está en `15-agenda-sesiones.css`.
  *
- * Los nombres de las pestañas ya no están en la lista: desde el 2026-10-10 van
- * solo con su icono en cualquier ancho, porque Munir lo pidió así, y desde el
- * día siguiente también los tres botones de la Cabina. Con ese sitio ganado,
- * lo primero que se va es el título de la canción.
+ * El orden es el que se le enseñó a Munir a 1920 el 2026-10-10: las pestañas
+ * son por donde se mueve todo el rato, así que su nombre aguanta más que el
+ * título de la canción; y el reproductor entero aguanta más que ellos, porque
+ * quitarlo quita mandos y quitar un nombre no quita nada (lo dice el globo).
+ * Entre el 2026-10-10 y el 2026-10-12 las pestañas fueron solo con su icono
+ * en cualquier ancho; volvieron con el sitio que dejó «Adeorq». Los tres
+ * botones de la Cabina siguen sin nombre escrito (2026-10-11). Lo último,
+ * «relleno», aprieta las pestañas; se llamaba «marca» y quitaba además ese
+ * «Adeorq», que ya no va en la barra en ningún ancho.
  */
-export const RETIRADAS = ["titulo", "musica", "marca"] as const;
+export const RETIRADAS = ["titulo", "pestanas", "musica", "relleno"] as const;
 
 /**
  * Cuánto se sale lo de dentro, en píxeles. No basta con mirar la barra: el

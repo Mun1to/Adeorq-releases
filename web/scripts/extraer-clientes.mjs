@@ -10,7 +10,7 @@
      · `src/lib/providers.ts`            -> el id, el nombre y el color de cada
                                             cliente, tal cual los usa la app.
      · `src/components/ProviderMark.tsx` -> quien tiene dibujo propio y quien no.
-     · `web/demo/marcas.svg`             -> el sprite con esos dibujos, que a su
+     · `web/portada/marcas.svg`          -> el sprite con esos dibujos, que a su
                                             vez lo genera `extraer-marcas.mjs`.
 
    Y se incrusta entre dos marcadores del HTML de la portada, no en un fichero
@@ -20,7 +20,7 @@
         Copilot y Qwen se recortan con una <mask>, y `mask="url(#pm-codex)"` se
         resuelve siempre contra el documento actual: desde un fichero externo no
         encuentra la mascara, no recorta, y Codex sale como un cuadrado azul.
-        Ya paso una vez en la maqueta y esta apuntado en `demo/sprites.js`.
+        Ya paso una vez, en la maqueta que tuvo la portada.
      2. Los nombres de los clientes son CONTENIDO. Si los pinta JavaScript, los
         buscadores acaban viendolos, pero los asistentes que responden preguntas
         no ejecutan JavaScript y se van con las manos vacias. Esto es la regla
@@ -40,7 +40,7 @@ const WEB = resolve(AQUI, '..');
 
 const PROVIDERS = resolve(RAIZ, 'src/lib/providers.ts');
 const PROVIDERMARK = resolve(RAIZ, 'src/components/ProviderMark.tsx');
-const SPRITE = resolve(WEB, 'demo/marcas.svg');
+const SPRITE = resolve(WEB, 'portada/marcas.svg');
 const PORTADA = resolve(WEB, 'index.html');   // la portada ES la raiz desde el 2026-08-20
 
 const INICIO = '<!-- CLIENTES:INICIO';

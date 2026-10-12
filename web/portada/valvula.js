@@ -11,13 +11,12 @@
       `<head>` no cubre ninguna de las dos: gradúa amplitud, no detiene bucles,
       y su única válvula vivía en la URL, donde no la encuentra nadie.
 
-   2. LA DEMO NO SE CARGA DE ENTRADA. El `<iframe>` de `/demo/` pesa
-      845 KB en 21 peticiones (`demo.js` 182 KB, `vistas.js` 126 KB, `ui.css`
-      110 KB, `pantallas.js` 94 KB), y esos bytes no aparecen en las métricas
-      de la portada porque los pide otro documento: son un coste invisible que
-      casi duplica los 484 KB que la portada creía costar. Aquí se carga
-      cuando la ventana se acerca a la pantalla, o al primer gesto de la
-      persona, lo que llegue antes.
+   2. LA DEMO NO SE CARGA DE ENTRADA. El `<iframe>` de `/demo/` pesa cerca de
+      1 MB sin comprimir en seis peticiones (`datos-es.html` 530 KB, `app.css`
+      430 KB; comprimidos, unos 180 KB), y esos bytes no aparecen en las
+      métricas de la portada porque los pide otro documento: son un coste
+      invisible. Aquí se carga cuando la ventana se acerca a la pantalla, o
+      al primer gesto de la persona, lo que llegue antes.
 
    Escribe solo dos cosas: el atributo `data-quieto` en `<html>` y el `src`
    del iframe. Todo el dibujo está en `valvula.css`.

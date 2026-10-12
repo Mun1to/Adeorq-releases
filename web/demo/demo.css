@@ -1,0 +1,156 @@
+/* ============================================================================
+   Adeorq · demo/demo.css
+   EL MARCO DE LA DEMOSTRACIÓN.
+
+   Todo lo que se ve dentro de la ventana lo pinta `app.css`, que son las hojas
+   de estilo de la app tal cual. Aquí solo va lo que la app no tiene porque no
+   le hace falta: el tamaño fijo de la ventana, la letra de reserva para quien
+   no está en Windows, el aviso de «esto es una demostración» y lo que evita
+   que la rueda del ratón se quede enganchada dentro.
+   ========================================================================= */
+
+/* ------------------------------ LA VENTANA --------------------------------
+   La app se distribuye a 1920 x 1080 SIEMPRE y luego se dibuja al tamaño que
+   quepa. No es un capricho: los paneles de la Cabina y las terminales llevan
+   sus medidas escritas en píxeles, que son las del día en que se volcaron. En
+   la portada el <iframe> ya mide 1920 x 1080 y lo encoge ella (`--lupa` vale
+   1); abierta suelta, la escala la calcula `vivo.js`. */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #070c15;
+}
+
+#root {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  transform-origin: 0 0;
+  transform: scale(var(--lupa, 1));
+}
+
+/* `hidden` gana siempre: media app lleva `display: flex` y le ganaría. */
+[hidden] { display: none !important; }
+
+/* ------------------------------- LA LETRA ---------------------------------
+   La app es Segoe UI Variable y Cascadia Mono, que en Windows están. Fuera,
+   Inter y JetBrains Mono (las de la web) antes que la genérica del sistema. */
+
+:root, body, button, input, textarea, select {
+  font-family: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", "Inter", system-ui, sans-serif;
+}
+.xterm-rows, .xterm-rows span {
+  font-family: "Cascadia Mono", Consolas, "JetBrains Mono", ui-monospace, Menlo, monospace !important;
+}
+
+/* --------------------------- MIENTRAS LLEGA -------------------------------- */
+
+#root[aria-busy="true"] {
+  background:
+    radial-gradient(60% 50% at 30% 20%, rgba(60, 110, 220, .22), transparent 70%),
+    #0b1322;
+}
+
+/* ------------------------- NO SE QUEDA CON LA RUEDA ------------------------
+   Dentro de la portada, la demostración se mira y se pulsa. Sus zonas con
+   scroll propio (una vista larga, la barra de proyectos, un panel de la
+   derecha) se tragaban la rueda del ratón: al pasar por encima, la página de
+   fuera dejaba de bajar y parecía enganchada. Mientras nadie ha pulsado dentro,
+   esas zonas no se mueven con la rueda y el navegador se la pasa a la página;
+   al pulsar dentro vuelven a moverse, y al salir el ratón se sueltan otra vez.
+   `vivo.js` les pone la clase a las que de verdad tienen scroll. */
+
+html[data-quieta] .demo-rueda { overflow: hidden !important; }
+
+/* Y LA DEVUELVE. La app es una ventana, no una página: su hoja le pone
+   `overscroll-behavior: none` a <html>, <body> y #root para que nada rebote, y
+   dentro de un <iframe> eso corta el paso de la rueda a la página de fuera. Con
+   el ratón encima de la demostración, que ocupa media pantalla, la portada no
+   bajaba NADA (medido: 0 px con doce pasos de rueda, y 200 con el ratón fuera).
+   La primera maqueta ya tenía esta regla y se perdió al cambiarla por la app
+   volcada. `scripts/censo-demo.js` no lo veía; lo mide `scripts/rueda-demo.js`. */
+html, body, #root, #root * { overscroll-behavior: auto !important; }
+
+/* ------------------------------ NADA LATE SOLO -----------------------------
+   La app tiene cosas que laten sin parar: el hilo que da vueltas a la sesión
+   que trabaja (un degradado cónico que cambia de ángulo) y el aviso rojo de «te
+   espera» (una sombra que crece y se apaga). Son pequeñas, pero se pintan en
+   cada fotograma, dentro de un marco encogido y debajo de un cristal, y eso se
+   lo cobraban al scroll de la portada. Medido el 2026-10-12 en un monitor de
+   240 Hz, bajando la portada con la demostración a la vista, fotogramas
+   perdidos de 165:
+
+     con todo latiendo            de 20 a 40
+     sin el cristal (el blur)     de 37 a 77   <- el cristal no era
+     con las animaciones en pausa de 13 a 39   <- pararlas no basta
+     quitadas solo al bajar       de 14 a 33   <- ponerlas y quitarlas, tampoco
+     sin el hilo                  de 1 a 15
+     sin el latido                de 0 a 10
+     sin ninguna                  de 0 a 4
+
+   Es una copia congelada: no late. Lo que responde al ratón (los cambios de
+   color, el aviso, el globo) son transiciones y siguen igual, y el orbe del
+   Asistente gira porque lo mueve `vivo.js`, que lo para cuando no se ve. */
+#root *, #root *::before, #root *::after { animation: none !important; }
+
+/* ------------------------------- EL AVISO ----------------------------------
+   Lo que no se puede imitar sin mentir (abrir una terminal de verdad, llamar a
+   un agente) lo dice aquí en vez de fingirlo. Con los colores de la app. */
+
+.demo-aviso {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  z-index: 9990;
+  max-width: 560px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 15px;
+  border-radius: var(--r-caja, 8px);
+  border: 1px solid var(--border-strong);
+  background: var(--popover);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--sombra-3);
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.45;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  pointer-events: none;
+  transition: opacity var(--t-media, .18s) ease, transform var(--t-media, .18s) ease;
+}
+.demo-aviso[data-on] { opacity: 1; transform: translate(-50%, 0); }
+.demo-aviso b { flex: none; color: var(--accent); font-weight: 650; }
+
+/* ------------------------ LO QUE LA APP HACE CON JS ------------------------ */
+
+/* Un panel maximizado ocupa la rejilla entera; los demás se apartan. */
+.grid > .pane[data-demo-max] { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; z-index: 3; }
+.grid[data-demo-max] > .pane:not([data-demo-max]) { visibility: hidden; }
+
+/* Un panel que se cierra se va, no desaparece de golpe. */
+.pane[data-demo-fuera], .react-flow__node[data-demo-fuera] { opacity: 0; transition: opacity var(--t-media, .18s) ease; }
+
+/* En el Lienzo, lo que se arrastra va por encima y con la mano cerrada. */
+.react-flow__node { cursor: grab; }
+.react-flow__node[data-demo-llevando] { cursor: grabbing; z-index: 50 !important; }
+.react-flow__pane[data-demo-llevando] { cursor: grabbing; }
+.react-flow__node [contenteditable], .react-flow__node input, .react-flow__node textarea { cursor: text; }
+
+/* La nota que se añade en la demostración. */
+.demo-nota-nueva textarea {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+}

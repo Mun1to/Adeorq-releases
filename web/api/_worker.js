@@ -40,9 +40,19 @@ export default {
 }
 
 /**
- * Cache rules for the static files. Vite hashes the file names under /assets/,
- * so those are immutable; the generated data has to stay fresh enough that a
- * release published today shows up today.
+ * Whether Vite named this file: `name-XXXXXXXX.ext`, straight under /assets/,
+ * with a hash of mixed case and digits. A name written by hand that happens to
+ * end in eight lowercase letters is not taken for one.
+ */
+function isHashed(pathname) {
+  const m = pathname.match(/^\/assets\/[^/]+-([A-Za-z0-9_-]{8})\.[a-z0-9]+$/)
+  return !!m && /[A-Z0-9_-]/.test(m[1])
+}
+
+/**
+ * Cache rules for the static files. Vite hashes the names of what it bundles
+ * under /assets/, so those are immutable; the generated data has to stay fresh
+ * enough that a release published today shows up today.
  */
 function withCache(response, pathname) {
   // Only successful responses get cached. Measured on 2026-08-21: /assets/og.png
@@ -55,11 +65,27 @@ function withCache(response, pathname) {
   let value = null
 
   if (pathname.startsWith('/assets/')) {
-    value = 'public, max-age=31536000, immutable'
+    // Only what Vite named. The same folder also carries the files kept by
+    // hand and copied as they are (the screenshots, the brand, og.png), and a
+    // year of `immutable` on those meant a new screenshot under the same name
+    // would never reach anyone who had seen the old one.
+    value = isHashed(pathname)
+      ? 'public, max-age=31536000, immutable'
+      : 'public, max-age=3600, must-revalidate'
   } else if (pathname.startsWith('/data/')) {
     value = 'public, max-age=300, s-maxage=1800, stale-while-revalidate=86400'
   } else if (pathname.endsWith('.html') || pathname === '/' || !pathname.includes('.')) {
     value = 'public, max-age=0, s-maxage=600, must-revalidate'
+  } else if (pathname.startsWith('/demo/')) {
+    // The demo in the hero is copied as it is, with no hash in its names.
+    // Measured on 2026-10-12: a fix to demo.css was deployed and the page
+    // kept the broken sheet for hours. What fixes that is the stamp the build
+    // puts on its URLs (stampDemo in vite.config.js), NOT this header: the
+    // zone's Browser Cache TTL is four hours and Cloudflare raises any
+    // shorter max-age on a static file to it (checked with curl after the
+    // deploy: this line still answers 14400). It stays as the right answer
+    // for the day that setting becomes "respect existing headers".
+    value = 'public, max-age=0, must-revalidate'
   }
 
   if (!value) return response

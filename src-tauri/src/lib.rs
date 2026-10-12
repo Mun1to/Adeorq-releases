@@ -45,6 +45,7 @@ mod uso_clientes;
 mod workspace;
 mod mcp;
 mod mcp_clientes;
+mod mods;
 mod git_shadow;
 
 pub use mcp::run_mcp_bridge;
@@ -564,6 +565,10 @@ pub fn run() {
             manage::set_fondo,
             manage::get_fondo,
             manage::clear_fondo,
+            mods::mods_leer,
+            mods::mods_carpeta,
+            mods::mods_escribir_guia,
+            mods::mods_quitar,
             manage::save_board,
             manage::read_board,
             manage::anotar_rastro,

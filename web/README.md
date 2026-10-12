@@ -38,6 +38,8 @@ starts: it keeps the data files already on disk and prints a warning.
 | `pnpm data:latest`   | Rebuild `data/latest.json` and `data/release.json`        |
 | `pnpm data:changelog`| Rebuild `data/changelog.json`                             |
 | `pnpm ingles`        | Write the English front page `en/index.html`             |
+| `pnpm demo`          | Pack the hero demo from a dump of the real app           |
+| `pnpm clientes`      | Rebuild the client strip from the app's provider list    |
 
 `GITHUB_TOKEN` is read from the environment if present, only to raise the API
 rate limit. It is never written to a file. The site itself needs no token.
@@ -56,10 +58,34 @@ each its own canonical. Nobody is redirected by language: `portada/idioma.js`
 only suggests the other version and remembers the choice in `adeorq-lang`, the
 same key the guide reads.
 
-The demo inside the hero follows with `?lang=en`: `demo/traducir.js` swaps
-every text that is exactly a key of `demo/en-app.js` (generated from the app's
-own dictionary by `scripts/extraer-ingles-app.mjs`, part of `pnpm maqueta`) or
-`demo/en.js` (what only the demo says).
+## The demo in the hero
+
+`demo/` is not a mock-up of the app: it is the app's own DOM, frozen. The real
+app is opened on a demo workshop (Sam and six projects, no real data), every
+view is dumped from inside the window by
+`scripts/laboratorio/capturas/volcar.mjs`, once in Spanish and once in English,
+and `pnpm demo` (`scripts/hacer-demo.mjs`) packs the dump into three generated
+files: `demo/app.css` (the app's stylesheets), `demo/datos-es.html` and
+`demo/datos-en.html` (the window, plus every view, section and side panel as a
+`<template>`). The build stops if a path or an address from the machine that
+made the dump shows up in them.
+
+Written by hand: `demo/index.html`, `demo/demo.css` (the frame and the notice)
+and `demo/vivo.js`, which gives the frozen window its gestures back: switching
+views and themes, closing and maximising terminals, dragging the Canvas,
+answering a decision, Ctrl+K. What cannot be imitated without lying (opening a
+real terminal, calling an agent) says so in a notice instead of pretending.
+`scripts/censo-demo.js` clicks every button in both languages and lists the
+ones that do nothing; it should list none. `scripts/rueda-demo.js` turns the
+mouse wheel over the demo and checks the front page scrolls as far as it does
+with the pointer outside it, and counts the frames lost on the way: the app's
+stylesheet stops scroll chaining at its root, which inside a frame left the
+page stuck under the pointer, and nothing in the demo pulses on its own because
+those repaints were paid by the page's scroll (the numbers are in `demo.css`).
+
+The page follows `?lang=en`, and `?vista=lienzo` opens it on a given view. When
+the app changes, dump again and run `pnpm demo`; the steps are in the README
+next to `volcar.mjs`.
 
 ## Layout
 

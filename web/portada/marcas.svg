@@ -1,12 +1,13 @@
 <!-- ============================================================================
-     Adeorq · demo/marcas.svg
+     Adeorq · portada/marcas.svg
      GENERADO. No editar a mano: sale de src/components/ProviderMark.tsx con
      scripts/extraer-marcas.mjs.
 
      La marca de cada CLI, tal como la dibuja la app. Se usan asi:
        <svg class="prov-mark"><use href="#m-claude"/></svg>
 
-     ⚠ Este sprite hay que PEGARLO en la pagina (lo hace demo/sprites.js), no
+     ⚠ Este sprite hay que PEGARLO en la pagina (lo hace
+     scripts/extraer-clientes.mjs, que lo incrusta en index.html), no
      referenciarlo como fichero externo. Tres de las diez marcas (Codex, Copilot
      y Qwen) se dibujan con una mascara, y un mask="url(#pm-codex)" se resuelve
      SIEMPRE contra el documento que lo pinta: desde otro fichero no encuentra

@@ -39,6 +39,7 @@ mod push;
 mod secrets;
 mod sessions;
 mod suelta;
+mod tocados;
 mod skills;
 mod usage;
 mod uso_clientes;
@@ -526,6 +527,7 @@ pub fn run() {
             memoria_casa::memoria_reglas_router,
             sessions::session_messages,
             sessions::session_activity,
+            tocados::session_files,
             skills::list_skills,
             skills::skill_text,
             icons::project_icons,

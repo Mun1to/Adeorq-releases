@@ -20,20 +20,25 @@
  *   3 · Tú mandas  Cuentas, Agenda, Comandos, Ajustes
  *   cierre
  *
+ * EL RITMO (2026-10-12, tercera vuelta: Munir vio la segunda y dijo que
+ * explicaba «muy lento», con el texto «abajo del todo» y sin acercarse a las
+ * funciones). Una pantalla ya no es una foto con tres datos debajo: el título
+ * sale en el centro, sube a su sitio, y la cámara va de función en función
+ * (`focos`), cada una con su frase al lado. Una función, menos de dos
+ * segundos. La pieza dura un tercio menos y enseña más cosas.
+ *
  * LA VOZ. Cada escena lleva en `voz` lo que se dice mientras está en pantalla.
- * La voz cuenta lo que no va a cambiar; los datos de debajo (`datos`) llevan
- * el detalle, que sí cambia de una versión a otra y se corrige sin regrabar.
+ * La voz cuenta lo que no va a cambiar; la frase de cada foco lleva el
+ * detalle, que sí cambia de una versión a otra y se corrige sin regrabar.
  *
  * Las duraciones van en múltiplos de 2,5 segundos, que es un compás de la
  * música (`sonido.mjs`, 96 pulsos): así cada corte cae en el primer tiempo.
- * Son para una lectura tranquila, a unas 2,6 palabras por segundo. Cuando
- * llegue la grabación manda ella: la escena dura lo que dure su frase.
+ * Cuando llegue la grabación manda ella: la escena dura lo que dure su frase.
  *
- * ⚠ LAS IMÁGENES DE AHORA SON PROVISIONALES. Las seis viejas enseñan los
- * proyectos reales de Munir (auditado el 2026-08-11) y las tres nuevas aún no
- * existen: sale un hueco con su nombre. Sirven para ver la pieza moverse, NO
- * para publicar. Al llegar las nuevas a `web/assets/screens/` se traen con
- * `pnpm capturas`, con el mismo nombre, y no hay que tocar ni una línea.
+ * LAS IMÁGENES son las de `web/assets/screens/es` y `/en`: la app de verdad
+ * sobre un taller de demostración, así que se pueden publicar. Se traen con
+ * `pnpm capturas`. Si cambia el reparto de una pantalla, sus `focos` (que van
+ * en fracciones de la captura) hay que volver a mirarlos.
  */
 
 export const IDIOMAS = ["es", "en"] as const;
@@ -59,6 +64,22 @@ type Comun = {
   opcional?: true;
 };
 
+/**
+ * Una función de una pantalla: dónde está en la captura y qué se dice de ella.
+ * La cámara se acerca a ese trozo, lo demás se apaga y la frase sale a su lado.
+ */
+export type Foco = {
+  /** El trozo de la captura: izquierda, arriba, ancho y alto, de 0 a 1. Se
+      mide sobre la imagen, y vale igual para la de cada idioma. Cuanto más
+      pequeño, más se acerca la cámara (hasta 2,6 aumentos). */
+  en: readonly [number, number, number, number];
+  /** Qué se cuenta de esa función. Menos de 40 letras. */
+  dato: Frase;
+  /** Si está, el puntero va a ese punto de la captura (x, y, de 0 a 1) y
+      hace clic: es lo que hace que se vea usar la función y no solo mirarla. */
+  clic?: readonly [number, number];
+};
+
 export type EscenaPantalla = Comun & {
   tipo: "pantalla";
   /** El archivo dentro de `public/pantallas/`. Si existe `pantallas/en/` o
@@ -66,14 +87,13 @@ export type EscenaPantalla = Comun & {
   imagen: string;
   /** Cómo se llama esa pestaña en la app. */
   nombre: Frase;
-  /** La frase grande. Corta: se lee en dos segundos o no se lee. */
+  /** La frase grande, que sale en el centro del cuadro. Tres o cuatro
+      palabras: está un segundo ahí antes de subir a su sitio. */
   titulo: Frase;
-  /** Qué hace esa pantalla, en dos o tres datos de menos de 36 letras: con
-      más, los tres ya no caben en una fila. */
-  datos: Frase[];
-  /** Si la ventana se acerca o se aleja mientras está en pantalla. Se
-      alternan para que dos escenas seguidas no se muevan igual. */
-  hacia: "acerca" | "aleja";
+  /** Las funciones que se enseñan, en el orden en que la cámara las recorre.
+      Cada una pide cerca de dos segundos: si la escena es más corta que eso
+      (la pieza de bolsillo), se quedan fuera las últimas. */
+  focos: Foco[];
   /** Qué hace Adeo al lado de la ventana. */
   adeo: Animo;
 };
@@ -136,11 +156,11 @@ export const TEXTOS = {
   },
   cierre: {
     titulo: { es: "Descárgalo gratis", en: "Download it free" },
+    /** Una sola línea debajo de la dirección: «gratis» ya lo dice el título. */
     linea: {
-      es: "Gratis · sin cuenta · sin claves de API · se actualiza sola",
-      en: "Free · no account · no API keys · updates itself",
+      es: "Windows y Linux · sin cuenta · sin claves de API",
+      en: "Windows and Linux · no account · no API keys",
     },
-    sistemas: { es: "Windows y Linux", en: "Windows and Linux" },
   },
   /** El hueco que sale mientras una captura no ha llegado. */
   pendiente: { es: "Captura pendiente", en: "Screenshot pending" },
@@ -150,11 +170,11 @@ export const ESCENAS: Escena[] = [
   {
     id: "gancho",
     tipo: "gancho",
-    dura: 7.5,
+    dura: 5,
     voz: [
       { es: "Varios agentes programando a la vez.", en: "Several agents coding at once." },
       { es: "¿Cuál ha terminado?", en: "Which one is done?" },
-      { es: "¿Cuál lleva diez minutos esperándote?", en: "Which one has been waiting on you for ten minutes?" },
+      { es: "¿Cuál te está esperando?", en: "Which one is waiting for you?" },
     ],
   },
   {
@@ -167,17 +187,11 @@ export const ESCENAS: Escena[] = [
   {
     id: "que-es",
     tipo: "que-es",
-    dura: 12.5,
+    dura: 7.5,
     voz: [
-      {
-        es: "Es un panel de escritorio que abre tus proyectos en terminales de verdad,",
-        en: "It's a desktop panel that opens your projects in real terminals,",
-      },
-      {
-        es: "con los programas que ya usas: Claude Code, Codex, Gemini y muchos más.",
-        en: "running the tools you already use: Claude Code, Codex, Gemini and many more.",
-      },
-      { es: "Y siempre con tu cuenta.", en: "And always on your own account." },
+      { es: "Abre tus proyectos en terminales de verdad,", en: "It opens your projects in real terminals," },
+      { es: "con Claude Code, Codex, Gemini y más,", en: "with Claude Code, Codex, Gemini and more," },
+      { es: "y siempre con tu cuenta.", en: "and always on your own account." },
     ],
   },
 
@@ -193,49 +207,54 @@ export const ESCENAS: Escena[] = [
     id: "cabina",
     tipo: "pantalla",
     imagen: "cockpit.png",
-    dura: 12.5,
+    dura: 7.5,
     corta: 5,
-    hacia: "aleja",
     adeo: "trabaja",
     nombre: { es: "Cabina", en: "Cockpit" },
-    titulo: { es: "Terminales de verdad, no una imitación", en: "Real terminals, not an imitation" },
-    datos: [
-      { es: "Claude Code, Codex y Gemini a la vez", en: "Claude Code, Codex and Gemini at once" },
-      { es: "Parte, mueve y aparta sin cerrar", en: "Split, move, set aside, never close" },
-      { es: "Ves cuál trabaja y cuál te pregunta", en: "See which works and which asks you" },
+    titulo: { es: "Terminales de verdad", en: "Real terminals" },
+    focos: [
+      {
+        en: [0.157, 0.04, 0.411, 0.255],
+        dato: { es: "Claude Code, en su terminal de verdad", en: "Claude Code, in its real terminal" },
+      },
+      {
+        en: [0.568, 0.04, 0.411, 0.255],
+        dato: { es: "Codex, justo al lado", en: "Codex, right beside it" },
+      },
+      {
+        en: [0.157, 0.522, 0.411, 0.118],
+        dato: { es: "Te pregunta, y contestas con un clic", en: "It asks; you answer in one click" },
+        clic: [0.187, 0.602],
+      },
     ],
     voz: [
-      { es: "La Cabina es un mosaico de terminales reales.", en: "The Cockpit is a grid of real terminals." },
-      { es: "Las partes, las mueves y las apartas sin cerrarlas.", en: "Split them, move them, set them aside without closing them." },
-      {
-        es: "Y cada una te dice si su agente trabaja o te espera.",
-        en: "And each one tells you whether its agent is working or waiting for you.",
-      },
+      { es: "La Cabina: terminales reales, una al lado de otra.", en: "The Cockpit: real terminals, side by side." },
+      { es: "Y cada una te avisa cuando su agente te pregunta.", en: "And each one tells you when its agent is asking." },
     ],
   },
   {
     id: "lienzo",
     tipo: "pantalla",
     imagen: "canvas.png",
-    dura: 10,
+    dura: 5,
     corta: 5,
-    hacia: "acerca",
     adeo: "piensa",
     nombre: { es: "Lienzo", en: "Canvas" },
-    titulo: { es: "Un tablero infinito para pensar", en: "An infinite board to think on" },
-    datos: [
-      { es: "Terminales, notas e imágenes", en: "Terminals, notes and images" },
-      { es: "Flechas de un agente al siguiente", en: "Arrows from one agent to the next" },
-      { es: "Notas que se guardan como fichas", en: "Notes you save as runbooks" },
+    titulo: { es: "Un tablero infinito", en: "An infinite board" },
+    focos: [
+      {
+        en: [0.522, 0.218, 0.427, 0.312],
+        dato: { es: "Terminales vivas y notas, juntas", en: "Live terminals and notes, together" },
+      },
+      {
+        en: [0.209, 0.255, 0.255, 0.242],
+        dato: { es: "El trabajo de cada agente, en tarjetas", en: "Each agent's work, on cards" },
+      },
     ],
     voz: [
       {
-        es: "En el Lienzo, las terminales viven en un tablero infinito,",
-        en: "On the Canvas, those terminals live on an infinite board,",
-      },
-      {
-        es: "con notas, imágenes y flechas que llevan el trabajo de un agente al siguiente.",
-        en: "with notes, images, and arrows that hand one agent's work to the next.",
+        es: "En el Lienzo viven en un tablero infinito, con notas y tarjetas.",
+        en: "On the Canvas they live on an infinite board, with notes and cards.",
       },
     ],
   },
@@ -243,21 +262,25 @@ export const ESCENAS: Escena[] = [
     id: "archivos",
     tipo: "pantalla",
     imagen: "files.png",
-    dura: 7.5,
+    dura: 5,
     opcional: true,
-    hacia: "aleja",
     adeo: "escucha",
     nombre: { es: "Archivos", en: "Files" },
-    titulo: { es: "El proyecto, al lado de tus agentes", en: "Your project, beside your agents" },
-    datos: [
-      { es: "El árbol del proyecto, a mano", en: "The project tree, at hand" },
-      { es: "Editor con imágenes y PDF", en: "Editor with images and PDFs" },
-      { es: "Ctrl+K busca dentro de los archivos", en: "Ctrl+K searches inside the files" },
+    titulo: { es: "El proyecto, al lado", en: "Your project, right there" },
+    focos: [
+      {
+        en: [0.498, 0.04, 0.481, 0.28],
+        dato: { es: "Abres y editas sin salir", en: "Open and edit without leaving" },
+      },
+      {
+        en: [0.157, 0.04, 0.341, 0.28],
+        dato: { es: "Con las pruebas corriendo al lado", en: "With the tests running alongside" },
+      },
     ],
     voz: [
       {
-        es: "Y al lado, los archivos del proyecto: los abres y los editas sin salir de aquí.",
-        en: "And right beside them, the project's files: open and edit them without leaving.",
+        es: "Y al lado, los archivos: los abres y los editas sin salir.",
+        en: "And beside them, your files: open and edit without leaving.",
       },
     ],
   },
@@ -274,24 +297,29 @@ export const ESCENAS: Escena[] = [
     id: "panel",
     tipo: "pantalla",
     imagen: "dashboard.png",
-    dura: 12.5,
+    dura: 7.5,
     corta: 5,
-    hacia: "acerca",
     adeo: "quieta",
     nombre: { es: "Panel", en: "Dashboard" },
-    titulo: { es: "Todo lo que está pasando, de un vistazo", en: "Everything going on, at a glance" },
-    datos: [
-      { es: "Quién trabaja y quién te espera", en: "Who is working, who is waiting" },
-      { es: "Tu semana y tus proyectos, contados", en: "Your week and projects, counted" },
-      { es: "El Capataz propone; tú das el OK", en: "The Foreman proposes; you say OK" },
+    titulo: { es: "Todo, de un vistazo", en: "Everything at a glance" },
+    focos: [
+      {
+        en: [0.02, 0.148, 0.482, 0.12],
+        dato: { es: "Quién trabaja y quién te espera", en: "Who's working, who's waiting" },
+      },
+      {
+        en: [0.137, 0.284, 0.413, 0.25],
+        dato: { es: "El Capataz propone; tú das el OK", en: "The Foreman proposes; you say OK" },
+        clic: [0.172, 0.508],
+      },
+      {
+        en: [0.137, 0.775, 0.413, 0.155],
+        dato: { es: "Tu semana, proyecto a proyecto", en: "Your week, project by project" },
+      },
     ],
     voz: [
-      {
-        es: "El Panel te lo cuenta de un vistazo: quién trabaja, quién te espera",
-        en: "The Dashboard tells you at a glance: who's working, who's waiting,",
-      },
-      { es: "y cómo va tu semana.", en: "and how your week is going." },
-      { es: "Y el Capataz te propone un plan: nada corre sin tu OK.", en: "And the Foreman drafts a plan: nothing runs without your OK." },
+      { es: "El Panel te dice quién trabaja y quién te espera.", en: "The Dashboard shows who's working and who's waiting." },
+      { es: "Y el Capataz propone un plan: nada corre sin tu OK.", en: "And the Foreman drafts a plan: nothing runs without your OK." },
     ],
   },
   {
@@ -310,24 +338,25 @@ export const ESCENAS: Escena[] = [
     id: "decisiones",
     tipo: "pantalla",
     imagen: "decisions.png",
-    dura: 10,
-    hacia: "aleja",
+    dura: 5,
     adeo: "escucha",
     nombre: { es: "Decisiones", en: "Decisions" },
-    titulo: { es: "Tus agentes preguntan; tú eliges", en: "Your agents ask; you choose" },
-    datos: [
-      { es: "Opciones numeradas, para dictarlas", en: "Numbered options, easy to dictate" },
-      { es: "Te llegan también al móvil", en: "They reach your phone too" },
-      { es: "La respuesta vuelve a su terminal", en: "The answer returns to its terminal" },
+    titulo: { es: "Preguntan. Tú eliges.", en: "They ask. You choose." },
+    focos: [
+      {
+        en: [0.297, 0.075, 0.388, 0.316],
+        dato: { es: "Opciones numeradas, para dictarlas", en: "Numbered options, easy to dictate" },
+        clic: [0.317, 0.228],
+      },
+      {
+        en: [0.698, 0.076, 0.174, 0.29],
+        dato: { es: "Y la respuesta vuelve a su terminal", en: "And the answer returns to its terminal" },
+      },
     ],
     voz: [
       {
-        es: "Si un agente necesita que elijas, te pregunta con opciones numeradas.",
-        en: "When an agent needs you to choose, it asks with numbered options.",
-      },
-      {
-        es: "Contestas, también desde el móvil, y la respuesta vuelve sola a su terminal.",
-        en: "Answer, even from your phone, and the reply goes straight back to its terminal.",
+        es: "Si un agente duda, te pregunta. Eliges, y la respuesta vuelve sola a su terminal.",
+        en: "When an agent is unsure, it asks. You choose, and the answer goes straight back to its terminal.",
       },
     ],
   },
@@ -344,20 +373,25 @@ export const ESCENAS: Escena[] = [
     id: "cuentas",
     tipo: "pantalla",
     imagen: "accounts.png",
-    dura: 7.5,
-    hacia: "acerca",
+    dura: 5,
     adeo: "escucha",
     nombre: { es: "Cuentas", en: "Accounts" },
-    titulo: { es: "Tus cuentas, tus cuotas, tu control", en: "Your accounts, your quotas, your call" },
-    datos: [
-      { es: "El límite más apretado, a la vista", en: "Your tightest limit, in plain sight" },
-      { es: "Cada terminal con su cuenta", en: "Each terminal on its own account" },
-      { es: "Las suscripciones que ya pagas", en: "The subscriptions you already pay" },
+    titulo: { es: "Tus cuentas, tu control", en: "Your accounts, your call" },
+    focos: [
+      {
+        en: [0.148, 0.268, 0.25, 0.165],
+        dato: { es: "Cuánta cuota te queda, a la vista", en: "How much quota is left, in plain sight" },
+      },
+      {
+        en: [0.397, 0.274, 0.246, 0.224],
+        dato: { es: "Cada terminal, con la cuenta que elijas", en: "Each terminal on the account you pick" },
+        clic: [0.444, 0.392],
+      },
     ],
     voz: [
       {
-        es: "En Cuentas ves cuánta cuota te queda, y eliges con qué cuenta nace cada terminal.",
-        en: "Accounts shows how much quota you have left, and lets you pick the account each terminal starts on.",
+        es: "En Cuentas ves cuánta cuota te queda y eliges con cuál nace cada terminal.",
+        en: "Accounts shows how much quota you have left, and which one each terminal starts on.",
       },
     ],
   },
@@ -365,42 +399,53 @@ export const ESCENAS: Escena[] = [
     id: "agenda",
     tipo: "pantalla",
     imagen: "agenda.png",
-    dura: 10,
-    hacia: "aleja",
+    dura: 5,
     adeo: "piensa",
     nombre: { es: "Agenda", en: "Agenda" },
-    titulo: { es: "Lo que viene, y lo que se lanza solo", en: "What's next, and what runs itself" },
-    datos: [
-      { es: "Tus objetivos del día", en: "Your goals for the day" },
-      { es: "Las ideas que dejan los agentes", en: "Ideas your agents leave behind" },
-      { es: "Encargos programados, con freno", en: "Scheduled jobs, with a breaker" },
+    titulo: { es: "Lo que viene", en: "What's next" },
+    focos: [
+      {
+        en: [0.796, 0.686, 0.196, 0.3],
+        dato: { es: "Tus objetivos del día", en: "Your goals for the day" },
+        clic: [0.816, 0.796],
+      },
+      {
+        en: [0.796, 0.13, 0.182, 0.08],
+        dato: { es: "Encargos que se lanzan solos, a su hora", en: "Jobs that run themselves, on schedule" },
+      },
     ],
     voz: [
       {
-        es: "La Agenda guarda tus objetivos y las ideas que te dejan los agentes.",
-        en: "The Agenda keeps your goals and the ideas your agents leave behind.",
+        es: "La Agenda guarda tus objetivos, y lanza encargos sola a su hora.",
+        en: "The Agenda keeps your goals, and runs jobs on its own, on schedule.",
       },
-      { es: "Y lanza encargos sola, a la hora que tú digas.", en: "And it runs jobs on its own, at the time you set." },
     ],
   },
   {
     id: "comandos",
     tipo: "pantalla",
     imagen: "commands.png",
-    dura: 7.5,
+    dura: 5,
     opcional: true,
-    hacia: "acerca",
     adeo: "trabaja",
     nombre: { es: "Comandos", en: "Commands" },
-    titulo: { es: "Todo lo que puedes escribir, buscable", en: "Everything you can type, searchable" },
-    datos: [
-      { es: "Busca por lo que quieres hacer", en: "Search by what you want to do" },
-      { es: "Un clic lo teclea en tu terminal", en: "One click types it in your terminal" },
-      { es: "Los de cada agente y tus skills", en: "Every agent's, plus your skills" },
+    titulo: { es: "Todo lo que puedes escribir", en: "Everything you can type" },
+    focos: [
+      {
+        en: [0.02, 0.07, 0.475, 0.165],
+        dato: { es: "Busca por lo que quieres hacer", en: "Search by what you want to do" },
+      },
+      {
+        en: [0.027, 0.276, 0.407, 0.146],
+        dato: { es: "Un clic lo teclea en tu terminal", en: "One click types it in your terminal" },
+        clic: [0.365, 0.313],
+      },
     ],
     voz: [
-      { es: "Todo lo que puedes escribirle a un agente, buscable.", en: "Everything you can type to an agent, searchable." },
-      { es: "Un clic, y lo teclea por ti.", en: "One click, and it types it for you." },
+      {
+        es: "Todo lo que puedes escribirle a un agente, buscable: un clic y lo teclea.",
+        en: "Everything you can type to an agent, searchable: one click and it types it.",
+      },
     ],
   },
   {
@@ -409,14 +454,18 @@ export const ESCENAS: Escena[] = [
     imagen: "settings.png",
     dura: 5,
     opcional: true,
-    hacia: "aleja",
     adeo: "baila",
     nombre: { es: "Ajustes", en: "Settings" },
     titulo: { es: "Hazlo tuyo", en: "Make it yours" },
-    datos: [
-      { es: "Temas, avisos y atajos", en: "Themes, alerts and shortcuts" },
-      { es: "Un modelo local, si lo quieres", en: "A local model, if you want one" },
-      { es: "Se actualiza sola, con firma", en: "Self-updating, signed releases" },
+    focos: [
+      {
+        en: [0.145, 0.265, 0.445, 0.3],
+        dato: { es: "Temas para todos los gustos", en: "Themes for every taste" },
+      },
+      {
+        en: [0.026, 0.222, 0.102, 0.34],
+        dato: { es: "Avisos, atajos, móvil y más", en: "Alerts, shortcuts, phone and more" },
+      },
     ],
     voz: [{ es: "Temas, avisos, atajos: lo dejas a tu gusto.", en: "Themes, alerts, shortcuts: make it yours." }],
   },
@@ -424,11 +473,11 @@ export const ESCENAS: Escena[] = [
   {
     id: "cierre",
     tipo: "cierre",
-    dura: 10,
+    dura: 7.5,
     corta: 5,
     voz: [
       { es: "Adeorq es gratis.", en: "Adeorq is free." },
-      { es: "Sin cuenta, sin claves de API, y se actualiza sola.", en: "No account, no API keys, and it updates itself." },
+      { es: "Sin cuenta y sin claves de API.", en: "No account, no API keys." },
       { es: "Para Windows y Linux, en adeorq punto com.", en: "For Windows and Linux, at adeorq dot com." },
     ],
   },

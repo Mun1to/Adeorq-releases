@@ -44,14 +44,13 @@ export function QueEs({ entra }: { entra: number }) {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 14 * u,
-          padding: `${12 * u}px ${22 * u}px`,
-          borderRadius: 8 * u,
-          border: `1px solid ${COLOR.bordeFuerte}`,
-          backgroundColor: COLOR.panel,
+          gap: 16 * u,
+          // Suelta, sin la caja que tenía: es lo que alguien teclea, y con el
+          // cursor detrás ya se lee como una terminal.
           fontFamily: FUENTE.mono,
-          fontSize: 28 * u,
-          color: COLOR.texto,
+          fontSize: 36 * u,
+          fontWeight: 600,
+          color: COLOR.apagado,
           opacity: caja,
           transform: `translateY(${interpolate(caja, [0, 1], [14, 0]) * u}px)`,
         }}
@@ -60,9 +59,9 @@ export function QueEs({ entra }: { entra: number }) {
         <span style={{ whiteSpace: "pre" }}>{orden.slice(0, escritas)}</span>
         <span
           style={{
-            width: 15 * u,
-            height: 32 * u,
-            marginLeft: -8 * u,
+            width: 19 * u,
+            height: 40 * u,
+            marginLeft: -9 * u,
             backgroundColor: COLOR.acento,
             opacity: cursor ? 1 : 0,
           }}
@@ -101,16 +100,16 @@ export function QueEs({ entra }: { entra: number }) {
         })}
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 12 * u }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", columnGap: 34 * u, rowGap: 14 * u }}>
         {clientes.map((c, i) => (
-          <Dato key={c} texto={c} letra={FUENTE.mono} entra={entra + QUE_ES.clientes + i * QUE_ES.entreClientes} />
+          <Dato key={c} texto={c} entra={entra + QUE_ES.clientes + i * QUE_ES.entreClientes} />
         ))}
         <span
           style={{
             fontFamily: FUENTE.texto,
-            fontSize: 24 * u,
+            fontSize: 30 * u,
+            fontWeight: 600,
             color: COLOR.apagado,
-            marginLeft: 6 * u,
             opacity: yMas,
           }}
         >
@@ -149,9 +148,10 @@ export function QueEs({ entra }: { entra: number }) {
           padding: "0 6%",
           textAlign: "center",
           fontFamily: FUENTE.texto,
-          fontSize: 17 * u,
+          fontSize: 22 * u,
+          fontWeight: 500,
           color: COLOR.apagado,
-          opacity: aviso * 0.85,
+          opacity: aviso * 0.9,
         }}
       >
         {decir(TEXTOS.queEs.aviso)}

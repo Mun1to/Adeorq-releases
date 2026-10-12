@@ -126,7 +126,7 @@ pub fn raices_claude() -> Vec<(String, PathBuf)> {
 static COLAS: Mutex<Vec<(PathBuf, u64, u64, Arc<Vec<String>>)>> = Mutex::new(Vec::new());
 const COLAS_MAX: usize = 6;
 
-fn read_tail(path: &Path) -> std::io::Result<Arc<Vec<String>>> {
+pub(crate) fn read_tail(path: &Path) -> std::io::Result<Arc<Vec<String>>> {
     let meta = std::fs::metadata(path)?;
     let size = meta.len();
     // En segundos, como la de `analyze`: es gruesa, pero no viaja sola. Lo que
@@ -997,26 +997,31 @@ static ROLLOUTS: Mutex<Vec<(String, PathBuf)>> = Mutex::new(Vec::new());
 /// mismo panel sería peor que ninguno. Con `percent` a 0 la cabecera no lo pinta.
 #[tauri::command(async)]
 pub fn codex_context(session_id: String) -> Option<ContextInfo> {
+    let path = rollout_sabido(&session_id)?;
+    codex_context_de(&path, session_id)
+}
+
+/// El rollout de una sesión de Codex, recordado en `ROLLOUTS` desde la primera
+/// vez que se busca. Lo piden el estado del panel y los archivos que ha tocado
+/// (`tocados.rs`), los dos cada pocos segundos.
+pub(crate) fn rollout_sabido(session_id: &str) -> Option<PathBuf> {
     let sabida = ROLLOUTS
         .lock()
         .ok()
-        .and_then(|r| r.iter().find(|(id, _)| *id == session_id).map(|(_, p)| p.clone()))
+        .and_then(|r| r.iter().find(|(id, _)| id == session_id).map(|(_, p)| p.clone()))
         .filter(|p| p.exists());
-    let path = match sabida {
-        Some(p) => p,
-        None => {
-            let p = codex_transcript(&session_id)?;
-            if let Ok(mut r) = ROLLOUTS.lock() {
-                r.retain(|(id, _)| *id != session_id);
-                r.push((session_id.clone(), p.clone()));
-                if r.len() > 32 {
-                    r.remove(0);
-                }
-            }
-            p
+    if sabida.is_some() {
+        return sabida;
+    }
+    let p = codex_transcript(session_id)?;
+    if let Ok(mut r) = ROLLOUTS.lock() {
+        r.retain(|(id, _)| id != session_id);
+        r.push((session_id.to_owned(), p.clone()));
+        if r.len() > 32 {
+            r.remove(0);
         }
-    };
-    codex_context_de(&path, session_id)
+    }
+    Some(p)
 }
 
 fn codex_context_de(path: &Path, session_id: String) -> Option<ContextInfo> {
@@ -1551,7 +1556,7 @@ const AGENTS_STALE_S: u64 = 300;
 ///   lista     it ended its turn with a statement: the work is delivered
 ///   a_medias  a tool round is in flight: it is working
 ///   tuya      the ball is his and nothing is running
-fn last_message_state(lines: &[String]) -> Option<(String, String)> {
+pub(crate) fn last_message_state(lines: &[String]) -> Option<(String, String)> {
     for line in lines.iter().rev() {
         if !line.contains("\"message\"") {
             continue;
@@ -1614,7 +1619,7 @@ fn acaba_en_pregunta(text: &str) -> bool {
 /// Sin ninguno de ellos en la cola, vacío (= no se sabe). Pasa con un turno tan
 /// largo que su `task_started` quedó por encima de lo leído, y entonces no se
 /// adivina: «a medias» sería lo probable, pero el Capataz decide con esto.
-fn codex_estado(lines: &[String]) -> String {
+pub(crate) fn codex_estado(lines: &[String]) -> String {
     for line in lines.iter().rev() {
         // El filtro barato antes de parsear; el que decide es el de abajo,
         // porque un mensaje que HABLE de `task_complete` también lo contiene.
@@ -1800,7 +1805,7 @@ pub async fn session_context(cwd: String, session_id: Option<String>) -> Option<
 /// Sin id (un `claude` recién abierto, cuya sesión todavía no tiene nombre) se
 /// coge el transcript MÁS RECIENTE de esa carpeta de trabajo entre todas las
 /// cuentas, que es lo que acaba de escribir el panel que pregunta.
-fn transcript_de(cwd: &str, session_id: Option<&str>) -> Option<PathBuf> {
+pub(crate) fn transcript_de(cwd: &str, session_id: Option<&str>) -> Option<PathBuf> {
     let carpetas = raices_claude()
         .into_iter()
         .map(|(_, r)| r.join("projects").join(encode_claude(cwd)));
@@ -2078,7 +2083,7 @@ fn pasos_del_contenido(content: &Value) -> Vec<Paso> {
 /// con barra, los recordatorios que el propio Claude Code inyecta y los avisos
 /// del arnés. Pintarlos como si Munir los hubiera escrito sería enseñar una
 /// conversación que nunca ocurrió.
-fn es_fontaneria(t: &str) -> bool {
+pub(crate) fn es_fontaneria(t: &str) -> bool {
     let s = t.trim_start();
     s.starts_with("<command-name>")
         || s.starts_with("<local-command-")
@@ -2090,7 +2095,7 @@ fn es_fontaneria(t: &str) -> bool {
 /// El texto de un `message.content`, que viene de dos formas según el turno:
 /// una cadena pelada (lo que escribes tú) o una lista de bloques (lo que
 /// escribe el agente, que parte las respuestas largas).
-fn texto_del_contenido(content: &Value) -> String {
+pub(crate) fn texto_del_contenido(content: &Value) -> String {
     if let Some(s) = content.as_str() {
         return s.trim().to_owned();
     }

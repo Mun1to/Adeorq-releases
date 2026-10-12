@@ -3,7 +3,7 @@ import { cinta } from "./Adeo";
 import { TEXTOS } from "./guion";
 import { useDecir, useIdioma } from "./idioma";
 import { despierta } from "./Portada";
-import { CAPITULO, GANCHO, LLEGA, QUE_ES, VOZ, llegaDato, parte, preguntasDelGancho, totalDe, type Tramo, type Voces } from "./tiempos";
+import { CAPITULO, GANCHO, PANTALLA, QUE_ES, VOZ, clicEn, focosQueCaben, llegaDato, parte, preguntasDelGancho, totalDe, type Tramo, type Voces } from "./tiempos";
 
 /**
  * Todo lo que se oye.
@@ -86,8 +86,14 @@ function efectos(tramos: Tramo[], fps: number, orden: string): Efecto[] {
       pon(t.corte + QUE_ES.cuenta, kenney("drop_002"), NIVEL.pop);
     }
     if (e.tipo === "pantalla") {
-      pon(t.corte + LLEGA.titulo, kenney("tick_002"), NIVEL.tic);
-      e.datos.forEach((_, k) => pon(t.corte + llegaDato(t.largo, e.datos.length, k), kenney("drop_002"), NIVEL.pop));
+      // El título, un «pop» por función a la que llega la cámara y, donde el
+      // puntero hace clic, su clic.
+      pon(t.corte + PANTALLA.titulo, kenney("tick_002"), NIVEL.tic);
+      const n = focosQueCaben(t.largo, e.focos.length);
+      e.focos.slice(0, n).forEach((foco, k) => {
+        pon(t.corte + llegaDato(t.largo, n, k), kenney("drop_002"), NIVEL.pop);
+        if (foco.clic) pon(t.corte + clicEn(t.largo, n, k), TECLAS[1], NIVEL.tecla * 1.5);
+      });
     }
     if (e.tipo === "adeo") {
       const estados = TEXTOS.adeo.estados;

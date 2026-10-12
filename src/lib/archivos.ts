@@ -19,17 +19,72 @@ export interface Cambio {
   estado: "M" | "A" | "D" | "R" | "U";
   /** Cuándo se tocó, en milisegundos; 0 si ya no existe. */
   cuando: number;
+  /** Líneas añadidas y quitadas respecto al último commit; en uno nuevo que
+      git todavía no sigue, las que tiene. Un binario se queda en cero. */
+  mas?: number;
+  menos?: number;
+}
+
+/** Un commit reciente de la carpeta y los archivos que se llevó. */
+export interface CommitReciente {
+  /** El hash corto. */
+  hash: string;
+  /** Cuándo se hizo, en milisegundos. */
+  cuando: number;
+  asunto: string;
+  /** Rutas absolutas, como las de `Cambio`. */
+  archivos: string[];
 }
 
 export interface EstadoArchivos {
   /** La carpeta está dentro de un repositorio de git. */
   git: boolean;
   cambios: Cambio[];
+  /** La rama en la que está; vacía con la cabeza suelta. */
+  rama?: string;
+  /** Cuántos commits lleva por delante de su rama remota. */
+  delante?: number;
+  /** Los últimos commits que tocaron la carpeta, del más nuevo al más viejo. */
+  commits?: CommitReciente[];
 }
 
 /** Qué está distinto del último commit en esa carpeta (`estado_archivos`). */
 export function estadoArchivos(raiz: string): Promise<EstadoArchivos> {
   return invoke("estado_archivos", { raiz });
+}
+
+/** Un archivo que el agente de una sesión ha leído o editado (`tocados.rs`). */
+export interface Tocado {
+  ruta: string;
+  /** Cuándo lo leyó y cuándo lo editó por última vez, en ISO; vacío si no. */
+  leido: string;
+  editado: string;
+  /** La llamada que sigue sin contestar, si hay alguna. */
+  enCurso: "" | "leer" | "editar";
+  /** En qué turno de la cola leída fue cada cosa; 0 si no fue. */
+  turnoLeido: number;
+  turnoEditado: number;
+}
+
+export interface ArchivosSesion {
+  tocados: Tocado[];
+  /** Por qué turno va la cola leída del transcript. */
+  turno: number;
+  /** Hay una ronda de herramientas en el aire: está trabajando. */
+  enMarcha: boolean;
+  /** Hay un `git commit` lanzado que todavía no ha contestado. */
+  commitEnCurso: boolean;
+  /** Este CLI deja escrito lo que lee, además de lo que edita. */
+  lee: boolean;
+}
+
+/**
+ * Los archivos que ha tocado la sesión de un panel, leídos de su transcript
+ * (`session_files`). `rollout` dice que está escrito como los de Codex. Falla
+ * si esa conversación todavía no está en el disco.
+ */
+export function archivosDeSesion(cwd: string, sessionId: string | undefined, rollout: boolean): Promise<ArchivosSesion> {
+  return invoke("session_files", { cwd, sessionId, rollout });
 }
 
 export interface Carpeta {

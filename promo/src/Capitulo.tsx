@@ -86,9 +86,9 @@ export function Capitulo({
         {decir(escena.titulo)}
       </div>
 
-      <div style={{ position: "relative", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 14 * u }}>
+      <div style={{ position: "relative", display: "flex", flexWrap: "wrap", justifyContent: "center", columnGap: 40 * u, rowGap: 14 * u }}>
         {pantallas.map((p, i) => (
-          <Dato key={p} texto={p} entra={entra + CAPITULO.pantallas + i * CAPITULO.entrePantallas} letra={FUENTE.mono} />
+          <Dato key={p} texto={p} entra={entra + CAPITULO.pantallas + i * CAPITULO.entrePantallas} />
         ))}
       </div>
     </AbsoluteFill>

@@ -147,7 +147,9 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         // él: meterle texto suelto a un CLI que espera un subcomando es abrirle
         // una terminal con un error dentro.
         const conEncargo = !!brief && ARRANCAN_CON_ENCARGO.has(cli);
-        const command = comandoDe({ cli, encargo: brief, agyExe: agyExe.current });
+        // `desatendida`: quien la abre es un agente, así que un Claude nace en
+        // modo auto y no en el de Ajustes (ver `Peticion` en `lib/arranque.ts`).
+        const command = comandoDe({ cli, encargo: brief, agyExe: agyExe.current, desatendida: true });
 
         /* Antes de abrirla, que pueda arrancar. Una terminal de Claude en una
            carpeta donde Munir no ha entrado nunca nace parada en «¿confías en

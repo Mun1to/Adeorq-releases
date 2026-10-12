@@ -12,21 +12,45 @@ import { escenasDe, type Corte, type Escena } from "./guion";
     porque el corte es justo su mitad. */
 export const PASO = 24;
 
-/** Cuándo llegan las piezas de una pantalla, contando desde su corte. */
-export const LLEGA = { titulo: 8, dato: 36, entreDatos: 22 } as const;
+/** Cuándo llega el título de una escena, contando desde su corte. Lo usa la
+    de Adeo, que no es una captura. */
+export const LLEGA = { titulo: 8 } as const;
 
-/** Cuándo llega el dato `i` de `n`. El primero, enseguida; los demás se
-    reparten para que el último llegue pasada la mitad de la escena: la voz va
-    contando la pantalla y los datos van saliendo mientras habla, no todos de
-    golpe antes de que abra la boca. En una escena corta van seguidos. */
-export function llegaDato(largo: number, n: number, i: number) {
-  const entre = n > 1 ? Math.max(LLEGA.entreDatos, Math.min(80, (largo * 0.58 - LLEGA.dato) / (n - 1))) : 0;
-  return Math.round(LLEGA.dato + i * entre);
+/**
+ * Una pantalla, contando desde su corte: el título sale en el centro
+ * (`titulo`), aguanta, y en `sale` sube a su sitio mientras la cámara arranca
+ * hacia la primera función. Cada viaje de la cámara dura `viaje`; el puntero,
+ * si esa función lo lleva, hace clic `clic` fotogramas después de llegar. Y
+ * una función pide `porFoco` fotogramas como poco: con menos, la frase que la
+ * acompaña no da tiempo a leerla.
+ */
+export const PANTALLA = { titulo: 2, sale: 40, viaje: 16, clic: 20, porFoco: 46 } as const;
+
+/** Cuándo deja el título el centro. En una escena corta, antes. */
+export const saleLaCamara = (largo: number) => Math.round(Math.min(PANTALLA.sale, largo * 0.36));
+
+/** Cuántas de las `n` funciones de una pantalla da tiempo a enseñar en una
+    escena de `largo` fotogramas. Las que no caben son las últimas. */
+export const focosQueCaben = (largo: number, n: number) =>
+  Math.max(1, Math.min(n, Math.floor((largo - saleLaCamara(largo)) / PANTALLA.porFoco)));
+
+/** Cuándo sale la cámara hacia la función `i` de las `n` que se enseñan: el
+    tiempo que queda detrás del título se reparte a partes iguales. */
+export function haciaElFoco(largo: number, n: number, i: number) {
+  const sale = saleLaCamara(largo);
+  return Math.round(sale + (i * (largo - sale)) / n);
 }
+
+/** Cuándo llega la frase de la función `i`: un pelo antes de que la cámara
+    frene, para que el «pop» caiga con ella. */
+export const llegaDato = (largo: number, n: number, i: number) => haciaElFoco(largo, n, i) + PANTALLA.viaje - 3;
+
+/** Cuándo hace clic el puntero en la función `i`. */
+export const clicEn = (largo: number, n: number, i: number) => haciaElFoco(largo, n, i) + PANTALLA.viaje + PANTALLA.clic;
 
 /** El gancho: cada cuánto se abre otra ventana, y cuándo sale cada pregunta
     (a la vez que la voz la dice). */
-export const GANCHO = { primera: 4, entreVentanas: 9, preguntas: [78, 128] } as const;
+export const GANCHO = { primera: 4, entreVentanas: 6, preguntas: [48, 86] } as const;
 
 /** Cuándo sale cada pregunta del gancho: con voz, cuando empieza su frase (la
     segunda y la tercera de su guion); sin ella, las de `GANCHO`. */
@@ -66,7 +90,7 @@ export function parte(t: { largo: number; frases?: number[] }, n: number, i: num
 }
 
 /** La escena «qué es»: la orden se teclea, y luego van llegando las demás. */
-export const QUE_ES = { tecleo: 8, porLetra: 2, titular: 48, porPalabra: 3, clientes: 118, entreClientes: 6, cuenta: 184 } as const;
+export const QUE_ES = { tecleo: 4, porLetra: 1.5, titular: 30, porPalabra: 2, clientes: 80, entreClientes: 4, cuenta: 126 } as const;
 
 /** Lo que dura el logotipo antes de convertirse en Adeo, como mucho. */
 export const DESPIERTA = 66;

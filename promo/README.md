@@ -10,8 +10,8 @@ cd promo
 pnpm install          # tiene su propio pnpm-workspace.yaml, no cuelga del repo
 pnpm capturas         # trae las pantallas de web/assets/screens
 pnpm ver              # abre el estudio: se ve moverse y se puede recorrer con el ratón
-pnpm render           # la entera, 1920x1080 -> out/adeorq-es.mp4 y out/adeorq-en.mp4 (2:17 sin voz)
-pnpm media            # sin las escenas opcionales -> out/adeorq-media-es.mp4 y -en (1:57)
+pnpm render           # la entera, 1920x1080 -> out/adeorq-es.mp4 y out/adeorq-en.mp4 (1:35 sin voz)
+pnpm media            # sin las escenas opcionales -> out/adeorq-media-es.mp4 y -en (1:20)
 pnpm vertical         # 1080x1920, la media  -> out/adeorq-vertical-es.mp4 y -en (Instagram, TikTok)
 pnpm corta            # la de bolsillo -> out/adeorq-corta-es.mp4 y -en (unos 22 segundos, sin voz)
 pnpm gif              # GIF de la corta-> out/adeorq-es.gif y -en (ver el aviso de abajo)
@@ -27,8 +27,29 @@ Lo renderizado (`out/`) no se versiona.
 ## Qué tocar
 
 **`src/guion.ts` y nada más.** Ahí está todo lo que se lee en pantalla, lo que se dice y la
-lista de escenas: qué captura sale, qué frase la acompaña, sus datos, cuánto dura y qué hace
-Adeo a su lado. La duración del vídeo sale de sumar esa lista.
+lista de escenas: qué captura sale, su título, a qué funciones se acerca la cámara, cuánto
+dura y qué hace Adeo a su lado. La duración del vídeo sale de sumar esa lista.
+
+**Una pantalla se cuenta en tres tiempos** (desde la tercera vuelta, 2026-10-12: la segunda
+ponía el texto en una franja debajo de la ventana, enseñaba la captura entera y quieta, y
+Munir la devolvió por lenta, por el texto «abajo del todo» y por no acercarse a nada):
+
+1. El título sale **en el centro del cuadro**, encima de la captura apagada y desenfocada.
+2. Sube a su sitio, encima de la ventana, y la captura se enciende.
+3. La cámara va **de función en función** (`focos`): se acerca, apaga lo demás, la enmarca y
+   le pone su frase al lado. Si el foco lleva `clic`, el puntero entra y pulsa ahí.
+
+**Ningún texto pequeño va dentro de un rectángulo.** Las frases de los focos, los nombres de
+cada capítulo y los de los programas iban en pastillas con borde y Munir las llamó «cárceles»
+(2026-10-12): van sueltos, con la letra de los títulos en negrita, y lo que los separa del
+fondo es una sombra sin cantos. La letra de terminal se queda para lo que se teclea.
+
+Un foco es `{ en: [izquierda, arriba, ancho, alto], dato, clic? }`, en fracciones de la
+captura (de 0 a 1), y vale para las dos lenguas porque el reparto de la app es el mismo.
+Para medirlo: abrir la captura, mirar en píxeles dónde está la función y dividir por el
+ancho y el alto. Cuanto más pequeño el trozo, más se acerca la cámara (de 1,15 a 2,6
+aumentos). Cada foco pide cerca de dos segundos; en una escena más corta se caen los
+últimos (`focosQueCaben`, en `tiempos.ts`).
 
 La estructura es un problema, la respuesta y tres capítulos: el gancho (varias terminales
 sueltas y nadie sabe en qué está cada una), la portada, «qué es», **1 · Trabaja** (Cabina,
@@ -39,7 +60,7 @@ pantallas.
 - **Cada frase es un par `{ es, en }`.** No hay un vídeo por idioma que mantener: hay uno, y
   si a una frase le falta un idioma, `pnpm tipos` falla.
 - **`voz`** es lo que se dice en esa escena, frase a frase. La voz cuenta lo que no cambia;
-  los `datos` de debajo llevan el detalle, que se corrige sin volver a grabar.
+  la frase de cada foco lleva el detalle, que se corrige sin volver a grabar.
 - **Las duraciones van en múltiplos de 2,5 segundos**, que es un compás de la música: así
   cada corte cae en el primer tiempo. Cuando hay voz grabada manda ella (ver «La voz»).
 - **`opcional: true`** saca la escena de la pieza media. **`corta: 5`** la mete en la de
@@ -47,10 +68,12 @@ pantallas.
 - **Una pantalla cuya captura no existe todavía** sale como una ventana vacía con su nombre,
   en vez de tumbar el render: se puede escribir en el guion antes de tener la imagen.
 
-Las capturas viven en `public/pantallas/` y se traen con `pnpm capturas`. Para cambiarlas se
-sustituye el archivo de `web/assets/screens/` por otro con **el mismo nombre**: el marco toma
-la proporción de la imagen que le pongas. Si allí hay una carpeta `es/` o `en/`, el vídeo de
-ese idioma usa la captura de su carpeta, y la suelta cuando no existe.
+Las capturas viven en `public/pantallas/` y se traen con `pnpm capturas`, que deja esa carpeta
+**igual que la de la web** (lo que allí ya no está, aquí se borra). Son las de
+`web/assets/screens/es` y `/en`: la app de verdad sobre un taller de demostración, a 3840 x
+2160, y el vídeo de cada idioma usa las de su carpeta. Se pueden publicar. Para cambiarlas se
+sustituye el archivo por otro con **el mismo nombre**; si la pantalla cambió de reparto, hay
+que volver a medir sus `focos`. Una captura que no sea 16:9 se ve entera, con bandas.
 
 `src/casa.ts` tiene los colores y las fuentes, copiados de donde viven de verdad
 (`src/estilos/01-base.css` y `web/fonts`).
@@ -61,7 +84,8 @@ ese idioma usa la captura de su carpeta, y la suelta cuando no existe.
 |---|---|
 | `src/guion.ts` | Los textos en los dos idiomas y la lista de escenas. |
 | `src/tiempos.ts` | Cuándo pasa cada cosa. Lo leen quien pinta y quien hace sonar, así que un rótulo y su clic no se pueden separar. |
-| `src/transiciones.tsx` | Los pasos entre escenas y cuál toca en cada salto. Son los de `@remotion/transitions` que pintan con un sombreador (zoom desenfocado, tarjetas que se cambian, onda). |
+| `src/Pantalla.tsx` | Una captura con su título, su cámara, sus frases y el puntero. |
+| `src/transiciones.tsx` | Los pasos entre escenas y cuál toca en cada salto. Los de `@remotion/transitions` que pintan con un sombreador (zoom desenfocado, tarjetas que se cambian, onda) y los tres de máscara, hechos aquí: la cámara entra por un hueco (una ventana, el ojo de Adeo, la forma del logotipo) y al otro lado está la escena siguiente. |
 | `src/Gancho.tsx`, `src/Capitulo.tsx` | El problema del principio y el cartel de cada capítulo. No llevan capturas. |
 | `src/Muestra.tsx` | El muestrario de pasos (`pnpm muestra`): no es una pieza, es para elegirlos mirando. |
 | `guion-voz.mjs` | Saca del guion la página para leerlo en voz alta. |
@@ -154,6 +178,21 @@ byte a la de `node_modules/remotion`.
 10. **Los tiempos por palabra de whisper no valen para cortar audio.** El final de una palabra
     lo pone donde empieza la siguiente, con el silencio dentro. `voz.mjs` parte antes por
     silencios y le pregunta a whisper solo qué se dice en cada tramo.
+11. **Un paso de máscara son dos escenas con UNA cámara.** Si la que llega solo se destapa
+    (un círculo que crece sobre una escena quieta) se lee como una cortinilla; para que se
+    lea como entrar por un hueco, la que llega va entera dentro del hueco, en pequeño, y
+    crece al mismo paso al que la otra se viene encima. La cuenta está en `Portal`
+    (`transiciones.tsx`). Y el hueco se ABRE: si está desde el primer fotograma, aparece
+    de golpe una miniatura encima de la escena.
+12. **Para mirar un cambio no hace falta el vídeo entero.** `remotion bundle` una vez, y
+    después `remotion render <carpeta> Promo-es tramo.mp4 --frames=600-824 --scale=0.5
+    --muted` y una hoja de contactos con `ffmpeg -vf "select='not(mod(n,16))',tile=4x4"`:
+    una escena entera en una imagen, en medio minuto. **Ese `--muted` es para quien revisa
+    fotogramas; lo que se le enseña a alguien va con sonido**: la primera prueba que vio
+    Munir era muda, y lo primero que dijo fue que no se oía nada.
+13. **Parar un render no para sus procesos.** Cortar la orden deja vivos a `node`, a una
+    docena de `chrome-headless-shell` y a su `ffmpeg`, y el siguiente de la cola arranca
+    igual. Se buscan por su ruta (`promo\node_modules`) y se paran esos.
 
 ## El GIF pesa, y es del formato
 
@@ -168,14 +207,33 @@ URL en el README. Son veinte segundos y queda un reproductor de verdad, con su s
 
 ## Pendiente
 
-- Las capturas de `public/pantallas/` son **las viejas de la web y enseñan datos reales de
-  Munir**: nombres de sus proyectos privados, sus horarios y trozos de conversación (auditado
-  el 2026-08-11). Sirven para ver la pieza moverse; **no para publicar**. En cuanto haya
-  capturas nuevas en `web/assets/screens/`, `pnpm capturas` y `pnpm render`.
-- Tres de las seis capturas tienen la interfaz en inglés y tres en español, así que cada
-  vídeo enseña pestañas en el idioma del otro. Se arregla con las carpetas `es/` y `en/`.
-- **Faltan tres capturas**: `files.png` (Archivos), `decisions.png` (Decisiones) y `agenda.png`
-  (Agenda). Hasta que estén, esas tres escenas enseñan una ventana vacía con su nombre.
-- **Falta la voz.** El guion está escrito y `voz.mjs` probado de punta a punta con una voz
-  sintética de Windows, solo como ensayo (no está en ningún vídeo). Con la grabación de
-  verdad hay que volver a medir la mezcla (`ffmpeg -af ebur128=peak=true`).
+**PARADO hasta que Adeorq esté terminado** (Munir, 2026-10-12: «todavía no hagas el vídeo hasta
+que finalicemos con adeorq»). El vídeo se hace una vez, al final, y sale junto a la V1. Hasta
+entonces lo que él diga del vídeo se apunta en esta lista y no se toca ni `src/` ni `out/`.
+
+Lo que ya ha pedido para ese día, sobre el corte que hay:
+
+- **Sin números en pantalla**: ni «01 · CABINA» en cada pantalla ni «1 · Trabaja» en los
+  carteles.
+- **Claro y sencillo** para quien no conoce Adeorq.
+- **Un poco más lento** que 1:35 (2:17 era demasiado lento).
+- **Solo funciones potentes**: fuera «te pregunta, y contestas con un clic» de la Cabina, que
+  eso ya lo hace la terminal sola. Cada cosa que se enseñe, algo que la terminal no hace.
+- **Las capturas se rehacen al final**, sobre el Adeorq terminado, y con ellas los `focos`.
+- Trajo un vídeo de referencia (el lanzamiento de otro lienzo de agentes: gancho en primera
+  persona, la app a pantalla completa, etiquetas de dos palabras, una tirada de 50 segundos) y
+  **no ha dicho qué quiere de él**: se le pregunta antes de montar nada.
+
+- **Falta la voz.** El guion está escrito (más corto desde la tercera vuelta: se lee en un
+  minuto y medio) y `voz.mjs` probado de punta a punta con una voz sintética de Windows,
+  solo como ensayo (no está en ningún vídeo). Con la grabación de verdad hay que volver a
+  medir la mezcla (`ffmpeg -af ebur128=peak=true`).
+- **La función «trabajando» es una foto con cámara, marco y puntero, no una grabación.** Lo
+  que se mueve dentro de una pantalla lo pone el vídeo; la app está quieta. Para enseñarla
+  trabajando de verdad (una terminal escribiendo, una tarjeta cambiando de columna) hacen
+  falta **clips**: el equipo de `scripts/laboratorio/capturas` ya abre la app en una casa de
+  demostración y la maneja por el puerto de depuración, así que puede grabar además de
+  fotografiar. Con un `cockpit.mp4` al lado de `cockpit.png`, a `Pantalla.tsx` le falta solo
+  pintar un `OffthreadVideo` donde hoy pinta la imagen: los focos y lo demás valen igual.
+- Los `focos` están medidos sobre las capturas en español. En las inglesas el reparto es el
+  mismo, pero un botón puede medir distinto: si un clic cae fuera de su botón, es por eso.

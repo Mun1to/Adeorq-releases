@@ -78,10 +78,19 @@
   font-size: 10px;
 }
 
-/* Session rows: the ⋯ menu button appears on hover, like project actions */
+/* Session rows: the ⋯ menu button appears on hover, like project actions.
+
+   Los dos botones FLOTAN sobre el final de la fila en vez de guardarle sitio.
+   Reservados ocupaban 65 px que nadie veía hasta pasar el ratón, y salían del
+   título: con la barra estrecha se quedaba en 1 px, una letra («S…», Munir,
+   2026-10-12). Ahora el título se lleva la fila entera y, al pasar el ratón,
+   los botones tapan la hora. Se centran con márgenes y no con `transform`,
+   que es de `.mini:hover` y de la fila cuando se arrastra. Y van sobre un
+   color SÓLIDO, también al pasar el ratón: tienen texto debajo. */
 .session-row {
   display: flex;
   align-items: center;
+  position: relative;
 }
 
 .session-row .session {
@@ -89,9 +98,21 @@
   min-width: 0;
 }
 
-.sess-more {
-  flex: none;
+.sess-more,
+.sess-bin {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin-block: auto;
+  height: 30px;
   visibility: hidden;
+  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
+}
+
+/* Pegado a la papelera (4 de margen más sus 32): con un hueco entre los dos
+   asomaba por él un trozo del título. */
+.sess-more {
+  right: 36px;
   padding: 3px 7px;
 }
 
@@ -99,14 +120,16 @@
   visibility: visible;
 }
 
+.session-row .sess-more:hover {
+  background: linear-gradient(180deg, color-mix(in srgb, color-mix(in srgb, var(--accent-dim) 75%, #fff) 62%, transparent), color-mix(in srgb, color-mix(in srgb, var(--accent) 45%, #000) 62%, transparent)), var(--panel-solid);
+}
+
 /* The bin, in the row and in the pane header. Hidden until the mouse is on
    the row it would delete, and red only once you are pointing at it: a button
    that destroys should be easy to reach and hard to press by accident. */
 .sess-bin {
-  flex: none;
-  visibility: hidden;
+  right: 4px;
   padding: 3px 6px;
-  margin-left: 1px;
 }
 
 .session-row:hover .sess-bin {
@@ -118,6 +141,22 @@
   color: var(--mal);
   background: color-mix(in srgb, var(--mal) 18%, transparent);
   border-color: color-mix(in srgb, var(--mal) 50%, transparent);
+}
+
+.session-row .sess-bin:hover {
+  background: linear-gradient(color-mix(in srgb, var(--mal) 18%, transparent), color-mix(in srgb, var(--mal) 18%, transparent)), var(--panel-solid);
+}
+
+/* Una archivada los lleva siempre a la vista, así que ahí sí guardan su sitio. */
+.session-row[data-archived="true"] .sess-more,
+.session-row[data-archived="true"] .sess-bin {
+  position: static;
+  flex: none;
+  margin-block: 0;
+}
+
+.session-row[data-archived="true"] .sess-bin {
+  margin-left: 1px;
 }
 
 /* Aquí vivía el estado «armado» de la papelera, cuando borrar una sesión desde
@@ -541,6 +580,16 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  height: 32px;
+  max-width: 100%;
+}
+
+/* Con la barra al mínimo y el botón de archivadas puesto, los seis ceden unos
+   píxeles cada uno antes que salirse: el dibujo no encoge, solo pierde aire a
+   los lados (va centrado y se mete en el relleno). */
+.rail-tabs .mini {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 /* The chosen mode is filled, not merely outlined: two thin borders side by side

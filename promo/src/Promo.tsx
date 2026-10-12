@@ -12,7 +12,6 @@ import { EnIdioma, useDecir } from "./idioma";
 import { Pantalla } from "./Pantalla";
 import { Portada } from "./Portada";
 import { QueEs } from "./QueEs";
-import { Rotulo } from "./Rotulo";
 import { Sonido } from "./Sonido";
 import { PASO, preguntasDelGancho, totalDe, tramos, type Tramo, type Voces } from "./tiempos";
 import { pasoEntre } from "./transiciones";
@@ -56,20 +55,7 @@ function Escena({ ts, i }: { ts: Tramo[]; i: number }) {
   const decir = useDecir();
   const tramo = ts[i];
   const e = tramo.escena;
-  if (e.tipo === "pantalla") {
-    return (
-      <>
-        <Pantalla escena={e} entra={tramo.entra} largo={tramo.largo} />
-        <Rotulo
-          etiqueta={`${String(tramo.numero).padStart(2, "0")} · ${decir(e.nombre)}`}
-          titulo={decir(e.titulo)}
-          datos={e.datos.map(decir)}
-          entra={tramo.entra}
-          largo={tramo.largo}
-        />
-      </>
-    );
-  }
+  if (e.tipo === "pantalla") return <Pantalla escena={e} numero={tramo.numero} entra={tramo.entra} largo={tramo.largo} />;
   if (e.tipo === "capitulo") {
     const deCuantos = ts.filter((t) => t.escena.tipo === "capitulo").length;
     return <Capitulo escena={e} pantallas={pantallasDe(ts, i, decir)} deCuantos={deCuantos} entra={tramo.entra} />;
@@ -95,9 +81,10 @@ export function Promo({ idioma, corte, voz }: PropsPromo) {
               <TransitionSeries.Sequence key={t.escena.id} durationInFrames={t.dura}>
                 {/* Una sola raíz por escena, y con su propio fondo. Las dos cosas las
                     piden los pasos con sombreador: dibujan en su lienzo SOLO el primer
-                    hijo (y una pantalla son dos, la ventana y su rótulo), y dan por
-                    hecho que la escena es opaca: por donde sea transparente se ve,
-                    debajo, la escena sin tocar, y los rótulos salen dobles. */}
+                    hijo, y dan por hecho que la escena es opaca: por donde sea
+                    transparente se ve, debajo, la escena sin tocar, y los textos salen
+                    dobles. Los de máscara también la quieren opaca: lo que asoma por
+                    su hueco tiene que tapar lo que había. */}
                 <AbsoluteFill>
                   <Fondo desfase={t.desde} />
                   <Escena ts={ts} i={i} />

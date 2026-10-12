@@ -56,6 +56,24 @@ pub struct Cambio {
     pub estado: String,
     /// Cuándo se tocó, en milisegundos; 0 si ya no existe.
     pub cuando: f64,
+    /// Líneas añadidas y quitadas respecto al último commit (`git diff
+    /// --numstat`); en uno nuevo que git todavía no sigue, las que tiene. Un
+    /// binario se queda en cero, que es lo que git dice de él.
+    pub mas: u32,
+    pub menos: u32,
+}
+
+/// Un commit reciente de la carpeta y lo que se llevó dentro. Es lo que deja
+/// decir que un archivo que editó el agente «ya está en el commit».
+#[derive(Serialize, Debug, PartialEq, Clone)]
+pub struct CommitReciente {
+    /// El hash corto, como lo enseña `git log --oneline`.
+    pub hash: String,
+    /// Cuándo se hizo, en milisegundos.
+    pub cuando: f64,
+    pub asunto: String,
+    /// Rutas absolutas, con las barras del sistema, como las de `Cambio`.
+    pub archivos: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -63,6 +81,12 @@ pub struct EstadoArchivos {
     /// La carpeta está dentro de un repositorio de git.
     pub git: bool,
     pub cambios: Vec<Cambio>,
+    /// La rama en la que está; vacía con la cabeza suelta o sin git.
+    pub rama: String,
+    /// Cuántos commits lleva por delante de su rama remota (lo que falta por subir).
+    pub delante: u32,
+    /// Los últimos commits que tocaron esta carpeta, del más nuevo al más viejo.
+    pub commits: Vec<CommitReciente>,
 }
 
 /// Cuántos cambios se devuelven como mucho: una carpeta con veinte mil archivos
@@ -614,26 +638,208 @@ pub fn estado_archivos(raiz: String) -> Result<EstadoArchivos, String> {
     let git = |args: &[&str]| {
         std::process::Command::new("git").arg("-C").arg(&dir).args(args).sin_ventana().output()
     };
-    let sin_git = || Ok(EstadoArchivos { git: false, cambios: Vec::new() });
+    let sin_git = || {
+        Ok(EstadoArchivos { git: false, cambios: Vec::new(), rama: String::new(), delante: 0, commits: Vec::new() })
+    };
     let Ok(top) = git(&["rev-parse", "--show-toplevel"]) else { return sin_git() };
     if !top.status.success() {
         return sin_git();
     }
     let raiz_repo = PathBuf::from(String::from_utf8_lossy(&top.stdout).trim());
-    let st = git(&["status", "--porcelain=v1", "-z", "--untracked-files=all", "--", "."])
+    let st = git(&["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all", "--", "."])
         .map_err(|e| e.to_string())?;
     if !st.status.success() {
         return Err(String::from_utf8_lossy(&st.stderr).trim().to_string());
     }
-    let cambios = leer_porcelana(&String::from_utf8_lossy(&st.stdout), &raiz_repo)
+    // Con `--branch` la primera entrada es la cabecera de la rama, no un archivo.
+    let salida = String::from_utf8_lossy(&st.stdout);
+    let (cabecera, resto) = match salida.strip_prefix("## ") {
+        Some(s) => s.split_once('\0').unwrap_or((s, "")),
+        None => ("", salida.as_ref()),
+    };
+    let (rama, delante) = leer_rama(cabecera);
+    let porcelana = leer_porcelana(resto, &raiz_repo);
+    // Cuántas líneas cambia cada uno. Solo se pregunta si git sigue alguno de
+    // los cambiados: con todo nuevo no hay nada que comparar con el commit.
+    let lineas = if porcelana.iter().any(|(_, e)| e != "A") {
+        git(&["diff", "--numstat", "-z", "HEAD", "--", "."])
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| leer_numstat(&String::from_utf8_lossy(&o.stdout), &raiz_repo))
+            .unwrap_or_default()
+    } else {
+        Default::default()
+    };
+    let cambios = porcelana
         .into_iter()
         .take(TOPE_CAMBIOS)
         .map(|(ruta, estado)| {
             let cuando = std::fs::metadata(&ruta).map(|m| cuando_de(&m)).unwrap_or(0.0);
-            Cambio { ruta, estado, cuando }
+            let (mas, menos) = match lineas.get(&ruta) {
+                Some(n) => *n,
+                // Uno nuevo que git no sigue no sale en el diff: son todas suyas.
+                None if estado == "A" => (lineas_de(Path::new(&ruta), cuando), 0),
+                None => (0, 0),
+            };
+            Cambio { ruta, estado, cuando, mas, menos }
         })
         .collect();
-    Ok(EstadoArchivos { git: true, cambios })
+    let commits = commits_recientes(&raiz_repo, &dir, &|args| git(args).ok());
+    Ok(EstadoArchivos { git: true, cambios, rama, delante, commits })
+}
+
+/// La rama y lo que lleva por delante, de la cabecera de `git status --branch`:
+/// `main...origin/main [ahead 1, behind 2]`, `main` a secas si no tiene remota,
+/// `No commits yet on main` en un repositorio recién nacido y `HEAD (no branch)`
+/// con la cabeza suelta, que se queda sin nombre.
+fn leer_rama(cabecera: &str) -> (String, u32) {
+    let c = cabecera.trim();
+    let c = c.strip_prefix("No commits yet on ").or(c.strip_prefix("Initial commit on ")).unwrap_or(c);
+    if c.starts_with("HEAD (") {
+        return (String::new(), 0);
+    }
+    // El nombre de una rama puede llevar puntos sueltos, pero nunca tres seguidos.
+    let (nombre, resto) = match c.split_once("...") {
+        Some((n, r)) => (n, r),
+        None => (c.split(' ').next().unwrap_or(c), ""),
+    };
+    let delante = resto
+        .split_once("ahead ")
+        .map(|(_, r)| r.chars().take_while(|ch| ch.is_ascii_digit()).collect::<String>())
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(0);
+    (nombre.to_string(), delante)
+}
+
+/// Lo que dice `git diff --numstat -z`: «añadidas TAB quitadas TAB ruta NUL».
+/// En un renombrado la ruta viene vacía y detrás van la de antes y la de ahora,
+/// cada una con su NUL; un binario trae guiones en vez de números.
+fn leer_numstat(salida: &str, raiz_repo: &Path) -> std::collections::HashMap<String, (u32, u32)> {
+    let mut out = std::collections::HashMap::new();
+    let mut partes = salida.split('\0');
+    while let Some(p) = partes.next() {
+        let mut campos = p.splitn(3, '\t');
+        let (Some(mas), Some(menos), Some(ruta)) = (campos.next(), campos.next(), campos.next()) else {
+            continue;
+        };
+        let ruta = if ruta.is_empty() {
+            partes.next();
+            partes.next().unwrap_or_default()
+        } else {
+            ruta
+        };
+        if ruta.is_empty() {
+            continue;
+        }
+        let abs = raiz_repo.join(ruta).to_string_lossy().replace('/', std::path::MAIN_SEPARATOR_STR);
+        out.insert(abs, (mas.parse().unwrap_or(0), menos.parse().unwrap_or(0)));
+    }
+    out
+}
+
+/// Cuántos commits se miran hacia atrás. Lo que se quiere saber es si lo que
+/// acaba de editar el agente ya entró en uno: con los últimos sobra.
+const TOPE_COMMITS: usize = 12;
+/// El formato que se le pide a `git log`: cada commit empieza con un byte 1 y
+/// sus tres campos van separados por un byte 2, que no salen en un asunto.
+const FORMATO_COMMITS: &str = "--format=%x01%h%x02%ct%x02%s";
+
+/// Lo que dice `git log --name-only -z` con `FORMATO_COMMITS`: la cabecera,
+/// un NUL, un salto de línea y los archivos, cada uno con su NUL.
+fn leer_commits(salida: &str, raiz_repo: &Path) -> Vec<CommitReciente> {
+    salida
+        .split('\x01')
+        .filter_map(|trozo| {
+            let (cabecera, archivos) = trozo.split_once('\0').unwrap_or((trozo, ""));
+            let mut campos = cabecera.splitn(3, '\x02');
+            let hash = campos.next().filter(|h| !h.is_empty())?.to_string();
+            let cuando = campos.next()?.trim().parse::<f64>().ok()? * 1000.0;
+            let asunto = campos.next().unwrap_or_default().trim().to_string();
+            let archivos = archivos
+                .split('\0')
+                .map(|a| a.trim_start_matches('\n'))
+                .filter(|a| !a.is_empty())
+                .map(|a| raiz_repo.join(a).to_string_lossy().replace('/', std::path::MAIN_SEPARATOR_STR))
+                .collect();
+            Some(CommitReciente { hash, cuando, asunto, archivos })
+        })
+        .collect()
+}
+
+/// Los últimos commits de cada carpeta ya preguntada, con la huella del
+/// registro de git que tenían delante. El panel pregunta cada dos segundos y
+/// medio y la respuesta solo cambia cuando alguien hace un commit: sin esto era
+/// un `git log` más en cada vuelta.
+static COMMITS: std::sync::Mutex<Vec<(PathBuf, (u64, f64), Vec<CommitReciente>)>> = std::sync::Mutex::new(Vec::new());
+
+/// Los últimos commits que tocaron `dir`. La huella es el tamaño y la hora de
+/// `.git/logs/HEAD`, que git escribe en cada commit, cambio de rama o reset. En
+/// un árbol de trabajo aparte `.git` es un archivo y no hay huella que mirar:
+/// ahí se pregunta siempre.
+fn commits_recientes(
+    raiz_repo: &Path,
+    dir: &Path,
+    git: &dyn Fn(&[&str]) -> Option<std::process::Output>,
+) -> Vec<CommitReciente> {
+    let huella = std::fs::metadata(raiz_repo.join(".git").join("logs").join("HEAD"))
+        .ok()
+        .map(|m| (m.len(), cuando_de(&m)));
+    if let (Some(h), Ok(sabidos)) = (huella, COMMITS.lock()) {
+        if let Some((_, _, c)) = sabidos.iter().find(|(d, hh, _)| d == dir && *hh == h) {
+            return c.clone();
+        }
+    }
+    let n = TOPE_COMMITS.to_string();
+    let commits = git(&["log", "-n", &n, FORMATO_COMMITS, "--name-only", "-z", "--", "."])
+        .filter(|o| o.status.success())
+        .map(|o| leer_commits(&String::from_utf8_lossy(&o.stdout), raiz_repo))
+        .unwrap_or_default();
+    if let (Some(h), Ok(mut sabidos)) = (huella, COMMITS.lock()) {
+        sabidos.retain(|(d, _, _)| d != dir);
+        sabidos.push((dir.to_path_buf(), h, commits.clone()));
+        if sabidos.len() > 8 {
+            sabidos.remove(0);
+        }
+    }
+    commits
+}
+
+/// Hasta qué peso se cuentan las líneas de un archivo nuevo.
+const TOPE_LINEAS: u64 = 512 * 1024;
+/// Las líneas de cada archivo nuevo ya contado, con la hora que tenía.
+static LINEAS: std::sync::Mutex<Vec<(PathBuf, f64, u32)>> = std::sync::Mutex::new(Vec::new());
+
+/// Cuántas líneas tiene un archivo nuevo, que es lo que git contará como
+/// añadido cuando lo siga. Cero si es binario o demasiado gordo. Se recuerda
+/// por su hora: el panel vuelve cada dos segundos y medio, y releer cada vez
+/// todo lo nuevo de un proyecto sería leer por leer.
+fn lineas_de(ruta: &Path, cuando: f64) -> u32 {
+    if let Ok(sabidas) = LINEAS.lock() {
+        if let Some((_, _, n)) = sabidas.iter().find(|(r, c, _)| r == ruta && *c == cuando) {
+            return *n;
+        }
+    }
+    let pesa = std::fs::metadata(ruta).map(|m| m.len()).unwrap_or(u64::MAX);
+    let n = if pesa > TOPE_LINEAS {
+        0
+    } else {
+        match std::fs::read(ruta) {
+            Ok(b) if !b[..b.len().min(OLFATO)].contains(&0) => {
+                let saltos = b.iter().filter(|&&c| c == b'\n').count();
+                // La última línea cuenta aunque no acabe en salto.
+                (saltos + usize::from(b.last().is_some_and(|&c| c != b'\n'))) as u32
+            }
+            _ => 0,
+        }
+    };
+    if let Ok(mut sabidas) = LINEAS.lock() {
+        sabidas.retain(|(r, _, _)| r != ruta);
+        sabidas.push((ruta.to_path_buf(), cuando, n));
+        if sabidas.len() > 400 {
+            sabidas.remove(0);
+        }
+    }
+    n
 }
 
 #[cfg(test)]
@@ -801,6 +1007,95 @@ mod tests {
         assert!(leer_porcelana("", raiz).is_empty());
     }
 
+    /// La cabecera de la rama, las líneas de cada cambio y los commits con sus
+    /// archivos: lo que el panel necesita para decir «main ↑1 · +3 −1» y que un
+    /// archivo «ya está en el commit». Las tres salidas son las de git, tal cual.
+    #[test]
+    fn la_rama_las_lineas_y_los_commits_se_leen_de_git() {
+        assert_eq!(leer_rama("main...origin/main [ahead 2, behind 1]"), ("main".to_string(), 2));
+        assert_eq!(leer_rama("main...origin/main"), ("main".to_string(), 0));
+        assert_eq!(leer_rama("arreglo/v1.2"), ("arreglo/v1.2".to_string(), 0));
+        assert_eq!(leer_rama("No commits yet on main"), ("main".to_string(), 0));
+        assert_eq!(leer_rama("HEAD (no branch)"), (String::new(), 0));
+        assert_eq!(leer_rama(""), (String::new(), 0));
+
+        let raiz = Path::new("C:/repo");
+        let sep = std::path::MAIN_SEPARATOR_STR;
+        let r = |p: &str| format!("C:{sep}repo{sep}{}", p.replace('/', sep));
+        let n = leer_numstat("37\t5\tsrc/App.tsx\0-\t-\tlogo.png\x002\t0\t\0viejo.rs\0nuevo.rs\x001\t1\tcon espacio.md\0", raiz);
+        assert_eq!(n.get(&r("src/App.tsx")), Some(&(37, 5)));
+        assert_eq!(n.get(&r("logo.png")), Some(&(0, 0)), "un binario no tiene líneas");
+        assert_eq!(n.get(&r("nuevo.rs")), Some(&(2, 0)), "un renombrado va con su nombre de ahora");
+        assert_eq!(n.get(&r("con espacio.md")), Some(&(1, 1)));
+        assert_eq!(n.len(), 4);
+
+        let c = leer_commits(
+            "\x01acf758b\x021791826577\x02docs(mods): goal 14\0\ndocs/METAS.md\0docs/contexto/mods.md\0\x01d408ad0\x021791826576\x02fix(lab): one\0\nscripts/a.mjs\0\x01aaaaaaa\x021791826000\x02vacío\0",
+            raiz,
+        );
+        assert_eq!(c.len(), 3);
+        assert_eq!(c[0], CommitReciente {
+            hash: "acf758b".into(),
+            cuando: 1_791_826_577_000.0,
+            asunto: "docs(mods): goal 14".into(),
+            archivos: vec![r("docs/METAS.md"), r("docs/contexto/mods.md")],
+        });
+        assert_eq!(c[1].archivos, [r("scripts/a.mjs")]);
+        assert!(c[2].archivos.is_empty(), "un commit sin archivos en esta carpeta no se inventa ninguno");
+        assert!(leer_commits("", raiz).is_empty());
+    }
+
+    /// Con el git de verdad, en un repositorio que nace y muere aquí: un archivo
+    /// cambiado trae sus líneas, uno nuevo las que tiene, y al hacer commit sale
+    /// en la lista con lo que se llevó, también cuando ya se había preguntado
+    /// antes (la huella del registro de git cambia y lo recordado se tira).
+    #[test]
+    fn un_commit_de_verdad_se_ve_con_sus_archivos() {
+        use crate::SinVentana;
+        let dir = std::env::temp_dir().join(format!("adeorq-commit-{}-{:?}", std::process::id(), std::thread::current().id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+        // Ni la identidad ni los hooks de quien lanza la prueba: este repositorio no es suyo.
+        let git = |args: &[&str]| {
+            let o = std::process::Command::new("git")
+                .arg("-C").arg(&dir)
+                .args(["-c", "user.name=Prueba", "-c", "user.email=prueba@adeorq.invalid", "-c", "core.hooksPath=.sin-hooks", "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false"])
+                .args(args)
+                .sin_ventana()
+                .output()
+                .expect("git");
+            assert!(o.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&o.stderr));
+        };
+        git(&["init", "-q", "-b", "main"]);
+        std::fs::write(dir.join("src").join("cliente.js"), "uno\ndos\ntres\n").unwrap();
+        git(&["add", "."]);
+        git(&["commit", "-q", "-m", "first"]);
+
+        std::fs::write(dir.join("src").join("cliente.js"), "uno\nDOS\ntres\ncuatro\n").unwrap();
+        std::fs::write(dir.join("nuevo.txt"), "a\nb\nsin salto al final").unwrap();
+        let d = dir.to_string_lossy().to_string();
+        let e = estado_archivos(d.clone()).expect("estado");
+        assert!(e.git);
+        assert_eq!((e.rama.as_str(), e.delante), ("main", 0));
+        let de = |nombre: &str| e.cambios.iter().find(|c| c.ruta.ends_with(nombre)).unwrap_or_else(|| panic!("falta {nombre}: {:?}", e.cambios));
+        assert_eq!((de("cliente.js").estado.as_str(), de("cliente.js").mas, de("cliente.js").menos), ("M", 2, 1));
+        assert_eq!((de("nuevo.txt").estado.as_str(), de("nuevo.txt").mas, de("nuevo.txt").menos), ("A", 3, 0));
+        assert_eq!(e.commits.len(), 1);
+        assert_eq!(e.commits[0].asunto, "first");
+
+        git(&["add", "."]);
+        git(&["commit", "-q", "-m", "second: the client and a new file"]);
+        let e = estado_archivos(d).expect("estado");
+        assert!(e.cambios.is_empty(), "{:?}", e.cambios);
+        assert_eq!(e.commits.len(), 2, "el commit nuevo se ve aunque ya se hubiera preguntado");
+        assert_eq!(e.commits[0].asunto, "second: the client and a new file");
+        assert_eq!(e.commits[0].hash.len(), 7);
+        assert!(e.commits[0].cuando > 1_600_000_000_000.0);
+        let nombres: Vec<String> = e.commits[0].archivos.iter().map(|a| a.replace('\\', "/")).collect();
+        assert!(nombres.iter().any(|a| a.ends_with("/src/cliente.js")) && nombres.iter().any(|a| a.ends_with("/nuevo.txt")), "{nombres:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     /// Con el git de verdad, sobre este mismo repositorio:
     /// `cargo test --lib estado_de_este_repo -- --ignored --nocapture`.
     #[test]
@@ -808,9 +1103,12 @@ mod tests {
     fn estado_de_este_repo() {
         let raiz = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_string_lossy().to_string();
         let e = estado_archivos(raiz.clone()).expect("git status");
-        println!("git: {} · {} cambios en {raiz}", e.git, e.cambios.len());
+        println!("git: {} · {} cambios en {raiz} · rama «{}» ↑{}", e.git, e.cambios.len(), e.rama, e.delante);
         for c in e.cambios.iter().take(12) {
-            println!("  {} {} ({})", c.estado, c.ruta, c.cuando);
+            println!("  {} {} ({}) +{} −{}", c.estado, c.ruta, c.cuando, c.mas, c.menos);
+        }
+        for c in e.commits.iter().take(4) {
+            println!("  commit {} · {} archivos · {}", c.hash, c.archivos.len(), c.asunto);
         }
         assert!(e.git);
         assert!(estado_archivos(std::env::temp_dir().to_string_lossy().to_string()).map(|e| !e.git).unwrap_or(true));

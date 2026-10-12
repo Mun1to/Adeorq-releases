@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import Sidebar from "./components/Sidebar";
 import SkillsPanel from "./components/SkillsPanel";
-import ArchivosPanel from "./components/ArchivosPanel";
+import ArchivosPanel, { sesionParaArchivos } from "./components/ArchivosPanel";
 import PanelDerecho, { type Cara } from "./components/PanelDerecho";
 import ActividadPanel from "./components/ActividadPanel";
 import WebPane from "./components/WebPane";
@@ -42,6 +42,7 @@ import {
   quitarFondo,
 } from "./lib/fondo";
 import { anclarColumnas } from "./lib/redimension";
+import { useAnchoDeBarra } from "./lib/anchoBarra";
 import { dividers, useCosturas } from "./lib/costuras";
 import { useMoverPanel } from "./lib/moverPanel";
 import { aDondeSaltar, aQuienLeToca, encolar, sacarDeCola, tocaDesmaximizar } from "./lib/saltos";
@@ -192,7 +193,6 @@ type SplitDir = "right" | "down";
 // they start staggered so twelve CLIs don't fight for the CPU at once.
 const MAX_OPEN_ALL = 12;
 const OPEN_ALL_STAGGER_MS = 350;
-const SIDEBAR_KEY = "adeorq-sidebar-w";
 const OBJETIVOS_KEY = "adeorq-objetivos-abierto";
 /** Qué panel de la derecha se está viendo, o vacío si solo está la franja de
     iconos. Vive aquí y no dentro del panel porque desde el 2026-08-15 se monta
@@ -370,10 +370,8 @@ function App() {
   const [traerReq, setTraerReq] = useState<{ ids: string[]; n: number } | null>(null);
   /** Quién ha pedido el teclado desde el tablero, y cuántas veces. */
   const [tecladoReq, setTecladoReq] = useState<{ id: number; n: number } | null>(null);
-  const [sideW, setSideW] = useState(() => {
-    const saved = Number(localStorage.getItem(SIDEBAR_KEY));
-    return saved >= 200 && saved <= 480 ? saved : 300;
-  });
+  /** El ancho de la barra y su tirador: `lib/anchoBarra.ts`. */
+  const { ancho: sideW, tirador: tiradorBarra } = useAnchoDeBarra();
   /** Cómo se dibuja la barra. Lo decide y lo guarda ella; aquí solo se sabe
       para quitar el tirador cuando está encogida en tira. */
   const [railMode, setRailMode] = useState<RailMode>("full");
@@ -698,7 +696,6 @@ function App() {
   }, [lang]);
 
   const t = useMemo(() => makeT(lang), [lang]);
-  const dragging = useRef(false);
   // Guards the restore so it runs once, and blocks saving until it finished.
   const restored = useRef(false);
   const agyExe = useRef<string | null>(null);
@@ -2283,25 +2280,6 @@ function App() {
     };
   }, [stream]);
 
-  const onDragStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    dragging.current = true;
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }, []);
-
-  const onDragMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging.current) return;
-    setSideW(Math.min(480, Math.max(200, e.clientX - 52)));
-  }, []);
-
-  const onDragEnd = useCallback(() => {
-    if (!dragging.current) return;
-    dragging.current = false;
-    setSideW((w) => {
-      localStorage.setItem(SIDEBAR_KEY, String(w));
-      return w;
-    });
-  }, []);
-
   /**
    * Ha aparecido algo que no debía verse. Se avisa, y ya está.
    *
@@ -2906,10 +2884,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           // se arrastraba y no pasaba nada, que es peor que no estar.
           data-off={railMode === "tira"}
           data-tip={t("Arrastra para ensanchar la lista")}
-          onPointerDown={onDragStart}
-          onPointerMove={onDragMove}
-          onPointerUp={onDragEnd}
-          onPointerCancel={onDragEnd}
+          {...tiradorBarra}
         />
         {/* El tablero va encima del mosaico, no flotando sobre él: lo que dice
             —quién te espera— hay que verlo sin buscarlo, y una capa flotante
@@ -3272,6 +3247,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
               raiz={raizArchivos}
               onAbrir={abrirArchivo}
               abierto={panes.find((p) => p.id === focusedId)?.activo ?? null}
+              sesion={sesionParaArchivos(panes, focusedId, raizArchivos)}
             />
           }
           actividad={(() => {

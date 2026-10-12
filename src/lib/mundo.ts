@@ -20,14 +20,35 @@ import { reglasDe, type ReglaRouter } from "./reglasRouter";
 /* Las reglas del router que hay en la memoria de la casa, leídas de Rust y
    entendidas aquí (`reglasRouter.ts`). Un minuto de caché: el router se llama
    varias veces seguidas al repartir, y las notas no cambian a ese ritmo. Sin
-   Rust (el banco, un fallo del índice) no hay reglas, y el router sigue igual. */
+   Rust (el banco, un fallo del índice) no hay reglas, y el router sigue igual.
+
+   Y CON RELOJ. Una orden de Rust que se cae a medias no contesta ni bien ni
+   mal: la promesa se queda abierta para siempre, y un `catch` no la ve. Esto
+   lo esperan el Capataz, el Reparto y el chat antes de decidir nada, así que
+   el día que el lector se cayó con una tilde (2026-10-13) los tres se quedaron
+   en «Escribiendo…» sin fin. Las reglas afinan la decisión, no la sostienen:
+   si no llegan a tiempo se sigue sin ellas, y no se guarda ese vacío para que
+   la próxima vez se vuelva a preguntar. */
+const ESPERA_REGLAS_MS = 3000;
 let reglasCache: { cuando: number; reglas: ReglaRouter[] } | null = null;
 export async function reglasDeLaMemoria(): Promise<ReglaRouter[]> {
   if (reglasCache && Date.now() - reglasCache.cuando < 60_000) return reglasCache.reglas;
-  const crudas = await memoriaReglasRouter().catch(() => []);
+  const crudas = await conReloj(memoriaReglasRouter().catch(() => null), ESPERA_REGLAS_MS);
+  if (!crudas) return reglasCache?.reglas ?? [];
   const reglas = crudas.flatMap((r) => reglasDe(r.linea, r.nota));
   reglasCache = { cuando: Date.now(), reglas };
   return reglas;
+}
+
+/** Lo que devuelva la promesa, o `null` si tarda más de `ms`. */
+export function conReloj<T>(promesa: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((ok) => {
+    const reloj = setTimeout(() => ok(null), ms);
+    void promesa.then((v) => {
+      clearTimeout(reloj);
+      ok(v);
+    });
+  });
 }
 import { limitesDe, loQueTePara } from "./cuota";
 import { PROVIDERS, providerOf } from "./providers";

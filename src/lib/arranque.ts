@@ -40,6 +40,10 @@ export interface Peticion {
   /** Que nazca solo planificando, sin tocar archivos. Se ignora en los CLIs que
    *  no lo tienen, en vez de inventarles una bandera. */
   plan?: boolean;
+  /** La abre un agente y nadie mira esa pantalla (el `open_pane` del MCP): un
+   *  Claude nace en modo auto en vez de con el modo de Ajustes, para que no se
+   *  quede parado en un permiso que nadie va a contestar. */
+  desatendida?: boolean;
   /** El modelo de casa, cuando el CLI es `ollama`. */
   modeloLocal?: string;
   /** La ruta de `agy` que encontró Rust, si la encontró. */
@@ -52,7 +56,7 @@ export type Plan =
   | { tipo: "consola" }
   /** Claude: `extra` son sus banderas ya ordenadas, y `encargo`, el texto
    *  escrito por una persona, que va APARTE y al final (`lineaConEncargo`). */
-  | { tipo: "claude"; extra: string; encargo?: string; modo?: "plan" }
+  | { tipo: "claude"; extra: string; encargo?: string; modo?: "plan" | "auto" }
   /** Antigravity por su ruta absoluta. */
   | { tipo: "agy"; exe: string; encargo?: string }
   /** Todos los demás: su línea, tal cual la declara la tabla, con la bandera
@@ -119,7 +123,7 @@ export function planDeArranque(p: Peticion): Plan {
       tipo: "claude",
       extra,
       encargo: enLinea ? encargo : undefined,
-      modo: p.plan && sabe(p.cli, "modoPlan") ? "plan" : undefined,
+      modo: p.plan && sabe(p.cli, "modoPlan") ? "plan" : p.desatendida ? "auto" : undefined,
     };
   }
 

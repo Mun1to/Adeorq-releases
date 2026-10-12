@@ -39,7 +39,9 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
    tiempo; `node cortar.mjs en-landing 31950 en-landing-mid` corta. El mismo instante va en
    `preparar-sesiones.mjs`, que corta el transcript por ahí para que el estado cuadre.
 3. **Sesiones**: `node preparar-sesiones.mjs en` (y `es`). Pone en `PANELES` de `textos.mjs` los
-   títulos que imprime.
+   títulos que imprime. Guarda además el transcript entero de cada grabada en `respaldo/<idioma>/`,
+   y de ahí los saca cuando el hogar ya está limpio (paso 6): se puede relanzar otro día. Si le
+   falta una fuente no toca lo que había preparado, lo dice y sale con error.
 4. **Abrir** la app apartada de las pantallas: `powershell -File abrir.ps1`.
 5. **Fotos**: `node fotos.mjs en` y `node fotos.mjs es` (o solo unas: `node fotos.mjs en canvas files`).
    Salen en `salida/<idioma>/` a 3840x2160.
@@ -91,6 +93,15 @@ la máquina que hizo el volcado**. Una parte suelta se repite con `node volcar.m
   en la página, en `GUARDA` de `escena.mjs`: las llamadas a Rust viajan por `fetch` a
   `ipc.localhost/<comando>` y ahí se contestan `media_now`, `secret_*`, `load_ui_state`, y las
   cuentas de demostración. El fondo se le da a la imagen como `data:`.
+- **Tampoco aísla Discord, y eso sigue SIN tapar**: con el Discord de quien hace las fotos
+  abierto, la app de pruebas publica su actividad en ese perfil mientras está en marcha (visto el
+  2026-10-12: Ajustes > Discord salió como «Publicado en tu Discord»). Hasta que `GUARDA`
+  conteste esos comandos, se hacen las fotos con Discord cerrado.
+- **Los transcripts de las grabadas viven en el hogar real hasta que se limpian** (paso 6).
+  El 2026-10-12 se relanzó `preparar-sesiones` después de limpiar y borró lo preparado antes de
+  ver que no tenía de dónde rehacerlo: las cuatro sesiones en español se perdieron y hubo que
+  suplirlas a mano con lo que el volcado anterior enseñaba de ellas. Ahora guarda copia en
+  `respaldo/` y arma lo nuevo aparte antes de cambiar nada.
 - La brújula de la Agenda: `fetch` a Supabase tiene que FALLAR por red, nunca contestar un error.
   Con un error HTTP la app borra la credencial guardada.
 

@@ -321,6 +321,13 @@ async (page) => {
           return { ruta: args.ruta, filas: filas.map((f) => ({ carpeta: false, peso: 1, cuando: 0, ...f, ruta: `${args.ruta}\\${f.nombre}` })) };
         }
         case "estado_archivos": return JSON.parse(JSON.stringify(window.__git ?? { git: false, cambios: [] }));
+        // Lo que la sesión dejó escrito de los archivos que toca (`tocados.rs`),
+        // sembrado en `window.__sesionArchivos` ({ tocados, turno, enMarcha,
+        // commitEnCurso, lee }). Sin sembrar, esa conversación no está en el disco.
+        case "session_files": {
+          if (!window.__sesionArchivos) throw new Error("esa conversación no está en el disco");
+          return JSON.parse(JSON.stringify(window.__sesionArchivos));
+        }
         // Una nota guardada como ficha, como `guardar_ficha`: a la carpeta de
         // fichas sembrada en `window.__carpetas`, y nunca encima de otra.
         case "guardar_ficha": {

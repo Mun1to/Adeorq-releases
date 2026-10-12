@@ -33,14 +33,14 @@ const total = (lista) => lista.reduce((s, e) => s + e.dura, 0);
 
 /** Qué hay en pantalla mientras se dice cada cosa. */
 function seVe(e) {
-  if (e.tipo === "pantalla") return `La pantalla «${e.nombre.es}» de la app. Debajo: ${e.datos.map((d) => d.es).join(" · ")}.`;
+  if (e.tipo === "pantalla") return `La pantalla «${e.nombre.es}» de la app, con «${e.titulo.es}» en el centro. Después la cámara se acerca a: ${e.focos.map((f) => f.dato.es).join(" · ")}.`;
   if (e.tipo === "capitulo") return `El cartel del capítulo: «${e.numero} · ${e.titulo.es}».`;
   return {
     gancho: "Ventanas de terminal sueltas que se amontonan, y las dos preguntas en grande.",
     portada: "El logotipo se convierte en Adeo y saluda. El nombre y el lema.",
     "que-es": "Se teclea «¿qué es adeorq?», llega el titular y van saliendo los nombres de los programas.",
     adeo: "Adeo en grande: saluda y pasa por sus cuatro estados, uno por frase.",
-    cierre: "El logotipo, «Descárgalo gratis» y adeorq.com.",
+    cierre: "Adeo celebrando, «Descárgalo gratis» y adeorq.com en grande.",
   }[e.tipo];
 }
 

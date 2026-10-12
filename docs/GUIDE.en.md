@@ -273,6 +273,37 @@ Your own commands from `~/.claude/skills`. **Drag one onto a terminal** to drop
 it into its prompt, or click to send it to the focused pane. The ▸ button folds
 the panel away.
 
+### 5.5 Right column: Files, and what the agent touches
+
+The folder icon in the right strip swaps Skills for the file tree of the project
+of the terminal in front of you. It keeps itself up to date: every row carries
+the colour of its state (changed, new, deleted, in conflict, being written right
+now) and the letter git will give it at commit time.
+
+Above the tree you can watch **the agent at work**:
+
+- **The card** tells the latest thing that matters: "Claude is editing" with its
+  file, "Claude edited 2 files" with what they add up to (`+13 −4`), or "Claude
+  committed 2 files" with the hash. Below, the branch, what is still to push
+  (`↑1`) and how much has changed overall.
+- **"Claude touched"** lists what it has touched: **Reading** and **Opened** in
+  purple, **Editing** and **Edited** in orange with their lines, **Committed** in
+  green. Click a row to open the file. Five are shown; the rest sit behind "and N
+  more".
+- **In the tree**, the file being edited right now is highlighted in orange with
+  its tag, what it read gets a purple name, every changed file shows its lines
+  and every folder says how many changed files it holds.
+- **When it commits**, "committing…" shows at the bottom, the rows turn **green**
+  and the hash stays. As soon as it edits something again, the committed ones
+  step back: they are no longer what it is doing.
+
+All of it comes from what the CLI itself writes in its transcript, at no token
+cost. So it depends on each one: **Claude Code** records what it reads and what
+it edits; **Codex** only what it edits, and the panel says so; the others record
+nothing Adeorq can read, and for them the panel sticks to what git says, which
+works for anyone. Edits made by a subagent do not show: they belong to its own
+conversation.
+
 ## 6. Canvas (the ⬡ tab)
 
 The Cockpit gives you a tidy grid. The Canvas gives you an infinite board:

@@ -6,9 +6,10 @@ import { linearBlur } from "@remotion/transitions/linear-blur";
 import { ripple } from "@remotion/transitions/ripple";
 import { swap } from "@remotion/transitions/swap";
 import { zoomBlur } from "@remotion/transitions/zoom-blur";
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, Easing, interpolate, useVideoConfig } from "remotion";
 import { COLOR } from "./casa";
-import type { Escena } from "./guion";
+import { ESCENAS, type Escena } from "./guion";
+import { ojoDeAdeo } from "./Pantalla";
 
 /**
  * Los pasos de una escena a otra.
@@ -79,8 +80,132 @@ function Atraviesa({ children, presentationDirection, presentationProgress: p }:
   );
 }
 
+/**
+ * Los pasos de MÁSCARA: en la escena que se va se abre un hueco, la cámara se
+ * mete por él y al otro lado está la siguiente. Los pidió Munir al ver la
+ * segunda versión («de tipo máscara, que se hace zoom a un hueco y aparece la
+ * otra escena»).
+ *
+ * Las dos escenas se mueven con UNA sola cámara, y por eso se lee como entrar
+ * y no como un fundido: la que llega está entera dentro del hueco, en
+ * pequeño, y crece al mismo paso al que la que se va se nos viene encima. La
+ * cuenta: el hueco mide `tam` del cuadro y está en `en`; la escena que llega
+ * mide `k` (de `tam` a 1, en escala logarítmica, que es como se nota constante
+ * un zoom) y la que se va, `k / tam`, las dos alrededor del mismo punto fijo.
+ *
+ * Son de CSS (`clip-path`), no de sombreador: no piden la escena de una sola
+ * raíz, pero sí opaca, que lo que asoma por el hueco tape lo de debajo.
+ */
+type Forma = "caja" | "circulo" | "proa";
+type Punto = { x: number; y: number };
+type PropsPortal = {
+  forma: Forma;
+  /** El centro del hueco, en píxeles del cuadro. Es una función porque
+      depende del formato: Adeo no está en el mismo sitio en la vertical. */
+  en: (ancho: number, alto: number) => Punto;
+  /** Lo que mide el hueco al abrirse, respecto del cuadro. */
+  tam: number;
+};
+
+/** La silueta de la proa: el contorno de fuera del logotipo (`Marca.tsx`), sin
+    su hueco interior, en una caja de 1024 y medido desde su centro. */
+const PROA = [
+  [236, 112],
+  [788, 112],
+  [1016, 756],
+  [944, 848],
+  [80, 848],
+  [8, 756],
+].map(([x, y]) => [x - 512, y - 480] as const);
+
+function Portal({ children, presentationDirection, presentationProgress: p, passedProps }: TransitionPresentationComponentProps<PropsPortal>) {
+  const { width: W, height: H } = useVideoConfig();
+  const { forma, en, tam } = passedProps;
+  const u = Math.min(W, H) / 1080;
+  const hueco = en(W, H);
+  const k = Math.pow(tam, 1 - p);
+  const z = k / tam;
+  // El punto que no se mueve: el que lleva el centro del hueco al centro del
+  // cuadro cuando el zoom termina.
+  const fijo = { x: (W / 2 - hueco.x / tam) / (1 - 1 / tam), y: (H / 2 - hueco.y / tam) / (1 - 1 / tam) };
+
+  if (presentationDirection === "exiting") {
+    return (
+      <AbsoluteFill
+        style={{
+          transformOrigin: `${fijo.x}px ${fijo.y}px`,
+          transform: `scale(${z})`,
+          // Según se nos viene encima se desenfoca y se apaga: lo que hay que
+          // mirar ya es lo del hueco.
+          filter: p > 0.02 ? `blur(${p * 7 * u}px) brightness(${1 - 0.5 * p})` : undefined,
+        }}
+      >
+        {children}
+      </AbsoluteFill>
+    );
+  }
+
+  // El hueco no está abierto desde el primer fotograma: se abre.
+  const abre = interpolate(p, [0, 0.32], [0, 1], { extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
+  let recorte: string;
+  if (forma === "circulo") {
+    // Cabe entero en la escena que llega casi todo el viaje: si creciera antes,
+    // el borde de la escena lo recortaría y dejaría de ser un círculo. Solo al
+    // final se abre hasta tapar el cuadro, esquinas incluidas.
+    const radio =
+      abre *
+      interpolate(p, [0.64, 1], [0.48 * Math.min(W, H), 0.52 * Math.hypot(W, H)], {
+        extrapolateLeft: "clamp",
+        easing: Easing.in(Easing.quad),
+      });
+    recorte = `circle(${radio}px at 50% 50%)`;
+  } else if (forma === "proa") {
+    // De caber en el hueco a que el cuadro quepa dentro de ella: su lado más
+    // estrecho es el de arriba, de 552 de ancho a 368 del centro.
+    const cabe = (0.9 * H) / 736;
+    const tapa = 1.06 * Math.max(H / 2 / 368, W / 2 / 276);
+    const g = abre * cabe * Math.pow(tapa / cabe, p);
+    recorte = `polygon(${PROA.map(([x, y]) => `${W / 2 + x * g}px ${H / 2 + y * g}px`).join(", ")})`;
+  } else {
+    recorte = `inset(${(1 - abre) * 50}% round ${((30 * u) / k) * (1 - p)}px)`;
+  }
+
+  return (
+    <AbsoluteFill
+      style={{
+        transformOrigin: "0 0",
+        transform: `translate(${fijo.x * (1 - z) + z * hueco.x - (k * W) / 2}px, ${fijo.y * (1 - z) + z * hueco.y - (k * H) / 2}px) scale(${k})`,
+        // El borde del hueco, encendido con el azul de la marca: el filtro va en
+        // el padre de lo recortado, así que sigue la forma que tenga.
+        filter: p < 0.97 ? `drop-shadow(0 0 ${(22 * u * (1 - p)) / k}px rgba(72,194,255,${0.9 * (1 - p)}))` : undefined,
+      }}
+    >
+      <AbsoluteFill style={{ clipPath: recorte }}>{children}</AbsoluteFill>
+    </AbsoluteFill>
+  );
+}
+
+const portal = (props: PropsPortal): TransitionPresentation<PropsPortal> => ({ component: Portal, props });
+const centro = (ancho: number, alto: number): Punto => ({ x: ancho / 2, y: alto / 2 });
+
+/** El ojo del Adeo grande, el de su escena (`EscenaAdeo.tsx`): está centrado,
+    con sus cuadraditos debajo, en la parte del cuadro que no es del texto. */
+function ojoDelAdeoGrande(ancho: number, alto: number): Punto {
+  const vertical = alto > ancho;
+  const u = Math.min(ancho, alto) / 1080;
+  const zona = alto * (vertical ? 0.64 : 0.73);
+  const bloque = (392 + 36 + 12) * u;
+  const arriba = vertical ? zona - 36 * u - bloque : (zona - bloque) / 2;
+  return { x: ancho / 2, y: arriba + 392 * u * 0.36 };
+}
+
+/** Sale de la escena de Adeo por su ojo. No va en el muestrario: allí no hay
+    un Adeo grande por el que entrar. */
+const POR_EL_OJO_GRANDE = portal({ forma: "circulo", en: ojoDelAdeoGrande, tam: 0.1 });
+
 /** Todos, con nombre: la composición `Transiciones` los enseña uno detrás de
-    otro con su número, para elegir mirando. */
+    otro con su número, para elegir mirando. Los nuevos van al final para que
+    los números de los que ya se vieron no cambien. */
 export const PASOS = {
   /** Dos tarjetas que se cambian el sitio, con su reflejo: pasar de pestaña. */
   cambio: swap({}),
@@ -99,35 +224,49 @@ export const PASOS = {
   /** Los dos de CSS de la primera versión. */
   empuje: { component: Empuje, props: {} } as TransitionPresentation<Nada>,
   fundido: { component: Atraviesa, props: {} } as TransitionPresentation<Nada>,
+  /** De máscara: la cámara entra por un hueco con forma de ventana, en el
+      centro, que es donde está lo último que se enseñó. */
+  hueco: portal({ forma: "caja", en: centro, tam: 0.3 }),
+  /** De máscara: entra por el ojo del Adeo que está al lado de la ventana. */
+  ojo: portal({ forma: "circulo", en: ojoDeAdeo, tam: 0.1 }),
+  /** De máscara: el hueco tiene la forma del logotipo. */
+  proa: portal({ forma: "proa", en: centro, tam: 0.34 }),
 } satisfies Record<string, Paso>;
 
 export type NombreDePaso = keyof typeof PASOS;
 
 /**
- * Qué paso toca entre dos escenas.
+ * Qué paso toca entre dos escenas. Se alternan los de siempre y los de
+ * máscara: diecisiete huecos seguidos cansan igual que diecisiete fundidos.
  *
+ * - Del problema a la portada, la proa: el lío de ventanas lo perfora la forma
+ *   del logotipo, y dentro está el logotipo.
  * - Al abrir un capítulo, el zoom con giro: es el corte más fuerte de la
  *   pieza y se reserva para decir «ahora otra cosa».
- * - Del cartel a su primera pantalla, y del problema a la portada, se
- *   atraviesa: se entra en lo que había hasta que es lo siguiente.
- *   Al cierre también: se entra en la última pantalla y al otro lado está la
- *   descarga.
- * - De pantalla a pantalla, el cambio de tarjetas: es pasar de pestaña.
- * - A Adeo y desde Adeo, la onda.
+ * - Del cartel a su primera pantalla se atraviesa: se entra en lo que había
+ *   hasta que es lo siguiente. Al cierre también.
+ * - De pantalla a pantalla, una vez el hueco (la cámara ya está metida en una
+ *   función, y sigue hasta salir por la siguiente pantalla) y otra el cambio
+ *   de tarjetas, que es pasar de pestaña.
+ * - A la escena de Adeo se entra por el ojo del Adeo pequeño que acompaña a
+ *   la ventana, y se sale por el ojo del grande.
  * - Lo demás (de la portada al «qué es»), el barrido, que es el más callado.
  *
- * Los otros dos (`cortina`, `ascua`) están en el muestrario y no en la pieza:
- * a mitad de camino la cortina retuerce el texto en espiral y el ascua tiñe
- * la pantalla entera de azul. Y se probaron y se quitaron `dreamyZoom` (la
- * pantalla se queda en blanco, y sobre un fondo oscuro es un fogonazo) y
- * `zoomInOut` (se queda en un gris plano).
+ * Los otros (`cortina`, `ascua`, `onda`) están en el muestrario y no en la
+ * pieza: a mitad de camino la cortina retuerce el texto en espiral y el ascua
+ * tiñe la pantalla entera de azul; la onda era la de Adeo hasta que hubo ojo.
+ * Y se probaron y se quitaron `dreamyZoom` (la pantalla se queda en blanco, y
+ * sobre un fondo oscuro es un fogonazo) y `zoomInOut` (se queda en un gris
+ * plano).
  */
-export function nombreDelPaso(de: Escena, a: Escena): NombreDePaso {
-  if (a.tipo === "capitulo") return "zoom";
-  if (de.tipo === "capitulo" || de.tipo === "gancho" || a.tipo === "cierre") return "atraviesa";
-  if (a.tipo === "adeo" || de.tipo === "adeo") return "onda";
-  if (de.tipo === "pantalla" && a.tipo === "pantalla") return "cambio";
-  return "barrido";
+export function pasoEntre(de: Escena, a: Escena): Paso {
+  if (a.tipo === "capitulo") return PASOS.zoom;
+  if (de.tipo === "gancho") return PASOS.proa;
+  if (de.tipo === "capitulo" || a.tipo === "cierre") return PASOS.atraviesa;
+  if (a.tipo === "adeo") return de.tipo === "pantalla" ? PASOS.ojo : PASOS.onda;
+  if (de.tipo === "adeo") return POR_EL_OJO_GRANDE;
+  // Por su sitio en el guion y no por turno: el mismo salto se da siempre
+  // igual, salga la pieza entera o la media.
+  if (de.tipo === "pantalla" && a.tipo === "pantalla") return ESCENAS.indexOf(a) % 2 ? PASOS.hueco : PASOS.cambio;
+  return PASOS.barrido;
 }
-
-export const pasoEntre = (de: Escena, a: Escena): Paso => PASOS[nombreDelPaso(de, a)];

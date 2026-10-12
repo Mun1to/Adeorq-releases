@@ -5,7 +5,6 @@ import { Fondo } from "./Fondo";
 import { ESCENAS, type EscenaPantalla } from "./guion";
 import { EnIdioma } from "./idioma";
 import { Pantalla } from "./Pantalla";
-import { Rotulo } from "./Rotulo";
 import { PASOS, type NombreDePaso, type Paso } from "./transiciones";
 
 /**
@@ -23,14 +22,14 @@ const DOS = ESCENAS.filter((e): e is EscenaPantalla => e.tipo === "pantalla").sl
 
 export const duracionDeLaMuestra = NOMBRES.length * CADA + QUIETA;
 
-/** Una pantalla ya asentada: se le da un corte muy anterior para que no esté
-    entrando mientras se la mira pasar. */
-function Quieta({ escena }: { escena: EscenaPantalla }) {
+/** Una pantalla ya asentada: se le da un corte anterior y una escena muy
+    larga, para que esté quieta en su primera función mientras se la mira
+    pasar, que es como la pilla un paso en la pieza. */
+function Quieta({ escena, numero }: { escena: EscenaPantalla; numero: number }) {
   return (
     <AbsoluteFill>
       <Fondo />
-      <Pantalla escena={escena} entra={-200} largo={600} />
-      <Rotulo etiqueta={escena.nombre.es} titulo={escena.titulo.es} datos={escena.datos.map((d) => d.es)} entra={-200} largo={600} />
+      <Pantalla escena={escena} numero={numero} entra={-70} largo={1200} />
     </AbsoluteFill>
   );
 }
@@ -46,7 +45,7 @@ export function Muestra() {
         <TransitionSeries>
           {NOMBRES.flatMap((nombre, i) => [
             <TransitionSeries.Sequence key={`a-${nombre}`} durationInFrames={i === 0 ? QUIETA + PASA : QUIETA + 2 * PASA}>
-              <Quieta escena={DOS[i % 2]} />
+              <Quieta escena={DOS[i % 2]} numero={(i % 2) + 1} />
             </TransitionSeries.Sequence>,
             <TransitionSeries.Transition
               key={`p-${nombre}`}
@@ -55,7 +54,7 @@ export function Muestra() {
             />,
           ])}
           <TransitionSeries.Sequence durationInFrames={QUIETA + PASA}>
-            <Quieta escena={DOS[NOMBRES.length % 2]} />
+            <Quieta escena={DOS[NOMBRES.length % 2]} numero={(NOMBRES.length % 2) + 1} />
           </TransitionSeries.Sequence>
         </TransitionSeries>
         <div

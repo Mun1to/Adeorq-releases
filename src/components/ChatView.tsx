@@ -903,7 +903,13 @@ ${v}` : txt));
             pista={t("Clic en una skill para meterla en la caja de escribir.")}
           />
         }
-        archivos={<ArchivosPanel raiz={raizArchivos} onAbrir={onAbrirArchivo} />}
+        archivos={
+          <ArchivosPanel
+            raiz={raizArchivos}
+            onAbrir={onAbrirArchivo}
+            sesion={abierta ? { cwd: abierta.cwd, sessionId: abierta.id, cli: abierta.fuente ?? "claude" } : null}
+          />
+        }
         actividad={
           <ActividadPanel
             cwd={abierta?.cwd ?? null}

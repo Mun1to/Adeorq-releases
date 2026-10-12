@@ -313,7 +313,8 @@
 
 .sidebar {
   flex: none;
-  min-width: 200px;
+  /* El mismo que `SIDEBAR_MIN` en `App.tsx`: donde la cabecera cabe entera. */
+  min-width: 224px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -471,15 +472,32 @@
   color: var(--text);
 }
 
+/* La cabecera de la lista: su rótulo a la izquierda y los botones a la derecha.
+   Cuando no caben los dos, el que se va es el RÓTULO, entero: antes se quedaban
+   los dos y los botones se salían por debajo de las terminales (Munir,
+   2026-10-12, con la barra al mínimo). Se hace sin medir nada: la fila va al
+   revés y envuelve, así que lo primero que se cae a la línea de abajo es el
+   rótulo, y esa línea no se ve porque la caja mide una sola. */
 .side-label {
   display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
   justify-content: space-between;
+  align-content: flex-start;
   align-items: center;
+  height: 32px;
+  overflow: hidden;
   color: var(--muted);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
   padding: 0 4px;
+}
+
+.side-label > span:first-child {
+  order: 1;
+  line-height: 32px;
+  white-space: nowrap;
 }
 
 /* Small buttons. They used to be flat and transparent until the mouse arrived,

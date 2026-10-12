@@ -662,7 +662,10 @@ impl Indice {
         for n in &self.notas {
             for cruda in n.texto.lines() {
                 let l = cruda.trim().trim_start_matches(['-', '*']).trim_start();
-                if l.len() > 7 && l[..7].eq_ignore_ascii_case("router:") {
+                // `get` y no `l[..7]`: el corte es por bytes, y si el séptimo cae
+                // en mitad de una letra con tilde, `l[..7]` no devuelve un error,
+                // tumba el hilo. `get` devuelve `None` y esa línea no es regla.
+                if l.len() > 7 && l.get(..7).is_some_and(|p| p.eq_ignore_ascii_case("router:")) {
                     salida.push(ReglaRouter {
                         linea: l.to_string(),
                         nota: n.titulo.clone(),
@@ -738,6 +741,24 @@ mod tests {
         assert_eq!(r[0].linea, "router: radar -> opus xhigh");
         assert_eq!(r[1].linea, "ROUTER: Vidorq -> sonnet");
         assert_eq!(r[0].nota, i.notas[0].titulo);
+    }
+
+    /// Una línea con una letra de dos bytes justo donde cae el corte de
+    /// «router:» tumbaba el lector entero: `l[..7]` corta por bytes, y el
+    /// séptimo caía en mitad de la letra. Con él se quedaban esperando para
+    /// siempre el Capataz, el Reparto y el chat, que piden estas reglas antes
+    /// de decidir (Munir, 2026-10-13: «no entiendo por qué tarda tanto el
+    /// capataz»; en el rastro, «end byte index 7 is not a char boundary; it is
+    /// inside 'é'»). Bastaba una nota cualquiera con una línea así.
+    #[test]
+    fn una_tilde_donde_cae_el_corte_no_tumba_las_reglas() {
+        let i = con(&[
+            ("una nota cualquiera", "Lo hará él mismo cuando toque.\n- Quizás é.\n- router: radar -> opus xhigh"),
+            ("otra", "abcdefñ y sigue.\nrouterñ no es una regla"),
+        ]);
+        let r = i.reglas_router();
+        assert_eq!(r.len(), 1, "salieron {:?}", r.iter().map(|x| &x.linea).collect::<Vec<_>>());
+        assert_eq!(r[0].linea, "router: radar -> opus xhigh");
     }
 
     /// EL CASO QUE LO PROVOCÓ. Con la puntuación vieja (título 1000, aparición

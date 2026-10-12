@@ -12,7 +12,7 @@
  *
  *   node capturas.mjs      (o `pnpm capturas`)
  */
-import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -20,20 +20,31 @@ const aqui = dirname(fileURLToPath(import.meta.url));
 const origen = join(aqui, "..", "web", "assets", "screens");
 const destino = join(aqui, "public", "pantallas");
 
-function trae(carpeta) {
+const CARPETAS = ["", "es", "en"];
+
+function hay(carpeta) {
   const de = join(origen, carpeta);
   if (!existsSync(de)) return [];
-  const fotos = readdirSync(de).filter((f) => /\.(png|jpe?g|webp)$/i.test(f));
-  if (fotos.length) mkdirSync(join(destino, carpeta), { recursive: true });
-  for (const f of fotos) cpSync(join(de, f), join(destino, carpeta, f));
-  return fotos.map((f) => (carpeta ? `${carpeta}/${f}` : f));
+  return readdirSync(de).filter((f) => /\.(png|jpe?g|webp)$/i.test(f));
 }
 
-const fotos = [...trae(""), ...trae("es"), ...trae("en")];
+// Primero se mira qué hay, y solo si hay algo se vacía lo de aquí: una copia
+// que se borra antes de saber que su original está es una copia perdida.
+const fotos = CARPETAS.flatMap((carpeta) => hay(carpeta).map((f) => ({ carpeta, f })));
 if (fotos.length === 0) {
   console.error(`No hay ninguna captura en ${origen}`);
   process.exit(1);
 }
 
+/* `public/pantallas/` es un espejo, no un almacén: lo que ya no está en la web
+   tampoco se queda aquí. Sin esto seguían en la carpeta las seis capturas
+   viejas, las que enseñaban proyectos de verdad, y el vídeo las cogía en
+   cuanto a un idioma le faltaba la suya. */
+rmSync(destino, { recursive: true, force: true });
+for (const { carpeta, f } of fotos) {
+  mkdirSync(join(destino, carpeta), { recursive: true });
+  cpSync(join(origen, carpeta, f), join(destino, carpeta, f));
+}
+
 console.log(`${fotos.length} capturas traídas de web/assets/screens:`);
-for (const f of fotos) console.log(`  · ${f}`);
+for (const { carpeta, f } of fotos) console.log(`  · ${carpeta ? `${carpeta}/` : ""}${f}`);

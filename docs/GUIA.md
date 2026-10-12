@@ -410,6 +410,37 @@ terminal** y se pega en su cajita; el clic normal lo manda al pane activo. El
 botón ▸ pliega el panel a una pestaña fina para ganar sitio. Cuando crees un
 skill nuevo, aparece solo.
 
+### 5.5 Columna derecha: los Archivos, y lo que toca el agente
+
+El icono de la carpeta, en la franja de la derecha, cambia las Skills por el
+árbol de archivos del proyecto de la terminal que tienes delante. Se pone al día
+solo: cada fila lleva el color de su estado (cambiado, nuevo, borrado, en
+conflicto, escribiéndose ahora) y la letra que git le pondrá al commit.
+
+Encima del árbol se ve **al agente trabajando**:
+
+- **La tarjeta** dice lo último que importa: «Claude está editando» con su
+  archivo, «Claude editó 2 archivos» con lo que suman (`+13 −4`), o «Claude hizo
+  commit de 2 archivos» con el hash. Debajo, la rama, lo que llevas sin subir
+  (`↑1`) y cuánto hay cambiado en total.
+- **«Tocó Claude»** es la lista de lo que ha tocado: **Leyendo** y **Abierto**
+  en morado, **Editando** y **Editado** en naranja con sus líneas, **En el
+  commit** en verde. Un clic abre el archivo. Se ven cinco; el resto, detrás de
+  «y N más».
+- **En el árbol**, el archivo que está editando ahora va resaltado en naranja
+  con su etiqueta, lo que leyó lleva el nombre en morado, cada archivo cambiado
+  enseña sus líneas y cada carpeta dice cuántos cambiados guarda dentro.
+- **Cuando hace el commit**, abajo sale «haciendo commit…», las filas pasan a
+  **verde** y queda el hash. En cuanto vuelve a editar algo, lo del commit se
+  retira: ya no es lo que está haciendo.
+
+Todo sale de lo que el propio CLI deja escrito en su transcript, sin gastar un
+token. Por eso depende de cada uno: **Claude Code** apunta lo que lee y lo que
+edita; **Codex** solo lo que edita, y el panel lo avisa; los demás no apuntan
+nada que Adeorq sepa leer, y con ellos el panel se queda con lo que dice git, que
+vale para cualquiera. Las ediciones de un subagente no salen: son de su propia
+conversación.
+
 ---
 
 ## 6. Lienzo (la pestaña ⬡)

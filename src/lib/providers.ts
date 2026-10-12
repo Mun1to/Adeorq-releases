@@ -180,6 +180,12 @@ export interface Provider {
    *  y Adeorq sabe leérselo (`codex_context`): su panel dice si trabaja o acabó.
    *  Solo eso; el contexto y los subagentes de su cabecera no salen de ahí. */
   estadoDelDisco?: boolean;
+  /** Deja escrito en disco qué archivos toca, y Adeorq sabe leérselo
+   *  (`session_files`): el panel de Archivos enseña lo que el agente lee y
+   *  edita. El valor dice en qué formato: el `transcript` de Claude Code, con
+   *  lecturas y ediciones, o el `rollout` de Codex, que solo trae las ediciones
+   *  (lo que lee lo lee con comandos de consola). */
+  archivosDelDisco?: "transcript" | "rollout";
   /**
    * Cinco cosas que hasta el 2026-10-06 se preguntaban por el nombre
    * (`provider === "claude"`) en siete sitios entrados después de la limpieza
@@ -248,6 +254,7 @@ export const PROVIDERS: Provider[] = [
     cuotaPorCuenta: true,
     relevo: true,
     confianza: true,
+    archivosDelDisco: "transcript",
   },
   {
     id: "codex",
@@ -282,6 +289,7 @@ export const PROVIDERS: Provider[] = [
     retomar: "codex resume {id}",
     sesionDelDisco: true,
     estadoDelDisco: true,
+    archivosDelDisco: "rollout",
   },
   {
     id: "gemini",
@@ -800,6 +808,7 @@ export type Capacidad =
   | "modoPlan"
   | "sesionDelDisco"
   | "estadoDelDisco"
+  | "archivosDelDisco"
   | "banderaSesionNueva"
   | "estadisticas"
   | "cuotaPorCuenta"

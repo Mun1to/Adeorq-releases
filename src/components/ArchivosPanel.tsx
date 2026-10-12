@@ -12,6 +12,12 @@
 // distinto del último commit; cada fila lleva el color de su estado y un punto,
 // y arriba se cuenta cuántos hay de cada uno. Qué estado gana está en
 // `lib/estadoArchivos.ts`, con sus casos en `scripts/estado-archivos-check.ts`.
+//
+// Y enseña lo que el AGENTE está haciendo con ellos (Munir, 2026-10-12): qué
+// lee, qué edita, cuál está editando ahora y el paso a verde cuando hace el
+// commit. Sale del transcript de la sesión que tienes delante, que se relee
+// cada `SESION_MS`; qué marca lleva cada archivo lo decide `lib/tocados.ts`
+// (`scripts/tocados-check.ts`) y lo pinta `ArchivosAgente.tsx`.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
@@ -19,11 +25,13 @@ import { useT } from "../lib/i18n";
 import Espera from "./Espera";
 import {
   aLaPapelera,
+  archivosDeSesion,
   crearArchivo,
   crearCarpeta,
   estadoArchivos,
   listarCarpeta,
   renombrarRuta,
+  type ArchivosSesion,
   type EstadoArchivos,
 } from "../lib/archivos";
 import { conBorrados, filasVisibles, nombreDeRuta, plegar, rutaCorta, type Fila, type Leidas } from "../lib/arbol";
@@ -40,12 +48,42 @@ import {
 } from "../lib/estadoArchivos";
 import { acabaDeArrastrar, lineaDeRuta, vigilarArrastre } from "../lib/arrastrarRuta";
 import { useCabina } from "../lib/cabina";
+import { sessionIdOf } from "../lib/comandos";
+import { proveedorDe } from "../lib/providers";
 import { writePty } from "../lib/pty";
+import { cambiadosPorCarpeta, lineasDe, marcaDeCarpeta, resumenDe } from "../lib/tocados";
 import { tipoDeArchivo } from "../lib/tipoArchivo";
+import { ETIQUETA, Lineas, ListaTocados, PieCommit, TarjetaAgente } from "./ArchivosAgente";
 import IconoArchivo from "./IconoArchivo";
 import { ChevronIcon, DuplicarIcon, ExternalIcon, FolderIcon, PencilIcon, PlusIcon, TrashIcon } from "./Icons";
+import { kindDeComando } from "./KindIcon";
 import { useMenu, type MenuItem } from "./Overlays";
 import { SOLTADO_EVENTO } from "./TerminalPane";
+
+/** La sesión cuyo agente se enseña trabajando en estos archivos. */
+export interface SesionDeArchivos {
+  cwd: string;
+  sessionId?: string | null;
+  /** El id de su CLI en `lib/providers.ts`; una consola pelada no tiene agente. */
+  cli: string;
+}
+
+/**
+ * De quién son los archivos que se enseñan: la terminal que tienes delante y,
+ * si lo que tienes delante es un editor o la web, la primera terminal abierta
+ * en esa misma carpeta. Una de otro proyecto no vale: sus archivos no están en
+ * este árbol.
+ */
+export function sesionParaArchivos(
+  panes: { id: number; cwd: string; command?: string[]; archivos?: string[]; web?: string }[],
+  enfocado: number | null,
+  raiz: string,
+): SesionDeArchivos | null {
+  const terminales = panes.filter((p) => !p.archivos && p.web == null);
+  const p = terminales.find((x) => x.id === enfocado) ?? terminales.find((x) => clave(x.cwd) === clave(raiz));
+  if (!p) return null;
+  return { cwd: p.cwd, sessionId: sessionIdOf(p.command) ?? null, cli: kindDeComando(p.command?.join(" ") ?? "") };
+}
 
 /**
  * Lo que pasa al soltar un archivo del árbol sobre una terminal: lo mismo que
@@ -64,6 +102,10 @@ function soltarRutaEn(panel: number, destino: HTMLElement, ruta: string): void {
 
 /** Cada cuánto se vuelve a mirar el disco y git mientras el panel está a la vista. */
 const REFRESCO_MS = 2_500;
+/** Cada cuánto se relee el transcript de la sesión. Más a menudo que el disco:
+    es lo que hace que «editando» salga mientras edita y no cuando ya acabó, y
+    releer un transcript que no ha crecido no cuesta nada (`read_tail` lo recuerda). */
+const SESION_MS = 1_500;
 
 /** Qué significa cada color, en el globo del punto y de la cuenta de arriba. */
 const QUE_ES: Record<EstadoArchivo, string> = {
@@ -182,14 +224,18 @@ interface Props {
   onAbrir: (ruta: string) => void;
   /** El que está abierto ahora, para marcarlo en la lista. */
   abierto?: string | null;
+  /** La sesión que trabaja en esta carpeta, para enseñar lo que toca su agente.
+      Sin ella (o con un CLI que no lo deja escrito) el panel se queda con git. */
+  sesion?: SesionDeArchivos | null;
 }
 
-export default function ArchivosPanel({ raiz, onAbrir, abierto }: Props) {
+export default function ArchivosPanel({ raiz, onAbrir, abierto, sesion }: Props) {
   const { t } = useT();
   const [leidas, setLeidas] = useState<Leidas>(new Map());
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   const [git, setGit] = useState<EstadoArchivos | null>(null);
+  const [tocados, setTocados] = useState<ArchivosSesion | null>(null);
   const [ahora, setAhora] = useState(() => Date.now());
   const sinGuardar = useCabina((s) => s.sinGuardar);
   /** Las carpetas desplegadas de ESTE instante, para la vuelta del reloj. */
@@ -250,12 +296,53 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto }: Props) {
     };
   }, [raiz]);
 
+  // Lo que toca el agente de la sesión que tienes delante. Qué CLI lo deja
+  // escrito, y en qué formato, lo dice su ficha (`archivosDelDisco`).
+  const agente = sesion ? proveedorDe(sesion.cli) : undefined;
+  const formato = agente?.archivosDelDisco;
+  const quien = agente ? (agente.marca ?? agente.label) : "";
+  const sesionCwd = sesion?.cwd ?? "";
+  const sesionId = sesion?.sessionId ?? "";
+  useEffect(() => {
+    setTocados(null);
+    if (!sesionCwd || !formato) return;
+    let vivo = true;
+    const vuelta = () => {
+      if (document.hidden) return;
+      archivosDeSesion(sesionCwd, sesionId || undefined, formato === "rollout")
+        // Sin conversación en el disco todavía no hay nada que enseñar: no es un fallo.
+        .catch(() => null)
+        .then((a) => {
+          if (!vivo) return;
+          setTocados(a);
+          setAhora(Date.now());
+        });
+    };
+    const reloj = window.setInterval(vuelta, SESION_MS);
+    vuelta();
+    return () => {
+      vivo = false;
+      window.clearInterval(reloj);
+    };
+  }, [sesionCwd, sesionId, formato]);
+
   const estados = useMemo(
     () => estadosDe([...leidas.values()].flat(), git?.cambios ?? [], sinGuardar, ahora),
     [leidas, git, sinGuardar, ahora],
   );
   const cuenta = useMemo(() => contar(raiz, estados), [raiz, estados]);
   const letras = useMemo(() => letrasDe(git?.cambios ?? []), [git]);
+  const resumen = useMemo(() => resumenDe(tocados, git, raiz, ahora), [tocados, git, raiz, ahora]);
+  const lineas = useMemo(() => lineasDe(git?.cambios ?? []), [git]);
+  const dentro = useMemo(() => cambiadosPorCarpeta(raiz, git?.cambios ?? []), [raiz, git]);
+  // Lo que ese CLI no deja escrito se dice, y no se inventa.
+  const nota = !agente
+    ? ""
+    : !formato
+      ? t("{q} no deja escrito qué archivos toca: aquí solo sale lo que dice git.", { q: quien })
+      : tocados && !tocados.lee
+        ? t("{q} no deja escrito qué archivos lee: aquí salen solo los que edita.", { q: quien })
+        : "";
   const showMenu = useMenu();
 
   const alternar = (ruta: string, desplegada: boolean) => {
@@ -356,6 +443,9 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto }: Props) {
         {nombreDeRuta(raiz)}
       </div>
 
+      <TarjetaAgente resumen={resumen} git={git} quien={quien} raiz={raiz} nota={nota} conLeyenda={!!formato} />
+      <ListaTocados resumen={resumen} quien={quien} raiz={raiz} onAbrir={onAbrir} />
+
       {ESTADOS.some((e) => cuenta[e]) && (
         <div className="arch-cuentas">
           {ESTADOS.filter((e) => cuenta[e]).map((e) => (
@@ -387,6 +477,13 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto }: Props) {
           // Uno borrado no se puede abrir: ya no está. Se enseña para saber cuál era.
           const borrado = letra === "D";
           const tipo = f.carpeta ? undefined : tipoDeArchivo(f.nombre);
+          // Lo del agente: su marca (una carpeta lleva la de lo de dentro), las
+          // líneas que cambia el archivo y cuántos cambiados guarda la carpeta.
+          const marca = f.carpeta ? marcaDeCarpeta(f.ruta, resumen.marcas) : (resumen.marcas.get(clave(f.ruta)) ?? null);
+          const lin = f.carpeta ? undefined : lineas.get(clave(f.ruta));
+          const cambiados = f.carpeta ? (dentro.get(clave(f.ruta)) ?? 0) : 0;
+          // Lo que pasa ahora y el commit se dicen con palabras; ahí las líneas ceden el sitio.
+          const etiqueta = !f.carpeta && (marca === "editando" || marca === "leyendo" || marca === "commit") ? marca : null;
           const cancelar = () => {
             setEdicion(null);
             setErrorEdicion("");
@@ -424,6 +521,7 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto }: Props) {
               data-carpeta={f.carpeta}
               data-on={abierto === f.ruta}
               data-estado={est ?? undefined}
+              data-agente={marca ?? undefined}
               data-borrado={borrado || undefined}
               style={{ paddingLeft: 8 + f.hondo * 13 }}
               title={est ? `${f.nombre} · ${t(QUE_ES[est])}` : f.nombre}
@@ -442,10 +540,18 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto }: Props) {
                 {tipo ? <IconoArchivo tipo={tipo} /> : <ChevronIcon size={11} up={f.desplegada} />}
               </span>
               <span className="arch-nom">{f.nombre}</span>
+              {cambiados > 0 && <span className="arch-dentro">{t(cambiados === 1 ? "{n} cambiado" : "{n} cambiados", { n: cambiados })}</span>}
+              {lin && !etiqueta && <Lineas mas={lin.mas} menos={lin.menos} />}
+              {etiqueta && (
+                <span className="arch-etq" key={etiqueta}>
+                  {t(ETIQUETA[etiqueta])}
+                </span>
+              )}
               {/* El punto dice lo que pasa AHORA (se escribe, sin guardar); la
                   letra, lo que git le va a contar al commit. Con letra, el punto
-                  solo se queda si añade algo que la letra no dice. */}
-              {est && (!letra || est === "tocando" || est === "sinGuardar") && <i className="arch-punto" />}
+                  solo se queda si añade algo que la letra no dice. Y si quien
+                  escribe es el agente, ya lo dice su etiqueta. */}
+              {est && (!letra || est === "tocando" || est === "sinGuardar") && etiqueta !== "editando" && <i className="arch-punto" />}
               {letra && (
                 <b className="arch-letra" data-tip={t(QUE_LETRA[letra])}>
                   {letra}
@@ -464,6 +570,7 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto }: Props) {
         </Espera>
         {error && <p className="side-error">{error}</p>}
       </div>
+      <PieCommit resumen={resumen} />
     </div>
   );
 }

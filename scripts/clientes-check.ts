@@ -359,6 +359,18 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   const r = pl({ cli: "claude", plan: true });
   ok("el modo plan llega al comando", r.tipo === "claude" && r.modo === "plan");
 }
+/* La terminal que abre un AGENTE (el `open_pane` del MCP) nace en modo auto:
+   nadie está mirando esa pantalla para contestarle un permiso (Munir,
+   2026-10-12: «cuando un agente abra una nueva terminal, que siempre se abra
+   en modo auto»). */
+{
+  const r = pl({ cli: "claude", desatendida: true, encargo: "audita" });
+  ok("la que abre un agente nace en modo auto", r.tipo === "claude" && r.modo === "auto" && r.encargo === "audita");
+  const mano = pl({ cli: "claude" });
+  ok("la que abre una persona sigue con el modo de Ajustes", mano.tipo === "claude" && !mano.modo, "sin `modo`, `claudeCommand` lee el guardado");
+  const plan = pl({ cli: "claude", desatendida: true, plan: true });
+  ok("y si se pide solo planificar, manda el plan", plan.tipo === "claude" && plan.modo === "plan", "planificar es no tocar nada: gana lo más prudente");
+}
 /* ── El encargo al final de la línea (`lineaConEncargo`) ─────────────────────
    El 2026-10-08 un `open_pane` le llegó a claude.exe cortado en
    `allow="local-network;`: PowerShell 5.1 no escapa las comillas de un

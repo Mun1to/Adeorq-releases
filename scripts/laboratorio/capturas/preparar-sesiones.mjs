@@ -3,7 +3,7 @@
 // mismo instante que su grabación) y unas cuantas más, de relleno, para que la
 // barra y el Panel no salgan vacíos.
 // Uso: node preparar-sesiones.mjs <en|es>
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +13,7 @@ const idioma = process.argv[2] ?? "en";
 const REC = join(AQUI, "p", "rec");
 const SALIDA = join(AQUI, "sesiones", idioma);
 const CASA = homedir();
+const RESPALDO = join(AQUI, "respaldo", idioma);
 
 const carpetaDe = (cwd) => cwd.replace(/[^A-Za-z0-9]/g, "-");
 const ruta = (proyecto) => `P:\\projects\\${proyecto}`;
@@ -59,9 +60,22 @@ const RELLENO = {
   ],
 };
 
-rmSync(SALIDA, { recursive: true, force: true });
+// Se arma aparte y se cambia al final. Borrar `sesiones/<idioma>` antes de saber
+// si están las fuentes costó las sesiones en español el 2026-10-12: los
+// transcripts ya se habían limpiado del hogar y no quedaba de dónde rehacerlas.
+const NUEVO = `${SALIDA}.nuevo`;
+rmSync(NUEVO, { recursive: true, force: true });
+let faltan = 0;
 const plan = [];
 const apuntar = (rel, hace) => plan.push({ rel, hace });
+/** Guarda el original entero en `respaldo/<idioma>`: el hogar se limpia al
+ *  terminar (paso 6 del README) y de ahí sale la vez siguiente. */
+function guardar(origen, rel) {
+  const copia = join(RESPALDO, rel);
+  if (origen === copia) return;
+  mkdirSync(dirname(copia), { recursive: true });
+  copyFileSync(origen, copia);
+}
 
 function cortarLineas(lineas, limite) {
   if (!limite) return lineas;
@@ -83,46 +97,62 @@ for (const g of GRABADAS[idioma]) {
   if (g.codex) {
     // El rollout de Codex de esa carpeta que empezó justo después de la grabación.
     const d = new Date(meta.inicio);
-    const dia = join(CASA, ".codex", "sessions", String(d.getFullYear()), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0"));
-    const candidatos = readdirSync(dia)
-      .filter((f) => f.endsWith(".jsonl"))
-      .map((f) => {
-        const primera = readFileSync(join(dia, f), "utf8").split("\n", 1)[0];
-        let m;
-        try {
-          m = JSON.parse(primera);
-        } catch {
-          return null;
-        }
-        const t = Date.parse(m.timestamp ?? m.payload?.timestamp ?? "");
-        return m.type === "session_meta" && m.payload?.cwd === meta.cwd ? { f, t } : null;
-      })
-      .filter((x) => x && x.t >= meta.inicio - 2000)
-      .sort((a, b) => a.t - b.t);
+    const partes = [String(d.getFullYear()), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")];
+    const buscar = (carpetaDia, desde) =>
+      (existsSync(carpetaDia) ? readdirSync(carpetaDia) : [])
+        .filter((f) => f.endsWith(".jsonl"))
+        .map((f) => {
+          const primera = readFileSync(join(carpetaDia, f), "utf8").split("\n", 1)[0];
+          let m;
+          try {
+            m = JSON.parse(primera);
+          } catch {
+            return null;
+          }
+          const t = Date.parse(m.timestamp ?? m.payload?.timestamp ?? "");
+          return m.type === "session_meta" && m.payload?.cwd === meta.cwd ? { f, t } : null;
+        })
+        .filter((x) => x && x.t >= desde)
+        .sort((a, b) => a.t - b.t);
+    let dia = join(CASA, ".codex", "sessions", ...partes);
+    let candidatos = buscar(dia, meta.inicio - 2000);
     if (!candidatos.length) {
-      console.log(`- ${g.rec}: no encuentro su rollout de Codex`);
+      // El hogar real ya se limpió: la copia guardada de este idioma.
+      dia = join(RESPALDO, "codex", "sessions", ...partes);
+      candidatos = buscar(dia, 0);
+    }
+    if (!candidatos.length) {
+      console.log(`- ${g.rec}: no encuentro su rollout de Codex ni en el hogar ni en respaldo/${idioma}`);
+      faltan++;
       continue;
     }
     const f = candidatos[0].f;
     const lineas = cortarLineas(readFileSync(join(dia, f), "utf8").trimEnd().split("\n"), limite);
     const rel = join("codex", "sessions", basename(dirname(dirname(dia))), basename(dirname(dia)), basename(dia), f);
-    mkdirSync(dirname(join(SALIDA, rel)), { recursive: true });
-    writeFileSync(join(SALIDA, rel), lineas.join("\n") + "\n");
+    guardar(join(dia, f), rel);
+    mkdirSync(dirname(join(NUEVO, rel)), { recursive: true });
+    writeFileSync(join(NUEVO, rel), lineas.join("\n") + "\n");
     apuntar(rel, g.hace);
     const ultimo = [...lineas].reverse().map((l) => l.match(/"type":"(task_started|task_complete|turn_aborted)"/)?.[1]).find(Boolean);
     console.log(`+ ${g.rec}: codex ${f} (${lineas.length} líneas, último: ${ultimo})`);
     continue;
   }
   const carpeta = carpetaDe(meta.cwd);
-  const origen = join(CASA, ".claude", "projects", carpeta, `${meta.sesion}.jsonl`);
+  const origen = [join(CASA, ".claude", "projects", carpeta, `${meta.sesion}.jsonl`), join(RESPALDO, "claude", carpeta, `${meta.sesion}.jsonl`)].find((r) => existsSync(r));
+  if (!origen) {
+    console.log(`- ${g.rec}: no encuentro su transcript ni en el hogar ni en respaldo/${idioma}`);
+    faltan++;
+    continue;
+  }
   const todas = readFileSync(origen, "utf8").trimEnd().split("\n");
   const lineas = cortarLineas(todas, limite);
   // El título puede haberse escrito después del corte: se conserva.
   const titulo = [...todas].reverse().find((l) => l.includes('"type":"ai-title"'));
   if (titulo && !lineas.some((l) => l.includes('"type":"ai-title"'))) lineas.push(titulo);
   const rel = join("claude", carpeta, `${meta.sesion}.jsonl`);
-  mkdirSync(dirname(join(SALIDA, rel)), { recursive: true });
-  writeFileSync(join(SALIDA, rel), lineas.join("\n") + "\n");
+  guardar(origen, rel);
+  mkdirSync(dirname(join(NUEVO, rel)), { recursive: true });
+  writeFileSync(join(NUEVO, rel), lineas.join("\n") + "\n");
   apuntar(rel, g.hace);
   const mensajes = lineas.filter((l) => /"type":"(user|assistant)"/.test(l));
   console.log(`+ ${g.rec}: ${JSON.parse(titulo ?? "{}").aiTitle ?? "(sin título)"} (${lineas.length} de ${todas.length} líneas; acaba en ${mensajes.at(-1)?.match(/"type":"(user|assistant)"/)?.[1]})`);
@@ -147,9 +177,16 @@ for (const [proyecto, titulo, pide, contesta, modelo, usado, hace] of RELLENO[id
     { type: "ai-title", aiTitle: titulo },
   ];
   const rel = join("claude", carpetaDe(cwd), `${id}.jsonl`);
-  mkdirSync(dirname(join(SALIDA, rel)), { recursive: true });
-  writeFileSync(join(SALIDA, rel), lineas.map((l) => JSON.stringify(l)).join("\n") + "\n");
+  mkdirSync(dirname(join(NUEVO, rel)), { recursive: true });
+  writeFileSync(join(NUEVO, rel), lineas.map((l) => JSON.stringify(l)).join("\n") + "\n");
   apuntar(rel, hace);
 }
-writeFileSync(join(SALIDA, "plan.json"), JSON.stringify(plan, null, 1));
+if (faltan) {
+  rmSync(NUEVO, { recursive: true, force: true });
+  console.log(`Faltan ${faltan} de las grabadas: sesiones/${idioma} se queda como estaba.`);
+  process.exit(1);
+}
+writeFileSync(join(NUEVO, "plan.json"), JSON.stringify(plan, null, 1));
+rmSync(SALIDA, { recursive: true, force: true });
+renameSync(NUEVO, SALIDA);
 console.log(`plan: ${plan.length} sesiones en ${SALIDA}`);

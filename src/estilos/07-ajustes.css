@@ -45,7 +45,10 @@
    No tenía fondo, así que sus ocho nombres en gris caían sueltos sobre la foto
    de escritorio y no se leía ninguno (Munir, 2026-08-07, por tercera vez con
    la misma causa). Superficie propia y cristal, que es la regla de la casa
-   para todo lo que puede acabar sobre el fondo. */
+   para todo lo que puede acabar sobre el fondo.
+   Con `--panel`, el de las tarjetas que tiene al lado, y no con `--popover`:
+   ese es el de los menús, casi opaco, y aquí se leía como un bloque sólido
+   junto a tarjetas que dejan ver la foto (Munir, 2026-10-12). */
 .set-nav {
   display: flex;
   flex-direction: column;
@@ -53,7 +56,7 @@
   padding: 6px;
   border: 1px solid var(--border);
   border-radius: var(--r-btn);
-  background: var(--popover);
+  background: var(--panel);
   backdrop-filter: var(--glass-blur);
   /* Se queda a la vista mientras el contenido baja: en Discord o en Terminales
      hay texto de sobra para perder de vista dónde estás.
@@ -812,9 +815,10 @@
   gap: 6px 26px;
   margin: 14px 0 14px;
   /* Su superficie, por lo mismo que la lista de abajo: una raya de separación
-     no sirve de nada cuando lo que hay detrás es una foto. Aplanada, opaca. */
+     no sirve de nada cuando lo que hay detrás es una foto. Cristal, como ella. */
   padding: 11px 16px;
-  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
   border-radius: var(--r-caja);
   font-size: 12.5px;
@@ -891,20 +895,31 @@
    Es exactamente el error del que avisa el comentario de `.panel-card`, y van
    cinco esta semana: quien monta una rejilla nueva se inventa su superficie.
 
-   OPACA y no cristal, por dos motivos a la vez: es lo que él ha pedido, y sobre
-   un fondo con alfa Windows apaga ClearType y estos nombres se leen blandos.
-   Se APLANA en vez de cambiar de color: el mismo `--panel` de siempre pintado
-   encima de un sólido del tema, así que el tono es idéntico al del resto de la
-   app y el elemento acaba opaco. Sin `backdrop-filter`: detrás de algo opaco no
-   se ve, y un desenfoque que no se ve es puro coste. */
+   CRISTAL, como una `.panel-card`, desde el 2026-10-12. Estuvo OPACA dos meses
+   (aplanada: `--panel` pintado sobre el sólido del tema), y con la foto de la
+   casa alrededor se leía como un bloque negro pegado encima (Munir, con la
+   captura: «algunos planos sólidos de color no tienen bajada la opacidad para
+   que se vea un poco el fondo y contraste bien»). Las dos quejas piden lo
+   mismo desde lados distintos: ni suelta sobre la foto ni tapándola del todo.
+   El desenfoque es lo que deja leer los nombres con la foto detrás. Lo que se
+   paga: sobre un fondo con alfa Windows apaga ClearType, igual que en todas las
+   demás tarjetas de la app. */
 .accounts-groups {
   display: flex;
   flex-direction: column;
-  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
   border-radius: var(--r-caja);
   padding: 6px;
   box-shadow: var(--glass-edge), var(--sombra-2);
+}
+
+/* Las tarjetas de dentro ya van sobre el cristal de la lista: un segundo
+   desenfoque encima del primero no se ve y sí se paga. Su `--panel` las deja
+   un punto más oscuras que la lista, que es lo que las separa de ella. */
+.accounts-groups .panel-card {
+  backdrop-filter: none;
 }
 
 /* Una raya finísima entre CLIs, menos bajo el que está abierto: ahí el que
@@ -1365,12 +1380,14 @@
 }
 
 /* El aviso de los términos. También iba suelto sobre la foto, y este es de los
-   que hay que poder leer: dice qué te juegas. Su superficie, como las otras. */
+   que hay que poder leer: dice qué te juegas. Su superficie, como las otras:
+   cristal, por lo que cuenta `.accounts-groups`. */
 .accounts-note {
   max-width: 1100px;
   margin: 14px 0 0;
   padding: 11px 16px;
-  background: linear-gradient(var(--panel), var(--panel)), var(--panel-solid);
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
   border-radius: var(--r-caja);
   font-size: 12px;

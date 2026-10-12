@@ -2,10 +2,12 @@
  * Dibuja `assets/og.png`, la tarjeta que se ve al pegar el enlace de adeorq.com
  * en WhatsApp, LinkedIn, Slack o X.
  *
- * Por que dibujada y no una captura de la app: las capturas de `assets/screens/`
- * ensenan la barra lateral con los proyectos privados de Munir, y esta imagen se
- * ve cada vez que alguien comparte el enlace. Una captura ahi es publicar su
- * mapa de trabajo sin querer.
+ * Por que dibujada y no una captura de la app: cuando se hizo, las capturas de
+ * `assets/screens/` ensenaban la barra lateral con los proyectos privados de
+ * Munir, y esta imagen se ve cada vez que alguien comparte el enlace. Una captura
+ * ahi era publicar su mapa de trabajo sin querer. Las de hoy (2026-10-12, en
+ * `assets/screens/es` y `/en`) son de un taller de demostracion; la tarjeta
+ * sigue dibujada porque a 1200x630 una captura entera no se lee.
  *
  * En INGLES a proposito (Munir, 2026-08-21): la web es en castellano, pero el
  * enlace de una herramienta de desarrollo se comparte fuera.

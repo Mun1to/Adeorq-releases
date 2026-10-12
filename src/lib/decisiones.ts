@@ -39,9 +39,10 @@ export interface Respuesta {
 /**
  * En qué punto está (`Vigencia` en `decisiones.rs`): «viva» es que la terminal
  * que preguntó sigue abierta y espera la respuesta; «huerfana», que está sin
- * contestar pero ya no hay nadie detrás (se cerró, o es de otro arranque).
+ * contestar pero ya no hay nadie detrás (se cerró, o es de otro arranque);
+ * «hablada», que le escribiste a esa terminal después de que preguntara.
  */
-export type Vigencia = "viva" | "huerfana" | "contestada" | "descartada";
+export type Vigencia = "viva" | "huerfana" | "hablada" | "contestada" | "descartada";
 
 export interface Decision {
   id: string;
@@ -56,6 +57,8 @@ export interface Decision {
   respuesta?: Respuesta;
   /** Cuándo la apartaste sin contestarla, en milisegundos. */
   descartada?: number;
+  /** Cuándo le escribiste a la terminal que preguntó, en milisegundos. */
+  hablada?: number;
   vigencia: Vigencia;
 }
 
@@ -91,7 +94,10 @@ export function useDecisiones(): Decision[] {
     let vivo = true;
     const leer = () =>
       listarDecisiones()
-        .then((l) => vivo && setLista(l))
+        .then((l) => {
+          esperanEn = new Set(l.filter((d) => d.vigencia === "viva" && d.panel != null).map((d) => d.panel!));
+          if (vivo) setLista(l);
+        })
         .catch(() => {});
     leer();
     const quitar = listen(EVENTO_CAMBIAN, leer);
@@ -103,16 +109,40 @@ export function useDecisiones(): Decision[] {
   return lista;
 }
 
+/** Los paneles que tienen una decisión esperando, de la última lectura: así
+    una tecla no tiene que preguntarle nada a Rust si no hay nada que cerrar. */
+let esperanEn = new Set<number>();
+
+/**
+ * Munir le escribió una frase a esa terminal (`mandoUnaFrase`, en
+ * `lib/hablada.ts`): lo que le hubiera preguntado deja de esperarle, como un
+ * aviso de la campana deja de reclamarte al contestarle. Rust avisa del cambio
+ * y la lista se relee sola.
+ */
+export function hablarCon(panel: number): void {
+  if (!esperanEn.has(panel)) return;
+  esperanEn.delete(panel);
+  void invoke<number>("decisiones_habladas", { panel }).catch(() => {});
+}
+
 /** Las que te esperan DE VERDAD: las vivas. Una huérfana no cuenta en el
     número de la pestaña, que es lo que hacía que nunca bajase a cero. */
 export const pendientes = (lista: Decision[]) => lista.filter((d) => d.vigencia === "viva").length;
 
-/** Los tres montones de la lista, en el orden en que se pintan. */
+/** Lo último que le pasó: contestarla, descartarla, hablarla o, si nada, pedirla. */
+export const ultimoMovimiento = (d: Decision) =>
+  Math.max(d.creada, d.respuesta?.cuando ?? 0, d.descartada ?? 0, d.hablada ?? 0);
+
+/**
+ * Los dos montones de la lista: las que te esperan y las anteriores, con la
+ * última que se movió arriba. Hasta el 2026-10-11 las que no esperaba nadie
+ * tenían montón propio y un botón para vaciarlo, y se llenaba igual: ahora se
+ * limpian solas (a la semana las borra Rust, `podar`).
+ */
 export function porVigencia(lista: Decision[]) {
   return {
     vivas: lista.filter((d) => d.vigencia === "viva"),
-    huerfanas: lista.filter((d) => d.vigencia === "huerfana"),
-    cerradas: lista.filter((d) => d.vigencia === "contestada" || d.vigencia === "descartada"),
+    anteriores: lista.filter((d) => d.vigencia !== "viva").sort((a, b) => ultimoMovimiento(b) - ultimoMovimiento(a)),
   };
 }
 

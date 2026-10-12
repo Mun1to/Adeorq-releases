@@ -1,0 +1,21 @@
+{
+  "nombre": "en-landing",
+  "sesion": "f3aff47c-372a-4a8c-bf55-cd86a448405c",
+  "cwd": "P:\\projects\\landing-web",
+  "cols": 90,
+  "rows": 22,
+  "command": [
+    "cmd.exe",
+    "/k",
+    "chcp 65001 >nul && claude --session-id f3aff47c-372a-4a8c-bf55-cd86a448405c --model haiku --setting-sources project,local --strict-mcp-config --permission-mode acceptEdits --allowedTools Edit,Write,Read --disallowedTools Bash,PowerShell"
+  ],
+  "pasos": [
+    { "espera": "❯ No, exit", "ms": 9000, "opcional": true, "escribe": ["\u001b[B", "\r"] },
+    { "espera": "❯ 1. Yes", "ms": 1500, "opcional": true, "escribe": "\r" },
+    { "quieto": 3000, "tope": 25000 },
+    { "escribe": "Add a dark mode toggle to the header, remember the choice, and make the FAQ page use it too." },
+    { "duerme": 600 },
+    { "escribe": "\r" },
+    { "hasta": { "ocioso": 9000, "tope": 200000, "luego": 1000 } }
+  ]
+}

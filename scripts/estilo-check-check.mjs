@@ -9,20 +9,28 @@
 import fs from "node:fs";
 import {
   arreglar,
+  arreglarTiempos,
   capas,
   clase,
   codigo,
   declaraciones,
   EN_LINEA_EXENTOS,
   escalon,
+  esNeutro,
   esquinaNueva,
+  juzgarColor,
   juzgarEsquina,
   juzgarSombra,
+  juzgarTiempo,
   revisar,
   revisarCodigo,
+  revisarColoresYTiempos,
   sinComentarios,
   sombraNueva,
+  tiempoNuevo,
+  todas,
   tramos,
+  velocidad,
 } from "./estilo-check.mjs";
 
 let fallos = 0;
@@ -121,6 +129,47 @@ const ARREGLADA = `
 ok("sin tocar nada que no sea un valor: el comentario, la variable y cada espacio siguen igual", r.css === ARREGLADA, JSON.stringify(r.css));
 es("arreglar dos veces no cambia nada la segunda", arreglar(r.css).cambiadas, 0);
 
+/* ── Los colores ──────────────────────────────────────────────────────────── */
+
+ok("el blanco y el negro, con o sin transparencia, no tienen matiz", ["#fff", "#FFFFFF", "#000", "#00000080", "white", "black", "rgba(255, 255, 255, 0.09)", "rgba(0,0,0,.4)"].every(esNeutro));
+ok("un gris, un azul o un blanco azulado sí lo tienen", !["#f4f8ff", "#333", "rgba(13, 21, 36, 0.94)", "rgb(254, 255, 255)"].some(esNeutro));
+ok("un color con matiz a mano falla", /color a mano \(#7ee08a\)/.test(juzgarColor("color", "#7ee08a") ?? ""));
+ok("también dentro de una mezcla o de un degradado, y dice cuáles", /\(#ff8f8f rgba\(77, 159, 255, 0\.2\)\)/.test(juzgarColor("background", "linear-gradient(color-mix(in srgb, #ff8f8f 18%, transparent), rgba(77, 159, 255, 0.2))") ?? ""));
+ok("y el respaldo de una variable, que también es un color a mano", juzgarColor("color", "var(--warn, #ffd166)") !== null);
+ok("un nombre de color también cuenta, pero no una palabra que lo contiene", juzgarColor("color", "red") !== null && juzgarColor("filter", "grayscale(1)") === null);
+ok(
+  "las variables, las mezclas con blanco o negro, transparent y currentColor pasan",
+  ["var(--ok)", "color-mix(in srgb, var(--accent) 82%, white 18%)", "color-mix(in srgb, var(--mal) 18%, transparent)", "currentColor", "transparent", "inset 0 1px 0 rgba(255, 255, 255, 0.35)"].every((v) => juzgarColor("background", v) === null),
+);
+ok("una máscara usa el negro y el blanco como alfa: no se mira", juzgarColor("mask-image", "linear-gradient(to right, transparent, #123456 22px)") === null);
+
+/* ── Las velocidades ─────────────────────────────────────────────────────── */
+
+es("hasta 0,15 s, la rápida", `${velocidad(90)} ${velocidad(150)}`, "var(--t-rapida) var(--t-rapida)");
+es("hasta 0,26 s, la media", `${velocidad(160)} ${velocidad(240)}`, "var(--t-media) var(--t-media)");
+es("menos de un segundo, la lenta", `${velocidad(300)} ${velocidad(500)}`, "var(--t-lenta) var(--t-lenta)");
+es("de un segundo en adelante es un ritmo, y cero es cero", `${velocidad(1000)} ${velocidad(12000)} ${velocidad(0)}`, "null null null");
+
+es("cada capa de una transición, a la suya", tiempoNuevo("transition", "background 0.12s ease, transform 180ms cubic-bezier(0.2, 0.6, 0.35, 1)"), "background var(--t-rapida) ease, transform var(--t-media) cubic-bezier(0.2, 0.6, 0.35, 1)");
+es("el retraso no se toca, solo la duración", tiempoNuevo("transition", "opacity 0.12s ease 0.4s"), "opacity var(--t-rapida) ease 0.4s");
+es("una animación que entra, a su velocidad", tiempoNuevo("animation", "diff-panel-in 0.24s cubic-bezier(0.16, 1, 0.3, 1)"), "diff-panel-in var(--t-media) cubic-bezier(0.16, 1, 0.3, 1)");
+es("una que se repite sin fin es un ritmo, dure lo que dure", tiempoNuevo("animation", "espera-gira 0.7s linear infinite"), "espera-gira 0.7s linear infinite");
+es("un ritmo largo, tampoco", tiempoNuevo("animation", "late 1.6s ease-in-out 3"), "late 1.6s ease-in-out 3");
+ok("una velocidad a mano falla, y en otra propiedad no se mira", /velocidad a mano \(0\.2s\)/.test(juzgarTiempo("transition-duration", "0.2s") ?? "") && juzgarTiempo("animation-delay", "0.2s") === null);
+
+const COLORES = `
+:root { --ok: #7ee08a; }
+.a { color: #7ee08a; transition: color 0.2s ease; }
+.b { mask-image: linear-gradient(#000, transparent); background: rgba(0, 0, 0, 0.4); }
+.c:hover { transition: opacity var(--t-rapida); }
+`;
+const cyt = revisarColoresYTiempos(COLORES);
+es("en una hoja de prueba caza el color y la velocidad de .a, y la variable del tema no", cyt.map((f) => `${f.linea}:${f.propiedad}`).join(" "), "3:color 3:transition");
+ok("todas() no confunde un selector con una declaración", !todas(COLORES).some((d) => d.propiedad === "c"));
+const at = arreglarTiempos(COLORES);
+es("--arreglar pasa la velocidad y deja el color, que se decide a mano", at.css.includes("color var(--t-media) ease") && at.css.includes("color: #7ee08a"), true);
+es("y arreglar dos veces no cambia nada la segunda", arreglarTiempos(at.css).cambiadas, 0);
+
 /* ── Lo escrito dentro del código ────────────────────────────────────────── */
 
 const TSX = [
@@ -141,13 +190,16 @@ ok("en el código de la app no hay ninguna esquina ni sombra a mano", enLinea ==
 
 let sueltas = 0;
 let miradas = 0;
+let coloresYTiempos = 0;
 for (const t of tramos()) {
   const css = fs.readFileSync(t.entera, "utf8");
   miradas += declaraciones(css).length;
   sueltas += revisar(css).length;
+  coloresYTiempos += revisarColoresYTiempos(css).length;
 }
 ok("la hoja de la app tiene esquinas y sombras que mirar", miradas > 400, `${miradas}`);
 ok("y ninguna se sale de la escala", sueltas === 0, `${sueltas} sueltas: \`node scripts/estilo-check.mjs\` dice cuáles`);
+ok("ni un color con matiz ni una velocidad a mano en la hoja", coloresYTiempos === 0, `${coloresYTiempos}: \`node scripts/estilo-check.mjs\` dice cuáles`);
 
 console.log(fallos === 0 ? "\nTODO BIEN." : `\n${fallos} FALLOS`);
 process.exit(fallos ? 1 : 0);

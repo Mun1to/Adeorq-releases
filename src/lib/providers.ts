@@ -176,6 +176,10 @@ export interface Provider {
    *  turno y Adeorq sabe leérsela de ahí (`codex_session_since`): el panel la
    *  aprende después, y con ella se retoma y se guarda. */
   sesionDelDisco?: boolean;
+  /** Deja escrito en disco cómo acaba cada turno (empieza, termina, lo cortas)
+   *  y Adeorq sabe leérselo (`codex_context`): su panel dice si trabaja o acabó.
+   *  Solo eso; el contexto y los subagentes de su cabecera no salen de ahí. */
+  estadoDelDisco?: boolean;
   /**
    * Cinco cosas que hasta el 2026-10-06 se preguntaban por el nombre
    * (`provider === "claude"`) en siete sitios entrados después de la limpieza
@@ -277,6 +281,7 @@ export const PROVIDERS: Provider[] = [
     retomable: true,
     retomar: "codex resume {id}",
     sesionDelDisco: true,
+    estadoDelDisco: true,
   },
   {
     id: "gemini",
@@ -794,6 +799,7 @@ export type Capacidad =
   | "ajustesEnVivo"
   | "modoPlan"
   | "sesionDelDisco"
+  | "estadoDelDisco"
   | "banderaSesionNueva"
   | "estadisticas"
   | "cuotaPorCuenta"

@@ -30,10 +30,10 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--cj-c, #7ee08a);
+  background: var(--cj-c, var(--ok));
 }
 [data-estado="trabajando"] .cj-punto {
-  box-shadow: 0 0 7px color-mix(in srgb, var(--cj-c, #7ee08a) 60%, transparent);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--cj-c, var(--ok)) 60%, transparent);
   animation: cj-late 1.6s ease-in-out infinite;
 }
 @keyframes cj-late {

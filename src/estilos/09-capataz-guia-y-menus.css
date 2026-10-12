@@ -56,7 +56,7 @@
   font-size: 11.5px;
   color: var(--muted);
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
 }
 /* El marco es del grupo, no de cada uno: tres cajas seguidas dibujan una raya
    doble en cada junta. */
@@ -205,7 +205,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(4, 7, 12, 0.55);
+  background: var(--velo);
   backdrop-filter: blur(5px);
 }
 
@@ -222,7 +222,7 @@
   width: min(680px, calc(100vw - 60px));
   max-height: calc(100vh - 48px);
   overflow-y: auto;
-  animation: asistente-entra 0.16s ease-out;
+  animation: asistente-entra var(--t-media) ease-out;
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
@@ -325,7 +325,7 @@
   line-height: 1.4;
   text-align: left;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
 }
 
 .guide-toc-item:hover {
@@ -447,14 +447,21 @@
    oscura encima de una hoja (2026-08-02). */
 :root[data-theme="claro"] .tab:hover,
 :root[data-theme="papel"] .tab:hover {
-  background: linear-gradient(180deg, rgba(20, 40, 80, 0.08), rgba(20, 40, 80, 0.03));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 8%, transparent),
+    color-mix(in srgb, var(--text) 3%, transparent)
+  );
   border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 3px 10px rgba(20, 40, 80, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 3px 10px color-mix(in srgb, var(--text) 12%, transparent);
 }
 
+/* Los colores de estos arreglos salen del tema claro que esté puesto (eran los
+   azules de «Claro» escritos a mano, y «Papel» los heredaba encima de su hoja
+   cálida). */
 :root[data-theme="claro"] .choice,
 :root[data-theme="papel"] .choice {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(235, 241, 250, 0.9));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--panel-head) 90%, transparent));
   color: var(--text);
 }
 
@@ -462,8 +469,12 @@
 :root[data-theme="claro"] .pane-btn:hover,
 :root[data-theme="papel"] .mini:hover,
 :root[data-theme="papel"] .pane-btn:hover {
-  background: linear-gradient(180deg, rgba(210, 224, 245, 0.95), rgba(186, 206, 236, 0.95));
-  color: #16213a;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-dim) 40%, #fff),
+    color-mix(in srgb, var(--accent-dim) 65%, #fff)
+  );
+  color: var(--text);
 }
 
 :root[data-theme="claro"] .pane,
@@ -472,14 +483,14 @@
 :root[data-theme="papel"] .pane,
 :root[data-theme="papel"] .panel-card,
 :root[data-theme="papel"] .stat-card {
-  box-shadow: 0 2px 10px rgba(20, 40, 80, 0.08);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 :root[data-theme="claro"] .session-row,
 :root[data-theme="claro"] .project,
 :root[data-theme="papel"] .session-row,
 :root[data-theme="papel"] .project {
-  border-color: rgba(40, 70, 120, 0.1);
+  border-color: color-mix(in srgb, var(--border-strong) 30%, transparent);
 }
 
 /* Context meter in the pane header: how full this session's window is. The
@@ -531,17 +542,17 @@
 }
 
 .pane-ram[data-hot="true"] {
-  color: #ffd08a;
+  color: color-mix(in srgb, var(--warn) 80%, #fff);
 }
 
 /* Past 80% the CLI is close to auto-compacting: say so before it happens. */
 .pane-ctx[data-hot="true"] {
-  color: #ffd08a;
-  border-color: rgba(240, 180, 100, 0.45);
+  color: color-mix(in srgb, var(--warn) 80%, #fff);
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
 }
 
 .pane-ctx[data-hot="true"] .ctx-bar::after {
-  background: #f0b464;
+  background: var(--warn);
 }
 
 /* Adeorq's own tooltip: fast, themed and able to carry a second line, unlike
@@ -566,7 +577,7 @@
   line-height: 1.45;
   color: var(--text);
   pointer-events: none;
-  animation: tip-in 0.12s ease;
+  animation: tip-in var(--t-rapida) ease;
 }
 
 @keyframes tip-in {
@@ -615,7 +626,7 @@
   background: var(--panel-solid);
   border: 1px solid var(--border-strong);
   box-shadow: var(--glass-edge), var(--sombra-2);
-  animation: tip-in 0.1s ease;
+  animation: tip-in var(--t-rapida) ease;
 }
 
 .ctx-item {
@@ -674,8 +685,8 @@
 }
 
 .ctx-item[data-danger="true"]:hover {
-  background: rgba(214, 96, 96, 0.22);
-  color: #ffd7d7;
+  background: color-mix(in srgb, color-mix(in srgb, var(--mal) 75%, #000) 22%, transparent);
+  color: color-mix(in srgb, var(--mal) 45%, #fff);
 }
 
 .ctx-hint {
@@ -816,7 +827,7 @@
   font-size: 11px;
   padding: 3px 7px;
   cursor: pointer;
-  transition: color 0.12s ease, background 0.12s ease, transform 0.1s ease;
+  transition: color var(--t-rapida) ease, background var(--t-rapida) ease, transform var(--t-rapida) ease;
 }
 
 .np-btn-mini:hover {

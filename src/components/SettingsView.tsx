@@ -34,7 +34,7 @@ import {
 import type { PermissionMode } from "../lib/lanzar";
 import type { NotifyMode } from "../lib/notify";
 import { ADEORQ_APP_ID, type DiscordConfig } from "../lib/discord";
-import { autostartGet, autostartSet, guidePath, ollamaModels } from "../lib/pty";
+import { autostartGet, autostartSet, guidePath, ollamaModels, terminalesPorActualizar } from "../lib/pty";
 import { AjusteAlCerrar } from "./AlCerrar";
 import { TarjetaTerm, TemasImportados } from "./TemasDeFuera";
 import { guardarModoAviso, modoAviso, type ModoAviso } from "../lib/router";
@@ -66,6 +66,7 @@ import AtajosEditor from "./AtajosEditor";
 import AjustesMovil from "./AjustesMovil";
 import AjustesMcp from "./AjustesMcp";
 import GuideView from "./GuideView";
+import TerminalesAparte from "./TerminalesAparte";
 import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
 
@@ -562,6 +563,9 @@ export default function SettingsView({
     setNews(t("Bajando la {v}…", { v: hallada.version }));
     let total = 0;
     let got = 0;
+    // Con las terminales en su propio proceso, aguantan la actualización: la app
+    // se va sin despedirse (`terminales_por_actualizar`).
+    void terminalesPorActualizar();
     hallada
       .downloadAndInstall((e) => {
         if (e.event === "Started") total = e.data.contentLength ?? 0;
@@ -1233,6 +1237,7 @@ export default function SettingsView({
                     onChange={(e) => onRestore(e.currentTarget.checked)}
                   />
                 </label>
+                <TerminalesAparte />
                 <label className="setting-row setting-switch">
                   <span>{t("Saltar a la sesión que termina, a pantalla completa")}</span>
                   <input
@@ -1820,7 +1825,7 @@ export default function SettingsView({
                   {/* Reiniciar solo sale cuando ya está bajada: un botón de
                       reiniciar siempre visible invita a cerrar la app por nada. */}
                   {updPct === 100 && (
-                    <button className="np-btn" onClick={() => void relaunch()}>
+                    <button className="np-btn" onClick={() => void terminalesPorActualizar().then(() => relaunch())}>
                       {t("Reiniciar")}
                     </button>
                   )}

@@ -219,7 +219,7 @@ fn traer(puerto: u16, nombre: &str, motivo: &str) -> Result<String, String> {
         .map_err(|_| "Adeorq no está abierto, o su puerto lo tiene otra ventana".to_string())?;
     // Sin tope de tiempo en la lectura: al otro lado hay una persona buscando un
     // token, y los cinco minutos de espera los pone la app, no esto.
-    let mut escritor = stream.try_clone().map_err(|e| e.to_string())?;
+    let mut escritor = crate::clon_sin_herencia(&stream).map_err(|e| e.to_string())?;
     let mut lector = BufReader::new(stream);
 
     let peticion = serde_json::json!({

@@ -68,8 +68,52 @@ pub struct PtySession {
     pub pegado: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
+/// El mapa de terminales. Detrás de un `Arc` para que el hilo que espera a cada
+/// hijo pueda quitarlo del mapa sin pasar por Tauri: el mismo mapa lo usa la
+/// app y, desde la etapa 1 de `terminales-fuera.md`, el proceso de terminales.
+pub type Mapa = std::sync::Arc<Mutex<HashMap<u32, PtySession>>>;
+
 #[derive(Default)]
-pub struct PtyState(pub Mutex<HashMap<u32, PtySession>>);
+pub struct PtyState(pub Mapa);
+
+/// A dónde va lo que dicen las terminales. En la app, a la ventana como
+/// eventos (`pty-data`, `pty-exit`, `pty-mudo`); en el proceso de terminales,
+/// al cliente que esté enganchado, si hay alguno. Lo llaman los hilos de cada
+/// panel: no puede bloquear (ver la nota del emisor en `abrir`).
+pub trait Salida: Send + Sync + 'static {
+    fn datos(&self, id: u32, texto: String);
+    fn fin(&self, id: u32, code: Option<u32>);
+    fn mudo(&self, id: u32);
+}
+
+/// La salida de la app: los eventos que escucha `TerminalPane`.
+pub struct SalidaVentana(pub AppHandle);
+
+impl Salida for SalidaVentana {
+    fn datos(&self, id: u32, data: String) {
+        let _ = self.0.emit("pty-data", PtyData { id, data });
+    }
+    fn fin(&self, id: u32, code: Option<u32>) {
+        let _ = self.0.emit("pty-exit", PtyExit { id, code });
+    }
+    fn mudo(&self, id: u32) {
+        let _ = self.0.emit("pty-mudo", PtyMudo { id });
+    }
+}
+
+/// Lo que hace falta para abrir una terminal.
+#[derive(Clone, Debug, serde::Deserialize, Serialize)]
+pub struct Alta {
+    pub id: u32,
+    pub cwd: String,
+    pub cols: u16,
+    pub rows: u16,
+    pub command: Option<Vec<String>>,
+    /// El entorno propio de este panel (hoy, `CLAUDE_CONFIG_DIR`, que es lo que
+    /// hace que una terminal sea de una cuenta). Un valor `@secreto:` se cambia
+    /// por la clave aquí dentro, en quien abre el proceso.
+    pub env: Option<HashMap<String, String>>,
+}
 
 #[derive(Clone, Serialize)]
 struct PtyData {
@@ -158,7 +202,7 @@ const HIST_TOPE: usize = 200_000;
 /// terminal que renacía de aquí (ventana suelta, vuelta al tablero, rescate)
 /// nacía en la pantalla normal con el programa dibujando la otra: la rueda la
 /// cogía Adeorq y congelaba la salida (Munir, 2026-09-21).
-fn recortar_historial(hist: &mut String) {
+pub(crate) fn recortar_historial(hist: &mut String) {
     if hist.len() <= HIST_TOPE {
         return;
     }
@@ -181,7 +225,7 @@ fn recortar_historial(hist: &mut String) {
 /// no un invariante que respetar. Si un pánico lo dejó envenenado se recupera
 /// lo que hubiera dentro y se sigue, porque lo contrario sería dejar un panel
 /// sin historial para siempre por un susto del que ya nos hemos levantado.
-fn tomar(hist: &Mutex<String>) -> std::sync::MutexGuard<'_, String> {
+pub(crate) fn tomar(hist: &Mutex<String>) -> std::sync::MutexGuard<'_, String> {
     hist.lock().unwrap_or_else(|e| e.into_inner())
 }
 
@@ -292,7 +336,7 @@ fn vaciar_pase_lo_que_pase<R: Read>(
 /// («¿este panel va con el renderizador fullscreen de Claude Code o con el
 /// clásico?»), que decide QUIÉN hace el scroll: el programa o Adeorq. Sale por
 /// `get_active_panes` del MCP, al lado del tamaño.
-fn marcar_pantalla(
+pub(crate) fn marcar_pantalla(
     trozo: &[u8],
     cola: &mut Vec<u8>,
     alternativa: &std::sync::atomic::AtomicBool,
@@ -524,6 +568,18 @@ pub async fn pty_spawn(
     // which is what makes a terminal belong to one account.
     env: Option<HashMap<String, String>>,
 ) -> Result<(), String> {
+    let alta = Alta { id, cwd, cols, rows, command, env };
+    if let Some(r) = crate::terminales::remoto(&app) {
+        return tauri::async_runtime::spawn_blocking(move || r.crear(alta)).await.map_err(|e| e.to_string())?;
+    }
+    abrir(&state.0, alta, std::sync::Arc::new(SalidaVentana(app)))
+}
+
+/// Abre una terminal y la mete en el mapa. Es todo `pty_spawn` sin Tauri
+/// dentro: lo que el panel dice va a `salida`, y es el mismo código el que
+/// corre en la app y en el proceso de terminales.
+pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Result<(), String> {
+    let Alta { id, cwd, cols, rows, command, env } = alta;
     // ── Ese panel YA está abierto ────────────────────────────────────────────
     //
     // Hasta hoy esto abría un proceso nuevo sin mirar, y al meterlo en el mapa
@@ -536,7 +592,7 @@ pub async fn pty_spawn(
     // Así que engancharse a lo que ya hay no es un caso raro, es el caso
     // normal, y salir por aquí es lo que hace que sacar una terminal no cueste
     // ni un proceso más.
-    if state.0.lock().unwrap().contains_key(&id) {
+    if mapa.lock().unwrap_or_else(|e| e.into_inner()).contains_key(&id) {
         return Ok(());
     }
     let command_clone = command.clone();
@@ -729,7 +785,7 @@ pub async fn pty_spawn(
     // se ve es exactamente lo mismo.
     let (tx, rx) = std::sync::mpsc::channel::<String>();
 
-    let app_lector = app.clone();
+    let salida_lector = salida.clone();
     std::thread::spawn(move || {
         let mut pending: Vec<u8> = Vec::new();
         let mut escuchan = true;
@@ -760,12 +816,12 @@ pub async fn pty_spawn(
         // es exactamente lo que debe pasar.
         if fin == Fin::Roto {
             crate::anotar(&format!("el panel {id} se quedó mudo: su lector se rindió"));
-            let _ = app_lector.emit("pty-mudo", PtyMudo { id });
+            salida_lector.mudo(id);
         }
         // Al soltar `tx` aquí, el emisor termina solo.
     });
 
-    let app_reader = app.clone();
+    let salida_emisor = salida.clone();
     std::thread::spawn(move || {
         use std::sync::mpsc::RecvTimeoutError;
         use std::time::{Duration, Instant};
@@ -789,7 +845,7 @@ pub async fn pty_spawn(
                     Err(RecvTimeoutError::Disconnected) => break,
                 }
             }
-            let _ = app_reader.emit("pty-data", PtyData { id, data: lote });
+            salida_emisor.datos(id, lote);
         }
     });
 
@@ -799,7 +855,7 @@ pub async fn pty_spawn(
     // waiter corría antes que este insert, no encontraba nada, y la sesión
     // muerta se quedaba en el mapa para siempre. `pty_spawn` la veía y devolvía
     // éxito sin arrancar nada: una terminal en blanco que no revive jamás.
-    state.0.lock().unwrap().insert(
+    mapa.lock().unwrap_or_else(|e| e.into_inner()).insert(
         id,
         PtySession {
             master: std::sync::Arc::new(Mutex::new(pair.master)),
@@ -814,12 +870,11 @@ pub async fn pty_spawn(
         },
     );
 
-    let app_waiter = app.clone();
+    let mapa_waiter = mapa.clone();
     std::thread::spawn(move || {
         let code = child.wait().ok().map(|s| s.exit_code());
-        let pty_state = app_waiter.state::<PtyState>();
-        pty_state.0.lock().unwrap().remove(&id);
-        let _ = app_waiter.emit("pty-exit", PtyExit { id, code });
+        mapa_waiter.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
+        salida.fin(id, code);
     });
 
     Ok(())
@@ -853,17 +908,230 @@ pub const ESPACIO_ENTRE_TECLAS: std::time::Duration = std::time::Duration::from_
 /// Los paneles que tienen terminal ahora mismo. Lo usan las decisiones para
 /// saber si quien preguntó sigue ahí (`decisiones::vigencia`).
 pub fn paneles_abiertos(app: &AppHandle) -> Vec<u32> {
+    if let Some(r) = crate::terminales::remoto(app) {
+        return r.fichas().into_iter().map(|f| f.id).collect();
+    }
     let state = app.state::<PtyState>();
-    let map = state.0.lock().unwrap();
+    let map = state.0.lock().unwrap_or_else(|e| e.into_inner());
     map.keys().copied().collect()
+}
+
+// ─── LO QUE SE PUEDE PREGUNTAR DE UNA TERMINAL ─────────────────────────────
+//
+// El resto de la app (el MCP, la ventana suelta, el pulso, las decisiones)
+// pregunta por aquí y no mete la mano en el mapa. Es la costura para sacar las
+// terminales a su propio proceso (`docs/contexto/terminales-fuera.md`): el día
+// que vivan allí, cambia lo de dentro de estas funciones y nada de fuera.
+// Todas cogen el candado del mapa lo justo para copiar y lo sueltan: es el
+// mismo que atraviesa cada tecla.
+
+/// Lo que se sabe de una terminal sin tocar su proceso.
+#[derive(Clone, Debug)]
+pub struct Ficha {
+    pub id: u32,
+    pub cwd: String,
+    pub command: Option<Vec<String>>,
+    pub pid: Option<u32>,
+    /// «COLSxFILAS» que el PROCESO cree tener; `None` si su ConPTY está
+    /// ocupado en un resize (se pregunta con `try_lock`: una consulta no puede
+    /// quedarse colgada con un ConPTY colgado).
+    pub tamano: Option<String>,
+    /// En la pantalla alternativa el scroll es del programa (ver `marcar_pantalla`).
+    pub alternativa: bool,
+    /// Si pidió el pegado entre corchetes (modo 2004).
+    pub pegado: bool,
+}
+
+fn ficha_de(id: u32, s: &PtySession) -> Ficha {
+    let tamano = match s.master.try_lock() {
+        Ok(m) => Some(m.get_size().map(|t| format!("{}x{}", t.cols, t.rows)).unwrap_or_else(|_| "?".into())),
+        Err(_) => None,
+    };
+    Ficha {
+        id,
+        cwd: s.cwd.clone(),
+        command: s.command.clone(),
+        pid: s.pid,
+        tamano,
+        alternativa: s.pantalla_alternativa.load(std::sync::atomic::Ordering::Relaxed),
+        pegado: s.pegado.load(std::sync::atomic::Ordering::Relaxed),
+    }
+}
+
+/// Si esa terminal existe ahora mismo.
+pub fn existe(app: &AppHandle, id: u32) -> bool {
+    if let Some(r) = crate::terminales::remoto(app) {
+        return r.existe(id);
+    }
+    let state = app.state::<PtyState>();
+    let map = state.0.lock().unwrap_or_else(|e| e.into_inner());
+    map.contains_key(&id)
+}
+
+/// La ficha de una terminal, si existe.
+pub fn ficha(app: &AppHandle, id: u32) -> Option<Ficha> {
+    if let Some(r) = crate::terminales::remoto(app) {
+        return r.fichas().into_iter().find(|f| f.id == id);
+    }
+    let state = app.state::<PtyState>();
+    let map = state.0.lock().unwrap_or_else(|e| e.into_inner());
+    map.get(&id).map(|s| ficha_de(id, s))
+}
+
+/// Las fichas de todas, por número.
+pub fn fichas(app: &AppHandle) -> Vec<Ficha> {
+    if let Some(r) = crate::terminales::remoto(app) {
+        return r.fichas();
+    }
+    fichas_de(&app.state::<PtyState>().0)
+}
+
+/// Lo último que dijo una terminal, como mucho `limite` bytes y cortado por un
+/// límite de carácter (cortar UTF-8 por un byte a ciegas es un pánico, ver
+/// `recortar_historial`), y si está en la pantalla alternativa.
+pub fn cola_del_historial(app: &AppHandle, id: u32, limite: usize) -> Option<(String, bool)> {
+    let (historial, alternativa) = match crate::terminales::remoto(app) {
+        Some(r) => r.historia(id)?,
+        None => {
+            let state = app.state::<PtyState>();
+            let map = state.0.lock().unwrap_or_else(|e| e.into_inner());
+            let s = map.get(&id)?;
+            (s.history.clone(), s.pantalla_alternativa.load(std::sync::atomic::Ordering::Relaxed))
+        }
+    };
+    let hist = tomar(&historial);
+    let len = hist.len();
+    if len <= limite {
+        return Some((hist.clone(), alternativa));
+    }
+    let mut corte = len - limite;
+    while corte < len && !hist.is_char_boundary(corte) {
+        corte += 1;
+    }
+    Some((hist[corte..].to_string(), alternativa))
+}
+
+/// Una terminal que ya corre al abrir la ventana: la que aguantó en el proceso
+/// de terminales mientras la app se caía (`terminales.rs`).
+#[derive(Serialize)]
+pub struct Viva {
+    pub id: u32,
+    pub cwd: String,
+    pub command: Option<Vec<String>>,
+}
+
+/// Las terminales vivas, para que el tablero que se restaura se reenganche a
+/// ellas en vez de abrir otras. Sin el proceso de terminales, al abrir la app
+/// no hay ninguna.
+#[tauri::command(async)]
+pub fn pty_vivas(app: AppHandle) -> Vec<Viva> {
+    fichas(&app).into_iter().map(|f| Viva { id: f.id, cwd: f.cwd, command: f.command }).collect()
 }
 
 /// Por el canal del panel, como toda la entrada (ver `tx_entrada`).
 pub fn escribir_en_panel(app: &AppHandle, id: u32, bytes: Vec<u8>) -> Result<(), String> {
-    let state = app.state::<PtyState>();
-    let map = state.0.lock().unwrap();
-    let session = map.get(&id).ok_or(format!("Pane {} not found", id))?;
+    let r = match crate::terminales::remoto(app) {
+        Some(r) => r.escribir(id, bytes),
+        None => escribir(&app.state::<PtyState>().0, id, bytes),
+    };
+    r.map_err(|e| if e == NO_ESTA { format!("Pane {} not found", id) } else { e })
+}
+
+// ─── LAS OPERACIONES, SOBRE EL MAPA ────────────────────────────────────────
+//
+// Las mismas para la app y para el proceso de terminales. Ninguna espera a
+// nada con el candado del mapa cogido: o mandan por un canal, o copian lo que
+// necesitan y lo sueltan.
+
+/// Lo que se contesta cuando el panel no existe. Lo esperan así el front y el MCP.
+pub const NO_ESTA: &str = "no such pty";
+
+/// Manda bytes a la entrada del panel. Mandar al canal no bloquea nunca: si el
+/// panel está colgado, el que espera es SU hilo escritor (ver `tx_entrada`).
+pub fn escribir(mapa: &Mapa, id: u32, bytes: Vec<u8>) -> Result<(), String> {
+    let map = mapa.lock().unwrap_or_else(|e| e.into_inner());
+    let session = map.get(&id).ok_or(NO_ESTA)?;
     session.tx_entrada.send(bytes).map_err(|_| "pty cerrado".to_string())
+}
+
+/// Lo que ya se ha dicho en ese panel, como mucho `bytes` (ver `pty_historial`).
+pub fn historial(mapa: &Mapa, id: u32, bytes: Option<usize>) -> Result<String, String> {
+    let hist = {
+        let map = mapa.lock().unwrap_or_else(|e| e.into_inner());
+        map.get(&id).ok_or(NO_ESTA)?.history.clone()
+    };
+    let hist = tomar(&hist);
+    let tope = bytes.unwrap_or(HIST_OBJETIVO);
+    if hist.len() <= tope {
+        return Ok(hist.clone());
+    }
+    let (corte, preambulo) = crate::modos_terminal::cortar(&hist, hist.len() - tope);
+    Ok(format!("{preambulo}{}", &hist[corte..]))
+}
+
+/// Cambia el tamaño del ConPTY de un panel. BLOQUEA (es `ResizePseudoConsole`):
+/// se llama desde un hilo de bloqueo, nunca desde la ventana. Ver `pty_resize`.
+pub fn tamano(mapa: &Mapa, id: u32, cols: u16, rows: u16) -> Result<(), String> {
+    // El candado del mapa se suelta ANTES de tocar el ConPTY.
+    let master = {
+        let map = mapa.lock().unwrap_or_else(|e| e.into_inner());
+        map.get(&id).ok_or(NO_ESTA)?.master.clone()
+    };
+    let master = master.try_lock().map_err(|e| match e {
+        std::sync::TryLockError::WouldBlock => "ocupado: otro resize en curso en este panel".to_string(),
+        std::sync::TryLockError::Poisoned(_) => "master envenenado".to_string(),
+    })?;
+    master
+        .resize(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
+        .map_err(|e| e.to_string())
+}
+
+/// Mata un panel y toda su rama. Devuelve si existía. Tarda (`taskkill`): no
+/// desde la ventana.
+pub fn matar(mapa: &Mapa, id: u32) -> bool {
+    // El PID se saca y se suelta el candado ANTES de llamar a taskkill: esperar
+    // a un proceso externo con el mapa bloqueado congela cualquier otra
+    // terminal que quiera escribir mientras tanto.
+    let pid = {
+        let mut map = mapa.lock().unwrap_or_else(|e| e.into_inner());
+        match map.get_mut(&id) {
+            Some(session) => {
+                let _ = session.killer.kill();
+                session.pid
+            }
+            None => return false,
+        }
+    };
+    if let Some(pid) = pid {
+        matar_rama(pid);
+    }
+    true
+}
+
+/// Mata todas las terminales del mapa, con su rama.
+pub fn matar_todas(mapa: &Mapa) {
+    let pids: Vec<u32> = {
+        let Ok(mut map) = mapa.lock() else {
+            return;
+        };
+        map.values_mut()
+            .filter_map(|s| {
+                let _ = s.killer.kill();
+                s.pid
+            })
+            .collect()
+    };
+    for pid in pids {
+        matar_rama(pid);
+    }
+}
+
+/// Las fichas de un mapa, por número (ver `Ficha`).
+pub fn fichas_de(mapa: &Mapa) -> Vec<Ficha> {
+    let map = mapa.lock().unwrap_or_else(|e| e.into_inner());
+    let mut v: Vec<Ficha> = map.iter().map(|(id, s)| ficha_de(*id, s)).collect();
+    v.sort_by_key(|f| f.id);
+    v
 }
 
 /// El texto como lo mandaría una terminal al pegar, si el programa lo pidió.
@@ -920,12 +1188,7 @@ pub fn orden_y_resto(texto: &str) -> Option<(&str, &str)> {
 /// Escribe el texto y, si se pide, pulsa Intro aparte. Duerme entre medias:
 /// nunca desde el hilo de la ventana.
 pub fn mandar_texto(app: &AppHandle, id: u32, texto: &str, enviar: bool) -> Result<Mandado, String> {
-    let pegado = {
-        let state = app.state::<PtyState>();
-        let map = state.0.lock().unwrap();
-        let s = map.get(&id).ok_or(format!("Pane {} not found", id))?;
-        s.pegado.load(std::sync::atomic::Ordering::Relaxed)
-    };
+    let pegado = ficha(app, id).ok_or(format!("Pane {} not found", id))?.pegado;
     // Solo en un programa que pidió el pegado entre corchetes, que es donde
     // hay menús así; en una consola, un «2» es un «2» y lleva su Intro.
     if pegado && es_tecla_de_menu(texto) {
@@ -958,15 +1221,14 @@ pub fn pty_send(app: AppHandle, id: u32, texto: String, enviar: bool) -> Result<
 }
 
 #[tauri::command]
-pub fn pty_write(state: State<'_, PtyState>, id: u32, data: String) -> Result<(), String> {
-    let map = state.0.lock().unwrap();
-    let session = map.get(&id).ok_or("no such pty")?;
-    // Mandar al canal no bloquea nunca: si el panel está colgado, el que
-    // espera es SU hilo escritor, no el hilo de la ventana con el candado.
-    session
-        .tx_entrada
-        .send(data.into_bytes())
-        .map_err(|_| "pty cerrado".to_string())
+pub fn pty_write(app: AppHandle, state: State<'_, PtyState>, id: u32, data: String) -> Result<(), String> {
+    // Corre en el hilo de la ventana a propósito (`hilo.rs`): mandar al canal
+    // del panel no bloquea nunca, y al proceso de terminales tampoco (va por
+    // el canal de su hilo escritor).
+    if let Some(r) = crate::terminales::remoto(&app) {
+        return r.escribir(id, data.into_bytes());
+    }
+    escribir(&state.0, id, data.into_bytes())
 }
 
 /// Lo que ya se ha dicho en ese panel, para pintarlo en una ventana que acaba
@@ -987,16 +1249,13 @@ pub fn pty_write(state: State<'_, PtyState>, id: u32, data: String) -> Result<()
 /// esto tiene que acabar en la MISMA pantalla que la de verdad, con el mismo
 /// ratón y el mismo pegado. Ver `modos_terminal`.
 #[tauri::command]
-pub fn pty_historial(state: State<'_, PtyState>, id: u32, bytes: Option<usize>) -> Result<String, String> {
-    let map = state.0.lock().unwrap();
-    let session = map.get(&id).ok_or("no such pty")?;
-    let hist = session.history.lock().unwrap_or_else(|e| e.into_inner());
-    let tope = bytes.unwrap_or(HIST_OBJETIVO);
-    if hist.len() <= tope {
-        return Ok(hist.clone());
+pub fn pty_historial(app: AppHandle, state: State<'_, PtyState>, id: u32, bytes: Option<usize>) -> Result<String, String> {
+    // Del espejo, en el proceso de terminales: este comando corre en el hilo
+    // de la ventana y no puede esperar a la conexión.
+    if let Some(r) = crate::terminales::remoto(&app) {
+        return r.historial(id, bytes);
     }
-    let (corte, preambulo) = crate::modos_terminal::cortar(&hist, hist.len() - tope);
-    Ok(format!("{preambulo}{}", &hist[corte..]))
+    historial(&state.0, id, bytes)
 }
 
 // async por la misma ley que todo lo que toca la tubería de un panel: el
@@ -1018,28 +1277,14 @@ pub fn pty_historial(state: State<'_, PtyState>, id: u32, bytes: Option<usize>) 
 // `try_lock` contesta «ocupado» en el acto si hay otro resize en curso en ese
 // panel: la cola del front no lo confirma y el vigilante lo vuelve a pedir.
 #[tauri::command]
-pub async fn pty_resize(state: State<'_, PtyState>, id: u32, cols: u16, rows: u16) -> Result<(), String> {
-    // El candado del mapa se suelta ANTES de tocar el ConPTY.
-    let master = {
-        let map = state.0.lock().unwrap();
-        map.get(&id).ok_or("no such pty")?.master.clone()
-    };
-    tauri::async_runtime::spawn_blocking(move || {
-        let master = master.try_lock().map_err(|e| match e {
-            std::sync::TryLockError::WouldBlock => "ocupado: otro resize en curso en este panel".to_string(),
-            std::sync::TryLockError::Poisoned(_) => "master envenenado".to_string(),
-        })?;
-        master
-            .resize(PtySize {
-                rows,
-                cols,
-                pixel_width: 0,
-                pixel_height: 0,
-            })
-            .map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+pub async fn pty_resize(app: AppHandle, state: State<'_, PtyState>, id: u32, cols: u16, rows: u16) -> Result<(), String> {
+    if let Some(r) = crate::terminales::remoto(&app) {
+        return tauri::async_runtime::spawn_blocking(move || r.tamano(id, cols, rows)).await.map_err(|e| e.to_string())?;
+    }
+    let mapa = state.0.clone();
+    tauri::async_runtime::spawn_blocking(move || tamano(&mapa, id, cols, rows))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Mata un proceso Y TODO LO QUE CUELGA DE ÉL.
@@ -1085,29 +1330,22 @@ fn matar_rama(pid: u32) {
 }
 
 #[tauri::command]
-pub async fn pty_kill(state: State<'_, PtyState>, id: u32) -> Result<(), String> {
-    // El PID se saca y se suelta el candado ANTES de llamar a taskkill: esperar
-    // a un proceso externo con el mapa bloqueado congela cualquier otra
-    // terminal que quiera escribir mientras tanto.
-    let pid = {
-        let mut map = state.0.lock().unwrap();
-        match map.get_mut(&id) {
-            Some(session) => {
-                let _ = session.killer.kill();
-                session.pid
-            }
-            None => return Ok(()),
-        }
-    };
-    {
+pub async fn pty_kill(app: AppHandle, state: State<'_, PtyState>, id: u32) -> Result<(), String> {
+    // Se apunta antes de matar: el hilo que espera al hijo puede avisar de su
+    // fin en cuanto `matar` le dé la señal, y quien lo escuche tiene que saber
+    // ya que lo cerraste tú (`programados.rs`).
+    if existe(&app, id) {
         let mut a_mano = CERRADAS_A_MANO.lock().unwrap_or_else(|e| e.into_inner());
         if !a_mano.contains(&id) {
             a_mano.push(id);
         }
     }
-    if let Some(pid) = pid {
-        matar_rama(pid);
+    if let Some(r) = crate::terminales::remoto(&app) {
+        tauri::async_runtime::spawn_blocking(move || r.matar(id)).await.map_err(|e| e.to_string())??;
+        return Ok(());
     }
+    let mapa = state.0.clone();
+    tauri::async_runtime::spawn_blocking(move || matar(&mapa, id)).await.map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -1135,21 +1373,13 @@ pub fn cerrada_a_mano(id: u32) -> bool {
 /// llevaría por delante la app de escritorio de Claude y cualquier terminal que
 /// él tenga abierta por su cuenta.
 pub fn kill_all(app: &AppHandle) {
-    let pids: Vec<u32> = {
-        let state = app.state::<PtyState>();
-        let Ok(mut map) = state.0.lock() else {
-            return;
-        };
-        map.values_mut()
-            .filter_map(|s| {
-                let _ = s.killer.kill();
-                s.pid
-            })
-            .collect()
-    };
-    for pid in pids {
-        matar_rama(pid);
+    // Con el proceso de terminales, cerrar Adeorq de verdad es despedirse: el
+    // proceso mata a todas y se va. Una caída no llega aquí, y entonces
+    // aguantan (Munir, 2026-10-11).
+    if let Some(r) = crate::terminales::remoto(app) {
+        crate::terminales::al_cerrar_la_app(&r);
     }
+    matar_todas(&app.state::<PtyState>().0);
 }
 
 /// Los proyectos del panel: las subcarpetas de la carpeta madre, más los que el
@@ -2753,5 +2983,98 @@ mod carrera {
             mal > 0,
             "la carrera no se ha visto esta vez; si deja de verse nunca, este banco sobra"
         );
+    }
+}
+
+/// El motor sin Tauri (`abrir` y las operaciones sobre el mapa): lo que corre
+/// igual en la app y en el proceso de terminales. Una terminal de verdad, con
+/// `cmd`: que lo que dice llegue a la salida, que lo escrito le llegue, que el
+/// historial lo guarde y que su fin se avise y la saque del mapa.
+#[cfg(all(test, windows))]
+mod motor {
+    use super::*;
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+
+    #[derive(Default)]
+    struct Apuntes {
+        datos: Mutex<String>,
+        fin: Mutex<Option<Option<u32>>>,
+    }
+    struct Libreta(Arc<Apuntes>);
+    impl Salida for Libreta {
+        fn datos(&self, _id: u32, texto: String) {
+            self.0.datos.lock().unwrap().push_str(&texto);
+        }
+        fn fin(&self, _id: u32, code: Option<u32>) {
+            *self.0.fin.lock().unwrap() = Some(code);
+        }
+        fn mudo(&self, _id: u32) {}
+    }
+
+    fn hasta(cond: impl Fn() -> bool, ms: u64) -> bool {
+        let fin = Instant::now() + Duration::from_millis(ms);
+        while Instant::now() < fin {
+            if cond() {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(25));
+        }
+        cond()
+    }
+
+    #[test]
+    fn una_terminal_entera_por_el_motor() {
+        let mapa: Mapa = Default::default();
+        let apuntes = Arc::new(Apuntes::default());
+        let alta = Alta {
+            id: 7,
+            cwd: std::env::temp_dir().to_string_lossy().into_owned(),
+            cols: 100,
+            rows: 30,
+            command: Some(vec!["cmd.exe".into(), "/q".into(), "/k".into(), "echo motor-listo".into()]),
+            env: None,
+        };
+        abrir(&mapa, alta.clone(), Arc::new(Libreta(apuntes.clone()))).expect("no abrió");
+        // El ConPTY pregunta dónde está el cursor y no pinta nada hasta que se
+        // le contesta. En la app contesta xterm; aquí, la prueba.
+        assert!(hasta(|| apuntes.datos.lock().unwrap().contains("\x1b[6n"), 8000), "el ConPTY no preguntó por el cursor");
+        escribir(&mapa, 7, b"\x1b[1;1R".to_vec()).unwrap();
+        assert!(hasta(|| apuntes.datos.lock().unwrap().contains("motor-listo"), 8000), "la salida no llegó: {:?}", apuntes.datos.lock().unwrap());
+        let ficha = fichas_de(&mapa).into_iter().find(|f| f.id == 7).expect("no está en el mapa");
+        assert!(ficha.pid.is_some() && ficha.command.as_ref().unwrap()[0] == "cmd.exe");
+
+        // Abrir otra vez el mismo número se engancha, no abre otro proceso.
+        abrir(&mapa, alta, Arc::new(Libreta(apuntes.clone()))).unwrap();
+        assert_eq!(fichas_de(&mapa).len(), 1);
+
+        escribir(&mapa, 7, b"echo eco-%COMSPEC:~0,0%escrito\r".to_vec()).unwrap();
+        assert!(hasta(|| apuntes.datos.lock().unwrap().contains("eco-escrito"), 8000), "lo escrito no llegó");
+        assert!(historial(&mapa, 7, None).unwrap().contains("eco-escrito"), "el historial no lo guardó");
+        tamano(&mapa, 7, 120, 40).unwrap();
+        assert_eq!(fichas_de(&mapa)[0].tamano.as_deref(), Some("120x40"));
+        assert_eq!(escribir(&mapa, 99, vec![]).unwrap_err(), NO_ESTA);
+
+        escribir(&mapa, 7, b"exit\r".to_vec()).unwrap();
+        assert!(hasta(|| apuntes.fin.lock().unwrap().is_some(), 8000), "no avisó del fin");
+        assert!(fichas_de(&mapa).is_empty(), "un panel acabado sigue en el mapa");
+    }
+
+    #[test]
+    fn matar_se_lleva_la_rama() {
+        let mapa: Mapa = Default::default();
+        let apuntes = Arc::new(Apuntes::default());
+        let alta = Alta {
+            id: 1,
+            cwd: std::env::temp_dir().to_string_lossy().into_owned(),
+            cols: 80,
+            rows: 24,
+            command: Some(vec!["ping.exe".into(), "-n".into(), "60".into(), "127.0.0.1".into()]),
+            env: None,
+        };
+        abrir(&mapa, alta, Arc::new(Libreta(apuntes.clone()))).unwrap();
+        assert!(matar(&mapa, 1));
+        assert!(hasta(|| apuntes.fin.lock().unwrap().is_some(), 8000), "matar no terminó el proceso");
+        assert!(!matar(&mapa, 1), "matar lo que ya no está no es nada");
     }
 }

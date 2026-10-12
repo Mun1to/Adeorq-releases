@@ -61,10 +61,10 @@
   stroke: var(--accent);
   stroke-width: 3.4;
   stroke-linecap: round;
-  transition: stroke-dasharray .35s ease;
+  transition: stroke-dasharray var(--t-lenta) ease;
 }
 .obj-anillo[data-full="true"] .obj-anillo-avance {
-  stroke: #7ee0a8;
+  stroke: var(--ok);
 }
 .obj-anillo-num {
   position: relative;
@@ -74,7 +74,7 @@
   color: var(--muted);
 }
 .obj-anillo[data-full="true"] .obj-anillo-num {
-  color: #7ee0a8;
+  color: var(--ok);
 }
 
 /* La barra de avance, a todo el ancho y finísima: marca el progreso sin pedir
@@ -91,10 +91,10 @@
   height: 100%;
   border-radius: var(--r-pastilla);
   background: var(--accent);
-  transition: width .35s ease;
+  transition: width var(--t-lenta) ease;
 }
 .obj-barra[data-full="true"] span {
-  background: #7ee0a8;
+  background: var(--ok);
 }
 
 .obj-list {
@@ -112,7 +112,7 @@
   gap: 8px;
   border-radius: var(--r-btn);
   padding: 7px 8px 7px 10px;
-  transition: background .12s ease;
+  transition: background var(--t-rapida) ease;
 }
 .obj-item:hover {
   background: var(--row);
@@ -146,14 +146,14 @@
   border-radius: var(--r-chico);
   border: 1.8px solid color-mix(in srgb, var(--text) 32%, transparent);
   color: transparent;
-  transition: border-color .13s ease, background .13s ease, color .13s ease;
+  transition: border-color var(--t-rapida) ease, background var(--t-rapida) ease, color var(--t-rapida) ease;
 }
 .obj-fila:hover .obj-mark {
   border-color: var(--accent);
 }
 .obj-item[data-done="true"] .obj-mark {
-  border-color: #7ee0a8;
-  background: #7ee0a8;
+  border-color: var(--ok);
+  background: var(--ok);
   color: var(--on-accent);
 }
 
@@ -183,15 +183,15 @@
   padding: 2px 6px;
   border-radius: var(--r-chico);
   cursor: pointer;
-  transition: opacity .12s ease, color .12s ease;
+  transition: opacity var(--t-rapida) ease, color var(--t-rapida) ease;
 }
 .obj-item:hover .obj-del,
 .obj-del:focus-visible {
   opacity: 1;
 }
 .obj-del:hover {
-  color: #ff8f8f;
-  background: color-mix(in srgb, #ff8f8f 16%, transparent);
+  color: var(--mal);
+  background: color-mix(in srgb, var(--mal) 16%, transparent);
 }
 
 .obj-empty {
@@ -220,8 +220,8 @@
   text-align: left;
   cursor: pointer;
   transition:
-    background 0.12s ease,
-    border-color 0.12s ease;
+    background var(--t-rapida) ease,
+    border-color var(--t-rapida) ease;
 }
 
 .obj-atras:hover {
@@ -246,7 +246,7 @@
   padding: 4px 8px 4px 10px;
   border-radius: var(--r-btn);
   border-top: 1px solid var(--border);
-  transition: background .12s ease;
+  transition: background var(--t-rapida) ease;
 }
 .obj-add:focus-within {
   background: var(--row);
@@ -262,7 +262,7 @@
   font-size: 16px;
   line-height: 1;
   color: var(--muted);
-  transition: color .12s ease;
+  transition: color var(--t-rapida) ease;
 }
 .obj-add:focus-within .obj-add-mas,
 .obj-add[data-lleno="true"] .obj-add-mas {
@@ -340,7 +340,7 @@
   border-radius: var(--r-caja);
   box-shadow:
     var(--glass-edge), var(--sombra-3);
-  animation: obj-sube .16s ease-out;
+  animation: obj-sube var(--t-media) ease-out;
 }
 
 @keyframes obj-sube {
@@ -398,10 +398,10 @@
   color: var(--done);
 }
 .pulso[data-nivel="alto"] b {
-  color: #ff8f8f;
+  color: var(--mal);
 }
 .pulso[data-nivel="alto"] {
-  border-color: color-mix(in srgb, #ff8f8f 45%, transparent);
+  border-color: color-mix(in srgb, var(--mal) 45%, transparent);
 }
 
 .pulso-detalle {
@@ -453,10 +453,10 @@
   height: 100%;
   border-radius: var(--r-pastilla);
   background: var(--accent);
-  transition: width .4s ease;
+  transition: width var(--t-lenta) ease;
 }
 .pulso-barra span[data-alto="true"] {
-  background: #ff8f8f;
+  background: var(--mal);
 }
 .pulso-linea {
   margin: 0;
@@ -522,8 +522,8 @@
   padding: 2px 8px;
 }
 .obj-plegado-num[data-full="true"] {
-  color: #7ee0a8;
-  background: color-mix(in srgb, #7ee0a8 15%, transparent);
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 15%, transparent);
 }
 
 /* Mientras se arrastra, nada de la app se selecciona ni cambia de cursor: sin
@@ -566,7 +566,7 @@ body.arrastrando .obj-flota {
   color: color-mix(in srgb, var(--text) 78%, transparent);
   border-radius: var(--r-chico);
   cursor: pointer;
-  transition: color .12s ease, background .12s ease;
+  transition: color var(--t-rapida) ease, background var(--t-rapida) ease;
 }
 .obj-flota-x:hover {
   color: var(--text);
@@ -830,7 +830,7 @@ body[data-redim] .divider {
   align-self: flex-start;
   padding: 1px 6px;
   border-radius: var(--r-caja);
-  background: rgba(255, 190, 120, 0.16);
+  background: color-mix(in srgb, color-mix(in srgb, var(--done) 70%, #fff) 16%, transparent);
   color: var(--warn);
   font-size: 10.5px;
   font-weight: 700;
@@ -856,7 +856,7 @@ body[data-redim] .divider {
 }
 
 .ag-cal-ventana[data-urgency="now"] {
-  background: rgba(255, 120, 120, 0.22);
+  background: color-mix(in srgb, var(--mal) 22%, transparent);
 }
 
 .ag-cal-ventana[data-urgency="past"] {
@@ -958,7 +958,7 @@ body[data-redim] .divider {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 
 .ag-cifra:hover {
@@ -989,8 +989,8 @@ body[data-redim] .divider {
 /* Lo que reclama algo de ti se distingue por el color, no por el tamaño: si
    todo pudiera crecer, la rejilla dejaría de leerse de un vistazo. */
 .ag-cifra[data-viva="true"] {
-  border-color: rgba(255, 190, 120, 0.32);
-  background: rgba(255, 190, 120, 0.06);
+  border-color: color-mix(in srgb, color-mix(in srgb, var(--done) 70%, #fff) 32%, transparent);
+  background: color-mix(in srgb, color-mix(in srgb, var(--done) 70%, #fff) 6%, transparent);
 }
 
 .ag-cifra[data-viva="true"] .ag-n {
@@ -1050,8 +1050,8 @@ body[data-redim] .divider {
 .ag-k {
   padding: 3px 7px;
   border-radius: var(--r-chico);
-  background: rgba(120, 170, 255, 0.14);
-  color: #8fb6ff;
+  background: color-mix(in srgb, color-mix(in srgb, var(--accent) 80%, #fff) 14%, transparent);
+  color: color-mix(in srgb, var(--accent) 65%, #fff);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1059,7 +1059,7 @@ body[data-redim] .divider {
 }
 
 .ag-caja[data-kind="paso"] .ag-k {
-  background: rgba(255, 190, 120, 0.14);
+  background: color-mix(in srgb, color-mix(in srgb, var(--done) 70%, #fff) 14%, transparent);
   color: var(--warn);
 }
 
@@ -1105,7 +1105,7 @@ body[data-redim] .divider {
   font-size: 14px;
   font-weight: 620;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 
 .ag-botones button:hover {
@@ -1133,16 +1133,16 @@ body[data-redim] .divider {
 .ag-botones .ag-hacer {
   white-space: nowrap;
   border-color: transparent;
-  background: var(--warn, #ffd166);
+  background: var(--warn);
   /* Sobre ámbar, texto oscuro: el blanco encima de este amarillo da 1,9:1 y no
      lo lee nadie. Aplanado y sin alfa, que sobre un fondo claro Windows apaga
      el ClearType en textos pequeños. */
-  color: #211705;
+  color: var(--oscuro);
 }
 
 .ag-botones .ag-hacer:hover {
   filter: brightness(1.08);
-  background: var(--warn, #ffd166);
+  background: var(--warn);
 }
 
 /* La ruta del archivo, ya dentro de la tarjeta: es el pie de la decisión, no
@@ -1195,7 +1195,7 @@ body[data-redim] .divider {
   color: var(--muted);
   cursor: pointer;
   opacity: 0.62;
-  transition: opacity 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+  transition: opacity var(--t-rapida) ease, border-color var(--t-rapida) ease, transform var(--t-rapida) ease;
 }
 
 .pick-item:hover {
@@ -1424,7 +1424,7 @@ body[data-redim] .divider {
 
 /* A met condition is the interesting one: that idea is waiting for nothing. */
 .idea-cond[data-cond="met"] {
-  color: #7ee08a;
+  color: var(--ok);
 }
 
 .idea-cond[data-cond="near"] {

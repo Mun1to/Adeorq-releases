@@ -14,6 +14,9 @@ import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { addPane as layoutAdd, type Col } from "./layout";
 import { loadEffort, resumeCommandFor } from "./lanzar";
 import { useCabina } from "./cabina";
+import { ptyHistorial, terminalesVivas, type TerminalViva } from "./pty";
+import { dejarVolcado } from "./mudanza";
+import { emparejar, siguienteLibre } from "./reenganche";
 /* Los tipos del tablero. Vivían en App.tsx.
    `Team` es el puesto de una cuadrilla, y va aquí porque `Pane` y `SavedPane`
    lo llevan dentro. */
@@ -84,6 +87,9 @@ export interface Team {
 export interface SavedPane {
   name: string;
   cwd: string;
+  /** Su número de terminal. Con las terminales en su propio proceso, las que
+      aguantaron una caída se reconocen por él al volver (`lib/reenganche.ts`). */
+  pty?: number;
   command?: string[];
   env?: Record<string, string>;
   account?: string;
@@ -175,9 +181,11 @@ export function useTableroGuardado({
     const saved: SavedPane[] = [];
     panes.forEach((pane) => {
       order.set(pane.id, saved.length);
+      const terminal = pane.web == null && !pane.archivos?.length;
       saved.push({
         name: pane.name,
         cwd: pane.cwd,
+        pty: terminal ? pane.id : undefined,
         command: pane.command,
         env: pane.env,
         account: pane.account,
@@ -208,29 +216,64 @@ export function useTableroGuardado({
   useEffect(() => {
     if (restored.current) return;
     restored.current = true;
-    if (!restoreOnStart) return;
     let layout: SavedLayout | null = null;
-    try {
-      layout = JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? "null") as SavedLayout;
-    } catch {
-      layout = null;
+    if (restoreOnStart) {
+      try {
+        layout = JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? "null") as SavedLayout;
+      } catch {
+        layout = null;
+      }
     }
-    if (!layout?.panes?.length) return;
-    const saved = layout;
+    const saved: SavedLayout = layout?.panes?.length ? layout : { panes: [], cols: [] };
     let cancelled = false;
-    setRestoring(saved.panes.length);
-    // Antes de abrir nada: si los grupos apartados llegaran después de sus
-    // terminales, se verían un instante todas encima, que es justo lo que se
-    // había apartado.
-    if (saved.ocultos?.length) setGruposOcultos(new Set(saved.ocultos));
     void (async () => {
+      // Lo que aguantó una caída en el proceso de terminales (`terminales.rs`),
+      // ANTES de abrir nada: un panel guardado que la encuentre se queda la suya
+      // en vez de abrir otra con su `--resume` encima. Sin ese proceso no hay
+      // ninguna y todo va como siempre. Va aunque no se devuelva el tablero: lo
+      // que sigue vivo se enseña, nunca se mata en silencio.
+      const vivas: TerminalViva[] = await terminalesVivas();
+      if (cancelled || (!saved.panes.length && !vivas.length)) return;
+      const { adoptadas, sueltas } = emparejar(saved.panes, vivas);
+      nextId.current = siguienteLibre(nextId.current, vivas);
+      setRestoring(saved.panes.length + sueltas.length);
+      // Antes de abrir nada: si los grupos apartados llegaran después de sus
+      // terminales, se verían un instante todas encima, que es justo lo que se
+      // había apartado.
+      if (saved.ocultos?.length) setGruposOcultos(new Set(saved.ocultos));
       // Before rebuilding anything: the restored panes are precisely the ones
       // that were coming back without their effort, so the answer has to be in
       // hand before the first command line is written.
       await loadEffort();
       const ids: number[] = [];
-      for (const pane of saved.panes) {
+      for (const [i, pane] of saved.panes.entries()) {
         if (cancelled) return;
+        // La que aguantó: su número, su comando de verdad y lo que dijo, que
+        // `TerminalPane` escribe antes de nada (`dejarVolcado`). Sin respiro
+        // detrás: no arranca ningún CLI.
+        const viva = adoptadas.get(i);
+        if (viva) {
+          const id = viva.id;
+          ids.push(id);
+          dejarVolcado(id, await ptyHistorial(id).catch(() => ""));
+          setPanes((prev) => [
+            ...prev,
+            {
+              id,
+              cwd: pane.cwd,
+              name: pane.name,
+              command: viva.command ?? pane.command,
+              env: pane.env,
+              account: pane.account,
+              team: pane.team,
+              grupo: pane.grupo,
+            },
+          ]);
+          if (pane.minimizado) setMinimizados((prev) => new Set(prev).add(id));
+          setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
+          setRestoring((n) => n - 1);
+          continue;
+        }
         // Un archivo abierto vuelve tal cual: no hay conversación que retomar
         // ni proceso que arrancar, así que tampoco hace falta el respiro entre
         // uno y otro (eso es para que no arranquen doce CLIs a la vez).
@@ -299,6 +342,20 @@ export function useTableroGuardado({
         setRestoring((n) => n - 1);
         await new Promise((r) => window.setTimeout(r, RESTORE_STAGGER_MS));
       }
+      // Lo vivo que no es de ningún panel guardado: se enseña, con lo que dijo,
+      // para que Munir decida. Matarlo en silencio sería perder el trabajo de un
+      // agente que siguió mientras la app no estaba.
+      const recuperadas: number[] = [];
+      for (const v of sueltas) {
+        if (cancelled) return;
+        const id = v.id;
+        recuperadas.push(id);
+        dejarVolcado(id, await ptyHistorial(id).catch(() => ""));
+        const carpeta = v.cwd.split(/[\\/]/).filter(Boolean).pop() ?? v.cwd;
+        setPanes((prev) => [...prev, { id, cwd: v.cwd, name: `${carpeta} · recuperada`, command: v.command ?? undefined }]);
+        setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
+        setRestoring((n) => n - 1);
+      }
       if (cancelled) return;
       // The mosaic goes back exactly as it was, sizes included.
       const cols: Col[] = (saved.cols ?? [])
@@ -309,10 +366,14 @@ export function useTableroGuardado({
           hs: c.idx.map((_, k) => c.hs?.[k] || 1),
         }))
         .filter((c) => c.panes.length > 0);
+      if (recuperadas.length && cols.length) {
+        cols.push({ cid: nextCol.current++, w: 1, panes: recuperadas, hs: recuperadas.map(() => 1) });
+      }
+      const todas = [...ids, ...recuperadas];
       setCols(
         cols.length
           ? cols
-          : [{ cid: nextCol.current++, w: 1, panes: ids, hs: ids.map(() => 1) }],
+          : [{ cid: nextCol.current++, w: 1, panes: todas, hs: todas.map(() => 1) }],
       );
       setView("cabina");
     })();

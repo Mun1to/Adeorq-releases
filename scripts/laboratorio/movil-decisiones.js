@@ -7,13 +7,13 @@
 //
 // Lo que fija:
 //   · Cada decisión dice si sigue viva. El número del botón cuenta solo las que
-//     te esperan de verdad (1), y las dos que ya no espera nadie se dicen al
-//     lado, sin sumar. Munir tenía seis «pendientes» de terminales cerradas.
-//   · La lista va por montones: te esperan, ya no las espera nadie, cerradas.
+//     te esperan de verdad (1). Munir tenía seis «pendientes» de terminales cerradas.
+//   · La lista va en dos montones: te esperan y anteriores, que se limpian solas
+//     (2026-10-11: ya no hay botón de «Descartar las N»).
 //   · Ninguna opción marcada al entrar y las dos recomendadas con su etiqueta;
 //     «Deshacer» para el envío; el borrador sobrevive a recargar; enviada y
 //     tecleada en el panel 1; una segunda respuesta, 409.
-//   · Descartar las huérfanas las cierra todas sin escribir en ninguna terminal;
+//   · Escribirle a una terminal desde el móvil da por hablada lo que preguntó;
 //     descartar una viva se lo dice a su terminal; una descartada no se contesta.
 //   · El enlace de un aviso abre la contestada; y el botón de modo pasa de
 //     «auto» a nada (normal) y a «aceptar ediciones».
@@ -32,13 +32,12 @@ async (page) => {
   const r = {};
   const escritoEn = async (panel) => (await (await page.request.get(`${B}/api/escrito?panel=${panel}`, { headers: AUT })).json()).texto;
 
-  // 1. La portada: cuenta las vivas, y las que nadie espera van aparte.
+  // 1. La portada: cuenta las vivas, y las demás ni suman ni se dicen.
   await page.goto(`${B}/`);
   await page.waitForSelector("#cuenta-dec:not([hidden])");
   r.cuenta = await page.textContent("#cuenta-dec");
-  r.sobran = await page.textContent("#dec-sobran");
   debe(r.cuenta === "1", `el botón cuenta solo la que te espera (${r.cuenta})`);
-  debe(r.sobran === "2 sin nadie detrás", `las huérfanas se dicen al lado, sin sumar («${r.sobran}»)`);
+  debe(!(await page.$("#dec-sobran")), "ya no se dice cuántas sobran: se limpian solas");
   r.reclaman = await page.$$eval("#reclaman .tarjeta[data-id]", (ts) => ts.map((t) => t.innerText.replace(/\s+/g, " ")));
   debe(r.reclaman.length === 1 && /Diseño de la web/.test(r.reclaman[0]), `la viva sale arriba en la portada (${r.reclaman})`);
 
@@ -47,19 +46,22 @@ async (page) => {
   await page.waitForSelector("#decisiones .tarjeta");
   r.secciones = await page.$$eval("#decisiones .seccion span", (ss) => ss.map((s) => s.textContent));
   r.lista = await page.$$eval("#decisiones .tarjeta", (ts) => ts.map((t) => `${t.dataset.vigencia}: ${t.innerText.replace(/\s+/g, " ")}`));
-  debe(r.secciones.join("|") === "Te esperan|Ya no las espera nadie|Cerradas", `tres montones (${r.secciones})`);
-  debe(r.lista.map((x) => x.split(":")[0]).join() === "viva,huerfana,huerfana,contestada", `cada una con su vigencia (${r.lista})`);
-  debe(/panel 1, abierto/.test(r.lista[0]) && /su terminal se cerró/.test(r.lista[1]), `dicen de quién son y si sigue ahí (${r.lista.slice(0, 2)})`);
+  debe(r.secciones.join("|") === "Te esperan|Anteriores", `dos montones (${r.secciones})`);
+  // Las anteriores, la que se movió más tarde arriba: la contestada hace 2 h,
+  // la del panel cerrado de hace un día y la de otro arranque de hace cinco.
+  debe(r.lista.map((x) => x.split(":")[0]).join() === "viva,contestada,huerfana,huerfana", `cada una con su vigencia (${r.lista})`);
+  debe(/panel 1, abierto/.test(r.lista[0]) && /su terminal se cerró/.test(r.lista[2]), `dicen de quién son y si sigue ahí (${r.lista})`);
+  debe(!(await page.$("#limpiar")), "sin botón de vaciar");
   r.sub = await page.textContent("#sub-dec");
-  debe(r.sub === "1 te espera · 2 sin nadie detrás", `el resumen de arriba («${r.sub}»)`);
+  debe(r.sub === "1 te espera", `el resumen de arriba («${r.sub}»)`);
 
-  // 3. Una huérfana avisa de que nadie la espera, y se puede descartar ahí.
+  // 3. Una huérfana avisa de que nadie la espera.
   await page.click('#decisiones .tarjeta[data-vigencia="huerfana"] >> nth=0');
   await page.waitForSelector(".pregunta-d");
   r.avisoHuerfana = await page.textContent(".dec-vig");
   debe(/Ya no la espera nadie/.test(r.avisoHuerfana), `la huérfana lo dice («${r.avisoHuerfana}»)`);
   await page.click("#atras");
-  await page.waitForSelector("#limpiar");
+  await page.waitForSelector("#decisiones .tarjeta");
 
   // 4. La viva: lo dice, ninguna opción marcada, recomendadas con etiqueta.
   await page.click("#decisiones .tarjeta >> nth=0");
@@ -100,19 +102,21 @@ async (page) => {
   r.otraVez = (await page.request.post(`${B}/api/decision/responder`, { headers: AUT, data: { id: "d19a2b3c4d5", elecciones: { A: { opcion: 1 }, B: { opcion: 1 } } } })).status();
   debe(r.otraVez === 409, `contestada no se vuelve a contestar (${r.otraVez})`);
 
-  // 5. Descartar las que nadie espera: se cierran todas y no se escribe a nadie.
+  // 5. Escribirle a la terminal desde el móvil la da por hablada: sin botones.
+  await page.request.post(`${B}/api/sembrar-decision`, { headers: AUT, data: { id: "d19a2b3c4e1", titulo: "¿Lo subo?", proyecto: "Adeorq", panel: 1 } });
+  await page.request.post(`${B}/api/terminal/escribir`, { headers: AUT, data: { panel: 1, texto: "sí, súbelo" } });
   await page.click("#atras");
-  await page.waitForSelector("#limpiar");
-  r.limpiar = await page.textContent("#limpiar");
-  debe(r.limpiar === "Descartar las 2", `el botón dice cuántas («${r.limpiar}»)`);
-  await page.click("#limpiar");
-  await page.waitForFunction(() => !document.querySelector('#decisiones .tarjeta[data-vigencia="huerfana"]') && !document.getElementById("limpiar"), null, { timeout: 8000 });
-  r.trasLimpiar = await page.$$eval("#decisiones .tarjeta", (ts) => ts.map((t) => t.dataset.vigencia));
-  debe(r.trasLimpiar.filter((x) => x === "descartada").length === 2 && !r.trasLimpiar.includes("huerfana"), `las dos pasan a descartadas (${r.trasLimpiar})`);
+  await page.waitForSelector("#decisiones .tarjeta");
+  await page.waitForFunction(() => document.querySelector('#decisiones .tarjeta[data-id="d19a2b3c4e1"]')?.dataset.vigencia === "hablada", null, { timeout: 8000 });
+  r.hablada = await page.textContent('#decisiones .tarjeta[data-id="d19a2b3c4e1"]');
+  debe(/hablada/.test(r.hablada) && /le escribiste al panel 1/.test(r.hablada), `escribirle la da por hablada («${r.hablada.replace(/\s+/g, " ")}»)`);
   debe((await escritoEn(7)) === null, "a una terminal que no está no se le escribe");
   r.calma = await page.textContent(".calma");
   debe(/Nada te espera ahora mismo/.test(r.calma || ""), `sin vivas lo dice, con la mascota («${r.calma}»)`);
   debe((await page.$$eval(".calma .masc rect", (x) => x.length)) > 100, "y la mascota está pintada");
+  await page.click('#decisiones .tarjeta[data-id="d19a2b3c4e1"]');
+  await page.waitForSelector(".pregunta-d");
+  debe(/La hablaste con el agente/.test(await page.textContent(".dec-vig")), "dentro lo dice");
 
   // 6. Descartar una VIVA: se le dice a su terminal, y ya no se contesta.
   await page.request.post(`${B}/api/sembrar-decision`, { headers: AUT, data: { id: "d19a2b3c4e0", titulo: "¿Publico ya?", proyecto: "Webs", panel: 4 } });

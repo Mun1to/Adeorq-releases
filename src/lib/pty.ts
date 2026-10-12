@@ -351,6 +351,12 @@ export function codexSessionSince(cwd: string, since: number): Promise<string | 
   return invoke("codex_session_since", { cwd, since });
 }
 
+/** En qué anda la sesión de Codex de un panel, leído de su rollout. Solo el
+ *  estado: `percent` llega a 0 y la cabecera no pinta contexto. */
+export function codexContext(sessionId: string): Promise<ContextInfo | null> {
+  return invoke("codex_context", { sessionId });
+}
+
 /** Did this session ever write a transcript? (restore uses it) */
 export function transcriptExists(cwd: string, sessionId: string): Promise<boolean> {
   return invoke("transcript_exists", { cwd, sessionId });
@@ -983,6 +989,28 @@ export function escanearArbol(
 export function ptyHistorial(id: number, bytes?: number): Promise<string> {
   return invoke("pty_historial", { id, bytes: bytes ?? null });
 }
+
+/** Una terminal que ya corría al abrir la ventana (`pty_vivas`). */
+export interface TerminalViva {
+  id: number;
+  cwd: string;
+  command: string[] | null;
+}
+
+/** Las que aguantaron en el proceso de terminales mientras la app se caía
+    (`terminales.rs`). Sin ese proceso, al abrir no hay ninguna. */
+export function terminalesVivas(): Promise<TerminalViva[]> {
+  return invoke<TerminalViva[]>("pty_vivas").catch(() => []);
+}
+
+/** El ajuste de las terminales en su propio proceso. Se aplica al volver a
+    abrir Adeorq: se decide antes de que se abra ninguna terminal. */
+export const terminalesAparte = () => invoke<boolean>("terminales_aparte").catch(() => false);
+/** Antes de instalar una versión o reiniciar: la app se va sin despedirse del
+    proceso de terminales, que las guarda para la versión nueva. Sin ese
+    proceso no hace nada. */
+export const terminalesPorActualizar = () => invoke<void>("terminales_por_actualizar").catch(() => {});
+export const ponerTerminalesAparte = (encender: boolean) => invoke<void>("terminales_aparte_poner", { encender });
 
 /**
  * Saca el panel a una ventana de Windows normal, con su marco.

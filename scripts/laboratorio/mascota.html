@@ -35,6 +35,7 @@
   import { ALTO, ANCHO, GUIONES, REACCIONES, cuadrosDe } from "/src/lib/mascota.ts";
 
   const NOMBRES = { quieta: "Quieta", trabaja: "Trabajando", espera: "Te espera", lista: "Terminó", dormida: "Dormida" };
+  const CUANDO = { toque: "al pulsarla", hola: "al pasar el ratón", enviado: "al mandarle algo", mimo: "tres toques seguidos" };
   const quieto = (pose, alto) =>
     h("svg", { className: "mascota", viewBox: `0 0 ${ANCHO} ${ALTO}`, width: Math.round((alto * ANCHO) / ALTO), height: alto },
       cuadrosDe(pose).map((q, i) => h("rect", { key: i, x: q.x, y: q.y, width: 1.02, height: 1.02, fill: q.c })));
@@ -63,7 +64,7 @@
             tira("lo que repite", g.bucle),
             (g.gestos ?? []).map((gesto, i) => tira(`gesto ${i + 1}`, gesto))))),
       h("h2", null, "Reacciones"),
-      h("div", { className: "fila" }, Object.entries(REACCIONES).map(([nombre, pasos]) => tira(nombre === "toque" ? "al pulsarla" : "al pasar el ratón", pasos))));
+      h("div", { className: "fila" }, Object.entries(REACCIONES).map(([nombre, pasos]) => tira(CUANDO[nombre] ?? nombre, pasos))));
   }
   createRoot(document.getElementById("raiz")).render(h(Hoja));
 </script>

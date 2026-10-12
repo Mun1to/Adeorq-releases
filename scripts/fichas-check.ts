@@ -7,7 +7,7 @@
 //
 //   pnpm bancos fichas
 
-import { carpetaDeFichas, fichasDe, notaDesdeFicha, TOPE_FICHAS } from "../src/lib/fichas";
+import { archivoDeFicha, carpetaDeFichas, fichaDesdeNota, fichasDe, notaDesdeFicha, TOPE_FICHAS } from "../src/lib/fichas";
 import { leerLineas, tareasPendientes, tituloDe } from "../src/lib/notas";
 import type { Entrada } from "../src/lib/archivos";
 
@@ -97,6 +97,15 @@ es("un número en mitad de la frase no es una lista", tareasPendientes(prosa), [
 // queda escrito aquí para que nadie lo descubra por sorpresa.
 const borde = notaDesdeFicha("2026. fue el año", "t");
 es("una línea que EMPIEZA por número y punto sí se toma por paso", tareasPendientes(borde), ["fue el año"]);
+
+// 6. Y de vuelta: una nota guardada como ficha (2026-10-11, el fleco de
+//    `MEJORAS.md`). Las casillas, sin marcar; el nombre, del título.
+es("el nombre sale del título, sin tildes ni símbolos", archivoDeFicha("Publicar una versión (rápido)"), "publicar-una-version-rapido.md");
+es("la eñe se queda", archivoDeFicha("Año nuevo"), "año-nuevo.md");
+es("sin nada que nombrar, vacío", archivoDeFicha("¿¿??"), "");
+const hecha = "\n# Publicar\n\n- [x] subir el número\n- [ ] compilar\n  - [X] firmar\n\n";
+es("la receta no lleva los pasos de hoy hechos", fichaDesdeNota(hecha), "# Publicar\n\n- [ ] subir el número\n- [ ] compilar\n  - [ ] firmar\n");
+es("y vuelve a nacer como nota igual", tareasPendientes(notaDesdeFicha(fichaDesdeNota(hecha), "x")), ["subir el número", "compilar", "firmar"]);
 
 if (rojos.length) console.log(`\nEN ROJO:\n${rojos.map((r) => `  · ${r}`).join("\n")}`);
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

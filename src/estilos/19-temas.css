@@ -70,7 +70,7 @@
   border-radius: var(--r-pastilla);
   cursor: pointer;
   white-space: nowrap;
-  transition: background .12s ease, color .12s ease;
+  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
 }
 .tema-tab:hover {
   color: var(--text);
@@ -141,7 +141,7 @@
   /* El fondo opaco del tema, no su `--bg`, que es translúcido y dejaría ver
      el panel de Ajustes por debajo: la miniatura estaría mintiendo. */
   background: var(--panel-solid);
-  transition: border-color .12s ease, transform .12s ease;
+  transition: border-color var(--t-rapida) ease, transform var(--t-rapida) ease;
 }
 .tema-tarjeta:hover .tema-prev {
   transform: translateY(-2px);

@@ -33,12 +33,13 @@ import {
   type EstadoSkills,
   mainAccount,
   planInfo,
-  usageLimits,
   type Account,
   type Limits,
   type PlanInfo,
 } from "../lib/pty";
 import { PROVIDERS, providerOf, sabe, type Provider } from "../lib/providers";
+import { limitesDe } from "../lib/cuota";
+import { etiquetaCorta } from "../lib/uso";
 import { useT } from "../lib/i18n";
 import { initials } from "./ProjectAvatar";
 import { propsDeVelo } from "../lib/velo";
@@ -72,13 +73,12 @@ interface Props {
   onVibecoding: (modelo: string) => void;
 }
 
-/** "Current week (all models)" does not fit a row. */
-function shortLabel(label: string): string {
-  const inside = label.match(/\(([^)]+)\)/)?.[1];
-  if (/session/i.test(label)) return "sesión";
-  if (inside && /all models/i.test(inside)) return "semana";
-  if (inside) return `semana · ${inside}`;
-  return label.replace(/^current\s+/i, "");
+/** "Current week (all models)" does not fit a row. La misma etiqueta corta que
+    el panel de uso (`etiquetaCorta`), y en el idioma de la app: aquí había una
+    copia que devolvía «sesión» y «semana» a secas, también en inglés. */
+function shortLabel(label: string, t: (clave: string) => string): string {
+  const e = etiquetaCorta(label);
+  return e.modelo ? `${t(e.clave)} · ${e.modelo}` : t(e.clave);
 }
 
 /** Lo que se puede poner en la fila de un proyecto: TODOS los CLIs del catálogo
@@ -246,7 +246,7 @@ export default function AccountsView({
         if (peor == null || l.percent > peor) {
           peor = l.percent;
           const acc = PROVIDERS.flatMap(allOf).find((a) => a.id === id);
-          peorCuenta = acc ? `${nombreDe(acc)} · ${shortLabel(l.label)}` : shortLabel(l.label);
+          peorCuenta = acc ? `${nombreDe(acc)} · ${shortLabel(l.label, t)}` : shortLabel(l.label, t);
         }
       }
     }
@@ -259,7 +259,7 @@ export default function AccountsView({
       peorCuenta,
       porDefecto,
     };
-  }, [info, installed, defaultAccount, allOf, nombreDe]);
+  }, [info, installed, defaultAccount, allOf, nombreDe, t]);
 
   /** Las cuentas conectadas ahora mismo, de cualquier CLI. Es sobre lo que
       actúa «cerrar en todas», y también lo que decide si ese botón existe. */
@@ -315,12 +315,17 @@ export default function AccountsView({
         if (!ids.has(p.id)) continue;
         for (const acc of allOf(p)) {
           const ready = await accountReady(acc.dir, p.creds, p.homeDir).catch(() => false);
-          // Only Claude publishes anything readable without spending quota.
-          const plan = p.usage ? await planInfo(acc.dir || undefined).catch(() => null) : null;
+          // El plan en disco solo lo deja quien tiene `estadisticas`.
+          const plan = sabe(p.id, "estadisticas") ? await planInfo(acc.dir || undefined).catch(() => null) : null;
           let limits: Limits | null = null;
           let err = "";
           if (ready && p.usage) {
-            limits = await usageLimits(acc.dir || undefined).catch((e) => {
+            // Por `limitesDe`, que sabe a quién se le pregunta la cuota y de
+            // quién se lee de sus ficheros. Aquí se llamaba a `usageLimits` a
+            // secas, que es la pregunta de UN cliente: la tarjeta de cualquier
+            // otro con `usage` lanzaba ese proceso y enseñaba una cuota ajena.
+            // Con vida 0: abrir Cuentas pregunta siempre de nuevo.
+            limits = await limitesDe({ provider: p.id, dir: acc.dir }, 0).catch((e) => {
               err = String(e);
               return null;
             });
@@ -419,7 +424,10 @@ export default function AccountsView({
             señalando ese hueco). Puestas de pie ocupan el alto que las barras
             ya gastaban, así que la tarjeta pierde una fila y no gana ninguna. */}
         <div className="account-chips">
-          {it?.plan?.subscription && <span className="account-plan">{it.plan.subscription}</span>}
+          {/* El plan: el que está en disco, o el que el cliente dice al dar su cuota. */}
+          {(it?.plan?.subscription || it?.limits?.plan) && (
+            <span className="account-plan">{it?.plan?.subscription || it?.limits?.plan}</span>
+          )}
           {isDefault && (
             <span className="account-badge" data-tip={t("Las terminales nuevas usan esta")}>
               {t("predeterminada")}
@@ -486,7 +494,7 @@ export default function AccountsView({
                   l.resets ? `\n${t("se renueva")} ${l.resets}` : ""
                 }`}
               >
-                <span className="acc-uso-que">{shortLabel(l.label)}</span>
+                <span className="acc-uso-que">{shortLabel(l.label, t)}</span>
                 <span className="acc-uso-barra">
                   <span
                     className="acc-uso-fill"

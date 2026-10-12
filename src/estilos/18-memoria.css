@@ -36,7 +36,7 @@
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
   color: var(--muted);
-  transition: border-color .12s ease;
+  transition: border-color var(--t-rapida) ease;
 }
 .mem-buscar:focus-within {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
@@ -78,7 +78,7 @@
   border-radius: var(--r-btn);
   cursor: pointer;
   white-space: nowrap;
-  transition: background .12s ease, color .12s ease;
+  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
 }
 .mem-modos button:hover {
   color: var(--text);
@@ -111,7 +111,7 @@
   font-weight: 600;
   padding: 9px 14px;
   cursor: pointer;
-  transition: border-color .12s ease, background .12s ease;
+  transition: border-color var(--t-rapida) ease, background var(--t-rapida) ease;
 }
 .mem-accion:hover {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border-strong));
@@ -175,7 +175,7 @@
   padding: 6px 0;
   border-radius: var(--r-chico);
   cursor: pointer;
-  transition: background .12s ease, color .12s ease;
+  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
 }
 .mem-lista-tabs button:hover {
   color: var(--text);
@@ -286,7 +286,7 @@
   padding: 8px 10px;
   border-radius: var(--r-btn);
   cursor: pointer;
-  transition: background .12s ease;
+  transition: background var(--t-rapida) ease;
 }
 .mem-fila:hover {
   background: var(--row);
@@ -673,7 +673,7 @@
   font-size: 9px;
   line-height: 1;
   cursor: pointer;
-  transition: transform 0.14s ease, color 0.12s ease, border-color 0.12s ease;
+  transition: transform var(--t-rapida) ease, color var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 
 .arb-fuelle[data-abierta] {
@@ -704,7 +704,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.12s ease, transform 0.12s ease;
+  transition: border-color var(--t-rapida) ease, transform var(--t-rapida) ease;
 }
 
 .arb-ficha:hover:not(:disabled) {
@@ -836,7 +836,7 @@
 
 .mapa-hilo {
   color: var(--mapa-otros);
-  transition: opacity 0.16s ease;
+  transition: opacity var(--t-media) ease;
 }
 
 .mapa-hilo[data-capa="gente"] { color: var(--mapa-gente); }
@@ -1130,8 +1130,8 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.16s ease,
-    border-color 0.12s ease;
+  transition: transform var(--t-rapida) ease, box-shadow var(--t-rapida) ease, opacity var(--t-media) ease,
+    border-color var(--t-rapida) ease;
 }
 
 .mapa-pieza[data-capa="gente"] { --c: var(--mapa-gente); }
@@ -1194,7 +1194,7 @@
   font: inherit;
   font-size: 12px;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
 }
 
 .mapa-vistas button:hover:not(:disabled) { color: var(--text); }
@@ -1510,7 +1510,7 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
-  transition: background .12s ease, border-color .12s ease;
+  transition: background var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 .mem-vault:hover {
   background: var(--row-hover);

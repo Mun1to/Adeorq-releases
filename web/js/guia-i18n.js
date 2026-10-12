@@ -137,6 +137,18 @@ window.ADEORQ_I18N_EXTRA = {
                         'Past a certain size, every message pays for the whole context again, and compacting ' +
                         'pays for everything accumulated in one go. Adeorq warns you when a conversation gets ' +
                         'there, so that carrying on or starting fresh is decided with the number in front of you.',
+    'guia.cabina.h3c': 'The right-hand column',
+    'guia.cabina.p5': 'To the right of the terminals there is a strip with three icons. Each one opens a face, ' +
+                      'and pressing the icon of the open face again hides it:',
+    'guia.cabina.l5': '<b>Skills · Usage</b>: your commands from <code>~/.claude/skills</code>. Drag one onto a ' +
+                      'terminal and it is pasted into its box; one click sends it to the one in front of you.',
+    'guia.cabina.l6': '<b>Activity</b>: what the terminal in front of you is doing behind the scenes, with every ' +
+                      'tool and every request to the model.',
+    'guia.cabina.l7': '<b>Files</b>: the project tree, coloured by what git sees changed. From the right-click ' +
+                      'menu you create files and folders, rename them or move them to the recycle bin, and it ' +
+                      'never overwrites one that exists. Opening one shows it in the editor, where images and PDFs ' +
+                      'appear as themselves. To find a text inside the project, <b>Ctrl+K → Search in the files</b>: ' +
+                      'the hit opens at its line.',
 
     /* ---------------------------------- PANEL ---------------------------- */
     'guia.panel.h': 'The Dashboard',

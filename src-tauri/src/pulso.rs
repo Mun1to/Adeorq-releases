@@ -415,21 +415,13 @@ pub struct PanePulso {
 /// Una sola foto de procesos para todos: pedirla por panel sería recorrer la
 /// tabla del sistema una vez por terminal para el mismo dato.
 #[tauri::command(async)]
-pub async fn pulso_panes(pty: tauri::State<'_, crate::pty::PtyState>) -> Result<Vec<PanePulso>, String> {
-    // El candado de este mapa es el MISMO que atraviesa cada tecla que
-    // escribes (ver la nota de `tx_entrada` en `pty.rs`). Así que se coge solo
-    // para copiar los pids y se suelta antes de mirar los procesos, que es lo
-    // lento: enseñar cuánta memoria gasta un panel no puede dejar a la app sin
-    // teclado ni un instante.
-    let raices: Vec<(u32, u32)> = {
-        let mapa = pty.0.lock().map_err(|e| e.to_string())?;
-        let mut v: Vec<(u32, u32)> = mapa
-            .iter()
-            .filter_map(|(id, s)| s.pid.map(|pid| (*id, pid)))
-            .collect();
-        v.sort_unstable();
-        v
-    };
+pub async fn pulso_panes(app: tauri::AppHandle) -> Result<Vec<PanePulso>, String> {
+    // El candado del mapa es el MISMO que atraviesa cada tecla que escribes
+    // (ver la nota de `tx_entrada` en `pty.rs`). `fichas` lo coge solo para
+    // copiar y lo suelta antes de mirar los procesos, que es lo lento: enseñar
+    // cuánta memoria gasta un panel no puede dejar a la app sin teclado.
+    let raices: Vec<(u32, u32)> =
+        crate::pty::fichas(&app).into_iter().filter_map(|f| f.pid.map(|pid| (f.id, pid))).collect();
     if raices.is_empty() {
         return Ok(Vec::new());
     }

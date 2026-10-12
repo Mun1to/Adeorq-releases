@@ -167,7 +167,7 @@
   list-style: none;
   border-radius: var(--r-btn);
   border: 1px dashed transparent;
-  transition: border-color 0.12s ease, background 0.12s ease;
+  transition: border-color var(--t-rapida) ease, background var(--t-rapida) ease;
 }
 
 .sueltas-lista {
@@ -211,7 +211,7 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  transition: color var(--t-rapida) ease, border-color var(--t-rapida) ease, background var(--t-rapida) ease;
 }
 
 .mas-viejas:hover {
@@ -471,7 +471,7 @@
 }
 
 .muestra-letra .ml-verde {
-  color: #7fd88f;
+  color: var(--ok);
   margin-right: 0.6em;
 }
 
@@ -498,8 +498,8 @@
   font-weight: 700;
   cursor: pointer;
   transition:
-    color 0.12s ease,
-    background 0.12s ease;
+    color var(--t-rapida) ease,
+    background var(--t-rapida) ease;
 }
 
 .minim-chip:hover .minim-x {
@@ -507,16 +507,16 @@
 }
 
 .minim-x:hover {
-  background: color-mix(in srgb, var(--bad, #ff6b6b) 18%, transparent);
-  color: var(--bad, #ff6b6b);
+  background: color-mix(in srgb, var(--bad, var(--mal)) 18%, transparent);
+  color: var(--bad, var(--mal));
 }
 
 /* Armada: el agente está trabajando o esperándote, así que el primer clic no
    cierra, solo avisa. El color hace el trabajo que haría un diálogo, sin
    detener a nadie que solo quiera cerrar una terminal parada. */
 .minim-x[data-armado] {
-  background: color-mix(in srgb, var(--bad, #ff6b6b) 24%, transparent);
-  color: var(--bad, #ff6b6b);
+  background: color-mix(in srgb, var(--bad, var(--mal)) 24%, transparent);
+  color: var(--bad, var(--mal));
 }
 
 /* La pantalla de una caída de la interfaz. Ver `components/Salvavidas.tsx`.
@@ -560,7 +560,7 @@
   margin: 0 0 12px;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--bad, #ff6b6b);
+  border-left: 3px solid var(--bad, var(--mal));
   border-radius: 0 var(--r-btn) var(--r-btn) 0;
   background: var(--panel);
   color: var(--text);
@@ -635,7 +635,7 @@
   margin: 0 0 12px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--bad, #ff6b6b);
+  border-left: 3px solid var(--bad, var(--mal));
   border-radius: 0 var(--r-chico) var(--r-chico) 0;
   background: var(--panel-solid);
   font-family: "Cascadia Mono", Consolas, monospace;

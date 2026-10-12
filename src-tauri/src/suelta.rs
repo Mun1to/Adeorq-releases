@@ -71,12 +71,8 @@ pub async fn sacar_panel(
 ) -> Result<(), String> {
     // El panel tiene que existir de verdad. Si no, se abriría una ventana con
     // una terminal muerta dentro y sin forma de saber por qué.
-    {
-        let state = app.state::<crate::pty::PtyState>();
-        let map = state.0.lock().map_err(|_| "el mapa de terminales está roto")?;
-        if !map.contains_key(&id) {
-            return Err(format!("la terminal {id} ya no existe"));
-        }
+    if !crate::pty::existe(&app, id) {
+        return Err(format!("la terminal {id} ya no existe"));
     }
 
     // Ya estaba fuera: se trae al frente en vez de abrir una segunda ventana
@@ -238,13 +234,8 @@ pub struct DatosPanel {
 
 #[tauri::command]
 pub fn datos_panel(app: AppHandle, id: u32) -> Result<DatosPanel, String> {
-    let state = app.state::<crate::pty::PtyState>();
-    let map = state.0.lock().map_err(|_| "el mapa de terminales está roto")?;
-    let s = map.get(&id).ok_or(format!("la terminal {id} ya no existe"))?;
-    Ok(DatosPanel {
-        cwd: s.cwd.clone(),
-        command: s.command.clone(),
-    })
+    let f = crate::pty::ficha(&app, id).ok_or(format!("la terminal {id} ya no existe"))?;
+    Ok(DatosPanel { cwd: f.cwd, command: f.command })
 }
 
 /// Dónde está el ratón AHORA, en píxeles físicos de la pantalla.

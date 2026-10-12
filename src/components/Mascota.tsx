@@ -10,9 +10,16 @@
 // sin ventana. Además de su guion, reacciona a ti: sigue el ratón con el ojo,
 // te saluda si pasas por encima y da un brinco si la pulsas.
 //
-// Con el modo rendimiento, o si el sistema pide menos movimiento, se queda en
-// la postura de su ánimo y no gasta ni un temporizador de animación. Con la
-// ventana tapada tampoco se mueve: nadie la ve.
+// Si el sistema pide menos movimiento, se queda en la postura de su ánimo y no
+// gasta ni un temporizador de animación. Con la ventana tapada tampoco se
+// mueve: nadie la ve.
+//
+// Con el modo rendimiento SÍ se mueve, y antes no. Ese modo se enciende solo
+// con cuatro terminales, que es un día normal de Munir, así que en la práctica
+// la mascota no se movía nunca: «no se mueve, está quieta» (2026-10-11, con seis
+// abiertas). Y lo que ahorraba era nada: entre 2 y 8 fotogramas por segundo en
+// una caja de 28 píxeles, encima del cristal y no debajo, que es lo que cuesta
+// (`lib/rendimiento.ts`).
 
 import { useEffect, useRef, useState } from "react";
 import type { Animo } from "../lib/campana";
@@ -29,15 +36,13 @@ import {
   type Pose,
   type Reaccion,
 } from "../lib/mascota";
-import { modoRendimiento } from "../lib/rendimiento";
 
 /** Cada cuánto se vuelve a mirar si ya se puede animar, cuando no se puede. */
 const REVISAR_MS = 1500;
 /** Cuánto sigue mirando hacia donde se fue el ratón. */
 const MIRADA_MS = 2500;
 
-const quieta = () =>
-  modoRendimiento() || document.hidden || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const quieta = () => document.hidden || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** Tres toques en menos de esto son un mimo, y le sale un corazón. */
 const MIMO_MS = 1500;

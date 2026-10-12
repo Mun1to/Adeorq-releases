@@ -355,6 +355,20 @@
       a.setAttribute('href', lang === 'en' ? es.replace(/^(index\.html|\/)/, '/en/') : es);
     });
 
+    /* Las capturas de la app tienen una carpeta por idioma (assets/screens/es
+       y /en, con los mismos nombres): la imagen sigue al texto que la rodea.
+       En el HTML va la española, que el build empaqueta y renombra con su
+       huella; la inglesa se pide por su ruta de siempre, que el build copia tal
+       cual. Por eso se marca con `data-captura` y no se busca por el `src`: en
+       la web construida ese `src` ya no se llama `assets/screens/...`. */
+    Array.prototype.forEach.call(document.querySelectorAll('img[data-captura]'), function (img) {
+      if (!img.hasAttribute('data-src-es')) img.setAttribute('data-src-es', img.getAttribute('src'));
+      var suya = lang === 'en'
+        ? '/assets/screens/en/' + img.getAttribute('data-captura') + '.png'
+        : img.getAttribute('data-src-es');
+      if (img.getAttribute('src') !== suya) img.setAttribute('src', suya);
+    });
+
     raiz.lang = lang;
     if (TITULOS[lang]) document.title = TITULOS[lang];
     window.dispatchEvent(new CustomEvent('adeorq:language', { detail: { lang: lang } }));

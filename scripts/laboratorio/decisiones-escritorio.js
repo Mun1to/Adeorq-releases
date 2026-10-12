@@ -8,8 +8,11 @@
 // Munir, 2026-10-09, contestando desde el móvil la primera decisión de verdad:
 // quería verlas también en el PC, «una sección Decisiones dentro de la app».
 // Lo que fija esto: la pestaña cuenta las que te esperan DE VERDAD (las de una
-// terminal que sigue abierta); la que ya no espera nadie va aparte, lo dice y
-// se descarta sin teclear en ninguna terminal; ninguna opción sale
+// terminal que sigue abierta); lo que ya no espera va junto en «Anteriores» y
+// lo dice, y se descarta sin teclear en ninguna terminal; escribirle una
+// frase a la terminal que preguntó la da por hablada (2026-10-11: «que se
+// limpie sola»), y pulsar Intro a secas no; con nada pendiente no se abre
+// ninguna sola; la ficha de la derecha dice lo elegido; ninguna opción sale
 // marcada aunque haya recomendada; «Enviar» no se deja pulsar hasta tener cada
 // pregunta contestada; lo marcado sobrevive a irse de la pestaña; «Deshacer»
 // para el envío; al mandarla se teclea en el panel que preguntó y se apunta
@@ -23,7 +26,8 @@
 async (page) => {
   const fallos = [];
   const debe = (ok, que) => { if (!ok) fallos.push(que); };
-  const CAPTURAS = "C:/Users/Muni/AppData/Local/Temp/claude/C--proyectos-Adeorq/572c3eb8-4cba-4c56-8923-bddd346e5626/scratchpad";
+  // Donde el MCP de Playwright deja escribir, y git no mira.
+  const CAPTURAS = ".playwright-mcp";
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.addInitScript(() => {
     const lang = sessionStorage.getItem("__lang") || "es";
@@ -84,7 +88,7 @@ async (page) => {
     const ABIERTOS = [3];
     const cerrada = (d) => Number(Boolean(d.respuesta || d.descartada));
     const vigenciaDe = (d) =>
-      d.respuesta ? "contestada" : d.descartada ? "descartada"
+      d.respuesta ? "contestada" : d.descartada ? "descartada" : d.hablada ? "hablada"
         : (d.panel != null ? d.arranque === ARRANQUE && ABIERTOS.includes(d.panel) : d.creada >= ARRANQUE) ? "viva" : "huerfana";
     const contestar = (cmd, args) => {
       llamadas.push([cmd, copia(args ?? {})]);
@@ -128,6 +132,13 @@ async (page) => {
           setTimeout(() => window.__emitir("decisiones:cambian"), 0);
           return null;
         }
+        // Como `marcar_habladas`: las de ese panel, de este arranque y sin cerrar.
+        case "decisiones_habladas": {
+          const suyas = window.__dec.filter((x) => x.panel === args.panel && x.arranque === ARRANQUE && !x.respuesta && !x.descartada && !x.hablada);
+          for (const x of suyas) x.hablada = Date.now();
+          if (suyas.length) setTimeout(() => window.__emitir("decisiones:cambian"), 0);
+          return suyas.length;
+        }
         case "pty_send": return null;
         default:
           throw new Error(`sin doble: ${cmd}`);
@@ -167,15 +178,20 @@ async (page) => {
   await page.waitForSelector(".dec-abierta");
   debe(await page.locator(".dec-fila").count() === 4, "cuatro en la lista");
   const etis = await page.locator(".dec-lista-eti").allTextContents();
-  debe(etis.join() === "Te esperan,Ya no las espera nadieDescartar,Cerradas", `los tres montones de la lista (${etis})`);
+  debe(etis.join() === "Te esperan,Anteriores", `los dos montones de la lista (${etis})`);
+  debe(await page.locator(".dec-limpiar").count() === 0, "ya no hay botón de vaciar: se limpia sola");
+  debe((await page.locator(".dec-head").textContent()) === "Decisiones2 te esperan", `el título va dentro del cristal (${await page.locator(".dec-head").textContent()})`);
   debe((await page.locator(".dec-abierta h2").textContent()) === "Dónde va la barra de la guía", "abre la primera que te espera");
   debe(/El panel 3 sigue abierto/.test(await page.locator(".dec-vigencia").textContent()), "la viva dice quién la espera");
+  const ficha = await page.locator(".dec-resumen li").allTextContents();
+  debe(ficha.join("|") === "ALa barra de arribaFalta|BEl menú en el móvilFalta", `la ficha dice lo que falta (${ficha.join("|")})`);
 
   // 2b. La que nadie espera: no cuenta en la pestaña, lo dice, y se descarta
   //     sin escribir en ninguna terminal (el panel 3 de hoy es otra).
   await page.locator(".dec-fila", { hasText: "El color de ayer" }).click();
   debe(/Ya no la espera nadie/.test(await page.locator(".dec-vigencia").textContent()), "la huérfana lo dice");
-  await page.locator(".dec-limpiar").click();
+  debe(/sin nadie detrás/.test(await page.locator(".dec-fila", { hasText: "El color de ayer" }).textContent()), "su fila dice cómo acabó");
+  await page.locator(".dec-pie button", { hasText: "Descartar" }).click();
   await page.waitForTimeout(400);
   debe((await llamadasDe("decision_descartar")).length === 1 && (await llamadasDe("pty_send")).length === 0, "se descarta sin teclear en ninguna terminal");
   debe(/La descartaste/.test(await page.locator(".dec-vigencia").textContent()), `queda como descartada (${await page.locator(".dec-vigencia").textContent()})`);
@@ -194,6 +210,8 @@ async (page) => {
   debe((await estado.textContent()) === "Falta la pregunta B.", `falta una (${await estado.textContent()})`);
   await preguntas.nth(1).locator("textarea").fill("Mejor un menú que se despliega desde la barra");
   debe(!(await boton.isDisabled()), "Enviar encendido con todo contestado");
+  const elegido = await page.locator(".dec-resumen li").allTextContents();
+  debe(/2 · La de la portada/.test(elegido[0]) && /«Mejor un menú/.test(elegido[1]), `la ficha dice lo elegido (${elegido.join("|")})`);
   const borrador = await page.evaluate(() => JSON.parse(localStorage.getItem("adeorq-decision-d19a2b3c4d01") || "{}"));
   debe(borrador.A?.opcion === 2 && /despliega/.test(borrador.B?.texto ?? ""), `el borrador se guarda (${JSON.stringify(borrador)})`);
   await page.screenshot({ path: `${CAPTURAS}/dec-rellena.png` });
@@ -263,13 +281,44 @@ async (page) => {
   await page.waitForTimeout(300);
   debe(await tab.locator(".tab-count").count() === 0, "sin pendientes no hay cuenta");
 
+  // 8b. Sin nada pendiente no se abre ninguna sola: lo dice, con Adeo.
+  await page.reload();
+  await tab.waitFor({ timeout: 15000 });
+  await page.evaluate(() => { for (const x of window.__dec) if (!x.respuesta) x.descartada ??= Date.now(); window.__emitir("decisiones:cambian"); });
+  await tab.click();
+  await page.waitForSelector(".dec-calma");
+  debe(await page.locator(".dec-abierta").count() === 0 && /No te espera ninguna decisión/.test(await page.locator(".dec-calma").textContent()), "con nada pendiente, la calma");
+  debe(await page.locator(".dec-calma .mascota, .dec-calma svg, .dec-calma canvas").count() > 0, "y Adeo en ella");
+  await page.screenshot({ path: `${CAPTURAS}/dec-calma.png` });
+
   // 9. Una nueva del MCP sube la cuenta sin recargar.
-  await page.evaluate(() => {
-    window.__dec.push({ id: "d19a2b3c4d02", titulo: "Una nueva", creada: Date.now(), preguntas: [{ id: "A", titulo: "¿Sí?", opciones: [{ texto: "Sí", recomendada: false }, { texto: "No", recomendada: false }] }] });
+  const ARR = await page.evaluate(() => window.__dec[0].arranque);
+  await page.evaluate((arranque) => {
+    window.__dec.push({ id: "d19a2b3c4d02", titulo: "Una nueva", panel: 3, arranque, creada: Date.now(), preguntas: [{ id: "A", titulo: "¿Sí?", opciones: [{ texto: "Sí", recomendada: false }, { texto: "No", recomendada: false }] }] });
     window.__emitir("decisiones:cambian");
-  });
+  }, ARR);
   await page.waitForTimeout(300);
   debe((await tab.locator(".tab-count").textContent()) === "1", "una nueva sube la cuenta");
+
+  // 9b. Escribirle una frase a su terminal la da por hablada; un Intro a secas no.
+  //     Lo que teclea Munir llega por `lib/hablada` desde el onData de xterm,
+  //     que aquí no hay: se llama a lo mismo que llama él.
+  const teclear = (datos) => page.evaluate(async (d) => {
+    const h = await import("/src/lib/hablada.ts");
+    const dec = await import("/src/lib/decisiones.ts");
+    if (h.mandoUnaFrase(3, d, false)) dec.hablarCon(3);
+  }, datos);
+  await teclear("\r");
+  await page.waitForTimeout(300);
+  debe((await llamadasDe("decisiones_habladas")).length === 0, "un Intro a secas no la cierra");
+  for (const c of "vale, la 1") await teclear(c);
+  await teclear("\r");
+  await page.waitForTimeout(500);
+  debe((await llamadasDe("decisiones_habladas")).map((a) => a.panel).join() === "3", "una frase en el panel 3 la da por hablada");
+  debe(await tab.locator(".tab-count").count() === 0, "y la cuenta vuelve a cero sola");
+  await page.locator(".dec-fila", { hasText: "Una nueva" }).click();
+  debe(/La hablaste con el agente/.test(await page.locator(".dec-vigencia").textContent()), "la abierta dice que la hablaste");
+  debe(/hablada/.test(await page.locator(".dec-fila", { hasText: "Una nueva" }).textContent()), "y su fila, que está hablada");
 
   // 10. En inglés.
   await page.evaluate(() => sessionStorage.setItem("__lang", "en"));
@@ -281,7 +330,7 @@ async (page) => {
   await page.waitForSelector(".dec-abierta");
   const en = await page.evaluate(() => ({ eti: [...document.querySelectorAll(".dec-lista-eti")].map((x) => x.textContent), botones: [...document.querySelectorAll(".dec-pie button")].map((b) => b.textContent) }));
   // Recargar deja la casa como al principio: vuelven las vivas y la que nadie espera.
-  debe(en.eti.join() === "Waiting for you,Nobody is waiting for theseDiscard,Closed" && en.botones.join() === "Discard,Send answer", `la vista en inglés (${JSON.stringify(en)})`);
+  debe(en.eti.join() === "Waiting for you,Earlier" && en.botones.join() === "Discard,Send answer", `la vista en inglés (${JSON.stringify(en)})`);
   await page.evaluate(() => sessionStorage.removeItem("__lang"));
 
   return { fallos };

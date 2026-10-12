@@ -4,16 +4,52 @@
 import { useEffect, useRef, useState } from "react";
 import { sessionIdOf } from "./comandos";
 import type { Translate } from "./i18n";
-import { listSkills, sendPty, sessionContext, type ContextInfo } from "./pty";
+import { sabe } from "./providers";
+import { codexContext, listSkills, sendPty, sessionContext, type ContextInfo } from "./pty";
+
+/** Cada cuánto se relee la sesión de un panel: deprisa mientras trabaja. */
+const RELEER_MS = 20_000;
+const RELEER_TRABAJANDO_MS = 6_000;
 
 /**
  * Lo que el transcript dice de la sesión de un panel, releído cada poco: el
  * contexto gastado, los subagentes que hay fuera, el estado y el título. Más
  * deprisa mientras hay subagentes, para que el contador siga al trabajo en vez
  * de ir medio minuto por detrás.
+ *
+ * Y los CLI que dejan en disco cómo acaba cada turno (`estadoDelDisco`, hoy
+ * Codex) desde el 2026-10-11, pero solo con su sesión SABIDA (`sidDelDisco`:
+ * la de `codex resume`, o la que el panel aprende del disco), y solo el estado.
+ * Sin eso un panel de Codex no avisaba nunca de que acabó.
  */
-export function useContextoDeSesion(kind: string, cwd: string, joined: string): ContextInfo | null {
+export function useContextoDeSesion(
+  kind: string,
+  cwd: string,
+  joined: string,
+  sidDelDisco?: string,
+): ContextInfo | null {
   const [ctx, setCtx] = useState<ContextInfo | null>(null);
+  useEffect(() => {
+    if (!sabe(kind, "estadoDelDisco") || !sidDelDisco) return;
+    let timer = 0;
+    let stop = false;
+    const look = () => {
+      codexContext(sidDelDisco)
+        .then((c) => {
+          if (stop) return;
+          setCtx(c);
+          timer = window.setTimeout(look, c?.state === "a_medias" ? RELEER_TRABAJANDO_MS : RELEER_MS);
+        })
+        .catch(() => {
+          if (!stop) timer = window.setTimeout(look, RELEER_MS);
+        });
+    };
+    look();
+    return () => {
+      stop = true;
+      window.clearTimeout(timer);
+    };
+  }, [kind, sidDelDisco]);
   useEffect(() => {
     // Claude only: agy keeps no transcript here, and reading the folder's
     // newest one would show it another agent's context and crew as if its own.

@@ -125,6 +125,12 @@ async (page) => {
         // pregunta no trae nada y la segunda ya trae el hilo.
         case "codex_session_since":
           return llamadas.filter(([c]) => c === "codex_session_since").length >= 2 ? "01a0cafe-0d0b-7201-b479-050ab2e5bde8" : null;
+        // Como `codex_context`: solo el estado, sembrado con `window.__estadoCodex`
+        // («a_medias» si no se dice). `window.__sinCodexContext` hace como si el
+        // comando no existiera, que es como estaba la app antes del 2026-10-11.
+        case "codex_context":
+          if (window.__sinCodexContext) throw new Error("sin doble: codex_context");
+          return { model: "", used: 0, window: 0, percent: 0, agentsLive: 0, agentsTotal: 0, sessionId: args.sessionId, folder: "", state: window.__estadoCodex ?? "a_medias", title: "" };
         case "conserje_lista":
           return Object.values(convs)
             .filter((c) => c.turnos.length)
@@ -220,6 +226,13 @@ async (page) => {
           window.__tsPuesto = true;
           return tarde(700, { ...base, llevado: true });
         }
+        // Las terminales que aguantaron en el proceso de terminales: las siembra
+        // `reenganche.js` en `sessionStorage` (`__vivas`, y `__hist-<id>` con lo
+        // que dijo cada una). Sin siembra, ninguna, como sin ese proceso.
+        case "pty_vivas": return JSON.parse(sessionStorage.getItem("__vivas") ?? "[]");
+        case "pty_historial": return sessionStorage.getItem(`__hist-${args.id}`) ?? "";
+        case "terminales_aparte": return sessionStorage.getItem("__aparte") === "1";
+        case "terminales_aparte_poner": sessionStorage.setItem("__aparte", args.encender ? "1" : "0"); return null;
         case "sacar_panel":
         case "conserje_parar":
         case "pty_write":
@@ -308,13 +321,74 @@ async (page) => {
           return { ruta: args.ruta, filas: filas.map((f) => ({ carpeta: false, peso: 1, cuando: 0, ...f, ruta: `${args.ruta}\\${f.nombre}` })) };
         }
         case "estado_archivos": return JSON.parse(JSON.stringify(window.__git ?? { git: false, cambios: [] }));
+        // Una nota guardada como ficha, como `guardar_ficha`: a la carpeta de
+        // fichas sembrada en `window.__carpetas`, y nunca encima de otra.
+        case "guardar_ficha": {
+          const dir = `${args.raiz}\\docs\\fichas`;
+          const lista = ((window.__carpetas ??= {})[dir] ??= []);
+          if (lista.some((f) => f.nombre.toLowerCase() === String(args.nombre).toLowerCase())) throw `Ya hay algo que se llama «${args.nombre}» ahí.`;
+          lista.push({ nombre: args.nombre });
+          (window.__archivos ??= {})[`${dir}\\${args.nombre}`] = args.texto;
+          return `${dir}\\${args.nombre}`;
+        }
+        // Buscar dentro de los archivos, como `buscar_en_archivos`: lo sembrado en
+        // `window.__sitios` que contenga lo escrito, sin distinguir mayúsculas.
+        case "buscar_en_archivos": {
+          const q = String(args.texto).trim().toLowerCase();
+          if (q.length < 2) return [];
+          return (window.__sitios ?? []).filter((s) => s.texto.toLowerCase().includes(q));
+        }
+        // Crear, renombrar y la papelera, como `archivos.rs`, sobre la misma
+        // siembra de `window.__carpetas`: nada se crea ni se renombra encima de
+        // algo que ya está, y un nombre no lleva barras.
+        case "crear_archivo":
+        case "crear_carpeta": {
+          const lista = (window.__carpetas ?? {})[args.carpeta];
+          if (!lista) throw "Esa carpeta no está.";
+          const nombre = String(args.nombre).trim();
+          if (!nombre || /[\\/:*?"<>|]/.test(nombre)) throw "Un nombre no puede llevar / \\ : * ? \" < > |";
+          if (lista.some((f) => f.nombre.toLowerCase() === nombre.toLowerCase())) throw `Ya hay algo que se llama «${nombre}» ahí.`;
+          const carpeta = cmd === "crear_carpeta";
+          lista.push({ nombre, carpeta, cuando: Date.now() });
+          const ruta = `${args.carpeta}\\${nombre}`;
+          if (carpeta) window.__carpetas[ruta] = [];
+          return ruta;
+        }
+        case "renombrar": {
+          const i = args.ruta.lastIndexOf("\\");
+          const padre = args.ruta.slice(0, i);
+          const viejo = args.ruta.slice(i + 1);
+          const lista = (window.__carpetas ?? {})[padre] ?? [];
+          const nombre = String(args.nombre).trim();
+          if (lista.some((f) => f.nombre.toLowerCase() === nombre.toLowerCase() && f.nombre.toLowerCase() !== viejo.toLowerCase())) throw `Ya hay algo que se llama «${nombre}» ahí.`;
+          const f = lista.find((x) => x.nombre === viejo);
+          if (!f) throw "Ya no está.";
+          f.nombre = nombre;
+          return `${padre}\\${nombre}`;
+        }
+        case "a_la_papelera": {
+          const i = args.ruta.lastIndexOf("\\");
+          const lista = (window.__carpetas ?? {})[args.ruta.slice(0, i)] ?? [];
+          const k = lista.findIndex((x) => x.nombre === args.ruta.slice(i + 1));
+          if (k < 0) throw "Ya no está.";
+          lista.splice(k, 1);
+          (window.__papelera ??= []).push(args.ruta);
+          return null;
+        }
         // Los archivos del proyecto en hondo, para el buscador de Ctrl+P: se
         // siembran en `window.__nombres` como rutas relativas con barras normales.
         case "listar_nombres": return [...(window.__nombres ?? [])];
         // Abrir un archivo en el editor: un texto corto, leído hace un minuto.
         // Con otro contenido para una ruta concreta (una ficha de pasos), se
         // siembra en `window.__archivos` como { ruta: texto }.
-        case "leer_archivo": return { ruta: args.ruta, texto: (window.__archivos ?? {})[args.ruta] ?? "const hola = 1;\n", pega: null, peso: 16, cuando: Date.now() - 60_000, crlf: false };
+        // Un PDF, en `window.__pdfs` como { ruta: base64 }: no es texto, y
+        // `leer_pdf` lo entrega entero, como el de verdad.
+        case "leer_archivo": {
+          const pdf = (window.__pdfs ?? {})[args.ruta];
+          if (pdf) return { ruta: args.ruta, texto: null, pega: "binario", peso: Math.round(pdf.length * 0.75), cuando: Date.now() - 60_000, crlf: false };
+          return { ruta: args.ruta, texto: (window.__archivos ?? {})[args.ruta] ?? "const hola = 1;\n", pega: null, peso: 16, cuando: Date.now() - 60_000, crlf: false };
+        }
+        case "leer_pdf": return (window.__pdfs ?? {})[args.ruta] ?? null;
         // El Reparto: lo que diría el Capataz al clasificar el lote, sembrado en
         // `window.__loteCapataz`. Sin sembrar no dice nada, que es el caso de
         // «no contestó»: cada tarea se clasifica entonces por sus palabras. Y

@@ -64,6 +64,42 @@ const NUMERADA = /^(\s*)\d+[.)]\s+(\S.*)$/;
  *
  * Lo demás (texto suelto, viñetas, avisos) pasa tal cual: en una nota es texto.
  */
+/**
+ * El nombre del archivo de una ficha nueva, sacado del título de la nota:
+ * «Publicar una versión» → `publicar-una-version.md`. Sin tildes ni símbolos,
+ * que es como se nombran los demás de `docs/`, y vacío si no queda nada.
+ */
+export function archivoDeFicha(titulo: string): string {
+  // La eñe se aparta antes de quitar las tildes: separarlas la parte en «n» y
+  // su virgulilla, y «Año» acabaría en «ano».
+  const base = titulo
+    .toLowerCase()
+    .replace(/ñ/g, "\u0001")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\u0001/g, "ñ")
+    .replace(/[^a-z0-9ñ]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+    .replace(/-+$/g, "");
+  return base ? `${base}.md` : "";
+}
+
+/**
+ * Lo que se guarda como ficha a partir de una nota: lo contrario de
+ * `notaDesdeFicha`. Todas las casillas SIN marcar (la receta no lleva los pasos
+ * que hiciste hoy), sin blancos de más arriba ni abajo, y con su salto final.
+ */
+export function fichaDesdeNota(texto: string): string {
+  const lineas = texto
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((l) => l.replace(MARCADA, "$1 $2"));
+  while (lineas.length && !lineas[0].trim()) lineas.shift();
+  while (lineas.length && !lineas[lineas.length - 1].trim()) lineas.pop();
+  return `${lineas.join("\n")}\n`;
+}
+
 export function notaDesdeFicha(texto: string, nombre: string): string {
   const lineas = texto
     .replace(/\r\n?/g, "\n")

@@ -3,3 +3,10 @@ node_modules/
 # Las capturas se traen de web/assets/screens con `pnpm capturas`:
 # una sola copia de cada imagen, la de la web.
 public/pantallas/
+# La música y los efectos que escribe `sonido.mjs`: megas que se rehacen en dos
+# segundos. Los de `public/sonido/kenney/` sí se versionan, con su licencia.
+public/sonido/hecho/
+# La voz: ni la grabación de Munir (`voz/`) ni lo que `voz.mjs` corta de ella
+# (`public/voz/`). Es su voz, y promo/ viaja entero al repositorio público.
+/voz/
+/public/voz/

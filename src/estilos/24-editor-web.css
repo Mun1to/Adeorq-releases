@@ -63,7 +63,7 @@
    blanco. El `--accent` a pelo es demasiado claro en el tema azul y el blanco
    encima no se lee. */
 .ew-tool[data-on="true"] {
-  background: color-mix(in srgb, var(--accent) 76%, #08172b);
+  background: color-mix(in srgb, var(--accent) 76%, var(--hondo));
   color: #fff;
   font-weight: 600;
 }
@@ -83,7 +83,7 @@
 
 .editor-web {
   width: 58px;
-  transition: width 0.15s ease;
+  transition: width var(--t-rapida) ease;
 }
 .editor-web:hover {
   width: 238px;

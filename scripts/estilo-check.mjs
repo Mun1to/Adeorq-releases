@@ -27,6 +27,23 @@
 // late, el foco), una línea dibujada con sombra (sin difuminar), las sombras
 // hacia dentro, `text-shadow` y `filter`. Ni la página del móvil, que es otra
 // casa.
+//
+// Y desde el mismo día por la tarde (Munir: «sigue con los colores»), la
+// tercera pata de la guía:
+//
+//   colores    un color CON MATIZ escrito a mano falla: sale de una variable,
+//              las del tema (--accent, --border, --text…) o las de la casa
+//              (--ok, --mal, --warn, --ask, --wait, --done…). El blanco y el
+//              negro puros, con o sin transparencia, valen a pelo: sirven para
+//              aclarar y oscurecer en cualquier tema. Las máscaras, también.
+//   velocidad  una transición o una animación de menos de un segundo sale de
+//              --t-rapida 0,12 s (pasar el ratón, pulsar) · --t-media 0,18 s
+//              (abrir un menú, mover un interruptor) · --t-lenta 0,35 s (un
+//              panel que entra). De un segundo en adelante es un ritmo (el
+//              latido de «te espera», una rueda) y se deja.
+//
+// Los colores no tienen `--arreglar`: elegir la variable es saber qué DICE ese
+// color, y eso no sale de una cuenta. Las velocidades sí.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -206,6 +223,126 @@ export function arreglar(css) {
   return { css: out, cambiadas };
 }
 
+/* ── Los colores y las velocidades ──────────────────────────────────────────
+   Se miran en TODAS las declaraciones de la hoja, no solo en las de esquina y
+   sombra, así que van con su propio recorrido. */
+const DECLARACION = /(?<![-\w])(-?[a-z][-a-z]*)\s*:\s*([^;{}]+?)\s*(?=;|\})/g;
+
+/** Todas las declaraciones de una hoja, menos las variables. */
+export function todas(css) {
+  const limpio = sinComentarios(css);
+  const out = [];
+  for (const m of limpio.matchAll(DECLARACION)) {
+    const desde = m.index + /^[^:]*:\s*/.exec(m[0])[0].length;
+    out.push({ propiedad: m[1], valor: m[2], desde, hasta: desde + m[2].length, linea: limpio.slice(0, m.index).split("\n").length });
+  }
+  return out;
+}
+
+const UN_COLOR = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?)\([^()]*\)|\b(?:white|black|red|green|blue|yellow|orange|gray|grey|silver|gold|pink|purple|navy|teal|magenta|cyan|lime|maroon|olive)\b/gi;
+
+/** Blanco o negro puros, con o sin transparencia: no tienen matiz. */
+export function esNeutro(color) {
+  const c = color.toLowerCase().replace(/\s+/g, "");
+  if (c === "white" || c === "black") return true;
+  const hex = /^#([0-9a-f]{3,8})$/.exec(c);
+  if (hex) {
+    let h = hex[1];
+    if (h.length <= 4) h = [...h].map((x) => x + x).join("");
+    const rgb = h.slice(0, 6);
+    return rgb === "ffffff" || rgb === "000000";
+  }
+  const f = /^rgba?\((\d+),(\d+),(\d+)/.exec(c);
+  return Boolean(f) && ((f[1] === "255" && f[2] === "255" && f[3] === "255") || (f[1] === "0" && f[2] === "0" && f[3] === "0"));
+}
+
+/** Lo que no vale de los colores de una declaración, o `null`. */
+export function juzgarColor(propiedad, valor) {
+  if (/^(-webkit-)?mask/.test(propiedad)) return null;
+  const mal = (valor.match(UN_COLOR) || []).filter((c) => !esNeutro(c));
+  return mal.length
+    ? `color a mano (${mal.join(" ")}): usa una variable, del tema (--accent, --border, --text…) o de la casa (--ok, --mal, --warn, --ask…)`
+    : null;
+}
+
+export const VELOCIDADES = { rapida: "var(--t-rapida)", media: "var(--t-media)", lenta: "var(--t-lenta)" };
+/** A partir de cuánto una duración es un ritmo y no una transición. */
+const RITMO_MS = 1000;
+const ANIMA = /^(transition|animation)(-duration)?$/;
+/** El primer tiempo de cada capa es la duración; el segundo, el retraso, que no se mira. */
+const TIEMPO = /(?<![\w.-])(\d*\.?\d+)(m?s)\b/;
+
+/** Una duración suelta, en milisegundos, a su velocidad. */
+export function velocidad(ms) {
+  if (ms === 0 || ms >= RITMO_MS) return null;
+  return ms <= 150 ? VELOCIDADES.rapida : ms <= 260 ? VELOCIDADES.media : VELOCIDADES.lenta;
+}
+
+/** Las duraciones a mano de un valor de transición o de animación. */
+function duraciones(valor) {
+  const out = [];
+  let hondo = 0;
+  let desde = 0;
+  const capasCon = [];
+  for (let i = 0; i <= valor.length; i++) {
+    const ch = valor[i];
+    if (ch === "(") hondo++;
+    if (ch === ")") hondo--;
+    if (i === valor.length || (ch === "," && hondo === 0)) {
+      capasCon.push([desde, valor.slice(desde, i)]);
+      desde = i + 1;
+    }
+  }
+  for (const [ini, capa] of capasCon) {
+    const t = TIEMPO.exec(capa);
+    // Lo que se repite sin fin es un ritmo, dure lo que dure una vuelta.
+    if (!t || /\binfinite\b/.test(capa)) continue;
+    const ms = t[2] === "ms" ? Number(t[1]) : Number(t[1]) * 1000;
+    const nueva = velocidad(ms);
+    if (nueva) out.push({ texto: t[0], ms, nueva, en: ini + t.index });
+  }
+  return out;
+}
+
+/** Lo que no vale de la velocidad de una declaración, o `null`. */
+export function juzgarTiempo(propiedad, valor) {
+  if (!ANIMA.test(propiedad)) return null;
+  const mal = duraciones(valor).map((d) => d.texto);
+  return mal.length ? `velocidad a mano (${mal.join(" ")}): usa --t-rapida, --t-media o --t-lenta` : null;
+}
+
+/** El valor de una transición o una animación con sus duraciones pasadas a la escala. */
+export function tiempoNuevo(propiedad, valor) {
+  if (!ANIMA.test(propiedad)) return valor;
+  let out = valor;
+  for (const d of duraciones(valor).reverse()) out = out.slice(0, d.en) + d.nueva + out.slice(d.en + d.texto.length);
+  return out;
+}
+
+/** Lo que se sale de la guía en colores y velocidades: `{ linea, propiedad, valor, por }`. */
+export function revisarColoresYTiempos(css) {
+  const fallos = [];
+  for (const d of todas(css)) {
+    for (const por of [juzgarColor(d.propiedad, d.valor), juzgarTiempo(d.propiedad, d.valor)]) {
+      if (por) fallos.push({ linea: d.linea, propiedad: d.propiedad, valor: d.valor.replace(/\s+/g, " "), por });
+    }
+  }
+  return fallos;
+}
+
+/** La misma hoja con las velocidades pasadas a la escala (los colores, no). */
+export function arreglarTiempos(css) {
+  let out = css;
+  let cambiadas = 0;
+  for (const d of todas(css).reverse()) {
+    const nueva = tiempoNuevo(d.propiedad, d.valor);
+    if (nueva === d.valor) continue;
+    out = out.slice(0, d.desde) + nueva + out.slice(d.hasta);
+    cambiadas++;
+  }
+  return { css: out, cambiadas };
+}
+
 /* ── Lo escrito dentro del código ────────────────────────────────────────────
    Un `style={{ borderRadius: "8px" }}` o el tema de un editor montado en
    TypeScript se saltan la hoja, y con ella la guía. Se miran con la misma vara. */
@@ -253,9 +390,11 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     let total = 0;
     for (const t of todos) {
       const antes = fs.readFileSync(t.entera, "utf8");
-      const { css, cambiadas } = arreglar(antes);
+      const uno = arreglar(antes);
+      const dos = arreglarTiempos(uno.css);
+      const cambiadas = uno.cambiadas + dos.cambiadas;
       if (cambiadas) {
-        fs.writeFileSync(t.entera, css);
+        fs.writeFileSync(t.entera, dos.css);
         console.log(`  ${String(cambiadas).padStart(4)}  ${t.ruta}`);
         total += cambiadas;
       }
@@ -267,15 +406,15 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   for (const t of todos) {
     const css = fs.readFileSync(t.entera, "utf8");
     miradas += declaraciones(css).length;
-    for (const f of revisar(css)) fallos.push(`${t.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
+    for (const f of [...revisar(css), ...revisarColoresYTiempos(css)]) fallos.push(`${t.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
   }
   for (const c of codigo()) {
     for (const f of revisarCodigo(fs.readFileSync(c.entera, "utf8"))) fallos.push(`${c.ruta}:${f.linea}  ${f.propiedad}: ${f.valor}\n      ${f.por}`);
   }
-  console.log(`Estilo: ${miradas} esquinas y sombras en ${todos.length} tramos, y lo escrito dentro del código.`);
+  console.log(`Estilo: ${miradas} esquinas y sombras en ${todos.length} tramos, sus colores y sus velocidades, y lo escrito dentro del código.`);
   if (fallos.length) {
     console.log(`\nFALLA (${fallos.length}):\n  ` + fallos.join("\n  "));
-    console.log("\n  `node scripts/estilo-check.mjs --arreglar` pasa a la escala las de la hoja; las del código, a mano.");
+    console.log("\n  `node scripts/estilo-check.mjs --arreglar` pasa a la escala las esquinas, sombras y velocidades de la hoja; los colores y lo del código, a mano.");
     process.exit(1);
   }
   console.log("\nTODO BIEN.");

@@ -10,8 +10,11 @@ import { COLOR, FPS } from "./casa";
  * Se hace con dos halos muy abiertos y una viñeta, y se mueven despacio para
  * que el fondo no se vea congelado detrás de un texto quieto.
  */
-export function Fondo() {
-  const frame = useCurrentFrame();
+export function Fondo({ desfase = 0 }: { desfase?: number }) {
+  // Dentro de una escena el reloj empieza en cero: con `desfase` (dónde empieza
+  // la escena en la pieza) el fondo sigue por donde iba y no da un salto en
+  // cada corte.
+  const frame = useCurrentFrame() + desfase;
   /** Una vuelta cada 40 segundos: se nota que está vivo y no se ve moverse. */
   const t = (frame / (FPS * 40)) * Math.PI * 2;
   const x1 = 30 + Math.cos(t) * 6;

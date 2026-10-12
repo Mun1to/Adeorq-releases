@@ -118,7 +118,7 @@
 }
 
 .web-port[data-on="true"] {
-  color: #f4f8ff;
+  color: var(--claro);
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   background: color-mix(in srgb, var(--accent) 26%, transparent);
 }
@@ -186,14 +186,14 @@
   justify-content: center;
   padding-bottom: 12px;
   border: 0;
-  background: linear-gradient(to bottom, rgba(10, 14, 22, 0) 55%, rgba(10, 14, 22, 0.5));
-  color: #eaf1ff;
+  background: linear-gradient(to bottom, transparent 55%, color-mix(in srgb, var(--hondo) 50%, transparent));
+  color: var(--claro);
   font-family: inherit;
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--t-rapida) ease;
 }
 
 .web-tapa:hover {
@@ -203,7 +203,7 @@
 .web-tapa span {
   padding: 4px 10px;
   border-radius: var(--r-pastilla);
-  background: rgba(10, 14, 22, 0.82);
+  background: color-mix(in srgb, var(--hondo) 82%, transparent);
 }
 
 .web-soltar {
@@ -260,8 +260,8 @@
 }
 
 .wdg-x:hover {
-  background: rgba(214, 96, 96, 0.22);
-  color: #ffd7d7;
+  background: color-mix(in srgb, color-mix(in srgb, var(--mal) 75%, #000) 22%, transparent);
+  color: color-mix(in srgb, var(--mal) 45%, #fff);
 }
 
 .wdg-body {
@@ -342,7 +342,7 @@
    se sepa de un vistazo en cuál de las dos estás. */
 .wdg-pomo[data-fase="descanso"] .wdg-ring {
   background: conic-gradient(
-    #6fe0bb calc(var(--p, 0) * 360deg),
+    var(--ok) calc(var(--p, 0) * 360deg),
     color-mix(in srgb, var(--border) 70%, transparent) 0
   );
 }
@@ -693,7 +693,7 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: #0b0f18;
+  background: var(--hondo);
 }
 
 .img-stage img {
@@ -1260,9 +1260,9 @@ textarea.note-body {
   color: var(--muted);
   opacity: 0.55;
   transition:
-    opacity 0.12s ease,
-    background 0.12s ease,
-    color 0.12s ease;
+    opacity var(--t-rapida) ease,
+    background var(--t-rapida) ease,
+    color var(--t-rapida) ease;
 }
 
 /* Y el área que atrapa el ratón es algo mayor que el botón: se puede ir a la
@@ -1337,7 +1337,7 @@ textarea.note-body {
   height: 11px;
   border-radius: 50%;
   opacity: 0.45;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--t-rapida) ease;
 }
 
 .cp-glow:hover span {
@@ -1374,7 +1374,7 @@ textarea.note-body {
   height: 13px;
   border-radius: 4px;
   border: 1.5px solid currentColor;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--t-rapida) ease;
 }
 
 .cp-fill[data-on="true"] {
@@ -1494,9 +1494,9 @@ textarea.note-body {
 /* Se levanta como una tecla, igual que `.mini`: es el mismo gesto en la misma
    app, y aquí se quedaba plano mientras el de al lado subía. */
 .tool-btn:hover {
-  color: #eaf3ff;
-  background: linear-gradient(180deg, rgba(90, 130, 190, 0.62), rgba(46, 68, 104, 0.62));
-  border-color: rgba(140, 185, 255, 0.5);
+  color: color-mix(in srgb, var(--text) 75%, #fff);
+  background: linear-gradient(180deg, color-mix(in srgb, color-mix(in srgb, var(--accent-dim) 75%, #fff) 62%, transparent), color-mix(in srgb, color-mix(in srgb, var(--accent) 45%, #000) 62%, transparent));
+  border-color: color-mix(in srgb, color-mix(in srgb, var(--accent) 65%, #fff) 50%, transparent);
   transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
@@ -1659,7 +1659,7 @@ textarea.note-body {
   object-fit: cover;
   display: block;
   cursor: pointer;
-  transition: transform 0.14s ease;
+  transition: transform var(--t-rapida) ease;
 }
 
 .gal-item img:hover {
@@ -1692,7 +1692,7 @@ textarea.note-body {
   border: 0;
   border-radius: var(--r-chico);
   background: rgba(0, 0, 0, 0.6);
-  color: #ffd7d7;
+  color: color-mix(in srgb, var(--mal) 45%, #fff);
   cursor: pointer;
 }
 
@@ -1701,7 +1701,7 @@ textarea.note-body {
 }
 
 .gal-x:hover {
-  background: rgba(214, 96, 96, 0.85);
+  background: color-mix(in srgb, color-mix(in srgb, var(--mal) 75%, #000) 85%, transparent);
   color: #fff;
 }
 

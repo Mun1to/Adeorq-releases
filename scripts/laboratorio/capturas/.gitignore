@@ -1,0 +1,9 @@
+# Lo que el equipo de capturas genera al usarlo. Las grabaciones y las sesiones
+# no se versionan: llevan los transcripts de quien las grabó.
+p/
+sesiones/
+salida/
+fotos/
+grabadora/
+proyectos-base/
+*.log

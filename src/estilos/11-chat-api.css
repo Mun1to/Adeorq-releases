@@ -69,7 +69,7 @@
   flex: none;
   font-size: 10.5px;
   font-variant-numeric: tabular-nums;
-  color: #5bd18b;
+  color: var(--ok);
 }
 
 .ch-x {
@@ -232,9 +232,9 @@
   margin: 0;
   padding: 7px 9px;
   border-radius: var(--r-chico);
-  border: 1px solid color-mix(in srgb, #e06e6e 45%, transparent);
-  background: color-mix(in srgb, #e06e6e 12%, transparent);
-  color: #e58f8f;
+  border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 45%, transparent);
+  background: color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 12%, transparent);
+  color: var(--mal);
   font-size: 11.5px;
   overflow-wrap: anywhere;
 }

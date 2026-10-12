@@ -1,0 +1,16 @@
+{
+  "nombre": "en-invoice",
+  "cwd": "P:\\projects\\invoice-cli",
+  "cols": 90,
+  "rows": 22,
+  "command": ["cmd.exe", "/k", "chcp 65001 >nul && codex -c check_for_update_on_startup=false -c model_reasoning_effort=low -s danger-full-access -a never"],
+  "pasos": [
+    { "espera": "Update available", "ms": 6000, "opcional": true, "escribe": "\u001b[B", "confirma": "› 2. Skip", "entonces": "\r" },
+    { "espera": "Do you trust", "ms": 8000, "opcional": true, "escribe": "\r" },
+    { "quieto": 3500, "tope": 30000 },
+    { "escribe": "Add a --currency flag that prints its symbol before the total, and cover it with a test." },
+    { "duerme": 800 },
+    { "escribe": "\r" },
+    { "hasta": { "ocioso": 12000, "tope": 150000, "luego": 1000 } }
+  ]
+}

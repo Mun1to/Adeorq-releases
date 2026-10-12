@@ -85,9 +85,9 @@
   color: color-mix(in srgb, var(--text) 76%, var(--muted));
   cursor: pointer;
   transition:
-    background 0.12s ease,
-    border-color 0.12s ease,
-    color 0.12s ease;
+    background var(--t-rapida) ease,
+    border-color var(--t-rapida) ease,
+    color var(--t-rapida) ease;
 }
 
 .franja-btn:hover {
@@ -153,8 +153,8 @@
   border-radius: var(--r-chico);
   cursor: grab;
   transition:
-    background 0.12s ease,
-    border-color 0.12s ease;
+    background var(--t-rapida) ease,
+    border-color var(--t-rapida) ease;
   user-select: none;
 }
 
@@ -218,6 +218,37 @@
   flex-direction: column;
   gap: 1px;
   margin: 0 -6px;
+}
+
+/* La fila donde se escribe un nombre (crear, renombrar), en su sitio del árbol.
+   Opaca y con borde de acento: un campo translúcido sobre la foto no se
+   distingue del fondo. */
+.arch-editar {
+  flex: none;
+  display: grid;
+  gap: 3px;
+  padding: 2px 8px 2px 0;
+}
+.arch-editar-campo {
+  height: 23px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  border-radius: var(--r-chico);
+  background: var(--popover);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
+  min-width: 0;
+}
+.arch-editar-campo[aria-invalid="true"] {
+  border-color: var(--mal);
+}
+.arch-editar-error {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--mal);
 }
 
 .arch-fila {
@@ -777,6 +808,16 @@
   border-radius: var(--r-chico);
 }
 
+/* Un PDF: el visor del WebView ocupa la hoja entera y trae sus propias páginas,
+   zoom y búsqueda. Sin borde, que ya lo tiene el panel. */
+.ed-pdf {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: var(--panel);
+}
+
 .ed-pie {
   flex: none;
   display: flex;
@@ -825,7 +866,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.12), var(--sombra-2);
   border-radius: var(--r-btn);
   backdrop-filter: blur(16px);
-  animation: paneOverlayIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: paneOverlayIn var(--t-rapida) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes paneOverlayIn {
@@ -846,8 +887,8 @@
   padding: 7px 12px;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ask) 26%, rgba(13, 21, 36, 0.94)),
-    color-mix(in srgb, var(--ask) 15%, rgba(13, 21, 36, 0.94))
+    color-mix(in srgb, var(--ask) 26%, var(--popover)),
+    color-mix(in srgb, var(--ask) 15%, var(--popover))
   );
   border: 1px solid color-mix(in srgb, var(--ask) 45%, transparent);
   color: color-mix(in srgb, var(--ask) 72%, var(--text));
@@ -876,9 +917,9 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 2px 10px color-mix(in srgb, var(--ask) 22%, transparent);
   transition:
-    transform 0.1s ease,
-    box-shadow 0.12s ease,
-    filter 0.12s ease;
+    transform var(--t-rapida) ease,
+    box-shadow var(--t-rapida) ease,
+    filter var(--t-rapida) ease;
 }
 
 .alert-btn:hover {
@@ -900,8 +941,8 @@
   padding: 8px 12px;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--accent) 26%, rgba(13, 21, 36, 0.94)),
-    color-mix(in srgb, var(--accent) 15%, rgba(13, 21, 36, 0.94))
+    color-mix(in srgb, var(--accent) 26%, var(--popover)),
+    color-mix(in srgb, var(--accent) 15%, var(--popover))
   );
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   font-size: 12px;
@@ -935,8 +976,8 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 2px 10px color-mix(in srgb, var(--accent) 22%, transparent);
   transition:
-    transform 0.1s ease,
-    filter 0.12s ease;
+    transform var(--t-rapida) ease,
+    filter var(--t-rapida) ease;
   max-width: 340px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -995,7 +1036,7 @@
   cursor: pointer;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--sombra-2);
-  animation: update-sube 0.16s ease;
+  animation: update-sube var(--t-media) ease;
 }
 
 .pane-pausa:hover {
@@ -1004,7 +1045,7 @@
 
 .pane-note {
   padding: 7px 12px;
-  background: color-mix(in srgb, var(--row) 75%, rgba(13, 21, 36, 0.94));
+  background: color-mix(in srgb, var(--row) 75%, var(--popover));
   border: 1px solid var(--border);
   color: var(--muted);
   font-size: 12px;
@@ -1028,11 +1069,11 @@
   border-radius: var(--r-btn);
   background: linear-gradient(
     180deg,
-    rgba(255, 138, 146, 0.24),
-    rgba(13, 21, 36, 0.96)
+    color-mix(in srgb, var(--mal) 24%, transparent),
+    var(--popover)
   );
-  border: 1px solid rgba(255, 138, 146, 0.5);
-  color: #ffb3b8;
+  border: 1px solid color-mix(in srgb, var(--mal) 50%, transparent);
+  color: color-mix(in srgb, var(--mal) 65%, #fff);
   font-size: 12.5px;
   line-height: 1.5;
   box-shadow: var(--sombra-2);
@@ -1050,11 +1091,11 @@
   padding: 8px 12px;
   background: linear-gradient(
     180deg,
-    rgba(240, 180, 100, 0.22),
-    rgba(13, 21, 36, 0.94)
+    color-mix(in srgb, var(--warn) 22%, transparent),
+    var(--popover)
   );
-  border: 1px solid rgba(240, 180, 100, 0.45);
-  color: #ffd08a;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  color: color-mix(in srgb, var(--warn) 80%, #fff);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -1074,11 +1115,11 @@
 .pane-ctx-warn[data-grave="true"] {
   background: linear-gradient(
     180deg,
-    rgba(255, 138, 146, 0.22),
-    rgba(13, 21, 36, 0.94)
+    color-mix(in srgb, var(--mal) 22%, transparent),
+    var(--popover)
   );
-  border-color: rgba(255, 138, 146, 0.5);
-  color: #ffb3b8;
+  border-color: color-mix(in srgb, var(--mal) 50%, transparent);
+  color: color-mix(in srgb, var(--mal) 65%, #fff);
 }
 
 .panel {
@@ -1221,7 +1262,7 @@
    algún sitio: con cero sesiones en marcha no hay nada que ir a ver. */
 button.stat-card[data-live="true"] {
   cursor: pointer;
-  transition: border-color .14s ease, transform .14s ease;
+  transition: border-color var(--t-rapida) ease, transform var(--t-rapida) ease;
 }
 button.stat-card[data-live="true"]:hover {
   border-color: color-mix(in srgb, var(--accent) 60%, transparent);

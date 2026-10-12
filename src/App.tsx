@@ -2666,7 +2666,7 @@ function App() {
       <PedirSecreto />
       <Paleta panes={panes} delLienzo={canvasPanes} irA={setView} abrirProyecto={openClaude} irATerminal={irATerminal} raiz={raizArchivos} abrirArchivo={abrirArchivo} />
       <AlCerrar />
-      {/* Lo último cerrado, con su Deshacer: quince segundos y se va. */}
+      {/* Lo último cerrado, con su Deshacer: cinco segundos y se va (`AVISO_MS`). */}
       {deshacer && (
         <div className="deshacer-pill" role="status">
           <span>{t("Cerrada «{n}»", { n: deshacer })}</span>
@@ -3159,7 +3159,11 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     data-urge={pinta.urge || undefined}
                     data-grupo={porGrupo || undefined}
                     style={p.team ? { ["--crew" as string]: p.team.color } : undefined}
-                    data-tip={`${p.name}\n${t(pinta.label)}\n\n${
+                    /* Sin globo: repetía el nombre que la ficha ya enseña y su
+                       estado, que ya dice el color, y tapaba la tira al pasar
+                       el ratón (Munir, 2026-10-11: «quita esto»). Lo mismo, sin
+                       verse, para quien navega con lector de pantalla. */
+                    aria-label={`${p.name}, ${t(pinta.label)}. ${
                       porGrupo
                         ? t("Está apartada con su grupo. Pulsa para traer el grupo entero.")
                         : t("Traerla de vuelta al mosaico")
@@ -3183,7 +3187,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                         letra lo que el color ya decía de un vistazo, y encima
                         empujaba el nombre de la terminal, que es lo único que
                         de verdad distingue una ficha de otra en la tira (Munir,
-                        2026-08-19). Sigue escrito en el tooltip. */}
+                        2026-08-19). Sigue dicho en su etiqueta accesible. */}
                     {/* Lo que cuesta tenerla apartada. Aquí es donde de verdad
                         hacía falta: una terminal a la vista se ve trabajando,
                         una escondida solo se recuerda si algo dice lo que

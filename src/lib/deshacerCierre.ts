@@ -36,8 +36,10 @@ export interface ManosDelDeshacer {
   setView: (v: "cabina" | "lienzo") => void;
 }
 
-/** Cuánto dura el aviso de «cerrada», y con él el Ctrl+Z dentro del Lienzo. */
-export const AVISO_MS = 15_000;
+/** Cuánto dura el aviso de «cerrada», y con él el Ctrl+Z dentro del Lienzo.
+    Eran quince segundos, y Munir (2026-10-11): «este aviso tarda mucho en
+    irse». Cinco, lo que dura un «Deshacer» en casi cualquier sitio. */
+export const AVISO_MS = 5_000;
 
 export function useDeshacerCierre({
   panesRef,

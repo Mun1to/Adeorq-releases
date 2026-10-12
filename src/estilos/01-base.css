@@ -794,6 +794,53 @@
      mano. */
   --sombra-2: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0, 0, 0, 0.25);
   --sombra-3: 0 0 0 1px var(--border-strong), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  /* LOS COLORES QUE DICEN ALGO, de la misma guía (Munir, 2026-10-11: «sigue
+     con los colores»). Había 274 colores con matiz escritos a mano en la hoja,
+     151 distintos: cinco verdes para «bien», nueve rojos para «mal», y el azul
+     del tema azul copiado a mano en sitios que en los demás temas se quedaban
+     azules. Ahora un color con matiz sale de una variable: las del tema
+     (`--accent`, `--border`, `--text`…) si es de la superficie, y estas si
+     dice algo que no cambia con el tema. Un tono más claro u oscuro se
+     escribe mezclando con blanco o negro (`color-mix(…, #fff)`), que valen a
+     pelo porque no tienen matiz. Lo vigila `scripts/estilo-check.mjs`. */
+  /* Bien, vivo, hecho, añadido. */
+  --ok: #7ee08a;
+  /* Error, fallo, borrado. Distinto de `--wait` («te espera»). */
+  --mal: #ff8f8f;
+  /* El Modo Espejo, que tiene su color propio para que se sepa dónde estás. */
+  --espejo: #22d3ee;
+  /* Lo que está emitiendo en directo: el piloto rojo de grabar. */
+  --rec: #eb0000;
+  /* El naranja de la marca de Claude, solo donde se habla de Claude. */
+  --marca-claude: #d97757;
+  /* Texto claro encima de un relleno de color o de algo oscuro fijo, en
+     cualquier tema; y un plato claro para los logos oscuros. */
+  --claro: #f4f8ff;
+  /* Texto oscuro encima de una pastilla de color vivo. */
+  --oscuro: #10141c;
+  /* Un fondo oscuro que lo es en cualquier tema: el Espejo, lo que tapa una
+     vista previa, una herramienta encendida con letra blanca. */
+  --hondo: #0b0f18;
+  /* Lo que oscurece lo de detrás de un diálogo. */
+  --velo: rgba(4, 7, 12, 0.55);
+  /* El círculo del selector de color del lienzo. */
+  --arcoiris: conic-gradient(#ff6b6b, #ffd166, #6fe0bb, #5fd0ff, #c4b5fd, #ff6b6b);
+  /* Las guías de alinear del lienzo: un color que no significa nada más aquí,
+     para que se vean sobre una foto clara o una terminal negra. */
+  --guia-lienzo: #ff5cc8;
+
+  /* LAS VELOCIDADES, de la misma guía. Había catorce duraciones distintas en
+     209 transiciones (de 0,09 a 0,5 s), casi todas a 0,12. Tres, como las
+     esquinas: lo que responde a tu mano, lo que se mueve y lo que recorre la
+     pantalla. Lo que dura un segundo o más es un ritmo (el latido de «te
+     espera», la rueda de «cargando») y no sale de aquí. */
+  /* Pasar el ratón, pulsar, cambiar de color. */
+  --t-rapida: 0.12s;
+  /* Abrir un menú, mover un interruptor, entrar un aviso. */
+  --t-media: 0.18s;
+  /* Un panel que entra, un cambio de disposición. */
+  --t-lenta: 0.35s;
 }
 
 /* QUÉ SE VE MIENTRAS ALGO TARDA, de la misma guía (`lib/espera.ts`): nada si
@@ -819,7 +866,7 @@
 }
 [data-espera] {
   opacity: 0.55;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--t-rapida) ease;
 }
 
 * {

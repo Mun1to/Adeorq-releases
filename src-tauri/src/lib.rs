@@ -26,6 +26,8 @@ mod chat;
 mod openrouter;
 mod voz;
 mod pty;
+/// El proceso de terminales (`adeorq.exe --terminales`), ver `docs/contexto/terminales-fuera.md`.
+pub mod terminales;
 mod modos_terminal;
 mod memoria_casa;
 mod vectores;
@@ -117,6 +119,33 @@ pub fn dir_datos() -> Result<std::path::PathBuf, String> {
             .join("share")
             .join("adeorq"))
     }
+}
+
+/// Una copia de una conexión que NO se hereda.
+///
+/// En Windows, `TcpStream::try_clone` devuelve una copia HEREDABLE (el original
+/// no lo es): cada proceso que se lanza después con herencia de identificadores
+/// (cada terminal, cada `taskkill`) se lleva una. Así cada agente de una
+/// terminal tenía en la mano las conexiones MCP de los demás, y al cerrarse esa
+/// terminal la conexión ajena quedaba tocada: el puente MCP se apaga en cuanto
+/// se le corta, y el agente perdía las herramientas de Adeorq sin motivo.
+/// Medido el 2026-10-11 (`terminales::pruebas::los_sockets_no_se_heredan`): de
+/// cuatro sockets, solo el copiado era heredable, y con terminales abriéndose al
+/// lado la conexión del proceso de terminales se rompía sin que el otro lado se
+/// enterase. Toda copia de un socket va por aquí.
+pub fn clon_sin_herencia(s: &std::net::TcpStream) -> std::io::Result<std::net::TcpStream> {
+    let c = s.try_clone()?;
+    #[cfg(windows)]
+    {
+        use std::os::windows::io::AsRawSocket;
+        use windows_sys::Win32::Foundation::{SetHandleInformation, HANDLE_FLAG_INHERIT};
+        // SAFETY: el identificador es del socket que acabamos de crear y sigue
+        // vivo; solo se le quita el permiso de pasar a los hijos.
+        if unsafe { SetHandleInformation(c.as_raw_socket() as _, HANDLE_FLAG_INHERIT, 0) } == 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+    }
+    Ok(c)
 }
 
 /// La misma carpeta, ya creada. La mayoría de los sitios que la piden es para
@@ -319,6 +348,11 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
+            // Las terminales en su propio proceso, si el ajuste está puesto
+            // (`terminales.rs`). Lo PRIMERO y sin hilo aparte: se decide antes
+            // de que la ventana pida su primera terminal, o unas irían dentro de
+            // la app y otras fuera.
+            terminales::arrancar(app.handle());
             // ── AUTOPRUEBA de la ventana suelta (solo builds de desarrollo) ──
             //
             // La ventana suelta se rompió TRES veces sin que ningún test la
@@ -384,6 +418,7 @@ pub fn run() {
             Ok(())
         })
         .manage(PtyState::default())
+        .manage(terminales::Conexion::default())
         .manage(cierre::Cierre::default())
         .manage(SessionCache::default())
         .manage(discord::DiscordState::default())
@@ -421,6 +456,10 @@ pub fn run() {
             decisiones::decision_responder,
             decisiones::decision_entregada,
             decisiones::decision_descartar,
+            decisiones::decisiones_habladas,
+            terminales::terminales_aparte,
+            terminales::terminales_aparte_poner,
+            terminales::terminales_por_actualizar,
             programados::programados_listar,
             programados::programado_guardar,
             programados::programado_borrar,
@@ -442,6 +481,7 @@ pub fn run() {
             pty::pty_resize,
             pty::pty_kill,
             pty::pty_historial,
+            pty::pty_vivas,
             suelta::sacar_panel,
             suelta::raton_en_pantalla,
             suelta::devolver_panel,
@@ -461,6 +501,13 @@ pub fn run() {
             archivos::guardar_archivo,
             archivos::cuando_archivo,
             archivos::leer_imagen,
+            archivos::crear_archivo,
+            archivos::crear_carpeta,
+            archivos::renombrar,
+            archivos::a_la_papelera,
+            archivos::buscar_en_archivos,
+            archivos::guardar_ficha,
+            archivos::leer_pdf,
             esquema::escanear_arbol,
             esquema::resumen_taller,
             esquema::mapa_guardado,
@@ -474,6 +521,7 @@ pub fn run() {
             sessions::last_reply,
             sessions::transcript_exists,
             sessions::codex_session_since,
+            sessions::codex_context,
             memoria_casa::memoria_reglas_router,
             sessions::session_messages,
             sessions::session_activity,

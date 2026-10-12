@@ -7,7 +7,7 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 import { useT } from "../lib/i18n";
-import { anotarRastro } from "../lib/pty";
+import { anotarRastro, terminalesPorActualizar } from "../lib/pty";
 import { useCabina } from "../lib/cabina";
 import { quienFrena, trabajando } from "../lib/actualizar";
 import { AdeorqMark, CloseIcon, DownloadIcon } from "./Icons";
@@ -146,7 +146,11 @@ export default function UpdateBar() {
   const instalar = () => {
     if (!update) return;
     setPhase("downloading");
-    update.install().then(() => setPhase("done")).catch(fallo);
+    // Con las terminales en su propio proceso, aguantan la actualización.
+    void terminalesPorActualizar()
+      .then(() => update.install())
+      .then(() => setPhase("done"))
+      .catch(fallo);
   };
 
   /** Lo que pide el botón. Instalar siempre empieza bajando; el resto lo decide el efecto de abajo. */
@@ -169,7 +173,7 @@ export default function UpdateBar() {
     setPendiente(null);
     setSinEsperar(false);
     if (pendiente === "instalar") instalar();
-    else void relaunch();
+    else void terminalesPorActualizar().then(() => relaunch());
     // `instalar` cierra sobre `update` y cambia en cada render; lo que decide
     // es que haya algo pendiente y que el reloj de arriba vuelva a mirar.
     // eslint-disable-next-line react-hooks/exhaustive-deps

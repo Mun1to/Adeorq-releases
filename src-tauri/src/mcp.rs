@@ -337,11 +337,8 @@ fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
 
     // Vivas de verdad: las que abrió el MCP y siguen en el mapa del PTY. Las que
     // el usuario haya cerrado a mano no cuentan, que para eso las cerró.
-    let vivas = {
-        let pty = app.state::<crate::pty::PtyState>();
-        let map = pty.0.lock().unwrap();
-        aperturas.iter().filter(|(_, id)| map.contains_key(id)).count()
-    };
+    let abiertos = crate::pty::paneles_abiertos(app);
+    let vivas = aperturas.iter().filter(|(_, id)| abiertos.contains(id)).count();
     if vivas >= MAX_VIVOS {
         return Err(format!(
             "Tope alcanzado: ya hay {} terminales vivas abiertas por MCP. \
@@ -360,7 +357,7 @@ fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
 /// lleva su propio recorte de manos.
 pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
     let stream = TcpStream::connect("127.0.0.1:3012")?;
-    let mut stream_writer = stream.try_clone()?;
+    let mut stream_writer = crate::clon_sin_herencia(&stream)?;
     let mut stream_reader = BufReader::new(stream);
     if de_casa {
         stream_writer.write_all(b"{\"adeorq\":\"de-casa\"}\n")?;
@@ -467,7 +464,9 @@ pub fn start_mcp_server(app: tauri::AppHandle) {
 }
 
 fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let mut writer = stream.try_clone()?;
+    // Sin herencia: si no, cada terminal que se abre se lleva una copia de esta
+    // conexión (ver `clon_sin_herencia`).
+    let mut writer = crate::clon_sin_herencia(&stream)?;
     let reader = BufReader::new(stream);
     // Quién habla por esta conexión, tal como se presentó en `initialize`, y si
     // es un puente de casa (Capataz, conserje), que no pasa por el escalón por
@@ -975,8 +974,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                     (campo("name"), campo("model"), campo("state"), campo("porque"))
                 })
             };
-            let pty_state = app.state::<crate::pty::PtyState>();
-            let map = pty_state.0.lock().unwrap();
+            let fichas = crate::pty::fichas(app);
             // Con qué arranque van estos números: un agente que retoma una
             // conversación de ayer recuerda «el panel 3» y hoy ese 3 es otra
             // terminal. Si el arranque que apuntó no es este, que vuelva a listar.
@@ -984,11 +982,9 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 "Arranque de Adeorq: {} (los IDs vuelven a empezar en 1 en cada arranque: si apuntaste uno de otro arranque, no vale).\n",
                 crate::conserje::arranque()
             );
-            let mut ids: Vec<&u32> = map.keys().collect();
-            ids.sort();
-            for id in ids {
-                let session = &map[id];
-                let (nombre, modelo, estado, porque) = etiqueta_de(*id).unwrap_or_default();
+            for f in &fichas {
+                let id = f.id;
+                let (nombre, modelo, estado, porque) = etiqueta_de(id).unwrap_or_default();
                 let mut cabeza = format!("ID: {}", id);
                 if !nombre.is_empty() {
                     cabeza.push_str(&format!(", Nombre: «{}»", nombre));
@@ -1005,42 +1001,32 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                         cabeza.push_str(&format!(" (por qué: {})", porque));
                     }
                 }
-                let cmd_str = session.command.as_ref()
+                let cmd_str = f.command.as_ref()
                     .map(|v| v.join(" "))
                     .unwrap_or_else(|| "default shell".to_string());
                 // El tamaño que el PROCESO cree tener. Es el dato que faltó el
                 // 2026-09-10 para saber desde fuera si un panel y su proceso
                 // estaban de acuerdo: el búfer decía 80 columnas y el panel se
-                // veía más estrecho, y no había forma de preguntarlo. `try_lock`
-                // y no `lock`: un ConPTY colgado en mitad de un resize tiene el
-                // candado cogido, y una consulta no puede quedarse colgada con él.
-                let size = match session.master.try_lock() {
-                    Ok(m) => m
-                        .get_size()
-                        .map(|s| format!("{}x{}", s.cols, s.rows))
-                        .unwrap_or_else(|_| "?".to_string()),
-                    Err(_) => "ocupado".to_string(),
-                };
+                // veía más estrecho, y no había forma de preguntarlo. «ocupado»
+                // es un ConPTY en mitad de un resize (ver `pty::Ficha`).
+                let size = f.tamano.clone().unwrap_or_else(|| "ocupado".to_string());
                 // Y QUIÉN HACE EL SCROLL en ese panel, que es la pregunta que
                 // costó dos sesiones enteras. En la pantalla alternativa manda el
                 // programa (el renderizador «fullscreen» de Claude Code, `less`,
                 // `vim`): xterm no tiene historial ahí y la rueda va a él, así
                 // que un reporte de scroll en ese panel no es de Adeorq. En la
                 // normal manda Adeorq, con toda su capa de congelar y colocar.
-                let pantalla = if session
-                    .pantalla_alternativa
-                    .load(std::sync::atomic::Ordering::Relaxed)
-                {
+                let pantalla = if f.alternativa {
                     "alternativa (el scroll lo hace el programa)"
                 } else {
                     "normal (el scroll lo hace Adeorq)"
                 };
                 text.push_str(&format!(
                     "{}, CWD: {}, Size: {}, Pantalla: {}, Command: {}\n",
-                    cabeza, session.cwd, size, pantalla, cmd_str
+                    cabeza, f.cwd, size, pantalla, cmd_str
                 ));
             }
-            if map.is_empty() {
+            if fichas.is_empty() {
                 text.push_str("No active panes.");
             }
             Ok(json!({
@@ -1060,12 +1046,10 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
             // como siempre; el texto va sin él.
             let texto = cmd.trim_end_matches(['\r', '\n']).to_string();
 
-            let es_claude = {
-                let pty_state = app.state::<crate::pty::PtyState>();
-                let map = pty_state.0.lock().unwrap();
-                let s = map.get(&pane_id).ok_or(format!("Pane {} not found", pane_id))?;
-                s.command.as_ref().is_some_and(|c| c.iter().any(|a| a.contains("claude")))
-            };
+            let es_claude = crate::pty::ficha(app, pane_id)
+                .ok_or(format!("Pane {} not found", pane_id))?
+                .command
+                .is_some_and(|c| c.iter().any(|a| a.contains("claude")));
             let mandado = mandar_texto(app, pane_id, &texto, enviar)?;
             if mandado == crate::pty::Mandado::Tecla {
                 return Ok(json!({ "content": [{ "type": "text", "text": format!(
@@ -1132,12 +1116,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
         }
         "read_pane_screen" => {
             let pane_id = args["paneId"].as_u64().ok_or("Missing paneId parameter")? as u32;
-            {
-                let pty_state = app.state::<crate::pty::PtyState>();
-                let map = pty_state.0.lock().unwrap();
-                if !map.contains_key(&pane_id) {
-                    return Err(format!("Pane {} not found", pane_id));
-                }
+            if !crate::pty::existe(app, pane_id) {
+                return Err(format!("Pane {} not found", pane_id));
             }
             let pantalla = pantalla_de(app, pane_id)
                 .ok_or("La ventana de Adeorq no ha podido dar la pantalla de ese panel (¿está abierta y con el panel pintado?).")?;
@@ -1147,33 +1127,14 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
             let pane_id = args["paneId"].as_u64().ok_or("Missing paneId parameter")? as u32;
             let limit = args["limit"].as_u64().unwrap_or(10000) as usize;
 
-            let pty_state = app.state::<crate::pty::PtyState>();
-            let map = pty_state.0.lock().unwrap();
-            let session = map.get(&pane_id).ok_or(format!("Pane {} not found", pane_id))?;
-            // Tolerante al veneno, como TODO lo que toca este candado (la ley
-            // vive en `pty::tomar`): un pánico previo en cualquier lector no
-            // puede dejar al cliente MCP sin transcripts para siempre.
-            let history = session.history.lock().unwrap_or_else(|e| e.into_inner());
-            let alternativa = session.pantalla_alternativa.load(Ordering::Relaxed);
-
-            // El corte va por BYTES sobre un String UTF-8, así que hay que
-            // caminar hasta la frontera de un caracter. La primera versión
-            // hacía `history[len - limit..]` a pelo: con el volcado del ConPTY
-            // lleno de `│ ─ ●` y acentos, ese indice cae dentro de un caracter
-            // multi-byte con frecuencia, y el pánico además se llevaba el
-            // candado del mapa entero puesto: TODAS las terminales muertas por
-            // leer un transcript. Es el mismo cálculo de `pty_historial`
-            // (pty.rs), que ya lo hacia bien.
-            let len = history.len();
-            let text = if len > limit {
-                let mut corte = len - limit;
-                while corte < len && !history.is_char_boundary(corte) {
-                    corte += 1;
-                }
-                history[corte..].to_string()
-            } else {
-                history.clone()
-            };
+            // El corte va por un límite de carácter y es tolerante al veneno
+            // (`pty::cola_del_historial`). La primera versión hacía
+            // `history[len - limit..]` a pelo: con el volcado del ConPTY lleno
+            // de `│ ─ ●` y acentos, ese índice cae dentro de un carácter con
+            // frecuencia, y el pánico además se llevaba el candado del mapa
+            // entero puesto: TODAS las terminales muertas por leer un transcript.
+            let (text, alternativa) =
+                crate::pty::cola_del_historial(app, pane_id, limit).ok_or(format!("Pane {} not found", pane_id))?;
             // En la pantalla alternativa esto es un flujo de repintados: el
             // título girando, no lo que hay escrito. Se dice, y se manda a la
             // herramienta que sí lo ve.
@@ -1444,7 +1405,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 Some(format!("/#decision={}", d.id)),
             );
             let vuelta = match d.panel {
-                Some(p) => format!("Cuando conteste, su respuesta se teclea en el panel {p}; también la puedes leer con get_decision."),
+                Some(p) => format!("Cuando conteste, su respuesta se teclea en el panel {p}; también la puedes leer con get_decision. Si en vez de eso te escribe en la terminal, esa es su respuesta y la decisión se cierra sola."),
                 None => "Léela con get_decision cuando quieras (sin paneId no se teclea en ninguna terminal).".into(),
             };
             Ok(json!({
@@ -1473,10 +1434,13 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                             .take(10)
                             .map(|d| {
                                 // Una descartada no está «pendiente»: Munir no va a contestarla.
+                                // Ni una hablada: te contestó escribiéndote en la terminal.
                                 let como = if d.respuesta.is_some() {
                                     "contestada"
                                 } else if d.descartada.is_some() {
                                     "descartada"
+                                } else if d.hablada.is_some() {
+                                    "hablada en tu terminal"
                                 } else {
                                     "pendiente"
                                 };
@@ -1500,15 +1464,11 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
             // Que exista se comprueba AQUÍ y no en la ventana, porque el mapa del
             // PTY es la verdad sobre qué corre de verdad. Un id inventado tiene
             // que sonar a error, no a «hecho».
-            {
-                let pty = app.state::<crate::pty::PtyState>();
-                let map = pty.0.lock().unwrap();
-                if !map.contains_key(&pane_id) {
-                    return Err(format!(
-                        "No hay ninguna terminal {}. Mira get_active_panes: puede que ya esté cerrada.",
-                        pane_id
-                    ));
-                }
+            if !crate::pty::existe(app, pane_id) {
+                return Err(format!(
+                    "No hay ninguna terminal {}. Mira get_active_panes: puede que ya esté cerrada.",
+                    pane_id
+                ));
             }
 
             // La ventana es la dueña del panel (cabina, lienzo, layout), así que
@@ -1521,11 +1481,10 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
             // devuelve es el tope por hora, que existe justo para que abrir y
             // cerrar en bucle no salga gratis.
             let vivas = {
+                let abiertos = crate::pty::paneles_abiertos(app);
                 let puente = app.state::<Puente>();
                 let aperturas = puente.aperturas.lock().unwrap();
-                let pty = app.state::<crate::pty::PtyState>();
-                let map = pty.0.lock().unwrap();
-                aperturas.iter().filter(|(_, id)| map.contains_key(id)).count()
+                aperturas.iter().filter(|(_, id)| abiertos.contains(id)).count()
             };
 
             Ok(json!({

@@ -7,16 +7,16 @@
   position: relative;
 }
 .pane-shadow-toggle.is-active {
-  color: #22d3ee !important; /* cyan glow when active */
-  background: rgba(34, 211, 238, 0.12) !important;
-  border-color: rgba(34, 211, 238, 0.4) !important;
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.25);
+  color: var(--espejo) !important; /* cyan glow when active */
+  background: color-mix(in srgb, var(--espejo) 12%, transparent) !important;
+  border-color: color-mix(in srgb, var(--espejo) 40%, transparent) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--espejo) 25%, transparent);
 }
 .pane-shadow-toggle .shadow-badge {
   position: absolute;
   top: -2px;
   right: -2px;
-  background: #ff5f5f;
+  background: color-mix(in srgb, var(--mal) 85%, #000);
   color: white;
   font-size: 9px;
   font-weight: 700;
@@ -35,11 +35,11 @@
   bottom: 0;
   display: flex;
   flex-direction: column;
-  background: rgba(10, 14, 23, 0.96);
+  background: color-mix(in srgb, var(--hondo) 96%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   z-index: 10;
-  animation: diff-panel-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: diff-panel-in var(--t-media) cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
   border-top: 1px solid var(--border);
 }
@@ -55,7 +55,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: rgba(16, 22, 35, 0.85);
+  background: color-mix(in srgb, var(--hondo) 85%, transparent);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -65,7 +65,7 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #22d3ee;
+  color: var(--espejo);
 }
 
 .diff-panel-actions {
@@ -83,31 +83,31 @@
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--t-rapida) ease;
   border: 1px solid transparent;
 }
 
 .diff-btn-accept {
-  background: linear-gradient(180deg, #1f7d45, #145a32);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ok) 50%, #000), color-mix(in srgb, var(--ok) 45%, #000));
   color: #fff;
-  border-color: #27ae60;
-  box-shadow: 0 2px 6px rgba(39, 174, 96, 0.25);
+  border-color: color-mix(in srgb, var(--ok) 65%, #000);
+  box-shadow: 0 2px 6px color-mix(in srgb, color-mix(in srgb, var(--ok) 65%, #000) 25%, transparent);
 }
 .diff-btn-accept:hover {
-  background: #27ae60;
-  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+  background: color-mix(in srgb, var(--ok) 65%, #000);
+  box-shadow: 0 4px 12px color-mix(in srgb, color-mix(in srgb, var(--ok) 65%, #000) 40%, transparent);
   transform: translateY(-1px);
 }
 
 .diff-btn-discard {
-  background: linear-gradient(180deg, #943126, #78281f);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mal) 45%, #000), color-mix(in srgb, var(--mal) 45%, #000));
   color: #fff;
-  border-color: #c0392b;
-  box-shadow: 0 2px 6px rgba(192, 57, 43, 0.25);
+  border-color: color-mix(in srgb, var(--mal) 60%, #000);
+  box-shadow: 0 2px 6px color-mix(in srgb, color-mix(in srgb, var(--mal) 60%, #000) 25%, transparent);
 }
 .diff-btn-discard:hover {
-  background: #c0392b;
-  box-shadow: 0 4px 12px rgba(192, 57, 43, 0.4);
+  background: color-mix(in srgb, var(--mal) 60%, #000);
+  box-shadow: 0 4px 12px color-mix(in srgb, color-mix(in srgb, var(--mal) 60%, #000) 40%, transparent);
   transform: translateY(-1px);
 }
 
@@ -161,7 +161,7 @@
 
 /* Sidebar de archivos */
 .diff-files-sidebar {
-  background: rgba(8, 12, 18, 0.4);
+  background: color-mix(in srgb, var(--hondo) 40%, transparent);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
@@ -194,14 +194,14 @@
   padding: 6px 8px;
   border-radius: var(--r-chico);
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: all var(--t-rapida) ease;
   user-select: none;
 }
 .diff-file-item:hover {
   background: rgba(255, 255, 255, 0.04);
 }
 .diff-file-item.is-selected {
-  background: rgba(34, 211, 238, 0.1);
+  background: color-mix(in srgb, var(--espejo) 10%, transparent);
   color: #fff;
 }
 
@@ -214,9 +214,9 @@
   min-width: 16px;
   text-align: center;
 }
-.file-status-badge.status-m { background: #d35400; color: #fff; } /* Modified */
-.file-status-badge.status-a { background: #27ae60; color: #fff; } /* Added */
-.file-status-badge.status-d { background: #c0392b; color: #fff; } /* Deleted */
+.file-status-badge.status-m { background: color-mix(in srgb, var(--done) 70%, #000); color: #fff; } /* Modified */
+.file-status-badge.status-a { background: color-mix(in srgb, var(--ok) 65%, #000); color: #fff; } /* Added */
+.file-status-badge.status-d { background: color-mix(in srgb, var(--mal) 60%, #000); color: #fff; } /* Deleted */
 
 .file-item-path {
   font-size: 12.5px;
@@ -229,7 +229,7 @@
 /* Visor de Diffs */
 .diff-viewer-content {
   overflow: auto;
-  background: #05080c;
+  background: color-mix(in srgb, var(--hondo) 50%, #000);
   padding: 16px;
   min-height: 0;
 }
@@ -261,21 +261,21 @@
 }
 
 .diff-add {
-  background: rgba(46, 204, 113, 0.15);
-  color: #2ecc71;
-  border-left: 2px solid #2ecc71;
+  background: color-mix(in srgb, color-mix(in srgb, var(--ok) 80%, #000) 15%, transparent);
+  color: color-mix(in srgb, var(--ok) 80%, #000);
+  border-left: 2px solid color-mix(in srgb, var(--ok) 80%, #000);
 }
 
 .diff-del {
-  background: rgba(231, 76, 60, 0.15);
-  color: #e74c3c;
-  border-left: 2px solid #e74c3c;
+  background: color-mix(in srgb, color-mix(in srgb, var(--mal) 75%, #000) 15%, transparent);
+  color: color-mix(in srgb, var(--mal) 75%, #000);
+  border-left: 2px solid color-mix(in srgb, var(--mal) 75%, #000);
 }
 
 .diff-chunk {
-  color: #3498db;
+  color: color-mix(in srgb, var(--accent) 85%, #000);
   opacity: 0.8;
-  background: rgba(52, 152, 219, 0.08);
+  background: color-mix(in srgb, color-mix(in srgb, var(--accent) 85%, #000) 8%, transparent);
 }
 
 .diff-header {
@@ -340,7 +340,7 @@
   padding: 3px 8px;
   border-radius: var(--r-chico);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.12s ease;
+  transition: all var(--t-rapida) ease;
   align-self: center;
 }
 /* Con la pastilla del cerebro delante, la casilla va pegada a ella: los dos con
@@ -350,10 +350,10 @@
   margin-left: 0;
 }
 .plan-shadow-chk:hover {
-  background: rgba(34, 211, 238, 0.1);
-  color: #22d3ee;
-  border-color: rgba(34, 211, 238, 0.25);
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.15);
+  background: color-mix(in srgb, var(--espejo) 10%, transparent);
+  color: var(--espejo);
+  border-color: color-mix(in srgb, var(--espejo) 25%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--espejo) 15%, transparent);
 }
 .plan-shadow-chk input {
   margin: 0;

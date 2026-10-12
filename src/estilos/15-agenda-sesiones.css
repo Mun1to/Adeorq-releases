@@ -87,7 +87,7 @@
 .ag-ses-estado[data-k="tuya"] {
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: #f2f7ff;
+  color: var(--claro);
 }
 
 /* Lo que el modelo entendió, y el encargo cuando no hay modelo. El primero se
@@ -241,7 +241,7 @@
   font: inherit;
   font-size: 11px;
   cursor: pointer;
-  transition: background .12s ease, border-color .12s ease;
+  transition: background var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 .fm-cerebro-btn::after {
   content: "▾";
@@ -466,10 +466,10 @@
   gap: 8px;
   margin-top: 10px;
   padding: 7px 11px;
-  border: 1px solid color-mix(in srgb, #ff5f5f 45%, transparent);
+  border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 45%, transparent);
   border-radius: var(--r-btn);
-  background: color-mix(in srgb, #ff5f5f 14%, transparent);
-  color: #ffc9c9;
+  background: color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 14%, transparent);
+  color: color-mix(in srgb, var(--mal) 50%, #fff);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -480,7 +480,7 @@
   height: 9px;
   flex: none;
   border-radius: 50%;
-  background: #ff5f5f;
+  background: color-mix(in srgb, var(--mal) 85%, #000);
 }
 
 .fm-rec[data-on="true"] .fm-rec-punto {

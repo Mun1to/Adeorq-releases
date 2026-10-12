@@ -115,9 +115,9 @@
 
 .sess-bin:hover,
 .pane-bin:hover {
-  color: #ff8f8f;
-  background: color-mix(in srgb, #ff8f8f 18%, transparent);
-  border-color: rgba(255, 143, 143, 0.5);
+  color: var(--mal);
+  background: color-mix(in srgb, var(--mal) 18%, transparent);
+  border-color: color-mix(in srgb, var(--mal) 50%, transparent);
 }
 
 /* Aquí vivía el estado «armado» de la papelera, cuando borrar una sesión desde
@@ -272,7 +272,7 @@
      `will-change` NO se pone aquí a propósito: son treinta y tres filas y
      promoverlas todas a capa propia para un gesto que dura un segundo cuesta
      más memoria de vídeo de lo que ahorra. */
-  transition: transform 0.22s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: transform var(--t-media) cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 /* Menos la que llevas en la mano: esa la mueve el fantasma y una transición
@@ -440,7 +440,7 @@
   border-radius: var(--r-pastilla);
   background: var(--sc);
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: transform var(--t-rapida) ease;
 }
 
 .sgroup-color:hover {
@@ -533,7 +533,7 @@
 
 .side-label .mini[data-active="true"] {
   color: var(--accent);
-  background: rgba(77, 159, 255, 0.14);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 /* The two ways to read the rail, as one segmented pair. */
@@ -626,7 +626,7 @@
   padding: 7px 10px;
   border-radius: var(--r-chico);
   cursor: pointer;
-  transition: background 0.12s ease;
+  transition: background var(--t-rapida) ease;
 }
 
 .menu-item:hover {
@@ -638,7 +638,7 @@
 }
 
 .menu-warn:hover {
-  color: #f5d67b;
+  color: color-mix(in srgb, var(--warn) 85%, #fff);
 }
 
 .menu-label {
@@ -677,7 +677,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(4, 7, 12, 0.55);
+  background: var(--velo);
   backdrop-filter: blur(3px);
 }
 
@@ -721,12 +721,12 @@
 .modal-ok {
   margin: 0 0 6px;
   font-size: 13px;
-  color: #7ee08a;
+  color: var(--ok);
 }
 
 .modal-warn {
-  border: 1px solid #f5d67b55;
-  background: #f5d67b14;
+  border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--warn) 85%, #fff) 33%, transparent);
+  background: color-mix(in srgb, color-mix(in srgb, var(--warn) 85%, #fff) 8%, transparent);
   border-radius: var(--r-btn);
   padding: 10px 14px;
   margin-bottom: 6px;
@@ -736,7 +736,7 @@
   margin: 0 0 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #f5d67b;
+  color: color-mix(in srgb, var(--warn) 85%, #fff);
 }
 
 .modal-files {
@@ -789,9 +789,9 @@
 
 /* The button that throws something away wears it. */
 .modal-danger {
-  background: linear-gradient(180deg, #ff8f8f, #e05a5a);
-  border-color: rgba(255, 143, 143, 0.6);
-  color: #1a0d10;
+  background: linear-gradient(180deg, var(--mal), color-mix(in srgb, var(--mal) 80%, #000));
+  border-color: color-mix(in srgb, var(--mal) 60%, transparent);
+  color: var(--oscuro);
 }
 
 /* La puerta de atrás del cuadro de borrar: hace lo que casi todo el mundo venía
@@ -872,7 +872,7 @@
   font-size: 13.5px;
   text-align: left;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 
 .wiz-item:hover {
@@ -1002,8 +1002,8 @@
   border: 1px solid transparent;
   cursor: pointer;
   transition:
-    background 0.12s ease,
-    border-color 0.12s ease;
+    background var(--t-rapida) ease,
+    border-color var(--t-rapida) ease;
 }
 
 .ret-item:hover {
@@ -1070,9 +1070,9 @@
   padding: 1px 6px;
   border-radius: var(--r-pastilla);
   font-size: 10.5px;
-  color: #7ee08a;
-  background: rgba(126, 224, 138, 0.14);
-  border: 1px solid rgba(126, 224, 138, 0.34);
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 34%, transparent);
 }
 
 /* Las que ya tienes puestas, en dorado.
@@ -1086,19 +1086,19 @@
   padding: 1px 6px;
   border-radius: var(--r-pastilla);
   font-size: 10.5px;
-  color: #f0c46a;
-  background: rgba(240, 196, 106, 0.14);
-  border: 1px solid rgba(240, 196, 106, 0.36);
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 36%, transparent);
 }
 
 .ret-item[data-ya="true"] {
   cursor: default;
-  border-color: rgba(240, 196, 106, 0.24);
-  background: rgba(240, 196, 106, 0.05);
+  border-color: color-mix(in srgb, var(--warn) 24%, transparent);
+  background: color-mix(in srgb, var(--warn) 5%, transparent);
 }
 
 .ret-item[data-ya="true"] .ret-tit {
-  color: #f0c46a;
+  color: var(--warn);
 }
 
 .ret-item[data-ya="true"] input[type="checkbox"] {
@@ -1109,7 +1109,7 @@
 /* Cuántas de las de la lista ya están puestas, al lado del total. */
 .ret-ya-n {
   margin-left: 6px;
-  color: #f0c46a;
+  color: var(--warn);
   opacity: 0.75;
 }
 
@@ -1119,9 +1119,9 @@
   margin: 8px 0 0;
   padding: 8px 11px;
   border-radius: var(--r-btn);
-  border: 1px solid rgba(240, 196, 106, 0.34);
-  background: rgba(240, 196, 106, 0.09);
-  color: color-mix(in srgb, #f0c46a 62%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent);
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
+  color: color-mix(in srgb, var(--warn) 62%, var(--text));
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1168,7 +1168,7 @@
 }
 
 .side-error {
-  color: #ff8f8f;
+  color: var(--mal);
   font-size: 12px;
   margin: 0;
   padding: 0 4px;

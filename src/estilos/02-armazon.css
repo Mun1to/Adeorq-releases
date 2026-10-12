@@ -214,7 +214,7 @@
   font-weight: 550;
   padding: 5px 11px;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition: background var(--t-rapida) ease, color var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 
 /* El icono manda sobre el texto: es lo que queda cuando el nombre se va. */
@@ -227,7 +227,7 @@
 .tab:hover {
   color: var(--text);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
-  border-color: rgba(160, 200, 255, 0.2);
+  border-color: color-mix(in srgb, color-mix(in srgb, var(--accent) 55%, #fff) 20%, transparent);
   transform: translateY(-1px);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
@@ -315,7 +315,7 @@
   margin-left: -3px;
   cursor: col-resize;
   background: transparent;
-  transition: background 0.12s ease;
+  transition: background var(--t-rapida) ease;
   z-index: 5;
 }
 
@@ -343,12 +343,12 @@
   padding: 7px 12px;
   font-size: 13px;
   outline: none;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  transition: border-color var(--t-rapida) ease, box-shadow var(--t-rapida) ease;
 }
 
 .finder:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(77, 159, 255, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 /* El buscador de la barra, con su X y encendido mientras filtra.
@@ -445,9 +445,9 @@
   line-height: 1;
   cursor: pointer;
   transition:
-    background 0.12s ease,
-    color 0.12s ease,
-    border-color 0.12s ease;
+    background var(--t-rapida) ease,
+    color var(--t-rapida) ease,
+    border-color var(--t-rapida) ease;
 }
 
 .finder-aviso-x:hover {
@@ -489,17 +489,17 @@
   border-radius: var(--r-btn);
   padding: 4px 8px;
   transition:
-    background 0.12s ease,
-    color 0.12s ease,
-    border-color 0.12s ease,
-    transform 0.1s ease,
-    box-shadow 0.12s ease;
+    background var(--t-rapida) ease,
+    color var(--t-rapida) ease,
+    border-color var(--t-rapida) ease,
+    transform var(--t-rapida) ease,
+    box-shadow var(--t-rapida) ease;
 }
 
 .mini:hover {
-  color: #eaf3ff;
-  background: linear-gradient(180deg, rgba(90, 130, 190, 0.62), rgba(46, 68, 104, 0.62));
-  border-color: rgba(140, 185, 255, 0.5);
+  color: color-mix(in srgb, var(--text) 75%, #fff);
+  background: linear-gradient(180deg, color-mix(in srgb, color-mix(in srgb, var(--accent-dim) 75%, #fff) 62%, transparent), color-mix(in srgb, color-mix(in srgb, var(--accent) 45%, #000) 62%, transparent));
+  border-color: color-mix(in srgb, color-mix(in srgb, var(--accent) 65%, #fff) 50%, transparent);
   transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
@@ -518,7 +518,7 @@
    un «←» de teclado y sin caja, el asistente y la bienvenida sin dibujo
    ninguno—, y un botón que no parece un botón no existe (Munir, 2026-08-11). */
 .volver svg {
-  transition: transform 0.14s ease;
+  transition: transform var(--t-rapida) ease;
 }
 
 .volver:hover svg {
@@ -571,7 +571,7 @@
      opaco. Vale para cualquier caja de esta barra que lleve texto dentro. */
   background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
   border: 1px solid transparent;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 
 .project:hover,
@@ -735,7 +735,7 @@
   font-weight: 700;
   letter-spacing: 0.2px;
   user-select: none;
-  transition: border-radius 0.14s ease;
+  transition: border-radius var(--t-rapida) ease;
 }
 
 .pavatar img {
@@ -767,8 +767,8 @@
 /* A dark mark on a transparent background would vanish into the panel, so it
    gets a light plate. Measured once per logo, not guessed. */
 .pavatar[data-plate="light"] {
-  background: #eef1f6;
-  border: 1px solid #c9d2e0;
+  background: color-mix(in srgb, var(--claro) 96%, #000);
+  border: 1px solid color-mix(in srgb, var(--claro) 84%, #000);
 }
 
 /* In a named row the photo is the row's cover: full height, flush with the
@@ -804,9 +804,9 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #7ee08a;
+  background: var(--ok);
   border: 2px solid var(--panel-solid);
-  box-shadow: 0 0 8px #7ee08a99;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ok) 60%, transparent);
 }
 
 /* Discord rounds the square when you open a server; same idea, quieter. */
@@ -832,8 +832,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #7ee08a;
-  box-shadow: 0 0 7px #7ee08a99;
+  background: var(--ok);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--ok) 60%, transparent);
 }
 
 .project-badges {

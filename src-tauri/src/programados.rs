@@ -421,7 +421,7 @@ fn ahora_ms() -> u64 {
         .unwrap_or(0)
 }
 
-/// La hora local. Solo en Windows: es la v1, igual que el segundo plano.
+/// La hora local, con el huso y el horario de verano del sistema.
 #[cfg(windows)]
 pub fn hora_local() -> Option<Local> {
     use windows_sys::Win32::System::SystemInformation::GetLocalTime;
@@ -435,7 +435,24 @@ pub fn hora_local() -> Option<Local> {
     })
 }
 
-#[cfg(not(windows))]
+/// En Linux y macOS, `localtime_r` de la libc: la única de la familia que no
+/// comparte un búfer entre hilos, y sin librería de fechas.
+#[cfg(unix)]
+pub fn hora_local() -> Option<Local> {
+    let ahora = unsafe { libc::time(std::ptr::null_mut()) };
+    let mut t: libc::tm = unsafe { std::mem::zeroed() };
+    if unsafe { libc::localtime_r(&ahora, &mut t) }.is_null() {
+        return None;
+    }
+    Some(Local {
+        fecha: format!("{:04}-{:02}-{:02}", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday),
+        // Como en Windows, el domingo es 0; aquí el lunes es 1 y el domingo 7.
+        dia: if t.tm_wday == 0 { 7 } else { t.tm_wday as u8 },
+        minutos: (t.tm_hour * 60 + t.tm_min) as u16,
+    })
+}
+
+#[cfg(not(any(windows, unix)))]
 pub fn hora_local() -> Option<Local> {
     None
 }
@@ -762,6 +779,17 @@ mod tests {
         fn cortado(&mut self, e: &Encargo) {
             self.cortes.push(e.id.clone());
         }
+    }
+
+    /// La hora de la pared sale en Windows, Linux y macOS, y con su forma: sin
+    /// ella el reloj no arranca y nada se lanza solo.
+    #[test]
+    fn la_hora_local_sale_en_cada_sistema() {
+        let l = hora_local().expect("este sistema no da la hora local");
+        assert!((1..=7).contains(&l.dia), "día {}", l.dia);
+        assert!(l.minutos < 24 * 60, "minutos {}", l.minutos);
+        let b = l.fecha.as_bytes();
+        assert!(l.fecha.len() == 10 && b[4] == b'-' && b[7] == b'-' && l.fecha.starts_with("20"), "fecha {}", l.fecha);
     }
 
     #[test]

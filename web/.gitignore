@@ -5,7 +5,9 @@ dist/
 
 # La portada inglesa: la genera scripts/hacer-ingles.mjs desde index.html en
 # cada build. Versionarla sería tener dos fuentes del mismo texto.
-en/
+# Con la barra delante: solo la de la raíz de la web. Sin ella se llevaba
+# también `assets/screens/en/`, que son las capturas en inglés y sí se versionan.
+/en/
 
 # Local secrets (never commit)
 .dev.vars

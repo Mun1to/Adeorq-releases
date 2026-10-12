@@ -1,0 +1,21 @@
+{
+  "nombre": "en-mobile",
+  "sesion": "ada2f662-81e8-4a93-afd6-7715ee287b57",
+  "cwd": "P:\\projects\\mobile-app",
+  "cols": 90,
+  "rows": 22,
+  "command": [
+    "cmd.exe",
+    "/k",
+    "chcp 65001 >nul && claude --session-id ada2f662-81e8-4a93-afd6-7715ee287b57 --model opus --setting-sources project,local --strict-mcp-config --permission-mode default"
+  ],
+  "pasos": [
+    { "espera": "❯ No, exit", "ms": 9000, "opcional": true, "escribe": ["\u001b[B", "\r"] },
+    { "espera": "❯ 1. Yes", "ms": 1500, "opcional": true, "escribe": "\r" },
+    { "quieto": 3000, "tope": 25000 },
+    { "escribe": "Install the dependencies and run the tests." },
+    { "duerme": 600 },
+    { "escribe": "\r" },
+    { "hasta": { "texto": "Do you want to proceed?", "ocioso": 12000, "tope": 150000, "luego": 2500 } }
+  ]
+}

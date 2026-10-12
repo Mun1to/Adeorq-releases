@@ -2451,19 +2451,52 @@ const EN: Record<string, string> = {
     "Still: performance mode is on (it switches itself on with four terminals). \"Spin even when saving\" overrides it.",
   // La pestaña Decisiones (DecisionesView.tsx). «Decisiones» entra por
   // t(tab.label), igual que Memoria, y el comprobador no la ve.
+  // Guardar una nota del lienzo como ficha (CanvasNote.tsx).
+  "Para repetirla": "To repeat it",
+  "Guardar como ficha": "Save as a runbook",
+  "Guardada como ficha: docs/fichas/{n}.": "Saved as a runbook: docs/fichas/{n}.",
+  // «Buscar en los archivos», el tercer modo de la paleta (Paleta.tsx).
+  "Buscar en los archivos": "Search in the files",
+  "Qué busco dentro de los archivos": "What should I look for inside the files",
+  "Escribe al menos dos letras.": "Type at least two letters.",
+  "Buscando en los archivos…": "Searching the files…",
+  "No sale en ningún archivo.": "It does not appear in any file.",
+  // El clic derecho del árbol de Archivos: crear, renombrar, papelera.
+  "Archivo nuevo…": "New file…",
+  "Carpeta nueva…": "New folder…",
+  "Renombrar…": "Rename…",
+  "Mandar a la papelera": "Move to the recycle bin",
+  Nombre: "Name",
+  // Ajustes › Terminales: las terminales en su propio proceso (TerminalesAparte.tsx).
+  "Que las terminales aguanten si Adeorq se cae": "Keep the terminals alive if Adeorq crashes",
+  "Se aplica la próxima vez que abras Adeorq.": "It applies the next time you open Adeorq.",
+  "En pruebas. Si Adeorq se cierra de golpe, tus agentes siguen trabajando y al volver a abrirla se reenganchan con lo que hicieron. Cerrarla tú las cierra, como siempre, y si en media hora no vuelves, se cierran solas.":
+    "Experimental. If Adeorq closes suddenly, your agents keep working, and when you open it again they reattach with what they did. Closing it yourself closes them, as always, and if you do not come back within half an hour, they close on their own.",
   Decisiones: "Decisions",
-  "Lo que te preguntan tus agentes. Se contestan aquí o desde el móvil, y la respuesta vuelve sola a su terminal.":
-    "What your agents ask you. Answer here or from your phone, and the answer goes back to its terminal on its own.",
-  "No hay ninguna decisión. Cuando un agente te pregunte algo con ask_decision, sale aquí y en el móvil.":
-    "No decisions yet. When an agent asks you something with ask_decision, it shows up here and on your phone.",
   "Te esperan": "Waiting for you",
-  // Las que siguen vivas y las que no (`Vigencia` en decisiones.rs).
-  "Ya no las espera nadie": "Nobody is waiting for these",
-  "Descartar las {n}": "Discard all {n}",
-  Cerradas: "Closed",
+  "Nada te espera": "Nothing is waiting for you",
+  "1 te espera": "1 waiting for you",
+  // Las que siguen vivas y las que no (`Vigencia` en decisiones.rs). Desde el
+  // 2026-10-11 todo lo que ya no espera va junto y se borra solo a la semana.
+  Anteriores: "Earlier",
+  "Ya no te esperan. A la semana se borran solas.": "They are not waiting for you any more. They delete themselves after a week.",
+  "sin nadie detrás": "nobody behind it",
+  hablada: "talked over",
+  contestada: "answered",
+  "Tu respuesta": "Your answer",
+  Falta: "Missing",
+  "Sin contestar": "Not answered",
+  "No te espera ninguna decisión": "No decision is waiting for you",
+  "Las anteriores están a la izquierda, por si quieres repasarlas. A la semana se borran solas.":
+    "The earlier ones are on the left, in case you want to look back. They delete themselves after a week.",
+  "Cuando un agente te pregunte algo con ask_decision, sale aquí y en el móvil.":
+    "When an agent asks you something with ask_decision, it shows up here and on your phone.",
   "El panel {n} sigue abierto y espera tu respuesta.": "Pane {n} is still open and waiting for your answer.",
+  "Te espera: el agente la leerá cuando la pida.": "Waiting for you: the agent will read it when it asks for it.",
   "Ya no la espera nadie: la terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio.":
     "Nobody is waiting for it: the terminal that asked is closed. If you answer, it is saved, but not typed anywhere.",
+  "La hablaste con el agente: le escribiste a su terminal {cuando}. Si no era eso, aún puedes contestarla aquí.":
+    "You talked it over with the agent: you wrote to its terminal {cuando}. If that was not it, you can still answer here.",
   "La descartaste {cuando}, sin contestarla.": "You discarded it {cuando}, without answering.",
   "panel {n}": "pane {n}",
   "1 pregunta": "1 question",

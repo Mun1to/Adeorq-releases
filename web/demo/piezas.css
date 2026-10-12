@@ -848,8 +848,9 @@
    es una tira de colores distintos. La maqueta los pintaba con iniciales sobre
    el mismo azul para todos, que es lo que la delataba a un metro de distancia.
 
-   Estos salen recortados de la captura de la Cabina que ya se publica en esta
-   misma web (web/assets/screens/cockpit.png), asi que no enseñan nada nuevo. Y
+   Estos salen recortados de la captura de la Cabina que se publicaba entonces en
+   esta misma web (la de hoy, web/assets/screens/es/cockpit.png, es de un taller
+   de demostracion y ya no los trae), asi que no enseñaban nada nuevo. Y
    como el recorte YA trae el fondo del avatar, llena el marco entero en vez de
    flotar dentro con el hueco que la app le deja a un logo transparente. */
 .ade .pavatar[data-foto] {

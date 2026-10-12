@@ -24,6 +24,23 @@
   --r-pastilla: 999px;
   --sombra-2: 0 0 0 1px var(--border-strong), 0 4px 12px rgba(0, 0, 0, 0.25);
   --sombra-3: 0 0 0 1px var(--border-strong), 0 8px 24px rgba(0, 0, 0, 0.35);
+  /* Y los colores que dicen algo y las tres velocidades, de la misma guia
+     (2026-10-11): las reglas extraidas ya no llevan colores ni tiempos a mano,
+     salen de estas. */
+  --ok: #7ee08a;
+  --mal: #ff8f8f;
+  --espejo: #22d3ee;
+  --rec: #eb0000;
+  --marca-claude: #d97757;
+  --claro: #f4f8ff;
+  --oscuro: #10141c;
+  --hondo: #0b0f18;
+  --velo: rgba(4, 7, 12, 0.55);
+  --arcoiris: conic-gradient(#ff6b6b, #ffd166, #6fe0bb, #5fd0ff, #c4b5fd, #ff6b6b);
+  --guia-lienzo: #ff5cc8;
+  --t-rapida: 0.12s;
+  --t-media: 0.18s;
+  --t-lenta: 0.35s;
   --pane-abre: 1;
 
   /* El verde de «esto ha ido bien». Mezclado con el texto del tema y no fijo:

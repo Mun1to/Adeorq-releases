@@ -1,11 +1,11 @@
 {
-  "version": "0.9.191",
-  "notes": "La mascota se llama Adeo y tiene diez estados, con teclado y todo; una sola escala de esquinas y sombras en toda la app; una regla para lo que ves mientras algo tarda; la campana se limpia sola y hay menos avisos de mas",
-  "pub_date": "2026-10-11T01:09:40Z",
+  "version": "0.9.192",
+  "notes": "Las terminales pueden aguantar si Adeorq se cae (ajuste en pruebas, apagado de fabrica); Archivos crea, renombra, manda a la papelera, busca texto con Ctrl+K y ensena los PDF; una nota del Lienzo se guarda como ficha; Codex dice si trabaja o termino y su tarjeta de Cuentas ensena su propia cuota; las decisiones se cierran solas; y los encargos programados van tambien en Linux y macOS",
+  "pub_date": "2026-10-12T01:57:40Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzhKdlMzV01oMS83a3ZucmNFWGJzTGZzL0tmM21YdFpQYnlyYzFhcFdkbDFOMjAwWHE2Z3Nnb3JId0YrMzlqYmNRVVRHdGVFdSt5UXgwR241YzlHQkFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjgwOTY1CWZpbGU6QWRlb3JxXzAuOS4xOTFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTEKUzRNTFl0K1gwSG56M0kvTTFUQUdsRWpmc0pMWEgzSUI0cjFXTFhnck90aVBMV25vMXowN21TblpzZ2ZsOWhyK0U2UlpNbDhPdnlZdDZFYWpabzVPQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.191/Adeorq_0.9.191_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzFDeWgwNngwSEpFY0ZBWDYwc2FvVG9ZQ2RqMEgrbVhlcktzdUFnZ1BWQmsyZ3RVNlc1UndPMzRwMEk5N1hzczFJTlhOdGpONTFMQXdRakVpNno0VUFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNzcwMjQzCWZpbGU6QWRlb3JxXzAuOS4xOTJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTIKTHZYN1RkUThiS0xqYjVhb3NOZjRqOW9DcTZTYng3RFN6R1JNdFB5MzY0SWxyNEhWOUtLT2l4NmpPSUhha2poT3dsZnVqUm5aY1BvOG5mSmdSY25EQkE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.192/Adeorq_0.9.192_x64-setup.exe"
     }
   }
 }

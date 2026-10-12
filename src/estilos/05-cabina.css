@@ -104,7 +104,7 @@
   height: 100%;
   border-radius: var(--r-pastilla);
   background: var(--crew);
-  transition: width 0.3s ease;
+  transition: width var(--t-lenta) ease;
 }
 
 .crew-prog-txt {
@@ -118,8 +118,8 @@
   flex: none;
   padding: 1px 7px;
   border-radius: var(--r-pastilla);
-  background: color-mix(in srgb, var(--warn, #ffd166) 22%, transparent);
-  color: var(--warn, #ffd166);
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
+  color: var(--warn);
   font-size: 11px;
   font-weight: 700;
 }
@@ -217,8 +217,8 @@
   font-size: 11.5px;
   cursor: pointer;
   transition:
-    background 0.12s ease,
-    border-color 0.12s ease;
+    background var(--t-rapida) ease,
+    border-color var(--t-rapida) ease;
 }
 
 /* La primera no se come el borde de nadie. */
@@ -290,14 +290,14 @@
 /* El que te espera, incluso minimizado. Es el caso entero por el que esta
    tira existe en vez de que la terminal simplemente desaparezca. */
 .minim-chip[data-urge] {
-  border-top-color: var(--warn, #ffd166);
+  border-top-color: var(--warn);
   /* Sobre `--panel` y no sobre `--row`: es la ficha que MÁS tiene que leerse
      de la tira, y `--row` es translúcido. */
-  background: color-mix(in srgb, var(--warn, #ffd166) 16%, var(--panel));
+  background: color-mix(in srgb, var(--warn) 16%, var(--panel));
 }
 
 .minim-chip[data-urge] .minim-ico {
-  color: var(--warn, #ffd166);
+  color: var(--warn);
 }
 
 /* Lo que cuesta tenerla apartada. Va al final de la píldora y en tono apagado:
@@ -330,9 +330,9 @@
 
 /* Armado: ya no es una ✕, es una pregunta, y se pinta como lo que va a hacer. */
 .crew-cerrar[data-armado] {
-  border-color: color-mix(in srgb, var(--bad, #ff6b6b) 60%, var(--border));
-  background: color-mix(in srgb, var(--bad, #ff6b6b) 18%, transparent);
-  color: var(--bad, #ff6b6b);
+  border-color: color-mix(in srgb, var(--bad, var(--mal)) 60%, var(--border));
+  background: color-mix(in srgb, var(--bad, var(--mal)) 18%, transparent);
+  color: var(--bad, var(--mal));
   font-size: 11px;
   font-weight: 700;
 }
@@ -367,8 +367,8 @@
   text-align: left;
   cursor: pointer;
   transition:
-    background 0.12s ease,
-    border-color 0.12s ease;
+    background var(--t-rapida) ease,
+    border-color var(--t-rapida) ease;
 }
 
 .crew-card:hover {
@@ -379,12 +379,12 @@
 /* El que te espera manda sobre el color de su cuadrilla: es lo único de todo
    el tablero que te pide algo, y tiene que encontrarse sin buscarlo. */
 .crew-card[data-urge] {
-  border-left-color: var(--warn, #ffd166);
-  background: color-mix(in srgb, var(--warn, #ffd166) 11%, transparent);
+  border-left-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 11%, transparent);
 }
 
 .crew-card[data-hecho] {
-  border-left-color: color-mix(in srgb, var(--done, #6fe0bb) 70%, transparent);
+  border-left-color: color-mix(in srgb, var(--done, var(--ok)) 70%, transparent);
   opacity: 0.72;
 }
 
@@ -415,11 +415,11 @@
 
 .crew-card[data-urge] .crew-card-ico,
 .crew-card[data-urge] .crew-card-estado {
-  color: var(--warn, #ffd166);
+  color: var(--warn);
 }
 
 .crew-card[data-hecho] .crew-card-ico {
-  color: var(--done, #6fe0bb);
+  color: var(--done, var(--ok));
 }
 
 .crew-card-rato {
@@ -548,7 +548,7 @@
   position: absolute;
   z-index: 5;
   background: transparent;
-  transition: background 0.12s ease;
+  transition: background var(--t-rapida) ease;
 }
 
 .divider:hover,
@@ -637,7 +637,7 @@ html[data-panes="tarjetas"] .divider-row {
      sea exactamente lo de siempre. */
   background: linear-gradient(
       180deg,
-      rgba(77, 159, 255, 0.05),
+      color-mix(in srgb, var(--accent) 5%, transparent),
       transparent 90px
     ),
     color-mix(
@@ -857,12 +857,12 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   font-size: 15px;
   cursor: pointer;
   padding: 0 5px;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition: background var(--t-rapida) ease, color var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 
 .pane-close:hover {
-  color: #ff8f8f;
-  background: color-mix(in srgb, #ff8f8f 16%, transparent);
+  color: var(--mal);
+  background: color-mix(in srgb, var(--mal) 16%, transparent);
 }
 
 /* En una ventana suelta ese botón no cierra nada: DEVUELVE la terminal al
@@ -940,7 +940,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
 .buscar-term-nada {
   /* El mismo rojo que la papelera del panel, que es el que ya usa la casa para
      decir «ojo con esto». No hay variable para él, y aquí no se inventa una. */
-  border-color: #ff8f8f;
+  border-color: var(--mal);
 }
 
 .buscar-term-cuenta {
@@ -968,7 +968,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
 }
 
 .buscar-term-btn:hover {
-  background: rgba(140, 170, 220, 0.16);
+  background: var(--border);
   color: var(--text);
 }
 
@@ -1103,17 +1103,17 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   border-radius: var(--r-chico);
   padding: 2px 5px;
   transition:
-    background 0.12s ease,
-    color 0.12s ease,
-    border-color 0.12s ease,
-    transform 0.1s ease,
-    box-shadow 0.12s ease;
+    background var(--t-rapida) ease,
+    color var(--t-rapida) ease,
+    border-color var(--t-rapida) ease,
+    transform var(--t-rapida) ease,
+    box-shadow var(--t-rapida) ease;
 }
 
 .pane-btn:hover {
-  color: #cfe6ff;
-  background: linear-gradient(180deg, rgba(90, 130, 190, 0.55), rgba(40, 62, 98, 0.55));
-  border-color: rgba(140, 185, 255, 0.35);
+  color: color-mix(in srgb, var(--accent) 25%, #fff);
+  background: linear-gradient(180deg, color-mix(in srgb, color-mix(in srgb, var(--accent-dim) 75%, #fff) 55%, transparent), color-mix(in srgb, color-mix(in srgb, var(--accent-dim) 65%, #000) 55%, transparent));
+  border-color: color-mix(in srgb, color-mix(in srgb, var(--accent) 65%, #fff) 35%, transparent);
   transform: translateY(-1px);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -1134,8 +1134,8 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   font-size: 10.5px;
   font-weight: 600;
   color: var(--accent);
-  background: rgba(77, 159, 255, 0.12);
-  border: 1px solid rgba(77, 159, 255, 0.25);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   border-radius: var(--r-chico);
   padding: 2px 7px;
   white-space: nowrap;
@@ -1184,7 +1184,7 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
 }
 
 .pane-agents[data-live="true"] {
-  color: #0e1a2b;
+  color: var(--on-accent);
   background: var(--accent);
 }
 /* Con historial que leer es un botón: al posarse o al pulsarlo sale la lista
@@ -1316,10 +1316,10 @@ button.pane-agents[data-on] {
 .sess-abierta {
   flex: none;
   padding: 1px 5px;
-  border: 1px solid color-mix(in srgb, #5bd18b 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent);
   border-radius: var(--r-chico);
-  background: color-mix(in srgb, #5bd18b 14%, transparent);
-  color: #5bd18b;
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1445,7 +1445,7 @@ button.pane-agents[data-on] {
 }
 
 /* ── Cerrada «tal»: el Deshacer de una terminal recién cerrada ─────────────
-   Abajo y centrada, de cristal, quince segundos. Dice qué se cerró y cómo
+   Abajo y centrada, de cristal, cinco segundos (`AVISO_MS`). Dice qué se cerró y cómo
    volver (Ctrl+Z fuera de una terminal, o el botón). */
 .deshacer-pill {
   position: fixed;

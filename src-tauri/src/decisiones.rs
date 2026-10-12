@@ -26,8 +26,12 @@ pub const TOPE_PREGUNTAS: usize = 8;
 pub const TOPE_OPCIONES: usize = 6;
 pub const TOPE_TITULO: usize = 200;
 pub const TOPE_TEXTO: usize = 2000;
-/// Las contestadas que se guardan; las pendientes no se borran nunca solas.
+/// Las que ya no esperan a nadie y se guardan; las vivas no se borran nunca solas.
 pub const TOPE_GUARDADAS: usize = 100;
+/// Lo que dura una que ya no espera a nadie, desde lo último que le pasó.
+/// Munir, 2026-10-11, con nueve sin nadie detrás en la pestaña: «haz algo para
+/// que se limpie sola».
+pub const DIAS_GUARDADAS: u64 = 7;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Opcion {
@@ -90,6 +94,10 @@ pub struct Decision {
     /// Cuándo la apartó Munir sin contestarla (milisegundos).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub descartada: Option<u64>,
+    /// Cuándo le escribió Munir a la terminal que preguntó, sin haberla
+    /// contestado aquí (milisegundos): lo habló con el agente.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hablada: Option<u64>,
 }
 
 /// En qué punto está una decisión, que es lo que se pinta.
@@ -105,6 +113,11 @@ pub enum Vigencia {
     Viva,
     /// Sin contestar, pero su terminal ya no está: nadie la espera.
     Huerfana,
+    /// Sin contestar aquí, pero Munir le escribió después a la terminal que
+    /// preguntó. Es como casi siempre contesta (2026-10-11: nueve «pendientes»
+    /// que ya había resuelto de palabra), y la misma regla de la campana: lo
+    /// que atiendes en su terminal deja de esperarte.
+    Hablada,
     Contestada,
     Descartada,
 }
@@ -127,11 +140,22 @@ pub fn vigencia(d: &Decision, arranque: u64, abiertos: &[u32]) -> Vigencia {
     if d.descartada.is_some() {
         return Vigencia::Descartada;
     }
+    if d.hablada.is_some() {
+        return Vigencia::Hablada;
+    }
     let sigue = match (d.panel, d.arranque) {
         (Some(panel), Some(a)) => a == arranque && abiertos.contains(&panel),
         _ => d.creada >= arranque,
     };
     if sigue { Vigencia::Viva } else { Vigencia::Huerfana }
+}
+
+/// Lo último que le pasó, para saber cuánto lleva sin esperar a nadie.
+fn ultimo_movimiento(d: &Decision) -> u64 {
+    [d.respuesta.as_ref().map(|r| r.cuando), d.descartada, d.hablada]
+        .into_iter()
+        .flatten()
+        .fold(d.creada, u64::max)
 }
 
 pub fn con_vigencia(d: Decision, arranque: u64, abiertos: &[u32]) -> ConVigencia {
@@ -217,6 +241,7 @@ pub fn validar(p: &Pedido, ahora: u64, arranque: u64) -> Result<Decision, String
         preguntas,
         respuesta: None,
         descartada: None,
+        hablada: None,
     })
 }
 
@@ -248,7 +273,6 @@ pub fn crear(dir: &Path, mut d: Decision) -> Result<Decision, String> {
         d.id = format!("d{:x}", d.creada);
     }
     escribir(dir, &d)?;
-    podar(dir);
     Ok(d)
 }
 
@@ -270,15 +294,43 @@ pub fn listar(dir: &Path) -> Vec<Decision> {
     todas
 }
 
-/// Las cerradas más viejas (contestadas o descartadas) se van cuando pasan de
-/// `TOPE_GUARDADAS`.
-fn podar(dir: &Path) {
-    let contestadas: Vec<Decision> = listar(dir).into_iter().filter(cerrada).collect();
-    for d in contestadas.iter().skip(TOPE_GUARDADAS) {
-        if let Some(r) = ruta(dir, &d.id) {
-            let _ = std::fs::remove_file(r);
+/// La limpieza, que se hace sola: de las que ya no esperan a nadie (todo menos
+/// las vivas) se van las que llevan más de `DIAS_GUARDADAS` sin que les pase
+/// nada, y de las que quedan, las que pasen de `TOPE_GUARDADAS`. Una viva no se
+/// borra nunca. Devuelve cuántas se fueron.
+pub fn podar(dir: &Path, arranque: u64, abiertos: &[u32], ahora: u64) -> usize {
+    let caduca = DIAS_GUARDADAS * 86_400_000;
+    let mut pasadas: Vec<Decision> =
+        listar(dir).into_iter().filter(|d| vigencia(d, arranque, abiertos) != Vigencia::Viva).collect();
+    pasadas.sort_by_key(|d| std::cmp::Reverse(ultimo_movimiento(d)));
+    let mut fuera = 0;
+    for (i, d) in pasadas.iter().enumerate() {
+        if i < TOPE_GUARDADAS && ahora.saturating_sub(ultimo_movimiento(d)) <= caduca {
+            continue;
+        }
+        if ruta(dir, &d.id).is_some_and(|r| std::fs::remove_file(r).is_ok()) {
+            fuera += 1;
         }
     }
+    fuera
+}
+
+/// Munir acaba de escribirle a esa terminal: lo que le hubiera preguntado y
+/// siguiera esperando se da por hablado. Solo las de este arranque (en otro,
+/// ese número es otra terminal) y las de antes de `ahora`. Devuelve sus ids.
+pub fn marcar_habladas(dir: &Path, panel: u32, arranque: u64, ahora: u64) -> Vec<String> {
+    let mut ids = Vec::new();
+    for mut d in listar(dir) {
+        let suya = d.panel == Some(panel) && d.arranque == Some(arranque);
+        if !suya || cerrada(&d) || d.hablada.is_some() || d.creada > ahora {
+            continue;
+        }
+        d.hablada = Some(ahora);
+        if escribir(dir, &d).is_ok() {
+            ids.push(d.id);
+        }
+    }
+    ids
 }
 
 /// Apunta la respuesta. Cada pregunta necesita una opción que exista o unas
@@ -356,6 +408,12 @@ pub fn como_texto(d: &Decision) -> String {
                 d.titulo, d.id
             );
         }
+        if d.hablada.is_some() {
+            return format!(
+                "La decisión «{}» ({}) no se contestó en la pestaña: Munir te escribió en tu terminal después de que preguntaras, así que su respuesta está en lo que te dijo allí. Si no te contestó eso, pregúntaselo de nuevo.",
+                d.titulo, d.id
+            );
+        }
         return format!("La decisión «{}» ({}) sigue sin contestar.", d.titulo, d.id);
     };
     let mut s = format!("Munir ha contestado a «{}» (decisión {}):", d.titulo, d.id);
@@ -404,7 +462,21 @@ pub fn avisar_cambio(app: &tauri::AppHandle) {
 pub fn decisiones_listar(app: tauri::AppHandle) -> Result<Vec<ConVigencia>, String> {
     let abiertos = crate::pty::paneles_abiertos(&app);
     let arranque = crate::conserje::arranque();
-    Ok(listar(&dir_de_verdad()?).into_iter().map(|d| con_vigencia(d, arranque, &abiertos)).collect())
+    let dir = dir_de_verdad()?;
+    // La limpieza va con la lectura: es cuando alguien la está mirando.
+    podar(&dir, arranque, &abiertos, ahora_ms());
+    Ok(listar(&dir).into_iter().map(|d| con_vigencia(d, arranque, &abiertos)).collect())
+}
+
+/// Munir escribió en esa terminal (lo dice la ventana, que es quien ve las
+/// teclas): lo que le hubiera preguntado deja de esperarle.
+#[tauri::command(async)]
+pub fn decisiones_habladas(app: tauri::AppHandle, panel: u32) -> Result<usize, String> {
+    let ids = marcar_habladas(&dir_de_verdad()?, panel, crate::conserje::arranque(), ahora_ms());
+    if !ids.is_empty() {
+        avisar_cambio(&app);
+    }
+    Ok(ids.len())
 }
 
 fn ahora_ms() -> u64 {
@@ -624,6 +696,49 @@ mod tests {
         // Un archivo de antes de que existiera «descartada» se sigue leyendo.
         let viejo = serde_json::json!({ "id": "d1", "titulo": "Vieja", "creada": 1, "preguntas": [] });
         assert_eq!(serde_json::from_value::<Decision>(viejo).unwrap().descartada, None);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// Lo que pidió Munir el 2026-10-11: «que se limpie sola». Escribirle a la
+    /// terminal que preguntó la da por hablada, y lo que ya no espera a nadie
+    /// se borra a la semana.
+    #[test]
+    fn hablarle_a_su_terminal_la_cierra_y_lo_viejo_se_va_solo() {
+        let d = dir();
+        let dia = 86_400_000u64;
+        let suya = crear(&d, validar(&pedido(), 1000, 77).unwrap()).unwrap();
+        let mut otro = pedido();
+        otro.panel = Some(5);
+        let de_otro = crear(&d, validar(&otro, 2000, 77).unwrap()).unwrap();
+        let futura = crear(&d, validar(&pedido(), 9000, 77).unwrap()).unwrap();
+
+        // Solo la de ESE panel, de este arranque y de antes de escribir.
+        assert!(marcar_habladas(&d, 3, 78, 5000).is_empty(), "el panel 3 de otro arranque es otra terminal");
+        assert_eq!(marcar_habladas(&d, 3, 77, 5000), [suya.id.clone()]);
+        assert!(marcar_habladas(&d, 3, 77, 6000).is_empty(), "dos veces no la vuelve a marcar");
+        let hablada = leer(&d, &suya.id).unwrap();
+        assert_eq!(hablada.hablada, Some(5000));
+        assert_eq!(vigencia(&hablada, 77, &[3, 5]), Vigencia::Hablada);
+        assert_eq!(vigencia(&leer(&d, &de_otro.id).unwrap(), 77, &[3, 5]), Vigencia::Viva);
+        assert_eq!(vigencia(&leer(&d, &futura.id).unwrap(), 77, &[3, 5]), Vigencia::Viva, "la que pregunta después sigue esperando");
+        assert!(como_texto(&hablada).contains("te escribió en tu terminal"), "{}", como_texto(&hablada));
+        // Se puede contestar todavía, y entonces es una contestada más.
+        let mut el = BTreeMap::new();
+        el.insert("A".to_string(), Eleccion { opcion: Some(1), texto: None });
+        el.insert("B".to_string(), Eleccion { opcion: Some(1), texto: None });
+        assert_eq!(vigencia(&responder(&d, &suya.id, el, "el PC", 7000).unwrap(), 77, &[3, 5]), Vigencia::Contestada);
+
+        // La limpieza: una viva no se borra aunque sea vieja; lo demás, a la semana
+        // de lo último que le pasó (la respuesta del 7000, no cuando se creó).
+        assert_eq!(podar(&d, 77, &[3, 5], 7000 + 7 * dia), 0, "a los siete días justos sigue");
+        assert_eq!(podar(&d, 77, &[3, 5], 7001 + 7 * dia), 1, "pasada la semana se va la contestada");
+        assert!(leer(&d, &suya.id).is_none() && leer(&d, &de_otro.id).is_some() && leer(&d, &futura.id).is_some());
+        // Se cierra el panel 5: su decisión ya no espera a nadie y también caduca.
+        assert_eq!(podar(&d, 77, &[3], 2000 + 8 * dia), 1);
+        assert!(leer(&d, &de_otro.id).is_none() && leer(&d, &futura.id).is_some());
+        // Un archivo de antes de que existiera «hablada» se sigue leyendo.
+        let viejo = serde_json::json!({ "id": "d1", "titulo": "Vieja", "creada": 1, "preguntas": [] });
+        assert_eq!(serde_json::from_value::<Decision>(viejo).unwrap().hablada, None);
         let _ = std::fs::remove_dir_all(&d);
     }
 }

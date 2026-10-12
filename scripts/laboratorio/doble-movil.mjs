@@ -132,7 +132,7 @@ const decisiones = [
 // abierta en este arranque; si no, ya no la espera nadie.
 const cerrada = (d) => Number(Boolean(d.respuesta || d.descartada));
 const vigenciaDe = (d) =>
-  d.respuesta ? "contestada" : d.descartada ? "descartada"
+  d.respuesta ? "contestada" : d.descartada ? "descartada" : d.hablada ? "hablada"
     : d.arranque === ARRANQUE && terminales.some((t) => t.panel === d.panel) ? "viva" : "huerfana";
 // La del panel 1 tiene historia larga y acaba en un cierre con su bloque de
 // compactación, que es lo que Munir no podía leer entero desde el móvil.
@@ -364,6 +364,11 @@ http
           f.push("", `● (el agente leyó: ${v.texto})`, "", "❯ ");
           escrito.set(t.panel, v.texto);
           console.log(`escrito en ${t.panel}: ${v.texto}`);
+          // Como `marcar_habladas` (decisiones.rs): escribirle a una terminal
+          // cierra lo que te hubiera preguntado.
+          for (const d of decisiones) {
+            if (d.panel === t.panel && d.arranque === ARRANQUE && !d.respuesta && !d.descartada && !d.hablada) d.hablada = Date.now();
+          }
           return json(res, 202, { ok: true });
         }
         case "/api/escrito":
@@ -404,7 +409,7 @@ http
             .sort((a, b) => cerrada(a) - cerrada(b) || b.creada - a.creada)
             .map((d) => ({
               id: d.id, titulo: d.titulo, proyecto: d.proyecto, panel: d.panel, creada: d.creada, preguntas: d.preguntas.length,
-              contestada: Boolean(d.respuesta), vigencia: vigenciaDe(d), cerrada: d.respuesta?.cuando ?? d.descartada ?? null,
+              contestada: Boolean(d.respuesta), vigencia: vigenciaDe(d), cerrada: d.respuesta?.cuando ?? d.descartada ?? d.hablada ?? null,
             })) });
         case "/api/decision": {
           const d = decisiones.find((x) => x.id === url.searchParams.get("id"));

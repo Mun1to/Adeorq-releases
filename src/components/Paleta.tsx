@@ -3,11 +3,16 @@
 //
 // Tiene un segundo modo, el de Ctrl+P: abrir un archivo del proyecto escribiendo
 // parte de su nombre (`lib/abrirPorNombre.ts`). Es la misma caja y las mismas
-// teclas; cambia la lista.
+// teclas; cambia la lista. Y un tercero, desde el 2026-10-11, «Buscar en los
+// archivos»: lo escrito se busca DENTRO de ellos (`buscar_en_archivos`, con git
+// grep) y elegir un sitio lo abre en su línea (`lib/irALinea.ts`). Lo pedía la
+// lista de Munir; como modo de la caja que ya existe no pone nada nuevo en
+// pantalla, que es la condición que ponía `docs/ARCHIVOS.md`.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { filtrarArchivos, rutaEntera } from "../lib/abrirPorNombre";
-import { listarNombres } from "../lib/archivos";
+import { buscarEnArchivos, listarNombres, type Hallazgo } from "../lib/archivos";
+import { abrirEnLinea } from "../lib/irALinea";
 import { useT } from "../lib/i18n";
 import Espera from "./Espera";
 import { entradasDeLaPaleta, filtrarPaleta, type Entrada } from "../lib/paleta";
@@ -26,7 +31,10 @@ interface Props {
   abrirArchivo: (ruta: string) => void;
 }
 
-type Modo = "comandos" | "archivos";
+type Modo = "comandos" | "archivos" | "contenido";
+
+/** El respiro entre la última tecla y buscar: un `git grep` por letra sobra. */
+const RESPIRO_MS = 250;
 
 export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATerminal, raiz, abrirArchivo }: Props) {
   const { t } = useT();
@@ -37,6 +45,8 @@ export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATermin
   const [proyectos, setProyectos] = useState<Project[]>([]);
   /** Los archivos del proyecto, o `null` mientras se piden. */
   const [nombres, setNombres] = useState<string[] | null>(null);
+  /** Lo hallado dentro de los archivos para lo escrito, o `null` mientras se busca. */
+  const [sitios, setSitios] = useState<Hallazgo[] | null>([]);
   const lista = useRef<HTMLUListElement>(null);
   /** Quién tenía el teclado al abrirla, para devolvérselo al cerrar. */
   const antes = useRef<HTMLElement | null>(null);
@@ -87,18 +97,41 @@ export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATermin
           if (viva) setProyectos(p);
         })
         .catch(() => {});
-    } else {
+    } else if (modo === "archivos") {
       setNombres(null);
       (raiz ? listarNombres(raiz) : Promise.resolve([]))
         .then((n) => {
           if (viva) setNombres(n);
         })
         .catch(() => viva && setNombres([]));
+    } else {
+      setSitios([]);
     }
     return () => {
       viva = false;
     };
   }, [abierta, modo, raiz]);
+
+  // Buscar dentro, con el respiro: cada letra nueva cancela la búsqueda anterior.
+  useEffect(() => {
+    if (!abierta || modo !== "contenido") return;
+    const texto = q.trim();
+    if (!raiz || texto.length < 2) {
+      setSitios([]);
+      return;
+    }
+    let viva = true;
+    setSitios(null);
+    const reloj = window.setTimeout(() => {
+      buscarEnArchivos(raiz, texto)
+        .then((h) => viva && setSitios(h))
+        .catch(() => viva && setSitios([]));
+    }, RESPIRO_MS);
+    return () => {
+      viva = false;
+      window.clearTimeout(reloj);
+    };
+  }, [abierta, modo, raiz, q]);
 
   const entradas = useMemo(
     () => (abierta && modo === "comandos" ? entradasDeLaPaleta({ pestanas: PESTANAS, proyectos, panes, delLienzo }, t) : []),
@@ -113,8 +146,15 @@ export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATermin
     () =>
       modo === "comandos"
         ? filtrarPaleta(entradas, q)
-        : hallados.map((a) => ({ id: `archivo:${a.ruta}`, grupo: a.carpeta, texto: a.nombre, accion: { tipo: "archivo", ruta: a.ruta } })),
-    [modo, entradas, hallados, q],
+        : modo === "archivos"
+          ? hallados.map((a) => ({ id: `archivo:${a.ruta}`, grupo: a.carpeta, texto: a.nombre, accion: { tipo: "archivo", ruta: a.ruta } }))
+          : (sitios ?? []).map((h) => ({
+              id: `sitio:${h.ruta}:${h.linea}`,
+              grupo: `${h.ruta}:${h.linea}`,
+              texto: h.texto,
+              accion: { tipo: "sitio", ruta: h.ruta, linea: h.linea },
+            })),
+    [modo, entradas, hallados, sitios, q],
   );
   const marcada = Math.min(elegido, Math.max(0, quedan.length - 1));
 
@@ -132,9 +172,16 @@ export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATermin
     const a = e.accion;
     // De los comandos a los archivos sin cerrar: es la misma caja.
     if (a.tipo === "archivos") return setModo("archivos");
+    if (a.tipo === "contenido") return setModo("contenido");
     if (a.tipo === "archivo") {
       setAbierta(false);
       return abrirArchivo(rutaEntera(raiz, a.ruta));
+    }
+    if (a.tipo === "sitio") {
+      setAbierta(false);
+      const ruta = rutaEntera(raiz, a.ruta);
+      abrirEnLinea(ruta, a.linea);
+      return abrirArchivo(ruta);
     }
     if (a.tipo === "atajo") {
       // El atajo actúa sobre el panel que tenía el teclado: se le devuelve
@@ -161,7 +208,11 @@ export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATermin
 
   return (
     <div className="paleta" onMouseDown={(e) => e.target === e.currentTarget && cerrar()}>
-      <div className="paleta-caja" role="dialog" aria-label={modo === "comandos" ? t("Comandos") : t("Abrir un archivo por su nombre")}>
+      <div
+        className="paleta-caja"
+        role="dialog"
+        aria-label={modo === "comandos" ? t("Comandos") : modo === "archivos" ? t("Abrir un archivo por su nombre") : t("Buscar en los archivos")}
+      >
         <input
           // Con su modo de clave: al cambiar de comandos a archivos nace otra
           // caja, vacía y con el teclado dentro.
@@ -169,8 +220,8 @@ export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATermin
           className="paleta-input"
           autoFocus
           value={q}
-          placeholder={modo === "comandos" ? t("Qué quieres hacer") : t("Qué archivo abro")}
-          aria-label={modo === "comandos" ? t("Buscar un comando") : t("Buscar un archivo por su nombre")}
+          placeholder={modo === "comandos" ? t("Qué quieres hacer") : modo === "archivos" ? t("Qué archivo abro") : t("Qué busco dentro de los archivos")}
+          aria-label={modo === "comandos" ? t("Buscar un comando") : modo === "archivos" ? t("Buscar un archivo por su nombre") : t("Buscar en los archivos")}
           onChange={(e) => {
             setQ(e.target.value);
             setElegido(0);
@@ -197,9 +248,15 @@ export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATermin
                 ? t("No encuentro eso.")
                 : !raiz
                   ? t("Abre un proyecto para ver sus archivos.")
-                  : nombres === null
-                    ? <Espera activo como="span">{t("Leyendo…")}</Espera>
-                    : t("No hay ningún archivo con ese nombre.")}
+                  : modo === "contenido"
+                    ? q.trim().length < 2
+                      ? t("Escribe al menos dos letras.")
+                      : sitios === null
+                        ? <Espera activo como="span">{t("Buscando en los archivos…")}</Espera>
+                        : t("No sale en ningún archivo.")
+                    : nombres === null
+                      ? <Espera activo como="span">{t("Leyendo…")}</Espera>
+                      : t("No hay ningún archivo con ese nombre.")}
             </li>
           )}
         </ul>

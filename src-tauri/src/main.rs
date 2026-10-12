@@ -12,6 +12,15 @@ fn main() {
         }
         std::process::exit(0);
     }
+    // El proceso de terminales: abre las terminales lejos de la ventana, para
+    // que sobrevivan a una caída de la app. Ver `terminales.rs`.
+    if args.len() > 1 && args[1] == "--terminales" {
+        if let Err(e) = adeorq_lib::terminales::principal() {
+            eprintln!("Error en el proceso de terminales: {e}");
+            std::process::exit(1);
+        }
+        std::process::exit(0);
+    }
     // `adeorq secreto <nombre> [para qué]`: trae un token sin que pase por la
     // pantalla del agente. Ver `pedir_secreto.rs`.
     if args.len() > 2 && args[1] == "secreto" {

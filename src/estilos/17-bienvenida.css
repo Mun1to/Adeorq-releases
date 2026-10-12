@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(4, 7, 12, 0.62);
+  background: color-mix(in srgb, var(--velo) 100%, #000 10%);
   backdrop-filter: blur(4px);
 }
 
@@ -179,13 +179,13 @@
 .onb-bien {
   margin: 0;
   font-size: 12.5px;
-  color: #7ee08a;
+  color: var(--ok);
 }
 
 .onb-mal {
   margin: 0;
   font-size: 12.5px;
-  color: #ff9c9c;
+  color: var(--mal);
 }
 
 .onb-clis {
@@ -379,10 +379,10 @@
   position: fixed;
   border-radius: var(--r-btn);
   box-shadow:
-    0 0 0 9999px rgba(4, 7, 12, 0.66),
+    0 0 0 9999px color-mix(in srgb, #000 66%, transparent),
     0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent);
   pointer-events: none;
-  transition: all 0.18s ease;
+  transition: all var(--t-media) ease;
 }
 
 .tour-globo {

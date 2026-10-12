@@ -251,6 +251,32 @@ pub async fn leer_imagen(ruta: String) -> Result<Option<String>, String> {
     Ok(Some(format!("data:{tipo};base64,{datos}")))
 }
 
+/// Hasta cuánto pesa un PDF que se enseña entero.
+const TOPE_PDF: u64 = 40 * 1024 * 1024;
+
+/// Un PDF en base64, para que la ventana lo enseñe con el visor del propio
+/// WebView (`blob:` en un marco), o nada si no lo es o pesa demasiado. Por lo
+/// mismo que `leer_imagen`: el protocolo de assets no ve las carpetas de los
+/// proyectos, y abrírselo sería dejar que cualquier página lea el disco.
+#[tauri::command]
+pub async fn leer_pdf(ruta: String) -> Result<Option<String>, String> {
+    use base64::Engine;
+    let f = ruta_de(&ruta)?;
+    if !f.extension().is_some_and(|e| e.eq_ignore_ascii_case("pdf")) {
+        return Ok(None);
+    }
+    let meta = std::fs::metadata(&f).map_err(|e| e.to_string())?;
+    if meta.is_dir() || meta.len() > TOPE_PDF {
+        return Ok(None);
+    }
+    let bytes = std::fs::read(&f).map_err(|e| e.to_string())?;
+    // Un PDF empieza por «%PDF-»: lo demás con esa extensión no se le da al visor.
+    if !bytes.starts_with(b"%PDF-") {
+        return Ok(None);
+    }
+    Ok(Some(base64::engine::general_purpose::STANDARD.encode(bytes)))
+}
+
 /// Guarda, salvo que eso fuera a pisar trabajo de otro.
 ///
 /// `visto` es cuándo se leyó lo que hay en pantalla. Si el archivo del disco es
@@ -283,6 +309,111 @@ pub async fn guardar_archivo(
     std::fs::write(&f, cuerpo).map_err(|e| e.to_string())?;
     let meta = std::fs::metadata(&f).map_err(|e| e.to_string())?;
     Ok(Guardado { cuando: cuando_de(&meta), pisaria: false })
+}
+
+// ─── CREAR, RENOMBRAR Y MANDAR A LA PAPELERA ───────────────────────────────
+//
+// El clic derecho del árbol (`ArchivosPanel.tsx`), lo primero de la lista de
+// `docs/ARCHIVOS.md` que no ocupa sitio en pantalla. Ninguna pisa nada: crear o
+// renombrar encima de algo que ya existe es un error, y borrar va a la
+// PAPELERA (`manage::to_recycle_bin`, con su deshacer de Windows), nunca a la
+// nada.
+
+/// Por qué no vale un nombre, o `None` si vale. Un nombre, no una ruta: sin
+/// barras, sin `..` y sin los caracteres que Windows no deja (los mismos en
+/// Linux, para que un proyecto se pueda abrir en los dos).
+pub fn nombre_no_valido(nombre: &str) -> Option<&'static str> {
+    let n = nombre.trim();
+    if n.is_empty() {
+        return Some("Falta el nombre.");
+    }
+    if n == "." || n == ".." {
+        return Some("Ese nombre no vale.");
+    }
+    if n.chars().any(|c| matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') || c.is_control()) {
+        return Some("Un nombre no puede llevar / \\ : * ? \" < > |");
+    }
+    if n.ends_with('.') || nombre.ends_with(' ') {
+        return Some("Windows no deja que un nombre acabe en punto o en espacio.");
+    }
+    let base = n.split('.').next().unwrap_or("").to_ascii_uppercase();
+    let reservados = ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"];
+    if reservados.contains(&base.as_str()) {
+        return Some("Ese nombre lo tiene reservado Windows.");
+    }
+    None
+}
+
+fn destino(carpeta: &Path, nombre: &str) -> Result<PathBuf, String> {
+    if let Some(por) = nombre_no_valido(nombre) {
+        return Err(por.into());
+    }
+    let d = carpeta.join(nombre.trim());
+    if d.exists() {
+        return Err(format!("Ya hay algo que se llama «{}» ahí.", nombre.trim()));
+    }
+    Ok(d)
+}
+
+/// Un archivo vacío nuevo. Devuelve su ruta.
+#[tauri::command(async)]
+pub fn crear_archivo(carpeta: String, nombre: String) -> Result<String, String> {
+    let d = destino(&ruta_de(&carpeta)?, &nombre)?;
+    std::fs::OpenOptions::new().write(true).create_new(true).open(&d).map_err(|e| e.to_string())?;
+    Ok(d.to_string_lossy().into_owned())
+}
+
+/// Una carpeta nueva. Devuelve su ruta.
+#[tauri::command(async)]
+pub fn crear_carpeta(carpeta: String, nombre: String) -> Result<String, String> {
+    let d = destino(&ruta_de(&carpeta)?, &nombre)?;
+    std::fs::create_dir(&d).map_err(|e| e.to_string())?;
+    Ok(d.to_string_lossy().into_owned())
+}
+
+/// Le cambia el nombre, en su misma carpeta. Cambiar solo mayúsculas vale
+/// (en Windows, el nombre viejo y el nuevo son «el mismo» para `exists`).
+#[tauri::command(async)]
+pub fn renombrar(ruta: String, nombre: String) -> Result<String, String> {
+    let origen = ruta_de(&ruta)?;
+    let carpeta = origen.parent().ok_or("No se puede renombrar la raíz.")?;
+    if let Some(por) = nombre_no_valido(&nombre) {
+        return Err(por.into());
+    }
+    let d = carpeta.join(nombre.trim());
+    let solo_mayusculas = d.to_string_lossy().to_lowercase() == origen.to_string_lossy().to_lowercase();
+    if d.exists() && !solo_mayusculas {
+        return Err(format!("Ya hay algo que se llama «{}» ahí.", nombre.trim()));
+    }
+    std::fs::rename(&origen, &d).map_err(|e| e.to_string())?;
+    Ok(d.to_string_lossy().into_owned())
+}
+
+/// Guarda una nota del lienzo como ficha: `<raiz>/docs/fichas/<nombre>`, creando
+/// la carpeta si no está. Nunca encima de una que ya exista: una ficha es de
+/// quien la escribió. Devuelve su ruta.
+#[tauri::command(async)]
+pub fn guardar_ficha(raiz: String, nombre: String, texto: String) -> Result<String, String> {
+    let dir = ruta_de(&raiz)?.join("docs").join("fichas");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let d = destino(&dir, &nombre)?;
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&d)
+        .and_then(|mut f| std::io::Write::write_all(&mut f, texto.as_bytes()))
+        .map_err(|e| e.to_string())?;
+    Ok(d.to_string_lossy().into_owned())
+}
+
+/// A la papelera del sistema, con su deshacer: nunca se borra a la nada.
+#[tauri::command(async)]
+pub fn a_la_papelera(ruta: String) -> Result<(), String> {
+    let r = ruta_de(&ruta)?;
+    if !r.exists() {
+        return Err("Ya no está.".into());
+    }
+    crate::manage::to_recycle_bin(&r)
 }
 
 /// Lo que git dice de cada archivo cambiado, sacado de
@@ -379,6 +510,98 @@ pub fn listar_nombres(raiz: String) -> Result<Vec<String>, String> {
     Ok(fuera)
 }
 
+/// Un sitio donde sale lo buscado: el archivo (relativo, con barras normales),
+/// la línea y lo que dice esa línea.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Hallazgo {
+    pub ruta: String,
+    pub linea: u32,
+    pub texto: String,
+}
+
+/// Cuántos sitios se devuelven como mucho, y cuántos por archivo: con eso ya se
+/// ve dónde está; para más, se afina lo buscado.
+const TOPE_HALLAZGOS: usize = 300;
+const POR_ARCHIVO: usize = 5;
+/// Lo que se lee de cada archivo en el recorrido a mano, fuera de git.
+const TOPE_LEER: u64 = 1024 * 1024;
+
+/// Lo que dice una línea, recortado para una fila: sin la sangría y como mucho
+/// 160 caracteres (por carácter, no por byte: cortar UTF-8 a ciegas es un pánico).
+fn recortar_linea(l: &str) -> String {
+    let l = l.trim();
+    match l.char_indices().nth(160) {
+        Some((i, _)) => format!("{}…", &l[..i]),
+        None => l.to_string(),
+    }
+}
+
+/// Lo que devuelve `git grep -z -n`: `ruta\0línea\0texto` por renglón.
+fn hallazgos_de_git(salida: &str) -> Vec<Hallazgo> {
+    salida
+        .lines()
+        .filter_map(|l| {
+            let mut p = l.splitn(3, '\0');
+            let ruta = p.next()?.to_string();
+            let linea = p.next()?.parse().ok()?;
+            Some(Hallazgo { ruta, linea, texto: recortar_linea(p.next().unwrap_or("")) })
+        })
+        .take(TOPE_HALLAZGOS)
+        .collect()
+}
+
+/// Busca un texto DENTRO de los archivos de una carpeta, sin distinguir
+/// mayúsculas: lo de la paleta, «Buscar en los archivos». Dentro de un
+/// repositorio lo hace git (`git grep`, que respeta `.gitignore`, salta los
+/// binarios y es lo que usa Orca); fuera de git, un recorrido a mano con lo de
+/// `FUERA` y un tope por archivo.
+#[tauri::command(async)]
+pub fn buscar_en_archivos(raiz: String, texto: String) -> Result<Vec<Hallazgo>, String> {
+    use crate::SinVentana;
+    let dir = ruta_de(&raiz)?;
+    let q: String = texto.trim().chars().take(200).collect();
+    if q.chars().count() < 2 {
+        return Ok(Vec::new());
+    }
+    let o = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&dir)
+        .args(["grep", "-z", "-n", "-I", "-F", "-i", "--no-color", "--untracked", "--max-count", &POR_ARCHIVO.to_string(), "-e", &q, "--", "."])
+        .sin_ventana()
+        .output();
+    if let Ok(o) = o {
+        // 1 es «no hay ninguno»; lo demás que no sea 0, que no es un repositorio.
+        match o.status.code() {
+            Some(0) => return Ok(hallazgos_de_git(&String::from_utf8_lossy(&o.stdout))),
+            Some(1) => return Ok(Vec::new()),
+            _ => {}
+        }
+    }
+    let mut nombres = Vec::new();
+    recorrer_nombres(&dir, &dir, 0, &mut nombres);
+    nombres.sort_by_key(|n| n.to_lowercase());
+    let aguja = q.to_lowercase();
+    let mut out = Vec::new();
+    for n in nombres {
+        let f = dir.join(&n);
+        if std::fs::metadata(&f).map(|m| m.len() > TOPE_LEER).unwrap_or(true) {
+            continue;
+        }
+        let Ok(bytes) = std::fs::read(&f) else { continue };
+        if bytes.contains(&0) {
+            continue;
+        }
+        let texto = String::from_utf8_lossy(&bytes);
+        for (i, l) in texto.lines().enumerate().filter(|(_, l)| l.to_lowercase().contains(&aguja)).take(POR_ARCHIVO) {
+            out.push(Hallazgo { ruta: n.clone(), linea: i as u32 + 1, texto: recortar_linea(l) });
+            if out.len() >= TOPE_HALLAZGOS {
+                return Ok(out);
+            }
+        }
+    }
+    Ok(out)
+}
+
 /// Qué archivos de la carpeta están distintos del último commit, y cuándo se
 /// tocó cada uno. Lo pide el panel de Archivos cada pocos segundos mientras está
 /// a la vista, que es lo que lo pone al día solo y lo pinta de colores
@@ -416,6 +639,97 @@ pub fn estado_archivos(raiz: String) -> Result<EstadoArchivos, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Un PDF sale entero para el visor; lo que solo se llama .pdf, no.
+    #[test]
+    fn un_pdf_sale_para_su_visor() {
+        let dir = std::env::temp_dir().join(format!("adeorq-pdf-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let bueno = dir.join("Informe.PDF");
+        let falso = dir.join("falso.pdf");
+        std::fs::write(&bueno, b"%PDF-1.7\nhola").unwrap();
+        std::fs::write(&falso, b"no soy un pdf").unwrap();
+        let pedir = |f: &Path| tauri::async_runtime::block_on(leer_pdf(f.to_string_lossy().to_string()));
+        assert_eq!(pedir(&bueno).unwrap().as_deref(), Some("JVBERi0xLjcKaG9sYQ=="));
+        assert_eq!(pedir(&falso).unwrap(), None, "con la extensión no basta");
+        assert_eq!(pedir(&dir.join("nota.txt")).unwrap(), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Buscar dentro de los archivos: con git y sin él, sin mayúsculas, con su
+    /// línea, y lo que dice la línea recortado sin partir un carácter.
+    #[test]
+    fn buscar_dentro_con_git_y_sin_el() {
+        let h = hallazgos_de_git("src/lib.rs\x00136\x00pub fn clon_sin_herencia(s)\ndocs/a.md\x002\x00  ña clon\n");
+        assert_eq!(h, [
+            Hallazgo { ruta: "src/lib.rs".into(), linea: 136, texto: "pub fn clon_sin_herencia(s)".into() },
+            Hallazgo { ruta: "docs/a.md".into(), linea: 2, texto: "ña clon".into() },
+        ]);
+        let largo = "é".repeat(400);
+        assert_eq!(recortar_linea(&largo).chars().count(), 161, "160 caracteres y los puntos, sin partir ninguno");
+
+        // Fuera de git: el recorrido a mano.
+        let dir = std::env::temp_dir().join(format!("adeorq-buscar-{}-{:?}", std::process::id(), std::thread::current().id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("sub")).unwrap();
+        std::fs::create_dir_all(dir.join("node_modules")).unwrap();
+        std::fs::write(dir.join("uno.txt"), "nada\nAquí está el TESORO\nfin").unwrap();
+        std::fs::write(dir.join("sub").join("dos.md"), "otro tesoro").unwrap();
+        std::fs::write(dir.join("node_modules").join("tres.js"), "tesoro escondido").unwrap();
+        std::fs::write(dir.join("bin.dat"), b"tesoro\x00binario").unwrap();
+        let r = buscar_en_archivos(dir.to_string_lossy().to_string(), "tesoro".into()).unwrap();
+        let vistos: Vec<String> = r.iter().map(|h| format!("{}:{}", h.ruta, h.linea)).collect();
+        assert_eq!(vistos, ["sub/dos.md:1", "uno.txt:2"], "sin mayúsculas, sin node_modules ni binarios");
+        assert_eq!(r[1].texto, "Aquí está el TESORO");
+        assert!(buscar_en_archivos(dir.to_string_lossy().to_string(), "t".into()).unwrap().is_empty(), "una letra sola no busca");
+        let _ = std::fs::remove_dir_all(&dir);
+
+        // Dentro de git: este mismo repositorio, buscando algo que solo está aquí.
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_string_lossy().to_string();
+        let aqui = buscar_en_archivos(repo, "FN BUSCAR_DENTRO_CON_GIT_Y_SIN_EL".into()).unwrap();
+        assert!(aqui.iter().any(|h| h.ruta == "src-tauri/src/archivos.rs" && h.texto.starts_with("fn buscar_dentro")), "{aqui:?}");
+    }
+
+    /// Crear y renombrar desde el árbol: nunca encima de algo que ya está, solo
+    /// nombres (no rutas) que Windows acepte, y cambiar solo mayúsculas vale.
+    #[test]
+    fn crear_y_renombrar_sin_pisar_nada() {
+        let dir = std::env::temp_dir().join(format!("adeorq-crear-{}-{:?}", std::process::id(), std::thread::current().id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let d = dir.to_string_lossy().to_string();
+
+        for malo in ["", "  ", "..", "a/b", "a\\b", "c:", "dos?", "fin.", "con", "NUL.txt", "uno<dos"] {
+            assert!(nombre_no_valido(malo).is_some(), "«{malo}» no debería valer");
+        }
+        for bueno in ["nota.md", ".env", "Léeme 2.txt", "con-guion", "consola.rs"] {
+            assert_eq!(nombre_no_valido(bueno), None, "«{bueno}» debería valer");
+        }
+
+        let f = crear_archivo(d.clone(), "nota.md".into()).unwrap();
+        assert!(Path::new(&f).is_file() && std::fs::read(&f).unwrap().is_empty());
+        assert!(crear_archivo(d.clone(), "nota.md".into()).unwrap_err().contains("Ya hay"), "no pisa un archivo");
+        std::fs::write(&f, "lo escrito").unwrap();
+        let c = crear_carpeta(d.clone(), "docs".into()).unwrap();
+        assert!(Path::new(&c).is_dir());
+        assert!(crear_carpeta(d.clone(), "docs".into()).is_err());
+        assert!(crear_archivo(d.clone(), "../fuera.txt".into()).is_err(), "un nombre no sale de su carpeta");
+
+        assert!(renombrar(f.clone(), "docs".into()).unwrap_err().contains("Ya hay"), "no renombra encima de otro");
+        let r = renombrar(f.clone(), "Nota.md".into()).unwrap();
+        assert_eq!(std::fs::read_to_string(&r).unwrap(), "lo escrito", "cambiar solo mayúsculas vale y no pierde nada");
+        let r2 = renombrar(r, "final.md".into()).unwrap();
+        assert!(Path::new(&r2).is_file() && !dir.join("Nota.md").exists());
+        assert!(a_la_papelera(dir.join("no-esta").to_string_lossy().to_string()).is_err());
+
+        // Una ficha nueva crea su carpeta y no pisa otra del mismo nombre.
+        let f = guardar_ficha(d.clone(), "publicar.md".into(), "# Publicar\n\n- [ ] subir\n".into()).unwrap();
+        assert!(f.ends_with("publicar.md") && Path::new(&f).parent().unwrap().ends_with("docs/fichas"));
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), "# Publicar\n\n- [ ] subir\n");
+        assert!(guardar_ficha(d.clone(), "publicar.md".into(), "otra".into()).unwrap_err().contains("Ya hay"));
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), "# Publicar\n\n- [ ] subir\n", "la de antes sigue intacta");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     /// Lo que el editor necesita para enseñar una imagen y para notar que un
     /// archivo cambió: una imagen sale como `data:`, lo que no lo es no sale, y

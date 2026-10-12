@@ -888,7 +888,17 @@ pub fn atender(
                 return Respuesta::error(413, "Es demasiado largo para mandarlo de una vez.");
             }
             match casa.ventana("escribir", json!({ "panel": panel, "texto": texto })) {
-                Ok(_) => Respuesta::json(202, json!({ "ok": true })),
+                Ok(_) => {
+                    // Escribirle a una terminal es hablar con ella: lo que te
+                    // hubiera preguntado deja de esperarte (`Vigencia::Hablada`).
+                    if let (Ok(dir), Ok(panel)) = (casa.decisiones(), u32::try_from(panel)) {
+                        let ahora = reloj.1.saturating_mul(1000);
+                        if !crate::decisiones::marcar_habladas(&dir, panel, casa.arranque(), ahora).is_empty() {
+                            casa.decisiones_cambian();
+                        }
+                    }
+                    Respuesta::json(202, json!({ "ok": true }))
+                }
                 Err(e) => Respuesta::error(502, &e),
             }
         }
@@ -963,7 +973,7 @@ pub fn atender(
                             "id": d.id, "titulo": d.titulo, "proyecto": d.proyecto, "panel": d.panel,
                             "creada": d.creada, "preguntas": d.preguntas.len(), "contestada": d.respuesta.is_some(),
                             "vigencia": crate::decisiones::vigencia(d, arranque, &abiertos),
-                            "cerrada": d.respuesta.as_ref().map(|r| r.cuando).or(d.descartada),
+                            "cerrada": d.respuesta.as_ref().map(|r| r.cuando).or(d.descartada).or(d.hablada),
                         })
                     })
                     .collect();

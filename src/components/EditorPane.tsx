@@ -32,11 +32,21 @@ import { Annotation, EditorState, Transaction, type Extension } from "@codemirro
 import { EditorView } from "@codemirror/view";
 import { useT } from "../lib/i18n";
 import { Ocupado } from "./Espera";
-import { cuandoArchivo, guardarArchivo, leerArchivo, leerImagen, type Archivo } from "../lib/archivos";
+import { cuandoArchivo, esPdf, guardarArchivo, leerArchivo, leerImagen, urlDePdf, type Archivo } from "../lib/archivos";
 import { nombreDeRuta, peso, rutaCorta } from "../lib/arbol";
 import { latido } from "../lib/latido";
 import { lenguajeDe } from "../lib/lenguajes";
 import { extensionesDeCodigo, useVarsDeCodigo } from "../lib/editorCodigo";
+import { EVENTO_IR_A_LINEA, mismoArchivo, tomarLinea } from "../lib/irALinea";
+
+/** Lleva el cursor a esa línea, seleccionada y en el medio de la vista: lo que
+    hace elegir un sitio en «Buscar en los archivos». */
+function irALinea(v: EditorView, linea: number): void {
+  const n = Math.min(Math.max(1, linea), v.state.doc.lines);
+  const l = v.state.doc.line(n);
+  v.dispatch({ selection: { anchor: l.from, head: l.to }, effects: EditorView.scrollIntoView(l.from, { y: "center" }) });
+  v.focus();
+}
 import { useCabina } from "../lib/cabina";
 import { CloseIcon, MaximizeIcon, RefreshIcon, RestoreIcon } from "./Icons";
 
@@ -47,6 +57,13 @@ const VIGILA_MS = 2_500;
 /** Marca un cambio del texto que viene del disco y no de tus manos: no cuenta
     como «sin guardar». */
 const DEL_DISCO = Annotation.define<boolean>();
+
+/** Lo que se enseña de un archivo que no es texto: una imagen, un PDF o nada. */
+async function vistaDe(ruta: string, a: Archivo): Promise<{ imagen: string | null; pdf: string | null }> {
+  if (a.texto != null) return { imagen: null, pdf: null };
+  if (esPdf(ruta)) return { imagen: null, pdf: await urlDePdf(ruta).catch(() => null) };
+  return { imagen: await leerImagen(ruta).catch(() => null), pdf: null };
+}
 
 interface Props {
   id: number;
@@ -109,6 +126,10 @@ function Hoja({
   /** Si no es texto pero es una imagen, lista para un `<img>`; y su tamaño. */
   const [imagen, setImagen] = useState<string | null>(null);
   const [medida, setMedida] = useState("");
+  /** Si es un PDF, su dirección `blob:`; se suelta al cambiar o al cerrar. */
+  const [pdf, setPdf] = useState<string | null>(null);
+  useEffect(() => () => { if (pdf) URL.revokeObjectURL(pdf); }, [pdf]);
+  const vistoComo = imagen ?? pdf;
   /** Se acaba de traer del disco lo que cambió otro: se dice un momento. */
   const [fresco, setFresco] = useState(false);
 
@@ -123,9 +144,10 @@ function Hoja({
     setEstado("leyendo");
     try {
       const a = await leerArchivo(ruta);
-      const img = a.texto == null ? await leerImagen(ruta).catch(() => null) : null;
+      const v = await vistaDe(ruta, a);
       setArchivo(a);
-      setImagen(img);
+      setImagen(v.imagen);
+      setPdf(v.pdf);
       setCarga((n) => n + 1);
       visto.current = a.cuando;
       setSucio(false);
@@ -193,7 +215,20 @@ function Hoja({
       parent: caja.current,
     });
     vista.current = view;
+    // Si se abrió desde «Buscar en los archivos», a su línea.
+    const linea = tomarLinea(ruta);
+    if (linea != null) irALinea(view, linea);
+    // Y si ya estaba abierto y se vuelve a elegir un sitio de él.
+    const alPedir = (e: Event) => {
+      const d = (e as CustomEvent<{ ruta: string; linea: number }>).detail;
+      if (d && mismoArchivo(d.ruta, ruta)) {
+        tomarLinea(ruta);
+        irALinea(view, d.linea);
+      }
+    };
+    window.addEventListener(EVENTO_IR_A_LINEA, alPedir);
     return () => {
+      window.removeEventListener(EVENTO_IR_A_LINEA, alPedir);
       view.destroy();
       vista.current = null;
     };
@@ -228,11 +263,15 @@ function Hoja({
         });
         setArchivo(a);
       } else {
-        // Dejó de ser texto, o era una imagen: se monta de nuevo lo que haya.
-        const img = a.texto == null ? await leerImagen(ruta).catch(() => null) : null;
-        if (!viva) return;
+        // Dejó de ser texto, o era una imagen o un PDF: se monta de nuevo lo que haya.
+        const vn = await vistaDe(ruta, a);
+        if (!viva) {
+          if (vn.pdf) URL.revokeObjectURL(vn.pdf);
+          return;
+        }
         setArchivo(a);
-        setImagen(img);
+        setImagen(vn.imagen);
+        setPdf(vn.pdf);
         setCarga((n) => n + 1);
       }
       visto.current = a.cuando;
@@ -263,8 +302,8 @@ function Hoja({
   const chip =
     archivo?.texto != null
       ? `${t("{n} líneas", { n: archivo.texto.split("\n").length })} · ${peso(archivo.peso)}`
-      : archivo && imagen
-        ? [medida, peso(archivo.peso)].filter(Boolean).join(" · ")
+      : archivo && vistoComo
+        ? [imagen ? medida : "PDF", peso(archivo.peso)].filter(Boolean).join(" · ")
         : "";
   useEffect(() => {
     onParte(ruta, { sucio, chip });
@@ -307,18 +346,20 @@ function Hoja({
           />
         </div>
       )}
-      {archivo?.pega === "grande" && !imagen && (
+      {/* Un PDF, con el visor del propio WebView: páginas, zoom y buscar. */}
+      {archivo && pdf && <iframe className="ed-pdf" src={pdf} title={nombreDeRuta(ruta)} />}
+      {archivo?.pega === "grande" && !vistoComo && (
         <p className="ed-nota">
           {t("Este archivo pesa {p}. No se abre entero para que la app no se atasque.", {
             p: peso(archivo.peso),
           })}
         </p>
       )}
-      {archivo?.pega === "binario" && !imagen && (
+      {archivo?.pega === "binario" && !vistoComo && (
         <p className="ed-nota">{t("Esto no es texto: son {p} de datos.", { p: peso(archivo.peso) })}</p>
       )}
 
-      <div className="ed-caja" ref={caja} style={colores} hidden={!!imagen} />
+      <div className="ed-caja" ref={caja} style={colores} hidden={!!vistoComo} />
 
       <footer className="ed-pie">
         <span>
@@ -327,7 +368,7 @@ function Hoja({
           </Ocupado>
         </span>
         <span className="ed-ruta">{rutaCorta(ruta, raiz)}</span>
-        {!imagen && <span className="ed-atajo">{t("Ctrl+S para guardar")}</span>}
+        {!vistoComo && <span className="ed-atajo">{t("Ctrl+S para guardar")}</span>}
         {/* Traer del disco lo que haya ahora, a mano. La hoja ya lo vigila sola
             mientras la miras; esto queda para pedirlo sin esperar su turno. */}
         <button className="mini" data-tip={t("Releer del disco")} onClick={() => void cargar()}>

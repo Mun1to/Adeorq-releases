@@ -32,18 +32,29 @@ of them. And it comes with you: **from your phone or any browser**, wherever you
 
 <br>
 
-<img src="web/assets/screens/cockpit.png" alt="The Cockpit: nine real terminals in one grid">
+<img src="web/assets/screens/en/cockpit.png" alt="The Cockpit with four agents at once, each in its own project: a Claude Code session that has finished, Codex working, a Claude Code session asking permission with the answer buttons above its terminal, and another one in the middle of an edit">
+
+<sub>Four agents, four projects. One has finished, two are working, and one is asking permission, with the answer one click away.</sub>
 
 </div>
 
 ---
 
+## Up and running in a minute
+
+1. **Download it and open it.** There is no account to create and no key to paste.
+2. **Tell it where your projects live.** Every folder in there becomes a project in the sidebar,
+   with the sessions you already had in each one.
+3. **Click a project.** A session of your usual CLI opens in a real terminal, in that folder
+   (Claude Code, out of the box). Click another project and you have two.
+
 ## It runs on YOUR account
 
 Adeorq neither sells nor bundles access to any model. It **uses the subscriptions you already
-pay for** and the CLIs you already have installed: Claude Code, Codex, Gemini CLI,
-Antigravity, Copilot, Qwen, Crush, opencode, Amp, Cursor, pi and Kiro. If you have more than
-one account, each terminal can be born on a different one.
+pay for** and the CLIs you already have installed, twenty-two of them today: Claude Code,
+Codex, Gemini CLI, Antigravity, Copilot, Cursor, Qwen, Grok, Kimi Code, Kiro, pi, opencode,
+Crush, Amp, Aider, Goose, Droid, Jules, Auggie, Codebuff, Cody and CodeWhale. If you have more
+than one account, each terminal can be born on a different one.
 
 That is the whole reason it exists: **new model features land on the command line before they
 land in desktop apps**. Adeorq builds the experience on top of those programs instead of
@@ -53,22 +64,35 @@ replacing them, so the day something new ships, you have it.
 
 | | |
 |---|---|
-| **The Cockpit** | A grid of real terminals. Split them, move them, set them aside without closing them, and find them where you left them next time. |
-| **Your sessions** | Reads `~/.claude` with no API at all: title, real state (asking you / finished / halfway), how long ago, and which ones are still alive. One click resumes any of them inside the panel. |
+| **The Cockpit** | A grid of real terminals. Split them, move them, set them aside without closing them, and find them where you left them next time. And if you want, they survive Adeorq itself: with **Settings → Terminals → Keep the terminals alive if Adeorq crashes** (experimental), your agents keep working through a crash and reattach when you open it again. |
+| **Your sessions** | Reads `~/.claude`, and Codex's `~/.codex`, with no API at all: title, real state (asking you / finished / halfway), how long ago, and which ones are still alive. One click resumes any of them inside the panel. |
 | **The Foreman** | Tell it what you want out loud and it proposes a board. Nothing runs without your OK, and the plan goes through a deterministic gate before you even see it. |
-| **The Canvas** | An infinite board with the terminals living inside it, plus notes, images, a kanban, and arrows that hand one agent's output to the next. |
+| **The Canvas** | An infinite board with the terminals living inside it, plus notes, images, a kanban, and arrows that hand one agent's output to the next. A note with a title and steps can be **saved as a runbook** in the project's `docs/fichas`, ready to repeat. |
 | **The web pane** | Your localhost right beside the agent building it: a small browser with tabs, back and forward, and one click to swap in YOUR real browser, extensions and all. |
+| **Files** | The project's tree beside the terminals. Create files and folders, rename them or move them to the recycle bin from the right-click menu; open one in the editor, where images and PDFs show as themselves. And **Ctrl+K → Search in the files** finds text inside the project and opens the hit at its line. |
 | **Activity** | What is going on behind the focused terminal: which skills and MCP servers it is using, every tool call, and each request to the model with its tokens. |
 | **Shadow Mode** | Each agent in its own git worktree. You read the diff and decide whether it lands or gets thrown away. |
+| **Decisions** | When an agent needs you to choose, it asks with numbered options and says which one it would pick. You answer in its own tab, or from your phone, and the answer goes straight back to the terminal that asked. |
 | **The Agenda** | What is coming at you, your goals for the day, and the ideas your agents leave behind along the way. Plus orders that run on their own, on the days and at the hour you set, with a breaker that stops one after three failures in a row. |
+| **Accounts** | Several logins of the same CLI side by side, each with its plan and how much of its limit is left. You choose which one new terminals are born with, or open a terminal on a specific one. |
+| **Commands** | Everything you can type inside each agent, searchable by what you want to do rather than by its name, and sent to the terminal with one click. |
 | **Memory** | Your Obsidian vault inside the panel, searchable by what the notes say, with a map of what links to what. |
 | **The Concierge** | One chat that opens sessions for you as tabs, with a router that picks which model or client takes each job. |
 | **On your phone** | The Concierge, your sessions and every terminal, from any browser and wherever you are. Attach photos, get a notification when an agent asks you something. |
+| **Adeo** | The little pixel A in the top bar is the bell. He types when your agents are working, waves when one is waiting for you, jumps when one finishes and sleeps when there are none, and follows your mouse with his eye. |
 
 <div align="center">
-<img src="web/assets/screens/canvas.png" width="49%" alt="The Canvas">
-<img src="web/assets/screens/dashboard.png" width="49%" alt="The Dashboard">
+<img src="web/assets/screens/en/canvas.png" width="49%" alt="The Canvas: three terminals living on the board, an arrow that hands one agent's work to the next, two notes and the board of what every agent is doing">
+<img src="web/assets/screens/en/files.png" width="49%" alt="Files: the project's tree on the right, a file open in the editor, and two terminals with the tests passing and the diff">
+<img src="web/assets/screens/en/dashboard.png" width="49%" alt="The Dashboard: how many sessions are working, how many are waiting for you, and the Foreman">
+<img src="web/assets/screens/en/decisions.png" width="49%" alt="Decisions: a question from an agent with its numbered options, the recommended one marked, and the answer being filled in">
+<img src="web/assets/screens/en/agenda.png" width="49%" alt="The Agenda: the month with each day's goals, what your agents propose, and today's goals in a floating panel">
+<img src="web/assets/screens/en/accounts.png" width="49%" alt="Accounts: two Claude Code logins and a Codex one, each with its plan and how much of its limit is used">
 </div>
+
+<sub>Every screenshot is the real app, opened on a demo workshop instead of anybody's projects. The agents in the
+terminals are real sessions, recorded in those demo projects and played back; the accounts and their limits are
+sample data.</sub>
 
 ## From your phone, or any browser
 
@@ -126,7 +150,7 @@ The [releases page](https://github.com/Mun1to/Adeorq-releases/releases/latest) a
 `.deb` for Debian and Ubuntu (`sudo apt install ./Adeorq_*.deb`) and an `.rpm` for Fedora
 (`sudo dnf install ./Adeorq-*.rpm`).
 
-**Three things work differently**, and it is better to know them upfront:
+**Four things work differently**, and it is better to know them upfront:
 
 - **Secrets.** On Windows they go to the Credential Manager, which encrypts them with your
   login. Linux has no such vault, so they go to a `600` file under
@@ -136,6 +160,8 @@ The [releases page](https://github.com/Mun1to/Adeorq-releases/releases/latest) a
   publishes that, and the Linux equivalent is MPRIS, which is not in yet.
 - **The window is translucent**, so it needs a compositing desktop. Any modern GNOME or KDE
   has one; without a compositor the glass will look opaque.
+- **Closing the window quits Adeorq**, because there is no tray icon to keep it alive. So the
+  Agenda's scheduled orders only run while Adeorq is open.
 
 It is built on **Ubuntu 22.04**, so it needs glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+,
 Fedora 36+, Arch).

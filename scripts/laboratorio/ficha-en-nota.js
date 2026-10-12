@@ -81,6 +81,24 @@ async (page) => {
   pasos.guardada = await page.evaluate(() => window.__llamadas.slice(window.__desde).filter(([c]) => c === "note_write").map(([, a]) => a.text).pop() ?? "");
   debe(pasos.guardada.startsWith("# Publicar una versión\n") && !pasos.guardada.includes("\r") && !/\[x\]/i.test(pasos.guardada), `lo que se guarda en disco: ${JSON.stringify(pasos.guardada)}`);
 
+  // 3b. Y al revés: guardarla como ficha. El nombre sale del título, va a la
+  //     carpeta de fichas del proyecto del lienzo, sin casillas marcadas; una
+  //     segunda vez no pisa la primera, lo dice.
+  await page.evaluate(() => { window.__desde = window.__llamadas.length; });
+  await nota.locator("[data-lanzar]").click();
+  await nota.locator("[data-guardar-ficha]").click();
+  await page.waitForTimeout(700);
+  pasos.comoFicha = await page.evaluate(() => window.__llamadas.slice(window.__desde).filter(([c]) => c === "guardar_ficha").map(([, a]) => a).pop() ?? null);
+  debe(pasos.comoFicha?.raiz === "C:\\proyectos\\Adeorq" && pasos.comoFicha?.nombre === "publicar-una-version.md", `se guarda donde y como toca (${JSON.stringify(pasos.comoFicha)})`);
+  debe(/^# Publicar una versión\n/.test(pasos.comoFicha?.texto ?? "") && !/\[x\]/i.test(pasos.comoFicha?.texto ?? ""), "con su título y sin casillas marcadas");
+  pasos.dichoFicha = (await nota.locator(".note-dicho").textContent().catch(() => "")) ?? "";
+  debe(/Guardada como ficha: docs\/fichas\/publicar-una-version\.md/.test(pasos.dichoFicha), `lo dice («${pasos.dichoFicha}»)`);
+  await nota.locator("[data-lanzar]").click();
+  await nota.locator("[data-guardar-ficha]").click();
+  await page.waitForTimeout(700);
+  pasos.otraVez = (await nota.locator(".note-dicho").textContent().catch(() => "")) ?? "";
+  debe(/Ya hay algo/.test(pasos.otraVez), `una segunda vez no pisa la primera («${pasos.otraVez}»)`);
+
   // 4. Repartirla: una sesión por tarea, y cada una con SU línea.
   await page.evaluate(() => { window.__desde = window.__llamadas.length; });
   await nota.locator("[data-lanzar]").click();

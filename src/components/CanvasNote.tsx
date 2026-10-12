@@ -8,8 +8,8 @@ import { useCabina } from "../lib/cabina";
 import { pasteInto } from "../lib/flechas";
 import { PINTA } from "../lib/estados";
 import { useEncargosDelLienzo } from "../lib/encargosDelLienzo";
-import { leerArchivo, listarCarpeta } from "../lib/archivos";
-import { carpetaDeFichas, fichasDe, notaDesdeFicha, type Ficha } from "../lib/fichas";
+import { guardarFicha, leerArchivo, listarCarpeta } from "../lib/archivos";
+import { archivoDeFicha, carpetaDeFichas, fichaDesdeNota, fichasDe, notaDesdeFicha, type Ficha } from "../lib/fichas";
 import {
   conCuerpo,
   conTitulo,
@@ -224,6 +224,22 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
     }
   };
 
+  /** Y al revés: esta nota, guardada como ficha del proyecto del lienzo para
+      repetirla otro día. Las casillas van sin marcar (`fichaDesdeNota`) y el
+      nombre sale del título; si ya hay una con ese nombre no se pisa, se dice.
+      Era el fleco que dejaban las fichas: hasta ahora se escribían a mano. */
+  const guardarComoFicha = async () => {
+    setLanzando(false);
+    const nombre = archivoDeFicha(tituloDe(texto));
+    if (!nombre || !raizFichas) return;
+    try {
+      await guardarFicha(raizFichas, nombre, fichaDesdeNota(texto));
+      decir(t("Guardada como ficha: docs/fichas/{n}.", { n: nombre }));
+    } catch (e) {
+      decir(String(e));
+    }
+  };
+
   /** La nota nace con los pasos de esa ficha, todos sin marcar. La ficha no se
       toca: lo que se marca es la copia, que es esta nota. */
   const ponerFicha = async (f: Ficha) => {
@@ -375,6 +391,17 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
             </button>
           ))}
           {destinos.length === 0 && donde.length === 0 && <p>{t("No hay terminales abiertas.")}</p>}
+          {/* Para repetirla otro día: con título (que da el nombre) y pasos. */}
+          {raizFichas && titulo && tareas.length > 0 && (
+            <>
+              <p>{t("Para repetirla")}</p>
+              <button role="menuitem" data-guardar-ficha onClick={() => void guardarComoFicha()}>
+                <NoteIcon size={13} />
+                <span>{t("Guardar como ficha")}</span>
+                <em>docs/fichas</em>
+              </button>
+            </>
+          )}
         </div>
       )}
       {dicho && <p className="note-dicho nodrag">{dicho}</p>}

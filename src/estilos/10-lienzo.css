@@ -81,7 +81,7 @@
   font-weight: 650;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.12s ease;
+  transition: background var(--t-rapida) ease;
 }
 
 .cb-proj:hover,
@@ -194,9 +194,9 @@
   white-space: nowrap;
   cursor: pointer;
   transition:
-    background 0.12s ease,
-    color 0.12s ease,
-    border-color 0.12s ease;
+    background var(--t-rapida) ease,
+    color var(--t-rapida) ease,
+    border-color var(--t-rapida) ease;
 }
 
 .cb-spawn:hover:not(:disabled),
@@ -218,7 +218,7 @@
     color-mix(in srgb, var(--accent) 80%, black 20%)
   );
   border-color: color-mix(in srgb, var(--accent) 55%, white 45%);
-  color: #f7fbff;
+  color: color-mix(in srgb, var(--claro) 70%, #fff);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
     0 3px 10px color-mix(in srgb, var(--accent) 40%, transparent);
@@ -231,7 +231,7 @@
     color-mix(in srgb, var(--accent) 80%, white 20%),
     color-mix(in srgb, var(--accent) 80%, black 20%)
   );
-  color: #f7fbff;
+  color: color-mix(in srgb, var(--claro) 70%, #fff);
 }
 
 /* Los tres lienzos: un selector de tres, no tres botones sueltos.
@@ -256,7 +256,7 @@
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
 }
 
 .cb-modo:hover {
@@ -286,8 +286,8 @@
   font-family: inherit;
   cursor: pointer;
   transition:
-    background 0.12s ease,
-    color 0.12s ease;
+    background var(--t-rapida) ease,
+    color var(--t-rapida) ease;
 }
 
 .cb-tool:hover {
@@ -298,7 +298,7 @@
 .cb-tool[data-on="true"] {
   background: color-mix(in srgb, var(--accent) 26%, transparent);
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  color: #f4f8ff;
+  color: var(--claro);
 }
 
 /* Segunda fila: color y grosor solo existen mientras hay una herramienta
@@ -405,7 +405,7 @@
   display: inline-flex;
   padding: 0;
   overflow: hidden;
-  background: conic-gradient(#ff6b6b, #ffd166, #6fe0bb, #5fd0ff, #c4b5fd, #ff6b6b);
+  background: var(--arcoiris);
 }
 
 .cp-pick-face {
@@ -478,7 +478,7 @@
 .cp-btn[data-on="true"] {
   background: color-mix(in srgb, var(--accent) 26%, transparent);
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  color: #f4f8ff;
+  color: var(--claro);
 }
 
 .cp-done {
@@ -582,9 +582,9 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
   opacity: 0.75;
   transition:
-    transform 0.12s ease,
-    opacity 0.12s ease,
-    box-shadow 0.12s ease;
+    transform var(--t-rapida) ease,
+    opacity var(--t-rapida) ease,
+    box-shadow var(--t-rapida) ease;
 }
 
 /* A caballo sobre el borde, asomando hacia fuera: así los quiere Munir y así
@@ -664,7 +664,7 @@
 /* Seleccionado: se levanta con un halo del color de acento, sin repintar el
    trazo, para que se vea cuál has cogido sin falsear cómo quedará. */
 .canvas-draw-shape[data-sel="true"] {
-  filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 9px rgba(77, 159, 255, 0.55));
+  filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 9px color-mix(in srgb, var(--accent) 55%, transparent));
 }
 
 /* El marco mientras se barre: el guion se ve enseguida como "estoy cogiendo",
@@ -697,7 +697,7 @@
    terminal negra— y desaparecer en cuanto sueltas, así que el color no puede
    ser ninguno de los que ya significan algo aquí. */
 .canvas-guia {
-  stroke: #ff5cc8;
+  stroke: var(--guia-lienzo);
   pointer-events: none;
   opacity: 0.9;
 }
@@ -708,10 +708,10 @@
    una promesa sobre lo que va a pasar, no un estado. */
 .canvas-imana {
   fill: none;
-  stroke: #7ee08a;
+  stroke: var(--ok);
   stroke-dasharray: none;
   pointer-events: none;
-  filter: drop-shadow(0 0 6px rgba(126, 224, 138, 0.55));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ok) 55%, transparent));
 }
 
 /* ==========================================================================
@@ -773,7 +773,7 @@
 .atajos-tecla[data-grabando="true"] {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 24%, transparent);
-  color: #f4f8ff;
+  color: var(--claro);
   animation: atajo-latido 1.1s ease-in-out infinite;
 }
 
@@ -890,7 +890,7 @@
   padding: 0 6px;
   border-radius: var(--r-chico);
   background: color-mix(in srgb, var(--accent) 30%, transparent);
-  color: #f4f8ff;
+  color: var(--claro);
   font-size: 12px;
   font-weight: 700;
 }
@@ -904,16 +904,16 @@
 
 .cs-ask {
   margin-left: 4px;
-  color: #ffd7d7;
+  color: color-mix(in srgb, var(--mal) 45%, #fff);
 }
 
 .cs-danger {
-  border-color: color-mix(in srgb, #d66060 55%, transparent);
-  color: #ffd7d7;
+  border-color: color-mix(in srgb, color-mix(in srgb, var(--mal) 75%, #000) 55%, transparent);
+  color: color-mix(in srgb, var(--mal) 45%, #fff);
 }
 
 .cs-danger:hover:not(:disabled) {
-  background: rgba(214, 96, 96, 0.22);
+  background: color-mix(in srgb, color-mix(in srgb, var(--mal) 75%, #000) 22%, transparent);
   color: #fff;
 }
 
@@ -1138,7 +1138,7 @@
    fila de 34 px, en una terminal de 360 de ancho, eran la mitad de la cabecera. */
 .rf-term .ph-acts {
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--t-rapida) ease;
 }
 
 .rf-term:hover .ph-acts,
@@ -1279,7 +1279,7 @@
   color: var(--muted);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--t-rapida) ease;
 }
 
 .carril-rotulo:hover .carril-cerrar {

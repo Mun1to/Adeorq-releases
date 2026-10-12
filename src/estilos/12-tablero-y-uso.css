@@ -78,7 +78,7 @@
   min-width: 0;
   min-height: 0;
   background: var(--panel-solid);
-  transition: background 0.12s ease;
+  transition: background var(--t-rapida) ease;
 }
 
 /* La columna tuya se distingue del resto: en las otras tres no se puede soltar
@@ -108,7 +108,7 @@
 }
 
 .kb-col[data-col="espera"] .kb-col-tit {
-  color: #e5b567;
+  color: var(--ask);
 }
 
 .kb-col-n {
@@ -156,8 +156,8 @@
 /* El que te espera lleva el ámbar de la casa, el mismo que el contador de la
    barra lateral: es el único estado que te pide algo. */
 .kb-card[data-urge] {
-  border-color: color-mix(in srgb, #e5b567 55%, transparent);
-  background: color-mix(in srgb, #e5b567 12%, var(--row));
+  border-color: color-mix(in srgb, var(--ask) 55%, transparent);
+  background: color-mix(in srgb, var(--ask) 12%, var(--row));
 }
 
 .kb-card-top {
@@ -185,11 +185,11 @@
 }
 
 .kb-cli[data-cli="claude"] {
-  color: #d97757;
+  color: var(--marca-claude);
 }
 
 .kb-cli[data-cli="agy"] {
-  color: #7aa6ff;
+  color: color-mix(in srgb, var(--accent) 80%, #fff);
 }
 
 .kb-card-nombre {
@@ -227,7 +227,7 @@
 }
 
 .kb-card[data-urge] .kb-estado {
-  color: #e5b567;
+  color: var(--ask);
   font-weight: 700;
 }
 
@@ -396,12 +396,12 @@
    no puede parecer lo mismo. En ámbar, que es como avisa el resto de la app,
    y con el motivo escrito en vez de un relevo quieto sin explicación. */
 .relay-parado {
-  border-color: color-mix(in srgb, var(--warn, #f3cf8a) 55%, transparent);
-  background: color-mix(in srgb, var(--warn, #f3cf8a) 12%, var(--popover));
+  border-color: color-mix(in srgb, var(--warn, var(--ask)) 55%, transparent);
+  background: color-mix(in srgb, var(--warn, var(--ask)) 12%, var(--popover));
 }
 
 .relay-parado .relay-text {
-  color: var(--warn, #f3cf8a);
+  color: var(--warn, var(--ask));
 }
 
 .relay-btn {
@@ -411,7 +411,7 @@
 
 .relay-note {
   font-size: 11.5px;
-  color: var(--warn, #f3cf8a);
+  color: var(--warn, var(--ask));
 }
 
 /* Settings: an on/off switch, not a tick box (Munir, 2026-08-21).
@@ -437,12 +437,12 @@
      a solid grey pill is the one thing that would look pasted on. Measured on
      screen: at 0.16 the track disappeared into the card and the row read as a
      lone white dot, so it carries its own border to keep the pill legible. */
-  background: rgba(140, 170, 220, 0.22);
+  background: color-mix(in srgb, var(--muted) 22%, transparent);
   border: 1px solid var(--border-strong);
   cursor: pointer;
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease;
+    background var(--t-media) ease,
+    border-color var(--t-media) ease;
 }
 
 .setting-switch input[type="checkbox"]::before,
@@ -454,11 +454,11 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #f2f6ff;
+  background: var(--claro);
   /* Moving the knob with translate keeps it on the GPU, and `top: 50%` plus a
      translate on Y centres it whatever the border does to the box. */
   transform: translate(0, -50%);
-  transition: transform 0.18s ease;
+  transition: transform var(--t-media) ease;
   box-shadow: none;
 }
 
@@ -562,9 +562,9 @@
   color: var(--accent);
   cursor: pointer;
   transition:
-    transform 0.1s ease,
-    border-color 0.12s ease,
-    background 0.12s ease;
+    transform var(--t-rapida) ease,
+    border-color var(--t-rapida) ease,
+    background var(--t-rapida) ease;
 }
 
 .layout-choice:hover {
@@ -804,10 +804,10 @@
   background: color-mix(in srgb, var(--accent) 20%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), var(--sombra-3);
   transition:
-    left 0.09s ease,
-    top 0.09s ease,
-    width 0.09s ease,
-    height 0.09s ease;
+    left var(--t-rapida) ease,
+    top var(--t-rapida) ease,
+    width var(--t-rapida) ease,
+    height var(--t-rapida) ease;
 }
 
 /* Usage panel, under the skills: the week's real work, read from the CLI's
@@ -968,9 +968,9 @@
   background: var(--row);
   cursor: pointer;
   transition:
-    transform 0.1s ease,
-    border-color 0.12s ease,
-    background 0.12s ease;
+    transform var(--t-rapida) ease,
+    border-color var(--t-rapida) ease,
+    background var(--t-rapida) ease;
 }
 
 .cmd-card:hover:not(:disabled) {
@@ -1093,8 +1093,8 @@
   background: none;
   cursor: pointer;
   transition:
-    border-color 0.12s ease,
-    background 0.12s ease;
+    border-color var(--t-rapida) ease,
+    background var(--t-rapida) ease;
 }
 
 .usage-cliente .prov-mark {
@@ -1104,7 +1104,7 @@
      entre si y la fila se lee como una barra de herramientas en vez de como
      una eleccion. */
   opacity: 0.55;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--t-rapida) ease;
 }
 
 .usage-cliente:hover {
@@ -1155,7 +1155,7 @@
   font-size: 10.5px;
   font-weight: 650;
   cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  transition: color var(--t-rapida) ease, border-color var(--t-rapida) ease, background var(--t-rapida) ease;
 }
 
 .usage-cuenta:hover {

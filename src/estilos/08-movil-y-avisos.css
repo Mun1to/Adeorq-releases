@@ -162,7 +162,7 @@
 }
 
 .setting-good {
-  color: #7ee08a;
+  color: var(--ok);
 }
 
 /* El aviso de version nueva: una TARJETA abajo a la izquierda.
@@ -198,7 +198,7 @@
   border: 1px solid var(--accent);
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 22px color-mix(in srgb, var(--accent) 38%, transparent), var(--sombra-3);
-  animation: update-sube 0.18s ease;
+  animation: update-sube var(--t-media) ease;
 }
 
 @keyframes update-sube {
@@ -220,7 +220,7 @@
   color: var(--text);
   cursor: pointer;
   text-align: left;
-  transition: background 0.12s ease;
+  transition: background var(--t-rapida) ease;
 }
 
 .update-card-main:hover:not(:disabled) {
@@ -287,7 +287,7 @@
   border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   color: color-mix(in srgb, var(--text) 55%, transparent);
   cursor: pointer;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition: color var(--t-rapida) ease, background var(--t-rapida) ease;
 }
 
 .update-no:hover {
@@ -302,23 +302,23 @@
   bottom: 0;
   height: 3px;
   background: var(--accent);
-  transition: width 0.2s ease;
+  transition: width var(--t-media) ease;
 }
 
 /* El error manda sobre el marco de acento, resplandor incluido: si no, una
    actualización que ha fallado seguiría rodeada del halo que dice «púlsame». */
 .update-card[data-phase="error"] {
-  border-color: rgba(224, 110, 110, 0.7);
+  border-color: color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 70%, transparent);
   box-shadow:
-    0 0 0 1px rgba(224, 110, 110, 0.3), 0 0 20px rgba(224, 110, 110, 0.3), var(--sombra-3);
+    0 0 0 1px color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 30%, transparent), 0 0 20px color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 30%, transparent), var(--sombra-3);
 }
 
 .update-card[data-phase="error"] .update-mark {
-  background: rgba(214, 96, 96, 0.2);
+  background: color-mix(in srgb, color-mix(in srgb, var(--mal) 75%, #000) 20%, transparent);
 }
 
 .update-card[data-phase="error"] .update-flecha {
-  color: #ff9a9a;
+  color: var(--mal);
 }
 
 /* Aquí vivía `.update-btn`, el botón «Actualizar ahora» de la franja de arriba.
@@ -375,14 +375,14 @@
   padding: 13px 14px;
   border-radius: var(--r-caja);
   background: var(--panel-solid);
-  border: 1px solid rgba(240, 180, 80, 0.5);
+  border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent);
   box-shadow: var(--sombra-3);
-  animation: update-sube 0.18s ease;
+  animation: update-sube var(--t-media) ease;
 }
 
 /* Al 99 % ya no es un aviso, es un tope: cambia de color y no de tamaño. */
 .cuota-card[data-lleno="true"] {
-  border-color: rgba(224, 110, 110, 0.55);
+  border-color: color-mix(in srgb, color-mix(in srgb, var(--mal) 85%, #000) 55%, transparent);
 }
 
 .cuota-cab {
@@ -458,7 +458,7 @@
   justify-content: center;
   color: var(--accent);
   border-color: transparent;
-  transition: filter 0.14s ease;
+  transition: filter var(--t-rapida) ease;
 }
 
 /* Y la bola, centrada dentro del botón pase lo que pase con su órbita: el SVG
@@ -530,7 +530,7 @@
   border-radius: var(--r-btn);
   background: none;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background var(--t-rapida) ease, border-color var(--t-rapida) ease;
 }
 .campana:hover,
 .campana[data-abierta] {
@@ -548,7 +548,7 @@
   padding: 0 4px;
   border-radius: var(--r-pastilla);
   background: var(--ask);
-  color: #1b1407;
+  color: var(--oscuro);
   font-size: 10px;
   font-weight: 700;
   line-height: 15px;

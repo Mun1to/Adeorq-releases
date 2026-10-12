@@ -25,7 +25,12 @@ export type Accion =
       Desde dentro de una terminal esa tecla es del programa, y se llega por aquí. */
   | { tipo: "archivos" }
   /** Un archivo del proyecto, por su ruta relativa: lo que se elige en ese modo. */
-  | { tipo: "archivo"; ruta: string };
+  | { tipo: "archivo"; ruta: string }
+  /** Pasa la paleta a buscar DENTRO de los archivos. Sin atajo propio: el de VS
+      Code (Ctrl+Mayús+F) aquí ya es maximizar el panel. */
+  | { tipo: "contenido" }
+  /** Un sitio de un archivo, por su ruta relativa y su línea: lo que se elige ahí. */
+  | { tipo: "sitio"; ruta: string; linea: number };
 
 export interface Entrada {
   /** Estable entre repintados, para la `key` de React. */
@@ -86,6 +91,12 @@ export function entradasDeLaPaleta(hay: LoQueHay, t: Translate): Entrada[] {
       texto: t("Abrir un archivo por su nombre"),
       atajo: "Ctrl+P",
       accion: { tipo: "archivos" },
+    },
+    {
+      id: "contenido",
+      grupo: t("Acción"),
+      texto: t("Buscar en los archivos"),
+      accion: { tipo: "contenido" },
     },
     ...ATAJOS.map((a): Entrada => ({
       id: `atajo:${a.key}`,

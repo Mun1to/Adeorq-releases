@@ -837,6 +837,18 @@ pub fn codex_transcript(session_id: &str) -> Option<PathBuf> {
     codex_transcript_en(&codex_dir()?, session_id)
 }
 
+/// El id PROPIO de un hilo de Codex, leído de su `session_meta`.
+///
+/// Desde la 0.154 (medido en su disco el 2026-10-11) `session_id` es el de la
+/// sesión RAÍZ y lo comparten todos sus subagentes y revisores; el de cada hilo
+/// va en `id`. Buscar por `session_id` podía devolver el rollout de un
+/// subagente, según el orden en que el sistema lista las carpetas (en Linux, el
+/// que le toque), y la papelera se habría llevado ese. Las versiones que no
+/// escriben `id` tienen un hilo por archivo, y ahí vale `session_id`.
+fn id_de_hilo(p: &Value) -> Option<&str> {
+    p["id"].as_str().or(p["session_id"].as_str())
+}
+
 /// La búsqueda de verdad, con la raíz por parámetro.
 ///
 /// Separada solo para poder probarla: la de arriba saca la carpeta de
@@ -860,7 +872,7 @@ fn codex_transcript_en(raiz: &Path, session_id: &str) -> Option<PathBuf> {
                     let Ok(v) = serde_json::from_str::<Value>(&cabecera) else {
                         continue;
                     };
-                    if v["payload"]["session_id"].as_str() == Some(session_id) {
+                    if id_de_hilo(&v["payload"]) == Some(session_id) {
                         return Some(path);
                     }
                 }
@@ -930,7 +942,7 @@ pub fn codex_session_since_en(raiz: &Path, cwd: &str, desde: u64) -> Option<Stri
                     if nacio < desde {
                         continue;
                     }
-                    let Some(id) = p["id"].as_str().or(p["session_id"].as_str()) else {
+                    let Some(id) = id_de_hilo(p) else {
                         continue;
                     };
                     if mejor.as_ref().is_none_or(|(n, _)| nacio < *n) {
@@ -974,6 +986,57 @@ pub fn codex_session_since(cwd: String, since: u64) -> Option<String> {
     codex_session_since_en(&codex_dir()?, &cwd, since)
 }
 
+/// El rollout de cada sesión de Codex ya encontrada. El panel pregunta cada
+/// pocos segundos, y encontrarla es abrir la primera línea de TODOS los
+/// rollouts del disco (`codex_transcript`); una vez sabida, la ruta no cambia.
+static ROLLOUTS: Mutex<Vec<(String, PathBuf)>> = Mutex::new(Vec::new());
+
+/// Para el panel de una terminal de Codex: en qué anda su sesión, con el mismo
+/// vocabulario que una de Claude. Solo el estado: el contexto que enseña Codex
+/// lo cuenta él con su propia vara, y un porcentaje distinto en la cabecera del
+/// mismo panel sería peor que ninguno. Con `percent` a 0 la cabecera no lo pinta.
+#[tauri::command(async)]
+pub fn codex_context(session_id: String) -> Option<ContextInfo> {
+    let sabida = ROLLOUTS
+        .lock()
+        .ok()
+        .and_then(|r| r.iter().find(|(id, _)| *id == session_id).map(|(_, p)| p.clone()))
+        .filter(|p| p.exists());
+    let path = match sabida {
+        Some(p) => p,
+        None => {
+            let p = codex_transcript(&session_id)?;
+            if let Ok(mut r) = ROLLOUTS.lock() {
+                r.retain(|(id, _)| *id != session_id);
+                r.push((session_id.clone(), p.clone()));
+                if r.len() > 32 {
+                    r.remove(0);
+                }
+            }
+            p
+        }
+    };
+    codex_context_de(&path, session_id)
+}
+
+fn codex_context_de(path: &Path, session_id: String) -> Option<ContextInfo> {
+    let lines = read_tail(path).ok()?;
+    Some(ContextInfo {
+        model: String::new(),
+        used: 0,
+        window: 0,
+        percent: 0,
+        agents_live: 0,
+        agents_total: 0,
+        session_id,
+        folder: String::new(),
+        state: codex_estado(&lines),
+        // El primer mensaje no es un nombre (`titulo_de`): sin título, el
+        // panel se sigue llamando como lo abriste.
+        title: String::new(),
+    })
+}
+
 fn analyze_codex(path: &Path) -> Option<SessionInfo> {
     let meta = std::fs::metadata(path).ok()?;
     let size = meta.len();
@@ -992,8 +1055,16 @@ fn analyze_codex(path: &Path) -> Option<SessionInfo> {
     if v["type"].as_str() != Some("session_meta") {
         return None;
     }
+    // Un subagente, o el revisor de aprobaciones de Codex Desktop (`guardian`),
+    // tiene su propio rollout con el `parent_thread_id` de quien lo lanzó. No es
+    // una sesión tuya, es trabajo DENTRO de otra, como una `sidechain` de Claude:
+    // en su disco eran 10 de las 14 de la lista (2026-10-11).
+    // `codex_session_since_en` ya los descartaba con la misma regla.
+    if !v["payload"]["parent_thread_id"].is_null() {
+        return None;
+    }
     let cwd = v["payload"]["cwd"].as_str().unwrap_or_default().to_owned();
-    let id = v["payload"]["session_id"].as_str().unwrap_or_default().to_owned();
+    let id = id_de_hilo(&v["payload"]).unwrap_or_default().to_owned();
     if cwd.is_empty() || id.is_empty() {
         return None;
     }
@@ -1016,10 +1087,7 @@ fn analyze_codex(path: &Path) -> Option<SessionInfo> {
     Some(SessionInfo {
         id,
         title: clean(if titulo.is_empty() { "(sin título)" } else { &titulo }, 90),
-        // Codex no deja escrito si terminó su turno o te está esperando, así
-        // que se declara vacío, que en la interfaz es «no tocar». Inventarse un
-        // estado sería peor: el Capataz decide con esto.
-        state: String::new(),
+        state: codex_estado(&lines),
         fresh: fresh.into(),
         hours: (hours * 10.0).round() / 10.0,
         mtime,
@@ -1041,24 +1109,54 @@ fn analyze_codex(path: &Path) -> Option<SessionInfo> {
 
 /// El título de una sesión de Codex: lo primero que le escribió el usuario.
 ///
-/// Va por los `event_msg` de tipo `user_message`, que traen el texto limpio, y
-/// NO por los `response_item` de rol `user`: el primero de esos es un
-/// `<environment_context>` que mete el propio CLI con el cwd y el shell, y sería
-/// lo que saldría en la lista de todas las sesiones.
+/// Hay dos sitios donde mirarlo, según la versión:
+///  - el `event_msg` de tipo `user_message`, que trae el texto limpio. Hasta
+///    hace poco era el único que valía, y Codex 0.147 en adelante ya NO lo
+///    escribe: las 14 sesiones de su disco salían «(sin título)» (2026-10-11);
+///  - el `response_item` de rol `user`, que es donde está ahora. Ahí el CLI
+///    se mete a sí mismo bloques que no ha escrito nadie (`<environment_context>`,
+///    `<recommended_plugins>`, `# AGENTS.md instructions for…`, `# Files
+///    mentioned by the user`, `<image …>`), a veces en el mismo mensaje que el
+///    texto de verdad. Por eso se filtra bloque a bloque y no el mensaje entero.
 fn codex_titulo(lines: &[String]) -> String {
     for line in lines {
-        if !line.contains("\"user_message\"") {
-            continue;
-        }
-        let Ok(v) = serde_json::from_str::<Value>(line) else {
+        let m = if line.contains("\"user_message\"") {
+            let Ok(v) = serde_json::from_str::<Value>(line) else {
+                continue;
+            };
+            if v["payload"]["type"].as_str() != Some("user_message") {
+                continue;
+            }
+            v["payload"]["message"].as_str().unwrap_or_default().trim().to_owned()
+        } else if line.contains("\"role\":\"user\"") {
+            let Ok(v) = serde_json::from_str::<Value>(line) else {
+                continue;
+            };
+            let p = &v["payload"];
+            // `compacted` también lleva mensajes de usuario dentro, copiados de
+            // antes: solo vale el mensaje que se escribió en su momento.
+            if v["type"].as_str() != Some("response_item")
+                || p["type"].as_str() != Some("message")
+                || p["role"].as_str() != Some("user")
+            {
+                continue;
+            }
+            let Some(bloques) = p["content"].as_array() else {
+                continue;
+            };
+            bloques
+                .iter()
+                .filter(|b| b["type"].as_str() == Some("input_text"))
+                .filter_map(|b| b["text"].as_str())
+                .map(str::trim)
+                .filter(|t| !es_bloque_del_cli(t))
+                .collect::<Vec<_>>()
+                .join(" ")
+        } else {
             continue;
         };
-        if v["payload"]["type"].as_str() != Some("user_message") {
-            continue;
-        }
-        let m = v["payload"]["message"].as_str().unwrap_or_default().trim();
-        // Los bloques que se mete el CLI a sí mismo empiezan por `<`.
-        if m.is_empty() || m.starts_with('<') {
+        let m = m.trim();
+        if m.is_empty() || es_bloque_del_cli(m) {
             continue;
         }
         // Un turno de solo imágenes pegadas llega como «[Image #1] [Image #2]…»
@@ -1070,6 +1168,14 @@ fn codex_titulo(lines: &[String]) -> String {
         return m.to_owned();
     }
     String::new()
+}
+
+/// ¿Es un bloque que se mete el CLI a sí mismo? Empiezan por `<` (etiquetas) o
+/// por `#` (los títulos de las instrucciones y de los archivos adjuntos). Un
+/// mensaje tuyo que empiece por `#` también cae, y es a propósito: sale otro
+/// título, que es mejor que el de un bloque de instrucciones.
+fn es_bloque_del_cli(t: &str) -> bool {
+    t.is_empty() || t.starts_with('<') || t.starts_with('#')
 }
 
 /// ¿El mensaje es solo marcadores de imagen pegada, sin nada escrito?
@@ -1466,9 +1572,7 @@ fn last_message_state(lines: &[String]) -> Option<(String, String)> {
             match content.as_array().and_then(|a| a.last()) {
                 Some(b) if b["type"] == "tool_use" && b["name"] == "AskUserQuestion" => "pregunta",
                 Some(b) if b["type"] == "text" => {
-                    let text = b["text"].as_str().unwrap_or_default();
-                    let trimmed = text.trim_end().trim_end_matches(['*', '_', '`', ')', ' ']);
-                    if trimmed.ends_with('?') {
+                    if acaba_en_pregunta(b["text"].as_str().unwrap_or_default()) {
                         "ofrece"
                     } else {
                         "lista"
@@ -1490,6 +1594,55 @@ fn last_message_state(lines: &[String]) -> Option<(String, String)> {
         return Some((cwd, state.to_owned()));
     }
     None
+}
+
+/// ¿Acaba en pregunta? Los adornos de markdown que suelen cerrar la frase
+/// (`**¿Lo subo?**`) se quitan antes, que si no la escondían. Lo usan Claude y
+/// Codex, para que los dos digan «ofrece» con la misma vara.
+fn acaba_en_pregunta(text: &str) -> bool {
+    text.trim_end().trim_end_matches(['*', '_', '`', ')', ' ']).ends_with('?')
+}
+
+/// Lo mismo que `last_message_state`, para un rollout de Codex, y con el mismo
+/// vocabulario: la lista y el Capataz no tienen que saber de qué CLI es.
+///
+/// Codex deja escrito cada turno con tres eventos (visto en su disco con
+/// 0.147, 0.154 y 0.155 el 2026-10-11): `task_started` al empezar,
+/// `task_complete` al acabar, con su último mensaje en `last_agent_message`, y
+/// `turn_aborted` cuando se le corta con Esc. Manda el ÚLTIMO de los tres.
+///
+/// Sin ninguno de ellos en la cola, vacío (= no se sabe). Pasa con un turno tan
+/// largo que su `task_started` quedó por encima de lo leído, y entonces no se
+/// adivina: «a medias» sería lo probable, pero el Capataz decide con esto.
+fn codex_estado(lines: &[String]) -> String {
+    for line in lines.iter().rev() {
+        // El filtro barato antes de parsear; el que decide es el de abajo,
+        // porque un mensaje que HABLE de `task_complete` también lo contiene.
+        if !line.contains("\"event_msg\"") {
+            continue;
+        }
+        let Ok(v) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        if v["type"].as_str() != Some("event_msg") {
+            continue;
+        }
+        let p = &v["payload"];
+        let state = match p["type"].as_str() {
+            Some("task_started") => "a_medias",
+            Some("turn_aborted") => "tuya",
+            Some("task_complete") => {
+                if acaba_en_pregunta(p["last_agent_message"].as_str().unwrap_or_default()) {
+                    "ofrece"
+                } else {
+                    "lista"
+                }
+            }
+            _ => continue,
+        };
+        return state.to_owned();
+    }
+    String::new()
 }
 
 /// Counts subagents from the transcript itself: every dispatch is a `tool_use`
@@ -3522,8 +3675,123 @@ otra
         let s = scan_codex();
         println!("sesiones de Codex encontradas: {}", s.len());
         for x in &s {
-            println!("  [{}] {} · {} · {}", x.fuente, x.project, x.ago, x.title);
+            println!("  [{}] {} · {} · {} · {}", x.fuente, x.project, x.ago, x.state, x.title);
         }
+    }
+
+    /// La forma de un rollout de Codex 0.154, con los campos que importan
+    /// copiados de su disco (2026-10-11) y el resto recortado.
+    fn evento(tipo: &str, resto: &str) -> String {
+        format!(r#"{{"timestamp":"2026-09-16T20:03:45.285Z","type":"event_msg","payload":{{"type":"{tipo}","turn_id":"t1"{resto}}}}}"#)
+    }
+
+    #[test]
+    fn a_codex_turn_says_what_it_is_doing() {
+        let empieza = evento("task_started", r#","model_context_window":258400"#);
+        let acaba = |m: &str| evento("task_complete", &format!(r#","last_agent_message":"{m}""#));
+        let corta = evento("turn_aborted", r#","reason":"interrupted""#);
+        let ruido = evento("token_count", "");
+        let ajustes = evento("thread_settings_applied", "");
+
+        assert_eq!(codex_estado(&[empieza.clone(), ruido.clone()]), "a_medias");
+        assert_eq!(codex_estado(&[empieza.clone(), acaba("Cambios aplicados."), ajustes]), "lista");
+        assert_eq!(codex_estado(&[empieza.clone(), acaba("¿Lo conecto a Supabase?**")]), "ofrece");
+        assert_eq!(codex_estado(&[empieza.clone(), corta.clone()]), "tuya", "cortado con Esc: te toca");
+        assert_eq!(
+            codex_estado(&[corta, empieza.clone()]),
+            "a_medias",
+            "manda el último: tras cortarlo le escribiste otra vez",
+        );
+        assert_eq!(codex_estado(&[ruido]), "", "sin eventos de turno no se adivina");
+        assert_eq!(codex_estado(&[]), "");
+
+        // Un mensaje que HABLA del evento no es el evento.
+        let habla = r#"{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"\"event_msg\" con \"task_complete\""}]}}"#;
+        assert_eq!(codex_estado(&[empieza, habla.into()]), "a_medias");
+    }
+
+    #[test]
+    fn a_codex_title_comes_from_the_response_item_since_0_147() {
+        let usuario = |bloques: &str| {
+            format!(r#"{{"type":"response_item","payload":{{"type":"message","role":"user","content":[{bloques}]}}}}"#)
+        };
+        let texto = |t: &str| format!(r#"{{"type":"input_text","text":"{t}"}}"#);
+        let lines = vec![
+            usuario(&texto(r"<recommended_plugins>\nHere is a list")),
+            usuario(&texto(r"# AGENTS.md instructions for C:\\proyectos\\ProductSea\n\n<INSTRUCTIONS>")),
+            usuario(&texto(r"<environment_context>\n  <cwd>C:\\proyectos\\ProductSea</cwd>")),
+            // Una captura pegada sola: lo de Codex y la imagen, sin nada escrito.
+            usuario(&[
+                texto(r"\n# Files mentioned by the user:\n\n## codex-clipboard.png"),
+                texto(r#"<image name=[Image #1] path=\"C:\\tmp\\a.png\">"#),
+                r#"{"type":"input_image","image_url":"data:…"}"#.into(),
+                texto("</image>"),
+            ]
+            .join(",")),
+            usuario(&[texto(r"organiza y estructura bien el proyecto\n"), texto("</image>")].join(",")),
+        ];
+        assert_eq!(codex_titulo(&lines), "organiza y estructura bien el proyecto");
+
+        // `compacted` repite mensajes de antes: no es donde se escribió nada.
+        let compactado = r#"{"type":"compacted","payload":{"replacement_history":[{"type":"message","role":"user","content":[{"type":"input_text","text":"lo de antes"}]}]}}"#;
+        assert_eq!(codex_titulo(&[compactado.into()]), "");
+    }
+
+    /// Desde Codex 0.154 los subagentes llevan el `session_id` de la raíz, y el
+    /// suyo propio en `id`. Aquí el del subagente se llama de forma que sale
+    /// ANTES al listar la carpeta: buscando por `session_id`, la papelera se lo
+    /// habría llevado a él en vez de la sesión. En Linux ese orden es el que le
+    /// toque al sistema de archivos, así que no basta con que en Windows salga bien.
+    #[test]
+    fn a_codex_session_is_found_by_its_own_id_not_its_subagents() {
+        let raiz = std::env::temp_dir().join(format!("adeorq-codex-hilo-{}", std::process::id()));
+        let dia = raiz.join("2026").join("09").join("16");
+        let _ = std::fs::remove_dir_all(&raiz);
+        std::fs::create_dir_all(&dia).unwrap();
+        let cabecera = |id: &str, padre: &str| {
+            format!(
+                r#"{{"type":"session_meta","payload":{{"id":"{id}","session_id":"raiz","cwd":"C:\\proyectos\\X"{padre}}}}}"#
+            )
+        };
+        std::fs::write(dia.join("rollout-a-sub.jsonl"), cabecera("sub", r#","parent_thread_id":"raiz""#)).unwrap();
+        std::fs::write(dia.join("rollout-b-raiz.jsonl"), cabecera("raiz", "")).unwrap();
+        // Una versión vieja, sin `id`: ahí el hilo es el `session_id`.
+        std::fs::write(dia.join("rollout-c-vieja.jsonl"), r#"{"type":"session_meta","payload":{"session_id":"vieja","cwd":"C:\\proyectos\\X"}}"#).unwrap();
+
+        let nombre = |id: &str| codex_transcript_en(&raiz, id).map(|p| p.file_name().unwrap().to_string_lossy().into_owned());
+        assert_eq!(nombre("raiz").as_deref(), Some("rollout-b-raiz.jsonl"), "la sesión, no su subagente");
+        assert_eq!(nombre("sub").as_deref(), Some("rollout-a-sub.jsonl"));
+        assert_eq!(nombre("vieja").as_deref(), Some("rollout-c-vieja.jsonl"));
+
+        let ctx = codex_context_de(&dia.join("rollout-b-raiz.jsonl"), "raiz".into()).unwrap();
+        assert_eq!(ctx.state, "", "sin turnos no se sabe");
+        assert_eq!(ctx.percent, 0, "el contexto de Codex no se cuenta aquí");
+        let _ = std::fs::remove_dir_all(&raiz);
+    }
+
+    #[test]
+    fn a_codex_subagent_is_not_a_session_of_yours() {
+        let dir = std::env::temp_dir().join(format!("adeorq-codex-sub-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let cabecera = |padre: &str| {
+            format!(
+                r#"{{"type":"session_meta","payload":{{"id":"s1","session_id":"s1","cwd":"C:\\proyectos\\Adeorq"{padre},"source":"vscode"}}}}"#
+            )
+        };
+        let turno = [evento("task_started", ""), evento("task_complete", r#","last_agent_message":"Hecho.""#)].join("\n");
+
+        let tuya = dir.join("rollout-tuya.jsonl");
+        std::fs::write(&tuya, format!("{}\n{turno}\n", cabecera(""))).unwrap();
+        let info = analyze_codex(&tuya).expect("una sesión de primer nivel sale en la lista");
+        assert_eq!(info.state, "lista");
+        assert_eq!(info.fuente, "codex");
+
+        let sub = dir.join("rollout-sub.jsonl");
+        std::fs::write(&sub, format!("{}\n{turno}\n", cabecera(r#","parent_thread_id":"s0""#))).unwrap();
+        assert!(analyze_codex(&sub).is_none(), "un subagente o un revisor guardian es trabajo de otra sesión");
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

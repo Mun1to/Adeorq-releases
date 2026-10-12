@@ -328,16 +328,16 @@
   }
   .dec-vig[data-v="viva"] i { background: var(--pregunta); animation: late 1.6s ease-in-out infinite; }
   .dec-vig[data-v="huerfana"] { border-style: dashed; }
-  /* La lista, por montones: las que te esperan, las que ya no espera nadie
-     (con una salida para todas de una vez) y las cerradas. */
+  /* La lista, en dos montones: las que te esperan y las anteriores, que se
+     limpian solas. */
   .seccion { display: flex; align-items: center; gap: 8px; margin: 18px 4px 2px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; color: var(--suave); }
   .seccion:first-child { margin-top: 2px; }
   .seccion span { flex: 1; }
   .seccion-nota { margin: 0 4px 4px; font-size: 13px; color: var(--suave); }
   .tarjeta[data-vigencia="viva"] .estado i { animation: late 1.6s ease-in-out infinite; }
-  .tarjeta[data-vigencia="huerfana"] { border-style: dashed; background: none; box-shadow: none; }
-  .tarjeta[data-vigencia="huerfana"] b, .tarjeta[data-vigencia="contestada"] b, .tarjeta[data-vigencia="descartada"] b { font-weight: 500; }
-  .tarjeta[data-vigencia="contestada"], .tarjeta[data-vigencia="descartada"] { background: none; box-shadow: none; margin: 4px 0; padding: 9px 12px; }
+  .tarjeta[data-vigencia]:not([data-vigencia="viva"]) { background: none; box-shadow: none; margin: 4px 0; padding: 9px 12px; }
+  .tarjeta[data-vigencia]:not([data-vigencia="viva"]) b { font-weight: 500; }
+  .tarjeta[data-vigencia="huerfana"] { border-style: dashed; }
   .tarjeta[data-vigencia="contestada"] .estado { color: var(--vivo); }
   .calma { display: flex; align-items: center; gap: 12px; margin: 6px 4px 4px; color: var(--suave); font-size: 14.5px; }
   /* El pie de una decisión: descartarla, discreto, y contestarla, a todo lo ancho. */
@@ -1531,7 +1531,7 @@ async function pintarLista() {
         </div>
         <div id="reclaman"></div>
         <div id="portada-term"></div>
-        <button id="decisiones" class="nueva segunda"><span class="avatar">${ICONO.decision}</span>Decisiones<small id="dec-sobran"></small><b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
+        <button id="decisiones" class="nueva segunda"><span class="avatar">${ICONO.decision}</span>Decisiones<b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
         <button id="terminales" class="nueva segunda"><span class="avatar">${ICONO.terminal}</span>Todas las terminales</button>
         <div id="filas"></div>
         <button id="avisos" class="avisos" hidden></button>
@@ -1568,18 +1568,16 @@ async function pintarLista() {
     if (!reclaman) return;
     const decisiones = vd?.decisiones || [];
     const esperan = vivas(decisiones);
-    const sobran = decisiones.filter((d) => d.vigencia === "huerfana").length;
     const terminales = (vt.terminales || []).slice().sort((a, b) => Number(b.agente) - Number(a.agente) || a.panel - b.panel);
     const preguntan = terminales.filter((t) => estadoTerminal(t)[1] === "pregunta");
     const otras = terminales.filter((t) => !preguntan.includes(t));
 
-    // La cuenta del botón: las que te esperan DE VERDAD. Las que ya no espera
-    // nadie se dicen al lado, en pequeño, y no suman.
+    // La cuenta del botón: las que te esperan DE VERDAD. Las demás no suman
+    // ni se dicen: se limpian solas.
     const c = document.getElementById("cuenta-dec");
     c.hidden = !esperan.length;
     c.textContent = String(esperan.length);
     c.setAttribute("aria-label", `${esperan.length} te esperan`);
-    document.getElementById("dec-sobran").textContent = sobran ? plural(sobran, "1 sin nadie detrás", "{n} sin nadie detrás") : "";
 
     const nuevo = animoDeTodo(terminales, esperan.length);
     if (nuevo !== animo) {
@@ -1947,10 +1945,12 @@ async function pintarTerminales() {
 
 /* Cómo se dice cada vigencia (`Vigencia`, en decisiones.rs) y con qué tono se
    pinta. «Viva» es que la terminal que preguntó sigue abierta y espera;
-   «huérfana», que está sin contestar pero ya no hay nadie detrás. */
+   «huérfana», que está sin contestar pero ya no hay nadie detrás; «hablada»,
+   que le escribiste a su terminal en vez de contestarla aquí. */
 const VIGENCIA = {
   viva: ["te espera", "pregunta"],
   huerfana: ["sin nadie detrás", "cerrada"],
+  hablada: ["hablada", "cerrada"],
   contestada: ["contestada", "cerrada"],
   descartada: ["descartada", "cerrada"],
 };
@@ -1961,13 +1961,14 @@ const plural = (n, una, varias) => (n === 1 ? una : varias.replace("{n}", n));
 function quienEspera(d) {
   if (d.vigencia === "viva") return d.panel ? `panel ${d.panel}, abierto` : "";
   if (d.vigencia === "huerfana") return d.panel ? `su terminal se cerró` : "de otro arranque de Adeorq";
+  if (d.vigencia === "hablada") return d.panel ? `le escribiste al panel ${d.panel}` : "";
   return d.panel ? `panel ${d.panel}` : "";
 }
 
 function tarjetaDecision(d) {
   const [palabra, tono] = VIGENCIA[d.vigencia] || VIGENCIA.huerfana;
   const n = plural(d.preguntas, "1 pregunta", "{n} preguntas");
-  const cerrada = d.vigencia === "contestada" || d.vigencia === "descartada";
+  const cerrada = d.vigencia !== "viva" && d.vigencia !== "huerfana";
   const cuando = hace((cerrada ? d.cerrada ?? d.creada : d.creada) / 1000);
   return `<button class="tarjeta" data-estado="${tono}" data-vigencia="${d.vigencia}" data-id="${esc(d.id)}">
     <span class="tarjeta-cab"><b>${esc(d.titulo)}</b><span class="estado"><i></i>${palabra}</span></span>
@@ -2000,13 +2001,15 @@ async function pintarDecisiones() {
     if (!aqui) return;
     const lista = v.decisiones || [];
     const esperan = vivas(lista);
-    const huerfanas = lista.filter((d) => d.vigencia === "huerfana");
-    const cerradas = lista.filter((d) => d.vigencia === "contestada" || d.vigencia === "descartada");
+    // Todo lo que ya no te espera va junto y se limpia solo (a la semana se
+    // borra): antes las que nadie esperaba tenían montón y botón propios, y
+    // había que vaciarlo a mano.
+    const anteriores = lista.filter((d) => d.vigencia !== "viva")
+      .sort((a, b) => (b.cerrada ?? b.creada) - (a.cerrada ?? a.creada));
     const sub = document.getElementById("sub-dec");
     if (sub) {
       sub.textContent = !lista.length ? "lo que te preguntan tus agentes"
-        : [esperan.length ? plural(esperan.length, "1 te espera", "{n} te esperan") : "ninguna te espera",
-          huerfanas.length ? plural(huerfanas.length, "1 sin nadie detrás", "{n} sin nadie detrás") : ""].filter(Boolean).join(" · ");
+        : esperan.length ? plural(esperan.length, "1 te espera", "{n} te esperan") : "ninguna te espera";
     }
     let html = "";
     if (!lista.length) {
@@ -2015,11 +2018,10 @@ async function pintarDecisiones() {
       html += esperan.length
         ? `<h2 class="seccion"><span>Te esperan</span></h2>${esperan.map(tarjetaDecision).join("")}`
         : `<p class="calma">${mascota("quieta", 26, "decisiones")}Nada te espera ahora mismo.</p>`;
-      if (huerfanas.length) {
-        html += `<h2 class="seccion"><span>Ya no las espera nadie</span><button class="mini" id="limpiar">${plural(huerfanas.length, "Descartar", "Descartar las {n}")}</button></h2>
-          <p class="seccion-nota">La terminal que preguntó se cerró. Contestarlas no le llega a nadie.</p>${huerfanas.map(tarjetaDecision).join("")}`;
+      if (anteriores.length) {
+        html += `<h2 class="seccion"><span>Anteriores</span></h2>
+          <p class="seccion-nota">Ya no te esperan. A la semana se borran solas.</p>${anteriores.map(tarjetaDecision).join("")}`;
       }
-      if (cerradas.length) html += `<h2 class="seccion"><span>Cerradas</span></h2>${cerradas.map(tarjetaDecision).join("")}`;
     }
     // Por lo que dice la lista y no por el HTML, que lleva dentro a la mascota
     // y esa cambia de postura sola.
@@ -2028,15 +2030,6 @@ async function pintarDecisiones() {
     pintado = firma;
     aqui.innerHTML = html;
     aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volverPanel: e.volverPanel })));
-    const limpiar = document.getElementById("limpiar");
-    if (limpiar) limpiar.addEventListener("click", async () => {
-      limpiar.disabled = true;
-      limpiar.textContent = "Descartando…";
-      // Una a una: son pocas, y así la que falle no se lleva a las demás.
-      for (const d of huerfanas) await descartarDecision(d.id).catch(() => {});
-      pintado = null;
-      cargar().catch(() => {});
-    });
   };
   try { await cargar(); } catch (err) {
     const aqui = document.getElementById("decisiones");
@@ -2092,7 +2085,9 @@ async function pintarDecision() {
   const vig = d.vigencia === "viva"
     ? `<p class="dec-vig" data-v="viva"><i></i><span><b>Te espera.</b> ${d.panel ? `El panel ${d.panel} sigue abierto: tu respuesta se teclea allí.` : "El agente la leerá en cuanto la pida."}</span></p>`
     : d.vigencia === "huerfana"
-      ? `<p class="dec-vig" data-v="huerfana"><span><b>Ya no la espera nadie.</b> La terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio; lo normal es descartarla.</span></p>`
+      ? `<p class="dec-vig" data-v="huerfana"><span><b>Ya no la espera nadie.</b> La terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio.</span></p>`
+      : d.vigencia === "hablada"
+        ? `<p class="dec-vig" data-v="huerfana"><span><b>La hablaste con el agente.</b> ${d.panel ? `Le escribiste al panel ${d.panel} después de que preguntara. Si no era eso, aún puedes contestarla aquí.` : "Si no era eso, aún puedes contestarla aquí."}</span></p>`
       : d.vigencia === "descartada"
         ? `<p class="dec-vig" data-v="descartada"><span><b>Descartada</b> ${hace((d.descartada ?? d.creada) / 1000)}, sin contestar.</span></p>`
         : "";

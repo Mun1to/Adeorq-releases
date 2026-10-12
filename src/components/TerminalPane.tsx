@@ -92,6 +92,8 @@ import { nivelDeContexto, useContextoDeSesion, useTraspaso } from "../lib/contex
 import { useNombreSolo } from "../lib/nombreSolo";
 import { archivoDelDiff } from "../lib/diffEspejo";
 import { estadoDelPanel, loginSegun, parseAsk, type Ask } from "../lib/reglasPantalla";
+import { mandoUnaFrase } from "../lib/hablada";
+import { hablarCon } from "../lib/decisiones";
 import DiffEspejo from "./DiffEspejo";
 import { arranqueDeAhora } from "../lib/conserje";
 
@@ -946,8 +948,8 @@ export default function TerminalPane({
   // El contexto, los subagentes, el estado y el título, del transcript de la
   // sesión (`useContextoDeSesion`). Con título, el panel deja de llamarse
   // «proyecto · claude»; solo si se sabe cuál es SU sesión, que sin id se lee
-  // la más reciente de la carpeta y puede ser la de otro.
-  const ctx = useContextoDeSesion(kind, cwd, joined);
+  // la más reciente de la carpeta y puede ser la de otro (Codex: la aprendida).
+  const ctx = useContextoDeSesion(kind, cwd, joined, sessionIdOf(joined) ?? sidAprendido);
   ctxRef.current = ctx;
   useNombreSolo(id, name, sessionIdOf(joined) ? ctx?.title : undefined, !!team, onRename);
 
@@ -968,7 +970,7 @@ export default function TerminalPane({
       // pantalla tapaba el dato bueno en lugar de ceder ante él.
       model: ctx?.model || brain.model || undefined,
       effort: brain.effort,
-      percent: ctx?.percent,
+      percent: sabe(kind, "estadoDelDisco") ? undefined : ctx?.percent,
       // El transcript va con retraso; los subagentes vivos que ha visto el
       // propio panel mandan sobre los que contó el fichero.
       agentsLive: Math.max(agents.live, ctx?.agentsLive ?? 0),
@@ -982,7 +984,7 @@ export default function TerminalPane({
     if (key === statusRef.current) return;
     statusRef.current = key;
     onStatus(next);
-  }, [onStatus, id, name, cwd, command, exited, ask, needsLogin, brain, ctx, agents.live, sidAprendido]);
+  }, [onStatus, id, name, cwd, command, exited, ask, needsLogin, brain, ctx, agents.live, sidAprendido, kind]);
 
   const answerAsk = (n: string, enter: boolean) => {
     void writePty(id, enter ? `${n}\r` : n).catch(() => {});
@@ -1659,6 +1661,9 @@ export default function TerminalPane({
       apuntarMovimiento(id);
       // Y hacia arriba: devuelve al mosaico la que el salto puso a pantalla completa.
       alEscribirRef.current?.(id, data);
+      // Una frase entera es contestarle: la decisión que te hubiera preguntado
+      // deja de esperarte (lib/hablada). Lo tecleado para un menú suyo, no.
+      if (mandoUnaFrase(id, data, askRef.current !== null)) hablarCon(id);
       void writePty(id, data).catch(() => {});
     });
     unsubs.push(() => dataSub.dispose());
@@ -2202,7 +2207,7 @@ export default function TerminalPane({
 
   // The transcript is the source of truth for subagents; the screen heuristic
   // only stands in for panes with no transcript to read (agy, plain shells).
-  const crew = ctx
+  const crew = ctx && !sabe(kind, "estadoDelDisco")
     ? { live: ctx.agentsLive, total: ctx.agentsTotal, exact: true }
     : { ...agents, exact: false };
 

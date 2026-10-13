@@ -357,6 +357,11 @@ export function codexContext(sessionId: string): Promise<ContextInfo | null> {
   return invoke("codex_context", { sessionId });
 }
 
+/** Lo último que contestó una sesión de Codex: el `lastReply` de su rollout. */
+export function codexLastReply(sessionId: string, maxChars?: number): Promise<string | null> {
+  return invoke("codex_last_reply", { sessionId, maxChars: maxChars ?? null });
+}
+
 /** Did this session ever write a transcript? (restore uses it) */
 export function transcriptExists(cwd: string, sessionId: string): Promise<boolean> {
   return invoke("transcript_exists", { cwd, sessionId });

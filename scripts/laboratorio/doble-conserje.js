@@ -133,7 +133,7 @@ async (page) => {
           return { model: "", used: 0, window: 0, percent: 0, agentsLive: 0, agentsTotal: 0, sessionId: args.sessionId, folder: "", state: window.__estadoCodex ?? "a_medias", title: "" };
         case "conserje_lista":
           return Object.values(convs)
-            .filter((c) => c.turnos.length)
+            .filter((c) => c.turnos.length && !c.enjambre)
             .map((c) => ({ c, ultimo: c.turnos.length ? c.turnos[c.turnos.length - 1].cuando : c.creada })).sort((a, b) => b.ultimo - a.ultimo)
             .map(({ c, ultimo }) => ({ id: c.id, titulo: c.titulo, cuando: ultimo, trabajos: c.trabajos.length }));
         case "conserje_leer": return JSON.parse(JSON.stringify(nueva(args.id)));
@@ -155,6 +155,28 @@ async (page) => {
             return { texto, acciones, descartes };
           };
           const t = args.texto.toLowerCase();
+          // Un enjambre (`SISTEMA_ENJAMBRE` y `filtrar_enjambre`, en Rust): no
+          // abre, reparte entre sus sesiones. «a todas» va a todas; un nombre, a
+          // esa; si no, a la primera que haya terminado. Y un reparto no le
+          // llega a la que te está preguntando.
+          if (c.enjambre) {
+            const estado = (w) => args.estados[String(w.panel)] ?? "";
+            const vivas = c.trabajos.filter((w) => w.arranque === ARRANQUE && !w.soltado);
+            const porNombre = vivas.filter((w) => w.nombre && t.includes(w.nombre.toLowerCase()));
+            const elegidas = t.includes("a todas") ? vivas : porNombre.length ? porNombre
+              : [vivas.find((w) => estado(w).startsWith("ha terminado")) ?? vivas[0]].filter(Boolean);
+            const descartes = [];
+            const acciones = [];
+            for (const w of elegidas) {
+              if (elegidas.length > 1 && estado(w).startsWith("te pregunta")) {
+                descartes.push(`el panel ${w.panel} te está preguntando algo, así que no le ha llegado el reparto: contéstale a él solo`);
+                continue;
+              }
+              acciones.push({ tipo: "escribir", panel: w.panel, texto: `Reescrito por Adeo: ${args.texto}` });
+            }
+            const a = acciones.map((x) => `«${c.trabajos.find((w) => w.panel === x.panel).nombre}»`).join(" y ");
+            return tarde(900, responder(acciones.length ? `Se lo he mandado a ${a}.` : "No hay a quién mandárselo.", acciones, descartes));
+          }
           if (t.includes("error") && !window.__yaFallo) {
             window.__yaFallo = true;
             return tarde(1500, null).then(() => { throw "claude devolvió error: te has quedado sin cuota de esta semana"; });
@@ -195,6 +217,31 @@ async (page) => {
           for (const w of c.trabajos) if (w.panel === args.panel && w.arranque === args.arranque) w.soltado = true;
           return null;
         }
+        // El enjambre del lienzo, como `conserje_enjambre`, `poner_miembros`,
+        // `apuntar_respuesta` y `conserje_olvidar` de Rust.
+        case "conserje_enjambre": {
+          const c = nueva(args.id);
+          c.enjambre = true;
+          if (args.nombre) c.titulo = args.nombre;
+          return null;
+        }
+        case "conserje_miembros": {
+          const c = nueva(args.id);
+          if (!c.enjambre) throw "esa conversación no es un enjambre";
+          c.trabajos = args.miembros.slice(0, 12).map((w) => ({ ...w, arranque: ARRANQUE, soltado: false }));
+          return null;
+        }
+        case "conserje_dijo": {
+          const c = nueva(args.id);
+          const w = c.trabajos.find((x) => x.panel === args.panel && x.arranque === ARRANQUE);
+          const texto = args.texto.trim();
+          if (!c.enjambre || !w || !texto) return false;
+          const suyo = [...c.turnos].reverse().find((x) => x.rol === "sesion" && x.de === w.nombre);
+          if (suyo && suyo.texto === texto) return false;
+          c.turnos.push({ n: c.turnos.length + 1, rol: "sesion", texto, resumen: texto.slice(0, 60), cuando: Math.floor(Date.now() / 1000), de: w.nombre });
+          return true;
+        }
+        case "conserje_olvidar": delete convs[args.id]; return null;
         case "pty_spawn": {
           const linea = (args.command ?? []).join(" ");
           const sid = linea.match(/--session-id\s+([0-9a-f-]{8,})/i)?.[1];
@@ -259,7 +306,10 @@ async (page) => {
           ];
         // Lo último que contestó el agente de un panel: lo que una flecha del
         // lienzo le entrega al siguiente. Se siembra en `window.__respuesta`.
-        case "last_reply": return window.__respuesta ?? "";
+        case "last_reply": return (window.__respuestaDe ?? {})[args.sessionId] ?? window.__respuesta ?? "";
+        // Y lo último que contestó un Codex (`codex_last_reply`): se siembra
+        // en `window.__respuestaCodex`.
+        case "codex_last_reply": return window.__respuestaCodex ?? "";
         // Las reglas del router que habría en la memoria de la casa: se siembran
         // en `window.__reglas` como líneas crudas, igual que las da Rust.
         case "memoria_reglas_router": return (window.__reglas ?? []).map((linea) => ({ linea, nota: "Nota de prueba", proyecto: "C:\\proyectos\\Adeorq" }));
@@ -272,7 +322,7 @@ async (page) => {
           // forma de `AgenteDeSesion` (sessions.rs): de ahí salen la cuenta del
           // robot de la cabecera y la lista que enseña (`session_agents`).
           const agentes = window.__agentes ?? [];
-          return { model: "opus", used: Math.round((window.__ctxPercent ?? 4) * 10000), window: 1000000, percent: window.__ctxPercent ?? 4, agentsLive: agentes.filter((a) => a.vivo).length, agentsTotal: window.__agentesTotal ?? agentes.length, sessionId: args.sessionId, folder: args.cwd, state: window.__estadoPanel ?? "a_medias" };
+          return { model: "opus", used: Math.round((window.__ctxPercent ?? 4) * 10000), window: 1000000, percent: window.__ctxPercent ?? 4, agentsLive: agentes.filter((a) => a.vivo).length, agentsTotal: window.__agentesTotal ?? agentes.length, sessionId: args.sessionId, folder: args.cwd, state: (window.__estadoDe ?? {})[args.sessionId] ?? window.__estadoPanel ?? "a_medias" };
         }
         case "session_agents": return JSON.parse(JSON.stringify(window.__agentes ?? []));
         // La actualización (decisión C3): con `window.__actualizacion = "9.9.9"`

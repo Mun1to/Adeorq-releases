@@ -35,6 +35,7 @@ import {
   type Mirada,
   type Pose,
   type Reaccion,
+  type Tinte,
 } from "../lib/mascota";
 
 /** Cada cuánto se vuelve a mirar si ya se puede animar, cuando no se puede. */
@@ -51,17 +52,20 @@ const MIMO_MS = 1500;
  * `alto` en píxeles; el ancho sale de la rejilla. `toque` y `envio` son
  * contadores: cada vez que sube el primero, da un brinco (lo sube quien la
  * pulsa); cada vez que sube el segundo, mira cómo sale lo que le has mandado.
+ * `tinte` la pinta de otro color: los Adeo de las sesiones de un enjambre.
  */
 export default function Mascota({
   animo,
   alto = 28,
   toque = 0,
   envio = 0,
+  tinte,
 }: {
   animo: Animo;
   alto?: number;
   toque?: number;
   envio?: number;
+  tinte?: Tinte;
 }) {
   const [pose, setPose] = useState<Pose>(() => reposoDe(animo));
   const [mirada, setMirada] = useState<Mirada>("");
@@ -163,7 +167,7 @@ export default function Mascota({
       // el saludo es para cuando no.
       onMouseEnter={() => (["espera", "duda", "lista", "apurada"].includes(animo) ? undefined : reacciona("hola"))}
     >
-      {cuadrosDe(pose, mirada).map((q, i) => (
+      {cuadrosDe(pose, mirada, tinte).map((q, i) => (
         // Un pelo más ancho que la celda, para que no se vea la rejilla entre cuadros.
         <rect key={i} x={q.x} y={q.y} width={1.02} height={1.02} fill={q.c} />
       ))}

@@ -329,6 +329,53 @@ The answer is read from the session transcript (clean prose), not from the
 screen. If you open two brand new terminals in the same folder, the relay can
 read the wrong one: for chaining, prefer one per project or resumed sessions.
 
+### Swarms: several sessions and a single chat
+
+A swarm joins sessions you **already have open** into one piece: its name on
+top, a row per session below, and a chat with a single box to talk to all of
+them.
+
+- **Two ways to make one.** **＋ Add › Swarm** drops the piece with the list of
+  sessions on the canvas, and you pick the ones that join. Or drag a terminal
+  **over another** and hold it there for a moment: when the one underneath
+  lights up with a frame, let go. The one you dragged goes back to its place.
+  Passing over on the way somewhere else joins nothing. Adding one more works
+  the same way: drag it over the swarm.
+- **Each swarm has its own Adeo, in a colour**: the first on the board is blue,
+  the next green, then violet, pink… It sits in the header and on the stripe
+  along the top, so you can tell one swarm from another at a glance.
+- **Each row is a session**: its CLI's mark, its name, its project, its model
+  and how it is doing.
+- **What you write goes to Adeo**, not to the terminals. Adeo thinks with a
+  small model (Haiku), decides which session it belongs to, rewrites it so it
+  is understood the first time, and tells you who got it. Name one (by its
+  name or its project) and it goes there; say "to all of them" and they all
+  get it.
+- **What each session answers comes back into the chat** under its name, so
+  the whole group reads in one place.
+- **Its terminals, in view or minimised.** The eye in the header tucks them
+  under the card: they keep working, they just stop taking room. Click a row to
+  see that terminal.
+- **Taking one out** (the broken link on its row) leaves it alive next to the
+  swarm, outside the group. Closing it is its own ✕.
+- **Breaking up the swarm** (its ✕) removes the piece and deletes the group
+  chat. The terminals stay. And if you just joined two by dragging without
+  meaning to, the piece itself offers the way back: **Don't join them**. It is
+  not `Ctrl+Z`, on purpose: on the canvas that shortcut belongs to the
+  terminal, where it suspends whatever is running.
+
+Three things worth knowing. Adeo knows whether each session is working or
+finished and how much context it has used, and picks with that; it knows nothing
+else. Only Claude Code and Codex report how they are doing, and only their
+answers are brought into the chat: a session of another CLI (Gemini, Kimi…) can
+join and gets what Adeo sends it, but its row says "unknown" and what it answers
+stays in its terminal. And a session that is asking you something never gets
+a hand-out, because the text would land in its menu: Adeo tells you which one,
+and you answer it alone.
+
+Each message to Adeo spends one short call of your Claude subscription. The
+sessions were already open: joining them costs nothing.
+
 ## 7. Each terminal's header, field by field
 
 | Element | What it means |

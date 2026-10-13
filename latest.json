@@ -1,11 +1,11 @@
 {
-  "version": "0.9.194",
-  "notes": "El Capataz, el Reparto y el chat ya no se quedan en Escribiendo sin fin; Archivos ensena lo que toca tu agente: una tarjeta con lo ultimo que hizo, la lista de lo que leyo y edito, el archivo que edita ahora resaltado en el arbol y el paso a verde al hacer commit; la barra de proyectos se arrastra bien (el borde va con el puntero y al minimo no se corta nada); Cuentas y el indice de Ajustes dejan ver el fondo; y una terminal que abre un agente nace en modo auto",
-  "pub_date": "2026-10-12T22:30:20Z",
+  "version": "0.9.195",
+  "notes": "Enjambres en el lienzo: junta sesiones que ya tienes abiertas en un solo chat de grupo, con Anadir, Enjambre o soltando una terminal encima de otra; lo que escribes va a Adeo, que elige a que sesion le toca, le reescribe el encargo y se lo manda, y lo que contesta cada sesion vuelve al chat con su nombre; cada enjambre tiene su Adeo de un color, sus terminales se pueden minimizar sin pararlas y sacar una la deja viva al lado",
+  "pub_date": "2026-10-13T00:26:10Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLytkZlJ3bzBMSmRSVlNiazI1YTZGeWFDN0NieXRTb3R6dm8yQS8rMGdKTjJUVDdneFNVQlI4ZnRweE1hNUxjdi9MTjJnVDUvMHc0cjlhS1dtK3I4WFFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxODQ0MTk5CWZpbGU6QWRlb3JxXzAuOS4xOTRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTQKaHd4V1E5SU9sc0krSmNaRzZDWHJWVWtHSXpHTENHQW5lT0QrdzNhNTZLYmlHSkVRMlFPbWljQTFPUk9zNlhCS3UrTmNUV0RpNWVFZzR1S1VEN080RGc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.194/Adeorq_0.9.194_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLyt3MmdweUlIOHhTRGlzNENkbTdET1A1Q3lQbmZTbm5Ia05TTnBCd1lrbjhFa0diTUdnMkEreUJxR3RMSFEvNTBuVlpKNGtFZXJxNjdhWmxxU3dRSkFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxODUxMTQ5CWZpbGU6QWRlb3JxXzAuOS4xOTVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTUKVkVmbE5zTzBMVWtKVWRGNTUyYjF0MWpSOWkrS2Y1VkZFdklYZTUzV3MyOUZLcWJhbmFKL2dkN3BhcXJ5dzNtWnF6SUR4QWpyUGx4Q0RYbWtGTFAxQmc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.195/Adeorq_0.9.195_x64-setup.exe"
     }
   }
 }

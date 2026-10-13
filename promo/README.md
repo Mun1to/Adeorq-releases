@@ -224,6 +224,37 @@ Lo que ya ha pedido para ese día, sobre el corte que hay:
   persona, la app a pantalla completa, etiquetas de dos palabras, una tirada de 50 segundos) y
   **no ha dicho qué quiere de él**: se le pregunta antes de montar nada.
 
+**Lo que sale de sus 21 vídeos de referencia** (medidos el 2026-10-13; las fichas, los números y
+la receta están en `C:\proyectos\_docs\Guia_Videos_SaaS.md`). Nada de esto está aplicado: es para
+ese día, y lo que choca con lo que ya pidió se le pregunta antes.
+
+- **La duración es una pregunta abierta.** Sus referencias duran 34 segundos de mediana y la más
+  larga, 81; este corte va por 1:35 y pidió «un poco más lento». O son dos piezas (una de
+  lanzamiento de 45 a 60 segundos y la larga que explica), o hay que preguntarle cuál de las dos
+  es esta.
+- **De cuatro a seis funciones, no diez pantallas.** Ninguna referencia enseña más de seis, y
+  ninguna va por capítulos. Encaja con «solo funciones potentes».
+- **El orden que se repite:** el problema ocupa la primera quinta parte, después una frase que le
+  da la vuelta, y el nombre llega cuando ha pasado un cuarto del vídeo (unos diez segundos). Este
+  corte ya abre con el problema: lo que hay que medir ese día es en qué segundo llega la portada.
+- **Cada función acaba en algo que se ve:** una cifra o lo que el agente ha hecho. Hoy acaban en
+  una frase.
+- **El texto entra palabra a palabra**, de dos a cinco por pantalla, con una sola en color. Lo de
+  centrado, sin caja y sin numerar ya lo pidió, y en las 21 es así.
+- **Una idea cada dos o tres segundos, y la imagen casi nunca se para más de dos y medio.** Su
+  vídeo de WinshotX se queda quieto el 89 % del tiempo; las referencias, el 54 %.
+- **La cámara es la transición** (entrar hasta el botón, salir a un plano general, entrar en lo
+  siguiente). Es lo que ya le gustó de la tercera vuelta: se mantiene.
+- **El sonido arranca bajo y la música entra con el nombre.** Las referencias van a −14 LUFS de
+  mediana; diez de ellas se pasan de pico, y eso no se copia.
+- **El cierre es una sola cosa:** logotipo, una línea y qué hacer. Es lo contrario de lo que él
+  llamó «confuso».
+- **Para los clips, la documentación de Remotion recomienda hoy `<Video>` de `@remotion/media`**
+  en código nuevo, no el `OffthreadVideo` que nombra el punto de más abajo (que sigue existiendo).
+  Hay quien lo probó y lo descartó porque los fotogramas no le salían iguales: ese día se prueban
+  los dos con un clip y se mira un fotograma. Remotion va además por la 4.0.535 y aquí está la
+  4.0.507.
+
 - **Falta la voz.** El guion está escrito (más corto desde la tercera vuelta: se lee en un
   minuto y medio) y `voz.mjs` probado de punta a punta con una voz sintética de Windows,
   solo como ensayo (no está en ningún vídeo). Con la grabación de verdad hay que volver a

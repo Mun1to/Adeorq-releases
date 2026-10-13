@@ -491,6 +491,56 @@ equivocada: para encadenar, mejor una por proyecto o sesiones retomadas.
 Y lo de siempre: sin marcar la casilla de automático, nada se manda sin que tú
 lo pulses.
 
+### Los enjambres: varias sesiones y un solo chat
+
+Un enjambre junta sesiones que **ya tienes abiertas** en una sola pieza: arriba
+su nombre, debajo una fila por sesión y, al final, un chat con una única caja
+para hablarles a todas.
+
+- **Se crea de dos formas.** Con **＋ Añadir › Enjambre**, que pone la pieza con
+  la lista de sesiones del lienzo para que marques las que entran. O
+  arrastrando una terminal **encima de otra** y aguantándola ahí un instante:
+  cuando la de debajo se enciende con un marco, suéltala. La que arrastraste
+  vuelve a su sitio. Pasar por encima de camino a otro lado no junta nada. Del
+  mismo modo se añade una más: arrástrala sobre el enjambre.
+- **Cada enjambre tiene su Adeo, de un color**: el primero del tablero es el
+  azul, el siguiente el verde, luego violeta, rosa… Está en su cabecera y en
+  la franja de arriba, para distinguir un enjambre de otro de un vistazo.
+- **Cada fila es una sesión**: el logo de su CLI, su nombre, su proyecto, su
+  modelo y cómo va.
+- **Lo que escribes va a Adeo**, no a las terminales. Adeo piensa con un modelo
+  pequeño (Haiku), decide a qué sesión le toca, se lo reescribe para que se
+  entienda a la primera y te dice a quién se lo ha mandado. Si nombras una
+  (por su nombre o por su proyecto) va a esa; si dices «a todas», a todas.
+- **Lo que contesta cada sesión vuelve al chat** con su nombre, así que el
+  grupo entero se lee en un solo sitio.
+- **Sus terminales, a la vista o minimizadas.** El ojo de la cabecera las
+  guarda debajo de la tarjeta: siguen trabajando, solo dejan de ocupar sitio.
+  Un clic en una fila te enseña esa terminal.
+- **Sacar una** (el eslabón roto de su fila) la deja viva a su lado, fuera del
+  grupo. Cerrarla es cosa de su propia ✕.
+- **Deshacer el enjambre** (su ✕) quita la pieza y borra el chat del grupo. Las
+  terminales se quedan. Y si lo acabas de juntar arrastrando sin querer, la
+  propia pieza te lo ofrece: **No juntarlas**. No es `Ctrl+Z`, y es a
+  propósito: en el lienzo ese atajo es de la terminal, donde suspende el
+  programa que esté corriendo.
+
+Tres cosas que conviene saber:
+
+- **Adeo sabe si cada sesión trabaja o ha terminado y cuánto contexto lleva
+  gastado**, y con eso elige. No sabe más: «ha terminado» no quiere decir que
+  esté a medias de nada, pero tampoco que ese sea su tema.
+- **Solo Claude Code y Codex cuentan cómo van**, y solo de ellos se trae la
+  respuesta al chat. Una sesión de otro CLI (Gemini, Kimi…) entra igual y le
+  llega lo que Adeo le mande, pero su fila dice «no se sabe» y lo que conteste
+  se queda en su terminal.
+- **A una sesión que te está preguntando algo no le llega un reparto.** Lo que
+  se le escribiera caería en su menú. Adeo te avisa de cuál es; contéstale a
+  ella sola.
+
+Cada mensaje a Adeo gasta una llamada corta de tu suscripción de Claude. Las
+sesiones ya estaban abiertas: juntarlas no gasta nada.
+
 ### Dibujar encima
 
 La barra de la izquierda trae lápiz, flecha, línea, recuadro, rombo, elipse,

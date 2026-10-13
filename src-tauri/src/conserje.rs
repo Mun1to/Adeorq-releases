@@ -56,17 +56,22 @@ pub const MARCA_RESUMEN: &str = "RESUMEN:";
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Turno {
     pub n: u32,
-    /// `tu` o `conserje`.
+    /// `tu`, `conserje` o, en un enjambre, `sesion`: lo que contestó una de las
+    /// sesiones del grupo al acabar su turno.
     pub rol: String,
     pub texto: String,
     /// La línea que va al índice cuando el turno deja de estar entre los últimos.
     pub resumen: String,
     /// Segundos desde 1970.
     pub cuando: u64,
+    /// Quién habla cuando el turno es de una sesión: su nombre.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub de: String,
 }
 
-/// Una sesión de trabajo que abrió el conserje: una pestaña del chat.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+/// Una sesión de trabajo que abrió el conserje: una pestaña del chat. En un
+/// enjambre no la abrió él: ya estaba abierta y Munir la metió en el grupo.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct Trabajo {
     /// El panel de Adeorq donde vive. Es por lo que se la encuentra.
     pub panel: u32,
@@ -100,6 +105,10 @@ pub struct Trabajo {
     /// de lo que se abrió; solo deja de ser una pestaña.
     #[serde(default)]
     pub soltado: bool,
+    /// En un enjambre: cómo se llama la sesión, que es por lo que Munir la
+    /// nombra («dile a la del login»).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub nombre: String,
 }
 
 /// Los números de panel vuelven a empezar en 1 cada vez que se abre Adeorq
@@ -154,10 +163,20 @@ pub struct Conversacion {
     /// Vacío es «el de por defecto de Ajustes, o Sonnet».
     #[serde(default)]
     pub fijo: String,
+    /// Es un ENJAMBRE del lienzo: sus trabajos son sesiones que ya estaban
+    /// abiertas y que Munir juntó en un grupo, y quien contesta es Adeo, que
+    /// reparte entre ellas lo que se escribe en la caja común (ver
+    /// `SISTEMA_ENJAMBRE`). No sale en la lista del Chat: vive en su pieza.
+    #[serde(default, skip_serializing_if = "es_falso")]
+    pub enjambre: bool,
 }
 
 fn encendido() -> bool {
     true
+}
+
+fn es_falso(b: &bool) -> bool {
+    !*b
 }
 
 /// Los modelos con los que puede pensar el conserje. Lista cerrada: el nombre
@@ -168,10 +187,25 @@ pub const CEREBROS: [&str; 3] = ["haiku", "sonnet", "opus"];
 /// qué sesiones se abren, y eso no es un recado; pero tampoco hace el trabajo.
 const CEREBRO_POR_DEFECTO: &str = "sonnet";
 
+/// El de un enjambre. Munir, 2026-10-13: «Adeo es el que lo orquesta junto a
+/// Haiku u otro modelo más pequeño que mejora los prompts y los manda a cada
+/// sesión». Aquí no se decide qué sesiones se abren: se reparte entre las que
+/// hay, y eso sí es un recado.
+const CEREBRO_DE_ENJAMBRE: &str = "haiku";
+
+/// Cuántas sesiones caben en un enjambre. El doble que una cuadrilla del
+/// Capataz (seis), porque estas ya estaban abiertas: juntarlas no gasta nada.
+pub const MAX_MIEMBROS: usize = 12;
+
+/// Lo que se guarda de la respuesta de una sesión en el hilo del grupo. Entera
+/// está en su transcript; aquí va lo que cabe leer en una tarjeta.
+pub const TOPE_RESPUESTA: usize = 6_000;
+
 impl Conversacion {
     /// El modelo con el que piensa: el elegido si es de la lista, si no el de siempre.
     pub fn cerebro(&self) -> &'static str {
-        CEREBROS.iter().copied().find(|c| *c == self.cerebro).unwrap_or(CEREBRO_POR_DEFECTO)
+        let de_siempre = if self.enjambre { CEREBRO_DE_ENJAMBRE } else { CEREBRO_POR_DEFECTO };
+        CEREBROS.iter().copied().find(|c| *c == self.cerebro).unwrap_or(de_siempre)
     }
 }
 
@@ -254,6 +288,12 @@ pub fn lista() -> Vec<(String, String, u64, usize)> {
         // Elegir el modelo o el router antes de hablar ya guarda el fichero:
         // sin un solo mensaje, en la lista sería una fila vacía.
         if c.turnos.is_empty() {
+            continue;
+        }
+        // Un enjambre no es una conversación del Chat: vive en su pieza del
+        // lienzo. En la lista (y en el móvil, que lee la misma) sería un chat
+        // del conserje con pestañas que él no abrió.
+        if c.enjambre {
             continue;
         }
         let ultimo = c.turnos.last().map(|t| t.cuando).unwrap_or(c.creada);
@@ -360,8 +400,70 @@ impl Conversacion {
             texto: texto.to_string(),
             resumen: resumen.to_string(),
             cuando: ahora(),
+            de: String::new(),
         });
         self.turnos.last().expect("recién puesto")
+    }
+
+    /// Lo que contestó una sesión de un enjambre, apuntado en el hilo del grupo
+    /// con su nombre. Dice si lo apuntó.
+    ///
+    /// El lienzo lo pide cada vez que ve acabar a una sesión, y una terminal que
+    /// se relee o un tablero que se reabre la ven acabar otra vez: si lo último
+    /// que hay de ESA sesión es este mismo texto, no se repite.
+    pub fn apuntar_respuesta(&mut self, de: &str, texto: &str) -> bool {
+        let texto = texto.trim();
+        if texto.is_empty() {
+            return false;
+        }
+        let guardado: String = if texto.chars().count() > TOPE_RESPUESTA {
+            let cabe: String = texto.chars().take(TOPE_RESPUESTA).collect();
+            format!("{cabe}\n\n[… sigue en su terminal]")
+        } else {
+            texto.to_string()
+        };
+        let ya = self.turnos.iter().rev().find(|t| t.rol == "sesion" && t.de == de).map(|t| t.texto == guardado);
+        if ya == Some(true) {
+            return false;
+        }
+        let primera = guardado.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("");
+        let resumen = corto(primera, LINEA_INDICE);
+        self.apuntar("sesion", &guardado, &resumen);
+        if let Some(t) = self.turnos.last_mut() {
+            t.de = de.to_string();
+        }
+        true
+    }
+
+    /// Las sesiones de un enjambre, ENTERAS: lo que había se sustituye.
+    ///
+    /// Quien sabe cuáles son es el lienzo (se añaden y se quitan allí, y un
+    /// tablero reabierto las trae con otro número de panel), así que no se
+    /// apuntan de una en una: cada cambio manda la lista como queda. Todas
+    /// llevan el arranque de ahora, que es lo que le deja a Adeo escribirles.
+    pub fn poner_miembros(&mut self, miembros: Vec<Trabajo>) {
+        let mut puestos: Vec<Trabajo> = Vec::new();
+        for mut m in miembros {
+            if puestos.len() >= MAX_MIEMBROS || puestos.iter().any(|p| p.panel == m.panel) {
+                continue;
+            }
+            m.arranque = arranque();
+            m.soltado = false;
+            m.nombre = corto(&m.nombre, 80);
+            puestos.push(m);
+        }
+        self.trabajos = puestos;
+    }
+
+    /// Quién firma un turno delante del modelo. `entero` es para lo último,
+    /// donde se le recuerda cuál de las voces es la suya.
+    fn firma(&self, t: &Turno, entero: bool) -> String {
+        match t.rol.as_str() {
+            "tu" => "Munir".to_string(),
+            "sesion" => format!("La sesión «{}»", t.de),
+            _ if !entero => if self.enjambre { "Adeo" } else { "conserje" }.to_string(),
+            _ => if self.enjambre { "Tú (Adeo)" } else { "Tú (conserje)" }.to_string(),
+        }
     }
 
     /// Deja la conversación lista para un mensaje tuyo y devuelve el contexto
@@ -423,7 +525,7 @@ impl Conversacion {
         let mut enteros = String::new();
         let desde = self.turnos.len().saturating_sub(ENTEROS);
         for t in &self.turnos[desde..] {
-            let quien = if t.rol == "tu" { "Munir" } else { "Tú (conserje)" };
+            let quien = self.firma(t, true);
             let cuerpo: String = t.texto.chars().take(TOPE_TURNO).collect();
             let cortado = if t.texto.chars().count() > TOPE_TURNO {
                 format!("\n[… cortado: pide leer_turno({}) para verlo entero]", t.n)
@@ -442,6 +544,15 @@ impl Conversacion {
             } else {
                 ("sin panel".to_string(), "cerrada: de otra vez que se abrió Adeorq".to_string())
             };
+            if self.enjambre {
+                // En un enjambre no hay «para qué se abrió»: hay un nombre, que
+                // es por lo que Munir la llama.
+                pestanas.push_str(&format!(
+                    "- {donde} · «{}» · {} {} · {} · {estado}\n",
+                    w.nombre, w.cli, w.modelo, w.carpeta,
+                ));
+                continue;
+            }
             pestanas.push_str(&format!(
                 "- {donde} · {} {} · {} · para: {} · {estado}\n",
                 w.cli,
@@ -456,10 +567,7 @@ impl Conversacion {
         // caído sigue disponible con `leer_turno`.
         let lineas: Vec<String> = self.turnos[..desde]
             .iter()
-            .map(|t| {
-                let quien = if t.rol == "tu" { "Munir" } else { "conserje" };
-                format!("#{} {quien}: {}", t.n, corto(&t.resumen, LINEA_INDICE))
-            })
+            .map(|t| format!("#{} {}: {}", t.n, self.firma(t, false), corto(&t.resumen, LINEA_INDICE)))
             .collect();
         let fijo = enteros.chars().count() + pestanas.chars().count() + 600;
         let hueco = TOPE_CONTEXTO.saturating_sub(fijo);
@@ -490,7 +598,11 @@ impl Conversacion {
             fuera.push_str("Si necesitas un turno de estos entero, pídelo con leer_turno(número).\n\n");
         }
         if !pestanas.is_empty() {
-            fuera.push_str("== PESTAÑAS: sesiones de trabajo abiertas ==\n");
+            fuera.push_str(if self.enjambre {
+                "== SESIONES DEL ENJAMBRE ==\n"
+            } else {
+                "== PESTAÑAS: sesiones de trabajo abiertas ==\n"
+            });
             fuera.push_str(&pestanas);
             fuera.push('\n');
         }
@@ -638,7 +750,11 @@ pub fn filtrar(
                     continue;
                 }
                 if !conv.trabajos.iter().any(|t| t.panel == panel && t.escribible()) {
-                    fuera.push(format!("el panel {panel} no lo abrió el conserje, así que no se le escribe"));
+                    fuera.push(if conv.enjambre {
+                        format!("el panel {panel} no es de este enjambre, así que no se le escribe")
+                    } else {
+                        format!("el panel {panel} no lo abrió el conserje, así que no se le escribe")
+                    });
                     continue;
                 }
                 buenas.push(Accion::Escribir { panel, texto });
@@ -647,6 +763,84 @@ pub fn filtrar(
     }
     (buenas, fuera)
 }
+
+/// Cómo empieza el estado de una sesión que le está preguntando algo a Munir.
+/// Es la palabra de `PALABRA.pregunta` en `lib/conserje.ts`: si cambia allí,
+/// cambia aquí, y `la_reja_del_enjambre_no_reparte_a_quien_pregunta` lo vigila.
+const PREGUNTA: &str = "te pregunta";
+
+/// LA REJA DEL ENJAMBRE, que va delante de la de siempre.
+///
+/// - Un enjambre no abre sesiones: se le añaden desde el lienzo, a la vista.
+/// - Un reparto (escribir a MÁS de una) se salta a la que le está preguntando
+///   algo a Munir. Lo que se le escriba a esa caería en su menú, y un Intro
+///   detrás elige la opción marcada: el 2026-10-08 un «2» mandado así eligió la
+///   1 y subió un commit que no era. Escribirle a ella SOLA sí pasa: eso es
+///   contestarle.
+/// - Dos mensajes a la misma sesión se juntan en uno: dos pegados seguidos le
+///   llegan como dos turnos, y el segundo mientras todavía lee el primero.
+pub fn filtrar_enjambre(acciones: Vec<Accion>, estados: &dyn Fn(u32) -> String) -> (Vec<Accion>, Vec<String>) {
+    let mut fuera = Vec::new();
+    let mut escritos: Vec<(u32, String)> = Vec::new();
+    for a in acciones {
+        match a {
+            Accion::Abrir { encargo, .. } => fuera.push(format!(
+                "un enjambre no abre sesiones (se añaden desde el lienzo): «{}» no se ha abierto",
+                corto(&encargo, 60)
+            )),
+            Accion::Escribir { panel, texto } => match escritos.iter_mut().find(|(p, _)| *p == panel) {
+                Some((_, junto)) => {
+                    junto.push_str("\n\n");
+                    junto.push_str(texto.trim());
+                }
+                None => escritos.push((panel, texto.trim().to_string())),
+            },
+        }
+    }
+    let reparto = escritos.len() > 1;
+    let mut buenas = Vec::new();
+    for (panel, texto) in escritos {
+        if reparto && estados(panel).starts_with(PREGUNTA) {
+            fuera.push(format!(
+                "el panel {panel} te está preguntando algo, así que no le ha llegado el reparto: contéstale a él solo"
+            ));
+            continue;
+        }
+        buenas.push(Accion::Escribir { panel, texto });
+    }
+    (buenas, fuera)
+}
+
+/// Cómo tiene que comportarse Adeo al frente de un enjambre.
+pub const SISTEMA_ENJAMBRE: &str = r#"Eres ADEO y diriges un ENJAMBRE: un grupo de sesiones de trabajo que Munir ya tenía abiertas y ha juntado en una sola pieza del lienzo de Adeorq. Él escribe UNA vez en la caja del grupo (muchas veces dictando por voz, así que interpreta la intención); tú decides a qué sesión o sesiones va, se lo reescribes a cada una para que lo entienda a la primera, y le cuentas a él a quién se lo has mandado. Tú NO haces el trabajo ni abres sesiones: repartes entre las que hay.
+
+A QUIÉN SE LO MANDAS
+- Las sesiones están en SESIONES DEL ENJAMBRE: su panel, su nombre entre comillas, con qué corre, su carpeta y cómo va.
+- Si él nombra una (por su nombre, por su proyecto o por el CLI que corre), va a esa y solo a esa.
+- Si no nombra ninguna, va a la que ya lleva ese tema o ese proyecto: se ve en su nombre y en su carpeta.
+- Si son varias cosas, cada cosa a su sesión. La misma cosa no se manda a dos, salvo que él diga «a todas».
+- Entre dos que valen, mejor la que ha terminado que la que está trabajando, y mejor la que lleva menos contexto gastado. Si todas trabajan, mándalo a la que toque y dile a él que se le queda en cola.
+- A una sesión que le está preguntando algo a Munir no le mandes un encargo: dile a él cuál es. Solo se le escribe para CONTESTAR lo que pregunta, y a ella sola.
+- De una que dice «no se sabe» no sabes si trabaja o ha acabado: puedes escribirle, pero díselo a él.
+- Si no está claro a quién va, PREGUNTA antes de mandar nada.
+
+CÓMO SE LO REESCRIBES
+- Corrige lo que el dictado haya roto, quita muletillas y, si son varios pasos, ponlos en una lista en el orden en que los dijo.
+- No añadas requisitos, archivos ni suposiciones que él no haya dicho, y no quites nada de lo que pide. No cambies nombres propios ni palabras técnicas.
+- Si dos sesiones de la misma carpeta reciben trabajo a la vez, dile a cada una qué lleva la otra, para que no toquen lo mismo.
+
+LO QUE VES
+- Lo que contesta cada sesión al terminar aparece en la conversación con su nombre. Con eso le cuentas a Munir cómo va el grupo, y le pasas a una sesión lo que otra ha dejado dicho si él lo pide.
+- No ves la conversación entera: ves un ÍNDICE de lo viejo y lo último entero. Si necesitas un turno viejo, pídelo con leer_turno(conversacion, n). Si necesitas ver qué hace una sesión, read_pane_transcript.
+
+CÓMO TERMINAS CADA RESPUESTA
+1. Tu texto para Munir, en español y de tú: a quién se lo has mandado y, si no es evidente, por qué. Una o dos frases. No le repitas el encargo.
+2. Si hay que escribirle a alguna sesión, un bloque así (JSON válido, nada más dentro), con el panel que sale en SESIONES DEL ENJAMBRE:
+<acciones>
+[{"tipo":"escribir","panel":7,"texto":"..."}]
+</acciones>
+3. Y SIEMPRE una última línea con el resumen de este turno para tu índice, de menos de 140 letras:
+RESUMEN: a quién le has mandado qué, en una frase."#;
 
 /// Cómo tiene que comportarse el conserje. En español y a Munir, como el Capataz.
 pub const SISTEMA: &str = r#"Eres el CONSERJE de Adeorq: el chat principal desde el que Munir dirige sus sesiones de trabajo. Él te habla (muchas veces dictando por voz, así que interpreta la intención); tú entiendes qué quiere, lo partes en trabajos y abres una sesión de trabajo para cada uno. Tú NO haces el trabajo: lo encargas, lo sigues y le cuentas.
@@ -790,6 +984,49 @@ pub fn conserje_fijo(id: String, modelo: String) -> Result<(), String> {
     cambiar(&id, |c| c.fijo = modelo)
 }
 
+/// Hace de una conversación un enjambre, o le cambia el nombre. La pide el
+/// lienzo al crear la pieza y al renombrarla.
+#[tauri::command(async)]
+pub fn conserje_enjambre(id: String, nombre: String) -> Result<(), String> {
+    let nombre = corto(&nombre, 60);
+    cambiar(&id, |c| {
+        c.enjambre = true;
+        if !nombre.is_empty() {
+            c.titulo = nombre;
+        }
+    })
+}
+
+/// Las sesiones de un enjambre, tal como quedan (ver `poner_miembros`). Solo
+/// en un enjambre: en una conversación del Chat, la reja promete que el
+/// conserje no escribe en una terminal que no abrió él, y esto la abriría.
+#[tauri::command(async)]
+pub fn conserje_miembros(id: String, miembros: Vec<Trabajo>) -> Result<(), String> {
+    cambiar(&id, |c| {
+        if !c.enjambre {
+            return Err("esa conversación no es un enjambre".to_string());
+        }
+        c.poner_miembros(miembros);
+        Ok(())
+    })?
+}
+
+/// Una sesión del enjambre acaba de terminar su turno: lo que contestó entra
+/// en el hilo del grupo. Dice si era nuevo. De un panel que no es del grupo
+/// no se apunta nada.
+#[tauri::command(async)]
+pub fn conserje_dijo(id: String, panel: u32, texto: String) -> Result<bool, String> {
+    cambiar(&id, |c| {
+        if !c.enjambre {
+            return false;
+        }
+        let Some(w) = c.trabajos.iter().find(|w| w.panel == panel && w.escribible()).cloned() else {
+            return false;
+        };
+        c.apuntar_respuesta(&w.nombre, &texto)
+    })
+}
+
 /// Más que una llamada suelta: el conserje mira antes de hablar, y a veces
 /// repasa un turno viejo o busca en la memoria.
 const TIEMPO_CONSERJE: std::time::Duration = std::time::Duration::from_secs(180);
@@ -852,12 +1089,14 @@ pub async fn conserje_enviar(
     // El contexto se arma ANTES de apuntar el mensaje nuevo: va aparte, al
     // final del prompt, y si no saldría dos veces. Y lo tuyo se guarda YA: si
     // la llamada falla, lo que dijiste no se pierde.
-    let (contexto, modelo) = cambiar(&id, |c| {
-        (c.preparar(&texto, &|p| estados.get(&p.to_string()).cloned().unwrap_or_default()), c.cerebro())
-    })?;
+    let estado_de = |p: u32| estados.get(&p.to_string()).cloned().unwrap_or_default();
+    let (contexto, modelo, enjambre) =
+        cambiar(&id, |c| (c.preparar(&texto, &estado_de), c.cerebro(), c.enjambre))?;
 
+    // Un enjambre es la misma conversación con otro papel: no abre, reparte.
+    let sistema = if enjambre { SISTEMA_ENJAMBRE } else { SISTEMA };
     let prompt = format!(
-        "{SISTEMA}\n\n## Esta conversación\nconversacion: {id}\n\n{contexto}\n\n## Lo que te dice Munir ahora\n{texto}"
+        "{sistema}\n\n## Esta conversación\nconversacion: {id}\n\n{contexto}\n\n## Lo que te dice Munir ahora\n{texto}"
     );
     let cfg = crate::foreman::config_mcp()?;
     let id2 = id.clone();
@@ -874,6 +1113,13 @@ pub async fn conserje_enviar(
     let dice = if dice.is_empty() { "Hecho.".to_string() } else { dice };
     // Sobre la conversación de AHORA, no la de hace un minuto.
     let acciones = cambiar(&id, |conv| {
+        let acciones = if conv.enjambre {
+            let (acciones, fuera) = filtrar_enjambre(acciones, &estado_de);
+            descartes.extend(fuera);
+            acciones
+        } else {
+            acciones
+        };
         let (acciones, fuera) = filtrar(acciones, conv, &raiz, &|p| p.is_dir());
         descartes.extend(fuera);
         conv.apuntar("conserje", &dice, &resumen);
@@ -1112,6 +1358,7 @@ mod tests {
             sesion: String::new(),
             arranque: arranque(),
             soltado: false,
+            ..Default::default()
         });
         let ctx = c.contexto(&|p| if p == 7 { "te está preguntando algo".into() } else { String::new() });
         assert!(ctx.contains("panel 7 · claude opus"));
@@ -1293,6 +1540,7 @@ mod tests {
             sesion: String::new(),
             arranque: arranque(),
             soltado: false,
+            ..Default::default()
         });
         let (buenas, fuera) = filtrar(
             vec![
@@ -1322,6 +1570,7 @@ mod tests {
             sesion: String::new(),
             arranque,
             soltado: false,
+            ..Default::default()
         }
     }
 
@@ -1506,5 +1755,198 @@ mod tests {
         assert!(ruta("../fuera").is_err());
         assert!(ruta("a\\b").is_err());
         assert!(ruta("").is_err());
+    }
+
+    // ─── EL ENJAMBRE ─────────────────────────────────────────────────────────
+
+    fn miembro(panel: u32, nombre: &str, carpeta: &str) -> Trabajo {
+        Trabajo {
+            panel,
+            cli: "claude".into(),
+            modelo: "sonnet".into(),
+            carpeta: carpeta.into(),
+            nombre: nombre.into(),
+            ..Default::default()
+        }
+    }
+
+    fn enjambre() -> Conversacion {
+        let mut c = Conversacion { id: "grupo".into(), router: true, enjambre: true, ..Default::default() };
+        c.poner_miembros(vec![
+            miembro(3, "Arreglar el login", "C:\\proyectos\\Vidorq"),
+            miembro(5, "La portada", "C:\\proyectos\\Adeorq"),
+        ]);
+        c
+    }
+
+    fn escribir(panel: u32, texto: &str) -> Accion {
+        Accion::Escribir { panel, texto: texto.into() }
+    }
+
+    /// Una sesión que entra en el grupo queda escribible: sin el arranque de
+    /// ahora, la reja de siempre la tomaría por una de otro día.
+    #[test]
+    fn los_miembros_de_un_enjambre_son_de_este_arranque_y_se_sustituyen() {
+        let mut c = enjambre();
+        assert!(c.trabajos.iter().all(|w| w.escribible()));
+        // Sale la del panel 3 y entra la del 9: la lista es la que llega.
+        c.poner_miembros(vec![
+            miembro(5, "La portada", "C:\\proyectos\\Adeorq"),
+            miembro(9, "Las pruebas", "C:\\proyectos\\Adeorq"),
+            miembro(9, "repetida", "C:\\proyectos\\Adeorq"),
+        ]);
+        let paneles: Vec<u32> = c.trabajos.iter().map(|w| w.panel).collect();
+        assert_eq!(paneles, vec![5, 9], "ni la que salió ni la repetida");
+        let muchos = (1..=30).map(|p| miembro(p, "x", "C:\\proyectos\\Adeorq")).collect();
+        c.poner_miembros(muchos);
+        assert_eq!(c.trabajos.len(), MAX_MIEMBROS);
+    }
+
+    #[test]
+    fn un_enjambre_piensa_con_haiku_si_no_eliges_otro() {
+        let mut c = enjambre();
+        assert_eq!(c.cerebro(), "haiku");
+        c.cerebro = "opus".into();
+        assert_eq!(c.cerebro(), "opus");
+        assert_eq!(con(1).cerebro(), "sonnet", "el conserje del Chat sigue con el suyo");
+    }
+
+    /// Adeo ve a cada sesión con su nombre y su carpeta, que es como Munir las
+    /// llama, y lo que contestaron firmado por ellas.
+    #[test]
+    fn el_contexto_de_un_enjambre_nombra_a_sus_sesiones() {
+        let mut c = enjambre();
+        c.apuntar("tu", "que la del login pruebe con dos usuarios", "probar el login con dos usuarios");
+        c.apuntar("conserje", "Se lo he mandado a «Arreglar el login».", "mandé la prueba al login");
+        assert!(c.apuntar_respuesta("Arreglar el login", "Probado con dos usuarios: entra el segundo."));
+        let ctx = c.contexto(&|p| if p == 3 { "ha terminado".into() } else { "trabajando".into() });
+        assert!(ctx.contains("== SESIONES DEL ENJAMBRE =="), "{ctx}");
+        assert!(ctx.contains("- panel 3 · «Arreglar el login» · claude sonnet · C:\\proyectos\\Vidorq · ha terminado"), "{ctx}");
+        assert!(ctx.contains("Tú (Adeo):"), "{ctx}");
+        assert!(ctx.contains("La sesión «Arreglar el login»:\nProbado con dos usuarios"), "{ctx}");
+        assert!(!ctx.contains("PESTAÑAS"), "{ctx}");
+    }
+
+    /// Una terminal que se relee vuelve a decir que acabó: su respuesta no
+    /// puede salir dos veces en el hilo. Otra respuesta suya sí es nueva.
+    #[test]
+    fn la_respuesta_de_una_sesion_no_se_repite() {
+        let mut c = enjambre();
+        assert!(c.apuntar_respuesta("La portada", "Hecho: la portada carga."));
+        assert!(!c.apuntar_respuesta("La portada", "  Hecho: la portada carga.\n"));
+        assert!(c.apuntar_respuesta("Arreglar el login", "Hecho: la portada carga."), "es de otra sesión");
+        assert!(c.apuntar_respuesta("La portada", "Y el pie también."));
+        assert!(!c.apuntar_respuesta("La portada", "   "));
+        let suyos = c.turnos.iter().filter(|t| t.rol == "sesion").count();
+        assert_eq!(suyos, 3);
+        let ultimo = c.turnos.last().unwrap();
+        assert_eq!(ultimo.de, "La portada");
+        // Un volcado no se guarda entero: está en su terminal.
+        assert!(c.apuntar_respuesta("La portada", &"línea de un volcado\n".repeat(2_000)));
+        assert!(c.turnos.last().unwrap().texto.chars().count() < TOPE_RESPUESTA + 40);
+    }
+
+    /// EL CASO QUE COSTÓ UN COMMIT AJENO: un reparto no cae en el menú de una
+    /// sesión que está preguntando. Contestarle a ella sola sí pasa.
+    #[test]
+    fn la_reja_del_enjambre_no_reparte_a_quien_pregunta() {
+        // La palabra es la de `PALABRA.pregunta`, en `lib/conserje.ts`.
+        let estados = |p: u32| if p == 5 { "te pregunta algo".to_string() } else { "ha terminado".to_string() };
+        let (buenas, fuera) = filtrar_enjambre(vec![escribir(3, "prueba el login"), escribir(5, "repasa la portada")], &estados);
+        assert_eq!(buenas, vec![escribir(3, "prueba el login")]);
+        assert!(fuera.iter().any(|f| f.contains("panel 5") && f.contains("preguntando")), "{fuera:?}");
+
+        let (buenas, fuera) = filtrar_enjambre(vec![escribir(5, "sí, sube solo lo del panel")], &estados);
+        assert_eq!(buenas, vec![escribir(5, "sí, sube solo lo del panel")], "a ella sola es contestarle");
+        assert!(fuera.is_empty());
+    }
+
+    #[test]
+    fn la_reja_del_enjambre_ni_abre_ni_manda_dos_veces_a_la_misma() {
+        let abrir = Accion::Abrir {
+            encargo: "montar las pruebas".into(),
+            carpeta: "C:\\proyectos\\Adeorq".into(),
+            clase: "oficio".into(),
+            consecuencia: "alta".into(),
+            largo: false,
+            trabajo: "codigo".into(),
+        };
+        let (buenas, fuera) =
+            filtrar_enjambre(vec![abrir, escribir(3, "primero esto"), escribir(3, "y luego esto")], &|_| String::new());
+        assert_eq!(buenas, vec![escribir(3, "primero esto\n\ny luego esto")]);
+        assert!(fuera.iter().any(|f| f.contains("no abre sesiones")), "{fuera:?}");
+
+        // Y detrás va la reja de siempre: un panel que no es del grupo, fuera.
+        let c = enjambre();
+        let (buenas, fuera) = filtrar(vec![escribir(3, "a una del grupo"), escribir(8, "a una de fuera")], &c, std::path::Path::new("C:\\proyectos"), &|_| true);
+        assert_eq!(buenas, vec![escribir(3, "a una del grupo")]);
+        assert!(fuera.iter().any(|f| f.contains("panel 8") && f.contains("enjambre")), "{fuera:?}");
+    }
+
+    /// Un enjambre guardado y vuelto a leer es el mismo, y una conversación de
+    /// las de antes (sin los campos nuevos) se guarda igual que estaba.
+    #[test]
+    fn los_campos_del_enjambre_no_tocan_las_conversaciones_de_antes() {
+        let mut c = enjambre();
+        c.apuntar_respuesta("La portada", "Hecho.");
+        let vuelta: Conversacion = serde_json::from_str(&serde_json::to_string(&c).unwrap()).unwrap();
+        assert_eq!(vuelta, c);
+
+        let vieja = con(2);
+        let texto = serde_json::to_string(&vieja).unwrap();
+        for campo in ["enjambre", "\"de\"", "\"nombre\""] {
+            assert!(!texto.contains(campo), "{campo} no tiene que salir en una conversación del Chat: {texto}");
+        }
+    }
+
+    /// Adeo de verdad, con el modelo pequeño: si no reparte con el formato y
+    /// a la sesión que toca, el enjambre no funciona, y eso no lo decide el
+    /// código sino un prompt.
+    ///
+    /// Gasta dos llamadas cortas de tu suscripción y no deja rastro en tu lista
+    /// de sesiones. Sin las herramientas de Adeorq, como el del conserje.
+    ///
+    /// `cargo test --lib el_enjambre_de_verdad -- --ignored --nocapture`
+    /// (`CEREBRO=sonnet` delante para probarlo con otro).
+    #[test]
+    #[ignore]
+    fn el_enjambre_de_verdad_reparte_en_su_formato() {
+        let cerebro = std::env::var("CEREBRO").unwrap_or_default();
+        let cerebro = CEREBROS.iter().copied().find(|m| *m == cerebro).unwrap_or(CEREBRO_DE_ENJAMBRE);
+        println!("piensa con {cerebro}");
+        let mut c = enjambre();
+        let estados = |p: u32| if p == 3 { "ha terminado, contexto al 20 %".to_string() } else { "trabajando, contexto al 55 %".to_string() };
+        let preguntar = |c: &Conversacion, texto: &str| {
+            let prompt = format!(
+                "{SISTEMA_ENJAMBRE}\n\n## Esta conversación\nconversacion: grupo\n\n{}\n\n## Lo que te dice Munir ahora\n{texto}",
+                c.contexto(&estados)
+            );
+            let inicio = std::time::Instant::now();
+            let parar = std::sync::atomic::AtomicBool::new(false);
+            let bruta = correr(&prompt, cerebro, None, &parar, Box::new(|p| println!("  paso: {p}"))).expect("Adeo no contestó");
+            println!("--- contestó en {:.1} s ---\n{bruta}\n---", inicio.elapsed().as_secs_f32());
+            let (dice, acciones, resumen, descartes) = leer_respuesta(&bruta);
+            assert!(descartes.is_empty(), "el bloque de acciones tiene que ser JSON válido: {descartes:?}");
+            let (acciones, fuera) = filtrar_enjambre(acciones, &estados);
+            let (acciones, fuera2) = filtrar(acciones, c, std::path::Path::new("C:\\proyectos"), &|_| true);
+            println!("texto: {dice}\nacciones: {acciones:?}\nfuera: {fuera:?} {fuera2:?}\nresumen: {resumen}");
+            assert!(!dice.is_empty(), "tiene que decirle algo a Munir");
+            assert!(!resumen.is_empty() && resumen.chars().count() <= 141, "falta la línea de índice");
+            (dice, acciones)
+        };
+
+        // Un encargo dictado, sin nombrar a nadie: va a la que lleva ese tema.
+        let (dice, acciones) = preguntar(&c, "oye mira que en el login de vidorq si entras con dos usuarios a la vez el segundo se queda colgado, que lo arregle");
+        assert_eq!(acciones.len(), 1, "es una sola cosa y de una sola sesión");
+        let Accion::Escribir { panel, texto } = &acciones[0] else { panic!("un enjambre solo escribe") };
+        assert_eq!(*panel, 3, "es el tema de «Arreglar el login», que además ha terminado");
+        assert!(texto.to_lowercase().contains("usuario"), "el encargo se reescribe, no se pierde: {texto}");
+        c.apuntar("tu", "lo del login con dos usuarios", "arreglar el login con dos usuarios");
+        c.apuntar("conserje", &dice, "mandé el arreglo al login");
+
+        // Nombrada por lo suyo: a esa y solo a esa, aunque esté trabajando.
+        let (_, acciones) = preguntar(&c, "dile a la de la portada que cuando acabe me pase una captura");
+        assert_eq!(acciones.len(), 1);
+        assert!(matches!(&acciones[0], Accion::Escribir { panel: 5, .. }), "la de la portada es «La portada», en el panel 5");
     }
 }

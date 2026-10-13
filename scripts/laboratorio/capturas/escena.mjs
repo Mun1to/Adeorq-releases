@@ -79,6 +79,9 @@ const GUARDA = `(() => {
       // el de quien hace la foto ni se le escribe encima.
       if (cmd === "load_ui_state") return responde("{}");
       if (cmd === "save_ui_state") return responde(null);
+      // Discord tampoco lo aísla la casa de pruebas: con el de quien hace la
+      // foto abierto, la app publicaría su actividad en ese perfil.
+      if (cmd === "discord_set" || cmd === "discord_clear") return responde(null);
       if (cmd === "pulso") return responde(DEMO.pulso);
       if (cmd === "ollama_models") return responde(DEMO.modelosLocales);
       // El arranque con Windows gobierna la app INSTALADA: el binario de pruebas

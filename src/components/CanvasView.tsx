@@ -34,8 +34,10 @@ import ImageNode, { type ImageData, type Shape } from "./CanvasImage";
 import { terminalesDe, useTerminalesEnCapturas } from "../lib/capturasLienzo";
 import NoteNode, { NOTE_COLORS, type NoteData } from "./CanvasNote";
 import CarrilNode, { CARRIL_H, CARRIL_W, colorDeCarril, type CarrilData } from "./CanvasCarril";
+import EnjambreNode, { type EnjambreData } from "./CanvasEnjambre";
+import { guardarEnjambre, useEnjambres } from "../lib/enjambreEnLienzo";
 import TermNode, { type TermData } from "./CanvasTerm";
-import { pasteInto, useFlechas, type Relay } from "../lib/flechas";
+import { alcanza, pasteInto, useFlechas, type Relay } from "../lib/flechas";
 import { textoDelTablero } from "../lib/tableroTexto";
 import { alternarGrande, MARGEN_GRANDE } from "../lib/ampliarPieza";
 import CanvasAyuda from "./CanvasAyuda";
@@ -89,6 +91,7 @@ import {
   NoteIcon,
   PencilIcon,
   PinIcon,
+  GroupIcon,
   RowsIcon,
   TrashIcon,
   UndoIcon,
@@ -202,7 +205,8 @@ type CanvasNode =
   | Node<WebData>
   | Node<KanbanData>
   | Node<ChatData>
-  | Node<CarrilData>;
+  | Node<CarrilData>
+  | Node<EnjambreData>;
 
 interface Props {
   /** Si la vista del Lienzo es la que se está viendo AHORA.
@@ -276,21 +280,6 @@ interface Props {
   enlazarRef?: React.MutableRefObject<
     ((from: number, to: number, auto: boolean) => boolean) | null
   >;
-}
-
-/** ¿Se llega de `desde` hasta `hasta` siguiendo flechas? Sirve para avisar de
- *  que la flecha que acabas de dibujar cierra un círculo. */
-function alcanza(desde: string, hasta: string, list: Edge[]): boolean {
-  const vistos = new Set<string>();
-  const pila = [desde];
-  while (pila.length) {
-    const n = pila.pop() as string;
-    if (n === hasta) return true;
-    if (vistos.has(n)) continue;
-    vistos.add(n);
-    for (const e of list) if (e.source === n) pila.push(e.target);
-  }
-  return false;
 }
 
 const NODE_W = 640;
@@ -959,6 +948,7 @@ function Canvas({
       kanban: KanbanNode,
       chat: ChatNode,
       carril: CarrilNode,
+      enjambre: EnjambreNode,
     }),
     [],
   );
@@ -1061,6 +1051,7 @@ ${ruta}` : ruta;
     },
     [flow],
   );
+  const enj = useEnjambres({ panes, estados, nodes, setNodes, dondeCae, zoomANodo, avisar: setNote, t });
 
   /** Las anotaciones de una captura las dibuja su nodo; aquí se guardan para
       que salgan en el archivo exportado. */
@@ -2726,6 +2717,8 @@ ${ruta}` : ruta;
           nombre: d.nombre,
           color: d.color,
         });
+      } else if (n.type === "enjambre") {
+        guardados.push({ ...pos, ...guardarEnjambre(n) });
       } else if (n.type === "kanban") {
         // Solo las tarjetas tuyas: las otras tres columnas son el estado de los
         // agentes de AHORA, y guardar eso sería guardar una foto que al abrir
@@ -2881,7 +2874,7 @@ ${ruta}` : ruta;
               },
             } as Node<WebData>,
           ]);
-        } else {
+        } else if (n.tipo === "img") {
           const nodeId = `i${sello}${mapa.size}`;
           mapa.set(n.id, nodeId);
           setNodes((prev) => [
@@ -2907,6 +2900,7 @@ ${ruta}` : ruta;
           ]);
         }
       }
+      enj.cargar(f.nodos, mapa);
 
       // Solo sobreviven las flechas cuyos dos extremos han entrado: una flecha
       // a un nodo que no existe se pintaría en el vacío.
@@ -3055,6 +3049,12 @@ ${ruta}` : ruta;
         onClick: () => ponerCarril(),
       },
       {
+        icon: <GroupIcon size={15} />,
+        label: t("Enjambre"),
+        hint: t("varias sesiones y un solo chat"),
+        onClick: () => enj.crear(),
+      },
+      {
         icon: <GalleryIcon size={15} />,
         label: t("Galería"),
         hint: comoTexto(mapaRef.current.galeria) || t("lo que has pegado"),
@@ -3093,7 +3093,7 @@ ${ruta}` : ruta;
         onClick: () => ponerWidget(w.kind),
       })),
     ],
-    [t, ponerNota, ponerCarril, ponerGaleria, ponerWeb, ponerWidget, ponerKanban, ponerChat],
+    [t, ponerNota, ponerCarril, ponerGaleria, ponerWeb, ponerWidget, ponerKanban, ponerChat, enj.crear],
   );
 
   const menuPiezas = (e: React.MouseEvent) => menu(e, itemsPiezas());
@@ -3824,10 +3824,11 @@ ${ruta}` : ruta;
               setConfirmar(false);
             }
           }}
-          onNodeDragStart={(_, n) => empiezaArrastre(n as CanvasNode)}
-          onNodeDrag={(_, n) => durantArrastre(n as CanvasNode)}
-          onNodeDragStop={() => {
+          onNodeDragStart={(_, n) => (empiezaArrastre(n as CanvasNode), enj.alCoger(n))}
+          onNodeDrag={(e, n) => (durantArrastre(n as CanvasNode), enj.alArrastrar(n, e))}
+          onNodeDragStop={(e, n) => {
             arrastreRef.current = null;
+            enj.alSoltar(n, e);
           }}
           // Backspace inside a terminal must never delete a node.
           deleteKeyCode={null}

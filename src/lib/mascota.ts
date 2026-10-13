@@ -178,13 +178,22 @@ export type Cosa = keyof typeof COSAS;
 /** A dónde mira cuando sigue el ratón. "" es «a donde diga la postura». */
 export type Mirada = "" | "izq" | "der" | "bajo";
 
+/** Otro color para el cuerpo y los brazos. Adeo es azul; en un enjambre cada
+ *  sesión lleva el suyo de un color (`lib/enjambre.ts`). El ojo no se tiñe. */
+export interface Tinte {
+  cuerpo: string;
+  brazo: string;
+}
+
 /**
  * Los cuadros de una postura.
  *
  * `mirada` solo se aplica si la postura tiene el ojo abierto de frente: una
  * que está tecleando (mira abajo) o parpadeando no gira el ojo por el ratón.
  */
-export function cuadrosDe(pose: Pose, mirada: Mirada = ""): Cuadro[] {
+export function cuadrosDe(pose: Pose, mirada: Mirada = "", tinte?: Tinte): Cuadro[] {
+  const cuerpo = tinte?.cuerpo ?? AZUL;
+  const brazo = tinte?.brazo ?? BRAZO_COLOR;
   const sube = pose.salta ? 1 : 0;
   const ojo: Ojo = pose.ojo === "abierto" && mirada ? mirada : pose.ojo;
   const parpado = ojo in PARPADOS ? PARPADOS[ojo as keyof typeof PARPADOS] : null;
@@ -203,11 +212,11 @@ export function cuadrosDe(pose: Pose, mirada: Mirada = ""): Cuadro[] {
     for (let x = 0; x < fila.length; x++) {
       const ch = fila[x];
       if (ch === ".") continue;
-      pon(x, y + AIRE - sube, esPupila(x, y) ? PUPILA : ch === "W" && !parpado ? BLANCO : AZUL);
+      pon(x, y + AIRE - sube, esPupila(x, y) ? PUPILA : ch === "W" && !parpado ? BLANCO : cuerpo);
     }
   });
-  for (const [x, y] of BRAZOS[pose.izq]) pon(x, y + AIRE - sube, BRAZO_COLOR);
-  for (const [x, y] of BRAZOS[pose.der]) pon(ANCHO - 1 - x, y + AIRE - sube, BRAZO_COLOR);
+  for (const [x, y] of BRAZOS[pose.izq]) pon(x, y + AIRE - sube, brazo);
+  for (const [x, y] of BRAZOS[pose.der]) pon(ANCHO - 1 - x, y + AIRE - sube, brazo);
   if (pose.extra) for (const [x, y] of EXTRAS[pose.extra].puntos) pon(x, y, EXTRAS[pose.extra].color);
   out.push(...delante);
   return out;

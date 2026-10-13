@@ -136,6 +136,28 @@ export interface NodoCarril {
   color: string;
 }
 
+/** Un enjambre: varias terminales del tablero juntas, con un solo chat. Como en
+    el chat, la conversación vive en su archivo y aquí va la referencia. Sus
+    sesiones se guardan por el id de NODO de cada terminal, que es lo que este
+    archivo sabe traducir al abrirlo (las terminales renacen con otro número);
+    una que no esté en el archivo simplemente no entra. */
+export interface NodoEnjambre {
+  tipo: "enjambre";
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  conv: string;
+  nombre: string;
+  /** El color de su Adeo, por su NOMBRE en la paleta (`COLORES`, en
+      `lib/enjambre.ts`), no un valor de CSS. */
+  color: string;
+  miembros: Array<{ nodo: string }>;
+  /** Sus terminales estaban minimizadas. */
+  plegadas: boolean;
+}
+
 export type NodoGuardado =
   | NodoTerm
   | NodoWidget
@@ -144,7 +166,8 @@ export type NodoGuardado =
   | NodoWeb
   | NodoKanban
   | NodoChat
-  | NodoCarril;
+  | NodoCarril
+  | NodoEnjambre;
 
 export interface FlechaGuardada {
   id: string;
@@ -321,6 +344,30 @@ export function parsear(raw: string): CanvasFile | null {
         tipo: "carril",
         nombre,
         color: /^(#[0-9a-fA-F]{6}|hsl\([0-9.]+ [0-9.]+% [0-9.]+%\))$/.test(color) ? color : "#4d9fff",
+      });
+    } else if (r.tipo === "enjambre") {
+      // El id de la conversación va a un nombre de archivo: se rechaza si no
+      // vale, igual que el de un chat. De cada sesión solo sale un texto corto, y
+      // el color del enjambre es un NOMBRE de la paleta, no un valor de CSS.
+      const conv = txt(r.conv);
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(conv)) continue;
+      const miembros: NodoEnjambre["miembros"] = [];
+      for (const m of Array.isArray(r.miembros) ? r.miembros.slice(0, 12) : []) {
+        if (!m || typeof m !== "object") continue;
+        const q = m as Record<string, unknown>;
+        const nodo = txt(q.nodo).slice(0, 64);
+        if (nodo) miembros.push({ nodo });
+      }
+      nodos.push({
+        ...base,
+        w: num(r.w, 440),
+        h: num(r.h, 520),
+        tipo: "enjambre",
+        conv,
+        nombre: txt(r.nombre).slice(0, 60).trim() || "Enjambre",
+        color: txt(r.color).slice(0, 24),
+        miembros,
+        plegadas: r.plegadas === true,
       });
     }
   }

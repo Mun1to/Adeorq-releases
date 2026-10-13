@@ -100,3 +100,6 @@
 
 /* Los encargos programados de la Agenda. */
 @import "./estilos/28-programados.css";
+
+/* El enjambre del lienzo: varias sesiones y un solo chat. */
+@import "./estilos/29-enjambre.css";

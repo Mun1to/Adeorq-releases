@@ -93,10 +93,11 @@ la máquina que hizo el volcado**. Una parte suelta se repite con `node volcar.m
   en la página, en `GUARDA` de `escena.mjs`: las llamadas a Rust viajan por `fetch` a
   `ipc.localhost/<comando>` y ahí se contestan `media_now`, `secret_*`, `load_ui_state`, y las
   cuentas de demostración. El fondo se le da a la imagen como `data:`.
-- **Tampoco aísla Discord, y eso sigue SIN tapar**: con el Discord de quien hace las fotos
-  abierto, la app de pruebas publica su actividad en ese perfil mientras está en marcha (visto el
-  2026-10-12: Ajustes > Discord salió como «Publicado en tu Discord»). Hasta que `GUARDA`
-  conteste esos comandos, se hacen las fotos con Discord cerrado.
+- **Tampoco aísla Discord**: con el Discord de quien hace las fotos abierto, la app de pruebas
+  publicaba su actividad en ese perfil mientras estaba en marcha (visto el 2026-10-12). Desde el
+  2026-10-13 `GUARDA` contesta `discord_set` y `discord_clear` en la página y la orden no llega a
+  Rust: Ajustes > Discord sigue diciendo «Publicado en tu Discord», que es lo que diría con uno
+  de verdad, y en el perfil de nadie sale nada.
 - **Los transcripts de las grabadas viven en el hogar real hasta que se limpian** (paso 6).
   El 2026-10-12 se relanzó `preparar-sesiones` después de limpiar y borró lo preparado antes de
   ver que no tenía de dónde rehacerlo: las cuatro sesiones en español se perdieron y hubo que

@@ -1650,6 +1650,43 @@ pub(crate) fn codex_estado(lines: &[String]) -> String {
     String::new()
 }
 
+/// Lo último que contestó una sesión de Codex: el `last_agent_message` del
+/// último `task_complete` de su rollout. Es el `last_reply` de Codex, y existe
+/// por los enjambres, que traen a su chat lo que dice cada sesión al acabar:
+/// sin esto de un Codex se veía que había terminado y su respuesta se quedaba
+/// en su terminal.
+///
+/// Manda el último turno que ACABÓ. Uno a medias o cortado con Esc no deja
+/// mensaje, así que no cambian lo que se devuelve; y si ese último turno acabó
+/// sin decir nada, nada, en vez de bajar a buscar lo que dijo en el anterior.
+pub(crate) fn codex_respuesta(lines: &[String]) -> Option<String> {
+    for line in lines.iter().rev() {
+        if !line.contains("\"task_complete\"") {
+            continue;
+        }
+        let Ok(v) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        // Un mensaje que HABLE de `task_complete` también lo contiene.
+        if v["type"].as_str() != Some("event_msg") || v["payload"]["type"].as_str() != Some("task_complete") {
+            continue;
+        }
+        let texto = v["payload"]["last_agent_message"].as_str().unwrap_or_default().trim();
+        return (!texto.is_empty()).then(|| texto.to_owned());
+    }
+    None
+}
+
+/// `last_reply`, para un panel de Codex del que se sabe su sesión. Con el mismo
+/// recorte: lo que no cabe está entero en su terminal.
+#[tauri::command(async)]
+pub fn codex_last_reply(session_id: String, max_chars: Option<usize>) -> Option<String> {
+    let lines = read_tail(&rollout_sabido(&session_id)?).ok()?;
+    let texto = codex_respuesta(&lines)?;
+    let max = max_chars.unwrap_or(4000);
+    Some(if texto.chars().count() > max { texto.chars().take(max).collect::<String>() + "…" } else { texto })
+}
+
 /// Counts subagents from the transcript itself: every dispatch is a `tool_use`
 /// named Task/Agent and every finish is the `tool_result` carrying its id, so
 /// dispatched-minus-returned is exact. The old counter guessed from the screen
@@ -3713,6 +3750,75 @@ otra
         // Un mensaje que HABLA del evento no es el evento.
         let habla = r#"{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"\"event_msg\" con \"task_complete\""}]}}"#;
         assert_eq!(codex_estado(&[empieza, habla.into()]), "a_medias");
+    }
+
+    /// Lo que un enjambre trae a su chat de una sesión de Codex.
+    #[test]
+    fn a_codex_turn_leaves_its_last_answer() {
+        let empieza = evento("task_started", r#","model_context_window":258400"#);
+        let acaba = |m: &str| evento("task_complete", &format!(r#","last_agent_message":"{m}""#));
+        let corta = evento("turn_aborted", r#","reason":"interrupted""#);
+        let habla = r#"{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"\"event_msg\" con \"task_complete\" y \"last_agent_message\":\"mentira\""}]}}"#;
+
+        assert_eq!(codex_respuesta(&[empieza.clone(), acaba("Cambios aplicados.")]).as_deref(), Some("Cambios aplicados."));
+        assert_eq!(
+            codex_respuesta(&[empieza.clone(), acaba("La primera."), empieza.clone(), acaba("  La segunda.  ")]).as_deref(),
+            Some("La segunda."),
+            "manda el último turno que acabó, sin espacios de sobra",
+        );
+        assert_eq!(
+            codex_respuesta(&[empieza.clone(), acaba("Lo de antes."), empieza.clone(), corta]).as_deref(),
+            Some("Lo de antes."),
+            "uno a medias o cortado no deja mensaje: sigue valiendo el del que acabó",
+        );
+        assert_eq!(codex_respuesta(&[empieza.clone(), acaba("Algo."), empieza.clone(), acaba("")]), None, "acabó sin decir nada: no se baja al anterior");
+        assert_eq!(codex_respuesta(&[empieza.clone(), habla.into()]), None, "un mensaje que habla del evento no es el evento");
+        assert_eq!(codex_respuesta(&[empieza]), None);
+        assert_eq!(codex_respuesta(&[]), None);
+    }
+
+    /// Con los rollouts DE VERDAD de esta máquina: que la forma que se lee aquí
+    /// sea la que Codex escribe hoy. Sin Codex instalado no comprueba nada.
+    ///
+    /// `cargo test --lib codex_de_verdad_deja_su_respuesta -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn codex_de_verdad_deja_su_respuesta() {
+        let Some(raiz) = codex_dir() else {
+            println!("sin carpeta de Codex en esta máquina");
+            return;
+        };
+        fn rollouts(d: &Path, fuera: &mut Vec<PathBuf>) {
+            for e in std::fs::read_dir(d).into_iter().flatten().flatten() {
+                let p = e.path();
+                if p.is_dir() {
+                    rollouts(&p, fuera);
+                } else if p.extension().and_then(|x| x.to_str()) == Some("jsonl") {
+                    fuera.push(p);
+                }
+            }
+        }
+        let mut todos = Vec::new();
+        rollouts(&raiz, &mut todos);
+        todos.sort();
+        let (mut acabados, mut con_respuesta) = (0, 0);
+        for p in todos.iter().rev().take(40) {
+            let Ok(lines) = read_tail(p) else { continue };
+            if !matches!(codex_estado(&lines).as_str(), "lista" | "ofrece") {
+                continue;
+            }
+            acabados += 1;
+            if let Some(r) = codex_respuesta(&lines) {
+                con_respuesta += 1;
+                if con_respuesta <= 3 {
+                    println!("{}: {}", p.file_name().unwrap().to_string_lossy(), r.chars().take(90).collect::<String>().replace('\n', " "));
+                }
+            }
+        }
+        println!("{} rollouts mirados, {acabados} con el turno acabado, {con_respuesta} con su respuesta", todos.len().min(40));
+        if acabados > 0 {
+            assert!(con_respuesta > 0, "hay turnos acabados y de ninguno se lee la respuesta: ha cambiado la forma del rollout");
+        }
     }
 
     #[test]

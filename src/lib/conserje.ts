@@ -21,10 +21,13 @@ import type { ModelAlias } from "./models";
 
 export interface Turno {
   n: number;
-  rol: "tu" | "conserje";
+  /** `sesion` solo en un enjambre: lo que contestó una de las del grupo. */
+  rol: "tu" | "conserje" | "sesion";
   texto: string;
   resumen: string;
   cuando: number;
+  /** En un turno de sesión: su nombre. */
+  de?: string;
 }
 
 /** Una sesión de trabajo abierta por el conserje: una pestaña del chat. */
@@ -50,6 +53,8 @@ export interface Trabajo {
   arranque?: number;
   /** Quitaste su pestaña; la tarjeta sigue en el hilo. */
   soltado?: boolean;
+  /** En un enjambre: cómo se llama la sesión. */
+  nombre?: string;
 }
 
 /** Quién es una pestaña: el panel solo se repite entre arranques. */
@@ -75,6 +80,9 @@ export interface Conversacion {
   /** El modelo de las sesiones con el router apagado, el mismo en el PC y en
    *  el móvil; vacío es el de por defecto de Ajustes, o Sonnet. */
   fijo?: string;
+  /** Es un enjambre del lienzo (`lib/enjambre.ts`): sus trabajos son sesiones
+   *  que ya estaban abiertas, y quien contesta es Adeo, con Haiku. */
+  enjambre?: boolean;
 }
 
 /** Los modelos con los que puede pensar el conserje: los mismos que acepta
@@ -155,6 +163,16 @@ export const conserjeEnviar = (id: string, texto: string, estados: Record<string
 /** Solo esa conversación: la de al lado (o la del móvil) sigue pensando. */
 export const conserjeParar = (id: string) => invoke<void>("conserje_parar", { id });
 export const conserjeMejorar = (texto: string) => invoke<string>("conserje_mejorar", { texto });
+/** Borra una conversación del disco. Lo pide el enjambre que se deshace. */
+export const conserjeOlvidar = (id: string) => invoke<void>("conserje_olvidar", { id });
+/** Hace de una conversación un enjambre, o le cambia el nombre. */
+export const conserjeEnjambre = (id: string, nombre: string) => invoke<void>("conserje_enjambre", { id, nombre });
+/** Las sesiones de un enjambre tal como quedan: Rust sustituye las que había. */
+export const conserjeMiembros = (id: string, miembros: Trabajo[]) =>
+  invoke<void>("conserje_miembros", { id, miembros });
+/** Lo que acaba de contestar una sesión del enjambre; dice si era nuevo. */
+export const conserjeDijo = (id: string, panel: number, texto: string) =>
+  invoke<boolean>("conserje_dijo", { id, panel, texto });
 
 /** Lo que va haciendo mientras piensa: «Mirando tus proyectos»… */
 export function onPaso(cb: (p: { id: string; paso: string }) => void): Promise<UnlistenFn> {

@@ -1,0 +1,446 @@
+/* ==========================================================================
+   El enjambre del lienzo (`CanvasEnjambre.tsx`): varias sesiones juntas en una
+   pieza. De arriba abajo, como lo dijo Munir: el nombre, una fila por sesión
+   y el chat del grupo con una sola caja.
+
+   La caja es la del chat del lienzo (`.rf-chat`) y el color de cada estado es
+   el de toda la app, que ya llega por `[data-estado]` (`22-conserje.css`).
+   Aquí solo hay una salida más: «no se sabe», para el CLI que no cuenta cómo
+   va, que no es ni verde ni naranja.
+   ========================================================================== */
+[data-estado="nosesabe"] { --cj-c: var(--muted); }
+
+/* `--enj` es el color de SU Adeo (lo pone la pieza): el enjambre azul, el
+   verde… Va en una franja arriba, como el color del proyecto en una terminal
+   del lienzo, para reconocerlo de lejos sin leer el nombre. */
+.rf-enjambre {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-caja);
+  border: 1px solid var(--border-strong);
+  border-top: 3px solid var(--enj, var(--accent));
+  background: var(--panel-solid);
+  box-shadow: var(--sombra-3);
+  overflow: hidden;
+}
+
+.rf-enjambre[data-selected="true"] {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+/* ── arriba del todo: el nombre ─────────────────────────────────────────── */
+.enj-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--row);
+  /* La cabecera es el asa: dentro se escribe y se selecciona texto. */
+  cursor: grab;
+}
+
+.enj-head > .mascota { flex: none; }
+
+.enj-nombre {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+}
+
+.enj-nombre-in {
+  min-width: 0;
+  flex: 1;
+  padding: 2px 6px;
+  border-radius: var(--r-chico);
+  border: 1px solid var(--accent);
+  background: var(--panel-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.enj-nombre-in:focus { outline: none; }
+
+.enj-recuento {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.enj-mini {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border-radius: var(--r-icono, var(--r-chico));
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--t-rapida), border-color var(--t-rapida);
+}
+
+.enj-mini:hover:not(:disabled),
+.enj-mini[data-on="true"] {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.enj-mini:disabled { opacity: 0.4; cursor: default; }
+
+/* La ✕ armada: el segundo toque es el que deshace. */
+.enj-x[data-armada] {
+  color: var(--mal);
+  border-color: color-mix(in srgb, var(--mal) 55%, transparent);
+}
+
+/* ── recién juntado: qué hacer con sus terminales ───────────────────────── */
+.enj-elige {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 12%, var(--row));
+  font-size: 12.5px;
+}
+
+.enj-elige > span { flex: 1 1 100%; font-weight: 600; }
+
+.enj-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border-strong);
+  background: var(--panel-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--t-rapida), background var(--t-rapida);
+}
+
+.enj-boton:hover { border-color: var(--accent); }
+
+/* ── una fila por sesión ────────────────────────────────────────────────── */
+.enj-filas {
+  flex: none;
+  max-height: 46%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.enj-fila {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 3px 4px 3px 6px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border);
+  background: var(--cj-hueco);
+}
+
+.enj-fila[data-estado="pregunta"] { border-color: color-mix(in srgb, var(--ask) 55%, transparent); }
+.enj-fila[data-estado="cerrada"] { opacity: 0.6; }
+
+.enj-marca {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.enj-marca .prov-mark { width: 15px; height: 15px; }
+
+.enj-fila-id {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.enj-fila-id strong,
+.enj-fila-id em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.enj-fila-id strong { font-size: 12.5px; }
+.enj-fila-id em { font-style: normal; font-size: 11px; color: var(--muted); }
+.enj-fila-id:hover strong { color: var(--accent); }
+.enj-fila .enj-estado { flex: none; font-size: 11px; }
+
+/* Los dos botones de la fila salen al acercarse, ENCIMA del final de la fila
+   y sin reservar sitio: con seis sesiones, doce iconos fijos son lo primero
+   que se ve y lo último que se usa, y su hueco dejaba el estado a media fila. */
+.enj-fila { position: relative; }
+.enj-fila .enj-mini {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  background: var(--panel-solid);
+  border-color: var(--border);
+  opacity: 0;
+  pointer-events: none;
+}
+.enj-fila .enj-mini:nth-last-child(2) { right: 32px; }
+.enj-fila:hover .enj-mini,
+.enj-fila .enj-mini:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* «No juntarlas» es la salida, no una de las dos formas de quedarse. */
+.enj-no {
+  margin-left: auto;
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+}
+
+.enj-anadir { display: grid; }
+
+.enj-mas-sesiones {
+  justify-self: start;
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+}
+
+.enj-libres {
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  border-radius: var(--r-btn);
+  border: 1px dashed var(--border-strong);
+}
+
+.enj-libres-tit { font-size: 11.5px; color: var(--muted); }
+.enj-libres > .enj-boton { justify-self: end; }
+
+.enj-libre {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  border-radius: var(--r-chico);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-rapida), background var(--t-rapida);
+}
+
+.enj-libre strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.enj-libre:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--cj-hueco);
+}
+
+.enj-libre:disabled { opacity: 0.45; cursor: default; }
+
+/* ── el chat del grupo ──────────────────────────────────────────────────── */
+.enj-hilo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 10px;
+  /* Se puede seleccionar y copiar: es texto, no un adorno. */
+  user-select: text;
+  cursor: text;
+}
+
+.enj-vacio {
+  margin: auto 8px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.enj-turno { display: grid; gap: 3px; max-width: 92%; }
+.enj-turno[data-rol="tu"] { align-self: flex-end; }
+.enj-turno:not([data-rol="tu"]) { align-self: flex-start; }
+
+.enj-turno-quien {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.enj-burbuja {
+  padding: 7px 10px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border);
+  background: var(--row);
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.enj-turno[data-rol="tu"] .enj-burbuja {
+  background: color-mix(in srgb, var(--accent) 24%, var(--row));
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+/* Lo que contesta una sesión, recogido: una pantalla entera de respuesta
+   empujaría fuera de la vista lo que dijo Adeo. */
+.enj-burbuja[data-recogida] {
+  max-height: 7.6em;
+  overflow: hidden;
+  mask-image: linear-gradient(#000 60%, transparent);
+}
+
+.enj-mas {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.enj-pensando,
+.enj-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.enj-aviso {
+  padding: 6px 9px;
+  border-radius: var(--r-btn);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  color: var(--text);
+}
+
+.enj-aviso[data-mal] { border-color: color-mix(in srgb, var(--mal) 55%, transparent); }
+
+/* ── la caja: una para todas ────────────────────────────────────────────── */
+.enj-pie {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+  background: var(--row);
+}
+
+.enj-in {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  padding: 7px 9px;
+  border-radius: var(--r-chico);
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.enj-in:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.enj-enviar {
+  flex: none;
+  width: 34px;
+  border-radius: var(--r-chico);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 22%, var(--row));
+  color: var(--text);
+  cursor: pointer;
+}
+
+.enj-enviar:disabled { opacity: 0.45; cursor: default; }
+
+/* ── en el tablero ──────────────────────────────────────────────────────── */
+
+/* Una terminal minimizada sigue entera y con su proceso: solo deja de verse y
+   de recibir el ratón. Ni `display: none` (xterm mediría cero y el CLI lo
+   repintaría todo al volver) ni desmontarla (moriría). El `!important` es por
+   la librería, que escribe `visibility: visible` en el propio nodo en cuanto
+   lo mide, y eso gana a cualquier regla de aquí. */
+.react-flow__node.enj-min {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* La pieza sobre la que vas a soltar una terminal, cuando ya lleva el rato
+   que hace falta: soltarla ahora las junta. */
+.react-flow__node.enj-diana {
+  outline: 3px solid var(--accent);
+  outline-offset: 6px;
+  border-radius: var(--r-caja);
+}

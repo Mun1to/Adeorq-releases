@@ -45,6 +45,21 @@ const TE_HABLA_A_TI = new Set<WorkState>(["pregunta", "ofrece", "tuya"]);
 const TOPE_AUTO = 3;
 const VENTANA_AUTO = 10 * 60_000;
 
+/** ¿Se llega de `desde` hasta `hasta` siguiendo flechas? Sirve para avisar de
+ *  que la flecha que acabas de dibujar cierra un círculo. */
+export function alcanza(desde: string, hasta: string, list: Edge[]): boolean {
+  const vistos = new Set<string>();
+  const pila = [desde];
+  while (pila.length) {
+    const n = pila.pop() as string;
+    if (n === hasta) return true;
+    if (vistos.has(n)) continue;
+    vistos.add(n);
+    for (const e of list) if (e.source === n) pila.push(e.target);
+  }
+  return false;
+}
+
 /** Un texto a una terminal, como lo pegaría una persona. Va por `sendPty`: Rust
  *  lo mete entre corchetes de pegado si el programa los pidió (sin ellos cada
  *  salto de línea de un encargo pulsaría Intro y lo mandaría a trozos) y pulsa

@@ -59,6 +59,8 @@ export default {
   'hero.demo.corto': 'Adeorq running',
   'hero.demo.src': '/demo/?desnuda=1&lang=en',
   'hero.pie': 'This is not a screenshot: try it right here.',
+  'hero.grande': 'Open it full size',
+  'hero.grande.href': '/demo/?lang=en',
 
   /* ── Los clientes ──────────────────────────────────────────────────────── */
   'cinta.rotulo': 'The <b>{n} clients</b><br>it can open',
@@ -79,34 +81,54 @@ export default {
 
   /* ── Qué hace ──────────────────────────────────────────────────────────── */
   'queEs.etiqueta': PUNTO + 'What it does',
-  'queEs.tit': '<b>Nine screens,</b> <span>one window</span>',
+  'queEs.tit': '<b>Ten screens,</b> <span>one window</span>',
   'queEs.entrada':
-    'Dashboard, Cockpit, Chat, Agenda, Canvas, Memory, Accounts, Commands and Settings. All inside a ' +
+    'Dashboard, Cockpit, Chat, Agenda, Decisions, Canvas, Memory, Accounts, Commands and Settings. All inside a ' +
     'native app of about 6 MB, without a whole browser packed inside.',
-  'ficha.cabina.tit': 'Cockpit',
-  'ficha.cabina.p':
-    'As many panes as fit, each with its own project, client and model. They split to the right or ' +
-    'below, however you like.',
-  'ficha.panel.tit': 'Dashboard',
-  'ficha.panel.p':
-    'The front page of your day: which sessions you have, in which project, which are still alive ' +
-    'and which are waiting for you.',
-  'ficha.capataz.tit': 'Foreman',
-  'ficha.capataz.p':
-    'Give it a big job: it splits the work by files and puts together a crew of up to six ' +
-    'terminals. Before opening them it shows you what it will cost.',
-  'ficha.chat.tit': 'Chat',
-  'ficha.chat.p':
-    'The same sessions without the console in front. Underneath it is still your CLI, so it spends ' +
-    'your subscription, not a per-token bill. In testing.',
-  'ficha.lienzo.tit': 'Canvas',
-  'ficha.lienzo.p':
-    'An infinite table with notes, kanban, images and loose terminals on top. Drag a card off the ' +
-    'board and an agent goes off to do it.',
-  'ficha.memoria.tit': 'Memory and Agenda',
-  'ficha.memoria.p':
-    'Your notes are searched by what they say, not by what they are called. And the ideas that come ' +
-    'up on the fly land in an inbox: the agents propose, you accept or discard.',
+  // La muestra: cada rasgo con su captura en inglés (assets/screens/en) y su alt.
+  'rasgo.demo': 'Try it in the demo',
+  'rasgo.cabina.tit': 'Cockpit',
+  'rasgo.cabina.p':
+    'As many terminals as fit, each with its own project, client and model. Split them to the ' +
+    'right or below.',
+  'rasgo.cabina.src': '/assets/screens/en/cockpit.png',
+  'rasgo.cabina.alt':
+    'The Cockpit with four terminals in a grid: three Claude Code sessions and one Codex session, ' +
+    'one of them asking for permission before running a command.',
+  'rasgo.lienzo.tit': 'Canvas and swarms',
+  'rasgo.lienzo.p':
+    'An infinite table with terminals, notes and boards. Drag one session onto another and they ' +
+    'form a swarm: a single chat, and Adeo hands out the work.',
+  'rasgo.lienzo.src': '/assets/screens/en/canvas.png',
+  'rasgo.lienzo.alt': 'The Canvas with three terminals, a board with the work of the agents and two notes.',
+  'rasgo.archivos.tit': 'Files',
+  'rasgo.archivos.p':
+    'The project tree and an editor next to the terminal. Each file shows its git status and a ' +
+    'mark for what the agent touched.',
+  'rasgo.archivos.src': '/assets/screens/en/files.png',
+  'rasgo.archivos.alt':
+    'Two terminals on the left and, on the right, the file cart.js open next to the project tree ' +
+    'with its git changes.',
+  'rasgo.decisiones.tit': 'Decisions',
+  'rasgo.decisiones.p':
+    'When an agent needs you to choose, it asks with numbered options and its recommended one. ' +
+    'You answer and it keeps working.',
+  'rasgo.decisiones.src': '/assets/screens/en/decisions.png',
+  'rasgo.decisiones.alt':
+    'A pending decision with two questions, their numbered options and the recommended one marked.',
+  'rasgo.cuentas.tit': 'Accounts',
+  'rasgo.cuentas.p':
+    'Several accounts of the same CLI, each with what it has used this session and this week. ' +
+    'You pick which one each terminal starts with.',
+  'rasgo.cuentas.src': '/assets/screens/en/accounts.png',
+  'rasgo.cuentas.alt':
+    'The Claude Code and Codex accounts, each with its usage bars for the session and the week.',
+  'rasgo.comandos.tit': 'Commands',
+  'rasgo.comandos.p':
+    'Everything you can type inside each agent, found by what you want to do, not by what it is ' +
+    'called. One click sends it to the terminal.',
+  'rasgo.comandos.src': '/assets/screens/en/commands.png',
+  'rasgo.comandos.alt': 'The list of Claude Code commands, each with a line that says what it is for.',
 
   /* ── Cómo trabaja ──────────────────────────────────────────────────────── */
   'trabajo.etiqueta': PUNTO + 'How it works',

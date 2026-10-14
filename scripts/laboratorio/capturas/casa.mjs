@@ -4,7 +4,7 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { TEXTOS } from "./textos.mjs";
+import { ENJAMBRE, TEXTOS } from "./textos.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const CASA = "P:\\home";
@@ -97,4 +97,28 @@ export function montarCasa(idioma) {
   rmSync(join(DATOS, "notas"), { recursive: true, force: true });
   for (const [id, texto] of Object.entries(t.notas)) escribir(join(DATOS, "notas", `nota-${id}.md`), texto);
   escribir(join(DATOS, "lienzo.json"), JSON.stringify(t.lienzo(new Date(ahora).toISOString())));
+
+  // El enjambre del lienzo: su conversación, con la forma en que la guarda
+  // `conserje.rs` (`Conversacion` con `enjambre: true`). Las sesiones del grupo
+  // las apunta la app al abrir el tablero.
+  const hace = (min) => Math.floor((ahora - min * 60_000) / 1000);
+  escribir(
+    join(DATOS, "conserje", `${ENJAMBRE}.json`),
+    JSON.stringify({
+      id: ENJAMBRE,
+      titulo: t.enjambre.nombre,
+      turnos: t.enjambre.turnos.map(([rol, texto, de], i, todos) => ({
+        n: i + 1,
+        rol,
+        texto,
+        resumen: texto.slice(0, 90),
+        cuando: hace((todos.length - i) * 4),
+        ...(de ? { de } : {}),
+      })),
+      trabajos: [],
+      router: true,
+      creada: hace(20),
+      enjambre: true,
+    }),
+  );
 }

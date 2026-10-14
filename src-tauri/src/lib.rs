@@ -39,6 +39,7 @@ mod push;
 mod secrets;
 mod sessions;
 mod suelta;
+mod temporales;
 mod tocados;
 mod skills;
 mod usage;
@@ -355,6 +356,11 @@ pub fn run() {
             // de que la ventana pida su primera terminal, o unas irían dentro de
             // la app y otras fuera.
             terminales::arrancar(app.handle());
+            // Las carpetas que dejó el actualizador en la temporal las veces
+            // anteriores (`temporales.rs`). En un hilo: es disco y no corre prisa.
+            std::thread::spawn(|| {
+                temporales::recoger_actualizador(&std::env::temp_dir(), std::time::SystemTime::now());
+            });
             // ── AUTOPRUEBA de la ventana suelta (solo builds de desarrollo) ──
             //
             // La ventana suelta se rompió TRES veces sin que ningún test la

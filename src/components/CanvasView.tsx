@@ -1444,7 +1444,7 @@ ${ruta}` : ruta;
   useOfrecerEncargos(projects, project, lanzarPendiente, repartirPendientes);
 
   const ponerKanban = useCallback(
-    (pendientes: Pendiente[] = []) => {
+    (pendientes: Pendiente[] = [], en?: { x: number; y: number; w: number; h: number }) => {
       // Uno solo: son cuatro columnas de lo mismo, y dos tableros iguales al
       // lado solo reparten tu atención entre dos sitios que dicen igual. Se
       // comprueba AQUÍ y no dentro de setNodes: mover la cámara desde el
@@ -1460,8 +1460,8 @@ ${ruta}` : ruta;
         const nodo: Node<KanbanData> = {
           id: nodeId,
           type: "kanban",
-          position: dondeCae(760, 400, prev),
-          style: { width: 760, height: 400 },
+          position: en ? { x: en.x, y: en.y } : dondeCae(760, 400, prev),
+          style: { width: en?.w ?? 760, height: en?.h ?? 400 },
           // Solo por la cabecera, como las terminales: dentro se arrastran las
           // tarjetas, y un cuerpo que además mueve la pieza entera hace que
           // coger una tarjeta se lleve el tablero por delante.
@@ -2854,7 +2854,7 @@ ${ruta}` : ruta;
           // Con las tarjetas que trae, y en su sitio: `ponerKanban` decide solo
           // si ya había uno puesto, que es lo que evita el segundo tablero al
           // importar un lienzo encima de otro.
-          ponerKanban(n.pendientes);
+          ponerKanban(n.pendientes, { x: n.x, y: n.y, w: n.w, h: n.h });
         } else if (n.tipo === "web") {
           const nodeId = `n${sello}${mapa.size}w`;
           mapa.set(n.id, nodeId);

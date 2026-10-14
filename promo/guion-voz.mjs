@@ -16,7 +16,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
-const { ESCENAS, IDIOMAS, escenasDe } = await import("./src/guion.ts");
+const { ESCENAS, IDIOMAS } = await import("./src/guion.ts");
 const destino = resolve(process.argv[2] ?? join(aqui, "out", "guion-voz.html"));
 
 /** Palabras por segundo de una lectura tranquila. Es una estimación para que
@@ -31,49 +31,43 @@ const reloj = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStar
 const coma = (n) => String(Math.round(n * 10) / 10).replace(".", ",");
 const total = (lista) => lista.reduce((s, e) => s + e.dura, 0);
 
+/** Una frase de las que se leen en pantalla, sin las marcas del guion. */
+const sin = (t) => t.replace(/\*/g, "").replace(/\n/g, " ");
+
 /** Qué hay en pantalla mientras se dice cada cosa. */
 function seVe(e) {
-  if (e.tipo === "pantalla") return `La pantalla «${e.nombre.es}» de la app, con «${e.titulo.es}» en el centro. Después la cámara se acerca a: ${e.focos.map((f) => f.dato.es).join(" · ")}.`;
-  if (e.tipo === "capitulo") return `El cartel del capítulo: «${e.numero} · ${e.titulo.es}».`;
+  if (e.tipo === "pantalla") return `La pantalla «${e.nombre.es}» de la app, llenando el cuadro, con «${sin(e.titulo.es)}» en el centro. Después la cámara entra en: ${e.focos.map((f) => sin(f.dato.es)).join(" · ")}.`;
+  if (e.tipo === "texto") return `Solo texto, en el centro, frase a frase: ${e.lineas.map((l) => `«${sin(l.es)}»`).join(" ")}`;
   return {
-    gancho: "Ventanas de terminal sueltas que se amontonan, y las dos preguntas en grande.",
-    portada: "El logotipo se convierte en Adeo y saluda. El nombre y el lema.",
-    "que-es": "Se teclea «¿qué es adeorq?», llega el titular y van saliendo los nombres de los programas.",
-    adeo: "Adeo en grande: saluda y pasa por sus cuatro estados, uno por frase.",
+    nombre: "El logotipo abre el ojo y es Adeo, que saluda. Debajo, «Adeorq».",
+    adeo: "Adeo en grande: saluda y pasa por tres de sus estados, uno por frase.",
     cierre: "Adeo celebrando, «Descárgalo gratis» y adeorq.com en grande.",
   }[e.tipo];
 }
 
-const titulo = (e) =>
-  e.tipo === "pantalla" ? e.nombre.es : e.tipo === "capitulo" ? `Capítulo ${e.numero}: ${e.titulo.es}` : { gancho: "El problema", portada: "Portada", "que-es": "Qué es", adeo: "Adeo", cierre: "Cierre" }[e.tipo];
+const titulo = (e) => (e.tipo === "pantalla" ? e.nombre.es : { texto: "El problema y el giro", nombre: "El nombre", adeo: "Adeo", cierre: "El cierre" }[e.tipo]);
 
-/** A qué capítulo pertenece cada escena, para pintarla de su color. */
-let capitulo = 0;
-const bloques = ESCENAS.map((e, i) => {
-  if (e.tipo === "capitulo") capitulo = e.numero;
-  if (e.tipo === "cierre") capitulo = 4;
-  return { e, n: i + 1, capitulo };
-});
+/** De qué parte de la pieza es cada tramo, para pintarlo de su color: el
+    producto, Adeo, o lo que los rodea. */
+const bloques = ESCENAS.map((e, i) => ({ e, n: i + 1, capitulo: e.tipo === "pantalla" ? 1 : e.tipo === "adeo" ? 2 : 0 }));
 
 const barra = bloques
-  .map(({ e, n, capitulo: c }) => `<a href="#b${n}" class="c${c}${e.opcional ? " opc" : ""}" style="flex:${e.dura}" title="${limpia(titulo(e))}, ${coma(e.dura)} s">${n}</a>`)
+  .map(({ e, n, capitulo: c }) => `<a href="#b${n}" class="c${c}" style="flex:${e.dura}" title="${limpia(titulo(e))}, ${coma(e.dura)} s">${n}</a>`)
   .join("");
 
 const cuerpo = bloques
   .map(({ e, n, capitulo: c }) => {
     const frases = (idioma) => e.voz.map((f) => `<p>${limpia(f[idioma])}</p>`).join("");
     const voz = IDIOMAS.map((idioma) => `<div class="voz ${idioma}" lang="${idioma}">${frases(idioma)}<span class="seg">≈ ${coma(segundos(e, idioma))} s diciéndolo</span></div>`).join("");
-    return `<section id="b${n}" class="bloque c${c}${e.opcional ? " opc" : ""}">
-  <header><span class="num">${n}</span><h3>${limpia(titulo(e))}</h3>${e.opcional ? '<span class="tag">◇ se puede quitar</span>' : ""}<span class="dura">${coma(e.dura)} s de escena</span></header>
+    return `<section id="b${n}" class="bloque c${c}">
+  <header><span class="num">${n}</span><h3>${limpia(titulo(e))}</h3><span class="dura">${coma(e.dura)} s de escena</span></header>
   <p class="seve"><b>Se ve:</b> ${limpia(seVe(e))}</p>
   ${voz}
 </section>`;
   })
   .join("\n");
 
-const entera = total(escenasDe("entera"));
-const media = total(escenasDe("media"));
-const opcionales = ESCENAS.filter((e) => e.opcional).map((e) => (e.tipo === "pantalla" ? e.nombre.es : e.id));
+const entera = total(ESCENAS);
 const hoy = new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
 
 const html = `<!doctype html>
@@ -131,18 +125,15 @@ const html = `<!doctype html>
   <p class="sub">${hoy}. Es la estructura nueva y lo que dices tú en cada escena. Si algo no te suena a ti, cámbialo al leerlo: el vídeo se ajusta a tu voz, no al revés.</p>
 
   <div class="caja">
-    <b>La estructura: un problema, la respuesta y tres capítulos.</b>
+    <b>La estructura: el problema, el nombre, cinco funciones, Adeo y el cierre. Una sola pieza, de una tirada.</b>
     <div class="barra">${barra}</div>
     <div class="leyenda">
-      <span><i style="background:var(--c0)"></i>El problema, qué es y el cierre</span>
-      <span><i style="background:var(--c1)"></i>1 · Trabaja</span>
-      <span><i style="background:var(--c2)"></i>2 · Entérate</span>
-      <span><i style="background:var(--c3)"></i>3 · Tú mandas</span>
-      <span>Más claro = se puede quitar</span>
+      <span><i style="background:var(--c0)"></i>El problema, el nombre y el cierre</span>
+      <span><i style="background:var(--c1)"></i>El producto</span>
+      <span><i style="background:var(--c2)"></i>Adeo</span>
     </div>
-    <p style="margin:14px 0 0">Entero dura <b>${reloj(entera)}</b>; sin las opcionales (${opcionales.join(", ")}), <b>${reloj(media)}</b>.
-      Elegiste B2, que era 1:15, pero también dijiste que se quedaba corto: con voz y con las pantallas nuevas no cabe en 1:15.
-      <b>Graba todo</b>: los dos cortes salen del mismo audio y eliges viéndolos.</p>
+    <p style="margin:14px 0 0">Sin voz dura <b>${reloj(entera)}</b>. Con la tuya, cada tramo dura lo que tu frase: si lees con calma,
+      la pieza se alarga sola.</p>
   </div>
 
   <h2>Cómo grabar</h2>
@@ -158,7 +149,7 @@ const html = `<!doctype html>
 
   <h2>A. ¿Qué grabas?</h2>
   <div class="caja">
-    <div class="op"><span class="n">A1</span><div>Los dos idiomas con tu voz. <span class="rec">LA QUE YO HARÍA</span><small>Cada vídeo habla en su idioma. Son unos cuatro minutos de lectura entre los dos.</small></div></div>
+    <div class="op"><span class="n">A1</span><div>Los dos idiomas con tu voz. <span class="rec">LA QUE YO HARÍA</span><small>Cada vídeo habla en su idioma. Son unos dos minutos de lectura entre los dos.</small></div></div>
     <div class="op"><span class="n">A2</span><div>Solo español; el vídeo en inglés lleva tu voz en español con subtítulos en inglés.<small>Se oye quién lo ha hecho. Quien no sepa español lo lee.</small></div></div>
     <div class="op"><span class="n">A3</span><div>Solo español; el vídeo en inglés va sin voz, con rótulos y música.<small>Es como el que viste hoy, con la estructura nueva.</small></div></div>
     <div class="op"><span class="n">A4</span><div>Otra cosa: dímela.</div></div>
@@ -180,7 +171,7 @@ ${cuerpo}
 mkdirSync(dirname(destino), { recursive: true });
 writeFileSync(destino, html, "utf8");
 
-console.log(`Guion de voz: ${bloques.length} bloques, ${reloj(entera)} entero y ${reloj(media)} sin las opcionales.`);
+console.log(`Guion de voz: ${bloques.length} bloques, ${reloj(entera)} sin voz.`);
 for (const idioma of IDIOMAS) {
   const voz = ESCENAS.reduce((s, e) => s + segundos(e, idioma), 0);
   const justas = ESCENAS.filter((e) => segundos(e, idioma) > e.dura - 0.8).map((e) => `${e.id} (${coma(segundos(e, idioma))} de ${coma(e.dura)} s)`);

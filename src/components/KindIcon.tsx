@@ -15,6 +15,7 @@
 import ProviderMark, { CLAUDE_BURST, tieneMarca } from "./ProviderMark";
 import { PROVIDERS, providerOf } from "../lib/providers";
 import { sinEncargo } from "../lib/comandos";
+import { useT } from "../lib/i18n";
 
 /** El id de un CLI de providers.ts, o "shell" para una consola pelada. */
 export type PaneKind = string;
@@ -67,8 +68,9 @@ export function ClaudeMark() {
 }
 
 export default function KindIcon({ kind, exited }: { kind: PaneKind; exited?: boolean }) {
+  const { t } = useT();
   const nombre = nombreDeKind(kind);
-  const label = exited ? `${nombre} · el proceso ya terminó` : nombre;
+  const label = exited ? `${nombre} · ${t("el proceso ya terminó")}` : nombre;
   const tono = tonoDeKind(kind);
   return (
     <span

@@ -83,7 +83,7 @@ replacing them, so the day something new ships, you have it.
 | **Adeo** | The little pixel A in the top bar is the bell. He types when your agents are working, waves when one is waiting for you, jumps when one finishes and sleeps when there are none, and follows your mouse with his eye. |
 
 <div align="center">
-<img src="web/assets/screens/en/canvas.png" width="49%" alt="The Canvas: three terminals living on the board, an arrow that hands one agent's work to the next, two notes and the board of what every agent is doing">
+<img src="web/assets/screens/en/canvas.png" width="49%" alt="The Canvas: three terminals living on the board, an arrow that hands one agent's work to the next, a swarm that joins two of them into one chat, two notes and the board of what every agent is doing">
 <img src="web/assets/screens/en/files.png" width="49%" alt="Files: the project's tree on the right, a file open in the editor, and two terminals with the tests passing and the diff">
 <img src="web/assets/screens/en/dashboard.png" width="49%" alt="The Dashboard: how many sessions are working, how many are waiting for you, and the Foreman">
 <img src="web/assets/screens/en/decisions.png" width="49%" alt="Decisions: a question from an agent with its numbered options, the recommended one marked, and the answer being filled in">

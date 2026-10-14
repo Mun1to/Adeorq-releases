@@ -45,7 +45,7 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useT } from "../lib/i18n";
+import { useT, type Translate } from "../lib/i18n";
 import {
   ANCHO_CAJA,
   CAPAS,
@@ -554,7 +554,7 @@ function Lienzo({ mapa, ruta, trabajando, cuando, error, onLeer, onParar }: Prop
           </div>
         )}
         <span className="mapa-cuando">
-          {trabajando ? "" : cuando ? t("Leído {c}", { c: nombreFecha(cuando) }) : ""}
+          {trabajando ? "" : cuando ? t("Leído {c}", { c: nombreFecha(cuando, t) }) : ""}
         </span>
         {mapa && !trabajando && vista === "tablero" && (
           <button
@@ -700,13 +700,13 @@ export default function MemoriaMapa(props: Props) {
 
 /** «hoy», «ayer» o la fecha. Un mapa sin fecha se lee como si fuera de ahora,
  *  y aquí lo que se enseña puede ser de hace una semana. */
-function nombreFecha(iso: string): string {
+function nombreFecha(iso: string, t: Translate): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   const dias = Math.floor((Date.now() - d.getTime()) / 86400000);
-  if (dias <= 0) return `hoy a las ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  if (dias === 1) return "ayer";
-  if (dias < 30) return `hace ${dias} días`;
+  if (dias <= 0) return t("hoy a las {h}", { h: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) });
+  if (dias === 1) return t("ayer");
+  if (dias < 30) return t("hace {n} días", { n: dias });
   return d.toLocaleDateString();
 }
 

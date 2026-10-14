@@ -24,6 +24,7 @@ import {
   filaDe,
   lectorDeRespuesta,
   nombreNuevo,
+  porQueNoSeJuntan,
   puedeEntrar,
   recuento,
   sobreQuien,
@@ -179,6 +180,15 @@ caso("soltada casi encima de «a», es sobre «a»", sobreQuien({ x: 60, y: 40, 
 caso("rozando el borde no es sobre nadie", sobreQuien({ x: 560, y: 380, ...T }, otras) === null, `umbral ${SOLAPE_PARA_JUNTAR}`);
 caso("a caballo entre dos, la que más tapa", sobreQuien({ x: 500, y: 0, ...T }, otras) === "b");
 caso("tapando la mitad justa todavía no", sobreQuien({ x: 320, y: 0, ...T }, [otras[0]]) === null);
+
+// Soltar encima y que no se junten tiene que decir por qué: con dos consolas y
+// una sola sesión de agente en el tablero, el silencio se leía como «no hace nada».
+caso("una consola soltada sobre una sesión: lo dice", porQueNoSeJuntan(false, { entra: true }, false) === "consola");
+caso("una sesión soltada sobre una consola: lo dice", porQueNoSeJuntan(true, { entra: false }, false) === "consola");
+caso("dos consolas: lo dice", porQueNoSeJuntan(false, { entra: false }, false) === "consola");
+caso("dos sesiones soltadas antes de tiempo: pide aguantar", porQueNoSeJuntan(true, { entra: true }, false) === "pronto");
+caso("dos sesiones que sí aguantaron: nada que decir", porQueNoSeJuntan(true, { entra: true }, true) === null);
+caso("movida a un hueco libre: nada que decir", porQueNoSeJuntan(true, null, false) === null && porQueNoSeJuntan(false, null, false) === null);
 
 /* ── dónde cae cada cosa ──────────────────────────────────────────────────── */
 

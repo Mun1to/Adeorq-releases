@@ -42,7 +42,7 @@ const r = await pag.evaluate(() => {
     filas: document.querySelectorAll('.log__fila').length,
     preguntas: document.querySelectorAll('.pregunta').length,
     pasos: document.querySelectorAll('.paso').length,
-    fichas: document.querySelectorAll('.ficha').length,
+    rasgos: document.querySelectorAll('.rasgo').length,
     // La frase que evita el malentendido de licencia tiene que estar y decirlo
     // con esas palabras: publicar el codigo NO es publicarlo como open source.
     licencia: /no es open source/i.test(document.body.innerText),
@@ -76,7 +76,7 @@ if (crudo.clientes < 20) fallos.push('sin JavaScript solo se leen ' + crudo.clie
 
 console.log(`${r.anclas} anclas, ${r.muertos.length} muertas`);
 console.log(`descarga: ${r.version} · ${r.fecha} · ${r.peso}   novedades: ${r.cuenta} versiones, ${r.filas} en lista`);
-console.log(`estructura: ${r.pasos} pasos, ${r.fichas} fichas, ${r.preguntas} preguntas`);
+console.log(`estructura: ${r.pasos} pasos, ${r.rasgos} rasgos,${r.preguntas} preguntas`);
 console.log(`sin JavaScript: ${crudo.palabras} palabras y ${crudo.clientes} clientes legibles`);
 console.log(fallos.length ? 'ERRORES:\n' + fallos.join('\n') : 'todo en verde: ni un enlace muerto y los datos salen del JSON');
 if (fallos.length) process.exitCode = 1;

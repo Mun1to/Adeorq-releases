@@ -1108,8 +1108,9 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
           } else {
             await navigator.clipboard.writeText(a.encargo);
             await openInAntigravity(c.project.path);
-            agNote =
-              "Encargo copiado y MISION.md escrito. En Antigravity: abre el chat de Gemini, Ctrl+V y Enter. (Instala su CLI agy y esto pasará a ser una terminal más.)";
+            agNote = t(
+              "Encargo copiado y MISION.md escrito. En Antigravity: abre el chat de Gemini, Ctrl+V y Enter. (Instala su CLI agy y esto pasará a ser una terminal más.)",
+            );
           }
         } catch (e) {
           agNote = `Antigravity: ${String(e)}`;

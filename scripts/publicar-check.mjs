@@ -19,6 +19,11 @@
 // `titulo-publico.mjs` y se importa. Cuando estaba copiada se cambió en un
 // sitio y no en el otro, y esta prueba dio verde sobre código que ya no era el
 // que se ejecutaba. Lo que sigue escrito abajo es solo el envoltorio.
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { contar, recoger } from "./recoger-publicadas.mjs";
 import { queTrae as tituloDe } from "./titulo-publico.mjs";
 
 const version = "0.9.133";
@@ -103,5 +108,56 @@ ok("un tramo con solo el release no se titula con el numero", soloRelease === "A
 // Un tramo de solo documentacion: tiene que decir algo, no quedarse mudo.
 const soloDocs = titular(["docs: el mapa del ecosistema al dia"], "otro", "ffffffffffff");
 ok("un tramo de solo docs dice de que va", soloDocs.includes("mapa del ecosistema"), soloDocs);
+
+// --- las carpetas que deja cada publicación ---------------------------------------
+// `recoger-publicadas.mjs`, con carpetas y repos de verdad en una temporal
+// propia: lo empujado se va, lo que tiene un commit sin empujar se queda.
+{
+  const casa = mkdtempSync(join(tmpdir(), "adeorq-recoger-"));
+  const g = (args, cwd) => execFileSync("git", args, { cwd, stdio: "ignore" });
+  try {
+    const origen = join(casa, "origen.git");
+    g(["init", "--bare", "-b", "main", origen]);
+    /** Un clon con un commit; con `empujar`, subido a su origen. */
+    const clon = (nombre, empujar) => {
+      const p = join(casa, nombre, "publico");
+      mkdirSync(join(casa, nombre), { recursive: true });
+      g(["clone", origen, p]);
+      writeFileSync(join(p, `${nombre}.txt`), nombre);
+      g(["add", "-A"], p);
+      g(["-c", "user.name=banco", "-c", "user.email=banco@example.invalid", "commit", "-m", nombre, "--no-verify"], p);
+      if (empujar) g(["push", "origin", "HEAD:main"], p);
+      return join(casa, nombre);
+    };
+    const empujada = clon("adeorq-pub-empujada", true);
+    // Clonada cuando el origen ya tiene `main`: su commit va uno por delante.
+    const pendiente = clon("adeorq-pub-pendiente", false);
+    const cortada = join(casa, "adeorq-pub-cortada");
+    const reciente = join(casa, "adeorq-pub-reciente");
+    const enMarcha = join(casa, "adeorq-pub-enmarcha");
+    const ajena = join(casa, "otra-cosa");
+    for (const d of [cortada, reciente, enMarcha, ajena]) mkdirSync(join(d, "foto"), { recursive: true });
+    // Lo que deja la limpieza de Windows: el `.git` con sus carpetas y sin archivos.
+    const hueca = join(casa, "adeorq-pub-hueca");
+    mkdirSync(join(hueca, "publico", ".git", "objects"), { recursive: true });
+    const ayer = new Date(Date.now() - 26 * 60 * 60 * 1000);
+    utimesSync(hueca, ayer, ayer);
+    utimesSync(cortada, ayer, ayer);
+    utimesSync(enMarcha, ayer, ayer);
+
+    const simulacro = recoger(casa, { menos: enMarcha, borrar: false });
+    ok("el simulacro cuenta lo que se iría y no borra nada", simulacro.borradas.length === 3 && existsSync(empujada) && existsSync(cortada), JSON.stringify(simulacro.borradas.map((p) => p.slice(casa.length + 1))));
+    const r = recoger(casa, { menos: enMarcha });
+    ok("una publicación ya empujada se recoge", !existsSync(empujada));
+    ok("una con un commit sin empujar SE QUEDA, y se dice cuál", existsSync(pendiente) && r.pendientes.length === 1 && r.pendientes[0] === pendiente && contar(r).includes("SIN EMPUJAR"));
+    ok("una que se cortó a medias hace un día se recoge", !existsSync(cortada));
+    ok("y una con el clon hueco, que git ya no reconoce, también", !existsSync(hueca) && r.dudosas.length === 0);
+    ok("una sin clon de hace un momento se queda: puede estar en marcha", existsSync(reciente));
+    ok("la de la publicación en marcha no se toca aunque sea vieja", existsSync(enMarcha));
+    ok("y lo que no es de publicar, tampoco", existsSync(ajena));
+  } finally {
+    rmSync(casa, { recursive: true, force: true });
+  }
+}
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

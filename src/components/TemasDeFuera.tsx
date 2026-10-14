@@ -14,7 +14,7 @@ import { CheckIcon, CloseIcon, DownloadIcon } from "./Icons";
  * de color dicen qué colores tiene; esto dice cómo se va a leer.
  */
 export function TarjetaTerm({ tema, elegido, onElegir }: { tema: TemaTerm; elegido: boolean; onElegir: () => void }) {
-  const { lang } = useT();
+  const { lang, t } = useT();
   const c = tema.colores;
   return (
     <button className="tema-tarjeta term-tarjeta" data-tema-term={tema.id} data-on={elegido} onClick={() => onElegir()}>
@@ -22,9 +22,9 @@ export function TarjetaTerm({ tema, elegido, onElegir }: { tema: TemaTerm; elegi
         <span style={{ color: c.cyan }}>~/adeorq</span> <span style={{ color: c.green }}>❯</span>{" "}
         <span style={{ color: c.foreground }}>pnpm build</span>
         <br />
-        <span style={{ color: c.green }}>✓</span> <span style={{ color: c.foreground }}>listo en 3,1 s</span>
+        <span style={{ color: c.green }}>✓</span> <span style={{ color: c.foreground }}>{t("listo en 3,1 s")}</span>
         <br />
-        <span style={{ color: c.yellow }}>⚠</span> <span style={{ color: c.brightBlack }}>2 avisos</span>
+        <span style={{ color: c.yellow }}>⚠</span> <span style={{ color: c.brightBlack }}>{t("2 avisos")}</span>
         <br />
         <span style={{ color: c.red }}>✗</span> <span style={{ color: c.magenta }}>auth.ts</span>
         <span style={{ color: c.brightBlack }}>:42</span>

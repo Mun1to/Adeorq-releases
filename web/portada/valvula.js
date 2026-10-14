@@ -37,18 +37,29 @@
      URL, que se leen abajo en gainDeCasa(). */
   var parado = false;
 
-  var boton = document.createElement('button');
-  boton.className = 'valvula';
-  boton.type = 'button';
+  /* Dos botones para el mismo interruptor (2026-10-13). El flotante iba pegado
+     a la esquina durante toda la página, encima de textos que no se mueven. Lo
+     que se mueve solo vive arriba (el resplandor del haz y la cinta de
+     clientes), así que el flotante acompaña solo a esas dos secciones, y en el
+     pie queda otro igual, quieto, para quien lo busque desde cualquier sitio. */
+  function crearBoton(clase) {
+    var b = document.createElement('button');
+    b.className = clase;
+    b.type = 'button';
+    var ico = document.createElement('span');
+    ico.className = 'valvula__ico';
+    ico.setAttribute('aria-hidden', 'true');
+    b.appendChild(ico);
+    b.appendChild(document.createElement('span'));
+    return b;
+  }
 
-  var ico = document.createElement('span');
-  ico.className = 'valvula__ico';
-  ico.setAttribute('aria-hidden', 'true');
-  var texto = document.createElement('span');
-  boton.appendChild(ico);
-  boton.appendChild(texto);
+  var boton = crearBoton('valvula');
+  var lineaDelPie = document.querySelector('.pie__linea');
+  var botones = lineaDelPie ? [boton, crearBoton('valvula valvula--pie')] : [boton];
 
   function pintar() {
+    var rotulo;
     if (parado) {
       raiz.setAttribute('data-quieto', '');
       /* El dial a cero además de la pausa: los bucles se congelan con
@@ -57,14 +68,17 @@
          parar las dos familias o el control miente. */
       raiz.style.setProperty('--motion-gain', '0');
       raiz.classList.remove('motion');
-      texto.textContent = EN ? 'Resume motion' : 'Reanudar el movimiento';
+      rotulo = EN ? 'Resume motion' : 'Reanudar el movimiento';
     } else {
       raiz.removeAttribute('data-quieto');
       raiz.style.setProperty('--motion-gain', gainDeCasa());
       raiz.classList.add('motion');
-      texto.textContent = EN ? 'Stop motion' : 'Parar el movimiento';
+      rotulo = EN ? 'Stop motion' : 'Parar el movimiento';
     }
-    boton.setAttribute('aria-pressed', parado ? 'true' : 'false');
+    botones.forEach(function (b) {
+      b.lastChild.textContent = rotulo;
+      b.setAttribute('aria-pressed', parado ? 'true' : 'false');
+    });
   }
 
   /* El valor que le tocaría a este visitante según la política de la casa: la
@@ -78,17 +92,34 @@
     return matchMedia('(prefers-reduced-motion: reduce)').matches ? '0.25' : '1';
   }
 
-  boton.addEventListener('click', function () {
+  function alternar() {
     parado = !parado;
     pintar();
     /* Al reanudar, las motas necesitan que alguien las despierte: su bucle se
        apagó solo al leer el dial en cero y no vuelve por su cuenta. Un evento
        de tamaño es lo que su propio código ya escucha. */
     if (!parado) dispatchEvent(new Event('resize'));
-  });
+  }
+  botones.forEach(function (b) { b.addEventListener('click', alternar); });
 
   pintar();
   document.body.appendChild(boton);
+  if (lineaDelPie) lineaDelPie.appendChild(botones[1]);
+
+  /* El flotante se esconde cuando ninguna de las secciones con bucle está en
+     pantalla. Solo si existe el del pie, y si el observador no llega a hablar
+     se queda a la vista, que es el estado seguro: el control no puede depender
+     de que un observador funcione. */
+  var conBucle = [document.getElementById('haz'), document.getElementById('cinta')].filter(Boolean);
+  if (lineaDelPie && conBucle.length && 'IntersectionObserver' in window) {
+    var aLaVista = {};
+    var vigiaDeBucles = new IntersectionObserver(function (entradas) {
+      entradas.forEach(function (e) { aLaVista[e.target.id] = e.isIntersecting; });
+      var alguna = conBucle.some(function (s) { return aLaVista[s.id]; });
+      boton.toggleAttribute('data-fuera', !alguna);
+    });
+    conBucle.forEach(function (s) { vigiaDeBucles.observe(s); });
+  }
 
   /* Si la URL ya pedía `motion=off`, el botón nace diciendo «reanudar»: sería
      mentira ofrecer parar algo que ya está parado. */

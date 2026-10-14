@@ -117,8 +117,9 @@ la máquina que hizo el volcado**. Una parte suelta se repite con `node volcar.m
   (`recargarCon`), no antes de recargar: la app guarda su tablero cada vez que cambia y lo pisa.
   Lo mismo con `lienzo.json`: se escribe después de esperar a que la app termine de guardar.
 - Un clic en un proyecto de la barra **abre una sesión nueva**, no lo despliega.
-- En el Lienzo, por debajo de 0,55 de zoom las terminales salen como tarjeta con su nombre, y el
-  tablero de tareas no vuelve a donde se guardó: cae centrado en el origen.
+- En el Lienzo, por debajo de 0,55 de zoom las terminales salen como tarjeta con su nombre. El
+  tablero de tareas ya vuelve a donde se guardó y con su medida (hasta el 2026-10-13 caía centrado
+  en el origen: al reabrir se creaba sin pasarle su sitio).
 
 **Reproducir una sesión**
 

@@ -10,8 +10,8 @@
  * 2. Todo lo que se mueve SIN que nadie lo pida (parallax, apariciones, la
  *    inercia del scroll) se multiplica por `--motion-gain`, el dial que pone el
  *    interruptor del `<head>` segun `prefers-reduced-motion` y `?motion=off`. Lo
- *    que provoca la persona con su propia mano (el brillo del puntero, el tilt
- *    de una ficha) NO se multiplica: el oido interno no protesta por lo que uno
+ *    que provoca la persona con su propia mano (el brillo del puntero, el iman
+ *    de un boton) NO se multiplica: el oido interno no protesta por lo que uno
  *    mismo causa, y un boton que no responde al raton no es sobriedad, es un
  *    boton roto.
  * 3. La pagina se lee entera con esto apagado. Aqui no se crea contenido: solo
@@ -87,33 +87,7 @@ for (const boton of document.querySelectorAll('.btn')) {
 }
 
 /* ==========================================================================
-   3. TILT DE LAS FICHAS
-   ========================================================================== */
-/* La ficha se inclina hacia donde esta el puntero. Tres grados como mucho: mas
-   que eso, en una retícula de seis, marea. Solo con raton: en una pantalla
-   tactil no hay puntero que seguir y `pointermove` llega con el dedo encima,
-   tapando justo lo que se inclina. */
-if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
-  const GRADOS = 3
-  for (const ficha of document.querySelectorAll('.ficha')) {
-    ficha.addEventListener('pointermove', (e) => {
-      const c = ficha.getBoundingClientRect()
-      const dx = ((e.clientX - c.left) / c.width - 0.5) * 2
-      const dy = ((e.clientY - c.top) / c.height - 0.5) * 2
-      ficha.style.setProperty('--giro-y', `${(dx * GRADOS).toFixed(2)}deg`)
-      ficha.style.setProperty('--giro-x', `${(-dy * GRADOS).toFixed(2)}deg`)
-      ficha.style.setProperty('--raton-x', `${e.clientX - c.left}px`)
-      ficha.style.setProperty('--raton-y', `${e.clientY - c.top}px`)
-    })
-    ficha.addEventListener('pointerleave', () => {
-      ficha.style.removeProperty('--giro-x')
-      ficha.style.removeProperty('--giro-y')
-    })
-  }
-}
-
-/* ==========================================================================
-   4. APARECER AL ENTRAR EN PANTALLA
+   3. APARECER AL ENTRAR EN PANTALLA
    ========================================================================== */
 /* Se anuncian con `data-aparece` en el HTML. El elemento YA esta en el
    documento y con su texto dentro: esto solo le quita el desplazamiento. Si el
@@ -139,7 +113,7 @@ if (porAparecer.length) {
 }
 
 /* ==========================================================================
-   5. PARALLAX
+   4. PARALLAX
    ========================================================================== */
 /* NO va aqui. El parallax de `[data-parallax]` ya lo mueve `portada.js`, con su
    propio bucle de requestAnimationFrame y su propio dial. Repetirlo seria dos
@@ -150,7 +124,7 @@ if (porAparecer.length) {
    no lo lleva: tiene un `translateX(-50%)` que lo centra y una animacion propia. */
 
 /* ==========================================================================
-   6. PROGRESO DE LECTURA Y SECCION ACTIVA
+   5. PROGRESO DE LECTURA Y SECCION ACTIVA
    ========================================================================== */
 const barraProgreso = document.querySelector('.progreso__linea')
 const arriba = document.querySelector('.subir')
@@ -204,7 +178,7 @@ if (destinos.length && 'IntersectionObserver' in window) {
 }
 
 /* ==========================================================================
-   7. VOLVER ARRIBA
+   6. VOLVER ARRIBA
    ========================================================================== */
 /* Aparece pasada la primera pantalla. Es un `<button>` de verdad, no un div con
    un click: asi lo alcanza el tabulador y lo anuncia un lector de pantalla. */

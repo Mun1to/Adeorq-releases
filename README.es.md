@@ -84,7 +84,7 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 | **Adeo** | La A de cuadritos de la barra de arriba es la campana. Teclea cuando tus agentes trabajan, te llama cuando uno te espera, salta cuando uno termina y se duerme si no hay ninguno, y te sigue el ratón con el ojo. |
 
 <div align="center">
-<img src="web/assets/screens/es/canvas.png" width="49%" alt="El Lienzo: tres terminales dentro del tablero, una flecha que le pasa a un agente lo que hizo otro, dos notas y el tablero de qué hace cada agente">
+<img src="web/assets/screens/es/canvas.png" width="49%" alt="El Lienzo: tres terminales dentro del tablero, una flecha que le pasa a un agente lo que hizo otro, un enjambre que junta a dos de ellas en un solo chat, dos notas y el tablero de qué hace cada agente">
 <img src="web/assets/screens/es/files.png" width="49%" alt="Archivos: el árbol del proyecto a la derecha, un archivo abierto en el editor y dos terminales con las pruebas en verde y el diff">
 <img src="web/assets/screens/es/dashboard.png" width="49%" alt="El Panel: cuántas sesiones trabajan, cuántas te esperan, y el Capataz">
 <img src="web/assets/screens/es/decisions.png" width="49%" alt="Decisiones: una pregunta de un agente con sus opciones numeradas, la recomendada marcada y la respuesta a medio rellenar">

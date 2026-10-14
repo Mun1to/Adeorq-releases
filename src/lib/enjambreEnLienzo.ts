@@ -35,6 +35,7 @@ import {
   ENJAMBRE_W,
   MAX_MIEMBROS,
   nombreNuevo,
+  porQueNoSeJuntan,
   puedeEntrar,
   sobreQuien,
   TURNO_ACABADO,
@@ -400,6 +401,19 @@ export function useEnjambres<N extends Node>({ panes, estados, nodes, setNodes, 
     return sobreQuien(cajaDe(n), otras);
   }, []);
 
+  /** Lo mismo sin mirar quién puede entrar: sobre qué pieza se ha soltado una
+   *  terminal, sea consola o sesión, para poder decir por qué no se juntan. */
+  const encimaDe = useCallback((n: Node): { sueltaEntra: boolean; debajo: { entra: boolean } | null } => {
+    const entra = (o: Node) =>
+      esEnjambre(o) || puedeEntrar(sesionesRef.current.find((s) => String(s.panel) === o.id)?.cli ?? "shell");
+    const otras = nodesRef.current
+      .filter((o) => o.id !== n.id && (esEnjambre(o) || (o.type === "term" && o.className !== CLASE_MIN)))
+      .map((o) => ({ id: o.id, caja: esEnjambre(o) ? cajaDe(o, ENJAMBRE_W, ENJAMBRE_H) : cajaDe(o) }));
+    const id = sobreQuien(cajaDe(n), otras);
+    const pieza = id ? nodesRef.current.find((o) => o.id === id) : undefined;
+    return { sueltaEntra: entra(n), debajo: pieza ? { entra: entra(pieza) } : null };
+  }, []);
+
   const alCoger = useCallback((n: Node) => {
     origen.current = n.type === "term" ? { id: n.id, x: n.position.x, y: n.position.y } : null;
     window.clearTimeout(diana.current.reloj);
@@ -446,6 +460,13 @@ export function useEnjambres<N extends Node>({ panes, estados, nodes, setNodes, 
       }
       if (n.type !== "term" || !d.lista || !d.id || debajoDe(n, punteroDe(ev)) !== d.id) {
         if (d.lista) encender(null);
+        // No se han juntado: si estaba encima de otra, se dice por qué.
+        if (n.type === "term") {
+          const { sueltaEntra, debajo } = encimaDe(n);
+          const motivo = porQueNoSeJuntan(sueltaEntra, debajo, d.lista);
+          if (motivo === "consola") avisar(t("Una consola no entra en un enjambre: solo se juntan sesiones de un agente."));
+          else if (motivo === "pronto") avisar(t("Para juntarlas, aguanta la terminal encima hasta que la de debajo se encienda, y suelta."));
+        }
         return;
       }
       const vuelve = origen.current?.id === n.id ? origen.current : null;
@@ -493,7 +514,7 @@ export function useEnjambres<N extends Node>({ panes, estados, nodes, setNodes, 
       });
       avisar(t("Juntadas en un enjambre. Su ✕ lo deshace y las terminales se quedan."));
     },
-    [setNodes, debajoDe, encender, nodoDe, avisar, t],
+    [setNodes, debajoDe, encimaDe, encender, nodoDe, avisar, t],
   );
 
   // Una terminal que se cierra deja de ser de su enjambre.

@@ -2058,12 +2058,12 @@ export default function Sidebar({
       label: shownName(g.name),
       hint: [
         g.path,
-        `${g.sessions.length} ${g.sessions.length === 1 ? "sesión" : "sesiones"}`,
-        g.hasLive ? "una abierta ahora" : null,
-        g.waiting > 0 ? `${g.waiting} te ${g.waiting === 1 ? "espera" : "esperan"}` : null,
+        `${g.sessions.length} ${g.sessions.length === 1 ? t("sesión") : t("sesiones")}`,
+        g.hasLive ? t("una abierta ahora") : null,
+        g.waiting > 0 ? (g.waiting === 1 ? t("{n} te espera", { n: g.waiting }) : t("{n} te esperan", { n: g.waiting })) : null,
         // El «hace» lo pone aquí quien escribe la frase: `ago` llega desnudo
         // desde Rust («1 día»), porque en la fila esa palabra solo estorbaba.
-        g.sessions[0]?.ago ? `última hace ${g.sessions[0].ago}` : null,
+        g.sessions[0]?.ago ? t("última hace {t}", { t: g.sessions[0].ago }) : null,
       ]
         .filter(Boolean)
         .join(" · "),
@@ -2418,7 +2418,7 @@ export default function Sidebar({
                   },
                 ])
           }
-          data-tip={`${s.title}\nhace ${s.ago}${s.live ? " · abierta ahora" : ""}${
+          data-tip={`${s.title}\n${t("hace {t}", { t: s.ago })}${s.live ? ` · ${t("abierta ahora")}` : ""}${
             // La ruta entera: la fila enseña solo la última carpeta, que es lo
             // que se reconoce, pero dos carpetas se pueden llamar igual.
             s.cwd && (g.suelto || ui.sessionProject[s.id]) ? `\n${s.cwd}` : ""
@@ -2430,9 +2430,9 @@ export default function Sidebar({
               : ""
           }${porQue(s.id)}${
             wait === "ask"
-              ? "\n⚠ Claude te dejó una pregunta con opciones"
+              ? `\n⚠ ${t("Claude te dejó una pregunta con opciones")}`
               : wait === "offer"
-                ? "\n⚠ Claude terminó preguntándote algo"
+                ? `\n⚠ ${t("Claude terminó preguntándote algo")}`
                 : ""
           }\n${t(
             "Clic: retomar la sesión aquí. Arrástrala sobre otra para agruparlas, o sobre un proyecto para meterla en él.",
@@ -2452,7 +2452,7 @@ export default function Sidebar({
               <ProviderMark id={fuente} />
             </span>
           )}
-          <span className="session-title">{s.title}</span>
+          <span className="session-title">{s.title === "(sin título)" ? t("(sin título)") : s.title}</span>
           {/* De qué cuenta es, cuando no es la de siempre. Sin esto, entrar con
               una cuenta nueva y ver sus conversaciones mezcladas con las de la
               otra no se distingue de que se hayan mezclado de verdad (Munir,
@@ -2475,7 +2475,7 @@ export default function Sidebar({
           {s.agentsLive > 0 && (
             <span
               className="sess-agents"
-              data-tip={`${s.agentsLive} ${s.agentsLive === 1 ? "agente trabajando" : "agentes trabajando"} ahora dentro de esta sesión · ${s.agentsTotal} desplegados en total`}
+              data-tip={`${s.agentsLive === 1 ? t("1 agente trabajando ahora dentro de esta sesión") : t("{n} agentes trabajando ahora dentro de esta sesión", { n: s.agentsLive })} · ${t("{n} desplegados en total", { n: s.agentsTotal })}`}
             >
               <RobotIcon size={12} /> {s.agentsLive}
             </span>
@@ -3059,8 +3059,10 @@ export default function Sidebar({
                   onClick={() => toggle(g.name)}
                   data-tip={
                     g.sessions.length
-                      ? `${shownName(g.name)}: ${open ? "plegar" : "ver"} sus ${g.sessions.length} sesiones`
-                      : `${shownName(g.name)} no tiene sesiones recientes`
+                      ? open
+                        ? t("{p}: plegar sus {n} sesiones", { p: shownName(g.name), n: g.sessions.length })
+                        : t("{p}: ver sus {n} sesiones", { p: shownName(g.name), n: g.sessions.length })
+                      : t("{p} no tiene sesiones recientes", { p: shownName(g.name) })
                   }
                 >
                   {/* The mark and, on its corner, the one thing that has to be
@@ -3091,7 +3093,7 @@ export default function Sidebar({
                       // Las terminales vivas sin historial cuentan aquí: si no,
                       // el cajón de las sueltas podía tener una dentro y salir
                       // sin número, como si estuviera vacío.
-                      data-tip={`${shownCount} ${shownCount === 1 ? "sesión reciente" : "sesiones recientes"}`}
+                      data-tip={shownCount === 1 ? t("{n} sesión reciente", { n: shownCount }) : t("{n} sesiones recientes", { n: shownCount })}
                     >
                       {shownCount}
                     </span>
@@ -3099,7 +3101,7 @@ export default function Sidebar({
                   {g.waiting > 0 && (
                     <span
                       className="badge badge-wait"
-                      data-tip={`${g.waiting} ${g.waiting === 1 ? "sesión espera" : "sesiones esperan"} tu respuesta`}
+                      data-tip={g.waiting === 1 ? t("{n} sesión espera tu respuesta", { n: g.waiting }) : t("{n} sesiones esperan tu respuesta", { n: g.waiting })}
                     >
                       {g.waiting}
                     </span>
@@ -3306,7 +3308,7 @@ export default function Sidebar({
                 <span className="fly-name">
                   {shownName(flyGroup.name)}
                   {flyGroup.hasLive && (
-                    <span className="live-dot" data-tip="sesión abierta ahora" />
+                    <span className="live-dot" data-tip={t("sesión abierta ahora")} />
                   )}
                 </span>
                 <span className="fly-sub">
@@ -3606,38 +3608,35 @@ export default function Sidebar({
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">{t("Archivar sesión")}</h3>
             <p className="modal-text">
-              «{confirm.s.title}» se ocultará de la lista. Es reversible (botón ⊟
-              arriba) y no borra nada del disco: ni la conversación ni tus archivos.
+              {t("«{n}» se ocultará de la lista. Es reversible (botón ⊟ arriba) y no borra nada del disco: ni la conversación ni tus archivos.", { n: confirm.s.title })}
             </p>
             {confirm.dirty === null ? (
-              <p className="modal-text modal-dim">Comprobando si el proyecto tiene
-              trabajo sin guardar…</p>
+              <p className="modal-text modal-dim">{t("Comprobando si el proyecto tiene trabajo sin guardar…")}</p>
             ) : confirm.dirty.isRepo && confirm.dirty.total > 0 ? (
               <div className="modal-warn">
                 <p className="modal-warn-title">
-                  ⚠ Este proyecto tiene {confirm.dirty.total}{" "}
-                  {confirm.dirty.total === 1 ? "archivo" : "archivos"} con cambios sin
-                  guardar en git:
+                  ⚠{" "}
+                  {confirm.dirty.total === 1
+                    ? t("Este proyecto tiene {n} archivo con cambios sin guardar en git:", { n: confirm.dirty.total })
+                    : t("Este proyecto tiene {n} archivos con cambios sin guardar en git:", { n: confirm.dirty.total })}
                 </p>
                 <ul className="modal-files">
                   {confirm.dirty.files.map((f) => (
                     <li key={f}>{f}</li>
                   ))}
                   {confirm.dirty.total > confirm.dirty.files.length && (
-                    <li>… y {confirm.dirty.total - confirm.dirty.files.length} más</li>
+                    <li>{t("… y {n} más", { n: confirm.dirty.total - confirm.dirty.files.length })}</li>
                   )}
                 </ul>
                 <p className="modal-warn-note">
-                  Adeorq no los toca. Pero si esta sesión era la que trabajaba en
-                  ellos, guárdalos (commit) antes de despedirla. La app oficial de
-                  Claude, al archivar, los borraría sin avisar; aquí están a salvo.
+                  {t("Adeorq no los toca. Pero si esta sesión era la que trabajaba en ellos, guárdalos (commit) antes de despedirla. La app oficial de Claude, al archivar, los borraría sin avisar; aquí están a salvo.")}
                 </p>
               </div>
             ) : (
               <p className="modal-ok">
                 ✓ {confirm.dirty.isRepo
-                  ? "El proyecto está limpio: todo su trabajo está guardado en git."
-                  : "Esta carpeta no usa git, no hay nada que comprobar."}
+                  ? t("El proyecto está limpio: todo su trabajo está guardado en git.")
+                  : t("Esta carpeta no usa git, no hay nada que comprobar.")}
               </p>
             )}
             <div className="modal-actions">
@@ -3673,8 +3672,7 @@ export default function Sidebar({
               <div className="modal-warn">
                 <p className="modal-warn-title">⚠ {t("Esta sesión está abierta ahora mismo.")}</p>
                 <p className="modal-warn-note">
-                  La terminal sigue funcionando, pero su conversación deja de estar en
-                  disco: al cerrarla no habrá nada que retomar.
+                  {t("La terminal sigue funcionando, pero su conversación deja de estar en disco: al cerrarla no habrá nada que retomar.")}
                 </p>
               </div>
             )}

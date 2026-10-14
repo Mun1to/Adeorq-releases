@@ -6,25 +6,28 @@
  * un rótulo que entra en el fotograma 8 con su clic puesto a mano en el 12 es
  * la clase de desajuste que se nota sin saber decir qué falla.
  */
-import { escenasDe, type Corte, type Escena } from "./guion";
+import { ESCENAS, type Escena } from "./guion";
 
 /** Lo que dura el paso de una escena a la siguiente, en fotogramas. Par,
     porque el corte es justo su mitad. */
 export const PASO = 24;
 
-/** Cuándo llega el título de una escena, contando desde su corte. Lo usa la
-    de Adeo, que no es una captura. */
-export const LLEGA = { titulo: 8 } as const;
+/**
+ * El texto solo: cada frase empieza `entra` fotogramas después de su sitio,
+ * sus palabras llegan una cada `cada`, y se va en los últimos `sale` antes de
+ * la frase siguiente.
+ */
+export const TEXTO = { entra: 5, cada: 4, sale: 8 } as const;
 
 /**
  * Una pantalla, contando desde su corte: el título sale en el centro
- * (`titulo`), aguanta, y en `sale` sube a su sitio mientras la cámara arranca
- * hacia la primera función. Cada viaje de la cámara dura `viaje`; el puntero,
- * si esa función lo lleva, hace clic `clic` fotogramas después de llegar. Y
- * una función pide `porFoco` fotogramas como poco: con menos, la frase que la
- * acompaña no da tiempo a leerla.
+ * (`titulo`), palabra a palabra (`cada`), y en `sale` se va mientras la
+ * cámara arranca hacia la primera función. Cada viaje de la cámara dura
+ * `viaje`; el puntero, si esa función lo lleva, hace clic `clic` fotogramas
+ * después de llegar. Y una función pide `porFoco` fotogramas como poco: con
+ * menos, la frase que la acompaña no da tiempo a leerla.
  */
-export const PANTALLA = { titulo: 2, sale: 40, viaje: 16, clic: 20, porFoco: 46 } as const;
+export const PANTALLA = { titulo: 2, cada: 3, sale: 48, viaje: 16, clic: 22, porFoco: 60 } as const;
 
 /** Cuándo deja el título el centro. En una escena corta, antes. */
 export const saleLaCamara = (largo: number) => Math.round(Math.min(PANTALLA.sale, largo * 0.36));
@@ -48,17 +51,12 @@ export const llegaDato = (largo: number, n: number, i: number) => haciaElFoco(la
 /** Cuándo hace clic el puntero en la función `i`. */
 export const clicEn = (largo: number, n: number, i: number) => haciaElFoco(largo, n, i) + PANTALLA.viaje + PANTALLA.clic;
 
-/** El gancho: cada cuánto se abre otra ventana, y cuándo sale cada pregunta
-    (a la vez que la voz la dice). */
-export const GANCHO = { primera: 4, entreVentanas: 6, preguntas: [48, 86] } as const;
+/** Adeo: cuánto tarda su frase en empezar dentro de cada parte, y cada
+    cuánto llega una palabra. */
+export const ADEO = { entra: 4, cada: 3 } as const;
 
-/** Cuándo sale cada pregunta del gancho: con voz, cuando empieza su frase (la
-    segunda y la tercera de su guion); sin ella, las de `GANCHO`. */
-export const preguntasDelGancho = (t: { frases?: number[] }): readonly number[] =>
-  t.frases?.length === 3 ? [t.frases[1] - 4, t.frases[2] - 4] : GANCHO.preguntas;
-
-/** El cartel de un capítulo: el título, y luego sus pantallas de una en una. */
-export const CAPITULO = { titulo: 4, pantallas: 18, entrePantallas: 5 } as const;
+/** El cierre: cuándo llega cada una de sus tres líneas. */
+export const CIERRE = { titulo: 8, cada: 4, web: 22, linea: 38 } as const;
 
 /** Cuánto espera la voz después del corte (lo que tarda en asentarse la escena
     que llega), cuánto aire se le deja detrás, en segundos, y cuánto se adelanta
@@ -81,24 +79,27 @@ const PULSO = COMPAS / 4;
  */
 export type Voces = Record<string, { dura: number; frases: number[] }>;
 
-/** Dónde empieza la parte `i` de `n` de una escena que va frase a frase (Adeo,
-    el gancho): con voz, donde empieza su frase; sin ella, a partes iguales. */
+/** Dónde empieza la parte `i` de `n` de una escena que va frase a frase (el
+    texto solo, Adeo): con voz, donde empieza su frase; sin ella, a partes
+    iguales. */
 export function parte(t: { largo: number; frases?: number[] }, n: number, i: number) {
   if (i <= 0) return 0;
   if (i >= n) return t.largo;
   return t.frases?.length === n ? Math.max(0, t.frases[i] - VOZ.adelanto) : trozo(t.largo, n, i);
 }
 
-/** La escena «qué es»: la orden se teclea, y luego van llegando las demás. */
-export const QUE_ES = { tecleo: 4, porLetra: 1.5, titular: 30, porPalabra: 2, clientes: 80, entreClientes: 4, cuenta: 126 } as const;
+/** Cuántas palabras tiene una frase del guion: las que entran una a una, y
+    las que suenan. */
+export const cuantasPalabras = (texto: string) => texto.split(/\s+/).filter(Boolean).length;
 
 /** Lo que dura el logotipo antes de convertirse en Adeo, como mucho. */
 export const DESPIERTA = 66;
 
+/** Cuándo el logotipo se convierte en Adeo. `Sonido.tsx` pone ahí su «pop». */
+export const despierta = (largo: number) => Math.min(DESPIERTA, Math.round(largo * 0.4));
+
 export type Tramo = {
   escena: Escena;
-  /** El número de pantalla (1, 2, 3...), o 0 si no es una captura. */
-  numero: number;
   /** Si hay voz: en qué fotograma, contando desde el corte, empieza cada
       frase del guion de esta escena. */
   frases?: number[];
@@ -116,33 +117,25 @@ export type Tramo = {
   entra: number;
 };
 
-export function tramos(cual: Corte, fps: number, voz: Voces = {}): Tramo[] {
-  const lista = escenasDe(cual);
-  const corta = cual === "corta";
+export function tramos(fps: number, voz: Voces = {}): Tramo[] {
   let corte = 0;
   let reloj = 0;
-  let pantalla = 0;
-  return lista.map((escena, i) => {
-    // La corta recorta las escenas por debajo de lo que dura su frase, así
-    // que va siempre sin voz.
-    const dicho = corta ? undefined : voz[escena.id];
+  return ESCENAS.map((escena, i) => {
+    const dicho = voz[escena.id];
     // Con voz manda ella: la escena dura lo que su frase, hasta el pulso
-    // siguiente. Un cartel aguanta con un compás; lo demás, con dos.
+    // siguiente. El nombre aguanta con un compás; lo demás, con dos.
     const segundos = dicho
-      ? Math.max(escena.tipo === "capitulo" ? COMPAS : 2 * COMPAS, Math.ceil((VOZ.entra / fps + dicho.dura + VOZ.respiro) / PULSO) * PULSO)
-      : corta
-        ? (escena.corta ?? escena.dura)
-        : escena.dura;
+      ? Math.max(escena.tipo === "nombre" ? COMPAS : 2 * COMPAS, Math.ceil((VOZ.entra / fps + dicho.dura + VOZ.respiro) / PULSO) * PULSO)
+      : escena.dura;
     // Los cortes se sacan del reloj acumulado, no sumando largos redondeados:
     // un pulso son 18,75 fotogramas, y de redondeo en redondeo el corte se iría
     // saliendo de la música.
     const largo = Math.round((reloj + segundos) * fps) - corte;
     reloj += segundos;
     const antes = i > 0 ? PASO / 2 : 0;
-    const despues = i < lista.length - 1 ? PASO / 2 : 0;
+    const despues = i < ESCENAS.length - 1 ? PASO / 2 : 0;
     const t: Tramo = {
       escena,
-      numero: escena.tipo === "pantalla" ? ++pantalla : 0,
       frases: dicho?.frases.map((s) => VOZ.entra + Math.round(s * fps)),
       corte,
       largo,

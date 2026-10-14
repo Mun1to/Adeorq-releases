@@ -91,7 +91,8 @@ import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
 import { nivelDeContexto, useContextoDeSesion, useTraspaso } from "../lib/contexto";
 import { useNombreSolo } from "../lib/nombreSolo";
 import { archivoDelDiff } from "../lib/diffEspejo";
-import { estadoDelPanel, loginSegun, parseAsk, type Ask } from "../lib/reglasPantalla";
+import { estadoDelPanel, loginSegun, parseAsk, pieDePantalla, type Ask } from "../lib/reglasPantalla";
+import { crearPegado } from "../lib/pegado";
 import { mandoUnaFrase } from "../lib/hablada";
 import { hablarCon } from "../lib/decisiones";
 import DiffEspejo from "./DiffEspejo";
@@ -580,8 +581,7 @@ export default function TerminalPane({
     // aisladas» mientras el agente seguía escribiendo en tu proyecto, que es la
     // peor de las dos opciones: creerte protegido sin estarlo.
     setNote(
-      "El Modo Espejo se elige al ABRIR la terminal, no después: esta ya está " +
-        "corriendo dentro de tu carpeta. Ciérrala y ábrela en espejo, o pídeselo al Capataz.",
+      t("El Modo Espejo se elige al ABRIR la terminal, no después: esta ya está corriendo dentro de tu carpeta. Ciérrala y ábrela en espejo, o pídeselo al Capataz."),
     );
     setTimeout(() => setNote(null), 9000);
   };
@@ -1459,36 +1459,12 @@ export default function TerminalPane({
     // exactly like Windows Terminal.
     // Paste handles BOTH text and images: an image goes to disk and the pane
     // receives its path, which is what Claude Code and agy read to see it.
-    const pasteClipboard = () => {
-      void navigator.clipboard
-        .read()
-        .then(async (items) => {
-          for (const item of items) {
-            const imgType = item.types.find((t) => t.startsWith("image/"));
-            if (imgType) {
-              const blob = await item.getType(imgType);
-              const bytes = Array.from(new Uint8Array(await blob.arrayBuffer()));
-              const path = await savePastedImage(bytes, imgType.split("/")[1] ?? "png");
-              term.paste(`"${path}" `);
-              setNote(
-                "Imagen pegada como archivo: el agente la lee de esa ruta. Escribe tu pregunta al lado y Enter.",
-              );
-              return;
-            }
-          }
-          const text = await navigator.clipboard.readText();
-          if (text) term.paste(text);
-        })
-        .catch(() => {
-          // Older clipboard API or permission denied: fall back to text.
-          void navigator.clipboard
-            .readText()
-            .then((t) => {
-              if (t) term.paste(t);
-            })
-            .catch(() => {});
-        });
-    };
+    const pegado = crearPegado({
+      pegar: (texto) => term.paste(texto),
+      guardarImagen: savePastedImage,
+      alPegarImagen: () => setNote(t("Imagen pegada como archivo: el agente la lee de esa ruta. Escribe tu pregunta al lado y Enter.")),
+    });
+    const pasteClipboard = () => pegado.desdeElPortapapeles();
 
     // El pegado nativo del WebView, CALLADO. El comentario de arriba dice que
     // el WebView no entrega el evento de pegado al textarea de xterm, y cuando
@@ -1500,9 +1476,12 @@ export default function TerminalPane({
     // En captura y con stopPropagation: el evento muere antes de llegar al
     // textarea de xterm, y pegar queda en manos de un único dueño,
     // `pasteClipboard`, que es el que sabe de imágenes.
+    // Su TEXTO ya no se tira: es el repuesto cuando el portapapeles del
+    // navegador no da nada, que es lo que dejaba sin pegar en Linux (`lib/pegado`).
     const pasteNativo = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
+      pegado.desdeElEvento((e as ClipboardEvent).clipboardData?.getData("text/plain") ?? "");
     };
     el.addEventListener("paste", pasteNativo, true);
 
@@ -1682,7 +1661,7 @@ export default function TerminalPane({
       }
       const screen = lines.join("\n");
       const recentDismiss = Date.now() - dismissedAskRef.current < 2500;
-      const question = recentDismiss ? null : parseAsk(screen);
+      const question = recentDismiss ? null : (parseAsk(screen) ?? parseAsk(pieDePantalla((y) => buf.getLine(buf.baseY + y)?.translateToString(true) ?? "", term.rows)));
       setAsk((before) => {
         if (question && !before) {
           const n = notifyRef.current;
@@ -2258,17 +2237,17 @@ export default function TerminalPane({
           { label: "", separator: true },
           {
             label: t("Partir a la derecha"),
-            hint: "Ctrl+Mayús+→",
+            hint: `Ctrl+${t("Mayús")}+→`,
             onClick: () => onSplit(id, "right"),
           },
           {
             label: t("Partir abajo"),
-            hint: "Ctrl+Mayús+↓",
+            hint: `Ctrl+${t("Mayús")}+↓`,
             onClick: () => onSplit(id, "down"),
           },
           {
             label: maximized ? t("Restaurar") : t("Maximizar"),
-            hint: "Ctrl+Mayús+F",
+            hint: `Ctrl+${t("Mayús")}+F`,
             onClick: () => onToggleMax(id),
           },
           {
@@ -2385,7 +2364,7 @@ export default function TerminalPane({
           {team && (
             <span
               className="pane-team"
-              data-tip={`${team.rol} · puesto ${team.n} de ${team.de}\n${team.objetivo}`}
+              data-tip={`${team.rol} · ${t("puesto {n} de {de}", { n: team.n, de: team.de })}\n${team.objetivo}`}
             >
               <span className="pane-team-n">
                 {team.n}/{team.de}
@@ -2396,7 +2375,7 @@ export default function TerminalPane({
           {account && (
             <span
               className="pane-account"
-              data-tip={`Esta terminal usa tu cuenta «${account}», no la principal`}
+              data-tip={t("Esta terminal usa tu cuenta «{c}», no la principal", { c: account })}
             >
               {/* Tres letras y ya. El nombre entero («MUNIRKYLO») se comía la
                   cabecera y empujaba al proyecto y al título, que son los que
@@ -2458,9 +2437,9 @@ export default function TerminalPane({
             <span
               className="pane-ctx"
               data-hot={ctx.percent >= 80}
-              data-tip={`${t("Contexto")}: ${ctx.used.toLocaleString()} / ${ctx.window.toLocaleString()} tokens (${ctx.percent}% ${t("de contexto usado")})\nCada mensaje en esta sesión vuelve a pagar esos ${ctx.used.toLocaleString()} tokens.${
+              data-tip={`${t("Contexto")}: ${ctx.used.toLocaleString()} / ${ctx.window.toLocaleString()} tokens (${ctx.percent}% ${t("de contexto usado")})\n${t("Cada mensaje en esta sesión vuelve a pagar esos {n} tokens.", { n: ctx.used.toLocaleString() })}${
                 ctx.percent >= 80
-                  ? "\nA este nivel, compactar cuesta más que abrir una terminal nueva."
+                  ? `\n${t("A este nivel, compactar cuesta más que abrir una terminal nueva.")}`
                   : ""
               }`}
             >
@@ -2471,7 +2450,7 @@ export default function TerminalPane({
           {(ctx?.model || brain.model || brain.effort) && (
             <span
               className="pane-brain"
-              data-tip={`Modelo: ${ctx?.model || brain.model || "?"}${brain.effort ? ` · esfuerzo ${brain.effort}` : ""}\nSe cambia dentro del pane con /model y /effort`}
+              data-tip={`${t("Modelo")}: ${ctx?.model || brain.model || "?"}${brain.effort ? ` · ${t("esfuerzo")} ${brain.effort}` : ""}\n${t("Se cambia dentro del pane con /model y /effort")}`}
             >
               {ctx?.model || brain.model}
               {brain.effort && <span className="pane-effort">{brain.effort}</span>}
@@ -2514,8 +2493,8 @@ export default function TerminalPane({
             className={`pane-btn pane-shadow-toggle ${shadowActive ? "is-active" : ""}`}
             data-tip={
               shadowActive
-                ? `Modo Espejo (SVFS) activo · Rama: ${shadowSession?.shadowBranch}\n${shadowFiles.length} archivos propuestos. Clic para ver diffs.`
-                : "Activar Modo Espejo (Shadow Git): aísla escrituras de la IA en una rama espejo"
+                ? `${t("Modo Espejo (SVFS) activo · Rama: {r}", { r: shadowSession?.shadowBranch ?? "" })}\n${t("{n} archivos propuestos. Clic para ver diffs.", { n: shadowFiles.length })}`
+                : t("Activar Modo Espejo (Shadow Git): aísla escrituras de la IA en una rama espejo")
             }
             onClick={handleToggleShadow}
           >
@@ -2560,7 +2539,7 @@ export default function TerminalPane({
           {!suelta && (
             <button
               className="pane-btn"
-              data-tip={maximized ? "Restaurar" : "Maximizar (Ctrl+Mayús+F)"}
+              data-tip={maximized ? t("Restaurar") : `${t("Maximizar")} (Ctrl+${t("Mayús")}+F)`}
               onClick={() => onToggleMax(id)}
             >
               {maximized ? <RestoreIcon /> : <MaximizeIcon />}

@@ -1009,6 +1009,36 @@ app.addEventListener('click', (e) => {
   if (boton && app.contains(boton)) porDefecto(boton);
 });
 
+/* Lo que BORRA o CIERRA y aquí no puede hacerlo, fuera. La demo trae todos los
+   botones de la app, y los que no tienen regla contestan con el aviso de «en la
+   app»; en «Cerrar las 4 terminales» o «Borrar la sesión» ese aviso se lee como
+   que la demo está rota (Munir, 2026-10-13). Se
+   quitan los que EMPIEZAN por un verbo de borrar o cerrar y no tienen regla;
+   los que sí hacen algo (cerrar una terminal, quitar una tarjeta) se quedan.
+   Con un observador y no en cada sitio que monta una hoja, porque las hojas,
+   las secciones y los paneles salen de sus plantillas por caminos distintos. */
+const DESTRUYE = /^(cerrar|borrar|eliminar|quitar(lo)?|descartar|vaciar|close|delete|remove|discard|sign out|log out|take .+ off)\b/i;
+
+/* La regla de la cabecera de un panel recoge TODOS sus botones y solo atiende a
+   tres (cerrar, el ojo y ampliar): de los que borran, ahí solo «cerrar» hace algo. */
+function tieneRegla(b) {
+  if (b.closest('.pane-head')) return b.classList.contains('pane-close');
+  return REGLAS.some(([selector]) => b.closest(selector));
+}
+
+function podar(desde) {
+  for (const b of [desde, ...$$('button, [role="button"]', desde)]) {
+    if (!b.matches('button, [role="button"]')) continue;
+    const rotulo = (b.dataset.tip?.split('\n')[0] || b.getAttribute('aria-label') || b.textContent || '').trim();
+    if (DESTRUYE.test(rotulo) && !tieneRegla(b)) b.remove();
+  }
+}
+
+podar(app);
+new MutationObserver((cambios) => {
+  for (const c of cambios) for (const n of c.addedNodes) if (n.nodeType === 1) podar(n);
+}).observe(app, { childList: true, subtree: true });
+
 /* --------------------------------------------------------------------------
    12. ESCRIBIR Y MARCAR
    -------------------------------------------------------------------------- */

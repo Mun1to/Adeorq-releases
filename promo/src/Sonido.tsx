@@ -2,8 +2,7 @@ import { Html5Audio, Loop, Sequence, interpolate, staticFile, useCurrentFrame, u
 import { cinta } from "./Adeo";
 import { TEXTOS } from "./guion";
 import { useDecir, useIdioma } from "./idioma";
-import { despierta } from "./Portada";
-import { CAPITULO, GANCHO, PANTALLA, QUE_ES, VOZ, clicEn, focosQueCaben, llegaDato, parte, preguntasDelGancho, totalDe, type Tramo, type Voces } from "./tiempos";
+import { CIERRE, PANTALLA, TEXTO, VOZ, clicEn, cuantasPalabras, despierta, focosQueCaben, llegaDato, parte, totalDe, type Tramo, type Voces } from "./tiempos";
 
 /**
  * Todo lo que se oye.
@@ -22,10 +21,10 @@ const hecho = (n: string) => staticFile(`sonido/hecho/${n}.wav`);
 const kenney = (n: string) => staticFile(`sonido/kenney/${n}.ogg`);
 const TECLAS = ["click_002", "click_003", "click_004"].map(kenney);
 
-/** Cuánto se sube todo a la vez. Con 1, el MP4 medía -18,1 LUFS con el pico en
-    -3,6 dBFS (`ffmpeg -af ebur128=peak=true`); las redes normalizan hacia -16,
-    y esos 2 dB de más caben sin recortar. Si se toca un nivel de abajo, se
-    vuelve a medir y se ajusta este. */
+/** Cuánto se sube todo a la vez. Se mide el MP4 (`ffmpeg -af ebur128=peak=true`)
+    y se ajusta este: las redes normalizan hacia -14, y el pico tiene que
+    quedar por debajo de -1 dBTP. Si se toca un nivel de abajo, se vuelve a
+    medir. */
 const MAESTRO = 1.25;
 
 /** La mezcla. La música va por debajo de todo lo demás a propósito: es lo que
@@ -45,6 +44,10 @@ const NIVEL = {
   voz: 1,
 } as const;
 
+/** Cuánto se queda del colchón mientras solo hay texto: la pieza arranca baja
+    y la música entra con el nombre. */
+const ANTES_DEL_NOMBRE = 0.5;
+
 /** Cuánto se queda de la música mientras alguien habla, y de los efectos en
     toda la pieza cuando lleva voz: la música acompaña y los clics puntúan,
     pero lo que se tiene que entender es la frase. */
@@ -56,47 +59,43 @@ const PICO_DEL_PASO = 0.42;
 
 type Efecto = { en: number; src: string; nivel: number };
 
-function efectos(tramos: Tramo[], fps: number, orden: string): Efecto[] {
+function efectos(tramos: Tramo[], fps: number, decir: ReturnType<typeof useDecir>): Efecto[] {
   const lista: Efecto[] = [];
   const pon = (en: number, src: string, nivel: number) => lista.push({ en: Math.max(0, Math.round(en)), src, nivel });
+  /** Una tecla por palabra que entra, al paso al que entran. */
+  const teclea = (en: number, texto: string, cada: number, nivel: number) => {
+    for (let k = 0; k < cuantasPalabras(texto); k++) pon(en + k * cada, TECLAS[k % TECLAS.length], nivel);
+  };
 
   tramos.forEach((t, i) => {
     const e = t.escena;
     if (i > 0) pon(t.corte - PICO_DEL_PASO * fps, hecho("whoosh"), NIVEL.paso);
 
-    if (e.tipo === "gancho") {
-      // Un clic por ventana que se abre, y un golpe por pregunta.
-      for (let k = 0; k < 7; k++) pon(t.corte + GANCHO.primera + k * GANCHO.entreVentanas, TECLAS[k % TECLAS.length], NIVEL.tecla * 1.6);
-      preguntasDelGancho(t).forEach((en) => pon(t.corte + en, kenney("drop_002"), NIVEL.pop * 1.2));
+    if (e.tipo === "texto") {
+      // Cada frase se teclea, y la última (el giro) llega con un golpe.
+      e.lineas.forEach((linea, k) => {
+        const en = t.corte + parte(t, e.lineas.length, k) + TEXTO.entra;
+        teclea(en, decir(linea), TEXTO.cada, NIVEL.tecla * 1.5);
+        if (k === e.lineas.length - 1) pon(en - 2, kenney("drop_002"), NIVEL.pop);
+      });
     }
-    if (e.tipo === "capitulo") {
-      pon(t.corte + CAPITULO.titulo, hecho("campana"), NIVEL.campana * 0.8);
-      for (let k = 0; k < 3; k++) pon(t.corte + CAPITULO.pantallas + k * CAPITULO.entrePantallas, kenney("tick_002"), NIVEL.tic);
-    }
-    if (e.tipo === "portada") {
+    if (e.tipo === "nombre") {
       pon(t.corte + 2, hecho("campana"), NIVEL.campana);
       pon(t.corte + despierta(t.largo), kenney("drop_002"), NIVEL.pop);
     }
-    if (e.tipo === "que-es") {
-      // Una tecla por letra de la orden; los espacios no suenan.
-      [...orden].forEach((letra, k) => {
-        if (letra !== " ") pon(t.corte + QUE_ES.tecleo + k * QUE_ES.porLetra, TECLAS[k % TECLAS.length], NIVEL.tecla);
-      });
-      TEXTOS.queEs.clientes.forEach((_, k) => pon(t.corte + QUE_ES.clientes + k * QUE_ES.entreClientes, kenney("tick_002"), NIVEL.tic));
-      pon(t.corte + QUE_ES.cuenta, kenney("drop_002"), NIVEL.pop);
-    }
     if (e.tipo === "pantalla") {
-      // El título, un «pop» por función a la que llega la cámara y, donde el
-      // puntero hace clic, su clic.
-      pon(t.corte + PANTALLA.titulo, kenney("tick_002"), NIVEL.tic);
+      // La frase grande, un «pop» por función a la que llega la cámara y,
+      // donde el puntero hace clic, su clic.
+      teclea(t.corte + PANTALLA.titulo, decir(e.titulo), PANTALLA.cada, NIVEL.tecla * 1.2);
       const n = focosQueCaben(t.largo, e.focos.length);
       e.focos.slice(0, n).forEach((foco, k) => {
         pon(t.corte + llegaDato(t.largo, n, k), kenney("drop_002"), NIVEL.pop);
-        if (foco.clic) pon(t.corte + clicEn(t.largo, n, k), TECLAS[1], NIVEL.tecla * 1.5);
+        if (foco.clic) pon(t.corte + clicEn(t.largo, n, k), TECLAS[1], NIVEL.tecla * 1.8);
       });
     }
     if (e.tipo === "adeo") {
       const estados = TEXTOS.adeo.estados;
+      pon(t.corte + 4, kenney("tick_002"), NIVEL.tic);
       estados.forEach((estado, k) => {
         // La primera parte de la escena es el saludo: los estados van detrás.
         const en = t.corte + parte(t, estados.length + 1, k + 1);
@@ -116,6 +115,7 @@ function efectos(tramos: Tramo[], fps: number, orden: string): Efecto[] {
         if (estado.animo === "lista") pon(en + 2, hecho("chispa"), NIVEL.chispa);
       });
     }
+    if (e.tipo === "cierre") pon(t.corte + CIERRE.web, kenney("drop_002"), NIVEL.pop);
   });
   return lista;
 }
@@ -131,10 +131,9 @@ export function Sonido({ tramos, voz }: { tramos: Tramo[]; voz: Voces }) {
   const subida = Math.round(2.5 * fps);
   const pinza = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
-  // El ritmo entra con el primer capítulo (o con la primera pantalla, en la
-  // corta): el problema, la portada y el «qué es» van solo con el colchón, y
-  // el vídeo arranca de verdad cuando aparece la app.
-  const primera = tramos.find((t) => t.escena.tipo === "capitulo" || t.escena.tipo === "pantalla");
+  // El ritmo entra con el nombre: el problema va solo con el colchón, bajo, y
+  // la pieza arranca de verdad cuando aparece el logotipo.
+  const nombre = tramos.find((t) => t.escena.tipo === "nombre");
   const cierre = tramos.find((t) => t.escena.tipo === "cierre");
   const fin = cierre ? cierre.corte : total;
 
@@ -151,8 +150,9 @@ export function Sonido({ tramos, voz }: { tramos: Tramo[]; voz: Voces }) {
   // La música se aparta durante el compás de subida y calla en el corte: lo
   // que suena en el cierre es el acorde del final, que empieza justo ahí.
   const sale = interpolate(frame, [fin - subida, fin - 18, fin], [1, 0.5, 0], pinza);
-  const cama = NIVEL.cama * interpolate(frame, [0, 24], [0, 1], pinza) * sale * musica;
-  const ritmo = primera ? NIVEL.ritmo * interpolate(frame, [primera.corte - 4, primera.corte + 8], [0, 1], pinza) * sale * musica : 0;
+  const arranca = nombre ? interpolate(frame, [nombre.corte - 14, nombre.corte + 6], [ANTES_DEL_NOMBRE, 1], pinza) : 1;
+  const cama = NIVEL.cama * interpolate(frame, [0, 24], [0, 1], pinza) * arranca * sale * musica;
+  const ritmo = nombre ? NIVEL.ritmo * interpolate(frame, [nombre.corte - 4, nombre.corte + 8], [0, 1], pinza) * sale * musica : 0;
 
   return (
     <>
@@ -170,7 +170,7 @@ export function Sonido({ tramos, voz }: { tramos: Tramo[]; voz: Voces }) {
           />
         </Sequence>
       )}
-      {efectos(tramos, fps, decir(TEXTOS.queEs.orden)).map((e, i) => (
+      {efectos(tramos, fps, decir).map((e, i) => (
         <Sequence key={i} from={e.en} layout="none">
           <Html5Audio src={e.src} volume={e.nivel * golpes} />
         </Sequence>

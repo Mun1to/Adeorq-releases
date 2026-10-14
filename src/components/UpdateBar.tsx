@@ -62,8 +62,8 @@ export default function UpdateBar() {
       if (!granted) granted = (await requestPermission()) === "granted";
       if (granted) {
         sendNotification({
-          title: `Adeorq ${version} disponible`,
-          body: "Ábrelo y pulsa «Actualizar ahora» en la barra de arriba.",
+          title: t("Adeorq {v} disponible", { v: version }),
+          body: t("Ábrelo y pulsa «Actualizar ahora» en la barra de arriba."),
         });
       }
     } catch {

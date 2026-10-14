@@ -21,6 +21,7 @@ import { mkdirSync, mkdtempSync, rmSync, readdirSync, statSync, readFileSync, cp
 import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { queTrae as titulo } from "./titulo-publico.mjs";
+import { contar, recoger } from "./recoger-publicadas.mjs";
 
 const REPO_PUBLICO = "https://github.com/Mun1to/Adeorq-releases.git";
 
@@ -143,6 +144,12 @@ const tmp = mkdtempSync(join(tmpdir(), "adeorq-pub-"));
 const foto = join(tmp, "foto");
 const publico = join(tmp, "publico");
 
+// Las carpetas de las publicaciones anteriores: la que ya está empujada sobra,
+// la que no lo está se queda y se dice (`recoger-publicadas.mjs`). Esta no se
+// puede borrar al terminar, porque al terminar todavía falta el push.
+const viejas = contar(recoger(tmpdir(), { menos: tmp }));
+if (viejas) console.log(`${viejas}\n`);
+
 try {
   // 1. La foto de HEAD, que es lo que git considera versionado y nada más:
   //    lo ignorado (node_modules, .env, dist) no entra ni por accidente.
@@ -192,6 +199,8 @@ try {
   if (sospechas.length) {
     console.error("NO SE PUBLICA. El árbol lleva dentro cosas de la casa:\n");
     for (const s of sospechas) console.error(`  ${s}`);
+    // `process.exit` no pasa por el `catch` de abajo: la carpeta se quedaba.
+    rmSync(tmp, { recursive: true, force: true });
     process.exit(1);
   }
   console.log("  Barrido limpio: ni claves ni rastros de la casa.\n");
@@ -208,6 +217,7 @@ try {
   const hay = git(["status", "--porcelain"], publico);
   if (!hay) {
     console.log("El público ya está igual que esta versión: no hay nada que publicar.");
+    rmSync(tmp, { recursive: true, force: true });
     process.exit(0);
   }
   /* DE DÓNDE SE CUENTA, y por qué no basta con el `release:` anterior.
@@ -264,8 +274,9 @@ Listo y SIN empujar, que eso lo pulsas tú después de mirar el diff:
   git log -1 --stat
   git push origin main
 
-La carpeta se borra sola al reiniciar el equipo; si quieres tirarla ya:
-  rm -rf ${tmp}
+La carpeta la recoge la publicación siguiente, y solo si ya está empujada
+(Windows no vacía la temporal al reiniciar). Para recogerlas ya:
+  node scripts/recoger-publicadas.mjs --borrar
 `);
 } catch (e) {
   rmSync(tmp, { recursive: true, force: true });

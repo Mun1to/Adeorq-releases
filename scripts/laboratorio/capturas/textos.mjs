@@ -4,8 +4,12 @@
 const P = (proyecto) => `P:\\projects\\${proyecto}`;
 const repetir = (grabacion, cli = "claude") => ["cmd.exe", "/k", `chcp 65001 >nul && node P:\\bin\\repetir.mjs P:\\rec\\${grabacion}.bin ${cli}`];
 
-/** El lienzo: tres agentes, una nota, el tablero de tareas y una flecha que le
- *  pasa a uno lo que hizo otro. */
+/** El archivo de la conversación del enjambre del lienzo, en la carpeta
+ *  `conserje` de los datos. Lo escribe `casa.mjs`. */
+export const ENJAMBRE = "demoenjambre1";
+
+/** El lienzo: tres agentes, dos notas, el tablero de tareas, una flecha que le
+ *  pasa a uno lo que hizo otro y un enjambre con las dos sesiones de Claude. */
 function lienzo(idioma, t) {
   return (guardado) => ({
     kind: "adeorq-lienzo",
@@ -21,8 +25,12 @@ function lienzo(idioma, t) {
       { tipo: "term", id: "t3", x: 580, y: -260, w: 860, h: 520, kind: "shell", proyecto: "invoice-cli", ruta: P("invoice-cli"), cmd: repetir(`${idioma}-invoice-mid`, "codex") },
       { tipo: "term", id: "t1", x: -380, y: 320, w: 860, h: 520, kind: "claude", proyecto: "storefront-api", ruta: P("storefront-api"), cmd: repetir(`${idioma}-storefront`) },
       { tipo: "term", id: "t2", x: 580, y: 320, w: 860, h: 520, kind: "claude", proyecto: "landing-web", ruta: P("landing-web"), cmd: repetir(`${idioma}-landing-mid`) },
-      { tipo: "nota", id: "n1", x: 1500, y: -260, w: 360, h: 330, nota: "lanzamiento", color: "#f2c14e" },
-      { tipo: "nota", id: "n2", x: 1500, y: 110, w: 360, h: 330, nota: "ideas", color: "#7fb6f0" },
+      // El enjambre ocupa la esquina de arriba a la derecha y las notas bajan,
+      // algo más cortas, hasta donde acaban las terminales: el tablero solo se
+      // ensancha 80 px, no crece de alto y el zoom no cae de 0,55.
+      { tipo: "enjambre", id: "j1", x: 1500, y: -260, w: 440, h: 520, conv: ENJAMBRE, nombre: t.enjambre.nombre, color: "azul", miembros: [{ nodo: "t1" }, { nodo: "t2" }], plegadas: false },
+      { tipo: "nota", id: "n1", x: 1500, y: 300, w: 360, h: 250, nota: "lanzamiento", color: "#f2c14e" },
+      { tipo: "nota", id: "n2", x: 1500, y: 590, w: 360, h: 250, nota: "ideas", color: "#7fb6f0" },
     ],
     flechas: [{ id: "e1", de: "t1", a: "t2", encargo: t.flecha, auto: false }],
     trazos: [],
@@ -112,6 +120,16 @@ const en = {
     ["Cache cart totals that did not change", "storefront-api"],
   ],
   flecha: "Check the pricing copy still matches the totals",
+  // El chat del enjambre: [quién, texto, de qué sesión]. Cuadra con lo que
+  // hacen las dos sesiones grabadas (el redondeo y el modo oscuro).
+  enjambre: {
+    nombre: "Friday launch",
+    turnos: [
+      ["tu", "Before Friday: the discount has to round properly and the landing page needs a dark mode."],
+      ["conserje", "Split in two. The rounding goes to storefront-api, which already has the failing test open. The dark mode goes to landing-web."],
+      ["sesion", "Fixed: the discount is rounded to whole cents and the 4 tests pass. I did not commit.", "Discount test failure in npm test"],
+    ],
+  },
   // Las notas de Sam, para la Memoria: [ruta dentro de la bóveda, texto].
   boveda: [
     ["Projects/storefront-api.md", "# storefront-api\n\nThe shop's API. Every total it returns is a **whole number of cents**, no exceptions.\n\n- How a discount is rounded: [[Rounding]]\n- What an expired code does: [[Discount codes]]\n- Who reviews it: [[Review before merge]]\n"],
@@ -207,6 +225,14 @@ const es = {
     ["Guardar los totales que no cambian", "storefront-api"],
   ],
   flecha: "Comprueba que el texto de los planes sigue cuadrando con los totales",
+  enjambre: {
+    nombre: "Lanzamiento del viernes",
+    turnos: [
+      ["tu", "Antes del viernes: que el descuento redondee bien y que la portada tenga modo oscuro."],
+      ["conserje", "Repartido en dos. El redondeo va a storefront-api, que ya tiene abierta la prueba que falla. El modo oscuro va a landing-web."],
+      ["sesion", "Arreglado: el descuento se redondea a céntimos enteros y pasan las 4 pruebas. No hice commit.", "Fallo en prueba del descuento"],
+    ],
+  },
   boveda: [
     ["Proyectos/storefront-api.md", "# storefront-api\n\nLa API de la tienda. Todos los totales que devuelve son **céntimos enteros**, sin excepción.\n\n- Cómo se redondea un descuento: [[Redondeo]]\n- Qué hace un código caducado: [[Códigos de descuento]]\n- Quién lo revisa: [[Revisar antes de fusionar]]\n"],
     ["Proyectos/landing-web.md", "# landing-web\n\nLa página que vende los planes. En oscuro y en claro, y los precios salen de [[storefront-api]], nunca escritos a mano.\n\nAbierto: la página de preguntas sigue sin meta descripción.\n"],

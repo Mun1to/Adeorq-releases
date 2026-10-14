@@ -509,7 +509,7 @@ export default function AccountsView({
               </div>
             ))}
             {!it && <p className="account-empty">{t("Preguntando a Claude…")}</p>}
-            {it?.error && <p className="account-empty">{it.error}</p>}
+            {it?.error && <p className="account-empty">{t(it.error)}</p>}
           </div>
         )}
 
@@ -691,9 +691,7 @@ export default function AccountsView({
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">{t("Quitar cuenta")}</h3>
             <p className="modal-text">
-              «{confirm.label}» ({providerOf(confirm.provider).label}) se cerrará y se
-              borrará su carpeta de configuración, con su historial. Tu cuenta de siempre y
-              tus proyectos no se tocan. Para volver a usarla habría que hacer el login otra vez.
+              {t("«{c}» ({p}) se cerrará y se borrará su carpeta de configuración, con su historial. Tu cuenta de siempre y tus proyectos no se tocan. Para volver a usarla habría que hacer el login otra vez.", { c: confirm.label, p: providerOf(confirm.provider).label })}
             </p>
             <div className="modal-actions">
               <button className="mini modal-cancel" onClick={() => setConfirm(null)}>
@@ -955,7 +953,7 @@ export default function AccountsView({
                 ) : (
                   <p className="account-empty">
                     {t("No está en este equipo y no tiene un comando de instalación de fiar, así que hay que bajarlo de su web:")}{" "}
-                    <code>{p.install}</code>
+                    <code>{t(p.install)}</code>
                   </p>
                 )}
                 <div className="account-actions">

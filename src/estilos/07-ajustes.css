@@ -1142,11 +1142,11 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* 90 de la tira + 16 que la separan del borde + 12 de aire. La cuenta tiene
+  /* 96 de la tira + 16 que la separan del borde + 12 de aire. La cuenta tiene
      que salir: con 76 a ojo, «CONNECTED» (y peor, «NOT CONNECTED») era más
      ancha que su reserva. Si algún día la tira cambia de ancho, este número
      cambia con ella. */
-  padding-right: 118px;
+  padding-right: 124px;
 }
 
 /* Centradas a lo alto de la tarjeta: son tres palabras sueltas, y un grupo
@@ -1158,8 +1158,10 @@
   right: 16px;
   /* Ancho FIJO, y de él sale el relleno que le reserva la tarjeta. Sin fijarlo,
      cada chapa medía lo que midiera su palabra y no había número que reservar:
-     unas cabían y otras no. */
-  width: 90px;
+     unas cabían y otras no.
+     96 y no 90: la palabra más larga es «PREDETERMINADA», que mide 90,1, y por
+     esa décima se partía en «PREDETERMINAD» y «A» con la app en español. */
+  width: 96px;
   display: flex;
   flex-direction: column;
   justify-content: center;

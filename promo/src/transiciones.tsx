@@ -8,8 +8,8 @@ import { swap } from "@remotion/transitions/swap";
 import { zoomBlur } from "@remotion/transitions/zoom-blur";
 import { AbsoluteFill, Easing, interpolate, useVideoConfig } from "remotion";
 import { COLOR } from "./casa";
+import { ojoDelNombre } from "./escenas/2-Nombre";
 import { ESCENAS, type Escena } from "./guion";
-import { ojoDeAdeo } from "./Pantalla";
 
 /**
  * Los pasos de una escena a otra.
@@ -188,20 +188,9 @@ function Portal({ children, presentationDirection, presentationProgress: p, pass
 const portal = (props: PropsPortal): TransitionPresentation<PropsPortal> => ({ component: Portal, props });
 const centro = (ancho: number, alto: number): Punto => ({ x: ancho / 2, y: alto / 2 });
 
-/** El ojo del Adeo grande, el de su escena (`EscenaAdeo.tsx`): está centrado,
-    con sus cuadraditos debajo, en la parte del cuadro que no es del texto. */
-function ojoDelAdeoGrande(ancho: number, alto: number): Punto {
-  const vertical = alto > ancho;
-  const u = Math.min(ancho, alto) / 1080;
-  const zona = alto * (vertical ? 0.64 : 0.73);
-  const bloque = (392 + 36 + 12) * u;
-  const arriba = vertical ? zona - 36 * u - bloque : (zona - bloque) / 2;
-  return { x: ancho / 2, y: arriba + 392 * u * 0.36 };
-}
-
-/** Sale de la escena de Adeo por su ojo. No va en el muestrario: allí no hay
-    un Adeo grande por el que entrar. */
-const POR_EL_OJO_GRANDE = portal({ forma: "circulo", en: ojoDelAdeoGrande, tam: 0.1 });
+/** Del nombre a la app se entra por el ojo del Adeo que acaba de despertar.
+    No va en el muestrario: allí no hay un Adeo por el que entrar. */
+const POR_EL_OJO = portal({ forma: "circulo", en: ojoDelNombre, tam: 0.1 });
 
 /** Todos, con nombre: la composición `Transiciones` los enseña uno detrás de
     otro con su número, para elegir mirando. Los nuevos van al final para que
@@ -227,8 +216,9 @@ export const PASOS = {
   /** De máscara: la cámara entra por un hueco con forma de ventana, en el
       centro, que es donde está lo último que se enseñó. */
   hueco: portal({ forma: "caja", en: centro, tam: 0.3 }),
-  /** De máscara: entra por el ojo del Adeo que está al lado de la ventana. */
-  ojo: portal({ forma: "circulo", en: ojoDeAdeo, tam: 0.1 }),
+  /** De máscara: un hueco redondo en el centro. En la pieza el mismo paso
+      se abre en el ojo de Adeo (`POR_EL_OJO`). */
+  ojo: portal({ forma: "circulo", en: centro, tam: 0.1 }),
   /** De máscara: el hueco tiene la forma del logotipo. */
   proa: portal({ forma: "proa", en: centro, tam: 0.34 }),
 } satisfies Record<string, Paso>;
@@ -236,37 +226,33 @@ export const PASOS = {
 export type NombreDePaso = keyof typeof PASOS;
 
 /**
- * Qué paso toca entre dos escenas. Se alternan los de siempre y los de
- * máscara: diecisiete huecos seguidos cansan igual que diecisiete fundidos.
+ * Qué paso toca entre dos tramos. Se alternan los de siempre y los de
+ * máscara: ocho huecos seguidos cansan igual que ocho fundidos.
  *
- * - Del problema a la portada, la proa: el lío de ventanas lo perfora la forma
- *   del logotipo, y dentro está el logotipo.
- * - Al abrir un capítulo, el zoom con giro: es el corte más fuerte de la
- *   pieza y se reserva para decir «ahora otra cosa».
- * - Del cartel a su primera pantalla se atraviesa: se entra en lo que había
- *   hasta que es lo siguiente. Al cierre también.
+ * - Del texto al nombre, la proa: la frase la perfora la forma del logotipo,
+ *   y dentro está el logotipo.
+ * - Del nombre a la app, por el ojo de Adeo: el logotipo acaba de abrirlo, y
+ *   lo que hay dentro es lo que él vigila.
  * - De pantalla a pantalla, una vez el hueco (la cámara ya está metida en una
  *   función, y sigue hasta salir por la siguiente pantalla) y otra el cambio
  *   de tarjetas, que es pasar de pestaña.
- * - A la escena de Adeo se entra por el ojo del Adeo pequeño que acompaña a
- *   la ventana, y se sale por el ojo del grande.
- * - Lo demás (de la portada al «qué es»), el barrido, que es el más callado.
+ * - A Adeo, el zoom con giro: es el corte más fuerte de la pieza y se reserva
+ *   para decir «ahora otra cosa».
+ * - Al cierre se atraviesa: se entra en lo que había hasta que es lo
+ *   siguiente.
  *
- * Los otros (`cortina`, `ascua`, `onda`) están en el muestrario y no en la
- * pieza: a mitad de camino la cortina retuerce el texto en espiral y el ascua
- * tiñe la pantalla entera de azul; la onda era la de Adeo hasta que hubo ojo.
- * Y se probaron y se quitaron `dreamyZoom` (la pantalla se queda en blanco, y
- * sobre un fondo oscuro es un fogonazo) y `zoomInOut` (se queda en un gris
- * plano).
+ * Los otros (`cortina`, `ascua`, `onda`, `barrido`) están en el muestrario y
+ * no en la pieza: a mitad de camino la cortina retuerce el texto en espiral y
+ * el ascua tiñe la pantalla entera de azul. Y se probaron y se quitaron
+ * `dreamyZoom` (la pantalla se queda en blanco, y sobre un fondo oscuro es un
+ * fogonazo) y `zoomInOut` (se queda en un gris plano).
  */
 export function pasoEntre(de: Escena, a: Escena): Paso {
-  if (a.tipo === "capitulo") return PASOS.zoom;
-  if (de.tipo === "gancho") return PASOS.proa;
-  if (de.tipo === "capitulo" || a.tipo === "cierre") return PASOS.atraviesa;
-  if (a.tipo === "adeo") return de.tipo === "pantalla" ? PASOS.ojo : PASOS.onda;
-  if (de.tipo === "adeo") return POR_EL_OJO_GRANDE;
+  if (a.tipo === "nombre") return PASOS.proa;
+  if (de.tipo === "nombre") return POR_EL_OJO;
+  if (a.tipo === "adeo") return PASOS.zoom;
   // Por su sitio en el guion y no por turno: el mismo salto se da siempre
-  // igual, salga la pieza entera o la media.
+  // igual.
   if (de.tipo === "pantalla" && a.tipo === "pantalla") return ESCENAS.indexOf(a) % 2 ? PASOS.hueco : PASOS.cambio;
-  return PASOS.barrido;
+  return PASOS.atraviesa;
 }

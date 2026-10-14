@@ -741,7 +741,11 @@ body[data-redim] .divider {
   margin: 0 6px;
   font-size: 14px;
   font-weight: 640;
-  text-transform: capitalize;
+}
+
+/* «Octubre de 2026», no «Octubre De 2026»: ver `.ag-dia h1`. */
+.ag-cal-cab h2::first-letter {
+  text-transform: uppercase;
 }
 
 .ag-cal-mover {
@@ -904,9 +908,14 @@ body[data-redim] .divider {
   font-size: 15px;
   font-weight: 650;
   letter-spacing: -0.01em;
-  /* Los días y los meses vienen en minúscula de toLocaleDateString, y en un
-     encabezado eso se lee como un descuido. */
-  text-transform: capitalize;
+}
+
+/* Los días y los meses vienen en minúscula de toLocaleDateString, y en un
+   encabezado eso se lee como un descuido. Solo la PRIMERA letra: con
+   `capitalize` salía cada palabra («Martes, 13 De Octubre», «Objetivos De
+   Hoy»), que en español es otro descuido. */
+.ag-dia h1::first-letter {
+  text-transform: uppercase;
 }
 
 /* VOLVER, Y TODOS LOS DE ATRÁS DE LA APP: la receta de la casa con el texto

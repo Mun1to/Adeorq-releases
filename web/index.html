@@ -313,7 +313,14 @@
       <noscript><iframe title="Adeorq en marcha" src="/demo/?desnuda=1"
               data-en-attr="title:hero.demo.corto|src:hero.demo.src"></iframe></noscript>
     </div>
-    <p class="ventana__pie" data-en="hero.pie">Esto no es una captura: pruébalo aquí mismo.</p>
+    <!-- El aviso va ENCIMA de la ventana (2026-10-13): debajo, pequeño y en
+         gris, casi nadie se enteraba de que la demo se toca. Y a su lado, la
+         forma de verla grande: /demo/ abierta suelta ocupa toda la pantalla. -->
+    <p class="ventana__aviso">
+      <span class="ventana__vivo" data-en="hero.pie">Esto no es una captura: pruébalo aquí mismo.</span>
+      <a class="ventana__grande" href="/demo/" target="_blank" rel="noopener"
+         data-en="hero.grande" data-en-attr="href:hero.grande.href">Abrirla en grande</a>
+    </p>
   </div>
 </section>
 
@@ -541,51 +548,104 @@
 
     <header class="explica__cabecera">
       <p class="etiqueta" data-en="queEs.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Qué hace</p>
-      <h2 class="explica__tit" data-en="queEs.tit"><b>Nueve pantallas,</b> <span>una ventana</span></h2>
+      <h2 class="explica__tit" data-en="queEs.tit"><b>Diez pantallas,</b> <span>una ventana</span></h2>
       <p class="explica__entrada" data-en="queEs.entrada">
-        Panel, Cabina, Chat, Agenda, Lienzo, Memoria, Cuentas, Comandos y Ajustes.
+        Panel, Cabina, Chat, Agenda, Decisiones, Lienzo, Memoria, Cuentas, Comandos y Ajustes.
         Todo dentro de una aplicación nativa de unos 6 MB, sin un navegador entero
         empaquetado dentro.
       </p>
     </header>
 
-    <div class="fichas" data-aparece>
-      <article class="ficha">
-        <h3 class="ficha__tit" data-en="ficha.cabina.tit">Cabina</h3>
-        <p data-en="ficha.cabina.p">Tantos paneles como te quepan, cada uno con su proyecto, su cliente y su
-           modelo. Se parten a la derecha o abajo, como tú los quieras.</p>
-      </article>
+    <!-- LA MUESTRA. Seis rasgos y, al lado, la captura de verdad de cada uno:
+         las de assets/screens, las mismas de la guía, así que se rehacen solas
+         con cada versión. Sin JavaScript es una lista, cada rasgo con su frase
+         y su foto. Con él (portada/muestra.js) solo el rasgo elegido enseña lo
+         suyo, y a lo ancho su foto pasa a la derecha, grande. El enlace de
+         cada rasgo abre esa misma vista en la demo de arriba. -->
+    <div class="muestra" data-muestra data-aparece>
+      <div class="rasgo">
+        <div class="rasgo__texto">
+          <h3 class="rasgo__tit" data-en="rasgo.cabina.tit">Cabina</h3>
+          <p class="rasgo__p" data-en="rasgo.cabina.p">Tantas terminales como te quepan, cada una con su proyecto, su
+             cliente y su modelo. Las partes a la derecha o abajo.</p>
+          <a class="rasgo__demo" href="#haz" data-demo-vista="cabina" data-en="rasgo.demo">Tocarlo en la demo</a>
+        </div>
+        <figure class="rasgo__foto">
+          <img src="/assets/screens/es/cockpit.png" width="3840" height="2160" loading="lazy" decoding="async"
+               alt="La Cabina con cuatro terminales en rejilla: tres sesiones de Claude Code y una de Codex, y una de ellas pide permiso antes de ejecutar un comando."
+               data-en-attr="src:rasgo.cabina.src|alt:rasgo.cabina.alt">
+        </figure>
+      </div>
 
-      <article class="ficha">
-        <h3 class="ficha__tit" data-en="ficha.panel.tit">Panel</h3>
-        <p data-en="ficha.panel.p">La portada del día: qué sesiones tienes, en qué proyecto, cuáles siguen
-           vivas y cuáles te están esperando.</p>
-      </article>
+      <div class="rasgo">
+        <div class="rasgo__texto">
+          <h3 class="rasgo__tit" data-en="rasgo.lienzo.tit">Lienzo y enjambres</h3>
+          <p class="rasgo__p" data-en="rasgo.lienzo.p">Una mesa infinita con terminales, notas y tableros. Arrastra una
+             sesión sobre otra y forman un enjambre: un solo chat, y Adeo reparte el trabajo.</p>
+          <a class="rasgo__demo" href="#haz" data-demo-vista="lienzo" data-en="rasgo.demo">Tocarlo en la demo</a>
+        </div>
+        <figure class="rasgo__foto">
+          <img src="/assets/screens/es/canvas.png" width="3840" height="2160" loading="lazy" decoding="async"
+               alt="El Lienzo con tres terminales, un tablero con el trabajo de los agentes y dos notas."
+               data-en-attr="src:rasgo.lienzo.src|alt:rasgo.lienzo.alt">
+        </figure>
+      </div>
 
-      <article class="ficha">
-        <h3 class="ficha__tit" data-en="ficha.capataz.tit">Capataz</h3>
-        <p data-en="ficha.capataz.p">Le sueltas un encargo grande, lo parte por archivos y monta una cuadrilla
-           de hasta seis terminales. Antes de abrirlas te enseña lo que va a costar.</p>
-      </article>
+      <div class="rasgo">
+        <div class="rasgo__texto">
+          <h3 class="rasgo__tit" data-en="rasgo.archivos.tit">Archivos</h3>
+          <p class="rasgo__p" data-en="rasgo.archivos.p">El árbol del proyecto y un editor junto a la terminal. Cada archivo
+             lleva su estado en git y la marca de lo que tocó el agente.</p>
+          <a class="rasgo__demo" href="#haz" data-demo-vista="cabina" data-en="rasgo.demo">Tocarlo en la demo</a>
+        </div>
+        <figure class="rasgo__foto">
+          <img src="/assets/screens/es/files.png" width="3840" height="2160" loading="lazy" decoding="async"
+               alt="Dos terminales a la izquierda y, a la derecha, el archivo cart.js abierto junto al árbol del proyecto con sus cambios de git."
+               data-en-attr="src:rasgo.archivos.src|alt:rasgo.archivos.alt">
+        </figure>
+      </div>
 
-      <article class="ficha">
-        <h3 class="ficha__tit" data-en="ficha.chat.tit">Chat</h3>
-        <p data-en="ficha.chat.p">Las mismas sesiones sin la consola delante. Por debajo sigue siendo tu CLI,
-           así que gasta tu suscripción y no una factura por tokens. En pruebas.</p>
-      </article>
+      <div class="rasgo">
+        <div class="rasgo__texto">
+          <h3 class="rasgo__tit" data-en="rasgo.decisiones.tit">Decisiones</h3>
+          <p class="rasgo__p" data-en="rasgo.decisiones.p">Cuando un agente necesita que elijas, te lo pregunta con opciones
+             numeradas y su recomendada. Contestas y sigue trabajando.</p>
+          <a class="rasgo__demo" href="#haz" data-demo-vista="decisiones" data-en="rasgo.demo">Tocarlo en la demo</a>
+        </div>
+        <figure class="rasgo__foto">
+          <img src="/assets/screens/es/decisions.png" width="3840" height="2160" loading="lazy" decoding="async"
+               alt="Una decisión pendiente con dos preguntas, sus opciones numeradas y la recomendada marcada."
+               data-en-attr="src:rasgo.decisiones.src|alt:rasgo.decisiones.alt">
+        </figure>
+      </div>
 
-      <article class="ficha">
-        <h3 class="ficha__tit" data-en="ficha.lienzo.tit">Lienzo</h3>
-        <p data-en="ficha.lienzo.p">Una mesa infinita con notas, kanban, imágenes y terminales sueltas encima.
-           Arrastras una tarjeta del tablero y sale un agente a hacerla.</p>
-      </article>
+      <div class="rasgo">
+        <div class="rasgo__texto">
+          <h3 class="rasgo__tit" data-en="rasgo.cuentas.tit">Cuentas</h3>
+          <p class="rasgo__p" data-en="rasgo.cuentas.p">Varias cuentas del mismo CLI, cada una con lo que lleva gastado de la
+             sesión y de la semana. Tú eliges con cuál nace cada terminal.</p>
+          <a class="rasgo__demo" href="#haz" data-demo-vista="cuentas" data-en="rasgo.demo">Tocarlo en la demo</a>
+        </div>
+        <figure class="rasgo__foto">
+          <img src="/assets/screens/es/accounts.png" width="3840" height="2160" loading="lazy" decoding="async"
+               alt="Las cuentas de Claude Code y Codex, cada una con sus barras de consumo de la sesión y de la semana."
+               data-en-attr="src:rasgo.cuentas.src|alt:rasgo.cuentas.alt">
+        </figure>
+      </div>
 
-      <article class="ficha">
-        <h3 class="ficha__tit" data-en="ficha.memoria.tit">Memoria y Agenda</h3>
-        <p data-en="ficha.memoria.p">Tus notas se buscan por lo que dicen, no por cómo se llaman. Y las ideas
-           que salen al vuelo caen en una bandeja: los agentes proponen, tú aceptas
-           o descartas.</p>
-      </article>
+      <div class="rasgo">
+        <div class="rasgo__texto">
+          <h3 class="rasgo__tit" data-en="rasgo.comandos.tit">Comandos</h3>
+          <p class="rasgo__p" data-en="rasgo.comandos.p">Todo lo que puedes escribir dentro de cada agente, buscado por lo que
+             quieres hacer y no por cómo se llama. Un clic y va a la terminal.</p>
+          <a class="rasgo__demo" href="#haz" data-demo-vista="comandos" data-en="rasgo.demo">Tocarlo en la demo</a>
+        </div>
+        <figure class="rasgo__foto">
+          <img src="/assets/screens/es/commands.png" width="3840" height="2160" loading="lazy" decoding="async"
+               alt="La lista de comandos de Claude Code, cada uno con una frase que dice para qué sirve."
+               data-en-attr="src:rasgo.comandos.src|alt:rasgo.comandos.alt">
+        </figure>
+      </div>
     </div>
   </div>
 </section>
@@ -917,6 +977,7 @@
 
 <script type="module" src="./portada/portada.js"></script>
 <script type="module" src="./portada/movimiento.js"></script>
+<script type="module" src="./portada/muestra.js"></script>
 <script src="./portada/valvula.js" defer></script>
 <script src="./portada/datos.js" defer></script>
 <script src="./portada/idioma.js" defer></script>

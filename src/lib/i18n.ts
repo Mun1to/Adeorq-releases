@@ -1801,6 +1801,10 @@ const EN: Record<string, string> = {
     "This swarm has no sessions yet: add one and send it again.",
   "Juntadas en un enjambre. Su ✕ lo deshace y las terminales se quedan.":
     "Joined into a swarm. Its ✕ breaks it up and the terminals stay.",
+  "Una consola no entra en un enjambre: solo se juntan sesiones de un agente.":
+    "A plain console cannot join a swarm: only agent sessions are joined.",
+  "Para juntarlas, aguanta la terminal encima hasta que la de debajo se encienda, y suelta.":
+    "To join them, hold the terminal on top until the one underneath lights up, then let go.",
   "Ver entera": "Show all",
   Recoger: "Collapse",
   "Tu foto pide": "Your photo calls for",
@@ -2755,6 +2759,92 @@ const EN: Record<string, string> = {
   Apagar: "Turn off",
   "Sí, a la papelera": "Yes, to the bin",
   No: "No",
+
+  // El barrido del 2026-10-13: textos que se pintaban sin pasar por aquí
+  // (pistas montadas con plantillas, el cuadro de archivar, fechas sueltas).
+  "A este nivel, compactar cuesta más que abrir una terminal nueva.":
+    "At this level, compacting costs more than opening a new terminal.",
+  "Activar Modo Espejo (Shadow Git): aísla escrituras de la IA en una rama espejo":
+    "Turn on Shadow Mode (Shadow Git): keeps the AI's writes in a shadow branch",
+  "Adeorq no los toca. Pero si esta sesión era la que trabajaba en ellos, guárdalos (commit) antes de despedirla. La app oficial de Claude, al archivar, los borraría sin avisar; aquí están a salvo.":
+    "Adeorq does not touch them. But if this session was the one working on them, save them (commit) before letting it go. The official Claude app would delete them without warning when archiving; here they are safe.",
+  "Adeorq {v} disponible": "Adeorq {v} is available",
+  "Cada mensaje en esta sesión vuelve a pagar esos {n} tokens.":
+    "Every message in this session pays for those {n} tokens again.",
+  "Claude te dejó una pregunta con opciones": "Claude left you a question with options",
+  "Claude terminó preguntándote algo": "Claude finished by asking you something",
+  "Comprobando si el proyecto tiene trabajo sin guardar…": "Checking whether the project has unsaved work…",
+  "El proyecto está limpio: todo su trabajo está guardado en git.":
+    "The project is clean: all its work is saved in git.",
+  "Encargo copiado y MISION.md escrito. En Antigravity: abre el chat de Gemini, Ctrl+V y Enter. (Instala su CLI agy y esto pasará a ser una terminal más.)":
+    "Brief copied and MISION.md written. In Antigravity: open the Gemini chat, Ctrl+V and Enter. (Install its agy CLI and this becomes one more terminal.)",
+  "Esta carpeta no usa git, no hay nada que comprobar.": "This folder does not use git, there is nothing to check.",
+  "Esta terminal usa tu cuenta «{c}», no la principal": "This terminal uses your “{c}” account, not the main one",
+  "Este proyecto tiene {n} archivo con cambios sin guardar en git:":
+    "This project has {n} file with changes not saved in git:",
+  "Este proyecto tiene {n} archivos con cambios sin guardar en git:":
+    "This project has {n} files with changes not saved in git:",
+  "Imagen o vídeo": "Image or video",
+  "Modo Espejo (SVFS) activo · Rama: {r}": "Shadow Mode (SVFS) on · Branch: {r}",
+  "Se cambia dentro del pane con /model y /effort": "Change it inside the pane with /model and /effort",
+  "el proceso ya terminó": "the process has ended",
+  esfuerzo: "effort",
+  "faltan {n} días": "{n} days left",
+  "hace {n} días": "{n} days ago",
+  "hace {t}": "{t} ago",
+  mañana: "tomorrow",
+  "puesto {n} de {de}": "seat {n} of {de}",
+  "tu plan no lo incluye": "your plan does not include it",
+  "una abierta ahora": "one open right now",
+  "{a} de {b}": "{a} of {b}",
+  "{n} archivos propuestos. Clic para ver diffs.": "{n} proposed files. Click to see the diffs.",
+  "{n} desplegados en total": "{n} deployed in total",
+  "{n} sesiones esperan tu respuesta": "{n} sessions are waiting for your answer",
+  "{n} sesiones recientes": "{n} recent sessions",
+  "{n} sesión espera tu respuesta": "{n} session is waiting for your answer",
+  "{n} sesión reciente": "{n} recent session",
+  "{p} no tiene sesiones recientes": "{p} has no recent sessions",
+  "{p}: plegar sus {n} sesiones": "{p}: fold its {n} sessions",
+  "{p}: ver sus {n} sesiones": "{p}: show its {n} sessions",
+  "«{n}» se ocultará de la lista. Es reversible (botón ⊟ arriba) y no borra nada del disco: ni la conversación ni tus archivos.":
+    "“{n}” will be hidden from the list. It can be undone (the ⊟ button above) and nothing is deleted from disk: neither the conversation nor your files.",
+  "Ábrelo y pulsa «Actualizar ahora» en la barra de arriba.": "Open it and press “Update now” in the top bar.",
+  "última hace {t}": "last one {t} ago",
+  "(sin título)": "(untitled)",
+  "listo en 3,1 s": "done in 3.1 s",
+  "2 avisos": "2 warnings",
+  "ya está abierta en otro sitio (la app de escritorio, otra terminal u otro Adeorq). No la abro aquí: dos Claude sobre la misma sesión se bloquean y se queda congelada sin decir por qué. Ciérrala allí y vuelve a intentarlo.":
+    "is already open somewhere else (the desktop app, another terminal or another Adeorq). I am not opening it here: two Claudes on the same session block each other and it freezes without saying why. Close it there and try again.",
+  "«{c}» ({p}) se cerrará y se borrará su carpeta de configuración, con su historial. Tu cuenta de siempre y tus proyectos no se tocan. Para volver a usarla habría que hacer el login otra vez.":
+    "“{c}” ({p}) will be signed out and its configuration folder deleted, with its history. Your usual account and your projects are not touched. To use it again you would have to log in once more.",
+  "La terminal sigue funcionando, pero su conversación deja de estar en disco: al cerrarla no habrá nada que retomar.":
+    "The terminal keeps working, but its conversation is no longer on disk: once you close it there will be nothing to resume.",
+  // Lo que llega en una variable, y por eso `pnpm i18n` no lo ve pasar: el
+  // error de la cuota (de Rust), los roles del Reparto, cómo se instala un
+  // cliente y lo que hizo un agente en un turno del Chat.
+  "el CLI no devolvió límites": "the CLI returned no limits",
+  "la interfaz: HTML, CSS y componentes": "the interface: HTML, CSS and components",
+  "el servidor, los datos y las APIs": "the server, the data and the APIs",
+  "revisar y endurecer: secretos, validación de entradas, dependencias":
+    "review and harden: secrets, input validation, dependencies",
+  "tipografías, paleta, espaciado y consistencia visual": "typography, palette, spacing and visual consistency",
+  "el instalador de ampcode.com (por pnpm no deja binario en Windows)":
+    "the installer from ampcode.com (via pnpm it leaves no binary on Windows)",
+  "el instalador de cursor.com (el paquete de npm NO es suyo)":
+    "the installer from cursor.com (the npm package is NOT theirs)",
+  "pnpm add -g @moonshot-ai/kimi-code (pide Node 22.19+; también tiene script propio)":
+    "pnpm add -g @moonshot-ai/kimi-code (needs Node 22.19+; it also has its own script)",
+  leyó: "read",
+  buscó: "searched",
+  editó: "edited",
+  escribió: "wrote",
+  ejecutó: "ran",
+  "mandó un subagente": "sent a subagent",
+  "miró en la web": "looked on the web",
+  "buscó en la web": "searched the web",
+  "apuntó tareas": "noted tasks",
+  "te preguntó": "asked you",
+  "usó herramientas": "used tools",
 };
 
 export function detectLang(): Lang {

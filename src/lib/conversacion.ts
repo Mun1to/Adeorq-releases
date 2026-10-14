@@ -92,11 +92,11 @@ export function sessionActivity(cwd: string, sessionId?: string): Promise<Activi
  * lo que ha pasado; el volcado de cada llamada tampoco es conversación. El
  * término medio es una línea: «leyó 3 · escribió 2».
  */
-export function resumeHerramientas(nombres: string[]): string {
+export function resumeHerramientas(nombres: string[], t: (s: string) => string = (s) => s): string {
   if (!nombres.length) return "";
   const cuenta = new Map<string, number>();
   for (const n of nombres) {
-    const q = FAMILIA[n] ?? "usó herramientas";
+    const q = t(FAMILIA[n] ?? "usó herramientas");
     cuenta.set(q, (cuenta.get(q) ?? 0) + 1);
   }
   return [...cuenta].map(([q, n]) => (n > 1 ? `${q} ×${n}` : q)).join(" · ");

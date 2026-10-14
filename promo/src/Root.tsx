@@ -42,43 +42,33 @@ async function vozDe(idioma: Idioma): Promise<Voces> {
 }
 
 /**
- * Cuatro piezas, y cada una en cada idioma: `Promo-es`, `Promo-en`,
- * `Media-es`... Son el MISMO montaje con el mismo guion: lo único que cambia
- * entre dos composiciones es el idioma, el tamaño y qué corte del guion es.
+ * Una sola pieza, en cada idioma: `Promo-es` y `Promo-en`. Son el MISMO
+ * montaje con el mismo guion: lo único que cambia entre las dos es el idioma.
+ *
+ * Hubo cuatro (la entera, la media, la vertical y la de bolsillo) mientras el
+ * guion eran diez pantallas que se podían quitar de una en una. Con una pieza
+ * de menos de un minuto no hay nada que recortar; la vertical se rehace
+ * cuando la horizontal esté aprobada, porque una captura a pantalla completa
+ * no cabe de pie sin otro encuadre.
  */
-const PIEZAS = [
-  // La entera: X, LinkedIn, YouTube y el README (subiendo el MP4).
-  { id: "Promo", ancho: 1920, alto: 1080, corte: "entera" },
-  // La misma sin las escenas marcadas `opcional` en el guion.
-  { id: "Media", ancho: 1920, alto: 1080, corte: "media" },
-  // La vertical, para Instagram y TikTok. Todo se mide con la misma vara
-  // (`useMedidas`), así que el texto y el marco se recolocan solos.
-  { id: "Vertical", ancho: 1080, alto: 1920, corte: "media" },
-  // La de bolsillo, solo con las escenas marcadas `corta` en el guion. De
-  // ella sale también el GIF, que con la pieza entera pesaría decenas de megas.
-  { id: "Corta", ancho: 1920, alto: 1080, corte: "corta" },
-] as const;
-
 export function Root() {
   return (
     <>
-      {PIEZAS.flatMap((p) =>
-        IDIOMAS.map((idioma) => (
-          <Composition
-            key={`${p.id}-${idioma}`}
-            id={`${p.id}-${idioma}`}
-            component={Promo}
-            defaultProps={{ idioma, corte: p.corte }}
-            calculateMetadata={async ({ props }) => {
-              const conVoz = { ...props, voz: await vozDe(props.idioma) };
-              return { durationInFrames: duracionTotal(conVoz), props: conVoz };
-            }}
-            fps={FPS}
-            width={p.ancho}
-            height={p.alto}
-          />
-        )),
-      )}
+      {IDIOMAS.map((idioma) => (
+        <Composition
+          key={idioma}
+          id={`Promo-${idioma}`}
+          component={Promo}
+          defaultProps={{ idioma }}
+          calculateMetadata={async ({ props }) => {
+            const conVoz = { ...props, voz: await vozDe(props.idioma) };
+            return { durationInFrames: duracionTotal(conVoz), props: conVoz };
+          }}
+          fps={FPS}
+          width={1920}
+          height={1080}
+        />
+      ))}
       {/* No es una pieza: es el muestrario de pasos, para elegirlos mirando. */}
       <Composition id="Transiciones" component={Muestra} durationInFrames={duracionDeLaMuestra} fps={FPS} width={1920} height={1080} />
     </>

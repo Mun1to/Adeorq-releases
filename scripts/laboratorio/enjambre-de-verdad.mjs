@@ -14,7 +14,9 @@
 // que lo escrito en la caja llega a Adeo con el estado de cada sesión, que lo
 // que Adeo manda entra por el teclado de SU terminal y de ninguna otra, que la
 // respuesta de esa sesión vuelve al hilo, que minimizar no mata ningún proceso
-// y que deshacerlo borra el chat y deja las terminales.
+// y que deshacerlo borra el chat y deja las terminales. Y al final, con el
+// tablero ya sin enjambre, lo que NO se junta: una consola soltada encima de
+// una sesión y dos sesiones soltadas antes de tiempo dicen por qué.
 //
 // LO ÚNICO DE MENTIRA ES EL MODELO. El `claude` de esa casa es un programa de
 // veinte líneas que se compila aquí: llamado con `-p` (Adeo) contesta en el
@@ -289,6 +291,8 @@ try {
         term("9", 700, SESIONES.portada),
         // La tercera está en el tablero pero fuera del grupo: es la que se arrastra.
         term("11", 1400, SESIONES.pruebas),
+        // Y una consola, debajo de la tercera: la que no entra en ningún enjambre.
+        { tipo: "term", id: "13", x: 1400, y: 480, w: 640, h: 420, kind: "shell", proyecto: "tienda", ruta: PROYECTO, cmd: ["cmd.exe", "/k", "echo consola"] },
         { tipo: "enjambre", id: "j1", x: -480, y: 0, w: 440, h: 520, conv: CONV, nombre: "Los de la tienda", color: "verde", miembros: [{ nodo: "7" }, { nodo: "9" }], plegadas: false },
       ],
       flechas: [],
@@ -408,7 +412,11 @@ try {
   await dormir(1200);
   const caja = (sel) => v.js(`(() => { const r = document.querySelector(${JSON.stringify(sel)})?.getBoundingClientRect(); return r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null; })()`);
   const raton = (type, x, y) => v.enviar("Input.dispatchMouseEvent", { type, x, y, button: "left", buttons: type === "mouseReleased" ? 0 : 1, clickCount: 1 });
-  const tercera = await v.js(`[...document.querySelectorAll(".react-flow__node-term")].map((n) => n.getAttribute("data-id")).find((id) => !document.querySelector('.enj-fila[data-panel="' + id + '"]'))`);
+  // Fuera del grupo hay dos: la tercera sesión y, debajo de ella, la consola.
+  const [tercera, consola] = await v.js(`[...document.querySelectorAll(".react-flow__node-term")]
+    .filter((n) => !document.querySelector('.enj-fila[data-panel="' + n.getAttribute("data-id") + '"]'))
+    .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+    .map((n) => n.getAttribute("data-id"))`);
   const asa = await caja(`.react-flow__node-term[data-id="${tercera}"] .pane-head`);
   const tarjeta = await caja(".rf-enjambre");
   const antesDeArrastrar = await caja(`.react-flow__node-term[data-id="${tercera}"]`);
@@ -446,7 +454,53 @@ try {
   await v.js(`document.querySelector(".rf-enjambre .enj-x[data-armada]")?.click()`);
   const ido = await hasta(async () => (await pieza()) === null && !existsSync(join(DATOS, "conserje", `${CONV}.json`)), 10_000);
   const quedan = await v.js(`[...document.querySelectorAll(".react-flow__node-term")].filter((n) => getComputedStyle(n).visibility !== "hidden").length`);
-  dice(armada && ido === true && quedan === 3 && !!pids && pids.every(vivo), `deshacerlo pide dos toques, borra el chat del grupo del disco y deja las ${quedan} terminales vivas y a la vista`);
+  dice(armada && ido === true && quedan === 4 && !!pids && pids.every(vivo), `deshacerlo pide dos toques, borra el chat del grupo del disco y deja las ${quedan} terminales vivas y a la vista`);
+
+  // ------------------------------------------------------------ lo que no se junta lo dice
+  // Munir, 2026-10-13: «arrastro las sesiones que tengo en el lienzo una encima
+  // de otra y no pasa absolutamente nada». Su tablero tenía dos consolas y una
+  // sola sesión de agente, y ningún enjambre: como queda este ahora.
+  await v.js(`document.querySelector(".react-flow__controls-fitview")?.click()`);
+  await dormir(1200);
+  const nota = () => v.js(`document.querySelector(".relay-note")?.textContent ?? ""`);
+  const enjambres = () => v.js(`document.querySelectorAll(".react-flow__node-enjambre").length`);
+  /** Coge una terminal por su cabecera, la deja encima de otra, aguanta y
+   *  suelta. Devuelve si la de debajo llegó a encenderse. */
+  const llevar = async (de, a, pasos, aguanta) => {
+    const asaDe = await caja(`.react-flow__node-term[data-id="${de}"] .pane-head`);
+    const suya = await caja(`.react-flow__node-term[data-id="${de}"]`);
+    const otra = await caja(`.react-flow__node-term[data-id="${a}"]`);
+    if (!asaDe || !suya || !otra) return null;
+    const desde = { x: asaDe.x + 70, y: asaDe.y + asaDe.h / 2 };
+    const fin = { x: desde.x + otra.x - suya.x + 8, y: desde.y + otra.y - suya.y + 8 };
+    await v.enviar("Input.dispatchMouseEvent", { type: "mouseMoved", x: desde.x, y: desde.y });
+    await raton("mousePressed", desde.x, desde.y);
+    await raton("mouseMoved", desde.x - 3, desde.y + 3);
+    await dormir(40);
+    for (let i = 1; i <= pasos; i++) await raton("mouseMoved", desde.x + ((fin.x - desde.x) * i) / pasos, desde.y + ((fin.y - desde.y) * i) / pasos);
+    await dormir(aguanta);
+    const seEnciende = await v.js(`!!document.querySelector(".react-flow__node.enj-diana")`);
+    await raton("mouseReleased", fin.x, fin.y);
+    return { seEnciende };
+  };
+  // La consola, aguantada un segundo encima de la tercera sesión: el doble de
+  // lo que tarda en encenderse una sesión.
+  const conConsola = await llevar(consola, tercera, 10, 1000);
+  const dichoConsola = await hasta(async () => ((await nota()).includes("Una consola no entra en un enjambre") ? nota() : null), 4000);
+  dice(
+    conConsola?.seEnciende === false && !!dichoConsola && (await enjambres()) === 0,
+    `una consola aguantada encima de una sesión no enciende nada, y al soltarla no se juntan y se dice por qué («${dichoConsola ?? (await nota())}»)`,
+  );
+  // Dos sesiones, soltadas nada más llegar: sí pueden juntarse, pero falta aguantar.
+  const [una, otra] = paneles.map(String);
+  const conPrisa = await llevar(una, otra, 4, 0);
+  const dichoPrisa = await hasta(async () => ((await nota()).includes("aguanta la terminal encima") ? nota() : null), 4000);
+  dice(
+    conPrisa?.seEnciende === false && !!dichoPrisa && (await enjambres()) === 0,
+    `dos sesiones soltadas antes de tiempo tampoco se juntan, y se dice cómo («${dichoPrisa ?? (await nota())}»)`,
+  );
+  const fotoAviso = await v.enviar("Page.captureScreenshot", { format: "png" });
+  writeFileSync(FOTO.replace(".png", "-aviso.png"), Buffer.from(fotoAviso.data, "base64"));
   v.cerrar();
 } catch (e) {
   dice(false, e.message);

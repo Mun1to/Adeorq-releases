@@ -156,10 +156,20 @@ for (const idioma of IDIOMAS) {
   }
 
   const raiz = JSON.parse(leer(idioma, 'raiz.json') || '{"html":{}}');
-  const salida =
+  // El saludo del Panel sale de la hora a la que se volcó la app: de madrugada
+  // dice «Aún en pie, Sam.», y eso en una portada se lee raro a cualquier hora.
+  // En la demostración es siempre el de media tarde.
+  const salida = (
     `<!-- GENERADO por scripts/hacer-demo.mjs desde el volcado de la app. No editar a mano. -->\n` +
     `<meta name="adeorq-raiz" content='${JSON.stringify(raiz.html).replace(/'/g, '&#39;')}'>\n` +
-    app.outerHTML + '\n' + piezas.join('\n') + '\n';
+    app.outerHTML + '\n' + piezas.join('\n') + '\n'
+  )
+    .replaceAll('Aún en pie, ', 'Buenas tardes, ')
+    .replaceAll('Buenos días, ', 'Buenas tardes, ')
+    .replaceAll('Buenas noches, ', 'Buenas tardes, ')
+    .replaceAll('Still up, ', 'Good afternoon, ')
+    .replaceAll('Good morning, ', 'Good afternoon, ')
+    .replaceAll('Good evening, ', 'Good afternoon, ');
 
   for (const patron of PROHIBIDO) {
     const hallado = salida.match(patron);

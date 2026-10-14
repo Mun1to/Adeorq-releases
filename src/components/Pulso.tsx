@@ -143,7 +143,7 @@ export default function Pulso() {
           />
           <Fila
             etiqueta={t("Memoria de todo el equipo")}
-            valor={`${bonito(d.sistemaMb, lang)} de ${bonito(d.totalMb, lang)}`}
+            valor={t("{a} de {b}", { a: bonito(d.sistemaMb, lang), b: bonito(d.totalMb, lang) })}
             pct={d.sistemaPct}
             alto={d.sistemaPct >= 90}
           />

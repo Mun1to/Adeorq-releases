@@ -299,6 +299,22 @@ export function sobreQuien(suelta: Caja, otras: ReadonlyArray<{ id: string; caja
   return mejor;
 }
 
+/** Por qué soltar una terminal encima de otra pieza no las ha juntado. */
+export type MotivoDeNoJuntar = "consola" | "pronto";
+
+/**
+ * El motivo, para decirlo en vez de callar: quien suelta una terminal encima
+ * de otra y no ve nada cree que el gesto no existe (Munir, 2026-10-13, con dos
+ * consolas y una sola sesión de agente en el tablero: «no pasa absolutamente
+ * nada»). `debajo` es la pieza sobre la que se soltó, entre o no entre en un
+ * enjambre; sin ella fue un movimiento normal y no hay nada que decir.
+ */
+export function porQueNoSeJuntan(sueltaEntra: boolean, debajo: { entra: boolean } | null, aguanto: boolean): MotivoDeNoJuntar | null {
+  if (!debajo) return null;
+  if (!sueltaEntra || !debajo.entra) return "consola";
+  return aguanto ? null : "pronto";
+}
+
 /** Lo que mide un enjambre al nacer. */
 export const ENJAMBRE_W = 440;
 export const ENJAMBRE_H = 520;

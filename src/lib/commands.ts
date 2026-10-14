@@ -76,15 +76,15 @@ export const COMMANDS: CommandDoc[] = [
 
   // ── Antigravity (agy) · de su propia ayuda
   { cmd: "agy", tool: "agy", es: "Abrir Antigravity en la carpeta actual.", en: "Open Antigravity in the current folder.", tags: "gemini abrir" },
-  { cmd: 'agy "lo que quieras"', tool: "agy", es: "Arrancar ya con una orden escrita.", en: "Start with an initial instruction.", tags: "prompt orden" },
+  { cmd: 'agy "prompt"', tool: "agy", es: "Arrancar ya con una orden escrita.", en: "Start with an initial instruction.", tags: "prompt orden" },
   { cmd: "agy -p", tool: "agy", es: "Una sola pregunta y su respuesta, sin abrir sesión.", en: "Run a single prompt non-interactively.", tags: "print rapido" },
   { cmd: "agy -c", tool: "agy", es: "Continuar la última conversación.", en: "Continue the most recent conversation.", tags: "continuar retomar" },
   { cmd: "agy --conversation <id>", tool: "agy", es: "Retomar una conversación concreta por su id.", en: "Resume a conversation by ID.", tags: "retomar id" },
-  { cmd: "agy --model <modelo>", tool: "agy", es: "Elegir el modelo de Gemini.", en: "Pick the model for the session.", tags: "gemini modelo" },
+  { cmd: "agy --model <model>", tool: "agy", es: "Elegir el modelo de Gemini.", en: "Pick the model for the session.", tags: "gemini modelo" },
   { cmd: "agy --effort <low|medium|high>", tool: "agy", es: "Cuánto se lo piensa.", en: "Reasoning effort for the session.", tags: "esfuerzo" },
   { cmd: "agy --mode accept-edits", tool: "agy", es: "Modo Auto: edita archivos sin preguntar (así lo abre Adeorq).", en: "Auto mode: file edits auto-approved.", tags: "auto permisos" },
   { cmd: "agy --mode plan", tool: "agy", es: "Modo plan: primero el plan, luego tocar.", en: "Plan mode.", tags: "plan" },
-  { cmd: "agy --add-dir <carpeta>", tool: "agy", es: "Dar acceso a otra carpeta.", en: "Add a directory to the workspace.", tags: "carpeta acceso" },
+  { cmd: "agy --add-dir <dir>", tool: "agy", es: "Dar acceso a otra carpeta.", en: "Add a directory to the workspace.", tags: "carpeta acceso" },
   { cmd: "agy --sandbox", tool: "agy", es: "Correr con la terminal restringida.", en: "Run in a sandbox with terminal restrictions.", tags: "seguro aislado" },
   { cmd: "agy agents", tool: "agy", es: "Ver los agentes disponibles.", en: "List available agents.", tags: "agentes" },
   { cmd: "agy changelog", tool: "agy", es: "Novedades de la versión.", en: "Show changelog and release notes.", tags: "novedades cambios" },

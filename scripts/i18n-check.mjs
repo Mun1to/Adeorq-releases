@@ -72,21 +72,100 @@ for (const f of archivos(SRC)) {
     .replace(/^\s*\/\/.*$/gm, "")
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
 
-  const sospechosos = [
-    // placeholder="…", data-tip="…", title="…". Los ya envueltos van como
-    // `={t("…")}` y no casan, que es justo lo que se quiere.
-    ...[...sinComentarios.matchAll(/(?:placeholder|data-tip|title|aria-label|alt)=\{?\s*"([^"\n]{4,})"/g)],
-    // Texto suelto entre etiquetas: <p>Arrastra uno sobre…</p>
-    ...[...sinComentarios.matchAll(/>\s*([^<>{}\n]{6,}?)\s*</g)],
-  ];
+  const apuntar = (txt) => {
+    const clave = `${donde}|${txt}`;
+    if (!enDuro.has(clave)) enDuro.set(clave, [donde, txt]);
+  };
 
-  for (const m of sospechosos) {
+  // placeholder="…", data-tip="…", title="…". Los ya envueltos van como
+  // `={t("…")}` y no casan, que es justo lo que se quiere. Que el texto esté en
+  // el diccionario no lo salva: escrito así no pasa por el traductor
+  // (`data-tip="sesión abierta ahora"` salía en español con la app en inglés).
+  for (const m of sinComentarios.matchAll(/(?:placeholder|data-tip|title|aria-label|alt)=\{?\s*"([^"\n]{4,})"\s*\}?[\s/>]/g)) {
+    if (ESPANOL.test(m[1])) apuntar(m[1].trim());
+  }
+  // Texto suelto entre etiquetas: <p>Arrastra uno sobre…</p>
+  for (const m of sinComentarios.matchAll(/>\s*([^<>{}\n]{6,}?)\s*</g)) {
     const txt = m[1].trim();
     if (!ESPANOL.test(txt)) continue;
     if (traducidas.has(txt) || claves.has(txt)) continue;
-    const clave = `${donde}|${txt}`;
-    if (!enDuro.has(clave)) enDuro.set(clave, [donde, txt]);
+    apuntar(txt);
   }
+
+  // 3. Lo que el punto 2 no ve, y por donde se coló media barra lateral hasta
+  //    el 2026-10-13: el texto que va DENTRO de una expresión. Una pista
+  //    montada con una plantilla (`data-tip={`Modelo: ${m}\nSe cambia…`}`), un
+  //    `{abierto ? "plegar" : "ver"}`, y la prosa de varios renglones entre
+  //    etiquetas. Se quitan las llamadas a t() y se mira lo que queda.
+  for (const m of sinComentarios.matchAll(/(?:placeholder|data-tip|title|aria-label|alt)=\{/g)) {
+    const expr = sinT(hastaSuLlave(sinComentarios, m.index + m[0].length));
+    for (const txt of literalesDe(expr)) if (suenaEspanol(txt)) apuntar(txt.replace(/\s+/g, " ").trim());
+  }
+  const sinPlantillas = sinComentarios.replace(/`(?:[^`\\]|\\.)*`/g, (p) => p.replace(/[^\n]/g, " "));
+  for (const m of sinPlantillas.matchAll(/^[ \t]+([A-Za-zÁÉÍÓÚÑáéíóúñ«¿¡⚠✓…][^={}<>;`"()\n]{12,})$/gm)) {
+    const txt = m[1].trim();
+    if (ESPANOL.test(txt) && txt.split(/\s+/).length >= 3 && !/^(?:import|export|return|const|let|case|type|interface)\b/.test(txt)) apuntar(txt);
+  }
+}
+
+/** El trozo de `src` que va desde `i` hasta la llave que cierra la que se abrió
+ *  justo antes, sin contar las de dentro de cadenas y plantillas. */
+function hastaSuLlave(src, i) {
+  let hondo = 1;
+  let comilla = null;
+  let j = i;
+  for (; j < src.length && hondo > 0; j++) {
+    const c = src[j];
+    if (comilla === '"' || comilla === "'") {
+      if (c === "\\") j++;
+      else if (c === comilla || c === "\n") comilla = null;
+    } else if (c === '"' || c === "'") comilla = c;
+    else if (c === "{") hondo++;
+    else if (c === "}") hondo--;
+  }
+  return src.slice(i, j - 1);
+}
+
+/** Lo mismo sin las llamadas a t(…), que ya pasan por el traductor. */
+function sinT(expr) {
+  let fuera = "";
+  let i = 0;
+  const re = /\bt\(/g;
+  let m;
+  while ((m = re.exec(expr))) {
+    fuera += expr.slice(i, m.index);
+    let hondo = 1;
+    let comilla = null;
+    let j = m.index + m[0].length;
+    for (; j < expr.length && hondo > 0; j++) {
+      const c = expr[j];
+      if (comilla) {
+        if (c === "\\") j++;
+        else if (c === comilla) comilla = null;
+      } else if (c === '"' || c === "'" || c === "`") comilla = c;
+      else if (c === "(") hondo++;
+      else if (c === ")") hondo--;
+    }
+    i = j;
+    re.lastIndex = j;
+  }
+  return fuera + expr.slice(i);
+}
+
+/** Los textos escritos en una expresión: lo de entre comillas y lo fijo de
+ *  cada plantilla (lo de dentro de `${…}` es código, no texto). */
+function literalesDe(expr) {
+  const fuera = [...expr.matchAll(/"((?:[^"\\\n]|\\.){3,})"|'((?:[^'\\\n]|\\.){3,})'/g)].map((m) => m[1] ?? m[2]);
+  const fijo = expr.replace(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g, " ").replace(/\$\{[^{}]*\}/g, " ");
+  for (const m of fijo.matchAll(/`([^`]{3,})`/g)) fuera.push(m[1].replace(/\\n/g, " "));
+  return fuera;
+}
+
+/** Con tilde, o con dos palabras de las que solo se escriben en español. */
+function suenaEspanol(txt) {
+  if (ESPANOL.test(txt)) return true;
+  const comunes = txt.match(/(?:^|[\s(])(?:del?|las?|el|los|una?|que|con|sin|para|por|sus?|hace|est[ae]|se|ya|sesiones|ahora|dentro|abre|ver|cada|esfuerzo|puesto|modelo|trabajando)(?=[\s.,:;)]|$)/gi);
+  return (comunes?.length ?? 0) >= 2;
 }
 
 let mal = 0;

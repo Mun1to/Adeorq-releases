@@ -50,7 +50,7 @@ import {
   type Note,
   type Project,
 } from "../lib/pty";
-import { useT } from "../lib/i18n";
+import { useT, type Translate } from "../lib/i18n";
 import { latido } from "../lib/latido";
 import ProjectAvatar from "./ProjectAvatar";
 import AgendaSesiones, { ESPERAN } from "./AgendaSesiones";
@@ -182,13 +182,13 @@ function nombreDelMes(anio: number, mes: number, lang: string): string {
 }
 
 /** "faltan 7 días", "hoy", "hace 3 días": the number he actually reads. */
-function whenText(date: string): string {
+function whenText(date: string, t: Translate): string {
   const left = daysTo(date);
-  if (left === 0) return "hoy";
-  if (left === 1) return "mañana";
-  if (left > 0) return `faltan ${left} días`;
-  if (left === -1) return "ayer";
-  return `hace ${-left} días`;
+  if (left === 0) return t("hoy");
+  if (left === 1) return t("mañana");
+  if (left > 0) return t("faltan {n} días", { n: left });
+  if (left === -1) return t("ayer");
+  return t("hace {n} días", { n: -left });
 }
 
 /**
@@ -1074,7 +1074,7 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
           <ul className="cal-list">
             {shownVentanas.map((v) => (
               <li key={v.id} className="cal-item" data-urgency={urgency(v)}>
-                <span className="cal-when">{whenText(v.date)}</span>
+                <span className="cal-when">{whenText(v.date, t)}</span>
                 <span className="cal-title stream-hide">
                   {v.url ? (
                     <a href={v.url} target="_blank" rel="noreferrer">

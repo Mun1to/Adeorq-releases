@@ -171,6 +171,7 @@ function primeraLinea(texto: string): string {
 }
 
 const Burbuja = memo(function Burbuja({ turno }: { turno: Turno }) {
+  const { t } = useT();
   // El transcript es prosa en markdown, que es como lo escribe el agente.
   // Pintarlo en crudo sería enseñar asteriscos y comillas invertidas.
   //
@@ -182,7 +183,7 @@ const Burbuja = memo(function Burbuja({ turno }: { turno: Turno }) {
     <article className="chat-turno" data-rol={turno.rol}>
       <div className="chat-burbuja" onClick={abrirEnlacesFuera} dangerouslySetInnerHTML={{ __html: html }} />
       {turno.herramientas.length > 0 && (
-        <p className="chat-tools">{resumeHerramientas(turno.herramientas)}</p>
+        <p className="chat-tools">{resumeHerramientas(turno.herramientas, t)}</p>
       )}
     </article>
   );
@@ -499,7 +500,7 @@ ${v}` : txt));
       <header className="chat-cabecera">
         <ProjectAvatar name={abierta.project} className="pavatar-mini" />
         <span className="chat-cab-id">
-          <strong>{abierta.title || t("sin título")}</strong>
+          <strong>{abierta.title === "(sin título)" ? t("(sin título)") : abierta.title || t("sin título")}</strong>
           <em>{abierta.cwd}</em>
         </span>
         {/* El par de la referencia: la misma sesión, limpia o en crudo.
@@ -783,7 +784,7 @@ ${v}` : txt));
                     }}
                   >
                     <span className="chat-fila-txt">
-                      <span className="chat-fila-tit">{s.title || t("sin título")}</span>
+                      <span className="chat-fila-tit">{s.title === "(sin título)" ? t("(sin título)") : s.title || t("sin título")}</span>
                       <span className="chat-fila-sub">
                         {s.project}
                         {s.live && <span className="live-dot" />}

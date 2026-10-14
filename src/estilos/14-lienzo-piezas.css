@@ -598,7 +598,11 @@
 .wdg-caldia-fecha {
   color: var(--muted);
   font-size: 11px;
-  text-transform: capitalize;
+}
+
+/* Solo la primera letra: «Martes, 13 de octubre» (ver `.ag-dia h1`). */
+.wdg-caldia-fecha::first-letter {
+  text-transform: uppercase;
 }
 
 .wdg-caldia-nota {

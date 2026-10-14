@@ -8,7 +8,7 @@
 //
 //   pnpm bancos reglas-pantalla
 
-import { estadoDelPanel, loginSegun, parseAsk, PREGUNTAS } from "../src/lib/reglasPantalla";
+import { estadoDelPanel, loginSegun, parseAsk, pieDePantalla, PREGUNTAS } from "../src/lib/reglasPantalla";
 
 let fallos = 0;
 function ok(nombre: string, cond: boolean, detalle = "") {
@@ -88,6 +88,49 @@ ok(
   "ningún estado se queda sin porqué",
   (["pregunta", "ofrece", "lista", "a_medias", "tuya", ""] as const).every((s) => estadoDelPanel({ ...base, transcript: s }).porque.length > 20),
 );
+
+// --- Codex: la pregunta está en pantalla y el cursor, arriba --------------------------
+// Las dos pantallas son las de un Codex 0.147 de verdad dentro de un panel
+// (2026-10-13). Con el cursor aparcado en la primera fila, de las quince filas
+// «de encima del cursor» solo se leía esa: la barra de botones no salía nunca.
+const codexPermiso = [
+  "• Running node C:\\proyectos\\tienda\\hecho.js",
+  "",
+  "  Would you like to run the following command?",
+  "",
+  "  Environment: local",
+  "",
+  "  $ node C:\\proyectos\\tienda\\hecho.js",
+  "",
+  "› 1. Yes, proceed (y)",
+  '  2. Yes, and don\'t ask again for commands that start with `node "C:\\\\proyectos\\\\tienda\\',
+  '     \\\\hecho.js"` (p)',
+  "  3. No, and tell Codex what to do differently (esc)",
+  "",
+  "  Press enter to confirm or esc to cancel",
+];
+const codexConfianza = [
+  "> You are in C:\\proyectos\\tienda",
+  "",
+  "  Do you trust the contents of this directory? Working with untrusted contents comes with higher risk of",
+  "  prompt injection. Trusting the directory allows project-local config, hooks, and exec policies to load.",
+  "",
+  "› 1. Yes, continue",
+  "  2. No, quit",
+  "",
+  "  Press enter to continue",
+];
+/** Una pantalla de `filas` filas con esas líneas arriba, como la deja Codex. */
+const pie = (lineas: string[], filas = 30) => pieDePantalla((y) => lineas[y] ?? "", filas);
+const delCursor = (lineas: string[]) => lineas.slice(0, 1).join("\n");
+ok("Codex pide permiso: por el cursor no se ve nada", parseAsk(delCursor(codexPermiso)) === null);
+const pc = parseAsk(pie(codexPermiso));
+es("Codex pide permiso: por el pie de la pantalla salen sus tres opciones", pc?.options.map((o) => o.n), ["1", "2", "3"]);
+ok("y son las suyas, tecleadas sin Intro", pc?.options[0].label === "Yes, proceed (y)" && pc.options[2].label.startsWith("No, and tell Codex") && pc.enter === false && pc.regla.startsWith("Would you like to run"));
+const cc = parseAsk(pie(codexConfianza));
+es("Codex pregunta si confías en la carpeta: sus dos opciones", cc?.options.map((o) => `${o.n} ${o.label}`), ["1 Yes, continue", "2 No, quit"]);
+ok("una pantalla vacía no tiene pie que leer", pie([]) === "" && parseAsk(pie([])) === null);
+es("el pie son las últimas filas con algo, no las últimas de la pantalla", pieDePantalla((y) => ["a", "b", "c", "", ""][y] ?? "", 5, 2), "b\nc");
 
 console.log(fallos ? `\n${fallos} FALLOS` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

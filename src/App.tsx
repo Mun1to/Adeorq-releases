@@ -3630,10 +3630,8 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
 
       {sesionOcupada && (
         <div className="ocupada-bar">
-          <strong>«{sesionOcupada}»</strong> ya está abierta en otro sitio (la app de
-          escritorio, otra terminal u otro Adeorq). No la abro aquí: dos Claude sobre la
-          misma sesión se bloquean y se queda congelada sin decir por qué. Ciérrala allí
-          y vuelve a intentarlo.
+          <strong>«{sesionOcupada}»</strong>{" "}
+          {t("ya está abierta en otro sitio (la app de escritorio, otra terminal u otro Adeorq). No la abro aquí: dos Claude sobre la misma sesión se bloquean y se queda congelada sin decir por qué. Ciérrala allí y vuelve a intentarlo.")}
           <button className="pane-close" onClick={() => setSesionOcupada(null)}>
             ×
           </button>

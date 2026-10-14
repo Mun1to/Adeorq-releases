@@ -12,11 +12,7 @@
     "tipos": "tsc --noEmit",
     "ver": "node sonido.mjs && remotion studio src/index.ts",
     "render": "node render.mjs Promo",
-    "media": "node render.mjs Media",
-    "muestra": "node render.mjs Transiciones",
-    "vertical": "node render.mjs Vertical",
-    "corta": "node render.mjs Corta",
-    "gif": "node render.mjs Corta gif"
+    "muestra": "node render.mjs Transiciones"
   },
   "dependencies": {
     "@remotion/cli": "4.0.507",

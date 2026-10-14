@@ -2,9 +2,9 @@ import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { AbsoluteFill, Easing, useCurrentFrame } from "remotion";
 import { COLOR, FUENTE } from "./casa";
 import { Fondo } from "./Fondo";
+import { Producto } from "./escenas/3-Producto";
 import { ESCENAS, type EscenaPantalla } from "./guion";
 import { EnIdioma } from "./idioma";
-import { Pantalla } from "./Pantalla";
 import { PASOS, type NombreDePaso, type Paso } from "./transiciones";
 
 /**
@@ -25,11 +25,11 @@ export const duracionDeLaMuestra = NOMBRES.length * CADA + QUIETA;
 /** Una pantalla ya asentada: se le da un corte anterior y una escena muy
     larga, para que esté quieta en su primera función mientras se la mira
     pasar, que es como la pilla un paso en la pieza. */
-function Quieta({ escena, numero }: { escena: EscenaPantalla; numero: number }) {
+function Quieta({ escena }: { escena: EscenaPantalla }) {
   return (
     <AbsoluteFill>
       <Fondo />
-      <Pantalla escena={escena} numero={numero} entra={-70} largo={1200} />
+      <Producto escena={escena} entra={-70} largo={1200} />
     </AbsoluteFill>
   );
 }
@@ -45,7 +45,7 @@ export function Muestra() {
         <TransitionSeries>
           {NOMBRES.flatMap((nombre, i) => [
             <TransitionSeries.Sequence key={`a-${nombre}`} durationInFrames={i === 0 ? QUIETA + PASA : QUIETA + 2 * PASA}>
-              <Quieta escena={DOS[i % 2]} numero={(i % 2) + 1} />
+              <Quieta escena={DOS[i % 2]} />
             </TransitionSeries.Sequence>,
             <TransitionSeries.Transition
               key={`p-${nombre}`}
@@ -54,7 +54,7 @@ export function Muestra() {
             />,
           ])}
           <TransitionSeries.Sequence durationInFrames={QUIETA + PASA}>
-            <Quieta escena={DOS[NOMBRES.length % 2]} numero={(NOMBRES.length % 2) + 1} />
+            <Quieta escena={DOS[NOMBRES.length % 2]} />
           </TransitionSeries.Sequence>
         </TransitionSeries>
         <div

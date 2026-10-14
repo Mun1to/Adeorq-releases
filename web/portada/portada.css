@@ -201,31 +201,6 @@ body {
   transition-duration: .07s;
 }
 
-/* El tilt de las fichas. `perspective` en el padre y el giro en la pieza: si la
-   perspectiva va en cada ficha, todas se inclinan como si fueran el centro de
-   la pantalla y el efecto se lee plano. */
-.fichas { perspective: 1100px; }
-.ficha {
-  position: relative;
-  transform: rotateX(var(--giro-x, 0deg)) rotateY(var(--giro-y, 0deg));
-  transform-style: preserve-3d;
-  transition: transform .34s cubic-bezier(.2, .8, .3, 1);
-}
-.ficha:hover { transition-duration: .08s; }
-/* Un reflejo que sigue al puntero, para que la inclinacion se lea como una
-   superficie y no como un giro suelto. */
-.ficha::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .25s ease;
-  background: radial-gradient(220px circle at var(--raton-x, 50%) var(--raton-y, 50%),
-    rgba(140, 190, 255, .10), transparent 62%);
-}
-.ficha:hover::after { opacity: 1; }
-
 /* ============================== EL HAZ ==================================== */
 
 .haz {
@@ -412,18 +387,41 @@ body {
   transform: scale(var(--esc, .5));
 }
 
-/* Debajo de la ventana, no encima: pintado dentro tapaba la barra de estado de
-   la app, que ahora si se ve. */
-.ventana__pie {
+/* El aviso de que la ventana se toca, y el enlace para verla grande. Fuera de
+   la ventana (pintado dentro tapaba la app) y ENCIMA de ella: debajo, a 12,5 px
+   y en gris, no se enteraba nadie (2026-10-13). Va a los dos extremos y deja
+   libre el centro, que es donde cae el resplandor. El punto verde es el
+   «vivo ahora mismo» de la app. */
+.ventana__aviso {
   position: absolute;
-  left: 0; right: 0; top: calc(100% + 14px);
+  left: 2px; right: 2px; bottom: calc(100% + 12px);
   z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin: 0;
-  text-align: center;
-  font-size: 12.5px;
-  color: var(--p-tenue);
-  pointer-events: none;
+  font-size: 14px;
+  color: var(--p-suave);
 }
+.ventana__vivo { display: inline-flex; align-items: center; gap: 9px; }
+.ventana__vivo::before {
+  content: "";
+  flex: none;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, .7);
+}
+.ventana__grande {
+  color: var(--p-texto);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+.ventana__grande::after { content: " \2197"; }
+.ventana__grande:hover { text-decoration-thickness: 2px; }
 
 /* La ventana sube al entrar. Recorrido por el dial; la opacidad no se toca. */
 .ventana {
@@ -436,7 +434,7 @@ body {
 @media (max-width: 700px) {
   .haz { min-height: auto; padding-bottom: 40px; }
   .ventana { width: 94vw; }
-  .ventana__pie { display: none; }
+  .ventana__aviso { display: none; }
 }
 
 /* -------- LA LUZ --------
@@ -797,41 +795,153 @@ body {
   line-height: 1.62;
 }
 
-/* Las fichas. Cuatro, en dos filas de dos: la rejilla es lo que convierte esto
-   en algo que se mira en tres segundos en vez de algo que hay que leer. Las
-   separan lineas de un pixel y no cajas con fondo, que en una portada oscura
-   cuatro rectangulos claros pesan mas que el propio texto. */
-.fichas {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--p-linea);
-  border: 1px solid var(--p-linea);
+/* La muestra. Seis rasgos, cada uno con su captura de la app (antes eran seis
+   fichas de solo texto: 191 palabras y ni una imagen, medido el 2026-10-13).
+   Tal como llega en el HTML es una lista, cada rasgo con su frase y su foto, y
+   asi se lee sin JavaScript. Con `data-vivo` (lo pone portada/muestra.js) solo
+   el rasgo elegido enseña lo suyo, y a lo ancho su foto pasa a la derecha: una
+   lista corta que cambia UNA captura grande. Los separan lineas de un pixel y
+   no cajas con fondo, que en una portada oscura pesan mas que el texto. */
+.muestra { border-bottom: 1px solid var(--p-linea); }
+
+.rasgo__texto {
+  padding: clamp(16px, 1.6vw, 22px) 0;
+  border-top: 1px solid var(--p-linea);
 }
 
-.ficha {
-  padding: clamp(22px, 2.4vw, 34px);
-  background: var(--p-fondo);
-}
-
-.ficha__tit {
-  margin: 0 0 10px;
+.rasgo__tit {
+  margin: 0;
   font-size: clamp(1.12rem, 1rem + .5vw, 1.4rem);
   font-weight: 640;
   letter-spacing: -.015em;
   color: var(--p-texto);
 }
 
-.ficha p {
-  margin: 0;
+.rasgo__p {
+  margin: 10px 0 0;
+  max-width: 46ch;
   color: var(--p-suave);
   font-size: clamp(1rem, .96rem + .3vw, 1.14rem);
   line-height: 1.6;
-  max-width: 46ch;
 }
 
-@media (max-width: 720px) {
-  .fichas { grid-template-columns: 1fr; }
+/* La flecha mira hacia arriba porque la demo queda arriba, en la portada. */
+.rasgo__demo {
+  display: inline-block;
+  margin-top: 14px;
+  color: var(--p-acento);
+  font-size: 15px;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.rasgo__demo::after { content: " \2191"; }
+.rasgo__demo:hover { text-decoration-thickness: 2px; }
+
+.rasgo__foto {
+  position: relative;
+  max-width: 860px;
+  margin: 0 0 clamp(18px, 2vw, 26px);
+  border: 1px solid var(--p-linea2);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-panel);
+  aspect-ratio: 16 / 9;
+}
+.rasgo__foto img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.muestra[data-vivo] .rasgo:not([data-activa]) :is(.rasgo__p, .rasgo__demo, .rasgo__foto) { display: none; }
+.muestra[data-vivo] .rasgo:not([data-activa]) .rasgo__texto { cursor: pointer; }
+.muestra[data-vivo] .rasgo__foto { max-width: none; cursor: zoom-in; }
+
+/* El titulo de cada rasgo pasa a ser su boton. El punto del acento marca cual
+   esta abierto, y los demas se apagan un tono para que se lea la eleccion. */
+.rasgo__boton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--p-tenue);
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color .15s ease;
+}
+.rasgo__boton::after {
+  content: "";
+  flex: none;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--p-acento);
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.rasgo__texto:hover .rasgo__boton,
+.rasgo[data-activa] .rasgo__boton { color: var(--p-texto); }
+.rasgo[data-activa] .rasgo__boton::after { opacity: 1; }
+
+/* Fondo sin alfa, por el ClearType: es texto pequeño encima de una foto. */
+.rasgo__ampliar {
+  position: absolute;
+  right: 12px; bottom: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--p-linea2);
+  border-radius: 999px;
+  background: #0b1120;
+  color: var(--p-suave);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: zoom-in;
+}
+.rasgo__foto:hover .rasgo__ampliar, .rasgo__ampliar:focus-visible { color: var(--p-texto); }
+
+@media (min-width: 901px) {
+  .muestra[data-vivo] {
+    display: grid;
+    grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
+    column-gap: clamp(28px, 4vw, 58px);
+    align-items: start;
+  }
+  /* `contents`: el texto y la foto de cada rasgo pasan a ser piezas de la
+     reticula. Los textos bajan por la primera columna y todas las fotos
+     comparten el mismo hueco, que ocupa las seis filas de la lista. */
+  .muestra[data-vivo] .rasgo { display: contents; }
+  .muestra[data-vivo] .rasgo__texto { grid-column: 1; }
+  .muestra[data-vivo] .rasgo__foto { grid-column: 2; grid-row: 1 / span 6; margin: 0; }
+}
+
+/* La captura en grande, a todo lo que da la pantalla. Un <dialog> nativo: se
+   cierra con Escape sin escribir nada, y con un clic en cualquier sitio. */
+.lupa {
+  width: min(96vw, calc(92vh * 16 / 9));
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 1px solid var(--p-linea2);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-panel);
+  cursor: zoom-out;
+}
+.lupa::backdrop { background: rgba(3, 6, 12, .86); }
+.lupa img { display: block; width: 100%; height: auto; }
+.lupa__cerrar {
+  position: absolute;
+  top: 10px; right: 10px;
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  padding: 0;
+  border: 1px solid var(--p-linea2);
+  border-radius: 50%;
+  background: #0b1120;
+  color: var(--p-texto);
+  cursor: pointer;
 }
 
 .explica__preguntas {

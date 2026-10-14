@@ -21,8 +21,16 @@
    (`pnpm exec vite --port 5199` en `web/`):
 
      browser_run_code_unsafe(filename = "web/scripts/rueda-demo.js")
+
+   El 2026-10-13 se quedó colgada más de diez minutos con el navegador del banco
+   compartido entre varias sesiones, y al traer la pestaña al frente terminó en
+   segundos. No se llegó a ver por qué (con otra pestaña delante los fotogramas
+   sí corren; con la ventana minimizada no se probó). Por eso trae su pestaña al
+   frente antes de medir, y la medida de fotogramas lleva tope: si no llegan en
+   quince segundos devuelve los que tenga, y `de` sale por debajo de 165.
    ========================================================================= */
 async (page) => {
+  await page.bringToFront();
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('http://demo.localhost:5199/', { waitUntil: 'load' });
   await page.waitForFunction(() => !!document.querySelector('#ventana-demo')?.contentDocument?.querySelector('.app'), null, { timeout: 20000 });
@@ -64,11 +72,13 @@ async (page) => {
             cada?.(i);
             if (++i < n) requestAnimationFrame(paso); else ok(d);
           };
+          setTimeout(() => ok(d), 15000);
           requestAnimationFrame(paso);
         });
       window.scrollTo(0, 0);
       await new Promise((r) => setTimeout(r, 700));
       const cadencia = mediana(await cuadros(60));
+      if (cadencia === undefined) return { sin_fotogramas: true };
       const d = await cuadros(166, (i) => window.scrollTo(0, i * 12));
       return { cadencia_ms: +cadencia.toFixed(1), perdidos: d.filter((x) => x > cadencia * 1.5).length, de: d.length, peor_ms: +Math.max(...d).toFixed(1) };
     });

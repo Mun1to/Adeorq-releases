@@ -38,7 +38,22 @@
   font: 500 12px/1 system-ui, "Segoe UI", sans-serif;
   letter-spacing: 0.2px;
   cursor: pointer;
-  transition: color 0.18s ease, border-color 0.18s ease;
+  transition: color 0.18s ease, border-color 0.18s ease, opacity 0.25s ease, visibility 0.25s;
+}
+
+/* El flotante acompaña solo a lo que se mueve solo (valvula.js lo marca cuando
+   ni el haz ni la cinta están en pantalla). `visibility` además de `opacity`:
+   escondido tampoco recibe el foco del tabulador. Para entonces queda el del
+   pie, que es este mismo botón puesto en su sitio, sin flotar. */
+.valvula[data-fuera] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.valvula--pie {
+  position: static;
+  align-self: flex-start;
 }
 
 .valvula:hover,

@@ -1056,7 +1056,7 @@ export default function SettingsView({
                         multiple: false,
                         filters: [
                           {
-                            name: "Imagen o vídeo",
+                            name: t("Imagen o vídeo"),
                             extensions: ["png", "jpg", "jpeg", "webp", "gif", "avif", "mp4", "webm"],
                           },
                         ],

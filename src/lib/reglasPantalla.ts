@@ -72,6 +72,12 @@ export const PREGUNTAS: ReglaDePregunta[] = [
     hint: "Antigravity te pide confirmación para ejecutar el comando:",
   },
   {
+    // Codex 0.147, visto en un panel de verdad el 2026-10-13. Sus menús hacen
+    // caso al número tecleado, sin Intro (medido: el 1 ejecuta, el 3 no).
+    test: "Would you like to run the following command?",
+    hint: "Codex te pide permiso antes de ejecutar este comando. Elige:",
+  },
+  {
     // Generic numbered menus (first-run prompts, /model, etc.). Kept LAST so
     // the specific hints above win when both match.
     test: "Enter to confirm",
@@ -117,6 +123,25 @@ export function parseAsk(screen: string, reglas: ReglaDePregunta[] = PREGUNTAS):
     }
   }
   return null;
+}
+
+/**
+ * Las últimas filas con algo de lo que se VE, sin fiarse del cursor.
+ *
+ * El panel leía las quince filas de encima del cursor, que con Claude Code es
+ * donde está la pregunta: su cursor vive abajo, en la caja. Codex lo deja
+ * aparcado arriba mientras pregunta, así que de su pantalla se leía la primera
+ * fila y nada más, y nunca salían los botones (medido el 2026-10-13 con un
+ * Codex 0.147 de verdad: «Do you trust the contents of this directory?» en
+ * pantalla y la barra vacía). Esto es lo que se mira cuando por el cursor no
+ * se ha visto ninguna pregunta.
+ */
+export function pieDePantalla(fila: (y: number) => string, filas: number, cuantas = 16): string {
+  let ultima = filas - 1;
+  while (ultima > 0 && !fila(ultima).trim()) ultima--;
+  const fuera: string[] = [];
+  for (let y = Math.max(0, ultima - cuantas + 1); y <= ultima; y++) fuera.push(fila(y));
+  return fuera.join("\n");
 }
 
 /** Qué le pasa a la sesión según lo que acaba de salir por la terminal:

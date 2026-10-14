@@ -101,7 +101,7 @@ interface Props {
  * tus cuentas lo incluye, se dice también: el router lo bajaría igualmente al
  * abrir, y enterarse ahí es tarde.
  */
-function pistaDeModelo(m: ModelAlias, mundo: Mundo | null): string {
+function pistaDeModelo(m: ModelAlias, mundo: Mundo | null, t: (s: string) => string): string {
   const peso = comoPeso(m);
   const cuentas = mundo?.cuentas ?? [];
   if (cuentas.length === 0) return peso;
@@ -109,7 +109,7 @@ function pistaDeModelo(m: ModelAlias, mundo: Mundo | null): string {
     const techo = techoDelPlan(c.plan);
     return !techo || PESO[m] <= PESO[techo];
   });
-  return alcanza ? peso : `${peso} · tu plan no lo incluye`;
+  return alcanza ? peso : `${peso} · ${t("tu plan no lo incluye")}`;
 }
 
 export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, onClose }: Props) {
@@ -330,7 +330,7 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
                 <button
                   key={r.key}
                   className="mini rep-rol"
-                  data-tip={r.desc}
+                  data-tip={t(r.desc)}
                   onClick={() =>
                     setTexto((prev) =>
                       prev.split("\n").some((l) => l.trim().startsWith(`${r.key}:`))
@@ -443,7 +443,7 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
                                 },
                                 ...MODEL_ALIASES.map((m) => ({
                                   label: m,
-                                  hint: pistaDeModelo(m, mundo),
+                                  hint: pistaDeModelo(m, mundo, t),
                                   onClick: () => cambiarCerebro(i, m),
                                 })),
                               ])

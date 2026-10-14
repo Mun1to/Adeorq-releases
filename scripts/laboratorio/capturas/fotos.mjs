@@ -75,6 +75,13 @@ if (algunaDeCabina) {
     await sinWebgl(p);
     await dormir(3000);
     await foto("canvas");
+    // Dónde quedan en esa foto el tablero de tareas y el enjambre, en píxeles
+    // de la página: la portada enseña cada uno solo, recortado de `canvas.png`
+    // (que va a doble escala, así que el recorte multiplica por dos).
+    for (const [nombre, clase] of [["tablero", "kanban"], ["enjambre", "enjambre"]]) {
+      const caja = await p.js(`(() => { const r = document.querySelector(".react-flow__node-${clase}")?.getBoundingClientRect(); return r ? [r.x, r.y, r.width, r.height].map(Math.round).join(" ") : ""; })()`);
+      if (caja) console.log(`  ${nombre}: ${caja}`);
+    }
   }
 }
 

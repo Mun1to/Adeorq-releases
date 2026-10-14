@@ -29,19 +29,5 @@ export function useMedidas() {
     vertical,
     width,
     height,
-    /** Qué parte del alto es del rótulo; el resto es de la ventana. En
-        vertical el rótulo ocupa más renglones y la ventana menos alto, así
-        que se reparten distinto y se pegan el uno al otro (`pegado`): si cada
-        uno se centrara en su parte quedaría medio vídeo vacío entre los dos. */
-    franja: vertical ? 0.36 : 0.27,
-    pegado: vertical,
   };
-}
-
-/** Parte una frase del guion en trozos: lo que va entre asteriscos, marcado. */
-export function trocear(texto: string): { texto: string; marca: boolean }[] {
-  return texto
-    .split("*")
-    .map((t, i) => ({ texto: t, marca: i % 2 === 1 }))
-    .filter((t) => t.texto !== "");
 }

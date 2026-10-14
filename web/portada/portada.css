@@ -1401,3 +1401,81 @@ body {
   .pie__caja { grid-template-columns: 1fr; }
   .pie__cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+
+/* ================================ ADEO ====================================
+   La mascota de la app presentando la portada (portada/adeo.js lo pinta y lo
+   mueve). En la primera pantalla, de pie en el resplandor; en cada sección,
+   encima del título con su frase. Sin JavaScript su <svg> está vacío, así que
+   se esconde y queda la frase, que es texto de la página. */
+
+.adeo {
+  display: block;
+  flex: none;
+  overflow: visible;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (scripting: none) { .adeo { display: none; } }
+
+/* El bocadillo. Fondo sin alfa: con alfa, Windows apaga el ClearType. */
+.adeo-dice {
+  position: relative;
+  margin: 0;
+  padding: 11px 15px;
+  max-width: 300px;
+  border: 1px solid var(--p-linea2);
+  border-radius: 14px;
+  background: var(--p-panel);
+  color: var(--p-suave);
+  font-size: 14.5px;
+  line-height: 1.45;
+  text-align: left;
+  text-wrap: pretty;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .35);
+}
+.adeo-dice b { color: var(--p-texto); font-weight: 600; }
+/* La colita, apuntando a Adeo: abajo si está debajo, a la izquierda si al lado. */
+.adeo-dice::after {
+  content: "";
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  background: var(--p-panel);
+  border-right: 1px solid var(--p-linea2);
+  border-bottom: 1px solid var(--p-linea2);
+}
+.adeo-dice--abajo::after { left: 50%; bottom: -6.5px; transform: translateX(-50%) rotate(45deg); }
+.adeo-dice--izq::after { left: -6.5px; top: 50%; transform: translateY(-50%) rotate(135deg); }
+
+/* En la primera pantalla entra DESPUÉS del titular, con el dial en el recorrido
+   y nunca en la opacidad, como el resto del haz. */
+.adeo-hola {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+  transform: translateY(calc(16px * var(--motion-gain)));
+  transition: opacity .6s ease, transform .8s cubic-bezier(.16,1,.3,1);
+}
+.haz[data-entrada] .adeo-hola { opacity: 1; transform: none; transition-delay: .55s; }
+@media (scripting: none) { .adeo-hola { opacity: 1; transform: none; } }
+/* A lo ancho, a la derecha del texto, justo donde cae la luz. */
+@media (min-width: 1180px) {
+  .adeo-hola { position: absolute; right: clamp(18px, 4vw, 54px); bottom: 0; width: 300px; }
+}
+/* Más estrecho, en una fila debajo de las notas: él a la izquierda, la frase al lado. */
+@media (max-width: 1179px) {
+  .adeo-hola { flex-direction: row-reverse; justify-content: flex-end; margin-top: 28px; }
+  .adeo-hola .adeo { width: 80px; height: 56px; }
+  .adeo-hola .adeo-dice { font-size: 14px; }
+  .adeo-hola .adeo-dice::after { left: -6.5px; top: 50%; bottom: auto; transform: translateY(-50%) rotate(135deg); }
+}
+
+/* En cada sección, encima de la etiqueta. En las de dos columnas va en el
+   rótulo pegajoso, así que se queda a la vista mientras se lee la sección. */
+.adeo-presenta { display: flex; align-items: center; gap: 14px; margin: 0 0 22px; }
+.adeo-presenta .adeo-dice { font-size: 14px; max-width: 290px; }
+.adeo-presenta--centro { justify-content: center; margin-bottom: 26px; }

@@ -6,7 +6,7 @@
 // (agentes en `a_medias` o con subagentes fuera; nunca una consola, nunca uno
 // que te pregunta o terminó) y cómo se nombran en la tarjeta.
 
-import { QUIETO_MS, quienFrena, trabajando } from "../src/lib/actualizar";
+import { cambiarDeVersion, QUIETO_MS, quienFrena, trabajando } from "../src/lib/actualizar";
 import type { PaneStatus } from "../src/lib/pty";
 
 let fallos = 0;
@@ -67,6 +67,17 @@ caso("el orden es el del número de panel", trabajando({ 9: panel(9, { state: "a
     trabajando(quietos, new Map([[4, ahora - QUIETO_MS]]), ahora).length === 0,
   );
   caso("uno que nunca se movió y está «lista» no frena", trabajando(quietos, new Map(), ahora).length === 0);
+}
+
+// El comprobador vuelve a mirar al volver a la ventana. Si cambiaba el objeto de
+// la versión ya bajada, instalar daba «Update.install called before
+// Update.download» (2026-10-14).
+{
+  const v = (version: string) => ({ version });
+  caso("sin nada en la tarjeta, la que llega entra", cambiarDeVersion(null, v("0.9.197"), false));
+  caso("la misma versión no sustituye a la que hay", !cambiarDeVersion(v("0.9.197"), v("0.9.197"), false));
+  caso("con la descarga en marcha o hecha, no entra ni una nueva", !cambiarDeVersion(v("0.9.197"), v("0.9.198"), true));
+  caso("sin haber pulsado nada, una más nueva sí entra", cambiarDeVersion(v("0.9.197"), v("0.9.198"), false));
 }
 
 if (fallos) {

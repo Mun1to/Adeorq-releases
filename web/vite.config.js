@@ -194,12 +194,17 @@ export default defineConfig({
   appType: 'mpa',
   publicDir: false,
   plugins: [reloadOnPartials(), bakeReleaseData(), copyStaticExtras()],
+  // 127.0.0.1 y no «localhost»: en esta máquina localhost resuelve solo a ::1,
+  // el servidor escuchaba solo en IPv6 y el Edge de Munir no llegaba (2026-10-14,
+  // «me estáis abriendo localhost que no funcionan en mi navegador»).
   server: {
+    host: '127.0.0.1',
     port: 5173,
     strictPort: false,
     open: true,
   },
   preview: {
+    host: '127.0.0.1',
     port: 4173,
     open: true,
   },

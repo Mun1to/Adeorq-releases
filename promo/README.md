@@ -10,7 +10,7 @@ cd promo
 pnpm install          # tiene su propio pnpm-workspace.yaml, no cuelga del repo
 pnpm capturas         # trae las pantallas de web/assets/screens
 pnpm ver              # abre el estudio: se ve moverse y se puede recorrer con el ratón
-pnpm render           # 1920x1080 -> out/adeorq-es.mp4 y out/adeorq-en.mp4 (43,75 s sin voz)
+pnpm render           # 1920x1080 -> out/adeorq-es.mp4 y out/adeorq-en.mp4 (57,5 s sin voz)
 pnpm guion            # la página para leer el guion en voz alta -> out/guion-voz.html
 pnpm voz es           # corta y limpia la grabación de promo/voz/es.* (ver «La voz»)
 pnpm muestra          # todos los pasos entre escenas, con su número -> out/transiciones.mp4
@@ -23,35 +23,46 @@ bolsillo) mientras el guion eran diez pantallas que se podían quitar de una en 
 
 ## El guion, por tiempos
 
-Una sola pieza de **43,75 segundos**, de una tirada y sin capítulos, **contada por Adeo**. Es la
-SEGUNDA pasada (2026-10-14): la primera duraba 57,5 y Munir la encontró «muy lenta y difícil para
-el usuario» y que «no lo explica bien del todo como otras referencias», y pidió «pon a Adeo de
-protagonista, Adeo explica la plataforma» (6.ª ronda, en «Pendiente»). Está escrito por TIEMPOS y
-no por pantallas: qué se ve y qué se lee en cada tramo. Cada tramo dura pulsos enteros de la
-música (0,625 s), así que cada corte cae en un tiempo. La palabra en negrita es la única que va
-en el azul de la marca.
+Una sola pieza de **63,75 segundos**, de una tirada y sin capítulos, **contada por Adeo**. Sale de
+las rondas 6.ª, 7.ª y 8.ª (2026-10-14, en «Pendiente»): la primera pasada era «muy lenta y difícil
+para el usuario»; «pon a Adeo de protagonista, Adeo explica la plataforma»; «que el highlight de
+las cosas sea mejor y que explique más funciones y que Adeo esté al lado de los highlights»; y
+que salga el móvil y se explique bien el Lienzo. **El móvil todavía no está: falta su captura.**
+Está escrito por TIEMPOS y no por pantallas: qué se ve y qué se lee en cada tramo. Cada tramo dura
+pulsos enteros de la música (0,625 s), así que cada corte cae en un tiempo. La palabra en negrita
+es la única que va en el azul de la marca.
 
 | Tiempo | Tramo | Qué se ve | Qué se lee | Qué suena |
 |---|---|---|---|---|
 | 0:00 – 0:06,25 | **El problema y el giro** | Solo texto, en el centro, sobre el fondo de la marca. Cada frase entra palabra a palabra y releva a la anterior. En primera persona: es Munir | «Programo con **varios agentes**.» → «¿Cuál **terminó**? ¿Cuál me **espera**?» → «Así que los junté en **una ventana**.» | El colchón, bajo, y una tecla por palabra |
 | 0:06,25 – 0:10 | **El nombre** | El logotipo solo; abre el ojo, es Adeo, saluda y se presenta. Desde aquí lo cuenta él | «Adeorq» → «¡Hola! Soy **Adeo**. Te lo enseño.» | La campana, entra el ritmo, y sus teclas |
-| 0:10 – 0:15 | **Qué es** | La Cabina entera, con Adeo saludando al lado de la frase; después la cámara entra en las dos terminales de arriba | «Claude Code, Codex, Gemini… **lado a lado**» → «Cada uno en su **terminal**» | Un golpe por frase |
-| 0:15 – 0:18,75 | **Panel** | La cámara ya está en las dos primeras cifras. Adeo pregunta con su interrogación y contesta de un brinco, bailando | «¿Quién te **espera**?» → «**3 trabajando**. Nadie espera.» | Ídem |
-| 0:18,75 – 0:22,5 | **Lienzo** | Ya dentro del tablero de tarjetas, con sus columnas | «¿Quién hace **qué**?» → «Cada uno, **en su columna**» | Ídem |
-| 0:22,5 – 0:26,25 | **Enjambre** | La ventana del enjambre, flotando: la petición y Adeo repartiéndola en dos | «¿Y si pides **algo grande**?» → «Lo **reparto** yo» | Ídem |
-| 0:26,25 – 0:30 | **Cuentas** | Ya dentro de una cuenta con su cuota; el puntero pulsa «Terminal con esta» | «¿Te queda **cuota**?» → «La ves, y **eliges cuenta**» | El golpe y el clic |
-| 0:30 – 0:33,75 | **Agenda** | Ya dentro de la ficha de los encargos programados; Adeo, tecleando | «¿Y cuando **no estás**?» → «Encargos que **van solos**» | Un golpe por frase |
-| 0:33,75 – 0:38,75 | **Adeo** | Adeo en grande, en el centro, hablando de sí mismo: saluda y salta | «Y yo **te aviso**…» → «…cuando uno **termina**» | La chispa |
-| 0:38,75 – 0:43,75 | **El cierre** | Adeo celebrando, y una sola cosa que hacer | «Descárgalo gratis» · «**adeorq.com**» · «Windows y Linux» | El acorde del final |
+| 0:10 – 0:15 | **Qué es** | La Cabina entera, con Adeo saludando al lado de la frase; después se levantan las dos terminales de arriba y Adeo, tecleando, se pone en su esquina | «Claude Code, Codex, Gemini… **lado a lado**» → «Cada uno en su **terminal**» | Un golpe por frase |
+| 0:15 – 0:18,75 | **Panel** | Las dos primeras cifras, levantadas | «¿Quién te **espera**?» → «**3 trabajando**. Nadie espera.» | Ídem |
+| 0:18,75 – 0:22,5 | **Capataz** | Lo que se le puede pedir al Capataz, levantado | «¿Montar **un equipo**?» → «Pídelo **en cristiano**» | Ídem |
+| 0:22,5 – 0:28,75 | **Lienzo: el tablero** | El Lienzo entero; se levantan las terminales vivas en el tablero, y después el enlace entre dos de ellas, con una flecha que se traza sola de una a otra | «Y un **tablero infinito**» → «Terminales vivas, **en el tablero**» → «Flecha: **uno sigue al otro**» | Ídem |
+| 0:28,75 – 0:32,5 | **Lienzo: las columnas** | El tablero de tarjetas, con sus columnas | «¿Quién hace **qué**?» → «Cada uno, **en su columna**» | Ídem |
+| 0:32,5 – 0:36,25 | **Enjambre** | La ventana del enjambre, flotando: la petición y Adeo repartiéndola en dos | «¿Y si pides **algo grande**?» → «Lo **reparto** yo» | Ídem |
+| 0:36,25 – 0:40 | **Archivos** | El árbol del proyecto, con «2 cambiados» | «¿Qué ha **tocado**?» → «**2 archivos**, a un clic» | Ídem |
+| 0:40 – 0:43,75 | **Decisiones** | La pregunta de un agente con sus opciones; el puntero elige la recomendada | «¿Un agente **duda**?» → «Te da **opciones**, y eliges» | El golpe y el clic |
+| 0:43,75 – 0:47,5 | **Cuentas** | Una cuenta con su cuota; el puntero pulsa «Terminal con esta» | «¿Te queda **cuota**?» → «La ves, y **eliges cuenta**» | El golpe y el clic |
+| 0:47,5 – 0:51,25 | **Comandos** | El buscador y los primeros comandos; el puntero pulsa uno | «¿Cómo era **ese comando**?» → «Búscalo: **un clic lo teclea**» | El golpe y el clic |
+| 0:51,25 – 0:55 | **Agenda** | La ficha de los encargos programados; Adeo, dormido | «¿Y cuando **no estás**?» → «Encargos que **van solos**» | Un golpe por frase |
+| *(pendiente)* | **El móvil** | El conserje, las sesiones y una terminal en el teléfono, como ventana flotante | Por decidir con la captura delante | — |
+| 0:55 – 1:00 | **Adeo** | Adeo en grande, en el centro, hablando de sí mismo: saluda y salta | «Y yo **te aviso**…» → «…cuando uno **termina**» | La chispa |
+| 1:00 – 1:03,75 | **El cierre** | Adeo celebrando, y una sola cosa que hacer | «Descárgalo gratis» · «**adeorq.com**» · «Windows y Linux» | El acorde del final |
 
 Lo que cumple, y de dónde sale cada cosa:
 
 - **Adeo es quien lo cuenta.** Despierta del logotipo y se presenta; dice cada pregunta en
   grande, a su lado, con su interrogación encima (el ánimo `duda` de la app), y cada respuesta
-  junto a la pieza, en pequeño, llegando con el brinco de cuando lo tocas y con un ánimo distinto
-  en cada una (`adeo` en el guion): baila, salta, teclea. Sin voz: «habla» con el texto. El
-  problema sigue siendo de Munir y en primera persona, que es lo que pidió del vídeo de
-  referencia; desde el nombre, el que habla es Adeo.
+  **pegado a la pieza resaltada**, en su esquina de abajo a la izquierda (o de arriba, si abajo no
+  cabe), llegando con el brinco de cuando lo tocas y con un ánimo distinto en cada una (`adeo` en
+  el guion): baila, salta, escucha, teclea, y en la Agenda duerme mientras los encargos van solos.
+  Sin voz: «habla» con el texto. El problema sigue siendo de Munir y en primera persona, que es lo
+  que pidió del vídeo de referencia; desde el nombre, el que habla es Adeo.
+- **El resaltado levanta la pieza de la pantalla:** es la misma captura recortada a su trozo, un
+  5 % más grande, con su sombra, su marco encendido y un brillo que la cruza una vez; todo lo de
+  alrededor se desenfoca y se apaga. Antes era solo un marco sobre la captura.
 - **Cada función es una pregunta y su respuesta.** La pregunta es la que se haría quien mira
   (y las dos primeras son las del problema); la respuesta lleva lo que se ve en la pieza: una
   cifra, una columna, el reparto. Es lo que hacen Whop, FlyingPress y Shipper, sus tres
@@ -64,10 +75,17 @@ Lo que cumple, y de dónde sale cada cosa:
   trabajo.
 - **Dice qué es Adeorq justo después del nombre**, como FlyingPress («the all in one speed
   optimization plugin for WordPress»).
-- **Veinte ideas en 43,75 segundos**, una cada 2,2 s: 27 por minuto. Sus once preferidas van
-  a 24,5 de mediana, y Whop, a 29. Ninguna imagen se queda quieta: la cámara siempre empuja.
-- **Seis funciones y Adeo**, que es el tope de sus referencias. **Cuáles son lo eligió quien
-  montó el corte, no Munir.**
+- **Treinta y una ideas en 63,75 segundos**, una cada 2,06 s: 29 por minuto, el ritmo de Whop.
+  Sus once preferidas van a 24,5 de mediana. Ninguna imagen se queda quieta: la cámara siempre
+  empuja.
+- **Diez funciones, el Lienzo en tres tiempos y Adeo.** Sus referencias enseñan de cuatro a seis,
+  pero Munir pidió «que explique más funciones» y eso manda, y la pieza pasa del minuto por eso.
+  El móvil entra en cuanto haya captura del teléfono (unos 4 segundos más). **Cuáles son, y sus
+  preguntas, lo eligió quien montó el corte, no Munir.**
+- **La flecha del Lienzo se dibuja encima** (`flecha` en el guion): en la captura, la etiqueta
+  del enlace tapa la raya que encadena a los dos agentes, así que el vídeo traza una flecha justo
+  debajo, de una terminal a la otra. Es lo único del vídeo pintado sobre la app que no es un
+  resaltado.
 - **Los pasos entre tramos:** del texto al nombre, la máscara con la forma del logotipo; del
   nombre a la app, por el ojo de Adeo; entre pantallas, el hueco y el cambio de tarjetas, uno
   cada vez; a Adeo, el zoom con giro; y al cierre se atraviesa.
@@ -129,7 +147,16 @@ Las capturas viven en `public/pantallas/` y se traen con `pnpm capturas`, que de
 `web/assets/screens/es` y `/en`: la app de verdad sobre un taller de demostración, a 3840 x
 2160, y el vídeo de cada idioma usa las de su carpeta. Se pueden publicar. Para cambiarlas se
 sustituye el archivo por otro con **el mismo nombre**; si la pantalla cambió de reparto, hay
-que volver a medir sus `focos`. Una captura que no sea 16:9 se ve entera, con bandas.
+que volver a medir sus `focos`. Una captura que no sea 16:9 sale como ventana flotante, con
+`proporcion` en el guion.
+
+**Las de SU fondo mandan sobre esas, y solo existen en su máquina.** Munir pidió «que el fondo
+de Adeorq sea el que tenga yo y no uno genérico» (7.ª ronda): la app con su foto detrás del
+cristal, como la ve él. Esas capturas van en `public/con-su-fondo/es` y `/en`, con los mismos
+nombres; el vídeo coge de ahí cada pantalla que exista y las demás de `public/pantallas/`.
+**No se versionan** (`.gitignore`): llevan su cara, y `promo/` viaja entero al repositorio
+público. Tampoco van a la web, que sigue con el fondo de ejemplo. Las saca la sesión que tiene la
+casa de pruebas y se copian a mano a esa carpeta; `pnpm capturas` no la toca.
 
 `src/casa.ts` tiene los colores y las fuentes, copiados de donde viven de verdad
 (`src/estilos/01-base.css` y `web/fonts`).
@@ -305,11 +332,27 @@ y que Adeo esté al lado de los highlights explicando las cosas». El fondo suyo
 `%LOCALAPPDATA%\Adeorq\fondo.png`; las capturas con ese fondo las saca esa sesión en la casa de
 pruebas, no se rehacen desde aquí.
 
+**8.ª ronda (Munir, 2026-10-14, al ver el corte con su fondo; la pasó literal «Adeorq: sesiones y
+terminales»):** «en el vídeo no comenta lo del móvil y bien el canvas etc etc pero me gusta más que
+antes gracias y lo de Adeo que explica las cosas está muy bien». Lo que pide: que salga el móvil
+(el conserje, las sesiones y las terminales desde el teléfono) y que el Lienzo se explique bien
+(terminales dentro del tablero, las flechas que encadenan agentes y el enjambre). **Lo que le
+gusta y no se toca: Adeo explicando cada cosa.**
+
 **Lo que le falta a este corte para ser el del lanzamiento:**
 
-- **Que Munir diga si las funciones son las suyas.** Cabina, Panel, Lienzo, el enjambre, Cuentas
-  y la Agenda con sus encargos programados las eligió quien montó el corte, y también las cinco
-  preguntas.
+- **Que Munir diga si las funciones son las suyas.** Cabina, Panel, Capataz, Lienzo, enjambre,
+  Archivos, Decisiones, Cuentas, Comandos y Agenda las eligió quien montó el corte, y también las
+  nueve preguntas.
+- **Su fondo, a medias.** Las nueve pantallas ya salen con su foto (`public/con-su-fondo/`, ver
+  «Qué tocar», 2026-10-14, sacadas con la 0.9.197); el enjambre, que es una pieza suelta, sigue
+  con el de ejemplo. Sin decidir: si el fondo propio del vídeo (el azul de los tramos de solo
+  texto, de Adeo y del cierre) también pasa a ser su foto. **Y si el vídeo se publica, lleva su
+  cara**: es su decisión.
+- **El móvil** (8.ª ronda: el conserje, las sesiones y las terminales desde el teléfono) no tiene
+  captura: la pantalla del teléfono (`src-tauri/src/movil.html`) solo existe con la app en marcha,
+  y la saca la sesión que tiene la casa de pruebas. Con ella, va como ventana flotante (`proporcion`
+  en el guion), antes del tramo de Adeo.
 - **Las capturas.** Desde la segunda pasada son las rehechas de `c82fc96`: «PREDETERMINADA» en
   una línea, la Agenda bien escrita y el Lienzo con un enjambre, más `swarm.png` y `board.png`
   sueltas. Lo que queda: la del Panel saluda «Buenas noches, Sam.» porque se sacó de noche, y

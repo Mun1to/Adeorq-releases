@@ -6,14 +6,18 @@ import { useDecir, useIdioma, useMedidas } from "../idioma";
 import { Palabras } from "../Palabras";
 import { PANTALLA, PASO, clicEn, focosQueCaben, haciaElFoco, llegaDato, saleLaCamara } from "../tiempos";
 
-/** Si hay una captura hecha en el idioma de la pieza (`pantallas/en/...`), esa;
-    si no, la de todos. Una Cabina con las pestañas en inglés dentro del vídeo
-    en español se nota, pero no tener el vídeo por eso se nota más. */
+/** Qué captura sale, de la que más manda a la que menos:
+    1. `con-su-fondo/<idioma>/`: la app con SU fondo, la foto de Munir detrás
+       del cristal (7.ª ronda: «que el fondo de Adeorq sea el que tenga yo y no
+       uno genérico»). Solo existen en su máquina: no se versionan.
+    2. `pantallas/<idioma>/`: las de la web, con el fondo de ejemplo.
+    3. `pantallas/`: la de todos los idiomas.
+    Una Cabina con las pestañas en inglés dentro del vídeo en español se nota,
+    pero no tener el vídeo por eso se nota más. */
 function captura(imagen: string, idioma: Idioma) {
   const hay = (ruta: string) => getStaticFiles().some((f) => f.name === ruta);
-  const propia = `pantallas/${idioma}/${imagen}`;
-  const comun = `pantallas/${imagen}`;
-  return hay(propia) ? staticFile(propia) : hay(comun) ? staticFile(comun) : null;
+  const ruta = [`con-su-fondo/${idioma}/${imagen}`, `pantallas/${idioma}/${imagen}`, `pantallas/${imagen}`].find(hay);
+  return ruta ? staticFile(ruta) : null;
 }
 
 /** Las capturas de pantalla entera las saca el equipo de
@@ -67,9 +71,11 @@ type Camara = { cx: number; cy: number; z: number };
 const ENTERA: Camara = { cx: 0.5, cy: 0.5, z: 1 };
 
 /** La cámara de una función: la encuadra con aire alrededor, un poco subida
-    para dejarle sitio a su frase debajo, y sin salirse de la captura. */
-function camaraDe([x, y, w, h]: Foco["en"]): Camara {
-  const z = Math.max(1.15, Math.min(2.6, 0.78 / w, 0.6 / h));
+    para dejarle sitio a su frase debajo, y sin salirse de la captura. En una
+    ventana suelta puede quedarse sin acercar (`minimo` 1): es estrecha, y con
+    el empujón de siempre una pieza ancha se salía por los lados. */
+function camaraDe([x, y, w, h]: Foco["en"], minimo = 1.15): Camara {
+  const z = Math.max(minimo, Math.min(2.6, 0.78 / w, 0.6 / h));
   const medio = 0.5 / z;
   const pinza = (v: number) => Math.max(medio, Math.min(1 - medio, v));
   return { cx: pinza(x + w / 2), cy: pinza(y + h / 2 + 0.05 / z), z };
@@ -156,7 +162,7 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
   // fotograma, un poco más abierta, y se acerca mientras se lee la pregunta.
   const focos = escena.focos.slice(0, focosQueCaben(largo, escena.focos.length));
   const n = focos.length;
-  const camaras = focos.map((foco) => camaraDe(foco.en));
+  const camaras = focos.map((foco) => camaraDe(foco.en, m.ventana ? 1 : 1.15));
   const desde = (i: number) => haciaElFoco(largo, n, i);
   const directo = escena.directo === true && n > 0;
   let camara = directo ? abierta(camaras[0]) : ENTERA;
@@ -168,6 +174,14 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
   // Nunca se queda clavada: sigue entrando un pelo mientras se lee.
   const deriva = 1 + 0.04 * interpolate(f, [-PASO / 2, largo + PASO / 2], [0, 1], PINZA);
   const z = camara.z * deriva;
+  /** Cuánto está levantada la pieza `i`: sube al llegar la cámara y baja
+      cuando sale hacia la siguiente. */
+  const luzDe = (i: number) => {
+    const llega = desde(i) + PANTALLA.viaje;
+    const sube = interpolate(f, [llega - 9, llega], [0, 1], PINZA);
+    return i < n - 1 ? sube * interpolate(f, [desde(i + 1), desde(i + 1) + 8], [1, 0], PINZA) : sube;
+  };
+  const luz = Math.max(0, ...focos.map((_, i) => luzDe(i)));
   /** Un punto de la captura, en píxeles del marco, con la cámara de ahora. */
   const aCuadro = (px: number, py: number, c: Camara = { ...camara, z }) => ({
     x: ((px - c.cx) * c.z + 0.5) * m.ancho,
@@ -208,13 +222,35 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
             filter: espera > 0.02 ? `blur(${espera * 5 * u}px)` : undefined,
           }}
         >
-          {src ? <Img src={src} style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }} /> : <Hueco escena={escena} />}
+          {src ? (
+            <Img
+              src={src}
+              style={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                // Mientras una pieza está levantada, lo de debajo se desenfoca
+                // y se apaga: la pieza es lo único nítido del cuadro.
+                filter: luz > 0.02 ? `blur(${(luz * 2.6 * u) / z}px) brightness(${1 - 0.18 * luz})` : undefined,
+              }}
+            />
+          ) : (
+            <Hueco escena={escena} />
+          )}
           {focos.map((foco, i) => {
             const [x, y, w, h] = foco.en;
             const llega = desde(i) + PANTALLA.viaje;
-            const enciende = interpolate(f, [llega - 9, llega], [0, 1], PINZA);
-            const apaga = i < n - 1 ? interpolate(f, [desde(i + 1), desde(i + 1) + 8], [1, 0], PINZA) : 1;
+            const k = luzDe(i);
+            if (k < 0.002) return null;
             const late = 1 + 0.5 * Math.max(0, 1 - Math.abs(f - llega - 4) / 8);
+            // Un brillo cruza la pieza una vez, cuando se levanta.
+            const brillo = interpolate(f, [llega - 2, llega + 22], [-90, 190], PINZA);
+            // EL RESALTADO: la pieza se levanta de la pantalla. Es la misma
+            // captura recortada a su trozo, un pelo más grande, con su sombra,
+            // su marco encendido y todo lo demás a media luz y desenfocado.
+            // Antes era solo un marco sobre la captura, y Munir pidió «que el
+            // highlight de las cosas sea mejor» (2026-10-14).
             return (
               <div
                 key={i}
@@ -224,14 +260,80 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
                   top: y * m.alto,
                   width: w * m.ancho,
                   height: h * m.alto,
-                  boxSizing: "border-box",
-                  borderRadius: (9 * u) / z,
-                  border: `${(2.5 * u) / z}px solid ${COLOR.marcaClaro}`,
-                  // El marco, su halo, y todo lo de alrededor a media luz.
-                  boxShadow: `0 0 ${(26 * u * late) / z}px rgba(72,194,255,0.6), 0 0 0 ${m.ancho * 3}px rgba(4,7,13,0.66)`,
-                  opacity: enciende * apaga,
+                  borderRadius: (12 * u) / z,
+                  overflow: "hidden",
+                  transform: `scale(${1 + 0.05 * k})`,
+                  boxShadow: `0 0 ${(28 * u * late) / z}px rgba(72,194,255,0.65), 0 ${(18 * u) / z}px ${(50 * u) / z}px rgba(0,0,0,0.75), 0 0 0 ${m.ancho * 3}px rgba(4,7,13,${0.55 * k})`,
+                  opacity: Math.min(1, k * 1.4),
                 }}
-              />
+              >
+                {src && (
+                  <Img
+                    src={src}
+                    style={{ position: "absolute", left: -x * m.ancho, top: -y * m.alto, width: m.ancho, height: m.alto, maxWidth: "none", objectFit: "contain" }}
+                  />
+                )}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(105deg, transparent 35%, rgba(190,225,255,0.24) 50%, transparent 65%)",
+                    transform: `translateX(${brillo}%)`,
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: (12 * u) / z,
+                    border: `${(2.5 * u) / z}px solid ${COLOR.marcaClaro}`,
+                  }}
+                />
+              </div>
+            );
+          })}
+          {/* Las flechas de los focos que la llevan: se trazan solas, de punta
+              a punta, al encenderse su pieza. Van encima de ella y se mueven
+              con la cámara. */}
+          {focos.map((foco, i) => {
+            const k = luzDe(i);
+            if (!foco.flecha || k < 0.002) return null;
+            const llega = desde(i) + PANTALLA.viaje;
+            const traza = interpolate(f, [llega, llega + 14], [0, 1], SUAVE);
+            const [x1, y1, x2, y2] = foco.flecha;
+            const a = { x: x1 * m.ancho, y: y1 * m.alto };
+            const b = { x: x2 * m.ancho, y: y2 * m.alto };
+            const fin = { x: a.x + (b.x - a.x) * traza, y: a.y + (b.y - a.y) * traza };
+            const angulo = Math.atan2(b.y - a.y, b.x - a.x);
+            const punta = (18 * u) / z;
+            const ala = (giro: number) => `${fin.x - punta * Math.cos(angulo + giro)},${fin.y - punta * Math.sin(angulo + giro)}`;
+            const grosor = (6 * u) / z;
+            return (
+              <svg
+                key={`flecha-${i}`}
+                width={m.ancho}
+                height={m.alto}
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  overflow: "visible",
+                  opacity: Math.min(1, k * 1.4),
+                  filter: `drop-shadow(0 0 ${(8 * u) / z}px rgba(72,194,255,0.9))`,
+                }}
+              >
+                <line x1={a.x} y1={a.y} x2={fin.x} y2={fin.y} stroke={COLOR.marcaClaro} strokeWidth={grosor} strokeLinecap="round" />
+                {traza > 0.05 && (
+                  <polyline
+                    points={`${ala(-0.5)} ${fin.x},${fin.y} ${ala(0.5)}`}
+                    fill="none"
+                    stroke={COLOR.marcaClaro}
+                    strokeWidth={grosor}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+              </svg>
             );
           })}
         </div>
@@ -247,20 +349,25 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
           const c = camaras[i];
           const arriba = aCuadro(x, y, c);
           const abajo = aCuadro(x + w, y + h, c);
-          // Del alto de Adeo, que va al lado: la frase la dice él.
+          // Lo que crece la pieza al levantarse, a cada lado.
+          const dx = (abajo.x - arriba.x) * 0.025;
+          const dy = (abajo.y - arriba.y) * 0.025;
+          // ADEO PEGADO AL RESALTADO (Munir, 2026-10-14: «que Adeo esté al
+          // lado de los highlights explicando las cosas»): él y su frase se
+          // ponen en la esquina de abajo a la izquierda de la pieza, mirándola;
+          // si abajo no caben, en la de arriba, mirando hacia abajo. Antes la
+          // frase iba centrada debajo, a distancia, y Adeo era un adorno de ella.
           const altoFrase = 116 * u;
-          const aire = 22 * u;
-          const margen = 44 * u;
-          // Debajo de lo que señala; si no cabe en el cuadro, encima; y si
-          // tampoco, dentro, pegada a su borde de abajo.
-          const top =
-            abajo.y + aire + altoFrase <= m.alto - margen
-              ? abajo.y + aire
-              : arriba.y - aire - altoFrase >= margen
-                ? arriba.y - aire - altoFrase
-                : abajo.y - aire - altoFrase;
-          const borde = Math.min(m.ancho / 2, 590 * u);
-          const left = Math.max(borde, Math.min(m.ancho - borde, (arriba.x + abajo.x) / 2));
+          const pegado = 8 * u;
+          const margen = 36 * u;
+          const ancho = 176 * u + decir(foco.dato).replace(/\*/g, "").length * 0.54 * 52 * u;
+          const debajo = abajo.y + dy + pegado + altoFrase <= m.alto - margen;
+          const encima = !debajo && arriba.y - dy - pegado - altoFrase >= margen;
+          const top = debajo ? abajo.y + dy + pegado : encima ? arriba.y - dy - pegado - altoFrase : abajo.y - altoFrase - 16 * u;
+          const left = Math.max(margen, Math.min(m.ancho - margen - ancho, arriba.x - dx));
+          // Adeo no mira hacia arriba (`Mirada`, en `src/lib/mascota.ts`):
+          // debajo de la pieza mira hacia ella por la derecha.
+          const mira = encima ? "bajo" : "der";
           const llega = llegaDato(largo, n, i);
           const raya = spring({ frame: f - llega - 4, fps, config: { damping: 200, mass: 0.5 } });
           // Adeo llega de un brinco, un pelo antes que su primera palabra.
@@ -282,9 +389,8 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
                 height: altoFrase,
                 display: "flex",
                 alignItems: "center",
-                gap: 20 * u,
+                gap: 16 * u,
                 opacity: fuera,
-                transform: "translateX(-50%)",
               }}
             >
               {/* Una sombra ancha y sin bordes detrás, que apaga las letras de
@@ -311,7 +417,7 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
                   filter: `drop-shadow(0 ${6 * u}px ${12 * u}px rgba(0,0,0,0.6))`,
                 }}
               >
-                <Adeo animo={escena.adeo} alto={112 * u} antes={REACCIONES.toque} mirada="der" desde={entra + llega} semilla={escena.id.length + i} />
+                <Adeo animo={escena.adeo} alto={112 * u} antes={REACCIONES.toque} mirada={mira} desde={entra + llega} semilla={escena.id.length + i} />
               </div>
               <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 * u }}>
                 <Palabras

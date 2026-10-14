@@ -10,20 +10,27 @@
  * No hay un vídeo en español y otro en inglés: hay uno, y cada frase es un par
  * `{ es, en }`. Si a una le falta un idioma, TypeScript no compila.
  *
- * ESTÁ ESCRITO POR TIEMPOS, NO POR PANTALLAS. La segunda pasada (2026-10-14)
- * sale de lo que Munir dijo de la primera, de 57,5 s: «muy lento y difícil
- * para el usuario y no lo explica bien del todo como otras referencias», y
- * «pon a Adeo de protagonista, Adeo explica la plataforma». Ahora dura 43,75 s,
- * ADEO es quien la cuenta (todo lo que se lee después del nombre lo dice él,
- * y sale a su lado), y cada función es una PREGUNTA que se haría quien mira y
- * la pieza de la app que la contesta:
+ * ESTÁ ESCRITO POR TIEMPOS, NO POR PANTALLAS. Sale de las rondas 6.ª y 7.ª de
+ * Munir (2026-10-14): la primera pasada era «muy lenta y difícil para el
+ * usuario», «pon a Adeo de protagonista, Adeo explica la plataforma», y luego
+ * «que el highlight de las cosas sea mejor y que explique más funciones y que
+ * Adeo esté al lado de los highlights explicando las cosas». Y de la 8.ª: que
+ * salga el móvil y que el Lienzo se explique bien. Dura 63,75 s, ADEO es quien
+ * la cuenta (todo lo que se lee después del nombre lo dice él, y sale a su
+ * lado), y cada función es una PREGUNTA que se haría quien mira y la pieza de
+ * la app que la contesta:
  *
  *    0:00     el problema y el giro   solo texto, en primera persona (Munir)
  *    0:06,25  el nombre               el logotipo despierta: es Adeo, y se presenta
  *    0:10     qué es                  la Cabina entera, y sus terminales
- *    0:15     cinco preguntas         la cámara ya dentro de cada pieza
- *    0:33,75  Adeo                    lo que hace él
- *    0:38,75  el cierre               una sola cosa que hacer
+ *    0:15     Panel y Capataz         dos preguntas
+ *    0:22,5   el Lienzo               el tablero, la flecha, las columnas, el enjambre
+ *    0:36,25  cinco preguntas más     Archivos, Decisiones, Cuentas, Comandos, Agenda
+ *    0:55     Adeo                    lo que hace él
+ *    1:00     el cierre               una sola cosa que hacer
+ *
+ * El móvil está pedido (8.ª ronda) y entra en cuanto haya una captura del
+ * teléfono: no existe ninguna todavía.
  *
  * La misma tabla, con lo que se ve y se lee en cada tramo, está en el README.
  * Si se cambia aquí, se cambia allí.
@@ -68,8 +75,8 @@ export type EscenaTexto = Comun & { tipo: "texto"; lineas: Frase[] };
 
 /**
  * Una función de una pantalla: dónde está en la captura y qué se dice de ella.
- * La cámara se acerca a ese trozo, lo demás se apaga y la frase sale a su lado,
- * dicha por Adeo.
+ * La cámara se acerca a ese trozo, lo resalta levantándolo de la pantalla, y
+ * Adeo se pone pegado a él a contarlo.
  */
 export type Foco = {
   /** El trozo de la captura: izquierda, arriba, ancho y alto, de 0 a 1. Se
@@ -83,6 +90,11 @@ export type Foco = {
   /** Si está, el puntero va a ese punto de la captura (x, y, de 0 a 1) y
       hace clic: es lo que hace que se vea usar la función y no solo mirarla. */
   clic?: readonly [number, number];
+  /** Si está, se dibuja una flecha de (x1, y1) a (x2, y2), en fracciones de
+      la captura, que se traza sola al encenderse la pieza. Es para lo que en
+      la captura existe pero apenas se ve: la flecha que encadena dos agentes
+      en el Lienzo queda tapada por su propia etiqueta. */
+  flecha?: readonly [number, number, number, number];
 };
 
 export type EscenaPantalla = Comun & {
@@ -141,6 +153,15 @@ export const TEXTOS = {
   pendiente: { es: "Captura pendiente", en: "Screenshot pending" },
 } as const;
 
+/** Una pregunta de 3,75 s: Adeo la dice dudando sobre la pieza a media luz,
+    la pieza se levanta y él contesta pegado a ella. */
+const pregunta = (p: Omit<EscenaPantalla, "tipo" | "dura" | "directo">): EscenaPantalla => ({
+  tipo: "pantalla",
+  dura: 3.75,
+  directo: true,
+  ...p,
+});
+
 export const ESCENAS: Escena[] = [
   // 0:00 · El problema y el giro. Solo texto y en primera persona: quien lo
   // cuenta es quien lo hizo, porque lo necesitaba.
@@ -192,67 +213,102 @@ export const ESCENAS: Escena[] = [
     ],
   },
 
-  // 0:15 · Cinco preguntas, cada una con la pieza que la contesta. La cámara
+  // 0:15 · Nueve preguntas, cada una con la pieza que la contesta. La cámara
   // ya está dentro de la pieza: no se enseña la pantalla entera.
-  {
+  pregunta({
     id: "panel",
-    tipo: "pantalla",
     imagen: "dashboard.png",
-    dura: 3.75,
-    directo: true,
-    adeo: "baila",
+    adeo: "lista",
     nombre: { es: "Panel", en: "Dashboard" },
     titulo: { es: "¿Quién te *espera*?", en: "Who's *waiting*?" },
-    focos: [
-      {
-        en: [0.02, 0.148, 0.482, 0.12],
-        dato: { es: "*3 trabajando*. Nadie espera.", en: "*3 working*. Nobody waiting." },
-      },
-    ],
+    focos: [{ en: [0.02, 0.148, 0.482, 0.12], dato: { es: "*3 trabajando*. Nadie espera.", en: "*3 working*. Nobody waiting." } }],
     voz: [{ es: "¿Quién te espera? Tres trabajando, nadie esperando.", en: "Who's waiting? Three working, nobody waiting." }],
-  },
+  }),
+  pregunta({
+    id: "capataz",
+    imagen: "dashboard.png",
+    adeo: "escucha",
+    nombre: { es: "Capataz", en: "Foreman" },
+    titulo: { es: "¿Montar *un equipo*?", en: "Need *a team*?" },
+    focos: [{ en: [0.145, 0.555, 0.32, 0.175], dato: { es: "Pídelo *en cristiano*", en: "Just ask, *in plain words*" } }],
+    voz: [{ es: "¿Montar un equipo? Pídelo en cristiano.", en: "Need a team? Just ask, in plain words." }],
+  }),
+  // El Lienzo, explicado entero (8.ª ronda: «y bien el canvas»): primero el
+  // tablero con sus terminales vivas, luego la flecha que hace que un agente
+  // siga a otro, y después sus columnas y el enjambre.
   {
-    id: "lienzo",
+    id: "tablero",
     tipo: "pantalla",
     imagen: "canvas.png",
-    dura: 3.75,
-    directo: true,
-    adeo: "lista",
+    dura: 6.25,
+    adeo: "baila",
     nombre: { es: "Lienzo", en: "Canvas" },
-    titulo: { es: "¿Quién hace *qué*?", en: "Who's doing *what*?" },
+    titulo: { es: "Y un *tablero infinito*", en: "And an *infinite board*" },
     focos: [
+      { en: [0.205, 0.23, 0.745, 0.63], dato: { es: "Terminales vivas, *en el tablero*", en: "Live terminals, *on the board*" } },
+      // El enlace entre las dos terminales de abajo: su etiqueta («…que el
+      // texto de los planes sigue cuadrando») cruza el hueco y tapa la raya,
+      // así que la flecha se dibuja justo debajo, de una terminal a la otra.
       {
-        en: [0.209, 0.255, 0.255, 0.242],
-        dato: { es: "Cada uno, *en su columna*", en: "Each one, *in its column*" },
+        en: [0.42, 0.66, 0.13, 0.1],
+        dato: { es: "Flecha: *uno sigue al otro*", en: "An arrow: *one feeds the next*" },
+        flecha: [0.474, 0.722, 0.528, 0.722],
       },
     ],
-    voz: [{ es: "¿Quién hace qué? Cada uno, en su columna.", en: "Who's doing what? Each one, in its column." }],
+    voz: [
+      {
+        es: "Y en el Lienzo, las terminales viven en un tablero infinito; con una flecha, un agente sigue al otro.",
+        en: "And on the Canvas, terminals live on an infinite board; with an arrow, one agent feeds the next.",
+      },
+    ],
   },
-  {
+  pregunta({
+    id: "lienzo",
+    imagen: "canvas.png",
+    adeo: "piensa",
+    nombre: { es: "Columnas", en: "Columns" },
+    titulo: { es: "¿Quién hace *qué*?", en: "Who's doing *what*?" },
+    focos: [{ en: [0.209, 0.255, 0.255, 0.242], dato: { es: "Cada uno, *en su columna*", en: "Each one, *in its column*" } }],
+    voz: [{ es: "¿Quién hace qué? Cada uno, en su columna.", en: "Who's doing what? Each one, in its column." }],
+  }),
+  pregunta({
     id: "enjambre",
-    tipo: "pantalla",
     imagen: "swarm.png",
     proporcion: 534 / 632,
-    dura: 3.75,
-    directo: true,
     adeo: "baila",
     nombre: { es: "Enjambre", en: "Swarm" },
     titulo: { es: "¿Y si pides *algo grande*?", en: "And for *something big*?" },
+    focos: [{ en: [0.025, 0.335, 0.95, 0.27], dato: { es: "Lo *reparto* yo", en: "I *split it up*" } }],
+    voz: [{ es: "¿Y si pides algo grande? Lo reparto yo.", en: "And for something big? I split it up." }],
+  }),
+  pregunta({
+    id: "archivos",
+    imagen: "files.png",
+    adeo: "trabaja",
+    nombre: { es: "Archivos", en: "Files" },
+    titulo: { es: "¿Qué ha *tocado*?", en: "What did it *touch*?" },
+    focos: [{ en: [0.842, 0.045, 0.135, 0.37], dato: { es: "*2 archivos*, a un clic", en: "*2 files*, one click away" } }],
+    voz: [{ es: "¿Qué ha tocado? Dos archivos, a un clic.", en: "What did it touch? Two files, one click away." }],
+  }),
+  pregunta({
+    id: "decisiones",
+    imagen: "decisions.png",
+    adeo: "quieta",
+    nombre: { es: "Decisiones", en: "Decisions" },
+    titulo: { es: "¿Un agente *duda*?", en: "An agent *unsure*?" },
     focos: [
       {
-        en: [0.025, 0.335, 0.95, 0.27],
-        dato: { es: "Lo *reparto* yo", en: "I *split it up*" },
+        en: [0.297, 0.075, 0.385, 0.3],
+        dato: { es: "Te da *opciones*, y eliges", en: "It lays out *options*" },
+        clic: [0.318, 0.228],
       },
     ],
-    voz: [{ es: "¿Y si pides algo grande? Lo reparto yo.", en: "And for something big? I split it up." }],
-  },
-  {
+    voz: [{ es: "¿Un agente duda? Te da opciones, y eliges.", en: "An agent unsure? It lays out options, you pick." }],
+  }),
+  pregunta({
     id: "cuentas",
-    tipo: "pantalla",
     imagen: "accounts.png",
-    dura: 3.75,
-    directo: true,
-    adeo: "quieta",
+    adeo: "lista",
     nombre: { es: "Cuentas", en: "Accounts" },
     titulo: { es: "¿Te queda *cuota*?", en: "Any *quota* left?" },
     focos: [
@@ -263,26 +319,34 @@ export const ESCENAS: Escena[] = [
       },
     ],
     voz: [{ es: "¿Te queda cuota? La ves, y eliges cuenta.", en: "Any quota left? See it, and pick the account." }],
-  },
-  {
-    id: "agenda",
-    tipo: "pantalla",
-    imagen: "agenda.png",
-    dura: 3.75,
-    directo: true,
+  }),
+  pregunta({
+    id: "comandos",
+    imagen: "commands.png",
     adeo: "trabaja",
-    nombre: { es: "Agenda", en: "Agenda" },
-    titulo: { es: "¿Y cuando *no estás*?", en: "And when *you're away*?" },
+    nombre: { es: "Comandos", en: "Commands" },
+    titulo: { es: "¿Cómo era *ese comando*?", en: "What was *that command*?" },
     focos: [
       {
-        en: [0.796, 0.13, 0.182, 0.08],
-        dato: { es: "Encargos que *van solos*", en: "Jobs that *run on their own*" },
+        en: [0.026, 0.165, 0.41, 0.19],
+        dato: { es: "Búscalo: *un clic lo teclea*", en: "Find it: *one click types it*" },
+        clic: [0.05, 0.3],
       },
     ],
+    voz: [{ es: "¿Cómo era ese comando? Búscalo: un clic lo teclea.", en: "What was that command? Find it: one click types it." }],
+  }),
+  pregunta({
+    id: "agenda",
+    imagen: "agenda.png",
+    // Dormido: los encargos van solos, y él también descansa.
+    adeo: "dormida",
+    nombre: { es: "Agenda", en: "Agenda" },
+    titulo: { es: "¿Y cuando *no estás*?", en: "And when *you're away*?" },
+    focos: [{ en: [0.796, 0.13, 0.182, 0.08], dato: { es: "Encargos que *van solos*", en: "Jobs that *run on their own*" } }],
     voz: [{ es: "¿Y cuando no estás? Encargos que van solos.", en: "And when you're away? Jobs that run on their own." }],
-  },
+  }),
 
-  // 0:33,75 · Adeo, en grande, hablando de sí mismo.
+  // 0:48,75 · Adeo, en grande, hablando de sí mismo.
   {
     id: "adeo",
     tipo: "adeo",
@@ -293,11 +357,11 @@ export const ESCENAS: Escena[] = [
     ],
   },
 
-  // 0:38,75 · El cierre: una sola cosa que hacer.
+  // 0:53,75 · El cierre: una sola cosa que hacer.
   {
     id: "cierre",
     tipo: "cierre",
-    dura: 5,
-    voz: [{ es: "Adeorq es gratis, para Windows y Linux. En adeorq punto com.", en: "Adeorq is free, for Windows and Linux. At adeorq dot com." }],
+    dura: 3.75,
+    voz: [{ es: "Adeorq es gratis, en adeorq punto com.", en: "Adeorq is free, at adeorq dot com." }],
   },
 ];

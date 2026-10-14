@@ -283,6 +283,16 @@
       <li data-en="hero.nota2">Actualizaciones firmadas</li>
       <li data-en="hero.nota3">Usa la sesión que ya tienes</li>
     </ul>
+
+    <!-- ADEO, el de la barra de la app, de pie en el resplandor (portada/adeo.js
+         lo pinta y lo mueve). Entra después del titular y no pesa: es un <svg>
+         vacío hasta que carga el script. Su frase es texto de la página. -->
+    <div class="adeo-hola">
+      <p class="adeo-dice adeo-dice--abajo" data-en="adeo.hola"
+         data-celebra="¡Allá va! Instálalo y nos vemos en tu barra." data-en-attr="data-celebra:adeo.celebra">Hola,
+         soy <b>Adeo</b>. Vivo en tu Adeorq y te aviso cuando un agente te necesita.</p>
+      <svg class="adeo" data-adeo="quieta" width="160" height="112" aria-hidden="true"></svg>
+    </div>
   </div>
 
   <!-- La ventana. `loading="lazy"` no: es lo primero que se ve.
@@ -547,6 +557,10 @@
   <div class="explica__caja">
 
     <header class="explica__cabecera">
+      <div class="adeo-presenta">
+        <svg class="adeo" data-adeo="quieta" width="86" height="60" aria-hidden="true"></svg>
+        <p class="adeo-dice adeo-dice--izq" data-en="adeo.queEs">Esto es lo que hay dentro. Elige una pantalla y te la abro arriba, en la demo.</p>
+      </div>
       <p class="etiqueta" data-en="queEs.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Qué hace</p>
       <h2 class="explica__tit" data-en="queEs.tit"><b>Diez pantallas,</b> <span>una ventana</span></h2>
       <p class="explica__entrada" data-en="queEs.entrada">
@@ -658,6 +672,10 @@
 <section class="pasos" id="trabajo">
   <div class="pasos__caja bloque--dos">
     <div class="bloque__rotulo">
+    <div class="adeo-presenta">
+      <svg class="adeo" data-adeo="trabaja" width="86" height="60" aria-hidden="true"></svg>
+      <p class="adeo-dice adeo-dice--izq" data-en="adeo.trabajo">Mientras tus agentes trabajan, yo tecleo con ellos. Cuando uno acaba, te aviso.</p>
+    </div>
     <p class="etiqueta" data-en="trabajo.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Cómo trabaja</p>
     <h2 class="seccion__tit" data-aparece data-en="trabajo.tit">Tres pasos y ya están trabajando</h2>
     </div>
@@ -707,6 +725,10 @@
 <section class="pasos" id="movil">
   <div class="pasos__caja bloque--dos">
     <div class="bloque__rotulo">
+    <div class="adeo-presenta">
+      <svg class="adeo" data-adeo="escucha" width="86" height="60" aria-hidden="true"></svg>
+      <p class="adeo-dice adeo-dice--izq" data-en="adeo.movil">¿Sales de casa? Me vengo contigo en el móvil.</p>
+    </div>
     <p class="etiqueta" data-en="movil.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>En el móvil</p>
     <h2 class="seccion__tit" data-aparece data-en="movil.tit">Tu cabina, también en el bolsillo</h2>
     <p class="seccion__entrada" data-en="movil.entrada">
@@ -752,6 +774,10 @@
      funciones parece una limitación. -->
 <section class="cuenta" id="privacidad">
   <div class="cuenta__caja">
+    <div class="adeo-presenta adeo-presenta--centro">
+      <svg class="adeo" data-adeo="quieta" width="86" height="60" aria-hidden="true"></svg>
+      <p class="adeo-dice adeo-dice--izq" data-en="adeo.cuenta">Yo no mando nada a ningún servidor nuestro. Lo tuyo queda entre tú y tu CLI.</p>
+    </div>
     <h2 class="seccion__tit seccion__tit--centro" data-en="cuenta.tit">Tu código no pasa por aquí</h2>
     <div class="cuenta__datos">
       <article>
@@ -782,6 +808,12 @@
 <section class="descarga" id="descargar" data-descarga>
   <div class="descarga__caja bloque--dos">
     <div class="bloque__rotulo">
+    <div class="adeo-presenta">
+      <svg class="adeo" data-adeo="espera" width="86" height="60" aria-hidden="true"></svg>
+      <p class="adeo-dice adeo-dice--izq" data-en="adeo.descarga"
+         data-celebra="¡Allá va! Instálalo y nos vemos en tu barra." data-en-attr="data-celebra:adeo.celebra">Dos minutos
+         y estoy en tu barra, esperando a tus agentes.</p>
+    </div>
     <p class="etiqueta" data-en="descarga.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Descarga</p>
     <h2 class="seccion__tit" data-aparece data-en="descarga.tit">Móntate la cabina en dos minutos</h2>
     <p class="seccion__entrada" data-en="descarga.entrada">
@@ -829,6 +861,10 @@
 <section class="novedades" id="novedades">
   <div class="novedades__caja bloque--dos">
     <div class="bloque__rotulo">
+    <div class="adeo-presenta">
+      <svg class="adeo" data-adeo="baila" width="86" height="60" aria-hidden="true"></svg>
+      <p class="adeo-dice adeo-dice--izq" data-en="adeo.novedades">Me mejoran casi todos los días. Por eso bailo.</p>
+    </div>
     <p class="etiqueta" data-en="novedades.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Novedades</p>
     <h2 class="seccion__tit" data-aparece data-en="novedades.tit">Se mueve casi todos los días</h2>
     <p class="seccion__entrada" data-en="novedades.entrada">
@@ -853,6 +889,10 @@
 <section class="faq" id="faq">
   <div class="faq__caja bloque--dos">
     <div class="bloque__rotulo" data-aparece>
+      <div class="adeo-presenta">
+        <svg class="adeo" data-adeo="duda" width="86" height="60" aria-hidden="true"></svg>
+        <p class="adeo-dice adeo-dice--izq" data-en="adeo.faq">¿Dudas? Estas son las que más me hacen.</p>
+      </div>
       <p class="etiqueta" data-en="faq.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>Preguntas</p>
     <h2 class="seccion__tit" data-aparece data-en="faq.tit">Lo que suelen preguntar</h2>
     </div>
@@ -986,6 +1026,7 @@
 <script type="module" src="./portada/portada.js"></script>
 <script type="module" src="./portada/movimiento.js"></script>
 <script type="module" src="./portada/muestra.js"></script>
+<script type="module" src="./portada/adeo.js"></script>
 <script src="./portada/valvula.js" defer></script>
 <script src="./portada/datos.js" defer></script>
 <script src="./portada/idioma.js" defer></script>

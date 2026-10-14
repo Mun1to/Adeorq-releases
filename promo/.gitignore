@@ -10,3 +10,6 @@ public/sonido/hecho/
 # (`public/voz/`). Es su voz, y promo/ viaja entero al repositorio público.
 /voz/
 /public/voz/
+# Las capturas con SU fondo (su foto, con su cara, detrás del cristal): solo
+# para el vídeo, y por lo mismo que la voz no salen de esta máquina.
+/public/con-su-fondo/

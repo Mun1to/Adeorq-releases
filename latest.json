@@ -1,11 +1,11 @@
 {
-  "version": "0.9.197",
-  "notes": "Arreglo de seguridad: en la Cabina el Modo Espejo aisla de verdad, la terminal trabaja en su copia aparte y no en la carpeta del proyecto; una terminal en Modo Espejo vuelve en espejo tras una caida; los encargos programados se saltan si la cuenta va por el 85 por ciento o mas y pueden abrir Codex ademas de Claude; los mods no llegan a las zonas delicadas; un agente sabe por el MCP que existen los mods; y la pantalla de Mods sale entera en ingles",
-  "pub_date": "2026-10-14T17:33:32Z",
+  "version": "0.9.198",
+  "notes": "Actualizar desde la barra ya no falla con Update.install called before Update.download: si volvias a la ventana mientras la barra esperaba a tus agentes, cambiaba la version ya bajada por una copia sin bajar; ahora se queda con la que tiene. Si te sale ese error en tu version, actualiza desde Ajustes, Adeorq",
+  "pub_date": "2026-10-14T18:20:08Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3ljNDVva1lHZXZhMHFnVGo3Z2JqclByaDNxV3pZemlLWkliLzk0WDNXWnBBRGh6U3g3WmUwaTEza3FTb0xtVzI4dG95cVdMV1V2Vk9OaFNnSFhNN0F3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxOTk5MTk0CWZpbGU6QWRlb3JxXzAuOS4xOTdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTcKY25TRys2NWp6YW5jV3o1NWJHT1NrbkFkUEZpMVVMeXdlaFZrN0loU01WRDRwSkUvMFBUWHpia2l3djFtWndobTI4TlNKWkUrOGU3bHdnZEdRUmxVQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.197/Adeorq_0.9.197_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzUzWlNpNWxSQlJHZEcveHZXMnV6VlZNWkRkUWl1Tk1lNGRObVpNU3NKeFNzQ3pLYWpJbmVQYzVUYUU0ZUFpc1h4R3c3Z3owaGI4ajhBMmg3Wk9UUmc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDAxOTg4CWZpbGU6QWRlb3JxXzAuOS4xOThfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTgKSVBXNEtkK0oxMmlEWmplNU15cnRWMTdkTnJESzRZODkvcDQvMi9Kdlp3L05pSFJwMkhudExwS1poVDlxVTM4emc1OVROMUNHaFF0L3NOSUhNWnUyQlE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.198/Adeorq_0.9.198_x64-setup.exe"
     }
   }
 }

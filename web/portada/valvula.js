@@ -39,9 +39,10 @@
 
   /* Dos botones para el mismo interruptor (2026-10-13). El flotante iba pegado
      a la esquina durante toda la página, encima de textos que no se mueven. Lo
-     que se mueve solo vive arriba (el resplandor del haz y la cinta de
-     clientes), así que el flotante acompaña solo a esas dos secciones, y en el
-     pie queda otro igual, quieto, para quien lo busque desde cualquier sitio. */
+     que se mueve solo es el resplandor del haz, la cinta de clientes y Adeo
+     (desde el 2026-10-14, uno en cada sección), así que el flotante sale solo
+     mientras alguno de ellos está en pantalla, y en el pie queda otro igual,
+     quieto, para quien lo busque desde cualquier sitio. */
   function crearBoton(clase) {
     var b = document.createElement('button');
     b.className = clase;
@@ -110,12 +111,14 @@
      pantalla. Solo si existe el del pie, y si el observador no llega a hablar
      se queda a la vista, que es el estado seguro: el control no puede depender
      de que un observador funcione. */
-  var conBucle = [document.getElementById('haz'), document.getElementById('cinta')].filter(Boolean);
+  var conBucle = [document.getElementById('haz'), document.getElementById('cinta')]
+    .concat([].slice.call(document.querySelectorAll('svg[data-adeo]')))
+    .filter(Boolean);
   if (lineaDelPie && conBucle.length && 'IntersectionObserver' in window) {
-    var aLaVista = {};
+    var aLaVista = [];
     var vigiaDeBucles = new IntersectionObserver(function (entradas) {
-      entradas.forEach(function (e) { aLaVista[e.target.id] = e.isIntersecting; });
-      var alguna = conBucle.some(function (s) { return aLaVista[s.id]; });
+      entradas.forEach(function (e) { aLaVista[conBucle.indexOf(e.target)] = e.isIntersecting; });
+      var alguna = conBucle.some(function (s, i) { return aLaVista[i]; });
       boton.toggleAttribute('data-fuera', !alguna);
     });
     conBucle.forEach(function (s) { vigiaDeBucles.observe(s); });

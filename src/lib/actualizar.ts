@@ -55,6 +55,22 @@ export function trabajando(
     .sort((a, b) => a.id - b.id);
 }
 
+/**
+ * Si la versión que acaba de encontrar el comprobador sustituye a la que ya
+ * tiene la tarjeta. El complemento de actualizar guarda lo bajado DENTRO del
+ * objeto de cada versión, así que cambiar el objeto tira la descarga: Munir
+ * pulsó «Actualizar», la tarjeta esperó a sus agentes, al volver a la ventana se
+ * volvió a mirar, entró un objeto nuevo de la MISMA versión y al instalarlo salió
+ * «Update.install called before Update.download» (2026-10-14, con la 0.9.197).
+ * Por eso: la misma versión nunca sustituye, y en cuanto se ha empezado a bajar
+ * (o hay algo pendiente) la tarjeta se queda con la suya hasta acabar.
+ */
+export function cambiarDeVersion(antes: { version: string } | null, nueva: { version: string }, enMarcha: boolean): boolean {
+  if (!antes) return true;
+  if (enMarcha) return false;
+  return antes.version !== nueva.version;
+}
+
 /** Cómo se cuenta en la tarjeta: hasta tres nombres y «y N más». */
 export function quienFrena(lista: PaneStatus[]): string {
   const nombres = lista.map((s) => s.name);

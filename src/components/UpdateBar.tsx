@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import {
@@ -9,7 +9,7 @@ import {
 import { useT } from "../lib/i18n";
 import { anotarRastro, terminalesPorActualizar } from "../lib/pty";
 import { useCabina } from "../lib/cabina";
-import { quienFrena, trabajando } from "../lib/actualizar";
+import { cambiarDeVersion, quienFrena, trabajando } from "../lib/actualizar";
 import { AdeorqMark, CloseIcon, DownloadIcon } from "./Icons";
 
 // Auto-update like VoCript: check once on start (and every few hours for the
@@ -28,6 +28,11 @@ type Pendiente = "instalar" | "reiniciar";
 export default function UpdateBar() {
   const { t } = useT();
   const [update, setUpdate] = useState<Update | null>(null);
+  // La misma, para el comprobador, que vive en un efecto que no se rehace.
+  const updateRef = useRef<Update | null>(null);
+  // Desde que se empieza a bajar hasta que se instala o falla: mientras, la
+  // versión de la tarjeta no se toca.
+  const enMarcha = useRef(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [pct, setPct] = useState(0);
   const [error, setError] = useState("");
@@ -82,11 +87,15 @@ export default function UpdateBar() {
       ultima = ahora;
       check()
         .then((u) => {
-          if (u) {
-            setUpdate(u);
-            setPhase("found");
-            void announce(u.version);
-          }
+          // Lo bajado vive dentro del objeto de cada versión: la misma versión no
+          // se cambia por otro objeto, y con la descarga en marcha no entra
+          // ninguna (`cambiarDeVersion`).
+          if (!u || !cambiarDeVersion(updateRef.current, u, enMarcha.current)) return;
+          updateRef.current = u;
+          setUpdate(u);
+          setDescargada(false);
+          setPhase("found");
+          void announce(u.version);
         })
         .catch((e) => {
           // En pantalla no se dice nada, y eso estaba bien: sin conexión o en
@@ -121,10 +130,12 @@ export default function UpdateBar() {
     setError(String(e));
     setPhase("error");
     setPendiente(null);
+    enMarcha.current = false;
   };
   /** El primer paso: bajar la versión. No cierra nada, así que no espera a nadie. */
   const descargar = () => {
     if (!update || descargada || phase === "downloading") return;
+    enMarcha.current = true;
     setPhase("downloading");
     let total = 0;
     let got = 0;

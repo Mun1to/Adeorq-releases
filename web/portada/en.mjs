@@ -62,6 +62,17 @@ export default {
   'hero.grande': 'Open it full size',
   'hero.grande.href': '/demo/?lang=en',
 
+  /* ── Adeo, lo que dice en cada sección ─────────────────────────────────── */
+  'adeo.hola': 'Hi, I’m <b>Adeo</b>. I live in your Adeorq and tell you when an agent needs you.',
+  'adeo.celebra': 'Off it goes! Install it and I’ll see you in your top bar.',
+  'adeo.queEs': 'This is what’s inside. Pick a screen and I’ll open it up there, in the demo.',
+  'adeo.trabajo': 'While your agents work, I type along with them. When one finishes, I let you know.',
+  'adeo.movil': 'Heading out? I’ll come along on your phone.',
+  'adeo.cuenta': 'I don’t send anything to any server of ours. Your work stays between you and your CLI.',
+  'adeo.descarga': 'Two minutes and I’m in your top bar, waiting for your agents.',
+  'adeo.novedades': 'They improve me almost every day. That’s why I dance.',
+  'adeo.faq': 'Questions? These are the ones I get asked most.',
+
   /* ── Los clientes ──────────────────────────────────────────────────────── */
   'cinta.rotulo': 'The <b>{n} clients</b><br>it can open',
   'cinta.legal':

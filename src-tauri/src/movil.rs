@@ -1293,7 +1293,7 @@ fn arrancar(app: &tauri::AppHandle) {
 /// el reposo moderno (el de su portátil) aguanta lo que dure enchufado y cinco
 /// minutos con batería, y no frena la tapa ni el botón de encendido: eso lo
 /// decide Microsoft, no Adeorq (learn.microsoft.com, «Prepare software for
-/// modern standby» y `SetThreadExecutionState`). En Linux todavía no hace nada.
+/// modern standby» y `SetThreadExecutionState`). En Linux, ver la de abajo.
 #[cfg(windows)]
 fn no_dormir(si: bool) -> bool {
     use windows_sys::Win32::System::Power::{SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED};
@@ -1303,9 +1303,49 @@ fn no_dormir(si: bool) -> bool {
     si && antes != 0
 }
 
+/// En Linux, un bloqueo de reposo de logind con `systemd-inhibit`, que dura lo
+/// que dure el programa que lleva dentro: `tail --pid=<Adeorq>`. Así, si la app
+/// muere de golpe, el bloqueo se va con ella y el PC vuelve a poder dormir;
+/// medido en Fedora 44 (WSL) el 2026-10-15: con el padre vivo sale en
+/// `systemd-inhibit --list`, y a los dos segundos de matarlo ya no está.
+///
+/// Va en su propio grupo de procesos para poder apagarlo entero (el
+/// `systemd-inhibit` y su `tail`). Sin systemd, o si logind no da permiso,
+/// `systemd-inhibit` sale enseguida y esto devuelve `false`, como en Windows
+/// cuando falla.
 #[cfg(not(windows))]
-fn no_dormir(_: bool) -> bool {
-    false
+fn no_dormir(si: bool) -> bool {
+    use std::os::unix::process::CommandExt;
+    use std::process::{Child, Command, Stdio};
+    static BLOQUEO: std::sync::Mutex<Option<Child>> = std::sync::Mutex::new(None);
+
+    let mut bloqueo = BLOQUEO.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(mut viejo) = bloqueo.take() {
+        // El grupo entero: matar solo `systemd-inhibit` dejaría su `tail` vivo
+        // hasta que se cierre la app.
+        unsafe { libc::kill(-(viejo.id() as i32), libc::SIGTERM) };
+        let _ = viejo.wait();
+    }
+    if !si {
+        return false;
+    }
+    let hijo = Command::new("systemd-inhibit")
+        .args(["--what=sleep", "--who=Adeorq", "--why=Sirve el conserje al móvil", "--mode=block", "tail"])
+        .arg(format!("--pid={}", std::process::id()))
+        .args(["-f", "/dev/null"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .process_group(0)
+        .spawn();
+    let Ok(mut hijo) = hijo else { return false };
+    // Si no puede bloquear, sale en el acto: se le da un momento para saberlo.
+    std::thread::sleep(Duration::from_millis(300));
+    if !matches!(hijo.try_wait(), Ok(None)) {
+        return false;
+    }
+    *bloqueo = Some(hijo);
+    true
 }
 
 /// Al abrir la app: lo que se guardó, y si estaba encendido, a servir.

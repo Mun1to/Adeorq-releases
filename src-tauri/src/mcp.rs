@@ -203,7 +203,19 @@ pub fn se_quedo_en_la_caja(pantalla: &[String]) -> bool {
         let resto = t.strip_prefix('❯').or_else(|| t.strip_prefix('>'))?;
         (resto.is_empty() || resto.starts_with(' ')).then(|| resto.trim())
     }
+    // «2.  Opus 5.5»: lo que va detrás del glifo cuando es el cursor de un menú.
+    fn opcion(t: &str) -> bool {
+        let digitos = t.chars().take_while(char::is_ascii_digit).count();
+        (1..=2).contains(&digitos) && t[digitos..].starts_with(". ")
+    }
     if let Some(dentro) = pantalla.iter().rev().find_map(|l| caja(l)) {
+        // Un menú abierto (el de `/model`, medido el 2026-10-15) pinta su
+        // cursor con el mismo glifo que la caja: «❯ 2.  Opus 5.5 ✔». Si hay
+        // más opciones numeradas a la vista, la orden entró y abrió el menú.
+        // Con una sola es texto que alguien escribió en la caja («1. arregla…»).
+        if opcion(dentro) && pantalla.iter().filter(|l| opcion(l.trim_start())).count() >= 2 {
+            return false;
+        }
         // Vacía, o con la sugerencia atenuada que pinta cuando no hay nada.
         return !dentro.is_empty() && !dentro.starts_with("Try \"");
     }
@@ -1845,5 +1857,30 @@ mod tests {
             .chain((0..20).map(|i| format!("línea {i}")))
             .collect();
         assert!(!se_quedo_en_la_caja(&vieja));
+    }
+
+    /// `send_command(7, "/model")` decía que el texto se había quedado en la
+    /// caja y el menú estaba abierto: el cursor del menú lleva el mismo glifo.
+    /// Pantalla de verdad (Claude Code 2.1.300, read_pane_screen, 2026-10-15).
+    #[test]
+    fn un_menu_abierto_no_es_texto_en_la_caja() {
+        let filas = |s: &[&str]| s.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let menu = filas(&[
+            " ▐▛███▛█   Claude Code v2.1.300",
+            "",
+            "❯ /model",
+            "",
+            "────────────────────────────────────────────────────────────────────────────",
+            "  Select model",
+            "    1.  Default (recommended)  Opus 5.5 · Best for everyday, complex tasks",
+            "  ❯ 2.  Opus 5.5 ✔             For complex work and everyday tasks",
+            "    3.  Fable 5.1              For your toughest challenges",
+            "  ↓ 10. Opus 4.8               Best for everyday, complex tasks",
+            "",
+            "  Enter to set as default · s to use this session only · Esc to cancel",
+        ]);
+        assert!(!se_quedo_en_la_caja(&menu));
+        // Una lista empezada en la caja sí es texto que se quedó sin mandar.
+        assert!(se_quedo_en_la_caja(&filas(&["────", "❯ 1. arregla el scroll", "────"])));
     }
 }

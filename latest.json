@@ -1,11 +1,11 @@
 {
-  "version": "0.9.200",
-  "notes": "Arreglo de seguridad: una pagina web ya no puede mandarle ordenes al MCP de Adeorq, el puerto por el que los agentes manejan tus terminales. Y en el movil en ingles una consola parada dice idle.",
-  "pub_date": "2026-10-14T23:02:13Z",
+  "version": "0.9.201",
+  "notes": "El conserje y el Capataz hablan el idioma de la app y llaman a cada uno por su nombre. Codex al editar archivos tiene botones de respuesta. En Linux el PC no se duerme mientras sirve al movil.",
+  "pub_date": "2026-10-14T23:47:54Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzN4bnhkY1JXTXFwWExWVyticTJTNUtIVHlsSE1GdlBKY1lBTWYyb3psVDZINFlVaUpQMlNnMHVrRWoyT1c2NS9GNWt1ZGNFUGFlVkFDdnA5T3ZKcmdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDE4OTEyCWZpbGU6QWRlb3JxXzAuOS4yMDBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDAKV0JRY3ExeXdacDQ0ZGFMUkIvT3R2TUozSmMrQlVTN0Zia3UyMDE2N3k5Z0pjd2FVSEVXNkRMVHI2SEdRdWhWNml6VUs0MnlLMjhoRnJmT25QVGErQ2c9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.200/Adeorq_0.9.200_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZOS2lOQVlVUE1yZno4YUdpZllKdGh2VnI3NHBFOWdXb0xvbC80Vm5ObTd5cjFDS0lKT1FNVkpWTzMrQnpoMWIvUEhxRTBpMUxUODRuVFB2NUJuS3c4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDIxNjU1CWZpbGU6QWRlb3JxXzAuOS4yMDFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDEKVzJTcjNoS0lybUF5Wnp4MUlUcWtsNEhKOVVMRjJlS2V5cTFkNExKNmxRS3g0SEJOQm5ncTZuNWwwVWNucXNxL3BVRFpQWkxGd3hyaiswN1BtT3pWRFE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.201/Adeorq_0.9.201_x64-setup.exe"
     }
   }
 }

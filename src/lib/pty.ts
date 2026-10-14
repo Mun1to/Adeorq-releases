@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ordenGuardado } from "./ordenBarra";
-import { leerPerfil, raiz } from "./perfil";
+import { leerPerfil, quienSoy, raiz } from "./perfil";
 import type { PedidoMcp, RespuestaMcp } from "./supremo";
 
 export interface PtyData {
@@ -927,13 +927,13 @@ export interface ForemanPlan {
 }
 
 export function foremanPlan(request: string, context: string): Promise<string> {
-  return invoke("foreman_plan", { request, context });
+  return invoke("foreman_plan", { request, context, quien: quienSoy() });
 }
 
 /** El otro oficio: reescribe lo que dijiste como el encargo que necesita el
     agente que tienes delante. No decide nada ni abre nada. */
 export function foremanPrompt(request: string, context: string): Promise<string> {
-  return invoke("foreman_prompt", { request, context });
+  return invoke("foreman_prompt", { request, context, quien: quienSoy() });
 }
 
 /* ─────────────── Sacar una terminal a su propia ventana ─────────────────── */
@@ -953,7 +953,7 @@ export function foremanMapa(
    *  otro, porque cada pieza es un proyecto entero y no un módulo. */
   todos = false,
 ): Promise<string> {
-  return invoke("foreman_mapa", { ruta, esqueleto, todos });
+  return invoke("foreman_mapa", { ruta, esqueleto, todos, quien: quienSoy() });
 }
 
 /** Un renglón por proyecto de la carpeta madre, con lo que cada uno dice de sí
@@ -1074,7 +1074,7 @@ export function foremanAgente(
   manos: string[],
   modelo?: string,
 ): Promise<string> {
-  return invoke("foreman_agente", { request, context, manos, modelo });
+  return invoke("foreman_agente", { request, context, manos, modelo, quien: quienSoy() });
 }
 
 export function writeMission(projectPath: string, content: string): Promise<string> {
@@ -1248,7 +1248,7 @@ export function shadowDiscard(
 
 /** El lote entero clasificado en UNA llamada (ver `foreman.rs`). */
 export function foremanLote(tareas: string, context: string): Promise<string> {
-  return invoke("foreman_lote", { tareas, context });
+  return invoke("foreman_lote", { tareas, context, quien: quienSoy() });
 }
 
 /** Escribe el papel común del reparto en el BUZON.md de un proyecto. */

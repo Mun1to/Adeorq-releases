@@ -6,6 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use crate::SinVentana;
+use crate::conserje::Quien;
 
 const PLAN_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -175,9 +176,12 @@ Responde SOLO con JSON válido, sin markdown, sin nada antes ni después:
 /// Runs `claude -p` and returns the model's raw text (the plan JSON).
 /// Blocking work happens on a worker thread via async_runtime::spawn_blocking.
 #[tauri::command]
-pub async fn foreman_plan(request: String, context: String) -> Result<String, String> {
+pub async fn foreman_plan(request: String, context: String, quien: Option<Quien>) -> Result<String, String> {
+    let q = quien.unwrap_or_default();
     preguntar(format!(
-        "{SYSTEM_PROMPT}\n\n## Estado actual\n{context}\n\n## Pedido de Munir\n{request}"
+        "{SYSTEM_PROMPT}\n\n## Estado actual\n{context}{}\n\n## Pedido de {}\n{request}",
+        q.al_prompt(),
+        q.firma()
     ))
     .await
 }
@@ -192,9 +196,11 @@ pub async fn foreman_plan(request: String, context: String) -> Result<String, St
 /// para que él lo lea no necesita que un validador lo apruebe: necesita que lo
 /// vea, que es una garantía más fuerte y más barata.
 #[tauri::command]
-pub async fn foreman_prompt(request: String, context: String) -> Result<String, String> {
+pub async fn foreman_prompt(request: String, context: String, quien: Option<Quien>) -> Result<String, String> {
+    let q = quien.unwrap_or_default();
     preguntar(format!(
-        "{PROMPT_SYSTEM}\n\n## Dónde está trabajando\n{context}\n\n## Lo que ha dicho\n{request}"
+        "{PROMPT_SYSTEM}\n\n## Dónde está trabajando\n{context}{}\n\n## Lo que ha dicho\n{request}",
+        q.al_prompt()
     ))
     .await
 }
@@ -402,15 +408,17 @@ pub async fn foreman_mapa(
     // encargo entero, no un detalle: ahí cada pieza es un proyecto y no hay
     // código que leer, porque la lista viene ya masticada desde Rust.
     todos: Option<bool>,
+    quien: Option<Quien>,
 ) -> Result<String, String> {
     if !Path::new(&ruta).is_dir() {
         return Err(format!("«{ruta}» no es una carpeta"));
     }
     let taller = todos.unwrap_or(false);
+    let q = quien.unwrap_or_default().al_prompt();
     let prompt = if taller {
-        format!("{TALLER_SYSTEM}\n\n## Los proyectos que hay dentro\n{esqueleto}")
+        format!("{TALLER_SYSTEM}{q}\n\n## Los proyectos que hay dentro\n{esqueleto}")
     } else {
-        format!("{MAPA_SYSTEM}\n\n## El esqueleto del proyecto\n{esqueleto}")
+        format!("{MAPA_SYSTEM}{q}\n\n## El esqueleto del proyecto\n{esqueleto}")
     };
     PARAR_MAPA.store(false, std::sync::atomic::Ordering::Relaxed);
 
@@ -541,9 +549,11 @@ pub async fn foreman_mapa(
 }
 
 #[tauri::command]
-pub async fn foreman_lote(tareas: String, context: String) -> Result<String, String> {
+pub async fn foreman_lote(tareas: String, context: String, quien: Option<Quien>) -> Result<String, String> {
+    let q = quien.unwrap_or_default();
     preguntar(format!(
-        "{LOTE_SYSTEM}\n\n## Dónde trabaja\n{context}\n\n## Las tareas\n{tareas}"
+        "{LOTE_SYSTEM}\n\n## Dónde trabaja\n{context}{}\n\n## Las tareas\n{tareas}",
+        q.al_prompt()
     ))
     .await
 }
@@ -606,13 +616,19 @@ pub async fn foreman_agente(
     context: String,
     manos: Vec<String>,
     modelo: Option<String>,
+    quien: Option<Quien>,
 ) -> Result<String, String> {
     if manos.is_empty() {
         return Err("sin manos no hay agente: usa foreman_prompt".into());
     }
     let cfg = config_mcp()?;
     let modelo = modelo.unwrap_or_else(|| PLAN_MODEL.to_string());
-    let prompt = format!("{AGENTE_SYSTEM}\n\n## Lo que ya se sabe\n{context}\n\n## Lo que te pide Munir\n{request}");
+    let q = quien.unwrap_or_default();
+    let prompt = format!(
+        "{AGENTE_SYSTEM}\n\n## Lo que ya se sabe\n{context}{}\n\n## Lo que te pide {}\n{request}",
+        q.al_prompt(),
+        q.firma()
+    );
 
     tauri::async_runtime::spawn_blocking(move || {
         let sesion = SinRastro::nueva();
@@ -809,4 +825,43 @@ pub fn write_mission(project_path: String, content: String) -> Result<String, St
         .to_string_lossy()
         .trim_start_matches("\\\\?\\")
         .to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Con la app en inglés y alguien que no es Munir, el Capataz escribe el
+    /// encargo en inglés sin traducir lo que el formato pide tal cual (las
+    /// claves y los valores de `clase`, `consecuencia` y `trabajo`, que lee el
+    /// router). Gasta una llamada de Sonnet de tu suscripción.
+    ///
+    /// `cargo test --lib el_capataz_de_verdad_escribe_en_ingles -- --ignored --nocapture`
+    /// Con `ANTES=1`, sin decirle con quién habla, como era: tiene que FALLAR.
+    #[test]
+    #[ignore]
+    fn el_capataz_de_verdad_escribe_en_ingles() {
+        let quien = if std::env::var("ANTES").is_ok() {
+            None
+        } else {
+            Some(Quien { nombre: "Sam".into(), idioma: "en".into() })
+        };
+        let bruta = tauri::async_runtime::block_on(foreman_prompt(
+            "make the settings button in the top bar a bit bigger, it's hard to hit".into(),
+            "Panel: docs-site (C:\\proyectos\\docs-site), a Claude Code session".into(),
+            quien,
+        ))
+        .expect("el Capataz no contestó");
+        println!("--- contestó ---\n{bruta}");
+        let limpio = bruta.trim().trim_start_matches("```json").trim_start_matches("```").trim_end_matches("```").trim();
+        let v: serde_json::Value = serde_json::from_str(limpio).expect("tiene que ser JSON");
+        let encargo = v["encargo"].as_str().expect("falta el encargo");
+        assert!(["recado", "oficio", "juicio"].contains(&v["clase"].as_str().unwrap_or("")), "clase sin traducir: {v}");
+        assert!(["baja", "alta"].contains(&v["consecuencia"].as_str().unwrap_or("")), "consecuencia sin traducir: {v}");
+        assert!(["codigo", "texto", "lectura", "diseno"].contains(&v["trabajo"].as_str().unwrap_or("")), "trabajo sin traducir: {v}");
+        let espanol = encargo.chars().any(|c| "áéíóúñ¿¡".contains(c))
+            || [" el ", " la ", " que ", " para ", " una "].iter().any(|p| encargo.to_lowercase().contains(p));
+        assert!(!espanol, "el encargo, en inglés: {encargo}");
+        assert!(!encargo.contains("Munir"), "a Sam no se le nombra a Munir: {encargo}");
+    }
 }

@@ -9,6 +9,7 @@
 //   pnpm bancos reglas-pantalla
 
 import { estadoDelPanel, loginSegun, parseAsk, pieDePantalla, PREGUNTAS } from "../src/lib/reglasPantalla";
+import { makeT } from "../src/lib/i18n";
 
 let fallos = 0;
 function ok(nombre: string, cond: boolean, detalle = "") {
@@ -47,6 +48,39 @@ ok("«Opus 4.7» no se lee como la opción 4", !g?.options.some((o) => o.n === "
 // pantalla de verdad delante, no un efecto de mover código (2026-10-10).
 const conPieAbajo = ["Select model", "❯ 1. Opus 4.7", "  2. Sonnet 5", "  3. Haiku 4.5", "Enter to confirm · Esc to exit"].join("\n");
 es("con el pie debajo de las opciones, hoy no lee nada", parseAsk(conPieAbajo), null);
+
+// El menú `/model` DE VERDAD, leído con read_pane_screen de un Claude Code
+// 2.1.300 en Adeorq el 2026-10-15. Su pie no dice «Enter to confirm» y va
+// debajo, así que no es una pregunta: ni botones ni «te pregunta». Y así tiene
+// que ser: ese menú lo abre quien está al teclado, no es el agente parado
+// esperando, y marcarlo como pregunta haría que el conserje y el enjambre se
+// saltaran esa sesión creyendo que le pregunta algo a Munir.
+const menuModelo = [
+  "❯ /model",
+  "",
+  "────────────────────────────────────────────────────────────────────────────",
+  "  Select model",
+  "  Switch between Claude models. Your pick becomes the default for new",
+  "  sessions. For other/previous model names, specify with --model.",
+  "",
+  "    1.  Default (recommended)  Opus 5.5 · Best for everyday, complex tasks",
+  "  ❯ 2.  Opus 5.5 ✔             For complex work and everyday tasks",
+  "    3.  Fable 5.1              For your toughest challenges",
+  "    4.  Sonnet 5.5             Most efficient for simpler tasks",
+  "    5.  Haiku 5.5              Fastest for quick answers",
+  "    6.  Haiku 4.5              Fastest for quick answers",
+  "    7.  Sonnet 5               Efficient for routine tasks",
+  "    8.  Opus 5                 Best for everyday, complex tasks",
+  "    9.  Fable 5                Most capable for your hardest and",
+  "                               longest-running tasks",
+  "  ↓ 10. Opus 4.8               Best for everyday, complex tasks",
+  "     … +3 models",
+  "",
+  "  ◉ xHigh effort ←/→ to adjust",
+  "",
+  "  Enter to set as default · s to use this session only · Esc to cancel",
+].join("\n");
+es("el menú /model de verdad no es una pregunta: sin botones", parseAsk(menuModelo), null);
 
 const sino = "Allow tool call? [y/N]";
 es("un sí o no sin opciones escritas", parseAsk(sino)?.options.map((o) => [o.n, o.propio]), [["y", true], ["n", true]]);
@@ -127,10 +161,36 @@ ok("Codex pide permiso: por el cursor no se ve nada", parseAsk(delCursor(codexPe
 const pc = parseAsk(pie(codexPermiso));
 es("Codex pide permiso: por el pie de la pantalla salen sus tres opciones", pc?.options.map((o) => o.n), ["1", "2", "3"]);
 ok("y son las suyas, tecleadas sin Intro", pc?.options[0].label === "Yes, proceed (y)" && pc.options[2].label.startsWith("No, and tell Codex") && pc.enter === false && pc.regla.startsWith("Would you like to run"));
+// Codex al editar: la instantánea `approval_modal_patch.snap` de su propio
+// repositorio (codex-rs/tui), leída el 2026-10-15. No es un panel de verdad: la
+// cuota de Codex estaba agotada. Va con la ruta de un Windows, como la vería aquí.
+const codexEdita = [
+  "",
+  "  Would you like to make the following edits?",
+  "",
+  "  Description: The model wants to apply changes",
+  "  Destination: C:\\proyectos\\tienda\\README.md",
+  "",
+  "",
+  "› 1. Yes, proceed (y)",
+  "  2. Yes, and don't ask again for these files (a)",
+  "  3. No, and tell Codex what to do differently (esc)",
+  "",
+  "  Press enter to confirm or esc to cancel",
+];
+const ce = parseAsk(pie(codexEdita));
+es("Codex pide editar: sus tres opciones", ce?.options.map((o) => o.label), ["Yes, proceed (y)", "Yes, and don't ask again for these files (a)", "No, and tell Codex what to do differently (esc)"]);
+ok("con su propia pista y sin Intro", ce?.regla === "Would you like to make the following edits?" && ce.hint.includes("editar") && ce.enter === false);
 const cc = parseAsk(pie(codexConfianza));
 es("Codex pregunta si confías en la carpeta: sus dos opciones", cc?.options.map((o) => `${o.n} ${o.label}`), ["1 Yes, continue", "2 No, quit"]);
 ok("una pantalla vacía no tiene pie que leer", pie([]) === "" && parseAsk(pie([])) === null);
 es("el pie son las últimas filas con algo, no las últimas de la pantalla", pieDePantalla((y) => ["a", "b", "c", "", ""][y] ?? "", 5, 2), "b\nc");
+
+// Las pistas se pintan con `t(ask.hint)`, que el comprobador de traducciones no
+// puede seguir: una sin su inglés salía en español con la app en inglés (le pasó
+// a la de los comandos de Codex hasta el 2026-10-15).
+const enIngles = makeT("en");
+for (const r of PREGUNTAS) ok(`la pista de «${r.test}» tiene su inglés`, enIngles(r.hint) !== r.hint);
 
 console.log(fallos ? `\n${fallos} FALLOS` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

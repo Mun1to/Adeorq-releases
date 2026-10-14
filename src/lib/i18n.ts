@@ -544,6 +544,10 @@ const EN: Record<string, string> = {
     "Claude is still busy: whatever you type now queues up and is sent when it finishes.",
   "Claude te pide permiso antes de ejecutar esto. Elige:":
     "Claude is asking permission before running this. Choose:",
+  "Codex te pide permiso antes de ejecutar este comando. Elige:":
+    "Codex is asking permission before running this command. Choose:",
+  "Codex te pide permiso antes de editar estos archivos. Elige:":
+    "Codex is asking permission before editing these files. Choose:",
   "Pregunta si confías en esta carpeta. Es tuya, así que lo normal es la 1:":
     "It asks whether you trust this folder. It's yours, so option 1 is the usual answer:",
   "Cómo retomar la sesión: el resumen gasta menos cuota que la completa.":

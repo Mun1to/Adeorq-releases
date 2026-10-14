@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { detectLang } from "./i18n";
 
 // Quién eres y dónde tienes tus cosas: lo que el onboarding pregunta la primera
 // vez que se abre Adeorq.
@@ -70,6 +71,12 @@ export function leerPerfil(): Perfil {
   } catch {
     return { ...PERFIL_VACIO };
   }
+}
+
+/** Quién habla y en qué idioma está la app, para el conserje y el Capataz
+ *  (`Quien` en `conserje.rs`): sus prompts están en español y a Munir. */
+export function quienSoy(): { nombre: string; idioma: string } {
+  return { nombre: leerPerfil().nombre, idioma: detectLang() };
 }
 
 export function guardarPerfil(p: Perfil): void {

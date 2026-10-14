@@ -18,6 +18,7 @@ import type { Animo } from "./campana";
 import type { Exigencia, Receta } from "./router";
 import type { Account, PaneStatus, WorkState } from "./pty";
 import type { ModelAlias } from "./models";
+import { quienSoy } from "./perfil";
 
 export interface Turno {
   n: number;
@@ -158,8 +159,10 @@ export interface ConserjeExec {
  *  para las que se acaban de abrir. */
 export const conserjeSesion = (id: string, w: Trabajo, sesion: string) =>
   invoke<void>("conserje_sesion", { id, panel: w.panel, arranque: w.arranque ?? 0, sesion });
+/** Con quién habla y en qué idioma está la app: sin esto el conserje contesta
+ *  en español y llama Munir a cualquiera (`Quien` en `conserje.rs`). */
 export const conserjeEnviar = (id: string, texto: string, estados: Record<string, string>) =>
-  invoke<Respuesta>("conserje_enviar", { id, texto, estados });
+  invoke<Respuesta>("conserje_enviar", { id, texto, estados, quien: quienSoy() });
 /** Solo esa conversación: la de al lado (o la del móvil) sigue pensando. */
 export const conserjeParar = (id: string) => invoke<void>("conserje_parar", { id });
 export const conserjeMejorar = (texto: string) => invoke<string>("conserje_mejorar", { texto });

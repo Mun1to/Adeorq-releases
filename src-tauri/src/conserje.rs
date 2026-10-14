@@ -764,6 +764,43 @@ pub fn filtrar(
     (buenas, fuera)
 }
 
+/// Lo que la reja dejó fuera, en inglés, para la app en inglés. Las rejas
+/// escriben en español y lo traduce esto al final, en un solo sitio, para no
+/// cambiar la firma de `filtrar` y de sus pruebas. Un aviso que no reconoce
+/// sale tal cual: `cada_aviso_de_la_reja_tiene_su_ingles` los produce todos con
+/// las funciones de verdad, así que retocar uno en español la pone en rojo.
+pub fn descarte_en_ingles(s: &str) -> String {
+    let entre = |a: &str, b: &str| s.strip_prefix(a).and_then(|r| r.strip_suffix(b)).map(str::to_string);
+    if let Some(e) = entre("las acciones no se entendían (", "), así que no se ha hecho nada") {
+        return format!("the actions could not be read ({e}), so nothing was done");
+    }
+    if s == "un trabajo sin encargo" {
+        return "a job without a task".into();
+    }
+    if let Some(c) = entre("«", "» no es una carpeta de tus proyectos") {
+        return format!("“{c}” is not one of your project folders");
+    }
+    if let Some(x) = entre(&format!("más de {MAX_ABRIR} sesiones de golpe: «"), "» se queda fuera") {
+        return format!("more than {MAX_ABRIR} sessions at once: “{x}” is left out");
+    }
+    if let Some(p) = entre("el panel ", " no es de este enjambre, así que no se le escribe") {
+        return format!("panel {p} is not in this swarm, so nothing was written to it");
+    }
+    if let Some(p) = entre("el panel ", " no lo abrió el conserje, así que no se le escribe") {
+        return format!("panel {p} was not opened by the concierge, so nothing was written to it");
+    }
+    if let Some(x) = entre("un enjambre no abre sesiones (se añaden desde el lienzo): «", "» no se ha abierto") {
+        return format!("a swarm does not open sessions (they are added from the canvas): “{x}” was not opened");
+    }
+    if let Some(p) = entre(
+        "el panel ",
+        " te está preguntando algo, así que no le ha llegado el reparto: contéstale a él solo",
+    ) {
+        return format!("panel {p} is asking you something, so the round did not reach it: answer it on its own");
+    }
+    s.to_string()
+}
+
 /// Cómo empieza el estado de una sesión que le está preguntando algo a Munir.
 /// Es la palabra de `PALABRA.pregunta` en `lib/conserje.ts`: si cambia allí,
 /// cambia aquí, y `la_reja_del_enjambre_no_reparte_a_quien_pregunta` lo vigila.
@@ -886,20 +923,84 @@ pub const MANOS: &[&str] = &[
     "mcp__adeorq__leer_turno",
 ];
 
-/// Lo que se ve mientras piensa: una frase por herramienta, no su nombre.
-pub fn frase_de_paso(bloque: &serde_json::Value) -> Option<String> {
+/// Lo que se ve mientras piensa: una frase por herramienta, no su nombre, en el
+/// idioma de la app.
+pub fn frase_de_paso(bloque: &serde_json::Value, en: bool) -> Option<String> {
     let nombre = bloque["name"].as_str()?.trim_start_matches("mcp__adeorq__");
     let e = &bloque["input"];
-    Some(match nombre {
-        "get_projects" => "Mirando tus proyectos".to_string(),
-        "get_active_panes" => "Mirando las sesiones abiertas".to_string(),
-        "read_pane_transcript" => format!("Leyendo la sesión del panel {}", e["paneId"]),
-        "get_usage" => "Mirando cuánta semana te queda".to_string(),
-        "buscar_memoria" => format!("Buscando en la memoria: «{}»", corto(e["pregunta"].as_str().unwrap_or(""), 50)),
-        "leer_memoria" => "Leyendo una nota de la memoria".to_string(),
-        "leer_turno" => format!("Repasando el turno {}", e["n"]),
+    let pregunta = || corto(e["pregunta"].as_str().unwrap_or(""), 50);
+    Some(match (nombre, en) {
+        ("get_projects", false) => "Mirando tus proyectos".to_string(),
+        ("get_projects", true) => "Looking at your projects".to_string(),
+        ("get_active_panes", false) => "Mirando las sesiones abiertas".to_string(),
+        ("get_active_panes", true) => "Looking at the open sessions".to_string(),
+        ("read_pane_transcript", false) => format!("Leyendo la sesión del panel {}", e["paneId"]),
+        ("read_pane_transcript", true) => format!("Reading the session in panel {}", e["paneId"]),
+        ("get_usage", false) => "Mirando cuánta semana te queda".to_string(),
+        ("get_usage", true) => "Checking how much of your week is left".to_string(),
+        ("buscar_memoria", false) => format!("Buscando en la memoria: «{}»", pregunta()),
+        ("buscar_memoria", true) => format!("Searching the memory: “{}”", pregunta()),
+        ("leer_memoria", false) => "Leyendo una nota de la memoria".to_string(),
+        ("leer_memoria", true) => "Reading a note from the memory".to_string(),
+        ("leer_turno", false) => format!("Repasando el turno {}", e["n"]),
+        ("leer_turno", true) => format!("Going over turn {}", e["n"]),
         _ => return None,
     })
+}
+
+/// Quién le habla al conserje y en qué idioma está la app. Lo manda la ventana
+/// con cada mensaje (`conserjeEnviar`), sacado del perfil y del idioma.
+///
+/// Los prompts de esta casa están escritos en español y a Munir. Sin esto, con
+/// la app en inglés el conserje contestaba en español, y a cualquiera que no
+/// fuera Munir le llamaba Munir. Para él no cambia nada: con su nombre (o sin
+/// ninguno) y en español, no se añade ni una línea.
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct Quien {
+    #[serde(default)]
+    pub nombre: String,
+    #[serde(default)]
+    pub idioma: String,
+}
+
+impl Quien {
+    pub fn en_ingles(&self) -> bool {
+        self.idioma == "en"
+    }
+
+    /// Su nombre, si es otro que Munir.
+    fn otro_nombre(&self) -> Option<&str> {
+        let n = self.nombre.trim();
+        (!n.is_empty() && !n.eq_ignore_ascii_case("munir")).then_some(n)
+    }
+
+    /// Cómo firma lo que dice ahora, en la cabecera de su mensaje.
+    pub fn firma(&self) -> &str {
+        self.otro_nombre().unwrap_or("Munir")
+    }
+
+    /// Lo que se le añade al prompt, justo antes de su mensaje: vacío si es
+    /// Munir en español.
+    pub fn al_prompt(&self) -> String {
+        let mut s = String::new();
+        if let Some(n) = self.otro_nombre() {
+            s.push_str(&format!(
+                "- Quien te habla se llama {n}. Donde estas instrucciones dicen «Munir», es {n}: llámale así, nunca Munir.\n"
+            ));
+        }
+        if self.en_ingles() {
+            s.push_str(
+                "- Contesta SIEMPRE en inglés, aunque estas instrucciones y lo que se dijo antes estén en español. \
+                 Los encargos y los mensajes a las sesiones, también en inglés. Lo que el formato pide tal \
+                 cual (las claves del JSON y sus valores fijos, como \"oficio\" o \"abrir\") no se traduce.\n",
+            );
+        }
+        if s.is_empty() {
+            s
+        } else {
+            format!("\n\n## Con quién hablas\n{s}")
+        }
+    }
 }
 
 // ─── LOS COMANDOS DE LA APP ───────────────────────────────────────────────────
@@ -1068,6 +1169,17 @@ pub fn conserje_parar(id: String) {
     }
 }
 
+/// El prompt entero de un turno: el papel, la conversación, con quién habla y
+/// lo que acaba de decir. Lo de con quién va justo antes de su mensaje, que es
+/// lo último que lee el modelo.
+fn montar_prompt(sistema: &str, id: &str, contexto: &str, quien: &Quien, texto: &str) -> String {
+    format!(
+        "{sistema}\n\n## Esta conversación\nconversacion: {id}\n\n{contexto}{}\n\n## Lo que te dice {} ahora\n{texto}",
+        quien.al_prompt(),
+        quien.firma()
+    )
+}
+
 /// Un mensaje al conserje. Lo que dice vuelve en la respuesta; lo que va
 /// haciendo mientras piensa sale por el evento `conserje-paso`.
 ///
@@ -1080,7 +1192,10 @@ pub async fn conserje_enviar(
     id: String,
     texto: String,
     estados: std::collections::HashMap<String, String>,
+    quien: Option<Quien>,
 ) -> Result<Respuesta, String> {
+    let quien = quien.unwrap_or_default();
+    let en = quien.en_ingles();
     let texto = texto.trim().to_string();
     if texto.is_empty() {
         return Err("no hay nada que mandar".into());
@@ -1095,22 +1210,20 @@ pub async fn conserje_enviar(
 
     // Un enjambre es la misma conversación con otro papel: no abre, reparte.
     let sistema = if enjambre { SISTEMA_ENJAMBRE } else { SISTEMA };
-    let prompt = format!(
-        "{sistema}\n\n## Esta conversación\nconversacion: {id}\n\n{contexto}\n\n## Lo que te dice Munir ahora\n{texto}"
-    );
+    let prompt = montar_prompt(sistema, &id, &contexto, &quien, &texto);
     let cfg = crate::foreman::config_mcp()?;
     let id2 = id.clone();
     let pasos = Box::new(move |paso: String| {
         use tauri::Emitter;
         let _ = app.emit("conserje-paso", serde_json::json!({ "id": id2, "paso": paso }));
     });
-    let bruta = tauri::async_runtime::spawn_blocking(move || correr(&prompt, modelo, Some(&cfg), &parar, pasos))
+    let bruta = tauri::async_runtime::spawn_blocking(move || correr(&prompt, modelo, Some(&cfg), &parar, en, pasos))
         .await
         .map_err(|e| e.to_string())??;
 
     let (dice, acciones, resumen, mut descartes) = leer_respuesta(&bruta);
     let raiz = crate::workspace::raiz_por_defecto();
-    let dice = if dice.is_empty() { "Hecho.".to_string() } else { dice };
+    let dice = if !dice.is_empty() { dice } else if en { "Done.".to_string() } else { "Hecho.".to_string() };
     // Sobre la conversación de AHORA, no la de hace un minuto.
     let acciones = cambiar(&id, |conv| {
         let acciones = if conv.enjambre {
@@ -1125,6 +1238,9 @@ pub async fn conserje_enviar(
         conv.apuntar("conserje", &dice, &resumen);
         acciones
     })?;
+    if en {
+        descartes = descartes.iter().map(|d| descarte_en_ingles(d)).collect();
+    }
     Ok(Respuesta { texto: dice, acciones, descartes })
 }
 
@@ -1138,12 +1254,14 @@ pub async fn conserje_enviar(
 /// la tubería sin vaciar deja el proceso bloqueado hasta el tiempo límite.
 ///
 /// `cfg` es el MCP de Adeorq; sin él (el banco, que no tiene ventana) el
-/// conserje contesta sin herramientas. `pasos` recibe lo que va haciendo.
+/// conserje contesta sin herramientas. `pasos` recibe lo que va haciendo, en
+/// inglés si `en`.
 fn correr(
     prompt: &str,
     modelo: &str,
     cfg: Option<&std::path::Path>,
     parar: &std::sync::atomic::AtomicBool,
+    en: bool,
     pasos: Box<dyn Fn(String) + Send>,
 ) -> Result<String, String> {
     use crate::SinVentana;
@@ -1180,7 +1298,7 @@ fn correr(
                 Some("assistant") => {
                     for b in v["message"]["content"].as_array().unwrap_or(&vec![]) {
                         if b["type"] == "tool_use" {
-                            if let Some(f) = frase_de_paso(b) {
+                            if let Some(f) = frase_de_paso(b, en) {
                                 pasos(f);
                             }
                         }
@@ -1238,7 +1356,7 @@ const MEJORAR: &str = r#"Munir ha escrito (a menudo dictando por voz) este mensa
 
 HAZ: corrige lo que el dictado haya roto, quita muletillas y repeticiones, y si pide varias cosas ponlas en una lista numerada en el orden en que las dijo.
 NO HAGAS: no añadas ningún dato, requisito, archivo ni suposición que no esté en su texto; no quites nada que pida; no cambies nombres propios ni palabras técnicas; no respondas a lo que pide.
-En español y de tú, con su tono. Devuelve SOLO el texto reescrito: sin comillas, sin títulos, sin explicar qué has cambiado.
+En el idioma en que está escrito su mensaje (si lo escribió en español, en español), de tú y con su tono. Devuelve SOLO el texto reescrito: sin comillas, sin títulos, sin explicar qué has cambiado.
 
 Su mensaje:
 "#;
@@ -1273,6 +1391,58 @@ pub fn revisar_mejora(original: &str, mejorado: &str) -> Result<String, String> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+
+    fn quien(nombre: &str, idioma: &str) -> Quien {
+        Quien { nombre: nombre.into(), idioma: idioma.into() }
+    }
+
+    #[test]
+    fn a_munir_en_espanol_no_se_le_anade_nada() {
+        for q in [quien("Munir", "es"), quien("munir", "es"), quien("", "es"), quien("  ", ""), Quien::default()] {
+            assert_eq!(q.al_prompt(), "", "{q:?}");
+            assert_eq!(q.firma(), "Munir");
+        }
+    }
+
+    #[test]
+    fn con_la_app_en_ingles_contesta_en_ingles() {
+        let p = quien("Munir", "en").al_prompt();
+        assert!(p.contains("## Con quién hablas") && p.contains("SIEMPRE en inglés"), "{p}");
+        assert!(!p.contains("se llama"), "a Munir no se le cambia el nombre: {p}");
+    }
+
+    #[test]
+    fn a_quien_no_es_munir_se_le_llama_por_su_nombre() {
+        let q = quien("Sam", "en");
+        let p = q.al_prompt();
+        assert!(p.contains("se llama Sam") && p.contains("nunca Munir") && p.contains("en inglés"), "{p}");
+        assert_eq!(q.firma(), "Sam");
+        let es = quien("Lucía", "es").al_prompt();
+        assert!(es.contains("se llama Lucía") && !es.contains("inglés"), "{es}");
+    }
+
+    #[test]
+    fn cada_paso_tiene_su_frase_en_los_dos_idiomas() {
+        let raro = |s: &str| s.chars().any(|c| "áéíóúñ¿¡«»".contains(c));
+        for (nombre, entrada) in [
+            ("get_projects", json!({})),
+            ("mcp__adeorq__get_active_panes", json!({})),
+            ("read_pane_transcript", json!({ "paneId": 4 })),
+            ("get_usage", json!({})),
+            ("buscar_memoria", json!({ "pregunta": "cómo se publica" })),
+            ("leer_memoria", json!({})),
+            ("leer_turno", json!({ "n": 3 })),
+        ] {
+            let b = json!({ "name": nombre, "input": entrada });
+            let es = frase_de_paso(&b, false).expect(nombre);
+            let en = frase_de_paso(&b, true).expect(nombre);
+            assert_ne!(es, en, "{nombre}");
+            // Lo que trae la pregunta va tal cual; el resto de la frase, en inglés.
+            assert!(!raro(&en.replace("cómo se publica", "")), "{nombre}: {en}");
+        }
+        assert!(frase_de_paso(&json!({ "name": "Bash", "input": {} }), true).is_none());
+    }
 
     fn con(n: usize) -> Conversacion {
         let mut c = Conversacion { id: "prueba".into(), router: true, ..Default::default() };
@@ -1675,6 +1845,52 @@ mod tests {
         );
     }
 
+    /// Con la app en inglés y alguien que no es Munir: que conteste en inglés,
+    /// le llame por su nombre y escriba el encargo en inglés, con el prompt
+    /// que monta la app (`montar_prompt`). Y que la mejora del dictado no lo
+    /// pase al español.
+    ///
+    /// Gasta dos llamadas de tu suscripción (el cerebro de fábrica y Haiku).
+    /// `cargo test --lib el_conserje_de_verdad_habla_ingles -- --ignored --nocapture`
+    ///
+    /// Con `ANTES=1` monta el prompt como era hasta el 2026-10-15, sin decirle
+    /// con quién habla, y tiene que FALLAR: así se vio que contestaba en español.
+    #[test]
+    #[ignore]
+    fn el_conserje_de_verdad_habla_ingles_a_quien_lo_usa() {
+        let antes = std::env::var("ANTES").is_ok();
+        let q = if antes { Quien::default() } else { quien("Sam", "en") };
+        let mut c = Conversacion { id: "banco".into(), router: true, ..Default::default() };
+        c.apuntar("tu", "hi", "greeting");
+        c.apuntar("conserje", "Hi, what are we doing?", "greeted");
+        let texto = "fix the terminal scroll jumping in Adeorq when a side panel opens";
+        let contexto = format!(
+            "{}\n\n## Tus proyectos (no tienes herramientas en esta prueba)\nC:\\proyectos\\Adeorq",
+            c.contexto(&|_| String::new())
+        );
+        let prompt = montar_prompt(SISTEMA, "banco", &contexto, &q, texto);
+        assert!(antes || prompt.contains("## Lo que te dice Sam ahora"));
+        let parar = std::sync::atomic::AtomicBool::new(false);
+        let bruta = correr(&prompt, CEREBRO_POR_DEFECTO, None, &parar, !antes, Box::new(|p| println!("  paso: {p}"))).expect("el conserje no contestó");
+        let (dice, acciones, _, descartes) = leer_respuesta(&bruta);
+        println!("--- dice ---\n{dice}\n--- acciones ---\n{acciones:?}");
+        assert!(descartes.is_empty(), "el bloque de acciones tiene que ser JSON válido");
+        let espanol = |s: &str| s.chars().any(|c| "áéíóúñ¿¡".contains(c)) || [" el ", " la ", " que ", " para ", " una "].iter().any(|p| s.to_lowercase().contains(p));
+        assert!(!espanol(&dice), "tiene que contestar en inglés: {dice}");
+        assert!(!dice.contains("Munir"), "a Sam no se le llama Munir: {dice}");
+        for a in &acciones {
+            if let Accion::Abrir { encargo, .. } = a {
+                assert!(!espanol(encargo), "el encargo, en inglés: {encargo}");
+            }
+        }
+
+        let dictado = "uh so look at the radar thing that keeps crashing every two hours and also that scroll thing I told you about";
+        let mejorado = tauri::async_runtime::block_on(crate::foreman::preguntar_con(format!("{MEJORAR}{dictado}"), "haiku"))
+            .expect("la mejora no contestó");
+        println!("--- mejora ---\n{mejorado}");
+        assert!(!espanol(&mejorado), "la mejora de un dictado en inglés sale en inglés: {mejorado}");
+    }
+
     /// EL CONTRATO CON EL MODELO, probado con el de verdad: que el conserje
     /// conteste en el formato que la reja sabe leer. Es lo más frágil de todo
     /// esto, porque no lo decide el código sino un prompt.
@@ -1703,7 +1919,7 @@ mod tests {
         );
         let inicio = std::time::Instant::now();
         let parar = std::sync::atomic::AtomicBool::new(false);
-        let bruta = correr(&prompt, cerebro, None, &parar, Box::new(|p| println!("  paso: {p}"))).expect("el conserje no contestó");
+        let bruta = correr(&prompt, cerebro, None, &parar, false, Box::new(|p| println!("  paso: {p}"))).expect("el conserje no contestó");
         println!("--- contestó en {:.1} s ---\n{bruta}\n---", inicio.elapsed().as_secs_f32());
         let (dice, acciones, resumen, descartes) = leer_respuesta(&bruta);
         let (buenas, fuera) = filtrar(acciones, &c, std::path::Path::new("C:\\proyectos"), &|p| p.is_dir());
@@ -1781,6 +1997,38 @@ mod tests {
 
     fn escribir(panel: u32, texto: &str) -> Accion {
         Accion::Escribir { panel, texto: texto.into() }
+    }
+
+    /// Cada aviso que puede dejar la reja, sacado de las funciones de verdad, y
+    /// su inglés: ni una palabra de español y con su dato dentro.
+    #[test]
+    fn cada_aviso_de_la_reja_tiene_su_ingles() {
+        let raiz = std::path::Path::new("C:\\proyectos");
+        let mut avisos = Vec::new();
+        avisos.extend(leer_respuesta("Va.\n<acciones>[{\"tipo\":\"abrir\", roto</acciones>").3);
+        let sin_encargo = Accion::Abrir {
+            encargo: "  ".into(),
+            carpeta: "C:\\proyectos\\Adeorq".into(),
+            clase: "oficio".into(),
+            consecuencia: "baja".into(),
+            largo: false,
+            trabajo: "codigo".into(),
+        };
+        avisos.extend(filtrar(vec![sin_encargo, abrir("D:\\otra\\cosa")], &con(1), raiz, &|_| true).1);
+        avisos.extend(filtrar((0..MAX_ABRIR + 1).map(|_| abrir("C:\\proyectos\\Adeorq")).collect(), &con(1), raiz, &|_| true).1);
+        avisos.extend(filtrar(vec![escribir(99, "hola")], &con(1), raiz, &|_| true).1);
+        avisos.extend(filtrar(vec![escribir(99, "hola")], &enjambre(), raiz, &|_| true).1);
+        avisos.extend(filtrar_enjambre(vec![abrir("C:\\proyectos\\Adeorq")], &|_| String::new()).1);
+        let pregunta = |p: u32| if p == 3 { format!("{PREGUNTA} algo") } else { String::new() };
+        avisos.extend(filtrar_enjambre(vec![escribir(3, "a"), escribir(5, "b")], &pregunta).1);
+        assert_eq!(avisos.len(), 8, "{avisos:#?}");
+        let espanol = |s: &str| s.chars().any(|c| "áéíóúñ¿¡«»".contains(c)) || [" el ", " la ", " que ", " no se "].iter().any(|p| s.contains(p));
+        for a in &avisos {
+            let en = descarte_en_ingles(a);
+            assert!(en != *a && !espanol(&en), "sin inglés: «{a}» -> «{en}»");
+        }
+        assert!(descarte_en_ingles(&avisos[2]).contains("D:\\otra\\cosa"));
+        assert_eq!(descarte_en_ingles("otra cosa que no es de la reja"), "otra cosa que no es de la reja");
     }
 
     /// Una sesión que entra en el grupo queda escribible: sin el arranque de
@@ -1923,7 +2171,7 @@ mod tests {
             );
             let inicio = std::time::Instant::now();
             let parar = std::sync::atomic::AtomicBool::new(false);
-            let bruta = correr(&prompt, cerebro, None, &parar, Box::new(|p| println!("  paso: {p}"))).expect("Adeo no contestó");
+            let bruta = correr(&prompt, cerebro, None, &parar, false, Box::new(|p| println!("  paso: {p}"))).expect("Adeo no contestó");
             println!("--- contestó en {:.1} s ---\n{bruta}\n---", inicio.elapsed().as_secs_f32());
             let (dice, acciones, resumen, descartes) = leer_respuesta(&bruta);
             assert!(descartes.is_empty(), "el bloque de acciones tiene que ser JSON válido: {descartes:?}");

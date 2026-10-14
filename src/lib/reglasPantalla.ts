@@ -78,6 +78,14 @@ export const PREGUNTAS: ReglaDePregunta[] = [
     hint: "Codex te pide permiso antes de ejecutar este comando. Elige:",
   },
   {
+    // Codex al editar archivos: el mismo menú que el de los comandos (los dos
+    // salen de `approval_overlay.rs`), leído en su código y en su instantánea
+    // `approval_modal_patch.snap` el 2026-10-15, sin un Codex vivo (su cuota
+    // estaba agotada hasta el 16).
+    test: "Would you like to make the following edits?",
+    hint: "Codex te pide permiso antes de editar estos archivos. Elige:",
+  },
+  {
     // Generic numbered menus (first-run prompts, /model, etc.). Kept LAST so
     // the specific hints above win when both match.
     test: "Enter to confirm",

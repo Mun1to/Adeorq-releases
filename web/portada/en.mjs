@@ -188,6 +188,14 @@ export default {
     'It cannot be seen from the internet: only the devices you pair get in, and what you see comes ' +
     'straight from your PC, without going through any server of ours. ' +
     '<a href="/guia#movil">All the steps in the guide</a>.',
+  'movil.foto1.src': '/assets/screens/en/phone-home.png',
+  'movil.foto1.alt':
+    'The phone home screen: three things waiting for you, the PC terminals with how each one is ' +
+    'doing, and the pending decisions.',
+  'movil.foto2.src': '/assets/screens/en/phone-concierge.png',
+  'movil.foto2.alt':
+    'The concierge on the phone: you ask for two jobs and it opens a session for each one, with the ' +
+    'model the router picked.',
 
   /* ── Tu cuenta ─────────────────────────────────────────────────────────── */
   'cuenta.tit': 'Your code does not pass through here',

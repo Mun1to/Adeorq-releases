@@ -356,7 +356,7 @@ fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
 /// y el servidor no le aplica el escalón por cliente (`mcp_clientes.rs`): ya
 /// lleva su propio recorte de manos.
 pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let stream = TcpStream::connect("127.0.0.1:3012")?;
+    let stream = TcpStream::connect(("127.0.0.1", puerto()))?;
     let mut stream_writer = crate::clon_sin_herencia(&stream)?;
     let mut stream_reader = BufReader::new(stream);
     if de_casa {
@@ -402,7 +402,31 @@ pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Starts the TCP listener on port 3012 to handle MCP clients.
+/// El puerto del MCP: el 3012, salvo que `ADEORQ_MCP_PUERTO` diga otro. Lo
+/// cambia una Adeorq aislada de pruebas, que si no se queda sin MCP mientras
+/// la de verdad tiene el 3012 (y entonces el MCP no se podía probar nunca
+/// antes de publicar). El servidor, el puente y `adeorq secreto` leen el mismo.
+pub fn puerto() -> u16 {
+    std::env::var("ADEORQ_MCP_PUERTO").ok().and_then(|p| p.trim().parse().ok()).unwrap_or(3012)
+}
+
+/// Si la primera línea de una conexión es de alguien que habla este protocolo:
+/// un objeto JSON entero (el `initialize` de un cliente, la presentación de un
+/// puente de casa o la petición de un secreto).
+///
+/// Es la puerta contra las páginas web. Cualquier página puede hacer que el
+/// navegador abra una conexión a este puerto con un `fetch`, y el navegador
+/// empieza SIEMPRE por la línea de la petición HTTP («POST / HTTP/1.1») y sus
+/// cabeceras. Antes, cada línea que no era JSON se contestaba con un error y se
+/// seguía leyendo, así que el JSON que la página metiera en el cuerpo llegaba
+/// como una petición más (medido con Chrome 156 el 2026-10-15: el cuerpo llega
+/// en su propia línea). Una página no puede elegir con qué bytes empieza la
+/// conexión, así que esta comprobación la deja fuera antes de leer nada suyo.
+fn abre_bien(linea: &str) -> bool {
+    serde_json::from_str::<Value>(linea).map(|v| v.is_object()).unwrap_or(false)
+}
+
+/// Starts the TCP listener on the MCP port (3012) to handle MCP clients.
 pub fn start_mcp_server(app: tauri::AppHandle) {
     thread::spawn(move || {
         // Se INSISTE en coger el puerto, no se abandona al primer intento.
@@ -423,7 +447,7 @@ pub fn start_mcp_server(app: tauri::AppHandle) {
         let listener = {
             let mut intento = 0;
             loop {
-                match TcpListener::bind("127.0.0.1:3012") {
+                match TcpListener::bind(("127.0.0.1", puerto())) {
                     Ok(l) => break Some(l),
                     Err(e) => {
                         intento += 1;
@@ -473,11 +497,18 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
     // cliente. Ver `mcp_clientes.rs`.
     let mut cliente: Option<String> = None;
     let mut de_casa = false;
+    let mut primera = true;
 
     for line in reader.lines() {
         let line = line?;
         if line.trim().is_empty() {
             continue;
+        }
+        // Lo que no empieza hablando MCP (un navegador, ver `abre_bien`) se
+        // cierra sin contestar y sin leer una línea más.
+        if std::mem::take(&mut primera) && !abre_bien(&line) {
+            crate::anotar("MCP: cerrada una conexión que no empezaba con JSON (¿una página web?).");
+            return Ok(());
         }
 
         // Por este mismo puerto entra otra cosa además de MCP: la petición de
@@ -1539,6 +1570,41 @@ mod tests {
 
     fn leer(cuenta: &PathBuf) -> Value {
         serde_json::from_str(&fs::read_to_string(cuenta.join(".claude.json")).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn una_conexion_de_navegador_no_pasa_la_puerta() {
+        // Lo que manda Chrome 156 por un `fetch` a este puerto, línea a línea
+        // (capturado el 2026-10-15): ninguna de las de delante pasa, y la
+        // primera es la que decide.
+        for linea in [
+            "POST / HTTP/1.1",
+            "GET / HTTP/1.1",
+            "OPTIONS / HTTP/1.1",
+            "Host: 127.0.0.1:3012",
+            "Content-Type: text/plain;charset=UTF-8",
+            "[1,2]",
+            "\"texto\"",
+            "7",
+        ] {
+            assert!(!abre_bien(linea), "{linea}");
+        }
+        // Y lo que manda la gente de casa sigue entrando: el `initialize` de un
+        // cliente, la presentación del puente del Capataz y `adeorq secreto`.
+        for linea in [
+            r#"{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"clientInfo":{"name":"claude-code"}}}"#,
+            r#"{"adeorq":"de-casa"}"#,
+            r#"{"adeorq":"secreto","nombre":"x","motivo":"y"}"#,
+        ] {
+            assert!(abre_bien(linea), "{linea}");
+        }
+    }
+
+    #[test]
+    fn el_puerto_es_el_3012_si_nadie_dice_otro() {
+        if std::env::var("ADEORQ_MCP_PUERTO").is_err() {
+            assert_eq!(puerto(), 3012);
+        }
     }
 
     #[test]

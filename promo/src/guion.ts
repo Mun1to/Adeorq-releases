@@ -348,8 +348,8 @@ export const ESCENAS: Escena[] = [
 
   // 0:55 · El móvil (8.ª ronda): el conserje y una terminal desde el
   // teléfono. Las capturas salen de una copia del doble del móvil con el taller
-  // de Sam (README, «Qué tocar»); la página del móvil no tiene inglés, así que
-  // en la pieza inglesa su interfaz va en español y sus datos en inglés.
+  // de Sam (README, «Qué tocar»), una por idioma: la página del móvil habla el
+  // de la app, así que en la pieza inglesa va entera en inglés.
   pregunta({
     id: "movil",
     imagen: "movil-conserje.png",

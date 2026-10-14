@@ -83,8 +83,8 @@ Lo que cumple, y de dónde sale cada cosa:
   pero Munir pidió «que explique más funciones» y el móvil, y eso manda: la pieza pasa del minuto
   por eso. **Cuáles son, y sus preguntas, lo eligió quien montó el corte, no Munir.**
 - **El móvil es un teléfono flotando** (`marco: "movil"`, con su canto y sus esquinas) con las
-  capturas de `public/movil/`. Su página no tiene inglés: en la pieza inglesa los textos de la
-  conversación van en inglés y los botones, en español.
+  capturas de `public/movil/`. En la pieza inglesa va entero en inglés, botones incluidos: la
+  página habla el idioma de la app desde `be83361`.
 - **La flecha del Lienzo se dibuja encima** (`flecha` en el guion): en la captura, la etiqueta
   del enlace tapa la raya que encadena a los dos agentes, así que el vídeo traza una flecha justo
   debajo, de una terminal a la otra. Es lo único del vídeo pintado sobre la app que no es un
@@ -168,13 +168,18 @@ cual**: sus datos de ejemplo nombran proyectos reales de Munir, y eso no puede s
 El 2026-10-14 se hizo así, y así se repite:
 1. Una copia del doble fuera del repo con todos sus datos pasados al taller inventado de Sam
    (storefront-api, landing-web, invoice-cli, mobile-app, docs-site, design-tokens; rutas
-   `P:\projects\…`) y un `IDIOMA=en` que pone en inglés los textos de ejemplo. Se arranca con
-   `PAGINA=<repo>/src-tauri/src/movil.html`, una por idioma, en puertos libres.
+   `P:\projects\…`) y un `IDIOMA=en` que pone en inglés los textos de ejemplo y sirve la página
+   con `<html lang="en">`, como hace `movil.rs` con la app en inglés (y como el doble del repo,
+   que lo lee igual). Se arranca con `PAGINA=<repo>/src-tauri/src/movil.html`, una por idioma,
+   en puertos libres.
 2. Un Brave sin ventana con un perfil de usar y tirar (como `scripts/laboratorio/banco-sin-mcp.mjs`,
    con el `playwright-core` de la caché de npx), en modo móvil a 390 × 844, escala 3 y tema oscuro:
    se guarda la clave de emparejar (`adeorq-movil-clave` = `clave-de-mentira`), se manda al
    conserje «Antes del viernes: que el descuento redondee bien y que la portada tenga modo oscuro»
    por `/api/enviar`, y se fotografían `#conv=c1`, la portada y `#terminal=1`.
+3. En la inglesa se busca español en lo que pinta la página (`innerText`, `placeholder` y
+   `aria-label`) con tildes, ñ, ¿, ¡ y las palabras más corrientes. El 2026-10-14 no quedó
+   ninguna, y la misma búsqueda contra la española cazó 46 líneas: sabe distinguirlas.
 
 `src/casa.ts` tiene los colores y las fuentes, copiados de donde viven de verdad
 (`src/estilos/01-base.css` y `web/fonts`).
@@ -367,8 +372,6 @@ gusta y no se toca: Adeo explicando cada cosa.**
   con el de ejemplo. Sin decidir: si el fondo propio del vídeo (el azul de los tramos de solo
   texto, de Adeo y del cierre) también pasa a ser su foto. **Y si el vídeo se publica, lleva su
   cara**: es su decisión.
-- **El móvil en inglés.** La página del teléfono (`src-tauri/src/movil.html`) solo existe en
-  español, así que en la pieza inglesa sus botones salen en español. Se arregla en la app, no aquí.
 - **Las capturas.** Desde la segunda pasada son las rehechas de `c82fc96`: «PREDETERMINADA» en
   una línea, la Agenda bien escrita y el Lienzo con un enjambre, más `swarm.png` y `board.png`
   sueltas. Lo que queda: la del Panel saluda «Buenas noches, Sam.» porque se sacó de noche, y

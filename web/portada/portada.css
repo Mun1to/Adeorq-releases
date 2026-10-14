@@ -1082,6 +1082,24 @@ body {
 .pasos__foto img { display: block; width: 100%; height: auto; }
 .pasos__foto + .pasos__cierre { margin-top: 16px; }
 
+/* En el móvil: dos pantallas de teléfono una al lado de otra, cada una con su
+   propio borde redondeado en vez del marco de ventana de las otras fotos. */
+.pasos__foto--movil {
+  display: flex;
+  gap: clamp(14px, 2vw, 24px);
+  max-width: 520px;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: none;
+}
+.pasos__foto--movil img {
+  width: calc(50% - 12px);
+  border: 1px solid var(--p-linea2);
+  border-radius: 26px;
+  background: var(--p-panel);
+}
+
 @media (max-width: 800px) {
   .pasos__lista { grid-template-columns: 1fr; }
 }

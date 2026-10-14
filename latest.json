@@ -1,11 +1,11 @@
 {
-  "version": "0.9.199",
-  "notes": "El movil habla el idioma de la app: con Adeorq en ingles, la pagina del movil sale entera en ingles, botones, avisos, fechas, estados de las terminales, el emparejamiento y las decisiones",
-  "pub_date": "2026-10-14T20:33:35Z",
+  "version": "0.9.200",
+  "notes": "Arreglo de seguridad: una pagina web ya no puede mandarle ordenes al MCP de Adeorq, el puerto por el que los agentes manejan tus terminales. Y en el movil en ingles una consola parada dice idle.",
+  "pub_date": "2026-10-14T23:02:13Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3grdVJ2OWE5ZVNRVGwrdXZidzVNWDF0bVFIKy9RS1NISjRwV2FvcEx4dGNRSzRRMFlnTzJRZUlsYkFhbkw1U3ZHRUZ2YUdvaUkyUjlBOFF6QmNVaGd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDA5OTg0CWZpbGU6QWRlb3JxXzAuOS4xOTlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTkKVU9ISUlTUm1lRUt1ZnZqVFVsdUJIbWZlSUl6ZEhtRHBEWW0vTWcvakIzUlRpdlhuUjRZRmpaN3dBQTJVVW1BWXNSdDZqTk1RVnNYN0tMMDZlVHQrQlE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.199/Adeorq_0.9.199_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzN4bnhkY1JXTXFwWExWVyticTJTNUtIVHlsSE1GdlBKY1lBTWYyb3psVDZINFlVaUpQMlNnMHVrRWoyT1c2NS9GNWt1ZGNFUGFlVkFDdnA5T3ZKcmdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDE4OTEyCWZpbGU6QWRlb3JxXzAuOS4yMDBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDAKV0JRY3ExeXdacDQ0ZGFMUkIvT3R2TUozSmMrQlVTN0Zia3UyMDE2N3k5Z0pjd2FVSEVXNkRMVHI2SEdRdWhWNml6VUs0MnlLMjhoRnJmT25QVGErQ2c9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.200/Adeorq_0.9.200_x64-setup.exe"
     }
   }
 }

@@ -113,6 +113,7 @@ import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
 import { nombreDeRuta } from "./lib/arbol";
 import { usePuenteMcp } from "./lib/puenteMcp";
+import { useFrenoCuota } from "./lib/frenoCuota";
 import { useLanzarEnLienzo } from "./lib/lanzarEnLienzo";
 import { useTableroGuardado, type Pane, type Team } from "./lib/tablero";
 import { useDeshacerCierre } from "./lib/deshacerCierre";
@@ -1438,6 +1439,7 @@ function App() {
 
   // El oyente de esos pedidos vive en `lib/puenteMcp.ts`.
   usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accountsRef, agyExe });
+  useFrenoCuota(accountsRef);
 
   /* Una terminal que estaba fuera ha cerrado su ventana: vuelve al tablero tal
      como se fue. Vuelve y NO muere, que es la diferencia entre esto y la X de
@@ -3008,6 +3010,8 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     env={p.env}
                     account={p.account}
                     team={p.team}
+                    shadow={p.shadow}
+                    espejo={p.espejo}
                     hidden={escondido || (maximizedId != null && !max && !lado)}
                     focused={focusedId === p.id}
                     pideTeclado={tecladoReq?.id === p.id ? tecladoReq.n : 0}

@@ -100,13 +100,51 @@ export function repasar(
 
 const puesto = (m: ModRepasado) => m.estado === "aplicado" || m.estado === "no_engancha";
 
-/** La hoja de todos los que pasan, en su orden, cada una con su nombre delante. */
-export function hojaDeLosMods(mods: ModRepasado[]): string {
+/** La hoja de todos los que pasan, en su orden, cada una con su nombre delante.
+    `envolver` es lo que se le hace a la hoja de cada uno antes de ponerla: en
+    la ventana, `blindar`; sin navegador (el banco), nada. */
+export function hojaDeLosMods(mods: ModRepasado[], envolver: (hoja: string) => string = (h) => h): string {
   return mods
     .filter((m) => puesto(m) && m.hoja.trim())
-    .map((m) => `/* mod: ${m.id} */\n${m.hoja.trim()}`)
+    .map((m) => [m.id, envolver(m.hoja.trim()).trim()] as const)
+    .filter(([, hoja]) => hoja)
+    .map(([id, hoja]) => `/* mod: ${id} */\n${hoja}`)
     .join("\n\n");
 }
+
+/**
+ * Por qué no se carga un mod, en el idioma de la pantalla. Rust lo escribe en
+ * español (`mods.rs`), que es también lo que se le pasa al agente al pedirle
+ * que lo rehaga. Aquí se traduce: las frases fijas por el diccionario y las que
+ * llevan un dato (un nombre, un tamaño, un id) por su forma. Una que no esté en
+ * ninguna sale tal cual: mejor en español que sin motivo.
+ */
+const POR_QUE: Array<[RegExp, string]> = [
+  [/^(.+) no es un archivo normal$/, "{a} no es un archivo normal"],
+  [/^(.+) pesa más de (\d+) KB$/, "{a} pesa más de {b} KB"],
+  [/^mod\.json no se entiende: (.+)$/, "mod.json no se entiende: {a}"],
+  [/^mod\.json dice otro id que el de su carpeta \((.+)\)$/, "mod.json dice otro id que el de su carpeta ({a})"],
+  [/^el tipo «(.+)» no se carga: de momento solo «estilo»$/, "el tipo «{a}» no se carga: de momento solo «estilo»"],
+];
+
+export function porqueNoCarga(fallo: string, t: (clave: string, datos?: Record<string, string | number>) => string): string {
+  for (const [forma, clave] of POR_QUE) {
+    const m = forma.exec(fallo);
+    if (m) return t(clave, { a: m[1], b: m[2] ?? "" });
+  }
+  return t(fallo);
+}
+
+/**
+ * Las zonas que ningún mod toca: lo que pide un permiso (las respuestas de un
+ * panel, el modo de permisos y los permisos del MCP), lo que pide una clave y
+ * las cuentas. Llevan `data-sin-mods` en su raíz y `blindar` deja las reglas de
+ * los mods fuera de ellas. Un mod que tapara un permiso o una clave podría
+ * hacerte aceptar lo que no querías, y uno que cambiara la cara de un botón de
+ * ahí seguiría ganando aunque una actualización lo arreglase (`mods.md`).
+ * `scripts/mods-check.ts` mira que las cinco sigan marcadas.
+ */
+export const ZONA_SIN_MODS = "[data-sin-mods]";
 
 /** Una línea para el rastro, o `""` si no hay ningún mod. */
 export function resumenDeMods(mods: ModRepasado[]): string {
@@ -197,8 +235,9 @@ si lo que te piden merece una pieza con nombre, díselo a la persona.
 - Una hoja de más de 256 KB.
 - Código. No hay mods con JavaScript.
 
-Y lo que no debes hacer aunque pase: esconder, tapar o cambiar de sitio lo que pide un permiso,
-pide una clave o enseña una cuenta.
+Y lo que no debes intentar: esconder, tapar o cambiar de sitio lo que pide un permiso, pide una
+clave o enseña una cuenta. Adeorq no deja que tus reglas lleguen ahí (esas zonas llevan
+\`data-sin-mods\`); solo llegan las variables, que cambian colores y esquinas.
 
 ## Al terminar
 
@@ -249,6 +288,63 @@ export function modsApagados(): Set<string> {
 
 const ID_HOJA = "adeorq-mods";
 const AVISO = "adeorq-mods";
+
+/**
+ * La hoja de UN mod, con sus reglas fuera de las zonas que ningún mod toca.
+ *
+ * Va dentro de `@scope (:root) to ([data-sin-mods])`: lo que hay dentro de una
+ * zona no lo alcanza ninguna regla del mod, diga lo que diga su selector. Se
+ * monta con el CSSOM y no pegando texto: el navegador lee la hoja y devuelve
+ * cada regla entera, así que una llave de más en el mod no puede cerrar el
+ * `@scope` antes de tiempo y dejar suelto lo de detrás.
+ *
+ * Lo que no es una regla para elementos (`@keyframes`, `@font-face`,
+ * `@property`) no cabe en un `@scope` y va delante, fuera. Un `@scope` del
+ * propio mod se quita: no está claro que respete el límite del de fuera.
+ *
+ * Las VARIABLES van aparte, fuera del `@scope`, y llegan a toda la app,
+ * zonas incluidas. Por dos motivos: dentro de un `@scope` un selector no
+ * alcanza la raíz (`:root { --r-icono: 999px }` dejaba de aplicarse, medido en
+ * el banco), y una variable es un ajuste: cambia el color o la esquina de una
+ * zona como del resto, pero no la esconde, no la mueve ni le cambia la cara.
+ *
+ * En un navegador sin `@scope` (un WebKitGTK viejo, en Linux) la hoja va como
+ * antes, sin zonas.
+ */
+export function blindar(css: string): string {
+  const Scope = (globalThis as unknown as { CSSScopeRule?: abstract new () => CSSRule }).CSSScopeRule;
+  if (typeof CSSStyleSheet === "undefined" || !Scope) return css;
+  const leer = () => {
+    const hoja = new CSSStyleSheet();
+    hoja.replaceSync(css);
+    return Array.from(hoja.cssRules);
+  };
+  let reglas: CSSRule[];
+  let ajustes: CSSRule[];
+  try {
+    reglas = leer();
+    ajustes = leer();
+  } catch {
+    return "";
+  }
+  const hijas = (r: CSSRule) => (r instanceof CSSKeyframesRule ? [] : Array.from((r as CSSGroupingRule).cssRules ?? []));
+  const conScope = (r: CSSRule): boolean => r instanceof Scope || hijas(r).some(conScope);
+  const deElementos = (r: CSSRule) => (r instanceof CSSStyleRule || r instanceof CSSGroupingRule) && !conScope(r);
+  // De la segunda lectura se queda solo lo que declara variables.
+  const soloVariables = (r: CSSRule) => {
+    if (r instanceof CSSStyleRule) {
+      for (const p of Array.from(r.style)) if (!p.startsWith("--")) r.style.removeProperty(p);
+    }
+    hijas(r).forEach(soloVariables);
+  };
+  ajustes.forEach(soloVariables);
+
+  const delante = reglas.filter((r) => !(r instanceof CSSStyleRule || r instanceof CSSGroupingRule)).map((r) => r.cssText);
+  const variables = ajustes.filter((r) => deElementos(r) && /--[\w-]+\s*:/.test(r.cssText)).map((r) => r.cssText);
+  const dentro = reglas.filter(deElementos).map((r) => r.cssText);
+  if (dentro.length) dentro.splice(0, dentro.length, `@scope (:root) to (${ZONA_SIN_MODS}) {\n${dentro.join("\n")}\n}`);
+  return [...delante, ...variables, ...dentro].join("\n");
+}
 
 /** Pone la hoja la ÚLTIMA del documento, o la quita si viene vacía. */
 function ponerHoja(css: string): void {
@@ -310,7 +406,7 @@ export async function cargarMods(): Promise<ModRepasado[]> {
   let repasados: ModRepasado[] = [];
   try {
     if (modsEncendidos()) repasados = await estadoDeMods();
-    ponerHoja(hojaDeLosMods(repasados));
+    ponerHoja(hojaDeLosMods(repasados, blindar));
   } catch {
     ponerHoja("");
     repasados = [];

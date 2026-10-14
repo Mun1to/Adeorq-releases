@@ -35,6 +35,26 @@ const mismoComando = (a: string[] | null | undefined, b: string[] | null | undef
   Boolean(a?.length && b?.length && a.length === b.length && a.every((x, i) => x === b[i]));
 
 /**
+ * El espejo en el que corre una terminal viva, si corre dentro de uno: el
+ * Modo Espejo la hace nacer en `<proyecto>\.adeorq\espejo\<nombre>`
+ * (`git_shadow.rs`, con la barra mezclada), no en la carpeta del panel. Con el
+ * nombre, el panel que la recoge vuelve a ser de espejo y con SU espejo, el
+ * árbol donde el agente sigue escribiendo, en vez de montar uno nuevo y vacío.
+ */
+export function espejoDe(cwd: string): { proyecto: string; nombre: string } | null {
+  const m = /^(.+?)[\\/]\.adeorq[\\/]espejo[\\/]([^\\/]+)[\\/]?$/.exec(cwd);
+  return m ? { proyecto: m[1], nombre: m[2] } : null;
+}
+
+/** La carpeta del panel es el proyecto de ese espejo, o una de dentro. */
+function esDeSuEspejo(viva: string, panel: string): boolean {
+  const e = espejoDe(viva);
+  if (!e) return false;
+  const n = (s: string) => s.replace(/[\\/]+$/, "").replace(/\//g, "\\").toLowerCase();
+  return n(panel) === n(e.proyecto) || n(panel).startsWith(`${n(e.proyecto)}\\`);
+}
+
+/**
  * Empareja los paneles guardados con las terminales vivas. `adoptadas` va por
  * el índice del panel en la lista guardada; `sueltas`, lo vivo que no es de
  * ninguno. Cada terminal viva se adopta una vez como mucho.
@@ -46,7 +66,7 @@ export function emparejar(guardados: PanelGuardado[], vivas: Viva[]): { adoptada
     if (g.pty == null) return;
     const v = libres.get(g.pty);
     if (!v) return;
-    if (mismaCarpeta(v.cwd, g.cwd) || mismoComando(v.command, g.command)) {
+    if (mismaCarpeta(v.cwd, g.cwd) || mismoComando(v.command, g.command) || esDeSuEspejo(v.cwd, g.cwd)) {
       adoptadas.set(i, v);
       libres.delete(v.id);
     }

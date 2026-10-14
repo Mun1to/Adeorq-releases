@@ -2628,8 +2628,9 @@ const EN: Record<string, string> = {
   "{n} parados por el freno": "{n} stopped by the breaker",
   "el siguiente, {c}": "next one, {c}",
   "se lanzan solos a su hora": "they launch on their own, on time",
-  "Un encargo programado abre él solo una sesión de Claude con lo que le dejes escrito, los días y a la hora que digas. Si falla tres veces seguidas se para y te avisa, en vez de insistir.":
-    "A scheduled order opens a Claude session on its own with what you leave written, on the days and at the time you say. If it fails three times in a row it stops and tells you, instead of insisting.",
+  "Un encargo programado abre él solo una sesión de agente con lo que le dejes escrito, los días y a la hora que digas. Si falla tres veces seguidas se para y te avisa, en vez de insistir. Y si la cuenta va por el 85 % de su cuota o más, esa vez se salta.":
+    "A scheduled order opens an agent session on its own with what you leave written, on the days and at the time you say. If it fails three times in a row it stops and tells you, instead of insisting. And if the account is at 85% of its quota or more, that run is skipped.",
+  "Con qué agente": "With which agent",
   "En este sistema todavía no se lanzan solos: por ahora, solo en Windows. Puedes dejarlos escritos.":
     "On this system they do not launch on their own yet: for now, only on Windows. You can still write them down.",
   "En esta ventana el reloj está parado (es la de desarrollo): se lanzan desde la Adeorq instalada, o con «Probar ahora».":
@@ -2747,6 +2748,22 @@ const EN: Record<string, string> = {
     "No terminal is open. Open one with your agent and press again.",
   "Todavía no tienes ninguno.": "You don't have any yet.",
   "No se carga: {porque}": "Not loaded: {porque}",
+  // Por qué no se carga un mod: las escribe Rust (`mods.rs`) y las traduce
+  // `porqueNoCarga` (`lib/mods.ts`), así que el comprobador no las ve.
+  "la hoja lleva una barra invertida: escribe el carácter tal cual, sin escapes":
+    "the sheet has a backslash: write the character as it is, without escapes",
+  "la hoja lleva un @import: un mod no trae hojas de fuera": "the sheet has an @import: a mod does not bring in outside sheets",
+  "la hoja lleva un image-set(): un mod no pide nada a la red": "the sheet has an image-set(): a mod asks nothing of the network",
+  "la hoja lleva un url() que no es data: un mod no pide nada a la red":
+    "the sheet has a url() that is not data: a mod asks nothing of the network",
+  "falta mod.json": "mod.json is missing",
+  "mod.json no dice su tipo": "mod.json does not say its type",
+  "falta estilo.css": "estilo.css is missing",
+  "{a} no es un archivo normal": "{a} is not a regular file",
+  "{a} pesa más de {b} KB": "{a} is larger than {b} KB",
+  "mod.json no se entiende: {a}": "mod.json cannot be read: {a}",
+  "mod.json dice otro id que el de su carpeta ({a})": "mod.json gives a different id from its folder ({a})",
+  "el tipo «{a}» no se carga: de momento solo «estilo»": "the type “{a}” is not loaded: for now only “estilo”",
   "Apagado · ya no engancha: {que}": "Off · no longer hooks on: {que}",
   Apagado: "Off",
   "Ya no engancha: {que} no existe en esta versión": "No longer hooks on: {que} does not exist in this version",

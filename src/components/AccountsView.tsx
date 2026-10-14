@@ -583,7 +583,7 @@ export default function AccountsView({
   const missing = PROVIDERS.filter((p) => installed && !installed.has(p.id));
 
   return (
-    <div className="panel accounts">
+    <div className="panel accounts" data-sin-mods="">
       <header className="panel-hero accounts-hero">
         <div>
           <h1>{t("Cuentas")}</h1>

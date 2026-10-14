@@ -17,7 +17,7 @@ export const PASO = 24;
  * sus palabras llegan una cada `cada`, y se va en los últimos `sale` antes de
  * la frase siguiente.
  */
-export const TEXTO = { entra: 5, cada: 4, sale: 8 } as const;
+export const TEXTO = { entra: 2, cada: 3, sale: 8 } as const;
 
 /**
  * Una pantalla, contando desde su corte: el título sale en el centro
@@ -50,6 +50,10 @@ export const llegaDato = (largo: number, n: number, i: number) => haciaElFoco(la
 
 /** Cuándo hace clic el puntero en la función `i`. */
 export const clicEn = (largo: number, n: number, i: number) => haciaElFoco(largo, n, i) + PANTALLA.viaje + PANTALLA.clic;
+
+/** El nombre: cuánto después de despertar dice Adeo su primera frase, y cada
+    cuánto llega una palabra. */
+export const NOMBRE = { linea: 8, cada: 3 } as const;
 
 /** Adeo: cuánto tarda su frase en empezar dentro de cada parte, y cada
     cuánto llega una palabra. */

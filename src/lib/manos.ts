@@ -70,6 +70,9 @@ export const MANOS = {
   decidir: "mcp__adeorq__ask_decision",
   /** Leer lo que contestó a una decisión. */
   decision: "mcp__adeorq__get_decision",
+  /** Cómo se cambia el aspecto de Adeorq sin perderlo al actualizar: la guía
+      de los mods y los que hay. Solo lee archivos. */
+  mods: "mcp__adeorq__get_mods",
 } as const;
 
 /**
@@ -95,6 +98,7 @@ const LECTURA = [
   MANOS.nota,
   MANOS.turno,
   MANOS.decision,
+  MANOS.mods,
 ];
 const MONTAR = [MANOS.abrir, MANOS.enlazar, MANOS.decidir];
 /** Lo que puede pisar el trabajo de otro: escribirle, mandarle teclas o cerrarlo. */

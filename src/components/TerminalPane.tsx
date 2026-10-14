@@ -182,6 +182,9 @@ interface Props {
       sí se mantiene: puedes estar en otra ventana. */
   alone?: boolean;
   shadow?: boolean;
+  /** El nombre del espejo que ya tiene, al recoger tras una caída una terminal
+      que corría en uno. Sin él, el de este panel y este arranque. */
+  espejo?: string;
   /** Sacar esta terminal a su propia ventana de Windows. Ausente cuando ya
       está fuera, que es lo que quita el botón sin tener que preguntarlo. */
   onSacar?: (id: number) => void;
@@ -421,6 +424,7 @@ export default function TerminalPane({
   notifyMode,
   alone,
   shadow,
+  espejo,
   onSacar,
   suelta,
   volcar,
@@ -1530,10 +1534,15 @@ export default function TerminalPane({
       // de panel vuelven a 1 al abrir la app, y con el número a secas una
       // terminal nueva se reenganchaba en silencio al espejo de otro agente de
       // ayer, con su trabajo sin fusionar dentro (revisión del 2026-10-06).
-      arranque = arranqueDeAhora()
-        .catch(() => 0)
-        .then((a) => {
-          espejoRef.current = `${id}-${a.toString(36)}`;
+      // Una terminal recogida tras una caída trae el suyo (`espejo`): el de
+      // ahora sería otro, vacío, y su agente seguiría escribiendo en el viejo.
+      arranque = (espejo
+        ? Promise.resolve(espejo)
+        : arranqueDeAhora()
+            .catch(() => 0)
+            .then((a) => `${id}-${a.toString(36)}`))
+        .then((nombre) => {
+          espejoRef.current = nombre;
           return shadowInit(projRoot, espejoRef.current);
         })
         .then((sess) => {
@@ -2669,7 +2678,7 @@ export default function TerminalPane({
             </div>
           )}
           {ask && (
-            <div className="pane-ask">
+            <div className="pane-ask" data-sin-mods="">
               <span className="ask-hint">{t(ask.hint)}</span>
               <span className="ask-btns">
                 {ask.options.map((o) => (

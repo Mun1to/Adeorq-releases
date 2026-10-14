@@ -100,7 +100,9 @@ export default {
     'An infinite table with terminals, notes and boards. Drag one session onto another and they ' +
     'form a swarm: a single chat, and Adeo hands out the work.',
   'rasgo.lienzo.src': '/assets/screens/en/canvas.png',
-  'rasgo.lienzo.alt': 'The Canvas with three terminals, a board with the work of the agents and two notes.',
+  'rasgo.lienzo.alt':
+    'The Canvas with three terminals, the board with the work of the agents, a swarm of two ' +
+    'sessions with its chat, and two notes.',
   'rasgo.archivos.tit': 'Files',
   'rasgo.archivos.p':
     'The project tree and an editor next to the terminal. Each file shows its git status and a ' +
@@ -148,6 +150,10 @@ export default {
   'trabajo.cierre':
     'When one finishes, its pane lights up. The crew board tells you who is working, who is done ' +
     'and who has been waiting for you for a while.',
+  'trabajo.foto.src': '/assets/screens/en/board.png',
+  'trabajo.foto.alt':
+    'The board with the work of the agents: three tasks to do, four sessions working, one waiting ' +
+    'for you and two done.',
 
   /* ── En el móvil ───────────────────────────────────────────────────────── */
   'movil.etiqueta': PUNTO + 'On your phone',

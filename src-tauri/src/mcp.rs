@@ -851,7 +851,18 @@ pub fn lista_de_herramientas() -> Vec<Value> {
     ]);
     let mut todas = v.as_array().cloned().unwrap_or_default();
     todas.extend(herramientas_de_decisiones());
+    todas.push(herramienta_de_mods());
     todas
+}
+
+/// La de los mods (`mods.rs`): sin ella, un agente al que le piden cambiar cómo
+/// se ve Adeorq toca el código de la app, y la siguiente actualización lo pisa.
+fn herramienta_de_mods() -> Value {
+    json!({
+        "name": "get_mods",
+        "description": "How to change the way Adeorq looks for the person in a way that survives updates: the mods folder, the two files a mod needs, the guide for this version with the named pieces Adeorq keeps stable, and the mods already there. Read it BEFORE touching Adeorq's look when someone asks (round icons, other colours, other corners…): editing Adeorq's own files is lost on the next update, a mod is not. Mods are style only (CSS), off by default, and the person turns them on in Settings > Mods. Costs nothing: it only reads files.",
+        "inputSchema": { "type": "object", "properties": {} }
+    })
 }
 
 /// Las de las decisiones (`decisiones.rs`), aparte: en el `json!` de arriba no
@@ -941,6 +952,11 @@ fn escalon_que_falta(cliente: &Option<String>, de_casa: bool, herramienta: &str)
 
 fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<Value, String> {
     match name {
+        "get_mods" => {
+            let carpeta = crate::dir_datos()?.join("mods");
+            let texto = crate::mods::parte_para_agente(&carpeta, &app.package_info().version.to_string());
+            Ok(json!({ "content": [{ "type": "text", "text": texto }] }))
+        }
         "get_projects" => {
             // La ventana es la dueña del ajuste; aquí se lee su copia en disco
             // para que el panel y el MCP no enseñen dos listas distintas.

@@ -1290,7 +1290,7 @@ export default function SettingsView({
                 </p>
               </section>
               <AjusteAlCerrar />
-              <section className="panel-card">
+              <section className="panel-card" data-sin-mods="">
                 <h2>{t("Modo de permisos")}</h2>
                 <p className="card-hint">
                   {t(

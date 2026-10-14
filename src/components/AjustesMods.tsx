@@ -17,6 +17,7 @@ import {
   escribirGuia,
   estadoDeMods,
   modsEncendidos,
+  porqueNoCarga,
   quitarMod,
   type ModRepasado,
 } from "../lib/mods";
@@ -84,7 +85,7 @@ export default function AjustesMods({ onAlAgente }: Props) {
 
   const estado = (m: ModRepasado): string => {
     const sueltas = m.sueltas.join(", ");
-    if (m.estado === "rechazado") return t("No se carga: {porque}", { porque: m.fallo ?? "" });
+    if (m.estado === "rechazado") return t("No se carga: {porque}", { porque: porqueNoCarga(m.fallo ?? "", t) });
     if (m.estado === "apagado") return sueltas ? t("Apagado · ya no engancha: {que}", { que: sueltas }) : t("Apagado");
     if (m.estado === "no_engancha") return t("Ya no engancha: {que} no existe en esta versión", { que: sueltas });
     return encendidos ? t("Puesto") : t("Listo para cuando los enciendas");

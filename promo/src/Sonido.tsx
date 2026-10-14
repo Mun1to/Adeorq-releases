@@ -2,7 +2,7 @@ import { Html5Audio, Loop, Sequence, interpolate, staticFile, useCurrentFrame, u
 import { cinta } from "./Adeo";
 import { TEXTOS } from "./guion";
 import { useDecir, useIdioma } from "./idioma";
-import { CIERRE, PANTALLA, TEXTO, VOZ, clicEn, cuantasPalabras, despierta, focosQueCaben, llegaDato, parte, totalDe, type Tramo, type Voces } from "./tiempos";
+import { CIERRE, NOMBRE, PANTALLA, TEXTO, VOZ, clicEn, cuantasPalabras, despierta, focosQueCaben, llegaDato, parte, totalDe, type Tramo, type Voces } from "./tiempos";
 
 /**
  * Todo lo que se oye.
@@ -82,6 +82,7 @@ function efectos(tramos: Tramo[], fps: number, decir: ReturnType<typeof useDecir
     if (e.tipo === "nombre") {
       pon(t.corte + 2, hecho("campana"), NIVEL.campana);
       pon(t.corte + despierta(t.largo), kenney("drop_002"), NIVEL.pop);
+      teclea(t.corte + despierta(t.largo) + NOMBRE.linea, decir(TEXTOS.nombre), NOMBRE.cada, NIVEL.tecla * 1.2);
     }
     if (e.tipo === "pantalla") {
       // La frase grande, un «pop» por función a la que llega la cámara y,

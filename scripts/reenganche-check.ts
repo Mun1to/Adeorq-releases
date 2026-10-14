@@ -8,7 +8,7 @@
 //
 //   pnpm bancos reenganche
 
-import { emparejar, mismaCarpeta, siguienteLibre, type Viva } from "../src/lib/reenganche";
+import { emparejar, espejoDe, mismaCarpeta, siguienteLibre, type Viva } from "../src/lib/reenganche";
 
 let fallos = 0;
 function es(nombre: string, sale: unknown, esperado: unknown) {
@@ -57,6 +57,21 @@ es("sin vivas no se adopta nada y no sobra nada", (() => {
   const x = emparejar(guardados, []);
   return [x.adoptadas.size, x.sueltas.length];
 })(), [0, 0]);
+
+// El Modo Espejo: la terminal corre en `<proyecto>\.adeorq\espejo\<nombre>`,
+// con la barra mezclada tal cual la escribe `git_shadow.rs`.
+const enEspejo = "C:\\proyectos\\Adeorq\\.adeorq/espejo\\3-mv8cm5kg";
+es("de la carpeta de una viva sale su espejo", espejoDe(enEspejo), { proyecto: "C:\\proyectos\\Adeorq", nombre: "3-mv8cm5kg" });
+es("una carpeta normal no es un espejo", espejoDe("C:\\proyectos\\Adeorq"), null);
+es("ni una que solo se llama parecido", espejoDe("C:\\proyectos\\espejo\\3"), null);
+const consola = emparejar([{ pty: 3, cwd: "C:\\proyectos\\Adeorq" }], [viva(3, enEspejo)]);
+es("una consola en espejo, sin comando que comparar, se recoge por su espejo", consola.adoptadas.get(0)?.id, 3);
+const deDentro = emparejar([{ pty: 3, cwd: "C:\\proyectos\\Adeorq\\src" }], [viva(3, enEspejo)]);
+es("y también desde una carpeta de dentro del proyecto", deDentro.adoptadas.get(0)?.id, 3);
+const deOtro = emparejar([{ pty: 3, cwd: "C:\\proyectos\\Webs" }], [viva(3, enEspejo)]);
+es("el espejo de OTRO proyecto con el mismo número no es suyo", [deOtro.adoptadas.size, deOtro.sueltas.length], [0, 1]);
+const parecido = emparejar([{ pty: 3, cwd: "C:\\proyectos\\Adeorq2" }], [viva(3, enEspejo)]);
+es("ni el de un proyecto que empieza igual", parecido.adoptadas.size, 0);
 
 es("los paneles nuevos nacen por encima de todo lo vivo", siguienteLibre(1, vivas), 9);
 es("y sin vivas, donde iban", siguienteLibre(4, []), 4);

@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
+import { providerOf } from "../lib/providers";
 import type { Project } from "../lib/pty";
 import {
   activarProgramado,
   borradorDe,
   borrarProgramado,
+  CLIS_PROGRAMABLES,
   cuandoEnTexto,
   cuandoFalta,
   DIAS,
@@ -102,6 +104,18 @@ function Formulario({ b, proyectos, error, guardando, onChange, onGuardar, onCan
             ))}
           </select>
         </label>
+        {CLIS_PROGRAMABLES.length > 1 && (
+          <label className="prog-campo">
+            <span>{t("Con qué agente")}</span>
+            <select className="finder" data-cli value={b.cli} onChange={(e) => onChange({ ...b, cli: e.currentTarget.value })}>
+              {CLIS_PROGRAMABLES.map((c) => (
+                <option key={c} value={c}>
+                  {providerOf(c).label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="prog-campo">
           <span>{t("Nombre (opcional)")}</span>
           <input
@@ -240,7 +254,7 @@ export default function AgendaProgramados({ proyectos, cwdInicial, estado, onEst
     <section className="panel-card agenda-card prog">
       <p className="card-hint prog-que">
         {t(
-          "Un encargo programado abre él solo una sesión de Claude con lo que le dejes escrito, los días y a la hora que digas. Si falla tres veces seguidas se para y te avisa, en vez de insistir.",
+          "Un encargo programado abre él solo una sesión de agente con lo que le dejes escrito, los días y a la hora que digas. Si falla tres veces seguidas se para y te avisa, en vez de insistir. Y si la cuenta va por el 85 % de su cuota o más, esa vez se salta.",
         )}
       </p>
       {!estado.puede && (
@@ -297,7 +311,9 @@ export default function AgendaProgramados({ proyectos, cwdInicial, estado, onEst
               </div>
               <p className="prog-encargo stream-hide">{e.encargo.split("\n")[0]}</p>
               <p className="prog-pie">
-                <span className="stream-hide">{carpeta(e.cwd)}</span>
+                <span className="stream-hide">
+                  {providerOf(e.cli).label} · {carpeta(e.cwd)}
+                </span>
                 <span className="prog-proxima">
                   {e.cortado
                     ? t("parado por el freno")

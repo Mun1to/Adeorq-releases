@@ -92,7 +92,7 @@ pub struct Clientes {
 pub fn escalon_de(herramienta: &str) -> Option<Nivel> {
     match herramienta {
         "get_projects" | "get_active_panes" | "read_pane_transcript" | "get_agenda" | "get_usage"
-        | "read_pane_screen" | "buscar_memoria" | "leer_memoria" | "leer_turno" | "get_decision" => Some(Nivel::Mirar),
+        | "read_pane_screen" | "buscar_memoria" | "leer_memoria" | "leer_turno" | "get_decision" | "get_mods" => Some(Nivel::Mirar),
         // Preguntarle algo a Munir no toca ninguna terminal que esté trabajando:
         // su respuesta vuelve a la del que pregunta.
         "open_pane" | "link_panes" | "ask_decision" => Some(Nivel::Plan),
@@ -252,7 +252,7 @@ mod tests {
             .filter(|n| escalon_de(n).is_none())
             .collect();
         assert!(sin.is_empty(), "sin escalón: {sin:?}");
-        assert_eq!(crate::mcp::lista_de_herramientas().len(), 16, "si cambió el número, revisa la tabla");
+        assert_eq!(crate::mcp::lista_de_herramientas().len(), 17, "si cambió el número, revisa la tabla");
     }
 
     #[test]

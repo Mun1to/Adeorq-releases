@@ -10,16 +10,20 @@
  * No hay un vídeo en español y otro en inglés: hay uno, y cada frase es un par
  * `{ es, en }`. Si a una le falta un idioma, TypeScript no compila.
  *
- * ESTÁ ESCRITO POR TIEMPOS, NO POR PANTALLAS (2026-10-13). El corte anterior
- * eran un problema, la respuesta y tres capítulos con diez pantallas, 1:35, y
- * Munir cerró la duración con sus 21 referencias medidas: «Solo la corta, de
- * 45 a 60 segundos», de una tirada y sin capítulos. No se recortó: se rehízo.
+ * ESTÁ ESCRITO POR TIEMPOS, NO POR PANTALLAS. La segunda pasada (2026-10-14)
+ * sale de lo que Munir dijo de la primera, de 57,5 s: «muy lento y difícil
+ * para el usuario y no lo explica bien del todo como otras referencias», y
+ * «pon a Adeo de protagonista, Adeo explica la plataforma». Ahora dura 43,75 s,
+ * ADEO es quien la cuenta (todo lo que se lee después del nombre lo dice él,
+ * y sale a su lado), y cada función es una PREGUNTA que se haría quien mira y
+ * la pieza de la app que la contesta:
  *
- *    0:00  el problema y el giro   solo texto, en primera persona
- *    0:10  el nombre               el logotipo, que es Adeo
- *    0:12  el producto             cinco funciones, la app a pantalla completa
- *    0:42  Adeo
- *    0:52  el cierre               una sola cosa que hacer
+ *    0:00     el problema y el giro   solo texto, en primera persona (Munir)
+ *    0:06,25  el nombre               el logotipo despierta: es Adeo, y se presenta
+ *    0:10     qué es                  la Cabina entera, y sus terminales
+ *    0:15     cinco preguntas         la cámara ya dentro de cada pieza
+ *    0:33,75  Adeo                    lo que hace él
+ *    0:38,75  el cierre               una sola cosa que hacer
  *
  * La misma tabla, con lo que se ve y se lee en cada tramo, está en el README.
  * Si se cambia aquí, se cambia allí.
@@ -31,8 +35,8 @@
  * Hoy la pieza va sin ella; cuando Munir la grabe manda ella, y el tramo dura
  * lo que dure su frase.
  *
- * Las duraciones van en múltiplos de 2,5 segundos, que es un compás de la
- * música (`sonido.mjs`, 96 pulsos): así cada corte cae en el primer tiempo.
+ * Las duraciones van en múltiplos de un pulso de la música (0,625 s; un
+ * compás son cuatro, `sonido.mjs` va a 96): así cada corte cae en un tiempo.
  *
  * LAS IMÁGENES son las de `web/assets/screens/es` y `/en`: la app de verdad
  * sobre un taller de demostración, así que se pueden publicar. Se traen con
@@ -64,15 +68,17 @@ export type EscenaTexto = Comun & { tipo: "texto"; lineas: Frase[] };
 
 /**
  * Una función de una pantalla: dónde está en la captura y qué se dice de ella.
- * La cámara se acerca a ese trozo, lo demás se apaga y la frase sale a su lado.
+ * La cámara se acerca a ese trozo, lo demás se apaga y la frase sale a su lado,
+ * dicha por Adeo.
  */
 export type Foco = {
   /** El trozo de la captura: izquierda, arriba, ancho y alto, de 0 a 1. Se
       mide sobre la imagen, y vale igual para la de cada idioma. Cuanto más
       pequeño, más se acerca la cámara (hasta 2,6 aumentos). */
   en: readonly [number, number, number, number];
-  /** Qué se cuenta de esa función: a ser posible, lo que se ve en ella.
-      Menos de 36 letras. */
+  /** Lo que cuenta Adeo de esa función: la respuesta, y a ser posible lo que
+      se ve en ella (una cifra, una columna). Menos de 30 letras: va con él al
+      lado. */
   dato: Frase;
   /** Si está, el puntero va a ese punto de la captura (x, y, de 0 a 1) y
       hace clic: es lo que hace que se vea usar la función y no solo mirarla. */
@@ -83,14 +89,24 @@ export type EscenaPantalla = Comun & {
   tipo: "pantalla";
   /** El archivo dentro de `public/pantallas/<idioma>/`. */
   imagen: string;
+  /** Ancho entre alto de la captura, si no es 16:9. Entonces no llena el
+      cuadro: sale como una ventana flotando sobre el fondo de la marca. */
+  proporcion?: number;
   /** Cómo se llama esa pestaña en la app. No sale en el vídeo: es para la
       página del guion y para el hueco de una captura que falta. */
   nombre: Frase;
-  /** La frase grande, que sale en el centro del cuadro antes de que la
-      cámara entre. */
+  /** La frase grande, que Adeo dice en el centro del cuadro antes de que la
+      cámara entre. En una escena que entra `directo`, la pregunta. */
   titulo: Frase;
+  /** La cámara empieza ya DENTRO de la primera pieza, en vez de enseñar la
+      pantalla entera: la pregunta se lee sobre ella a media luz, y la
+      respuesta sale cuando se enciende. La primera pasada abría cada función
+      con la app entera, llena de código, y era lo «difícil para el usuario». */
+  directo?: true;
+  /** Cómo está Adeo cuando da la respuesta. Mientras pregunta, duda. */
+  adeo: Animo;
   /** Las funciones que se enseñan, en el orden en que la cámara las recorre.
-      Cada una pide tres segundos: una en un tramo de 5, dos en uno de 7,5. */
+      Cada una pide dos segundos largos: una por tramo, salvo que dure más. */
   focos: Foco[];
 };
 
@@ -101,16 +117,18 @@ export const WEB = "adeorq.com";
 
 /** Lo que dicen los tramos que no son ni texto solo ni una captura. */
 export const TEXTOS = {
+  /** Lo primero que dice Adeo al despertar: desde ahí, el vídeo lo cuenta él. */
+  nombre: { es: "¡Hola! Soy *Adeo*. Te lo enseño.", en: "Hi! I'm *Adeo*. Let me show you." },
   adeo: {
-    /** Lo primero que hace: saludar. */
-    saludo: { es: "Y este es *Adeo*", en: "And this is *Adeo*" },
-    /** Tres de sus estados de siempre, en el orden en que salen. El cuarto
-        (se duerme si no hay ninguno) se quedó fuera: no cabe en diez segundos. */
+    /** En su tramo habla de sí mismo, en primera persona. */
+    saludo: { es: "Y yo *te aviso*…", en: "And I *let you know*…" },
+    /** Lo que hace después, uno por parte. En cinco segundos cabe uno: el de
+        los saltos y las chispas, que es la respuesta a «¿cuál ha terminado?». */
     estados: [
-      { animo: "trabaja", frase: { es: "Teclea cuando *trabajan*", en: "He types while *they work*" } },
-      { animo: "espera", frase: { es: "Te llama si *te esperan*", en: "He waves when *they're waiting*" } },
-      { animo: "lista", frase: { es: "Y salta cuando *terminan*", en: "And jumps when *they're done*" } },
-    ] satisfies readonly { animo: Animo; frase: Frase }[],
+      { animo: "lista", frase: { es: "…cuando uno *termina*", en: "…when one *is done*" } },
+      // Con el tipo abierto, y no con `satisfies`: con un solo estado en la
+      // lista, TypeScript daría por imposibles los demás en `Sonido.tsx`.
+    ] as readonly { animo: Animo; frase: Frase }[],
   },
   cierre: {
     /** Sin palabra en color: aquí lo único en color es la dirección. */
@@ -129,144 +147,153 @@ export const ESCENAS: Escena[] = [
   {
     id: "problema",
     tipo: "texto",
-    dura: 10,
+    dura: 6.25,
     lineas: [
-      { es: "Trabajo con *varios agentes* a la vez.", en: "I work with *several agents* at once." },
-      { es: "Y siempre *pierdo el hilo*.", en: "And I keep *losing track*." },
-      { es: "¿Cuál ha *terminado*?\n¿Cuál me *espera*?", en: "Which one is *done*?\nWhich one is *waiting*?" },
-      { es: "Así que los junté en *una sola pantalla*.", en: "So I put them all on *one screen*." },
+      { es: "Programo con *varios agentes*.", en: "I code with *several agents*." },
+      { es: "¿Cuál *terminó*? ¿Cuál me *espera*?", en: "Which one's *done*? Which one's *waiting*?" },
+      { es: "Así que los junté en *una ventana*.", en: "So I put them all in *one window*." },
     ],
     voz: [
-      { es: "Trabajo con varios agentes a la vez.", en: "I work with several agents at once." },
-      { es: "Y siempre pierdo el hilo.", en: "And I keep losing track." },
-      { es: "¿Cuál ha terminado? ¿Cuál me espera?", en: "Which one is done? Which one is waiting?" },
-      { es: "Así que los junté en una sola pantalla.", en: "So I put them all on one screen." },
+      { es: "Programo con varios agentes.", en: "I code with several agents." },
+      { es: "¿Cuál terminó? ¿Cuál me espera?", en: "Which one's done? Which one's waiting?" },
+      { es: "Así que los junté en una ventana.", en: "So I put them all in one window." },
     ],
   },
 
-  // 0:10 · El nombre, cuando ha pasado un quinto de la pieza.
+  // 0:06,25 · El nombre: el logotipo abre el ojo, es Adeo, y se presenta.
   {
     id: "nombre",
     tipo: "nombre",
-    dura: 2.5,
-    voz: [{ es: "Lo llamé Adeorq.", en: "I called it Adeorq." }],
+    dura: 3.75,
+    voz: [{ es: "Esto es Adeorq. Y yo soy Adeo: te lo enseño.", en: "This is Adeorq. And I'm Adeo: let me show you." }],
   },
 
-  // 0:12,5 · El producto: cinco funciones que una terminal sola no hace.
+  // 0:10 · Qué es: la Cabina entera, que es la ventana de la que habla el
+  // giro, y después sus terminales.
   {
     id: "cabina",
     tipo: "pantalla",
     imagen: "cockpit.png",
-    dura: 7.5,
+    dura: 5,
+    adeo: "trabaja",
     nombre: { es: "Cabina", en: "Cockpit" },
-    titulo: { es: "Todos tus agentes, *lado a lado*", en: "All your agents, *side by side*" },
+    titulo: { es: "Claude Code, Codex, Gemini…\n*lado a lado*", en: "Claude Code, Codex, Gemini…\n*side by side*" },
     focos: [
       {
-        en: [0.157, 0.04, 0.411, 0.255],
-        dato: { es: "Claude Code, en su *terminal de verdad*", en: "Claude Code, in its *real terminal*" },
-      },
-      {
-        en: [0.568, 0.04, 0.411, 0.255],
-        dato: { es: "Codex, *justo al lado*", en: "Codex, *right beside it*" },
+        en: [0.157, 0.04, 0.822, 0.255],
+        dato: { es: "Cada uno en su *terminal*", en: "Each in its *own terminal*" },
       },
     ],
     voz: [
       {
-        es: "Todos tus agentes, lado a lado: Claude Code, Codex, cada uno en su terminal de verdad.",
-        en: "All your agents, side by side: Claude Code, Codex, each in its own real terminal.",
+        es: "Claude Code, Codex, Gemini: lado a lado, cada uno en su terminal de verdad.",
+        en: "Claude Code, Codex, Gemini: side by side, each in its own real terminal.",
       },
     ],
   },
+
+  // 0:15 · Cinco preguntas, cada una con la pieza que la contesta. La cámara
+  // ya está dentro de la pieza: no se enseña la pantalla entera.
   {
     id: "panel",
     tipo: "pantalla",
     imagen: "dashboard.png",
-    dura: 5,
+    dura: 3.75,
+    directo: true,
+    adeo: "baila",
     nombre: { es: "Panel", en: "Dashboard" },
-    titulo: { es: "Quién trabaja. *Quién te espera.*", en: "Who's working. *Who's waiting.*" },
+    titulo: { es: "¿Quién te *espera*?", en: "Who's *waiting*?" },
     focos: [
       {
         en: [0.02, 0.148, 0.482, 0.12],
-        dato: { es: "Tres trabajando, *nadie esperando*", en: "Three working, *no one waiting*" },
+        dato: { es: "*3 trabajando*. Nadie espera.", en: "*3 working*. Nobody waiting." },
       },
     ],
-    voz: [{ es: "De un vistazo ves quién trabaja y quién te espera.", en: "At a glance you see who's working and who's waiting." }],
+    voz: [{ es: "¿Quién te espera? Tres trabajando, nadie esperando.", en: "Who's waiting? Three working, nobody waiting." }],
   },
   {
     id: "lienzo",
     tipo: "pantalla",
     imagen: "canvas.png",
-    dura: 7.5,
+    dura: 3.75,
+    directo: true,
+    adeo: "lista",
     nombre: { es: "Lienzo", en: "Canvas" },
-    titulo: { es: "Un *tablero infinito*", en: "An *infinite board*" },
+    titulo: { es: "¿Quién hace *qué*?", en: "Who's doing *what*?" },
     focos: [
       {
-        en: [0.522, 0.218, 0.427, 0.312],
-        dato: { es: "Terminales vivas y notas, *juntas*", en: "Live terminals and notes, *together*" },
-      },
-      {
         en: [0.209, 0.255, 0.255, 0.242],
-        dato: { es: "El trabajo de cada agente, *en tarjetas*", en: "Each agent's work, *on cards*" },
+        dato: { es: "Cada uno, *en su columna*", en: "Each one, *in its column*" },
       },
     ],
-    voz: [
+    voz: [{ es: "¿Quién hace qué? Cada uno, en su columna.", en: "Who's doing what? Each one, in its column." }],
+  },
+  {
+    id: "enjambre",
+    tipo: "pantalla",
+    imagen: "swarm.png",
+    proporcion: 534 / 632,
+    dura: 3.75,
+    directo: true,
+    adeo: "baila",
+    nombre: { es: "Enjambre", en: "Swarm" },
+    titulo: { es: "¿Y si pides *algo grande*?", en: "And for *something big*?" },
+    focos: [
       {
-        es: "En el Lienzo viven en un tablero infinito, con sus notas y sus tarjetas.",
-        en: "On the Canvas they live on an infinite board, with their notes and cards.",
+        en: [0.025, 0.335, 0.95, 0.27],
+        dato: { es: "Lo *reparto* yo", en: "I *split it up*" },
       },
     ],
+    voz: [{ es: "¿Y si pides algo grande? Lo reparto yo.", en: "And for something big? I split it up." }],
   },
   {
     id: "cuentas",
     tipo: "pantalla",
     imagen: "accounts.png",
-    dura: 5,
+    dura: 3.75,
+    directo: true,
+    adeo: "quieta",
     nombre: { es: "Cuentas", en: "Accounts" },
-    titulo: { es: "Tus cuentas, *tu cuota*", en: "Your accounts, *your quota*" },
+    titulo: { es: "¿Te queda *cuota*?", en: "Any *quota* left?" },
     focos: [
       {
         en: [0.397, 0.274, 0.246, 0.224],
-        dato: { es: "Cada terminal, con *la cuenta que elijas*", en: "Each terminal on *the account you pick*" },
+        dato: { es: "La ves, y *eliges cuenta*", en: "See it, *pick the account*" },
         clic: [0.444, 0.392],
       },
     ],
-    voz: [
-      {
-        es: "Ves la cuota de cada cuenta y eliges con cuál nace cada terminal.",
-        en: "You see each account's quota and pick which one each terminal starts on.",
-      },
-    ],
+    voz: [{ es: "¿Te queda cuota? La ves, y eliges cuenta.", en: "Any quota left? See it, and pick the account." }],
   },
   {
     id: "agenda",
     tipo: "pantalla",
     imagen: "agenda.png",
-    dura: 5,
+    dura: 3.75,
+    directo: true,
+    adeo: "trabaja",
     nombre: { es: "Agenda", en: "Agenda" },
-    titulo: { es: "Encargos que *se lanzan solos*", en: "Jobs that *run themselves*" },
+    titulo: { es: "¿Y cuando *no estás*?", en: "And when *you're away*?" },
     focos: [
       {
         en: [0.796, 0.13, 0.182, 0.08],
-        dato: { es: "Tres programados, *a su hora*", en: "Three scheduled, *right on time*" },
+        dato: { es: "Encargos que *van solos*", en: "Jobs that *run on their own*" },
       },
     ],
-    voz: [{ es: "Y les dejas encargos que se lanzan solos, a su hora.", en: "And you leave them jobs that run themselves, on schedule." }],
+    voz: [{ es: "¿Y cuando no estás? Encargos que van solos.", en: "And when you're away? Jobs that run on their own." }],
   },
 
-  // 0:42,5 · Adeo. Una frase de voz por parte: el saludo y sus tres estados.
+  // 0:33,75 · Adeo, en grande, hablando de sí mismo.
   {
     id: "adeo",
     tipo: "adeo",
-    dura: 10,
+    dura: 5,
     voz: [
-      { es: "Y este es Adeo.", en: "And this is Adeo." },
-      { es: "Teclea cuando trabajan.", en: "He types while they work." },
-      { es: "Te llama si te esperan.", en: "He waves when they're waiting." },
-      { es: "Y salta cuando terminan.", en: "And jumps when they're done." },
+      { es: "Y yo te aviso…", en: "And I let you know…" },
+      { es: "…cuando uno termina.", en: "…when one is done." },
     ],
   },
 
-  // 0:52,5 · El cierre: una sola cosa que hacer.
+  // 0:38,75 · El cierre: una sola cosa que hacer.
   {
     id: "cierre",
     tipo: "cierre",

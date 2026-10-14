@@ -27,7 +27,7 @@ export default function AjustesMcp() {
   }, []);
 
   return (
-    <section className="panel-card">
+    <section className="panel-card" data-sin-mods="">
       <h2>{t("Qué puede hacer cada cliente por el MCP")}</h2>
       <p className="card-hint">
         {t(

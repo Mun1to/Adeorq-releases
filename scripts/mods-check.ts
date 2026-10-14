@@ -8,7 +8,8 @@
 // reserva y sin que nadie los declare, porque a esos nombres se agarran los
 // mods de la gente y un renombrado los suelta a todos sin romper nada a la vista.
 
-import { PIEZAS, encargoDeMod, encargoDeRehacer, guiaDeMods, hojaDeLosMods, repasar, resumenDeMods } from "../src/lib/mods";
+import { PIEZAS, encargoDeMod, encargoDeRehacer, guiaDeMods, hojaDeLosMods, porqueNoCarga, repasar, resumenDeMods } from "../src/lib/mods";
+import { makeT } from "../src/lib/i18n";
 import type { Mod } from "../src/lib/mods";
 
 let fallos = 0;
@@ -106,6 +107,55 @@ caso("sin mods no hay hoja ni línea en el rastro", hojaDeLosMods([]) === "" && 
   caso("rehacer uno que no engancha dice cuál, qué se soltó y qué se pidió, en una línea", !rehacer.includes("\n") && rehacer.includes("«esquinas»") && rehacer.includes("--r-vieja ya no existe") && rehacer.includes("«quiero las esquinas más redondas»"), rehacer);
   const arreglar = encargoDeRehacer(roto, ruta);
   caso("rehacer uno que no se carga dice por qué, y sin pedido no inventa uno", arreglar.includes("no lo carga: la hoja lleva un @import") && !arreglar.includes("Lo que pedí"), arreglar);
+}
+
+// ── Las zonas que ningún mod toca ──────────────────────────────────────────
+// `blindar` deja las reglas de los mods fuera de lo que lleve `data-sin-mods`;
+// si una de estas raíces pierde la marca, un mod vuelve a poder esconderla.
+// Lo que hace `blindar` en un navegador lo mide `scripts/laboratorio/mods-zonas.js`.
+{
+  const raiz = process.cwd();
+  const leer = (f: string) => (require("fs") as { readFileSync(p: string, c: string): string }).readFileSync(`${raiz}/${f}`, "utf8");
+  const ZONAS: Array<[string, string]> = [
+    ["src/components/TerminalPane.tsx", '<div className="pane-ask" data-sin-mods="">'],
+    ["src/components/SettingsView.tsx", '<section className="panel-card" data-sin-mods="">\n                <h2>{t("Modo de permisos")}</h2>'],
+    ["src/components/AjustesMcp.tsx", '<section className="panel-card" data-sin-mods="">\n      <h2>{t("Qué puede hacer cada cliente por el MCP")}</h2>'],
+    ["src/components/PedirSecreto.tsx", '<div className="modal-overlay" data-sin-mods=""'],
+    ["src/components/AccountsView.tsx", '<div className="panel accounts" data-sin-mods="">'],
+  ];
+  for (const [f, marca] of ZONAS) {
+    caso(`la zona de ${f.split("/").pop()} sigue marcada`, leer(f).replace(/\r\n/g, "\n").includes(marca));
+  }
+  caso("sin navegador, la hoja va tal cual (el banco no tiene CSSOM)", hojaDeLosMods(repasar([mod("a")], existe)) === "/* mod: a */\n:root { --r-icono: 999px; }");
+}
+
+// ── Por qué no se carga, en inglés ─────────────────────────────────────────
+// Las frases las escribe `mods.rs`; si cambian allí y no aquí, el banco lo dice.
+{
+  const raiz = process.cwd();
+  const rust = (require("fs") as { readFileSync(p: string, c: string): string }).readFileSync(`${raiz}/src-tauri/src/mods.rs`, "utf8");
+  const en = makeT("en");
+  const FIJAS = [
+    "la hoja lleva una barra invertida: escribe el carácter tal cual, sin escapes",
+    "la hoja lleva un @import: un mod no trae hojas de fuera",
+    "la hoja lleva un image-set(): un mod no pide nada a la red",
+    "la hoja lleva un url() que no es data: un mod no pide nada a la red",
+    "falta mod.json",
+    "mod.json no dice su tipo",
+    "falta estilo.css",
+  ];
+  for (const f of FIJAS) {
+    caso(`«${f.slice(0, 40)}…» sigue en mods.rs y tiene su inglés`, rust.includes(`"${f}"`) && porqueNoCarga(f, en) !== f, porqueNoCarga(f, en));
+  }
+  const CON_DATO: Array<[string, string]> = [
+    ["estilo.css pesa más de 256 KB", "estilo.css is larger than 256 KB"],
+    ["mod.json no es un archivo normal", "mod.json is not a regular file"],
+    ["mod.json dice otro id que el de su carpeta (otro)", "mod.json gives a different id from its folder (otro)"],
+    ["el tipo «codigo» no se carga: de momento solo «estilo»", "the type “codigo” is not loaded: for now only “estilo”"],
+    ["mod.json no se entiende: expected value at line 1 column 1", "mod.json cannot be read: expected value at line 1 column 1"],
+  ];
+  for (const [es, ingles] of CON_DATO) caso(`«${es}» sale en inglés con su dato`, porqueNoCarga(es, en) === ingles, porqueNoCarga(es, en));
+  caso("en español sale tal cual", porqueNoCarga("estilo.css pesa más de 256 KB", makeT("es")) === "estilo.css pesa más de 256 KB");
 }
 
 // ── El contrato, contra la hoja de verdad ──────────────────────────────────

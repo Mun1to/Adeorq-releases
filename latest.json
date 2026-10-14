@@ -1,11 +1,11 @@
 {
-  "version": "0.9.196",
-  "notes": "Soltar una terminal encima de otra ya dice por que no se juntan; con Codex tambien salen los botones de respuesta cuando pide permiso; la app en ingles ya no mezcla espanol; la Agenda escribe bien las fechas; en Cuentas la etiqueta de predeterminada cabe en una linea; el tablero de tareas del lienzo vuelve a donde lo dejaste; pegar en la terminal tiene un segundo camino pensado para Linux, todavia sin probar alli; y la app recoge al arrancar las carpetas que dejaba el actualizador",
-  "pub_date": "2026-10-14T16:28:40Z",
+  "version": "0.9.197",
+  "notes": "Arreglo de seguridad: en la Cabina el Modo Espejo aisla de verdad, la terminal trabaja en su copia aparte y no en la carpeta del proyecto; una terminal en Modo Espejo vuelve en espejo tras una caida; los encargos programados se saltan si la cuenta va por el 85 por ciento o mas y pueden abrir Codex ademas de Claude; los mods no llegan a las zonas delicadas; un agente sabe por el MCP que existen los mods; y la pantalla de Mods sale entera en ingles",
+  "pub_date": "2026-10-14T17:33:32Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzl2T2JZZ3BCSlhndXVCS3N4MU1uU0RUVit2QWZXcXhJOHU2V3V1YmkxTFB4OXBaNkNjL0hLSzI2V2FDNjZMRUV2QklycWlTL2cwdGIwWVkrZlpIK3dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxOTk1MjgyCWZpbGU6QWRlb3JxXzAuOS4xOTZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTYKelU2RGlpTzdHUDJKbVlZUTFCY1lvc2c0cjVPRmdVQktnSW1tL2FCZ1FwTWoyWlVIU2hzV2ZJTGprVml1NC9OUEt5anoyaXhkeE1INlhsSEdKTjJBQmc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.196/Adeorq_0.9.196_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3ljNDVva1lHZXZhMHFnVGo3Z2JqclByaDNxV3pZemlLWkliLzk0WDNXWnBBRGh6U3g3WmUwaTEza3FTb0xtVzI4dG95cVdMV1V2Vk9OaFNnSFhNN0F3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxOTk5MTk0CWZpbGU6QWRlb3JxXzAuOS4xOTdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTcKY25TRys2NWp6YW5jV3o1NWJHT1NrbkFkUEZpMVVMeXdlaFZrN0loU01WRDRwSkUvMFBUWHpia2l3djFtWndobTI4TlNKWkUrOGU3bHdnZEdRUmxVQ0E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.197/Adeorq_0.9.197_x64-setup.exe"
     }
   }
 }

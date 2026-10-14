@@ -16,7 +16,7 @@ import { loadEffort, resumeCommandFor } from "./lanzar";
 import { useCabina } from "./cabina";
 import { ptyHistorial, terminalesVivas, type TerminalViva } from "./pty";
 import { dejarVolcado } from "./mudanza";
-import { emparejar, siguienteLibre } from "./reenganche";
+import { emparejar, espejoDe, siguienteLibre } from "./reenganche";
 /* Los tipos del tablero. Vivían en App.tsx.
    `Team` es el puesto de una cuadrilla, y va aquí porque `Pane` y `SavedPane`
    lo llevan dentro. */
@@ -38,6 +38,10 @@ export interface Pane {
       que estás usando y apartar los demás sin cerrarlos. */
   grupo?: string;
   shadow?: boolean;
+  /** El espejo que YA tiene, cuando recoge tras una caída una terminal que
+      corría en uno (`espejoDe` en `lib/reenganche.ts`). Sin esto montaría
+      uno nuevo con el arranque de ahora, vacío, al lado del de su agente. */
+  espejo?: string;
   /** Si esto está puesto, el hueco no es una terminal: son ESOS archivos
       abiertos, con pestañas. Munir eligió esta colocación tocando un prototipo
       el 2026-08-15, y el motivo es su propio eje: el archivo se queda al lado
@@ -256,6 +260,8 @@ export function useTableroGuardado({
           const id = viva.id;
           ids.push(id);
           dejarVolcado(id, await ptyHistorial(id).catch(() => ""));
+          // Si corría dentro de un espejo, vuelve siendo de espejo y con ESE.
+          const espejo = espejoDe(viva.cwd)?.nombre;
           setPanes((prev) => [
             ...prev,
             {
@@ -267,6 +273,8 @@ export function useTableroGuardado({
               account: pane.account,
               team: pane.team,
               grupo: pane.grupo,
+              shadow: espejo ? true : undefined,
+              espejo,
             },
           ]);
           if (pane.minimizado) setMinimizados((prev) => new Set(prev).add(id));

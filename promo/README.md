@@ -10,7 +10,7 @@ cd promo
 pnpm install          # tiene su propio pnpm-workspace.yaml, no cuelga del repo
 pnpm capturas         # trae las pantallas de web/assets/screens
 pnpm ver              # abre el estudio: se ve moverse y se puede recorrer con el ratón
-pnpm render           # 1920x1080 -> out/adeorq-es.mp4 y out/adeorq-en.mp4 (57,5 s sin voz)
+pnpm render           # 1920x1080 -> out/adeorq-es.mp4 y out/adeorq-en.mp4 (43,75 s sin voz)
 pnpm guion            # la página para leer el guion en voz alta -> out/guion-voz.html
 pnpm voz es           # corta y limpia la grabación de promo/voz/es.* (ver «La voz»)
 pnpm muestra          # todos los pasos entre escenas, con su número -> out/transiciones.mp4
@@ -23,38 +23,58 @@ bolsillo) mientras el guion eran diez pantallas que se podían quitar de una en 
 
 ## El guion, por tiempos
 
-Una sola pieza de **57,5 segundos**, de una tirada y sin capítulos (Munir, 2026-10-13: «Solo la
-corta, de 45 a 60 segundos»). Está escrito por TIEMPOS y no por pantallas: qué se ve y qué se lee
-en cada tramo. Cada tramo dura compases enteros de la música (2,5 s), así que cada corte cae en
-el primer tiempo. La palabra en negrita es la única que va en el azul de la marca.
+Una sola pieza de **43,75 segundos**, de una tirada y sin capítulos, **contada por Adeo**. Es la
+SEGUNDA pasada (2026-10-14): la primera duraba 57,5 y Munir la encontró «muy lenta y difícil para
+el usuario» y que «no lo explica bien del todo como otras referencias», y pidió «pon a Adeo de
+protagonista, Adeo explica la plataforma» (6.ª ronda, en «Pendiente»). Está escrito por TIEMPOS y
+no por pantallas: qué se ve y qué se lee en cada tramo. Cada tramo dura pulsos enteros de la
+música (0,625 s), así que cada corte cae en un tiempo. La palabra en negrita es la única que va
+en el azul de la marca.
 
 | Tiempo | Tramo | Qué se ve | Qué se lee | Qué suena |
 |---|---|---|---|---|
-| 0:00 – 0:10 | **El problema y el giro** | Solo texto, en el centro, sobre el fondo de la marca. Cada frase entra palabra a palabra y releva a la anterior. En primera persona | «Trabajo con **varios agentes** a la vez.» → «Y siempre **pierdo el hilo**.» → «¿Cuál ha **terminado**? ¿Cuál me **espera**?» → «Así que los junté en **una sola pantalla**.» | El colchón, bajo, y una tecla por palabra |
-| 0:10 – 0:12,5 | **El nombre** | El logotipo solo; abre el ojo y es Adeo, que saluda | «Adeorq» | La campana, y entra el ritmo |
-| 0:12,5 – 0:20 | **Cabina** | La app de verdad a pantalla completa. La cámara entra en la terminal de Claude Code y pasa a la de Codex | «Todos tus agentes, **lado a lado**» → «Claude Code, en su **terminal de verdad**» → «Codex, **justo al lado**» | Un golpe por frase |
-| 0:20 – 0:25 | **Panel** | La cámara entra en las dos primeras cifras del Panel | «Quién trabaja. **Quién te espera.**» → «Tres trabajando, **nadie esperando**» | Ídem |
-| 0:25 – 0:32,5 | **Lienzo** | La cámara entra en una terminal viva con sus notas y pasa al tablero de tarjetas | «Un **tablero infinito**» → «Terminales vivas y notas, **juntas**» → «El trabajo de cada agente, **en tarjetas**» | Ídem |
-| 0:32,5 – 0:37,5 | **Cuentas** | La cámara entra en una cuenta con su cuota y el puntero pulsa «Terminal con esta» | «Tus cuentas, **tu cuota**» → «Cada terminal, con **la cuenta que elijas**» | El golpe y el clic |
-| 0:37,5 – 0:42,5 | **Agenda** | La cámara entra en la ficha de los encargos programados | «Encargos que **se lanzan solos**» → «Tres programados, **a su hora**» | Un golpe por frase |
-| 0:42,5 – 0:52,5 | **Adeo** | Adeo en grande, en el centro: saluda, teclea, llama y salta | «Y este es **Adeo**» → «Teclea cuando **trabajan**» → «Te llama si **te esperan**» → «Y salta cuando **terminan**» | Sus teclas, sus toques y la chispa |
-| 0:52,5 – 0:57,5 | **El cierre** | Adeo celebrando, y una sola cosa que hacer | «Descárgalo gratis» · «**adeorq.com**» · «Windows y Linux» | El acorde del final |
+| 0:00 – 0:06,25 | **El problema y el giro** | Solo texto, en el centro, sobre el fondo de la marca. Cada frase entra palabra a palabra y releva a la anterior. En primera persona: es Munir | «Programo con **varios agentes**.» → «¿Cuál **terminó**? ¿Cuál me **espera**?» → «Así que los junté en **una ventana**.» | El colchón, bajo, y una tecla por palabra |
+| 0:06,25 – 0:10 | **El nombre** | El logotipo solo; abre el ojo, es Adeo, saluda y se presenta. Desde aquí lo cuenta él | «Adeorq» → «¡Hola! Soy **Adeo**. Te lo enseño.» | La campana, entra el ritmo, y sus teclas |
+| 0:10 – 0:15 | **Qué es** | La Cabina entera, con Adeo saludando al lado de la frase; después la cámara entra en las dos terminales de arriba | «Claude Code, Codex, Gemini… **lado a lado**» → «Cada uno en su **terminal**» | Un golpe por frase |
+| 0:15 – 0:18,75 | **Panel** | La cámara ya está en las dos primeras cifras. Adeo pregunta con su interrogación y contesta de un brinco, bailando | «¿Quién te **espera**?» → «**3 trabajando**. Nadie espera.» | Ídem |
+| 0:18,75 – 0:22,5 | **Lienzo** | Ya dentro del tablero de tarjetas, con sus columnas | «¿Quién hace **qué**?» → «Cada uno, **en su columna**» | Ídem |
+| 0:22,5 – 0:26,25 | **Enjambre** | La ventana del enjambre, flotando: la petición y Adeo repartiéndola en dos | «¿Y si pides **algo grande**?» → «Lo **reparto** yo» | Ídem |
+| 0:26,25 – 0:30 | **Cuentas** | Ya dentro de una cuenta con su cuota; el puntero pulsa «Terminal con esta» | «¿Te queda **cuota**?» → «La ves, y **eliges cuenta**» | El golpe y el clic |
+| 0:30 – 0:33,75 | **Agenda** | Ya dentro de la ficha de los encargos programados; Adeo, tecleando | «¿Y cuando **no estás**?» → «Encargos que **van solos**» | Un golpe por frase |
+| 0:33,75 – 0:38,75 | **Adeo** | Adeo en grande, en el centro, hablando de sí mismo: saluda y salta | «Y yo **te aviso**…» → «…cuando uno **termina**» | La chispa |
+| 0:38,75 – 0:43,75 | **El cierre** | Adeo celebrando, y una sola cosa que hacer | «Descárgalo gratis» · «**adeorq.com**» · «Windows y Linux» | El acorde del final |
 
 Lo que cumple, y de dónde sale cada cosa:
 
-- **El molde es «primero el problema»** (apartado 2.1 de `C:\proyectos\_docs\Guia_Videos_SaaS.md`):
-  problema hasta el 17 %, giro, y el nombre en el segundo 10, que es donde lo ponen sus referencias.
-- **Veintidós ideas en 57,5 segundos**, una cada 2,6 s (la mediana de sus 21 referencias es una
-  cada 2,7). Ninguna frase pasa de siete palabras.
-- **Cinco funciones y Adeo**, no diez pantallas. Las cinco son cosas que una terminal sola no
-  hace: varios programas juntos, saber quién te espera sin abrir nada, el tablero, elegir cuenta
-  viendo la cuota y los encargos que se lanzan solos. **Cuáles son «las potentes» lo eligió quien
-  montó el corte, no Munir:** es lo primero que tiene que decir si cambia.
+- **Adeo es quien lo cuenta.** Despierta del logotipo y se presenta; dice cada pregunta en
+  grande, a su lado, con su interrogación encima (el ánimo `duda` de la app), y cada respuesta
+  junto a la pieza, en pequeño, llegando con el brinco de cuando lo tocas y con un ánimo distinto
+  en cada una (`adeo` en el guion): baila, salta, teclea. Sin voz: «habla» con el texto. El
+  problema sigue siendo de Munir y en primera persona, que es lo que pidió del vídeo de
+  referencia; desde el nombre, el que habla es Adeo.
+- **Cada función es una pregunta y su respuesta.** La pregunta es la que se haría quien mira
+  (y las dos primeras son las del problema); la respuesta lleva lo que se ve en la pieza: una
+  cifra, una columna, el reparto. Es lo que hacen Whop, FlyingPress y Shipper, sus tres
+  preferidos: cada función rematada con su resultado.
+- **La cámara entra directo a la pieza** (`directo` en el guion), sin enseñar antes la pantalla
+  entera llena de código. La única que sale entera es la Cabina, porque ES lo que es Adeorq.
+- **El enjambre es la única captura suelta** (`swarm.png`, 534 × 632): con `proporcion` en el
+  guion sale como una ventana flotando sobre el fondo de la marca, a cuatro quintos del alto, en
+  vez de estirada a pantalla completa. Es la que mejor cuenta a Adeo: en ella él reparte el
+  trabajo.
+- **Dice qué es Adeorq justo después del nombre**, como FlyingPress («the all in one speed
+  optimization plugin for WordPress»).
+- **Veinte ideas en 43,75 segundos**, una cada 2,2 s: 27 por minuto. Sus once preferidas van
+  a 24,5 de mediana, y Whop, a 29. Ninguna imagen se queda quieta: la cámara siempre empuja.
+- **Seis funciones y Adeo**, que es el tope de sus referencias. **Cuáles son lo eligió quien
+  montó el corte, no Munir.**
 - **Los pasos entre tramos:** del texto al nombre, la máscara con la forma del logotipo; del
   nombre a la app, por el ojo de Adeo; entre pantallas, el hueco y el cambio de tarjetas, uno
   cada vez; a Adeo, el zoom con giro; y al cierre se atraviesa.
-- **Va sin voz.** Lo que diría la voz está en `voz`, dentro de `src/guion.ts`, para el día que
-  Munir la grabe; con ella cada tramo dura lo que su frase.
+- **Va sin voz,** y es lo que más lo separa de sus tres preferidos: los tres llevan una voz que
+  explica desde el segundo cero. La voz es la suya y la decide él; lo que diría está en `voz`,
+  dentro de `src/guion.ts`, y `pnpm guion` saca la página para leerla. Con ella cada tramo dura lo
+  que su frase.
 
 ## Qué tocar
 
@@ -74,6 +94,11 @@ entre asteriscos en el guion (`Palabras.tsx`). Un `\n` parte la frase en dos ren
    lo demás, la enmarca y le pone su frase al lado. Si el foco lleva `clic`, el puntero entra y
    pulsa ahí.
 
+Con `directo: true` se salta el plano de la pantalla entera: la cámara ya está en su pieza desde
+el primer fotograma, la frase grande es una PREGUNTA que se lee sobre ella a media luz, y la
+respuesta sale cuando se enciende. Así van las cinco preguntas desde la segunda pasada: la app
+entera, llena de código, era lo que Munir llamó «difícil para el usuario».
+
 No hay ventana, ni Adeo al lado, ni título encima: el cuadro ES la app. El corte anterior la
 metía en una ventana a tres cuartos de cuadro, y de su vídeo de referencia Munir se quedó con
 «la app REAL a pantalla completa, con la cámara viajando por dentro» (2026-10-13).
@@ -87,7 +112,7 @@ Un foco es `{ en: [izquierda, arriba, ancho, alto], dato, clic? }`, en fraccione
 captura (de 0 a 1), y vale para las dos lenguas porque el reparto de la app es el mismo.
 Para medirlo: abrir la captura, mirar en píxeles dónde está la función y dividir por el
 ancho y el alto. Cuanto más pequeño el trozo, más se acerca la cámara (de 1,15 a 2,6
-aumentos). Cada foco pide tres segundos: uno en un tramo de 5 y dos en uno de 7,5; si no
+aumentos). Cada foco pide dos segundos largos: en un tramo de 3,75 o de 5 cabe uno; si no
 caben, se caen los últimos (`focosQueCaben`, en `tiempos.ts`).
 
 - **Cada frase es un par `{ es, en }`.** No hay un vídeo por idioma que mantener: hay uno, y
@@ -254,20 +279,42 @@ Adeorq»). Es el guion de arriba con las capturas de la 0.9.195. Sirve para que 
 estructura, el ritmo y el sonido antes del día del lanzamiento; no se publica en ningún sitio.
 Lo que diga al verlo se apunta en esta lista.
 
-Medido el 2026-10-13 sobre `out/adeorq-es.mp4` (`ffmpeg -af ebur128=peak=true`): 57,5 s,
-−16,2 LUFS de media y el pico en −1,7 dBFS. Los diez primeros segundos van a −24,5 (solo el
+Medido el 2026-10-13 sobre la primera pasada (hoy `out/adeorq-57s-es.mp4`, con
+`ffmpeg -af ebur128=peak=true`): 57,5 s, −16,2 LUFS de media y el pico en −1,7 dBFS. Los diez primeros segundos van a −24,5 (solo el
 colchón y las teclas), el cuerpo a −15,9 y el cierre a −13,2: arranca bajo y la música entra con
 el nombre. Sus referencias van a −14,2 de mediana; subirlo esos dos decibelios pasaría el pico
 de −1, así que se queda ahí.
 
+**6.ª ronda (Munir, al ver el corte de prueba de 57,5 s del 2026-10-13; la pasó literal la
+sesión «Adeorq: sesiones y terminales»):** «el vídeo está mejor pero es muy lento y difícil para
+el usuario y no lo explica bien del todo como otras referencias». Lectura de quien montó el
+corte, no suya, después de leer las fichas de Whop, FlyingPress y Shipper en la guía: no decía
+qué es Adeorq, enseñaba terminales llenas de código, las frases describían la pantalla en vez
+de lo que ganas, se quedaba quieto más de tres segundos por función (sus referencias, unos 2,3) y
+el problema ocupaba diez. Los tres llevan además una voz que explica; la voz es decisión suya, y
+la segunda pasada va sin ella, con el texto haciendo de explicación.
+
+Y en la misma ronda, pedido para esta segunda pasada (pasado por la misma sesión el
+2026-10-14): **«pon a Adeo de protagonista, Adeo explica la plataforma»**. Adeo guía el vídeo y
+presenta cada función, vivo y con sus reacciones, y sin voz sintética: «habla» con el texto.
+
+**7.ª ronda (Munir, 2026-10-14, al ver la pasada con Adeo de guía; la pasó literal «Adeorq:
+sesiones y terminales»):** «el vídeo está mejor pero me gustaría que el fondo de Adeorq sea el que
+tenga yo y no uno genérico y que el highlight de las cosas sea mejor y que explique más funciones
+y que Adeo esté al lado de los highlights explicando las cosas». El fondo suyo es la foto de
+`%LOCALAPPDATA%\Adeorq\fondo.png`; las capturas con ese fondo las saca esa sesión en la casa de
+pruebas, no se rehacen desde aquí.
+
 **Lo que le falta a este corte para ser el del lanzamiento:**
 
-- **Que Munir diga si las cinco funciones son las suyas.** Cabina, Panel, Lienzo, Cuentas y la
-  Agenda con sus encargos programados las eligió quien montó el corte.
-- **Las capturas.** Son las de la 0.9.195 y se les nota: en la de Cuentas la etiqueta
-  «PREDETERMINADA» sale partida en dos (la app lo arregló en `e097fd1`, la foto es anterior), la
-  del Panel saluda con «Aún en pie, Sam.» y sus cifras dicen «0 te esperan», y ninguna enseña un
-  enjambre, que es lo más potente que hay hoy.
+- **Que Munir diga si las funciones son las suyas.** Cabina, Panel, Lienzo, el enjambre, Cuentas
+  y la Agenda con sus encargos programados las eligió quien montó el corte, y también las cinco
+  preguntas.
+- **Las capturas.** Desde la segunda pasada son las rehechas de `c82fc96`: «PREDETERMINADA» en
+  una línea, la Agenda bien escrita y el Lienzo con un enjambre, más `swarm.png` y `board.png`
+  sueltas. Lo que queda: la del Panel saluda «Buenas noches, Sam.» porque se sacó de noche, y
+  sus cifras dicen «0 te esperan». Se rehacen otra vez antes del lanzamiento, sobre el Adeorq
+  terminado.
 - **La vertical.** Una captura a pantalla completa no cabe de pie: pide su propio encuadre, y se
   hace cuando la horizontal esté aprobada.
 - **La voz** y **la app trabajando de verdad** (los dos puntos del final de esta lista).
@@ -330,8 +377,8 @@ abierto a lo que diga.
   los dos con un clip y se mira un fotograma. Remotion va además por la 4.0.535 y aquí está la
   4.0.507.
 
-- **Falta la voz.** El guion está escrito (el del corte de prueba se lee en unos 46 segundos,
-  y `pnpm guion` saca su página) y `voz.mjs` se probó de punta a punta con una voz sintética de
+- **Falta la voz.** El guion está escrito (el de la segunda pasada se lee en unos 35 segundos,
+  y `pnpm guion` saca su página en `out/guion-voz.html`) y `voz.mjs` se probó de punta a punta con una voz sintética de
   Windows sobre el corte anterior, solo como ensayo (no está en ningún vídeo). **Con el guion
   nuevo `pnpm voz` está NO PROBADO.** Con la grabación de verdad hay que volver a
   medir la mezcla (`ffmpeg -af ebur128=peak=true`).

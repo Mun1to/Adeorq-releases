@@ -66,7 +66,7 @@ export default function PedirSecreto() {
   if (!pedido) return null;
 
   return (
-    <div className="modal-overlay" {...propsDeVelo(bajoEnVelo, () => responder(null))}>
+    <div className="modal-overlay" data-sin-mods="" {...propsDeVelo(bajoEnVelo, () => responder(null))}>
       <div className="modal secreto-modal" onClick={(e) => e.stopPropagation()}>
         <h3 className="modal-title">{t("Un agente necesita una clave")}</h3>
         <p className="modal-text">

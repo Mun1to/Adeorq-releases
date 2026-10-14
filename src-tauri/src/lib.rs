@@ -474,6 +474,7 @@ pub fn run() {
             programados::programado_activar,
             programados::programado_rearmar,
             programados::programado_probar,
+            programados::programados_cuota,
             mcp_clientes::mcp_clientes_leer,
             mcp_clientes::mcp_clientes_poner,
             movil::movil_estado,

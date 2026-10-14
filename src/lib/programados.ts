@@ -8,6 +8,16 @@
 // reloj discreparan un minuto, manda el reloj y nadie pierde nada.
 
 import { invoke } from "@tauri-apps/api/core";
+import { PROVIDERS } from "./providers";
+
+/**
+ * Los CLI que puede abrir un encargo programado: los que aceptan el encargo al
+ * arrancar (nadie está delante para mandárselo después) y de los que Adeorq
+ * sabe leer en disco cómo acabó cada turno (sin eso, el freno no sabría si
+ * terminó o se quedó esperando). Hoy son Claude y Codex; uno nuevo entra solo
+ * con esas dos capacidades en su fila de `providers.ts`.
+ */
+export const CLIS_PROGRAMABLES: string[] = PROVIDERS.filter((p) => p.encargoEnLinea && p.archivosDelDisco).map((p) => p.id);
 
 export type Cuando =
   | { tipo: "semanal"; /** 1 lunes … 7 domingo. */ dias: number[]; /** «HH:MM». */ hora: string }
@@ -26,6 +36,8 @@ export interface Programado {
   nombre: string;
   encargo: string;
   cwd: string;
+  /** El CLI que abre (`CLIS_PROGRAMABLES`). */
+  cli: string;
   cuando: Cuando;
   /** Tu interruptor. */
   activo: boolean;
@@ -54,6 +66,7 @@ export interface PedidoProgramado {
   nombre: string;
   encargo: string;
   cwd: string;
+  cli: string;
   cuando: Cuando;
 }
 
@@ -68,6 +81,12 @@ export const activarProgramado = (id: string, activo: boolean) =>
   invoke<EstadoProgramados>("programado_activar", { id, activo });
 export const rearmarProgramado = (id: string) => invoke<EstadoProgramados>("programado_rearmar", { id });
 export const probarProgramado = (id: string) => invoke<EstadoProgramados>("programado_probar", { id });
+
+/** Lo que emite el reloj antes de lanzar uno: pregunta cuánto lleva gastado la
+    cuenta con la que nacería, y la ventana se lo contesta (`lib/frenoCuota.ts`). */
+export const EVENTO_CUOTA = "programados:cuota";
+export const contestarCuota = (peticion: number, gastado: number | null) =>
+  invoke<void>("programados_cuota", { peticion, gastado });
 
 /** Los días, en el orden en que se leen aquí: la semana empieza en lunes. */
 export const DIAS = [1, 2, 3, 4, 5, 6, 7] as const;
@@ -164,6 +183,7 @@ export interface Borrador {
   nombre: string;
   encargo: string;
   cwd: string;
+  cli: string;
   tipo: "semanal" | "cada";
   dias: number[];
   hora: string;
@@ -171,13 +191,14 @@ export interface Borrador {
 }
 
 export function borradorDe(e: Programado | null, cwd: string): Borrador {
-  if (!e) return { nombre: "", encargo: "", cwd, tipo: "semanal", dias: [1], hora: "09:00", horas: 24 };
+  if (!e) return { nombre: "", encargo: "", cwd, cli: CLIS_PROGRAMABLES[0], tipo: "semanal", dias: [1], hora: "09:00", horas: 24 };
   const semanal = e.cuando.tipo === "semanal" ? e.cuando : null;
   return {
     id: e.id,
     nombre: e.nombre,
     encargo: e.encargo,
     cwd: e.cwd,
+    cli: e.cli,
     tipo: e.cuando.tipo,
     dias: semanal ? [...semanal.dias] : [1],
     hora: semanal ? semanal.hora : "09:00",
@@ -205,6 +226,7 @@ export function pedidoDe(b: Borrador): PedidoProgramado {
     nombre: b.nombre.trim(),
     encargo: b.encargo.trim(),
     cwd: b.cwd,
+    cli: b.cli,
     cuando:
       b.tipo === "semanal"
         ? { tipo: "semanal", dias: [...b.dias].sort((a, c) => a - c), hora: b.hora }

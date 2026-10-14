@@ -473,7 +473,7 @@ async (page) => {
             const q = args.pedido;
             if (!q.encargo.trim()) throw new Error("Falta el encargo: qué tiene que hacer.");
             if (/no-existe/.test(q.cwd)) throw new Error(`Esa carpeta no existe: ${q.cwd}`);
-            const campos = { nombre: q.nombre || q.encargo.split("\n")[0].slice(0, 40), encargo: q.encargo, cwd: q.cwd, cuando: q.cuando };
+            const campos = { nombre: q.nombre || q.encargo.split("\n")[0].slice(0, 40), encargo: q.encargo, cwd: q.cwd, cli: q.cli || "claude", cuando: q.cuando };
             if (q.id) {
               args.id = q.id;
               Object.assign(uno(), campos, { cortado: null, fallosSeguidos: 0 });

@@ -10,6 +10,7 @@
 
 import {
   borradorDe,
+  CLIS_PROGRAMABLES,
   cortados,
   cuandoEnTexto,
   cuandoFalta,
@@ -22,6 +23,8 @@ import {
   type Cuando,
   type Programado,
 } from "../src/lib/programados";
+import { cuentaDeArranque } from "../src/lib/frenoCuota";
+import { MAIN_ACCOUNT } from "../src/lib/pty";
 
 let fallos = 0;
 const rojos: string[] = [];
@@ -44,6 +47,7 @@ const uno = (cuando: Cuando, extra: Partial<Programado> = {}): Programado => ({
   nombre: "Dependencias",
   encargo: "Revisa las dependencias",
   cwd: "C:\\proyectos\\Adeorq",
+  cli: "claude",
   cuando,
   activo: true,
   creado: new Date(2026, 9, 1, 8, 0).getTime(),
@@ -116,8 +120,11 @@ es("ni cada hora y media", faltaEn({ ...vacio, encargo: "Revisa", tipo: "cada", 
 es(
   "lo que viaja a Rust lleva solo el horario elegido, con los días en orden",
   pedidoDe({ ...vacio, encargo: " Revisa ", nombre: " Deps ", dias: [5, 1] }),
-  { id: undefined, nombre: "Deps", encargo: "Revisa", cwd: "C:\\proyectos\\Adeorq", cuando: { tipo: "semanal", dias: [1, 5], hora: "09:00" } },
+  { id: undefined, nombre: "Deps", encargo: "Revisa", cwd: "C:\\proyectos\\Adeorq", cli: "claude", cuando: { tipo: "semanal", dias: [1, 5], hora: "09:00" } },
 );
+es("los CLI que se pueden programar: los que aceptan el encargo al nacer y dejan leer cómo acabó", CLIS_PROGRAMABLES, ["claude", "codex"]);
+es("uno nuevo nace con el primero", vacio.cli, "claude");
+es("y al editar uno de Codex, sigue siendo de Codex", borradorDe(uno(lunes9, { cli: "codex" }), "").cli, "codex");
 es(
   "y al editar uno «cada N horas», el formulario lo abre como estaba",
   (({ id, tipo, horas }) => [id, tipo, horas])(borradorDe(uno(cada6), "")),
@@ -135,6 +142,15 @@ es("cuántos paró el freno", cortados(varios), 1);
 es("el siguiente es el que se lanza antes, entre los que se van a lanzar", elSiguiente(varios, el(12, 10))?.e.id, "a");
 es("y si ese ya se lanzó hoy, el del martes", elSiguiente([{ ...varios[0], ultimoDia: "2026-10-12" }, varios[1]], el(12, 10))?.e.id, "b");
 es("sin ninguno que vaya a lanzarse, nada", elSiguiente([varios[2], varios[3]], el(12, 10)), null);
+
+// 8. El freno por cuota mide la cuenta con la que el encargo va a nacer, que es
+//    la que elige `entornoDePane` para una terminal abierta sin decir cuenta.
+const segunda = { id: "c2", label: "Segunda", dir: "C:\\cuentas\\segunda", provider: "claude" };
+const deCodex = { id: "x1", label: "Codex", dir: "C:\\cuentas\\codex", provider: "codex" };
+es("sin tocar nada, la de siempre", cuentaDeArranque("claude", { list: [segunda], def: MAIN_ACCOUNT.id }), { provider: "claude", dir: "" });
+es("con otra como predeterminada, esa", cuentaDeArranque("claude", { list: [segunda], def: "c2" }), { provider: "claude", dir: "C:\\cuentas\\segunda" });
+es("una predeterminada que ya no existe cae en la de siempre", cuentaDeArranque("claude", { list: [], def: "c2" }), { provider: "claude", dir: "" });
+es("la predeterminada de un CLI no decide la de otro", cuentaDeArranque("codex", { list: [segunda, deCodex], def: "c2" }), { provider: "codex", dir: "" });
 
 console.log(fallos ? `\n${fallos} FALLOS: ${rojos.join("; ")}` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

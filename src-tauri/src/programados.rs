@@ -24,11 +24,23 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{mpsc, Mutex};
 
 /// Cuántos caben. Veinte encargos que se lanzan solos ya son muchos.
 pub const TOPE: usize = 20;
+/// Con la cuenta por aquí o más arriba, esa vez no se lanza: lo que queda de
+/// cuota es de quien está delante, no de un encargo que nadie mira.
+pub const TOPE_CUOTA: u8 = 85;
+
+/// El tope de verdad, salvo en una compilación de desarrollo con
+/// `ADEORQ_TOPE_CUOTA`: así se prueba el freno con el programa entero y la
+/// cuota de verdad sin esperar a una semana apretada
+/// (`scripts/laboratorio/freno-cuota-de-verdad.mjs`).
+fn tope_cuota() -> u8 {
+    let prueba = cfg!(debug_assertions).then(|| std::env::var("ADEORQ_TOPE_CUOTA").ok()).flatten();
+    prueba.and_then(|t| t.parse().ok()).unwrap_or(TOPE_CUOTA)
+}
 const TOPE_NOMBRE: usize = 60;
 const TOPE_ENCARGO: usize = 4000;
 /// Al tercer fallo seguido se para y avisa, en vez de insistir.
@@ -94,6 +106,9 @@ pub struct Encargo {
     pub encargo: String,
     /// La carpeta donde nace la sesión.
     pub cwd: String,
+    /// El CLI que abre. Los de antes de existir el campo eran todos de Claude.
+    #[serde(default = "cli_de_siempre")]
+    pub cli: String,
     pub cuando: Cuando,
     /// El interruptor de la persona. `cortado` es el del freno: son dos campos
     /// para que la pantalla pueda decir POR QUÉ está parado.
@@ -143,10 +158,26 @@ pub struct Pedido {
     pub encargo: String,
     pub cwd: String,
     pub cuando: Cuando,
+    /// Vacío es el de siempre.
+    #[serde(default)]
+    pub cli: String,
 }
 
 fn limpio(s: &str, tope: usize) -> String {
     s.trim().chars().take(tope).collect()
+}
+
+fn cli_de_siempre() -> String {
+    "claude".into()
+}
+
+/// Qué CLI puede abrir uno lo ofrece la pantalla: los que aceptan el encargo al
+/// arrancar y de los que Adeorq sabe leer cómo acabó cada turno (hoy Claude y
+/// Codex, `CLIS_PROGRAMABLES` en `lib/programados.ts`). Aquí solo se mira que
+/// sea un nombre y no otra cosa: lo abre `open_pane`, que ya rechaza el que no
+/// conoce, y uno del que no se sepa leer el final acaba cortado por el freno.
+fn cli_valido(c: &str) -> bool {
+    (1..=20).contains(&c.len()) && c.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
 /// «09:05» → 545. Nada que no sea HH:MM vale.
@@ -160,7 +191,12 @@ pub fn minutos_de(hora: &str) -> Option<u16> {
 }
 
 /// Deja el pedido como se va a guardar, o dice qué arreglar.
-pub fn validar(p: &Pedido) -> Result<(String, String, String, Cuando), String> {
+pub fn validar(p: &Pedido) -> Result<(String, String, String, Cuando, String), String> {
+    let cli = match p.cli.trim() {
+        "" => cli_de_siempre(),
+        c if cli_valido(c) => c.to_string(),
+        c => return Err(format!("No sé abrir «{c}».")),
+    };
     let encargo = limpio(&p.encargo, TOPE_ENCARGO);
     if encargo.is_empty() {
         return Err("Falta el encargo: qué tiene que hacer.".into());
@@ -191,7 +227,7 @@ pub fn validar(p: &Pedido) -> Result<(String, String, String, Cuando), String> {
         n if n.is_empty() => limpio(encargo.lines().next().unwrap_or(""), 40),
         n => n,
     };
-    Ok((nombre, encargo, cwd, cuando))
+    Ok((nombre, encargo, cwd, cuando, cli))
 }
 
 /// ¿Toca lanzarlo ahora?
@@ -270,6 +306,10 @@ pub trait Puertas {
     fn cerrar(&mut self, panel: u32);
     /// El cortacircuitos acaba de saltar con este encargo.
     fn cortado(&mut self, e: &Encargo);
+    /// Cuánto lleva gastado, de 0 a 100, la cuenta con la que nacería. `None`
+    /// si no se sabe (la ventana no contesta, o ese CLI no lo publica): el
+    /// freno por cuota solo frena con un número delante.
+    fn gastado(&mut self, e: &Encargo) -> Option<u8>;
 }
 
 fn archivo(dir: &Path) -> PathBuf {
@@ -379,6 +419,16 @@ pub fn vuelta(dir: &Path, ahora: u64, local: &Local, arranque: u64, p: &mut dyn 
             continue;
         }
 
+        // El freno por cuota. El turno ya está gastado: con la cuenta apretada
+        // esta vez se salta entera, sin contar como fallo, y la terminal de la
+        // vez anterior se queda como está.
+        let tope = tope_cuota();
+        if let Some(g) = p.gastado(&todos[i]).filter(|g| *g >= tope) {
+            let detalle = format!("la cuenta iba por el {g} % de su cuota, y el freno salta al {tope} %");
+            apuntar(&mut todos[i], ahora, Resultado::Saltado, &detalle);
+            continue;
+        }
+
         guardar(dir, &todos)?;
         // La de la vez anterior, si terminó y sigue ahí tal cual, se cierra al
         // nacer la nueva. Si alguien siguió hablando con ella, no se toca.
@@ -464,11 +514,65 @@ fn avisar_cambio(app: &tauri::AppHandle) {
     let _ = app.emit(EVENTO_CAMBIAN, ());
 }
 
+// ── El freno por cuota ──────────────────────────────────────────────────────
+//
+// Cuánto lleva gastado una cuenta lo sabe la ventana: ella guarda cuál es la
+// predeterminada, y por `lib/cuota.ts` pasa ya toda lectura de cuota (la del
+// aviso y la del router). El reloj se lo pregunta por un evento propio y espera
+// el número; qué se hace con él se decide aquí arriba, en `vuelta`.
+
+pub const EVENTO_CUOTA: &str = "programados:cuota";
+/// Una lectura en frío es un `claude -p /usage`: unos cinco segundos y medio.
+const ESPERA_CUOTA: std::time::Duration = std::time::Duration::from_secs(12);
+
+/// La pregunta que está en el aire: su número y por dónde se contesta. Cabe
+/// una sola, porque quien pregunta es el reloj y va de una vuelta en una.
+static PREGUNTA_CUOTA: Mutex<Option<(u64, mpsc::Sender<Option<u8>>)>> = Mutex::new(None);
+static NUMERO_CUOTA: AtomicU64 = AtomicU64::new(0);
+
+fn pregunta_cuota() -> std::sync::MutexGuard<'static, Option<(u64, mpsc::Sender<Option<u8>>)>> {
+    PREGUNTA_CUOTA.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Lo que contesta la ventana, como se guarda: de 0 a 100, o nada si no es un
+/// número.
+fn porcentaje(gastado: Option<f64>) -> Option<u8> {
+    gastado.filter(|g| g.is_finite()).map(|g| g.clamp(0.0, 100.0).round() as u8)
+}
+
+fn preguntar_cuota(app: &tauri::AppHandle, cli: &str) -> Option<u8> {
+    use tauri::Emitter;
+    let numero = NUMERO_CUOTA.fetch_add(1, Ordering::Relaxed) + 1;
+    let (tx, rx) = mpsc::channel();
+    *pregunta_cuota() = Some((numero, tx));
+    let contestado = app
+        .emit(EVENTO_CUOTA, serde_json::json!({ "peticion": numero, "cli": cli }))
+        .ok()
+        .and_then(|_| rx.recv_timeout(ESPERA_CUOTA).ok())
+        .flatten();
+    pregunta_cuota().take();
+    contestado
+}
+
+/// La ventana contesta cuánto lleva gastado. Una respuesta que llega tarde, a
+/// una pregunta que ya no se espera, se tira.
+#[tauri::command(async)]
+pub fn programados_cuota(peticion: u64, gastado: Option<f64>) {
+    let mut espera = pregunta_cuota();
+    if espera.as_ref().is_some_and(|(numero, _)| *numero == peticion) {
+        if let Some((_, tx)) = espera.take() {
+            let _ = tx.send(porcentaje(gastado));
+        }
+    }
+}
+
 /// Las puertas de verdad: la ventana, las terminales y el móvil.
 struct Reales<'a> {
     app: &'a tauri::AppHandle,
     /// Lo que dice la ventana de sus paneles, preguntado una vez por vuelta.
     paneles: Option<Vec<serde_json::Value>>,
+    /// Lo que lleva gastado la cuenta de cada CLI, preguntado una vez por vuelta.
+    gastado: Vec<(String, Option<u8>)>,
 }
 
 impl Reales<'_> {
@@ -487,11 +591,10 @@ impl Reales<'_> {
 
 impl Puertas for Reales<'_> {
     fn abrir(&mut self, e: &Encargo) -> Result<u32, String> {
-        // Solo Claude en la v1: es del único del que se sabe leer cómo acabó.
         let r = crate::mcp::pedir_a_la_ventana(
             self.app,
             "open_pane",
-            serde_json::json!({ "cli": "claude", "cwd": e.cwd, "brief": e.encargo, "name": e.nombre }),
+            serde_json::json!({ "cli": e.cli, "cwd": e.cwd, "brief": e.encargo, "name": e.nombre }),
         )?;
         self.paneles = None;
         r.pane_id.ok_or_else(|| "la ventana no dijo qué terminal abrió".to_string())
@@ -525,6 +628,15 @@ impl Puertas for Reales<'_> {
             None,
         );
     }
+
+    fn gastado(&mut self, e: &Encargo) -> Option<u8> {
+        if let Some((_, g)) = self.gastado.iter().find(|(cli, _)| *cli == e.cli) {
+            return *g;
+        }
+        let g = preguntar_cuota(self.app, &e.cli);
+        self.gastado.push((e.cli.clone(), g));
+        g
+    }
 }
 
 /// El hilo del reloj: espera a que la app termine de arrancar y mira cada
@@ -550,7 +662,7 @@ pub fn arrancar(app: tauri::AppHandle) {
             if let (Ok(dir), Some(local)) = (crate::dir_datos_creado(), hora_local()) {
                 let cambio = {
                     let _g = tomar();
-                    let mut p = Reales { app: &app, paneles: None };
+                    let mut p = Reales { app: &app, paneles: None, gastado: Vec::new() };
                     vuelta(&dir, ahora_ms(), &local, crate::conserje::arranque(), &mut p)
                 };
                 match cambio {
@@ -599,7 +711,7 @@ fn cambiar(app: &tauri::AppHandle, id: &str, f: impl FnOnce(&mut Encargo)) -> Re
 /// Crear uno o editarlo. Editarlo lo REARMA: quien lo toca ya lo ha mirado.
 #[tauri::command(async)]
 pub fn programado_guardar(app: tauri::AppHandle, pedido: Pedido) -> Result<Estado, String> {
-    let (nombre, encargo, cwd, cuando) = validar(&pedido)?;
+    let (nombre, encargo, cwd, cuando, cli) = validar(&pedido)?;
     if !Path::new(&cwd).is_dir() {
         return Err(format!("Esa carpeta no existe: {cwd}"));
     }
@@ -617,7 +729,7 @@ pub fn programado_guardar(app: tauri::AppHandle, pedido: Pedido) -> Result<Estad
                 e.ultimo_dia = hoy.unwrap_or_default();
                 e.creado = ahora;
             }
-            (e.nombre, e.encargo, e.cwd, e.cuando) = (nombre, encargo, cwd, cuando);
+            (e.nombre, e.encargo, e.cwd, e.cuando, e.cli) = (nombre, encargo, cwd, cuando, cli);
             e.cortado = None;
             e.fallos_seguidos = 0;
         }
@@ -634,6 +746,7 @@ pub fn programado_guardar(app: tauri::AppHandle, pedido: Pedido) -> Result<Estad
                 nombre,
                 encargo,
                 cwd,
+                cli,
                 cuando,
                 activo: true,
                 creado: ahora,
@@ -677,14 +790,15 @@ pub fn programado_rearmar(app: tauri::AppHandle, id: String) -> Result<Estado, S
 }
 
 /// «Probar ahora»: lo lanza ya, sin mirar el horario y sin gastar el turno de
-/// hoy. Lo que no se salta es lo de no pisar a la vez anterior.
+/// hoy. Lo que no se salta es lo de no pisar a la vez anterior. El freno por
+/// cuota no entra aquí: quien pulsa está delante y sabe lo que gasta.
 #[tauri::command(async)]
 pub fn programado_probar(app: tauri::AppHandle, id: String) -> Result<Estado, String> {
     let _g = tomar();
     let dir = crate::dir_datos_creado()?;
     let mut todos = leer(&dir)?;
     let arranque = crate::conserje::arranque();
-    let mut p = Reales { app: &app, paneles: None };
+    let mut p = Reales { app: &app, paneles: None, gastado: Vec::new() };
     let e = todos.iter_mut().find(|e| e.id == id).ok_or("Ese encargo ya no está.")?;
     if let Some(c) = e.corrida.as_ref().filter(|c| !c.juzgada && c.arranque == arranque) {
         if !matches!(p.mirar(c.panel), Visto::SeCerro | Visto::CerradaAMano) {
@@ -731,6 +845,7 @@ mod tests {
             nombre: "Dependencias".into(),
             encargo: "Revisa las dependencias".into(),
             cwd: "C:\\proyectos\\Adeorq".into(),
+            cli: "claude".into(),
             cuando,
             activo: true,
             creado: 1_000,
@@ -759,6 +874,8 @@ mod tests {
         /// La carpeta, para comprobar qué había en disco al pedir el panel.
         dir: Option<PathBuf>,
         dia_en_disco_al_abrir: Vec<String>,
+        /// Lo que lleva gastado la cuenta, si se sabe.
+        gastado: Option<u8>,
     }
 
     impl Puertas for Falsas {
@@ -779,6 +896,9 @@ mod tests {
         fn cortado(&mut self, e: &Encargo) {
             self.cortes.push(e.id.clone());
         }
+        fn gastado(&mut self, _e: &Encargo) -> Option<u8> {
+            self.gastado
+        }
     }
 
     /// La hora de la pared sale en Windows, Linux y macOS, y con su forma: sin
@@ -794,8 +914,9 @@ mod tests {
 
     #[test]
     fn un_pedido_mal_hecho_dice_que_arreglar() {
-        let bueno = Pedido { id: None, nombre: "  ".into(), encargo: " Revisa las dependencias\ny dime ".into(), cwd: " C:\\p ".into(), cuando: Cuando::Semanal { dias: vec![7, 1, 1, 9], hora: "9:05".into() } };
-        let (nombre, encargo, cwd, cuando) = validar(&bueno).unwrap();
+        let bueno = Pedido { id: None, nombre: "  ".into(), encargo: " Revisa las dependencias\ny dime ".into(), cwd: " C:\\p ".into(), cuando: Cuando::Semanal { dias: vec![7, 1, 1, 9], hora: "9:05".into() }, cli: String::new() };
+        let (nombre, encargo, cwd, cuando, cli) = validar(&bueno).unwrap();
+        assert_eq!(cli, "claude", "sin decir CLI, el de siempre");
         assert_eq!(nombre, "Revisa las dependencias", "sin nombre, lleva el principio del encargo");
         assert_eq!(encargo, "Revisa las dependencias\ny dime");
         assert_eq!(cwd, "C:\\p");
@@ -815,6 +936,10 @@ mod tests {
         assert!(con(&|p| p.cuando = Cuando::Cada { horas: 0 }).is_err());
         assert!(con(&|p| p.cuando = Cuando::Cada { horas: 169 }).is_err());
         assert!(con(&|p| p.cuando = Cuando::Cada { horas: 168 }).is_ok());
+        assert_eq!(con(&|p| p.cli = " codex ".into()).unwrap().4, "codex");
+        for malo in ["Codex", "codex --yolo", "codex;rm", "a".repeat(21).as_str()] {
+            assert!(con(&|p| p.cli = malo.into()).is_err(), "el CLI {malo:?} no vale");
+        }
     }
 
     #[test]
@@ -998,6 +1123,61 @@ mod tests {
     }
 
     #[test]
+    fn con_la_cuenta_apretada_esa_vez_se_salta_y_no_cuenta_como_fallo() {
+        let d = dir();
+        guardar(&d, &[encargo(los_lunes_a_las_9())]).unwrap();
+        let mut p = Falsas { nace: Some(4), gastado: Some(TOPE_CUOTA - 1), ..Default::default() };
+        vuelta(&d, 10_000, &lunes(0, "09:00"), 7, &mut p).unwrap();
+        assert_eq!(p.abiertas.len(), 1, "un punto por debajo del tope, nace");
+        p.visto.insert(4, Visto::Termino);
+        vuelta(&d, 10_060, &lunes(0, "09:20"), 7, &mut p).unwrap();
+
+        p.gastado = Some(TOPE_CUOTA);
+        assert!(vuelta(&d, 20_000, &lunes(1, "09:00"), 7, &mut p).unwrap());
+        let e = leer(&d).unwrap().remove(0);
+        assert_eq!(p.abiertas.len(), 1, "en el tope justo, no nace");
+        assert_eq!((e.ultimas[0].resultado, e.fallos_seguidos), (Resultado::Saltado, 0), "saltado, y el freno de los tres fallos ni se entera");
+        assert!(e.ultimas[0].detalle.contains("85 %"), "dice por cuánto iba: {}", e.ultimas[0].detalle);
+        assert!(p.cerradas.is_empty(), "la terminal de la vez anterior se queda para leerla");
+        assert_eq!(e.corrida.as_ref().map(|c| c.panel), Some(4));
+
+        // El turno de ese día está gastado: que la cuota baje por la tarde no
+        // lo lanza a deshora.
+        p.gastado = Some(10);
+        assert!(!vuelta(&d, 20_500, &lunes(1, "18:00"), 7, &mut p).unwrap());
+        assert_eq!(p.abiertas.len(), 1);
+
+        // Sin número no hay freno: se lanza como antes de existir.
+        p.gastado = None;
+        p.nace = Some(9);
+        vuelta(&d, 30_000, &lunes(2, "09:00"), 7, &mut p).unwrap();
+        assert_eq!(p.abiertas.len(), 2);
+        assert_eq!(p.cerradas, vec![4], "y ahora sí se cierra la anterior");
+        std::fs::remove_dir_all(&d).ok();
+
+        // El tope vive aquí, y la pantalla lo dice con su número.
+        let pantalla = include_str!("../../src/components/AgendaProgramados.tsx");
+        assert!(pantalla.contains(&format!("el {TOPE_CUOTA} % de su cuota")), "la pantalla promete otro tope");
+    }
+
+    #[test]
+    fn la_respuesta_de_la_ventana_solo_vale_para_la_pregunta_que_se_espera() {
+        assert_eq!(porcentaje(Some(84.6)), Some(85));
+        assert_eq!(porcentaje(Some(250.0)), Some(100));
+        assert_eq!(porcentaje(Some(f64::NAN)), None);
+        assert_eq!(porcentaje(None), None);
+
+        let (tx, rx) = mpsc::channel();
+        *pregunta_cuota() = Some((5, tx));
+        programados_cuota(4, Some(99.0));
+        assert!(rx.try_recv().is_err(), "la de una pregunta anterior se tira");
+        programados_cuota(5, Some(91.2));
+        assert_eq!(rx.try_recv(), Ok(Some(91)));
+        programados_cuota(5, Some(10.0));
+        assert!(rx.try_recv().is_err(), "y contestada una vez, ya no se espera");
+    }
+
+    #[test]
     fn dos_que_tocan_a_la_vez_nacen_en_vueltas_distintas() {
         let d = dir();
         let mut otro = encargo(los_lunes_a_las_9());
@@ -1038,6 +1218,7 @@ mod tests {
         assert_eq!(serde_json::to_value(Resultado::Saltado).unwrap(), "saltado");
         // Y uno escrito por una versión anterior, sin los campos nuevos, entra.
         let viejo = r#"{"id":"p1","nombre":"n","encargo":"e","cwd":"c","cuando":{"tipo":"cada","horas":2},"activo":true,"creado":1}"#;
-        assert!(serde_json::from_str::<Encargo>(viejo).is_ok());
+        assert_eq!(serde_json::from_str::<Encargo>(viejo).unwrap().cli, "claude", "y es de Claude, que era el único");
+        assert_eq!(j["cli"], "claude");
     }
 }

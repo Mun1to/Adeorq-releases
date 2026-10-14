@@ -247,6 +247,71 @@ pub fn mods_escribir_guia(texto: String) -> Result<String, String> {
     escribir_guia_en(&carpeta_creada()?, &texto)
 }
 
+/// Lo que se le cuenta a un agente que pregunta por los mods (`get_mods`, en el
+/// MCP).
+///
+/// Un agente al que le piden «los iconos redondos» no sabe que esto existe, y
+/// sin saberlo cambiaría el código de la app, que la siguiente actualización
+/// pisa. La guía entera la redacta la ventana (`guiaDeMods`, con las piezas de
+/// ESTA versión) y solo se escribe desde que se encienden los mods: aquí va si
+/// está y, si no, lo justo para empezar y cómo conseguirla. Solo lee: preguntar
+/// no deja una carpeta en casa de nadie.
+pub fn parte_para_agente(carpeta: &Path, version: &str) -> String {
+    let mut t = format!(
+        "# Los mods de Adeorq\n\n\
+         Un mod es como una persona cambia cómo se ve SU Adeorq sin perderlo en la siguiente \
+         actualización: una carpeta suya con un `mod.json` y un `estilo.css`, que Adeorq pone \
+         encima de su propia hoja. Para eso NO cambies los archivos de Adeorq: la actualización \
+         los pisa. Solo hay mods de estilo (CSS), sin código.\n\n\
+         Carpeta de los mods: {}\n",
+        carpeta.display()
+    );
+    let ruta = carpeta.join(GUIA);
+    let guia = std::fs::read_to_string(&ruta).ok().filter(|g| !g.trim().is_empty());
+    match &guia {
+        Some(g) if g.contains(&format!("Adeorq {version} ")) => {
+            t.push_str(&format!("La guía de esta versión está en {}. Va entera al final: léela antes de escribir nada.\n", ruta.display()));
+        }
+        Some(_) => t.push_str(&format!(
+            "La guía de {} la escribió otra versión de Adeorq (esta es la {version}) y puede nombrar piezas que ya no existen; \
+             se rehace sola cuando la persona abre Adeorq con los mods encendidos. Va entera al final.\n",
+            ruta.display()
+        )),
+        None => t.push_str(&format!(
+            "Todavía no hay guía: Adeorq la escribe en {} cuando la persona enciende los mods. Lo básico mientras tanto: \
+             cada mod es una carpeta `<id>` (minúsculas, números y guiones) con un `mod.json` \
+             (`id`, `pedido` con la frase de la persona tal cual, `hecho_para`: \"{version}\", `tipo`: \"estilo\" y `toca` \
+             con las variables que cambias) y un `estilo.css`. Una hoja con `@import`, con un `url()` que no sea `data:` \
+             o con una barra invertida no se carga. Las piezas que Adeorq mantiene estables (como `--r-icono`) vienen \
+             en la guía: pídele que encienda los mods y léela antes de escribir nada.\n",
+            ruta.display()
+        )),
+    }
+    t.push_str(
+        "Vienen apagados de fábrica y la persona los enciende en Ajustes > Mods > «Encendidos»: si no ve tu cambio, \
+         que mire ahí. Con los mods encendidos y Adeorq abierta, uno nuevo se aplica solo en unos segundos.\n",
+    );
+
+    let mods = leer_de(carpeta);
+    if mods.is_empty() {
+        t.push_str("\nAhora no hay ningún mod.\n");
+    } else {
+        t.push_str(&format!("\nLos que hay ahora ({}):\n", mods.len()));
+        for m in &mods {
+            match &m.fallo {
+                None => t.push_str(&format!("- {}: «{}» (hecho para {})\n", m.id, m.pedido, m.hecho_para)),
+                Some(f) => t.push_str(&format!("- {}: NO SE CARGA ({f}). Su pedido: «{}»\n", m.id, m.pedido)),
+            }
+        }
+        t.push_str("Otro cambio es otro mod. Si te piden rehacer uno, conserva su `pedido`.\n");
+    }
+    if let Some(g) = guia {
+        t.push_str("\n---\n\n");
+        t.push_str(&g);
+    }
+    t
+}
+
 /// Quita un mod de una carpeta con lo que se le diga que es «tirar». El id
 /// tiene que ser un nombre llano: es lo que impide salir de la carpeta.
 fn quitar_de(carpeta: &Path, id: &str, tirar: impl Fn(&Path) -> Result<(), String>) -> Result<(), String> {
@@ -435,6 +500,27 @@ mod pruebas {
         let con_bom = format!("\u{feff}{BUENO}");
         let dir = casa("bom", &[("iconos-redondos", &con_bom, Some(":root { --r-icono: 999px; }"))]);
         assert_eq!(leer_de(&dir)[0].fallo, None);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// Lo que lee un agente por `get_mods`: dónde van, la guía si la hay y de
+    /// qué versión es, y los mods que ya hay, también el que no se carga.
+    #[test]
+    fn un_agente_sabe_de_los_mods_sin_que_nadie_le_de_la_guia() {
+        let nada = std::env::temp_dir().join(format!("adeorq-mods-{}-no-existe", std::process::id()));
+        let t = parte_para_agente(&nada, "0.9.196");
+        assert!(t.contains(&nada.display().to_string()), "dice dónde van");
+        assert!(t.contains("Todavía no hay guía") && t.contains("Ajustes > Mods") && t.contains("\"0.9.196\""));
+        assert!(t.contains("no hay ningún mod"));
+        assert!(!nada.exists(), "preguntar no crea la carpeta");
+
+        let dir = casa("parte", &[("iconos-redondos", BUENO, Some(":root { --r-icono: 999px; }")), ("con-red", r#"{"pedido":"un fondo","tipo":"estilo"}"#, Some("a { background: url(https://x.y/z.png) }"))]);
+        escribir_guia_en(&dir, "Esta guía la escribe Adeorq 0.9.196 y la rehace en cada versión.").unwrap();
+        let t = parte_para_agente(&dir, "0.9.196");
+        assert!(t.contains("La guía de esta versión") && t.ends_with("la rehace en cada versión."), "la guía va entera al final");
+        assert!(t.contains("- iconos-redondos: «quiero los iconos redondos» (hecho para 0.9.192)"));
+        assert!(t.contains("- con-red: NO SE CARGA ("), "el que no pasa se dice: {t}");
+        assert!(parte_para_agente(&dir, "0.9.197").contains("la escribió otra versión"), "una guía de otra versión se avisa");
         let _ = std::fs::remove_dir_all(dir);
     }
 }

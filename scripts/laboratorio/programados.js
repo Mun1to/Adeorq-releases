@@ -68,7 +68,7 @@ async (page) => {
   await page.locator('.prog-dia[data-dia="3"]').click();
   await page.locator('.prog-dia[data-dia="5"]').click();
   await page.locator(".prog-hora").fill("18:30");
-  await page.locator(".prog-campo select").selectOption({ label: "Adeorq" });
+  await page.locator(".prog-campo select:not([data-cli])").selectOption({ label: "Adeorq" });
   await desde();
   await page.locator("[data-guardar]").click();
   await page.waitForTimeout(600);
@@ -96,12 +96,24 @@ async (page) => {
   debe(pasos.cada === "Cada 6 horas", `editado a cada seis horas: «${pasos.cada}»`);
   debe((await page.locator(".prog-fila").count()) === 1, "editar crea otro en vez de cambiar el que había");
 
+  // 4b. Con qué agente: nace con Claude y se cambia a Codex al editarlo.
+  await page.locator("[data-editar]").first().click();
+  pasos.agentes = await page.locator("[data-cli] option").evaluateAll((os) => os.map((o) => `${o.value}:${o.textContent}`).join(" "));
+  debe(pasos.agentes === "claude:Claude Code codex:Codex", `los agentes que se ofrecen: ${pasos.agentes}`);
+  debe((await page.locator("[data-cli]").inputValue()) === "claude", "uno nuevo no nace con Claude");
+  await page.locator("[data-cli]").selectOption("codex");
+  await desde();
+  await page.locator("[data-guardar]").click();
+  await page.waitForTimeout(600);
+  pasos.conCodex = { viaja: (await hechas("programado_guardar"))[0]?.pedido?.cli, pie: await page.locator(".prog-pie .stream-hide").first().innerText() };
+  debe(pasos.conCodex.viaja === "codex" && pasos.conCodex.pie === "Codex · Adeorq", `con Codex: ${JSON.stringify(pasos.conCodex)}`);
+
   // 5. Un error de Rust se enseña y el formulario no se pierde.
   await page.locator("[data-nuevo]").click();
   await page.locator(".prog-encargo-in").fill("otro");
   pasos.sinProyecto = await page.locator(".prog-falta").innerText();
   debe(/proyecto/.test(pasos.sinProyecto) && (await page.locator("[data-guardar]").isDisabled()), `sin proyecto elegido no se guarda: «${pasos.sinProyecto}»`);
-  await page.locator(".prog-campo select").selectOption({ label: "Vidorq" });
+  await page.locator(".prog-campo select:not([data-cli])").selectOption({ label: "Vidorq" });
   const lleno = await sembrado();
   await sembrar({ ...lleno, encargos: Array.from({ length: 20 }, (_, i) => ({ ...lleno.encargos[0], id: `p${i}` })) });
   await page.locator("[data-guardar]").click();
@@ -137,7 +149,7 @@ async (page) => {
   debe(pasos.cortada.estado === "cortado" && /no contestó a tiempo/.test(pasos.cortada.corte ?? ""), `la fila cortada dice por qué: ${JSON.stringify(pasos.cortada)}`);
   debe(pasos.cortada.proxima === "parado por el freno" && pasos.cortada.puntos === "fallo,fallo,saltado" && pasos.cortada.rearmar, `sus puntos y su botón: ${JSON.stringify(pasos.cortada)}`);
   debe((await page.locator('[data-programado="pb"] [data-rearmar]').count()) === 0, "una fila sana ofrece rearmar");
-  await page.screenshot({ path: "C:/Users/Muni/AppData/Local/Temp/claude/C--proyectos-Adeorq/572c3eb8-4cba-4c56-8923-bddd346e5626/scratchpad/programados.png" });
+  await page.screenshot({ path: "C:/proyectos/Adeorq/.playwright-mcp/programados.png" });
 
   // 7. Rearmar, pausar, probar y borrar.
   await cortada.locator("[data-rearmar]").click();

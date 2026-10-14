@@ -36,11 +36,12 @@ const sin = (t) => t.replace(/\*/g, "").replace(/\n/g, " ");
 
 /** Qué hay en pantalla mientras se dice cada cosa. */
 function seVe(e) {
+  if (e.tipo === "pantalla" && e.directo) return `La cámara ya dentro de una pieza de «${e.nombre.es}», a media luz, con la pregunta «${sin(e.titulo.es)}» en el centro. Después se enciende y sale la respuesta: ${e.focos.map((f) => sin(f.dato.es)).join(" · ")}.`;
   if (e.tipo === "pantalla") return `La pantalla «${e.nombre.es}» de la app, llenando el cuadro, con «${sin(e.titulo.es)}» en el centro. Después la cámara entra en: ${e.focos.map((f) => sin(f.dato.es)).join(" · ")}.`;
   if (e.tipo === "texto") return `Solo texto, en el centro, frase a frase: ${e.lineas.map((l) => `«${sin(l.es)}»`).join(" ")}`;
   return {
-    nombre: "El logotipo abre el ojo y es Adeo, que saluda. Debajo, «Adeorq».",
-    adeo: "Adeo en grande: saluda y pasa por tres de sus estados, uno por frase.",
+    nombre: "El logotipo abre el ojo y es Adeo, que saluda. Debajo, «Adeorq» y su primera frase: desde aquí lo cuenta él.",
+    adeo: "Adeo en grande, hablando de sí mismo: saluda y salta.",
     cierre: "Adeo celebrando, «Descárgalo gratis» y adeorq.com en grande.",
   }[e.tipo];
 }

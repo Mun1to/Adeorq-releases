@@ -1,10 +1,11 @@
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { Adeo, REACCIONES, altoDeAdeo, gesto } from "../Adeo";
 import { COLOR, FUENTE } from "../casa";
-import { TITULO } from "../guion";
-import { useMedidas } from "../idioma";
+import { TEXTOS, TITULO } from "../guion";
+import { useDecir, useMedidas } from "../idioma";
 import { Marca } from "../Marca";
-import { despierta } from "../tiempos";
+import { Palabras } from "../Palabras";
+import { NOMBRE, despierta } from "../tiempos";
 
 /** Lo que hace Adeo al despertar: saluda dos veces y guiña un ojo. */
 const SALUDO = [...REACCIONES.hola, ...REACCIONES.hola, ...gesto("quieta", 6)];
@@ -26,9 +27,10 @@ export function ojoDelNombre(ancho: number, alto: number) {
 }
 
 /**
- * El nombre: el logotipo solo, y debajo «Adeorq». Nada más: el lema que
- * llevaba la portada lo acaba de decir la frase anterior («una sola
- * pantalla»).
+ * El nombre: el logotipo solo, y debajo «Adeorq». El lema que llevaba la
+ * portada no: lo acaba de decir la frase anterior («una ventana»). Lo que sí
+ * sale, cuando el logotipo despierta, es Adeo presentándose, porque desde
+ * aquí el vídeo lo cuenta él.
  *
  * Y a media escena el logotipo cobra vida. Adeo ES la A de Adeorq con ojo,
  * brazos y piernas, así que no se le presenta al lado de la marca: es la marca
@@ -39,6 +41,7 @@ export function Nombre({ largo }: { largo: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const { u } = useMedidas();
+  const decir = useDecir();
   const cambio = despierta(largo);
 
   const marca = spring({ frame, fps, config: { damping: 200, mass: 0.9 } });
@@ -78,19 +81,41 @@ export function Nombre({ largo }: { largo: number }) {
         </AbsoluteFill>
       </div>
 
-      <div
-        style={{
-          fontFamily: FUENTE.texto,
-          fontSize: LETRA * u,
-          lineHeight: 1,
-          fontWeight: 800,
-          letterSpacing: "-0.035em",
-          color: COLOR.texto,
-          opacity: letra,
-          transform: `translateY(${interpolate(letra, [0, 1], [16, 0]) * u}px)`,
-        }}
-      >
-        {TITULO}
+      <div style={{ position: "relative" }}>
+        <div
+          style={{
+            fontFamily: FUENTE.texto,
+            fontSize: LETRA * u,
+            lineHeight: 1,
+            fontWeight: 800,
+            letterSpacing: "-0.035em",
+            color: COLOR.texto,
+            opacity: letra,
+            transform: `translateY(${interpolate(letra, [0, 1], [16, 0]) * u}px)`,
+          }}
+        >
+          {TITULO}
+        </div>
+        {/* Lo primero que dice Adeo al despertar: desde aquí el vídeo lo
+            cuenta él. Va fuera del flujo, debajo del nombre, para que el
+            nombre y el logotipo no se muevan y el ojo siga donde lo busca el
+            paso a la app (`ojoDelNombre`). */}
+        <div style={{ position: "absolute", top: "100%", left: "50%", marginTop: 34 * u, transform: "translateX(-50%)" }}>
+          <Palabras
+            texto={decir(TEXTOS.nombre)}
+            entra={cambio + NOMBRE.linea}
+            cada={NOMBRE.cada}
+            style={{
+              fontFamily: FUENTE.texto,
+              fontSize: 54 * u,
+              lineHeight: 1.1,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: COLOR.texto,
+              whiteSpace: "nowrap",
+            }}
+          />
+        </div>
       </div>
     </AbsoluteFill>
   );

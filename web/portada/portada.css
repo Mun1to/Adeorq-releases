@@ -1069,6 +1069,19 @@ body {
 }
 .pasos__cierre a:hover { text-decoration-color: currentColor; }
 
+/* El tablero de «Cómo trabaja». La frase de cierre va pegada debajo, como su pie:
+   habla justo de lo que enseña. */
+.pasos__foto {
+  max-width: 922px;
+  margin: clamp(30px, 4vh, 44px) 0 0;
+  border: 1px solid var(--p-linea2);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--p-panel);
+}
+.pasos__foto img { display: block; width: 100%; height: auto; }
+.pasos__foto + .pasos__cierre { margin-top: 16px; }
+
 @media (max-width: 800px) {
   .pasos__lista { grid-template-columns: 1fr; }
 }

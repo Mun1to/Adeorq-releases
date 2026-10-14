@@ -130,9 +130,10 @@
     border: 0; background: none;
   }
   .fila:active, .segunda:active { background: var(--capa-fuerte); }
-  /* El rótulo de la lista, solo cuando hay algo que listar. */
+  /* El rótulo de la lista, solo cuando hay algo que listar. Lo pone la página
+     en `data-rotulo`, en el idioma de la app. */
   #filas:not(:empty)::before {
-    content: "Recientes"; display: block; margin: 14px 8px 4px;
+    content: attr(data-rotulo); display: block; margin: 14px 8px 4px;
     font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; color: var(--suave);
   }
   .fila b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -527,7 +528,306 @@ const LLAVE = "adeorq-movil-clave";
 let clave = null;
 try { clave = localStorage.getItem(LLAVE); } catch (_) { /* sin almacén: se empareja cada vez */ }
 
-const PALABRA = { trabajando: "trabajando", pregunta: "te pregunta algo", termino: "ha terminado", cerrada: "cerrada" };
+// ─── El idioma ──────────────────────────────────────────────────────────────
+// La página habla el idioma de la APP, no el del teléfono: lo dice `movil.rs`
+// al servirla (`<html lang="en">`), que lo sabe porque se lo cuenta la ventana
+// (`movil_idioma`). Se lee al cargar: si cambias el idioma en Ajustes, el móvil
+// lo coge la próxima vez que abra la página. Todo lo que se ve pasa por `tr`;
+// lo que escriben los agentes y el conserje (conversaciones, títulos, pantallas)
+// es de ellos y sale tal cual. Su comprobador: `scripts/movil-idioma-check.mjs`.
+const INGLES = document.documentElement.lang === "en";
+const EN = {
+  // Lo de todas las pantallas
+  "Volver": "Back",
+  "Enviar": "Send",
+  "Parar": "Stop",
+  "cargando…": "loading…",
+  "Copiar": "Copy",
+  "Copiado": "Copied",
+  "No se pudo": "Could not copy",
+  "Compactar con esto": "Compact with this",
+  "En la caja: dale a enviar": "In the box: press send",
+  "ahora mismo": "just now",
+  "hace {n} min": "{n} min ago",
+  "hace {n} h": "{n} h ago",
+  "hace {n} d": "{n} d ago",
+  // Cómo va cada cosa
+  "trabajando": "working",
+  "te pregunta algo": "is asking you something",
+  "ha terminado": "has finished",
+  "cerrada": "closed",
+  "te pregunta": "is asking you",
+  "te espera": "waiting for you",
+  "en reposo": "idle",
+  "terminó": "finished",
+  "quieta": "still",
+  "sin nadie detrás": "nobody behind it",
+  "hablada": "talked over",
+  "contestada": "answered",
+  "descartada": "discarded",
+  "aceptar ediciones": "accept edits",
+  "sin permisos": "bypass permissions",
+  // Adjuntos, conexión, avisos y la app
+  "Adjuntar una foto o un archivo": "Attach a photo or a file",
+  "No se ha subido: {e}": "Not uploaded: {e}",
+  "Quitar {nombre}": "Remove {nombre}",
+  "está vacío": "it is empty",
+  "el PC no dijo dónde lo guardó": "the PC did not say where it saved it",
+  "No llego a tu PC. ¿Está encendido, con Adeorq abierto y Tailscale activo en los dos?":
+    "I can't reach your PC. Is it on, with Adeorq open and Tailscale running on both?",
+  "Algo ha fallado ({n}).": "Something went wrong ({n}).",
+  "Sin permiso para avisar.": "No permission to notify.",
+  "Avisos puestos en este móvil · tocar para quitarlos": "Notifications on for this phone · tap to turn them off",
+  "Avisarme en este móvil cuando una sesión me pregunte o termine":
+    "Notify me on this phone when a session asks me something or finishes",
+  "No se pudo: {e}": "Could not do it: {e}",
+  "Instalar Adeorq como app en este aparato": "Install Adeorq as an app on this device",
+  "Móvil": "Phone",
+  "Conectando con tu PC…": "Connecting to your PC…",
+  // Emparejar
+  "Conecta este aparato con tu Adeorq": "Connect this device to your Adeorq",
+  "En tu PC, abre Adeorq y ve a {donde}. Escribe aquí el código de seis cifras que sale. Solo hace falta una vez por navegador.":
+    "On your PC, open Adeorq and go to {donde}. Type the six-digit code it shows here. Each browser only needs this once.",
+  "Ajustes > Móvil > Emparejar un móvil": "Settings > Mobile > Pair a phone",
+  "Código de seis cifras": "Six-digit code",
+  "Cómo se llamará en Ajustes": "What it will be called in Settings",
+  "Emparejar": "Pair",
+  "No se ha podido emparejar.": "Could not pair.",
+  // La portada
+  "tu PC": "your PC",
+  "Dile al conserje qué hay que hacer": "Tell the concierge what to do",
+  "Mensaje nuevo al conserje": "New message to the concierge",
+  "Enviar al conserje": "Send to the concierge",
+  "Decisiones": "Decisions",
+  "Todas las terminales": "All terminals",
+  "Recientes": "Recent",
+  "tu PC no contesta": "your PC is not answering",
+  "1 cosa te espera": "1 thing waiting for you",
+  "{n} cosas te esperan": "{n} things waiting for you",
+  "1 agente trabajando": "1 agent working",
+  "{n} agentes trabajando": "{n} agents working",
+  "todo tranquilo": "all quiet",
+  "sin terminales abiertas": "no terminals open",
+  "Te esperan": "Waiting for you",
+  "Entra y contéstale desde aquí.": "Go in and answer it from here.",
+  "Terminales": "Terminals",
+  "y {n} más, en «Todas las terminales».": "and {n} more, in “All terminals”.",
+  "Conversación nueva": "New conversation",
+  "1 sesión": "1 session",
+  "{n} sesiones": "{n} sessions",
+  "Todavía no has hablado con el conserje. Empieza con el botón de arriba.":
+    "You have not talked to the concierge yet. Start with the box above.",
+  // El conserje
+  "Conserje": "Concierge",
+  "Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.":
+    "Improved: the same thing you said, in order. If you do not like it, Undo.",
+  "Dile qué hay que hacer": "Tell it what needs doing",
+  "Mensaje al conserje": "Message to the concierge",
+  "Mejorar": "Improve",
+  "Mejorando…": "Improving…",
+  "Deshacer": "Undo",
+  "Con qué piensa el conserje. Las sesiones que abre las elige el router.":
+    "What the concierge thinks with. The router picks the sessions it opens.",
+  "Con qué modelo piensa el conserje": "Which model the concierge thinks with",
+  "Conserje: {m}": "Concierge: {m}",
+  "Router: automático": "Router: automatic",
+  "Router: apagado": "Router: off",
+  "El modelo de las sesiones que abre, con el router apagado. El mismo que en el PC.":
+    "The model of the sessions it opens, with the router off. The same one as on the PC.",
+  "Modelo de las sesiones con el router apagado": "Model of the sessions with the router off",
+  "Sesiones: {m}": "Sessions: {m}",
+  "Lo eligió el router.": "The router picked it.",
+  "Elegido por ti: el router estaba apagado.": "Picked by you: the router was off.",
+  "nada en marcha": "nothing running",
+  "1 sesión en marcha": "1 session running",
+  "{n} sesiones en marcha": "{n} sessions running",
+  "el router elige el de cada sesión": "the router picks each session's model",
+  "el router está apagado": "the router is off",
+  "Dime qué hay que hacer. Lo parto en trabajos y abro una sesión para cada uno en tu PC; aquí verás cómo va cada una.":
+    "Tell me what needs doing. I split it into jobs and open a session for each one on your PC; here you will see how each one is going.",
+  "Pensando…": "Thinking…",
+  "Mandándolo a tu PC…": "Sending it to your PC…",
+  "Esto no lo he hecho:": "I did not do this:",
+  "No he podido contestar.": "I could not answer.",
+  "Reintentar": "Retry",
+  "No sé cómo va cada sesión: {e}": "I do not know how each session is going: {e}",
+  // Las terminales
+  "las que tienes abiertas en el PC": "the ones you have open on the PC",
+  "agente": "agent",
+  "consola": "console",
+  "panel {n}": "pane {n}",
+  "No hay ninguna terminal abierta en Adeorq.": "There is no terminal open in Adeorq.",
+  // Las decisiones
+  "panel {n}, abierto": "pane {n}, open",
+  "su terminal se cerró": "its terminal closed",
+  "de otro arranque de Adeorq": "from another Adeorq run",
+  "le escribiste al panel {n}": "you wrote to pane {n}",
+  "1 pregunta": "1 question",
+  "{n} preguntas": "{n} questions",
+  "lo que te preguntan tus agentes": "what your agents ask you",
+  "1 te espera": "1 waiting for you",
+  "{n} te esperan": "{n} waiting for you",
+  "ninguna te espera": "none waiting for you",
+  "No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.":
+    "There are no decisions. When an agent asks you something, it shows up here.",
+  "Nada te espera ahora mismo.": "Nothing is waiting for you right now.",
+  "Anteriores": "Earlier",
+  "Ya no te esperan. A la semana se borran solas.": "They are not waiting for you any more. They delete themselves after a week.",
+  "Volver a las decisiones": "Back to the decisions",
+  "Decisión": "Decision",
+  "Descartar": "Discard",
+  "Enviar respuesta": "Send answer",
+  "Te espera.": "Waiting for you.",
+  "El panel {n} sigue abierto: tu respuesta se teclea allí.": "Pane {n} is still open: your answer gets typed there.",
+  "El agente la leerá en cuanto la pida.": "The agent will read it as soon as it asks for it.",
+  "Ya no la espera nadie.": "Nobody is waiting for it any more.",
+  "La terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio.":
+    "The terminal that asked is closed. If you answer, it is saved, but not typed anywhere.",
+  "La hablaste con el agente.": "You talked it over with the agent.",
+  "Le escribiste al panel {n} después de que preguntara. Si no era eso, aún puedes contestarla aquí.":
+    "You wrote to pane {n} after it asked. If that was not it, you can still answer here.",
+  "Si no era eso, aún puedes contestarla aquí.": "If that was not it, you can still answer here.",
+  "Descartada": "Discarded",
+  "{cuando}, sin contestar.": "{cuando}, without an answer.",
+  "Contestada desde {desde}, {cuando}.": "Answered from {desde}, {cuando}.",
+  "Se tecleó en el panel {n}.": "It was typed into pane {n}.",
+  "El agente la lee cuando la pide.": "The agent reads it when it asks for it.",
+  "Recomendada": "Recommended",
+  "o": "or",
+  "Otra cosa, con tus palabras": "Something else, in your own words",
+  "Otra cosa para la pregunta {q}, con tus palabras": "Something else for question {q}, in your own words",
+  "Descartada. Se le ha dicho al panel {n} que no espere respuesta.": "Discarded. Pane {n} was told not to wait for an answer.",
+  "Descartada.": "Discarded.",
+  "Ya estaba contestada desde otro sitio.": "It was already answered from somewhere else.",
+  "No se ha descartado: {e}": "Not discarded: {e}",
+  "Falta la pregunta {q}.": "Question {q} still needs an answer.",
+  "Faltan las preguntas {lista} y {ultima}.": "Questions {lista} and {ultima} still need an answer.",
+  "No se ha mandado.": "Not sent.",
+  "Deshacer ({n})": "Undo ({n})",
+  "Se manda en {n} s.": "Sending in {n} s.",
+  "Mandando…": "Sending…",
+  "Enviada. Se ha tecleado en el panel {n}.": "Sent. It was typed into pane {n}.",
+  "Enviada. El agente la leerá cuando la pida.": "Sent. The agent will read it when it asks for it.",
+  "Ya estaba contestada desde otro sitio. Lo que escribiste sigue guardado aquí.":
+    "It was already answered from somewhere else. What you wrote is still saved here.",
+  "No se ha mandado: {e}": "Not sent: {e}",
+  // Una terminal
+  "Te pregunta": "Asking you",
+  "Es tu turno:": "Your turn:",
+  "{que}. Contéstale abajo.": "{que}. Answer it below.",
+  "Ha terminado.": "It has finished.",
+  "Si quieres que siga, díselo abajo.": "If you want it to keep going, tell it below.",
+  "Quieta, esperando a que le digas algo.": "Still, waiting for you to tell it something.",
+  "Trabajando": "Working",
+  "Volver a las terminales": "Back to the terminals",
+  "Pantalla": "Screen",
+  "Aquí solo cabe lo que se ve ahora en el PC. Todo lo hablado está en el {chat}.":
+    "Only what the PC shows right now fits here. Everything said is in the {chat}.",
+  "Ir al final": "Go to the end",
+  "Teclas: Intro, Esc, Ctrl+C y cambiar de modo": "Keys: Enter, Esc, Ctrl+C and switch mode",
+  "Escríbele a esta terminal": "Write to this terminal",
+  "Texto para la terminal": "Text for the terminal",
+  "Intro": "Enter",
+  "Shift+Tab: pasa al siguiente modo de Claude Code": "Shift+Tab: moves to Claude Code's next mode",
+  "Cambiar modo": "Switch mode",
+  "Flecha arriba": "Up arrow",
+  "Flecha abajo": "Down arrow",
+  "Modo: {m} ⇄": "Mode: {m} ⇄",
+  "modo {m}": "{m} mode",
+  "(la pantalla está vacía)": "(the screen is empty)",
+  "No encuentro lo que ha dicho esta sesión ({e}). Lo que se ve está en «Pantalla».":
+    "I cannot find what this session has said ({e}). What it shows is in “Screen”.",
+  "Esta sesión todavía no ha dicho nada.": "This session has not said anything yet.",
+  "Esta terminal espera tu decisión": "This terminal needs your decision",
+  "Una decisión te espera": "A decision is waiting for you",
+  "{n} decisiones te esperan": "{n} decisions are waiting for you",
+  "Contestar": "Answer",
+  // Una sesión, para leerla
+  "imagen {n}": "image {n}",
+  "1 paso": "1 step",
+  "{n} pasos": "{n} steps",
+  "y {n} antes": "and {n} before",
+  "Volver al conserje": "Back to the concierge",
+  "Solo para leer. Si quieres decirle algo, díselo al conserje.": "Read only. If you want to tell it something, tell the concierge.",
+  "Esta sesión todavía no ha escrito nada. En cuanto empiece, aparece aquí.":
+    "This session has not written anything yet. It shows up here as soon as it starts.",
+  "Todavía no hay nada que leer.": "Nothing to read yet.",
+};
+/** El texto en el idioma de la app; `{n}` y compañía se rellenan con `vars`,
+    que llegan ya escapadas si van a un HTML. */
+function tr(texto, vars) {
+  let s = INGLES && Object.hasOwn(EN, texto) ? EN[texto] : texto;
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(String(v));
+  return s;
+}
+/* Lo que contesta el PC (movil.rs, la ventana, decisiones.rs, el conserje)
+   llega en español y se traduce aquí por su texto exacto. El comprobador
+   mira que cada uno siga existiendo allí, y que lo nuevo de movil.rs tenga
+   su traducción. Lo que no está en la lista sale como llegó. */
+const DEL_PC = {
+  // movil.rs
+  "Esta dirección no es de este PC.": "This address is not this PC's.",
+  "Esa página no es la del conserje.": "That page is not the concierge's.",
+  "No hay ningún emparejamiento abierto: pídelo en Ajustes > Móvil.": "No pairing is open: ask for one in Settings > Mobile.",
+  "El código ha caducado: pide otro en Ajustes > Móvil.": "The code has expired: ask for another one in Settings > Mobile.",
+  "Demasiados intentos: pide otro código en Ajustes > Móvil.": "Too many attempts: ask for another code in Settings > Mobile.",
+  "Ese código no es.": "That is not the code.",
+  "Aquí no hay nada.": "There is nothing here.",
+  "Este móvil no está emparejado.": "This phone is not paired.",
+  "Esa conversación no existe.": "That conversation does not exist.",
+  "La suscripción no está completa.": "The subscription is incomplete.",
+  "No hay nada que mandar.": "There is nothing to send.",
+  "Es demasiado largo para mandarlo de una vez.": "It is too long to send in one go.",
+  "No hay nada que mejorar.": "There is nothing to improve.",
+  "Falta qué terminal.": "The terminal is missing.",
+  "Esa tecla no se manda desde el móvil.": "That key cannot be sent from the phone.",
+  "Falta qué sesión.": "The session is missing.",
+  "Ese trozo no tiene forma.": "That chunk is malformed.",
+  "Esa decisión ya no está.": "That decision is gone.",
+  "Las respuestas no tienen forma.": "The answers are malformed.",
+  "Esa decisión ya está contestada.": "That decision is already answered.",
+  "Así no.": "Not like that.",
+  "Hay demasiadas conexiones abiertas.": "There are too many open connections.",
+  "demasiado grande": "too big",
+  "La ventana de Adeorq no responde.": "The Adeorq window is not responding.",
+  "La ventana de Adeorq no contestó a tiempo.": "The Adeorq window did not answer in time.",
+  "Hay demasiadas subidas a la vez; espera a que acabe una.": "Too many uploads at once; wait for one to finish.",
+  "Esa subida ya no está: vuelve a adjuntarlo.": "That upload is gone: attach it again.",
+  "Ese trozo no toca ahora: vuelve a adjuntarlo.": "That chunk came out of order: attach it again.",
+  "Pesa demasiado: como mucho 25 MB.": "It is too big: 25 MB at most.",
+  // La ventana (src/lib/movil.ts)
+  "Esa terminal ya no está.": "That terminal is gone.",
+  "Falta la conversación.": "The conversation is missing.",
+  "El conserje todavía está con lo anterior.": "The concierge is still busy with the previous message.",
+  // decisiones.rs
+  "Esa decisión está descartada: al agente ya se le dijo que no esperase respuesta.":
+    "That decision was discarded: the agent was already told not to wait for an answer.",
+  "el PC": "the PC",
+  // sessions.rs
+  "esa conversación no está en el disco": "that conversation is not on disk",
+  "id de sesión no válido": "invalid session id",
+  // Lo que va haciendo el conserje (`frase_de_paso`, conserje.rs)
+  "Mirando tus proyectos": "Looking at your projects",
+  "Mirando las sesiones abiertas": "Looking at the open sessions",
+  "Mirando cuánta semana te queda": "Checking how much of the week you have left",
+  "Leyendo una nota de la memoria": "Reading a note from memory",
+};
+/** Los del PC que llevan un dato dentro. */
+const DEL_PC_CON_HUECO = [
+  [/^La pregunta (\w+) no tiene opción (\d+)\.$/, "Question $1 has no option $2."],
+  [/^Falta contestar la pregunta (\w+)\.$/, "Question $1 still needs an answer."],
+  [/^Leyendo la sesión del panel (\d+)$/, "Reading the session in pane $1"],
+  [/^Buscando en la memoria: «(.*)»$/, "Searching memory: “$1”"],
+  [/^Repasando el turno (\d+)$/, "Going over turn $1"],
+];
+function delPc(texto) {
+  if (!INGLES || !texto) return texto;
+  if (Object.hasOwn(DEL_PC, texto)) return DEL_PC[texto];
+  for (const [re, en] of DEL_PC_CON_HUECO) if (re.test(texto)) return texto.replace(re, en);
+  return texto;
+}
+
+const PALABRA = { trabajando: tr("trabajando"), pregunta: tr("te pregunta algo"), termino: tr("ha terminado"), cerrada: tr("cerrada") };
 const MARCA = { claude: "Claude", codex: "Codex", gemini: "Gemini", agy: "Antigravity", kimi: "Kimi", opencode: "opencode" };
 
 // La mascota de Adeorq: la misma A de cuadritos del escritorio, con sus mismas
@@ -999,25 +1299,25 @@ const ICONO = {
    es que acaba de recibirlo y piensa. Lo mismo que en el PC (`columnaDe`, en
    lib/estados.ts). */
 const ESTADO_TERMINAL = {
-  a_medias: ["trabajando", "trabajando"],
-  pregunta: ["te pregunta", "pregunta"],
-  ofrece: ["te espera", "pregunta"],
-  tuya: ["en reposo", "cerrada"],
-  lista: ["terminó", "termino"],
-  "": ["quieta", "cerrada"],
+  a_medias: [tr("trabajando"), "trabajando"],
+  pregunta: [tr("te pregunta"), "pregunta"],
+  ofrece: [tr("te espera"), "pregunta"],
+  tuya: [tr("en reposo"), "cerrada"],
+  lista: [tr("terminó"), "termino"],
+  "": [tr("quieta"), "cerrada"],
 };
 const estadoTerminal = (t) => ESTADO_TERMINAL[t.estado] || ESTADO_TERMINAL[""];
 
 function hace(segundos) {
   const ms = segundos * 1000;
   const min = Math.round((Date.now() - ms) / 60000);
-  if (min < 1) return "ahora mismo";
-  if (min < 60) return `hace ${min} min`;
+  if (min < 1) return tr("ahora mismo");
+  if (min < 60) return tr("hace {n} min", { n: min });
   const h = Math.round(min / 60);
-  if (h < 24) return `hace ${h} h`;
+  if (h < 24) return tr("hace {n} h", { n: h });
   const d = Math.round(h / 24);
-  if (d <= 7) return `hace ${d} d`;
-  return new Date(ms).toLocaleDateString("es", { day: "numeric", month: "short" });
+  if (d <= 7) return tr("hace {n} d", { n: d });
+  return new Date(ms).toLocaleDateString(INGLES ? "en" : "es", { day: "numeric", month: "short" });
 }
 
 /* Lo que acaba de llegar entra desde abajo. Un chat se repinta entero cada
@@ -1113,7 +1413,7 @@ function md(texto) {
    móvil el 2026-10-08 y no podía. Solo lo deja escrito; mandarlo es suyo. */
 const bloque = (lineas) => {
   const compactar = e.vista === "terminal" && /^#\s*(COMPACTACI[ÓO]N|HANDOFF)\b/i.test(lineas.find((l) => l.trim()) || "");
-  return `<div class="bloque"><div class="acciones">${compactar ? `<button class="compactar" type="button">Compactar con esto</button>` : ""}<button class="copiar" type="button">Copiar</button></div><pre>${lineas.join("\n")}</pre></div>`;
+  return `<div class="bloque"><div class="acciones">${compactar ? `<button class="compactar" type="button">${tr("Compactar con esto")}</button>` : ""}<button class="copiar" type="button">${tr("Copiar")}</button></div><pre>${lineas.join("\n")}</pre></div>`;
 };
 const textoDelBloque = (b) => b.closest(".bloque")?.querySelector("pre")?.textContent ?? "";
 
@@ -1135,9 +1435,9 @@ document.addEventListener("click", async (ev) => {
     try { hecho = document.execCommand("copy"); } catch (_) {}
     t.remove();
   }
-  b.textContent = hecho ? "Copiado" : "No se pudo";
+  b.textContent = hecho ? tr("Copiado") : tr("No se pudo");
   b.dataset.hecho = String(hecho);
-  setTimeout(() => { b.textContent = "Copiar"; b.dataset.hecho = "false"; }, 1600);
+  setTimeout(() => { b.textContent = tr("Copiar"); b.dataset.hecho = "false"; }, 1600);
 });
 
 // ─── Los adjuntos ───────────────────────────────────────────────────────────
@@ -1179,7 +1479,7 @@ function aBase64(bytes) {
 async function subir(archivo, progreso) {
   const f = await achicar(archivo);
   const bytes = new Uint8Array(await f.arrayBuffer());
-  if (!bytes.length) throw new Error("está vacío");
+  if (!bytes.length) throw new Error(tr("está vacío"));
   const total = Math.ceil(bytes.length / TROZO);
   const id = nuevoId();
   let ruta = null;
@@ -1188,7 +1488,7 @@ async function subir(archivo, progreso) {
     progreso((i + 1) / total);
     if (v.ruta) ruta = v.ruta;
   }
-  if (!ruta) throw new Error("el PC no dijo dónde lo guardó");
+  if (!ruta) throw new Error(tr("el PC no dijo dónde lo guardó"));
   return { ruta, nombre: f.name, imagen: f.type.startsWith("image/") ? URL.createObjectURL(f) : null };
 }
 
@@ -1201,8 +1501,8 @@ function montarAdjuntos(caja, cambio) {
   const pintarBandeja = () => {
     bandeja.hidden = !lista.length;
     bandeja.innerHTML = lista.map((a, i) => {
-      const que = a.error ? `No se ha subido: ${a.error}` : a.ruta ? a.nombre : `${a.nombre} · ${Math.round(a.progreso * 100)} %`;
-      return `<span class="adjunto" data-estado="${a.error ? "mal" : a.ruta ? "listo" : "subiendo"}">${a.imagen ? `<img src="${a.imagen}" alt="">` : ICONO.clip}<span class="que">${esc(que)}</span><button type="button" class="quitar" data-i="${i}" aria-label="Quitar ${esc(a.nombre)}">×</button></span>`;
+      const que = a.error ? tr("No se ha subido: {e}", { e: a.error }) : a.ruta ? a.nombre : `${a.nombre} · ${Math.round(a.progreso * 100)} %`;
+      return `<span class="adjunto" data-estado="${a.error ? "mal" : a.ruta ? "listo" : "subiendo"}">${a.imagen ? `<img src="${a.imagen}" alt="">` : ICONO.clip}<span class="que">${esc(que)}</span><button type="button" class="quitar" data-i="${i}" aria-label="${esc(tr("Quitar {nombre}", { nombre: a.nombre }))}">×</button></span>`;
     }).join("");
     bandeja.querySelectorAll(".quitar").forEach((b) => b.addEventListener("click", () => {
       const [a] = lista.splice(Number(b.dataset.i), 1);
@@ -1239,7 +1539,7 @@ function montarAdjuntos(caja, cambio) {
   };
 }
 
-const CLIP = `<button class="adjuntar" type="button" aria-label="Adjuntar una foto o un archivo">${ICONO.clip}</button><input type="file" multiple hidden>`;
+const CLIP = `<button class="adjuntar" type="button" aria-label="${tr("Adjuntar una foto o un archivo")}">${ICONO.clip}</button><input type="file" multiple hidden>`;
 const conRutas = (texto, rutas) => [texto, ...rutas].filter(Boolean).join(" ");
 
 async function api(metodo, ruta, cuerpo) {
@@ -1249,15 +1549,15 @@ async function api(metodo, ruta, cuerpo) {
   try {
     r = await fetch(ruta, { method: metodo, headers: cabeceras, body: cuerpo ? JSON.stringify(cuerpo) : undefined, cache: "no-store" });
   } catch (_) {
-    throw new Error("No llego a tu PC. ¿Está encendido, con Adeorq abierto y Tailscale activo en los dos?");
+    throw new Error(tr("No llego a tu PC. ¿Está encendido, con Adeorq abierto y Tailscale activo en los dos?"));
   }
   const v = await r.json().catch(() => ({}));
   if (r.status === 401) {
     olvidarClave();
-    throw new Error(v.error || "Este móvil no está emparejado.");
+    throw new Error(delPc(v.error || "Este móvil no está emparejado."));
   }
   if (!r.ok) {
-    const err = new Error(v.error || `Algo ha fallado (${r.status}).`);
+    const err = new Error(delPc(v.error) || tr("Algo ha fallado ({n}).", { n: r.status }));
     err.estado = r.status;
     throw err;
   }
@@ -1356,7 +1656,7 @@ async function suscripcionActual() {
 
 async function pedirAvisos() {
   const reg = await navigator.serviceWorker.ready;
-  if ((await Notification.requestPermission()) !== "granted") throw new Error("Sin permiso para avisar.");
+  if ((await Notification.requestPermission()) !== "granted") throw new Error(tr("Sin permiso para avisar."));
   const { clave: publica } = await api("GET", "/api/push/clave");
   const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: claveAServidor(publica) });
   await api("POST", "/api/push/suscribir", {
@@ -1380,13 +1680,13 @@ async function pintarAvisos() {
   try { puestos = !!(await suscripcionActual()) && Notification.permission === "granted"; } catch (_) {}
   b.hidden = false;
   b.dataset.on = String(puestos);
-  b.textContent = puestos ? "Avisos puestos en este móvil · tocar para quitarlos" : "Avisarme en este móvil cuando una sesión me pregunte o termine";
+  b.textContent = puestos ? tr("Avisos puestos en este móvil · tocar para quitarlos") : tr("Avisarme en este móvil cuando una sesión me pregunte o termine");
   b.onclick = async () => {
     b.disabled = true;
     try {
       if (puestos) await quitarAvisos(); else await pedirAvisos();
     } catch (err) {
-      b.textContent = `No se pudo: ${err.message}`;
+      b.textContent = tr("No se pudo: {e}", { e: err.message });
       b.disabled = false;
       return;
     }
@@ -1426,7 +1726,7 @@ function pintarInstalar() {
 function nombreSugerido() {
   const ua = navigator.userAgent;
   const sistema = /Android/i.test(ua) ? "Android" : /iPhone/i.test(ua) ? "iPhone" : /iPad/i.test(ua) ? "iPad"
-    : /Windows/i.test(ua) ? "Windows" : /Mac OS X/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : "Móvil";
+    : /Windows/i.test(ua) ? "Windows" : /Mac OS X/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : tr("Móvil");
   const navegador = navigator.brave ? "Brave" : /EdgA?\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung"
     : /Firefox\/|FxiOS/.test(ua) ? "Firefox" : /Chrome\/|CriOS/.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "";
   return navegador ? `${sistema} · ${navegador}` : sistema;
@@ -1454,7 +1754,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function pintar() {
-  if (e.vista === "esperando") { app.innerHTML = `<p class="vacio">Conectando con tu PC…</p>`; return; }
+  if (e.vista === "esperando") { app.innerHTML = `<p class="vacio">${tr("Conectando con tu PC…")}</p>`; return; }
   if (e.vista === "emparejar") return pintarEmparejar();
   if (e.vista === "lista") return pintarLista();
   if (e.vista === "hilo") return pintarHiloEntero();
@@ -1471,12 +1771,12 @@ function pintarEmparejar() {
   app.innerHTML = `
     <div class="emparejar">
       <span class="avatar">${ICONO.chispa}</span>
-      <h1>Conecta este aparato con tu Adeorq</h1>
-      <p>En tu PC, abre Adeorq y ve a <b>Ajustes &gt; Móvil &gt; Emparejar un móvil</b>. Escribe aquí el código de seis cifras que sale. Solo hace falta una vez por navegador.</p>
-      <input id="codigo" class="campo codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-label="Código de seis cifras">
-      <label class="etiqueta-campo" for="nombre">Cómo se llamará en Ajustes</label>
+      <h1>${tr("Conecta este aparato con tu Adeorq")}</h1>
+      <p>${tr("En tu PC, abre Adeorq y ve a {donde}. Escribe aquí el código de seis cifras que sale. Solo hace falta una vez por navegador.", { donde: `<b>${esc(tr("Ajustes > Móvil > Emparejar un móvil"))}</b>` })}</p>
+      <input id="codigo" class="campo codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" aria-label="${tr("Código de seis cifras")}">
+      <label class="etiqueta-campo" for="nombre">${tr("Cómo se llamará en Ajustes")}</label>
       <input id="nombre" class="campo" maxlength="40" value="${esc(nombreSugerido())}">
-      <button id="entrar" class="boton">Emparejar</button>
+      <button id="entrar" class="boton">${tr("Emparejar")}</button>
       <div id="error"></div>
     </div>`;
   const entrar = document.getElementById("entrar");
@@ -1491,7 +1791,7 @@ function pintarEmparejar() {
         body: JSON.stringify({ codigo: codigo.value, nombre: document.getElementById("nombre").value }),
       });
       const v = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(v.error || "No se ha podido emparejar.");
+      if (!r.ok) throw new Error(delPc(v.error) || tr("No se ha podido emparejar."));
       clave = v.clave;
       try { localStorage.setItem(LLAVE, clave); } catch (_) {}
       alPanel({ tipo: "adeorq:clave-nueva", clave });
@@ -1524,20 +1824,20 @@ async function pintarLista() {
   const animoPortada = marchas.get("portada")?.animo || "quieta";
   app.innerHTML = `
     <div class="vista">
-      <header class="barra barra-portada"><span class="avatar avatar-m" id="masc-portada">${mascota(animoPortada, 34, "portada")}</span><h1>Adeorq<small id="yo">tu PC</small></h1></header>
+      <header class="barra barra-portada"><span class="avatar avatar-m" id="masc-portada">${mascota(animoPortada, 34, "portada")}</span><h1>Adeorq<small id="yo">${tr("tu PC")}</small></h1></header>
       <main class="cuerpo">
         <div class="fila-caja decir" id="nueva">
           <span class="avatar">${ICONO.chispa}</span>
-          <textarea id="decir" rows="1" placeholder="Dile al conserje qué hay que hacer" aria-label="Mensaje nuevo al conserje"></textarea>
-          <button class="enviar" id="decir-enviar" aria-label="Enviar al conserje" disabled>${ICONO.subir}</button>
+          <textarea id="decir" rows="1" placeholder="${tr("Dile al conserje qué hay que hacer")}" aria-label="${tr("Mensaje nuevo al conserje")}"></textarea>
+          <button class="enviar" id="decir-enviar" aria-label="${tr("Enviar al conserje")}" disabled>${ICONO.subir}</button>
         </div>
         <div id="reclaman"></div>
         <div id="portada-term"></div>
-        <button id="decisiones" class="nueva segunda"><span class="avatar">${ICONO.decision}</span>Decisiones<b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
-        <button id="terminales" class="nueva segunda"><span class="avatar">${ICONO.terminal}</span>Todas las terminales</button>
-        <div id="filas"></div>
+        <button id="decisiones" class="nueva segunda"><span class="avatar">${ICONO.decision}</span>${tr("Decisiones")}<b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
+        <button id="terminales" class="nueva segunda"><span class="avatar">${ICONO.terminal}</span>${tr("Todas las terminales")}</button>
+        <div id="filas" data-rotulo="${tr("Recientes")}"></div>
         <button id="avisos" class="avisos" hidden></button>
-        <button id="instalar" class="avisos" hidden>Instalar Adeorq como app en este aparato</button>
+        <button id="instalar" class="avisos" hidden>${tr("Instalar Adeorq como app en este aparato")}</button>
       </main>
     </div>`;
   /* Al conserje se le escribe desde aquí mismo: antes esto era un botón que
@@ -1579,7 +1879,7 @@ async function pintarLista() {
     const c = document.getElementById("cuenta-dec");
     c.hidden = !esperan.length;
     c.textContent = String(esperan.length);
-    c.setAttribute("aria-label", `${esperan.length} te esperan`);
+    c.setAttribute("aria-label", tr("{n} te esperan", { n: esperan.length }));
 
     const nuevo = animoDeTodo(terminales, esperan.length);
     if (nuevo !== animo) {
@@ -1589,10 +1889,10 @@ async function pintarLista() {
     const yo = document.getElementById("yo");
     const trabajan = terminales.filter((t) => t.estado === "a_medias").length;
     const teLlaman = esperan.length + preguntan.length;
-    yo.textContent = vt.fallo ? "tu PC no contesta"
-      : [teLlaman ? plural(teLlaman, "1 cosa te espera", "{n} cosas te esperan") : "",
-        trabajan ? plural(trabajan, "1 agente trabajando", "{n} agentes trabajando") : ""].filter(Boolean).join(" · ")
-        || (terminales.length ? "todo tranquilo" : "sin terminales abiertas");
+    yo.textContent = vt.fallo ? tr("tu PC no contesta")
+      : [teLlaman ? plural(teLlaman, tr("1 cosa te espera"), tr("{n} cosas te esperan")) : "",
+        trabajan ? plural(trabajan, tr("1 agente trabajando"), tr("{n} agentes trabajando")) : ""].filter(Boolean).join(" · ")
+        || (terminales.length ? tr("todo tranquilo") : tr("sin terminales abiertas"));
 
     const firma = JSON.stringify([esperan, terminales, vt.fallo || ""]);
     if (firma === pintado) return;
@@ -1603,18 +1903,18 @@ async function pintarLista() {
       return `<button class="fila fila-t" data-panel="${t.panel}"><i class="punto" data-tono="${tono}"></i><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span>${palabra}</span></button>`;
     };
     reclaman.innerHTML = teLlaman
-      ? `<h2 class="seccion"><span>Te esperan</span></h2>${esperan.map(tarjetaDecision).join("")}${preguntan.map((t) => {
+      ? `<h2 class="seccion"><span>${tr("Te esperan")}</span></h2>${esperan.map(tarjetaDecision).join("")}${preguntan.map((t) => {
         const [palabra] = estadoTerminal(t);
         return `<button class="tarjeta${primera ? "" : " nuevo"}" data-estado="pregunta" data-vigencia="viva" data-panel="${t.panel}">
           <span class="tarjeta-cab"><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span class="estado"><i></i>${palabra}</span></span>
-          <span class="porque">Entra y contéstale desde aquí.</span>
+          <span class="porque">${tr("Entra y contéstale desde aquí.")}</span>
         </button>`;
       }).join("")}`
       : "";
     document.getElementById("portada-term").innerHTML = vt.fallo
-      ? `<h2 class="seccion"><span>Terminales</span></h2><p class="seccion-nota">${esc(vt.fallo)}</p>`
+      ? `<h2 class="seccion"><span>${tr("Terminales")}</span></h2><p class="seccion-nota">${esc(vt.fallo)}</p>`
       : otras.length
-        ? `<h2 class="seccion"><span>Terminales</span></h2>${otras.slice(0, 5).map(filaTerminal).join("")}${otras.length > 5 ? `<p class="seccion-nota">y ${otras.length - 5} más, en «Todas las terminales».</p>` : ""}`
+        ? `<h2 class="seccion"><span>${tr("Terminales")}</span></h2>${otras.slice(0, 5).map(filaTerminal).join("")}${otras.length > 5 ? `<p class="seccion-nota">${tr("y {n} más, en «Todas las terminales».", { n: otras.length - 5 })}</p>` : ""}`
         : "";
     reclaman.querySelectorAll(".tarjeta[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volver: "lista" })));
     document.querySelectorAll("#reclaman [data-panel], #portada-term [data-panel]").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), volver: "lista" })));
@@ -1625,8 +1925,8 @@ async function pintarLista() {
     const filas = document.getElementById("filas");
     if (!filas) return;
     filas.innerHTML = lista.length
-      ? lista.map((f) => `<button class="fila" data-id="${esc(f.id)}"><b>${esc(f.titulo || "Conversación nueva")}</b><span>${esc(hace(f.cuando))}${f.trabajos ? ` · ${f.trabajos === 1 ? "1 sesión" : `${f.trabajos} sesiones`}` : ""}</span></button>`).join("")
-      : `<p class="vacio">Todavía no has hablado con el conserje. Empieza con el botón de arriba.</p>`;
+      ? lista.map((f) => `<button class="fila" data-id="${esc(f.id)}"><b>${esc(f.titulo || tr("Conversación nueva"))}</b><span>${esc(hace(f.cuando))}${f.trabajos ? ` · ${f.trabajos === 1 ? tr("1 sesión") : tr("{n} sesiones", { n: f.trabajos })}` : ""}</span></button>`).join("")
+      : `<p class="vacio">${tr("Todavía no has hablado con el conserje. Empieza con el botón de arriba.")}</p>`;
     filas.querySelectorAll(".fila").forEach((b) => b.addEventListener("click", () => ir({ vista: "hilo", id: b.dataset.id })));
   };
   try { await cargar(); } catch (err) {
@@ -1645,30 +1945,30 @@ function pintarHiloEntero() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="Volver">${ICONO.atras}</button>
-        <h1 id="titulo">Conserje<small id="sub">cargando…</small></h1>
+        <button class="atras" id="atras" aria-label="${tr("Volver")}">${ICONO.atras}</button>
+        <h1 id="titulo">${tr("Conserje")}<small id="sub">${tr("cargando…")}</small></h1>
       </header>
       <main class="cuerpo" id="hilo"></main>
       <footer class="caja" id="caja">
-        <p class="aviso-mejora" id="aviso-mejora" hidden>Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.</p>
+        <p class="aviso-mejora" id="aviso-mejora" hidden>${tr("Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.")}</p>
         <div class="adjuntos" hidden></div>
         <div class="fila-caja">
           ${CLIP}
-          <textarea id="texto" rows="1" placeholder="Dile qué hay que hacer" aria-label="Mensaje al conserje"></textarea>
-          <button class="enviar" id="enviar" aria-label="Enviar">${ICONO.subir}</button>
+          <textarea id="texto" rows="1" placeholder="${tr("Dile qué hay que hacer")}" aria-label="${tr("Mensaje al conserje")}"></textarea>
+          <button class="enviar" id="enviar" aria-label="${tr("Enviar")}">${ICONO.subir}</button>
         </div>
         <div class="pastillas">
-          <button class="pastilla" id="mejorar">${ICONO.chispa}<span>Mejorar</span></button>
-          <label class="pastilla" title="Con qué piensa el conserje. Las sesiones que abre las elige el router.">${ICONO.chispa}<select id="cerebro" aria-label="Con qué modelo piensa el conserje">
-            <option value="haiku">Conserje: Claude Haiku</option>
-            <option value="sonnet">Conserje: Claude Sonnet</option>
-            <option value="opus">Conserje: Claude Opus</option>
+          <button class="pastilla" id="mejorar">${ICONO.chispa}<span>${tr("Mejorar")}</span></button>
+          <label class="pastilla" title="${tr("Con qué piensa el conserje. Las sesiones que abre las elige el router.")}">${ICONO.chispa}<select id="cerebro" aria-label="${tr("Con qué modelo piensa el conserje")}">
+            <option value="haiku">${tr("Conserje: {m}", { m: "Claude Haiku" })}</option>
+            <option value="sonnet">${tr("Conserje: {m}", { m: "Claude Sonnet" })}</option>
+            <option value="opus">${tr("Conserje: {m}", { m: "Claude Opus" })}</option>
           </select></label>
-          <button class="pastilla" id="router" data-on="true">${ICONO.diana}<span>Router: automático</span></button>
-          <label class="pastilla" id="fijo-caja" hidden title="El modelo de las sesiones que abre, con el router apagado. El mismo que en el PC."><select id="fijo" aria-label="Modelo de las sesiones con el router apagado">
-            <option value="haiku">Sesiones: Claude Haiku</option>
-            <option value="sonnet">Sesiones: Claude Sonnet</option>
-            <option value="opus">Sesiones: Claude Opus</option>
+          <button class="pastilla" id="router" data-on="true">${ICONO.diana}<span>${tr("Router: automático")}</span></button>
+          <label class="pastilla" id="fijo-caja" hidden title="${tr("El modelo de las sesiones que abre, con el router apagado. El mismo que en el PC.")}"><select id="fijo" aria-label="${tr("Modelo de las sesiones con el router apagado")}">
+            <option value="haiku">${tr("Sesiones: {m}", { m: "Claude Haiku" })}</option>
+            <option value="sonnet">${tr("Sesiones: {m}", { m: "Claude Sonnet" })}</option>
+            <option value="opus">${tr("Sesiones: {m}", { m: "Claude Opus" })}</option>
           </select></label>
         </div>
       </footer>
@@ -1720,7 +2020,7 @@ async function cargarHilo() {
 
 function tarjeta(w, ent) {
   const estado = (e.vivo?.estados || {})[claveDe(w)] || "cerrada";
-  const porque = w.eligio === "router" ? `<b>Lo eligió el router.</b> ${esc(w.porque)}` : "<b>Elegido por ti: el router estaba apagado.</b>";
+  const porque = w.eligio === "router" ? `<b>${tr("Lo eligió el router.")}</b> ${esc(w.porque)}` : `<b>${tr("Elegido por ti: el router estaba apagado.")}</b>`;
   const encargo = w.encargo.length > 180 ? `${w.encargo.slice(0, 180)}…` : w.encargo;
   return `<button class="tarjeta${ent.de(`w${claveDe(w)}`)}" data-estado="${estado}" data-clave="${esc(claveDe(w))}">
     <span class="tarjeta-cab"><b>${esc(hoja(w.carpeta))} · ${esc(nombreDe(w))}</b><span class="estado"><i></i>${PALABRA[estado] || estado}</span></span>
@@ -1736,12 +2036,12 @@ function pintarHilo() {
   const titulo = document.getElementById("titulo");
   if (conv) {
     const vivas = conv.trabajos.filter((w) => !w.soltado && (e.vivo?.estados || {})[claveDe(w)] && (e.vivo.estados[claveDe(w)] !== "cerrada")).length;
-    titulo.innerHTML = `${esc(conv.titulo || "Conserje")}<small>${vivas === 0 ? "nada en marcha" : vivas === 1 ? "1 sesión en marcha" : `${vivas} sesiones en marcha`} · ${conv.router ? "el router elige el de cada sesión" : "el router está apagado"}</small>`;
+    titulo.innerHTML = `${esc(conv.titulo || tr("Conserje"))}<small>${vivas === 0 ? tr("nada en marcha") : vivas === 1 ? tr("1 sesión en marcha") : tr("{n} sesiones en marcha", { n: vivas })} · ${conv.router ? tr("el router elige el de cada sesión") : tr("el router está apagado")}</small>`;
   }
   const abajo = hilo.scrollHeight - hilo.scrollTop - hilo.clientHeight < 60;
   let html = "";
   if (conv && !conv.turnos.length && !e.pendiente) {
-    html += `<p class="vacio">Dime qué hay que hacer. Lo parto en trabajos y abro una sesión para cada uno en tu PC; aquí verás cómo va cada una.</p>`;
+    html += `<p class="vacio">${tr("Dime qué hay que hacer. Lo parto en trabajos y abro una sesión para cada uno en tu PC; aquí verás cómo va cada una.")}</p>`;
   }
   const colocadas = new Set();
   // Lo que llega desde el último pintado entra desde abajo. Lo tuyo se
@@ -1762,16 +2062,16 @@ function pintarHilo() {
   // Solo cuenta como «ya estaba» lo pintado con la conversación delante.
   if (conv) ent.pintado();
   if (e.enCurso?.pensando || (e.pendiente && !e.enCurso)) {
-    html += `<p class="pensando">${mascota("trabaja", 24, "hilo")}${esc(e.enCurso?.paso || "Pensando…")}</p>`;
+    html += `<p class="pensando">${mascota("trabaja", 24, "hilo")}${esc(delPc(e.enCurso?.paso) || tr("Pensando…"))}</p>`;
   }
   if (e.enCurso?.aviso && !e.enCurso.pensando) {
-    html += `<p class="nota"><b>Esto no lo he hecho:</b> ${esc(e.enCurso.aviso)}</p>`;
+    html += `<p class="nota"><b>${tr("Esto no lo he hecho:")}</b> ${esc(delPc(e.enCurso.aviso))}</p>`;
   }
   if (e.enCurso?.error && !e.enCurso.pensando) {
-    html += `<p class="nota"><b>No he podido contestar.</b> ${esc(e.enCurso.error)}<button class="mini" id="reintentar">Reintentar</button></p>`;
+    html += `<p class="nota"><b>${tr("No he podido contestar.")}</b> ${esc(delPc(e.enCurso.error))}<button class="mini" id="reintentar">${tr("Reintentar")}</button></p>`;
   }
   if (e.fallo) html += `<p class="nota">${esc(e.fallo)}</p>`;
-  if (e.vivo?.error) html += `<p class="nota">No sé cómo va cada sesión: ${esc(e.vivo.error)}</p>`;
+  if (e.vivo?.error) html += `<p class="nota">${esc(tr("No sé cómo va cada sesión: {e}", { e: delPc(e.vivo.error) }))}</p>`;
   hilo.innerHTML = html;
   hilo.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => abrirSesion(b.dataset.clave)));
   const re = document.getElementById("reintentar");
@@ -1788,10 +2088,10 @@ function pintarCaja() {
   document.getElementById("aviso-mejora").hidden = e.antes == null;
   const enviarB = document.getElementById("enviar");
   enviarB.innerHTML = pensando ? ICONO.parar : ICONO.subir;
-  enviarB.setAttribute("aria-label", pensando ? "Parar" : "Enviar");
+  enviarB.setAttribute("aria-label", pensando ? tr("Parar") : tr("Enviar"));
   enviarB.disabled = !pensando && ((!texto.value.trim() && !e.adj?.rutas().length) || !!e.adj?.subiendo());
   const mejorarB = document.getElementById("mejorar");
-  mejorarB.innerHTML = e.antes != null ? `${ICONO.deshacer}<span>Deshacer</span>` : `${ICONO.chispa}<span>${e.mejorando ? "Mejorando…" : "Mejorar"}</span>`;
+  mejorarB.innerHTML = e.antes != null ? `${ICONO.deshacer}<span>${tr("Deshacer")}</span>` : `${ICONO.chispa}<span>${e.mejorando ? tr("Mejorando…") : tr("Mejorar")}</span>`;
   mejorarB.disabled = !!e.mejorando || (e.antes == null && !texto.value.trim());
   const cerebro = document.getElementById("cerebro");
   const elegido = ["haiku", "sonnet", "opus"].includes(e.conv?.cerebro) ? e.conv.cerebro : "sonnet";
@@ -1799,7 +2099,7 @@ function pintarCaja() {
   const routerB = document.getElementById("router");
   const on = e.conv ? e.conv.router : true;
   routerB.dataset.on = String(on);
-  routerB.innerHTML = `${ICONO.diana}<span>${on ? "Router: automático" : "Router: apagado"}</span>`;
+  routerB.innerHTML = `${ICONO.diana}<span>${on ? tr("Router: automático") : tr("Router: apagado")}</span>`;
   // Con el router apagado, qué modelo llevan las sesiones: el fijado en la
   // conversación (en el PC o aquí), y si no Sonnet.
   const fijoCaja = document.getElementById("fijo-caja");
@@ -1822,7 +2122,7 @@ async function enviar(repetir) {
   if (repetir === undefined) { texto.value = ""; e.antes = null; e.crecer?.(); e.adj?.vaciar(); }
   e.pendiente = txt;
   e.fallo = null;
-  e.enCurso = { pensando: true, paso: "Mandándolo a tu PC…" };
+  e.enCurso = { pensando: true, paso: tr("Mandándolo a tu PC…") };
   pintarHilo();
   reaccionaMascota("hilo", "enviado");
   pintarCaja();
@@ -1908,8 +2208,8 @@ async function pintarTerminales() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="Volver">${ICONO.atras}</button>
-        <h1>Terminales<small>las que tienes abiertas en el PC</small></h1>
+        <button class="atras" id="atras" aria-label="${tr("Volver")}">${ICONO.atras}</button>
+        <h1>${tr("Terminales")}<small>${tr("las que tienes abiertas en el PC")}</small></h1>
       </header>
       <main class="cuerpo" id="terminales"></main>
     </div>`;
@@ -1923,13 +2223,13 @@ async function pintarTerminales() {
     aqui.innerHTML = lista.length
       ? lista.map((t) => {
         const [palabra, tono] = estadoTerminal(t);
-        const que = t.agente ? (t.modelo ? esc(t.modelo) : "agente") : "consola";
+        const que = t.agente ? (t.modelo ? esc(t.modelo) : tr("agente")) : tr("consola");
         return `<button class="tarjeta" data-estado="${tono}" data-panel="${t.panel}">
           <span class="tarjeta-cab"><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span class="estado"><i></i>${palabra}</span></span>
-          <span class="porque">${que} · panel ${t.panel}</span>
+          <span class="porque">${que} · ${tr("panel {n}", { n: t.panel })}</span>
         </button>`;
       }).join("")
-      : `<p class="vacio">No hay ninguna terminal abierta en Adeorq.</p>`;
+      : `<p class="vacio">${tr("No hay ninguna terminal abierta en Adeorq.")}</p>`;
     aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel) })));
   };
   try { await cargar(); } catch (err) {
@@ -1950,26 +2250,27 @@ async function pintarTerminales() {
    «huérfana», que está sin contestar pero ya no hay nadie detrás; «hablada»,
    que le escribiste a su terminal en vez de contestarla aquí. */
 const VIGENCIA = {
-  viva: ["te espera", "pregunta"],
-  huerfana: ["sin nadie detrás", "cerrada"],
-  hablada: ["hablada", "cerrada"],
-  contestada: ["contestada", "cerrada"],
-  descartada: ["descartada", "cerrada"],
+  viva: [tr("te espera"), "pregunta"],
+  huerfana: [tr("sin nadie detrás"), "cerrada"],
+  hablada: [tr("hablada"), "cerrada"],
+  contestada: [tr("contestada"), "cerrada"],
+  descartada: [tr("descartada"), "cerrada"],
 };
 const vivas = (lista) => (lista || []).filter((d) => d.vigencia === "viva");
+/** `una` y `varias` llegan ya traducidas; `varias` lleva su `{n}`. */
 const plural = (n, una, varias) => (n === 1 ? una : varias.replace("{n}", n));
 
 /** De quién es y si sigue ahí, en una línea. */
 function quienEspera(d) {
-  if (d.vigencia === "viva") return d.panel ? `panel ${d.panel}, abierto` : "";
-  if (d.vigencia === "huerfana") return d.panel ? `su terminal se cerró` : "de otro arranque de Adeorq";
-  if (d.vigencia === "hablada") return d.panel ? `le escribiste al panel ${d.panel}` : "";
-  return d.panel ? `panel ${d.panel}` : "";
+  if (d.vigencia === "viva") return d.panel ? tr("panel {n}, abierto", { n: d.panel }) : "";
+  if (d.vigencia === "huerfana") return d.panel ? tr("su terminal se cerró") : tr("de otro arranque de Adeorq");
+  if (d.vigencia === "hablada") return d.panel ? tr("le escribiste al panel {n}", { n: d.panel }) : "";
+  return d.panel ? tr("panel {n}", { n: d.panel }) : "";
 }
 
 function tarjetaDecision(d) {
   const [palabra, tono] = VIGENCIA[d.vigencia] || VIGENCIA.huerfana;
-  const n = plural(d.preguntas, "1 pregunta", "{n} preguntas");
+  const n = plural(d.preguntas, tr("1 pregunta"), tr("{n} preguntas"));
   const cerrada = d.vigencia !== "viva" && d.vigencia !== "huerfana";
   const cuando = hace((cerrada ? d.cerrada ?? d.creada : d.creada) / 1000);
   return `<button class="tarjeta" data-estado="${tono}" data-vigencia="${d.vigencia}" data-id="${esc(d.id)}">
@@ -1988,8 +2289,8 @@ async function pintarDecisiones() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="Volver">${ICONO.atras}</button>
-        <h1>Decisiones<small id="sub-dec">lo que te preguntan tus agentes</small></h1>
+        <button class="atras" id="atras" aria-label="${tr("Volver")}">${ICONO.atras}</button>
+        <h1>${tr("Decisiones")}<small id="sub-dec">${tr("lo que te preguntan tus agentes")}</small></h1>
       </header>
       <main class="cuerpo" id="decisiones"></main>
     </div>`;
@@ -2010,19 +2311,19 @@ async function pintarDecisiones() {
       .sort((a, b) => (b.cerrada ?? b.creada) - (a.cerrada ?? a.creada));
     const sub = document.getElementById("sub-dec");
     if (sub) {
-      sub.textContent = !lista.length ? "lo que te preguntan tus agentes"
-        : esperan.length ? plural(esperan.length, "1 te espera", "{n} te esperan") : "ninguna te espera";
+      sub.textContent = !lista.length ? tr("lo que te preguntan tus agentes")
+        : esperan.length ? plural(esperan.length, tr("1 te espera"), tr("{n} te esperan")) : tr("ninguna te espera");
     }
     let html = "";
     if (!lista.length) {
-      html = `<p class="vacio">No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.</p>`;
+      html = `<p class="vacio">${tr("No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.")}</p>`;
     } else {
       html += esperan.length
-        ? `<h2 class="seccion"><span>Te esperan</span></h2>${esperan.map(tarjetaDecision).join("")}`
-        : `<p class="calma">${mascota("quieta", 26, "decisiones")}Nada te espera ahora mismo.</p>`;
+        ? `<h2 class="seccion"><span>${tr("Te esperan")}</span></h2>${esperan.map(tarjetaDecision).join("")}`
+        : `<p class="calma">${mascota("quieta", 26, "decisiones")}${tr("Nada te espera ahora mismo.")}</p>`;
       if (anteriores.length) {
-        html += `<h2 class="seccion"><span>Anteriores</span></h2>
-          <p class="seccion-nota">Ya no te esperan. A la semana se borran solas.</p>${anteriores.map(tarjetaDecision).join("")}`;
+        html += `<h2 class="seccion"><span>${tr("Anteriores")}</span></h2>
+          <p class="seccion-nota">${tr("Ya no te esperan. A la semana se borran solas.")}</p>${anteriores.map(tarjetaDecision).join("")}`;
       }
     }
     // Por lo que dice la lista y no por el HTML, que lleva dentro a la mascota
@@ -2054,15 +2355,15 @@ async function pintarDecision() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="Volver a las decisiones">${ICONO.atras}</button>
-        <h1 id="titulo">Decisión<small>cargando…</small></h1>
+        <button class="atras" id="atras" aria-label="${tr("Volver a las decisiones")}">${ICONO.atras}</button>
+        <h1 id="titulo">${tr("Decisión")}<small>${tr("cargando…")}</small></h1>
       </header>
       <main class="cuerpo" id="decision"></main>
       <footer class="caja" id="pie-dec" hidden>
         <p class="estado-envio" id="estado-envio" role="status" aria-live="polite"></p>
         <div class="pie-dec">
-          <button class="descartar" id="descartar-dec">Descartar</button>
-          <button class="boton enviar-dec" id="enviar-dec" disabled>Enviar respuesta</button>
+          <button class="descartar" id="descartar-dec">${tr("Descartar")}</button>
+          <button class="boton enviar-dec" id="enviar-dec" disabled>${tr("Enviar respuesta")}</button>
         </div>
       </footer>
     </div>`;
@@ -2080,21 +2381,21 @@ async function pintarDecision() {
   const borrador = cerrada ? {} : leerBorrador(d.id);
   const elegida = (q) => contestada ? d.respuesta.elecciones[q.id]?.opcion : borrador[q.id]?.opcion;
   const escrita = (q) => contestada ? d.respuesta.elecciones[q.id]?.texto : borrador[q.id]?.texto;
-  const de = [d.proyecto, d.panel ? `panel ${d.panel}` : ""].filter(Boolean).join(" · ");
+  const de = [d.proyecto, d.panel ? tr("panel {n}", { n: d.panel }) : ""].filter(Boolean).join(" · ");
   document.getElementById("titulo").innerHTML = `${esc(d.titulo)}<small>${esc([de, hace(d.creada / 1000)].filter(Boolean).join(" · "))}</small>`;
 
   // Lo primero, si alguien la espera todavía.
   const vig = d.vigencia === "viva"
-    ? `<p class="dec-vig" data-v="viva"><i></i><span><b>Te espera.</b> ${d.panel ? `El panel ${d.panel} sigue abierto: tu respuesta se teclea allí.` : "El agente la leerá en cuanto la pida."}</span></p>`
+    ? `<p class="dec-vig" data-v="viva"><i></i><span><b>${tr("Te espera.")}</b> ${d.panel ? tr("El panel {n} sigue abierto: tu respuesta se teclea allí.", { n: d.panel }) : tr("El agente la leerá en cuanto la pida.")}</span></p>`
     : d.vigencia === "huerfana"
-      ? `<p class="dec-vig" data-v="huerfana"><span><b>Ya no la espera nadie.</b> La terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio.</span></p>`
+      ? `<p class="dec-vig" data-v="huerfana"><span><b>${tr("Ya no la espera nadie.")}</b> ${tr("La terminal que preguntó se cerró. Si la contestas se guarda, pero no se teclea en ningún sitio.")}</span></p>`
       : d.vigencia === "hablada"
-        ? `<p class="dec-vig" data-v="huerfana"><span><b>La hablaste con el agente.</b> ${d.panel ? `Le escribiste al panel ${d.panel} después de que preguntara. Si no era eso, aún puedes contestarla aquí.` : "Si no era eso, aún puedes contestarla aquí."}</span></p>`
+        ? `<p class="dec-vig" data-v="huerfana"><span><b>${tr("La hablaste con el agente.")}</b> ${d.panel ? tr("Le escribiste al panel {n} después de que preguntara. Si no era eso, aún puedes contestarla aquí.", { n: d.panel }) : tr("Si no era eso, aún puedes contestarla aquí.")}</span></p>`
       : d.vigencia === "descartada"
-        ? `<p class="dec-vig" data-v="descartada"><span><b>Descartada</b> ${hace((d.descartada ?? d.creada) / 1000)}, sin contestar.</span></p>`
+        ? `<p class="dec-vig" data-v="descartada"><span><b>${tr("Descartada")}</b> ${tr("{cuando}, sin contestar.", { cuando: hace((d.descartada ?? d.creada) / 1000) })}</span></p>`
         : "";
   const hecha = contestada
-    ? `<p class="dec-hecha">Contestada desde ${esc(d.respuesta.desde)}, ${hace(d.respuesta.cuando / 1000)}. ${d.respuesta.entregada ? `Se tecleó en el panel ${d.panel}.` : "El agente la lee cuando la pide."}</p>`
+    ? `<p class="dec-hecha">${tr("Contestada desde {desde}, {cuando}.", { desde: esc(delPc(d.respuesta.desde)), cuando: hace(d.respuesta.cuando / 1000) })} ${d.respuesta.entregada ? tr("Se tecleó en el panel {n}.", { n: d.panel }) : tr("El agente la lee cuando la pide.")}</p>`
     : "";
   document.getElementById("decision").innerHTML = `
     <div class="dec-cab">${vig}${hecha}${d.contexto ? `<p>${esc(d.contexto)}</p>` : ""}</div>
@@ -2106,11 +2407,11 @@ async function pintarDecision() {
           <label class="opcion">
             <input type="radio" name="q-${esc(q.id)}" value="${i + 1}"${elegida(q) === i + 1 ? " checked" : ""}>
             <span class="num">${i + 1}</span>
-            <span class="txt"><b>${esc(o.texto)}</b>${o.recomendada ? `<em class="rec">Recomendada</em>` : ""}${o.detalle ? `<small>${esc(o.detalle)}</small>` : ""}</span>
+            <span class="txt"><b>${esc(o.texto)}</b>${o.recomendada ? `<em class="rec">${tr("Recomendada")}</em>` : ""}${o.detalle ? `<small>${esc(o.detalle)}</small>` : ""}</span>
           </label>`).join("")}
         ${cerrada && !escrita(q) ? "" : `
-        <div class="o">o</div>
-        <textarea class="libre" data-q="${esc(q.id)}" rows="2" placeholder="Otra cosa, con tus palabras" aria-label="Otra cosa para la pregunta ${esc(q.id)}, con tus palabras">${esc(escrita(q) || "")}</textarea>`}
+        <div class="o">${tr("o")}</div>
+        <textarea class="libre" data-q="${esc(q.id)}" rows="2" placeholder="${tr("Otra cosa, con tus palabras")}" aria-label="${tr("Otra cosa para la pregunta {q}, con tus palabras", { q: esc(q.id) })}">${esc(escrita(q) || "")}</textarea>`}
       </fieldset>`).join("")}`;
   if (cerrada) return;
 
@@ -2138,10 +2439,10 @@ async function pintarDecision() {
     boton.disabled = true;
     try {
       const r = await descartarDecision(d.id);
-      await repintar(r.avisada ? `Descartada. Se le ha dicho al panel ${r.panel} que no espere respuesta.` : "Descartada.");
+      await repintar(r.avisada ? tr("Descartada. Se le ha dicho al panel {n} que no espere respuesta.", { n: r.panel }) : tr("Descartada."));
     } catch (err) {
       descartarB.disabled = false;
-      estado.textContent = err.estado === 409 ? "Ya estaba contestada desde otro sitio." : `No se ha descartado: ${err.message}`;
+      estado.textContent = err.estado === 409 ? tr("Ya estaba contestada desde otro sitio.") : tr("No se ha descartado: {e}", { e: err.message });
       repasar();
     }
   });
@@ -2163,8 +2464,8 @@ async function pintarDecision() {
     const f = faltan(el);
     if (!cuenta) {
       estado.textContent = !f.length ? ""
-        : f.length === 1 ? `Falta la pregunta ${f[0]}.`
-        : `Faltan las preguntas ${f.slice(0, -1).join(", ")} y ${f.at(-1)}.`;
+        : f.length === 1 ? tr("Falta la pregunta {q}.", { q: f[0] })
+        : tr("Faltan las preguntas {lista} y {ultima}.", { lista: f.slice(0, -1).join(", "), ultima: f.at(-1) });
     }
   };
   document.getElementById("decision").addEventListener("input", repasar);
@@ -2173,31 +2474,31 @@ async function pintarDecision() {
   /* Se manda a los cinco segundos, con «Deshacer» mientras tanto: un toque de
      más no le llega al agente (Material, «display an Undo action»). */
   let cuenta = null;
-  const parar = () => { clearInterval(cuenta); cuenta = null; boton.textContent = "Enviar respuesta"; repasar(); };
+  const parar = () => { clearInterval(cuenta); cuenta = null; boton.textContent = tr("Enviar respuesta"); repasar(); };
   boton.addEventListener("click", () => {
-    if (cuenta) { parar(); estado.textContent = "No se ha mandado."; return; }
+    if (cuenta) { parar(); estado.textContent = tr("No se ha mandado."); return; }
     const el = leerForm();
     if (!completa(el)) return;
     let quedan = 5;
-    boton.textContent = `Deshacer (${quedan})`;
-    estado.textContent = `Se manda en ${quedan} s.`;
+    boton.textContent = tr("Deshacer ({n})", { n: quedan });
+    estado.textContent = tr("Se manda en {n} s.", { n: quedan });
     cuenta = setInterval(async () => {
       quedan -= 1;
-      if (quedan > 0) { boton.textContent = `Deshacer (${quedan})`; estado.textContent = `Se manda en ${quedan} s.`; return; }
+      if (quedan > 0) { boton.textContent = tr("Deshacer ({n})", { n: quedan }); estado.textContent = tr("Se manda en {n} s.", { n: quedan }); return; }
       clearInterval(cuenta);
       cuenta = null;
       boton.disabled = true;
-      boton.textContent = "Mandando…";
+      boton.textContent = tr("Mandando…");
       try {
         const r = await api("POST", "/api/decision/responder", { id: d.id, elecciones: el });
         try { localStorage.removeItem(borradorDe(d.id)); } catch (_) {}
-        await repintar(r.entregada ? `Enviada. Se ha tecleado en el panel ${r.panel}.` : "Enviada. El agente la leerá cuando la pida.");
+        await repintar(r.entregada ? tr("Enviada. Se ha tecleado en el panel {n}.", { n: r.panel }) : tr("Enviada. El agente la leerá cuando la pida."));
       } catch (err) {
-        boton.textContent = "Enviar respuesta";
+        boton.textContent = tr("Enviar respuesta");
         boton.disabled = false;
         // Ya contestada (desde otro aparato): se enseña cómo quedó, y lo tuyo
         // sigue en el borrador por si lo quieres copiar.
-        estado.textContent = err.estado === 409 ? "Ya estaba contestada desde otro sitio. Lo que escribiste sigue guardado aquí." : `No se ha mandado: ${err.message}`;
+        estado.textContent = err.estado === 409 ? tr("Ya estaba contestada desde otro sitio. Lo que escribiste sigue guardado aquí.") : tr("No se ha mandado: {e}", { e: err.message });
       }
     }, 1000);
   });
@@ -2213,7 +2514,7 @@ function modoDe(v) {
   const filas = v.filas || [];
   for (let i = filas.length - 1; i >= 0 && i >= filas.length - 12; i--) {
     const m = /(auto mode|plan mode|accept edits|bypass permissions) on/i.exec(filas[i]);
-    if (m) return { "auto mode": "auto", "plan mode": "plan", "accept edits": "aceptar ediciones", "bypass permissions": "sin permisos" }[m[1].toLowerCase()];
+    if (m) return { "auto mode": "auto", "plan mode": "plan", "accept edits": tr("aceptar ediciones"), "bypass permissions": tr("sin permisos") }[m[1].toLowerCase()];
   }
   // En el modo normal Claude Code no pinta nada: no se sabe, y no se inventa.
   return null;
@@ -2299,14 +2600,14 @@ function ahoraHtml(a) {
   if (!a) return "";
   const m = mascota(ANIMO_AHORA[a.tipo] || "quieta", 26, "ahora");
   if (a.tipo === "pregunta") {
-    return `<div class="ahora-cab">${m}Te pregunta</div>${a.pregunta ? `<div class="ahora-que">${esc(a.pregunta)}</div>` : ""}
+    return `<div class="ahora-cab">${m}${tr("Te pregunta")}</div>${a.pregunta ? `<div class="ahora-que">${esc(a.pregunta)}</div>` : ""}
       <div class="opciones-menu">${a.opciones.map((o) => `<button data-num="${o.n}"><span class="num">${o.n}</span><span>${esc(o.texto)}</span></button>`).join("")}</div>`;
   }
-  if (a.tipo === "espera") return `<div class="ahora-cab">${m}<span><b>Es tu turno:</b> ${esc(a.que)}. Contéstale abajo.</span></div>`;
-  if (a.tipo === "termino") return `<div class="ahora-cab">${m}<span><b>Ha terminado.</b> Si quieres que siga, díselo abajo.</span></div>`;
-  if (a.tipo === "quieta") return `<div class="ahora-cab">${m}<span>Quieta, esperando a que le digas algo.</span></div>`;
+  if (a.tipo === "espera") return `<div class="ahora-cab">${m}<span><b>${tr("Es tu turno:")}</b> ${tr("{que}. Contéstale abajo.", { que: esc(a.que) })}</span></div>`;
+  if (a.tipo === "termino") return `<div class="ahora-cab">${m}<span><b>${tr("Ha terminado.")}</b> ${tr("Si quieres que siga, díselo abajo.")}</span></div>`;
+  if (a.tipo === "quieta") return `<div class="ahora-cab">${m}<span>${tr("Quieta, esperando a que le digas algo.")}</span></div>`;
   if (a.tipo === "cerrada") return `<div class="ahora-cab">${m}<span>${esc(a.que)}</span></div>`;
-  return `<div class="ahora-cab">${m}Trabajando${a.tiempo ? ` · ${esc(a.tiempo)}` : ""}</div>${a.que ? `<div class="ahora-que">${esc(a.que)}</div>` : ""}${a.det ? `<div class="ahora-det">${esc(a.det)}</div>` : ""}`;
+  return `<div class="ahora-cab">${m}${tr("Trabajando")}${a.tiempo ? ` · ${esc(a.tiempo)}` : ""}</div>${a.que ? `<div class="ahora-que">${esc(a.que)}</div>` : ""}${a.det ? `<div class="ahora-det">${esc(a.det)}</div>` : ""}`;
 }
 
 /* Una fila de la pantalla, legible en el móvil. Los ⏵ y ⏸ de Claude Code no
@@ -2335,36 +2636,36 @@ function pintarTerminal() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="Volver a las terminales">${ICONO.atras}</button>
-        <h1 id="titulo">Terminal ${e.panel}<small id="sub">cargando…</small></h1>
+        <button class="atras" id="atras" aria-label="${tr("Volver a las terminales")}">${ICONO.atras}</button>
+        <h1 id="titulo">Terminal ${e.panel}<small id="sub">${tr("cargando…")}</small></h1>
         <nav class="pestanas" id="pestanas" hidden>
           <button class="pastilla" data-cara="conversa">Chat</button>
-          <button class="pastilla" data-cara="pantalla">Pantalla</button>
+          <button class="pastilla" data-cara="pantalla">${tr("Pantalla")}</button>
         </nav>
       </header>
       <button class="aviso-dec" id="aviso-dec" hidden></button>
       <main class="cuerpo" id="conversa" hidden><div id="turnos"></div><div class="ahora" id="ahora" hidden></div></main>
       <main class="cuerpo" id="marco">
-        <p class="nota-pantalla" id="nota-pantalla" hidden>Aquí solo cabe lo que se ve ahora en el PC. Todo lo hablado está en el <button data-ir-chat>Chat</button>.</p>
+        <p class="nota-pantalla" id="nota-pantalla" hidden>${tr("Aquí solo cabe lo que se ve ahora en el PC. Todo lo hablado está en el {chat}.", { chat: "<button data-ir-chat>Chat</button>" })}</p>
         <pre class="pantalla" id="pantalla"></pre>
       </main>
       <footer class="caja" id="caja">
-        <button class="bajar" id="bajar" hidden aria-label="Ir al final">${ICONO.bajar}</button>
+        <button class="bajar" id="bajar" hidden aria-label="${tr("Ir al final")}">${ICONO.bajar}</button>
         <p class="nota fallo" id="fallo" hidden></p>
         <div class="adjuntos" hidden></div>
         <div class="fila-caja">
           ${CLIP}
-          <button class="abrir-teclas" id="abrir-teclas" type="button" aria-controls="teclas" aria-expanded="${teclasFuera}" aria-label="Teclas: Intro, Esc, Ctrl+C y cambiar de modo">${ICONO.teclas}</button>
-          <textarea id="texto" rows="1" placeholder="Escríbele a esta terminal" aria-label="Texto para la terminal"></textarea>
-          <button class="enviar" id="enviar" aria-label="Enviar" disabled>${ICONO.subir}</button>
+          <button class="abrir-teclas" id="abrir-teclas" type="button" aria-controls="teclas" aria-expanded="${teclasFuera}" aria-label="${tr("Teclas: Intro, Esc, Ctrl+C y cambiar de modo")}">${ICONO.teclas}</button>
+          <textarea id="texto" rows="1" placeholder="${tr("Escríbele a esta terminal")}" aria-label="${tr("Texto para la terminal")}"></textarea>
+          <button class="enviar" id="enviar" aria-label="${tr("Enviar")}" disabled>${ICONO.subir}</button>
         </div>
         <div class="pastillas teclas" id="teclas"${teclasFuera ? "" : " hidden"}>
-          <button class="pastilla" data-tecla="intro">Intro</button>
+          <button class="pastilla" data-tecla="intro">${tr("Intro")}</button>
           <button class="pastilla" data-tecla="esc">Esc</button>
           <button class="pastilla" data-tecla="ctrl+c">Ctrl+C</button>
-          <button class="pastilla" data-tecla="shift+tab" id="modo" title="Shift+Tab: pasa al siguiente modo de Claude Code">Cambiar modo</button>
-          <button class="pastilla" data-tecla="arriba" aria-label="Flecha arriba">↑</button>
-          <button class="pastilla" data-tecla="abajo" aria-label="Flecha abajo">↓</button>
+          <button class="pastilla" data-tecla="shift+tab" id="modo" title="${tr("Shift+Tab: pasa al siguiente modo de Claude Code")}">${tr("Cambiar modo")}</button>
+          <button class="pastilla" data-tecla="arriba" aria-label="${tr("Flecha arriba")}">↑</button>
+          <button class="pastilla" data-tecla="abajo" aria-label="${tr("Flecha abajo")}">↓</button>
         </div>
       </footer>
     </div>`;
@@ -2426,10 +2727,10 @@ function pintarTerminal() {
     ultima = { ...v, conversa: Boolean(v.agente && v.sesion && v.carpeta) };
     const modo = modoDe(v);
     const bModo = document.getElementById("modo");
-    if (bModo) bModo.textContent = modo ? `Modo: ${modo} ⇄` : "Cambiar modo";
+    if (bModo) bModo.textContent = modo ? tr("Modo: {m} ⇄", { m: modo }) : tr("Cambiar modo");
     const [palabra] = estadoTerminal(v);
     // El modo se dice también arriba: con las teclas plegadas, su botón no se ve.
-    document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small id="sub">${esc(hoja(v.carpeta))} · ${palabra}${modo ? ` · modo ${esc(modo)}` : ""}</small>`;
+    document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small id="sub">${esc(hoja(v.carpeta))} · ${palabra}${modo ? ` · ${tr("modo {m}", { m: esc(modo) })}` : ""}</small>`;
     const ahora = cara();
     document.getElementById("pestanas").hidden = !ultima.conversa;
     document.querySelectorAll(".pestanas .pastilla").forEach((b) => { b.dataset.on = String(b.dataset.cara === ahora); });
@@ -2440,7 +2741,7 @@ function pintarTerminal() {
       // En una de agente la pantalla no tiene historial (Claude Code pinta la
       // suya entera): se dice, con el camino al chat, que es donde está.
       document.getElementById("nota-pantalla").hidden = !ultima.conversa;
-      const filas = v.filas?.length ? v.filas : ["(la pantalla está vacía)"];
+      const filas = v.filas?.length ? v.filas : [tr("(la pantalla está vacía)")];
       const texto = filas.join("\n");
       if (texto !== pintado.pantalla) {
         const abajo = pintado.pantalla === null || pegadoAbajo(marco);
@@ -2466,7 +2767,7 @@ function pintarTerminal() {
       r = await api("GET", `/api/sesion?cwd=${encodeURIComponent(v.carpeta)}&id=${encodeURIComponent(v.sesion)}&si=${encodeURIComponent(pintado.conversa ?? "")}`);
     } catch (err) {
       // Codex, Gemini y compañía no escriben en `~/.claude`: ahí solo queda la pantalla.
-      if (pintado.conversa !== err.message) lista.innerHTML = `<p class="vacio">No encuentro lo que ha dicho esta sesión (${esc(err.message)}). Lo que se ve está en «Pantalla».</p>`;
+      if (pintado.conversa !== err.message) lista.innerHTML = `<p class="vacio">${tr("No encuentro lo que ha dicho esta sesión ({e}). Lo que se ve está en «Pantalla».", { e: esc(err.message) })}</p>`;
       pintado.conversa = err.message;
       return;
     }
@@ -2474,7 +2775,7 @@ function pintarTerminal() {
     const abajo = pintado.conversa === null || pegadoAbajo(conversa);
     // Repintar cerraba los pasos que tenías abiertos: se recuerdan por su hora.
     const abiertos = new Set([...lista.querySelectorAll("details.pasos[open]")].map((d) => d.dataset.k));
-    lista.innerHTML = r.turnos.length ? turnosHtml(r.turnos, ent) : `<p class="vacio">Esta sesión todavía no ha dicho nada.</p>`;
+    lista.innerHTML = r.turnos.length ? turnosHtml(r.turnos, ent) : `<p class="vacio">${tr("Esta sesión todavía no ha dicho nada.")}</p>`;
     lista.querySelectorAll("details.pasos").forEach((d) => { if (abiertos.has(d.dataset.k)) d.open = true; });
     pintado.conversa = r.firma;
     if (abajo) conversa.scrollTop = conversa.scrollHeight;
@@ -2510,7 +2811,7 @@ function pintarTerminal() {
       reaccionaMascota("ahora", "enviado");
       enSeguida();
     } catch (err) {
-      fallo(`No se ha mandado: ${err.message}`);
+      fallo(tr("No se ha mandado: {e}", { e: err.message }));
       botones.forEach((x) => { x.disabled = false; });
     }
   });
@@ -2533,7 +2834,7 @@ function pintarTerminal() {
     // La de ESTA terminal va primero: es la que tiene a este agente parado.
     pend.sort((x, y) => Number(y.panel === e.panel) - Number(x.panel === e.panel));
     const suya = pend[0].panel === e.panel;
-    b.innerHTML = `${ICONO.decision}<span><b>${pend.length === 1 ? (suya ? "Esta terminal espera tu decisión" : "Una decisión te espera") : `${pend.length} decisiones te esperan`}</b> · ${esc(pend[0].titulo)}</span><em>Contestar</em>`;
+    b.innerHTML = `${ICONO.decision}<span><b>${pend.length === 1 ? (suya ? tr("Esta terminal espera tu decisión") : tr("Una decisión te espera")) : tr("{n} decisiones te esperan", { n: pend.length })}</b> · ${esc(pend[0].titulo)}</span><em>${tr("Contestar")}</em>`;
     b.onclick = () => ir(pend.length === 1 ? { vista: "decision", id: pend[0].id, volverPanel: e.panel } : { vista: "decisiones", volverPanel: e.panel });
   };
   document.querySelectorAll(".pestanas .pastilla").forEach((b) => b.addEventListener("click", () => {
@@ -2558,7 +2859,7 @@ function pintarTerminal() {
       reaccionaMascota("ahora", "enviado");
       enSeguida();
     } catch (err) {
-      fallo(`No se ha mandado: ${err.message}`);
+      fallo(tr("No se ha mandado: {e}", { e: err.message }));
       listo();
     }
   });
@@ -2572,7 +2873,7 @@ function pintarTerminal() {
       salioBien();
       enSeguida();
     } catch (err) {
-      fallo(`No se ha mandado: ${err.message}`);
+      fallo(tr("No se ha mandado: {e}", { e: err.message }));
     }
   }));
   cargar();
@@ -2589,9 +2890,9 @@ document.addEventListener("click", (ev) => {
   caja.value = `/compact ${textoDelBloque(b).trim()}`;
   caja.dispatchEvent(new Event("input"));
   caja.scrollTop = 0;
-  b.textContent = "En la caja: dale a enviar";
+  b.textContent = tr("En la caja: dale a enviar");
   b.dataset.hecho = "true";
-  setTimeout(() => { b.textContent = "Compactar con esto"; b.dataset.hecho = "false"; }, 2400);
+  setTimeout(() => { b.textContent = tr("Compactar con esto"); b.dataset.hecho = "false"; }, 2400);
 });
 
 // ─── Una sesión, para leerla ────────────────────────────────────────────────
@@ -2614,7 +2915,7 @@ function resumenHerramientas(lista) {
 const turnosHtml = (turnos, ent) => {
   const html = turnos.map((t) => {
     // «[Image #1]» es como Claude Code apunta una imagen pegada: aquí, una etiqueta.
-    const texto = md(t.texto).replace(/\[Image #(\d+)\]/g, '<span class="chip-img">imagen $1</span>');
+    const texto = md(t.texto).replace(/\[Image #(\d+)\]/g, (_, n) => `<span class="chip-img">${tr("imagen {n}", { n })}</span>`);
     const llega = ent ? ent.de(`${t.rol}|${t.hora || t.texto.slice(0, 48)}`) : "";
     return `<div class="turno${llega}" data-rol="${t.rol === "tu" ? "tu" : "agente"}"><div class="burbuja">${texto}${pasosHtml(t)}</div></div>`;
   }).join("");
@@ -2631,8 +2932,8 @@ function pasosHtml(t) {
   if (!t.pasos?.length) return `<span class="herramientas">${resumen}</span>`;
   const antes = n - t.pasos.length;
   const filas = t.pasos.map((p) => `<li><b>${esc(p.nombre)}</b>${p.detalle ? `<span>${esc(p.detalle)}</span>` : ""}</li>`).join("");
-  return `<details class="pasos" data-k="${esc(t.hora)}"><summary><b>${n === 1 ? "1 paso" : `${n} pasos`}</b><span>${resumen}</span></summary>
-    <ol>${antes > 0 ? `<li class="antes">y ${antes} antes</li>` : ""}${filas}</ol></details>`;
+  return `<details class="pasos" data-k="${esc(t.hora)}"><summary><b>${n === 1 ? tr("1 paso") : tr("{n} pasos", { n })}</b><span>${resumen}</span></summary>
+    <ol>${antes > 0 ? `<li class="antes">${tr("y {n} antes", { n: antes })}</li>` : ""}${filas}</ol></details>`;
 }
 
 function abrirSesion(cl) {
@@ -2647,16 +2948,16 @@ function pintarSesion() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="Volver al conserje">${ICONO.atras}</button>
+        <button class="atras" id="atras" aria-label="${tr("Volver al conserje")}">${ICONO.atras}</button>
         <h1>${esc(hoja(w.carpeta))}<small>${esc(nombreDe(w))} · ${esc(w.encargo)}</small></h1>
       </header>
       <main class="cuerpo" id="sesion"></main>
-      <p class="solo-lectura">Solo para leer. Si quieres decirle algo, díselo al conserje.</p>
+      <p class="solo-lectura">${tr("Solo para leer. Si quieres decirle algo, díselo al conserje.")}</p>
     </div>`;
   document.getElementById("atras").addEventListener("click", () => ir({ vista: "hilo", id: e.volver.id }, true));
   const cuerpo = document.getElementById("sesion");
   if (!e.sid) {
-    cuerpo.innerHTML = `<p class="vacio">Esta sesión todavía no ha escrito nada. En cuanto empiece, aparece aquí.</p>`;
+    cuerpo.innerHTML = `<p class="vacio">${tr("Esta sesión todavía no ha escrito nada. En cuanto empiece, aparece aquí.")}</p>`;
     return;
   }
   const cargar = async () => {
@@ -2664,7 +2965,7 @@ function pintarSesion() {
     const aqui = document.getElementById("sesion");
     if (!aqui) return;
     const abajo = aqui.scrollHeight - aqui.scrollTop - aqui.clientHeight < 60;
-    aqui.innerHTML = turnos.length ? turnosHtml(turnos) : `<p class="vacio">Todavía no hay nada que leer.</p>`;
+    aqui.innerHTML = turnos.length ? turnosHtml(turnos) : `<p class="vacio">${tr("Todavía no hay nada que leer.")}</p>`;
     if (abajo) aqui.scrollTop = aqui.scrollHeight;
   };
   cargar().catch((err) => { cuerpo.innerHTML = `<p class="nota">${esc(err.message)}</p>`; });

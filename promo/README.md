@@ -23,11 +23,11 @@ bolsillo) mientras el guion eran diez pantallas que se podían quitar de una en 
 
 ## El guion, por tiempos
 
-Una sola pieza de **63,75 segundos**, de una tirada y sin capítulos, **contada por Adeo**. Sale de
+Una sola pieza de **71,25 segundos**, de una tirada y sin capítulos, **contada por Adeo**. Sale de
 las rondas 6.ª, 7.ª y 8.ª (2026-10-14, en «Pendiente»): la primera pasada era «muy lenta y difícil
 para el usuario»; «pon a Adeo de protagonista, Adeo explica la plataforma»; «que el highlight de
 las cosas sea mejor y que explique más funciones y que Adeo esté al lado de los highlights»; y
-que salga el móvil y se explique bien el Lienzo. **El móvil todavía no está: falta su captura.**
+que salga el móvil y se explique bien el Lienzo.
 Está escrito por TIEMPOS y no por pantallas: qué se ve y qué se lee en cada tramo. Cada tramo dura
 pulsos enteros de la música (0,625 s), así que cada corte cae en un tiempo. La palabra en negrita
 es la única que va en el azul de la marca.
@@ -47,9 +47,10 @@ es la única que va en el azul de la marca.
 | 0:43,75 – 0:47,5 | **Cuentas** | Una cuenta con su cuota; el puntero pulsa «Terminal con esta» | «¿Te queda **cuota**?» → «La ves, y **eliges cuenta**» | El golpe y el clic |
 | 0:47,5 – 0:51,25 | **Comandos** | El buscador y los primeros comandos; el puntero pulsa uno | «¿Cómo era **ese comando**?» → «Búscalo: **un clic lo teclea**» | El golpe y el clic |
 | 0:51,25 – 0:55 | **Agenda** | La ficha de los encargos programados; Adeo, dormido | «¿Y cuando **no estás**?» → «Encargos que **van solos**» | Un golpe por frase |
-| *(pendiente)* | **El móvil** | El conserje, las sesiones y una terminal en el teléfono, como ventana flotante | Por decidir con la captura delante | — |
-| 0:55 – 1:00 | **Adeo** | Adeo en grande, en el centro, hablando de sí mismo: saluda y salta | «Y yo **te aviso**…» → «…cuando uno **termina**» | La chispa |
-| 1:00 – 1:03,75 | **El cierre** | Adeo celebrando, y una sola cosa que hacer | «Descárgalo gratis» · «**adeorq.com**» · «Windows y Linux» | El acorde del final |
+| 0:55 – 0:58,75 | **Móvil: el conserje** | Un teléfono flotando: la petición, la respuesta del conserje y las dos sesiones que abre, levantadas | «¿Lejos del **ordenador**?» → «Pídelo, y **abro las sesiones**» | Un golpe por frase |
+| 0:58,75 – 1:02,5 | **Móvil: una terminal** | La terminal de storefront-api en el teléfono; el puntero pulsa «Contestar» en su aviso de decisión | «¿Y si una **te espera**?» → «Contestas **desde el móvil**» | El golpe y el clic |
+| 1:02,5 – 1:07,5 | **Adeo** | Adeo en grande, en el centro, hablando de sí mismo: saluda y salta | «Y yo **te aviso**…» → «…cuando uno **termina**» | La chispa |
+| 1:07,5 – 1:11,25 | **El cierre** | Adeo celebrando, y una sola cosa que hacer | «Descárgalo gratis» · «**adeorq.com**» · «Windows y Linux» | El acorde del final |
 
 Lo que cumple, y de dónde sale cada cosa:
 
@@ -75,13 +76,15 @@ Lo que cumple, y de dónde sale cada cosa:
   trabajo.
 - **Dice qué es Adeorq justo después del nombre**, como FlyingPress («the all in one speed
   optimization plugin for WordPress»).
-- **Treinta y una ideas en 63,75 segundos**, una cada 2,06 s: 29 por minuto, el ritmo de Whop.
+- **Treinta y cinco ideas en 71,25 segundos**, una cada 2,04 s: 29 por minuto, el ritmo de Whop.
   Sus once preferidas van a 24,5 de mediana. Ninguna imagen se queda quieta: la cámara siempre
   empuja.
-- **Diez funciones, el Lienzo en tres tiempos y Adeo.** Sus referencias enseñan de cuatro a seis,
-  pero Munir pidió «que explique más funciones» y eso manda, y la pieza pasa del minuto por eso.
-  El móvil entra en cuanto haya captura del teléfono (unos 4 segundos más). **Cuáles son, y sus
-  preguntas, lo eligió quien montó el corte, no Munir.**
+- **Once funciones, el Lienzo en tres tiempos y Adeo.** Sus referencias enseñan de cuatro a seis,
+  pero Munir pidió «que explique más funciones» y el móvil, y eso manda: la pieza pasa del minuto
+  por eso. **Cuáles son, y sus preguntas, lo eligió quien montó el corte, no Munir.**
+- **El móvil es un teléfono flotando** (`marco: "movil"`, con su canto y sus esquinas) con las
+  capturas de `public/movil/`. Su página no tiene inglés: en la pieza inglesa los textos de la
+  conversación van en inglés y los botones, en español.
 - **La flecha del Lienzo se dibuja encima** (`flecha` en el guion): en la captura, la etiqueta
   del enlace tapa la raya que encadena a los dos agentes, así que el vídeo traza una flecha justo
   debajo, de una terminal a la otra. Es lo único del vídeo pintado sobre la app que no es un
@@ -157,6 +160,21 @@ nombres; el vídeo coge de ahí cada pantalla que exista y las demás de `public
 **No se versionan** (`.gitignore`): llevan su cara, y `promo/` viaja entero al repositorio
 público. Tampoco van a la web, que sigue con el fondo de ejemplo. Las saca la sesión que tiene la
 casa de pruebas y se copian a mano a esa carpeta; `pnpm capturas` no la toca.
+
+**Las del móvil van en `public/movil/es` y `/en`** (`movil-conserje.png`, `movil-sesiones.png` y
+`movil-terminal.png`, a 390 × 844 y escala 3: 1170 × 2532), tampoco versionadas. Se sacan sin la
+app, con el doble del móvil (`scripts/laboratorio/doble-movil.mjs`), pero **NO con el doble tal
+cual**: sus datos de ejemplo nombran proyectos reales de Munir, y eso no puede salir en un vídeo.
+El 2026-10-14 se hizo así, y así se repite:
+1. Una copia del doble fuera del repo con todos sus datos pasados al taller inventado de Sam
+   (storefront-api, landing-web, invoice-cli, mobile-app, docs-site, design-tokens; rutas
+   `P:\projects\…`) y un `IDIOMA=en` que pone en inglés los textos de ejemplo. Se arranca con
+   `PAGINA=<repo>/src-tauri/src/movil.html`, una por idioma, en puertos libres.
+2. Un Brave sin ventana con un perfil de usar y tirar (como `scripts/laboratorio/banco-sin-mcp.mjs`,
+   con el `playwright-core` de la caché de npx), en modo móvil a 390 × 844, escala 3 y tema oscuro:
+   se guarda la clave de emparejar (`adeorq-movil-clave` = `clave-de-mentira`), se manda al
+   conserje «Antes del viernes: que el descuento redondee bien y que la portada tenga modo oscuro»
+   por `/api/enviar`, y se fotografían `#conv=c1`, la portada y `#terminal=1`.
 
 `src/casa.ts` tiene los colores y las fuentes, copiados de donde viven de verdad
 (`src/estilos/01-base.css` y `web/fonts`).
@@ -349,10 +367,8 @@ gusta y no se toca: Adeo explicando cada cosa.**
   con el de ejemplo. Sin decidir: si el fondo propio del vídeo (el azul de los tramos de solo
   texto, de Adeo y del cierre) también pasa a ser su foto. **Y si el vídeo se publica, lleva su
   cara**: es su decisión.
-- **El móvil** (8.ª ronda: el conserje, las sesiones y las terminales desde el teléfono) no tiene
-  captura: la pantalla del teléfono (`src-tauri/src/movil.html`) solo existe con la app en marcha,
-  y la saca la sesión que tiene la casa de pruebas. Con ella, va como ventana flotante (`proporcion`
-  en el guion), antes del tramo de Adeo.
+- **El móvil en inglés.** La página del teléfono (`src-tauri/src/movil.html`) solo existe en
+  español, así que en la pieza inglesa sus botones salen en español. Se arregla en la app, no aquí.
 - **Las capturas.** Desde la segunda pasada son las rehechas de `c82fc96`: «PREDETERMINADA» en
   una línea, la Agenda bien escrita y el Lienzo con un enjambre, más `swarm.png` y `board.png`
   sueltas. Lo que queda: la del Panel saluda «Buenas noches, Sam.» porque se sacó de noche, y

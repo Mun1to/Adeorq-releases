@@ -282,23 +282,23 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.movil.p5': 'Press <b>Pair a phone</b>. You get a QR code with your address, something like ' +
                      '<code>https://your-pc.your-net.ts.net:8443</code>, and a six-digit code that lasts ten minutes.',
     'guia.movil.p6': 'On your phone, with Tailscale on, scan the QR code or type the address, enter the code ' +
-                     'and press <b>Emparejar</b> (Pair). Each browser is paired only once.',
+                     'and press <b>Pair</b>. Each browser is paired only once.',
     'guia.movil.h3b': 'To keep it handy',
-    'guia.movil.l1': '<b>As an app.</b> On Android the list has <b>Instalar Adeorq como app en este aparato</b> ' +
-                     '(install as an app; if it does not show, the browser menu → Add to Home screen), and it ' +
+    'guia.movil.l1': '<b>As an app.</b> On Android the list has <b>Install Adeorq as an app on this device</b> ' +
+                     '(if it does not show, the browser menu → Add to Home screen), and it ' +
                      'stays there with its icon. On iPhone, from Safari: Share → Add to Home Screen.',
-    'guia.movil.l2': '<b>Notifications.</b> At the bottom of the list, <b>Avisarme en este móvil</b> (notify me ' +
-                     'on this phone) tells you when a session asks you something or finishes, even with the page ' +
+    'guia.movil.l2': '<b>Notifications.</b> At the bottom of the list, <b>Notify me on this phone</b> ' +
+                     'tells you when a session asks you something or finishes, even with the page ' +
                      'closed. They travel encrypted through your browser’s push service (Google, Apple or ' +
                      'Mozilla), which delivers them without being able to read them. On iPhone it only works ' +
                      'with the app added to the Home Screen. In Settings → Mobile ' +
                      'you can send a test notification.',
     'guia.movil.l4': '<b>Decisions.</b> When an agent needs you to choose something, it asks you with its ' +
-                     'numbered options and a notification reaches you. You answer it in <b>Decisiones</b>, with an ' +
+                     'numbered options and a notification reaches you. You answer it in <b>Decisions</b>, with an ' +
                      'option or in your own words, and the answer goes back on its own to the terminal that asked. ' +
                      'Each one says whether that terminal is still open: the ones nobody is waiting for go apart, ' +
                      'do not count in the number on the button and are discarded with one tap.',
-    'guia.movil.l5': '<b>Switching mode.</b> In a Claude Code terminal, the <b>Cambiar modo</b> button does what ' +
+    'guia.movil.l5': '<b>Switching mode.</b> In a Claude Code terminal, the <b>Switch mode</b> button does what ' +
                      'Shift+Tab does on the PC (normal, accept edits, plan, auto) and shows which mode it is in.',
     'guia.movil.l3': '<b>Several devices.</b> Settings → Mobile lists each one by name, and you remove it from ' +
                      'there whenever you like.',

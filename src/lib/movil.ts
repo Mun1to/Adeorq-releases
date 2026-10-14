@@ -79,6 +79,8 @@ export const movilEncender = (encendido: boolean) => invoke<EstadoMovil>("movil_
 export const movilEmparejar = () => invoke<{ valor: string; quedan: number }>("movil_emparejar");
 export const movilOlvidar = (id: string) => invoke<EstadoMovil>("movil_olvidar", { id });
 export const movilTailscale = (conectar: boolean) => invoke<Tailscale>("movil_tailscale", { conectar });
+/** El idioma de la app, para que la página del móvil hable el mismo. */
+export const movilIdioma = (idioma: string) => invoke<void>("movil_idioma", { idioma });
 /** Un aviso a los móviles que los pidieron; devuelve a cuántos se intentó. */
 export const movilAvisar = (titulo: string, cuerpo: string, url = "/") =>
   invoke<number>("movil_avisar", { titulo, cuerpo, url });

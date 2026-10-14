@@ -10,13 +10,15 @@ import { PANTALLA, PASO, clicEn, focosQueCaben, haciaElFoco, llegaDato, saleLaCa
     1. `con-su-fondo/<idioma>/`: la app con SU fondo, la foto de Munir detrás
        del cristal (7.ª ronda: «que el fondo de Adeorq sea el que tenga yo y no
        uno genérico»). Solo existen en su máquina: no se versionan.
-    2. `pantallas/<idioma>/`: las de la web, con el fondo de ejemplo.
-    3. `pantallas/`: la de todos los idiomas.
+    2. `movil/<idioma>/`: la página del teléfono, sacada de una copia del doble
+       del móvil con el taller de Sam (README, «Qué tocar»).
+    3. `pantallas/<idioma>/`: las de la web, con el fondo de ejemplo.
+    4. `pantallas/`: la de todos los idiomas.
     Una Cabina con las pestañas en inglés dentro del vídeo en español se nota,
     pero no tener el vídeo por eso se nota más. */
 function captura(imagen: string, idioma: Idioma) {
   const hay = (ruta: string) => getStaticFiles().some((f) => f.name === ruta);
-  const ruta = [`con-su-fondo/${idioma}/${imagen}`, `pantallas/${idioma}/${imagen}`, `pantallas/${imagen}`].find(hay);
+  const ruta = [`con-su-fondo/${idioma}/${imagen}`, `movil/${idioma}/${imagen}`, `pantallas/${idioma}/${imagen}`, `pantallas/${imagen}`].find(hay);
   return ruta ? staticFile(ruta) : null;
 }
 
@@ -28,13 +30,14 @@ const PROPORCION = 16 / 9;
     Una suelta de otra proporción (la del enjambre es una pieza recortada) sale
     como una ventana flotando sobre el fondo de la marca, a cuatro quintos del
     alto: estirada hasta llenar el cuadro se vería borrosa y sin bordes. */
-function marcoDe(width: number, height: number, proporcion = PROPORCION) {
+function marcoDe(width: number, height: number, proporcion = PROPORCION, telefono = false) {
   if (Math.abs(proporcion - PROPORCION) < 0.01) {
     const ancho = Math.min(width, height * PROPORCION);
     const alto = ancho / PROPORCION;
     return { x: (width - ancho) / 2, y: (height - alto) / 2, ancho, alto, ventana: false };
   }
-  const alto = Math.min(height * 0.8, (width * 0.8) / proporcion);
+  // Un teléfono es estrecho: va más alto, o su letra no se lee.
+  const alto = Math.min(height * (telefono ? 0.88 : 0.8), (width * 0.8) / proporcion);
   const ancho = alto * proporcion;
   return { x: (width - ancho) / 2, y: (height - alto) / 2, ancho, alto, ventana: true };
 }
@@ -146,7 +149,8 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
   const decir = useDecir();
   const src = captura(escena.imagen, idioma);
   const f = frame - entra;
-  const m = marcoDe(width, height, escena.proporcion);
+  const telefono = escena.marco === "movil";
+  const m = marcoDe(width, height, escena.proporcion, telefono);
 
   // La frase grande: llega al centro y, cuando sale la cámara, se va.
   const sale = saleLaCamara(largo);
@@ -193,8 +197,10 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
       <div
         style={{
           position: "absolute",
-          left: m.x,
-          top: m.y,
+          // El canto del teléfono va por fuera: se corre lo que mide para que
+          // la pantalla siga donde la buscan las frases y el puntero.
+          left: m.x - (telefono ? 11 * u : 0),
+          top: m.y - (telefono ? 11 * u : 0),
           width: m.ancho,
           height: m.alto,
           overflow: "hidden",
@@ -205,6 +211,14 @@ export function Producto({ escena, entra, largo }: { escena: EscenaPantalla; ent
             border: `1px solid ${COLOR.bordeFuerte}`,
             boxShadow: `0 ${40 * u}px ${90 * u}px rgba(0,0,0,0.55)`,
             backgroundColor: COLOR.panel,
+          }),
+          // Un teléfono: esquinas redondas y su canto oscuro alrededor de la
+          // pantalla, con un filo de luz, para que se lea como un móvil y no
+          // como una ventana estrecha.
+          ...(telefono && {
+            borderRadius: 46 * u,
+            border: `${11 * u}px solid #04060a`,
+            boxShadow: `0 0 0 ${1.5 * u}px rgba(150,185,240,0.35), 0 ${40 * u}px ${90 * u}px rgba(0,0,0,0.6)`,
           }),
         }}
       >

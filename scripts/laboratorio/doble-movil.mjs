@@ -3,6 +3,7 @@
 // mirarla en un navegador a tamaño de móvil sin compilar Rust ni abrir la app.
 //
 //   node scripts/laboratorio/doble-movil.mjs [puerto]      (4390 por defecto)
+//   IDIOMA=en node scripts/laboratorio/doble-movil.mjs 4392   (la app en inglés)
 //
 // El código de emparejar es 123456. Lo que se le escribe al conserje decide lo
 // que contesta, como en `doble-conserje.js`:
@@ -26,6 +27,9 @@ import { fileURLToPath } from "node:url";
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 // `PAGINA=<ruta>` sirve otra versión de la página, para mirar el antes y el después.
 const PAGINA = process.env.PAGINA || path.join(RAIZ, "src-tauri", "src", "movil.html");
+// `IDIOMA=en` la sirve como `movil.rs` con la app en inglés (`<html lang="en">`).
+// Los datos de ejemplo siguen en español: son de los agentes, no de la página.
+const INGLES = process.env.IDIOMA === "en";
 const PUERTO = Number(process.argv[2]) || 4390;
 const CLAVE = "clave-de-mentira";
 const ARRANQUE = 111;
@@ -281,7 +285,8 @@ http
       const v = cuerpo ? JSON.parse(cuerpo) : {};
       if (url.pathname === "/" && req.method === "GET") {
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-        return res.end(fs.readFileSync(PAGINA, "utf8"));
+        const pagina = fs.readFileSync(PAGINA, "utf8");
+        return res.end(INGLES ? pagina.replace('<html lang="es">', '<html lang="en">') : pagina);
       }
       if (url.pathname === "/api/emparejar") {
         return v.codigo === "123456" ? json(res, 200, { clave: CLAVE, nombre: v.nombre }) : json(res, 403, { error: "Ese código no es." });

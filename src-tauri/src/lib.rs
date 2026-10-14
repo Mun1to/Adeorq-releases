@@ -479,6 +479,7 @@ pub fn run() {
             mcp_clientes::mcp_clientes_poner,
             movil::movil_estado,
             movil::movil_encender,
+            movil::movil_idioma,
             movil::movil_emparejar,
             movil::movil_olvidar,
             movil::movil_avisar,

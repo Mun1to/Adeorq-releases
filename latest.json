@@ -1,11 +1,11 @@
 {
-  "version": "0.9.198",
-  "notes": "Actualizar desde la barra ya no falla con Update.install called before Update.download: si volvias a la ventana mientras la barra esperaba a tus agentes, cambiaba la version ya bajada por una copia sin bajar; ahora se queda con la que tiene. Si te sale ese error en tu version, actualiza desde Ajustes, Adeorq",
-  "pub_date": "2026-10-14T18:20:08Z",
+  "version": "0.9.199",
+  "notes": "El movil habla el idioma de la app: con Adeorq en ingles, la pagina del movil sale entera en ingles, botones, avisos, fechas, estados de las terminales, el emparejamiento y las decisiones",
+  "pub_date": "2026-10-14T20:33:35Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzUzWlNpNWxSQlJHZEcveHZXMnV6VlZNWkRkUWl1Tk1lNGRObVpNU3NKeFNzQ3pLYWpJbmVQYzVUYUU0ZUFpc1h4R3c3Z3owaGI4ajhBMmg3Wk9UUmc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDAxOTg4CWZpbGU6QWRlb3JxXzAuOS4xOThfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTgKSVBXNEtkK0oxMmlEWmplNU15cnRWMTdkTnJESzRZODkvcDQvMi9Kdlp3L05pSFJwMkhudExwS1poVDlxVTM4emc1OVROMUNHaFF0L3NOSUhNWnUyQlE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.198/Adeorq_0.9.198_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3grdVJ2OWE5ZVNRVGwrdXZidzVNWDF0bVFIKy9RS1NISjRwV2FvcEx4dGNRSzRRMFlnTzJRZUlsYkFhbkw1U3ZHRUZ2YUdvaUkyUjlBOFF6QmNVaGd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDA5OTg0CWZpbGU6QWRlb3JxXzAuOS4xOTlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4xOTkKVU9ISUlTUm1lRUt1ZnZqVFVsdUJIbWZlSUl6ZEhtRHBEWW0vTWcvakIzUlRpdlhuUjRZRmpaN3dBQTJVVW1BWXNSdDZqTk1RVnNYN0tMMDZlVHQrQlE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.199/Adeorq_0.9.199_x64-setup.exe"
     }
   }
 }

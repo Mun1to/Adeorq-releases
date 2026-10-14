@@ -110,8 +110,8 @@ has to be on with Adeorq open. Set it up once:
    HTTPS on your account: if a link appears, open it, enable it and press again.
 4. Press **Pair a phone**. You get a QR code with your address
    (`https://your-pc.your-net.ts.net:8443`) and a six-digit code that lasts ten minutes.
-5. On your phone, with Tailscale on, scan the QR code, type the code and press **Emparejar**
-   (Pair). Each browser pairs once.
+5. On your phone, with Tailscale on, scan the QR code, type the code and press **Pair**. Each
+   browser pairs once. The page speaks the language Adeorq is set to.
 
 When an agent needs you to choose something, it asks you with its numbered options and the
 question reaches your phone, under **Decisions**; your answer goes straight back to the terminal

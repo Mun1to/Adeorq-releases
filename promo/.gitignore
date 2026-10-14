@@ -13,3 +13,6 @@ public/sonido/hecho/
 # Las capturas con SU fondo (su foto, con su cara, detrás del cristal): solo
 # para el vídeo, y por lo mismo que la voz no salen de esta máquina.
 /public/con-su-fondo/
+# Las del móvil: se sacan de una copia del doble del móvil con el taller de Sam
+# (ver «Qué tocar» en el README). Como las de `public/pantallas/`, se rehacen.
+/public/movil/

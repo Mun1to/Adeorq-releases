@@ -82,6 +82,16 @@ const APUNTAR_VISTO: u64 = 60;
 
 static PAGINA: &str = include_str!("movil.html");
 
+/// La página en el idioma de la app: lo lleva en `<html lang>`, que es lo que
+/// lee su diccionario al cargar (el idioma del teléfono no cuenta).
+fn pagina_en(ingles: bool) -> String {
+    if ingles {
+        PAGINA.replacen("<html lang=\"es\">", "<html lang=\"en\">", 1)
+    } else {
+        PAGINA.to_string()
+    }
+}
+
 const ICONO: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="22" fill="#0d1a33"/><path d="M48 18l7.5 17.5L73 43l-17.5 7.5L48 68l-7.5-17.5L23 43l17.5-7.5z" fill="#4d9fff"/><path d="M71 60l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#9cc7ff"/></svg>"##;
 
 /// El service worker de la página: recibe el aviso cifrado (el navegador ya lo
@@ -140,6 +150,11 @@ pub struct Ajustes {
     pub encendido: bool,
     #[serde(default)]
     pub dispositivos: Vec<Dispositivo>,
+    /// La app está en inglés: la página del móvil también. Lo dice la ventana
+    /// (`movil_idioma`), y se guarda para que, al volver a abrir Adeorq, la
+    /// primera página que se sirva ya salga en el suyo.
+    #[serde(default)]
+    pub ingles: bool,
 }
 
 fn ruta_ajustes() -> Result<PathBuf, String> {
@@ -694,7 +709,10 @@ pub fn atender(
     }
 
     match (p.metodo.as_str(), p.ruta.as_str()) {
-        ("GET", "/") | ("GET", "/index.html") => return Respuesta::texto("text/html; charset=utf-8", PAGINA),
+        ("GET", "/") | ("GET", "/index.html") => {
+            let ingles = guardia.lock().unwrap().ajustes.ingles;
+            return Respuesta::texto("text/html; charset=utf-8", &pagina_en(ingles));
+        }
         ("GET", "/manifest.webmanifest") => return Respuesta::texto("application/manifest+json", MANIFIESTO),
         ("GET", "/icono.svg") => return Respuesta::texto("image/svg+xml", ICONO),
         ("GET", "/icono-180.png") => return Respuesta { estado: 200, tipo: "image/png", cuerpo: ICONO_APP.to_vec() },
@@ -1379,6 +1397,19 @@ pub fn movil_encender(app: tauri::AppHandle, encendido: bool) -> Result<EstadoMo
     Ok(estado(&m))
 }
 
+/// El idioma de la app, que solo lo sabe la ventana: la página del móvil habla
+/// el mismo. Se manda al abrir y cada vez que cambia en Ajustes, y solo se
+/// escribe `movil.json` si cambió.
+#[tauri::command(async)]
+pub fn movil_idioma(state: tauri::State<'_, Movil>, idioma: String) {
+    let mut g = state.guardia.lock().unwrap();
+    let ingles = idioma == "en";
+    if g.ajustes.ingles != ingles {
+        g.ajustes.ingles = ingles;
+        persistir_de_verdad(&g.ajustes);
+    }
+}
+
 #[tauri::command(async)]
 pub fn movil_emparejar(state: tauri::State<'_, Movil>) -> Result<CodigoVisible, String> {
     let mut g = state.guardia.lock().unwrap();
@@ -2015,6 +2046,33 @@ mod tests {
     fn la_pagina_y_el_servidor_dicen_lo_mismo() {
         assert!(PAGINA.contains(&format!("const TROZO = {TROZO_ADJUNTO};")));
         assert!(PAGINA.contains(&format!("const PANEL = \"{PANEL_DE_MUNIR}\";")));
+    }
+
+    /// La página sale en el idioma de la app, que es lo que diga la ventana, y
+    /// lo recuerda en `movil.json` (uno de antes, sin el campo, sigue en español).
+    /// Su diccionario lo vigila `scripts/movil-idioma-check.mjs`.
+    #[test]
+    fn la_pagina_habla_el_idioma_de_la_app() {
+        let (g, _) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let html = |g: &Mutex<Guardia>| {
+            let r = atender(&pedir("GET", "/", None, ""), g, &casa, &nada, reloj);
+            assert_eq!(r.estado, 200);
+            String::from_utf8(r.cuerpo).unwrap()
+        };
+        assert_eq!(PAGINA.matches("<html lang=\"es\">").count(), 1, "la marca que se cambia, una vez");
+        assert!(PAGINA.contains("document.documentElement.lang === \"en\""), "y la página la lee");
+        assert!(html(&g).contains("<html lang=\"es\">"));
+        g.lock().unwrap().ajustes.ingles = true;
+        let en = html(&g);
+        assert!(en.contains("<html lang=\"en\">") && !en.contains("<html lang=\"es\">"));
+        assert_eq!(en.len(), PAGINA.len(), "solo cambia la marca");
+        let viejo: Ajustes = serde_json::from_str(r#"{"encendido":true,"dispositivos":[]}"#).unwrap();
+        assert!(!viejo.ingles);
+        let guardado = serde_json::to_string(&Ajustes { ingles: true, ..Ajustes::default() }).unwrap();
+        assert!(serde_json::from_str::<Ajustes>(&guardado).unwrap().ingles);
     }
 
     /// Las tres listas de teclas dicen lo mismo: lo que deja pasar el servidor,

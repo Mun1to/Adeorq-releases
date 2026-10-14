@@ -15,7 +15,7 @@
  * usuario», «pon a Adeo de protagonista, Adeo explica la plataforma», y luego
  * «que el highlight de las cosas sea mejor y que explique más funciones y que
  * Adeo esté al lado de los highlights explicando las cosas». Y de la 8.ª: que
- * salga el móvil y que el Lienzo se explique bien. Dura 63,75 s, ADEO es quien
+ * salga el móvil y que el Lienzo se explique bien. Dura 71,25 s, ADEO es quien
  * la cuenta (todo lo que se lee después del nombre lo dice él, y sale a su
  * lado), y cada función es una PREGUNTA que se haría quien mira y la pieza de
  * la app que la contesta:
@@ -26,11 +26,9 @@
  *    0:15     Panel y Capataz         dos preguntas
  *    0:22,5   el Lienzo               el tablero, la flecha, las columnas, el enjambre
  *    0:36,25  cinco preguntas más     Archivos, Decisiones, Cuentas, Comandos, Agenda
- *    0:55     Adeo                    lo que hace él
- *    1:00     el cierre               una sola cosa que hacer
- *
- * El móvil está pedido (8.ª ronda) y entra en cuanto haya una captura del
- * teléfono: no existe ninguna todavía.
+ *    0:55     el móvil                el conserje y una terminal, en un teléfono
+ *    1:02,5   Adeo                    lo que hace él
+ *    1:07,5   el cierre               una sola cosa que hacer
  *
  * La misma tabla, con lo que se ve y se lee en cada tramo, está en el README.
  * Si se cambia aquí, se cambia allí.
@@ -104,6 +102,8 @@ export type EscenaPantalla = Comun & {
   /** Ancho entre alto de la captura, si no es 16:9. Entonces no llena el
       cuadro: sale como una ventana flotando sobre el fondo de la marca. */
   proporcion?: number;
+  /** `movil`: la ventana es un teléfono, con su canto y sus esquinas. */
+  marco?: "movil";
   /** Cómo se llama esa pestaña en la app. No sale en el vídeo: es para la
       página del guion y para el hueco de una captura que falta. */
   nombre: Frase;
@@ -346,7 +346,40 @@ export const ESCENAS: Escena[] = [
     voz: [{ es: "¿Y cuando no estás? Encargos que van solos.", en: "And when you're away? Jobs that run on their own." }],
   }),
 
-  // 0:48,75 · Adeo, en grande, hablando de sí mismo.
+  // 0:55 · El móvil (8.ª ronda): el conserje y una terminal desde el
+  // teléfono. Las capturas salen de una copia del doble del móvil con el taller
+  // de Sam (README, «Qué tocar»); la página del móvil no tiene inglés, así que
+  // en la pieza inglesa su interfaz va en español y sus datos en inglés.
+  pregunta({
+    id: "movil",
+    imagen: "movil-conserje.png",
+    proporcion: 1170 / 2532,
+    marco: "movil",
+    adeo: "baila",
+    nombre: { es: "Móvil", en: "Phone" },
+    titulo: { es: "¿Lejos del *ordenador*?", en: "Away from *your desk*?" },
+    focos: [{ en: [0.03, 0.225, 0.94, 0.495], dato: { es: "Pídelo, y *abro las sesiones*", en: "Ask, and *I open the sessions*" } }],
+    voz: [{ es: "¿Lejos del ordenador? Pídelo desde el móvil, y abro las sesiones.", en: "Away from your desk? Ask from your phone, and I open the sessions." }],
+  }),
+  pregunta({
+    id: "movil-terminal",
+    imagen: "movil-terminal.png",
+    proporcion: 1170 / 2532,
+    marco: "movil",
+    adeo: "escucha",
+    nombre: { es: "Móvil: una terminal", en: "Phone: a terminal" },
+    titulo: { es: "¿Y si una *te espera*?", en: "And if one *needs you*?" },
+    focos: [
+      {
+        en: [0.02, 0.06, 0.96, 0.06],
+        dato: { es: "Contestas *desde el móvil*", en: "Answer *from your phone*" },
+        clic: [0.95, 0.09],
+      },
+    ],
+    voz: [{ es: "¿Y si una te espera? Contestas desde el móvil.", en: "And if one needs you? Answer from your phone." }],
+  }),
+
+  // 1:02,5 · Adeo, en grande, hablando de sí mismo.
   {
     id: "adeo",
     tipo: "adeo",
@@ -357,7 +390,7 @@ export const ESCENAS: Escena[] = [
     ],
   },
 
-  // 0:53,75 · El cierre: una sola cosa que hacer.
+  // 1:07,5 · El cierre: una sola cosa que hacer.
   {
     id: "cierre",
     tipo: "cierre",

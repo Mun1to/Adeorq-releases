@@ -1,11 +1,11 @@
 {
-  "version": "0.9.206",
-  "notes": "Con las terminales aguantando, actualizar ya no le quita nada a un agente: sigue con sus decisiones, sus avisos del movil y las herramientas de Adeorq, que se reenganchan solas. El lienzo recoge sus terminales vivas como la Cabina.",
-  "pub_date": "2026-10-15T16:28:23Z",
+  "version": "0.9.207",
+  "notes": "En el movil, los nombres largos de las sesiones ya no sacan el estado fuera de su tarjeta ni dejan arrastrar la pantalla de lado.",
+  "pub_date": "2026-10-15T19:17:51Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJGVWh4VWNhdFdLSDM2RGU0bXlPa25XdzdyZ2lWWVlLZCtRQ0s0ZUNxQnFmSXJqVTBGTHBpcENHa1JhMEJoWTVaOXQyYStTUUNQeHgxdXBSWTRLT0FvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDgxNjk5CWZpbGU6QWRlb3JxXzAuOS4yMDZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDYKUU9TOUxMRGN4MXRaMWQ3Q1JFL1pqanc1ZHltSFlKOXlpRzM4NmVwNHB1c1hTZXBtRENyaFJUTkRtMU1PZkF2R0M5YzZpTU5scnA5RkdySCt5WlBiQmc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.206/Adeorq_0.9.206_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3p2Y0drWlFJcEpRZmVwbFlxSDFzUkFNVXV2aDJKeTl2ZzdGaERoenRxNWxuL0N5TTZBbGx2U3RtNTV2Z2RQemEwK3MxWDV1NFprVnE0Q0RBSkZoUFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDkxODY5CWZpbGU6QWRlb3JxXzAuOS4yMDdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDcKQ2ZlMXZFWFVIalBoVktXa0c5blYweWRYcjdjbU84WUc2VEtMOGljN3BuSWloa2lLWTlMME92Nm9YRjQ2Z0hEQ1c4cXdZWk9xT1R3VVZ6Ujk1eURqRGc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.207/Adeorq_0.9.207_x64-setup.exe"
     }
   }
 }

@@ -160,7 +160,10 @@
     display: grid; place-items: center; cursor: pointer; color: var(--tinta);
   }
   .atras:active { background: var(--capa-fuerte); }
-  .cuerpo { flex: 1; overflow-y: auto; padding: 16px 16px 24px; overscroll-behavior: contain; min-height: 0; }
+  /* Solo se desliza en vertical: con `overflow-y: auto` el horizontal también
+     se vuelve deslizable, y cualquier cosa más ancha que la pantalla dejaba
+     arrastrar la vista entera de lado (Munir, 2026-10-15). */
+  .cuerpo { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 16px 24px; overscroll-behavior: contain; min-height: 0; }
   .cuerpo[hidden] { display: none; }
 
   /* ── 4. Piezas sueltas ── */
@@ -190,10 +193,13 @@
   .seccion:first-child { margin-top: 4px; }
   .seccion span { flex: 1; }
   .seccion-nota { margin: 0 4px 8px; font-size: 13px; color: var(--suave); }
-  /* Una tarjeta: lo que te reclama o algo que se abre. La raya de la izquierda dice su estado. */
+  /* Una tarjeta: lo que te reclama o algo que se abre. La raya de la izquierda dice su estado.
+     Su columna puede encoger (`minmax(0, 1fr)`): con la de por defecto, una
+     rejilla crece hasta el ancho del título entero, y con un nombre largo el
+     estado salía por fuera de la tarjeta. */
   .tarjeta {
     --c: var(--cerrada);
-    display: grid; gap: 5px; width: 100%; text-align: left; cursor: pointer;
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; width: 100%; text-align: left; cursor: pointer;
     margin: 0 0 10px; padding: 14px 16px; border-radius: var(--r-caja);
     border: 1px solid var(--borde); background: var(--capa);
     box-shadow: var(--brillo), inset 3px 0 0 var(--c);
@@ -222,7 +228,7 @@
   .fila-t { display: flex; align-items: center; gap: 12px; }
   .fila-t b { flex: 1; min-width: 0; }
   .fila-t span { flex: none; }
-  .grupo { display: grid; gap: 2px; padding: 6px; border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); box-shadow: var(--brillo); }
+  .grupo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 6px; border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); box-shadow: var(--brillo); }
   .grupo .seccion-nota { margin: 4px 12px 6px; }
 
   /* ── 5. El cajón: la cabina, con todo lo vivo de tu PC ── */
@@ -239,7 +245,7 @@
   body[data-cajon] .cajon-velo { opacity: 1; pointer-events: auto; }
   .cajon .marca { display: flex; align-items: center; gap: 12px; padding: 18px 20px 12px; }
   .cajon .marca b { font-size: 26px; font-weight: 750; letter-spacing: -0.03em; }
-  .cajon .menu { display: grid; gap: 2px; padding: 0 10px 12px; border-bottom: 1px solid var(--borde); }
+  .cajon .menu { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 0 10px 12px; border-bottom: 1px solid var(--borde); }
   .cajon .fila { display: flex; align-items: center; gap: 14px; padding: 12px; font-size: 16px; }
   .cajon .fila > svg { color: var(--suave); }
   .cajon .fila b { flex: 1; min-width: 0; font-weight: 500; }

@@ -283,6 +283,9 @@ async (page) => {
         // `reenganche.js` en `sessionStorage` (`__vivas`, y `__hist-<id>` con lo
         // que dijo cada una). Sin siembra, ninguna, como sin ese proceso.
         case "pty_vivas": return JSON.parse(sessionStorage.getItem("__vivas") ?? "[]");
+        // El primer número sin usar en esta vida: lo vivo, y lo que diga
+        // `__usadas` (las que se abrieron y ya se cerraron).
+        case "pty_primer_libre": return Math.max(0, Number(sessionStorage.getItem("__usadas") ?? 0), ...JSON.parse(sessionStorage.getItem("__vivas") ?? "[]").map((v) => v.id)) + 1;
         case "pty_historial": return sessionStorage.getItem(`__hist-${args.id}`) ?? "";
         case "terminales_aparte": return sessionStorage.getItem("__aparte") === "1";
         case "terminales_aparte_poner": sessionStorage.setItem("__aparte", args.encender ? "1" : "0"); return null;

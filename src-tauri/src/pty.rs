@@ -1028,6 +1028,20 @@ pub fn pty_vivas(app: AppHandle) -> Vec<Viva> {
     fichas(&app).into_iter().map(|f| Viva { id: f.id, cwd: f.cwd, command: f.command }).collect()
 }
 
+/// El primer número de terminal que se puede repartir sin repetir ninguno de
+/// esta «vida» (`conserje::arranque`). Con el proceso de terminales, la vida es
+/// la suya y no basta con pasar de las vivas: si antes de actualizar hubo una
+/// 9 que ya se cerró, una 9 nueva heredaría sus decisiones, sus avisos y sus
+/// trabajos del conserje.
+#[tauri::command(async)]
+pub fn pty_primer_libre(app: AppHandle) -> u32 {
+    let vivas = fichas(&app).into_iter().map(|f| f.id).max().unwrap_or(0);
+    let usadas = crate::terminales::remoto(&app)
+        .map(|r| r.mayor.load(std::sync::atomic::Ordering::Relaxed))
+        .unwrap_or(0);
+    vivas.max(usadas) + 1
+}
+
 /// Por el canal del panel, como toda la entrada (ver `tx_entrada`).
 pub fn escribir_en_panel(app: &AppHandle, id: u32, bytes: Vec<u8>) -> Result<(), String> {
     let r = match crate::terminales::remoto(app) {

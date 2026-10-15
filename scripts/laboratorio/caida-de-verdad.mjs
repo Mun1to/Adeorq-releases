@@ -15,8 +15,19 @@
 //
 // No toca la Adeorq instalada ni sus datos: la casa (`USERPROFILE`), los datos
 // (`LOCALAPPDATA`) y el perfil del navegador (`WEBVIEW2_USER_DATA_FOLDER`) van a
-// una carpeta temporal, y el canal de terminales es propio. Solo mata procesos
-// que ha lanzado él o que salen del fichero de señas de SU canal.
+// una carpeta temporal, el canal de terminales es propio y el MCP va por su
+// propio puerto (`ADEORQ_MCP_PUERTO`). El estado de la barra vive en la carpeta
+// de la app (`%APPDATA%`), que no se aísla con variables: `save_ui_state` y
+// `load_ui_state` se contestan desde la página (`GUARDA`), y la ventana va al
+// fondo y sin foco. Solo mata procesos que ha lanzado él o que salen del
+// fichero de señas de SU canal.
+//
+// Además de las terminales, mira lo que tiene que seguir valiendo tras la
+// caída (2026-10-15): la «vida» de los números es la del proceso de
+// terminales (`conserje_arranque` igual antes y después), una decisión pedida
+// por la terminal uno sigue viva, el enlace del MCP de un agente
+// (`adeorq.exe --mcp`) contesta «se está reiniciando» sin la app y se
+// reengancha solo al volver, y no se reparte otra vez un número ya usado.
 //
 // La trampa que costó encontrar: con una casa falsa recién creada el puerto de
 // depuración NO se abre. El argumento llega al navegador (se ve en su línea de
@@ -25,13 +36,15 @@
 // navegador pregunta por `AppData\Local` de la casa: si no existe, no lo sabe y
 // se niega por si acaso. Basta con crearla antes del primer arranque. No era el
 // puerto, ni la ruta, ni quién lanza el proceso: se descartaron los tres.
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 
 const EXE = process.argv[2] ?? join(process.env.CARGO_TARGET_DIR ?? "C:\\ct", "debug", "adeorq.exe");
 const PUERTO = 9400 + (process.pid % 100);
+const MCP = 39314;
 const CANAL = `caida${process.pid}`;
 const BASE = join(tmpdir(), `adeorq-caida-${process.pid}`);
 const DATOS = join(BASE, "datos", "Adeorq");
@@ -75,10 +88,74 @@ function abrirApp() {
       WEBVIEW2_USER_DATA_FOLDER: join(BASE, "navegador"),
       WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${PUERTO} --remote-allow-origins=* --disable-features=CalculateNativeWinOcclusion`,
       ADEORQ_TERMINALES_CANAL: CANAL,
+      ADEORQ_MCP_PUERTO: String(MCP),
     },
   });
   hijo.unref();
   return hijo.pid;
+}
+
+/** La ventana de pruebas al fondo y sin foco, mirando antes que es la MÍA. */
+function alFondo(pid) {
+  const guion = `
+    $p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue
+    if (-not $p -or $p.Path -ne '${EXE.replace(/'/g, "''")}' -or $p.MainWindowHandle -eq 0) { exit 1 }
+    Add-Type -Namespace W -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int cx, int cy, uint f);'
+    [void][W.U]::SetWindowPos($p.MainWindowHandle, [IntPtr]1, 0, 0, 0, 0, 0x0013)
+  `;
+  return spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", guion], { stdio: "ignore" }).status === 0;
+}
+
+/** Lo que nunca sale de esta ventana: el estado de la barra (que es el de
+ *  Munir), sus claves, lo que suena en su equipo y el actualizador. */
+const GUARDA = `(() => {
+  const real = window.fetch.bind(window);
+  const responde = (valor) => Promise.resolve(new Response(JSON.stringify(valor), { status: 200, headers: { "content-type": "application/json", "Tauri-Response": "ok" } }));
+  window.fetch = (a, b) => {
+    const url = typeof a === "string" ? a : (a && a.url) || "";
+    if (/supabase\\.co|openrouter\\.ai/.test(url)) return Promise.reject(new TypeError("Failed to fetch"));
+    const plugin = decodeURIComponent(url).match(/^https?:\\/\\/ipc\\.localhost\\/plugin:([a-z-]+)\\|([a-z_]+)$/);
+    if (plugin && plugin[1] === "updater" && plugin[2] === "check") return responde(null);
+    const m = url.match(/^https?:\\/\\/ipc\\.localhost\\/([a-z_]+)$/);
+    if (m && ["media_now", "secret_get", "secret_put", "secret_forget", "openrouter_info", "save_ui_state"].includes(m[1])) return responde(null);
+    if (m && m[1] === "load_ui_state") return responde("{}");
+    return real(a, b);
+  };
+})()`;
+
+/** El enlace del MCP de un agente que vive en la terminal `panel`, como lo
+ *  lanza Claude Code: por su entrada y su salida, una línea por mensaje. */
+function enlaceMcp(panel) {
+  const p = spawn(EXE, ["--mcp"], {
+    stdio: ["pipe", "pipe", "ignore"],
+    env: { ...process.env, ADEORQ_MCP_PUERTO: String(MCP), ADEORQ_PANE_ID: String(panel) },
+  });
+  const esperando = new Map();
+  // Un enlace que se murió (el de antes de este arreglo) no tumba la prueba:
+  // su petición se queda sin respuesta y eso es lo que se mide.
+  p.stdin.on("error", () => {});
+  createInterface({ input: p.stdout }).on("line", (l) => {
+    try {
+      const m = JSON.parse(l);
+      esperando.get(m.id)?.(m);
+      esperando.delete(m.id);
+    } catch {}
+  });
+  let n = 0;
+  const pedir = (method, params = {}) =>
+    new Promise((ok) => {
+      const id = ++n;
+      const plazo = setTimeout(() => {
+        esperando.delete(id);
+        ok(null);
+      }, 10_000);
+      esperando.set(id, (m) => {
+        clearTimeout(plazo);
+        ok(m);
+      });
+      p.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
+    });
+  return { pid: p.pid, pedir, cerrar: () => p.stdin.end() };
 }
 
 /** La ventana, por el protocolo de depuración: evaluar y llamar a Tauri. */
@@ -116,6 +193,10 @@ async function ventana() {
   };
   const inv = (cmd, args = {}) => js(`window.__TAURI_INTERNALS__.invoke(${JSON.stringify(cmd)}, ${JSON.stringify(args)})`);
   await hasta(() => js("!!window.__TAURI_INTERNALS__"), 20_000);
+  // La guarda, para esta página y para las que vengan al recargar.
+  await enviar("Page.enable");
+  await enviar("Page.addScriptToEvaluateOnNewDocument", { source: GUARDA });
+  await js(GUARDA);
   return { enviar, js, inv, cerrar: () => ws.close() };
 }
 
@@ -126,6 +207,7 @@ const señas = () => JSON.parse(readFileSync(SEÑAS, "utf8"));
 
 let app = 0;
 let motor = 0;
+let mcp = null;
 try {
   if (!existsSync(EXE)) throw new Error(`no está ${EXE}: compila antes con cargo build`);
   if (!(await fetch("http://localhost:1420").catch(() => null))) throw new Error("nadie sirve en :1420: lanza antes `pnpm dev`");
@@ -140,6 +222,7 @@ try {
 
   // ------------------------------------------------------------ primera vida
   app = abrirApp();
+  dice(Boolean(await hasta(() => alFondo(app), 12_000, 200)), "la ventana de pruebas va al fondo, sin foco");
   let v = await ventana();
   // El primer arranque sale con la bienvenida: se deja hecho y se le da un
   // tablero de dos terminales, que al recargar abre él por el camino de siempre.
@@ -186,6 +269,19 @@ try {
   const ticAntes = ultimoTic(await historial(v, dos));
   dice((await historial(v, uno)).includes("marca-de-la-uno"), "la uno tiene su marca antes de la caída");
   dice(ticAntes > 0, `la dos cuenta (va por el ${ticAntes})`);
+
+  // Lo que tiene que seguir valiendo: la vida de los números, y un agente de
+  // la uno con su enlace del MCP que le pregunta algo a Munir.
+  const vida = await v.inv("conserje_arranque");
+  mcp = enlaceMcp(uno);
+  const hola = await mcp.pedir("initialize", { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "caida-de-verdad", version: "1" } });
+  dice(Boolean(hola?.result), "el enlace del MCP de un agente de la uno se presenta");
+  const pregunta = await mcp.pedir("tools/call", {
+    name: "ask_decision",
+    arguments: { title: "Prueba de la caída", paneId: uno, questions: [{ title: "¿Sigue viva?", options: [{ text: "sí" }, { text: "no" }] }] },
+  });
+  const decision = pregunta?.result?.content?.[0]?.text?.match(/Decisión (\w+) creada/)?.[1];
+  dice(Boolean(decision), `la uno pregunta algo por el MCP (${decision ?? JSON.stringify(pregunta)})`);
   v.cerrar();
 
   // ------------------------------------------------------------ la caída
@@ -194,9 +290,15 @@ try {
   await dormir(4000);
   dice(!vivo(app), "la app ha muerto");
   dice(vivo(motor), "el proceso de terminales sigue vivo sin ella");
+  const sinApp = await mcp.pedir("tools/list");
+  dice(
+    vivo(mcp.pid) && /reiniciando/.test(sinApp?.error?.message ?? ""),
+    `sin la app, el enlace del MCP sigue vivo y contesta que se está reiniciando (${JSON.stringify(sinApp?.error?.message ?? sinApp)})`,
+  );
 
   // ------------------------------------------------------------ la vuelta
   app = abrirApp();
+  dice(Boolean(await hasta(() => alFondo(app), 12_000, 200)), "la ventana que vuelve va al fondo, sin foco");
   v = await ventana();
   const despues = await hasta(async () => {
     const l = await v.inv("pty_vivas");
@@ -227,6 +329,18 @@ try {
   }
   dice(acepta === true, `la terminal recogida sigue aceptando teclas${acepta === "a la segunda" ? " (la PRIMERA escritura se perdió)" : ""}`);
 
+  const vidaDespues = await v.inv("conserje_arranque");
+  dice(vidaDespues === vida, `la vida de los números es la misma tras la caída (${vida} y ${vidaDespues})`);
+  const suya = (await v.inv("decisiones_listar")).find((d) => d.id === decision);
+  dice(suya?.vigencia === "viva", `la pregunta de la uno sigue viva, no «sin nadie detrás» (${suya?.vigencia})`);
+  const deVuelta = await hasta(async () => {
+    const r = await mcp.pedir("tools/list");
+    return r?.result?.tools?.length ? r : null;
+  }, 30_000, 1000);
+  dice(Boolean(deVuelta), `el enlace del MCP se reengancha solo, sin /mcp (${deVuelta?.result?.tools?.length ?? 0} herramientas)`);
+  const libre = await v.inv("pty_primer_libre");
+  dice(libre > dos, `una terminal nueva no repite número de esta vida (el primero libre es el ${libre})`);
+
   // ------------------------------------------------------------ el cierre de verdad
   // Salir bien es despedirse: el proceso de terminales se lleva todo.
   await v.inv("plugin:process|exit", { code: 0 }).catch(() => {});
@@ -234,7 +348,8 @@ try {
 } catch (e) {
   dice(false, e.message);
 } finally {
-  for (const pid of [app, motor]) if (pid && vivo(pid)) process.kill(pid);
+  mcp?.cerrar();
+  for (const pid of [app, motor, mcp?.pid]) if (pid && vivo(pid)) process.kill(pid);
   await dormir(1500);
   // El navegador puede tardar un momento en soltar su carpeta.
   for (let i = 0; i < 5 && existsSync(BASE); i++) {

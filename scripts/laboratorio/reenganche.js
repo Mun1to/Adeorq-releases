@@ -43,6 +43,9 @@ async (page) => {
       if (!sessionStorage.getItem("__sembrar")) return;
       localStorage.setItem("adeorq-layout", texto);
       sessionStorage.setItem("__vivas", vivas);
+      // En esta vida de los números ya hubo una 14, que se cerró antes de la
+      // caída: no se reparte otra vez (`pty_primer_libre`).
+      sessionStorage.setItem("__usadas", "14");
       sessionStorage.setItem("__hist-4", "\x1b[32mHISTORIA-DE-LA-CUATRO\x1b[0m\r\n");
       sessionStorage.setItem("__hist-9", "HISTORIA-DE-LA-NUEVE\r\n");
     } catch { /* sin almacenamiento no hay siembra */ }
@@ -74,7 +77,7 @@ async (page) => {
   debe(JSON.stringify(deLa(4)?.command) === JSON.stringify(CLAUDE), `con su comando de verdad, no un --resume encima (${JSON.stringify(deLa(4))})`);
   debe(/HISTORIA-DE-LA-CUATRO/.test(r.cuatro), `y con lo que dijo escrito en su xterm («${r.cuatro.slice(0, 80)}»)`);
   const nueva = r.spawns.find((s) => /VoCript/.test(s.cwd));
-  debe(nueva && nueva.id >= 10, `el que no encuentra la suya nace por encima de todo lo vivo (${JSON.stringify(nueva)})`);
+  debe(nueva && nueva.id >= 15, `el que no encuentra la suya nace por encima de todo lo vivo y de lo ya usado en esta vida (${JSON.stringify(nueva)})`);
   debe(!ids.includes(6), "y no con su número viejo, que ya no es de nadie");
   const recuperada = r.paneles.find((p) => p.id === 9);
   debe(recuperada && /recuperada/.test(recuperada.nombre), `lo vivo sin panel sale como recuperada (${JSON.stringify(recuperada)})`);

@@ -86,7 +86,13 @@ impl From<pty::Ficha> for FichaRemota {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(tag = "t", rename_all = "snake_case")]
 pub enum Aviso {
-    Hola { pid: u32, version: u32, terminales: usize },
+    /// `arranque`: cuándo nació este proceso, en milisegundos. Mientras viva,
+    /// es la «vida» de los números de terminal (ver `conserje::arranque`), así
+    /// que una app que vuelve tras una actualización sigue en la misma.
+    /// `mayor`: el número más alto que ha abierto nunca, para que la app que
+    /// vuelve no reparta otra vez uno ya usado en esta vida. Los dos, `default`
+    /// para entenderse con un proceso de antes.
+    Hola { pid: u32, version: u32, terminales: usize, #[serde(default)] arranque: u64, #[serde(default)] mayor: u32 },
     Ok { n: u64, #[serde(default, skip_serializing_if = "Option::is_none")] texto: Option<String> },
     Fichas { n: u64, fichas: Vec<FichaRemota> },
     Error { n: u64, error: String },
@@ -223,6 +229,10 @@ pub struct Servidor {
     escucha: TcpListener,
     tope: Duration,
     retener: Mutex<bool>,
+    /// Cuándo nació este proceso, en milisegundos (ver `Aviso::Hola`).
+    nacido: u64,
+    /// El número de terminal más alto que ha abierto nunca.
+    mayor: Arc<std::sync::atomic::AtomicU32>,
 }
 
 impl Servidor {
@@ -247,6 +257,11 @@ impl Servidor {
             escucha,
             tope,
             retener: Mutex::new(false),
+            nacido: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0),
+            mayor: Default::default(),
         })
     }
 
@@ -331,7 +346,13 @@ impl Servidor {
 
         let (tx, rx) = sync_channel::<String>(COLA_CLIENTE);
         // El saludo, antes que nada de las terminales.
-        let _ = tx.try_send(linea(&Aviso::Hola { pid: self.señas.pid, version: VERSION, terminales: pty::fichas_de(&self.mapa).len() }));
+        let _ = tx.try_send(linea(&Aviso::Hola {
+            pid: self.señas.pid,
+            version: VERSION,
+            terminales: pty::fichas_de(&self.mapa).len(),
+            arranque: self.nacido,
+            mayor: self.mayor.load(std::sync::atomic::Ordering::Relaxed),
+        }));
         let vez = {
             let mut e = self.cliente.estado();
             e.vez += 1;
@@ -354,6 +375,7 @@ impl Servidor {
 
         // El lector de órdenes.
         let mapa = self.mapa.clone();
+        let mayor = self.mayor.clone();
         let cliente = self.cliente.clone();
         let salida: Arc<dyn Salida> = Arc::new(SalidaHost(self.cliente.clone()));
         let retiene = retener;
@@ -380,6 +402,7 @@ impl Servidor {
                     // Lo que tarda, en su hilo: una terminal que tarda en
                     // abrirse no puede hacer esperar a la tecla de otra.
                     Orden::Crear { n, alta } => {
+                        mayor.fetch_max(alta.id, std::sync::atomic::Ordering::Relaxed);
                         let (mapa, salida, tx) = (mapa.clone(), salida.clone(), tx.clone());
                         std::thread::spawn(move || {
                             let a = match pty::abrir(&mapa, alta, salida) {
@@ -498,6 +521,10 @@ pub struct Remoto {
     espejo: Arc<Mutex<std::collections::HashMap<u32, Sombra>>>,
     vivo: Arc<std::sync::atomic::AtomicBool>,
     pub pid: u32,
+    /// Cuándo nació el proceso (su `Hola`); 0 si es de antes de decirlo.
+    pub arranque: std::sync::atomic::AtomicU64,
+    /// El número más alto que ha abierto el proceso en su vida.
+    pub mayor: std::sync::atomic::AtomicU32,
     /// Para cortar la conexión a mano (las pruebas hacen así de «app que se cae»).
     sock: TcpStream,
 }
@@ -537,6 +564,8 @@ impl Remoto {
             espejo: Default::default(),
             vivo: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             pid: señas.pid,
+            arranque: Default::default(),
+            mayor: Default::default(),
             sock,
         });
 
@@ -550,7 +579,9 @@ impl Remoto {
                 let Ok(l) = l else { break };
                 let Ok(aviso) = serde_json::from_str::<Aviso>(&l) else { continue };
                 match aviso {
-                    Aviso::Hola { terminales, .. } => {
+                    Aviso::Hola { terminales, arranque, mayor, .. } => {
+                        r.arranque.store(arranque, std::sync::atomic::Ordering::Relaxed);
+                        r.mayor.store(mayor, std::sync::atomic::Ordering::Relaxed);
                         if let Some(t) = hola.take() {
                             let _ = t.send(Ok(terminales));
                         }
@@ -917,6 +948,10 @@ pub fn arrancar(app: &tauri::AppHandle) {
     if !encendido() {
         return;
     }
+    // Que los clientes lancen el enlace del MCP desde una copia que el
+    // instalador no cierra: si no, el agente que sobrevive a la actualización
+    // se queda sin las herramientas de Adeorq (`mcp_estable.rs`).
+    std::thread::spawn(crate::mcp_estable::preparar);
     let Some(conexion) = app.try_state::<Conexion>() else { return };
     let resultado = (|| -> Result<Arc<Remoto>, String> {
         let dir = dir_de_verdad()?;
@@ -956,6 +991,10 @@ pub fn arrancar(app: &tauri::AppHandle) {
     })();
     match resultado {
         Ok(r) => {
+            // La vida de los números pasa a ser la del proceso, que sobrevive a
+            // la app: sus decisiones, trabajos y avisos siguen valiendo tras
+            // actualizar (ver `conserje::arranque`).
+            crate::conserje::fijar_arranque(r.arranque.load(std::sync::atomic::Ordering::Relaxed));
             let _ = conexion.0.set(r);
         }
         Err(e) => crate::anotar(&format!("terminales: sin proceso aparte ({e}); van dentro de la app, como siempre")),
@@ -1121,15 +1160,25 @@ mod pruebas {
     #[test]
     fn si_la_app_se_cae_aguantan_y_la_siguiente_las_encuentra() {
         let (señas, hilo, dir) = servidor(Duration::from_secs(60));
-        {
+        let vida = {
             let mut p = Probador::conectar(&señas, true);
+            let Some(&Aviso::Hola { arranque, mayor: 0, .. }) = p.esperar(|a| matches!(a, Aviso::Hola { .. }), 3000) else {
+                panic!("sin saludo, o con un número usado antes de abrir ninguna");
+            };
+            assert!(arranque > 0, "el proceso dice cuándo nació");
             p.mandar(&Orden::Crear { n: 1, alta: cmd(5, "antes-de-caer") });
             assert!(p.hasta_que_diga(5, "antes-de-caer", 8000));
             p.caer();
-        }
+            arranque
+        };
         std::thread::sleep(Duration::from_millis(400));
         let mut vuelta = Probador::conectar(&señas, true);
-        assert!(matches!(vuelta.esperar(|a| matches!(a, Aviso::Hola { .. }), 3000), Some(Aviso::Hola { terminales: 1, .. })), "la terminal no aguantó");
+        // La app que vuelve sigue en la misma vida (sus decisiones y avisos
+        // valen) y sabe que el 5 ya se usó (no lo repartirá otra vez).
+        assert!(
+            matches!(vuelta.esperar(|a| matches!(a, Aviso::Hola { .. }), 3000), Some(Aviso::Hola { terminales: 1, arranque, mayor: 5, .. }) if *arranque == vida),
+            "la terminal no aguantó, o el saludo no trae la misma vida y el 5"
+        );
         vuelta.mandar(&Orden::Historial { n: 2, id: 5, bytes: None });
         assert!(matches!(vuelta.esperar(|a| matches!(a, Aviso::Ok { n: 2, .. }), 3000), Some(Aviso::Ok { texto: Some(t), .. }) if t.contains("antes-de-caer")));
         vuelta.mandar(&Orden::Escribir { id: 5, texto: "echo sigue-%COMSPEC:~0,0%viva\r".into() });

@@ -122,6 +122,8 @@ import {
 } from "../lib/pty";
 import { useT } from "../lib/i18n";
 import { propsDeVelo } from "../lib/velo";
+import type { Pane } from "../lib/tablero";
+import { lasDelLienzo, type Recogida } from "../lib/reenganche";
 import KanbanNode, { type AgenteVivo, type KanbanData, type Pendiente } from "./CanvasKanban";
 import ChatNode, { MODELO_DEFECTO, type ChatData } from "./CanvasChat";
 import { chatOlvidar } from "../lib/chat";
@@ -171,18 +173,9 @@ const MODOS: Array<{ id: ModoLienzo; label: string; tip: string }> = [
   { id: "todo", label: "Todo", tip: "Las dos cosas a la vez, como siempre." },
 ];
 
-export interface CanvasPane {
-  id: number;
-  cwd: string;
-  name: string;
-  command?: string[];
-  /** Con qué cuenta y con qué clave nace, decidido una sola vez al abrirla.
-      Igual que en la cabina: si el router elige una cuenta secundaria, la
-      terminal tiene que arrancar de verdad en ella. */
-  env?: Record<string, string>;
-  account?: string;
-  shadow?: boolean;
-}
+/** Una terminal del lienzo: lo mismo que un panel de la Cabina (`Pane`), con su
+    cuenta, su clave y su espejo, sin lo que solo tiene sentido en el mosaico. */
+export type CanvasPane = Pick<Pane, "id" | "cwd" | "name" | "command" | "env" | "account" | "shadow" | "espejo">;
 
 export type SpawnKind = "claude" | "shell" | "agy";
 
@@ -242,7 +235,7 @@ interface Props {
   onCreate: (
     kind: SpawnKind,
     project: Project,
-    propio?: { name?: string; command?: string[] },
+    propio?: { name?: string; command?: string[]; viva?: Recogida },
     cuenta?: Account,
   ) => CanvasPane;
   /** Recuperar el tablero al abrir, el mismo ajuste que usa la Cabina. */
@@ -669,7 +662,7 @@ function Canvas({
       kind: SpawnKind,
       p: Project,
       en?: { x: number; y: number; w?: number; h?: number },
-      propio?: { name?: string; command?: string[] },
+      propio?: { name?: string; command?: string[]; viva?: Recogida },
       cuenta?: Account,
     ): CanvasPane => {
       const pane = onCreate(kind, p, propio, cuenta);
@@ -2664,6 +2657,7 @@ ${ruta}` : ruta;
           proyecto: d.proyecto,
           ruta: d.pane.cwd,
           cmd: conComandos ? d.pane.command : undefined,
+          pty: conComandos ? d.pane.id : undefined,
         });
       } else if (n.type === "widget") {
         guardados.push({
@@ -2789,9 +2783,10 @@ ${ruta}` : ruta;
    *
    *  `callado` es para el tablero que vuelve solo al abrir: hace lo mismo, pero
    *  sin anunciarlo. Un aviso de «lienzo importado» al arrancar sobra, porque
-   *  eso no lo ha pedido nadie ahora mismo, es lo normal. */
+   *  eso no lo ha pedido nadie ahora mismo, es lo normal. `recogidas` también
+   *  es solo suyo: las terminales que aguantaron vivas una caída, por nodo. */
   const aplicarImport = useCallback(
-    async (f: CanvasFile, abrirTerminales: boolean, callado = false) => {
+    async (f: CanvasFile, abrirTerminales: boolean, callado = false, recogidas?: Map<string, Recogida>) => {
       setEntrante(null);
       const mapa = new Map<string, string>();
       const sello = Date.now().toString(36);
@@ -2800,13 +2795,15 @@ ${ruta}` : ruta;
         if (n.tipo === "term") {
           if (!abrirTerminales) continue;
           // Con comando apuntado, vuelve a SU conversación; sin él (un tablero
-          // de otra máquina) nace como una terminal nueva de ese tipo.
-          const command = n.cmd ? await alVolver(n.ruta, n.cmd) : undefined;
+          // de otra máquina) nace como una terminal nueva de ese tipo. La que
+          // sigue viva se queda la suya: su número y su comando, sin `--resume`.
+          const viva = recogidas?.get(n.id);
+          const command = viva ? (viva.command ?? n.cmd) : n.cmd ? await alVolver(n.ruta, n.cmd) : undefined;
           const pane = place(
             n.kind,
             { name: n.proyecto || n.ruta, path: n.ruta, hasGit: false },
             { x: n.x, y: n.y, w: n.w, h: n.h },
-            command ? { command } : undefined,
+            command || viva ? { command, viva } : undefined,
           );
           mapa.set(n.id, String(pane.id));
         } else if (n.tipo === "widget") {
@@ -3001,8 +2998,9 @@ ${ruta}` : ruta;
         const crudo = await readBoard();
         const leido = crudo ? parsear(crudo) : null;
         // Las terminales solo si él tiene puesto recuperarlas, igual que en la
-        // Cabina: son procesos, y el resto del tablero no cuesta nada.
-        if (leido) await aplicarImport(leido, recuperar, true);
+        // Cabina: son procesos, y el resto del tablero no cuesta nada. Y antes,
+        // lo que le toca de lo vivo tras una caída (`lib/tablero.ts` reparte).
+        if (leido) await aplicarImport(leido, recuperar, true, await lasDelLienzo());
       } catch {
         // Un tablero que no se puede leer no puede impedir abrir la app: se
         // empieza en blanco, y el primer cambio lo reescribe.

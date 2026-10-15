@@ -110,6 +110,7 @@ export default function TermNode({ data, selected }: NodeProps<Node<TermData>>) 
         onTurnEnd={d.onTurnEnd}
         onStatus={d.onStatus}
         shadow={d.pane.shadow}
+        espejo={d.pane.espejo}
       />
       </ResguardoPanel>
       {d.logo ? (

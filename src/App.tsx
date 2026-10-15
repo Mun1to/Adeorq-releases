@@ -116,6 +116,7 @@ import { usePuenteMcp } from "./lib/puenteMcp";
 import { useFrenoCuota } from "./lib/frenoCuota";
 import { useLanzarEnLienzo } from "./lib/lanzarEnLienzo";
 import { useTableroGuardado, type Pane, type Team } from "./lib/tablero";
+import type { Recogida } from "./lib/reenganche";
 import { useDeshacerCierre } from "./lib/deshacerCierre";
 import { useBarraEnLienzo } from "./lib/barraEnLienzo";
 import { encargoDeRecuperar } from "./lib/contexto";
@@ -1599,12 +1600,16 @@ function App() {
       // Una terminal del lienzo con un encargo concreto (froede): el nombre y
       // el comando los pone quien la pide, porque eso no es ni un agente ni una
       // consola vacía, es una herramienta puesta a andar.
-      propio?: { name?: string; command?: string[] },
+      // Con `viva`, el tablero que vuelve solo recoge una terminal que
+      // aguantó una caída (`lib/reenganche.ts`).
+      propio?: { name?: string; command?: string[]; viva?: Recogida },
       /** En qué cuenta nace, cuando la eligió el router. Sin esto el lienzo
           abría siempre en la principal. */
       cuenta?: Account,
     ): CanvasPane => {
-      const id = nextId.current++;
+      // La recogida conserva su número, y los nuevos siguen por encima de él.
+      const id = propio?.viva?.id ?? nextId.current++;
+      nextId.current = Math.max(nextId.current, id + 1);
       // Sin `propio.command`, el kind manda. El lienzo solo guarda `claude`,
       // `agy` y `shell` (lo convierte en `CanvasView`), así que aquí «el resto»
       // es siempre la consola pelada.
@@ -1622,6 +1627,9 @@ function App() {
         command,
         env,
         account: etiqueta,
+        // Si corría dentro de un espejo, vuelve siendo de espejo y con ESE.
+        shadow: propio?.viva?.espejo ? true : undefined,
+        espejo: propio?.viva?.espejo,
       };
       setCanvasPanes((prev) => [...prev, pane]);
       return pane;

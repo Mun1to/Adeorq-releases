@@ -1,11 +1,11 @@
 {
-  "version": "0.9.205",
-  "notes": "La app del movil cambia de cara: un cajon con todo lo vivo del PC, la caja de escribir en tarjeta y la pregunta del agente dentro de la caja. Ajustes > Movil pasa a tres filas de estado y dice si tu movil esta conectado a Tailscale.",
-  "pub_date": "2026-10-15T14:54:11Z",
+  "version": "0.9.206",
+  "notes": "Con las terminales aguantando, actualizar ya no le quita nada a un agente: sigue con sus decisiones, sus avisos del movil y las herramientas de Adeorq, que se reenganchan solas. El lienzo recoge sus terminales vivas como la Cabina.",
+  "pub_date": "2026-10-15T16:28:23Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlYOWN0SjVoUmNqUSt2SWx0Z3RjRk0zUUxib1E5UDUrbVAzdUNlQ1JlcHIyUTY4SmtwSTFhUU4zRitqSzRFbmFMbmJoNjlNTjFPTzhYRUZHZGpSSlF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDc2MDQ5CWZpbGU6QWRlb3JxXzAuOS4yMDVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDUKTU5nSmlXd2NRaTJYZWo5N3VSNFdBdVZvczhpUG5KdmdOOGZrMVpQNURGWXYxMFVtV1RuMmRQL25uMHdLTDdBWms1SDZUcktwQXhxM28zQlVEeHF4QWc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.205/Adeorq_0.9.205_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJGVWh4VWNhdFdLSDM2RGU0bXlPa25XdzdyZ2lWWVlLZCtRQ0s0ZUNxQnFmSXJqVTBGTHBpcENHa1JhMEJoWTVaOXQyYStTUUNQeHgxdXBSWTRLT0FvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDgxNjk5CWZpbGU6QWRlb3JxXzAuOS4yMDZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDYKUU9TOUxMRGN4MXRaMWQ3Q1JFL1pqanc1ZHltSFlKOXlpRzM4NmVwNHB1c1hTZXBtRENyaFJUTkRtMU1PZkF2R0M5YzZpTU5scnA5RkdySCt5WlBiQmc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.206/Adeorq_0.9.206_x64-setup.exe"
     }
   }
 }

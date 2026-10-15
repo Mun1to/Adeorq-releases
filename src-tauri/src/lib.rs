@@ -48,6 +48,7 @@ mod uso_clientes;
 mod workspace;
 mod mcp;
 mod mcp_clientes;
+mod mcp_estable;
 mod mods;
 mod git_shadow;
 
@@ -493,6 +494,7 @@ pub fn run() {
             pty::pty_kill,
             pty::pty_historial,
             pty::pty_vivas,
+            pty::pty_primer_libre,
             suelta::sacar_panel,
             suelta::raton_en_pantalla,
             suelta::devolver_panel,

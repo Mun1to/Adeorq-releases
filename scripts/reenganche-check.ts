@@ -8,7 +8,15 @@
 //
 //   pnpm bancos reenganche
 
-import { emparejar, espejoDe, mismaCarpeta, siguienteLibre, type Viva } from "../src/lib/reenganche";
+import {
+  emparejar,
+  espejoDe,
+  mismaCarpeta,
+  panelesDelLienzo,
+  repartir,
+  siguienteLibre,
+  type Viva,
+} from "../src/lib/reenganche";
 
 let fallos = 0;
 function es(nombre: string, sale: unknown, esperado: unknown) {
@@ -75,6 +83,45 @@ es("ni el de un proyecto que empieza igual", parecido.adoptadas.size, 0);
 
 es("los paneles nuevos nacen por encima de todo lo vivo", siguienteLibre(1, vivas), 9);
 es("y sin vivas, donde iban", siguienteLibre(4, []), 4);
+
+// El lienzo: sus terminales entran en el MISMO reparto que las de la Cabina.
+const nodos = panelesDelLienzo([
+  { tipo: "term", id: "7", ruta: "C:\\proyectos\\Vidorq", cmd: claude("l"), pty: 7 },
+  { tipo: "term", id: "8", ruta: "C:\\proyectos\\VoCript" },
+  { tipo: "nota", id: "9" },
+  { tipo: "term", id: "w3k", ruta: "C:\\proyectos\\Webs" },
+  { tipo: "term", id: "05", ruta: "C:\\proyectos\\Webs" },
+]);
+es("de un tablero del lienzo salen solo sus terminales, con el id del nodo", nodos.map((n) => n.nodo), ["7", "8", "w3k", "05"]);
+es("con su número apuntado, o el del id en un tablero de antes", nodos.map((n) => n.pty ?? null), [7, 8, null, null]);
+es("y su carpeta y su comando", [nodos[0].cwd, nodos[0].command], ["C:\\proyectos\\Vidorq", claude("l")]);
+
+const cabina = [{ pty: 4, cwd: "C:\\proyectos\\Adeorq", command: claude("c") }];
+const delLienzo = [
+  { pty: 7, cwd: "C:\\proyectos\\Vidorq", command: claude("l") },
+  { pty: 8, cwd: "C:\\proyectos\\VoCript" },
+  { pty: 5, cwd: "C:\\proyectos\\Adeorq" },
+];
+const vivasDeLasDos = [
+  viva(4, "C:\\proyectos\\Adeorq", claude("c")),
+  viva(7, "c:\\proyectos\\vidorq", claude("l")),
+  viva(8, "C:\\proyectos\\VoCript\\"),
+  viva(9, "C:\\proyectos\\Huerfana"),
+];
+const rep = repartir(cabina, delLienzo, vivasDeLasDos);
+const ids = (m: Map<number, Viva>) => [...m.entries()].map(([i, v]) => `${i}→${v.id}`);
+es("una viva guardada en el lienzo la adopta el lienzo, por su índice en SU lista", ids(rep.lienzo), ["0→7", "1→8"]);
+es("y deja de ser suelta: la Cabina no la enseña como recuperada", rep.sueltas.map((v) => v.id), [9]);
+es("la de la Cabina sigue siendo de la Cabina", ids(rep.cabina), ["0→4"]);
+es("un nodo del lienzo sin su terminal viva no adopta nada", rep.lienzo.has(2), false);
+es("los nuevos de las dos vistas nacen por encima de todo lo vivo", siguienteLibre(1, vivasDeLasDos), 10);
+
+const mismaEnLasDos = repartir([{ pty: 4, cwd: "C:\\a" }], [{ pty: 4, cwd: "C:\\a" }], [viva(4, "C:\\a")]);
+es("una viva que reclaman las dos vistas es de una sola, la Cabina", [ids(mismaEnLasDos.cabina), ids(mismaEnLasDos.lienzo), mismaEnLasDos.sueltas.length], [["0→4"], [], 0]);
+
+const sinLienzo = repartir(cabina, [], vivasDeLasDos);
+es("sin el lienzo en el reparto (no devuelve sus terminales), lo suyo sale suelto", sinLienzo.sueltas.map((v) => v.id), [7, 8, 9]);
+es("y lo de la Cabina va igual que con `emparejar`", ids(sinLienzo.cabina), ids(emparejar(cabina, vivasDeLasDos).adoptadas));
 
 console.log(fallos ? `\n${fallos} FALLOS` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

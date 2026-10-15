@@ -1008,6 +1008,13 @@ export function terminalesVivas(): Promise<TerminalViva[]> {
   return invoke<TerminalViva[]>("pty_vivas").catch(() => []);
 }
 
+/** El primer número de terminal que no se usó en esta «vida» de los números:
+    con el proceso de terminales, una 9 que se cerró antes de actualizar sigue
+    siendo de esa vida, y una 9 nueva heredaría sus decisiones y sus avisos. */
+export function primerNumeroLibre(): Promise<number> {
+  return invoke<number>("pty_primer_libre").catch(() => 1);
+}
+
 /** El ajuste de las terminales en su propio proceso. Se aplica al volver a
     abrir Adeorq: se decide antes de que se abra ninguna terminal. */
 export const terminalesAparte = () => invoke<boolean>("terminales_aparte").catch(() => false);

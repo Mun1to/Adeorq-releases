@@ -38,6 +38,11 @@ export interface NodoTerm {
       que compartes no lo lleva: esa sesión vive en la máquina donde se creó,
       así que en otra no abriría nada y solo sería un dato de más viajando. */
   cmd?: string[];
+  /** Su número de terminal, y también solo en el tablero que vuelve solo: con
+      las terminales en su propio proceso, la que aguantó una caída se
+      reconoce por él al volver (`lib/reenganche.ts`). En otra máquina no
+      señala a nada. */
+  pty?: number;
 }
 
 export interface NodoWidget {
@@ -273,6 +278,7 @@ export function parsear(raw: string): CanvasFile | null {
         proyecto: txt(r.proyecto),
         ruta: txt(r.ruta),
         cmd,
+        pty: typeof r.pty === "number" && Number.isInteger(r.pty) && r.pty > 0 ? r.pty : undefined,
       });
     } else if (r.tipo === "widget") {
       // Contra la lista de verdad: un widget que este Adeorq no conoce (de una

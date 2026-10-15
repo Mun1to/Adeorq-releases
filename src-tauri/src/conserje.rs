@@ -116,14 +116,56 @@ pub struct Trabajo {
 /// Cada trabajo se apunta con el arranque en que nació, y los de otro son
 /// historia: ni se les pide estado ni se les escribe. En milisegundos, que en
 /// nanosegundos no cabe entero en un número de JavaScript.
+///
+/// Con las terminales en su propio proceso (`terminales.rs`), la «vida» de los
+/// números es la de ESE proceso, no la de la app: tras una actualización la
+/// terminal 4 sigue siendo la misma, y sus decisiones, sus trabajos del
+/// conserje y sus avisos del móvil tienen que seguir valiendo. Lo fija
+/// `terminales::arrancar` antes de que nadie lo lea; se lee una vez y no cambia
+/// en toda la vida de la app.
 pub fn arranque() -> u64 {
     static A: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
-    *A.get_or_init(|| {
+    *A.get_or_init(|| DEL_PROCESO.get().copied().unwrap_or_else(abierta))
+}
+
+/// Cuándo nació el proceso de terminales al que se enganchó la app.
+static DEL_PROCESO: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+
+/// Cuándo se abrió esta app.
+fn abierta() -> u64 {
+    static B: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *B.get_or_init(|| {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_millis() as u64)
             .unwrap_or(1)
     })
+}
+
+/// La app se enganchó a un proceso de terminales nacido en `a`: esa es la vida
+/// de los números. Si alguien ya leyó el arranque, se queda el que leyó (lo de
+/// siempre) y se apunta, porque mezclar dos dentro de una vida sería peor.
+pub fn fijar_arranque(a: u64) {
+    abierta();
+    if a == 0 {
+        return;
+    }
+    let _ = DEL_PROCESO.set(a);
+    if arranque() != a {
+        crate::anotar("terminales: el arranque ya se había leído; se queda el de la app");
+    }
+}
+
+/// Desde cuándo vale una decisión que no tiene terminal apuntada: desde que se
+/// abrió ESTA app. Con un proceso de terminales que vive más que ella, el
+/// arranque es más viejo, y lo pedido por un Capataz de una vida anterior de la
+/// app (que murió con ella) saldría como vivo para siempre.
+pub fn desde_para_lo_suelto(arranque: u64) -> u64 {
+    if DEL_PROCESO.get().is_some() {
+        arranque.max(abierta())
+    } else {
+        arranque
+    }
 }
 
 impl Trabajo {

@@ -145,7 +145,7 @@ pub fn vigencia(d: &Decision, arranque: u64, abiertos: &[u32]) -> Vigencia {
     }
     let sigue = match (d.panel, d.arranque) {
         (Some(panel), Some(a)) => a == arranque && abiertos.contains(&panel),
-        _ => d.creada >= arranque,
+        _ => d.creada >= crate::conserje::desde_para_lo_suelto(arranque),
     };
     if sigue { Vigencia::Viva } else { Vigencia::Huerfana }
 }

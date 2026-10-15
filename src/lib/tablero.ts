@@ -14,9 +14,17 @@ import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { addPane as layoutAdd, type Col } from "./layout";
 import { loadEffort, resumeCommandFor } from "./lanzar";
 import { useCabina } from "./cabina";
-import { ptyHistorial, terminalesVivas, type TerminalViva } from "./pty";
+import { primerNumeroLibre, ptyHistorial, readBoard, terminalesVivas, type TerminalViva } from "./pty";
 import { dejarVolcado } from "./mudanza";
-import { emparejar, espejoDe, siguienteLibre } from "./reenganche";
+import { parsear } from "./canvasFile";
+import {
+  entregarAlLienzo,
+  espejoDe,
+  panelesDelLienzo,
+  repartir,
+  siguienteLibre,
+  type Recogida,
+} from "./reenganche";
 /* Los tipos del tablero. Vivían en App.tsx.
    `Team` es el puesto de una cuadrilla, y va aquí porque `Pane` y `SavedPane`
    lo llevan dentro. */
@@ -236,10 +244,30 @@ export function useTableroGuardado({
       // en vez de abrir otra con su `--resume` encima. Sin ese proceso no hay
       // ninguna y todo va como siempre. Va aunque no se devuelva el tablero: lo
       // que sigue vivo se enseña, nunca se mata en silencio.
-      const vivas: TerminalViva[] = await terminalesVivas();
-      if (cancelled || (!saved.panes.length && !vivas.length)) return;
-      const { adoptadas, sueltas } = emparejar(saved.panes, vivas);
-      nextId.current = siguienteLibre(nextId.current, vivas);
+      const [vivas, libre]: [TerminalViva[], number] = await Promise.all([terminalesVivas(), primerNumeroLibre()]);
+      // Las del lienzo entran en el MISMO reparto (`repartir`): emparejando
+      // cada vista por su cuenta, una viva del lienzo salía aquí como suelta y
+      // el lienzo le abría otra encima. Solo si el lienzo va a devolver sus
+      // terminales, que es este mismo ajuste; si no, lo suyo sale recuperado.
+      const lienzo =
+        vivas.length && restoreOnStart
+          ? panelesDelLienzo(parsear(await readBoard().catch(() => ""))?.nodos ?? [])
+          : [];
+      if (cancelled) return;
+      const { cabina: adoptadas, lienzo: delLienzo, sueltas } = repartir(saved.panes, lienzo, vivas);
+      // Por encima de lo vivo y de todo lo que se abrió en esta vida de los
+      // números, aunque ya se cerrara (`pty_primer_libre`).
+      nextId.current = Math.max(siguienteLibre(nextId.current, vivas), libre);
+      // Lo suyo, con lo que dijo cada una ya apuntado: el lienzo espera esto
+      // antes de abrir ninguna terminal, y los números nuevos ya van por encima
+      // de todo lo vivo.
+      const recogidas = new Map<string, Recogida>();
+      for (const [i, v] of delLienzo) {
+        dejarVolcado(v.id, await ptyHistorial(v.id).catch(() => ""));
+        recogidas.set(lienzo[i].nodo, { id: v.id, command: v.command ?? undefined, espejo: espejoDe(v.cwd)?.nombre });
+      }
+      entregarAlLienzo(recogidas);
+      if (cancelled || (!saved.panes.length && !sueltas.length)) return;
       setRestoring(saved.panes.length + sueltas.length);
       // Antes de abrir nada: si los grupos apartados llegaran después de sus
       // terminales, se verían un instante todas encima, que es justo lo que se
@@ -384,7 +412,10 @@ export function useTableroGuardado({
           : [{ cid: nextCol.current++, w: 1, panes: todas, hs: todas.map(() => 1) }],
       );
       setView("cabina");
-    })();
+    })()
+      // Por cualquier salida (nada que devolver, cancelado, un fallo): el
+      // lienzo no puede quedarse esperando su parte. Si ya la tenía, no cambia.
+      .finally(() => entregarAlLienzo(new Map()));
     return () => {
       cancelled = true;
     };

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{mpsc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
@@ -373,58 +373,210 @@ fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
 /// `foreman::config_mcp`). Se presenta con una línea propia antes del protocolo
 /// y el servidor no le aplica el escalón por cliente (`mcp_clientes.rs`): ya
 /// lleva su propio recorte de manos.
+///
+/// **Aguanta que Adeorq se reinicie** (una actualización, o la app que se cae
+/// con las terminales en su propio proceso, `terminales.rs`): el agente sigue
+/// vivo y no tiene por qué quedarse sin herramientas. Antes, al cortarse el
+/// 3012, el puente salía, y el cliente daba el servidor por muerto hasta que
+/// alguien escribiera `/mcp`. Ahora, mientras no hay Adeorq, cada petición se
+/// contesta con un error que dice qué pasa, y en cuanto vuelve se reengancha
+/// solo: se presenta otra vez y le repite al servidor nuevo el `initialize`
+/// que hizo el cliente al principio (el servidor apunta ahí quién habla, ver
+/// `mcp_clientes.rs`), y se come su respuesta. Solo sale cuando el cliente
+/// cierra su entrada. Para que el instalador no lo mate al actualizar, además,
+/// los clientes lo lanzan desde una copia fuera de la instalación
+/// (`mcp_estable.rs`).
 pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let stream = TcpStream::connect(("127.0.0.1", puerto()?))?;
-    let mut stream_writer = crate::clon_sin_herencia(&stream)?;
-    let mut stream_reader = BufReader::new(stream);
-    if de_casa {
-        stream_writer.write_all(b"{\"adeorq\":\"de-casa\"}\n")?;
-        stream_writer.flush()?;
-    }
+    let puerto = puerto()?;
+    // Al empezar sí tiene que haber una Adeorq: si no, el cliente se entera ya
+    // de que este servidor no está, como siempre.
+    let primera = TcpStream::connect(("127.0.0.1", puerto))?;
     // En qué terminal vive el agente que lanzó este puente. `ADEORQ_PANE_ID` es
     // siempre la de ESTE arranque (la pone `pty_spawn` al nacer el panel), a
     // diferencia de un número que el agente tenga apuntado en su conversación.
-    if let Some(id) = std::env::var("ADEORQ_PANE_ID").ok().and_then(|v| v.trim().parse::<u32>().ok()) {
-        stream_writer.write_all(format!("{{\"adeorq\":\"panel\",\"id\":{id}}}\n").as_bytes())?;
-        stream_writer.flush()?;
-    }
-
-    // Spawn a thread to read from TCP and write to stdout
-    thread::spawn(move || {
-        let stdout = io::stdout();
-        let mut stdout_handle = stdout.lock();
-        let mut line = String::new();
-        loop {
-            line.clear();
-            match stream_reader.read_line(&mut line) {
-                Ok(0) | Err(_) => break, // Connection closed
-                Ok(_) => {
-                    if stdout_handle.write_all(line.as_bytes()).is_err() || stdout_handle.flush().is_err() {
-                        break;
-                    }
-                }
-            }
-        }
-        std::process::exit(0);
+    // Con las terminales en su proceso, la que vuelve tras un reinicio conserva
+    // su número, así que vale también al reengancharse.
+    let panel = std::env::var("ADEORQ_PANE_ID").ok().and_then(|v| v.trim().parse::<u32>().ok());
+    let salida: SalidaPuente = Arc::new(|linea: &str| {
+        let mut out = io::stdout().lock();
+        let _ = out.write_all(linea.as_bytes());
+        let _ = out.flush();
     });
+    let entrada = io::stdin().lock().lines().map_while(Result::ok);
+    puente_con(
+        primera,
+        Arc::new(move || TcpStream::connect(("127.0.0.1", puerto))),
+        de_casa,
+        panel,
+        entrada,
+        salida,
+        Duration::from_millis(500),
+    )?;
+    Ok(())
+}
 
-    // Main thread reads from stdin and writes to TCP
-    let stdin = io::stdin();
-    let mut stdin_reader = stdin.lock();
-    let mut line = String::new();
-    loop {
-        line.clear();
-        match stdin_reader.read_line(&mut line) {
-            Ok(0) | Err(_) => break, // EOF or error
-            Ok(_) => {
-                if stream_writer.write_all(line.as_bytes()).is_err() || stream_writer.flush().is_err() {
-                    break;
-                }
+/// Lo que el puente escribe hacia el cliente: una línea entera, con su salto.
+type SalidaPuente = Arc<dyn Fn(&str) + Send + Sync>;
+type ConectarPuente = Arc<dyn Fn() -> io::Result<TcpStream> + Send + Sync>;
+
+/// Lo que comparten la entrada del cliente y la conexión con Adeorq.
+#[derive(Default)]
+struct EstadoPuente {
+    /// Hacia Adeorq; `None` mientras no hay Adeorq.
+    tcp: Option<TcpStream>,
+    /// Sube en cada conexión: una conexión vieja que se cierra tarde no deja
+    /// sin conexión a la nueva.
+    generacion: u64,
+    /// El `initialize` del cliente, tal cual, para repetírselo a la Adeorq que vuelva.
+    inicio: Option<Value>,
+    /// Las peticiones que esperan respuesta: si la conexión se corta, se les
+    /// contesta con un error, o el cliente se quedaría esperando para siempre.
+    pendientes: Vec<Value>,
+}
+
+/// El prefijo de los `id` que pone el propio puente al reengancharse: sus
+/// respuestas no son del cliente y no le llegan.
+const ID_DEL_PUENTE: &str = "adeorq-puente-";
+
+fn error_sin_adeorq(id: &Value) -> String {
+    format!(
+        "{}\n",
+        json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "error": {
+                "code": -32000,
+                "message": "Adeorq no está abierta ahora mismo: se está reiniciando o actualizando. Vuelve a intentarlo en unos segundos; tu terminal sigue viva."
             }
+        })
+    )
+}
+
+fn presentarse(tcp: &mut TcpStream, de_casa: bool, panel: Option<u32>) -> io::Result<()> {
+    if de_casa {
+        tcp.write_all(b"{\"adeorq\":\"de-casa\"}\n")?;
+    }
+    if let Some(id) = panel {
+        tcp.write_all(format!("{{\"adeorq\":\"panel\",\"id\":{id}}}\n").as_bytes())?;
+    }
+    tcp.flush()
+}
+
+/// El puente entero, con la entrada, la salida y la forma de conectar
+/// inyectadas para poder probarlo sin un cliente ni una Adeorq de verdad.
+fn puente_con(
+    mut primera: TcpStream,
+    conectar: ConectarPuente,
+    de_casa: bool,
+    panel: Option<u32>,
+    entrada: impl Iterator<Item = String>,
+    salida: SalidaPuente,
+    espera: Duration,
+) -> io::Result<()> {
+    let estado = Arc::new(Mutex::new(EstadoPuente::default()));
+    presentarse(&mut primera, de_casa, panel)?;
+    let escritor = crate::clon_sin_herencia(&primera)?;
+    {
+        let mut e = estado.lock().unwrap();
+        e.tcp = Some(escritor);
+        e.generacion = 1;
+    }
+    escuchar_adeorq(primera, 1, estado.clone(), conectar, de_casa, panel, salida.clone(), espera);
+
+    for linea in entrada {
+        if linea.trim().is_empty() {
+            continue;
+        }
+        let v: Value = serde_json::from_str(&linea).unwrap_or(Value::Null);
+        let es_peticion = v.get("method").is_some() && !v["id"].is_null();
+        let mut e = estado.lock().unwrap();
+        if v["method"].as_str() == Some("initialize") {
+            e.inicio = Some(v.clone());
+        }
+        if es_peticion {
+            e.pendientes.push(v["id"].clone());
+        }
+        let enviada = match e.tcp.as_mut() {
+            Some(tcp) => tcp.write_all(format!("{linea}\n").as_bytes()).and_then(|_| tcp.flush()).is_ok(),
+            None => false,
+        };
+        if !enviada && es_peticion && e.tcp.is_none() {
+            // Sin Adeorq: se contesta ya. Si la conexión existe pero falló al
+            // escribir, la contestará quien la vea cerrarse (con las demás).
+            e.pendientes.retain(|p| p != &v["id"]);
+            drop(e);
+            salida(&error_sin_adeorq(&v["id"]));
         }
     }
-
     Ok(())
+}
+
+/// Lee lo que dice Adeorq por una conexión y se lo pasa al cliente. Cuando la
+/// conexión se corta, contesta lo pendiente y se pone a buscar la Adeorq que vuelva.
+#[allow(clippy::too_many_arguments)]
+fn escuchar_adeorq(
+    tcp: TcpStream,
+    generacion: u64,
+    estado: Arc<Mutex<EstadoPuente>>,
+    conectar: ConectarPuente,
+    de_casa: bool,
+    panel: Option<u32>,
+    salida: SalidaPuente,
+    espera: Duration,
+) {
+    thread::spawn(move || {
+        for linea in BufReader::new(tcp).lines() {
+            let Ok(linea) = linea else { break };
+            let v: Value = serde_json::from_str(&linea).unwrap_or(Value::Null);
+            if v["id"].as_str().is_some_and(|id| id.starts_with(ID_DEL_PUENTE)) {
+                continue;
+            }
+            if !v["id"].is_null() && v.get("method").is_none() {
+                estado.lock().unwrap().pendientes.retain(|p| p != &v["id"]);
+            }
+            salida(&format!("{linea}\n"));
+        }
+        // Se fue Adeorq. Si esta conexión ya no es la de ahora, no hay nada que hacer.
+        let pendientes = {
+            let mut e = estado.lock().unwrap();
+            if e.generacion != generacion {
+                return;
+            }
+            e.tcp = None;
+            std::mem::take(&mut e.pendientes)
+        };
+        for id in &pendientes {
+            salida(&error_sin_adeorq(id));
+        }
+        // Buscar la que vuelva, sin plazo: si el agente muere, el cliente
+        // cierra la entrada y el proceso entero sale.
+        loop {
+            thread::sleep(espera);
+            let Ok(mut nueva) = conectar() else { continue };
+            let Ok(mut escritor) = crate::clon_sin_herencia(&nueva) else { continue };
+            if presentarse(&mut nueva, de_casa, panel).is_err() {
+                continue;
+            }
+            let mut e = estado.lock().unwrap();
+            let siguiente = e.generacion + 1;
+            if let Some(mut inicio) = e.inicio.clone() {
+                inicio["id"] = json!(format!("{ID_DEL_PUENTE}{siguiente}"));
+                let listo = json!({ "jsonrpc": "2.0", "method": "notifications/initialized" });
+                if escritor
+                    .write_all(format!("{inicio}\n{listo}\n").as_bytes())
+                    .and_then(|_| escritor.flush())
+                    .is_err()
+                {
+                    continue;
+                }
+            }
+            e.generacion = siguiente;
+            e.tcp = Some(escritor);
+            drop(e);
+            escuchar_adeorq(nueva, siguiente, estado, conectar, de_casa, panel, salida, espera);
+            return;
+        }
+    });
 }
 
 /// El puerto del MCP: el 3012, salvo que `ADEORQ_MCP_PUERTO` diga otro. Lo
@@ -1756,6 +1908,98 @@ mod tests {
 
     fn leer(cuenta: &PathBuf) -> Value {
         serde_json::from_str(&fs::read_to_string(cuenta.join(".claude.json")).unwrap()).unwrap()
+    }
+
+    /// Una Adeorq de mentira por un `TcpListener`: lee líneas y contesta las
+    /// peticiones con su mismo `id`, hasta leer una con el método `ultimo`, y
+    /// entonces se va. Devuelve lo que leyó, en orden.
+    fn adeorq_de_mentira(l: TcpListener, ultimo: &'static str) -> thread::JoinHandle<Vec<Value>> {
+        thread::spawn(move || {
+            let (s, _) = l.accept().unwrap();
+            let mut w = s.try_clone().unwrap();
+            let mut leidas = Vec::new();
+            for linea in BufReader::new(s).lines() {
+                let v: Value = serde_json::from_str(&linea.unwrap()).unwrap();
+                if v.get("method").is_some() && !v["id"].is_null() {
+                    w.write_all(format!("{}\n", json!({ "jsonrpc": "2.0", "id": v["id"], "result": { "de": "adeorq" } })).as_bytes()).unwrap();
+                }
+                let fin = v["method"] == ultimo;
+                leidas.push(v);
+                if fin {
+                    break;
+                }
+            }
+            leidas
+        })
+    }
+
+    #[test]
+    fn el_puente_aguanta_que_adeorq_se_reinicie() {
+        let l = TcpListener::bind("127.0.0.1:0").unwrap();
+        let puerto = l.local_addr().unwrap().port();
+        // La primera Adeorq: el panel, el `initialize` y una petición, y se va.
+        let primera = adeorq_de_mentira(l, "tools/list");
+        let (a_puente, entrada) = mpsc::channel::<String>();
+        let (dice, al_cliente) = mpsc::channel::<String>();
+        let salida: SalidaPuente = Arc::new(move |l: &str| {
+            let _ = dice.send(l.trim().to_string());
+        });
+        let tcp = TcpStream::connect(("127.0.0.1", puerto)).unwrap();
+        thread::spawn(move || {
+            puente_con(
+                tcp,
+                Arc::new(move || TcpStream::connect(("127.0.0.1", puerto))),
+                false,
+                Some(7),
+                entrada.into_iter(),
+                salida,
+                Duration::from_millis(30),
+            )
+        });
+        let recibir = || -> Value { serde_json::from_str(&al_cliente.recv_timeout(Duration::from_secs(5)).unwrap()).unwrap() };
+        let init = json!({ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": { "clientInfo": { "name": "claude-code", "version": "2" } } });
+        a_puente.send(init.to_string()).unwrap();
+        assert_eq!(recibir()["id"], 1);
+        a_puente.send(json!({ "jsonrpc": "2.0", "id": 2, "method": "tools/list" }).to_string()).unwrap();
+        assert_eq!(recibir()["id"], 2);
+        let leidas = primera.join().unwrap();
+        assert_eq!(leidas[0], json!({ "adeorq": "panel", "id": 7 }));
+
+        // Sin Adeorq: la petición se contesta con un error que dice qué pasa,
+        // en vez de dejar al cliente esperando o cerrar el servidor.
+        thread::sleep(Duration::from_millis(100));
+        a_puente.send(json!({ "jsonrpc": "2.0", "id": 3, "method": "tools/call" }).to_string()).unwrap();
+        let sin = recibir();
+        assert_eq!(sin["id"], 3);
+        assert!(sin["error"]["message"].as_str().unwrap().contains("se está reiniciando"), "{sin}");
+
+        // Vuelve Adeorq en el mismo puerto: el puente se presenta, le repite el
+        // `initialize` del cliente con un id suyo y el aviso de listo, y la
+        // respuesta a ese `initialize` no le llega al cliente.
+        // En Windows, intentar conectar a un puerto sin nadie tarda unos dos
+        // segundos: se pregunta hasta que contesta la Adeorq nueva, y mientras
+        // tanto cada petición tiene que recibir su error, nunca quedarse sin nada.
+        let segunda = adeorq_de_mentira(TcpListener::bind(("127.0.0.1", puerto)).unwrap(), "tools/call");
+        let mut buena = None;
+        for id in 10..60 {
+            a_puente.send(json!({ "jsonrpc": "2.0", "id": id, "method": "tools/call" }).to_string()).unwrap();
+            let r = recibir();
+            assert_eq!(r["id"], id, "cada petición recibe su respuesta, y nunca la del initialize repetido: {r}");
+            if r["result"].is_object() {
+                buena = Some(id);
+                break;
+            }
+            assert!(r["error"]["message"].as_str().unwrap().contains("se está reiniciando"), "{r}");
+            thread::sleep(Duration::from_millis(200));
+        }
+        let buena = buena.expect("el puente no se reenganchó en diez segundos");
+        let leidas = segunda.join().unwrap();
+        assert_eq!(leidas[0], json!({ "adeorq": "panel", "id": 7 }));
+        assert_eq!(leidas[1]["method"], "initialize");
+        assert_eq!(leidas[1]["params"]["clientInfo"]["name"], "claude-code");
+        assert!(leidas[1]["id"].as_str().unwrap().starts_with(ID_DEL_PUENTE));
+        assert_eq!(leidas[2]["method"], "notifications/initialized");
+        assert_eq!(leidas[3]["id"], buena);
     }
 
     #[test]

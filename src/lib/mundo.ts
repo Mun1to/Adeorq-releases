@@ -153,7 +153,7 @@ export async function mirarMundo(cuentas: Account[]): Promise<CuentaViva[]> {
       // casa ya decidió (ver `providers.ts`) que se dice lo que se sabe en vez
       // de adivinar: se da por conectada, que es lo que el usuario ve.
       conectada = p.creds.length
-        ? await accountReady(cuenta.dir, p.creds, p.homeDir).catch(() => false)
+        ? await accountReady(cuenta.dir, p.creds, p.homeDir, p.envEsCasa).catch(() => false)
         : true;
       conectadas.set(cuenta.id, { valor: conectada, cuando: Date.now() });
     }

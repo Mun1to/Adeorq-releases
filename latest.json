@@ -1,11 +1,11 @@
 {
-  "version": "0.9.208",
-  "notes": "El movil se limpia: En marcha solo ensena lo que trabaja, con el hilo azul del escritorio, Terminales va agrupada por estado, Adeo se mueve siempre y las decisiones que te esperan salen en un globito sobre el menu.",
-  "pub_date": "2026-10-15T20:31:56Z",
+  "version": "0.9.209",
+  "notes": "En el movil, una conversacion se borra manteniendola pulsada, y el cajon trae Programados y Uso. Una segunda cuenta de Gemini ya sale conectada.",
+  "pub_date": "2026-10-15T21:05:50Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3o4N2lDMzVuZWJYUllhSGt1alV5QVRTWFk1YkN1NTY5dEtFem1YSU8vV2xRWVdyaWNPZTBHUjZHUkIvWk5RYzlOMjRHNkhaS1IrSnhjdWlXVGx6RWdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDk2MzE0CWZpbGU6QWRlb3JxXzAuOS4yMDhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDgKaVFCS2lORTlsZ3ptcFJuZ1FaYm10a1Urd0hGb2ViTTdURkVLc0k1ckUwM2VyaVFscE9Xc1hRQ2RsVWlDTmhuR3VVMzJpWlBZdlg2YXFBdVNqcTRBQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.208/Adeorq_0.9.208_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLys0dDh0K3JRem1QNmxSRXZtZFhDRG92WG5Sc1F1QmVkOHlKelFWMFNwRTRXbUVZNENlcFhWdnUxMkdxYVZGdzBoWTNuNEJnRS9TTyt5Yi9FYWIxNWdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDk4MzQ5CWZpbGU6QWRlb3JxXzAuOS4yMDlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDkKeHEzVlpTQUhuMmJsNkd2QzZGQks1VXZHWGxOcGpOSjRrdHF5ZHBxUVliOWtWenJYRE54MFVZb0VmTmpkdUxOUlRkZyt2U0M3eGxiSmw5Nm1LMVFsQXc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.209/Adeorq_0.9.209_x64-setup.exe"
     }
   }
 }

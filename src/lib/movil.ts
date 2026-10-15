@@ -39,6 +39,8 @@ import {
 } from "./conserje";
 import { enviarAlConserje } from "./conserjeEnvio";
 import { cerebroPorDefecto } from "./models";
+import { fotoRapida } from "./mundo";
+import { providerOf } from "./providers";
 
 export interface Dispositivo {
   /** El principio de su huella: sirve para quitarlo, no para entrar. */
@@ -162,6 +164,22 @@ const enCurso = new Map<string, EnCurso>();
 export async function atenderPedido(p: PedidoMovil, exec: ConserjeExec): Promise<Record<string, unknown>> {
   if (p.clase === "terminales" || p.clase === "pantalla" || p.clase === "escribir" || p.clase === "tecla") {
     return atenderTerminal(p, exec);
+  }
+  // Lo que le queda a cada cuenta, para «Uso» en el cajón del móvil: lo mismo
+  // que lee el router, con lo que haya a los seis segundos si alguna tarda.
+  if (p.clase === "uso") {
+    const vivas = await fotoRapida(exec.cuentas(), 6000);
+    return {
+      cuentas: vivas.map((v) => ({
+        nombre: v.cuenta.label,
+        programa: providerOf(v.cuenta.provider).label,
+        agente: v.cuenta.provider !== "shell",
+        instalada: v.instalado,
+        conectada: v.conectada,
+        gastado: typeof v.gastado === "number" ? Math.round(v.gastado) : null,
+        plan: v.plan ?? null,
+      })),
+    };
   }
   const id = typeof p.id === "string" ? p.id : "";
   if (!id) return { error: "Falta la conversación." };

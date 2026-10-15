@@ -290,7 +290,7 @@ export default function AccountsView({
         : [{ acc: cerrando, p: providerOf(cerrando.provider) }];
     const fallos: string[] = [];
     for (const { acc, p } of lista) {
-      await logoutAccount(acc.dir, p.creds, p.homeDir).catch((e) => {
+      await logoutAccount(acc.dir, p.creds, p.homeDir, p.envEsCasa).catch((e) => {
         fallos.push(`${nombreDe(acc)}: ${e}`);
       });
     }
@@ -314,7 +314,7 @@ export default function AccountsView({
       for (const p of PROVIDERS) {
         if (!ids.has(p.id)) continue;
         for (const acc of allOf(p)) {
-          const ready = await accountReady(acc.dir, p.creds, p.homeDir).catch(() => false);
+          const ready = await accountReady(acc.dir, p.creds, p.homeDir, p.envEsCasa).catch(() => false);
           // El plan en disco solo lo deja quien tiene `estadisticas`.
           const plan = sabe(p.id, "estadisticas") ? await planInfo(acc.dir || undefined).catch(() => null) : null;
           let limits: Limits | null = null;

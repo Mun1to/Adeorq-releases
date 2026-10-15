@@ -237,6 +237,15 @@
   .fila-term .avatar.consola { background: var(--capa-fuerte); color: var(--suave); }
   .fila-term .quien { flex: 1; min-width: 0; display: grid; gap: 1px; font-size: 15px; color: var(--tinta); }
   .fila-term .quien small { font-size: 12.5px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  div.fila-term { cursor: default; }
+  .fila-term .quien small[data-mal] { color: var(--mal); }
+  .punto[data-tono="hecho"] { background: var(--vivo); opacity: 1; }
+  .punto[data-tono="mal"] { background: var(--mal); opacity: 1; }
+  /* Lo gastado de una cuenta: una raya fina bajo su nombre. */
+  .uso-barra { height: 4px; margin-top: 6px; border-radius: var(--r-pastilla); background: var(--capa-fuerte); overflow: hidden; }
+  .uso-barra i { display: block; height: 100%; width: var(--p); border-radius: inherit; background: var(--acento); }
+  .uso-barra[data-alto] i { background: var(--termino); }
+  .fila-term .uso-cifra { flex: none; font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--tinta); }
 
   /* ── 5. El cajón: la cabina, con todo lo vivo de tu PC ── */
   .cajon-velo { position: fixed; inset: 0; z-index: 20; background: var(--velo); opacity: 0; pointer-events: none; transition: opacity var(--t-lenta); }
@@ -263,6 +272,22 @@
   .cajon .fila[aria-current="true"] { background: var(--capa-viva); }
   .cajon .pc { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--borde); font-size: 13px; color: var(--suave); }
   .cajon .pc .punto[data-mal] { background: var(--mal); opacity: 1; }
+  /* Lo que se puede hacer con una conversación: se mantiene pulsada y sale
+     abajo, como en la app de Claude. Por encima del cajón. */
+  .hoja-velo { position: fixed; inset: 0; z-index: 30; background: var(--velo); }
+  .hoja {
+    position: fixed; z-index: 31; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom));
+    display: grid; gap: 8px; padding: 10px; border-radius: var(--r-caja);
+    background: var(--cristal); backdrop-filter: var(--vidrio); -webkit-backdrop-filter: var(--vidrio); box-shadow: var(--sombra);
+    animation: llega 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .hoja p { margin: 6px 10px 2px; font-size: 13px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hoja button {
+    display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; border: 0; border-radius: var(--r-btn);
+    background: var(--capa-fuerte); color: var(--tinta); font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .hoja button.peligro { color: var(--mal); }
+  #filas .fila, .cajon .fila[data-conv] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .nuevo-encargo {
     position: absolute; right: 16px; bottom: calc(64px + env(safe-area-inset-bottom));
     display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 20px; border: 0; border-radius: var(--r-pastilla);
@@ -695,6 +720,32 @@ const EN = {
   "Conversaciones": "Conversations",
   "En marcha": "Running",
   "Te preguntan": "Asking you",
+  "Borrar conversación": "Delete conversation",
+  "Programados": "Scheduled",
+  "lo que se lanza solo en tu PC": "what runs on its own on your PC",
+  "Cada hora": "Every hour",
+  "Cada {n} horas": "Every {n} hours",
+  "Cada día a las {h}": "Every day at {h}",
+  "De lunes a viernes a las {h}": "Monday to Friday at {h}",
+  "{d} a las {h}": "{d} at {h}",
+  L: "M", M: "T", X: "W", J: "T", V: "F", S: "S", D: "S",
+  "parado: {m}": "stopped: {m}",
+  "apagado": "off",
+  "la última, {c}": "last one {c}",
+  "Activos": "Active",
+  "Parados": "Stopped",
+  "En este sistema todavía no se lanzan solos.": "On this system they don't run on their own yet.",
+  "No tienes encargos programados. Se crean en la Agenda del PC.": "You have no scheduled jobs. They are created in the PC's Agenda.",
+  "Uso": "Usage",
+  "lo que le queda a cada cuenta": "what each account has left",
+  "sin instalar": "not installed",
+  "sin sesión": "signed out",
+  "no dice cuánto lleva": "does not say how much it has used",
+  "{p} %": "{p}%",
+  "Cuentas": "Accounts",
+  "No hay cuentas en Adeorq.": "There are no accounts in Adeorq.",
+  "Cancelar": "Cancel",
+  "No se pudo borrar: {e}": "Could not delete it: {e}",
   "Terminaron": "Finished",
   "En reposo": "Idle",
   "Buenas.": "Hi there.",
@@ -1406,6 +1457,11 @@ const ICONO = {
   deshacer: trazo('<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>', 14),
   parar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>',
   chispa: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>',
+  // Programados: un reloj. Uso: un medidor con su aguja.
+  reloj: trazo('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', 20),
+  uso: trazo('<path d="M4.5 16.5a7.5 7.5 0 1 1 15 0"/><path d="M12 16.5l3.6-4.1"/>', 20),
+  // La papelera del escritorio (`TrashIcon`): la tapa con su asa y el cubo.
+  papelera: trazo('<path d="M4 7h16M9.5 7V4.8h5V7M6.5 7l1 12.5h9L17.5 7M10.2 11v5M13.8 11v5"/>', 18),
   logo: '<svg width="30" height="30" viewBox="0 0 1024 1024" aria-hidden="true"><defs><linearGradient id="adeorq-logo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#48c2ff"/><stop offset="1" stop-color="#2f9df3"/></linearGradient></defs><path fill="url(#adeorq-logo)" fill-rule="evenodd" d="M 236 112 L 788 112 L 1016 756 L 944 848 L 80 848 L 8 756 Z M 512 240 L 712 730 Q 512 572 312 730 Z"/></svg>',
 };
 
@@ -1918,6 +1974,8 @@ function pintarCajon() {
       <button class="fila" data-ir="lista" aria-current="${aqui("lista") || aqui("hilo")}">${ICONO.chat}<b>${tr("Conserje")}</b></button>
       <button class="fila" data-ir="terminales" aria-current="${aqui("terminales")}">${ICONO.terminal}<b>${tr("Terminales")}</b>${terminales.length ? `<span>${terminales.length}</span>` : ""}</button>
       <button class="fila" data-ir="decisiones" aria-current="${aqui("decisiones") || aqui("decision")}">${ICONO.decision}<b>${tr("Decisiones")}</b>${esperan ? `<span class="cuenta-dec">${esperan}</span>` : ""}</button>
+      <button class="fila" data-ir="programados" aria-current="${aqui("programados")}">${ICONO.reloj}<b>${tr("Programados")}</b></button>
+      <button class="fila" data-ir="uso" aria-current="${aqui("uso")}">${ICONO.uso}<b>${tr("Uso")}</b></button>
     </div>
     <div class="recientes">
       ${terminales.length || d.lista.length ? `<h2 class="seccion"><span>${tr("Recientes")}</span></h2>` : ""}
@@ -1957,6 +2015,71 @@ document.addEventListener("touchend", (ev) => {
   dedoX = null;
 }, { passive: true });
 
+// ─── Mantener pulsada una conversación ──────────────────────────────────────
+/* En el inicio y en el cajón, mantener pulsada una conversación saca lo que se
+   puede hacer con ella (hoy, borrarla), como en la app de Claude. Las de prueba
+   («hola») se iban acumulando sin forma de quitarlas (Munir, 2026-10-15). Vale
+   el menú del sistema (`contextmenu`, que Chrome lanza al mantener pulsado) y,
+   por si un navegador no lo lanza, un reloj propio de medio segundo. */
+const CONVERSACION = "#filas .fila[data-id], #cajon .fila[data-conv]";
+let sinClicHasta = 0;
+function hojaConversacion(id, titulo) {
+  if (document.getElementById("hoja")) return;
+  sinClicHasta = Date.now() + 700;
+  document.body.insertAdjacentHTML("beforeend", `
+    <div class="hoja-velo" id="hoja-velo"></div>
+    <div class="hoja" id="hoja" role="dialog" aria-label="${esc(titulo)}">
+      <p id="hoja-titulo">${esc(titulo)}</p>
+      <button class="peligro" id="hoja-borrar">${ICONO.papelera}${tr("Borrar conversación")}</button>
+      <button id="hoja-cancelar">${tr("Cancelar")}</button>
+    </div>`);
+  const cerrar = () => {
+    document.getElementById("hoja-velo")?.remove();
+    document.getElementById("hoja")?.remove();
+  };
+  document.getElementById("hoja-velo").addEventListener("click", cerrar);
+  document.getElementById("hoja-cancelar").addEventListener("click", cerrar);
+  document.getElementById("hoja-borrar").addEventListener("click", async () => {
+    try {
+      await api("POST", "/api/olvidar", { id });
+    } catch (err) {
+      document.getElementById("hoja-titulo").textContent = tr("No se pudo borrar: {e}", { e: err.message });
+      return;
+    }
+    cerrar();
+    document.querySelectorAll(`#filas .fila[data-id="${CSS.escape(id)}"]`).forEach((f) => f.remove());
+    if (delCajon) {
+      delCajon.lista = delCajon.lista.filter((f) => f.id !== id);
+      if (document.body.dataset.cajon !== undefined) pintarCajon();
+    }
+    if (e.vista === "hilo" && e.id === id) ir({ vista: "lista" });
+  });
+}
+const pulsada = (f) => hojaConversacion(f.dataset.id || f.dataset.conv, f.querySelector("b")?.textContent || "");
+document.addEventListener("contextmenu", (ev) => {
+  const f = ev.target.closest?.(CONVERSACION);
+  if (!f) return;
+  ev.preventDefault();
+  pulsada(f);
+});
+let largo = null;
+document.addEventListener("pointerdown", (ev) => {
+  const f = ev.target.closest?.(CONVERSACION);
+  if (!f) return;
+  const [x, y] = [ev.clientX, ev.clientY];
+  const quieto = (m) => Math.abs(m.clientX - x) < 10 && Math.abs(m.clientY - y) < 10;
+  largo = { t: setTimeout(() => pulsada(f), 550), quieto };
+});
+document.addEventListener("pointermove", (ev) => { if (largo && !largo.quieto(ev)) { clearTimeout(largo.t); largo = null; } }, { passive: true });
+for (const fin of ["pointerup", "pointercancel"]) document.addEventListener(fin, () => { if (largo) { clearTimeout(largo.t); largo = null; } });
+// El dedo que se levanta tras mantener pulsado no abre además la conversación.
+document.addEventListener("click", (ev) => {
+  if (Date.now() < sinClicHasta && ev.target.closest?.(CONVERSACION)) {
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+}, true);
+
 /* `atras` dice por dónde entra la pantalla nueva: hacia delante por la
    derecha, de vuelta por la izquierda. Volver a la portada siempre es volver. */
 function ir(cambio, atras = cambio.vista === "lista") {
@@ -1988,6 +2111,8 @@ function pintar() {
   if (e.vista === "terminales") return pintarTerminales();
   if (e.vista === "terminal") return pintarTerminal();
   if (e.vista === "decisiones") return pintarDecisiones();
+  if (e.vista === "programados") return pintarProgramados();
+  if (e.vista === "uso") return pintarUso();
   if (e.vista === "decision") return pintarDecision();
 }
 
@@ -2486,6 +2611,89 @@ async function pintarTerminales() {
     if (aqui) aqui.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
   }
   sondear(5000, cargar);
+}
+
+// ─── Programados y Uso ──────────────────────────────────────────────────────
+/* Dos pantallas del cajón que solo se leen: lo que se lanza solo en tu PC (la
+   Agenda, `programados.rs`) y lo que le queda a cada cuenta (lo mismo que lee
+   el router). Se cambian en el PC; aquí se mira de un vistazo. */
+const LETRA_DIA = ["", "L", "M", "X", "J", "V", "S", "D"];
+/** Como `cuandoEnTexto` de lib/programados.ts: 1 es lunes y 7 domingo. */
+function cuandoProgramado(c) {
+  if (!c) return "";
+  if (c.tipo === "cada") return c.horas === 1 ? tr("Cada hora") : tr("Cada {n} horas", { n: c.horas });
+  const dias = [...new Set(c.dias || [])].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b);
+  if (dias.length === 7) return tr("Cada día a las {h}", { h: c.hora });
+  if (dias.join() === "1,2,3,4,5") return tr("De lunes a viernes a las {h}", { h: c.hora });
+  return tr("{d} a las {h}", { d: dias.map((d) => tr(LETRA_DIA[d])).join(" "), h: c.hora });
+}
+/** Una pantalla del cajón: su cabecera y un cuerpo que se rellena y se refresca. */
+function pantallaDelCajon(id, titulo, sub, cargar, cada) {
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra">${botonCajon()}<h1>${titulo}<small>${sub}</small></h1></header>
+      <main class="cuerpo" id="${id}"></main>
+    </div>`;
+  montarBotonCajon();
+  const vuelta = async () => {
+    try { await cargar(); } catch (err) {
+      const aqui = document.getElementById(id);
+      if (aqui) aqui.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
+    }
+  };
+  vuelta();
+  sondear(cada, vuelta);
+}
+const apartados = (grupos) => grupos.map(([titulo, filas]) => (filas.length ? `<h2 class="seccion"><span>${titulo}</span></h2><div class="grupo">${filas.join("")}</div>` : "")).join("");
+
+function pintarProgramados() {
+  pantallaDelCajon("programados", tr("Programados"), tr("lo que se lanza solo en tu PC"), async () => {
+    const v = await api("GET", "/api/programados");
+    const aqui = document.getElementById("programados");
+    if (!aqui) return;
+    const encargos = v.encargos || [];
+    const fila = (x) => {
+      const ultima = (x.ultimas || []).reduce((a, b) => (!a || b.cuando > a.cuando ? b : a), null);
+      const tono = x.corrida ? "trabajando" : !ultima ? "cerrada" : ultima.resultado === "hecho" ? "hecho" : ultima.resultado === "fallo" ? "mal" : "cerrada";
+      const parado = !x.activo || x.cortado;
+      const debajo = parado
+        ? (x.cortado ? tr("parado: {m}", { m: x.cortado.motivo }) : tr("apagado"))
+        : [cuandoProgramado(x.cuando), hoja(x.cwd), x.ultima ? tr("la última, {c}", { c: hace(x.ultima / 1000) }) : ""].filter(Boolean).join(" · ");
+      return `<div class="fila fila-term${x.corrida ? " hilo" : ""}">
+        <span class="avatar">${ICONO.reloj}</span>
+        <span class="quien"><b>${esc(x.nombre)}</b><small${x.cortado ? " data-mal" : ""}>${esc(debajo)}</small></span>
+        <i class="punto" data-tono="${tono}"></i>
+      </div>`;
+    };
+    aqui.innerHTML = encargos.length
+      ? apartados([
+        [tr("Activos"), encargos.filter((x) => x.activo && !x.cortado).map(fila)],
+        [tr("Parados"), encargos.filter((x) => !x.activo || x.cortado).map(fila)],
+      ]) + (v.puede === false ? `<p class="seccion-nota">${tr("En este sistema todavía no se lanzan solos.")}</p>` : "")
+      : `<p class="vacio">${tr("No tienes encargos programados. Se crean en la Agenda del PC.")}</p>`;
+  }, 15000);
+}
+
+function pintarUso() {
+  pantallaDelCajon("uso", tr("Uso"), tr("lo que le queda a cada cuenta"), async () => {
+    const v = await api("GET", "/api/uso");
+    const aqui = document.getElementById("uso");
+    if (!aqui) return;
+    const cuentas = v.cuentas || [];
+    const fila = (c) => {
+      const mal = !c.instalada ? tr("sin instalar") : !c.conectada ? tr("sin sesión") : "";
+      const sabe = typeof c.gastado === "number";
+      const debajo = mal || [c.programa, c.plan, sabe ? "" : tr("no dice cuánto lleva")].filter(Boolean).join(" · ");
+      return `<div class="fila fila-term">
+        <span class="avatar${c.agente ? "" : " consola"}">${c.agente ? ICONO.chat : ICONO.terminal}</span>
+        <span class="quien"><b>${esc(c.nombre)}</b><small${mal ? " data-mal" : ""}>${esc(debajo)}</small>${sabe && !mal ? `<span class="uso-barra"${c.gastado >= 78 ? " data-alto" : ""} style="--p:${Math.min(100, Math.max(0, c.gastado))}%"><i></i></span>` : ""}</span>
+        ${sabe && !mal ? `<span class="uso-cifra">${tr("{p} %", { p: c.gastado })}</span>` : ""}
+      </div>`;
+    };
+    aqui.innerHTML = cuentas.length
+      ? apartados([[tr("Cuentas"), cuentas.map(fila)]])
+      : `<p class="vacio">${tr("No hay cuentas en Adeorq.")}</p>`;
+  }, 30000);
 }
 
 // ─── Decisiones ─────────────────────────────────────────────────────────────

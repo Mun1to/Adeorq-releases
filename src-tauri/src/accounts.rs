@@ -62,36 +62,57 @@ pub fn account_dir(label: String) -> Result<String, String> {
 /// An empty config_dir means that CLI's own default account, which lives at
 /// `%USERPROFILE%\<home_dir>`: the renderer cannot expand that, so it arrives
 /// as the relative path and is resolved here.
+///
+/// `env_es_casa` viene de la tabla de proveedores (`envEsCasa`): ver
+/// `carpeta_de`, que es donde cambia a qué carpeta se mira.
 #[tauri::command(async)]
-pub fn account_ready(config_dir: String, files: Vec<String>, home_dir: Option<String>) -> bool {
-    let dir = if config_dir.trim().is_empty() {
-        let Some(rel) = home_dir.filter(|h| !h.trim().is_empty()) else {
-            return false;
-        };
-        let Some(home) = crate::dir_casa() else {
-            return false;
-        };
-        // Providers write "a/b" style paths; join handles both separators.
-        rel.split(['/', '\\'])
-            .fold(PathBuf::from(home), |acc, part| acc.join(part))
-    } else {
-        PathBuf::from(&config_dir)
+pub fn account_ready(
+    config_dir: String,
+    files: Vec<String>,
+    home_dir: Option<String>,
+    env_es_casa: Option<bool>,
+) -> bool {
+    let Some(dir) = carpeta_de(&config_dir, home_dir.as_deref(), env_es_casa.unwrap_or(false)) else {
+        return false;
     };
     files.iter().any(|f| dir.join(f).is_file())
 }
 
-/// La carpeta de una cuenta, venga con ruta propia o sea la de siempre del CLI.
+/// La carpeta donde el CLI deja el login de una cuenta, venga con ruta propia
+/// o sea la de siempre del CLI.
 ///
 /// Sale de `account_ready`, que hacía esta misma cuenta a mano: el renderer no
 /// puede expandir `~`, así que la carpeta de fábrica llega como ruta relativa
 /// (`.claude`, `.pi/agent`) y se resuelve aquí.
-fn carpeta_de(config_dir: &str, home_dir: Option<&str>) -> Option<PathBuf> {
-    if !config_dir.trim().is_empty() {
+///
+/// Con `env_es_casa`, la variable del CLI no es su carpeta sino la CASA donde la
+/// busca, y debajo cuelga la misma ruta relativa que en la principal. Gemini CLI
+/// es así: `Storage.getGlobalGeminiDir` hace `join(homedir(), ".gemini")` y su
+/// `homedir()` devuelve `GEMINI_CLI_HOME` si está puesta
+/// (`packages/core/src/config/storage.ts` y `utils/paths.ts`), así que el login
+/// de una segunda cuenta queda en `<carpeta de la cuenta>/.gemini`, igual que el
+/// de la principal en `~/.gemini`.
+fn carpeta_de(config_dir: &str, home_dir: Option<&str>, env_es_casa: bool) -> Option<PathBuf> {
+    carpeta_en(config_dir, home_dir, env_es_casa, crate::dir_casa())
+}
+
+/// `carpeta_de` con la carpeta del usuario por parámetro, para que los tests la
+/// prueben con una casa falsa en vez de con la de verdad.
+fn carpeta_en(
+    config_dir: &str,
+    home_dir: Option<&str>,
+    env_es_casa: bool,
+    casa: Option<PathBuf>,
+) -> Option<PathBuf> {
+    let propia = !config_dir.trim().is_empty();
+    if propia && !env_es_casa {
         return Some(PathBuf::from(config_dir));
     }
+    // Sin la ruta que cuelga de la casa no hay carpeta que adivinar.
     let rel = home_dir.filter(|h| !h.trim().is_empty())?;
-    let home = crate::dir_casa()?;
-    Some(rel.split(['/', '\\']).fold(PathBuf::from(home), |acc, p| acc.join(p)))
+    let base = if propia { PathBuf::from(config_dir) } else { casa? };
+    // Los proveedores escriben `a/b` o `a\b`; se parte por las dos.
+    Some(rel.split(['/', '\\']).fold(base, |acc, p| acc.join(p)))
 }
 
 /**
@@ -123,8 +144,9 @@ pub async fn logout_account(
     config_dir: String,
     files: Vec<String>,
     home_dir: Option<String>,
+    env_es_casa: Option<bool>,
 ) -> Result<Vec<String>, String> {
-    let dir = carpeta_de(&config_dir, home_dir.as_deref())
+    let dir = carpeta_de(&config_dir, home_dir.as_deref(), env_es_casa.unwrap_or(false))
         .ok_or("no sé cuál es la carpeta de esa cuenta")?;
 
     // La carpeta: o una cuenta de Adeorq, o la de fábrica del CLI dentro de la
@@ -299,19 +321,53 @@ mod tests {
     #[test]
     fn a_default_folder_arrives_relative_and_is_expanded() {
         let Some(casa) = crate::dir_casa() else { return };
-        let d = carpeta_de("", Some(".pi/agent")).expect("tendría que resolverla");
+        let d = carpeta_de("", Some(".pi/agent"), false).expect("tendría que resolverla");
         assert_eq!(d, casa.join(".pi").join("agent"));
         // Y con la barra al revés sale lo mismo: los proveedores escriben las
         // dos formas y no puede depender de cuál eligió quien la anotó.
-        assert_eq!(carpeta_de("", Some(".pi\\agent")).unwrap(), d);
+        assert_eq!(carpeta_de("", Some(".pi\\agent"), false).unwrap(), d);
         // Una cuenta con carpeta propia se usa tal cual, sin tocar.
         assert_eq!(
-            carpeta_de("C:/lo/que/sea", Some(".claude")).unwrap(),
+            carpeta_de("C:/lo/que/sea", Some(".claude"), false).unwrap(),
             PathBuf::from("C:/lo/que/sea"),
         );
         // Y sin ninguna de las dos, no hay carpeta que adivinar.
-        assert!(carpeta_de("", None).is_none());
-        assert!(carpeta_de("", Some("  ")).is_none());
+        assert!(carpeta_de("", None, false).is_none());
+        assert!(carpeta_de("", Some("  "), false).is_none());
+    }
+
+    /// Gemini CLI toma `GEMINI_CLI_HOME` como la carpeta de USUARIO y le cuelga
+    /// `.gemini` detrás, así que el login de una segunda cuenta cae en
+    /// `<cuenta>/.gemini/oauth_creds.json`. Leída como la carpeta misma, la
+    /// cuenta salía «sin conectar» aunque hubiera entrado. Todo en una carpeta
+    /// temporal y con una casa falsa: la de verdad no se lee.
+    #[test]
+    fn una_variable_que_es_la_casa_se_lee_un_nivel_mas_abajo() {
+        let base = std::env::temp_dir().join(format!("adeorq-test-casa-{}", std::process::id()));
+        let cuenta = base.join("gemini-segunda");
+        let login = cuenta.join(".gemini");
+        let dir = cuenta.to_string_lossy().into_owned();
+
+        // La cuenta propia, un nivel más abajo; la principal, en la casa.
+        assert_eq!(carpeta_en(&dir, Some(".gemini"), true, None), Some(login.clone()));
+        assert_eq!(
+            carpeta_en("", Some(".gemini"), true, Some(base.clone())),
+            Some(base.join(".gemini")),
+        );
+        // Sin saber qué cuelga de la casa, no se adivina.
+        assert_eq!(carpeta_en(&dir, None, true, None), None);
+        // Y sin la marca, como siempre: la variable ES la carpeta.
+        assert_eq!(carpeta_en(&dir, Some(".gemini"), false, None), Some(cuenta.clone()));
+
+        // Lo que ve la pantalla de Cuentas, con el login donde lo deja el CLI.
+        std::fs::create_dir_all(&login).unwrap();
+        std::fs::write(login.join("oauth_creds.json"), "{}").unwrap();
+        let creds = vec!["oauth_creds.json".to_string(), "google_accounts.json".to_string()];
+        let ahora = account_ready(dir.clone(), creds.clone(), Some(".gemini".into()), Some(true));
+        let sin_marca = account_ready(dir, creds, Some(".gemini".into()), None);
+        let _ = std::fs::remove_dir_all(&base);
+        assert!(ahora, "con el login en <cuenta>/.gemini tiene que salir conectada");
+        assert!(!sin_marca, "sin la marca se mira <cuenta>/oauth_creds.json, que el CLI nunca escribe");
     }
 
     #[test]
@@ -340,11 +396,11 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.to_string_lossy().into_owned();
         let _ = std::fs::remove_file(dir.join("auth.json"));
-        assert!(!account_ready(path.clone(), vec!["auth.json".into()], None));
+        assert!(!account_ready(path.clone(), vec!["auth.json".into()], None, None));
         std::fs::write(dir.join("auth.json"), "{}").unwrap();
-        assert!(account_ready(path.clone(), vec!["auth.json".into()], None));
+        assert!(account_ready(path.clone(), vec!["auth.json".into()], None, None));
         // A different CLI's file does not count as signed in.
-        assert!(!account_ready(path, vec!["oauth_creds.json".into()], None));
+        assert!(!account_ready(path, vec!["oauth_creds.json".into()], None, None));
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -13,8 +13,9 @@
 //   claude  CLAUDE_CONFIG_DIR   in daily use since META 3
 //   codex   CODEX_HOME          `codex doctor` prints it; set it elsewhere and
 //                               config.toml and auth.json moved with it
-//   gemini  GEMINI_CLI_HOME     its bundle: process.env["GEMINI_CLI_HOME"] ||
-//                               join(os.homedir(), ".gemini")
+//   gemini  GEMINI_CLI_HOME     es su CASA, no su carpeta: guarda en
+//                               join(GEMINI_CLI_HOME || homedir, ".gemini")
+//                               (2026-10-15, ver `envEsCasa`)
 //   qwen    QWEN_HOME           its own bundled docs: "QWEN_HOME env var, and
 //                               finally ~/.qwen"
 //   pi      PI_CODING_AGENT_DIR its own config.ts: getAgentDir() reads it and
@@ -40,6 +41,22 @@ export interface Provider {
   exe: string;
   /** The variable that moves its config folder. Empty = cannot be separated. */
   envVar: string;
+  /**
+   * La variable no apunta a la carpeta del CLI sino a la CASA donde la busca,
+   * y el CLI le cuelga `homeDir` detrás igual que a tu carpeta de usuario.
+   *
+   * Gemini CLI es así: `Storage.getGlobalGeminiDir` hace
+   * `join(homedir(), ".gemini")` y su `homedir()` devuelve `GEMINI_CLI_HOME`
+   * si está puesta (`packages/core/src/config/storage.ts` y `utils/paths.ts`),
+   * así que el login de una segunda cuenta queda en `<cuenta>/.gemini`. Su
+   * bundle tiene además una línea `GEMINI_CLI_HOME || join(homedir, ".gemini")`
+   * que la trata como la carpeta, pero es la de `packages/cli/index.ts`, que
+   * solo lee un ajuste de memoria y no decide dónde vive el login.
+   *
+   * Rust busca entonces los `creds` en `<cuenta>/<homeDir>`. Qwen, que salió de
+   * Gemini, NO lleva la marca: su `QWEN_HOME` es la carpeta misma.
+   */
+  envEsCasa?: boolean;
   /** Its default folder, relative to the user profile. */
   homeDir: string;
   /**
@@ -296,6 +313,7 @@ export const PROVIDERS: Provider[] = [
     label: "Gemini CLI",
     exe: "gemini",
     envVar: "GEMINI_CLI_HOME",
+    envEsCasa: true,
     homeDir: ".gemini",
     creds: ["oauth_creds.json", "google_accounts.json"],
     usage: false,

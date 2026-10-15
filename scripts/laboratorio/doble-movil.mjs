@@ -337,6 +337,34 @@ http
         case "/api/router":
           nueva(id).router = v.encendido;
           return json(res, 200, { ok: true });
+        // Como `conserje_olvidar`: el fichero de la conversación se borra.
+        case "/api/olvidar":
+          convs.delete(v.id);
+          return json(res, 200, { ok: true });
+        // Como `programados_listar`: uno que se lanza ahora, uno que salió bien,
+        // uno apagado y uno que paró el freno.
+        case "/api/programados":
+          return json(res, 200, {
+            puede: true,
+            reloj: true,
+            encargos: [
+              { id: "p1", nombre: "Repaso de la mañana", cwd: "C:\\proyectos\\Adeorq", cli: "claude", cuando: { tipo: "semanal", dias: [1, 2, 3, 4, 5], hora: "09:00" }, activo: true, ultima: Date.now() - 3600000, ultimas: [{ cuando: Date.now() - 3600000, resultado: "hecho", detalle: "" }], corrida: null, cortado: null },
+              { id: "p2", nombre: "Mirar la cuota", cwd: "C:\\proyectos", cli: "codex", cuando: { tipo: "cada", horas: 6 }, activo: true, ultima: Date.now() - 60000, ultimas: [], corrida: { inicio: Date.now() - 60000, panel: 1 }, cortado: null },
+              { id: "p3", nombre: "Limpiar el scratchpad", cwd: "C:\\proyectos", cli: "claude", cuando: { tipo: "semanal", dias: [7], hora: "20:00" }, activo: false, ultima: 0, ultimas: [], corrida: null, cortado: null },
+              { id: "p4", nombre: "Subir las fotos", cwd: "C:\\proyectos\\Webs", cli: "claude", cuando: { tipo: "semanal", dias: [1, 3, 5], hora: "18:30" }, activo: true, ultima: Date.now() - 86400000, ultimas: [{ cuando: Date.now() - 86400000, resultado: "fallo", detalle: "no contestó" }], corrida: null, cortado: { cuando: Date.now() - 86400000, motivo: "tres fallos seguidos" } },
+            ],
+          });
+        // Como la ventana (`atenderPedido`, clase «uso»): una que dice su
+        // gasto, una casi llena, una que no lo dice y una sin sesión.
+        case "/api/uso":
+          return json(res, 200, {
+            cuentas: [
+              { nombre: "Principal", programa: "Claude Code", agente: true, instalada: true, conectada: true, gastado: 37, plan: "max" },
+              { nombre: "CCC", programa: "Claude Code", agente: true, instalada: true, conectada: true, gastado: 91, plan: "pro" },
+              { nombre: "Codex", programa: "Codex", agente: true, instalada: true, conectada: true, gastado: null, plan: null },
+              { nombre: "Gemini", programa: "Gemini CLI", agente: true, instalada: true, conectada: false, gastado: null, plan: null },
+            ],
+          });
         case "/api/cerebro":
           if (!["haiku", "sonnet", "opus"].includes(v.cerebro)) return json(res, 400, { error: "No es de la lista." });
           nueva(id).cerebro = v.cerebro;

@@ -696,6 +696,10 @@ pub trait Casa {
     fn ventana(&self, clase: &str, datos: Value) -> Result<Value, String>;
     fn mejorar(&self, texto: &str) -> Result<String, String>;
     fn router(&self, id: &str, encendido: bool) -> Result<(), String>;
+    /// Borrar una conversación con el conserje (mantenerla pulsada en el móvil).
+    fn olvidar(&self, id: &str) -> Result<(), String>;
+    /// Los encargos programados, tal como los ve la Agenda (`programados.rs`).
+    fn programados(&self) -> Result<Value, String>;
     /// Con qué modelo piensa el conserje en esa conversación.
     fn cerebro(&self, id: &str, cerebro: &str) -> Result<(), String>;
     /// El modelo de las sesiones con el router apagado.
@@ -868,6 +872,28 @@ pub fn atender(
                 Err(r) => return r,
             };
             match casa.router(&id, cuerpo["encendido"].as_bool().unwrap_or(true)) {
+                Ok(()) => Respuesta::json(200, json!({ "ok": true })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
+        // Lo que se lanza solo y lo que le queda a cada cuenta, para el cajón
+        // del móvil: solo se leen, se cambian en el PC.
+        ("GET", "/api/programados") => match casa.programados() {
+            Ok(v) => Respuesta::json(200, v),
+            Err(e) => Respuesta::error(502, &e),
+        },
+        ("GET", "/api/uso") => match casa.ventana("uso", json!({})) {
+            Ok(v) => Respuesta::json(200, v),
+            Err(e) => Respuesta::error(502, &e),
+        },
+        // Las de prueba («hola») se acumulaban en la lista sin forma de
+        // quitarlas desde el móvil (Munir, 2026-10-15).
+        ("POST", "/api/olvidar") => {
+            let id = match id_de(cuerpo["id"].as_str()) {
+                Ok(id) => id,
+                Err(r) => return r,
+            };
+            match casa.olvidar(&id) {
                 Ok(()) => Respuesta::json(200, json!({ "ok": true })),
                 Err(e) => Respuesta::error(502, &e),
             }
@@ -1105,7 +1131,7 @@ pub fn atender(
                 Err(e) => Respuesta::error(400, &e),
             }
         }
-        (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router"
+        (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router" | "/api/olvidar" | "/api/programados" | "/api/uso"
             | "/api/cerebro" | "/api/fijo" | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
             | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
@@ -1168,7 +1194,7 @@ pub struct Movil {
     siguiente: AtomicU64,
     conexiones: AtomicUsize,
     sirviendo: AtomicBool,
-    /// Que Windows aceptó la petición de no dormirse (ver `no_dormir`).
+    /// Que el sistema aceptó la petición de no dormirse (ver `no_dormir`).
     despierto: AtomicBool,
     apagar: AtomicBool,
 }
@@ -1192,6 +1218,12 @@ impl Casa for CasaDeVerdad {
     }
     fn router(&self, id: &str, encendido: bool) -> Result<(), String> {
         crate::conserje::conserje_router(id.to_string(), encendido)
+    }
+    fn olvidar(&self, id: &str) -> Result<(), String> {
+        crate::conserje::conserje_olvidar(id.to_string())
+    }
+    fn programados(&self) -> Result<Value, String> {
+        serde_json::to_value(crate::programados::programados_listar()?).map_err(|e| e.to_string())
     }
     fn cerebro(&self, id: &str, cerebro: &str) -> Result<(), String> {
         crate::conserje::conserje_cerebro(id.to_string(), cerebro.to_string())
@@ -1354,14 +1386,20 @@ fn no_dormir(si: bool) -> bool {
 /// `systemd-inhibit` sale enseguida y esto devuelve `false`, como en Windows
 /// cuando falla.
 ///
-/// NO PROBADO en un escritorio, y con una duda de verdad (revisión del
-/// 2026-10-15, leyendo `logind-inhibit.c`): con systemd 257 o más nuevo un
-/// `block` frena también el reposo que pide el propio usuario desde el menú (le
-/// pide contraseña de administrador; la tapa sí duerme), cosa que en Windows no
-/// pasa. Y con uno más viejo, un `block` del mismo usuario podía no frenar el
-/// reposo por inactividad que pide GNOME en su nombre. Lo que lo resolvería es
-/// `org.freedesktop.portal.Inhibit` con la bandera de suspender, que respetan
-/// GNOME y KDE; antes, medirlo en un GNOME con un tiempo de reposo corto.
+/// Leído en las fuentes de systemd (v256, v257 y v262), gnome-settings-daemon
+/// y PowerDevil el 2026-10-15 (`docs/contexto/movil.md`):
+/// - Con systemd 257 o más nuevo frena el reposo por inactividad de GNOME (logind
+///   ya no ignora el `block` del mismo usuario y rechaza el `Suspend` de gsd) y
+///   el de KDE (PowerDevil ni lo intenta). La tapa duerme igual y la pantalla
+///   sí se apaga, como en Windows.
+/// - El peaje: mientras sirve, el reposo que pide el usuario desde el menú
+///   pide contraseña de administrador en GNOME 50 o más nuevo.
+/// - Con systemd 256 o más viejo y GNOME, no frenaba (en KDE sí).
+/// - Descartados con su motivo: `block-weak` (logind lo ignora para el mismo
+///   usuario y PowerDevil solo mira los `block`) y añadir `idle` (GNOME no lo
+///   lee y en KDE no dejaría apagar la pantalla). Quitar el peaje y cubrir 256
+///   pide `org.freedesktop.portal.Inhibit`, con una conexión de D-Bus viva.
+/// NO PROBADO en un escritorio de verdad: un GNOME con el reposo a un minuto.
 #[cfg(not(windows))]
 fn no_dormir(si: bool) -> bool {
     use std::os::unix::process::CommandExt;
@@ -1433,7 +1471,7 @@ pub struct CodigoVisible {
 pub struct EstadoMovil {
     pub encendido: bool,
     pub sirviendo: bool,
-    /// Mientras sirve, el PC no se duerme solo (solo en Windows, por ahora).
+    /// Mientras sirve, el PC no se duerme solo (Windows, y Linux con systemd 257 o más nuevo).
     pub despierto: bool,
     /// Cuántos móviles pidieron avisos (ver `push.rs`).
     pub avisos: usize,
@@ -1953,6 +1991,13 @@ mod tests {
         fn router(&self, _: &str, _: bool) -> Result<(), String> {
             Ok(())
         }
+        fn olvidar(&self, id: &str) -> Result<(), String> {
+            self.enviados.borrow_mut().push(json!({ "olvidar": id }));
+            Ok(())
+        }
+        fn programados(&self) -> Result<Value, String> {
+            Ok(json!({ "puede": true, "reloj": true, "encargos": [{ "id": "p1", "nombre": "Repaso" }] }))
+        }
         fn cerebro(&self, _: &str, cerebro: &str) -> Result<(), String> {
             if cerebro == "opus" { Ok(()) } else { Err("no es de la lista".into()) }
         }
@@ -2348,6 +2393,39 @@ mod tests {
         let r = atender(&pedir("GET", "/api/lista", Some(&clave), ""), &g, &casa, &nada, reloj);
         assert_eq!(r.estado, 200);
         assert_eq!(cuerpo_de(&r)[0]["id"], "abc");
+    }
+
+    /// Borrar una conversación desde el móvil: solo con la clave, solo por
+    /// POST y solo con un id que sea de una conversación.
+    #[test]
+    fn una_conversacion_se_borra_desde_el_movil() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let estado = |metodo: &str, clave: Option<&str>, cuerpo: &str| atender(&pedir(metodo, "/api/olvidar", clave, cuerpo), &g, &casa, &nada, reloj).estado;
+        assert_eq!(estado("POST", None, r#"{"id":"abc"}"#), 401);
+        assert_eq!(estado("GET", Some(&clave), ""), 405);
+        assert_ne!(estado("POST", Some(&clave), r#"{"id":"../fuera"}"#), 200, "un id que no es de conversación no llega a la casa");
+        assert!(casa.enviados.borrow().is_empty());
+        assert_eq!(estado("POST", Some(&clave), r#"{"id":"abc"}"#), 200);
+        assert_eq!(casa.enviados.borrow().as_slice(), &[json!({ "olvidar": "abc" })]);
+    }
+
+    /// Programados y Uso, para el cajón: solo se leen y solo con la clave.
+    #[test]
+    fn programados_y_uso_se_leen_desde_el_movil() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        for ruta in ["/api/programados", "/api/uso"] {
+            assert_eq!(atender(&pedir("GET", ruta, None, ""), &g, &casa, &nada, reloj).estado, 401, "{ruta} sin clave");
+            assert_eq!(atender(&pedir("POST", ruta, Some(&clave), "{}"), &g, &casa, &nada, reloj).estado, 405, "{ruta} no se cambia");
+            assert_eq!(atender(&pedir("GET", ruta, Some(&clave), ""), &g, &casa, &nada, reloj).estado, 200, "{ruta} con clave");
+        }
+        let r = atender(&pedir("GET", "/api/programados", Some(&clave), ""), &g, &casa, &nada, reloj);
+        assert_eq!(cuerpo_de(&r)["encargos"][0]["id"], "p1");
     }
 
     #[test]

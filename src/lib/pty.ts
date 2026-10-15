@@ -504,13 +504,17 @@ export function accountDir(label: string): Promise<string> {
  * True once that account has logged in, per its CLI's credential files.
  * An empty configDir means that CLI's default account, and homeDir (relative
  * to the user profile) tells Rust where to look for it.
+ *
+ * Con `envEsCasa` (ver `Provider.envEsCasa`) la carpeta de la cuenta es la casa
+ * del CLI y el login se busca en `<configDir>/<homeDir>`.
  */
 export function accountReady(
   configDir: string,
   files: string[],
   homeDir?: string,
+  envEsCasa?: boolean,
 ): Promise<boolean> {
-  return invoke("account_ready", { configDir, files, homeDir: homeDir ?? null });
+  return invoke("account_ready", { configDir, files, homeDir: homeDir ?? null, envEsCasa: !!envEsCasa });
 }
 
 /**
@@ -532,13 +536,15 @@ export function anotarRastro(mensaje: string): Promise<void> {
  * NO es `forgetAccount`, que se lleva la carpeta entera con su historial. Aquí
  * la cuenta sigue existiendo: lo único que se va es la prueba de que estabas
  * dentro, así que el CLI vuelve a pedir login y todo lo demás sigue igual.
+ * `envEsCasa`, como en `accountReady`.
  */
 export function logoutAccount(
   configDir: string,
   files: string[],
   homeDir?: string,
+  envEsCasa?: boolean,
 ): Promise<string[]> {
-  return invoke("logout_account", { configDir, files, homeDir: homeDir ?? null });
+  return invoke("logout_account", { configDir, files, homeDir: homeDir ?? null, envEsCasa: !!envEsCasa });
 }
 
 /** Which of the given CLIs are installed: [id, exe] in, id → path out. */

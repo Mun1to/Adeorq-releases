@@ -68,6 +68,9 @@ function abrirApp() {
       WEBVIEW2_USER_DATA_FOLDER: join(BASE, "navegador"),
       WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${PUERTO} --remote-allow-origins=* --disable-features=CalculateNativeWinOcclusion`,
       ADEORQ_PROGRAMADOS: "1",
+      // Su propio MCP: el Codex que nace hereda esto y su enlace habla con
+      // ESTA app, no con la Adeorq de Munir por el 3012.
+      ADEORQ_MCP_PUERTO: "39315",
     },
   });
   hijo.unref();

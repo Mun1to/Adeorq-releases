@@ -37,9 +37,12 @@ async (page) => {
     r.deOtroArranque = await probar("#terminal=3@110", "aviso de ayer");
     r.sinArranque = await probar("#terminal=3", "aviso de una version vieja");
     r.deEsteArranque = await probar("#terminal=3@111", "aviso de hoy");
-    // Y desde la portada, con el arranque que dice la lista.
+    // Y desde la lista del cajón, con el arranque que dice la lista. (La 3 es
+    // una consola quieta: desde el 2026-10-15 «En marcha», en la portada, solo
+    // enseña lo que trabaja.)
     await page.goto(`${B}/?vez=${++vez}`);
-    await page.click('#portada-term [data-panel="3"]');
+    await page.click("#abrir-cajon");
+    await page.click('#cajon .fila[data-panel="3"]');
     await page.waitForFunction(() => /Vidorq/.test(document.getElementById("pantalla")?.textContent || ""), null, { timeout: 8000 }).catch(() => {});
     r.desdeLaLista = /Vidorq/.test(await page.textContent("#pantalla"));
     return r;

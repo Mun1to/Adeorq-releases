@@ -138,8 +138,8 @@ async (page) => {
   // 5. Todas las terminales.
   await paso("terminales", async () => {
     await page.goto(`${B}/`);
-    await page.click("#terminales");
-    await page.waitForSelector("#terminales .tarjeta");
+    await page.click("#abrir-cajon"); await page.click('#cajon .fila[data-ir="terminales"]');
+    await page.waitForSelector("#terminales .fila[data-panel]");
     await mirar("terminales");
   });
 
@@ -174,7 +174,7 @@ async (page) => {
   //    huérfana y una contestada.
   await paso("decisiones", async () => {
     await page.goto(`${B}/`);
-    await page.click("#decisiones");
+    await page.click("#abrir-cajon"); await page.click('#cajon .fila[data-ir="decisiones"]');
     await page.waitForSelector("#decisiones .tarjeta");
     await mirar("decisiones");
     await page.click('#decisiones .tarjeta[data-vigencia="viva"]');

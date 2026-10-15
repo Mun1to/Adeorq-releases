@@ -49,7 +49,7 @@ async (page) => {
   const medir = () =>
     page.evaluate(() => {
       const fuera = [];
-      for (const e of document.querySelectorAll(".estado, .fila-t > span")) {
+      for (const e of document.querySelectorAll(".estado, .fila-t > span, .fila-term b, .fila-term small, .fila-term .punto")) {
         const r = e.getBoundingClientRect();
         if (!r.width) continue;
         const caja = e.closest(".tarjeta, .grupo")?.getBoundingClientRect();
@@ -81,13 +81,13 @@ async (page) => {
     await page.waitForSelector("#portada-term .fila-t");
   });
   medidas.terminales = await mirar("Terminales", async () => {
-    await page.click("#terminales");
-    await page.waitForSelector("#terminales .tarjeta");
+    await page.click("#abrir-cajon"); await page.click('#cajon .fila[data-ir="terminales"]');
+    await page.waitForSelector("#terminales .fila[data-panel]");
   });
   medidas.decisiones = await mirar("Decisiones", async () => {
     await page.goto(`${B}/?v=2`);
     await page.waitForSelector("#portada-term .fila-t");
-    await page.click("#decisiones");
+    await page.click("#abrir-cajon"); await page.click('#cajon .fila[data-ir="decisiones"]');
     await page.waitForSelector("#decisiones .tarjeta");
   });
   return { medidas, fallos };

@@ -149,7 +149,9 @@ async (page) => {
   }));
   debe(/te esperan/.test(portada.resumen) && /1 agente trabajando/.test(portada.resumen), `el resumen de arriba («${portada.resumen}»)`);
   debe(portada.reclaman.some((x) => /codex/.test(x)) && portada.reclaman.some((x) => /Diseño de la web/.test(x)), `arriba, lo que te reclama (${portada.reclaman})`);
-  debe(portada.terminales.join("|") === "claude · Adeorq trabajando|claude · VoCript terminó|consola · Vidorq quieta", `cada terminal con su estado (${portada.terminales})`);
+  // «En marcha» es lo que trabaja ahora mismo (Munir, 2026-10-15); lo que
+  // terminó o está quieto vive en Terminales, en el cajón.
+  debe(portada.terminales.join("|") === "claude · Adeorq trabajando", `en marcha, solo la que trabaja (${portada.terminales})`);
   debe(portada.animo === "espera", `la mascota de la portada te llama (${portada.animo})`);
   // Y de ahí se entra a una terminal, y el cajón (como en la app de Claude)
   // lleva de vuelta a la portada, con la terminal marcada como la de ahora.

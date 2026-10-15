@@ -42,7 +42,7 @@ async (page) => {
   debe(r.reclaman.length === 1 && /Diseño de la web/.test(r.reclaman[0]), `la viva sale arriba en la portada (${r.reclaman})`);
 
   // 2. La lista, por montones y con su vigencia.
-  await page.click("#decisiones");
+  await page.click("#abrir-cajon"); await page.click('#cajon .fila[data-ir="decisiones"]');
   await page.waitForSelector("#decisiones .tarjeta");
   r.secciones = await page.$$eval("#decisiones .seccion span", (ss) => ss.map((s) => s.textContent));
   r.lista = await page.$$eval("#decisiones .tarjeta", (ts) => ts.map((t) => `${t.dataset.vigencia}: ${t.innerText.replace(/\s+/g, " ")}`));
@@ -83,7 +83,7 @@ async (page) => {
   debe(r.trasDeshacer === "No se ha mandado.", `«Deshacer» para el envío («${r.trasDeshacer}»)`);
 
   await page.reload();
-  await page.click("#decisiones");
+  await page.click("#abrir-cajon"); await page.click('#cajon .fila[data-ir="decisiones"]');
   await page.waitForSelector("#decisiones .tarjeta");
   await page.click("#decisiones .tarjeta >> nth=0");
   await page.waitForSelector(".pregunta-d");

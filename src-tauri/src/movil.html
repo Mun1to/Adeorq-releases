@@ -230,6 +230,13 @@
   .fila-t span { flex: none; }
   .grupo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 6px; border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); box-shadow: var(--brillo); }
   .grupo .seccion-nota { margin: 4px 12px 6px; }
+  /* Una terminal en Terminales: el icono de su programa, quién es y de qué
+     proyecto, y el punto de su estado. */
+  .fila-term { display: flex; align-items: center; gap: 12px; padding: 9px 10px; }
+  .fila-term .avatar { color: var(--acento); }
+  .fila-term .avatar.consola { background: var(--capa-fuerte); color: var(--suave); }
+  .fila-term .quien { flex: 1; min-width: 0; display: grid; gap: 1px; font-size: 15px; color: var(--tinta); }
+  .fila-term .quien small { font-size: 12.5px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ── 5. El cajón: la cabina, con todo lo vivo de tu PC ── */
   .cajon-velo { position: fixed; inset: 0; z-index: 20; background: var(--velo); opacity: 0; pointer-events: none; transition: opacity var(--t-lenta); }
@@ -272,16 +279,19 @@
     content: attr(data-rotulo); display: block; margin: 22px 4px 8px;
     font-size: 12px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--suave);
   }
-  .atajos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-  .segunda {
-    display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; cursor: pointer; text-align: left;
-    border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); box-shadow: var(--brillo); font-weight: 550; font-size: 14.5px;
-  }
-  .segunda .avatar { width: 30px; height: 30px; }
   .cuenta-dec {
     margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; display: inline-grid; place-items: center; border-radius: var(--r-pastilla);
     background: var(--pregunta); color: #1d1608; font-size: 12px; font-weight: 750;
   }
+  /* Las decisiones que te esperan, en un globito sobre el botón del cajón:
+     se ve desde cualquier pantalla, y en el inicio ya no hay botón de
+     Decisiones (Munir, 2026-10-15: «ya está a la izquierda»). */
+  .atras { position: relative; }
+  .cuenta-dec.globo {
+    position: absolute; top: 3px; right: 0; margin: 0; min-width: 18px; height: 18px; padding: 0 5px; font-size: 11px;
+    box-shadow: 0 0 0 2px var(--fondo);
+  }
+  .cuenta-dec.globo[hidden] { display: none; }
   /* Pedir (o quitar) los avisos, al pie. */
   .avisos {
     display: block; width: 100%; margin: 18px 0 8px; padding: 12px 14px; cursor: pointer;
@@ -570,11 +580,29 @@
   #app[data-sentido="igual"] .vista { animation: none; }
   .nuevo, .ahora.cambia { animation: llega 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
   .turno[data-rol="tu"].nuevo { transform-origin: 100% 100%; }
-  .tarjeta, .segunda, .fila, .opcion, .opciones-menu button, .boton, .pastilla, .enviar { transition: transform 0.09s ease, background var(--t) ease, border-color var(--t) ease; }
-  .tarjeta:active, .segunda:active, .fila:active, .opciones-menu button:active, .boton:active, .enviar:active { transform: scale(0.985); }
+  .tarjeta, .fila, .opcion, .opciones-menu button, .boton, .pastilla, .enviar { transition: transform 0.09s ease, background var(--t) ease, border-color var(--t) ease; }
+  .tarjeta:active, .fila:active, .opciones-menu button:active, .boton:active, .enviar:active { transform: scale(0.985); }
+  /* El hilo de luz del escritorio (03-barra-lateral.css): un trocito de azul
+     da la vuelta al borde de lo que está trabajando, para ver de reojo quién
+     escribe. Allí el fondo es opaco y el color asoma por el borde; aquí todo es
+     cristal, así que el cono va en una capa encima con una máscara que solo
+     deja ver su marco. `@property` es lo que deja animar el ángulo. */
+  @property --hilo-giro { syntax: "<angle>"; initial-value: 0turn; inherits: false; }
+  .hilo { position: relative; }
+  .hilo::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none;
+    background: conic-gradient(from var(--hilo-giro), transparent 0 64%, color-mix(in srgb, var(--acento) 90%, transparent) 78%, transparent 90%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: hilo-vuelta 3.2s linear infinite;
+  }
+  @keyframes hilo-vuelta { to { --hilo-giro: 1turn; } }
+  /* Con «reducir movimiento», menos recorrido pero nunca una pantalla muerta
+     (la regla de la casa): el hilo va más despacio y Adeo sigue moviéndose. */
   @media (prefers-reduced-motion: reduce) {
     .vista, .nuevo, .ahora.cambia, .estado i, .punto, .dec-vig i { animation: none !important; }
-    .tarjeta, .segunda, .fila, .opcion, .opciones-menu button, .boton, .pastilla, .enviar, .cajon, .cajon-velo { transition: none; }
+    .tarjeta, .fila, .opcion, .opciones-menu button, .boton, .pastilla, .enviar, .cajon, .cajon-velo { transition: none; }
+    .hilo::before { animation-duration: 7s; }
   }
 </style>
 </head>
@@ -666,6 +694,9 @@ const EN = {
   "Recientes": "Recent",
   "Conversaciones": "Conversations",
   "En marcha": "Running",
+  "Te preguntan": "Asking you",
+  "Terminaron": "Finished",
+  "En reposo": "Idle",
   "Buenas.": "Hi there.",
   "Abrir el menú": "Open the menu",
   "Nuevo encargo": "New task",
@@ -1290,7 +1321,12 @@ return { ANCHO, ALTO, GUIONES, REACCIONES, cuadrosDe, reposoDe, arrancar, avanza
    no vive en su elemento sino aquí, por su clave («portada», «ahora»…). La que
    nace encuentra a la anterior a mitad de un gesto y sigue por donde iba. */
 const marchas = new Map();
-const sinMovimiento = () => document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* Solo se para con la página escondida. Con «reducir movimiento» se quedaba
+   en su postura de reposo, y en un móvil con las animaciones recortadas Adeo
+   salía tieso (Munir, 2026-10-15). Es un muñeco pequeño que se mueve en su
+   sitio: menos recorrido no le hace falta para no marear, y una pantalla
+   muerta no es la regla de la casa. */
+const sinMovimiento = () => document.hidden;
 function marchaDe(clave, animo) {
   let m = marchas.get(clave);
   if (!m || m.animo !== animo) {
@@ -1387,6 +1423,8 @@ const ESTADO_TERMINAL = {
   "": [tr("quieta"), "cerrada"],
 };
 const estadoTerminal = (t) => ESTADO_TERMINAL[t.estado] || ESTADO_TERMINAL[""];
+/** Si su agente está escribiendo ahora mismo: lleva el hilo de luz. */
+const estaTrabajando = (t) => estadoTerminal(t)[1] === "trabajando";
 
 function hace(segundos) {
   const ms = segundos * 1000;
@@ -1833,7 +1871,20 @@ document.body.insertAdjacentHTML("beforeend", `<div class="cajon-velo" id="cajon
 const cajon = document.getElementById("cajon");
 cajon.inert = true;
 let delCajon = null;
-const botonCajon = () => `<button class="atras" id="abrir-cajon" aria-label="${tr("Abrir el menú")}">${ICONO.menu}</button>`;
+/* Cuántas decisiones te esperan, para el globito del botón del cajón: lo
+   apunta quien las lee (la portada, el cajón, Decisiones) y cada pantalla
+   nueva nace ya con él. */
+let esperanAhora = 0;
+const botonCajon = () =>
+  `<button class="atras" id="abrir-cajon" aria-label="${tr("Abrir el menú")}">${ICONO.menu}<b class="cuenta-dec globo" id="cuenta-dec"${esperanAhora ? "" : " hidden"}>${esperanAhora || ""}</b></button>`;
+function ponerEsperan(n) {
+  esperanAhora = n;
+  const c = document.getElementById("cuenta-dec");
+  if (!c) return;
+  c.hidden = !n;
+  c.textContent = n ? String(n) : "";
+  c.setAttribute("aria-label", tr("{n} te esperan", { n }));
+}
 function montarBotonCajon() {
   document.getElementById("abrir-cajon")?.addEventListener("click", () => abrirCajon());
 }
@@ -1848,6 +1899,7 @@ function abrirCajon() {
     api("GET", "/api/decisiones").catch(() => null),
   ]).then(([vt, lista, vd]) => {
     delCajon = { vt, lista, decisiones: vd?.decisiones || [] };
+    if (vd) ponerEsperan(vivas(delCajon.decisiones).length);
     if (document.body.dataset.cajon !== undefined) pintarCajon();
   });
 }
@@ -1869,7 +1921,7 @@ function pintarCajon() {
     </div>
     <div class="recientes">
       ${terminales.length || d.lista.length ? `<h2 class="seccion"><span>${tr("Recientes")}</span></h2>` : ""}
-      ${terminales.map((t) => `<button class="fila" data-panel="${t.panel}" aria-current="${aqui("terminal", t.panel)}">${ICONO.terminal}<b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><i class="punto" data-tono="${estadoTerminal(t)[1]}"></i></button>`).join("")}
+      ${terminales.map((t) => `<button class="fila${estaTrabajando(t) ? " hilo" : ""}" data-panel="${t.panel}" aria-current="${aqui("terminal", t.panel)}">${ICONO.terminal}<b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><i class="punto" data-tono="${estadoTerminal(t)[1]}"></i></button>`).join("")}
       ${d.lista.slice(0, 12).map((f) => `<button class="fila" data-conv="${esc(f.id)}" aria-current="${aqui("hilo", f.id)}">${ICONO.chat}<b>${esc(f.titulo || tr("Conversación nueva"))}</b><span>${esc(hace(f.cuando))}</span></button>`).join("")}
     </div>
     <div class="pc"><i class="punto" ${d.vt.fallo ? "data-mal" : 'data-tono="trabajando"'}></i><span>${d.vt.fallo ? tr("Tu PC no contesta") : tr("Tu PC, conectado")}</span></div>
@@ -2009,10 +2061,6 @@ async function pintarLista() {
         </div>
         <div id="reclaman"></div>
         <div id="portada-term"></div>
-        <div class="atajos">
-          <button id="decisiones" class="segunda"><span class="avatar">${ICONO.decision}</span>${tr("Decisiones")}<b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
-          <button id="terminales" class="segunda"><span class="avatar">${ICONO.terminal}</span>${tr("Terminales")}</button>
-        </div>
         <div id="filas" data-rotulo="${tr("Conversaciones")}"></div>
         <button id="avisos" class="avisos" hidden></button>
         <button id="instalar" class="avisos" hidden>${tr("Instalar Adeorq como app en este aparato")}</button>
@@ -2020,7 +2068,7 @@ async function pintarLista() {
       <footer class="caja">
         <div class="fila-caja decir" id="nueva">
           <textarea id="decir" rows="1" placeholder="${tr("Dile al conserje qué hay que hacer")}" aria-label="${tr("Mensaje nuevo al conserje")}"></textarea>
-          <div class="mandos"><span class="avatar">${ICONO.chispa}</span><span class="hueco"></span><button class="enviar" id="decir-enviar" aria-label="${tr("Enviar al conserje")}" disabled>${ICONO.subir}</button></div>
+          <div class="mandos"><span class="hueco"></span><button class="enviar" id="decir-enviar" aria-label="${tr("Enviar al conserje")}" disabled>${ICONO.subir}</button></div>
         </div>
       </footer>
     </div>`;
@@ -2039,8 +2087,6 @@ async function pintarLista() {
     const texto = decir.value.trim();
     if (texto) ir({ vista: "hilo", id: nuevoId(), alEntrar: texto });
   });
-  document.getElementById("terminales").addEventListener("click", () => ir({ vista: "terminales" }));
-  document.getElementById("decisiones").addEventListener("click", () => ir({ vista: "decisiones" }));
   pintarAvisos().catch(() => {});
   pintarInstalar();
   // Lo que te reclama y cómo va cada terminal. Solo se repinta si cambió.
@@ -2057,14 +2103,13 @@ async function pintarLista() {
     const esperan = vivas(decisiones);
     const terminales = (vt.terminales || []).slice().sort((a, b) => Number(b.agente) - Number(a.agente) || a.panel - b.panel);
     const preguntan = terminales.filter((t) => estadoTerminal(t)[1] === "pregunta");
-    const otras = terminales.filter((t) => !preguntan.includes(t));
+    // «En marcha» es lo que está trabajando AHORA (Munir, 2026-10-15): las que
+    // terminaron o están quietas viven en «Terminales», en el cajón.
+    const enMarcha = terminales.filter(estaTrabajando);
 
-    // La cuenta del botón: las que te esperan DE VERDAD. Las demás no suman
+    // La cuenta del globito: las que te esperan DE VERDAD. Las demás no suman
     // ni se dicen: se limpian solas.
-    const c = document.getElementById("cuenta-dec");
-    c.hidden = !esperan.length;
-    c.textContent = String(esperan.length);
-    c.setAttribute("aria-label", tr("{n} te esperan", { n: esperan.length }));
+    ponerEsperan(esperan.length);
 
     const nuevo = animoDeTodo(terminales, esperan.length);
     if (nuevo !== animo) {
@@ -2086,7 +2131,7 @@ async function pintarLista() {
     pintado = firma;
     const filaTerminal = (t) => {
       const [palabra, tono] = estadoTerminal(t);
-      return `<button class="fila fila-t" data-panel="${t.panel}"><i class="punto" data-tono="${tono}"></i><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span>${palabra}</span></button>`;
+      return `<button class="fila fila-t${tono === "trabajando" ? " hilo" : ""}" data-panel="${t.panel}"><i class="punto" data-tono="${tono}"></i><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span>${palabra}</span></button>`;
     };
     reclaman.innerHTML = teLlaman
       ? `<h2 class="seccion"><span>${tr("Te esperan")}</span></h2>${esperan.map(tarjetaDecision).join("")}${preguntan.map((t) => {
@@ -2099,8 +2144,8 @@ async function pintarLista() {
       : "";
     document.getElementById("portada-term").innerHTML = vt.fallo
       ? `<h2 class="seccion"><span>${tr("Terminales")}</span></h2><p class="seccion-nota">${esc(vt.fallo)}</p>`
-      : otras.length
-        ? `<h2 class="seccion"><span>${tr("En marcha")}</span></h2><div class="grupo">${otras.slice(0, 5).map(filaTerminal).join("")}${otras.length > 5 ? `<p class="seccion-nota">${tr("y {n} más, en «Terminales».", { n: otras.length - 5 })}</p>` : ""}</div>`
+      : enMarcha.length
+        ? `<h2 class="seccion"><span>${tr("En marcha")}</span></h2><div class="grupo">${enMarcha.slice(0, 5).map(filaTerminal).join("")}${enMarcha.length > 5 ? `<p class="seccion-nota">${tr("y {n} más, en «Terminales».", { n: enMarcha.length - 5 })}</p>` : ""}</div>`
         : "";
     reclaman.querySelectorAll(".tarjeta[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volver: "lista" })));
     document.querySelectorAll("#reclaman [data-panel], #portada-term [data-panel]").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), arranque: vt.arranque, volver: "lista" })));
@@ -2408,17 +2453,32 @@ async function pintarTerminales() {
     if (!aqui) return;
     // Los agentes primero; las consolas al final.
     const lista = (v.terminales || []).slice().sort((a, b) => Number(b.agente) - Number(a.agente) || a.panel - b.panel);
+    /* Por estado (Munir eligió «la 2» de tres el 2026-10-15; las tarjetas de
+       antes le parecían «muy cutres»): un apartado por cómo están, de lo que
+       te reclama a lo que descansa, y en cada fila el icono de su programa,
+       el proyecto y el modelo debajo, y el punto de su estado. */
+    const apartados = [
+      ["pregunta", tr("Te preguntan")],
+      ["trabajando", tr("Trabajando")],
+      ["termino", tr("Terminaron")],
+      ["cerrada", tr("En reposo")],
+    ];
+    const fila = (t) => {
+      const [palabra, tono] = estadoTerminal(t);
+      const debajo = [hoja(t.carpeta), t.agente ? t.modelo || tr("agente") : tr("consola")].filter(Boolean).join(" · ");
+      return `<button class="fila fila-term${tono === "trabajando" ? " hilo" : ""}" data-panel="${t.panel}" data-estado="${tono}" aria-label="${esc(`${t.nombre} · ${debajo} · ${palabra}`)}">
+        <span class="avatar${t.agente ? "" : " consola"}">${t.agente ? ICONO.chat : ICONO.terminal}</span>
+        <span class="quien"><b>${esc(t.nombre)}</b><small>${esc(debajo)}</small></span>
+        <i class="punto" data-tono="${tono}"></i>
+      </button>`;
+    };
     aqui.innerHTML = lista.length
-      ? lista.map((t) => {
-        const [palabra, tono] = estadoTerminal(t);
-        const que = t.agente ? (t.modelo ? esc(t.modelo) : tr("agente")) : tr("consola");
-        return `<button class="tarjeta" data-estado="${tono}" data-panel="${t.panel}">
-          <span class="tarjeta-cab"><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span class="estado"><i></i>${palabra}</span></span>
-          <span class="porque">${que} · ${tr("panel {n}", { n: t.panel })}</span>
-        </button>`;
+      ? apartados.map(([tono, titulo]) => {
+        const de = lista.filter((t) => estadoTerminal(t)[1] === tono);
+        return de.length ? `<h2 class="seccion"><span>${titulo}</span></h2><div class="grupo">${de.map(fila).join("")}</div>` : "";
       }).join("")
       : `<p class="vacio">${tr("No hay ninguna terminal abierta en Adeorq.")}</p>`;
-    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), arranque: v.arranque })));
+    aqui.querySelectorAll(".fila[data-panel]").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), arranque: v.arranque })));
   };
   try { await cargar(); } catch (err) {
     // Un 401 ya ha cambiado de vista (`olvidarClave`): entonces no hay dónde pintarlo.
@@ -2494,6 +2554,7 @@ async function pintarDecisiones() {
     if (!aqui) return;
     const lista = v.decisiones || [];
     const esperan = vivas(lista);
+    ponerEsperan(esperan.length);
     // Todo lo que ya no te espera va junto y se limpia solo (a la semana se
     // borra): antes las que nadie esperaba tenían montón y botón propios, y
     // había que vaciarlo a mano.

@@ -661,6 +661,32 @@ pub fn guardar_trozo(
 /// pone los bytes.
 pub const TECLAS_DEL_MOVIL: &[&str] = &["intro", "esc", "ctrl+c", "shift+tab", "arriba", "abajo"];
 
+/// Los números de panel vuelven a empezar en cada arranque de Adeorq, así que
+/// el móvil dice en qué arranque vio la terminal a la que habla: lo trae la
+/// lista (`/api/terminales`) y el aviso que la abre (`sellar_aviso`). Sin esto,
+/// un aviso de anoche o una página que siguió abierta mientras Adeorq se
+/// actualizaba leían y escribían en el «panel 3» de hoy, que es otra terminal.
+fn mismo_arranque(visto: Option<u64>, casa: &dyn Casa) -> Result<(), Respuesta> {
+    match visto {
+        None => Err(Respuesta::error(409, "Esta página es de antes de actualizar Adeorq: recárgala.")),
+        Some(a) if a != casa.arranque() => {
+            Err(Respuesta::error(410, "Esa terminal era de antes de reiniciar Adeorq: ese número ya es de otra o de ninguna."))
+        }
+        Some(_) => Ok(()),
+    }
+}
+
+/// Un aviso que abre una terminal (`/#terminal=<panel>`) se manda con el
+/// arranque detrás (`/#terminal=<panel>@<arranque>`), para que la página del
+/// móvil sepa de cuál era aunque se toque al día siguiente. Se sella aquí, el
+/// único sitio por donde salen, y no en cada campana de la ventana.
+fn sellar_aviso(url: &str, arranque: u64) -> String {
+    match url.strip_prefix("/#terminal=") {
+        Some(panel) if !panel.is_empty() && panel.bytes().all(|b| b.is_ascii_digit()) => format!("{url}@{arranque}"),
+        _ => url.to_string(),
+    }
+}
+
 /// Lo que el servidor necesita de la casa. Con una casa de mentira se prueba
 /// entero sin abrir la app.
 pub trait Casa {
@@ -882,13 +908,21 @@ pub fn atender(
         // terminal sabiendo que es lo más cómodo y lo más peligroso: la red que
         // queda es la de siempre (emparejado, por Tailscale) y ninguna más.
         ("GET", "/api/terminales") => match casa.ventana("terminales", json!({})) {
-            Ok(v) => Respuesta::json(200, v),
+            Ok(mut v) => {
+                if let Some(o) = v.as_object_mut() {
+                    o.insert("arranque".into(), json!(casa.arranque()));
+                }
+                Respuesta::json(200, v)
+            }
             Err(e) => Respuesta::error(502, &e),
         },
         ("GET", "/api/terminal") => {
             let Some(panel) = p.consulta.get("panel").and_then(|s| s.parse::<u64>().ok()) else {
                 return Respuesta::error(400, "Falta qué terminal.");
             };
+            if let Err(r) = mismo_arranque(p.consulta.get("arranque").and_then(|s| s.parse().ok()), casa) {
+                return r;
+            }
             match casa.ventana("pantalla", json!({ "panel": panel })) {
                 Ok(v) => Respuesta::json(200, v),
                 Err(e) => Respuesta::error(502, &e),
@@ -904,6 +938,9 @@ pub fn atender(
             }
             if texto.chars().count() > TOPE_TEXTO {
                 return Respuesta::error(413, "Es demasiado largo para mandarlo de una vez.");
+            }
+            if let Err(r) = mismo_arranque(cuerpo["arranque"].as_u64(), casa) {
+                return r;
             }
             match casa.ventana("escribir", json!({ "panel": panel, "texto": texto })) {
                 Ok(_) => {
@@ -927,6 +964,9 @@ pub fn atender(
             let tecla = cuerpo["tecla"].as_str().unwrap_or("");
             if !TECLAS_DEL_MOVIL.contains(&tecla) {
                 return Respuesta::error(400, "Esa tecla no se manda desde el móvil.");
+            }
+            if let Err(r) = mismo_arranque(cuerpo["arranque"].as_u64(), casa) {
+                return r;
             }
             match casa.ventana("tecla", json!({ "panel": panel, "tecla": tecla })) {
                 Ok(_) => Respuesta::json(202, json!({ "ok": true })),
@@ -1500,7 +1540,7 @@ pub fn movil_avisar(app: tauri::AppHandle, titulo: String, cuerpo: String, url: 
         }
         avisados.push((marca, ahora));
     }
-    let url = url.unwrap_or_else(|| "/".into());
+    let url = sellar_aviso(&url.unwrap_or_else(|| "/".into()), crate::conserje::arranque());
     let n = subs.len();
     for (nombre, sub) in subs {
         let app = app.clone();
@@ -2208,22 +2248,56 @@ mod tests {
         assert_eq!(atender(&pedir("GET", "/api/terminales", None, ""), &g, &casa, &nada, reloj).estado, 401);
         assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", None, r#"{"panel":1,"texto":"hola"}"#), &g, &casa, &nada, reloj).estado, 401);
         assert_eq!(atender(&pedir("GET", "/api/terminales", c, ""), &g, &casa, &nada, reloj).estado, 200);
-        assert_eq!(atender(&pedir("GET", "/api/terminal?panel=3", c, ""), &g, &casa, &nada, reloj).estado, 200);
-        assert_eq!(atender(&pedir("GET", "/api/terminal?panel=x", c, ""), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("GET", "/api/terminal?panel=3&arranque=77", c, ""), &g, &casa, &nada, reloj).estado, 200);
+        assert_eq!(atender(&pedir("GET", "/api/terminal?panel=x&arranque=77", c, ""), &g, &casa, &nada, reloj).estado, 400);
         assert_eq!(atender(&pedir("GET", "/api/terminal", c, ""), &g, &casa, &nada, reloj).estado, 400);
-        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"panel":1,"texto":"  "}"#), &g, &casa, &nada, reloj).estado, 400);
-        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"texto":"hola"}"#), &g, &casa, &nada, reloj).estado, 400);
-        let largo = format!(r#"{{"panel":1,"texto":"{}"}}"#, "a".repeat(TOPE_TEXTO + 1));
+        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"panel":1,"texto":"  ","arranque":77}"#), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"texto":"hola","arranque":77}"#), &g, &casa, &nada, reloj).estado, 400);
+        let largo = format!(r#"{{"panel":1,"texto":"{}","arranque":77}}"#, "a".repeat(TOPE_TEXTO + 1));
         assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, &largo), &g, &casa, &nada, reloj).estado, 413);
-        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"panel":1,"texto":"sí, adelante"}"#), &g, &casa, &nada, reloj).estado, 202);
-        assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+c"}"#), &g, &casa, &nada, reloj).estado, 202);
-        assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+z"}"#), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"panel":1,"texto":"sí, adelante","arranque":77}"#), &g, &casa, &nada, reloj).estado, 202);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+c","arranque":77}"#), &g, &casa, &nada, reloj).estado, 202);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+z","arranque":77}"#), &g, &casa, &nada, reloj).estado, 400);
         // El cambio de modo de Claude Code y las flechas de los menús, sí.
         for t in ["shift+tab", "arriba", "abajo"] {
-            let cuerpo = format!(r#"{{"panel":1,"tecla":"{t}"}}"#);
+            let cuerpo = format!(r#"{{"panel":1,"tecla":"{t}","arranque":77}}"#);
             assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, &cuerpo), &g, &casa, &nada, reloj).estado, 202, "{t}");
         }
         assert_eq!(atender(&pedir("GET", "/api/terminal/escribir", c, ""), &g, &casa, &nada, reloj).estado, 405, "con el método que no es, 405 y no 404");
+    }
+
+    /// El «panel 3» de anoche es hoy otra terminal: lo que el móvil pide con el
+    /// arranque de otro día, o sin ninguno (una página de antes de actualizar),
+    /// ni se lee ni se escribe, y a la ventana no le llega nada.
+    #[test]
+    fn una_terminal_de_otro_arranque_no_se_lee_ni_se_escribe() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let c = Some(clave.as_str());
+        let lista = atender(&pedir("GET", "/api/terminales", c, ""), &g, &casa, &nada, reloj);
+        assert_eq!(cuerpo_de(&lista)["arranque"], 77, "la lista dice en qué arranque está");
+        let estado = |metodo: &str, ruta: &str, cuerpo: &str| atender(&pedir(metodo, ruta, c, cuerpo), &g, &casa, &nada, reloj).estado;
+        assert_eq!(estado("GET", "/api/terminal?panel=3&arranque=76", ""), 410);
+        assert_eq!(estado("GET", "/api/terminal?panel=3", ""), 409);
+        assert_eq!(estado("POST", "/api/terminal/escribir", r#"{"panel":3,"texto":"sí","arranque":76}"#), 410);
+        assert_eq!(estado("POST", "/api/terminal/escribir", r#"{"panel":3,"texto":"sí"}"#), 409);
+        assert_eq!(estado("POST", "/api/terminal/tecla", r#"{"panel":3,"tecla":"intro","arranque":76}"#), 410);
+        assert_eq!(estado("POST", "/api/terminal/tecla", r#"{"panel":3,"tecla":"intro"}"#), 409);
+        assert!(casa.enviados.borrow().is_empty(), "a la ventana no le llegó nada que escribir");
+        assert_eq!(estado("POST", "/api/terminal/escribir", r#"{"panel":3,"texto":"sí","arranque":77}"#), 202);
+        assert_eq!(casa.enviados.borrow().len(), 1);
+    }
+
+    /// El aviso que abre una terminal lleva su arranque; los demás salen igual.
+    #[test]
+    fn el_aviso_de_una_terminal_lleva_su_arranque() {
+        assert_eq!(sellar_aviso("/#terminal=3", 1760500000000), "/#terminal=3@1760500000000");
+        assert_eq!(sellar_aviso("/#terminal=3@12", 99), "/#terminal=3@12", "uno ya sellado no se vuelve a sellar");
+        assert_eq!(sellar_aviso("/#terminal=", 99), "/#terminal=");
+        assert_eq!(sellar_aviso("/#decision=d19a2b", 99), "/#decision=d19a2b");
+        assert_eq!(sellar_aviso("/", 99), "/");
     }
 
     #[test]

@@ -26,8 +26,10 @@ async (page) => {
   await page.setViewportSize({ width: Math.round(390 * k), height: Math.round(844 * k) });
   await page.evaluate(() => localStorage.setItem("adeorq-movil-clave", "clave-de-mentira"));
 
-  // 1. Una terminal de agente se abre en el Chat.
-  await page.goto(`${B}/#terminal=1`);
+  // 1. Una terminal de agente se abre en el Chat. Con `?r=1` la página se
+  // recarga y lee la clave: cambiar solo el `#` no recarga, y en un perfil
+  // recién hecho (`banco-sin-mcp.mjs`) se quedaba emparejando.
+  await page.goto(`${B}/?r=1#terminal=1@111`);
   await page.waitForSelector("#turnos .turno");
   await page.waitForTimeout(600);
   const pest = await page.$$eval(".pestanas .pastilla", (b) => b.map((x) => `${x.textContent}:${x.dataset.on}`));
@@ -96,7 +98,7 @@ async (page) => {
   debe(await page.$eval("#conversa", (c) => !c.hidden), "el enlace de la nota lleva al Chat");
 
   // 8. Una pregunta con sus opciones; la 2 se manda como «2».
-  await page.goto(`${B}/#terminal=4`);
+  await page.goto(`${B}/#terminal=4@111`);
   await page.waitForSelector("#ahora:not([hidden])");
   const preg = await page.$eval("#ahora", (x) => ({ tipo: x.dataset.tipo, texto: x.innerText, n: x.querySelectorAll("button[data-num]").length }));
   debe(preg.tipo === "pregunta" && /Do you want to proceed\?/.test(preg.texto) && preg.n === 3, `la pregunta con 3 opciones (${JSON.stringify(preg)})`);
@@ -106,7 +108,7 @@ async (page) => {
   debe(escrito.texto === "2", `la opción 2 manda «2» (${escrito.texto})`);
 
   // 9. Una consola sin agente: ni pestañas, ni nota, ni «ahora».
-  await page.goto(`${B}/#terminal=3`);
+  await page.goto(`${B}/#terminal=3@111`);
   await page.waitForSelector("#pantalla .l");
   const consola = await page.evaluate(() => ({
     pestanas: !document.getElementById("pestanas").hidden,
@@ -117,7 +119,7 @@ async (page) => {
   // 10. La mascota del pie está viva: es la del escritorio, con su guion. Cambia
   //     de postura sola, sigue siendo la misma al repintarse el chat, y si la
   //     tocas da un brinco (sube una fila).
-  await page.goto(`${B}/#terminal=1`);
+  await page.goto(`${B}/#terminal=1@111`);
   await page.waitForSelector("#ahora .masc");
   const masc = () => page.$eval("#ahora .masc", (m) => ({ animo: m.dataset.animo, clave: m.dataset.clave, v: Number(m.dataset.v), cuadros: m.querySelectorAll("rect").length, arriba: Math.min(...[...m.querySelectorAll('rect[fill="#39a9f6"]')].map((q) => Number(q.getAttribute("y")))) }));
   const m0 = await masc();
@@ -130,7 +132,7 @@ async (page) => {
   debe((await masc()).arriba === 1, "al tocarla, brinca");
 
   // 11. Una terminal que terminó lo dice, y la mascota lo celebra.
-  await page.goto(`${B}/#terminal=5`);
+  await page.goto(`${B}/#terminal=5@111`);
   await page.waitForSelector('#ahora[data-tipo="termino"]');
   const fin = await page.$eval("#ahora", (x) => ({ texto: x.innerText, animo: x.querySelector(".masc")?.dataset.animo }));
   debe(/Ha terminado/.test(fin.texto) && fin.animo === "lista", `terminó, y se celebra (${JSON.stringify(fin)})`);

@@ -1,11 +1,11 @@
 {
-  "version": "0.9.203",
-  "notes": "Los proyectos donde trabaja un agente llevan un marco verde. Actualizar o cerrar Adeorq ya no apaga la pantalla completa de Claude Code. Un agente retomado ya no puede cerrar la terminal equivocada.",
-  "pub_date": "2026-10-15T02:21:20Z",
+  "version": "0.9.204",
+  "notes": "Un aviso viejo del movil ya no abre otra terminal. Las terminales que abre un agente las cierra el agente que las abrio, con su rastro. La cuota de Copilot sale en Cuentas.",
+  "pub_date": "2026-10-15T03:48:20Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJKRWlEcDdWQmNEdlNja1BQZll4TTEvR1J4NTJldnh5QVdrVDJvdU1xeWZEZTdRNTRLejJCVUc5NnNxUU5VMFRPYWRWOE5mMjdTbFpzcS8zRkZ2UXdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDMwODUzCWZpbGU6QWRlb3JxXzAuOS4yMDNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDMKSTBhZnVicEJOMHJ4a2duL3lHcEo0V05YdmdWVGkySHBpb1h5Nyszak9HN2p6YWdlelhaUm9yNmZRd0lCR1hZYUlCYlo4T0Nxci8rU3FxLzdoaWFJQXc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.203/Adeorq_0.9.203_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzgyWTNKdWE4N1JzMWRISTFRcENnQWsyQ1Y5akNSQnRHVC9VbFFyQ1lBRHpWSGZpcnhxdVo0L3gzUml0Q0FWK0NmWEVjTjRRNnFIYkFYUlptb3VFK0FRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDM2MDk4CWZpbGU6QWRlb3JxXzAuOS4yMDRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDQKSjRuZW8vZXdmVXh0Z01YbGpCSUdCdytubzFmbG1tT3lQTW5JUytDVC9hV0tFaGNGZnFOWWlyWTNOcU81Y2FKeS9vNDFySEZyUkxvVTMxQjdOU3ZzQWc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.204/Adeorq_0.9.204_x64-setup.exe"
     }
   }
 }

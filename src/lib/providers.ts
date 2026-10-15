@@ -345,7 +345,9 @@ export const PROVIDERS: Provider[] = [
     envVar: "",
     homeDir: ".copilot",
     creds: [],
-    usage: false,
+    // Se le pregunta a su CLI en modo headless (`cuota_de_copilot`), con su
+    // propio login: chat, autocompletado y premium, lo que traiga el plan.
+    usage: true,
     hue: "#8b949e",
     install: "pnpm add -g @github/copilot",
     cmd: "pnpm add -g @github/copilot",

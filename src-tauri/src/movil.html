@@ -781,6 +781,9 @@ const DEL_PC = {
   "No hay nada que mejorar.": "There is nothing to improve.",
   "Falta qué terminal.": "The terminal is missing.",
   "Esa tecla no se manda desde el móvil.": "That key cannot be sent from the phone.",
+  "Esta página es de antes de actualizar Adeorq: recárgala.": "This page is from before Adeorq was updated: reload it.",
+  "Esa terminal era de antes de reiniciar Adeorq: ese número ya es de otra o de ninguna.":
+    "That terminal was from before Adeorq restarted: its number now belongs to another one, or to none.",
   "Falta qué sesión.": "The session is missing.",
   "Ese trozo no tiene forma.": "That chunk is malformed.",
   "Esa decisión ya no está.": "That decision is gone.",
@@ -1604,14 +1607,24 @@ if (e.vista === "esperando") {
   setTimeout(() => { if (e.vista === "esperando") ir({ vista: "emparejar" }); }, 1500);
 }
 
+/* El aviso de una terminal trae su panel y el arranque de Adeorq en que era
+   ese panel (`/#terminal=3@<arranque>`, `sellar_aviso` en movil.rs): el PC no
+   deja leer ni escribir con el de otro arranque, que el «panel 3» de anoche
+   es hoy otra terminal. Uno sin arranque solo lo mandaba una versión anterior,
+   así que es de antes de reiniciar: con 0, el PC dice eso mismo. */
+function terminalDelAviso(hash) {
+  const m = /#terminal=(\d{1,6})(?:@(\d{1,16}))?/.exec(hash);
+  return m && { vista: "terminal", panel: Number(m[1]), arranque: Number(m[2] || 0) };
+}
+
 // Un toque en un aviso abre la página con `#conv=<id>`: se va a esa
 // conversación y se limpia la dirección, que no es para guardarla.
 {
   const m = /#conv=([A-Za-z0-9_-]{1,64})/.exec(location.hash);
   if (m && clave) e = { vista: "hilo", id: m[1] };
   // Y un aviso de una terminal («te pregunta») abre su pantalla directamente.
-  const mt = /#terminal=(\d{1,6})/.exec(location.hash);
-  if (mt && clave) e = { vista: "terminal", panel: Number(mt[1]) };
+  const mt = terminalDelAviso(location.hash);
+  if (mt && clave) e = mt;
   // El de una decisión (`ask_decision`), la decisión.
   const md = /#decision=(d[0-9a-f]{1,22})/.exec(location.hash);
   if (md && clave) e = { vista: "decision", id: md[1] };
@@ -1622,12 +1635,12 @@ if (e.vista === "esperando") {
 // lleva a la dirección nueva y eso es solo un cambio de `#`. Se atiende igual.
 window.addEventListener("hashchange", () => {
   const mc = /#conv=([A-Za-z0-9_-]{1,64})/.exec(location.hash);
-  const mt = /#terminal=(\d{1,6})/.exec(location.hash);
+  const mt = terminalDelAviso(location.hash);
   const md = /#decision=(d[0-9a-f]{1,22})/.exec(location.hash);
   if (location.hash) history.replaceState(null, "", location.pathname);
   if (!clave) return;
   if (md) ir({ vista: "decision", id: md[1] });
-  else if (mt) ir({ vista: "terminal", panel: Number(mt[1]) });
+  else if (mt) ir(mt);
   else if (mc) ir({ vista: "hilo", id: mc[1] });
 });
 
@@ -1894,7 +1907,8 @@ async function pintarLista() {
         trabajan ? plural(trabajan, tr("1 agente trabajando"), tr("{n} agentes trabajando")) : ""].filter(Boolean).join(" · ")
         || (terminales.length ? tr("todo tranquilo") : tr("sin terminales abiertas"));
 
-    const firma = JSON.stringify([esperan, terminales, vt.fallo || ""]);
+    // Con el arranque: si Adeorq se reinicia, los botones se rehacen con el nuevo.
+    const firma = JSON.stringify([esperan, terminales, vt.fallo || "", vt.arranque]);
     if (firma === pintado) return;
     const primera = pintado === null;
     pintado = firma;
@@ -1917,7 +1931,7 @@ async function pintarLista() {
         ? `<h2 class="seccion"><span>${tr("Terminales")}</span></h2>${otras.slice(0, 5).map(filaTerminal).join("")}${otras.length > 5 ? `<p class="seccion-nota">${tr("y {n} más, en «Todas las terminales».", { n: otras.length - 5 })}</p>` : ""}`
         : "";
     reclaman.querySelectorAll(".tarjeta[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volver: "lista" })));
-    document.querySelectorAll("#reclaman [data-panel], #portada-term [data-panel]").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), volver: "lista" })));
+    document.querySelectorAll("#reclaman [data-panel], #portada-term [data-panel]").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), arranque: vt.arranque, volver: "lista" })));
   };
   mirar().catch(() => {});
   const cargar = async () => {
@@ -2230,7 +2244,7 @@ async function pintarTerminales() {
         </button>`;
       }).join("")
       : `<p class="vacio">${tr("No hay ninguna terminal abierta en Adeorq.")}</p>`;
-    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel) })));
+    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), arranque: v.arranque })));
   };
   try { await cargar(); } catch (err) {
     // Un 401 ya ha cambiado de vista (`olvidarClave`): entonces no hay dónde pintarlo.
@@ -2294,7 +2308,7 @@ async function pintarDecisiones() {
       </header>
       <main class="cuerpo" id="decisiones"></main>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel } : { vista: "lista" }, true));
+  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel, arranque: e.volverArranque } : { vista: "lista" }, true));
   // Solo se repinta si algo cambió: rehacerla cada cinco segundos reiniciaba
   // el latido de las vivas y te quitaba el toque a medio pulsar.
   let pintado = null;
@@ -2332,7 +2346,7 @@ async function pintarDecisiones() {
     if (firma === pintado) return;
     pintado = firma;
     aqui.innerHTML = html;
-    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volverPanel: e.volverPanel })));
+    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volverPanel: e.volverPanel, volverArranque: e.volverArranque })));
   };
   try { await cargar(); } catch (err) {
     const aqui = document.getElementById("decisiones");
@@ -2367,7 +2381,7 @@ async function pintarDecision() {
         </div>
       </footer>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel } : { vista: e.volver === "lista" ? "lista" : "decisiones" }, true));
+  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel, arranque: e.volverArranque } : { vista: e.volver === "lista" ? "lista" : "decisiones" }, true));
   let d;
   try {
     d = await api("GET", `/api/decision?id=${encodeURIComponent(e.id)}`);
@@ -2720,7 +2734,7 @@ function pintarTerminal() {
     });
   };
   const leer = async () => {
-    const v = await api("GET", `/api/terminal?panel=${e.panel}`);
+    const v = await api("GET", `/api/terminal?panel=${e.panel}&arranque=${e.arranque}`);
     const marco = document.getElementById("marco");
     const conversa = document.getElementById("conversa");
     if (!marco || !conversa) return;
@@ -2806,7 +2820,7 @@ function pintarTerminal() {
     const botones = [...ahoraEl.querySelectorAll("button[data-num]")];
     botones.forEach((x) => { x.disabled = true; });
     try {
-      await api("POST", "/api/terminal/escribir", { panel: e.panel, texto: b.dataset.num });
+      await api("POST", "/api/terminal/escribir", { panel: e.panel, arranque: e.arranque, texto: b.dataset.num });
       salioBien();
       reaccionaMascota("ahora", "enviado");
       enSeguida();
@@ -2835,7 +2849,7 @@ function pintarTerminal() {
     pend.sort((x, y) => Number(y.panel === e.panel) - Number(x.panel === e.panel));
     const suya = pend[0].panel === e.panel;
     b.innerHTML = `${ICONO.decision}<span><b>${pend.length === 1 ? (suya ? tr("Esta terminal espera tu decisión") : tr("Una decisión te espera")) : tr("{n} decisiones te esperan", { n: pend.length })}</b> · ${esc(pend[0].titulo)}</span><em>${tr("Contestar")}</em>`;
-    b.onclick = () => ir(pend.length === 1 ? { vista: "decision", id: pend[0].id, volverPanel: e.panel } : { vista: "decisiones", volverPanel: e.panel });
+    b.onclick = () => ir(pend.length === 1 ? { vista: "decision", id: pend[0].id, volverPanel: e.panel, volverArranque: e.arranque } : { vista: "decisiones", volverPanel: e.panel, volverArranque: e.arranque });
   };
   document.querySelectorAll(".pestanas .pastilla").forEach((b) => b.addEventListener("click", () => {
     e.cara = b.dataset.cara;
@@ -2851,7 +2865,7 @@ function pintarTerminal() {
     if (!txt || adj.subiendo()) return;
     enviarB.disabled = true;
     try {
-      await api("POST", "/api/terminal/escribir", { panel: e.panel, texto: txt });
+      await api("POST", "/api/terminal/escribir", { panel: e.panel, arranque: e.arranque, texto: txt });
       texto.value = "";
       adj.vaciar();
       crecer();
@@ -2869,7 +2883,7 @@ function pintarTerminal() {
   document.querySelectorAll(".pastilla[data-tecla]").forEach((b) => b.addEventListener("mousedown", (ev) => ev.preventDefault()));
   document.querySelectorAll(".pastilla[data-tecla]").forEach((b) => b.addEventListener("click", async () => {
     try {
-      await api("POST", "/api/terminal/tecla", { panel: e.panel, tecla: b.dataset.tecla });
+      await api("POST", "/api/terminal/tecla", { panel: e.panel, arranque: e.arranque, tecla: b.dataset.tecla });
       salioBien();
       enSeguida();
     } catch (err) {

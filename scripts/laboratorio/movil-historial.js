@@ -20,7 +20,7 @@ async (page) => {
     await page.evaluate(() => localStorage.setItem("adeorq-movil-clave", "clave-de-mentira"));
 
     const abrir = async (panel) => {
-      await page.goto(`${origen}/?p=${panel}#terminal=${panel}`);
+      await page.goto(`${origen}/?p=${panel}#terminal=${panel}@111`);
       await page.waitForTimeout(1200);
     };
     const estado = () => page.evaluate(() => {

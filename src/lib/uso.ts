@@ -43,8 +43,10 @@ export function etiquetaCorta(label: string): Etiqueta {
   }
   // El mes no sale en la tarjeta de Claude, sale en Codex: su plan gratuito
   // cuenta por ventanas de treinta días (43.200 minutos, medido en esta
-  // máquina) y `uso_clientes.rs` las nombra con este mismo vocabulario.
-  if (/month/i.test(label)) return { clave: "mes" };
+  // máquina) y `uso_clientes.rs` las nombra con este mismo vocabulario. Copilot
+  // trae varios cubos al mes («Current month (Chat)»): se dice cuál, como la
+  // semana de un modelo.
+  if (/month/i.test(label)) return dentro ? { clave: "mes", modelo: dentro } : { clave: "mes" };
   // Una línea que no reconocemos se dice tal cual: inventarle un nombre corto
   // sería tapar con una etiqueta bonita que el CLI ha cambiado su tarjeta.
   return { clave: label.replace(/^current\s+/i, "") };

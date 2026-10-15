@@ -36,6 +36,7 @@ mod decisiones;
 mod programados;
 mod movil;
 mod push;
+mod rastros;
 mod secrets;
 mod sessions;
 mod suelta;

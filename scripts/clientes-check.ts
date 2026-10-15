@@ -207,10 +207,12 @@ for (const p of PROVIDERS.filter((x) => !["claude", "codex", "gemini", "kimi"].i
       !kimi?.banderaSesionNueva,
   );
 }
-// Codex la apunta solo en sus rollouts (`uso_clientes.rs`), igual que Claude.
+// Codex la apunta solo en sus rollouts (`uso_clientes.rs`), igual que Claude, y
+// a Copilot se le pregunta a su CLI en modo headless (desde el 2026-10-15).
+// Gemini NO: su cuota solo sale con el token de su CLI, y Google lo prohíbe.
 ok(
   "solo prometen cuota los que de verdad la publican",
-  PROVIDERS.filter((p) => sabe(p.id, "usage")).map((p) => p.id).join() === "claude,codex",
+  PROVIDERS.filter((p) => sabe(p.id, "usage")).map((p) => p.id).join() === "claude,codex,copilot",
 );
 ok(
   "quien acepta encargo al arrancar lo declara en su fila",

@@ -92,6 +92,11 @@ const pantallas = new Map([
   [3, [...Array.from({ length: 150 }, (_, i) => `   Compiling crate-numero-${i} v0.${i}.0 (C:\\Users\\Muni\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\crate-${i})`), "PS C:\\proyectos\\Vidorq> "]],
 ]);
 const terminalDe = (panel) => terminales.find((t) => t.panel === Number(panel));
+// Como `mismo_arranque` (movil.rs): sin arranque es una página de antes de
+// actualizar, y con el de otro día, otra terminal con el mismo número.
+const deOtroArranque = (a) => a == null || a === ""
+  ? [409, "Esta página es de antes de actualizar Adeorq: recárgala."]
+  : Number(a) !== ARRANQUE ? [410, "Esa terminal era de antes de reiniciar Adeorq: ese número ya es de otra o de ninguna."] : null;
 // El modo de Claude Code del panel 1: Shift+Tab pasa al siguiente, y la línea
 // de abajo lo dice como lo pinta Claude Code (nada en el normal).
 const MODOS = ["", "⏵⏵ accept edits on (shift+tab to cycle)", "⏸ plan mode on (shift+tab to cycle)", "⏵⏵ auto mode on (shift+tab to cycle)"];
@@ -354,16 +359,20 @@ http
         case "/api/parar":
           return json(res, 200, { ok: true });
         case "/api/terminales":
-          return json(res, 200, { terminales });
+          return json(res, 200, { terminales, arranque: ARRANQUE });
         case "/api/terminal": {
           const t = terminalDe(url.searchParams.get("panel"));
           if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
+          const otro = deOtroArranque(url.searchParams.get("arranque"));
+          if (otro) return json(res, otro[0], { error: otro[1] });
           const linea = MODOS[modo.get(t.panel) ?? 0];
           return json(res, 200, { ...t, filas: [...(pantallas.get(t.panel) || []), ...(linea ? [linea] : [])] });
         }
         case "/api/terminal/escribir": {
           const t = terminalDe(v.panel);
           if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
+          const otro = deOtroArranque(v.arranque);
+          if (otro) return json(res, otro[0], { error: otro[1] });
           const f = pantallas.get(t.panel);
           f[f.length - 1] += v.texto;
           f.push("", `● (el agente leyó: ${v.texto})`, "", "❯ ");
@@ -380,6 +389,8 @@ http
           return json(res, 200, { texto: escrito.get(Number(url.searchParams.get("panel"))) ?? null });
         case "/api/terminal/tecla": {
           if (!["intro", "esc", "ctrl+c", "shift+tab", "arriba", "abajo"].includes(v.tecla)) return json(res, 400, { error: "Esa tecla no se manda desde el móvil." });
+          const otro = deOtroArranque(v.arranque);
+          if (otro) return json(res, otro[0], { error: otro[1] });
           const f = pantallas.get(Number(v.panel));
           if (!f) return json(res, 404, { error: "Esa terminal ya no está." });
           if (v.tecla === "shift+tab") {

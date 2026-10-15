@@ -52,6 +52,9 @@ pub struct Puente {
     siguiente: AtomicU64,
     /// Cuándo se abrió cada panel por MCP y cuál fue, para los dos topes.
     aperturas: Mutex<Vec<(Instant, u32)>>,
+    /// Qué panel abrió cada terminal delegada (`None`: un agente sin panel,
+    /// como el Capataz). Solo de este arranque, como los números.
+    delegadas: Mutex<HashMap<u32, Option<u32>>>,
 }
 
 /// LOS DOS FRENOS, y no son opcionales.
@@ -710,7 +713,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                     .or_else(|| numero_dudoso(name, &args, mi_panel, conoce_numeros, de_casa))
                 {
                     Some(porque) => Err(porque),
-                    None => handle_tool_call(name, args, &app),
+                    None => handle_tool_call(name, args, &app, mi_panel),
                 };
                 if result.is_ok() && matches!(name, "get_active_panes" | "open_pane") {
                     conoce_numeros = true;
@@ -922,7 +925,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "open_pane",
-                                "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_transcript. This is how a supervising session builds a team: one pane per job. Every pane costs real quota, so open the fewest you need. Hard limits apply (6 alive, 12 per hour) and you are told when you hit them.",
+                                "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_transcript. This is how a supervising session builds a team: one pane per job. Every pane costs real quota, so open the fewest you need. Hard limits apply (6 alive, 12 per hour) and you are told when you hit them. The pane is yours to clean up: when its task is done, close it with close_pane and its `rastro`, or the Cabina fills up.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -978,13 +981,17 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "close_pane",
-                                "description": "Closes a terminal you opened and KILLS the agent inside it. Use it to tidy up after yourself: a pane you opened by mistake, or one whose job is done. It frees a slot against the 6-alive limit. It does not undo the quota that pane already spent, and there is no undo: read its transcript first if anything in there matters.",
+                                "description": "Closes a terminal and KILLS the agent inside it, removing it entirely (no 'closed' notice, no undo). Closing the panes YOU opened is your job, not Munir's: when one's task is done (read it with read_pane_transcript or leer_turno and judge it finished), make sure it left its handoff where its project keeps them (its BUZON.md, a commit, a file), then close it with its `rastro`. Also use it for a pane you opened by mistake. It frees a slot against the 6-alive limit; it does not undo the quota that pane already spent.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
                                         "paneId": {
                                             "type": "number",
                                             "description": "The ID of the pane to close, as listed by get_active_panes."
+                                        },
+                                        "rastro": {
+                                            "type": "string",
+                                            "description": "Its trace, REQUIRED for a pane an agent opened: in a few lines (40 to 8000 characters), what it did, where it left its handoff or result, and what is still pending. Adeorq saves it with the session id so the work can be found and resumed after the pane is gone. Write it in Munir's language (Spanish)."
                                         }
                                     },
                                     "required": ["paneId"]
@@ -1092,7 +1099,8 @@ fn escalon_que_falta(cliente: &Option<String>, de_casa: bool, herramienta: &str)
     }
 }
 
-fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<Value, String> {
+/// `quien` es el panel del agente que llama, si su puente lo presentó.
+fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Option<u32>) -> Result<Value, String> {
     match name {
         "get_mods" => {
             let carpeta = crate::dir_datos()?.join("mods");
@@ -1133,6 +1141,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 })
             };
             let fichas = crate::pty::fichas(app);
+            let delegadas = app.state::<Puente>().delegadas.lock().unwrap().clone();
             // Con qué arranque van estos números: un agente que retoma una
             // conversación de ayer recuerda «el panel 3» y hoy ese 3 es otra
             // terminal. Si el arranque que apuntó no es este, que vuelva a listar.
@@ -1157,6 +1166,18 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                     cabeza.push_str(&format!(", Estado: {}", dicho));
                     if !porque.is_empty() {
                         cabeza.push_str(&format!(" (por qué: {})", porque));
+                    }
+                }
+                // Quién la abrió, y a quien la abrió se le recuerda que cerrarla
+                // es cosa suya (Munir, 2026-10-15: la limpia quien la abrió, al
+                // leerla y ver su tarea hecha, y deja su rastro).
+                if let Some(madre) = delegadas.get(&id) {
+                    match (madre, quien) {
+                        (Some(m), Some(yo)) if *m == yo => cabeza.push_str(
+                            ", Abierta por: ti (cuando su tarea esté hecha, ciérrala con close_pane y su rastro)",
+                        ),
+                        (Some(m), _) => cabeza.push_str(&format!(", Abierta por: el panel {}", m)),
+                        (None, _) => cabeza.push_str(", Abierta por: un agente sin panel"),
                     }
                 }
                 let cmd_str = f.command.as_ref()
@@ -1470,6 +1491,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 .lock()
                 .unwrap()
                 .push((Instant::now(), pane_id));
+            // Y quién la abrió: es quien la cierra cuando su tarea está hecha.
+            app.state::<Puente>().delegadas.lock().unwrap().insert(pane_id, quien);
 
             // El parte entero lo redacta la ventana, que es la única que sabe con
             // qué CLI acabó, si ese acepta encargo al arrancar y dónde cayó. Aquí
@@ -1629,10 +1652,48 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 ));
             }
 
+            // Su rastro, ANTES de cerrar (`rastros.rs`): la que abrió un agente
+            // no se cierra sin él, y si no se puede guardar tampoco se cierra.
+            // A una que abrió Munir se le guarda si el agente lo manda.
+            let es_delegada = app.state::<Puente>().delegadas.lock().unwrap().get(&pane_id).copied();
+            let rastro = args["rastro"].as_str().unwrap_or("");
+            let guardado = if es_delegada.is_some() || !rastro.trim().is_empty() {
+                let texto = crate::rastros::validar(rastro)?;
+                let ficha = crate::pty::fichas(app).into_iter().find(|f| f.id == pane_id);
+                let nombre = pedir_a_la_ventana_con(app, "paneles", json!({}), Duration::from_secs(4))
+                    .ok()
+                    .and_then(|r| r.datos)
+                    .and_then(|d| d.as_array().cloned())
+                    .and_then(|ps| {
+                        ps.iter()
+                            .find(|p| p["id"].as_u64() == Some(pane_id as u64))
+                            .and_then(|p| p["name"].as_str().map(|s| s.trim().to_string()))
+                    })
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or_else(|| format!("terminal {pane_id}"));
+                let ahora = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_millis() as u64)
+                    .unwrap_or(0);
+                let r = crate::rastros::Rastro {
+                    nombre: &nombre,
+                    carpeta: ficha.as_ref().map(|f| f.cwd.as_str()).unwrap_or(""),
+                    sesion: ficha.as_ref().and_then(|f| f.command.as_deref()).and_then(crate::rastros::sesion_del_comando),
+                    abierta_por: es_delegada.flatten(),
+                    cerrada_por: quien,
+                    texto: &texto,
+                };
+                Some(crate::rastros::escribir(&crate::dir_datos()?.join("rastros"), &r, ahora)?)
+            } else {
+                None
+            };
+
             // La ventana es la dueña del panel (cabina, lienzo, layout), así que
             // el cierre se le pide a ella por el mismo puente que la apertura.
-            // Ella llama a `closePane`, que mata el proceso y retira el panel.
+            // Ella la quita entera: sin el aviso de «cerrada» ni Ctrl+Z, que
+            // eso es para lo que cierra Munir con la X.
             pedir_a_la_ventana(app, "close_pane", json!({ "paneId": pane_id }))?;
+            app.state::<Puente>().delegadas.lock().unwrap().remove(&pane_id);
 
             // Cuántas quedan de las tuyas. El tope de vivas se calcula mirando el
             // mapa del PTY, así que cerrar una libera su sitio sola; lo que NO se
@@ -1649,8 +1710,11 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle) -> Result<V
                 "content": [{
                     "type": "text",
                     "text": format!(
-                        "Terminal {} cerrada y su agente parado. Te quedan {} de las {} vivas que puedes tener abiertas por MCP.",
-                        pane_id, vivas, MAX_VIVOS
+                        "Terminal {} cerrada y su agente parado.{} Te quedan {} de las {} vivas que puedes tener abiertas por MCP.",
+                        pane_id,
+                        guardado.map(|r| format!(" Su rastro quedó en {}.", r.display())).unwrap_or_default(),
+                        vivas,
+                        MAX_VIVOS
                     )
                 }]
             }))

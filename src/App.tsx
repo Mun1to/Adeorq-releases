@@ -1744,8 +1744,12 @@ function App() {
       });
   }, []);
 
-  const closePane = useCallback((id: number) => {
-    apuntarCerrada(id);
+  /* `deshacer` es la X de Munir: aviso de «cerrada» y Ctrl+Z para reabrirla.
+     Lo que cierra un agente por MCP se va entero, sin aviso ni Ctrl+Z (Munir,
+     2026-10-15: la delegada terminada «se elimina por completo, para mantener
+     un espacio limpio»); su rastro lo guarda `close_pane` antes de llamar aquí. */
+  const quitarPane = useCallback((id: number, deshacer: boolean) => {
+    if (deshacer) apuntarCerrada(id);
     // Cerrar MATA, y lo hace aquí mismo. Antes el proceso moría por el camino
     // largo —quitar el panel, que React lo desmonte, y que la limpieza del
     // desmontaje llamara a `killPty`—, o sea que la muerte del agente dependía
@@ -1766,11 +1770,13 @@ function App() {
     setFocusedId((f) => (f === id ? null : f));
   }, [apuntarCerrada]);
 
-  /* El oyente del MCP se monta mucho antes que esto, así que recibe `closePane`
+  const closePane = useCallback((id: number) => quitarPane(id, true), [quitarPane]);
+
+  /* El oyente del MCP se monta mucho antes que esto, así que recibe el cierre
      por la ref y no por dependencia (el porqué está donde se declara la ref). */
   useEffect(() => {
-    cerrarRef.current = closePane;
-  }, [closePane]);
+    cerrarRef.current = (id: number) => quitarPane(id, false);
+  }, [quitarPane]);
 
   /**
    * El nombre nuevo que se tecleó en la cabecera de una terminal (doble clic

@@ -43,7 +43,7 @@ async (page) => {
   }, null, { timeout: 30000 });
 
   // 1. A la terminal 1.
-  await page.goto(`${DOBLE}/?p=1#terminal=1`);
+  await page.goto(`${DOBLE}/?p=1#terminal=1@111`);
   await page.waitForTimeout(1000);
   const { png } = await adjuntar({ foto: true });
   await esperarListos();

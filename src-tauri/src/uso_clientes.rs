@@ -24,6 +24,13 @@
 //   qwen      NO. Su carpeta solo tiene extensiones, skills y el id de
 //             instalación.
 //   copilot   NO a la vista. Solo deja logs de proceso, sin cuota dentro.
+//             PERO SE PREGUNTA (2026-10-15): su CLI tiene un modo headless que
+//             habla JSON-RPC y contesta `account.getQuota` con su propio login
+//             (`cuota_de_copilot`, abajo). Adeorq no toca ningún token.
+//   gemini    Su cuota solo sale de una API interna de Google con el token del
+//             CLI, y Google prohíbe por escrito usarlo desde otro programa, con
+//             suspensión de la cuenta (`docs/resources/tos-privacy.md` del
+//             repo `google-gemini/gemini-cli`). No se hace.
 //   cursor    NO a la vista. Guarda los chats, no el gasto.
 //
 // El resto no están instalados aquí, así que no se dice nada de ellos: una
@@ -191,6 +198,159 @@ fn cuota_de_codex(config_dir: Option<&str>) -> Result<Limits, String> {
     Err("Codex no ha apuntado ninguna cuota todavía: abre una sesión y pregúntale algo".into())
 }
 
+/// Las líneas de una respuesta de `account.getQuota` de Copilot.
+///
+/// `remainingPercentage` es lo que QUEDA y el panel pinta lo usado. Lo que no
+/// tiene tope (`isUnlimitedEntitlement`, o `entitlementRequests` a -1) o no
+/// entra en el plan (cero peticiones y `hasQuota` falso, el «premium» del plan
+/// gratuito) no se pinta: una barra al 0 % o al 100 % ahí sería un número
+/// inventado. La renovación solo se da si es futura; la del plan gratuito
+/// llegó con la hora de la propia pregunta (medido el 2026-10-15).
+fn lineas_de_copilot(resultado: &Value, ahora_s: u64) -> Vec<LimitLine> {
+    let Some(cubos) = resultado.get("quotaSnapshots").and_then(Value::as_object) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for (clave, nombre) in [("premium_interactions", "Premium"), ("chat", "Chat"), ("completions", "Completions")] {
+        let Some(c) = cubos.get(clave) else {
+            continue;
+        };
+        let derecho = c.get("entitlementRequests").and_then(Value::as_i64).unwrap_or(0);
+        let ilimitado = c.get("isUnlimitedEntitlement").and_then(Value::as_bool).unwrap_or(false) || derecho < 0;
+        let fuera_del_plan = derecho == 0 && !c.get("hasQuota").and_then(Value::as_bool).unwrap_or(true);
+        let Some(queda) = c.get("remainingPercentage").and_then(Value::as_f64) else {
+            continue;
+        };
+        if ilimitado || fuera_del_plan {
+            continue;
+        }
+        let renueva = c
+            .get("resetDate")
+            .and_then(Value::as_str)
+            .and_then(|s| crate::sessions::iso_a_segundos(&format!("{}Z", s.trim_end_matches('Z'))))
+            .filter(|&s| s > ahora_s + 60)
+            .map(|s| s as i64 * 1000)
+            .unwrap_or(0);
+        out.push(LimitLine {
+            label: format!("Current month ({nombre})"),
+            percent: (100.0 - queda).round().clamp(0.0, 100.0) as u8,
+            resets: String::new(),
+            resets_at: renueva,
+        });
+    }
+    out
+}
+
+/// Cuánto le queda a Copilot, preguntándoselo a su propio CLI.
+///
+/// `copilot --headless --stdio` es el modo que usa su SDK oficial: JSON-RPC
+/// con tramas `Content-Length`, como un servidor de lenguaje. Se saluda con
+/// `connect` y se pide `account.getQuota`, que contesta con el login del CLI:
+/// Adeorq no lee ni pasa ningún token. Unos dos segundos, y sin gastar nada
+/// (medido con la 1.0.75 el 2026-10-15). Al acabar se mata la rama entera,
+/// que en Windows el CLI es un `node` debajo de un `cmd`.
+fn cuota_de_copilot() -> Result<Limits, String> {
+    use std::io::{BufRead, BufReader, Read, Write};
+    use std::process::{Command, Stdio};
+    use std::time::Duration;
+    use crate::SinVentana;
+
+    #[cfg(windows)]
+    let mut cmd = {
+        let mut c = Command::new("cmd");
+        c.args(["/c", "copilot"]);
+        c
+    };
+    #[cfg(not(windows))]
+    let mut cmd = Command::new("copilot");
+    let mut hijo = cmd
+        .args(["--headless", "--no-auto-update", "--stdio"])
+        .sin_ventana()
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("no pude lanzar copilot: {e}"))?;
+    let mut entrada = hijo.stdin.take().ok_or("copilot no abrió su entrada")?;
+    let salida = hijo.stdout.take().ok_or("copilot no abrió su salida")?;
+
+    // Las tramas se leen en otro hilo, para poder dejar de esperar.
+    let (tx, rx) = std::sync::mpsc::channel::<Value>();
+    std::thread::spawn(move || {
+        let mut r = BufReader::new(salida);
+        loop {
+            let mut largo = None;
+            loop {
+                let mut linea = String::new();
+                if r.read_line(&mut linea).unwrap_or(0) == 0 {
+                    return;
+                }
+                let linea = linea.trim();
+                if linea.is_empty() {
+                    break;
+                }
+                if let Some(n) = linea.strip_prefix("Content-Length:") {
+                    largo = n.trim().parse::<usize>().ok();
+                }
+            }
+            let Some(n) = largo.filter(|&n| n <= 1 << 20) else {
+                return;
+            };
+            let mut cuerpo = vec![0; n];
+            if r.read_exact(&mut cuerpo).is_err() {
+                return;
+            }
+            if let Ok(v) = serde_json::from_slice::<Value>(&cuerpo) {
+                if tx.send(v).is_err() {
+                    return;
+                }
+            }
+        }
+    });
+
+    let hasta = std::time::Instant::now() + Duration::from_secs(20);
+    let mut pedir = |id: u64, metodo: &str, params: Value| -> Result<Value, String> {
+        let cuerpo = serde_json::json!({ "jsonrpc": "2.0", "id": id, "method": metodo, "params": params }).to_string();
+        write!(entrada, "Content-Length: {}\r\n\r\n{}", cuerpo.len(), cuerpo).map_err(|e| e.to_string())?;
+        entrada.flush().map_err(|e| e.to_string())?;
+        loop {
+            let queda = hasta.saturating_duration_since(std::time::Instant::now());
+            let m = rx.recv_timeout(queda).map_err(|_| "copilot no contestó a tiempo".to_string())?;
+            if m.get("id").and_then(Value::as_u64) != Some(id) {
+                continue; // un aviso suyo, no la respuesta
+            }
+            if let Some(e) = m.get("error") {
+                return Err(format!("copilot dijo: {}", e.get("message").and_then(Value::as_str).unwrap_or("error")));
+            }
+            return Ok(m.get("result").cloned().unwrap_or(Value::Null));
+        }
+    };
+    let respuesta = pedir(1, "connect", serde_json::json!({}))
+        .and_then(|_| pedir(2, "account.getQuota", serde_json::json!({})));
+
+    #[cfg(windows)]
+    let _ = Command::new("taskkill")
+        .args(["/PID", &hijo.id().to_string(), "/T", "/F"])
+        .sin_ventana()
+        .output();
+    let _ = hijo.kill();
+    let _ = hijo.wait();
+
+    let ahora = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let lineas = lineas_de_copilot(&respuesta?, ahora);
+    if lineas.is_empty() {
+        return Err("Copilot no tiene ningún límite que contar en tu plan".into());
+    }
+    Ok(Limits {
+        lines: lineas,
+        note: String::new(),
+        plan: String::new(),
+    })
+}
+
 /// La cuota de un cliente cualquiera que no sea Claude.
 ///
 /// Devuelve el MISMO tipo que Claude a propósito: el panel tiene un solo camino
@@ -201,6 +361,10 @@ fn cuota_de_codex(config_dir: Option<&str>) -> Result<Limits, String> {
 pub async fn usage_of(provider: String, config_dir: Option<String>) -> Result<Limits, String> {
     match provider.as_str() {
         "codex" => cuota_de_codex(config_dir.as_deref()),
+        // Lanza un proceso y espera hasta dos segundos: fuera del hilo de Tauri.
+        "copilot" => tauri::async_runtime::spawn_blocking(cuota_de_copilot)
+            .await
+            .map_err(|e| e.to_string())?,
         // Ni un `Ok` vacío ni un cero: quien no publica su cuota lo dice con
         // estas palabras, y el panel las enseña. Un 0 % sería mentir con un
         // número, que es la única mentira que en este panel no se perdona.
@@ -231,6 +395,50 @@ mod tests {
             }
             Err(e) => println!("\nsin cuota: {e}"),
         }
+    }
+
+    /// La de Copilot, preguntada a su CLI de verdad en esta máquina (solo lee):
+    /// `cargo test --lib la_cuota_de_copilot -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn la_cuota_de_copilot() {
+        let t = std::time::Instant::now();
+        let l = cuota_de_copilot().expect("copilot tenía que contestar");
+        println!("\nen {:?}", t.elapsed());
+        for x in &l.lines {
+            println!("  {} · {}% · resets_at {}", x.label, x.percent, x.resets_at);
+        }
+        assert!(!l.lines.is_empty());
+    }
+
+    /// La respuesta de verdad de su plan gratuito (2026-10-15, Copilot 1.0.75):
+    /// chat y autocompletado salen; el premium, que su plan no trae, no; y la
+    /// renovación, que llegó con la hora de la propia pregunta, tampoco.
+    #[test]
+    fn la_cuota_de_copilot_se_lee_sin_inventar() {
+        let ahora = crate::sessions::iso_a_segundos("2026-10-15T03:29:44Z").unwrap();
+        let cubo = |derecho: i64, usadas: i64, queda: f64, hay: bool, renueva: &str| {
+            serde_json::json!({ "isUnlimitedEntitlement": false, "entitlementRequests": derecho, "usedRequests": usadas,
+                "remainingPercentage": queda, "hasQuota": hay, "resetDate": renueva })
+        };
+        let gratis = serde_json::json!({ "quotaSnapshots": {
+            "chat": cubo(200, 0, 100.0, true, "2026-10-15T03:29:44.897Z"),
+            "completions": cubo(2000, 0, 100.0, true, "2026-10-15T03:29:44.897Z"),
+            "premium_interactions": cubo(0, 0, 0.0, false, "2026-10-15T03:29:44.897Z"),
+        }});
+        let l = lineas_de_copilot(&gratis, ahora);
+        let resumen: Vec<_> = l.iter().map(|x| (x.label.as_str(), x.percent, x.resets_at)).collect();
+        assert_eq!(resumen, [("Current month (Chat)", 0, 0), ("Current month (Completions)", 0, 0)]);
+
+        let pro = serde_json::json!({ "quotaSnapshots": {
+            "premium_interactions": cubo(300, 225, 25.0, true, "2026-11-01T00:00:00Z"),
+            "chat": serde_json::json!({ "isUnlimitedEntitlement": true, "entitlementRequests": -1, "remainingPercentage": 100.0 }),
+        }});
+        let l = lineas_de_copilot(&pro, ahora);
+        assert_eq!(l.len(), 1, "el chat ilimitado no se pinta");
+        assert_eq!((l[0].label.as_str(), l[0].percent), ("Current month (Premium)", 75));
+        assert_eq!(l[0].resets_at, crate::sessions::iso_a_segundos("2026-11-01T00:00:00Z").unwrap() as i64 * 1000);
+        assert!(lineas_de_copilot(&serde_json::json!({}), ahora).is_empty());
     }
 
     /// Las tres ventanas, con los minutos que Codex da de verdad.

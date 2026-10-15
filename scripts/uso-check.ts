@@ -35,6 +35,8 @@ ok("semana de Opus", etiquetaCorta("Current week (Opus)"), { clave: "semana", mo
 // El mes lo trae Codex, no Claude: su plan gratuito cuenta por ventanas de
 // treinta dias y `uso_clientes.rs` las nombra con este mismo vocabulario.
 ok("mes", etiquetaCorta("Current month"), { clave: "mes" });
+// Copilot cuenta por cubos dentro del mes (`lineas_de_copilot`).
+ok("mes de un cubo", etiquetaCorta("Current month (Chat)"), { clave: "mes", modelo: "Chat" });
 // Lo que no reconocemos NO se inventa: si el CLI cambia su tarjeta, se ve.
 ok("línea desconocida", etiquetaCorta("Current something else"), { clave: "something else" });
 

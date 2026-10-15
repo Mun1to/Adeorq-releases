@@ -126,9 +126,9 @@ disco solo queda la huella de cada clave. Todos los pasos, en
 
 ## Al instalar: Windows te va a avisar
 
-**Es esperado.** El instalador no lleva firma de código —un certificado Authenticode cuesta
-varios cientos de euros al año—, así que SmartScreen enseña *«Windows protegió su PC»* la
-primera vez.
+**Es esperado.** El instalador no lleva firma de código (un certificado a nombre de un particular
+cuesta unos 200 € al año, y aun firmado el aviso sigue hasta que el instalador gana reputación
+ante Microsoft), así que SmartScreen enseña *«Windows protegió su PC»* la primera vez.
 
 Para seguir: **Más información → Ejecutar de todas formas**.
 

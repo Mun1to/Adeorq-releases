@@ -958,7 +958,7 @@ pub fn codex_session_since_en(raiz: &Path, cwd: &str, desde: u64) -> Option<Stri
 /// `2026-09-22T20:22:52.825Z` → segundos desde 1970. Solo lo que escribe Codex
 /// (UTC con `Z`); cualquier otra cosa es `None`, y mejor no aprender nada que
 /// aprender la sesión de otro. Sin `chrono`: son veinte líneas y un test.
-fn iso_a_segundos(s: &str) -> Option<u64> {
+pub(crate) fn iso_a_segundos(s: &str) -> Option<u64> {
     let s = s.strip_suffix('Z')?;
     let (fecha, hora) = s.split_once('T')?;
     let mut f = fecha.split('-').map(|x| x.parse::<i64>().ok());

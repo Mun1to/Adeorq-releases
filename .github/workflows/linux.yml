@@ -8,10 +8,11 @@
 #   DESPUÉS de publicar, nunca a la vez: `tauri-action` lee el `latest.json`
 #   que ya está subido y le añade la plataforma en vez de sobrescribirlo.
 #
-# · La rama `ci/linux` y el botón de «Run workflow» solo COMPILAN, y dejan los
-#   paquetes como artefactos. Es lo que permite saber si el código sigue
-#   compilando fuera de Windows sin publicar nada, que es lo único que se puede
-#   comprobar desde una máquina Windows.
+# · La rama `ci/linux` y el botón de «Run workflow» solo COMPILAN. Es lo que
+#   permite saber si el código sigue compilando fuera de Windows sin publicar
+#   nada, que es lo único que se puede comprobar desde una máquina Windows. Los
+#   paquetes se guardan como artefactos solo con el botón, que es cuando
+#   alguien los quiere bajar (ver «Guardar los paquetes»).
 #
 # ubuntu-22.04 y no la última: un AppImage hereda la glibc de donde se compila,
 # así que compilar en la LTS más vieja que aguante Tauri 2 es lo que hace que
@@ -143,8 +144,13 @@ jobs:
           gh release upload "${{ github.event.release.tag_name }}" Adeorq-x86_64.rpm \
             --clobber --repo ${{ github.repository }}
 
+      # Solo con el botón, y tres días. Guardarlos en cada push a `ci/linux`
+      # llenó el almacén de artefactos de la cuenta, que comparten todos los
+      # repos privados: del 14 al 15 de octubre de 2026 cada build compiló bien
+      # y aun así salió en rojo en este paso («Artifact storage quota has been
+      # hit»), y a Munir le llegaba un aviso de fallo por cada una.
       - name: Guardar los paquetes
-        if: github.event_name != 'release'
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: adeorq-linux
@@ -153,3 +159,4 @@ jobs:
             src-tauri/target/release/bundle/rpm/*.rpm
             src-tauri/target/release/bundle/appimage/*.AppImage
           if-no-files-found: error
+          retention-days: 3

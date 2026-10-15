@@ -146,7 +146,7 @@ async (page) => {
   // 6. Cada terminal: trabajando (chat, teclas fuera y pantalla), una de Codex
   //    sin transcript, un permiso con su menú, una que terminó y una consola.
   await paso("terminal 1", async () => {
-    await page.goto(`${B}/#terminal=1`);
+    await page.goto(`${B}/#terminal=1@111`);
     await page.waitForSelector("#turnos .turno");
     await page.waitForTimeout(600);
     const ahora = await page.$eval("#ahora", (x) => x.innerText);
@@ -163,7 +163,7 @@ async (page) => {
   });
   for (const [panel, que] of [[2, "codex sin transcript"], [4, "permiso"], [5, "terminó"], [3, "consola"]]) {
     await paso(`terminal ${panel}`, async () => {
-      await page.goto(`${B}/#terminal=${panel}`);
+      await page.goto(`${B}/#terminal=${panel}@111`);
       await page.waitForSelector(panel === 3 ? "#pantalla .l" : "#ahora:not([hidden])");
       await page.waitForTimeout(800);
       await mirar(`terminal ${panel} (${que})`);

@@ -125,9 +125,9 @@ each key is kept on disk. Full steps in [the guide](https://adeorq.com/guia#movi
 
 ## Windows will warn you when you install it
 
-**That is expected.** The installer is not code-signed — an Authenticode certificate costs
-several hundred euros a year — so SmartScreen shows *"Windows protected your PC"* the first
-time.
+**That is expected.** The installer is not code-signed (a certificate for an individual costs
+around 200 euros a year, and even signed installers keep the warning until they have built up
+reputation with Microsoft), so SmartScreen shows *"Windows protected your PC"* the first time.
 
 To carry on: **More info → Run anyway**.
 

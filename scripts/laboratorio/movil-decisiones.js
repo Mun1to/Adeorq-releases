@@ -104,7 +104,7 @@ async (page) => {
 
   // 5. Escribirle a la terminal desde el móvil la da por hablada: sin botones.
   await page.request.post(`${B}/api/sembrar-decision`, { headers: AUT, data: { id: "d19a2b3c4e1", titulo: "¿Lo subo?", proyecto: "Adeorq", panel: 1 } });
-  await page.request.post(`${B}/api/terminal/escribir`, { headers: AUT, data: { panel: 1, texto: "sí, súbelo" } });
+  await page.request.post(`${B}/api/terminal/escribir`, { headers: AUT, data: { panel: 1, arranque: 111, texto: "sí, súbelo" } });
   await page.click("#atras");
   await page.waitForSelector("#decisiones .tarjeta");
   await page.waitForFunction(() => document.querySelector('#decisiones .tarjeta[data-id="d19a2b3c4e1"]')?.dataset.vigencia === "hablada", null, { timeout: 8000 });
@@ -139,7 +139,7 @@ async (page) => {
   debe(/Contestada desde Android · Chrome/.test(r.porEnlace), `el enlace de un aviso abre la contestada («${r.porEnlace}»)`);
 
   // 8. El modo de Claude Code, con Shift+Tab.
-  await page.goto(`${B}/#terminal=1`);
+  await page.goto(`${B}/#terminal=1@111`);
   await page.waitForFunction(() => /Modo/.test(document.getElementById("modo")?.textContent || ""));
   // Las teclas van plegadas: el botón del modo está en esa fila.
   if (await page.$eval("#teclas", (t) => t.hidden)) await page.click("#abrir-teclas");

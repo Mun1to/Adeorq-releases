@@ -402,7 +402,6 @@ const EN: Record<string, string> = {
     "More than one opens that many terminals in the same folder, each with its own conversation, and lays them out in a grid. If you already had terminals open, these are added without re-dealing yours.",
   "Se abrirán {n} {tool} en {path}": "{n} {tool} will open in {path}",
   "Abrir las {n}": "Open all {n}",
-  "Tiene una sesión abierta ahora mismo": "It has a session open right now",
   "Volver a llamarlo «{n}»": "Call it “{n}” again",
   "Cómo se llama aquí": "What it is called here",
   "Cambia solo lo que ves en Adeorq. La carpeta se queda como está, y por eso tus sesiones de Claude siguen encontrándola: van por su ruta, no por su nombre.":

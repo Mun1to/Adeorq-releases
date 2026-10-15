@@ -3033,6 +3033,10 @@ export default function Sidebar({
                 className="project"
                 data-open={open}
                 data-live={g.hasLive}
+                // El marco verde con brillo: un agente ESCRIBIENDO en este
+                // proyecto ahora mismo, la misma señal que lo sube en la lista.
+                // Sustituye al puntito del logo (Munir, 2026-10-15, «la 45 y la 48»).
+                data-trabajando={g.trabajando || undefined}
                 // Zona de destino de un arrastre: soltar una sesión aquí la
                 // manda a este proyecto aunque su carpeta sea otra.
                 data-proyecto={g.name}
@@ -3065,18 +3069,11 @@ export default function Sidebar({
                       : t("{p} no tiene sesiones recientes", { p: shownName(g.name) })
                   }
                 >
-                  {/* The mark and, on its corner, the one thing that has to be
-                      visible without hovering: a session of this project is
-                      open right now. It used to float between the name and the
-                      counters, where it looked like a glitch. */}
+                  {/* Que alguien trabaja aquí ya no lo dice un puntito en la
+                      esquina del logo: lo dice el marco de la tarjeta entera
+                      (`data-trabajando`, arriba). */}
                   <span className="project-mark">
                     <ProjectAvatar name={g.name} src={iconFor(g)} />
-                    {g.hasLive && (
-                      <span
-                        className="mark-live"
-                        data-tip={t("Tiene una sesión abierta ahora mismo")}
-                      />
-                    )}
                   </span>
                   <span className="project-name">{shownName(g.name)}</span>
                   {/* Under the mouse the name steps aside, so the arrow keeps

@@ -828,6 +828,21 @@
   border-color: color-mix(in srgb, var(--border) 90%, transparent);
 }
 
+/* ── El marco verde del proyecto: alguien está trabajando en él ahora ──
+   El primo quieto del hilo azul de las sesiones. Munir lo eligió el 2026-10-15
+   de cinco variantes («la 45 y la 48»): el marco entero en verde con un brillo
+   suave, y solo mientras un agente ESCRIBE en ese proyecto (`trabajando` en
+   `Sidebar.tsx`: viva y a medias). Sustituye al puntito verde del logo.
+   Quieto a propósito: el que se mueve es el de la sesión, y así se sabe de un
+   vistazo que el proyecto es el que la contiene. Va antes que las rayas del
+   arrastre (`04-sesiones.css`), que pisan esta sombra mientras arrastras. */
+.project[data-trabajando] {
+  border-color: color-mix(in srgb, var(--ok) 75%, transparent);
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--ok) 22%, transparent),
+    inset 0 0 8px color-mix(in srgb, var(--ok) 8%, transparent);
+}
+
 /* Waiting for Munir: amber when Claude offers, red when it asks outright. */
 /* Waiting rows are tinted, not painted: a left-hand hairline carries the
    status so nine of them in a column still read as a list. */

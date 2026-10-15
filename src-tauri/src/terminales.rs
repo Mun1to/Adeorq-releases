@@ -759,9 +759,18 @@ pub struct Conexion(pub std::sync::OnceLock<Arc<Remoto>>);
 /// abrir. Lo pone la tarjeta de actualizar justo antes de instalar.
 static POR_ACTUALIZAR: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+///
+/// Sin el proceso de terminales, en cambio, las terminales mueren con la app:
+/// en Windows el instalador la cierra de golpe y las mata el corral, sin pasar
+/// por `kill_all`. Así que aquí se despide antes a los Claude Code, o cada
+/// actualización le contaría un fallo por panel y le apagaría la pantalla
+/// completa (`pty::despedir_todas`, 2026-10-15).
 #[tauri::command(async)]
-pub fn terminales_por_actualizar() {
+pub fn terminales_por_actualizar(app: tauri::AppHandle) {
     POR_ACTUALIZAR.store(true, std::sync::atomic::Ordering::Relaxed);
+    if remoto(&app).is_none() {
+        crate::pty::despedir_todas(&app);
+    }
 }
 
 /// Lo que hace `pty::kill_all` al cerrarse la app con el proceso de terminales:

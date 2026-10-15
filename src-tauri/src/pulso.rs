@@ -76,7 +76,7 @@ fn es_agente(nombre: &str) -> bool {
 
 /// Todos los procesos del sistema, con su padre y su nombre.
 #[cfg(windows)]
-fn foto_procesos() -> Vec<(u32, u32, String)> {
+pub(crate) fn foto_procesos() -> Vec<(u32, u32, String)> {
     let mut out = Vec::new();
     unsafe {
         let snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -191,7 +191,7 @@ fn tam_pagina() -> u64 {
 }
 
 #[cfg(not(windows))]
-fn foto_procesos() -> Vec<(u32, u32, String)> {
+pub(crate) fn foto_procesos() -> Vec<(u32, u32, String)> {
     let mut out = Vec::new();
     let Ok(dir) = std::fs::read_dir("/proc") else {
         return out;

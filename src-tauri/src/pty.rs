@@ -1086,30 +1086,132 @@ pub fn tamano(mapa: &Mapa, id: u32, cols: u16, rows: u16) -> Result<(), String> 
         .map_err(|e| e.to_string())
 }
 
-/// Mata un panel y toda su rama. Devuelve si existía. Tarda (`taskkill`): no
-/// desde la ventana.
-pub fn matar(mapa: &Mapa, id: u32) -> bool {
-    // El PID se saca y se suelta el candado ANTES de llamar a taskkill: esperar
-    // a un proceso externo con el mapa bloqueado congela cualquier otra
-    // terminal que quiera escribir mientras tanto.
-    let pid = {
-        let mut map = mapa.lock().unwrap_or_else(|e| e.into_inner());
-        match map.get_mut(&id) {
-            Some(session) => {
-                let _ = session.killer.kill();
-                session.pid
+/// Si en la rama de procesos de `pid` hay un Claude Code vivo.
+fn claude_en_la_rama(pid: u32, procesos: &[(u32, u32, String)]) -> bool {
+    let mut rama = vec![pid];
+    let mut i = 0;
+    while i < rama.len() {
+        let padre = rama[i];
+        for (hijo, p, nombre) in procesos {
+            if *p == padre && !rama.contains(hijo) {
+                if nombre.to_ascii_lowercase().starts_with("claude") {
+                    return true;
+                }
+                rama.push(*hijo);
             }
+        }
+        i += 1;
+    }
+    false
+}
+
+/// Despedir a un programa por las buenas: hasta tres Ctrl+C, y esperar a que
+/// se vaya. Devuelve si se fue.
+///
+/// Por qué (2026-10-15): Claude Code apunta cada arranque en pantalla completa
+/// en `fullscreenBootPending` del `~/.claude.json` y lo borra al cerrarse bien.
+/// Un proceso que ya no existe con su apunte puesto es un «fallo», y al llegar
+/// al tope APAGA la pantalla completa en todo el equipo (`fullscreenAutoDisabled`).
+/// Adeorq cerraba con `taskkill /F`: al actualizar, los cuatro paneles de Claude
+/// de Munir murieron a la vez y la versión nueva arrancó con la pantalla completa
+/// apagada (y con ella la selección que copia sola al arrastrar). Medido en una
+/// casa falsa (`doble_ctrl_c_borra_el_apunte_de_pantalla_completa`): con Ctrl+C
+/// sale solo y borra su apunte; con `taskkill` el apunte se queda.
+///
+/// Tres y no dos: si la caja tiene texto, el primero la vacía; si está
+/// trabajando, el primero lo interrumpe; en los dos casos hacen falta otros dos.
+/// Antes de cada uno se mira si sigue, para no mandarle nada de más.
+pub(crate) fn despedir_con(escribir: &dyn Fn(&[u8]), sigue: &dyn Fn() -> bool, espera: std::time::Duration) -> bool {
+    use std::time::{Duration, Instant};
+    for vez in 0..3 {
+        if vez > 0 {
+            std::thread::sleep(Duration::from_millis(350));
+        }
+        if !sigue() {
+            return true;
+        }
+        escribir(b"\x03");
+    }
+    let inicio = Instant::now();
+    while inicio.elapsed() < espera {
+        if !sigue() {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(150));
+    }
+    !sigue()
+}
+
+/// Lo que cuesta despedir a un Claude Code antes de matarlo: lo medido sale en
+/// menos de un segundo, y esto es el tope por si no contesta.
+const ESPERA_DESPEDIDA: std::time::Duration = std::time::Duration::from_millis(2500);
+
+/// Despide por las buenas a los Claude Code de esas ramas, a la vez, antes de
+/// que `matar_rama` acabe con lo que quede. Las ramas sin Claude Code no se
+/// tocan: una consola no sale con Ctrl+C, y esperarla sería tiempo perdido.
+fn despedir_claudes(paneles: &[(u32, std::sync::mpsc::Sender<Vec<u8>>)]) {
+    let procesos = crate::pulso::foto_procesos();
+    let con_claude: Vec<_> = paneles.iter().filter(|(pid, _)| claude_en_la_rama(*pid, &procesos)).collect();
+    if con_claude.is_empty() {
+        return;
+    }
+    let escribir = |b: &[u8]| {
+        for (_, tx) in &con_claude {
+            let _ = tx.send(b.to_vec());
+        }
+    };
+    let sigue = || {
+        let ahora = crate::pulso::foto_procesos();
+        con_claude.iter().any(|(pid, _)| claude_en_la_rama(*pid, &ahora))
+    };
+    despedir_con(&escribir, &sigue, ESPERA_DESPEDIDA);
+}
+
+/// Mata un panel y toda su rama. Devuelve si existía. Tarda (`taskkill` y la
+/// despedida de Claude Code): no desde la ventana.
+pub fn matar(mapa: &Mapa, id: u32) -> bool {
+    // El PID se saca y se suelta el candado ANTES de despedir y de llamar a
+    // taskkill: esperar a un proceso externo con el mapa bloqueado congela
+    // cualquier otra terminal que quiera escribir mientras tanto.
+    let panel = {
+        let map = mapa.lock().unwrap_or_else(|e| e.into_inner());
+        match map.get(&id) {
+            Some(session) => (session.pid, session.tx_entrada.clone()),
             None => return false,
         }
     };
-    if let Some(pid) = pid {
+    if let (Some(pid), tx) = &panel {
+        despedir_claudes(&[(*pid, tx.clone())]);
+    }
+    if let Some(session) = mapa.lock().unwrap_or_else(|e| e.into_inner()).get_mut(&id) {
+        let _ = session.killer.kill();
+    }
+    if let Some(pid) = panel.0 {
         matar_rama(pid);
     }
     true
 }
 
-/// Mata todas las terminales del mapa, con su rama.
+/// Los paneles del mapa que tienen proceso, con su entrada.
+fn paneles_con_proceso(mapa: &Mapa) -> Vec<(u32, std::sync::mpsc::Sender<Vec<u8>>)> {
+    let Ok(map) = mapa.lock() else {
+        return Vec::new();
+    };
+    map.values().filter_map(|s| s.pid.map(|p| (p, s.tx_entrada.clone()))).collect()
+}
+
+/// Despide a todos los Claude Code de la app sin matar nada más: lo que se
+/// llama justo antes de que el instalador de una actualización cierre la app
+/// de golpe (`terminales_por_actualizar`).
+pub fn despedir_todas(app: &AppHandle) {
+    despedir_claudes(&paneles_con_proceso(&app.state::<PtyState>().0));
+}
+
+/// Mata todas las terminales del mapa, con su rama. Antes despide a la vez a
+/// todos los Claude Code (`despedir_claudes`), o cada cierre de Adeorq contaría
+/// como un fallo suyo por panel.
 pub fn matar_todas(mapa: &Mapa) {
+    despedir_claudes(&paneles_con_proceso(mapa));
     let pids: Vec<u32> = {
         let Ok(mut map) = mapa.lock() else {
             return;
@@ -2299,6 +2401,13 @@ mod rueda_en_fullscreen {
     /// Lo mismo con los argumentos que sean (una sesión nueva con `--session-id`,
     /// otro modelo…).
     pub(super) fn abrir_con(args: &[&str], cwd: &str, cols: u16, rows: u16, decir_quien_soy: bool) -> Panel {
+        abrir_en_casa(args, cwd, cols, rows, decir_quien_soy, None)
+    }
+
+    /// Lo mismo con otra casa (`USERPROFILE` y `HOME`): su `~/.claude.json` y su
+    /// `~/.claude` son los de esa carpeta y no los de Munir. Es lo que hay que
+    /// usar para medir cualquier cosa que Claude Code apunte en su configuración.
+    pub(super) fn abrir_en_casa(args: &[&str], cwd: &str, cols: u16, rows: u16, decir_quien_soy: bool, casa: Option<&std::path::Path>) -> Panel {
         let pair = native_pty_system()
             .openpty(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
             .expect("no se pudo abrir el ConPTY");
@@ -2318,6 +2427,10 @@ mod rueda_en_fullscreen {
         }
         cmd.env_remove("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN");
         cmd.env_remove("CLAUDE_CODE_SCROLL_SPEED");
+        if let Some(casa) = casa {
+            cmd.env("USERPROFILE", casa);
+            cmd.env("HOME", casa);
+        }
         let mut hijo = pair.slave.spawn_command(cmd).expect("no arrancó claude");
         let pid = hijo.process_id().expect("sin pid");
         let _ = &mut hijo;
@@ -2609,6 +2722,113 @@ mod rueda_en_fullscreen {
             dicho_1.contains("saltó") && mudo_1.contains("saltó"),
             "alguna pasada no llegó a medir el salto; mira la línea de arriba"
         );
+    }
+
+    /// Cuántos apuntes de «arranque en pantalla completa sin cerrar» hay en el
+    /// `.claude.json` de una casa, y si ya apagó la pantalla completa.
+    fn apuntes(casa: &std::path::Path) -> (usize, bool) {
+        let v: serde_json::Value = std::fs::read_to_string(casa.join(".claude.json"))
+            .ok()
+            .and_then(|t| serde_json::from_str(&t).ok())
+            .unwrap_or_default();
+        (v["fullscreenBootPending"].as_object().map(|o| o.len()).unwrap_or(0), v.get("fullscreenAutoDisabled").is_some())
+    }
+
+    /// Por qué Adeorq apagaba la pantalla completa de Claude Code al
+    /// actualizarse (2026-10-15, `fullscreenAutoDisabled` con 4 «fallos» en la
+    /// casa de Munir, a la hora exacta en que arrancó la versión nueva).
+    ///
+    /// Claude Code apunta cada arranque en pantalla completa en
+    /// `fullscreenBootPending` y lo borra al cerrarse bien. Un proceso que ya no
+    /// existe con su apunte puesto cuenta como un fallo, y al llegar al tope
+    /// apaga la pantalla completa en todo el equipo. Esto lo mide en una casa
+    /// FALSA (`USERPROFILE` a una carpeta temporal), nunca en la de Munir: el
+    /// apunte con el panel vivo, después de un doble Ctrl+C y después de
+    /// `taskkill`, que es como cerraba Adeorq.
+    ///
+    /// `cargo test --lib doble_ctrl_c -- --ignored --nocapture`. Sin sesión
+    /// iniciada en esa casa no gasta nada: no se le manda ningún mensaje.
+    #[test]
+    #[ignore = "arranca claude de verdad, en una casa falsa"]
+    fn doble_ctrl_c_borra_el_apunte_de_pantalla_completa() {
+        let casa = std::env::temp_dir().join(format!("adeorq-casa-fullscreen-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&casa);
+        std::fs::create_dir_all(casa.join(".claude")).unwrap();
+        std::fs::write(casa.join(".claude").join("settings.json"), r#"{"tui":"fullscreen"}"#).unwrap();
+        let cwd = casa.to_string_lossy().to_string();
+        let clave = cwd.replace('\\', "/");
+        std::fs::write(
+            casa.join(".claude.json"),
+            serde_json::json!({
+                "hasCompletedOnboarding": true,
+                "numStartups": 3,
+                "projects": { clave: { "hasTrustDialogAccepted": true } }
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        // Con la despedida de verdad (`despedir_con` y `claude_en_la_rama`, lo
+        // mismo que hace `matar`), con la caja vacía y con texto escrito en
+        // ella; y de control, `taskkill` como cerraba Adeorq hasta hoy.
+        let mut resultados = Vec::new();
+        for (nombre, texto, por_las_buenas) in [("despedida, caja vacía", "", true), ("despedida, caja con texto", "esto se queda sin mandar", true), ("taskkill", "", false)] {
+            let p = abrir_en_casa(&[], &cwd, 120, 36, true, Some(&casa));
+            esperar_quieto(&p.salida, Duration::from_secs(4), Duration::from_secs(40));
+            if !texto.is_empty() {
+                let _ = p.escritor.lock().unwrap().write_all(texto.as_bytes());
+                std::thread::sleep(Duration::from_millis(600));
+            }
+            let vivo = apuntes(&casa).0;
+            let alternativa = contiene(&p.salida.lock().unwrap(), b"\x1b[?1049h");
+            let inicio = Instant::now();
+            let salio = if por_las_buenas {
+                let escribir = |b: &[u8]| {
+                    let _ = p.escritor.lock().unwrap().write_all(b);
+                };
+                let sigue = || super::claude_en_la_rama(p.pid, &crate::pulso::foto_procesos());
+                super::despedir_con(&escribir, &sigue, Duration::from_secs(8))
+            } else {
+                false
+            };
+            let tardo = inicio.elapsed();
+            super::matar_rama(p.pid);
+            std::thread::sleep(Duration::from_millis(800));
+            resultados.push((nombre, alternativa, vivo, apuntes(&casa).0, salio, tardo));
+        }
+        let fin = apuntes(&casa);
+        for (nombre, alt, vivo, despues, salio, tardo) in &resultados {
+            println!("{nombre}: pantalla alternativa {alt}, apuntes con el panel vivo {vivo}, al cerrar {despues}, salió solo {salio} en {:.1} s", tardo.as_secs_f32());
+        }
+        println!("al final: apuntes {}, pantalla completa apagada {}", fin.0, fin.1);
+        let _ = std::fs::remove_dir_all(&casa);
+        for (nombre, alt, vivo, despues, salio, _) in &resultados[..2] {
+            assert!(*alt && *vivo > 0, "{nombre}: no llegó a arrancar en pantalla completa con su apunte: la medida no vale");
+            assert!(*salio && *despues == 0, "{nombre}: la despedida no lo cierra bien y su apunte se queda");
+        }
+        assert!(resultados[2].3 > 0, "el control con taskkill debería dejar su apunte: si no, la medida no distingue");
+    }
+
+    /// La rama: un Claude Code bajo el `cmd.exe` del panel, a dos niveles, y
+    /// uno de otro panel que no cuenta.
+    #[test]
+    fn se_encuentra_el_claude_de_la_rama_y_no_el_de_otra() {
+        let procesos = vec![
+            (100, 1, "cmd.exe".to_string()),
+            (101, 100, "conhost.exe".to_string()),
+            (102, 100, "claude.exe".to_string()),
+            (200, 1, "cmd.exe".to_string()),
+            (201, 200, "powershell.exe".to_string()),
+            (300, 1, "cmd.exe".to_string()),
+            (301, 999, "claude.exe".to_string()),
+            (400, 1, "cmd.exe".to_string()),
+            (401, 400, "powershell.exe".to_string()),
+            (402, 401, "Claude.exe".to_string()),
+        ];
+        assert!(super::claude_en_la_rama(100, &procesos));
+        assert!(!super::claude_en_la_rama(200, &procesos));
+        assert!(!super::claude_en_la_rama(300, &procesos));
+        assert!(super::claude_en_la_rama(400, &procesos));
     }
 }
 

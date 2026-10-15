@@ -378,6 +378,13 @@ pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
         stream_writer.write_all(b"{\"adeorq\":\"de-casa\"}\n")?;
         stream_writer.flush()?;
     }
+    // En qué terminal vive el agente que lanzó este puente. `ADEORQ_PANE_ID` es
+    // siempre la de ESTE arranque (la pone `pty_spawn` al nacer el panel), a
+    // diferencia de un número que el agente tenga apuntado en su conversación.
+    if let Some(id) = std::env::var("ADEORQ_PANE_ID").ok().and_then(|v| v.trim().parse::<u32>().ok()) {
+        stream_writer.write_all(format!("{{\"adeorq\":\"panel\",\"id\":{id}}}\n").as_bytes())?;
+        stream_writer.flush()?;
+    }
 
     // Spawn a thread to read from TCP and write to stdout
     thread::spawn(move || {
@@ -433,6 +440,39 @@ pub fn puerto() -> Result<u16, String> {
             format!("ADEORQ_MCP_PUERTO={p} no es un puerto, y no se usa el 3012 en su lugar porque es el de la Adeorq de verdad")
         }),
     }
+}
+
+/// Si una orden señala por su número a una terminal que este agente no puede
+/// saber cuál es: devuelve por qué no se hace.
+///
+/// Los números de terminal vuelven a empezar en 1 cada vez que se abre Adeorq,
+/// y un agente que se retoma tras reiniciar lleva en su conversación los de
+/// ayer: un `close_pane(4)` suyo cerraba la terminal que HOY tiene el 4, sin
+/// vuelta atrás, y un `send_command` le tecleaba dentro (revisión del
+/// 2026-10-15). Por eso, en cada conexión, antes de tocar otra terminal por su
+/// número hay que haber mirado la lista (`get_active_panes`) o haberla abierto
+/// (`open_pane`). La suya propia sí vale: su puente la presenta con el
+/// `ADEORQ_PANE_ID` de este arranque. Los puentes de casa (Capataz, conserje)
+/// nacen con la lista de ahora en el prompt y no pasan por aquí.
+fn numero_dudoso(herramienta: &str, args: &Value, mi_panel: Option<u32>, conoce_numeros: bool, de_casa: bool) -> Option<String> {
+    if de_casa || conoce_numeros {
+        return None;
+    }
+    let claves: &[&str] = match herramienta {
+        "send_command" | "send_keys" | "read_pane_screen" | "read_pane_transcript" | "close_pane" | "ask_decision" => &["paneId"],
+        "link_panes" => &["from", "to"],
+        "open_pane" => &["from"],
+        _ => return None,
+    };
+    let ajeno = claves
+        .iter()
+        .filter_map(|k| args[*k].as_u64().and_then(|n| u32::try_from(n).ok()))
+        .find(|n| Some(*n) != mi_panel)?;
+    Some(format!(
+        "Los números de terminal vuelven a empezar cada vez que se abre Adeorq, y en esta conexión todavía \
+         no has mirado la lista: la {ajeno} puede ser ahora otra terminal. Llama primero a get_active_panes \
+         y elígela por su nombre."
+    ))
 }
 
 /// Si toca apuntar ahora una conexión cerrada por la puerta: una vez por
@@ -556,6 +596,10 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
     let mut cliente: Option<String> = None;
     let mut de_casa = false;
     let mut primera = true;
+    // La terminal del agente que habla (la presenta su puente) y si en ESTA
+    // conexión ya ha mirado la lista o abierto alguna: ver `numero_dudoso`.
+    let mut mi_panel: Option<u32> = None;
+    let mut conoce_numeros = false;
 
     for line in reader.lines() {
         let line = line?;
@@ -577,6 +621,10 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
         if let Ok(v) = serde_json::from_str::<Value>(&line) {
             if v["adeorq"].as_str() == Some("de-casa") {
                 de_casa = true;
+                continue;
+            }
+            if v["adeorq"].as_str() == Some("panel") {
+                mi_panel = v["id"].as_u64().and_then(|n| u32::try_from(n).ok());
                 continue;
             }
             if v["adeorq"].as_str() == Some("secreto") {
@@ -658,10 +706,15 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 let args = req["params"]["arguments"].clone();
                 // El escalón del cliente (decisión D1): lo que no le toca no se
                 // ejecuta, y se le dice por qué. Lo de casa no pasa por aquí.
-                let result = match escalon_que_falta(&cliente, de_casa, name) {
+                let result = match escalon_que_falta(&cliente, de_casa, name)
+                    .or_else(|| numero_dudoso(name, &args, mi_panel, conoce_numeros, de_casa))
+                {
                     Some(porque) => Err(porque),
                     None => handle_tool_call(name, args, &app),
                 };
+                if result.is_ok() && matches!(name, "get_active_panes" | "open_pane") {
+                    conoce_numeros = true;
+                }
                 match result {
                     Ok(val) => {
                         json!({
@@ -1663,6 +1716,29 @@ mod tests {
         if std::env::var("ADEORQ_MCP_PUERTO").is_err() {
             assert_eq!(puerto(), Ok(3012));
         }
+    }
+
+    /// Un agente retomado tras reiniciar no toca otra terminal por un número de
+    /// ayer: antes tiene que mirar la lista. La suya, la de su puente, sí vale.
+    #[test]
+    fn un_numero_de_otro_arranque_no_cierra_ni_escribe_nada() {
+        let cerrar4 = json!({ "paneId": 4 });
+        let msg = numero_dudoso("close_pane", &cerrar4, Some(1), false, false).expect("tiene que frenarlo");
+        assert!(msg.contains("get_active_panes") && msg.contains("4"), "{msg}");
+        assert!(numero_dudoso("send_command", &json!({ "paneId": 4, "command": "x" }), None, false, false).is_some());
+        assert!(numero_dudoso("send_keys", &json!({ "paneId": 4, "keys": ["enter"] }), Some(2), false, false).is_some());
+        assert!(numero_dudoso("link_panes", &json!({ "from": 1, "to": 4 }), Some(1), false, false).is_some(), "el destino es ajeno");
+        // Su propia terminal, la que presenta el puente con ADEORQ_PANE_ID.
+        assert!(numero_dudoso("ask_decision", &json!({ "paneId": 1, "title": "x" }), Some(1), false, false).is_none());
+        assert!(numero_dudoso("open_pane", &json!({ "from": 1 }), Some(1), false, false).is_none());
+        // Sin número no hay nada que dudar.
+        assert!(numero_dudoso("ask_decision", &json!({ "title": "x" }), None, false, false).is_none());
+        assert!(numero_dudoso("open_pane", &json!({ "cwd": "C:\\x" }), None, false, false).is_none());
+        // Ya miró la lista en esta conexión, o es de casa: pasa.
+        assert!(numero_dudoso("close_pane", &cerrar4, Some(1), true, false).is_none());
+        assert!(numero_dudoso("close_pane", &cerrar4, None, false, true).is_none());
+        // Lo que no señala terminales no se toca.
+        assert!(numero_dudoso("get_projects", &json!({}), None, false, false).is_none());
     }
 
     /// Mil conexiones cerradas en el mismo minuto dejan una línea en el rastro,

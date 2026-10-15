@@ -1,11 +1,11 @@
 {
-  "version": "0.9.202",
-  "notes": "Cuando Codex pide permiso para muchos archivos ya salen sus botones, y un enjambre no le contesta por error. Mejorar lo que dictas no lo traduce. El MCP, mas duro.",
-  "pub_date": "2026-10-15T00:47:33Z",
+  "version": "0.9.203",
+  "notes": "Los proyectos donde trabaja un agente llevan un marco verde. Actualizar o cerrar Adeorq ya no apaga la pantalla completa de Claude Code. Un agente retomado ya no puede cerrar la terminal equivocada.",
+  "pub_date": "2026-10-15T02:21:20Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy91NWNhSWV3UkJ5WUFUWU9XL3Z6TytnaVFES1JVVUp1WVRxVnZlNE4wZmVoWStlelhMaFIxaEVCU0l1MWxLcmdhTDcvQy9mcWtINWxycExWSll3WUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDI1MjM2CWZpbGU6QWRlb3JxXzAuOS4yMDJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDIKbFFuczF2SWhzMjc4YzRnd25xTHErN1prZ0J1azFNdzRjcEx4ODhTbFE3bTJKNWZBSXN5dVIwekh3TlZBMW4vNGc2MWUxU3BGU0dhL2hJaGdDaWk4QXc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.202/Adeorq_0.9.202_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJKRWlEcDdWQmNEdlNja1BQZll4TTEvR1J4NTJldnh5QVdrVDJvdU1xeWZEZTdRNTRLejJCVUc5NnNxUU5VMFRPYWRWOE5mMjdTbFpzcS8zRkZ2UXdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDMwODUzCWZpbGU6QWRlb3JxXzAuOS4yMDNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDMKSTBhZnVicEJOMHJ4a2duL3lHcEo0V05YdmdWVGkySHBpb1h5Nyszak9HN2p6YWdlelhaUm9yNmZRd0lCR1hZYUlCYlo4T0Nxci8rU3FxLzdoaWFJQXc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.203/Adeorq_0.9.203_x64-setup.exe"
     }
   }
 }

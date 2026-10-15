@@ -828,20 +828,6 @@
   padding: 6px;
 }
 
-/* Same signal as the photos-only rail, same corner: one green dot means one
-   session of this project is running. */
-.mark-live {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--ok);
-  border: 2px solid var(--panel-solid);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ok) 60%, transparent);
-}
-
 /* Discord rounds the square when you open a server; same idea, quieter. */
 .project[data-open="true"] .project-mark .pavatar {
   border-radius: var(--r-avatar, var(--r-btn) 4px 4px var(--r-btn));

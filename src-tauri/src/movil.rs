@@ -1313,6 +1313,15 @@ fn no_dormir(si: bool) -> bool {
 /// `systemd-inhibit` y su `tail`). Sin systemd, o si logind no da permiso,
 /// `systemd-inhibit` sale enseguida y esto devuelve `false`, como en Windows
 /// cuando falla.
+///
+/// NO PROBADO en un escritorio, y con una duda de verdad (revisión del
+/// 2026-10-15, leyendo `logind-inhibit.c`): con systemd 257 o más nuevo un
+/// `block` frena también el reposo que pide el propio usuario desde el menú (le
+/// pide contraseña de administrador; la tapa sí duerme), cosa que en Windows no
+/// pasa. Y con uno más viejo, un `block` del mismo usuario podía no frenar el
+/// reposo por inactividad que pide GNOME en su nombre. Lo que lo resolvería es
+/// `org.freedesktop.portal.Inhibit` con la bandera de suspender, que respetan
+/// GNOME y KDE; antes, medirlo en un GNOME con un tiempo de reposo corto.
 #[cfg(not(windows))]
 fn no_dormir(si: bool) -> bool {
     use std::os::unix::process::CommandExt;
@@ -1340,8 +1349,12 @@ fn no_dormir(si: bool) -> bool {
         .spawn();
     let Ok(mut hijo) = hijo else { return false };
     // Si no puede bloquear, sale en el acto: se le da un momento para saberlo.
+    // Si no se puede ni preguntar, se mata el grupo igual, para no dejarlo vivo
+    // hasta que se cierre la app.
     std::thread::sleep(Duration::from_millis(300));
     if !matches!(hijo.try_wait(), Ok(None)) {
+        unsafe { libc::kill(-(hijo.id() as i32), libc::SIGTERM) };
+        let _ = hijo.wait();
         return false;
     }
     *bloqueo = Some(hijo);

@@ -76,7 +76,9 @@ export function leerPerfil(): Perfil {
 /** Quién habla y en qué idioma está la app, para el conserje y el Capataz
  *  (`Quien` en `conserje.rs`): sus prompts están en español y a Munir. */
 export function quienSoy(): { nombre: string; idioma: string } {
-  return { nombre: leerPerfil().nombre, idioma: detectLang() };
+  // `?? ""`: un perfil guardado con `nombre: null` haría fallar la orden entera
+  // en Rust, que espera un texto.
+  return { nombre: String(leerPerfil().nombre ?? ""), idioma: detectLang() };
 }
 
 export function guardarPerfil(p: Perfil): void {

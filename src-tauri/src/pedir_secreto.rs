@@ -198,7 +198,7 @@ pub fn secreto_de_agente_olvidar(nombre: String) -> Result<(), String> {
 /// variable o un fichero. Ejecutarlo a pelo para mirarlo no funciona, y no
 /// porque el agente sea bueno, sino porque no puede.
 pub fn puente(nombre: &str, motivo: &str) -> Result<(), String> {
-    let valor = traer(crate::mcp::puerto(), nombre, motivo)?;
+    let valor = traer(crate::mcp::puerto()?, nombre, motivo)?;
     escribir(&valor)
 }
 

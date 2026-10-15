@@ -178,6 +178,28 @@ const codexEdita = [
   "",
   "  Press enter to confirm or esc to cancel",
 ];
+// Con varios archivos pinta un `Destination:` por cada uno (su
+// `apply_patch_header.rs`), y con varios agentes un `Thread:` encima. Con tres
+// archivos la pregunta pasaba de doce líneas y se perdía, y un reparto del
+// enjambre le habría dado Intro a «Yes, proceed» (revisión del 2026-10-15).
+const codexEditaVarios = (n: number, hilo = false) => [
+  "",
+  "  Would you like to make the following edits?",
+  "",
+  ...(hilo ? ["  Thread: worker-2"] : []),
+  "  Description: The model wants to apply changes",
+  ...Array.from({ length: n }, (_, i) => `  Destination: C:\\proyectos\\tienda\\src\\pieza-${i + 1}.ts`),
+  "",
+  "",
+  "› 1. Yes, proceed (y)",
+  "  2. Yes, and don't ask again for these files (a)",
+  "  3. No, and tell Codex what to do differently (esc)",
+  "",
+  "  Press enter to confirm or esc to cancel",
+];
+for (const [n, hilo] of [[3, false], [6, true], [12, true]] as const) {
+  es(`Codex pide editar ${n} archivos${hilo ? " con su Thread" : ""}: salen sus tres opciones`, parseAsk(pie(codexEditaVarios(n, hilo)))?.options.map((o) => o.n), ["1", "2", "3"]);
+}
 const ce = parseAsk(pie(codexEdita));
 es("Codex pide editar: sus tres opciones", ce?.options.map((o) => o.label), ["Yes, proceed (y)", "Yes, and don't ask again for these files (a)", "No, and tell Codex what to do differently (esc)"]);
 ok("con su propia pista y sin Intro", ce?.regla === "Would you like to make the following edits?" && ce.hint.includes("editar") && ce.enter === false);

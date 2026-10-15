@@ -208,12 +208,15 @@ pub fn se_quedo_en_la_caja(pantalla: &[String]) -> bool {
         let digitos = t.chars().take_while(char::is_ascii_digit).count();
         (1..=2).contains(&digitos) && t[digitos..].starts_with(". ")
     }
-    if let Some(dentro) = pantalla.iter().rev().find_map(|l| caja(l)) {
+    if let Some((fila, dentro)) = pantalla.iter().rev().find_map(|l| caja(l).map(|d| (l, d))) {
         // Un menú abierto (el de `/model`, medido el 2026-10-15) pinta su
-        // cursor con el mismo glifo que la caja: «❯ 2.  Opus 5.5 ✔». Si hay
-        // más opciones numeradas a la vista, la orden entró y abrió el menú.
-        // Con una sola es texto que alguien escribió en la caja («1. arregla…»).
-        if opcion(dentro) && pantalla.iter().filter(|l| opcion(l.trim_start())).count() >= 2 {
+        // cursor con el mismo glifo que la caja: «  ❯ 2.  Opus 5.5 ✔». Se
+        // distingue en que va SANGRADO (la caja empieza en la columna 0) y en
+        // que hay más opciones numeradas a la vista: entonces la orden entró y
+        // abrió el menú. «❯ 3. arregla el menú» en la columna 0 es texto que se
+        // quedó en la caja, haya las listas que haya encima.
+        let sangrada = fila.starts_with(' ');
+        if sangrada && opcion(dentro) && pantalla.iter().filter(|l| opcion(l.trim_start())).count() >= 2 {
             return false;
         }
         // Vacía, o con la sugerencia atenuada que pinta cuando no hay nada.
@@ -368,7 +371,7 @@ fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
 /// y el servidor no le aplica el escalón por cliente (`mcp_clientes.rs`): ya
 /// lleva su propio recorte de manos.
 pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let stream = TcpStream::connect(("127.0.0.1", puerto()))?;
+    let stream = TcpStream::connect(("127.0.0.1", puerto()?))?;
     let mut stream_writer = crate::clon_sin_herencia(&stream)?;
     let mut stream_reader = BufReader::new(stream);
     if de_casa {
@@ -418,8 +421,44 @@ pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
 /// cambia una Adeorq aislada de pruebas, que si no se queda sin MCP mientras
 /// la de verdad tiene el 3012 (y entonces el MCP no se podía probar nunca
 /// antes de publicar). El servidor, el puente y `adeorq secreto` leen el mismo.
-pub fn puerto() -> u16 {
-    std::env::var("ADEORQ_MCP_PUERTO").ok().and_then(|p| p.trim().parse().ok()).unwrap_or(3012)
+///
+/// Un valor que no es un puerto es un error, no el 3012: una Adeorq aislada con
+/// una errata en la variable no se haría con el puerto, pero sus puentes sí se
+/// conectarían al 3012, que es el de la Adeorq de verdad (y con el puente de
+/// casa, con todas sus manos).
+pub fn puerto() -> Result<u16, String> {
+    match std::env::var("ADEORQ_MCP_PUERTO") {
+        Err(_) => Ok(3012),
+        Ok(p) => p.trim().parse::<u16>().ok().filter(|&n| n != 0).ok_or_else(|| {
+            format!("ADEORQ_MCP_PUERTO={p} no es un puerto, y no se usa el 3012 en su lugar porque es el de la Adeorq de verdad")
+        }),
+    }
+}
+
+/// Si toca apuntar ahora una conexión cerrada por la puerta: una vez por
+/// minuto como mucho. Una página con un bucle de `fetch` abre miles, y `anotar`
+/// vacía el rastro al pasar de 256 KB: sin esto, una página podría borrar el
+/// registro de fallos. Devuelve cuántas se callaron desde la última que se
+/// apuntó, o `None` si esta también se calla.
+fn toca_apuntar(ultima: &std::sync::atomic::AtomicU64, calladas: &std::sync::atomic::AtomicU64, ahora: u64) -> Option<u64> {
+    use std::sync::atomic::Ordering;
+    let antes = ultima.load(Ordering::Relaxed);
+    if (antes != 0 && ahora < antes + 60) || ultima.compare_exchange(antes, ahora, Ordering::Relaxed, Ordering::Relaxed).is_err() {
+        calladas.fetch_add(1, Ordering::Relaxed);
+        return None;
+    }
+    Some(calladas.swap(0, Ordering::Relaxed))
+}
+
+fn apuntar_rechazo() {
+    use std::sync::atomic::AtomicU64;
+    static ULTIMA: AtomicU64 = AtomicU64::new(0);
+    static CALLADAS: AtomicU64 = AtomicU64::new(0);
+    let ahora = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(1);
+    if let Some(calladas) = toca_apuntar(&ULTIMA, &CALLADAS, ahora) {
+        let mas = if calladas > 0 { format!(" Y {calladas} más desde la anterior.") } else { String::new() };
+        crate::anotar(&format!("MCP: cerrada una conexión que no empezaba con JSON (¿una página web?).{mas}"));
+    }
 }
 
 /// Si la primera línea de una conexión es de alguien que habla este protocolo:
@@ -456,10 +495,17 @@ pub fn start_mcp_server(app: tauri::AppHandle) {
         // Medio minuto de reintentos cubre de sobra un relevo de instancias, y
         // si al cabo de ese rato sigue ocupado es que hay otro Adeorq vivo de
         // verdad: entonces el puerto es suyo y rendirse es lo correcto.
+        let puerto = match puerto() {
+            Ok(p) => p,
+            Err(e) => {
+                crate::anotar(&format!("MCP: {e}. Esta ventana no sirve el MCP."));
+                return;
+            }
+        };
         let listener = {
             let mut intento = 0;
             loop {
-                match TcpListener::bind(("127.0.0.1", puerto())) {
+                match TcpListener::bind(("127.0.0.1", puerto)) {
                     Ok(l) => break Some(l),
                     Err(e) => {
                         intento += 1;
@@ -519,7 +565,7 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
         // Lo que no empieza hablando MCP (un navegador, ver `abre_bien`) se
         // cierra sin contestar y sin leer una línea más.
         if std::mem::take(&mut primera) && !abre_bien(&line) {
-            crate::anotar("MCP: cerrada una conexión que no empezaba con JSON (¿una página web?).");
+            apuntar_rechazo();
             return Ok(());
         }
 
@@ -1615,8 +1661,21 @@ mod tests {
     #[test]
     fn el_puerto_es_el_3012_si_nadie_dice_otro() {
         if std::env::var("ADEORQ_MCP_PUERTO").is_err() {
-            assert_eq!(puerto(), 3012);
+            assert_eq!(puerto(), Ok(3012));
         }
+    }
+
+    /// Mil conexiones cerradas en el mismo minuto dejan una línea en el rastro,
+    /// y la siguiente, pasado el minuto, cuenta las que se callaron.
+    #[test]
+    fn la_puerta_apunta_una_vez_por_minuto() {
+        use std::sync::atomic::AtomicU64;
+        let (ultima, calladas) = (AtomicU64::new(0), AtomicU64::new(0));
+        assert_eq!(toca_apuntar(&ultima, &calladas, 1_000), Some(0));
+        let apuntadas = (0..1000).filter(|i| toca_apuntar(&ultima, &calladas, 1_000 + i % 59).is_some()).count();
+        assert_eq!(apuntadas, 0);
+        assert_eq!(toca_apuntar(&ultima, &calladas, 1_060), Some(1000));
+        assert_eq!(toca_apuntar(&ultima, &calladas, 1_061), None);
     }
 
     #[test]
@@ -1880,7 +1939,16 @@ mod tests {
             "  Enter to set as default · s to use this session only · Esc to cancel",
         ]);
         assert!(!se_quedo_en_la_caja(&menu));
-        // Una lista empezada en la caja sí es texto que se quedó sin mandar.
+        // Una lista empezada en la caja sí es texto que se quedó sin mandar,
+        // aunque encima haya otra lista numerada (la respuesta de antes).
         assert!(se_quedo_en_la_caja(&filas(&["────", "❯ 1. arregla el scroll", "────"])));
+        assert!(se_quedo_en_la_caja(&filas(&[
+            "● Hay dos cosas:",
+            "  1. el scroll",
+            "  2. el menú",
+            "────",
+            "❯ 3. arregla también el menú",
+            "────",
+        ])));
     }
 }

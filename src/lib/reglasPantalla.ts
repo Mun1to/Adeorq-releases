@@ -48,7 +48,18 @@ export interface ReglaDePregunta {
   /** Lo que se le explica a quien mira, encima de las opciones. */
   hint: string;
   enter?: boolean;
+  /** Hasta cuántas líneas por debajo de `test` puede seguir la pregunta;
+   *  sin esto, `LINEAS_VIVAS`. Las de Codex pintan un renglón por archivo o
+   *  por línea de comando entre el título y las opciones, así que doce se
+   *  quedaban cortas con tres archivos. */
+  lineas?: number;
 }
+
+/** El tope de las preguntas de Codex. Su menú vive abajo y se borra al
+ *  contestarlo (en la historia queda «You approved…», no la pregunta), así que
+ *  un tope amplio no rescata preguntas viejas. Con una línea `Destination:` por
+ *  archivo, doce líneas se acababan en el tercero (revisión del 2026-10-15). */
+const CODEX_LINEAS = 40;
 
 export const PREGUNTAS: ReglaDePregunta[] = [
   {
@@ -76,6 +87,7 @@ export const PREGUNTAS: ReglaDePregunta[] = [
     // caso al número tecleado, sin Intro (medido: el 1 ejecuta, el 3 no).
     test: "Would you like to run the following command?",
     hint: "Codex te pide permiso antes de ejecutar este comando. Elige:",
+    lineas: CODEX_LINEAS,
   },
   {
     // Codex al editar archivos: el mismo menú que el de los comandos (los dos
@@ -84,6 +96,7 @@ export const PREGUNTAS: ReglaDePregunta[] = [
     // estaba agotada hasta el 16).
     test: "Would you like to make the following edits?",
     hint: "Codex te pide permiso antes de editar estos archivos. Elige:",
+    lineas: CODEX_LINEAS,
   },
   {
     // Generic numbered menus (first-run prompts, /model, etc.). Kept LAST so
@@ -110,8 +123,8 @@ export function parseAsk(screen: string, reglas: ReglaDePregunta[] = PREGUNTAS):
     const i = screen.lastIndexOf(t.test);
     if (i < 0) continue;
     const seg = screen.slice(i);
-    // Ignore historical output where the trigger test occurred more than 12 lines ago:
-    if (seg.split("\n").length > LINEAS_VIVAS) continue;
+    // Ignore historical output where the trigger test occurred too many lines ago:
+    if (seg.split("\n").length > (t.lineas ?? LINEAS_VIVAS)) continue;
 
     const opts: AskOption[] = [];
     // \s{1,2} (not 0): "Opus 4.7" must never parse as option 4.
@@ -144,7 +157,7 @@ export function parseAsk(screen: string, reglas: ReglaDePregunta[] = PREGUNTAS):
  * pantalla y la barra vacía). Esto es lo que se mira cuando por el cursor no
  * se ha visto ninguna pregunta.
  */
-export function pieDePantalla(fila: (y: number) => string, filas: number, cuantas = 16): string {
+export function pieDePantalla(fila: (y: number) => string, filas: number, cuantas = CODEX_LINEAS): string {
   let ultima = filas - 1;
   while (ultima > 0 && !fila(ultima).trim()) ultima--;
   const fuera: string[] = [];

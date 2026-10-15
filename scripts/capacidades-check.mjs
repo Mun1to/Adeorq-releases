@@ -40,14 +40,23 @@ if (control.join() !== "de-fuera") {
 }
 
 const capacidades = [];
+const malas = [];
 for (const nombre of fs.existsSync(CARPETA) ? fs.readdirSync(CARPETA) : []) {
-  if (!nombre.endsWith(".json")) continue;
-  capacidades.push(JSON.parse(fs.readFileSync(path.join(CARPETA, nombre), "utf8")));
+  const texto = fs.readFileSync(path.join(CARPETA, nombre), "utf8");
+  if (nombre.endsWith(".json")) capacidades.push(JSON.parse(texto));
+  // Tauri también lee capacidades en TOML. Sin un lector de TOML aquí, basta
+  // con ver la clave: en una capacidad, `remote` solo puede ser eso.
+  else if (nombre.endsWith(".toml") && /^\s*(\[remote\]|remote\s*=)/m.test(texto)) malas.push(nombre);
 }
-const conf = JSON.parse(fs.readFileSync(CONF, "utf8"));
-for (const c of conf?.app?.security?.capabilities ?? []) if (typeof c === "object") capacidades.push(c);
+// La configuración de siempre y las de cada plataforma (`tauri.linux.conf.json`…),
+// que se mezclan encima y pueden traer capacidades propias.
+const confs = [CONF, ...fs.readdirSync(path.dirname(CONF)).filter((n) => /^tauri\.[a-z]+\.conf\.json$/.test(n)).map((n) => path.join(path.dirname(CONF), n))];
+for (const f of confs) {
+  const conf = JSON.parse(fs.readFileSync(f, "utf8"));
+  for (const c of conf?.app?.security?.capabilities ?? []) if (typeof c === "object") capacidades.push(c);
+}
 
-const malas = abiertasAFuera(capacidades);
+malas.push(...abiertasAFuera(capacidades));
 if (malas.length) {
   console.error(
     `capacidades-check: ${malas.join(", ")} lleva «remote»: una página de esas direcciones podría llamar a las órdenes de la app desde el panel web. ` +

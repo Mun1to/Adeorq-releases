@@ -1,11 +1,11 @@
 {
-  "version": "0.9.201",
-  "notes": "El conserje y el Capataz hablan el idioma de la app y llaman a cada uno por su nombre. Codex al editar archivos tiene botones de respuesta. En Linux el PC no se duerme mientras sirve al movil.",
-  "pub_date": "2026-10-14T23:47:54Z",
+  "version": "0.9.202",
+  "notes": "Cuando Codex pide permiso para muchos archivos ya salen sus botones, y un enjambre no le contesta por error. Mejorar lo que dictas no lo traduce. El MCP, mas duro.",
+  "pub_date": "2026-10-15T00:47:33Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZOS2lOQVlVUE1yZno4YUdpZllKdGh2VnI3NHBFOWdXb0xvbC80Vm5ObTd5cjFDS0lKT1FNVkpWTzMrQnpoMWIvUEhxRTBpMUxUODRuVFB2NUJuS3c4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDIxNjU1CWZpbGU6QWRlb3JxXzAuOS4yMDFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDEKVzJTcjNoS0lybUF5Wnp4MUlUcWtsNEhKOVVMRjJlS2V5cTFkNExKNmxRS3g0SEJOQm5ncTZuNWwwVWNucXNxL3BVRFpQWkxGd3hyaiswN1BtT3pWRFE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.201/Adeorq_0.9.201_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy91NWNhSWV3UkJ5WUFUWU9XL3Z6TytnaVFES1JVVUp1WVRxVnZlNE4wZmVoWStlelhMaFIxaEVCU0l1MWxLcmdhTDcvQy9mcWtINWxycExWSll3WUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDI1MjM2CWZpbGU6QWRlb3JxXzAuOS4yMDJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDIKbFFuczF2SWhzMjc4YzRnd25xTHErN1prZ0J1azFNdzRjcEx4ODhTbFE3bTJKNWZBSXN5dVIwekh3TlZBMW4vNGc2MWUxU3BGU0dhL2hJaGdDaWk4QXc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.202/Adeorq_0.9.202_x64-setup.exe"
     }
   }
 }

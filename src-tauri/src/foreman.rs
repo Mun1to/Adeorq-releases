@@ -324,8 +324,8 @@ pub async fn parar_mapa() {
 ///
 /// Sale del `tool_use` que emite el CLI: se traduce a una frase corta y nada
 /// más. Enseñar el nombre de la herramienta («Grep») sería enseñar la tubería;
-/// lo que dice algo es QUÉ archivo está abriendo.
-fn frase_de_paso(bloque: &serde_json::Value) -> Option<String> {
+/// lo que dice algo es QUÉ archivo está abriendo. En el idioma de la app.
+fn frase_de_paso(bloque: &serde_json::Value, en: bool) -> Option<String> {
     let nombre = bloque["name"].as_str()?;
     let entrada = &bloque["input"];
     let hoja = |v: &serde_json::Value| -> String {
@@ -337,10 +337,14 @@ fn frase_de_paso(bloque: &serde_json::Value) -> Option<String> {
             .unwrap_or("")
             .to_owned()
     };
-    Some(match nombre {
-        "Read" => format!("Leyendo {}", hoja(&entrada["file_path"])),
-        "Glob" => format!("Buscando {}", entrada["pattern"].as_str().unwrap_or("archivos")),
-        "Grep" => format!("Rastreando «{}»", entrada["pattern"].as_str().unwrap_or("")),
+    let patron = entrada["pattern"].as_str();
+    Some(match (nombre, en) {
+        ("Read", false) => format!("Leyendo {}", hoja(&entrada["file_path"])),
+        ("Read", true) => format!("Reading {}", hoja(&entrada["file_path"])),
+        ("Glob", false) => format!("Buscando {}", patron.unwrap_or("archivos")),
+        ("Glob", true) => format!("Looking for {}", patron.unwrap_or("files")),
+        ("Grep", false) => format!("Rastreando «{}»", patron.unwrap_or("")),
+        ("Grep", true) => format!("Searching for “{}”", patron.unwrap_or("")),
         _ => return None,
     })
 }
@@ -414,7 +418,9 @@ pub async fn foreman_mapa(
         return Err(format!("«{ruta}» no es una carpeta"));
     }
     let taller = todos.unwrap_or(false);
-    let q = quien.unwrap_or_default().al_prompt();
+    let quien = quien.unwrap_or_default();
+    let en = quien.en_ingles();
+    let q = quien.al_prompt();
     let prompt = if taller {
         format!("{TALLER_SYSTEM}{q}\n\n## Los proyectos que hay dentro\n{esqueleto}")
     } else {
@@ -486,7 +492,7 @@ pub async fn foreman_mapa(
                     Some("assistant") => {
                         for b in v["message"]["content"].as_array().unwrap_or(&vec![]) {
                             if b["type"] == "tool_use" {
-                                if let Some(f) = frase_de_paso(b) {
+                                if let Some(f) = frase_de_paso(b, en) {
                                     leidos += 1;
                                     let _ = app2.emit("mapa-paso", format!("{f} ({leidos})"));
                                 }

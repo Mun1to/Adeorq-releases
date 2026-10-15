@@ -968,10 +968,12 @@ impl Quien {
         self.idioma == "en"
     }
 
-    /// Su nombre, si es otro que Munir.
+    /// Su nombre, si es otro que Munir. «Munir Torres» también es Munir: si no,
+    /// el prompt le diría «llámale Munir Torres, nunca Munir».
     fn otro_nombre(&self) -> Option<&str> {
         let n = self.nombre.trim();
-        (!n.is_empty() && !n.eq_ignore_ascii_case("munir")).then_some(n)
+        let es_munir = n.split_whitespace().next().is_some_and(|p| p.eq_ignore_ascii_case("munir"));
+        (!n.is_empty() && !es_munir).then_some(n)
     }
 
     /// Cómo firma lo que dice ahora, en la cabecera de su mensaje.
@@ -992,7 +994,8 @@ impl Quien {
             s.push_str(
                 "- Contesta SIEMPRE en inglés, aunque estas instrucciones y lo que se dijo antes estén en español. \
                  Los encargos y los mensajes a las sesiones, también en inglés. Lo que el formato pide tal \
-                 cual (las claves del JSON y sus valores fijos, como \"oficio\" o \"abrir\") no se traduce.\n",
+                 cual no se traduce: las marcas <acciones> y RESUMEN:, las claves del JSON y sus valores \
+                 fijos, como \"oficio\" o \"abrir\".\n",
             );
         }
         if s.is_empty() {
@@ -1356,7 +1359,9 @@ const MEJORAR: &str = r#"Munir ha escrito (a menudo dictando por voz) este mensa
 
 HAZ: corrige lo que el dictado haya roto, quita muletillas y repeticiones, y si pide varias cosas ponlas en una lista numerada en el orden en que las dijo.
 NO HAGAS: no añadas ningún dato, requisito, archivo ni suposición que no esté en su texto; no quites nada que pida; no cambies nombres propios ni palabras técnicas; no respondas a lo que pide.
-En el idioma en que está escrito su mensaje (si lo escribió en español, en español), de tú y con su tono. Devuelve SOLO el texto reescrito: sin comillas, sin títulos, sin explicar qué has cambiado.
+De tú y con su tono. Devuelve SOLO el texto reescrito: sin comillas, sin títulos, sin explicar qué has cambiado.
+EL IDIOMA: el del mensaje, nunca el de estas instrucciones. Si está en inglés, la respuesta va en inglés; no lo traduzcas.
+LANGUAGE: reply in the language of the message below, not the language of these instructions. If it is in English, answer in English. Never translate it.
 
 Su mensaje:
 "#;
@@ -1399,7 +1404,7 @@ mod tests {
 
     #[test]
     fn a_munir_en_espanol_no_se_le_anade_nada() {
-        for q in [quien("Munir", "es"), quien("munir", "es"), quien("", "es"), quien("  ", ""), Quien::default()] {
+        for q in [quien("Munir", "es"), quien("munir", "es"), quien("Munir Torres", "es"), quien("", "es"), quien("  ", ""), Quien::default()] {
             assert_eq!(q.al_prompt(), "", "{q:?}");
             assert_eq!(q.firma(), "Munir");
         }
@@ -1878,17 +1883,38 @@ mod tests {
         let espanol = |s: &str| s.chars().any(|c| "áéíóúñ¿¡".contains(c)) || [" el ", " la ", " que ", " para ", " una "].iter().any(|p| s.to_lowercase().contains(p));
         assert!(!espanol(&dice), "tiene que contestar en inglés: {dice}");
         assert!(!dice.contains("Munir"), "a Sam no se le llama Munir: {dice}");
+        // La marca del índice va tal cual: traducida a «SUMMARY:», la línea se
+        // quedaría en el chat y el índice cogería el resumen de reserva.
+        assert!(!dice.contains("SUMMARY") && !dice.contains("RESUMEN"), "la marca del resumen no se traduce: {dice}");
         for a in &acciones {
             if let Accion::Abrir { encargo, .. } = a {
                 assert!(!espanol(encargo), "el encargo, en inglés: {encargo}");
             }
         }
 
+    }
+
+    /// La mejora del dictado no traduce: un dictado en inglés vuelve en inglés y
+    /// uno en español, en español. Varias veces, porque Haiku no es fijo: con la
+    /// orden solo en español, de dos pasadas una volvió traducida (2026-10-15).
+    /// Gasta cuatro llamadas de Haiku de tu suscripción.
+    /// `cargo test --lib la_mejora_de_verdad_no_traduce -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn la_mejora_de_verdad_no_traduce() {
+        let espanol = |s: &str| s.chars().any(|c| "áéíóúñ¿¡".contains(c)) || [" el ", " la ", " que ", " para ", " una "].iter().any(|p| s.to_lowercase().contains(p));
+        let mejorar = |d: &str| {
+            tauri::async_runtime::block_on(crate::foreman::preguntar_con(format!("{MEJORAR}{d}"), "haiku")).expect("la mejora no contestó")
+        };
         let dictado = "uh so look at the radar thing that keeps crashing every two hours and also that scroll thing I told you about";
-        let mejorado = tauri::async_runtime::block_on(crate::foreman::preguntar_con(format!("{MEJORAR}{dictado}"), "haiku"))
-            .expect("la mejora no contestó");
-        println!("--- mejora ---\n{mejorado}");
-        assert!(!espanol(&mejorado), "la mejora de un dictado en inglés sale en inglés: {mejorado}");
+        for vuelta in 1..=3 {
+            let m = mejorar(dictado);
+            println!("--- en inglés, vuelta {vuelta} ---\n{m}");
+            assert!(!espanol(&m), "vuelta {vuelta}: un dictado en inglés sale en inglés: {m}");
+        }
+        let m = mejorar("oye mira a ver lo del radar que se cae cada dos horas y ya de paso lo del scroll ese");
+        println!("--- en español ---\n{m}");
+        assert!(espanol(&m), "un dictado en español sigue en español: {m}");
     }
 
     /// EL CONTRATO CON EL MODELO, probado con el de verdad: que el conserje

@@ -1749,6 +1749,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 "Te piden una decisión".into(),
                 d.titulo.clone(),
                 Some(format!("/#decision={}", d.id)),
+                Some("pregunta".into()),
             );
             let vuelta = match d.panel {
                 Some(p) => format!("Cuando conteste, su respuesta se teclea en el panel {p}; también la puedes leer con get_decision. Si en vez de eso te escribe en la terminal, esa es su respuesta y la decisión se cierra sola."),

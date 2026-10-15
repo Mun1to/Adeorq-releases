@@ -719,9 +719,11 @@
 </section>
 
 <!-- ==================== EN EL MÓVIL ====================
-     Desde la 0.9.163. Los pasos dicen los botones de Ajustes > Móvil con sus
-     mismas palabras (src/components/AjustesMovil.tsx): si cambia uno allí,
-     cambia aquí y en la guía. -->
+     Desde la 0.9.163. Lo que se cuenta sale de la página del móvil
+     (src-tauri/src/movil.html) y de Ajustes > Móvil del PC
+     (src/components/AjustesMovil.tsx): si cambia algo allí, cambia aquí y en
+     la guía. Los Ajustes del propio móvil se cuentan por lo que hacen, no por
+     el nombre de sus botones. -->
 <section class="pasos" id="movil">
   <div class="pasos__caja bloque--dos">
     <div class="bloque__rotulo">
@@ -732,8 +734,9 @@
     <p class="etiqueta" data-en="movil.etiqueta"><span class="etiqueta__punto" aria-hidden="true"></span>En el móvil</p>
     <h2 class="seccion__tit" data-aparece data-en="movil.tit">Tu cabina, también en el bolsillo</h2>
     <p class="seccion__entrada" data-en="movil.entrada">
-      Desde el móvil, una tablet u otro ordenador, estés donde estés: hablas con
-      el conserje, lees tus sesiones y contestas a cualquier terminal.
+      Desde el móvil, una tablet u otro ordenador, estés donde estés: ves quién te
+      pregunta y quién trabaja, contestas a cualquier terminal y le encargas
+      trabajo nuevo al conserje.
     </p>
     </div>
 
@@ -748,14 +751,14 @@
       <li class="paso">
         <span class="paso__num" aria-hidden="true">02</span>
         <h3 class="paso__tit" data-en="movil.p2.tit">Enciéndelo en Adeorq</h3>
-        <p data-en="movil.p2.p">En Ajustes › Móvil, activa el interruptor y pulsa «Llevar el conserje
-           a Tailscale». Solo la primera vez.</p>
+        <p data-en="movil.p2.p">En Ajustes › Móvil, activa el interruptor. Tres filas dicen cómo
+           están este PC, Tailscale y tu móvil, y la que falla te dice qué hacer.</p>
       </li>
       <li class="paso">
         <span class="paso__num" aria-hidden="true">03</span>
         <h3 class="paso__tit" data-en="movil.p3.tit">Empareja el móvil</h3>
-        <p data-en="movil.p3.p">Escanea el QR, escribe el código de seis cifras y ya está. Si quieres,
-           instálala como una app y te avisa cuando un agente te pregunta.</p>
+        <p data-en="movil.p3.p">Escanea el QR y escribe el código de seis cifras. Abajo del menú, en
+           Ajustes, eliges tus avisos, lo pones a tu gusto y lo instalas como una app.</p>
       </li>
     </ol>
 
@@ -763,7 +766,7 @@
          doble con el taller de demostración de Sam, a tamaño de teléfono. -->
     <figure class="pasos__foto pasos__foto--movil">
       <img src="/assets/screens/es/phone-home.png" width="585" height="1266" loading="lazy" decoding="async"
-           alt="La portada del móvil: tres cosas que te esperan, las terminales del PC con cómo va cada una y las decisiones pendientes."
+           alt="El inicio del móvil: Adeo te saluda, arriba lo que te espera (una decisión y dos terminales que te preguntan), debajo la que trabaja ahora con su luz azul, y la caja para escribirle al conserje."
            data-en-attr="src:movil.foto1.src|alt:movil.foto1.alt">
       <img src="/assets/screens/es/phone-concierge.png" width="585" height="1266" loading="lazy" decoding="async"
            alt="El conserje en el móvil: le pides dos trabajos y abre una sesión para cada uno, con el modelo que eligió el router."

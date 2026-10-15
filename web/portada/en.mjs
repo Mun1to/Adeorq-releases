@@ -170,28 +170,29 @@ export default {
   'movil.etiqueta': PUNTO + 'On your phone',
   'movil.tit': 'Your cockpit, in your pocket too',
   'movil.entrada':
-    'From your phone, a tablet or another computer, wherever you are: talk to the concierge, read ' +
-    'your sessions and answer any terminal.',
+    'From your phone, a tablet or another computer, wherever you are: see who is asking and who is ' +
+    'working, answer any terminal and hand the concierge new work.',
   'movil.p1.tit': 'Install Tailscale',
   'movil.p1.p':
     'On the PC and on your phone, with the same account. It is a private network between your ' +
     'devices, free for personal use.',
   'movil.p2.tit': 'Turn it on in Adeorq',
   'movil.p2.p':
-    'In Settings › Mobile, flip the switch and press “Bring the concierge to Tailscale”. Only the ' +
-    'first time.',
+    'In Settings › Mobile, flip the switch. Three rows show how this PC, Tailscale and your phone ' +
+    'are doing, and the one that fails tells you what to do.',
   'movil.p3.tit': 'Pair your phone',
   'movil.p3.p':
-    'Scan the QR code, type the six-digit code and you are done. If you like, install it as an app ' +
-    'and it tells you when an agent asks you something.',
+    'Scan the QR code and type the six-digit code. At the bottom of the menu, Settings lets you ' +
+    'pick your notifications, make it your own and install it as an app.',
   'movil.cierre':
     'It cannot be seen from the internet: only the devices you pair get in, and what you see comes ' +
     'straight from your PC, without going through any server of ours. ' +
     '<a href="/guia#movil">All the steps in the guide</a>.',
   'movil.foto1.src': '/assets/screens/en/phone-home.png',
   'movil.foto1.alt':
-    'The phone home screen: three things waiting for you, the PC terminals with how each one is ' +
-    'doing, and the pending decisions.',
+    'The phone home screen: Adeo greets you, on top what is waiting for you (a decision and two ' +
+    'terminals asking you something), below it the one working right now with its blue light, and ' +
+    'the box to write to the concierge.',
   'movil.foto2.src': '/assets/screens/en/phone-concierge.png',
   'movil.foto2.alt':
     'The concierge on the phone: you ask for two jobs and it opens a session for each one, with the ' +

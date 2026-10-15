@@ -74,39 +74,59 @@
     --mono: ui-monospace, "Cascadia Mono", "Roboto Mono", "SF Mono", Consolas, monospace;
     --t: 0.18s;
     --t-lenta: 0.32s;
+    /* El tamaño de la letra que eliges en Ajustes: cada tamaño de la hoja va
+       multiplicado por esto. Solo la letra; los huecos y los iconos se quedan. */
+    --z: 1;
   }
-  @media (prefers-color-scheme: light) {
-    :root {
-      color-scheme: light;
-      --fondo: #e8eef8;
-      --capa: rgba(255, 255, 255, 0.76);
-      --capa-fuerte: rgba(120, 150, 195, 0.14);
-      --capa-viva: rgba(120, 150, 195, 0.26);
-      --cristal: rgba(250, 252, 255, 0.96);
-      --hondo: rgba(20, 40, 80, 0.06);
-      --borde: rgba(40, 70, 120, 0.14);
-      --borde-fuerte: rgba(40, 70, 120, 0.28);
-      --tinta: #16213a;
-      --suave: #5a6a86;
-      --acento: #1f6fe0;
-      --acento-2: #2f9df3;
-      --acento-capa: rgba(31, 111, 224, 0.12);
-      --sobre-acento: #ffffff;
-      --vivo: #15803d;
-      --pregunta: #9a6b12;
-      --termino: #c2410c;
-      --cerrada: #5a6a86;
-      --grave: #9a4b06;
-      --grave-capa: #fff4e5;
-      --mal: #b42318;
-      --velo: rgba(20, 30, 50, 0.32);
-      --brillo: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-      --sombra: 0 0 0 1px var(--borde-fuerte), 0 12px 32px rgba(30, 50, 90, 0.18);
-      --cielo-1: rgba(31, 111, 224, 0.2);
-      --cielo-2: rgba(34, 180, 210, 0.14);
-      --cielo-3: rgba(255, 154, 60, 0.1);
-      --pantalla: rgba(13, 19, 33, 0.92);
-    }
+  /* El claro va por atributo y no por media query: en Ajustes se elige como el
+     teléfono, oscuro o claro, y `aplicarAspecto` (en el <head>) pone
+     `data-tema` antes del primer pintado. */
+  :root[data-tema="claro"] {
+    color-scheme: light;
+    --fondo: #e8eef8;
+    --capa: rgba(255, 255, 255, 0.76);
+    --capa-fuerte: rgba(120, 150, 195, 0.14);
+    --capa-viva: rgba(120, 150, 195, 0.26);
+    --cristal: rgba(250, 252, 255, 0.96);
+    --hondo: rgba(20, 40, 80, 0.06);
+    --borde: rgba(40, 70, 120, 0.14);
+    --borde-fuerte: rgba(40, 70, 120, 0.28);
+    --tinta: #16213a;
+    --suave: #5a6a86;
+    --acento: #1f6fe0;
+    --acento-2: #2f9df3;
+    --acento-capa: rgba(31, 111, 224, 0.12);
+    --sobre-acento: #ffffff;
+    --vivo: #15803d;
+    --pregunta: #9a6b12;
+    --termino: #c2410c;
+    --cerrada: #5a6a86;
+    --grave: #9a4b06;
+    --grave-capa: #fff4e5;
+    --mal: #b42318;
+    --velo: rgba(20, 30, 50, 0.32);
+    --brillo: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    --sombra: 0 0 0 1px var(--borde-fuerte), 0 12px 32px rgba(30, 50, 90, 0.18);
+    --cielo-1: rgba(31, 111, 224, 0.2);
+    --cielo-2: rgba(34, 180, 210, 0.14);
+    --cielo-3: rgba(255, 154, 60, 0.1);
+    --pantalla: rgba(13, 19, 33, 0.92);
+  }
+  /* El acento elegido (o el del tema del PC) pinta todo lo que era azul. En
+     claro se oscurece, que un amarillo puro sobre blanco no se lee. Lo que va
+     encima del acento lo calcula `aplicarAspecto` según lo claro que sea. */
+  :root[data-acento] {
+    --acento: var(--elegido);
+    --acento-2: color-mix(in srgb, var(--elegido) 72%, white);
+    --acento-capa: color-mix(in srgb, var(--elegido) 16%, transparent);
+    --sobre-acento: var(--sobre-elegido);
+    --cielo-1: color-mix(in srgb, var(--elegido) 32%, transparent);
+  }
+  :root[data-tema="claro"][data-acento] {
+    --acento: color-mix(in srgb, var(--elegido) 70%, black);
+    --acento-2: var(--elegido);
+    --acento-capa: color-mix(in srgb, var(--elegido) 12%, transparent);
+    --cielo-1: color-mix(in srgb, var(--elegido) 20%, transparent);
   }
 
   /* ── 2. Base ── */
@@ -120,7 +140,7 @@
     margin: 0;
     background: var(--fondo);
     color: var(--tinta);
-    font: 16px/1.5 var(--letra);
+    font: calc(16px * var(--z))/1.5 var(--letra);
     -webkit-font-smoothing: antialiased;
   }
   /* El cielo de detrás del cristal: fijo, y no se mueve al hacer scroll. */
@@ -132,6 +152,20 @@
       radial-gradient(40% 30% at 100% 75%, var(--cielo-3), transparent 70%),
       var(--fondo);
   }
+  /* Con foto (Ajustes): la del PC o una del móvil, detrás del cristal. Se
+     desenfoca entera y se sale un poco por los bordes, que si no el desenfoque
+     los deja claros; el velo de encima la oscurece lo que digas. */
+  body[data-foto]::before {
+    inset: calc(var(--foto-desenfoque, 0px) * -2);
+    background: var(--foto) center / cover no-repeat, var(--fondo);
+    filter: blur(var(--foto-desenfoque, 0px));
+  }
+  body[data-foto]::after {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: var(--fondo); opacity: var(--foto-velo, 0.4);
+  }
+  /* Adeo escondido (Ajustes): el saludo se queda, el muñeco no. */
+  :root[data-adeo="oculto"] .masc { display: none; }
   button { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
   code { font: 0.88em var(--mono); background: var(--hondo); border: 1px solid var(--borde); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
@@ -151,10 +185,10 @@
   .barra > :first-child { grid-column: 1; }
   .barra h1 {
     grid-column: 2; margin: 0; text-align: center; min-width: 0;
-    font-size: 16px; line-height: 1.3; font-weight: 650; letter-spacing: -0.01em;
+    font-size: calc(16px * var(--z)); line-height: 1.3; font-weight: 650; letter-spacing: -0.01em;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .barra small { display: block; font-size: 12.5px; font-weight: 400; color: var(--suave); overflow: hidden; text-overflow: ellipsis; }
+  .barra small { display: block; font-size: calc(12.5px * var(--z)); font-weight: 400; color: var(--suave); overflow: hidden; text-overflow: ellipsis; }
   .atras {
     width: 44px; height: 44px; border-radius: var(--r-btn); border: 0; background: none;
     display: grid; place-items: center; cursor: pointer; color: var(--tinta);
@@ -183,16 +217,16 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   .boton:disabled { opacity: 0.5; cursor: default; }
-  .mini { padding: 5px 12px; border-radius: var(--r-pastilla); border: 1px solid var(--borde-fuerte); background: var(--capa-fuerte); cursor: pointer; font-size: 13px; }
-  .nota { padding: 11px 14px; border-radius: var(--r-btn); font-size: 14px; background: var(--grave-capa); color: var(--grave); border: 1px solid color-mix(in srgb, var(--grave) 30%, transparent); }
+  .mini { padding: 5px 12px; border-radius: var(--r-pastilla); border: 1px solid var(--borde-fuerte); background: var(--capa-fuerte); cursor: pointer; font-size: calc(13px * var(--z)); }
+  .nota { padding: 11px 14px; border-radius: var(--r-btn); font-size: calc(14px * var(--z)); background: var(--grave-capa); color: var(--grave); border: 1px solid color-mix(in srgb, var(--grave) 30%, transparent); }
   .nota b { color: var(--tinta); }
   .nota .mini { margin-left: 8px; }
   .vacio { color: var(--suave); text-align: center; margin-top: 12vh; padding: 0 20px; }
   /* Un rótulo de sección: en mayúsculas pequeñas, como los de la app de Claude. */
-  .seccion { display: flex; align-items: center; gap: 8px; margin: 22px 4px 8px; font-size: 12px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--suave); }
+  .seccion { display: flex; align-items: center; gap: 8px; margin: 22px 4px 8px; font-size: calc(12px * var(--z)); font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--suave); }
   .seccion:first-child { margin-top: 4px; }
   .seccion span { flex: 1; }
-  .seccion-nota { margin: 0 4px 8px; font-size: 13px; color: var(--suave); }
+  .seccion-nota { margin: 0 4px 8px; font-size: calc(13px * var(--z)); color: var(--suave); }
   /* Una tarjeta: lo que te reclama o algo que se abre. La raya de la izquierda dice su estado.
      Su columna puede encoger (`minmax(0, 1fr)`): con la de por defecto, una
      rejilla crece hasta el ancho del título entero, y con un nombre largo el
@@ -211,11 +245,11 @@
   .tarjeta-cab b { flex: 1; min-width: 0; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .estado {
     flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--r-pastilla);
-    font-size: 12px; font-weight: 650; color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent);
+    font-size: calc(12px * var(--z)); font-weight: 650; color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent);
   }
   .estado i { width: 7px; height: 7px; border-radius: 2px; background: currentColor; }
-  .para { font-size: 15px; }
-  .porque { font-size: 13px; color: var(--suave); }
+  .para { font-size: calc(15px * var(--z)); }
+  .porque { font-size: calc(13px * var(--z)); color: var(--suave); }
   .porque b { color: var(--tinta); font-weight: 600; }
   /* Una fila: lo que se lista sin pedir atención. Juntas, dentro de un grupo de cristal. */
   .fila {
@@ -224,7 +258,7 @@
   }
   .fila:active { background: var(--capa-fuerte); }
   .fila b { display: block; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .fila span { font-size: 13px; color: var(--suave); }
+  .fila span { font-size: calc(13px * var(--z)); color: var(--suave); }
   .fila-t { display: flex; align-items: center; gap: 12px; }
   .fila-t b { flex: 1; min-width: 0; }
   .fila-t span { flex: none; }
@@ -235,8 +269,8 @@
   .fila-term { display: flex; align-items: center; gap: 12px; padding: 9px 10px; }
   .fila-term .avatar { color: var(--acento); }
   .fila-term .avatar.consola { background: var(--capa-fuerte); color: var(--suave); }
-  .fila-term .quien { flex: 1; min-width: 0; display: grid; gap: 1px; font-size: 15px; color: var(--tinta); }
-  .fila-term .quien small { font-size: 12.5px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fila-term .quien { flex: 1; min-width: 0; display: grid; gap: 1px; font-size: calc(15px * var(--z)); color: var(--tinta); }
+  .fila-term .quien small { font-size: calc(12.5px * var(--z)); color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   div.fila-term { cursor: default; }
   .fila-term .quien small[data-mal] { color: var(--mal); }
   .punto[data-tono="hecho"] { background: var(--vivo); opacity: 1; }
@@ -245,7 +279,7 @@
   .uso-barra { height: 4px; margin-top: 6px; border-radius: var(--r-pastilla); background: var(--capa-fuerte); overflow: hidden; }
   .uso-barra i { display: block; height: 100%; width: var(--p); border-radius: inherit; background: var(--acento); }
   .uso-barra[data-alto] i { background: var(--termino); }
-  .fila-term .uso-cifra { flex: none; font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--tinta); }
+  .fila-term .uso-cifra { flex: none; font-size: calc(13px * var(--z)); font-weight: 650; font-variant-numeric: tabular-nums; color: var(--tinta); }
 
   /* ── 5. El cajón: la cabina, con todo lo vivo de tu PC ── */
   .cajon-velo { position: fixed; inset: 0; z-index: 20; background: var(--velo); opacity: 0; pointer-events: none; transition: opacity var(--t-lenta); }
@@ -260,17 +294,17 @@
   body[data-cajon] .cajon { transform: none; }
   body[data-cajon] .cajon-velo { opacity: 1; pointer-events: auto; }
   .cajon .marca { display: flex; align-items: center; gap: 12px; padding: 18px 20px 12px; }
-  .cajon .marca b { font-size: 26px; font-weight: 750; letter-spacing: -0.03em; }
+  .cajon .marca b { font-size: calc(26px * var(--z)); font-weight: 750; letter-spacing: -0.03em; }
   .cajon .menu { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 0 10px 12px; border-bottom: 1px solid var(--borde); }
-  .cajon .fila { display: flex; align-items: center; gap: 14px; padding: 12px; font-size: 16px; }
+  .cajon .fila { display: flex; align-items: center; gap: 14px; padding: 12px; font-size: calc(16px * var(--z)); }
   .cajon .fila > svg { color: var(--suave); }
   .cajon .fila b { flex: 1; min-width: 0; font-weight: 500; }
   .cajon .fila .cuenta-dec { margin-left: 0; }
   .cajon .recientes { flex: 1; overflow-y: auto; padding: 4px 10px 96px; }
   .cajon .recientes .seccion { margin: 12px 12px 6px; }
-  .cajon .recientes .fila { padding: 10px 12px; font-size: 15.5px; }
+  .cajon .recientes .fila { padding: 10px 12px; font-size: calc(15.5px * var(--z)); }
   .cajon .fila[aria-current="true"] { background: var(--capa-viva); }
-  .cajon .pc { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--borde); font-size: 13px; color: var(--suave); }
+  .cajon .pc { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--borde); font-size: calc(13px * var(--z)); color: var(--suave); }
   .cajon .pc .punto[data-mal] { background: var(--mal); opacity: 1; }
   /* Lo que se puede hacer con una conversación: se mantiene pulsada y sale
      abajo, como en la app de Claude. Por encima del cajón. */
@@ -281,7 +315,7 @@
     background: var(--cristal); backdrop-filter: var(--vidrio); -webkit-backdrop-filter: var(--vidrio); box-shadow: var(--sombra);
     animation: llega 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
-  .hoja p { margin: 6px 10px 2px; font-size: 13px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hoja p { margin: 6px 10px 2px; font-size: calc(13px * var(--z)); color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .hoja button {
     display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; border: 0; border-radius: var(--r-btn);
     background: var(--capa-fuerte); color: var(--tinta); font: inherit; font-weight: 600; cursor: pointer;
@@ -291,29 +325,29 @@
   .nuevo-encargo {
     position: absolute; right: 16px; bottom: calc(64px + env(safe-area-inset-bottom));
     display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 20px; border: 0; border-radius: var(--r-pastilla);
-    background: var(--tinta); color: var(--fondo); font-weight: 650; font-size: 15.5px; box-shadow: var(--sombra); cursor: pointer;
+    background: var(--tinta); color: var(--fondo); font-weight: 650; font-size: calc(15.5px * var(--z)); box-shadow: var(--sombra); cursor: pointer;
   }
 
   /* ── 6. La portada ── */
   .saludo { display: grid; justify-items: center; gap: 8px; padding: 14px 8px 6px; text-align: center; }
-  .saludo h2 { margin: 6px 0 0; font-size: 26px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
-  .saludo p { margin: 0; color: var(--suave); font-size: 15px; text-wrap: balance; }
+  .saludo h2 { margin: 6px 0 0; font-size: calc(26px * var(--z)); line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
+  .saludo p { margin: 0; color: var(--suave); font-size: calc(15px * var(--z)); text-wrap: balance; }
   /* El rótulo de las conversaciones, solo cuando hay alguna. Lo pone la página
      en `data-rotulo`, en el idioma de la app. */
   #filas:not(:empty)::before {
     content: attr(data-rotulo); display: block; margin: 22px 4px 8px;
-    font-size: 12px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--suave);
+    font-size: calc(12px * var(--z)); font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--suave);
   }
   .cuenta-dec {
     margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; display: inline-grid; place-items: center; border-radius: var(--r-pastilla);
-    background: var(--pregunta); color: #1d1608; font-size: 12px; font-weight: 750;
+    background: var(--pregunta); color: #1d1608; font-size: calc(12px * var(--z)); font-weight: 750;
   }
   /* Las decisiones que te esperan, en un globito sobre el botón del cajón:
      se ve desde cualquier pantalla, y en el inicio ya no hay botón de
      Decisiones (Munir, 2026-10-15: «ya está a la izquierda»). */
   .atras { position: relative; }
   .cuenta-dec.globo {
-    position: absolute; top: 3px; right: 0; margin: 0; min-width: 18px; height: 18px; padding: 0 5px; font-size: 11px;
+    position: absolute; top: 3px; right: 0; margin: 0; min-width: 18px; height: 18px; padding: 0 5px; font-size: calc(11px * var(--z));
     box-shadow: 0 0 0 2px var(--fondo);
   }
   .cuenta-dec.globo[hidden] { display: none; }
@@ -321,15 +355,86 @@
   .avisos {
     display: block; width: 100%; margin: 18px 0 8px; padding: 12px 14px; cursor: pointer;
     border: 1px solid var(--borde); border-radius: var(--r-btn); background: var(--capa);
-    color: var(--suave); font: inherit; font-size: 13px; text-align: left;
+    color: var(--suave); font: inherit; font-size: calc(13px * var(--z)); text-align: left;
   }
   .avisos[data-on="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .avisos:disabled { opacity: 0.6; }
 
+  /* Ajustes del móvil: el engranaje al pie del cajón y las piezas de la pantalla. */
+  .cajon .pc .a-ajustes {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px 7px 10px; cursor: pointer;
+    border: 1px solid var(--borde); border-radius: var(--r-pastilla); background: var(--capa); color: var(--tinta); font-size: calc(13.5px * var(--z));
+  }
+  .cajon .pc .a-ajustes b { font-weight: 550; }
+  .cajon .pc .a-ajustes[aria-current="true"] { background: var(--capa-viva); }
+  .ajustes .avisos { margin: 0; }
+  .ajustes .avisos.peligro { color: var(--mal); }
+  .ajustes .avisos.peligro[data-seguro] { border-color: color-mix(in srgb, var(--mal) 45%, transparent); }
+  .ajuste { display: grid; gap: 8px; padding: 10px 12px 12px; }
+  .ajuste > b { font-size: calc(13px * var(--z)); font-weight: 600; color: var(--suave); }
+  .fila-ajuste { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; }
+  .fila-ajuste > span { flex: 1; min-width: 0; display: grid; gap: 1px; font-size: calc(15px * var(--z)); }
+  .fila-ajuste small { font-size: calc(12.5px * var(--z)); color: var(--suave); }
+  .fila-ajuste[data-apagada] > span { opacity: 0.5; }
+  /* El interruptor es la casilla del navegador, vestida: se toca, se lee con
+     el lector de pantalla y se cambia con el teclado como cualquier casilla. */
+  .interruptor {
+    appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 46px; height: 28px; margin: 0;
+    border-radius: var(--r-pastilla); background: var(--capa-viva); cursor: pointer; transition: background var(--t);
+  }
+  .interruptor::before {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform var(--t);
+  }
+  .interruptor:checked { background: var(--acento); }
+  .interruptor:checked::before { transform: translateX(18px); }
+  .interruptor:disabled { opacity: 0.45; cursor: default; }
+  .interruptor:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+  /* Uno de varios, en una tira. */
+  .segmento { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; padding: 4px; border-radius: var(--r-btn); background: var(--hondo); }
+  .segmento button {
+    min-height: 40px; padding: 6px 8px; border: 0; border-radius: var(--r-chico); background: none; cursor: pointer;
+    color: var(--suave); font-size: calc(13.5px * var(--z)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .segmento button[aria-checked="true"] { background: var(--capa-viva); color: var(--tinta); font-weight: 600; box-shadow: var(--brillo); }
+  /* Los colores: el del PC con su nombre y los ocho de la casa. */
+  .muestras { display: flex; flex-wrap: wrap; gap: 10px; }
+  .muestra { width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: var(--c); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
+  .muestra[aria-checked="true"] { box-shadow: 0 0 0 2px var(--fondo), 0 0 0 4px var(--c); }
+  .muestra.del-pc {
+    width: auto; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px 0 6px; border-radius: var(--r-pastilla);
+    background: var(--capa-fuerte); color: var(--tinta); font-size: calc(13px * var(--z));
+  }
+  .muestra.del-pc i { width: 28px; height: 28px; border-radius: 50%; background: var(--c); }
+  /* Las tres fotos, con su miniatura. */
+  .fotos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .foto-op { display: grid; gap: 2px; padding: 0; border: 0; background: none; text-align: center; cursor: pointer; color: var(--suave); }
+  .foto-op .mini {
+    display: grid; place-items: center; aspect-ratio: 3 / 4; max-width: 100%; margin-bottom: 4px; border-radius: var(--r-btn);
+    border: 1px solid var(--borde); background: var(--fondo) center / cover no-repeat; color: var(--suave);
+  }
+  .foto-op .mini.cielo { background: radial-gradient(90% 60% at 85% 0%, var(--cielo-1), transparent 70%), radial-gradient(80% 50% at 0% 100%, var(--cielo-2), transparent 70%), var(--fondo); }
+  .foto-op b { font-size: calc(13px * var(--z)); font-weight: 550; }
+  .foto-op small { font-size: calc(11.5px * var(--z)); }
+  .foto-op[aria-checked="true"] { color: var(--tinta); }
+  .foto-op[aria-checked="true"] .mini { border-color: var(--acento); box-shadow: 0 0 0 2px var(--acento); }
+  .foto-op:disabled { cursor: default; }
+  .foto-op:disabled .mini { opacity: 0.45; }
+  .deslizador { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 6px 12px 10px; font-size: calc(14.5px * var(--z)); }
+  .deslizador input { grid-column: 1 / -1; width: 100%; margin: 0; accent-color: var(--acento); }
+  .deslizador output { color: var(--suave); font-size: calc(13px * var(--z)); font-variant-numeric: tabular-nums; }
+  /* El orden del inicio: subir, bajar y si sale. */
+  .mover {
+    flex: none; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; cursor: pointer;
+    border: 1px solid var(--borde); border-radius: var(--r-chico); background: none; color: var(--suave);
+  }
+  .mover:disabled { opacity: 0.3; cursor: default; }
+  .mover svg { width: 16px; height: 16px; }
+
   /* ── 7. El chat ── */
   .turno { display: flex; margin: 22px 0; }
   .turno[data-rol="tu"] { justify-content: flex-end; }
-  .burbuja { max-width: 88%; overflow-wrap: anywhere; font-size: 16.5px; line-height: 1.6; }
+  .burbuja { max-width: 88%; overflow-wrap: anywhere; font-size: calc(16.5px * var(--z)); line-height: 1.6; }
   .turno[data-rol="tu"] .burbuja {
     max-width: 84%; padding: 11px 15px; border-radius: 20px 20px 6px 20px; line-height: 1.5;
     background: color-mix(in srgb, var(--acento) 22%, var(--capa));
@@ -340,17 +445,17 @@
   .burbuja p:last-child, .burbuja ul:last-child, .burbuja ol:last-child { margin-bottom: 0; }
   .burbuja ul, .burbuja ol { margin: 0 0 10px; padding-left: 22px; }
   .burbuja li + li { margin-top: 3px; }
-  .burbuja pre { margin: 0 0 10px; padding: 12px; border-radius: var(--r-btn); background: var(--hondo); border: 1px solid var(--borde); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 var(--mono); }
+  .burbuja pre { margin: 0 0 10px; padding: 12px; border-radius: var(--r-btn); background: var(--hondo); border: 1px solid var(--borde); white-space: pre-wrap; overflow-wrap: anywhere; font: calc(13px * var(--z))/1.5 var(--mono); }
   .burbuja pre code { background: none; border: 0; padding: 0; font-size: inherit; }
   .burbuja h3, .burbuja h4 { margin: 16px 0 6px; line-height: 1.3; }
-  .burbuja h3 { font-size: 17px; }
-  .burbuja h4 { font-size: 15.5px; color: var(--suave); }
+  .burbuja h3 { font-size: calc(17px * var(--z)); }
+  .burbuja h4 { font-size: calc(15.5px * var(--z)); color: var(--suave); }
   .burbuja > :first-child { margin-top: 0; }
   .burbuja blockquote { margin: 0 0 10px; padding: 2px 0 2px 12px; border-left: 3px solid var(--borde-fuerte); color: var(--suave); }
   .burbuja hr { border: 0; border-top: 1px solid var(--borde); margin: 14px 0; }
   /* Una tabla no se parte: si no cabe, se mueve de lado ELLA, no la página. */
   .tabla { overflow-x: auto; margin: 0 0 10px; border: 1px solid var(--borde); border-radius: var(--r-btn); background: var(--capa); }
-  .tabla table { border-collapse: collapse; font-size: 14px; min-width: 100%; }
+  .tabla table { border-collapse: collapse; font-size: calc(14px * var(--z)); min-width: 100%; }
   /* `normal`, no el `anywhere` de la burbuja: con ese, la tabla se encogía al
      ancho del móvil partiendo «Antes» en «Ante|s». Mejor que se mueva de lado. */
   .tabla th, .tabla td { padding: 7px 11px; text-align: left; vertical-align: top; border-top: 1px solid var(--borde); overflow-wrap: normal; max-width: 30ch; }
@@ -362,42 +467,42 @@
      una pantalla, y quien lo lee llega al final, no al principio. */
   .acciones { position: sticky; top: 6px; float: right; display: flex; gap: 6px; margin: 7px 7px 0 0; z-index: 1; }
   .acciones button {
-    padding: 4px 12px; border-radius: var(--r-pastilla); cursor: pointer; font-size: 12.5px;
+    padding: 4px 12px; border-radius: var(--r-pastilla); cursor: pointer; font-size: calc(12.5px * var(--z));
     border: 1px solid var(--borde-fuerte); color: var(--suave);
     /* Opaco: al bajar pasa por encima del texto, y con la capa translúcida se leían los dos a la vez. */
     background: var(--cristal); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
   .acciones .compactar, .acciones button[data-hecho="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
-  .herramientas { display: block; font-size: 12.5px; color: var(--suave); font-style: italic; margin-top: 4px; }
+  .herramientas { display: block; font-size: calc(12.5px * var(--z)); color: var(--suave); font-style: italic; margin-top: 4px; }
   /* Los pasos de un turno, plegados en una pastilla: «13 pasos» y, al abrir, qué hizo cada uno. */
-  .pasos { margin-top: 10px; font-size: 13px; color: var(--suave); }
+  .pasos { margin-top: 10px; font-size: calc(13px * var(--z)); color: var(--suave); }
   .pasos summary {
     display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 5px 13px 5px 11px; border-radius: var(--r-pastilla);
     background: var(--capa-fuerte); cursor: pointer; list-style: none; max-width: 100%;
   }
   .pasos summary::-webkit-details-marker { display: none; }
-  .pasos summary::before { content: "›"; font-size: 15px; line-height: 1; transition: transform var(--t); }
+  .pasos summary::before { content: "›"; font-size: calc(15px * var(--z)); line-height: 1; transition: transform var(--t); }
   .pasos[open] summary::before { transform: rotate(90deg); }
   .pasos summary b { flex: none; font-weight: 650; color: var(--tinta); }
   .pasos summary span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pasos ol { list-style: none; margin: 8px 0 0; padding: 10px 14px; display: grid; gap: 5px; border-radius: var(--r-btn); background: var(--hondo); border: 1px solid var(--borde); font: 12.5px/1.5 var(--mono); }
+  .pasos ol { list-style: none; margin: 8px 0 0; padding: 10px 14px; display: grid; gap: 5px; border-radius: var(--r-btn); background: var(--hondo); border: 1px solid var(--borde); font: calc(12.5px * var(--z))/1.5 var(--mono); }
   .pasos li { display: flex; gap: 8px; min-width: 0; }
   .pasos li b { flex: none; font-weight: 650; color: var(--tinta); }
   .pasos li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pasos .antes { font-style: italic; }
-  .chip-img { display: inline-block; padding: 0 9px; margin-right: 4px; border-radius: var(--r-pastilla); font-size: 12.5px; border: 1px solid var(--borde-fuerte); color: var(--suave); }
-  .pensando { display: flex; align-items: center; gap: 10px; color: var(--suave); margin: 18px 0 6px; font-size: 14px; }
-  .solo-lectura { font-size: 13px; color: var(--suave); text-align: center; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--borde); background: var(--capa); }
+  .chip-img { display: inline-block; padding: 0 9px; margin-right: 4px; border-radius: var(--r-pastilla); font-size: calc(12.5px * var(--z)); border: 1px solid var(--borde-fuerte); color: var(--suave); }
+  .pensando { display: flex; align-items: center; gap: 10px; color: var(--suave); margin: 18px 0 6px; font-size: calc(14px * var(--z)); }
+  .solo-lectura { font-size: calc(13px * var(--z)); color: var(--suave); text-align: center; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--borde); background: var(--capa); }
 
   /* Lo que hace una terminal AHORA, al pie del chat: el transcript solo se
      escribe al acabar cada paso, y sin esto el chat parecía parado. */
   .ahora { display: grid; gap: 4px; margin: 18px 0 6px; padding: 12px 14px; border-radius: var(--r-caja); border: 1px dashed var(--borde-fuerte); }
-  .ahora-cab { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--suave); }
+  .ahora-cab { display: flex; align-items: center; gap: 10px; font-size: calc(14px * var(--z)); color: var(--suave); }
   .ahora-cab b { font-weight: 650; color: var(--tinta); }
   /* Lo de debajo, alineado con el texto y no con la mascota. */
   .ahora-que, .ahora-det { margin-left: 47px; }
   .ahora-que { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .ahora-det { font: 12.5px/1.4 var(--mono); color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ahora-det { font: calc(12.5px * var(--z))/1.4 var(--mono); color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Si te pregunta, la pregunta sube a la caja de escribir (ver la caja): es
      ahí donde está tu dedo, y contestar es un toque. */
   .ahora[data-tipo="pregunta"] {
@@ -405,16 +510,16 @@
     background: color-mix(in srgb, var(--pregunta) 12%, transparent);
     border-color: color-mix(in srgb, var(--pregunta) 38%, transparent);
   }
-  .ahora[data-tipo="pregunta"] .ahora-cab { color: var(--pregunta); font-size: 12px; font-weight: 750; letter-spacing: 0.05em; text-transform: uppercase; }
-  .ahora[data-tipo="pregunta"] .ahora-que { margin-left: 0; font-size: 15.5px; font-weight: 600; line-height: 1.35; color: var(--tinta); }
+  .ahora[data-tipo="pregunta"] .ahora-cab { color: var(--pregunta); font-size: calc(12px * var(--z)); font-weight: 750; letter-spacing: 0.05em; text-transform: uppercase; }
+  .ahora[data-tipo="pregunta"] .ahora-que { margin-left: 0; font-size: calc(15.5px * var(--z)); font-weight: 600; line-height: 1.35; color: var(--tinta); }
   .opciones-menu { display: grid; gap: 6px; margin-top: 8px; }
   .opciones-menu button {
     display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 12px; border-radius: var(--r-btn);
-    border: 1px solid var(--borde); background: var(--capa-fuerte); color: var(--tinta); font: inherit; font-size: 15px; text-align: left; cursor: pointer;
+    border: 1px solid var(--borde); background: var(--capa-fuerte); color: var(--tinta); font: inherit; font-size: calc(15px * var(--z)); text-align: left; cursor: pointer;
   }
   .opciones-menu button .num, .opcion .num {
     flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px;
-    background: var(--hondo); border: 1px solid var(--borde-fuerte); color: var(--tinta); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+    background: var(--hondo); border: 1px solid var(--borde-fuerte); color: var(--tinta); font-size: calc(12.5px * var(--z)); font-weight: 700; font-variant-numeric: tabular-nums;
   }
   .opciones-menu button:disabled { opacity: 0.55; cursor: default; }
 
@@ -424,13 +529,13 @@
     grid-column: 1 / -1; justify-self: center; display: inline-flex; gap: 2px; margin-top: 6px; padding: 3px;
     border-radius: var(--r-pastilla); background: var(--capa-fuerte); border: 1px solid var(--borde);
   }
-  .pestanas .pastilla { border: 0; padding: 5px 16px; font-size: 13px; }
+  .pestanas .pastilla { border: 0; padding: 5px 16px; font-size: calc(13px * var(--z)); }
   .pestanas .pastilla[data-on="true"] { background: var(--acento); color: var(--sobre-acento); font-weight: 650; }
   /* Una decisión pendiente se ve desde dentro de una terminal. */
   .aviso-dec {
     display: flex; align-items: center; gap: 10px; width: calc(100% - 24px); margin: 10px 12px 0; padding: 10px 14px;
     border-radius: var(--r-btn); border: 1px solid color-mix(in srgb, var(--pregunta) 45%, transparent);
-    background: color-mix(in srgb, var(--pregunta) 12%, var(--capa)); color: var(--tinta); font: inherit; font-size: 13.5px;
+    background: color-mix(in srgb, var(--pregunta) 12%, var(--capa)); color: var(--tinta); font: inherit; font-size: calc(13.5px * var(--z));
     text-align: left; cursor: pointer;
   }
   .aviso-dec svg { flex: none; color: var(--pregunta); }
@@ -442,7 +547,7 @@
   .pantalla {
     margin: 0; padding: 12px 14px; border-radius: var(--r-caja); border: 1px solid var(--borde);
     background: var(--pantalla); color: #d6e2f5;
-    font: 12.5px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere;
+    font: calc(12.5px * var(--z))/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere;
   }
   /* Cada línea en su caja, y lo que no cabe sigue con sangría. */
   .pantalla .l { display: block; padding-left: 2ch; text-indent: -2ch; min-height: 1.45em; }
@@ -450,7 +555,7 @@
   .pantalla .regla { background: linear-gradient(rgba(150, 185, 240, 0.3), rgba(150, 185, 240, 0.3)) center / 100% 1px no-repeat; }
   .pantalla .regla-titulo { display: flex; align-items: center; gap: 8px; padding-left: 0; text-indent: 0; color: #93a4c2; }
   .pantalla .regla-titulo::before, .pantalla .regla-titulo::after { content: ""; flex: 1; min-width: 12px; border-top: 1px solid rgba(150, 185, 240, 0.3); }
-  .nota-pantalla { margin: 0 0 10px; font-size: 13px; color: var(--suave); }
+  .nota-pantalla { margin: 0 0 10px; font-size: calc(13px * var(--z)); color: var(--suave); }
   .nota-pantalla button { padding: 0; border: 0; background: none; color: var(--acento); font: inherit; text-decoration: underline; cursor: pointer; }
   .bajar {
     position: absolute; right: 16px; bottom: calc(100% + 10px); z-index: 2;
@@ -462,7 +567,7 @@
      el texto; debajo, en una fila, adjuntar, las teclas, las pastillas y mandar. ── */
   .caja { position: relative; padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
   .caja .fallo, .aviso-mejora { margin: 0 4px 8px; }
-  .aviso-mejora { font-size: 12.5px; color: var(--acento); }
+  .aviso-mejora { font-size: calc(12.5px * var(--z)); color: var(--acento); }
   .fila-caja {
     display: flex; flex-direction: column; border-radius: 26px; overflow: hidden;
     border: 1px solid var(--borde-fuerte); background: var(--cristal);
@@ -471,7 +576,7 @@
   .caja[data-mejorado="true"] .fila-caja { border-color: color-mix(in srgb, var(--acento) 55%, transparent); }
   textarea {
     display: block; width: 100%; min-width: 0; border: 0; outline: none; background: none; color: var(--tinta);
-    font: 16.5px/1.45 var(--letra); padding: 15px 18px 6px; min-height: 52px; max-height: 160px;
+    font: calc(16.5px * var(--z))/1.45 var(--letra); padding: 15px 18px 6px; min-height: 52px; max-height: 160px;
     resize: none;
   }
   textarea::placeholder { color: var(--suave); }
@@ -497,7 +602,7 @@
   .abrir-teclas[aria-expanded="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .adjuntos { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
   .adjunto {
-    display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 4px; border-radius: var(--r-chico); font-size: 13px;
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 4px; border-radius: var(--r-chico); font-size: calc(13px * var(--z));
     border: 1px solid var(--borde); background: var(--capa); color: var(--suave);
   }
   .adjunto img { width: 30px; height: 30px; object-fit: cover; border-radius: 7px; flex: none; }
@@ -505,11 +610,11 @@
   .adjunto .que { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .adjunto[data-estado="listo"] { color: var(--tinta); }
   .adjunto[data-estado="mal"] { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 45%, transparent); }
-  .adjunto .quitar { flex: none; width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; font-size: 17px; line-height: 1; }
+  .adjunto .quitar { flex: none; width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; font-size: calc(17px * var(--z)); line-height: 1; }
   .pastillas { display: flex; flex-wrap: wrap; gap: 6px; }
   .pastilla {
     flex: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
-    height: 40px; padding: 0 14px; border-radius: var(--r-pastilla); cursor: pointer; font-size: 13.5px;
+    height: 40px; padding: 0 14px; border-radius: var(--r-pastilla); cursor: pointer; font-size: calc(13.5px * var(--z));
     border: 1px solid var(--borde); background: var(--capa-fuerte); color: var(--tinta);
   }
   .pastilla[data-on="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
@@ -520,7 +625,7 @@
   /* Las teclas de una terminal: dentro de la caja, en UNA fila que se mueve de lado si no cabe. */
   .teclas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px 10px 4px; }
   .teclas::-webkit-scrollbar { display: none; }
-  .teclas .pastilla { height: 36px; padding: 0 13px; border-radius: 12px; background: var(--hondo); border-color: var(--borde-fuerte); font: 13px var(--mono); }
+  .teclas .pastilla { height: 36px; padding: 0 13px; border-radius: 12px; background: var(--hondo); border-color: var(--borde-fuerte); font: calc(13px * var(--z)) var(--mono); }
 
   /* ── 10. Decisiones ──
      Ninguna opción sale marcada: la recomendada lleva su etiqueta y su porqué,
@@ -528,9 +633,9 @@
      Mismo orden y mismos números que puso el agente, que es lo que se dicta. */
   .dec-cab { display: grid; gap: 8px; margin: 0 0 16px; }
   .dec-cab p { margin: 0; color: var(--suave); }
-  .dec-hecha { padding: 11px 14px; border-radius: var(--r-btn); background: var(--acento-capa); font-size: 14px; }
+  .dec-hecha { padding: 11px 14px; border-radius: var(--r-btn); background: var(--acento-capa); font-size: calc(14px * var(--z)); }
   /* Si sigue viva o no: lo primero que hay que saber antes de contestar. */
-  .dec-cab .dec-vig { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border-radius: var(--r-btn); font-size: 14px; border: 1px solid var(--borde); color: var(--suave); background: var(--capa); }
+  .dec-cab .dec-vig { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border-radius: var(--r-btn); font-size: calc(14px * var(--z)); border: 1px solid var(--borde); color: var(--suave); background: var(--capa); }
   .dec-vig i { flex: none; width: 9px; height: 9px; margin-top: 6px; border-radius: 3px; background: currentColor; }
   .dec-cab .dec-vig[data-v="viva"] { color: var(--tinta); border-color: color-mix(in srgb, var(--pregunta) 45%, transparent); background: color-mix(in srgb, var(--pregunta) 12%, var(--capa)); }
   .dec-vig[data-v="viva"] i { background: var(--pregunta); animation: late 1.6s ease-in-out infinite; }
@@ -540,11 +645,11 @@
   .tarjeta[data-vigencia]:not([data-vigencia="viva"]) b { font-weight: 500; }
   .tarjeta[data-vigencia="huerfana"] { border-style: dashed; }
   .tarjeta[data-vigencia="contestada"] .estado { color: var(--vivo); background: color-mix(in srgb, var(--vivo) 15%, transparent); }
-  .calma { display: flex; align-items: center; gap: 12px; margin: 6px 4px 4px; color: var(--suave); font-size: 14.5px; }
+  .calma { display: flex; align-items: center; gap: 12px; margin: 6px 4px 4px; color: var(--suave); font-size: calc(14.5px * var(--z)); }
   .pregunta-d { border: 1px solid var(--borde); border-radius: var(--r-caja); background: var(--capa); padding: 14px 14px 16px; margin: 0 0 14px; min-width: 0; box-shadow: var(--brillo); }
-  .pregunta-d legend { padding: 0 6px; font-weight: 650; font-size: 16px; display: flex; gap: 8px; align-items: baseline; }
+  .pregunta-d legend { padding: 0 6px; font-weight: 650; font-size: calc(16px * var(--z)); display: flex; gap: 8px; align-items: baseline; }
   .letra { color: var(--acento); font-variant-numeric: tabular-nums; }
-  .pregunta-d > p { margin: 2px 2px 10px; font-size: 14px; color: var(--suave); }
+  .pregunta-d > p { margin: 2px 2px 10px; font-size: calc(14px * var(--z)); color: var(--suave); }
   .opcion {
     display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 12px 14px; margin: 0 0 8px;
     border: 1px solid var(--borde); border-radius: 16px; background: var(--capa-fuerte); cursor: pointer;
@@ -555,13 +660,13 @@
   .opcion input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
   .opcion:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
   .opcion .txt { display: grid; gap: 3px; min-width: 0; }
-  .opcion small { color: var(--suave); font-size: 13.5px; }
-  .rec { justify-self: start; font-style: normal; font-size: 11px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; color: var(--acento); }
-  .o { display: flex; align-items: center; gap: 10px; color: var(--suave); font-size: 13px; margin: 4px 2px 8px; }
+  .opcion small { color: var(--suave); font-size: calc(13.5px * var(--z)); }
+  .rec { justify-self: start; font-style: normal; font-size: calc(11px * var(--z)); font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; color: var(--acento); }
+  .o { display: flex; align-items: center; gap: 10px; color: var(--suave); font-size: calc(13px * var(--z)); margin: 4px 2px 8px; }
   .o::before, .o::after { content: ""; flex: 1; border-top: 1px solid var(--borde); }
   .libre {
     display: block; width: 100%; min-height: 64px; padding: 12px 14px; border-radius: 16px; resize: none;
-    border: 1px solid var(--borde-fuerte); background: var(--hondo); color: var(--tinta); font: inherit; font-size: 15px; max-height: none;
+    border: 1px solid var(--borde-fuerte); background: var(--hondo); color: var(--tinta); font: inherit; font-size: calc(15px * var(--z)); max-height: none;
   }
   .libre:focus { outline: none; border-color: var(--acento); }
   .pregunta-d[disabled] .opcion { cursor: default; }
@@ -571,12 +676,12 @@
   .descartar { flex: none; min-height: 48px; padding: 0 16px; border-radius: var(--r-btn); border: 1px solid var(--borde-fuerte); background: var(--capa); color: var(--suave); cursor: pointer; }
   .descartar:disabled { opacity: 0.5; cursor: default; }
   .enviar-dec { width: 100%; min-height: 50px; }
-  .estado-envio { margin: 0 4px 8px; font-size: 14px; color: var(--suave); }
+  .estado-envio { margin: 0 4px 8px; font-size: calc(14px * var(--z)); color: var(--suave); }
   .estado-envio:empty { display: none; }
 
   /* ── 11. Emparejar ── */
   .emparejar { max-width: 420px; margin: 8vh auto 0; padding: 0 20px; display: grid; gap: 14px; }
-  .emparejar h1 { font-size: 26px; line-height: 1.2; margin: 8px 0 0; letter-spacing: -0.02em; }
+  .emparejar h1 { font-size: calc(26px * var(--z)); line-height: 1.2; margin: 8px 0 0; letter-spacing: -0.02em; }
   .emparejar p { margin: 0; color: var(--suave); }
   .campo {
     width: 100%; padding: 14px 16px; border-radius: var(--r-btn); border: 1px solid var(--borde-fuerte);
@@ -584,8 +689,8 @@
   }
   .campo:focus { border-color: var(--acento); }
   /* Pegada a su campo: el hueco de la rejilla la dejaba a medio camino del código. */
-  .etiqueta-campo { font-size: 13px; color: var(--suave); margin: 4px 0 -8px 2px; }
-  .codigo { font-size: 30px; letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
+  .etiqueta-campo { font-size: calc(13px * var(--z)); color: var(--suave); margin: 4px 0 -8px 2px; }
+  .codigo { font-size: calc(30px * var(--z)); letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
 
   /* ── 12. La mascota ──
      La A de cuadritos del escritorio. Sus posturas las cambia el reloj de más
@@ -630,6 +735,77 @@
     .hilo::before { animation-duration: 7s; }
   }
 </style>
+<script>
+"use strict";
+/* El aspecto que eliges en Ajustes, puesto antes del primer pintado: si
+   esperara al resto de la página se vería un instante el de fábrica. Lo que
+   dice el PC (`/api/apariencia`: su acento y cómo se ve su foto) se guarda al
+   lado y vale mientras no elijas otra cosa en el móvil. */
+const AJUSTES = "adeorq-movil-ajustes";
+const GUARDADO_PC = "adeorq-movil-pc";
+const DE_FABRICA = {
+  fondo: "pc", cristal: "pc", ve: 60, desenfoque: 0,
+  tema: "sistema", acento: "pc", letra: 1, adeo: "vivo",
+  inicio: ["saludo", "reclaman", "marcha", "conversaciones"], ocultas: [], caja: true,
+};
+const LETRAS = [0.9, 1, 1.12, 1.25];
+const AZUL_DE_FABRICA = "#4d9fff";
+function leerGuardado(k) {
+  try {
+    const v = JSON.parse(localStorage.getItem(k) || "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch (_) { return {}; }
+}
+function misAjustes() {
+  const a = { ...DE_FABRICA, ...leerGuardado(AJUSTES) };
+  // Las secciones que conoce esta página, en tu orden, y las que no estaban al final.
+  const orden = Array.isArray(a.inicio) ? a.inicio.filter((s) => DE_FABRICA.inicio.includes(s)) : [];
+  a.inicio = [...new Set([...orden, ...DE_FABRICA.inicio])];
+  if (!Array.isArray(a.ocultas)) a.ocultas = [];
+  if (!LETRAS.includes(a.letra)) a.letra = 1;
+  return a;
+}
+/** Un color de CSS en «#rrggbb», o null si no lo es (o es transparente). */
+function aHex(c) {
+  if (typeof c !== "string" || !c.trim() || !CSS.supports("color", c)) return null;
+  const x = document.createElement("canvas").getContext("2d");
+  x.fillStyle = "#000";
+  x.fillStyle = c;
+  return /^#[0-9a-f]{6}$/i.test(x.fillStyle) ? x.fillStyle.toLowerCase() : null;
+}
+/** La letra que se lee mejor encima de ese color: casi negra o blanca. */
+function tintaSobre(hex) {
+  const lin = (i) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const l = 0.2126 * lin(1) + 0.7152 * lin(3) + 0.0722 * lin(5);
+  return (l + 0.05) / 0.0555 >= 1.05 / (l + 0.05) ? "#071019" : "#ffffff";
+}
+function aplicarAspecto() {
+  const a = misAjustes();
+  const pc = leerGuardado(GUARDADO_PC);
+  const r = document.documentElement;
+  const claro = a.tema === "claro" || (a.tema !== "oscuro" && matchMedia("(prefers-color-scheme: light)").matches);
+  r.dataset.tema = claro ? "claro" : "oscuro";
+  for (const m of document.querySelectorAll('meta[name="theme-color"]')) m.content = claro ? "#e8eef8" : "#060a12";
+  // El azul de fábrica tiene sus dos tonos ajustados a mano: con él no se calcula nada.
+  const acento = aHex(a.acento === "pc" ? pc.acento : a.acento);
+  if (acento && acento !== AZUL_DE_FABRICA) {
+    r.dataset.acento = acento;
+    r.style.setProperty("--elegido", acento);
+    r.style.setProperty("--sobre-elegido", tintaSobre(acento));
+  } else {
+    delete r.dataset.acento;
+    r.style.removeProperty("--elegido");
+    r.style.removeProperty("--sobre-elegido");
+  }
+  r.style.setProperty("--z", String(a.letra));
+  r.dataset.adeo = a.adeo === "quieto" || a.adeo === "oculto" ? a.adeo : "vivo";
+}
+aplicarAspecto();
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => aplicarAspecto());
+</script>
 </head>
 <body>
 <div id="app"></div>
@@ -767,8 +943,76 @@ const EN = {
   "Conversación nueva": "New conversation",
   "1 sesión": "1 session",
   "{n} sesiones": "{n} sessions",
-  "Todavía no has hablado con el conserje. Empieza con el botón de arriba.":
-    "You have not talked to the concierge yet. Start with the box above.",
+  "Todavía no has hablado con el conserje. Escríbele en la caja de abajo.":
+    "You have not talked to the concierge yet. Write to it in the box below.",
+  "Todavía no has hablado con el conserje. Empieza con «Nuevo encargo», en el menú.":
+    "You have not talked to the concierge yet. Start with “New job”, in the menu.",
+  // Ajustes del móvil
+  "Ajustes": "Settings",
+  "cómo se ve y qué te avisa este móvil": "how this phone looks and what it tells you",
+  "Azul": "Blue",
+  "Cian": "Cyan",
+  "Verde": "Green",
+  "Amarillo": "Yellow",
+  "Naranja": "Orange",
+  "Rojo": "Red",
+  "Rosa": "Pink",
+  "Violeta": "Violet",
+  "Adeo y el saludo": "Adeo and the greeting",
+  "Pequeña": "Small",
+  "Normal": "Normal",
+  "Grande": "Large",
+  "Muy grande": "Extra large",
+  "en tu PC es un vídeo": "on your PC it is a video",
+  "tu PC no tiene": "your PC has none",
+  "Fondo": "Background",
+  "La foto de detrás del cristal": "The photo behind the glass",
+  "La de tu PC": "Your PC's",
+  "De este móvil": "From this phone",
+  "toca para cambiarla": "tap to change it",
+  "elige una": "pick one",
+  "Sin foto": "No photo",
+  "El cristal como en tu PC": "The glass as on your PC",
+  "cuánto se ve la foto y cuánto se desenfoca": "how much the photo shows and how blurred it is",
+  "Cuánto se ve": "How much it shows",
+  "{n} %": "{n}%",
+  "Desenfoque": "Blur",
+  "{n} px": "{n} px",
+  "Colores": "Colours",
+  "Tema": "Theme",
+  "Automático": "Automatic",
+  "Oscuro": "Dark",
+  "Claro": "Light",
+  "Color": "Colour",
+  "El de tu PC": "Your PC's",
+  "Letra": "Text size",
+  "Moviéndose": "Moving",
+  "Quieto": "Still",
+  "Escondido": "Hidden",
+  "El inicio": "The home screen",
+  "Subir «{s}»": "Move “{s}” up",
+  "Bajar «{s}»": "Move “{s}” down",
+  "Que salga «{s}»": "Show “{s}”",
+  "La caja para escribirle al conserje": "The box to write to the concierge",
+  "abajo del todo": "at the very bottom",
+  "Avisos": "Notifications",
+  "Este navegador no recibe avisos. En iPhone, añade Adeorq a la pantalla de inicio y ábrela desde ahí.":
+    "This browser cannot get notifications. On iPhone, add Adeorq to the home screen and open it from there.",
+  "Dentro de otra página no se pueden pedir avisos: abre Adeorq aparte.":
+    "Notifications cannot be turned on inside another page: open Adeorq on its own.",
+  "Cuando te preguntan": "When you are asked",
+  "una terminal espera tu OK o un agente te pide una decisión": "a terminal waits for your OK or an agent asks you to decide",
+  "Cuando una sesión termina": "When a session finishes",
+  "Encargos programados": "Scheduled jobs",
+  "cuando uno se para": "when one stops",
+  "Con sonido y vibración": "With sound and vibration",
+  "si no, llegan en silencio": "otherwise they arrive silently",
+  "Este móvil": "This phone",
+  "Dejar el aspecto como venía": "Put the look back as it came",
+  "Olvidar este móvil": "Forget this phone",
+  "Toca otra vez para olvidarlo: tendrás que emparejarlo de nuevo": "Tap again to forget it: you will have to pair it again",
+  "No he podido abrir esa foto.": "I could not open that photo.",
+  "Esa foto no cabe en este móvil: prueba con otra.": "That photo does not fit on this phone: try another one.",
   // El conserje
   "Conserje": "Concierge",
   "Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.":
@@ -917,6 +1161,9 @@ function tr(texto, vars) {
    su traducción. Lo que no está en la lista sale como llegó. */
 const DEL_PC = {
   // movil.rs
+  "Eso no son avisos.": "Those are not notifications.",
+  "Tu PC no tiene foto de fondo.": "Your PC has no background photo.",
+  "El fondo de tu PC es un vídeo: en el móvil no se pone.": "Your PC's background is a video: it is not used on the phone.",
   "Esta dirección no es de este PC.": "This address is not this PC's.",
   "Esa página no es la del conserje.": "That page is not the concierge's.",
   "No hay ningún emparejamiento abierto: pídelo en Ajustes > Móvil.": "No pairing is open: ask for one in Settings > Mobile.",
@@ -1376,8 +1623,8 @@ const marchas = new Map();
    en su postura de reposo, y en un móvil con las animaciones recortadas Adeo
    salía tieso (Munir, 2026-10-15). Es un muñeco pequeño que se mueve en su
    sitio: menos recorrido no le hace falta para no marear, y una pantalla
-   muerta no es la regla de la casa. */
-const sinMovimiento = () => document.hidden;
+   muerta no es la regla de la casa. Quieto solo si lo pides en Ajustes. */
+const sinMovimiento = () => document.hidden || document.documentElement.dataset.adeo === "quieto";
 function marchaDe(clave, animo) {
   let m = marchas.get(clave);
   if (!m || m.animo !== animo) {
@@ -1460,6 +1707,8 @@ const ICONO = {
   // Programados: un reloj. Uso: un medidor con su aguja.
   reloj: trazo('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', 20),
   uso: trazo('<path d="M4.5 16.5a7.5 7.5 0 1 1 15 0"/><path d="M12 16.5l3.6-4.1"/>', 20),
+  // El engranaje de Ajustes del escritorio (`SettingsIcon`).
+  ajustes: trazo('<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5 v2.6 M12 18.9 v2.6 M21.5 12 h-2.6 M5.1 12 H2.5 M18.7 5.3 l-1.8 1.8 M7.1 16.9 l-1.8 1.8 M18.7 18.7 l-1.8 -1.8 M7.1 7.1 L5.3 5.3"/>', 18),
   // La papelera del escritorio (`TrashIcon`): la tapa con su asa y el cubo.
   papelera: trazo('<path d="M4 7h16M9.5 7V4.8h5V7M6.5 7l1 12.5h9L17.5 7M10.2 11v5M13.8 11v5"/>', 18),
   logo: '<svg width="30" height="30" viewBox="0 0 1024 1024" aria-hidden="true"><defs><linearGradient id="adeorq-logo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#48c2ff"/><stop offset="1" stop-color="#2f9df3"/></linearGradient></defs><path fill="url(#adeorq-logo)" fill-rule="evenodd" d="M 236 112 L 788 112 L 1016 756 L 944 848 L 80 848 L 8 756 Z M 512 240 L 712 730 Q 512 572 312 730 Z"/></svg>',
@@ -1982,7 +2231,7 @@ function pintarCajon() {
       ${terminales.map((t) => `<button class="fila${estaTrabajando(t) ? " hilo" : ""}" data-panel="${t.panel}" aria-current="${aqui("terminal", t.panel)}">${ICONO.terminal}<b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><i class="punto" data-tono="${estadoTerminal(t)[1]}"></i></button>`).join("")}
       ${d.lista.slice(0, 12).map((f) => `<button class="fila" data-conv="${esc(f.id)}" aria-current="${aqui("hilo", f.id)}">${ICONO.chat}<b>${esc(f.titulo || tr("Conversación nueva"))}</b><span>${esc(hace(f.cuando))}</span></button>`).join("")}
     </div>
-    <div class="pc"><i class="punto" ${d.vt.fallo ? "data-mal" : 'data-tono="trabajando"'}></i><span>${d.vt.fallo ? tr("Tu PC no contesta") : tr("Tu PC, conectado")}</span></div>
+    <div class="pc"><i class="punto" ${d.vt.fallo ? "data-mal" : 'data-tono="trabajando"'}></i><span>${d.vt.fallo ? tr("Tu PC no contesta") : tr("Tu PC, conectado")}</span><button class="a-ajustes" data-ir="ajustes" aria-current="${aqui("ajustes")}">${ICONO.ajustes}<b>${tr("Ajustes")}</b></button></div>
     <button class="nuevo-encargo" id="nuevo-encargo">${ICONO.mas}${tr("Nuevo encargo")}</button>`;
 }
 cajon.addEventListener("click", (ev) => {
@@ -1992,6 +2241,8 @@ cajon.addEventListener("click", (ev) => {
   if (b.dataset.panel) return ir({ vista: "terminal", panel: Number(b.dataset.panel), arranque: delCajon?.vt?.arranque });
   if (b.dataset.conv) return ir({ vista: "hilo", id: b.dataset.conv });
   if (b.id === "nuevo-encargo") {
+    // Sin la caja en el inicio (Ajustes), una conversación nueva con la suya.
+    if (!misAjustes().caja) return ir({ vista: "hilo", id: nuevoId() });
     ir({ vista: "lista" });
     document.getElementById("decir")?.focus();
   }
@@ -2102,7 +2353,14 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && e.vista === "hilo") cargarHilo().catch(() => {});
 });
 
+/* El aspecto del PC (acento y foto) se pregunta una vez por visita, en cuanto
+   hay clave: hasta entonces vale lo que se guardó la vez anterior. */
+let delPcTraido = false;
 function pintar() {
+  if (clave && !delPcTraido) {
+    delPcTraido = true;
+    traerDelPc().catch(() => { delPcTraido = false; });
+  }
   if (e.vista === "esperando") { app.innerHTML = `<p class="vacio">${tr("Conectando con tu PC…")}</p>`; return; }
   if (e.vista === "emparejar") return pintarEmparejar();
   if (e.vista === "lista") return pintarLista();
@@ -2113,6 +2371,7 @@ function pintar() {
   if (e.vista === "decisiones") return pintarDecisiones();
   if (e.vista === "programados") return pintarProgramados();
   if (e.vista === "uso") return pintarUso();
+  if (e.vista === "ajustes") return pintarAjustes();
   if (e.vista === "decision") return pintarDecision();
 }
 
@@ -2175,22 +2434,26 @@ async function pintarLista() {
   // Vuelve con el ánimo que tenía: si nace quieta y a los dos segundos se
   // entera de que te esperan, repetía el susto cada vez que volvías a la portada.
   const animoPortada = marchas.get("portada")?.animo || "quieta";
+  // Las secciones van en el orden de Ajustes; las que quitaste siguen ahí,
+  // escondidas, que la vuelta de `mirar` las rellena igual (y el globito).
+  const a = misAjustes();
+  const trozos = {
+    saludo: `<div class="saludo">
+          <span id="masc-portada">${mascota(animoPortada, MASC_PORTADA, "portada")}</span>
+          <h2>${tr("Buenas.")}</h2>
+          <p id="yo">${tr("tu PC")}</p>
+        </div>`,
+    reclaman: `<div id="reclaman"></div>`,
+    marcha: `<div id="portada-term"></div>`,
+    conversaciones: `<div id="filas" data-rotulo="${tr("Conversaciones")}"></div>`,
+  };
   app.innerHTML = `
     <div class="vista">
       <header class="barra">${botonCajon()}<h1>Adeorq</h1></header>
       <main class="cuerpo">
-        <div class="saludo">
-          <span id="masc-portada">${mascota(animoPortada, MASC_PORTADA, "portada")}</span>
-          <h2>${tr("Buenas.")}</h2>
-          <p id="yo">${tr("tu PC")}</p>
-        </div>
-        <div id="reclaman"></div>
-        <div id="portada-term"></div>
-        <div id="filas" data-rotulo="${tr("Conversaciones")}"></div>
-        <button id="avisos" class="avisos" hidden></button>
-        <button id="instalar" class="avisos" hidden>${tr("Instalar Adeorq como app en este aparato")}</button>
+        ${a.inicio.map((s) => (a.ocultas.includes(s) ? trozos[s].replace("<div ", "<div hidden ") : trozos[s])).join("")}
       </main>
-      <footer class="caja">
+      <footer class="caja"${a.caja ? "" : " hidden"}>
         <div class="fila-caja decir" id="nueva">
           <textarea id="decir" rows="1" placeholder="${tr("Dile al conserje qué hay que hacer")}" aria-label="${tr("Mensaje nuevo al conserje")}"></textarea>
           <div class="mandos"><span class="hueco"></span><button class="enviar" id="decir-enviar" aria-label="${tr("Enviar al conserje")}" disabled>${ICONO.subir}</button></div>
@@ -2212,8 +2475,6 @@ async function pintarLista() {
     const texto = decir.value.trim();
     if (texto) ir({ vista: "hilo", id: nuevoId(), alEntrar: texto });
   });
-  pintarAvisos().catch(() => {});
-  pintarInstalar();
   // Lo que te reclama y cómo va cada terminal. Solo se repinta si cambió.
   let pintado = null;
   let animo = animoPortada;
@@ -2282,7 +2543,7 @@ async function pintarLista() {
     if (!filas) return;
     filas.innerHTML = lista.length
       ? lista.map((f) => `<button class="fila" data-id="${esc(f.id)}"><b>${esc(f.titulo || tr("Conversación nueva"))}</b><span>${esc(hace(f.cuando))}${f.trabajos ? ` · ${f.trabajos === 1 ? tr("1 sesión") : tr("{n} sesiones", { n: f.trabajos })}` : ""}</span></button>`).join("")
-      : `<p class="vacio">${tr("Todavía no has hablado con el conserje. Empieza con el botón de arriba.")}</p>`;
+      : `<p class="vacio">${a.caja ? tr("Todavía no has hablado con el conserje. Escríbele en la caja de abajo.") : tr("Todavía no has hablado con el conserje. Empieza con «Nuevo encargo», en el menú.")}</p>`;
     filas.querySelectorAll(".fila").forEach((b) => b.addEventListener("click", () => ir({ vista: "hilo", id: b.dataset.id })));
   };
   try { await cargar(); } catch (err) {
@@ -2694,6 +2955,323 @@ function pintarUso() {
       ? apartados([[tr("Cuentas"), cuentas.map(fila)]])
       : `<p class="vacio">${tr("No hay cuentas en Adeorq.")}</p>`;
   }, 30000);
+}
+
+// ─── Ajustes ────────────────────────────────────────────────────────────────
+/* Lo que se elige para ESTE móvil (Munir, 2026-10-16: «hazlo más
+   customizable»): la foto de detrás del cristal, los colores, la letra, Adeo,
+   el inicio y los avisos. Se guarda en el propio móvil (`AJUSTES`, en el
+   <head>) salvo qué avisos quiere, que lo tiene que saber el PC para no
+   mandárselos (`/api/avisos`). De entrada, la foto y el acento son los del PC. */
+const FOTO_PC = "adeorq-movil-foto-pc";
+const FOTO_PROPIA = "adeorq-movil-foto-propia";
+const ACENTOS = [["#4d9fff", tr("Azul")], ["#22d3ee", tr("Cian")], ["#46c99a", tr("Verde")], ["#f5c542", tr("Amarillo")],
+  ["#ff9a3c", tr("Naranja")], ["#ff4b6e", tr("Rojo")], ["#ff7ac6", tr("Rosa")], ["#a877ff", tr("Violeta")]];
+const SECCIONES = { saludo: tr("Adeo y el saludo"), reclaman: tr("Te esperan"), marcha: tr("En marcha"), conversaciones: tr("Conversaciones") };
+const NOMBRES_LETRA = [tr("Pequeña"), tr("Normal"), tr("Grande"), tr("Muy grande")];
+const entre = (v, si, min, max) => Math.min(max, Math.max(min, Number.isFinite(Number(v)) && v !== null ? Number(v) : si));
+
+function guardarAjustes(cambio) {
+  const a = { ...misAjustes(), ...cambio };
+  try { localStorage.setItem(AJUSTES, JSON.stringify(a)); } catch (_) {}
+  aplicarAspecto();
+  aplicarFoto();
+  return a;
+}
+
+/* Una foto para guardar en el móvil: JPEG de 1600 px de lado como mucho, que
+   el almacén de una página es de unos 5 MB y caben las dos (la del PC y la tuya). */
+async function fotoParaGuardar(blob) {
+  const bmp = await createImageBitmap(blob);
+  const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const lienzo = document.createElement("canvas");
+  lienzo.width = Math.round(bmp.width * k);
+  lienzo.height = Math.round(bmp.height * k);
+  lienzo.getContext("2d").drawImage(bmp, 0, 0, lienzo.width, lienzo.height);
+  bmp.close?.();
+  return lienzo.toDataURL("image/jpeg", 0.82);
+}
+function guardarFoto(k, version, datos) {
+  try {
+    localStorage.setItem(k, JSON.stringify({ version, datos }));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+// A mano y no con `fetch(datos)`: la página solo puede pedir a su PC (`connect-src`).
+function aBlob(datos) {
+  const [cab, b64] = datos.split(",");
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: /data:([^;]+)/.exec(cab)?.[1] || "image/jpeg" });
+}
+/* Una dirección por foto guardada, hecha una vez: rehacerla con cada ajuste
+   que se toca haría parpadear el fondo. */
+const urlsDeFoto = new Map();
+function urlDeFoto(k) {
+  const f = leerGuardado(k);
+  if (typeof f.datos !== "string" || !f.datos.startsWith("data:image/")) return null;
+  const marca = `${f.version}:${f.datos.length}`;
+  const hecha = urlsDeFoto.get(k);
+  if (hecha?.marca === marca) return hecha.url;
+  if (hecha) URL.revokeObjectURL(hecha.url);
+  try {
+    const url = URL.createObjectURL(aBlob(f.datos));
+    urlsDeFoto.set(k, { marca, url });
+    return url;
+  } catch (_) {
+    return null;
+  }
+}
+/** La foto de detrás del cristal, con su velo y su desenfoque. */
+function aplicarFoto() {
+  const a = misAjustes();
+  const pc = leerGuardado(GUARDADO_PC);
+  const url = a.fondo === "nada" ? null : urlDeFoto(a.fondo === "propia" ? FOTO_PROPIA : FOTO_PC);
+  const b = document.body;
+  if (!url) {
+    delete b.dataset.foto;
+    b.style.removeProperty("--foto");
+    return;
+  }
+  const comoPc = a.cristal === "pc";
+  const ve = comoPc ? entre(pc.opacidad, 60, 5, 100) : entre(a.ve, 60, 5, 100);
+  const desenfoque = comoPc ? entre(pc.desenfoque, 0, 0, 24) : entre(a.desenfoque, 0, 0, 24);
+  b.dataset.foto = "";
+  b.style.setProperty("--foto", `url("${url}")`);
+  b.style.setProperty("--foto-velo", String((100 - ve) / 100));
+  b.style.setProperty("--foto-desenfoque", `${desenfoque}px`);
+}
+aplicarFoto();
+
+/** Lo que dice el PC de su aspecto, y su foto si cambió desde la última vez. */
+async function traerDelPc() {
+  const v = await api("GET", "/api/apariencia");
+  try {
+    localStorage.setItem(GUARDADO_PC, JSON.stringify({ acento: v.acento ?? null, opacidad: v.opacidad ?? null, desenfoque: v.desenfoque ?? null, fondo: v.fondo ?? null }));
+  } catch (_) {}
+  const version = v.fondo && !v.fondo.video ? v.fondo.version : null;
+  if (version !== (leerGuardado(FOTO_PC).version ?? null)) {
+    if (!version) {
+      try { localStorage.removeItem(FOTO_PC); } catch (_) {}
+    } else {
+      const r = await fetch("/api/fondo", { headers: { Authorization: `Bearer ${clave || ""}` }, cache: "no-store" });
+      if (r.ok) guardarFoto(FOTO_PC, version, await fotoParaGuardar(await r.blob()));
+    }
+  }
+  aplicarAspecto();
+  aplicarFoto();
+}
+
+function pintarAjustes() {
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra">${botonCajon()}<h1>${tr("Ajustes")}<small>${tr("cómo se ve y qué te avisa este móvil")}</small></h1></header>
+      <main class="cuerpo ajustes" id="ajustes"></main>
+    </div>`;
+  montarBotonCajon();
+  const aqui = document.getElementById("ajustes");
+  let yo = null;
+  let fallo = "";
+
+  const pintarlo = () => {
+    if (!aqui.isConnected) return;
+    const a = misAjustes();
+    const pc = leerGuardado(GUARDADO_PC);
+    const urlPc = urlDeFoto(FOTO_PC);
+    const urlPropia = urlDeFoto(FOTO_PROPIA);
+    const foco = document.activeElement?.dataset?.foco;
+    const seg = (ajuste, ops) => `<div class="segmento" role="radiogroup">${ops.map(([v, texto, nombre]) => `<button type="button" role="radio" data-ajuste="${ajuste}" data-valor="${v}" data-foco="${ajuste}-${v}" aria-checked="${String(a[ajuste]) === String(v)}"${nombre ? ` aria-label="${nombre}"` : ""}>${texto}</button>`).join("")}</div>`;
+    const interruptor = (attrs, on, apagado) => `<input type="checkbox" class="interruptor" ${attrs}${on ? " checked" : ""}${apagado ? " disabled" : ""}>`;
+    const sinFotoPc = pc.fondo?.video ? tr("en tu PC es un vídeo") : !urlPc ? tr("tu PC no tiene") : "";
+    const fotoOp = (valor, titulo, debajo, url, apagada) =>
+      `<button type="button" class="foto-op" role="radio" data-ajuste="fondo" data-valor="${valor}" data-foco="fondo-${valor}" aria-checked="${a.fondo === valor}"${apagada ? " disabled" : ""}>
+        <span class="mini${valor === "nada" ? " cielo" : ""}"${url ? ` style="background-image:url('${url}')"` : ""}>${!url && valor === "propia" ? ICONO.mas : ""}</span>
+        <b>${titulo}</b>${debajo ? `<small>${debajo}</small>` : ""}
+      </button>`;
+    const acentoPc = aHex(pc.acento) || AZUL_DE_FABRICA;
+    const avisos = yo?.avisos;
+    const aviso = (k, titulo, debajo, on) => `<label class="fila-ajuste"><span>${titulo}${debajo ? `<small>${debajo}</small>` : ""}</span>${interruptor(`data-aviso="${k}" data-foco="aviso-${k}"`, on, !avisos)}</label>`;
+    aqui.innerHTML = `
+      ${fallo ? `<p class="nota">${esc(fallo)}</p>` : ""}
+      <h2 class="seccion"><span>${tr("Fondo")}</span></h2>
+      <div class="grupo">
+        <div class="ajuste">
+          <div class="fotos" role="radiogroup" aria-label="${tr("La foto de detrás del cristal")}">
+            ${fotoOp("pc", tr("La de tu PC"), sinFotoPc, urlPc, !urlPc)}
+            ${fotoOp("propia", tr("De este móvil"), urlPropia ? (a.fondo === "propia" ? tr("toca para cambiarla") : "") : tr("elige una"), urlPropia)}
+            ${fotoOp("nada", tr("Sin foto"), "", null)}
+          </div>
+          <input type="file" id="foto-propia" accept="image/*" hidden>
+        </div>
+        ${a.fondo === "nada" ? "" : `
+        <label class="fila-ajuste"><span>${tr("El cristal como en tu PC")}<small>${tr("cuánto se ve la foto y cuánto se desenfoca")}</small></span>${interruptor('data-ajuste="cristal" data-foco="cristal"', a.cristal === "pc")}</label>
+        ${a.cristal === "pc" ? "" : `
+        <label class="deslizador"><span>${tr("Cuánto se ve")}</span><output id="ve-valor">${tr("{n} %", { n: a.ve })}</output><input type="range" min="5" max="100" step="5" value="${a.ve}" data-ajuste="ve"></label>
+        <label class="deslizador"><span>${tr("Desenfoque")}</span><output id="desenfoque-valor">${tr("{n} px", { n: a.desenfoque })}</output><input type="range" min="0" max="24" step="1" value="${a.desenfoque}" data-ajuste="desenfoque"></label>`}`}
+      </div>
+
+      <h2 class="seccion"><span>${tr("Colores")}</span></h2>
+      <div class="grupo">
+        <div class="ajuste"><b>${tr("Tema")}</b>${seg("tema", [["sistema", tr("Automático")], ["oscuro", tr("Oscuro")], ["claro", tr("Claro")]])}</div>
+        <div class="ajuste"><b>${tr("Color")}</b>
+          <div class="muestras" role="radiogroup" aria-label="${tr("Color")}">
+            <button type="button" class="muestra del-pc" role="radio" data-ajuste="acento" data-valor="pc" data-foco="acento-pc" aria-checked="${a.acento === "pc"}" style="--c:${acentoPc}"><i></i>${tr("El de tu PC")}</button>
+            ${ACENTOS.map(([c, n]) => `<button type="button" class="muestra" role="radio" data-ajuste="acento" data-valor="${c}" data-foco="acento-${c}" aria-checked="${a.acento === c}" style="--c:${c}" aria-label="${n}"></button>`).join("")}
+          </div>
+        </div>
+      </div>
+
+      <h2 class="seccion"><span>${tr("Letra")}</span></h2>
+      <div class="grupo"><div class="ajuste">${seg("letra", LETRAS.map((z, i) => [z, `<span style="font-size:${Math.round(15 * z)}px">Aa</span>`, NOMBRES_LETRA[i]]))}</div></div>
+
+      <h2 class="seccion"><span>Adeo</span></h2>
+      <div class="grupo"><div class="ajuste">${seg("adeo", [["vivo", tr("Moviéndose")], ["quieto", tr("Quieto")], ["oculto", tr("Escondido")]])}</div></div>
+
+      <h2 class="seccion"><span>${tr("El inicio")}</span></h2>
+      <div class="grupo">
+        ${a.inicio.map((s, i) => `<div class="fila-ajuste"${a.ocultas.includes(s) ? " data-apagada" : ""}>
+          <span>${SECCIONES[s]}</span>
+          <button type="button" class="mover" data-mover="${s}" data-paso="-1" data-foco="subir-${s}" aria-label="${tr("Subir «{s}»", { s: SECCIONES[s] })}"${i === 0 ? " disabled" : ""}>${ICONO.subir}</button>
+          <button type="button" class="mover" data-mover="${s}" data-paso="1" data-foco="bajar-${s}" aria-label="${tr("Bajar «{s}»", { s: SECCIONES[s] })}"${i === a.inicio.length - 1 ? " disabled" : ""}>${ICONO.bajar}</button>
+          ${interruptor(`data-seccion="${s}" data-foco="ver-${s}" aria-label="${tr("Que salga «{s}»", { s: SECCIONES[s] })}"`, !a.ocultas.includes(s))}
+        </div>`).join("")}
+        <label class="fila-ajuste"><span>${tr("La caja para escribirle al conserje")}<small>${tr("abajo del todo")}</small></span>${interruptor('data-ajuste="caja" data-foco="caja"', a.caja)}</label>
+      </div>
+
+      <h2 class="seccion"><span>${tr("Avisos")}</span></h2>
+      <div class="grupo">
+        <div class="ajuste">
+          <button id="avisos" class="avisos" hidden></button>
+          ${!hayPush ? `<p class="seccion-nota">${tr("Este navegador no recibe avisos. En iPhone, añade Adeorq a la pantalla de inicio y ábrela desde ahí.")}</p>`
+            : enMarco ? `<p class="seccion-nota">${tr("Dentro de otra página no se pueden pedir avisos: abre Adeorq aparte.")}</p>` : ""}
+        </div>
+        ${aviso("preguntas", tr("Cuando te preguntan"), tr("una terminal espera tu OK o un agente te pide una decisión"), avisos ? avisos.preguntas : true)}
+        ${aviso("terminadas", tr("Cuando una sesión termina"), "", avisos ? avisos.terminadas : true)}
+        ${aviso("programados", tr("Encargos programados"), tr("cuando uno se para"), avisos ? avisos.programados : true)}
+        ${aviso("sonido", tr("Con sonido y vibración"), tr("si no, llegan en silencio"), avisos ? !avisos.silencio : true)}
+      </div>
+
+      <h2 class="seccion"><span>${tr("Este móvil")}</span></h2>
+      <div class="grupo"><div class="ajuste">
+        <button id="instalar" class="avisos" hidden>${tr("Instalar Adeorq como app en este aparato")}</button>
+        <button type="button" class="avisos" id="de-fabrica">${tr("Dejar el aspecto como venía")}</button>
+        <button type="button" class="avisos peligro" id="olvidarme">${tr("Olvidar este móvil")}</button>
+      </div></div>`;
+    pintarAvisos().catch(() => {});
+    pintarInstalar();
+    if (foco) aqui.querySelector(`[data-foco="${CSS.escape(foco)}"]`)?.focus();
+  };
+
+  aqui.addEventListener("click", async (ev) => {
+    const b = ev.target.closest("button");
+    if (!b || b.disabled) return;
+    const a = misAjustes();
+    if (b.dataset.ajuste) {
+      const cual = b.dataset.ajuste;
+      // La foto del móvil: si todavía no hay, o ya está puesta, se elige otra.
+      if (cual === "fondo" && b.dataset.valor === "propia" && (a.fondo === "propia" || !urlDeFoto(FOTO_PROPIA))) {
+        document.getElementById("foto-propia").click();
+        return;
+      }
+      guardarAjustes({ [cual]: cual === "letra" ? Number(b.dataset.valor) : b.dataset.valor });
+      return pintarlo();
+    }
+    if (b.dataset.mover) {
+      const orden = a.inicio.slice();
+      const i = orden.indexOf(b.dataset.mover);
+      const j = i + Number(b.dataset.paso);
+      if (i < 0 || j < 0 || j >= orden.length) return;
+      [orden[i], orden[j]] = [orden[j], orden[i]];
+      guardarAjustes({ inicio: orden });
+      return pintarlo();
+    }
+    if (b.id === "de-fabrica") {
+      try { localStorage.removeItem(AJUSTES); } catch (_) {}
+      aplicarAspecto();
+      aplicarFoto();
+      return pintarlo();
+    }
+    // Olvidarse es para siempre (hay que volver a emparejar en el PC): dos toques.
+    if (b.id === "olvidarme") {
+      if (!b.dataset.seguro) {
+        b.dataset.seguro = "1";
+        b.textContent = tr("Toca otra vez para olvidarlo: tendrás que emparejarlo de nuevo");
+        return;
+      }
+      b.disabled = true;
+      try {
+        await api("POST", "/api/olvidarme");
+      } catch (err) {
+        fallo = err.message;
+        return pintarlo();
+      }
+      olvidarClave();
+    }
+  });
+
+  aqui.addEventListener("input", (ev) => {
+    const t = ev.target;
+    if (t.type !== "range") return;
+    const n = Number(t.value);
+    guardarAjustes({ [t.dataset.ajuste]: n });
+    const salida = document.getElementById(`${t.dataset.ajuste}-valor`);
+    if (salida) salida.textContent = t.dataset.ajuste === "ve" ? tr("{n} %", { n }) : tr("{n} px", { n });
+  });
+
+  aqui.addEventListener("change", async (ev) => {
+    const t = ev.target;
+    if (t.id === "foto-propia") {
+      const archivo = t.files?.[0];
+      t.value = "";
+      if (!archivo) return;
+      let datos = null;
+      try { datos = await fotoParaGuardar(archivo); } catch (_) {}
+      if (!datos) fallo = tr("No he podido abrir esa foto.");
+      else if (!guardarFoto(FOTO_PROPIA, Date.now(), datos)) fallo = tr("Esa foto no cabe en este móvil: prueba con otra.");
+      else {
+        fallo = "";
+        guardarAjustes({ fondo: "propia" });
+      }
+      return pintarlo();
+    }
+    if (t.dataset.ajuste === "cristal") {
+      const pc = leerGuardado(GUARDADO_PC);
+      // Al quitarlo se empieza desde como lo tienes en el PC, no de cero.
+      guardarAjustes(t.checked ? { cristal: "pc" } : { cristal: "propio", ve: entre(pc.opacidad, 60, 5, 100), desenfoque: entre(pc.desenfoque, 0, 0, 24) });
+      return pintarlo();
+    }
+    if (t.dataset.ajuste === "caja") {
+      guardarAjustes({ caja: t.checked });
+      return;
+    }
+    if (t.dataset.seccion) {
+      const a = misAjustes();
+      const s = t.dataset.seccion;
+      guardarAjustes({ ocultas: t.checked ? a.ocultas.filter((x) => x !== s) : [...new Set([...a.ocultas, s])] });
+      return pintarlo();
+    }
+    if (t.dataset.aviso && yo?.avisos) {
+      const nuevos = { ...yo.avisos };
+      if (t.dataset.aviso === "sonido") nuevos.silencio = !t.checked;
+      else nuevos[t.dataset.aviso] = t.checked;
+      t.disabled = true;
+      try {
+        yo.avisos = (await api("POST", "/api/avisos", nuevos)).avisos;
+        fallo = "";
+      } catch (err) {
+        fallo = err.message;
+      }
+      return pintarlo();
+    }
+  });
+
+  clearTimeout(reloj);
+  pintarlo();
+  traerDelPc().then(pintarlo).catch(() => {});
+  api("GET", "/api/yo").then((v) => { yo = v; pintarlo(); }).catch((err) => { fallo = err.message; pintarlo(); });
 }
 
 // ─── Decisiones ─────────────────────────────────────────────────────────────

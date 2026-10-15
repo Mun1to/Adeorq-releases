@@ -402,7 +402,7 @@ export default function AjustesMovil() {
                 })}
               </ul>
               {estado.avisos === 0 ? (
-                <p className="movil-prueba">{t("Ningún móvil ha pedido avisos todavía. En el móvil, en la lista del conserje, toca «Avisarme en este móvil».")}</p>
+                <p className="movil-prueba">{t("Ningún móvil ha pedido avisos todavía. En el móvil, abre Ajustes (abajo del menú) y toca «Avisarme en este móvil».")}</p>
               ) : (
                 prueba && <p className="movil-prueba">{prueba}</p>
               )}

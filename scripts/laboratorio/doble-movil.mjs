@@ -23,6 +23,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import zlib from "node:zlib";
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 // `PAGINA=<ruta>` sirve otra versión de la página, para mirar el antes y el después.
@@ -57,6 +58,60 @@ const enCurso = new Map();
 const pedidasSesion = [];
 const abiertas = new Map(); // clave -> momento en que se abrió
 let yaFallo = false;
+
+// Los Ajustes del móvil. Qué avisos quiere este móvil (`PrefsAvisos` en
+// movil.rs), si se olvidó a sí mismo, y cómo se ve el PC. De entrada el PC va
+// sin foto y con el azul de fábrica, para no cambiarles la cara a los demás
+// bancos ni a las fotos de la web; `/api/sembrar-aspecto` le pone una foto y
+// otro acento. Con `FONDO=<ruta de una foto>` la foto es esa.
+let avisosPrefs = { preguntas: true, terminadas: true, programados: true, silencio: false };
+let olvidado = false;
+let aspecto = { acento: "#4d9fff", opacidad: 60, desenfoque: 0, foto: null };
+if (process.env.FONDO) aspecto.foto = { tipo: /\.jpe?g$/i.test(process.env.FONDO) ? "image/jpeg" : "image/png", bytes: fs.readFileSync(process.env.FONDO), version: "fondo-de-fuera" };
+
+/** Un PNG de un degradado, hecho aquí: una foto de prueba sin depender de ningún archivo. */
+function pngDegradado(ancho, alto) {
+  const tabla = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc = (b) => {
+    let c = 0xffffffff;
+    for (const x of b) c = tabla[(c ^ x) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const trozo = (tipo, datos) => {
+    const largo = Buffer.alloc(4);
+    largo.writeUInt32BE(datos.length);
+    const cuerpo = Buffer.concat([Buffer.from(tipo, "ascii"), datos]);
+    const suma = Buffer.alloc(4);
+    suma.writeUInt32BE(crc(cuerpo));
+    return Buffer.concat([largo, cuerpo, suma]);
+  };
+  const cab = Buffer.alloc(13);
+  cab.writeUInt32BE(ancho, 0);
+  cab.writeUInt32BE(alto, 4);
+  cab[8] = 8; // 8 bits por canal
+  cab[9] = 2; // RGB
+  const filas = Buffer.alloc((ancho * 3 + 1) * alto);
+  for (let y = 0; y < alto; y++) {
+    const fila = y * (ancho * 3 + 1);
+    for (let x = 0; x < ancho; x++) {
+      const t = y / alto;
+      const o = fila + 1 + x * 3;
+      filas[o] = Math.round(40 + 200 * t);
+      filas[o + 1] = Math.round(60 + 60 * (x / ancho));
+      filas[o + 2] = Math.round(200 - 140 * t);
+    }
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    trozo("IHDR", cab),
+    trozo("IDAT", zlib.deflateSync(filas)),
+    trozo("IEND", Buffer.alloc(0)),
+  ]);
+}
 
 // Las terminales de la Cabina, como las devuelve `atenderTerminal` de `lib/movil.ts`.
 const terminales = [
@@ -312,11 +367,41 @@ http
         return res.end(fs.readFileSync(ruta, "utf8"));
       }
       if (!url.pathname.startsWith("/api/")) return json(res, 404, { error: "Aquí no hay nada." });
-      if (req.headers.authorization !== `Bearer ${CLAVE}`) return json(res, 401, { error: "Este móvil no está emparejado." });
+      if (olvidado || req.headers.authorization !== `Bearer ${CLAVE}`) return json(res, 401, { error: "Este móvil no está emparejado." });
       const id = url.searchParams.get("id") || v.id;
       switch (url.pathname) {
         case "/api/yo":
-          return json(res, 200, { nombre: "Android" });
+          return json(res, 200, { nombre: "Android", avisos: avisosPrefs });
+        case "/api/avisos": {
+          const claves = ["preguntas", "terminadas", "programados", "silencio"];
+          if (claves.some((k) => k in v && typeof v[k] !== "boolean")) return json(res, 400, { error: "Eso no son avisos." });
+          avisosPrefs = { ...avisosPrefs, ...Object.fromEntries(claves.filter((k) => k in v).map((k) => [k, v[k]])) };
+          console.log(`avisos: ${JSON.stringify(avisosPrefs)}`);
+          return json(res, 200, { ok: true, avisos: avisosPrefs });
+        }
+        case "/api/olvidarme":
+          olvidado = true;
+          console.log("el móvil se olvidó a sí mismo");
+          return json(res, 200, { ok: true });
+        case "/api/apariencia":
+          return json(res, 200, {
+            acento: aspecto.acento, opacidad: aspecto.opacidad, desenfoque: aspecto.desenfoque,
+            fondo: aspecto.foto ? { video: false, version: aspecto.foto.version } : null,
+          });
+        case "/api/fondo":
+          if (!aspecto.foto) return json(res, 404, { error: "Tu PC no tiene foto de fondo." });
+          res.writeHead(200, { "Content-Type": aspecto.foto.tipo, "Cache-Control": "no-store" });
+          return res.end(aspecto.foto.bytes);
+        // Solo del banco: el PC con foto y otro acento, o como venía (`{}`).
+        case "/api/sembrar-aspecto":
+          aspecto = {
+            acento: v.acento ?? "#4d9fff", opacidad: v.opacidad ?? 60, desenfoque: v.desenfoque ?? 0,
+            foto: v.foto ? { tipo: "image/png", bytes: pngDegradado(120, 180), version: String(v.foto) } : null,
+          };
+          return json(res, 200, { ok: true });
+        // Solo del banco: lo que el PC sabe de los avisos de este móvil.
+        case "/api/avisos-guardados":
+          return json(res, 200, { avisos: avisosPrefs, olvidado });
         case "/api/lista":
           return json(res, 200, [...convs.values()].filter((c) => c.turnos.length).map((c) => ({ id: c.id, titulo: c.titulo, cuando: c.turnos.at(-1).cuando, trabajos: c.trabajos.length })));
         case "/api/conversacion": {

@@ -269,39 +269,72 @@ window.ADEORQ_I18N_EXTRA = {
     /* ---------------------------------- MOVIL ---------------------------- */
     'guia.movil.h': 'On your phone',
     'guia.movil.p1': 'Adeorq comes with you. From your phone, a tablet or another computer you talk to the ' +
-                     'concierge, read your sessions, type into any of your terminals, attach photos and files, ' +
-                     'and get a notification when an agent finishes or asks you something. What you see is ' +
-                     'your PC, not a copy in the cloud: it has to be on, with Adeorq open.',
+                     'concierge, see how each terminal is doing and type into it, answer what your agents ask ' +
+                     'you, attach photos and files, and get a notification when an agent finishes or asks you ' +
+                     'something. What you see is your PC, not a copy in the cloud: it has to be on, with Adeorq open.',
     'guia.movil.h3a': 'Set it up once',
     'guia.movil.p2': 'Install <a href="https://tailscale.com/download" rel="noopener">Tailscale</a> on the PC ' +
                      'and on your phone, and sign in with the same account on both. It is a private network ' +
                      'between your devices, free for personal use.',
-    'guia.movil.p3': 'In Adeorq, open <b>Settings → Mobile</b> and turn on <b>Concierge on my phone</b>.',
-    'guia.movil.p4': 'Press <b>Bring the concierge to Tailscale</b>. The first time, Tailscale may ask you to ' +
-                     'enable HTTPS on your account: if a link appears, open it, enable it and press again.',
-    'guia.movil.p5': 'Press <b>Pair a phone</b>. You get a QR code with your address, something like ' +
-                     '<code>https://your-pc.your-net.ts.net:8443</code>, and a six-digit code that lasts ten minutes.',
+    'guia.movil.p3': 'In Adeorq, open <b>Settings → Mobile</b> and turn on the switch next to <b>The concierge on your ' +
+                     'phone</b>. Three rows appear, <b>This PC</b>, <b>Tailscale</b> and <b>Your phone</b>, each with ' +
+                     'its dot: the one that fails tells you what to do.',
+    'guia.movil.p4': 'If the Tailscale row says the concierge is not on your network yet, press <b>Bring the ' +
+                     'concierge to Tailscale</b>; it stays set even after a restart. The first time, Tailscale may ' +
+                     'ask you to enable HTTPS on your account: if <b>Open the Tailscale link</b> appears, press it, ' +
+                     'enable it and press again.',
+    'guia.movil.p5': 'Below it you get a QR code with your address, something like ' +
+                     '<code>https://your-pc.your-net.ts.net:8443</code>, and the same address next to it to copy. ' +
+                     'Press <b>Pair a phone</b>: you get a six-digit code that lasts ten minutes.',
     'guia.movil.p6': 'On your phone, with Tailscale on, scan the QR code or type the address, enter the code ' +
                      'and press <b>Pair</b>. Each browser is paired only once.',
-    'guia.movil.h3b': 'To keep it handy',
-    'guia.movil.l1': '<b>As an app.</b> On Android the list has <b>Install Adeorq as an app on this device</b> ' +
-                     '(if it does not show, the browser menu → Add to Home screen), and it ' +
-                     'stays there with its icon. On iPhone, from Safari: Share → Add to Home Screen.',
-    'guia.movil.l2': '<b>Notifications.</b> At the bottom of the list, <b>Notify me on this phone</b> ' +
-                     'tells you when a session asks you something or finishes, even with the page ' +
-                     'closed. They travel encrypted through your browser’s push service (Google, Apple or ' +
-                     'Mozilla), which delivers them without being able to read them. On iPhone it only works ' +
-                     'with the app added to the Home Screen. In Settings → Mobile ' +
-                     'you can send a test notification.',
+    'guia.movil.h3d': 'What the phone shows',
+    'guia.movil.l6': '<b>The menu.</b> Like in the Claude app: the button at the top left, or a swipe from the ' +
+                     'left edge, opens a drawer with <b>Concierge</b>, <b>Terminals</b>, <b>Decisions</b>, ' +
+                     '<b>Scheduled</b> and <b>Usage</b>. Below them, what is recent (terminals and conversations), ' +
+                     'whether your PC is connected and <b>New task</b>; at the very bottom, <b>Settings</b>.',
+    'guia.movil.l7': '<b>Home.</b> Adeo greets you and tells you at a glance how your PC is doing. Below, ' +
+                     '<b>Waiting for you</b>: pending decisions and the terminals asking you something. Then ' +
+                     '<b>Running</b>, only what is working right now, with a thread of blue light around it, and ' +
+                     'your conversations with the concierge. At the bottom, the box to hand it a task. When a ' +
+                     'decision is waiting for you, its number shows in a badge on the menu button.',
+    'guia.movil.l8': '<b>Terminals.</b> The ones open on your PC, by how they are doing: <b>Asking you</b>, ' +
+                     '<b>Working</b>, <b>Finished</b> and <b>Idle</b>. In each one you read what is going on and ' +
+                     'type into it, with photos or files if needed; in an agent’s, <b>Chat</b> has everything ' +
+                     'said and <b>Screen</b> what the PC shows right now.',
+    'guia.movil.l5': '<b>Switching mode.</b> In a Claude Code terminal, the keys button in the box (Enter, Esc, ' +
+                     'Ctrl+C and the arrows) holds <b>Switch mode</b>: it does what Shift+Tab does on the PC ' +
+                     '(normal, accept edits, plan, auto) and shows which mode it is in.',
     'guia.movil.l4': '<b>Decisions.</b> When an agent needs you to choose something, it asks you with its ' +
-                     'numbered options and a notification reaches you. You answer it in <b>Decisions</b>, with an ' +
-                     'option or in your own words, and the answer goes back on its own to the terminal that asked. ' +
-                     'Each one says whether that terminal is still open: the ones nobody is waiting for go apart, ' +
-                     'do not count in the number on the button and are discarded with one tap.',
-    'guia.movil.l5': '<b>Switching mode.</b> In a Claude Code terminal, the <b>Switch mode</b> button does what ' +
-                     'Shift+Tab does on the PC (normal, accept edits, plan, auto) and shows which mode it is in.',
-    'guia.movil.l3': '<b>Several devices.</b> Settings → Mobile lists each one by name, and you remove it from ' +
-                     'there whenever you like.',
+                     'numbered options and a notification reaches you. You answer with an option or in your own ' +
+                     'words, you get five seconds to undo it, and the answer goes back on its own to the terminal ' +
+                     'that asked. If you will not answer, <b>Discard</b> clears it and tells its terminal not to ' +
+                     'wait. The ones no longer waiting for you move to <b>Earlier</b> and delete themselves after ' +
+                     'a week.',
+    'guia.movil.l9': '<b>Scheduled and Usage.</b> To check at a glance: the jobs that launch on their own, ' +
+                     'active and stopped, when they run and why one stopped; and what each account has used, ' +
+                     'with its bar. You change them on the PC.',
+    'guia.movil.l10': '<b>Deleting a conversation.</b> Long-press it, on the home screen or in the menu, and ' +
+                      'choose <b>Delete conversation</b>.',
+    'guia.movil.h3b': 'Settings, at the bottom of the menu',
+    'guia.movil.l11': '<b>How it looks.</b> The background photo behind the glass: by default the same one you ' +
+                      'have on the PC, or one from your phone’s gallery, and how much it is blurred and darkened. ' +
+                      'Light, dark or like the phone, and the accent colour, which by default is the one from the ' +
+                      'PC’s theme.',
+    'guia.movil.l12': '<b>How it reads.</b> The text size, Adeo moving, still or hidden, and which sections show ' +
+                      'on the home screen and in what order.',
+    'guia.movil.l2': '<b>Notifications.</b> You turn them on for this phone and pick the ones you want: when a ' +
+                     'session asks you something, when it finishes and the ones from scheduled jobs, with sound ' +
+                     'or silent. They arrive even with the page closed, encrypted through your browser’s push ' +
+                     'service (Google, Apple or Mozilla), which delivers them without being able to read them. On ' +
+                     'iPhone they only work with the app added to the Home Screen. To test them, in Settings → ' +
+                     'Mobile on the PC every phone with notifications has <b>Test notification</b>.',
+    'guia.movil.l1': '<b>As an app.</b> On Android you install it from Settings and it stays there with its icon ' +
+                     '(if the option does not show, the browser menu → Add to Home screen). On iPhone, from ' +
+                     'Safari: Share → Add to Home Screen.',
+    'guia.movil.l3': '<b>Several devices.</b> Each one is paired on its own and shows by name in Settings → ' +
+                     'Mobile on the PC, with when it was last seen; you remove it from there. On the phone itself, ' +
+                     'its Settings also let you forget it: getting back in then needs a new code.',
     'guia.movil.caja': '<span class="doc-caja__titulo">Why it is safe to leave it on.</span> Adeorq only listens ' +
                        'inside your PC, and Tailscale carries it to your devices through an encrypted tunnel: ' +
                        'it cannot be seen from the internet. Even so, every request carries the key of a paired ' +
@@ -309,7 +342,9 @@ window.ADEORQ_I18N_EXTRA = {
                        'of each key is kept on disk. While it is on, the PC does not go to sleep by itself; on ' +
                        'battery, it does.',
     'guia.movil.h3c': 'If something does not work',
-    'guia.movil.f1': '<b>The address does not load:</b> check that Tailscale is on on your phone.',
+    'guia.movil.f1': '<b>The address does not load:</b> check that Tailscale is on on your phone. The ' +
+                     '<b>Your phone</b> row in Settings → Mobile tells you whether it is on your network and ' +
+                     'when it was last seen.',
     'guia.movil.f2': '<b>“La ventana de Adeorq no contestó a tiempo”</b> (the Adeorq window did not answer in ' +
                      'time): Adeorq has to be open on the PC, and the PC awake.',
     'guia.movil.f3': '<b>On Linux, “Tailscale no deja a tu usuario ponerlo”</b> (Tailscale will not let your user ' +

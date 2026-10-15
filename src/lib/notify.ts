@@ -63,7 +63,10 @@ export async function notify(o: NotifyOpts): Promise<void> {
   // Y al móvil, si hay alguno con avisos y no estás delante del PC: ahí el
   // aviso del escritorio no lo ve nadie (`movil_avisar`, ver `push.rs`).
   if (!focused) {
-    void invoke("movil_avisar", { titulo: o.title, cuerpo: o.body, url: o.url ?? "/" }).catch(() => {});
+    // La clase sale del motivo del tag («12:ask», «12:done»): cada móvil
+    // elige en sus Ajustes cuáles quiere. Los relojes del lienzo no llevan.
+    const tipo = o.tag.endsWith(":ask") ? "pregunta" : o.tag.endsWith(":done") ? "termino" : null;
+    void invoke("movil_avisar", { titulo: o.title, cuerpo: o.body, url: o.url ?? "/", tipo }).catch(() => {});
   }
 
   if (!(await allowed())) return;

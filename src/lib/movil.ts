@@ -38,6 +38,7 @@ import {
   type ConserjeExec,
 } from "./conserje";
 import { enviarAlConserje } from "./conserjeEnvio";
+import { FONDO_DESENFOQUE_KEY, FONDO_OPACIDAD_KEY } from "./fondo";
 import { cerebroPorDefecto } from "./models";
 import { fotoRapida } from "./mundo";
 import { providerOf } from "./providers";
@@ -179,6 +180,23 @@ export async function atenderPedido(p: PedidoMovil, exec: ConserjeExec): Promise
         gastado: typeof v.gastado === "number" ? Math.round(v.gastado) : null,
         plan: v.plan ?? null,
       })),
+    };
+  }
+  // Cómo se ve el PC, para que el móvil arranque igual (Ajustes del móvil):
+  // el acento del tema que está puesto y cuánto se ve y se desenfoca su foto.
+  if (p.clase === "apariencia") {
+    const numero = (clave: string, si: number) => {
+      try {
+        const n = Number(localStorage.getItem(clave) ?? si);
+        return Number.isFinite(n) ? n : si;
+      } catch {
+        return si;
+      }
+    };
+    return {
+      acento: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || null,
+      opacidad: numero(FONDO_OPACIDAD_KEY, 60),
+      desenfoque: numero(FONDO_DESENFOQUE_KEY, 0),
     };
   }
   const id = typeof p.id === "string" ? p.id : "";

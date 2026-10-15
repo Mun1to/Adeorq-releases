@@ -640,15 +640,17 @@
     </section>
 
     <!-- ----------------------------- MOVIL ----------------------------- -->
-    <!-- Los botones se citan con sus palabras de src/components/AjustesMovil.tsx
-         y de la página del móvil (src-tauri/src/movil.html). -->
+    <!-- Los botones del PC se citan con sus palabras de src/components/AjustesMovil.tsx,
+         y los de la página del móvil, con las de src-tauri/src/movil.html. Los Ajustes
+         del propio móvil se cuentan por lo que hacen, sin el nombre de sus botones. -->
     <section id="movil">
       <h2 data-i18n="guia.movil.h">En el móvil<a class="doc-ancla" href="#movil" aria-label="Enlace a esta sección">#</a></h2>
       <p data-i18n-html="guia.movil.p1">
         Adeorq se viene contigo. Desde el móvil, una tablet u otro ordenador hablas con el
-        conserje, lees tus sesiones, escribes en cualquiera de tus terminales, adjuntas fotos y
-        archivos, y te llega un aviso cuando un agente termina o te pregunta. Lo que ves es tu
-        PC, no una copia en la nube: tiene que estar encendido y con Adeorq abierto.
+        conserje, ves cómo va cada terminal y le escribes, contestas lo que te preguntan tus
+        agentes, adjuntas fotos y archivos, y te llega un aviso cuando un agente termina o te
+        pregunta. Lo que ves es tu PC, no una copia en la nube: tiene que estar encendido y con
+        Adeorq abierto.
       </p>
 
       <h3 data-i18n="guia.movil.h3a">Se prepara una vez</h3>
@@ -659,15 +661,20 @@
           aparatos, gratis para uso personal.
         </li>
         <li data-i18n-html="guia.movil.p3">
-          En Adeorq, abre <b>Ajustes → Móvil</b> y activa <b>Conserje en el móvil</b>.
+          En Adeorq, abre <b>Ajustes → Móvil</b> y enciende el interruptor junto a <b>El conserje
+          en el móvil</b>. Salen tres filas, <b>Este PC</b>, <b>Tailscale</b> y <b>Tu móvil</b>,
+          cada una con su punto: la que falla te dice qué hacer.
         </li>
         <li data-i18n-html="guia.movil.p4">
-          Pulsa <b>Llevar el conserje a Tailscale</b>. La primera vez Tailscale puede pedirte
-          activar HTTPS en tu cuenta: si sale un enlace, ábrelo, actívalo y vuelve a pulsar.
+          Si la fila de Tailscale dice que falta llevar el conserje a tu red, pulsa <b>Llevar el
+          conserje a Tailscale</b>; se queda puesto aunque reinicies. La primera vez Tailscale
+          puede pedirte activar HTTPS en tu cuenta: si sale <b>Abrir el enlace de Tailscale</b>,
+          púlsalo, actívalo y vuelve a pulsar.
         </li>
         <li data-i18n-html="guia.movil.p5">
-          Pulsa <b>Emparejar un móvil</b>. Sale un QR con tu dirección, del estilo
-          <code>https://tu-pc.tu-red.ts.net:8443</code>, y un código de seis cifras que vale diez
+          Debajo sale un QR con tu dirección, del estilo
+          <code>https://tu-pc.tu-red.ts.net:8443</code>, y al lado la misma dirección para
+          copiarla. Pulsa <b>Emparejar un móvil</b>: sale un código de seis cifras que vale diez
           minutos.
         </li>
         <li data-i18n-html="guia.movil.p6">
@@ -676,35 +683,82 @@
         </li>
       </ol>
 
-      <h3 data-i18n="guia.movil.h3b">Para tenerlo a mano</h3>
+      <h3 data-i18n="guia.movil.h3d">Lo que ves en el móvil</h3>
       <ul class="doc-lista">
-        <li data-i18n-html="guia.movil.l1">
-          <b>Como una app.</b> En Android, la lista trae <b>Instalar Adeorq como app en este
-          aparato</b> (si no sale, el menú del navegador → Añadir a la pantalla de inicio), y
-          queda con su icono. En iPhone, desde Safari: Compartir → Añadir a la pantalla de inicio.
+        <li data-i18n-html="guia.movil.l6">
+          <b>El menú.</b> Como en la app de Claude: el botón de arriba a la izquierda, o deslizar
+          el dedo desde el borde izquierdo, abre un cajón con <b>Conserje</b>,
+          <b>Terminales</b>, <b>Decisiones</b>, <b>Programados</b> y <b>Uso</b>. Debajo, lo
+          reciente (terminales y conversaciones), si tu PC está conectado y <b>Nuevo
+          encargo</b>; abajo del todo, <b>Ajustes</b>.
         </li>
-        <li data-i18n-html="guia.movil.l2">
-          <b>Avisos.</b> Al pie de la lista, <b>Avisarme en este móvil</b> te avisa cuando una
-          sesión te pregunta o termina, aunque tengas la página cerrada. Viajan cifrados por el
-          servicio de avisos de tu navegador (Google, Apple o Mozilla), que los entrega sin
-          poder leerlos. En iPhone solo funciona con la app añadida a la pantalla de inicio. En
-          Ajustes → Móvil puedes mandar un aviso de prueba.
+        <li data-i18n-html="guia.movil.l7">
+          <b>El inicio.</b> Adeo te recibe y te dice de un vistazo cómo va tu PC. Debajo, <b>Te
+          esperan</b>: las decisiones pendientes y las terminales que te preguntan. Luego <b>En
+          marcha</b>, solo lo que trabaja ahora mismo, con un hilo de luz azul alrededor, y tus
+          conversaciones con el conserje. Abajo, la caja para encargarle algo. Si una decisión
+          te espera, su número sale en un globito sobre el botón del menú.
+        </li>
+        <li data-i18n-html="guia.movil.l8">
+          <b>Terminales.</b> Las que tienes abiertas en el PC, por cómo están: <b>Te
+          preguntan</b>, <b>Trabajando</b>, <b>Terminaron</b> y <b>En reposo</b>. En cada una
+          lees lo que pasa y le escribes, con fotos o archivos si hace falta; en las de un
+          agente, <b>Chat</b> trae todo lo hablado y <b>Pantalla</b>, lo que se ve ahora en el PC.
+        </li>
+        <li data-i18n-html="guia.movil.l5">
+          <b>Cambiar de modo.</b> En una terminal de Claude Code, el botón de teclas de la caja
+          (Intro, Esc, Ctrl+C y las flechas) trae <b>Cambiar modo</b>: hace lo que Mayús+Tab en
+          el PC (normal, aceptar ediciones, plan, auto) y dice en qué modo está.
         </li>
         <li data-i18n-html="guia.movil.l4">
           <b>Decisiones.</b> Cuando un agente necesita que elijas algo, te lo pregunta con sus
-          opciones numeradas y te llega un aviso. Lo contestas en <b>Decisiones</b>, con una
-          opción o con tus palabras, y la respuesta vuelve sola a la terminal que preguntó.
-          Cada una dice si esa terminal sigue abierta: las que ya no espera nadie van aparte,
-          no cuentan en el número del botón y se descartan de un toque.
+          opciones numeradas y te llega un aviso. Lo contestas con una opción o con tus
+          palabras, tienes cinco segundos para deshacerlo, y la respuesta vuelve sola a la
+          terminal que preguntó. Si no vas a contestar, <b>Descartar</b> la quita y avisa a su
+          terminal para que no espere. Las que ya no te esperan pasan a <b>Anteriores</b> y a la
+          semana se borran solas.
         </li>
-        <li data-i18n-html="guia.movil.l5">
-          <b>Cambiar de modo.</b> En una terminal de Claude Code, el botón <b>Cambiar modo</b>
-          hace lo que Mayús+Tab en el PC (normal, aceptar ediciones, plan, auto) y dice en qué
-          modo está.
+        <li data-i18n-html="guia.movil.l9">
+          <b>Programados y Uso.</b> Para mirar de un vistazo: los encargos que se lanzan solos,
+          activos y parados, cuándo se lanzan y por qué paró uno; y lo que lleva gastado cada
+          cuenta, con su barra. Se cambian en el PC.
+        </li>
+        <li data-i18n-html="guia.movil.l10">
+          <b>Borrar una conversación.</b> Mantenla pulsada, en el inicio o en el menú, y elige
+          <b>Borrar conversación</b>.
+        </li>
+      </ul>
+
+      <h3 data-i18n="guia.movil.h3b">Ajustes, abajo del menú</h3>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.movil.l11">
+          <b>Cómo se ve.</b> La foto de fondo que hay detrás del cristal: de entrada, la misma que
+          tienes en el PC, o una de la galería del móvil, y cuánto se desenfoca y se oscurece.
+          Claro, oscuro o como el teléfono, y el color de acento, que de entrada es el del tema
+          del PC.
+        </li>
+        <li data-i18n-html="guia.movil.l12">
+          <b>Cómo se lee.</b> El tamaño de la letra, Adeo moviéndose, quieto o escondido, y qué
+          secciones salen en el inicio y en qué orden.
+        </li>
+        <li data-i18n-html="guia.movil.l2">
+          <b>Avisos.</b> Los pones en este móvil y eliges cuáles quieres: cuando una sesión te
+          pregunta, cuando termina y los de los encargos programados, con sonido o en silencio.
+          Llegan aunque tengas la página cerrada, cifrados por el servicio de avisos de tu
+          navegador (Google, Apple o Mozilla), que los entrega sin poder leerlos. En iPhone solo
+          funcionan con la app añadida a la pantalla de inicio. Para probarlos, en Ajustes →
+          Móvil del PC cada móvil con avisos trae <b>Probar aviso</b>.
+        </li>
+        <li data-i18n-html="guia.movil.l1">
+          <b>Como una app.</b> En Android la instalas desde Ajustes y queda con su icono (si no
+          sale, el menú del navegador → Añadir a la pantalla de inicio). En iPhone, desde Safari:
+          Compartir → Añadir a la pantalla de inicio.
         </li>
         <li data-i18n-html="guia.movil.l3">
-          <b>Varios aparatos.</b> En Ajustes → Móvil sale cada uno con su nombre, y desde ahí lo
-          quitas cuando quieras.
+          <b>Varios aparatos.</b> Cada uno se empareja por su lado y sale con su nombre en
+          Ajustes → Móvil del PC, con cuándo se vio por última vez; desde ahí lo quitas. En el
+          propio móvil, sus Ajustes también te dejan olvidarlo: para volver a entrar hará falta
+          un código nuevo.
         </li>
       </ul>
 
@@ -722,7 +776,9 @@
       <h3 data-i18n="guia.movil.h3c">Si algo no va</h3>
       <ul class="doc-lista">
         <li data-i18n-html="guia.movil.f1">
-          <b>La dirección no carga:</b> mira que Tailscale esté encendido en el móvil.
+          <b>La dirección no carga:</b> mira que Tailscale esté encendido en el móvil. La fila
+          <b>Tu móvil</b> de Ajustes → Móvil te dice si está en tu red y cuándo se vio por
+          última vez.
         </li>
         <li data-i18n-html="guia.movil.f2">
           <b>«La ventana de Adeorq no contestó a tiempo»:</b> Adeorq tiene que estar abierto en

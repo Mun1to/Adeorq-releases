@@ -173,13 +173,13 @@ pub enum Entregado {
 
 /// Manda un aviso a un móvil. El texto va como JSON con `titulo`, `cuerpo` y
 /// `url`, que es lo que lee el service worker de `movil.html`.
-pub async fn enviar(sub: &Suscripcion, titulo: &str, cuerpo: &str, url: &str) -> Result<Entregado, String> {
+pub async fn enviar(sub: &Suscripcion, titulo: &str, cuerpo: &str, url: &str, silencio: bool) -> Result<Entregado, String> {
     let claves = claves_vapid()?;
     let ua_publica = B64.decode(&sub.p256dh).map_err(|_| "p256dh no es base64url")?;
     let auth = B64.decode(&sub.auth).map_err(|_| "auth no es base64url")?;
     let mut sal = [0u8; 16];
     getrandom::fill(&mut sal).map_err(|e| e.to_string())?;
-    let carga = serde_json::json!({ "titulo": titulo, "cuerpo": cuerpo, "url": url }).to_string();
+    let carga = serde_json::json!({ "titulo": titulo, "cuerpo": cuerpo, "url": url, "silencio": silencio }).to_string();
     // Una clave de un solo uso por aviso, como pide la RFC.
     let cuerpo_cifrado = cifrar(&ua_publica, &auth, carga.as_bytes(), &clave_privada_nueva()?, sal)?;
     let jwt = jwt_vapid(&sub.endpoint, &claves, ahora())?;

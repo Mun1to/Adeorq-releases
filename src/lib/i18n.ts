@@ -1759,8 +1759,8 @@ const EN: Record<string, string> = {
     "Tailscale won't let your user set it up. Run “sudo tailscale set --operator=$USER” once and press again.",
   "Vale {m}:{s}": "Valid for {m}:{s}",
   "Emparejar un móvil": "Pair a phone",
-  "Ningún móvil ha pedido avisos todavía. En el móvil, en la lista del conserje, toca «Avisarme en este móvil».":
-    "No phone has asked for notifications yet. On the phone, in the concierge list, tap “Notify me on this phone”.",
+  "Ningún móvil ha pedido avisos todavía. En el móvil, abre Ajustes (abajo del menú) y toca «Avisarme en este móvil».":
+    "No phone has asked for notifications yet. On the phone, open Settings (at the bottom of the menu) and tap “Notify me on this phone”.",
   "Prueba de Adeorq": "Adeorq test",
   "Si lees esto, los avisos llegan a tu móvil.": "If you can read this, notifications reach your phone.",
   "Mandado a {n} móvil(es). Si no llega en un minuto, mira rastro.log.": "Sent to {n} phone(s). If it does not arrive within a minute, check rastro.log.",

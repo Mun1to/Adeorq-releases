@@ -1,11 +1,11 @@
 {
-  "version": "0.9.209",
-  "notes": "En el movil, una conversacion se borra manteniendola pulsada, y el cajon trae Programados y Uso. Una segunda cuenta de Gemini ya sale conectada.",
-  "pub_date": "2026-10-15T21:05:50Z",
+  "version": "0.9.210",
+  "notes": "El movil tiene Ajustes: tu foto del PC u otra del movil detras del cristal, tema y color, letra, Adeo, el orden del inicio y que avisos quieres y si suenan.",
+  "pub_date": "2026-10-15T23:16:53Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLys0dDh0K3JRem1QNmxSRXZtZFhDRG92WG5Sc1F1QmVkOHlKelFWMFNwRTRXbUVZNENlcFhWdnUxMkdxYVZGdzBoWTNuNEJnRS9TTyt5Yi9FYWIxNWdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDk4MzQ5CWZpbGU6QWRlb3JxXzAuOS4yMDlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDkKeHEzVlpTQUhuMmJsNkd2QzZGQks1VXZHWGxOcGpOSjRrdHF5ZHBxUVliOWtWenJYRE54MFVZb0VmTmpkdUxOUlRkZyt2U0M3eGxiSmw5Nm1LMVFsQXc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.209/Adeorq_0.9.209_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVsVXlmT1hpQlM5enIwNDV2aG1CdXlTNENtUE1iZ3ZPUG1BbWRSdzI1V3pzT1ZEN2tuaU5wcTViUjMxRnFGWUw3UUlTNE9Za1ZaOVRwWGE5cjE5clFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTA2MjExCWZpbGU6QWRlb3JxXzAuOS4yMTBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTAKdk4xZ0tYekZGM2lDRXg5Sk5VTW1NblFIbmpidFdDWDE3RUh6Z09zTEZrdytsM3hkamM4V2ZLNHpxVEpqOVRkRXhqajA2SGUwTDdoTHZXdTlwbCtjRGc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.210/Adeorq_0.9.210_x64-setup.exe"
     }
   }
 }

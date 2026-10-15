@@ -106,6 +106,7 @@ self.addEventListener("push", (e) => {
     body: d.cuerpo || "",
     icon: "/icono.svg",
     badge: "/icono.svg",
+    silent: !!d.silencio,
     tag: d.titulo || "conserje",
     data: { url: d.url || "/" },
   }));
@@ -142,6 +143,51 @@ pub struct Dispositivo {
     /// Si pidió avisos: lo que dio su navegador al suscribirse (ver `push.rs`).
     #[serde(default)]
     pub push: Option<crate::push::Suscripcion>,
+    /// Cuáles quiere y si suenan: lo elige ese móvil en sus Ajustes.
+    #[serde(default)]
+    pub avisos: PrefsAvisos,
+}
+
+/// Qué avisos quiere un móvil. Se filtra AQUÍ y no en el móvil: el navegador
+/// obliga a enseñar todo aviso que llega (`userVisibleOnly`), así que uno que
+/// no quiere no se le puede mandar para que lo tire él.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct PrefsAvisos {
+    /// Una terminal espera tu OK, o un agente te pide una decisión.
+    #[serde(default = "si")]
+    pub preguntas: bool,
+    /// Una sesión terminó.
+    #[serde(default = "si")]
+    pub terminadas: bool,
+    /// Un encargo programado se paró.
+    #[serde(default = "si")]
+    pub programados: bool,
+    /// Que lleguen sin sonido ni vibración.
+    #[serde(default)]
+    pub silencio: bool,
+}
+
+fn si() -> bool {
+    true
+}
+
+impl Default for PrefsAvisos {
+    fn default() -> Self {
+        PrefsAvisos { preguntas: true, terminadas: true, programados: true, silencio: false }
+    }
+}
+
+impl PrefsAvisos {
+    /// Si quiere los de esa clase. Lo que no la lleva (la prueba de Ajustes, un
+    /// reloj del lienzo) llega siempre: lo pediste tú en ese momento.
+    pub fn quiere(&self, tipo: Option<&str>) -> bool {
+        match tipo {
+            Some("pregunta") => self.preguntas,
+            Some("termino") => self.terminadas,
+            Some("programado") => self.programados,
+            _ => true,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
@@ -240,6 +286,7 @@ impl Guardia {
             creado: cuando,
             visto: cuando,
             push: None,
+            avisos: PrefsAvisos::default(),
         });
         Ok(clave)
     }
@@ -276,13 +323,44 @@ impl Guardia {
         true
     }
 
-    /// Los móviles que pidieron avisos, con su suscripción.
-    pub fn suscripciones(&self) -> Vec<(String, crate::push::Suscripcion)> {
+    /// Los móviles que pidieron avisos y quieren los de esa clase, con su
+    /// suscripción y si los quieren en silencio.
+    pub fn suscripciones(&self, tipo: Option<&str>) -> Vec<(String, crate::push::Suscripcion, bool)> {
         self.ajustes
             .dispositivos
             .iter()
-            .filter_map(|d| d.push.clone().map(|s| (d.nombre.clone(), s)))
+            .filter(|d| d.avisos.quiere(tipo))
+            .filter_map(|d| d.push.clone().map(|s| (d.nombre.clone(), s, d.avisos.silencio)))
             .collect()
+    }
+
+    fn dispositivo_de(&mut self, clave: &str) -> Option<&mut Dispositivo> {
+        let h = huella(clave);
+        self.ajustes.dispositivos.iter_mut().find(|d| iguales(d.huella.as_bytes(), h.as_bytes()))
+    }
+
+    /// Qué avisos quiere el móvil que lleva esa clave.
+    pub fn avisos_de(&mut self, clave: &str) -> Option<PrefsAvisos> {
+        self.dispositivo_de(clave).map(|d| d.avisos.clone())
+    }
+
+    /// Guarda qué avisos quiere ese móvil. Devuelve si cambió algo.
+    pub fn poner_avisos(&mut self, clave: &str, avisos: PrefsAvisos) -> bool {
+        match self.dispositivo_de(clave) {
+            Some(d) if d.avisos != avisos => {
+                d.avisos = avisos;
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// El móvil que lleva esa clave se olvida a sí mismo, desde sus Ajustes.
+    pub fn olvidar_clave(&mut self, clave: &str) -> bool {
+        let h = huella(clave);
+        let antes = self.ajustes.dispositivos.len();
+        self.ajustes.dispositivos.retain(|d| !iguales(d.huella.as_bytes(), h.as_bytes()));
+        self.ajustes.dispositivos.len() != antes
     }
 
     /// El servicio de push dijo que esa suscripción ya no existe.
@@ -719,6 +797,38 @@ pub trait Casa {
     }
     /// Que la pestaña «Decisiones» de la app se entere de que una cambió.
     fn decisiones_cambian(&self) {}
+    /// La foto (o el vídeo) que el PC lleva detrás de las terminales.
+    fn fondo(&self) -> Option<PathBuf> {
+        None
+    }
+}
+
+/// El tipo de una foto por su extensión; un vídeo no tiene (`None`).
+fn tipo_de_imagen(p: &std::path::Path) -> Option<&'static str> {
+    let ext = p.extension()?.to_str()?.to_ascii_lowercase();
+    Some(match ext.as_str() {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        "avif" => "image/avif",
+        _ => return None,
+    })
+}
+
+/// Lo que el móvil necesita saber de la foto del PC sin bajarla: si es un
+/// vídeo, y una versión que cambia cuando cambia la foto, para no bajarla
+/// cada vez que se abre la página.
+fn foto_del_pc(p: &std::path::Path) -> Value {
+    let meta = std::fs::metadata(p).ok();
+    let cuando = meta
+        .as_ref()
+        .and_then(|m| m.modified().ok())
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let largo = meta.map(|m| m.len()).unwrap_or(0);
+    json!({ "video": tipo_de_imagen(p).is_none(), "version": format!("{cuando}-{largo}") })
 }
 
 pub fn atender(
@@ -794,7 +904,51 @@ pub fn atender(
     };
 
     match (p.metodo.as_str(), p.ruta.as_str()) {
-        ("GET", "/api/yo") => Respuesta::json(200, json!({ "nombre": nombre })),
+        ("GET", "/api/yo") => {
+            let avisos = guardia.lock().unwrap().avisos_de(clave).unwrap_or_default();
+            Respuesta::json(200, json!({ "nombre": nombre, "avisos": avisos }))
+        }
+        // Lo que el móvil elige en sus Ajustes y tiene que saber el PC: qué
+        // avisos le manda, y olvidarse de él.
+        ("POST", "/api/avisos") => {
+            let Ok(avisos) = serde_json::from_value::<PrefsAvisos>(cuerpo.clone()) else {
+                return Respuesta::error(400, "Eso no son avisos.");
+            };
+            let mut g = guardia.lock().unwrap();
+            if g.poner_avisos(clave, avisos.clone()) {
+                persistir(&g.ajustes);
+            }
+            Respuesta::json(200, json!({ "ok": true, "avisos": avisos }))
+        }
+        ("POST", "/api/olvidarme") => {
+            let mut g = guardia.lock().unwrap();
+            if g.olvidar_clave(clave) {
+                persistir(&g.ajustes);
+            }
+            Respuesta::json(200, json!({ "ok": true }))
+        }
+        // El aspecto del PC, para que el móvil arranque igual: el acento del
+        // tema y cómo se ve su foto (eso lo sabe la ventana), y si hay foto.
+        ("GET", "/api/apariencia") => {
+            let pc = casa.ventana("apariencia", json!({})).unwrap_or(Value::Null);
+            let fondo = casa.fondo().map(|p| foto_del_pc(&p));
+            Respuesta::json(200, json!({
+                "acento": pc["acento"],
+                "opacidad": pc["opacidad"],
+                "desenfoque": pc["desenfoque"],
+                "fondo": fondo,
+            }))
+        }
+        ("GET", "/api/fondo") => match casa.fondo() {
+            None => Respuesta::error(404, "Tu PC no tiene foto de fondo."),
+            Some(p) => match tipo_de_imagen(&p) {
+                None => Respuesta::error(415, "El fondo de tu PC es un vídeo: en el móvil no se pone."),
+                Some(tipo) => match std::fs::read(&p) {
+                    Ok(cuerpo) => Respuesta { estado: 200, tipo, cuerpo },
+                    Err(e) => Respuesta::error(500, &e.to_string()),
+                },
+            },
+        },
         // Los avisos (`push.rs`): la clave con la que se suscribe el navegador,
         // y guardar o quitar lo que devuelve. Van atados a ESTE móvil (su clave).
         ("GET", "/api/push/clave") => match crate::push::claves_vapid() {
@@ -1135,7 +1289,8 @@ pub fn atender(
             | "/api/cerebro" | "/api/fijo" | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
             | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
-            | "/api/decision/responder" | "/api/decision/descartar") => Respuesta::error(405, "Así no."),
+            | "/api/decision/responder" | "/api/decision/descartar" | "/api/avisos" | "/api/olvidarme"
+            | "/api/apariencia" | "/api/fondo") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -1254,6 +1409,9 @@ impl Casa for CasaDeVerdad {
     }
     fn decisiones_cambian(&self) {
         crate::decisiones::avisar_cambio(&self.app);
+    }
+    fn fondo(&self) -> Option<PathBuf> {
+        crate::manage::fondo_actual()
     }
 }
 
@@ -1560,13 +1718,14 @@ static AVISADOS: Mutex<Vec<(String, Instant)>> = Mutex::new(Vec::new());
 /// Un aviso a todos los móviles que los pidieron. Lo llama la ventana con las
 /// mismas campanas que el escritorio (`lib/notify.ts`), y el botón de prueba
 /// de Ajustes. Devuelve a cuántos se intentó mandar; el envío va aparte, que
-/// el servicio de push puede tardar segundos.
+/// el servicio de push puede tardar segundos. `tipo` («pregunta», «termino»,
+/// «programado») es la clase que cada móvil elige si quiere (`PrefsAvisos`).
 #[tauri::command(async)]
-pub fn movil_avisar(app: tauri::AppHandle, titulo: String, cuerpo: String, url: Option<String>) -> usize {
+pub fn movil_avisar(app: tauri::AppHandle, titulo: String, cuerpo: String, url: Option<String>, tipo: Option<String>) -> usize {
     let subs = {
         let m = app.state::<Movil>();
         let g = m.guardia.lock().unwrap();
-        g.suscripciones()
+        g.suscripciones(tipo.as_deref())
     };
     if subs.is_empty() {
         return 0;
@@ -1583,11 +1742,11 @@ pub fn movil_avisar(app: tauri::AppHandle, titulo: String, cuerpo: String, url: 
     }
     let url = sellar_aviso(&url.unwrap_or_else(|| "/".into()), crate::conserje::arranque());
     let n = subs.len();
-    for (nombre, sub) in subs {
+    for (nombre, sub, silencio) in subs {
         let app = app.clone();
         let (titulo, cuerpo, url) = (titulo.clone(), cuerpo.clone(), url.clone());
         tauri::async_runtime::spawn(async move {
-            match crate::push::enviar(&sub, &titulo, &cuerpo, &url).await {
+            match crate::push::enviar(&sub, &titulo, &cuerpo, &url, silencio).await {
                 Ok(crate::push::Entregado::Si) => {}
                 Ok(crate::push::Entregado::Caducada) => {
                     // Ese móvil ya no escucha: se le quita el aviso y lo dirá Ajustes.
@@ -1971,6 +2130,8 @@ mod tests {
         abiertos: RefCell<Vec<u32>>,
         /// Para que dos pruebas de decisiones no compartan carpeta: corren a la vez.
         sitio: &'static str,
+        /// La foto de fondo del PC, si la prueba le pone una.
+        fondo: Option<PathBuf>,
     }
     impl Casa for CasaDeMentira {
         fn lista(&self) -> Value {
@@ -1997,6 +2158,9 @@ mod tests {
         }
         fn programados(&self) -> Result<Value, String> {
             Ok(json!({ "puede": true, "reloj": true, "encargos": [{ "id": "p1", "nombre": "Repaso" }] }))
+        }
+        fn fondo(&self) -> Option<PathBuf> {
+            self.fondo.clone()
         }
         fn cerebro(&self, _: &str, cerebro: &str) -> Result<(), String> {
             if cerebro == "opus" { Ok(()) } else { Err("no es de la lista".into()) }
@@ -2410,6 +2574,101 @@ mod tests {
         assert!(casa.enviados.borrow().is_empty());
         assert_eq!(estado("POST", Some(&clave), r#"{"id":"abc"}"#), 200);
         assert_eq!(casa.enviados.borrow().as_slice(), &[json!({ "olvidar": "abc" })]);
+    }
+
+    /// Un `movil.json` de antes de los Ajustes del móvil no trae `avisos`: sus
+    /// móviles siguen recibiéndolo todo, con sonido.
+    #[test]
+    fn un_movil_de_antes_lo_quiere_todo() {
+        let a: Ajustes = serde_json::from_str(r#"{"encendido":true,"dispositivos":[{"nombre":"Pixel","huella":"ab","creado":1}]}"#).unwrap();
+        assert_eq!(a.dispositivos[0].avisos, PrefsAvisos::default());
+        let a: Ajustes = serde_json::from_str(r#"{"dispositivos":[{"nombre":"P","huella":"ab","creado":1,"avisos":{"terminadas":false}}]}"#).unwrap();
+        let p = &a.dispositivos[0].avisos;
+        assert!(p.preguntas && !p.terminadas && p.programados && !p.silencio, "lo que no dice, de fábrica: {p:?}");
+    }
+
+    /// Cada móvil recibe solo las clases que quiere, y en silencio si lo pidió.
+    /// Lo que no lleva clase (la prueba de Ajustes, un reloj) llega a todos.
+    #[test]
+    fn los_avisos_van_a_quien_los_quiere() {
+        let (g, clave) = emparejada();
+        let mut g = g.into_inner().unwrap();
+        let t = Instant::now();
+        let c = g.nuevo_codigo(t).unwrap();
+        let otra = g.emparejar(&c, "Tablet", t, 0).unwrap();
+        let sub = |e: &str| crate::push::Suscripcion { endpoint: format!("https://push.example/{e}"), p256dh: "k".into(), auth: "a".into() };
+        assert!(g.poner_push(&clave, Some(sub("pixel"))));
+        assert!(g.poner_push(&otra, Some(sub("tablet"))));
+        assert!(g.poner_avisos(&otra, PrefsAvisos { terminadas: false, silencio: true, ..PrefsAvisos::default() }));
+        assert!(!g.poner_avisos(&otra, PrefsAvisos { terminadas: false, silencio: true, ..PrefsAvisos::default() }), "lo mismo no cambia nada");
+        let quien = |tipo: Option<&str>| g.suscripciones(tipo).into_iter().map(|(n, _, s)| (n, s)).collect::<Vec<_>>();
+        assert_eq!(quien(Some("termino")), vec![("Pixel".to_string(), false)]);
+        assert_eq!(quien(Some("pregunta")), vec![("Pixel".to_string(), false), ("Tablet".to_string(), true)]);
+        assert_eq!(quien(None).len(), 2);
+        assert_eq!(quien(Some("otra-cosa")).len(), 2);
+    }
+
+    /// Desde sus Ajustes, el móvil dice qué avisos quiere y puede olvidarse;
+    /// todo con su clave, y el olvido solo se lo lleva a él.
+    #[test]
+    fn el_movil_elige_sus_avisos_y_se_olvida() {
+        let (g, clave) = emparejada();
+        let otra = {
+            let mut g = g.lock().unwrap();
+            let c = g.nuevo_codigo(Instant::now()).unwrap();
+            g.emparejar(&c, "Tablet", Instant::now(), 0).unwrap()
+        };
+        let casa = CasaDeMentira::default();
+        let guardados = RefCell::new(0);
+        let persistir = |_: &Ajustes| *guardados.borrow_mut() += 1;
+        let reloj = (Instant::now(), 10);
+        let pide = |m: &str, ruta: &str, c: Option<&str>, cuerpo: &str| atender(&pedir(m, ruta, c, cuerpo), &g, &casa, &persistir, reloj);
+        assert_eq!(cuerpo_de(&pide("GET", "/api/yo", Some(&clave), ""))["avisos"]["terminadas"], true);
+        assert_eq!(pide("POST", "/api/avisos", None, "{}").estado, 401);
+        assert_eq!(pide("POST", "/api/avisos", Some(&clave), r#"{"terminadas":"no"}"#).estado, 400);
+        assert_eq!(pide("GET", "/api/avisos", Some(&clave), "").estado, 405);
+        let r = pide("POST", "/api/avisos", Some(&clave), r#"{"preguntas":true,"terminadas":false,"programados":true,"silencio":true}"#);
+        assert_eq!(r.estado, 200);
+        assert_eq!(*guardados.borrow(), 1, "se guarda en disco");
+        let yo = cuerpo_de(&pide("GET", "/api/yo", Some(&clave), ""));
+        assert_eq!((yo["avisos"]["terminadas"].clone(), yo["avisos"]["silencio"].clone()), (json!(false), json!(true)));
+        assert_eq!(cuerpo_de(&pide("GET", "/api/yo", Some(&otra), ""))["avisos"]["terminadas"], true, "la otra no cambia");
+
+        assert_eq!(pide("POST", "/api/olvidarme", Some(&clave), "").estado, 200);
+        assert_eq!(pide("GET", "/api/yo", Some(&clave), "").estado, 401, "olvidado, ya no entra");
+        assert_eq!(pide("GET", "/api/yo", Some(&otra), "").estado, 200, "la otra sigue");
+    }
+
+    /// La foto del PC: el móvil sabe si hay, si es un vídeo y su versión, y se
+    /// baja con la clave. Un vídeo no se manda.
+    #[test]
+    fn la_foto_del_pc_se_baja_con_la_clave() {
+        let (g, clave) = emparejada();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 10);
+        let sin = CasaDeMentira::default();
+        let r = atender(&pedir("GET", "/api/apariencia", Some(&clave), ""), &g, &sin, &nada, reloj);
+        assert_eq!(cuerpo_de(&r)["fondo"], Value::Null);
+        assert_eq!(atender(&pedir("GET", "/api/fondo", Some(&clave), ""), &g, &sin, &nada, reloj).estado, 404);
+
+        let dir = std::env::temp_dir().join(format!("adeorq-fondo-movil-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let foto = dir.join("fondo.png");
+        std::fs::write(&foto, b"\x89PNG de mentira").unwrap();
+        let con = CasaDeMentira { fondo: Some(foto.clone()), ..Default::default() };
+        assert_eq!(atender(&pedir("GET", "/api/fondo", None, ""), &g, &con, &nada, reloj).estado, 401);
+        let r = atender(&pedir("GET", "/api/fondo", Some(&clave), ""), &g, &con, &nada, reloj);
+        assert_eq!((r.estado, r.tipo, r.cuerpo.as_slice()), (200, "image/png", b"\x89PNG de mentira".as_slice()));
+        let ap = cuerpo_de(&atender(&pedir("GET", "/api/apariencia", Some(&clave), ""), &g, &con, &nada, reloj));
+        assert_eq!(ap["fondo"]["video"], false);
+        assert!(ap["fondo"]["version"].as_str().unwrap().ends_with("-15"), "la versión lleva el tamaño: {}", ap["fondo"]["version"]);
+
+        let video = dir.join("fondo.mp4");
+        std::fs::write(&video, b"video").unwrap();
+        let con_video = CasaDeMentira { fondo: Some(video), ..Default::default() };
+        assert_eq!(atender(&pedir("GET", "/api/fondo", Some(&clave), ""), &g, &con_video, &nada, reloj).estado, 415);
+        assert_eq!(cuerpo_de(&atender(&pedir("GET", "/api/apariencia", Some(&clave), ""), &g, &con_video, &nada, reloj))["fondo"]["video"], true);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// Programados y Uso, para el cajón: solo se leen y solo con la clave.

@@ -626,6 +626,7 @@ impl Puertas for Reales<'_> {
             "Encargo programado parado".into(),
             format!("«{}» falló {FALLOS_PARA_CORTAR} veces seguidas y no se lanza más hasta que lo rearmes. {motivo}", e.nombre),
             None,
+            Some("programado".into()),
         );
     }
 

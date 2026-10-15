@@ -688,7 +688,7 @@ fn fondo_dir() -> Result<std::path::PathBuf, String> {
 
 /// El que haya puesto, si hay alguno. Se busca por extensión porque solo puede
 /// existir uno: poner un fondo nuevo borra el anterior.
-fn fondo_actual() -> Option<std::path::PathBuf> {
+pub(crate) fn fondo_actual() -> Option<std::path::PathBuf> {
     let dir = fondo_dir().ok()?;
     FONDO_EXT
         .iter()

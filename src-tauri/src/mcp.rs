@@ -1100,6 +1100,19 @@ fn escalon_que_falta(cliente: &Option<String>, de_casa: bool, herramienta: &str)
 }
 
 /// `quien` es el panel del agente que llama, si su puente lo presentó.
+/// Lo que contesta `close_pane`: cuántas siguen abiertas y para cuántas hay sitio,
+/// dicho por separado para que el agente no lea las vivas como las que le quedan.
+fn texto_de_cierre(pane_id: u32, rastro: Option<&std::path::Path>, vivas: usize) -> String {
+    format!(
+        "Terminal {} cerrada y su agente parado.{} Tienes {} abiertas por MCP y sitio para {} más (el tope es {} a la vez).",
+        pane_id,
+        rastro.map(|r| format!(" Su rastro quedó en {}.", r.display())).unwrap_or_default(),
+        vivas,
+        MAX_VIVOS.saturating_sub(vivas),
+        MAX_VIVOS
+    )
+}
+
 fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Option<u32>) -> Result<Value, String> {
     match name {
         "get_mods" => {
@@ -1695,27 +1708,25 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             pedir_a_la_ventana(app, "close_pane", json!({ "paneId": pane_id }))?;
             app.state::<Puente>().delegadas.lock().unwrap().remove(&pane_id);
 
-            // Cuántas quedan de las tuyas. El tope de vivas se calcula mirando el
-            // mapa del PTY, así que cerrar una libera su sitio sola; lo que NO se
-            // devuelve es el tope por hora, que existe justo para que abrir y
-            // cerrar en bucle no salga gratis.
+            // Cuántas siguen abiertas y cuántas caben todavía. El tope de vivas se
+            // calcula mirando el mapa del PTY, así que cerrar una libera su sitio
+            // sola; la recién cerrada se descuenta a mano por si su PTY aún no
+            // ha salido del mapa. Lo que NO se devuelve es el tope por hora, que
+            // existe justo para que abrir y cerrar en bucle no salga gratis.
             let vivas = {
                 let abiertos = crate::pty::paneles_abiertos(app);
                 let puente = app.state::<Puente>();
                 let aperturas = puente.aperturas.lock().unwrap();
-                aperturas.iter().filter(|(_, id)| abiertos.contains(id)).count()
+                aperturas
+                    .iter()
+                    .filter(|(_, id)| *id != pane_id && abiertos.contains(id))
+                    .count()
             };
 
             Ok(json!({
                 "content": [{
                     "type": "text",
-                    "text": format!(
-                        "Terminal {} cerrada y su agente parado.{} Te quedan {} de las {} vivas que puedes tener abiertas por MCP.",
-                        pane_id,
-                        guardado.map(|r| format!(" Su rastro quedó en {}.", r.display())).unwrap_or_default(),
-                        vivas,
-                        MAX_VIVOS
-                    )
+                    "text": texto_de_cierre(pane_id, guardado.as_deref(), vivas)
                 }]
             }))
         }
@@ -1745,6 +1756,19 @@ mod tests {
 
     fn leer(cuenta: &PathBuf) -> Value {
         serde_json::from_str(&fs::read_to_string(cuenta.join(".claude.json")).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn el_cierre_dice_las_abiertas_y_las_que_caben_por_separado() {
+        // Antes decía «Te quedan 5 de las 6» con cinco abiertas: el agente lo
+        // leía como cinco huecos libres cuando solo quedaba uno.
+        let t = texto_de_cierre(7, None, 5);
+        assert!(t.contains("Tienes 5 abiertas"), "{t}");
+        assert!(t.contains("sitio para 1 más"), "{t}");
+        assert!(!t.contains("Te quedan"), "{t}");
+        let t = texto_de_cierre(7, Some(std::path::Path::new("r.md")), 0);
+        assert!(t.contains("Su rastro quedó en r.md."), "{t}");
+        assert!(t.contains("sitio para 6 más"), "{t}");
     }
 
     #[test]

@@ -1419,6 +1419,8 @@ pub struct DispositivoVisible {
     pub nombre: String,
     pub creado: u64,
     pub visto: u64,
+    /// Si ese móvil pidió avisos.
+    pub avisos: bool,
 }
 
 #[derive(Serialize)]
@@ -1457,6 +1459,7 @@ fn estado(m: &Movil) -> EstadoMovil {
                 nombre: d.nombre.clone(),
                 creado: d.creado,
                 visto: d.visto,
+                avisos: d.push.is_some(),
             })
             .collect(),
         codigo: g.codigo_visible(Instant::now()).map(|(valor, quedan)| CodigoVisible { valor, quedan }),
@@ -1606,6 +1609,17 @@ pub struct Tailscale {
     /// Lo que contestó `tailscale serve`, tal cual: si pide activar HTTPS en tu
     /// cuenta, trae el enlace.
     pub salida: String,
+    /// Los móviles de tu red de Tailscale y si están conectados ahora. Un móvil
+    /// con Tailscale apagado no llega a la dirección, y desde él no se ve por qué.
+    pub moviles: Vec<MovilEnTailscale>,
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct MovilEnTailscale {
+    pub nombre: String,
+    pub en_linea: bool,
+    /// La última vez que Tailscale lo vio, en segundos Unix; 0 si no lo dice.
+    pub visto: u64,
 }
 
 fn tailscale_exe() -> Option<PathBuf> {
@@ -1693,6 +1707,27 @@ pub fn direccion_de_estado(json_estado: &str) -> (bool, Option<String>) {
     (conectado, (!dns.is_empty()).then_some(dns))
 }
 
+/// Los móviles (Android e iOS) de los aparatos de tu red en `tailscale status
+/// --json`: su `Peer` va de clave del nodo a un `ipnstate.PeerStatus`, con su
+/// `OS`, `Online` y `LastSeen`. Los conectados primero.
+pub fn moviles_de_estado(json_estado: &str) -> Vec<MovilEnTailscale> {
+    let v: Value = serde_json::from_str(json_estado).unwrap_or(Value::Null);
+    let mut moviles: Vec<MovilEnTailscale> = v["Peer"]
+        .as_object()
+        .into_iter()
+        .flatten()
+        .map(|(_, p)| p)
+        .filter(|p| matches!(p["OS"].as_str().map(str::to_ascii_lowercase).as_deref(), Some("android" | "ios")))
+        .map(|p| MovilEnTailscale {
+            nombre: p["HostName"].as_str().unwrap_or("").trim().to_string(),
+            en_linea: p["Online"].as_bool().unwrap_or(false),
+            visto: p["LastSeen"].as_str().and_then(crate::sessions::iso_a_segundos).unwrap_or(0),
+        })
+        .collect();
+    moviles.sort_by(|a, b| b.en_linea.cmp(&a.en_linea).then(b.visto.cmp(&a.visto)));
+    moviles
+}
+
 /// Lo que hay puesto en `PUERTO_TAILSCALE`.
 #[derive(Debug, Default, PartialEq)]
 pub struct Puesto {
@@ -1747,6 +1782,7 @@ pub fn movil_tailscale(conectar: bool) -> Tailscale {
     let (conectado, nombre) = direccion_de_estado(&estado.normal);
     t.conectado = conectado;
     t.direccion = nombre.map(|n| format!("https://{n}:{PUERTO_TAILSCALE}"));
+    t.moviles = moviles_de_estado(&estado.normal);
     if !conectado {
         return t;
     }
@@ -2457,6 +2493,24 @@ mod tests {
         assert_eq!(direccion_de_estado(estado), (true, Some("mi-pc.tail1234.ts.net".into())));
         assert_eq!(direccion_de_estado(r#"{"BackendState":"NeedsLogin","Self":{"DNSName":""}}"#), (false, None));
         assert_eq!(direccion_de_estado("no es json"), (false, None));
+    }
+
+    #[test]
+    fn los_moviles_de_la_red_salen_con_si_estan_conectados() {
+        // La forma de `tailscale status --json` de su PC el 2026-10-15: su
+        // Android llevaba tres días fuera y la dirección no le abría nada.
+        let estado = r#"{"BackendState":"Running","Self":{"HostName":"BBV2Munito","OS":"windows"},"Peer":{
+            "nodekey:a":{"HostName":"A37 de Mun","OS":"android","Online":false,"LastSeen":"2026-10-12T14:34:01.1Z"},
+            "nodekey:b":{"HostName":"portatil","OS":"linux","Online":true,"LastSeen":"0001-01-01T00:00:00Z"},
+            "nodekey:c":{"HostName":"iPhone","OS":"iOS","Online":true,"LastSeen":"0001-01-01T00:00:00Z"}}}"#;
+        let m = moviles_de_estado(estado);
+        assert_eq!(m.len(), 2, "el portátil no es un móvil: {m:?}");
+        assert_eq!(m[0], MovilEnTailscale { nombre: "iPhone".into(), en_linea: true, visto: 0 });
+        assert_eq!(m[1].nombre, "A37 de Mun");
+        assert!(!m[1].en_linea);
+        assert_eq!(m[1].visto, 1_791_815_641);
+        assert!(moviles_de_estado(r#"{"BackendState":"Running"}"#).is_empty());
+        assert!(moviles_de_estado("no es json").is_empty());
     }
 
     /// Que Windows de verdad apunta la petición: se le pregunta su estado con

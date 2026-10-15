@@ -1,5 +1,10 @@
 # promo — el vídeo de Adeorq
 
+> **Congelado hasta el lanzamiento oficial (desde el 2026-10-15).** No se toca `src/` ni se
+> renderiza hasta entonces. Lo decidido para ese día: los 71 segundos valen; la música de ahora
+> se cambia por otra que elige el autor; y la locución será una voz sintética, con su aviso de
+> IA en el vídeo, en vez de una grabada.
+
 Pieza de promoción hecha con [Remotion](https://remotion.dev): un vídeo escrito en React,
 así que se cambia editando un archivo y se vuelve a renderizar, sin abrir ningún editor de
 vídeo ni volver a grabar nada. Sale **en español y en inglés del mismo guion**, con

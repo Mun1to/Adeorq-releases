@@ -1709,33 +1709,48 @@ const EN: Record<string, string> = {
   // Ajustes > Móvil (`AjustesMovil.tsx`).
   "Móvil": "Mobile",
   "El conserje en el móvil": "The concierge on your phone",
-  "Habla con el conserje desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí. Desde el móvil hablas con el conserje, lees sus sesiones y escribes en cualquiera de tus terminales.":
-    "Talk to the concierge from your phone, wherever you are. It travels over Tailscale, a private network between your devices: it cannot be seen from the internet, and only the phones you pair here get in. From the phone you talk to the concierge, read its sessions and type into any of your terminals.",
+  "Habla con el conserje y con tus terminales desde el móvil, estés donde estés. Llega por Tailscale, una red privada entre tus aparatos: desde internet no se ve, y solo entran los móviles que emparejes aquí.":
+    "Talk to the concierge and to your terminals from your phone, wherever you are. It travels over Tailscale, a private network between your devices: it cannot be seen from the internet, and only the phones you pair here get in.",
   "Conserje en el móvil": "Concierge on my phone",
-  "El puerto {p} lo tiene otro programa (¿otra Adeorq abierta?), así que el móvil no llega.":
-    "Port {p} is taken by another program (another Adeorq open?), so the phone cannot reach it.",
-  "Mientras esté encendido, este PC no se duerme solo; la pantalla sí se apaga. Déjalo enchufado y con la tapa abierta: con batería se duerme a los pocos minutos.":
-    "While it is on, this PC won't fall asleep by itself; the screen still turns off. Leave it plugged in with the lid open: on battery it sleeps after a few minutes.",
-  "1. Tailscale, en este PC y en tu móvil": "1. Tailscale, on this PC and on your phone",
+  // Las tres filas del estado.
+  "Este PC": "This PC",
+  "El puerto {p} lo tiene otro programa (¿otra Adeorq abierta?)": "Port {p} is taken by another program (another Adeorq open?)",
+  "Despierto mientras esté encendido": "Awake while this is on",
+  "Sirviendo el conserje": "Serving the concierge",
+  "La pantalla sí se apaga. Déjalo enchufado y con la tapa abierta: con batería se duerme a los pocos minutos.":
+    "The screen still turns off. Leave it plugged in with the lid open: on battery it sleeps after a few minutes.",
   "Mirando Tailscale…": "Checking Tailscale…",
-  "Tailscale no está instalado en este PC.": "Tailscale is not installed on this PC.",
+  "No está instalado en este PC": "Not installed on this PC",
   "Instálalo aquí y en tu móvil, entra con la misma cuenta en los dos y vuelve. Es gratis para uso personal.":
     "Install it here and on your phone, sign in with the same account on both, and come back. It is free for personal use.",
   "Descargar Tailscale": "Download Tailscale",
-  "Tailscale está instalado pero sin sesión: ábrelo y entra con tu cuenta.":
-    "Tailscale is installed but signed out: open it and sign in.",
-  "Tailscale conectado.": "Tailscale connected.",
-  "Pulsa para que Tailscale lleve el conserje a tu red. Solo hace falta una vez: se queda puesto aunque reinicies. La primera vez puede pedirte activar HTTPS en tu cuenta; si sale un enlace, ábrelo, actívalo y vuelve a pulsar.":
-    "Press to have Tailscale bring the concierge to your network. You only do it once: it stays set even after a restart. The first time it may ask you to enable HTTPS on your account; if a link shows up, open it, enable it and press again.",
+  "Instalado, pero sin sesión": "Installed, but signed out",
+  "Ábrelo en este PC y entra con tu cuenta.": "Open it on this PC and sign in.",
+  "El conserje está en tu red": "The concierge is on your network",
+  "Falta llevar el conserje a tu red": "The concierge is not on your network yet",
+  "Solo hace falta una vez: se queda puesto aunque reinicies. La primera vez puede pedirte activar HTTPS en tu cuenta; si sale un enlace, ábrelo, actívalo y vuelve a pulsar.":
+    "You only do it once: it stays set even after a restart. The first time it may ask you to enable HTTPS on your account; if a link shows up, open it, enable it and press again.",
   "Conectando…": "Connecting…",
   "Llevar el conserje a Tailscale": "Bring the concierge to Tailscale",
   "Abrir el enlace de Tailscale": "Open the Tailscale link",
-  "2. Empareja tu móvil": "2. Pair your phone",
-  "Escanéalo con la cámara del móvil, o abre {d}, y escribe el código que salga aquí.":
-    "Scan it with your phone's camera, or open {d}, and type the code shown here.",
-  "Cuando el paso 1 esté hecho, aquí saldrá la dirección que abrir en el móvil.":
-    "Once step 1 is done, the address to open on your phone will show up here.",
-  "El conserje ya está en tu red de Tailscale.": "The concierge is already on your Tailscale network.",
+  "Tu móvil": "Your phone",
+  "Cuando Tailscale esté listo en este PC": "Once Tailscale is ready on this PC",
+  "No hay ningún móvil en tu red": "There is no phone on your network",
+  "Instala Tailscale en el móvil y entra con la misma cuenta que aquí.": "Install Tailscale on your phone and sign in with the same account as here.",
+  "{m}, conectado": "{m}, connected",
+  "{m}, fuera de Tailscale (visto {c})": "{m}, off Tailscale (seen {c})",
+  "{m}, fuera de Tailscale": "{m}, off Tailscale",
+  "Abre Tailscale en el móvil y enciéndelo: sin eso la dirección no abre.":
+    "Open Tailscale on your phone and turn it on: without that the address does not open.",
+  // Emparejar y los emparejados.
+  "Escanéalo con la cámara, o abre en el móvil:": "Scan it with the camera, or open on your phone:",
+  "Cuando Tailscale esté listo, aquí sale la dirección que abrir en el móvil.":
+    "Once Tailscale is ready, the address to open on your phone shows up here.",
+  "Escribe este código en el móvil:": "Type this code on your phone:",
+  "Pide un código y escríbelo en el móvil:": "Ask for a code and type it on your phone:",
+  "Emparejados": "Paired",
+  "con avisos": "with notifications",
+  "Probar aviso": "Test notification",
   "En su mismo puerto de Tailscale hay otra cosa ({a}): comparte dirección con el conserje y podría leer la clave del móvil. Quítala de tailscale serve.":
     "Something else is on the same Tailscale port ({a}): it shares the concierge's address and could read the phone's key. Remove it from tailscale serve.",
   "El puerto {p} de Tailscale ya lo usa otra cosa ({a}), y no la piso. Quítala con «tailscale serve --https={p} off» y vuelve a pulsar.":
@@ -1744,16 +1759,11 @@ const EN: Record<string, string> = {
     "Tailscale won't let your user set it up. Run “sudo tailscale set --operator=$USER” once and press again.",
   "Vale {m}:{s}": "Valid for {m}:{s}",
   "Emparejar un móvil": "Pair a phone",
-  "Móviles emparejados": "Paired phones",
-  "3. Los avisos": "3. Notifications",
-  "{n} móvil(es) con avisos: cuando una sesión te pregunte o termine y no estés delante del PC, le llega.":
-    "{n} phone(s) with notifications: when a session asks you something or finishes and you are not at the PC, it gets it.",
   "Ningún móvil ha pedido avisos todavía. En el móvil, en la lista del conserje, toca «Avisarme en este móvil».":
     "No phone has asked for notifications yet. On the phone, in the concierge list, tap “Notify me on this phone”.",
   "Prueba de Adeorq": "Adeorq test",
   "Si lees esto, los avisos llegan a tu móvil.": "If you can read this, notifications reach your phone.",
   "Mandado a {n} móvil(es). Si no llega en un minuto, mira rastro.log.": "Sent to {n} phone(s). If it does not arrive within a minute, check rastro.log.",
-  "Mandar un aviso de prueba": "Send a test notification",
   "visto {c}": "seen {c}",
   "Mirando…": "Looking…",
   "Aquí aparecerán las capturas que pegues en el lienzo con Ctrl+V.":

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f3f6fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#060a12" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8eef8" media="(prefers-color-scheme: light)">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icono.svg">
 <link rel="apple-touch-icon" href="/icono-180.png">
@@ -20,36 +20,77 @@
   una tecla (Intro, Esc, Ctrl+C). Abrir sesiones sigue siendo del conserje.
 -->
 <style>
+  /* ════════════════════════════════════════════════════════════════════
+     La cara del móvil (2026-10-15). Munir: «lo quiero más como la app de
+     Claude, pero no idéntico, como el layout». La estructura es la de esa
+     app (un cajón a la izquierda con todo lo vivo, el chat a pantalla entera,
+     la caja de escribir redonda abajo con sus botones debajo) y la cara es la
+     de Adeorq: cristal sobre un cielo, el azul de la casa, el punto de estado
+     cuadrado y los iconos de trazo 1,9 del escritorio (Icons.tsx).
+
+     Orden: 1 tokens · 2 base · 3 armazón · 4 piezas · 5 cajón · 6 portada ·
+     7 chat · 8 terminal · 9 caja · 10 decisiones · 11 emparejar · 12 mascota
+     · 13 movimiento. Las esquinas son redondas a propósito: esta casa sigue a
+     la app de Claude (estilo.md) y `pnpm estilo` no la mira.
+     ════════════════════════════════════════════════════════════════════ */
+
+  /* ── 1. Tokens: oscuro de base (el «azul» del escritorio), claro debajo ── */
   :root {
-    --fondo: #0b1220;
-    --capa: rgba(255, 255, 255, 0.045);
-    --capa-fuerte: rgba(255, 255, 255, 0.08);
-    --borde: rgba(150, 170, 210, 0.16);
-    --borde-fuerte: rgba(150, 170, 210, 0.3);
-    --tinta: #e6ecf7;
-    --suave: #95a3bd;
+    color-scheme: dark;
+    --fondo: #060a12;
+    --capa: rgba(16, 22, 36, 0.62);
+    --capa-fuerte: rgba(70, 90, 120, 0.26);
+    --capa-viva: rgba(86, 110, 145, 0.42);
+    --cristal: rgba(14, 20, 33, 0.94);
+    --hondo: rgba(0, 0, 0, 0.3);
+    --borde: rgba(140, 170, 220, 0.15);
+    --borde-fuerte: rgba(150, 185, 240, 0.3);
+    --tinta: #e6edfa;
+    --suave: #93a4c2;
     --acento: #4d9fff;
-    --acento-capa: rgba(77, 159, 255, 0.14);
-    --sobre-acento: #06101f;
+    --acento-2: #48c2ff;
+    --acento-capa: rgba(77, 159, 255, 0.16);
+    --sobre-acento: #071019;
     --vivo: #7ee08a;
-    --pregunta: #f5c451;
+    --pregunta: #f3cf8a;
     --termino: #ff9a3c;
-    --cerrada: #95a3bd;
+    --cerrada: #93a4c2;
     --grave: #ffd166;
     --grave-capa: rgba(255, 209, 102, 0.1);
     --mal: #ff8a80;
+    --velo: rgba(2, 5, 10, 0.62);
+    --brillo: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --sombra: 0 0 0 1px var(--borde-fuerte), 0 12px 32px rgba(0, 0, 0, 0.45);
+    --cielo-1: rgba(77, 159, 255, 0.32);
+    --cielo-2: rgba(34, 211, 238, 0.14);
+    --cielo-3: rgba(255, 154, 60, 0.09);
+    --pantalla: rgba(4, 7, 13, 0.86);
+    --vidrio: saturate(150%) blur(22px);
+    --r-chico: 10px;
+    --r-btn: 14px;
+    --r-caja: 20px;
+    --r-pastilla: 999px;
+    --letra: system-ui, -apple-system, "Segoe UI Variable", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "Roboto Mono", "SF Mono", Consolas, monospace;
+    --t: 0.18s;
+    --t-lenta: 0.32s;
   }
   @media (prefers-color-scheme: light) {
     :root {
-      --fondo: #f3f6fb;
-      --capa: #ffffff;
-      --capa-fuerte: #eef2f9;
+      color-scheme: light;
+      --fondo: #e8eef8;
+      --capa: rgba(255, 255, 255, 0.76);
+      --capa-fuerte: rgba(120, 150, 195, 0.14);
+      --capa-viva: rgba(120, 150, 195, 0.26);
+      --cristal: rgba(250, 252, 255, 0.96);
+      --hondo: rgba(20, 40, 80, 0.06);
       --borde: rgba(40, 70, 120, 0.14);
       --borde-fuerte: rgba(40, 70, 120, 0.28);
       --tinta: #16213a;
       --suave: #5a6a86;
       --acento: #1f6fe0;
-      --acento-capa: rgba(31, 111, 224, 0.1);
+      --acento-2: #2f9df3;
+      --acento-capa: rgba(31, 111, 224, 0.12);
       --sobre-acento: #ffffff;
       --vivo: #15803d;
       --pregunta: #9a6b12;
@@ -58,8 +99,17 @@
       --grave: #9a4b06;
       --grave-capa: #fff4e5;
       --mal: #b42318;
+      --velo: rgba(20, 30, 50, 0.32);
+      --brillo: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      --sombra: 0 0 0 1px var(--borde-fuerte), 0 12px 32px rgba(30, 50, 90, 0.18);
+      --cielo-1: rgba(31, 111, 224, 0.2);
+      --cielo-2: rgba(34, 180, 210, 0.14);
+      --cielo-3: rgba(255, 154, 60, 0.1);
+      --pantalla: rgba(13, 19, 33, 0.92);
     }
   }
+
+  /* ── 2. Base ── */
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   /* `hidden` esconde SIEMPRE. Cada `display` de una clase le ganaba y salían
      cosas que no tocaban: el recuadro vacío de los avisos y, al contestar una
@@ -70,377 +120,343 @@
     margin: 0;
     background: var(--fondo);
     color: var(--tinta);
-    font: 16px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    font: 16px/1.5 var(--letra);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* El cielo de detrás del cristal: fijo, y no se mueve al hacer scroll. */
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(70% 45% at 85% 0%, var(--cielo-1), transparent 70%),
+      radial-gradient(60% 40% at 0% 100%, var(--cielo-2), transparent 70%),
+      radial-gradient(40% 30% at 100% 75%, var(--cielo-3), transparent 70%),
+      var(--fondo);
   }
   button { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+  code { font: 0.88em var(--mono); background: var(--hondo); border: 1px solid var(--borde); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
 
+  /* ── 3. Armazón: cabecera, cuerpo que hace scroll y caja abajo ── */
   .vista { display: flex; flex-direction: column; height: 100dvh; }
+  /* La cabecera: un botón a la izquierda (el cajón, o volver en lo que cuelga
+     de otra pantalla), el título centrado con su subtítulo, y en una terminal
+     de agente, Chat y Pantalla en una segunda fila. */
   .barra {
-    display: flex; align-items: center; gap: 6px;
-    padding: calc(6px + env(safe-area-inset-top)) 10px 6px;
-    border-bottom: 1px solid var(--borde);
-    background: var(--fondo);
+    display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; column-gap: 6px;
+    padding: calc(6px + env(safe-area-inset-top)) 8px 6px;
+    background: var(--capa); backdrop-filter: var(--vidrio); -webkit-backdrop-filter: var(--vidrio);
+    border-bottom: 1px solid var(--borde); box-shadow: var(--brillo);
+    position: relative; z-index: 2;
   }
-  .barra h1 { font-size: 16px; line-height: 1.3; margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .barra small { display: block; font-size: 12px; font-weight: 400; color: var(--suave); overflow: hidden; text-overflow: ellipsis; }
+  .barra > :first-child { grid-column: 1; }
+  .barra h1 {
+    grid-column: 2; margin: 0; text-align: center; min-width: 0;
+    font-size: 16px; line-height: 1.3; font-weight: 650; letter-spacing: -0.01em;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .barra small { display: block; font-size: 12.5px; font-weight: 400; color: var(--suave); overflow: hidden; text-overflow: ellipsis; }
   .atras {
-    flex: none; width: 38px; height: 38px; border-radius: 50%;
-    border: 0; background: none; display: grid; place-items: center; cursor: pointer;
+    width: 44px; height: 44px; border-radius: var(--r-btn); border: 0; background: none;
+    display: grid; place-items: center; cursor: pointer; color: var(--tinta);
   }
+  .atras:active { background: var(--capa-fuerte); }
+  .cuerpo { flex: 1; overflow-y: auto; padding: 16px 16px 24px; overscroll-behavior: contain; min-height: 0; }
+  .cuerpo[hidden] { display: none; }
+
+  /* ── 4. Piezas sueltas ── */
+  /* El punto de estado de la casa: un cuadradito, como en la barra del escritorio. */
+  .punto { flex: none; width: 9px; height: 9px; border-radius: 3px; background: var(--cerrada); opacity: 0.55; }
+  .punto[data-tono="trabajando"] { background: var(--vivo); opacity: 1; box-shadow: 0 0 8px color-mix(in srgb, var(--vivo) 55%, transparent); animation: late 1.6s ease-in-out infinite; }
+  .punto[data-tono="pregunta"] { background: var(--pregunta); opacity: 1; box-shadow: 0 0 8px color-mix(in srgb, var(--pregunta) 50%, transparent); }
+  .punto[data-tono="termino"] { background: var(--termino); opacity: 1; }
   .avatar {
     flex: none; width: 34px; height: 34px; display: grid; place-items: center;
-    border-radius: 12px 4px 4px 12px; background: var(--acento-capa); color: var(--acento);
+    border-radius: 11px 4px 4px 11px; background: var(--acento-capa); color: var(--acento);
   }
-  .cuerpo { flex: 1; overflow-y: auto; padding: 14px 14px 20px; overscroll-behavior: contain; }
-
-  /* ── Emparejar ── */
-  .emparejar { max-width: 420px; margin: 8vh auto 0; padding: 0 20px; display: grid; gap: 14px; }
-  .emparejar h1 { font-size: 26px; line-height: 1.2; margin: 8px 0 0; }
-  .emparejar p { margin: 0; color: var(--suave); }
-  .campo {
-    width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--borde-fuerte);
-    background: var(--capa); color: var(--tinta); font: inherit; outline: none;
-  }
-  .campo:focus { border-color: var(--acento); }
-  /* Pegada a su campo: el hueco de la rejilla la dejaba a medio camino del código. */
-  .etiqueta-campo { font-size: 13px; color: var(--suave); margin: 4px 0 -8px 2px; }
-  .codigo { font-size: 30px; letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
-
   .boton {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 12px 16px; border-radius: 12px; border: 0; cursor: pointer;
-    background: var(--acento); color: var(--sobre-acento); font-weight: 600;
+    min-height: 48px; padding: 12px 18px; border-radius: var(--r-btn); border: 0; cursor: pointer;
+    background: linear-gradient(180deg, var(--acento-2), var(--acento)); color: var(--sobre-acento); font-weight: 650;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   .boton:disabled { opacity: 0.5; cursor: default; }
-  .nota { padding: 10px 12px; border-radius: 12px; font-size: 14px; background: var(--grave-capa); color: var(--grave); }
+  .mini { padding: 5px 12px; border-radius: var(--r-pastilla); border: 1px solid var(--borde-fuerte); background: var(--capa-fuerte); cursor: pointer; font-size: 13px; }
+  .nota { padding: 11px 14px; border-radius: var(--r-btn); font-size: 14px; background: var(--grave-capa); color: var(--grave); border: 1px solid color-mix(in srgb, var(--grave) 30%, transparent); }
   .nota b { color: var(--tinta); }
   .nota .mini { margin-left: 8px; }
-
-  /* ── Lista ── */
-  .nueva {
-    width: 100%; display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
-    padding: 14px 16px; border-radius: 22px; cursor: pointer; text-align: left; font-weight: 600;
-    border: 1px solid var(--borde-fuerte);
-    background: var(--capa); box-shadow: 0 2px 14px rgba(0, 0, 0, 0.1);
+  .vacio { color: var(--suave); text-align: center; margin-top: 12vh; padding: 0 20px; }
+  /* Un rótulo de sección: en mayúsculas pequeñas, como los de la app de Claude. */
+  .seccion { display: flex; align-items: center; gap: 8px; margin: 22px 4px 8px; font-size: 12px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--suave); }
+  .seccion:first-child { margin-top: 4px; }
+  .seccion span { flex: 1; }
+  .seccion-nota { margin: 0 4px 8px; font-size: 13px; color: var(--suave); }
+  /* Una tarjeta: lo que te reclama o algo que se abre. La raya de la izquierda dice su estado. */
+  .tarjeta {
+    --c: var(--cerrada);
+    display: grid; gap: 5px; width: 100%; text-align: left; cursor: pointer;
+    margin: 0 0 10px; padding: 14px 16px; border-radius: var(--r-caja);
+    border: 1px solid var(--borde); background: var(--capa);
+    box-shadow: var(--brillo), inset 3px 0 0 var(--c);
   }
+  .tarjeta[data-estado="trabajando"] { --c: var(--vivo); }
+  .tarjeta[data-estado="pregunta"] { --c: var(--pregunta); }
+  .tarjeta[data-estado="termino"] { --c: var(--termino); }
+  .tarjeta-cab { display: flex; align-items: center; gap: 8px; }
+  .tarjeta-cab b { flex: 1; min-width: 0; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .estado {
+    flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--r-pastilla);
+    font-size: 12px; font-weight: 650; color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent);
+  }
+  .estado i { width: 7px; height: 7px; border-radius: 2px; background: currentColor; }
+  .para { font-size: 15px; }
+  .porque { font-size: 13px; color: var(--suave); }
+  .porque b { color: var(--tinta); font-weight: 600; }
+  /* Una fila: lo que se lista sin pedir atención. Juntas, dentro de un grupo de cristal. */
   .fila {
     width: 100%; display: block; text-align: left; cursor: pointer;
-    padding: 11px 8px; margin: 0; border-radius: 12px;
-    border: 0; background: none;
+    padding: 12px 12px; margin: 0; border-radius: var(--r-btn); border: 0; background: none;
   }
-  .fila:active, .segunda:active { background: var(--capa-fuerte); }
-  /* El rótulo de la lista, solo cuando hay algo que listar. Lo pone la página
+  .fila:active { background: var(--capa-fuerte); }
+  .fila b { display: block; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fila span { font-size: 13px; color: var(--suave); }
+  .fila-t { display: flex; align-items: center; gap: 12px; }
+  .fila-t b { flex: 1; min-width: 0; }
+  .fila-t span { flex: none; }
+  .grupo { display: grid; gap: 2px; padding: 6px; border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); box-shadow: var(--brillo); }
+  .grupo .seccion-nota { margin: 4px 12px 6px; }
+
+  /* ── 5. El cajón: la cabina, con todo lo vivo de tu PC ── */
+  .cajon-velo { position: fixed; inset: 0; z-index: 20; background: var(--velo); opacity: 0; pointer-events: none; transition: opacity var(--t-lenta); }
+  .cajon {
+    position: fixed; z-index: 21; top: 0; bottom: 0; left: 0; width: min(86vw, 380px);
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+    background: var(--cristal); backdrop-filter: var(--vidrio); -webkit-backdrop-filter: var(--vidrio);
+    border-right: 1px solid var(--borde-fuerte); box-shadow: var(--sombra);
+    transform: translateX(-104%); transition: transform var(--t-lenta) cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  body[data-cajon] .cajon { transform: none; }
+  body[data-cajon] .cajon-velo { opacity: 1; pointer-events: auto; }
+  .cajon .marca { display: flex; align-items: center; gap: 12px; padding: 18px 20px 12px; }
+  .cajon .marca b { font-size: 26px; font-weight: 750; letter-spacing: -0.03em; }
+  .cajon .menu { display: grid; gap: 2px; padding: 0 10px 12px; border-bottom: 1px solid var(--borde); }
+  .cajon .fila { display: flex; align-items: center; gap: 14px; padding: 12px; font-size: 16px; }
+  .cajon .fila > svg { color: var(--suave); }
+  .cajon .fila b { flex: 1; min-width: 0; font-weight: 500; }
+  .cajon .fila .cuenta-dec { margin-left: 0; }
+  .cajon .recientes { flex: 1; overflow-y: auto; padding: 4px 10px 96px; }
+  .cajon .recientes .seccion { margin: 12px 12px 6px; }
+  .cajon .recientes .fila { padding: 10px 12px; font-size: 15.5px; }
+  .cajon .fila[aria-current="true"] { background: var(--capa-viva); }
+  .cajon .pc { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--borde); font-size: 13px; color: var(--suave); }
+  .cajon .pc .punto[data-mal] { background: var(--mal); opacity: 1; }
+  .nuevo-encargo {
+    position: absolute; right: 16px; bottom: calc(64px + env(safe-area-inset-bottom));
+    display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 20px; border: 0; border-radius: var(--r-pastilla);
+    background: var(--tinta); color: var(--fondo); font-weight: 650; font-size: 15.5px; box-shadow: var(--sombra); cursor: pointer;
+  }
+
+  /* ── 6. La portada ── */
+  .saludo { display: grid; justify-items: center; gap: 8px; padding: 14px 8px 6px; text-align: center; }
+  .saludo h2 { margin: 6px 0 0; font-size: 26px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
+  .saludo p { margin: 0; color: var(--suave); font-size: 15px; text-wrap: balance; }
+  /* El rótulo de las conversaciones, solo cuando hay alguna. Lo pone la página
      en `data-rotulo`, en el idioma de la app. */
   #filas:not(:empty)::before {
-    content: attr(data-rotulo); display: block; margin: 14px 8px 4px;
-    font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; color: var(--suave);
+    content: attr(data-rotulo); display: block; margin: 22px 4px 8px;
+    font-size: 12px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--suave);
   }
-  .fila b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .fila span { font-size: 13px; color: var(--suave); }
-  /* La portada: la caja del conserje se lee como la de un chat (lo que dice
-     es lo que hay que hacer con ella), y cada terminal es una fila con su
-     punto, como en la barra lateral del escritorio. */
-  .barra-portada { border-bottom: 0; padding-bottom: 2px; }
-  .barra-portada h1 { font-size: 19px; }
-  .barra-portada small { font-size: 13px; }
-  /* La caja del conserje en la portada: la misma de un chat, con su chispa. */
-  .decir { margin-bottom: 10px; padding-left: 8px; }
-  .decir .avatar { margin-bottom: 2px; }
-  .decir textarea { max-height: 120px; }
-  .segunda small { margin-left: auto; font-size: 12.5px; font-weight: 400; color: var(--suave); }
-  .segunda small:empty { display: none; }
-  .segunda small + .cuenta-dec { margin-left: 8px; }
-  .fila-t { display: flex; align-items: center; gap: 11px; }
-  .fila-t b { flex: 1; min-width: 0; font-weight: 500; }
-  .fila-t span { flex: none; }
-  .punto { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cerrada); opacity: 0.6; }
-  .punto[data-tono="trabajando"] { background: var(--vivo); opacity: 1; animation: late 1.6s ease-in-out infinite; }
-  .punto[data-tono="pregunta"] { background: var(--pregunta); opacity: 1; }
-  .punto[data-tono="termino"] { background: var(--termino); opacity: 1; }
-  .vacio { color: var(--suave); text-align: center; margin-top: 12vh; padding: 0 20px; }
-  /* Pedir (o quitar) los avisos, al pie de la lista. */
+  .atajos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .segunda {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; cursor: pointer; text-align: left;
+    border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); box-shadow: var(--brillo); font-weight: 550; font-size: 14.5px;
+  }
+  .segunda .avatar { width: 30px; height: 30px; }
+  .cuenta-dec {
+    margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; display: inline-grid; place-items: center; border-radius: var(--r-pastilla);
+    background: var(--pregunta); color: #1d1608; font-size: 12px; font-weight: 750;
+  }
+  /* Pedir (o quitar) los avisos, al pie. */
   .avisos {
-    display: block;
-    width: 100%;
-    margin: 18px 0 8px;
-    padding: 12px 14px;
-    border: 1px solid var(--borde);
-    border-radius: 14px;
-    background: transparent;
-    color: var(--suave);
-    font: inherit;
-    font-size: 13px;
-    text-align: left;
-    cursor: pointer;
+    display: block; width: 100%; margin: 18px 0 8px; padding: 12px 14px; cursor: pointer;
+    border: 1px solid var(--borde); border-radius: var(--r-btn); background: var(--capa);
+    color: var(--suave); font: inherit; font-size: 13px; text-align: left;
   }
-  /* El `display: block` de arriba le ganaba al `hidden`: dentro del panel, o en
-     un navegador sin avisos, quedaba al pie un recuadro vacío que no hacía nada. */
-  .avisos[hidden] { display: none; }
   .avisos[data-on="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .avisos:disabled { opacity: 0.6; }
 
-  /* ── Hilo ── */
-  .turno { display: flex; margin: 18px 0; }
+  /* ── 7. El chat ── */
+  .turno { display: flex; margin: 22px 0; }
   .turno[data-rol="tu"] { justify-content: flex-end; }
-  .burbuja { max-width: 88%; overflow-wrap: anywhere; }
+  .burbuja { max-width: 88%; overflow-wrap: anywhere; font-size: 16.5px; line-height: 1.6; }
   .turno[data-rol="tu"] .burbuja {
-    padding: 10px 15px; border-radius: 20px 20px 6px 20px;
-    background: var(--capa-fuerte);
+    max-width: 84%; padding: 11px 15px; border-radius: 20px 20px 6px 20px; line-height: 1.5;
+    background: color-mix(in srgb, var(--acento) 22%, var(--capa));
+    border: 1px solid color-mix(in srgb, var(--acento) 32%, transparent);
   }
-  .burbuja p { margin: 0 0 8px; }
+  #conversa .turno[data-rol="agente"] .burbuja, #hilo .turno[data-rol="agente"] .burbuja, #sesion .turno[data-rol="agente"] .burbuja { max-width: 100%; }
+  .burbuja p { margin: 0 0 10px; }
   .burbuja p:last-child, .burbuja ul:last-child, .burbuja ol:last-child { margin-bottom: 0; }
-  .burbuja ul, .burbuja ol { margin: 0 0 8px; padding-left: 22px; }
-  .burbuja code { font: 0.9em Consolas, "Cascadia Mono", ui-monospace, monospace; background: var(--capa-fuerte); padding: 1px 5px; border-radius: 5px; }
-  .burbuja pre { margin: 0 0 8px; padding: 10px; border-radius: 10px; background: var(--capa-fuerte); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.45 Consolas, ui-monospace, monospace; }
-  .burbuja h3, .burbuja h4 { margin: 14px 0 6px; line-height: 1.3; }
-  .burbuja h3 { font-size: 16.5px; }
-  .burbuja h4 { font-size: 15px; color: var(--suave); }
+  .burbuja ul, .burbuja ol { margin: 0 0 10px; padding-left: 22px; }
+  .burbuja li + li { margin-top: 3px; }
+  .burbuja pre { margin: 0 0 10px; padding: 12px; border-radius: var(--r-btn); background: var(--hondo); border: 1px solid var(--borde); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 var(--mono); }
+  .burbuja pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+  .burbuja h3, .burbuja h4 { margin: 16px 0 6px; line-height: 1.3; }
+  .burbuja h3 { font-size: 17px; }
+  .burbuja h4 { font-size: 15.5px; color: var(--suave); }
   .burbuja > :first-child { margin-top: 0; }
-  .burbuja blockquote { margin: 0 0 8px; padding: 2px 0 2px 12px; border-left: 3px solid var(--borde-fuerte); color: var(--suave); }
-  .burbuja hr { border: 0; border-top: 1px solid var(--borde); margin: 12px 0; }
+  .burbuja blockquote { margin: 0 0 10px; padding: 2px 0 2px 12px; border-left: 3px solid var(--borde-fuerte); color: var(--suave); }
+  .burbuja hr { border: 0; border-top: 1px solid var(--borde); margin: 14px 0; }
   /* Una tabla no se parte: si no cabe, se mueve de lado ELLA, no la página. */
-  .tabla { overflow-x: auto; margin: 0 0 8px; border: 1px solid var(--borde); border-radius: 10px; }
-  .tabla table { border-collapse: collapse; font-size: 13.5px; min-width: 100%; }
+  .tabla { overflow-x: auto; margin: 0 0 10px; border: 1px solid var(--borde); border-radius: var(--r-btn); background: var(--capa); }
+  .tabla table { border-collapse: collapse; font-size: 14px; min-width: 100%; }
   /* `normal`, no el `anywhere` de la burbuja: con ese, la tabla se encogía al
      ancho del móvil partiendo «Antes» en «Ante|s». Mejor que se mueva de lado. */
-  .tabla th, .tabla td {
-    padding: 6px 10px; text-align: left; vertical-align: top; border-top: 1px solid var(--borde);
-    overflow-wrap: normal; max-width: 30ch;
-  }
+  .tabla th, .tabla td { padding: 7px 11px; text-align: left; vertical-align: top; border-top: 1px solid var(--borde); overflow-wrap: normal; max-width: 30ch; }
   .tabla th, .tabla code { white-space: nowrap; }
-  .tabla thead th { border-top: 0; background: var(--capa-fuerte); font-weight: 600; }
+  .tabla thead th { border-top: 0; background: var(--capa-fuerte); font-weight: 650; }
   /* Un bloque de código con su «Copiar»: el mensaje de compactación sale así. */
-  .bloque pre { padding-top: 34px; }
+  .bloque pre { padding-top: 38px; }
   /* Pegado arriba mientras el bloque se vea: el de compactación ocupa más de
      una pantalla, y quien lo lee llega al final, no al principio. */
-  .acciones { position: sticky; top: 6px; float: right; display: flex; gap: 6px; margin: 6px 6px 0 0; z-index: 1; }
+  .acciones { position: sticky; top: 6px; float: right; display: flex; gap: 6px; margin: 7px 7px 0 0; z-index: 1; }
   .acciones button {
-    padding: 3px 10px; border-radius: 999px; cursor: pointer;
-    font-size: 12.5px; border: 1px solid var(--borde-fuerte); color: var(--suave);
-    /* Opaco: al bajar pasa por encima del texto, y con la capa translúcida del
-       tema oscuro se leían los dos a la vez. */
-    background: var(--fondo); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    padding: 4px 12px; border-radius: var(--r-pastilla); cursor: pointer; font-size: 12.5px;
+    border: 1px solid var(--borde-fuerte); color: var(--suave);
+    /* Opaco: al bajar pasa por encima del texto, y con la capa translúcida se leían los dos a la vez. */
+    background: var(--cristal); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
-  .acciones .compactar { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
-  .acciones button[data-hecho="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
-  .herramientas { display: block; font-size: 12px; color: var(--suave); font-style: italic; margin-top: 4px; }
-  /* Los pasos de un turno, plegados: «13 pasos» y, al abrir, qué hizo cada uno. */
-  .pasos { margin-top: 8px; font-size: 13px; color: var(--suave); }
+  .acciones .compactar, .acciones button[data-hecho="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
+  .herramientas { display: block; font-size: 12.5px; color: var(--suave); font-style: italic; margin-top: 4px; }
+  /* Los pasos de un turno, plegados en una pastilla: «13 pasos» y, al abrir, qué hizo cada uno. */
+  .pasos { margin-top: 10px; font-size: 13px; color: var(--suave); }
   .pasos summary {
-    display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 0;
-    cursor: pointer; list-style: none; width: fit-content; max-width: 100%;
+    display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 5px 13px 5px 11px; border-radius: var(--r-pastilla);
+    background: var(--capa-fuerte); cursor: pointer; list-style: none; max-width: 100%;
   }
   .pasos summary::-webkit-details-marker { display: none; }
-  .pasos summary::before { content: "›"; font-size: 15px; line-height: 1; transition: transform 0.15s; }
+  .pasos summary::before { content: "›"; font-size: 15px; line-height: 1; transition: transform var(--t); }
   .pasos[open] summary::before { transform: rotate(90deg); }
-  .pasos summary b { flex: none; font-weight: 600; color: var(--tinta); }
+  .pasos summary b { flex: none; font-weight: 650; color: var(--tinta); }
   .pasos summary span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pasos ol { list-style: none; margin: 8px 0 0 6px; padding: 0 0 0 12px; display: grid; gap: 5px; border-left: 2px solid var(--borde); }
+  .pasos ol { list-style: none; margin: 8px 0 0; padding: 10px 14px; display: grid; gap: 5px; border-radius: var(--r-btn); background: var(--hondo); border: 1px solid var(--borde); font: 12.5px/1.5 var(--mono); }
   .pasos li { display: flex; gap: 8px; min-width: 0; }
-  .pasos li b { flex: none; font-weight: 600; color: var(--tinta); }
+  .pasos li b { flex: none; font-weight: 650; color: var(--tinta); }
   .pasos li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pasos .antes { font-style: italic; }
-  .chip-img {
-    display: inline-block; padding: 0 8px; margin-right: 4px; border-radius: 999px; font-size: 12.5px;
-    border: 1px solid var(--borde-fuerte); color: var(--suave);
-  }
+  .chip-img { display: inline-block; padding: 0 9px; margin-right: 4px; border-radius: var(--r-pastilla); font-size: 12.5px; border: 1px solid var(--borde-fuerte); color: var(--suave); }
+  .pensando { display: flex; align-items: center; gap: 10px; color: var(--suave); margin: 18px 0 6px; font-size: 14px; }
+  .solo-lectura { font-size: 13px; color: var(--suave); text-align: center; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--borde); background: var(--capa); }
 
   /* Lo que hace una terminal AHORA, al pie del chat: el transcript solo se
      escribe al acabar cada paso, y sin esto el chat parecía parado. */
-  .ahora { display: grid; gap: 3px; margin: 18px 0 6px; }
+  .ahora { display: grid; gap: 4px; margin: 18px 0 6px; padding: 12px 14px; border-radius: var(--r-caja); border: 1px dashed var(--borde-fuerte); }
   .ahora-cab { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--suave); }
-  .ahora-cab b { font-weight: 600; color: var(--tinta); }
+  .ahora-cab b { font-weight: 650; color: var(--tinta); }
   /* Lo de debajo, alineado con el texto y no con la mascota. */
   .ahora-que, .ahora-det { margin-left: 47px; }
   .ahora-que { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .ahora-det { font: 12.5px/1.4 "Cascadia Mono", Consolas, ui-monospace, monospace; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  /* Una pregunta sí va en su caja: lleva botones, y tiene que verse que es para ti. */
+  .ahora-det { font: 12.5px/1.4 var(--mono); color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Si te pregunta, la pregunta sube a la caja de escribir (ver la caja): es
+     ahí donde está tu dedo, y contestar es un toque. */
   .ahora[data-tipo="pregunta"] {
-    padding: 12px; border-radius: 18px; background: var(--capa);
-    border: 1px solid color-mix(in srgb, var(--pregunta) 55%, transparent);
+    margin: 8px 8px 2px; padding: 12px 14px; border-radius: 18px; border-style: solid;
+    background: color-mix(in srgb, var(--pregunta) 12%, transparent);
+    border-color: color-mix(in srgb, var(--pregunta) 38%, transparent);
   }
-  .ahora[data-tipo="pregunta"] .ahora-cab { color: var(--pregunta); font-weight: 600; }
-  .ahora[data-tipo="pregunta"] .ahora-que { margin-left: 0; }
-  .opciones-menu { display: grid; gap: 6px; margin-top: 6px; }
+  .ahora[data-tipo="pregunta"] .ahora-cab { color: var(--pregunta); font-size: 12px; font-weight: 750; letter-spacing: 0.05em; text-transform: uppercase; }
+  .ahora[data-tipo="pregunta"] .ahora-que { margin-left: 0; font-size: 15.5px; font-weight: 600; line-height: 1.35; color: var(--tinta); }
+  .opciones-menu { display: grid; gap: 6px; margin-top: 8px; }
   .opciones-menu button {
-    display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 10px 12px; border-radius: 12px;
-    border: 1px solid var(--borde-fuerte); background: none; color: var(--tinta); font: inherit; text-align: left; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 12px; border-radius: var(--r-btn);
+    border: 1px solid var(--borde); background: var(--capa-fuerte); color: var(--tinta); font: inherit; font-size: 15px; text-align: left; cursor: pointer;
   }
-  .opciones-menu button .num { flex: none; min-width: 1.2em; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .opciones-menu button .num, .opcion .num {
+    flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px;
+    background: var(--hondo); border: 1px solid var(--borde-fuerte); color: var(--tinta); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  }
   .opciones-menu button:disabled { opacity: 0.55; cursor: default; }
 
-  /* Una decisión pendiente se ve desde dentro de una terminal: antes solo
-     estaba en la lista, y quien entraba directo a una terminal no la veía. */
+  /* ── 8. Una terminal ── */
+  /* Chat y Pantalla: un interruptor en la segunda fila de la cabecera. */
+  .pestanas {
+    grid-column: 1 / -1; justify-self: center; display: inline-flex; gap: 2px; margin-top: 6px; padding: 3px;
+    border-radius: var(--r-pastilla); background: var(--capa-fuerte); border: 1px solid var(--borde);
+  }
+  .pestanas .pastilla { border: 0; padding: 5px 16px; font-size: 13px; }
+  .pestanas .pastilla[data-on="true"] { background: var(--acento); color: var(--sobre-acento); font-weight: 650; }
+  /* Una decisión pendiente se ve desde dentro de una terminal. */
   .aviso-dec {
-    display: flex; align-items: center; gap: 10px; width: calc(100% - 24px); margin: 6px 12px 0; padding: 7px 12px;
-    border-radius: 12px; border: 1px solid color-mix(in srgb, var(--pregunta) 55%, transparent);
-    background: color-mix(in srgb, var(--pregunta) 12%, transparent); color: var(--tinta); font: inherit; font-size: 13.5px;
+    display: flex; align-items: center; gap: 10px; width: calc(100% - 24px); margin: 10px 12px 0; padding: 10px 14px;
+    border-radius: var(--r-btn); border: 1px solid color-mix(in srgb, var(--pregunta) 45%, transparent);
+    background: color-mix(in srgb, var(--pregunta) 12%, var(--capa)); color: var(--tinta); font: inherit; font-size: 13.5px;
     text-align: left; cursor: pointer;
   }
   .aviso-dec svg { flex: none; color: var(--pregunta); }
   .aviso-dec span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .aviso-dec b { font-weight: 650; }
-  .aviso-dec em { flex: none; font-style: normal; font-weight: 600; color: var(--pregunta); }
-
-  .tarjeta {
-    --c: var(--cerrada);
-    display: grid; gap: 6px; width: 100%; text-align: left; cursor: pointer;
-    margin: 8px 0; padding: 12px 14px; border-radius: 16px;
-    border: 1px solid var(--borde); background: var(--capa);
-    box-shadow: inset 3px 0 0 var(--c);
+  .aviso-dec em { flex: none; font-style: normal; font-weight: 650; color: var(--pregunta); }
+  /* Una sola cosa hace scroll, el `.cuerpo`, y la letra se ajusta al ancho del
+     móvil: con `pre` sin ajustar, una línea de 77 columnas no cabía en 390 px. */
+  .pantalla {
+    margin: 0; padding: 12px 14px; border-radius: var(--r-caja); border: 1px solid var(--borde);
+    background: var(--pantalla); color: #d6e2f5;
+    font: 12.5px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere;
   }
-  .tarjeta[data-estado="trabajando"] { --c: var(--vivo); }
-  .tarjeta[data-estado="pregunta"] { --c: var(--pregunta); }
-  .tarjeta[data-estado="termino"] { --c: var(--termino); }
-  .tarjeta-cab { display: flex; align-items: baseline; gap: 8px; }
-  .tarjeta-cab b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .estado { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--c); font-weight: 600; }
-  .estado i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-  .para { font-size: 15px; }
-  .porque { font-size: 13px; color: var(--suave); }
-  .porque b { color: var(--tinta); font-weight: 600; }
-
-  /* ── Decisiones ──
-     Lo que piden los agentes (decisiones.rs). Ninguna opción sale marcada: la
-     recomendada lleva su etiqueta y su porqué, pero elegirla es de Munir
-     (GOV.UK: «Do not pre-select radio options»). Mismo orden y mismos números
-     que puso el agente, que es lo que se dicta («la 2»). */
-  .cuenta-dec {
-    margin-left: auto; min-width: 24px; padding: 1px 8px; border-radius: 999px; text-align: center;
-    background: var(--pregunta); color: var(--sobre-acento); font-size: 13px; font-weight: 700;
-  }
-  .cuenta-dec[hidden] { display: none; }
-  .dec-cab { display: grid; gap: 6px; margin: 0 0 14px; }
-  .dec-cab p { margin: 0; color: var(--suave); }
-  .dec-hecha { padding: 10px 12px; border-radius: 12px; background: var(--acento-capa); font-size: 14px; }
-  /* Si sigue viva o no (Munir, 2026-10-10: «si siguen activas o no»). Es lo
-     primero que hay que saber antes de ponerse a contestar: una decisión cuya
-     terminal se cerró ya no la espera nadie, y antes se veía igual que la que
-     tenía a un agente parado esperándola. */
-  .dec-cab .dec-vig {
-    display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; font-size: 14px;
-    border: 1px solid var(--borde); color: var(--suave);
-  }
-  .dec-vig i { flex: none; width: 8px; height: 8px; margin-top: 7px; border-radius: 50%; background: currentColor; }
-  .dec-cab .dec-vig[data-v="viva"] {
-    color: var(--tinta); border-color: color-mix(in srgb, var(--pregunta) 55%, transparent);
-    background: color-mix(in srgb, var(--pregunta) 12%, transparent);
-  }
-  .dec-vig[data-v="viva"] i { background: var(--pregunta); animation: late 1.6s ease-in-out infinite; }
-  .dec-vig[data-v="huerfana"] { border-style: dashed; }
-  /* La lista, en dos montones: las que te esperan y las anteriores, que se
-     limpian solas. */
-  .seccion { display: flex; align-items: center; gap: 8px; margin: 18px 4px 2px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; color: var(--suave); }
-  .seccion:first-child { margin-top: 2px; }
-  .seccion span { flex: 1; }
-  .seccion-nota { margin: 0 4px 4px; font-size: 13px; color: var(--suave); }
-  .tarjeta[data-vigencia="viva"] .estado i { animation: late 1.6s ease-in-out infinite; }
-  .tarjeta[data-vigencia]:not([data-vigencia="viva"]) { background: none; box-shadow: none; margin: 4px 0; padding: 9px 12px; }
-  .tarjeta[data-vigencia]:not([data-vigencia="viva"]) b { font-weight: 500; }
-  .tarjeta[data-vigencia="huerfana"] { border-style: dashed; }
-  .tarjeta[data-vigencia="contestada"] .estado { color: var(--vivo); }
-  .calma { display: flex; align-items: center; gap: 12px; margin: 6px 4px 4px; color: var(--suave); font-size: 14.5px; }
-  /* El pie de una decisión: descartarla, discreto, y contestarla, a todo lo ancho. */
-  .pie-dec { display: flex; align-items: center; gap: 10px; }
-  .pie-dec .enviar-dec { flex: 1; width: auto; }
-  .descartar { flex: none; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--borde-fuerte); background: none; color: var(--suave); cursor: pointer; }
-  .descartar:disabled { opacity: 0.5; cursor: default; }
-  .pregunta-d { border: 1px solid var(--borde); border-radius: 16px; background: var(--capa); padding: 12px 12px 14px; margin: 0 0 14px; min-width: 0; }
-  .pregunta-d legend { padding: 0 6px; font-weight: 650; font-size: 16px; display: flex; gap: 8px; align-items: baseline; }
-  .letra { color: var(--acento); font-variant-numeric: tabular-nums; }
-  .pregunta-d > p { margin: 2px 2px 10px; font-size: 14px; color: var(--suave); }
-  .opcion {
-    display: flex; align-items: flex-start; gap: 10px; min-height: 48px; padding: 11px 12px; margin: 0 0 8px;
-    border: 1px solid var(--borde); border-radius: 12px; cursor: pointer;
-  }
-  .opcion:has(input:checked) { border-color: var(--acento); background: var(--acento-capa); }
-  .opcion input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--acento); }
-  .opcion .num { flex: none; min-width: 1.2em; color: var(--suave); font-variant-numeric: tabular-nums; }
-  .opcion .txt { display: grid; gap: 3px; min-width: 0; }
-  .opcion small { color: var(--suave); font-size: 13.5px; }
-  .rec {
-    justify-self: start; font-style: normal; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px;
-    color: var(--vivo); border: 1px solid color-mix(in srgb, var(--vivo) 45%, transparent);
-  }
-  .o { display: flex; align-items: center; gap: 10px; color: var(--suave); font-size: 13px; margin: 4px 2px 8px; }
-  .o::before, .o::after { content: ""; flex: 1; border-top: 1px solid var(--borde); }
-  .libre {
-    display: block; width: 100%; min-height: 64px; padding: 10px 12px; border-radius: 12px; resize: none;
-    border: 1px solid var(--borde-fuerte); background: var(--fondo); color: var(--tinta); font: inherit; max-height: none;
-  }
-  .libre:focus { outline: none; border-color: var(--acento); }
-  .pregunta-d[disabled] .opcion { cursor: default; }
-  .pregunta-d[disabled] .opcion:not(:has(input:checked)) { opacity: 0.55; }
-  .enviar-dec { width: 100%; min-height: 48px; }
-  .estado-envio { margin: 0 0 8px; font-size: 14px; color: var(--suave); }
-  .estado-envio:empty { display: none; }
-
-  .pensando { display: flex; align-items: center; gap: 10px; color: var(--suave); margin: 18px 0 6px; font-size: 14px; }
-
-  /* ── La mascota ──
-     La A de cuadritos del escritorio. Sus posturas las cambia el reloj de más
-     abajo (`marchas`), no el CSS: teclea mientras el agente trabaja, se asusta
-     y te llama si te preguntan, celebra cuando terminan, y si la tocas, brinca. */
-  .masc { flex: none; display: block; shape-rendering: crispEdges; overflow: visible; touch-action: manipulation; }
-  /* En la cabecera de la portada va suelta, sin la caja de los otros iconos. */
-  .avatar-m { width: auto; height: auto; background: none; border-radius: 0; margin: 0 2px 0 4px; }
-
-  /* ── Lo que se mueve ──
-     Poco y con motivo: una pantalla que entra dice de dónde viene (hacia
-     delante por la derecha, hacia atrás por la izquierda), un mensaje nuevo
-     llega desde abajo, y lo que se pulsa cede un pelo. Quien pide menos
-     movimiento al sistema no ve nada de esto. */
-  @keyframes entra { from { opacity: 0; transform: translateX(var(--desde, 14px)); } }
-  @keyframes llega { from { opacity: 0; transform: translateY(10px) scale(0.985); } }
-  @keyframes late { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-  .vista { animation: entra 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-  #app[data-sentido="atras"] .vista { --desde: -14px; }
-  #app[data-sentido="igual"] .vista { animation: none; }
-  .nuevo, .ahora.cambia { animation: llega 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-  .turno[data-rol="tu"].nuevo { transform-origin: 100% 100%; }
-  .tarjeta, .nueva, .fila, .opcion, .opciones-menu button, .boton { transition: transform 0.09s ease, background 0.15s ease, border-color 0.15s ease; }
-  .tarjeta:active, .nueva:active, .fila:active, .opciones-menu button:active, .boton:active { transform: scale(0.985); }
-  @media (prefers-reduced-motion: reduce) {
-    .vista, .nuevo, .ahora.cambia, .estado i, .punto, .dec-vig i { animation: none !important; }
-    .tarjeta, .nueva, .fila, .opcion, .opciones-menu button, .boton { transition: none; }
+  /* Cada línea en su caja, y lo que no cabe sigue con sangría. */
+  .pantalla .l { display: block; padding-left: 2ch; text-indent: -2ch; min-height: 1.45em; }
+  /* Las rayas de lado a lado de Claude Code se pintan como una línea del ancho que haya. */
+  .pantalla .regla { background: linear-gradient(rgba(150, 185, 240, 0.3), rgba(150, 185, 240, 0.3)) center / 100% 1px no-repeat; }
+  .pantalla .regla-titulo { display: flex; align-items: center; gap: 8px; padding-left: 0; text-indent: 0; color: #93a4c2; }
+  .pantalla .regla-titulo::before, .pantalla .regla-titulo::after { content: ""; flex: 1; min-width: 12px; border-top: 1px solid rgba(150, 185, 240, 0.3); }
+  .nota-pantalla { margin: 0 0 10px; font-size: 13px; color: var(--suave); }
+  .nota-pantalla button { padding: 0; border: 0; background: none; color: var(--acento); font: inherit; text-decoration: underline; cursor: pointer; }
+  .bajar {
+    position: absolute; right: 16px; bottom: calc(100% + 10px); z-index: 2;
+    width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+    border: 1px solid var(--borde-fuerte); background: var(--cristal); color: var(--tinta); box-shadow: var(--sombra);
   }
 
-  /* ── La caja ── */
-  .caja {
-    background: var(--fondo);
-    padding: 6px 10px calc(8px + env(safe-area-inset-bottom));
+  /* ── 9. La caja de escribir: una tarjeta de cristal flotando abajo. Arriba
+     el texto; debajo, en una fila, adjuntar, las teclas, las pastillas y mandar. ── */
+  .caja { position: relative; padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .caja .fallo, .aviso-mejora { margin: 0 4px 8px; }
+  .aviso-mejora { font-size: 12.5px; color: var(--acento); }
+  .fila-caja {
+    display: flex; flex-direction: column; border-radius: 26px; overflow: hidden;
+    border: 1px solid var(--borde-fuerte); background: var(--cristal);
+    backdrop-filter: var(--vidrio); -webkit-backdrop-filter: var(--vidrio); box-shadow: var(--sombra);
   }
   .caja[data-mejorado="true"] .fila-caja { border-color: color-mix(in srgb, var(--acento) 55%, transparent); }
-  .aviso-mejora { font-size: 12.5px; color: var(--acento); margin: 0 4px 6px; }
-  .fila-caja {
-    display: flex; align-items: flex-end; gap: 8px;
-    padding: 6px 6px 6px 14px; border-radius: 24px;
-    border: 1px solid var(--borde-fuerte); background: var(--capa);
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
-  }
   textarea {
-    flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--tinta);
-    font: inherit; line-height: 1.45; padding: 6px 0; max-height: 160px;
+    display: block; width: 100%; min-width: 0; border: 0; outline: none; background: none; color: var(--tinta);
+    font: 16.5px/1.45 var(--letra); padding: 15px 18px 6px; min-height: 52px; max-height: 160px;
     resize: none;
   }
+  textarea::placeholder { color: var(--suave); }
+  .mandos { display: flex; align-items: center; gap: 6px; padding: 4px 8px 8px; min-width: 0; }
+  .mandos .hueco { flex: 1; }
+  /* Un carril que se desliza: el borde derecho se difumina para que se vea que
+     sigue, en vez de cortar la última pastilla en seco contra el botón de mandar. */
+  .mandos .pastillas {
+    flex: 1; min-width: 0; margin: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  }
+  .mandos .pastillas::-webkit-scrollbar { display: none; }
   .enviar {
-    flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; cursor: pointer;
-    background: var(--acento); color: var(--sobre-acento); display: grid; place-items: center;
+    flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center;
+    background: linear-gradient(180deg, var(--acento-2), var(--acento)); color: var(--sobre-acento);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px color-mix(in srgb, var(--acento) 40%, transparent);
   }
-  .enviar:disabled { opacity: 0.4; cursor: default; }
+  .enviar:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
   .adjuntar, .abrir-teclas {
-    flex: none; width: 34px; height: 38px; margin-left: -6px; border: 0; border-radius: 50%; cursor: pointer;
-    background: none; color: var(--suave); display: grid; place-items: center;
+    flex: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+    border: 1px solid var(--borde); background: var(--capa-fuerte); color: var(--tinta);
   }
-  /* El botón que saca y guarda la fila de teclas de una terminal. */
-  .abrir-teclas { margin-left: -4px; }
-  .abrir-teclas[aria-expanded="true"] { color: var(--acento); }
+  .abrir-teclas[aria-expanded="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .adjuntos { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
-  .adjuntos[hidden] { display: none; }
   .adjunto {
-    display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
-    padding: 3px 4px 3px 4px; border-radius: 10px; font-size: 13px;
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 4px; border-radius: var(--r-chico); font-size: 13px;
     border: 1px solid var(--borde); background: var(--capa); color: var(--suave);
   }
   .adjunto img { width: 30px; height: 30px; object-fit: cover; border-radius: 7px; flex: none; }
@@ -449,69 +465,111 @@
   .adjunto[data-estado="listo"] { color: var(--tinta); }
   .adjunto[data-estado="mal"] { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 45%, transparent); }
   .adjunto .quitar { flex: none; width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; font-size: 17px; line-height: 1; }
-  .pastillas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+  .pastillas { display: flex; flex-wrap: wrap; gap: 6px; }
   .pastilla {
-    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
-    padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 13px;
-    border: 1px solid var(--borde); background: none; color: var(--suave);
+    flex: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    height: 40px; padding: 0 14px; border-radius: var(--r-pastilla); cursor: pointer; font-size: 13.5px;
+    border: 1px solid var(--borde); background: var(--capa-fuerte); color: var(--tinta);
   }
   .pastilla[data-on="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
   .pastilla select { appearance: none; border: 0; background: none; color: inherit; font: inherit; padding: 0; cursor: pointer; outline: none; }
+  .pastilla select option { background: var(--fondo); color: var(--tinta); }
   .pastilla:has(select:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
   .pastilla:disabled { opacity: 0.45; cursor: default; }
-  .mini { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--borde-fuerte); background: var(--capa); cursor: pointer; font-size: 13px; }
-
-  .solo-lectura { font-size: 13px; color: var(--suave); text-align: center; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--borde); }
-
-  /* ── Las terminales (decisión E3) ── */
-  .segunda { border: 0; background: none; box-shadow: none; font-weight: 500; padding: 9px 8px; margin: 0; border-radius: 12px; }
-  /* Las dos caras de una terminal de agente: lo que se ha dicho y lo que se ve. */
-  /* Dentro de la cabecera, como un interruptor de dos posiciones: en su propia
-     fila se comían cincuenta píxeles de un chat que ya tiene poco alto. */
-  .pestanas { flex: none; display: flex; padding: 3px; border-radius: 999px; background: var(--capa-fuerte); }
-  .pestanas[hidden] { display: none; }
-  .pestanas .pastilla { border: 0; padding: 5px 12px; }
-  .pestanas .pastilla[data-on="true"] { background: var(--fondo); color: var(--tinta); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
-  .cuerpo[hidden] { display: none; }
-  /* Una sola cosa hace scroll, el `.cuerpo`, y la letra se ajusta al ancho del
-     móvil: con `pre` sin ajustar, una línea de 77 columnas no cabía en 390 px y
-     había que ir de lado línea a línea para leer un mensaje entero. */
-  .pantalla {
-    margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--borde);
-    background: var(--capa); color: var(--tinta);
-    font: 12px/1.4 "Cascadia Mono", Consolas, ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere;
-  }
-  /* Cada línea en su caja, y lo que no cabe sigue con sangría: así se ve
-     dónde empieza una línea nueva y dónde sigue la de antes. */
-  .pantalla .l { display: block; padding-left: 2ch; text-indent: -2ch; min-height: 1.4em; }
-  /* Las rayas de lado a lado de Claude Code miden lo que el panel del PC, y en
-     el móvil se partían en dos filas: se pintan como una línea del ancho que haya. */
-  .pantalla .regla { background: linear-gradient(var(--borde-fuerte), var(--borde-fuerte)) center / 100% 1px no-repeat; }
-  .pantalla .regla-titulo { display: flex; align-items: center; gap: 8px; padding-left: 0; text-indent: 0; color: var(--suave); }
-  .pantalla .regla-titulo::before, .pantalla .regla-titulo::after { content: ""; flex: 1; min-width: 12px; border-top: 1px solid var(--borde-fuerte); }
-  .nota-pantalla { margin: 0 0 10px; font-size: 13px; color: var(--suave); }
-  .nota-pantalla button { padding: 0; border: 0; background: none; color: var(--acento); font: inherit; text-decoration: underline; cursor: pointer; }
-  /* Las teclas en UNA fila: partida en dos, la flecha de abajo quedaba sola y
-     la caja crecía una fila más. Si un día no caben, la fila se mueve de lado. */
-  .teclas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  /* Las teclas de una terminal: dentro de la caja, en UNA fila que se mueve de lado si no cabe. */
+  .teclas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px 10px 4px; }
   .teclas::-webkit-scrollbar { display: none; }
-  .teclas .pastilla { flex: none; padding: 5px 10px; font-size: 12.5px; }
-  #conversa .turno[data-rol="agente"] .burbuja { max-width: 100%; }
-  /* Aquí debajo había una nota, «Va directo a la terminal, sin pasar por el
-     conserje», que se escondía al escribir. Se quitó el 2026-10-10: eran
-     treinta píxeles de un chat con poco alto, y al aparecer y desaparecer con
-     el foco movía todo una fila a mitad de un toque (el clic perdido del
-     2026-10-09). Lo que queda de aquello: los botones de tecla siguen sin coger
-     el foco al pulsarlos. */
-  .caja { position: relative; }
-  .caja .fallo { margin: 0 0 8px; }
-  .bajar {
-    position: absolute; right: 14px; bottom: calc(100% + 12px); z-index: 2;
-    width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
-    border: 1px solid var(--borde-fuerte); background: var(--fondo); color: var(--tinta);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  .teclas .pastilla { height: 36px; padding: 0 13px; border-radius: 12px; background: var(--hondo); border-color: var(--borde-fuerte); font: 13px var(--mono); }
+
+  /* ── 10. Decisiones ──
+     Ninguna opción sale marcada: la recomendada lleva su etiqueta y su porqué,
+     pero elegirla es de Munir (GOV.UK: «Do not pre-select radio options»).
+     Mismo orden y mismos números que puso el agente, que es lo que se dicta. */
+  .dec-cab { display: grid; gap: 8px; margin: 0 0 16px; }
+  .dec-cab p { margin: 0; color: var(--suave); }
+  .dec-hecha { padding: 11px 14px; border-radius: var(--r-btn); background: var(--acento-capa); font-size: 14px; }
+  /* Si sigue viva o no: lo primero que hay que saber antes de contestar. */
+  .dec-cab .dec-vig { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border-radius: var(--r-btn); font-size: 14px; border: 1px solid var(--borde); color: var(--suave); background: var(--capa); }
+  .dec-vig i { flex: none; width: 9px; height: 9px; margin-top: 6px; border-radius: 3px; background: currentColor; }
+  .dec-cab .dec-vig[data-v="viva"] { color: var(--tinta); border-color: color-mix(in srgb, var(--pregunta) 45%, transparent); background: color-mix(in srgb, var(--pregunta) 12%, var(--capa)); }
+  .dec-vig[data-v="viva"] i { background: var(--pregunta); animation: late 1.6s ease-in-out infinite; }
+  .dec-vig[data-v="huerfana"] { border-style: dashed; }
+  .tarjeta[data-vigencia="viva"] .estado i { animation: late 1.6s ease-in-out infinite; }
+  .tarjeta[data-vigencia]:not([data-vigencia="viva"]) { background: none; box-shadow: none; margin: 0 0 6px; padding: 10px 14px; }
+  .tarjeta[data-vigencia]:not([data-vigencia="viva"]) b { font-weight: 500; }
+  .tarjeta[data-vigencia="huerfana"] { border-style: dashed; }
+  .tarjeta[data-vigencia="contestada"] .estado { color: var(--vivo); background: color-mix(in srgb, var(--vivo) 15%, transparent); }
+  .calma { display: flex; align-items: center; gap: 12px; margin: 6px 4px 4px; color: var(--suave); font-size: 14.5px; }
+  .pregunta-d { border: 1px solid var(--borde); border-radius: var(--r-caja); background: var(--capa); padding: 14px 14px 16px; margin: 0 0 14px; min-width: 0; box-shadow: var(--brillo); }
+  .pregunta-d legend { padding: 0 6px; font-weight: 650; font-size: 16px; display: flex; gap: 8px; align-items: baseline; }
+  .letra { color: var(--acento); font-variant-numeric: tabular-nums; }
+  .pregunta-d > p { margin: 2px 2px 10px; font-size: 14px; color: var(--suave); }
+  .opcion {
+    display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 12px 14px; margin: 0 0 8px;
+    border: 1px solid var(--borde); border-radius: 16px; background: var(--capa-fuerte); cursor: pointer;
   }
-  .bajar[hidden] { display: none; }
+  .opcion:has(input:checked) { border-color: var(--acento); background: color-mix(in srgb, var(--acento) 16%, var(--capa-fuerte)); }
+  .opcion:has(input:checked) .num { background: var(--acento); color: var(--sobre-acento); border-color: transparent; }
+  /* El círculo del sistema no se ve: lo que se marca es el número (y el input sigue ahí para el teclado y el lector). */
+  .opcion input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+  .opcion:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
+  .opcion .txt { display: grid; gap: 3px; min-width: 0; }
+  .opcion small { color: var(--suave); font-size: 13.5px; }
+  .rec { justify-self: start; font-style: normal; font-size: 11px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; color: var(--acento); }
+  .o { display: flex; align-items: center; gap: 10px; color: var(--suave); font-size: 13px; margin: 4px 2px 8px; }
+  .o::before, .o::after { content: ""; flex: 1; border-top: 1px solid var(--borde); }
+  .libre {
+    display: block; width: 100%; min-height: 64px; padding: 12px 14px; border-radius: 16px; resize: none;
+    border: 1px solid var(--borde-fuerte); background: var(--hondo); color: var(--tinta); font: inherit; font-size: 15px; max-height: none;
+  }
+  .libre:focus { outline: none; border-color: var(--acento); }
+  .pregunta-d[disabled] .opcion { cursor: default; }
+  .pregunta-d[disabled] .opcion:not(:has(input:checked)) { opacity: 0.55; }
+  .pie-dec { display: flex; align-items: center; gap: 10px; }
+  .pie-dec .enviar-dec { flex: 1; width: auto; }
+  .descartar { flex: none; min-height: 48px; padding: 0 16px; border-radius: var(--r-btn); border: 1px solid var(--borde-fuerte); background: var(--capa); color: var(--suave); cursor: pointer; }
+  .descartar:disabled { opacity: 0.5; cursor: default; }
+  .enviar-dec { width: 100%; min-height: 50px; }
+  .estado-envio { margin: 0 4px 8px; font-size: 14px; color: var(--suave); }
+  .estado-envio:empty { display: none; }
+
+  /* ── 11. Emparejar ── */
+  .emparejar { max-width: 420px; margin: 8vh auto 0; padding: 0 20px; display: grid; gap: 14px; }
+  .emparejar h1 { font-size: 26px; line-height: 1.2; margin: 8px 0 0; letter-spacing: -0.02em; }
+  .emparejar p { margin: 0; color: var(--suave); }
+  .campo {
+    width: 100%; padding: 14px 16px; border-radius: var(--r-btn); border: 1px solid var(--borde-fuerte);
+    background: var(--capa); color: var(--tinta); font: inherit; outline: none;
+  }
+  .campo:focus { border-color: var(--acento); }
+  /* Pegada a su campo: el hueco de la rejilla la dejaba a medio camino del código. */
+  .etiqueta-campo { font-size: 13px; color: var(--suave); margin: 4px 0 -8px 2px; }
+  .codigo { font-size: 30px; letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
+
+  /* ── 12. La mascota ──
+     La A de cuadritos del escritorio. Sus posturas las cambia el reloj de más
+     abajo (`marchas`), no el CSS: teclea mientras el agente trabaja, se asusta
+     y te llama si te preguntan, celebra cuando terminan, y si la tocas, brinca. */
+  .masc { flex: none; display: block; shape-rendering: crispEdges; overflow: visible; touch-action: manipulation; }
+
+  /* ── 13. Lo que se mueve ──
+     Poco y con motivo: una pantalla que entra dice de dónde viene, un mensaje
+     nuevo llega desde abajo, el cajón y lo que se pulsa ceden un pelo. Quien
+     pide menos movimiento al sistema no ve nada de esto. */
+  @keyframes entra { from { opacity: 0; transform: translateX(var(--desde, 14px)); } }
+  @keyframes llega { from { opacity: 0; transform: translateY(10px) scale(0.985); } }
+  @keyframes late { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .vista { animation: entra 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  #app[data-sentido="atras"] .vista { --desde: -14px; }
+  #app[data-sentido="igual"] .vista { animation: none; }
+  .nuevo, .ahora.cambia { animation: llega 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .turno[data-rol="tu"].nuevo { transform-origin: 100% 100%; }
+  .tarjeta, .segunda, .fila, .opcion, .opciones-menu button, .boton, .pastilla, .enviar { transition: transform 0.09s ease, background var(--t) ease, border-color var(--t) ease; }
+  .tarjeta:active, .segunda:active, .fila:active, .opciones-menu button:active, .boton:active, .enviar:active { transform: scale(0.985); }
+  @media (prefers-reduced-motion: reduce) {
+    .vista, .nuevo, .ahora.cambia, .estado i, .punto, .dec-vig i { animation: none !important; }
+    .tarjeta, .segunda, .fila, .opcion, .opciones-menu button, .boton, .pastilla, .enviar, .cajon, .cajon-velo { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -599,8 +657,14 @@ const EN = {
   "Mensaje nuevo al conserje": "New message to the concierge",
   "Enviar al conserje": "Send to the concierge",
   "Decisiones": "Decisions",
-  "Todas las terminales": "All terminals",
   "Recientes": "Recent",
+  "Conversaciones": "Conversations",
+  "En marcha": "Running",
+  "Buenas.": "Hi there.",
+  "Abrir el menú": "Open the menu",
+  "Nuevo encargo": "New task",
+  "Tu PC, conectado": "Your PC, connected",
+  "Tu PC no contesta": "Your PC is not answering",
   "tu PC no contesta": "your PC is not answering",
   "1 cosa te espera": "1 thing waiting for you",
   "{n} cosas te esperan": "{n} things waiting for you",
@@ -611,7 +675,7 @@ const EN = {
   "Te esperan": "Waiting for you",
   "Entra y contéstale desde aquí.": "Go in and answer it from here.",
   "Terminales": "Terminals",
-  "y {n} más, en «Todas las terminales».": "and {n} more, in “All terminals”.",
+  "y {n} más, en «Terminales».": "and {n} more, in “Terminals”.",
   "Conversación nueva": "New conversation",
   "1 sesión": "1 session",
   "{n} sesiones": "{n} sessions",
@@ -719,7 +783,6 @@ const EN = {
   "Si quieres que siga, díselo abajo.": "If you want it to keep going, tell it below.",
   "Quieta, esperando a que le digas algo.": "Still, waiting for you to tell it something.",
   "Trabajando": "Working",
-  "Volver a las terminales": "Back to the terminals",
   "Pantalla": "Screen",
   "Aquí solo cabe lo que se ve ahora en el PC. Todo lo hablado está en el {chat}.":
     "Only what the PC shows right now fits here. Everything said is in the {chat}.",
@@ -1282,18 +1345,26 @@ document.addEventListener("pointerdown", (ev) => {
   }
 }, { passive: true });
 
+/* Los iconos de la casa: los mismos SVG que el escritorio (src/components/Icons.tsx),
+   trazo 1,9 sobre una rejilla de 24 y puntas redondas, y ningún glifo de fuente:
+   un carácter lo dibuja la letra de cada teléfono y nunca coincide. */
+const trazo = (d, t) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICONO = {
-  decision: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5"/><circle cx="5" cy="18" r="1.4"/></svg>',
-  chispa: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>',
-  atras: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
-  subir: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
-  bajar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
-  parar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
-  diana: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
-  deshacer: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>',
-  terminal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7l5 5-5 5"/><path d="M12 17h7"/></svg>',
-  clip: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 01-7.1-7.1l8.6-8.6a3.3 3.3 0 014.7 4.7l-8.6 8.6a1.7 1.7 0 01-2.4-2.4l7.9-7.9"/></svg>',
-  teclas: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10.2 10h.01M13.8 10h.01M17.5 10h.01M8 14h8"/></svg>',
+  menu: trazo('<path d="M4 7h16M4 12h16M4 17h10"/>', 24),
+  atras: trazo('<path d="M15 18l-6-6 6-6"/>', 22),
+  chat: trazo('<path d="M20.5 14.6a2.4 2.4 0 0 1-2.4 2.4H8.4L4 20.5V6.4A2.4 2.4 0 0 1 6.4 4h11.7a2.4 2.4 0 0 1 2.4 2.4z"/>', 20),
+  terminal: trazo('<rect x="2.5" y="4" width="19" height="16" rx="3"/><path d="M6.5 10l2.5 2-2.5 2M12 14h5"/>', 18),
+  decision: trazo('<path d="M12 21 V12 L5 5 M12 12 L19 5"/><path d="M5 10 V5 h5 M19 10 V5 h-5"/>', 18),
+  mas: trazo('<path d="M12 5v14M5 12h14"/>', 20),
+  subir: trazo('<path d="M12 20V4.6"/><path d="M5.6 11 12 4.6 18.4 11"/>', 20),
+  bajar: trazo('<path d="M12 4v15.4"/><path d="M5.6 13 12 19.4 18.4 13"/>', 20),
+  teclas: trazo('<rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6.5 10h.01M10.2 10h.01M13.8 10h.01M17.5 10h.01M8 14h8"/>', 20),
+  clip: trazo('<path d="M12 5v14M5 12h14"/>', 20),
+  diana: trazo('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>', 15),
+  deshacer: trazo('<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>', 14),
+  parar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>',
+  chispa: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>',
+  logo: '<svg width="30" height="30" viewBox="0 0 1024 1024" aria-hidden="true"><defs><linearGradient id="adeorq-logo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#48c2ff"/><stop offset="1" stop-color="#2f9df3"/></linearGradient></defs><path fill="url(#adeorq-logo)" fill-rule="evenodd" d="M 236 112 L 788 112 L 1016 756 L 944 848 L 80 848 L 8 756 Z M 512 240 L 712 730 Q 512 572 312 730 Z"/></svg>',
 };
 
 /* Cómo se dice el estado de una terminal (los `WorkState` de lib/pty.ts), y
@@ -1745,10 +1816,94 @@ function nombreSugerido() {
   return navegador ? `${sistema} · ${navegador}` : sistema;
 }
 
+// ─── El cajón ───────────────────────────────────────────────────────────────
+/* La cabina en el bolsillo (Munir, 2026-10-15: «como la app de Claude, el
+   layout»). Como el cajón de esa app, sale por la izquierda y tapa lo demás:
+   arriba a dónde ir (el conserje, las terminales, las decisiones) y debajo lo
+   reciente, cada terminal con su punto de estado y cada conversación. Vive
+   fuera de #app, así que repintar una pantalla no lo cierra ni lo rehace; y
+   cerrado es `inert`, para que sus botones no se toquen ni se lean de fuera. */
+document.body.insertAdjacentHTML("beforeend", `<div class="cajon-velo" id="cajon-velo"></div><nav class="cajon" id="cajon" aria-label="Adeorq"></nav>`);
+const cajon = document.getElementById("cajon");
+cajon.inert = true;
+let delCajon = null;
+const botonCajon = () => `<button class="atras" id="abrir-cajon" aria-label="${tr("Abrir el menú")}">${ICONO.menu}</button>`;
+function montarBotonCajon() {
+  document.getElementById("abrir-cajon")?.addEventListener("click", () => abrirCajon());
+}
+function abrirCajon() {
+  if (!clave) return;
+  pintarCajon();
+  document.body.dataset.cajon = "";
+  cajon.inert = false;
+  Promise.all([
+    api("GET", "/api/terminales").catch((err) => ({ fallo: err.message })),
+    api("GET", "/api/lista").catch(() => []),
+    api("GET", "/api/decisiones").catch(() => null),
+  ]).then(([vt, lista, vd]) => {
+    delCajon = { vt, lista, decisiones: vd?.decisiones || [] };
+    if (document.body.dataset.cajon !== undefined) pintarCajon();
+  });
+}
+function cerrarCajon() {
+  delete document.body.dataset.cajon;
+  cajon.inert = true;
+}
+function pintarCajon() {
+  const d = delCajon || { vt: {}, lista: [], decisiones: [] };
+  const terminales = (d.vt.terminales || []).slice().sort((a, b) => Number(b.agente) - Number(a.agente) || a.panel - b.panel);
+  const esperan = vivas(d.decisiones).length;
+  const aqui = (vista, k) => e.vista === vista && (k === undefined || e.panel === k || e.id === k);
+  cajon.innerHTML = `
+    <div class="marca">${ICONO.logo}<b>Adeorq</b></div>
+    <div class="menu">
+      <button class="fila" data-ir="lista" aria-current="${aqui("lista") || aqui("hilo")}">${ICONO.chat}<b>${tr("Conserje")}</b></button>
+      <button class="fila" data-ir="terminales" aria-current="${aqui("terminales")}">${ICONO.terminal}<b>${tr("Terminales")}</b>${terminales.length ? `<span>${terminales.length}</span>` : ""}</button>
+      <button class="fila" data-ir="decisiones" aria-current="${aqui("decisiones") || aqui("decision")}">${ICONO.decision}<b>${tr("Decisiones")}</b>${esperan ? `<span class="cuenta-dec">${esperan}</span>` : ""}</button>
+    </div>
+    <div class="recientes">
+      ${terminales.length || d.lista.length ? `<h2 class="seccion"><span>${tr("Recientes")}</span></h2>` : ""}
+      ${terminales.map((t) => `<button class="fila" data-panel="${t.panel}" aria-current="${aqui("terminal", t.panel)}">${ICONO.terminal}<b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><i class="punto" data-tono="${estadoTerminal(t)[1]}"></i></button>`).join("")}
+      ${d.lista.slice(0, 12).map((f) => `<button class="fila" data-conv="${esc(f.id)}" aria-current="${aqui("hilo", f.id)}">${ICONO.chat}<b>${esc(f.titulo || tr("Conversación nueva"))}</b><span>${esc(hace(f.cuando))}</span></button>`).join("")}
+    </div>
+    <div class="pc"><i class="punto" ${d.vt.fallo ? "data-mal" : 'data-tono="trabajando"'}></i><span>${d.vt.fallo ? tr("Tu PC no contesta") : tr("Tu PC, conectado")}</span></div>
+    <button class="nuevo-encargo" id="nuevo-encargo">${ICONO.mas}${tr("Nuevo encargo")}</button>`;
+}
+cajon.addEventListener("click", (ev) => {
+  const b = ev.target.closest("button");
+  if (!b) return;
+  if (b.dataset.ir) return ir({ vista: b.dataset.ir });
+  if (b.dataset.panel) return ir({ vista: "terminal", panel: Number(b.dataset.panel), arranque: delCajon?.vt?.arranque });
+  if (b.dataset.conv) return ir({ vista: "hilo", id: b.dataset.conv });
+  if (b.id === "nuevo-encargo") {
+    ir({ vista: "lista" });
+    document.getElementById("decir")?.focus();
+  }
+});
+document.getElementById("cajon-velo").addEventListener("click", () => cerrarCajon());
+document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && document.body.dataset.cajon !== undefined) cerrarCajon(); });
+/* Deslizar desde el borde izquierdo lo abre y deslizar hacia la izquierda lo
+   cierra, como en la app de Claude. Solo con el móvil emparejado. */
+let dedoX = null;
+document.addEventListener("touchstart", (ev) => {
+  const x = ev.touches[0].clientX;
+  const abierto = document.body.dataset.cajon !== undefined;
+  dedoX = clave && (abierto || x < 24) && !["emparejar", "esperando"].includes(e.vista) ? x : null;
+}, { passive: true });
+document.addEventListener("touchend", (ev) => {
+  if (dedoX === null) return;
+  const dx = ev.changedTouches[0].clientX - dedoX;
+  const abierto = document.body.dataset.cajon !== undefined;
+  if (dx > 60 && !abierto) abrirCajon();
+  if (dx < -60 && abierto) cerrarCajon();
+  dedoX = null;
+}, { passive: true });
+
 /* `atras` dice por dónde entra la pantalla nueva: hacia delante por la
    derecha, de vuelta por la izquierda. Volver a la portada siempre es volver. */
 function ir(cambio, atras = cambio.vista === "lista") {
   clearTimeout(reloj);
+  cerrarCajon();
   e = { vista: cambio.vista, ...cambio };
   app.dataset.sentido = atras ? "atras" : "adelante";
   pintar();
@@ -1831,28 +1986,39 @@ function animoDeTodo(terminales, esperan) {
    siguen vivas y las terminales que te preguntan), debajo cómo va cada
    terminal, y al final lo hablado con el conserje. Antes había que entrar en
    «Tus terminales» y en «Decisiones» para saber si pasaba algo. */
+/** Adeo en la portada es grande: es quien te recibe y dice cómo va el PC de un vistazo. */
+const MASC_PORTADA = 72;
 async function pintarLista() {
   // Vuelve con el ánimo que tenía: si nace quieta y a los dos segundos se
   // entera de que te esperan, repetía el susto cada vez que volvías a la portada.
   const animoPortada = marchas.get("portada")?.animo || "quieta";
   app.innerHTML = `
     <div class="vista">
-      <header class="barra barra-portada"><span class="avatar avatar-m" id="masc-portada">${mascota(animoPortada, 34, "portada")}</span><h1>Adeorq<small id="yo">${tr("tu PC")}</small></h1></header>
+      <header class="barra">${botonCajon()}<h1>Adeorq</h1></header>
       <main class="cuerpo">
-        <div class="fila-caja decir" id="nueva">
-          <span class="avatar">${ICONO.chispa}</span>
-          <textarea id="decir" rows="1" placeholder="${tr("Dile al conserje qué hay que hacer")}" aria-label="${tr("Mensaje nuevo al conserje")}"></textarea>
-          <button class="enviar" id="decir-enviar" aria-label="${tr("Enviar al conserje")}" disabled>${ICONO.subir}</button>
+        <div class="saludo">
+          <span id="masc-portada">${mascota(animoPortada, MASC_PORTADA, "portada")}</span>
+          <h2>${tr("Buenas.")}</h2>
+          <p id="yo">${tr("tu PC")}</p>
         </div>
         <div id="reclaman"></div>
         <div id="portada-term"></div>
-        <button id="decisiones" class="nueva segunda"><span class="avatar">${ICONO.decision}</span>${tr("Decisiones")}<b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
-        <button id="terminales" class="nueva segunda"><span class="avatar">${ICONO.terminal}</span>${tr("Todas las terminales")}</button>
-        <div id="filas" data-rotulo="${tr("Recientes")}"></div>
+        <div class="atajos">
+          <button id="decisiones" class="segunda"><span class="avatar">${ICONO.decision}</span>${tr("Decisiones")}<b class="cuenta-dec" id="cuenta-dec" hidden></b></button>
+          <button id="terminales" class="segunda"><span class="avatar">${ICONO.terminal}</span>${tr("Terminales")}</button>
+        </div>
+        <div id="filas" data-rotulo="${tr("Conversaciones")}"></div>
         <button id="avisos" class="avisos" hidden></button>
         <button id="instalar" class="avisos" hidden>${tr("Instalar Adeorq como app en este aparato")}</button>
       </main>
+      <footer class="caja">
+        <div class="fila-caja decir" id="nueva">
+          <textarea id="decir" rows="1" placeholder="${tr("Dile al conserje qué hay que hacer")}" aria-label="${tr("Mensaje nuevo al conserje")}"></textarea>
+          <div class="mandos"><span class="avatar">${ICONO.chispa}</span><span class="hueco"></span><button class="enviar" id="decir-enviar" aria-label="${tr("Enviar al conserje")}" disabled>${ICONO.subir}</button></div>
+        </div>
+      </footer>
     </div>`;
+  montarBotonCajon();
   /* Al conserje se le escribe desde aquí mismo: antes esto era un botón que
      abría la conversación, y había que tocar otra vez para empezar a escribir.
      Lo que mandas abre su conversación ya con tu mensaje saliendo. */
@@ -1897,7 +2063,7 @@ async function pintarLista() {
     const nuevo = animoDeTodo(terminales, esperan.length);
     if (nuevo !== animo) {
       animo = nuevo;
-      document.getElementById("masc-portada").innerHTML = mascota(animo, 34, "portada");
+      document.getElementById("masc-portada").innerHTML = mascota(animo, MASC_PORTADA, "portada");
     }
     const yo = document.getElementById("yo");
     const trabajan = terminales.filter((t) => t.estado === "a_medias").length;
@@ -1928,7 +2094,7 @@ async function pintarLista() {
     document.getElementById("portada-term").innerHTML = vt.fallo
       ? `<h2 class="seccion"><span>${tr("Terminales")}</span></h2><p class="seccion-nota">${esc(vt.fallo)}</p>`
       : otras.length
-        ? `<h2 class="seccion"><span>${tr("Terminales")}</span></h2>${otras.slice(0, 5).map(filaTerminal).join("")}${otras.length > 5 ? `<p class="seccion-nota">${tr("y {n} más, en «Todas las terminales».", { n: otras.length - 5 })}</p>` : ""}`
+        ? `<h2 class="seccion"><span>${tr("En marcha")}</span></h2><div class="grupo">${otras.slice(0, 5).map(filaTerminal).join("")}${otras.length > 5 ? `<p class="seccion-nota">${tr("y {n} más, en «Terminales».", { n: otras.length - 5 })}</p>` : ""}</div>`
         : "";
     reclaman.querySelectorAll(".tarjeta[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volver: "lista" })));
     document.querySelectorAll("#reclaman [data-panel], #portada-term [data-panel]").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), arranque: vt.arranque, volver: "lista" })));
@@ -1959,7 +2125,7 @@ function pintarHiloEntero() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="${tr("Volver")}">${ICONO.atras}</button>
+        ${botonCajon()}
         <h1 id="titulo">${tr("Conserje")}<small id="sub">${tr("cargando…")}</small></h1>
       </header>
       <main class="cuerpo" id="hilo"></main>
@@ -1967,10 +2133,9 @@ function pintarHiloEntero() {
         <p class="aviso-mejora" id="aviso-mejora" hidden>${tr("Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.")}</p>
         <div class="adjuntos" hidden></div>
         <div class="fila-caja">
-          ${CLIP}
           <textarea id="texto" rows="1" placeholder="${tr("Dile qué hay que hacer")}" aria-label="${tr("Mensaje al conserje")}"></textarea>
-          <button class="enviar" id="enviar" aria-label="${tr("Enviar")}">${ICONO.subir}</button>
-        </div>
+          <div class="mandos">
+          ${CLIP}
         <div class="pastillas">
           <button class="pastilla" id="mejorar">${ICONO.chispa}<span>${tr("Mejorar")}</span></button>
           <label class="pastilla" title="${tr("Con qué piensa el conserje. Las sesiones que abre las elige el router.")}">${ICONO.chispa}<select id="cerebro" aria-label="${tr("Con qué modelo piensa el conserje")}">
@@ -1985,9 +2150,12 @@ function pintarHiloEntero() {
             <option value="opus">${tr("Sesiones: {m}", { m: "Claude Opus" })}</option>
           </select></label>
         </div>
+          <button class="enviar" id="enviar" aria-label="${tr("Enviar")}">${ICONO.subir}</button>
+          </div>
+        </div>
       </footer>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir({ vista: "lista" }));
+  montarBotonCajon();
   const texto = document.getElementById("texto");
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
   texto.addEventListener("input", () => {
@@ -2222,12 +2390,12 @@ async function pintarTerminales() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="${tr("Volver")}">${ICONO.atras}</button>
+        ${botonCajon()}
         <h1>${tr("Terminales")}<small>${tr("las que tienes abiertas en el PC")}</small></h1>
       </header>
       <main class="cuerpo" id="terminales"></main>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir({ vista: "lista" }));
+  montarBotonCajon();
   const cargar = async () => {
     const v = await api("GET", "/api/terminales");
     const aqui = document.getElementById("terminales");
@@ -2303,12 +2471,14 @@ async function pintarDecisiones() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="${tr("Volver")}">${ICONO.atras}</button>
+        ${e.volverPanel ? `<button class="atras" id="atras" aria-label="${tr("Volver")}">${ICONO.atras}</button>` : botonCajon()}
         <h1>${tr("Decisiones")}<small id="sub-dec">${tr("lo que te preguntan tus agentes")}</small></h1>
       </header>
       <main class="cuerpo" id="decisiones"></main>
     </div>`;
-  document.getElementById("atras").addEventListener("click", () => ir(e.volverPanel ? { vista: "terminal", panel: e.volverPanel, arranque: e.volverArranque } : { vista: "lista" }, true));
+  // Si llegaste desde una terminal, la flecha te devuelve a ella; si no, el menú.
+  document.getElementById("atras")?.addEventListener("click", () => ir({ vista: "terminal", panel: e.volverPanel, arranque: e.volverArranque }, true));
+  montarBotonCajon();
   // Solo se repinta si algo cambió: rehacerla cada cinco segundos reiniciaba
   // el latido de las vivas y te quitaba el toque a medio pulsar.
   let pintado = null;
@@ -2650,7 +2820,7 @@ function pintarTerminal() {
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
-        <button class="atras" id="atras" aria-label="${tr("Volver a las terminales")}">${ICONO.atras}</button>
+        ${botonCajon()}
         <h1 id="titulo">Terminal ${e.panel}<small id="sub">${tr("cargando…")}</small></h1>
         <nav class="pestanas" id="pestanas" hidden>
           <button class="pastilla" data-cara="conversa">Chat</button>
@@ -2668,23 +2838,25 @@ function pintarTerminal() {
         <p class="nota fallo" id="fallo" hidden></p>
         <div class="adjuntos" hidden></div>
         <div class="fila-caja">
-          ${CLIP}
-          <button class="abrir-teclas" id="abrir-teclas" type="button" aria-controls="teclas" aria-expanded="${teclasFuera}" aria-label="${tr("Teclas: Intro, Esc, Ctrl+C y cambiar de modo")}">${ICONO.teclas}</button>
           <textarea id="texto" rows="1" placeholder="${tr("Escríbele a esta terminal")}" aria-label="${tr("Texto para la terminal")}"></textarea>
-          <button class="enviar" id="enviar" aria-label="${tr("Enviar")}" disabled>${ICONO.subir}</button>
-        </div>
-        <div class="pastillas teclas" id="teclas"${teclasFuera ? "" : " hidden"}>
-          <button class="pastilla" data-tecla="intro">${tr("Intro")}</button>
-          <button class="pastilla" data-tecla="esc">Esc</button>
-          <button class="pastilla" data-tecla="ctrl+c">Ctrl+C</button>
-          <button class="pastilla" data-tecla="shift+tab" id="modo" title="${tr("Shift+Tab: pasa al siguiente modo de Claude Code")}">${tr("Cambiar modo")}</button>
-          <button class="pastilla" data-tecla="arriba" aria-label="${tr("Flecha arriba")}">↑</button>
-          <button class="pastilla" data-tecla="abajo" aria-label="${tr("Flecha abajo")}">↓</button>
+          <div class="pastillas teclas" id="teclas"${teclasFuera ? "" : " hidden"}>
+            <button class="pastilla" data-tecla="intro">${tr("Intro")}</button>
+            <button class="pastilla" data-tecla="esc">Esc</button>
+            <button class="pastilla" data-tecla="ctrl+c">Ctrl+C</button>
+            <button class="pastilla" data-tecla="shift+tab" id="modo" title="${tr("Shift+Tab: pasa al siguiente modo de Claude Code")}">${tr("Cambiar modo")}</button>
+            <button class="pastilla" data-tecla="arriba" aria-label="${tr("Flecha arriba")}">↑</button>
+            <button class="pastilla" data-tecla="abajo" aria-label="${tr("Flecha abajo")}">↓</button>
+          </div>
+          <div class="mandos">
+            ${CLIP}
+            <button class="abrir-teclas" id="abrir-teclas" type="button" aria-controls="teclas" aria-expanded="${teclasFuera}" aria-label="${tr("Teclas: Intro, Esc, Ctrl+C y cambiar de modo")}">${ICONO.teclas}</button>
+            <span class="hueco"></span>
+            <button class="enviar" id="enviar" aria-label="${tr("Enviar")}" disabled>${ICONO.subir}</button>
+          </div>
         </div>
       </footer>
     </div>`;
-  // Se vuelve a donde se entró: a la portada, o a la lista de todas.
-  document.getElementById("atras").addEventListener("click", () => ir({ vista: e.volver === "lista" ? "lista" : "terminales" }, true));
+  montarBotonCajon();
   // Como los botones de tecla, este no coge el foco: si estabas escribiendo,
   // el teclado sigue fuera y nada se mueve de sitio a mitad del toque.
   const abrirTeclas = document.getElementById("abrir-teclas");
@@ -2807,6 +2979,12 @@ function pintarTerminal() {
     el.hidden = !a;
     el.dataset.tipo = a?.tipo || "";
     el.innerHTML = ahoraHtml(a);
+    // Si te pregunta, la pregunta sube a la caja de escribir, encima del texto:
+    // es donde está tu dedo, y contestar es un toque. Si no, vuelve al pie del
+    // chat. Es el MISMO elemento: lo que tiene enganchado se va con él.
+    const fila = document.querySelector("#caja .fila-caja");
+    if (a?.tipo === "pregunta" && fila && el.parentElement !== fila) fila.prepend(el);
+    else if (a?.tipo !== "pregunta" && el.parentElement !== document.getElementById("conversa")) document.getElementById("conversa")?.append(el);
     // Solo al cambiar de estado llega desde abajo: que «26s» pase a «27s» no es llegar.
     if (cambiaDeTipo && a) { el.classList.remove("cambia"); void el.offsetWidth; el.classList.add("cambia"); }
   };

@@ -46,6 +46,8 @@ export interface Dispositivo {
   nombre: string;
   creado: number;
   visto: number;
+  /** Si ese móvil pidió avisos. */
+  avisos: boolean;
 }
 
 export interface EstadoMovil {
@@ -72,6 +74,15 @@ export interface Tailscale {
   /** Linux: tu usuario no puede tocar `serve` sin ser el operador. */
   denegado: boolean;
   salida: string;
+  /** Los móviles de tu red de Tailscale, los conectados primero. */
+  moviles: MovilEnTailscale[];
+}
+
+export interface MovilEnTailscale {
+  nombre: string;
+  en_linea: boolean;
+  /** La última vez que Tailscale lo vio, en segundos Unix; 0 si no lo dice. */
+  visto: number;
 }
 
 export const movilEstado = () => invoke<EstadoMovil>("movil_estado");

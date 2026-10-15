@@ -1034,3 +1034,35 @@ export function EnviarIcon({ size = 17 }: Props) {
     </svg>
   );
 }
+
+/** Este PC: la pantalla en su pie. */
+export function PcIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3" y="4.5" width="18" height="12" rx="2" />
+      <path d="M8.5 20h7M12 16.5V20" />
+    </svg>
+  );
+}
+
+/** Una red entre aparatos (Tailscale): tres nudos unidos. */
+export function RedIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="6" cy="12" r="2.4" />
+      <circle cx="18" cy="6" r="2.4" />
+      <circle cx="18" cy="18" r="2.4" />
+      <path d="M8.2 11l7.6-4M8.2 13l7.6 4" />
+    </svg>
+  );
+}
+
+/** El móvil: el marco con su botón abajo, el mismo de Ajustes. */
+export function MovilIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="6.6" y="2.6" width="10.8" height="18.8" rx="2.6" />
+      <path d="M10.6 18.2h2.8" />
+    </svg>
+  );
+}

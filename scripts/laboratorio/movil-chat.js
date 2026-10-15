@@ -151,11 +151,16 @@ async (page) => {
   debe(portada.reclaman.some((x) => /codex/.test(x)) && portada.reclaman.some((x) => /Diseño de la web/.test(x)), `arriba, lo que te reclama (${portada.reclaman})`);
   debe(portada.terminales.join("|") === "claude · Adeorq trabajando|claude · VoCript terminó|consola · Vidorq quieta", `cada terminal con su estado (${portada.terminales})`);
   debe(portada.animo === "espera", `la mascota de la portada te llama (${portada.animo})`);
-  // Y de ahí se entra a una terminal, y «atrás» vuelve a la portada.
+  // Y de ahí se entra a una terminal, y el cajón (como en la app de Claude)
+  // lleva de vuelta a la portada, con la terminal marcada como la de ahora.
   await page.click('#portada-term .fila-t[data-panel="1"]');
   await page.waitForSelector("#turnos .turno");
-  await page.click("#atras");
-  debe(await page.waitForSelector("#portada-term .fila-t", { timeout: 4000 }).then(() => true, () => false), "«atrás» desde una terminal abierta en la portada vuelve a la portada");
+  await page.click("#abrir-cajon");
+  await page.waitForSelector('#cajon .fila[data-panel="1"]');
+  debe(await page.$eval('#cajon .fila[data-panel="1"]', (b) => b.getAttribute("aria-current")) === "true", "el cajón marca la terminal en la que estás");
+  await page.click('#cajon [data-ir="lista"]');
+  debe(await page.waitForSelector("#portada-term .fila-t", { timeout: 4000 }).then(() => true, () => false), "el cajón vuelve a la portada desde una terminal");
+  debe(await page.evaluate(() => document.body.dataset.cajon === undefined && document.getElementById("cajon").inert), "y se cierra al ir");
 
   // 13. Al conserje se le escribe desde la portada: lo que mandas abre su
   //     conversación con tu mensaje ya saliendo, y él contesta ahí.

@@ -51,6 +51,17 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
 A la web van con `ffmpeg -i salida/en/x.png -compression_level 9 -pred mixed web/assets/screens/en/x.png`.
 El vídeo de `promo/` las coge de ahí con `pnpm capturas`.
 
+**Las dos del móvil** (`phone-home.png` y `phone-concierge.png`, la sección «En tu móvil» de la
+portada) no necesitan la casa de pruebas: son la página del móvil servida por un doble con el taller
+de Sam. Un comando las rehace en los dos idiomas, directas a `web/assets/screens`:
+
+```powershell
+node scripts/laboratorio/capturas/movil/fotos-movil.mjs
+```
+
+Lanza y para él mismo `movil/doble-sam.mjs` (4392 y 4393). Hay que repetirlas cada vez que
+`src-tauri/src/movil.html` cambia de cara.
+
 ## La demostración de la portada sale de aquí también
 
 La ventana que se puede tocar en la portada de adeorq.com (`web/demo/`) no es una maqueta: es el

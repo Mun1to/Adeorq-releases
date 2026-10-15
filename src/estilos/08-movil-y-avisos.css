@@ -1,19 +1,107 @@
-/* ── Ajustes > Móvil (`AjustesMovil.tsx`) ─────────────────────────────── */
-.movil-paso {
-  margin: 18px 0 4px;
+/* ── Ajustes > Móvil (`AjustesMovil.tsx`) ───────────────────────────────
+   Elegida por Munir el 2026-10-15 entre cuatro («la 1»): el estado en tres
+   filas (este PC, Tailscale, tu móvil) con su punto, el QR con sus dos pasos
+   al lado, y los emparejados debajo. Antes era texto suelto en verde y rojo,
+   con el QR lejos de su explicación. */
+
+/* El título y el interruptor en la misma línea. */
+.movil-cab {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 6px;
+}
+.movil-cab h2 {
+  margin: 0;
+}
+.movil-cab label {
+  display: flex;
+  margin-left: auto;
+}
+
+.movil-rotulo {
+  margin: 18px 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.movil-punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pastilla);
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+.movil-punto.ok {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent);
+}
+.movil-punto.falta {
+  background: var(--warn);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 20%, transparent);
+}
+
+/* Las tres filas del estado. */
+.movil-estado {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  overflow: hidden;
+}
+.movil-fila {
+  display: grid;
+  grid-template-columns: 18px 110px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--row) 35%, transparent);
+}
+.movil-fila + .movil-fila {
+  border-top: 1px solid var(--border);
+}
+.movil-fila > svg {
+  color: var(--muted);
+}
+.movil-fila-que {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text);
 }
-.movil-botones {
+.movil-fila-como {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.movil-fila-botones {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 8px 0;
+  gap: 6px;
+  justify-content: flex-end;
+}
+/* Lo que hay que hacer para arreglar la fila, o lo que contestó Tailscale. */
+.movil-fila-ayuda {
+  grid-column: 3 / -1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.movil-fila.falta {
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
+}
+.movil-fila.falta .movil-fila-como {
+  color: color-mix(in srgb, var(--warn) 80%, var(--text));
 }
 /* Lo que contestó Tailscale, tal cual: si pide activar algo, trae el enlace. */
 .movil-salida {
-  margin: 8px 0 0;
+  grid-column: 3 / -1;
+  margin: 0;
   padding: 10px 12px;
   max-height: 160px;
   overflow: auto;
@@ -25,51 +113,100 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Emparejar: el QR y, a su lado, los dos pasos. */
+.movil-emparejar {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  background: color-mix(in srgb, var(--row) 35%, transparent);
+}
+.movil-emparejar.sin-qr {
+  grid-template-columns: minmax(0, 1fr);
+}
+.movil-qr {
+  display: block;
+  width: 132px;
+  height: 132px;
+  border-radius: var(--r-chico);
+}
+.movil-pasos {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+.movil-pasos > li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+.movil-pasos > li > b {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-pastilla);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+}
+.movil-pasos > li > div {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+.movil-direccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 4px 5px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  background: color-mix(in srgb, var(--row) 70%, transparent);
+  font: 12.5px "Cascadia Mono", Consolas, monospace;
+}
+.movil-direccion code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* El código se lee desde el otro lado de la mesa, con el móvil en la mano. */
 .movil-codigo {
   display: flex;
   align-items: baseline;
-  gap: 16px;
-  margin: 10px 0;
-  padding: 14px 18px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: var(--r-caja);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  gap: 12px;
 }
 .movil-codigo strong {
-  font-size: 34px;
-  letter-spacing: 0.28em;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
   font-variant-numeric: tabular-nums;
   color: var(--text);
 }
 .movil-codigo span {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-/* La dirección en QR y su texto al lado; en una columna estrecha, uno encima de otro. */
-.movil-direccion {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-  margin: 8px 0;
-}
-.movil-direccion .card-hint {
-  flex: 1 1 220px;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.movil-qr {
-  width: 148px;
-  height: 148px;
-  flex: none;
-  border-radius: var(--r-chico);
-}
+
+/* Los móviles emparejados, cada uno en su caja. */
 .movil-lista {
   display: grid;
   gap: 6px;
-  margin: 6px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -77,13 +214,53 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  background: color-mix(in srgb, var(--row) 55%, transparent);
 }
-.movil-lista li:last-child { border-bottom: 0; }
-.movil-lista li > span { flex: 1; min-width: 0; display: grid; }
-.movil-lista strong { font-size: 13px; }
-.movil-lista em { font-size: 12px; font-style: normal; color: var(--muted); }
+.movil-lista li > svg {
+  flex: none;
+  color: var(--muted);
+}
+.movil-quien {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+.movil-lista strong {
+  font-size: 13.5px;
+}
+.movil-lista em {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--muted);
+}
+.movil-lista .movil-fila-botones {
+  margin-left: auto;
+}
+.movil-prueba {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* En una columna estrecha, cada fila se apila y el QR va encima de sus pasos. */
+@media (max-width: 760px) {
+  .movil-fila {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+  .movil-fila-como,
+  .movil-fila-botones,
+  .movil-fila-ayuda,
+  .movil-salida {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+  .movil-emparejar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 .setting-row span:first-child {
   flex: 1;

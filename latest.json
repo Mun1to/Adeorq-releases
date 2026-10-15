@@ -1,11 +1,11 @@
 {
-  "version": "0.9.204",
-  "notes": "Un aviso viejo del movil ya no abre otra terminal. Las terminales que abre un agente las cierra el agente que las abrio, con su rastro. La cuota de Copilot sale en Cuentas.",
-  "pub_date": "2026-10-15T03:48:20Z",
+  "version": "0.9.205",
+  "notes": "La app del movil cambia de cara: un cajon con todo lo vivo del PC, la caja de escribir en tarjeta y la pregunta del agente dentro de la caja. Ajustes > Movil pasa a tres filas de estado y dice si tu movil esta conectado a Tailscale.",
+  "pub_date": "2026-10-15T14:54:11Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzgyWTNKdWE4N1JzMWRISTFRcENnQWsyQ1Y5akNSQnRHVC9VbFFyQ1lBRHpWSGZpcnhxdVo0L3gzUml0Q0FWK0NmWEVjTjRRNnFIYkFYUlptb3VFK0FRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDM2MDk4CWZpbGU6QWRlb3JxXzAuOS4yMDRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDQKSjRuZW8vZXdmVXh0Z01YbGpCSUdCdytubzFmbG1tT3lQTW5JUytDVC9hV0tFaGNGZnFOWWlyWTNOcU81Y2FKeS9vNDFySEZyUkxvVTMxQjdOU3ZzQWc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.204/Adeorq_0.9.204_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlYOWN0SjVoUmNqUSt2SWx0Z3RjRk0zUUxib1E5UDUrbVAzdUNlQ1JlcHIyUTY4SmtwSTFhUU4zRitqSzRFbmFMbmJoNjlNTjFPTzhYRUZHZGpSSlF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMDc2MDQ5CWZpbGU6QWRlb3JxXzAuOS4yMDVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMDUKTU5nSmlXd2NRaTJYZWo5N3VSNFdBdVZvczhpUG5KdmdOOGZrMVpQNURGWXYxMFVtV1RuMmRQL25uMHdLTDdBWms1SDZUcktwQXhxM28zQlVEeHF4QWc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.205/Adeorq_0.9.205_x64-setup.exe"
     }
   }
 }

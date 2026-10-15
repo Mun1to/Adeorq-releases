@@ -60,7 +60,7 @@ async (page) => {
     const ARRANQUE = Date.now();
     const movil = {
       encendido: false, sirviendo: false, despierto: false, avisos: 1, puerto: 3013, codigo: null,
-      dispositivos: [{ id: "a1b2c3d4", nombre: "Android", creado: ahora - 86400, visto: ahora - 600 }],
+      dispositivos: [{ id: "a1b2c3d4", nombre: "Android", creado: ahora - 86400, visto: ahora - 600, avisos: true }],
     };
 
     const llamadas = [];
@@ -252,14 +252,20 @@ async (page) => {
         // `window.__ts` antes de abrir la sección: "falta", "sin-sesion",
         // "ajeno" (otra cosa en su puerto), "denegado" (Linux sin operador) o nada:
         // conectado; la primera vez que se lleva pide activar HTTPS y no pone
-        // nada, y la segunda ya queda puesto.
+        // nada, y la segunda ya queda puesto. El móvil de la red se elige con
+        // `window.__tsMovil`: "apagado" (visto hace tres días), "ninguno" o nada
+        // (conectado).
         case "movil_estado": return JSON.parse(JSON.stringify(movil));
         case "movil_encender": movil.encendido = movil.sirviendo = movil.despierto = args.encendido; return JSON.parse(JSON.stringify(movil));
         case "movil_emparejar": movil.codigo = { valor: "482913", quedan: 600 }; return movil.codigo;
         case "movil_avisar": return movil.avisos;
         case "movil_olvidar": movil.dispositivos = movil.dispositivos.filter((d) => d.id !== args.id); return JSON.parse(JSON.stringify(movil));
         case "movil_tailscale": {
-          const base = { instalado: true, conectado: true, llevado: false, direccion: "https://portatil-munito.tail4c2e1.ts.net:8443", ajeno: null, denegado: false, salida: "" };
+          const moviles =
+            window.__tsMovil === "ninguno" ? []
+            : window.__tsMovil === "apagado" ? [{ nombre: "Pixel de Munito", en_linea: false, visto: Math.floor(Date.now() / 1000) - 3 * 86400 }]
+            : [{ nombre: "Pixel de Munito", en_linea: true, visto: 0 }];
+          const base = { instalado: true, conectado: true, llevado: false, direccion: "https://portatil-munito.tail4c2e1.ts.net:8443", ajeno: null, denegado: false, salida: "", moviles };
           if (window.__ts === "falta") return { ...base, instalado: false, conectado: false, direccion: null };
           if (window.__ts === "sin-sesion") return { ...base, conectado: false, direccion: null };
           if (window.__ts === "ajeno") return tarde(700, { ...base, ajeno: "/ → http://127.0.0.1:5173" });

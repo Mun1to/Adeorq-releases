@@ -57,14 +57,37 @@ async (page) => {
   const limpiar = de("Parados").find((f) => f.nombre === "Limpiar el scratchpad");
   debe(limpiar && /apagado/.test(limpiar.debajo) && !limpiar.mal, `el apagado sale como apagado (${JSON.stringify(limpiar)})`);
 
-  await ir("uso", "#uso .fila-term");
-  pasos.uso = await leer();
-  const u = pasos.uso.apartados[0]?.filas ?? [];
-  const c = (n) => u.find((f) => f.nombre === n);
-  debe(pasos.uso.ancho, "Uso no se sale de la pantalla");
-  debe(c("Principal")?.barra === "37%" && c("Principal")?.cifra === "37 %" && !c("Principal")?.alto, `la que dice su gasto lleva su raya y su cifra (${JSON.stringify(c("Principal"))})`);
-  debe(c("CCC")?.alto, "la que va por encima del 78 % sale en naranja");
-  debe(c("Codex") && !c("Codex").barra && /no dice cuánto lleva/.test(c("Codex").debajo), `la que no dice su gasto no se lo inventa (${JSON.stringify(c("Codex"))})`);
-  debe(c("Gemini")?.mal && /sin sesión/.test(c("Gemini").debajo) && !c("Gemini").barra, `la que no tiene sesión lo dice (${JSON.stringify(c("Gemini"))})`);
+  // Uso, en baterías (2026-10-16, «la 2»): una tarjeta por cuenta, la más
+  // gastada arriba, con su cifra grande y una barra por ventana que dice
+  // cuándo se renueva; las que no dicen su gasto, juntas al final.
+  await ir("uso", "#uso .bat");
+  pasos.uso = await page.evaluate(() => ({
+    ancho: document.querySelector(".cuerpo").scrollWidth <= document.querySelector(".cuerpo").clientWidth + 1,
+    baterias: [...document.querySelectorAll("#uso .bat")].map((b) => ({
+      nombre: b.querySelector(".bat-cab b").firstChild.textContent,
+      sub: b.querySelector(".bat-cab small").textContent,
+      cifra: b.querySelector(".cifra").textContent,
+      tono: b.dataset.tono,
+      ventanas: [...b.querySelectorAll(".bat-v")].map((v) => ({
+        barra: v.querySelector(".barra-g i").style.getPropertyValue("--p"),
+        dice: v.querySelector("small span").textContent,
+        renueva: v.querySelector("small span:last-child").textContent,
+        tono: v.dataset.tono,
+      })),
+    })),
+    sinDato: [...document.querySelectorAll("#uso .sin-dato li")].map((l) => ({ texto: l.textContent, mal: !!l.querySelector("[data-mal]") })),
+  }));
+  const u = pasos.uso;
+  const b = (n) => u.baterias.find((x) => x.nombre === n);
+  debe(u.ancho, "Uso no se sale de la pantalla");
+  debe(JSON.stringify(u.baterias.map((x) => x.nombre)) === JSON.stringify(["CCC", "Principal"]), `la más gastada arriba (${u.baterias.map((x) => x.nombre)})`);
+  const ccc = b("CCC");
+  debe(ccc?.cifra === "91 %" && ccc?.tono === "mal" && ccc?.sub === "Claude Code · pro", `CCC con su cifra en rojo (${JSON.stringify(ccc)})`);
+  debe(ccc?.ventanas[0]?.dice === "las 5 horas · 91 %" && /^se renueva en (39|40) min$/.test(ccc?.ventanas[0]?.renueva ?? ""), `su ventana de 5 horas dice cuándo se renueva (${JSON.stringify(ccc?.ventanas[0])})`);
+  debe(ccc?.ventanas[1]?.dice === "la semana · Fable · 64 %" && /^se renueva el lunes$/.test(ccc?.ventanas[1]?.renueva ?? ""), `y la de la semana de un modelo (${JSON.stringify(ccc?.ventanas[1])})`);
+  const pri = b("Principal");
+  debe(pri?.cifra === "52 %" && pri?.tono === "bien" && pri?.ventanas[0]?.barra === "37%" && /^se renueva en 2 h$/.test(pri?.ventanas[0]?.renueva ?? ""), `Principal, en azul y con sus dos ventanas (${JSON.stringify(pri)})`);
+  debe(u.sinDato.some((x) => /Codex/.test(x.texto) && /no dice cuánto lleva/.test(x.texto) && !x.mal), `la que no dice su gasto va al final sin inventárselo (${JSON.stringify(u.sinDato)})`);
+  debe(u.sinDato.some((x) => /Gemini/.test(x.texto) && /sin sesión/.test(x.texto) && x.mal), `la que no tiene sesión lo dice (${JSON.stringify(u.sinDato)})`);
   return { pasos, fallos };
 }

@@ -88,7 +88,7 @@ import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
 import { sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
-import { nivelDeContexto, useContextoDeSesion, useTraspaso } from "../lib/contexto";
+import { nivelDeContexto, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
 import { useNombreSolo } from "../lib/nombreSolo";
 import { archivoDelDiff } from "../lib/diffEspejo";
 import { estadoDelPanel, loginSegun, parseAsk, pieDePantalla, type Ask } from "../lib/reglasPantalla";
@@ -2172,6 +2172,7 @@ export default function TerminalPane({
   // `esClaude`: solo Claude Code entiende `/fin`; en Codex o Gemini va el texto de la casa.
   const traspaso = useTraspaso({ id, t, avisoCtx, setCtxVisto, onNueva: onNuevaConTraspaso, esClaude: /\bclaude\b/i.test((command ?? []).join(" ")) });
   traspasoRef.current = traspaso.alSonarCampana;
+  useTraspasoDelMovil(id, traspaso);
 
   // Reanimar una sesión PASADA DE TAMAÑO es volver a cargarle los mismos
   // tokens que la ahogaron: se cuelga otra vez en cuanto respira. A partir

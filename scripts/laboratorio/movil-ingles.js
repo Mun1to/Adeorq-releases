@@ -154,8 +154,7 @@ async (page) => {
     const sub = await page.textContent("#sub");
     debe(/auto mode/.test(sub), `el modo, en inglés («${sub}»)`);
     await mirar("terminal 1 chat");
-    if (await page.$eval("#teclas", (t) => t.hidden)) await page.click("#abrir-teclas");
-    await mirar("terminal 1 teclas");
+    await mirar("terminal 1 mandos");
     await page.click('.pestanas .pastilla[data-cara="pantalla"]');
     await page.waitForSelector("#nota-pantalla:not([hidden])");
     await mirar("terminal 1 pantalla");

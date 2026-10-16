@@ -140,16 +140,14 @@ async (page) => {
 
   // 8. El modo de Claude Code, con Shift+Tab.
   await page.goto(`${B}/#terminal=1@111`);
-  await page.waitForFunction(() => /Modo/.test(document.getElementById("modo")?.textContent || ""));
-  // Las teclas van plegadas: el botón del modo está en esa fila.
-  if (await page.$eval("#teclas", (t) => t.hidden)) await page.click("#abrir-teclas");
+  await page.waitForFunction(() => /auto/.test(document.getElementById("modo")?.textContent || ""));
   r.modos = [await page.textContent("#modo")];
   await page.click("#modo");
-  await page.waitForFunction(() => document.getElementById("modo")?.textContent.includes("Cambiar modo"), null, { timeout: 6000 });
+  await page.waitForFunction(() => document.getElementById("modo")?.textContent.includes("Modo ⇄"), null, { timeout: 6000 });
   r.modos.push(await page.textContent("#modo"));
   await page.click("#modo");
   await page.waitForFunction(() => /aceptar/.test(document.getElementById("modo")?.textContent || ""), null, { timeout: 6000 });
   r.modos.push(await page.textContent("#modo"));
-  debe(r.modos.join("|") === "Modo: auto ⇄|Cambiar modo|Modo: aceptar ediciones ⇄", `el modo pasa de auto a normal y a aceptar ediciones (${r.modos})`);
+  debe(r.modos.join("|") === "auto ⇄|Modo ⇄|aceptar ediciones ⇄", `el modo pasa de auto a normal y a aceptar ediciones (${r.modos})`);
   return { fallos, r };
 }

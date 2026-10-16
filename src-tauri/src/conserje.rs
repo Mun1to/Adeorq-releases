@@ -316,7 +316,9 @@ fn cambiar<T>(id: &str, f: impl FnOnce(&mut Conversacion) -> T) -> Result<T, Str
 
 /// Todas las conversaciones, la más reciente primero, sin sus turnos: para la
 /// lista de la izquierda no hace falta leer cien mil caracteres de cada una.
-pub fn lista() -> Vec<(String, String, u64, usize)> {
+/// Cada una con el id, el título, su último turno, cuántas sesiones abrió y
+/// la carpeta de la última (el móvil la cuelga de ese proyecto).
+pub fn lista() -> Vec<(String, String, u64, usize, String)> {
     let Ok(dir) = crate::dir_datos().map(|d| d.join("conserje")) else { return Vec::new() };
     let Ok(ficheros) = std::fs::read_dir(&dir) else { return Vec::new() };
     let mut fuera = Vec::new();
@@ -339,7 +341,8 @@ pub fn lista() -> Vec<(String, String, u64, usize)> {
             continue;
         }
         let ultimo = c.turnos.last().map(|t| t.cuando).unwrap_or(c.creada);
-        fuera.push((c.id, c.titulo, ultimo, c.trabajos.len()));
+        let carpeta = c.trabajos.last().map(|w| w.carpeta.clone()).unwrap_or_default();
+        fuera.push((c.id, c.titulo, ultimo, c.trabajos.len(), carpeta));
     }
     fuera.sort_by(|a, b| b.2.cmp(&a.2));
     fuera
@@ -1057,13 +1060,16 @@ pub struct Ficha {
     pub titulo: String,
     pub cuando: u64,
     pub trabajos: usize,
+    /// La carpeta de su última sesión: el proyecto del que cuelga en el móvil.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub carpeta: String,
 }
 
 #[tauri::command(async)]
 pub fn conserje_lista() -> Vec<Ficha> {
     lista()
         .into_iter()
-        .map(|(id, titulo, cuando, trabajos)| Ficha { id, titulo, cuando, trabajos })
+        .map(|(id, titulo, cuando, trabajos, carpeta)| Ficha { id, titulo, cuando, trabajos, carpeta })
         .collect()
 }
 

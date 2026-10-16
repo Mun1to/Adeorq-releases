@@ -66,6 +66,7 @@ let yaFallo = false;
 // otro acento. Con `FONDO=<ruta de una foto>` la foto es esa.
 let avisosPrefs = { preguntas: true, terminadas: true, programados: true, silencio: false };
 let olvidado = false;
+const traspasos = [];
 let aspecto = { acento: "#4d9fff", opacidad: 60, desenfoque: 0, foto: null };
 if (process.env.FONDO) aspecto.foto = { tipo: /\.jpe?g$/i.test(process.env.FONDO) ? "image/jpeg" : "image/png", bytes: fs.readFileSync(process.env.FONDO), version: "fondo-de-fuera" };
 
@@ -115,12 +116,12 @@ function pngDegradado(ancho, alto) {
 
 // Las terminales de la Cabina, como las devuelve `atenderTerminal` de `lib/movil.ts`.
 const terminales = [
-  { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "opus", estado: "a_medias", sesion: "s-1" },
+  { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "opus", estado: "a_medias", sesion: "s-1", contexto: 64 },
   { panel: 2, nombre: "codex", carpeta: "C:\\proyectos\\crypto\\radar-bot", agente: true, modelo: "gpt-5.6-terra", estado: "pregunta", sesion: "s-2" },
   { panel: 3, nombre: "consola", carpeta: "C:\\proyectos\\Vidorq", agente: false, modelo: null, estado: "", sesion: null },
-  { panel: 4, nombre: "claude", carpeta: "C:\\proyectos\\Webs", agente: true, modelo: "sonnet", estado: "pregunta", sesion: "s-4" },
+  { panel: 4, nombre: "claude", carpeta: "C:\\proyectos\\Webs", agente: true, modelo: "sonnet", estado: "pregunta", sesion: "s-4", contexto: 83 },
   // Una que ya terminó: en el chat, la mascota lo celebra.
-  { panel: 5, nombre: "claude", carpeta: "C:\\proyectos\\VoCript", agente: true, modelo: "sonnet", estado: "lista", sesion: "s-5" },
+  { panel: 5, nombre: "claude", carpeta: "C:\\proyectos\\VoCript", agente: true, modelo: "sonnet", estado: "lista", sesion: "s-5", contexto: 30 },
 ];
 // La raya de lado a lado de Claude Code mide lo que el panel del PC: 78 columnas.
 const RAYA = "─".repeat(78);
@@ -147,6 +148,8 @@ const pantallas = new Map([
   [3, [...Array.from({ length: 150 }, (_, i) => `   Compiling crate-numero-${i} v0.${i}.0 (C:\\Users\\Muni\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\crate-${i})`), "PS C:\\proyectos\\Vidorq> "]],
 ]);
 const terminalDe = (panel) => terminales.find((t) => t.panel === Number(panel));
+// El programa de cada una, como lo saca la ventana de su orden de arranque.
+const cliDe = (t) => (t.nombre === "consola" ? "shell" : t.nombre);
 // Como `mismo_arranque` (movil.rs): sin arranque es una página de antes de
 // actualizar, y con el de otro día, otra terminal con el mismo número.
 const deOtroArranque = (a) => a == null || a === ""
@@ -403,7 +406,7 @@ http
         case "/api/avisos-guardados":
           return json(res, 200, { avisos: avisosPrefs, olvidado });
         case "/api/lista":
-          return json(res, 200, [...convs.values()].filter((c) => c.turnos.length).map((c) => ({ id: c.id, titulo: c.titulo, cuando: c.turnos.at(-1).cuando, trabajos: c.trabajos.length })));
+          return json(res, 200, [...convs.values()].filter((c) => c.turnos.length).map((c) => ({ id: c.id, titulo: c.titulo, cuando: c.turnos.at(-1).cuando, trabajos: c.trabajos.length, ...(c.trabajos.length ? { carpeta: c.trabajos.at(-1).carpeta } : {}) })));
         case "/api/conversacion": {
           const c = nueva(id);
           return json(res, 200, { conversacion: c, vivo: { estados: estadosDe(c), sesiones: {}, en_curso: enCurso.get(id) ?? null } });
@@ -441,15 +444,22 @@ http
           });
         // Como la ventana (`atenderPedido`, clase «uso»): una que dice su
         // gasto, una casi llena, una que no lo dice y una sin sesión.
-        case "/api/uso":
+        // Con las ventanas de cada cuenta, como `ventanasDe` (lib/movil.ts): la
+        // de Principal se renueva en dos horas y su semana el próximo lunes.
+        case "/api/uso": {
+          const hora = 3_600_000;
+          const lunes = (() => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); d.setHours(9, 0, 0, 0); return d.getTime(); })();
           return json(res, 200, {
             cuentas: [
-              { nombre: "Principal", programa: "Claude Code", agente: true, instalada: true, conectada: true, gastado: 37, plan: "max" },
-              { nombre: "CCC", programa: "Claude Code", agente: true, instalada: true, conectada: true, gastado: 91, plan: "pro" },
+              { nombre: "Principal", programa: "Claude Code", agente: true, instalada: true, conectada: true, gastado: 52, plan: "max",
+                ventanas: [{ clave: "sesión", modelo: null, gastado: 37, renueva: Date.now() + 2 * hora + 60_000 }, { clave: "semana", modelo: null, gastado: 52, renueva: lunes }] },
+              { nombre: "CCC", programa: "Claude Code", agente: true, instalada: true, conectada: true, gastado: 91, plan: "pro",
+                ventanas: [{ clave: "sesión", modelo: null, gastado: 91, renueva: Date.now() + 40 * 60_000 }, { clave: "semana", modelo: "Fable", gastado: 64, renueva: lunes }] },
               { nombre: "Codex", programa: "Codex", agente: true, instalada: true, conectada: true, gastado: null, plan: null },
               { nombre: "Gemini", programa: "Gemini CLI", agente: true, instalada: true, conectada: false, gastado: null, plan: null },
             ],
           });
+        }
         case "/api/cerebro":
           if (!["haiku", "sonnet", "opus"].includes(v.cerebro)) return json(res, 400, { error: "No es de la lista." });
           nueva(id).cerebro = v.cerebro;
@@ -479,7 +489,47 @@ http
           const otro = deOtroArranque(url.searchParams.get("arranque"));
           if (otro) return json(res, otro[0], { error: otro[1] });
           const linea = MODOS[modo.get(t.panel) ?? 0];
-          return json(res, 200, { ...t, filas: [...(pantallas.get(t.panel) || []), ...(linea ? [linea] : [])] });
+          // Como la ventana (`lib/movil.ts`): qué programa es, a qué modelos se
+          // cambia en marcha y si tiene modos. Codex no cambia de modelo en vivo.
+          const cli = cliDe(t);
+          const modelos = cli === "claude" ? ["haiku", "sonnet", "opus", "fable"].map((a) => ({ alias: a, nombre: a[0].toUpperCase() + a.slice(1) })) : [];
+          const filas = [...(pantallas.get(t.panel) || []), ...(linea ? [linea] : [])];
+          // Las de agente, con color como las manda la ventana (`historiaConColor`):
+          // el «●» de cada paso en verde y su nombre en negrita, lo de debajo tenue,
+          // el giro en ámbar y el «❯» en azul. Y en pantalla alternativa.
+          const trozos = cli === "claude" ? filas.map((f) => {
+            if (/^● /.test(f)) return [["●", "#4eba65", 0], [f.slice(1), "", 1]];
+            if (/^\s+⎿/.test(f)) return [[f, "#999999", 2]];
+            if (/^· /.test(f)) return [[f, "#ffc107", 0]];
+            if (/^❯/.test(f)) return [["❯", "#b1b9f9", 0], [f.slice(1), "", 0]];
+            return [[f, "", 0]];
+          }) : undefined;
+          return json(res, 200, { ...t, cli, modelos, modos: cli === "claude", alterna: t.agente, filas, ...(trozos ? { trozos } : {}) });
+        }
+        // Como la ventana: lo hace el panel del PC; aquí se apunta para el banco.
+        case "/api/terminal/traspaso": {
+          if (!["compactar", "nueva"].includes(v.que)) return json(res, 400, { error: "Eso no se le pide a una terminal." });
+          const otro = deOtroArranque(v.arranque);
+          if (otro) return json(res, otro[0], { error: otro[1] });
+          const t = terminalDe(v.panel);
+          if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
+          traspasos.push(`${t.panel}:${v.que}`);
+          return json(res, 202, { ok: true });
+        }
+        // Solo del banco: lo que se pidió compactar o rehacer.
+        case "/api/traspasos":
+          return json(res, 200, traspasos);
+        case "/api/terminal/modelo": {
+          if (!["haiku", "sonnet", "opus", "fable"].includes(v.modelo)) return json(res, 400, { error: "Ese modelo no se pide desde el móvil." });
+          const otro = deOtroArranque(v.arranque);
+          if (otro) return json(res, otro[0], { error: otro[1] });
+          const t = terminalDe(v.panel);
+          if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
+          if (cliDe(t) !== "claude") return json(res, 409, { error: "Esta terminal no cambia de modelo en marcha." });
+          t.modelo = v.modelo;
+          pantallas.get(t.panel)?.push(`❯ /model ${v.modelo}`, `  ⎿  Set model to ${v.modelo}`);
+          console.log(`modelo en ${t.panel}: ${v.modelo}`);
+          return json(res, 202, { ok: true });
         }
         case "/api/terminal/escribir": {
           const t = terminalDe(v.panel);
@@ -501,7 +551,7 @@ http
         case "/api/escrito":
           return json(res, 200, { texto: escrito.get(Number(url.searchParams.get("panel"))) ?? null });
         case "/api/terminal/tecla": {
-          if (!["intro", "esc", "ctrl+c", "shift+tab", "arriba", "abajo"].includes(v.tecla)) return json(res, 400, { error: "Esa tecla no se manda desde el móvil." });
+          if (!["esc", "shift+tab"].includes(v.tecla)) return json(res, 400, { error: "Esa tecla no se manda desde el móvil." });
           const otro = deOtroArranque(v.arranque);
           if (otro) return json(res, otro[0], { error: otro[1] });
           const f = pantallas.get(Number(v.panel));
@@ -548,6 +598,7 @@ http
         case "/api/sembrar-decision":
           decisiones.push({
             id: v.id, titulo: v.titulo, proyecto: v.proyecto, panel: v.panel, arranque: ARRANQUE, creada: Date.now(),
+            contexto: v.contexto,
             preguntas: v.preguntas ?? [{ id: "A", titulo: "¿Sí o no?", opciones: [{ texto: "Sí" }, { texto: "No" }] }],
           });
           return json(res, 200, { ok: true });

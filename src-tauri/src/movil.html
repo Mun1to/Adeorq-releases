@@ -199,7 +199,7 @@
      arrastrar la vista entera de lado (Munir, 2026-10-15). */
   /* `relative` también aquí, de red: todo lo que vaya en posición absoluta
      dentro de la lista se desliza con ella y nunca estira la página. */
-  .cuerpo { position: relative; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 16px 24px; overscroll-behavior: contain; min-height: 0; }
+  .cuerpo { position: relative; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 16px 24px; overscroll-behavior: contain; min-height: 0; overflow-wrap: anywhere; }
   .cuerpo[hidden] { display: none; }
 
   /* ── 4. Piezas sueltas ── */
@@ -278,10 +278,25 @@
   .punto[data-tono="hecho"] { background: var(--vivo); opacity: 1; }
   .punto[data-tono="mal"] { background: var(--mal); opacity: 1; }
   /* Lo gastado de una cuenta: una raya fina bajo su nombre. */
-  .uso-barra { height: 4px; margin-top: 6px; border-radius: var(--r-pastilla); background: var(--capa-fuerte); overflow: hidden; }
-  .uso-barra i { display: block; height: 100%; width: var(--p); border-radius: inherit; background: var(--acento); }
-  .uso-barra[data-alto] i { background: var(--termino); }
-  .fila-term .uso-cifra { flex: none; font-size: calc(13px * var(--z)); font-weight: 650; font-variant-numeric: tabular-nums; color: var(--tinta); }
+  /* Uso: una batería por cuenta, la cifra grande y una barra gruesa por ventana. */
+  .bat { display: grid; gap: 10px; padding: 13px 14px 14px; margin: 0 0 12px; border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); box-shadow: var(--brillo); }
+  .bat-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .bat-cab b { display: grid; gap: 1px; min-width: 0; font-size: calc(16px * var(--z)); font-weight: 650; }
+  .bat-cab small { font-size: calc(12.5px * var(--z)); font-weight: 400; color: var(--suave); }
+  .bat-cab .cifra { flex: none; font-size: calc(28px * var(--z)); font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; color: var(--tinta); }
+  .bat[data-tono="alto"] .cifra { color: var(--termino); }
+  .bat[data-tono="mal"] .cifra { color: var(--mal); }
+  .bat-v { display: grid; gap: 5px; }
+  .barra-g { display: block; height: 12px; border-radius: var(--r-pastilla); background: var(--hondo); overflow: hidden; }
+  .barra-g i { display: block; height: 100%; width: var(--p); border-radius: inherit; background: var(--acento); }
+  .bat-v[data-tono="alto"] .barra-g i { background: var(--termino); }
+  .bat-v[data-tono="mal"] .barra-g i { background: var(--mal); }
+  .bat-v small { display: flex; justify-content: space-between; gap: 10px; font-size: calc(12.5px * var(--z)); color: var(--suave); }
+  .sin-dato { list-style: none; margin: 0; padding: 10px 14px; display: grid; gap: 8px; border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); }
+  .sin-dato li { display: grid; gap: 1px; }
+  .sin-dato b { font-size: calc(14.5px * var(--z)); font-weight: 600; }
+  .sin-dato span { font-size: calc(12.5px * var(--z)); color: var(--suave); }
+  .sin-dato span[data-mal] { color: var(--mal); }
 
   /* ── 5. El cajón: la cabina, con todo lo vivo de tu PC ── */
   .cajon-velo { position: fixed; inset: 0; z-index: 20; background: var(--velo); opacity: 0; pointer-events: none; transition: opacity var(--t-lenta); }
@@ -540,24 +555,59 @@
     background: color-mix(in srgb, var(--pregunta) 12%, var(--capa)); color: var(--tinta); font: inherit; font-size: calc(13.5px * var(--z));
     text-align: left; cursor: pointer;
   }
+  /* El contexto de la terminal, arriba a la derecha (Munir, 2026-10-16: «que
+     muestre el contexto arriba, eso es muy importante»): un anillo con su
+     porcentaje, en el color del aviso del PC (`nivelDeContexto`: 60 y 80). */
+  .ctx {
+    grid-column: 3; grid-row: 1; justify-self: center; width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center; font-size: calc(11px * var(--z)); font-weight: 750; font-variant-numeric: tabular-nums; color: var(--tinta);
+    --c: var(--acento);
+    background: radial-gradient(closest-side, var(--cristal) 74%, transparent 75% 100%), conic-gradient(var(--c) var(--p, 0%), var(--hondo) 0);
+  }
+  .ctx[data-nivel="1"] { --c: var(--termino); }
+  .ctx[data-nivel="2"] { --c: var(--mal); color: var(--mal); }
+  /* El aviso de compactar, como el de las decisiones, con sus botones. */
+  .aviso-ctx {
+    display: grid; gap: 8px; margin: 10px 12px 0; padding: 11px 14px;
+    border-radius: var(--r-btn); border: 1px solid color-mix(in srgb, var(--termino) 45%, transparent);
+    background: color-mix(in srgb, var(--termino) 12%, var(--capa)); font-size: calc(13.5px * var(--z));
+  }
+  .aviso-ctx[data-nivel="2"] { border-color: color-mix(in srgb, var(--mal) 50%, transparent); background: color-mix(in srgb, var(--mal) 12%, var(--capa)); }
+  .aviso-ctx .botones { display: flex; flex-wrap: wrap; gap: 8px; }
+  .aviso-ctx button {
+    min-height: 36px; padding: 0 14px; border-radius: var(--r-pastilla); border: 1px solid var(--borde-fuerte);
+    background: var(--capa-fuerte); color: var(--tinta); font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .aviso-ctx button[data-traspaso] { background: var(--tinta); color: var(--fondo); border-color: transparent; }
+  .aviso-ctx button:disabled { opacity: 0.55; cursor: default; }
   .aviso-dec svg { flex: none; color: var(--pregunta); }
   .aviso-dec span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .aviso-dec b { font-weight: 650; }
   .aviso-dec em { flex: none; font-style: normal; font-weight: 650; color: var(--pregunta); }
   /* Una sola cosa hace scroll, el `.cuerpo`, y la letra se ajusta al ancho del
      móvil: con `pre` sin ajustar, una línea de 77 columnas no cabía en 390 px. */
+  /* A todo el ancho y sin recuadro (2026-10-16): el marco entero es la terminal. */
+  #marco { padding: 0; background: var(--pantalla); }
   .pantalla {
-    margin: 0; padding: 12px 14px; border-radius: var(--r-caja); border: 1px solid var(--borde);
-    background: var(--pantalla); color: #d6e2f5;
-    font: calc(12.5px * var(--z))/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere;
+    margin: 0; padding: 12px 12px 16px; color: #d6e2f5;
+    font: calc(12px * var(--z))/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere;
   }
+  .pantalla .b { font-weight: 700; }
+  .pantalla .d { opacity: 0.6; }
+  /* La caja donde se escribe, resaltada abajo; la barra de estado, más tenue. */
+  .pantalla .entrada {
+    margin: 10px 0 6px; padding: 7px 10px; border-radius: 12px;
+    background: rgba(77, 159, 255, 0.14); border: 1px solid rgba(77, 159, 255, 0.35);
+  }
+  .pantalla .pie-term { opacity: 0.75; }
   /* Cada línea en su caja, y lo que no cabe sigue con sangría. */
   .pantalla .l { display: block; padding-left: 2ch; text-indent: -2ch; min-height: 1.45em; }
   /* Las rayas de lado a lado de Claude Code se pintan como una línea del ancho que haya. */
   .pantalla .regla { background: linear-gradient(rgba(150, 185, 240, 0.3), rgba(150, 185, 240, 0.3)) center / 100% 1px no-repeat; }
   .pantalla .regla-titulo { display: flex; align-items: center; gap: 8px; padding-left: 0; text-indent: 0; color: #93a4c2; }
   .pantalla .regla-titulo::before, .pantalla .regla-titulo::after { content: ""; flex: 1; min-width: 12px; border-top: 1px solid rgba(150, 185, 240, 0.3); }
-  .nota-pantalla { margin: 0 0 10px; font-size: calc(13px * var(--z)); color: var(--suave); }
+  /* Sobre el fondo de la terminal, que es oscuro también en el tema claro. */
+  .nota-pantalla { margin: 10px 12px 0; font-size: calc(12.5px * var(--z)); color: #93a4c2; }
   .nota-pantalla button { padding: 0; border: 0; background: none; color: var(--acento); font: inherit; text-decoration: underline; cursor: pointer; }
   .bajar {
     position: absolute; right: 16px; bottom: calc(100% + 10px); z-index: 2;
@@ -582,6 +632,11 @@
     resize: none;
   }
   textarea::placeholder { color: var(--suave); }
+  /* Sin el contorno de foco general: la caja redonda lo recortaba y solo
+     quedaba su raya de abajo, una línea azul cruzando la caja (Munir,
+     2026-10-16: «no me gusta la línea esta azul»). Se sabe dónde escribes
+     por el cursor. */
+  .fila-caja textarea:focus-visible { outline: none; }
   /* La del inicio va en UNA línea (Munir, 2026-10-16: «de solo una línea, no
      tan gordo»): el texto y el botón de mandar en la misma fila. Si escribes
      más, crece hacia arriba y el botón se queda abajo, a mano del pulgar. */
@@ -635,14 +690,19 @@
   /* Las teclas de una terminal: dentro de la caja, en UNA fila que se mueve de lado si no cabe. */
   .teclas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px 10px 4px; }
   .teclas::-webkit-scrollbar { display: none; }
+  /* «Parar» (Esc) se distingue: corta lo que está haciendo el agente. */
+  .mandos-term .parar { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 45%, transparent); }
   .teclas .pastilla { height: 36px; padding: 0 13px; border-radius: 12px; background: var(--hondo); border-color: var(--borde-fuerte); font: calc(13px * var(--z)) var(--mono); }
 
   /* ── 10. Decisiones ──
      Ninguna opción sale marcada: la recomendada lleva su etiqueta y su porqué,
      pero elegirla es de Munir (GOV.UK: «Do not pre-select radio options»).
      Mismo orden y mismos números que puso el agente, que es lo que se dicta. */
-  .dec-cab { display: grid; gap: 8px; margin: 0 0 16px; }
-  .dec-cab p { margin: 0; color: var(--suave); }
+  /* `minmax(0, 1fr)`: una columna `auto` crecía hasta la palabra más larga (un
+     enlace) y la cabecera se salía por la derecha (Munir, 2026-10-16). */
+  .dec-cab { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin: 0 0 16px; }
+  .dec-cab p { margin: 0; color: var(--suave); overflow-wrap: anywhere; }
+  .dec-cab a, .pregunta-d > p a { color: var(--acento); }
   .dec-hecha { padding: 11px 14px; border-radius: var(--r-btn); background: var(--acento-capa); font-size: calc(14px * var(--z)); }
   /* Si sigue viva o no: lo primero que hay que saber antes de contestar. */
   .dec-cab .dec-vig { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border-radius: var(--r-btn); font-size: calc(14px * var(--z)); border: 1px solid var(--borde); color: var(--suave); background: var(--capa); }
@@ -908,7 +968,6 @@ const EN = {
   "Mensaje nuevo al conserje": "New message to the concierge",
   "Enviar al conserje": "Send to the concierge",
   "Decisiones": "Decisions",
-  "Recientes": "Recent",
   "Conversaciones": "Conversations",
   "En marcha": "Running",
   "Te preguntan": "Asking you",
@@ -930,11 +989,16 @@ const EN = {
   "No tienes encargos programados. Se crean en la Agenda del PC.": "You have no scheduled jobs. They are created in the PC's Agenda.",
   "Uso": "Usage",
   "lo que le queda a cada cuenta": "what each account has left",
-  "sin instalar": "not installed",
   "sin sesión": "signed out",
+  "las 5 horas": "the 5 hours",
+  "la semana": "the week",
+  "el mes": "the month",
+  "se renueva en {n} min": "renews in {n} min",
+  "se renueva en {n} h": "renews in {n} h",
+  "se renueva el {dia}": "renews on {dia}",
+  "Sin datos de gasto": "No usage figures",
   "no dice cuánto lleva": "does not say how much it has used",
   "{p} %": "{p}%",
-  "Cuentas": "Accounts",
   "No hay cuentas en Adeorq.": "There are no accounts in Adeorq.",
   "Cancelar": "Cancel",
   "No se pudo borrar: {e}": "Could not delete it: {e}",
@@ -1131,18 +1195,24 @@ const EN = {
   "Quieta, esperando a que le digas algo.": "Still, waiting for you to tell it something.",
   "Trabajando": "Working",
   "Pantalla": "Screen",
-  "Aquí solo cabe lo que se ve ahora en el PC. Todo lo hablado está en el {chat}.":
-    "Only what the PC shows right now fits here. Everything said is in the {chat}.",
+  "Lo de antes de esta pantalla está en el {chat}.": "What came before this screen is in the {chat}.",
   "Ir al final": "Go to the end",
-  "Teclas: Intro, Esc, Ctrl+C y cambiar de modo": "Keys: Enter, Esc, Ctrl+C and switch mode",
   "Escríbele a esta terminal": "Write to this terminal",
   "Texto para la terminal": "Text for the terminal",
-  "Intro": "Enter",
   "Shift+Tab: pasa al siguiente modo de Claude Code": "Shift+Tab: moves to Claude Code's next mode",
-  "Cambiar modo": "Switch mode",
-  "Flecha arriba": "Up arrow",
-  "Flecha abajo": "Down arrow",
-  "Modo: {m} ⇄": "Mode: {m} ⇄",
+  "Modelo": "Model",
+  "Con qué modelo trabaja esta terminal": "Which model this terminal works with",
+  "No se ha cambiado el modelo: {e}": "The model was not changed: {e}",
+  "Modo ⇄": "Mode ⇄",
+  "Contexto gastado: {p} %": "Context used: {p}%",
+  "Esta sesión pesa demasiado ({p} %): mejor seguir en una terminal nueva.": "This session is too heavy ({p}%): better to carry on in a new terminal.",
+  "El contexto va por el {p} %: compáctala antes de que pese más.": "Context is at {p}%: compact it before it gets heavier.",
+  "Nueva con traspaso": "New with handoff",
+  "Compactar": "Compact",
+  "Ahora no": "Not now",
+  "Hecho: primero deja el traspaso y, cuando acabe, se abre una terminal nueva que sigue desde ahí.": "Done: it writes the handoff first and, when it finishes, a new terminal opens that carries on from there.",
+  "Hecho: primero deja el traspaso y, cuando acabe, se compacta sola.": "Done: it writes the handoff first and, when it finishes, it compacts itself.",
+  "No se ha hecho: {e}": "It was not done: {e}",
   "modo {m}": "{m} mode",
   "(la pantalla está vacía)": "(the screen is empty)",
   "No encuentro lo que ha dicho esta sesión ({e}). Lo que se ve está en «Pantalla».":
@@ -1177,6 +1247,11 @@ function tr(texto, vars) {
 const DEL_PC = {
   // movil.rs
   "Eso no son avisos.": "Those are not notifications.",
+  "Ese modelo no se pide desde el móvil.": "That model cannot be asked for from the phone.",
+  "Eso no se le pide a una terminal.": "That is not something to ask a terminal.",
+  // src/lib/movil.ts
+  "Esta terminal no cambia de modelo en marcha.": "This terminal cannot switch models while running.",
+  "Esa terminal no se puede compactar desde aquí.": "That terminal cannot be compacted from here.",
   "Tu PC no tiene foto de fondo.": "Your PC has no background photo.",
   "El fondo de tu PC es un vídeo: en el móvil no se pone.": "Your PC's background is a video: it is not used on the phone.",
   "Esta dirección no es de este PC.": "This address is not this PC's.",
@@ -2227,6 +2302,43 @@ function cerrarCajon() {
   delete document.body.dataset.cajon;
   cajon.inert = true;
 }
+/* Lo reciente del cajón, por proyecto y con lo último que usaste arriba (Munir,
+   2026-10-16: «que las sesiones o chats que se usen pasen arriba del panel de
+   la izquierda y estén agrupados en proyectos»). Usar es abrirla o escribirle
+   desde este móvil (`apuntarUso`); una conversación cuenta también su último
+   mensaje. El proyecto de una conversación es el de su última sesión. */
+const USADOS = "adeorq-movil-usados";
+function apuntarUso(clave) {
+  const u = leerGuardado(USADOS);
+  u[clave] = Date.now();
+  // Con tope: lo más viejo se olvida.
+  const llaves = Object.keys(u).sort((a, b) => u[b] - u[a]);
+  for (const k of llaves.slice(150)) delete u[k];
+  try { localStorage.setItem(USADOS, JSON.stringify(u)); } catch (_) {}
+}
+function recientesHtml(terminales, lista, arranque, aqui) {
+  const u = leerGuardado(USADOS);
+  const cosas = [
+    ...terminales.map((t) => ({ t, proyecto: hoja(t.carpeta), uso: u[`t:${arranque}:${t.panel}`] || 0, vivo: estaTrabajando(t) ? 1 : 0, n: t.panel })),
+    ...lista.slice(0, 20).map((f) => ({ f, proyecto: f.carpeta ? hoja(f.carpeta) : "", uso: Math.max(u[`c:${f.id}`] || 0, (f.cuando || 0) * 1000), vivo: 0, n: 0 })),
+  ];
+  if (!cosas.length) return "";
+  const grupos = new Map();
+  for (const c of cosas) {
+    if (!grupos.has(c.proyecto)) grupos.set(c.proyecto, []);
+    grupos.get(c.proyecto).push(c);
+  }
+  const orden = (a, b) => b.uso - a.uso || b.vivo - a.vivo || a.n - b.n;
+  const fila = (c) => c.t
+    ? `<button class="fila${c.vivo ? " hilo" : ""}" data-panel="${c.t.panel}" aria-current="${aqui("terminal", c.t.panel)}">${ICONO.terminal}<b>${esc(c.t.nombre)}</b><i class="punto" data-tono="${estadoTerminal(c.t)[1]}"></i></button>`
+    : `<button class="fila" data-conv="${esc(c.f.id)}" aria-current="${aqui("hilo", c.f.id)}">${ICONO.chat}<b>${esc(c.f.titulo || tr("Conversación nueva"))}</b><span>${esc(hace(c.f.cuando))}</span></button>`;
+  return [...grupos.entries()]
+    .map(([proyecto, lo]) => [proyecto, lo.sort(orden)])
+    .sort(([, a], [, b]) => orden(a[0], b[0]))
+    .map(([proyecto, lo]) => `<h2 class="seccion" data-proyecto="${esc(proyecto)}"><span>${esc(proyecto || tr("Conversaciones"))}</span></h2>${lo.map(fila).join("")}`)
+    .join("");
+}
+
 function pintarCajon() {
   const d = delCajon || { vt: {}, lista: [], decisiones: [] };
   const terminales = (d.vt.terminales || []).slice().sort((a, b) => Number(b.agente) - Number(a.agente) || a.panel - b.panel);
@@ -2241,11 +2353,7 @@ function pintarCajon() {
       <button class="fila" data-ir="programados" aria-current="${aqui("programados")}">${ICONO.reloj}<b>${tr("Programados")}</b></button>
       <button class="fila" data-ir="uso" aria-current="${aqui("uso")}">${ICONO.uso}<b>${tr("Uso")}</b></button>
     </div>
-    <div class="recientes">
-      ${terminales.length || d.lista.length ? `<h2 class="seccion"><span>${tr("Recientes")}</span></h2>` : ""}
-      ${terminales.map((t) => `<button class="fila${estaTrabajando(t) ? " hilo" : ""}" data-panel="${t.panel}" aria-current="${aqui("terminal", t.panel)}">${ICONO.terminal}<b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><i class="punto" data-tono="${estadoTerminal(t)[1]}"></i></button>`).join("")}
-      ${d.lista.slice(0, 12).map((f) => `<button class="fila" data-conv="${esc(f.id)}" aria-current="${aqui("hilo", f.id)}">${ICONO.chat}<b>${esc(f.titulo || tr("Conversación nueva"))}</b><span>${esc(hace(f.cuando))}</span></button>`).join("")}
-    </div>
+    <div class="recientes">${recientesHtml(terminales, d.lista, d.vt.arranque, aqui)}</div>
     <div class="pc"><i class="punto" ${d.vt.fallo ? "data-mal" : 'data-tono="trabajando"'}></i><span>${d.vt.fallo ? tr("Tu PC no contesta") : tr("Tu PC, conectado")}</span><button class="a-ajustes" data-ir="ajustes" aria-current="${aqui("ajustes")}">${ICONO.ajustes}<b>${tr("Ajustes")}</b></button></div>
     <button class="nuevo-encargo" id="nuevo-encargo">${ICONO.mas}${tr("Nuevo encargo")}</button>`;
 }
@@ -2581,6 +2689,8 @@ async function pintarLista() {
 // ─── El hilo ────────────────────────────────────────────────────────────────
 
 function pintarHiloEntero() {
+  // Entrar es usarla: sube arriba en el cajón (`recientesHtml`).
+  apuntarUso(`c:${e.id}`);
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
@@ -2957,24 +3067,45 @@ function pintarProgramados() {
   }, 15000);
 }
 
+/* Uso, como baterías (Munir, 2026-10-16, «la 2»): una tarjeta por cuenta con
+   la cifra grande, una barra gruesa por ventana (las 5 horas, la semana) y
+   cuándo se renueva cada una, la más gastada arriba. Las que no dicen su
+   gasto van juntas al final, y las que no están instaladas no salen. */
+const NOMBRE_VENTANA = { "sesi\u00f3n": tr("las 5 horas"), semana: tr("la semana"), mes: tr("el mes") };
+function cuandoRenueva(ms) {
+  const falta = (ms || 0) - Date.now();
+  if (!ms || falta <= 0) return "";
+  const min = Math.round(falta / 60000);
+  if (min < 60) return tr("se renueva en {n} min", { n: Math.max(1, min) });
+  const horas = Math.round(falta / 3600000);
+  if (horas < 24) return tr("se renueva en {n} h", { n: horas });
+  return tr("se renueva el {dia}", { dia: new Intl.DateTimeFormat(INGLES ? "en" : "es", { weekday: "long" }).format(new Date(ms)) });
+}
+/** El color de un gasto: el naranja desde el 78 %, como en el PC, y rojo al final. */
+const tonoDeGasto = (p) => (p >= 90 ? "mal" : p >= 78 ? "alto" : "bien");
 function pintarUso() {
   pantallaDelCajon("uso", tr("Uso"), tr("lo que le queda a cada cuenta"), async () => {
     const v = await api("GET", "/api/uso");
     const aqui = document.getElementById("uso");
     if (!aqui) return;
-    const cuentas = v.cuentas || [];
-    const fila = (c) => {
-      const mal = !c.instalada ? tr("sin instalar") : !c.conectada ? tr("sin sesión") : "";
-      const sabe = typeof c.gastado === "number";
-      const debajo = mal || [c.programa, c.plan, sabe ? "" : tr("no dice cuánto lleva")].filter(Boolean).join(" · ");
-      return `<div class="fila fila-term">
-        <span class="avatar${c.agente ? "" : " consola"}">${c.agente ? ICONO.chat : ICONO.terminal}</span>
-        <span class="quien"><b>${esc(c.nombre)}</b><small${mal ? " data-mal" : ""}>${esc(debajo)}</small>${sabe && !mal ? `<span class="uso-barra"${c.gastado >= 78 ? " data-alto" : ""} style="--p:${Math.min(100, Math.max(0, c.gastado))}%"><i></i></span>` : ""}</span>
-        ${sabe && !mal ? `<span class="uso-cifra">${tr("{p} %", { p: c.gastado })}</span>` : ""}
+    const cuentas = (v.cuentas || []).filter((c) => c.agente && c.instalada);
+    const cifraDe = (c) => (typeof c.gastado === "number" ? c.gastado : c.ventanas?.length ? Math.max(...c.ventanas.map((x) => x.gastado)) : null);
+    const conDato = cuentas.filter((c) => c.conectada && cifraDe(c) !== null).sort((a, b) => cifraDe(b) - cifraDe(a));
+    const sinDato = cuentas.filter((c) => !conDato.includes(c));
+    const bateria = (c) => {
+      const cifra = cifraDe(c);
+      const ventanas = c.ventanas?.length ? c.ventanas : [{ clave: "", modelo: null, gastado: cifra, renueva: null }];
+      return `<div class="bat" data-tono="${tonoDeGasto(cifra)}">
+        <div class="bat-cab"><b>${esc(c.nombre)}<small>${esc([c.programa, c.plan].filter(Boolean).join(" · "))}</small></b><span class="cifra">${tr("{p} %", { p: cifra })}</span></div>
+        ${ventanas.map((x) => `<div class="bat-v" data-tono="${tonoDeGasto(x.gastado)}">
+          <span class="barra-g"><i style="--p:${Math.min(100, Math.max(0, x.gastado))}%"></i></span>
+          <small><span>${esc([NOMBRE_VENTANA[x.clave] ?? x.clave, x.modelo].filter(Boolean).join(" · "))}${x.clave ? ` · ${tr("{p} %", { p: x.gastado })}` : ""}</span><span>${esc(cuandoRenueva(x.renueva))}</span></small>
+        </div>`).join("")}
       </div>`;
     };
+    const suelta = (c) => `<li><b>${esc(c.nombre)}</b><span${c.conectada ? "" : " data-mal"}>${esc([c.programa, c.conectada ? tr("no dice cuánto lleva") : tr("sin sesión")].join(" · "))}</span></li>`;
     aqui.innerHTML = cuentas.length
-      ? apartados([[tr("Cuentas"), cuentas.map(fila)]])
+      ? `${conDato.map(bateria).join("")}${sinDato.length ? `<h2 class="seccion"><span>${tr("Sin datos de gasto")}</span></h2><ul class="sin-dato">${sinDato.map(suelta).join("")}</ul>` : ""}`
       : `<p class="vacio">${tr("No hay cuentas en Adeorq.")}</p>`;
   }, 30000);
 }
@@ -3410,6 +3541,18 @@ function guardarBorrador(id, b) {
   try { localStorage.setItem(borradorDe(id), JSON.stringify(b)); } catch (_) {}
 }
 
+/* El agente a veces escribe la letra en el título («A · El botón…») y la
+   pantalla ya la pinta delante: salía «A A · El botón…» (Munir, 2026-10-16). */
+function sinSuLetra(id, titulo) {
+  const letra = String(id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return String(titulo).replace(new RegExp(`^\\s*${letra}\\s*[·.):\\-–]\\s*`), "") || titulo;
+}
+/* El contexto de una decisión, con sus enlaces que se pueden tocar (abren
+   aparte): sin esto, el de las maquetas había que copiarlo a mano. */
+function conEnlaces(texto) {
+  return esc(texto).replace(/https?:\/\/[^\s<"]+[^\s<".,;:!?\u00bb)]/g, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+}
+
 async function pintarDecision() {
   app.innerHTML = `
     <div class="vista">
@@ -3457,11 +3600,11 @@ async function pintarDecision() {
     ? `<p class="dec-hecha">${tr("Contestada desde {desde}, {cuando}.", { desde: esc(delPc(d.respuesta.desde)), cuando: hace(d.respuesta.cuando / 1000) })} ${d.respuesta.entregada ? tr("Se tecleó en el panel {n}.", { n: d.panel }) : tr("El agente la lee cuando la pide.")}</p>`
     : "";
   document.getElementById("decision").innerHTML = `
-    <div class="dec-cab">${vig}${hecha}${d.contexto ? `<p>${esc(d.contexto)}</p>` : ""}</div>
+    <div class="dec-cab">${vig}${hecha}${d.contexto ? `<p>${conEnlaces(d.contexto)}</p>` : ""}</div>
     ${d.preguntas.map((q) => `
       <fieldset class="pregunta-d" data-q="${esc(q.id)}"${cerrada ? " disabled" : ""}>
-        <legend><span class="letra">${esc(q.id)}</span>${esc(q.titulo)}</legend>
-        ${q.contexto ? `<p>${esc(q.contexto)}</p>` : ""}
+        <legend><span class="letra">${esc(q.id)}</span>${esc(sinSuLetra(q.id, q.titulo))}</legend>
+        ${q.contexto ? `<p>${conEnlaces(q.contexto)}</p>` : ""}
         ${q.opciones.map((o, i) => `
           <label class="opcion">
             <input type="radio" name="q-${esc(q.id)}" value="${i + 1}"${elegida(q) === i + 1 ? " checked" : ""}>
@@ -3673,12 +3816,42 @@ function ahoraHtml(a) {
    están en la letra del móvil y salían como cajitas; y sus rayas de lado a
    lado, más anchas que el móvil, se partían en dos filas. */
 const GLIFOS = { "⏵": "›", "⏸": "‖", "⏺": "●" };
-function filaHtml(f) {
-  const t = String(f).replace(/[⏵⏸⏺]/g, (c) => GLIFOS[c]);
-  if (/^\s*[─━═]{3,}\s*$/.test(t)) return `<span class="l regla" aria-hidden="true"></span>`;
-  const m = /^\s*[─━═]{3,}\s+(.+?)\s+[─━═]+\S?\s*$/.exec(t);
-  if (m) return `<span class="l regla-titulo">${esc(m[1])}</span>`;
-  return `<span class="l">${esc(t)}</span>`;
+
+/* La «Pantalla» de una terminal (Munir, 2026-10-16: la 1 y la 3 mezcladas, «se
+   ve muy encogida y no se ve claro y estructurado»): a todo el ancho, con los
+   colores de la terminal del PC (`trozos`: texto, color y negrita o tenue), y
+   la caja donde se escribe resaltada abajo. En Claude Code esa caja va entre
+   las dos últimas rayas de lado a lado y lo de debajo es su barra de estado;
+   en una consola, la última línea es lo que espera. */
+const RAYA_SOLA = /^\s*[─━═]{3,}\s*$/;
+const RAYA_CON_TITULO = /^\s*[─━═]{3,}\s+(.+?)\s+[─━═]+\S?\s*$/;
+function trozosHtml(trozos) {
+  return trozos.map(([texto, color, marca]) => {
+    const t = esc(String(texto).replace(/[⏵⏸⏺]/g, (c) => GLIFOS[c]));
+    const clase = marca & 1 ? "b" : marca & 2 ? "d" : "";
+    return color || clase ? `<span${clase ? ` class="${clase}"` : ""}${/^#[0-9a-f]{6}$/i.test(color) ? ` style="color:${color}"` : ""}>${t}</span>` : t;
+  }).join("");
+}
+function pantallaHtml(v) {
+  const lineas = Array.isArray(v.trozos) && v.trozos.length ? v.trozos : (v.filas || []).map((f) => [[f, "", 0]]);
+  if (!lineas.some((t) => t.some((x) => String(x[0]).trim()))) return `<span class="l">${tr("(la pantalla está vacía)")}</span>`;
+  const textos = lineas.map((t) => t.map((x) => x[0]).join(""));
+  const linea = (i) => {
+    if (RAYA_SOLA.test(textos[i])) return `<span class="l regla" aria-hidden="true"></span>`;
+    const m = RAYA_CON_TITULO.exec(textos[i]);
+    if (m) return `<span class="l regla-titulo">${esc(m[1])}</span>`;
+    return `<span class="l">${trozosHtml(lineas[i])}</span>`;
+  };
+  const rango = (a, b) => Array.from({ length: Math.max(0, b - a) }, (_, k) => linea(a + k)).join("");
+  // Las rayas de las últimas líneas: entre las dos últimas está la caja de escribir.
+  const rayas = textos.map((t, i) => (RAYA_SOLA.test(t) || RAYA_CON_TITULO.test(t) ? i : -1)).filter((i) => i >= textos.length - 16 && i >= 0);
+  if (rayas.length >= 2) {
+    // La raya de arriba se queda, que lleva el nombre de la sesión; la de abajo
+    // la hace el borde de la caja.
+    const [a, b] = rayas.slice(-2);
+    return `${rango(0, a + 1)}<div class="entrada">${rango(a + 1, b)}</div><div class="pie-term">${rango(b + 1, textos.length)}</div>`;
+  }
+  return `${rango(0, textos.length - 1)}<div class="entrada">${linea(textos.length - 1)}</div>`;
 }
 
 /* Munir, 2026-10-08: «no veo mucho historial de la terminal», y sin verlo no
@@ -3687,25 +3860,27 @@ function filaHtml(f) {
    búfer), así que en una terminal de agente se abre por defecto lo que se ha
    dicho, leído de su transcript, y la pantalla queda en la otra pestaña. */
 function pintarTerminal() {
-  // Las teclas (Intro, Esc, Ctrl+C, el modo, las flechas) van plegadas tras un
-  // botón de la caja: se usan de vez en cuando y ocupaban una fila siempre. El
-  // aparato recuerda si las dejaste fuera.
-  let teclasFuera = false;
-  try { teclasFuera = localStorage.getItem("adeorq-movil-teclas") === "1"; } catch (_) {}
+  apuntarUso(`t:${e.arranque}:${e.panel}`);
+  /* Bajo el texto, solo tres mandos (Munir, 2026-10-16, «la 3»): el modelo, el
+     modo y «Parar» mientras trabaja. Fuera la fila de teclas (Intro, Ctrl+C,
+     flechas). Cada uno sale solo si ese programa lo entiende: el modelo y el
+     modo los dice el PC (`modelos` y `modos` en `/api/terminal`). */
   app.innerHTML = `
     <div class="vista">
       <header class="barra">
         ${botonCajon()}
         <h1 id="titulo">Terminal ${e.panel}<small id="sub">${tr("cargando…")}</small></h1>
+        <span class="ctx" id="ctx" role="img" hidden></span>
         <nav class="pestanas" id="pestanas" hidden>
           <button class="pastilla" data-cara="conversa">Chat</button>
           <button class="pastilla" data-cara="pantalla">${tr("Pantalla")}</button>
         </nav>
       </header>
       <button class="aviso-dec" id="aviso-dec" hidden></button>
+      <div class="aviso-ctx" id="aviso-ctx" role="status" hidden></div>
       <main class="cuerpo" id="conversa" hidden><div id="turnos"></div><div class="ahora" id="ahora" hidden></div></main>
       <main class="cuerpo" id="marco">
-        <p class="nota-pantalla" id="nota-pantalla" hidden>${tr("Aquí solo cabe lo que se ve ahora en el PC. Todo lo hablado está en el {chat}.", { chat: "<button data-ir-chat>Chat</button>" })}</p>
+        <p class="nota-pantalla" id="nota-pantalla" hidden>${tr("Lo de antes de esta pantalla está en el {chat}.", { chat: "<button data-ir-chat>Chat</button>" })}</p>
         <pre class="pantalla" id="pantalla"></pre>
       </main>
       <footer class="caja" id="caja">
@@ -3714,34 +3889,19 @@ function pintarTerminal() {
         <div class="adjuntos" hidden></div>
         <div class="fila-caja">
           <textarea id="texto" rows="1" placeholder="${tr("Escríbele a esta terminal")}" aria-label="${tr("Texto para la terminal")}"></textarea>
-          <div class="pastillas teclas" id="teclas"${teclasFuera ? "" : " hidden"}>
-            <button class="pastilla" data-tecla="intro">${tr("Intro")}</button>
-            <button class="pastilla" data-tecla="esc">Esc</button>
-            <button class="pastilla" data-tecla="ctrl+c">Ctrl+C</button>
-            <button class="pastilla" data-tecla="shift+tab" id="modo" title="${tr("Shift+Tab: pasa al siguiente modo de Claude Code")}">${tr("Cambiar modo")}</button>
-            <button class="pastilla" data-tecla="arriba" aria-label="${tr("Flecha arriba")}">↑</button>
-            <button class="pastilla" data-tecla="abajo" aria-label="${tr("Flecha abajo")}">↓</button>
-          </div>
           <div class="mandos">
             ${CLIP}
-            <button class="abrir-teclas" id="abrir-teclas" type="button" aria-controls="teclas" aria-expanded="${teclasFuera}" aria-label="${tr("Teclas: Intro, Esc, Ctrl+C y cambiar de modo")}">${ICONO.teclas}</button>
-            <span class="hueco"></span>
+            <div class="pastillas mandos-term">
+              <button class="pastilla parar" data-tecla="esc" id="parar" hidden>${ICONO.parar}${tr("Parar")}</button>
+              <label class="pastilla" id="modelo-caja" hidden>${ICONO.chispa}<select id="modelo" aria-label="${tr("Con qué modelo trabaja esta terminal")}"></select></label>
+              <button class="pastilla" data-tecla="shift+tab" id="modo" hidden title="${tr("Shift+Tab: pasa al siguiente modo de Claude Code")}">${tr("Modo ⇄")}</button>
+            </div>
             <button class="enviar" id="enviar" aria-label="${tr("Enviar")}" disabled>${ICONO.subir}</button>
           </div>
         </div>
       </footer>
     </div>`;
   montarBotonCajon();
-  // Como los botones de tecla, este no coge el foco: si estabas escribiendo,
-  // el teclado sigue fuera y nada se mueve de sitio a mitad del toque.
-  const abrirTeclas = document.getElementById("abrir-teclas");
-  abrirTeclas.addEventListener("mousedown", (ev) => ev.preventDefault());
-  abrirTeclas.addEventListener("click", () => {
-    const fila = document.getElementById("teclas");
-    fila.hidden = !fila.hidden;
-    abrirTeclas.setAttribute("aria-expanded", String(!fila.hidden));
-    try { localStorage.setItem("adeorq-movil-teclas", fila.hidden ? "0" : "1"); } catch (_) {}
-  });
   const texto = document.getElementById("texto");
   const enviarB = document.getElementById("enviar");
   const crecer = () => { texto.style.height = "auto"; texto.style.height = `${Math.min(texto.scrollHeight, 160)}px`; };
@@ -3782,15 +3942,25 @@ function pintarTerminal() {
   };
   const leer = async () => {
     const v = await api("GET", `/api/terminal?panel=${e.panel}&arranque=${e.arranque}`);
+    // Con color, el PC manda solo los trozos: el texto de cada línea sale de ellos.
+    if (!v.filas && Array.isArray(v.trozos)) v.filas = v.trozos.map((t) => t.map((x) => x[0]).join(""));
     const marco = document.getElementById("marco");
     const conversa = document.getElementById("conversa");
     if (!marco || !conversa) return;
     ultima = { ...v, conversa: Boolean(v.agente && v.sesion && v.carpeta) };
     const modo = modoDe(v);
     const bModo = document.getElementById("modo");
-    if (bModo) bModo.textContent = modo ? tr("Modo: {m} ⇄", { m: modo }) : tr("Cambiar modo");
+    if (bModo) {
+      bModo.hidden = !v.modos;
+      // Corto, que arriba ya pone «modo auto»: así caben los tres en la fila.
+      bModo.textContent = modo ? `${modo} ⇄` : tr("Modo ⇄");
+    }
+    // «Parar» (lo que hace Esc) solo mientras trabaja: es cuando hace falta.
+    const bParar = document.getElementById("parar");
+    if (bParar) bParar.hidden = !estaTrabajando(v);
+    pintarModelo(v);
+    pintarContexto(v);
     const [palabra] = estadoTerminal(v);
-    // El modo se dice también arriba: con las teclas plegadas, su botón no se ve.
     document.getElementById("titulo").innerHTML = `${esc(v.nombre)}<small id="sub">${esc(hoja(v.carpeta))} · ${palabra}${modo ? ` · ${tr("modo {m}", { m: esc(modo) })}` : ""}</small>`;
     const ahora = cara();
     document.getElementById("pestanas").hidden = !ultima.conversa;
@@ -3801,12 +3971,12 @@ function pintarTerminal() {
     if (ahora === "pantalla") {
       // En una de agente la pantalla no tiene historial (Claude Code pinta la
       // suya entera): se dice, con el camino al chat, que es donde está.
-      document.getElementById("nota-pantalla").hidden = !ultima.conversa;
-      const filas = v.filas?.length ? v.filas : [tr("(la pantalla está vacía)")];
-      const texto = filas.join("\n");
+      // Solo cuando la pantalla no tiene historial (Claude Code a pantalla completa).
+      document.getElementById("nota-pantalla").hidden = !(ultima.conversa && v.alterna !== false);
+      const texto = JSON.stringify(v.trozos ?? v.filas ?? []);
       if (texto !== pintado.pantalla) {
         const abajo = pintado.pantalla === null || pegadoAbajo(marco);
-        document.getElementById("pantalla").innerHTML = filas.map(filaHtml).join("");
+        document.getElementById("pantalla").innerHTML = pantallaHtml(v);
         pintado.pantalla = texto;
         if (abajo) marco.scrollTop = marco.scrollHeight;
       }
@@ -3841,6 +4011,97 @@ function pintarTerminal() {
     pintado.conversa = r.firma;
     if (abajo) conversa.scrollTop = conversa.scrollHeight;
   };
+  /* El contexto: el anillo de arriba siempre, y desde el 60 % el aviso de
+     compactar; desde el 80 %, el de seguir en una nueva (los niveles del PC,
+     `nivelDeContexto`). Los botones se los piden al panel del PC, que hace su
+     traspaso y, cuando el agente acaba, lo demás. «Ahora no» lo calla hasta
+     el nivel siguiente. */
+  const avisosCallados = new Set();
+  const pintarContexto = (v) => {
+    const anillo = document.getElementById("ctx");
+    const aviso = document.getElementById("aviso-ctx");
+    const p = typeof v.contexto === "number" ? v.contexto : null;
+    anillo.hidden = p === null;
+    if (p === null) { aviso.hidden = true; return; }
+    const nivel = p >= 80 ? 2 : p >= 60 ? 1 : 0;
+    anillo.dataset.nivel = String(nivel);
+    anillo.style.setProperty("--p", `${Math.min(100, Math.max(0, p))}%`);
+    anillo.textContent = String(p);
+    anillo.setAttribute("aria-label", tr("Contexto gastado: {p} %", { p }));
+    const clave = String(nivel);
+    if (!nivel || avisosCallados.has(clave)) { aviso.hidden = true; return; }
+    const dice = nivel === 2
+      ? tr("Esta sesión pesa demasiado ({p} %): mejor seguir en una terminal nueva.", { p })
+      : tr("El contexto va por el {p} %: compáctala antes de que pese más.", { p });
+    if (aviso.dataset.clave === clave && !aviso.hidden) {
+      const texto = aviso.querySelector("span");
+      if (texto && !aviso.dataset.hecho) texto.textContent = dice;
+      return;
+    }
+    aviso.dataset.clave = clave;
+    aviso.dataset.nivel = clave;
+    delete aviso.dataset.hecho;
+    aviso.hidden = false;
+    aviso.innerHTML = `<span>${esc(dice)}</span><div class="botones">${nivel === 2
+      ? `<button data-traspaso="nueva">${tr("Nueva con traspaso")}</button><button data-otro="compactar">${tr("Compactar")}</button>`
+      : `<button data-traspaso="compactar">${tr("Compactar")}</button>`}<button data-callar>${tr("Ahora no")}</button></div>`;
+  };
+  document.getElementById("aviso-ctx").addEventListener("click", async (ev) => {
+    const aviso = document.getElementById("aviso-ctx");
+    const b = ev.target.closest("button");
+    if (!b) return;
+    if (b.dataset.callar !== undefined) {
+      avisosCallados.add(aviso.dataset.clave);
+      aviso.hidden = true;
+      return;
+    }
+    const que = b.dataset.traspaso || b.dataset.otro;
+    aviso.querySelectorAll("button").forEach((x) => { x.disabled = true; });
+    try {
+      await api("POST", "/api/terminal/traspaso", { panel: e.panel, arranque: e.arranque, que });
+      aviso.dataset.hecho = "1";
+      aviso.querySelector("span").textContent = que === "nueva"
+        ? tr("Hecho: primero deja el traspaso y, cuando acabe, se abre una terminal nueva que sigue desde ahí.")
+        : tr("Hecho: primero deja el traspaso y, cuando acabe, se compacta sola.");
+      aviso.querySelector(".botones").hidden = true;
+      avisosCallados.add(aviso.dataset.clave);
+      enSeguida();
+    } catch (err) {
+      fallo(tr("No se ha hecho: {e}", { e: err.message }));
+      aviso.querySelectorAll("button").forEach((x) => { x.disabled = false; });
+    }
+  });
+  /* El modelo: las opciones las dice el PC según el programa de esta terminal,
+     y solo se rehacen si cambian, que si no se cerraba la lista bajo el dedo.
+     El que lleva puesto se reconoce por su nombre dentro del de la terminal. */
+  const selModelo = document.getElementById("modelo");
+  let modelosPintados = "";
+  const pintarModelo = (v) => {
+    const ops = v.modelos || [];
+    document.getElementById("modelo-caja").hidden = !ops.length;
+    const firma = JSON.stringify(ops);
+    if (firma !== modelosPintados) {
+      modelosPintados = firma;
+      selModelo.innerHTML = `<option value="" disabled>${tr("Modelo")}</option>${ops.map((m) => `<option value="${esc(m.alias)}">${esc(m.nombre)}</option>`).join("")}`;
+    }
+    if (document.activeElement === selModelo) return;
+    const puesto = String(v.modelo || "").toLowerCase();
+    selModelo.value = ops.find((m) => puesto.includes(m.alias) || puesto.includes(m.nombre.toLowerCase()))?.alias ?? "";
+  };
+  selModelo.addEventListener("change", async () => {
+    const modelo = selModelo.value;
+    if (!modelo) return;
+    selModelo.disabled = true;
+    try {
+      await api("POST", "/api/terminal/modelo", { panel: e.panel, arranque: e.arranque, modelo });
+      salioBien();
+      enSeguida();
+    } catch (err) {
+      fallo(tr("No se ha cambiado el modelo: {e}", { e: err.message }));
+    }
+    selModelo.disabled = false;
+    selModelo.blur();
+  });
   // Se compara lo que DICE y no el HTML, que lleva dentro a la mascota y esa
   // cambia de postura sola: comparando el HTML se rehacía en cada vuelta y los
   // botones de una pregunta nacían de nuevo bajo el dedo.

@@ -154,6 +154,8 @@ export interface ConserjeExec {
   panes: () => PaneStatus[];
   /** Todas las cuentas: el router necesita las de los OTROS CLIs para proponerlos. */
   cuentas: () => Account[];
+  /** Qué programa corre en ese panel («claude», «codex»…; «shell» si ninguno). */
+  cliDe?: (panel: number) => string;
 }
 /** Apunta la sesión de una pestaña que ya estaba. `conserjeTrabajo` es solo
  *  para las que se acaban de abrir. */

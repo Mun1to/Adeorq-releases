@@ -737,7 +737,10 @@ pub fn guardar_trozo(
 /// Las teclas sueltas que se pueden mandar a una terminal desde el móvil
 /// (decisión E3). Las mismas que `TECLAS` en `src/lib/movil.ts`, que es quien
 /// pone los bytes.
-pub const TECLAS_DEL_MOVIL: &[&str] = &["intro", "esc", "ctrl+c", "shift+tab", "arriba", "abajo"];
+pub const TECLAS_DEL_MOVIL: &[&str] = &["esc", "shift+tab"];
+/// Los modelos que el móvil puede pedirle a una terminal: los nombres de la
+/// casa, que la ventana traduce al programa de cada una.
+pub const MODELOS_DEL_MOVIL: &[&str] = &["haiku", "sonnet", "opus", "fable"];
 
 /// Los números de panel vuelven a empezar en cada arranque de Adeorq, así que
 /// el móvil dice en qué arranque vio la terminal a la que habla: lo trae la
@@ -1153,6 +1156,45 @@ pub fn atender(
                 Err(e) => Respuesta::error(502, &e),
             }
         }
+        // Cambiarle el modelo a una terminal en marcha (el botón «Modelo» del
+        // móvil). Lo traduce la ventana al idioma de ESE programa
+        // (`lineasEnVivo`), que es quien sabe qué corre en cada panel.
+        ("POST", "/api/terminal/modelo") => {
+            let Some(panel) = cuerpo["panel"].as_u64() else {
+                return Respuesta::error(400, "Falta qué terminal.");
+            };
+            let modelo = cuerpo["modelo"].as_str().unwrap_or("");
+            if !MODELOS_DEL_MOVIL.contains(&modelo) {
+                return Respuesta::error(400, "Ese modelo no se pide desde el móvil.");
+            }
+            if let Err(r) = mismo_arranque(cuerpo["arranque"].as_u64(), casa) {
+                return r;
+            }
+            match casa.ventana("modelo", json!({ "panel": panel, "modelo": modelo })) {
+                Ok(v) if v["error"].is_string() => Respuesta::error(409, v["error"].as_str().unwrap_or("")),
+                Ok(_) => Respuesta::json(202, json!({ "ok": true })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
+        // «Compactar» o «Nueva con traspaso» desde el móvil: lo hace el panel del
+        // PC con sus dos pasos (el traspaso, y al acabar el agente, lo demás).
+        ("POST", "/api/terminal/traspaso") => {
+            let Some(panel) = cuerpo["panel"].as_u64() else {
+                return Respuesta::error(400, "Falta qué terminal.");
+            };
+            let que = cuerpo["que"].as_str().unwrap_or("");
+            if !matches!(que, "compactar" | "nueva") {
+                return Respuesta::error(400, "Eso no se le pide a una terminal.");
+            }
+            if let Err(r) = mismo_arranque(cuerpo["arranque"].as_u64(), casa) {
+                return r;
+            }
+            match casa.ventana("traspaso", json!({ "panel": panel, "que": que })) {
+                Ok(v) if v["error"].is_string() => Respuesta::error(409, v["error"].as_str().unwrap_or("")),
+                Ok(_) => Respuesta::json(202, json!({ "ok": true })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
         ("GET", "/api/sesion") => {
             let cwd = p.consulta.get("cwd").map(String::as_str).unwrap_or("");
             let sesion = p.consulta.get("id").map(String::as_str).unwrap_or("");
@@ -1290,7 +1332,7 @@ pub fn atender(
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
             | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
             | "/api/decision/responder" | "/api/decision/descartar" | "/api/avisos" | "/api/olvidarme"
-            | "/api/apariencia" | "/api/fondo") => Respuesta::error(405, "Así no."),
+            | "/api/apariencia" | "/api/fondo" | "/api/terminal/modelo" | "/api/terminal/traspaso") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -2501,13 +2543,30 @@ mod tests {
         let largo = format!(r#"{{"panel":1,"texto":"{}","arranque":77}}"#, "a".repeat(TOPE_TEXTO + 1));
         assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, &largo), &g, &casa, &nada, reloj).estado, 413);
         assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"panel":1,"texto":"sí, adelante","arranque":77}"#), &g, &casa, &nada, reloj).estado, 202);
-        assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+c","arranque":77}"#), &g, &casa, &nada, reloj).estado, 202);
-        assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, r#"{"panel":1,"tecla":"ctrl+z","arranque":77}"#), &g, &casa, &nada, reloj).estado, 400);
-        // El cambio de modo de Claude Code y las flechas de los menús, sí.
-        for t in ["shift+tab", "arriba", "abajo"] {
+        // «Parar» (Esc) y el cambio de modo, sí; lo que ya no tiene botón en el
+        // móvil (2026-10-16), no.
+        for t in ["esc", "shift+tab"] {
             let cuerpo = format!(r#"{{"panel":1,"tecla":"{t}","arranque":77}}"#);
             assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, &cuerpo), &g, &casa, &nada, reloj).estado, 202, "{t}");
         }
+        for t in ["ctrl+c", "intro", "arriba", "abajo", "ctrl+z"] {
+            let cuerpo = format!(r#"{{"panel":1,"tecla":"{t}","arranque":77}}"#);
+            assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, &cuerpo), &g, &casa, &nada, reloj).estado, 400, "{t}");
+        }
+        // El modelo: los de la casa, con su arranque; ni otro nombre ni por GET.
+        assert_eq!(atender(&pedir("POST", "/api/terminal/modelo", c, r#"{"panel":1,"modelo":"sonnet","arranque":77}"#), &g, &casa, &nada, reloj).estado, 202);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/modelo", c, r#"{"panel":1,"modelo":"gpt-5","arranque":77}"#), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/modelo", c, r#"{"modelo":"opus","arranque":77}"#), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/modelo", None, r#"{"panel":1,"modelo":"opus","arranque":77}"#), &g, &casa, &nada, reloj).estado, 401);
+        assert_eq!(atender(&pedir("GET", "/api/terminal/modelo", c, ""), &g, &casa, &nada, reloj).estado, 405);
+        // Compactar o seguir en una nueva: solo esas dos cosas.
+        for que in ["compactar", "nueva"] {
+            let cuerpo = format!(r#"{{"panel":1,"que":"{que}","arranque":77}}"#);
+            assert_eq!(atender(&pedir("POST", "/api/terminal/traspaso", c, &cuerpo), &g, &casa, &nada, reloj).estado, 202, "{que}");
+        }
+        assert_eq!(atender(&pedir("POST", "/api/terminal/traspaso", c, r#"{"panel":1,"que":"borrar","arranque":77}"#), &g, &casa, &nada, reloj).estado, 400);
+        assert_eq!(atender(&pedir("POST", "/api/terminal/traspaso", c, r#"{"panel":1,"que":"compactar","arranque":76}"#), &g, &casa, &nada, reloj).estado, 410);
+        assert_eq!(atender(&pedir("GET", "/api/terminal/traspaso", c, ""), &g, &casa, &nada, reloj).estado, 405);
         assert_eq!(atender(&pedir("GET", "/api/terminal/escribir", c, ""), &g, &casa, &nada, reloj).estado, 405, "con el método que no es, 405 y no 404");
     }
 
@@ -2528,8 +2587,9 @@ mod tests {
         assert_eq!(estado("GET", "/api/terminal?panel=3", ""), 409);
         assert_eq!(estado("POST", "/api/terminal/escribir", r#"{"panel":3,"texto":"sí","arranque":76}"#), 410);
         assert_eq!(estado("POST", "/api/terminal/escribir", r#"{"panel":3,"texto":"sí"}"#), 409);
-        assert_eq!(estado("POST", "/api/terminal/tecla", r#"{"panel":3,"tecla":"intro","arranque":76}"#), 410);
-        assert_eq!(estado("POST", "/api/terminal/tecla", r#"{"panel":3,"tecla":"intro"}"#), 409);
+        assert_eq!(estado("POST", "/api/terminal/tecla", r#"{"panel":3,"tecla":"esc","arranque":76}"#), 410);
+        assert_eq!(estado("POST", "/api/terminal/tecla", r#"{"panel":3,"tecla":"esc"}"#), 409);
+        assert_eq!(estado("POST", "/api/terminal/modelo", r#"{"panel":3,"modelo":"opus","arranque":76}"#), 410);
         assert!(casa.enviados.borrow().is_empty(), "a la ventana no le llegó nada que escribir");
         assert_eq!(estado("POST", "/api/terminal/escribir", r#"{"panel":3,"texto":"sí","arranque":77}"#), 202);
         assert_eq!(casa.enviados.borrow().len(), 1);

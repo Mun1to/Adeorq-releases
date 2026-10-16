@@ -2602,6 +2602,9 @@ function App() {
         .catch(() => false),
     panes: foremanExec.panes,
     cuentas: foremanExec.cuentas,
+    // Qué programa corre en ese panel, sacado de su orden de arranque: el
+    // móvil le cambia el modelo en el idioma de ESE programa.
+    cliDe: (panel) => kindDeComando([...panes, ...canvasPanes].find((p) => p.id === panel)?.command?.join(" ") ?? ""),
   };
 
   // Las que él quiere ver, en el orden que él ha puesto. Apagar una la quita de

@@ -234,3 +234,24 @@ export function useTraspaso(m: {
 
   return { compactar, nueva, alSonarCampana };
 }
+
+/**
+ * Los mismos dos botones, pedidos desde el móvil (`traspaso` en lib/movil.ts):
+ * lo hace el panel, con su traspaso y su campana, y avisa de que lo oyó
+ * (`hecho`) para que el móvil sepa si había alguien detrás de ese número.
+ */
+export function useTraspasoDelMovil(id: number, traspaso: { compactar: () => void; nueva: () => void }): void {
+  const ultimo = useRef(traspaso);
+  ultimo.current = traspaso;
+  useEffect(() => {
+    const oir = (ev: Event) => {
+      const d = (ev as CustomEvent<{ id: number; que: string; hecho: boolean }>).detail;
+      if (d?.id !== id) return;
+      d.hecho = true;
+      if (d.que === "nueva") ultimo.current.nueva();
+      else ultimo.current.compactar();
+    };
+    window.addEventListener("adeorq:traspaso", oir);
+    return () => window.removeEventListener("adeorq:traspaso", oir);
+  }, [id]);
+}

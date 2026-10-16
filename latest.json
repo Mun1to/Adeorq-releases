@@ -1,11 +1,11 @@
 {
-  "version": "0.9.212",
-  "notes": "En el movil, tocar una opcion de una decision ya no te manda abajo del todo de la pantalla.",
-  "pub_date": "2026-10-16T01:48:58Z",
+  "version": "0.9.213",
+  "notes": "El movil enseña el contexto de cada terminal y avisa de compactar, Uso va en baterias, la Pantalla de la terminal va a todo el ancho con sus colores, la caja trae Modelo, Modo y Parar, y el menu agrupa lo reciente por proyecto.",
+  "pub_date": "2026-10-16T03:31:52Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzltOWpySnV0NmxCNW5ldGJJR3lMdWJ6MVBDL1p4NU4zeUc5dHlralZyTjZ6WVRoUUdzQnBQbzJ4Q0VwYmZsa21YSTdVakNVVlkrMVpaSXVIL1RCTndBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTE1MzM2CWZpbGU6QWRlb3JxXzAuOS4yMTJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTIKcjdweHJlMmxpWmVKbzh3L24rMUJPb1pGaW5UVU9lbU1RTEd0TU95bHIwRlBOVFVOWUZ3L2FUSXltVzZOV3diQmlZcENLMVk1SmcxQm9sT2F4Mlo3Qmc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.212/Adeorq_0.9.212_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzBDOHQzcXF6Q0F5c0dvbDVwS3hCWWJoVWxzNVQ3dnZqb0JIQ1RjSU1HWUc5dkc1b3RWZndQaXlvMU1XWTRMRXk2VDJVdWZXaU5wNExqcFFpQWY1bmdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTIxNTExCWZpbGU6QWRlb3JxXzAuOS4yMTNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTMKN0hRNHJsUWNZQ1FvU0R3VlZ5TTRGK1BCSEVyNVVIcmRnVmFKakFXU0JVbHBGaExvcGVjSjVIbUJpMUd5WStBdGRxVENwa1FoeEI1UXFVR0txN3JDQXc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.213/Adeorq_0.9.213_x64-setup.exe"
     }
   }
 }

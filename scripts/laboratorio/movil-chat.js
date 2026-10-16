@@ -65,34 +65,59 @@ async (page) => {
   await page.waitForSelector("#turnos .turno");
   debe(await page.$eval("#titulo", (h) => /claude/.test(h.textContent)), "«atrás» vuelve a la terminal de la que venía");
 
-  // 6. Las teclas van plegadas tras su botón (una fila menos que leer); al
-  //    sacarlas caben en una sola fila, y el aparato recuerda que las dejaste
-  //    fuera. Con ellas plegadas, el modo se sigue leyendo arriba.
-  debe(await page.$eval("#teclas", (t) => t.hidden), "las teclas empiezan plegadas");
+  // 6. Bajo el texto, solo Modelo, Modo y Parar (2026-10-16, «la 3»), en la
+  //    fila de adjuntar y mandar. Parar solo mientras trabaja; el modelo, con
+  //    el que lleva puesto. Y cambiarlo se lo pide al PC.
   debe(/modo auto/.test(await page.textContent("#sub")), `el modo se dice arriba (${await page.textContent("#sub")})`);
-  await page.click("#abrir-teclas");
-  const teclas = await page.evaluate(() => ({
-    fuera: !document.getElementById("teclas").hidden,
-    filas: new Set([...document.querySelectorAll(".teclas .pastilla")].map((x) => x.offsetTop)).size,
-    cuantas: document.querySelectorAll(".teclas .pastilla").length,
-    recordado: localStorage.getItem("adeorq-movil-teclas"),
-    dice: document.getElementById("abrir-teclas").getAttribute("aria-expanded"),
-  }));
-  debe(teclas.fuera && teclas.filas === 1 && teclas.cuantas === 6, `fuera, las seis en una fila (${JSON.stringify(teclas)})`);
-  debe(teclas.recordado === "1" && teclas.dice === "true", `y se recuerda (${JSON.stringify(teclas)})`);
+  const mandos = () => page.evaluate(() => {
+    const ve = (id) => { const el = document.getElementById(id); return !!el && !el.hidden && !el.closest("[hidden]"); };
+    return {
+      teclas: !!document.getElementById("teclas") || !!document.getElementById("abrir-teclas"),
+      modelo: ve("modelo-caja"), modo: ve("modo"), parar: ve("parar"),
+      opciones: [...document.querySelectorAll("#modelo option:not([disabled])")].map((o) => o.textContent).join(" "),
+      puesto: document.getElementById("modelo")?.value,
+      filas: new Set([...document.querySelectorAll("#caja .mandos > *, #caja .mandos-term > :not([hidden])")].filter((x) => x.offsetParent).map((x) => Math.round(x.getBoundingClientRect().top / 8))).size,
+    };
+  });
+  const t1 = await mandos();
+  debe(!t1.teclas, "ya no está la fila de teclas");
+  debe(t1.modelo && t1.modo && t1.parar, `Modelo, Modo y Parar, trabajando (${JSON.stringify(t1)})`);
+  debe(t1.opciones === "Haiku Sonnet Opus Fable" && t1.puesto === "opus", `el modelo ofrece los suyos y lleva el puesto (${JSON.stringify(t1)})`);
+  debe(t1.filas === 1, `todo en una fila con adjuntar y mandar (${JSON.stringify(t1)})`);
+  await page.selectOption("#modelo", "sonnet");
+  await page.waitForTimeout(1200);
+  const t2 = await page.evaluate(async () => {
+    const r = await fetch("/api/terminal?panel=1&arranque=111", { headers: { Authorization: `Bearer ${localStorage.getItem("adeorq-movil-clave")}` } }).then((x) => x.json());
+    return { puesto: document.getElementById("modelo").value, enElPc: r.modelo, fallo: !document.getElementById("fallo").hidden };
+  });
+  debe(t2.puesto === "sonnet" && t2.enElPc === "sonnet" && !t2.fallo, `cambiar el modelo se lo pide al PC (${JSON.stringify(t2)})`);
 
-  // 7. «Pantalla»: avisa de dónde está el historial, sin cajitas ni rayas partidas.
+  // 7. «Pantalla» (2026-10-16, la 1 y la 3): a todo el ancho, sin recuadro, la
+  //    raya de arriba con el nombre de la sesión, la caja donde se escribe
+  //    resaltada debajo y la barra de estado al pie; y dice dónde está lo de antes.
   await page.click('[data-cara="pantalla"]');
   await page.waitForTimeout(600);
-  const pant = await page.evaluate(() => ({
-    nota: !document.getElementById("nota-pantalla").hidden,
-    texto: document.getElementById("pantalla").innerText,
-    reglas: document.querySelectorAll(".pantalla .regla").length,
-    titulo: document.querySelector(".pantalla .regla-titulo")?.innerText || "",
-  }));
-  debe(pant.nota, "la pantalla dice que el historial está en el Chat");
+  const pant = await page.evaluate(() => {
+    const marco = document.getElementById("marco").getBoundingClientRect();
+    const pre = document.getElementById("pantalla").getBoundingClientRect();
+    return {
+      nota: !document.getElementById("nota-pantalla").hidden,
+      texto: document.getElementById("pantalla").innerText,
+      titulo: document.querySelector(".pantalla .regla-titulo")?.innerText || "",
+      entrada: document.querySelector(".pantalla .entrada")?.innerText.trim() ?? null,
+      pie: document.querySelector(".pantalla .pie-term")?.innerText.trim() ?? null,
+      anchoEntero: Math.round(pre.width) >= Math.round(marco.width) - 1,
+      borde: getComputedStyle(document.getElementById("pantalla")).borderTopWidth,
+      colores: [...new Set([...document.querySelectorAll(".pantalla span[style]")].map((s) => getComputedStyle(s).color))],
+      negrita: getComputedStyle(document.querySelector(".pantalla .b") ?? document.body).fontWeight,
+    };
+  });
+  debe(pant.colores.includes("rgb(78, 186, 101)") && pant.colores.includes("rgb(255, 193, 7)") && pant.negrita === "700", `con los colores y la negrita del PC (${JSON.stringify([pant.colores, pant.negrita])})`);
+  debe(pant.nota, "la pantalla dice que lo de antes está en el Chat");
   debe(!/[⏵⏸─]/.test(pant.texto), "sin ⏵ ni rayas de texto en la pantalla");
-  debe(pant.reglas === 1 && pant.titulo === "Adeorq: sesiones y terminales", `rayas como líneas (${pant.reglas}, ${pant.titulo})`);
+  debe(pant.titulo === "Adeorq: sesiones y terminales", `la raya de arriba con el nombre de la sesión (${pant.titulo})`);
+  debe(pant.entrada === "❯" && /auto mode on/.test(pant.pie ?? ""), `la caja de escribir resaltada y la barra de estado al pie (${JSON.stringify([pant.entrada, pant.pie])})`);
+  debe(pant.anchoEntero && pant.borde === "0px", `a todo el ancho y sin recuadro (${JSON.stringify([pant.anchoEntero, pant.borde])})`);
   await page.click("[data-ir-chat]");
   await page.waitForTimeout(600);
   debe(await page.$eval("#conversa", (c) => !c.hidden), "el enlace de la nota lleva al Chat");

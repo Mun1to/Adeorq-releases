@@ -1,11 +1,11 @@
 {
-  "version": "0.9.217",
-  "notes": "En Linux ya se pega con el boton derecho y cerrar la ventana puede dejar Adeorq en segundo plano con sus agentes y encargos; el README ya no llama open source al proyecto.",
-  "pub_date": "2026-10-16T18:50:48Z",
+  "version": "0.9.218",
+  "notes": "Codex, Gemini, Qwen y OpenCode ya arrancan con su encargo en Windows (antes Codex se moria al nacer), y la cuota vieja de Codex ya no frena sus encargos programados.",
+  "pub_date": "2026-10-16T19:31:40Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3ppRFY3RHEyMitHOFlNVEFXQnA3KzZQRTNQTXBia2NOTEFsS2Qxd3dkTlRhVm5CMUVtSlZPK3FDcUpXbkNoWjhLdTZ0RWNFR21aQWFwOGowRUU5c1FZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTc2NjQ2CWZpbGU6QWRlb3JxXzAuOS4yMTdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTcKMVhXQkt1Vlg1NmxEMnFPRVFrUHl1Wk9vbTVJdUo3RXpMOEFkdjJmUGtHdldwNlRCZ3E5YXRWY2NwUWhwb3dabEVmNGloQy9GVGttR3cydmw5NVVBQUE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.217/Adeorq_0.9.217_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3pGN2h4cGU3K3V0THRiay93MlJ1QlZ4RnBXV0lHcURhSjZZazZ1U1NKdk03Q01qRUt1VFRiRmFxUmFMWWh6NHk3bGtsdytPbFhQMXgyV00xUjg4SFFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTc5MDk4CWZpbGU6QWRlb3JxXzAuOS4yMThfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTgKVU92K0luOWU1clFMWnpBY0owWkJEdnZSZno5a2VjMTFzekhaTUFqaFpHS3dVaXdSSU5qR0Y2TDVKRUJtb2xURU90Y2V3ZW5YREZHc2VMQ1ZjT3k1RFE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.218/Adeorq_0.9.218_x64-setup.exe"
     }
   }
 }

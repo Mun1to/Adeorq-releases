@@ -91,13 +91,44 @@ export type Shell = "powershell" | "bash";
  * Las comillas simples tipográficas (‘ ’ ‚ ‛) también cierran una cadena de
  * PowerShell, así que se doblan igual que la recta: un «it’s» dictado partía la
  * línea. En bash basta la comilla simple, con las de dentro como '\''.
+ *
+ * Y `--%` solo lo entiende PowerShell al llamar a un PROGRAMA. Codex, Gemini,
+ * Qwen u OpenCode instalados con pnpm o npm son un script `.ps1` que llama a
+ * node con el `.js` del paquete (o a su `.exe`), y a un script PowerShell le
+ * pasa `--%` y `%ADEORQ_ENCARGO%` como dos argumentos más: Codex se moría con
+ * «unexpected argument '--%'» (2026-10-16, un encargo programado). Así que, si
+ * el programa resulta ser un script, la línea lee en él a qué llama (su última
+ * línea `& "…" $args`, con `$basedir` y `$exe` puestos) y lo llama ella, con el
+ * mismo `--%`. Medido con `scripts/laboratorio/encargo-en-powershell.mjs`: un
+ * programa de verdad y un `.ps1` de pnpm reciben los mismos cinco encargos
+ * difíciles tal cual.
  */
 export function lineaConEncargo(linea: string, encargo: string, shell: Shell): string {
   if (shell === "bash") return `${linea} '${encargo.replace(/'/g, "'\\''")}'`;
   const msvc = encargo
     .replace(/(\\*)"/g, (_, barras: string) => `${barras}${barras}\\"`)
     .replace(/(\\+)$/, "$1$1");
-  return `$env:ADEORQ_ENCARGO = '${msvc.replace(/['‘’‚‛]/g, "$&$&")}'; ${linea} --% "%ADEORQ_ENCARGO%"`;
+  const variable = `$env:ADEORQ_ENCARGO = '${msvc.replace(/['‘’‚‛]/g, "$&$&")}'; `;
+  // Un programa por su nombre y sus banderas (`codex --algo`): puede ser un script.
+  const m = /^([A-Za-z0-9][\w.-]*)(\s.*)?$/.exec(linea.trim());
+  if (!m) return `${variable}${linea} --% "%ADEORQ_ENCARGO%"`;
+  const [, programa, banderas = ""] = m;
+  return `${variable}${programaDeVerdad(programa)} & $adeorqExe @adeorqPre${banderas} --% "%ADEORQ_ENCARGO%"`;
+}
+
+/** Deja en `$adeorqExe` y `$adeorqPre` lo que hay que llamar para `programa`:
+ *  él mismo si es un programa, o lo que llama su `.ps1` si es un script (la
+ *  primera de sus líneas `& … $args` cuyo ejecutable exista). */
+function programaDeVerdad(programa: string): string {
+  return [
+    `$adeorqExe = '${programa}'; $adeorqPre = @();`,
+    `$adeorqCmd = Get-Command '${programa}' -ErrorAction SilentlyContinue | Select-Object -First 1;`,
+    `if ($adeorqCmd.CommandType -eq 'ExternalScript') {`,
+    `$basedir = Split-Path $adeorqCmd.Source; $exe = '.exe';`,
+    `foreach ($adeorqL in (Get-Content -LiteralPath $adeorqCmd.Source | Where-Object { $_ -match '^\\s*&\\s.*\\$args\\s*$' })) {`,
+    `$adeorqP = @([regex]::Matches($adeorqL, '"([^"]+)"') | ForEach-Object { $ExecutionContext.InvokeCommand.ExpandString($_.Groups[1].Value) });`,
+    `if ($adeorqP.Count -and (-not [IO.Path]::IsPathRooted($adeorqP[0]) -or (Test-Path -LiteralPath $adeorqP[0]))) { $adeorqExe = $adeorqP[0]; $adeorqPre = @($adeorqP | Select-Object -Skip 1); break } } };`,
+  ].join(" ");
 }
 export function planDeArranque(p: Peticion): Plan {
   const encargo = (p.encargo ?? "").trim();

@@ -381,9 +381,14 @@ ok("«shell» abre una consola pelada, sin comando dentro", pl({ cli: "shell" })
   const l = lineaConEncargo("claude --permission-mode auto", 'mete allow="local-network; camera" ya', "powershell");
   ok(
     "en PowerShell, el encargo va en la variable y la línea acaba en --%",
-    l === `$env:ADEORQ_ENCARGO = 'mete allow=\\"local-network; camera\\" ya'; claude --permission-mode auto --% "%ADEORQ_ENCARGO%"`,
+    l.startsWith(`$env:ADEORQ_ENCARGO = 'mete allow=\\"local-network; camera\\" ya'; `) &&
+      l.endsWith(`& $adeorqExe @adeorqPre --permission-mode auto --% "%ADEORQ_ENCARGO%"`),
     l,
   );
+  // Y el programa se mira antes de llamarlo: si es un `.ps1` de pnpm o npm,
+  // `--%` le llegaría como un argumento (Codex, 2026-10-16). Lo de verdad lo
+  // mide `scripts/laboratorio/encargo-en-powershell.mjs`.
+  ok("el programa se busca por su nombre, por si es un script", l.includes(`Get-Command 'claude'`) && l.includes("ExternalScript"), l);
   ok(
     "las comillas simples, también las tipográficas, se doblan",
     lineaConEncargo("x", "pon 'esto' y it’s ‘así’", "powershell").startsWith("$env:ADEORQ_ENCARGO = 'pon ''esto'' y it’’s ‘‘así’’'"),

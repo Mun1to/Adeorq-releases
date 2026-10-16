@@ -77,7 +77,15 @@ fn ventana(minutos: u64) -> &'static str {
 }
 
 /// Un `rate_limits` de Codex, ya convertido a las líneas del panel.
-fn lineas_de(rate: &Value) -> Vec<LimitLine> {
+///
+/// Una ventana cuya renovación ya pasó se da por RENOVADA: 0 % y la renovación
+/// siguiente, la vieja más tantas ventanas como hagan falta para llegar al
+/// futuro. Codex solo reescribe este bloque cuando trabaja, así que su última
+/// foto se queda en el disco tal cual; y con ella en 100 %, el freno de los
+/// encargos programados no le dejaba trabajar nunca más (2026-10-16: una hora
+/// después de renovarse, Adeorq seguía leyendo «Current month · 100 %» y la
+/// prueba de `programado-codex-de-verdad.mjs` se saltaba).
+fn lineas_de(rate: &Value, ahora_ms: i64) -> Vec<LimitLine> {
     let mut out = Vec::new();
     for clave in ["primary", "secondary"] {
         let Some(v) = rate.get(clave).filter(|v| !v.is_null()) else {
@@ -93,14 +101,24 @@ fn lineas_de(rate: &Value) -> Vec<LimitLine> {
         // `resets_at` viene en SEGUNDOS y el panel cuenta en milisegundos. Una
         // renovación mil veces más cerca de lo que toca se lee como «en 1 min»
         // y no chirría: por eso el factor va aquí y no en quien lo pinta.
-        let resets_at = v
+        let mut resets_at = v
             .get("resets_at")
             .and_then(Value::as_i64)
             .map(|s| s * 1000)
             .unwrap_or(0);
+        let mut percent = pct.round().clamp(0.0, 100.0) as u8;
+        if resets_at > 0 && resets_at <= ahora_ms {
+            percent = 0;
+            let ventana_ms = i64::try_from(minutos).unwrap_or(0) * 60_000;
+            resets_at = if ventana_ms > 0 {
+                resets_at + ((ahora_ms - resets_at) / ventana_ms + 1) * ventana_ms
+            } else {
+                0
+            };
+        }
         out.push(LimitLine {
             label: ventana(minutos).to_owned(),
-            percent: pct.round().clamp(0.0, 100.0) as u8,
+            percent,
             resets: String::new(),
             resets_at,
         });
@@ -181,7 +199,11 @@ fn cuota_de_codex(config_dir: Option<&str>) -> Result<Limits, String> {
             else {
                 continue;
             };
-            let lineas = lineas_de(rate);
+            let ahora_ms = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX))
+                .unwrap_or(0);
+            let lineas = lineas_de(rate, ahora_ms);
             if lineas.is_empty() {
                 continue;
             }
@@ -439,6 +461,30 @@ mod tests {
         assert_eq!((l[0].label.as_str(), l[0].percent), ("Current month (Premium)", 75));
         assert_eq!(l[0].resets_at, crate::sessions::iso_a_segundos("2026-11-01T00:00:00Z").unwrap() as i64 * 1000);
         assert!(lineas_de_copilot(&serde_json::json!({}), ahora).is_empty());
+    }
+
+    /// Una foto vieja de Codex, con la renovación ya pasada, no frena: la
+    /// ventana cuenta como renovada y la renovación siguiente sale del ciclo.
+    /// La viva se queda como está.
+    #[test]
+    fn una_ventana_de_codex_ya_renovada_no_frena() {
+        let mes = 43_200_i64 * 60_000;
+        let renovo = 1_792_173_502_000_i64;
+        let rate = serde_json::json!({
+            "primary": { "used_percent": 100.0, "window_minutes": 43_200, "resets_at": renovo / 1000 },
+            "secondary": { "used_percent": 40.0, "window_minutes": 300, "resets_at": (renovo + 3 * 3_600_000) / 1000 },
+        });
+        // Una hora después de la renovación de la del mes.
+        let ahora = renovo + 3_600_000;
+        let l = lineas_de(&rate, ahora);
+        assert_eq!((l[0].percent, l[0].resets_at), (0, renovo + mes), "la del mes, renovada y con la siguiente dentro de un mes");
+        assert_eq!((l[1].percent, l[1].resets_at), (40, renovo + 3 * 3_600_000), "la que aún no renueva, igual");
+        // Si pasaron varias ventanas, la siguiente sigue siendo futura y del mismo ciclo.
+        let tarde = lineas_de(&rate, renovo + 2 * mes + 5);
+        assert_eq!((tarde[0].percent, tarde[0].resets_at), (0, renovo + 3 * mes));
+        // Sin minutos de ventana no se inventa la siguiente.
+        let sin = serde_json::json!({ "primary": { "used_percent": 90.0, "resets_at": renovo / 1000 } });
+        assert_eq!((lineas_de(&sin, ahora)[0].percent, lineas_de(&sin, ahora)[0].resets_at), (0, 0));
     }
 
     /// Las tres ventanas, con los minutos que Codex da de verdad.

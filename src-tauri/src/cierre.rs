@@ -17,9 +17,13 @@
 // la ventana no contesta a tiempo (colgada, o sin llegar a cargar), la X
 // cierra igual. Una X que no cierra es peor que un aviso que no sale.
 //
-// Solo en Windows. En Linux la bandeja depende de una librería del escritorio
-// que no está probada en el AppImage ni en el `.rpm`, así que allí la X cierra
-// como siempre y `cierre_puede_fondo` contesta que no.
+// En Windows y en Linux. La bandeja solo en Windows: en Linux depende de una
+// librería del escritorio (AppIndicator) que Fedora con GNOME no trae, y si
+// falta la app se cae. Así que en Linux el segundo plano es sin icono: la
+// ventana se esconde, un aviso del escritorio dice cómo volver, y abrir Adeorq
+// otra vez la trae (la instancia única llama a `volver`). Hasta el 2026-10-16
+// allí la X cerraba, y con ella los encargos programados, que solo se lanzan
+// con la app viva. En macOS no se ha probado nada: la X cierra.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::{AppHandle, Manager, State};
@@ -41,7 +45,7 @@ fn contestado(estado: &Cierre, n: u64) -> bool {
 
 /// La X de la ventana principal. Devuelve si hay que PARAR el cierre porque
 /// se lo ha preguntado a la ventana.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn al_pedir_cierre(app: &AppHandle) -> bool {
     use tauri::Emitter;
     /// Lo que se espera a la ventana. Contesta en milisegundos si está viva;
@@ -64,7 +68,7 @@ pub fn al_pedir_cierre(app: &AppHandle) -> bool {
     true
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn al_pedir_cierre(_app: &AppHandle) -> bool {
     false
 }
@@ -80,6 +84,12 @@ pub fn cierre_acuse(estado: State<'_, Cierre>) {
 /// ¿Se puede seguir en segundo plano en este sistema?
 #[tauri::command(async)]
 pub fn cierre_puede_fondo() -> bool {
+    cfg!(any(windows, target_os = "linux"))
+}
+
+/// ¿Se vuelve desde un icono junto al reloj? Si no (Linux), abriendo Adeorq otra vez.
+#[tauri::command(async)]
+pub fn cierre_con_bandeja() -> bool {
     cfg!(windows)
 }
 
@@ -167,7 +177,24 @@ fn poner_bandeja(app: &AppHandle, abrir: &str, salir: &str, pista: &str) -> Resu
     Ok(())
 }
 
-#[cfg(not(windows))]
+/// Sin bandeja: un aviso del escritorio con la pista (que en Linux dice cómo
+/// volver) y la ventana, escondida.
+#[cfg(target_os = "linux")]
+fn a_fondo(app: &AppHandle, _abrir: String, _salir: String, pista: String) -> Result<(), String> {
+    use tauri_plugin_notification::NotificationExt;
+    let ventana = app
+        .get_webview_window("main")
+        .ok_or("no encuentro la ventana principal")?;
+    // El aviso primero: si no sale, la ventana esconde igual, y abrir Adeorq la trae.
+    if let Err(e) = app.notification().builder().title("Adeorq").body(&pista).show() {
+        crate::anotar(&format!("al pasar a segundo plano no salió el aviso: {e}"));
+    }
+    ventana.hide().map_err(|e| e.to_string())?;
+    crate::anotar("la ventana pasa a segundo plano, sin bandeja: los agentes siguen");
+    Ok(())
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
 fn a_fondo(_app: &AppHandle, _abrir: String, _salir: String, _pista: String) -> Result<(), String> {
     Err("en este sistema Adeorq no se queda en segundo plano".into())
 }

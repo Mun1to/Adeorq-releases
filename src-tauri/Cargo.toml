@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.216"
+version = "0.9.217"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 # PolyForm Shield 1.0.0 no está en la lista SPDX, así que se apunta al archivo.
@@ -126,4 +126,10 @@ trash = "5"
 # Solo por `kill(-pgid)`: matar la RAMA de una terminal, no solo a su hijo
 # directo. Es la traducción exacta del `taskkill /T` de Windows.
 libc = "0.2"
+
+# Leer el portapapeles del sistema cuando WebKitGTK niega el del navegador
+# (`manage::portapapeles_texto`). No es una dependencia nueva: Tauri ya trae
+# esta misma gtk en Linux, y la versión tiene que ser la suya.
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
 

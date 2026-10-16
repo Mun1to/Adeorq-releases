@@ -1,6 +1,7 @@
-// Pegar en una terminal: de los dos caminos pega uno solo, y si el
-// portapapeles del navegador no da nada, pega el texto del evento
-// (`lib/pegado.ts`). Con un portapapeles y un reloj de mentira.
+// Pegar en una terminal: de los caminos pega uno solo, y si el portapapeles
+// del navegador no da nada, pega el texto del evento; y si tampoco hay evento
+// (el «Pegar» del botón derecho), el portapapeles del sistema (`lib/pegado.ts`).
+// Con un portapapeles, un reloj y un sistema de mentira.
 //
 //   pnpm bancos pegado
 //
@@ -54,15 +55,22 @@ function portapapelesDeMentira() {
 const deja = () => new Promise<void>((r) => setTimeout(r, 0));
 const deTexto = [{ types: ["text/plain"], getType: async () => new Blob(["x"]) }];
 
-async function escena(guion: (e: { p: ReturnType<typeof crearPegado>; porta: ReturnType<typeof portapapelesDeMentira>; pasa: (ms: number) => void }) => Promise<void>) {
+async function escena(
+  guion: (e: { p: ReturnType<typeof crearPegado>; porta: ReturnType<typeof portapapelesDeMentira>; pasa: (ms: number) => void }) => Promise<void>,
+  sistema: string | null = null,
+) {
   const pegados: string[] = [];
   let notas = 0;
   const porta = portapapelesDeMentira();
   const { reloj, pasa } = relojDeMentira();
-  const p = crearPegado({ pegar: (x) => pegados.push(x), guardarImagen: async () => "C:/tmp/pegada.png", alPegarImagen: () => notas++ }, porta, reloj);
+  const pedidas = { sistema: 0 };
+  const p = crearPegado({ pegar: (x) => pegados.push(x), guardarImagen: async () => "C:/tmp/pegada.png", alPegarImagen: () => notas++ }, porta, reloj, async () => {
+    pedidas.sistema++;
+    return sistema;
+  });
   await guion({ p, porta, pasa });
   await deja();
-  return { pegados, notas };
+  return { pegados, notas, sistema: pedidas.sistema };
 }
 
 // Los bancos se compilan a CommonJS, que no deja esperar fuera de una función.
@@ -156,7 +164,58 @@ r = await escena(async ({ p, porta, pasa }) => {
   p.desdeElEvento("otro");
   ok("  (un fallo viejo no hace pegar al momento)", true);
 });
-ok("sin evento y sin portapapeles no se pega nada, y el fallo caduca", r.pegados.length === 0, JSON.stringify(r.pegados));
+ok("sin evento, sin portapapeles y sin el del sistema (Windows) no se pega nada, y el fallo caduca", r.pegados.length === 0, JSON.stringify(r.pegados));
+
+// --- el «Pegar» del botón derecho en Linux: el portapapeles del sistema (incidencia #3) ---
+const menuSinPortapapeles = async ({ p, porta }: { p: ReturnType<typeof crearPegado>; porta: ReturnType<typeof portapapelesDeMentira> }) => {
+  p.desdeElPortapapeles();
+  porta.lecturas[0].mal();
+  await deja();
+  porta.textos[0].mal();
+  await deja();
+};
+r = await escena(async (e) => {
+  await menuSinPortapapeles(e);
+  e.pasa(ESPERA_AL_PORTAPAPELES_MS - 1);
+  ok("  (mientras se espera un evento, no se pide al sistema)", true);
+  e.pasa(2);
+  await deja();
+}, "del sistema");
+ok("el botón derecho sin portapapeles pega lo del sistema, una vez", r.pegados.join("|") === "del sistema" && r.sistema === 1, JSON.stringify(r));
+
+r = await escena(async (e) => {
+  await menuSinPortapapeles(e);
+  e.pasa(ESPERA_AL_PORTAPAPELES_MS + 1);
+  await deja();
+  // Un evento tardío del mismo pegado no lo repite.
+  e.pasa(100);
+  e.p.desdeElEvento("del sistema");
+  e.pasa(ESPERA_AL_PORTAPAPELES_MS + 1);
+}, "del sistema");
+ok("si llega un evento después de pegar lo del sistema, no se repite", r.pegados.join("|") === "del sistema", JSON.stringify(r));
+
+r = await escena(async (e) => {
+  // Ctrl+V en Linux: el portapapeles falla y el evento llega enseguida.
+  await menuSinPortapapeles(e);
+  e.pasa(40);
+  e.p.desdeElEvento("hola");
+  e.pasa(ESPERA_AL_PORTAPAPELES_MS + 1);
+  await deja();
+}, "del sistema");
+ok("Ctrl+V con su evento no le pide nada al sistema", r.pegados.join("|") === "hola" && r.sistema === 0, JSON.stringify(r));
+
+r = await escena(async (e) => {
+  // Dos «Pegar» seguidos: el primero no pega tarde encima del segundo.
+  await menuSinPortapapeles(e);
+  e.p.desdeElPortapapeles();
+  e.porta.lecturas[1].bien(deTexto);
+  await deja();
+  e.porta.textos[1].bien("el segundo");
+  await deja();
+  e.pasa(ESPERA_AL_PORTAPAPELES_MS + 1);
+  await deja();
+}, "del sistema");
+ok("un pegado viejo no pega lo del sistema encima de uno nuevo", r.pegados.join("|") === "el segundo", JSON.stringify(r));
 
 r = await escena(async ({ p, porta }) => {
   // Dos Ctrl+V seguidos con el portapapeles sano.

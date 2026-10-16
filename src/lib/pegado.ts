@@ -12,8 +12,20 @@
 // REPUESTO: se usa cuando el portapapeles falla, viene vacío o no contesta.
 // Lo que sigue siendo verdad es que pega UNO solo de los dos.
 //
-// NO PROBADO en Linux: la causa está leída en el código, no medida en un
-// WebKitGTK. Lo que fija el banco (`scripts/pegado-check.ts`) es la decisión.
+// Con eso Ctrl+Mayús+V ya pegaba en Fedora (lo confirmó quien abrió la #3, el
+// 2026-10-15), pero «Pegar» con el botón derecho no: es un menú propio, el
+// navegador no dispara ningún evento detrás, y sin portapapeles no quedaba
+// nada. Así que hay un tercer camino, el portapapeles del SISTEMA, que el PC
+// lee con GTK (`portapapeles_texto` en manage.rs; en Windows contesta nada,
+// que allí el del navegador funciona). Se pide solo si el del navegador falló
+// y no ha llegado evento en `ESPERA_AL_PORTAPAPELES_MS`: un Ctrl+V con su
+// evento nunca lo usa, y lo que él pega cuenta como pegado para un evento tardío.
+//
+// NO PROBADO en un WebKitGTK de verdad: el fallo del portapapeles está leído en
+// el código y confirmado por quien lo sufre, no medido aquí. Lo que fija el
+// banco (`scripts/pegado-check.ts`) es la decisión.
+
+import { invoke } from "@tauri-apps/api/core";
 
 /** Lo que se espera al portapapeles antes de dar por bueno el texto del evento. */
 export const ESPERA_AL_PORTAPAPELES_MS = 250;
@@ -46,7 +58,15 @@ const RELOJ: Reloj = {
   cancelar: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
 };
 
-export function crearPegado(m: ManosDePegado, portapapeles: Portapapeles = navigator.clipboard, reloj: Reloj = RELOJ) {
+/** El portapapeles del sistema, leído por el PC: `null` si no sabe o no hay texto. */
+const delSistemaDeVerdad = () => invoke<string | null>("portapapeles_texto");
+
+export function crearPegado(
+  m: ManosDePegado,
+  portapapeles: Portapapeles = navigator.clipboard,
+  reloj: Reloj = RELOJ,
+  delSistema: () => Promise<string | null> = delSistemaDeVerdad,
+) {
   /** El texto de un evento que espera a ver qué hace el portapapeles. */
   let espera: { texto: string; id: unknown } | null = null;
   let fallo = -Infinity;
@@ -69,11 +89,23 @@ export function crearPegado(m: ManosDePegado, portapapeles: Portapapeles = navig
     bien = reloj.ahora();
     return true;
   };
-  /** El portapapeles no ha dado nada: el texto del evento, si lo hay. */
+  /** El portapapeles no ha dado nada: el texto del evento, si lo hay. Si no
+      lo hay, se le da su espera, y si tampoco llega, el del sistema. */
   const noLeyo = (suTurno: number) => {
     if (suTurno <= pegadoPorEvento) return;
     if (!espera) {
       fallo = reloj.ahora();
+      reloj.programar(() => {
+        if (suTurno <= pegadoPorEvento || suTurno !== turno) return;
+        void delSistema().then((texto) => {
+          if (!texto || suTurno <= pegadoPorEvento || suTurno !== turno) return;
+          // Cuenta como pegado: un evento que llegue ahora no lo repite.
+          pegadoPorEvento = suTurno;
+          fallo = -Infinity;
+          bien = reloj.ahora();
+          m.pegar(texto);
+        }, () => {});
+      }, ESPERA_AL_PORTAPAPELES_MS);
       return;
     }
     reloj.cancelar(espera.id);

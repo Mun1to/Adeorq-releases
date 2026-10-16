@@ -1,11 +1,11 @@
 {
-  "version": "0.9.216",
-  "notes": "Lo que te pregunta una terminal sale tambien en Decisiones del movil, con sus opciones para contestar con un toque, y cuenta en el globito.",
-  "pub_date": "2026-10-16T08:03:53Z",
+  "version": "0.9.217",
+  "notes": "En Linux ya se pega con el boton derecho y cerrar la ventana puede dejar Adeorq en segundo plano con sus agentes y encargos; el README ya no llama open source al proyecto.",
+  "pub_date": "2026-10-16T18:50:48Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy9yRGNSSHZzeU5iYk1CWWNrcXArNmc3L3JTVlpRVnJoQnhHMW9QUFp4aVoyNkZHUWxSNnJuSU1yUDNRbXc3bTVNOEdNZVFHb25wdXV1bDJZUERmb1E4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTM3ODMyCWZpbGU6QWRlb3JxXzAuOS4yMTZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTYKWGpFakdNekR1M3ozVGpSM211VUdpcWVKaFJvYW50ODYvZjdxQmxpS0ltWFVLOW9taFpMaFFLNEw1QSsvTENhS3c1TkVzcThFMy9JS3YrbUpuWTFIREE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.216/Adeorq_0.9.216_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3ppRFY3RHEyMitHOFlNVEFXQnA3KzZQRTNQTXBia2NOTEFsS2Qxd3dkTlRhVm5CMUVtSlZPK3FDcUpXbkNoWjhLdTZ0RWNFR21aQWFwOGowRUU5c1FZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTc2NjQ2CWZpbGU6QWRlb3JxXzAuOS4yMTdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTcKMVhXQkt1Vlg1NmxEMnFPRVFrUHl1Wk9vbTVJdUo3RXpMOEFkdjJmUGtHdldwNlRCZ3E5YXRWY2NwUWhwb3dabEVmNGloQy9GVGttR3cydmw5NVVBQUE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.217/Adeorq_0.9.217_x64-setup.exe"
     }
   }
 }

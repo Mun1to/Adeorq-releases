@@ -64,6 +64,34 @@ pub async fn save_pasted_image(bytes: Vec<u8>, ext: String) -> Result<String, St
     Ok(path.to_string_lossy().into_owned())
 }
 
+/// El texto del portapapeles del sistema, para cuando el del navegador no
+/// contesta. En Linux WebKitGTK niega `navigator.clipboard` sin avisar: Ctrl+V
+/// y Ctrl+Mayús+V se salvan con el texto de su evento `paste` (`lib/pegado.ts`),
+/// pero «Pegar» con el botón derecho no trae evento detrás y se quedaba sin nada
+/// (incidencia #3 del repo público, 2026-10-15: «no deja con click derecho
+/// pegar pero sí con Ctrl+Shift+V»). Se lee con GTK, que en Linux ya va dentro
+/// de la app, y en su hilo, que es donde vive su portapapeles. En Windows y
+/// macOS el del navegador funciona: `None`.
+// async: espera al hilo de la ventana, y sin él la esperaría desde ese mismo hilo.
+#[tauri::command(async)]
+pub fn portapapeles_texto(app: tauri::AppHandle) -> Option<String> {
+    #[cfg(target_os = "linux")]
+    {
+        let (tx, rx) = std::sync::mpsc::channel();
+        app.run_on_main_thread(move || {
+            let portapapeles = gtk::Clipboard::get(&gtk::gdk::SELECTION_CLIPBOARD);
+            let _ = tx.send(portapapeles.wait_for_text().map(|t| t.to_string()));
+        })
+        .ok()?;
+        rx.recv_timeout(std::time::Duration::from_secs(2)).ok().flatten()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = app;
+        None
+    }
+}
+
 /// Una captura ya pegada alguna vez. La galería del lienzo las lista para
 /// poder volver a sacar una sin ir a buscarla al Explorador.
 #[derive(Serialize, Debug)]

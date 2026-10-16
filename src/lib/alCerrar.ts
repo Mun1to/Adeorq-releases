@@ -86,6 +86,8 @@ export function fraseDeLoAbierto(t: Translate, { abiertas, trabajando }: Abierto
 /** «Te oigo»: retira el seguro que cerraría si la ventana no contestara. */
 export const cierreAcuse = () => invoke<void>("cierre_acuse");
 export const cierrePuedeFondo = () => invoke<boolean>("cierre_puede_fondo");
+/** Si se vuelve desde la bandeja (Windows) o abriendo Adeorq otra vez (Linux). */
+export const cierreConBandeja = () => invoke<boolean>("cierre_con_bandeja");
 export const cierreSalir = () => invoke<void>("cierre_salir");
 /** Esconde la ventana y deja el icono junto al reloj, con estos textos. */
 export const cierreAFondo = (textos: { abrir: string; salir: string; pista: string }) =>

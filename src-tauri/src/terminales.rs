@@ -1001,7 +1001,12 @@ pub fn arrancar(app: &tauri::AppHandle) {
     }
 }
 
-#[cfg(all(test, windows))]
+// En Windows y en Linux: es la red de que una terminal aguanta una caída de la
+// app y la siguiente la recoge. Hasta el 2026-10-16 todo el módulo era solo de
+// Windows (usaba `cmd` y `ping`), así que en Linux nadie lo comprobaba. Lo que
+// sigue siendo de Windows (la herencia de sockets, el binario lanzado suelto)
+// lleva su `cfg(windows)`.
+#[cfg(test)]
 mod pruebas {
     use super::*;
 
@@ -1081,14 +1086,48 @@ mod pruebas {
         }
     }
 
+    /// Cuánto se insiste en volver a engancharse mientras el proceso dice «ya hay
+    /// una app»: lo que tarda en darse cuenta de que la anterior se fue. Eran 5 s y
+    /// una vez de dieciséis no bastó (2026-10-16), con el equipo cargado de otras
+    /// pruebas a la vez; si vuelve a fallar con 15, el mensaje dice cuánto esperó.
+    const REENGANCHE: Duration = Duration::from_secs(15);
+
     fn cmd(id: u32, eco: &str) -> Alta {
         Alta {
             id,
             cwd: std::env::temp_dir().to_string_lossy().into_owned(),
             cols: 100,
             rows: 30,
-            command: Some(vec!["cmd.exe".into(), "/q".into(), "/k".into(), format!("echo {eco}")]),
+            command: Some(consola_que_dice(eco)),
             env: None,
+        }
+    }
+
+    /// Una consola que dice `eco` y se queda esperando órdenes.
+    fn consola_que_dice(eco: &str) -> Vec<String> {
+        if cfg!(windows) {
+            vec!["cmd.exe".into(), "/q".into(), "/k".into(), format!("echo {eco}")]
+        } else {
+            vec!["sh".into(), "-c".into(), format!("echo {eco}; exec sh")]
+        }
+    }
+
+    /// La orden que hace decir «a-b» sin que el eco de lo tecleado ya lo diga:
+    /// en cmd, un `%COMSPEC:~0,0%` vacío en medio; en sh, unas comillas vacías.
+    fn decir(a: &str, b: &str) -> String {
+        if cfg!(windows) {
+            format!("echo {a}-%COMSPEC:~0,0%{b}\r")
+        } else {
+            format!("echo {a}-''{b}\r")
+        }
+    }
+
+    /// Algo que dura y no dice nada: una terminal viva para las pruebas.
+    fn quieta(segundos: u32) -> Vec<String> {
+        if cfg!(windows) {
+            vec!["ping.exe".into(), "-n".into(), segundos.to_string(), "127.0.0.1".into()]
+        } else {
+            vec!["sleep".into(), segundos.to_string()]
         }
     }
 
@@ -1111,7 +1150,7 @@ mod pruebas {
         p.mandar(&Orden::Crear { n: 1, alta: cmd(3, "proceso-listo") });
         assert!(p.esperar(|a| matches!(a, Aviso::Ok { n: 1, .. }), 8000).is_some(), "no contestó al crear");
         assert!(p.hasta_que_diga(3, "proceso-listo", 8000), "no llegó lo que dice: {:?}", p.dicho(3));
-        p.mandar(&Orden::Escribir { id: 3, texto: "echo eco-%COMSPEC:~0,0%remoto\r".into() });
+        p.mandar(&Orden::Escribir { id: 3, texto: decir("eco", "remoto") });
         assert!(p.hasta_que_diga(3, "eco-remoto", 8000), "lo escrito no llegó");
         p.mandar(&Orden::Historial { n: 2, id: 3, bytes: None });
         assert!(matches!(p.esperar(|a| matches!(a, Aviso::Ok { n: 2, .. }), 3000), Some(Aviso::Ok { texto: Some(t), .. }) if t.contains("eco-remoto")));
@@ -1181,7 +1220,7 @@ mod pruebas {
         );
         vuelta.mandar(&Orden::Historial { n: 2, id: 5, bytes: None });
         assert!(matches!(vuelta.esperar(|a| matches!(a, Aviso::Ok { n: 2, .. }), 3000), Some(Aviso::Ok { texto: Some(t), .. }) if t.contains("antes-de-caer")));
-        vuelta.mandar(&Orden::Escribir { id: 5, texto: "echo sigue-%COMSPEC:~0,0%viva\r".into() });
+        vuelta.mandar(&Orden::Escribir { id: 5, texto: decir("sigue", "viva") });
         assert!(vuelta.hasta_que_diga(5, "sigue-viva", 8000), "no contesta después de la caída");
         vuelta.mandar(&Orden::Adios);
         assert_eq!(hilo.join().unwrap(), Final::Despedida);
@@ -1219,8 +1258,10 @@ mod pruebas {
         let libreta = Arc::new(Libreta::default());
         let r = Remoto::conectar(&señas, Arc::new(Salidita(libreta.clone()))).expect("no se enganchó");
         r.crear(cmd(2, "cliente-listo")).expect("no abrió");
-        assert!(hasta(&|| libreta.datos.lock().unwrap().contains("\x1b[6n"), 8000));
-        r.escribir(2, b"\x1b[1;1R".to_vec()).unwrap();
+        if cfg!(windows) {
+            assert!(hasta(&|| libreta.datos.lock().unwrap().contains("\x1b[6n"), 8000));
+            r.escribir(2, b"\x1b[1;1R".to_vec()).unwrap();
+        }
         assert!(hasta(&|| libreta.datos.lock().unwrap().contains("cliente-listo"), 8000), "no llegó a la salida");
         assert!(r.historial(2, None).unwrap().contains("cliente-listo"), "el espejo no lleva el historial");
         assert!(r.fichas()[0].pid.is_some(), "el espejo no sabe el pid");
@@ -1238,7 +1279,8 @@ mod pruebas {
         // Como `arrancar`: el proceso puede tardar un poco en darse cuenta de
         // que la de antes se fue, y mientras tanto dice «ya hay una app».
         let libreta2 = Arc::new(Libreta::default());
-        let fin = Instant::now() + Duration::from_secs(5);
+        let empezo = Instant::now();
+        let fin = empezo + REENGANCHE;
         let r2 = loop {
             match Remoto::conectar(&señas, Arc::new(Salidita(libreta2.clone()))) {
                 Ok(r) => break r,
@@ -1246,12 +1288,12 @@ mod pruebas {
                     assert!(e.contains("ya hay"), "{e}");
                     std::thread::sleep(Duration::from_millis(100));
                 }
-                Err(e) => panic!("no se reenganchó: {e}"),
+                Err(e) => panic!("no se reenganchó en {:?}: {e}", empezo.elapsed()),
             }
         };
         assert_eq!(r2.fichas().iter().map(|f| f.id).collect::<Vec<_>>(), [2], "no encontró la terminal viva");
         assert!(r2.historial(2, None).unwrap().contains("cliente-listo"), "la vuelta no trae lo que dijo antes");
-        r2.escribir(2, b"echo vuelta-%COMSPEC:~0,0%ok\r".to_vec()).unwrap();
+        r2.escribir(2, decir("vuelta", "ok").into_bytes()).unwrap();
         assert!(hasta(&|| libreta2.datos.lock().unwrap().contains("vuelta-ok"), 8000), "no contesta tras volver");
         assert!(r2.historial(2, None).unwrap().contains("vuelta-ok"));
         r2.adios();
@@ -1267,6 +1309,7 @@ mod pruebas {
     ///
     ///   cargo build --manifest-path src-tauri/Cargo.toml
     ///   cargo test --manifest-path src-tauri/Cargo.toml --lib proceso_de_verdad -- --ignored --nocapture
+    #[cfg(windows)]
     #[test]
     #[ignore]
     fn proceso_de_verdad() {
@@ -1318,7 +1361,8 @@ mod pruebas {
         r.cortar();
         std::thread::sleep(Duration::from_millis(800));
         assert!(vivo(proceso.id()) && vivo(hijo), "la caída de la app se llevó la terminal");
-        let fin = Instant::now() + Duration::from_secs(5);
+        let empezo = Instant::now();
+        let fin = empezo + REENGANCHE;
         let r2 = loop {
             match Remoto::conectar(&señas, Arc::new(Nada)) {
                 Ok(r) => break r,
@@ -1368,6 +1412,7 @@ mod pruebas {
     /// proceso de terminales viven juntos, y en Windows sockets y procesos
     /// comparten la tabla de identificadores: un cierre de más se llevaría lo
     /// que tenga ese número en ese momento, por ejemplo la conexión con la app.
+    #[cfg(windows)]
     #[test]
     #[ignore]
     fn abrir_y_matar_no_rompe_un_socket() {
@@ -1398,7 +1443,7 @@ mod pruebas {
             hilos.push(std::thread::spawn(move || {
                 for i in 0..15u32 {
                     let id = k * 100 + i;
-                    let alta = Alta { command: Some(vec!["ping.exe".into(), "-n".into(), "30".into(), "127.0.0.1".into()]), ..cmd(id, "") };
+                    let alta = Alta { command: Some(quieta(30)), ..cmd(id, "") };
                     pty::abrir(&mapa, alta, Arc::new(Nada)).unwrap();
                     std::thread::sleep(Duration::from_millis(30));
                     pty::matar(&mapa, id);
@@ -1424,6 +1469,7 @@ mod pruebas {
     /// conexión queda tocada sin que el otro lado se entere. `try_clone` a pelo
     /// SÍ da una copia heredable (medido el 2026-10-11); por eso existe
     /// `crate::clon_sin_herencia`, y aquí se fijan las dos cosas.
+    #[cfg(windows)]
     #[test]
     fn los_sockets_no_se_heredan() {
         use std::os::windows::io::AsRawSocket;
@@ -1450,6 +1496,7 @@ mod pruebas {
     /// ¿Desmontar una terminal cierra un identificador que ya no es suyo? Tras
     /// cada una se crean centinelas (eventos), que se quedan con los números
     /// recién liberados, y se mira si alguien los cierra por detrás.
+    #[cfg(windows)]
     #[test]
     #[ignore]
     fn desmontar_no_cierra_lo_ajeno() {
@@ -1467,7 +1514,7 @@ mod pruebas {
         let mut centinelas = Vec::new();
         for id in 0..25u32 {
             let acabo = Arc::new(Mutex::new(false));
-            let alta = Alta { command: Some(vec!["ping.exe".into(), "-n".into(), "30".into(), "127.0.0.1".into()]), ..cmd(id, "") };
+            let alta = Alta { command: Some(quieta(30)), ..cmd(id, "") };
             pty::abrir(&mapa, alta, Arc::new(Fin(acabo.clone()))).unwrap();
             std::thread::sleep(Duration::from_millis(80));
             pty::matar(&mapa, id);
@@ -1527,16 +1574,17 @@ mod pruebas {
         }
         let (señas, hilo, dir) = servidor(Duration::from_secs(60));
         let r = Remoto::conectar(&señas, Arc::new(Nada)).unwrap();
-        r.crear(Alta { command: Some(vec!["ping.exe".into(), "-n".into(), "60".into(), "127.0.0.1".into()]), ..cmd(3, "") }).unwrap();
+        r.crear(Alta { command: Some(quieta(60)), ..cmd(3, "") }).unwrap();
         POR_ACTUALIZAR.store(true, std::sync::atomic::Ordering::Relaxed);
         al_cerrar_la_app(&r);
         POR_ACTUALIZAR.store(false, std::sync::atomic::Ordering::Relaxed);
-        let fin = Instant::now() + Duration::from_secs(5);
+        let empezo = Instant::now();
+        let fin = empezo + REENGANCHE;
         let nueva = loop {
             match Remoto::conectar(&señas, Arc::new(Nada)) {
                 Ok(n) => break n,
                 Err(_) if Instant::now() < fin => std::thread::sleep(Duration::from_millis(100)),
-                Err(e) => panic!("la versión nueva no se enganchó: {e}"),
+                Err(e) => panic!("la versión nueva no se enganchó en {:?}: {e}", empezo.elapsed()),
             }
         };
         assert_eq!(nueva.fichas().iter().map(|f| f.id).collect::<Vec<_>>(), [3], "no aguantó la actualización");
@@ -1554,7 +1602,7 @@ mod pruebas {
             let mut p = Probador::conectar(&señas, true);
             p.mandar(&Orden::Crear {
                 n: 1,
-                alta: Alta { command: Some(vec!["ping.exe".into(), "-n".into(), "60".into(), "127.0.0.1".into()]), ..cmd(6, "") },
+                alta: Alta { command: Some(quieta(60)), ..cmd(6, "") },
             });
             assert!(p.esperar(|a| matches!(a, Aviso::Ok { n: 1, .. }), 8000).is_some());
             p.caer();

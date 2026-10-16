@@ -2749,11 +2749,17 @@ const EN: Record<string, string> = {
   "Abrir Adeorq": "Open Adeorq",
   "Cerrar Adeorq del todo": "Quit Adeorq",
   "Adeorq sigue en segundo plano": "Adeorq is running in the background",
+  "Adeorq sigue en segundo plano: para volver, ábrelo otra vez.": "Adeorq is running in the background: open it again to come back.",
+  "En segundo plano la ventana se esconde y los agentes y los encargos programados siguen trabajando; vuelves abriendo Adeorq otra vez. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.":
+    "In the background the window hides and the agents and scheduled jobs keep working; you come back by opening Adeorq again. Closing everything closes the terminals too, and you can resume each session later.",
+  "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde y los agentes y los encargos programados siguen trabajando; vuelves abriendo Adeorq otra vez, y desde ahí lo cierras del todo.":
+    "What happens when you hit the X with terminals open. In the background the window hides and the agents and scheduled jobs keep working; you come back by opening Adeorq again, and quit it for good from there.",
   "Al cerrar la ventana": "When you close the window",
   "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde, los agentes siguen trabajando y Adeorq se queda junto al reloj de Windows: desde ahí vuelves con un clic o lo cierras del todo.":
     "What happens when you hit the X with terminals open. In the background the window hides, the agents keep working and Adeorq stays next to the Windows clock: from there one click brings it back, or you can quit it for good.",
   // Ajustes > Mods (`AjustesMods.tsx`).
   Mods: "Mods",
+  "«{pedido}»": "“{pedido}”",
   "Un mod es un cambio tuyo en cómo se ve Adeorq: los iconos redondos, otro color, una pieza escondida. Vive en tu carpeta de datos, así que una actualización no lo toca. No hace falta escribirlo: pídeselo a tu agente.":
     "A mod is a change of your own to how Adeorq looks: round icons, another colour, a hidden piece. It lives in your data folder, so an update never touches it. You don't have to write it: ask your agent.",
   Encendidos: "On",

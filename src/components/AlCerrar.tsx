@@ -10,6 +10,7 @@ import {
   PEDIDO,
   cierreAcuse,
   cierreAFondo,
+  cierreConBandeja,
   cierrePuedeFondo,
   cierreSalir,
   fraseDeLoAbierto,
@@ -34,13 +35,15 @@ export default function AlCerrar() {
   const [fijar, setFijar] = useState(false);
   const [fallo, setFallo] = useState("");
   const [puedeFondo, setPuedeFondo] = useState(true);
+  const [conBandeja, setConBandeja] = useState(true);
   const bajoEnVelo = useRef(false);
 
   const aFondo = (abierto: Abierto) =>
     cierreAFondo({
       abrir: t("Abrir Adeorq"),
       salir: t("Cerrar Adeorq del todo"),
-      pista: t("Adeorq sigue en segundo plano"),
+      // Sin bandeja (Linux), la pista va en un aviso y tiene que decir cómo volver.
+      pista: conBandeja ? t("Adeorq sigue en segundo plano") : t("Adeorq sigue en segundo plano: para volver, ábrelo otra vez."),
     }).then(
       () => setAviso(null),
       // Si no se pudo esconder, la X no puede quedarse en nada: se pregunta,
@@ -68,6 +71,7 @@ export default function AlCerrar() {
 
   useEffect(() => {
     void cierrePuedeFondo().then(setPuedeFondo, () => {});
+    void cierreConBandeja().then(setConBandeja, () => {});
     const quitar = listen(PEDIDO, () => alPedir.current());
     return () => {
       void quitar.then((f) => f());
@@ -109,11 +113,15 @@ export default function AlCerrar() {
         </h3>
         <p className="modal-text">{fraseDeLoAbierto(t, aviso)}</p>
         <p className="modal-text modal-dim">
-          {puedeFondo
-            ? t(
-                "En segundo plano la ventana se esconde y los agentes siguen trabajando; Adeorq se queda junto al reloj de Windows y vuelves con un clic. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.",
-              )
-            : t("Si cierras se cierran también las terminales, y luego puedes retomar cada sesión.")}
+          {!puedeFondo
+            ? t("Si cierras se cierran también las terminales, y luego puedes retomar cada sesión.")
+            : conBandeja
+              ? t(
+                  "En segundo plano la ventana se esconde y los agentes siguen trabajando; Adeorq se queda junto al reloj de Windows y vuelves con un clic. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.",
+                )
+              : t(
+                  "En segundo plano la ventana se esconde y los agentes y los encargos programados siguen trabajando; vuelves abriendo Adeorq otra vez. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.",
+                )}
         </p>
         {fallo && <p className="modal-warn-note">{fallo}</p>}
         <label className="al-cerrar-fijar">
@@ -149,8 +157,10 @@ export function AjusteAlCerrar() {
   const { t } = useT();
   const [modo, setModo] = useState<Modo>(leerAlCerrar);
   const [puedeFondo, setPuedeFondo] = useState(true);
+  const [conBandeja, setConBandeja] = useState(true);
   useEffect(() => {
     void cierrePuedeFondo().then(setPuedeFondo, () => {});
+    void cierreConBandeja().then(setConBandeja, () => {});
   }, []);
   // Donde no hay segundo plano no hay nada que elegir: la X cierra.
   if (!puedeFondo) return null;
@@ -158,9 +168,13 @@ export function AjusteAlCerrar() {
     <section className="panel-card">
       <h2>{t("Al cerrar la ventana")}</h2>
       <p className="card-hint">
-        {t(
-          "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde, los agentes siguen trabajando y Adeorq se queda junto al reloj de Windows: desde ahí vuelves con un clic o lo cierras del todo.",
-        )}
+        {conBandeja
+          ? t(
+              "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde, los agentes siguen trabajando y Adeorq se queda junto al reloj de Windows: desde ahí vuelves con un clic o lo cierras del todo.",
+            )
+          : t(
+              "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde y los agentes y los encargos programados siguen trabajando; vuelves abriendo Adeorq otra vez, y desde ahí lo cierras del todo.",
+            )}
       </p>
       <div className="chip-row">
         {OPCIONES.map(([id, etiqueta]) => (

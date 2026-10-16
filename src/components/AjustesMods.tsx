@@ -130,7 +130,8 @@ export default function AjustesMods({ onAlAgente }: Props) {
             <span className="mod-estado" data-estado={m.estado}>
               {estado(m)}
             </span>
-            {m.pedido && <span>«{m.pedido}»</span>}
+            {/* Las comillas son del idioma: «» en español, “” en inglés. */}
+            {m.pedido && <span>{t("«{pedido}»", { pedido: m.pedido })}</span>}
           </div>
           <div className="chip-row">
             {(m.estado === "no_engancha" || m.estado === "rechazado" || (m.estado === "apagado" && m.sueltas.length > 0)) && (

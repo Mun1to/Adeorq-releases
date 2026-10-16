@@ -185,7 +185,7 @@ sudo apt install build-essential pkg-config libssl-dev \
 
 ## Don't trust it, check it
 
-Open source only helps if somebody actually reads the code, and almost nobody does. So
+Having the code public only helps if somebody actually reads it, and almost nobody does. So
 instead of asking you to trust this project, here is the prompt to check it: point your own
 AI agent at this repository and get a security report, in your language, in a few minutes,
 even if you do not know how to program.

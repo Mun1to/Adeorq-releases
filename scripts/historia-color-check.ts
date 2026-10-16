@@ -51,6 +51,15 @@ async function probar() {
   const alt = historiaConColor(1, 400);
   es("en la pantalla alternativa lo dice", alt?.alterna, true);
   es("y solo trae lo que se ve", alt?.trozos.map((l) => l.map((x) => x[0]).join("")), ["pantalla completa"]);
+
+  // Claude Code a pantalla completa pinta las rayas de su caja a todo el ancho
+  // y sigue escribiendo sin salto: xterm marca la fila de después como
+  // «continuación». Juntarlas pegaba raya + «❯» + la barra de estado en una
+  // sola línea, y el móvil ni veía las rayas ni quitaba la barra (Munir,
+  // 2026-10-16, con captura). En la alterna cada fila es la suya.
+  await escribir(term, `\x1b[2J\x1b[H${"─".repeat(30)}❯ \x1b[3;1H${"─".repeat(30)}  ›› auto mode on`);
+  const caja = historiaConColor(1, 400);
+  es("en la alterna, la raya de todo el ancho no se pega a la fila de debajo", caja?.trozos.map((l) => l.map((x) => x[0]).join("")), ["─".repeat(30), "❯", "─".repeat(30), "  ›› auto mode on"]);
 }
 
 void probar().then(() => {

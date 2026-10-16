@@ -85,10 +85,18 @@ export default {
     'Each one opens its terminal, works in your folder and leaves you the result. You review what ' +
     'comes out, not the syntax.',
   'manifiesto.em': 'Vibe coding through the terminal, with the face of an app.',
-  'manifiesto.firma':
-    'Adeorq is built by using it every day. Its code is ' +
-    '<a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">published</a> and can be ' +
-    'read in full.',
+  'manifiesto.firma': 'Adeorq is built by using it every day.',
+
+  /* ── El código, a la vista ─────────────────────────────────────────────── */
+  // «Source available» y ninguna etiqueta de software libre: la licencia es
+  // PolyForm Shield, lo mismo que dicen el pie y las preguntas.
+  'codigo.tit': 'The full source code is on GitHub',
+  'codigo.p': 'Read every line, build it yourself or make your own fork, and see for yourself what it does on your machine.',
+  'codigo.licencia':
+    'Source available under the ' +
+    '<a href="https://github.com/Mun1to/Adeorq-releases/blob/main/LICENSE" rel="noopener">PolyForm Shield</a> ' +
+    'licence: you can use, modify and share it, not sell it or compete with it.',
+  'codigo.btn': 'See the code on GitHub',
 
   /* ── Qué hace ──────────────────────────────────────────────────────────── */
   'queEs.etiqueta': PUNTO + 'What it does',
@@ -294,6 +302,7 @@ export default {
   'pie.versiones': 'All releases',
   'pie.codigo': 'Code',
   'pie.repositorio': 'The repository',
+  'pie.repositorio.aria': 'The repository on GitHub',
   'pie.incidencias': 'Issues and ideas',
   'pie.licencia':
     'Code published on GitHub under the PolyForm Shield licence: you can read, use, modify and ' +

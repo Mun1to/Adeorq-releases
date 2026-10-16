@@ -106,8 +106,21 @@
 .nav__enlaces a[aria-current="page"]::after { transform: scaleX(1); }
 
 .nav__acciones { margin-left: auto; display: flex; align-items: center; gap: 16px; }
-.nav__gh { position: relative; color: var(--p-suave); font-size: 14.5px; transition: color .15s ease; }
-.nav__gh:hover { color: var(--p-texto); }
+/* El enlace al código, con el logo de GitHub delante. El logo va en el color
+   del texto claro y no en el gris de los enlaces: es lo que lo hace reconocible
+   de un vistazo sin subirle el peso a la palabra. */
+.nav__gh {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--p-suave);
+  font-size: 14.5px;
+  transition: color .15s ease;
+}
+.nav__gh:hover, .nav__gh:focus-visible { color: var(--p-texto); }
+.gh-marca { width: 18px; height: 18px; flex: none; }
+.nav__gh .gh-marca { color: var(--p-texto); }
 /* El cambio de idioma: un enlace a la otra URL en la portada, un botón en la
    guía (que cambia el texto en el sitio); los dos con el peso de «Código». */
 .nav__idioma {
@@ -141,8 +154,31 @@
 .nav__menu svg { width: 18px; height: 18px; }
 
 @media (max-width: 860px) {
-  .nav__enlaces, .nav__gh, .nav__idioma { display: none; }
+  .nav__enlaces, .nav__idioma { display: none; }
   .nav__menu { display: inline-grid; }
+  /* En el móvil el código no se esconde en el menú: queda el logo solo, en un
+     botón redondo gemelo del menú y con sus mismos 44 px de toque. */
+  .nav__gh {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--p-linea2);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .03);
+  }
+  .nav__gh:hover { background: rgba(255, 255, 255, .07); }
+  .nav__gh span { display: none; }
+}
+/* La marca, «Descargar» y los dos botones redondos piden 366 px con sus huecos
+   de siempre (medido). Por debajo se juntan un poco los botones, que es lo que
+   deja el logo a la vista en los móviles de 360 px; y por debajo de 354 px ya
+   no cabe ni así, y el logo vuelve al menú, que lo lleva igual. */
+@media (min-width: 354px) and (max-width: 374px) {
+  .nav__acciones { gap: 10px; }
+}
+@media (max-width: 353px) {
+  .nav__gh { display: none; }
 }
 
 /* ------------------------------ EL MENÚ -----------------------------------
@@ -206,6 +242,7 @@
   outline: none;
 }
 .hoja-menu a[aria-current="page"] { color: var(--p-texto); background: rgba(77, 159, 255, .14); }
+.hoja-menu a .gh-marca { margin-right: 10px; color: var(--p-texto); }
 .hoja-menu hr { margin: 6px 8px; border: 0; border-top: 1px solid var(--p-linea); }
 .hoja-menu__cerrar {
   position: absolute;

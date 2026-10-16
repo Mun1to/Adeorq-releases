@@ -1,11 +1,11 @@
 {
-  "version": "0.9.214",
-  "notes": "La Pantalla del movil enseña todo el historial de la terminal sin la barra de abajo, el modelo y el esfuerzo se cambian con un toque en la caja, y el menu se pliega por proyecto con el logo de cada uno.",
-  "pub_date": "2026-10-16T05:17:56Z",
+  "version": "0.9.215",
+  "notes": "En el movil la barra de abajo de Claude Code ya no sale en la Pantalla, lo que escribes en una terminal o una conversacion se guarda si te vas, y el menu sube el proyecto que esta trabajando.",
+  "pub_date": "2026-10-16T07:36:54Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlGcFkxU25RbmhleWU5VUoyOVVReTBHbUprcjZvQVg0WXNMY2xRT2dhL3V3QkV5dHNWaTR6NkZLd2dKN1dDRjk2R0VLcFZlVUxaeTdmaGhFTFp2WUFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTI3ODczCWZpbGU6QWRlb3JxXzAuOS4yMTRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTQKOGZZdFcvUEFGTEREV0dLR2FNWTZSSDdUNnZCSHYzMkhpQlpzcnVHcnMyaEkvR1RZT1JiSGZ0MWFlQU9Mak01OG5vRHh5MjVXRjlOcGtEcTJ0RUhHQVE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.214/Adeorq_0.9.214_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzFGRmJDMjR6eFV0c1hKZ3cvYUcrRU5kOHFXTGVLV0YwOXdRSGpPUDVrWTRUZ3l6Y1Eva2doV3BJYllZc3hTYVRDT21pMU9DdXZUMW5GTUt5cGg1Z2dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTM2MjEyCWZpbGU6QWRlb3JxXzAuOS4yMTVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTUKUFRZUUh4MHRzOHJUbklGM2ZsbXNVM3ZHUVJ6TGxacy9rR21YZjdTUWJwM2E3UnBmdGo3QSt4ZmFsdjBET0NoVTdkNDB5WHNHQ0xwODVlYU11R1NvQ3c9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.215/Adeorq_0.9.215_x64-setup.exe"
     }
   }
 }

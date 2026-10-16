@@ -814,6 +814,10 @@ pub trait Casa {
     fn raiz(&self) -> Option<PathBuf> {
         None
     }
+    /// Cuándo escribió por última vez esa sesión en su transcript, en ms.
+    fn actividad(&self, _cwd: &str, _sesion: &str) -> Option<u64> {
+        None
+    }
 }
 
 /// El tipo de una foto por su extensión; un vídeo no tiene (`None`).
@@ -1106,6 +1110,18 @@ pub fn atender(
                     o.insert("arranque".into(), json!(casa.arranque()));
                     if let Some(r) = casa.raiz() {
                         o.insert("raiz".into(), json!(r.to_string_lossy()));
+                    }
+                    // Cuándo trabajó por última vez cada una, para que el cajón
+                    // suba el proyecto que trabaja y lo deje arriba hasta que
+                    // trabaje otro (Munir, 2026-10-16). Lo sabe el PC aunque el
+                    // móvil estuviera apagado: es su transcript.
+                    for t in o.get_mut("terminales").and_then(Value::as_array_mut).into_iter().flatten() {
+                        let (Some(cwd), Some(id)) = (t["carpeta"].as_str().map(str::to_owned), t["sesion"].as_str().map(str::to_owned)) else {
+                            continue;
+                        };
+                        if let Some(ms) = casa.actividad(&cwd, &id) {
+                            t["activo"] = json!(ms);
+                        }
                     }
                 }
                 Respuesta::json(200, v)
@@ -1513,6 +1529,13 @@ impl Casa for CasaDeVerdad {
     }
     fn raiz(&self) -> Option<PathBuf> {
         Some(crate::workspace::raiz_por_defecto()).filter(|r| r.is_dir())
+    }
+    fn actividad(&self, cwd: &str, sesion: &str) -> Option<u64> {
+        if sesion.is_empty() || !sesion.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            return None;
+        }
+        let cuando = std::fs::metadata(crate::sessions::transcript_de(cwd, Some(sesion))?).ok()?.modified().ok()?;
+        cuando.duration_since(std::time::UNIX_EPOCH).ok().and_then(|d| u64::try_from(d.as_millis()).ok())
     }
 }
 
@@ -2245,7 +2268,16 @@ mod tests {
             if clase == "enviar" || clase == "escribir" {
                 self.enviados.borrow_mut().push(datos);
             }
+            if clase == "terminales" {
+                return Ok(json!({ "terminales": [
+                    { "panel": 1, "carpeta": "C:\\p\\uno", "sesion": "s-1" },
+                    { "panel": 2, "carpeta": "C:\\p\\dos", "sesion": null },
+                ] }));
+            }
             Ok(json!({ "estados": {} }))
+        }
+        fn actividad(&self, _: &str, sesion: &str) -> Option<u64> {
+            (sesion == "s-1").then_some(1_760_000_000_000)
         }
         fn mejorar(&self, texto: &str) -> Result<String, String> {
             Ok(format!("{texto}, mejorado"))
@@ -2641,6 +2673,9 @@ mod tests {
         let c = Some(clave.as_str());
         let lista = atender(&pedir("GET", "/api/terminales", c, ""), &g, &casa, &nada, reloj);
         assert_eq!(cuerpo_de(&lista)["arranque"], 77, "la lista dice en qué arranque está");
+        // Cada una con cuándo trabajó por última vez, si tiene sesión; la consola, sin.
+        assert_eq!(cuerpo_de(&lista)["terminales"][0]["activo"], 1_760_000_000_000_u64);
+        assert!(cuerpo_de(&lista)["terminales"][1].get("activo").is_none());
         let estado = |metodo: &str, ruta: &str, cuerpo: &str| atender(&pedir(metodo, ruta, c, cuerpo), &g, &casa, &nada, reloj).estado;
         assert_eq!(estado("GET", "/api/terminal?panel=3&arranque=76", ""), 410);
         assert_eq!(estado("GET", "/api/terminal?panel=3", ""), 409);

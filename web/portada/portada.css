@@ -753,6 +753,67 @@ body {
 }
 
 /* ============================================================================
+   EL CÓDIGO, A LA VISTA
+   Una franja justo debajo del manifiesto: el logo de GitHub, un titular, una
+   frase, la licencia en una línea y un botón secundario (el claro es solo el
+   de descargar). Separada por una línea de un píxel y sin caja con fondo, como
+   el resto de la portada. Por debajo de 760 px el botón baja a su propia fila.
+   ========================================================================= */
+
+.codigo {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 54px) clamp(56px, 9vh, 104px);
+}
+.codigo__caja {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px clamp(18px, 2.4vw, 34px);
+  padding-top: clamp(28px, 4.5vh, 44px);
+  border-top: 1px solid var(--p-linea);
+}
+/* Arriba, a la altura del titular, y no centrado en el bloque de texto. */
+.codigo__marca { align-self: start; width: 44px; height: 44px; margin-top: 2px; color: var(--p-texto); }
+.codigo__tit {
+  margin: 0 0 6px;
+  font-size: clamp(1.3rem, 1.05rem + 1vw, 1.85rem);
+  line-height: 1.2;
+  letter-spacing: -.022em;
+  font-weight: 660;
+  text-wrap: balance;
+}
+.codigo__p {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--p-suave);
+  font-size: clamp(1rem, .96rem + .25vw, 1.12rem);
+  line-height: 1.55;
+}
+.codigo__licencia {
+  max-width: 72ch;
+  margin: 8px 0 0;
+  color: var(--p-tenue);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.codigo__licencia a {
+  color: var(--p-suave);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--p-linea2);
+}
+.codigo__licencia a:hover { color: var(--p-texto); text-decoration-color: currentColor; }
+/* `.btn` alinea por la línea base, que con un icono dentro deja el logo caído. */
+.codigo__btn { align-items: center; }
+
+@media (max-width: 760px) {
+  .codigo__caja { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .codigo__marca { width: 34px; height: 34px; margin-top: 2px; }
+  .codigo__btn { grid-column: 1 / -1; justify-self: start; }
+}
+
+/* ============================================================================
    QUE ES, EN LARGO
    Prosa de verdad para quien quiere saber de que va antes de descargar nada.
    Una sola columna estrecha: setenta caracteres por linea es lo que se lee sin
@@ -1396,6 +1457,8 @@ body {
   transition: color .14s ease;
 }
 .pie__cols a:hover { color: var(--p-texto); }
+.pie__cols .pie__gh { display: flex; align-items: center; gap: 8px; }
+.pie__gh .gh-marca { color: var(--p-texto); }
 
 .pie__linea {
   display: flex;

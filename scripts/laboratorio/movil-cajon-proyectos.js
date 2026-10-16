@@ -54,7 +54,8 @@ async (page) => {
   debe(new Set(proyectos).size === proyectos.length, `cada proyecto sale una vez (${proyectos})`);
   const webs = pasos.alEmpezar.find((g) => g.proyecto === "Webs");
   debe(webs && webs.filas.includes("t4") && webs.filas.includes("c:vieja1") && webs.cuenta === String(webs.filas.length), `la conversación va con el proyecto de su sesión, y se cuentan (${JSON.stringify(webs)})`);
-  debe(pasos.alEmpezar[0]?.proyecto === "Webs", `sin nada usado, arriba lo que tiene lo último dicho (${proyectos})`);
+  // Lo que trabaja va arriba (2026-10-16): la 1, de Adeorq, está a medias.
+  debe(pasos.alEmpezar[0]?.proyecto === "Adeorq", `sin nada usado, arriba el proyecto que trabaja (${proyectos})`);
   // Lo que cuelga de una subcarpeta va con su proyecto, como en la barra del PC.
   debe(proyectos.includes("crypto") && !proyectos.includes("radar-bot"), `radar-bot (C:\\proyectos\\crypto\\radar-bot) va con crypto (${proyectos})`);
   debe(pasos.alEmpezar.every((g) => !g.abierto && !g.seVe), `desde el inicio, todos plegados (${JSON.stringify(pasos.alEmpezar.map((g) => [g.proyecto, g.abierto]))})`);
@@ -73,11 +74,27 @@ async (page) => {
   // Dentro de una terminal, su proyecto nace abierto; y entrar la sube arriba.
   await entrarEn(3);
   pasos.trasVidorq = await leerCajon();
-  debe(pasos.trasVidorq[0]?.proyecto === "Vidorq" && pasos.trasVidorq[0]?.filas[0] === "t3" && pasos.trasVidorq[0]?.abierto, `al usar la consola de Vidorq, su proyecto sube arriba y abierto (${JSON.stringify(pasos.trasVidorq.slice(0, 2))})`);
+  const vidorq = pasos.trasVidorq.find((g) => g.proyecto === "Vidorq");
+  debe(pasos.trasVidorq[1]?.proyecto === "Vidorq" && vidorq?.filas[0] === "t3" && vidorq?.abierto, `al usar la consola de Vidorq, su proyecto sube, abierto, justo debajo del que trabaja (${JSON.stringify(pasos.trasVidorq.slice(0, 2))})`);
 
   await entrarEn(2);
   pasos.trasRadar = await leerCajon();
-  debe(JSON.stringify(pasos.trasRadar.slice(0, 2).map((g) => g.proyecto)) === JSON.stringify(["crypto", "Vidorq"]), `y la última usada va primero (${pasos.trasRadar.map((g) => g.proyecto)})`);
+  debe(JSON.stringify(pasos.trasRadar.slice(0, 3).map((g) => g.proyecto)) === JSON.stringify(["Adeorq", "crypto", "Vidorq"]), `y la última usada va primero tras la que trabaja (${pasos.trasRadar.map((g) => g.proyecto)})`);
+
+  // Con el cajón abierto, otro se pone a trabajar: sube él solo. Y cuando para,
+  // se queda arriba hasta que trabaje otro (Munir, 2026-10-16).
+  const sembrar = (panel, estado) => page.request.post(`${B}/api/sembrar-estado`, { headers: { Authorization: "Bearer clave-de-mentira", "Content-Type": "application/json" }, data: { panel, estado } });
+  await abrir();
+  await sembrar(1, "lista");
+  await sembrar(4, "a_medias");
+  await page.waitForTimeout(5200);
+  pasos.trabajaWebs = (await grupos()).map((g) => g.proyecto);
+  debe(JSON.stringify(pasos.trabajaWebs.slice(0, 2)) === JSON.stringify(["Webs", "Adeorq"]), `con el cajón abierto, Webs se pone a trabajar y sube solo, y Adeorq, que acaba de parar, detrás (${pasos.trabajaWebs})`);
+  await sembrar(4, "lista");
+  await page.waitForTimeout(5200);
+  pasos.paraWebs = (await grupos()).map((g) => g.proyecto);
+  debe(pasos.paraWebs[0] === "Webs", `Webs para y se queda arriba hasta que trabaje otro (${pasos.paraWebs})`);
+  await cerrar();
 
   // Lo abierto en la carpeta madre misma va a «Sueltas», como en el PC.
   pasos.sueltas = await page.evaluate(() => [proyectoDe("C:\\proyectos", "C:\\proyectos").nombre, proyectoDe("C:\\proyectos\\Adeorq\\src", "C:\\proyectos\\").nombre, proyectoDe("D:\\otra\\cosa", "C:\\proyectos").nombre]);

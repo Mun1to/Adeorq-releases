@@ -65,12 +65,16 @@ export function historiaConColor(id: number, max: number): { trozos: Trozo[][]; 
   const paleta = (n: number) => (n < 16 ? tema[ANSI[n]] ?? "" : color256(n));
   const buf = term.buffer.active;
   const celda = buf.getNullCell();
+  const alterna = buf.type === "alternate";
   const lineas: Trozo[][] = [];
   for (let y = Math.max(0, buf.length - max); y < buf.length; y++) {
     const linea = buf.getLine(y);
     if (!linea) continue;
-    // Las que xterm partió por el ancho, vueltas a juntar (el móvil las envuelve al suyo).
-    const sigue = linea.isWrapped && lineas.length > 0;
+    // Las que xterm partió por el ancho, vueltas a juntar (el móvil las envuelve
+    // al suyo). En la alterna no: ahí el programa coloca cada fila, y Claude Code
+    // pinta sus rayas a todo el ancho y sigue sin salto, así que la fila de
+    // debajo sale como «continuación» y se pegaba a la raya (2026-10-16).
+    const sigue = !alterna && linea.isWrapped && lineas.length > 0;
     const trozos: Trozo[] = sigue ? lineas[lineas.length - 1] : [];
     for (let x = 0; x < linea.length; x++) {
       const c = linea.getCell(x, celda);
@@ -90,7 +94,7 @@ export function historiaConColor(id: number, max: number): { trozos: Trozo[][]; 
     if (t.length) t[t.length - 1][0] = t[t.length - 1][0].trimEnd();
   }
   while (lineas.length && !lineas[lineas.length - 1].some((t) => t[0].trim())) lineas.pop();
-  return { trozos: lineas, alterna: buf.type === "alternate" };
+  return { trozos: lineas, alterna };
 }
 
 /** Las últimas `max` líneas del búfer, el historial incluido, con las que
@@ -100,13 +104,15 @@ export function historiaDe(id: number, max: number): string[] | null {
   const term = vivas.get(id);
   if (!term) return null;
   const buf = term.buffer.active;
+  // En la alterna cada fila es la suya (ver `historiaConColor`).
+  const juntar = buf.type !== "alternate";
   const filas: string[] = [];
   for (let y = Math.max(0, buf.length - max); y < buf.length; y++) {
     const linea = buf.getLine(y);
     if (!linea) continue;
-    const sigue = buf.getLine(y + 1)?.isWrapped ?? false;
+    const sigue = juntar && (buf.getLine(y + 1)?.isWrapped ?? false);
     const texto = linea.translateToString(!sigue);
-    if (linea.isWrapped && filas.length) filas[filas.length - 1] += texto;
+    if (juntar && linea.isWrapped && filas.length) filas[filas.length - 1] += texto;
     else filas.push(texto);
   }
   while (filas.length && !filas[filas.length - 1].trim()) filas.pop();

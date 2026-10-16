@@ -148,6 +148,12 @@ const pantallas = new Map([
   [3, [...Array.from({ length: 150 }, (_, i) => `   Compiling crate-numero-${i} v0.${i}.0 (C:\\Users\\Muni\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\crate-${i})`), "PS C:\\proyectos\\Vidorq> "]],
 ]);
 const terminalDe = (panel) => terminales.find((t) => t.panel === Number(panel));
+// Cuándo escribió cada una en su transcript por última vez, como `actividad`
+// en movil.rs: las de agente, hace un rato cada una; la consola no tiene.
+{
+  const ahora = Date.now();
+  for (const t of terminales) if (t.sesion) t.activo = ahora - 60_000 * t.panel;
+}
 // El programa de cada una, como lo saca la ventana de su orden de arranque.
 const cliDe = (t) => (t.nombre === "consola" ? "shell" : t.nombre);
 // Como `mismo_arranque` (movil.rs): sin arranque es una página de antes de
@@ -501,6 +507,15 @@ http
           return json(res, 200, { ok: true });
         case "/api/parar":
           return json(res, 200, { ok: true });
+        // Solo del banco: otro estado para una terminal, y con él la hora de su
+        // transcript, que es lo que haría el PC al trabajar o al parar.
+        case "/api/sembrar-estado": {
+          const t = terminalDe(v.panel);
+          if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
+          t.estado = String(v.estado);
+          if (t.sesion) t.activo = Date.now();
+          return json(res, 200, { ok: true });
+        }
         case "/api/terminales":
           return json(res, 200, { terminales, arranque: ARRANQUE, raiz: "C:\\proyectos" });
         case "/api/historia": {

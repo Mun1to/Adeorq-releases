@@ -117,6 +117,14 @@
      La misma que la portada (portada/barra.css), con su fondo puesto desde el
      principio (`nav--fija`) y «Guía» marcada. Hasta el 2026-10-09 la guía
      tenía una barra propia con otros enlaces; Munir eligió esta. -->
+<!-- El logo de GitHub de la barra y del menú, el mismo símbolo que en la
+     portada: `mark-github-24` de primer/octicons (MIT, GitHub Inc.). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true"
+     style="position:absolute;width:0;height:0;overflow:hidden">
+  <symbol id="m-github" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/>
+  </symbol>
+</svg>
 <header class="nav nav--fija" id="nav">
   <a class="nav__marca" href="/">
     <img src="assets/adeorq.svg" alt="" width="21" height="21">
@@ -133,7 +141,11 @@
     <button type="button" class="nav__idioma" id="idioma-toggle" aria-label="Cambiar idioma" data-i18n-aria="guia.barra.idioma">
       <span id="idioma-toggle-texto">English</span>
     </button>
-    <a class="nav__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-i18n="guia.barra.codigo">Código</a>
+    <a class="nav__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener"
+       aria-label="Código en GitHub" data-i18n-aria="guia.menu.codigo">
+      <svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg>
+      <span data-i18n="guia.barra.codigo">Código</span>
+    </a>
     <a class="btn btn--claro btn--chico" href="/#descargar" data-i18n="cta.descargar">Descargar</a>
     <button class="nav__menu" type="button" aria-label="Abrir el menú" aria-haspopup="dialog"
             aria-controls="menu-movil" aria-expanded="false" data-menu-abrir data-i18n-aria="guia.menu.abrir">
@@ -157,7 +169,7 @@
     <a href="/#descargar" data-i18n="cta.descargar">Descargar</a>
     <a href="/guia" aria-current="page" data-i18n="nav.guia">Guía</a>
     <hr>
-    <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-i18n="guia.menu.codigo">Código en GitHub</a>
+    <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener"><svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg><span data-i18n="guia.menu.codigo">Código en GitHub</span></a>
     <button type="button" class="hoja-menu__fila" data-idioma-toggle data-i18n="guia.menu.idioma">English</button>
   </nav>
 </dialog>

@@ -189,6 +189,18 @@
 
 <!-- ============================ LA BARRA ============================ -->
 <div class="progreso" aria-hidden="true"><div class="progreso__linea"></div></div>
+
+<!-- El logo de GitHub, una vez para toda la página: lo usan la barra, el menú,
+     la franja del código y el pie con <use href="#m-github">. Es el
+     `mark-github-24` de primer/octicons (MIT, GitHub Inc.), sin tocar el
+     dibujo: así lo piden las normas de uso del logo. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true"
+     style="position:absolute;width:0;height:0;overflow:hidden">
+  <symbol id="m-github" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/>
+  </symbol>
+</svg>
+
 <header class="nav" id="nav">
   <a class="nav__marca" href="/">
     <!-- <img> y no <use>: el SVG del logo no expone un símbolo con id propio,
@@ -208,7 +220,14 @@
          que el buscador descubre la otra versión (cada idioma es su URL). -->
     <a class="nav__idioma" href="/en/" hreflang="en" lang="en" data-idioma="en"
        data-en="nav.idioma" data-en-attr="href:nav.idioma.href|hreflang:nav.idioma.lang|lang:nav.idioma.lang|data-idioma:nav.idioma.lang">English</a>
-    <a class="nav__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-en="nav.codigo">Código</a>
+    <!-- Con el logo de GitHub delante. Por debajo de 860 px se queda solo el
+         logo, en su botón redondo junto al menú: el nombre lo da aria-label,
+         que empieza por el mismo texto que se ve («Código»). -->
+    <a class="nav__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener"
+       aria-label="Código en GitHub" data-en-attr="aria-label:menu.codigo">
+      <svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg>
+      <span data-en="nav.codigo">Código</span>
+    </a>
     <a class="btn btn--claro btn--chico" href="#descargar" data-en="nav.descargar">Descargar</a>
     <button class="nav__menu" type="button" aria-label="Abrir el menú" aria-haspopup="dialog"
             aria-controls="menu-movil" aria-expanded="false" data-menu-abrir data-en-attr="aria-label:menu.abrir">
@@ -233,7 +252,7 @@
     <a href="#faq" data-en="pie.preguntas">Preguntas</a>
     <a href="/guia" data-en="nav.guia">Guía</a>
     <hr>
-    <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-en="menu.codigo">Código en GitHub</a>
+    <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener"><svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg><span data-en="menu.codigo">Código en GitHub</span></a>
     <a href="/en/" hreflang="en" lang="en" data-idioma="en"
        data-en="nav.idioma" data-en-attr="href:nav.idioma.href|hreflang:nav.idioma.lang|lang:nav.idioma.lang|data-idioma:nav.idioma.lang">English</a>
   </nav>
@@ -542,10 +561,39 @@
     <em data-en="manifiesto.em">Vibe coding por terminal, con cara de aplicación.</em>
   </p>
   <p class="manifiesto__firma" data-en="manifiesto.firma">
-    Adeorq se construye usándolo todos los días. Su código está
-    <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">publicado</a>
-    y se puede leer entero.
+    Adeorq se construye usándolo todos los días.
   </p>
+</section>
+
+<!-- ======================= EL CÓDIGO, A LA VISTA =======================
+     Pegada al manifiesto para que se vea sin buscarla (Munir, 2026-10-16:
+     «di bien claro que pueden ver el código»). Antes lo decía media frase gris
+     en la firma de arriba, y por eso la firma ya no lo repite.
+
+     «A la vista», y ninguna etiqueta de software libre: la licencia es
+     PolyForm Shield, que deja leer, compilar y hacer un fork pero no vender
+     ni competir (lo mismo que dicen el pie y las preguntas). La línea de la
+     licencia va aquí mismo para que el titular no se lea como lo que no es. -->
+<section class="codigo" id="codigo" aria-labelledby="codigo-tit">
+  <div class="codigo__caja">
+    <svg class="gh-marca codigo__marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg>
+    <div class="codigo__texto">
+      <h2 class="codigo__tit" id="codigo-tit" data-en="codigo.tit">Todo el código, a la vista en GitHub</h2>
+      <p class="codigo__p" data-en="codigo.p">
+        Puedes leerlo entero, compilarlo tú mismo y hacer tu fork: así ves qué
+        hace en tu equipo.
+      </p>
+      <p class="codigo__licencia" data-en="codigo.licencia">
+        Con licencia
+        <a href="https://github.com/Mun1to/Adeorq-releases/blob/main/LICENSE" rel="noopener">PolyForm Shield</a>:
+        puedes usarlo, modificarlo y compartirlo, no venderlo ni competir con él.
+      </p>
+    </div>
+    <a class="btn btn--fantasma btn--grande codigo__btn" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener">
+      <svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg>
+      <span data-en="codigo.btn">Ver el código en GitHub</span>
+    </a>
+  </div>
 </section>
 
 <!-- ====================== QUE ES, EN LARGO =========================
@@ -1021,7 +1069,8 @@
       </div>
       <div>
         <h2 data-en="pie.codigo">Código</h2>
-        <a href="https://github.com/Mun1to/Adeorq-releases" rel="noopener" data-en="pie.repositorio">El repositorio</a>
+        <a class="pie__gh" href="https://github.com/Mun1to/Adeorq-releases" rel="noopener"
+           aria-label="El repositorio en GitHub" data-en-attr="aria-label:pie.repositorio.aria"><svg class="gh-marca" viewBox="0 0 24 24" aria-hidden="true"><use href="#m-github"/></svg><span data-en="pie.repositorio">El repositorio</span></a>
         <a href="https://github.com/Mun1to/Adeorq-releases/issues" rel="noopener" data-en="pie.incidencias">Incidencias e ideas</a>
       </div>
     </nav>

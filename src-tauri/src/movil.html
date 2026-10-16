@@ -2351,6 +2351,8 @@ function abrirCajon() {
   pintarCajon();
   document.body.dataset.cajon = "";
   cajon.inert = false;
+  clearInterval(vigiaCajon);
+  vigiaCajon = setInterval(refrescarCajon, 4000);
   Promise.all([
     api("GET", "/api/terminales").catch((err) => ({ fallo: err.message })),
     api("GET", "/api/lista").catch(() => []),
@@ -2364,12 +2366,59 @@ function abrirCajon() {
 function cerrarCajon() {
   delete document.body.dataset.cajon;
   cajon.inert = true;
+  clearInterval(vigiaCajon);
+}
+/* Con el cajón abierto, cada pocos segundos se mira otra vez cómo van las
+   terminales, para que el proyecto que se pone a trabajar suba a la vista. Solo
+   se repinta si cambió algo, y nunca justo cuando lo tocas o lo deslizas: una
+   fila rehecha bajo el dedo se come el toque. */
+let vigiaCajon = null;
+let tocadoCajon = 0;
+cajon.addEventListener("pointerdown", () => { tocadoCajon = Date.now(); }, { passive: true });
+cajon.addEventListener("scroll", () => { tocadoCajon = Date.now(); }, { passive: true, capture: true });
+function refrescarCajon() {
+  if (document.body.dataset.cajon === undefined || !delCajon) return;
+  Promise.all([api("GET", "/api/terminales"), api("GET", "/api/lista").catch(() => delCajon?.lista || [])]).then(([vt, lista]) => {
+    if (document.body.dataset.cajon === undefined || !delCajon || Date.now() - tocadoCajon < 1200) return;
+    const antes = JSON.stringify([delCajon.vt, delCajon.lista]);
+    delCajon = { ...delCajon, vt, lista };
+    if (JSON.stringify([vt, lista]) === antes) return;
+    const y = cajon.querySelector(".recientes")?.scrollTop ?? 0;
+    pintarCajon();
+    const r = cajon.querySelector(".recientes");
+    if (r) r.scrollTop = y;
+  }, () => {});
 }
 /* Lo reciente del cajón, por proyecto y con lo último que usaste arriba (Munir,
    2026-10-16: «que las sesiones o chats que se usen pasen arriba del panel de
    la izquierda y estén agrupados en proyectos»). Usar es abrirla o escribirle
    desde este móvil (`apuntarUso`); una conversación cuenta también su último
-   mensaje. El proyecto de una conversación es el de su última sesión. */
+   mensaje. El proyecto de una conversación es el de su última sesión.
+   Y lo que TRABAJA cuenta como usado ahora mismo (el mismo día: «que se vaya
+   moviendo el que está activo arriba, y si deja de estarlo se queda arriba
+   hasta que otro lo esté»): una terminal trabajando vale «ahora», y una que
+   paró, la última vez que escribió en su transcript (`activo`, lo dice el PC
+   aunque el móvil estuviera apagado). */
+/* Lo que escribes y no mandas, guardado por sitio (Munir, 2026-10-16: «que el
+   texto que escribas en el modo chat, si te vas a otra terminal o sitio, no se
+   borre»): cada terminal y cada conversación tiene el suyo hasta que lo mandas.
+   Devuelve con qué guardarlo cuando el texto cambia sin teclear (al mandarlo,
+   al mejorarlo). */
+const BORRADORES = "adeorq-movil-borradores";
+function borrador(clave, caja) {
+  const guardado = leerGuardado(BORRADORES)[clave];
+  if (guardado?.texto && !caja.value) caja.value = guardado.texto;
+  const guardar = () => {
+    const todos = leerGuardado(BORRADORES);
+    if (caja.value.trim()) todos[clave] = { texto: caja.value, cuando: Date.now() };
+    else delete todos[clave];
+    // Con tope: los más viejos se olvidan.
+    for (const k of Object.keys(todos).sort((a, b) => todos[b].cuando - todos[a].cuando).slice(40)) delete todos[k];
+    try { localStorage.setItem(BORRADORES, JSON.stringify(todos)); } catch (_) {}
+  };
+  caja.addEventListener("input", guardar);
+  return guardar;
+}
 const USADOS = "adeorq-movil-usados";
 // Los proyectos que tocaste para plegar o desplegar: lo tuyo manda sobre lo de
 // fábrica (abierto solo el de lo que tienes delante).
@@ -2448,7 +2497,7 @@ function recientesHtml(terminales, lista, arranque, aqui, raiz) {
   const u = leerGuardado(USADOS);
   const plegados = leerGuardado(PLEGADOS);
   const cosas = [
-    ...terminales.map((t) => ({ t, p: proyectoDe(t.carpeta, raiz), uso: u[`t:${arranque}:${t.panel}`] || 0, vivo: estaTrabajando(t) ? 1 : 0, n: t.panel, aqui: aqui("terminal", t.panel) })),
+    ...terminales.map((t) => ({ t, p: proyectoDe(t.carpeta, raiz), uso: Math.max(u[`t:${arranque}:${t.panel}`] || 0, Number(t.activo) || 0, estaTrabajando(t) ? Date.now() : 0), vivo: estaTrabajando(t) ? 1 : 0, n: t.panel, aqui: aqui("terminal", t.panel) })),
     ...lista.slice(0, 20).map((f) => ({ f, p: proyectoDe(f.carpeta, raiz), uso: Math.max(u[`c:${f.id}`] || 0, (f.cuando || 0) * 1000), vivo: 0, n: 0, aqui: aqui("hilo", f.id) })),
   ];
   if (!cosas.length) return "";
@@ -2892,6 +2941,8 @@ function pintarHiloEntero() {
   document.getElementById("cerebro").addEventListener("change", (ev) => elegirCerebro(ev.target.value));
   document.getElementById("fijo").addEventListener("change", (ev) => elegirFijo(ev.target.value));
   e.crecer = crecer;
+  e.guardarBorrador = borrador(`c:${e.id}`, texto);
+  crecer();
   e.adj = montarAdjuntos(document.getElementById("caja"), () => pintarCaja());
   pintarHilo();
   pintarCaja();
@@ -3023,7 +3074,7 @@ async function enviar(repetir) {
   const escrito = (repetir ?? texto.value).trim();
   const txt = repetir === undefined ? conRutas(escrito, e.adj?.rutas() || []) : escrito;
   if (!txt || (repetir === undefined && e.adj?.subiendo())) return;
-  if (repetir === undefined) { texto.value = ""; e.antes = null; e.crecer?.(); e.adj?.vaciar(); }
+  if (repetir === undefined) { texto.value = ""; e.antes = null; e.crecer?.(); e.guardarBorrador?.(); e.adj?.vaciar(); }
   e.pendiente = txt;
   e.fallo = null;
   e.enCurso = { pensando: true, paso: tr("Mandándolo a tu PC…") };
@@ -3054,6 +3105,7 @@ async function mejorar() {
     texto.value = e.antes;
     e.antes = null;
     e.crecer?.();
+    e.guardarBorrador?.();
     pintarCaja();
     return;
   }
@@ -3066,6 +3118,7 @@ async function mejorar() {
     texto.value = v.texto;
     e.antes = original;
     e.crecer?.();
+    e.guardarBorrador?.();
   } catch (err) {
     mostrarFallo(err.message);
   } finally {
@@ -4125,6 +4178,9 @@ function pintarTerminal() {
   const listo = () => { enviarB.disabled = (!texto.value.trim() && !adj.rutas().length) || adj.subiendo(); };
   const adj = montarAdjuntos(document.getElementById("caja"), () => listo());
   texto.addEventListener("input", () => { crecer(); listo(); });
+  const guardarBorrador = borrador(`t:${e.arranque}:${e.panel}`, texto);
+  crecer();
+  listo();
   // Lo que no se pudo mandar se queda a la vista hasta que algo salga bien:
   // antes iba al subtítulo, que la vuelta siguiente del sondeo reescribía.
   const fallo = (m) => { const f = document.getElementById("fallo"); if (f) { f.textContent = m; f.hidden = false; } };
@@ -4447,6 +4503,7 @@ function pintarTerminal() {
     try {
       await api("POST", "/api/terminal/escribir", { panel: e.panel, arranque: e.arranque, texto: txt });
       texto.value = "";
+      guardarBorrador();
       adj.vaciar();
       crecer();
       salioBien();

@@ -109,6 +109,12 @@ pub struct Encargo {
     /// El CLI que abre. Los de antes de existir el campo eran todos de Claude.
     #[serde(default = "cli_de_siempre")]
     pub cli: String,
+    /// La cuenta con la que nace (su id en Cuentas). Vacía, la predeterminada.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub cuenta: String,
+    /// El modelo («haiku», «sonnet», «opus», «fable»). Vacío, el de Ajustes.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub modelo: String,
     pub cuando: Cuando,
     /// El interruptor de la persona. `cortado` es el del freno: son dos campos
     /// para que la pantalla pueda decir POR QUÉ está parado.
@@ -161,6 +167,31 @@ pub struct Pedido {
     /// Vacío es el de siempre.
     #[serde(default)]
     pub cli: String,
+    /// Vacía, la cuenta predeterminada de ese CLI.
+    #[serde(default)]
+    pub cuenta: String,
+    /// Vacío, el modelo de Ajustes.
+    #[serde(default)]
+    pub modelo: String,
+}
+
+/// Los modelos que se le pueden pedir a un encargo: los nombres de la casa,
+/// que cada CLI traduce al suyo (`modelos` en `providers.ts`).
+const MODELOS: [&str; 4] = ["haiku", "sonnet", "opus", "fable"];
+
+/// La cuenta y el modelo de un pedido. Que la cuenta exista no se puede mirar
+/// aquí, porque las cuentas las guarda la ventana: se mira que sea un id, y al
+/// abrir la ventana dice si sigue estando (y el encargo falla diciéndolo).
+pub fn cuenta_y_modelo(p: &Pedido) -> Result<(String, String), String> {
+    let cuenta = p.cuenta.trim();
+    if cuenta.len() > 80 || !cuenta.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | ':')) {
+        return Err("Esa cuenta no se reconoce.".into());
+    }
+    let modelo = p.modelo.trim();
+    if !modelo.is_empty() && !MODELOS.contains(&modelo) {
+        return Err(format!("No sé qué modelo es «{}».", limpio(modelo, 30)));
+    }
+    Ok((cuenta.to_string(), modelo.to_string()))
 }
 
 fn limpio(s: &str, tope: usize) -> String {
@@ -540,13 +571,13 @@ fn porcentaje(gastado: Option<f64>) -> Option<u8> {
     gastado.filter(|g| g.is_finite()).map(|g| g.clamp(0.0, 100.0).round() as u8)
 }
 
-fn preguntar_cuota(app: &tauri::AppHandle, cli: &str) -> Option<u8> {
+fn preguntar_cuota(app: &tauri::AppHandle, cli: &str, cuenta: &str) -> Option<u8> {
     use tauri::Emitter;
     let numero = NUMERO_CUOTA.fetch_add(1, Ordering::Relaxed) + 1;
     let (tx, rx) = mpsc::channel();
     *pregunta_cuota() = Some((numero, tx));
     let contestado = app
-        .emit(EVENTO_CUOTA, serde_json::json!({ "peticion": numero, "cli": cli }))
+        .emit(EVENTO_CUOTA, serde_json::json!({ "peticion": numero, "cli": cli, "cuenta": cuenta }))
         .ok()
         .and_then(|_| rx.recv_timeout(ESPERA_CUOTA).ok())
         .flatten();
@@ -591,11 +622,14 @@ impl Reales<'_> {
 
 impl Puertas for Reales<'_> {
     fn abrir(&mut self, e: &Encargo) -> Result<u32, String> {
-        let r = crate::mcp::pedir_a_la_ventana(
-            self.app,
-            "open_pane",
-            serde_json::json!({ "cli": e.cli, "cwd": e.cwd, "brief": e.encargo, "name": e.nombre }),
-        )?;
+        let mut pedido = serde_json::json!({ "cli": e.cli, "cwd": e.cwd, "brief": e.encargo, "name": e.nombre });
+        if !e.cuenta.is_empty() {
+            pedido["account"] = e.cuenta.clone().into();
+        }
+        if !e.modelo.is_empty() {
+            pedido["model"] = e.modelo.clone().into();
+        }
+        let r = crate::mcp::pedir_a_la_ventana(self.app, "open_pane", pedido)?;
         self.paneles = None;
         r.pane_id.ok_or_else(|| "la ventana no dijo qué terminal abrió".to_string())
     }
@@ -630,12 +664,15 @@ impl Puertas for Reales<'_> {
         );
     }
 
+    /// Por CLI y cuenta: dos encargos de Claude con cuentas distintas gastan
+    /// presupuestos distintos.
     fn gastado(&mut self, e: &Encargo) -> Option<u8> {
-        if let Some((_, g)) = self.gastado.iter().find(|(cli, _)| *cli == e.cli) {
+        let clave = format!("{}\n{}", e.cli, e.cuenta);
+        if let Some((_, g)) = self.gastado.iter().find(|(k, _)| *k == clave) {
             return *g;
         }
-        let g = preguntar_cuota(self.app, &e.cli);
-        self.gastado.push((e.cli.clone(), g));
+        let g = preguntar_cuota(self.app, &e.cli, &e.cuenta);
+        self.gastado.push((clave, g));
         g
     }
 }
@@ -713,6 +750,7 @@ fn cambiar(app: &tauri::AppHandle, id: &str, f: impl FnOnce(&mut Encargo)) -> Re
 #[tauri::command(async)]
 pub fn programado_guardar(app: tauri::AppHandle, pedido: Pedido) -> Result<Estado, String> {
     let (nombre, encargo, cwd, cuando, cli) = validar(&pedido)?;
+    let (cuenta, modelo) = cuenta_y_modelo(&pedido)?;
     if !Path::new(&cwd).is_dir() {
         return Err(format!("Esa carpeta no existe: {cwd}"));
     }
@@ -731,6 +769,7 @@ pub fn programado_guardar(app: tauri::AppHandle, pedido: Pedido) -> Result<Estad
                 e.creado = ahora;
             }
             (e.nombre, e.encargo, e.cwd, e.cuando, e.cli) = (nombre, encargo, cwd, cuando, cli);
+            (e.cuenta, e.modelo) = (cuenta, modelo);
             e.cortado = None;
             e.fallos_seguidos = 0;
         }
@@ -748,6 +787,8 @@ pub fn programado_guardar(app: tauri::AppHandle, pedido: Pedido) -> Result<Estad
                 encargo,
                 cwd,
                 cli,
+                cuenta,
+                modelo,
                 cuando,
                 activo: true,
                 creado: ahora,
@@ -847,6 +888,8 @@ mod tests {
             encargo: "Revisa las dependencias".into(),
             cwd: "C:\\proyectos\\Adeorq".into(),
             cli: "claude".into(),
+            cuenta: String::new(),
+            modelo: String::new(),
             cuando,
             activo: true,
             creado: 1_000,
@@ -915,7 +958,7 @@ mod tests {
 
     #[test]
     fn un_pedido_mal_hecho_dice_que_arreglar() {
-        let bueno = Pedido { id: None, nombre: "  ".into(), encargo: " Revisa las dependencias\ny dime ".into(), cwd: " C:\\p ".into(), cuando: Cuando::Semanal { dias: vec![7, 1, 1, 9], hora: "9:05".into() }, cli: String::new() };
+        let bueno = Pedido { id: None, nombre: "  ".into(), encargo: " Revisa las dependencias\ny dime ".into(), cwd: " C:\\p ".into(), cuando: Cuando::Semanal { dias: vec![7, 1, 1, 9], hora: "9:05".into() }, cli: String::new(), cuenta: String::new(), modelo: String::new() };
         let (nombre, encargo, cwd, cuando, cli) = validar(&bueno).unwrap();
         assert_eq!(cli, "claude", "sin decir CLI, el de siempre");
         assert_eq!(nombre, "Revisa las dependencias", "sin nombre, lleva el principio del encargo");
@@ -941,6 +984,39 @@ mod tests {
         for malo in ["Codex", "codex --yolo", "codex;rm", "a".repeat(21).as_str()] {
             assert!(con(&|p| p.cli = malo.into()).is_err(), "el CLI {malo:?} no vale");
         }
+    }
+
+    /// La cuenta y el modelo de un encargo: vacíos son los de siempre; la
+    /// cuenta tiene que tener forma de id (su existencia la dice la ventana al
+    /// abrir) y el modelo, ser de la casa.
+    #[test]
+    fn la_cuenta_y_el_modelo_se_validan() {
+        let base = Pedido { id: None, nombre: String::new(), encargo: "x".into(), cwd: "C:\\p".into(), cuando: Cuando::Cada { horas: 1 }, cli: String::new(), cuenta: String::new(), modelo: String::new() };
+        let con = |cuenta: &str, modelo: &str| cuenta_y_modelo(&Pedido { cuenta: cuenta.into(), modelo: modelo.into(), ..base.clone() });
+        assert_eq!(con("", "").unwrap(), (String::new(), String::new()), "vacíos, los de siempre");
+        assert_eq!(con(" main:claude ", " opus ").unwrap(), ("main:claude".to_string(), "opus".to_string()));
+        assert!(con("4f8c2a1e-9b3d-4c6e-8a2f-1d3e5b7c9a0b", "fable").is_ok(), "un UUID de Cuentas y Fable");
+        for mala in ["una cuenta", "../x", "a;b", &"a".repeat(81)] {
+            assert!(con(mala, "").is_err(), "la cuenta {mala:?} no vale");
+        }
+        for malo in ["gpt-5", "Opus", "opus --yolo"] {
+            assert!(con("", malo).is_err(), "el modelo {malo:?} no vale");
+        }
+    }
+
+    /// Un `programados.json` de antes no trae cuenta ni modelo: sale con los de
+    /// siempre, y al guardarlo no los escribe (siguen sin estar).
+    #[test]
+    fn un_encargo_de_antes_nace_con_lo_de_siempre() {
+        let viejo = r#"{"version":1,"encargos":[{"id":"p1","nombre":"N","encargo":"E","cwd":"C:\\p","cli":"claude","cuando":{"tipo":"cada","horas":2},"activo":true,"creado":1}]}"#;
+        let a: Almacen = serde_json::from_str(viejo).unwrap();
+        assert_eq!((a.encargos[0].cuenta.as_str(), a.encargos[0].modelo.as_str()), ("", ""));
+        let vuelta = serde_json::to_string(&a.encargos[0]).unwrap();
+        assert!(!vuelta.contains("cuenta") && !vuelta.contains("modelo"), "{vuelta}");
+        let mut e = a.encargos[0].clone();
+        (e.cuenta, e.modelo) = ("main:claude".into(), "haiku".into());
+        let vuelta: Encargo = serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!((vuelta.cuenta.as_str(), vuelta.modelo.as_str()), ("main:claude", "haiku"));
     }
 
     #[test]

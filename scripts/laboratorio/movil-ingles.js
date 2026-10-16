@@ -28,7 +28,7 @@ async (page) => {
   const mirar = async (vista, suelto = "") => {
     const malos = await page.evaluate(({ vista, suelto }) => {
       const DATOS = [
-        ".burbuja", ".pantalla", ".ahora-que", ".ahora-det", ".opciones-menu span:not(.num)", ".tarjeta-cab > b",
+        ".burbuja", ".pantalla", ".ahora-que", ".ahora-det", ".opciones-menu span:not(.num)", ".tarjeta-cab > b", ".quien > b",
         ".para", ".fila > b", ".fila-t > b", "legend", ".opcion .txt > b", ".opcion .txt > small",
         ".dec-cab > p:not(.dec-vig):not(.dec-hecha)", ".pregunta-d > p", ".pasos li:not(.antes)", ".pasos summary span", ".herramientas", ".adjunto .que",
       ].join(",");

@@ -38,7 +38,7 @@ async (page) => {
   r.cuenta = await page.textContent("#cuenta-dec");
   debe(r.cuenta === "1", `el botón cuenta solo la que te espera (${r.cuenta})`);
   debe(!(await page.$("#dec-sobran")), "ya no se dice cuántas sobran: se limpian solas");
-  r.reclaman = await page.$$eval("#reclaman .tarjeta[data-id]", (ts) => ts.map((t) => t.innerText.replace(/\s+/g, " ")));
+  r.reclaman = await page.$$eval("#reclaman .fila-term[data-id]", (ts) => ts.map((t) => t.innerText.replace(/\s+/g, " ")));
   debe(r.reclaman.length === 1 && /Diseño de la web/.test(r.reclaman[0]), `la viva sale arriba en la portada (${r.reclaman})`);
 
   // 2. La lista, por montones y con su vigencia.

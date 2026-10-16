@@ -3373,6 +3373,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           modeloLocal={modeloLocal}
           onResume={onResume}
           onHacer={hacerConsejo}
+          cuentas={accounts}
         />
       )}
       {/* La Memoria se monta y se desmonta con su pestaña, al revés que el

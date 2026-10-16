@@ -73,7 +73,7 @@ import { hueOf } from "../lib/colors";
 import { providerOf } from "../lib/providers";
 import { indiceValido, siguienteNota } from "../lib/agenda";
 import { mesDe, mesVecino, rejillaDelMes } from "../lib/calendario";
-import type { SessionInfo } from "../lib/pty";
+import type { Account, SessionInfo } from "../lib/pty";
 
 interface Props {
   /** The project he is looking at in the cockpit, if any. */
@@ -89,6 +89,8 @@ interface Props {
       una nota sin acción es lo normal, y sin este callback simplemente no sale
       el botón. */
   onHacer?: (a: AccionConsejo) => Promise<string>;
+  /** Las cuentas de Cuentas: un encargo programado elige con cuál nace. */
+  cuentas?: Account[];
 }
 
 type Link = "checking" | "out" | "in" | "failing";
@@ -325,7 +327,7 @@ function Cifra({
   );
 }
 
-export default function AgendaView({ current, onOpenProject, modeloLocal, onResume, onHacer }: Props) {
+export default function AgendaView({ current, onOpenProject, modeloLocal, onResume, onHacer, cuentas = [] }: Props) {
   const { t, lang } = useT();
   const [projects, setProjects] = useState<Project[]>([]);
   const [icons, setIcons] = useState<Record<string, string>>({});
@@ -671,6 +673,7 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
             cwdInicial={projects.find((p) => p.name === project)?.path ?? ""}
             estado={programados}
             onEstado={setProgramados}
+            cuentas={cuentas}
           />
         );
       default:

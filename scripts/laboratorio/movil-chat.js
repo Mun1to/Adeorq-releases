@@ -143,7 +143,7 @@ async (page) => {
   await page.waitForSelector("#portada-term .fila-t");
   const portada = await page.evaluate(() => ({
     resumen: document.getElementById("yo").textContent,
-    reclaman: [...document.querySelectorAll("#reclaman .tarjeta")].map((b) => b.querySelector("b").textContent),
+    reclaman: [...document.querySelectorAll("#reclaman .fila-term")].map((b) => b.querySelector("b").textContent),
     terminales: [...document.querySelectorAll("#portada-term .fila-t")].map((b) => b.innerText.replace(/\s+/g, " ")),
     animo: document.querySelector("#masc-portada .masc")?.dataset.animo,
   }));

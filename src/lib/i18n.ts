@@ -2644,6 +2644,11 @@ const EN: Record<string, string> = {
   "Un encargo programado abre él solo una sesión de agente con lo que le dejes escrito, los días y a la hora que digas. Si falla tres veces seguidas se para y te avisa, en vez de insistir. Y si la cuenta va por el 85 % de su cuota o más, esa vez se salta.":
     "A scheduled order opens an agent session on its own with what you leave written, on the days and at the time you say. If it fails three times in a row it stops and tells you, instead of insisting. And if the account is at 85% of its quota or more, that run is skipped.",
   "Con qué agente": "With which agent",
+  "Con qué cuenta": "With which account",
+  "La predeterminada": "The default one",
+  "una cuenta que ya no está": "an account that is gone",
+  "Con qué modelo": "With which model",
+  "El de Ajustes": "The one in Settings",
   "En este sistema todavía no se lanzan solos: por ahora, solo en Windows. Puedes dejarlos escritos.":
     "On this system they do not launch on their own yet: for now, only on Windows. You can still write them down.",
   "En esta ventana el reloj está parado (es la de desarrollo): se lanzan desde la Adeorq instalada, o con «Probar ahora».":

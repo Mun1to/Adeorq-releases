@@ -1,11 +1,11 @@
 {
-  "version": "0.9.210",
-  "notes": "El movil tiene Ajustes: tu foto del PC u otra del movil detras del cristal, tema y color, letra, Adeo, el orden del inicio y que avisos quieres y si suenan.",
-  "pub_date": "2026-10-15T23:16:53Z",
+  "version": "0.9.211",
+  "notes": "En el movil, Te esperan va en filas y la caja del inicio es de una linea. Cada encargo programado elige con que cuenta y con que modelo nace.",
+  "pub_date": "2026-10-16T00:27:58Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzVsVXlmT1hpQlM5enIwNDV2aG1CdXlTNENtUE1iZ3ZPUG1BbWRSdzI1V3pzT1ZEN2tuaU5wcTViUjMxRnFGWUw3UUlTNE9Za1ZaOVRwWGE5cjE5clFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTA2MjExCWZpbGU6QWRlb3JxXzAuOS4yMTBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTAKdk4xZ0tYekZGM2lDRXg5Sk5VTW1NblFIbmpidFdDWDE3RUh6Z09zTEZrdytsM3hkamM4V2ZLNHpxVEpqOVRkRXhqajA2SGUwTDdoTHZXdTlwbCtjRGc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.210/Adeorq_0.9.210_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzNhWVNhUXZ4QmNCUFR6ZDdDVVY5cE5xa2N3UWozNWNydm1IaUlBdkdZaG1kbmZQU1N4NkE5WkZQSkxUWlZNUkIyUTlqbW5EMEhCVlVtTThCY0dOd0FRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTEwNDc3CWZpbGU6QWRlb3JxXzAuOS4yMTFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTEKakozSThEekVsZjlEa0xiY0ZWUHY5bFpSbVBEaW5mcTEvMWkrLzNUMjRoZ0RwUFhrV1luQnk4VXB3a2QzZGowbDZQaFNpbWZoSHBPcnlzSzcydyt2QXc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.211/Adeorq_0.9.211_x64-setup.exe"
     }
   }
 }

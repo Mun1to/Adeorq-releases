@@ -18,12 +18,13 @@ import {
   elSiguiente,
   faltaEn,
   fechaLocal,
+  modelosDe,
   pedidoDe,
   proximaVez,
   type Cuando,
   type Programado,
 } from "../src/lib/programados";
-import { cuentaDeArranque } from "../src/lib/frenoCuota";
+import { cuentaDeArranque, cuentaPedida, cuentasDe } from "../src/lib/frenoCuota";
 import { MAIN_ACCOUNT } from "../src/lib/pty";
 
 let fallos = 0;
@@ -120,7 +121,7 @@ es("ni cada hora y media", faltaEn({ ...vacio, encargo: "Revisa", tipo: "cada", 
 es(
   "lo que viaja a Rust lleva solo el horario elegido, con los días en orden",
   pedidoDe({ ...vacio, encargo: " Revisa ", nombre: " Deps ", dias: [5, 1] }),
-  { id: undefined, nombre: "Deps", encargo: "Revisa", cwd: "C:\\proyectos\\Adeorq", cli: "claude", cuando: { tipo: "semanal", dias: [1, 5], hora: "09:00" } },
+  { id: undefined, nombre: "Deps", encargo: "Revisa", cwd: "C:\\proyectos\\Adeorq", cli: "claude", cuenta: "", modelo: "", cuando: { tipo: "semanal", dias: [1, 5], hora: "09:00" } },
 );
 es("los CLI que se pueden programar: los que aceptan el encargo al nacer y dejan leer cómo acabó", CLIS_PROGRAMABLES, ["claude", "codex"]);
 es("uno nuevo nace con el primero", vacio.cli, "claude");
@@ -151,6 +152,21 @@ es("sin tocar nada, la de siempre", cuentaDeArranque("claude", { list: [segunda]
 es("con otra como predeterminada, esa", cuentaDeArranque("claude", { list: [segunda], def: "c2" }), { provider: "claude", dir: "C:\\cuentas\\segunda" });
 es("una predeterminada que ya no existe cae en la de siempre", cuentaDeArranque("claude", { list: [], def: "c2" }), { provider: "claude", dir: "" });
 es("la predeterminada de un CLI no decide la de otro", cuentaDeArranque("codex", { list: [segunda, deCodex], def: "c2" }), { provider: "codex", dir: "" });
+
+// 9. Un encargo con su cuenta y su modelo (2026-10-16). El freno mide la que
+//    pidió, aunque la predeterminada sea otra, y al abrir se usa esa misma.
+es("el freno mide la cuenta que pidió el encargo", cuentaDeArranque("claude", { list: [segunda], def: MAIN_ACCOUNT.id }, "c2"), { provider: "claude", dir: "C:\\cuentas\\segunda" });
+es("pedir la principal gana a otra predeterminada", cuentaDeArranque("claude", { list: [segunda], def: "c2" }, "main:claude"), { provider: "claude", dir: "" });
+es("la principal de Codex también se puede pedir", cuentaDeArranque("codex", { list: [deCodex], def: "x1" }, "main:codex"), { provider: "codex", dir: "" });
+es("al abrir, la pedida tal cual", (cuentaPedida("c2", "claude", [segunda]) as { id: string }).id, "c2");
+es("una cuenta que ya no está no se cambia por otra: se dice", "error" in cuentaPedida("c9", "claude", [segunda]), true);
+es("ni una de otro agente", "error" in cuentaPedida("x1", "claude", [segunda, deCodex]), true);
+es("las que puede elegir un encargo de Claude: la principal y las suyas", cuentasDe("claude", [segunda, deCodex]).map((a) => a.id), ["main:claude", "c2"]);
+es("los modelos de Claude son los de la casa", modelosDe("claude").map((m) => m.alias), ["haiku", "sonnet", "opus", "fable"]);
+es("los de Codex, con su nombre", modelosDe("codex").length, 3);
+es("un agente sin bandera de modelo no ofrece ninguno", modelosDe("shell"), []);
+es("al editar, la cuenta y el modelo vuelven al formulario", (({ cuenta, modelo }) => [cuenta, modelo])(borradorDe(uno(lunes9, { cuenta: "c2", modelo: "opus" }), "")), ["c2", "opus"]);
+es("y viajan a Rust", (({ cuenta, modelo }) => [cuenta, modelo])(pedidoDe({ ...vacio, encargo: "x", cuenta: "c2", modelo: "haiku" })), ["c2", "haiku"]);
 
 console.log(fallos ? `\n${fallos} FALLOS: ${rojos.join("; ")}` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

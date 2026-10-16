@@ -21,6 +21,10 @@ export interface PedidoMcp {
   project?: string;
   brief?: string;
   name?: string;
+  /** La cuenta (su id) y el modelo («haiku», «sonnet», «opus», «fable») con
+   *  que nace: los manda un encargo programado que los eligió. */
+  account?: string;
+  model?: string;
   /** De qué panel colgar el nuevo, cuando el agente quiere el árbol hecho. */
   from?: number | null;
   to?: number | null;

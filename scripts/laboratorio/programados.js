@@ -22,7 +22,13 @@ async (page) => {
   const pasos = {};
   const debe = (ok, que) => { if (!ok) fallos.push(que); };
   const abrirAgenda = async (lang) => {
-    await page.addInitScript((l) => { try { localStorage.setItem("adeorq-lang", l); } catch { /* sin almacén */ } }, lang);
+    // Y una segunda cuenta de Claude, para que el encargo pueda elegir con cuál nace.
+    await page.addInitScript((l) => {
+      try {
+        localStorage.setItem("adeorq-lang", l);
+        localStorage.setItem("adeorq-accounts", JSON.stringify({ accounts: [{ id: "c2", label: "Segunda", dir: "C:\\cuentas\\segunda", provider: "claude" }], defaultAccount: "main:claude" }));
+      } catch { /* sin almacén */ }
+    }, lang);
     await page.goto("http://localhost:1420/");
     await page.locator('[data-tab="agenda"]').waitFor({ timeout: 15000 });
     await page.locator('[data-tab="agenda"]').click();
@@ -68,7 +74,7 @@ async (page) => {
   await page.locator('.prog-dia[data-dia="3"]').click();
   await page.locator('.prog-dia[data-dia="5"]').click();
   await page.locator(".prog-hora").fill("18:30");
-  await page.locator(".prog-campo select:not([data-cli])").selectOption({ label: "Adeorq" });
+  await page.locator(".prog-campo select[data-proyecto]").selectOption({ label: "Adeorq" });
   await desde();
   await page.locator("[data-guardar]").click();
   await page.waitForTimeout(600);
@@ -108,12 +114,31 @@ async (page) => {
   pasos.conCodex = { viaja: (await hechas("programado_guardar"))[0]?.pedido?.cli, pie: await page.locator(".prog-pie .stream-hide").first().innerText() };
   debe(pasos.conCodex.viaja === "codex" && pasos.conCodex.pie === "Codex · Adeorq", `con Codex: ${JSON.stringify(pasos.conCodex)}`);
 
+  // 4c. Con qué cuenta y con qué modelo (2026-10-16). Codex tiene una sola
+  //     cuenta y sus modelos; al volver a Claude sale la segunda cuenta.
+  await page.locator("[data-editar]").first().click();
+  pasos.modelosCodex = await page.locator("[data-modelo] option").evaluateAll((os) => os.map((o) => o.value).join(" "));
+  debe(pasos.modelosCodex === " haiku sonnet opus", `los modelos de Codex: «${pasos.modelosCodex}»`);
+  debe((await page.locator("[data-cuenta]").count()) === 0, "con una sola cuenta de Codex pregunta cuál");
+  await page.locator("[data-cli]").selectOption("claude");
+  pasos.cuentasClaude = await page.locator("[data-cuenta] option").evaluateAll((os) => os.map((o) => `${o.value}=${o.textContent}`).join(" | "));
+  debe(pasos.cuentasClaude === "=La predeterminada | main:claude=Principal | c2=Segunda", `las cuentas de Claude: «${pasos.cuentasClaude}»`);
+  await page.locator("[data-cuenta]").selectOption("c2");
+  await page.locator("[data-modelo]").selectOption("opus");
+  await desde();
+  await page.locator("[data-guardar]").click();
+  await page.waitForTimeout(600);
+  const conCuenta = (await hechas("programado_guardar"))[0]?.pedido;
+  pasos.conCuenta = { cuenta: conCuenta?.cuenta, modelo: conCuenta?.modelo, pie: await page.locator(".prog-pie .stream-hide").first().innerText() };
+  debe(pasos.conCuenta.cuenta === "c2" && pasos.conCuenta.modelo === "opus", `viajan la cuenta y el modelo: ${JSON.stringify(pasos.conCuenta)}`);
+  debe(pasos.conCuenta.pie === "Claude Code · Segunda · Opus · Adeorq", `la fila dice con qué cuenta y modelo: «${pasos.conCuenta.pie}»`);
+
   // 5. Un error de Rust se enseña y el formulario no se pierde.
   await page.locator("[data-nuevo]").click();
   await page.locator(".prog-encargo-in").fill("otro");
   pasos.sinProyecto = await page.locator(".prog-falta").innerText();
   debe(/proyecto/.test(pasos.sinProyecto) && (await page.locator("[data-guardar]").isDisabled()), `sin proyecto elegido no se guarda: «${pasos.sinProyecto}»`);
-  await page.locator(".prog-campo select:not([data-cli])").selectOption({ label: "Vidorq" });
+  await page.locator(".prog-campo select[data-proyecto]").selectOption({ label: "Vidorq" });
   const lleno = await sembrado();
   await sembrar({ ...lleno, encargos: Array.from({ length: 20 }, (_, i) => ({ ...lleno.encargos[0], id: `p${i}` })) });
   await page.locator("[data-guardar]").click();

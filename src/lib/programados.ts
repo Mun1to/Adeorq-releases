@@ -8,7 +8,7 @@
 // reloj discreparan un minuto, manda el reloj y nadie pierde nada.
 
 import { invoke } from "@tauri-apps/api/core";
-import { PROVIDERS } from "./providers";
+import { PROVIDERS, sabe } from "./providers";
 
 /**
  * Los CLI que puede abrir un encargo programado: los que aceptan el encargo al
@@ -18,6 +18,21 @@ import { PROVIDERS } from "./providers";
  * con esas dos capacidades en su fila de `providers.ts`.
  */
 export const CLIS_PROGRAMABLES: string[] = PROVIDERS.filter((p) => p.encargoEnLinea && p.archivosDelDisco).map((p) => p.id);
+
+/**
+ * Los modelos que puede pedir un encargo de ese CLI, con el nombre que les da
+ * él. Por capacidad, no por nombre: quien sabe elegir modelo y no tiene tabla
+ * de `modelos` entiende los nombres de la casa tal cual (como en
+ * `lineasEnVivo`); quien la tiene, los suyos, y se los pasa con su bandera.
+ * Vacío si ese CLI no deja elegir: la pantalla entonces no enseña el selector.
+ */
+export function modelosDe(cli: string): { alias: string; nombre: string }[] {
+  const p = PROVIDERS.find((x) => x.id === cli);
+  if (!p || !sabe(cli, "modelo")) return [];
+  if (!p.modelos) return ["haiku", "sonnet", "opus", "fable"].map((a) => ({ alias: a, nombre: a[0].toUpperCase() + a.slice(1) }));
+  if (!p.banderaModelo) return [];
+  return (["haiku", "sonnet", "opus"] as const).flatMap((a) => (p.modelos?.[a] ? [{ alias: a, nombre: p.modelos[a] as string }] : []));
+}
 
 export type Cuando =
   | { tipo: "semanal"; /** 1 lunes … 7 domingo. */ dias: number[]; /** «HH:MM». */ hora: string }
@@ -38,6 +53,10 @@ export interface Programado {
   cwd: string;
   /** El CLI que abre (`CLIS_PROGRAMABLES`). */
   cli: string;
+  /** La cuenta con la que nace (su id); sin ella, la predeterminada. */
+  cuenta?: string;
+  /** «haiku», «sonnet», «opus» o «fable»; sin él, el de Ajustes. */
+  modelo?: string;
   cuando: Cuando;
   /** Tu interruptor. */
   activo: boolean;
@@ -67,6 +86,9 @@ export interface PedidoProgramado {
   encargo: string;
   cwd: string;
   cli: string;
+  /** Vacíos, la cuenta predeterminada y el modelo de Ajustes. */
+  cuenta: string;
+  modelo: string;
   cuando: Cuando;
 }
 
@@ -184,6 +206,10 @@ export interface Borrador {
   encargo: string;
   cwd: string;
   cli: string;
+  /** "" es la predeterminada. */
+  cuenta: string;
+  /** "" es el de Ajustes. */
+  modelo: string;
   tipo: "semanal" | "cada";
   dias: number[];
   hora: string;
@@ -191,7 +217,7 @@ export interface Borrador {
 }
 
 export function borradorDe(e: Programado | null, cwd: string): Borrador {
-  if (!e) return { nombre: "", encargo: "", cwd, cli: CLIS_PROGRAMABLES[0], tipo: "semanal", dias: [1], hora: "09:00", horas: 24 };
+  if (!e) return { nombre: "", encargo: "", cwd, cli: CLIS_PROGRAMABLES[0], cuenta: "", modelo: "", tipo: "semanal", dias: [1], hora: "09:00", horas: 24 };
   const semanal = e.cuando.tipo === "semanal" ? e.cuando : null;
   return {
     id: e.id,
@@ -199,6 +225,8 @@ export function borradorDe(e: Programado | null, cwd: string): Borrador {
     encargo: e.encargo,
     cwd: e.cwd,
     cli: e.cli,
+    cuenta: e.cuenta ?? "",
+    modelo: e.modelo ?? "",
     tipo: e.cuando.tipo,
     dias: semanal ? [...semanal.dias] : [1],
     hora: semanal ? semanal.hora : "09:00",
@@ -227,6 +255,8 @@ export function pedidoDe(b: Borrador): PedidoProgramado {
     encargo: b.encargo.trim(),
     cwd: b.cwd,
     cli: b.cli,
+    cuenta: b.cuenta,
+    modelo: b.modelo,
     cuando:
       b.tipo === "semanal"
         ? { tipo: "semanal", dias: [...b.dias].sort((a, c) => a - c), hora: b.hora }

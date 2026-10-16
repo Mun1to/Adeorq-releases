@@ -20,6 +20,8 @@ import { confiarCarpeta, listProjects, mcpReply, onPedidoMcp, type Account, type
 import { pantallaDe } from "./terminales";
 import { fotoRapida, parteDelEquipo } from "./mundo";
 import { comandoDe } from "./lanzar";
+import { cuentaPedida } from "./frenoCuota";
+import { isModelAlias } from "./models";
 import { sabe } from "./providers";
 import {
   ARRANCAN_CON_ENCARGO,
@@ -40,6 +42,8 @@ export interface ManosDelPuente {
     name: string,
     cwd: string,
     command?: string[],
+    at?: undefined,
+    account?: Account,
   ) => { id: number; donde: "lienzo" | "cabina" } | null | undefined;
   /** Dibujar una flecha entre dos terminales del lienzo. */
   enlazarRef: Ref<((from: number, to: number, auto: boolean) => boolean) | null>;
@@ -147,9 +151,18 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         // él: meterle texto suelto a un CLI que espera un subcomando es abrirle
         // una terminal con un error dentro.
         const conEncargo = !!brief && ARRANCAN_CON_ENCARGO.has(cli);
+        // La cuenta y el modelo que eligió un encargo programado. Una cuenta
+        // que ya no está no se cambia por otra en silencio: se dice.
+        let cuenta: Account | undefined;
+        if (typeof p.account === "string" && p.account) {
+          const pedida = cuentaPedida(p.account, cli, accountsRef.current.list);
+          if ("error" in pedida) return responder({ error: pedida.error });
+          cuenta = pedida;
+        }
+        const modelo = typeof p.model === "string" && isModelAlias(p.model) ? p.model : undefined;
         // `desatendida`: quien la abre es un agente, así que un Claude nace en
         // modo auto y no en el de Ajustes (ver `Peticion` en `lib/arranque.ts`).
-        const command = comandoDe({ cli, encargo: brief, agyExe: agyExe.current, desatendida: true });
+        const command = comandoDe({ cli, encargo: brief, modelo, agyExe: agyExe.current, desatendida: true });
 
         /* Antes de abrirla, que pueda arrancar. Una terminal de Claude en una
            carpeta donde Munir no ha entrado nunca nace parada en «¿confías en
@@ -165,7 +178,7 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
           await confiarCarpeta(cwd).catch(() => false);
         }
 
-        const abierto = addPane(label, cwd, command);
+        const abierto = addPane(label, cwd, command, undefined, cuenta);
         if (!abierto) return responder({ error: "no pude abrir la terminal" });
 
         // La flecha de paso, si la pidió: así el árbol le queda hecho sin una

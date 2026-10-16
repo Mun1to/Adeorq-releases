@@ -580,6 +580,14 @@
     resize: none;
   }
   textarea::placeholder { color: var(--suave); }
+  /* La del inicio va en UNA línea (Munir, 2026-10-16: «de solo una línea, no
+     tan gordo»): el texto y el botón de mandar en la misma fila. Si escribes
+     más, crece hacia arriba y el botón se queda abajo, a mano del pulgar. */
+  .fila-caja.decir { flex-direction: row; align-items: flex-end; border-radius: 24px; }
+  .fila-caja.decir textarea { flex: 1; width: auto; padding: 11px 4px 11px 18px; min-height: 46px; }
+  .fila-caja.decir .mandos { flex: none; padding: 4px 4px 4px 0; }
+  .fila-caja.decir .hueco { display: none; }
+  .fila-caja.decir .enviar { width: 38px; height: 38px; }
   .mandos { display: flex; align-items: center; gap: 6px; padding: 4px 8px 8px; min-width: 0; }
   .mandos .hueco { flex: 1; }
   /* Un carril que se desliza: el borde derecho se difumina para que se vea que
@@ -937,7 +945,6 @@ const EN = {
   "todo tranquilo": "all quiet",
   "sin terminales abiertas": "no terminals open",
   "Te esperan": "Waiting for you",
-  "Entra y contéstale desde aquí.": "Go in and answer it from here.",
   "Terminales": "Terminals",
   "y {n} más, en «Terminales».": "and {n} more, in “Terminals”.",
   "Conversación nueva": "New conversation",
@@ -2519,21 +2526,28 @@ async function pintarLista() {
       const [palabra, tono] = estadoTerminal(t);
       return `<button class="fila fila-t${tono === "trabajando" ? " hilo" : ""}" data-panel="${t.panel}"><i class="punto" data-tono="${tono}"></i><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span>${palabra}</span></button>`;
     };
+    // Filas como las de Terminales, no tarjetas (Munir, 2026-10-16: «no me
+    // gustan estas tarjetas»): qué es, de dónde y cuándo debajo, y su punto.
+    const nueva = primera ? "" : " nuevo";
+    const filaDecision = (d) => `<button class="fila fila-term${nueva}" data-id="${esc(d.id)}" data-estado="pregunta">
+        <span class="avatar">${ICONO.decision}</span>
+        <span class="quien"><b>${esc(d.titulo)}</b><small>${esc([d.proyecto, plural(d.preguntas, tr("1 pregunta"), tr("{n} preguntas")), hace(d.creada / 1000)].filter(Boolean).join(" · "))}</small></span>
+        <i class="punto" data-tono="pregunta"></i>
+      </button>`;
+    const filaPregunta = (t) => `<button class="fila fila-term${nueva}" data-panel="${t.panel}" data-estado="pregunta">
+        <span class="avatar${t.agente ? "" : " consola"}">${t.agente ? ICONO.chat : ICONO.terminal}</span>
+        <span class="quien"><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><small>${estadoTerminal(t)[0]}</small></span>
+        <i class="punto" data-tono="pregunta"></i>
+      </button>`;
     reclaman.innerHTML = teLlaman
-      ? `<h2 class="seccion"><span>${tr("Te esperan")}</span></h2>${esperan.map(tarjetaDecision).join("")}${preguntan.map((t) => {
-        const [palabra] = estadoTerminal(t);
-        return `<button class="tarjeta${primera ? "" : " nuevo"}" data-estado="pregunta" data-vigencia="viva" data-panel="${t.panel}">
-          <span class="tarjeta-cab"><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span class="estado"><i></i>${palabra}</span></span>
-          <span class="porque">${tr("Entra y contéstale desde aquí.")}</span>
-        </button>`;
-      }).join("")}`
+      ? `<h2 class="seccion"><span>${tr("Te esperan")}</span></h2><div class="grupo">${esperan.map(filaDecision).join("")}${preguntan.map(filaPregunta).join("")}</div>`
       : "";
     document.getElementById("portada-term").innerHTML = vt.fallo
       ? `<h2 class="seccion"><span>${tr("Terminales")}</span></h2><p class="seccion-nota">${esc(vt.fallo)}</p>`
       : enMarcha.length
         ? `<h2 class="seccion"><span>${tr("En marcha")}</span></h2><div class="grupo">${enMarcha.slice(0, 5).map(filaTerminal).join("")}${enMarcha.length > 5 ? `<p class="seccion-nota">${tr("y {n} más, en «Terminales».", { n: enMarcha.length - 5 })}</p>` : ""}</div>`
         : "";
-    reclaman.querySelectorAll(".tarjeta[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volver: "lista" })));
+    reclaman.querySelectorAll(".fila[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volver: "lista" })));
     document.querySelectorAll("#reclaman [data-panel], #portada-term [data-panel]").forEach((b) => b.addEventListener("click", () => ir({ vista: "terminal", panel: Number(b.dataset.panel), arranque: vt.arranque, volver: "lista" })));
   };
   mirar().catch(() => {});

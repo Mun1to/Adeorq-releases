@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
+import { cuentasDe } from "../lib/frenoCuota";
 import { providerOf } from "../lib/providers";
-import type { Project } from "../lib/pty";
+import { nombreDeCuenta, type Account, type Project } from "../lib/pty";
 import {
   activarProgramado,
   borradorDe,
@@ -17,6 +18,7 @@ import {
   guardarProgramado,
   letraDia,
   listarProgramados,
+  modelosDe,
   NOMBRE_DIA,
   pedidoDe,
   probarProgramado,
@@ -62,9 +64,11 @@ function carpeta(cwd: string): string {
   return cwd.split(/[\\/]/).filter(Boolean).pop() ?? cwd;
 }
 
+
 interface FormProps {
   b: Borrador;
   proyectos: Project[];
+  cuentas: Account[];
   error: string;
   guardando: boolean;
   onChange: (b: Borrador) => void;
@@ -72,9 +76,18 @@ interface FormProps {
   onCancelar: () => void;
 }
 
-function Formulario({ b, proyectos, error, guardando, onChange, onGuardar, onCancelar }: FormProps) {
+function Formulario({ b, proyectos, cuentas, error, guardando, onChange, onGuardar, onCancelar }: FormProps) {
   const { t } = useT();
   const falta = faltaEn(b);
+  // Cuenta y modelo, solo si hay de dónde elegir. Con dos cuentas o más de
+  // ese agente sale la de la cuenta; el modelo, si ese agente deja elegirlo.
+  const suyas = cuentasDe(b.cli, cuentas);
+  const modelos = modelosDe(b.cli);
+  const cuentaPerdida = b.cuenta && !suyas.some((a) => a.id === b.cuenta);
+  // Al cambiar de agente, lo que era del anterior no vale: otra cuenta es de
+  // otro CLI, y un modelo solo sigue si el nuevo también lo tiene.
+  const otroCli = (cli: string) =>
+    onChange({ ...b, cli, cuenta: "", modelo: modelosDe(cli).some((m) => m.alias === b.modelo) ? b.modelo : "" });
   const dia = (d: number) =>
     onChange({ ...b, dias: b.dias.includes(d) ? b.dias.filter((x) => x !== d) : [...b.dias, d] });
   // La carpeta de uno que se edita puede no ser ya un proyecto de la lista
@@ -94,7 +107,7 @@ function Formulario({ b, proyectos, error, guardando, onChange, onGuardar, onCan
       <div className="prog-campos">
         <label className="prog-campo">
           <span>{t("En el proyecto")}</span>
-          <select className="finder" value={b.cwd} onChange={(e) => onChange({ ...b, cwd: e.currentTarget.value })}>
+          <select className="finder" data-proyecto value={b.cwd} onChange={(e) => onChange({ ...b, cwd: e.currentTarget.value })}>
             {!b.cwd && <option value="">{t("elige un proyecto")}</option>}
             {fuera && <option value={b.cwd}>{carpeta(b.cwd)}</option>}
             {proyectos.map((p) => (
@@ -107,10 +120,37 @@ function Formulario({ b, proyectos, error, guardando, onChange, onGuardar, onCan
         {CLIS_PROGRAMABLES.length > 1 && (
           <label className="prog-campo">
             <span>{t("Con qué agente")}</span>
-            <select className="finder" data-cli value={b.cli} onChange={(e) => onChange({ ...b, cli: e.currentTarget.value })}>
+            <select className="finder" data-cli value={b.cli} onChange={(e) => otroCli(e.currentTarget.value)}>
               {CLIS_PROGRAMABLES.map((c) => (
                 <option key={c} value={c}>
                   {providerOf(c).label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {(suyas.length > 1 || cuentaPerdida) && (
+          <label className="prog-campo">
+            <span>{t("Con qué cuenta")}</span>
+            <select className="finder" data-cuenta value={b.cuenta} onChange={(e) => onChange({ ...b, cuenta: e.currentTarget.value })}>
+              <option value="">{t("La predeterminada")}</option>
+              {suyas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {nombreDeCuenta(a.label, t)}
+                </option>
+              ))}
+              {cuentaPerdida && <option value={b.cuenta}>{t("una cuenta que ya no está")}</option>}
+            </select>
+          </label>
+        )}
+        {modelos.length > 0 && (
+          <label className="prog-campo">
+            <span>{t("Con qué modelo")}</span>
+            <select className="finder" data-modelo value={b.modelo} onChange={(e) => onChange({ ...b, modelo: e.currentTarget.value })}>
+              <option value="">{t("El de Ajustes")}</option>
+              {modelos.map((m) => (
+                <option key={m.alias} value={m.alias}>
+                  {m.nombre}
                 </option>
               ))}
             </select>
@@ -195,10 +235,22 @@ interface Props {
   cwdInicial: string;
   estado: EstadoProgramados | null;
   onEstado: (e: EstadoProgramados) => void;
+  /** Las cuentas de Cuentas, para elegir con cuál nace cada encargo. */
+  cuentas: Account[];
 }
 
-export default function AgendaProgramados({ proyectos, cwdInicial, estado, onEstado }: Props) {
+export default function AgendaProgramados({ proyectos, cwdInicial, estado, onEstado, cuentas }: Props) {
   const { t, lang } = useT();
+  /** Lo que dice el pie de una fila: con qué agente, cuenta y modelo, y dónde. */
+  const pieDe = (e: Programado) => {
+    const cuenta = e.cuenta ? cuentasDe(e.cli, cuentas).find((a) => a.id === e.cuenta) : null;
+    return [
+      providerOf(e.cli).label,
+      e.cuenta ? (cuenta ? nombreDeCuenta(cuenta.label, t) : t("una cuenta que ya no está")) : "",
+      e.modelo ? (modelosDe(e.cli).find((m) => m.alias === e.modelo)?.nombre ?? e.modelo) : "",
+      carpeta(e.cwd),
+    ].filter(Boolean).join(" · ");
+  };
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState("");
@@ -272,6 +324,7 @@ export default function AgendaProgramados({ proyectos, cwdInicial, estado, onEst
         <Formulario
           b={borrador}
           proyectos={proyectos}
+          cuentas={cuentas}
           error={error}
           guardando={ocupado === "form"}
           onChange={setBorrador}
@@ -311,9 +364,7 @@ export default function AgendaProgramados({ proyectos, cwdInicial, estado, onEst
               </div>
               <p className="prog-encargo stream-hide">{e.encargo.split("\n")[0]}</p>
               <p className="prog-pie">
-                <span className="stream-hide">
-                  {providerOf(e.cli).label} · {carpeta(e.cwd)}
-                </span>
+                <span className="stream-hide">{pieDe(e)}</span>
                 <span className="prog-proxima">
                   {e.cortado
                     ? t("parado por el freno")

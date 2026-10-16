@@ -1,11 +1,11 @@
 {
-  "version": "0.9.215",
-  "notes": "En el movil la barra de abajo de Claude Code ya no sale en la Pantalla, lo que escribes en una terminal o una conversacion se guarda si te vas, y el menu sube el proyecto que esta trabajando.",
-  "pub_date": "2026-10-16T07:36:54Z",
+  "version": "0.9.216",
+  "notes": "Lo que te pregunta una terminal sale tambien en Decisiones del movil, con sus opciones para contestar con un toque, y cuenta en el globito.",
+  "pub_date": "2026-10-16T08:03:53Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzFGRmJDMjR6eFV0c1hKZ3cvYUcrRU5kOHFXTGVLV0YwOXdRSGpPUDVrWTRUZ3l6Y1Eva2doV3BJYllZc3hTYVRDT21pMU9DdXZUMW5GTUt5cGg1Z2dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTM2MjEyCWZpbGU6QWRlb3JxXzAuOS4yMTVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTUKUFRZUUh4MHRzOHJUbklGM2ZsbXNVM3ZHUVJ6TGxacy9rR21YZjdTUWJwM2E3UnBmdGo3QSt4ZmFsdjBET0NoVTdkNDB5WHNHQ0xwODVlYU11R1NvQ3c9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.215/Adeorq_0.9.215_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy9yRGNSSHZzeU5iYk1CWWNrcXArNmc3L3JTVlpRVnJoQnhHMW9QUFp4aVoyNkZHUWxSNnJuSU1yUDNRbXc3bTVNOEdNZVFHb25wdXV1bDJZUERmb1E4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTM3ODMyCWZpbGU6QWRlb3JxXzAuOS4yMTZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTYKWGpFakdNekR1M3ozVGpSM211VUdpcWVKaFJvYW50ODYvZjdxQmxpS0ltWFVLOW9taFpMaFFLNEw1QSsvTENhS3c1TkVzcThFMy9JS3YrbUpuWTFIREE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.216/Adeorq_0.9.216_x64-setup.exe"
     }
   }
 }

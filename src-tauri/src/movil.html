@@ -243,6 +243,15 @@
   .tarjeta[data-estado="trabajando"] { --c: var(--vivo); }
   .tarjeta[data-estado="pregunta"] { --c: var(--pregunta); }
   .tarjeta[data-estado="termino"] { --c: var(--termino); }
+  /* Lo que te pregunta una terminal, en Decisiones: como una tarjeta, con sus
+     opciones a un toque y el camino a la terminal para ver el contexto. */
+  .preg-term {
+    --c: var(--pregunta); display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 0 0 10px; padding: 14px 16px;
+    border-radius: var(--r-caja); border: 1px solid var(--borde); background: var(--capa); box-shadow: var(--brillo), inset 3px 0 0 var(--c);
+  }
+  .preg-term .preg-que { margin: 0; overflow-wrap: anywhere; }
+  .preg-term .opciones-menu { margin-top: 2px; }
+  .preg-term .ir-term { justify-self: start; margin-top: 2px; }
   .tarjeta-cab { display: flex; align-items: center; gap: 8px; }
   .tarjeta-cab b { flex: 1; min-width: 0; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .estado {
@@ -1263,6 +1272,9 @@ const EN = {
   "Máx": "Max",
   "Ahora en la pantalla del PC": "On the PC's screen now",
   "Sueltas": "Loose",
+  "Te espera: contéstale en su terminal.": "Waiting for you: answer it in its terminal.",
+  "Abrir la terminal": "Open the terminal",
+  "Contestado: {n}.": "Answered: {n}.",
   "Contexto gastado: {p} %": "Context used: {p}%",
   "Esta sesión pesa demasiado ({p} %): mejor seguir en una terminal nueva.": "This session is too heavy ({p}%): better to carry on in a new terminal.",
   "El contexto va por el {p} %: compáctala antes de que pese más.": "Context is at {p}%: compact it before it gets heavier.",
@@ -1881,6 +1893,8 @@ const ESTADO_TERMINAL = {
   "": [tr("quieta"), "cerrada"],
 };
 const estadoTerminal = (t) => ESTADO_TERMINAL[t.estado] || ESTADO_TERMINAL[""];
+/** Las terminales que te preguntan algo ahora: cuentan como lo que te espera. */
+const preguntanDe = (vt) => (vt?.terminales || []).filter((t) => estadoTerminal(t)[1] === "pregunta");
 /** Si su agente está escribiendo ahora mismo: lleva el hilo de luz. */
 const estaTrabajando = (t) => estadoTerminal(t)[1] === "trabajando";
 
@@ -2359,7 +2373,7 @@ function abrirCajon() {
     api("GET", "/api/decisiones").catch(() => null),
   ]).then(([vt, lista, vd]) => {
     delCajon = { vt, lista, decisiones: vd?.decisiones || [] };
-    if (vd) ponerEsperan(vivas(delCajon.decisiones).length);
+    if (vd) ponerEsperan(vivas(delCajon.decisiones).length + preguntanDe(vt).length);
     if (document.body.dataset.cajon !== undefined) pintarCajon();
   });
 }
@@ -2534,7 +2548,7 @@ function recientesHtml(terminales, lista, arranque, aqui, raiz) {
 function pintarCajon() {
   const d = delCajon || { vt: {}, lista: [], decisiones: [] };
   const terminales = (d.vt.terminales || []).slice().sort((a, b) => Number(b.agente) - Number(a.agente) || a.panel - b.panel);
-  const esperan = vivas(d.decisiones).length;
+  const esperan = vivas(d.decisiones).length + preguntanDe(d.vt).length;
   const aqui = (vista, k) => e.vista === vista && (k === undefined || e.panel === k || e.id === k);
   cajon.innerHTML = `
     <div class="marca">${ICONO.logo}<b>Adeorq</b></div>
@@ -2818,9 +2832,9 @@ async function pintarLista() {
     // terminaron o están quietas viven en «Terminales», en el cajón.
     const enMarcha = terminales.filter(estaTrabajando);
 
-    // La cuenta del globito: las que te esperan DE VERDAD. Las demás no suman
-    // ni se dicen: se limpian solas.
-    ponerEsperan(esperan.length);
+    // La cuenta del globito: las que te esperan DE VERDAD, y lo que te
+    // preguntan las terminales. Las demás no suman ni se dicen: se limpian solas.
+    ponerEsperan(esperan.length + preguntan.length);
 
     const nuevo = animoDeTodo(terminales, esperan.length);
     if (nuevo !== animo) {
@@ -3672,6 +3686,18 @@ function tarjetaDecision(d) {
   </button>`;
 }
 
+/* Lo que pregunta una terminal, con sus opciones a un toque. Si su pantalla no
+   trae un menú (te espera con texto libre), se dice y se va a la terminal. */
+function tarjetaPregunta({ t, a }) {
+  const menu = a?.tipo === "pregunta";
+  return `<div class="preg-term" data-panel="${t.panel}">
+    <span class="tarjeta-cab"><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span class="estado"><i></i>${tr("Te pregunta")}</span></span>
+    ${menu && a.pregunta ? `<p class="preg-que">${esc(a.pregunta)}</p>` : menu ? "" : `<p class="preg-que porque">${tr("Te espera: contéstale en su terminal.")}</p>`}
+    ${menu ? `<div class="opciones-menu">${a.opciones.map((o) => `<button data-num="${o.n}"><span class="num">${o.n}</span><span>${esc(o.texto)}</span></button>`).join("")}</div>` : ""}
+    <button class="mini ir-term" type="button">${tr("Abrir la terminal")}</button>
+  </div>`;
+}
+
 async function descartarDecision(id) {
   const r = await api("POST", "/api/decision/descartar", { id });
   try { localStorage.removeItem(borradorDe(id)); } catch (_) {}
@@ -3693,29 +3719,37 @@ async function pintarDecisiones() {
   // Solo se repinta si algo cambió: rehacerla cada cinco segundos reiniciaba
   // el latido de las vivas y te quitaba el toque a medio pulsar.
   let pintado = null;
+  let arranque = null;
   const cargar = async () => {
-    const v = await api("GET", "/api/decisiones");
+    const [v, vt] = await Promise.all([api("GET", "/api/decisiones"), api("GET", "/api/terminales").catch(() => ({}))]);
+    arranque = vt.arranque ?? null;
+    // Lo que te pregunta cada terminal, leído de su pantalla como en su chat.
+    const preguntas = await Promise.all(preguntanDe(vt).map((t) => api("GET", `/api/terminal?panel=${t.panel}&arranque=${vt.arranque}`).then((x) => {
+      if (!x.filas && Array.isArray(x.trozos)) x.filas = x.trozos.map((l) => l.map((y) => y[0]).join(""));
+      return { t, a: ahoraDe(x) };
+    }, () => ({ t, a: null }))));
     const aqui = document.getElementById("decisiones");
     if (!aqui) return;
     const lista = v.decisiones || [];
     const esperan = vivas(lista);
-    ponerEsperan(esperan.length);
+    ponerEsperan(esperan.length + preguntas.length);
     // Todo lo que ya no te espera va junto y se limpia solo (a la semana se
     // borra): antes las que nadie esperaba tenían montón y botón propios, y
     // había que vaciarlo a mano.
     const anteriores = lista.filter((d) => d.vigencia !== "viva")
       .sort((a, b) => (b.cerrada ?? b.creada) - (a.cerrada ?? a.creada));
+    const total = esperan.length + preguntas.length;
     const sub = document.getElementById("sub-dec");
     if (sub) {
-      sub.textContent = !lista.length ? tr("lo que te preguntan tus agentes")
-        : esperan.length ? plural(esperan.length, tr("1 te espera"), tr("{n} te esperan")) : tr("ninguna te espera");
+      sub.textContent = !lista.length && !preguntas.length ? tr("lo que te preguntan tus agentes")
+        : total ? plural(total, tr("1 te espera"), tr("{n} te esperan")) : tr("ninguna te espera");
     }
     let html = "";
-    if (!lista.length) {
+    if (!lista.length && !preguntas.length) {
       html = `<p class="vacio">${tr("No hay ninguna decisión. Cuando un agente te pregunte algo, sale aquí.")}</p>`;
     } else {
-      html += esperan.length
-        ? `<h2 class="seccion"><span>${tr("Te esperan")}</span></h2>${esperan.map(tarjetaDecision).join("")}`
+      html += total
+        ? `<h2 class="seccion"><span>${tr("Te esperan")}</span></h2>${preguntas.map(tarjetaPregunta).join("")}${esperan.map(tarjetaDecision).join("")}`
         : `<p class="calma">${mascota("quieta", 26, "decisiones")}${tr("Nada te espera ahora mismo.")}</p>`;
       if (anteriores.length) {
         html += `<h2 class="seccion"><span>${tr("Anteriores")}</span></h2>
@@ -3724,12 +3758,32 @@ async function pintarDecisiones() {
     }
     // Por lo que dice la lista y no por el HTML, que lleva dentro a la mascota
     // y esa cambia de postura sola.
-    const firma = JSON.stringify(lista);
+    const firma = JSON.stringify([lista, preguntas.map((p) => [p.t.panel, p.t.nombre, p.t.carpeta, p.a])]);
     if (firma === pintado) return;
     pintado = firma;
     aqui.innerHTML = html;
-    aqui.querySelectorAll(".tarjeta").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volverPanel: e.volverPanel, volverArranque: e.volverArranque })));
+    aqui.querySelectorAll(".tarjeta[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volverPanel: e.volverPanel, volverArranque: e.volverArranque })));
   };
+  // Contestar a una terminal desde aquí: su número, como en su chat (`mandar_texto`
+  // lo teclea como tecla suelta). O ir a verla, que a veces hace falta el contexto.
+  document.getElementById("decisiones").addEventListener("click", async (ev) => {
+    const tarjeta = ev.target.closest(".preg-term");
+    if (!tarjeta) return;
+    const panel = Number(tarjeta.dataset.panel);
+    if (ev.target.closest(".ir-term")) return ir({ vista: "terminal", panel, arranque });
+    const b = ev.target.closest("button[data-num]");
+    if (!b) return;
+    const botones = [...tarjeta.querySelectorAll("button[data-num]")];
+    botones.forEach((x) => { x.disabled = true; });
+    try {
+      await api("POST", "/api/terminal/escribir", { panel, arranque, texto: b.dataset.num });
+      tarjeta.querySelector(".preg-que")?.insertAdjacentHTML("afterend", `<p class="nota">${tr("Contestado: {n}.", { n: esc(b.dataset.num) })}</p>`);
+      setTimeout(() => { pintado = null; cargar().catch(() => {}); }, 900);
+    } catch (err) {
+      botones.forEach((x) => { x.disabled = false; });
+      tarjeta.insertAdjacentHTML("beforeend", `<p class="nota fallo">${esc(err.message)}</p>`);
+    }
+  });
   try { await cargar(); } catch (err) {
     const aqui = document.getElementById("decisiones");
     if (aqui) aqui.innerHTML = `<p class="nota">${esc(err.message)}</p>`;

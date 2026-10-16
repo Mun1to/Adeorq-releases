@@ -36,7 +36,8 @@ async (page) => {
   await page.goto(`${B}/`);
   await page.waitForSelector("#cuenta-dec:not([hidden])");
   r.cuenta = await page.textContent("#cuenta-dec");
-  debe(r.cuenta === "1", `el botón cuenta solo la que te espera (${r.cuenta})`);
+  // La viva y las dos terminales que preguntan (la 2 y la 4, desde el 2026-10-16).
+  debe(r.cuenta === "3", `el botón cuenta solo lo que te espera (${r.cuenta})`);
   debe(!(await page.$("#dec-sobran")), "ya no se dice cuántas sobran: se limpian solas");
   r.reclaman = await page.$$eval("#reclaman .fila-term[data-id]", (ts) => ts.map((t) => t.innerText.replace(/\s+/g, " ")));
   debe(r.reclaman.length === 1 && /Diseño de la web/.test(r.reclaman[0]), `la viva sale arriba en la portada (${r.reclaman})`);
@@ -53,7 +54,7 @@ async (page) => {
   debe(/panel 1, abierto/.test(r.lista[0]) && /su terminal se cerró/.test(r.lista[2]), `dicen de quién son y si sigue ahí (${r.lista})`);
   debe(!(await page.$("#limpiar")), "sin botón de vaciar");
   r.sub = await page.textContent("#sub-dec");
-  debe(r.sub === "1 te espera", `el resumen de arriba («${r.sub}»)`);
+  debe(r.sub === "3 te esperan", `el resumen de arriba («${r.sub}»)`);
 
   // 3. Una huérfana avisa de que nadie la espera.
   await page.click('#decisiones .tarjeta[data-vigencia="huerfana"] >> nth=0');
@@ -111,6 +112,10 @@ async (page) => {
   r.hablada = await page.textContent('#decisiones .tarjeta[data-id="d19a2b3c4e1"]');
   debe(/hablada/.test(r.hablada) && /le escribiste al panel 1/.test(r.hablada), `escribirle la da por hablada («${r.hablada.replace(/\s+/g, " ")}»)`);
   debe((await escritoEn(7)) === null, "a una terminal que no está no se le escribe");
+  // Lo que preguntan las terminales también te espera (2026-10-16): para ver la
+  // calma, que dejen de preguntar la 2 y la 4.
+  for (const panel of [2, 4]) await page.request.post(`${B}/api/sembrar-estado`, { headers: AUT, data: { panel, estado: "lista" } });
+  await page.waitForSelector(".calma", { timeout: 9000 });
   r.calma = await page.textContent(".calma");
   debe(/Nada te espera ahora mismo/.test(r.calma || ""), `sin vivas lo dice, con la mascota («${r.calma}»)`);
   debe((await page.$$eval(".calma .masc rect", (x) => x.length)) > 100, "y la mascota está pintada");

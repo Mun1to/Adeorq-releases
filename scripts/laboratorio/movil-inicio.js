@@ -32,7 +32,8 @@ async (page) => {
   const terminales = (await (await page.request.get(`${B}/api/terminales`, { headers: AUT })).json()).terminales;
   const decisiones = (await (await page.request.get(`${B}/api/decisiones`, { headers: AUT })).json()).decisiones;
   const trabajando = terminales.filter((t) => t.estado === "a_medias").map((t) => String(t.panel));
-  const esperan = decisiones.filter((d) => d.vigencia === "viva").length;
+  // Lo que te espera: las decisiones vivas y lo que te preguntan las terminales (2026-10-16).
+  const esperan = decisiones.filter((d) => d.vigencia === "viva").length + terminales.filter((t) => ["pregunta", "ofrece"].includes(t.estado)).length;
 
   pasos.inicio = await page.evaluate(() => ({
     enMarcha: [...document.querySelectorAll("#portada-term .fila-t")].map((f) => ({ panel: f.dataset.panel, hilo: f.classList.contains("hilo"), giro: getComputedStyle(f, "::before").animationName })),

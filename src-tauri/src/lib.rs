@@ -34,6 +34,7 @@ mod vectores;
 mod conserje;
 mod decisiones;
 mod programados;
+mod historia;
 mod movil;
 mod push;
 mod rastros;

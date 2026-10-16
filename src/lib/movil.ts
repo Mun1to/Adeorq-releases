@@ -42,7 +42,7 @@ import { FONDO_DESENFOQUE_KEY, FONDO_OPACIDAD_KEY } from "./fondo";
 import { limitesDe } from "./cuota";
 import { cerebroPorDefecto } from "./models";
 import { fotoRapida } from "./mundo";
-import type { CuentaViva } from "./router";
+import { ESFUERZOS, type CuentaViva } from "./router";
 import { etiquetaCorta, leerRenovacion } from "./uso";
 import { lineasEnVivo, providerOf, PROVIDERS, sabe } from "./providers";
 
@@ -111,6 +111,7 @@ export interface PedidoMovil {
   panel?: unknown;
   tecla?: unknown;
   modelo?: unknown;
+  esfuerzo?: unknown;
   que?: unknown;
 }
 
@@ -134,6 +135,8 @@ const resumen = (s: PaneStatus) => ({
   carpeta: s.cwd,
   agente: s.agent,
   modelo: s.model ?? null,
+  // El que dice su pie (`effort`), para la pastilla del esfuerzo en el móvil.
+  esfuerzo: s.effort ?? null,
   estado: s.state,
   sesion: s.sessionId ?? null,
   // Cuánto contexto lleva gastado, para enseñarlo arriba en el móvil.
@@ -176,6 +179,12 @@ export function modelosEnVivo(cli: string): { alias: string; nombre: string }[] 
   return (["haiku", "sonnet", "opus"] as const).flatMap((a) => (p.modelos?.[a] ? [{ alias: a, nombre: p.modelos[a] as string }] : []));
 }
 
+/** Los esfuerzos a los que el móvil puede cambiar una terminal en marcha:
+    todos si su programa tiene la orden (`enVivo.esfuerzo`), ninguno si no. */
+export function esfuerzosEnVivo(cli: string): readonly string[] {
+  return PROVIDERS.find((x) => x.id === cli)?.enVivo?.esfuerzo ? ESFUERZOS : [];
+}
+
 /** La pantalla de un panel para el móvil: con color si se puede (y entonces
     sin el texto aparte, que el móvil lo saca de los trozos y se ahorra la
     mitad de lo que viaja cada 3 s por datos), o el texto solo. */
@@ -191,7 +200,7 @@ async function atenderTerminal(p: PedidoMovil, exec: ConserjeExec): Promise<Reco
   if (!st) return { error: "Esa terminal ya no está." };
   if (p.clase === "pantalla") {
     const cli = exec.cliDe?.(panel) ?? "";
-    return { ...resumen(st), cli, modelos: modelosEnVivo(cli), modos: sabe(cli, "modoPlan"), ...pantallaDe(panel) };
+    return { ...resumen(st), cli, modelos: modelosEnVivo(cli), esfuerzos: esfuerzosEnVivo(cli), modos: sabe(cli, "modoPlan"), ...pantallaDe(panel) };
   }
   // «Compactar» o «Nueva con traspaso» desde el móvil: lo hace el panel, con su
   // traspaso y su campana (`useTraspaso`), como sus dos botones del PC.
@@ -204,8 +213,11 @@ async function atenderTerminal(p: PedidoMovil, exec: ConserjeExec): Promise<Reco
   // El botón «Modelo» del móvil: en el idioma del programa de ESE panel, que a
   // un Codex un «/model sonnet» se le iría como mensaje y se pondría a trabajar.
   if (p.clase === "modelo") {
-    const lineas = typeof p.modelo === "string" ? lineasEnVivo(exec.cliDe?.(panel) ?? "", p.modelo) : [];
-    if (!lineas.length) return { error: "Esta terminal no cambia de modelo en marcha." };
+    const cli = exec.cliDe?.(panel) ?? "";
+    const modelo = typeof p.modelo === "string" ? p.modelo : undefined;
+    const esfuerzo = typeof p.esfuerzo === "string" ? p.esfuerzo : undefined;
+    const lineas = modelo || esfuerzo ? lineasEnVivo(cli, modelo, esfuerzo) : [];
+    if (!lineas.length) return { error: esfuerzo ? "Esta terminal no cambia de esfuerzo en marcha." : "Esta terminal no cambia de modelo en marcha." };
     for (const [i, linea] of lineas.entries()) {
       // Escalonadas: el programa repinta al cambiar y se comería la siguiente.
       if (i) await new Promise((r) => setTimeout(r, 400));

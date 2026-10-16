@@ -116,7 +116,7 @@ function pngDegradado(ancho, alto) {
 
 // Las terminales de la Cabina, como las devuelve `atenderTerminal` de `lib/movil.ts`.
 const terminales = [
-  { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "opus", estado: "a_medias", sesion: "s-1", contexto: 64 },
+  { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "opus", esfuerzo: "xhigh", estado: "a_medias", sesion: "s-1", contexto: 64 },
   { panel: 2, nombre: "codex", carpeta: "C:\\proyectos\\crypto\\radar-bot", agente: true, modelo: "gpt-5.6-terra", estado: "pregunta", sesion: "s-2" },
   { panel: 3, nombre: "consola", carpeta: "C:\\proyectos\\Vidorq", agente: false, modelo: null, estado: "", sesion: null },
   { panel: 4, nombre: "claude", carpeta: "C:\\proyectos\\Webs", agente: true, modelo: "sonnet", estado: "pregunta", sesion: "s-4", contexto: 83 },
@@ -212,6 +212,26 @@ for (let i = 1; i <= 30; i++) {
     pasos: [{ clase: "herramienta", nombre: "Read", detalle: "scrollTerm.ts" }, { clase: "herramienta", nombre: "Edit", detalle: "scrollTerm.ts" }],
   });
 }
+// El historial de la Pantalla (`/api/historia`, `historia.rs`): lo de antes de
+// la pantalla, en orden. El del panel 1 acaba en lo que su pantalla enseña
+// arriba («Reproduzco el fallo…» y su Read), para ver que se corta ahí y no se
+// pinta dos veces; el del 4 no tiene nada de lo que se ve.
+const historias = {
+  "s-1": [
+    { t: "tu", x: "arregla lo de las decisiones del móvil" },
+    ...Array.from({ length: 30 }, (_, i) => [
+      { t: "dice", x: `HITO ${String(i + 1).padStart(2, "0")}: **medido** el salto con \`movil.html\` y el panel a ${180 - i} columnas.` },
+      { t: "uso", n: "Bash", d: `node scripts/laboratorio/medir.mjs ${i + 1}` },
+    ]).flat(),
+    { t: "dice", x: "Ya sé dónde está. Reproduzco el fallo antes de tocar nada." },
+    { t: "tu", x: "Reproduzco el fallo antes de tocar nada." },
+    { t: "uso", n: "Read", d: "src/App.tsx" },
+  ],
+  "s-4": [
+    { t: "tu", x: "publica la web" },
+    { t: "dice", x: "Preparo las notas de la versión y lanzo la publicación." },
+  ],
+};
 // Lo que traen las respuestas de un Claude Code de verdad: títulos, tablas,
 // citas y cientos de herramientas en un turno.
 sesionLarga.push({ rol: "tu", texto: "¿Cómo quedó?", hora: "", herramientas: [] });
@@ -482,7 +502,19 @@ http
         case "/api/parar":
           return json(res, 200, { ok: true });
         case "/api/terminales":
-          return json(res, 200, { terminales, arranque: ARRANQUE });
+          return json(res, 200, { terminales, arranque: ARRANQUE, raiz: "C:\\proyectos" });
+        case "/api/historia": {
+          const piezas = historias[url.searchParams.get("id")];
+          if (!piezas) return json(res, 404, { error: "esa conversación no está en el disco" });
+          const firma = crypto.createHash("sha1").update(JSON.stringify(piezas)).digest("hex").slice(0, 16);
+          return json(res, 200, url.searchParams.get("si") === firma ? { firma, igual: true } : { firma, piezas });
+        }
+        // Como `/api/logo` en movil.rs: solo lo que cuelga de la carpeta madre, y
+        // de los proyectos de mentira solo Adeorq tiene logo.
+        case "/api/logo":
+          if (url.searchParams.get("proyecto") !== "Adeorq") return json(res, 404, { error: "Ese proyecto no tiene logo." });
+          res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" });
+          return res.end(pngDegradado(32, 32));
         case "/api/terminal": {
           const t = terminalDe(url.searchParams.get("panel"));
           if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
@@ -504,7 +536,8 @@ http
             if (/^❯/.test(f)) return [["❯", "#b1b9f9", 0], [f.slice(1), "", 0]];
             return [[f, "", 0]];
           }) : undefined;
-          return json(res, 200, { ...t, cli, modelos, modos: cli === "claude", alterna: t.agente, filas, ...(trozos ? { trozos } : {}) });
+          const esfuerzos = cli === "claude" ? ["low", "medium", "high", "xhigh", "max"] : [];
+          return json(res, 200, { ...t, cli, modelos, esfuerzos, modos: cli === "claude", alterna: t.agente, filas, ...(trozos ? { trozos } : {}) });
         }
         // Como la ventana: lo hace el panel del PC; aquí se apunta para el banco.
         case "/api/terminal/traspaso": {
@@ -520,12 +553,21 @@ http
         case "/api/traspasos":
           return json(res, 200, traspasos);
         case "/api/terminal/modelo": {
-          if (!["haiku", "sonnet", "opus", "fable"].includes(v.modelo)) return json(res, 400, { error: "Ese modelo no se pide desde el móvil." });
+          // El modelo o el esfuerzo, uno por petición, como en movil.rs.
+          const ESF = ["low", "medium", "high", "xhigh", "max"];
+          if (v.esfuerzo !== undefined && (v.modelo !== undefined || !ESF.includes(v.esfuerzo))) return json(res, 400, { error: "Ese esfuerzo no se pide desde el móvil." });
+          if (v.esfuerzo === undefined && !["haiku", "sonnet", "opus", "fable"].includes(v.modelo)) return json(res, 400, { error: "Ese modelo no se pide desde el móvil." });
           const otro = deOtroArranque(v.arranque);
           if (otro) return json(res, otro[0], { error: otro[1] });
           const t = terminalDe(v.panel);
           if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
           if (cliDe(t) !== "claude") return json(res, 409, { error: "Esta terminal no cambia de modelo en marcha." });
+          if (v.esfuerzo) {
+            t.esfuerzo = v.esfuerzo;
+            pantallas.get(t.panel)?.push(`❯ /effort ${v.esfuerzo}`, `  ⎿  Set effort level to ${v.esfuerzo}`);
+            console.log(`esfuerzo en ${t.panel}: ${v.esfuerzo}`);
+            return json(res, 202, { ok: true });
+          }
           t.modelo = v.modelo;
           pantallas.get(t.panel)?.push(`❯ /model ${v.modelo}`, `  ⎿  Set model to ${v.modelo}`);
           console.log(`modelo en ${t.panel}: ${v.modelo}`);

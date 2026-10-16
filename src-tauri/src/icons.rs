@@ -170,7 +170,7 @@ fn scan_dir(dir: &Path, folder: u32, best: &mut Found) {
 }
 
 /// The winning file for one project, as (path, mime).
-fn best_icon(root: &Path) -> Option<(std::path::PathBuf, &'static str)> {
+pub(crate) fn best_icon(root: &Path) -> Option<(std::path::PathBuf, &'static str)> {
     let mut best: Found = None;
     for (i, rel) in DIRS.iter().enumerate() {
         let dir = if rel.is_empty() {

@@ -741,6 +741,8 @@ pub const TECLAS_DEL_MOVIL: &[&str] = &["esc", "shift+tab"];
 /// Los modelos que el móvil puede pedirle a una terminal: los nombres de la
 /// casa, que la ventana traduce al programa de cada una.
 pub const MODELOS_DEL_MOVIL: &[&str] = &["haiku", "sonnet", "opus", "fable"];
+/// Y los esfuerzos (`ESFUERZOS` en router.ts): lo que se le teclea es `/effort <esto>`.
+pub const ESFUERZOS_DEL_MOVIL: &[&str] = &["low", "medium", "high", "xhigh", "max"];
 
 /// Los números de panel vuelven a empezar en cada arranque de Adeorq, así que
 /// el móvil dice en qué arranque vio la terminal a la que habla: lo trae la
@@ -802,6 +804,14 @@ pub trait Casa {
     fn decisiones_cambian(&self) {}
     /// La foto (o el vídeo) que el PC lleva detrás de las terminales.
     fn fondo(&self) -> Option<PathBuf> {
+        None
+    }
+    /// El historial de una sesión en orden, para la Pantalla (`historia.rs`).
+    fn historia(&self, _cwd: &str, _sesion: &str) -> Result<Value, String> {
+        Err("Aquí no hay historial.".into())
+    }
+    /// La carpeta madre de los proyectos: el móvil agrupa por lo que cuelga de ella.
+    fn raiz(&self) -> Option<PathBuf> {
         None
     }
 }
@@ -1094,11 +1104,49 @@ pub fn atender(
             Ok(mut v) => {
                 if let Some(o) = v.as_object_mut() {
                     o.insert("arranque".into(), json!(casa.arranque()));
+                    if let Some(r) = casa.raiz() {
+                        o.insert("raiz".into(), json!(r.to_string_lossy()));
+                    }
                 }
                 Respuesta::json(200, v)
             }
             Err(e) => Respuesta::error(502, &e),
         },
+        // Lo de antes de la pantalla de una terminal a pantalla completa, que
+        // xterm no guarda (Munir, 2026-10-16). Con `si`, como `/api/sesion`.
+        ("GET", "/api/historia") => {
+            let cwd = p.consulta.get("cwd").map(String::as_str).unwrap_or("");
+            let sesion = p.consulta.get("id").map(String::as_str).unwrap_or("");
+            if cwd.is_empty() || sesion.is_empty() {
+                return Respuesta::error(400, "Falta qué sesión.");
+            }
+            match casa.historia(cwd, sesion) {
+                Ok(v) => {
+                    let firma = firma_de(&v);
+                    if p.consulta.get("si") == Some(&firma) {
+                        Respuesta::json(200, json!({ "firma": firma, "igual": true }))
+                    } else {
+                        Respuesta::json(200, json!({ "firma": firma, "piezas": v }))
+                    }
+                }
+                Err(e) => Respuesta::error(404, &e),
+            }
+        }
+        // El logo de un proyecto, el mismo que en la barra del PC (`icons.rs`).
+        // Solo de las carpetas que cuelgan de la madre: el nombre llega del
+        // móvil y no puede apuntar a ningún otro sitio del disco.
+        ("GET", "/api/logo") => {
+            let nombre = p.consulta.get("proyecto").map(String::as_str).unwrap_or("");
+            let valido = !nombre.is_empty() && nombre != "." && nombre != ".." && !nombre.contains(['/', '\\', ':']);
+            let dir = casa.raiz().filter(|_| valido).map(|r| r.join(nombre)).filter(|d| d.is_dir());
+            match dir.and_then(|d| crate::icons::best_icon(&d)) {
+                Some((archivo, tipo)) => match std::fs::read(&archivo) {
+                    Ok(cuerpo) => Respuesta { estado: 200, tipo, cuerpo },
+                    Err(e) => Respuesta::error(500, &e.to_string()),
+                },
+                None => Respuesta::error(404, "Ese proyecto no tiene logo."),
+            }
+        }
         ("GET", "/api/terminal") => {
             let Some(panel) = p.consulta.get("panel").and_then(|s| s.parse::<u64>().ok()) else {
                 return Respuesta::error(400, "Falta qué terminal.");
@@ -1163,14 +1211,18 @@ pub fn atender(
             let Some(panel) = cuerpo["panel"].as_u64() else {
                 return Respuesta::error(400, "Falta qué terminal.");
             };
-            let modelo = cuerpo["modelo"].as_str().unwrap_or("");
-            if !MODELOS_DEL_MOVIL.contains(&modelo) {
-                return Respuesta::error(400, "Ese modelo no se pide desde el móvil.");
-            }
+            // El modelo o el esfuerzo, uno por petición: cada uno es una orden
+            // de barra distinta, y lo que no está en su lista no se teclea.
+            let pedido = match (cuerpo["modelo"].as_str(), cuerpo["esfuerzo"].as_str()) {
+                (Some(m), None) if MODELOS_DEL_MOVIL.contains(&m) => json!({ "panel": panel, "modelo": m }),
+                (None, Some(e)) if ESFUERZOS_DEL_MOVIL.contains(&e) => json!({ "panel": panel, "esfuerzo": e }),
+                (_, Some(_)) => return Respuesta::error(400, "Ese esfuerzo no se pide desde el móvil."),
+                _ => return Respuesta::error(400, "Ese modelo no se pide desde el móvil."),
+            };
             if let Err(r) = mismo_arranque(cuerpo["arranque"].as_u64(), casa) {
                 return r;
             }
-            match casa.ventana("modelo", json!({ "panel": panel, "modelo": modelo })) {
+            match casa.ventana("modelo", pedido) {
                 Ok(v) if v["error"].is_string() => Respuesta::error(409, v["error"].as_str().unwrap_or("")),
                 Ok(_) => Respuesta::json(202, json!({ "ok": true })),
                 Err(e) => Respuesta::error(502, &e),
@@ -1332,7 +1384,8 @@ pub fn atender(
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
             | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
             | "/api/decision/responder" | "/api/decision/descartar" | "/api/avisos" | "/api/olvidarme"
-            | "/api/apariencia" | "/api/fondo" | "/api/terminal/modelo" | "/api/terminal/traspaso") => Respuesta::error(405, "Así no."),
+            | "/api/apariencia" | "/api/fondo" | "/api/terminal/modelo" | "/api/terminal/traspaso" | "/api/historia"
+            | "/api/logo") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -1454,6 +1507,12 @@ impl Casa for CasaDeVerdad {
     }
     fn fondo(&self) -> Option<PathBuf> {
         crate::manage::fondo_actual()
+    }
+    fn historia(&self, cwd: &str, sesion: &str) -> Result<Value, String> {
+        crate::historia::de_sesion(cwd, sesion, 250).map(|v| json!(v))
+    }
+    fn raiz(&self) -> Option<PathBuf> {
+        Some(crate::workspace::raiz_por_defecto()).filter(|r| r.is_dir())
     }
 }
 

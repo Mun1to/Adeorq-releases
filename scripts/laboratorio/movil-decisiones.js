@@ -140,14 +140,15 @@ async (page) => {
 
   // 8. El modo de Claude Code, con Shift+Tab.
   await page.goto(`${B}/#terminal=1@111`);
-  await page.waitForFunction(() => /auto/.test(document.getElementById("modo")?.textContent || ""));
+  await page.waitForFunction(() => /Auto/.test(document.getElementById("modo")?.textContent || ""));
   r.modos = [await page.textContent("#modo")];
   await page.click("#modo");
-  await page.waitForFunction(() => document.getElementById("modo")?.textContent.includes("Modo ⇄"), null, { timeout: 6000 });
+  await page.waitForFunction(() => document.getElementById("modo")?.textContent === "Modo", null, { timeout: 6000 });
   r.modos.push(await page.textContent("#modo"));
   await page.click("#modo");
-  await page.waitForFunction(() => /aceptar/.test(document.getElementById("modo")?.textContent || ""), null, { timeout: 6000 });
+  await page.waitForFunction(() => /Aceptar/.test(document.getElementById("modo")?.textContent || ""), null, { timeout: 6000 });
   r.modos.push(await page.textContent("#modo"));
-  debe(r.modos.join("|") === "auto ⇄|Modo ⇄|aceptar ediciones ⇄", `el modo pasa de auto a normal y a aceptar ediciones (${r.modos})`);
+  // Su nombre y ya está, sin flechas (Munir, 2026-10-16: «solo deja Auto»).
+  debe(r.modos.join("|") === "Auto|Modo|Aceptar ediciones", `el modo pasa de auto a normal y a aceptar ediciones (${r.modos})`);
   return { fallos, r };
 }

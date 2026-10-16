@@ -2277,7 +2277,7 @@ const CONVERSACIONES_MAX: usize = 4;
 /// Las líneas ENTERAS de `desde..hasta`, y dónde acaba la última. Una línea a
 /// medio escribir al final no se cuenta: se lee entera la vuelta siguiente.
 /// Con `partida`, la primera se tira porque el corte cae a mitad de ella.
-fn lineas_entre(path: &Path, desde: u64, hasta: u64, partida: bool) -> std::io::Result<(Vec<String>, u64)> {
+pub(crate) fn lineas_entre(path: &Path, desde: u64, hasta: u64, partida: bool) -> std::io::Result<(Vec<String>, u64)> {
     let mut f = std::fs::File::open(path)?;
     f.seek(SeekFrom::Start(desde))?;
     let mut data = Vec::with_capacity((hasta - desde) as usize);

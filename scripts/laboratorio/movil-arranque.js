@@ -42,6 +42,10 @@ async (page) => {
     // enseña lo que trabaja.)
     await page.goto(`${B}/?vez=${++vez}`);
     await page.click("#abrir-cajon");
+    // Las filas van dentro de su proyecto, plegado de fábrica (2026-10-16).
+    const vidorq = '#cajon .proyecto[data-proyecto="Vidorq"]';
+    await page.waitForSelector(vidorq);
+    if ((await page.getAttribute(vidorq, "aria-expanded")) !== "true") await page.click(vidorq);
     await page.click('#cajon .fila[data-panel="3"]');
     await page.waitForFunction(() => /Vidorq/.test(document.getElementById("pantalla")?.textContent || ""), null, { timeout: 8000 }).catch(() => {});
     r.desdeLaLista = /Vidorq/.test(await page.textContent("#pantalla"));

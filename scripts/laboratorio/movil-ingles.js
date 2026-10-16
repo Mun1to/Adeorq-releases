@@ -156,7 +156,8 @@ async (page) => {
     await mirar("terminal 1 chat");
     await mirar("terminal 1 mandos");
     await page.click('.pestanas .pastilla[data-cara="pantalla"]');
-    await page.waitForSelector("#nota-pantalla:not([hidden])");
+    // Con lo de antes sacado del transcript (2026-10-16), ya sin la nota del Chat.
+    await page.waitForSelector("#pantalla .h-dice");
     await mirar("terminal 1 pantalla");
     await page.click('.pestanas .pastilla[data-cara="conversa"]');
   });

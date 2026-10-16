@@ -65,32 +65,60 @@ async (page) => {
   await page.waitForSelector("#turnos .turno");
   debe(await page.$eval("#titulo", (h) => /claude/.test(h.textContent)), "«atrás» vuelve a la terminal de la que venía");
 
-  // 6. Bajo el texto, solo Modelo, Modo y Parar (2026-10-16, «la 3»), en la
-  //    fila de adjuntar y mandar. Parar solo mientras trabaja; el modelo, con
-  //    el que lleva puesto. Y cambiarlo se lo pide al PC.
+  // 6. Bajo el texto, solo Parar, el modelo con su esfuerzo («Opus · extra») y
+  //    el modo (2026-10-16, «la 3» y «añade el effort»), en la fila de adjuntar
+  //    y mandar, sin iconos y sin que nada se corte. Parar solo mientras
+  //    trabaja. La pastilla abre en la caja una barra con los modelos y los
+  //    esfuerzos, lo puesto en azul; tocar uno se lo pide al PC y la cierra.
   debe(/modo auto/.test(await page.textContent("#sub")), `el modo se dice arriba (${await page.textContent("#sub")})`);
   const mandos = () => page.evaluate(() => {
     const ve = (id) => { const el = document.getElementById(id); return !!el && !el.hidden && !el.closest("[hidden]"); };
     return {
       teclas: !!document.getElementById("teclas") || !!document.getElementById("abrir-teclas"),
-      modelo: ve("modelo-caja"), modo: ve("modo"), parar: ve("parar"),
-      opciones: [...document.querySelectorAll("#modelo option:not([disabled])")].map((o) => o.textContent).join(" "),
-      puesto: document.getElementById("modelo")?.value,
-      filas: new Set([...document.querySelectorAll("#caja .mandos > *, #caja .mandos-term > :not([hidden])")].filter((x) => x.offsetParent).map((x) => Math.round(x.getBoundingClientRect().top / 8))).size,
+      modelo: ve("modelo"), modo: ve("modo"), parar: ve("parar"),
+      cabe: (() => { const p = document.querySelector("#caja .mandos-term"); return p.scrollWidth <= p.clientWidth; })(),
+      textos: [...document.querySelectorAll("#caja .mandos-term > :not([hidden])")].map((x) => x.textContent.trim()),
+      iconos: document.querySelectorAll("#modelo svg, #modo svg").length,
+      select: document.querySelectorAll("#caja select").length,
+      filas: new Set([...document.querySelectorAll("#caja .mandos > *, #caja .mandos-term > :not([hidden])")].filter((x) => x.offsetParent).map((x) => { const c = x.getBoundingClientRect(); return Math.round((c.top + c.height / 2) / 8); })).size,
     };
   });
   const t1 = await mandos();
   debe(!t1.teclas, "ya no está la fila de teclas");
-  debe(t1.modelo && t1.modo && t1.parar, `Modelo, Modo y Parar, trabajando (${JSON.stringify(t1)})`);
-  debe(t1.opciones === "Haiku Sonnet Opus Fable" && t1.puesto === "opus", `el modelo ofrece los suyos y lleva el puesto (${JSON.stringify(t1)})`);
+  debe(t1.modelo && t1.modo && t1.parar, `Parar, el modelo y el modo, trabajando (${JSON.stringify(t1)})`);
+  debe(JSON.stringify(t1.textos) === JSON.stringify(["Parar", "Opus · extra", "Auto"]) && !t1.iconos && !t1.select, `sin estrella, sin flechas y sin la lista del teléfono (${JSON.stringify(t1)})`);
+  debe(t1.cabe, `con Parar a la vista caben todas, sin cortar «Auto» (${JSON.stringify(t1)})`);
   debe(t1.filas === 1, `todo en una fila con adjuntar y mandar (${JSON.stringify(t1)})`);
-  await page.selectOption("#modelo", "sonnet");
-  await page.waitForTimeout(1200);
-  const t2 = await page.evaluate(async () => {
+  const barra = () => page.evaluate(() => ({
+    abierta: !document.getElementById("elegir").hidden,
+    ops: [...document.querySelectorAll("#elegir .seg")].map((s) => [...s.querySelectorAll("button")].map((b) => b.textContent).join(" ")),
+    puesto: [...document.querySelectorAll('#elegir [aria-checked="true"]')].map((b) => b.textContent),
+    azul: document.getElementById("modelo").getAttribute("aria-expanded") === "true",
+    // Dentro de la caja, entre el texto y los mandos.
+    sitio: document.getElementById("elegir").previousElementSibling?.id + ">" + document.getElementById("elegir").nextElementSibling?.className,
+    ancho: document.documentElement.scrollWidth,
+  }));
+  const delPc = () => page.evaluate(async () => {
     const r = await fetch("/api/terminal?panel=1&arranque=111", { headers: { Authorization: `Bearer ${localStorage.getItem("adeorq-movil-clave")}` } }).then((x) => x.json());
-    return { puesto: document.getElementById("modelo").value, enElPc: r.modelo, fallo: !document.getElementById("fallo").hidden };
+    return { modelo: r.modelo, esfuerzo: r.esfuerzo, fallo: !document.getElementById("fallo").hidden, pastilla: document.getElementById("modelo").textContent };
   });
-  debe(t2.puesto === "sonnet" && t2.enElPc === "sonnet" && !t2.fallo, `cambiar el modelo se lo pide al PC (${JSON.stringify(t2)})`);
+  debe(!(await barra()).abierta, "la barra nace cerrada");
+  await page.click("#modelo");
+  const b1 = await barra();
+  debe(b1.abierta && JSON.stringify(b1.ops) === JSON.stringify(["Haiku Sonnet Opus Fable", "Bajo Medio Alto Extra Máx"]) && b1.puesto.join() === "Opus,Extra" && b1.azul, `la pastilla abre los modelos y los esfuerzos con lo puesto marcado (${JSON.stringify(b1)})`);
+  debe(b1.sitio === "texto>mandos" && b1.ancho <= 412, `la barra va dentro de la caja, bajo el texto, sin salirse (${JSON.stringify(b1)})`);
+  await page.click('#elegir [data-valor="sonnet"]');
+  await page.waitForTimeout(1200);
+  const t2 = { ...(await delPc()), cerrada: !(await barra()).abierta };
+  debe(t2.modelo === "sonnet" && t2.pastilla === "Sonnet · extra" && t2.cerrada && !t2.fallo, `un toque cambia el modelo en el PC y cierra la barra (${JSON.stringify(t2)})`);
+  await page.click("#modelo");
+  await page.click('#elegir [data-valor="high"]');
+  await page.waitForTimeout(1200);
+  const t3 = await delPc();
+  debe(t3.esfuerzo === "high" && t3.pastilla === "Sonnet · alto" && !t3.fallo, `un toque cambia el esfuerzo en el PC (${JSON.stringify(t3)})`);
+  await page.click("#modelo");
+  await page.click("#modelo");
+  debe(!(await barra()).abierta, "tocar otra vez la pastilla cierra la barra");
 
   // 7. «Pantalla» (2026-10-16, la 1 y la 3): a todo el ancho, sin recuadro, la
   //    raya de arriba con el nombre de la sesión, la caja donde se escribe
@@ -113,11 +141,20 @@ async (page) => {
     };
   });
   debe(pant.colores.includes("rgb(78, 186, 101)") && pant.colores.includes("rgb(255, 193, 7)") && pant.negrita === "700", `con los colores y la negrita del PC (${JSON.stringify([pant.colores, pant.negrita])})`);
-  debe(pant.nota, "la pantalla dice que lo de antes está en el Chat");
+  // Con historial (`/api/historia`) ya no hace falta la nota del Chat, y la
+  // barra de estado de debajo de la caja no se pinta (2026-10-16, la mira
+  // entera `movil-pantalla-historia.js`).
+  debe(!pant.nota, "con historial, la pantalla no manda al Chat");
   debe(!/[⏵⏸─]/.test(pant.texto), "sin ⏵ ni rayas de texto en la pantalla");
   debe(pant.titulo === "Adeorq: sesiones y terminales", `la raya de arriba con el nombre de la sesión (${pant.titulo})`);
-  debe(pant.entrada === "❯" && /auto mode on/.test(pant.pie ?? ""), `la caja de escribir resaltada y la barra de estado al pie (${JSON.stringify([pant.entrada, pant.pie])})`);
+  debe(pant.entrada === "❯" && pant.pie === null && !/auto mode on/.test(pant.texto), `la caja de escribir resaltada y nada debajo (${JSON.stringify([pant.entrada, pant.pie])})`);
   debe(pant.anchoEntero && pant.borde === "0px", `a todo el ancho y sin recuadro (${JSON.stringify([pant.anchoEntero, pant.borde])})`);
+  // Sin historial en el disco (la 5), la nota con el camino al Chat.
+  await page.goto(`${B}/#terminal=5@111`);
+  await page.waitForSelector("#texto");
+  await page.click('[data-cara="pantalla"]');
+  await page.waitForTimeout(600);
+  debe(await page.$eval("#nota-pantalla", (n) => !n.hidden), "sin historial, la pantalla dice que lo de antes está en el Chat");
   await page.click("[data-ir-chat]");
   await page.waitForTimeout(600);
   debe(await page.$eval("#conversa", (c) => !c.hidden), "el enlace de la nota lleva al Chat");

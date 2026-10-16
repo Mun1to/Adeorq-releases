@@ -53,6 +53,10 @@ async (page) => {
 
   // En el cajón también: la hoja sale por encima y la fila se va.
   await page.click("#abrir-cajon");
+  // Las filas van dentro de su proyecto, plegado de fábrica (2026-10-16).
+  const webs = '#cajon .proyecto[data-proyecto="Webs"]';
+  await page.waitForSelector(webs);
+  if ((await page.getAttribute(webs, "aria-expanded")) !== "true") await page.click(webs);
   await page.waitForSelector('#cajon .fila[data-conv="vieja1"]');
   await page.locator('#cajon .fila[data-conv="vieja1"]').dispatchEvent("contextmenu");
   await page.waitForSelector("#hoja-borrar");

@@ -1,11 +1,11 @@
 {
-  "version": "0.9.211",
-  "notes": "En el movil, Te esperan va en filas y la caja del inicio es de una linea. Cada encargo programado elige con que cuenta y con que modelo nace.",
-  "pub_date": "2026-10-16T00:27:58Z",
+  "version": "0.9.212",
+  "notes": "En el movil, tocar una opcion de una decision ya no te manda abajo del todo de la pantalla.",
+  "pub_date": "2026-10-16T01:48:58Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzNhWVNhUXZ4QmNCUFR6ZDdDVVY5cE5xa2N3UWozNWNydm1IaUlBdkdZaG1kbmZQU1N4NkE5WkZQSkxUWlZNUkIyUTlqbW5EMEhCVlVtTThCY0dOd0FRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTEwNDc3CWZpbGU6QWRlb3JxXzAuOS4yMTFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTEKakozSThEekVsZjlEa0xiY0ZWUHY5bFpSbVBEaW5mcTEvMWkrLzNUMjRoZ0RwUFhrV1luQnk4VXB3a2QzZGowbDZQaFNpbWZoSHBPcnlzSzcydyt2QXc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.211/Adeorq_0.9.211_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzltOWpySnV0NmxCNW5ldGJJR3lMdWJ6MVBDL1p4NU4zeUc5dHlralZyTjZ6WVRoUUdzQnBQbzJ4Q0VwYmZsa21YSTdVakNVVlkrMVpaSXVIL1RCTndBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTE1MzM2CWZpbGU6QWRlb3JxXzAuOS4yMTJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTIKcjdweHJlMmxpWmVKbzh3L24rMUJPb1pGaW5UVU9lbU1RTEd0TU95bHIwRlBOVFVOWUZ3L2FUSXltVzZOV3diQmlZcENLMVk1SmcxQm9sT2F4Mlo3Qmc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.212/Adeorq_0.9.212_x64-setup.exe"
     }
   }
 }

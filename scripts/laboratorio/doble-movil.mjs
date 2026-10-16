@@ -548,7 +548,7 @@ http
         case "/api/sembrar-decision":
           decisiones.push({
             id: v.id, titulo: v.titulo, proyecto: v.proyecto, panel: v.panel, arranque: ARRANQUE, creada: Date.now(),
-            preguntas: [{ id: "A", titulo: "¿Sí o no?", opciones: [{ texto: "Sí" }, { texto: "No" }] }],
+            preguntas: v.preguntas ?? [{ id: "A", titulo: "¿Sí o no?", opciones: [{ texto: "Sí" }, { texto: "No" }] }],
           });
           return json(res, 200, { ok: true });
         // Como `descartar` y `aviso_de_descarte` (decisiones.rs): a la terminal

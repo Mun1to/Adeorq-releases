@@ -197,7 +197,9 @@
   /* Solo se desliza en vertical: con `overflow-y: auto` el horizontal también
      se vuelve deslizable, y cualquier cosa más ancha que la pantalla dejaba
      arrastrar la vista entera de lado (Munir, 2026-10-15). */
-  .cuerpo { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 16px 24px; overscroll-behavior: contain; min-height: 0; }
+  /* `relative` también aquí, de red: todo lo que vaya en posición absoluta
+     dentro de la lista se desliza con ella y nunca estira la página. */
+  .cuerpo { position: relative; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 16px 24px; overscroll-behavior: contain; min-height: 0; }
   .cuerpo[hidden] { display: none; }
 
   /* ── 4. Piezas sueltas ── */
@@ -658,7 +660,13 @@
   .pregunta-d legend { padding: 0 6px; font-weight: 650; font-size: calc(16px * var(--z)); display: flex; gap: 8px; align-items: baseline; }
   .letra { color: var(--acento); font-variant-numeric: tabular-nums; }
   .pregunta-d > p { margin: 2px 2px 10px; font-size: calc(14px * var(--z)); color: var(--suave); }
+  /* `relative`: su círculo escondido (`position: absolute`, abajo) tiene que
+     quedarse DENTRO de la opción. Sin esto colgaba de la página, fuera de la
+     lista que se desliza, y al tocar una opción el navegador desplazaba la
+     página entera para enseñarlo: te mandaba abajo del todo, al fondo vacío
+     (Munir, 2026-10-16). Lo fija `movil-decision-scroll.js`. */
   .opcion {
+    position: relative;
     display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 12px 14px; margin: 0 0 8px;
     border: 1px solid var(--borde); border-radius: 16px; background: var(--capa-fuerte); cursor: pointer;
   }

@@ -1,63 +1,69 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  iniciales,
   nombreDeCuenta,
   planInfo,
   usageReport,
   type Account,
   type Limits,
-  type PlanInfo,
   type UsageReport,
 } from "../lib/pty";
 import { enCache, limitesDe } from "../lib/cuota";
-import { hueOf } from "../lib/colors";
+import { fotoRapida } from "../lib/mundo";
+import type { CuentaViva } from "../lib/router";
 import { providerOf, sabe } from "../lib/providers";
 import { etiquetaCorta, hace, leerRenovacion, renovacion } from "../lib/uso";
 import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
-import { ChevronIcon, RefreshIcon } from "./Icons";
-import ProviderMark from "./ProviderMark";
+import { RefreshIcon } from "./Icons";
 
-// El fondo del panel de la derecha: cómo va el depósito, en dos bloques.
+// La pestaña Uso del panel de la derecha: cuánto le queda a CADA cuenta, todas
+// a la vista y la más gastada arriba.
 //
-// 1. LOS LÍMITES, que es lo que de verdad importa: sesión, semana, por modelo,
-//    y cuándo se renueva cada uno.
-// 2. EL TRABAJO, leído de la caché de estadísticas del propio cliente: tokens
-//    por día y qué modelos los hicieron.
+// ── POR QUÉ ASÍ (Munir, 2026-10-17, «A1 B1») ──────────────────────────────
 //
-// ── DE UN CLIENTE A VARIOS (2026-08-24) ───────────────────────────────────
-//
-// Hasta hoy esto solo sabía leer Claude, así que trabajar con Codex era
-// hacerlo sin ver el depósito (Munir: «en uso solo sale el de claude, haz que
-// salga el de todos tus proveedores y cuentas»). Ahora la fila de arriba es de
-// CLIENTES y la de debajo de CUENTAS de ese cliente, igual que en el Chat.
+// Antes vivía al fondo de Skills, debajo de un hueco, y enseñaba UNA cuenta,
+// elegida con dos filas de botones (el programa y luego la cuenta, con tres
+// letras: «Pri», «Tra»). Para decidir a qué cuenta te cambias hay que verlas
+// todas a la vez, así que ahora es su propia pestaña, la primera de la franja,
+// y cada cuenta es una batería como las del Uso del móvil, que él ya eligió
+// allí («la 2», 2026-10-16): el nombre entero, la cifra grande y una barra por
+// ventana (las 5 horas, la semana, la de cada modelo) con cuándo se renueva.
 //
 // Dos cosas que no son de adorno:
 //
-//  · De dónde sale el número lo decide `lib/cuota.ts`, no este archivo. A
-//    Claude hay que preguntárselo (un proceso de cinco segundos que no gasta
-//    cuota) y Codex ya lo tiene escrito en su propio rastro. Aquí solo se
-//    pinta, y por eso una barra se pinta de una sola manera.
+//  · De dónde sale el número lo decide `lib/cuota.ts`, no este archivo: a
+//    Claude se le pregunta con un proceso de cinco segundos que no gasta cuota,
+//    y dos preguntas por la misma cuenta son una. Abrir esta pestaña con todo
+//    leído hace menos de nueve minutos no lanza nada.
 //  · El cliente que no publica su cuota lo DICE, con esas palabras. Un 0 % es
 //    mentir con un número, y este panel existe para decidir a qué cuenta te
-//    cambias.
+//    cambias. Como en el móvil: batería para lo instalado y con sesión que
+//    dice cuánto lleva; lo demás instalado, en una lista aparte con el porqué;
+//    y lo que no está instalado no sale (la lista trae la principal de cada
+//    cliente que publica cuota, lo tengas o no).
 //
 // ── Y LA TRADUCCIÓN ───────────────────────────────────────────────────────
 //
 // La tarjeta la escribe el CLI y la escribe siempre en inglés. Sus etiquetas y
-// sus fechas se traducen en `lib/uso.ts`, que es donde se pueden ejecutar de
-// verdad (`scripts/uso-check.ts`). Antes se pegaban tal cual detrás de un «se
-// renueva» traducido y salía «se renueva Aug 26, 9am».
+// sus fechas se traducen en `lib/uso.ts` (`scripts/uso-check.ts`).
 
-const OPEN_KEY = "adeorq-usage-open";
-/** Qué cuenta estabas mirando, para no volver a la principal cada vez. */
-const CUENTA_KEY = "adeorq-usage-cuenta";
 const REFRESH_MS = 10 * 60 * 1000;
 
-interface Cached {
+/** Lo que se sabe de una cuenta ahora mismo. */
+interface Lectura {
   at: number;
-  limits: Limits;
+  limits: Limits | null;
+  error: string;
+  busy: boolean;
 }
+
+const VACIA: Lectura = { at: 0, limits: null, error: "", busy: false };
+
+/** El color de un gasto, como en el móvil: naranja desde el 78 %, rojo al final. */
+const tonoDe = (p: number) => (p >= 90 ? "mal" : p >= 78 ? "alto" : "bien");
+
+/** Cómo se llama cada ventana dicho para una persona: «sesión» es la de cinco horas. */
+const NOMBRE_VENTANA: Record<string, string> = { sesión: "las 5 horas", semana: "la semana", mes: "el mes" };
 
 function short(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -71,339 +77,230 @@ interface Props {
   cuentas: Account[];
 }
 
+const claveDe = (c: Account) => `${c.provider}|${c.dir}`;
+
 export default function UsagePanel({ onUsage, cuentas }: Props) {
   const { t, lang } = useT();
-  const [plan, setPlan] = useState<PlanInfo | null>(null);
-  const [data, setData] = useState<UsageReport | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [open, setOpen] = useState(() => localStorage.getItem(OPEN_KEY) !== "0");
+  const [lecturas, setLecturas] = useState<Record<string, Lectura>>({});
+  /** El plan de las de Claude, que no viene con la cuota sino de sus archivos. */
+  const [planes, setPlanes] = useState<Record<string, string>>({});
+  /** Qué está instalado y con sesión (`lib/mundo.ts`); null mientras se mira. */
+  const [vivas, setVivas] = useState<CuentaViva[] | null>(null);
+  /** El trabajo de la semana, de la primera cuenta que lo apunta. */
+  const [trabajo, setTrabajo] = useState<{ cuenta: Account; data: UsageReport } | null>(null);
 
-  /* La cuenta que estás mirando. Cada una tiene su propio plan, su propio
-     límite y su propio gasto: son suscripciones distintas. Se guarda por ID y
-     no por posición, que una cuenta borrada movería a todas las demás. */
-  const [cuentaId, setCuentaId] = useState(
-    () => localStorage.getItem(CUENTA_KEY) ?? cuentas[0]?.id ?? "",
+  const poner = (k: string, cambio: Partial<Lectura>) =>
+    setLecturas((prev) => ({ ...prev, [k]: { ...VACIA, ...prev[k], ...cambio } }));
+
+  /* Todas a la vez: el portero (`lib/cuota.ts`) junta las que ya están en
+     vuelo y contesta de su memoria las recientes. `forzar` es el botón. */
+  const instaladas = useMemo(
+    () => (vivas ? cuentas.filter((c) => vivas.find((v) => v.cuenta.id === c.id)?.instalado) : []),
+    [cuentas, vivas],
   );
-  const cuenta = cuentas.find((c) => c.id === cuentaId) ?? cuentas[0];
+  const conSesion = (c: Account) => vivas?.find((v) => v.cuenta.id === c.id)?.conectada ?? false;
 
-  /* Los clientes que hay, en el orden en que llegan las cuentas (que es el de
-     `providers.ts`). Un cliente sin ninguna cuenta que publique su cuota no
-     sale: una pestaña que al pulsarla no puede decir nada es una pestaña que
-     sobra. */
-  const clientes = useMemo(() => {
-    const vistos: string[] = [];
-    for (const c of cuentas) if (!vistos.includes(c.provider)) vistos.push(c.provider);
-    return vistos;
+  useEffect(() => {
+    let vivo = true;
+    fotoRapida(cuentas, 2500)
+      .then((v) => vivo && setVivas(v))
+      .catch(() => vivo && setVivas([]));
+    return () => {
+      vivo = false;
+    };
   }, [cuentas]);
 
-  const suyas = useMemo(
-    () => cuentas.filter((c) => c.provider === cuenta?.provider),
-    [cuentas, cuenta?.provider],
-  );
-
-  const [cache, setCache] = useState<Cached | null>(null);
-
-  /* La cuenta que estaba elegida cuando se lanzó cada petición. Leer la cuota
-     de Claude tarda unos cinco segundos (lanza un `claude` entero), y en ese
-     hueco da tiempo de sobra a cambiar de pestaña: sin esta marca, la respuesta
-     LENTA de la cuenta A aterrizaba encima de la rápida de la B y el panel
-     enseñaba los porcentajes de una bajo el nombre de la otra. En un panel cuyo
-     único trabajo es decirte a qué cuenta cambiarte, ese cruce es mentir. */
-  const clave = cuenta ? `${cuenta.provider}|${cuenta.dir}` : "";
-  const vigenteRef = useRef(clave);
-  vigenteRef.current = clave;
-
-  /* Preguntar la cuota pasa por el portero de `lib/cuota.ts`, que la comparte
-     con el aviso y con el router. `forzar` es el botón de refrescar: ahí sí lo
-     has pedido tú. */
-  const refresh = useCallback(
+  const leer = useCallback(
     (forzar = false) => {
-      if (!cuenta) return;
-      const mia = `${cuenta.provider}|${cuenta.dir}`;
-      setBusy(true);
-      setError("");
-      limitesDe(cuenta, forzar ? 0 : undefined)
-        .then((limits) => {
-          if (vigenteRef.current !== mia) return;
-          setCache({ at: enCache(cuenta)?.at ?? Date.now(), limits });
-        })
-        .catch((e) => {
-          if (vigenteRef.current === mia) {
-            setCache(null);
-            setError(e instanceof Error ? e.message : String(e));
-          }
-        })
-        .finally(() => {
-          if (vigenteRef.current === mia) setBusy(false);
-        });
+      for (const c of instaladas.filter(conSesion)) {
+        const k = claveDe(c);
+        const guardada = enCache(c);
+        poner(k, { busy: true, ...(guardada ? { at: guardada.at, limits: guardada.limits } : {}) });
+        limitesDe(c, forzar ? 0 : undefined)
+          .then((limits) => poner(k, { limits, at: enCache(c)?.at ?? Date.now(), error: "", busy: false }))
+          .catch((e) => poner(k, { error: e instanceof Error ? e.message : String(e), busy: false }));
+      }
     },
-    [cuenta],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [instaladas],
   );
 
   useEffect(() => {
-    if (!cuenta) return;
-    // Lo último que se leyó de ESTA cuenta, mientras llega lo de ahora: el
-    // panel enseña algo desde el primer instante en vez de tres huecos.
-    const mia = `${cuenta.provider}|${cuenta.dir}`;
-    setCache(enCache(cuenta));
-    setPlan(null);
-    setData(null);
-    // El plan y el trabajo de la semana los lee Adeorq de los archivos de
-    // Claude Code. Ningún otro cliente escribe nada parecido (`estadisticas` en
-    // la tabla), así que a los demás ni se les pregunta en vez de dejar dos
-    // bloques en blanco.
-    if (sabe(cuenta.provider, "estadisticas")) {
-      planInfo(cuenta.dir || undefined)
-        .then((p) => vigenteRef.current === mia && setPlan(p))
-        .catch(() => {});
-      usageReport(cuenta.dir || undefined)
-        .then((d) => vigenteRef.current === mia && setData(d))
+    leer();
+    return latido(() => leer(), REFRESH_MS);
+  }, [leer]);
+
+  useEffect(() => {
+    let vivo = true;
+    const conArchivos = cuentas.filter((c) => sabe(c.provider, "estadisticas"));
+    for (const c of conArchivos) {
+      planInfo(c.dir || undefined)
+        .then((p) => vivo && p?.subscription && setPlanes((prev) => ({ ...prev, [claveDe(c)]: p.subscription })))
         .catch(() => {});
     }
-    refresh();
-    return latido(() => refresh(), REFRESH_MS);
-  }, [refresh, cuenta]);
+    const primera = conArchivos[0];
+    if (primera) {
+      usageReport(primera.dir || undefined)
+        .then((data) => vivo && setTrabajo(data ? { cuenta: primera, data } : null))
+        .catch(() => {});
+    }
+    return () => {
+      vivo = false;
+    };
+  }, [cuentas]);
 
-  const limits = cache?.limits.lines ?? [];
-  const peak = Math.max(1, ...(data?.week ?? []).map((d) => d.tokens));
-  const suscripcion = plan?.subscription || cache?.limits.plan || "";
-
-  /** «se renueva mañana a las 9:00», o el texto crudo del CLI si no se entiende.
-   *
-   *  El número (`resetsAt`) manda sobre el texto: Codex lo da como epoch, que
-   *  no hay que adivinar. Claude solo lo escribe dentro de su tarjeta, y de ahí
-   *  se saca leyendo. Cuando ninguna de las dos cosas sale, se enseña lo que
-   *  dijo el CLI: feo, pero verdadero. */
+  /** «mañana a las 9:00», o el texto crudo del CLI si no se entiende. */
   const cuandoSeRenueva = (resets: string, resetsAt: number): string => {
     const r = renovacion(resetsAt > 0 ? new Date(resetsAt) : resets);
     if (!r) {
-      // Sin frase hay dos casos MUY distintos, y confundirlos es lo que dejaba
-      // «se renueva Aug 24, 7:10am» en medio del español (visto en pantalla el
-      // 2026-08-24, no leyendo el código).
-      //
-      //  · La fecha se entiende pero YA PASÓ. Ocurre de verdad: al arrancar, el
-      //    panel pinta la última lectura guardada mientras pregunta de nuevo, y
-      //    esa lectura puede ser de anoche. El dato está caducado, así que no se
-      //    dice nada: en un segundo llega el bueno.
-      //  · La fecha NO se entiende, porque el CLI ha cambiado su tarjeta.
-      //    Entonces sí se enseña su texto crudo, feo pero verdadero, que es lo
-      //    que permite darse cuenta de que hay que tocar `lib/uso.ts`.
+      // Si se entiende pero ya pasó, es una lectura vieja que se está
+      // renovando: no se dice nada. Si NO se entiende, el texto del CLI, feo
+      // pero verdadero: es lo que avisa de que hay que tocar `lib/uso.ts`.
       const seEntiende = resetsAt > 0 || (resets ? leerRenovacion(resets) !== null : false);
-      if (seEntiende) return "";
-      return resets ? `${t("se renueva")} ${resets}` : "";
+      return seEntiende ? "" : resets;
     }
     const valor =
       r.clave === "el {fecha}" && r.fecha
         ? new Intl.DateTimeFormat(lang, { day: "numeric", month: "short" }).format(r.fecha)
         : r.valor;
-    return `${t("se renueva")} ${t(r.clave, { n: valor, hora: valor, fecha: valor })}`;
+    return t(r.clave, { n: valor, hora: valor, fecha: valor });
   };
 
-  if (!cuenta) return null;
+  /** Lo más gastado de una cuenta, que es lo que la para; null si no se sabe. */
+  const cifraDe = (l?: Lectura) => (l?.limits?.lines.length ? Math.max(...l.limits.lines.map((x) => x.percent)) : null);
+
+  // Con batería, lo que dice cuánto lleva (o lo está diciendo); lo más gastado arriba.
+  const conDato = instaladas
+    .filter((c) => conSesion(c) && (cifraDe(lecturas[claveDe(c)]) !== null || lecturas[claveDe(c)]?.busy !== false))
+    .sort((a, b) => (cifraDe(lecturas[claveDe(b)]) ?? -1) - (cifraDe(lecturas[claveDe(a)]) ?? -1));
+  const sinDato = instaladas.filter((c) => !conDato.includes(c));
+
+  if (vivas && !instaladas.length) {
+    return <p className="act-vacio">{t("Ninguna de tus cuentas dice cuánto lleva gastado.")}</p>;
+  }
+
+  const ultima = Math.max(0, ...Object.values(lecturas).map((l) => l.at));
+  const busy = Object.values(lecturas).some((l) => l.busy);
+  const peak = Math.max(1, ...(trabajo?.data.week ?? []).map((d) => d.tokens));
 
   return (
-    <section className="usage" data-open={open}>
-      <button
-        className="usage-head"
-        onClick={() =>
-          setOpen((v) => {
-            localStorage.setItem(OPEN_KEY, v ? "0" : "1");
-            return !v;
-          })
-        }
-      >
-        <span className="usage-title">
-          ◔ {t("Tu uso")}
-          {suscripcion && <em className="usage-plan">{suscripcion}</em>}
+    <div className="uso">
+      <div className="uso-cab">
+        <span>
+          {ultima > 0
+            ? (() => {
+                const a = hace(ultima);
+                return t(a.clave, { n: a.valor });
+              })()
+            : t("Sin datos todavía")}
         </span>
-        {limits[0] && <span className="usage-week">{limits[0].percent}%</span>}
-        <span className="usage-caret">
-          <ChevronIcon size={12} up={!open} />
-        </span>
-      </button>
+        <button
+          className="mini uso-refrescar"
+          data-tip={t("Volver a preguntar (no gasta cuota)")}
+          aria-label={t("Volver a preguntar (no gasta cuota)")}
+          disabled={busy}
+          onClick={() => leer(true)}
+        >
+          {busy ? "…" : <RefreshIcon size={13} />}
+        </button>
+      </div>
 
-      {open && (
-        <>
-          {/* Una pastilla por CLIENTE, y solo cuando hay más de uno. Con uno
-              solo, un selector de un elemento es una fila que no decide nada
-              (ver la regla de la casa sobre quitar antes que afinar). */}
-          {clientes.length > 1 && (
-            <div className="usage-clientes" role="tablist">
-              {clientes.map((id) => {
-                const p = providerOf(id);
-                return (
-                  <button
-                    key={id}
-                    role="tab"
-                    className="usage-cliente"
-                    aria-selected={id === cuenta.provider}
-                    style={{ ["--c" as string]: p.hue }}
-                    data-tip={t("Ver el gasto de {cli}", { cli: p.label })}
-                    onClick={() => {
-                      const suya = cuentas.find((c) => c.provider === id);
-                      if (!suya) return;
-                      setCuentaId(suya.id);
-                      localStorage.setItem(CUENTA_KEY, suya.id);
-                    }}
-                  >
-                    {/* Solo la marca (Munir, 2026-08-24). El nombre al lado
-                        hacía que dos clientes ya no cupieran en una fila, y en
-                        una columna de 270 px eso son dos renglones para elegir
-                        entre dos cosas que se reconocen por su dibujo. Quién es
-                        cada uno lo dice el globo. */}
-                    <ProviderMark id={id} title={p.label} />
-                  </button>
-                );
-              })}
+      {!vivas && <p className="act-vacio">{t("Mirando tus cuentas…")}</p>}
+      {conDato.map((c) => {
+        const k = claveDe(c);
+        const l = lecturas[k];
+        const cifra = cifraDe(l);
+        const plan = planes[k] || l?.limits?.plan || "";
+        const lineas = l?.limits?.lines ?? [];
+        return (
+          <div key={k} className="bat" data-tono={cifra === null ? undefined : tonoDe(cifra)}>
+            <div className="bat-cab">
+              <b>
+                {nombreDeCuenta(c.label, t)}
+                <small>{[providerOf(c.provider).label, plan].filter(Boolean).join(" · ")}</small>
+              </b>
+              {cifra !== null && <span className="bat-cifra">{t("{p} %", { p: cifra })}</span>}
             </div>
-          )}
-
-          {/* Y una por CUENTA de ese cliente, con la misma regla. */}
-          {suyas.length > 1 && (
-            <div className="usage-cuentas" role="tablist">
-              {suyas.map((c) => (
-                <button
-                  key={c.id}
-                  role="tab"
-                  className="usage-cuenta"
-                  aria-selected={c.id === cuenta.id}
-                  /* El color se calcula con la etiqueta CRUDA, nunca con la
-                     traducida: «Principal» y «Main» darían dos tonos distintos
-                     y la misma cuenta cambiaría de color al cambiar de idioma. */
-                  style={{ ["--c" as string]: hueOf(c.label) }}
-                  data-tip={t("Ver el gasto de la cuenta «{acc}»", {
-                    acc: nombreDeCuenta(c.label, t),
-                  })}
-                  onClick={() => {
-                    setCuentaId(c.id);
-                    localStorage.setItem(CUENTA_KEY, c.id);
-                  }}
-                >
-                  {/* Tres letras, como en la chapa de una terminal (Munir,
-                      2026-08-24). Al lado de una fila de logos, un nombre
-                      entero vuelve a partir la fila en dos renglones; y son
-                      cuentas tuyas, así que tres letras bastan para saber cuál
-                      es. El nombre completo, en el globo. */}
-                  {iniciales(nombreDeCuenta(c.label, t))}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="usage-block">
-            <div className="usage-block-head">
-              <span>{t("Límites del plan")}</span>
-              <button
-                className="mini usage-refresh"
-                data-tip={t("Volver a preguntar (no gasta cuota)")}
-                disabled={busy}
-                onClick={() => refresh(true)}
-              >
-                {busy ? "…" : <RefreshIcon size={13} />}
-              </button>
-            </div>
-
-            {limits.map((l) => {
-              const e = etiquetaCorta(l.label);
-              const cuando = cuandoSeRenueva(l.resets, l.resetsAt);
+            {lineas.map((x) => {
+              const e = etiquetaCorta(x.label);
+              const cuando = cuandoSeRenueva(x.resets, x.resetsAt);
               return (
-                <div
-                  key={l.label}
-                  className="limit"
-                  data-tip={`${t(e.clave)}${e.modelo ? ` · ${e.modelo}` : ""}: ${l.percent}%${
-                    cuando ? `\n${cuando}` : ""
-                  }`}
-                >
-                  <div className="limit-top">
-                    <span className="limit-label">
-                      {t(e.clave)}
-                      {e.modelo && <em className="limit-modelo">{e.modelo}</em>}
-                    </span>
-                    <strong data-hot={l.percent >= 80}>{l.percent}%</strong>
-                  </div>
-                  <span className="limit-track">
-                    <span
-                      className="limit-fill"
-                      data-hot={l.percent >= 80}
-                      style={{ width: `${Math.min(100, l.percent)}%` }}
-                    />
+                <div key={x.label} className="bat-v" data-tono={tonoDe(x.percent)}>
+                  <span className="bat-barra">
+                    <i style={{ width: `${Math.min(100, Math.max(0, x.percent))}%` }} />
                   </span>
-                  {cuando && <div className="limit-reset">{cuando}</div>}
+                  <small>
+                    <span>
+                      {[t(NOMBRE_VENTANA[e.clave] ?? e.clave), e.modelo].filter(Boolean).join(" · ")} ·{" "}
+                      {t("{p} %", { p: x.percent })}
+                    </span>
+                    {cuando && <span>{cuando}</span>}
+                  </small>
                 </div>
               );
             })}
-
-            {limits.length === 0 && (
-              <div className="usage-foot">
-                {error
-                  ? error
-                  : busy
-                    ? t("Preguntando a {cli}…", { cli: providerOf(cuenta.provider).label })
-                    : t("Sin datos todavía")}
-              </div>
-            )}
-            {cache && limits.length > 0 && (
-              <div className="usage-foot">
-                {(() => {
-                  const a = hace(cache.at);
-                  return t(a.clave, { n: a.valor });
-                })()}
-              </div>
+            {!lineas.length && (
+              <small className="bat-nada">{t("Preguntando a {cli}…", { cli: providerOf(c.provider).label })}</small>
             )}
           </div>
+        );
+      })}
 
-          {data && (
-            <div className="usage-block">
-              <div className="usage-block-head">
-                <span>{t("Trabajo de la semana")}</span>
-                <span className="usage-week">{short(data.weekTokens)}</span>
+      {sinDato.length > 0 && (
+        <div className="uso-sin">
+          <span className="uso-sin-tit">{t("Sin datos de gasto")}</span>
+          {sinDato.map((c) => {
+            const l = lecturas[claveDe(c)];
+            return (
+              <div key={claveDe(c)} className="uso-sin-fila" data-tip={l?.error || undefined}>
+                <b>{nombreDeCuenta(c.label, t)}</b>
+                <span data-mal={!conSesion(c) || undefined}>
+                  {providerOf(c.provider).label} · {conSesion(c) ? t("no dice cuánto lleva") : t("sin sesión")}
+                </span>
               </div>
-              <div className="usage-bars" data-tip={t("Tokens de cada uno de los últimos 7 días")}>
-                {data.week.map((d) => (
-                  <span
-                    key={d.date}
-                    className="usage-bar"
-                    style={{ height: `${Math.max(6, (d.tokens / peak) * 100)}%` }}
-                    data-tip={`${d.date}: ${short(d.tokens)} tokens · ${
-                      d.sessions === 1
-                        ? t("{n} sesión", { n: d.sessions })
-                        : t("{n} sesiones", { n: d.sessions })
-                    }`}
-                  />
-                ))}
-              </div>
-              <div className="usage-line">
-                <span>{t("sesiones")}</span>
-                <strong>{data.weekSessions}</strong>
-              </div>
-              {data.byModel.slice(0, 3).map((m) => (
-                <div key={m.model} className="usage-line">
-                  <span className="usage-model">{m.model}</span>
-                  <strong>{short(m.tokens)}</strong>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Una cuenta de Claude recién estrenada no tiene stats: el CLI
-              escribe ese archivo cuando trabaja. Sin esta línea, el bloque
-              entero desaparecía y parecía que el panel se había roto al
-              cambiar. A los demás clientes ni se les pide, así que tampoco se
-              les echa de menos nada. */}
-          {!data && sabe(cuenta.provider, "estadisticas") && (
-            <div className="usage-foot">
-              {t("Todavía no hay trabajo apuntado en esta cuenta.")}
-            </div>
-          )}
-
-          {onUsage && sabe(cuenta.provider, "estadisticas") && (
-            <button className="mini usage-open" onClick={() => onUsage()}>
-              {t("Ver la tarjeta entera en la terminal")}
-            </button>
-          )}
-        </>
+            );
+          })}
+        </div>
       )}
-    </section>
+
+      {trabajo && (
+        <div className="usage-block">
+          <div className="usage-block-head">
+            <span>
+              {t("Trabajo de la semana")} · {nombreDeCuenta(trabajo.cuenta.label, t)}
+            </span>
+            <span className="usage-week">{short(trabajo.data.weekTokens)}</span>
+          </div>
+          <div className="usage-bars" data-tip={t("Tokens de cada uno de los últimos 7 días")}>
+            {trabajo.data.week.map((d) => (
+              <span
+                key={d.date}
+                className="usage-bar"
+                style={{ height: `${Math.max(6, (d.tokens / peak) * 100)}%` }}
+                data-tip={`${d.date}: ${short(d.tokens)} tokens · ${
+                  d.sessions === 1 ? t("{n} sesión", { n: d.sessions }) : t("{n} sesiones", { n: d.sessions })
+                }`}
+              />
+            ))}
+          </div>
+          <div className="usage-line">
+            <span>{t("sesiones")}</span>
+            <strong>{trabajo.data.weekSessions}</strong>
+          </div>
+          {trabajo.data.byModel.slice(0, 3).map((m) => (
+            <div key={m.model} className="usage-line">
+              <span className="usage-model">{m.model}</span>
+              <strong>{short(m.tokens)}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {onUsage && (
+        <button className="mini usage-open" onClick={() => onUsage()}>
+          {t("Ver la tarjeta entera en la terminal")}
+        </button>
+      )}
+    </div>
   );
 }

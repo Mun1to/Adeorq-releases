@@ -40,7 +40,7 @@ import {
 import { enviarAlConserje } from "./conserjeEnvio";
 import { FONDO_DESENFOQUE_KEY, FONDO_OPACIDAD_KEY } from "./fondo";
 import { limitesDe } from "./cuota";
-import { cerebroPorDefecto } from "./models";
+import { cerebroPorDefecto, ULTIMOS } from "./models";
 import { fotoRapida } from "./mundo";
 import { ESFUERZOS, type CuentaViva } from "./router";
 import { etiquetaCorta, leerRenovacion } from "./uso";
@@ -123,6 +123,8 @@ const TECLAS: Record<string, string> = {
   // se deja teclear.
   esc: "\x1b",
   "shift+tab": "\x1b[Z",
+  // El «Listo» de una pregunta de elegir varias (ver `TECLAS_DEL_MOVIL`).
+  right: "\x1b[C",
 };
 /** Cuántas líneas se mandan como mucho. Con la pantalla sola (60) desde el
     móvil no se veía el historial de una consola (Munir, 2026-10-08); el
@@ -175,7 +177,9 @@ async function ventanasDe(v: CuentaViva): Promise<{ clave: string; modelo: strin
 export function modelosEnVivo(cli: string): { alias: string; nombre: string }[] {
   const p = PROVIDERS.find((x) => x.id === cli);
   if (!p?.enVivo?.modelo) return [];
-  if (!p.modelos) return ["haiku", "sonnet", "opus", "fable"].map((a) => ({ alias: a, nombre: a[0].toUpperCase() + a.slice(1) }));
+  // Sin tabla propia, los cerebros de la casa con el nombre de su ÚLTIMO
+  // modelo («Opus 5.5»), que es al que Claude Code lleva el alias.
+  if (!p.modelos) return (["haiku", "sonnet", "opus", "fable"] as const).map((a) => ({ alias: a, nombre: ULTIMOS[a] }));
   return (["haiku", "sonnet", "opus"] as const).flatMap((a) => (p.modelos?.[a] ? [{ alias: a, nombre: p.modelos[a] as string }] : []));
 }
 

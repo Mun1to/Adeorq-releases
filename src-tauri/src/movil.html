@@ -570,6 +570,36 @@
     background: var(--hondo); border: 1px solid var(--borde-fuerte); color: var(--tinta); font-size: calc(12.5px * var(--z)); font-weight: 700; font-variant-numeric: tabular-nums;
   }
   .opciones-menu button:disabled { opacity: 0.55; cursor: default; }
+  /* Lo que acompaña a una pregunta de la terminal (`menuHtml`): las pestañas
+     de una con varias, de qué es un permiso y su comando, la descripción de
+     cada opción, las casillas marcadas y la caja de escribir la tuya. La
+     pregunta se lee entera: aquí no se corta a tres líneas. */
+  .ahora[data-tipo="pregunta"] .ahora-que { display: block; overflow: visible; -webkit-line-clamp: unset; }
+  .menu-pasos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .menu-pasos span {
+    padding: 3px 9px; border-radius: 999px; border: 1px solid var(--borde); background: var(--hondo);
+    color: var(--suave); font-size: calc(12.5px * var(--z));
+  }
+  .menu-pasos span[data-hecha="true"] { color: var(--tinta); border-color: var(--borde-fuerte); }
+  .menu-ctx { display: grid; gap: 2px; margin-top: 8px; color: var(--suave); font-size: calc(13.5px * var(--z)); line-height: 1.4; overflow-wrap: anywhere; }
+  .menu-ctx b { color: var(--tinta); font-weight: 650; }
+  .menu-cmd {
+    margin: 6px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--hondo); border: 1px solid var(--borde);
+    font: calc(12.5px * var(--z))/1.45 var(--mono); color: var(--tinta); white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .preg-term .preg-que, .ahora[data-tipo="pregunta"] .ahora-que { margin-top: 8px; }
+  .menu-nota { margin: 6px 0 0; color: var(--suave); font-size: calc(13px * var(--z)); }
+  .opciones-menu .op-txt { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+  .opciones-menu .op-txt small { color: var(--suave); font-size: calc(13px * var(--z)); line-height: 1.35; }
+  .opciones-menu button[aria-pressed="true"] { border-color: var(--acento); background: color-mix(in srgb, var(--acento) 16%, var(--capa-fuerte)); }
+  .opciones-menu button[aria-pressed="true"] .num { background: var(--acento); border-color: var(--acento); color: var(--sobre-acento); }
+  .menu-listo { justify-self: start; margin-top: 8px; }
+  .menu-escribir { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; margin-top: 8px; }
+  .menu-escribir[hidden] { display: none; }
+  .menu-escribir textarea {
+    resize: none; min-height: 44px; padding: 10px 12px; border-radius: var(--r-btn); border: 1px solid var(--borde-fuerte);
+    background: var(--hondo); color: var(--tinta); font: inherit; font-size: calc(15px * var(--z));
+  }
 
   /* ── 8. Una terminal ── */
   /* Chat y Pantalla: un interruptor en la segunda fila de la cabecera. */
@@ -1275,6 +1305,15 @@ const EN = {
   "Te espera: contéstale en su terminal.": "Waiting for you: answer it in its terminal.",
   "Abrir la terminal": "Open the terminal",
   "Contestado: {n}.": "Answered: {n}.",
+  "Escribir otra respuesta": "Write another answer",
+  "Hablarlo en el chat": "Talk it over in the chat",
+  "Enviar respuestas": "Submit answers",
+  "Listo, siguiente": "Done, next",
+  "Marca las que quieras y pulsa «Listo».": "Tick the ones you want and press “Done”.",
+  "Tu respuesta": "Your answer",
+  "Mandar": "Send",
+  "Mandado.": "Sent.",
+  "manual": "manual",
   "Contexto gastado: {p} %": "Context used: {p}%",
   "Esta sesión pesa demasiado ({p} %): mejor seguir en una terminal nueva.": "This session is too heavy ({p}%): better to carry on in a new terminal.",
   "El contexto va por el {p} %: compáctala antes de que pese más.": "Context is at {p}%: compact it before it gets heavier.",
@@ -3692,8 +3731,7 @@ function tarjetaPregunta({ t, a }) {
   const menu = a?.tipo === "pregunta";
   return `<div class="preg-term" data-panel="${t.panel}">
     <span class="tarjeta-cab"><b>${esc(t.nombre)} · ${esc(hoja(t.carpeta))}</b><span class="estado"><i></i>${tr("Te pregunta")}</span></span>
-    ${menu && a.pregunta ? `<p class="preg-que">${esc(a.pregunta)}</p>` : menu ? "" : `<p class="preg-que porque">${tr("Te espera: contéstale en su terminal.")}</p>`}
-    ${menu ? `<div class="opciones-menu">${a.opciones.map((o) => `<button data-num="${o.n}"><span class="num">${o.n}</span><span>${esc(o.texto)}</span></button>`).join("")}</div>` : ""}
+    ${menu ? menuHtml(a, "preg-que") : `<p class="preg-que porque">${tr("Te espera: contéstale en su terminal.")}</p>`}
     <button class="mini ir-term" type="button">${tr("Abrir la terminal")}</button>
   </div>`;
 }
@@ -3761,24 +3799,26 @@ async function pintarDecisiones() {
     const firma = JSON.stringify([lista, preguntas.map((p) => [p.t.panel, p.t.nombre, p.t.carpeta, p.a])]);
     if (firma === pintado) return;
     pintado = firma;
-    aqui.innerHTML = html;
+    conservarEscrito(aqui, () => { aqui.innerHTML = html; });
     aqui.querySelectorAll(".tarjeta[data-id]").forEach((b) => b.addEventListener("click", () => ir({ vista: "decision", id: b.dataset.id, volverPanel: e.volverPanel, volverArranque: e.volverArranque })));
   };
-  // Contestar a una terminal desde aquí: su número, como en su chat (`mandar_texto`
-  // lo teclea como tecla suelta). O ir a verla, que a veces hace falta el contexto.
+  // Contestar a una terminal desde aquí, como en su chat (`contestarMenu`). O
+  // ir a verla, que a veces hace falta el contexto.
   document.getElementById("decisiones").addEventListener("click", async (ev) => {
     const tarjeta = ev.target.closest(".preg-term");
     if (!tarjeta) return;
     const panel = Number(tarjeta.dataset.panel);
     if (ev.target.closest(".ir-term")) return ir({ vista: "terminal", panel, arranque });
-    const b = ev.target.closest("button[data-num]");
-    if (!b) return;
-    const botones = [...tarjeta.querySelectorAll("button[data-num]")];
+    if (!ev.target.closest("button")) return;
+    const num = ev.target.closest("button[data-num]:not([data-escribir])")?.dataset.num;
+    const botones = [...tarjeta.querySelectorAll("button:not(.ir-term)")];
     botones.forEach((x) => { x.disabled = true; });
     try {
-      await api("POST", "/api/terminal/escribir", { panel, arranque, texto: b.dataset.num });
-      tarjeta.querySelector(".preg-que")?.insertAdjacentHTML("afterend", `<p class="nota">${tr("Contestado: {n}.", { n: esc(b.dataset.num) })}</p>`);
-      setTimeout(() => { pintado = null; cargar().catch(() => {}); }, 900);
+      const hecho = await contestarMenu(tarjeta, panel, arranque, ev);
+      if (hecho === "enviado") tarjeta.querySelector(".opciones-menu")?.insertAdjacentHTML("beforebegin", `<p class="nota">${num ? tr("Contestado: {n}.", { n: esc(num) }) : tr("Mandado.")}</p>`);
+      // Una casilla marcada no cierra la pregunta: se repinta y se sigue.
+      if (hecho !== "enviado") botones.forEach((x) => { x.disabled = false; });
+      if (hecho) setTimeout(() => { pintado = null; cargar().catch(() => {}); }, 900);
     } catch (err) {
       botones.forEach((x) => { x.disabled = false; });
       tarjeta.insertAdjacentHTML("beforeend", `<p class="nota fallo">${esc(err.message)}</p>`);
@@ -3975,8 +4015,10 @@ async function pintarDecision() {
 function modoDe(v) {
   const filas = v.filas || [];
   for (let i = filas.length - 1; i >= 0 && i >= filas.length - 12; i--) {
-    const m = /(auto mode|plan mode|accept edits|bypass permissions) on/i.exec(filas[i]);
-    if (m) return { "auto mode": "auto", "plan mode": "plan", "accept edits": tr("aceptar ediciones"), "bypass permissions": tr("sin permisos") }[m[1].toLowerCase()];
+    // «manual mode» es como Claude Code v2.1.302 llama al normal («⏸ manual
+    // mode on», visto el 2026-10-17); antes no pintaba nada en ese.
+    const m = /(auto mode|plan mode|accept edits|bypass permissions|manual mode) on/i.exec(filas[i]);
+    if (m) return { "auto mode": "auto", "plan mode": "plan", "accept edits": tr("aceptar ediciones"), "bypass permissions": tr("sin permisos"), "manual mode": tr("manual") }[m[1].toLowerCase()];
   }
   // En el modo normal Claude Code no pinta nada: no se sabe, y no se inventa.
   return null;
@@ -4031,25 +4073,196 @@ function ahoraDe(v) {
 
 /* Una pregunta con opciones numeradas al pie de la pantalla («Do you want to
    proceed? ❯ 1. Yes  2. No…»). Solo se busca cuando la terminal ya está en
-   «te pregunta», que si no, cualquier lista numerada de un mensaje lo parecía. */
+   «te pregunta», que si no, cualquier lista numerada de un mensaje lo parecía.
+
+   Munir, 2026-10-17: «no va del todo bien». Leído contra tres pantallas de un
+   Claude Code v2.1.302 de verdad (están tal cual en `doble-movil.mjs`), fallaba
+   en cuatro cosas: de una pregunta en dos líneas salía solo la última; una
+   opción larga perdía su final y ninguna traía su descripción; un permiso
+   decía «Do you want to proceed?» sin decir QUÉ quería ejecutar; y en una de
+   elegir varias el número solo marca la casilla, y lo que la envía («Submit»)
+   no lleva número, así que desde el móvil no había forma de mandarla.
+
+   Lo que se saca: la pregunta entera, las opciones con su descripción (si son
+   casillas, marcadas o no), lo de encima de la pregunta (de qué es el permiso
+   y su comando, o el repaso de las respuestas) y las pestañas de una con
+   varias preguntas. Si una línea sigue en la de debajo se sabe por el ancho:
+   la terminal la partió porque la palabra siguiente ya no cabía en la raya. */
+const RAYA_LLENA = /^\s*[─━═]{8,}\s*$/;
+const RAYA_DE_PUNTOS = /^\s*[╌┄┈╍┅┉]{8,}\s*$/;
+const OPCION = /^\s*([❯›>]\s*)?(\d{1,2})[.)]\s+(.+?)\s*$/;
+const PESTANAS = /[☐☒]\s+\S/;
+const PIE_DEL_MENU = /^\s*(Enter to |Esc to |↑\/↓ |Tab to )/;
 function menuDe(filas) {
-  const abajo = filas.slice(-24).map((f) => f.replace(/^\s*[│┃|]\s?/, "").replace(/\s?[│┃|]\s*$/, ""));
+  // El borde de un recuadro («│ ¿Dónde…») se cambia por espacios y no se
+  // quita: lo que se mide para saber si una línea sigue debajo es el ancho
+  // que ocupaba en la terminal.
+  const sinBorde = (f) => f.replace(/^(\s*)([│┃|]\s?)/, (_, s, b) => s + " ".repeat(b.length)).replace(/\s?[│┃|]\s*$/, "");
+  const abajo = filas.slice(-45).map(sinBorde);
   let opciones = [];
-  let primera = -1;
   abajo.forEach((f, k) => {
-    const m = /^\s*([❯›>]\s*)?(\d{1,2})[.)]\s+(.+?)\s*$/.exec(f);
+    const m = OPCION.exec(f);
     if (!m) return;
     const n = Number(m[2]);
-    if (n === 1) { opciones = []; primera = k; }
-    if (n === opciones.length + 1) opciones.push({ n, texto: m[3], sel: Boolean(m[1]) });
+    if (n === 1) opciones = [];
+    if (n === opciones.length + 1) opciones.push({ n, fila: k, texto: m[3], sel: Boolean(m[1]) });
   });
   if (opciones.length < 2) return null;
-  let pregunta = "";
-  for (let k = primera - 1; k >= 0; k--) {
-    const t = abajo[k].trim();
-    if (t && !/^[─━═╭╮╰╯\s]+$/.test(t)) { pregunta = t; break; }
+  const primera = opciones[0].fila;
+  // Hasta dónde llega el texto del cuadro: la línea más larga desde la raya
+  // de encima. No es la raya: un permiso parte sus líneas antes del borde (a
+  // 82 columnas en un panel de 89, medido).
+  let raya = primera;
+  while (raya >= 0 && !RAYA_LLENA.test(abajo[raya])) raya--;
+  const ancho = Math.max(0, ...abajo.slice(raya + 1).filter((f) => !RAYA_LLENA.test(f) && !RAYA_DE_PUNTOS.test(f)).map((f) => f.length));
+  // ¿La terminal partió `linea` porque `sigue` ya no cabía? Si acababa en una
+  // palabra larguísima pegada al borde (una ruta), la partió por dentro y se
+  // junta sin hueco.
+  const partida = (linea, sigue) => ancho > 0 && linea.length + 1 + (sigue.trim().split(/\s+/)[0] || "").length > ancho;
+  const pegar = (a, linea, sigue) => a + (linea.length >= ancho - 2 && linea.trim().split(/\s+/).pop().length >= 20 ? "" : " ") + sigue.trim();
+  // Un bloque de filas seguidas como un texto: partidas, se juntan; si no, una por renglón.
+  const parrafos = (lista) => lista.reduce((acc, f, i) => {
+    if (i && partida(lista[i - 1], f)) acc[acc.length - 1] = pegar(acc[acc.length - 1], lista[i - 1], f);
+    else acc.push(f.trim());
+    return acc;
+  }, []);
+  opciones.forEach((o, i) => {
+    // Lo de debajo de cada opción, hasta la siguiente o hasta lo que corta.
+    const hasta = i + 1 < opciones.length ? opciones[i + 1].fila : abajo.length;
+    let ultima = abajo[o.fila];
+    const desc = [];
+    for (let k = o.fila + 1; k < hasta; k++) {
+      const f = abajo[k];
+      // «Submit» va sin número debajo de las casillas: lo hace «Listo».
+      if (!f.trim() || RAYA_LLENA.test(f) || RAYA_DE_PUNTOS.test(f) || PIE_DEL_MENU.test(f) || f.trim() === "Submit") break;
+      if (!desc.length && partida(ultima, f)) { o.texto = pegar(o.texto, ultima, f); ultima = f; continue; }
+      desc.push(f);
+    }
+    // Una descripción que repite la opción («Lunes», «Lunes») no dice nada.
+    if (desc.length && parrafos(desc).join(" ") !== o.texto) o.desc = parrafos(desc).join(" ");
+    const caja = /^\[([ ✔✓xX■])\]\s+/.exec(o.texto);
+    if (caja) { o.marcada = caja[1] !== " "; o.texto = o.texto.slice(caja[0].length); }
+    // Las de Claude Code que no son una respuesta: escribir la tuya y hablarlo.
+    if (/^Type something\.?$/i.test(o.texto)) { o.escribir = true; o.texto = tr("Escribir otra respuesta"); }
+    else if (/^Chat about this$/i.test(o.texto)) o.texto = tr("Hablarlo en el chat");
+    else if (/^Submit answers$/i.test(o.texto)) o.texto = tr("Enviar respuestas");
+    else if (/^Cancel$/i.test(o.texto)) o.texto = tr("Cancelar");
+    delete o.fila;
+  });
+  const multi = opciones.some((o) => o.marcada !== undefined);
+  // La pregunta: las filas seguidas justo encima de la primera opción.
+  let k = primera - 1;
+  while (k >= 0 && !abajo[k].trim()) k--;
+  const deLaPregunta = [];
+  for (; k >= 0; k--) {
+    const f = abajo[k];
+    if (!f.trim() || RAYA_LLENA.test(f) || RAYA_DE_PUNTOS.test(f) || PESTANAS.test(f)) break;
+    deLaPregunta.unshift(f);
   }
-  return { pregunta, opciones };
+  const pregunta = parrafos(deLaPregunta).join(" ");
+  // Lo de encima: desde la última raya entera hasta la pregunta. Ahí están las
+  // pestañas de una con varias preguntas, de qué es un permiso y su comando
+  // (entre dos rayas de puntos), o el repaso de lo contestado.
+  let desde = k;
+  while (desde >= 0 && !RAYA_LLENA.test(abajo[desde])) desde--;
+  const encima = abajo.slice(desde + 1, k + 1);
+  let pasos = [];
+  const contexto = [];
+  const comando = [];
+  let enComando = false;
+  let tramo = [];
+  const cerrarTramo = () => { if (tramo.length) contexto.push(...parrafos(tramo)); tramo = []; };
+  for (const f of encima) {
+    if (PESTANAS.test(f) && !pasos.length) {
+      pasos = f.replace(/[←→]/g, "").trim().split(/\s{2,}/)
+        .map((x) => /^([☐☒])\s+(.+)$/.exec(x.trim()))
+        .filter(Boolean).map((m) => ({ nombre: m[2], hecha: m[1] === "☒" }));
+      continue;
+    }
+    if (RAYA_DE_PUNTOS.test(f)) { cerrarTramo(); enComando = !enComando; continue; }
+    if (enComando) { comando.push(f.trim()); continue; }
+    if (!f.trim() || /^\s*Tip:/.test(f)) { cerrarTramo(); continue; }
+    tramo.push(f);
+  }
+  cerrarTramo();
+  const corto = (lista, tope) => (lista.length > tope ? [...lista.slice(0, tope), "…"] : lista);
+  return {
+    pregunta, opciones, multi, pasos,
+    contexto: corto(contexto, 6), comando: corto(comando, 8).join("\n"),
+  };
+}
+
+/* Una pregunta de la terminal, con sus opciones a un toque. La misma en su
+   chat (`ahoraHtml`) y en Decisiones (`tarjetaPregunta`): eran dos copias del
+   mismo HTML, y una opción nueva salía en una y en la otra no. */
+function menuHtml(a, claseDeLaPregunta) {
+  const pasos = a.pasos?.length > 1
+    ? `<div class="menu-pasos">${a.pasos.map((p) => `<span data-hecha="${p.hecha}">${p.hecha ? "✓ " : ""}${esc(p.nombre)}</span>`).join("")}</div>` : "";
+  const contexto = a.contexto?.length
+    ? `<div class="menu-ctx">${a.contexto.map((x, i) => (i === 0 && a.comando ? `<b>${esc(x)}</b>` : `<span>${esc(x)}</span>`)).join("")}</div>` : "";
+  const comando = a.comando ? `<pre class="menu-cmd">${esc(a.comando)}</pre>` : "";
+  const opcion = (o) => `<button data-num="${o.n}"${o.escribir ? ' data-escribir="true"' : ""}${o.marcada !== undefined ? ` aria-pressed="${o.marcada}"` : ""}><span class="num">${o.n}</span><span class="op-txt"><span>${esc(o.texto)}</span>${o.desc ? `<small>${esc(o.desc)}</small>` : ""}</span></button>`;
+  return `${pasos}${contexto}${comando}${a.pregunta ? `<div class="${claseDeLaPregunta}">${esc(a.pregunta)}</div>` : ""}
+    ${a.multi ? `<p class="menu-nota">${tr("Marca las que quieras y pulsa «Listo».")}</p>` : ""}
+    <div class="opciones-menu"${a.multi ? ' data-multi="true"' : ""}>${a.opciones.map(opcion).join("")}</div>
+    ${a.multi ? `<button class="mini menu-listo" type="button" data-tecla="right">${tr("Listo, siguiente")}</button>` : ""}
+    <div class="menu-escribir" hidden><textarea rows="2" aria-label="${tr("Tu respuesta")}" placeholder="${tr("Tu respuesta")}"></textarea><button class="mini menu-mandar" type="button">${tr("Mandar")}</button></div>`;
+}
+
+/* Contestar un menú de la terminal, igual en su chat y en Decisiones. Medido
+   en Claude Code v2.1.302 (2026-10-17): el número elige y pasa a la siguiente;
+   en una de elegir varias solo marca la casilla, y la flecha derecha lleva al
+   repaso («Review your answers»), que se envía con su 1; en «Type something.»
+   el número deja la opción escribiendo, y el texto con Intro la contesta (las
+   dos cosas las hace `mandar_texto`: un número suelto es una tecla, un texto
+   va pegado y con su Intro). Devuelve qué pasó, o null si aún no se mandó nada. */
+async function contestarMenu(caja, panel, arranque, ev) {
+  if (ev.target.closest(".menu-escribir textarea")) return null;
+  const tecla = ev.target.closest("button[data-tecla]");
+  if (tecla) {
+    await api("POST", "/api/terminal/tecla", { panel, arranque, tecla: tecla.dataset.tecla });
+    return "enviado";
+  }
+  const area = caja.querySelector(".menu-escribir");
+  if (ev.target.closest(".menu-mandar")) {
+    const texto = area.querySelector("textarea").value.trim();
+    if (!texto) return null;
+    await api("POST", "/api/terminal/escribir", { panel, arranque, texto: area.dataset.num });
+    await new Promise((r) => setTimeout(r, 350));
+    await api("POST", "/api/terminal/escribir", { panel, arranque, texto });
+    return "enviado";
+  }
+  const b = ev.target.closest("button[data-num]");
+  if (!b) return null;
+  // La tuya se escribe primero aquí: el número se manda con ella, que si no la
+  // terminal se queda escribiendo y la tarjeta no tiene dónde.
+  if (b.dataset.escribir) {
+    area.hidden = false;
+    area.dataset.num = b.dataset.num;
+    area.querySelector("textarea").focus();
+    return null;
+  }
+  await api("POST", "/api/terminal/escribir", { panel, arranque, texto: b.dataset.num });
+  return b.closest("[data-multi]") ? "marcado" : "enviado";
+}
+/* Lo que escribiste en «Escribir otra respuesta» sobrevive a que se repinte
+   la pregunta (cada pocos segundos, si algo cambia en la pantalla). */
+function conservarEscrito(el, pintar) {
+  // En Decisiones hay una por terminal: se reconocen por su panel.
+  const clave = (area) => area.closest("[data-panel]")?.dataset.panel ?? "";
+  const antes = [...el.querySelectorAll(".menu-escribir:not([hidden])")].map((area) => ({
+    clave: clave(area), num: area.dataset.num, texto: area.querySelector("textarea").value,
+    foco: document.activeElement === area.querySelector("textarea"),
+  }));
+  pintar();
+  for (const a of antes) {
+    const area = [...el.querySelectorAll(".menu-escribir")].find((x) => clave(x) === a.clave);
+    if (!area || !area.parentElement.querySelector(`button[data-num="${a.num}"][data-escribir]`)) continue;
+    area.hidden = false;
+    area.dataset.num = a.num;
+    area.querySelector("textarea").value = a.texto;
+    if (a.foco) area.querySelector("textarea").focus();
+  }
 }
 
 /* El pie del chat: la mascota y lo que pasa ahora. Siempre está, porque es
@@ -4062,8 +4275,7 @@ function ahoraHtml(a) {
   if (!a) return "";
   const m = mascota(ANIMO_AHORA[a.tipo] || "quieta", 26, "ahora");
   if (a.tipo === "pregunta") {
-    return `<div class="ahora-cab">${m}${tr("Te pregunta")}</div>${a.pregunta ? `<div class="ahora-que">${esc(a.pregunta)}</div>` : ""}
-      <div class="opciones-menu">${a.opciones.map((o) => `<button data-num="${o.n}"><span class="num">${o.n}</span><span>${esc(o.texto)}</span></button>`).join("")}</div>`;
+    return `<div class="ahora-cab">${m}${tr("Te pregunta")}</div>${menuHtml(a, "ahora-que")}`;
   }
   if (a.tipo === "espera") return `<div class="ahora-cab">${m}<span><b>${tr("Es tu turno:")}</b> ${tr("{que}. Contéstale abajo.", { que: esc(a.que) })}</span></div>`;
   if (a.tipo === "termino") return `<div class="ahora-cab">${m}<span><b>${tr("Ha terminado.")}</b> ${tr("Si quieres que siga, díselo abajo.")}</span></div>`;
@@ -4442,10 +4654,14 @@ function pintarTerminal() {
   const pintarMandos = (v) => {
     mandos.opciones.modelo = (v.modelos || []).map((m) => ({ valor: m.alias, nombre: m.nombre }));
     mandos.opciones.esfuerzo = (v.esfuerzos || []).map((x) => ({ valor: x, nombre: NIVELES[x] ?? x }));
+    /* Lo puesto se reconoce por el NOMBRE entero, con su versión: las opciones
+       son solo los últimos modelos (Munir, 2026-10-17), y una sesión vieja con
+       «Opus 5» no lleva puesto «Opus 5.5». Entonces no sale ninguna marcada y
+       la pastilla dice el que lleva de verdad, para que se vea que hay otro. */
     const enPc = String(v.modelo || "").toLowerCase();
-    mandos.puesto.modelo = mandos.opciones.modelo.find((m) => enPc.includes(m.valor) || enPc.includes(m.nombre.toLowerCase()))?.valor ?? "";
+    mandos.puesto.modelo = mandos.opciones.modelo.find((m) => enPc.includes(m.nombre.toLowerCase()))?.valor ?? "";
     mandos.puesto.esfuerzo = String(v.esfuerzo || "").toLowerCase();
-    const modelo = mandos.opciones.modelo.find((m) => m.valor === elPuesto("modelo"))?.nombre;
+    const modelo = mandos.opciones.modelo.find((m) => m.valor === elPuesto("modelo"))?.nombre ?? (mandos.opciones.modelo.length ? String(v.modelo || "") : "");
     const esfuerzo = elPuesto("esfuerzo") && String(NIVELES[elPuesto("esfuerzo")] ?? elPuesto("esfuerzo")).toLowerCase();
     const hay = mandos.opciones.modelo.length || mandos.opciones.esfuerzo.length;
     bModelo.hidden = !hay;
@@ -4490,7 +4706,7 @@ function pintarTerminal() {
     const cambiaDeTipo = el.dataset.tipo !== (a?.tipo || "");
     el.hidden = !a;
     el.dataset.tipo = a?.tipo || "";
-    el.innerHTML = ahoraHtml(a);
+    conservarEscrito(el, () => { el.innerHTML = ahoraHtml(a); });
     // Si te pregunta, la pregunta sube a la caja de escribir, encima del texto:
     // es donde está tu dedo, y contestar es un toque. Si no, vuelve al pie del
     // chat. Es el MISMO elemento: lo que tiene enganchado se va con él.
@@ -4500,20 +4716,23 @@ function pintarTerminal() {
     // Solo al cambiar de estado llega desde abajo: que «26s» pase a «27s» no es llegar.
     if (cambiaDeTipo && a) { el.classList.remove("cambia"); void el.offsetWidth; el.classList.add("cambia"); }
   };
-  // Las opciones de una pregunta mandan su número, que `mandar_texto` (pty.rs)
-  // teclea como tecla suelta, sin Intro, porque así lo esperan esos menús.
+  // Las opciones de una pregunta, como en Decisiones (`contestarMenu`).
   const ahoraEl = document.getElementById("ahora");
   ahoraEl.addEventListener("mousedown", (ev) => { if (ev.target.closest("button")) ev.preventDefault(); });
   ahoraEl.addEventListener("click", async (ev) => {
-    const b = ev.target.closest("button[data-num]");
-    if (!b) return;
-    const botones = [...ahoraEl.querySelectorAll("button[data-num]")];
+    if (!ev.target.closest("button")) return;
+    const botones = [...ahoraEl.querySelectorAll("button")];
     botones.forEach((x) => { x.disabled = true; });
     try {
-      await api("POST", "/api/terminal/escribir", { panel: e.panel, arranque: e.arranque, texto: b.dataset.num });
-      salioBien();
-      reaccionaMascota("ahora", "enviado");
-      enSeguida();
+      const hecho = await contestarMenu(ahoraEl, e.panel, e.arranque, ev);
+      if (hecho) {
+        salioBien();
+        reaccionaMascota("ahora", "enviado");
+        enSeguida();
+      }
+      // Si la pantalla no cambia (una tecla que no llegó), los botones vuelven.
+      if (hecho !== "enviado") botones.forEach((x) => { x.disabled = false; });
+      else setTimeout(() => botones.forEach((x) => { x.disabled = false; }), 4000);
     } catch (err) {
       fallo(tr("No se ha mandado: {e}", { e: err.message }));
       botones.forEach((x) => { x.disabled = false; });

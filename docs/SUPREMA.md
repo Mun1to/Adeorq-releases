@@ -116,6 +116,61 @@ a un reloj (cerrarla a la media hora), a una tira de «delegadas» y a un botón
   puente de verdad contra una Adeorq aislada: abre, lista, se niega sin rastro, cierra con él,
   escribe el archivo y no enseña el aviso). NO PROBADO con un agente de verdad decidiendo solo.
 
+## Lo que se le dice a un agente al conectarse (2026-10-17)
+
+Munir, ese día: *«muchos agentes no lo están haciendo muy bien, y ADEORQ también no lo prioriza
+que los terminales y los agentes abran terminales nuevas o agentes nuevos para terminar de hacer
+un trabajo en el menor tiempo posible»*. Tenía razón por dos lados: el `initialize` no llevaba
+`instructions`, y Claude Code carga las herramientas de un MCP **diferidas** (solo el nombre hasta
+que las busca), así que un agente ni leía la descripción de `open_pane`, que encima frenaba
+(«open the fewest you need»).
+
+- **`instrucciones` en `mcp.rs`** va en la respuesta a `initialize` y Claude Code la mete en su
+  prompt de sistema («MCP Server Instructions»): repartir desde el principio lo que se parte en
+  piezas que no tocan los mismos archivos ni esperan la respuesta de otra, una terminal por pieza;
+  no partir un solo hilo (un bug, un archivo); una búsqueda va a un subagente; cada encargo
+  completo (y en el `BUZON.md` si el proyecto lo usa); mirar la pantalla, cerrar con rastro, y
+  `get_usage` para elegir cuenta. Unos 1.500 caracteres: el tope de Claude Code era 2.048 hasta
+  la 2.1.302, que lo subió a 4.096.
+- **Se arma con lo que VE ese cliente** (`herramientas_visibles`): en «plan» (Codex, Gemini de
+  fábrica) abre y cierra las que abrió él, pero no escribe (ver abajo); en «mirar», nada.
+  Los puentes de casa (conserje, Capataz) no reciben ninguna: llevan su prompt y sus manos.
+- **La descripción de `open_pane`** dice lo mismo en corto, y el conserje (`SISTEMA` en
+  `conserje.rs`) ganó una línea: un trabajo grande que se parte son varias sesiones a la vez.
+- **Medido:** `cargo test --lib mcp::` (`al_conectarse_se_le_dice_que_reparta_lo_que_se_parte`) y
+  `node scripts/laboratorio/instrucciones-mcp-de-verdad.mjs`: una Adeorq aislada con el binario
+  de la rama, cada escalón, y un `claude -p` de Haiku que las copia de su prompt palabra por
+  palabra. NO PROBADO: si Codex, Gemini y los demás clientes muestran `instructions` a su modelo
+  (el protocolo lo admite; cada CLI decide).
+
+## Quién la abrió se ve en su cabecera, y en «plan» se cierra lo suyo (2026-10-17)
+
+Munir, ese día: «Una etiqueta pequeña en la cabecera de la terminal: «de: nombre de quien la
+abrió». Lo mínimo», y «que cualquiera pueda cerrar las que abrió ÉL, con su rastro, aunque esté en
+«plan»». Las de otros, no.
+
+- **«de: …»**: Rust manda en el pedido de `open_pane` el panel que presentó el puente del agente
+  (`quien`), y la ventana (`lib/puenteMcp.ts`) apunta en la nueva el título que se ve en la
+  cabecera de ese panel (`tituloDeCabecera` en `lib/supremo.ts`: el nombre sin el prefijo de su
+  proyecto, la misma cuenta que usa la cabecera). Sale tenue a la derecha del título, en la Cabina
+  y en el Lienzo; por debajo de 545 px se va y queda en el globo del título. Solo de este arranque,
+  como los números: el tablero guardado no lo lleva. Una que abre un agente sin panel (Capataz, un
+  encargo programado) no lleva «de:». **No sale en la ventana suelta**, que arma su cabecera con el
+  nombre que viaja en la dirección de la ventana; si hiciera falta, viajaría igual.
+- **El cierre en «plan»**: `close_pane` sale en el `tools/list` de un cliente en «plan»
+  (`mcp_clientes::solo_lo_suyo`), y el servidor la deja pasar solo si esa terminal la abrió la
+  misma conexión o su panel (`es_suya` en `mcp.rs`; `Puente::delegadas` guarda `Madre { panel,
+  conexion }`, y el panel cuenta para cuando el puente se reengancha con otra conexión). Si no, dice
+  quién la abrió. El rastro se pide igual que en «auto». Se lo dicen las `instrucciones` de
+  `initialize` y el texto de Ajustes.
+- **Medido:** `cargo test --lib mcp` (`plan_cierra_lo_que_abrio_y_nada_mas`,
+  `plan_cierra_solo_lo_suyo` y las instrucciones), `pnpm bancos supremo` y
+  `node scripts/laboratorio/de-quien-de-verdad.mjs <carpeta>`: una Adeorq aislada, una madre que
+  abre una hija en la Cabina y otra en el Lienzo con su «de:», el logo y el proyecto sin borde ni
+  fondo, y un Codex en «plan» que cierra la suya y no puede con la de la madre; deja dos fotos de
+  las cabeceras en esa carpeta. NO PROBADO: un Codex o un Gemini de verdad decidiendo solo cerrar
+  las suyas.
+
 ## Orden de construcción
 
 1. **`ADEORQ_PANE_ID`** en el entorno del PTY. Sin esto la suprema no puede

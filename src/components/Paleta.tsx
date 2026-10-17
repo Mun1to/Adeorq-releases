@@ -17,7 +17,8 @@ import { useT } from "../lib/i18n";
 import Espera from "./Espera";
 import { entradasDeLaPaleta, filtrarPaleta, type Entrada } from "../lib/paleta";
 import { listProjects, type Project } from "../lib/pty";
-import { PESTANAS, type View } from "../lib/vistas";
+import { VISTAS, type View } from "../lib/vistas";
+import { leerApagadas, pestanasEncendidas } from "../lib/partes";
 
 interface Props {
   panes: Array<{ id: number; name: string }>;
@@ -134,7 +135,7 @@ export default function Paleta({ panes, delLienzo, irA, abrirProyecto, irATermin
   }, [abierta, modo, raiz, q]);
 
   const entradas = useMemo(
-    () => (abierta && modo === "comandos" ? entradasDeLaPaleta({ pestanas: PESTANAS, proyectos, panes, delLienzo }, t) : []),
+    () => (abierta && modo === "comandos" ? entradasDeLaPaleta({ pestanas: pestanasEncendidas(VISTAS, leerApagadas(), { cabina: panes.length, lienzo: delLienzo.length }), proyectos, panes, delLienzo }, t) : []),
     [abierta, modo, proyectos, panes, delLienzo, t],
   );
   const hallados = useMemo(

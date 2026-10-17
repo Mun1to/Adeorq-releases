@@ -681,6 +681,11 @@ impl Indice {
 /// Para la ventana: las reglas del router, para que `recetar` las tenga delante.
 #[tauri::command(async)]
 pub fn memoria_reglas_router(estado: tauri::State<'_, MemoriaCasa>) -> Vec<ReglaRouter> {
+    // Con la Memoria apagada (`partes.rs`) no se lee: el router sigue igual,
+    // que las reglas afinan la decisión y no la sostienen (`mundo.ts`).
+    if crate::partes::apagada("memoria") {
+        return Vec::new();
+    }
     con_indice(&estado, |i| i.reglas_router())
 }
 

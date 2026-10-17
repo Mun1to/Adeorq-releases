@@ -66,6 +66,8 @@ import AtajosEditor from "./AtajosEditor";
 import AjustesMovil from "./AjustesMovil";
 import AjustesMcp from "./AjustesMcp";
 import AjustesMods from "./AjustesMods";
+import AjustesPartes from "./AjustesPartes";
+import { pestanasEncendidas, type Parte, type TerminalesPorVista } from "../lib/partes";
 import GuideView from "./GuideView";
 import TerminalesAparte from "./TerminalesAparte";
 import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
@@ -122,6 +124,8 @@ interface Props {
   /** Qué pestañas salen arriba y en qué orden. Ver `lib/cabecera.ts`. */
   cabecera: Cabecera;
   onCabecera: (c: Cabecera) => void;
+  /** Las partes que se apagan enteras (`lib/partes.ts`). */
+  partes: { apagadas: Parte[]; cambiar: (a: Parte[]) => void; vivas: TerminalesPorVista };
   onFondo: (ruta: string) => Promise<void>;
   onFondoOpacidad: (n: number) => void;
   onFondoDesenfoque: (n: number) => void;
@@ -359,6 +363,7 @@ export default function SettingsView({
   fondoEncuadre,
   cabecera,
   onCabecera,
+  partes,
   onFondo,
   onFondoOpacidad,
   onFondoDesenfoque,
@@ -665,6 +670,7 @@ export default function SettingsView({
                   que más cambia el día a día: nueve pestañas iguales para todos
                   funcionan el primer día y dejan de funcionar al mes, cuando ya
                   sabes cuáles no vas a abrir nunca (Munir, 2026-08-08). */}
+              <AjustesPartes {...partes} />
               <section className="panel-card">
                 <h2>{t("La cabecera")}</h2>
                 <p className="card-hint">
@@ -673,7 +679,7 @@ export default function SettingsView({
                   )}
                 </p>
                 <ul className="cab-lista">
-                  {paraAjustes(TABS_CABECERA, cabecera).map((tab, i, fila) => {
+                  {paraAjustes(pestanasEncendidas(TABS_CABECERA, partes.apagadas, partes.vivas), cabecera).map((tab, i, fila) => {
                     const fuera = estaOculta(cabecera, tab.key);
                     const fija = tab.key === TAB_FIJA;
                     return (
@@ -685,7 +691,7 @@ export default function SettingsView({
                         {!fuera && (
                           <span className="cab-flechas">
                             <button
-                              className="mini"
+                              className="mini icono"
                               disabled={i === 0}
                               data-tip={t("Subir")}
                               aria-label={t("Subir")}
@@ -694,7 +700,7 @@ export default function SettingsView({
                               <ChevronIcon size={12} up />
                             </button>
                             <button
-                              className="mini"
+                              className="mini icono"
                               disabled={i + 1 >= fila.length || estaOculta(cabecera, fila[i + 1].key)}
                               data-tip={t("Bajar")}
                               aria-label={t("Bajar")}

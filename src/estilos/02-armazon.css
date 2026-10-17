@@ -198,7 +198,12 @@
    2026-10-10 Munir pidió quitarlos en cualquier ancho y el 2026-10-12 pidió
    que volvieran, al quitar «Adeorq» de al lado de Adeo. El nombre lo siguen
    diciendo el globo (`data-tip`) y el `aria-label`. */
+/* Sueltas, sin recuadro en ningún estado (Munir, 2026-10-17: «Estoy ya hasta
+   los cojones de las cárceles y de los recuadros de los iconos y de los
+   textos»): al pasar el ratón cambia el color y la activa lleva una raya de
+   acento debajo, nunca un fondo. La esquina se queda para los mods (`--r-icono`). */
 .tab {
+  position: relative;
   flex: none;
   display: flex;
   align-items: center;
@@ -211,7 +216,7 @@
   font-weight: 550;
   padding: 5px 11px;
   cursor: pointer;
-  transition: background var(--t-rapida) ease, color var(--t-rapida) ease, border-color var(--t-rapida) ease;
+  transition: color var(--t-rapida) ease;
 }
 
 /* El icono manda sobre el texto: es lo que queda cuando el nombre se va. */
@@ -223,54 +228,44 @@
 
 .tab:hover {
   color: var(--text);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
-  border-color: color-mix(in srgb, color-mix(in srgb, var(--accent) 55%, #fff) 20%, transparent);
-  transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-
-.tab:active {
-  transform: translateY(1px);
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.35);
 }
 
 /* La única de la barra que no se puede deshacer. En reposo es una más —no se
    pide atención para algo que casi nunca se pulsa—, pero en cuanto el ratón
    llega se pone rojo: el aviso llega justo antes del clic, que es cuando
-   sirve. */
+   sirve. Solo el color, como las demás. */
 .tab-danger:hover {
   color: color-mix(in srgb, var(--wait) 30%, #fff);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--wait) 26%, transparent),
-    color-mix(in srgb, var(--wait) 14%, transparent)
-  );
-  border-color: color-mix(in srgb, var(--wait) 55%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 3px 10px color-mix(in srgb, var(--wait) 35%, transparent);
 }
 
-/* The active tab reads as pressed-in and lit, not just tinted. */
+/* Dónde estás: el texto en su color pleno y una raya de acento debajo. Era un
+   recuadro tintado con borde y resplandor, la cárcel que Munir ya no quiere;
+   su memoria lo dice así: lo activo de una navegación va con color o
+   subrayado, nunca con fondo. La raya es corta y centrada para que sirva
+   igual con el nombre al lado que con el icono solo (`pestanas`). */
 .tab[data-active="true"] {
   color: var(--text);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 34%, transparent), color-mix(in srgb, var(--accent) 20%, transparent));
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 3px 12px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
+.tab[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 18px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: var(--r-pastilla);
+  background: var(--accent);
+  pointer-events: none;
+}
 
+/* Las cuentas y la marca de «beta», texto suelto en su color (2026-10-17). */
 .tab-count {
   font-size: 10.5px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
-  border-radius: var(--r-chico);
-  padding: 0 5px;
 }
 
 /* La marca de «beta», que vuelve con los nombres. Va en `--ask`, el ámbar con
@@ -280,10 +275,6 @@
    ella. Pequeña y en minúsculas a propósito: tiene que avisar, no gritar por
    encima del nombre de la sección. */
 .tab-beta {
-  padding: 1px 5px;
-  border-radius: var(--r-chico);
-  background: color-mix(in srgb, var(--ask) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ask) 42%, transparent);
   color: var(--ask);
   font-size: 9.5px;
   font-weight: 700;
@@ -543,6 +534,31 @@
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
 }
 
+/* Un `.mini` que es solo un icono (`mini icono`) va suelto: sin superficie ni
+   borde, y al pasar el ratón solo cambia el color. Munir, 2026-10-17: «Estoy ya
+   hasta los cojones de las cárceles y de los recuadros de los iconos y de los
+   textos». Los `.mini` con texto siguen siendo la tecla de la casa hasta que él
+   diga (en agosto se decidió que un botón con texto lleve superficie, porque
+   sobre la foto no parecía un botón). El borde se queda transparente para no
+   mover nada de sitio. */
+.mini.icono,
+.mini.icono:hover,
+.mini.icono:active,
+.mini.icono:disabled:hover {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.mini.icono {
+  position: relative;
+}
+
+.mini.icono:not(:disabled):hover {
+  color: color-mix(in srgb, var(--accent) 35%, var(--text));
+}
+
 /* ATRÁS, EN TODA LA APP, Y UNO SOLO.
    Va SIEMPRE encima de `.mini`, o sea la misma tecla que el resto de acciones,
    con el chevron dibujado y el texto al lado. Lo único suyo es que la flecha se
@@ -785,23 +801,19 @@
   height: 18px;
 }
 
-/* No logo: the initials wear the project's identity colour. */
+/* No logo: the initials wear the project's identity colour. Sueltas, sin la
+   placa tintada ni su borde: Munir eligió soltarlas el 2026-10-17 viendo las
+   dos fotos («Cárceles por decidir», la D). Un logo, igual, sin placa. */
 .pavatar[data-plate="tint"] {
   color: var(--c);
-  background: color-mix(in srgb, var(--c) 20%, transparent);
-  border: 1px solid color-mix(in srgb, var(--c) 34%, transparent);
-}
-
-.pavatar[data-plate="none"] {
-  background: color-mix(in srgb, var(--c) 11%, transparent);
-  border: 1px solid var(--border);
 }
 
 /* A dark mark on a transparent background would vanish into the panel, so it
-   gets a light plate. Measured once per logo, not guessed. */
+   gets a light plate. Measured once per logo, not guessed. Es lo único que se
+   queda de la placa (sin ella ese logo no se ve), y sin borde: relleno y sin
+   filo no es una cárcel. */
 .pavatar[data-plate="light"] {
   background: color-mix(in srgb, var(--claro) 96%, #000);
-  border: 1px solid color-mix(in srgb, var(--claro) 84%, #000);
 }
 
 /* In a named row the photo is the row's cover: full height, flush with the

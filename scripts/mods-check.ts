@@ -188,7 +188,9 @@ caso("sin mods no hay hoja ni línea en el rastro", hojaDeLosMods([]) === "" && 
 
   // Las familias de botones de solo icono, medidas con la interfaz de verdad el
   // 2026-10-12. Si una pierde el nombre, el mod «iconos redondos» de alguien
-  // deja de alcanzarla sin que nada falle.
+  // deja de alcanzarla sin que nada falle. `.usage-cliente` salió el
+  // 2026-10-17 con el Uso viejo (el que elegía programa y cuenta): el Uso de
+  // ahora enseña todas las cuentas a la vez y su único botón es un `.mini`.
   const CON_ICONO = [
     ".tab",
     ".mini",
@@ -198,7 +200,6 @@ caso("sin mods no hay hoja ni línea en el rastro", hojaDeLosMods([]) === "" && 
     ".campana",
     ".cb-tool",
     ".canvas-flow .react-flow__controls-button",
-    ".usage-cliente",
   ];
   for (const selector of CON_ICONO) {
     const limpio = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

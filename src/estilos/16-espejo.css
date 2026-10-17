@@ -6,11 +6,10 @@
 .pane-shadow-toggle {
   position: relative;
 }
+/* Encendido, solo su color: el recuadro cian con resplandor era una cárcel más
+   en la cabecera (2026-10-17). */
 .pane-shadow-toggle.is-active {
-  color: var(--espejo) !important; /* cyan glow when active */
-  background: color-mix(in srgb, var(--espejo) 12%, transparent) !important;
-  border-color: color-mix(in srgb, var(--espejo) 40%, transparent) !important;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--espejo) 25%, transparent);
+  color: var(--espejo) !important;
 }
 .pane-shadow-toggle .shadow-badge {
   position: absolute;

@@ -454,6 +454,18 @@ export function AccountIcon({ size = 17 }: Props) {
   );
 }
 
+/** Perfil: tú dentro de tu círculo. La persona suelta ya es Cuentas, que ahora
+    vive dentro de él. */
+export function ProfileIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="10" r="3" />
+      <path d="M6.6 18.2 a6 6 0 0 1 10.8 0" />
+    </svg>
+  );
+}
+
 /** Guía: un libro abierto. */
 
 /** Comandos: la tecla de comando, que es lo que la pestaña lista. */
@@ -780,6 +792,17 @@ export function SparkIcon({ size = 17 }: Props) {
   );
 }
 
+/** El Uso: un indicador con su aguja, cuánto le queda a cada cuenta. */
+export function GaugeIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M4.2 17a8 8 0 1 1 15.6 0" />
+      <path d="M12 15.5l4.2-5.2" />
+      <circle cx="12" cy="15.5" r="1.3" />
+    </svg>
+  );
+}
+
 /** El rombo de Antigravity. */
 export function DiamondIcon({ size = 17 }: Props) {
   return (
@@ -1063,6 +1086,17 @@ export function MovilIcon({ size = 17 }: Props) {
     <svg {...svg(size)}>
       <rect x="6.6" y="2.6" width="10.8" height="18.8" rx="2.6" />
       <path d="M10.6 18.2h2.8" />
+    </svg>
+  );
+}
+
+/** Compartir: la flecha que sale de la caja. Los tres nudos unidos ya son la
+ *  red (`RedIcon`), así que aquí va la otra forma que todo el mundo conoce. */
+export function CompartirIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 14.5V3.5M8 7.5l4-4 4 4" />
+      <path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5" />
     </svg>
   );
 }

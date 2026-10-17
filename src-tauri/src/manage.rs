@@ -227,6 +227,75 @@ pub fn save_drawing(path: String, bytes: Vec<u8>) -> Result<(), String> {
     std::fs::write(p, bytes).map_err(|e| e.to_string())
 }
 
+/// La tarjeta de uso del Perfil, como imagen o como vídeo, donde el usuario dijo
+/// (`lib/exportarTarjeta.ts`).
+///
+/// Los bytes llegan como cuerpo crudo de la petición y no como argumento, como
+/// en `save_drawing`: un MP4 de diez segundos pesa unos diez megas, y como
+/// `Vec<u8>` viajaría en el JSON como una lista de números cuatro veces más
+/// larga. La ruta va en la cabecera `ruta`, escapada con `encodeURIComponent`,
+/// porque una cabecera solo admite Latin-1 y una carpeta puede llamarse con
+/// cualquier cosa. Si el WebView no tiene el canal crudo (WebKitGTK viejo),
+/// Tauri cae a `postMessage` y el cuerpo llega como lista JSON: también vale.
+#[tauri::command(async)]
+pub fn guardar_tarjeta(request: tauri::ipc::Request<'_>) -> Result<(), String> {
+    let ruta = request
+        .headers()
+        .get("ruta")
+        .and_then(|v| v.to_str().ok())
+        .ok_or("falta la ruta de la tarjeta")?;
+    let ruta = desescapar(ruta)?;
+    match request.body() {
+        tauri::ipc::InvokeBody::Raw(bytes) => escribir_tarjeta(&ruta, bytes),
+        tauri::ipc::InvokeBody::Json(serde_json::Value::Array(lista)) => {
+            let bytes: Option<Vec<u8>> = lista
+                .iter()
+                .map(|n| n.as_u64().and_then(|n| u8::try_from(n).ok()))
+                .collect();
+            escribir_tarjeta(&ruta, &bytes.ok_or("la tarjeta no llegó en bytes")?)
+        }
+        _ => Err("la tarjeta no llegó en bytes".into()),
+    }
+}
+
+/// Comprueba SU extensión, como cada comando que escribe donde le digan.
+fn escribir_tarjeta(ruta: &str, bytes: &[u8]) -> Result<(), String> {
+    let p = Path::new(ruta);
+    if !p.is_absolute() {
+        return Err("ruta no absoluta".into());
+    }
+    let bajo = ruta.to_lowercase();
+    if !bajo.ends_with(".png") && !bajo.ends_with(".mp4") {
+        return Err("la tarjeta se guarda en un .png o un .mp4".into());
+    }
+    if bytes.is_empty() {
+        return Err("la tarjeta llegó vacía".into());
+    }
+    if let Some(dir) = p.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(p, bytes).map_err(|e| e.to_string())
+}
+
+/// Lo contrario de `encodeURIComponent`: los `%XX` vuelven a ser bytes y el
+/// resultado tiene que ser UTF-8.
+fn desescapar(s: &str) -> Result<String, String> {
+    let b = s.as_bytes();
+    let mut bytes = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' {
+            let hex = s.get(i + 1..i + 3).ok_or("ruta mal escapada")?;
+            bytes.push(u8::from_str_radix(hex, 16).map_err(|_| "ruta mal escapada")?);
+            i += 3;
+        } else {
+            bytes.push(b[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8(bytes).map_err(|_| "ruta mal escapada".into())
+}
+
 /// Lee un lienzo exportado. El tope existe porque el archivo lleva dentro las
 /// capturas pegadas en base64: un lienzo con fotos pesa, pero 64 MB ya no es
 /// un lienzo, es otra cosa, y no se carga en memoria para averiguarlo.
@@ -567,6 +636,34 @@ mod tests {
         assert!(transcript_path("with.dot", "x").is_err());
         // What the real folders look like: dots become dashes upstream.
         assert!(transcript_path("C--proyectos-Adeorq", "abc-123").is_ok());
+    }
+
+    /// La ruta de la tarjeta llega escapada con `encodeURIComponent`: una
+    /// carpeta con tildes, eñes o espacios tiene que volver tal cual, y lo que
+    /// no sea un escape bien formado se rechaza en vez de escribir en otro sitio.
+    #[test]
+    fn the_card_path_comes_back_from_its_escape() {
+        // encodeURIComponent("C:\\Users\\Muñi\\Vídeos\\mi tarjeta.mp4")
+        let escapada = "C%3A%5CUsers%5CMu%C3%B1i%5CV%C3%ADdeos%5Cmi%20tarjeta.mp4";
+        assert_eq!(desescapar(escapada).unwrap(), "C:\\Users\\Muñi\\Vídeos\\mi tarjeta.mp4");
+        assert_eq!(desescapar("sin-escapes.png").unwrap(), "sin-escapes.png");
+        assert!(desescapar("corta%4").is_err());
+        assert!(desescapar("mal%zz").is_err());
+        assert!(desescapar("%FF%FE").is_err(), "no es UTF-8");
+    }
+
+    #[test]
+    fn the_card_is_only_written_as_png_or_mp4() {
+        let dir = std::env::temp_dir().join(format!("adeorq-tarjeta-{}", std::process::id()));
+        let png = dir.join("tarjeta.png");
+        let png = png.to_str().unwrap();
+        assert!(escribir_tarjeta(png, b"\x89PNG").is_ok());
+        assert_eq!(std::fs::read(png).unwrap(), b"\x89PNG");
+        assert!(escribir_tarjeta(dir.join("t.MP4").to_str().unwrap(), b"ftyp").is_ok(), "la extensión, sin mirar mayúsculas");
+        assert!(escribir_tarjeta(dir.join("t.exe").to_str().unwrap(), b"MZ").is_err());
+        assert!(escribir_tarjeta("relativa.png", b"x").is_err());
+        assert!(escribir_tarjeta(dir.join("vacia.png").to_str().unwrap(), b"").is_err());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// La galería, contra la carpeta de capturas de verdad.

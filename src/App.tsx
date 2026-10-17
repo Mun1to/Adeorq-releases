@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import Sidebar from "./components/Sidebar";
 import SkillsPanel from "./components/SkillsPanel";
+import UsagePanel from "./components/UsagePanel";
 import ArchivosPanel, { sesionParaArchivos } from "./components/ArchivosPanel";
 import PanelDerecho, { type Cara } from "./components/PanelDerecho";
 import ActividadPanel from "./components/ActividadPanel";
@@ -50,7 +51,8 @@ import { guardarEncuadre, leerEncuadre, type Encuadre } from "./lib/encuadre";
 import { guardarCabecera, leerCabecera, visibles, type Cabecera } from "./lib/cabecera";
 import { CloseIcon, EstadoIcon, MinimizeIcon, UnminimizeIcon, PlusIcon, StreamIcon } from "./components/Icons";
 import IconoPestana from "./components/IconoPestana";
-import { PESTANAS, type View } from "./lib/vistas";
+import { PESTANAS, pestanaDe, type View } from "./lib/vistas";
+import { leerApagadas, pestanasEncendidas, seVe, usePartes, vistaPosible, type TerminalesPorVista } from "./lib/partes";
 import { pendientes, useDecisiones } from "./lib/decisiones";
 import { useBarraQueCabe } from "./lib/barraQueCabe";
 import { STREAM_KEY, useAtajosGlobales } from "./lib/atajosGlobales";
@@ -179,6 +181,7 @@ const DecisionesView = perezoso(() => import("./components/DecisionesView"));
 const MemoriaView = perezoso(() => import("./components/MemoriaView"));
 const RepartoView = perezoso(() => import("./components/RepartoView"));
 const AccountsView = perezoso(() => import("./components/AccountsView"));
+const PerfilView = perezoso(() => import("./components/PerfilView"));
 
 /** Los colores de las cuadrillas, en orden. Se van rotando para que dos
     equipos abiertos a la vez no se confundan entre sí. */
@@ -227,7 +230,12 @@ function App() {
       grupos. Sin encadenar las escrituras, la segunda podía leer el estado de
       antes de que la primera terminara de guardar y se perdía una de las dos. */
   const uiStateChain = useRef(Promise.resolve());
-  const [view, setView] = useState<View>("panel");
+  const [view, setVistaCruda] = useState<View>("panel");
+  // Las partes apagadas (`lib/partes.ts`): una pestaña suya no se abre, se va
+  // a la que la sustituye, venga de donde venga la orden.
+  const [apagadas, cambiarPartes] = usePartes();
+  const vivasRef = useRef<TerminalesPorVista>({ cabina: 0, lienzo: 0 });
+  const setView = useCallback((v: View) => setVistaCruda(vistaPosible(v, leerApagadas(), vivasRef.current)), []);
   /** La vista de ahora, para quien la necesita sin querer volver a crearse cada
    *  vez que cambias de pestaña. La lee `addPane` para saber dónde estás. */
   const viewRef = useRef<View>("panel");
@@ -401,6 +409,10 @@ function App() {
       Flow, que se escribe una vez al crearlo y no se vuelve a tocar. */
   const canvasPanesRef = useRef<CanvasPane[]>([]);
   canvasPanesRef.current = canvasPanes;
+  const vivas = { cabina: panes.length, lienzo: canvasPanes.length };
+  vivasRef.current = vivas;
+  // Si la vista de ahora deja de existir (se apagó, o cerró su última terminal), a la que la sustituye.
+  useEffect(() => setVistaCruda((v) => vistaPosible(v, apagadas, vivasRef.current)), [apagadas, panes.length, canvasPanes.length]);
   const [showForeman, setShowForeman] = useState(false);
   /** Cierto cuando quien abre el Asistente es el atajo del dictado: nace
       grabando. Se apaga al cerrarlo, para que la siguiente vez que lo abras a
@@ -875,8 +887,9 @@ function App() {
       envOverride?: Record<string, string>,
       /** `quieto`: abrirla sin moverte de donde estás. Lo usa el conserje del
           chat, que abre sesiones de trabajo mientras hablas con él: llevarte a
-          la Cabina en cada una sería sacarte de la conversación que las pidió. */
-      opciones?: { quieto?: boolean },
+          la Cabina en cada una sería sacarte de la conversación que las pidió.
+          `abiertaPor`: la sesión que la pidió por el MCP (`lib/puenteMcp.ts`). */
+      opciones?: { quieto?: boolean; abiertaPor?: string },
     ) => {
       const id = nextId.current++;
       const inferido = entornoDePane(command, account);
@@ -895,17 +908,19 @@ function App() {
          · `team` es un puesto de cuadrilla, y el tablero que las agrupa y las
            cuenta vive en la cabina. Abrir media cuadrilla en cada vista sería
            partirla por donde nadie la puede ver entera. */
-      if (viewRef.current === "lienzo" && !at && !team) {
+      // Con la Cabina apagada, todo al lienzo (también una cuadrilla, suelta).
+      if ((viewRef.current === "lienzo" && !at && !team) || !seVe("cabina", leerApagadas(), vivasRef.current)) {
         setCanvasPanes((prev) => [
           ...prev,
-          { id, cwd, name, command, env, account: etiqueta },
+          { id, cwd, name, command, env, account: etiqueta, abiertaPor: opciones?.abiertaPor },
         ]);
+        if (!opciones?.quieto) setView("lienzo");
         return { id, donde: "lienzo" as const };
       }
 
       setPanes((prev) => [
         ...prev,
-        { id, cwd, name, command, env, account: etiqueta, team, shadow, grupo },
+        { id, cwd, name, command, env, account: etiqueta, team, shadow, grupo, abiertaPor: opciones?.abiertaPor },
       ]);
       setCols((prev) => layoutAdd(prev, id, () => nextCol.current++, at));
       if (!opciones?.quieto) {
@@ -2265,6 +2280,7 @@ function App() {
     panes,
     cols,
     restoreOnStart,
+    cabinaApagada: apagadas.includes("cabina"),
     setPanes,
     setCols,
     setRestoring,
@@ -2610,7 +2626,7 @@ function App() {
   // Las que él quiere ver, en el orden que él ha puesto. Apagar una la quita de
   // la fila pero NO de la app: su atajo de teclado sigue abriéndola, y los
   // botones de otras pantallas que llevan a ella también. Ver `lib/cabecera.ts`.
-  const tabsVisibles = visibles(PESTANAS, cabecera);
+  const tabsVisibles = visibles(pestanasEncendidas(PESTANAS, apagadas, vivas), cabecera);
   // Lo que cuenta cada pestaña: en la de Decisiones, las que te esperan.
   const cuentaDe: Partial<Record<View, number>> = {
     cabina: panes.length,
@@ -2726,7 +2742,7 @@ function App() {
               // clase o una posición se mueven al rediseñar la barra, la clave
               // de la vista no.
               data-tab={tab.key}
-              data-active={view === tab.key}
+              data-active={pestanaDe(view) === tab.key}
               // El nombre va escrito mientras la barra cabe (`tab-label`); cuando
               // se queda en el icono, lo dicen el globo y el lector de pantalla.
               aria-label={t(tab.label)}
@@ -3026,6 +3042,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     command={p.command}
                     env={p.env}
                     account={p.account}
+                    abiertaPor={p.abiertaPor}
                     team={p.team}
                     shadow={p.shadow}
                     espejo={p.espejo}
@@ -3256,13 +3273,9 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onCara={cambiarCara}
           onWeb={abrirWeb}
           skills={
-            <SkillsPanel
-              canPaste={focusedId != null}
-              onUse={pasteToFocused}
-              onUsage={focusedId != null ? askUsage : null}
-              cuentas={cuentasDeUso}
-            />
+            <SkillsPanel canPaste={focusedId != null} onUse={pasteToFocused} />
           }
+          uso={<UsagePanel onUsage={focusedId != null ? askUsage : null} cuentas={cuentasDeUso} />}
           archivos={
             <ArchivosPanel
               raiz={raizArchivos}
@@ -3288,8 +3301,9 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           })()}
         />
 
-      {/* Mounted always, hidden with CSS: unmounting it would kill its PTYs. */}
-      <div
+      {/* Mounted always, hidden with CSS: unmounting it would kill its PTYs.
+          Salvo con el Lienzo apagado y sin terminales (`lib/partes.ts`). */}
+      {seVe("lienzo", apagadas, vivas) && (<div
         className="view-lienzo"
         style={{ display: view === "lienzo" ? "flex" : "none" }}
       >
@@ -3332,7 +3346,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           // terminales. Ver `docs/SUPREMA.md`.
           enlazarRef={enlazarRef}
         />
-      </div>
+      </div>)}
       </div>
 
       {view === "panel" && (
@@ -3369,6 +3383,8 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
         />
       )}
       {view === "decisiones" && <DecisionesView decisiones={decisiones} />}
+      {/* El Perfil, y la vuelta a él encima de sus cuatro secciones, que siguen aquí debajo tal cual. */}
+      {pestanaDe(view) === "perfil" && <PerfilView vista={view} irA={setView} cuentas={cuentasDeUso} apagadas={apagadas} />}
       {view === "agenda" && (
         <AgendaView
           current={focusProject}
@@ -3449,13 +3465,10 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           }
         />
       )}
-      {view === "comandos" && (
-        <CommandsView
-          onUse={focusedId != null ? (cmd) => pasteToFocused(cmd) : null}
-        />
-      )}
+      {view === "comandos" && <CommandsView onUse={focusedId != null ? (cmd) => pasteToFocused(cmd) : null} />}
       {view === "ajustes" && (
         <SettingsView
+          partes={{ apagadas, cambiar: cambiarPartes, vivas }}
           lang={lang}
           onLang={setLang}
           theme={theme}
@@ -3594,6 +3607,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
 
       {onboarding && (
         <Onboarding
+          onPartes={cambiarPartes}
           lang={lang}
           theme={theme}
           onLang={setLang}

@@ -288,9 +288,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 11px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-pastilla);
+  padding: 7px 6px;
+  border: none;
   background: none;
   color: var(--muted);
   font-size: 12px;
@@ -299,13 +298,11 @@
 
 .fm-auto:hover {
   color: var(--text);
-  border-color: var(--accent);
 }
 
+/* Encendido se dice con el color de acento, sin la pastilla de antes (2026-10-17). */
 .fm-auto[data-on="true"] {
   color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 /* El recibo de lo que hizo el automático. Va en verde de «hecho», no en ámbar

@@ -1,21 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { listSkills, type Account, type Skill } from "../lib/pty";
+import { listSkills, type Skill } from "../lib/pty";
 import { useT } from "../lib/i18n";
-import UsagePanel from "./UsagePanel";
 
 interface Props {
   canPaste: boolean;
   onUse: (text: string) => void;
-  /** Types /usage into the focused pane; null when there is none. */
-  onUsage: (() => void) | null;
-  /** Las cuentas de Claude, para poder ver el gasto de cada una. */
-  cuentas: Account[];
   /** Qué se hace con una skill AQUÍ. En la Cabina se suelta sobre una terminal;
       en el Chat no hay ninguna que soltar, así que la frase de siempre mentiría. */
   pista?: string;
 }
 
-export default function SkillsPanel({ canPaste, onUse, onUsage, cuentas, pista }: Props) {
+export default function SkillsPanel({ canPaste, onUse, pista }: Props) {
   const { t } = useT();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [q, setQ] = useState("");
@@ -50,12 +45,10 @@ export default function SkillsPanel({ canPaste, onUse, onUsage, cuentas, pista }
         value={q}
         onChange={(e) => setQ(e.currentTarget.value)}
       />
-      {/* Solo el NOMBRE, y lo demás al pasar el ratón (Munir, 2026-08-24).
-          Cada skill ocupaba tres renglones porque llevaba dos líneas de
-          descripción debajo, así que en una columna de 270 px cabían seis de
-          las que tiene: la lista era un scroll de párrafos donde buscar un
-          nombre. Ahora cabe entera de un vistazo, que es para lo que existe una
-          lista, y la descripción sigue estando a un gesto. */}
+      {/* El nombre y una sola línea de lo que hace (2026-10-17, «B1»); entera,
+          al pasar el ratón. El 2026-08-24 se quedó en el nombre solo porque con
+          dos líneas cabían seis en la columna; ahora el Uso tiene su pestaña y
+          esta lista, el panel entero. */}
       <div className="skills-list">
         {shown.map((s) => (
           <div
@@ -83,13 +76,13 @@ export default function SkillsPanel({ canPaste, onUse, onUsage, cuentas, pista }
             data-disabled={!canPaste}
           >
             <span className="skill-name">{s.invocation}</span>
+            {s.description && <span className="skill-desc">{s.description}</span>}
           </div>
         ))}
         {shown.length === 0 && (
           <p className="skills-hint">{t("Sin skills en ~/.claude/skills")}</p>
         )}
       </div>
-      <UsagePanel onUsage={onUsage} cuentas={cuentas} />
     </>
   );
 }

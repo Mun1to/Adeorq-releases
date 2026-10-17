@@ -136,8 +136,7 @@
   visibility: visible;
 }
 
-.sess-bin:hover,
-.pane-bin:hover {
+.sess-bin:hover {
   color: var(--mal);
   background: color-mix(in srgb, var(--mal) 18%, transparent);
   border-color: color-mix(in srgb, var(--mal) 50%, transparent);
@@ -570,9 +569,10 @@
   border-radius: 4px var(--r-btn) var(--r-btn) 4px;
 }
 
+/* Encendido, en su color: el fondo tintado de antes era una cárcel (2026-10-17;
+   la raya de la vista elegida va más abajo). */
 .side-label .mini[data-active="true"] {
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 /* The two ways to read the rail, as one segmented pair. */
@@ -592,23 +592,32 @@
   min-width: 0;
 }
 
-/* The chosen mode is filled, not merely outlined: two thin borders side by side
-   is a difference you have to look for. */
-.side-label .rail-tab[data-active="true"] {
-  color: var(--on-accent);
+/* La vista elegida, como lo activo de cualquier navegación: su color de acento
+   y una raya corta debajo. Iba rellena de acento, y un icono metido en su
+   recuadro es justo la cárcel que Munir ya no quiere (2026-10-17). El archivo
+   de sesiones archivadas, cuando se están enseñando, igual. */
+.side-label .rail-tab[data-active="true"],
+.rail-tabs .mini.icono[data-active="true"] {
+  color: var(--accent);
+}
+
+.side-label .rail-tab[data-active="true"]::after,
+.rail-tabs .mini.icono[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  width: 14px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: var(--r-pastilla);
   background: var(--accent);
-  border-color: var(--accent);
+  pointer-events: none;
 }
 
-.side-label .rail-tab[data-active="true"]:hover {
-  background: color-mix(in srgb, var(--accent) 88%, #fff);
-  border-color: color-mix(in srgb, var(--accent) 88%, #fff);
-}
-
-/* The one that starts something new wears the accent as its outline. */
+/* The one that starts something new wears the accent. */
 .rail-new {
   color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
 }
 
 /* Floating session menu (fixed position, escapes the sidebar scroll) */

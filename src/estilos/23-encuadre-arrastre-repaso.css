@@ -422,6 +422,22 @@
   min-width: 0;
 }
 
+/* Las partes de Adeorq (`AjustesPartes`): la misma lista, con lo que es cada
+   una debajo de su nombre y, si hace falta, por qué todavía se ve. */
+.parte-fila .cab-nombre {
+  display: grid;
+  gap: 1px;
+}
+
+.parte-fila .cab-nombre small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.parte-fila .cab-nombre .parte-aviso {
+  color: var(--warn);
+}
+
 .cab-flechas {
   display: flex;
   gap: 3px;
@@ -460,7 +476,8 @@
      `--panel-solid` deja el mismo aspecto y el elemento opaco. */
   background: linear-gradient(var(--pane-bg), var(--pane-bg)), var(--panel-solid);
   color: var(--text);
-  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  /* Sin borde: el fondo de terminal es lo que imita, el filo sobraba (Munir,
+     2026-10-17, la F de «Cárceles por decidir»). */
   border-radius: var(--r-btn);
   padding: 12px 14px;
   margin: 12px 0 2px;

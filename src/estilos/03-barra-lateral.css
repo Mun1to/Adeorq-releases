@@ -21,11 +21,12 @@
   border: none;
 }
 
-/* El contador es un dato que miras cuando lo buscas: se queda suave. Un poco
-   más de fondo que antes, porque sin el marco es lo único que le da cuerpo. */
+/* El contador es un dato que miras cuando lo buscas: se queda suave. Ahora
+   también sin el fondo: el número suelto en su color (Munir, 2026-10-17, la E de
+   «Cárceles por decidir», viendo las dos fotos; cambia lo que eligió el
+   2026-08-19). */
 .badge-count {
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 /* Y este es el único que tiene que encontrarte a ti, así que va relleno del
@@ -419,23 +420,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--row);
+  background: none;
   border: 1px solid transparent;
   border-radius: var(--r-avatar, var(--r-caja));
   cursor: pointer;
-  transition:
-    background var(--t-rapida) ease,
-    border-color var(--t-rapida) ease,
-    transform var(--t-rapida) ease,
-    box-shadow var(--t-rapida) ease;
+  transition: filter var(--t-rapida) ease;
 }
 
-.project-logo:hover,
-.project-logo[data-active="true"] {
-  background: var(--row-hover);
-  border-color: color-mix(in srgb, var(--c) 50%, transparent);
-  transform: translateY(-1px);
-  box-shadow: var(--sombra-2);
+/* El logo, suelto (Munir, 2026-10-17, la D de «Cárceles por decidir»): al
+   pasar se aviva y el abierto lleva una raya de su color debajo, sin la
+   tarjeta que se levantaba con borde y sombra. */
+.project-logo:hover {
+  filter: brightness(1.15);
+}
+
+.project-logo[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 16px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: var(--r-pastilla);
+  background: var(--c, var(--accent));
+  pointer-events: none;
 }
 
 .pavatar.pavatar-xl {

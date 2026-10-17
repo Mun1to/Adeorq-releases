@@ -106,6 +106,20 @@ pub fn permite(nivel: Nivel, herramienta: &str) -> bool {
     escalon_de(herramienta).is_some_and(|minimo| minimo <= nivel)
 }
 
+/// Lo que un escalón puede hacer SOLO sobre las terminales que abrió él.
+/// Munir, 2026-10-17: «que cualquiera pueda cerrar las que abrió ÉL, con su
+/// rastro, aunque esté en plan»; las de otros, no. Sin esto un Codex en «plan»
+/// abría y dejaba la limpieza a Munir. Cuáles son suyas lo decide `mcp.rs`
+/// (`es_suya`), que es quien sabe qué conexión abrió cada una.
+pub fn solo_lo_suyo(nivel: Nivel, herramienta: &str) -> bool {
+    nivel == Nivel::Plan && herramienta == "close_pane"
+}
+
+/// Si la herramienta sale en su `tools/list`: entera o solo para lo suyo.
+pub fn la_ve(nivel: Nivel, herramienta: &str) -> bool {
+    permite(nivel, herramienta) || solo_lo_suyo(nivel, herramienta)
+}
+
 /// El escalón de un cliente que no está en la lista de Ajustes.
 pub fn nivel_de_fabrica(nombre: &str) -> Nivel {
     if nombre.to_ascii_lowercase().contains("claude") {
@@ -125,7 +139,7 @@ pub fn nivel_de(c: &Clientes, nombre: &str) -> Nivel {
 pub fn mensaje_denegado(nombre: &str, nivel: Nivel, herramienta: &str) -> String {
     let que = match nivel {
         Nivel::Mirar => "solo puede mirar (proyectos, paneles, transcripts, memoria)",
-        Nivel::Plan => "puede mirar y abrir o enlazar terminales, pero no escribir en una que ya está trabajando, ni mandarle teclas, ni cerrarla",
+        Nivel::Plan => "puede mirar, abrir o enlazar terminales y cerrar las que abrió él, pero no escribir en una que ya está trabajando, ni mandarle teclas, ni cerrar las de otros",
         Nivel::Auto => "puede hacerlo todo",
     };
     format!(
@@ -264,6 +278,19 @@ mod tests {
         assert!(!permite(Nivel::Plan, "close_pane"));
         assert!(permite(Nivel::Auto, "send_command"));
         assert!(!permite(Nivel::Auto, "inventada"), "lo desconocido no pasa ni en auto");
+    }
+
+    /// En «plan» se ve `close_pane`, pero solo para lo suyo; en «mirar» no hay
+    /// nada suyo que cerrar, y nada más se cuela por esta puerta.
+    #[test]
+    fn plan_cierra_solo_lo_suyo() {
+        assert!(solo_lo_suyo(Nivel::Plan, "close_pane"));
+        assert!(la_ve(Nivel::Plan, "close_pane"));
+        assert!(!la_ve(Nivel::Mirar, "close_pane"));
+        assert!(!solo_lo_suyo(Nivel::Auto, "close_pane"), "en auto cierra cualquiera, no hace falta mirar de quién es");
+        for otra in ["send_command", "send_keys", "inventada"] {
+            assert!(!la_ve(Nivel::Plan, otra), "{otra}");
+        }
     }
 
     #[test]

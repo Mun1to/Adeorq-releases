@@ -748,12 +748,13 @@ body[data-redim] .divider {
   text-transform: uppercase;
 }
 
+/* Las flechas de mes, sueltas: al pasar, solo el color (2026-10-17). */
 .ag-cal-mover {
   width: 26px;
   height: 26px;
-  border: 1px solid var(--stroke);
+  border: none;
   border-radius: var(--r-chico);
-  background: rgba(255, 255, 255, 0.05);
+  background: none;
   color: var(--dim);
   font: inherit;
   font-size: 15px;
@@ -762,7 +763,6 @@ body[data-redim] .divider {
 }
 
 .ag-cal-mover:hover {
-  background: rgba(255, 255, 255, 0.1);
   color: var(--text);
 }
 

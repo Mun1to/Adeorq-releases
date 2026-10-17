@@ -3,7 +3,7 @@
   "private": true,
   "author": "Munir Torres Athayde",
   "license": "SEE LICENSE IN LICENSE",
-  "version": "0.9.218",
+  "version": "0.9.219",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -63,6 +63,7 @@
     "@xyflow/react": "^12.11.2",
     "dompurify": "^3.4.13",
     "marked": "^18.0.7",
+    "mediabunny": "^1.61.5",
     "perfect-freehand": "^1.2.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

@@ -34,18 +34,14 @@
   background: var(--topbar);
 }
 
+/* Un grupo de la barra se lee como grupo por el hueco y las rayas (`.cb-div`),
+   no por un recuadro: lo llevaba, con borde y luz arriba, y el detector de
+   cárceles lo caza (Munir, 2026-10-17: «Estoy ya hasta los cojones de las
+   cárceles y de los recuadros de los iconos y de los textos»). */
 .cb-group {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 3px;
-  border: 1px solid color-mix(in srgb, var(--text) 9%, transparent);
-  border-radius: var(--r-btn);
-  /* El grupo tiene que leerse COMO grupo sobre la barra, y la barra ya es
-     translúcida: con el color del panel a secas quedaba invisible. El relieve
-     lo dan el borde y la luz de arriba, no un fondo más oscuro. */
-  background: color-mix(in srgb, var(--pane-bg) 85%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
 }
 
 .cb-div {
@@ -81,12 +77,12 @@
   font-weight: 650;
   font-family: inherit;
   cursor: pointer;
-  transition: background var(--t-rapida) ease;
+  transition: color var(--t-rapida) ease;
 }
 
 .cb-proj:hover,
 .cb-proj[data-open="true"] {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
 }
 
 .cb-proj-name {
@@ -201,7 +197,6 @@
 
 .cb-spawn:hover:not(:disabled),
 .cb-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--text);
 }
 
@@ -217,7 +212,8 @@
     color-mix(in srgb, var(--accent) 80%, white 20%),
     color-mix(in srgb, var(--accent) 80%, black 20%)
   );
-  border-color: color-mix(in srgb, var(--accent) 55%, white 45%);
+  /* Relleno y sin filo: el que manda, no una cárcel (ver `.np-btn`). */
+  border-color: transparent;
   color: color-mix(in srgb, var(--claro) 70%, #fff);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
@@ -234,19 +230,16 @@
   color: color-mix(in srgb, var(--claro) 70%, #fff);
 }
 
-/* Los tres lienzos: un selector de tres, no tres botones sueltos.
-   Van dentro de una misma pastilla hundida y solo uno está encendido, que es la
-   forma de decir «elige uno» sin escribirlo. Si fueran tres botones normales se
-   leerían como tres acciones que se pueden pulsar a la vez, y no lo son. */
+/* Los tres lienzos: un selector de tres, no tres botones sueltos. Solo uno está
+   encendido, y se dice como en cualquier navegación: en su color pleno y
+   subrayado de acento. Iban en una pastilla hundida con el elegido relleno, la
+   cárcel que Munir ya no quiere (2026-10-17). */
 .cb-modos {
   gap: 2px;
-  padding: 2px;
-  border-radius: var(--r-btn);
-  background: color-mix(in srgb, var(--text) 7%, transparent);
 }
 
 .cb-modo {
-  padding: 5px 11px;
+  padding: 5px 8px;
   border: 0;
   border-radius: var(--r-btn);
   background: none;
@@ -256,7 +249,7 @@
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
+  transition: color var(--t-rapida) ease;
 }
 
 .cb-modo:hover {
@@ -265,11 +258,8 @@
 
 .cb-modo[data-on="true"] {
   color: var(--text);
-  /* Sólido y no un tinte con alfa: es la pastilla que va encima de otra
-     superficie ya translúcida, y ahí el texto pierde el suavizado de Windows
-     (ver la regla de `.session-row`). */
-  background: linear-gradient(var(--row), var(--row)), var(--panel-solid);
-  box-shadow: none;
+  text-decoration: underline var(--accent) 2px;
+  text-underline-offset: 5px;
 }
 
 .cb-tool {
@@ -285,20 +275,31 @@
   font-size: 14px;
   font-family: inherit;
   cursor: pointer;
-  transition:
-    background var(--t-rapida) ease,
-    color var(--t-rapida) ease;
+  position: relative;
+  transition: color var(--t-rapida) ease;
 }
 
+/* Sueltas: al pasar, el color; la puesta, el acento y una raya corta debajo,
+   como las pestañas de arriba (2026-10-17). */
 .cb-tool:hover {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--text);
 }
 
 .cb-tool[data-on="true"] {
-  background: color-mix(in srgb, var(--accent) 26%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  color: var(--claro);
+  color: var(--accent);
+}
+
+.cb-tool[data-on="true"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  width: 12px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: var(--r-pastilla);
+  background: var(--accent);
+  pointer-events: none;
 }
 
 /* Segunda fila: color y grosor solo existen mientras hay una herramienta

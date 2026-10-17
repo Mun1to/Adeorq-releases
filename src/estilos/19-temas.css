@@ -70,16 +70,16 @@
   border-radius: var(--r-pastilla);
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
+  transition: color var(--t-rapida) ease;
 }
+/* Filtros, o sea navegación: en texto, el elegido subrayado (2026-10-17). */
 .tema-tab:hover {
   color: var(--text);
-  background: var(--row);
 }
 .tema-tab[data-on="true"] {
   color: var(--text);
-  background: var(--row-hover);
-  border-color: var(--border);
+  text-decoration: underline var(--accent) 2px;
+  text-underline-offset: 5px;
 }
 
 .tema-buscar {
@@ -88,13 +88,13 @@
   gap: 8px;
   padding: 0 11px;
   margin-bottom: 14px;
-  border-radius: var(--r-btn);
-  background: var(--row);
-  border: 1px solid var(--border);
+  /* Una raya debajo y nada más: sin la caja de antes (Munir, 2026-10-17, la F
+     de «Cárceles por decidir»). Escribiendo, la raya va en acento. */
+  border-bottom: 1px solid var(--border);
   color: var(--muted);
 }
 .tema-buscar:focus-within {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-bottom-color: var(--accent);
 }
 .tema-buscar input {
   flex: 1;

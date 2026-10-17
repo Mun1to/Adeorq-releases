@@ -607,7 +607,7 @@ export default function AccountsView({
             </button>
           )}
           <button
-            className="mini"
+            className="mini icono"
             disabled={busy}
             data-tip={t("Buscar otra vez qué hay instalado y releer los límites (no gasta cuota)")}
             onClick={detectar}

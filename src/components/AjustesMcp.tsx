@@ -31,7 +31,7 @@ export default function AjustesMcp() {
       <h2>{t("Qué puede hacer cada cliente por el MCP")}</h2>
       <p className="card-hint">
         {t(
-          "Cada programa que se conecta al MCP de Adeorq (Codex, Gemini, Kimi, un Claude Code tuyo…) tiene su escalón, los mismos tres del Capataz. De fábrica, plan: puede mirar y abrir terminales, nunca escribir en una que ya está trabajando. Claude Code nace en auto porque es lo que ya hace hoy. El Capataz y el conserje no cuentan: llevan su propio recorte.",
+          "Cada programa que se conecta al MCP de Adeorq (Codex, Gemini, Kimi, un Claude Code tuyo…) tiene su escalón, los mismos tres del Capataz. De fábrica, plan: puede mirar, abrir terminales y cerrar las que abrió él, nunca escribir en una que ya está trabajando. Claude Code nace en auto porque es lo que ya hace hoy. El Capataz y el conserje no cuentan: llevan su propio recorte.",
         )}
       </p>
       {error && <p className="card-hint">{error}</p>}

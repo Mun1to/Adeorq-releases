@@ -133,7 +133,10 @@ fs.rmSync(casa, { recursive: true, force: true });
   ok("la hoja de la app trae sus tramos y ningún @import suyo por resolver",
     lineas(hoja) > 20000 && !/^@import\s+["']\.\//m.test(hoja), `${lineas(hoja)} líneas`);
   // El final es el del ÚLTIMO tramo: al añadir uno detrás, esto se mueve con él.
-  ok("y va de la escala de esquinas al último tramo, el enjambre", hoja.includes("--r-pastilla: 999px;") && hoja.slice(-3000).includes(".enj-diana"));
+  // Se mira el ORDEN de los tres últimos y no los últimos 3.000 caracteres: el
+  // último tramo, el de tu uso del Perfil, lo está llenando otra sesión.
+  const fin = ["enj-diana", ".perfil-volver-aqui", "Tu uso dentro del Perfil"].map((s) => hoja.lastIndexOf(s));
+  ok("y va de la escala de esquinas al último tramo, tu uso del Perfil", hoja.includes("--r-pastilla: 999px;") && fin[0] > 0 && fin[0] < fin[1] && fin[1] < fin[2], fin.join(" < "));
 }
 
 console.log(fallos ? `\n${fallos} FALLAN.` : "\nTODO BIEN.");

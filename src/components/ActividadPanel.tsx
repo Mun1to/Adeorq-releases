@@ -172,12 +172,15 @@ export default function ActividadPanel({ cwd, sessionId, nombre }: Props) {
           modelo, con lo que llevó y lo que trajo. Los totales son de la cola
           leída del transcript, no de la sesión entera desde su primer día. */}
       <div className="act-tit">{t("Llamadas al modelo")}</div>
+      {/* Con palabras y no «4 · 7.3k · 716» (Munir, 2026-10-17, «B1»). El total
+          de entrada no cuenta lo leído de caché (`entrada_total` en sessions.rs):
+          son tokens NUEVOS; cada llamada, en cambio, dice todo lo que leyó. */}
       <div className="act-totales">
-        {act.totalLlamadas}
-        {" · "}
-        {t("entrada")} {tok(act.entradaTotal)}
-        {" · "}
-        {t("salida")} {tok(act.salidaTotal)}
+        {t("{n} llamadas · {e} nuevos · {s} escritos", {
+          n: act.totalLlamadas,
+          e: tok(act.entradaTotal),
+          s: tok(act.salidaTotal),
+        })}
       </div>
       {llamadas.length === 0 ? (
         <p className="act-nada">{t("Sin llamadas en la cola leída.")}</p>
@@ -188,9 +191,15 @@ export default function ActividadPanel({ cwd, sessionId, nombre }: Props) {
               <span className="act-nom">{ll.modelo || "?"}</span>
               <span
                 className="act-det"
-                data-tip={t("entrada · caché leída · salida, en tokens")}
+                data-tip={t("leídos: {n} nuevos, {c} de caché", {
+                  n: tok(ll.entrada + ll.cacheEscrita),
+                  c: tok(ll.cacheLeida),
+                })}
               >
-                {tok(ll.entrada + ll.cacheEscrita)} · {tok(ll.cacheLeida)} · {tok(ll.salida)}
+                {t("{e} leídos · {s} escritos", {
+                  e: tok(ll.entrada + ll.cacheEscrita + ll.cacheLeida),
+                  s: tok(ll.salida),
+                })}
               </span>
               <span className="act-hace">{hace(ll.hora, t)}</span>
             </div>

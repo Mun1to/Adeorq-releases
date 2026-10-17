@@ -13,10 +13,10 @@
 //    gesto, así que no hace falta una ✕ aparte que compita con los iconos.
 
 import { useT } from "../lib/i18n";
-import { BoltIcon, BrowserIcon, FolderIcon, SparkIcon } from "./Icons";
+import { BoltIcon, BrowserIcon, FolderIcon, GaugeIcon, SparkIcon } from "./Icons";
 
 /** Qué panel se está viendo. Vacío es «ninguno, solo la franja». */
-export type Cara = "" | "skills" | "archivos" | "actividad";
+export type Cara = "" | "uso" | "skills" | "archivos" | "actividad";
 
 interface Props {
   cara: Cara;
@@ -25,6 +25,9 @@ interface Props {
       necesita cosas distintas (las cuentas, la carpeta del proyecto) y este
       componente no tiene por qué conocerlas. */
   skills: React.ReactNode;
+  /** Cuánto le queda a cada cuenta: su propia cara desde el 2026-10-17 («A1»);
+      antes vivía al fondo de Skills, que no tiene nada que ver. */
+  uso: React.ReactNode;
   archivos: React.ReactNode;
   /** Lo que pasa por detrás de la terminal enfocada: skills, MCP,
       herramientas y llamadas al modelo (Munir, 2026-08-17). */
@@ -37,7 +40,8 @@ interface Props {
 }
 
 const CARAS: Array<{ id: Exclude<Cara, "">; titulo: string; icono: React.ReactNode }> = [
-  { id: "skills", titulo: "Skills · Uso", icono: <SparkIcon size={16} /> },
+  { id: "uso", titulo: "Uso", icono: <GaugeIcon size={16} /> },
+  { id: "skills", titulo: "Skills", icono: <SparkIcon size={16} /> },
   { id: "actividad", titulo: "Actividad", icono: <BoltIcon size={16} /> },
   { id: "archivos", titulo: "Archivos", icono: <FolderIcon size={16} /> },
 ];
@@ -46,6 +50,7 @@ export default function PanelDerecho({
   cara,
   onCara,
   skills,
+  uso,
   archivos,
   actividad,
   onWeb,
@@ -73,7 +78,7 @@ export default function PanelDerecho({
             </span>
           </div>
           <div className="lateral-cuerpo">
-            {cara === "skills" ? skills : cara === "actividad" ? actividad : archivos}
+            {cara === "uso" ? uso : cara === "skills" ? skills : cara === "actividad" ? actividad : archivos}
           </div>
         </aside>
       )}

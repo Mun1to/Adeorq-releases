@@ -2804,7 +2804,7 @@ export default function Sidebar({
         // que abre cada logo al pasarle el ratón por encima.
         <div className="rail-mini">
           <button
-            className="mini rail-new"
+            className="mini icono rail-new"
             data-tip={t("Abrir una sesión: eliges carpeta y herramienta")}
             onClick={onNewSession}
           >
@@ -2902,7 +2902,7 @@ export default function Sidebar({
         <span>{t("Workspaces")}</span>
         <span className="rail-tabs">
           <button
-            className="mini rail-new"
+            className="mini icono rail-new"
             data-tip={t("Abrir una sesión: eliges carpeta y herramienta")}
             onClick={onNewSession}
           >
@@ -2910,7 +2910,7 @@ export default function Sidebar({
           </button>
           {/* Two ways to read the same rail: marks, or marks with their names. */}
           <button
-            className="mini rail-tab"
+            className="mini icono rail-tab"
             data-active={rail === "logo"}
             data-tip={t("Solo los logos, en grande")}
             onClick={() => setRail("logo")}
@@ -2918,7 +2918,7 @@ export default function Sidebar({
             <GridIcon />
           </button>
           <button
-            className="mini rail-tab"
+            className="mini icono rail-tab"
             data-active={rail === "full"}
             data-tip={t("Logo y nombre")}
             onClick={() => setRail("full")}
@@ -2926,7 +2926,7 @@ export default function Sidebar({
             <RowsIcon />
           </button>
           <button
-            className="mini rail-tab"
+            className="mini icono rail-tab"
             data-tip={t("Encogerla del todo: solo los logos, en una tira")}
             onClick={() => setRail("tira")}
           >
@@ -2934,7 +2934,7 @@ export default function Sidebar({
           </button>
           {archivedTotal > 0 && (
             <button
-              className="mini"
+              className="mini icono"
               data-active={showArchived}
               data-tip={
                 showArchived
@@ -2947,7 +2947,7 @@ export default function Sidebar({
               {archivedTotal}
             </button>
           )}
-          <button className="mini" onClick={refresh} data-tip={t("Releer proyectos y sesiones")}>
+          <button className="mini icono" onClick={refresh} data-tip={t("Releer proyectos y sesiones")}>
             <RefreshIcon />
           </button>
         </span>

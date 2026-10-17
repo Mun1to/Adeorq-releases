@@ -16,7 +16,9 @@ const armario = new Map<string, string>();
 
 import {
   CABECERA_DEFECTO,
+  DENTRO_DEL_PERFIL,
   TAB_FIJA,
+  alPerfil,
   alternar,
   esDefecto,
   estaOculta,
@@ -35,7 +37,8 @@ function ok(nombre: string, cond: boolean, detalle = "") {
   console.log(`${cond ? "ok  " : "FALLA"} ${nombre}${detalle ? ` — ${detalle}` : ""}`);
 }
 
-// Las nueve de verdad, en su orden de fábrica.
+// Nueve de prueba, las de antes del Perfil: las reglas de orden y apagado no
+// dependen de cuáles sean. Las siete de verdad están más abajo, con lo guardado.
 const TODAS = [
   "panel",
   "cabina",
@@ -180,12 +183,53 @@ ok(
 
 // --- lo que se guarda ---------------------------------------------------------
 {
-  guardarCabecera(c({ orden: ["cuentas"], ocultas: ["chat"] }));
+  guardarCabecera(c({ orden: ["lienzo"], ocultas: ["chat"] }));
   const vuelto = leerCabecera();
   ok(
     "lo guardado vuelve igual tras cerrar la app",
-    vuelto.orden.join() === "cuentas" && vuelto.ocultas.join() === "chat",
+    vuelto.orden.join() === "lienzo" && vuelto.ocultas.join() === "chat",
   );
+}
+
+// --- lo guardado antes del Perfil (2026-10-17) --------------------------------
+{
+  // Las siete de verdad desde ese día.
+  const SIETE = ["panel", "cabina", "chat", "decisiones", "lienzo", "perfil", "ajustes"].map((key) => ({ key }));
+  const leido = (g: Partial<Cabecera>) => {
+    armario.set("adeorq-cabecera", JSON.stringify(g));
+    return leerCabecera();
+  };
+  const fila = (g: Partial<Cabecera>) => claves(visibles(SIETE, leido(g))).join();
+
+  ok("sin tocar nada, el Perfil sale en su sitio de fabrica", fila({ orden: [], ocultas: [] }) === "panel,cabina,chat,decisiones,lienzo,perfil,ajustes");
+  ok(
+    "el Perfil ocupa el sitio de la primera de las cuatro que se traga",
+    fila({ orden: ["panel", "cuentas", "cabina", "agenda", "chat", "memoria", "lienzo", "comandos", "decisiones", "ajustes"] }) ===
+      "panel,perfil,cabina,chat,lienzo,decisiones,ajustes",
+  );
+  ok(
+    "y lo demas de tu orden no se mueve",
+    leido({ orden: ["lienzo", "agenda", "panel"] }).orden.join() === "lienzo,perfil,panel",
+  );
+  ok(
+    "con alguna de las cuatro apagada, el Perfil se ve",
+    !leido({ ocultas: ["comandos", "memoria", "chat"] }).ocultas.includes("perfil") &&
+      leido({ ocultas: ["comandos", "memoria", "chat"] }).ocultas.join() === "chat",
+  );
+  ok(
+    "con las cuatro apagadas, el Perfil nace apagado",
+    leido({ ocultas: ["agenda", "memoria", "cuentas", "comandos"] }).ocultas.join() === "perfil",
+  );
+  ok(
+    "una pestaña que ya no existe no se queda colgando en lo guardado",
+    !leido({ orden: ["agenda", "cuentas"], ocultas: ["memoria"] }).orden.some((k) => DENTRO_DEL_PERFIL.includes(k)),
+  );
+  const ya = alPerfil(leido({ orden: ["chat", "agenda"], ocultas: ["cuentas"] }));
+  ok(
+    "ponerlo al dia dos veces no cambia nada",
+    JSON.stringify(alPerfil(ya)) === JSON.stringify(ya) && ya.orden.join() === "chat,perfil",
+  );
+  armario.clear();
 }
 {
   armario.set("adeorq-cabecera", "{roto");

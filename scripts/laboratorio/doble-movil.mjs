@@ -114,14 +114,24 @@ function pngDegradado(ancho, alto) {
   ]);
 }
 
+// Los últimos de cada familia, como `ULTIMOS` en `lib/models.ts`.
+const ULTIMOS = {
+  fable: "Fable 5.1",
+  opus: "Opus 5.5",
+  sonnet: "Sonnet 5.5",
+  haiku: "Haiku 5.5",
+};
+
 // Las terminales de la Cabina, como las devuelve `atenderTerminal` de `lib/movil.ts`.
+// El modelo con su versión, como lo lee el PC del transcript (`pretty_model`);
+// la 4 es una sesión vieja, con un Sonnet que ya no es el último.
 const terminales = [
-  { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "opus", esfuerzo: "xhigh", estado: "a_medias", sesion: "s-1", contexto: 64 },
+  { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "Opus 5.5", esfuerzo: "xhigh", estado: "a_medias", sesion: "s-1", contexto: 64 },
   { panel: 2, nombre: "codex", carpeta: "C:\\proyectos\\crypto\\radar-bot", agente: true, modelo: "gpt-5.6-terra", estado: "pregunta", sesion: "s-2" },
   { panel: 3, nombre: "consola", carpeta: "C:\\proyectos\\Vidorq", agente: false, modelo: null, estado: "", sesion: null },
-  { panel: 4, nombre: "claude", carpeta: "C:\\proyectos\\Webs", agente: true, modelo: "sonnet", estado: "pregunta", sesion: "s-4", contexto: 83 },
+  { panel: 4, nombre: "claude", carpeta: "C:\\proyectos\\Webs", agente: true, modelo: "Sonnet 5", estado: "pregunta", sesion: "s-4", contexto: 83 },
   // Una que ya terminó: en el chat, la mascota lo celebra.
-  { panel: 5, nombre: "claude", carpeta: "C:\\proyectos\\VoCript", agente: true, modelo: "sonnet", estado: "lista", sesion: "s-5", contexto: 30 },
+  { panel: 5, nombre: "claude", carpeta: "C:\\proyectos\\VoCript", agente: true, modelo: "Sonnet 5.5", estado: "lista", sesion: "s-5", contexto: 30 },
 ];
 // La raya de lado a lado de Claude Code mide lo que el panel del PC: 78 columnas.
 const RAYA = "─".repeat(78);
@@ -148,6 +158,95 @@ const pantallas = new Map([
   [3, [...Array.from({ length: 150 }, (_, i) => `   Compiling crate-numero-${i} v0.${i}.0 (C:\\Users\\Muni\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\crate-${i})`), "PS C:\\proyectos\\Vidorq> "]],
 ]);
 const terminalDe = (panel) => terminales.find((t) => t.panel === Number(panel));
+
+/* Las preguntas de Claude Code tal como las pinta la v2.1.302, copiadas de un
+   panel de verdad de 89 columnas el 2026-10-17 (dos turnos de Haiku): una
+   AskUserQuestion de dos preguntas (la segunda de casillas), su repaso, y un
+   permiso de Bash. Y cómo responden a lo que se teclea, medido allí mismo: el
+   número elige y pasa a la siguiente; en las casillas solo marca, y la flecha
+   derecha lleva al repaso, que se envía con su 1; en «Type something.» el
+   número la deja escribiendo y el texto con Intro la contesta. Se siembran con
+   `/api/sembrar-pregunta` y `/api/menu-hecho` dice qué recibió la terminal. */
+const ANCHO = 89;
+const LLENA = "─".repeat(ANCHO);
+const PUNTOS = "╌".repeat(ANCHO);
+const PRIMERA = {
+  pregunta: ["│ ¿Dónde quieres que se elijan las partes de la aplicación cuando alguien la instala por", "│ primera vez en un ordenador nuevo?"],
+  opciones: [
+    ["Instalador", ["Una página con casillas antes de instalar"]],
+    ["Primer arranque de la aplicación, en una bienvenida con casillas que se pueden", ["cambiar luego", "Igual en Windows y Linux"]],
+    ["En los dos sitios", ["Instalador y bienvenida"]],
+  ],
+  respuestas: ["Instalador", "Primer arranque de la aplicación, en una bienvenida con casillas que se pueden cambiar luego", "En los dos sitios"],
+};
+const SEGUNDA = ["Cabina", "Lienzo", "Memoria"];
+const menus = new Map();
+const pestanas = (m) => `←  ${m.q1 != null ? "☒" : "☐"} Instalación  ${m.marcadas.size ? "☒" : "☐"} Partes  ✔ Submit  →`;
+const PIE = "Enter to select · Tab/Arrow keys to navigate · Esc to cancel";
+function pantallaDelMenu(m) {
+  if (m.cual === "permiso") {
+    return [
+      "● Escribe texto de prueba en prueba-permiso.txt", "  ⎿  $ echo hola mundo desde la prueba de interfaz > prueba-permiso.txt", "",
+      LLENA, " Bash command", ' Tip: auto mode handles these prompts for you — choose "switch to auto mode" below',
+      " Escribe texto de prueba en prueba-permiso.txt", PUNTOS, " echo hola mundo desde la prueba de interfaz > prueba-permiso.txt", PUNTOS,
+      " Do you want to proceed?", " ❯ 1. Yes",
+      "   2. Yes, and always allow access to C:\\Users\\Muni\\AppData\\Local\\Temp\\claude\\C--proyecto",
+      "      s-Adeorq\\572c3eb8-4cba-4c56-8923-bddd346e5626\\scratchpad from this project",
+      "   3. Yes, and switch to auto mode · auto mode handles these prompts for you", "   4. No", "", " Esc to cancel · Tab to amend",
+    ];
+  }
+  if (m.paso === "repaso") {
+    const elegidas = [...m.marcadas].sort().map((n) => SEGUNDA[n - 1]).join(", ");
+    return [
+      LLENA, pestanas(m), "", "Review your answers", "",
+      " │ ● ¿Dónde quieres que se elijan las partes de la aplicación cuando alguien la instala", " │   por primera vez en un ordenador nuevo?",
+      ...(m.q1 === 2 ? ["   → Primer arranque de la aplicación, en una bienvenida con casillas que se pueden", "   cambiar luego"] : [`   → ${m.q1 > 3 ? m.escrito : PRIMERA.respuestas[m.q1 - 1]}`]),
+      " ● ¿Qué partes se pueden apagar?", `   → ${elegidas}`, "", "Ready to submit your answers?", "", "❯ 1. Submit answers", "  2. Cancel",
+    ];
+  }
+  if (m.paso === "q2") {
+    const caja = (n) => (m.marcadas.has(n) ? "[✔]" : "[ ]");
+    return [
+      LLENA, pestanas(m), "", "¿Qué partes se pueden apagar?", "",
+      ...SEGUNDA.flatMap((x, i) => [`${i ? " " : "❯"} ${i + 1}. ${caja(i + 1)} ${x}`, `         Se puede desactivar ${i === 2 ? "la memoria" : i ? "el lienzo" : "la cabina"}`]),
+      `  4. ${caja(4)} Type something`, "     Submit", LLENA, "  5. Chat about this", "", PIE,
+    ];
+  }
+  const cursor = (n) => (m.cursor === n ? "❯" : " ");
+  return [
+    LLENA, pestanas(m), "", ...PRIMERA.pregunta, "",
+    ...PRIMERA.opciones.flatMap(([x, debajo], i) => [`${cursor(i + 1)} ${i + 1}. ${x}`, ...debajo.map((d) => `     ${d}`)]),
+    `${cursor(4)} 4. Type something.`, LLENA, "  5. Chat about this", "", PIE,
+  ];
+}
+function pintarMenu(t) {
+  const m = menus.get(t.panel);
+  pantallas.set(t.panel, m.hecho ? [`● User answered Claude's questions:`, `  ⎿  ${m.hecho}`, "", "❯ "] : pantallaDelMenu(m));
+}
+/** Lo que una terminal con menú hace con lo que se le teclea; false si no tiene menú. */
+function teclearEnMenu(t, texto, tecla) {
+  const m = menus.get(t.panel);
+  if (!m || m.hecho) return false;
+  m.recibido.push(tecla ? `tecla:${tecla}` : texto);
+  const n = /^\d$/.test(texto ?? "") ? Number(texto) : null;
+  const acabar = (que) => { m.hecho = que; t.estado = "lista"; };
+  if (m.cual === "permiso") {
+    if (n >= 1 && n <= 4) acabar(n === 4 ? "No" : "Sí");
+  } else if (m.paso === "q1") {
+    if (m.cursor === 4 && n == null && texto) { m.q1 = 4; m.escrito = texto; m.paso = "q2"; }
+    else if (n >= 1 && n <= 3) { m.q1 = n; m.paso = "q2"; }
+    else if (n === 4) m.cursor = 4;
+    else if (n === 5) acabar("Chat about this");
+  } else if (m.paso === "q2") {
+    if (n >= 1 && n <= 4) m.marcadas.has(n) ? m.marcadas.delete(n) : m.marcadas.add(n);
+    else if (tecla === "right") m.paso = "repaso";
+  } else if (m.paso === "repaso") {
+    if (n === 1) acabar(`enviadas: ${m.q1 > 3 ? m.escrito : m.q1} · ${[...m.marcadas].sort().join(",")}`);
+    else if (n === 2) acabar("Cancel");
+  }
+  pintarMenu(t);
+  return true;
+}
 // Cuándo escribió cada una en su transcript por última vez, como `actividad`
 // en movil.rs: las de agente, hace un rato cada una; la consola no tiene.
 {
@@ -516,6 +615,20 @@ http
           if (t.sesion) t.activo = Date.now();
           return json(res, 200, { ok: true });
         }
+        // Solo del banco: una pregunta de Claude Code de verdad en esa terminal
+        // («doble» o «permiso», ver `pantallaDelMenu`).
+        case "/api/sembrar-pregunta": {
+          const t = terminalDe(v.panel);
+          if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
+          menus.set(t.panel, { cual: String(v.cual), paso: "q1", cursor: 1, q1: null, marcadas: new Set(), recibido: [], hecho: null });
+          t.estado = "pregunta";
+          pintarMenu(t);
+          return json(res, 200, { ok: true });
+        }
+        case "/api/menu-hecho": {
+          const m = menus.get(Number(url.searchParams.get("panel")));
+          return json(res, 200, m ? { recibido: m.recibido, hecho: m.hecho, paso: m.paso, marcadas: [...m.marcadas] } : { recibido: [], hecho: null });
+        }
         case "/api/terminales":
           return json(res, 200, { terminales, arranque: ARRANQUE, raiz: "C:\\proyectos" });
         case "/api/historia": {
@@ -539,7 +652,7 @@ http
           // Como la ventana (`lib/movil.ts`): qué programa es, a qué modelos se
           // cambia en marcha y si tiene modos. Codex no cambia de modelo en vivo.
           const cli = cliDe(t);
-          const modelos = cli === "claude" ? ["haiku", "sonnet", "opus", "fable"].map((a) => ({ alias: a, nombre: a[0].toUpperCase() + a.slice(1) })) : [];
+          const modelos = cli === "claude" ? ["haiku", "sonnet", "opus", "fable"].map((a) => ({ alias: a, nombre: ULTIMOS[a] })) : [];
           const filas = [...(pantallas.get(t.panel) || []), ...(linea ? [linea] : [])];
           // Las de agente, con color como las manda la ventana (`historiaConColor`):
           // el «●» de cada paso en verde y su nombre en negrita, lo de debajo tenue,
@@ -583,8 +696,10 @@ http
             console.log(`esfuerzo en ${t.panel}: ${v.esfuerzo}`);
             return json(res, 202, { ok: true });
           }
-          t.modelo = v.modelo;
-          pantallas.get(t.panel)?.push(`❯ /model ${v.modelo}`, `  ⎿  Set model to ${v.modelo}`);
+          // Como Claude Code: el alias lleva al último de esa familia, y desde
+          // ahí la terminal dice su nombre con la versión.
+          t.modelo = ULTIMOS[v.modelo];
+          pantallas.get(t.panel)?.push(`❯ /model ${v.modelo}`, `  ⎿  Set model to ${t.modelo}`);
           console.log(`modelo en ${t.panel}: ${v.modelo}`);
           return json(res, 202, { ok: true });
         }
@@ -593,6 +708,10 @@ http
           if (!t) return json(res, 404, { error: "Esa terminal ya no está." });
           const otro = deOtroArranque(v.arranque);
           if (otro) return json(res, otro[0], { error: otro[1] });
+          if (teclearEnMenu(t, v.texto)) {
+            escrito.set(t.panel, v.texto);
+            return json(res, 202, { ok: true });
+          }
           const f = pantallas.get(t.panel);
           f[f.length - 1] += v.texto;
           f.push("", `● (el agente leyó: ${v.texto})`, "", "❯ ");
@@ -608,11 +727,12 @@ http
         case "/api/escrito":
           return json(res, 200, { texto: escrito.get(Number(url.searchParams.get("panel"))) ?? null });
         case "/api/terminal/tecla": {
-          if (!["esc", "shift+tab"].includes(v.tecla)) return json(res, 400, { error: "Esa tecla no se manda desde el móvil." });
+          if (!["esc", "shift+tab", "right"].includes(v.tecla)) return json(res, 400, { error: "Esa tecla no se manda desde el móvil." });
           const otro = deOtroArranque(v.arranque);
           if (otro) return json(res, otro[0], { error: otro[1] });
           const f = pantallas.get(Number(v.panel));
           if (!f) return json(res, 404, { error: "Esa terminal ya no está." });
+          if (teclearEnMenu(terminalDe(v.panel), null, v.tecla)) return json(res, 202, { ok: true });
           if (v.tecla === "shift+tab") {
             modo.set(Number(v.panel), ((modo.get(Number(v.panel)) ?? 0) + 1) % MODOS.length);
             return json(res, 202, { ok: true });

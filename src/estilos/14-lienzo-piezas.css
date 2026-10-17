@@ -1099,15 +1099,14 @@ textarea.note-body {
   );
 }
 
+/* La chapa de la cuadrilla, suelta: el puesto y el rol en el color del equipo,
+   sin píldora (2026-10-17, las cárceles fuera de la cabecera). */
 .pane-team {
   flex: none;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   max-width: 130px;
-  padding: 1px 7px 1px 3px;
-  border-radius: var(--r-pastilla);
-  background: color-mix(in srgb, var(--team) 22%, transparent);
   color: color-mix(in srgb, var(--team) 60%, var(--text));
   font-size: 10.5px;
   font-weight: 650;
@@ -1118,10 +1117,8 @@ textarea.note-body {
 
 .pane-team-n {
   flex: none;
-  padding: 0 5px;
-  border-radius: var(--r-pastilla);
-  background: color-mix(in srgb, var(--team) 55%, transparent);
-  color: var(--text);
+  color: var(--team);
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
 }
 

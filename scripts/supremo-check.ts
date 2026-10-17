@@ -14,6 +14,7 @@ import {
   cliPedido,
   nombreDe,
   parteDeApertura,
+  tituloDeCabecera,
   type PedidoMcp,
 } from "../src/lib/supremo";
 
@@ -91,6 +92,21 @@ ok(
 ok(
   "un nombre kilometrico se corta: compite con la cabecera",
   nombreDe(pedido({ name: "x".repeat(80) }), "C:\\proyectos\\Adeorq", "claude").length <= 49,
+);
+
+// --- lo que se ve en su cabecera (y en el «de: …» de sus hijas) -------------
+ok(
+  "la cabecera quita el proyecto, que ya va al lado",
+  tituloDeCabecera(nombreDe(pedido({ name: "Sesión madre" }), "C:\\proyectos\\demo", "shell"), "C:\\proyectos\\demo") ===
+    "Sesión madre",
+);
+ok(
+  "un nombre sin prefijo se queda entero (el título de una sesión de Claude Code)",
+  tituloDeCabecera("Adeorq: sesiones y terminales", "C:\\proyectos\\Adeorq") === "Adeorq: sesiones y terminales",
+);
+ok(
+  "el prefijo de OTRO proyecto no se quita",
+  tituloDeCabecera("VoCript · tests", "C:\\proyectos\\Adeorq") === "VoCript · tests",
 );
 
 // --- lo que se le cuenta al agente -----------------------------------------

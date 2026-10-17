@@ -47,35 +47,25 @@
   gap: 8px;
   margin-top: 9px;
 }
+/* Los tres modos, en texto: el elegido pleno y subrayado de acento. Iban en
+   una pastilla partida en tres cajas, otra cárcel (2026-10-17). */
 .fm-modo button {
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 0;
+  padding: 4px 6px;
+  border: none;
   background: none;
   font: inherit;
   font-size: 11.5px;
   color: var(--muted);
   cursor: pointer;
-  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
-}
-/* El marco es del grupo, no de cada uno: tres cajas seguidas dibujan una raya
-   doble en cada junta. */
-.fm-modo button:not(:first-of-type) {
-  border-left: none;
-}
-.fm-modo button:first-of-type {
-  border-radius: var(--r-pastilla) 0 0 var(--r-pastilla);
-}
-.fm-modo button:last-of-type {
-  border-radius: 0 var(--r-pastilla) var(--r-pastilla) 0;
+  transition: color var(--t-rapida) ease;
 }
 .fm-modo button:hover {
   color: var(--text);
 }
 .fm-modo button[data-on="true"] {
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   color: var(--text);
+  text-decoration: underline var(--accent) 2px;
+  text-underline-offset: 4px;
 }
 .fm-modo-que {
   color: var(--muted);
@@ -325,17 +315,17 @@
   line-height: 1.4;
   text-align: left;
   cursor: pointer;
-  transition: background var(--t-rapida) ease, color var(--t-rapida) ease;
+  transition: color var(--t-rapida) ease;
 }
 
+/* Un índice es navegación: al pasar, el color; el capítulo abierto, el acento.
+   Sin los fondos tintados de antes (2026-10-17). */
 .guide-toc-item:hover {
-  background: var(--row);
   color: var(--text);
 }
 
 .guide-toc-item[data-on] {
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .guide {
@@ -445,30 +435,11 @@
    Los dos claros comparten estos arreglos: son del FONDO CLARO, no del tema,
    y dejarlos solo en uno habria dejado "Papel" con los realces de una app
    oscura encima de una hoja (2026-08-02). */
-:root[data-theme="claro"] .tab:hover,
-:root[data-theme="papel"] .tab:hover {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--text) 8%, transparent),
-    color-mix(in srgb, var(--text) 3%, transparent)
-  );
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 3px 10px color-mix(in srgb, var(--text) 12%, transparent);
-}
-
 /* Los colores de estos arreglos salen del tema claro que esté puesto (eran los
    azules de «Claro» escritos a mano, y «Papel» los heredaba encima de su hoja
    cálida). */
-:root[data-theme="claro"] .choice,
-:root[data-theme="papel"] .choice {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--panel-head) 90%, transparent));
-  color: var(--text);
-}
-
-:root[data-theme="claro"] .mini:hover,
-:root[data-theme="claro"] .pane-btn:hover,
-:root[data-theme="papel"] .mini:hover,
-:root[data-theme="papel"] .pane-btn:hover {
+:root[data-theme="claro"] .mini:not(.icono):hover,
+:root[data-theme="papel"] .mini:not(.icono):hover {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--accent-dim) 40%, #fff),
@@ -494,7 +465,8 @@
 }
 
 /* Context meter in the pane header: how full this session's window is. The
-   number comes from its own transcript, so it costs nothing to read. */
+   number comes from its own transcript, so it costs nothing to read. La barrita
+   y la cifra, sueltas: el recuadro era otra cárcel (2026-10-17). */
 .pane-ctx {
   flex: none;
   display: flex;
@@ -503,10 +475,6 @@
   font-size: 10.5px;
   font-weight: 650;
   color: var(--muted);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-chico);
-  padding: 2px 7px;
 }
 
 .ctx-bar {
@@ -548,7 +516,6 @@
 /* Past 80% the CLI is close to auto-compacting: say so before it happens. */
 .pane-ctx[data-hot="true"] {
   color: color-mix(in srgb, var(--warn) 80%, #fff);
-  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
 }
 
 .pane-ctx[data-hot="true"] .ctx-bar::after {

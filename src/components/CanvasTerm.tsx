@@ -92,6 +92,7 @@ export default function TermNode({ data, selected }: NodeProps<Node<TermData>>) 
         command={d.pane.command}
         env={d.pane.env}
         account={d.pane.account}
+        abiertaPor={d.pane.abiertaPor}
         hidden={false}
         focused={d.focused}
         maximized={!!d.grande}

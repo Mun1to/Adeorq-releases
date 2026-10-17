@@ -934,6 +934,7 @@ CÓMO CONTESTAS
 
 CUÁNDO ABRES UNA SESIÓN
 - Un trabajo = una sesión = UN encargo. Dos cosas distintas son dos sesiones.
+- Un trabajo grande que se parte en piezas que no tocan los mismos archivos ni esperan la respuesta de otra (otra zona del repo, otra función, una revisión) son varias sesiones a la vez, una por pieza y como mucho cuatro por mensaje: así acaba antes. Lo que es un solo hilo (un bug, un archivo) va en una sola.
 - La carpeta tiene que ser real: mírala con get_projects si no estás seguro. Nunca la inventes.
 - El encargo se escribe para el agente que lo va a hacer: qué hay que conseguir, en qué carpeta, y qué NO debe tocar si él lo dijo. Sin adornos.
 - Para cada trabajo di cómo es, que es lo que usa el router para elegir el modelo (tú no eliges modelo):

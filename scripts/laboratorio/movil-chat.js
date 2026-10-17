@@ -86,7 +86,7 @@ async (page) => {
   const t1 = await mandos();
   debe(!t1.teclas, "ya no está la fila de teclas");
   debe(t1.modelo && t1.modo && t1.parar, `Parar, el modelo y el modo, trabajando (${JSON.stringify(t1)})`);
-  debe(JSON.stringify(t1.textos) === JSON.stringify(["Parar", "Opus · extra", "Auto"]) && !t1.iconos && !t1.select, `sin estrella, sin flechas y sin la lista del teléfono (${JSON.stringify(t1)})`);
+  debe(JSON.stringify(t1.textos) === JSON.stringify(["Parar", "Opus 5.5 · extra", "Auto"]) && !t1.iconos && !t1.select, `sin estrella, sin flechas y sin la lista del teléfono (${JSON.stringify(t1)})`);
   debe(t1.cabe, `con Parar a la vista caben todas, sin cortar «Auto» (${JSON.stringify(t1)})`);
   debe(t1.filas === 1, `todo en una fila con adjuntar y mandar (${JSON.stringify(t1)})`);
   const barra = () => page.evaluate(() => ({
@@ -97,6 +97,8 @@ async (page) => {
     // Dentro de la caja, entre el texto y los mandos.
     sitio: document.getElementById("elegir").previousElementSibling?.id + ">" + document.getElementById("elegir").nextElementSibling?.className,
     ancho: document.documentElement.scrollWidth,
+    // Con la versión, los nombres son más largos: ninguno se corta.
+    cortados: [...document.querySelectorAll("#elegir button")].filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent),
   }));
   const delPc = () => page.evaluate(async () => {
     const r = await fetch("/api/terminal?panel=1&arranque=111", { headers: { Authorization: `Bearer ${localStorage.getItem("adeorq-movil-clave")}` } }).then((x) => x.json());
@@ -105,17 +107,18 @@ async (page) => {
   debe(!(await barra()).abierta, "la barra nace cerrada");
   await page.click("#modelo");
   const b1 = await barra();
-  debe(b1.abierta && JSON.stringify(b1.ops) === JSON.stringify(["Haiku Sonnet Opus Fable", "Bajo Medio Alto Extra Máx"]) && b1.puesto.join() === "Opus,Extra" && b1.azul, `la pastilla abre los modelos y los esfuerzos con lo puesto marcado (${JSON.stringify(b1)})`);
-  debe(b1.sitio === "texto>mandos" && b1.ancho <= 412, `la barra va dentro de la caja, bajo el texto, sin salirse (${JSON.stringify(b1)})`);
+  // Solo los últimos de cada familia, con su versión (2026-10-17).
+  debe(b1.abierta && JSON.stringify(b1.ops) === JSON.stringify(["Haiku 5.5 Sonnet 5.5 Opus 5.5 Fable 5.1", "Bajo Medio Alto Extra Máx"]) && b1.puesto.join() === "Opus 5.5,Extra" && b1.azul, `la pastilla abre los modelos y los esfuerzos con lo puesto marcado (${JSON.stringify(b1)})`);
+  debe(b1.sitio === "texto>mandos" && b1.ancho <= 412 && !b1.cortados.length, `la barra va dentro de la caja, bajo el texto, sin salirse ni cortar un nombre (${JSON.stringify(b1)})`);
   await page.click('#elegir [data-valor="sonnet"]');
   await page.waitForTimeout(1200);
   const t2 = { ...(await delPc()), cerrada: !(await barra()).abierta };
-  debe(t2.modelo === "sonnet" && t2.pastilla === "Sonnet · extra" && t2.cerrada && !t2.fallo, `un toque cambia el modelo en el PC y cierra la barra (${JSON.stringify(t2)})`);
+  debe(t2.modelo === "Sonnet 5.5" && t2.pastilla === "Sonnet 5.5 · extra" && t2.cerrada && !t2.fallo, `un toque cambia el modelo en el PC y cierra la barra (${JSON.stringify(t2)})`);
   await page.click("#modelo");
   await page.click('#elegir [data-valor="high"]');
   await page.waitForTimeout(1200);
   const t3 = await delPc();
-  debe(t3.esfuerzo === "high" && t3.pastilla === "Sonnet · alto" && !t3.fallo, `un toque cambia el esfuerzo en el PC (${JSON.stringify(t3)})`);
+  debe(t3.esfuerzo === "high" && t3.pastilla === "Sonnet 5.5 · alto" && !t3.fallo, `un toque cambia el esfuerzo en el PC (${JSON.stringify(t3)})`);
   await page.click("#modelo");
   await page.click("#modelo");
   debe(!(await barra()).abierta, "tocar otra vez la pastilla cierra la barra");
@@ -239,6 +242,21 @@ async (page) => {
   debe(alLlegar.tuyo === "Mira por qué se cae el radar" && alLlegar.pensando, `abre la conversación con tu mensaje saliendo (${JSON.stringify(alLlegar)})`);
   await page.waitForSelector('#hilo .turno[data-rol="agente"]', { timeout: 9000 });
   debe((await page.$$eval("#hilo .turno", (t) => t.length)) === 2, "y el conserje contesta en ella, sin repetir tu mensaje");
+
+  // 14. Una sesión vieja (2026-10-17): la 4 sigue con Sonnet 5. La pastilla
+  //     dice el que lleva de verdad, en la barra no sale ninguno marcado (las
+  //     opciones son solo los últimos), y un toque la pasa a Sonnet 5.5.
+  await page.goto(`${B}/?r=4#terminal=4@111`);
+  await page.waitForSelector("#modelo:not([hidden])");
+  await page.waitForTimeout(600);
+  const vieja = { pastilla: await page.textContent("#modelo") };
+  await page.click("#modelo");
+  vieja.puesto = await page.$$eval('#elegir [aria-checked="true"]', (b) => b.map((x) => x.textContent));
+  debe(vieja.pastilla === "Sonnet 5" && !vieja.puesto.some((x) => /Sonnet/.test(x)), `la sesión vieja dice «Sonnet 5» y no marca el 5.5 (${JSON.stringify(vieja)})`);
+  await page.click('#elegir [data-valor="sonnet"]');
+  await page.waitForTimeout(1200);
+  const subida = await page.textContent("#modelo");
+  debe(subida === "Sonnet 5.5", `un toque la pasa al último (${subida})`);
 
   return { fallos };
 }

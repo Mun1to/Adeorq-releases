@@ -52,9 +52,40 @@ pub struct Puente {
     siguiente: AtomicU64,
     /// Cuándo se abrió cada panel por MCP y cuál fue, para los dos topes.
     aperturas: Mutex<Vec<(Instant, u32)>>,
-    /// Qué panel abrió cada terminal delegada (`None`: un agente sin panel,
-    /// como el Capataz). Solo de este arranque, como los números.
-    delegadas: Mutex<HashMap<u32, Option<u32>>>,
+    /// Quién abrió cada terminal delegada. Solo de este arranque, como los números.
+    delegadas: Mutex<HashMap<u32, Madre>>,
+}
+
+/// Quién abrió una terminal por `open_pane`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Madre {
+    /// Su panel, si su puente lo presentó (`None`: un agente sin panel, como el Capataz).
+    panel: Option<u32>,
+    /// La conexión por la que la pidió: lo único que tiene un cliente sin panel.
+    conexion: u64,
+}
+
+/// Si la terminal es de quien llama: la abrió esta misma conexión, o su panel
+/// (el puente se reengancha con otra conexión y el panel sigue siendo el mismo).
+/// Es lo que deja cerrar a un cliente en «plan» (`mcp_clientes::solo_lo_suyo`).
+fn es_suya(madre: Option<&Madre>, mi_panel: Option<u32>, conexion: u64) -> bool {
+    madre.is_some_and(|m| m.conexion == conexion || (m.panel.is_some() && m.panel == mi_panel))
+}
+
+/// Por qué un cliente que solo puede cerrar lo suyo no puede cerrar ESA, o `None`.
+fn cierre_ajeno(nombre: &str, panel: u32, madre: Option<&Madre>, mi_panel: Option<u32>, conexion: u64) -> Option<String> {
+    if es_suya(madre, mi_panel, conexion) {
+        return None;
+    }
+    let de_quien = match madre.and_then(|m| m.panel) {
+        Some(p) => format!("la abrió el panel {p}"),
+        None if madre.is_some() => "la abrió otro agente".to_string(),
+        None => "no la abrió ningún agente con open_pane".to_string(),
+    };
+    Some(format!(
+        "En Adeorq, {nombre} está en el escalón «plan»: puede cerrar las terminales que abrió él con open_pane, \
+         y la {panel} no es una de ellas ({de_quien}). Si ya acabó, díselo a quien te lo pidió."
+    ))
 }
 
 /// LOS DOS FRENOS, y no son opcionales.
@@ -755,6 +786,9 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
     // conexión ya ha mirado la lista o abierto alguna: ver `numero_dudoso`.
     let mut mi_panel: Option<u32> = None;
     let mut conoce_numeros = false;
+    // Qué terminales abrió esta conexión: ver `es_suya`.
+    static CONEXIONES: AtomicU64 = AtomicU64::new(0);
+    let conexion = CONEXIONES.fetch_add(1, Ordering::Relaxed) + 1;
 
     for line in reader.lines() {
         let line = line?;
@@ -834,20 +868,9 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                         crate::mcp_clientes::apuntar_visto(n, ci["version"].as_str().unwrap_or(""));
                     }
                 }
-                json!({
-                    "jsonrpc": "2.0",
-                    "id": id,
-                    "result": {
-                        "protocolVersion": "2024-11-05",
-                        "capabilities": {
-                            "tools": {}
-                        },
-                        "serverInfo": {
-                            "name": "adeorq-mcp",
-                            "version": "0.9.21"
-                        }
-                    }
-                })
+                // Los puentes de casa llevan su propio prompt y sus manos recortadas.
+                let texto = if de_casa { None } else { instrucciones(&herramientas_visibles(&cliente, de_casa)) };
+                respuesta_initialize(&id, texto)
             }
             "tools/list" => {
                 json!({
@@ -862,10 +885,12 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 // El escalón del cliente (decisión D1): lo que no le toca no se
                 // ejecuta, y se le dice por qué. Lo de casa no pasa por aquí.
                 let result = match escalon_que_falta(&cliente, de_casa, name)
+                    .or_else(|| parte_apagada(name))
                     .or_else(|| numero_dudoso(name, &args, mi_panel, conoce_numeros, de_casa))
+                    .or_else(|| ajena_para_su_escalon(&cliente, de_casa, name, &args, &app, mi_panel, conexion))
                 {
                     Some(porque) => Err(porque),
-                    None => handle_tool_call(name, args, &app, mi_panel),
+                    None => handle_tool_call(name, args, &app, mi_panel, conexion),
                 };
                 if result.is_ok() && matches!(name, "get_active_panes" | "open_pane") {
                     conoce_numeros = true;
@@ -914,6 +939,65 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
     Ok(())
 }
 
+
+/// La respuesta a `initialize`, con las instrucciones si las hay.
+fn respuesta_initialize(id: &Value, instrucciones: Option<String>) -> Value {
+    let mut result = json!({
+        "protocolVersion": "2024-11-05",
+        "capabilities": {
+            "tools": {}
+        },
+        "serverInfo": {
+            "name": "adeorq-mcp",
+            "version": "0.9.21"
+        }
+    });
+    if let Some(texto) = instrucciones {
+        result["instructions"] = json!(texto);
+    }
+    json!({ "jsonrpc": "2.0", "id": id, "result": result })
+}
+
+/// Lo que el servidor le dice a un agente nada más conectarse: el campo
+/// `instructions` de `initialize`, que Claude Code mete en su prompt de sistema
+/// («MCP Server Instructions»). Hasta el 2026-10-17 no se mandaba nada, y un
+/// agente solo leía la descripción de cada herramienta, que además frenaba
+/// («open the fewest you need»). Munir, ese día: «ADEORQ también no lo prioriza
+/// que los terminales y los agentes abran terminales nuevas o agentes nuevos
+/// para terminar de hacer un trabajo en el menor tiempo posible».
+///
+/// Se arma con lo que VE este cliente (`herramientas_visibles`): a un Codex en
+/// «plan», que abre pero no escribe ni cierra, no se le manda cerrar, y sin
+/// `open_pane` no hay nada que decir. Cabe en 2.048 caracteres, que era el tope
+/// de Claude Code antes de la 2.1.302 (ahora 4.096) y el de quien no lo haya subido.
+fn instrucciones(visibles: &[Value]) -> Option<String> {
+    let ve = |n: &str| visibles.iter().any(|h| h["name"].as_str() == Some(n));
+    if !ve("open_pane") {
+        return None;
+    }
+    let mut t = String::from(
+        "You are running inside Adeorq, a desktop app of real terminals, and this server lets you open more of them, each with its own agent. Use that to finish big work sooner:\n\
+         - Split from the start. Before work that will take a while, look for pieces that touch different files and do not wait on each other's answers (another area of the repo, another feature, a review, a question to research). Open one terminal per piece with open_pane, at the same time, and keep for yourself what they share (contracts, shared types, the final check).\n\
+         - Do not split one line of thought (a single bug, one file) or pieces that edit the same files: two agents on one file overwrite each other. A lookup whose answer is for you goes to a subagent of your own CLI, not to a terminal.\n\
+         - Each brief stands on its own: the goal, the files it owns, what it must not touch, how to check its work, and where to leave its result (if the project keeps a BUZON.md or another handoff file, put the whole brief there too). Give each terminal a short name.\n\
+         - Look at what you open with read_pane_screen: a terminal stuck on a question looks the same as one working.",
+    );
+    if ve("send_command") {
+        t.push_str(" Answer it with send_command or send_keys.");
+    }
+    t.push('\n');
+    // En «plan» ve `close_pane` pero solo para las que abrió él (`solo_lo_suyo`),
+    // que son justo las que se le manda cerrar aquí.
+    match (ve("close_pane"), ve("send_command")) {
+        (true, true) => t.push_str("- When its job is done, read what it left and close it with close_pane and its rastro, so the screen does not fill up.\n"),
+        (true, false) => t.push_str("- This client cannot type into terminals, only open them and close the ones it opened: when one's job is done, read what it left and close it with close_pane and its rastro, so the screen does not fill up.\n"),
+        _ => t.push_str("- This client cannot type into or close terminals: when one has finished, tell the person which one.\n"),
+    }
+    t.push_str(&format!(
+        "- Each terminal spends real quota of its own account: check get_usage to pick a CLI and an account with room. At most {MAX_VIVOS} opened this way are alive at once, and {MAX_POR_HORA} per hour."
+    ));
+    Some(t)
+}
 
 /// Las herramientas que anuncia el servidor, en un solo sitio: el escalón de
 /// cada cliente (`mcp_clientes.rs`) las filtra y un test comprueba que todas
@@ -1077,7 +1161,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "open_pane",
-                                "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_transcript. This is how a supervising session builds a team: one pane per job. Every pane costs real quota, so open the fewest you need. Hard limits apply (6 alive, 12 per hour) and you are told when you hit them. The pane is yours to clean up: when its task is done, close it with close_pane and its `rastro`, or the Cabina fills up.",
+                                "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_screen. This is how big work finishes sooner: one pane per independent piece (its own files, no need of the others' answers), opened from the start, each with a brief that stands on its own. Do not split one line of thought or pieces that edit the same files, and send a lookup to a subagent instead. Every pane spends real quota of its account (check get_usage). Hard limits apply (6 alive, 12 per hour) and you are told when you hit them. The pane is yours to clean up: when its task is done, close it with close_pane and its `rastro`, or the Cabina fills up.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -1133,7 +1217,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "close_pane",
-                                "description": "Closes a terminal and KILLS the agent inside it, removing it entirely (no 'closed' notice, no undo). Closing the panes YOU opened is your job, not Munir's: when one's task is done (read it with read_pane_transcript or leer_turno and judge it finished), make sure it left its handoff where its project keeps them (its BUZON.md, a commit, a file), then close it with its `rastro`. Also use it for a pane you opened by mistake. It frees a slot against the 6-alive limit; it does not undo the quota that pane already spent.",
+                                "description": "Closes a terminal and KILLS the agent inside it, removing it entirely (no 'closed' notice, no undo). Closing the panes YOU opened is your job, not Munir's: when one's task is done (read it with read_pane_transcript or leer_turno and judge it finished), make sure it left its handoff where its project keeps them (its BUZON.md, a commit, a file), then close it with its `rastro`. Also use it for a pane you opened by mistake. A client that Adeorq keeps at the «plan» level can close only the panes it opened itself. It frees a slot against the 6-alive limit; it does not undo the quota that pane already spent.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -1223,9 +1307,24 @@ fn herramientas_de_decisiones() -> Vec<Value> {
     v.as_array().cloned().unwrap_or_default()
 }
 
-/// Las que ve ESTE cliente: todas si es de casa; si no, las de su escalón.
+/// Las de la Memoria, que no se dan con la Memoria apagada (`partes.rs`).
+const DE_LA_MEMORIA: [&str; 2] = ["buscar_memoria", "leer_memoria"];
+
+/// Por qué no se puede llamar a una herramienta de una parte apagada, o `None`.
+fn parte_apagada(herramienta: &str) -> Option<String> {
+    (DE_LA_MEMORIA.contains(&herramienta) && crate::partes::apagada("memoria")).then(|| {
+        "La Memoria está apagada en este Adeorq (Ajustes › Partes): no hay notas que buscar ni leer.".to_string()
+    })
+}
+
+/// Las que ve ESTE cliente: todas si es de casa; si no, las de su escalón. Y
+/// nunca las de una parte apagada: una herramienta que solo sabe decir «está
+/// apagada» es una herramienta que el agente prueba en balde.
 fn herramientas_visibles(cliente: &Option<String>, de_casa: bool) -> Vec<Value> {
-    let todas = lista_de_herramientas();
+    let todas: Vec<Value> = lista_de_herramientas()
+        .into_iter()
+        .filter(|h| h["name"].as_str().is_none_or(|n| parte_apagada(n).is_none()))
+        .collect();
     if de_casa {
         return todas;
     }
@@ -1233,25 +1332,50 @@ fn herramientas_visibles(cliente: &Option<String>, de_casa: bool) -> Vec<Value> 
     let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), nombre);
     todas
         .into_iter()
-        .filter(|h| h["name"].as_str().is_some_and(|n| crate::mcp_clientes::permite(nivel, n)))
+        .filter(|h| h["name"].as_str().is_some_and(|n| crate::mcp_clientes::la_ve(nivel, n)))
         .collect()
 }
 
 /// Por qué este cliente no puede llamar a esa herramienta, o `None` si puede.
+/// Una que su escalón solo le deja para lo suyo pasa aquí y se mira después,
+/// con la terminal en la mano (`ajena_para_su_escalon`).
 fn escalon_que_falta(cliente: &Option<String>, de_casa: bool, herramienta: &str) -> Option<String> {
     if de_casa {
         return None;
     }
     let nombre = cliente.as_deref().unwrap_or("desconocido");
     let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), nombre);
-    if crate::mcp_clientes::permite(nivel, herramienta) {
+    if crate::mcp_clientes::la_ve(nivel, herramienta) {
         None
     } else {
         Some(crate::mcp_clientes::mensaje_denegado(nombre, nivel, herramienta))
     }
 }
 
-/// `quien` es el panel del agente que llama, si su puente lo presentó.
+/// Si su escalón solo le deja esa herramienta para lo suyo y la terminal no lo es.
+fn ajena_para_su_escalon(
+    cliente: &Option<String>,
+    de_casa: bool,
+    herramienta: &str,
+    args: &Value,
+    app: &tauri::AppHandle,
+    mi_panel: Option<u32>,
+    conexion: u64,
+) -> Option<String> {
+    if de_casa {
+        return None;
+    }
+    let nombre = cliente.as_deref().unwrap_or("desconocido");
+    let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), nombre);
+    if !crate::mcp_clientes::solo_lo_suyo(nivel, herramienta) {
+        return None;
+    }
+    // Sin número, que conteste la propia herramienta («Falta `paneId`»).
+    let panel = args["paneId"].as_u64().and_then(|n| u32::try_from(n).ok())?;
+    let madre = app.state::<Puente>().delegadas.lock().unwrap().get(&panel).copied();
+    cierre_ajeno(nombre, panel, madre.as_ref(), mi_panel, conexion)
+}
+
 /// Lo que contesta `close_pane`: cuántas siguen abiertas y para cuántas hay sitio,
 /// dicho por separado para que el agente no lea las vivas como las que le quedan.
 fn texto_de_cierre(pane_id: u32, rastro: Option<&std::path::Path>, vivas: usize) -> String {
@@ -1265,7 +1389,9 @@ fn texto_de_cierre(pane_id: u32, rastro: Option<&std::path::Path>, vivas: usize)
     )
 }
 
-fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Option<u32>) -> Result<Value, String> {
+/// `quien` es el panel del agente que llama, si su puente lo presentó, y
+/// `conexion` la conexión por la que llama (ver `Madre`).
+fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Option<u32>, conexion: u64) -> Result<Value, String> {
     match name {
         "get_mods" => {
             let carpeta = crate::dir_datos()?.join("mods");
@@ -1337,12 +1463,12 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 // es cosa suya (Munir, 2026-10-15: la limpia quien la abrió, al
                 // leerla y ver su tarea hecha, y deja su rastro).
                 if let Some(madre) = delegadas.get(&id) {
-                    match (madre, quien) {
-                        (Some(m), Some(yo)) if *m == yo => cabeza.push_str(
+                    match madre.panel {
+                        _ if es_suya(Some(madre), quien, conexion) => cabeza.push_str(
                             ", Abierta por: ti (cuando su tarea esté hecha, ciérrala con close_pane y su rastro)",
                         ),
-                        (Some(m), _) => cabeza.push_str(&format!(", Abierta por: el panel {}", m)),
-                        (None, _) => cabeza.push_str(", Abierta por: un agente sin panel"),
+                        Some(m) => cabeza.push_str(&format!(", Abierta por: el panel {}", m)),
+                        None => cabeza.push_str(", Abierta por: un agente sin panel"),
                     }
                 }
                 let cmd_str = f.command.as_ref()
@@ -1645,6 +1771,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     "brief": brief,
                     "name": args["name"].as_str().unwrap_or_default(),
                     "from": args["from"],
+                    // Su panel, para que la cabecera de la nueva diga «de: su nombre».
+                    "quien": quien,
                 }),
             )?;
 
@@ -1657,7 +1785,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 .unwrap()
                 .push((Instant::now(), pane_id));
             // Y quién la abrió: es quien la cierra cuando su tarea está hecha.
-            app.state::<Puente>().delegadas.lock().unwrap().insert(pane_id, quien);
+            app.state::<Puente>().delegadas.lock().unwrap().insert(pane_id, Madre { panel: quien, conexion });
 
             // El parte entero lo redacta la ventana, que es la única que sabe con
             // qué CLI acabó, si ese acepta encargo al arrancar y dónde cayó. Aquí
@@ -1845,7 +1973,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     nombre: &nombre,
                     carpeta: ficha.as_ref().map(|f| f.cwd.as_str()).unwrap_or(""),
                     sesion: ficha.as_ref().and_then(|f| f.command.as_deref()).and_then(crate::rastros::sesion_del_comando),
-                    abierta_por: es_delegada.flatten(),
+                    abierta_por: es_delegada.and_then(|m| m.panel),
                     cerrada_por: quien,
                     texto: &texto,
                 };
@@ -2014,6 +2142,71 @@ mod tests {
         let t = texto_de_cierre(7, Some(std::path::Path::new("r.md")), 0);
         assert!(t.contains("Su rastro quedó en r.md."), "{t}");
         assert!(t.contains("sitio para 6 más"), "{t}");
+    }
+
+    /// Lo que ve un cliente de ese escalón, sin leer la configuración de nadie.
+    fn de_escalon(nivel: crate::mcp_clientes::Nivel) -> Vec<Value> {
+        lista_de_herramientas()
+            .into_iter()
+            .filter(|h| h["name"].as_str().is_some_and(|n| crate::mcp_clientes::la_ve(nivel, n)))
+            .collect()
+    }
+
+    /// Un cliente en «plan» cierra lo que abrió él: por esta conexión, o por su
+    /// panel aunque el puente se haya reenganchado con otra. Lo de otro, no, y
+    /// el porqué dice quién la abrió.
+    #[test]
+    fn plan_cierra_lo_que_abrio_y_nada_mas() {
+        let suya = Madre { panel: Some(4), conexion: 7 };
+        assert!(es_suya(Some(&suya), Some(4), 7));
+        assert!(es_suya(Some(&suya), Some(4), 9), "mismo panel, conexión nueva tras reengancharse");
+        assert!(es_suya(Some(&suya), None, 7), "misma conexión aunque no presente panel");
+        assert!(!es_suya(Some(&suya), Some(5), 9), "la abrió otro panel");
+        let sin_panel = Madre { panel: None, conexion: 7 };
+        assert!(es_suya(Some(&sin_panel), None, 7));
+        assert!(!es_suya(Some(&sin_panel), None, 8), "dos clientes sin panel no son el mismo");
+        assert!(!es_suya(None, Some(4), 7), "una que abrió Munir no es de nadie");
+
+        assert_eq!(cierre_ajeno("codex-cli", 3, Some(&suya), Some(4), 9), None);
+        let ajena = cierre_ajeno("codex-cli", 3, Some(&suya), Some(5), 9).expect("es de otro");
+        assert!(ajena.contains("«plan»") && ajena.contains("la abrió el panel 4") && ajena.contains("codex-cli"), "{ajena}");
+        let de_munir = cierre_ajeno("codex-cli", 3, None, Some(5), 9).expect("la abrió Munir");
+        assert!(de_munir.contains("ningún agente"), "{de_munir}");
+    }
+
+    /// Un agente que se conecta se entera de que puede repartir, y de cómo,
+    /// sin buscarlo; y solo de lo que su escalón le deja hacer.
+    #[test]
+    fn al_conectarse_se_le_dice_que_reparta_lo_que_se_parte() {
+        use crate::mcp_clientes::Nivel;
+        let todo = instrucciones(&de_escalon(Nivel::Auto)).expect("con todas las manos hay instrucciones");
+        for frase in ["open_pane", "different files", "subagent", "read_pane_screen", "send_command", "close_pane and its rastro", "get_usage"] {
+            assert!(todo.contains(frase), "falta «{frase}»: {todo}");
+        }
+        assert!(todo.contains(&format!("{MAX_VIVOS} opened this way")), "el tope sale de la constante: {todo}");
+        assert!(todo.chars().count() <= 2048, "{} caracteres: no cabe en el tope viejo de Claude Code", todo.chars().count());
+
+        // Un Codex en «plan» abre y cierra lo que abrió, pero no escribe: se le
+        // manda cerrar las suyas y no se le manda contestar.
+        let plan = instrucciones(&de_escalon(Nivel::Plan)).expect("en plan puede abrir");
+        assert!(!plan.contains("send_command"), "{plan}");
+        assert!(plan.contains("close the ones it opened") && plan.contains("close_pane and its rastro"), "{plan}");
+        assert!(!plan.contains("cannot type into or close"), "{plan}");
+        assert!(plan.chars().count() <= 2048, "{} caracteres", plan.chars().count());
+
+        // Sin open_pane no hay nada que repartir.
+        assert_eq!(instrucciones(&de_escalon(Nivel::Mirar)), None);
+    }
+
+    #[test]
+    fn el_initialize_lleva_las_instrucciones_solo_si_las_hay() {
+        let con = respuesta_initialize(&json!(1), Some("reparte".into()));
+        assert_eq!(con["id"], 1);
+        assert_eq!(con["result"]["protocolVersion"], "2024-11-05");
+        assert_eq!(con["result"]["instructions"], "reparte");
+        let sin = respuesta_initialize(&json!(2), None);
+        assert!(sin["result"].get("instructions").is_none(), "{sin}");
+        assert_eq!(sin["result"]["serverInfo"]["name"], "adeorq-mcp");
     }
 
     #[test]

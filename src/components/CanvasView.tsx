@@ -175,7 +175,7 @@ const MODOS: Array<{ id: ModoLienzo; label: string; tip: string }> = [
 
 /** Una terminal del lienzo: lo mismo que un panel de la Cabina (`Pane`), con su
     cuenta, su clave y su espejo, sin lo que solo tiene sentido en el mosaico. */
-export type CanvasPane = Pick<Pane, "id" | "cwd" | "name" | "command" | "env" | "account" | "shadow" | "espejo">;
+export type CanvasPane = Pick<Pane, "id" | "cwd" | "name" | "command" | "env" | "account" | "shadow" | "espejo" | "abiertaPor">;
 
 export type SpawnKind = "claude" | "shell" | "agy";
 

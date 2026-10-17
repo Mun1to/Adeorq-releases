@@ -31,6 +31,24 @@ export function isModelAlias(x: string | undefined): x is ModelAlias {
  */
 export const A_MANO: ModelAlias[] = ["haiku", "sonnet", "opus"];
 
+/**
+ * El último modelo que ha salido de cada familia, con el nombre que se enseña.
+ *
+ * Solo los últimos, a propósito (Munir, 2026-10-17): una sesión de hace días
+ * sigue con Opus 5 y hoy Opus 5.5 es mejor, así que lo que se ofrece es «Opus
+ * 5.5», no «Opus». Lo que se le teclea sigue siendo el ALIAS (`/model opus`),
+ * que Claude Code ya lleva al último (medido con la v2.1.302: Opus 5.5). El id
+ * entero no, porque `/model` además lo guarda como modelo de fábrica de las
+ * sesiones nuevas, y con el id ese quedaría clavado en esta versión cuando
+ * salga la siguiente. Cuando salga uno nuevo, se cambia aquí.
+ */
+export const ULTIMOS: Record<ModelAlias, string> = {
+  fable: "Fable 5.1",
+  opus: "Opus 5.5",
+  sonnet: "Sonnet 5.5",
+  haiku: "Haiku 5.5",
+};
+
 /* -------------------------------------------------- el cerebro por defecto
  *
  * De fábrica no hay ninguno: decide el router, que mira lo que EXIGE cada

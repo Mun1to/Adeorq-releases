@@ -8,14 +8,15 @@ Cada componente sigue siendo de quien lo escribió y se usa bajo su propia
 licencia, que es la que manda sobre ese componente. Nada de lo que hay aquí es
 de Adeorq ni cambia por estar en esta lista.
 
-Resumen: **81** componentes de la interfaz y **552** del núcleo en Rust. No hay
-ninguna dependencia con licencia GPL o AGPL. Hay 5 con MPL-2.0 (cssparser,
-cssparser-macros, dtoa-short, option-ext, selectors): la MPL solo obliga a
-publicar los cambios de SUS propios archivos, y Adeorq no modifica ninguno.
+Resumen: **84** componentes de la interfaz y **552** del núcleo en Rust. No hay
+ninguna dependencia con licencia GPL o AGPL. Hay 6 con MPL-2.0 (cssparser,
+cssparser-macros, dtoa-short, mediabunny, option-ext, selectors): la MPL solo
+obliga a publicar los cambios de SUS propios archivos, y Adeorq no modifica
+ninguno.
 
 El texto íntegro de cada licencia viaja dentro del paquete de la dependencia
-correspondiente y puede consultarse en su repositorio de origen. De 633
-componentes, 478 declaran un titular de copyright explícito, recogido abajo.
+correspondiente y puede consultarse en su repositorio de origen. De 636
+componentes, 480 declaran un titular de copyright explícito, recogido abajo.
 
 ## Interfaz (npm, dependencias de producción)
 
@@ -64,6 +65,8 @@ componentes, 478 declaran un titular de copyright explícito, recogido abajo.
 | @types/d3-selection | 3.0.11 | MIT | Copyright Microsoft Corporation |
 | @types/d3-transition | 3.0.9 | MIT | Copyright Microsoft Corporation |
 | @types/d3-zoom | 3.0.8 | MIT | Copyright Microsoft Corporation |
+| @types/dom-mediacapture-transform | 0.1.12 | MIT | Copyright Microsoft Corporation |
+| @types/dom-webcodecs | 0.1.13 | MIT | Copyright Microsoft Corporation |
 | @types/react | 19.2.17 | MIT | Copyright Microsoft Corporation |
 | @types/react-dom | 19.2.3 | MIT | Copyright Microsoft Corporation |
 | @types/trusted-types | 2.0.7 | MIT | Copyright Microsoft Corporation |
@@ -88,6 +91,7 @@ componentes, 478 declaran un titular de copyright explícito, recogido abajo.
 | dompurify | 3.4.13 | (MPL-2.0 OR Apache-2.0) | — |
 | hachure-fill | 0.5.2 | MIT | Copyright 2023 Preet Shihn |
 | marked | 18.0.7 | MIT | Copyright 2018+, MarkedJS (https://github.com/markedjs/); Copyright 2011-2018, Christopher Jeffrey (https://github.com/chjj/); Copyright 2004, John Gruber |
+| mediabunny | 1.61.5 | MPL-2.0 | — |
 | path-data-parser | 0.1.0 | MIT | Copyright 2020 Preet Shihn |
 | perfect-freehand | 1.2.3 | MIT | Copyright 2021 Stephen Ruiz Ltd |
 | points-on-curve | 0.2.0 | MIT | Copyright 2020 Preet Shihn |
@@ -662,6 +666,6 @@ componentes, 478 declaran un titular de copyright explícito, recogido abajo.
 
 ---
 
-Generado el 2026-10-10 con `pnpm terceros` a partir de `pnpm licenses list --prod`
+Generado el 2026-10-17 con `pnpm terceros` a partir de `pnpm licenses list --prod`
 y `cargo metadata`. Si eres autor de alguno de estos componentes y ves algo mal
 atribuido, escribe y se corrige.

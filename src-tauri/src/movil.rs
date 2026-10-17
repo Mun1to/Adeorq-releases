@@ -736,8 +736,10 @@ pub fn guardar_trozo(
 
 /// Las teclas sueltas que se pueden mandar a una terminal desde el móvil
 /// (decisión E3). Las mismas que `TECLAS` en `src/lib/movil.ts`, que es quien
-/// pone los bytes.
-pub const TECLAS_DEL_MOVIL: &[&str] = &["esc", "shift+tab"];
+/// pone los bytes. La flecha derecha es el «Listo» de una pregunta de elegir
+/// varias: en Claude Code el número solo marca la casilla, y esa flecha lleva
+/// al repaso que la envía (medido con la v2.1.302, 2026-10-17).
+pub const TECLAS_DEL_MOVIL: &[&str] = &["esc", "shift+tab", "right"];
 /// Los modelos que el móvil puede pedirle a una terminal: los nombres de la
 /// casa, que la ventana traduce al programa de cada una.
 pub const MODELOS_DEL_MOVIL: &[&str] = &["haiku", "sonnet", "opus", "fable"];
@@ -2634,9 +2636,10 @@ mod tests {
         let largo = format!(r#"{{"panel":1,"texto":"{}","arranque":77}}"#, "a".repeat(TOPE_TEXTO + 1));
         assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, &largo), &g, &casa, &nada, reloj).estado, 413);
         assert_eq!(atender(&pedir("POST", "/api/terminal/escribir", c, r#"{"panel":1,"texto":"sí, adelante","arranque":77}"#), &g, &casa, &nada, reloj).estado, 202);
-        // «Parar» (Esc) y el cambio de modo, sí; lo que ya no tiene botón en el
+        // «Parar» (Esc), el cambio de modo y el «Listo» de una pregunta de
+        // elegir varias (la flecha derecha), sí; lo que ya no tiene botón en el
         // móvil (2026-10-16), no.
-        for t in ["esc", "shift+tab"] {
+        for t in ["esc", "shift+tab", "right"] {
             let cuerpo = format!(r#"{{"panel":1,"tecla":"{t}","arranque":77}}"#);
             assert_eq!(atender(&pedir("POST", "/api/terminal/tecla", c, &cuerpo), &g, &casa, &nada, reloj).estado, 202, "{t}");
         }

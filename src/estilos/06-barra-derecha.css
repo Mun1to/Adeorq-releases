@@ -84,21 +84,17 @@
   background: transparent;
   color: color-mix(in srgb, var(--text) 76%, var(--muted));
   cursor: pointer;
-  transition:
-    background var(--t-rapida) ease,
-    border-color var(--t-rapida) ease,
-    color var(--t-rapida) ease;
+  transition: color var(--t-rapida) ease;
 }
 
+/* Sueltos: al pasar, el color; abierto, el acento y su raya pegada al borde
+   (abajo). El recuadro tintado de antes era una cárcel (2026-10-17). */
 .franja-btn:hover {
-  background: color-mix(in srgb, var(--text) 13%, transparent);
   color: var(--text);
 }
 
 .franja-btn[data-on="true"] {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  border-color: var(--border-strong);
-  color: var(--text);
+  color: var(--accent);
 }
 
 /* Lo que abre un panel AQUÍ y lo que abre uno en el mosaico, separados por una
@@ -140,13 +136,15 @@
   padding-right: 2px;
 }
 
-/* Una skill es UN renglon, no una tarjeta con parrafo (Munir, 2026-08-24).
-   Llevaba dos lineas de descripcion debajo del nombre, asi que en esta columna
-   cabian seis: la lista era un scroll de parrafos donde buscar un nombre. La
-   descripcion no se ha perdido, esta en el globo del raton. */
+/* Una skill es su nombre y UNA línea de lo que hace (2026-10-17, «B1»).
+   El 2026-08-24 se quedó en el nombre solo, porque con dos líneas de
+   descripción cabían seis en la columna y el Uso se comía el fondo. Con el Uso
+   en su propia pestaña la lista tiene el panel entero, y una línea cortada
+   dice para qué sirve sin volver a los párrafos; entera, en el globo. */
 .skill {
-  display: flex;
-  align-items: center;
+  display: grid;
+  gap: 1px;
+  align-content: center;
   min-height: 26px;
   padding: 4px 9px;
   border: 1px solid transparent;
@@ -169,6 +167,14 @@
 
 .skill[data-disabled="true"] {
   cursor: grab;
+}
+
+.skill-desc {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .skill-name {
@@ -821,12 +827,12 @@
   line-height: 1.5;
 }
 
+/* El nombre entero, en dos renglones si hace falta: cortado no se sabía de
+   qué sesión era («Fallo en prueba del descue…», 2026-10-17, «B1»). */
 .act-quien {
   font-weight: 600;
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .act-chips {
@@ -1595,13 +1601,16 @@
    ningún selector de la lista, así que «Terminales», «Notificaciones»… volaban
    sobre la foto sin sombra, y en un tema claro (fondo de foto casi siempre
    vivo) el gris de `--muted` desaparecía (Munir, 2026-08-02: «las letras más
-   visibles» en los temas claros). Solo la pestaña SIN seleccionar: la
-   seleccionada ya lleva su propia píldora de color detrás y con eso se lee. */
-:root:has(.fondo) .set-tab:not([data-on]) {
-  color: color-mix(in srgb, var(--text) 78%, transparent);
+   visibles» en los temas claros). La sombra, desde el 2026-10-17, también en
+   la seleccionada: ya no lleva píldora de color detrás que la sostenga. */
+:root:has(.fondo) .set-tab {
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.55),
     0 1px 10px rgba(0, 0, 0, 0.4);
+}
+
+:root:has(.fondo) .set-tab:not([data-on]) {
+  color: color-mix(in srgb, var(--text) 78%, transparent);
 }
 
 .stats {

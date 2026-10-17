@@ -45,6 +45,9 @@ export interface Pane {
       Es lo que permite tratar un grupo como un espacio de trabajo: enseñar el
       que estás usando y apartar los demás sin cerrarlos. */
   grupo?: string;
+  /** El nombre de la sesión que la abrió con `open_pane`, para el «de: …» de
+      su cabecera. Solo de este arranque, como en Rust (`Madre` en `mcp.rs`). */
+  abiertaPor?: string;
   shadow?: boolean;
   /** El espejo que YA tiene, cuando recoge tras una caída una terminal que
       corría en uno (`espejoDe` en `lib/reenganche.ts`). Sin esto montaría
@@ -160,6 +163,11 @@ export interface ManosDelTablero {
   cols: Col[];
   /** El ajuste «devolver el tablero al abrir». */
   restoreOnStart: boolean;
+  /** La Cabina apagada (`lib/partes.ts`): sus paneles guardados no renacen al
+      abrir, como no renacen los del Lienzo apagado, que ni se monta. Lo
+      guardado se queda para cuando vuelva: con la Cabina apagada nada cambia
+      sus paneles, así que nada lo pisa. */
+  cabinaApagada?: boolean;
   setPanes: Dispatch<SetStateAction<Pane[]>>;
   setCols: Dispatch<SetStateAction<Col[]>>;
   /** Cuántos paneles quedan por renacer, para el aviso de la Cabina. */
@@ -174,6 +182,7 @@ export function useTableroGuardado({
   panes,
   cols,
   restoreOnStart,
+  cabinaApagada,
   setPanes,
   setCols,
   setRestoring,
@@ -236,7 +245,7 @@ export function useTableroGuardado({
         layout = null;
       }
     }
-    const saved: SavedLayout = layout?.panes?.length ? layout : { panes: [], cols: [] };
+    const saved: SavedLayout = layout?.panes?.length && !cabinaApagada ? layout : { panes: [], cols: [] };
     let cancelled = false;
     void (async () => {
       // Lo que aguantó una caída en el proceso de terminales (`terminales.rs`),

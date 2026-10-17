@@ -1666,9 +1666,24 @@ const EN: Record<string, string> = {
   "tokens (aprox.)": "tokens (approx.)",
 
   // El panel de la derecha. Estaba escrito en duro, sin pasar por aquí: por
-  // eso «Skills · Uso» seguía en español con la app en inglés.
-  "Skills · Uso": "Skills · Usage",
+  // eso su título seguía en español con la app en inglés.
   "Ocultar panel": "Hide panel",
+  // El Uso con su propia pestaña, una batería por cuenta (2026-10-17, «A1»).
+  // Las ventanas llegan en una variable: el comprobador no las ve.
+  Uso: "Usage",
+  "{p} %": "{p}%",
+  "las 5 horas": "the 5 hours",
+  "la semana": "the week",
+  "el mes": "the month",
+  "Ninguna de tus cuentas dice cuánto lleva gastado.": "None of your accounts says how much it has used.",
+  "Mirando tus cuentas…": "Checking your accounts…",
+  "Sin datos de gasto": "No usage data",
+  "no dice cuánto lleva": "does not say how much it has used",
+  "sin sesión": "not signed in",
+  // Actividad: lo que llevó y lo que trajo cada llamada, con palabras.
+  "{n} llamadas · {e} nuevos · {s} escritos": "{n} calls · {e} new · {s} written",
+  "{e} leídos · {s} escritos": "{e} read · {s} written",
+  "leídos: {n} nuevos, {c} de caché": "read: {n} new, {c} from cache",
   "Sin skills en ~/.claude/skills": "No skills in ~/.claude/skills",
   "Qué pasa este día…": "What happens on this day…",
 
@@ -2061,10 +2076,7 @@ const EN: Record<string, string> = {
   "Todavía nada: cuando use una skill, un MCP o una herramienta, saldrá aquí.":
     "Nothing yet: when it uses a skill, an MCP or a tool, it shows up here.",
   "Llamadas al modelo": "Model calls",
-  entrada: "input",
-  salida: "output",
   "Sin llamadas en la cola leída.": "No calls in the tail read.",
-  "entrada · caché leída · salida, en tokens": "input · cache read · output, in tokens",
   ahora: "now",
   "Pídele el tablero en cristiano: él propone el plan (sesiones, Claudes, terminales, Antigravity) y no ejecuta nada sin tu OK. En la Cabina: Ctrl+Mayús+A.":
     "Ask it for the board in plain words: it proposes the plan (sessions, Claudes, terminals, Antigravity) and runs nothing without your OK. In the Cockpit: Ctrl+Shift+A.",
@@ -2282,8 +2294,8 @@ const EN: Record<string, string> = {
 
   // La bienvenida de la primera vez.
   "Bienvenido a Adeorq": "Welcome to Adeorq",
-  "Un panel para trabajar con agentes de IA por terminales de verdad, con tus proyectos a un clic. Cuatro preguntas y entras.":
-    "A cockpit for working with AI agents through real terminals, with your projects one click away. Four questions and you are in.",
+  "Un panel para trabajar con agentes de IA por terminales de verdad, con tus proyectos a un clic. Cinco preguntas y entras.":
+    "A cockpit for working with AI agents through real terminals, with your projects one click away. Five questions and you are in.",
   "¿Cómo te llamas?": "What is your name?",
   "Tu nombre": "Your name",
   "Dónde viven tus proyectos": "Where your projects live",
@@ -2309,6 +2321,25 @@ const EN: Record<string, string> = {
   "Lee el historial que Claude Code y Codex dejan en tu carpeta de usuario para enseñártelo agrupado por proyecto. Se lee de tu disco y no sale de aquí.":
     "Reads the history Claude Code and Codex leave in your user folder and shows it grouped by project. It is read from your disk and never leaves it.",
   "El aspecto": "The look",
+  // Las partes que se apagan enteras (`lib/partes.ts`): la bienvenida y Ajustes.
+  // Sus nombres y lo que es cada una llegan en una variable, así que el
+  // comprobador no los ve: si faltan, el inglés los enseña en español.
+  "¿Qué quieres usar?": "What do you want to use?",
+  "Adeorq tiene cuatro partes grandes. Lo que no marques se apaga entero: no sale su pestaña y no arranca nada suyo por detrás. Se cambia cuando quieras en Ajustes.":
+    "Adeorq has four big parts. Whatever you leave unticked is switched off entirely: its tab is gone and nothing of it runs in the background. You can change it any time in Settings.",
+  Chat: "Chat",
+  "las terminales en mosaico": "your terminals as tiles",
+  "las terminales en un tablero libre, con notas y flechas": "your terminals on a free board, with notes and arrows",
+  "tus notas y lo que recuerdan tus agentes": "your notes and what your agents remember",
+  "tus sesiones como conversaciones, y el conserje": "your sessions as conversations, and the concierge",
+  "La Cabina y el Lienzo no se pueden apagar a la vez: sin ninguno no hay dónde abrir una terminal.":
+    "The Cockpit and the Canvas cannot both be off: without either there is nowhere to open a terminal.",
+  Partes: "Parts",
+  "Partes de Adeorq": "Parts of Adeorq",
+  "Apagar una parte la apaga entera: desaparece su pestaña y no arranca nada suyo por detrás. Se vuelve a encender aquí, sin reinstalar. Panel, Agenda, Decisiones, Cuentas y Comandos van siempre.":
+    "Switching a part off switches it off entirely: its tab disappears and nothing of it runs in the background. You switch it back on here, without reinstalling. Dashboard, Agenda, Decisions, Accounts and Commands are always on.",
+  "Apagada: se quita cuando cierres su terminal abierta.": "Off: it goes away once you close its open terminal.",
+  "Apagada: se quita cuando cierres sus {n} terminales abiertas.": "Off: it goes away once you close its {n} open terminals.",
   "Elige el color de la casa. Se cambia cuando quieras en Ajustes.":
     "Pick the colour of the house. You can change it any time in Settings.",
   "Todo listo, {n}.": "All set, {n}.",
@@ -2357,19 +2388,39 @@ const EN: Record<string, string> = {
   "Le sueltas una frase de lo que quieres y te escribe el encargo entero, elige con qué cliente y qué modelo sale más a cuenta, y te lo deja escrito en la terminal. También sabe repartir el trabajo entre varios agentes.":
     "Tell it in one line what you want and it writes the whole brief, picks which client and model is the best value, and leaves it typed in the terminal. It can also split the work across several agents.",
   "La Agenda": "The Agenda",
-  "Lo que tienes pendiente y las ideas que van saliendo mientras trabajas. Los agentes pueden dejarte propuestas aquí: tú las aceptas o las descartas.":
-    "What you have pending and the ideas that come up while you work. Agents can leave suggestions here: you accept them or throw them away.",
+  "Tu Perfil: la Agenda y tus cuentas": "Your Profile: the Agenda and your accounts",
+  "Lo que tienes pendiente y las propuestas que te dejan los agentes viven en la Agenda; al lado, tus cuentas con cuánta semana te queda, tu memoria y tus comandos. Adeorq usa TU cuenta: no da acceso a ningún modelo ni guarda ninguna clave.":
+    "What you have pending and the suggestions agents leave you live in the Agenda; next to it, your accounts with how much of the week is left, your memory and your commands. Adeorq uses YOUR account: it gives access to no model and stores no key.",
   "Los objetivos del día": "Today's goals",
   "Tres cosas que quieres terminar hoy, siempre a la vista. Un agente puede tachar el suyo al acabar, así que la lista se mueve sola mientras trabajas.":
     "Three things you want to finish today, always in sight. An agent can tick off its own when it is done, so the list moves on its own while you work.",
   "El Lienzo": "The Canvas",
   "Una pizarra donde caben terminales, notas, imágenes y ventanas de tu web en localhost. Para pensar un proyecto entero sin cambiar de ventana.":
     "A board that holds terminals, notes, images and windows onto your site on localhost. For thinking through a whole project without leaving the window.",
-  "Los clientes que tienes instalados y cuánta semana te queda en cada uno. Adeorq usa TU cuenta: no da acceso a ningún modelo ni guarda ninguna clave.":
-    "The clients you have installed and how much of the week is left on each. Adeorq uses YOUR account: it gives access to no model and stores no key.",
   "Ajustes, y la guía entera": "Settings, and the whole guide",
   "El aspecto, los atajos, las notificaciones y la carpeta de proyectos. Y dentro, en Ayuda, la guía completa de todo lo que hay: esto de aquí era solo el paseo rápido.":
     "The look, the shortcuts, the notifications and the projects folder. And inside, under Help, the full guide to everything there is: this was just the quick walk.",
+  // El Perfil (`PerfilView.tsx`), desde el 2026-10-17.
+  Perfil: "Profile",
+  "Tus secciones": "Your sections",
+  "Dónde estás": "Where you are",
+  "Cambiar la foto": "Change the photo",
+  "Esa imagen no se ha podido abrir.": "That image could not be opened.",
+  tu_usuario: "your_handle",
+  "Tu @": "Your @",
+  "Quitar la foto": "Remove the photo",
+  "Tu perfil": "Your profile",
+  "Sin @ todavía": "No @ yet",
+  "Ninguna con sesión abierta": "None signed in",
+  "sin cifra": "no figure",
+  "pendiente hoy": "pending today",
+  "pendientes hoy": "pending today",
+  "Nada apuntado para hoy": "Nothing noted for today",
+  "{n} hecho": "{n} done",
+  "{n} hechos": "{n} done",
+  "Sin bóveda todavía": "No vault yet",
+  "skill tuya": "skill of yours",
+  "skills tuyas": "skills of yours",
   "Ya está": "Done",
 
   // El Reparto: varias tareas de golpe.
@@ -2514,8 +2565,8 @@ const EN: Record<string, string> = {
     "You can remove its tab with the ✕, or ask the concierge to open it again.",
   // Ajustes > Terminales > el escalón de cada cliente del MCP (decisión D1).
   "Qué puede hacer cada cliente por el MCP": "What each client may do through the MCP",
-  "Cada programa que se conecta al MCP de Adeorq (Codex, Gemini, Kimi, un Claude Code tuyo…) tiene su escalón, los mismos tres del Capataz. De fábrica, plan: puede mirar y abrir terminales, nunca escribir en una que ya está trabajando. Claude Code nace en auto porque es lo que ya hace hoy. El Capataz y el conserje no cuentan: llevan su propio recorte.":
-    "Every program that connects to Adeorq's MCP (Codex, Gemini, Kimi, a Claude Code of yours…) has its level, the same three as the Foreman. Factory default is plan: it may look and open terminals, never type into one that is already working. Claude Code starts in auto because that is what it already does today. The Foreman and the concierge do not count: they carry their own cut.",
+  "Cada programa que se conecta al MCP de Adeorq (Codex, Gemini, Kimi, un Claude Code tuyo…) tiene su escalón, los mismos tres del Capataz. De fábrica, plan: puede mirar, abrir terminales y cerrar las que abrió él, nunca escribir en una que ya está trabajando. Claude Code nace en auto porque es lo que ya hace hoy. El Capataz y el conserje no cuentan: llevan su propio recorte.":
+    "Every program that connects to Adeorq's MCP (Codex, Gemini, Kimi, a Claude Code of yours…) has its level, the same three as the Foreman. Factory default is plan: it may look, open terminals and close the ones it opened, never type into one that is already working. Claude Code starts in auto because that is what it already does today. The Foreman and the concierge do not count: they carry their own cut.",
   "Todavía no se ha conectado ninguno. Aparecen aquí la primera vez que hablan con el MCP.":
     "None has connected yet. They show up here the first time they talk to the MCP.",
   "{n} veces, la última {cuando}": "{n} times, last {cuando}",
@@ -2821,6 +2872,8 @@ const EN: Record<string, string> = {
     "Brief copied and MISION.md written. In Antigravity: open the Gemini chat, Ctrl+V and Enter. (Install its agy CLI and this becomes one more terminal.)",
   "Esta carpeta no usa git, no hay nada que comprobar.": "This folder does not use git, there is nothing to check.",
   "Esta terminal usa tu cuenta «{c}», no la principal": "This terminal uses your “{c}” account, not the main one",
+  "de: {n}": "from: {n}",
+  "La abrió la sesión «{n}» con open_pane": "Opened by the “{n}” session with open_pane",
   "Este proyecto tiene {n} archivo con cambios sin guardar en git:":
     "This project has {n} file with changes not saved in git:",
   "Este proyecto tiene {n} archivos con cambios sin guardar en git:":
@@ -2886,6 +2939,25 @@ const EN: Record<string, string> = {
   "apuntó tareas": "noted tasks",
   "te preguntó": "asked you",
   "usó herramientas": "used tools",
+  // Tu uso en el Perfil (`PerfilUso.tsx`).
+  "No se pudo leer tu uso: {e}": "Could not read your usage: {e}",
+  "Leyendo tus conversaciones… la primera vez tarda un minuto.":
+    "Reading your conversations… the first time takes a minute.",
+  "Tokens en {mes}": "Tokens in {mes}",
+  "Compartir {mes}": "Share {mes}",
+  Nuevos: "New",
+  "La caché es la conversación que el modelo relee en cada respuesta: la cifra grande la cuenta, «Nuevos» no.":
+    "The cache is the conversation the model rereads on every reply: the big number counts it, “New” does not.",
+  Récord: "Record",
+  "Tu día de más tokens. Tócalo para abrir su tarjeta.": "Your day with the most tokens. Tap it to open its card.",
+  "Tu porfolio": "Your portfolio",
+  Proveedores: "Providers",
+  Modelos: "Models",
+  "Este mes todavía no hay uso.": "No usage this month yet.",
+  "El año": "The year",
+  "{fecha}: {n} tokens": "{fecha}: {n} tokens",
+  "{fecha}: sin uso": "{fecha}: no usage",
+  "Toca un día para abrir su tarjeta.": "Tap a day to open its card.",
 };
 
 export function detectLang(): Lang {

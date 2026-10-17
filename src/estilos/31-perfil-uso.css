@@ -1,0 +1,364 @@
+/* ==========================================================================
+   Tu uso dentro del Perfil (`PerfilUso.tsx`): la cifra del mes, el porfolio
+   por proveedor, modelo y proyecto, el año en casillas y el mes.
+   ========================================================================== */
+
+.pu {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  padding: 18px 20px;
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  box-shadow: var(--glass-edge);
+  transition: opacity var(--t-media);
+}
+
+.pu .espera,
+.pu-error,
+.pu-nada,
+.pu-pista {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pu-error {
+  color: var(--mal);
+}
+
+/* Los títulos en minúscula de frase, nunca en mayúsculas espaciadas (Munir,
+   2026-10-17: «Tokens» con la T mayúscula, no «TOKENS»). */
+.pu-titulo {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* «Octubre de 2026», no «octubre de 2026»: ver `.ag-cal-cab h2`. */
+.pu-titulo::first-letter {
+  text-transform: uppercase;
+}
+
+/* Los botones de solo icono van SUELTOS, sin recuadro ni fondo: nada de
+   «cárceles» alrededor de un icono (Munir, 2026-10-17, «te lo digo ya por 500
+   veces»; lo vigila `scripts/laboratorio/carceles.js`). Al pasar, el color. */
+.pu-compartir,
+.pu-mover {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--t-rapida);
+}
+
+.pu-compartir:hover,
+.pu-compartir:focus-visible,
+.pu-mover:hover:not(:disabled),
+.pu-mover:focus-visible {
+  color: var(--accent);
+}
+
+/* Un mes que aún no ha empezado no tiene nada que compartir. */
+.pu-mover:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --- La cifra del mes --------------------------------------------------------- */
+
+.pu-cifra {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Compartir el mes: arriba a la derecha del bloque de los tokens (Munir). La
+   tarjeta se abre encima de todo, con la página atenuada (`PerfilTarjeta`). */
+.pu-compartir {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.pu-cifra > b {
+  font-size: 40px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pu-cifra > em {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.pu-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 18px;
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.pu-fila b {
+  color: var(--text);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La que lleva la frase de la caché en el globo se subraya para que se vea
+   que tiene algo que decir. */
+.pu-nuevos {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+/* El récord abre la tarjeta de su día: un texto que se puede tocar. */
+.pu-record {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: color var(--t-rapida);
+}
+
+.pu-record:hover,
+.pu-record:focus-visible {
+  color: var(--text);
+}
+
+/* --- El porfolio: una lista con pestañas (A4) ---------------------------------- */
+
+/* Texto suelto; la elegida, en color y subrayada. */
+.pu-pestanas {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 10px;
+}
+
+.pu-pestanas button {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: underline 2px transparent;
+  text-underline-offset: 6px;
+  cursor: pointer;
+  transition: color var(--t-rapida), text-decoration-color var(--t-rapida);
+}
+
+.pu-pestanas button:hover {
+  color: var(--text);
+}
+
+.pu-pestanas button[aria-selected="true"] {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+.pu-parte {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 220px) minmax(0, 1fr) 72px 48px;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 13.5px;
+}
+
+.pu-parte::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--c);
+}
+
+.pu-parte-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pu-parte i {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.pu-parte i::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--w);
+  background: var(--c);
+  border-radius: inherit;
+}
+
+.pu-parte em,
+.pu-parte b {
+  font-style: normal;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pu-parte em {
+  color: var(--muted);
+}
+
+.pu-parte b {
+  font-weight: 650;
+}
+
+/* --- Los dos calendarios -------------------------------------------------------- */
+
+.pu-cal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: start;
+}
+
+.pu-anio-caja {
+  min-width: 0;
+}
+
+.pu-anio-scroll {
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+}
+
+.pu-anio {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 11px);
+  gap: 3px;
+  width: max-content;
+}
+
+.pu-anio button {
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.pu-mes {
+  display: grid;
+  grid-template-columns: repeat(7, 40px);
+  gap: 3px;
+}
+
+.pu-mes em {
+  font-style: normal;
+  font-size: 10px;
+  text-align: center;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Sin el número del día, solo los tokens (Munir, 2026-10-17). */
+.pu-mes button,
+.pu-vacio {
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-chico);
+  background: rgba(255, 255, 255, 0.04);
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.pu-vacio {
+  background: transparent;
+}
+
+/* Un día sin uso no tiene tarjeta que abrir. */
+.pu-anio button:disabled,
+.pu-mes button:disabled,
+.pu-vacio {
+  cursor: default;
+}
+
+/* Los cuatro tonos, de menos a más. Son los cuartiles de los días con uso del
+   año (`cortes`, en `lib/usoDelPerfil.ts`), los mismos en los dos calendarios. */
+.pu-anio button[data-n="1"] { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.pu-anio button[data-n="2"] { background: color-mix(in srgb, var(--accent) 50%, transparent); }
+.pu-anio button[data-n="3"] { background: color-mix(in srgb, var(--accent) 75%, transparent); }
+.pu-anio button[data-n="4"] { background: color-mix(in srgb, var(--accent) 70%, #fff); }
+.pu-mes button[data-n="1"] { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.pu-mes button[data-n="2"] { background: color-mix(in srgb, var(--accent) 40%, transparent); }
+.pu-mes button[data-n="3"] { background: color-mix(in srgb, var(--accent) 62%, transparent); }
+.pu-mes button[data-n="4"] { background: var(--accent); color: var(--on-accent); }
+
+.pu-anio button[data-hoy],
+.pu-mes button[data-hoy] {
+  outline: 1.5px solid var(--text);
+  outline-offset: 1px;
+}
+
+.pu-anio button:not(:disabled):hover,
+.pu-mes button:not(:disabled):hover,
+.pu-anio button:focus-visible,
+.pu-mes button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.pu-mes-cab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.pu-mes-cab .pu-titulo {
+  margin: 0 auto 0 0;
+}
+
+.pu-pista {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .pu-cal {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pu-parte {
+    grid-template-columns: 10px minmax(0, 1fr) 72px 48px;
+  }
+
+  .pu-parte i {
+    display: none;
+  }
+}

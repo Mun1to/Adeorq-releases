@@ -10,7 +10,7 @@
 
 import { readFileSync } from "node:fs";
 import { ATAJOS, entradasDeLaPaleta, filtrarPaleta } from "../src/lib/paleta";
-import { PESTANAS } from "../src/lib/vistas";
+import { VISTAS } from "../src/lib/vistas";
 
 let fallos = 0;
 function ok(nombre: string, cond: boolean, detalle = "") {
@@ -20,7 +20,7 @@ function ok(nombre: string, cond: boolean, detalle = "") {
 
 const t = (s: string) => s;
 const hay = {
-  pestanas: PESTANAS,
+  pestanas: VISTAS,
   proyectos: [
     { name: "Adeorq", path: "C:\\proyectos\\Adeorq" },
     { name: "VoCript", path: "C:\\proyectos\\VoCript" },
@@ -34,7 +34,7 @@ const textos = (q: string) => filtrarPaleta(todas, q).map((e) => e.texto);
 // --- qué ofrece -----------------------------------------------------------------
 ok(
   "están todas las pestañas, una por una",
-  PESTANAS.every((p) => todas.some((e) => e.accion.tipo === "vista" && e.accion.view === p.key)),
+  VISTAS.every((p) => todas.some((e) => e.accion.tipo === "vista" && e.accion.view === p.key)),
 );
 ok("los ids no se repiten", new Set(todas.map((e) => e.id)).size === todas.length);
 ok(

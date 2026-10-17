@@ -710,7 +710,8 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
 }
 
 .pane-head {
-  container-type: inline-size;
+  /* `scroll-state`: para que la ✕ sepa si tiene botones pasando por debajo. */
+  container-type: inline-size scroll-state;
   display: flex;
   align-items: center;
   /* El hueco entre ZONAS. Dentro de cada una es más estrecho, y esa diferencia
@@ -751,9 +752,9 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   display: flex;
   align-items: center;
   gap: 7px;
-  /* La red, para cuando ya no queda nada que ceder. El chip del proyecto no
-     puede bajar de sus 18px de relleno y borde, así que en una terminal de
-     menos de 290px hasta él se sale de la zona. Recortado se lee a medias;
+  /* La red, para cuando ya no queda nada que ceder. El proyecto no baja de sus
+     puntos suspensivos, así que en una terminal muy estrecha hasta él se sale
+     de la zona. Recortado se lee a medias;
      desbordado se le pinta el medidor encima, que es peor y es justo lo que
      había que quitar (ver el `flex-shrink: 1000` del final del archivo). */
   overflow: hidden;
@@ -837,9 +838,8 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
    puedes leer» y pasaba exactamente lo contrario.
    `sticky` la ancla al borde derecho de lo que se ve: cuando sobra sitio no se
    nota nada, y cuando falta es lo último que queda en pie en vez de lo primero
-   que desaparece. El fondo heredado evita que se lea encima de otro icono, y
-   vale tanto para la cabecera normal como para la del panel enfocado, que es
-   de otro color. */
+   que desaparece. Que no se lea encima de otro icono lo resuelve el fundido de
+   la regla `scroll-state` de más abajo. */
 .pane-close {
   position: sticky;
   right: 0;
@@ -851,18 +851,33 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   min-width: 28px;
   min-height: 26px;
   border-radius: var(--r-icono, var(--r-chico));
-  background: inherit;
+  /* Sin fondo propio. El `inherit` de antes repetía el cristal de la cabecera
+     encima de sí mismo (dos veces su 0,7) y la ✕ salía siempre en un cuadro más
+     oscuro: otra cárcel (2026-10-17). Solo hace falta tapar cuando hay iconos
+     pasando por debajo, y eso lo dice la regla de abajo. */
+  background: none;
   border: none;
   color: var(--muted);
   font-size: 15px;
   cursor: pointer;
   padding: 0 5px;
-  transition: background var(--t-rapida) ease, color var(--t-rapida) ease, border-color var(--t-rapida) ease;
+  transition: color var(--t-rapida) ease;
+}
+
+/* Solo cuando la cabecera no cabe y queda algo a la derecha por ver: entonces
+   los botones pasan por debajo de la ✕ pegada al borde, y un fundido opaco los
+   tapa sin dibujar una caja (sin esquina, y el degradado no es un recuadro).
+   Lo pregunta la propia cabecera (`scroll-state` en `.pane-head`); donde el
+   navegador no lo sepa (WebKitGTK en Linux), la ✕ va sin tapar. */
+@container scroll-state(scrollable: right) {
+  .pane-close {
+    border-radius: 0;
+    background: linear-gradient(90deg, transparent, var(--panel-solid) 35%);
+  }
 }
 
 .pane-close:hover {
   color: var(--mal);
-  background: color-mix(in srgb, var(--mal) 16%, transparent);
 }
 
 /* En una ventana suelta ese botón no cierra nada: DEVUELVE la terminal al
@@ -870,7 +885,6 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
    lo pulsara y pareciera que no había forma de volver (Munir, 2026-08-15). */
 .pane-close[data-suelta]:hover {
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .pane-term {
@@ -1088,6 +1102,12 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   display: none;
 }
 
+/* Los botones de la cabecera, sueltos: el icono y nada alrededor. Cada uno iba
+   en su recuadro con borde y fondo, y al pasar el ratón se levantaba con
+   degradado y sombra. Munir, 2026-10-17: «Estoy ya hasta los cojones de las
+   cárceles y de los recuadros de los iconos y de los textos. Te lo digo ya por
+   500 veces». Al pasar el ratón solo cambia el color. La esquina se queda
+   porque es de lo que se agarran los mods (`--r-icono`). */
 .pane-btn {
   flex: none;
   display: inline-flex;
@@ -1095,37 +1115,35 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   justify-content: center;
   min-width: 28px;
   min-height: 26px;
-  background: color-mix(in srgb, var(--row) 60%, transparent);
-  border: 1px solid var(--border);
+  background: none;
+  border: none;
   color: color-mix(in srgb, var(--text) 66%, var(--muted));
   font-size: 12px;
   cursor: pointer;
   border-radius: var(--r-icono, var(--r-chico));
   padding: 2px 5px;
-  transition:
-    background var(--t-rapida) ease,
-    color var(--t-rapida) ease,
-    border-color var(--t-rapida) ease,
-    transform var(--t-rapida) ease,
-    box-shadow var(--t-rapida) ease;
+  transition: color var(--t-rapida) ease;
 }
 
 .pane-btn:hover {
   color: color-mix(in srgb, var(--accent) 25%, #fff);
-  background: linear-gradient(180deg, color-mix(in srgb, color-mix(in srgb, var(--accent-dim) 75%, #fff) 55%, transparent), color-mix(in srgb, color-mix(in srgb, var(--accent-dim) 65%, #000) 55%, transparent));
-  border-color: color-mix(in srgb, color-mix(in srgb, var(--accent) 65%, #fff) 35%, transparent);
-  transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.pane-btn:active {
-  transform: translateY(1px);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+/* En los temas claros ese azul casi blanco no se vería sobre la cabecera. */
+:root[data-theme="claro"] .pane-btn:hover,
+:root[data-theme="papel"] .pane-btn:hover {
+  color: var(--accent);
+}
+
+/* La papelera borra una conversación: su color es el de peligro. */
+.ph-acts .pane-btn.pane-bin:hover {
+  color: var(--mal);
 }
 
 /* Project identity now lives in .ws-bar (the coloured edge of the card). */
 
-/* Which model is driving this pane, and how hard it is thinking */
+/* Which model is driving this pane, and how hard it is thinking. Texto suelto,
+   en su color: la píldora con borde era otra cárcel (2026-10-17). */
 .pane-brain {
   flex: none;
   display: flex;
@@ -1134,10 +1152,6 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   font-size: 10.5px;
   font-weight: 600;
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  border-radius: var(--r-chico);
-  padding: 2px 7px;
   white-space: nowrap;
 }
 
@@ -1150,10 +1164,6 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: color-mix(in srgb, var(--accent) 70%, var(--text));
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: var(--r-chico);
-  padding: 1px 6px;
   max-width: 90px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1175,26 +1185,27 @@ html[data-panes="tarjetas"] .pane[data-team="true"] {
   gap: 3px;
   font-size: 11.5px;
   font-weight: 650;
-  border-radius: var(--r-chico);
-  padding: 2px 8px;
-  /* Back from their errand: still worth knowing, no longer worth shouting. */
+  /* Back from their errand: still worth knowing, no longer worth shouting.
+     Sin recuadro, como el resto de la cabecera (2026-10-17): lo que dice el
+     estado es el color. */
   color: var(--muted);
-  background: var(--bg);
-  border: 1px solid var(--border);
 }
 
 .pane-agents[data-live="true"] {
-  color: var(--on-accent);
-  background: var(--accent);
+  color: var(--accent);
 }
 /* Con historial que leer es un botón: al posarse o al pulsarlo sale la lista
    de agentes (`components/AgentesDePanel.tsx`). */
 button.pane-agents {
   font-family: inherit;
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
 }
+button.pane-agents:hover,
 button.pane-agents[data-on] {
-  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* La lista de agentes de una terminal: quién es cada uno, qué se le mandó y
@@ -1407,17 +1418,15 @@ button.pane-agents[data-on] {
 }
 
 /* A glyph instead of a word: the header is narrow and the name lives in the
-   tooltip. Each agent keeps its own hue so panes are told apart at a glance. */
+   tooltip. Each agent keeps its own hue so panes are told apart at a glance.
+   Suelto, sin caja: iba en un cuadrado con borde y fondo, y Munir lo quería
+   fuera (2026-10-17: el logo y el proyecto «no estén en cárceles, sino libres y
+   ya está. Quedaba muy cutre»). La cárcel era el borde y el fondo. */
 .pane-kind {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--r-chico);
-  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
-  background: color-mix(in srgb, currentColor 14%, transparent);
   /* El tono del CLI lo pone KindIcon en --k. Va aquí y no en línea para que las
      dos reglas de abajo, la consola y el proceso muerto, puedan ganarle. */
   color: var(--k, var(--muted));
@@ -1432,7 +1441,6 @@ button.pane-agents[data-on] {
 
 .pane-kind[data-kind="shell"] {
   color: var(--muted);
-  background: transparent;
 }
 
 /* The green square used to carry this on its own: 9px of header for one bit of
@@ -1440,7 +1448,6 @@ button.pane-agents[data-on] {
    the three, so it wins over the per-agent hues above. */
 .pane-kind[data-exited="true"] {
   color: var(--muted);
-  background: transparent;
   opacity: 0.55;
 }
 

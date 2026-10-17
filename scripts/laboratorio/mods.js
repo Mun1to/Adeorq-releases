@@ -77,7 +77,7 @@ async (page) => {
       // El avatar pegado a su fila: de fábrica, redondo por la izquierda y casi recto por la derecha.
       avatar: radio(".project-mark .pavatar"),
       // Lo que NO es un botón de solo icono ni un avatar: la pastilla del modelo y el panel.
-      pastilla: radio(".pane-brain, .pane-kind, .pane-proj, .count"), pane: radio(".pane"),
+      pastilla: radio(".pane-brain, .count"), pane: radio(".pane"),
       mods: (window.__mods ?? []).map((m) => `${m.id}:${m.estado}${m.sueltas.length ? `(${m.sueltas.join(",")})` : ""}`),
       pedidos: window.__llamadas.filter(([c]) => c === "mods_leer").length,
       rastro: window.__llamadas.filter(([c]) => c === "anotar_rastro").map(([, a]) => a.mensaje),

@@ -51,6 +51,7 @@ import { hueOf } from "../lib/colors";
 import ProjectAvatar from "./ProjectAvatar";
 import ProviderMark from "./ProviderMark";
 import SkillsPanel from "./SkillsPanel";
+import UsagePanel from "./UsagePanel";
 import ArchivosPanel from "./ArchivosPanel";
 import ActividadPanel from "./ActividadPanel";
 import PanelDerecho, { type Cara } from "./PanelDerecho";
@@ -899,11 +900,10 @@ ${v}` : txt));
           <SkillsPanel
             canPaste={!!abierta}
             onUse={meterSkill}
-            onUsage={abierta ? () => onUsage(abierta) : null}
-            cuentas={cuentas}
             pista={t("Clic en una skill para meterla en la caja de escribir.")}
           />
         }
+        uso={<UsagePanel onUsage={abierta ? () => onUsage(abierta) : null} cuentas={cuentas} />}
         archivos={
           <ArchivosPanel
             raiz={raizArchivos}

@@ -17,6 +17,7 @@ import { fijarRaiz, leerPerfil, raizPorDefecto, tocarPerfil, type Perfil } from 
 import { PROVIDERS, providerOf } from "../lib/providers";
 import { THEMES, useT, type Lang, type ThemeId } from "../lib/i18n";
 import ProviderMark from "./ProviderMark";
+import { alternarParte, leerApagadas, PARTES, type Parte } from "../lib/partes";
 import { ChevronIcon } from "./Icons";
 
 interface Props {
@@ -26,12 +27,14 @@ interface Props {
   onTheme: (t: ThemeId) => void;
   /** Terminado: `tour` dice si quiere ver el recorrido a continuación. */
   onDone: (tour: boolean) => void;
+  /** Las partes que se apagan enteras (`lib/partes.ts`), en cuanto se marcan. */
+  onPartes: (a: Parte[]) => void;
 }
 
-type Paso = 0 | 1 | 2 | 3 | 4;
-const ULTIMO: Paso = 4;
+type Paso = 0 | 1 | 2 | 3 | 4 | 5;
+const ULTIMO: Paso = 5;
 
-export default function Onboarding({ lang, theme, onLang, onTheme, onDone }: Props) {
+export default function Onboarding({ lang, theme, onLang, onTheme, onDone, onPartes }: Props) {
   const { t } = useT();
   const [paso, setPaso] = useState<Paso>(0);
   const [perfil, setPerfil] = useState<Perfil>(() => leerPerfil());
@@ -39,6 +42,9 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone }: Pro
   const [cuantos, setCuantos] = useState<number | null>(null);
   const [errorRaiz, setErrorRaiz] = useState<string | null>(null);
   const [instalados, setInstalados] = useState<string[]>([]);
+  const [apagadas, setApagadas] = useState<Parte[]>(leerApagadas);
+  /** Por qué no se pudo quitar la última de terminales. */
+  const [porqueParte, setPorqueParte] = useState<string | null>(null);
 
   const cambiar = (c: Partial<Perfil>) => setPerfil(tocarPerfil(c));
 
@@ -118,6 +124,15 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone }: Pro
     cambiar({ clis: [...s] });
   };
 
+  /** Como el resto de pasos, se aplica en cuanto se marca. */
+  const alternarLaParte = (p: Parte) => {
+    const r = alternarParte(apagadas, p);
+    setPorqueParte(r.porque ?? null);
+    if (r.porque) return;
+    setApagadas(r.apagadas);
+    onPartes(r.apagadas);
+  };
+
   const terminar = (tour: boolean) => {
     cambiar({ hecho: true, tour: !tour ? leerPerfil().tour : false });
     onDone(tour);
@@ -145,11 +160,13 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone }: Pro
                 : paso === 2
                   ? t("Tus agentes")
                   : paso === 3
-                    ? t("El aspecto")
-                    : t("Listo")}
+                    ? t("¿Qué quieres usar?")
+                    : paso === 4
+                      ? t("El aspecto")
+                      : t("Listo")}
           </h2>
           <div className="onb-pips">
-            {([0, 1, 2, 3, 4] as Paso[]).map((n) => (
+            {([0, 1, 2, 3, 4, 5] as Paso[]).map((n) => (
               <span key={n} className="onb-pip" data-on={n <= paso} />
             ))}
           </div>
@@ -160,7 +177,7 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone }: Pro
             <>
               <p className="onb-txt">
                 {t(
-                  "Un panel para trabajar con agentes de IA por terminales de verdad, con tus proyectos a un clic. Cuatro preguntas y entras.",
+                  "Un panel para trabajar con agentes de IA por terminales de verdad, con tus proyectos a un clic. Cinco preguntas y entras.",
                 )}
               </p>
               <label className="onb-campo">
@@ -279,6 +296,26 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone }: Pro
           {paso === 3 && (
             <>
               <p className="onb-txt">
+                {t(
+                  "Adeorq tiene cuatro partes grandes. Lo que no marques se apaga entero: no sale su pestaña y no arranca nada suyo por detrás. Se cambia cuando quieras en Ajustes.",
+                )}
+              </p>
+              {PARTES.map((p) => (
+                <label key={p.id} className="onb-check">
+                  <input type="checkbox" checked={!apagadas.includes(p.id)} onChange={() => alternarLaParte(p.id)} />
+                  <span>
+                    <strong>{t(p.nombre)}</strong>
+                    <small>{t(p.que)}</small>
+                  </span>
+                </label>
+              ))}
+              {porqueParte && <p className="onb-mal">{t(porqueParte)}</p>}
+            </>
+          )}
+
+          {paso === 4 && (
+            <>
+              <p className="onb-txt">
                 {t("Elige el color de la casa. Se cambia cuando quieras en Ajustes.")}
               </p>
               <div className="onb-temas">
@@ -319,6 +356,14 @@ export default function Onboarding({ lang, theme, onLang, onTheme, onDone }: Pro
                     {perfil.clis.length
                       ? perfil.clis.map((c) => providerOf(c).label).join(", ")
                       : t("ninguno marcado")}
+                  </span>
+                </li>
+                <li>
+                  <b>{t("Partes")}</b>
+                  <span>
+                    {PARTES.filter((p) => !apagadas.includes(p.id))
+                      .map((p) => t(p.nombre))
+                      .join(", ")}
                   </span>
                 </li>
                 <li>

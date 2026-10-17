@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
 import { detectLang } from "./i18n";
 
 // Quién eres y dónde tienes tus cosas: lo que el onboarding pregunta la primera
@@ -42,10 +43,13 @@ export interface Perfil {
   hecho: boolean;
   /** Vio el recorrido por las funciones. */
   tour: boolean;
+  /** Su @, sin la arroba delante: lo que firma la tarjeta para compartir. */
+  arroba: string;
 }
 
 export const PERFIL_VACIO: Perfil = {
   nombre: "",
+  arroba: "",
   raiz: "",
   sinRaiz: false,
   extras: [],
@@ -142,6 +146,84 @@ export function anadirProyecto(ruta: string): boolean {
 export function quitarProyecto(ruta: string): void {
   const low = limpiar(ruta).toLowerCase();
   tocarPerfil({ extras: leerPerfil().extras.filter((e) => limpiar(e).toLowerCase() !== low) });
+}
+
+// ── Quién eres en el Perfil: nombre, @ y foto ─────────────────────────────
+//
+// Lo leen dos piezas a la vez, la cabecera del Perfil y la tarjeta para
+// compartir, así que vive aquí y avisa con un evento cuando cambia. La foto va
+// en su propia clave y ya reducida (256 px en WebP, unos 20 KB): `leerPerfil`
+// se llama en cada terminal que nace y no tiene por qué cargar con una imagen.
+
+const FOTO_KEY = "adeorq-perfil-foto";
+export const YO_EVENTO = "adeorq-yo";
+const LADO_FOTO = 256;
+
+export interface Yo {
+  nombre: string;
+  /** Sin la arroba delante. */
+  arroba: string;
+  /** La foto como `data:` lista para un `<img>` o un lienzo; vacía si no hay. */
+  foto: string;
+}
+
+export function leerYo(): Yo {
+  const p = leerPerfil();
+  let foto = "";
+  try {
+    foto = localStorage.getItem(FOTO_KEY) ?? "";
+  } catch {
+    /* sin almacén no hay foto, y se ve la inicial */
+  }
+  return { nombre: String(p.nombre ?? ""), arroba: String(p.arroba ?? ""), foto };
+}
+
+/** La arroba como se escribe sin pensar («@munir», « munir ») queda en «munir». */
+export function limpiarArroba(s: string): string {
+  return s.trim().replace(/^@+/, "").replace(/\s+/g, "");
+}
+
+export function tocarYo(cambio: Partial<Yo>): void {
+  const { foto, ...resto } = cambio;
+  if (resto.nombre !== undefined || resto.arroba !== undefined) {
+    tocarPerfil({
+      ...(resto.nombre !== undefined ? { nombre: resto.nombre.trim() } : {}),
+      ...(resto.arroba !== undefined ? { arroba: limpiarArroba(resto.arroba) } : {}),
+    });
+  }
+  if (foto !== undefined) {
+    try {
+      if (foto) localStorage.setItem(FOTO_KEY, foto);
+      else localStorage.removeItem(FOTO_KEY);
+    } catch {
+      /* lleno: se queda la de antes */
+    }
+  }
+  window.dispatchEvent(new Event(YO_EVENTO));
+}
+
+/** La foto elegida, recortada al cuadrado del centro y reducida. */
+export async function fotoDesdeArchivo(archivo: Blob): Promise<string> {
+  const img = await createImageBitmap(archivo);
+  const lado = Math.min(img.width, img.height);
+  const lienzo = document.createElement("canvas");
+  lienzo.width = lienzo.height = LADO_FOTO;
+  const ctx = lienzo.getContext("2d");
+  if (!ctx) throw new Error("sin lienzo para reducir la foto");
+  ctx.drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, LADO_FOTO, LADO_FOTO);
+  img.close();
+  return lienzo.toDataURL("image/webp", 0.86);
+}
+
+/** Lo de arriba, al día: se repinta cuando cualquiera lo cambia. */
+export function useYo(): Yo {
+  const [yo, setYo] = useState<Yo>(leerYo);
+  useEffect(() => {
+    const releer = () => setYo(leerYo());
+    window.addEventListener(YO_EVENTO, releer);
+    return () => window.removeEventListener(YO_EVENTO, releer);
+  }, []);
+  return yo;
 }
 
 /** Lo que Rust usaría si nadie le dice nada: lo que se propone en el onboarding. */

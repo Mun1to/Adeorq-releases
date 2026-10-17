@@ -488,6 +488,4 @@
    no en el acento de la Cabina, que cuenta lo que hay abierto. */
 .tab-count[data-espera="true"] {
   color: var(--ask);
-  background: color-mix(in srgb, var(--ask) 18%, transparent);
-  border-color: color-mix(in srgb, var(--ask) 42%, transparent);
 }

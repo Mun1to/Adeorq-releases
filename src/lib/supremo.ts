@@ -27,6 +27,9 @@ export interface PedidoMcp {
   model?: string;
   /** De qué panel colgar el nuevo, cuando el agente quiere el árbol hecho. */
   from?: number | null;
+  /** El panel del agente que lo pide, si su puente lo presentó: lo pone Rust,
+   *  no el agente, y es lo que dice la cabecera de la nueva («de: …»). */
+  quien?: number | null;
   to?: number | null;
   auto?: boolean;
   /** La terminal sobre la que va el pedido, cuando no se abre una nueva
@@ -121,6 +124,17 @@ export function nombreDe(pedido: PedidoMcp, cwd: string, cli: string): string {
   const proyecto = cwd.split(/[\\/]/).filter(Boolean).pop() ?? cli;
   if (propio) return `${proyecto} · ${propio.slice(0, 40)}`;
   return `${proyecto} · ${cli}`;
+}
+
+/**
+ * Lo contrario: el título que enseña la cabecera de un panel, su nombre sin el
+ * prefijo de su proyecto, que ya va al lado («demo · Hija» se ve «Hija»). Lo
+ * usan la cabecera y el «de: …» de una terminal abierta por otra, que tiene que
+ * decir lo mismo que se ve en la cabecera de esa otra.
+ */
+export function tituloDeCabecera(name: string, cwd: string): string {
+  const proyecto = cwd.split(/[\\/]/).filter(Boolean).pop() ?? cwd;
+  return name.startsWith(`${proyecto} · `) ? name.slice(proyecto.length + 3) : name;
 }
 
 /**

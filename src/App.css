@@ -103,3 +103,9 @@
 
 /* El enjambre del lienzo: varias sesiones y un solo chat. */
 @import "./estilos/29-enjambre.css";
+
+/* El Perfil: lo tuyo arriba y el resumen de cada sección debajo. */
+@import "./estilos/30-perfil.css";
+
+/* Tu uso dentro del Perfil: el porfolio y los calendarios. */
+@import "./estilos/31-perfil-uso.css";

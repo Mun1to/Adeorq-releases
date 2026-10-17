@@ -1,0 +1,365 @@
+/* ==========================================================================
+   El Perfil (`PerfilView.tsx`): una sola página que baja, con lo tuyo arriba y
+   un resumen de Cuentas, Agenda, Memoria y Comandos debajo. Al tocar uno se
+   abre su pantalla de siempre, con la vuelta al Perfil encima.
+   ========================================================================== */
+
+/* La 4 (Munir, 2026-10-17): tu nombre y tus secciones en la misma fila, y tu
+   uso debajo a todo lo ancho. `align-content: start` porque es el contenedor
+   que baja: sin él, con poco contenido, las filas se estiraban hasta llenarlo. */
+.panel.perfil {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  align-items: center;
+  gap: 28px 36px;
+}
+
+.panel.perfil > .panel-hero {
+  margin-bottom: 0;
+}
+
+/* Lo que va detrás de la fila de arriba (tu uso) ocupa el ancho entero. */
+.panel.perfil > :nth-child(n + 3) {
+  grid-column: 1 / -1;
+}
+
+/* Estrecha (la pantalla vertical, una ventana a media pantalla): tus secciones
+   bajan a su propia fila; y en el móvil, de dos en dos. */
+@media (max-width: 1180px) {
+  .panel.perfil {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  /* Con el panel delante para ganarle a la regla de abajo, que va después. */
+  .panel.perfil .perfil-secciones {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Un botón que es solo texto: sin recuadro ni fondo (Munir, 2026-10-17: «hasta
+   los cojones de las cárceles y de los recuadros de los iconos y de los
+   textos»). Lo que manda va en el color de acento; lo demás, apagado, y al
+   pasar el ratón se enciende y se subraya. */
+.perfil-texto {
+  padding: 2px 0;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-underline-offset: 3px;
+  /* Va suelto sobre la foto del fondo, como el título (ver `.panel-hero`). */
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  transition: color var(--t-rapida);
+}
+
+.perfil-texto:hover,
+.perfil-texto:focus-visible {
+  color: var(--text);
+  text-decoration: underline;
+  outline: none;
+}
+
+.perfil-texto[data-principal] {
+  color: var(--accent);
+}
+
+/* --- Tú: la foto, el nombre y el @ ------------------------------------------ */
+
+.perfil-tu {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+/* La foto, recortada en redondo y sin marco; sin foto, el icono suelto. */
+.perfil-foto {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--t-rapida), opacity var(--t-rapida);
+}
+
+.perfil-foto:hover,
+.perfil-foto:focus-visible {
+  color: var(--accent);
+  opacity: 0.85;
+  outline: none;
+}
+
+.perfil-foto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.perfil-quien {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.perfil-tu p.perfil-arroba {
+  margin: 0;
+  font-size: 15px;
+}
+
+.perfil-tu p.perfil-falta {
+  color: var(--muted);
+}
+
+.perfil-editar {
+  margin-top: 6px;
+}
+
+.perfil-editando {
+  gap: 8px;
+}
+
+.perfil-campo {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  padding: 6px 10px;
+}
+
+.perfil-campo:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.perfil-campo-nombre {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.perfil-campo-arroba {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+
+.perfil-botones {
+  display: flex;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+.perfil-error {
+  width: 100%;
+  margin: 0;
+  color: var(--mal);
+}
+
+/* --- Los cuatro resúmenes ---------------------------------------------------- */
+
+/* Las que haya (tres con la Memoria apagada), repartidas a partes iguales. */
+.perfil-secciones {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.perfil-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 150px;
+  padding: 16px 18px;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r-caja);
+  box-shadow: var(--glass-edge);
+  cursor: pointer;
+  transition: border-color var(--t-rapida);
+}
+
+.perfil-seccion:hover {
+  border-color: var(--border-strong);
+}
+
+.perfil-seccion:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.perfil-seccion-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.perfil-seccion-ir {
+  margin-left: auto;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform var(--t-rapida), color var(--t-rapida);
+}
+
+.perfil-seccion:hover .perfil-seccion-ir {
+  color: var(--text);
+  transform: translateX(2px);
+}
+
+.perfil-cifra {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.perfil-cifra b {
+  font-size: 32px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.perfil-cifra > span,
+.perfil-linea {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.perfil-filas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.perfil-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.perfil-fila-nombre {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.perfil-fila-dato {
+  flex: none;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* La barra de cada cuenta, con los mismos colores que las baterías del panel
+   de la derecha (`.bat-barra`): naranja desde el 78 %, rojo al final. */
+.perfil-barra {
+  flex: none;
+  width: 64px;
+  height: 6px;
+  border-radius: var(--r-pastilla);
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.perfil-barra i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.perfil-barra[data-tono="alto"] i {
+  background: var(--done);
+}
+
+.perfil-barra[data-tono="mal"] i {
+  background: var(--wait);
+}
+
+/* Tus skills, sueltas en una línea que se corta con puntos suspensivos. */
+.perfil-skills {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- La vuelta al Perfil, encima de una sección ------------------------------ */
+
+.perfil-volver {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 48px 0;
+  font-size: 13px;
+}
+
+/* La pantalla de debajo trae sus 40 px de aire arriba, pensados para empezar
+   pegada a la cabecera; con la vuelta encima sobraría la mitad. */
+.perfil-volver + .panel {
+  padding-top: 18px;
+}
+
+/* Texto suelto, sin píldora: era una cárcel. */
+.perfil-volver-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-underline-offset: 3px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+}
+
+.perfil-volver-btn:hover,
+.perfil-volver-btn:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.perfil-volver-aqui {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+}
+
+.perfil-volver-aqui::before {
+  content: "›";
+  margin-right: 8px;
+  color: var(--muted);
+}

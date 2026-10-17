@@ -29,6 +29,7 @@ import {
   cliPedido,
   nombreDe,
   parteDeApertura,
+  tituloDeCabecera,
   type PedidoMcp,
 } from "./supremo";
 
@@ -44,6 +45,11 @@ export interface ManosDelPuente {
     command?: string[],
     at?: undefined,
     account?: Account,
+    team?: undefined,
+    shadow?: undefined,
+    grupo?: undefined,
+    envOverride?: undefined,
+    opciones?: { abiertaPor?: string },
   ) => { id: number; donde: "lienzo" | "cabina" } | null | undefined;
   /** Dibujar una flecha entre dos terminales del lienzo. */
   enlazarRef: Ref<((from: number, to: number, auto: boolean) => boolean) | null>;
@@ -178,7 +184,13 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
           await confiarCarpeta(cwd).catch(() => false);
         }
 
-        const abierto = addPane(label, cwd, command, undefined, cuenta);
+        // Quién la pide, con el título que se ve ahora en su cabecera: la de la
+        // nueva dirá «de: …» (Munir, 2026-10-17). Solo si su puente presentó su
+        // panel; un agente sin panel no tiene cabecera que nombrar.
+        const madre = typeof p.quien === "number" ? panelesRef.current().find((s) => s.id === p.quien) : undefined;
+        const abierto = addPane(label, cwd, command, undefined, cuenta, undefined, undefined, undefined, undefined, {
+          abiertaPor: madre ? tituloDeCabecera(madre.name, madre.cwd).trim() || undefined : undefined,
+        });
         if (!abierto) return responder({ error: "no pude abrir la terminal" });
 
         // La flecha de paso, si la pidió: así el árbol le queda hecho sin una

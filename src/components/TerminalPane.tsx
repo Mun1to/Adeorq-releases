@@ -55,6 +55,7 @@ import {
 import AgentesDePanel from "./AgentesDePanel";
 import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
+import { tituloDeCabecera } from "../lib/supremo";
 import { avisar, forgetPane, type NotifyMode } from "../lib/notify";
 import { seMuda, tomarVolcado } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
@@ -107,6 +108,8 @@ interface Props {
   env?: Record<string, string>;
   /** Which account this terminal belongs to, when it is not the main one. */
   account?: string;
+  /** La sesión que la abrió con `open_pane`: su cabecera dice «de: …». */
+  abiertaPor?: string;
   /** La cuadrilla a la que pertenece este panel, si nació dentro de un
       reparto: su color, su puesto y el objetivo común. */
   team?: { id: string; objetivo: string; color: string; rol: string; n: number; de: number };
@@ -393,6 +396,7 @@ export default function TerminalPane({
   command,
   env,
   account,
+  abiertaPor,
   team,
   hidden,
   focused,
@@ -932,9 +936,7 @@ export default function TerminalPane({
   // El nombre suele venir como "Adeorq · Frontend" y el chip ya dice "Adeorq":
   // repetirlo gasta la mitad del ancho en decir dos veces lo mismo. Se quita el
   // prefijo y queda [Adeorq] Frontend, que es la misma información en la mitad.
-  const label = name.startsWith(`${project} · `)
-    ? name.slice(project.length + 3)
-    : name;
+  const label = tituloDeCabecera(name, cwd);
   /* Confirmar lo tecleado tras el doble clic en el nombre. Se edita lo que se
      VE, o sea `label` sin el prefijo del proyecto; si el nombre lo llevaba, se
      conserva solo, para que renombrar no borre de paso a qué proyecto
@@ -2209,7 +2211,8 @@ export default function TerminalPane({
   const resumen =
     [
       name === label ? "" : name,
-      cerebro ? `${cerebro}${brain.effort ? ` · ${brain.effort}` : ""}` : "",
+      abiertaPor ? t("de: {n}", { n: abiertaPor }) : "",
+      cerebro ?`${cerebro}${brain.effort ? ` · ${brain.effort}` : ""}` : "",
       ctx && ctx.percent > 0 ? `${ctx.percent} % ${t("de contexto usado")}` : "",
       ram && ram.ramMb > 0 ? `${bonito(ram.ramMb, lang)} ${t("de memoria")}` : "",
       // La única pista de que el nombre se puede editar: sin ella, el doble
@@ -2433,6 +2436,11 @@ export default function TerminalPane({
               onDoubleClick={onRename ? () => setNombreEnEdicion(label) : undefined}
             >
               {label}
+            </span>
+          )}
+          {abiertaPor && (
+            <span className="pane-de" data-tip={t("La abrió la sesión «{n}» con open_pane", { n: abiertaPor })}>
+              {t("de: {n}", { n: abiertaPor })}
             </span>
           )}
         </div>

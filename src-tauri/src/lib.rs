@@ -47,6 +47,8 @@ mod skills;
 mod usage;
 mod uso_clientes;
 mod workspace;
+mod partes;
+mod uso_historia;
 mod mcp;
 mod mcp_clientes;
 mod mcp_estable;
@@ -410,7 +412,10 @@ pub fn run() {
             std::thread::spawn(|| {
                 std::thread::sleep(std::time::Duration::from_secs(20));
                 loop {
-                    memoria_casa::refrescar_significados();
+                    // Con la Memoria apagada (`partes.rs`) no se calcula nada.
+                    if !partes::apagada("memoria") {
+                        memoria_casa::refrescar_significados();
+                    }
                     std::thread::sleep(std::time::Duration::from_secs(1800));
                 }
             });
@@ -572,11 +577,14 @@ pub fn run() {
             manage::delete_session,
             manage::save_pasted_image,
             manage::portapapeles_texto,
+            partes::fijar_partes,
+            uso_historia::uso_historia,
             manage::list_pastes,
             manage::read_paste,
             manage::delete_paste,
             manage::save_canvas_file,
             manage::save_drawing,
+            manage::guardar_tarjeta,
             manage::read_canvas_file,
             manage::delete_project,
             manage::set_fondo,

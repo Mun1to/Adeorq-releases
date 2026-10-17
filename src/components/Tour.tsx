@@ -39,11 +39,14 @@ const PARADAS: Parada[] = [
     texto:
       "Le sueltas una frase de lo que quieres y te escribe el encargo entero, elige con qué cliente y qué modelo sale más a cuenta, y te lo deja escrito en la terminal. También sabe repartir el trabajo entre varios agentes.",
   },
+  // La Agenda y Cuentas eran dos paradas, cada una en su pestaña. Desde el
+  // 2026-10-17 viven dentro del Perfil y son una: dos globos seguidos sobre el
+  // mismo botón se leen como el recorrido atascado.
   {
-    donde: ['[data-tab="agenda"]'],
-    titulo: "La Agenda",
+    donde: ['[data-tab="perfil"]'],
+    titulo: "Tu Perfil: la Agenda y tus cuentas",
     texto:
-      "Lo que tienes pendiente y las ideas que van saliendo mientras trabajas. Los agentes pueden dejarte propuestas aquí: tú las aceptas o las descartas.",
+      "Lo que tienes pendiente y las propuestas que te dejan los agentes viven en la Agenda; al lado, tus cuentas con cuánta semana te queda, tu memoria y tus comandos. Adeorq usa TU cuenta: no da acceso a ningún modelo ni guarda ninguna clave.",
   },
   {
     donde: [".objetivos-toggle"],
@@ -56,12 +59,6 @@ const PARADAS: Parada[] = [
     titulo: "El Lienzo",
     texto:
       "Una pizarra donde caben terminales, notas, imágenes y ventanas de tu web en localhost. Para pensar un proyecto entero sin cambiar de ventana.",
-  },
-  {
-    donde: ['[data-tab="cuentas"]'],
-    titulo: "Tus cuentas",
-    texto:
-      "Los clientes que tienes instalados y cuánta semana te queda en cada uno. Adeorq usa TU cuenta: no da acceso a ningún modelo ni guarda ninguna clave.",
   },
   {
     donde: ['[data-tab="ajustes"]'],

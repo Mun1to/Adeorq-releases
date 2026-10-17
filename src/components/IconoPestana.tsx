@@ -12,6 +12,7 @@ import {
   DecisionIcon,
   MemoryIcon,
   PanelIcon,
+  ProfileIcon,
   SettingsIcon,
 } from "./Icons";
 
@@ -25,6 +26,7 @@ const ICONOS: Record<View, (p: { size?: number }) => React.ReactElement> = {
   memoria: MemoryIcon,
   cuentas: AccountIcon,
   comandos: CommandIcon,
+  perfil: ProfileIcon,
   ajustes: SettingsIcon,
 };
 

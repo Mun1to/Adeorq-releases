@@ -48,11 +48,35 @@ export function limpiar(c: Partial<Cabecera> | null | undefined): Cabecera {
   };
 }
 
+/** Las cuatro pestañas que se tragó el Perfil el 2026-10-17 (`lib/vistas.ts`). */
+export const DENTRO_DEL_PERFIL: ClaveTab[] = ["agenda", "memoria", "cuentas", "comandos"];
+
+/**
+ * Lo guardado antes del Perfil, puesto al día sin perderle nada.
+ *
+ * El Perfil ocupa en tu orden el sitio de la primera de las cuatro que se
+ * tragó, así que si habías subido Cuentas al segundo puesto, ahí sale el
+ * Perfil. Y sale apagado solo si las cuatro estaban apagadas: era tu forma de
+ * decir que nada de eso te hacía falta en la fila. Lo demás, igual.
+ */
+export function alPerfil(c: Cabecera): Cabecera {
+  const dentro = new Set(DENTRO_DEL_PERFIL);
+  if (!c.orden.some((k) => dentro.has(k)) && !c.ocultas.some((k) => dentro.has(k))) return c;
+  const orden: ClaveTab[] = [];
+  for (const k of c.orden) {
+    if (!dentro.has(k)) orden.push(k);
+    else if (!orden.includes("perfil")) orden.push("perfil");
+  }
+  const ocultas = c.ocultas.filter((k) => !dentro.has(k));
+  if (DENTRO_DEL_PERFIL.every((k) => c.ocultas.includes(k))) ocultas.push("perfil");
+  return limpiar({ orden, ocultas });
+}
+
 export function leerCabecera(): Cabecera {
   try {
     const crudo = localStorage.getItem(CABECERA_KEY);
     if (!crudo) return { ...CABECERA_DEFECTO };
-    return limpiar(JSON.parse(crudo) as Partial<Cabecera>);
+    return alPerfil(limpiar(JSON.parse(crudo) as Partial<Cabecera>));
   } catch {
     // Un JSON roto no puede dejar a Adeorq sin cabecera.
     return { ...CABECERA_DEFECTO };

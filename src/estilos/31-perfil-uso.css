@@ -242,24 +242,37 @@
 
 .pu-anio-caja {
   min-width: 0;
+  container-type: inline-size;
 }
 
 .pu-anio-scroll {
   overflow-x: auto;
-  padding: 2px 2px 4px;
+  padding: 3px 3px 5px;
 }
 
+/* El año llena su caja (Munir, 2026-10-17, con la 0.9.219 delante: «aquí hay
+   mucho espacio vacío, rellénalo haciendo más grande lo de GitHub»): una
+   columna por semana a partes iguales (`--semanas` lo pone el componente, de
+   `SEMANAS`), cada casilla cuadrada y el hueco en proporción al ancho. Con un
+   tope de 24 px por casilla, para que en una pantalla muy ancha no salgan
+   baldosas; y por debajo de 9 px deja de encoger y se desliza de lado, que es
+   lo que pasa en el móvil. */
 .pu-anio {
+  --casilla-max: 24px;
+  --hueco: clamp(2px, 0.4cqi, 5px);
   display: grid;
   grid-auto-flow: column;
-  grid-template-rows: repeat(7, 11px);
-  gap: 3px;
-  width: max-content;
+  grid-template-columns: repeat(var(--semanas, 53), minmax(9px, 1fr));
+  grid-template-rows: repeat(7, auto);
+  gap: var(--hueco);
+  width: 100%;
+  min-width: min-content;
+  max-width: calc(var(--semanas, 53) * var(--casilla-max) + (var(--semanas, 53) - 1) * var(--hueco));
 }
 
 .pu-anio button {
-  width: 11px;
-  height: 11px;
+  width: 100%;
+  aspect-ratio: 1;
   padding: 0;
   border: 0;
   border-radius: 3px;
@@ -267,9 +280,11 @@
   cursor: pointer;
 }
 
+/* Hasta 40 px por día, y menos si la caja no da (una ventana estrecha): con
+   40 fijos, a 390 de ancho el domingo se salía por la derecha. */
 .pu-mes {
   display: grid;
-  grid-template-columns: repeat(7, 40px);
+  grid-template-columns: repeat(7, minmax(0, 40px));
   gap: 3px;
 }
 
@@ -360,5 +375,12 @@
 
   .pu-parte i {
     display: none;
+  }
+}
+
+/* Con los días de unos 23 px, «568M» a 9,5 ya no cabe en su casilla. */
+@media (max-width: 360px) {
+  .pu-mes button {
+    font-size: 8px;
   }
 }

@@ -15,6 +15,10 @@
 //     fotograma del fondo; por eso cada fotograma de la tarjeta se compara con
 //     lo que `ffmpeg` (tiene que estar en el PATH) lee de ESE archivo, no con
 //     el gris que se quiso pintar.
+//   · El editor (`PerfilTarjeta.tsx`) en la app: con una historia de uso de
+//     prueba, abierto tocando hoy y con el icono de compartir; un PNG y un MP4
+//     (con ese fondo subido por el selector de archivos) guardados por el
+//     puente. El diálogo de guardar es del sistema: lo contesta la guarda.
 //
 // Lo que NO hace a propósito: copiar al portapapeles. Es el de Windows, el de
 // quien está trabajando, y la primera versión de esta prueba se colgó en ese
@@ -28,7 +32,7 @@
 //      copiado fuera de C:\ct (cp C:/ct/debug/adeorq.exe <otra carpeta>), y
 //      después `cargo build` otra vez SIN la variable, para que el de C:\ct
 //      vuelva a cargar del :1420 que esperan las demás sesiones.
-//   2. node scripts/laboratorio/tarjeta-de-verdad.mjs <ruta del .exe copiado>
+//   2. node scripts/laboratorio/tarjeta-de-verdad.mjs <ruta del .exe copiado> [--fotos <carpeta>]
 //
 // Levanta él mismo el Vite del :1490, con su caché aparte. Abre una ventana
 // «Adeorq · DESARROLLO» medio minuto, la manda al fondo sin foco nada más nacer
@@ -47,6 +51,10 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // Resuelta con contrabarras: es lo que devuelve Get-Process, y con barras
 // normales `alFondo` no la reconocía como suya y dejaba la ventana delante.
 const EXE = process.argv[2] && resolve(process.argv[2]);
+// Con `--fotos <carpeta>` deja ahí el PNG, el MP4 y una foto del editor, para mirarlos.
+const iFotos = process.argv.indexOf("--fotos");
+const FOTOS = iFotos > 0 ? resolve(process.argv[iFotos + 1]) : null;
+if (FOTOS) mkdirSync(FOTOS, { recursive: true });
 const PUERTO = 9700 + (process.pid % 100);
 const BASE = join(tmpdir(), "adeorq-tarjeta", String(process.pid));
 const DATOS = join(BASE, "datos", "Adeorq");
@@ -113,6 +121,12 @@ const GUARDA = `(() => {
     const plugin = decodeURIComponent(url).match(/^https?:\\/\\/ipc\\.localhost\\/plugin:([a-z-]+)\\|([a-z_]+)$/);
     if (plugin && plugin[1] === "updater" && plugin[2] === "check") return responde(null);
     const m = url.match(/^https?:\\/\\/ipc\\.localhost\\/([a-z_]+)$/);
+    // La parte del editor: una historia de uso hecha aquí (la casa de pruebas
+    // no tiene conversaciones) y la ruta que contestaría el diálogo de guardar,
+    // que es una ventana del sistema y no se pulsa.
+    const doble = window.__dobleTarjeta;
+    if (doble && m && m[1] === "uso_historia") return responde(doble.historia);
+    if (doble && doble.guardarEn && plugin && plugin[1] === "dialog" && plugin[2] === "save") return responde(doble.guardarEn);
     if (m && ["media_now", "secret_get", "secret_put", "secret_forget", "openrouter_info", "save_ui_state"].includes(m[1])) return responde(null);
     if (m && m[1] === "load_ui_state") return responde("{}");
     return real(a, b);
@@ -280,6 +294,74 @@ try {
 
   // El portapapeles no se toca (ver la cabecera): solo que la llamada existe.
   dice(await v.js("typeof ClipboardItem === 'function' && typeof navigator.clipboard?.write === 'function'"), "el WebView2 tiene ClipboardItem y clipboard.write (copiar, SIN copiar de verdad)");
+
+  // ── El editor (`PerfilTarjeta.tsx`) en la app: abierto desde un día y desde
+  //    el icono de compartir, un PNG y un MP4 guardados por el puente.
+  const dos = (n) => String(n).padStart(2, "0");
+  const ahora = new Date();
+  const horaDe = (dias) => new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - dias, 12).toISOString().slice(0, 13);
+  const cubo = (dias, extra) => ({ hora: horaDe(dias), cli: "claude", modelo: "claude-opus-5-5", carpeta: "C:\\proyectos\\Adeorq", entrada: 0, salida: 0, cacheLeida: 0, cacheEscrita: 0, respuestas: 1, ...extra });
+  const historia = {
+    archivos: 2,
+    cubos: [
+      cubo(0, { entrada: 2e6, salida: 4e6, cacheEscrita: 6e6, cacheLeida: 1988e6 }),
+      cubo(0, { cli: "codex", modelo: "gpt-5.6-terra", carpeta: "C:\\proyectos\\Orquio", cacheLeida: 500e6 }),
+      cubo(40, { modelo: "claude-opus-5", cacheLeida: 20000e6 }),
+    ],
+  };
+  const mesHoy = ahora.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  const deHoy = `${ahora.getDate()} de ${ahora.toLocaleDateString("es-ES", { month: "long" })} de ${ahora.getFullYear()}`;
+  const lienzo = "document.querySelector('canvas.pt-lienzo')?.getAttribute('aria-label') ?? ''";
+  const estado = "document.querySelector('.pt-estado')?.textContent ?? ''";
+  const pulsar = (sel, texto) =>
+    v.js(`(() => { const b = [...document.querySelectorAll(${JSON.stringify(sel)})].find((x) => ${texto ? `x.textContent.trim() === ${JSON.stringify(texto)}` : "true"}); if (!b) return false; b.click(); return true; })()`);
+  const escape = () => v.js("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); true");
+  await v.js(`window.__dobleTarjeta = { historia: ${JSON.stringify(historia)}, guardarEn: "" }; true`);
+  await pulsar('[data-tab="perfil"]');
+  dice(await hasta(() => v.js("!!document.querySelector('.pu-mes button[data-hoy]') && !!document.querySelector('.pu-compartir')"), 20_000), "el Perfil enseña tu uso, con el icono de compartir");
+
+  await pulsar(".pu-mes button[data-hoy]");
+  const tarjetaDia = await hasta(() => v.js(lienzo), 10_000);
+  dice(tarjetaDia?.startsWith(`${deHoy}: 2,5B Tokens`), `tocar hoy abre su tarjeta (${tarjetaDia})`);
+  const claros = await v.js(`(() => { const c = document.querySelector('canvas.pt-lienzo'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let k = 0; k < d.length; k += 28) if (d[k] + d[k + 1] + d[k + 2] > 600) n++; return n; })()`);
+  dice(claros > 100, `y el lienzo la pinta (${claros} puntos claros)`);
+  const rutaPng = join(SALIDA, "tarjeta del día.png");
+  await v.js(`window.__dobleTarjeta.guardarEn = ${JSON.stringify(rutaPng)}; true`);
+  await pulsar(".pt-accion", "Descargar");
+  const dijoPng = await hasta(async () => (await v.js(estado)).startsWith("Guardada en") && v.js(estado), 20_000);
+  const pngDia = existsSync(rutaPng) ? leerPng(readFileSync(rutaPng)) : {};
+  dice(pngDia.firma && pngDia.ancho === 1920 && pngDia.alto === 1080, `Descargar guarda el PNG por el puente: ${pngDia.ancho}×${pngDia.alto} («${dijoPng}»)`);
+  if (FOTOS) writeFileSync(join(FOTOS, "tarjeta-del-dia.png"), readFileSync(rutaPng));
+  await escape();
+  dice(await hasta(() => v.js("!document.querySelector('.pt-velo')"), 3000), "Escape la cierra");
+
+  await pulsar(".pu-compartir");
+  const tarjetaMes = await hasta(() => v.js(lienzo), 10_000);
+  dice(tarjetaMes?.toLowerCase().startsWith(`${mesHoy}: 2,5b tokens`), `el icono abre el mes en curso (${tarjetaMes})`);
+  await pulsar(".pt-pestanas .pt-op", "Vídeo");
+  dice(await v.js("!document.querySelectorAll('.pt-pestanas .pt-op')[1].disabled"), "la pestaña Vídeo está viva en el WebView2");
+  const doc = await v.enviar("DOM.getDocument", { depth: 0 });
+  const entrada = await v.enviar("DOM.querySelector", { nodeId: doc.root.nodeId, selector: ".pt-tira input[type=file]" });
+  await v.enviar("DOM.setFileInputFiles", { nodeId: entrada.nodeId, files: [fondo] });
+  dice(await hasta(() => v.js("document.querySelector('.pt-mini[aria-pressed=\"true\"]')?.getAttribute('aria-label') === 'fondo de prueba.mp4'"), 10_000), "el vídeo subido con el selector queda elegido");
+  const rutaMp4 = join(SALIDA, "tarjeta del mes.mp4");
+  await v.js(`window.__dobleTarjeta.guardarEn = ${JSON.stringify(rutaMp4)}; true`);
+  if (FOTOS) {
+    await dormir(800);
+    const foto = await v.enviar("Page.captureScreenshot", { format: "png" });
+    writeFileSync(join(FOTOS, "editor-en-la-app.png"), Buffer.from(foto.data, "base64"));
+  }
+  const t1 = Date.now();
+  await pulsar(".pt-accion", "Descargar vídeo");
+  const dijoMp4 = await hasta(async () => (await v.js(estado)).startsWith("Guardada en") && v.js(estado), 120_000, 500);
+  const mp4Mes = existsSync(rutaMp4) ? readFileSync(rutaMp4) : Buffer.alloc(0);
+  const infoMes = leerMp4(mp4Mes);
+  dice(
+    infoMes.arriba?.join(" ") === "ftyp moov mdat" && infoMes.codec === "avc1" && infoMes.ancho === 1920 && infoMes.alto === 1080 && infoMes.muestras === 90,
+    `Descargar vídeo guarda el MP4 por el puente: ${infoMes.codec}, ${infoMes.ancho}×${infoMes.alto}, ${infoMes.muestras} fotogramas, ${(mp4Mes.length / 1024).toFixed(0)} KB en ${((Date.now() - t1) / 1000).toFixed(1)} s («${dijoMp4}»)`,
+  );
+  if (FOTOS && mp4Mes.length) writeFileSync(join(FOTOS, "tarjeta-del-mes.mp4"), mp4Mes);
+  await escape();
   v.cerrar();
 } catch (e) {
   console.error(e);

@@ -1,7 +1,9 @@
 // Tu uso dentro del Perfil (`PerfilUso.tsx`), en la ventana de verdad.
 //
-//   1. `pnpm dev` (solo Vite)
+//   1. `pnpm dev` (solo Vite), o cualquier Vite del repo con `URL_APP=<su dirección>`
 //   2. node scripts/laboratorio/banco-sin-mcp.mjs scripts/laboratorio/perfil-uso.js
+//
+// La tarjeta que abre cada clic tiene su propio banco, `perfil-tarjeta.mjs`.
 //
 // Rust se hace con un doble: `uso_historia` tarda dos segundos y contesta una
 // historia hecha aquí con cifras redondas (o la tuya de verdad con
@@ -24,8 +26,11 @@
 async (page) => {
   const fallos = [];
   const debe = (ok, que) => { if (!ok) fallos.push(que); };
-  const URL_APP = "http://127.0.0.1:1420/";
   const env = globalThis.process?.env ?? {};
+  // Con `URL_APP` va contra otro Vite: el :1420 suele ser de otra sesión, y
+  // abrir la tarjeta carga `mediabunny`, que en un Vite que aún no lo tiene
+  // empaquetado recarga todas sus ventanas.
+  const URL_APP = env.URL_APP ?? "http://127.0.0.1:1420/";
 
   // Las fechas en la hora de la ventana, que es la que cuenta el componente.
   const dos = (n) => String(n).padStart(2, "0");
@@ -170,8 +175,17 @@ async (page) => {
     debe(antes !== (await texto(".pu-mes-cab .pu-titulo")), "la flecha cambia de mes");
     return { pasos, fallos };
   }
+  // La tarjeta (`PerfilTarjeta.tsx`) se abre encima de todo: se cierra con
+  // Escape antes del siguiente clic, o su velo se lo comería.
+  const sinTarjeta = async () => {
+    if (!(await page.$(".pt-velo"))) return;
+    await page.keyboard.press("Escape");
+    await page.locator(".pt-velo").waitFor({ state: "detached", timeout: 3000 });
+  };
   await page.click(".pu-mes button[data-hoy]");
+  await sinTarjeta();
   await page.click(".pu-record");
+  await sinTarjeta();
   pasos.tarjetas = await page.evaluate(() => window.__tarjetas);
   debe(pasos.tarjetas[0]?.desde === hoy && pasos.tarjetas[0]?.hasta === hoy, `tocar hoy abre su tarjeta (${JSON.stringify(pasos.tarjetas[0])})`);
   if (!real) {
@@ -187,13 +201,27 @@ async (page) => {
   const mesPasado = new Date(ahora.getFullYear(), ahora.getMonth(), 0);
   const fPasado = (d) => `${mesPasado.getFullYear()}-${dos(mesPasado.getMonth() + 1)}-${dos(d)}`;
   const primeroDeEste = `${hoy.slice(0, 8)}01`;
+  // Tocar el récord también lleva el mes al suyo (b21a646): se vuelve al de hoy
+  // antes de compartir por la cabecera.
+  const mesDe = (d) => d.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  const elDelRecord = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 40);
+  if (!real) {
+    pasos.mesDelRecord = await texto(".pu-mes-cab .pu-titulo");
+    debe(pasos.mesDelRecord.toLowerCase() === mesDe(elDelRecord), `el récord lleva el mes al suyo (${pasos.mesDelRecord})`);
+  }
+  for (let n = 0; n < 12 && (await texto(".pu-mes-cab .pu-titulo")).toLowerCase() !== mesDe(ahora); n++) {
+    await page.click(".pu-mes-cab .pu-mover >> nth=2");
+  }
   await page.click(".pu-compartir");
+  await sinTarjeta();
   await page.click(".pu-mes-cab .pu-mover >> nth=0");
+  await sinTarjeta();
   const antes = await texto(".pu-mes-cab .pu-titulo");
   await page.click(".pu-mes-cab .pu-mover >> nth=1");
   pasos.flecha = [antes, await texto(".pu-mes-cab .pu-titulo")];
   debe(pasos.flecha[0] !== pasos.flecha[1], `la flecha cambia de mes (${pasos.flecha})`);
   await page.click(".pu-mes-cab .pu-mover >> nth=0");
+  await sinTarjeta();
   await page.click(".pu-mes-cab .pu-mover >> nth=2");
   await page.click(".pu-mes-cab .pu-mover >> nth=2");
   pasos.futuro = await page.$eval(".pu-mes-cab .pu-mover", (b) => b.disabled);

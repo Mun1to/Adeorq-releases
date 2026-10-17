@@ -109,3 +109,6 @@
 
 /* Tu uso dentro del Perfil: el porfolio y los calendarios. */
 @import "./estilos/31-perfil-uso.css";
+
+/* La tarjeta para compartir tu uso y su editor. */
+@import "./estilos/32-perfil-tarjeta.css";

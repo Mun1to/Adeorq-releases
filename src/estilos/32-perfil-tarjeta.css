@@ -1,0 +1,378 @@
+/* ==========================================================================
+   La tarjeta para compartir tu uso (`PerfilTarjeta.tsx`), con su editor, como
+   el de Axiom que aprobó Munir (2026-10-17): todo detrás casi negro, la
+   tarjeta grande arriba y debajo «Imagen · Vídeo», la tira de fondos y una
+   barra corta. La tarjeta en sí no es CSS: la pinta `lib/pintarTarjeta.ts`
+   en el lienzo, la misma que sale en el PNG.
+
+   Sin cárceles (`scripts/laboratorio/carceles.js`): ningún icono ni texto
+   corto va en un recuadro. Lo elegido va con color, peso y una raya de
+   acento, y al pasar el ratón solo cambia el color.
+
+   Encima de cualquier tema: el editor es siempre oscuro, así que su letra es
+   `--claro` y no `--text`, que en los temas claros sería oscura sobre negro.
+   ========================================================================== */
+
+.pt-velo {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  overflow-y: auto;
+  display: grid;
+  place-items: center;
+  padding: 20px 16px;
+  background: color-mix(in srgb, var(--hondo) 95%, transparent);
+  backdrop-filter: blur(4px);
+  color: var(--claro);
+  font-size: 14px;
+  outline: none;
+  --pt-suave: color-mix(in srgb, var(--claro) 60%, transparent);
+}
+
+/* Fuera del velo y no dentro: el `backdrop-filter` del velo lo convertiría en
+   la caja de referencia de lo fijo, y la X se iría con el scroll. */
+.pt-cerrar {
+  position: fixed;
+  top: 16px;
+  right: 18px;
+  z-index: 9001;
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: color-mix(in srgb, var(--claro) 60%, transparent);
+  cursor: pointer;
+  transition: color var(--t-rapida);
+}
+
+.pt-cerrar:hover,
+.pt-cerrar:focus-visible {
+  color: var(--claro);
+}
+
+.pt-editor {
+  width: min(900px, 100%);
+  display: grid;
+  gap: 14px;
+}
+
+/* La tarjeta tan grande como deje la ventana, guardando sitio para lo de debajo. */
+.pt-marco {
+  justify-self: center;
+  width: min(900px, 100%, calc(max(100vh - 300px, 180px) * 16 / 9));
+}
+
+.pt-vertical .pt-marco {
+  width: min(400px, 100%, calc(max(100vh - 300px, 320px) * 9 / 16));
+}
+
+.pt-lienzo {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--r-caja);
+  background: var(--hondo);
+}
+
+.pt-vertical .pt-lienzo {
+  aspect-ratio: 9 / 16;
+}
+
+.pt-marco .espera {
+  margin: 0;
+  padding: 80px 0;
+  color: var(--pt-suave);
+  text-align: center;
+}
+
+.pt-debajo {
+  display: grid;
+  gap: 12px;
+}
+
+/* --- Los botones de texto: sueltos, con lo elegido subrayado ------------------- */
+
+.pt-op,
+.pt-elegir-btn,
+.pt-accion,
+.pt-interruptor,
+.pt-subir,
+.pt-lista button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--pt-suave);
+  cursor: pointer;
+  transition: color var(--t-rapida);
+}
+
+.pt-op:hover:not(:disabled),
+.pt-op:focus-visible,
+.pt-elegir-btn:hover:not(:disabled),
+.pt-lista button:hover {
+  color: var(--claro);
+}
+
+.pt-op {
+  text-underline-offset: 6px;
+}
+
+.pt-op[aria-pressed="true"] {
+  color: var(--claro);
+  font-weight: 650;
+  text-decoration: underline 2px var(--accent);
+}
+
+.pt-op:disabled,
+.pt-elegir-btn:disabled,
+.pt-accion:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pt-pestanas {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.pt-nota {
+  font-size: 13px;
+  color: var(--pt-suave);
+}
+
+/* --- La tira de fondos -------------------------------------------------------- */
+
+.pt-tira {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 9px;
+}
+
+.pt-mini {
+  position: relative;
+  flex: none;
+  width: 118px;
+  aspect-ratio: 3 / 2;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: var(--hondo) center / cover no-repeat;
+  opacity: 0.45;
+  cursor: pointer;
+  transition: opacity var(--t-rapida);
+}
+
+.pt-mini:hover,
+.pt-mini:focus-visible {
+  opacity: 0.8;
+}
+
+.pt-mini[aria-pressed="true"] {
+  opacity: 1;
+}
+
+/* El elegido, con una raya de acento debajo y no con un marco. */
+.pt-mini[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  left: 28%;
+  right: 28%;
+  bottom: -7px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.pt-mini video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.pt-subir {
+  flex: none;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  width: 118px;
+  font-size: 12.5px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.pt-subir:hover,
+.pt-subir:focus-visible {
+  color: var(--claro);
+}
+
+.pt-subir small {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* --- La barra ----------------------------------------------------------------- */
+
+.pt-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+}
+
+.pt-grupo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pt-grupo > span {
+  color: var(--pt-suave);
+}
+
+/* «Resaltar la cifra», el interruptor de Axiom: apagado de fábrica. */
+.pt-interruptor {
+  gap: 8px;
+  color: var(--claro);
+}
+
+.pt-interruptor i {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: var(--r-pastilla);
+  background: rgba(255, 255, 255, 0.18);
+  transition: background var(--t-media);
+}
+
+.pt-interruptor i::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform var(--t-media);
+}
+
+.pt-interruptor[aria-pressed="true"] i {
+  background: var(--accent);
+}
+
+.pt-interruptor[aria-pressed="true"] i::after {
+  transform: translateX(13px);
+}
+
+.pt-elegir {
+  position: relative;
+}
+
+.pt-elegir-btn {
+  gap: 4px;
+  color: var(--claro);
+  font-weight: 600;
+}
+
+.pt-elegir-btn svg {
+  color: var(--pt-suave);
+}
+
+/* La lista de proyectos se abre hacia arriba: debajo de la barra no hay sitio. */
+.pt-lista {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: -10px;
+  z-index: 2;
+  display: grid;
+  min-width: 210px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--claro) 14%, transparent);
+  border-radius: var(--r-btn);
+  background: var(--hondo);
+  box-shadow: var(--sombra-2);
+}
+
+.pt-lista button {
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.pt-lista button[aria-selected="true"] {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.pt-lista em {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+.pt-muestras {
+  gap: 10px;
+}
+
+.pt-muestra {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.pt-muestra[aria-pressed="true"] {
+  outline: 2px solid var(--claro);
+  outline-offset: 2px;
+}
+
+.pt-acciones {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-left: auto;
+}
+
+.pt-accion {
+  color: var(--claro);
+  font-weight: 600;
+}
+
+.pt-accion:hover:not(:disabled),
+.pt-accion:focus-visible {
+  color: var(--accent);
+}
+
+.pt-progreso {
+  color: var(--pt-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.pt-estado {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pt-suave);
+  overflow-wrap: anywhere;
+}
+
+.pt-estado[data-mal] {
+  color: var(--mal);
+}

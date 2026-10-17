@@ -1,11 +1,11 @@
 {
-  "version": "0.9.219",
-  "notes": "Nueva pestana Perfil con tu uso de IA (el mes, tu record, por proveedor, modelo y proyecto, y el calendario), iconos y textos sin recuadros, cada terminal dice quien la abrio, eliges que partes de Adeorq usar y el Uso con todas tus cuentas.",
-  "pub_date": "2026-10-17T19:12:27Z",
+  "version": "0.9.220",
+  "notes": "Comparte tu uso de IA como una tarjeta (imagen o video), nueva pestana Perfil con tu uso del mes, tu record y el calendario, iconos y textos sin recuadros, cada terminal dice quien la abrio y eliges que partes de Adeorq usar.",
+  "pub_date": "2026-10-17T19:56:31Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLytRSHNrTWJWVlh0T0lHUGswdnJUL1gralAzMGZHeHluNlVUV0hlcWdDb203SWJ1ZWV5d2hXSENIbzZCK0pBWmZ5RzVzMWJCUGthZnludmdUdFZCcmdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMjY0MzQyCWZpbGU6QWRlb3JxXzAuOS4yMTlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMTkKQkVsWktSQmpVMzQ3TEZ6RlZ6by9LZFlpdlpsMVQvWTNrdjRndUhJZzl0YmNFT2diR2xKT3RmVWtIYWJLWjJTelp4WW1zeWtYemx6cGZTUHBpUGcwQlE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.219/Adeorq_0.9.219_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzhiT2p6ZUxVaGZsVzN4aXEyOXdaenAralAvZ0VKZzlVRDNnSzFYRjRUUUdtblBOVS9ieWNpTG9iOEV1QS83Z21JRHB0N0dQTDJLVmpEU3Z1QkFOS0FjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMjY2OTgyCWZpbGU6QWRlb3JxXzAuOS4yMjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjAKenI3emtXR3Q3Q1pmK2Zkc0NFQzlSVENJTnNDaERyS3dDYkZESVFvQ0MwWE5tVW9MNVYxczFJeS9WeFZrRkpIMUMyc1htZGlrNmVlVWdVRkV0SjdjQlE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.220/Adeorq_0.9.220_x64-setup.exe"
     }
   }
 }

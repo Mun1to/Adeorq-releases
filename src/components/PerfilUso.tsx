@@ -15,11 +15,12 @@
 //
 // La primera lectura de sus transcripts tarda un minuto largo (4,7 GB): se
 // pinta la rueda de `Espera`, nunca la página vacía, y lo leído se queda en
-// `ultima` para que volver al Perfil enseñe lo de antes mientras se relee.
+// `lib/historiaDeUso.ts` para que volver al Perfil enseñe lo de antes mientras
+// se relee (y para que la tarjeta no lo vuelva a pedir).
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listProjects, type Account } from "../lib/pty";
+import type { Account } from "../lib/pty";
+import { cuentasQueLeer, historiaLeida, leerHistoria } from "../lib/historiaDeUso";
 import { proveedorDe } from "../lib/providers";
 import { coloresDeProyectos } from "../lib/colorLienzo";
 import { useEspera } from "../lib/espera";
@@ -40,6 +41,7 @@ import {
   porDia,
   porfolio,
   record,
+  SEMANAS,
   sumar,
   type Casilla,
   type Eje,
@@ -49,12 +51,6 @@ import {
 import { comoFecha, diasDelMes, mesVecino } from "../lib/calendario";
 import { ChevronIcon, CompartirIcon } from "./Icons";
 import Espera from "./Espera";
-
-/** Solo estos dos dejan sus conversaciones donde `uso_historia` sabe leerlas. */
-const LEE = new Set(["claude", "codex"]);
-
-/** Lo último leído, para no volver a una página vacía al entrar otra vez. */
-let ultima: Historia | null = null;
 
 const EJES: { key: Eje; label: string }[] = [
   { key: "proveedor", label: "Proveedores" },
@@ -83,38 +79,22 @@ function diasPasados(anio: number, mes: number, hoy: string): [string, string] |
 
 export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
   const { t, lang } = useT();
-  const [historia, setHistoria] = useState<Historia | null>(ultima);
+  const [historia, setHistoria] = useState<Historia | null>(historiaLeida);
   const [error, setError] = useState("");
   const [leyendo, setLeyendo] = useState(false);
   const [eje, setEje] = useState<Eje>("proyecto");
   const hoy = fechaLocal(new Date());
   const [visto, setVisto] = useState(() => ({ anio: Number(hoy.slice(0, 4)), mes: Number(hoy.slice(5, 7)) }));
 
-  // Cada carpeta de cuenta una sola vez: la principal de cada CLI va con la
-  // carpeta vacía y una cuenta añadida con la suya.
-  const leer = useMemo(() => {
-    const vistas = new Set<string>();
-    return cuentas
-      .filter((c) => LEE.has(c.provider))
-      .map((c) => ({ provider: c.provider, dir: c.dir }))
-      .filter((c) => {
-        const k = `${c.provider}|${c.dir.trim().toLowerCase()}`;
-        return !vistas.has(k) && vistas.add(k);
-      });
-  }, [cuentas]);
-  const clave = JSON.stringify(leer);
+  // La lectura es la de `lib/historiaDeUso.ts`, la misma que toma la tarjeta.
+  const clave = JSON.stringify(cuentasQueLeer(cuentas));
 
   useEffect(() => {
     let vivo = true;
     setLeyendo(true);
     setError("");
-    // Los proyectos del panel van SIEMPRE: sin ellos, `Orquio\web` y
-    // `MarcaPersonal\web` salen como dos «web» sueltos (panel 1, f7d21ae).
-    listProjects()
-      .catch(() => [])
-      .then((ps) => invoke<Historia>("uso_historia", { cuentas: JSON.parse(clave), proyectos: ps.map((p) => p.path) }))
+    leerHistoria(JSON.parse(clave))
       .then((h) => {
-        ultima = h;
         if (vivo) setHistoria(h);
       })
       .catch((e) => vivo && setError(String(e)))
@@ -214,7 +194,7 @@ export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
         <div className="pu-anio-caja">
           <h3 className="pu-titulo">{t("El año")}</h3>
           <div className="pu-anio-scroll">
-            <div className="pu-anio">
+            <div className="pu-anio" style={{ "--semanas": SEMANAS } as CSSProperties}>
               {anio.map((c) => (
                 <button
                   key={c.fecha}

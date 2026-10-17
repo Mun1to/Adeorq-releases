@@ -1100,3 +1100,24 @@ export function CompartirIcon({ size = 17 }: Props) {
     </svg>
   );
 }
+
+/** Un vídeo: la cámara con su visor. Va al lado de `ImageIcon` en la tarjeta
+ *  para compartir, donde se elige entre sacar una imagen o un vídeo. */
+export function VideoIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="3.5" y="6.5" width="12" height="11" rx="2" />
+      <path d="M15.5 10.2l5-2.7v9l-5-2.7" />
+    </svg>
+  );
+}
+
+/** Bajar a un archivo, de trazo: el hermano fino de `DownloadIcon`, para una
+ *  fila de acciones de texto («Descargar · Copiar») donde el macizo pesaría. */
+export function BajarIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14" />
+    </svg>
+  );
+}

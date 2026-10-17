@@ -44,6 +44,7 @@ import {
   PALABRA,
   paneDe,
   resumenDePestanas,
+  tomarPedido,
   type ConserjeExec,
   type Conversacion,
   type Ficha,
@@ -489,6 +490,15 @@ export function HiloConserje({
     setPensando(false);
     setPaso("");
   };
+
+  // Lo que pediste en la caja del Panel para esta conversación: se manda al
+  // abrirla, como si lo hubieras escrito aquí. Va detrás del efecto que limpia
+  // al cambiar de conversación, que si no borraría lo que se acaba de mandar.
+  useEffect(() => {
+    const pedido = tomarPedido(id);
+    if (pedido) void enviar(pedido);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const trabajosDe = (n: number) => (conv?.trabajos ?? []).filter((w) => w.turno === n);
   const panes = exec.panes();

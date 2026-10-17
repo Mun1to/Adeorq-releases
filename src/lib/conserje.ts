@@ -190,6 +190,26 @@ export function nuevoId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/* Lo que se le pide desde la caja del Panel. El Panel lo deja aquí y abre el
+   Chat; el Chat nace con esa conversación abierta y su hilo lo manda al
+   montarse, por el mismo camino que lo que escribes allí. Vive en el módulo y
+   no en el estado de App porque el Chat solo se monta al abrirlo. Se toma UNA
+   vez: un segundo montaje (el modo estricto de React) ya no lo encuentra. */
+let pedido: { id: string; texto: string } | null = null;
+
+export function dejarPedido(texto: string): void {
+  pedido = { id: nuevoId(), texto };
+}
+
+export const pedidoPendiente = () => pedido;
+
+export function tomarPedido(id: string): string | null {
+  if (pedido?.id !== id) return null;
+  const { texto } = pedido;
+  pedido = null;
+  return texto;
+}
+
 // ─── Lo que se decide sin gastar un token ────────────────────────────────────
 
 /** Cómo está una pestaña, en tres colores y una palabra. */

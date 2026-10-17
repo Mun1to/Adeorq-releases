@@ -63,7 +63,7 @@ import {
   useConversacion,
   type ConserjeExec,
 } from "./Conserje";
-import { claveDe, conserjeSesion, conserjeSoltar, nuevoId, paneDe, type Trabajo } from "../lib/conserje";
+import { claveDe, conserjeSesion, conserjeSoltar, nuevoId, paneDe, pedidoPendiente, type Trabajo } from "../lib/conserje";
 import { abrirEnlacesFuera } from "../lib/enlacesFuera";
 import {
   ChatIcon,
@@ -205,8 +205,9 @@ export default function ChatView({
 }: Props) {
   const { t } = useT();
   const [sesiones, setSesiones] = useState<SessionInfo[]>([]);
-  /** La conversación del conserje que está abierta, si lo está. */
-  const [conserjeId, setConserjeId] = useState<string | null>(null);
+  /** La conversación del conserje que está abierta, si lo está. Si vienes de
+      la caja del Panel, la nueva con lo que pediste (`dejarPedido`). */
+  const [conserjeId, setConserjeId] = useState<string | null>(() => pedidoPendiente()?.id ?? null);
   /** Dentro del conserje, qué pestaña se mira (`claveDe`): `null` es él. */
   const [mirando, setMirando] = useState<string | null>(null);
   const [versionLista, setVersionLista] = useState(0);

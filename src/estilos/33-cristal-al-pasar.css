@@ -1,0 +1,151 @@
+/* Sueltos en reposo, de cristal al pasar el ratón.
+ *
+ * El 2026-10-17 los botones salieron de sus recuadros («Estoy ya hasta los
+ * cojones de las cárceles y de los recuadros de los iconos y de los textos»), y
+ * con el recuadro se fue también lo que hacían al pasar el ratón: se levantaban
+ * con un degradado de cristal y una luz arriba. Esa misma noche, ya con la
+ * 0.9.220 delante: «tienes que volver a poner los botones que sean como los de
+ * cristal de antes al pasar el ratón por encima». Así que las dos cosas: quietos,
+ * el icono o el texto solo; con el ratón encima, el cristal de antes.
+ *
+ * Va en un solo sitio y al final de la hoja a propósito: los botones que se
+ * soltaron están repartidos por diez archivos, y repetir el cristal en cada uno
+ * es la forma de que uno se quede sin él. El borde se pinta con una sombra hacia
+ * dentro y no con `border`, para que encenderlo no mueva nada de sitio. El
+ * detector de cárceles (`scripts/laboratorio/carceles.js`) mira el reposo, que
+ * sigue suelto.
+ */
+
+:is(
+    .pane-head button,
+    .tab,
+    .mini.icono,
+    .franja-btn,
+    .cb-tool,
+    .cb-btn,
+    .cb-spawn,
+    .choice,
+    .set-tab,
+    .inicio-proy,
+    .inicio-enlace,
+    .inicio-estado,
+    .project-logo
+  ) {
+  transition:
+    background var(--t-rapida) ease,
+    box-shadow var(--t-rapida) ease,
+    transform var(--t-rapida) ease,
+    color var(--t-rapida) ease,
+    filter var(--t-rapida) ease;
+}
+
+:is(
+    .pane-head button,
+    .tab,
+    .mini.icono,
+    .franja-btn,
+    .cb-tool,
+    .cb-btn,
+    .cb-spawn,
+    .choice,
+    .set-tab,
+    .inicio-proy,
+    .inicio-enlace,
+    .inicio-estado
+  ):not(:disabled):hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, color-mix(in srgb, var(--accent-dim) 75%, #fff) 55%, transparent),
+    color-mix(in srgb, color-mix(in srgb, var(--accent-dim) 65%, #000) 55%, transparent)
+  );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, color-mix(in srgb, var(--accent) 65%, #fff) 35%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+:is(
+    .pane-head button,
+    .tab,
+    .mini.icono,
+    .franja-btn,
+    .cb-tool,
+    .cb-btn,
+    .cb-spawn,
+    .choice,
+    .set-tab,
+    .inicio-proy,
+    .inicio-enlace,
+    .inicio-estado
+  ):not(:disabled):active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* La ✕ de una terminal la mata: su cristal es del color de peligro, como era. */
+.pane-head .pane-close:not(:disabled):hover {
+  background: color-mix(in srgb, var(--mal) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mal) 40%, transparent);
+}
+
+.pane-head .pane-close[data-suelta]:not(:disabled):hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* El avatar de un proyecto se levantaba con su propio color, y así vuelve. */
+.project-logo:hover {
+  background: var(--row-hover);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c, var(--accent)) 50%, transparent),
+    var(--sombra-2);
+  transform: translateY(-1px);
+}
+
+/* En los temas claros el cristal azulado no se ve sobre el papel: el de antes
+   era un velo del color del texto con la luz blanca arriba. */
+:root:is([data-theme="claro"], [data-theme="papel"])
+  :is(
+    .pane-head button,
+    .tab,
+    .mini.icono,
+    .franja-btn,
+    .cb-tool,
+    .cb-btn,
+    .cb-spawn,
+    .choice,
+    .set-tab,
+    .inicio-proy,
+    .inicio-enlace,
+    .inicio-estado
+  ):not(:disabled):hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--text) 8%, transparent),
+    color-mix(in srgb, var(--text) 3%, transparent)
+  );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Quien no quiere movimiento lo tiene sin el salto, con el cristal igual. */
+@media (prefers-reduced-motion: reduce) {
+  :is(
+      .pane-head button,
+      .tab,
+      .mini.icono,
+      .franja-btn,
+      .cb-tool,
+      .cb-btn,
+      .cb-spawn,
+      .choice,
+      .set-tab,
+      .inicio-proy,
+      .inicio-enlace,
+      .inicio-estado,
+      .project-logo
+    ):is(:hover, :active) {
+    transform: none;
+  }
+}

@@ -19,8 +19,11 @@
 //   4. ninguna cárcel en la cabecera (Munir, 2026-10-17: «Estoy ya hasta los
 //      cojones de las cárceles y de los recuadros de los iconos y de los
 //      textos»): el detector `carceles.js` acotado a `.pane-head`, en la Cabina y
-//      en el Lienzo; al pasar el ratón por un botón y por la ✕ solo cambia el
-//      color; y la ✕ solo se tapa con un fundido cuando hay botones debajo.
+//      en el Lienzo; en reposo un botón y la ✕ van sueltos y al pasar el ratón
+//      sale el cristal de antes (Munir, esa noche: «tienes que volver a poner
+//      los botones que sean como los de cristal de antes al pasar el ratón por
+//      encima», `33-cristal-al-pasar.css`); y la ✕ solo se tapa con un fundido
+//      cuando hay botones debajo.
 //
 //   cargo build --manifest-path src-tauri/Cargo.toml   (deja C:\ct\debug\adeorq.exe)
 //   pnpm dev                                            (el binario de desarrollo carga de ahí)
@@ -235,8 +238,10 @@ async function conRatonEncima(v, selector) {
   await dormir(400);
   return { antes, encima };
 }
-const SUELTO_ENCIMA = (r) =>
-  !!r && /^rgba\(0, 0, 0, 0\) none$/.test(r.encima.fondo) && /^none/.test(r.encima.borde) && r.encima.sombra === "none" && r.encima.mueve === "none" && r.encima.color !== r.antes.color;
+/** Suelto en reposo y de cristal con el ratón encima: sin fondo ni sombra antes,
+ *  y con fondo y sombra (el filo va pintado con una sombra hacia dentro) después. */
+const CRISTAL_ENCIMA = (r) =>
+  !!r && /^rgba\(0, 0, 0, 0\) none$/.test(r.antes.fondo) && r.antes.sombra === "none" && !/^rgba\(0, 0, 0, 0\) none$/.test(r.encima.fondo) && r.encima.sombra !== "none";
 
 const hijo = spawn(EXE, [], { cwd: DEMO, detached: true, stdio: "ignore", env });
 hijo.unref();
@@ -304,9 +309,9 @@ try {
   const enLaCabina = await carceles(v);
   debe(enLaCabina.length === 0, `el detector no ve cárceles en las cabeceras de la Cabina${enLaCabina.length ? `: ${enLaCabina.join(" | ")}` : ""}`);
   const boton = await conRatonEncima(v, ".pane-head .ph-acts .pane-btn");
-  debe(SUELTO_ENCIMA(boton), `con el ratón encima, un botón solo cambia de color (${JSON.stringify(boton?.encima)})`);
+  debe(CRISTAL_ENCIMA(boton), `un botón, suelto y de cristal con el ratón encima (${JSON.stringify(boton?.encima)})`);
   const equis = await conRatonEncima(v, ".pane-head .pane-close");
-  debe(SUELTO_ENCIMA(equis), `y la ✕ igual (${JSON.stringify(equis?.encima)})`);
+  debe(CRISTAL_ENCIMA(equis), `y la ✕ igual (${JSON.stringify(equis?.encima)})`);
   // La ✕ tapa los botones que pasan por debajo solo cuando la cabecera no cabe.
   const tapa = await v.js(`(async () => {
     const pane = [...document.querySelectorAll(".pane")].find((p) => p.querySelector(".pane-name")?.textContent === "Hija en la cabina");
@@ -353,7 +358,7 @@ try {
     })()`);
     debe(!!activa?.marcada && !!activa.raya && activa.color !== activa.otra, `la pestaña ${vista} se ve activa sin caja (texto ${activa?.color} contra ${activa?.otra}, raya ${activa?.raya})`);
     const encima = await conRatonEncima(v, '.topbar .tab[data-active="false"]');
-    debe(SUELTO_ENCIMA(encima), `con el ratón encima, una pestaña solo cambia de color (${JSON.stringify(encima?.encima)})`);
+    debe(CRISTAL_ENCIMA(encima), `una pestaña, suelta y de cristal con el ratón encima (${JSON.stringify(encima?.encima)})`);
     if (activa) await foto(`la barra en ${vista}`, activa.rect, archivo);
   }
   await pestanas("Cabina", "cabina", "barra-cabina.png");
@@ -372,7 +377,7 @@ try {
   const enElLienzo = await carceles(v);
   debe(enElLienzo.length === 0, `el detector no ve cárceles en las cabeceras del Lienzo${enElLienzo.length ? `: ${enElLienzo.join(" | ")}` : ""}`);
   const botonLienzo = await conRatonEncima(v, ".rf-term .pane-head .ph-acts .pane-btn");
-  debe(SUELTO_ENCIMA(botonLienzo), `en el Lienzo, con el ratón encima, un botón solo cambia de color (${JSON.stringify(botonLienzo?.encima)})`);
+  debe(CRISTAL_ENCIMA(botonLienzo), `en el Lienzo, un botón suelto y de cristal con el ratón encima (${JSON.stringify(botonLienzo?.encima)})`);
   await pestanas("Lienzo", "lienzo", "barra-lienzo.png");
   // Fuera de las dos cabeceras no es este encargo: se cuenta, no se juzga.
   const resto = await carceles(v, null);

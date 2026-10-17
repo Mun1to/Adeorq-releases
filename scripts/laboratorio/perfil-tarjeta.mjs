@@ -15,7 +15,7 @@
 //   · El icono de compartir abre el mes; un día abre ese día; el récord, el
 //     récord. El lienzo dice lo que pinta (su `aria-label`) y se pinta de
 //     verdad (píxeles).
-//   · La tira: tu fondo de Adeorq primero, los tres de serie y «Subir».
+//   · La tira: tu fondo de Adeorq primero, los cuatro de serie y «Subir».
 //   · «Resaltar la cifra» apagado de fábrica, y encendido pinta la caja clara.
 //   · Ningún proyecto sale hasta que lo eliges; elegido, su frase.
 //   · Color, 9:16, y que se recuerdan al volver a abrir.
@@ -192,13 +192,13 @@ try {
   dice(await page.$eval(".pt-barra .pt-op >> nth=1", (b) => b.disabled), "«Día» apagado si no se abrió desde un día");
   dice((await page.$eval(".pt-interruptor", (b) => b.getAttribute("aria-pressed"))) === "false", "«Resaltar la cifra» apagado de fábrica");
   const tira = await page.$$eval(".pt-tira .pt-mini", (bs) => bs.map((b) => b.getAttribute("aria-label")));
-  dice(JSON.stringify(tira) === JSON.stringify(["Tu fondo de Adeorq", "Cristal azul", "Aurora", "Noche"]), `la tira: tu fondo primero y los tres de serie (${tira})`);
+  dice(JSON.stringify(tira) === JSON.stringify(["Tu fondo de Adeorq", "ASCII", "Solo los bordes", "Grano de película", "Proa de cristal"]), `la tira: tu fondo primero y los cuatro de serie (${tira})`);
   dice((await pulsado(".pt-mini"))[0] === "Tu fondo de Adeorq", "elegido, tu fondo");
   dice(/Subir imagen\s*hasta 10 MB/.test(await page.$eval(".pt-subir", (b) => b.textContent)), "y «Subir imagen» al final");
   await foto("1-mes");
 
   // 2. Un fondo de serie, y «Resaltar la cifra» pinta la caja clara.
-  await page.click('.pt-mini[aria-label="Cristal azul"]');
+  await page.click('.pt-mini[aria-label="ASCII"]');
   await page.waitForTimeout(300);
   const sinCaja = await enColumna(44, [234, 243, 255]);
   await page.click(".pt-interruptor");

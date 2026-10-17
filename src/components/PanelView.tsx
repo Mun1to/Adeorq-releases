@@ -2,66 +2,105 @@ import { useEffect, useMemo, useState } from "react";
 import {
   createProject,
   listProjects,
+  projectIcons,
   scanSessions,
+  type Account,
   type Project,
   type SessionInfo,
 } from "../lib/pty";
-import { anadirProyecto, leerPerfil, raiz, sinRaiz } from "../lib/perfil";
+import { anadirProyecto, leerPerfil, sinRaiz } from "../lib/perfil";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
-import { hueOf } from "../lib/colors";
 import { useT } from "../lib/i18n";
-import Secciones from "./Secciones";
-import { IconoAhora, IconoProyectos } from "./IconosSeccion";
+import { hace } from "../lib/uso";
+import { usePartes } from "../lib/partes";
+import { dejarPedido } from "../lib/conserje";
+import type { Animo } from "../lib/campana";
+import type { View } from "../lib/vistas";
+import Mascota from "./Mascota";
+import ProjectAvatar from "./ProjectAvatar";
+import PanelPedir from "./PanelPedir";
+import PanelUso from "./PanelUso";
+import { ChevronIcon, PlusIcon } from "./Icons";
+
+/* La pestaña de inicio, desde el 2026-10-17: Adeo a la izquierda con una sola
+   caja para pedirle cosas, y a la derecha tus proyectos y tu uso. Munir eligió
+   esta forma entre cuatro (la 2, «Pídeselo a Adeo», con «tus proyectos y tus
+   estadísticas» a la derecha) después de decir del Panel de antes que eran
+   «demasiadas cosas a la vez»: cuatro cifras en caja, un índice de dos
+   secciones, la tarjeta entera del Capataz y los proyectos calientes. */
 
 interface Props {
   onGoProject: (name: string) => void;
   onCreated: (name: string) => void;
-  /** Para que el número de «trabajando ahora» lleve a verlas, y no sea un
-      número que solo se mira. */
-  onGoCabina: () => void;
-  foremanCard: React.ReactNode;
+  /** Ir a una sesión: la que te pregunta algo, con «Contestar». */
+  onResume: (s: SessionInfo) => void;
+  /** Ir a otra pestaña: la Cabina, el Chat con lo que pediste, tu uso. */
+  irA: (v: View) => void;
+  /** Las cuentas, para leer tu uso. */
+  cuentas: Account[];
 }
 
-export default function PanelView({
-  onGoProject,
-  onCreated,
-  onGoCabina,
-  foremanCard,
-}: Props) {
+/** Una sesión viva que te ha preguntado algo o espera tu OK. */
+const reclama = (s: SessionInfo) => s.live && (s.state === "pregunta" || s.state === "ofrece");
+
+export default function PanelView({ onGoProject, onCreated, onResume, irA, cuentas }: Props) {
   const { t } = useT();
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [iconos, setIconos] = useState<Record<string, string>>({});
+  const [todos, setTodos] = useState(false);
+  const [creando, setCreando] = useState(false);
   const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [toque, setToque] = useState(0);
+  const [apagadas] = usePartes();
   useEffect(() => {
-    listProjects().then(setProjects).catch(() => {});
+    listProjects()
+      .then((ps) => {
+        setProjects(ps);
+        projectIcons(ps.map((p) => p.path))
+          .then(setIconos)
+          .catch(() => {});
+      })
+      .catch(() => {});
     scanSessions().then(setSessions).catch(() => {});
   }, []);
 
   const fresh = useMemo(() => sessions.filter((s) => s.fresh !== "muerta"), [sessions]);
   const liveCount = useMemo(() => fresh.filter((s) => s.live).length, [fresh]);
-  const hot = useMemo(() => {
-    const count = new Map<string, number>();
-    for (const s of fresh) count.set(s.project, (count.get(s.project) ?? 0) + 1);
-    return [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const esperan = useMemo(() => fresh.filter(reclama), [fresh]);
+
+  // Lo de cada proyecto esta semana: cuántas tiene en marcha, si alguna te
+  // espera y cuándo fue lo último.
+  const porProyecto = useMemo(() => {
+    const m = new Map<string, { vivas: number; espera: boolean; ultima: number }>();
+    for (const s of fresh) {
+      const e = m.get(s.project) ?? { vivas: 0, espera: false, ultima: 0 };
+      if (s.live) e.vivas++;
+      if (reclama(s)) e.espera = true;
+      e.ultima = Math.max(e.ultima, s.mtime ?? 0);
+      m.set(s.project, e);
+    }
+    return m;
   }, [fresh]);
 
-  // Lo que de verdad hay que saber al abrir el panel: quién te espera y cuánta
-  // gente hay fuera trabajando. Estaba todo dentro de las sesiones y no lo
-  // miraba nadie: había que abrir la Cabina y repasar terminal por terminal.
-  const esperando = useMemo(
-    () => fresh.filter((s) => s.live && (s.state === "pregunta" || s.state === "ofrece")).length,
-    [fresh],
+  // Primero los que te esperan, luego los que tienen a alguien dentro y luego
+  // por lo último que pasó. Los demás, por nombre, detrás de «Ver los N».
+  const activos = useMemo(() => {
+    const rango = (n: string) => {
+      const e = porProyecto.get(n);
+      return e?.espera ? 2 : e?.vivas ? 1 : 0;
+    };
+    return projects
+      .filter((p) => porProyecto.has(p.name))
+      .sort((a, b) => rango(b.name) - rango(a.name) || porProyecto.get(b.name)!.ultima - porProyecto.get(a.name)!.ultima);
+  }, [projects, porProyecto]);
+  const resto = useMemo(
+    () => projects.filter((p) => !porProyecto.has(p.name)).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
+    [projects, porProyecto],
   );
-  const agentesFuera = useMemo(
-    () => fresh.filter((s) => s.live).reduce((n, s) => n + s.agentsLive, 0),
-    [fresh],
-  );
-  const proyectosTocados = useMemo(
-    () => new Set(fresh.map((s) => s.project)).size,
-    [fresh],
-  );
+  const lista = todos ? [...activos, ...resto] : activos.length ? activos : resto.slice(0, 8);
 
   const nombre = leerPerfil().nombre.trim();
 
@@ -75,20 +114,32 @@ export default function PanelView({
     return "Buenas noches";
   }, []);
 
-  // Y debajo, la frase que resume el estado. Se prefiere lo que TE TOCA a ti:
-  // que alguien espere respuesta importa más que cuántos estén trabajando.
+  // Y debajo, la frase que resume el estado. Lo que TE TOCA a ti no va aquí:
+  // va en su propia línea, con su botón, en el sitio de esta.
   const resumen = useMemo(() => {
-    if (esperando > 0)
-      return esperando === 1
-        ? t("Una sesión espera respuesta tuya.")
-        : t("{n} sesiones esperan respuesta tuya.", { n: esperando });
     if (liveCount > 0)
       return liveCount === 1
         ? t("Una sesión en marcha y nada pendiente de ti.")
         : t("{n} sesiones en marcha y nada pendiente de ti.", { n: liveCount });
     if (fresh.length > 0) return t("Todo tranquilo. Nada corriendo ahora mismo.");
     return t("Tu taller, a vista de pájaro.");
-  }, [esperando, liveCount, fresh.length, t]);
+  }, [liveCount, fresh.length, t]);
+
+  // Adeo dice lo mismo que la frase: te llama si alguien espera y teclea si
+  // hay alguien trabajando.
+  const animo: Animo = esperan.length ? "espera" : liveCount ? "trabaja" : "quieta";
+
+  const iconoDe = (proyecto: string) => iconos[projects.find((p) => p.name === proyecto)?.path ?? ""];
+
+  const cuandoFue = (segundos: number) => {
+    const a = hace(segundos * 1000);
+    return t(a.clave, { n: a.valor });
+  };
+
+  const pedir = (texto: string) => {
+    dejarPedido(texto);
+    irA("chat");
+  };
 
   const crear = async () => {
     if (busy || !newName.trim()) return;
@@ -114,6 +165,7 @@ export default function PanelView({
         text: `${p.name} creado con AGENTS.md, docs/METAS.md, .gitignore${p.hasGit ? " y git" : ""}.`,
       });
       setNewName("");
+      setCreando(false);
       onCreated(p.name);
     } catch (e) {
       setMsg({ ok: false, text: String(e) });
@@ -123,162 +175,99 @@ export default function PanelView({
   };
 
   return (
-    <div className="panel">
-      <header className="panel-hero">
-        {/* El nombre sale del perfil: era «Munito» a fuego, así que la app
-            saludaba al que la escribió en el ordenador de cualquiera. */}
-        <h1>{nombre ? `${t(saludo)}, ${nombre}.` : `${t(saludo)}.`}</h1>
-        <p>{resumen}</p>
-      </header>
-
-      {/* Los números de arriba dicen QUÉ HAY, no cuánto hay: cada uno lleva
-          debajo el dato que hace falta para decidir si hay que hacer algo, y
-          los que se pueden mirar por dentro llevan al sitio de un clic. Antes
-          eran tres cifras sueltas que no llevaban a ninguna parte. */}
-      <div className="stats">
-        <button className="stat-card" data-live={liveCount > 0} onClick={onGoCabina}>
-          <span className="stat-num">{liveCount}</span>
-          <span className="stat-label">{t("trabajando ahora")}</span>
-          <span className="stat-foot">
-            {agentesFuera === 1
-              ? t("un agente desplegado")
-              : agentesFuera > 1
-                ? t("{n} agentes desplegados", { n: agentesFuera })
-                : liveCount > 0
-                  ? t("sin subagentes fuera")
-                  : t("nadie en marcha")}
-          </span>
-        </button>
-        <div className="stat-card">
-          <span className="stat-num">{esperando}</span>
-          <span className="stat-label">{t("te esperan")}</span>
-          <span className="stat-foot">
-            {esperando > 0 ? t("han preguntado algo") : t("nada pendiente de ti")}
-          </span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-num">{fresh.length}</span>
-          <span className="stat-label">{t("sesiones esta semana")}</span>
-          <span className="stat-foot">
-            {t("en {n} proyectos", { n: proyectosTocados })}
-          </span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-num">{projects.length}</span>
-          <span className="stat-label">{t("proyectos")}</span>
-          <span className="stat-foot">{sinRaiz() ? t("añadidos por ti") : raiz()}</span>
+    <div className="panel inicio">
+      <div className="inicio-izq">
+        <div className="inicio-centro">
+          <button type="button" className="inicio-adeo" aria-label="Adeo" onClick={() => setToque((n) => n + 1)}>
+            <Mascota animo={animo} alto={98} toque={toque} />
+          </button>
+          {/* El nombre sale del perfil: era «Munito» a fuego, así que la app
+              saludaba al que la escribió en el ordenador de cualquiera. */}
+          <h1>{nombre ? `${t(saludo)}, ${nombre}.` : `${t(saludo)}.`}</h1>
+          {esperan.length > 0 ? (
+            <div className="inicio-aviso">
+              <ProjectAvatar name={esperan[0].project} src={iconoDe(esperan[0].project)} />
+              <span className="inicio-aviso-txt">
+                {esperan.length === 1
+                  ? t("«{s}» te pregunta algo.", { s: esperan[0].title })
+                  : t("«{s}» y {n} más te esperan.", { s: esperan[0].title, n: esperan.length - 1 })}
+              </span>
+              <button type="button" className="np-btn" onClick={() => onResume(esperan[0])}>
+                {t("Contestar")}
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="inicio-estado" onClick={() => irA("cabina")}>
+              {resumen}
+              <ChevronIcon der size={15} />
+            </button>
+          )}
+          {/* Con el Chat apagado (`lib/partes.ts`) no hay conserje al que pedir. */}
+          {!apagadas.includes("chat") && <PanelPedir onPedir={pedir} />}
         </div>
       </div>
 
-      <Secciones
-        memoria="adeorq-panel-seccion"
-        secciones={[
-          { id: "ahora", label: "Ahora", icon: <IconoAhora />, badge: liveCount || "" },
-          { id: "proyectos", label: "Proyectos", icon: <IconoProyectos />, badge: projects.length },
-        ]}
-      >
-        {(activa) => (
-          <>
-            {activa === "ahora" && SeccionAhora()}
-            {activa === "proyectos" && SeccionProyectos()}
-          </>
-        )}
-      </Secciones>
-    </div>
-  );
-
-  /* ── Estas dos NO son componentes, y por eso se llaman `SeccionAhora()` ─────
-
-     Un componente declarado dentro de otro es una función nueva en cada render
-     del padre: React lo ve como otro tipo, desmonta lo que había y monta uno
-     nuevo, con lo que lo de dentro pierde su estado, su scroll y el foco del
-     teclado. Llamadas como funciones, su JSX entra en el árbol de la vista sin
-     ser un tipo que React compare, y no hay nada que remontar.
-
-     Lo vigila `scripts/anidado-check.mjs`; el efecto está medido con React de
-     verdad en `scripts/remonte-check.tsx`. */
-  function SeccionAhora() {
-    return (
-      <>
-        {foremanCard}
-        <section className="panel-card">
-          <h2>{t("Proyectos calientes")}</h2>
-          <p className="card-hint">{t("Donde más se ha trabajado esta semana. Clic para ir.")}</p>
-          <div className="hot-list">
-            {hot.map(([name, n]) => (
-              <button key={name} className="hot-item" onClick={() => onGoProject(name)}>
-                <span className="ws-dot" style={{ background: hueOf(name) }} />
-                <span className="hot-name">{name}</span>
-                <span className="count">{n}</span>
-              </button>
-            ))}
-            {hot.length === 0 && <p className="card-hint">{t("Sin actividad reciente.")}</p>}
+      <aside className="inicio-der">
+        <section className="panel-card inicio-card" aria-label={t("Tus proyectos")}>
+          <h2 className="inicio-tit">{t("Tus proyectos")}</h2>
+          <div className="inicio-proys" data-todos={todos || undefined}>
+            {lista.map((p) => {
+              const e = porProyecto.get(p.name);
+              return (
+                <button key={p.path} type="button" className="inicio-proy" onClick={() => onGoProject(p.name)}>
+                  <ProjectAvatar name={p.name} src={iconos[p.path]} />
+                  <span className="inicio-proy-n">{p.name}</span>
+                  {e?.espera ? (
+                    <span className="inicio-proy-e" data-estado="espera">
+                      {t("te pregunta algo")}
+                    </span>
+                  ) : e?.vivas ? (
+                    <span className="inicio-proy-e" data-estado="vivo">
+                      {e.vivas === 1 ? t("una trabajando") : t("{n} trabajando", { n: e.vivas })}
+                    </span>
+                  ) : e?.ultima ? (
+                    <span className="inicio-proy-e">{cuandoFue(e.ultima)}</span>
+                  ) : null}
+                </button>
+              );
+            })}
+            {projects.length === 0 && <p className="card-hint">{t("Todavía no tienes proyectos: crea el primero.")}</p>}
           </div>
-        </section>
-      </>
-    );
-  }
-
-  function SeccionProyectos() {
-    return (
-      <>
-        <section className="panel-card">
-          <h2>{t("＋ Nuevo proyecto")}</h2>
-          <p className="card-hint">
-            {sinRaiz()
-              ? t(
-                  "Eliges dónde crearla y nace con AGENTS.md (tus reglas), METAS.md y git, ya puesta en el panel.",
-                )
-              : t(
-                  "Crea la carpeta en {d} con AGENTS.md (tus reglas), METAS.md y git, listo para la primera sesión.",
-                  { d: raiz() },
-                )}
-          </p>
-          <div className="np-row">
-            <input
-              className="finder"
-              placeholder={t("Nombre del proyecto")}
-              value={newName}
-              onChange={(e) => setNewName(e.currentTarget.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void crear();
-              }}
-            />
-            <button className="np-btn" disabled={busy || !newName.trim()} onClick={() => void crear()}>
-              {t("Crear")}
+          {creando && (
+            <div className="np-row inicio-crear">
+              <input
+                className="finder"
+                id="inicio-nuevo-proyecto"
+                autoFocus
+                placeholder={t("Nombre del proyecto")}
+                value={newName}
+                onChange={(e) => setNewName(e.currentTarget.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void crear();
+                  if (e.key === "Escape") setCreando(false);
+                }}
+              />
+              <button type="button" className="np-btn" disabled={busy || !newName.trim()} onClick={() => void crear()}>
+                {t("Crear")}
+              </button>
+            </div>
+          )}
+          {msg && <p className={msg.ok ? "np-ok" : "np-err"}>{msg.text}</p>}
+          <div className="inicio-pie">
+            {resto.length > 0 && (
+              <button type="button" className="inicio-enlace" onClick={() => setTodos((v) => !v)}>
+                {todos ? t("Ver menos") : t("Ver los {n}", { n: projects.length })}
+                {!todos && <ChevronIcon der size={15} />}
+              </button>
+            )}
+            <button type="button" className="inicio-enlace" onClick={() => setCreando((v) => !v)}>
+              <PlusIcon size={15} />
+              {t("Nuevo proyecto")}
             </button>
           </div>
-          {msg && (
-            <p className={msg.ok ? "np-ok" : "np-err"}>{msg.text}</p>
-          )}
         </section>
-
-        {/* La lista entera, no solo los seis calientes: esta sección va de
-            elegir proyecto, y el de la semana pasada también cuenta. */}
-        <section className="panel-card">
-          <h2>{t("Todos tus proyectos")}</h2>
-          <p className="card-hint">
-            {sinRaiz()
-              ? t("Los {n} que has añadido tú. Clic para ir a sus sesiones.", {
-                  n: projects.length,
-                })
-              : t("Los {n} que hay en {d}. Clic para ir a sus sesiones.", {
-                  n: projects.length,
-                  d: raiz(),
-                })}
-          </p>
-          <div className="hot-list">
-            {projects.map((p) => (
-              <button key={p.path} className="hot-item" onClick={() => onGoProject(p.name)}>
-                <span className="ws-dot" style={{ background: hueOf(p.name) }} />
-                <span className="hot-name">{p.name}</span>
-                {p.hasGit && <span className="count">git</span>}
-              </button>
-            ))}
-          </div>
-        </section>
-      </>
-    );
-  }
-
+        <PanelUso cuentas={cuentas} onVer={() => irA("perfil")} />
+      </aside>
+    </div>
+  );
 }

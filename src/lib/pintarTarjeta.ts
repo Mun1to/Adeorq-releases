@@ -421,49 +421,240 @@ export function pintarTarjeta(
 
 /* --------------------------------------------------------- los fondos de serie */
 
-// Tres fondos hechos aquí, en SVG: pesan nada y se pintan nítidos a cualquier
-// tamaño, porque se dibujan ya al tamaño de la tarjeta (`preserveAspectRatio`
-// recorta como `cover`). Son los del prototipo aprobado.
-const CUERPOS = {
-  cristal:
-    '<defs><radialGradient id="a" cx="78%" cy="30%" r="70%"><stop offset="0" stop-color="#3a8dff"/><stop offset=".45" stop-color="#14306e"/><stop offset="1" stop-color="#050912"/></radialGradient><radialGradient id="b" cx="95%" cy="95%" r="50%"><stop offset="0" stop-color="#48c2ff" stop-opacity=".55"/><stop offset="1" stop-color="#48c2ff" stop-opacity="0"/></radialGradient></defs><rect width="1200" height="800" fill="url(#a)"/><rect width="1200" height="800" fill="url(#b)"/><path d="M700 80 L1100 80 L1190 330 L1160 370 L640 370 L610 330 Z" fill="#9fdcff" opacity=".10"/><path d="M760 470 L1060 470 L1130 650 L1110 680 L710 680 L690 650 Z" fill="#6fd0ff" opacity=".08"/>',
-  aurora:
-    '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#05070f"/><stop offset="1" stop-color="#0b1020"/></linearGradient><radialGradient id="v" cx="80%" cy="20%" r="55%"><stop offset="0" stop-color="#2fe3ac" stop-opacity=".75"/><stop offset="1" stop-color="#2fe3ac" stop-opacity="0"/></radialGradient><radialGradient id="m" cx="65%" cy="85%" r="55%"><stop offset="0" stop-color="#8a4dff" stop-opacity=".8"/><stop offset="1" stop-color="#8a4dff" stop-opacity="0"/></radialGradient></defs><rect width="1200" height="800" fill="url(#g)"/><rect width="1200" height="800" fill="url(#v)"/><rect width="1200" height="800" fill="url(#m)"/>',
-  noche:
-    '<defs><linearGradient id="n" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0f1f"/><stop offset="1" stop-color="#1b0f2e"/></linearGradient><pattern id="p" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0V60" fill="none" stroke="#6fd0ff" stroke-opacity=".12" stroke-width="1.5"/></pattern><radialGradient id="s" cx="82%" cy="40%" r="35%"><stop offset="0" stop-color="#ffab8a" stop-opacity=".55"/><stop offset="1" stop-color="#ffab8a" stop-opacity="0"/></radialGradient></defs><rect width="1200" height="800" fill="url(#n)"/><rect width="1200" height="800" fill="url(#p)"/><rect width="1200" height="800" fill="url(#s)"/><circle cx="985" cy="320" r="120" fill="#ffd2bf" opacity=".85"/>',
-} as const;
+// Cuatro fondos dibujados para Adeorq, a baja opacidad para que mande la cifra:
+// la proa hecha de letras de terminal, solo sus bordes con sus ecos, grano de
+// película y la proa de cristal. Los tres del prototipo (degradados en SVG) los
+// llamó «basura» y pidió estos con sus palabras: «logo Adeorq en ASCII, baja
+// opacidad, solo los bordes, grano de película» (Munir, 2026-10-17); de los
+// cinco que se le enseñaron, el de la terminal se quedó fuera.
+//
+// Se pintan en un lienzo al tamaño exacto de la tarjeta, así que salen nítidos
+// en 16:9 y en 9:16 sin pesar nada (unos 150 ms cada uno a 1920×1080), y con
+// una semilla fija: la vista previa y lo exportado salen iguales.
+const MONO = '"Cascadia Mono", "Cascadia Code", Consolas, "DejaVu Sans Mono", monospace';
 
-export type FondoDeSerie = keyof typeof CUERPOS;
+function azar(semilla: number): () => number {
+  let a = semilla >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Dónde va la proa: a la derecha en horizontal, donde no hay texto, y arriba
+    en vertical, donde el texto vive abajo. */
+function sitio(w: number, h: number, escala = 1) {
+  return h > w ? { cx: w * 0.5, cy: h * 0.33, alto: w * 0.78 * escala } : { cx: w * 0.73, cy: h * 0.5, alto: h * 0.86 * escala };
+}
+
+/** Coloca el lienzo para dibujar la proa centrada en (cx, cy) con ese alto. */
+function proaEn(ctx: CanvasRenderingContext2D, cx: number, cy: number, alto: number): Path2D {
+  const k = alto / 1024;
+  ctx.translate(cx - 512 * k, cy - 480 * k);
+  ctx.scale(k, k);
+  return new Path2D(PROA);
+}
+
+function base(ctx: CanvasRenderingContext2D, w: number, h: number, arriba: string, abajo: string, luz?: { color: string; x: number; y: number }) {
+  const g = ctx.createLinearGradient(0, 0, w * 0.4, h);
+  g.addColorStop(0, arriba);
+  g.addColorStop(1, abajo);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  if (!luz) return;
+  const r = ctx.createRadialGradient(luz.x, luz.y, 0, luz.x, luz.y, Math.max(w, h) * 0.55);
+  r.addColorStop(0, luz.color);
+  r.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = r;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function vineta(ctx: CanvasRenderingContext2D, w: number, h: number, fuerza: number) {
+  const r = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.hypot(w, h) * 0.6);
+  r.addColorStop(0, "rgba(0,0,0,0)");
+  r.addColorStop(1, `rgba(0,0,0,${fuerza})`);
+  ctx.fillStyle = r;
+  ctx.fillRect(0, 0, w, h);
+}
+
+/** Grano de película: ruido de luminancia, el mismo en los tres colores. */
+function grano(ctx: CanvasRenderingContext2D, w: number, h: number, cantidad: number, semilla: number) {
+  const rnd = azar(semilla);
+  const img = ctx.getImageData(0, 0, w, h);
+  const p = img.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const n = (rnd() + rnd() - 1) * cantidad * 255;
+    p[i] += n;
+    p[i + 1] += n;
+    p[i + 2] += n;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+const DIBUJOS = {
+  /** La proa hecha de letras de terminal, muy tenue, sobre azul noche. */
+  ascii(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    const s = sitio(w, h);
+    base(ctx, w, h, "#03060c", "#081224", { color: "rgba(40,110,220,0.22)", x: s.cx, y: s.cy });
+    const celda = Math.round(Math.min(w, h) / 62);
+    const cols = Math.ceil(w / celda);
+    const filas = Math.ceil(h / celda);
+    const mascara = document.createElement("canvas");
+    mascara.width = cols;
+    mascara.height = filas;
+    const mc = mascara.getContext("2d", { willReadFrequently: true });
+    if (!mc) return;
+    mc.fillStyle = "#000";
+    mc.fillRect(0, 0, cols, filas);
+    mc.fillStyle = "#fff";
+    mc.fill(proaEn(mc, s.cx / celda, s.cy / celda, s.alto / celda), "evenodd");
+    const luz = mc.getImageData(0, 0, cols, filas).data;
+    const rnd = azar(7);
+    const juego = " .:-=+*#%@";
+    ctx.font = `${Math.round(celda * 0.92)}px ${MONO}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (let y = 0; y < filas; y++) {
+      for (let x = 0; x < cols; x++) {
+        const v = luz[(y * cols + x) * 4] / 255;
+        // Fuera de la proa, un poso de puntos que se apaga lejos de ella.
+        const lejos = Math.hypot((x * celda - s.cx) / s.alto, (y * celda - s.cy) / s.alto);
+        const poso = Math.max(0, 0.32 - lejos * 0.42) * rnd();
+        const b = Math.min(1, v * (0.62 + rnd() * 0.38) + poso);
+        if (b < 0.08) continue;
+        ctx.fillStyle = `rgba(110,200,255,${(0.07 + b * 0.32).toFixed(3)})`;
+        ctx.fillText(juego[Math.min(juego.length - 1, Math.floor(b * juego.length))], x * celda + celda / 2, y * celda + celda / 2);
+      }
+    }
+    vineta(ctx, w, h, 0.55);
+    grano(ctx, w, h, 0.05, 11);
+  },
+
+  /** Solo los bordes: la proa en contorno con sus ecos, como curvas de nivel. */
+  contorno(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    const s = sitio(w, h, 1.25);
+    base(ctx, w, h, "#04070e", "#0b1428", { color: "rgba(60,140,255,0.16)", x: s.cx, y: s.cy });
+    for (let i = 9; i >= 0; i--) {
+      ctx.save();
+      const e = 1 + i * 0.075;
+      const camino = proaEn(ctx, s.cx, s.cy, s.alto * e);
+      ctx.lineWidth = (i === 0 ? 2.4 : 1.4) / ((s.alto / 1024) * e);
+      ctx.strokeStyle = i === 0 ? "rgba(140,215,255,0.55)" : `rgba(90,170,255,${(0.3 - i * 0.026).toFixed(3)})`;
+      if (i === 0) {
+        ctx.shadowColor = "rgba(72,194,255,0.8)";
+        ctx.shadowBlur = 24;
+      }
+      ctx.stroke(camino);
+      ctx.restore();
+    }
+    vineta(ctx, w, h, 0.5);
+    grano(ctx, w, h, 0.045, 23);
+  },
+
+  /** Grano de película: naranja y azul de cine, fugas de luz y el fantasma de la proa. */
+  pelicula(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    const vertical = h > w;
+    base(ctx, w, h, "#050b14", "#0d0a1c");
+    const fuga = (x: number, y: number, r: number, color: string) => {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, color);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalCompositeOperation = "screen";
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = "source-over";
+    };
+    fuga(vertical ? w * 0.85 : w * 0.92, h * 0.08, Math.max(w, h) * 0.55, "rgba(255,128,64,0.62)");
+    fuga(vertical ? w * 0.15 : w * 0.55, h * 1.02, Math.max(w, h) * 0.55, "rgba(40,170,255,0.42)");
+    const s = sitio(w, h, 1.1);
+    ctx.save();
+    ctx.filter = `blur(${Math.round(Math.min(w, h) / 160)}px)`;
+    ctx.fillStyle = "rgba(255,220,200,0.09)";
+    ctx.fill(proaEn(ctx, s.cx, s.cy, s.alto), "evenodd");
+    ctx.restore();
+    // Halación: una raya de luz que barre, como en el celuloide.
+    const r = ctx.createLinearGradient(0, h * 0.38, 0, h * 0.44);
+    r.addColorStop(0, "rgba(255,180,140,0)");
+    r.addColorStop(0.5, "rgba(255,180,140,0.06)");
+    r.addColorStop(1, "rgba(255,180,140,0)");
+    ctx.fillStyle = r;
+    ctx.fillRect(0, h * 0.38, w, h * 0.06);
+    vineta(ctx, w, h, 0.7);
+    grano(ctx, w, h, 0.13, 37);
+  },
+
+  /** La proa de cristal: rellena de luz, con su filo, muy tenue. */
+  cristal(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    const s = sitio(w, h, 1.05);
+    base(ctx, w, h, "#050914", "#0c1830", { color: "rgba(50,120,255,0.25)", x: s.cx, y: s.cy });
+    ctx.save();
+    const camino = proaEn(ctx, s.cx, s.cy, s.alto);
+    const g = ctx.createLinearGradient(0, 112, 0, 848);
+    g.addColorStop(0, "rgba(160,220,255,0.20)");
+    g.addColorStop(1, "rgba(40,110,240,0.05)");
+    ctx.fillStyle = g;
+    ctx.fill(camino, "evenodd");
+    ctx.lineWidth = 1.6 / (s.alto / 1024);
+    ctx.strokeStyle = "rgba(170,225,255,0.35)";
+    ctx.stroke(camino);
+    ctx.restore();
+    // El brillo de arriba, como el filo del cristal de la app.
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    const b = ctx.createLinearGradient(0, s.cy - s.alto / 2, 0, s.cy);
+    b.addColorStop(0, "rgba(200,235,255,0.10)");
+    b.addColorStop(1, "rgba(200,235,255,0)");
+    ctx.fillStyle = b;
+    ctx.fill(proaEn(ctx, s.cx, s.cy, s.alto), "evenodd");
+    ctx.restore();
+    vineta(ctx, w, h, 0.55);
+    grano(ctx, w, h, 0.05, 79);
+  },
+};
+
+export type FondoDeSerie = keyof typeof DIBUJOS;
 
 export const FONDOS_DE_SERIE: { id: FondoDeSerie; nombre: string }[] = [
-  { id: "cristal", nombre: "Cristal azul" },
-  { id: "aurora", nombre: "Aurora" },
-  { id: "noche", nombre: "Noche" },
+  { id: "ascii", nombre: "ASCII" },
+  { id: "contorno", nombre: "Solo los bordes" },
+  { id: "pelicula", nombre: "Grano de película" },
+  { id: "cristal", nombre: "Proa de cristal" },
 ];
 
-function svgDe(id: FondoDeSerie, ancho?: number, alto?: number): string {
-  const lado = ancho && alto ? ` width="${ancho}" height="${alto}"` : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice"${lado}>${CUERPOS[id]}</svg>`;
+function dibujar(id: FondoDeSerie, ancho: number, alto: number): HTMLCanvasElement {
+  const lienzo = document.createElement("canvas");
+  lienzo.width = ancho;
+  lienzo.height = alto;
+  const ctx = lienzo.getContext("2d", { willReadFrequently: true });
+  if (ctx) DIBUJOS[id](ctx, ancho, alto);
+  return lienzo;
 }
 
-/** La dirección del fondo para pintarlo en una miniatura con CSS. */
+const minis = new Map<FondoDeSerie, string>();
+
+/** La miniatura del fondo para la tira, como dirección para CSS: se dibuja una
+    vez, pequeña, en 3:2 como la tira. */
 export function miniDeSerie(id: FondoDeSerie): string {
-  return `data:image/svg+xml,${encodeURIComponent(svgDe(id))}`;
+  let mini = minis.get(id);
+  if (!mini) {
+    mini = dibujar(id, 360, 240).toDataURL("image/jpeg", 0.85);
+    minis.set(id, mini);
+  }
+  return mini;
 }
 
-const hechas = new Map<string, Promise<HTMLImageElement>>();
+const hechas = new Map<string, Promise<HTMLCanvasElement>>();
 
 /** El fondo de serie dibujado ya al tamaño de la tarjeta, listo para el lienzo. */
-export function imagenDeSerie(id: FondoDeSerie, ancho: number, alto: number): Promise<HTMLImageElement> {
+export function imagenDeSerie(id: FondoDeSerie, ancho: number, alto: number): Promise<HTMLCanvasElement> {
   const clave = `${id}|${ancho}x${alto}`;
   let hecha = hechas.get(clave);
   if (!hecha) {
-    hecha = new Promise<HTMLImageElement>((ok, mal) => {
-      const img = new Image(ancho, alto);
-      img.onload = () => ok(img);
-      img.onerror = () => mal(new Error(`no se pudo dibujar el fondo ${id}`));
-      img.src = `data:image/svg+xml,${encodeURIComponent(svgDe(id, ancho, alto))}`;
-    });
+    // En la vuelta siguiente, para que abrir la tarjeta no espere a dibujarlo.
+    hecha = new Promise<HTMLCanvasElement>((ok) => setTimeout(() => ok(dibujar(id, ancho, alto)), 0));
     hechas.set(clave, hecha);
     // Que no crezca sin techo al cambiar el tamaño de la ventana.
     if (hechas.size > 24) hechas.delete(hechas.keys().next().value as string);

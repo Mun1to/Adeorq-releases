@@ -3353,14 +3353,9 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
         <PanelView
           onGoProject={goProject}
           onCreated={onCreated}
-          onGoCabina={() => setView("cabina")}
-          foremanCard={
-            <Foreman
-              mode="card"
-              exec={foremanExec}
-              onRepartir={(texto) => setReparto({ texto })}
-            />
-          }
+          onResume={onResume}
+          irA={setView}
+          cuentas={cuentasDeUso}
         />
       )}
       {/* La otra cara de la Cabina: las mismas sesiones, leídas como

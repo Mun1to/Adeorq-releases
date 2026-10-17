@@ -112,3 +112,10 @@
 
 /* La tarjeta para compartir tu uso y su editor. */
 @import "./estilos/32-perfil-tarjeta.css";
+
+/* Los botones sueltos, de cristal al pasar el ratón. Detrás de todas las de
+   piezas que había, para mandar; la de abajo no toca su ratón encima. */
+@import "./estilos/33-cristal-al-pasar.css";
+
+/* La pestaña de inicio: Adeo y su caja, tus proyectos y tu uso. */
+@import "./estilos/34-inicio.css";

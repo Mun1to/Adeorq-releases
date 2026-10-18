@@ -22,6 +22,7 @@ import { tmpdir } from "node:os";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { APARTE, aparte, puertosDeDepuracion } from "./perfil-aparte.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const EXE = process.argv[2] ?? join(process.env.CARGO_TARGET_DIR ?? "C:\\ct", "debug", "adeorq.exe");
@@ -69,20 +70,18 @@ function arrancarVite() {
 
 /* ── La app, igual que en `navegador-de-verdad.mjs` ── */
 function abrirApp() {
-  const hijo = spawn(EXE, [], {
-    detached: true,
-    stdio: "ignore",
-    env: {
-      ...process.env,
-      LOCALAPPDATA: join(BASE, "datos"),
-      USERPROFILE: join(BASE, "casa"),
-      WEBVIEW2_USER_DATA_FOLDER: join(BASE, "interfaz"),
-      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${PUERTO} --remote-allow-origins=* --disable-features=CalculateNativeWinOcclusion`,
-      ADEORQ_MCP_PUERTO: String(PUERTO + 1),
-      // Pestañas nativas con la carpeta forzada: solo en laboratorio (`modo_nativo`).
-      ADEORQ_NAVEGADOR_LABORATORIO: "1",
-    },
-  });
+  const env = {
+    ...process.env,
+    LOCALAPPDATA: join(BASE, "datos"),
+    USERPROFILE: join(BASE, "casa"),
+    WEBVIEW2_USER_DATA_FOLDER: join(BASE, "interfaz"),
+    WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${APARTE ? 0 : PUERTO} --remote-allow-origins=* --disable-features=CalculateNativeWinOcclusion`,
+    ADEORQ_MCP_PUERTO: String(PUERTO + 1),
+    // Pestañas nativas con la carpeta forzada: solo en laboratorio (`modo_nativo`).
+    ADEORQ_NAVEGADOR_LABORATORIO: "1",
+  };
+  // Con `ADEORQ_PERFIL_APARTE=1`, cada uno en su perfil, como en la app publicada.
+  const hijo = spawn(EXE, [], { detached: true, stdio: "ignore", env: APARTE ? aparte(env, EXE) : env });
   hijo.unref();
   return hijo.pid;
 }
@@ -117,11 +116,16 @@ const GUARDA = `(() => {
   };
 })()`;
 
-/** Se conecta a la página del puerto de depuración cuya dirección cumpla `es`. */
+/** Se conecta a la página del puerto de depuración cuya dirección cumpla `es`. Con el perfil
+    aparte hay dos motores y cada uno con su puerto (ver `puertosDeDepuracion`). */
 async function conectar(es) {
   const destino = await hasta(async () => {
-    const lista = await (await fetch(`http://127.0.0.1:${PUERTO}/json/list`)).json();
-    return lista.find((t) => t.type === "page" && es(t.url));
+    for (const p of APARTE ? puertosDeDepuracion(BASE) : [PUERTO]) {
+      const lista = await (await fetch(`http://127.0.0.1:${p}/json/list`)).json().catch(() => []);
+      const t = lista.find((x) => x.type === "page" && es(x.url));
+      if (t) return t;
+    }
+    return null;
   }, 30_000);
   if (!destino) throw new Error("no aparece la página en el puerto de depuración");
   const ws = new WebSocket(destino.webSocketDebuggerUrl);

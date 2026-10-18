@@ -44,6 +44,7 @@ import {
   navColocar,
   navDisponible,
   navFoto,
+  navFoco,
   navFocoInterfaz,
   navIr,
   oirNavegador,
@@ -343,8 +344,11 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
     ultimo.current = null;
   }, [visible, nativo]);
 
-  /** Llevar la pestaña activa a `url`, creando su panel nativo si hace falta. */
-  const ir = useCallback((destino: string) => {
+  /** Llevar la pestaña activa a `url`, creando su panel nativo si hace falta.
+      `enfocar`: el foco pasa a la página, como en cualquier navegador al pulsar
+      Intro en la barra. Sin eso se quedaba en la interfaz y Ctrl+W no cerraba
+      nada (Munir, 2026-10-18, con vídeo): esas teclas solo las ve la página. */
+  const ir = useCallback((destino: string, enfocar = false) => {
     const p = actRef.current;
     // En un iframe, YouTube por su dirección que sí se deja meter; en el Chromium, tal cual.
     const url = p?.marco || !nativo ? comoEmpotrable(comoUrl(destino)) : comoUrl(destino);
@@ -356,13 +360,31 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
     }
     cambia(p.clave, (x) => ({ ...x, url, titulo: x.url === url ? x.titulo : "", error: undefined, cargando: true }));
     const el = hueco.current;
-    if (creados.current.has(p.clave)) void navIr(p.clave, url).catch(() => {});
+    const foco = () => (enfocar ? navFoco(p.clave).catch(() => {}) : undefined);
+    if (creados.current.has(p.clave)) void navIr(p.clave, url).then(foco, () => {});
     else if (el) {
       creados.current.add(p.clave);
       ultimo.current = null;
-      void navAbrir(p.clave, url, huecoDe(el)).catch(() => creados.current.delete(p.clave));
+      void navAbrir(p.clave, url, huecoDe(el)).then(foco, () => creados.current.delete(p.clave));
     }
   }, [cambia, nativo]);
+
+  /* Ctrl+T, Ctrl+W y Ctrl+L con el foco en el marco (la barra, una pestaña, un
+     botón): con el foco en la página las devuelve Rust (`nav-tecla`), pero aquí
+     no las atendía nadie. Solo dentro del panel: en una terminal, Ctrl+W es
+     borrar la palabra de atrás y es suyo. */
+  const teclaDelMarco = (e: React.KeyboardEvent) => {
+    if (!e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
+    const k = e.key.toLowerCase();
+    if (k !== "t" && k !== "w" && k !== "l") return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (k === "t") nueva();
+    else if (k === "w") {
+      const p = actRef.current;
+      if (p) cerrar(p.clave);
+    } else entrada.current?.focus();
+  };
 
   // Las pestañas que arrancan con dirección (las guardadas) nacen al verse.
   useEffect(() => {
@@ -479,6 +501,7 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
       data-cargando={pest?.cargando || undefined}
       style={{ width: ancho }}
       aria-label={t("Navegador")}
+      onKeyDownCapture={teclaDelMarco}
     >
       <div
         className="nav-tirador"
@@ -496,7 +519,12 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
             data-on={p === pest}
             data-muere={p.muere || undefined}
             title={p.titulo || p.url || undefined}
-            onClick={() => !p.muere && setAct(i)}
+            onClick={() => {
+              if (p.muere) return;
+              setAct(i);
+              // Como en cualquier navegador: pinchar una pestaña te deja dentro de su página.
+              if (!p.marco && creados.current.has(p.clave)) void navFoco(p.clave).catch(() => {});
+            }}
             onAuxClick={(e) => {
               if (e.button === 1) {
                 e.preventDefault();
@@ -568,7 +596,7 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
             onBlur={() => setEditando(false)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                ir(e.currentTarget.value);
+                ir(e.currentTarget.value, true);
                 e.currentTarget.blur();
               }
               if (e.key === "Escape") e.currentTarget.blur();

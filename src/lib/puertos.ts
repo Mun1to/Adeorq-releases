@@ -47,6 +47,32 @@ export function sinAnsi(texto: string): string {
 }
 
 /** Los nombres que significan «esta máquina». */
+/**
+ * Una terminal ha anunciado un servidor local.
+ *
+ * Lo dispara el panel (`TerminalPane`) porque es el único que ve pasar los bytes
+ * del PTY, y lo recoge `WebAuto`, que pregunta si abre la web. Viaja por un
+ * evento y no por una prop porque el panel no tiene por qué conocer al
+ * navegador: aquí solo se dice «alguien ha nombrado algo en este puerto». Vive
+ * aquí y no en `TerminalPane` para que `WebAuto` se pruebe sin arrastrar xterm.
+ *
+ * Se avisa CADA vez que sale la dirección, y quien escucha decide: antes
+ * pregunta si ese puerto contesta de verdad (`puertoEscucha`) y solo pregunta
+ * una vez por puerto. Hasta el 2026-10-18 el panel apuntaba el puerto como visto
+ * a la primera, y la primera suele ser antes de que haya servidor (el comando
+ * escrito, o un agente diciendo «arranco en http://localhost:5173»): cuando el
+ * servidor escribía su `Local:` ya no se avisaba y no salía la pregunta.
+ */
+export const WEB_EVENTO = "adeorq:web";
+
+/** Lo que viaja en ese evento. */
+export interface WebAvisada {
+  url: string;
+  puerto: number;
+  /** Qué panel lo dijo, para poder contarlo si hace falta. */
+  paneId: number;
+}
+
 const CASA = ["localhost", "127.0.0.1", "0.0.0.0", "[::1]", "::1"];
 
 /** Una dirección local encontrada en la salida de una terminal. */
@@ -71,7 +97,10 @@ export function localesEn(texto: string): Local[] {
   const limpio = sinAnsi(texto);
   const out: Local[] = [];
   const vistos = new Set<number>();
-  const re = /https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1)(?::(\d{1,5}))?(\/\S*)?/gi;
+  // La ruta se corta en lo que no puede ir en una dirección (`<>"'` y la comilla
+  // invertida): PowerShell redibuja la línea con movimientos de cursor, y sin
+  // ellos lo de al lado se pegaba («localhost:5800/>», medido el 2026-10-18).
+  const re = /https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1)(?::(\d{1,5}))?(\/[^\s<>"'`]*)?/gi;
   for (const m of limpio.matchAll(re)) {
     if (!CASA.includes(m[1].toLowerCase())) continue;
     // Sin puerto es el 80, y un servidor de desarrollo nunca vive ahí: una

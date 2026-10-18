@@ -135,6 +135,8 @@
   border: 0;
   background: none;
   font: inherit;
+  /* Un botón centra su texto: partido en dos líneas, la segunda quedaba en medio. */
+  text-align: start;
   color: inherit;
   cursor: pointer;
   transition: color var(--t-rapida);
@@ -147,10 +149,14 @@
 
 /* --- El porfolio: una lista con pestañas (A4) ---------------------------------- */
 
-/* Texto suelto; la elegida, en color y subrayada. */
+/* Texto suelto; la elegida, en color y subrayada. Si no caben en una línea,
+   la que sobra baja a la siguiente: a 320 px de ventana la caja mide 184 y
+   «Proyectos» se salía 41 px por la derecha. El hueco entre líneas deja sitio
+   al subrayado, que va 6 px por debajo de la letra. */
 .pu-pestanas {
   display: flex;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 12px 18px;
   margin-bottom: 10px;
 }
 
@@ -392,6 +398,20 @@
 
   .pu-parte {
     grid-template-columns: minmax(0, 1fr) 72px 48px;
+  }
+
+  .pu-parte i {
+    display: none;
+  }
+}
+
+/* En una caja muy estrecha, la cifra y la parte en columnas justas: con 72 y
+   48 px, a 184 de caja el nombre se quedaba en 40 («Ade…», «Orq…»). Va
+   detrás de la de 900, que tiene el mismo peso. */
+@container (max-width: 360px) {
+  .pu-parte {
+    grid-template-columns: minmax(0, 1fr) 44px 40px;
+    gap: 8px;
   }
 
   .pu-parte i {

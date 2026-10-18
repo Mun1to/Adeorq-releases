@@ -453,3 +453,5 @@ const REAL = { "·": 1, "00-inbox": 2, "01-proyectos": 34, "02-areas": 2, "03-re
 }
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
+// Sin esto `pnpm bancos` lo daba por bueno con fallos dentro: solo mira cómo sale (2026-10-18).
+(globalThis as unknown as { process: { exitCode?: number } }).process.exitCode = fallos ? 1 : 0;

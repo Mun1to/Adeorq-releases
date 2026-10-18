@@ -69,3 +69,5 @@ for (let n = 0; n <= 12; n++) {
 ok("abrir terminales nunca devuelve el cristal", monotono);
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
+// Sin esto `pnpm bancos` lo daba por bueno con fallos dentro: solo mira cómo sale (2026-10-18).
+(globalThis as unknown as { process: { exitCode?: number } }).process.exitCode = fallos ? 1 : 0;

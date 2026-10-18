@@ -61,6 +61,13 @@ ok("IPv6", urls("listening on http://[::1]:9000/"), ["http://localhost:9000/"]);
 ok("con ruta, que se conserva", urls("http://127.0.0.1:8080/admin/panel"), [
   "http://localhost:8080/admin/panel",
 ]);
+// PowerShell redibuja la línea con movimientos de cursor; sin ellos, lo de al lado queda pegado.
+// Medido el 2026-10-18 con un servidor de verdad: la pregunta salía «¿Abro localhost:5800/>…?» y
+// la barra acababa en `%3E`. Una dirección no lleva `<>"'` ni comillas invertidas.
+ok("lo que queda pegado detrás no entra en la ruta", urls(`console.log('  Local:   http://localhost:5800/'))"${ESC}[2C>`), [
+  "http://localhost:5800/",
+]);
+ok("ni una etiqueta de HTML", urls("<a href=http://localhost:3000/docs>docs</a>"), ["http://localhost:3000/docs"]);
 
 // ── LO QUE NO DEBE ABRIR NADA ─────────────────────────────────────────────
 console.log("\nLo que NO cuenta");
@@ -103,3 +110,5 @@ console.log("\nLa cola entre trozos");
 }
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
+// Sin esto `pnpm bancos` lo daba por bueno con fallos dentro: solo mira cómo sale (2026-10-18).
+(globalThis as unknown as { process: { exitCode?: number } }).process.exitCode = fallos ? 1 : 0;

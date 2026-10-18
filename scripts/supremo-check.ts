@@ -44,12 +44,14 @@ ok("uno que no existe se rechaza CON la lista", (() => {
   return !!r.error && r.error.includes("gemini");
 })());
 ok("shell vale: no todo puesto necesita modelo", (cliPedido("shell") as any).cli === "shell");
+// Desde el 2026-10-06 (`1e1880c`) Codex y Gemini también arrancan con el encargo; este caso
+// seguía esperando lo de antes y estuvo rojo doce días sin que se viera (el banco no salía en rojo).
+// Kimi tiene `-p`, pero imprime la respuesta y no abre su interfaz: ese no (ver `providers.ts`).
 ok(
-  "solo claude y agy admiten encargo al arrancar",
-  ARRANCAN_CON_ENCARGO.has("claude") &&
-    ARRANCAN_CON_ENCARGO.has("agy") &&
-    !ARRANCAN_CON_ENCARGO.has("codex") &&
-    !ARRANCAN_CON_ENCARGO.has("gemini"),
+  "admiten encargo al arrancar los que lo declaran, y Kimi no",
+  ["claude", "codex", "gemini", "opencode", "agy"].every((c) => ARRANCAN_CON_ENCARGO.has(c)) &&
+    !ARRANCAN_CON_ENCARGO.has("kimi") &&
+    !ARRANCAN_CON_ENCARGO.has("shell"),
 );
 
 // --- dónde -----------------------------------------------------------------
@@ -179,3 +181,5 @@ ok(
 );
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
+// Sin esto `pnpm bancos` lo daba por bueno con fallos dentro: solo mira cómo sale (2026-10-18).
+(globalThis as unknown as { process: { exitCode?: number } }).process.exitCode = fallos ? 1 : 0;

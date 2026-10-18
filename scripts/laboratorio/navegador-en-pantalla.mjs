@@ -18,6 +18,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createServer } from "node:http";
 import { join, resolve } from "node:path";
+import { APARTE, aparte } from "./perfil-aparte.mjs";
 
 const FOTOS = resolve(process.argv[2] ?? ".");
 const EXE = process.argv[3] ?? join(process.env.CARGO_TARGET_DIR ?? "C:\\ct", "debug", "adeorq.exe");
@@ -43,20 +44,18 @@ const dice = (bien, texto) => {
 };
 
 function abrirApp() {
-  const hijo = spawn(EXE, [], {
-    detached: true,
-    stdio: "ignore",
-    env: {
-      ...process.env,
-      LOCALAPPDATA: join(BASE, "datos"),
-      USERPROFILE: join(BASE, "casa"),
-      WEBVIEW2_USER_DATA_FOLDER: join(BASE, "interfaz"),
-      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${PUERTO} --remote-allow-origins=* --disable-features=CalculateNativeWinOcclusion`,
-      ADEORQ_MCP_PUERTO: String(PUERTO + 1),
-      // Pestañas nativas con la carpeta forzada: solo en laboratorio (`modo_nativo`).
-      ADEORQ_NAVEGADOR_LABORATORIO: "1",
-    },
-  });
+  const env = {
+    ...process.env,
+    LOCALAPPDATA: join(BASE, "datos"),
+    USERPROFILE: join(BASE, "casa"),
+    WEBVIEW2_USER_DATA_FOLDER: join(BASE, "interfaz"),
+    WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${PUERTO} --remote-allow-origins=* --disable-features=CalculateNativeWinOcclusion`,
+    ADEORQ_MCP_PUERTO: String(PUERTO + 1),
+    // Pestañas nativas con la carpeta forzada: solo en laboratorio (`modo_nativo`).
+    ADEORQ_NAVEGADOR_LABORATORIO: "1",
+  };
+  // Con `ADEORQ_PERFIL_APARTE=1`, cada uno en su perfil, como en la app publicada.
+  const hijo = spawn(EXE, [], { detached: true, stdio: "ignore", env: APARTE ? aparte(env, EXE) : env });
   hijo.unref();
   return hijo.pid;
 }
@@ -247,6 +246,9 @@ try {
   // un 429) en vez de los resultados: vale igual, lo que se mide es adónde fue.
   const buscada = await hasta(() => v.js(`(() => { const d = document.querySelector(".nav-url input").value; return /google\\.[a-z.]+\\/(search\\?.*q=casa|sorry\\/.*q%3Dcasa)/.test(d) ? d : null; })()`), 20_000, 400);
   dice(Boolean(buscada), `escribir «casa» la busca en Google («${buscada}»)`);
+  // Y el foco pasa a la página, como en cualquier navegador: si se queda en la interfaz, Ctrl+W
+  // no cierra nada (Munir, 2026-10-18, con vídeo).
+  dice(Boolean(await hasta(() => v.js(`!document.hasFocus()`), 3000, 100)), "al pulsar Intro el foco se va a la página");
   await dormir(1500);
   dice(await v.js(`!document.querySelector(".nav-aviso")`), "y no sale «no ha podido cargar» encima de lo que Google contesta");
   dice(foto(pid, join(FOTOS, "4b-busqueda.png")), `foto: ${join(FOTOS, "4b-busqueda.png")}`);
@@ -255,17 +257,51 @@ try {
   const errores = createServer((req, res) => {
     res.statusCode = 404;
     res.setHeader("content-type", "text/html; charset=utf-8");
-    res.end("<!doctype html><title>no está</title><h1>404, pero con su página</h1>");
+    // `/lenta` empieza enseguida y acaba al rato, para que el «cargando» llegue a pintarse (Tauri
+    // lo da al llegar los primeros bytes, no al pedir la página).
+    res.write("<!doctype html><title>no está</title>");
+    setTimeout(() => res.end("<h1>404, pero con su página</h1>"), req.url === "/lenta" ? 900 : 0);
   });
   await new Promise((ok) => errores.listen(0, "127.0.0.1", ok));
   await v.js(`window.__TAURI_INTERNALS__.invoke("nav_ir", { id: 2, url: "http://127.0.0.1:${errores.address().port}/nada" })`);
   await hasta(() => v.js(`document.querySelector('.nav-pest[data-on="true"] .nav-pest-nom')?.textContent === "no está"`), 8000, 200);
   await dormir(1200);
   dice(await v.js(`!document.querySelector(".nav-aviso")`), "un 404 con su página no saca el aviso de que no cargó");
+  // Al terminar de cargar, el marco no vuelve a entrar. La entrada (`nav-entra`) se cambiaba por
+  // la de respirar mientras cargaba y al volver arrancaba de cero: el panel entero se deslizaba y
+  // fundía en cada página, y una ✕ pulsada en ese momento se escapaba (4 de 10, medido el 2026-10-18).
+  const reentra = await v.js(`new Promise((ok) => {
+    const nav = document.querySelector(".nav");
+    let vio = false;
+    const t0 = performance.now();
+    const mirar = () => {
+      const c = nav.hasAttribute("data-cargando");
+      if (c) vio = true;
+      if (vio && !c) return ok(nav.getAnimations().filter((a) => a.animationName === "nav-entra" && a.playState === "running").length);
+      if (performance.now() - t0 > 8000) return ok(-1);
+      requestAnimationFrame(mirar);
+    };
+    window.__TAURI_INTERNALS__.invoke("nav_ir", { id: 2, url: "http://127.0.0.1:${errores.address().port}/lenta" });
+    mirar();
+  })`);
+  dice(reentra === 0, `al terminar de cargar, el marco no vuelve a entrar deslizándose (${reentra === -1 ? "no se vio cargar" : `${reentra} entradas en marcha`})`);
   errores.close();
   await v.js(`window.__TAURI_INTERNALS__.invoke("nav_ir", { id: 2, url: "http://no-existe.invalid/" })`);
   const aviso = await hasta(() => v.js(`document.querySelector(".nav-aviso")?.textContent ?? null`), 10_000, 200);
   dice(/no contesta/.test(aviso ?? ""), `una web que no existe sí lo saca («${aviso}»)`);
+  // Ctrl+T y Ctrl+W con el foco en la barra: las atiende el marco (con el foco en la página las
+  // devuelve Rust, y esas no se pueden fingir desde aquí: miran el teclado de verdad).
+  const ctrl = async (letra) => {
+    for (const type of ["keyDown", "keyUp"]) {
+      await v.enviar("Input.dispatchKeyEvent", { type, key: letra, code: `Key${letra.toUpperCase()}`, windowsVirtualKeyCode: letra.toUpperCase().charCodeAt(0), modifiers: 2 });
+    }
+  };
+  await v.js(`document.querySelector(".nav-url input").focus(), true`);
+  const conCtrlT = await (async () => { const antes = await cuantas(); await ctrl("t"); return (await hasta(async () => (await cuantas()) === antes + 1, 3000, 100)) ? antes + 1 : await cuantas(); })();
+  dice(conCtrlT === 3, `Ctrl+T con el foco en la barra abre una pestaña (${conCtrlT} pestañas)`);
+  await ctrl("w");
+  dice(Boolean(await hasta(async () => (await cuantas()) === 2, 3000, 100)), `y Ctrl+W la cierra (${await cuantas()} pestañas)`);
+  await dormir(400);
   c = await centro('.nav-pest[data-on="true"] .nav-pest-x');
   await clic(c.x, c.y);
   dice(Boolean(await hasta(async () => (await cuantas()) === 1 && (await v.js(`!document.querySelector(".nav-vacio")`)), 3000, 100)), "su ✕ la cierra y vuelve a la de github");

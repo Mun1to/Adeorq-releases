@@ -34,9 +34,14 @@
   display: none;
 }
 
-/* Mientras carga, el marco respira: un segundo y medio por vuelta. */
+/* Mientras carga, el marco respira: un segundo y medio por vuelta. La entrada
+   sigue en la lista a propósito: si se quita, al acabar de cargar vuelve y el
+   navegador la arranca de cero, y el panel entero se deslizaba y fundía en cada
+   página (y la ✕ se escapaba del clic, medido el 2026-10-18). */
 .nav[data-cargando] {
-  animation: nav-respira 1.6s ease-in-out infinite;
+  animation:
+    nav-entra var(--t-lenta) cubic-bezier(0.2, 0.8, 0.2, 1),
+    nav-respira 1.6s ease-in-out infinite;
 }
 
 @keyframes nav-entra {

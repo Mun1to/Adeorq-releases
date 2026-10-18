@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { WEB_EVENTO, type WebAvisada } from "./TerminalPane";
+import { useEffect, useRef, useState } from "react";
+import { WEB_EVENTO, type WebAvisada } from "../lib/puertos";
 import { puertoEscucha } from "../lib/navegador";
 import { useT } from "../lib/i18n";
 
@@ -38,6 +38,11 @@ import { useT } from "../lib/i18n";
 /** Lo que dura la pregunta en pantalla si no la contestas. */
 export const PREGUNTA_MS = 20_000;
 
+/** Lo que se espera para volver a mirar un puerto que no contestaba, si la
+    terminal lo sigue nombrando: la dirección suele salir antes que el servidor
+    (el comando escrito, o un agente que avisa de que lo va a arrancar). */
+export const OTRA_VEZ_MS = 1000;
+
 interface Props {
   /** Si está apagado, no se escucha nada: ni el evento, ni el puerto. */
   activo: boolean;
@@ -61,6 +66,10 @@ function corta(url: string): string {
 export default function WebAuto({ activo, onAbrir, comprobar }: Props) {
   const { t } = useT();
   const [pregunta, setPregunta] = useState<string | null>(null);
+  /* Los puertos por los que ya se preguntó: una vez por puerto, contestes lo que
+     contestes. Un servidor de desarrollo repite su dirección al recargar y un
+     agente la nombra en cada respuesta, y la terminal avisa de todas. */
+  const preguntados = useRef(new Set<number>());
 
   useEffect(() => {
     if (!activo) {
@@ -69,23 +78,55 @@ export default function WebAuto({ activo, onAbrir, comprobar }: Props) {
     }
     const preguntar = comprobar ?? puertoEscucha;
     let vivo = true;
-    const alAnunciar = (e: Event) => {
-      const d = (e as CustomEvent<WebAvisada>).detail;
-      if (!d?.puerto || !d.url) return;
-      void preguntar(d.puerto)
+    /* Lo que se está mirando de cada puerto que aún no contestó: si hay una
+       pregunta al sistema en vuelo, hasta cuándo no se vuelve a mirar, y el
+       reloj de la siguiente si la terminal lo volvió a nombrar entretanto. */
+    const mirando = new Map<number, { url: string; enVuelo: boolean; hasta: number; reloj?: number }>();
+    const mirar = (puerto: number) => {
+      const m = mirando.get(puerto);
+      if (!m || !vivo) return;
+      m.enVuelo = true;
+      void preguntar(puerto)
+        .catch(() => false)
         .then((responde) => {
+          m.enVuelo = false;
           // `vivo` y no una comprobación suelta: la pregunta tarda hasta un
           // cuarto de segundo, y en ese hueco puedes haber apagado el ajuste o
           // cerrado la vista. Preguntar después de eso sería desobedecer con
           // retraso. Si llegan dos, se queda la última: es la que acabas de ver
           // aparecer en la terminal.
-          if (vivo && responde) setPregunta(d.url);
-        })
-        .catch(() => {});
+          if (!vivo) return;
+          if (responde) {
+            mirando.delete(puerto);
+            if (m.reloj) window.clearTimeout(m.reloj);
+            preguntados.current.add(puerto);
+            setPregunta(m.url);
+          } else {
+            m.hasta = Date.now() + OTRA_VEZ_MS;
+          }
+        });
+    };
+    const alAnunciar = (e: Event) => {
+      const d = (e as CustomEvent<WebAvisada>).detail;
+      if (!d?.puerto || !d.url || preguntados.current.has(d.puerto)) return;
+      const m = mirando.get(d.puerto);
+      if (!m) {
+        mirando.set(d.puerto, { url: d.url, enVuelo: false, hasta: 0 });
+        mirar(d.puerto);
+        return;
+      }
+      m.url = d.url;
+      // Ya se está mirando o acaba de no contestar: otra vez al acabar la espera.
+      if (m.reloj) return;
+      m.reloj = window.setTimeout(() => {
+        m.reloj = undefined;
+        if (!m.enVuelo) mirar(d.puerto);
+      }, Math.max(0, m.hasta - Date.now(), m.enVuelo ? OTRA_VEZ_MS : 0));
     };
     window.addEventListener(WEB_EVENTO, alAnunciar);
     return () => {
       vivo = false;
+      for (const m of mirando.values()) if (m.reloj) window.clearTimeout(m.reloj);
       window.removeEventListener(WEB_EVENTO, alAnunciar);
     };
   }, [activo, comprobar]);

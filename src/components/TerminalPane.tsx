@@ -38,7 +38,7 @@ import { useT } from "../lib/i18n";
 import { useMenu } from "./Overlays";
 import BuscarEnTerminal from "./BuscarEnTerminal";
 import { RedactStream, type Hit } from "../lib/redact";
-import { cola, localesEn } from "../lib/puertos";
+import { cola, localesEn, WEB_EVENTO, type WebAvisada } from "../lib/puertos";
 import {
   CheckIcon,
   CloseIcon,
@@ -263,29 +263,6 @@ export const FONDO_EVENTO = "adeorq:fondo";
  * tiene dentro va a entender esa ruta o no.
  */
 export const SOLTADO_EVENTO = "adeorq:soltado";
-
-/**
- * Una terminal ha anunciado un servidor local.
- *
- * Lo dispara el panel porque es el único que ve pasar los bytes del PTY, y lo
- * recoge `App.tsx`, que es quien sabe abrir la vista de la web. Viaja por un
- * evento y no por una prop porque el panel no tiene por qué conocer al
- * navegador: aquí solo se dice «alguien ha levantado algo en este puerto».
- *
- * Encontrar la dirección NO basta para abrir nada, y quien escucha lo sabe:
- * antes pregunta si ese puerto contesta de verdad (`puertoEscucha`). Un agente
- * escribe «mira en http://localhost:3000» sin que haya nada ahí, y abrir una
- * pestaña cada vez sería un castigo.
- */
-export const WEB_EVENTO = "adeorq:web";
-
-/** Lo que viaja en ese evento. */
-export interface WebAvisada {
-  url: string;
-  puerto: number;
-  /** Qué panel lo dijo, para poder contarlo si hace falta. */
-  paneId: number;
-}
 
 // Las preguntas que se leen de la pantalla (los menús del CLI convertidos en
 // botones) y el estado de un panel con su porqué: `lib/reglasPantalla.ts`.
@@ -674,10 +651,6 @@ export default function TerminalPane({
      dentro: la dirección se partiría entre dos entregas del PTY y no la vería
      nadie. Ver `lib/puertos.ts`. */
   const colaWebRef = useRef("");
-  /* Los puertos ya avisados de ESTA terminal. Un servidor de desarrollo repite
-     su dirección cada vez que recarga, y sin esto la vista se reabriría sola
-     cada pocos segundos. */
-  const puertosVistosRef = useRef<Set<number>>(new Set());
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   /** El buscador (Ctrl+F). Se carga siempre y no bajo demanda: el addon solo
@@ -2006,12 +1979,12 @@ export default function TerminalPane({
       tailRef.current = text.slice(-TAIL);
 
       // ¿Ha anunciado alguien un servidor local? Se mira sobre la cola larga,
-      // no sobre `p.data` a secas, porque la dirección puede venir partida.
+      // no sobre `p.data` a secas, porque la dirección puede venir partida. Se
+      // avisa cada vez: `WebAuto` pregunta una sola vez por puerto, y solo
+      // cuando contesta (ver `WEB_EVENTO`).
       const conCola = colaWebRef.current + p.data;
       colaWebRef.current = cola(conCola);
       for (const local of localesEn(conCola)) {
-        if (puertosVistosRef.current.has(local.puerto)) continue;
-        puertosVistosRef.current.add(local.puerto);
         window.dispatchEvent(
           new CustomEvent<WebAvisada>(WEB_EVENTO, {
             detail: { url: local.url, puerto: local.puerto, paneId: id },

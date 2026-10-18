@@ -25,6 +25,7 @@ import { createServer } from "node:http";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
+import { APARTE, aparte } from "./perfil-aparte.mjs";
 
 const EXE = process.argv[2] ?? join(process.env.CARGO_TARGET_DIR ?? "C:\\ct", "debug", "adeorq.exe");
 const PUERTO = 9700 + (process.pid % 100);
@@ -117,7 +118,9 @@ function abrirApp(laboratorio = true) {
   const hijo = spawn(EXE, [], {
     detached: true,
     stdio: "ignore",
-    env,
+    // Con `ADEORQ_PERFIL_APARTE=1`, cada uno en su perfil, como en la app publicada; el caso del
+    // equipo de empresa sigue con su carpeta forzada.
+    env: laboratorio && APARTE ? aparte(env, EXE) : env,
   });
   hijo.unref();
   return hijo.pid;

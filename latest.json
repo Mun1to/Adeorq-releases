@@ -1,11 +1,11 @@
 {
-  "version": "0.9.224",
-  "notes": "El navegador busca en Google lo que escribes y no avisa en falso de páginas que sí cargaron; comparte tu uso total; diez proyectos en el Perfil.",
-  "pub_date": "2026-10-18T17:56:41Z",
+  "version": "0.9.225",
+  "notes": "Ctrl+W cierra la pestaña del navegador, el marco ya no parpadea al cargar y la web que levanta una terminal se ofrece siempre.",
+  "pub_date": "2026-10-18T20:30:14Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZtTDdkUzBEcFErd2R4ZXR0WDBKRWwwTlJOMnlRR2FqYjE5NnRUM0dyM3huM0N2UVcraHBXSU5vQUFWckFKS0dLVnJ4WThNYzRrNjFOQ1IyYzBiWkFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzQ2MTg5CWZpbGU6QWRlb3JxXzAuOS4yMjRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjQKWXJUMzMvWjJrNERHY2lFWklnT3JWTjVsbDZQb1BTU1NlNTZGd3Fpb2xRQVBncEczcm5IbmdZc2lFUHNEcmhPb01xTlgyV01LOU5IcGlnN0tlSnpKQVE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.224/Adeorq_0.9.224_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3h1dTJodjZLeEk4aHI0dDdpTjA1Z3RJTk9rU1ZXaEsxQjNsYUczOFNmWndWZ2FrNG55QmpZaEhJeTBEM1J2NTdwVFZpejBRRGZWcmF3a29GOEJEM2d3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzU1NDEwCWZpbGU6QWRlb3JxXzAuOS4yMjVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjUKaVE3a2Y5L2l2cS9mZEg0KytreDMwK0pBVU10RE5GSitvV1IvV3NXTmdLejA2Q0JLcEl0TjRTYm4zRko2WUNQQ2VTeXVSQ3pvcm5pTUpqbnYrVzlUQVE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.225/Adeorq_0.9.225_x64-setup.exe"
     }
   }
 }

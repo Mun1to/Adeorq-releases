@@ -73,6 +73,14 @@ try {
 
   for (const f of elegidos) {
     const nombre = f.replace(/\.tsx?$/, "");
+    /* Aquí solo se mira CÓMO SALE cada banco, así que uno que cuenta sus fallos
+       y acaba sin `process.exit` ni `exitCode` está verde siempre. El 2026-10-18
+       eran 25, y dos estaban rojos sin que lo viera nadie (`puertos`, `supremo`). */
+    if (!/process\.exit|exitCode|throw new Error/.test(readFileSync(join(RAIZ, "scripts", f), "utf8"))) {
+      fallos++;
+      console.log(`FALLA ${nombre}  (no puede salir en rojo: le falta el process.exit o el exitCode del final)`);
+      continue;
+    }
     // Con algún import de `../src` la raíz común es el repo y sale en
     // `<tmp>/scripts/`; un banco suelto que no importa nada sale en `<tmp>/`.
     const js = [join(tmp, "scripts", `${nombre}.js`), join(tmp, `${nombre}.js`)].find(existsSync);

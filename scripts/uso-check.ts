@@ -120,3 +120,5 @@ ok("horas", hace(t0 - 3 * 3_600_000, t0), { clave: "hace {n} h", valor: "3" });
 ok("días", hace(t0 - 50 * 3_600_000, t0), { clave: "hace {n} d", valor: "2" });
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
+// Sin esto `pnpm bancos` lo daba por bueno con fallos dentro: solo mira cómo sale (2026-10-18).
+(globalThis as unknown as { process: { exitCode?: number } }).process.exitCode = fallos ? 1 : 0;

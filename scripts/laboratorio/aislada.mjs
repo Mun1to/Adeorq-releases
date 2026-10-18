@@ -37,10 +37,10 @@ export async function hasta(fn, ms, cada = 300) {
 }
 
 /** La ventana de pruebas al fondo y sin foco, mirando antes que es la MÍA. */
-function alFondo(pid) {
+function alFondo(pid, exe) {
   const guion = `
     $p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue
-    if (-not $p -or $p.Path -ne '${EXE.replace(/'/g, "''")}' -or $p.MainWindowHandle -eq 0) { exit 1 }
+    if (-not $p -or $p.Path -ne '${exe.replace(/'/g, "''")}' -or $p.MainWindowHandle -eq 0) { exit 1 }
     Add-Type -Namespace W -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int cx, int cy, uint f);'
     [void][W.U]::SetWindowPos($p.MainWindowHandle, [IntPtr]1, 0, 0, 0, 0, 0x0013)
   `;
@@ -106,14 +106,23 @@ async function ventana(depurar) {
  * atendiendo. Devuelve la ventana (`v`), su carpeta de proyecto de ejemplo
  * (`demo`), cómo presentarse como un agente (`puente`), cómo fotografiar un
  * trozo (`foto`) y `cerrar`, que hay que llamar siempre (en un `finally`).
+ *
+ * Opcionales: `exe`, otro binario (una copia fuera de C:\ct, para que otra
+ * sesión pueda recompilar mientras tanto); `raiz`, la carpeta de proyectos
+ * que lista (solo la lista); `sembrar(datos)`, lo que haya que dejar en su
+ * carpeta de datos antes de que arranque; `guarda`, más código que se
+ * ejecuta en la página detrás de `GUARDA` (puede envolver otra vez `fetch`); y
+ * `entorno`, variables de más para la app (`ADEORQ_NAVEGADOR_LABORATORIO`).
  */
-export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir() }) {
+export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(), exe = EXE, raiz, sembrar, guarda = "", entorno = {} }) {
   const base = join(tmpdir(), `adeorq-${nombre}-${process.pid}`);
   const demo = join(base, "proyectos", "demo");
+  const proyectos = raiz ?? join(base, "proyectos");
   mkdirSync(join(base, "datos", "Adeorq"), { recursive: true });
   mkdirSync(join(base, "casa", "AppData", "Local"), { recursive: true });
   mkdirSync(demo, { recursive: true });
-  writeFileSync(join(base, "datos", "Adeorq", "raiz.txt"), join(base, "proyectos"));
+  writeFileSync(join(base, "datos", "Adeorq", "raiz.txt"), proyectos);
+  sembrar?.(join(base, "datos", "Adeorq"));
   const env = {
     ...process.env,
     LOCALAPPDATA: join(base, "datos"),
@@ -121,11 +130,12 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     WEBVIEW2_USER_DATA_FOLDER: join(base, "navegador"),
     WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${depurar} --remote-allow-origins=* --disable-features=CalculateNativeWinOcclusion`,
     ADEORQ_MCP_PUERTO: String(puertoMcp),
+    ...entorno,
   };
   // Lanzado desde un panel de Adeorq, el entorno trae el número de ESE panel.
   delete env.ADEORQ_PANE_ID;
 
-  const hijo = spawn(EXE, [], { cwd: demo, detached: true, stdio: "ignore", env });
+  const hijo = spawn(exe, [], { cwd: demo, detached: true, stdio: "ignore", env });
   hijo.unref();
   const app = hijo.pid;
   let v;
@@ -136,7 +146,7 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
   const puente = (yo) => {
     const suyo = { ...env };
     if (yo != null) suyo.ADEORQ_PANE_ID = String(yo);
-    const p = spawn(EXE, ["--mcp"], { env: suyo });
+    const p = spawn(exe, ["--mcp"], { env: suyo });
     puentes.push(p);
     let buf = "";
     const pend = new Map();
@@ -186,13 +196,13 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
   };
 
   try {
-    if (!(await hasta(() => alFondo(app), 12_000, 200))) throw new Error("la ventana de pruebas no salió (o no es la mía)");
+    if (!(await hasta(() => alFondo(app, exe), 12_000, 200))) throw new Error("la ventana de pruebas no salió (o no es la mía)");
     v = await ventana(depurar);
     await v.enviar("Page.enable");
-    await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: GUARDA });
+    await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: guarda ? `${GUARDA};\n${guarda}` : GUARDA });
     // Sin la bienvenida: la app entera montada, que es donde vive el oyente del MCP.
     await v.js(`localStorage.setItem("adeorq-lang", "es"); localStorage.setItem("adeorq-perfil", ${JSON.stringify(
-      JSON.stringify({ nombre: "Prueba", raiz: join(base, "proyectos"), sinRaiz: false, extras: [], leerSesiones: false, clis: [], hecho: true, tour: true }),
+      JSON.stringify({ nombre: "Prueba", raiz: proyectos, sinRaiz: false, extras: [], leerSesiones: false, clis: [], hecho: true, tour: true }),
     )}); "ok"`);
     await v.enviar("Page.reload");
     await dormir(1500);

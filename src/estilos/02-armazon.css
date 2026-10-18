@@ -76,9 +76,9 @@
    acordaba. `:where()` no pesa nada, así que esto queda en una sola clase y
    cualquier regla posterior con su z-index gana sola. Medido en las nueve
    vistas al cambiarlo: la barra y las vistas siguen en 1, y todos los
-   flotantes declaran 60 o más (ninguno se hunde por debajo). Las reglas
-   `.app > .cuota-card` y `.app > .obj-flota` de otros tramos son de antes y
-   ya no hacen falta. */
+   flotantes declaran 60 o más (ninguno se hunde por debajo). La regla
+   `.app > .obj-flota` de otro tramo es de antes y ya no hace falta (la tarjeta
+   de cuota se quitó entera el 2026-10-19). */
 .app > :where(*:not(.fondo)) {
   z-index: 1;
 }

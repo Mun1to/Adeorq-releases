@@ -84,11 +84,12 @@ function fresco<T>(s: Sello<T> | null | undefined, vida: number): s is Sello<T> 
 }
 
 /**
- * Lo que el aviso de cuota ya sabe, regalado al router.
+ * Lo que sabe el sondeo de cuota, para el router.
  *
- * `AvisoCuota` sondea las cuentas de Claude cada veinte minutos porque tiene
- * que hacerlo de todas formas. Sin esta línea, el router repetiría exactamente
- * el mismo trabajo un minuto después para enterarse de lo mismo.
+ * `AvisoCuota` sondea las cuentas de Claude cada veinte minutos mientras hay
+ * agentes trabajando; desde el 2026-10-19 ya no avisa de nada y existe solo
+ * para esto. Así el router tiene el número a mano en vez de preguntarlo él al
+ * decidir, que es un proceso `claude` de cinco segundos por cuenta.
  */
 export function anotarCuota(cuentaId: string, gastado: number): void {
   cuotas.set(cuentaId, { valor: gastado, cuando: Date.now() });

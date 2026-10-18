@@ -2640,17 +2640,7 @@ function App() {
 
       <AvisoCuota
         cuentas={cuentasConCuota}
-        paneles={panes
-          .filter((p) => kindDeComando(p.command?.join(" ") ?? "") === "claude")
-          .map((p) => ({
-            cwd: p.cwd,
-            account: p.account,
-            name: p.name,
-            // Su transcript, que es de donde sale el acta del relevo. Sin él la
-            // terminal nueva nacería igual, pero sin saber dónde ibas.
-            sessionId: sessionIdOf(p.command),
-          }))}
-        onAbrir={relevar}
+        hayAgentes={panes.some((p) => kindDeComando(p.command?.join(" ") ?? "") === "claude")}
       />
       {/* El vigía de las cuadrillas. No pinta nada: mira lo que ya se sabe de
           cada puesto y el BUZON.md que ellos mismos escriben, y si algo pide tu

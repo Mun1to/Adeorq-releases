@@ -1126,8 +1126,6 @@ const EN: Record<string, string> = {
     "Opens a new terminal born on that brain",
   "Seguir en otra cuenta": "Continue on another account",
   "con acta": "with a handover",
-  "Abre una terminal con esa cuenta y le deja escrito dónde ibas, para que no empieces de cero":
-    "Opens a terminal on that account and types where you were, so you do not start over",
   "Abre {n} agentes": "Opens {n} agents",
   "Peso relativo, tomando haiku como 1": "Relative weight, with haiku as 1",
   "te queda un {p} % de semana": "you have {p}% of the week left",
@@ -2261,15 +2259,6 @@ const EN: Record<string, string> = {
     "Drag to move the photo. The wheel zooms in and out.",
   "Así se va a ver. Arrastra la foto y usa la rueda para acercarla.":
     "This is how it will look. Drag the photo and use the wheel to zoom in.",
-
-  // El aviso de cuota.
-  "«{c}» va por el {p}% de su límite.": "“{c}” is at {p}% of its limit.",
-  "Se renueva {r}.": "Renews {r}.",
-  "Se renueva {r}. Ábrelo para seguir en otra cuenta.":
-    "Renews {r}. Open it to carry on with another account.",
-  "Seguir en": "Carry on with",
-  "No tienes otra cuenta con margen. Se añaden en la pestaña Cuentas.":
-    "No other account has room to spare. You add them in the Accounts tab.",
 
   // La bienvenida de la primera vez.
   "Bienvenido a Adeorq": "Welcome to Adeorq",

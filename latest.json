@@ -1,11 +1,11 @@
 {
-  "version": "0.9.226",
-  "notes": "Eliges el buscador de la barra del navegador en Ajustes, y tu Perfil solo cuenta proyectos de verdad.",
-  "pub_date": "2026-10-18T21:50:13Z",
+  "version": "0.9.227",
+  "notes": "Sin avisos de uso abajo a la izquierda: tu uso, en la pestaña de Uso.",
+  "pub_date": "2026-10-18T22:21:25Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy8rYTJ6MVB6bjAvNUE4WWtxVFRDNkFxZm5QdzRxSEZrKzZ2d0wzWWVDUFFVeEZOY0pOQ2FSdEVVSE10NW03RXEweUYyMmlFMmZzNklNUVk3bWZ3NXdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzYwMTkzCWZpbGU6QWRlb3JxXzAuOS4yMjZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjYKL0Q0cW9nRkV4RjlDRklHa0JGelA4S3lDRlZZQlF0Ump1aHNQOC9hVHpOL29rRUVZTTFGcTl2YlJBNUhaaThEN2VQb3RlUFN0QXNtQldFcWVjQnRnQnc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.226/Adeorq_0.9.226_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzRaOWJJRHBjR3JEWGNaSUd3Vm1nUFNqYmlGRzNYYVUrcUtGbUpkeC8vbTA0V3ExVUx5dnZPc2doV3N3M0JzUlV2aVlWQ2lqbFFCZDZqQ2dWWDUreXdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzYyMDcxCWZpbGU6QWRlb3JxXzAuOS4yMjdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjcKWXMrZFdOQUZQVzArU3BhdUdPMXJIcHhJRHRnTUpRQitta1hiR1ZuSVRDZ0NqbTRFNXdzcGM2QmlETWpPWkZObGp3U3dTRFVqV2RzbExUQkYrcXBXQ1E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.227/Adeorq_0.9.227_x64-setup.exe"
     }
   }
 }

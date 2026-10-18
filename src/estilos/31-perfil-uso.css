@@ -3,17 +3,18 @@
    por proveedor, modelo y proyecto, el año en casillas y el mes.
    ========================================================================== */
 
+/* Sin borde ni filo de cristal, como los resúmenes de arriba: se separa del
+   fondo solo por su tono (Munir, 2026-10-18, «remove thin borders»). */
 .pu {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 26px;
   min-width: 0;
   padding: 18px 20px;
   background: var(--panel);
   backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--r-caja);
-  box-shadow: var(--glass-edge);
   transition: opacity var(--t-media);
 }
 
@@ -176,21 +177,17 @@
   text-decoration-color: var(--accent);
 }
 
+/* Una fila: el nombre, la barra, la cifra y la parte. La barra se para a los
+   420 px y la cifra va justo detrás: estirada a todo lo ancho, el ojo cruzaba
+   1.400 px para juntar cada nombre con su cifra. Y sin el punto de color que
+   iba delante (Munir, 2026-10-18: «quita el cuadradito de la izquierda»). */
 .pu-parte {
   display: grid;
-  grid-template-columns: 10px minmax(0, 220px) minmax(0, 1fr) 72px 48px;
+  grid-template-columns: minmax(0, 220px) minmax(0, 420px) 72px 48px;
   align-items: center;
   gap: 12px;
   padding: 5px 0;
   font-size: 13.5px;
-}
-
-.pu-parte::before {
-  content: "";
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  background: var(--c);
 }
 
 .pu-parte-nombre {
@@ -207,12 +204,14 @@
   overflow: hidden;
 }
 
+/* Todas las barras del mismo color, el del tema: una de cada color (rosa,
+   verde, violeta) era «a lot of colors» (Munir, 2026-10-18: «solo un color»). */
 .pu-parte i::after {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
   width: var(--w);
-  background: var(--c);
+  background: var(--accent);
   border-radius: inherit;
 }
 
@@ -276,7 +275,7 @@
   padding: 0;
   border: 0;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.035);
   cursor: pointer;
 }
 
@@ -325,13 +324,16 @@
 
 /* Los cuatro tonos, de menos a más. Son los cuartiles de los días con uso del
    año (`cortes`, en `lib/usoDelPerfil.ts`), los mismos en los dos calendarios. */
-.pu-anio button[data-n="1"] { background: color-mix(in srgb, var(--accent) 30%, transparent); }
-.pu-anio button[data-n="2"] { background: color-mix(in srgb, var(--accent) 50%, transparent); }
-.pu-anio button[data-n="3"] { background: color-mix(in srgb, var(--accent) 75%, transparent); }
-.pu-anio button[data-n="4"] { background: color-mix(in srgb, var(--accent) 70%, #fff); }
-.pu-mes button[data-n="1"] { background: color-mix(in srgb, var(--accent) 22%, transparent); }
-.pu-mes button[data-n="2"] { background: color-mix(in srgb, var(--accent) 40%, transparent); }
-.pu-mes button[data-n="3"] { background: color-mix(in srgb, var(--accent) 62%, transparent); }
+/* Los mismos cuatro en los dos calendarios, y el más fuerte es el acento tal
+   cual: mezclado con blanco salía casi blanco y gritaba (Munir, 2026-10-18,
+   «solo se calma el color»). */
+.pu-anio button[data-n="1"],
+.pu-mes button[data-n="1"] { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+.pu-anio button[data-n="2"],
+.pu-mes button[data-n="2"] { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.pu-anio button[data-n="3"],
+.pu-mes button[data-n="3"] { background: color-mix(in srgb, var(--accent) 70%, transparent); }
+.pu-anio button[data-n="4"] { background: var(--accent); }
 .pu-mes button[data-n="4"] { background: var(--accent); color: var(--on-accent); }
 
 .pu-anio button[data-hoy],
@@ -370,7 +372,7 @@
   }
 
   .pu-parte {
-    grid-template-columns: 10px minmax(0, 1fr) 72px 48px;
+    grid-template-columns: minmax(0, 1fr) 72px 48px;
   }
 
   .pu-parte i {

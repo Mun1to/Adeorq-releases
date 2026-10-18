@@ -2,7 +2,7 @@
    Adeorq · web/scripts/censo-demo.js
    EL CENSO DE BOTONES MUDOS DE LA DEMOSTRACIÓN.
 
-   Recorre las diez vistas de `web/demo/` en español y en inglés, pulsa TODOS los
+   Recorre las once vistas de `web/demo/` en español y en inglés, pulsa TODOS los
    botones que se ven y apunta los que no hacen nada: ni cambian la ventana, ni
    mueven una hoja, ni sacan su aviso. En una demostración que dice «pruébalo
    aquí mismo», un botón mudo es peor que no ponerlo, y a ojo no se cazan: son
@@ -23,7 +23,7 @@
    ========================================================================= */
 async (page) => {
   const BASE = 'http://demo.localhost:5199/demo/';
-  const VISTAS = ['cabina', 'panel', 'chat', 'agenda', 'decisiones', 'lienzo', 'memoria', 'cuentas', 'comandos', 'ajustes'];
+  const VISTAS = ['cabina', 'panel', 'chat', 'perfil', 'agenda', 'decisiones', 'lienzo', 'memoria', 'cuentas', 'comandos', 'ajustes'];
   const errores = [];
   page.on('pageerror', (e) => errores.push(String(e.stack || e.message).slice(0, 400)));
   await page.setViewportSize({ width: 1920, height: 1080 });
@@ -40,11 +40,14 @@ async (page) => {
         const raiz = document.getElementById('root');
         const visibles = () => [...raiz.querySelectorAll('button:not([disabled])')].filter((b) => b.offsetParent !== null);
         // La ventana sin lo que se mueve solo (el orbe, y la marca de «enviado»
-        // de un comando, que se apaga con un reloj), más por dónde va cada hoja.
+        // de un comando, que se apaga con un reloj), más por dónde va cada hoja
+        // y lo escrito en cada campo (un ejemplo del Capataz rellena su caja, y
+        // eso no se ve en el HTML).
         const foto = () =>
           raiz.innerHTML.replace(/<span class="orbe"[\s\S]*?<\/span>/g, '').replace(/ data-sent="[a-z]*"/g, '') +
           '|' + document.documentElement.dataset.theme +
-          '|' + [...raiz.querySelectorAll('.set-hoja, .dec-doc, .dec-hoja, .mem-doc, .panel')].map((e) => e.scrollTop).join(',');
+          '|' + [...raiz.querySelectorAll('.set-hoja, .dec-doc, .dec-hoja, .mem-doc, .panel')].map((e) => e.scrollTop).join(',') +
+          '|' + [...raiz.querySelectorAll('textarea, input')].map((e) => e.value).join('\u0001');
         const mudos = [];
         let n = visibles().length, pulsados = 0;
         for (let i = 0; i < n && i < 600; i++) {

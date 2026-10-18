@@ -119,7 +119,7 @@ const BANDEJA: &str = "adeorq-fondo";
 #[cfg(windows)]
 fn a_fondo(app: &AppHandle, abrir: String, salir: String, pista: String) -> Result<(), String> {
     let ventana = app
-        .get_webview_window("main")
+        .get_window("main")
         .ok_or("no encuentro la ventana principal")?;
     // El icono se crea en el hilo de la ventana: en Windows sus clics llegan
     // por la cola de mensajes del hilo que lo creó, y este comando corre en
@@ -183,7 +183,7 @@ fn poner_bandeja(app: &AppHandle, abrir: &str, salir: &str, pista: &str) -> Resu
 fn a_fondo(app: &AppHandle, _abrir: String, _salir: String, pista: String) -> Result<(), String> {
     use tauri_plugin_notification::NotificationExt;
     let ventana = app
-        .get_webview_window("main")
+        .get_window("main")
         .ok_or("no encuentro la ventana principal")?;
     // El aviso primero: si no sale, la ventana esconde igual, y abrir Adeorq la trae.
     if let Err(e) = app.notification().builder().title("Adeorq").body(&pista).show() {
@@ -202,7 +202,10 @@ fn a_fondo(_app: &AppHandle, _abrir: String, _salir: String, _pista: String) -> 
 /// Trae la ventana y recoge la bandeja. Lo llaman el icono, su menú, el
 /// comando y abrir Adeorq otra vez (`single_instance`, en `lib.rs`).
 pub fn volver(app: &AppHandle) {
-    if let Some(v) = app.get_webview_window("main") {
+    // La VENTANA, no el webview-ventana: con el navegador abierto `main` tiene
+    // más de un webview y `get_webview_window` deja de encontrarla (tauri 2.12,
+    // `is_webview_window`). Lo mismo en los dos `a_fondo` de arriba.
+    if let Some(v) = app.get_window("main") {
         let _ = v.unminimize();
         let _ = v.show();
         let _ = v.set_focus();

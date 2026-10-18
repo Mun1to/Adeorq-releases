@@ -4,8 +4,8 @@
 #   (nada) : mata la app con todo su arbol, como un cierre de verdad.
 #   -Motor : ademas, cierra los procesos de terminales (--terminales) de pruebas.
 param([switch]$Golpe, [switch]$Motor)
-$exe = "C:\ct\debug\adeorq.exe"
-$id = [int](Get-Content "P:\pid.txt" -ErrorAction SilentlyContinue)
+$exe = if ($env:ADEORQ_EXE) { $env:ADEORQ_EXE } else { "C:\ct\debug\adeorq.exe" }
+$id =[int](Get-Content "P:\pid.txt" -ErrorAction SilentlyContinue)
 $p = if ($id) { Get-Process -Id $id -ErrorAction SilentlyContinue }
 if ($p -and $p.Path -eq $exe) {
     if ($Golpe) { Stop-Process -Id $id -Force; "caida: $id" }

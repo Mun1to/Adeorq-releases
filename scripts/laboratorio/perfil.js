@@ -24,7 +24,8 @@
 async (page) => {
   const fallos = [];
   const debe = (ok, que) => { if (!ok) fallos.push(que); };
-  const URL_APP = "http://127.0.0.1:1420/";
+  // Con `URL_APP` va contra otro Vite del repo: el :1420 suele ser de otra sesión.
+  const URL_APP = globalThis.process?.env?.URL_APP ?? "http://127.0.0.1:1420/";
   await page.addInitScript(() => {
     const q = new URLSearchParams(location.search);
     if (sessionStorage.getItem("banco-perfil") !== q.get("vez")) {
@@ -93,7 +94,8 @@ async (page) => {
   debe(pasos.resumenes.length === 4, `cuatro resúmenes (${pasos.resumenes.length})`);
   debe(/^Cuentas › 2 conectadas/.test(resumen("Cuentas")) && /81 %/.test(resumen("Cuentas")), `Cuentas: las conectadas y su límite (${resumen("Cuentas")})`);
   debe(/^Agenda › 2 pendientes hoy 1 hecho Cerrar la pestaña Perfil Publicar la 0.9.219$/.test(resumen("Agenda")), `Agenda: lo de hoy (${resumen("Agenda")})`);
-  debe(/^Memoria › 412 notas Notas$/.test(resumen("Memoria")), `Memoria: tus notas (${resumen("Memoria")})`);
+  // «en Notas»: el nombre de la bóveda va con su preposición desde el 2026-10-18.
+  debe(/^Memoria › 412 notas en Notas$/.test(resumen("Memoria")), `Memoria: tus notas (${resumen("Memoria")})`);
   debe(/^Comandos › 5 skills tuyas \/fin/.test(resumen("Comandos")), `Comandos: los tuyos (${resumen("Comandos")})`);
   // La 4 (Munir, 2026-10-17): tu nombre y tus secciones en la misma fila, y lo demás debajo.
   pasos.orden4 = await page.evaluate(() => {

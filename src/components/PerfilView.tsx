@@ -9,6 +9,7 @@ import { providerOf } from "../lib/providers";
 import { useDiaDeHoy } from "../lib/goals";
 import { boveda, memoriaVaults } from "../lib/memoria";
 import { useT, type Translate } from "../lib/i18n";
+import { porcentaje } from "../lib/usoDelPerfil";
 import IconoPestana from "./IconoPestana";
 import { ProfileIcon } from "./Icons";
 import Espera from "./Espera";
@@ -23,6 +24,13 @@ import Espera from "./Espera";
 // Por eso este componente se monta también estando en una de las cuatro: ahí
 // solo pinta la vuelta, que queda en la columna de la app justo encima de la
 // pantalla de la sección.
+//
+// Menos ruido (Munir, 2026-10-18, tras enseñar el Perfil en un Discord: «it is
+// too noisy», «remove thin borders»): eligió «bajar el volumen» entre tres
+// variantes con sus datos, o sea nada cambia de sitio. Los cuatro resúmenes
+// pierden el borde (se separan del fondo solo por su tono), su cifra baja de
+// tamaño, y Cuentas dice sus límites en una línea en vez de tres filas con su
+// barra. Detalle en `docs/contexto/perfil.md`.
 
 // Las dos piezas que llevan otras sesiones a la vez que esta: la tarjeta para
 // compartir (el panel 1) y tu uso con sus calendarios («Perfil: tu uso»). Se
@@ -181,13 +189,19 @@ function Cifra({ n, que, cargando, t }: { n: number | null; que: string; cargand
 
 interface FilaCuenta {
   clave: string;
-  nombre: string;
+  /** El CLI («Claude Code») y, aparte, el nombre de la cuenta («Main»). */
+  proveedor: string;
+  cuenta: string;
   /** Lo gastado de la ventana que más aprieta; null si su cliente no lo dice. */
   pct: number | null;
 }
 
-/** Cuentas: las conectadas y cuánto llevan de su límite. */
+/** Cuentas: las conectadas y cuánto llevan de su límite, en UNA línea («Claude
+    Code 66 % · Codex 8 %»). Eran tres filas con su barra, y era de lo que más
+    ruido hacía (Munir, 2026-10-18). El nombre de la cuenta solo sale si hay
+    dos del mismo CLI, que es cuando distingue algo. */
 function ResumenCuentas({ cuentas, t }: { cuentas: Account[]; t: Translate }) {
+  const { lang } = useT();
   const [filas, setFilas] = useState<FilaCuenta[] | null>(null);
   useEffect(() => {
     let vivo = true;
@@ -196,7 +210,8 @@ function ResumenCuentas({ cuentas, t }: { cuentas: Account[]; t: Translate }) {
         const conectadas = cuentas.filter((c) => vivas.some((v) => v.cuenta.id === c.id && v.instalado && v.conectada));
         const base = conectadas.map((c) => ({
           clave: `${c.provider}|${c.dir}`,
-          nombre: `${providerOf(c.provider).label} · ${nombreDeCuenta(c.label, t)}`,
+          proveedor: providerOf(c.provider).label,
+          cuenta: nombreDeCuenta(c.label, t),
           pct: null as number | null,
         }));
         if (vivo) setFilas(base);
@@ -213,27 +228,15 @@ function ResumenCuentas({ cuentas, t }: { cuentas: Account[]; t: Translate }) {
   }, [cuentas, t]);
 
   const orden = filas ? [...filas].sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1)) : [];
+  const repetidos = new Set(orden.filter((f) => orden.some((g) => g !== f && g.proveedor === f.proveedor)).map((f) => f.proveedor));
+  const linea = orden
+    .map((f) => [f.proveedor, repetidos.has(f.proveedor) ? f.cuenta : "", f.pct === null ? "" : porcentaje(f.pct / 100, lang)].filter(Boolean).join(" "))
+    .join("  ·  ");
   return (
     <>
       <Cifra n={filas ? filas.length : null} que={filas?.length === 1 ? t("conectada") : t("conectadas")} cargando={!filas} t={t} />
       {filas && filas.length === 0 && <span className="perfil-linea">{t("Ninguna con sesión abierta")}</span>}
-      <span className="perfil-filas">
-        {orden.slice(0, 3).map((f) => (
-          <span key={f.clave} className="perfil-fila">
-            <span className="perfil-fila-nombre">{f.nombre}</span>
-            {f.pct === null ? (
-              <span className="perfil-fila-dato">{t("sin cifra")}</span>
-            ) : (
-              <>
-                <span className="perfil-barra" data-tono={f.pct >= 90 ? "mal" : f.pct >= 78 ? "alto" : "bien"}>
-                  <i style={{ width: `${Math.min(100, f.pct)}%` }} />
-                </span>
-                <span className="perfil-fila-dato">{Math.round(f.pct)} %</span>
-              </>
-            )}
-          </span>
-        ))}
-      </span>
+      {linea && <span className="perfil-linea perfil-cuentas">{linea}</span>}
     </>
   );
 }
@@ -279,7 +282,9 @@ function ResumenMemoria({ t }: { t: Translate }) {
   return (
     <>
       <Cifra n={info ? info.docs : null} que={t("notas")} cargando={!info} t={t} />
-      {info && <span className="perfil-linea">{info.nombre}</span>}
+      {/* «en proyectos»: es el nombre de la bóveda, y suelto parecía una
+          palabra sin traducir (en inglés salía «proyectos» a secas). */}
+      {info && <span className="perfil-linea">{t("en {boveda}", { boveda: info.nombre })}</span>}
     </>
   );
 }

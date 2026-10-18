@@ -39,12 +39,17 @@ import { JSDOM } from "jsdom";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FUERA = new Set(["node_modules", "dist", ".git", "src-tauri", ".playwright-mcp"]);
+// La casa de pruebas de las capturas (sin versionar) lleva un hogar de Windows
+// de mentira, con carpetas que el WebView2 de la app abierta tiene cogidas:
+// recorrerla revienta con EPERM mientras se hacen las fotos.
+const FUERA_RUTAS = new Set([join("scripts", "laboratorio", "capturas", "p")]);
 
 function svgsDe(dir) {
   const out = [];
   for (const nombre of readdirSync(dir)) {
     if (FUERA.has(nombre)) continue;
     const ruta = join(dir, nombre);
+    if (FUERA_RUTAS.has(relative(RAIZ, ruta))) continue;
     if (statSync(ruta).isDirectory()) out.push(...svgsDe(ruta));
     else if (nombre.endsWith(".svg")) out.push(ruta);
   }

@@ -41,7 +41,7 @@ if (!existsSync(resolve(DESDE, 'hojas.css'))) {
 /* Lo que no puede salir nunca en un archivo que se publica: rutas de la casa de
    quien hizo el volcado, su usuario o un correo. La casa de pruebas vive en P:,
    así que cualquiera de estos es una fuga. Si aparece, el script se para. */
-const PROHIBIDO = [/C:\\+Users/i, /\\AppData\\/i, /\bmuni(r|to)?\b/i, /athayde/i, /[\w.+-]+@[\w-]+\.[a-z]{2,}/i, /asset\.localhost/i, /ipc\.localhost/i, /localhost:1420/i];
+const PROHIBIDO = [/C:\\+Users/i, /\\AppData\\/i, /\bmuni(r|to)?\b/i, /athayde/i, /[\w.+-]+@[\w-]+\.[a-z]{2,}/i, /asset\.localhost/i, /ipc\.localhost/i, /(localhost|127\.0\.0\.1):\d{2,5}/i];
 
 /* Los temas de color de las terminales. Cada terminal trae la suya dentro (65 KB
    de reglas idénticas salvo por el número de su dueña): se queda UNA por tema y
@@ -75,7 +75,10 @@ function limpiar(raiz) {
     }
   }
   // La tarjeta de «hay una versión nueva» es de la máquina que hizo el volcado.
-  for (const e of raiz.querySelectorAll('.update-card, script')) e.remove();
+  // El navegador de la barra derecha (`section.nav`, montado y escondido hasta
+  // que se abre) es un webview nativo: en una página no se puede enseñar, y lo
+  // que trae dentro son las direcciones locales de quien vuelca.
+  for (const e of raiz.querySelectorAll('.update-card, script, section.nav')) e.remove();
   // Las hojas de color de cada terminal, a una compartida.
   for (const hoja of raiz.querySelectorAll('.xterm style')) {
     const texto = hoja.textContent || '';

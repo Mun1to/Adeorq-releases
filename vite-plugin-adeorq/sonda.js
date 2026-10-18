@@ -99,9 +99,23 @@ else document.addEventListener("DOMContentLoaded", montar, { once: true });
 
 /* ── Hablar con Adeorq ───────────────────────────────────────────────────── */
 
+/* Dos caminos. Metida en un iframe de Adeorq, `postMessage` al padre. Abierta
+   en el navegador de verdad de Adeorq (un Chromium nativo, sin padre; se sabe
+   porque hay `chrome.webview`, que solo existe en WebView2), pidiendo una
+   dirección `.invalid` que Adeorq coge antes de que salga a la red y que solo
+   atiende desde webs de esta máquina y con esta marca (`navegador.rs`).
+   `chrome.webview.postMessage` se probó antes y no sirve: como objeto no llega,
+   y como texto Tauri lo lee también y deja un error en tu consola cada vez.
+   Fuera de Adeorq no hay ninguno de los dos caminos y no se manda nada. */
 function aAdeorq(mensaje) {
-  if (window.parent === window) return;
-  window.parent.postMessage({ de: "adeorq-sonda", ...mensaje }, "*");
+  const m = { de: "adeorq-sonda", ...mensaje };
+  if (window.parent !== window) window.parent.postMessage(m, "*");
+  else if (window.chrome && window.chrome.webview) {
+    fetch("https://adeorq-sonda.invalid/?d=" + encodeURIComponent(JSON.stringify(m)), {
+      mode: "no-cors",
+      cache: "no-store",
+    }).catch(() => {});
+  }
 }
 
 /* ── Leer un elemento ────────────────────────────────────────────────────── */

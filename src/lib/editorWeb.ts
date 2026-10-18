@@ -1,15 +1,17 @@
 // El puente entre la barra de herramientas de Adeorq y la sonda que corre
 // dentro de tu página.
 //
-// Son dos mundos separados a propósito. La sonda vive en el iframe, sabe qué
+// Son dos mundos separados a propósito. La sonda vive en la página, sabe qué
 // has señalado y pinta el marco; la barra vive aquí, es cristal de Adeorq y no
-// se contagia del CSS de tu web. Entre los dos solo pasa `postMessage`, que es
-// el único hueco que el navegador deja abierto entre orígenes distintos.
+// se contagia del CSS de tu web. Entre los dos solo pasan recados (`Canal`):
+// `postMessage` con la página en un iframe, o Rust con la página en el
+// navegador de verdad.
 //
 // Escribir en el fichero no pasa por aquí más que de paso: esto recoge lo que
 // dice la sonda y se lo pasa a `editor.rs`, que es el único que toca el disco.
 
 import { invoke } from "@tauri-apps/api/core";
+import { esLocal } from "./navegador";
 
 /** Las herramientas de la columna, en el orden en que se enseñan. */
 export type Herramienta =
@@ -45,13 +47,45 @@ export type DeLaSonda =
   | { tipo: "duplicar" | "borrar"; loc: string }
   | { tipo: "sinorigen"; elemento: Elegido };
 
-/** Le habla a la sonda. Sin iframe cargado no hay nadie al otro lado. */
-export function aLaSonda(marco: HTMLIFrameElement | null, mensaje: Record<string, unknown>) {
-  marco?.contentWindow?.postMessage({ de: "adeorq", ...mensaje }, "*");
+/**
+ * Por dónde se habla con la sonda.
+ *
+ * Hay dos caminos y la barra no tiene por qué saber cuál es: con la página en un
+ * iframe, `postMessage` (`canalDeMarco`); con la página en el navegador de
+ * verdad, un Chromium nativo que no es DOM, por Rust (`canalNativo`, en
+ * `lib/navegador.ts`).
+ */
+export interface Canal {
+  enviar: (mensaje: Record<string, unknown>) => void;
+  /** Escuchar lo que llegue; devuelve cómo dejar de escuchar. */
+  oir: (cb: (datos: unknown) => void) => () => void;
 }
 
 /**
- * ¿Este mensaje viene de nuestra sonda?
+ * El de siempre: la página en un iframe. Sin iframe cargado no hay nadie al otro lado.
+ *
+ * Solo se escucha a ESE iframe y solo si es una web de esta máquina. Antes valía
+ * cualquier `postMessage` con la marca, y la revisión de seguridad del
+ * 2026-10-18 lo cazó: con el editor encendido sobre una web de fuera (que va en
+ * iframe), esa web podía anunciar una carpeta y pedir escrituras. La marca la
+ * puede poner cualquiera; quién manda el mensaje, no.
+ */
+export function canalDeMarco(marco: HTMLIFrameElement | null): Canal {
+  return {
+    enviar: (mensaje) => marco?.contentWindow?.postMessage({ de: "adeorq", ...mensaje }, "*"),
+    oir: (cb) => {
+      const f = (e: MessageEvent) => {
+        if (!marco || e.source !== marco.contentWindow || !esLocal(e.origin)) return;
+        cb(e.data);
+      };
+      window.addEventListener("message", f);
+      return () => window.removeEventListener("message", f);
+    },
+  };
+}
+
+/**
+ * ¿Esto viene de nuestra sonda?
  *
  * Cualquier página metida en un iframe puede mandarle mensajes al padre, así
  * que la marca no es un detalle: sin ella, una web abierta en el panel podría
@@ -59,8 +93,8 @@ export function aLaSonda(marco: HTMLIFrameElement | null, mensaje: Record<string
  * está en Rust, que solo escribe dentro de la carpeta anunciada y solo en
  * ficheros de interfaz.
  */
-export function deLaSonda(e: MessageEvent): DeLaSonda | null {
-  const m = e.data;
+export function deLaSonda(datos: unknown): DeLaSonda | null {
+  const m = datos as { de?: unknown; tipo?: unknown } | null;
   if (!m || typeof m !== "object" || m.de !== "adeorq-sonda") return null;
   if (typeof m.tipo !== "string") return null;
   return m as DeLaSonda;

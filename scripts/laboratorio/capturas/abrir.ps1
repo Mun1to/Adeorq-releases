@@ -4,7 +4,8 @@
 # La ventana se aparta fuera de las tres pantallas en cuanto existe: las fotos
 # salen de la página por dentro, no de la pantalla.
 $ErrorActionPreference = "Stop"
-$exe = "C:\ct\debug\adeorq.exe"
+# Con ADEORQ_EXE, otro binario de desarrollo (el que carga de otro puerto: ver el README).
+$exe = if ($env:ADEORQ_EXE) { $env:ADEORQ_EXE } else { "C:\ct\debug\adeorq.exe" }
 $env:LOCALAPPDATA = "P:\data"
 $env:USERPROFILE = "P:\home"
 $env:WEBVIEW2_USER_DATA_FOLDER = "P:\wv2"

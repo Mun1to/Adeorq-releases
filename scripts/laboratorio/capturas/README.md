@@ -1,6 +1,8 @@
 # Las capturas de la web y de los README
 
-Las dieciocho capturas de `web/assets/screens/es` y `/en` salen de aquí. Son **la app de verdad**
+Las veinte capturas de `web/assets/screens/es` y `/en` salen de aquí (más `board.png` y `swarm.png`,
+recortadas de `canvas.png` con las cajas que imprime `fotos.mjs` por dos: `crop=922:486:814:574` y
+`crop=534:632:3096:500` con las de hoy). Son **la app de verdad**
 (el binario de desarrollo) abierta en una casa de pruebas, con un taller inventado (Sam y sus seis
 proyectos) y fotografiada **por dentro**, por el puerto de depuración del WebView: ni ratón ni
 teclado en el escritorio de nadie, y nada de lo que hay encima de la ventana se cuela.
@@ -14,6 +16,9 @@ Qué es verdad y qué es de demostración en una captura, para decirlo igual en 
 - **Las consolas de la foto de Archivos** (`node --test`, `git diff`) son en directo.
 - **Las cuentas, su plan y su cuota** son datos de ejemplo, contestados en la página (ver abajo).
   Y lo que hablaría de la máquina de quien hace la foto (el Pulso, los modelos locales, la versión).
+- **Tu uso** (el del inicio y el del Perfil) también es de ejemplo: doscientos días de Sam que
+  inventa `historiaDeSam` en `escena.mjs`, con semilla, para que inglés y español pinten lo mismo.
+  Con sus pocas sesiones grabadas el año saldría con una casilla.
 - **Las notas de la Memoria** son la bóveda de Sam (`P:\notes`), que escribe `casa.mjs`.
 - **Las sesiones de relleno** de la barra, la agenda, las decisiones y las notas: datos del taller
   inventado, en `textos.mjs` y `preparar-sesiones.mjs`.
@@ -22,6 +27,23 @@ Qué es verdad y qué es de demostración en una captura, para decirlo igual en 
 
 Con `cargo build` hecho (`C:\ct\debug\adeorq.exe`) y `pnpm dev` en marcha (el binario de desarrollo
 carga de `localhost:1420`):
+
+> **Si otra sesión tiene el 1420 o cambios a medias en `src/`** (lo normal aquí), todo sale de un
+> worktree con su propio binario y su propio puerto, para que en las fotos no entre nada a medias:
+>
+> ```bash
+> git worktree add --detach <scratchpad>/wt origin/main   # y CI=true pnpm install --frozen-lockfile dentro
+> TAURI_CONFIG='{"build":{"devUrl":"http://127.0.0.1:1495"}}' CARGO_TARGET_DIR='C:\ct\demo-web' \
+>   cargo build --manifest-path <wt>/src-tauri/Cargo.toml        # 3 min, aparte de C:\ct\debug
+> node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1495 --strictPort   # desde <wt>
+> export ADEORQ_EXE='C:\ct\demo-web\debug\adeorq.exe' ADEORQ_URL=127.0.0.1:1495
+> ```
+>
+> `ADEORQ_EXE` lo leen `abrir.ps1`, `cerrar.ps1` y la grabadora (`motor.mjs`); `ADEORQ_URL`, la
+> conexión a la ventana (`cdp.mjs`). **Ojo con `P:`**: apunta DENTRO del worktree, así que un
+> `git -C P:/projects/<nombre>` con el nombre vacío sube hasta el worktree y un `reset --hard` se
+> lleva tus cambios sin commitear (pasó el 2026-10-18). Comprueba que `P:/projects/<nombre>/.git`
+> existe antes de reponer un proyecto.
 
 ```powershell
 subst P: <esta carpeta>\p            # la casa de pruebas vive en P:
@@ -34,10 +56,18 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
 
 1. **Grabar** (gasta unos pocos turnos cortos de tu cuenta): `node grabar.mjs guiones/en-storefront.json`,
    y así los ocho. Deja `p/rec/<nombre>.bin`. Antes de regrabar un proyecto, devuélvelo a su punto
-   de partida (`git checkout`), o el agente no tiene nada que arreglar.
+   de partida (`git checkout`), o el agente no tiene nada que arreglar. Una sesión de Claude solo se
+   regraba borrando antes su transcript (`~/.claude/projects/P--projects-<proyecto>/<sesion>.jsonl`):
+   con el mismo `--session-id` Claude se niega a arrancar y la grabación sale vacía.
+   **Después, `node avisos.mjs`**: con la cuenta justa, Claude Code pinta «You've used 98% of your
+   session limit» encima del prompt y sale en la web; la que lo lleve se regraba. Codex dice al
+   arrancar «You have 1 usage limit reset available», que sube con el scroll antes del corte: ese
+   solo importa si se ve en la foto.
 2. **Cortar** las dos que salen a mitad de trabajo: `node cortar.mjs en-landing` enseña la línea del
-   tiempo; `node cortar.mjs en-landing 31950 en-landing-mid` corta. El mismo instante va en
-   `preparar-sesiones.mjs`, que corta el transcript por ahí para que el estado cuadre.
+   tiempo; `node cortar.mjs en-landing 34950 en-landing-mid` corta. El mismo instante va en
+   `preparar-sesiones.mjs`, que corta el transcript por ahí para que el estado cuadre. En las de
+   Codex, corta antes de que ejecute Python: el de la máquina que graba vive en su carpeta de
+   usuario, y la ruta saldría en la terminal (`hacer-demo.mjs` se pararía al verla).
 3. **Sesiones**: `node preparar-sesiones.mjs en` (y `es`). Pone en `PANELES` de `textos.mjs` los
    títulos que imprime. Guarda además el transcript entero de cada grabada en `respaldo/<idioma>/`,
    y de ahí los saca cuando el hogar ya está limpio (paso 6): se puede relanzar otro día. Si le
@@ -84,8 +114,13 @@ la máquina que hizo el volcado**. Una parte suelta se repite con `node volcar.m
   página de `pnpm dev`. Si otra sesión tiene cambios a medias en `src/`, salen en la demostración.
   Se hace con el árbol limpio, o desde un worktree.
 - Lo que cuenta de la MÁQUINA de quien vuelca se contesta en `GUARDA` con los datos de Sam: el
-  Pulso (memoria, núcleos, procesos), los modelos locales, la versión del binario y la tarjeta de
-  «hay una versión nueva».
+  Pulso (memoria, núcleos, procesos), los modelos locales, la versión del binario, la tarjeta de
+  «hay una versión nueva», tu uso y la lista de bóvedas de Obsidian (sale del `%APPDATA%` de
+  verdad, que la casa no aísla: el resumen de la Memoria del Perfil enseñaba la bóveda de quien
+  hacía el volcado).
+- Cuentas, Agenda, Memoria y Comandos viven dentro del Perfil desde la 0.9.220: `vista()` llega a
+  ellas tocando su resumen, y `volcar.mjs` deja aparte la vuelta de encima (`x-volver-<vista>`) y la
+  lista de tu uso con cada pestaña (`x-porfolio-N`).
 - Las terminales se vuelcan con el pintado de reserva (`sinWebgl`), que es texto: con WebGL son un
   lienzo y no hay nada que volcar. Lo mismo el mapa de la Memoria, que por eso se vuelca con un
   documento abierto.

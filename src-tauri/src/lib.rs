@@ -506,11 +506,16 @@ pub fn run() {
             suelta::raton_en_pantalla,
             suelta::devolver_panel,
             suelta::datos_panel,
-            navegador::empotrar_navegador,
-            navegador::mover_navegador,
-            navegador::ver_navegador,
-            navegador::soltar_navegador,
-            navegador::cerrar_navegador,
+            navegador::nav_disponible,
+            navegador::nav_abrir,
+            navegador::nav_colocar,
+            navegador::nav_ir,
+            navegador::nav_accion,
+            navegador::nav_foco,
+            navegador::nav_foco_interfaz,
+            navegador::nav_a_la_pagina,
+            navegador::nav_foto,
+            navegador::nav_cerrar,
             navegador::puerto_escucha,
             editor::editor_escribir_estilo,
             editor::editor_escribir_texto,
@@ -699,10 +704,6 @@ pub fn run() {
             // abrir aparecían «todavía activos» sin panel al que pertenecer.
             if matches!(event, tauri::RunEvent::Exit) {
                 pty::kill_all(app);
-                // Y las ventanas de navegador que estuvieran metidas dentro se
-                // devuelven al escritorio con su marco. Si no, se quedarían
-                // colgando de una ventana que está a punto de no existir.
-                navegador::soltar_todas();
             }
         });
 }

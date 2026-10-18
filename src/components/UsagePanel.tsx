@@ -195,7 +195,7 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
             : t("Sin datos todavía")}
         </span>
         <button
-          className="mini uso-refrescar"
+          className="mini icono uso-refrescar"
           data-tip={t("Volver a preguntar (no gasta cuota)")}
           aria-label={t("Volver a preguntar (no gasta cuota)")}
           disabled={busy}

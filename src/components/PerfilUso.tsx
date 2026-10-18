@@ -10,6 +10,13 @@
 // tu récord de un día; y tocar un día abre la tarjeta de ese día con su editor
 // (la tarjeta es de `PerfilTarjeta.tsx`, que escucha `adeorq:abrir-tarjeta`).
 //
+// Y el 2026-10-18, tras enseñar el Perfil en un Discord («it is too noisy»,
+// «those bars has to go», «with color scales»), eligió entre tres variantes
+// con sus datos: las barras del porfolio se quedan, pero TODAS de un solo
+// color (el acento) y sin el punto de color de cada fila; la cifra dentro de
+// cada día del mes se queda; el año como estaba, solo con el color calmado; y
+// el bloque entero sin borde.
+//
 // Las cuentas y su prueba están en `lib/usoDelPerfil.ts` (`pnpm bancos
 // usoDelPerfil`); la pieza en la ventana, en `scripts/laboratorio/perfil-uso.js`.
 //
@@ -21,8 +28,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { Account } from "../lib/pty";
 import { cuentasQueLeer, historiaLeida, leerHistoria } from "../lib/historiaDeUso";
-import { proveedorDe } from "../lib/providers";
-import { coloresDeProyectos } from "../lib/colorLienzo";
 import { useEspera } from "../lib/espera";
 import { useT, type Translate } from "../lib/i18n";
 import {
@@ -184,7 +189,7 @@ export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
           ))}
         </div>
         {filas.length ? (
-          <Lista eje={eje} filas={filas} t={t} lang={lang} />
+          <Lista filas={filas} t={t} lang={lang} />
         ) : (
           <p className="pu-nada">{t("Este mes todavía no hay uso.")}</p>
         )}
@@ -266,24 +271,15 @@ function titulo(c: Casilla, t: Translate, lang: "es" | "en"): string {
   return c.tokens > 0 ? t("{fecha}: {n} tokens", { fecha: f, n: cifra(c.tokens, lang) }) : t("{fecha}: sin uso", { fecha: f });
 }
 
-/** El color de cada fila: el de su CLI, o uno fijo por nombre que no se repite. */
-function coloresDe(eje: Eje, filas: Parte[]): string[] {
-  const porNombre = coloresDeProyectos(filas.filter((f) => !f.otros).map((f) => f.nombre));
-  return filas.map((f) =>
-    f.otros ? "var(--muted)" : eje === "proveedor" ? (proveedorDe(f.clave)?.hue ?? "var(--muted)") : (porNombre[f.nombre] ?? "var(--muted)"),
-  );
-}
-
-function Lista({ eje, filas, t, lang }: { eje: Eje; filas: Parte[]; t: Translate; lang: "es" | "en" }) {
-  const colores = coloresDe(eje, filas);
+/** Las filas del porfolio: nombre, barra, cifra y parte. La barra va en el
+    color del tema, el mismo para todas: el color de cada proyecto o CLI
+    (rosa, verde, violeta) era «a lot of colors» (Munir, 2026-10-18, «solo un
+    color, quita el cuadradito de la izquierda»). */
+function Lista({ filas, t, lang }: { filas: Parte[]; t: Translate; lang: "es" | "en" }) {
   return (
     <div className="pu-lista" role="tabpanel">
-      {filas.map((f, i) => (
-        <div
-          key={f.otros ? "otros" : `p:${f.clave}`}
-          className="pu-parte"
-          style={{ "--w": `${(f.parte * 100).toFixed(1)}%`, "--c": colores[i] } as CSSProperties}
-        >
+      {filas.map((f) => (
+        <div key={f.otros ? "otros" : `p:${f.clave}`} className="pu-parte" style={{ "--w": `${(f.parte * 100).toFixed(1)}%` } as CSSProperties}>
           <span className="pu-parte-nombre">{f.otros ? t("Otros") : f.nombre || t("Sin carpeta")}</span>
           <i aria-hidden="true" />
           <em>{cifra(f.tokens, lang)}</em>

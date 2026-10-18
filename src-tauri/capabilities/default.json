@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window and the torn-off terminals",
-  "windows": [
+  "description": "Capability for the app's own webviews (the main one and the torn-off terminals). By webview, not by window: a window capability also reaches every child webview of that window, and the browser tabs (nav-*) live inside main and must get nothing (see navegador.rs).",
+  "webviews": [
     "main",
     "suelta-*"
   ],

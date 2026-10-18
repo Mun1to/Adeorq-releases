@@ -479,9 +479,9 @@
   height: 32px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  /* En caja normal: Munir no quiere mayúsculas espaciadas en ningún sitio. */
+  font-size: 12px;
+  font-weight: 600;
   padding: 0 4px;
 }
 

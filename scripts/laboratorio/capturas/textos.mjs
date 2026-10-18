@@ -127,7 +127,7 @@ const en = {
     turnos: [
       ["tu", "Before Friday: the discount has to round properly and the landing page needs a dark mode."],
       ["conserje", "Split in two. The rounding goes to storefront-api, which already has the failing test open. The dark mode goes to landing-web."],
-      ["sesion", "Fixed: the discount is rounded to whole cents and the 4 tests pass. I did not commit.", "Discount test failure in npm test"],
+      ["sesion", "Fixed: the discount is rounded to whole cents and the 4 tests pass. I did not commit.", "Discount test failure"],
     ],
   },
   // Las notas de Sam, para la Memoria: [ruta dentro de la bóveda, texto].
@@ -230,7 +230,7 @@ const es = {
     turnos: [
       ["tu", "Antes del viernes: que el descuento redondee bien y que la portada tenga modo oscuro."],
       ["conserje", "Repartido en dos. El redondeo va a storefront-api, que ya tiene abierta la prueba que falla. El modo oscuro va a landing-web."],
-      ["sesion", "Arreglado: el descuento se redondea a céntimos enteros y pasan las 4 pruebas. No hice commit.", "Fallo en prueba del descuento"],
+      ["sesion", "Arreglado: el descuento se redondea a céntimos enteros y pasan las 4 pruebas. No hice commit.", "Fallo en la prueba del descuento"],
     ],
   },
   boveda: [
@@ -252,13 +252,13 @@ export const TEXTOS = { en, es };
 /** Los cuatro paneles de la Cabina: [proyecto, grabación, CLI, título]. */
 export const PANELES = {
   en: [
-    ["storefront-api", "en-storefront", "claude", "Discount test failure in npm test"],
+    ["storefront-api", "en-storefront", "claude", "Discount test failure"],
     ["mobile-app", "en-mobile", "claude", "Dependencies and test suite"],
     ["invoice-cli", "en-invoice-mid", "codex", "Currency flag for the total"],
     ["landing-web", "en-landing-mid", "claude", "Header dark mode toggle"],
   ],
   es: [
-    ["storefront-api", "es-storefront", "claude", "Fallo en prueba del descuento"],
+    ["storefront-api", "es-storefront", "claude", "Fallo en la prueba del descuento"],
     ["mobile-app", "es-mobile", "claude", "Dependencias y pruebas"],
     ["invoice-cli", "es-invoice-mid", "codex", "Opción de moneda para el total"],
     ["landing-web", "es-landing-mid", "claude", "Botón de modo oscuro en cabecera"],

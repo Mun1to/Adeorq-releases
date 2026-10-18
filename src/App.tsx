@@ -5,7 +5,8 @@ import SkillsPanel from "./components/SkillsPanel";
 import UsagePanel from "./components/UsagePanel";
 import ArchivosPanel, { sesionParaArchivos } from "./components/ArchivosPanel";
 import PanelDerecho, { type Cara } from "./components/PanelDerecho";
-import WebPane from "./components/WebPane";
+import Navegador from "./components/Navegador";
+import { usePanelNavegador } from "./lib/panelNavegador";
 import TerminalPane, { FONDO_EVENTO, SOLTADO_EVENTO } from "./components/TerminalPane";
 import ResguardoPanel from "./components/ResguardoPanel";
 import ProviderMark, { tieneMarca } from "./components/ProviderMark";
@@ -513,8 +514,6 @@ function App() {
   const [webAutomatica, setWebAutomatica] = useState(
     () => localStorage.getItem(WEB_AUTO_KEY) !== "0",
   );
-  /** La dirección que una terminal acaba de anunciar, con su sello. */
-  const [webPedida, setWebPedida] = useState<{ url: string; sello: number } | null>(null);
   // Solo los que él haya cambiado: los de fábrica no se guardan, así que si
   // algún día cambia uno por defecto, quien no lo tocó se lleva el nuevo.
   const [atajos, setAtajos] = useState<Atajos>(() => leerAtajos());
@@ -1948,64 +1947,9 @@ function App() {
     [closePane],
   );
 
-  /**
-   * La vista previa de la web, en un hueco del mosaico.
-   *
-   * Si ya hay una, se enfoca en vez de abrir otra: dos vistas de la misma
-   * página son dos iframes pidiendo lo mismo al mismo servidor de desarrollo,
-   * y ninguna de las dos dice nada que no diga la otra.
-   */
-  const abrirWeb = useCallback((url?: string, traer = true) => {
-    /* La dirección, solo si de verdad es una dirección. Un `onClick={onWeb}`
-       mete aquí el evento del ratón, y ese objeto acababa guardado en
-       `pane.web`, de ahí a la pestaña del panel y de ahí al suelo: React
-       no sabe pintar un objeto y tiraba la interfaz entera (error #31).
-       El tipo no lo caza porque `abrirWeb` encaja en una prop `() => void`
-       teniendo todos sus parámetros opcionales. */
-    const dir = typeof url === "string" ? url : undefined;
-    // `traer` es la diferencia entre pulsar el botón y que lo pida una
-    // terminal. Pulsándolo, quieres ir a la web y se te lleva. Sola, NO: si
-    // estás en el lienzo o en el chat, cambiarte de vista porque un servidor
-    // acaba de arrancar es sacarte de donde estabas trabajando por algo que no
-    // has pedido. Se abre igual y te espera en la Cabina.
-    if (traer) setView("cabina");
-    const ya = panesRef.current.find((p) => p.web != null);
-    if (ya) {
-      if (traer) setFocusedId(ya.id);
-      // Con el panel ya abierto, la dirección no puede entrar por sus `tabs`:
-      // el panel se hace dueño de sus pestañas al montarse. Entra por `pedida`,
-      // que lleva sello para que la misma dirección pueda pedirse dos veces.
-      if (dir) setWebPedida({ url: dir, sello: Date.now() });
-      return;
-    }
-    const id = nextId.current++;
-    setPanes((prev) => [
-      ...prev,
-      {
-        id,
-        cwd: raizArchivosRef.current,
-        name: "localhost",
-        web: dir ?? "http://localhost:1420",
-      },
-    ]);
-    setCols((prev) => layoutAdd(prev, id, () => nextCol.current++));
-    if (traer) setFocusedId(id);
-  }, []);
-
-
-  /** La foto de las pestañas del panel web, para que sobrevivan al reinicio.
-      Estable a propósito: el panel la llama desde un efecto, y una función
-      nueva en cada pintado lo dispararía sin parar y App y el panel se
-      retroalimentarían. */
-  const onWebEstado = useCallback((paneId: number, tabs: string[], activa: number) => {
-    setPanes((prev) =>
-      prev.map((x) =>
-        x.id === paneId
-          ? { ...x, web: tabs[activa] ?? "", webTabs: tabs, webActiva: activa }
-          : x,
-      ),
-    );
-  }, []);
+  /** El navegador de la derecha y sus pestañas (`lib/panelNavegador.ts`). */
+  const nav = usePanelNavegador(setView);
+  const abrirWeb = nav.abrir;
 
   /** Cambiar de pestaña dentro de un panel de archivos. */
   const activarPestana = useCallback((paneId: number, ruta: string) => {
@@ -2987,30 +2931,13 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                       width: `${r!.w * 100}%`,
                       height: `${r!.h * 100}%`,
                     };
+                // La web ya no es un panel del mosaico (es el navegador de la
+                // derecha, y `lib/panelNavegador.ts` migra los guardados): si
+                // alguno se colara, no se pinta como una terminal.
+                if (p.web != null) return null;
                 // No es una terminal, es un archivo abierto. Ocupa el mismo
                 // hueco y se mueve, maximiza y cierra igual: para el mosaico es
                 // un panel más, que es justo lo que Munir eligió.
-                if (p.web != null) {
-                  return (
-                    <WebPane
-                      key={p.id}
-                      id={p.id}
-                      tabs={p.webTabs ?? [p.web]}
-                      activa={p.webActiva ?? 0}
-                      focused={focusedId === p.id}
-                      hidden={escondido || (maximizedId != null && !max && !lado)}
-                      maximized={max}
-                      style={style}
-                      onFocusPane={setFocusedId}
-                      onClose={closePane}
-                      onToggleMax={onToggleMax}
-                      onHeaderDown={onHeaderDown}
-                      onEstado={onWebEstado}
-                      pedida={webPedida ?? undefined}
-                      onAlAgente={alAgenteDeLaWeb}
-                    />
-                  );
-                }
                 if (p.archivos?.length) {
                   return (
                     <EditorPane
@@ -3273,7 +3200,19 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
         <PanelDerecho
           cara={cara}
           onCara={cambiarCara}
-          onWeb={abrirWeb}
+          onWeb={() => nav.alternar(view === "cabina")}
+          webAbierta={nav.abierto}
+          web={
+            <Navegador
+              visible={nav.abierto && view === "cabina"}
+              tabs={nav.inicio.tabs}
+              activa={nav.inicio.activa}
+              pedida={nav.pedida}
+              onEstado={nav.guardar}
+              onCerrar={nav.cerrar}
+              onAlAgente={alAgenteDeLaWeb}
+            />
+          }
           skills={
             <SkillsPanel canPaste={focusedId != null} onUse={pasteToFocused} />
           }
@@ -3747,7 +3686,6 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
 
       {showForeman && (
         <Foreman
-          mode="overlay"
           onRepartir={(texto) => {
             setShowForeman(false);
             setReparto({ texto });

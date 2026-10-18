@@ -666,13 +666,10 @@ const EN: Record<string, string> = {
   "Esto no es texto: son {p} de datos.": "This is not text: {p} of data.",
 
   // Foreman
-  "✦ Capataz": "✦ Foreman",
   Planear: "Plan it",
   "Pensando el plan…": "Thinking the plan…",
   Descartar: "Discard",
-  "Otro pedido": "Another request",
   Cerrar: "Close",
-  "Hecho: mira la Cabina.": "Done: check the Cockpit.",
   "El Capataz no propuso acciones para ese pedido.":
     "The Foreman proposed no actions for that request.",
 
@@ -2062,8 +2059,6 @@ const EN: Record<string, string> = {
   Recargar: "Reload",
   Adelante: "Forward",
   ahora: "now",
-  "Pídele el tablero en cristiano: él propone el plan (sesiones, Claudes, terminales, Antigravity) y no ejecuta nada sin tu OK. En la Cabina: Ctrl+Mayús+A.":
-    "Ask it for the board in plain words: it proposes the plan (sessions, Claudes, terminals, Antigravity) and runs nothing without your OK. In the Cockpit: Ctrl+Shift+A.",
   // La voz del Asistente.
   Voz: "Voice",
   "El Asistente habla con la voz {voz} (Grok, con tu clave de OpenRouter). Clic para callarlo; clic derecho para cambiar de voz.":
@@ -2403,6 +2398,7 @@ const EN: Record<string, string> = {
   "{n} hecho": "{n} done",
   "{n} hechos": "{n} done",
   "Sin bóveda todavía": "No vault yet",
+  "en {boveda}": "in {boveda}",
   "skill tuya": "skill of yours",
   "skills tuyas": "skills of yours",
   "Ya está": "Done",
@@ -2439,6 +2435,18 @@ const EN: Record<string, string> = {
   "Entran {n} de golpe; el resto se queda para la próxima tanda.":
     "{n} go in at once; the rest waits for the next batch.",
   "No pude escribir el BUZON.md": "I could not write BUZON.md",
+
+  // ── El navegador de verdad (`Navegador.tsx`) ───────────────────────────────
+  Navegador: "Browser",
+  "Ocultar el navegador": "Hide the browser",
+  "Cerrar el navegador": "Close the browser",
+  "Arrastra para darle más o menos ancho": "Drag to make it wider or narrower",
+  "Busca un puerto o escribe una dirección": "Pick a port or type an address",
+  "Abrirla en tu navegador de siempre": "Open it in your usual browser",
+  "Esta web no contesta. ¿Está levantado el servidor?": "This site is not answering. Is the server running?",
+  "El certificado de esta web no es de fiar": "This site's certificate cannot be trusted",
+  "Esta página no ha podido cargar": "This page could not load",
+  "¿Qué quieres ver?": "What do you want to see?",
 
   // ── El editor de la web: la columna de herramientas del panel de web ──────
   "Editar esta página haciendo clic, y guardarlo en el código":

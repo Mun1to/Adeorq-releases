@@ -11,11 +11,29 @@ import "./App.css";
 // llegara un render tarde, la primera terminal del arranque podría nacer en la
 // carpeta equivocada. Es una sola lectura de disco y pasa una única vez: en
 // cuanto está en el perfil, ya no se vuelve a preguntar.
-// Antes de montar nada: si algo falla durante el arranque, que quede escrito.
-vigilarErrores();
-// Los mods del usuario, también en una terminal suelta: es la misma página. No
-// se espera a ellos para montar; su hoja llega un instante después.
-vigilarMods();
+/* La interfaz solo arranca en su propia ventana.
+ *
+ * Desde que hay navegador de verdad (`navegador.rs`), una web abierta en él
+ * podría cargar la propia Adeorq: navegando a ella o metiéndola en un iframe.
+ * Ahí dentro tendría los permisos de la app (Tauri trata su dirección como
+ * local) y arrancaría un segundo tablero que abre terminales. Rust ya le cierra
+ * la puerta a esas direcciones en la pestaña; esto es la segunda cerradura, por
+ * si algo se cuela por un iframe, que el filtro de navegación no ve. */
+function enSuVentana(): boolean {
+  if (window.top !== window.self) return false;
+  const meta = (window as { __TAURI_INTERNALS__?: { metadata?: { currentWebview?: { label?: string } } } })
+    .__TAURI_INTERNALS__?.metadata;
+  return !meta?.currentWebview?.label?.startsWith("nav-");
+}
+
+const SU_VENTANA = enSuVentana();
+if (SU_VENTANA) {
+  // Antes de montar nada: si algo falla durante el arranque, que quede escrito.
+  vigilarErrores();
+  // Los mods del usuario, también en una terminal suelta: es la misma página. No
+  // se espera a ellos para montar; su hoja llega un instante después.
+  vigilarMods();
+}
 
 async function arrancar() {
   /* Una terminal sacada a su propia ventana.
@@ -54,4 +72,4 @@ async function arrancar() {
   );
 }
 
-void arrancar();
+if (SU_VENTANA) void arrancar();

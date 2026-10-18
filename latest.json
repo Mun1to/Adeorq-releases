@@ -1,11 +1,11 @@
 {
-  "version": "0.9.222",
-  "notes": "La tarjeta de compartir suena al sacarla en video, con dos sonidos o el de tu video, y la cifra sube contando; la ruta guardada abre su carpeta; la barra de la derecha pierde Actividad y gana un brillo en sus marcos.",
-  "pub_date": "2026-10-18T00:46:07Z",
+  "version": "0.9.223",
+  "notes": "Arreglo de seguridad del editor por clic; un navegador de verdad (Chromium) en un panel grande a la derecha; el Perfil con menos ruido; Archivos con vida; las sesiones que abre un agente nacen en Opus.",
+  "pub_date": "2026-10-18T10:36:59Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlyTnFzQ2dSRXpzRjNiY1owUFhBMks1Y2ZPNnBUS3ZscHdWVHRPS1l3VW54bUd1UHR4MEpWNTRpV1dkTzBYZk5DeWlFMEFlZnpFVjdOZTdsSUovVWcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMjg0MzUzCWZpbGU6QWRlb3JxXzAuOS4yMjJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjIKaXV2aTlPVk41QzdKUlkzblpPRDZ6YkxTdlpOOEc5Nk9hZjRWMEMycVhqRVlTcHpzYXV6TUpDdHBFQ0RrNVkwVXJDUjZDSVRibWxXak9maWNOUTl0QXc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.222/Adeorq_0.9.222_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZGSm5rYnlaRXBTTVFQMWhMbFVzZnJhOUQ0SUt5VDdnNGtXVWxxVUlUM1R4QlIvZFRlQk0veWlDZm93c04rMGs3RjZIakR2NisxbGJJTHo5OTY5VWdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzE5ODA2CWZpbGU6QWRlb3JxXzAuOS4yMjNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjMKQWFURkJOblZKQ3NabFYvQnk0NVhMdXRsOXhpWjN1MGZwc2NnWnlGUW81Tk4zbmJlR2RBNDlxMHUrd0FZaWJ5YzBvdGMySFlDUXNzdEQxRlZrdXB0Qnc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.223/Adeorq_0.9.223_x64-setup.exe"
     }
   }
 }

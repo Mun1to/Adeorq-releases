@@ -3,7 +3,7 @@
   "private": true,
   "author": "Munir Torres Athayde",
   "license": "SEE LICENSE IN LICENSE",
-  "version": "0.9.222",
+  "version": "0.9.223",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -49,6 +49,8 @@
     "@codemirror/search": "^6.7.2",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.8",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "@lezer/highlight": "^1.2.5",
     "@tauri-apps/api": "^2.12.1",
     "@tauri-apps/plugin-dialog": "~2.7.2",

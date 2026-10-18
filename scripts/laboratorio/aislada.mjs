@@ -224,15 +224,28 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
  *  cárceles, y `aprobadas`, las que Munir dijo que se quedan (su lista vive en
  *  el propio detector). */
 export async function carceles(v, ambito = null) {
-  let src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "carceles.js"), "utf8");
+  const r = await detector("carceles.js", v, ambito);
+  return { fallos: r.fallos, aprobadas: r.aprobadas ?? [] };
+}
+
+/** Lo que ve `mayusculas.js` (los rótulos en MAYÚSCULAS ESPACIADAS) dentro de
+ *  `ambito`, o en la página entera con `null`: `fallos`. */
+export async function mayusculas(v, ambito = null) {
+  const r = await detector("mayusculas.js", v, ambito);
+  return { fallos: r.fallos };
+}
+
+/** Un detector de la casa (un `async (page) =>` de esta carpeta que mira la
+ *  pantalla), acotado a `ambito` cambiándole el `body *` por el que toque. */
+async function detector(nombre, v, ambito) {
+  let src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), nombre), "utf8");
   if (ambito) {
     const antes = src;
     src = src.replace('document.querySelectorAll("body *")', `document.querySelectorAll("${ambito}, ${ambito} *")`);
-    if (src === antes) throw new Error("carceles.js ya no recorre «body *»: hay que volver a acotarlo");
+    if (src === antes) throw new Error(`${nombre} ya no recorre «body *»: hay que volver a acotarlo`);
   }
   const guion = (0, eval)(src);
-  const r = await guion({ evaluate: (fn) => v.js(`(${fn.toString()})()`) });
-  return { fallos: r.fallos, aprobadas: r.aprobadas ?? [] };
+  return guion({ evaluate: (fn) => v.js(`(${fn.toString()})()`) });
 }
 
 /** Cómo queda la primera pieza que case con `selector` con el ratón encima,

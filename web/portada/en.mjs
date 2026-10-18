@@ -100,9 +100,10 @@ export default {
 
   /* ── Qué hace ──────────────────────────────────────────────────────────── */
   'queEs.etiqueta': PUNTO + 'What it does',
-  'queEs.tit': '<b>Ten screens,</b> <span>one window</span>',
+  'queEs.tit': '<b>Seven screens,</b> <span>one window</span>',
   'queEs.entrada':
-    'Dashboard, Cockpit, Chat, Agenda, Decisions, Canvas, Memory, Accounts, Commands and Settings. All inside a ' +
+    'Dashboard, Cockpit, Chat, Decisions, Canvas, Profile and Settings, and in the Profile your accounts, ' +
+    'agenda, memory, commands and usage. All inside a ' +
     'native app of about 6 MB, without a whole browser packed inside.',
   // La muestra: cada rasgo con su captura en inglés (assets/screens/en) y su alt.
   'rasgo.demo': 'Try it in the demo',

@@ -9,10 +9,12 @@
    propia hoja de estilos haga el resto:
 
      · cambiar de vista, de sección y de tema
+     · el inicio: pedirle algo a Adeo, contestar a quien espera, ir a un proyecto
      · la Cabina: enfocar, tapar, maximizar y cerrar terminales, la barra de
-       proyectos, los paneles de la derecha y la paleta de Ctrl+K
+       proyectos, los paneles de la derecha, el Capataz y la paleta de Ctrl+K
      · el Lienzo: arrastrar las piezas, mover y acercar el tablero, tachar tareas
-     · las decisiones, los objetivos, los comandos y las cuentas
+     · el Perfil y sus cuatro secciones, tu uso, las decisiones, los objetivos,
+       los comandos y las cuentas
 
    Lo que no se puede imitar sin mentir (abrir una terminal de verdad, llamar a
    un agente) no se finge: sale un aviso que dice qué haría la app. Ningún botón
@@ -49,7 +51,9 @@ const T = EN ? {
   respuesta: (n) => `In the app that types "${n}" into the terminal and the agent carries on.`,
   emisionSi: 'Stream mode on: paths, names and keys are hidden so you can share your screen.',
   emisionNo: 'Stream mode off.',
-  asistente: 'The Assistant lives on the Dashboard: ask for the board in your own words and it proposes the plan.',
+  pedir: 'In the app, Adeo opens a new conversation in Chat with this, splits it into sessions and the router picks the model.',
+  pedirVacio: 'Tell Adeo what you want, in your own words.',
+  tarjeta: 'In the app this opens the card to share your usage, as an image or as a video.',
   planear: 'In the app the Foreman proposes the board (which sessions, which agents, in which folders) and opens nothing without your OK.',
   planearVacio: 'Type what you want set up, or click one of the examples below.',
   tema: (n) => `${n} theme. In the app the terminals change colour with it; here they keep the colours of the day they were captured.`,
@@ -81,7 +85,9 @@ const T = EN ? {
   respuesta: (n) => `En la app, eso escribe «${n}» en la terminal y el agente sigue.`,
   emisionSi: 'Modo emisión encendido: se tapan rutas, nombres y claves para poder compartir la pantalla.',
   emisionNo: 'Modo emisión apagado.',
-  asistente: 'El Asistente vive en el Panel: le pides el tablero con tus palabras y él propone el plan.',
+  pedir: 'En la app, Adeo abre con esto una conversación nueva en el Chat, la reparte en sesiones y el router elige el modelo.',
+  pedirVacio: 'Dile a Adeo lo que quieres, con tus palabras.',
+  tarjeta: 'En la app esto abre la tarjeta para compartir tu uso, como imagen o como vídeo.',
   planear: 'En la app, el Capataz propone el tablero (qué sesiones, qué agentes, en qué carpetas) y no abre nada sin tu OK.',
   planearVacio: 'Escribe qué quieres montar, o pulsa uno de los ejemplos de abajo.',
   tema: (n) => `Tema ${n}. En la app las terminales cambian de color con él; aquí conservan los del día en que se copiaron.`,
@@ -276,10 +282,19 @@ function hojaDe(vista, seccion = 0) {
   return unaPieza(`v-${vista}--${seccion}`) ?? unaPieza(`v-${vista}`);
 }
 
+/** «‹ Perfil › Agenda», encima de las cuatro que viven dentro del Perfil. */
+const vueltas = new Map();
+
+/* Cuentas, Agenda, Memoria y Comandos ya no tienen pestaña (`DEL_PERFIL` en la
+   app): se llega a ellas desde su resumen en el Perfil, y estando en una se
+   enciende la del Perfil. */
+const DEL_PERFIL = ['cuentas', 'agenda', 'memoria', 'comandos'];
+const pestanaDe = (vista) => (DEL_PERFIL.includes(vista) ? 'perfil' : vista);
+
 function irA(vista) {
-  if (!$(`nav.tabs .tab[data-tab="${vista}"]`, app)) return;
+  if (!$(`nav.tabs .tab[data-tab="${pestanaDe(vista)}"]`, app)) return;
   estado.vista = vista;
-  for (const t of $$('nav.tabs .tab', app)) t.dataset.active = String(t.dataset.tab === vista);
+  for (const t of $$('nav.tabs .tab', app)) t.dataset.active = String(t.dataset.tab === pestanaDe(vista));
 
   const deCabina = vista === 'cabina' || vista === 'lienzo';
   cabina.dataset.vista = vista;
@@ -293,13 +308,20 @@ function irA(vista) {
   if (!deCabina && !hojas.has(vista)) {
     const hoja = hojaDe(vista);
     if (hoja) {
+      const vuelta = unaPieza(`x-volver-${vista}`);
+      if (vuelta) {
+        app.appendChild(vuelta);
+        vueltas.set(vista, vuelta);
+      }
       app.appendChild(hoja);
       hojas.set(vista, hoja);
       marcarRuedas(hoja);
     }
   }
   for (const [v, hoja] of hojas) hoja.hidden = v !== vista;
+  for (const [v, vuelta] of vueltas) vuelta.hidden = v !== vista;
   cerrarPaleta();
+  cerrarCapataz();
 }
 
 /** Las pestañas de dentro de una vista (Ahora / Proyectos, las de Cuentas, las
@@ -445,7 +467,7 @@ function ponerBarra(modo) {
   return true;
 }
 
-/* Los paneles de la derecha: skills, actividad y archivos. Se cierran volviendo
+/* Los paneles de la derecha: uso, skills y archivos. Se cierran volviendo
    a pulsar su icono, que es lo que hace la app. */
 
 const zonaCerrada = $('.lateral-zona', app)?.cloneNode(true) ?? null;
@@ -506,6 +528,20 @@ function cerrarPaleta() {
   $('.app > .paleta', app)?.remove();
 }
 
+/* El Capataz flota encima de todo, como en la app (`x-capataz`, volcado del
+   botón del orbe de la barra). */
+function cerrarCapataz() {
+  $('.app > .foreman-overlay', app)?.remove();
+}
+
+function alternarCapataz() {
+  if ($('.app > .foreman-overlay', app)) return cerrarCapataz();
+  const capataz = unaPieza('x-capataz');
+  if (!capataz) return avisar(T.planear);
+  app.appendChild(capataz);
+  $('.foreman-input', capataz)?.focus();
+}
+
 function abrirPaleta() {
   cerrarPaleta();
   const paleta = unaPieza('x-paleta');
@@ -529,7 +565,10 @@ function lanzarPaleta(fila) {
   // Una vista por su nombre, una terminal abierta por el suyo, o lo que diga.
   const pestana = $$('nav.tabs .tab', app).find((t) => texto.toLowerCase().endsWith((t.getAttribute('aria-label') ?? '').toLowerCase()));
   if (pestana) return irA(pestana.dataset.tab);
-  const panel = $$(':scope > .pane', rejilla).find((p) => texto.includes($('.pane-name', p)?.textContent.trim() ?? '\u0000'));
+  // Las cuatro del Perfil no tienen pestaña: se reconocen por su resumen.
+  const seccion = $$('.perfil-seccion', plantilla('v-perfil') ?? document).find((s) => ($('.perfil-seccion-cab', s)?.textContent ?? '').replace('›', '').trim() === texto);
+  if (seccion) return irA(seccion.dataset.seccion);
+  const panel = $$(':scope > .pane', rejilla).find((p) => nombreDePanel(p) && texto === nombreDePanel(p));
   if (panel) {
     irA('cabina');
     return enfocar(panel);
@@ -740,6 +779,58 @@ function repasarDecision(doc) {
 }
 
 /* --------------------------------------------------------------------------
+   9 BIS. EL INICIO Y EL PERFIL
+   -------------------------------------------------------------------------- */
+
+/** El nombre entero de un panel («storefront-api · Fallo en…») va en su globo. */
+const nombreDePanel = (p) => {
+  const n = $('.pane-name', p);
+  return (n?.dataset.tip || n?.textContent || '').trim();
+};
+
+/** Un proyecto del inicio: a la Cabina con su terminal delante (`goProject`). */
+function alProyecto(nombre) {
+  irA('cabina');
+  const panel = $$(':scope > .pane', rejilla).find((p) => nombreDePanel(p).startsWith(nombre + ' '));
+  if (panel) return enfocar(panel);
+  avisar(T.proyecto);
+}
+
+/** «Contestar»: a la terminal que pregunta, por el título de su sesión. */
+function alQueEspera(aviso) {
+  irA('cabina');
+  const texto = aviso?.textContent ?? '';
+  const panel = $$(':scope > .pane', rejilla).find((p) => {
+    const titulo = nombreDePanel(p).split(' · ').pop();
+    return titulo && texto.includes(titulo);
+  });
+  if (panel) enfocar(panel);
+}
+
+/** Lo que se le pide a Adeo: en la app abre una conversación del conserje. */
+function pedirAAdeo(caja) {
+  const campo = $('.inicio-texto', caja);
+  if (!campo?.value.trim()) {
+    campo?.focus();
+    return avisar(T.pedirVacio);
+  }
+  campo.value = '';
+  const boton = $('.inicio-enviar', caja);
+  if (boton) boton.disabled = true;
+  avisar(T.pedir);
+}
+
+/** Las pestañas de tu uso: la lista entera de cada una viene en su plantilla. */
+function porfolio(boton) {
+  const pestanas = $$('button[role="tab"]', boton.parentElement);
+  const lista = $('.pu-lista', boton.closest('.pu-porfolio') ?? app);
+  const nueva = unaPieza(`x-porfolio-${pestanas.indexOf(boton)}`);
+  if (!lista || !nueva) return false;
+  lista.replaceWith(nueva);
+  for (const p of pestanas) p.setAttribute('aria-selected', String(p === boton));
+}
+
+/* --------------------------------------------------------------------------
    10. EL CHAT
    -------------------------------------------------------------------------- */
 
@@ -787,11 +878,7 @@ const REGLAS = [
     app.dataset.stream = String(on);
     avisar(on ? T.emisionSi : T.emisionNo);
   }],
-  ['.foreman-call', () => {
-    irA('panel');
-    $('.foreman-input', app)?.focus();
-    avisar(T.asistente);
-  }],
+  ['.foreman-call', () => alternarCapataz()],
 
   // ── Enlaces: nunca dentro del marco ──
   ['a[href]', (a, e) => {
@@ -828,6 +915,7 @@ const REGLAS = [
   ['.session', () => avisar(T.sesion)],
   ['nav.franja .franja-btn', (b) => {
     const n = $$('.franja-btn', b.parentElement).indexOf(b);
+    // El cuarto abre una web en un panel: lo cuenta su globo.
     return n < 3 ? panelDerecho(n) : false;
   }],
   ['.arch-fila', (b) => {
@@ -886,11 +974,17 @@ const REGLAS = [
   }],
   ['.kb-nueva-mas', (b) => anadirTarjeta(b.closest('.kb-nueva'))],
 
-  // ── El Panel ──
-  ['.stat-card[data-live="true"]', () => irA('cabina')],
-  ['.hot-item', () => irA('cabina')],
+  // ── El inicio ──
+  ['.inicio-adeo', () => avisar(T.adeo)],
+  ['.inicio-estado', () => irA('cabina')],
+  ['.inicio-aviso .np-btn', (b) => alQueEspera(b.closest('.inicio-aviso'))],
+  ['.inicio-enviar', (b) => pedirAAdeo(b.closest('.inicio-caja'))],
+  ['.inicio-proy', (b) => alProyecto($('.inicio-proy-n', b)?.textContent.trim() ?? '')],
+  ['.inicio-uso .inicio-enlace', () => irA('perfil')],
+
+  // ── El Capataz (flota encima; el orbe de la barra lo abre) ──
   ['.fm-guia-fila', (b) => {
-    const caja = $('.foreman-input', b.closest('.foreman-card'));
+    const caja = $('.foreman-input', b.closest('.foreman-box'));
     if (!caja) return false;
     caja.value = $('.fm-guia-ej', b)?.textContent.trim() ?? '';
     caja.focus();
@@ -902,11 +996,20 @@ const REGLAS = [
     if (que && b.dataset.tip) que.textContent = b.dataset.tip;
   }],
   // (`.foreman-row` es también la fila de botones de otras tarjetas: solo la del Capataz.)
-  ['.foreman-card .foreman-row .np-btn', (b) => {
-    const caja = $('.foreman-input', b.closest('.foreman-card'));
+  ['.foreman-box .foreman-row .np-btn', (b) => {
+    const caja = $('.foreman-input', b.closest('.foreman-box'));
     avisar(caja?.value.trim() ? T.planear : T.planearVacio);
     if (!caja?.value.trim()) caja?.focus();
   }],
+  // Pulsar fuera de la caja lo cierra; dentro, siguen las demás reglas.
+  ['.foreman-overlay', (o, e) => (e.target === o ? cerrarCapataz() : false)],
+
+  // ── El Perfil ──
+  ['.perfil-seccion', (b) => irA(b.dataset.seccion)],
+  ['.perfil-volver-btn', () => irA('perfil')],
+  ['.pu-pestanas button[role="tab"]', (b) => porfolio(b)],
+  // Un día, el récord o compartir: en la app abren la tarjeta con su editor.
+  ['.pu-compartir, .pu-record, button[data-celda]', () => avisar(T.tarjeta)],
 
   // ── La Agenda y los objetivos ──
   ['.ag-rail .project-logo', (b) => unoSolo(b, 'active')],
@@ -1092,6 +1195,10 @@ app.addEventListener('input', (e) => {
     return;
   }
   if (el.matches('textarea.dec-libre')) return repasarDecision(el.closest('.dec-abierta'));
+  if (el.matches('.inicio-texto')) {
+    const boton = $('.inicio-enviar', el.closest('.inicio-caja'));
+    if (boton) boton.disabled = !el.value.trim();
+  }
 });
 
 app.addEventListener('change', (e) => {
@@ -1108,6 +1215,10 @@ app.addEventListener('keydown', (e) => {
   if (el.matches?.('.chat-input') && e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     return enviarChat(el);
+  }
+  if (el.matches?.('.inicio-texto') && e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    return pedirAAdeo(el.closest('.inicio-caja'));
   }
   if (el.matches?.('.kb-nueva-in') && e.key === 'Enter') return anadirTarjeta(el.closest('.kb-nueva'));
   if (el.matches?.('.paleta-input')) {
@@ -1129,6 +1240,7 @@ document.addEventListener('keydown', (e) => {
     else abrirPaleta();
   } else if (e.key === 'Escape') {
     cerrarPaleta();
+    cerrarCapataz();
   }
 });
 
@@ -1193,7 +1305,8 @@ if ('IntersectionObserver' in window) {
    14. ARRANCAR
    -------------------------------------------------------------------------- */
 
-irA($(`nav.tabs .tab[data-tab="${consulta.get('vista')}"]`, app) ? consulta.get('vista') : 'cabina');
+const pedida = consulta.get('vista') ?? '';
+irA($(`nav.tabs .tab[data-tab="${pestanaDe(pedida)}"]`, app) ? pedida : 'cabina');
 
 // Para las pruebas, y para quien quiera trastear desde la consola.
 window.adeDemo = { irA, avisar, estado };

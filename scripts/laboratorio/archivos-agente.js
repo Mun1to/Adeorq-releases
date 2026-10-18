@@ -11,7 +11,10 @@
 // commit y el commit entra. Detrás van los que no dejan escrito lo mismo (un
 // CLI que solo apunta lo que edita, uno que no apunta nada y una consola
 // pelada), una sesión que tocó cuarenta archivos de nombre largo, y lo mismo en
-// inglés y en un tema claro.
+// inglés y en un tema claro. Y con el agente trabajando pasa por la barra los
+// dos detectores de la casa (`carceles.js`, `mayusculas.js`): el barrido de
+// pantallas no tiene agente, y así llegó a Munir un «WORKING» en mayúsculas
+// espaciadas y un «Edited» en pastilla (2026-10-18).
 //
 // Se lanza con el MCP de Playwright, con `pnpm dev` en marcha y en una página
 // recién abierta:
@@ -65,8 +68,11 @@ async (page) => {
   }, [R, PANELES]);
 
   const fotos = [];
+  // Con las animaciones paradas: con el lápiz escribiendo (un `transform` en
+  // marcha dentro del cristal) la captura recortada salía con la barra en
+  // blanco, aunque el DOM midiera bien (2026-10-18).
   const foto = async (nombre) => {
-    await page.screenshot({ path: DIR + nombre, clip: { x: 1920 - 620, y: 0, width: 620, height: 1080 } });
+    await page.screenshot({ path: DIR + nombre, clip: { x: 1920 - 620, y: 0, width: 620, height: 1080 }, animations: "disabled" });
     fotos.push(DIR + nombre);
   };
   const casos = [];
@@ -131,6 +137,9 @@ async (page) => {
         punto: !!b.querySelector(".arch-punto"),
         fondo: cs.backgroundColor, color: getComputedStyle(b.querySelector(".arch-nom")).color,
         mueve: cs.animationName, etqMueve: b.querySelector(".arch-etq") ? getComputedStyle(b.querySelector(".arch-etq")).animationName : null,
+        // El nombre: si brilla (el halo de letras que pidió Munir) y con qué animación entra.
+        nomBrilla: getComputedStyle(b.querySelector(".arch-nom")).textShadow !== "none",
+        nomMueve: getComputedStyle(b.querySelector(".arch-nom")).animationName,
       };
     };
     return {
@@ -138,8 +147,12 @@ async (page) => {
       estado: txt(".arch-tj-estado"), titulo: txt(".arch-tj-tit"), sub: txt(".arch-tj-sub"), git: txt(".arch-tj-git"),
       leyenda: [...document.querySelectorAll(".arch-leyenda span")].map(limpio).join(" · "),
       nota: txt(".arch-tj-nota"),
+      // La lista vive DENTRO de la tarjeta y sin rótulo encima (Munir, 2026-10-18: «fusionar esas dos cosas»).
+      listaDentro: !!document.querySelector(".arch-tarjeta .arch-tocados"),
       cab: [...document.querySelectorAll(".arch-toc-cab span")].map(limpio).join(" · "),
       lista: [...document.querySelectorAll(".arch-toc")].map((b) => [limpio(b.querySelector(".arch-nom")), limpio(b.querySelector(".arch-toc-dir")), limpio(b.querySelector(".arch-lineas")) ?? "", limpio(b.querySelector(".arch-etq")), b.getAttribute("data-agente")].join("|")),
+      // El marco de la tarjeta, de la familia del glow de la barra (88b771d): el halo de las cajas.
+      tarjetaHalo: /0px 10px 28px/.test(document.querySelector(".arch-tarjeta") ? getComputedStyle(document.querySelector(".arch-tarjeta")).boxShadow : ""),
       mas: txt(".arch-toc-mas"), fueraDeCarpeta: txt(".arch-toc-fuera"),
       pie: txt(".arch-pie"), pieQue: document.querySelector(".arch-pie")?.getAttribute("data-que") ?? null,
       cuentas: [...document.querySelectorAll(".arch-cuenta")].map(limpio).join(" · "),
@@ -167,20 +180,28 @@ async (page) => {
 
   await poner({ enMarcha: true, tocados: [{ ruta: TEST, enCurso: "leer" }] }, null);
   m = await medir();
-  caso("abre el test: la tarjeta lo dice y la fila se enciende con su etiqueta", m.que === "leyendo" && m.estado === "Trabajando" && m.titulo === "Claude está leyendo" && m.sub === "tests/client.test.js" && m.test?.agente === "leyendo" && m.test?.etq === "Leyendo", JSON.stringify([m.que, m.estado, m.titulo, m.sub, m.test]));
+  caso("abre el test: la tarjeta lo dice (el archivo va en la lista, no repetido debajo) y la fila se enciende con su etiqueta", m.que === "leyendo" && m.estado === "Trabajando" && m.titulo === "Claude está leyendo" && m.sub === null && m.test?.agente === "leyendo" && m.test?.etq === "Leyendo", JSON.stringify([m.que, m.estado, m.titulo, m.sub, m.test]));
   caso("la carpeta lleva la marca de lo de dentro", m.tests?.agente === "leyendo" && m.src?.agente === null, JSON.stringify([m.tests, m.src]));
-  caso("la lista «Tocó Claude» nace con una fila", m.cab === "Tocó Claude · 1 archivo" && m.lista.join() === "client.test.js|tests||Leyendo|leyendo", `${m.cab} / ${m.lista}`);
-  caso("la etiqueta entra con su animación y la fila tiene fondo", /arch-etq-entra/.test(m.test?.etqMueve ?? "") && m.test?.fondo !== "rgba(0, 0, 0, 0)", JSON.stringify(m.test));
+  caso("la lista nace dentro de la tarjeta, con una fila y sin rótulo encima", m.listaDentro && m.cab === "" && m.lista.join() === "client.test.js|tests||Leyendo|leyendo", `${m.listaDentro} «${m.cab}» / ${m.lista}`);
+  caso("la etiqueta entra con su animación, la fila tiene fondo y el nombre brilla mientras lo lee", /arch-etq-entra/.test(m.test?.etqMueve ?? "") && m.test?.fondo !== "rgba(0, 0, 0, 0)" && m.test?.nomBrilla, JSON.stringify(m.test));
+  caso("la tarjeta lleva el halo de la familia de la barra", m.tarjetaHalo, "sin «0px 10px 28px» en la sombra de .arch-tarjeta");
   await foto("agente-1-leyendo.png");
 
   await poner({ enMarcha: true, tocados: [{ ruta: TEST, leido: 20 }, { ruta: CLIENTE, enCurso: "editar" }] }, null);
   m = await medir();
   const colorLeido = m.test?.color;
   const colorEditando = m.cliente?.color;
-  caso("edita el cliente: «editando» en el árbol y en la tarjeta; el test se queda en «abierto»", m.que === "editando" && m.titulo === "Claude está editando" && m.sub === "src/api/client.js" && m.cliente?.agente === "editando" && m.cliente?.etq === "Editando" && m.test?.agente === "leido" && m.test?.etq === null, JSON.stringify([m.que, m.titulo, m.sub, m.cliente, m.test]));
+  caso("edita el cliente: «editando» en el árbol y en la tarjeta; el test se queda en «abierto»", m.que === "editando" && m.titulo === "Claude está editando" && m.sub === null && m.cliente?.agente === "editando" && m.cliente?.etq === "Editando" && m.test?.agente === "leido" && m.test?.etq === null, JSON.stringify([m.que, m.titulo, m.sub, m.cliente, m.test]));
   caso("lo que se mueve va primero en la lista", m.lista.join(" ") === "client.js|src/api||Editando|editando client.test.js|tests||Abierto|leido", m.lista.join(" "));
   caso("leído y editando no llevan el mismo color", colorLeido && colorEditando && colorLeido !== colorEditando, `${colorLeido} / ${colorEditando}`);
   await foto("agente-2-editando.png");
+  // Con el agente trabajando, la barra entera por los detectores de la casa.
+  for (const detector of ["carceles.js", "mayusculas.js"]) {
+    const src = (await page.evaluate(async (n) => (await import(`/scripts/laboratorio/${n}?raw&t=${Date.now()}`)).default, detector))
+      .replace('document.querySelectorAll("body *")', 'document.querySelectorAll(".lateral, .lateral *")');
+    const r = await (0, eval)(src)(page);
+    caso(`${detector}: la barra con el agente trabajando, limpia`, r.fallos.length === 0, r.fallos.join(" | "));
+  }
 
   const editados = [{ ruta: TEST, leido: 60 }, { ruta: CLIENTE, editado: 40 }, { ruta: ESTACIONES, editado: 30 }];
   const sucio = { cambios: [{ ruta: CLIENTE, mas: 12, menos: 3 }, { ruta: ESTACIONES, mas: 1, menos: 1 }] };
@@ -203,7 +224,7 @@ async (page) => {
   await poner({ turno: 2, tocados: editados }, { delante: 1, cambios: [], commits: [COMMIT] });
   m = await medir();
   caso("el commit entra: las dos filas pasan a verde con su etiqueta", m.cliente?.agente === "commit" && m.estaciones?.agente === "commit" && m.cliente?.etq === "En el commit" && m.cliente?.letra === null && m.cliente?.lineas === null, JSON.stringify([m.cliente, m.estaciones]));
-  caso("el verde no es el naranja de antes, y la fila lleva fondo y su animación", m.cliente?.color !== colorEditado && m.cliente?.fondo !== "rgba(0, 0, 0, 0)" && /arch-al-commit/.test(m.cliente?.mueve ?? ""), JSON.stringify([colorEditado, m.cliente]));
+  caso("el verde no es el naranja de antes, la fila lleva fondo y el nombre entra brillando", m.cliente?.color !== colorEditado && m.cliente?.fondo !== "rgba(0, 0, 0, 0)" && /arch-brilla/.test(m.cliente?.nomMueve ?? ""), JSON.stringify([colorEditado, m.cliente]));
   caso("la tarjeta: cuántos entraron, el hash y el asunto", m.que === "commit" && m.estado === "Hecho" && m.titulo === "Claude hizo commit de 2 archivos" && (m.sub ?? "").startsWith("a1c9e42 · fix: the client"), JSON.stringify([m.que, m.titulo, m.sub]));
   caso("la línea de git: lo que falta por subir y el árbol limpio", /main\s*↑1/.test(m.git ?? "") && /limpio, nada cambiado/.test(m.git ?? ""), m.git);
   caso("la lista entera: los dos en el commit, y lo que solo abrió sigue abierto", m.lista.join(" ") === "stations.js|src/api||En el commit|commit client.js|src/api||En el commit|commit client.test.js|tests||Abierto|leido", m.lista.join(" "));
@@ -223,7 +244,7 @@ async (page) => {
     { cambios: muchos.filter((t) => t.editado).map((t, i) => ({ ruta: t.ruta, mas: 1200 + i, menos: 345 })), commits: [] },
   );
   m = await medir();
-  caso("cuarenta archivos: se ven cinco y el resto espera detrás de «y N más»", m.lista.length === 5 && m.mas === "y 35 más" && m.cab === "Tocó Claude · 40 archivos", `${m.lista.length} ${m.mas} ${m.cab}`);
+  caso("cuarenta archivos: se ven cinco y el resto espera detrás de «y N más»", m.lista.length === 5 && m.mas === "y 35 más", `${m.lista.length} ${m.mas}`);
   caso("lo de fuera de la carpeta se dice aparte", m.fueraDeCarpeta === "y 1 fuera de esta carpeta", m.fueraDeCarpeta);
   caso("con nombres largos y +1200 −345 nada se sale de la barra", m.fuera.length === 0, m.fuera.join(" ; "));
   caso("y al árbol le queda sitio", m.altoArbol > m.altoVentana / 4, `${m.altoArbol} de ${m.altoVentana}`);
@@ -258,7 +279,7 @@ async (page) => {
   await abrir({ idioma: "en" });
   await poner({ turno: 2, tocados: editados }, { delante: 1, cambios: [], commits: [COMMIT] });
   m = await medir();
-  caso("en inglés: la tarjeta, la leyenda, la lista y el pie", m.estado === "Done" && m.titulo === "Claude committed 2 files" && m.leyenda === "Read by Claude · Edited by Claude · Committed" && m.cab === "Claude touched · 3 files" && m.lista[0] === "stations.js|src/api||Committed|commit" && m.lista[2].endsWith("|Opened|leido") && m.pie === "committed a1c9e42" && /clean, nothing changed/.test(m.git ?? ""), JSON.stringify([m.estado, m.titulo, m.leyenda, m.cab, m.lista, m.pie, m.git]));
+  caso("en inglés: la tarjeta, la leyenda, la lista y el pie", m.estado === "Done" && m.titulo === "Claude committed 2 files" && m.leyenda === "Read by Claude · Edited by Claude · Committed" && m.lista[0] === "stations.js|src/api||Committed|commit" && m.lista[2].endsWith("|Opened|leido") && m.pie === "committed a1c9e42" && /clean, nothing changed/.test(m.git ?? ""), JSON.stringify([m.estado, m.titulo, m.leyenda, m.lista, m.pie, m.git]));
   caso("en inglés tampoco se sale nada", m.fuera.length === 0, m.fuera.join(" ; "));
   await foto("agente-9-ingles.png");
   await poner({ enMarcha: true, tocados: [{ ruta: TEST, leido: 30 }, { ruta: CLIENTE, enCurso: "editar" }, { ruta: ESTACIONES, editado: 40 }] }, { cambios: [{ ruta: ESTACIONES, mas: 1, menos: 1 }], commits: [] });

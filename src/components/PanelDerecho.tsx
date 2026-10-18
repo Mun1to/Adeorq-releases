@@ -32,11 +32,15 @@ interface Props {
       antes vivía al fondo de Skills, que no tiene nada que ver. */
   uso: React.ReactNode;
   archivos: React.ReactNode;
-  /** Abrir la vista previa de la web. No es una cara de esta barra: es un panel
-      del mosaico. Vive aquí porque Munir lo pidió en la franja (2026-08-15) y
-      tiene sentido: la franja es «lo que puedes abrir», y da igual dónde acabe
-      abriéndose cada cosa. */
+  /** Abrir o cerrar el navegador. Su botón vive en la franja desde que Munir lo
+      pidió ahí (2026-08-15): la franja es «lo que puedes abrir». */
   onWeb?: () => void;
+  /** El navegador, montado desde fuera (solo en la Cabina). Desde el 2026-10-18
+      es un panel grande pegado a la franja y no un panel del mosaico (B1): va
+      aquí dentro para compartir el borde encendido y el resplandor de la zona. */
+  web?: React.ReactNode;
+  /** Está abierto: su botón de la franja se enciende como el de una cara. */
+  webAbierta?: boolean;
 }
 
 const CARAS: Array<{ id: Exclude<Cara, "">; titulo: string; icono: React.ReactNode }> = [
@@ -52,6 +56,8 @@ export default function PanelDerecho({
   uso,
   archivos,
   onWeb,
+  web,
+  webAbierta = false,
 }: Props) {
   const { t } = useT();
   const actual = CARAS.find((c) => c.id === cara);
@@ -81,6 +87,8 @@ export default function PanelDerecho({
         </aside>
       )}
 
+      {web}
+
       <nav className="franja">
         {CARAS.map((c) => (
           <button
@@ -94,14 +102,15 @@ export default function PanelDerecho({
           </button>
         ))}
 
-        {/* La web. Separada de las de arriba porque no abre un panel aquí, sino
-            uno en el mosaico: la rayita dice que hace otra cosa. */}
+        {/* El navegador. Separado de las de arriba porque no es una cara: puede
+            estar abierto a la vez que una de ellas. */}
         {onWeb && (
           <>
             <span className="franja-raya" />
             <button
               className="franja-btn"
-              data-tip={t("Ver la web en un panel (localhost)")}
+              data-on={webAbierta}
+              data-tip={webAbierta ? t("Ocultar el navegador") : t("Navegador")}
               /* `onClick={onWeb}` NO: React le pasaría el evento del ratón como
                  primer argumento, y `abrirWeb(url?)` lo tomaría por la dirección. */
               onClick={() => onWeb()}

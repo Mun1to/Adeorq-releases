@@ -27,8 +27,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import {
-  aLaSonda,
   deLaSonda,
+  type Canal,
   escribirEstilo,
   escribirTexto,
   parteParaElAgente,
@@ -51,8 +51,9 @@ import {
 } from "./Icons";
 
 interface Props {
-  /** El iframe donde vive la página. Sin él no hay con quién hablar. */
-  marco: HTMLIFrameElement | null;
+  /** Por dónde se habla con la sonda de la página (`lib/editorWeb.ts`): un
+      iframe, o el navegador de verdad. Sin él no hay con quién hablar. */
+  canal: Canal | null;
   /** Cambia cuando la página se recarga: hay que volver a presentarse. */
   sello: number;
   url: string;
@@ -85,7 +86,7 @@ const SALTOS = String.fromCharCode(10, 10);
 /** Las que no tienen nada que enseñar aparte de la propia página. */
 const SIN_CONTROLES: Herramienta[] = ["select", "caja"];
 
-export default function EditorWeb({ marco, sello, url, onAlAgente }: Props) {
+export default function EditorWeb({ canal, sello, url, onAlAgente }: Props) {
   const { t } = useT();
   const [herramienta, setHerramienta] = useState<Herramienta>("select");
   const [elegido, setElegido] = useState<Elegido | null>(null);
@@ -109,8 +110,8 @@ export default function EditorWeb({ marco, sello, url, onAlAgente }: Props) {
   /* ── Lo que cuenta la sonda ───────────────────────────────────────────── */
 
   useEffect(() => {
-    const oir = async (e: MessageEvent) => {
-      const m = deLaSonda(e);
+    const oir = async (datos: unknown) => {
+      const m = deLaSonda(datos);
       if (!m) return;
 
       switch (m.tipo) {
@@ -180,16 +181,15 @@ export default function EditorWeb({ marco, sello, url, onAlAgente }: Props) {
           break;
       }
     };
-    window.addEventListener("message", oir);
-    return () => window.removeEventListener("message", oir);
-  }, [decir, onAlAgente, t, url]);
+    return canal?.oir((datos) => void oir(datos));
+  }, [canal, decir, onAlAgente, t, url]);
 
   /* ── Presentarse cada vez que la página vuelve a cargar ───────────────── */
 
   useEffect(() => {
     setElegido(null);
     setHaySonda(null);
-    const saludar = () => aLaSonda(marco, { tipo: "hola" });
+    const saludar = () => canal?.enviar({ tipo: "hola" });
     saludar();
     // La sonda puede tardar en existir: la página quizá siga cargando.
     const reintento = window.setInterval(saludar, 400);
@@ -206,26 +206,26 @@ export default function EditorWeb({ marco, sello, url, onAlAgente }: Props) {
       window.clearInterval(reintento);
       window.clearTimeout(parar);
     };
-  }, [marco, sello]);
+  }, [canal, sello]);
 
   useEffect(() => {
-    aLaSonda(marco, { tipo: "modo", editar: true });
-    return () => aLaSonda(marco, { tipo: "modo", editar: false });
-  }, [marco, sello]);
+    canal?.enviar({ tipo: "modo", editar: true });
+    return () => canal?.enviar({ tipo: "modo", editar: false });
+  }, [canal, sello]);
 
   useEffect(() => {
-    aLaSonda(marco, { tipo: "herramienta", cual: herramienta });
-  }, [marco, herramienta]);
+    canal?.enviar({ tipo: "herramienta", cual: herramienta });
+  }, [canal, herramienta]);
 
   /* ── Cambiar un valor ─────────────────────────────────────────────────── */
 
   /** Mientras arrastras el control: se ve, pero no se escribe. */
   const previa = (estilos: Record<string, string>) =>
-    aLaSonda(marco, { tipo: "previa", estilos });
+    canal?.enviar({ tipo: "previa", estilos });
 
   /** Al soltar: se ve Y se guarda. */
   const aplicar = (estilos: Record<string, string>) =>
-    aLaSonda(marco, { tipo: "aplicar", estilos });
+    canal?.enviar({ tipo: "aplicar", estilos });
 
   const valor = (clave: string) => elegido?.puesto[clave] ?? elegido?.estilo[clave] ?? "";
   const conPanel = elegido && !SIN_CONTROLES.includes(herramienta);
@@ -253,7 +253,7 @@ export default function EditorWeb({ marco, sello, url, onAlAgente }: Props) {
           <button
             className="ew-enviar"
             disabled={!elegido}
-            onClick={() => aLaSonda(marco, { tipo: "alagente" })}
+            onClick={() => canal?.enviar({ tipo: "alagente" })}
           >
             <EnviarIcon size={17} />
             <span>{t("Mandar al agente")}</span>
@@ -399,11 +399,11 @@ export default function EditorWeb({ marco, sello, url, onAlAgente }: Props) {
 
           {herramienta === "duplicar" && (
             <div className="ew-pareja">
-              <button className="ew-accion" onClick={() => aLaSonda(marco, { tipo: "duplicar" })}>
+              <button className="ew-accion" onClick={() => canal?.enviar({ tipo: "duplicar" })}>
                 <DuplicarIcon size={15} />
                 {t("Duplicar")}
               </button>
-              <button className="ew-accion peligro" onClick={() => aLaSonda(marco, { tipo: "borrar" })}>
+              <button className="ew-accion peligro" onClick={() => canal?.enviar({ tipo: "borrar" })}>
                 <TrashIcon size={15} />
                 {t("Borrar")}
               </button>

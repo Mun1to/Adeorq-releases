@@ -119,3 +119,9 @@
 
 /* La pestaña de inicio: Adeo y su caja, tus proyectos y tu uso. */
 @import "./estilos/34-inicio.css";
+
+/* El panel de Archivos: el árbol y lo que toca el agente. */
+@import "./estilos/35-archivos.css";
+
+/* El navegador de verdad, pegado a la franja de la derecha. */
+@import "./estilos/36-navegador.css";

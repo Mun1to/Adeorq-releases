@@ -64,6 +64,7 @@ replacing them, so the day something new ships, you have it.
 
 | | |
 |---|---|
+| **Home** | Adeo and one box to ask him for anything in your own words: he splits it into sessions and the router picks the model. Beside it, your projects ordered by who is waiting for you and who is working, and your usage this month. |
 | **The Cockpit** | A grid of real terminals. Split them, move them, set them aside without closing them, and find them where you left them next time. And if you want, they survive Adeorq itself: with **Settings → Terminals → Keep the terminals alive if Adeorq crashes** (experimental), your agents keep working through a crash and reattach when you open it again. |
 | **Your sessions** | Reads `~/.claude`, and Codex's `~/.codex`, with no API at all: title, real state (asking you / finished / halfway), how long ago, and which ones are still alive. One click resumes any of them inside the panel. |
 | **The Foreman** | Tell it what you want out loud and it proposes a board. Nothing runs without your OK, and the plan goes through a deterministic gate before you even see it. |
@@ -74,6 +75,7 @@ replacing them, so the day something new ships, you have it.
 | **Shadow Mode** | Each agent in its own git worktree. You read the diff and decide whether it lands or gets thrown away. |
 | **Decisions** | When an agent needs you to choose, it asks with numbered options and says which one it would pick. You answer in its own tab, or from your phone, and the answer goes straight back to the terminal that asked. |
 | **The Agenda** | What is coming at you, your goals for the day, and the ideas your agents leave behind along the way. Plus orders that run on their own, on the days and at the hour you set, with a breaker that stops one after three failures in a row. |
+| **Your profile and usage** | Your name, your @ and your photo, with your Accounts, Agenda, Memory and Commands inside, each with its summary. Below, your usage: this month's tokens by provider, model or project, the year in squares, and a card to share it as an image or a video. |
 | **Accounts** | Several logins of the same CLI side by side, each with its plan and how much of its limit is left. You choose which one new terminals are born with, or open a terminal on a specific one. |
 | **Commands** | Everything you can type inside each agent, searchable by what you want to do rather than by its name, and sent to the terminal with one click. |
 | **Memory** | Your Obsidian vault inside the panel, searchable by what the notes say, with a map of what links to what. |
@@ -84,15 +86,16 @@ replacing them, so the day something new ships, you have it.
 <div align="center">
 <img src="web/assets/screens/en/canvas.png" width="49%" alt="The Canvas: three terminals living on the board, an arrow that hands one agent's work to the next, a swarm that joins two of them into one chat, two notes and the board of what every agent is doing">
 <img src="web/assets/screens/en/files.png" width="49%" alt="Files: the project's tree on the right, a file open in the editor, and two terminals with the tests passing and the diff">
-<img src="web/assets/screens/en/dashboard.png" width="49%" alt="The Dashboard: how many sessions are working, how many are waiting for you, and the Foreman">
+<img src="web/assets/screens/en/dashboard.png" width="49%" alt="Home: Adeo with the box to ask him for anything, your projects by who is working, and your usage in squares">
+<img src="web/assets/screens/en/profile.png" width="49%" alt="Your profile: your name, the summaries of Accounts, Agenda, Memory and Commands, and your usage with the month, the year and the split by project">
 <img src="web/assets/screens/en/decisions.png" width="49%" alt="Decisions: a question from an agent with its numbered options, the recommended one marked, and the answer being filled in">
 <img src="web/assets/screens/en/agenda.png" width="49%" alt="The Agenda: the month with each day's goals, what your agents propose, and today's goals in a floating panel">
 <img src="web/assets/screens/en/accounts.png" width="49%" alt="Accounts: two Claude Code logins and a Codex one, each with its plan and how much of its limit is used">
 </div>
 
 <sub>Every screenshot is the real app, opened on a demo workshop instead of anybody's projects. The agents in the
-terminals are real sessions, recorded in those demo projects and played back; the accounts and their limits are
-sample data.</sub>
+terminals are real sessions, recorded in those demo projects and played back; the accounts, their limits and the
+usage are sample data.</sub>
 
 ## From your phone, or any browser
 

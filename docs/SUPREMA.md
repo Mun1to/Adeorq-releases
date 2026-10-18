@@ -91,6 +91,13 @@ puede tocarlo:
 Al llegar al tope, `open_pane` no falla en silencio: devuelve el motivo, para que
 la suprema lo cuente en su respuesta en vez de quedarse esperando.
 
+Y un tercero, de dinero: **un Claude que abre un agente nace en Opus** si no pide otro
+(`model`: haiku, sonnet u opus), sea cual sea el modelo de fábrica de la persona, y **Fable
+se rechaza** (`modelo_para_agente` en `mcp.rs`, con su prueba). Munir, 2026-10-18: las
+sesiones que le abría una suprema salían en Fable porque ese era su modelo de fábrica
+(un `/model` en otra sesión lo cambia para todas), y «no abras Fable, gasta mucho; como
+mucho Opus». Fable lo abre una persona, no un agente.
+
 ## Las terminales delegadas las limpia quien las abrió (2026-10-15)
 
 Munir, 2026-10-12: *«que se limpien automáticamente, que luego todo se satura»*. Y el 15,

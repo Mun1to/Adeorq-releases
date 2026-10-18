@@ -65,6 +65,7 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 
 | | |
 |---|---|
+| **El inicio** | Adeo y una caja para pedirle lo que quieras con tus palabras: lo reparte en sesiones y el router elige el modelo. Al lado, tus proyectos por quién te espera y quién trabaja, y tu uso del mes. |
 | **La Cabina** | Un mosaico de terminales reales. Se parten, se mueven, se apartan sin cerrarse y vuelven donde estaban al reabrir. Y si quieres, sobreviven a la propia Adeorq: con **Ajustes → Terminales → Que las terminales aguanten si Adeorq se cae** (en pruebas), tus agentes siguen trabajando aunque se cierre de golpe y se reenganchan al volver a abrirla. |
 | **Tus sesiones** | Lee `~/.claude`, y el `~/.codex` de Codex, sin API ninguna: título, estado real (te pregunta / terminó / a medias), cuándo fue y cuáles siguen vivas. Un clic las retoma dentro del panel. |
 | **El Capataz** | Le pides el tablero hablando y te propone un plan. Nada se ejecuta sin tu OK, y el plan pasa por una verja determinista antes de que lo veas. |
@@ -75,6 +76,7 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 | **Modo Espejo** | Cada agente en su propio worktree de git. Ves el diff y decides si entra o se descarta. |
 | **Decisiones** | Cuando un agente necesita que elijas, te lo pregunta con opciones numeradas y te dice cuál cogería él. Contestas en su pestaña, o desde el móvil, y la respuesta vuelve a la terminal que preguntó. |
 | **La Agenda** | Lo que se te viene encima, tus objetivos del día y las ideas que los agentes te dejan por el camino. Y encargos que se lanzan solos, los días y a la hora que digas, con un freno que para uno cuando falla tres veces seguidas. |
+| **Tu perfil y tu uso** | Tu nombre, tu @ y tu foto, y dentro tus Cuentas, tu Agenda, tu Memoria y tus Comandos, cada una con su resumen. Debajo, tu uso: los tokens del mes por proveedor, modelo o proyecto, el año en casillas y una tarjeta para compartirlo como imagen o como vídeo. |
 | **Cuentas** | Varios logins del mismo CLI uno al lado del otro, cada uno con su plan y con lo que lleva gastado de su límite. Eliges con cuál nacen las terminales nuevas, o abres una terminal con una en concreto. |
 | **Comandos** | Todo lo que puedes escribir dentro de cada agente, buscando por lo que quieres hacer y no por cómo se llama, y enviado a la terminal con un clic. |
 | **La Memoria** | Tu bóveda de Obsidian dentro del panel, con búsqueda por contenido y el mapa de lo que enlaza con qué. |
@@ -85,7 +87,8 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 <div align="center">
 <img src="web/assets/screens/es/canvas.png" width="49%" alt="El Lienzo: tres terminales dentro del tablero, una flecha que le pasa a un agente lo que hizo otro, un enjambre que junta a dos de ellas en un solo chat, dos notas y el tablero de qué hace cada agente">
 <img src="web/assets/screens/es/files.png" width="49%" alt="Archivos: el árbol del proyecto a la derecha, un archivo abierto en el editor y dos terminales con las pruebas en verde y el diff">
-<img src="web/assets/screens/es/dashboard.png" width="49%" alt="El Panel: cuántas sesiones trabajan, cuántas te esperan, y el Capataz">
+<img src="web/assets/screens/es/dashboard.png" width="49%" alt="El inicio: Adeo con la caja para pedirle lo que quieras, tus proyectos por quién trabaja y tu uso en casillas">
+<img src="web/assets/screens/es/profile.png" width="49%" alt="Tu perfil: tu nombre, los resúmenes de Cuentas, Agenda, Memoria y Comandos, y tu uso con el mes, el año y el reparto por proyecto">
 <img src="web/assets/screens/es/decisions.png" width="49%" alt="Decisiones: una pregunta de un agente con sus opciones numeradas, la recomendada marcada y la respuesta a medio rellenar">
 <img src="web/assets/screens/es/agenda.png" width="49%" alt="La Agenda: el mes con los objetivos de cada día, lo que proponen tus agentes y los objetivos de hoy en un panel flotante">
 <img src="web/assets/screens/es/accounts.png" width="49%" alt="Cuentas: dos logins de Claude Code y uno de Codex, cada uno con su plan y con lo que lleva gastado de su límite">
@@ -93,7 +96,7 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 
 <sub>Todas las capturas son la app de verdad, abierta sobre un taller de demostración y no sobre los proyectos de
 nadie. Los agentes de las terminales son sesiones reales, grabadas en esos proyectos de demostración y reproducidas;
-las cuentas y sus límites son datos de ejemplo.</sub>
+las cuentas, sus límites y el uso son datos de ejemplo.</sub>
 
 ## Desde el móvil, o desde cualquier navegador
 

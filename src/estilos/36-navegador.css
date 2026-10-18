@@ -1,0 +1,464 @@
+/* ── EL NAVEGADOR DE VERDAD ───────────────────────────────────────────────
+   `components/Navegador.tsx`. Un panel grande pegado a la franja de la derecha,
+   dentro de `.lateral-zona`, con la misma familia que el panel de las caras: el
+   borde izquierdo encendido y el resplandor hacia las terminales (88b771d).
+
+   Lo que Munir eligió el 2026-10-18 mirando maquetas: dos filas como un
+   navegador de cristal (C1), movimiento «vivo» (D2) y Geist con Geist Mono
+   (E3). La pestaña activa no lleva fondo: color y la raya de acento con brillo,
+   que es como va lo elegido en toda la casa (`estilo.md`, «Sin cárceles»).
+
+   Ojo con lo que se pinta en `.nav-hueco`: ahí encima va la página, que es un
+   panel NATIVO y tapa todo lo del DOM. Lo de este archivo que se ve dentro del
+   hueco solo se ve cuando no hay página (en blanco, la foto, el iframe). */
+
+.nav {
+  flex: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--panel);
+  backdrop-filter: var(--glass-blur);
+  border-left: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  box-shadow:
+    var(--glass-edge),
+    -14px 0 40px -10px color-mix(in srgb, var(--accent) 28%, transparent);
+  font-family: "Geist Variable", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-feature-settings: "tnum";
+  animation: nav-entra var(--t-lenta) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nav[data-abierto="false"] {
+  display: none;
+}
+
+/* Mientras carga, el marco respira: un segundo y medio por vuelta. */
+.nav[data-cargando] {
+  animation: nav-respira 1.6s ease-in-out infinite;
+}
+
+@keyframes nav-entra {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+
+@keyframes nav-respira {
+  50% {
+    box-shadow:
+      var(--glass-edge),
+      -14px 0 46px -8px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+}
+
+/* El tirador: el borde izquierdo entero se arrastra. La raya solo se enciende
+   con el ratón encima, para que en reposo el borde sea solo borde. */
+.nav-tirador {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  z-index: 3;
+  cursor: col-resize;
+}
+
+.nav-tirador::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: calc(50% - 18px);
+  width: 2px;
+  height: 36px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  opacity: 0;
+  transition: opacity var(--t-rapida) ease;
+}
+
+.nav-tirador:hover::after,
+.nav[data-tirando] .nav-tirador::after {
+  opacity: 1;
+}
+
+.nav[data-tirando] {
+  user-select: none;
+}
+
+/* ── Fila 1: las pestañas ── */
+.nav-pestanas {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 36px;
+  padding: 0 8px;
+  background: var(--panel-head);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav-pest {
+  position: relative;
+  flex: 0 1 200px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 200px;
+  height: 31px;
+  padding: 0 6px 0 11px;
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  animation: nav-nace var(--t-media) cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition:
+    color var(--t-rapida) ease,
+    max-width var(--t-media) ease,
+    opacity var(--t-media) ease;
+}
+
+.nav-pest:hover {
+  color: var(--text);
+}
+
+.nav-pest[data-on="true"] {
+  color: var(--text);
+  font-weight: 560;
+}
+
+/* La raya de la activa, arriba y con brillo: lo que distingue a la C1. */
+.nav-pest[data-on="true"]::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: nav-raya var(--t-media) ease-out;
+}
+
+/* La que se va cierra su ancho antes de desaparecer. */
+.nav-pest[data-muere] {
+  max-width: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes nav-nace {
+  from {
+    max-width: 0;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes nav-raya {
+  from {
+    transform: scaleX(0.2);
+    opacity: 0;
+  }
+}
+
+.nav-pest-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+}
+
+.nav-pest-ico img {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+/* Cargando: el icono se vuelve un anillo que gira. */
+.nav-anillo {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: var(--accent);
+  animation: nav-gira 1s linear infinite;
+}
+
+@keyframes nav-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.nav-pest-nom {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-pest-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--t-rapida) ease,
+    color var(--t-rapida) ease,
+    background var(--t-rapida) ease;
+}
+
+.nav-pest:hover .nav-pest-x,
+.nav-pest[data-on="true"] .nav-pest-x {
+  opacity: 0.8;
+}
+
+.nav-pest-x:hover {
+  opacity: 1;
+  color: var(--text);
+  background: var(--row-hover);
+}
+
+.nav-mas {
+  align-self: center;
+  margin-left: 2px;
+}
+
+/* ── Fila 2: atrás, adelante, recargar, la dirección y lo de la derecha ── */
+.nav-barra {
+  flex: none;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-acts {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.nav-acts .mini.icono[data-on="true"] {
+  color: var(--accent);
+}
+
+.nav-url {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: var(--r-pastilla);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: 1px solid var(--border);
+  cursor: text;
+  transition:
+    background var(--t-rapida) ease,
+    border-color var(--t-rapida) ease,
+    box-shadow var(--t-media) ease;
+}
+
+.nav-url:hover {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+
+/* Al escribir, la dirección se ilumina. */
+.nav-url[data-editando] {
+  background: var(--popover);
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 0 22px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.nav-url input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: 12.5px / 1 "Geist Mono Variable", ui-monospace, "Cascadia Mono", monospace;
+  text-overflow: ellipsis;
+}
+
+.nav-url input::placeholder {
+  color: var(--muted);
+  font-family: "Geist Variable", system-ui, sans-serif;
+}
+
+.nav-candado {
+  flex: none;
+  display: grid;
+  color: var(--muted);
+}
+
+.nav-candado[data-segura="true"] {
+  color: var(--ok);
+}
+
+/* La barra de carga: no hay porcentaje que contar, así que corre una luz. */
+.nav-carga {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.nav-carga[data-va]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: nav-corre 1.2s ease-in-out infinite;
+}
+
+@keyframes nav-corre {
+  from {
+    left: -35%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+/* ── Adeo asoma cuando una web no contesta ── */
+.nav-aviso {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--popover);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  overflow: hidden;
+  animation: nav-abre-aviso var(--t-lenta) ease-out;
+}
+
+.nav-aviso > :first-child {
+  flex: none;
+  animation: nav-asoma var(--t-lenta) cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.nav-aviso .np-btn {
+  margin-left: auto;
+}
+
+@keyframes nav-abre-aviso {
+  from {
+    max-height: 0;
+    padding-block: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 60px;
+  }
+}
+
+@keyframes nav-asoma {
+  from {
+    transform: translateY(120%);
+  }
+}
+
+/* ── El cuerpo: donde se coloca la página ── */
+.nav-cuerpo {
+  flex: 1;
+  min-height: 0;
+}
+
+.nav-hueco {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* La foto que sustituye a la página mientras algo de la interfaz la pisa. */
+.nav-foto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.nav-hueco > .web-frame {
+  background: #fff;
+}
+
+.nav-vacio {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  color: var(--muted);
+}
+
+.nav-vacio p {
+  margin: 0;
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.nav-puertos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  max-width: 380px;
+}
+
+/* Sueltos: un enlace de texto, sin recuadro. */
+.nav-puerto {
+  padding: 4px 2px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: 13px "Geist Mono Variable", ui-monospace, monospace;
+  cursor: pointer;
+  transition: color var(--t-rapida) ease;
+}
+
+.nav-puerto:hover {
+  color: var(--accent);
+  text-decoration: underline var(--accent) 2px;
+  text-underline-offset: 4px;
+}

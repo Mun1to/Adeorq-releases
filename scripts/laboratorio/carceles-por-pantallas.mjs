@@ -1,22 +1,31 @@
-// Las cárceles de la app, pantalla por pantalla, en una Adeorq aislada.
+// Las cárceles y las mayúsculas espaciadas de la app, pantalla por pantalla, en
+// una Adeorq aislada.
 //
 // Munir, 2026-10-17: «Estoy ya hasta los cojones de las cárceles y de los
-// recuadros de los iconos y de los textos. Te lo digo ya por 500 veces». El
-// detector (`carceles.js`) mira lo que hay en pantalla; esto lo pasa por todo lo
-// que se puede abrir sin ratón: las siete pestañas, cada sección del Perfil y
-// de Ajustes, la paleta (Ctrl+K) y los menús del clic derecho, con dos
-// terminales abiertas para que la Cabina y el Lienzo tengan algo.
+// recuadros de los iconos y de los textos. Te lo digo ya por 500 veces». Los
+// detectores (`carceles.js` y `mayusculas.js`) miran lo que hay en pantalla;
+// esto los pasa por todo lo que se puede abrir sin ratón: las siete pestañas,
+// las tres caras de la barra de la derecha, cada sección del Perfil y de
+// Ajustes, la paleta (Ctrl+K) y los menús del clic derecho, con dos terminales
+// abiertas para que la Cabina y el Lienzo tengan algo.
+//
+// Las caras de la barra y `mayusculas.js` entraron el 2026-10-18: el barrido no
+// abría la barra, y el panel de Archivos llegó a Munir con sus pastillas
+// («Edited») y sus rótulos en mayúsculas («WORKING», «CLAUDE TOUCHED») sin que
+// nada lo cazara. Lo que pinta ese panel con un agente trabajando (la tarjeta y
+// la lista) no sale aquí, que estas terminales son consolas: eso lo mira
+// `archivos-agente.js` con los mismos detectores.
 //
 //   node scripts/laboratorio/carceles-por-pantallas.mjs [carpeta para las fotos]
 //
-// Dice cada cárcel una vez, con las pantallas donde sale, deja una foto de cada
+// Dice cada cosa una vez, con las pantallas donde sale, deja una foto de cada
 // parada en la carpeta y sale con 1 si queda alguna. Lo que Munir dijo que se
 // queda no cuenta: esa lista (`APROBADAS`) vive en el propio `carceles.js`, que
 // se lo salta y lo devuelve aparte, y aquí solo se resume. Una pieza nueva que
 // caiga en duda se le pregunta con su foto de hoy y la suelta antes de tocarla.
 // Necesita lo mismo que `aislada.mjs` (el binario de desarrollo y `pnpm dev`).
 import { tmpdir } from "node:os";
-import { abrirAislada, carceles, dormir, hasta } from "./aislada.mjs";
+import { abrirAislada, carceles, dormir, hasta, mayusculas } from "./aislada.mjs";
 
 const FOTOS = process.argv[2] || tmpdir();
 
@@ -35,11 +44,12 @@ let paradas = 0;
 const parada = async (donde, archivo) => {
   await dormir(900);
   const { fallos, aprobadas } = await carceles(v);
-  apuntar(vistas, donde, fallos);
+  const espaciadas = (await mayusculas(v)).fallos;
+  apuntar(vistas, donde, [...fallos, ...espaciadas]);
   apuntar(aprobadasVistas, donde, aprobadas);
   if (archivo) await a.foto(null, archivo);
   paradas++;
-  console.log(`${String(fallos.length).padStart(3)}  ${donde}`);
+  console.log(`${String(fallos.length + espaciadas.length).padStart(3)}  ${donde}`);
 };
 const clic = (sel, i = 0) =>
   v.js(`(() => { const e = document.querySelectorAll(${JSON.stringify(sel)})[${i}]; if (!e) return false; e.click(); return true; })()`);
@@ -78,6 +88,18 @@ try {
       await tecla("k", { ctrlKey: true, code: "KeyK" });
       await parada("paleta (Ctrl+K)", "carceles-paleta.png");
       await tecla("Escape");
+      // Las caras de la barra de la derecha, una a una. El botón que va detrás
+      // de la raya abre la web en el mosaico, no una cara: ese no.
+      const caras = await cuantos(".franja .franja-btn:not(.franja-raya ~ .franja-btn)");
+      for (let i = 0; i < caras; i++) {
+        if (!(await clic(".franja .franja-btn", i))) continue;
+        await dormir(500);
+        const cual = (await v.js(`document.querySelector(".lateral-title")?.textContent?.trim() ?? ""`)) || String(i);
+        await parada(`cabina · barra derecha · ${cual}`, `carceles-cabina-barra-${i}.png`);
+        // La misma pulsación la cierra.
+        await clic(".franja .franja-btn", i);
+        await dormir(300);
+      }
     }
     if (tab === "lienzo") {
       if (await clicDerecho(".react-flow__pane")) await parada("lienzo · clic derecho en el fondo", "carceles-lienzo-menu.png");
@@ -107,7 +129,7 @@ try {
 }
 
 const filas = [...vistas.entries()].sort((x, y) => y[1].size - x[1].size);
-console.log(`\n${paradas} paradas, ${filas.length} cárceles:`);
+console.log(`\n${paradas} paradas, ${filas.length} cosas por soltar (cárceles y mayúsculas espaciadas):`);
 for (const [c, donde] of filas) console.log(`     ${c}\n        en: ${[...donde].join(", ")}`);
 // Las aprobadas, agrupadas por su porqué (lo que va detrás de «aprobada el …»).
 const porque = new Map();

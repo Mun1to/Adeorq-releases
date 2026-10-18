@@ -127,7 +127,6 @@ export interface ForemanExec {
 }
 
 interface Props {
-  mode: "card" | "overlay";
   exec: ForemanExec;
   onClose?: () => void;
   /**
@@ -629,17 +628,14 @@ function actionLabel(c: Checked): string {
   return `Antigravity en ${a.proyecto} con encargo`;
 }
 
-export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir }: Props) {
+export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Props) {
   const { t } = useT();
   // El borrador sobrevive al cierre. El Asistente se cierra con Esc, pinchando
   // fuera y con el aspa, y hasta ahora cerrarlo tiraba lo que estuvieras
   // escribiendo sin preguntar: media frase pensada perdida por una tecla
   // (Munir, 2026-07-30). Se guarda en el disco del navegador, así que aguanta
-  // también un reinicio de la app. Solo el Asistente flotante: la tarjeta de la
-  // vista Panel no se cierra nunca, así que no tiene nada que recuperar.
-  const [text, setText] = useState(() =>
-    mode === "overlay" ? (localStorage.getItem(BORRADOR) ?? "") : "",
-  );
+  // también un reinicio de la app.
+  const [text, setText] = useState(() => localStorage.getItem(BORRADOR) ?? "");
   /**
    * El encargo reescrito y a quién se le daría, esperando tu OK antes de tocar
    * ninguna terminal.
@@ -716,8 +712,8 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
     scanSessions().then(setSessions).catch(() => {});
     listSkills().then(setSkills).catch(() => {});
     findAgy().then(setAgy).catch(() => {});
-    if (mode === "overlay") inputRef.current?.focus();
-  }, [mode]);
+    inputRef.current?.focus();
+  }, []);
 
   // The panes are read when the plan is checked, not when it was asked: a pane
   // that finished in between must be closeable, and one that started working
@@ -856,7 +852,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
             /* sin sitio en localStorage: el recibo es un extra, no el trabajo */
           }
           exec.onDespachar(encargo, receta.modelo, receta.esfuerzo);
-          if (mode === "overlay") onClose?.();
+          onClose?.();
           return;
         }
 
@@ -935,7 +931,6 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
   // temporal, con lo que uno de los dos fallaba. Cuando el Asistente está
   // cerrado el atajo lo lleva App, que lo abre pidiendo dictado (dictarYa).
   useEffect(() => {
-    if (mode !== "overlay") return;
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.key.toLowerCase() !== "m") return;
       e.preventDefault();
@@ -945,17 +940,16 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, oyendo, transcribiendo]);
+  }, [oyendo, transcribiendo]);
 
   // Guardar lo escrito, a cada tecla. Barato y sin rebote a propósito: son unos
   // cientos de bytes en localStorage, y un rebote es exactamente lo que hace
   // que se pierda lo último que escribiste antes de cerrar, que es el caso que
   // esto viene a arreglar.
   useEffect(() => {
-    if (mode !== "overlay") return;
     if (text) localStorage.setItem(BORRADOR, text);
     else localStorage.removeItem(BORRADOR);
-  }, [text, mode]);
+  }, [text]);
 
   // Cerrar con Esc en mitad de un dictado desmonta esto con el micrófono
   // abierto, y nadie lo soltaba: la luz del micro se quedaba encendida hasta
@@ -1138,11 +1132,8 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
     if (agNote) {
       setDoneNote(agNote);
       setPhase("done");
-    } else if (mode === "overlay") {
-      onClose?.();
     } else {
-      setDoneNote(t("Hecho: mira la Cabina."));
-      setPhase("done");
+      onClose?.();
     }
   };
 
@@ -1207,7 +1198,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
             placeholder={t(
               'Pídeme el tablero: "ábreme las sesiones del panel de Orquio" o "en Layco: Antigravity al frontend y un Claude al backend para el formulario de pago"',
             )}
-            rows={mode === "overlay" ? 3 : 5}
+            rows={3}
             value={text}
             disabled={phase === "thinking"}
             onChange={(e) => setText(e.currentTarget.value)}
@@ -1215,7 +1206,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 ask();
-              } else if (e.key === "Escape" && mode === "overlay") {
+              } else if (e.key === "Escape") {
                 onClose?.();
               }
             }}
@@ -1359,9 +1350,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
               </button>
             </div>
           )}
-          {mode === "overlay" && (
-            <span className="foreman-hint">{t("Enter planea · Ctrl+Mayús+M dicta · Esc cierra · nada se ejecuta sin tu OK")}</span>
-          )}
+          <span className="foreman-hint">{t("Enter planea · Ctrl+Mayús+M dicta · Esc cierra · nada se ejecuta sin tu OK")}</span>
           {/* La mini guía. Solo con el cuadro vacío y antes de la primera
               pregunta: en cuanto escribes algo estorba, y quien ya sabe lo que
               quiere no la ve nunca. Cada fila se pulsa y se escribe sola, que
@@ -1442,7 +1431,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
               <span className="fm-ficha-tit">{t("El encargo")}</span>
               <textarea
                 className="fm-ficha-txt"
-                rows={mode === "overlay" ? 5 : 6}
+                rows={5}
                 value={ficha.encargo}
                 onChange={(e) => setFicha({ ...ficha, encargo: e.currentTarget.value })}
               />
@@ -1522,7 +1511,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
                   onClick={() => {
                     exec.onDespachar(ficha.encargo, elegido.modelo, elegido.esfuerzo);
                     descartarFicha();
-                    if (mode === "overlay") onClose?.();
+                    onClose?.();
                   }}
                 >
                   {t("Ponerlo en esta terminal")}
@@ -1536,7 +1525,7 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
                     const proj = cwd.split(/[\\/]/).filter(Boolean).pop() ?? "claude";
                     exec.onAbrirReceta(elegido, cwd, `${proj} · ${elegido.cli}`, ficha.encargo);
                     descartarFicha();
-                    if (mode === "overlay") onClose?.();
+                    onClose?.();
                   }}
                 >
                   {t("Abrir una nueva así")}
@@ -1665,28 +1654,14 @@ export default function Foreman({ mode, exec, onClose, dictarAlAbrir, onRepartir
         <>
           <p className="np-ok">{doneNote}</p>
           <div className="foreman-row">
-            <button className="mini modal-cancel" onClick={mode === "overlay" ? onClose : reset}>
-              {t(mode === "overlay" ? "Cerrar" : "Otro pedido")}
+            <button className="mini modal-cancel" onClick={onClose}>
+              {t("Cerrar")}
             </button>
           </div>
         </>
       )}
     </>
   );
-
-  if (mode === "card") {
-    return (
-      <section className="panel-card foreman-card">
-        <h2>{t("✦ Capataz")}</h2>
-        <p className="card-hint">
-          {t(
-            "Pídele el tablero en cristiano: él propone el plan (sesiones, Claudes, terminales, Antigravity) y no ejecuta nada sin tu OK. En la Cabina: Ctrl+Mayús+A.",
-          )}
-        </p>
-        {body}
-      </section>
-    );
-  }
 
   // A `document.body` y no donde cae en el árbol: esto es una ventana flotante
   // sobre TODA la app, y `position: fixed` deja de mirar a la ventana en cuanto

@@ -1,7 +1,7 @@
 // Lo que Adeorq sabe de direcciones web, en un sitio que no pinta nada.
 //
 // Estas tres cosas las usan las DOS ventanas de web que hay: la pieza del
-// lienzo (`CanvasWeb`) y el panel de la cabina (`WebPane`). Vivían en la del
+// lienzo (`CanvasWeb`) y el navegador de la cabina (`Navegador`). Vivían en la del
 // lienzo, y por eso el panel la importaba para sacarles `comoUrl`.
 //
 // Eso costaba caro y no se veía: `CanvasWeb` importa `@xyflow/react`, así que

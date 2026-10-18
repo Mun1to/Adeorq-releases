@@ -46,6 +46,7 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.nav.primeros': 'First steps',
     'guia.nav.cabina': 'The Cockpit',
     'guia.nav.panel': 'The Dashboard',
+    'guia.nav.perfil': 'Your profile and usage',
     'guia.nav.agenda': 'The Agenda',
     'guia.nav.objetivos': 'Goals for today',
     'guia.nav.lienzo': 'The Canvas',
@@ -96,12 +97,12 @@ window.ADEORQ_I18N_EXTRA = {
     /* ----------------------------- PRIMEROS PASOS ------------------------ */
     'guia.primeros.h': 'First steps',
     'guia.primeros.p': 'With Adeorq freshly installed, the shortest path to see what it is about:',
-    'guia.primeros.p1': 'Go to <b>Accounts</b>. Adeorq looks at which AI programs you have installed and tells ' +
-                        'you. If one is missing, you can download it from there.',
+    'guia.primeros.p1': 'Go to <b>Accounts</b>, inside your <b>Profile</b>. Adeorq looks at which AI programs you ' +
+                        'have installed and tells you. If one is missing, you can download it from there.',
     'guia.primeros.p2': 'Go to the <b>Cockpit</b> and open a terminal in one of your projects. It is a normal ' +
                         'terminal: whatever you would type into one, type it there.',
-    'guia.primeros.p3': 'Go back to the <b>Dashboard</b>. Your session is already counted, and it shows up in ' +
-                        'the <b>Agenda</b> with whatever it is doing.',
+    'guia.primeros.p3': 'Go back to the <b>Dashboard</b>. Your project already shows its session working, and ' +
+                        'it shows up in the <b>Agenda</b> with whatever it is doing.',
 
     /* --------------------------------- CABINA ---------------------------- */
     'guia.cabina.h': 'The Cockpit',
@@ -138,15 +139,13 @@ window.ADEORQ_I18N_EXTRA = {
                         'pays for everything accumulated in one go. Adeorq warns you when a conversation gets ' +
                         'there, so that carrying on or starting fresh is decided with the number in front of you.',
     'guia.cabina.h3c': 'The right-hand column',
-    'guia.cabina.p5': 'To the right of the terminals there is a strip with four icons. Each one opens a face, ' +
-                      'and pressing the icon of the open face again hides it:',
+    'guia.cabina.p5': 'To the right of the terminals there is a strip of icons. The first three each open a ' +
+                      'face, and pressing the icon of the open face again hides it:',
     'guia.cabina.l5u': '<b>Usage</b>: how much each of your accounts has left, all at once with the most used ' +
                        'on top, and when each window renews.',
     'guia.cabina.l5': '<b>Skills</b>: your commands from <code>~/.claude/skills</code>, each with what it does. ' +
                       'Drag one onto a terminal and it is pasted into its box; one click sends it to the one in ' +
                       'front of you.',
-    'guia.cabina.l6': '<b>Activity</b>: what the terminal in front of you is doing behind the scenes, with every ' +
-                      'tool and every request to the model.',
     'guia.cabina.l7': '<b>Files</b>: the project tree, coloured by what git sees changed. From the right-click ' +
                       'menu you create files and folders, rename them or move them to the recycle bin, and it ' +
                       'never overwrites one that exists. Opening one shows it in the editor, where images and PDFs ' +
@@ -155,32 +154,50 @@ window.ADEORQ_I18N_EXTRA = {
 
     /* ---------------------------------- PANEL ---------------------------- */
     'guia.panel.h': 'The Dashboard',
-    'guia.panel.p': 'The summary of the day. At the top, four figures that say not only how much there is but ' +
-                    'whether you need to do something: how many sessions are working now, how many are waiting ' +
-                    'for you, how many you have run this week and how many projects you have. The first one is ' +
-                    'a button that takes you to the Cockpit.',
-    'guia.panel.p0': 'It is laid out like Settings: groups on the left and a single sheet on the right, each ' +
-                     'with its own counter so you can tell something is empty without opening it.',
-    'guia.panel.pie': 'The Dashboard. The four figures of the day up top; the groups on the left.',
-    'guia.panel.h3a': 'Now',
-    'guia.panel.p1': 'The <b>Foreman</b> and your hot projects. You ask the Foreman for the board in plain ' +
+    'guia.panel.p': 'The first thing you see when you open it. On the left, Adeo and a box to ask him for ' +
+                    'anything in your own words ("open the Orquio stuff", "go over the login", "push today’s ' +
+                    'work"): when you send it, a new conversation opens in <b>Chat</b>, Adeo splits it into ' +
+                    'sessions and the router picks the model. Above it, a line saying what is going on; if a ' +
+                    'terminal is asking you something it says so, and <b>Answer</b> takes you to it.',
+    'guia.panel.p0': 'On the right, your projects of the week: the one waiting for you first, then the ones ' +
+                     'working, then the rest by the last one you touched. One click takes you to its terminal. ' +
+                     'Below, your usage this month in squares, which leads to your <b>Profile</b>.',
+    'guia.panel.pie': 'The Dashboard. Adeo and his box on the left; your projects and your usage on the right.',
+    'guia.panel.h3a': 'Projects',
+    'guia.panel.p1': '<b>New project</b>, at the foot of the list. Adeorq leaves the folder ready with ' +
+                     '<code>AGENTS.md</code> (your rules for the agents), <code>docs/METAS.md</code> and git ' +
+                     'initialised, so the first session starts with context instead of from scratch.',
+    'guia.panel.h3b': 'The Foreman',
+    'guia.panel.p2': 'The orb in the top bar opens it (<b>Ctrl+Shift+A</b>). You ask it for the board in plain ' +
                      'language ("open the sessions for the Orquio panel", "one agent on the frontend and ' +
                      'another on the backend") and it proposes the plan: which sessions to open, with which ' +
                      'program and with which brief. <b>It runs nothing without your approval.</b>',
-    'guia.panel.h3b': 'Projects',
-    'guia.panel.p2': 'Create a new one, and the full list. When you create it, Adeorq leaves the folder ready ' +
-                     'with <code>AGENTS.md</code> (your rules for the agents), <code>docs/METAS.md</code> and ' +
-                     'git initialised, so the first session starts with context instead of from scratch.',
     'guia.panel.h3c': 'Mission',
-    'guia.panel.p3': 'Deploy a team. You describe what you want, pick a project and roles (Frontend, Backend, ' +
-                     'Security, Design) and one agent opens per role, each with its brief, its share of the ' +
-                     'files and coordinated with the others through a shared file in the project. Each one ' +
-                     'proposes its plan and waits for your approval before touching anything.',
+    'guia.panel.p3': 'From the Foreman, deploy a team. You describe what you want, pick a project and roles ' +
+                     '(Frontend, Backend, Security, Design) and one agent opens per role, each with its brief, ' +
+                     'its share of the files and coordinated with the others through a shared file in the ' +
+                     'project. Each one proposes its plan and waits for your approval before touching anything.',
+
+    /* ---------------------------------- PERFIL --------------------------- */
+    'guia.perfil.h': 'Your profile and usage',
+    'guia.perfil.p': 'Your name, your @ and your photo, which you change right there with <b>Edit</b>, and four ' +
+                     'sections with their summary: <b>Accounts</b>, <b>Agenda</b>, <b>Memory</b> and ' +
+                     '<b>Commands</b>. Touching a summary opens the whole section, with "‹ Profile" above it to ' +
+                     'go back. You also reach each one from Ctrl+K.',
+    'guia.perfil.p0': 'Below, <b>your usage</b>: this month’s tokens, with the cache and only the new ones; how ' +
+                      'much went to each provider, each model and each project; the year in squares and the ' +
+                      'month day by day. It reads the conversations Claude Code and Codex already keep on your ' +
+                      'computer, with no key at all.',
+    'guia.perfil.pie': 'Your profile. You and your four sections up top; your usage below.',
+    'guia.perfil.h3a': 'The card to share',
+    'guia.perfil.p1': 'Touching a day, your record or the share icon opens a card with your figures, ready to ' +
+                      'post: you pick the background, the colour and the format, and save it as an image or as ' +
+                      'a video. No project shows on it unless you choose one.',
 
     /* --------------------------------- AGENDA ---------------------------- */
     'guia.agenda.h': 'The Agenda',
-    'guia.agenda.p': 'What is coming, what you thought of and what is due. Every block reads from wherever ' +
-                     'that thing already lives, without keeping a second copy of anything.',
+    'guia.agenda.p': 'It lives inside your Profile. What is coming, what you thought of and what is due. Every ' +
+                     'block reads from wherever that thing already lives, without keeping a second copy of anything.',
     'guia.agenda.l1': '<b>Today</b>: your goals for the day and all your sessions, whatever is waiting on you first.',
     'guia.agenda.l2': '<b>Calendar</b>: things with a date because someone else set it. Each one warns you as ' +
                       'far ahead as you told it to, not on a fixed threshold.',
@@ -225,8 +242,8 @@ window.ADEORQ_I18N_EXTRA = {
 
     /* --------------------------------- CUENTAS --------------------------- */
     'guia.cuentas.h': 'Accounts',
-    'guia.cuentas.p': 'An account is one login of the same program, with its own configuration folder. You can ' +
-                      'have several of the same one and split the work between them.',
+    'guia.cuentas.p': 'They live inside your Profile. An account is one login of the same program, with its own ' +
+                      'configuration folder. You can have several of the same one and split the work between them.',
     'guia.cuentas.pie': 'Accounts. Up top, how much is left of the tightest limit and which one is the default.',
     'guia.cuentas.l1': '<b>Your accounts</b>: one card per installed program, saying whether it is connected ' +
                        'and how much of its limits you have used.',

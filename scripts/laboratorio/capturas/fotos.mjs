@@ -20,7 +20,7 @@ const foto = async (nombre) => {
   console.log(await p.foto(`${SALIDA}/${nombre}.png`));
 };
 
-const algunaDeCabina = ["cockpit", "dashboard", "agenda", "decisions", "commands", "accounts", "settings", "canvas"].some(quiere);
+const algunaDeCabina = ["cockpit", "dashboard", "profile", "agenda", "decisions", "commands", "accounts", "settings", "canvas"].some(quiere);
 if (algunaDeCabina) {
   // ── La Cabina: cuatro agentes, cada uno en lo suyo ─────────────────────────
   await montar(cabina(idioma));
@@ -30,7 +30,16 @@ if (algunaDeCabina) {
   }
   if (quiere("dashboard")) {
     await vista(p, "panel", 2500);
+    // El saludo sale de la hora a la que se hace la foto: de madrugada dice «Aún
+    // en pie, Sam.», que en una portada se lee raro. El de la tarde, como en la
+    // demostración (`hacer-demo.mjs`).
+    await p.js(`(() => { const h = document.querySelector('.inicio h1'); if (h) h.textContent = h.textContent.replace(/^(Aún en pie|Buenos días|Buenas noches),/, 'Buenas tardes,').replace(/^(Still up|Good morning|Good evening),/, 'Good afternoon,'); })()`);
     await foto("dashboard");
+  }
+  if (quiere("profile")) {
+    // Tu nombre, las cuatro secciones con su resumen y tu uso (el de ejemplo de Sam).
+    await vista(p, "perfil", 4000);
+    await foto("profile");
   }
   if (quiere("agenda")) {
     await vista(p, "agenda", 3000);

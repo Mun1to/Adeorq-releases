@@ -46,8 +46,68 @@ const DEMO = {
   // El equipo de Sam es un portátil corriente.
   pulso: { ramMb: 1650, ramPct: 10, sistemaMb: 9400, sistemaPct: 59, totalMb: 16000, procesos: 41, agentes: 7, cpuPct: 9, nucleos: 8 },
   modelosLocales: ["qwen3:4b", "nomic-embed-text:latest"],
+  // La lista de bóvedas sale de la de Obsidian, en el %APPDATA% DE VERDAD, que
+  // la casa no aísla: el resumen de la Memoria en el Perfil enseñaba el nombre
+  // y las notas de la bóveda de quien hace la foto. Aquí, la de Sam (casa.mjs).
+  bovedas: [{ path: "P:\\notes", name: "notes", docs: 7, abierta: true }],
   version: JSON.parse(readFileSync(new URL("../../../package.json", import.meta.url), "utf8")).version,
 };
+
+/** El uso de Sam (`uso_historia`), que pintan el inicio y el Perfil: doscientos
+ *  días de cubos de una hora, como los devuelve Rust. Con sus pocas sesiones
+ *  grabadas el año saldría con una casilla; esto es un taller que lleva medio
+ *  año trabajando, menos los fines de semana y con los doce últimos días
+ *  seguidos. Lleva semilla: las tandas en inglés y en español pintan lo mismo.
+ *  Se escribe como función y viaja a la página con su texto, sin dependencias. */
+function historiaDeSam(ahora) {
+  let semilla = 20261018;
+  const azar = () => (semilla = (semilla * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const elegir = (pesos) => {
+    let r = azar() * pesos.reduce((a, [, p]) => a + p, 0);
+    for (const [x, p] of pesos) if ((r -= p) <= 0) return x;
+    return pesos[0][0];
+  };
+  const PROYECTOS = [["storefront-api", 34], ["landing-web", 20], ["mobile-app", 18], ["invoice-cli", 12], ["docs-site", 9], ["design-tokens", 7]];
+  const MODELOS = [[["claude", "claude-opus-5-5"], 46], [["claude", "claude-sonnet-5-5"], 32], [["claude", "claude-haiku-5-5"], 7], [["codex", "gpt-5.6-terra"], 15]];
+  const DIAS = 200;
+  const dos = (n) => String(n).padStart(2, "0");
+  const horaUtc = (d) => `${d.getUTCFullYear()}-${dos(d.getUTCMonth() + 1)}-${dos(d.getUTCDate())}T${dos(d.getUTCHours())}`;
+  const ya = new Date(ahora);
+  const cubos = [];
+  for (let atras = DIAS; atras >= 0; atras--) {
+    const dia = new Date(ya.getFullYear(), ya.getMonth(), ya.getDate() - atras);
+    const finde = dia.getDay() === 0 || dia.getDay() === 6;
+    const salto = azar();
+    if (atras > 12 && salto < (finde ? 0.6 : 0.12)) continue;
+    // Empezó con poco y fue a más; de vez en cuando, un día de los gordos.
+    const rampa = 0.3 + 0.7 * (1 - atras / DIAS);
+    const total = (finde ? 0.4 : 1) * rampa * (35 + azar() * 140) * 1e6 * (azar() < 0.05 ? 2.4 : 1);
+    const empieza = 9 + Math.floor(azar() * 2);
+    let horas = Array.from({ length: 5 + Math.floor(azar() * 5) }, (_, i) => empieza + i + (i > 3 ? 1 : 0));
+    if (atras === 0) horas = horas.filter((h) => h <= ya.getHours()).concat(ya.getHours() < empieza ? [ya.getHours()] : []);
+    const deHoy = [elegir(PROYECTOS), elegir(PROYECTOS)];
+    for (const h of horas) {
+      const cuantos = azar() < 0.4 ? 2 : 1;
+      for (let k = 0; k < cuantos; k++) {
+        const [cli, modelo] = elegir(MODELOS);
+        const t = (total / horas.length / cuantos) * (0.6 + azar() * 0.8);
+        const codex = cli === "codex";
+        cubos.push({
+          hora: horaUtc(new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), h)),
+          cli,
+          modelo,
+          carpeta: "P:\\projects\\" + deHoy[k],
+          entrada: Math.round(t * (codex ? 0.1 : 0.004)),
+          salida: Math.round(t * (codex ? 0.02 : 0.011)),
+          cacheLeida: Math.round(t * (codex ? 0.88 : 0.955)),
+          cacheEscrita: codex ? 0 : Math.round(t * 0.03),
+          respuestas: 1 + Math.round(t / 900000),
+        });
+      }
+    }
+  }
+  return { cubos, archivos: 412 };
+}
 
 /** Lo que la casa falsa no aísla, tapado en la página antes de que cargue nada.
  *  La brújula no sale a la red: tiene que ser un FALLO de red, porque con una
@@ -59,6 +119,7 @@ const GUARDA = `(() => {
   const DEMO = ${JSON.stringify(DEMO)};
   const responde = (valor) => Promise.resolve(new Response(JSON.stringify(valor), { status: 200, headers: { "content-type": "application/json", "Tauri-Response": "ok" } }));
   const enHoras = (l) => ({ ...l, lines: l.lines.map((x) => (x.resetsAt ? { ...x, resetsAt: Date.now() + x.resetsAt * 3600000 } : x)) });
+  const historiaDeSam = ${historiaDeSam.toString()};
   window.fetch = (a, b) => {
     const url = typeof a === "string" ? a : (a && a.url) || "";
     if (/supabase\\.co|openrouter\\.ai/.test(url)) return Promise.reject(new TypeError("Failed to fetch"));
@@ -91,6 +152,8 @@ const GUARDA = `(() => {
       if (cmd === "plan_info") return responde(dir.includes("claude-work") ? DEMO.planTrabajo : DEMO.plan);
       if (cmd === "usage_limits") return responde(dir.includes("claude-work") ? DEMO.limitesTrabajo : DEMO.limites);
       if (cmd === "usage_of") return args.provider === "codex" ? responde(enHoras(DEMO.limitesCodex)) : real(a, b);
+      if (cmd === "uso_historia") return responde(historiaDeSam(Date.now()));
+      if (cmd === "memoria_vaults") return responde(DEMO.bovedas);
     }
     return real(a, b);
   };
@@ -193,8 +256,18 @@ export async function sinWebgl(p) {
   }
 }
 
+/** Las pantallas que viven dentro del Perfil (`DEL_PERFIL` de `lib/vistas.ts`)
+ *  ya no tienen pestaña: se llega a ellas tocando su resumen en el Perfil. */
+const DEL_PERFIL = ["cuentas", "agenda", "memoria", "comandos"];
+
 export async function vista(p, clave, espera = 1500) {
-  await p.clic(`header.topbar nav.tabs button.tab[data-tab="${clave}"]`);
+  if (DEL_PERFIL.includes(clave)) {
+    await p.clic(`header.topbar nav.tabs button.tab[data-tab="perfil"]`);
+    await dormir(1500);
+    await p.clic(`.perfil-secciones button.perfil-seccion[data-seccion="${clave}"]`);
+  } else {
+    await p.clic(`header.topbar nav.tabs button.tab[data-tab="${clave}"]`);
+  }
   await dormir(espera);
 }
 

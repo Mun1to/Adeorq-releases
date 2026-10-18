@@ -51,7 +51,7 @@ export async function montar(p, idioma, layout, lateral = "") {
   const es = idioma === "es";
   const perfil = JSON.parse((await p.js(`localStorage.getItem("adeorq-perfil")`)) ?? "{}");
   const claves = {
-    "adeorq-perfil": { ...perfil, nombre: "Sam", raiz: "P:\\projects", sinRaiz: false, extras: [], leerSesiones: true, hecho: true, tour: true },
+    "adeorq-perfil": { ...perfil, nombre: "Sam", arroba: "samrivera", raiz: "P:\\projects", sinRaiz: false, extras: [], leerSesiones: true, hecho: true, tour: true },
     "adeorq-lang": idioma,
     "adeorq-lateral": lateral,
     // Con cuatro terminales la app apaga sola el cristal para ahorrar; aquí se quiere ver.

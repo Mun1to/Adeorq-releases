@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.222"
+version = "0.9.223"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 # PolyForm Shield 1.0.0 no está en la lista SPDX, así que se apunta al archivo.
@@ -20,7 +20,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset"] }
+tauri = { version = "2", features = ["protocol-asset", "unstable"] }
 tauri-plugin-opener = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
@@ -66,7 +66,7 @@ tauri-plugin-dialog = "2"
 # El icono de la bandeja, para seguir en segundo plano al cerrar la ventana
 # (`cierre.rs`). Solo aquí: en Linux esa pieza pide una librería del escritorio
 # que el AppImage no lleva probada, y allí la X cierra como siempre.
-tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }
+tauri = { version = "2", features = ["protocol-asset", "tray-icon", "unstable"] }
 windows-sys = { version = "0.61.2", features = [
     "Win32_System_Threading",
     "Win32_Foundation",
@@ -83,13 +83,6 @@ windows-sys = { version = "0.61.2", features = [
     # CreateToolhelp32Snapshot: quién cuelga de quién, para poder sumar lo que
     # gastan las terminales y sus agentes además de la ventana.
     "Win32_System_Diagnostics_ToolHelp",
-    # Meter la ventana del navegador DENTRO de la de Adeorq: SetParent,
-    # SetWindowPos, EnumWindows y compañía. Es reparenting entre procesos, que
-    # Windows permite desde siempre; ver `navegador.rs`.
-    "Win32_UI_WindowsAndMessaging",
-    # Leer del registro cuál es el navegador predeterminado del sistema, que es
-    # justo lo que Munir pidió: el SUYO, no uno elegido por nosotros.
-    "Win32_System_Registry",
     # Job Objects: el corral de `pty.rs`. Es lo que hace que un cierre ANORMAL
     # de Adeorq (colgada, matada desde el Administrador de tareas, caída) no
     # deje agentes sueltos: Windows los mata solo al morir la ventana.
@@ -114,7 +107,14 @@ windows = { version = "0.62", features = [
     "Win32_System_Variant",
     "Win32_System_Threading",
     "Win32_Security_Credentials",
+    # Qué modificadores lleva una tecla pulsada dentro del navegador (`navegador.rs`).
+    "Win32_UI_Input_KeyboardAndMouse",
 ] }
+# Lo que Tauri no expone del WebView2 del navegador (`navegador.rs`): la
+# dirección que cambia sin recargar, atrás y adelante, el icono, las teclas y la
+# foto. Es la MISMA versión que ya trae wry: no entra nada nuevo en el árbol, y
+# al subir Tauri hay que mirar que siga coincidiendo.
+webview2-com = "0.39"
 
 # La papelera del escritorio, en Linux. En Windows se llama a SHFileOperationW
 # directamente (ver `manage.rs`) porque ya estaba escrito y funciona; aquí no

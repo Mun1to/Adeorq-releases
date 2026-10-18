@@ -53,7 +53,7 @@ import { proveedorDe } from "../lib/providers";
 import { writePty } from "../lib/pty";
 import { cambiadosPorCarpeta, lineasDe, marcaDeCarpeta, resumenDe } from "../lib/tocados";
 import { tipoDeArchivo } from "../lib/tipoArchivo";
-import { ETIQUETA, Lineas, ListaTocados, PieCommit, TarjetaAgente } from "./ArchivosAgente";
+import { ETIQUETA, Lineas, PieCommit, TarjetaAgente } from "./ArchivosAgente";
 import IconoArchivo from "./IconoArchivo";
 import { ChevronIcon, DuplicarIcon, ExternalIcon, FolderIcon, PencilIcon, PlusIcon, TrashIcon } from "./Icons";
 import { kindDeComando } from "./KindIcon";
@@ -437,14 +437,17 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto, sesion }: Props)
     return <p className="arch-vacio">{t("Abre un proyecto para ver sus archivos.")}</p>;
   }
 
+  // El sitio de cada fila dentro de su carpeta (`--j`): las de una carpeta
+  // recién abierta entran una detrás de otra, en ese orden.
+  const hermanos = new Map<string, number>();
+
   return (
     <div className="arch">
       <div className="arch-raiz" data-tip={raiz} onContextMenu={(e) => showMenu(e, menuDe(raiz))}>
         {nombreDeRuta(raiz)}
       </div>
 
-      <TarjetaAgente resumen={resumen} git={git} quien={quien} raiz={raiz} nota={nota} conLeyenda={!!formato} />
-      <ListaTocados resumen={resumen} quien={quien} raiz={raiz} onAbrir={onAbrir} />
+      <TarjetaAgente resumen={resumen} git={git} quien={quien} raiz={raiz} nota={nota} conLeyenda={!!formato} onAbrir={onAbrir} />
 
       {ESTADOS.some((e) => cuenta[e]) && (
         <div className="arch-cuentas">
@@ -484,6 +487,12 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto, sesion }: Props)
           const cambiados = f.carpeta ? (dentro.get(clave(f.ruta)) ?? 0) : 0;
           // Lo que pasa ahora y el commit se dicen con palabras; ahí las líneas ceden el sitio.
           const etiqueta = !f.carpeta && (marca === "editando" || marca === "leyendo" || marca === "commit") ? marca : null;
+          // Lo que se dice de la fila, junto: cuando cambia, el nombre se monta de
+          // nuevo (es su `key`) y entra brillando. Sin nada que decir, nada brilla.
+          const cambio = est || letra || lin || marca ? [est ?? "", letra ?? "", lin?.mas ?? "", lin?.menos ?? "", marca ?? ""].join("|") : "";
+          const padre = carpetaDe(f.ruta);
+          const j = hermanos.get(padre) ?? 0;
+          hermanos.set(padre, j + 1);
           const cancelar = () => {
             setEdicion(null);
             setErrorEdicion("");
@@ -523,7 +532,8 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto, sesion }: Props)
               data-estado={est ?? undefined}
               data-agente={marca ?? undefined}
               data-borrado={borrado || undefined}
-              style={{ paddingLeft: 8 + f.hondo * 13 }}
+              data-desplegada={f.carpeta ? f.desplegada : undefined}
+              style={{ paddingLeft: 8 + f.hondo * 13, ["--j" as string]: j }}
               title={est ? `${f.nombre} · ${t(QUE_ES[est])}` : f.nombre}
               onClick={() => {
                 // El clic que llega al soltar un arrastre no abre ni despliega nada.
@@ -536,10 +546,13 @@ export default function ArchivosPanel({ raiz, onAbrir, abierto, sesion }: Props)
               onPointerDown={(e) => (borrado ? undefined : vigilarArrastre(e, (panel, destino) => soltarRutaEn(panel, destino, f.ruta)))}
               onContextMenu={(e) => showMenu(e, menuDe(f.ruta, f, borrado))}
             >
+              {/* El chevron siempre mira abajo: abierta, la hoja lo gira. */}
               <span className="arch-ico" data-tipo={tipo}>
-                {tipo ? <IconoArchivo tipo={tipo} /> : <ChevronIcon size={11} up={f.desplegada} />}
+                {tipo ? <IconoArchivo tipo={tipo} /> : <ChevronIcon size={11} />}
               </span>
-              <span className="arch-nom">{f.nombre}</span>
+              <span className="arch-nom" key={cambio || "nombre"} data-cambio={cambio || undefined}>
+                {f.nombre}
+              </span>
               {cambiados > 0 && <span className="arch-dentro">{t(cambiados === 1 ? "{n} cambiado" : "{n} cambiados", { n: cambiados })}</span>}
               {lin && !etiqueta && <Lineas mas={lin.mas} menos={lin.menos} />}
               {etiqueta && (

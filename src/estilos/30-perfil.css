@@ -183,27 +183,29 @@
   gap: 14px;
 }
 
+/* Sin borde ni filo de cristal: la tarjeta se separa del fondo solo por su
+   tono (Munir, 2026-10-18, con lo que le dijeron en un Discord: «remove thin
+   borders, use soft contrast to create the card separations»). Al pasar, un
+   tono más. */
 .perfil-seccion {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  min-height: 150px;
   padding: 16px 18px;
   text-align: left;
   font: inherit;
   color: var(--text);
   background: var(--panel);
   backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--r-caja);
-  box-shadow: var(--glass-edge);
   cursor: pointer;
-  transition: border-color var(--t-rapida);
+  transition: background-color var(--t-rapida);
 }
 
 .perfil-seccion:hover {
-  border-color: var(--border-strong);
+  background: var(--panel-head);
 }
 
 .perfil-seccion:focus-visible {
@@ -232,16 +234,18 @@
   transform: translateX(2px);
 }
 
+/* La cifra de un resumen, más baja que la de tu uso: eran cinco cifras grandes
+   compitiendo (3, 0, 798, 24 y 11B) y la protagonista es una (2026-10-18). */
 .perfil-cifra {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  min-height: 32px;
+  min-height: 26px;
 }
 
 .perfil-cifra b {
-  font-size: 32px;
-  font-weight: 750;
+  font-size: 24px;
+  font-weight: 650;
   line-height: 1;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
@@ -276,40 +280,10 @@
   white-space: nowrap;
 }
 
-.perfil-fila-dato {
-  flex: none;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* La barra de cada cuenta, con los mismos colores que las baterías del panel
-   de la derecha (`.bat-barra`): naranja desde el 78 %, rojo al final. */
-.perfil-barra {
-  flex: none;
-  width: 64px;
-  height: 6px;
-  border-radius: var(--r-pastilla);
-  background: rgba(0, 0, 0, 0.35);
-  overflow: hidden;
-}
-
-.perfil-barra i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent);
-}
-
-.perfil-barra[data-tono="alto"] i {
-  background: var(--done);
-}
-
-.perfil-barra[data-tono="mal"] i {
-  background: var(--wait);
-}
-
-/* Tus skills, sueltas en una línea que se corta con puntos suspensivos. */
-.perfil-skills {
+/* Tus skills y tus cuentas con su límite, sueltas en una línea que se corta
+   con puntos suspensivos. */
+.perfil-skills,
+.perfil-cuentas {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

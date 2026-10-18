@@ -5,14 +5,17 @@
 // `web/scripts/hacer-demo.mjs` los empaqueta.
 //
 // Uso: node volcar.mjs <en|es> [parte...]   (sin partes: todo)
-//   partes: cabina panel chat agenda decisiones memoria cuentas comandos
-//           ajustes lienzo extras barra hojas
+//   partes: cabina panel chat perfil agenda decisiones memoria cuentas
+//           comandos ajustes lienzo extras barra hojas
 // Deja en `volcado/<idioma>/`:
 //   app-cabina.html, app-lienzo.html   la ventana entera en esas dos vistas
 //   v-<vista>.html                     la raíz de cada una de las otras
 //   v-<vista>--<n>.html                la misma con su pestaña n abierta
+//   x-volver-<vista>                   «‹ Perfil › Agenda», encima de las
+//                                      cuatro que viven dentro del Perfil
+//   x-porfolio-N                       la lista de tu uso con su pestaña N
 //   x-objetivos, x-pulso, x-paleta,
-//   x-lateral-N, x-barra-N             lo que se abre encima o al lado
+//   x-capataz, x-lateral-N, x-barra-N  lo que se abre encima o al lado
 //   raiz.json                          los atributos de <html> y <body>
 // y en `volcado/`: hojas.css, las hojas de estilo que la página tiene cargadas.
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -33,8 +36,11 @@ const p = await abrir();
 await montar(p, idioma, cabina(idioma));
 
 /** La raíz de la vista que hay delante: lo que cuelga de `.app` y no es el
- *  fondo, la barra ni la Cabina. */
-const RAIZ_VISTA = `[...document.querySelector('.app').children].find((e) => !e.matches('.fondo, header.topbar, .view-cabina'))`;
+ *  fondo, la barra, la Cabina ni la vuelta al Perfil (esa va en su `x-volver`). */
+const RAIZ_VISTA = `[...document.querySelector('.app').children].find((e) => !e.matches('.fondo, header.topbar, .view-cabina, nav.perfil-volver'))`;
+
+/** Las cuatro del Perfil llevan encima «‹ Perfil › Agenda»: se vuelca aparte. */
+const volverDe = (nombre) => volcar(`x-volver-${nombre}`, `document.querySelector('.app > nav.perfil-volver')`);
 
 async function volcar(nombre, expr = `document.querySelector('.app')`) {
   await apartarRaton(p);
@@ -50,6 +56,8 @@ async function volcar(nombre, expr = `document.querySelector('.app')`) {
  *  primera, que es la que tiene que quedar. */
 async function secciones(nombre) {
   const n = await p.js(`document.querySelectorAll('nav.set-nav button.set-tab').length`);
+  // Sin pestañas (el inicio dejó las suyas en la 0.9.221), la hoja entera.
+  if (!n) return volcar(`v-${nombre}`, RAIZ_VISTA);
   for (let i = 0; i < n; i++) {
     const rotulo = await p.js(`(() => { const b = document.querySelectorAll('nav.set-nav button.set-tab')[${i}]; if (b.dataset.on !== 'true') b.click(); return (b.querySelector('.set-tab-nom')?.textContent ?? '').trim(); })()`);
     await dormir(1300);
@@ -87,6 +95,23 @@ if (quiere("chat")) {
   await volcar("v-chat", RAIZ_VISTA);
 }
 
+if (quiere("perfil")) {
+  await vista(p, "perfil", 4000);
+  // La lista de tu uso con cada pestaña (Proveedores, Modelos, Proyectos), y se
+  // acaba en la que estaba, que es con la que se vuelca la hoja.
+  const pestanas = `document.querySelectorAll('.pu-pestanas button[role="tab"]')`;
+  const n = await p.js(`${pestanas}.length`);
+  const de = await p.js(`[...${pestanas}].findIndex((b) => b.getAttribute('aria-selected') === 'true')`);
+  for (let i = 0; i < n; i++) {
+    await p.js(`${pestanas}[${i}].click()`);
+    await dormir(700);
+    await volcar(`x-porfolio-${i}`, `document.querySelector('.pu-lista')`);
+  }
+  if (de >= 0) await p.js(`${pestanas}[${de}].click()`);
+  await dormir(700);
+  await volcar("v-perfil", RAIZ_VISTA);
+}
+
 if (quiere("agenda")) {
   await vista(p, "agenda", 3000);
   // Con un proyecto elegido, la portada cuenta sus metas (el clic lo quita si
@@ -95,6 +120,7 @@ if (quiere("agenda")) {
   if (!(await elegido())) await intentar(() => p.clic("aside.ag-rail button.project-logo", "SA"));
   await dormir(1200);
   await volcar("v-agenda", RAIZ_VISTA);
+  await volverDe("agenda");
 }
 
 if (quiere("decisiones")) {
@@ -107,25 +133,35 @@ if (quiere("decisiones")) {
 if (quiere("memoria")) {
   await vista(p, "memoria", 4000);
   // El mapa de la bóveda se pinta en un lienzo, que no se puede volcar: se
-  // abren las carpetas y un documento, que sí son texto.
+  // abren las carpetas y un documento, que sí son texto. Solo las cerradas: la
+  // app recuerda las que abriste, y pulsar una abierta la pliega (el volcado en
+  // español salía sin notas). Abierta es la que lleva debajo algo más metido.
   const carpetas = await p.js(`document.querySelectorAll('button.mem-carpeta').length`);
   for (let i = 0; i < carpetas; i++) {
-    await p.js(`document.querySelectorAll('button.mem-carpeta')[${i}]?.click()`);
+    await p.js(`(() => {
+      const b = document.querySelectorAll('button.mem-carpeta')[${i}];
+      const s = b?.nextElementSibling;
+      const abierta = s && parseFloat(s.style.paddingLeft || 0) > parseFloat(b.style.paddingLeft || 0);
+      if (b && !abierta) b.click();
+    })()`);
     await dormir(500);
   }
   await intentar(() => p.clic("button.mem-hoja", es ? "Redondeo" : "Rounding"));
   await dormir(1800);
   await volcar("v-memoria", RAIZ_VISTA);
+  await volverDe("memoria");
 }
 
 if (quiere("cuentas")) {
   await vista(p, "cuentas", 5000);
   await secciones("cuentas");
+  await volverDe("cuentas");
 }
 
 if (quiere("comandos")) {
   await vista(p, "comandos", 2500);
   await volcar("v-comandos", RAIZ_VISTA);
+  await volverDe("comandos");
 }
 
 if (quiere("ajustes")) {
@@ -170,15 +206,29 @@ if (quiere("extras")) {
     await p.enviar("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
     await dormir(600);
   });
-  // La barra de la derecha: uso, skills y archivos. Con una terminal
-  // enfocada, las tres hablan de SU proyecto.
+  // El Capataz, que abre el orbe de la barra. Flota fuera de `.app`, en `body`,
+  // y se cierra con Escape desde su caja, que nace con el foco.
+  await intentar(async () => {
+    await p.clic("button.foreman-call");
+    await dormir(1500);
+    await volcar("x-capataz", `document.querySelector('body > .foreman-overlay')`);
+    await p.enviar("Input.dispatchKeyEvent", { type: "rawKeyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await p.enviar("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await dormir(800);
+    await p.js(`document.querySelector('body > .foreman-overlay') && document.querySelector('button.foreman-call').click()`);
+    await dormir(600);
+  });
+  // La barra de la derecha: uso, skills y archivos (el cuarto botón abre una
+  // web en un panel, no un lateral). Con una terminal enfocada, las tres
+  // hablan de SU proyecto.
+  const LATERALES = 3;
   await intentar(() => p.clic(".view-cabina .xterm-screen"));
   await dormir(800);
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < LATERALES; i++) {
     await intentar(async () => {
       await p.js(`document.querySelectorAll('nav.franja button.franja-btn')[${i}].click()`);
       await dormir(2800);
-      if (i === 2) {
+      if (i === LATERALES - 1) {
         for (const carpeta of ["src", "test"]) {
           await intentar(() => p.clic('button.arch-fila[data-carpeta="true"]', carpeta));
           await dormir(600);
@@ -188,7 +238,7 @@ if (quiere("extras")) {
     });
   }
   // Se cierra volviendo a pulsar la que quedó abierta.
-  await intentar(() => p.js(`document.querySelectorAll('nav.franja button.franja-btn')[2].click()`));
+  await intentar(() => p.js(`document.querySelectorAll('nav.franja button.franja-btn')[${LATERALES - 1}].click()`));
   await dormir(1500);
 }
 

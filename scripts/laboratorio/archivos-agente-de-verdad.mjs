@@ -346,7 +346,7 @@ try {
   // ------------------------------------------------------------ una edición esperando
   apuntar("assistant", [{ type: "text", text: "Lo cambio." }, uso("t2", "Edit", { file_path: CLIENTE, old_string: "const r", new_string: "let r" })]);
   p = await cuando((x) => x.que === "editando");
-  dice(p?.titulo === "Claude está editando" && p.estado === "Trabajando" && p.sub === "src/api/client.js" && p.cliente.startsWith("editando Editando") && p.lista === "client.js=editando client.test.js=leido", `una edición lanzada y sin contestar: «${p?.titulo}» (${p?.cliente})`);
+  dice(p?.titulo === "Claude está editando" && p.estado === "Trabajando" && p.sub === null && p.cliente.startsWith("editando Editando") && p.lista === "client.js=editando client.test.js=leido", `una edición lanzada y sin contestar: «${p?.titulo}», el archivo en la lista y no repetido debajo (${p?.cliente})`);
 
   // ------------------------------------------------------------ la edición se hace
   writeFileSync(CLIENTE, "export async function get(url) {\n  let r = await fetch(url);\n  if (!r.ok) r = await fetch(url);\n  return r.json();\n}\n");
@@ -376,7 +376,7 @@ try {
   apuntar("user", "ahora el test");
   apuntar("assistant", [uso("t4", "Write", { file_path: TEST, content: "…" })]);
   p = await cuando((x) => x.que === "editando");
-  dice(p?.sub === "tests/client.test.js" && p.lista === "client.test.js=editando client.js=commit", `otra edición lanzada: se ve, y lo del commit sigue ahí mientras no se haga (${p?.lista})`);
+  dice(p?.sub === null && p.lista === "client.test.js=editando client.js=commit", `otra edición lanzada: se ve, y lo del commit sigue ahí mientras no se haga (${p?.lista})`);
   writeFileSync(TEST, "import { get } from '../src/api/client.js';\n\ntest('reintenta', () => {});\n");
   apuntar("user", respuesta("t4"));
   p = await cuando((x) => x.que === "editando" && !x.lista.includes("commit"));

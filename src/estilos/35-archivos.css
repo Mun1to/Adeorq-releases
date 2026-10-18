@@ -1,0 +1,747 @@
+/* ── EL PANEL DE ARCHIVOS ───────────────────────────────────────────────────
+   El árbol, sus colores de estado y lo que toca el agente (`ArchivosPanel.tsx`,
+   `ArchivosAgente.tsx`, `docs/contexto/archivos.md`). Vivía dentro de
+   `06-barra-derecha.css`, que es la barra y el editor; salió a su tramo el
+   2026-10-18 (la huella es `archivos-agente.js`).
+
+   LO QUE SE MUEVE, Y CUÁNTO (Munir, 2026-10-18: «hay que mejorar también la
+   parte de files haciendo más animaciones», y eligió la «viva» entre tres).
+   Cada animación cuenta algo que pasa: el archivo que el agente toca entra en
+   la lista, los números cuentan hasta su valor (`lib/cifra.ts`), el lápiz
+   escribe mientras edita y el ojo parpadea mientras lee, el punto late una vez
+   al llegar, el chevron gira y las filas de una carpeta entran en cascada, el
+   nombre que acaba de cambiar brilla y se apaga, y al entrar el commit la
+   lista pasa a verde en ola y la tarjeta suelta un halo. Todo con `transform`,
+   `opacity` y la sombra de las letras: debajo hay cristal. Un dial
+   (`--arch-mov`) lo escala entero; el modo rendimiento y «reducir movimiento»
+   lo bajan, no lo apagan: lo que se mueve sigue diciendo lo que pasa, con
+   menos recorrido. `--arch-paso` es cuánto se escalonan las filas. */
+.arch {
+  --arch-mov: 1;
+  --arch-paso: 1;
+  --arch-curva: ease-out;
+}
+:root[data-rendimiento="1"] .arch {
+  --arch-mov: 0.45;
+}
+@media (prefers-reduced-motion: reduce) {
+  .arch {
+    --arch-mov: 0.3;
+  }
+}
+
+/* ── EL ÁRBOL DE ARCHIVOS ───────────────────────────────────────────────────
+   Lee una carpeta cada vez, así que la lista crece y encoge al desplegar: el
+   scroll es suyo y no de la barra entera. */
+.arch {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* De qué proyecto son estos archivos. No es un selector: lo decide la terminal
+   que tengas delante, y por eso se lee y no se pulsa. Suelto: la caja con
+   borde que llevaba era una cárcel (`estilo.md`). */
+.arch-raiz {
+  flex: none;
+  padding: 2px 4px 0;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arch-arbol {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 -6px;
+}
+
+/* La fila donde se escribe un nombre (crear, renombrar), en su sitio del árbol.
+   Opaca y con borde de acento: un campo translúcido sobre la foto no se
+   distingue del fondo. */
+.arch-editar {
+  flex: none;
+  display: grid;
+  gap: 3px;
+  padding: 2px 8px 2px 0;
+}
+.arch-editar-campo {
+  height: 23px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  border-radius: var(--r-chico);
+  background: var(--popover);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
+  min-width: 0;
+}
+.arch-editar-campo[aria-invalid="true"] {
+  border-color: var(--mal);
+}
+.arch-editar-error {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--mal);
+}
+
+/* Cada fila entra, y las de una carpeta recién abierta una detrás de otra
+   (`--j` es su sitio dentro de la carpeta). */
+.arch-fila {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 25px;
+  padding-right: 8px;
+  border: none;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: arch-entra var(--t-media) var(--arch-curva) both;
+  animation-delay: calc(var(--j, 0) * 28ms * var(--arch-paso));
+}
+
+.arch-fila:hover {
+  background: var(--row);
+}
+
+.arch-fila[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* El hueco del chevron se reserva SIEMPRE, lo tenga o no: si solo lo ocuparan
+   las carpetas, los archivos de un mismo nivel saldrían 13 px a la izquierda y
+   el árbol dejaría de leerse como columnas. */
+.arch-ico {
+  flex: none;
+  width: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+/* El icono de cada familia de archivo, con un tinte apagado: lo justo para
+   distinguir de un vistazo código, datos y papeles sin competir con el color
+   del estado, que es el que manda en la fila. */
+.arch-ico[data-tipo] {
+  color: color-mix(in srgb, var(--tipo, var(--muted)) 62%, var(--muted));
+}
+.arch-ico[data-tipo="web"] { --tipo: #6cb7ff; }
+.arch-ico[data-tipo="codigo"] { --tipo: #f0a36b; }
+.arch-ico[data-tipo="estilo"] { --tipo: #c9a5f0; }
+.arch-ico[data-tipo="datos"] { --tipo: #e5c770; }
+.arch-ico[data-tipo="imagen"] { --tipo: #7ec9a8; }
+/* El chevron de una carpeta gira al abrirla, en vez de cambiar de dibujo. */
+.arch-fila[data-carpeta="true"] .arch-ico svg {
+  transition: transform var(--t-media) var(--arch-curva);
+}
+.arch-fila[data-desplegada="true"] .arch-ico svg {
+  transform: rotate(180deg);
+}
+
+/* La letra de git al final de la fila: M, A, D, R o U, con el color de su estado. */
+.arch-letra {
+  flex: none;
+  margin-left: auto;
+  min-width: 10px;
+  text-align: center;
+  font: 650 10.5px/1 "Cascadia Mono", Consolas, ui-monospace, monospace;
+  color: var(--arch-c, var(--muted));
+}
+.arch-punto + .arch-letra {
+  margin-left: 0;
+}
+/* Lo que llevas en la mano hacia una terminal se apaga en su sitio; la
+   terminal que lo va a recibir se marca en `06-barra-derecha.css`. */
+.arch-fila[data-moviendo] {
+  opacity: 0.45;
+}
+
+/* Borrado y sin commit: ya no está en el disco. Tachado, y no se abre. */
+.arch-fila[data-borrado] {
+  cursor: default;
+}
+.arch-fila[data-borrado] .arch-nom {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.arch-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arch-fila[data-carpeta="true"] .arch-nom {
+  font-weight: 560;
+}
+
+.arch-fila[data-carpeta="false"] .arch-nom {
+  color: color-mix(in srgb, var(--text) 82%, var(--muted));
+}
+
+/* ── Los colores de estado (`lib/estadoArchivos.ts`, Munir 2026-10-08) ──────
+   Un punto a la derecha de cada fila y el nombre teñido, mezclado con el color
+   del texto para que se lea también en los temas claros. El amarillo es lo que
+   se está escribiendo AHORA, y por eso es lo único que late sin parar: lo demás
+   ya no se mueve. Una carpeta lleva el punto de lo más importante que tiene
+   dentro. */
+.arch {
+  --arch-conflicto: #ff6b81;
+  --arch-tocando: var(--warn);
+  --arch-sin-guardar: var(--text);
+  --arch-nuevo: #5fd38d;
+  --arch-cambiado: #6cb7ff;
+  --arch-borrado: #b9a2a6;
+}
+.arch [data-estado="conflicto"] { --arch-c: var(--arch-conflicto); }
+.arch [data-estado="tocando"] { --arch-c: var(--arch-tocando); }
+.arch [data-estado="sinGuardar"] { --arch-c: var(--arch-sin-guardar); }
+.arch [data-estado="nuevo"] { --arch-c: var(--arch-nuevo); }
+.arch [data-estado="cambiado"] { --arch-c: var(--arch-cambiado); }
+.arch [data-estado="borrado"] { --arch-c: var(--arch-borrado); }
+
+/* El punto late UNA vez al llegar: es la noticia de que algo cambió. */
+.arch-punto {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--arch-c);
+  animation: arch-llega calc(var(--t-lenta) * 1.4) var(--arch-curva) both;
+}
+
+.arch-fila[data-estado] .arch-nom {
+  color: color-mix(in srgb, var(--arch-c) 62%, var(--text));
+}
+
+.arch-fila[data-estado="tocando"]:not([data-on="true"]) {
+  background: color-mix(in srgb, var(--arch-tocando) 14%, transparent);
+}
+
+.arch-fila[data-estado="tocando"] .arch-punto {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--arch-tocando) 28%, transparent);
+  animation:
+    arch-llega calc(var(--t-lenta) * 1.4) var(--arch-curva) both,
+    arch-latido 1.1s ease-in-out calc(var(--t-lenta) * 1.4) infinite;
+}
+
+@keyframes arch-latido {
+  50% { opacity: calc(1 - 0.65 * var(--arch-mov)); }
+}
+@keyframes arch-llega {
+  0% {
+    opacity: 0;
+    transform: scale(calc(1 - 0.6 * var(--arch-mov)));
+  }
+  55% {
+    opacity: 1;
+    transform: scale(calc(1 + 0.55 * var(--arch-mov)));
+  }
+}
+
+/* Cuántos hay de cada uno, debajo del nombre del proyecto. Solo los que hay:
+   con todo como en el commit, la línea no se pinta. */
+.arch-cuentas {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.arch-cuenta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  animation: arch-entra var(--t-media) var(--arch-curva) both;
+}
+
+.arch-cuenta .arch-punto {
+  margin-left: 0;
+}
+
+.arch-vacio {
+  margin: 8px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ── LO QUE TOCA EL AGENTE (`ArchivosAgente.tsx`, Munir 2026-10-12) ─────────
+   Tres colores más, y dicen QUIÉN, no qué: morado lo que el agente leyó,
+   naranja lo que editó, verde lo que ya entró en su commit. Van en su propia
+   variable (`--arch-a`) y no en la de git (`--arch-c`), porque una fila lleva
+   las dos cosas a la vez: el nombre dice quién la tocó y la letra sigue
+   diciendo lo que git le contará al commit.
+
+   Y el brillo de las letras (Munir, 2026-10-18: «el texto sale un glow […] como
+   el mío de mi página web de Munito.dev […] de color verde Orquio»): la misma
+   receta que `.taller-brillo` de su web, dos sombras alrededor de las letras
+   sin cambiarles el color, en el verde que Orquio lleva como proyecto en esta
+   casa (`lib/colorLienzo.ts`, el tono 103). Fijo en el nombre que el agente
+   está tocando ahora; y en el que acaba de cambiar nace y se apaga. Lo que NO
+   quiso: la fila entera encendida. */
+.arch {
+  --arch-leido: #b79cf5;
+  --arch-editado: #ff9a4d;
+  --arch-commit: var(--ok);
+  /* hsl(103 78% 64%), el verde de Orquio como proyecto. */
+  --arch-brillo: #84eb5c;
+  --arch-glow:
+    0 0 8px color-mix(in srgb, var(--arch-brillo) 50%, transparent),
+    0 0 22px color-mix(in srgb, var(--arch-brillo) 30%, transparent);
+}
+.arch [data-agente="leyendo"],
+.arch [data-agente="leido"],
+.arch-tarjeta[data-que="leyendo"],
+.arch-tarjeta[data-que="abrio"] {
+  --arch-a: var(--arch-leido);
+}
+.arch [data-agente="editando"],
+.arch [data-agente="editado"],
+.arch-tarjeta[data-que="editando"],
+.arch-tarjeta[data-que="edito"] {
+  --arch-a: var(--arch-editado);
+}
+.arch [data-agente="commit"],
+.arch-tarjeta[data-que="commit"],
+.arch-tarjeta[data-que="commitEnCurso"] {
+  --arch-a: var(--arch-commit);
+}
+/* El mismo color para LETRA: mezclado con el del texto, que es oscuro en los
+   temas claros y claro en los oscuros. A pelo, el verde y el morado de la casa
+   son de fondo oscuro y sobre Papel o Claro no se leían. Se declara donde se
+   usa: una variable dentro de otra se resuelve donde se declara. */
+.arch-tj-ico,
+.arch-tj-estado,
+.arch-etq {
+  --arch-tinta: color-mix(in srgb, var(--arch-a) 66%, var(--text));
+}
+
+@keyframes arch-entra {
+  from {
+    opacity: 0;
+    transform: translateY(calc(4px * var(--arch-mov)));
+  }
+}
+@keyframes arch-etq-entra {
+  from {
+    opacity: 0;
+    transform: scale(calc(1 - 0.3 * var(--arch-mov)));
+  }
+}
+@keyframes arch-salta {
+  0% {
+    opacity: 0;
+    transform: scale(calc(1 - 0.6 * var(--arch-mov)));
+  }
+  60% {
+    transform: scale(calc(1 + 0.18 * var(--arch-mov)));
+  }
+}
+/* El latido de lo que pasa ahora. Más corto que el del punto (`arch-latido`):
+   una etiqueta a un tercio de su color deja de leerse. */
+@keyframes arch-ahora {
+  50% {
+    opacity: calc(1 - 0.38 * var(--arch-mov));
+  }
+}
+/* El lápiz escribe: la punta recorre un renglón y vuelve al principio. */
+@keyframes arch-escribe {
+  0% { transform: translate(calc(-2px * var(--arch-mov)), 0) rotate(calc(-4deg * var(--arch-mov))); }
+  20% { transform: translate(calc(-0.6px * var(--arch-mov)), calc(-0.7px * var(--arch-mov))) rotate(0deg); }
+  40% { transform: translate(calc(1px * var(--arch-mov)), calc(0.3px * var(--arch-mov))) rotate(calc(3deg * var(--arch-mov))); }
+  60% { transform: translate(calc(2.2px * var(--arch-mov)), calc(-0.4px * var(--arch-mov))) rotate(calc(-2deg * var(--arch-mov))); }
+  70%, 100% { transform: translate(calc(-2px * var(--arch-mov)), 0) rotate(calc(-4deg * var(--arch-mov))); }
+}
+/* El ojo parpadea de vez en cuando mientras lee. */
+@keyframes arch-parpadea {
+  0%, 91%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(calc(1 - 0.85 * var(--arch-mov))); }
+}
+/* El nombre que acaba de cambiar: nace brillando y se apaga. */
+@keyframes arch-brilla {
+  from {
+    text-shadow:
+      0 0 8px color-mix(in srgb, var(--arch-brillo) 75%, transparent),
+      0 0 22px color-mix(in srgb, var(--arch-brillo) 45%, transparent);
+  }
+  to {
+    text-shadow:
+      0 0 8px transparent,
+      0 0 22px transparent;
+  }
+}
+/* El halo de la tarjeta cuando entra el commit. */
+@keyframes arch-halo {
+  0% { opacity: 0; }
+  18% { opacity: calc(0.7 * var(--arch-mov)); }
+  100% { opacity: 0; }
+}
+
+/* La tarjeta: lo último que importa, debajo la lista de lo que tocó, y al pie
+   la rama con lo que suma el árbol. Eran dos cajas («Working» arriba y «Claude
+   touched» debajo) y Munir las fundió el 2026-10-18: «hay que fusionar esas dos
+   cosas, y hacer que el marco sea con glow también». El marco es de la familia
+   de la barra (`06-barra-derecha.css`, 88b771d): el halo de las cajas. */
+.arch-tarjeta {
+  position: relative;
+  flex: none;
+  display: grid;
+  gap: 7px;
+  padding: 9px 10px 8px;
+  border: 1px solid color-mix(in srgb, var(--arch-a, transparent) 34%, var(--border));
+  border-radius: var(--r-caja);
+  background: var(--row);
+  box-shadow:
+    var(--glass-edge),
+    var(--sombra-2),
+    0 10px 28px color-mix(in srgb, var(--accent) 16%, transparent);
+  transition: border-color var(--t-lenta);
+}
+.arch-tarjeta[data-que="commit"]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    0 0 0 1px var(--ok),
+    0 0 22px color-mix(in srgb, var(--ok) 55%, transparent);
+  animation: arch-halo 1.4s ease-out both;
+}
+.arch-tj-cab {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+/* El icono, suelto en su color (el recuadro tintado era una cárcel). Entra con
+   un salto; y mientras trabaja, el lápiz escribe y el ojo parpadea. */
+.arch-tj-ico {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: var(--arch-tinta);
+  animation: arch-salta var(--t-lenta) var(--arch-curva) both;
+}
+.arch-tj-ico svg {
+  transform-origin: 30% 75%;
+}
+.arch-tarjeta[data-marcha][data-que="editando"] .arch-tj-ico svg {
+  animation: arch-escribe 1s ease-in-out infinite;
+}
+.arch-tarjeta[data-que="leyendo"] .arch-tj-ico svg {
+  transform-origin: 50% 50%;
+  animation: arch-parpadea 3.4s ease-in-out infinite;
+}
+.arch-tarjeta[data-que="commitEnCurso"] .arch-tj-ico {
+  animation: arch-ahora 1.1s ease-in-out infinite;
+}
+.arch-tj-txt {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+/* «Trabajando» / «Hecho», en caja normal: ni mayúsculas ni espaciado. */
+.arch-tj-estado {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--arch-tinta);
+}
+.arch-tj-tit {
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--text);
+  animation: arch-entra var(--t-media) var(--arch-curva) both;
+}
+.arch-tj-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.arch-tj-ruta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: arch-entra var(--t-media) var(--arch-curva) both;
+}
+.arch-tj-git {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.arch-tj-git:not(:first-child) {
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+}
+.arch-tj-rama {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+  color: var(--text);
+}
+.arch-tj-delante {
+  flex: none;
+  font-style: normal;
+  font-weight: 650;
+  color: var(--accent);
+}
+.arch-tj-suma {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+.arch-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.arch-leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.arch-leyenda .arch-punto,
+.arch-pie .arch-punto {
+  margin-left: 0;
+  background: var(--arch-a, var(--arch-commit));
+}
+.arch-tj-nota {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* «+3 −1»: las líneas añadidas y quitadas, cada una de su color. Los números
+   cuentan hasta llegar (`lib/cifra.ts`), tabulares para que no bailen. */
+.arch-lineas {
+  flex: none;
+  display: inline-flex;
+  gap: 4px;
+  font: 600 10.5px/1 "Cascadia Mono", Consolas, ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  animation: arch-entra var(--t-media) var(--arch-curva) both;
+}
+.arch-lineas i {
+  font-style: normal;
+}
+.arch-mas {
+  color: color-mix(in srgb, var(--ok) 68%, var(--text));
+}
+.arch-menos {
+  color: color-mix(in srgb, var(--mal) 68%, var(--text));
+}
+
+/* La lista de lo que tocó, dentro de la tarjeta y sin rótulo encima: el
+   titular ya dice qué pasa. Con todo desplegado no crece sin techo: a partir
+   de nueve filas corre por dentro, que debajo está el árbol y es lo que manda.
+   Sale de los márgenes de la tarjeta para que sus filas, con su propio relleno,
+   queden a ras del titular. */
+.arch-tocados {
+  display: grid;
+  gap: 1px;
+  max-height: 262px;
+  overflow-y: auto;
+  margin: 0 -5px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.arch-tj-cab + .arch-tocados {
+  margin-top: -1px;
+}
+.arch-toc {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 24px;
+  padding: 0 5px;
+  border: none;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--t-lenta);
+  animation: arch-entra var(--t-media) var(--arch-curva) both;
+  animation-delay: calc(var(--i, 0) * 40ms * var(--arch-paso));
+}
+.arch-toc:hover {
+  background: var(--row);
+}
+.arch-toc .arch-nom {
+  flex: 0 1 auto;
+  font-weight: 560;
+  color: color-mix(in srgb, var(--arch-a) 70%, var(--text));
+  transition: color var(--t-lenta);
+  /* Entra brillando cada vez que cambia lo que se dice de él (`key` por marca).
+     Al entrar el commit, una fila detrás de otra: la ola. */
+  animation: arch-brilla calc(var(--t-lenta) * 4) ease-out both;
+  animation-delay: calc(var(--i, 0) * 90ms * var(--arch-paso));
+}
+.arch-toc-dir {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.arch-toc[data-agente="commit"] {
+  background: color-mix(in srgb, var(--arch-commit) 12%, transparent);
+}
+.arch-toc-mas {
+  justify-self: start;
+  margin: 2px 0 0;
+  padding: 2px 5px;
+  border: none;
+  border-radius: var(--r-chico);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.arch-toc-mas:hover {
+  color: var(--text);
+  background: var(--row);
+}
+.arch-toc-fuera {
+  margin: 2px 5px 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* La etiqueta: qué hizo con ese archivo. Texto suelto en su color, que la
+   pastilla era una cárcel. En el árbol va en minúsculas, que ahí es una nota
+   al margen y no un rótulo. */
+.arch-etq {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 16px;
+  color: var(--arch-tinta);
+  animation: arch-etq-entra var(--t-media) var(--arch-curva) both;
+}
+.arch-fila .arch-etq {
+  text-transform: lowercase;
+}
+[data-agente="editando"] > .arch-etq,
+[data-agente="leyendo"] > .arch-etq {
+  animation:
+    arch-etq-entra var(--t-media) var(--arch-curva) both,
+    arch-ahora 1.1s ease-in-out var(--t-media) infinite;
+}
+
+/* El nombre de lo que el agente está tocando AHORA brilla fijo, en la lista y
+   en el árbol; el que se apaga es el de lo que acaba de cambiar. */
+.arch-toc[data-agente="editando"] .arch-nom,
+.arch-toc[data-agente="leyendo"] .arch-nom,
+.arch-fila[data-agente="editando"] .arch-nom,
+.arch-fila[data-agente="leyendo"] .arch-nom {
+  animation: none;
+  text-shadow: var(--arch-glow);
+}
+
+/* En el árbol. El nombre crece para que lo de la derecha (líneas, etiqueta,
+   punto, letra) quede siempre pegado al borde, haya lo que haya. Y cuando
+   cambia lo que se dice de él (`data-cambio` lleva la marca, la letra y las
+   líneas, y es la `key`), entra brillando. */
+.arch-fila .arch-nom {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.arch-fila .arch-nom[data-cambio] {
+  animation: arch-brilla calc(var(--t-lenta) * 4) ease-out both;
+}
+.arch-fila[data-agente] {
+  transition: background-color var(--t-lenta);
+}
+.arch-fila[data-agente] .arch-nom {
+  color: color-mix(in srgb, var(--arch-a) 70%, var(--text));
+  transition: color var(--t-lenta);
+}
+/* Que lo abriera no tapa lo que git dice de él. */
+.arch-fila[data-agente="leido"][data-estado] .arch-nom {
+  color: color-mix(in srgb, var(--arch-c) 62%, var(--text));
+}
+.arch-fila[data-carpeta="false"][data-agente="editando"]:not([data-on="true"]),
+.arch-fila[data-carpeta="false"][data-agente="leyendo"]:not([data-on="true"]) {
+  background: color-mix(in srgb, var(--arch-a) 18%, transparent);
+}
+.arch-fila[data-carpeta="false"][data-agente="commit"]:not([data-on="true"]) {
+  background: color-mix(in srgb, var(--arch-commit) 12%, transparent);
+}
+/* Cuántos cambiados lleva dentro una carpeta, delante de su punto. */
+.arch-dentro {
+  flex: none;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--arch-c, var(--muted)) 55%, var(--muted));
+  animation: arch-entra var(--t-media) var(--arch-curva) both;
+}
+
+/* El pie: el commit que se está haciendo y, cuando entra, su hash. */
+.arch-pie {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 1px 4px 0;
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--arch-commit) 66%, var(--text));
+  animation: arch-entra var(--t-media) var(--arch-curva) both;
+}
+.arch-pie b {
+  font: 650 11px/1 "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+.arch-pie[data-que="haciendo"] .arch-punto {
+  animation:
+    arch-llega calc(var(--t-lenta) * 1.4) var(--arch-curva) both,
+    arch-latido 1.1s ease-in-out calc(var(--t-lenta) * 1.4) infinite;
+}

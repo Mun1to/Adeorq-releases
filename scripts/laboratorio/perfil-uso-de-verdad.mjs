@@ -208,7 +208,8 @@ try {
   resumen.mes = await v.js(`[...document.querySelectorAll(".pu-mes button")].map((b) => b.textContent).join(" | ")`);
   resumen.anio = await v.js(`document.querySelectorAll(".pu-anio button:not(:disabled)").length`);
   console.log(JSON.stringify(resumen, null, 1));
-  dice(/^\d+(,\d)? [KMB]$/.test(resumen.cifra) && /Nuevos \d/.test(resumen.fila) && /Récord /.test(resumen.fila), "la cifra del mes, «Nuevos» y el récord");
+  // La letra va PEGADA a la cifra («12B», Munir, 2026-10-17): el espacio de antes la dejaba en rojo.
+  dice(/^\d+(,\d)?[KMB]$/.test(resumen.cifra) && /Nuevos \d/.test(resumen.fila) && /Récord /.test(resumen.fila), "la cifra del mes, «Nuevos» y el récord");
   dice(resumen.proyectos.length > 0 && !resumen.proyectos.some((p) => /^web /i.test(p)), "los proyectos con su nombre (ningún «web» suelto)");
   dice(resumen.anio > 0, `el año con días que se pueden tocar (${resumen.anio})`);
 

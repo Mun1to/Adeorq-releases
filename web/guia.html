@@ -203,6 +203,7 @@
         <li><a href="#primeros-pasos" data-i18n="guia.nav.primeros">Primeros pasos</a></li>
         <li><a href="#cabina" data-i18n="guia.nav.cabina">La Cabina</a></li>
         <li><a href="#panel" data-i18n="guia.nav.panel">El Panel</a></li>
+        <li><a href="#perfil" data-i18n="guia.nav.perfil">El Perfil y tu uso</a></li>
         <li><a href="#agenda" data-i18n="guia.nav.agenda">La Agenda</a></li>
         <li><a href="#objetivos" data-i18n="guia.nav.objetivos">Los objetivos del día</a></li>
         <li><a href="#lienzo" data-i18n="guia.nav.lienzo">El Lienzo</a></li>
@@ -291,16 +292,16 @@
       <p data-i18n="guia.primeros.p">Con Adeorq recién instalado, el camino más corto para ver de qué va:</p>
       <ol class="doc-pasos">
         <li data-i18n-html="guia.primeros.p1">
-          Ve a <b>Cuentas</b>. Adeorq mira qué programas de IA tienes instalados y te lo dice.
-          Si te falta alguno, desde ahí se descarga.
+          Ve a <b>Cuentas</b>, dentro del <b>Perfil</b>. Adeorq mira qué programas de IA tienes
+          instalados y te lo dice. Si te falta alguno, desde ahí se descarga.
         </li>
         <li data-i18n-html="guia.primeros.p2">
           Ve a la <b>Cabina</b> y abre una terminal en uno de tus proyectos. Es una terminal
           normal: lo que escribirías en ella, escríbelo ahí.
         </li>
         <li data-i18n-html="guia.primeros.p3">
-          Vuelve al <b>Panel</b>. Ya verás tu sesión contada, y en la <b>Agenda</b> aparecerá
-          con lo que esté haciendo.
+          Vuelve al <b>Panel</b>. Tu proyecto ya sale con su sesión trabajando, y en la
+          <b>Agenda</b> aparecerá con lo que esté haciendo.
         </li>
       </ol>
     </section>
@@ -391,8 +392,8 @@
 
       <h3 data-i18n="guia.cabina.h3c">La columna derecha</h3>
       <p data-i18n="guia.cabina.p5">
-        A la derecha de las terminales hay una franja con cuatro iconos. Cada uno abre una cara, y
-        pulsar otra vez el de la cara abierta la esconde:
+        A la derecha de las terminales hay una franja de iconos. Los tres primeros abren una cara
+        cada uno, y pulsar otra vez el de la cara abierta la esconde:
       </p>
       <ul class="doc-lista">
         <li data-i18n-html="guia.cabina.l5u">
@@ -403,10 +404,6 @@
           <b>Skills</b>: tus comandos de <code>~/.claude/skills</code>, cada uno con lo que hace.
           Arrastra uno encima de una terminal y se pega en su caja; con un clic va a la que tienes
           delante.
-        </li>
-        <li data-i18n-html="guia.cabina.l6">
-          <b>Actividad</b>: lo que hace por detrás la terminal que tienes delante, con cada
-          herramienta y cada petición al modelo.
         </li>
         <li data-i18n-html="guia.cabina.l7">
           <b>Archivos</b>: el árbol del proyecto, con el color de lo que git ve cambiado. Con el
@@ -421,45 +418,80 @@
     <!-- ----------------------------- PANEL ----------------------------- -->
     <section id="panel">
       <h2 data-i18n="guia.panel.h">El Panel<a class="doc-ancla" href="#panel" aria-label="Enlace a esta sección">#</a></h2>
-      <p data-i18n="guia.panel.p">
-        El resumen del día. Arriba, cuatro cifras que no dicen sólo cuánto hay, sino si tienes
-        que hacer algo: cuántas sesiones trabajan ahora, cuántas te esperan, cuántas van esta
-        semana y cuántos proyectos tienes. La primera es un botón que te lleva a la Cabina.
+      <p data-i18n-html="guia.panel.p">
+        Lo primero que ves al abrir. A la izquierda, Adeo y una caja para pedirle lo que quieras
+        con tus palabras («abre lo de Orquio», «repasa el login», «sube lo de hoy»): al enviarlo
+        se abre una conversación nueva en el <b>Chat</b>, Adeo lo reparte en sesiones y el router
+        elige el modelo. Encima, una frase con lo que está pasando; si una terminal te pregunta
+        algo, lo dice, y <b>Contestar</b> te lleva a ella.
       </p>
       <p data-i18n-html="guia.panel.p0">
-        Está organizado como los Ajustes: los grupos a la izquierda y una sola hoja a la derecha,
-        cada uno con su contador para ver que algo está vacío sin entrar a mirarlo.
+        A la derecha, tus proyectos de la semana: primero el que te espera, luego los que
+        trabajan y después el resto, por el último que tocaste. Un clic te lleva a su terminal.
+        Debajo, tu uso del mes en casillas, que lleva al <b>Perfil</b>.
       </p>
 
       <figure class="doc-figura">
         <img src="assets/screens/es/dashboard.png" data-captura="dashboard" width="1920" height="1080" loading="lazy" decoding="async"
-             alt="El Panel de Adeorq: las cuatro cifras del día arriba, y debajo el Capataz con los grupos Ahora y Proyectos a la izquierda">
+             alt="El Panel de Adeorq: Adeo y la caja para pedirle algo a la izquierda, y a la derecha tus proyectos y tu uso del mes en casillas">
         <figcaption data-i18n="guia.panel.pie">
-          El Panel. Arriba las cuatro cifras del día; a la izquierda, los grupos.
+          El Panel. Adeo y su caja a la izquierda; tus proyectos y tu uso, a la derecha.
         </figcaption>
       </figure>
 
-      <h3 data-i18n="guia.panel.h3a">Ahora</h3>
+      <h3 data-i18n="guia.panel.h3a">Proyectos</h3>
       <p data-i18n-html="guia.panel.p1">
-        El <b>Capataz</b> y los proyectos calientes. Al Capataz le pides el tablero en castellano
-        («abre las sesiones del panel de Orquio», «un agente al frontend y otro al backend») y él
-        propone el plan: qué sesiones abrir, con qué programa y con qué encargo.
-        <b>No ejecuta nada sin tu visto bueno.</b>
-      </p>
-
-      <h3 data-i18n="guia.panel.h3b">Proyectos</h3>
-      <p data-i18n-html="guia.panel.p2">
-        Crear uno nuevo y la lista completa. Al crearlo, Adeorq deja la carpeta lista con
+        <b>Nuevo proyecto</b>, al pie de la lista. Adeorq deja la carpeta lista con
         <code>AGENTS.md</code> (tus reglas para los agentes), <code>docs/METAS.md</code> y git
         iniciado, para que la primera sesión empiece con contexto en vez de en blanco.
       </p>
 
+      <h3 data-i18n="guia.panel.h3b">El Capataz</h3>
+      <p data-i18n-html="guia.panel.p2">
+        Lo abre el orbe de la barra de arriba (<b>Ctrl+Mayús+A</b>). Le pides el tablero en
+        castellano («abre las sesiones del panel de Orquio», «un agente al frontend y otro al
+        backend») y él propone el plan: qué sesiones abrir, con qué programa y con qué encargo.
+        <b>No ejecuta nada sin tu visto bueno.</b>
+      </p>
+
       <h3 data-i18n="guia.panel.h3c">Misión</h3>
       <p data-i18n="guia.panel.p3">
-        Despliega un equipo. Describes qué quieres, eliges proyecto y roles (Frontend, Backend,
-        Seguridad, Diseño) y se abre un agente por rol, cada uno con su cometido, su reparto de
-        archivos y coordinados entre ellos por un fichero común del proyecto. Cada uno te propone
-        su plan y espera tu aprobación antes de tocar nada.
+        Desde el Capataz, despliega un equipo. Describes qué quieres, eliges proyecto y roles
+        (Frontend, Backend, Seguridad, Diseño) y se abre un agente por rol, cada uno con su
+        cometido, su reparto de archivos y coordinados entre ellos por un fichero común del
+        proyecto. Cada uno te propone su plan y espera tu aprobación antes de tocar nada.
+      </p>
+    </section>
+
+    <!-- ----------------------------- PERFIL ----------------------------- -->
+    <section id="perfil">
+      <h2 data-i18n="guia.perfil.h">El Perfil y tu uso<a class="doc-ancla" href="#perfil" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n-html="guia.perfil.p">
+        Tu nombre, tu @ y tu foto, que se cambian ahí mismo con <b>Editar</b>, y cuatro
+        secciones con su resumen: <b>Cuentas</b>, <b>Agenda</b>, <b>Memoria</b> y
+        <b>Comandos</b>. Al tocar un resumen se abre la sección entera, con «‹ Perfil» encima
+        para volver. También se llega a cada una desde Ctrl+K.
+      </p>
+      <p data-i18n-html="guia.perfil.p0">
+        Debajo, <b>tu uso</b>: los tokens del mes en curso, con la caché y solo los nuevos; cuánto se
+        llevó cada proveedor, cada modelo y cada proyecto; el año en casillas y el mes día a día.
+        Lo lee de las conversaciones que Claude Code y Codex ya guardan en tu equipo, sin
+        ninguna clave.
+      </p>
+
+      <figure class="doc-figura">
+        <img src="assets/screens/es/profile.png" data-captura="profile" width="1920" height="1080" loading="lazy" decoding="async"
+             alt="El Perfil de Adeorq: tu nombre, los resúmenes de Cuentas, Agenda, Memoria y Comandos, y debajo tu uso con el reparto por proyecto, el año en casillas y el mes">
+        <figcaption data-i18n="guia.perfil.pie">
+          El Perfil. Arriba tú y tus cuatro secciones; debajo, tu uso.
+        </figcaption>
+      </figure>
+
+      <h3 data-i18n="guia.perfil.h3a">La tarjeta para compartir</h3>
+      <p data-i18n-html="guia.perfil.p1">
+        Tocar un día, tu récord o el icono de compartir abre una tarjeta con tus cifras, lista
+        para publicar: eliges el fondo, el color y el formato, y la guardas como imagen o como
+        vídeo. Ningún proyecto sale en ella si no lo eliges tú.
       </p>
     </section>
 
@@ -467,8 +499,8 @@
     <section id="agenda">
       <h2 data-i18n="guia.agenda.h">La Agenda<a class="doc-ancla" href="#agenda" aria-label="Enlace a esta sección">#</a></h2>
       <p data-i18n="guia.agenda.p">
-        Lo que se te viene encima, lo que pensaste y lo que toca. Cada bloque lee de donde esa
-        cosa ya vive, sin guardar una segunda copia de nada.
+        Vive dentro del Perfil. Lo que se te viene encima, lo que pensaste y lo que toca. Cada
+        bloque lee de donde esa cosa ya vive, sin guardar una segunda copia de nada.
       </p>
       <ul class="doc-lista">
         <li data-i18n-html="guia.agenda.l1"><b>Hoy</b>: tus objetivos del día y todas tus sesiones, lo que te espera primero.</li>
@@ -564,8 +596,9 @@
     <section id="cuentas">
       <h2 data-i18n="guia.cuentas.h">Las Cuentas<a class="doc-ancla" href="#cuentas" aria-label="Enlace a esta sección">#</a></h2>
       <p data-i18n="guia.cuentas.p">
-        Una cuenta es un inicio de sesión del mismo programa, con su propia carpeta de
-        configuración. Puedes tener varias del mismo y repartir el trabajo entre ellas.
+        Viven dentro del Perfil. Una cuenta es un inicio de sesión del mismo programa, con su
+        propia carpeta de configuración. Puedes tener varias del mismo y repartir el trabajo
+        entre ellas.
       </p>
 
       <figure class="doc-figura">

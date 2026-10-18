@@ -369,6 +369,25 @@ pub fn confiar_carpeta(cwd: String, config_dir: Option<String>) -> Result<bool, 
     Ok(true)
 }
 
+/// Con qué modelo nace un Claude que abre un AGENTE. Opus si no dice nada, y
+/// Fable nunca: Munir, 2026-10-18, al ver que las sesiones que le abrían salían
+/// en Fable por ser su modelo de fábrica, «no abras Fable, gasta mucho; como
+/// mucho Opus». Un equipo de agentes en el modelo más caro vacía el plan en una
+/// tarde, así que Fable lo abre una persona, no un agente. Los demás CLI llevan
+/// el alias solo si lo piden: la ventana lo traduce a su modelo con su tabla.
+fn modelo_para_agente(cli: &str, pedido: &str) -> Result<Option<&'static str>, String> {
+    let pedido = pedido.trim().to_lowercase();
+    match pedido.as_str() {
+        "" if cli == "claude" => Ok(Some("opus")),
+        "" => Ok(None),
+        "opus" => Ok(Some("opus")),
+        "sonnet" => Ok(Some("sonnet")),
+        "haiku" => Ok(Some("haiku")),
+        "fable" => Err("Fable no se abre desde un agente: gasta demasiado para un equipo. Pide `opus` (o nada, que es lo mismo).".into()),
+        otro => Err(format!("No conozco el modelo «{}»: pide haiku, sonnet u opus.", otro)),
+    }
+}
+
 /// ¿Queda presupuesto para abrir otra? Devuelve el motivo si no.
 fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
     let puente = app.state::<Puente>();
@@ -1181,6 +1200,10 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                             "type": "string",
                                             "description": "The job for this agent, typed into it as its first message. Say what to do and what NOT to touch: panes opened this way share the machine with the others."
                                         },
+                                        "model": {
+                                            "type": "string",
+                                            "description": "haiku, sonnet or opus. A Claude pane opens on opus when you say nothing, whatever the person's own default is. Fable is refused here: a team of agents on the priciest model drains the plan, so only a person opens it."
+                                        },
                                         "name": {
                                             "type": "string",
                                             "description": "Short label for the pane header, so a human can tell your team apart at a glance."
@@ -1760,6 +1783,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                         .into(),
                 );
             }
+            let modelo = modelo_para_agente(&cli, args["model"].as_str().unwrap_or_default())?;
 
             let r = pedir_a_la_ventana(
                 app,
@@ -1769,6 +1793,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     "cwd": cwd,
                     "project": project,
                     "brief": brief,
+                    "model": modelo,
                     "name": args["name"].as_str().unwrap_or_default(),
                     "from": args["from"],
                     // Su panel, para que la cabecera de la nueva diga «de: su nombre».
@@ -2020,6 +2045,21 @@ mod tests {
     use super::*;
     use std::fs;
     use std::path::PathBuf;
+
+    #[test]
+    fn un_agente_abre_claude_en_opus_y_nunca_en_fable() {
+        // Sin decir nada, Opus: el modelo de fábrica de la persona no cuenta.
+        assert_eq!(modelo_para_agente("claude", ""), Ok(Some("opus")));
+        assert_eq!(modelo_para_agente("claude", " Sonnet "), Ok(Some("sonnet")));
+        assert_eq!(modelo_para_agente("claude", "haiku"), Ok(Some("haiku")));
+        assert!(modelo_para_agente("claude", "fable").unwrap_err().contains("Fable"));
+        assert!(modelo_para_agente("claude", "FABLE").is_err());
+        assert!(modelo_para_agente("claude", "gpt-5").is_err());
+        // Otro CLI sin modelo pedido nace con el suyo; con alias, se le pasa.
+        assert_eq!(modelo_para_agente("codex", ""), Ok(None));
+        assert_eq!(modelo_para_agente("codex", "opus"), Ok(Some("opus")));
+        assert!(modelo_para_agente("codex", "fable").is_err());
+    }
 
     /// Un `.claude.json` de mentira en su propia carpeta, que es justo lo que
     /// `config_dir` permite. Así esto se prueba de verdad sin acercarse al

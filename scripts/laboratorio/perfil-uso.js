@@ -92,7 +92,12 @@ async (page) => {
         case "usage_limits": return { lines: [], note: "", plan: "" };
         case "uso_historia":
           window.__pedidosUso.push(args);
-          return new Promise((ok) => setTimeout(() => ok(historia), 2000));
+          // Tres segundos y medio, no dos: desde el inicio nuevo (45ab872) la
+          // tarjeta «tu uso» de la portada ya lee la historia al arrancar, y
+          // el Perfil se abre después con esa lectura a medias. Con dos
+          // segundos la respuesta llegaba antes del segundo que tarda la rueda
+          // en salir (`RUEDA_MS`), y el paso 1 no la veía nunca.
+          return new Promise((ok) => setTimeout(() => ok(historia), 3500));
         default: throw new Error(`sin doble: ${cmd}`);
       }
     };
@@ -118,8 +123,13 @@ async (page) => {
   await page.locator('[data-tab="perfil"]').waitFor({ timeout: 15000 });
   await page.click('[data-tab="perfil"]');
   await page.locator(".pu").waitFor({ timeout: 10000 });
-  await page.waitForTimeout(1300);
-  pasos.leyendo = (await page.locator(".pu .espera").count()) ? await texto(".pu .espera") : "";
+  // La rueda sale al segundo de espera y se va en cuanto llega la historia: se
+  // la busca hasta que aparezca, en vez de mirar en un instante fijo.
+  pasos.leyendo = "";
+  for (const t0 = Date.now(); Date.now() - t0 < 3500 && !pasos.leyendo; ) {
+    if (await page.locator(".pu .espera").count()) pasos.leyendo = await texto(".pu .espera");
+    else await page.waitForTimeout(50);
+  }
   debe(/Leyendo tus conversaciones/.test(pasos.leyendo), `mientras lee, la rueda con su frase (${pasos.leyendo || "nada"})`);
   await page.locator(".pu-cifra").waitFor({ timeout: 10000 });
   pasos.pedido = await page.evaluate(() => window.__pedidosUso[0]);

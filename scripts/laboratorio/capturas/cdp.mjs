@@ -6,7 +6,8 @@ import { dirname } from "node:path";
 
 export const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function conectar({ puerto = 9333, url = "localhost:1420" } = {}) {
+// `ADEORQ_URL`: la dirección de la que carga un binario hecho para otro puerto.
+export async function conectar({ puerto = 9333, url = process.env.ADEORQ_URL || "localhost:1420" } = {}) {
   const lista = await (await fetch(`http://127.0.0.1:${puerto}/json/list`)).json();
   const destino = lista.find((t) => t.type === "page" && t.url.includes(url));
   if (!destino) throw new Error("no hay página: " + JSON.stringify(lista.map((t) => [t.type, t.url])));

@@ -61,6 +61,9 @@ fn parsear_loc(raiz: &str, loc: &str) -> Result<Sitio, String> {
 
     let base = std::fs::canonicalize(raiz)
         .map_err(|e| format!("no se pudo abrir la carpeta del proyecto: {e}"))?;
+    if !lleva_el_plugin(&base) {
+        return Err("esa carpeta no es un proyecto con el plugin de Adeorq en su vite.config".into());
+    }
     let destino = base.join(ruta);
     let destino = std::fs::canonicalize(&destino)
         .map_err(|_| format!("«{ruta}» no existe dentro del proyecto"))?;
@@ -91,6 +94,32 @@ fn parsear_loc(raiz: &str, loc: &str) -> Result<Sitio, String> {
         inicio,
         fin,
         jsx,
+    })
+}
+
+/// ¿Es la raíz de un proyecto que se apuntó al editor por clic?
+///
+/// La raíz la anuncia la página (el mensaje «lista» de la sonda), así que una
+/// página que mintiera podía señalar cualquier carpeta del disco, y la lista de
+/// extensiones de abajo era todo lo que la paraba (revisión de seguridad del
+/// 2026-10-18). Ahora tiene que ser un proyecto con `vite-plugin-adeorq` en su
+/// `vite.config`: en esa carpeta o hasta dos más arriba, porque con `root` en
+/// la configuración de Vite la raíz que se anuncia es una subcarpeta.
+fn lleva_el_plugin(base: &Path) -> bool {
+    const NOMBRES: [&str; 6] = [
+        "vite.config.js",
+        "vite.config.mjs",
+        "vite.config.cjs",
+        "vite.config.ts",
+        "vite.config.mts",
+        "vite.config.cts",
+    ];
+    base.ancestors().take(3).any(|dir| {
+        NOMBRES.iter().any(|n| {
+            std::fs::read_to_string(dir.join(n))
+                .map(|t| t.contains("vite-plugin-adeorq"))
+                .unwrap_or(false)
+        })
     })
 }
 
@@ -749,6 +778,11 @@ mod tests {
 
         let fuente = "export default function App() {\n  return (\n    <div className=\"caja\">\n      <h1 style={{ fontSize: \"38px\" }}>Hola</h1>\n    </div>\n  );\n}\n";
         std::fs::write(&fichero, fuente).unwrap();
+        std::fs::write(
+            dir.join("vite.config.js"),
+            "import adeorq from \"C:/proyectos/Adeorq/vite-plugin-adeorq/index.js\";\n",
+        )
+        .unwrap();
 
         // Los números que estamparía el plugin para el <h1>.
         let inicio = fuente.find("<h1").unwrap();
@@ -815,6 +849,25 @@ mod tests {
         for (k, v) in &estilos {
             assert!(despues.contains(v), "«{k}: {v}» no llegó al fichero");
         }
+    }
+
+    /// Una carpeta que no se apuntó al editor no se toca, aunque la página la
+    /// anuncie y el fichero sea de interfaz.
+    #[test]
+    fn sin_el_plugin_en_su_vite_config_no_se_escribe() {
+        let dir = std::env::temp_dir().join(format!("adeorq-editor-sin-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+        std::fs::write(dir.join("src/App.jsx"), "<h1>Hola</h1>\n").unwrap();
+        let e = parsear_loc(dir.to_str().unwrap(), "src/App.jsx:0:4").err().unwrap_or_default();
+        assert!(e.contains("plugin"), "sin vite.config tenía que negarse: {e}");
+
+        std::fs::write(dir.join("vite.config.ts"), "export default {}\n").unwrap();
+        assert!(parsear_loc(dir.to_str().unwrap(), "src/App.jsx:0:4").is_err(), "con un vite.config sin el plugin, tampoco");
+
+        std::fs::write(dir.join("vite.config.ts"), "import adeorq from \"vite-plugin-adeorq\";\n").unwrap();
+        assert!(parsear_loc(dir.join("src").to_str().unwrap(), "App.jsx:0:4").is_ok(), "con `root` en una subcarpeta, sí");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

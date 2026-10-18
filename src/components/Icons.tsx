@@ -915,6 +915,16 @@ export function BrowserIcon({ size = 17 }: Props) {
   );
 }
 
+/** La conexión cifrada (https) de la barra de direcciones del navegador. */
+export function CandadoIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2.2" />
+      <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+    </svg>
+  );
+}
+
 /** Abrir fuera: la flecha que se sale de su caja. */
 export function ExternalIcon({ size = 17 }: Props) {
   return (

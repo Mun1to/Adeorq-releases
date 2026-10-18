@@ -8,15 +8,15 @@ Cada componente sigue siendo de quien lo escribió y se usa bajo su propia
 licencia, que es la que manda sobre ese componente. Nada de lo que hay aquí es
 de Adeorq ni cambia por estar en esta lista.
 
-Resumen: **84** componentes de la interfaz y **552** del núcleo en Rust. No hay
+Resumen: **86** componentes de la interfaz y **552** del núcleo en Rust. No hay
 ninguna dependencia con licencia GPL o AGPL. Hay 6 con MPL-2.0 (cssparser,
 cssparser-macros, dtoa-short, mediabunny, option-ext, selectors): la MPL solo
 obliga a publicar los cambios de SUS propios archivos, y Adeorq no modifica
 ninguno.
 
 El texto íntegro de cada licencia viaja dentro del paquete de la dependencia
-correspondiente y puede consultarse en su repositorio de origen. De 636
-componentes, 480 declaran un titular de copyright explícito, recogido abajo.
+correspondiente y puede consultarse en su repositorio de origen. De 638
+componentes, 482 declaran un titular de copyright explícito, recogido abajo.
 
 ## Interfaz (npm, dependencias de producción)
 
@@ -39,6 +39,8 @@ componentes, 480 declaran un titular de copyright explícito, recogido abajo.
 | @codemirror/state | 6.7.1 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @codemirror/streamparser | 6.0.0 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @codemirror/view | 6.43.8 | MIT | Copyright 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
+| @fontsource-variable/geist | 5.3.0 | OFL-1.1 | Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) Geist-Italic[wght].ttf: Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font) |
+| @fontsource-variable/geist-mono | 5.3.0 | OFL-1.1 | Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font.git) GeistMono-Italic[wght].ttf: Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font.git) |
 | @lezer/common | 1.5.2 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/css | 1.3.6 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
 | @lezer/highlight | 1.2.3 | MIT | Copyright 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others |
@@ -666,6 +668,6 @@ componentes, 480 declaran un titular de copyright explícito, recogido abajo.
 
 ---
 
-Generado el 2026-10-17 con `pnpm terceros` a partir de `pnpm licenses list --prod`
+Generado el 2026-10-18 con `pnpm terceros` a partir de `pnpm licenses list --prod`
 y `cargo metadata`. Si eres autor de alguno de estos componentes y ves algo mal
 atribuido, escribe y se corrige.

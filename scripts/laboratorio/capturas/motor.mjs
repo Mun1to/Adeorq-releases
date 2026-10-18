@@ -16,7 +16,8 @@ export const sinAnsi = (s) =>
     .replace(/\x1b[()][0-9A-Za-z]/g, "")
     .replace(/\x1b[=>78MDEHc]/g, "");
 
-export async function arrancarMotor({ exe = "C:\\ct\\debug\\adeorq.exe", datos }) {
+// `ADEORQ_EXE`: otro binario de desarrollo que el de `C:\ct\debug` (ver el README).
+export async function arrancarMotor({ exe = process.env.ADEORQ_EXE || "C:\\ct\\debug\\adeorq.exe", datos }) {
   const canal = `grabadora${process.pid}`;
   mkdirSync(datos, { recursive: true });
   // Lanzado desde una sesión de Claude Code, el hijo hereda sus `CLAUDE*` y se

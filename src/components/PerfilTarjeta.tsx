@@ -6,10 +6,11 @@
 //
 // Es el editor que Munir aprobó el 2026-10-17 («ahora sí lo has hecho bien y
 // como Axiom»), https://claude.ai/artifact/UvMFzPKUZoFegjcpgpUYCw: la tarjeta
-// grande arriba; debajo «Imagen · Vídeo», la tira de fondos con «Subir» al
-// final, y una barra corta: «Resaltar la cifra» (apagado de fábrica), Mes · Día
-// · Récord, Proyecto, cinco colores, 16:9 · 9:16, Descargar y Copiar. Sin
-// cárceles: lo elegido va con color y raya de acento, nunca en un recuadro.
+// grande arriba; debajo «Imagen · Vídeo» y 16:9 · 9:16, la tira de fondos con
+// «Subir» al final, y una barra corta: «Resaltar la cifra» (apagado de
+// fábrica), Mes · Día · Récord · Total, Proyecto, cinco colores, Descargar y
+// Copiar. Sin cárceles: lo elegido va con color y raya de acento, nunca en un
+// recuadro.
 //
 // La tarjeta la pinta UNA función (`pintarTarjeta`, de `lib/pintarTarjeta.ts`)
 // en un lienzo: aquí a su tamaño en pantalla, y en `lib/exportarTarjeta.ts` a
@@ -76,7 +77,9 @@ import Espera, { Ocupado } from "./Espera";
 const EVENTO = "adeorq:abrir-tarjeta";
 
 type Tipo = "imagen" | "video";
-type Que = "mes" | "dia" | "record";
+/** Lo que cuenta la tarjeta. «total» es todo desde tu primer día con uso
+    (Munir, 2026-10-18: «que puedas compartir tu total pnl»). */
+type Que = "mes" | "dia" | "record" | "total";
 
 /** Un fondo de la tira. */
 interface FondoTarjeta {
@@ -283,6 +286,8 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
 
   const cubos = useMemo(() => conDia(historia?.cubos ?? []), [historia]);
   const mejor = useMemo(() => record(porDia(cubos)), [cubos]);
+  // Tu primer día con uso: desde ahí cuenta el total.
+  const primero = useMemo(() => cubos.reduce((p, c) => (!p || c.dia < p ? c.dia : p), ""), [cubos]);
 
   // Abrir: con lo leído por tu uso, o leyéndolo si aún no está.
   useEffect(() => {
@@ -437,7 +442,13 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
   const dia = abierta && abierta.desde === abierta.hasta ? abierta.desde : null;
   const tramoMes: [string, string] | null = abierta ? (dia ? mesHastaHoy(dia, hoy) : [abierta.desde, abierta.hasta]) : null;
   const [desde, hasta] =
-    que === "record" && mejor ? [mejor.fecha, mejor.fecha] : que === "dia" && dia ? [dia, dia] : (tramoMes ?? ["", ""]);
+    que === "record" && mejor
+      ? [mejor.fecha, mejor.fecha]
+      : que === "dia" && dia
+        ? [dia, dia]
+        : que === "total" && primero
+          ? [primero, hoy]
+          : (tramoMes ?? ["", ""]);
   const mesDesde = tramoMes?.[0] ?? "";
   const delTramo = useMemo(() => (desde ? entre(cubos, desde, hasta) : []), [cubos, desde, hasta]);
   const proyectos = useMemo(() => porfolio(delTramo, "proyecto", 1000).filter((p) => p.clave && !p.otros), [delTramo]);
@@ -456,6 +467,9 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
     } else if (que === "dia" && dia) {
       titulo = mayuscula(fechaLarga(dia, lang));
       filas = [nuevos, filaDelProveedor(delTramo, lang)];
+    } else if (que === "total" && primero) {
+      titulo = t("Desde el {fecha}", { fecha: fechaLarga(primero, lang) });
+      filas = [nuevos, filaDelProveedor(delTramo, lang), { etiqueta: t("Días activos"), valor: String(suma.dias) }];
     } else {
       titulo = mayuscula(nombreDelMes(Number(mesDesde.slice(0, 4)), Number(mesDesde.slice(5, 7)), lang));
       filas = [nuevos, filaDelProveedor(delTramo, lang), { etiqueta: t("Días activos"), valor: String(suma.dias) }];
@@ -472,7 +486,7 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
       resaltar,
       color,
     };
-  }, [historia, desde, mesDesde, que, mejor, dia, delTramo, cubos, proyecto, yo.arroba, yo.nombre, fotoImg, resaltar, color, t, lang, hoy]);
+  }, [historia, desde, mesDesde, que, mejor, dia, primero, delTramo, cubos, proyecto, yo.arroba, yo.nombre, fotoImg, resaltar, color, t, lang, hoy]);
 
   // ── La vista previa: la misma función que el PNG, al tamaño de la pantalla ──
   useEffect(() => {
@@ -642,6 +656,7 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
     ["mes", t("Mes"), true],
     ["dia", dia ? t("Día {n}", { n: Number(dia.slice(8)) }) : t("Día"), Boolean(dia)],
     ["record", t("Récord"), Boolean(mejor)],
+    ["total", t("Total"), Boolean(primero)],
   ];
   const sinVideo = tipo === "video" && !conVideo;
 
@@ -679,6 +694,16 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
                 {t("Vídeo")}
               </button>
               {videoOk === false && <span className="pt-nota">{t("Este equipo no puede sacar vídeo.")}</span>}
+
+              {/* El formato es de lo que sale, como Imagen o Vídeo, y va en su fila:
+                  en la barra, con «Total», ya no cabía (medía 892 px de 900 sin él). */}
+              <div className="pt-grupo pt-formato">
+                {(Object.keys(FORMATOS) as Formato[]).map((f) => (
+                  <button key={f} className="pt-op" aria-pressed={formato === f} onClick={() => setFormato(f)}>
+                    {f}
+                  </button>
+                ))}
+              </div>
 
               {/* El sonido es del vídeo y va a su lado, no en la barra: con él dentro
                   la barra medía 1.198 px en un hueco de 900 y se partía en tres. */}
@@ -789,14 +814,6 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
                     style={{ background: muestraDe(c) }}
                     onClick={() => setColor(c)}
                   />
-                ))}
-              </div>
-
-              <div className="pt-grupo">
-                {(Object.keys(FORMATOS) as Formato[]).map((f) => (
-                  <button key={f} className="pt-op" aria-pressed={formato === f} onClick={() => setFormato(f)}>
-                    {f}
-                  </button>
                 ))}
               </div>
 

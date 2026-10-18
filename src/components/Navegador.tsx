@@ -33,7 +33,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useT } from "../lib/i18n";
 import { puedeEmpotrarse } from "../lib/pty";
-import { comoUrl, PUERTOS } from "../lib/urlweb";
+import { comoEmpotrable, comoUrl, PUERTOS } from "../lib/urlweb";
 import {
   canalNativo,
   esLocal,
@@ -345,8 +345,9 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
 
   /** Llevar la pestaña activa a `url`, creando su panel nativo si hace falta. */
   const ir = useCallback((destino: string) => {
-    const url = comoUrl(destino);
     const p = actRef.current;
+    // En un iframe, YouTube por su dirección que sí se deja meter; en el Chromium, tal cual.
+    const url = p?.marco || !nativo ? comoEmpotrable(comoUrl(destino)) : comoUrl(destino);
     if (!url || !p) return;
     setEditando(false);
     if (p.marco || !nativo) {
@@ -556,7 +557,7 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
             ref={entrada}
             value={editando ? texto : `${host}${resto}`}
             spellCheck={false}
-            placeholder={t("Busca un puerto o escribe una dirección")}
+            placeholder={t("Busca en Google o escribe una dirección")}
             onChange={(e) => setTexto(e.currentTarget.value)}
             onFocus={(e) => {
               setTexto(urlAct);

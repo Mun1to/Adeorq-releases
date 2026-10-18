@@ -238,6 +238,34 @@ try {
   dice(await v.js(`document.activeElement === document.querySelector(".nav-url input")`), "y deja el cursor en la dirección para escribir");
   await dormir(400);
   dice(foto(pid, join(FOTOS, "4-pestana-nueva.png")), `foto: ${join(FOTOS, "4-pestana-nueva.png")}`);
+
+  // Una palabra suelta se busca, como en cualquier navegador: Munir escribió «casa» y el panel
+  // fue a `http://casa` («no se encontró la dirección IP del servidor de casa», 2026-10-18).
+  await v.enviar("Input.insertText", { text: "casa" });
+  for (const type of ["keyDown", "keyUp"]) await v.enviar("Input.dispatchKeyEvent", { type, key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+  // Con el puerto de depuración abierto Google suele contestar con su captcha (`/sorry/…`,
+  // un 429) en vez de los resultados: vale igual, lo que se mide es adónde fue.
+  const buscada = await hasta(() => v.js(`(() => { const d = document.querySelector(".nav-url input").value; return /google\\.[a-z.]+\\/(search\\?.*q=casa|sorry\\/.*q%3Dcasa)/.test(d) ? d : null; })()`), 20_000, 400);
+  dice(Boolean(buscada), `escribir «casa» la busca en Google («${buscada}»)`);
+  await dormir(1500);
+  dice(await v.js(`!document.querySelector(".nav-aviso")`), "y no sale «no ha podido cargar» encima de lo que Google contesta");
+  dice(foto(pid, join(FOTOS, "4b-busqueda.png")), `foto: ${join(FOTOS, "4b-busqueda.png")}`);
+
+  // Una web que contesta con un error (un 404 con su página) se ha cargado; una que no existe, no.
+  const errores = createServer((req, res) => {
+    res.statusCode = 404;
+    res.setHeader("content-type", "text/html; charset=utf-8");
+    res.end("<!doctype html><title>no está</title><h1>404, pero con su página</h1>");
+  });
+  await new Promise((ok) => errores.listen(0, "127.0.0.1", ok));
+  await v.js(`window.__TAURI_INTERNALS__.invoke("nav_ir", { id: 2, url: "http://127.0.0.1:${errores.address().port}/nada" })`);
+  await hasta(() => v.js(`document.querySelector('.nav-pest[data-on="true"] .nav-pest-nom')?.textContent === "no está"`), 8000, 200);
+  await dormir(1200);
+  dice(await v.js(`!document.querySelector(".nav-aviso")`), "un 404 con su página no saca el aviso de que no cargó");
+  errores.close();
+  await v.js(`window.__TAURI_INTERNALS__.invoke("nav_ir", { id: 2, url: "http://no-existe.invalid/" })`);
+  const aviso = await hasta(() => v.js(`document.querySelector(".nav-aviso")?.textContent ?? null`), 10_000, 200);
+  dice(/no contesta/.test(aviso ?? ""), `una web que no existe sí lo saca («${aviso}»)`);
   c = await centro('.nav-pest[data-on="true"] .nav-pest-x');
   await clic(c.x, c.y);
   dice(Boolean(await hasta(async () => (await cuantas()) === 1 && (await v.js(`!document.querySelector(".nav-vacio")`)), 3000, 100)), "su ✕ la cierra y vuelve a la de github");

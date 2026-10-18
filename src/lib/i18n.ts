@@ -2441,7 +2441,7 @@ const EN: Record<string, string> = {
   "Ocultar el navegador": "Hide the browser",
   "Cerrar el navegador": "Close the browser",
   "Arrastra para darle más o menos ancho": "Drag to make it wider or narrower",
-  "Busca un puerto o escribe una dirección": "Pick a port or type an address",
+  "Busca en Google o escribe una dirección": "Search Google or type an address",
   "Abrirla en tu navegador de siempre": "Open it in your usual browser",
   "Esta web no contesta. ¿Está levantado el servidor?": "This site is not answering. Is the server running?",
   "El certificado de esta web no es de fiar": "This site's certificate cannot be trusted",
@@ -2993,6 +2993,8 @@ const EN: Record<string, string> = {
   Morado: "Purple",
   "Tu récord · {fecha}": "Your record · {fecha}",
   "Total del mes": "Month total",
+  Total: "All time",
+  "Desde el {fecha}": "Since {fecha}",
   "{n} en {proyecto} · {pct}": "{n} in {proyecto} · {pct}",
   "Hecho con Adeorq": "Made with Adeorq",
   // Los errores del motor (`ERRORES` de `lib/exportarTarjeta.ts`).

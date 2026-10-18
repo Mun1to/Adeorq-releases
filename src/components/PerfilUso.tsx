@@ -63,6 +63,12 @@ const EJES: { key: Eje; label: string }[] = [
   { key: "proyecto", label: "Proyectos" },
 ];
 
+/** Las filas del porfolio, «Otros» incluido: diez, que a lo ancho van en dos
+    columnas de cinco. Con cinco en una columna la mitad derecha del bloque se
+    quedaba vacía (Munir, 2026-10-18: «esta parte está muy vacía, pon más
+    proyectos o algo»). */
+const FILAS = 10;
+
 /** Hasta que exista `PerfilTarjeta.tsx` no hay a quién abrir: sin ella no salen los iconos de
     compartir ni la pista, y tocar un día solo lleva a su mes. La 0.9.219 salió así, antes que la
     tarjeta, y en cuanto el archivo existe todo aparece solo. */
@@ -120,7 +126,7 @@ export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
   const [desde, hasta] = mesEnCurso(hoy);
   const delMes = useMemo(() => entre(cubos, desde, hasta), [cubos, desde, hasta]);
   const suma = useMemo(() => sumar(delMes), [delMes]);
-  const filas = useMemo(() => porfolio(delMes, eje), [delMes, eje]);
+  const filas = useMemo(() => porfolio(delMes, eje, FILAS), [delMes, eje]);
 
   if (!historia) {
     return (
@@ -274,10 +280,12 @@ function titulo(c: Casilla, t: Translate, lang: "es" | "en"): string {
 /** Las filas del porfolio: nombre, barra, cifra y parte. La barra va en el
     color del tema, el mismo para todas: el color de cada proyecto o CLI
     (rosa, verde, violeta) era «a lot of colors» (Munir, 2026-10-18, «solo un
-    color, quita el cuadradito de la izquierda»). */
+    color, quita el cuadradito de la izquierda»). A lo ancho van en dos
+    columnas que se leen de arriba abajo, primero una y luego la otra:
+    `--filas` es lo que mide cada una. */
 function Lista({ filas, t, lang }: { filas: Parte[]; t: Translate; lang: "es" | "en" }) {
   return (
-    <div className="pu-lista" role="tabpanel">
+    <div className="pu-lista" role="tabpanel" style={{ "--filas": Math.ceil(filas.length / 2) } as CSSProperties}>
       {filas.map((f) => (
         <div key={f.otros ? "otros" : `p:${f.clave}`} className="pu-parte" style={{ "--w": `${(f.parte * 100).toFixed(1)}%` } as CSSProperties}>
           <span className="pu-parte-nombre">{f.otros ? t("Otros") : f.nombre || t("Sin carpeta")}</span>

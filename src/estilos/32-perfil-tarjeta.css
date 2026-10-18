@@ -148,6 +148,12 @@
   color: var(--pt-suave);
 }
 
+/* 16:9 · 9:16 al lado de Imagen · Vídeo, con más aire que entre dos pestañas
+   para que se lean como dos grupos y no como cuatro opciones de lo mismo. */
+.pt-formato {
+  margin-left: 18px;
+}
+
 /* En Vídeo, «Sonido» y los sonidos a la derecha de las pestañas. */
 .pt-sonido {
   margin-left: auto;

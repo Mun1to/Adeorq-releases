@@ -18,7 +18,9 @@
 //   · La tira: tu fondo de Adeorq primero, los cuatro de serie y «Subir».
 //   · «Resaltar la cifra» apagado de fábrica, y encendido pinta la caja clara.
 //   · Ningún proyecto sale hasta que lo eliges; elegido, su frase.
-//   · Color, 9:16, y que se recuerdan al volver a abrir.
+//   · «Total»: todo desde tu primer día con uso, con los proyectos de siempre.
+//   · Color, 9:16 (en la fila de Imagen · Vídeo), y que se recuerdan al volver
+//     a abrir.
 //   · Descargar: el PNG que llega a `guardar_tarjeta`, con su tamaño, y la
 //     ruta de «Guardada en…», que al pulsarla abre su carpeta.
 //   · Copiar: un `image/png` al portapapeles.
@@ -191,6 +193,22 @@ const abrirPerfil = async (q) => {
 };
 const abierta = async () => { await page.locator(".pt-velo").waitFor({ timeout: 5000 }); await page.waitForTimeout(400); };
 const cerrar = async () => { await page.keyboard.press("Escape"); await page.locator(".pt-velo").waitFor({ state: "detached", timeout: 3000 }); };
+/** Que la fila de Imagen · Vídeo y la barra quepan cada una en una línea. */
+const enUnaLinea = async (cuando) => {
+  for (const fila of [".pt-pestanas", ".pt-barra"]) {
+    const f = await page.$eval(fila, (b) => {
+      const hijos = [...b.children].filter((h) => h.getBoundingClientRect().width > 0);
+      // Por el centro y no por arriba: la fila va centrada y cada pieza tiene su alto.
+      const centros = hijos.map((h) => h.getBoundingClientRect()).map((r) => r.top + r.height / 2).sort((a, b) => a - b);
+      return {
+        lineas: centros.filter((c, i) => i === 0 || c - centros[i - 1] > 4).length,
+        ancho: Math.round(b.getBoundingClientRect().width),
+        piezas: hijos.map((h) => `${h.className}:${Math.round(h.getBoundingClientRect().width)}`).join(" "),
+      };
+    });
+    dice(f.lineas === 1, `${cuando} ${fila} cabe en una línea (${f.lineas} en ${f.ancho} px: ${f.piezas})`);
+  }
+};
 
 try {
   await abrirPerfil("vez=1");
@@ -203,7 +221,8 @@ try {
   dice(mes?.startsWith(`${mesLargo("es")}: 2,5B Tokens`), `el icono abre el mes en curso (${mes})`);
   dice(!/ en Adeorq| en Orquio/.test(mes), "sin elegir proyecto, ninguno sale en la tarjeta");
   dice(/Nuevos 12M/.test(mes) && /Claude Code 80 %/.test(mes) && /Días activos 1/.test(mes) && /@sam/.test(mes), `las filas y tu @ (${mes})`);
-  dice(JSON.stringify(await pulsado(".pt-barra .pt-op")) === JSON.stringify(["Mes", "16:9"]), `«Mes» y 16:9 de fábrica (${await pulsado(".pt-barra .pt-op")})`);
+  dice(JSON.stringify(await pulsado(".pt-barra .pt-op")) === JSON.stringify(["Mes"]), `«Mes» de fábrica (${await pulsado(".pt-barra .pt-op")})`);
+  dice(JSON.stringify(await pulsado(".pt-pestanas .pt-formato .pt-op")) === JSON.stringify(["16:9"]), `y 16:9, al lado de Imagen · Vídeo (${await pulsado(".pt-pestanas .pt-formato .pt-op")})`);
   dice(await page.$eval(".pt-barra .pt-op >> nth=1", (b) => b.disabled), "«Día» apagado si no se abrió desde un día");
   dice((await page.$eval(".pt-interruptor", (b) => b.getAttribute("aria-pressed"))) === "false", "«Resaltar la cifra» apagado de fábrica");
   const tira = await page.$$eval(".pt-tira .pt-mini", (bs) => bs.map((b) => b.getAttribute("aria-label")));
@@ -232,7 +251,7 @@ try {
   // 4. Color y formato.
   await page.click('.pt-muestra[aria-label="Morado"]');
   dice(JSON.stringify(await pulsado(".pt-muestra")) === JSON.stringify(["Morado"]), "el color elegido");
-  await page.click('.pt-barra .pt-op:has-text("9:16")');
+  await page.click('.pt-formato .pt-op:has-text("9:16")');
   await page.waitForTimeout(300);
   const lados = await page.$eval("canvas.pt-lienzo", (c) => [c.width, c.height]);
   dice(lados[1] > lados[0] * 1.7, `9:16 pone la tarjeta de pie (${lados})`);
@@ -271,7 +290,7 @@ try {
   const fechaHoy = ahora.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
   dice(deHoy?.startsWith(`${fechaHoy}: 2,5B Tokens`), `un día abre ese día (${deHoy})`);
   dice((await pulsado(".pt-barra .pt-op")).includes(`Día ${ahora.getDate()}`), `con «Día ${ahora.getDate()}» elegido`);
-  dice(JSON.stringify(await pulsado(".pt-muestra")) === JSON.stringify(["Morado"]) && (await pulsado(".pt-barra .pt-op")).includes("9:16"), "el color y el formato se recuerdan");
+  dice(JSON.stringify(await pulsado(".pt-muestra")) === JSON.stringify(["Morado"]) && (await pulsado(".pt-formato .pt-op")).includes("9:16"), "el color y el formato se recuerdan");
   dice(!/ en Adeorq/.test(deHoy), "el proyecto no: vuelve a «Ninguno»");
   await page.click('.pt-barra .pt-op:has-text("Mes")');
   dice((await etiqueta())?.startsWith(mesLargo("es")), "y desde un día se puede pasar a su mes");
@@ -282,6 +301,24 @@ try {
   dice(/^Tu récord · \d+ de [a-z]+: 20B Tokens/.test(rec) && /Total del mes 20B/.test(rec), `el récord abre su tarjeta (${rec})`);
   dice((await pulsado(".pt-barra .pt-op")).includes("Récord"), "con «Récord» elegido");
   await foto("3-record");
+  await cerrar();
+
+  // 6b. «Total»: todo desde tu primer día con uso (hace 60 días), con los
+  //     proyectos de siempre en la lista.
+  await page.click(".pu-compartir");
+  await abierta();
+  await page.click('.pt-barra .pt-op:has-text("Total")');
+  const tot = await etiqueta();
+  const dia60 = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 60).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+  dice(tot?.startsWith(`Desde el ${dia60}: 32B Tokens`), `«Total» cuenta desde tu primer día con uso (${tot})`);
+  dice(/Nuevos 12M/.test(tot) && /Claude Code 98 %/.test(tot) && /Días activos 3/.test(tot), `con sus filas (${tot})`);
+  dice(JSON.stringify(await pulsado(".pt-barra .pt-op")) === JSON.stringify(["Total"]), `con «Total» elegido (${await pulsado(".pt-barra .pt-op")})`);
+  await page.click(".pt-elegir-btn");
+  const deSiempre = await page.$$eval(".pt-lista button", (bs) => bs.map((b) => b.textContent));
+  dice(JSON.stringify(deSiempre) === JSON.stringify(["Ninguno", "Adeorq22B", "VoCript9B", "Orquio500M"]), `la lista, los proyectos de siempre (${deSiempre})`);
+  await page.click(".pt-lista button >> text=VoCript");
+  dice(/9B en VoCript · 29 %/.test(await etiqueta()), `y su frase sobre el total (${await etiqueta()})`);
+  await foto("3b-total");
   await cerrar();
 
   // 7. Vídeo: sin vídeo de fondo no se descarga; con uno subido, el MP4.
@@ -387,19 +424,7 @@ try {
   await page.locator('.pt-sonido [role=group] .pt-op:has-text("Del vídeo")').waitFor({ timeout: 8000 }).catch(() => {});
   dice(JSON.stringify(await origenes()) === JSON.stringify(["Golpe", "Contador*", "Del vídeo"]), `con un fondo que suena, «Del vídeo» se puede elegir (${await origenes()})`);
   // La barra es corta, como la de Axiom: en Vídeo, con los tres sonidos, cada fila cabe en una línea.
-  for (const fila of [".pt-pestanas", ".pt-barra"]) {
-    const f = await page.$eval(fila, (b) => {
-      const hijos = [...b.children].filter((h) => h.getBoundingClientRect().width > 0);
-      // Por el centro y no por arriba: la fila va centrada y cada pieza tiene su alto.
-      const centros = hijos.map((h) => h.getBoundingClientRect()).map((r) => r.top + r.height / 2).sort((a, b) => a - b);
-      return {
-        lineas: centros.filter((c, i) => i === 0 || c - centros[i - 1] > 4).length,
-        ancho: Math.round(b.getBoundingClientRect().width),
-        piezas: hijos.map((h) => `${h.className}:${Math.round(h.getBoundingClientRect().width)}`).join(" "),
-      };
-    });
-    dice(f.lineas === 1, `en Vídeo ${fila} cabe en una línea (${f.lineas} en ${f.ancho} px: ${f.piezas})`);
-  }
+  await enUnaLinea("en Vídeo");
   await page.click('.pt-sonido [role=group] .pt-op:has-text("Del vídeo")');
   await bajarVideo.click();
   await page.waitForFunction(() => window.__guardados.length > 3, null, { timeout: 60000 });
@@ -431,8 +456,17 @@ try {
   const en = await etiqueta();
   dice(en?.startsWith(`${mesLargo("en")}: 2.5B Tokens`) && /New 12M/.test(en) && /Active days 1/.test(en), `en inglés (${en})`);
   const textos = await page.$eval(".pt-debajo", (d) => d.innerText.replace(/\s+/g, " "));
-  dice(/Image Video/.test(textos) && /Highlight the number/.test(textos) && /Month Day Record/.test(textos) && /Download Copy/.test(textos), `el editor en inglés (${textos.slice(0, 120)}…)`);
-  await page.click('.pt-barra .pt-op:has-text("16:9")');
+  dice(/Image Video 16:9 9:16/.test(textos) && /Highlight the number/.test(textos) && /Month Day Record All time/.test(textos) && /Download Copy/.test(textos), `el editor en inglés (${textos.slice(0, 120)}…)`);
+  await page.click('.pt-formato .pt-op:has-text("16:9")');
+  await page.click('.pt-barra .pt-op:has-text("All time")');
+  const enTotal = await etiqueta();
+  const dia60en = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 60).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  dice(enTotal?.startsWith(`Since ${dia60en}: 32B Tokens`) && /Active days 3/.test(enTotal), `«All time» en inglés (${enTotal})`);
+  await foto("5a-ingles-total");
+  await page.click('.pt-pestanas .pt-op:has-text("Video")');
+  await enUnaLinea("en inglés, en Vídeo y con «All time»,");
+  await page.click('.pt-pestanas .pt-op:has-text("Image")');
+  await page.click('.pt-barra .pt-op:has-text("Month")');
   await page.click(".pt-elegir-btn");
   await foto("5-ingles-lista");
 

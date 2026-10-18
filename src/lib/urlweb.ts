@@ -13,14 +13,28 @@
 /** Los puertos donde suele estar servido lo que uno acaba de arrancar. */
 export const PUERTOS = [1420, 5173, 3000, 4321, 8000, 8080];
 
-/** Completa lo que se escriba a medias: "3000" y "localhost:3000" son intentos
-    honrados de decir una dirección, y fallar por no escribir http:// sobra. */
+/** Donde va lo que no parece una dirección. Munir pidió el navegador como «Google
+    normal y corriente». */
+export const BUSCADOR = "https://www.google.com/search?q=";
+
+/** El servidor de lo escrito, si tiene forma de serlo: `localhost`, una IP, un
+    dominio con punto o un nombre con puerto (`mi-servidor:8080`). */
+const SERVIDOR = /^(localhost|\[[0-9a-f:.]+\]|[^\s/?#.:]+(\.[^\s/?#.:]+)+|[a-z0-9-]+(?=:\d))(:\d{1,5})?$/i;
+/** Los de esta máquina o de tu red, que se sirven sin cifrar. */
+const DE_CASA = /^(localhost|\[[0-9a-f:.]+\]|\d{1,3}(\.\d{1,3}){3}|[a-z0-9-]+(?=:\d))(:\d{1,5})?$/i;
+
+/** Lo escrito en la barra, como lo entendería un navegador: "3000" y
+    "localhost:3000" son intentos honrados de decir una dirección, un dominio se
+    pide cifrado, y lo demás («casa», una frase) se busca. Hasta el 2026-10-18 todo
+    era una dirección, y «casa» acababa en `http://casa`. */
 export function comoUrl(txt: string): string {
   const limpio = txt.trim();
   if (!limpio) return "";
   if (/^\d{2,5}$/.test(limpio)) return `http://localhost:${limpio}`;
-  const url = /^https?:\/\//i.test(limpio) ? limpio : `http://${limpio}`;
-  return comoEmpotrable(url);
+  if (/^https?:\/\//i.test(limpio)) return limpio;
+  const servidor = limpio.split(/[/?#]/)[0];
+  if (/\s/.test(limpio) || !SERVIDOR.test(servidor)) return BUSCADOR + encodeURIComponent(limpio);
+  return `${DE_CASA.test(servidor) ? "http" : "https"}://${limpio}`;
 }
 
 /**

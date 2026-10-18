@@ -230,6 +230,25 @@
   font-weight: 650;
 }
 
+/* Hasta diez filas, y a lo ancho en dos columnas que se leen de arriba abajo,
+   con «Otros» al final de la segunda: con cinco en una columna, la mitad
+   derecha del bloque se quedaba vacía (Munir, 2026-10-18, «esta parte está
+   muy vacía»). Por debajo de 840 px de caja, una columna: más estrecha, cada
+   nombre se cortaba. */
+.pu-porfolio {
+  container-type: inline-size;
+}
+
+@container (min-width: 840px) {
+  .pu-lista {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(var(--filas, 5), auto);
+    column-gap: 56px;
+  }
+}
+
 /* --- Los dos calendarios -------------------------------------------------------- */
 
 .pu-cal {

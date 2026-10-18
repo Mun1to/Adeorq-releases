@@ -14,7 +14,8 @@
 //     con la frase de la caché en el globo (D3), en K, M y B;
 //   · el récord de un día, que abre su tarjeta;
 //   · el porfolio en una lista con pestañas (A4), con una carpeta escrita con
-//     otra mayúscula junta con la suya;
+//     otra mayúscula junta con la suya; a lo ancho, en dos columnas que se
+//     leen de arriba abajo, y estrecho en una;
 //   · `uso_historia` recibe las carpetas de los proyectos del panel;
 //   · el año termina hoy y el mes no lleva el número del día, solo los tokens;
 //   · tocar un día con uso abre su tarjeta (`adeorq:abrir-tarjeta`), uno sin
@@ -162,6 +163,31 @@ async (page) => {
     debe(JSON.stringify(pasos.modelos) === JSON.stringify(["Opus 5.5 2B 80 %", "GPT-5.6 Terra 500M 20 %"]), `los modelos (${pasos.modelos})`);
     await page.click(".pu-pestanas button:has-text('Proyectos')");
   }
+
+  // 3b. A lo ancho, el porfolio en dos columnas que se leen de arriba abajo,
+  //     hasta diez filas con «Otros» al final (Munir, 2026-10-18: «esta parte
+  //     está muy vacía, pon más proyectos»); estrecho, en una sola.
+  const columnas = () =>
+    page.$$eval(".pu-lista .pu-parte", (fs) => {
+      const r = fs.map((f) => f.getBoundingClientRect());
+      const mitad = Math.ceil(r.length / 2);
+      return {
+        caja: Math.round(document.querySelector(".pu-porfolio").getBoundingClientRect().width),
+        columnas: new Set(r.map((x) => Math.round(x.left))).size,
+        // La primera de la segunda columna, a la altura de la primera fila.
+        deArribaAbajo: r.length < 2 || (r[mitad].left > r[0].right && Math.abs(r[mitad].top - r[0].top) < 2),
+      };
+    });
+  pasos.ancho = await columnas();
+  debe(pasos.ancho.columnas === 2 && pasos.ancho.deArribaAbajo, `a 1.600 px, dos columnas leídas de arriba abajo (${JSON.stringify(pasos.ancho)})`);
+  if (real) {
+    pasos.filas = await lista();
+    debe(pasos.filas.length <= 10 && (pasos.filas.length < 10 || /^Otros /.test(pasos.filas.at(-1))), `hasta diez filas, «Otros» la última (${pasos.filas})`);
+  }
+  await page.setViewportSize({ width: 900, height: 1000 });
+  pasos.estrecho = await columnas();
+  debe(pasos.estrecho.columnas === 1, `a 900 px, una columna (${JSON.stringify(pasos.estrecho)})`);
+  await page.setViewportSize({ width: 1600, height: 1000 });
   await foto("1-mes");
 
   // 4. El año termina hoy; el mes, sin el número del día.

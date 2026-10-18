@@ -5,7 +5,7 @@ import { useT } from "../lib/i18n";
 import { nodragEnControles } from "../lib/arrastre";
 import { Grip } from "./CanvasWidgets";
 import { puedeEmpotrarse } from "../lib/pty";
-import { comoUrl, PUERTOS } from "../lib/urlweb";
+import { comoEmpotrable, comoUrl, PUERTOS } from "../lib/urlweb";
 import {
   CloseIcon,
   ExternalIcon,
@@ -79,7 +79,8 @@ export default function WebNode({ data }: NodeProps<Node<WebData>>) {
   }, [data.url, vuelta]);
 
   const ir = (destino: string) => {
-    const url = comoUrl(destino);
+    // Esta pieza es un iframe: YouTube, por su dirección que sí se deja meter.
+    const url = comoEmpotrable(comoUrl(destino));
     if (!url) return;
     setTexto(url);
     data.onUrl(data.nodeId, url);

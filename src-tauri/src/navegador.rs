@@ -610,7 +610,15 @@ mod win {
                 };
                 let mut bien = BOOL(0);
                 args.IsSuccess(&mut bien)?;
-                if !bien.as_bool() {
+                // Si el servidor contestó (un 404, el 429 del captcha de Google), la
+                // página está ahí con lo suyo, como en cualquier navegador: no es un
+                // fallo. WebView2 lo da como `IsSuccess` falso y estado desconocido, y
+                // salía «esta página no ha podido cargar» encima (medido el 2026-10-18).
+                let mut codigo = 0i32;
+                if let Ok(a2) = args.cast::<ICoreWebView2NavigationCompletedEventArgs2>() {
+                    let _ = a2.HttpStatusCode(&mut codigo);
+                }
+                if !bien.as_bool() && codigo == 0 {
                     let mut estado = COREWEBVIEW2_WEB_ERROR_STATUS::default();
                     args.WebErrorStatus(&mut estado)?;
                     if let Some(error) = error_de(estado) {

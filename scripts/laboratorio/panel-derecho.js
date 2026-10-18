@@ -1,19 +1,21 @@
 // El panel de la derecha, en la ventana de verdad (Munir, 2026-10-17, «A1 B1»):
-// el Uso con su propia pestaña, la primera, y una batería por cuenta; y Skills,
-// Actividad y Archivos ordenados sin quitar nada.
+// el Uso con su propia pestaña, la primera, y una batería por cuenta; y Skills
+// y Archivos ordenados sin quitar nada. La cara «Actividad» se fue el
+// 2026-10-18 (Munir: Archivos ya enseña lo que toca el agente).
 //
 //   1. `pnpm dev` (solo Vite)
 //   2. node scripts/laboratorio/banco-sin-mcp.mjs scripts/laboratorio/panel-derecho.js
 //
 // Rust se hace con un doble: tres cuentas que publican su gasto (dos de Claude
 // y la de Codex) y Copilot sin instalar. Lo que fija:
-//   · la franja: Uso, Skills, Actividad, Archivos, y la web aparte;
+//   · la franja: Uso, Skills, Archivos, y la web aparte;
 //   · todas las cuentas a la vez, con su nombre entero y su plan, la más
 //     gastada arriba y en rojo, una barra por ventana con cuándo se renueva;
 //     lo que no está instalado no sale;
 //   · Skills sin el Uso debajo, cada una con una línea de lo que hace;
-//   · Actividad con el nombre entero y los números dichos con palabras;
-//   · nada se sale por la derecha.
+//   · nada se sale por la derecha;
+//   · quien tenía guardada la cara «actividad» vuelve con la franja sola, y
+//     el primer clic abre lo que pulsa.
 // Deja una foto de cada cara en la carpeta que diga FOTOS (si se pasa).
 //
 // Devuelve { pasos, fallos }: `fallos` vacío es que va bien.
@@ -27,7 +29,7 @@ async (page) => {
     }
     localStorage.setItem("adeorq-lang", "es");
     localStorage.setItem("adeorq-perfil", JSON.stringify({ nombre: "Sam", sinRaiz: true, hecho: true, clis: ["claude", "codex"] }));
-    localStorage.setItem("adeorq-lateral", "uso");
+    localStorage.setItem("adeorq-lateral", sessionStorage.getItem("banco-cara") ?? "uso");
     localStorage.setItem("adeorq-accounts", JSON.stringify({ accounts: [{ id: "kylo", label: "MunirKylo", dir: "C:\\cuentas\\kylo", provider: "claude" }] }));
     localStorage.setItem("adeorq-layout", JSON.stringify({
       panes: [{ name: "storefront-api · Fallo en prueba del descuento cuando el carrito tiene dos cupones", cwd: "C:\\proyectos\\Adeorq", command: ["claude", "--session-id", "0b9f6a52-1c2d-4e3f-8a9b-0c1d2e3f4a5b"] }],
@@ -39,7 +41,6 @@ async (page) => {
       { label: "Current session", percent: sesion, resets: "", resetsAt: ahora + hs * hora + 60_000 },
       { label: "Current week (all models)", percent: semana, resets: "", resetsAt: ahora + ds * 24 * hora },
     ];
-    const iso = (min) => new Date(ahora - min * 60_000).toISOString();
     const oyentes = {};
     window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
     let escucha = 1;
@@ -63,18 +64,6 @@ async (page) => {
             { name: "write-tests", description: "Escribe las pruebas de lo que cambiaste", invocation: "/write-tests", folder: "write-tests" },
             { name: "ship", description: "Prueba, commit y sube", invocation: "/ship", folder: "ship" },
           ];
-        case "session_activity":
-          return {
-            eventos: [
-              { clase: "herramienta", nombre: "Grep", detalle: "discount|WELCOME10", hora: iso(9), veces: 1 },
-              { clase: "herramienta", nombre: "Edit", detalle: "src/cart.js", hora: iso(4), veces: 2 },
-            ],
-            llamadas: [
-              { hora: iso(5), modelo: "Sonnet 5.5", entrada: 431, salida: 177, cacheLeida: 29_000, cacheEscrita: 0 },
-              { hora: iso(3), modelo: "Sonnet 5.5", entrada: 898, salida: 180, cacheLeida: 27_000, cacheEscrita: 100 },
-            ],
-            totalLlamadas: 4, entradaTotal: 7_300, salidaTotal: 716,
-          };
         default: throw new Error(`sin doble: ${cmd}`);
       }
     };
@@ -107,8 +96,19 @@ async (page) => {
 
   // 1. La franja.
   pasos.franja = await page.$$eval("nav.franja .franja-btn", (b) => b.map((x) => x.getAttribute("data-tip")));
-  debe(JSON.stringify(pasos.franja) === JSON.stringify(["Ocultar panel", "Skills", "Actividad", "Archivos", "Ver la web en un panel (localhost)"]), `la franja: Uso (abierta), Skills, Actividad, Archivos y la web (${JSON.stringify(pasos.franja)})`);
+  debe(JSON.stringify(pasos.franja) === JSON.stringify(["Ocultar panel", "Skills", "Archivos", "Ver la web en un panel (localhost)"]), `la franja: Uso (abierta), Skills, Archivos y la web (${JSON.stringify(pasos.franja)})`);
   pasos.titulo = await page.textContent(".lateral-title");
+  // El borde encendido y las cajas con halo (Munir, 2026-10-18, «2 y 3»), con
+  // la barra por encima de la terminal enfocada (z 2) para que el halo se vea.
+  await page.locator(".lateral .bat").first().waitFor({ timeout: 15000 });
+  pasos.glow = await page.evaluate(() => ({
+    lateral: getComputedStyle(document.querySelector(".lateral")).boxShadow,
+    franja: getComputedStyle(document.querySelector(".franja")).boxShadow,
+    z: getComputedStyle(document.querySelector(".lateral-zona")).zIndex,
+    caja: getComputedStyle(document.querySelector(".lateral .bat")).boxShadow,
+  }));
+  const g = pasos.glow;
+  debe(/-14px 0px 40px -10px/.test(g.lateral) && /-14px 0px 40px -10px/.test(g.franja) && Number(g.z) > 3 && /0px 10px 28px/.test(g.caja), `el glow: borde encendido, por encima de las terminales, y las cajas con halo (${JSON.stringify(g)})`);
 
   // 2. El Uso: todas a la vez.
   pasos.uso = await page.$$eval(".lateral .bat", (bs) => bs.map((b) => ({
@@ -142,22 +142,24 @@ async (page) => {
   debe(!pasos.seSaleSkills.length, `nada se sale en Skills (${pasos.seSaleSkills})`);
   await foto("skills");
 
-  // 4. Actividad: el nombre entero y los números con palabras.
-  await page.locator("nav.franja .franja-btn").nth(2).click();
-  await page.locator(".lateral .act-totales").waitFor({ timeout: 8000 });
-  pasos.actividad = await page.evaluate(() => ({
-    quien: document.querySelector(".lateral .act-quien")?.textContent,
-    corta: getComputedStyle(document.querySelector(".lateral .act-quien")).textOverflow,
-    totales: document.querySelector(".lateral .act-totales")?.textContent,
-    llamada: document.querySelector(".lateral .act-llamada .act-det")?.textContent,
-    globo: document.querySelector(".lateral .act-llamada .act-det")?.getAttribute("data-tip"),
+  // 4. Quien tenía guardada la cara «actividad» (hasta el 2026-10-18): la
+  // franja sola y nada encendido.
+  await page.evaluate(() => sessionStorage.setItem("banco-cara", "actividad"));
+  await page.reload();
+  await page.locator('[data-tab="cabina"]').waitFor({ timeout: 15000 });
+  await page.locator('[data-tab="cabina"]').click();
+  await page.locator("nav.franja .franja-btn").first().waitFor({ timeout: 15000 });
+  pasos.vieja = await page.evaluate(() => ({
+    abiertas: document.querySelectorAll(".lateral").length,
+    encendidas: document.querySelectorAll('nav.franja .franja-btn[data-on="true"]').length,
   }));
-  const a = pasos.actividad;
-  debe(/dos cupones$/.test(a.quien ?? "") && a.corta !== "ellipsis", `el nombre de la sesión, entero (${JSON.stringify(a)})`);
-  debe(a.totales === "4 llamadas · 7.3k nuevos · 716 escritos", `los totales con palabras (${a.totales})`);
-  debe(a.llamada === "28k leídos · 180 escritos" && a.globo === "leídos: 998 nuevos, 27k de caché", `cada llamada con palabras, y el desglose en el globo (${a.llamada} | ${a.globo})`);
-  pasos.seSaleAct = await seSale();
-  debe(!pasos.seSaleAct.length, `nada se sale en Actividad (${pasos.seSaleAct})`);
-  await foto("actividad");
+  debe(pasos.vieja.abiertas === 0 && pasos.vieja.encendidas === 0, `la cara «actividad» guardada cae en ninguna (${JSON.stringify(pasos.vieja)})`);
+  await page.locator("nav.franja .franja-btn").nth(2).click();
+  await page.locator(".lateral").first().waitFor({ timeout: 5000 });
+  pasos.trasClic = await page.evaluate(() => ({
+    titulo: document.querySelector(".lateral-title")?.textContent?.trim(),
+    guardada: localStorage.getItem("adeorq-lateral"),
+  }));
+  debe(pasos.trasClic.titulo === "Archivos" && pasos.trasClic.guardada === "archivos", `y el primer clic abre lo que pulsa (${JSON.stringify(pasos.trasClic)})`);
   return { pasos, fallos };
 }

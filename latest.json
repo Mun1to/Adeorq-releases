@@ -1,11 +1,11 @@
 {
-  "version": "0.9.221",
-  "notes": "Un inicio nuevo con Adeo a la izquierda y tus proyectos y tu uso a la derecha, cuatro fondos dibujados para la tarjeta de compartir y los botones de cristal al pasar el raton.",
-  "pub_date": "2026-10-17T21:37:41Z",
+  "version": "0.9.222",
+  "notes": "La tarjeta de compartir suena al sacarla en video, con dos sonidos o el de tu video, y la cifra sube contando; la ruta guardada abre su carpeta; la barra de la derecha pierde Actividad y gana un brillo en sus marcos.",
+  "pub_date": "2026-10-18T00:46:07Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3lJTE5mU3orbE9Yalp5ZncrWldJTXBnNFJma0drN1MzYW5Va1l5dy9LQU9GU1B0UGp1cUdLYi9PZWlkQVpZN3VDV2k4emVaWGxnODF3aWZtdUsxaVFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMjczMDUxCWZpbGU6QWRlb3JxXzAuOS4yMjFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjEKNHlEclZkZ2ltd1pYeWE0SnNreWVoVXpqd1p6TWVOWWV3Y2EybHRFblVhT2tiSHMwN2kwdHdQaS8yNTE1a3BHclVaUExNeWs4K0NqMlVpMUlhdVphQkE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.221/Adeorq_0.9.221_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzlyTnFzQ2dSRXpzRjNiY1owUFhBMks1Y2ZPNnBUS3ZscHdWVHRPS1l3VW54bUd1UHR4MEpWNTRpV1dkTzBYZk5DeWlFMEFlZnpFVjdOZTdsSUovVWcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMjg0MzUzCWZpbGU6QWRlb3JxXzAuOS4yMjJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjIKaXV2aTlPVk41QzdKUlkzblpPRDZ6YkxTdlpOOEc5Nk9hZjRWMEMycVhqRVlTcHpzYXV6TUpDdHBFQ0RrNVkwVXJDUjZDSVRibWxXak9maWNOUTl0QXc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.222/Adeorq_0.9.222_x64-setup.exe"
     }
   }
 }

@@ -19,11 +19,15 @@
 //   · «Resaltar la cifra» apagado de fábrica, y encendido pinta la caja clara.
 //   · Ningún proyecto sale hasta que lo eliges; elegido, su frase.
 //   · Color, 9:16, y que se recuerdan al volver a abrir.
-//   · Descargar: el PNG que llega a `guardar_tarjeta`, con su tamaño.
+//   · Descargar: el PNG que llega a `guardar_tarjeta`, con su tamaño, y la
+//     ruta de «Guardada en…», que al pulsarla abre su carpeta.
 //   · Copiar: un `image/png` al portapapeles.
 //   · Vídeo: sin un vídeo de fondo no se puede descargar; con uno subido, el
 //     MP4 que llega leído caja a caja (H.264, el tamaño, los fotogramas), y
 //     cancelar a medias.
+//   · «Sonido», solo en Vídeo y encendido de fábrica: la vista previa suena,
+//     el MP4 lleva una pista AAC que dura lo que el vídeo, y apagado ni suena
+//     ni la lleva.
 //   · En inglés.
 //   · Y con el editor abierto, `carceles.js` y `mayusculas.js`: lo del editor
 //     tiene que salir limpio.
@@ -68,7 +72,7 @@ const vite = await createServer({
   clearScreen: false,
   server: { host: "127.0.0.1", port: 5700 + (process.pid % 100), strictPort: false, hmr: false },
   // Empaquetadas al arrancar: si Vite las descubre a mitad de la prueba, recarga la página.
-  optimizeDeps: { include: ["mediabunny", "@tauri-apps/api/core", "@tauri-apps/plugin-dialog"] },
+  optimizeDeps: { include: ["mediabunny", "@tauri-apps/api/core", "@tauri-apps/plugin-dialog", "@tauri-apps/plugin-opener"] },
 });
 await vite.listen();
 const BASE = vite.resolvedUrls.local[0].replace(/\/$/, "");
@@ -114,6 +118,16 @@ await page.addInitScript(({ historia }) => {
   window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
   window.__guardados = [];
   window.__copiado = [];
+  window.__ensenadas = [];
+  // Cada sonido que empieza a sonar por el altavoz, con lo que dura: así se ve
+  // que la vista previa suena. Los de un `OfflineAudioContext` no suenan: son
+  // los ruidos con los que se pinta el sonido.
+  window.__sonando = [];
+  const empezar = AudioBufferSourceNode.prototype.start;
+  AudioBufferSourceNode.prototype.start = function (...a) {
+    if (!(this.context instanceof OfflineAudioContext)) window.__sonando.push(this.buffer?.duration ?? 0);
+    return empezar.apply(this, a);
+  };
   Object.defineProperty(navigator, "clipboard", {
     value: { write: async (items) => window.__copiado.push(items.map((x) => x.types).flat()), writeText: async () => {} },
   });
@@ -142,6 +156,7 @@ await page.addInitScript(({ historia }) => {
       case "guardar_tarjeta":
         window.__guardados.push({ ruta: decodeURIComponent(opciones?.headers?.ruta ?? ""), b64: aBase64(args) });
         return null;
+      case "plugin:opener|reveal_item_in_dir": window.__ensenadas.push(args.paths); return null;
       default: throw new Error(`sin doble: ${cmd}`);
     }
   };
@@ -231,10 +246,21 @@ try {
   dice(infoPng.firma && infoPng.ancho === 1080 && infoPng.alto === 1920, `Descargar guarda un PNG de 1080×1920 (${infoPng.ancho}×${infoPng.alto})`);
   dice(/^C:\\Salida\\adeorq-uso-\d{4}-\d{2}-\d{2}\.png$/.test(png.ruta), `con el nombre propuesto (${png.ruta})`);
   dice(/^Guardada en C:\\Salida\\/.test(await estado()), `y lo dice (${await estado()})`);
+  const colorRuta = () => page.$eval(".pt-estado .pt-ruta", (b) => getComputedStyle(b).color);
+  const enReposo = await colorRuta();
+  await page.hover(".pt-estado .pt-ruta");
+  await page.waitForTimeout(300);
+  dice(enReposo !== (await colorRuta()), `la ruta se enciende al pasar el ratón (${enReposo} → ${await colorRuta()})`);
+  await foto("2b-guardada-al-pasar");
+  await page.click(".pt-estado .pt-ruta");
+  await page.waitForFunction(() => window.__ensenadas.length > 0, null, { timeout: 3000 }).catch(() => {});
+  const ensenada = await page.evaluate(() => window.__ensenadas[0]);
+  dice(JSON.stringify(ensenada) === JSON.stringify([png.ruta]), `la ruta se pulsa y abre su carpeta con el archivo marcado (${ensenada})`);
   await page.click('.pt-accion:has-text("Copiar")');
   await page.waitForFunction(() => window.__copiado.length > 0, null, { timeout: 15000 });
   dice(JSON.stringify(await page.evaluate(() => window.__copiado[0])) === JSON.stringify(["image/png"]), "Copiar deja un PNG en el portapapeles");
   dice(/^Copiada/.test(await estado()), `y lo dice (${await estado()})`);
+  dice(!(await page.$('.pt-interruptor:has-text("Sonido")')), "en Imagen no hay «Sonido»");
   await cerrar();
   dice(true, "Escape la cierra");
 
@@ -285,6 +311,10 @@ try {
   await page.waitForTimeout(500);
   const h2 = await huella();
   dice(h1 !== h2, "la vista previa se mueve con el vídeo");
+  const sonido = page.locator('.pt-interruptor:has-text("Sonido")');
+  dice((await sonido.getAttribute("aria-pressed")) === "true", "en Vídeo, «Sonido» encendido de fábrica");
+  const sonando = await page.evaluate(() => window.__sonando);
+  dice(sonando.length > 0 && Math.abs(sonando[0] - 3) < 0.01, `y la vista previa suena, tanto como el vídeo que saldrá (${sonando.map((s) => s.toFixed(2))} s)`);
   await foto("4-video");
   await bajarVideo.click();
   await page.locator(".pt-progreso").waitFor({ timeout: 5000 });
@@ -297,11 +327,101 @@ try {
     `Descargar vídeo guarda un MP4: ${info.arriba?.join(" ")}, ${info.codec}, ${info.ancho}×${info.alto}, ${info.muestras} fotogramas (un fondo de 2 s da 3 s)`,
   );
   dice(/\.mp4$/.test(mp4.ruta), `con su extensión (${mp4.ruta})`);
+  const s = info.sonido;
+  dice(
+    s?.codec === "mp4a" && s.canales === 2 && s.frecuencia === 48000 && Math.abs(s.segundos - info.segundos) < 0.1,
+    `con «Sonido», una pista AAC que dura lo que el vídeo (${s ? `${s.codec}, ${s.canales} canales, ${s.frecuencia} Hz, ${s.segundos.toFixed(3)} s de ${info.segundos.toFixed(3)}` : "sin pista"})`,
+  );
+  // Al acabar de sacarlo la vista previa vuelve a sonar: se cuenta después de eso.
+  await page.waitForTimeout(600);
+  const sonadas = await page.evaluate(() => window.__sonando.length);
+  await sonido.click();
+  dice((await sonido.getAttribute("aria-pressed")) === "false", "«Sonido» se apaga");
+  await page.waitForTimeout(400);
+  dice((await page.evaluate(() => window.__sonando.length)) === sonadas, "y la vista previa deja de sonar");
+  await bajarVideo.click();
+  await page.waitForFunction(() => window.__guardados.length > 2, null, { timeout: 60000 });
+  const mudo = leerMp4(Buffer.from((await page.evaluate(() => window.__guardados[2])).b64, "base64"));
+  dice(mudo.codec === "avc1" && mudo.muestras === 90 && mudo.sonido === null, `apagado, el MP4 sale sin pista de audio (${mudo.sonido ? mudo.sonido.codec : "ninguna"})`);
+  await sonido.click();
   await page.click('.pt-accion:has-text("Descargar vídeo")');
   await page.locator(".pt-progreso").waitFor({ timeout: 5000 });
   await page.click('.pt-acciones .pt-accion:has-text("Cancelar")');
   await page.waitForFunction(() => document.querySelector(".pt-estado")?.textContent === "Cancelado.", null, { timeout: 5000 }).catch(() => {});
-  dice((await estado()) === "Cancelado." && (await page.evaluate(() => window.__guardados.length)) === 2, `cancelar a medias no guarda nada (${await estado()})`);
+  dice((await estado()) === "Cancelado." && (await page.evaluate(() => window.__guardados.length)) === 3, `cancelar a medias no guarda nada (${await estado()})`);
+
+  // Los sonidos: «Golpe» de fábrica y «Contador»; sin sonido propio en el fondo, no hay «Del vídeo».
+  const origenes = () => page.$$eval('.pt-sonido [role=group] .pt-op', (bs) => bs.map((b) => `${b.textContent}${b.getAttribute("aria-pressed") === "true" ? "*" : ""}`));
+  dice(JSON.stringify(await origenes()) === JSON.stringify(["Golpe*", "Contador"]), `«Golpe» de fábrica y «Contador»; un fondo mudo no ofrece el suyo (${await origenes()})`);
+  const antes = await page.evaluate(() => window.__sonando.length);
+  await page.click('.pt-sonido [role=group] .pt-op:has-text("Contador")');
+  // Elegir otro empieza una vuelta nueva: la cifra está abajo y sube.
+  await page.waitForTimeout(120);
+  if (FOTOS) await page.locator("canvas.pt-lienzo").screenshot({ path: join(FOTOS, "4b-cifra-subiendo.png") });
+  await page.waitForTimeout(1500);
+  if (FOTOS) await page.locator("canvas.pt-lienzo").screenshot({ path: join(FOTOS, "4c-cifra-plantada.png") });
+  const tras = await page.evaluate(() => window.__sonando.slice(-1)[0]);
+  dice((await page.evaluate(() => window.__sonando.length)) > antes && Math.abs(tras - 3) < 0.01, "«Contador» elegido suena en la vista previa");
+
+  // Un fondo con su propio sonido, un La de 440 Hz: aparece «Del vídeo», y ese es el que sale.
+  const conLa = await page.evaluate(async () => {
+    const m = await import("/src/lib/exportarTarjeta.ts");
+    const ctx = new OfflineAudioContext(2, 2 * 48000, 48000);
+    const o = ctx.createOscillator();
+    o.frequency.value = 440;
+    const g = ctx.createGain();
+    g.gain.value = 0.5;
+    o.connect(g).connect(ctx.destination);
+    o.start();
+    const la = await ctx.startRendering();
+    const b = await m.exportarVideo((c, w, h, _f, t) => {
+      c.fillStyle = `hsl(${Math.round(200 + t * 60)}, 60%, 35%)`;
+      c.fillRect(0, 0, w, h);
+    }, { ancho: 640, alto: 360, fps: 30, segundos: 2, sonido: la });
+    const u8 = new Uint8Array(await b.arrayBuffer());
+    let s = "";
+    for (let k = 0; k < u8.length; k += 0x8000) s += String.fromCharCode(...u8.subarray(k, k + 0x8000));
+    return btoa(s);
+  });
+  await page.setInputFiles(".pt-tira input[type=file]", { name: "con sonido.mp4", mimeType: "video/mp4", buffer: Buffer.from(conLa, "base64") });
+  await page.locator('.pt-sonido [role=group] .pt-op:has-text("Del vídeo")').waitFor({ timeout: 8000 }).catch(() => {});
+  dice(JSON.stringify(await origenes()) === JSON.stringify(["Golpe", "Contador*", "Del vídeo"]), `con un fondo que suena, «Del vídeo» se puede elegir (${await origenes()})`);
+  // La barra es corta, como la de Axiom: en Vídeo, con los tres sonidos, cada fila cabe en una línea.
+  for (const fila of [".pt-pestanas", ".pt-barra"]) {
+    const f = await page.$eval(fila, (b) => {
+      const hijos = [...b.children].filter((h) => h.getBoundingClientRect().width > 0);
+      // Por el centro y no por arriba: la fila va centrada y cada pieza tiene su alto.
+      const centros = hijos.map((h) => h.getBoundingClientRect()).map((r) => r.top + r.height / 2).sort((a, b) => a - b);
+      return {
+        lineas: centros.filter((c, i) => i === 0 || c - centros[i - 1] > 4).length,
+        ancho: Math.round(b.getBoundingClientRect().width),
+        piezas: hijos.map((h) => `${h.className}:${Math.round(h.getBoundingClientRect().width)}`).join(" "),
+      };
+    });
+    dice(f.lineas === 1, `en Vídeo ${fila} cabe en una línea (${f.lineas} en ${f.ancho} px: ${f.piezas})`);
+  }
+  await page.click('.pt-sonido [role=group] .pt-op:has-text("Del vídeo")');
+  await bajarVideo.click();
+  await page.waitForFunction(() => window.__guardados.length > 3, null, { timeout: 60000 });
+  const delFondo = await page.evaluate(async () => {
+    const g = window.__guardados[3];
+    const bin = atob(g.b64);
+    const u8 = new Uint8Array(bin.length);
+    for (let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
+    const m = await import("/src/lib/exportarTarjeta.ts");
+    const a = await m.sonidoDelFondo(new Blob([u8], { type: "video/mp4" }), 2.5);
+    if (!a) return null;
+    // La frecuencia por los cruces por cero de medio segundo del centro.
+    const d = a.getChannelData(0).subarray(a.sampleRate * 0.5, a.sampleRate * 1);
+    let cruces = 0;
+    for (let k = 1; k < d.length; k++) if ((d[k - 1] < 0) !== (d[k] < 0)) cruces++;
+    return cruces;
+  });
+  const infoDelFondo = leerMp4(Buffer.from((await page.evaluate(() => window.__guardados[3])).b64, "base64"));
+  dice(
+    infoDelFondo.sonido?.codec === "mp4a" && Math.abs(infoDelFondo.sonido.segundos - infoDelFondo.segundos) < 0.1 && delFondo !== null && Math.abs(delFondo - 440) < 12,
+    `«Del vídeo» mete en el MP4 el sonido del fondo, su La (${delFondo ?? "nada"} cruces por segundo en medio segundo ≈ 440 Hz, ${infoDelFondo.sonido?.segundos?.toFixed(3)} s de ${infoDelFondo.segundos?.toFixed(3)})`,
+  );
   await cerrar();
 
   // 8. En inglés.

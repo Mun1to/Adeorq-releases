@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import type { Account } from "../lib/pty";
 import { useT, type Translate } from "../lib/i18n";
 import { useYo } from "../lib/perfil";
@@ -42,12 +43,16 @@ import {
   type CuboDelDia,
   type Historia,
 } from "../lib/usoDelPerfil";
+import { SONIDOS, sonidoDe, subida, type IdSonido } from "../lib/sonidoTarjeta";
 import {
   FORMATOS,
+  audioDisponible,
   copiarImagen,
   exportarImagen,
   exportarVideo,
+  fondoConSonido,
   guardarTarjeta,
+  sonidoDelFondo,
   videoDisponible,
   type Fondo,
   type Formato,
@@ -95,13 +100,44 @@ const subidos: FondoTarjeta[] = [];
 
 /** Lo que elegiste la última vez, para que la siguiente se abra igual. El
     proyecto NO: cada vez sale en «Ninguno» hasta que lo pidas. */
-const recuerdo: { tipo: Tipo; fondo: string; resaltar: boolean; color: ColorTarjeta; formato: Formato } = {
+const recuerdo: { tipo: Tipo; fondo: string; resaltar: boolean; sonido: boolean; origen: Origen; color: ColorTarjeta; formato: Formato } = {
   tipo: "imagen",
   fondo: "",
   resaltar: false,
+  sonido: true,
+  origen: SONIDOS[0].id,
   color: "azul",
   formato: "16:9",
 };
+
+/** De dónde sale el sonido del vídeo: uno de los hechos en código
+    (`lib/sonidoTarjeta.ts`) o el que trae el propio vídeo de fondo. */
+type Origen = IdSonido | "fondo";
+
+/** El sonido de un vídeo de `segundos`, hecho una vez por origen y largo. */
+const sonidos = new Map<string, Promise<AudioBuffer | null>>();
+function sonidoPara(origen: Origen, segundos: number, fondo: FondoTarjeta): Promise<AudioBuffer | null> {
+  const clave = origen === "fondo" ? `fondo|${fondo.url}|${segundos}` : `${origen}|${segundos}`;
+  let p = sonidos.get(clave);
+  if (!p) {
+    const archivo = fondo.fuente instanceof Blob || typeof fondo.fuente === "string" ? fondo.fuente : null;
+    p = origen !== "fondo" ? sonidoDe(origen, segundos) : archivo ? sonidoDelFondo(archivo, segundos) : Promise.resolve(null);
+    sonidos.set(clave, p);
+    p.catch(() => sonidos.delete(clave));
+  }
+  return p;
+}
+
+/** La tarjeta en el segundo `t` del vídeo: la cifra sube de 0 a la suya en
+    `LLEGADA` segundos, frenando, como suena el sonido. */
+function enElSegundo(d: DatosTarjeta, total: number, t: number, lang: "es" | "en"): DatosTarjeta {
+  const k = subida(t);
+  return k >= 1 ? d : { ...d, total: cifra(total * k, lang) };
+}
+
+/** Donde suena la vista previa. Uno para toda la app: abrir uno por vez que se
+    abre la tarjeta los va dejando vivos. */
+let altavoz: AudioContext | null = null;
 
 const mayuscula = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
 
@@ -193,6 +229,21 @@ function segundosDe(url: string): number {
   return Number.isFinite(d) && d > 0 ? Math.min(10, Math.max(3, Math.round(d * 10) / 10)) : 10;
 }
 
+/** «Guardada en {ruta}», con la ruta como enlace: al pulsarla se abre el
+    explorador en su carpeta con el archivo marcado. */
+function Guardada({ texto, ruta, t, alFallar }: { texto: string; ruta: string; t: Translate; alFallar: (e: unknown) => void }) {
+  const [antes, despues = ""] = texto.split("{ruta}");
+  return (
+    <>
+      {antes}
+      <button className="pt-ruta" data-tip={t("Enseñar en el explorador")} onClick={() => void revealItemInDir(ruta).catch(alFallar)}>
+        {ruta}
+      </button>
+      {despues}
+    </>
+  );
+}
+
 export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
   const { t, lang } = useT();
   const yo = useYo();
@@ -203,6 +254,14 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
   const [tipo, setTipo] = useState<Tipo>(recuerdo.tipo);
   const [fondoId, setFondoId] = useState(recuerdo.fondo);
   const [resaltar, setResaltar] = useState(recuerdo.resaltar);
+  const [sonar, setSonar] = useState(recuerdo.sonido);
+  const [origen, setOrigen] = useState<Origen>(recuerdo.origen);
+  const [audioOk, setAudioOk] = useState<boolean | null>(null);
+  // Los vídeos de fondo que traen sonido propio, por su dirección.
+  const [conSonidoPropio, setConSonidoPropio] = useState<Record<string, boolean>>({});
+  // Cuándo empezó la vuelta de la vista previa del vídeo, para saber en qué
+  // segundo va la cifra que sube; `null` fuera de esa vista.
+  const reloj = useRef<number | null>(null);
   const [color, setColor] = useState<ColorTarjeta>(recuerdo.color);
   const [formato, setFormato] = useState<Formato>(recuerdo.formato);
   const [casa, setCasa] = useState<FondoTarjeta | null>(null);
@@ -211,7 +270,8 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
   const [lista, setLista] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [progreso, setProgreso] = useState<number | null>(null);
-  const [estado, setEstado] = useState<{ texto: string; mal?: boolean } | null>(null);
+  // Con `ruta`, el texto lleva `{ruta}` donde va el enlace que abre la carpeta.
+  const [estado, setEstado] = useState<{ texto: string; mal?: boolean; ruta?: string } | null>(null);
   const [fuente, setFuente] = useState<CanvasImageSource | null>(null);
   const [fotoImg, setFotoImg] = useState<HTMLImageElement | null>(null);
   const [tam, setTam] = useState(0);
@@ -258,7 +318,8 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
   // Si este equipo puede sacar vídeo (en Linux no: WebKitGTK no codifica).
   useEffect(() => {
     if (abierta && videoOk === null) void videoDisponible().then(setVideoOk);
-  }, [abierta, videoOk]);
+    if (abierta && audioOk === null) void audioDisponible().then(setAudioOk);
+  }, [abierta, videoOk, audioOk]);
 
   // Al abrir, el foco a la ventana: el tabulador y el lector de pantalla
   // empiezan dentro de ella y no en la página de detrás.
@@ -268,8 +329,8 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
 
   // Lo elegido se recuerda para la próxima vez que la abras.
   useEffect(() => {
-    Object.assign(recuerdo, { tipo, fondo: fondoId, resaltar, color, formato });
-  }, [tipo, fondoId, resaltar, color, formato]);
+    Object.assign(recuerdo, { tipo, fondo: fondoId, resaltar, sonido: sonar, origen, color, formato });
+  }, [tipo, fondoId, resaltar, sonar, origen, color, formato]);
 
   // Tu foto, lista para el lienzo.
   useEffect(() => {
@@ -316,6 +377,61 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
       vivo = false;
     };
   }, [abierta, elegido, F.ancho, F.alto, exportando]);
+
+  // Si el vídeo de fondo trae sonido propio, que se pueda elegir.
+  useEffect(() => {
+    if (!abierta || elegido?.tipo !== "video" || elegido.url in conSonidoPropio) return;
+    const { url, fuente: archivo } = elegido;
+    if (!(archivo instanceof Blob || typeof archivo === "string")) return;
+    void fondoConSonido(archivo).then((si) => setConSonidoPropio((c) => ({ ...c, [url]: si })));
+  }, [abierta, elegido, conSonidoPropio]);
+
+  // La vista previa del vídeo va por vueltas, como el MP4: en cada una el fondo
+  // vuelve al principio, la cifra sube y, con «Sonido», suena. Si el fondo dura
+  // más de diez segundos se corta ahí, y si dura menos de tres da otra vuelta
+  // antes. El sonido del propio vídeo es el del `<video>`, que se deja de
+  // silenciar; los otros, los mismos que van dentro del MP4.
+  const enVideo = Boolean(abierta) && tipo === "video" && elegido?.tipo === "video" && !exportando;
+  const propio = elegido ? conSonidoPropio[elegido.url] === true : false;
+  const de: Origen = origen === "fondo" && !propio ? SONIDOS[0].id : origen;
+  const suena = sonar && audioOk === true;
+  useEffect(() => {
+    if (!enVideo || !elegido) return;
+    const v = videoDe(elegido.url);
+    let vivo = true;
+    let src: AudioBufferSourceNode | null = null;
+    let espera = 0;
+    v.muted = !(suena && de === "fondo");
+    const vuelta = async () => {
+      const segundos = segundosDe(elegido.url);
+      const b = suena && de !== "fondo" ? await sonidoPara(de, segundos, elegido).catch(() => null) : null;
+      if (!vivo) return;
+      v.currentTime = 0;
+      void v.play().catch(() => {});
+      reloj.current = performance.now();
+      if (b) {
+        altavoz ??= new AudioContext();
+        void altavoz.resume().catch(() => {});
+        src = altavoz.createBufferSource();
+        src.buffer = b;
+        src.connect(altavoz.destination);
+        src.start();
+      }
+      espera = window.setTimeout(() => void vuelta(), segundos * 1000);
+    };
+    const empezar = () => void vuelta();
+    // Lo que dura el fondo hace falta para saber cuánto dura la vuelta.
+    if (v.readyState >= 1) empezar();
+    else v.addEventListener("loadedmetadata", empezar, { once: true });
+    return () => {
+      vivo = false;
+      clearTimeout(espera);
+      v.removeEventListener("loadedmetadata", empezar);
+      v.muted = true;
+      src?.stop();
+      reloj.current = null;
+    };
+  }, [enVideo, elegido, suena, de]);
 
   // ── Lo que dice la tarjeta ──
   const dia = abierta && abierta.desde === abierta.hasta ? abierta.desde : null;
@@ -377,13 +493,15 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
     return () => ro.disconnect();
   }, [abierta, F.ancho, F.alto, historia]);
 
+  const totalDelTramo = useMemo(() => sumar(delTramo).todos, [delTramo]);
   const dibujar = useCallback(() => {
     const c = lienzo.current;
     const ctx = c?.getContext("2d");
     if (!c || !ctx || !datos) return;
     ctx.clearRect(0, 0, c.width, c.height);
-    pintarTarjeta(ctx, c.width, c.height, fuente, datos);
-  }, [datos, fuente]);
+    const t = reloj.current === null ? Infinity : (performance.now() - reloj.current) / 1000;
+    pintarTarjeta(ctx, c.width, c.height, fuente, enElSegundo(datos, totalDelTramo, t, lang));
+  }, [datos, fuente, totalDelTramo, lang]);
 
   useEffect(() => {
     dibujar();
@@ -453,6 +571,10 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
   const pintar: Pintar = (ctx, w, h, f) => {
     if (datos) pintarTarjeta(ctx, w, h, f, datos);
   };
+  // En el vídeo la cifra sube; en la imagen y al copiar, quieta.
+  const pintarVideo: Pintar = (ctx, w, h, f, t) => {
+    if (datos) pintarTarjeta(ctx, w, h, f, enElSegundo(datos, totalDelTramo, t, lang));
+  };
   const fondoParaSacar = async (): Promise<Fondo> => {
     if (!elegido) return null;
     if (elegido.serie) return imagenDeSerie(elegido.serie, F.ancho, F.alto);
@@ -472,12 +594,14 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
       if (conVideo && elegido) {
         cancelar.current = new AbortController();
         setProgreso(0);
-        archivoHecho = await exportarVideo(pintar, {
+        const segundos = segundosDe(elegido.url);
+        archivoHecho = await exportarVideo(pintarVideo, {
           ancho: F.ancho,
           alto: F.alto,
           fps: 30,
-          segundos: segundosDe(elegido.url),
+          segundos,
           fondo: elegido.fuente,
+          sonido: suena ? await sonidoPara(de, segundos, elegido) : null,
           alProgreso: (h) => setProgreso(Math.floor(h * 100)),
           senal: cancelar.current.signal,
         });
@@ -487,7 +611,7 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
         archivoHecho = await exportarImagen(pintar, { ancho: F.ancho, alto: F.alto, fondo: await fondoParaSacar() });
       }
       const ruta = await guardarTarjeta(archivoHecho);
-      if (ruta) setEstado({ texto: t("Guardada en {ruta}", { ruta }) });
+      if (ruta) setEstado({ texto: t("Guardada en {ruta}"), ruta });
     } catch (e) {
       fallo(e);
     } finally {
@@ -555,6 +679,30 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
                 {t("Vídeo")}
               </button>
               {videoOk === false && <span className="pt-nota">{t("Este equipo no puede sacar vídeo.")}</span>}
+
+              {/* El sonido es del vídeo y va a su lado, no en la barra: con él dentro
+                  la barra medía 1.198 px en un hueco de 900 y se partía en tres. */}
+              {tipo === "video" && (
+                <div className="pt-sonido">
+                  <button
+                    className="pt-interruptor"
+                    aria-pressed={sonar && audioOk !== false}
+                    disabled={audioOk === false}
+                    data-tip={audioOk === false ? t("Este equipo no puede meter sonido en el vídeo.") : undefined}
+                    onClick={() => setSonar((s) => !s)}
+                  >
+                    <i aria-hidden="true" />
+                    {t("Sonido")}
+                  </button>
+                  <div className="pt-grupo" role="group" aria-label={t("Sonido")}>
+                    {[...SONIDOS.map((s): [Origen, string] => [s.id, t(s.nombre)]), ...(propio ? [["fondo", t("Del vídeo")] as [Origen, string]] : [])].map(([o, texto]) => (
+                      <button key={o} className="pt-op" aria-pressed={de === o} disabled={!suena} onClick={() => setOrigen(o)}>
+                        {texto}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="pt-tira">
@@ -686,7 +834,7 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
 
             {estado && (
               <p className="pt-estado" data-mal={estado.mal || undefined} role="status">
-                {estado.texto}
+                {estado.ruta ? <Guardada texto={estado.texto} ruta={estado.ruta} t={t} alFallar={fallo} /> : estado.texto}
               </p>
             )}
           </div>

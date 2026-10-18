@@ -826,6 +826,13 @@
   gap: 8px;
 }
 
+.uso-vacio {
+  margin: 8px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .uso-cab {
   display: flex;
   align-items: center;

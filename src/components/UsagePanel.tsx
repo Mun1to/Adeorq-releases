@@ -176,7 +176,7 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
   const sinDato = instaladas.filter((c) => !conDato.includes(c));
 
   if (vivas && !instaladas.length) {
-    return <p className="act-vacio">{t("Ninguna de tus cuentas dice cuánto lleva gastado.")}</p>;
+    return <p className="uso-vacio">{t("Ninguna de tus cuentas dice cuánto lleva gastado.")}</p>;
   }
 
   const ultima = Math.max(0, ...Object.values(lecturas).map((l) => l.at));
@@ -205,7 +205,7 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
         </button>
       </div>
 
-      {!vivas && <p className="act-vacio">{t("Mirando tus cuentas…")}</p>}
+      {!vivas && <p className="uso-vacio">{t("Mirando tus cuentas…")}</p>}
       {conDato.map((c) => {
         const k = claveDe(c);
         const l = lecturas[k];

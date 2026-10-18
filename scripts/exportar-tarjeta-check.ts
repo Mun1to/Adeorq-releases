@@ -13,6 +13,7 @@
 //   pnpm bancos exportar-tarjeta
 
 import { anchoDelFondo, esVideo, fotogramas, FORMATOS, marcasDelFondo, nombreSugerido } from "../src/lib/exportarTarjeta";
+import { LLEGADA, pasos, subida } from "../src/lib/sonidoTarjeta";
 
 let fallos = 0;
 function es(nombre: string, sale: unknown, esperado: unknown) {
@@ -60,6 +61,19 @@ es("una .png no", esVideo("http://asset.localhost/fondo.png"), false);
 const archivo = (type: string) => ({ type }) as Blob;
 es("un archivo con tipo de vídeo", esVideo(archivo("video/quicktime")), true);
 es("uno de imagen, o sin tipo, se abre como imagen primero", [esVideo(archivo("image/png")), esVideo(archivo(""))], [false, false]);
+
+// La cifra que sube en el vídeo y los tics del «Contador», que tienen que ir juntos.
+es("la cifra sube de 0 a la suya en 1,2 s", [LLEGADA, subida(0), subida(LLEGADA), subida(5)], [1.2, 0, 1, 1]);
+es("fuera del vídeo (sin reloj) está quieta en la suya", subida(Infinity), 1);
+es("sube frenando: a mitad de camino ya lleva 7/8", subida(LLEGADA / 2), 0.875);
+const subiendo = Array.from({ length: 13 }, (_, i) => subida((i * LLEGADA) / 12));
+es("y nunca baja", subiendo.every((x, i) => i === 0 || x >= subiendo[i - 1]), true);
+const tics = pasos(18, LLEGADA);
+es("el primer tic al empezar y todos antes de plantarse", [tics[0], tics.every((t) => t < LLEGADA)], [0, true]);
+const huecos = tics.slice(1).map((t, i) => t - tics[i]);
+es("los tics se espacian como frena la cifra", huecos.every((h, i) => i === 0 || h >= huecos[i - 1]), true);
+// Cada tic es un salto igual de la cifra: en el tic k la cifra vale k/18.
+es("cada tic cae donde la cifra da un salto igual", redondear(tics.map((t) => subida(t))), redondear(tics.map((_, k) => k / 18)));
 
 console.log(fallos ? `\n${fallos} FALLOS` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

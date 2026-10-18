@@ -21,7 +21,35 @@ function cajas(buf, desde = 0, hasta = buf.length) {
 }
 const hijo = (buf, caja, tipo) => caja && cajas(buf, caja.cuerpo, caja.fin).find((c) => c.tipo === tipo);
 
-/** Lo de arriba (`ftyp moov mdat`), la duración, el tamaño, el códec y cuántos fotogramas. */
+/** El tiempo de un `mvhd` o un `mdhd`, que ponen la escala y la duración en el mismo sitio. */
+function duracion(buf, caja) {
+  const v = buf[caja.cuerpo];
+  const escala = buf.readUInt32BE(caja.cuerpo + (v ? 20 : 12));
+  const dur = v ? Number(buf.readBigUInt64BE(caja.cuerpo + 24)) : buf.readUInt32BE(caja.cuerpo + 16);
+  return dur / escala;
+}
+
+/** La pista de sonido, si la hay: su códec, lo que dura, los canales y la frecuencia. */
+function leerSonido(buf, moov) {
+  for (const trak of cajas(buf, moov.cuerpo, moov.fin).filter((c) => c.tipo === "trak")) {
+    const mdia = hijo(buf, trak, "mdia");
+    const hdlr = hijo(buf, mdia, "hdlr");
+    if (!hdlr || buf.toString("latin1", hdlr.cuerpo + 8, hdlr.cuerpo + 12) !== "soun") continue;
+    const mdhd = hijo(buf, mdia, "mdhd");
+    const stsd = hijo(buf, hijo(buf, hijo(buf, mdia, "minf"), "stbl"), "stsd");
+    return {
+      codec: buf.toString("latin1", stsd.cuerpo + 12, stsd.cuerpo + 16),
+      segundos: mdhd ? duracion(buf, mdhd) : null,
+      // La entrada de audio: 8 de cabecera, 16 reservados, y luego canales y, en 16.16, la frecuencia.
+      canales: buf.readUInt16BE(stsd.cuerpo + 32),
+      frecuencia: buf.readUInt32BE(stsd.cuerpo + 40) >>> 16,
+    };
+  }
+  return null;
+}
+
+/** Lo de arriba (`ftyp moov mdat`), la duración, el tamaño, el códec, cuántos
+    fotogramas y la pista de sonido (`null` si no lleva). */
 export function leerMp4(buf) {
   const arriba = cajas(buf);
   const moov = arriba.find((c) => c.tipo === "moov");
@@ -33,12 +61,10 @@ export function leerMp4(buf) {
   const stsz = hijo(buf, stbl, "stsz");
   const stss = hijo(buf, stbl, "stss");
   if (!mvhd || !tkhd || !stsd || !stsz) return { arriba: arriba.map((c) => c.tipo) };
-  const v = buf[mvhd.cuerpo];
-  const escala = buf.readUInt32BE(mvhd.cuerpo + (v ? 20 : 12));
-  const dur = v ? Number(buf.readBigUInt64BE(mvhd.cuerpo + 24)) : buf.readUInt32BE(mvhd.cuerpo + 16);
   return {
     arriba: arriba.map((c) => c.tipo),
-    segundos: dur / escala,
+    segundos: duracion(buf, mvhd),
+    sonido: leerSonido(buf, moov),
     // El ancho y el alto son las dos últimas palabras del tkhd, en 16.16.
     ancho: buf.readUInt32BE(tkhd.fin - 8) / 65536,
     alto: buf.readUInt32BE(tkhd.fin - 4) / 65536,

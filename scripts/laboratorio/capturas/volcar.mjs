@@ -170,7 +170,7 @@ if (quiere("extras")) {
     await p.enviar("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
     await dormir(600);
   });
-  // La barra de la derecha: skills, actividad y archivos. Con una terminal
+  // La barra de la derecha: uso, skills y archivos. Con una terminal
   // enfocada, las tres hablan de SU proyecto.
   await intentar(() => p.clic(".view-cabina .xterm-screen"));
   await dormir(800);

@@ -53,7 +53,6 @@ import ProviderMark from "./ProviderMark";
 import SkillsPanel from "./SkillsPanel";
 import UsagePanel from "./UsagePanel";
 import ArchivosPanel from "./ArchivosPanel";
-import ActividadPanel from "./ActividadPanel";
 import PanelDerecho, { type Cara } from "./PanelDerecho";
 import {
   HiloConserje,
@@ -910,13 +909,6 @@ ${v}` : txt));
             raiz={raizArchivos}
             onAbrir={onAbrirArchivo}
             sesion={abierta ? { cwd: abierta.cwd, sessionId: abierta.id, cli: abierta.fuente ?? "claude" } : null}
-          />
-        }
-        actividad={
-          <ActividadPanel
-            cwd={abierta?.cwd ?? null}
-            sessionId={abierta?.id ?? null}
-            nombre={abierta?.title || null}
           />
         }
       />

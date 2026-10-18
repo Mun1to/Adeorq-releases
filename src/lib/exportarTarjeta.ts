@@ -64,6 +64,9 @@ export type OpcionesVideo = {
   fps: number;
   segundos: number;
   fondo?: Fondo;
+  /** El sonido, ya hecho y del largo del vídeo, que va como pista AAC. Sin él,
+      el MP4 sale sin pista de audio. */
+  sonido?: AudioBuffer | null;
   /** Lo hecho, de 0 a 1, después de cada fotograma. */
   alProgreso?: (hecho: number) => void;
   /** Para cancelar: la promesa falla con el `AbortError` de la señal. */
@@ -73,6 +76,7 @@ export type OpcionesVideo = {
 /** Los errores que salen de aquí, por si quien llama los quiere traducir. */
 export const ERRORES = {
   sinVideo: "Este equipo no puede sacar vídeo.",
+  sinAudio: "Este equipo no puede meter sonido en el vídeo.",
   fondoSinVideo: "El archivo de fondo no tiene vídeo.",
   fondoIlegible: "Este equipo no sabe leer ese vídeo de fondo.",
   sinPortapapeles: "Este sistema no deja copiar imágenes.",
@@ -167,6 +171,23 @@ export async function videoDisponible(ancho = 1920, alto = 1080, fps = 30): Prom
   }
 }
 
+/**
+ * Si este equipo puede meter el sonido en el MP4: AAC, que es lo que aceptan X,
+ * Instagram, WhatsApp y Discord dentro de un MP4 (Opus en MP4 no lo leen todos).
+ * Medido el 2026-10-18: Brave y Edge 155 en Windows lo codifican por WebCodecs
+ * (Media Foundation), y el WebView2 es ese mismo motor. Donde no se pueda, el
+ * vídeo sale igual, sin sonido, y el interruptor se apaga diciéndolo.
+ */
+export async function audioDisponible(canales = 2, frecuencia = 48000): Promise<boolean> {
+  if (typeof AudioEncoder === "undefined") return false;
+  try {
+    const m = await libreria();
+    return await m.canEncodeAudio("aac", { numberOfChannels: canales, sampleRate: frecuencia, quality: new m.Quality(CALIDAD) });
+  } catch {
+    return false;
+  }
+}
+
 function crearLienzo(ancho: number, alto: number): HTMLCanvasElement {
   const lienzo = document.createElement("canvas");
   lienzo.width = ancho;
@@ -184,10 +205,7 @@ type VideoDeFondo = {
 
 async function abrirVideo(fuente: Blob | string, ancho: number, alto: number): Promise<VideoDeFondo> {
   const m = await libreria();
-  const entrada = new m.Input({
-    formats: m.ALL_FORMATS,
-    source: typeof fuente === "string" ? new m.UrlSource(fuente) : new m.BlobSource(fuente),
-  });
+  const entrada = abrirArchivo(m, fuente);
   try {
     const pista = await entrada.getPrimaryVideoTrack();
     if (!pista) throw new Error(ERRORES.fondoSinVideo);
@@ -202,6 +220,65 @@ async function abrirVideo(fuente: Blob | string, ancho: number, alto: number): P
   } catch (e) {
     entrada.dispose();
     throw e;
+  }
+}
+
+function abrirArchivo(m: typeof import("mediabunny"), fuente: Blob | string) {
+  return new m.Input({
+    formats: m.ALL_FORMATS,
+    source: typeof fuente === "string" ? new m.UrlSource(fuente) : new m.BlobSource(fuente),
+  });
+}
+
+/** Si el vídeo de fondo trae sonido que este equipo sabe leer. */
+export async function fondoConSonido(fondo: Blob | string): Promise<boolean> {
+  const m = await libreria();
+  const entrada = abrirArchivo(m, fondo);
+  try {
+    const pista = await entrada.getPrimaryAudioTrack();
+    return Boolean(pista && (await pista.canDecode()));
+  } catch {
+    return false;
+  } finally {
+    entrada.dispose();
+  }
+}
+
+/**
+ * El sonido del propio vídeo de fondo, al largo de la tarjeta y en estéreo a
+ * 48 kHz, o `null` si no trae. Como sus imágenes (`marcasDelFondo`), si dura
+ * menos vuelve a empezar y si dura más se corta, apagándose en el último
+ * tercio de segundo para que no chasque.
+ */
+export async function sonidoDelFondo(fondo: Blob | string, segundos: number, frecuencia = 48000): Promise<AudioBuffer | null> {
+  const m = await libreria();
+  const entrada = abrirArchivo(m, fondo);
+  try {
+    const pista = await entrada.getPrimaryAudioTrack();
+    if (!pista || !(await pista.canDecode())) return null;
+    const inicio = await pista.getFirstTimestamp();
+    const trozos: import("mediabunny").WrappedAudioBuffer[] = [];
+    for await (const b of new m.AudioBufferSink(pista).buffers(inicio, inicio + segundos)) trozos.push(b);
+    if (!trozos.length) return null;
+    const dura = Math.max(...trozos.map((b) => b.timestamp + b.duration)) - inicio;
+    const ctx = new OfflineAudioContext(2, Math.ceil(segundos * frecuencia), frecuencia);
+    const general = ctx.createGain();
+    general.gain.setValueAtTime(1, Math.max(0, segundos - 0.35));
+    general.gain.linearRampToValueAtTime(0, segundos);
+    general.connect(ctx.destination);
+    for (let vuelta = 0; dura > 0 && vuelta * dura < segundos; vuelta++) {
+      for (const b of trozos) {
+        const t = vuelta * dura + b.timestamp - inicio;
+        if (t >= segundos) break;
+        const s = ctx.createBufferSource();
+        s.buffer = b.buffer;
+        s.connect(general);
+        s.start(Math.max(0, t));
+      }
+    }
+    return await ctx.startRendering();
+  } finally {
+    entrada.dispose();
   }
 }
 
@@ -265,17 +342,19 @@ export async function exportarImagen(pintar: Pintar, { ancho, alto, fondo = null
  * La tarjeta como MP4 (H.264), fotograma a fotograma y sin mirar el reloj.
  *
  * Con un vídeo de fondo, cada fotograma lleva el suyo en el mismo instante
- * (`marcasDelFondo`); con una imagen, la misma en todos. El `moov` va delante
+ * (`marcasDelFondo`); con una imagen, la misma en todos. Con `sonido`, una
+ * pista AAC al lado; sin él, ninguna. El `moov` va delante
  * del vídeo (`fastStart`), que es lo que piden las redes para empezar a
  * reproducir antes de bajarlo entero.
  */
 export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo): Promise<Blob> {
-  const { ancho, alto, fps, segundos, fondo = null, alProgreso, senal } = opciones;
+  const { ancho, alto, fps, segundos, fondo = null, sonido = null, alProgreso, senal } = opciones;
   comprobarTamano(ancho, alto, true);
   const total = fotogramas(fps, segundos);
   if (total < 1) throw new Error(`Un vídeo de ${segundos} s a ${fps} fps no tiene fotogramas.`);
   senal?.throwIfAborted();
   if (!(await videoDisponible(ancho, alto, fps))) throw new Error(ERRORES.sinVideo);
+  if (sonido && !(await audioDisponible(sonido.numberOfChannels, sonido.sampleRate))) throw new Error(ERRORES.sinAudio);
   const m = await libreria();
 
   const lienzo = crearLienzo(ancho, alto);
@@ -289,6 +368,8 @@ export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo): Pr
   });
   const fuente = new m.CanvasSource(lienzo, { codec: "avc", quality: new m.Quality(CALIDAD) });
   salida.addVideoTrack(fuente, { frameRate: fps });
+  const pistaSonido = sonido ? new m.AudioBufferSource({ codec: "aac", quality: new m.Quality(CALIDAD) }) : null;
+  if (pistaSonido) salida.addAudioTrack(pistaSonido);
 
   let video: VideoDeFondo | null = null;
   let fotos: AsyncGenerator<import("mediabunny").WrappedCanvas | null> | null = null;
@@ -303,24 +384,30 @@ export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo): Pr
     }
     await salida.start();
     let ultimo: CanvasImageSource | null = quieto?.fuente ?? null;
-    for (let i = 0; i < total; i++) {
-      senal?.throwIfAborted();
-      const t = i / fps;
-      if (fotos) {
-        const sig = await fotos.next();
-        // Si el archivo se queda corto en algún instante, sigue el último que hubo.
-        if (!sig.done && sig.value) ultimo = sig.value.canvas;
+    const imagenes = async () => {
+      for (let i = 0; i < total; i++) {
+        senal?.throwIfAborted();
+        const t = i / fps;
+        if (fotos) {
+          const sig = await fotos.next();
+          // Si el archivo se queda corto en algún instante, sigue el último que hubo.
+          if (!sig.done && sig.value) ultimo = sig.value.canvas;
+        }
+        ctx.clearRect(0, 0, ancho, alto);
+        ctx.save();
+        try {
+          await pintar(ctx, ancho, alto, ultimo, t);
+        } finally {
+          ctx.restore();
+        }
+        await fuente.add(t, 1 / fps);
+        alProgreso?.((i + 1) / total);
       }
-      ctx.clearRect(0, 0, ancho, alto);
-      ctx.save();
-      try {
-        await pintar(ctx, ancho, alto, ultimo, t);
-      } finally {
-        ctx.restore();
-      }
-      await fuente.add(t, 1 / fps);
-      alProgreso?.((i + 1) / total);
-    }
+    };
+    // El sonido entra a la vez que las imágenes y no antes ni después: el MP4
+    // intercala las dos pistas, y esperar a una sin alimentar la otra puede
+    // dejar las dos esperándose.
+    await Promise.all([imagenes(), pistaSonido && sonido ? pistaSonido.add(sonido) : null]);
     await salida.finalize();
     const buffer = salida.target.buffer;
     if (!buffer) throw new Error("El MP4 salió vacío.");

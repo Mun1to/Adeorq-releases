@@ -13,10 +13,13 @@
 //    gesto, así que no hace falta una ✕ aparte que compita con los iconos.
 
 import { useT } from "../lib/i18n";
-import { BoltIcon, BrowserIcon, FolderIcon, GaugeIcon, SparkIcon } from "./Icons";
+import { BrowserIcon, FolderIcon, GaugeIcon, SparkIcon } from "./Icons";
 
-/** Qué panel se está viendo. Vacío es «ninguno, solo la franja». */
-export type Cara = "" | "uso" | "skills" | "archivos" | "actividad";
+/** Qué panel se está viendo. Vacío es «ninguno, solo la franja». Hubo una
+    cara «actividad» (skills, MCP y llamadas al modelo de la terminal enfocada)
+    hasta el 2026-10-18: Munir la quitó porque Archivos ya enseña lo que toca
+    el agente, y con animaciones. */
+export type Cara = "" | "uso" | "skills" | "archivos";
 
 interface Props {
   cara: Cara;
@@ -29,9 +32,6 @@ interface Props {
       antes vivía al fondo de Skills, que no tiene nada que ver. */
   uso: React.ReactNode;
   archivos: React.ReactNode;
-  /** Lo que pasa por detrás de la terminal enfocada: skills, MCP,
-      herramientas y llamadas al modelo (Munir, 2026-08-17). */
-  actividad: React.ReactNode;
   /** Abrir la vista previa de la web. No es una cara de esta barra: es un panel
       del mosaico. Vive aquí porque Munir lo pidió en la franja (2026-08-15) y
       tiene sentido: la franja es «lo que puedes abrir», y da igual dónde acabe
@@ -42,7 +42,6 @@ interface Props {
 const CARAS: Array<{ id: Exclude<Cara, "">; titulo: string; icono: React.ReactNode }> = [
   { id: "uso", titulo: "Uso", icono: <GaugeIcon size={16} /> },
   { id: "skills", titulo: "Skills", icono: <SparkIcon size={16} /> },
-  { id: "actividad", titulo: "Actividad", icono: <BoltIcon size={16} /> },
   { id: "archivos", titulo: "Archivos", icono: <FolderIcon size={16} /> },
 ];
 
@@ -52,7 +51,6 @@ export default function PanelDerecho({
   skills,
   uso,
   archivos,
-  actividad,
   onWeb,
 }: Props) {
   const { t } = useT();
@@ -78,7 +76,7 @@ export default function PanelDerecho({
             </span>
           </div>
           <div className="lateral-cuerpo">
-            {cara === "uso" ? uso : cara === "skills" ? skills : cara === "actividad" ? actividad : archivos}
+            {cara === "uso" ? uso : cara === "skills" ? skills : archivos}
           </div>
         </aside>
       )}

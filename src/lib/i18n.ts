@@ -1680,10 +1680,6 @@ const EN: Record<string, string> = {
   "Sin datos de gasto": "No usage data",
   "no dice cuánto lleva": "does not say how much it has used",
   "sin sesión": "not signed in",
-  // Actividad: lo que llevó y lo que trajo cada llamada, con palabras.
-  "{n} llamadas · {e} nuevos · {s} escritos": "{n} calls · {e} new · {s} written",
-  "{e} leídos · {s} escritos": "{e} read · {s} written",
-  "leídos: {n} nuevos, {c} de caché": "read: {n} new, {c} from cache",
   "Sin skills en ~/.claude/skills": "No skills in ~/.claude/skills",
   "Qué pasa este día…": "What happens on this day…",
 
@@ -2065,18 +2061,6 @@ const EN: Record<string, string> = {
   "ver la web mientras se hace": "watch the site while it is being built",
   Recargar: "Reload",
   Adelante: "Forward",
-  // La pestaña de actividad de la franja derecha.
-  Actividad: "Activity",
-  "Enfoca una terminal y aquí verás lo que pasa por detrás: skills, MCP, herramientas y llamadas al modelo.":
-    "Focus a terminal and this shows what happens behind it: skills, MCP, tools and model calls.",
-  "Esta terminal aún no tiene conversación en el disco.":
-    "This terminal has no conversation on disk yet.",
-  "Leyendo el transcript…": "Reading the transcript…",
-  "Qué ha usado": "What it used",
-  "Todavía nada: cuando use una skill, un MCP o una herramienta, saldrá aquí.":
-    "Nothing yet: when it uses a skill, an MCP or a tool, it shows up here.",
-  "Llamadas al modelo": "Model calls",
-  "Sin llamadas en la cola leída.": "No calls in the tail read.",
   ahora: "now",
   "Pídele el tablero en cristiano: él propone el plan (sesiones, Claudes, terminales, Antigravity) y no ejecuta nada sin tu OK. En la Cabina: Ctrl+Mayús+A.":
     "Ask it for the board in plain words: it proposes the plan (sessions, Claudes, terminals, Antigravity) and runs nothing without your OK. In the Cockpit: Ctrl+Shift+A.",
@@ -2968,6 +2952,11 @@ const EN: Record<string, string> = {
   "hasta 10 MB": "up to 10 MB",
   "MP4, hasta 50 MB": "MP4, up to 50 MB",
   "Resaltar la cifra": "Highlight the number",
+  Sonido: "Sound",
+  Golpe: "Impact",
+  Contador: "Counter",
+  "Del vídeo": "From the video",
+  "Este equipo no puede meter sonido en el vídeo.": "This computer can't add sound to the video.",
   Mes: "Month",
   Día: "Day",
   "Día {n}": "Day {n}",

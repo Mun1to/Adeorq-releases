@@ -131,7 +131,8 @@
 
 .pt-op:disabled,
 .pt-elegir-btn:disabled,
-.pt-accion:disabled {
+.pt-accion:disabled,
+.pt-interruptor:disabled {
   opacity: 0.35;
   cursor: default;
 }
@@ -145,6 +146,14 @@
 .pt-nota {
   font-size: 13px;
   color: var(--pt-suave);
+}
+
+/* En Vídeo, «Sonido» y los sonidos a la derecha de las pestañas. */
+.pt-sonido {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 22px;
 }
 
 /* --- La tira de fondos -------------------------------------------------------- */
@@ -375,4 +384,27 @@
 
 .pt-estado[data-mal] {
   color: var(--mal);
+}
+
+/* La ruta de «Guardada en…» abre su carpeta: se lee como enlace, sin caja. */
+.pt-ruta {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--claro);
+  text-align: left;
+  text-decoration: underline 1px color-mix(in srgb, var(--claro) 35%, transparent);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition:
+    color var(--t-rapida),
+    text-decoration-color var(--t-rapida);
+}
+
+.pt-ruta:hover,
+.pt-ruta:focus-visible {
+  color: var(--accent);
+  text-decoration-color: currentColor;
 }

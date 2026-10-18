@@ -451,7 +451,7 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
           : (tramoMes ?? ["", ""]);
   const mesDesde = tramoMes?.[0] ?? "";
   const delTramo = useMemo(() => (desde ? entre(cubos, desde, hasta) : []), [cubos, desde, hasta]);
-  const proyectos = useMemo(() => porfolio(delTramo, "proyecto", 1000).filter((p) => p.clave && !p.otros), [delTramo]);
+  const proyectos = useMemo(() => porfolio(delTramo, "proyecto", 1000, historia?.raiz).filter((p) => p.clave && !p.otros), [delTramo, historia?.raiz]);
   const proyecto = proyectos.find((p) => p.clave.toLowerCase() === proy) ?? null;
 
   const datos = useMemo<DatosTarjeta | null>(() => {

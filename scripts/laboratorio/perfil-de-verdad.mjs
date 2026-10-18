@@ -1,5 +1,7 @@
 // El Perfil con TUS datos en el binario de verdad: tu uso, el porfolio en dos
-// columnas, sus pestañas a 320 px y la tarjeta en «Total» guardada como PNG y
+// columnas y sin lo que no es un proyecto (la raíz del disco, la de proyectos,
+// una carpeta con punto, la memoria de Claude: en «Otros», aquí y en la lista
+// de la tarjeta), sus pestañas a 320 px y la tarjeta en «Total» guardada como PNG y
 // como MP4 por el puente de Rust, con el diálogo de Windows contestado desde la
 // página.
 //
@@ -200,6 +202,16 @@ try {
   })()`;
   const enProyectos = await v.js(`document.querySelector('.pu-pestanas [aria-selected="true"]')?.textContent`);
   dice(enProyectos === "Proyectos", `el porfolio se abre en Proyectos («${enProyectos}»)`);
+  // Lo que no es un proyecto (Munir, 2026-10-18): la raíz del disco, la de
+  // proyectos, una carpeta con punto y lo de Claude Code van a «Otros».
+  const NO_SON = ["C:", "proyectos", ".playwright-mcp", "memory", "C--"];
+  const lista = await v.js(`[...document.querySelectorAll(".pu-lista .pu-parte")].map((f) => ({ nombre: f.querySelector(".pu-parte-nombre").textContent, tokens: f.querySelector("em").textContent, parte: f.querySelector("b").textContent }))`);
+  const colados = lista.filter((f) => NO_SON.includes(f.nombre)).map((f) => f.nombre);
+  const otros = lista.find((f) => f.nombre === "Otros");
+  dice(
+    lista.length > 1 && !colados.length && Boolean(otros),
+    `el porfolio sin lo que no es un proyecto${colados.length ? ` (se cuelan: ${colados.join(", ")})` : ""}, con «Otros» ${otros ? `${otros.tokens} · ${otros.parte}` : "que no sale"}: ${lista.map((f) => f.nombre).join(", ")}`,
+  );
   for (const [ancho, alto, escala, nombre] of [
     [1920, 1032, 1, "1920"],
     [1536, 816, 1.25, "1536"],
@@ -270,6 +282,12 @@ try {
     return /^Desde el \d+ de \S+ de \d{4}/.test(l) && l;
   }, 5000);
   dice(Boolean(total), `la tarjeta cuenta desde tu primer día («${total || (await v.js(lienzo))}»)`);
+  // Su lista de proyectos cuenta igual que el porfolio: desde el primer día, ninguno de esos.
+  await pulsar(".pt-elegir-btn");
+  const elegibles = await v.js(`[...document.querySelectorAll('.pt-lista [role="option"]')].slice(1).map((b) => b.firstChild.textContent)`);
+  await pulsar(".pt-elegir-btn");
+  const coladosTarjeta = elegibles.filter((n) => NO_SON.includes(n));
+  dice(elegibles.length > 1 && !coladosTarjeta.length, `la tarjeta ofrece ${elegibles.length} proyectos y ninguno de los que no lo son${coladosTarjeta.length ? ` (se cuelan: ${coladosTarjeta.join(", ")})` : ""}`);
 
   const png = await guardarComo("tarjeta total.png", "Descargar");
   const infoPng = existsSync(png.ruta) ? leerPng(readFileSync(png.ruta)) : {};

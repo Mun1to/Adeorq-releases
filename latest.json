@@ -1,11 +1,11 @@
 {
-  "version": "0.9.225",
-  "notes": "Ctrl+W cierra la pestaña del navegador, el marco ya no parpadea al cargar y la web que levanta una terminal se ofrece siempre.",
-  "pub_date": "2026-10-18T20:30:14Z",
+  "version": "0.9.226",
+  "notes": "Eliges el buscador de la barra del navegador en Ajustes, y tu Perfil solo cuenta proyectos de verdad.",
+  "pub_date": "2026-10-18T21:50:13Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3h1dTJodjZLeEk4aHI0dDdpTjA1Z3RJTk9rU1ZXaEsxQjNsYUczOFNmWndWZ2FrNG55QmpZaEhJeTBEM1J2NTdwVFZpejBRRGZWcmF3a29GOEJEM2d3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzU1NDEwCWZpbGU6QWRlb3JxXzAuOS4yMjVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjUKaVE3a2Y5L2l2cS9mZEg0KytreDMwK0pBVU10RE5GSitvV1IvV3NXTmdLejA2Q0JLcEl0TjRTYm4zRko2WUNQQ2VTeXVSQ3pvcm5pTUpqbnYrVzlUQVE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.225/Adeorq_0.9.225_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLy8rYTJ6MVB6bjAvNUE4WWtxVFRDNkFxZm5QdzRxSEZrKzZ2d0wzWWVDUFFVeEZOY0pOQ2FSdEVVSE10NW03RXEweUYyMmlFMmZzNklNUVk3bWZ3NXdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzYwMTkzCWZpbGU6QWRlb3JxXzAuOS4yMjZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjYKL0Q0cW9nRkV4RjlDRklHa0JGelA4S3lDRlZZQlF0Ump1aHNQOC9hVHpOL29rRUVZTTFGcTl2YlJBNUhaaThEN2VQb3RlUFN0QXNtQldFcWVjQnRnQnc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.226/Adeorq_0.9.226_x64-setup.exe"
     }
   }
 }

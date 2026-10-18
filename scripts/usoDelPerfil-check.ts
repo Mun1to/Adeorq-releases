@@ -4,8 +4,10 @@
 //
 // Lo que no puede pasar: que una hora de las 23:00 de Madrid caiga en el día
 // de Londres, que la noche del cambio de hora descuadre un día, que el año
-// empiece en martes, que dos ids del mismo modelo salgan como dos modelos, o
-// que «Otros» se coma un proyecto que cabía.
+// empiece en martes, que dos ids del mismo modelo salgan como dos modelos,
+// que «Otros» se coma un proyecto que cabía, o que la raíz del disco, la
+// carpeta de proyectos, una carpeta con punto o la memoria de Claude salgan
+// como un proyecto.
 //
 //   pnpm bancos usoDelPerfil
 
@@ -23,6 +25,7 @@ import {
   diaMas,
   entre,
   fechaLarga,
+  fueraDeProyecto,
   inicialesSemana,
   mesConTokens,
   mesEnCurso,
@@ -130,6 +133,43 @@ es("en Windows la misma carpeta con otra mayúscula es el mismo proyecto", dosFo
 es("y se dice como la forma que más tokens lleva", dosFormas[0].nombre, "Adeorq");
 es("en Linux no se juntan: son dos carpetas", porfolio([cubo("2026-10-16T10", { carpeta: "/home/m/Web" }), cubo("2026-10-16T10", { carpeta: "/home/m/web" })], "proyecto").length, 2);
 es("un empate se ordena por nombre", porfolio([cubo("2026-10-16T10", { carpeta: "C:\\proyectos\\Zeta" }), cubo("2026-10-16T10", { carpeta: "C:\\proyectos\\Alfa" })], "proyecto").map((p) => p.nombre), ["Alfa", "Zeta"]);
+
+// --- lo que no es un proyecto (Munir, 2026-10-18: «C:», «memory», «.playwright-mcp» y «proyectos») ---
+const RAIZ = "C:\\proyectos";
+const noSon = ["C:\\", "C:\\proyectos", "C:\\.playwright-mcp", "C:\\Users\\Muni\\.claude\\projects\\C--\\memory"];
+es("sus cuatro no son proyectos", noSon.map((c) => fueraDeProyecto(c, RAIZ)), [true, true, true, true]);
+es("la raíz de proyectos con otra mayúscula y su barra tampoco", fueraDeProyecto("c:\\Proyectos\\", RAIZ), true);
+es("ni otro disco, ni la raíz de Unix", [fueraDeProyecto("D:", RAIZ), fueraDeProyecto("/", "/home/m/proyectos")], [true, true]);
+es(
+  "ni la carpeta de Claude Code de una sesión, ni su memoria en Linux",
+  [fueraDeProyecto("C:\\Users\\Muni\\.claude\\projects\\C--", RAIZ), fueraDeProyecto("/home/m/.claude/projects/-home-m/memory", "/home/m/proyectos")],
+  [true, true],
+);
+const siSon = ["C:\\proyectos\\Adeorq", "C:\\proyectos\\next.js-demo", "C:\\proyectos\\memory", "D:\\trabajo\\cliente.web", "/home/m/proyectos/Orquio"];
+es("un proyecto dentro de la raíz, con un punto en medio o que se llama «memory» sí lo es", siSon.map((c) => fueraDeProyecto(c, RAIZ)), [false, false, false, false, false]);
+es("sin carpeta madre (modo «sin carpeta»), la de proyectos no es especial", fueraDeProyecto("C:\\proyectos", ""), false);
+es("sin carpeta no entra: tiene su fila, «Sin carpeta»", fueraDeProyecto("", RAIZ), false);
+// Lo de su octubre, en pequeño: dos proyectos de verdad y sus cuatro carpetas que no lo son.
+const suyo = [
+  cubo("2026-10-16T10", { carpeta: "C:\\proyectos\\Adeorq", cacheLeida: 9000 }),
+  cubo("2026-10-16T10", { carpeta: "C:\\proyectos", cacheLeida: 4000 }),
+  cubo("2026-10-16T10", { carpeta: "C:\\", cacheLeida: 3000 }),
+  cubo("2026-10-16T10", { carpeta: "C:\\proyectos\\next.js-demo", cacheLeida: 2000 }),
+  cubo("2026-10-16T10", { carpeta: "C:\\.playwright-mcp", cacheLeida: 1000 }),
+  cubo("2026-10-16T10", { carpeta: "C:\\Users\\Muni\\.claude\\projects\\C--\\memory", cacheLeida: 500 }),
+];
+const conRaiz = porfolio(suyo, "proyecto", 10, RAIZ);
+es("van a «Otros» aunque quepan, y no ocupan sitio", conRaiz.map((p) => (p.otros ? "Otros" : p.nombre)), ["Adeorq", "next.js-demo", "Otros"]);
+es("«Otros» lleva sus cuatro cifras", conRaiz[2].tokens, [4000, 3000, 1000, 500].reduce((x, l) => x + l + 35, 0));
+es("y las partes siguen sumando uno", Math.round(conRaiz.reduce((x, p) => x + p.parte, 0) * 1000), 1000);
+es("lo de la tarjeta (sin «Otros» ni sin carpeta) es lo mismo sin ese cajón", porfolio(suyo, "proyecto", 1000, RAIZ).filter((p) => p.clave && !p.otros).map((p) => p.nombre), ["Adeorq", "next.js-demo"]);
+const llenos = [...muchos, ...suyo.slice(1, 3)];
+es(
+  "con más proyectos de los que caben, los que no lo son van al mismo «Otros»",
+  porfolio(llenos, "proyecto", 5, RAIZ).map((p) => (p.otros ? "Otros" : p.nombre)),
+  ["A", "B", "C", "D", "Otros"],
+);
+es("por proveedor o por modelo no cambia nada", porfolio(suyo, "proveedor", 5, RAIZ).map((p) => p.nombre), ["Claude Code"]);
 
 // --- los nombres --------------------------------------------------------------------
 es("claude-opus-5-5 es Opus 5.5", nombreDeModelo("claude-opus-5-5"), "Opus 5.5");

@@ -70,6 +70,7 @@ import AjustesPartes from "./AjustesPartes";
 import { pestanasEncendidas, type Parte, type TerminalesPorVista } from "../lib/partes";
 import GuideView from "./GuideView";
 import TerminalesAparte from "./TerminalesAparte";
+import AjusteBuscador from "./AjusteBuscador";
 import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
 
@@ -1273,6 +1274,7 @@ export default function SettingsView({
                     onChange={(e) => onWebAuto(e.currentTarget.checked)}
                   />
                 </label>
+                <AjusteBuscador />
                 <label className="setting-row setting-switch">
                   <span>{t("Arrancar Adeorq al encender el ordenador")}</span>
                   <input

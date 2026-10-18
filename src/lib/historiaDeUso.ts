@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { leerPerfil, raizPorDefecto } from "./perfil";
 import { listProjects, type Account } from "./pty";
 import type { Historia } from "./usoDelPerfil";
 
@@ -29,6 +30,15 @@ export function cuentasQueLeer(cuentas: Account[]): CuentaQueLeer[] {
     });
 }
 
+/** La carpeta madre de los proyectos, la que usa `list_projects`: la del
+    ajuste o, sin él, la que decide Rust. Sin carpeta madre, ninguna. */
+function raizDeProyectos(): Promise<string> {
+  const p = leerPerfil();
+  if (p.sinRaiz) return Promise.resolve("");
+  if (p.raiz.trim()) return Promise.resolve(p.raiz.trim());
+  return raizPorDefecto().then((r) => r ?? "", () => "");
+}
+
 /** Lo último leído, para no volver a una página vacía al entrar otra vez. */
 let ultima: Historia | null = null;
 let enCurso: { clave: string; promesa: Promise<Historia> } | null = null;
@@ -40,9 +50,8 @@ export function leerHistoria(cuentas: CuentaQueLeer[]): Promise<Historia> {
   if (enCurso?.clave === clave) return enCurso.promesa;
   // Los proyectos del panel van SIEMPRE: sin ellos, `Orquio\web` y
   // `MarcaPersonal\web` salen como dos «web» sueltos (panel 1, f7d21ae).
-  const promesa = listProjects()
-    .catch(() => [])
-    .then((ps) => invoke<Historia>("uso_historia", { cuentas, proyectos: ps.map((p) => p.path) }))
+  const promesa = Promise.all([listProjects().catch(() => []), raizDeProyectos()])
+    .then(([ps, raiz]) => invoke<Historia>("uso_historia", { cuentas, proyectos: ps.map((p) => p.path) }).then((h) => ({ ...h, raiz })))
     .then((h) => {
       ultima = h;
       return h;

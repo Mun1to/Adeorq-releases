@@ -43,6 +43,9 @@ export interface Cubo {
 export interface Historia {
   cubos: Cubo[];
   archivos: number;
+  /** La carpeta madre de los proyectos con la que se leyó, para saber qué no
+   *  es un proyecto (`fueraDeProyecto`). No la da Rust: la pone `leerHistoria`. */
+  raiz?: string;
 }
 
 /** Todo lo que leyó el modelo, caché incluida: la cifra grande. */
@@ -209,11 +212,42 @@ export function nombreDeProyecto(carpeta: string): string {
   return carpeta.replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? "";
 }
 
+/** Una carpeta sin la barra del final, salvo la raíz de Unix, que es la barra. */
+const sinBarra = (carpeta: string) => carpeta.replace(/[\\/]+$/, "") || carpeta.slice(0, 1);
+
+/** Para comparar dos carpetas: barras normales y, en Windows, sin mayúsculas. */
+const comparable = (carpeta: string) => {
+  const c = sinBarra(carpeta.trim()).replace(/\\/g, "/");
+  return /^[A-Za-z]:/.test(c) ? c.toLowerCase() : c;
+};
+
+/**
+ * Lo que sale como carpeta de un cubo y no es un proyecto (Munir, 2026-10-18:
+ * en su Perfil salían «C:», «memory», «.playwright-mcp» y «proyectos»): la
+ * raíz de un disco, la carpeta madre de los proyectos (`raiz`, la de
+ * `list_projects`), una carpeta que empieza por punto (como las que se salta
+ * `list_projects`) y los datos de Claude Code (`.claude\projects\<carpeta>` y
+ * su `memory`). Es por regla y no por nombre: un proyecto que se llame
+ * «memory» o lleve un punto en medio sigue siendo un proyecto.
+ *
+ * Rust ya ha subido cada carpeta a su repositorio, así que lo que llega aquí
+ * así es una sesión abierta fuera de cualquiera. Sin carpeta NO entra: esa
+ * respuesta tiene su fila, «Sin carpeta».
+ */
+export function fueraDeProyecto(carpeta: string, raiz = ""): boolean {
+  const c = comparable(carpeta);
+  if (!c) return false;
+  if (/^([a-z]:)?\/?$/.test(c)) return true;
+  if (raiz.trim() && c === comparable(raiz)) return true;
+  if (nombreDeProyecto(c).startsWith(".")) return true;
+  return /\/\.claude\/projects(\/|$)/i.test(c);
+}
+
 /** Lo que distingue una fila: el CLI, el nombre del modelo o la carpeta. */
 function propioDe(eje: Eje, c: Cubo): string {
   if (eje === "proveedor") return c.cli;
   if (eje === "modelo") return nombreDeModelo(c.modelo);
-  return (c.carpeta ?? "").replace(/[\\/]+$/, "");
+  return sinBarra(c.carpeta ?? "");
 }
 
 /**
@@ -238,9 +272,11 @@ function nombreDe(eje: Eje, propio: string): string {
  * «Otros», al final: cinco filas se leen de un vistazo, sesenta proyectos no
  * (Munir tiene 67). Un empate se ordena por nombre, para que dos lecturas
  * iguales pinten lo mismo. Una carpeta escrita de dos maneras se dice como
- * la que más tokens lleva.
+ * la que más tokens lleva. Por proyecto, lo que no es un proyecto
+ * (`fueraDeProyecto`, con la carpeta madre `raiz`) va siempre a «Otros» y no
+ * ocupa sitio, aunque quepa.
  */
-export function porfolio(cubos: readonly Cubo[], eje: Eje, max = 5): Parte[] {
+export function porfolio(cubos: readonly Cubo[], eje: Eje, max = 5, raiz = ""): Parte[] {
   const sumas = new Map<string, { tokens: number; formas: Map<string, number> }>();
   let total = 0;
   for (const c of cubos) {
@@ -261,9 +297,10 @@ export function porfolio(cubos: readonly Cubo[], eje: Eje, max = 5): Parte[] {
       return { clave, nombre: nombreDe(eje, clave), tokens, parte: tokens / total };
     })
     .sort((a, b) => b.tokens - a.tokens || (a.nombre < b.nombre ? -1 : a.nombre > b.nombre ? 1 : 0));
-  if (filas.length <= max) return filas;
-  const quedan = filas.slice(0, max - 1);
-  const resto = filas.slice(max - 1).reduce((s, f) => s + f.tokens, 0);
+  const proyectos = eje === "proyecto" ? filas.filter((f) => !fueraDeProyecto(f.clave, raiz)) : filas;
+  if (proyectos.length === filas.length && filas.length <= max) return filas;
+  const quedan = proyectos.slice(0, max - 1);
+  const resto = total - quedan.reduce((s, f) => s + f.tokens, 0);
   return [...quedan, { clave: "", nombre: "", tokens: resto, parte: resto / total, otros: true }];
 }
 

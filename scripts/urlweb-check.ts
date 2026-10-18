@@ -8,7 +8,9 @@
 //
 //   pnpm bancos urlweb
 
-import { BUSCADOR, comoEmpotrable, comoUrl } from "../src/lib/urlweb";
+import { BUSCADORES, buscadorElegido, comoEmpotrable, comoUrl } from "../src/lib/urlweb";
+
+const BUSCADOR = BUSCADORES.google.url;
 
 let fallos = 0;
 function es(nombre: string, sale: unknown, esperado: unknown) {
@@ -22,6 +24,12 @@ es("una palabra suelta se busca", comoUrl("casa"), `${BUSCADOR}casa`);
 es("una frase se busca", comoUrl("como hacer pan"), `${BUSCADOR}como%20hacer%20pan`);
 es("con tildes y signos, bien escapada", comoUrl("¿qué es C#?"), `${BUSCADOR}${encodeURIComponent("¿qué es C#?")}`);
 es("algo con punto pero con espacios se busca", comoUrl("react hooks.md"), `${BUSCADOR}react%20hooks.md`);
+
+// El buscador se elige en Ajustes (Munir, 2026-10-18): Google de fábrica, también sin `localStorage`.
+es("sin nada elegido, Google", buscadorElegido(), "google");
+es("con Brave Search", comoUrl("casa", "brave"), "https://search.brave.com/search?q=casa");
+es("con DuckDuckGo", comoUrl("casa", "duckduckgo"), "https://duckduckgo.com/?q=casa");
+es("una dirección no se busca, elijas el que elijas", comoUrl("github.com", "brave"), "https://github.com");
 
 // Lo de esta máquina y de tu red, sin cifrar como siempre.
 es("un puerto suelto va a localhost", comoUrl("3000"), "http://localhost:3000");

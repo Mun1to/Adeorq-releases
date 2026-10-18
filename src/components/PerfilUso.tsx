@@ -126,7 +126,7 @@ export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
   const [desde, hasta] = mesEnCurso(hoy);
   const delMes = useMemo(() => entre(cubos, desde, hasta), [cubos, desde, hasta]);
   const suma = useMemo(() => sumar(delMes), [delMes]);
-  const filas = useMemo(() => porfolio(delMes, eje, FILAS), [delMes, eje]);
+  const filas = useMemo(() => porfolio(delMes, eje, FILAS, historia?.raiz), [delMes, eje, historia?.raiz]);
 
   if (!historia) {
     return (

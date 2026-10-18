@@ -1606,6 +1606,13 @@
   cursor: pointer;
 }
 
+/* El buscador de la barra del navegador: el desplegable a la derecha, como los
+   interruptores de las filas de al lado. */
+.setting-buscador select {
+  margin-left: auto;
+  min-width: 160px;
+}
+
 /* La última no lleva raya: una línea al final del grupo parece que corta algo
    que viene después, y no viene nada. */
 .setting-row:last-of-type {

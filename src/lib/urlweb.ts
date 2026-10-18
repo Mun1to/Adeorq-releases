@@ -13,9 +13,26 @@
 /** Los puertos donde suele estar servido lo que uno acaba de arrancar. */
 export const PUERTOS = [1420, 5173, 3000, 4321, 8000, 8080];
 
-/** Donde va lo que no parece una dirección. Munir pidió el navegador como «Google
-    normal y corriente». */
-export const BUSCADOR = "https://www.google.com/search?q=";
+/** Donde va lo que no parece una dirección. Google de fábrica, porque Munir pidió
+    el navegador como «Google normal y corriente»; se elige en Ajustes (2026-10-18). */
+export const BUSCADORES = {
+  google: { nombre: "Google", url: "https://www.google.com/search?q=" },
+  brave: { nombre: "Brave Search", url: "https://search.brave.com/search?q=" },
+  duckduckgo: { nombre: "DuckDuckGo", url: "https://duckduckgo.com/?q=" },
+} as const;
+export type Buscador = keyof typeof BUSCADORES;
+export const BUSCADOR_KEY = "adeorq-buscador";
+
+/** El que está elegido en Ajustes, o Google. Sin `localStorage` (un banco, una
+    página sin permiso) también Google. */
+export function buscadorElegido(): Buscador {
+  try {
+    const v = typeof localStorage === "undefined" ? null : localStorage.getItem(BUSCADOR_KEY);
+    return v && v in BUSCADORES ? (v as Buscador) : "google";
+  } catch {
+    return "google";
+  }
+}
 
 /** El servidor de lo escrito, si tiene forma de serlo: `localhost`, una IP, un
     dominio con punto o un nombre con puerto (`mi-servidor:8080`). */
@@ -27,13 +44,13 @@ const DE_CASA = /^(localhost|\[[0-9a-f:.]+\]|\d{1,3}(\.\d{1,3}){3}|[a-z0-9-]+(?=
     "localhost:3000" son intentos honrados de decir una dirección, un dominio se
     pide cifrado, y lo demás («casa», una frase) se busca. Hasta el 2026-10-18 todo
     era una dirección, y «casa» acababa en `http://casa`. */
-export function comoUrl(txt: string): string {
+export function comoUrl(txt: string, buscador: Buscador = buscadorElegido()): string {
   const limpio = txt.trim();
   if (!limpio) return "";
   if (/^\d{2,5}$/.test(limpio)) return `http://localhost:${limpio}`;
   if (/^https?:\/\//i.test(limpio)) return limpio;
   const servidor = limpio.split(/[/?#]/)[0];
-  if (/\s/.test(limpio) || !SERVIDOR.test(servidor)) return BUSCADOR + encodeURIComponent(limpio);
+  if (/\s/.test(limpio) || !SERVIDOR.test(servidor)) return BUSCADORES[buscador].url + encodeURIComponent(limpio);
   return `${DE_CASA.test(servidor) ? "http" : "https"}://${limpio}`;
 }
 

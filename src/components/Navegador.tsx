@@ -33,7 +33,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useT } from "../lib/i18n";
 import { puedeEmpotrarse } from "../lib/pty";
-import { comoEmpotrable, comoUrl, PUERTOS } from "../lib/urlweb";
+import { BUSCADORES, buscadorElegido, comoEmpotrable, comoUrl, PUERTOS } from "../lib/urlweb";
 import {
   canalNativo,
   esLocal,
@@ -585,7 +585,7 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
             ref={entrada}
             value={editando ? texto : `${host}${resto}`}
             spellCheck={false}
-            placeholder={t("Busca en Google o escribe una dirección")}
+            placeholder={t("Busca en {b} o escribe una dirección", { b: BUSCADORES[buscadorElegido()].nombre })}
             onChange={(e) => setTexto(e.currentTarget.value)}
             onFocus={(e) => {
               setTexto(urlAct);

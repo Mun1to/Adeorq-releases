@@ -226,8 +226,9 @@ const comparable = (carpeta: string) => {
  * en su Perfil salían «C:», «memory», «.playwright-mcp» y «proyectos»): la
  * raíz de un disco, la carpeta madre de los proyectos (`raiz`, la de
  * `list_projects`), una carpeta que empieza por punto (como las que se salta
- * `list_projects`) y los datos de Claude Code (`.claude\projects\<carpeta>` y
- * su `memory`). Es por regla y no por nombre: un proyecto que se llame
+ * `list_projects`), los datos de Claude Code (`.claude\projects\<carpeta>` y
+ * su `memory`) y los de cualquier programa (`AppData`, 2026-10-19). Es por regla
+ * y no por nombre: un proyecto que se llame
  * «memory» o lleve un punto en medio sigue siendo un proyecto.
  *
  * Rust ya ha subido cada carpeta a su repositorio, así que lo que llega aquí
@@ -240,6 +241,11 @@ export function fueraDeProyecto(carpeta: string, raiz = ""): boolean {
   if (/^([a-z]:)?\/?$/.test(c)) return true;
   if (raiz.trim() && c === comparable(raiz)) return true;
   if (nombreDeProyecto(c).startsWith(".")) return true;
+  // Los datos de un programa: `AppData\Roaming` y `AppData\Local` en Windows, y
+  // `~/.config` y `~/.local/share` en Linux (2026-10-19: «config» y
+  // «munito-contenido»). Lo que Rust ya llevó a su proyecto (el scratchpad de una
+  // sesión) no llega aquí con esta forma.
+  if (/\/appdata\/(roaming|local|locallow)\//i.test(c) || /\/\.(config|local\/share)\//.test(c)) return true;
   return /\/\.claude\/projects(\/|$)/i.test(c);
 }
 

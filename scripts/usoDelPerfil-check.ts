@@ -149,6 +149,18 @@ const siSon = ["C:\\proyectos\\Adeorq", "C:\\proyectos\\next.js-demo", "C:\\proy
 es("un proyecto dentro de la raíz, con un punto en medio o que se llama «memory» sí lo es", siSon.map((c) => fueraDeProyecto(c, RAIZ)), [false, false, false, false, false]);
 es("sin carpeta madre (modo «sin carpeta»), la de proyectos no es especial", fueraDeProyecto("C:\\proyectos", ""), false);
 es("sin carpeta no entra: tiene su fila, «Sin carpeta»", fueraDeProyecto("", RAIZ), false);
+// Y lo que cuelga de los datos de programas (Munir, 2026-10-19, pregunta G: «config» y «munito-contenido»).
+es(
+  "ni los datos de un programa en AppData (Roaming y Local), ni sus equivalentes en Linux",
+  [
+    fueraDeProyecto("C:\\Users\\Muni\\AppData\\Roaming\\Jack Schierbeck\\taskbar-groups\\config", RAIZ),
+    fueraDeProyecto("C:\\Users\\Muni\\AppData\\Local\\munito-contenido", RAIZ),
+    fueraDeProyecto("/home/m/.config/taskbar/config", "/home/m/proyectos"),
+    fueraDeProyecto("/home/m/.local/share/munito-contenido", "/home/m/proyectos"),
+  ],
+  [true, true, true, true],
+);
+es("un proyecto que se llama «AppData» o «config» sí lo es", [fueraDeProyecto("C:\\proyectos\\AppData", RAIZ), fueraDeProyecto("D:\\trabajo\\config", RAIZ)], [false, false]);
 // Lo de su octubre, en pequeño: dos proyectos de verdad y sus cuatro carpetas que no lo son.
 const suyo = [
   cubo("2026-10-16T10", { carpeta: "C:\\proyectos\\Adeorq", cacheLeida: 9000 }),

@@ -1,11 +1,11 @@
 {
-  "version": "0.9.227",
-  "notes": "Sin avisos de uso abajo a la izquierda: tu uso, en la pestaña de Uso.",
-  "pub_date": "2026-10-18T22:21:25Z",
+  "version": "0.9.228",
+  "notes": "Ctrl+W ya no falla en pestañas nuevas, tus agentes aguantan una caída de fábrica y el Perfil más limpio.",
+  "pub_date": "2026-10-19T02:38:08Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzRaOWJJRHBjR3JEWGNaSUd3Vm1nUFNqYmlGRzNYYVUrcUtGbUpkeC8vbTA0V3ExVUx5dnZPc2doV3N3M0JzUlV2aVlWQ2lqbFFCZDZqQ2dWWDUreXdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzYyMDcxCWZpbGU6QWRlb3JxXzAuOS4yMjdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjcKWXMrZFdOQUZQVzArU3BhdUdPMXJIcHhJRHRnTUpRQitta1hiR1ZuSVRDZ0NqbTRFNXdzcGM2QmlETWpPWkZObGp3U3dTRFVqV2RzbExUQkYrcXBXQ1E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.227/Adeorq_0.9.227_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3pORTNOaWZvZXdrL0YwWTU1aForTGx1L1loYnQ3K0d2d1lGbmRhdFliVXFseEtvbXVGUWttNnlaSzNIS0VlYTNjMktMaGpkVDVMazI3dXVnN040R0FzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzc3NDc2CWZpbGU6QWRlb3JxXzAuOS4yMjhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjgKNXZkRFlEL1hNZ0ZSeEhYRW1acFBuU3FwMll3Z3RWa2h6cUlyck9HOU5oQjV2Nmx4R0ZxWWdTaXRhTjh1cXVOOE5tc01PWURYanBYWXVjMjFORTBoQUE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.228/Adeorq_0.9.228_x64-setup.exe"
     }
   }
 }

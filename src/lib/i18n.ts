@@ -2591,8 +2591,8 @@ const EN: Record<string, string> = {
   // Ajustes › Terminales: las terminales en su propio proceso (TerminalesAparte.tsx).
   "Que las terminales aguanten si Adeorq se cae": "Keep the terminals alive if Adeorq crashes",
   "Se aplica la próxima vez que abras Adeorq.": "It applies the next time you open Adeorq.",
-  "En pruebas. Si Adeorq se cierra de golpe, tus agentes siguen trabajando y al volver a abrirla se reenganchan con lo que hicieron. Cerrarla tú las cierra, como siempre, y si en media hora no vuelves, se cierran solas.":
-    "Experimental. If Adeorq closes suddenly, your agents keep working, and when you open it again they reattach with what they did. Closing it yourself closes them, as always, and if you do not come back within half an hour, they close on their own.",
+  "Si Adeorq se cierra de golpe, tus agentes siguen trabajando y al volver a abrirla se reenganchan con lo que hicieron. Cerrarla tú las cierra, como siempre, y si en media hora no vuelves, se cierran solas. Encendido de fábrica en Windows.":
+    "If Adeorq closes suddenly, your agents keep working, and when you open it again they reattach with what they did. Closing it yourself closes them, as always, and if you do not come back within half an hour, they close on their own. On by default on Windows.",
   Decisiones: "Decisions",
   "Te esperan": "Waiting for you",
   "Nada te espera": "Nothing is waiting for you",

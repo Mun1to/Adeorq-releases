@@ -824,17 +824,36 @@ pub fn remoto(app: &tauri::AppHandle) -> Option<Arc<Remoto>> {
 
 // ─── EL AJUSTE ──────────────────────────────────────────────────────────────
 //
-// Apagado de fábrica mientras se prueba. Vive en un fichero y no en el
-// `localStorage` de la ventana porque se decide al ARRANCAR, antes de que la
-// ventana abra ninguna terminal: cambiar de motor con terminales abiertas no
-// tiene sentido, así que se aplica al volver a abrir Adeorq.
+// Vive en un fichero y no en el `localStorage` de la ventana porque se decide
+// al ARRANCAR, antes de que la ventana abra ninguna terminal: cambiar de motor
+// con terminales abiertas no tiene sentido, así que se aplica al volver a abrir
+// Adeorq. El fichero dice «1» o «0»; sin fichero, manda lo de fábrica.
+
+/// Encendido de fábrica en la Adeorq publicada de Windows desde el 2026-10-19:
+/// Munir lo llevó encendido en su instalación desde el 16 de octubre, a través
+/// de seis actualizaciones, y contestó «hecho, y va bien» (era la condición que
+/// le faltaba, `docs/contexto/terminales-fuera.md`). Apagado en Linux, que solo
+/// se ha probado en el CI, y en desarrollo: allí el proceso corre desde
+/// `C:\ct\debug\adeorq.exe`, y tras una caída lo tendría cogido hasta media
+/// hora y nadie podría recompilar (los laboratorios lo encienden a propósito).
+const DE_FABRICA: bool = cfg!(windows) && !cfg!(debug_assertions);
 
 fn ruta_del_ajuste() -> Result<PathBuf, String> {
     Ok(dir_de_verdad()?.join("encendido"))
 }
 
+/// Lo que dice el fichero: «0» es apagado, y cualquier otra cosa (el «1» que se
+/// escribe al encender, también el de antes del 2026-10-19), encendido.
+fn leer_ajuste(contenido: Option<&[u8]>, de_fabrica: bool) -> bool {
+    match contenido {
+        Some(b) => b.first() != Some(&b'0'),
+        None => de_fabrica,
+    }
+}
+
 pub fn encendido() -> bool {
-    ruta_del_ajuste().map(|r| r.exists()).unwrap_or(false)
+    let contenido = ruta_del_ajuste().ok().and_then(|r| std::fs::read(r).ok());
+    leer_ajuste(contenido.as_deref(), DE_FABRICA)
 }
 
 #[tauri::command(async)]
@@ -844,15 +863,11 @@ pub fn terminales_aparte() -> bool {
 
 #[tauri::command(async)]
 pub fn terminales_aparte_poner(encender: bool) -> Result<(), String> {
+    // Apagar se ESCRIBE: con lo de fábrica encendido, borrar el fichero lo
+    // volvería a encender.
     let r = ruta_del_ajuste()?;
-    if encender {
-        std::fs::create_dir_all(r.parent().unwrap_or(Path::new("."))).map_err(|e| e.to_string())?;
-        std::fs::write(&r, b"1").map_err(|e| e.to_string())
-    } else if r.exists() {
-        std::fs::remove_file(&r).map_err(|e| e.to_string())
-    } else {
-        Ok(())
-    }
+    std::fs::create_dir_all(r.parent().unwrap_or(Path::new("."))).map_err(|e| e.to_string())?;
+    std::fs::write(&r, if encender { b"1" } else { b"0" }).map_err(|e| e.to_string())
 }
 
 /// Las señas del proceso de este canal, si hay uno vivo que conteste.
@@ -1009,6 +1024,22 @@ pub fn arrancar(app: &tauri::AppHandle) {
 #[cfg(test)]
 mod pruebas {
     use super::*;
+
+    /// El ajuste: sin fichero manda lo de fábrica, «0» apaga aunque lo de
+    /// fábrica sea encendido, y el «1» de antes sigue encendiendo.
+    #[test]
+    fn el_ajuste_de_fabrica_y_lo_que_elegiste() {
+        assert!(leer_ajuste(None, true));
+        assert!(!leer_ajuste(None, false));
+        assert!(!leer_ajuste(Some(b"0"), true));
+        assert!(leer_ajuste(Some(b"1"), false));
+        // En desarrollo, apagado de fábrica: si no, el proceso de terminales
+        // tendría cogido C:\ct\debug\adeorq.exe tras una caída.
+        assert_eq!(DE_FABRICA, cfg!(windows) && !cfg!(debug_assertions));
+        if cfg!(debug_assertions) {
+            assert!(!DE_FABRICA);
+        }
+    }
 
     /// Un cliente de prueba: manda órdenes y lee avisos por la misma conexión.
     struct Probador {

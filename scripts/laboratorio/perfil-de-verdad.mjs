@@ -204,7 +204,7 @@ try {
   dice(enProyectos === "Proyectos", `el porfolio se abre en Proyectos («${enProyectos}»)`);
   // Lo que no es un proyecto (Munir, 2026-10-18): la raíz del disco, la de
   // proyectos, una carpeta con punto y lo de Claude Code van a «Otros».
-  const NO_SON = ["C:", "proyectos", ".playwright-mcp", "memory", "C--"];
+  const NO_SON = ["C:", "proyectos", ".playwright-mcp", "memory", "C--", "config", "munito-contenido"];
   const lista = await v.js(`[...document.querySelectorAll(".pu-lista .pu-parte")].map((f) => ({ nombre: f.querySelector(".pu-parte-nombre").textContent, tokens: f.querySelector("em").textContent, parte: f.querySelector("b").textContent }))`);
   const colados = lista.filter((f) => NO_SON.includes(f.nombre)).map((f) => f.nombre);
   const otros = lista.find((f) => f.nombre === "Otros");

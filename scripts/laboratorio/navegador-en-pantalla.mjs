@@ -231,6 +231,22 @@ try {
   const centro = (sel) => v.js(`(() => { const r = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
   const cuantas = () => v.js(`document.querySelectorAll(".nav-pest:not([data-muere])").length`);
 
+  // El teclado nunca se queda en una página escondida (Munir, 2026-10-19: «falla la Ctrl+W a veces
+  // para pestañas nuevas»). Lo que Rust avisa al pulsar Ctrl+T con el foco DENTRO de la página se
+  // finge con su mismo evento (`nav-tecla`); las teclas de verdad no se pueden fingir desde aquí.
+  const emitir = (tecla, id) => v.js(`window.__TAURI_INTERNALS__.invoke("plugin:event|emit", { event: "nav-tecla", payload: { id: ${id}, tecla: ${JSON.stringify(tecla)} } }).then(() => "", (x) => String(x))`);
+  await v.js(`window.__TAURI_INTERNALS__.invoke("nav_foco", { id: 1 }).then(() => "", (x) => String(x))`);
+  dice(Boolean(await hasta(() => v.js(`!document.hasFocus()`), 3000, 100)), "con el foco dentro de github.com");
+  await emitir("nueva-pestana", 1);
+  const trasCtrlT = await hasta(() => v.js(`document.querySelectorAll(".nav-pest:not([data-muere])").length === 2 && document.hasFocus() && document.activeElement === document.querySelector(".nav-url input")`), 3000, 100);
+  dice(Boolean(trasCtrlT), "Ctrl+T desde la página: pestaña en blanco con el teclado en la barra, no en la página escondida");
+  await v.enviar("Input.dispatchKeyEvent", { type: "keyDown", key: "w", code: "KeyW", windowsVirtualKeyCode: 87, modifiers: 2 });
+  await v.enviar("Input.dispatchKeyEvent", { type: "keyUp", key: "w", code: "KeyW", windowsVirtualKeyCode: 87, modifiers: 2 });
+  const vuelta = await hasta(() => v.js(`document.querySelectorAll(".nav-pest:not([data-muere])").length === 1 && !document.hasFocus()`), 3000, 100);
+  dice(Boolean(vuelta), "y Ctrl+W la cierra y te deja con el teclado dentro de la de github");
+  await v.js(`window.__TAURI_INTERNALS__.invoke("nav_foco_interfaz").then(() => "", (x) => String(x))`);
+  await dormir(300);
+
   let c = await centro(".nav-mas");
   await clic(c.x, c.y);
   dice(Boolean(await hasta(async () => (await cuantas()) === 2 && (await v.js(`!!document.querySelector(".nav-vacio")`)), 3000, 100)), "el + abre una pestaña en blanco con los puertos para elegir");
@@ -263,7 +279,7 @@ try {
     setTimeout(() => res.end("<h1>404, pero con su página</h1>"), req.url === "/lenta" ? 900 : 0);
   });
   await new Promise((ok) => errores.listen(0, "127.0.0.1", ok));
-  await v.js(`window.__TAURI_INTERNALS__.invoke("nav_ir", { id: 2, url: "http://127.0.0.1:${errores.address().port}/nada" })`);
+  await v.js(`window.__TAURI_INTERNALS__.invoke("nav_ir", { id: Number(document.querySelector('.nav-pest[data-on="true"]').dataset.clave), url: "http://127.0.0.1:${errores.address().port}/nada" })`);
   await hasta(() => v.js(`document.querySelector('.nav-pest[data-on="true"] .nav-pest-nom')?.textContent === "no está"`), 8000, 200);
   await dormir(1200);
   dice(await v.js(`!document.querySelector(".nav-aviso")`), "un 404 con su página no saca el aviso de que no cargó");
@@ -281,12 +297,12 @@ try {
       if (performance.now() - t0 > 8000) return ok(-1);
       requestAnimationFrame(mirar);
     };
-    window.__TAURI_INTERNALS__.invoke("nav_ir", { id: 2, url: "http://127.0.0.1:${errores.address().port}/lenta" });
+    window.__TAURI_INTERNALS__.invoke("nav_ir", { id: Number(document.querySelector('.nav-pest[data-on="true"]').dataset.clave), url: "http://127.0.0.1:${errores.address().port}/lenta" });
     mirar();
   })`);
   dice(reentra === 0, `al terminar de cargar, el marco no vuelve a entrar deslizándose (${reentra === -1 ? "no se vio cargar" : `${reentra} entradas en marcha`})`);
   errores.close();
-  await v.js(`window.__TAURI_INTERNALS__.invoke("nav_ir", { id: 2, url: "http://no-existe.invalid/" })`);
+  await v.js(`window.__TAURI_INTERNALS__.invoke("nav_ir", { id: Number(document.querySelector('.nav-pest[data-on="true"]').dataset.clave), url: "http://no-existe.invalid/" })`);
   const aviso = await hasta(() => v.js(`document.querySelector(".nav-aviso")?.textContent ?? null`), 10_000, 200);
   dice(/no contesta/.test(aviso ?? ""), `una web que no existe sí lo saca («${aviso}»)`);
   // Ctrl+T y Ctrl+W con el foco en la barra: las atiende el marco (con el foco en la página las

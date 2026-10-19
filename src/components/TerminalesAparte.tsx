@@ -37,7 +37,7 @@ export default function TerminalesAparte() {
       <p className="setting-line" data-on={tocado || undefined}>
         {tocado
           ? t("Se aplica la próxima vez que abras Adeorq.")
-          : t("En pruebas. Si Adeorq se cierra de golpe, tus agentes siguen trabajando y al volver a abrirla se reenganchan con lo que hicieron. Cerrarla tú las cierra, como siempre, y si en media hora no vuelves, se cierran solas.")}
+          : t("Si Adeorq se cierra de golpe, tus agentes siguen trabajando y al volver a abrirla se reenganchan con lo que hicieron. Cerrarla tú las cierra, como siempre, y si en media hora no vuelves, se cierran solas. Encendido de fábrica en Windows.")}
       </p>
     </>
   );

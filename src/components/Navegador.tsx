@@ -208,6 +208,16 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
   }, []);
 
   /* ── Lo que cuenta Rust ── */
+  /* Dónde va el teclado cuando cambia la pestaña de delante por una tecla o al
+     cerrar: a su página si tiene panel nativo, y si está en blanco a la barra.
+     Sin esto se quedaba en la página de antes, que ya está escondida (es otro
+     webview y tiene el foco del sistema): Ctrl+T dejaba el cursor pintado en la
+     barra con el teclado en la página vieja, y el siguiente Ctrl+W le llegaba a
+     una pestaña escondida o ya cerrada y no cerraba nada (Munir, 2026-10-19:
+     «falla la Ctrl+W a veces para pestañas nuevas»). Lo atiende el efecto de
+     `pest`, más abajo. */
+  const focoAlCambiar = useRef(false);
+
   const nueva = useCallback((url = "", detras?: number) => {
     if (pestsRef.current.filter((x) => !x.muere).length >= TOPE_PESTANAS) return;
     const p = dePestana(url, nativo === false);
@@ -217,7 +227,7 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
       setAct(i);
       return out;
     });
-    if (!url) requestAnimationFrame(() => entrada.current?.focus());
+    if (!url) focoAlCambiar.current = true;
   }, [nativo]);
 
   const cerrar = useCallback((clave: number) => {
@@ -225,8 +235,11 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
     // La última cierra el panel: un navegador sin nada abierto es un hueco muerto.
     if (todas.length <= 1) {
       onCerrar();
+      void navFocoInterfaz().catch(() => {});
       return;
     }
+    // Cerrar la de delante te deja en la de al lado, con el teclado dentro.
+    if (actRef.current?.clave === clave) focoAlCambiar.current = true;
     cambia(clave, (p) => ({ ...p, muere: true }));
     if (creados.current.has(clave)) {
       void navCerrar(clave).catch(() => {});
@@ -266,8 +279,12 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
         const i = pp.findIndex((p) => p.clave === id);
         if (tecla === "nueva-pestana") nueva();
         else if (tecla === "cerrar-pestana") cerrar(id);
-        else if (tecla === "pestana-siguiente") setAct((i + 1) % pp.length);
-        else if (tecla === "pestana-anterior") setAct((i - 1 + pp.length) % pp.length);
+        else if (tecla === "pestana-siguiente" || tecla === "pestana-anterior") {
+          focoAlCambiar.current = true;
+          // El índice de `act` cuenta también las que se están yendo.
+          const destino = pp[(i + (tecla === "pestana-siguiente" ? 1 : -1) + pp.length) % pp.length];
+          setAct(Math.max(0, pestsRef.current.indexOf(destino)));
+        }
         else if (tecla === "direccion") {
           // Primero el foco de vuelta a la interfaz, o el campo no lo recibe.
           void navFocoInterfaz()
@@ -396,6 +413,22 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
     void navAbrir(pest.clave, pest.url, huecoDe(el)).catch(() => creados.current.delete(pest.clave));
   }, [nativo, visible, pest]);
 
+  // El teclado, donde toca tras cambiar de pestaña con una tecla o al cerrar
+  // (ver `focoAlCambiar`). Una que se está yendo no cuenta: se espera a la de al lado.
+  useEffect(() => {
+    if (!focoAlCambiar.current || !pest || pest.muere) return;
+    focoAlCambiar.current = false;    if (nativo && !pest.marco && pest.url && creados.current.has(pest.clave)) {
+      void navFoco(pest.clave).catch(() => {});
+      return;
+    }
+    // En blanco: a la barra. Primero aquí mismo, y otra vez cuando la interfaz
+    // haya recuperado el foco del sistema, que puede tenerlo una página.
+    entrada.current?.focus();
+    void navFocoInterfaz()
+      .catch(() => {})
+      .then(() => entrada.current?.focus());
+  }, [pest, nativo]);
+
   /* Una dirección que llega de fuera: a la pestaña que ya la tenga, a la que
      esté en blanco o a una nueva. */
   const selloRef = useRef(0);
@@ -516,6 +549,7 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
             role="tab"
             aria-selected={p === pest}
             className="nav-pest"
+            data-clave={p.clave}
             data-on={p === pest}
             data-muere={p.muere || undefined}
             title={p.titulo || p.url || undefined}

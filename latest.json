@@ -1,11 +1,11 @@
 {
-  "version": "0.9.230",
-  "notes": "Las notas y capturas del lienzo se vuelven a mover con la flecha en el modo Dibujo, Ajustes ocupa la pantalla con sus ajustes de dos en dos, y las pestanas del Chat sin tarjetas.",
-  "pub_date": "2026-10-21T12:53:26Z",
+  "version": "0.9.231",
+  "notes": "La barra archiva sola las terminales que cierra un agente, y desde el móvil abres sesiones en el PC.",
+  "pub_date": "2026-10-21T16:53:16Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZoRlJwWWlLWEExTnE3bjFGK29kQTNZa2VoTGZEZTgvRVZJZTB6QjZ5L1lMUllqVlRwZENEQVRCN0tnVExiY3ZVSmRCMFlxWHRYTzJaT0NNZEs4d1FzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTg3MTk0CWZpbGU6QWRlb3JxXzAuOS4yMzBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzAKdGlCWHRzUTRrWm5KS3JkcnhEbzVkNHRJejJYTlVYMmtsOGhWbmNFYUVHeE1Sd2djNDloMDBxV3hiNEVmeHlHWXRDbGFsOGZHLzNIcmFHTVVBMlV6Q3c9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.230/Adeorq_0.9.230_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3dwTG5OUFZYVExmNkNFUDJuL1JqVmdZZmVkOWN3NHk4UDdaMnFMTjhJNGhLRVFPWW90TE5md1BhU3RTM1lkSlFkVm5qbXFzbGthMi9Da2tDcXRhZWcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjAxNTg1CWZpbGU6QWRlb3JxXzAuOS4yMzFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzEKd2JkaG5ZN3pZOWN4T0htdHBueUpJeW54Z0R0UExNWEkvcllrdVNPaThPa2tna3BJZkttYjNKWkpUb1daNkFnUncrckpKRU9VZ1R2N29WUXFPdk94Qnc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.231/Adeorq_0.9.231_x64-setup.exe"
     }
   }
 }

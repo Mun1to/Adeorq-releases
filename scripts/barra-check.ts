@@ -16,7 +16,14 @@
 //      semana dejaba 13 sesiones a la vista de 452 en el disco, y Munir
 //      preguntó el 2026-09-09 por qué habían «desaparecido».
 
-import { HORAS_EN_LA_BARRA, porQueSale, saleEnLaBarra, type Mirable } from "../src/lib/enLaBarra";
+import {
+  HORAS_EN_LA_BARRA,
+  MARGEN_DEL_CIERRE_MS,
+  archivadasSolas,
+  porQueSale,
+  saleEnLaBarra,
+  type Mirable,
+} from "../src/lib/enLaBarra";
 
 let fallos = 0;
 function ok(nombre: string, real: boolean, porque?: string) {
@@ -131,6 +138,38 @@ ok(
   ok("y la de otro proyecto sigue escondida", !saleEnLaBarra(viejaDeOtro, soloVibeset), "abrir un proyecto no abre los demás");
   ok("la que sale por eso cuenta como reciente para el ＋", porQueSale(viejaDeVibeset, soloVibeset) === "reciente");
   ok("sin proyecto en la ficha, pedirlo no la enseña", !saleEnLaBarra({ id: "sp", hours: dias(37) }, soloVibeset));
+}
+
+// ── Las que cerró un agente se archivan solas ───────────────────────────────
+// Munir, 2026-10-21: 36 conversaciones en Adeorq, 22 de ellas terminales que
+// un agente abrió, terminó y cerró con su rastro. «Que esto no vuelva a pasar.»
+{
+  const ahora = Date.UTC(2026, 9, 21, 18, 0);
+  const hace = (h: number) => ahora - h * 3_600_000;
+  const cerradas = new Map([
+    ["ajustes", hace(3)],
+    ["retomada", hace(30)],
+    ["abierta", hace(5)],
+    ["pedida", hace(5)],
+    ["al-morir", hace(2)],
+  ]);
+  const sesiones: Mirable[] = [
+    { id: "ajustes", hours: 3.1 },
+    { id: "retomada", hours: 1 },
+    { id: "abierta", hours: 5 },
+    { id: "pedida", hours: 5 },
+    { id: "al-morir", hours: 1.9 },
+    { id: "suya", hours: 2 },
+  ];
+  const e = { enPantalla: new Set(["abierta"]), traidas: new Set(["pedida"]) };
+  const solas = archivadasSolas(sesiones, cerradas, e, ahora);
+  ok("la que cerró un agente y nadie tocó después se archiva sola", solas.has("ajustes"));
+  ok("la que se retomó después del rastro vuelve a la barra", !solas.has("retomada"), "si no, retomar una delegada la escondería mientras la usas");
+  ok("la que está abierta en un panel no se archiva", !solas.has("abierta"));
+  ok("la que desarchivaste (traída) no se vuelve a archivar", !solas.has("pedida"));
+  ok("la última línea que suelta el CLI al morir no cuenta como retomarla", solas.has("al-morir"), `margen de ${MARGEN_DEL_CIERRE_MS / 60000} min`);
+  ok("la que abriste tú, sin rastro, ni se mira", !solas.has("suya"));
+  ok("sin rastros no se archiva nada", archivadasSolas(sesiones, new Map(), e, ahora).size === 0);
 }
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

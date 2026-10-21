@@ -117,15 +117,18 @@ async (page) => {
     await page.waitForSelector("#hilo .pensando", { state: "detached", timeout: 20000 });
     await page.waitForSelector("#hilo .tarjeta[data-clave]");
     await mirar("conserje con sesiones");
-    // Desde el 2026-10-21 el router no es un botón: «Sesiones» elige el
-    // programa y, con uno forzado, sale «Modelo» con el router o uno fijo.
-    await page.selectOption("#programa", "codex");
-    await page.waitForSelector("#fijo-caja:not([hidden])");
-    await page.selectOption("#fijo", "opus");
-    await page.waitForTimeout(400);
+    // Desde el 2026-10-21 lo de Adeo va en una pastilla que abre una barra:
+    // con qué piensa y con qué abre, y con un programa forzado, su modelo.
+    await page.click("#adeo");
+    await page.waitForSelector("#elegir-adeo:not([hidden])");
+    await page.click('#elegir-adeo .seg[data-que="programa"] button[data-valor="codex"]');
+    await page.waitForSelector('#elegir-adeo .seg[data-que="fijo"]');
+    await page.click('#elegir-adeo .seg[data-que="fijo"] button[data-valor="opus"]');
+    await page.waitForTimeout(600);
     await mirar("conserje sin router");
-    await page.selectOption("#programa", "");
-    await page.waitForSelector("#fijo-caja[hidden]", { state: "attached" });
+    await page.click('#elegir-adeo .seg[data-que="programa"] button[data-valor=""]');
+    await page.waitForSelector('#elegir-adeo .seg[data-que="fijo"]', { state: "detached" });
+    await page.click("#adeo");
     await page.fill("#texto", "arregla lo del móvil");
     await page.click("#mejorar");
     await page.waitForSelector("#aviso-mejora:not([hidden])");
@@ -196,6 +199,22 @@ async (page) => {
       await page.waitForTimeout(300);
       await mirar(`decisión ${v}`);
     }
+  });
+
+  // 8. El cajón con las sesiones de cada proyecto y la pantalla de sesión nueva (2026-10-21).
+  await paso("sesión nueva", async () => {
+    await page.goto(`${B}/`);
+    await page.click("#abrir-cajon");
+    // Solo la última: con una lista de selectores Playwright espera al primero
+    // que case, que es una sesión escondida dentro de un proyecto plegado.
+    await page.waitForSelector("#cajon .p-otro");
+    await page.click('#cajon .proyecto[aria-expanded="false"] >> nth=0');
+    await page.waitForTimeout(300);
+    await mirar("cajón con sesiones");
+    await page.click("#cajon .p-otro");
+    await page.waitForSelector("#n-abrir");
+    await page.waitForTimeout(300);
+    await mirar("sesión nueva");
   });
 
   return { fallos, vistas };

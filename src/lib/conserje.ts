@@ -194,6 +194,8 @@ export interface ConserjeExec {
   cuentas: () => Account[];
   /** Qué programa corre en ese panel («claude», «codex»…; «shell» si ninguno). */
   cliDe?: (panel: number) => string;
+  /** Abre una terminal con esa línea, sin sacarte de donde estés; devuelve su panel. */
+  abrirComando?: (label: string, cwd: string, command: string[], cuenta?: Account) => number | undefined;
 }
 /** Apunta la sesión de una pestaña que ya estaba. `conserjeTrabajo` es solo
  *  para las que se acaban de abrir. */

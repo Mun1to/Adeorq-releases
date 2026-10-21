@@ -2557,6 +2557,9 @@ function App() {
   const conserjeExec: ConserjeExec = {
     // Sin moverte de donde estés: el conserje abre mientras hablas con él.
     abrir: (r, cwd, label, encargo) => openReceta(r, cwd, label, encargo, undefined, undefined, { quieto: true }),
+    // Seguir una sesión desde el móvil: la línea la decide `lib/movil.ts`.
+    abrirComando: (label, cwd, command, cuenta) =>
+      addPane(label, cwd, command, undefined, cuenta, undefined, undefined, undefined, undefined, { quieto: true })?.id,
     // Igual que `enviarAlChat`: el texto como pegado y el Intro aparte.
     escribir: (panel, texto) =>
       sendPty(panel, texto)

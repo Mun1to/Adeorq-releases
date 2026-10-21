@@ -137,9 +137,87 @@ pub fn escribir(dir: &Path, r: &Rastro, ahora_ms: u64) -> Result<PathBuf, String
     Ok(ruta)
 }
 
+/// Una conversación que cerró un agente con su rastro, y cuándo (la hora del
+/// archivo, en milisegundos desde 1970).
+#[derive(serde::Serialize, Debug, PartialEq)]
+pub struct Cerrada {
+    pub sesion: String,
+    pub cuando_ms: u64,
+}
+
+/// La conversación que nombra un rastro, si la nombra (la línea que escribe `escribir`).
+fn sesion_del_rastro(md: &str) -> Option<String> {
+    let id = md.lines().find_map(|l| l.strip_prefix("- Conversación: `"))?.split('`').next()?;
+    (!id.is_empty() && id.chars().all(|c| c.is_ascii_hexdigit() || c == '-')).then(|| id.to_string())
+}
+
+/// Las conversaciones que tienen rastro en `dir`. Si una se cerró varias veces
+/// (se retomó y la volvió a cerrar un agente), vale el último cierre.
+///
+/// Es lo que deja la barra limpia (Munir, 2026-10-21, con 36 sesiones en
+/// Adeorq: «hay demasiadas… que esto no vuelva a pasar»): de las 35 de los
+/// últimos treinta días, 22 eran terminales que un agente abrió, terminó y
+/// cerró, y `close_pane` se lleva el panel pero no la conversación, que es de
+/// Claude Code. La barra las archiva solas (`archivadasSolas` en
+/// `lib/enLaBarra.ts`) mientras nadie las retome.
+pub fn cerradas(dir: &Path) -> Vec<Cerrada> {
+    let mut ultimas: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+    for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let ruta = e.path();
+        if ruta.extension().and_then(|x| x.to_str()) != Some("md") {
+            continue;
+        }
+        let Some(sesion) = std::fs::read_to_string(&ruta).ok().as_deref().and_then(sesion_del_rastro) else { continue };
+        let cuando_ms = e
+            .metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map_or(0, |d| d.as_millis() as u64);
+        let v = ultimas.entry(sesion).or_insert(0);
+        *v = (*v).max(cuando_ms);
+    }
+    let mut todas: Vec<Cerrada> = ultimas.into_iter().map(|(sesion, cuando_ms)| Cerrada { sesion, cuando_ms }).collect();
+    todas.sort_by(|a, b| a.sesion.cmp(&b.sesion));
+    todas
+}
+
+/// Para la barra: qué conversaciones cerró un agente. Sin carpeta de rastros,
+/// ninguna.
+#[tauri::command(async)]
+pub fn rastros_cerradas() -> Result<Vec<Cerrada>, String> {
+    Ok(cerradas(&crate::dir_datos()?.join("rastros")))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn la_barra_sabe_que_conversaciones_cerro_un_agente() {
+        let dir = std::env::temp_dir().join(format!("adeorq-rastros-cerradas-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let r = |nombre, sesion: Option<&str>| Rastro {
+            nombre,
+            carpeta: r"C:\proyectos\Adeorq",
+            sesion: sesion.map(str::to_string),
+            abierta_por: Some(3),
+            cerrada_por: Some(3),
+            texto: "Hizo los ajustes a lo ancho; su parte está en BUZON.md y d0edb65.",
+        };
+        escribir(&dir, &r("Ajustes a lo ancho", Some("f8f85dcc-b7a9-4ca4-bfd1-49ddcc79bc02")), 1_792_034_400_000).unwrap();
+        escribir(&dir, &r("Ajustes otra vez", Some("f8f85dcc-b7a9-4ca4-bfd1-49ddcc79bc02")), 1_792_034_460_000).unwrap();
+        escribir(&dir, &r("Codex sin id", None), 1_792_034_400_000).unwrap();
+        // Lo que no sea un rastro no cuenta, y un id raro tampoco.
+        std::fs::write(dir.join("nota.txt"), "- Conversación: `aaaa`").unwrap();
+        std::fs::write(dir.join("malo.md"), "- Conversación: `../../malo`").unwrap();
+        let c = cerradas(&dir);
+        assert_eq!(c.len(), 1, "{c:?}");
+        assert_eq!(c[0].sesion, "f8f85dcc-b7a9-4ca4-bfd1-49ddcc79bc02");
+        assert!(c[0].cuando_ms > 0);
+        assert!(cerradas(&dir.join("no-existe")).is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn un_rastro_corto_o_desmedido_no_vale() {

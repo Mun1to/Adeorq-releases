@@ -262,6 +262,18 @@
   .para { font-size: calc(15px * var(--z)); }
   .porque { font-size: calc(13px * var(--z)); color: var(--suave); }
   .porque b { color: var(--tinta); font-weight: 600; }
+  /* Una sesión que abrió Adeo, en el hilo: suelta, como en el PC desde el
+     2026-10-21 (Munir eligió «la 1»). Sin borde, fondo, raya ni pastilla: el
+     estado con su punto y su palabra en color, el encargo en dos líneas y el
+     porqué en una. Con tres sesiones llenaban la pantalla. */
+  .tarjeta.ses { background: none; border: 0; box-shadow: none; border-radius: 0; margin: 0; padding: 12px 2px; gap: 4px; }
+  .tarjeta.ses + .tarjeta.ses { border-top: 1px solid var(--borde); }
+  .tarjeta.ses:active { background: var(--capa-fuerte); border-radius: var(--r-btn); }
+  .tarjeta.ses .estado { background: none; padding: 0; }
+  .tarjeta.ses[data-estado="cerrada"] .estado { color: var(--suave); }
+  .tarjeta.ses .para, .tarjeta.ses .porque { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+  .tarjeta.ses .para { -webkit-line-clamp: 2; color: var(--suave); }
+  .tarjeta.ses .porque { -webkit-line-clamp: 1; font-size: calc(12.5px * var(--z)); }
   /* Una fila: lo que se lista sin pedir atención. Juntas, dentro de un grupo de cristal. */
   .fila {
     width: 100%; display: block; text-align: left; cursor: pointer;
@@ -352,6 +364,14 @@
   .cajon .p-filas { display: grid; grid-template-columns: minmax(0, 1fr); padding-left: 16px; }
   .cajon .recientes .fila { padding: 10px 12px; font-size: calc(15.5px * var(--z)); }
   .cajon .fila[aria-current="true"] { background: var(--capa-viva); }
+  /* Dentro de un proyecto: «Nueva sesión aquí» con el acento, como el + de la
+     barra del PC, y sus sesiones de antes con el icono más apagado que lo abierto. */
+  .cajon .p-nueva, .cajon .p-nueva > svg, .cajon .p-mas b { color: var(--acento); }
+  .cajon .p-nueva b, .cajon .p-mas b { font-weight: 600; }
+  .cajon .recientes .p-otro { margin-top: 6px; }
+  .cajon .fila-s > svg { opacity: 0.6; }
+  .cajon .fila-s span { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cajon .fila-s span[data-mal] { color: var(--mal); max-width: 60%; }
   .cajon .pc { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--borde); font-size: calc(13px * var(--z)); color: var(--suave); }
   .cajon .pc .punto[data-mal] { background: var(--mal); opacity: 1; }
   /* Lo que se puede hacer con una conversación: se mantiene pulsada y sale
@@ -375,6 +395,17 @@
     display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 20px; border: 0; border-radius: var(--r-pastilla);
     background: var(--tinta); color: var(--fondo); font-weight: 650; font-size: calc(15.5px * var(--z)); box-shadow: var(--sombra); cursor: pointer;
   }
+  /* Una sesión nueva en el PC: el proyecto elegido con la capa de acento, el
+     programa como el modelo de una terminal y el primer mensaje en una caja. */
+  .nueva .fila-term[aria-checked="true"] { background: var(--acento-capa); }
+  .nueva .p-logo { width: 34px; height: 34px; color: #fff; }
+  .nueva .n-mas b { color: var(--acento); font-weight: 600; }
+  .nueva .elegir { margin: 0; }
+  .n-texto {
+    display: block; width: 100%; min-height: 92px; padding: 12px 14px; border-radius: var(--r-caja); resize: none;
+    border: 1px solid var(--borde); background: var(--capa); color: var(--tinta); font: inherit; font-size: calc(15px * var(--z));
+  }
+  .n-abrir { width: 100%; margin-top: 16px; }
 
   /* ── 6. La portada ── */
   .saludo { display: grid; justify-items: center; gap: 8px; padding: 14px 8px 6px; text-align: center; }
@@ -772,13 +803,22 @@
   .fila-caja:has(.mandos-term) .adjuntar { width: 34px; height: 34px; }
   /* La barra para elegir con un toque: dentro de la caja, entre el texto y los
      mandos, una fila de modelos y otra de esfuerzos, con lo puesto en azul. */
-  .elegir { display: grid; gap: 6px; margin: 4px 10px 0; }
+  /* Su columna puede encoger (`minmax(0, 1fr)`): con la de por defecto crece
+     hasta la suma de sus palabras más largas («Antigravity») y se sale de lado. */
+  .elegir { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 4px 10px 0; }
   .elegir .seg { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--hondo); border: 1px solid var(--borde); }
   .elegir button {
     flex: 1; min-width: 0; height: 34px; border: 0; border-radius: 9px; background: none; color: var(--suave); cursor: pointer;
     font: inherit; font-size: calc(13px * var(--z)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .elegir button[aria-checked="true"] { background: var(--acento); color: var(--sobre-acento); font-weight: 650; }
+  /* La de Adeo lleva rótulos, que son dos cosas distintas en la misma barra. */
+  .elegir-adeo { margin-top: 8px; }
+  .elegir-adeo small { margin: 4px 4px 0; font-size: calc(12px * var(--z)); color: var(--suave); }
+  .elegir-adeo small:first-child { margin-top: 0; }
+  #adeo .flecha-adeo { flex: none; transition: transform var(--t); }
+  #adeo[aria-expanded="true"] { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 55%, transparent); }
+  #adeo[aria-expanded="true"] .flecha-adeo { transform: rotate(180deg); }
   .teclas .pastilla { height: 36px; padding: 0 13px; border-radius: 12px; background: var(--hondo); border-color: var(--borde-fuerte); font: calc(13px * var(--z)) var(--mono); }
 
   /* ── 10. Decisiones ──
@@ -993,6 +1033,26 @@ try { clave = localStorage.getItem(LLAVE); } catch (_) { /* sin almacén: se emp
 // es de ellos y sale tal cual. Su comprobador: `scripts/movil-idioma-check.mjs`.
 const INGLES = document.documentElement.lang === "en";
 const EN = {
+  // Una sesión nueva en el PC
+  "Nueva sesión": "New session",
+  "se abre en tu PC": "opens on your PC",
+  "Tu PC no tiene proyectos todavía: se añaden en la barra de Adeorq.": "Your PC has no projects yet: add them from the Adeorq sidebar.",
+  "En tu PC no hay ningún programa de agente instalado.": "There is no agent program installed on your PC.",
+  "Proyecto": "Project",
+  "Programa": "Program",
+  "Primer mensaje (si quieres)": "First message (optional)",
+  "Qué tiene que hacer. Vacío: se abre esperando.": "What it should do. Empty: it opens and waits.",
+  "Primer mensaje": "First message",
+  "Abrir en el PC": "Open on the PC",
+  "sin sesiones todavía": "no sessions yet",
+  "Ver los {n} proyectos": "See all {n} projects",
+  "Abriendo…": "Opening…",
+  "O sigue una de {p}": "Or continue one from {p}",
+  "Nueva sesión aquí": "New session here",
+  "Otro proyecto…": "Another project…",
+  "Ver las {n} sesiones": "See all {n} sessions",
+  "abierta fuera": "open elsewhere",
+  "Sin título": "Untitled",
   // Lo de todas las pantallas
   "Volver": "Back",
   "Enviar": "Send",
@@ -1188,27 +1248,24 @@ const EN = {
   "Mejorar": "Improve",
   "Mejorando…": "Improving…",
   "Deshacer": "Undo",
-  "Con qué piensa el conserje: el programa y su escalón. Las sesiones que abre van aparte.":
-    "What the concierge thinks with: the program and its tier. The sessions it opens are set apart.",
-  "Con qué piensa el conserje": "What the concierge thinks with",
-  "Conserje: {m}": "Concierge: {m}",
-  "Conserje: {p} · {e}": "Concierge: {p} · {e}",
+  "Mejorar: ordena lo que dijiste sin cambiar lo que pides": "Improve: tidies what you said without changing what you ask",
+  "Con qué piensa Adeo y con qué programa abre las sesiones que reparte": "What Adeo thinks with, and which program opens the sessions it hands out",
+  "Adeo piensa con {p} y abre las sesiones con {s}": "Adeo thinks with {p} and opens sessions with {s}",
+  "Adeo piensa con": "Adeo thinks with",
+  "Con qué programa piensa Adeo": "Which program Adeo thinks with",
+  "Cuánto piensa Adeo": "How hard Adeo thinks",
+  "Abre las sesiones con": "Opens sessions with",
+  "Con qué programa abre las sesiones": "Which program opens the sessions",
+  "Con qué modelo": "With which model",
+  "Con qué modelo se abren": "Which model they open with",
+  "Router": "Router",
   "Rápido": "Fast",
   "A fondo": "Deep",
-  "Con qué programa se abren las sesiones que reparte Adeo": "Which program the sessions Adeo hands out open with",
-  "Sesiones: Router": "Sessions: Router",
-  "El modelo de las sesiones que abre. El mismo que en el PC.": "The model of the sessions it opens. The same one as on the PC.",
-  "Modelo de las sesiones": "Model of the sessions",
-  "Modelo: lo elige el router": "Model: the router picks",
-  "Modelo: {m}": "Model: {m}",
-  "Sesiones: {m}": "Sessions: {m}",
   "Lo eligió el router.": "The router picked it.",
   "Elegido por ti: el router estaba apagado.": "Picked by you: the router was off.",
   "nada en marcha": "nothing running",
   "1 sesión en marcha": "1 session running",
   "{n} sesiones en marcha": "{n} sessions running",
-  "el router elige el de cada sesión": "the router picks each session's model",
-  "el router está apagado": "the router is off",
   "Dime qué hay que hacer. Lo parto en trabajos y abro una sesión para cada uno en tu PC; aquí verás cómo va cada una.":
     "Tell me what needs doing. I split it into jobs and open a session for each one on your PC; here you will see how each one is going.",
   "Pensando…": "Thinking…",
@@ -1366,7 +1423,16 @@ const DEL_PC = {
   "Ese proyecto no tiene logo.": "That project has no logo.",
   "Aquí no hay historial.": "There is no history here.",
   "Eso no se le pide a una terminal.": "That is not something to ask a terminal.",
+  "Falta en qué proyecto.": "Pick a project.",
+  "Falta con qué programa.": "Pick a program.",
+  "Falta qué sesión.": "Pick a session.",
   // src/lib/movil.ts
+  "Esa sesión ya no está en tu PC.": "That session is no longer on your PC.",
+  "Esa sesión está abierta fuera de Adeorq: seguirla aquí la colgaría.": "That session is open outside Adeorq: continuing it here would freeze it.",
+  "Esa sesión no se puede seguir desde aquí.": "That session cannot be continued from here.",
+  "Ese programa no está instalado en el PC.": "That program is not installed on the PC.",
+  "Esa carpeta no es uno de tus proyectos.": "That folder is not one of your projects.",
+  "No se pudo abrir la terminal.": "The terminal could not be opened.",
   "Esta terminal no cambia de modelo en marcha.": "This terminal cannot switch models while running.",
   "Esta terminal no cambia de esfuerzo en marcha.": "This terminal cannot change its effort while running.",
   "Esa terminal no se puede compactar desde aquí.": "That terminal cannot be compacted from here.",
@@ -2414,8 +2480,9 @@ function abrirCajon() {
     api("GET", "/api/terminales").catch((err) => ({ fallo: err.message })),
     api("GET", "/api/lista").catch(() => []),
     api("GET", "/api/decisiones").catch(() => null),
-  ]).then(([vt, lista, vd]) => {
-    delCajon = { vt, lista, decisiones: vd?.decisiones || [] };
+    traerSesiones(),
+  ]).then(([vt, lista, vd, sesiones]) => {
+    delCajon = { vt, lista, decisiones: vd?.decisiones || [], sesiones };
     if (vd) ponerEsperan(vivas(delCajon.decisiones).length + preguntanDe(vt).length);
     if (document.body.dataset.cajon !== undefined) pintarCajon();
   });
@@ -2550,19 +2617,68 @@ function apuntarUso(clave) {
   for (const k of llaves.slice(150)) delete u[k];
   try { localStorage.setItem(USADOS, JSON.stringify(u)); } catch (_) {}
 }
-function recientesHtml(terminales, lista, arranque, aqui, raiz) {
+/* Las sesiones del PC que se pueden seguir, para el cajón y la pantalla de
+   sesión nueva: se piden al abrir el cajón y valen un minuto, que leerlas le
+   cuesta al PC abrir todos sus transcripts y no cambian cada cuatro segundos. */
+let sesionesDelPc = { cuando: 0, lista: [] };
+async function traerSesiones() {
+  if (Date.now() - sesionesDelPc.cuando < 60000) return sesionesDelPc.lista;
+  const v = await api("GET", "/api/sesiones").catch(() => null);
+  if (v) sesionesDelPc = { cuando: Date.now(), lista: v.sesiones || [] };
+  return sesionesDelPc.lista;
+}
+// Los proyectos del cajón con todas sus sesiones a la vista (tocaste «Ver las N»).
+const sesionesTodas = new Set();
+const SESIONES_A_LA_VISTA = 5;
+/** Una sesión que se puede seguir: el icono de terminal apagado, y cuándo. */
+const cuandoSesion = (s) => `${esc(s.viva ? tr("abierta fuera") : hace(s.cuando))}${s.programa && s.programa !== "Claude" ? ` · ${esc(s.programa)}` : ""}`;
+const filaSesion = (s) => `<button class="fila fila-s" data-sesion="${esc(s.id)}">${ICONO.terminal}<b>${esc(s.titulo || tr("Sin título"))}</b><span data-lado>${cuandoSesion(s)}</span></button>`;
+/** Seguir una sesión del PC: entra en su terminal, nueva o la que ya estaba.
+    Mientras, y si falla, lo dice en la propia fila (`data-lado`). */
+async function seguirSesion(b) {
+  const lado = b.querySelector("[data-lado]");
+  const antes = lado.textContent;
+  lado.textContent = tr("Abriendo…");
+  try {
+    const v = await api("POST", "/api/seguir", { id: b.dataset.sesion });
+    // Esa ya no es de las de seguir: la próxima lista se vuelve a pedir.
+    sesionesDelPc.cuando = 0;
+    apuntarUso(`t:${v.arranque}:${v.panel}`);
+    ir({ vista: "terminal", panel: Number(v.panel), arranque: v.arranque });
+  } catch (err) {
+    lado.textContent = err.message;
+    lado.dataset.mal = "";
+    setTimeout(() => {
+      if (!lado.isConnected) return;
+      lado.textContent = antes;
+      delete lado.dataset.mal;
+    }, 6000);
+  }
+}
+
+/* El cajón por proyectos, como la barra del PC (Munir, 2026-10-21, «la 2» y
+   «todas las sesiones que hay en el Adeorq de tu PC»): dentro de cada uno lo
+   abierto, «Nueva sesión aquí» y sus sesiones de antes, las cinco últimas y
+   el resto tras «Ver las N». Un proyecto con solo sesiones de antes también
+   sale, plegado. */
+function recientesHtml(terminales, lista, arranque, aqui, raiz, sesiones = []) {
   const u = leerGuardado(USADOS);
   const plegados = leerGuardado(PLEGADOS);
   const cosas = [
     ...terminales.map((t) => ({ t, p: proyectoDe(t.carpeta, raiz), uso: Math.max(u[`t:${arranque}:${t.panel}`] || 0, Number(t.activo) || 0, estaTrabajando(t) ? Date.now() : 0), vivo: estaTrabajando(t) ? 1 : 0, n: t.panel, aqui: aqui("terminal", t.panel) })),
     ...lista.slice(0, 20).map((f) => ({ f, p: proyectoDe(f.carpeta, raiz), uso: Math.max(u[`c:${f.id}`] || 0, (f.cuando || 0) * 1000), vivo: 0, n: 0, aqui: aqui("hilo", f.id) })),
   ];
-  if (!cosas.length) return "";
+  // Las que ya están en una terminal salen como terminal, no dos veces.
+  const enTerminal = new Set(terminales.map((t) => t.sesion).filter(Boolean));
+  const pasadas = sesiones.filter((s) => !s.panel && !enTerminal.has(s.id));
+  if (!cosas.length && !pasadas.length) return "";
   const grupos = new Map();
-  for (const c of cosas) {
-    if (!grupos.has(c.p.clave)) grupos.set(c.p.clave, []);
-    grupos.get(c.p.clave).push(c);
-  }
+  const grupo = (p) => {
+    if (!grupos.has(p.clave)) grupos.set(p.clave, { p, lo: [], ses: [] });
+    return grupos.get(p.clave);
+  };
+  for (const c of cosas) grupo(c.p).lo.push(c);
+  for (const s of pasadas) grupo(proyectoDe(s.carpeta, raiz)).ses.push(s);
   const orden = (a, b) => b.uso - a.uso || b.vivo - a.vivo || a.n - b.n;
   const fila = (c) => c.t
     ? `<button class="fila${c.vivo ? " hilo" : ""}" data-panel="${c.t.panel}" aria-current="${c.aqui}">${ICONO.terminal}<b>${esc(c.t.nombre)}</b><i class="punto" data-tono="${estadoTerminal(c.t)[1]}"></i></button>`
@@ -2574,16 +2690,22 @@ function recientesHtml(terminales, lista, arranque, aqui, raiz) {
     const tono = RECLAMA.find((x) => tonos.includes(x));
     const logo = p.clave === "~sueltas" ? `<span class="p-logo" data-suelta aria-hidden="true">↯</span>`
       : `<span class="p-logo"${p.logo ? ` data-logo="${esc(p.logo)}"` : ""} style="--c:${tonoDe(p.nombre)}" aria-hidden="true">${esc([...p.nombre][0]?.toUpperCase() || "·")}</span>`;
-    return `<button class="proyecto" data-proyecto="${esc(p.clave)}" aria-expanded="${abierto}">${logo}<b>${esc(p.nombre)}</b>${tono ? `<i class="punto" data-tono="${tono}"></i>` : ""}<span class="p-cuenta">${lo.length}</span><svg class="flecha" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`;
+    // La cuenta es de lo abierto: las sesiones de antes no te reclaman nada.
+    return `<button class="proyecto" data-proyecto="${esc(p.clave)}" aria-expanded="${abierto}">${logo}<b>${esc(p.nombre)}</b>${tono ? `<i class="punto" data-tono="${tono}"></i>` : ""}${lo.length ? `<span class="p-cuenta">${lo.length}</span>` : ""}<svg class="flecha" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`;
   };
+  // Un grupo pesa lo que lo último que pasó en él: lo abierto o su última sesión.
+  const pesoDe = (g) => ({ uso: Math.max(g.lo[0]?.uso || 0, (g.ses[0]?.cuando || 0) * 1000), vivo: g.lo[0]?.vivo || 0, n: g.lo[0]?.n || 0 });
   return [...grupos.values()]
-    .map((lo) => lo.sort(orden))
-    .sort((a, b) => orden(a[0], b[0]))
-    .map((lo) => {
-      const p = lo[0].p;
+    .map((g) => (g.lo.sort(orden), g))
+    .sort((a, b) => orden(pesoDe(a), pesoDe(b)))
+    .map(({ p, lo, ses }) => {
       // De fábrica, abierto solo el de lo que tienes delante; luego, lo que elijas.
       const abierto = p.clave in plegados ? !plegados[p.clave] : lo.some((c) => c.aqui);
-      return `<div class="grupo-proy">${cabeza(p, lo, abierto)}<div class="p-filas"${abierto ? "" : " hidden"}>${lo.map(fila).join("")}</div></div>`;
+      const vistas = sesionesTodas.has(p.clave) ? ses : ses.slice(0, SESIONES_A_LA_VISTA);
+      // «Nueva sesión aquí» en lo que es un proyecto: no en «Sueltas» ni en las conversaciones sin carpeta.
+      const nueva = p.clave && p.clave !== "~sueltas" ? `<button class="fila p-nueva" data-nueva="${esc(p.nombre)}">${ICONO.mas}<b>${tr("Nueva sesión aquí")}</b></button>` : "";
+      const mas = ses.length > vistas.length ? `<button class="fila p-mas" data-mas-ses="${esc(p.clave)}"><b>${tr("Ver las {n} sesiones", { n: ses.length })}</b></button>` : "";
+      return `<div class="grupo-proy">${cabeza(p, lo, abierto)}<div class="p-filas"${abierto ? "" : " hidden"}>${lo.map(fila).join("")}${nueva}${vistas.map(filaSesion).join("")}${mas}</div></div>`;
     })
     .join("");
 }
@@ -2602,7 +2724,7 @@ function pintarCajon() {
       <button class="fila" data-ir="programados" aria-current="${aqui("programados")}">${ICONO.reloj}<b>${tr("Programados")}</b></button>
       <button class="fila" data-ir="uso" aria-current="${aqui("uso")}">${ICONO.uso}<b>${tr("Uso")}</b></button>
     </div>
-    <div class="recientes">${recientesHtml(terminales, d.lista, d.vt.arranque, aqui, d.vt.raiz)}</div>
+    <div class="recientes">${recientesHtml(terminales, d.lista, d.vt.arranque, aqui, d.vt.raiz, d.sesiones || [])}<button class="fila p-nueva p-otro" data-nueva="">${ICONO.mas}<b>${tr("Otro proyecto…")}</b></button></div>
     <div class="pc"><i class="punto" ${d.vt.fallo ? "data-mal" : 'data-tono="trabajando"'}></i><span>${d.vt.fallo ? tr("Tu PC no contesta") : tr("Tu PC, conectado")}</span><button class="a-ajustes" data-ir="ajustes" aria-current="${aqui("ajustes")}">${ICONO.ajustes}<b>${tr("Ajustes")}</b></button></div>
     <button class="nuevo-encargo" id="nuevo-encargo">${ICONO.mas}${tr("Nuevo encargo")}</button>`;
   ponerLogos(cajon);
@@ -2617,6 +2739,16 @@ cajon.addEventListener("click", (ev) => {
     const p = leerGuardado(PLEGADOS);
     p[b.dataset.proyecto] = !abierto;
     try { localStorage.setItem(PLEGADOS, JSON.stringify(p)); } catch (_) {}
+    return;
+  }
+  if (b.dataset.nueva !== undefined) return ir({ vista: "nueva", proyecto: b.dataset.nueva });
+  if (b.dataset.sesion) return seguirSesion(b);
+  if (b.dataset.masSes !== undefined) {
+    sesionesTodas.add(b.dataset.masSes);
+    const y = cajon.querySelector(".recientes")?.scrollTop ?? 0;
+    pintarCajon();
+    const r = cajon.querySelector(".recientes");
+    if (r) r.scrollTop = y;
     return;
   }
   if (b.dataset.ir) return ir({ vista: b.dataset.ir });
@@ -2755,6 +2887,7 @@ function pintar() {
   if (e.vista === "uso") return pintarUso();
   if (e.vista === "ajustes") return pintarAjustes();
   if (e.vista === "decision") return pintarDecision();
+  if (e.vista === "nueva") return pintarNueva();
 }
 
 // ─── Emparejar ──────────────────────────────────────────────────────────────
@@ -2962,13 +3095,12 @@ function pintarHiloEntero() {
         <div class="adjuntos" hidden></div>
         <div class="fila-caja">
           <textarea id="texto" rows="1" placeholder="${tr("Dile qué hay que hacer")}" aria-label="${tr("Mensaje al conserje")}"></textarea>
+          <div class="elegir elegir-adeo" id="elegir-adeo" hidden></div>
           <div class="mandos">
           ${CLIP}
         <div class="pastillas">
-          <button class="pastilla" id="mejorar">${ICONO.chispa}<span>${tr("Mejorar")}</span></button>
-          <label class="pastilla" title="${tr("Con qué piensa el conserje: el programa y su escalón. Las sesiones que abre van aparte.")}"><select id="cerebro" aria-label="${tr("Con qué piensa el conserje")}"></select></label>
-          <label class="pastilla" title="${tr("Con qué programa se abren las sesiones que reparte Adeo")}"><select id="programa" aria-label="${tr("Con qué programa se abren las sesiones que reparte Adeo")}"></select></label>
-          <label class="pastilla" id="fijo-caja" hidden title="${tr("El modelo de las sesiones que abre. El mismo que en el PC.")}"><select id="fijo" aria-label="${tr("Modelo de las sesiones")}"></select></label>
+          <button class="pastilla" id="mejorar"></button>
+          <button class="pastilla" type="button" id="adeo" aria-expanded="false" aria-controls="elegir-adeo" title="${tr("Con qué piensa Adeo y con qué programa abre las sesiones que reparte")}"></button>
         </div>
           <button class="enviar" id="enviar" aria-label="${tr("Enviar")}">${ICONO.subir}</button>
           </div>
@@ -2986,9 +3118,7 @@ function pintarHiloEntero() {
   });
   document.getElementById("enviar").addEventListener("click", () => (e.enCurso?.pensando ? parar() : enviar()));
   document.getElementById("mejorar").addEventListener("click", mejorar);
-  document.getElementById("cerebro").addEventListener("change", (ev) => elegirCerebro(ev.target.value));
-  document.getElementById("programa").addEventListener("change", (ev) => elegirPrograma(ev.target.value));
-  document.getElementById("fijo").addEventListener("change", (ev) => elegirModelo(ev.target.value));
+  montarElegirAdeo();
   e.crecer = crecer;
   e.guardarBorrador = borrador(`c:${e.id}`, texto);
   crecer();
@@ -3027,7 +3157,7 @@ function tarjeta(w, ent) {
   const estado = (e.vivo?.estados || {})[claveDe(w)] || "cerrada";
   const porque = w.eligio === "router" ? `<b>${tr("Lo eligió el router.")}</b> ${esc(w.porque)}` : `<b>${tr("Elegido por ti: el router estaba apagado.")}</b>`;
   const encargo = w.encargo.length > 180 ? `${w.encargo.slice(0, 180)}…` : w.encargo;
-  return `<button class="tarjeta${ent.de(`w${claveDe(w)}`)}" data-estado="${estado}" data-clave="${esc(claveDe(w))}">
+  return `<button class="tarjeta ses${ent.de(`w${claveDe(w)}`)}" data-estado="${estado}" data-clave="${esc(claveDe(w))}">
     <span class="tarjeta-cab"><b>${esc(hoja(w.carpeta))} · ${esc(nombreDe(w))}</b><span class="estado"><i></i>${PALABRA[estado] || estado}</span></span>
     <span class="para">${esc(encargo)}</span>
     <span class="porque">${porque}</span>
@@ -3041,7 +3171,9 @@ function pintarHilo() {
   const titulo = document.getElementById("titulo");
   if (conv) {
     const vivas = conv.trabajos.filter((w) => !w.soltado && (e.vivo?.estados || {})[claveDe(w)] && (e.vivo.estados[claveDe(w)] !== "cerrada")).length;
-    titulo.innerHTML = `${esc(conv.titulo || tr("Conserje"))}<small>${vivas === 0 ? tr("nada en marcha") : vivas === 1 ? tr("1 sesión en marcha") : tr("{n} sesiones en marcha", { n: vivas })} · ${conv.router ? tr("el router elige el de cada sesión") : tr("el router está apagado")}</small>`;
+    // Solo cuántas van: el router ya lo dice la pastilla de abajo, y con las
+    // dos cosas el subtítulo se cortaba a 390 px (Munir, 2026-10-21).
+    titulo.innerHTML = `${esc(conv.titulo || tr("Conserje"))}<small>${vivas === 0 ? tr("nada en marcha") : vivas === 1 ? tr("1 sesión en marcha") : tr("{n} sesiones en marcha", { n: vivas })}</small>`;
   }
   const abajo = hilo.scrollHeight - hilo.scrollTop - hilo.clientHeight < 60;
   let html = "";
@@ -3096,69 +3228,103 @@ function pintarCaja() {
   enviarB.setAttribute("aria-label", pensando ? tr("Parar") : tr("Enviar"));
   enviarB.disabled = !pensando && ((!texto.value.trim() && !e.adj?.rutas().length) || !!e.adj?.subiendo());
   const mejorarB = document.getElementById("mejorar");
-  mejorarB.innerHTML = e.antes != null ? `${ICONO.deshacer}<span>${tr("Deshacer")}</span>` : `${ICONO.chispa}<span>${e.mejorando ? tr("Mejorando…") : tr("Mejorar")}</span>`;
+  // Mejorar va con su icono solo, para que la pastilla de Adeo quepa entera;
+  // Deshacer y «Mejorando…» sí dicen su palabra, que es cuando hace falta leerla.
+  mejorarB.innerHTML = e.antes != null ? `${ICONO.deshacer}<span>${tr("Deshacer")}</span>` : e.mejorando ? `${ICONO.chispa}<span>${tr("Mejorando…")}</span>` : ICONO.chispa;
+  mejorarB.setAttribute("aria-label", e.antes != null ? tr("Deshacer") : tr("Mejorar"));
+  mejorarB.title = e.antes != null ? "" : tr("Mejorar: ordena lo que dijiste sin cambiar lo que pides");
   mejorarB.disabled = !!e.mejorando || (e.antes == null && !texto.value.trim());
   pintarPastillas();
 }
 
-// ─── Las pastillas de Adeo, las mismas tres que en el PC (2026-10-21) ────────
-// «Conserje: programa · escalón» (con qué piensa), «Sesiones: Router» o un
-// programa (con qué se abren las sesiones que reparte) y, con un programa
-// forzado que admita modelo, «Modelo: lo elige el router» o uno fijo. Las
-// listas las da el PC (`/api/programas`): sin ellas, solo Claude y el router.
+// ─── La pastilla de Adeo (2026-10-21) ────────────────────────────────────────
+// Lo mismo que las pastillas del PC en una sola, «Sonnet · Router»: con qué
+// piensa Adeo (programa y escalón) y con qué se abren las sesiones que reparte
+// (el router o un programa, y con uno que admita modelo, el router o uno fijo).
+// Eran tres `select` en una tira que se deslizaba: «Conserje: Claude So…» se
+// cortaba contra el botón de mandar y «Sesiones» quedaba escondida (Munir eligió
+// «la 1»). Al tocarla se abre dentro de la caja, como el modelo de una terminal,
+// y se queda abierta hasta tocarla otra vez o escribir: hay cosas de dos toques.
+// Las listas las da el PC (`/api/programas`): sin ellas, solo Claude y el router.
 
 const ESCALONES = ["haiku", "sonnet", "opus"];
 const escalonDe = (cli, m) =>
-  cli === "claude" ? `Claude ${m[0].toUpperCase()}${m.slice(1)}` : { haiku: tr("Rápido"), sonnet: tr("Normal"), opus: tr("A fondo") }[m];
+  cli === "claude" ? `${m[0].toUpperCase()}${m.slice(1)}` : { haiku: tr("Rápido"), sonnet: tr("Normal"), opus: tr("A fondo") }[m];
 const nombreDePrograma = (cli) =>
   (e.listas?.programas || []).find((p) => p.id === cli)?.nombre || `${cli[0].toUpperCase()}${cli.slice(1)}`;
 /** Con qué se abren las sesiones: vacío es el router; con el router apagado y
     sin programa elegido, Claude con su modelo fijo (lo de antes), como en el PC. */
 const programaActual = () => e.conv?.programa || ((e.conv ? e.conv.router : true) ? "" : "claude");
 
-/** Rellena un `select` solo si sus opciones cambiaron, y no mientras lo tocas. */
-function opciones(sel, lista, valor) {
-  const html = lista.map(([v, texto]) => `<option value="${esc(v)}">${esc(texto)}</option>`).join("");
-  if (sel.dataset.html !== html) {
-    sel.innerHTML = html;
-    sel.dataset.html = html;
-  }
-  if (document.activeElement !== sel) sel.value = valor;
-}
-
-function pintarPastillas() {
-  const on = e.conv ? e.conv.router : true;
+/** Lo puesto ahora, sacado de la conversación, para la pastilla y la barra. */
+function adeoAhora() {
   const pensadores = (e.listas?.pensadores || [{ id: "claude", instalado: true }]).filter((p) => p.instalado);
   const pensador = e.conv?.pensador || "claude";
   const escalon = ESCALONES.includes(e.conv?.cerebro) ? e.conv.cerebro : "sonnet";
-  opciones(
-    document.getElementById("cerebro"),
-    pensadores.flatMap((p) =>
-      ESCALONES.map((m) => [
-        `${p.id}:${m}`,
-        p.id === "claude" ? tr("Conserje: {m}", { m: escalonDe("claude", m) }) : tr("Conserje: {p} · {e}", { p: nombreDePrograma(p.id), e: escalonDe(p.id, m) }),
-      ]),
-    ),
-    `${pensador}:${escalon}`,
-  );
   const programa = programaActual();
   const programas = (e.listas?.programas || []).map((p) => p.id);
   if (programa && !programas.includes(programa)) programas.push(programa);
-  opciones(
-    document.getElementById("programa"),
-    [["", tr("Sesiones: Router")], ...programas.map((cli) => [cli, tr("Sesiones: {m}", { m: nombreDePrograma(cli) })])],
-    programa,
-  );
   // El modelo de las sesiones, solo con un programa forzado que lo admita:
   // con el router, el modelo es suyo y no hay nada que elegir.
   const conModelo = (e.listas?.programas || []).find((p) => p.id === programa)?.modelo ?? programa === "claude";
-  document.getElementById("fijo-caja").hidden = !programa || !conModelo;
-  const fijado = ESCALONES.includes(e.conv?.fijo) ? e.conv.fijo : "sonnet";
-  opciones(
-    document.getElementById("fijo"),
-    [["router", tr("Modelo: lo elige el router")], ...ESCALONES.map((m) => [m, tr("Modelo: {m}", { m: escalonDe(programa || "claude", m) })])],
-    on ? "router" : fijado,
-  );
+  const fijo = (e.conv ? e.conv.router : true) ? "router" : ESCALONES.includes(e.conv?.fijo) ? e.conv.fijo : "sonnet";
+  return { pensadores, pensador, escalon, programa, programas, conModelo: !!programa && conModelo, fijo };
+}
+
+function pintarPastillas() {
+  const boton = document.getElementById("adeo");
+  const barra = document.getElementById("elegir-adeo");
+  if (!boton || !barra) return;
+  const a = adeoAhora();
+  const piensa = a.pensador === "claude" ? escalonDe("claude", a.escalon) : `${nombreDePrograma(a.pensador)} · ${escalonDe(a.pensador, a.escalon)}`;
+  const abre = !a.programa ? tr("Router") : a.conModelo && a.fijo !== "router" ? `${nombreDePrograma(a.programa)} ${escalonDe(a.programa, a.fijo)}` : nombreDePrograma(a.programa);
+  const abierta = !barra.hidden;
+  const etiqueta = `${esc(piensa)} · ${esc(abre)} <svg class="flecha-adeo" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>`;
+  if (boton.dataset.html !== etiqueta) { boton.innerHTML = etiqueta; boton.dataset.html = etiqueta; }
+  boton.setAttribute("aria-expanded", String(abierta));
+  boton.setAttribute("aria-label", tr("Adeo piensa con {p} y abre las sesiones con {s}", { p: piensa, s: abre }));
+  const seg = (que, nombre, ops, puesto) => `<div class="seg" role="radiogroup" data-que="${que}" aria-label="${esc(nombre)}">${ops.map(([v, texto]) => `<button type="button" role="radio" data-valor="${esc(v)}" aria-checked="${v === puesto}">${esc(texto)}</button>`).join("")}</div>`;
+  const html = [
+    `<small>${tr("Adeo piensa con")}</small>`,
+    // Con un solo programa para pensar, la fila de programas no dice nada.
+    a.pensadores.length > 1 ? seg("pensador", tr("Con qué programa piensa Adeo"), a.pensadores.map((p) => [p.id, nombreDePrograma(p.id)]), a.pensador) : "",
+    seg("escalon", tr("Cuánto piensa Adeo"), ESCALONES.map((m) => [m, escalonDe(a.pensador, m)]), a.escalon),
+    `<small>${tr("Abre las sesiones con")}</small>`,
+    seg("programa", tr("Con qué programa abre las sesiones"), [["", tr("Router")], ...a.programas.map((cli) => [cli, nombreDePrograma(cli)])], a.programa),
+    a.conModelo ? `<small>${tr("Con qué modelo")}</small>${seg("fijo", tr("Con qué modelo se abren"), [["router", tr("Router")], ...ESCALONES.map((m) => [m, escalonDe(a.programa, m)])], a.fijo)}` : "",
+  ].join("");
+  if (barra.dataset.html !== html) { barra.innerHTML = html; barra.dataset.html = html; }
+}
+
+function montarElegirAdeo() {
+  const boton = document.getElementById("adeo");
+  const barra = document.getElementById("elegir-adeo");
+  // Como los botones de tecla: un toque no le quita el foco a nada, que la
+  // caja cambia de alto al abrir y el dedo caería en otra cosa.
+  boton.addEventListener("mousedown", (ev) => ev.preventDefault());
+  barra.addEventListener("mousedown", (ev) => ev.preventDefault());
+  boton.addEventListener("click", () => {
+    barra.hidden = !barra.hidden;
+    pintarPastillas();
+  });
+  document.getElementById("texto").addEventListener("focus", () => {
+    if (barra.hidden) return;
+    barra.hidden = true;
+    pintarPastillas();
+  });
+  barra.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-valor]");
+    if (!b || b.getAttribute("aria-checked") === "true") return;
+    const que = b.closest(".seg").dataset.que;
+    // Se ve elegido en el acto; lo de verdad llega con la vuelta del PC.
+    b.parentElement.querySelectorAll("button").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
+    const a = adeoAhora();
+    const v = b.dataset.valor;
+    if (que === "pensador") elegirCerebro(`${v}:${a.escalon}`);
+    if (que === "escalon") elegirCerebro(`${a.pensador}:${v}`);
+    if (que === "programa") elegirPrograma(v);
+    if (que === "fijo") elegirModelo(v);
+  });
 }
 
 /** Las listas para elegir, una vez por carga de la página: qué programas hay
@@ -3348,6 +3514,126 @@ function cuandoProgramado(c) {
   return tr("{d} a las {h}", { d: dias.map((d) => tr(LETRA_DIA[d])).join(" "), h: c.hora });
 }
 /** Una pantalla del cajón: su cabecera y un cuerpo que se rellena y se refresca. */
+// ─── Una sesión nueva en el PC ──────────────────────────────────────────────
+/* Desde el móvil se abre una terminal en uno de tus proyectos (Munir,
+   2026-10-21: «que desde el móvil puedas abrir sesiones en el ordenador»).
+   El PC la abre como Adeo abre las suyas, sin moverte la vista, y el móvil
+   entra en ella. Lo que se lista son tus proyectos de verdad, el que trabajó
+   hace menos primero; el programa elegido se recuerda para la próxima. */
+const PROGRAMA_NUEVA = "adeorq-movil-programa";
+const PROYECTOS_A_LA_VISTA = 5;
+function pintarNueva() {
+  app.innerHTML = `
+    <div class="vista">
+      <header class="barra">${botonCajon()}<h1>${tr("Nueva sesión")}<small>${tr("se abre en tu PC")}</small></h1></header>
+      <main class="cuerpo nueva" id="nueva"><p class="vacio">${tr("cargando…")}</p></main>
+    </div>`;
+  montarBotonCajon();
+  cargarNueva().catch((err) => {
+    const aqui = document.getElementById("nueva");
+    if (aqui && e.vista === "nueva") aqui.innerHTML = `<p class="nota">${esc(err.message)}</p>`;
+  });
+}
+async function cargarNueva() {
+  const [vp, vg, sesiones] = await Promise.all([api("GET", "/api/proyectos"), api("GET", "/api/programas"), traerSesiones()]);
+  const aqui = document.getElementById("nueva");
+  if (!aqui || e.vista !== "nueva") return;
+  const proyectos = vp.proyectos || [];
+  const programas = vg.programas || [];
+  if (!proyectos.length) { aqui.innerHTML = `<p class="vacio">${tr("Tu PC no tiene proyectos todavía: se añaden en la barra de Adeorq.")}</p>`; return; }
+  if (!programas.length) { aqui.innerHTML = `<p class="vacio">${tr("En tu PC no hay ningún programa de agente instalado.")}</p>`; return; }
+  // Desde «Nueva sesión aquí» llega el nombre del proyecto del cajón.
+  const pedido = proyectos.find((p) => p.carpeta === e.carpeta) || proyectos.find((p) => p.nombre === e.proyecto);
+  let carpeta = (pedido || proyectos[0]).carpeta;
+  let guardado = "";
+  try { guardado = localStorage.getItem(PROGRAMA_NUEVA) || ""; } catch (_) {}
+  let cli = programas.some((x) => x.id === guardado) ? guardado : programas[0].id;
+  // El elegido siempre a la vista: si está más abajo de los primeros, salen todos.
+  let todos = proyectos.findIndex((p) => p.carpeta === carpeta) >= PROYECTOS_A_LA_VISTA;
+  aqui.innerHTML = `
+    <h2 class="seccion"><span>${tr("Proyecto")}</span></h2>
+    <div class="grupo" id="n-proyectos" role="radiogroup" aria-label="${tr("Proyecto")}"></div>
+    <h2 class="seccion"><span>${tr("Programa")}</span></h2>
+    <div class="elegir"><div class="seg" id="n-programa" role="radiogroup" aria-label="${tr("Programa")}">${programas.map((x) => `<button type="button" role="radio" data-cli="${esc(x.id)}" aria-checked="${x.id === cli}">${esc(x.nombre)}</button>`).join("")}</div></div>
+    <h2 class="seccion"><span>${tr("Primer mensaje (si quieres)")}</span></h2>
+    <textarea class="n-texto" id="n-texto" rows="3" placeholder="${tr("Qué tiene que hacer. Vacío: se abre esperando.")}" aria-label="${tr("Primer mensaje")}"></textarea>
+    <p class="nota" id="n-fallo" hidden></p>
+    <button class="boton n-abrir" id="n-abrir">${tr("Abrir en el PC")}</button>
+    <div id="n-seguir"></div>`;
+  const lista = document.getElementById("n-proyectos");
+  // Y debajo, las sesiones de antes de ese proyecto, por si lo que quieres es
+  // seguir una (Munir eligió «la 2»): las cinco últimas y el resto tras «Ver las N».
+  const seguirEl = document.getElementById("n-seguir");
+  const comparable = (c) => String(c || "").replace(/\//g, "\\").replace(/\\+$/, "").toLowerCase();
+  let sesionesTodasAqui = false;
+  const pintarSeguir = () => {
+    const p = proyectos.find((x) => x.carpeta === carpeta);
+    const raiz = comparable(carpeta);
+    const ses = sesiones.filter((s) => !s.panel && (comparable(s.carpeta) === raiz || comparable(s.carpeta).startsWith(`${raiz}\\`)));
+    const vistas = sesionesTodasAqui ? ses : ses.slice(0, SESIONES_A_LA_VISTA);
+    seguirEl.innerHTML = ses.length
+      ? `<h2 class="seccion"><span>${tr("O sigue una de {p}", { p: esc(p?.nombre || "") })}</span></h2><div class="grupo">${vistas.map((s) => `<button type="button" class="fila fila-term" data-sesion="${esc(s.id)}">
+          <span class="avatar consola">${ICONO.terminal}</span><span class="quien"><b>${esc(s.titulo || tr("Sin título"))}</b><small data-lado>${cuandoSesion(s)}</small></span>
+        </button>`).join("")}${ses.length > vistas.length ? `<button type="button" class="fila n-mas" data-mas-ses><b>${tr("Ver las {n} sesiones", { n: ses.length })}</b></button>` : ""}</div>`
+      : "";
+  };
+  seguirEl.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button");
+    if (!b) return;
+    if (b.dataset.masSes !== undefined) { sesionesTodasAqui = true; pintarSeguir(); return; }
+    if (b.dataset.sesion) seguirSesion(b);
+  });
+  const pintarProyectos = () => {
+    const vistos = todos ? proyectos : proyectos.slice(0, PROYECTOS_A_LA_VISTA);
+    lista.innerHTML = vistos.map((p) => `<button type="button" class="fila fila-term" role="radio" data-carpeta="${esc(p.carpeta)}" aria-checked="${p.carpeta === carpeta}">
+        <span class="p-logo" data-logo="${esc(p.nombre)}" style="--c:${tonoDe(p.nombre)}" aria-hidden="true">${esc([...p.nombre][0]?.toUpperCase() || "·")}</span>
+        <span class="quien"><b>${esc(p.nombre)}</b><small>${p.cuando ? esc(hace(p.cuando)) : tr("sin sesiones todavía")}</small></span>
+      </button>`).join("")
+      + (todos ? "" : `<button type="button" class="fila n-mas" id="n-mas"><b>${tr("Ver los {n} proyectos", { n: proyectos.length })}</b></button>`);
+    ponerLogos(lista);
+  };
+  pintarProyectos();
+  pintarSeguir();
+  lista.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button");
+    if (!b) return;
+    if (b.id === "n-mas") { todos = true; pintarProyectos(); return; }
+    carpeta = b.dataset.carpeta;
+    lista.querySelectorAll("[data-carpeta]").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
+    sesionesTodasAqui = false;
+    pintarSeguir();
+  });
+  document.getElementById("n-programa").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-cli]");
+    if (!b) return;
+    cli = b.dataset.cli;
+    document.querySelectorAll("#n-programa button").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
+    try { localStorage.setItem(PROGRAMA_NUEVA, cli); } catch (_) {}
+  });
+  const texto = document.getElementById("n-texto");
+  const guardarBorrador = borrador("n:nueva", texto);
+  const boton = document.getElementById("n-abrir");
+  const fallo = document.getElementById("n-fallo");
+  boton.addEventListener("click", async () => {
+    boton.disabled = true;
+    boton.textContent = tr("Abriendo…");
+    fallo.hidden = true;
+    try {
+      const v = await api("POST", "/api/abrir", { carpeta, cli, texto: texto.value.trim() });
+      texto.value = "";
+      guardarBorrador();
+      apuntarUso(`t:${v.arranque}:${v.panel}`);
+      ir({ vista: "terminal", panel: Number(v.panel), arranque: v.arranque, volver: "lista" });
+    } catch (err) {
+      if (e.vista !== "nueva") return;
+      fallo.textContent = err.message;
+      fallo.hidden = false;
+      boton.disabled = false;
+      boton.textContent = tr("Abrir en el PC");
+    }
+  });
+}
+
 function pantallaDelCajon(id, titulo, sub, cargar, cada) {
   app.innerHTML = `
     <div class="vista">

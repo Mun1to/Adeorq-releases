@@ -12,6 +12,18 @@
 //            PC (`enviarAlConserje`): router, reja, y abrir sin sacarte de nada.
 //            Se contesta en el acto y el móvil va preguntando cómo va.
 //
+// Abrir una sesión en el PC desde el móvil (Munir, 2026-10-21: «que desde el
+// móvil puedas abrir sesiones en el ordenador»):
+//
+//   proyectos  tus proyectos, los que trabajaron hace menos primero.
+//   abrir      una terminal nueva en uno de ellos, con el mismo `abrir` que usa
+//              Adeo (sin moverte la vista del PC). Solo en una carpeta que sea
+//              uno de tus proyectos y con un programa instalado: lo que pide el
+//              móvil no puede ser una ruta cualquiera.
+//   sesiones   todas las sesiones que lista la barra del PC y se pueden seguir.
+//   seguir     una de ellas en una terminal, como tocarla en la barra: si ya
+//              está abierta aquí se entra en esa, y si lo está fuera, no.
+//
 // Y las terminales (decisión E3 de Munir, 2026-10-07: texto libre desde el
 // móvil a cualquier terminal):
 //
@@ -24,7 +36,9 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { sendPty, writePty, type PaneStatus } from "./pty";
+import { confiarCarpeta, listProjects, scanSessions, sendPty, writePty, type PaneStatus, type SessionInfo } from "./pty";
+import { shellCommand } from "./comandos";
+import { claudeCommand, withEffort } from "./lanzar";
 import { historiaConColor, historiaDe } from "./terminales";
 import {
   arranqueDeAhora,
@@ -45,7 +59,7 @@ import { cerebroPorDefecto, ULTIMOS } from "./models";
 import { fotoRapida } from "./mundo";
 import { ESFUERZOS, type CuentaViva } from "./router";
 import { etiquetaCorta, leerRenovacion } from "./uso";
-import { lineasEnVivo, providerOf, PROVIDERS, sabe } from "./providers";
+import { lineaDeRetomar, lineasEnVivo, providerOf, PROVIDERS, sabe } from "./providers";
 
 export interface Dispositivo {
   /** El principio de su huella: sirve para quitarlo, no para entrar. */
@@ -114,6 +128,8 @@ export interface PedidoMovil {
   modelo?: unknown;
   esfuerzo?: unknown;
   que?: unknown;
+  carpeta?: unknown;
+  cli?: unknown;
 }
 
 /** Las teclas sueltas que el móvil puede mandar, y sus bytes. Como
@@ -242,6 +258,95 @@ async function atenderTerminal(p: PedidoMovil, exec: ConserjeExec): Promise<Reco
   return { ok: true };
 }
 
+/** Una carpeta comparable: sin mayúsculas, con `\` y sin la barra del final. */
+const carpetaComparable = (c: string) => c.replace(/\//g, "\\").replace(/\\+$/, "").toLowerCase();
+
+/** Tus proyectos para el móvil, el que trabajó hace menos primero: la última
+    sesión que se escribió en él o debajo (`mtime`, en segundos), y «ahora» si
+    tiene una terminal trabajando. Los que no tienen nada van detrás, por nombre. */
+async function proyectosParaElMovil(exec: ConserjeExec): Promise<Record<string, unknown>> {
+  const [proyectos, sesiones] = await Promise.all([listProjects(), scanSessions().catch(() => [])]);
+  const ahora = Math.floor(Date.now() / 1000);
+  const dentro = (cwd: string, raiz: string) => {
+    const c = carpetaComparable(cwd);
+    return c === raiz || c.startsWith(`${raiz}\\`);
+  };
+  const lista = proyectos.map((p) => {
+    const raiz = carpetaComparable(p.path);
+    let cuando = 0;
+    for (const s of sesiones) if (s.mtime && s.mtime > cuando && dentro(s.cwd, raiz)) cuando = s.mtime;
+    if (exec.panes().some((s) => s.state === "a_medias" && dentro(s.cwd, raiz))) cuando = ahora;
+    return { nombre: p.name, carpeta: p.path, cuando: cuando || null };
+  });
+  lista.sort((a, b) => (b.cuando ?? 0) - (a.cuando ?? 0) || a.nombre.localeCompare(b.nombre));
+  return { proyectos: lista };
+}
+
+/** Abre una terminal nueva en uno de tus proyectos, pedida desde el móvil. */
+async function abrirDesdeElMovil(p: PedidoMovil, exec: ConserjeExec): Promise<Record<string, unknown>> {
+  const cli = typeof p.cli === "string" ? p.cli : "";
+  if (!programasDeSesion(exec.cuentas()).includes(cli)) return { error: "Ese programa no está instalado en el PC." };
+  const pedida = carpetaComparable(typeof p.carpeta === "string" ? p.carpeta : "");
+  const proyecto = pedida ? (await listProjects()).find((x) => carpetaComparable(x.path) === pedida) : undefined;
+  if (!proyecto) return { error: "Esa carpeta no es uno de tus proyectos." };
+  const encargo = typeof p.texto === "string" ? p.texto.trim() : "";
+  // Como el MCP: una carpeta donde Claude no ha entrado nunca nace parada en
+  // «¿confías en esta carpeta?», y desde el móvil eso es una vuelta más. La
+  // elegiste tú entre tus proyectos, así que se marca antes de abrir.
+  if (sabe(cli, "confianza")) await confiarCarpeta(proyecto.path).catch(() => false);
+  const panel = exec.abrir({ cli }, proyecto.path, proyecto.name, encargo);
+  return panel === undefined ? { error: "No se pudo abrir la terminal." } : { panel };
+}
+
+/** La línea que trae de vuelta una sesión, como la barra del PC: Claude con
+    su `--resume` y su esfuerzo, el resto con la suya (`lineaDeRetomar`). Nada
+    si ese programa no se puede retomar. */
+function lineaParaSeguir(s: SessionInfo): string[] | undefined {
+  const fuente = s.fuente ?? "claude";
+  if (fuente === "claude") return claudeCommand(withEffort(`--resume ${s.id}`));
+  const linea = lineaDeRetomar(fuente, s.id);
+  return linea ? shellCommand(linea) : undefined;
+}
+
+/** Todas las sesiones del PC, las que se pueden seguir: las mismas que lista
+    su barra. Con su panel si ya están abiertas aquí, y `viva` si lo están
+    fuera (la app de escritorio, otra terminal), que abrirlas ahí las cuelga. */
+async function sesionesParaElMovil(exec: ConserjeExec): Promise<Record<string, unknown>> {
+  const sesiones = await scanSessions();
+  const panes = exec.panes();
+  return {
+    sesiones: sesiones
+      .filter((s) => lineaParaSeguir(s))
+      .sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0))
+      .map((s) => ({
+        id: s.id,
+        titulo: s.title,
+        cuando: s.mtime ?? null,
+        carpeta: s.cwd,
+        programa: providerOf(s.fuente ?? "claude").label,
+        viva: s.live,
+        panel: panes.find((p) => p.sessionId === s.id)?.id ?? null,
+      })),
+  };
+}
+
+/** Sigue una sesión del PC desde el móvil, como tocarla en su barra. */
+async function seguirDesdeElMovil(p: PedidoMovil, exec: ConserjeExec): Promise<Record<string, unknown>> {
+  const id = typeof p.id === "string" ? p.id : "";
+  const s = id ? (await scanSessions()).find((x) => x.id === id) : undefined;
+  if (!s) return { error: "Esa sesión ya no está en tu PC." };
+  // Ya abierta aquí: se entra en la que hay. Abrirla dos veces la cuelga.
+  const abierta = exec.panes().find((x) => x.sessionId === s.id);
+  if (abierta) return { panel: abierta.id };
+  if (s.live) return { error: "Esa sesión está abierta fuera de Adeorq: seguirla aquí la colgaría." };
+  const command = lineaParaSeguir(s);
+  if (!command || !exec.abrirComando) return { error: "Esa sesión no se puede seguir desde aquí." };
+  // En SU cuenta: un `--resume` desde otra no encuentra la conversación.
+  const cuenta = s.cuenta ? exec.cuentas().find((a) => a.dir === s.cuenta) : undefined;
+  const panel = exec.abrirComando(s.title, s.resumeCwd || s.cwd, command, cuenta);
+  return panel === undefined ? { error: "No se pudo abrir la terminal." } : { panel };
+}
+
 /** Cómo va lo que se mandó desde el móvil, por conversación. */
 export interface EnCurso {
   pensando: boolean;
@@ -305,6 +410,10 @@ export async function atenderPedido(p: PedidoMovil, exec: ConserjeExec): Promise
       })),
     };
   }
+  if (p.clase === "proyectos") return proyectosParaElMovil(exec);
+  if (p.clase === "abrir") return abrirDesdeElMovil(p, exec);
+  if (p.clase === "sesiones") return sesionesParaElMovil(exec);
+  if (p.clase === "seguir") return seguirDesdeElMovil(p, exec);
   const id = typeof p.id === "string" ? p.id : "";
   if (!id) return { error: "Falta la conversación." };
 

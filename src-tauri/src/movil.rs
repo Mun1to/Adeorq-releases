@@ -1137,6 +1137,52 @@ pub fn atender(
             casa.parar(&id);
             Respuesta::json(200, json!({ "ok": true }))
         }
+        // Abrir una sesión en el PC desde el móvil (Munir, 2026-10-21). Tus
+        // proyectos los sabe la ventana (la carpeta madre y los que añadiste a
+        // mano) y el panel lo monta ella; aquí solo se mira la forma. Que la
+        // carpeta sea uno de tus proyectos lo comprueba ella con la lista de
+        // verdad: desde el móvil no se abre una terminal en una ruta cualquiera.
+        ("GET", "/api/proyectos") => match casa.ventana("proyectos", json!({})) {
+            Ok(v) => Respuesta::json(200, v),
+            Err(e) => Respuesta::error(502, &e),
+        },
+        ("POST", "/api/abrir") => {
+            let carpeta = cuerpo["carpeta"].as_str().unwrap_or("").trim();
+            if carpeta.is_empty() || carpeta.chars().count() > 1024 {
+                return Respuesta::error(400, "Falta en qué proyecto.");
+            }
+            let cli = cuerpo["cli"].as_str().unwrap_or("");
+            if cli.is_empty() || cli.len() > 32 || !cli.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-') {
+                return Respuesta::error(400, "Falta con qué programa.");
+            }
+            let texto = cuerpo["texto"].as_str().unwrap_or("").trim();
+            if texto.chars().count() > TOPE_TEXTO {
+                return Respuesta::error(413, "Es demasiado largo para mandarlo de una vez.");
+            }
+            match casa.ventana("abrir", json!({ "carpeta": carpeta, "cli": cli, "texto": texto })) {
+                // Con el arranque: es lo que el móvil necesita para entrar en ella.
+                Ok(v) => Respuesta::json(200, json!({ "panel": v["panel"], "arranque": casa.arranque() })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
+        // Y seguir una de las que ya hay, todas las que lista la barra del PC
+        // (Munir, el mismo día: «y también todas las sesiones que hay en el
+        // Adeorq de tu PC»). Cuál se puede seguir y con qué línea lo decide la
+        // ventana, que es quien las lee; aquí, que el id sea un id.
+        ("GET", "/api/sesiones") => match casa.ventana("sesiones", json!({})) {
+            Ok(v) => Respuesta::json(200, v),
+            Err(e) => Respuesta::error(502, &e),
+        },
+        ("POST", "/api/seguir") => {
+            let id = cuerpo["id"].as_str().unwrap_or("");
+            if id.is_empty() || id.len() > 128 || !id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') {
+                return Respuesta::error(400, "Falta qué sesión.");
+            }
+            match casa.ventana("seguir", json!({ "id": id })) {
+                Ok(v) => Respuesta::json(200, json!({ "panel": v["panel"], "arranque": casa.arranque() })),
+                Err(e) => Respuesta::error(502, &e),
+            }
+        }
         // Las terminales, desde el móvil (decisión E3 de Munir, 2026-10-07):
         // la lista, la pantalla de una y escribirle texto o una tecla. Lo
         // contesta la ventana, que es quien tiene los paneles y el búfer de
@@ -1442,7 +1488,7 @@ pub fn atender(
             | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
             | "/api/decision/responder" | "/api/decision/descartar" | "/api/avisos" | "/api/olvidarme"
             | "/api/apariencia" | "/api/fondo" | "/api/terminal/modelo" | "/api/terminal/traspaso" | "/api/historia"
-            | "/api/logo") => Respuesta::error(405, "Así no."),
+            | "/api/logo" | "/api/proyectos" | "/api/abrir" | "/api/sesiones" | "/api/seguir") => Respuesta::error(405, "Así no."),
         _ => Respuesta::error(404, "Aquí no hay nada."),
     }
 }
@@ -2315,8 +2361,20 @@ mod tests {
             if id == "abc" { Ok(json!({ "id": "abc", "turnos": [] })) } else { Err("no existe".into()) }
         }
         fn ventana(&self, clase: &str, datos: Value) -> Result<Value, String> {
-            if clase == "enviar" || clase == "escribir" {
-                self.enviados.borrow_mut().push(datos);
+            if clase == "enviar" || clase == "escribir" || clase == "abrir" || clase == "seguir" {
+                self.enviados.borrow_mut().push(datos.clone());
+            }
+            if clase == "seguir" {
+                return if datos["id"] == "s-1" { Ok(json!({ "panel": 4 })) } else { Err("Esa sesión ya no está en tu PC.".into()) };
+            }
+            if clase == "sesiones" {
+                return Ok(json!({ "sesiones": [{ "id": "s-1", "titulo": "Arreglar el lienzo", "carpeta": "C:\\p\\uno", "panel": null }] }));
+            }
+            if clase == "abrir" {
+                return if datos["carpeta"] == "C:\\p\\uno" { Ok(json!({ "panel": 9 })) } else { Err("Esa carpeta no es uno de tus proyectos.".into()) };
+            }
+            if clase == "proyectos" {
+                return Ok(json!({ "proyectos": [{ "nombre": "uno", "carpeta": "C:\\p\\uno", "cuando": 1_760_000_000 }] }));
             }
             if clase == "terminales" {
                 return Ok(json!({ "terminales": [
@@ -2967,6 +3025,76 @@ mod tests {
         assert_eq!(estado("GET", "/api/pensador", Some(&clave), ""), 405);
         assert_eq!(estado("POST", "/api/programa", None, r#"{"id":"abc","programa":"codex"}"#), 401);
         assert_eq!(estado("GET", "/api/programas", None, ""), 401);
+    }
+
+    #[test]
+    fn desde_el_movil_se_abre_una_sesion_en_uno_de_tus_proyectos() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 0);
+        let pide = |metodo: &str, ruta: &str, clave: Option<&str>, cuerpo: &str| atender(&pedir(metodo, ruta, clave, cuerpo), &g, &casa, &nada, reloj);
+        let lista = pide("GET", "/api/proyectos", Some(&clave), "");
+        assert_eq!(lista.estado, 200);
+        let v: Value = serde_json::from_slice(&lista.cuerpo).unwrap();
+        assert_eq!(v["proyectos"][0]["carpeta"], "C:\\p\\uno", "los proyectos los da la ventana: {v}");
+
+        let abierta = pide("POST", "/api/abrir", Some(&clave), r#"{"carpeta":"C:\\p\\uno","cli":"codex","texto":"  mira el radar  "}"#);
+        assert_eq!(abierta.estado, 200);
+        let v: Value = serde_json::from_slice(&abierta.cuerpo).unwrap();
+        assert_eq!((v["panel"].as_u64(), v["arranque"].as_u64()), (Some(9), Some(77)), "con el arranque, para entrar en ella: {v}");
+        let pedido = casa.enviados.borrow().last().cloned().unwrap();
+        assert_eq!(pedido, json!({ "carpeta": "C:\\p\\uno", "cli": "codex", "texto": "mira el radar" }));
+
+        // Lo que no es uno de tus proyectos lo dice la ventana, y el móvil lo lee.
+        let fuera = pide("POST", "/api/abrir", Some(&clave), r#"{"carpeta":"C:\\Windows","cli":"codex"}"#);
+        assert_eq!(fuera.estado, 502);
+        assert!(String::from_utf8_lossy(&fuera.cuerpo).contains("no es uno de tus proyectos"));
+        let n = casa.enviados.borrow().len();
+        for malo in [r#"{"cli":"codex"}"#, r#"{"carpeta":"C:\\p\\uno","cli":"codex; rm"}"#, r#"{"carpeta":"C:\\p\\uno"}"#] {
+            assert_eq!(pide("POST", "/api/abrir", Some(&clave), malo).estado, 400, "{malo}");
+        }
+        let largo = format!(r#"{{"carpeta":"C:\\p\\uno","cli":"codex","texto":"{}"}}"#, "a".repeat(TOPE_TEXTO + 1));
+        assert_eq!(pide("POST", "/api/abrir", Some(&clave), &largo).estado, 413);
+        assert_eq!(casa.enviados.borrow().len(), n, "lo que no tiene forma no llega a la ventana");
+        assert_eq!(pide("GET", "/api/abrir", Some(&clave), "").estado, 405);
+        assert_eq!(pide("POST", "/api/proyectos", Some(&clave), "{}").estado, 405);
+        assert_eq!(pide("POST", "/api/abrir", None, r#"{"carpeta":"C:\\p\\uno","cli":"codex"}"#).estado, 401);
+        assert_eq!(pide("GET", "/api/proyectos", None, "").estado, 401);
+    }
+
+    #[test]
+    fn desde_el_movil_se_sigue_cualquier_sesion_del_pc() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 0);
+        let pide = |metodo: &str, ruta: &str, clave: Option<&str>, cuerpo: &str| atender(&pedir(metodo, ruta, clave, cuerpo), &g, &casa, &nada, reloj);
+        let lista = pide("GET", "/api/sesiones", Some(&clave), "");
+        assert_eq!(lista.estado, 200);
+        let v: Value = serde_json::from_slice(&lista.cuerpo).unwrap();
+        assert_eq!(v["sesiones"][0]["id"], "s-1", "las sesiones las da la ventana: {v}");
+
+        let seguida = pide("POST", "/api/seguir", Some(&clave), r#"{"id":"s-1"}"#);
+        assert_eq!(seguida.estado, 200);
+        let v: Value = serde_json::from_slice(&seguida.cuerpo).unwrap();
+        assert_eq!((v["panel"].as_u64(), v["arranque"].as_u64()), (Some(4), Some(77)), "{v}");
+        assert_eq!(casa.enviados.borrow().last().cloned().unwrap(), json!({ "id": "s-1" }));
+        let ida = pide("POST", "/api/seguir", Some(&clave), r#"{"id":"s-9"}"#);
+        assert_eq!(ida.estado, 502);
+        assert!(String::from_utf8_lossy(&ida.cuerpo).contains("ya no está"));
+
+        let n = casa.enviados.borrow().len();
+        for malo in [r#"{}"#, r#"{"id":""}"#, r#"{"id":"../../x"}"#, r#"{"id":"a b"}"#] {
+            assert_eq!(pide("POST", "/api/seguir", Some(&clave), malo).estado, 400, "{malo}");
+        }
+        let largo = format!(r#"{{"id":"{}"}}"#, "a".repeat(129));
+        assert_eq!(pide("POST", "/api/seguir", Some(&clave), &largo).estado, 400);
+        assert_eq!(casa.enviados.borrow().len(), n, "un id sin forma de id no llega a la ventana");
+        assert_eq!(pide("GET", "/api/seguir", Some(&clave), "").estado, 405);
+        assert_eq!(pide("POST", "/api/sesiones", Some(&clave), "{}").estado, 405);
+        assert_eq!(pide("POST", "/api/seguir", None, r#"{"id":"s-1"}"#).estado, 401);
+        assert_eq!(pide("GET", "/api/sesiones", None, "").estado, 401);
     }
 
     #[test]

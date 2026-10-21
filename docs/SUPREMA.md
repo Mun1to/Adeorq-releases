@@ -117,6 +117,17 @@ a un reloj (cerrarla a la media hora), a una tira de «delegadas» y a un botón
   borra: es de Claude Code, y con ese id se retoma.
 - **Se va entera**: el cierre por MCP no deja el aviso de «cerrada» ni el Ctrl+Z de la X
   (`quitarPane(id, false)` en `App.tsx`). La X de Munir sigue igual.
+- **Y su conversación se archiva sola en la barra** (2026-10-21). Munir, con 36 sesiones en el
+  proyecto Adeorq: *«hay demasiadas sesiones… ordenar y organizar todo… que esto no vuelva a
+  pasar»*. De las 35 de los últimos treinta días, 22 eran delegadas ya cerradas con su rastro: el
+  panel se iba, la conversación se quedaba un mes en la barra. Ahora `rastros::cerradas` dice qué
+  conversaciones tienen rastro y cuándo, y `archivadasSolas` (`lib/enLaBarra.ts`) las pasa a
+  «Archivadas» mientras nadie escriba en ellas después del rastro (diez minutos de margen), no
+  estén abiertas en un panel y no las desarchives (desarchivar las pone en `traidas`). No se
+  escribe nada en el estado de la barra ni se borra nada: retomarla la devuelve sola. Las doce
+  viejas de antes de que existiera el rastro se cerraron ese día con uno escrito a mano («la cerró
+  la sesión 572c3eb8 al ordenar la barra»). Casos en `scripts/barra-check.ts`, la lectura en
+  `cargo test --lib rastros::` y la barra pintada en `scripts/laboratorio/barra-archiva-solas.mjs`.
 - **Lo que no cubre:** una delegada cuyo agente se cerró antes que ella se queda sin dueño; esa la
   cierra Munir o la Suprema. Y el rastro no se ve todavía en la app: vive en esa carpeta.
 - **Medido:** `cargo test --lib rastros::` y `node scripts/laboratorio/rastro-de-verdad.mjs` (el

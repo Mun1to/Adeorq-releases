@@ -116,6 +116,43 @@ export function saleEnLaBarra(s: Mirable, e: Estanteria): boolean {
 }
 
 /**
+ * Cuánto puede escribirse una conversación DESPUÉS de su rastro sin contar
+ * como retomada. `hours` llega redondeado a la décima (seis minutos), y el CLI
+ * puede soltar su última línea justo al morir.
+ */
+export const MARGEN_DEL_CIERRE_MS = 10 * 60 * 1000;
+
+/**
+ * Las que se archivan solas: las que un agente abrió, terminó y cerró con su
+ * rastro (`close_pane`), y que nadie ha vuelto a tocar.
+ *
+ * Munir, 2026-10-21, con 36 conversaciones en el proyecto Adeorq: «hay
+ * demasiadas sesiones… que esto no vuelva a pasar». De las 35 de los últimos
+ * treinta días, 22 eran eso: `close_pane` se lleva el panel y apunta el rastro,
+ * pero la conversación es de Claude Code y se quedaba en la barra un mes. Se
+ * archivan sin escribir nada en el estado de la barra, así que dejan de
+ * archivarse solas en cuanto alguien las retoma (se escribe en ellas después
+ * del rastro), las tienes abiertas en un panel o las desarchivas tú (van a
+ * `traidas`, que es «esta la quiero a la vista»). Siguen en «Archivadas»,
+ * y el rastro guarda cómo retomarlas.
+ */
+export function archivadasSolas(
+  sesiones: readonly Mirable[],
+  cerradas: ReadonlyMap<string, number>,
+  e: Pick<Estanteria, "enPantalla" | "traidas">,
+  ahoraMs: number,
+): Set<string> {
+  const solas = new Set<string>();
+  for (const s of sesiones) {
+    const cerrada = cerradas.get(s.id);
+    if (cerrada === undefined || e.enPantalla.has(s.id) || e.traidas.has(s.id)) continue;
+    const ultimaVez = ahoraMs - s.hours * 3_600_000;
+    if (ultimaVez <= cerrada + MARGEN_DEL_CIERRE_MS) solas.add(s.id);
+  }
+  return solas;
+}
+
+/**
  * Por qué se ve, para poder decirlo con palabras distintas.
  *
  * El asistente enseñaba «ya la tienes» para todo, y no es lo mismo tenerla

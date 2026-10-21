@@ -680,6 +680,14 @@ export function deleteSession(
   return invoke("delete_session", { folder, sessionId, fuente });
 }
 
+/** Las conversaciones que cerró un agente con su rastro, y cuándo (ms desde
+ *  1970). La barra las archiva solas mientras nadie las retome
+ *  (`archivadasSolas` en `lib/enLaBarra.ts`). */
+export async function rastrosCerradas(): Promise<Map<string, number>> {
+  const lista = await invoke<{ sesion: string; cuando_ms: number }[]>("rastros_cerradas");
+  return new Map(lista.map((c) => [c.sesion, c.cuando_ms]));
+}
+
 export interface DirtyReport {
   isRepo: boolean;
   files: string[];

@@ -12,6 +12,7 @@ import {
   projectDirty,
   deleteProject,
   projectIcons,
+  rastrosCerradas,
   readEncargos,
   renameSession,
   saveUiState,
@@ -43,7 +44,7 @@ import {
   type Lado,
 } from "../lib/ordenBarra";
 import { levantar, type Fantasma } from "../lib/fantasma";
-import { saleEnLaBarra, viejasPorProyecto } from "../lib/enLaBarra";
+import { archivadasSolas, saleEnLaBarra, viejasPorProyecto } from "../lib/enLaBarra";
 import { MasAntiguas, MasAntiguasGlobal } from "./MasAntiguas";
 import UpdateBar from "./UpdateBar";
 import { hueOf } from "../lib/colors";
@@ -341,6 +342,8 @@ export default function Sidebar({
   const [agy, setAgy] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  /** Las conversaciones que cerró un agente con su rastro: se archivan solas. */
+  const [cerradas, setCerradas] = useState<ReadonlyMap<string, number>>(() => new Map());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -412,6 +415,8 @@ export default function Sidebar({
         setError(null);
       })
       .catch((e) => setError(String(e)));
+    // Sin carpeta de rastros (o sin Tauri, en el doble) no se archiva nada solo.
+    rastrosCerradas().then(setCerradas).catch(() => {});
   };
 
   useEffect(() => {
@@ -627,7 +632,6 @@ export default function Sidebar({
     });
   };
 
-  const archived = useMemo(() => new Set(ui.archived), [ui.archived]);
   const traidas = useMemo(() => new Set(ui.traidas), [ui.traidas]);
   /* Las que tienes abiertas en un panel ahora mismo. Vive aquí fuera y no dentro
      del memo grande porque lo necesitan DOS sitios: el filtro de las filas y el
@@ -640,6 +644,14 @@ export default function Sidebar({
       ),
     [abiertas],
   );
+  /* Archivadas: las que archivaste tú y las que se archivan solas porque las
+     cerró un agente y nadie las ha retomado (`archivadasSolas`). Juntas, para
+     que la lista, las cuentas y «N más antiguas» digan lo mismo. */
+  const solas = useMemo(
+    () => archivadasSolas(sessions, cerradas, { enPantalla, traidas }, Date.now()),
+    [sessions, cerradas, enPantalla, traidas],
+  );
+  const archived = useMemo(() => new Set([...ui.archived, ...solas]), [ui.archived, solas]);
   /* Los proyectos que quitaste de la barra. Ojo con el nombre: `gruposOcultos`,
      que llega por props, es otra cosa (los grupos de sesiones plegados). */
   const ocultos = useMemo(() => new Set(ui.hiddenProjects), [ui.hiddenProjects]);
@@ -1017,7 +1029,14 @@ export default function Sidebar({
   };
 
   const unarchive = (id: string) => {
-    mutate((prev) => ({ ...prev, archived: prev.archived.filter((x) => x !== id) }));
+    // Una que se archivó sola no está en `archived`: desarchivarla es pedirla a
+    // la vista, que es lo que significa `traidas`.
+    const pedir = solas.has(id);
+    mutate((prev) => ({
+      ...prev,
+      archived: prev.archived.filter((x) => x !== id),
+      traidas: pedir && !prev.traidas.includes(id) ? [...prev.traidas, id] : prev.traidas,
+    }));
   };
 
   const doDelete = (s: SessionInfo) => {

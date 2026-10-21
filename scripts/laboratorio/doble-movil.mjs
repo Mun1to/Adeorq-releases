@@ -133,6 +133,31 @@ const terminales = [
   // Una que ya terminó: en el chat, la mascota lo celebra.
   { panel: 5, nombre: "claude", carpeta: "C:\\proyectos\\VoCript", agente: true, modelo: "Sonnet 5.5", estado: "lista", sesion: "s-5", contexto: 30 },
 ];
+// Los proyectos del PC, como la clase «proyectos» de la ventana: el que trabajó
+// hace menos primero (`cuando`, en segundos), y los que nunca, detrás.
+const PROYECTOS = [
+  { nombre: "Adeorq", carpeta: "C:\\proyectos\\Adeorq", cuando: ahora() },
+  { nombre: "crypto", carpeta: "C:\\proyectos\\crypto", cuando: ahora() - 600 },
+  { nombre: "Orquio", carpeta: "C:\\proyectos\\Orquio", cuando: ahora() - 7200 },
+  { nombre: "Webs", carpeta: "C:\\proyectos\\Webs", cuando: ahora() - 86400 },
+  { nombre: "VoCript", carpeta: "C:\\proyectos\\VoCript", cuando: ahora() - 3 * 86400 },
+  { nombre: "Vidorq", carpeta: "C:\\proyectos\\Vidorq", cuando: ahora() - 5 * 86400 },
+  { nombre: "Layco", carpeta: "C:\\proyectos\\Layco", cuando: ahora() - 9 * 86400 },
+  { nombre: "Skills", carpeta: "C:\\proyectos\\Skills", cuando: null },
+  { nombre: "un proyecto con un nombre larguísimo de verdad", carpeta: "C:\\proyectos\\un proyecto con un nombre larguísimo de verdad", cuando: null },
+];
+const pedidasDesdeElMovil = [];
+// Las sesiones del PC que se pueden seguir, como la clase «sesiones» de la
+// ventana: la s-1 ya está en la terminal 1 (no sale dos veces), una está abierta
+// fuera de Adeorq, y Layco tiene más de cinco para ver «Ver las N».
+const SESIONES = [
+  { id: "s-1", titulo: "Que el scroll no salte", cuando: ahora() - 60, carpeta: "C:\\proyectos\\Adeorq", programa: "Claude", viva: false, panel: 1 },
+  { id: "a-1", titulo: "Arreglar las notas del lienzo", cuando: ahora() - 3600, carpeta: "C:\\proyectos\\Adeorq", programa: "Claude", viva: false, panel: null },
+  { id: "a-2", titulo: "Publicar la 0.9.230", cuando: ahora() - 3 * 3600, carpeta: "C:\\proyectos\\Adeorq", programa: "Claude", viva: true, panel: null },
+  { id: "c-1", titulo: "Por qué se cae el radar", cuando: ahora() - 5 * 3600, carpeta: "C:\\proyectos\\crypto\\radar-bot", programa: "Codex", viva: false, panel: null },
+  { id: "o-1", titulo: "La bandeja del panel", cuando: ahora() - 7300, carpeta: "C:\\proyectos\\Orquio", programa: "Claude", viva: false, panel: null },
+  ...Array.from({ length: 8 }, (_, i) => ({ id: `l-${i + 1}`, titulo: `Layco, encargo ${i + 1}`, cuando: ahora() - (10 + i) * 86400, carpeta: "C:\\proyectos\\Layco", programa: "Claude", viva: false, panel: null })),
+];
 // La raya de lado a lado de Claude Code mide lo que el panel del PC: 78 columnas.
 const RAYA = "─".repeat(78);
 const pantallas = new Map([
@@ -629,6 +654,44 @@ http
           nueva(id).programa = v.programa;
           console.log(`programa: ${v.programa || "router"}`);
           return json(res, 200, { ok: true });
+        // Abrir una sesión en el PC (2026-10-21), como las clases «proyectos» y
+        // «abrir» de la ventana: solo en uno de estos proyectos y con un programa
+        // de la lista; la nueva sale en `terminales` como cualquier otra.
+        case "/api/proyectos":
+          return json(res, 200, { proyectos: PROYECTOS });
+        case "/api/abrir": {
+          if (!["claude", "codex", "agy"].includes(v.cli)) return json(res, 502, { error: "Ese programa no está instalado en el PC." });
+          const p = PROYECTOS.find((x) => x.carpeta.toLowerCase() === String(v.carpeta || "").toLowerCase());
+          if (!p) return json(res, 502, { error: "Esa carpeta no es uno de tus proyectos." });
+          const panel = Math.max(...terminales.map((t) => t.panel)) + 1;
+          const texto = String(v.texto || "").trim();
+          terminales.push({ panel, nombre: v.cli, carpeta: p.carpeta, agente: true, modelo: v.cli === "claude" ? "Opus 5.5" : null, estado: texto ? "a_medias" : "", sesion: null });
+          pantallas.set(panel, texto ? [`❯ ${texto}`, "", "● Mirando el proyecto…"] : ["❯ "]);
+          pedidasDesdeElMovil.push({ panel, cli: v.cli, carpeta: p.carpeta, texto });
+          console.log(`abrir: ${v.cli} en ${p.nombre}${texto ? ` con «${texto}»` : ""}`);
+          return json(res, 200, { panel, arranque: ARRANQUE });
+        }
+        case "/api/sesiones":
+          return json(res, 200, { sesiones: SESIONES });
+        // Como la clase «seguir»: la que ya está abierta aquí se entra en ella,
+        // la que está abierta fuera no se toca, y el resto nace en una terminal.
+        case "/api/seguir": {
+          const s = SESIONES.find((x) => x.id === v.id);
+          if (!s) return json(res, 502, { error: "Esa sesión ya no está en tu PC." });
+          if (s.panel) return json(res, 200, { panel: s.panel, arranque: ARRANQUE });
+          if (s.viva) return json(res, 502, { error: "Esa sesión está abierta fuera de Adeorq: seguirla aquí la colgaría." });
+          const panel = Math.max(...terminales.map((t) => t.panel)) + 1;
+          const cli = s.programa.toLowerCase();
+          terminales.push({ panel, nombre: s.titulo, carpeta: s.carpeta, agente: true, modelo: cli === "claude" ? "Opus 5.5" : null, estado: "", sesion: s.id });
+          pantallas.set(panel, ["❯ "]);
+          s.panel = panel;
+          pedidasDesdeElMovil.push({ panel, seguida: s.id });
+          console.log(`seguir: ${s.id} en la terminal ${panel}`);
+          return json(res, 200, { panel, arranque: ARRANQUE });
+        }
+        // Solo del banco: lo que se abrió desde el móvil.
+        case "/api/abiertas":
+          return json(res, 200, { abiertas: pedidasDesdeElMovil });
         case "/api/parar":
           return json(res, 200, { ok: true });
         // Solo del banco: otro estado para una terminal, y con él la hora de su

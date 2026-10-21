@@ -39,7 +39,7 @@ async (page) => {
       seVe: !g.querySelector(".p-filas").hidden,
       cuenta: cab.querySelector(".p-cuenta")?.textContent,
       logo: logo.querySelector("img") ? "img" : logo.textContent.trim(),
-      filas: [...g.querySelectorAll(".p-filas > button")].map((el) => (el.dataset.panel ? `t${el.dataset.panel}` : `c:${el.dataset.conv}`)),
+      filas: [...g.querySelectorAll(".p-filas > button[data-panel], .p-filas > button[data-conv]")].map((el) => (el.dataset.panel ? `t${el.dataset.panel}` : `c:${el.dataset.conv}`)),
     };
   }));
   const leerCajon = async () => { await abrir(); const r = await grupos(); await cerrar(); return r; };

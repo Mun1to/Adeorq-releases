@@ -36,6 +36,19 @@ const sitioDe = (nombre: string): number => {
 const color = (tono: number): string => `hsl(${tono} 78% 64%)`;
 
 /**
+ * El proyecto de una carpeta: la primera carpeta debajo de la raíz de tus
+ * proyectos (`C:\proyectos\Adeorq\src-tauri` es Adeorq), o la última si cae
+ * fuera de ella. Es la clave del color en la Cabina.
+ */
+export function proyectoDeCarpeta(cwd: string, raiz: string): string {
+  const partes = (c: string) => c.split(/[\\/]+/).filter(Boolean);
+  const r = partes(raiz).map((x) => x.toLowerCase());
+  const c = partes(cwd);
+  const dentro = r.length > 0 && c.length > r.length && r.every((x, i) => c[i].toLowerCase() === x);
+  return (dentro ? c[r.length] : c[c.length - 1]) ?? cwd;
+}
+
+/**
  * El color de cada proyecto, dados los que hay en el lienzo. Sin repetidos
  * mientras sean diez o menos; con más, se vuelve a empezar la rueda.
  */

@@ -110,6 +110,10 @@ interface Props {
   account?: string;
   /** La sesión que la abrió con `open_pane`: su cabecera dice «de: …». */
   abiertaPor?: string;
+  /** El color del proyecto de una terminal que abrió otra sesión: borde y
+      cabecera en ese color, como una cuadrilla (Munir, 2026-10-21: «para
+      identificarlas más fácilmente»). */
+  colorProyecto?: string;
   /** La cuadrilla a la que pertenece este panel, si nació dentro de un
       reparto: su color, su puesto y el objetivo común. */
   team?: { id: string; objetivo: string; color: string; rol: string; n: number; de: number };
@@ -374,6 +378,7 @@ export default function TerminalPane({
   env,
   account,
   abiertaPor,
+  colorProyecto,
   team,
   hidden,
   focused,
@@ -2204,8 +2209,16 @@ export default function TerminalPane({
       className={`pane${hidden ? " pane-hidden" : ""}`}
       // El color del equipo entra como variable para que lo usen el borde y la
       // chapa: así los seis paneles de una cuadrilla se leen como un bloque.
-      style={team ? { ...style, ["--team" as string]: team.color } : style}
+      style={
+        team
+          ? { ...style, ["--team" as string]: team.color }
+          : colorProyecto
+            ? { ...style, ["--proy" as string]: colorProyecto }
+            : style
+      }
       data-team={!!team}
+      // La cuadrilla manda: su color ya dice con quién trabaja.
+      data-delegada={!team && !!colorProyecto ? "true" : undefined}
       data-pane-id={id}
       data-drop={dropTarget}
       data-focused={focused}

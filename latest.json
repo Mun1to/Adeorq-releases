@@ -1,11 +1,11 @@
 {
-  "version": "0.9.231",
-  "notes": "La barra archiva sola las terminales que cierra un agente, y desde el móvil abres sesiones en el PC.",
-  "pub_date": "2026-10-21T16:53:16Z",
+  "version": "0.9.232",
+  "notes": "Las sesiones de Codex se retoman con Codex y llevan su papelera, y las terminales que abre otra sesión llevan el color de su proyecto.",
+  "pub_date": "2026-10-21T17:50:41Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3dwTG5OUFZYVExmNkNFUDJuL1JqVmdZZmVkOWN3NHk4UDdaMnFMTjhJNGhLRVFPWW90TE5md1BhU3RTM1lkSlFkVm5qbXFzbGthMi9Da2tDcXRhZWcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjAxNTg1CWZpbGU6QWRlb3JxXzAuOS4yMzFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzEKd2JkaG5ZN3pZOWN4T0htdHBueUpJeW54Z0R0UExNWEkvcllrdVNPaThPa2tna3BJZkttYjNKWkpUb1daNkFnUncrckpKRU9VZ1R2N29WUXFPdk94Qnc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.231/Adeorq_0.9.231_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3lDMldCYklySGhqL3cxeUVod25QUHloYThHNnVTUEJSZGJ5S0JMT1cwRkpYUHhtM2dMNW9WbUZJcFE1R2JKeVMrK2ozN1ZieWs0K2pJRHUzdmMzb3dNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjA1MDI2CWZpbGU6QWRlb3JxXzAuOS4yMzJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzIKYVRwK2dtaWdXOGlhczdLWWppeFBVNC85eG5OeXVSVEhrelpvcGVWRVpSSng1cnVmZzVINlpHMmMrcFNrWDg2TnpNeVlLQkZTZGdQMEdXL0dIUmhzQUE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.232/Adeorq_0.9.232_x64-setup.exe"
     }
   }
 }

@@ -453,6 +453,8 @@ export default function Sidebar({
     // que se repite sola, y con la ventana tapada la lista no la mira nadie.
     return latido(() => {
       scanSessions().then(setSessions).catch(() => {});
+      // Y los rastros: lo que se cierra con la app abierta se archiva aquí, no al reiniciar.
+      rastrosCerradas().then(setCerradas).catch(() => {});
     }, SCAN_EVERY_MS);
   }, [refreshKey]);
 

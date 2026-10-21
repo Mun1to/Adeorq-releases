@@ -10,7 +10,7 @@
 // dos iguales, que el color no depende del orden en que llegan, y que casi
 // todos conservan su tono preferido cuando entra uno más.
 
-import { coloresDeProyectos, tonoDe, TONOS, TONOS_DE_ESTADO } from "../src/lib/colorLienzo";
+import { coloresDeProyectos, proyectoDeCarpeta, tonoDe, TONOS, TONOS_DE_ESTADO } from "../src/lib/colorLienzo";
 
 declare const process: { exit(code?: number): never };
 
@@ -93,6 +93,22 @@ for (const nuevo of SUYOS) {
 }
 caso("meter un proyecto más casi nunca le cambia el color a otro", cambios / pruebas < 0.1, `${cambios} de ${pruebas}`);
 caso("un nombre vacío no cuenta", Object.keys(coloresDeProyectos(["", "Adeorq"])).join() === "Adeorq");
+
+// El proyecto de una terminal en la Cabina, que es la clave de su color cuando
+// la abrió otra sesión (Munir, 2026-10-21).
+{
+  const R = "C:\\proyectos";
+  const de = (cwd: string) => proyectoDeCarpeta(cwd, R);
+  caso("la carpeta del proyecto es su proyecto", de("C:\\proyectos\\Adeorq") === "Adeorq");
+  caso("una subcarpeta cuenta como su proyecto", de("C:\\proyectos\\Adeorq\\src-tauri\\src") === "Adeorq", de("C:\\proyectos\\Adeorq\\src-tauri\\src"));
+  caso("da igual mayúsculas y barras", de("c:/Proyectos/Orquio/web") === "Orquio", de("c:/Proyectos/Orquio/web"));
+  caso("fuera de la raíz, la última carpeta", de("D:\\otros\\cosa") === "cosa");
+  caso("la raíz misma no es un proyecto: se queda su nombre", de("C:\\proyectos") === "proyectos");
+  caso("dos terminales del mismo proyecto llevan el mismo color", (() => {
+    const c = coloresDeProyectos([de("C:\\proyectos\\Orquio"), de("C:\\proyectos\\Orquio\\web"), de("C:\\proyectos\\Adeorq")]);
+    return Object.keys(c).length === 2 && c.Orquio !== c.Adeorq;
+  })());
+}
 
 if (fallos) {
   console.log(`\n${fallos} fallos`);

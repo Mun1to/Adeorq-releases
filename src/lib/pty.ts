@@ -683,6 +683,12 @@ export function deleteSession(
 /** Las conversaciones que cerró un agente con su rastro, y cuándo (ms desde
  *  1970). La barra las archiva solas mientras nadie las retome
  *  (`archivadasSolas` en `lib/enLaBarra.ts`). */
+/** La X de Munir sobre una terminal que abrió otra sesión: deja su rastro para
+ *  que la barra la archive igual que las que cierra su agente. */
+export function rastroDeLaX(nombre: string, carpeta: string, sesion: string, abiertaPor: string): Promise<void> {
+  return invoke("rastro_de_la_x", { nombre, carpeta, sesion, abiertaPor });
+}
+
 export async function rastrosCerradas(): Promise<Map<string, number>> {
   const lista = await invoke<{ sesion: string; cuando_ms: number }[]>("rastros_cerradas");
   return new Map(lista.map((c) => [c.sesion, c.cuando_ms]));

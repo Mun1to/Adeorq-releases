@@ -1099,6 +1099,32 @@ textarea.note-body {
   );
 }
 
+/* Una terminal que abrió OTRA sesión (`open_pane`, un flujo de trabajo): el
+   color de SU proyecto, el mismo del lienzo (`coloresDeProyectos`), en el borde
+   y la cabecera, con el tratamiento de la cuadrilla. Munir, 2026-10-21: «que
+   les cambie de color el header de la sesión al proyecto el cual se está
+   trabajando para identificarlas más fácilmente». El «de: …» va en su color.
+   El borde cede ante el anillo del foco (misma fuerza y va después: sin el
+   `:not` taparía dónde estás escribiendo); la cabecera se queda su color. */
+.pane[data-delegada="true"]:not([data-focused="true"]) {
+  border-color: color-mix(in srgb, var(--proy) 45%, var(--border));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--proy) 22%, transparent),
+    0 0 22px color-mix(in srgb, var(--proy) 12%, transparent);
+}
+
+.pane[data-delegada="true"] .pane-head {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--proy) 32%, var(--panel-head)),
+    color-mix(in srgb, var(--proy) 8%, var(--panel-head)) 75%
+  );
+}
+
+.pane[data-delegada="true"] .pane-de {
+  color: color-mix(in srgb, var(--proy) 70%, var(--text));
+}
+
 /* La chapa de la cuadrilla, suelta: el puesto y el rol en el color del equipo,
    sin píldora (2026-10-17, las cárceles fuera de la cabecera). */
 .pane-team {

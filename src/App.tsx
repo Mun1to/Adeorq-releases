@@ -104,6 +104,7 @@ import {
   anotarRastro,
   carpetaClaude,
   renameSession,
+  rastroDeLaX,
   type Account,
   type Project,
   type SessionInfo,
@@ -112,6 +113,7 @@ import {
   type WorkState,
 } from "./lib/pty";
 import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
+import { coloresDeProyectos, proyectoDeCarpeta } from "./lib/colorLienzo";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
 import { nombreDeRuta } from "./lib/arbol";
 import { usePuenteMcp } from "./lib/puenteMcp";
@@ -137,6 +139,7 @@ import {
   comandoDe,
   comandoDelPlan,
   installCommand,
+  lineaParaRetomar,
   loadEffort,
   modoGuardado,
   newClaudeCommand,
@@ -1022,11 +1025,25 @@ function App() {
     [panes],
   );
 
+  /** El color de proyecto de las terminales que abrió otra sesión (`abiertaPor`),
+      con la paleta del lienzo: así de un vistazo se sabe de qué proyecto es
+      cada una de un flujo de trabajo. Solo cambia si cambia el conjunto. */
+  const claveDelegadas = panes
+    .filter((p) => p.abiertaPor)
+    .map((p) => proyectoDeCarpeta(p.cwd, raiz()))
+    .sort()
+    .join("\n");
+  const coloresDelegadas = useMemo(
+    () => coloresDeProyectos(claveDelegadas ? claveDelegadas.split("\n") : []),
+    [claveDelegadas],
+  );
+
   /** Dónde, con qué y en qué cuenta se retoma una conversación: lo mismo en la Cabina y en el lienzo. */
   const comoRetomar = useCallback(
     (s: SessionInfo) => ({
       cwd: s.resumeCwd || s.cwd || raiz(),
-      command: claudeCommand(withEffort(`--resume ${s.id}`)),
+      // Con SU programa: una de Codex abierta con `claude --resume` no arrancaba.
+      command: lineaParaRetomar(s),
       // En SU cuenta, no en la de por defecto: cada cuenta guarda sus transcripts, y un
       // `--resume` desde otra contesta «No conversation found» con el panel en blanco.
       cuenta: s.cuenta ? accountsRef.current.list.find((a) => a.dir === s.cuenta) : undefined,
@@ -1695,14 +1712,29 @@ function App() {
     [openClaudePrompt, t],
   );
 
+  /* La X de Munir sobre una terminal que abrió otra sesión: su rastro, para que
+     la barra archive su conversación como las que cierra su agente con
+     `close_pane` (2026-10-21, «que esto no vuelva a pasar»). En la Cabina y en
+     el lienzo; «Reanimar» no, que la vuelve a abrir. */
+  const rastroSiDelegada = useCallback((id: number) => {
+    const p = panesRef.current.find((x) => x.id === id) ?? canvasPanesRef.current.find((x) => x.id === id);
+    const sid = p ? sessionIdOf(p.command) : undefined;
+    if (!p?.abiertaPor || !sid) return;
+    rastroDeLaX(p.name, p.cwd, sid, p.abiertaPor)
+      // Que la barra la archive ya, no en su siguiente latido.
+      .then(() => setRefreshKey((k) => k + 1))
+      .catch((e) => void anotarRastro(`rastro de la X del panel ${id}: ${e}`));
+  }, []);
+
   const closeCanvasPane = useCallback((id: number) => {
     apuntarCerrada(id);
+    rastroSiDelegada(id);
     // La X de un panel del lienzo es una X de verdad, no un movimiento: mata
     // igual que la de la cabina. Ver el comentario de `closePane`.
     void killPty(id).catch(() => {});
     setCanvasPanes((prev) => prev.filter((p) => p.id !== id));
     useCabina.getState().olvidarEstado(id);
-  }, [apuntarCerrada]);
+  }, [apuntarCerrada, rastroSiDelegada]);
 
   /**
    * Sacar una terminal a su propia ventana de Windows.
@@ -1769,8 +1801,9 @@ function App() {
      Lo que cierra un agente por MCP se va entero, sin aviso ni Ctrl+Z (Munir,
      2026-10-15: la delegada terminada «se elimina por completo, para mantener
      un espacio limpio»); su rastro lo guarda `close_pane` antes de llamar aquí. */
-  const quitarPane = useCallback((id: number, deshacer: boolean) => {
+  const quitarPane = useCallback((id: number, deshacer: boolean, conRastro = true) => {
     if (deshacer) apuntarCerrada(id);
+    if (deshacer && conRastro) rastroSiDelegada(id);
     // Cerrar MATA, y lo hace aquí mismo. Antes el proceso moría por el camino
     // largo —quitar el panel, que React lo desmonte, y que la limpieza del
     // desmontaje llamara a `killPty`—, o sea que la muerte del agente dependía
@@ -1789,7 +1822,7 @@ function App() {
     setMaximizedId((m) => (m === id ? null : m));
     setLadoMaxId((l) => (l === id ? null : l));
     setFocusedId((f) => (f === id ? null : f));
-  }, [apuntarCerrada]);
+  }, [apuntarCerrada, rastroSiDelegada]);
 
   const closePane = useCallback((id: number) => quitarPane(id, true), [quitarPane]);
 
@@ -1971,7 +2004,7 @@ function App() {
    */
   const revivirPane = useCallback(
     (id: number, sessionId: string | undefined, cwd: string, name: string, kind?: string) => {
-      closePane(id); // ya mata la rama del panel
+      quitarPane(id, true, false); // ya mata la rama del panel; sin rastro, que vuelve
       // Codex y Gemini se retoman con su propia línea (`retomar` en la tabla
       // de proveedores); sin sesión, nacen de nuevo con la suya.
       const ajena = kind && kind !== "claude" ? lineaDeRetomar(kind, sessionId ?? "") : undefined;
@@ -1987,7 +2020,7 @@ function App() {
       // de que el nuevo intente retomar el mismo transcript.
       window.setTimeout(() => addPane(name, cwd, command), 400);
     },
-    [closePane, addPane],
+    [quitarPane, addPane],
   );
 
   const splitPane = useCallback(
@@ -2965,6 +2998,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                     env={p.env}
                     account={p.account}
                     abiertaPor={p.abiertaPor}
+                    colorProyecto={p.abiertaPor ? coloresDelegadas[proyectoDeCarpeta(p.cwd, raiz())] : undefined}
                     team={p.team}
                     shadow={p.shadow}
                     espejo={p.espejo}

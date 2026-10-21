@@ -705,7 +705,8 @@ html[data-panes="tarjetas"] .grid > .pane {
    si algún estado futuro sube de especificidad. */
 html[data-panes="tarjetas"] .pane[data-focused="true"],
 html[data-panes="tarjetas"] .pane[data-done="true"],
-html[data-panes="tarjetas"] .pane[data-team="true"] {
+html[data-panes="tarjetas"] .pane[data-team="true"],
+html[data-panes="tarjetas"] .pane[data-delegada="true"] {
   border-color: transparent;
 }
 

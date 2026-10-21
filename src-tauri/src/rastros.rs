@@ -182,6 +182,43 @@ pub fn cerradas(dir: &Path) -> Vec<Cerrada> {
     todas
 }
 
+/// El rastro de una terminal que abrió otra sesión y que Munir cerró con la X.
+///
+/// Sin él su conversación se quedaba en la barra un mes, que es justo lo que
+/// `cerradas` vino a quitar (2026-10-21: «que esto no vuelva a pasar»). No hay
+/// agente que cuente qué hizo, así que el texto lo dice así y apunta adónde
+/// mirar. El id lo manda la ventana: solo vale si es un id.
+pub fn escribir_de_la_x(dir: &Path, nombre: &str, carpeta: &str, sesion: &str, abierta_por: &str, ahora_ms: u64) -> Result<PathBuf, String> {
+    if sesion.is_empty() || !sesion.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+        return Err(format!("«{sesion}» no es el id de una conversación"));
+    }
+    std::fs::create_dir_all(dir).map_err(|e| format!("no pude crear {}: {e}", dir.display()))?;
+    let (dia, hora) = fecha_hora_utc(ahora_ms);
+    let base = format!("{dia}-{}-{}", hora.replace(':', ""), trozo_de_nombre(nombre));
+    let mut ruta = dir.join(format!("{base}.md"));
+    let mut n = 2;
+    while ruta.exists() {
+        ruta = dir.join(format!("{base}-{n}.md"));
+        n += 1;
+    }
+    let de = abierta_por.trim();
+    let md = format!(
+        "# Rastro de «{}»\n\n- Cerrada: {dia} {hora} UTC\n- Carpeta: `{carpeta}`\n- Conversación: `{sesion}` (se retoma con `claude --resume {sesion}` en esa carpeta)\n- La abrió la sesión «{de}» y la cerró Munir con la X\n\n## Qué hizo, dónde dejó su parte y qué falta\n\nLa cerró Munir con la X, sin rastro de su agente: lo que hizo está en su conversación y, si lo dejó, en el BUZON.md de su proyecto o en los commits de esa carpeta.\n",
+        nombre.trim()
+    );
+    std::fs::write(&ruta, md).map_err(|e| format!("no pude guardar el rastro en {}: {e}", ruta.display()))?;
+    Ok(ruta)
+}
+
+/// Para la ventana: la X de Munir sobre una terminal que abrió otra sesión.
+#[tauri::command(async)]
+pub fn rastro_de_la_x(nombre: String, carpeta: String, sesion: String, abierta_por: String) -> Result<(), String> {
+    let ahora = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as u64);
+    escribir_de_la_x(&crate::dir_datos()?.join("rastros"), &nombre, &carpeta, &sesion, &abierta_por, ahora).map(|_| ())
+}
+
 /// Para la barra: qué conversaciones cerró un agente. Sin carpeta de rastros,
 /// ninguna.
 #[tauri::command(async)]
@@ -216,6 +253,21 @@ mod tests {
         assert_eq!(c[0].sesion, "f8f85dcc-b7a9-4ca4-bfd1-49ddcc79bc02");
         assert!(c[0].cuando_ms > 0);
         assert!(cerradas(&dir.join("no-existe")).is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn la_x_de_munir_deja_un_rastro_que_la_barra_lee() {
+        let dir = std::env::temp_dir().join(format!("adeorq-rastros-x-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let id = "0a889401-ed11-48d6-a572-534f603b7c01";
+        let ruta = escribir_de_la_x(&dir, "Orquio · Novedades por correo", r"C:\proyectos\Orquio", id, "Orquio General", 1_792_034_400_000).unwrap();
+        let md = std::fs::read_to_string(&ruta).unwrap();
+        assert!(md.contains("la cerró Munir con la X") && md.contains("«Orquio General»"), "{md}");
+        assert_eq!(cerradas(&dir).iter().map(|c| c.sesion.as_str()).collect::<Vec<_>>(), vec![id]);
+        // Lo que manda la ventana no puede salirse de la carpeta ni colar otra cosa.
+        assert!(escribir_de_la_x(&dir, "x", "c", "../../malo", "y", 0).is_err());
+        assert!(escribir_de_la_x(&dir, "x", "c", "", "y", 0).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

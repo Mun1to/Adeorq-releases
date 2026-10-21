@@ -154,6 +154,26 @@ export function providerCommand(provider: string): string[] {
 }
 
 /**
+ * La línea que trae de vuelta una conversación de la barra, con el programa
+ * que la escribió: Claude con su `--resume` y su esfuerzo, Codex y los demás
+ * con la suya (`retomar` en la tabla de proveedores). Si ese programa no se
+ * puede retomar, se abre nuevo en esa carpeta.
+ *
+ * Munir, 2026-10-21: «¿por qué sigo sin tener el botón de borrar sesión en
+ * Codex?». Pulsar una sesión de Codex en la barra la abría con `claude
+ * --resume <id de Codex>`: Claude no la encontraba, la consola se quedaba
+ * abierta, él arrancaba Codex a mano dentro, y el panel seguía creyéndose
+ * Claude, así que buscaba la conversación donde no estaba y no ponía la
+ * papelera. El móvil ya lo hacía bien (`lineaParaSeguir` en `lib/movil.ts`).
+ */
+export function lineaParaRetomar(s: { id: string; fuente?: string }): string[] {
+  const fuente = s.fuente ?? "claude";
+  if (fuente === "claude") return claudeCommand(withEffort(`--resume ${s.id}`));
+  const linea = lineaDeRetomar(fuente, s.id);
+  return linea ? shellCommand(linea) : providerCommand(fuente);
+}
+
+/**
  * El comando con el que nace una terminal, sea del CLI que sea.
  *
  * Es la única traducción de un plan de arranque a un comando de verdad. La

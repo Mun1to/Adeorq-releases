@@ -117,6 +117,11 @@ a un reloj (cerrarla a la media hora), a una tira de «delegadas» y a un botón
   borra: es de Claude Code, y con ese id se retoma.
 - **Se va entera**: el cierre por MCP no deja el aviso de «cerrada» ni el Ctrl+Z de la X
   (`quitarPane(id, false)` en `App.tsx`). La X de Munir sigue igual.
+- **Lleva el color de su proyecto** (2026-10-21, Munir: *«que les cambie de color el header de la
+  sesión al proyecto el cual se está trabajando para identificarlas más fácilmente»*): una terminal
+  con `abiertaPor` lleva `data-delegada` y `--proy`, el tono del lienzo (`coloresDeProyectos`) del
+  proyecto de su carpeta (`proyectoDeCarpeta`), en el borde y en la cabecera, como una cuadrilla; el
+  foco sigue mandando en el borde. Lo mira `scripts/laboratorio/delegada-con-color.mjs`.
 - **Y su conversación se archiva sola en la barra** (2026-10-21). Munir, con 36 sesiones en el
   proyecto Adeorq: *«hay demasiadas sesiones… ordenar y organizar todo… que esto no vuelva a
   pasar»*. De las 35 de los últimos treinta días, 22 eran delegadas ya cerradas con su rastro: el
@@ -128,8 +133,15 @@ a un reloj (cerrarla a la media hora), a una tira de «delegadas» y a un botón
   viejas de antes de que existiera el rastro se cerraron ese día con uno escrito a mano («la cerró
   la sesión 572c3eb8 al ordenar la barra»). Casos en `scripts/barra-check.ts`, la lectura en
   `cargo test --lib rastros::` y la barra pintada en `scripts/laboratorio/barra-archiva-solas.mjs`.
+  **Tu X también deja rastro:** una terminal con `abiertaPor` que cierras con la X (Cabina o
+  lienzo) escribe uno «la cerró Munir con la X» (`rastro_de_la_x`) y la barra se relee al momento;
+  «Reanimar» no, que la vuelve a abrir. Y el latido de la barra (45 s) relee los rastros además de
+  las sesiones: antes solo los leía al montarse, así que la que cerraba un agente con la app abierta
+  seguía en la barra hasta reiniciar. Los dos caminos, en vivo, en
+  `scripts/laboratorio/x-archiva-la-delegada.mjs` (rojo sin el latido: 61 s y seguía).
 - **Lo que no cubre:** una delegada cuyo agente se cerró antes que ella se queda sin dueño; esa la
-  cierra Munir o la Suprema. Y el rastro no se ve todavía en la app: vive en esa carpeta.
+  cierra Munir o la Suprema (con la X ya deja su rastro, ver abajo). Y el rastro no se ve todavía
+  en la app: vive en esa carpeta.
 - **Medido:** `cargo test --lib rastros::` y `node scripts/laboratorio/rastro-de-verdad.mjs` (el
   puente de verdad contra una Adeorq aislada: abre, lista, se niega sin rastro, cierra con él,
   escribe el archivo y no enseña el aviso). NO PROBADO con un agente de verdad decidiendo solo.

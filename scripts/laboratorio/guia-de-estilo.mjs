@@ -55,7 +55,13 @@ const pagina = `<!doctype html>
 /* ════ La hoja de verdad de Adeorq: src/App.css con sus ${tramos} tramos ════ */
 ${hoja}
 /* ════ Lo de esta página (solo colocación; los valores salen de la hoja) ════ */
-html, body { overflow: auto !important; height: auto !important; }
+/* La app no se desplaza nunca (01-base.css: html, body y #root con overflow
+   hidden y overscroll-behavior none). Aquí sí: el documento baja, y el body NO
+   es su propio contenedor de scroll, porque con overflow auto y sin nada que
+   desplazar se quedaba la rueda y su overscroll none no la dejaba pasar a la
+   página (Munir, 2026-10-19: «no me deja hacer scroll en esto»). */
+html { overflow: auto !important; height: auto !important; overscroll-behavior: auto !important; }
+body { overflow: visible !important; height: auto !important; overscroll-behavior: auto !important; }
 body {
   margin: 0;
   min-height: 100vh;

@@ -470,6 +470,7 @@ pub fn run() {
             cierre::cierre_volver,
             movil::movil_reply,
             rastros::rastros_cerradas,
+            rastros::rastro_de_la_x,
             decisiones::decisiones_listar,
             decisiones::decision_responder,
             decisiones::decision_entregada,

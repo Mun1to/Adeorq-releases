@@ -9,6 +9,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
+import { algunoPensando, onPensando } from "../lib/conserje";
 import { dictar, transcribir, vozLista, type Dictado } from "../lib/voz";
 import { SendIcon, VozIcon } from "./Icons";
 
@@ -20,6 +21,10 @@ export default function PanelPedir({ onPedir }: { onPedir: (texto: string) => vo
   const [vozError, setVozError] = useState<string | null>(null);
   const dictado = useRef<Dictado | null>(null);
   const caja = useRef<HTMLTextAreaElement>(null);
+  /** Adeo pensando en alguna conversación (la de aquí o la del móvil): la caja
+      lleva entonces su filo de luz dando la vuelta. */
+  const [trabaja, setTrabaja] = useState(algunoPensando);
+  useEffect(() => onPensando(() => setTrabaja(algunoPensando())), []);
 
   // Crece con lo que lleva, hasta seis renglones, como la caja del conserje.
   useLayoutEffect(() => {
@@ -82,7 +87,7 @@ export default function PanelPedir({ onPedir }: { onPedir: (texto: string) => vo
       : (vozError ?? t("Adeo lo reparte en sesiones y el router elige el modelo."));
 
   return (
-    <div className="inicio-caja">
+    <div className="inicio-caja" data-trabajando={trabaja}>
       <textarea
         ref={caja}
         id="inicio-pedir"

@@ -1,59 +1,81 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useT } from "../lib/i18n";
-import { listAccountDirs } from "../lib/pty";
+import type { Account } from "../lib/pty";
+import { cuentasQueLeer, historiaLeida, leerHistoria } from "../lib/historiaDeUso";
 import {
+  casillasDelAnio,
   cifra,
-  horaBonita,
-  horaPunta,
-  hoyLocal,
-  mapaDeCalor,
-  rachaActual,
-  rachaMasLarga,
+  columnaDe,
+  conCache,
+  conDia,
+  fechaLarga,
+  fechaLocal,
+  nombreDeModelo,
+  porDia,
+  sumar,
   type Historia,
-} from "../lib/rachas";
+} from "../lib/usoDelPerfil";
+import { horaBonita, rachaActual, rachaMasLarga } from "../lib/rachas";
 
 // Lo que llevas trabajado, en la pantalla que ves cuando no hay ninguna terminal
 // abierta. Antes ahí solo había un botón, y ese hueco es el único momento del
 // día en que se puede mirar atrás sin quitar sitio a nada.
 //
-// Ni un token gastado: sale del `stats-cache.json` que el propio Claude Code
-// mantiene, sumado entre todas tus cuentas por `usage::stats_historia`. Por eso
-// no hay nada de Codex aquí y no es un olvido: no publica nada equivalente.
+// Sale de la MISMA lectura que el Perfil y el Panel (`lib/historiaDeUso.ts`):
+// tus conversaciones de Claude Code y de Codex, al día. Antes leía el
+// `stats-cache.json` de Claude Code, que el CLI dejó de rehacer: en octubre
+// seguía diciendo «calculado el 2026-08-18», el mapa de nueve semanas salía
+// vacío entero y la racha en cero (Munir, 2026-10-21).
 //
-// Lo que NO se hace: rellenar huecos ni redondear hacia arriba. Si el archivo
-// va tres días por detrás, se dice; si no hay datos, no se pinta la tarjeta en
-// vez de enseñar ceros, que parecerían tuyos.
+// Lo que NO se hace: rellenar huecos ni redondear hacia arriba. Mientras se lee
+// y si no hay datos no se pinta la tarjeta, en vez de enseñar ceros que
+// parecerían tuyos.
 
-export default function Estadisticas() {
-  const { t } = useT();
-  const [h, setH] = useState<Historia | null>(null);
+/** Medio año, llenando la tarjeta a lo ancho (Munir, 2026-10-21, la opción 1). */
+const SEMANAS_AQUI = 26;
+
+export default function Estadisticas({ cuentas }: { cuentas: Account[] }) {
+  const { t, lang } = useT();
+  const [h, setH] = useState<Historia | null>(historiaLeida);
+  const clave = JSON.stringify(cuentasQueLeer(cuentas));
 
   useEffect(() => {
-    // Las cuentas extra viven en carpetas propias y cada una lleva su archivo:
-    // sin esto, trabajar con dos cuentas partía las cifras en dos mitades que
-    // no se veían juntas en ningún sitio.
-    void listAccountDirs()
-      .catch(() => [] as string[])
-      .then((dirs) => invoke<Historia>("stats_historia", { configDirs: dirs }))
-      .then(setH)
-      .catch(() => {});
-  }, []);
+    let vivo = true;
+    leerHistoria(JSON.parse(clave)).then(
+      (x) => vivo && setH(x),
+      () => {},
+    );
+    return () => {
+      vivo = false;
+    };
+  }, [clave]);
 
-  if (!h || !h.dias.length) return null;
+  const hoy = fechaLocal(new Date());
+  const cubos = useMemo(() => conDia(h?.cubos ?? []), [h]);
+  const dias = useMemo(() => porDia(cubos), [cubos]);
+  const cifras = useMemo(() => {
+    const total = sumar(cubos);
+    // La hora punta en la hora de esta ventana: los cubos llegan en UTC.
+    const horas = new Array<number>(24).fill(0);
+    const modelos = new Map<string, number>();
+    for (const c of cubos) {
+      const [a, m, d, hh] = c.hora.split(/[-T]/).map(Number);
+      horas[new Date(Date.UTC(a, m - 1, d, hh)).getHours()] += c.respuestas;
+      const n = c.modelo ? nombreDeModelo(c.modelo) : "";
+      if (n) modelos.set(n, (modelos.get(n) ?? 0) + conCache(c));
+    }
+    const pico = Math.max(...horas);
+    const favorito = [...modelos].sort((x, y) => y[1] - x[1])[0]?.[0] ?? "";
+    return { total, punta: pico > 0 ? horas.indexOf(pico) : null, favorito };
+  }, [cubos]);
+  const casillas = useMemo(
+    () => casillasDelAnio(hoy, dias).slice(-((SEMANAS_AQUI - 1) * 7 + columnaDe(hoy) + 1)),
+    [hoy, dias],
+  );
 
-  const hoy = hoyLocal();
-  const fechas = h.dias.map((d) => d.fecha);
-  const racha = rachaActual(fechas, hoy);
-  const mejor = rachaMasLarga(fechas);
-  const punta = horaPunta(h.horas);
-  const tokens = h.dias.reduce((n, d) => n + d.tokens, 0);
-  const mapa = mapaDeCalor(h.dias, hoy);
-  const favorito = h.por_modelo[0]?.model ?? "";
-  // La fecha del archivo, que puede ir por detrás: el CLI no lo rehace en cada
-  // turno. Decirlo cuesta una línea y evita que un número viejo pase por nuevo.
-  const viejo = h.calculado && h.calculado < hoy ? h.calculado : "";
+  if (!h || !dias.size) return null;
 
+  const fechas = [...dias.keys()];
   // `repaso` y no `stats`: ese nombre de clase ya era de las tarjetas del Panel
   // y las dos reglas se pisaban, que es lo que descuadraba esta pantalla entera
   // (el porqué completo está escrito en `App.css`, encima de `.repaso`).
@@ -67,30 +89,32 @@ export default function Estadisticas() {
   return (
     <div className="repaso">
       <div className="repaso-datos">
-        {dato(t("Sesiones"), String(h.total_sesiones))}
-        {dato(t("Mensajes"), cifra(h.total_mensajes))}
-        {dato(t("Tokens"), cifra(tokens))}
-        {dato(t("Días activos"), String(h.dias.length))}
-        {dato(t("Racha actual"), `${racha}d`)}
-        {dato(t("Racha más larga"), `${mejor}d`)}
-        {punta !== null && dato(t("Hora punta"), horaBonita(punta))}
-        {favorito && dato(t("Modelo favorito"), favorito)}
+        {dato(t("Sesiones"), String(h.sesiones?.length ?? h.archivos))}
+        {/* Respuestas del modelo, no mensajes: es lo que cuentan los cubos, y
+            llamarlo mensajes lo dejaba en la mitad de lo que decía antes. */}
+        {dato(t("Respuestas"), cifra(cifras.total.respuestas, lang))}
+        {dato(t("Tokens"), cifra(cifras.total.todos, lang))}
+        {dato(t("Días activos"), String(cifras.total.dias))}
+        {dato(t("Racha actual"), `${rachaActual(fechas, hoy)}d`)}
+        {dato(t("Racha más larga"), `${rachaMasLarga(fechas)}d`)}
+        {cifras.punta !== null && dato(t("Hora punta"), horaBonita(cifras.punta))}
+        {cifras.favorito && dato(t("Modelo favorito"), cifras.favorito)}
       </div>
 
-      {/* Nueve semanas, en columnas: es lo que cabe sin que las casillas se
-          hagan ilegibles, y llega para ver una racha de un vistazo. */}
-      <div className="repaso-mapa" aria-hidden="true">
-        {mapa.map((c) => (
-          <span key={c.fecha} className="repaso-dia" data-n={c.nivel} title={c.fecha} />
+      {/* Una columna por semana y la última termina hoy, como el año del
+          Perfil, con sus mismos tonos. */}
+      <div className="repaso-mapa" style={{ "--semanas": SEMANAS_AQUI } as CSSProperties} aria-hidden="true">
+        {casillas.map((c) => (
+          <span
+            key={c.fecha}
+            className="repaso-dia"
+            data-n={c.nivel}
+            title={`${fechaLarga(c.fecha, lang)} · ${cifra(c.tokens, lang)}`}
+          />
         ))}
       </div>
 
-      <p className="repaso-pie">
-        {h.cuentas > 1 && t("Sumando tus {n} cuentas. ", { n: h.cuentas })}
-        {viejo
-          ? t("Claude Code calculó esto el {d}; lo de después todavía no está dentro.", { d: viejo })
-          : t("Lo lleva Claude Code por su cuenta: mirar esto no gasta nada.")}
-      </p>
+      <p className="repaso-pie">{t("Leído de tus conversaciones de Claude Code y Codex: mirar esto no gasta nada.")}</p>
     </div>
   );
 }

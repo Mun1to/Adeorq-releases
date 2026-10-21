@@ -19,6 +19,7 @@ import {
   exigenciaDe,
   hoja,
   paneDe,
+  programasDeSesion,
   resumenDePestanas,
   type Accion,
   type Manos,
@@ -92,6 +93,66 @@ function manos(router: boolean, abrirDa: number | null = 7): Manos & { abiertas:
     ok("y queda apuntado que lo eligió él", h.abiertos[0]?.eligio === "tu");
     ok("sin un porqué inventado", h.abiertos[0]?.porque === "");
   }
+
+  // ── Con un programa forzado («Sesiones: Codex») ─────────────────────────────
+  {
+    const cuenta = { id: "c1", label: "Trabajo", dir: "", provider: "codex" };
+    const m = { ...manos(true), programa: "codex", cuentaDe: (cli: string) => (cli === "codex" ? cuenta : undefined) };
+    m.recetar = (ex) => {
+      m.pedidas.push(ex);
+      return {
+        cli: "claude",
+        modelo: "opus",
+        esfuerzo: "high",
+        porque: ["Es de los de juicio: si sale mal y no se nota, sale caro.", "Con «Munir», que es la que más semana le queda (80 %)."],
+      } as Receta;
+    };
+    const vistas: string[] = [];
+    m.abrir = (r, cwd, label) => {
+      vistas.push(`${label}|${r.cli}|${r.modelo}|${r.esfuerzo}|${r.cuenta?.id}`);
+      return 7;
+    };
+    const h = await ejecutar([abrirAdeorq], m);
+    ok("con un programa forzado, el router sigue eligiendo el escalón", m.pedidas.length === 1);
+    ok("y se abre con ESE programa, su escalón, su esfuerzo y su cuenta", vistas[0] === "Adeorq · codex|codex|opus|high|c1", vistas[0]);
+    ok("la pestaña dice que es Codex", h.abiertos[0]?.cli === "codex" && h.abiertos[0]?.cuenta === "Trabajo");
+    ok("el porqué dice que lo elegiste tú y por qué ese escalón", h.abiertos[0]?.porque.startsWith("Con Codex, porque lo elegiste tú.") && h.abiertos[0]?.porque.includes("juicio"), h.abiertos[0]?.porque);
+    ok("sin la cuenta de Claude, que con Codex no es verdad", !h.abiertos[0]?.porque.includes("semana"), h.abiertos[0]?.porque);
+  }
+  {
+    // Un programa que no sabe de modelos (Antigravity) no lleva escalón.
+    const m = { ...manos(true), programa: "agy" };
+    const vistas: string[] = [];
+    m.abrir = (r) => {
+      vistas.push(`${r.cli}|${r.modelo}`);
+      return 7;
+    };
+    await ejecutar([abrirAdeorq], m);
+    ok("un programa sin bandera de modelo va sin escalón", vistas[0] === "agy|undefined", vistas[0]);
+  }
+  {
+    // Router apagado y programa forzado: el modelo fijo, en ese programa.
+    const m = { ...manos(false), programa: "gemini" };
+    const vistas: string[] = [];
+    m.abrir = (r) => {
+      vistas.push(`${r.cli}|${r.modelo}`);
+      return 7;
+    };
+    const h = await ejecutar([abrirAdeorq], m);
+    ok("router apagado con programa: el modelo fijo en ese programa", vistas[0] === "gemini|sonnet" && m.pedidas.length === 0, vistas[0]);
+    ok("y lo eligió él", h.abiertos[0]?.eligio === "tu");
+  }
+  {
+    // Si el router ya da ese programa (Claude con Claude), no se toca nada.
+    const m = { ...manos(true), programa: "claude" };
+    const h = await ejecutar([abrirAdeorq], m);
+    ok("forzar el programa que ya da el router no cambia su porqué", h.abiertos[0]?.porque === "es de juicio tu cuenta tiene semana", h.abiertos[0]?.porque);
+  }
+  ok(
+    "las sesiones se ofrecen con Claude y con los programas con cuenta que aceptan encargo",
+    programasDeSesion([{ provider: "codex" }, { provider: "kimi" }, { provider: "gemini" }]).join() === "claude,codex,gemini",
+    programasDeSesion([{ provider: "codex" }, { provider: "kimi" }, { provider: "gemini" }]).join(),
+  );
 
   // ── Lo que falla se dice ────────────────────────────────────────────────────
   {

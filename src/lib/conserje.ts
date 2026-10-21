@@ -19,6 +19,7 @@ import type { Exigencia, Receta } from "./router";
 import type { Account, PaneStatus, WorkState } from "./pty";
 import type { ModelAlias } from "./models";
 import { quienSoy } from "./perfil";
+import { CLAUDE, PROVIDERS, providerOf, sabe } from "./providers";
 
 export interface Turno {
   n: number;
@@ -81,6 +82,11 @@ export interface Conversacion {
   /** El modelo de las sesiones con el router apagado, el mismo en el PC y en
    *  el móvil; vacío es el de por defecto de Ajustes, o Sonnet. */
   fijo?: string;
+  /** Con qué PROGRAMA piensa el conserje; vacío es Claude. `cerebro` es el
+   *  escalón, que Rust traduce al nombre de modelo de ese programa. */
+  pensador?: string;
+  /** Con qué programa se abren las sesiones si lo forzaste; vacío, el router. */
+  programa?: string;
   /** Es un enjambre del lienzo (`lib/enjambre.ts`): sus trabajos son sesiones
    *  que ya estaban abiertas, y quien contesta es Adeo, con Haiku. */
   enjambre?: boolean;
@@ -94,6 +100,36 @@ export const cerebroDe = (c: Conversacion | null) =>
 /** El modelo fijo de la conversación, si se eligió uno de la lista. */
 export const fijoDe = (c: Conversacion | null): ModelAlias | undefined =>
   (CEREBROS_CONSERJE as readonly string[]).includes(c?.fijo ?? "") ? (c?.fijo as ModelAlias) : undefined;
+/** Con qué programa piensa: el elegido, o Claude. */
+export const pensadorDe = (c: Conversacion | null) => c?.pensador || "claude";
+/** El programa forzado para las sesiones; vacío es «el que diga el router». */
+export const programaDe = (c: Conversacion | null) => c?.programa || "";
+
+/** Un programa que sabe pensar como conserje, tal como lo describe Rust
+ *  (`conserje_pensadores`): sus tres escalones con el nombre que él entiende.
+ *  Todos piensan con las mismas siete manos de mirar de Adeorq. */
+export interface Pensador {
+  id: string;
+  modelos: Record<"haiku" | "sonnet" | "opus", string>;
+  instalado: boolean;
+}
+export const conserjePensadores = () => invoke<Pensador[]>("conserje_pensadores");
+
+/* Si Adeo está pensando en alguna conversación, para quien no la tiene abierta
+   (la caja del Panel enciende su filo de luz con esto). Lo apunta el envío, que
+   es el mismo camino desde el PC y desde el móvil. */
+const pensandoEn = new Set<string>();
+const PENSANDO = "adeorq:conserje-pensando";
+export function marcarPensando(id: string, si: boolean): void {
+  if (si) pensandoEn.add(id);
+  else pensandoEn.delete(id);
+  window.dispatchEvent(new CustomEvent(PENSANDO));
+}
+export const algunoPensando = () => pensandoEn.size > 0;
+export function onPensando(cb: () => void): () => void {
+  window.addEventListener(PENSANDO, cb);
+  return () => window.removeEventListener(PENSANDO, cb);
+}
 
 export interface Ficha {
   id: string;
@@ -127,6 +163,8 @@ export const conserjeRouter = (id: string, encendido: boolean) =>
 export const conserjeCerebro = (id: string, cerebro: string) =>
   invoke<void>("conserje_cerebro", { id, cerebro });
 export const conserjeFijo = (id: string, modelo: string) => invoke<void>("conserje_fijo", { id, modelo });
+export const conserjePensador = (id: string, pensador: string) => invoke<void>("conserje_pensador", { id, pensador });
+export const conserjePrograma = (id: string, programa: string) => invoke<void>("conserje_programa", { id, programa });
 /** Apunta una sesión que se ACABA de abrir; Rust le pone el arranque. */
 export const conserjeTrabajo = (id: string, trabajo: Trabajo) =>
   invoke<void>("conserje_trabajo", { id, trabajo });
@@ -312,6 +350,12 @@ export interface Manos {
   recetar: (ex: Exigencia, de: { proyecto: string; encargo: string }) => Receta;
   /** Lo que se usa con el router apagado: lo que Munir tenga puesto. */
   fijo: { cli: string; modelo?: string };
+  /** El programa con el que se abren las sesiones si lo forzaste («codex»);
+      vacío, el que diga el router. Con el router encendido, el router sigue
+      eligiendo el escalón y el esfuerzo; apagado, va con el modelo fijo. */
+  programa?: string;
+  /** Con qué cuenta se abre ese programa: la más fresca de las conectadas. */
+  cuentaDe?: (cli: string) => Account | undefined;
   /** Abre la sesión sin moverte del chat y devuelve su panel. */
   abrir: (r: Pick<Receta, "cli" | "cuenta" | "modelo" | "esfuerzo">, cwd: string, label: string, encargo: string) => number | undefined;
   escribir: (panel: number, texto: string) => Promise<boolean>;
@@ -324,14 +368,51 @@ export interface Hecho {
   fallos: string[];
 }
 
+/** Las razones del router que hablan del MODELO (la clase del trabajo, lo que
+ *  sube un escalón, tu cerebro por defecto, lo largo). Las de la cuenta y la
+ *  semana son de Claude, y con otro programa forzado no dicen nada verdad. */
+const DEL_MODELO = /^(Es |Sube a |Tu cerebro por defecto|Tienes )/;
+
+type Elegida = Pick<Receta, "cli" | "cuenta" | "modelo" | "esfuerzo" | "porque">;
+
+/** Con qué se abre un trabajo: el router, el programa que forzaste, o lo fijo. */
+function recetaDe(a: Extract<Accion, { tipo: "abrir" }>, m: Manos): Elegida {
+  const programa = m.programa || "";
+  if (!m.router) {
+    return {
+      cli: programa || m.fijo.cli,
+      cuenta: programa ? m.cuentaDe?.(programa) : undefined,
+      modelo: m.fijo.modelo as Receta["modelo"],
+      porque: [],
+    };
+  }
+  const r = m.recetar(exigenciaDe(a), { proyecto: hoja(a.carpeta), encargo: a.encargo });
+  if (!programa || programa === r.cli) return r;
+  // Forzado a otro programa: del router se queda el escalón y el esfuerzo, que
+  // la tabla de proveedores traduce a lo que entienda ese CLI (`planDeArranque`).
+  return {
+    cli: programa,
+    cuenta: m.cuentaDe?.(programa),
+    modelo: sabe(programa, "modelo") ? r.modelo : undefined,
+    esfuerzo: r.esfuerzo,
+    porque: [`Con ${providerOf(programa).marca ?? providerOf(programa).label}, porque lo elegiste tú.`, ...r.porque.filter((p) => DEL_MODELO.test(p))],
+  };
+}
+
+/** Los programas con los que se pueden abrir las sesiones de Adeo: el de
+ *  fábrica y los que tienen una cuenta en Adeorq, si aceptan el encargo en su
+ *  línea de arranque (sin eso la sesión nacería vacía). En el orden de la tabla. */
+export function programasDeSesion(cuentas: Pick<Account, "provider">[]): string[] {
+  const con = new Set(cuentas.map((c) => c.provider));
+  return PROVIDERS.filter((p) => (p === CLAUDE || con.has(p.id)) && sabe(p.id, "encargoEnLinea")).map((p) => p.id);
+}
+
 export async function ejecutar(acciones: Accion[], m: Manos): Promise<Hecho> {
   const hecho: Hecho = { abiertos: [], escritos: [], fallos: [] };
   const ahora = m.ahora ?? (() => Math.floor(Date.now() / 1000));
   for (const a of acciones) {
     if (a.tipo === "abrir") {
-      const receta: Pick<Receta, "cli" | "cuenta" | "modelo" | "esfuerzo" | "porque"> = m.router
-        ? m.recetar(exigenciaDe(a), { proyecto: hoja(a.carpeta), encargo: a.encargo })
-        : { cli: m.fijo.cli, modelo: m.fijo.modelo as Receta["modelo"], porque: [] };
+      const receta = recetaDe(a, m);
       const label = `${hoja(a.carpeta)} · ${receta.cli}`;
       const panel = m.abrir(receta, a.carpeta, label, a.encargo);
       if (panel === undefined) {

@@ -2934,11 +2934,13 @@ ${ruta}` : ruta;
         const nodo = mapa.get(a.nodo);
         return nodo ? { ...a, nodo } : undefined;
       };
+      // Sello y número de orden, no el sello delante del id viejo: así crecía en
+      // cada apertura, hasta 2.376 caracteres (`trazos-al-reabrir.mjs`).
       setTrazos((prev) => [
         ...prev,
-        ...f.trazos.map((s) => ({
+        ...f.trazos.map((s, i) => ({
           ...s,
-          id: `${sello}-${s.id}`,
+          id: `${sello}-${i.toString(36)}`,
           anclaDe: reancla(s.anclaDe),
           anclaA: reancla(s.anclaA),
         })),

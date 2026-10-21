@@ -281,7 +281,11 @@
   background: var(--popover);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
-  box-shadow: var(--glass-edge);
+  /* La sombra de globo de las tarjetas del Panel (`.inicio-card`). */
+  box-shadow:
+    var(--glass-edge),
+    var(--sombra-3),
+    0 18px 48px color-mix(in srgb, var(--accent) 16%, transparent);
   text-align: left;
 }
 
@@ -330,24 +334,25 @@
   text-overflow: ellipsis;
 }
 
-/* Nueve semanas en columnas de siete, que es como se lee un calendario.
-   ⚠ Las casillas van en PÍXELES, filas y columnas, y no en `1fr` con
-   `aspect-ratio`. Con `1fr` el tamaño de la casilla sale del alto que le toque
-   al mapa, así que el mapa crecía o menguaba según lo que midiera lo de al
-   lado: es lo que lo sacó del panel. En píxeles, un mapa de nueve semanas mide
-   siempre lo mismo y no puede desbordar nada. */
+/* Medio año en columnas de siete, que es como se lee un calendario, llenando
+   la tarjeta a lo ancho: con nueve semanas media tarjeta se quedaba vacía, y
+   Munir eligió que se rellenen los cuadraditos (2026-10-21, como en el Panel).
+   ⚠ El tamaño sale del ANCHO (columnas `1fr` y casillas cuadradas) y nunca del
+   alto: con filas `1fr` la casilla dependía del alto que le tocara al mapa, que
+   crecía o menguaba según lo de al lado, y eso fue lo que lo sacó del panel.
+   El ancho lo fija `.repaso`, así que no puede desbordar nada. */
 .repaso-mapa {
   display: grid;
-  grid-template-rows: repeat(7, 19px);
   grid-auto-flow: column;
-  grid-auto-columns: 19px;
+  grid-template-rows: repeat(7, auto);
+  grid-template-columns: repeat(var(--semanas, 26), minmax(0, 1fr));
   gap: 4px;
   margin-top: 14px;
-  justify-content: start;
 }
 
 .repaso-dia {
-  border-radius: 4px;
+  aspect-ratio: 1;
+  border-radius: 3px;
   background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 

@@ -1428,6 +1428,79 @@ fn pi_transcript_en(raiz: &Path, session_id: &str) -> Option<PathBuf> {
     None
 }
 
+/// La carpeta de Antigravity CLI: `~/.gemini/antigravity-cli`.
+fn agy_dir() -> Option<PathBuf> {
+    crate::dir_casa().map(|h| h.join(".gemini").join("antigravity-cli"))
+}
+
+/// Un id de conversación de agy es un UUID. Se comprueba antes de meterlo en
+/// una ruta: llega del front y acaba en la papelera, y un `..` o una barra
+/// dentro se llevarían lo que no era.
+fn id_de_agy_valido(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_hexdigit() || c == '-')
+}
+
+/// Lo que agy guarda de UNA conversación, ya filtrado a lo que existe.
+///
+/// No guarda por proyecto ni en un `.jsonl`: cada conversación es una base de
+/// SQLite en `conversations/<id>.db` (medido en su disco el 2026-10-21, agy de
+/// `%LOCALAPPDATA%\agy`), y además deja `brain/<id>/` (sus notas y su borrador)
+/// y `annotations/<id>.pbtxt`. La base va la PRIMERA: es la conversación, y sin
+/// ella `agy --conversation <id>` ya no la encuentra; lo demás es lo que dejó
+/// alrededor. `history.jsonl` no se toca: es SU archivo de lo tecleado, de
+/// todas las conversaciones a la vez, y reescribirlo con agy abierto es
+/// pelearse con él por el mismo fichero.
+pub fn agy_archivos(session_id: &str) -> Vec<PathBuf> {
+    agy_dir().map(|d| agy_archivos_en(&d, session_id)).unwrap_or_default()
+}
+
+fn agy_archivos_en(raiz: &Path, session_id: &str) -> Vec<PathBuf> {
+    if !id_de_agy_valido(session_id) {
+        return Vec::new();
+    }
+    let conv = raiz.join("conversations");
+    [
+        conv.join(format!("{session_id}.db")),
+        conv.join(format!("{session_id}.db-wal")),
+        conv.join(format!("{session_id}.db-shm")),
+        raiz.join("brain").join(session_id),
+        raiz.join("annotations").join(format!("{session_id}.pbtxt")),
+    ]
+    .into_iter()
+    .filter(|p| p.exists())
+    .collect()
+}
+
+/// Para el panel de agy: la conversación que empezó en `cwd` desde `since`
+/// (segundos de época), o nada todavía.
+///
+/// Mismo problema que Codex: agy no acepta un id al abrirse, así que su panel
+/// nace sin saber cuál es su conversación, y sin ella no hay nada que borrar
+/// (por eso su papelera no salía). El único sitio legible donde agy apunta
+/// conversación y carpeta juntas es `history.jsonl`: una línea por cosa
+/// tecleada, con `workspace`, `conversationId` y `timestamp` en milisegundos.
+/// Se coge la PRIMERA línea de esa carpeta desde que nació el panel y cuya base
+/// exista; las órdenes con barra no llevan `conversationId` y se saltan solas.
+#[tauri::command(async)]
+pub fn agy_session_since(cwd: String, since: u64) -> Option<String> {
+    agy_session_since_en(&agy_dir()?, &cwd, since)
+}
+
+fn agy_session_since_en(raiz: &Path, cwd: &str, since: u64) -> Option<String> {
+    let texto = std::fs::read_to_string(raiz.join("history.jsonl")).ok()?;
+    let plano = |s: &str| s.replace('/', "\\").trim_end_matches('\\').to_lowercase();
+    let cwd = plano(cwd);
+    texto.lines().find_map(|linea| {
+        let v: Value = serde_json::from_str(linea).ok()?;
+        let id = v["conversationId"].as_str()?;
+        if v["timestamp"].as_u64()? / 1000 < since || plano(v["workspace"].as_str()?) != cwd {
+            return None;
+        }
+        let db = raiz.join("conversations").join(format!("{id}.db"));
+        (id_de_agy_valido(id) && db.is_file()).then(|| id.to_owned())
+    })
+}
+
 /// Antigravity CLI (`agy`, Google's terminal agent, successor to Gemini CLI).
 /// Its Windows installer drops the binary in %LOCALAPPDATA%\Antigravity\;
 /// a PATH install counts too. Returns the command Adeorq should run in a pane.
@@ -3569,6 +3642,68 @@ otra
             codex_transcript_en(&raiz, "no-existe").is_none(),
             "un id desconocido devuelve nada, en vez de el primero que pille",
         );
+
+        let _ = std::fs::remove_dir_all(&raiz);
+    }
+
+    /// agy: su panel aprende la conversación de `history.jsonl` y su papelera
+    /// se lleva la base y lo que dejó alrededor. El árbol calca el de su disco
+    /// (2026-10-21): una conversación vieja en la misma carpeta, una de otra
+    /// carpeta, una orden con barra sin id, y la buena.
+    #[test]
+    fn an_agy_pane_learns_its_conversation_and_finds_its_files() {
+        let raiz = std::env::temp_dir().join(format!("adeorq-agy-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&raiz);
+        let conv = raiz.join("conversations");
+        std::fs::create_dir_all(&conv).unwrap();
+        let (vieja, otra, buena) = (
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+            "33333333-3333-3333-3333-333333333333",
+        );
+        for id in [vieja, otra, buena] {
+            std::fs::write(conv.join(format!("{id}.db")), "sqlite").unwrap();
+        }
+        std::fs::create_dir_all(raiz.join("brain").join(buena)).unwrap();
+        std::fs::create_dir_all(raiz.join("annotations")).unwrap();
+        std::fs::write(raiz.join("annotations").join(format!("{buena}.pbtxt")), "x").unwrap();
+        let linea = |ts: u64, ws: &str, id: Option<&str>| {
+            let mut v = serde_json::json!({ "display": "hola", "timestamp": ts, "workspace": ws });
+            if let Some(id) = id {
+                v["conversationId"] = id.into();
+            }
+            v.to_string()
+        };
+        let historia = [
+            linea(1_000_000, "C:\\proyectos\\Adeorq", Some(vieja)),
+            linea(2_000_000, "C:\\proyectos\\Adeorq", None),
+            linea(2_000_500, "C:\\proyectos\\Otro", Some(otra)),
+            linea(2_001_000, "c:\\Proyectos\\adeorq\\", Some(buena)),
+        ]
+        .join("\n");
+        std::fs::write(raiz.join("history.jsonl"), historia).unwrap();
+
+        assert_eq!(
+            agy_session_since_en(&raiz, "C:\\proyectos\\Adeorq", 2_000).as_deref(),
+            Some(buena),
+            "la primera de ESTA carpeta desde que nació el panel, con la ruta escrita como sea",
+        );
+        assert_eq!(agy_session_since_en(&raiz, "C:\\proyectos\\Adeorq", 3_000), None);
+
+        let nombres: Vec<String> = agy_archivos_en(&raiz, buena)
+            .iter()
+            .map(|p| p.strip_prefix(&raiz).unwrap().to_string_lossy().replace('\\', "/"))
+            .collect();
+        assert_eq!(
+            nombres,
+            [
+                format!("conversations/{buena}.db"),
+                format!("brain/{buena}"),
+                format!("annotations/{buena}.pbtxt"),
+            ],
+            "la base la primera, y solo lo que existe",
+        );
+        assert!(agy_archivos_en(&raiz, "../conversations").is_empty(), "un id con ruta dentro no pasa");
 
         let _ = std::fs::remove_dir_all(&raiz);
     }

@@ -2888,7 +2888,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                   mirar atrás sin quitarle sitio a nada, y el botón sigue siendo
                   lo último que se lee, que es lo que hay que pulsar. Si no hay
                   datos no se pinta nada, en vez de una fila de ceros. */}
-              <Estadisticas />
+              <Estadisticas cuentas={cuentasDeUso} />
               <button className="np-btn empty-new" onClick={() => setWizard(true)}>
                 <PlusIcon size={15} /> {t("Abrir una sesión…")}
               </button>

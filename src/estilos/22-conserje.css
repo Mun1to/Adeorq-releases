@@ -262,6 +262,56 @@
   width: 220px;
 }
 .cj-pastilla:disabled { opacity: 0.45; cursor: default; }
+/* Los dos menús anchos (2026-10-21): el del cerebro, con el programa arriba y
+   su escalón debajo, y el de «Sesiones», con el router y los programas. */
+.cj-pastillas .chat-menu.cj-menu-cerebro,
+.cj-pastillas .chat-menu.cj-menu-ancho {
+  width: 300px;
+}
+/* Los programas, sueltos: el logo y su nombre, y el elegido con la raya de
+   acento debajo, como las pestañas de arriba. Sin recuadro. */
+.cj-progs {
+  display: flex;
+  gap: 2px;
+  padding: 2px 2px 8px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid var(--border);
+}
+.cj-prog {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 2px 6px;
+  background: none;
+  border: 0;
+  border-radius: var(--r-btn);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cj-prog:hover:not(:disabled) { background: var(--row); color: var(--text); }
+.cj-prog:disabled { opacity: 0.45; cursor: default; }
+.cj-prog[data-on="true"] { color: var(--text); font-weight: 650; }
+.cj-prog[data-on="true"]::after {
+  content: "";
+  position: absolute;
+  left: 28%;
+  right: 28%;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.cj-prog-marca { flex: none; display: inline-flex; line-height: 0; }
+.cj-prog-marca .prov-mark { width: 16px; height: 16px; }
+.cj-prog-router { color: var(--accent); }
+.chat-menu-fila .cj-escalon { flex: none; width: 58px; font-size: 11px; color: var(--muted); }
 /* Lo mejorado se marca en el borde de la caja entera: un marco alrededor del
    texto dejaba una caja dentro de otra. */
 .chat-caja:has(.chat-input[data-mejorado="true"]) {

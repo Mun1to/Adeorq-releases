@@ -183,7 +183,7 @@ async (page) => {
   caso("abre el test: la tarjeta lo dice (el archivo va en la lista, no repetido debajo) y la fila se enciende con su etiqueta", m.que === "leyendo" && m.estado === "Trabajando" && m.titulo === "Claude está leyendo" && m.sub === null && m.test?.agente === "leyendo" && m.test?.etq === "Leyendo", JSON.stringify([m.que, m.estado, m.titulo, m.sub, m.test]));
   caso("la carpeta lleva la marca de lo de dentro", m.tests?.agente === "leyendo" && m.src?.agente === null, JSON.stringify([m.tests, m.src]));
   caso("la lista nace dentro de la tarjeta, con una fila y sin rótulo encima", m.listaDentro && m.cab === "" && m.lista.join() === "client.test.js|tests||Leyendo|leyendo", `${m.listaDentro} «${m.cab}» / ${m.lista}`);
-  caso("la etiqueta entra con su animación, la fila tiene fondo y el nombre brilla mientras lo lee", /arch-etq-entra/.test(m.test?.etqMueve ?? "") && m.test?.fondo !== "rgba(0, 0, 0, 0)" && m.test?.nomBrilla, JSON.stringify(m.test));
+  caso("la etiqueta entra con su animación, la fila no lleva fondo y el nombre brilla mientras lo lee (solo el texto, Munir 2026-10-19)", /arch-etq-entra/.test(m.test?.etqMueve ?? "") && m.test?.fondo === "rgba(0, 0, 0, 0)" && m.test?.nomBrilla, JSON.stringify(m.test));
   caso("la tarjeta lleva el halo de la familia de la barra", m.tarjetaHalo, "sin «0px 10px 28px» en la sombra de .arch-tarjeta");
   await foto("agente-1-leyendo.png");
 
@@ -224,7 +224,7 @@ async (page) => {
   await poner({ turno: 2, tocados: editados }, { delante: 1, cambios: [], commits: [COMMIT] });
   m = await medir();
   caso("el commit entra: las dos filas pasan a verde con su etiqueta", m.cliente?.agente === "commit" && m.estaciones?.agente === "commit" && m.cliente?.etq === "En el commit" && m.cliente?.letra === null && m.cliente?.lineas === null, JSON.stringify([m.cliente, m.estaciones]));
-  caso("el verde no es el naranja de antes, la fila lleva fondo y el nombre entra brillando", m.cliente?.color !== colorEditado && m.cliente?.fondo !== "rgba(0, 0, 0, 0)" && /arch-brilla/.test(m.cliente?.nomMueve ?? ""), JSON.stringify([colorEditado, m.cliente]));
+  caso("el verde no es el naranja de antes, la fila sigue sin fondo y el nombre entra brillando", m.cliente?.color !== colorEditado && m.cliente?.fondo === "rgba(0, 0, 0, 0)" && /arch-brilla/.test(m.cliente?.nomMueve ?? ""), JSON.stringify([colorEditado, m.cliente]));
   caso("la tarjeta: cuántos entraron, el hash y el asunto", m.que === "commit" && m.estado === "Hecho" && m.titulo === "Claude hizo commit de 2 archivos" && (m.sub ?? "").startsWith("a1c9e42 · fix: the client"), JSON.stringify([m.que, m.titulo, m.sub]));
   caso("la línea de git: lo que falta por subir y el árbol limpio", /main\s*↑1/.test(m.git ?? "") && /limpio, nada cambiado/.test(m.git ?? ""), m.git);
   caso("la lista entera: los dos en el commit, y lo que solo abrió sigue abierto", m.lista.join(" ") === "stations.js|src/api||En el commit|commit client.js|src/api||En el commit|commit client.test.js|tests||Abierto|leido", m.lista.join(" "));

@@ -300,7 +300,9 @@
    sin cambiarles el color, en el verde que Orquio lleva como proyecto en esta
    casa (`lib/colorLienzo.ts`, el tono 103). Fijo en el nombre que el agente
    está tocando ahora; y en el que acaba de cambiar nace y se apaga. Lo que NO
-   quiso: la fila entera encendida. */
+   quiso: la fila entera encendida. Y el 2026-10-19, «que sea solo el texto
+   glow»: ninguna fila lleva fondo por lo que hizo el agente, ni en la lista
+   ni en el árbol, y tampoco al entrar el commit. */
 .arch {
   --arch-leido: #b79cf5;
   --arch-editado: #ff9a4d;
@@ -632,9 +634,6 @@
   font-size: 11.5px;
   color: var(--muted);
 }
-.arch-toc[data-agente="commit"] {
-  background: color-mix(in srgb, var(--arch-commit) 12%, transparent);
-}
 .arch-toc-mas {
   justify-self: start;
   margin: 2px 0 0;
@@ -699,9 +698,6 @@
 .arch-fila .arch-nom[data-cambio] {
   animation: arch-brilla calc(var(--t-lenta) * 4) ease-out both;
 }
-.arch-fila[data-agente] {
-  transition: background-color var(--t-lenta);
-}
 .arch-fila[data-agente] .arch-nom {
   color: color-mix(in srgb, var(--arch-a) 70%, var(--text));
   transition: color var(--t-lenta);
@@ -709,13 +705,6 @@
 /* Que lo abriera no tapa lo que git dice de él. */
 .arch-fila[data-agente="leido"][data-estado] .arch-nom {
   color: color-mix(in srgb, var(--arch-c) 62%, var(--text));
-}
-.arch-fila[data-carpeta="false"][data-agente="editando"]:not([data-on="true"]),
-.arch-fila[data-carpeta="false"][data-agente="leyendo"]:not([data-on="true"]) {
-  background: color-mix(in srgb, var(--arch-a) 18%, transparent);
-}
-.arch-fila[data-carpeta="false"][data-agente="commit"]:not([data-on="true"]) {
-  background: color-mix(in srgb, var(--arch-commit) 12%, transparent);
 }
 /* Cuántos cambiados lleva dentro una carpeta, delante de su punto. */
 .arch-dentro {

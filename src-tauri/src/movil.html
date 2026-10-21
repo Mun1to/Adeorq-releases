@@ -1188,15 +1188,19 @@ const EN = {
   "Mejorar": "Improve",
   "Mejorando…": "Improving…",
   "Deshacer": "Undo",
-  "Con qué piensa el conserje. Las sesiones que abre las elige el router.":
-    "What the concierge thinks with. The router picks the sessions it opens.",
-  "Con qué modelo piensa el conserje": "Which model the concierge thinks with",
+  "Con qué piensa el conserje: el programa y su escalón. Las sesiones que abre van aparte.":
+    "What the concierge thinks with: the program and its tier. The sessions it opens are set apart.",
+  "Con qué piensa el conserje": "What the concierge thinks with",
   "Conserje: {m}": "Concierge: {m}",
-  "Router: automático": "Router: automatic",
-  "Router: apagado": "Router: off",
-  "El modelo de las sesiones que abre, con el router apagado. El mismo que en el PC.":
-    "The model of the sessions it opens, with the router off. The same one as on the PC.",
-  "Modelo de las sesiones con el router apagado": "Model of the sessions with the router off",
+  "Conserje: {p} · {e}": "Concierge: {p} · {e}",
+  "Rápido": "Fast",
+  "A fondo": "Deep",
+  "Con qué programa se abren las sesiones que reparte Adeo": "Which program the sessions Adeo hands out open with",
+  "Sesiones: Router": "Sessions: Router",
+  "El modelo de las sesiones que abre. El mismo que en el PC.": "The model of the sessions it opens. The same one as on the PC.",
+  "Modelo de las sesiones": "Model of the sessions",
+  "Modelo: lo elige el router": "Model: the router picks",
+  "Modelo: {m}": "Model: {m}",
   "Sesiones: {m}": "Sessions: {m}",
   "Lo eligió el router.": "The router picked it.",
   "Elegido por ti: el router estaba apagado.": "Picked by you: the router was off.",
@@ -2962,17 +2966,9 @@ function pintarHiloEntero() {
           ${CLIP}
         <div class="pastillas">
           <button class="pastilla" id="mejorar">${ICONO.chispa}<span>${tr("Mejorar")}</span></button>
-          <label class="pastilla" title="${tr("Con qué piensa el conserje. Las sesiones que abre las elige el router.")}"><select id="cerebro" aria-label="${tr("Con qué modelo piensa el conserje")}">
-            <option value="haiku">${tr("Conserje: {m}", { m: "Claude Haiku" })}</option>
-            <option value="sonnet">${tr("Conserje: {m}", { m: "Claude Sonnet" })}</option>
-            <option value="opus">${tr("Conserje: {m}", { m: "Claude Opus" })}</option>
-          </select></label>
-          <button class="pastilla" id="router" data-on="true">${ICONO.diana}<span>${tr("Router: automático")}</span></button>
-          <label class="pastilla" id="fijo-caja" hidden title="${tr("El modelo de las sesiones que abre, con el router apagado. El mismo que en el PC.")}"><select id="fijo" aria-label="${tr("Modelo de las sesiones con el router apagado")}">
-            <option value="haiku">${tr("Sesiones: {m}", { m: "Claude Haiku" })}</option>
-            <option value="sonnet">${tr("Sesiones: {m}", { m: "Claude Sonnet" })}</option>
-            <option value="opus">${tr("Sesiones: {m}", { m: "Claude Opus" })}</option>
-          </select></label>
+          <label class="pastilla" title="${tr("Con qué piensa el conserje: el programa y su escalón. Las sesiones que abre van aparte.")}"><select id="cerebro" aria-label="${tr("Con qué piensa el conserje")}"></select></label>
+          <label class="pastilla" title="${tr("Con qué programa se abren las sesiones que reparte Adeo")}"><select id="programa" aria-label="${tr("Con qué programa se abren las sesiones que reparte Adeo")}"></select></label>
+          <label class="pastilla" id="fijo-caja" hidden title="${tr("El modelo de las sesiones que abre. El mismo que en el PC.")}"><select id="fijo" aria-label="${tr("Modelo de las sesiones")}"></select></label>
         </div>
           <button class="enviar" id="enviar" aria-label="${tr("Enviar")}">${ICONO.subir}</button>
           </div>
@@ -2990,9 +2986,9 @@ function pintarHiloEntero() {
   });
   document.getElementById("enviar").addEventListener("click", () => (e.enCurso?.pensando ? parar() : enviar()));
   document.getElementById("mejorar").addEventListener("click", mejorar);
-  document.getElementById("router").addEventListener("click", alternarRouter);
   document.getElementById("cerebro").addEventListener("change", (ev) => elegirCerebro(ev.target.value));
-  document.getElementById("fijo").addEventListener("change", (ev) => elegirFijo(ev.target.value));
+  document.getElementById("programa").addEventListener("change", (ev) => elegirPrograma(ev.target.value));
+  document.getElementById("fijo").addEventListener("change", (ev) => elegirModelo(ev.target.value));
   e.crecer = crecer;
   e.guardarBorrador = borrador(`c:${e.id}`, texto);
   crecer();
@@ -3011,6 +3007,7 @@ function pintarHiloEntero() {
 }
 
 async function cargarHilo() {
+  await cargarListas();
   const v = await api("GET", `/api/conversacion?id=${encodeURIComponent(e.id)}`);
   if (e.vista !== "hilo") return;
   e.conv = v.conversacion;
@@ -3101,20 +3098,78 @@ function pintarCaja() {
   const mejorarB = document.getElementById("mejorar");
   mejorarB.innerHTML = e.antes != null ? `${ICONO.deshacer}<span>${tr("Deshacer")}</span>` : `${ICONO.chispa}<span>${e.mejorando ? tr("Mejorando…") : tr("Mejorar")}</span>`;
   mejorarB.disabled = !!e.mejorando || (e.antes == null && !texto.value.trim());
-  const cerebro = document.getElementById("cerebro");
-  const elegido = ["haiku", "sonnet", "opus"].includes(e.conv?.cerebro) ? e.conv.cerebro : "sonnet";
-  if (document.activeElement !== cerebro) cerebro.value = elegido;
-  const routerB = document.getElementById("router");
+  pintarPastillas();
+}
+
+// ─── Las pastillas de Adeo, las mismas tres que en el PC (2026-10-21) ────────
+// «Conserje: programa · escalón» (con qué piensa), «Sesiones: Router» o un
+// programa (con qué se abren las sesiones que reparte) y, con un programa
+// forzado que admita modelo, «Modelo: lo elige el router» o uno fijo. Las
+// listas las da el PC (`/api/programas`): sin ellas, solo Claude y el router.
+
+const ESCALONES = ["haiku", "sonnet", "opus"];
+const escalonDe = (cli, m) =>
+  cli === "claude" ? `Claude ${m[0].toUpperCase()}${m.slice(1)}` : { haiku: tr("Rápido"), sonnet: tr("Normal"), opus: tr("A fondo") }[m];
+const nombreDePrograma = (cli) =>
+  (e.listas?.programas || []).find((p) => p.id === cli)?.nombre || `${cli[0].toUpperCase()}${cli.slice(1)}`;
+/** Con qué se abren las sesiones: vacío es el router; con el router apagado y
+    sin programa elegido, Claude con su modelo fijo (lo de antes), como en el PC. */
+const programaActual = () => e.conv?.programa || ((e.conv ? e.conv.router : true) ? "" : "claude");
+
+/** Rellena un `select` solo si sus opciones cambiaron, y no mientras lo tocas. */
+function opciones(sel, lista, valor) {
+  const html = lista.map(([v, texto]) => `<option value="${esc(v)}">${esc(texto)}</option>`).join("");
+  if (sel.dataset.html !== html) {
+    sel.innerHTML = html;
+    sel.dataset.html = html;
+  }
+  if (document.activeElement !== sel) sel.value = valor;
+}
+
+function pintarPastillas() {
   const on = e.conv ? e.conv.router : true;
-  routerB.dataset.on = String(on);
-  routerB.innerHTML = `${ICONO.diana}<span>${on ? tr("Router: automático") : tr("Router: apagado")}</span>`;
-  // Con el router apagado, qué modelo llevan las sesiones: el fijado en la
-  // conversación (en el PC o aquí), y si no Sonnet.
-  const fijoCaja = document.getElementById("fijo-caja");
-  const fijo = document.getElementById("fijo");
-  fijoCaja.hidden = on;
-  const fijado = ["haiku", "sonnet", "opus"].includes(e.conv?.fijo) ? e.conv.fijo : "sonnet";
-  if (document.activeElement !== fijo) fijo.value = fijado;
+  const pensadores = (e.listas?.pensadores || [{ id: "claude", instalado: true }]).filter((p) => p.instalado);
+  const pensador = e.conv?.pensador || "claude";
+  const escalon = ESCALONES.includes(e.conv?.cerebro) ? e.conv.cerebro : "sonnet";
+  opciones(
+    document.getElementById("cerebro"),
+    pensadores.flatMap((p) =>
+      ESCALONES.map((m) => [
+        `${p.id}:${m}`,
+        p.id === "claude" ? tr("Conserje: {m}", { m: escalonDe("claude", m) }) : tr("Conserje: {p} · {e}", { p: nombreDePrograma(p.id), e: escalonDe(p.id, m) }),
+      ]),
+    ),
+    `${pensador}:${escalon}`,
+  );
+  const programa = programaActual();
+  const programas = (e.listas?.programas || []).map((p) => p.id);
+  if (programa && !programas.includes(programa)) programas.push(programa);
+  opciones(
+    document.getElementById("programa"),
+    [["", tr("Sesiones: Router")], ...programas.map((cli) => [cli, tr("Sesiones: {m}", { m: nombreDePrograma(cli) })])],
+    programa,
+  );
+  // El modelo de las sesiones, solo con un programa forzado que lo admita:
+  // con el router, el modelo es suyo y no hay nada que elegir.
+  const conModelo = (e.listas?.programas || []).find((p) => p.id === programa)?.modelo ?? programa === "claude";
+  document.getElementById("fijo-caja").hidden = !programa || !conModelo;
+  const fijado = ESCALONES.includes(e.conv?.fijo) ? e.conv.fijo : "sonnet";
+  opciones(
+    document.getElementById("fijo"),
+    [["router", tr("Modelo: lo elige el router")], ...ESCALONES.map((m) => [m, tr("Modelo: {m}", { m: escalonDe(programa || "claude", m) })])],
+    on ? "router" : fijado,
+  );
+}
+
+/** Las listas para elegir, una vez por carga de la página: qué programas hay
+    instalados en el PC no cambia mientras miras el móvil. */
+async function cargarListas() {
+  if (e.listas) return;
+  try {
+    e.listas = await api("GET", "/api/programas");
+  } catch {
+    e.listas = null;
+  }
 }
 
 function mostrarFallo(mensaje) {
@@ -3180,28 +3235,41 @@ async function mejorar() {
   }
 }
 
-async function elegirCerebro(cerebro) {
+/** «Conserje»: el programa y su escalón van juntos en una opción («codex:sonnet»);
+    se manda solo lo que cambió. */
+async function elegirCerebro(valor) {
+  const [pensador, cerebro] = valor.split(":");
   try {
-    await api("POST", "/api/cerebro", { id: e.id, cerebro });
+    if (pensador !== (e.conv?.pensador || "claude")) await api("POST", "/api/pensador", { id: e.id, pensador });
+    if (cerebro !== e.conv?.cerebro) await api("POST", "/api/cerebro", { id: e.id, cerebro });
     await cargarHilo();
   } catch (err) {
     mostrarFallo(err.message);
   }
 }
 
-async function elegirFijo(modelo) {
+/** «Sesiones»: Router vuelve a dejarlo todo en sus manos; un programa sin
+    modelo fijo posible no puede ir con el router apagado (igual que en el PC). */
+async function elegirPrograma(programa) {
+  const conModelo = (e.listas?.programas || []).find((p) => p.id === programa)?.modelo ?? programa === "claude";
   try {
-    await api("POST", "/api/fijo", { id: e.id, modelo });
+    await api("POST", "/api/programa", { id: e.id, programa });
+    if (e.conv && !e.conv.router && (!programa || !conModelo)) await api("POST", "/api/router", { id: e.id, encendido: true });
     await cargarHilo();
   } catch (err) {
     mostrarFallo(err.message);
   }
 }
 
-async function alternarRouter() {
-  const on = e.conv ? e.conv.router : true;
+/** «Modelo»: el router, o uno fijo (que es el router apagado de antes). */
+async function elegirModelo(modelo) {
   try {
-    await api("POST", "/api/router", { id: e.id, encendido: !on });
+    if (modelo === "router") {
+      await api("POST", "/api/router", { id: e.id, encendido: true });
+    } else {
+      await api("POST", "/api/fijo", { id: e.id, modelo });
+      if (!e.conv || e.conv.router) await api("POST", "/api/router", { id: e.id, encendido: false });
+    }
     await cargarHilo();
   } catch (err) {
     mostrarFallo(err.message);

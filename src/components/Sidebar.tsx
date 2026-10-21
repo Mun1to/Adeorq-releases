@@ -49,7 +49,7 @@ import UpdateBar from "./UpdateBar";
 import { hueOf } from "../lib/colors";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
-import { PROVIDERS, providerOf } from "../lib/providers";
+import { PROVIDERS, proveedorDe, providerOf } from "../lib/providers";
 import { ATAJOS_PROV_EVENTO, leerAtajosProv } from "../lib/atajosProveedor";
 import { useT } from "../lib/i18n";
 import { latido } from "../lib/latido";
@@ -3661,8 +3661,8 @@ export default function Sidebar({
             <h3 className="modal-title">{t("Borrar la sesión")}</h3>
             <p className="modal-text">
               {t(
-                "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de Claude Code, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.",
-                { n: binning.title },
+                "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de {p}, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.",
+                { n: binning.title, p: proveedorDe(binning.fuente ?? "claude")?.label ?? "Claude Code" },
               )}
             </p>
             {binning.live && (

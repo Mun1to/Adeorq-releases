@@ -337,6 +337,9 @@ export const PROVIDERS: Provider[] = [
     modelo: true,
     banderaModelo: "-m",
     modelos: { haiku: "flash-lite", sonnet: "flash", opus: "pro" },
+    // «Gemini flash», no «Gemini CLI flash»; y en la fila de programas del
+    // menú del conserje, que es estrecha, «Gemini» (2026-10-21).
+    marca: "Gemini",
     retomable: true,
     retomar: "gemini --resume {id}",
     banderaSesionNueva: "--session-id",

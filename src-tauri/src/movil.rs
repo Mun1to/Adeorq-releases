@@ -789,6 +789,12 @@ pub trait Casa {
     fn cerebro(&self, id: &str, cerebro: &str) -> Result<(), String>;
     /// El modelo de las sesiones con el router apagado.
     fn fijo(&self, id: &str, modelo: &str) -> Result<(), String>;
+    /// Con qué programa piensa el conserje en esa conversación.
+    fn pensador(&self, id: &str, pensador: &str) -> Result<(), String>;
+    /// Con qué programa se abren sus sesiones; vacío es el router.
+    fn programa(&self, id: &str, programa: &str) -> Result<(), String>;
+    /// Los programas con los que puede pensar, con sus tres escalones.
+    fn pensadores(&self) -> Value;
     fn parar(&self, id: &str);
     fn sesion(&self, cwd: &str, sesion: &str) -> Result<Value, String>;
     /// Dónde se guardan los adjuntos que llegan del móvil.
@@ -1087,6 +1093,38 @@ pub fn atender(
                 Err(r) => return r,
             };
             match casa.fijo(&id, cuerpo["modelo"].as_str().unwrap_or("")) {
+                Ok(()) => Respuesta::json(200, json!({ "ok": true })),
+                Err(e) => Respuesta::error(400, &e),
+            }
+        }
+        // Las dos pastillas del PC (2026-10-21): con qué programa piensa Adeo y
+        // con cuál se abren sus sesiones. Las listas para elegir van juntas: los
+        // pensadores los sabe Rust; los programas de las sesiones, la ventana
+        // (salen de la tabla de proveedores y de tus cuentas). Si la ventana no
+        // contesta, sin programas: el móvil enseña entonces solo «Router».
+        ("GET", "/api/programas") => Respuesta::json(
+            200,
+            json!({
+                "pensadores": casa.pensadores(),
+                "programas": casa.ventana("programas", json!({})).ok().map(|v| v["programas"].clone()).unwrap_or(json!([])),
+            }),
+        ),
+        ("POST", "/api/pensador") => {
+            let id = match id_de(cuerpo["id"].as_str()) {
+                Ok(id) => id,
+                Err(r) => return r,
+            };
+            match casa.pensador(&id, cuerpo["pensador"].as_str().unwrap_or("")) {
+                Ok(()) => Respuesta::json(200, json!({ "ok": true })),
+                Err(e) => Respuesta::error(400, &e),
+            }
+        }
+        ("POST", "/api/programa") => {
+            let id = match id_de(cuerpo["id"].as_str()) {
+                Ok(id) => id,
+                Err(r) => return r,
+            };
+            match casa.programa(&id, cuerpo["programa"].as_str().unwrap_or("")) {
                 Ok(()) => Respuesta::json(200, json!({ "ok": true })),
                 Err(e) => Respuesta::error(400, &e),
             }
@@ -1398,7 +1436,8 @@ pub fn atender(
             }
         }
         (_, "/api/yo" | "/api/lista" | "/api/conversacion" | "/api/enviar" | "/api/mejorar" | "/api/router" | "/api/olvidar" | "/api/programados" | "/api/uso"
-            | "/api/cerebro" | "/api/fijo" | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
+            | "/api/cerebro" | "/api/fijo" | "/api/programas" | "/api/pensador" | "/api/programa"
+            | "/api/parar" | "/api/sesion" | "/api/push/clave" | "/api/push/suscribir"
             | "/api/push/olvidar" | "/api/terminales" | "/api/terminal" | "/api/terminal/escribir"
             | "/api/terminal/tecla" | "/api/adjuntar" | "/api/decisiones" | "/api/decision"
             | "/api/decision/responder" | "/api/decision/descartar" | "/api/avisos" | "/api/olvidarme"
@@ -1498,6 +1537,15 @@ impl Casa for CasaDeVerdad {
     }
     fn fijo(&self, id: &str, modelo: &str) -> Result<(), String> {
         crate::conserje::conserje_fijo(id.to_string(), modelo.to_string())
+    }
+    fn pensador(&self, id: &str, pensador: &str) -> Result<(), String> {
+        crate::conserje::conserje_pensador(id.to_string(), pensador.to_string())
+    }
+    fn programa(&self, id: &str, programa: &str) -> Result<(), String> {
+        crate::conserje::conserje_programa(id.to_string(), programa.to_string())
+    }
+    fn pensadores(&self) -> Value {
+        json!(crate::conserje::conserje_pensadores())
     }
     fn parar(&self, id: &str) {
         crate::conserje::conserje_parar(id.to_string());
@@ -2276,6 +2324,9 @@ mod tests {
                     { "panel": 2, "carpeta": "C:\\p\\dos", "sesion": null },
                 ] }));
             }
+            if clase == "programas" {
+                return Ok(json!({ "programas": [{ "id": "claude", "nombre": "Claude", "modelo": true }, { "id": "codex", "nombre": "Codex", "modelo": true }] }));
+            }
             Ok(json!({ "estados": {} }))
         }
         fn actividad(&self, _: &str, sesion: &str) -> Option<u64> {
@@ -2302,6 +2353,15 @@ mod tests {
         }
         fn fijo(&self, _: &str, modelo: &str) -> Result<(), String> {
             if modelo == "haiku" { Ok(()) } else { Err("no es de la lista".into()) }
+        }
+        fn pensador(&self, _: &str, pensador: &str) -> Result<(), String> {
+            if pensador == "codex" { Ok(()) } else { Err("no es de la lista".into()) }
+        }
+        fn programa(&self, _: &str, programa: &str) -> Result<(), String> {
+            if programa.is_empty() || programa == "codex" { Ok(()) } else { Err("no es un programa".into()) }
+        }
+        fn pensadores(&self) -> Value {
+            json!([{ "id": "claude", "modelos": { "haiku": "haiku", "sonnet": "sonnet", "opus": "opus" }, "instalado": true }])
         }
         fn parar(&self, _: &str) {}
         fn sesion(&self, _: &str, _: &str) -> Result<Value, String> {
@@ -2884,6 +2944,29 @@ mod tests {
         let mal = atender(&pedir("POST", "/api/cerebro", Some(&clave), r#"{"id":"abc","cerebro":"gpt"}"#), &g, &casa, &nada, reloj);
         assert_eq!(mal.estado, 400, "lo que no es de la lista se dice, no se calla");
         assert_eq!(atender(&pedir("POST", "/api/cerebro", None, r#"{"id":"abc","cerebro":"opus"}"#), &g, &casa, &nada, reloj).estado, 401);
+    }
+
+    /// Las dos pastillas del PC, también desde el móvil (2026-10-21): con qué
+    /// programa piensa Adeo, con cuál abre las sesiones, y las listas de los dos.
+    #[test]
+    fn el_programa_de_adeo_y_el_de_sus_sesiones_se_eligen_desde_el_movil() {
+        let (g, clave) = emparejada();
+        let casa = CasaDeMentira::default();
+        let nada = |_: &Ajustes| {};
+        let reloj = (Instant::now(), 0);
+        let estado = |metodo: &str, ruta: &str, clave: Option<&str>, cuerpo: &str| atender(&pedir(metodo, ruta, clave, cuerpo), &g, &casa, &nada, reloj).estado;
+        let listas = atender(&pedir("GET", "/api/programas", Some(&clave), ""), &g, &casa, &nada, reloj);
+        assert_eq!(listas.estado, 200);
+        let v: Value = serde_json::from_slice(&listas.cuerpo).unwrap();
+        assert_eq!(v["pensadores"][0]["id"], "claude");
+        assert_eq!(v["programas"][1]["id"], "codex", "los programas de las sesiones los da la ventana: {v}");
+        assert_eq!(estado("POST", "/api/pensador", Some(&clave), r#"{"id":"abc","pensador":"codex"}"#), 200);
+        assert_eq!(estado("POST", "/api/pensador", Some(&clave), r#"{"id":"abc","pensador":"rm -rf"}"#), 400);
+        assert_eq!(estado("POST", "/api/programa", Some(&clave), r#"{"id":"abc","programa":""}"#), 200, "vacío vuelve al router");
+        assert_eq!(estado("POST", "/api/programa", Some(&clave), r#"{"id":"../x","programa":"codex"}"#), 400);
+        assert_eq!(estado("GET", "/api/pensador", Some(&clave), ""), 405);
+        assert_eq!(estado("POST", "/api/programa", None, r#"{"id":"abc","programa":"codex"}"#), 401);
+        assert_eq!(estado("GET", "/api/programas", None, ""), 401);
     }
 
     #[test]

@@ -42,6 +42,8 @@ export interface Cubo {
 
 export interface Historia {
   cubos: Cubo[];
+  /** Una por conversación leída, con su CLI y entre qué horas trabajó. */
+  sesiones?: { cli: string; desde: string; hasta: string }[];
   archivos: number;
   /** La carpeta madre de los proyectos con la que se leyó, para saber qué no
    *  es un proyecto (`fueraDeProyecto`). No la da Rust: la pone `leerHistoria`. */

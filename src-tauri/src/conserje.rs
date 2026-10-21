@@ -205,6 +205,16 @@ pub struct Conversacion {
     /// Vacío es «el de por defecto de Ajustes, o Sonnet».
     #[serde(default)]
     pub fijo: String,
+    /// Con qué PROGRAMA piensa el conserje (`PENSADORES`); vacío es Claude.
+    /// `cerebro` sigue siendo el escalón, que cada programa llama a su manera.
+    /// Munir, 2026-10-21: «poder iniciarlo con cualquier proveedor».
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub pensador: String,
+    /// Con qué programa se ABREN las sesiones si se forzó uno («codex»);
+    /// vacío, el que diga el router. Lo usa el front (`lib/conserje.ts`), que
+    /// es quien arma la línea de cada CLI; aquí solo se guarda.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub programa: String,
     /// Es un ENJAMBRE del lienzo: sus trabajos son sesiones que ya estaban
     /// abiertas y que Munir juntó en un grupo, y quien contesta es Adeo, que
     /// reparte entre ellas lo que se escribe en la caja común (ver
@@ -249,6 +259,111 @@ impl Conversacion {
         let de_siempre = if self.enjambre { CEREBRO_DE_ENJAMBRE } else { CEREBRO_POR_DEFECTO };
         CEREBROS.iter().copied().find(|c| *c == self.cerebro).unwrap_or(de_siempre)
     }
+    /// El programa con el que piensa: el elegido si es de la tabla, si no Claude.
+    pub fn pensador(&self) -> &'static Pensador {
+        pensador_de(&self.pensador).unwrap_or(&PENSADORES[0])
+    }
+}
+
+/// Cómo habla un programa sin interfaz: con qué banderas se le cierra todo
+/// menos las manos de Adeorq y en qué forma devuelve lo que va haciendo. Es el
+/// formato de su modo sin interfaz, no su nombre: otro CLI que copie uno de
+/// estos (Qwen copia el de Claude Code) entraría por la misma rama.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Dialecto {
+    /// `claude -p … --output-format stream-json`: lo de siempre (`correr`).
+    Claude,
+    /// `codex exec --json`: una línea por suceso, el texto en el último
+    /// `agent_message` y las herramientas como `mcp_tool_call`.
+    CodexExec,
+    /// `gemini -o stream-json`: `message` del asistente en trozos, `tool_use`
+    /// y un `result` final sin texto.
+    GeminiStream,
+}
+
+/// Un programa con el que puede pensar el conserje.
+pub struct Pensador {
+    pub id: &'static str,
+    /// Su programa, como se busca en el PATH.
+    pub exe: &'static str,
+    /// Cómo llama a cada escalón (rápido, normal, a fondo). Son los mismos de
+    /// `modelos` en `src/lib/providers.ts`, y `los_modelos_de_cada_pensador_son_los_de_la_tabla`
+    /// lo comprueba: si OpenAI o Google los renombran, se cambian en los dos.
+    pub modelos: [&'static str; 3],
+    pub dialecto: Dialecto,
+}
+
+/// Los programas con los que puede pensar. Entra uno solo si, medido en su
+/// código el 2026-10-21, se le puede dejar SIN consola, sin disco y sin web y
+/// con solo las siete manos de mirar de Adeorq, sin tocar su configuración:
+///
+/// - Codex 0.163: `--ignore-user-config` y el servidor de Adeorq por `-c`
+///   con `enabled_tools`; la consola fuera con `--disable shell_tool`, la web
+///   con `web_search`, y `-s read-only` para el `apply_patch` que no se puede
+///   quitar (`exec` además rechaza cualquier cambio de archivo).
+/// - Gemini 0.52: unos ajustes de sistema propios por
+///   `GEMINI_CLI_SYSTEM_SETTINGS_PATH`, que pisan su `adeorq` global, y
+///   `tools.core` con solo las siete, que deja sin registrar todas las suyas.
+///
+/// Fuera, con su condición: Antigravity (su consola sigue a la vista del
+/// modelo, solo la frena una política, y en cualquier carpeta carga reglas que
+/// permiten `powershell` y `git push`: entra el día que se le pueda quitar la
+/// herramienta); Copilot y opencode (se pueden cerrar igual, pero opencode no
+/// tiene login aquí y Copilot no tiene una tabla de escalones: entran
+/// midiendo un tiro de cada uno); Qwen (sin login en este equipo).
+pub const PENSADORES: &[Pensador] = &[
+    Pensador { id: "claude", exe: "claude", modelos: ["haiku", "sonnet", "opus"], dialecto: Dialecto::Claude },
+    Pensador {
+        id: "codex",
+        exe: "codex",
+        modelos: ["gpt-5.6-luna", "gpt-5.6-terra", "gpt-6-luna"],
+        dialecto: Dialecto::CodexExec,
+    },
+    Pensador { id: "gemini", exe: "gemini", modelos: ["flash-lite", "flash", "pro"], dialecto: Dialecto::GeminiStream },
+];
+
+pub fn pensador_de(id: &str) -> Option<&'static Pensador> {
+    PENSADORES.iter().find(|p| p.id == id)
+}
+
+/// El nombre que entiende ese programa para un escalón de la casa.
+fn modelo_en(p: &Pensador, escalon: &str) -> &'static str {
+    let i = CEREBROS.iter().position(|c| *c == escalon).unwrap_or(1);
+    p.modelos[i]
+}
+
+/// Dónde está un programa: lo mismo que mira la pantalla de Cuentas.
+fn ejecutable(exe: &str) -> Option<PathBuf> {
+    crate::accounts::detect_clis(vec![(exe.to_string(), exe.to_string())])
+        .into_iter()
+        .next()
+        .map(|c| PathBuf::from(c.path))
+}
+
+/// Con qué se lanza de verdad. En Windows, pnpm deja un `.cmd` que hace
+/// `node "<paquete>\bin\x.js" %*`, y por un `.cmd` pasa la línea entera por
+/// `cmd.exe`, que se come las comillas de un ajuste TOML o JSON y no admite
+/// saltos de línea. Se lee el `.cmd` y se llama a `node` con ese `.js`, como
+/// haría él. Lo que no es un `.cmd` de pnpm se lanza tal cual.
+fn lanzador(exe: &std::path::Path) -> (PathBuf, Vec<String>) {
+    let es_cmd = exe.extension().is_some_and(|e| e.eq_ignore_ascii_case("cmd"));
+    if es_cmd {
+        if let Some(js) = std::fs::read_to_string(exe).ok().as_deref().and_then(js_del_cmd) {
+            let dir = exe.parent().unwrap_or(std::path::Path::new("."));
+            let js = dir.join(js.trim_start_matches(['\\', '/']));
+            let propio = dir.join("node.exe");
+            let node = if propio.is_file() { propio } else { PathBuf::from("node") };
+            return (node, vec![js.to_string_lossy().into_owned()]);
+        }
+    }
+    (exe.to_path_buf(), Vec::new())
+}
+
+/// El `.js` que lanza un `.cmd` de pnpm, relativo a su carpeta (`%~dp0`).
+fn js_del_cmd(cmd: &str) -> Option<String> {
+    cmd.split('"')
+        .find(|trozo| trozo.starts_with("%~dp0") && trozo.ends_with(".js"))
+        .map(|trozo| trozo["%~dp0".len()..].to_string())
 }
 
 pub fn ahora() -> u64 {
@@ -972,7 +1087,9 @@ pub const MANOS: &[&str] = &[
 /// Lo que se ve mientras piensa: una frase por herramienta, no su nombre, en el
 /// idioma de la app.
 pub fn frase_de_paso(bloque: &serde_json::Value, en: bool) -> Option<String> {
-    let nombre = bloque["name"].as_str()?.trim_start_matches("mcp__adeorq__");
+    // Cada programa las nombra a su manera: Claude Code y Codex
+    // `mcp__adeorq__x`, Gemini `mcp_adeorq_x`, y Codex en su salida `x` a secas.
+    let nombre = bloque["name"].as_str()?.trim_start_matches("mcp__adeorq__").trim_start_matches("mcp_adeorq_");
     let e = &bloque["input"];
     let pregunta = || corto(e["pregunta"].as_str().unwrap_or(""), 50);
     Some(match (nombre, en) {
@@ -1137,6 +1254,43 @@ pub fn conserje_fijo(id: String, modelo: String) -> Result<(), String> {
     cambiar(&id, |c| c.fijo = modelo)
 }
 
+/// Con qué programa piensa el conserje en esta conversación (ver `pensador`).
+/// Solo uno de `PENSADORES`: el nombre acaba en una línea de órdenes.
+#[tauri::command(async)]
+pub fn conserje_pensador(id: String, pensador: String) -> Result<(), String> {
+    if pensador_de(&pensador).is_none() {
+        return Err(format!("«{pensador}» no es un programa con el que pueda pensar el conserje"));
+    }
+    // El de fábrica se guarda vacío, como el resto de lo «de siempre».
+    cambiar(&id, |c| c.pensador = if pensador == PENSADORES[0].id { String::new() } else { pensador })
+}
+
+/// Con qué programa se abren las sesiones (ver `programa`). Vacío vuelve al
+/// router. Solo un id con forma de id: lo lee el front contra su tabla.
+#[tauri::command(async)]
+pub fn conserje_programa(id: String, programa: String) -> Result<(), String> {
+    if programa.len() > 24 || !programa.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+        return Err(format!("«{programa}» no es un programa"));
+    }
+    cambiar(&id, |c| c.programa = programa)
+}
+
+/// Los programas con los que puede pensar el conserje, para el menú: sus tres
+/// escalones con el nombre que entienden y si están instalados en este equipo.
+#[tauri::command(async)]
+pub fn conserje_pensadores() -> Vec<serde_json::Value> {
+    PENSADORES
+        .iter()
+        .map(|p| {
+            serde_json::json!({
+                "id": p.id,
+                "modelos": { "haiku": p.modelos[0], "sonnet": p.modelos[1], "opus": p.modelos[2] },
+                "instalado": p.dialecto == Dialecto::Claude || ejecutable(p.exe).is_some(),
+            })
+        })
+        .collect()
+}
+
 /// Hace de una conversación un enjambre, o le cambia el nombre. La pide el
 /// lienzo al crear la pieza y al renombrarla.
 #[tauri::command(async)]
@@ -1257,8 +1411,8 @@ pub async fn conserje_enviar(
     // final del prompt, y si no saldría dos veces. Y lo tuyo se guarda YA: si
     // la llamada falla, lo que dijiste no se pierde.
     let estado_de = |p: u32| estados.get(&p.to_string()).cloned().unwrap_or_default();
-    let (contexto, modelo, enjambre) =
-        cambiar(&id, |c| (c.preparar(&texto, &estado_de), c.cerebro(), c.enjambre))?;
+    let (contexto, modelo, enjambre, pensador) =
+        cambiar(&id, |c| (c.preparar(&texto, &estado_de), c.cerebro(), c.enjambre, c.pensador()))?;
 
     // Un enjambre es la misma conversación con otro papel: no abre, reparte.
     let sistema = if enjambre { SISTEMA_ENJAMBRE } else { SISTEMA };
@@ -1269,7 +1423,7 @@ pub async fn conserje_enviar(
         use tauri::Emitter;
         let _ = app.emit("conserje-paso", serde_json::json!({ "id": id2, "paso": paso }));
     });
-    let bruta = tauri::async_runtime::spawn_blocking(move || correr(&prompt, modelo, Some(&cfg), &parar, en, pasos))
+    let bruta = tauri::async_runtime::spawn_blocking(move || pensar(pensador, &prompt, modelo, Some(&cfg), &parar, en, pasos))
         .await
         .map_err(|e| e.to_string())??;
 
@@ -1397,6 +1551,302 @@ fn correr(
             Err(format!("claude no devolvió nada: {}", err.trim()))
         }
     }
+}
+
+/// Con qué programa piensa este turno: Claude por `correr`, que es lo de
+/// siempre y no se toca; los demás por `correr_otro`.
+fn pensar(
+    p: &'static Pensador,
+    prompt: &str,
+    escalon: &str,
+    cfg: Option<&std::path::Path>,
+    parar: &std::sync::atomic::AtomicBool,
+    en: bool,
+    pasos: Box<dyn Fn(String) + Send>,
+) -> Result<String, String> {
+    if p.dialecto == Dialecto::Claude {
+        return correr(prompt, modelo_en(p, escalon), cfg, parar, en, pasos);
+    }
+    correr_otro(p, prompt, modelo_en(p, escalon), cfg.is_some(), parar, en, pasos)
+}
+
+/// Las siete manos con el nombre que les da el servidor, sin el prefijo con el
+/// que las ve Claude Code (`mcp__adeorq__`).
+fn manos_crudas() -> Vec<&'static str> {
+    MANOS.iter().map(|m| m.trim_start_matches("mcp__adeorq__")).collect()
+}
+
+/// Los ajustes de Gemini para pensar: solo las siete de Adeorq registradas (y
+/// ninguna suya: ni consola, ni archivos, ni web). Van en la capa de SISTEMA,
+/// que manda sobre la suya, y con el mismo nombre `adeorq` pisan el servidor
+/// que tiene puesto en global (el completo, con `open_pane` y `send_command`):
+/// medido con `gemini mcp list`, sale con `--de-casa`.
+///
+/// Lo que NO se consigue: que no lea el `GEMINI.md` global de Munir. Se probó
+/// `context.fileName` con un nombre que no existe y contestó llamándole
+/// «Munito», que solo está ahí (2026-10-21). Es la misma trampa que el `claude
+/// -p` del conserje con su configuración (ver `conserje.md`).
+fn ajustes_gemini(adeorq: &str, con_manos: bool) -> serde_json::Value {
+    let crudas = manos_crudas();
+    let core: Vec<String> = crudas.iter().map(|m| format!("mcp_adeorq_{m}")).collect();
+    let mut v = serde_json::json!({ "tools": { "core": core } });
+    if con_manos {
+        v["mcpServers"] = serde_json::json!({
+            "adeorq": { "command": adeorq, "args": ["--mcp", "--de-casa"], "includeTools": crudas, "trust": true }
+        });
+    }
+    v
+}
+
+/// La línea de Codex para pensar: un tiro sin interfaz, sin guardar la sesión,
+/// sin su `config.toml` (que trae su `adeorq` completo y sus plugins) y con el
+/// servidor de Adeorq solo con las siete, aprobadas de antemano: `exec` no
+/// pregunta, y una herramienta sin aprobar se deniega sola.
+///
+/// Codex no le pasa a sus servidores el entorno entero, así que lo que dice a
+/// QUÉ Adeorq hablar (`entorno_del_puente`) va escrito en el propio servidor:
+/// medido el 2026-10-21 en una Adeorq aislada, sin esto el puente caía en el
+/// 3012 y le contaba los proyectos de la Adeorq de Munir.
+fn linea_codex(modelo: &str, adeorq: Option<&str>, entorno: &[(String, String)]) -> Vec<String> {
+    let mut a: Vec<String> = [
+        "exec",
+        "--json",
+        "--ephemeral",
+        "--skip-git-repo-check",
+        "--ignore-user-config",
+        "-s",
+        "read-only",
+        "--disable",
+        "shell_tool",
+        "--disable",
+        "view_image",
+        "-c",
+        "web_search=\"disabled\"",
+        "-c",
+        "project_doc_max_bytes=0",
+        "-c",
+        "skills.include_instructions=false",
+        "-m",
+        modelo,
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect();
+    if let Some(ruta) = adeorq {
+        let lista = manos_crudas().iter().map(|m| format!("'{m}'")).collect::<Vec<_>>().join(", ");
+        // Literales de TOML entre comillas simples: la barra de Windows va tal cual.
+        let env = entorno.iter().map(|(k, v)| format!("{k} = '{v}'")).collect::<Vec<_>>().join(", ");
+        a.push("-c".into());
+        a.push(format!(
+            "mcp_servers.adeorq={{ command = '{ruta}', args = ['--mcp', '--de-casa'], env = {{ {env} }}, enabled_tools = [{lista}], default_tools_approval_mode = 'approve' }}"
+        ));
+    }
+    // El prompt, por la entrada: con `-` lo lee entero hasta que se cierra.
+    a.push("-".into());
+    a
+}
+
+/// Lo que el puente de Adeorq necesita para hablar con ESTA ventana y no con
+/// otra: el puerto del MCP (`mcp::puerto`, que una Adeorq aislada cambia) y la
+/// carpeta de datos. Lo que lleve una comilla simple no cabe en el TOML de
+/// Codex y se queda fuera (el puente usa entonces lo de siempre).
+fn entorno_del_puente() -> Vec<(String, String)> {
+    ["ADEORQ_MCP_PUERTO", "LOCALAPPDATA"]
+        .iter()
+        .filter_map(|k| std::env::var(k).ok().filter(|v| !v.contains('\'')).map(|v| (k.to_string(), v)))
+        .collect()
+}
+
+/// Lo que va saliendo de un programa que no es Claude, leído en su dialecto:
+/// los pasos (qué herramienta usa) y, al final, su texto o su error.
+#[derive(Default)]
+struct Lectura {
+    texto: String,
+    error: Option<String>,
+}
+
+impl Lectura {
+    /// Una línea de su salida. Devuelve el paso, si la línea es una herramienta.
+    fn linea(&mut self, dialecto: Dialecto, v: &serde_json::Value) -> Option<serde_json::Value> {
+        let como_bloque = |nombre: &serde_json::Value, entrada: &serde_json::Value| {
+            // Codex puede mandar los argumentos como texto con JSON dentro.
+            let entrada = entrada
+                .as_str()
+                .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
+                .unwrap_or_else(|| entrada.clone());
+            serde_json::json!({ "name": nombre, "input": entrada })
+        };
+        match (dialecto, v["type"].as_str().unwrap_or("")) {
+            (Dialecto::CodexExec, "item.started") if v["item"]["type"] == "mcp_tool_call" => {
+                Some(como_bloque(&v["item"]["tool"], &v["item"]["arguments"]))
+            }
+            (Dialecto::CodexExec, "item.completed") if v["item"]["type"] == "agent_message" => {
+                self.texto = v["item"]["text"].as_str().unwrap_or("").to_string();
+                None
+            }
+            (Dialecto::CodexExec, "turn.failed") => {
+                self.error = Some(v["error"]["message"].as_str().unwrap_or("el turno falló").to_string());
+                None
+            }
+            (Dialecto::CodexExec, "error") => {
+                self.error = Some(v["message"].as_str().unwrap_or("error").to_string());
+                None
+            }
+            (Dialecto::GeminiStream, "tool_use") => {
+                // Lo que cuenta es lo que dice DESPUÉS de mirar.
+                self.texto.clear();
+                Some(como_bloque(&v["tool_name"], &v["parameters"]))
+            }
+            (Dialecto::GeminiStream, "message") if v["role"] == "assistant" => {
+                self.texto.push_str(v["content"].as_str().unwrap_or(""));
+                None
+            }
+            (Dialecto::GeminiStream, "result") if v["status"].as_str().is_some_and(|s| s != "success") => {
+                let e = &v["error"];
+                self.error = Some(e["message"].as_str().or(e.as_str()).or(v["status"].as_str()).unwrap_or("error").to_string());
+                None
+            }
+            (Dialecto::GeminiStream, "error") => {
+                self.error = Some(v["message"].as_str().unwrap_or("error").to_string());
+                None
+            }
+            _ => None,
+        }
+    }
+
+    fn fin(self, quien: &str) -> Result<String, String> {
+        if let Some(e) = self.error {
+            return Err(format!("{quien} devolvió error: {e}"));
+        }
+        let t = self.texto.trim().to_string();
+        if t.is_empty() {
+            return Err(format!("{quien} no devolvió texto"));
+        }
+        Ok(t)
+    }
+}
+
+/// Mata un proceso y lo que haya lanzado: el `node` de un CLI de pnpm deja a su
+/// binario de verdad debajo (Codex), y matar solo al `node` lo dejaría suelto.
+fn matar_rama(hijo: &mut std::process::Child) {
+    #[cfg(windows)]
+    {
+        use crate::SinVentana;
+        let _ = std::process::Command::new("taskkill")
+            .args(["/PID", &hijo.id().to_string(), "/T", "/F"])
+            .sin_ventana()
+            .output();
+    }
+    let _ = hijo.kill();
+    let _ = hijo.wait();
+}
+
+/// La llamada con un programa que no es Claude. Lo mismo que `correr`: un tiro,
+/// solo las manos de mirar, cada paso contado mientras ocurre y el botón de
+/// parar. El prompt va por la entrada y se escribe nada más lanzarlo, desde
+/// otro hilo: Gemini deja de esperarla a los 500 ms, y todos leen hasta que se
+/// cierra. Y las dos salidas se vacían mientras corre, que una tubería llena
+/// deja el proceso parado hasta el tiempo límite.
+fn correr_otro(
+    p: &Pensador,
+    prompt: &str,
+    modelo: &str,
+    con_manos: bool,
+    parar: &std::sync::atomic::AtomicBool,
+    en: bool,
+    pasos: Box<dyn Fn(String) + Send>,
+) -> Result<String, String> {
+    use crate::SinVentana;
+    use std::io::{BufRead, Read};
+
+    let exe = ejecutable(p.exe).ok_or_else(|| format!("{} no está instalado en este equipo", p.id))?;
+    let (programa, delante) = lanzador(&exe);
+    // Barras normales: van dentro de un TOML y de un JSON.
+    let adeorq = std::env::current_exe().map_err(|e| format!("no sé dónde estoy: {e}"))?.to_string_lossy().replace('\\', "/");
+    if adeorq.contains('\'') {
+        return Err("la ruta de Adeorq lleva una comilla y no cabe en la línea de órdenes".into());
+    }
+    let mut cmd = std::process::Command::new(&programa);
+    cmd.args(&delante);
+    match p.dialecto {
+        Dialecto::CodexExec => {
+            cmd.args(linea_codex(modelo, con_manos.then_some(adeorq.as_str()), &entorno_del_puente()));
+        }
+        Dialecto::GeminiStream => {
+            let ruta = std::env::temp_dir().join("adeorq-conserje-gemini.json");
+            std::fs::write(&ruta, ajustes_gemini(&adeorq, con_manos).to_string())
+                .map_err(|e| format!("no pude escribir los ajustes de Gemini: {e}"))?;
+            cmd.env("GEMINI_CLI_SYSTEM_SETTINGS_PATH", &ruta)
+                // Sin interfaz, una carpeta sin confianza es un error fatal.
+                .env("GEMINI_CLI_TRUST_WORKSPACE", "true")
+                .args(["-o", "stream-json", "-m", modelo, "-e", "none", "--allowed-mcp-server-names"])
+                // Sin manos (el banco), un nombre que no existe: ningún servidor.
+                .arg(if con_manos { "adeorq" } else { "ninguno" });
+        }
+        Dialecto::Claude => return Err("Claude va por `correr`".into()),
+    }
+    let mut hijo = cmd
+        .current_dir(crate::workspace::raiz_por_defecto())
+        .sin_ventana()
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("no pude lanzar {}: {e}", p.id))?;
+
+    let mut entrada = hijo.stdin.take().ok_or("no se abrió su entrada")?;
+    let texto = prompt.to_string();
+    std::thread::spawn(move || {
+        let _ = entrada.write_all(texto.as_bytes());
+        // Al soltarla se cierra, que es lo que le dice que ya está todo.
+    });
+    let mut errores = hijo.stderr.take().ok_or("no dio salida de errores")?;
+    let (tx_err, rx_err) = std::sync::mpsc::channel::<String>();
+    std::thread::spawn(move || {
+        let mut s = String::new();
+        let _ = errores.read_to_string(&mut s);
+        let _ = tx_err.send(s);
+    });
+    let salida = hijo.stdout.take().ok_or("no dio salida")?;
+    let dialecto = p.dialecto;
+    let quien = p.id;
+    let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    std::thread::spawn(move || {
+        let mut lectura = Lectura::default();
+        for linea in std::io::BufReader::new(salida).lines().map_while(Result::ok) {
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(&linea) else { continue };
+            if let Some(bloque) = lectura.linea(dialecto, &v) {
+                if let Some(f) = frase_de_paso(&bloque, en) {
+                    pasos(f);
+                }
+            }
+        }
+        let _ = tx.send(lectura.fin(quien));
+    });
+
+    let inicio = std::time::Instant::now();
+    loop {
+        if parar.load(std::sync::atomic::Ordering::Relaxed) {
+            matar_rama(&mut hijo);
+            return Err("parado".into());
+        }
+        match hijo.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if inicio.elapsed() > TIEMPO_CONSERJE => {
+                matar_rama(&mut hijo);
+                return Err("el conserje se quedó pensando demasiado (3 min); reintenta".into());
+            }
+            Ok(None) => std::thread::sleep(std::time::Duration::from_millis(150)),
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    let r = rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap_or_else(|_| Err(format!("{quien} no devolvió nada")));
+    // Sin texto, lo que dijo por la salida de errores es lo único que explica por qué.
+    r.map_err(|e| {
+        let err = rx_err.recv_timeout(std::time::Duration::from_secs(2)).unwrap_or_default();
+        let cola: String = err.trim().chars().rev().take(400).collect::<Vec<_>>().into_iter().rev().collect();
+        if cola.is_empty() { e } else { format!("{e} · {cola}") }
+    })
 }
 
 // ─── MEJORAR LO QUE DICTASTE ──────────────────────────────────────────────────
@@ -2271,5 +2721,138 @@ mod tests {
         let (_, acciones) = preguntar(&c, "dile a la de la portada que cuando acabe me pase una captura");
         assert_eq!(acciones.len(), 1);
         assert!(matches!(&acciones[0], Accion::Escribir { panel: 5, .. }), "la de la portada es «La portada», en el panel 5");
+    }
+
+    // ─── Pensar con otro programa (2026-10-21) ─────────────────────────────
+
+    #[test]
+    fn sin_elegir_piensa_con_claude_y_lo_de_fuera_de_la_tabla_no_pasa() {
+        let mut c = Conversacion::default();
+        assert_eq!(c.pensador().id, "claude", "una conversación de antes del campo sigue con Claude");
+        c.pensador = "codex".into();
+        assert_eq!(c.pensador().id, "codex");
+        c.pensador = "codex --dangerously-bypass-approvals-and-sandbox".into();
+        assert_eq!(c.pensador().id, "claude", "lo que no es de la tabla no llega a la línea de órdenes");
+        let json = serde_json::to_string(&Conversacion::default()).unwrap();
+        assert!(!json.contains("pensador") && !json.contains("programa"), "lo de siempre no se escribe: {json}");
+    }
+
+    #[test]
+    fn cada_escalon_se_traduce_al_nombre_de_su_programa() {
+        let codex = pensador_de("codex").unwrap();
+        assert_eq!(modelo_en(codex, "haiku"), "gpt-5.6-luna");
+        assert_eq!(modelo_en(codex, "opus"), "gpt-6-luna");
+        assert_eq!(modelo_en(pensador_de("gemini").unwrap(), "sonnet"), "flash");
+        assert_eq!(modelo_en(&PENSADORES[0], "opus"), "opus", "Claude los llama como la casa");
+    }
+
+    /// Los nombres de modelo viven también en `providers.ts` (los usa el router
+    /// para abrir sesiones). Si uno se cambia y el otro no, el conserje pensaría
+    /// con un modelo que el menú no enseña.
+    #[test]
+    fn los_modelos_de_cada_pensador_son_los_de_la_tabla() {
+        let tabla = std::fs::read_to_string("../src/lib/providers.ts").expect("providers.ts");
+        for p in PENSADORES.iter().filter(|p| p.dialecto != Dialecto::Claude) {
+            let fila = format!(
+                "modelos: {{ haiku: \"{}\", sonnet: \"{}\", opus: \"{}\" }}",
+                p.modelos[0], p.modelos[1], p.modelos[2]
+            );
+            assert!(tabla.contains(&fila), "{}: en providers.ts no está «{fila}»", p.id);
+        }
+    }
+
+    #[test]
+    fn el_cmd_de_pnpm_se_lee_hasta_su_js() {
+        let cmd = "@SETLOCAL\r\n@IF EXIST \"%~dp0\\node.exe\" (\r\n  \"%~dp0\\node.exe\"  \"%~dp0\\..\\global\\v11\\167c\\node_modules\\@openai\\codex\\bin\\codex.js\" %*\r\n) ELSE (\r\n  node  \"%~dp0\\..\\global\\v11\\167c\\node_modules\\@openai\\codex\\bin\\codex.js\" %*\r\n)\r\n";
+        assert_eq!(js_del_cmd(cmd).as_deref(), Some("\\..\\global\\v11\\167c\\node_modules\\@openai\\codex\\bin\\codex.js"));
+        assert_eq!(js_del_cmd("@echo off\r\nalgo.exe %*"), None, "uno que no es de pnpm se lanza tal cual");
+    }
+
+    /// LA PUERTA: con Codex, ni consola ni web, y del servidor de Adeorq solo
+    /// las siete de mirar, aprobadas de antemano (sin eso `exec` las deniega).
+    #[test]
+    fn codex_piensa_sin_consola_y_solo_con_las_siete() {
+        let entorno = vec![("ADEORQ_MCP_PUERTO".to_string(), "3097".to_string()), ("LOCALAPPDATA".to_string(), "C:\\Users\\x\\AppData\\Local".to_string())];
+        let l = linea_codex("gpt-5.6-terra", Some("C:/Apps/Random APPS/Adeorq/adeorq.exe"), &entorno);
+        let todo = l.join(" ");
+        for b in ["exec", "--json", "--ephemeral", "--ignore-user-config", "read-only", "shell_tool", "web_search=\"disabled\""] {
+            assert!(l.iter().any(|a| a.contains(b)), "falta {b}: {todo}");
+        }
+        assert!(!todo.contains("dangerously") && !todo.contains("--full-auto") && !todo.contains("workspace-write"), "{todo}");
+        let mcp = l.iter().find(|a| a.starts_with("mcp_servers.adeorq=")).expect("el servidor de Adeorq");
+        assert!(mcp.contains("'--de-casa'") && mcp.contains("default_tools_approval_mode = 'approve'"), "{mcp}");
+        assert!(mcp.contains("env = { ADEORQ_MCP_PUERTO = '3097', LOCALAPPDATA = 'C:\\Users\\x\\AppData\\Local' }"), "a qué Adeorq habla: {mcp}");
+        for m in manos_crudas() {
+            assert!(mcp.contains(&format!("'{m}'")), "{m} en enabled_tools: {mcp}");
+        }
+        assert!(!mcp.contains("open_pane") && !mcp.contains("send_command"), "nada que mueva: {mcp}");
+        assert_eq!(l.last().map(String::as_str), Some("-"), "el prompt va por la entrada");
+        assert!(!linea_codex("gpt-5.6-terra", None, &entorno).join(" ").contains("mcp_servers"), "sin manos, sin servidor");
+    }
+
+    #[test]
+    fn gemini_piensa_sin_sus_herramientas_y_solo_con_las_siete() {
+        let v = ajustes_gemini("C:/Apps/Adeorq/adeorq.exe", true);
+        let core: Vec<&str> = v["tools"]["core"].as_array().unwrap().iter().filter_map(|x| x.as_str()).collect();
+        assert_eq!(core.len(), MANOS.len());
+        assert!(core.iter().all(|c| c.starts_with("mcp_adeorq_")), "ni una suya: {core:?}");
+        assert_eq!(v["mcpServers"]["adeorq"]["args"], serde_json::json!(["--mcp", "--de-casa"]));
+        assert!(ajustes_gemini("x", false).get("mcpServers").is_none());
+    }
+
+    #[test]
+    fn la_salida_de_codex_se_lee_con_sus_pasos_y_su_texto() {
+        let mut l = Lectura::default();
+        let paso = l.linea(
+            Dialecto::CodexExec,
+            &json!({ "type": "item.started", "item": { "type": "mcp_tool_call", "server": "adeorq", "tool": "read_pane_transcript", "arguments": "{\"paneId\": 4}" } }),
+        );
+        assert_eq!(frase_de_paso(&paso.expect("es un paso"), false).as_deref(), Some("Leyendo la sesión del panel 4"));
+        l.linea(Dialecto::CodexExec, &json!({ "type": "item.completed", "item": { "type": "agent_message", "text": "Miro primero." } }));
+        l.linea(Dialecto::CodexExec, &json!({ "type": "item.completed", "item": { "type": "agent_message", "text": "Abro una.\nRESUMEN: abrí una" } }));
+        assert_eq!(l.fin("codex").unwrap(), "Abro una.\nRESUMEN: abrí una", "cuenta el último mensaje");
+        let mut mal = Lectura::default();
+        mal.linea(Dialecto::CodexExec, &json!({ "type": "turn.failed", "error": { "message": "usage limit" } }));
+        assert!(mal.fin("codex").unwrap_err().contains("usage limit"));
+    }
+
+    #[test]
+    fn la_salida_de_gemini_se_lee_con_sus_pasos_y_su_texto() {
+        let mut l = Lectura::default();
+        l.linea(Dialecto::GeminiStream, &json!({ "type": "message", "role": "assistant", "content": "Déjame mirar", "delta": true }));
+        let paso = l.linea(Dialecto::GeminiStream, &json!({ "type": "tool_use", "tool_name": "mcp_adeorq_get_projects", "tool_id": "1", "parameters": {} }));
+        assert_eq!(frase_de_paso(&paso.expect("es un paso"), false).as_deref(), Some("Mirando tus proyectos"));
+        l.linea(Dialecto::GeminiStream, &json!({ "type": "message", "role": "user", "content": "no cuenta" }));
+        l.linea(Dialecto::GeminiStream, &json!({ "type": "message", "role": "assistant", "content": "Abro ", "delta": true }));
+        l.linea(Dialecto::GeminiStream, &json!({ "type": "message", "role": "assistant", "content": "una.", "delta": true }));
+        l.linea(Dialecto::GeminiStream, &json!({ "type": "result", "status": "success" }));
+        assert_eq!(l.fin("gemini").unwrap(), "Abro una.", "lo de después de mirar");
+        let mut mal = Lectura::default();
+        mal.linea(Dialecto::GeminiStream, &json!({ "type": "result", "status": "error", "error": { "message": "quota" } }));
+        assert!(mal.fin("gemini").unwrap_err().contains("quota"));
+    }
+
+    /// Con otro programa de verdad. Gasta un tiro de su cuenta:
+    /// `PENSADOR=codex cargo test --lib el_conserje_de_verdad_con_otro_programa -- --ignored --nocapture`
+    /// (o `gemini`). Mira que conteste en el formato, que use las manos de
+    /// Adeorq si la app está abierta, y cuánto tarda.
+    #[test]
+    #[ignore]
+    fn el_conserje_de_verdad_con_otro_programa() {
+        let id = std::env::var("PENSADOR").unwrap_or_else(|_| "codex".into());
+        let p = pensador_de(&id).expect("PENSADOR tiene que ser de la tabla");
+        let escalon = std::env::var("CEREBRO").unwrap_or_else(|_| "haiku".into());
+        println!("piensa con {} {}", p.id, modelo_en(p, &escalon));
+        let c = con(0);
+        let prompt = montar_prompt(SISTEMA, "prueba", &c.contexto(&|_| String::new()), &Quien::default(), "abre una sesión en C:\\proyectos\\Adeorq que mire si el README dice la versión de hoy");
+        let parar = std::sync::atomic::AtomicBool::new(false);
+        let inicio = std::time::Instant::now();
+        let cfg = std::env::var("CON_MANOS").ok().map(|_| crate::foreman::config_mcp().expect("mcp"));
+        let bruta = pensar(p, &prompt, &escalon, cfg.as_deref(), &parar, false, Box::new(|p| println!("  paso: {p}"))).expect("no contestó");
+        println!("--- contestó en {:.1} s ---\n{bruta}\n---", inicio.elapsed().as_secs_f32());
+        let (dice, acciones, resumen, descartes) = leer_respuesta(&bruta);
+        println!("texto: {dice}\nacciones: {acciones:?}\nresumen: {resumen}\ndescartes: {descartes:?}");
+        assert!(descartes.is_empty(), "el bloque de acciones tiene que ser JSON válido: {descartes:?}");
+        assert!(!dice.is_empty() && !resumen.is_empty(), "texto y línea de índice");
     }
 }

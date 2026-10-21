@@ -35,6 +35,7 @@ import {
   fijoDe,
   onPaso,
   paneDe,
+  programasDeSesion,
   type ConserjeExec,
 } from "./conserje";
 import { enviarAlConserje } from "./conserjeEnvio";
@@ -290,6 +291,18 @@ export async function atenderPedido(p: PedidoMovil, exec: ConserjeExec): Promise
       acento: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || null,
       opacidad: numero(FONDO_OPACIDAD_KEY, 60),
       desenfoque: numero(FONDO_DESENFOQUE_KEY, 0),
+    };
+  }
+  // Con qué programas se pueden abrir las sesiones de Adeo, para la pastilla
+  // «Sesiones» del móvil: la MISMA lista que la del PC (`programasDeSesion`),
+  // con su nombre y si admite un modelo fijo (sin eso, el modelo es del router).
+  if (p.clase === "programas") {
+    return {
+      programas: programasDeSesion(exec.cuentas()).map((cli) => ({
+        id: cli,
+        nombre: providerOf(cli).marca ?? providerOf(cli).label,
+        modelo: sabe(cli, "modelo"),
+      })),
     };
   }
   const id = typeof p.id === "string" ? p.id : "";

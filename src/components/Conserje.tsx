@@ -25,12 +25,14 @@ import { aHtml } from "../lib/markdown";
 import {
   animoDelChat,
   arranqueDeAhora,
-  CEREBROS_CONSERJE,
   CONSERJE_CAMBIO,
   cerebroDe,
   claveDe,
   conserjeCerebro,
   conserjeFijo,
+  conserjePensador,
+  conserjePensadores,
+  conserjePrograma,
   fijoDe,
   conserjeLeer,
   conserjeLista,
@@ -43,11 +45,15 @@ import {
   onPaso,
   PALABRA,
   paneDe,
+  pensadorDe,
+  programaDe,
+  programasDeSesion,
   resumenDePestanas,
   tomarPedido,
   type ConserjeExec,
   type Conversacion,
   type Ficha,
+  type Pensador,
   type Trabajo,
   type Turno,
 } from "../lib/conserje";
@@ -55,7 +61,7 @@ import { enviarAlConserje } from "../lib/conserjeEnvio";
 import type { PaneStatus } from "../lib/pty";
 import { hace } from "../lib/uso";
 import { A_MANO, cerebroPorDefecto, type ModelAlias } from "../lib/models";
-import { providerOf } from "../lib/providers";
+import { proveedorDe, providerOf, sabe } from "../lib/providers";
 import ProviderMark from "./ProviderMark";
 import Mascota from "./Mascota";
 import { abrirEnlacesFuera } from "../lib/enlacesFuera";
@@ -358,6 +364,137 @@ function TarjetaTrabajo({ w, panes, onIr }: { w: Trabajo; panes: PaneStatus[]; o
   );
 }
 
+// ─── Con qué piensa Adeo y con qué abre las sesiones ─────────────────────────
+
+/** Los tres escalones de la casa, con el nombre corto que se lee en el menú. */
+const ESCALONES: [ModelAlias, string][] = [
+  ["haiku", "Rápido"],
+  ["sonnet", "Normal"],
+  ["opus", "A fondo"],
+];
+const escalonDe = (m: string) => ESCALONES.find(([k]) => k === m)?.[1] ?? "Normal";
+
+/** Lo de siempre, para cuando Rust todavía no sabe contestar la lista. */
+const SOLO_CLAUDE: Pensador[] = [
+  { id: "claude", modelos: { haiku: "haiku", sonnet: "sonnet", opus: "opus" }, instalado: true },
+];
+let pensadoresGuardados: Pensador[] | null = null;
+/** Los programas que saben pensar como conserje, pedidos una vez a Rust. */
+function usePensadores(): Pensador[] {
+  const [lista, setLista] = useState(pensadoresGuardados ?? SOLO_CLAUDE);
+  useEffect(() => {
+    if (pensadoresGuardados) return;
+    conserjePensadores()
+      .then((l) => {
+        pensadoresGuardados = l.length ? l : SOLO_CLAUDE;
+        setLista(pensadoresGuardados);
+      })
+      .catch(() => {});
+  }, []);
+  return lista;
+}
+
+const marcaDe = (cli: string) => providerOf(cli).marca ?? providerOf(cli).label;
+
+/** El nombre que entiende un programa para un escalón: «gpt-5.6-terra», o
+ *  «Sonnet» cuando el programa los llama como la casa. */
+function modeloDe(nombres: Partial<Record<string, string>> | undefined, k: string): string {
+  const n = nombres?.[k] ?? k;
+  return n === k ? `${k.charAt(0).toUpperCase()}${k.slice(1)}` : n;
+}
+
+/** El menú del cerebro: el programa arriba y su escalón debajo (Munir eligió
+ *  esta forma entre tres, el 2026-10-21). */
+function MenuCerebro({
+  pensadores,
+  pensador,
+  cerebro,
+  onPrograma,
+  onEscalon,
+}: {
+  pensadores: Pensador[];
+  pensador: string;
+  cerebro: string;
+  onPrograma: (id: string) => void;
+  onEscalon: (m: ModelAlias) => void;
+}) {
+  const { t } = useT();
+  const actual = pensadores.find((p) => p.id === pensador) ?? pensadores[0];
+  return (
+    <div className="chat-menu cj-menu-cerebro">
+      <div className="cj-progs">
+        {pensadores.map((p) => (
+          <button
+            key={p.id}
+            className="cj-prog"
+            data-on={p.id === actual.id}
+            disabled={!p.instalado}
+            data-tip={p.instalado ? undefined : t("No está instalado en este equipo")}
+            onClick={() => onPrograma(p.id)}
+          >
+            <span className="cj-prog-marca" style={{ color: providerOf(p.id).hue }}>
+              <ProviderMark id={p.id} />
+            </span>
+            {marcaDe(p.id)}
+          </button>
+        ))}
+      </div>
+      {ESCALONES.map(([k, esc]) => (
+        <button key={k} className="chat-menu-fila" data-on={cerebro === k} onClick={() => onEscalon(k)}>
+          <span className="cj-escalon">{t(esc)}</span>
+          <span className="chat-menu-txt">
+            <strong>{modeloDe(actual.modelos, k)}</strong>
+            <em>{t(PARA_QUE[k])}</em>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** El menú de «Sesiones»: el router, o un programa fijo para todas. */
+function MenuSesiones({
+  programas,
+  programa,
+  onElegir,
+}: {
+  programas: string[];
+  /** El elegido; vacío es el router. */
+  programa: string;
+  onElegir: (cli: string) => void;
+}) {
+  const { t } = useT();
+  return (
+    <div className="chat-menu cj-menu-ancho">
+      <button className="chat-menu-fila" data-on={!programa} onClick={() => onElegir("")}>
+        <span className="cj-prog-marca cj-prog-router">
+          <TargetIcon size={15} />
+        </span>
+        <span className="chat-menu-txt">
+          <strong>{t("Router")}</strong>
+          <em>{t("Elige programa, modelo y cuenta para cada trabajo.")}</em>
+        </span>
+      </button>
+      <span className="chat-menu-raya" />
+      {programas.map((cli) => (
+        <button key={cli} className="chat-menu-fila" data-on={programa === cli} onClick={() => onElegir(cli)}>
+          <span className="cj-prog-marca" style={{ color: providerOf(cli).hue }}>
+            <ProviderMark id={cli} />
+          </span>
+          <span className="chat-menu-txt">
+            <strong>{marcaDe(cli)}</strong>
+            <em>
+              {sabe(cli, "modelo")
+                ? t("Siempre este programa; el router elige solo el modelo.")
+                : t("Siempre este programa, con su modelo de siempre.")}
+            </em>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function HiloConserje({
   id,
   conv,
@@ -401,6 +538,15 @@ export function HiloConserje({
   }, [conv?.fijo]);
   const [eligiendo, setEligiendo] = useState(false);
   const [eligiendoCerebro, setEligiendoCerebro] = useState(false);
+  const [eligiendoSesiones, setEligiendoSesiones] = useState(false);
+  const pensadores = usePensadores();
+  const pensador = pensadorDe(conv);
+  /** Un menú abierto cierra los otros dos. */
+  const abrirMenu = (cual: "cerebro" | "sesiones" | "modelo") => {
+    setEligiendoCerebro((v) => cual === "cerebro" && !v);
+    setEligiendoSesiones((v) => cual === "sesiones" && !v);
+    setEligiendo((v) => cual === "modelo" && !v);
+  };
   /** Si Mejorar no pudo: se dice junto a la caja, que es donde lo pulsaste. */
   const [noMejora, setNoMejora] = useState<string | null>(null);
   const finRef = useRef<HTMLDivElement>(null);
@@ -414,6 +560,30 @@ export function HiloConserje({
     el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
   }, [texto]);
   const router = conv?.router ?? true;
+  /** Con qué se abren las sesiones: vacío es el router; con el router apagado
+      y sin programa elegido, Claude con su modelo fijo (lo de antes). */
+  const programa = programaDe(conv) || (router ? "" : "claude");
+
+  /** «Sesiones»: Router vuelve a dejarlo todo en sus manos; un programa sin
+      bandera de modelo no puede ir con modelo fijo, así que lo elige el router. */
+  const elegirPrograma = async (cli: string) => {
+    setEligiendoSesiones(false);
+    await conserjePrograma(id, cli).catch(() => {});
+    if (!router && (!cli || !sabe(cli, "modelo"))) await conserjeRouter(id, true).catch(() => {});
+    onCambio();
+  };
+  /** «Modelo»: el router, o uno fijo (el router apagado de antes). */
+  const elegirModelo = async (m: ModelAlias | "router") => {
+    setEligiendo(false);
+    if (m === "router") {
+      await conserjeRouter(id, true).catch(() => {});
+    } else {
+      setFijo(m);
+      await conserjeFijo(id, m).catch(() => {});
+      if (router) await conserjeRouter(id, false).catch(() => {});
+    }
+    onCambio();
+  };
 
   useEffect(() => {
     finRef.current?.scrollIntoView({ block: "end" });
@@ -465,10 +635,6 @@ export function HiloConserje({
       .finally(() => setMejorando(false));
   }, [antes, texto]);
 
-  const alternarRouter = () => {
-    void conserjeRouter(id, !router).then(onCambio);
-  };
-
   /** `repetir` es el reintento: manda lo mismo sin tocar lo que tengas en la caja. */
   const enviar = async (repetir?: string) => {
     const txt = (repetir ?? texto).trim();
@@ -519,7 +685,9 @@ export function HiloConserje({
             {t(marcha.clave, { n: marcha.n })} ·{" "}
             {/* «el modelo» a secas, al lado de «Conserje: Claude Opus», se leía
                 como si el router eligiera también el del conserje. */}
-            {router ? t("el router elige el de cada sesión") : t("el router está apagado")}
+            {programa
+              ? t("las sesiones van con {p}", { p: marcaDe(programa) })
+              : t("el router elige el de cada sesión")}
           </em>
         </span>
       </header>
@@ -589,7 +757,7 @@ export function HiloConserje({
 
       <div className="chat-caja-zona">
         <span className="chat-haz" data-on={pensando} aria-hidden="true" />
-        <div className="chat-caja" data-trabajando={pensando}>
+        <div className="chat-caja cj-caja" data-trabajando={pensando}>
           {antes !== null && (
             <p className="cj-aviso-mejora">{t("Mejorado: lo mismo que dijiste, ordenado. Si no te gusta, Deshacer.")}</p>
           )}
@@ -642,76 +810,66 @@ export function HiloConserje({
             <div className="chat-modelo">
               <button
                 className="chat-pastilla cj-pastilla"
-                data-tip={t("El modelo con el que piensa el conserje. El de las sesiones que abre lo elige el router.")}
-                onClick={() => {
-                  setEligiendo(false);
-                  setEligiendoCerebro((v) => !v);
-                }}
+                data-tip={t("Con qué piensa el conserje: el programa arriba y su escalón debajo. Las sesiones que abre van aparte.")}
+                onClick={() => abrirMenu("cerebro")}
               >
                 <SparkIcon size={13} />
-                {t("Conserje: {m}", { m: nombreDe({ cli: "claude", modelo: cerebroDe(conv) }) })}
+                {t("Conserje: {m}", { m: `${marcaDe(pensador)} · ${t(escalonDe(cerebroDe(conv)))}` })}
                 <ChevronIcon size={11} up={eligiendoCerebro} />
               </button>
               {eligiendoCerebro && (
-                <div className="chat-menu">
-                  {CEREBROS_CONSERJE.map((m) => (
-                    <button
-                      key={m}
-                      className="chat-menu-fila"
-                      data-on={cerebroDe(conv) === m}
-                      onClick={() => {
-                        setEligiendoCerebro(false);
-                        void conserjeCerebro(id, m).then(onCambio);
-                      }}
-                    >
-                      <span className="chat-menu-txt">
-                        <strong>{nombreDe({ cli: "claude", modelo: m })}</strong>
-                        <em>{t(PARA_QUE[m])}</em>
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                <MenuCerebro
+                  pensadores={pensadores}
+                  pensador={pensador}
+                  cerebro={cerebroDe(conv)}
+                  onPrograma={(p) => void conserjePensador(id, p).then(onCambio).catch(() => {})}
+                  onEscalon={(m) => {
+                    setEligiendoCerebro(false);
+                    void conserjeCerebro(id, m).then(onCambio).catch(() => {});
+                  }}
+                />
               )}
             </div>
-            <button
-              className="chat-pastilla cj-pastilla"
-              data-on={router}
-              data-tip={t("Encendido: el router elige el mejor modelo para cada trabajo")}
-              onClick={alternarRouter}
-            >
-              <TargetIcon size={13} />
-              {router ? t("Router: automático") : t("Router: apagado")}
-            </button>
-            {!router && (
+            {/* Con qué se ABREN las sesiones: el router por defecto, o un
+                programa para todas (Munir, 2026-10-21). Sustituye al interruptor
+                del router; el modelo fijo de antes es la pastilla de al lado. */}
+            <div className="chat-modelo">
+              <button
+                className={`chat-pastilla cj-pastilla${programa ? " chat-pastilla-fuerte" : ""}`}
+                data-on={!programa}
+                data-tip={t("Con qué programa se abren las sesiones que reparte Adeo")}
+                onClick={() => abrirMenu("sesiones")}
+              >
+                <TargetIcon size={13} />
+                {programa ? t("Sesiones: {p}", { p: marcaDe(programa) }) : t("Sesiones: Router")}
+                <ChevronIcon size={11} up={eligiendoSesiones} />
+              </button>
+              {eligiendoSesiones && (
+                <MenuSesiones programas={programasDeSesion(exec.cuentas())} programa={programaDe(conv) || (router ? "" : "claude")} onElegir={(c) => void elegirPrograma(c)} />
+              )}
+            </div>
+            {programa && sabe(programa, "modelo") && (
               <div className="chat-modelo">
-                {/* Con el mismo nombre que las pestañas y las tarjetas
-                    («Claude Sonnet»), no el alias en minúscula. */}
-                <button
-                  className="chat-pastilla chat-pastilla-fuerte cj-pastilla"
-                  data-on
-                  onClick={() => {
-                    setEligiendoCerebro(false);
-                    setEligiendo((v) => !v);
-                  }}
-                >
-                  {nombreDe({ cli: "claude", modelo: fijo })}
+                <button className="chat-pastilla cj-pastilla" onClick={() => abrirMenu("modelo")}>
+                  {router
+                    ? t("Modelo: lo elige el router")
+                    : t("Modelo: {m}", { m: modeloDe(proveedorDe(programa)?.modelos, fijo) })}
                   <ChevronIcon size={11} up={eligiendo} />
                 </button>
                 {eligiendo && (
                   <div className="chat-menu">
+                    <button className="chat-menu-fila" data-on={router} onClick={() => void elegirModelo("router")}>
+                      <span className="chat-menu-txt">
+                        <strong>{t("Lo elige el router")}</strong>
+                        <em>{t("Según el trabajo y la semana que quede.")}</em>
+                      </span>
+                    </button>
+                    <span className="chat-menu-raya" />
                     {A_MANO.map((m) => (
-                      <button
-                        key={m}
-                        className="chat-menu-fila"
-                        data-on={fijo === m}
-                        onClick={() => {
-                          setFijo(m);
-                          setEligiendo(false);
-                          void conserjeFijo(id, m).then(onCambio).catch(() => {});
-                        }}
-                      >
+                      <button key={m} className="chat-menu-fila" data-on={!router && fijo === m} onClick={() => void elegirModelo(m)}>
+                        <span className="cj-escalon">{t(escalonDe(m))}</span>
                         <span className="chat-menu-txt">
-                          <strong>{nombreDe({ cli: "claude", modelo: m })}</strong>
+                          <strong>{modeloDe(proveedorDe(programa)?.modelos, m)}</strong>
                         </span>
                       </button>
                     ))}

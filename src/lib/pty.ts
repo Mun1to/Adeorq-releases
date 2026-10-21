@@ -351,6 +351,12 @@ export function codexSessionSince(cwd: string, since: number): Promise<string | 
   return invoke("codex_session_since", { cwd, since });
 }
 
+/** La conversación de agy empezada en `cwd` desde `since` (segundos de época),
+ *  leída de su `history.jsonl`: agy tampoco acepta un id al abrirse. */
+export function agySessionSince(cwd: string, since: number): Promise<string | null> {
+  return invoke("agy_session_since", { cwd, since });
+}
+
 /** En qué anda la sesión de Codex de un panel, leído de su rollout. Solo el
  *  estado: `percent` llega a 0 y la cabecera no pinta contexto. */
 export function codexContext(sessionId: string): Promise<ContextInfo | null> {

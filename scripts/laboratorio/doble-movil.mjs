@@ -604,6 +604,31 @@ http
           if (v.modelo && !["haiku", "sonnet", "opus"].includes(v.modelo)) return json(res, 400, { error: "No es de la lista." });
           nueva(id).fijo = v.modelo;
           return json(res, 200, { ok: true });
+        // Las pastillas del PC (2026-10-21), como `conserje_pensadores` y la
+        // clase «programas» de la ventana: Gemini sin instalar, para ver que no sale.
+        case "/api/programas":
+          return json(res, 200, {
+            pensadores: [
+              { id: "claude", modelos: { haiku: "haiku", sonnet: "sonnet", opus: "opus" }, instalado: true },
+              { id: "codex", modelos: { haiku: "gpt-5.6-luna", sonnet: "gpt-5.6-terra", opus: "gpt-6-luna" }, instalado: true },
+              { id: "gemini", modelos: { haiku: "flash-lite", sonnet: "flash", opus: "pro" }, instalado: false },
+            ],
+            programas: [
+              { id: "claude", nombre: "Claude", modelo: true },
+              { id: "codex", nombre: "Codex", modelo: true },
+              { id: "agy", nombre: "Antigravity", modelo: false },
+            ],
+          });
+        case "/api/pensador":
+          if (!["claude", "codex", "gemini"].includes(v.pensador)) return json(res, 400, { error: "No es de la lista." });
+          nueva(id).pensador = v.pensador === "claude" ? "" : v.pensador;
+          console.log(`pensador: ${v.pensador}`);
+          return json(res, 200, { ok: true });
+        case "/api/programa":
+          if (!/^[a-z0-9-]{0,24}$/.test(String(v.programa))) return json(res, 400, { error: "No es un programa." });
+          nueva(id).programa = v.programa;
+          console.log(`programa: ${v.programa || "router"}`);
+          return json(res, 200, { ok: true });
         case "/api/parar":
           return json(res, 200, { ok: true });
         // Solo del banco: otro estado para una terminal, y con él la hora de su

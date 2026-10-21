@@ -9,7 +9,6 @@ import { repararBufer } from "../lib/xtermReparar";
 import { SearchAddon } from "@xterm/addon-search";
 import {
   anotarRastro,
-  deleteSession,
   iniciales,
   killPty,
   onPtyData,
@@ -34,6 +33,7 @@ import {
   type ShadowFile,
 } from "../lib/pty";
 import { raiz } from "../lib/perfil";
+import { borrarSesionDePanel, useSesionAgy } from "../lib/borrarSesion";
 import { useT } from "../lib/i18n";
 import { useMenu } from "./Overlays";
 import BuscarEnTerminal from "./BuscarEnTerminal";
@@ -87,7 +87,7 @@ import {
 import { modoRendimiento } from "../lib/rendimiento";
 import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
-import { sabe } from "../lib/providers";
+import { proveedorDe, sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
 import { nivelDeContexto, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
 import { useNombreSolo } from "../lib/nombreSolo";
@@ -930,6 +930,10 @@ export default function TerminalPane({
   // la más reciente de la carpeta y puede ser la de otro (Codex: la aprendida).
   const ctx = useContextoDeSesion(kind, cwd, joined, sessionIdOf(joined) ?? sidAprendido);
   ctxRef.current = ctx;
+  /** La sesión que se llevaría la papelera de la cabecera: la del transcript
+   *  (Claude, y Codex con la suya aprendida) o la conversación de agy. */
+  const sidAgy = useSesionAgy(kind, cwd, nacidoRef.current);
+  const sidBorrable = ctx?.sessionId || sidAgy;
   useNombreSolo(id, name, sessionIdOf(joined) ? ctx?.title : undefined, !!team, onRename);
 
   // Lo que este panel está haciendo, hacia arriba, y por qué: el orden en que
@@ -2545,7 +2549,7 @@ export default function TerminalPane({
               acción de este encabezado que no se puede deshacer, y las otras dos
               papeleras de la app ya preguntan así. Un botón armado no dice QUÉ se
               va a borrar ni adónde va; el diálogo sí, con el nombre dentro. */}
-          {ctx?.sessionId && (
+          {sidBorrable && (
             <button
               className="pane-btn pane-bin"
               data-tip={t(
@@ -2789,15 +2793,15 @@ export default function TerminalPane({
           ventana en cuanto un ancestro tiene un filtro o una transformación,
           que es exactamente lo que tiene el panel de una terminal. */}
       {borrando &&
-        ctx?.sessionId &&
+        sidBorrable &&
         createPortal(
           <div className="modal-overlay" {...propsDeVelo(bajoEnVelo, () => setBorrando(false))}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <h3 className="modal-title">{t("Borrar la sesión")}</h3>
               <p className="modal-text">
                 {t(
-                  "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de Claude Code, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.",
-                  { n: name },
+                  "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de {p}, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.",
+                  { n: name, p: proveedorDe(kind)?.label ?? "Claude Code" },
                 )}
               </p>
               {/* El aviso que la barra solo enseña a veces aquí sale SIEMPRE: si
@@ -2817,7 +2821,7 @@ export default function TerminalPane({
                   className="np-btn modal-danger"
                   onClick={() => {
                     setBorrando(false);
-                    deleteSession(ctx.folder, ctx.sessionId)
+                    borrarSesionDePanel(id, kind, ctx?.folder ?? "", sidBorrable)
                       .then(() => onClose(id))
                       .catch((e) => setNote(`No he podido borrarla: ${e}`));
                   }}

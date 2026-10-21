@@ -474,6 +474,19 @@ pub fn delete_session(
             .ok_or("No encuentro el archivo de esa sesión de Pi")?;
         return to_recycle_bin(&path);
     }
+    // agy tampoco: una base de SQLite por conversación más lo que deja
+    // alrededor (ver `sessions::agy_archivos`). La base va primero y, si no se
+    // puede mover, no se toca lo demás: mejor entera que a medias.
+    if fuente.as_deref() == Some("agy") {
+        let archivos = crate::sessions::agy_archivos(&session_id);
+        if !archivos.first().is_some_and(|p| p.extension().is_some_and(|e| e == "db")) {
+            return Err("No encuentro la conversación de esa sesión de Antigravity".into());
+        }
+        for p in &archivos {
+            to_recycle_bin(p)?;
+        }
+        return Ok(());
+    }
     let path = transcript_path(&folder, &session_id)?;
     if !path.is_file() {
         return Err("No encuentro el transcript de esa sesión".into());

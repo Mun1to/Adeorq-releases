@@ -117,10 +117,15 @@ async (page) => {
     await page.waitForSelector("#hilo .pensando", { state: "detached", timeout: 20000 });
     await page.waitForSelector("#hilo .tarjeta[data-clave]");
     await mirar("conserje con sesiones");
-    await page.click("#router");
+    // Desde el 2026-10-21 el router no es un botón: «Sesiones» elige el
+    // programa y, con uno forzado, sale «Modelo» con el router o uno fijo.
+    await page.selectOption("#programa", "codex");
     await page.waitForSelector("#fijo-caja:not([hidden])");
+    await page.selectOption("#fijo", "opus");
+    await page.waitForTimeout(400);
     await mirar("conserje sin router");
-    await page.click("#router");
+    await page.selectOption("#programa", "");
+    await page.waitForSelector("#fijo-caja[hidden]", { state: "attached" });
     await page.fill("#texto", "arregla lo del móvil");
     await page.click("#mejorar");
     await page.waitForSelector("#aviso-mejora:not([hidden])");

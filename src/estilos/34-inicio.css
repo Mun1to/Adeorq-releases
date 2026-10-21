@@ -82,8 +82,14 @@
   color: var(--ask);
 }
 
-/* La caja de pedir: un campo, así que sí lleva su superficie. */
+/* La caja de pedir: un campo, así que sí lleva su superficie. Y su halo del
+   acento, quieto, más vivo mientras escribes; cuando Adeo trabaja le da la
+   vuelta un filo de luz (Munir, 2026-10-21, entre cuatro: «halo quieto pero
+   cuando empieza a trabajar la de filo de luz»). El halo y el filo son los de
+   la caja del chat (`21-chat.css`). */
 .inicio-caja {
+  position: relative;
+  isolation: isolate;
   margin-top: 26px;
   width: 100%;
   display: grid;
@@ -93,12 +99,31 @@
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-caja);
-  box-shadow: var(--glass-edge), var(--sombra-2);
-  transition: border-color var(--t-rapida) ease;
+  box-shadow: var(--glass-edge), var(--sombra-2), var(--adeo-halo);
+  transition:
+    border-color var(--t-rapida) ease,
+    box-shadow var(--t-media) ease;
 }
 
 .inicio-caja:focus-within {
   border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: var(--glass-edge), var(--sombra-2), var(--adeo-halo-vivo);
+}
+
+.inicio-caja[data-trabajando="true"]::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background: var(--adeo-filo);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: adeo-filo 6s linear infinite;
 }
 
 .inicio-texto {

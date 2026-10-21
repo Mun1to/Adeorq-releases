@@ -449,18 +449,15 @@ const EN: Record<string, string> = {
   "Reiniciar Adeorq": "Restart Adeorq",
   "Descargar e instalar la versión {v}": "Download and install version {v}",
 
-  Mensajes: "Messages",
+  Respuestas: "Replies",
   Tokens: "Tokens",
   "Días activos": "Active days",
   "Racha actual": "Current streak",
   "Racha más larga": "Longest streak",
   "Hora punta": "Peak hour",
   "Modelo favorito": "Favourite model",
-  "Sumando tus {n} cuentas. ": "Across your {n} accounts. ",
-  "Lo lleva Claude Code por su cuenta: mirar esto no gasta nada.":
-    "Claude Code keeps this on its own: looking at it costs nothing.",
-  "Claude Code calculó esto el {d}; lo de después todavía no está dentro.":
-    "Claude Code worked this out on {d}; anything since is not in yet.",
+  "Leído de tus conversaciones de Claude Code y Codex: mirar esto no gasta nada.":
+    "Read from your Claude Code and Codex conversations: looking at it costs nothing.",
   "Cargar {n} sesiones más antiguas": "Load {n} older sessions",
   "sesión": "session",
   esperando: "waiting",
@@ -2211,8 +2208,8 @@ const EN: Record<string, string> = {
   "Ver los de la izquierda": "See the ones on the left",
   "Ver los de la derecha": "See the ones on the right",
   "Abrir esta terminal aislada en Modo Espejo": "Open this terminal isolated, in Shadow Mode",
-  "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de Claude Code, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.":
-    "“{n}” goes to the Windows Recycle Bin. It disappears from Adeorq and from Claude Code too, so you will not be able to resume it. If you change your mind, it is in the bin.",
+  "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de {p}, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.":
+    "“{n}” goes to the Windows Recycle Bin. It disappears from Adeorq and from {p} too, so you will not be able to resume it. If you change your mind, it is in the bin.",
 
   // Reanimar: el vigía del cuelgue. Las cadenas están en TerminalPane.tsx, que
   // otra sesión tiene abierto (ver BUZON.md); esto no lo toca, solo les da su
@@ -2515,6 +2512,23 @@ const EN: Record<string, string> = {
   "el router está apagado": "the router is off",
   "Router: automático": "Router: automatic",
   "Router: apagado": "Router: off",
+  "las sesiones van con {p}": "sessions open with {p}",
+  "Con qué piensa el conserje: el programa arriba y su escalón debajo. Las sesiones que abre van aparte.":
+    "What the concierge thinks with: the program on top and its tier below. The sessions it opens are set apart.",
+  "Rápido": "Fast",
+  "A fondo": "Deep",
+  "No está instalado en este equipo": "Not installed on this computer",
+  "Con qué programa se abren las sesiones que reparte Adeo": "Which program the sessions Adeo hands out open with",
+  "Sesiones: Router": "Sessions: Router",
+  "Sesiones: {p}": "Sessions: {p}",
+  "Router": "Router",
+  "Elige programa, modelo y cuenta para cada trabajo.": "Picks the program, model and account for each job.",
+  "Siempre este programa; el router elige solo el modelo.": "Always this program; the router only picks the model.",
+  "Siempre este programa, con su modelo de siempre.": "Always this program, with its usual model.",
+  "Modelo: lo elige el router": "Model: the router picks",
+  "Modelo: {m}": "Model: {m}",
+  "Lo elige el router": "The router picks",
+  "Según el trabajo y la semana que quede.": "By the job and how much of the week is left.",
   "Encendido: el router elige el mejor modelo para cada trabajo":
     "On: the router picks the best model for each job",
   "Mejorar": "Improve",

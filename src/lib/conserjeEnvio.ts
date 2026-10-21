@@ -12,10 +12,13 @@ import {
   conserjeTrabajo,
   ejecutar,
   estadosParaElConserje,
+  marcarPensando,
+  programaDe,
   type ConserjeExec,
   type Conversacion,
 } from "./conserje";
-import { recetarConMemoria } from "./router";
+import { recetarConMemoria, type CuentaViva } from "./router";
+import type { Account } from "./pty";
 import { reglasDeLaMemoria } from "./mundo";
 import { fotoRapida } from "./mundo";
 import { cerebroPorDefecto, type ModelAlias } from "./models";
@@ -25,6 +28,15 @@ export interface Envio {
   aviso: string | null;
   /** Por qué no contestó. `null` también si lo paraste tú: eso no es un error. */
   error: string | null;
+}
+
+/** La cuenta con la que se abre un programa forzado: de las suyas instaladas y
+ *  conectadas, la que menos semana ha gastado (la que no se sabe, como libre,
+ *  igual que hace el router). */
+function laMasFrescaDe(vivas: CuentaViva[], cli: string): Account | undefined {
+  return vivas
+    .filter((v) => v.cuenta.provider === cli && v.instalado && v.conectada)
+    .sort((a, b) => (a.gastado ?? 0) - (b.gastado ?? 0))[0]?.cuenta;
 }
 
 export async function enviarAlConserje(
@@ -41,8 +53,10 @@ export async function enviarAlConserje(
   },
 ): Promise<Envio> {
   const { exec, conv, fijo, alCambio } = opciones;
+  marcarPensando(id, true);
   try {
     const r = await conserjeEnviar(id, texto, estadosParaElConserje(conv?.trabajos ?? [], exec.panes()));
+    marcarPensando(id, false);
     alCambio();
     if (!r.acciones.length) {
       return { aviso: r.descartes.length ? r.descartes.join(" · ") : null, error: null };
@@ -54,6 +68,8 @@ export async function enviarAlConserje(
       recetar: (ex, de) =>
         recetarConMemoria(ex, { cuentas: vivas, avisos: "nunca", reglas }, undefined, cerebroPorDefecto(), de),
       fijo: { cli: "claude", modelo: fijo },
+      programa: programaDe(conv),
+      cuentaDe: (cli) => laMasFrescaDe(vivas, cli),
       abrir: exec.abrir,
       escribir: exec.escribir,
     });
@@ -67,6 +83,7 @@ export async function enviarAlConserje(
     const fuera = [...r.descartes, ...hecho.fallos];
     return { aviso: fuera.length ? fuera.join(" · ") : null, error: null };
   } catch (e) {
+    marcarPensando(id, false);
     const s = String(e);
     // Tu mensaje ya está guardado (Rust lo apunta antes de llamar al modelo),
     // así que se ofrece reintentarlo en vez de devolverlo a la caja.

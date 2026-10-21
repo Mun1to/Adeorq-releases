@@ -525,6 +525,58 @@
   }
 }
 
+/* La luz de las cajas de Adeo, la del chat y la del Panel (`34-inicio.css`).
+   Munir eligió entre cuatro el 2026-10-21: un halo del acento quieto, y cuando
+   Adeo trabaja, un filo de luz que da la vuelta al borde. Se declara en cada
+   caja y no en `:root` para que el acento sea el del tema que la pinta. Lo que
+   gira es un ángulo dentro de una máscara de 1,5 px, no la sombra: animar la
+   sombra repintaría el cristal en cada fotograma. */
+@property --adeo-ang {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.cj-caja,
+.inicio-caja {
+  --adeo-halo:
+    0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent),
+    0 0 22px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 0 64px color-mix(in srgb, var(--accent) 28%, transparent);
+  --adeo-halo-vivo:
+    0 0 0 1px color-mix(in srgb, var(--accent) 75%, transparent),
+    0 0 26px color-mix(in srgb, var(--accent) 60%, transparent),
+    0 0 72px color-mix(in srgb, var(--accent) 36%, transparent);
+  --adeo-filo: conic-gradient(
+    from var(--adeo-ang),
+    transparent 0 62%,
+    color-mix(in srgb, var(--accent) 70%, transparent) 76%,
+    #fff 82%,
+    color-mix(in srgb, var(--accent) 70%, transparent) 88%,
+    transparent 100%
+  );
+}
+
+@keyframes adeo-filo {
+  to {
+    --adeo-ang: 360deg;
+  }
+}
+
+/* Con el modo rendimiento o «reducir movimiento», el filo se queda quieto
+   donde esté: se pierde la vuelta, no el aviso de que trabaja. */
+:root[data-rendimiento="1"] :is(.cj-caja, .inicio-caja)[data-trabajando="true"]::before {
+  animation: none;
+  --adeo-ang: 300deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.cj-caja, .inicio-caja)[data-trabajando="true"]::before {
+    animation: none;
+    --adeo-ang: 300deg;
+  }
+}
+
 .chat-caja {
   position: relative;
   border: 1px solid var(--border);
@@ -535,6 +587,34 @@
 
 .chat-caja[data-trabajando="true"] {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* La caja de Adeo en el Chat (`Conserje.tsx`); la de los chats de sesiones
+   se queda sin halo. */
+.cj-caja {
+  isolation: isolate;
+  box-shadow: var(--sombra-2), var(--adeo-halo);
+  transition: box-shadow var(--t-media) ease;
+}
+
+.cj-caja:focus-within {
+  box-shadow: var(--sombra-2), var(--adeo-halo-vivo);
+}
+
+.cj-caja[data-trabajando="true"]::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background: var(--adeo-filo);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: adeo-filo 6s linear infinite;
 }
 
 /* La etiqueta de «va después»: la referencia la llama Live Ask, y lo que dice

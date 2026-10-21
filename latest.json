@@ -1,11 +1,11 @@
 {
-  "version": "0.9.228",
-  "notes": "Ctrl+W ya no falla en pestañas nuevas, tus agentes aguantan una caída de fábrica y el Perfil más limpio.",
-  "pub_date": "2026-10-19T02:38:08Z",
+  "version": "0.9.229",
+  "notes": "Borrar sesiones de Codex y Antigravity desde su terminal, la Cabina vacia con tu uso al dia, Adeo piensa con Claude, Codex o Gemini y elige con que programa abre sus sesiones (tambien en el movil), y el lienzo ya no engorda al abrirlo.",
+  "pub_date": "2026-10-21T10:34:29Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3pORTNOaWZvZXdrL0YwWTU1aForTGx1L1loYnQ3K0d2d1lGbmRhdFliVXFseEtvbXVGUWttNnlaSzNIS0VlYTNjMktMaGpkVDVMazI3dXVnN040R0FzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzc3NDc2CWZpbGU6QWRlb3JxXzAuOS4yMjhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjgKNXZkRFlEL1hNZ0ZSeEhYRW1acFBuU3FwMll3Z3RWa2h6cUlyck9HOU5oQjV2Nmx4R0ZxWWdTaXRhTjh1cXVOOE5tc01PWURYanBYWXVjMjFORTBoQUE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.228/Adeorq_0.9.228_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJHWHIwUDVKVnpBbEdaSk9rYTg1WXowdTRmS3dnN2JtVStSMzZSZTlkU0Y2WGtYK0I4VlpuekZoUkJmd0hSZmZ3Snp6NVRKUVJZa3V4V1hCMnRobndVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTc4ODU4CWZpbGU6QWRlb3JxXzAuOS4yMjlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjkKeCtoRVd6ZVE0ZEJCT2FaUGZ3eUJmekErQzIzakUwbEc0QmhzV2d0bjJyR3Q3dHZYN3NGdXcrU1R2UUNWOXhWRE1sRzQwamF2UFlja05wNU1mZGNZQlE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.229/Adeorq_0.9.229_x64-setup.exe"
     }
   }
 }

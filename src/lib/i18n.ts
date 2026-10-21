@@ -983,8 +983,8 @@ const EN: Record<string, string> = {
   // «Todo» a secas ya vive más abajo, con los filtros de Comandos: no se repite.
   "Solo el trabajo: terminales y piezas, sin nada de dibujo. Tus trazos no se borran, vuelven al cambiar de modo.":
     "Work only: terminals and pieces, no drawing at all. Your strokes are not deleted, they come back when you switch mode.",
-  "La pizarra: todas las herramientas y tus trazos. Las piezas se ven para poder anotarlas, pero no se arrastran.":
-    "The whiteboard: every tool and all your strokes. Pieces stay visible so you can annotate them, but they cannot be dragged.",
+  "La pizarra: todas las herramientas y tus trazos. Las piezas se ven para anotarlas, y con la flecha se mueven.":
+    "The whiteboard: every tool and all your strokes. Pieces stay visible so you can annotate them, and the arrow moves them.",
   "Las dos cosas a la vez, como siempre.": "Both at once, as always.",
   // La rejilla del lienzo (2026-08-09). Los puntos del fondo llevaban ahí desde
   // el principio sin sujetar nada; ahora se pueden encender.
@@ -2507,7 +2507,6 @@ const EN: Record<string, string> = {
   "{n} ha terminado": "{n} finished",
   "{n} han terminado": "{n} finished",
   "{n} trabajando": "{n} working",
-  "dime qué hacemos": "tell me what to do",
   "el router elige el de cada sesión": "the router picks each session's",
   "el router está apagado": "the router is off",
   "Router: automático": "Router: automatic",

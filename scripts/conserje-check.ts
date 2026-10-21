@@ -20,7 +20,6 @@ import {
   hoja,
   paneDe,
   programasDeSesion,
-  resumenDePestanas,
   type Accion,
   type Manos,
   type Trabajo,
@@ -206,13 +205,7 @@ function manos(router: boolean, abrirDa: number | null = 7): Manos & { abiertas:
   ok("el de antes del campo (sin arranque) tampoco", paneDe({ panel: 1 } as Trabajo, vivos, 222) === undefined);
   ok("dos con el mismo panel son dos pestañas", claveDe(ayer) !== claveDe(hoy));
 
-  // ── Lo que dice la pestaña del conserje y la cabecera ───────────────────────
-  const r = (e: Parameters<typeof resumenDePestanas>[0]) => resumenDePestanas(e);
-  ok("quien te pregunta va primero", r(["trabajando", "pregunta", "termino"]).clave === "{n} te espera");
-  ok("con dos, en plural", r(["pregunta", "pregunta"]).clave === "{n} te esperan");
-  ok("luego quien ha terminado", r(["trabajando", "termino"]).clave === "{n} ha terminado");
-  ok("luego quien trabaja, con cuántos", r(["trabajando", "trabajando", "cerrada"]).n === 2);
-  ok("todas cerradas no es «todo en marcha»", r(["cerrada", "cerrada"]).clave === "dime qué hacemos");
+  // ── Lo que dice la cabecera ─────────────────────────────────────────────────
   ok("las cerradas no cuentan en marcha", enMarcha(["cerrada", "trabajando"]).clave === "1 sesión en marcha");
   ok("ninguna viva es nada en marcha", enMarcha(["cerrada"]).clave === "nada en marcha");
 

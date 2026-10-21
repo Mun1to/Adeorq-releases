@@ -273,20 +273,6 @@ export const PALABRA: Record<Estado, string> = {
   cerrada: "cerrada",
 };
 
-/** Lo que dice la pestaña del conserje de las suyas, lo más urgente primero:
- *  quien te pregunta, quien ha terminado, quien trabaja. Antes decía «todo en
- *  marcha» con solo tener pestañas, aunque estuvieran todas cerradas. */
-export function resumenDePestanas(estados: Estado[]): { clave: string; n: number } {
-  const cuantos = (e: Estado) => estados.filter((x) => x === e).length;
-  const pregunta = cuantos("pregunta");
-  if (pregunta) return { clave: pregunta === 1 ? "{n} te espera" : "{n} te esperan", n: pregunta };
-  const termino = cuantos("termino");
-  if (termino) return { clave: termino === 1 ? "{n} ha terminado" : "{n} han terminado", n: termino };
-  const trabajando = cuantos("trabajando");
-  if (trabajando) return { clave: "{n} trabajando", n: trabajando };
-  return { clave: "dime qué hacemos", n: 0 };
-}
-
 /**
  * Cómo está la mascota del chat (Adeo). Lo primero, quien te pregunta; luego,
  * que el conserje no haya podido contestar; luego, que esté contestando; luego,

@@ -1,11 +1,11 @@
 {
-  "version": "0.9.229",
-  "notes": "Borrar sesiones de Codex y Antigravity desde su terminal, la Cabina vacia con tu uso al dia, Adeo piensa con Claude, Codex o Gemini y elige con que programa abre sus sesiones (tambien en el movil), y el lienzo ya no engorda al abrirlo.",
-  "pub_date": "2026-10-21T10:34:29Z",
+  "version": "0.9.230",
+  "notes": "Las notas y capturas del lienzo se vuelven a mover con la flecha en el modo Dibujo, Ajustes ocupa la pantalla con sus ajustes de dos en dos, y las pestanas del Chat sin tarjetas.",
+  "pub_date": "2026-10-21T12:53:26Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzJHWHIwUDVKVnpBbEdaSk9rYTg1WXowdTRmS3dnN2JtVStSMzZSZTlkU0Y2WGtYK0I4VlpuekZoUkJmd0hSZmZ3Snp6NVRKUVJZa3V4V1hCMnRobndVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTc4ODU4CWZpbGU6QWRlb3JxXzAuOS4yMjlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMjkKeCtoRVd6ZVE0ZEJCT2FaUGZ3eUJmekErQzIzakUwbEc0QmhzV2d0bjJyR3Q3dHZYN3NGdXcrU1R2UUNWOXhWRE1sRzQwamF2UFlja05wNU1mZGNZQlE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.229/Adeorq_0.9.229_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZoRlJwWWlLWEExTnE3bjFGK29kQTNZa2VoTGZEZTgvRVZJZTB6QjZ5L1lMUllqVlRwZENEQVRCN0tnVExiY3ZVSmRCMFlxWHRYTzJaT0NNZEs4d1FzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTg3MTk0CWZpbGU6QWRlb3JxXzAuOS4yMzBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzAKdGlCWHRzUTRrWm5KS3JkcnhEbzVkNHRJejJYTlVYMmtsOGhWbmNFYUVHeE1Sd2djNDloMDBxV3hiNEVmeHlHWXRDbGFsOGZHLzNIcmFHTVVBMlV6Q3c9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.230/Adeorq_0.9.230_x64-setup.exe"
     }
   }
 }

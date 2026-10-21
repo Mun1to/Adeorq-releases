@@ -48,7 +48,6 @@ import {
   pensadorDe,
   programaDe,
   programasDeSesion,
-  resumenDePestanas,
   tomarPedido,
   type ConserjeExec,
   type Conversacion,
@@ -194,8 +193,11 @@ export function ListaConserje({
 
 // ─── Las pestañas ─────────────────────────────────────────────────────────────
 
-/** La franja de color dice el estado sin leer: verde trabajando, ámbar te
- *  pregunta, naranja ha terminado. Los mismos colores que el resto de la app. */
+/** Como la barra de arriba de la app: texto suelto, y la elegida con la raya
+ *  de acento debajo. Eran tarjetas con borde, franja de color y dos renglones, y
+ *  Munir las tiró el 2026-10-21 («slop») eligiendo esta forma entre tres. El
+ *  estado lo dice el color del punto: verde trabajando, ámbar te pregunta,
+ *  naranja ha terminado; la palabra y el modelo van al tooltip. */
 export function PestanasConserje({
   trabajos,
   panes,
@@ -216,7 +218,6 @@ export function PestanasConserje({
   const arranque = useArranque();
   const vivas = trabajos.filter((w) => !w.soltado);
   const estados = vivas.map((w) => estadoDe(paneDe(w, panes, arranque)));
-  const resumen = resumenDePestanas(estados);
 
   /* Con tres pestañas la tira ya no cabe en la columna del chat, y la barra de
      desplazamiento está escondida: sin una pista, las de la derecha no
@@ -254,11 +255,9 @@ export function PestanasConserje({
     <nav className="cj-pestanas" aria-label={t("Sesiones")}>
       <button className="cj-pestana" data-estado="conserje" data-on={viendo === null} onClick={() => onIr(null)}>
         <Mascota animo={animoDelChat(false, estados)} alto={16} />
-        <span className="cj-pestana-txt">
-          <strong>{t("Conserje")}</strong>
-          <span className="cj-estado">{t(resumen.clave, { n: resumen.n })}</span>
-        </span>
+        {t("Conserje")}
       </button>
+      <span className="cj-pestanas-raya" />
       <div
         ref={tiraRef}
         className="cj-pestanas-rueda"
@@ -272,32 +271,24 @@ export function PestanasConserje({
       >
       {vivas.map((w) => {
         const estado = estadoDe(paneDe(w, panes, arranque));
+        const dice = `${hoja(w.carpeta)} · ${t(PALABRA[estado])} · ${nombreDe(w)}`;
         return (
           <span key={claveDe(w)} className="cj-pestana-caja">
           <button
             className="cj-pestana"
             data-estado={estado}
             data-on={viendo === claveDe(w)}
-            data-tip={`${nombreDe(w)} · ${w.encargo.slice(0, 160)}`}
+            aria-label={dice}
+            data-tip={`${dice} · ${w.encargo.slice(0, 160)}`}
             // Con el tabulador el navegador no la sacaba de debajo del
             // difuminado; el foco llega también con el clic, así que basta aquí.
             onFocus={(e) => e.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" })}
             onClick={() => onIr(claveDe(w))}
           >
             <ProviderMark id={w.cli} />
-            {/* Arriba el proyecto y abajo cómo va y con qué: al encoger la tira
-                se cortaba justo el modelo («Adeorq · Cla…»), y el proyecto es
-                lo que se busca con la vista. */}
-            <span className="cj-pestana-txt">
-              <strong>{hoja(w.carpeta)}</strong>
-              <span className="cj-pestana-sub">
-                <span className="cj-estado">
-                  <span className="cj-punto" />
-                  {t(PALABRA[estado])}
-                </span>
-                <span className="cj-pestana-modelo">{nombreDe(w)}</span>
-              </span>
-            </span>
+            {hoja(w.carpeta)}
+            {/* Una cerrada no lleva punto: ya se apaga entera y lleva su ✕. */}
+            {estado !== "cerrada" && <span className="cj-punto" />}
           </button>
           {/* Hermana y no hija de la pestaña: un botón dentro de otro no es
               HTML válido y el clic de dentro abriría también la sesión. */}

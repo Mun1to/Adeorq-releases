@@ -605,11 +605,11 @@ export default function SettingsView({
         <p>{t("Cómo se ve y cómo habla tu taller.")}</p>
       </header>
 
-      {/* La guía es un DOCUMENTO, no un formulario: en Ajustes el marco está
-          topado a 1100 px, que es lo que quieres para dos columnas de campos y
-          lo que deja la guía en una tira estrecha con media pantalla vacía al
-          lado (Munir, 2026-08-29, con la captura). En esa sección el tope se
-          levanta y el ancho lo pone la propia guía. */}
+      {/* La guía es un DOCUMENTO, no un formulario: el resto de Ajustes va con
+          su tope y con las filas de dos en dos (07-ajustes.css), y la guía se
+          quedaba en una tira estrecha con media pantalla vacía al lado (Munir,
+          2026-08-29, con la captura). En esa sección no hay tope y el ancho lo
+          pone la propia guía. */}
       <div className="set-marco" data-ancha={seccion === "ayuda" || undefined}>
         {/* La izquierda: los grupos. Antes eran diez tarjetas en una
             rejilla, y como una tenia dos botones y otra veinticuatro
@@ -1257,7 +1257,11 @@ export default function SettingsView({
                     onChange={(e) => onRestore(e.currentTarget.checked)}
                   />
                 </label>
-                <TerminalesAparte />
+                {/* Juntos en una celda: con la tarjeta a lo ancho las filas van de
+                    dos en dos, y su explicación caía en la columna de al lado. */}
+                <div className="setting-con-nota">
+                  <TerminalesAparte />
+                </div>
                 <label className="setting-row setting-switch">
                   <span>{t("Saltar a la sesión que termina, a pantalla completa")}</span>
                   <input

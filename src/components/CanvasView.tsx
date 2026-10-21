@@ -153,8 +153,8 @@ const MODO_KEY = "adeorq-lienzo-modo";
  *   chat, relojes) y nada de dibujo. Los trazos no se borran, se guardan igual
  *   y vuelven enteros al cambiar de modo: esto es una vista, no una papelera.
  * · `dibujo` es la pizarra: todas las herramientas y todos los trazos. Las
- *   piezas siguen viéndose, porque dibujar sirve justamente para anotarlas,
- *   pero no se arrastran: con el lápiz en la mano, un arrastre es un trazo.
+ *   piezas siguen viéndose, porque dibujar sirve justamente para anotarlas, y
+ *   con la flecha se mueven; con un lápiz en la mano, un arrastre es un trazo.
  * · `todo` es lo de siempre, para quien lo quiera todo a la vez.
  */
 export type ModoLienzo = "terminales" | "dibujo" | "todo";
@@ -168,7 +168,7 @@ const MODOS: Array<{ id: ModoLienzo; label: string; tip: string }> = [
   {
     id: "dibujo",
     label: "Dibujo",
-    tip: "La pizarra: todas las herramientas y tus trazos. Las piezas se ven para poder anotarlas, pero no se arrastran.",
+    tip: "La pizarra: todas las herramientas y tus trazos. Las piezas se ven para anotarlas, y con la flecha se mueven.",
   },
   { id: "todo", label: "Todo", tip: "Las dos cosas a la vez, como siempre." },
 ];
@@ -3841,10 +3841,10 @@ ${ruta}` : ruta;
           // significar dos cosas: aquí manda el trazo y el lienzo se queda
           // quieto. La rueda sigue haciendo zoom, que nunca estorba.
           panOnDrag={tool === "sel"}
-          // En «dibujo» las piezas se ven pero no se cogen: con el lápiz en la
-          // mano, un arrastre encima de una terminal es un trazo y no una
-          // mudanza. En los otros dos modos manda la herramienta, como siempre.
-          nodesDraggable={tool === "sel" && modo !== "dibujo"}
+          // Manda la herramienta en los tres modos: con lápiz, un arrastre es un
+          // trazo; con la flecha, una mudanza. «Dibujo» bloqueaba también la flecha
+          // y Munir pasó días sin poder mover notas ni capturas (2026-10-21).
+          nodesDraggable={tool === "sel"}
           // La rejilla para las terminales la trae React Flow de serie, así que
           // aquí no hay cuenta que hacer: solo decirle el paso, que es el mismo
           // con el que el fondo pinta sus puntos.

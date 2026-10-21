@@ -21,6 +21,101 @@
   max-width: none;
 }
 
+/* Ajustes, a lo ancho. Con el tope de 1100 la mitad derecha de un monitor de
+   1.920 quedaba en negro, 724 px (Munir, 2026-10-21, con la captura de
+   Terminales y una flecha al hueco: «hay un pedazo de espacio vacío aquí»).
+   Eligió entre tres caminos con fotos de la app: una tarjeta debajo de otra,
+   como siempre, pero a todo lo ancho, y DENTRO las filas de ajuste de dos en
+   dos. Estirar sin más no valía: una fila de 1.500 px deja el interruptor en la
+   otra punta de su nombre. En dos columnas cada fila mide lo que medía con el
+   tope, unos 780.
+   El tope nuevo es el ancho al que esas dos columnas siguen en esos 780; en su
+   monitor no se llega. Y lo que decide es lo que mide la HOJA (`@container`), no
+   la ventana: por debajo de 1000 px dos filas con su deslizador no caben y la
+   tarjeta vuelve a ser una columna, como antes. Ayuda queda fuera de todo esto:
+   lo suyo es un texto para leer (arriba). */
+.settings .set-marco:not([data-ancha]) {
+  max-width: 1880px;
+}
+
+.settings .set-hoja {
+  container-type: inline-size;
+}
+
+@container (min-width: 1000px) {
+  .settings .set-marco:not([data-ancha]) .panel-card {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 56px;
+    align-content: start;
+    align-items: start;
+  }
+
+  /* Todo va a lo ancho de la tarjeta menos lo que es un ajuste: su nombre con su
+     mando, o un bloque con título, explicación y opciones (los de la Suavidad o
+     el Modo rendimiento). La cabecera del móvil también lo es (título e
+     interruptor), y a lo ancho dejaba el interruptor a 1.500 px. */
+  .settings .set-marco:not([data-ancha]) .panel-card > * {
+    grid-column: 1 / -1;
+  }
+
+  .settings .set-marco:not([data-ancha]) .panel-card > :is(.setting-row, .setting-con-nota, .mcp-cliente, .movil-cab, .ajuste-fila, .ajuste-bloque) {
+    grid-column: auto;
+  }
+
+  /* Y lo que es un formulario de una pieza (el encuadre del fondo, tu nombre y la
+     carpeta de tus proyectos, lo avanzado de Discord, los dos temas de «seguir a
+     Windows», el estado y el emparejado del móvil) va a lo ancho pero se queda
+     en una columna: suelto, su campo medía 1.500 px y sus botones se iban a la
+     otra punta. */
+  .settings .set-marco:not([data-ancha]) .panel-card > :is(.enc, .onb-campo, .onb-ruta, .setting-more, .tema-sistema-pares, .movil-estado, .movil-emparejar) {
+    max-width: calc((100% - 56px) / 2);
+  }
+
+  /* Un botón suelto mide lo que su texto, como en la tarjeta de antes: en una
+     rejilla se estira solo, y «+ Añadir un proyecto» salía como una barra de
+     1.500 px. */
+  .settings .set-marco:not([data-ancha]) .panel-card > button {
+    justify-self: start;
+  }
+
+  /* Lo que se lee lleva tope; lo que se elige (la rejilla de temas), no. */
+  .settings .set-marco:not([data-ancha]) .panel-card > .card-hint {
+    max-width: 860px;
+  }
+
+  /* Las listas de dentro, igual: la cabecera y las partes de dos en dos, y los
+     atajos por grupos en dos columnas sin partir ninguno. */
+  .settings .set-marco:not([data-ancha]) .cab-lista {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 56px;
+  }
+
+  .settings .set-marco:not([data-ancha]) .atajos {
+    display: block;
+    columns: 2;
+    column-gap: 56px;
+  }
+
+  .settings .set-marco:not([data-ancha]) .atajos-grupo {
+    break-inside: avoid;
+    margin-bottom: 14px;
+  }
+
+  .settings .set-marco:not([data-ancha]) .atajos-pie {
+    column-span: all;
+  }
+}
+
+/* Una fila con su explicación debajo («Que las terminales aguanten…»): van en
+   una celda para que el texto no caiga en la columna de al lado. Ahí dentro la
+   fila es la última de su tipo, y `.setting-row:last-of-type` le quitaba la
+   raya que lleva fuera. */
+.setting-con-nota > .setting-row:last-of-type {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
 
 /* El contador de la pestaña: cuántas cosas hay dentro, para no tener que
    entrar a mirar si está vacío. Va a la derecha del nombre y en pequeño: es un

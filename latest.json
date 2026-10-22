@@ -1,11 +1,11 @@
 {
-  "version": "0.9.233",
-  "notes": "La barra archiva sola también con la app abierta muchas horas, y compactar a tiempo: aviso al 50 %, y al 60 % se compacta sola cuando el agente termina.",
-  "pub_date": "2026-10-22T01:54:58Z",
+  "version": "0.9.234",
+  "notes": "El aviso de contexto va por tokens: avisa a 300.000, compacta a 400.000 y a 600.000 propone una terminal nueva. Una conversación ya compactada dos veces te ofrece seguir en una nueva.",
+  "pub_date": "2026-10-22T03:53:57Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZ1a1EvUzZHTnN4a25VMXEzYTBXaDRCbzJwdWo0TzVtUnkzYUxicUFjempRblBpdWJMNVR4V00vWlFudTZQNHJjMkJscGNOck9XQWs4RmxZSXZ0d2dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjM0MDgzCWZpbGU6QWRlb3JxXzAuOS4yMzNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzMKY09KU29VaW9yaE9FbkNaWlJxYjJsK0UyWWJLSVQwZ1VXaDVYMGxSNEEzUmtiVnhYbURPQU1Vc1YxWFM1enU4YTlKdHpnUmNMU0lpNjJzbWFPZkFRQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.233/Adeorq_0.9.233_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzk1amgvOUsxbk1vbkVrdWx0UFNqSVZ2ekc0SnpnMUZyMTJCalQrd2I0NE1qMXNMYVhKMkdCWXZaTzJMdUw1NXpncFJSYjEwREtSamxNWDI3ZkpscXc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjQxMjE2CWZpbGU6QWRlb3JxXzAuOS4yMzRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzQKemF3RitsZHJHYjI1MlRCelNEWkN5OWdlUE9rVy8xYVFScmZCNjNFc1dJOUpwVStnMytuNVVEbkkrWU8vU3JqaFpIUGd5RWM1SzVwTG5oWWVubXNPRGc9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.234/Adeorq_0.9.234_x64-setup.exe"
     }
   }
 }

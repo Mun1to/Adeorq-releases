@@ -4918,8 +4918,10 @@ function pintarTerminal() {
     pintado.conversa = r.firma;
     if (abajo) conversa.scrollTop = conversa.scrollHeight;
   };
-  /* El contexto: el anillo de arriba siempre, y desde el 60 % el aviso de
-     compactar; desde el 80 %, el de seguir en una nueva (los niveles del PC,
+  /* El contexto: el anillo de arriba siempre, con el %; desde la raya roja del
+     PC el aviso de compactar, y desde la de la terminal nueva el de seguir en
+     una nueva. Las rayas van por tokens (D7: 400k y 600k, o el 60 y el 80 % de
+     una ventana pequeña), así que el nivel llega hecho del PC (`nivelCtx`, de
      `nivelDeContexto`). Los botones se los piden al panel del PC, que hace su
      traspaso y, cuando el agente acaba, lo demás. «Ahora no» lo calla hasta
      el nivel siguiente. */
@@ -4930,7 +4932,8 @@ function pintarTerminal() {
     const p = typeof v.contexto === "number" ? v.contexto : null;
     anillo.hidden = p === null;
     if (p === null) { aviso.hidden = true; return; }
-    const nivel = p >= 80 ? 2 : p >= 60 ? 1 : 0;
+    const n = typeof v.nivelCtx === "number" ? v.nivelCtx : 0;
+    const nivel = n >= 3 ? 2 : n >= 2 ? 1 : 0;
     anillo.dataset.nivel = String(nivel);
     anillo.style.setProperty("--p", `${Math.min(100, Math.max(0, p))}%`);
     anillo.textContent = String(p);

@@ -135,21 +135,48 @@ export const MARGEN_DEL_CIERRE_MS = 10 * 60 * 1000;
  * del rastro), las tienes abiertas en un panel o las desarchivas tú (van a
  * `traidas`, que es «esta la quiero a la vista»). Siguen en «Archivadas»,
  * y el rastro guarda cómo retomarlas.
+ *
+ * Y las traídas a mano, cuando llevan un mes sin tocarse: ni escritas ni
+ * traídas otra vez (`traidasEn`). Munir, 2026-10-22 (D5, «que se archiven
+ * solas»): diecisiete de hace dos meses seguían en la barra porque un día las
+ * trajo con el ＋, y ser traída las libraba de todo para siempre. Las de antes
+ * de ese día no tienen fecha y cuentan desde su última escritura. Lo fijado no
+ * se archiva nunca.
  */
 export function archivadasSolas(
   sesiones: readonly Mirable[],
   cerradas: ReadonlyMap<string, number>,
-  e: Pick<Estanteria, "enPantalla" | "traidas">,
+  e: Pick<Estanteria, "enPantalla" | "traidas"> & {
+    traidasEn?: Readonly<Record<string, number>>;
+    fijadas?: readonly string[];
+  },
   ahoraMs: number,
 ): Set<string> {
   const solas = new Set<string>();
+  const fijadas = new Set(e.fijadas ?? []);
   for (const s of sesiones) {
-    const cerrada = cerradas.get(s.id);
-    if (cerrada === undefined || e.enPantalla.has(s.id) || e.traidas.has(s.id)) continue;
+    if (e.enPantalla.has(s.id)) continue;
     const ultimaVez = ahoraMs - s.hours * 3_600_000;
-    if (ultimaVez <= cerrada + MARGEN_DEL_CIERRE_MS) solas.add(s.id);
+    if (e.traidas.has(s.id)) {
+      const desde = Math.max(ultimaVez, e.traidasEn?.[s.id] ?? 0);
+      if (!fijadas.has(s.id) && ahoraMs - desde > HORAS_EN_LA_BARRA * 3_600_000) solas.add(s.id);
+      continue;
+    }
+    const cerrada = cerradas.get(s.id);
+    if (cerrada !== undefined && ultimaVez <= cerrada + MARGEN_DEL_CIERRE_MS) solas.add(s.id);
   }
   return solas;
+}
+
+/** `traidasEn` con estas conversaciones traídas (o desarchivadas) ahora. */
+export function conFecha(
+  traidasEn: Readonly<Record<string, number>> | undefined,
+  ids: readonly string[],
+  ahoraMs = Date.now(),
+): Record<string, number> {
+  const out = { ...traidasEn };
+  for (const id of ids) out[id] = ahoraMs;
+  return out;
 }
 
 /**

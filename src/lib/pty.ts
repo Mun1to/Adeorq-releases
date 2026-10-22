@@ -302,6 +302,9 @@ export interface PaneStatus {
   effort?: string;
   /** Context used, 0-100: the number in the pane header. */
   percent?: number;
+  /** The context warning level, 0-3 (`nivelDeContexto`, by tokens): the phone
+      paints its warnings with it instead of lines of its own. */
+  ctxNivel?: number;
   /** Subagents still out. A pane with a crew working is never idle. */
   agentsLive: number;
   state: WorkState;
@@ -689,6 +692,18 @@ export function rastroDeLaX(nombre: string, carpeta: string, sesion: string, abi
   return invoke("rastro_de_la_x", { nombre, carpeta, sesion, abiertaPor });
 }
 
+/** «Nueva con traspaso»: la vieja siguió en una terminal nueva. Su rastro hace
+ *  que la barra la archive en cuanto se cierre (ver `crearTraspaso`). */
+export function rastroDeRelevo(nombre: string, carpeta: string, sesion: string): Promise<void> {
+  return invoke("rastro_de_relevo", { nombre, carpeta, sesion });
+}
+
+/** Cuántas veces se compactó una conversación de Claude Code (las marcas
+ *  `compact_boundary` de su transcript; 0 si no se encuentra). */
+export function sessionCompactions(cwd: string, sessionId?: string): Promise<number> {
+  return invoke<number>("session_compactions", { cwd, sessionId: sessionId ?? null });
+}
+
 export async function rastrosCerradas(): Promise<Map<string, number>> {
   const lista = await invoke<{ sesion: string; cuando_ms: number }[]>("rastros_cerradas");
   return new Map(lista.map((c) => [c.sesion, c.cuando_ms]));
@@ -742,6 +757,10 @@ export interface UiState {
    * que no cuesta nada y una que se borre de `~/.claude` desaparece sola.
    */
   traidas: string[];
+  /** Cuándo trajiste (o desarchivaste) cada una, en ms: la que lleva un mes sin
+      tocarse se archiva sola (`archivadasSolas`). Las de antes del 2026-10-22
+      no tienen fecha y cuentan desde su última escritura. */
+  traidasEn?: Record<string, number>;
   /**
    * Cuántas traídas ya habías reconocido, para no repetirte el aviso.
    *
@@ -861,6 +880,7 @@ export async function loadUiState(): Promise<UiState> {
       sessionProject: parsed.sessionProject ?? {},
       archived: Array.isArray(parsed.archived) ? parsed.archived : [],
       traidas: Array.isArray(parsed.traidas) ? parsed.traidas : [],
+      traidasEn: parsed.traidasEn && typeof parsed.traidasEn === "object" ? parsed.traidasEn : {},
       traidasVisto:
         typeof parsed.traidasVisto === "number" ? parsed.traidasVisto : undefined,
       projectIcon: parsed.projectIcon ?? {},

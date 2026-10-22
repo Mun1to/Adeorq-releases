@@ -1,8 +1,10 @@
 // El contexto de cada terminal, arriba, y el aviso de compactar (Munir,
 // 2026-10-16: «que muestre el contexto arriba de los chats, eso es muy
 // importante, y lo de los avisos de compactar»). Un anillo con el porcentaje
-// en la cabecera; desde el 60 % el aviso con «Compactar», desde el 80 % con
-// «Nueva con traspaso» (los niveles del PC, `nivelDeContexto`). Los botones se
+// en la cabecera; desde la raya roja del PC el aviso con «Compactar», desde la de
+// la terminal nueva con «Nueva con traspaso». Desde la D7 (2026-10-22) las rayas
+// son de tokens y el nivel le llega hecho del PC (`nivelCtx`, de
+// `nivelDeContexto`). Los botones se
 // los piden al panel del PC (`/api/terminal/traspaso`).
 //
 //   node scripts/laboratorio/doble-movil.mjs 4390
@@ -44,8 +46,8 @@ async (page) => {
   debe(pasos.bajo.dice === "Contexto gastado: 30 %", `y se lee en voz alta (${pasos.bajo.dice})`);
 
   pasos.medio = await abrir(1);
-  debe(pasos.medio.cifra === "64" && pasos.medio.nivel === "1", `al 64 %, el anillo naranja (${JSON.stringify(pasos.medio)})`);
-  debe(/64 %: compáctala/.test(pasos.medio.aviso?.texto ?? "") && JSON.stringify(pasos.medio.aviso?.botones) === JSON.stringify(["Compactar", "Ahora no"]), `y el aviso de compactar (${JSON.stringify(pasos.medio.aviso)})`);
+  debe(pasos.medio.cifra === "45" && pasos.medio.nivel === "1", `al 45 % de un millón (450k), el anillo naranja: el nivel es del PC, no del 60 % de antes (${JSON.stringify(pasos.medio)})`);
+  debe(/45 %: compáctala/.test(pasos.medio.aviso?.texto ?? "") && JSON.stringify(pasos.medio.aviso?.botones) === JSON.stringify(["Compactar", "Ahora no"]), `y el aviso de compactar (${JSON.stringify(pasos.medio.aviso)})`);
   await page.click('#aviso-ctx [data-traspaso="compactar"]');
   await page.waitForTimeout(500);
   pasos.compactado = await mirar();

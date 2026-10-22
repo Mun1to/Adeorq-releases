@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { sessionIdOf } from "./comandos";
 import type { Translate } from "./i18n";
 import { sabe } from "./providers";
-import { codexContext, listSkills, sendPty, sessionContext, type ContextInfo } from "./pty";
+import { codexContext, lastReply, listSkills, rastroDeRelevo, sendPty, sessionCompactions, sessionContext, type ContextInfo } from "./pty";
 
 /** Cada cuánto se relee la sesión de un panel: deprisa mientras trabaja. */
 const RELEER_MS = 20_000;
@@ -92,37 +92,49 @@ export function useContextoDeSesion(
  * un día completo de trabajo (2026-07-30). El aviso es para que esa decisión
  * se tome con el dato delante, que es lo único que faltaba.
  *
- * 0 = nada que decir · 1 = ya pesa (50 %) · 2 = compacta ya (60 %, fijo, y
- * compacta solo si el ajuste lo dice) · 3 = compactar sale peor que empezar
- * (80 %). El 50 y el 60 son de Munir, 2026-10-22, tras gastar el 40 % de su
- * semana en un día: «que sea casi obligatorio compactar en ese rango». Antes
- * el primer aviso salía al 60, y para entonces ya se llevaba pagado de más.
+ * 0 = nada que decir · 1 = ya pesa (300k) · 2 = compacta ya (400k, fijo, y
+ * compacta solo si el ajuste lo dice) · 3 = mejor una terminal nueva (600k).
  *
- * Se mide SOLO en porcentaje de la ventana, y eso corrige lo anterior.
+ * Por TOKENS desde la D7 (Munir, 2026-10-22). El mismo día, tras gastar el
+ * 40 % de su semana en uno, había pedido el 50 y el 60 % («que sea casi
+ * obligatorio compactar en ese rango»); con un millón de ventana eso eran 500k
+ * y 600k, y la medición (`scripts/cuota-por-terminal.mjs`) dijo que el 85,8 %
+ * del gasto eran respuestas con 200k o más de contexto: el aviso llegaba con
+ * todo pagado. Los 300k y 400k son suyos; los 600k, de los datos: es donde
+ * compactaba de verdad (644k de media en su semana), y con «Ahora no» a 400k
+ * el panel calla hasta la raya siguiente, así que a 800k callaba justo donde
+ * se va más de la mitad del gasto.
  *
- * Antes había una doble vara: saltaba por tokens (150.000 y 400.000) o por
- * porcentaje, lo que ocurriera antes. La idea era que lo que cuesta dinero
- * son los tokens y no la fracción; el efecto real fue el contrario. Opus 5 y
- * Sonnet 5 declaran un MILLÓN de ventana, así que la vara de los tokens
- * disparaba siempre primero: el primer aviso al 15 % y el «compactar sale
- * peor que empezar de cero» al 40 %, con el 60 % de la ventana todavía libre.
- * Dicho de otra forma: cualquier sesión de trabajo de verdad nacía avisada, y
- * el aviso grave mentía (Munir, 2026-08-06: «son muy molestas y aunque el
- * contexto esté por debajo del 50 % siguen apareciendo»).
- *
- * Con una sola vara el aviso vuelve a querer decir algo en cualquier modelo:
- * con Haiku el 60 % son 120.000 tokens y con Opus 600.000, que es justo la
- * diferencia que la doble vara borraba. Y lo que cuesta la sesión sigue
- * estando a la vista sin que nadie avise: la píldora de la cabecera lleva el
- * número puesto todo el rato.
+ * En cada raya vale lo que llegue ANTES, los tokens o el % de siempre (50, 60
+ * y 80), para que una ventana pequeña siga avisando: Haiku (200k) a 100k, 120k
+ * y 160k, como antes. No es la doble vara que se quitó el 2026-08-06 (150k y
+ * 400k, «son muy molestas y aunque el contexto esté por debajo del 50 % siguen
+ * apareciendo»): aquella elegía tokens a ciegas; estas rayas las puso él con
+ * su gasto delante, y el % solo manda donde la ventana entera es más pequeña.
+ * La píldora de la cabecera sigue con el %, y los tokens exactos en su globo.
  */
+export const AVISO_TOKENS = 300_000;
+export const FIJO_TOKENS = 400_000;
+export const NUEVA_TOKENS = 600_000;
 export const AVISO_PCT = 50;
 export const FIJO_PCT = 60;
 export const NUEVA_PCT = 80;
 export type NivelCtx = 0 | 1 | 2 | 3;
-export function nivelDeContexto(percent: number | undefined): NivelCtx {
-  if (percent == null) return 0;
-  return percent >= NUEVA_PCT ? 3 : percent >= FIJO_PCT ? 2 : percent >= AVISO_PCT ? 1 : 0;
+/** Dónde cae una raya en esta ventana: sus tokens, o su % si llega antes. Sin
+    ventana sabida, los tokens. */
+export function raya(tokens: number, pct: number, ventana: number): number {
+  return ventana > 0 ? Math.min(tokens, (ventana * pct) / 100) : tokens;
+}
+export function nivelDeContexto(c: Pick<ContextInfo, "used" | "window"> | null | undefined): NivelCtx {
+  // Sin tokens no hay aviso: Codex los deja a 0.
+  const u = c?.used ?? 0;
+  if (!c || u <= 0) return 0;
+  const w = c.window;
+  return u >= raya(NUEVA_TOKENS, NUEVA_PCT, w) ? 3 : u >= raya(FIJO_TOKENS, FIJO_PCT, w) ? 2 : u >= raya(AVISO_TOKENS, AVISO_PCT, w) ? 1 : 0;
+}
+/** «350k»: los tokens como los dice el aviso. */
+export function enMiles(tokens: number): string {
+  return `${Math.round(tokens / 1000)}k`;
 }
 
 /**
@@ -243,6 +255,28 @@ export function encargoDeRecuperar(t: Translate): string {
   );
 }
 
+/**
+ * Ya compactada estas veces, compactar otra sale peor que seguir en una
+ * terminal nueva: cada resumen se hace sobre el anterior y se va perdiendo
+ * detalle (Orquio General llegó a la tercera y le pidió a Munir datos que ya le
+ * había dado). Munir, 2026-10-22 (D4): «Sí, que me la ofrezca». Se cuentan las
+ * marcas del transcript (`session_compactions`, en compactaciones.rs).
+ */
+export const COMPACTADA_DE_MAS = 2;
+
+/**
+ * El bloque «Retomar la sesión» que deja el `/fin` al final de su respuesta,
+ * sin las vallas: es lo que se pega en frío en una sesión nueva, y por eso es
+ * el primer mensaje de la terminal que sigue. Si falta el título, vale un
+ * bloque que empiece por «# RETOMAR». `null` si no hay ninguno.
+ */
+export function bloqueRetomar(texto: string): string | null {
+  const bloques = (desde: string) => [...desde.matchAll(/^```[^\n]*\n([\s\S]*?)\n```/gm)].map((m) => m[1].trim());
+  const titulo = /^#{1,6}\s*Retomar la sesi[oó]n\b.*$/im.exec(texto);
+  const tras = titulo ? bloques(texto.slice(titulo.index))[0] : undefined;
+  return tras || bloques(texto).find((b) => /^#\s*RETOMAR\b/i.test(b)) || null;
+}
+
 export function ordenDeCompactar(t: Translate): string {
   return t(
     "Conserva el estado real del repo, lo hecho con sus rutas exactas, lo pendiente y las trampas de hoy; lo demás, resumido.",
@@ -254,8 +288,14 @@ export const CADUCA_MS = 30 * 60_000;
 /** Lo que se deja asentar el transcript tras la campana antes de leerlo: el
     CLI la toca al acabar un turno intermedio y arranca el siguiente al segundo. */
 const ASIENTO_MS = 2500;
-/** Una tarea es «grande» si subió el contexto estos puntos en un turno. */
-export const SUBIDA_GRANDE = 10;
+/** Una tarea es «grande» si subió el contexto esto en un turno, y se sugiere
+    compactar desde aquí hasta el aviso: 50k y 200k, o el 10 y el 40 % de una
+    ventana pequeña (`raya`). Medido en sus transcripts de siete días (1.981
+    turnos): un turno sube 12k de mediana y 87k en el p90; 50k o más, uno de
+    cada cinco y medio. El 85,8 % del gasto vive de los 200k para arriba. */
+export const SUBIDA_TOKENS = 50_000;
+export const SUBIDA_PCT = 10;
+export const SUGERIR_TOKENS = 200_000;
 export const SUGERIR_PCT = 40;
 
 /** nada · esperando (pedido, a que acabe el turno) · cerrando (el traspaso
@@ -268,7 +308,7 @@ export interface DepsTraspaso {
   /** El transcript releído AHORA, no el de hace veinte segundos. `null` si
       este CLI no deja uno: entonces el botón va a ciegas, como siempre, y
       solo no se hace nada. */
-  leer: () => Promise<Pick<ContextInfo, "state" | "agentsLive" | "percent"> | null>;
+  leer: () => Promise<Pick<ContextInfo, "state" | "agentsLive" | "used" | "window"> | null>;
   /** Un menú suyo en pantalla (permiso, pregunta). */
   hayPregunta: () => boolean;
   /** Algo tecleado y sin mandar: lo nuestro se pegaría detrás. */
@@ -281,8 +321,17 @@ export interface DepsTraspaso {
   sugerir: () => boolean;
   esClaude: () => boolean;
   tieneFin: () => Promise<boolean>;
-  abrirNueva?: () => void;
-  alSugerir?: (pct: number) => void;
+  /** Cuántas veces se compactó ya esta conversación (`COMPACTADA_DE_MAS`). */
+  compactaciones: () => Promise<number>;
+  /** Lo último que contestó el agente: la respuesta del `/fin`. */
+  ultimaRespuesta: () => Promise<string | null>;
+  /** El rastro de la vieja, para que la barra la archive al cerrarla. */
+  archivar: () => Promise<void>;
+  /** La terminal nueva, con el bloque «Retomar» de primer mensaje (o, sin
+      él, el encargo de la casa). */
+  abrirNueva?: (encargo: string | null) => void;
+  /** Con los tokens que lleva. */
+  alSugerir?: (tokens: number) => void;
   alCambiar?: (f: FaseTraspaso) => void;
   esperar?: (ms: number) => Promise<void>;
   ahora?: () => number;
@@ -294,11 +343,11 @@ export interface DepsTraspaso {
  * teclea SOLO con el turno acabado (`turnoAcabado`), así que pulsar Compactar
  * con el agente trabajando ya no se le cuela a mitad: espera a su campana.
  *
- * Y el 60 % (Munir, 2026-10-22: «casi obligatorio»): si el ajuste lo dice
+ * Y la raya roja (Munir, 2026-10-22: «casi obligatorio»): si el ajuste lo dice
  * (`ModoSolo`), la campana de un turno acabado lo empieza sola, con
  * `/fin sin commits` salvo que el ajuste pida el entero. «Ahora no» lo para
  * hasta el aviso siguiente. Tras compactar no vuelve a empezar con el número
- * viejo del transcript: espera a verlo bajar del 50 %.
+ * viejo del transcript: espera a verlo bajar del aviso.
  *
  * Sin React a propósito, para que el banco lo pase entero
  * (`scripts/contexto-check.ts`).
@@ -341,8 +390,14 @@ export function crearTraspaso(d: DepsTraspaso) {
       return;
     }
     poner(null);
-    if (p.que === "nueva") return d.abrirNueva?.();
+    // Hecho en los dos casos: la vieja no se compacta sola después.
     hecho = true;
+    if (p.que === "nueva") {
+      const respuesta = await d.ultimaRespuesta().catch(() => null);
+      d.abrirNueva?.(respuesta ? bloqueRetomar(respuesta) : null);
+      await d.archivar().catch(() => {});
+      return;
+    }
     await d.mandar(`/compact ${ordenDeCompactar(d.t)}`);
   };
 
@@ -357,16 +412,20 @@ export function crearTraspaso(d: DepsTraspaso) {
     try {
       await esperar(ASIENTO_MS);
       const c = await d.leer().catch(() => null);
-      const nivel = nivelDeContexto(c?.percent);
+      const nivel = nivelDeContexto(c);
       if (c && nivel === 0) hecho = false;
       if (c && turnoAcabado(c, d.hayPregunta())) {
-        if (d.sugerir() && !pendiente && nivel === 0 && base != null && c.percent >= SUGERIR_PCT && c.percent - base >= SUBIDA_GRANDE) {
-          d.alSugerir?.(c.percent);
-        }
-        base = c.percent;
+        const grande =
+          base != null && c.used >= raya(SUGERIR_TOKENS, SUGERIR_PCT, c.window) && c.used - base >= raya(SUBIDA_TOKENS, SUBIDA_PCT, c.window);
+        if (d.sugerir() && !pendiente && nivel === 0 && grande) d.alSugerir?.(c.used);
+        base = c.used;
       }
+      // Ya compactada dos veces no se compacta una tercera sola: el aviso
+      // ofrece seguir en una terminal nueva, y sin su clic se queda ahí.
       if (c && !pendiente && !hecho && nivel >= 2 && nivel > d.visto() && d.modo() !== "no" && d.esClaude()) {
-        poner({ que: "compactar", paso: "esperando", solo: true, desde: ahora() });
+        if ((await d.compactaciones().catch(() => 0)) < COMPACTADA_DE_MAS) {
+          poner({ que: "compactar", paso: "esperando", solo: true, desde: ahora() });
+        }
       }
       await avanzar(c);
     } finally {
@@ -390,23 +449,42 @@ export function useTraspaso(m: {
   nivel: number;
   visto: number;
   setCtxVisto: (n: number) => void;
-  onNueva?: (id: number) => void;
+  onNueva?: (id: number, encargo?: string) => void;
   /** Si en este panel corre Claude Code, que es el único que entiende `/fin`. */
   esClaude?: boolean;
-  leer: DepsTraspaso["leer"];
+  /** Dónde y qué conversación: para releerla, contar sus compactaciones y
+      dejarle el rastro. Sin Claude Code no se lee nada (va a ciegas). */
+  cwd: string;
+  sesion?: string;
+  nombre: string;
   hayPregunta: () => boolean;
   hayBorrador: () => boolean;
   trabajando: () => boolean;
 }) {
   const [fase, setFase] = useState<FaseTraspaso>("nada");
   const [sugerencia, setSugerencia] = useState<number | null>(null);
+  /** Las veces que se compactó, sabidas desde la raya roja: el aviso ofrece la nueva. */
+  const [veces, setVeces] = useState(0);
+  /** Ya sigue en una terminal nueva: esta solo ofrece cerrarse. */
+  const [relevada, setRelevada] = useState(false);
   const ultimo = useRef(m);
   ultimo.current = m;
+  const contar = () => {
+    const u = ultimo.current;
+    if (!u.esClaude) return Promise.resolve(0);
+    return sessionCompactions(u.cwd, u.sesion).then((n) => {
+      setVeces(n);
+      return n;
+    });
+  };
+  useEffect(() => {
+    if (m.nivel >= 2) void contar().catch(() => {});
+  }, [m.nivel >= 2, m.sesion]);
   const tr = useRef<ReturnType<typeof crearTraspaso> | null>(null);
   tr.current ??= crearTraspaso({
     t: ((...a: Parameters<Translate>) => ultimo.current.t(...a)) as Translate,
     mandar: (texto) => sendPty(ultimo.current.id, texto),
-    leer: () => ultimo.current.leer(),
+    leer: () => (ultimo.current.esClaude ? sessionContext(ultimo.current.cwd, ultimo.current.sesion) : Promise.resolve(null)),
     hayPregunta: () => ultimo.current.hayPregunta(),
     hayBorrador: () => ultimo.current.hayBorrador(),
     trabajando: () => ultimo.current.trabajando(),
@@ -415,7 +493,16 @@ export function useTraspaso(m: {
     sugerir: leerSugerir,
     esClaude: () => !!ultimo.current.esClaude,
     tieneFin: tieneSkillFin,
-    abrirNueva: () => ultimo.current.onNueva?.(ultimo.current.id),
+    compactaciones: contar,
+    // Entera: `last_reply` corta a 4.000 caracteres desde el principio, y el
+    // bloque «Retomar» es lo ÚLTIMO de la respuesta del /fin.
+    ultimaRespuesta: () => lastReply(ultimo.current.cwd, ultimo.current.sesion, 100_000),
+    archivar: async () => {
+      const u = ultimo.current;
+      if (u.sesion) await rastroDeRelevo(u.nombre, u.cwd, u.sesion);
+      setRelevada(true);
+    },
+    abrirNueva: (encargo) => ultimo.current.onNueva?.(ultimo.current.id, encargo ?? undefined),
     alSugerir: setSugerencia,
     alCambiar: setFase,
   });
@@ -438,6 +525,9 @@ export function useTraspaso(m: {
     fase,
     sugerencia,
     descartarSugerencia: () => setSugerencia(null),
+    veces,
+    relevada,
+    descartarRelevo: () => setRelevada(false),
   };
 }
 

@@ -1702,12 +1702,13 @@ function App() {
     setView,
   });
 
-  /** Recuperar (E2): una terminal nueva aquí mismo con el traspaso de la vieja (`useTraspaso`). */
+  /** Recuperar (E2): una terminal nueva aquí mismo con el traspaso de la vieja (`useTraspaso`):
+      el bloque «Retomar» de su /fin si lo dejó, y si no, el encargo de leer el buzón. */
   const nuevaConTraspaso = useCallback(
-    (id: number) => {
+    (id: number, encargo?: string) => {
       const src = panesRef.current.find((p) => p.id === id) ?? canvasPanesRef.current.find((p) => p.id === id);
       if (!src) return;
-      openClaudePrompt(`${src.name} · sigue`, src.cwd, encargoDeRecuperar(t));
+      openClaudePrompt(`${src.name} · sigue`, src.cwd, encargo ?? encargoDeRecuperar(t));
     },
     [openClaudePrompt, t],
   );

@@ -2,6 +2,7 @@ mod accounts;
 mod archivos;
 mod autostart;
 mod cierre;
+mod compactaciones;
 mod crew;
 mod discord;
 mod editor;
@@ -471,6 +472,8 @@ pub fn run() {
             movil::movil_reply,
             rastros::rastros_cerradas,
             rastros::rastro_de_la_x,
+            rastros::rastro_de_relevo,
+            compactaciones::session_compactions,
             decisiones::decisiones_listar,
             decisiones::decision_responder,
             decisiones::decision_entregada,

@@ -266,7 +266,7 @@ interface Props {
    *  igual que el renombrado. */
   onSessionId?: (id: number, sessionId: string) => void;
   /** Una terminal nueva que siga desde el traspaso de otra (ver TerminalPane). */
-  onNuevaConTraspaso?: (id: number) => void;
+  onNuevaConTraspaso?: (id: number, encargo?: string) => void;
   /** El asa para que una sesión suprema pida flechas por MCP. La rellena el
    *  lienzo al montarse y la vacía al irse, así que App puede preguntar si hay
    *  lienzo abierto sin saber nada de él. Ver `docs/SUPREMA.md`. */

@@ -1,4 +1,5 @@
-// Ajustes › Terminales: qué hace un panel de Claude Code al llegar al 60 % de contexto.
+// Ajustes › Terminales: qué hace un panel de Claude Code al llegar a la raya roja de contexto
+// (400.000 tokens, o el 60 % de una ventana pequeña; `nivelDeContexto`).
 //
 // Munir, 2026-10-22: «que sea casi obligatorio compactar en ese rango». De fábrica
 // «sin commits» (lo eligió él ese día): a la campana manda `/fin sin commits`, que la skill
@@ -17,7 +18,7 @@ export default function AjusteCompactar() {
   return (
     <>
       <label className="setting-row setting-compactar">
-        <span>{t("Al 60 % de contexto, en Claude Code")}</span>
+        <span>{t("A los 400.000 tokens de contexto, en Claude Code")}</span>
         <select
           value={modo}
           onChange={(e) => {
@@ -32,7 +33,7 @@ export default function AjusteCompactar() {
         </select>
       </label>
       <label className="setting-row setting-switch">
-        <span>{t("Sugerir compactar al acabar una tarea grande, desde el 40 %")}</span>
+        <span>{t("Sugerir compactar al acabar una tarea grande, desde los 200.000 tokens")}</span>
         <input
           type="checkbox"
           checked={sugerir}

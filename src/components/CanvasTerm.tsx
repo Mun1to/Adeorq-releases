@@ -34,7 +34,7 @@ export interface TermData extends Record<string, unknown> {
   onClose: (id: number) => void;
   onRename?: (id: number, nombre: string) => void;
   onSessionId?: (id: number, sessionId: string) => void;
-  onNuevaConTraspaso?: (id: number) => void;
+  onNuevaConTraspaso?: (id: number, encargo?: string) => void;
   onSplit: (id: number) => void;
   /** A lo grande (lo que se ve del lienzo) o de vuelta a su tamaño. */
   onAmpliar: (id: number) => void;

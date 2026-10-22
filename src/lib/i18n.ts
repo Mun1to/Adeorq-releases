@@ -2089,18 +2089,18 @@ const EN: Record<string, string> = {
   "El tablero se guarda solo; «Lienzo» lo exporta a un archivo o abre otro.":
     "The board saves itself; “Canvas” exports it to a file or opens another.",
   "Cerrada «{n}»": "Closed “{n}”",
-  "{pct} % de contexto: mejor una terminal nueva que compactar.":
-    "{pct}% of context: a new terminal beats compacting now.",
-  "{pct} % de contexto: buen momento para compactar, cada mensaje lo vuelve a pagar entero.":
-    "{pct}% of context: a good moment to compact, every message pays for all of it again.",
-  "{pct} % de contexto: compacta ya, cada mensaje lo vuelve a pagar entero.":
-    "{pct}% of context: compact now, every message pays for all of it again.",
-  "{pct} % de contexto: al acabar este turno lo compacto yo.":
-    "{pct}% of context: I will compact it when this turn ends.",
-  "{pct} % de contexto: al acabar este turno lo compacto yo (mejor aún, una terminal nueva).":
-    "{pct}% of context: I will compact it when this turn ends (better still, a new terminal).",
-  "Acabó una tarea grande y vas por el {pct} %: buen punto para compactar.":
-    "A big task just ended and you are at {pct}%: a good point to compact.",
+  "{k} tokens de contexto: mejor una terminal nueva que compactar.":
+    "{k} tokens of context: a new terminal beats compacting now.",
+  "{k} tokens de contexto: buen momento para compactar, cada mensaje lo vuelve a pagar entero.":
+    "{k} tokens of context: a good moment to compact, every message pays for all of it again.",
+  "{k} tokens de contexto: compacta ya, cada mensaje lo vuelve a pagar entero.":
+    "{k} tokens of context: compact now, every message pays for all of it again.",
+  "{k} tokens de contexto: al acabar este turno lo compacto yo.":
+    "{k} tokens of context: I will compact it when this turn ends.",
+  "{k} tokens de contexto: al acabar este turno lo compacto yo (mejor aún, una terminal nueva).":
+    "{k} tokens of context: I will compact it when this turn ends (better still, a new terminal).",
+  "Acabó una tarea grande y vas por {k} tokens: buen punto para compactar.":
+    "A big task just ended and you are at {k} tokens: a good point to compact.",
   "Compacto en cuanto acabe este turno.": "I will compact as soon as this turn ends.",
   "Escribiendo el traspaso (/fin); en cuanto acabe, sigo yo.":
     "Writing the handoff (/fin); as soon as it ends, I take it from there.",
@@ -2108,15 +2108,20 @@ const EN: Record<string, string> = {
     "First the handoff (BUZON.md and living docs), then /compact. With the agent working, it waits for its turn to end.",
   "Nada solo hasta el aviso siguiente": "Nothing on its own until the next warning",
   "Compactar ya": "Compact now",
-  "Al 60 % de contexto, en Claude Code": "At 60% of context, in Claude Code",
+  "A los 400.000 tokens de contexto, en Claude Code": "At 400,000 tokens of context, in Claude Code",
   "Avisar y esperar al botón": "Warn and wait for the button",
   "Compactar solo, sin commits": "Compact on its own, without commits",
   "Compactar solo, con el /fin entero": "Compact on its own, with the full /fin",
-  "Sugerir compactar al acabar una tarea grande, desde el 40 %": "Suggest compacting after a big task, from 40%",
+  "Sugerir compactar al acabar una tarea grande, desde los 200.000 tokens": "Suggest compacting after a big task, from 200,000 tokens",
   Compactar: "Compact",
   "Nueva con traspaso": "New with handoff",
-  "Primero el traspaso (BUZON.md y docs vivos), después una terminal nueva aquí mismo que sigue desde ahí":
-    "First the handoff (BUZON.md and living docs), then a new terminal right here that carries on from it",
+  "Primero el /fin; al acabar, una terminal nueva aquí mismo que empieza con su bloque «Retomar», y esta se archiva al cerrarla":
+    "First /fin; when it ends, a new terminal right here that starts with its “Retomar” block, and this one is archived once closed",
+  "{k} tokens y ya compactada {n} veces: mejor seguir en una terminal nueva que compactar otra vez.":
+    "{k} tokens and already compacted {n} times: better to carry on in a new terminal than to compact again.",
+  "Sigue en la terminal nueva. Esta deja su rastro y se archiva al cerrarla.":
+    "It carries on in the new terminal. This one leaves its trace and is archived once closed.",
+  "Cerrar esta": "Close this one",
   "Esta sesión ya pesa demasiado: deja al día el traspaso, el BUZON.md del proyecto y sus docs vivos, con lo hecho (rutas exactas), lo pendiente y las trampas de hoy. Sin commits. Cuando acabes, abro una terminal nueva que sigue desde ahí.":
     "This session weighs too much now: bring the handoff up to date, the project's BUZON.md and its living docs, with what was done (exact paths), what is pending and today's traps. No commits. When you finish, I open a new terminal that carries on from there.",
   "Retomas el trabajo de la sesión anterior, que se quedó sin contexto: lee el BUZON.md del proyecto y sus docs vivos, y sigue desde lo pendiente.":

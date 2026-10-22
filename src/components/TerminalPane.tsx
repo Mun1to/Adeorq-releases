@@ -17,7 +17,6 @@ import {
   resizePty,
   savePastedImage,
   sendPty,
-  sessionContext,
   codexSessionSince,
   spawnPty,
   writePty,
@@ -173,7 +172,7 @@ interface Props {
   onSessionId?: (id: number, sessionId: string) => void;
   /** Abrir una terminal nueva en la misma carpeta que siga desde el traspaso
       que este panel acaba de dejar escrito (el «recuperar» del 80 %). */
-  onNuevaConTraspaso?: (id: number) => void;
+  onNuevaConTraspaso?: (id: number, encargo?: string) => void;
   /** Las cuentas de Claude que hay configuradas, para poder relevar a otra. */
   cuentas?: Account[];
   /** Sigue ESTA terminal en otra cuenta, con un acta de dónde iba. */
@@ -964,6 +963,7 @@ export default function TerminalPane({
       model: ctx?.model || brain.model || undefined,
       effort: brain.effort,
       percent: sabe(kind, "estadoDelDisco") ? undefined : ctx?.percent,
+      ctxNivel: sabe(kind, "estadoDelDisco") ? undefined : nivelDeContexto(ctx),
       // El transcript va con retraso; los subagentes vivos que ha visto el
       // propio panel mandan sobre los que contó el fichero.
       agentsLive: Math.max(agents.live, ctx?.agentsLive ?? 0),
@@ -2160,17 +2160,17 @@ export default function TerminalPane({
     return () => cancelAnimationFrame(f);
   }, [fontSize, autoFont, id, maximized, hidden]);
 
-  const ctxNivel = nivelDeContexto(ctx?.percent);
+  const ctxNivel = nivelDeContexto(ctx);
   const avisoCtx = ctxNivel > ctxVisto ? ctxNivel : 0;
-  // Bajó del 50 % (compactó): lo visto se olvida, para que la próxima subida
-  // vuelva a avisar. Antes no se olvidaba y el panel se quedaba mudo hasta el 80.
+  // Bajó del aviso (compactó): lo visto se olvida, para que la próxima subida
+  // vuelva a avisar. Antes no se olvidaba y el panel se quedaba mudo hasta la última raya.
   useEffect(() => {
     if (ctx && ctxNivel === 0) setCtxVisto(0);
   }, [ctx, ctxNivel]);
 
   /* Compactar y recuperar con traspaso: el porqué y los textos, en `lib/contexto.ts`. */
   // `esClaude`: solo Claude Code entiende `/fin`; en Codex o Gemini va el texto de la casa,
-  // a ciegas como siempre (sin `leer`), y nunca solo.
+  // a ciegas como siempre (no se lee su transcript), y nunca solo.
   const esClaude = /\bclaude\b/i.test((command ?? []).join(" "));
   const traspaso = useTraspaso({
     id,
@@ -2181,7 +2181,9 @@ export default function TerminalPane({
     setCtxVisto,
     onNueva: onNuevaConTraspaso,
     esClaude,
-    leer: () => (esClaude ? sessionContext(cwd, sessionIdOf(joined)) : Promise.resolve(null)),
+    cwd,
+    sesion: sessionIdOf(joined) ?? ctx?.sessionId,
+    nombre: name,
     hayPregunta: () => askRef.current !== null,
     hayBorrador: () => borradorRef.current,
     trabajando: () => {
@@ -2192,17 +2194,17 @@ export default function TerminalPane({
   });
   /** El aviso se ve con el nivel por encima de lo visto, con un traspaso en
    *  marcha (que dice por dónde va) o con la sugerencia de una tarea grande. */
-  const verCtx = (avisoCtx > 0 && !!ctx) || traspaso.fase !== "nada" || traspaso.sugerencia != null;
+  const verCtx = (avisoCtx > 0 && !!ctx) || traspaso.fase !== "nada" || traspaso.sugerencia != null || traspaso.relevada;
   traspasoRef.current = traspaso.alSonarCampana;
   useTraspasoDelMovil(id, traspaso);
 
   // Reanimar una sesión PASADA DE TAMAÑO es volver a cargarle los mismos
-  // tokens que la ahogaron: se cuelga otra vez en cuanto respira. A partir
-  // del 80 % se reanima ABRIENDO LIMPIA, que es lo único que la salva, y la
+  // tokens que la ahogaron: se cuelga otra vez en cuanto respira. Desde la raya
+  // de la terminal nueva (600k) se reanima ABRIENDO LIMPIA, que es lo que la salva, y la
   // etiqueta lo dice para que nadie espere recuperar la conversación. Munir
   // llegó a este panel con 885.023 tokens y el aviso rojo puesto, y aun así
   // el botón le habría devuelto el mismo cadáver (2026-07-31).
-  const reanimarLimpio = ctxNivel >= 2;
+  const reanimarLimpio = ctxNivel >= 3;
   // `ctx` sale del transcript, y solo Claude lo tiene. A los demás su sesión
   // les va en la línea (los que nacen con un id, como Gemini) o se aprendió del
   // disco (Codex); sin esto, «Reanimar» les abría siempre una sesión nueva
@@ -2482,9 +2484,9 @@ export default function TerminalPane({
           {ctx && ctx.percent > 0 && (
             <span
               className="pane-ctx"
-              data-hot={ctx.percent >= 80}
+              data-hot={ctxNivel >= 3}
               data-tip={`${t("Contexto")}: ${ctx.used.toLocaleString()} / ${ctx.window.toLocaleString()} tokens (${ctx.percent}% ${t("de contexto usado")})\n${t("Cada mensaje en esta sesión vuelve a pagar esos {n} tokens.", { n: ctx.used.toLocaleString() })}${
-                ctx.percent >= 80
+                ctxNivel >= 3
                   ? `\n${t("A este nivel, compactar cuesta más que abrir una terminal nueva.")}`
                   : ""
               }`}
@@ -2654,12 +2656,13 @@ export default function TerminalPane({
           )}
           {verCtx && (
             <AvisoContexto
-              percent={ctx?.percent ?? 0}
+              usados={ctx?.used ?? 0}
               avisoCtx={avisoCtx}
               ctxNivel={ctxNivel}
               traspaso={traspaso}
               conNueva={!!onNuevaConTraspaso}
               setCtxVisto={setCtxVisto}
+              onCerrar={() => onClose(id)}
             />
           )}
           {needsLogin && (

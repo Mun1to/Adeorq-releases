@@ -160,6 +160,8 @@ const resumen = (s: PaneStatus) => ({
   sesion: s.sessionId ?? null,
   // Cuánto contexto lleva gastado, para enseñarlo arriba en el móvil.
   contexto: typeof s.percent === "number" ? Math.round(s.percent) : null,
+  // Y el nivel de su aviso, que va por tokens: el móvil no tiene los suyos.
+  nivelCtx: s.ctxNivel ?? 0,
 });
 
 /** Cada ventana de cuota de una cuenta, para las baterías de «Uso» en el móvil:

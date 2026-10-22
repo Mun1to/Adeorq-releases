@@ -6,6 +6,12 @@
 // cada turno, y dejarla llegar al compactado automático del CLI la corta a
 // mitad de una tarea y sin el `/fin` que guarda los traspasos.
 //
+// D7, el mismo día, tras medir que el 85,8 % del gasto son respuestas con 200k
+// o más de contexto: las rayas van por TOKENS, no por el % de la ventana (con
+// un millón, el 50 % eran 500k y llegaba tarde). 300k avisa, 400k compacta y
+// 600k ofrece una terminal nueva; en una ventana pequeña vale lo que llegue
+// antes, los tokens o el % de antes, para que Haiku siga avisando.
+//
 // Lo que no puede pasar, que es lo que se mira aquí:
 //   · que se le teclee algo a un agente a MITAD de un turno: con herramientas
 //     en marcha, con subagentes fuera, con una pregunta suya en pantalla, o
@@ -19,6 +25,7 @@
 //   pnpm bancos contexto
 
 import {
+  bloqueRetomar,
   CADUCA_MS,
   crearTraspaso,
   leerModoSolo,
@@ -46,7 +53,9 @@ const es = (nombre: string, obtenido: unknown, esperado: unknown) =>
 function panel(o: Partial<{
   modo: ModoSolo;
   estado: WorkState;
-  pct: number;
+  /** Miles de tokens de contexto, sobre `ventana`. */
+  k: number;
+  ventana: number;
   vivos: number;
   pregunta: boolean;
   borrador: boolean;
@@ -56,11 +65,14 @@ function panel(o: Partial<{
   claude: boolean;
   sinDato: boolean;
   sugerir: boolean;
+  veces: number;
+  respuesta: string | null;
 }> = {}) {
   const s = {
     modo: "sin-commits" as ModoSolo,
     estado: "lista" as WorkState,
-    pct: 62,
+    k: 420,
+    ventana: 1_000_000,
     vivos: 0,
     pregunta: false,
     borrador: false,
@@ -70,18 +82,22 @@ function panel(o: Partial<{
     claude: true,
     sinDato: false,
     sugerir: true,
+    veces: 0,
+    respuesta: null as string | null,
     reloj: 1_000_000,
     ...o,
   };
   const mandado: string[] = [];
-  const nuevas: number[] = [];
+  /** Con qué primer mensaje nació cada terminal nueva (null: el de la casa). */
+  const nuevas: Array<string | null> = [];
+  const archivadas: number[] = [];
   const sugerencias: Array<number | null> = [];
   const tr = crearTraspaso({
     t: (x) => x,
     mandar: async (x) => {
       mandado.push(x);
     },
-    leer: async () => (s.sinDato ? null : { state: s.estado, agentsLive: s.vivos, percent: s.pct }),
+    leer: async () => (s.sinDato ? null : { state: s.estado, agentsLive: s.vivos, used: s.k * 1000, window: s.ventana }),
     hayPregunta: () => s.pregunta,
     hayBorrador: () => s.borrador,
     trabajando: () => s.trabajando,
@@ -90,23 +106,58 @@ function panel(o: Partial<{
     sugerir: () => s.sugerir,
     esClaude: () => s.claude,
     tieneFin: async () => s.fin,
-    abrirNueva: () => nuevas.push(1),
+    compactaciones: async () => s.veces,
+    ultimaRespuesta: async () => s.respuesta,
+    archivar: async () => {
+      archivadas.push(1);
+    },
+    abrirNueva: (encargo) => nuevas.push(encargo),
     alSugerir: (p) => sugerencias.push(p),
     esperar: async () => {},
     ahora: () => s.reloj,
   });
-  return { s, tr, mandado, nuevas, sugerencias };
+  return { s, tr, mandado, nuevas, archivadas, sugerencias };
 }
+
+/** Lo que contesta un /fin de verdad, recortado: sus dos bloques del final. */
+const RESPUESTA_FIN = [
+  "**Compactar a tiempo, hecho y commiteado.**",
+  "",
+  "## Mensaje de compactación",
+  "```",
+  "# COMPACTACIÓN, Sesión compactar (2026-10-22)",
+  "## Pendiente",
+  "- push con su OK",
+  "```",
+  "",
+  "## Retomar la sesión",
+  "```text",
+  "# RETOMAR, Adeorq compactar a tiempo (guardado el 2026-10-22)",
+  "",
+  "Retomo esto. Antes de proponer nada:",
+  "",
+  "- Carpeta: C:\\proyectos\\Adeorq. Lee su AGENTS.md y su BUZON.md.",
+  "```",
+  "",
+  "Quedan 2 commits por delante del remoto. ¿Los subo?",
+].join("\n");
 
 async function main() {
   // ── Las rayas ───────────────────────────────────────────────────────────
+  const n = (k: number, ventana = 1_000_000) => nivelDeContexto({ used: k * 1000, window: ventana });
   es("sin dato no hay aviso", nivelDeContexto(undefined), 0);
-  es("49 % todavía no", nivelDeContexto(49), 0);
-  es("50 % ya avisa", nivelDeContexto(50), 1);
-  es("59 % sigue en el aviso", nivelDeContexto(59), 1);
-  es("60 % es el fijo", nivelDeContexto(60), 2);
-  es("79 % sigue en el fijo", nivelDeContexto(79), 2);
-  es("80 % es el de una terminal nueva", nivelDeContexto(80), 3);
+  es("un millón: 299k todavía no", n(299), 0);
+  es("un millón: 300k ya avisa (el 30 %, no el 50)", n(300), 1);
+  es("un millón: 399k sigue en el aviso", n(399), 1);
+  es("un millón: 400k compacta (el 40 %, no el 60)", n(400), 2);
+  es("un millón: 599k sigue en compactar", n(599), 2);
+  es("un millón: 600k, mejor una terminal nueva (no el 80 %)", n(600), 3);
+  es("Haiku (200k): 99k todavía no", n(99, 200_000), 0);
+  es("Haiku: el 50 % (100k) llega antes que los 300k y avisa", n(100, 200_000), 1);
+  es("Haiku: el 60 % (120k) compacta", n(120, 200_000), 2);
+  es("Haiku: el 80 % (160k), terminal nueva", n(160, 200_000), 3);
+  es("sin ventana sabida, solo los tokens", n(400, 0), 2);
+  es("sin tokens (Codex no los da), nada", nivelDeContexto({ used: 0, window: 0 }), 0);
 
   // ── Cuándo un turno ha acabado de verdad ───────────────────────────────
   const fin = (state: WorkState, extra: Partial<{ agentsLive: number }> = {}, pregunta = false) =>
@@ -133,18 +184,18 @@ async function main() {
   {
     const p = panel();
     await p.tr.alSonar();
-    es("al 62 % y con el turno acabado, la campana manda /fin sin commits", p.mandado, ["/fin sin commits"]);
+    es("a 420k y con el turno acabado, la campana manda /fin sin commits", p.mandado, ["/fin sin commits"]);
     es("y queda cerrando", p.tr.fase(), "cerrando");
     await p.tr.alSonar();
     ok("la campana siguiente manda el /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
     es("y se acaba", p.tr.fase(), "nada");
     await p.tr.alSonar();
     es("una campana más, con el número viejo todavía en el transcript, no vuelve a empezar", p.mandado.length, 2);
-    p.s.pct = 9;
+    p.s.k = 30;
     await p.tr.alSonar();
-    p.s.pct = 63;
+    p.s.k = 430;
     await p.tr.alSonar();
-    es("pero si bajó y vuelve a cruzar el 60 %, vuelve a hacerlo", p.mandado.slice(2), ["/fin sin commits"]);
+    es("pero si bajó y vuelve a cruzar los 400k, vuelve a hacerlo", p.mandado.slice(2), ["/fin sin commits"]);
   }
   {
     const p = panel({ modo: "fin" });
@@ -157,9 +208,14 @@ async function main() {
     es("con el modo «no» la campana no manda nada", p.mandado, []);
   }
   {
-    const p = panel({ pct: 55 });
+    const p = panel({ k: 350 });
     await p.tr.alSonar();
-    es("al 55 % solo se avisa: nada se manda solo", p.mandado, []);
+    es("a 350k solo se avisa: nada se manda solo", p.mandado, []);
+  }
+  {
+    const p = panel({ k: 130, ventana: 200_000 });
+    await p.tr.alSonar();
+    es("en Haiku, a 130k (el 65 %) compacta solo como antes", p.mandado, ["/fin sin commits"]);
   }
   for (const [nombre, o] of [
     ["herramientas en marcha", { estado: "a_medias" as WorkState }],
@@ -185,10 +241,10 @@ async function main() {
   {
     const p = panel({ visto: 2 });
     await p.tr.alSonar();
-    es("«Ahora no» al 62 %: la campana no manda nada", p.mandado, []);
-    p.s.pct = 81;
+    es("«Ahora no» a 420k: la campana no manda nada", p.mandado, []);
+    p.s.k = 610;
     await p.tr.alSonar();
-    es("pero al cruzar el 80 % es otro aviso y vuelve", p.mandado, ["/fin sin commits"]);
+    es("pero al cruzar los 600k es otro aviso y vuelve", p.mandado, ["/fin sin commits"]);
   }
   {
     const p = panel({ claude: false });
@@ -258,35 +314,81 @@ async function main() {
     ok("y el /compact a la campana siguiente", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "));
   }
   {
-    const p = panel({ modo: "no", pct: 85 });
+    const p = panel({ modo: "no", k: 650 });
     await p.tr.pedir("nueva");
     await p.tr.alSonar();
     es("Nueva con traspaso: /fin y, al acabar, la terminal nueva", [p.mandado, p.nuevas.length], [["/fin"], 1]);
+    es("sin bloque «Retomar» en la respuesta, nace con el encargo de la casa", p.nuevas, [null]);
   }
 
-  // ── Una tarea grande, aunque vaya por el 40 % ──────────────────────────
+  // ── Ya compactada dos veces (Munir, D4: «Sí, que me la ofrezca») ───────
+  es("el bloque «Retomar la sesión» sale de la respuesta del /fin, sin las vallas", bloqueRetomar(RESPUESTA_FIN)?.split("\n")[0], "# RETOMAR, Adeorq compactar a tiempo (guardado el 2026-10-22)");
+  ok("y entero hasta su valla", /Lee su AGENTS\.md y su BUZON\.md\.$/.test(bloqueRetomar(RESPUESTA_FIN) ?? ""), JSON.stringify(bloqueRetomar(RESPUESTA_FIN)));
+  ok("no se lleva el de compactación", !/COMPACTACIÓN/.test(bloqueRetomar(RESPUESTA_FIN) ?? ""));
+  es("una respuesta sin él no da nada", bloqueRetomar("Hecho. ¿Lo subo?"), null);
+  es("sin el título, vale un bloque que empiece por # RETOMAR", bloqueRetomar("Toma:\n```\n# RETOMAR, x\nsigue\n```"), "# RETOMAR, x\nsigue");
   {
-    const p = panel({ pct: 30 });
+    const p = panel({ veces: 2 });
     await p.tr.alSonar();
-    p.s.pct = 44;
+    es("compactada dos veces, la campana de los 420k NO compacta una tercera", p.mandado, []);
+    es("y no abre nada sin su clic", [p.nuevas.length, p.archivadas.length], [0, 0]);
+  }
+  {
+    const p = panel({ veces: 1 });
     await p.tr.alSonar();
-    es("una tarea que sube 14 puntos y acaba en el 44 % lo sugiere", p.sugerencias, [44]);
+    es("compactada una vez, compacta como siempre", p.mandado, ["/fin sin commits"]);
+  }
+  {
+    const p = panel({ veces: 2, respuesta: RESPUESTA_FIN });
+    await p.tr.pedir("nueva");
+    es("con su clic va el /fin", p.mandado, ["/fin"]);
+    await p.tr.alSonar();
+    es("y al acabar nace la nueva con el bloque «Retomar» como primer mensaje", p.nuevas.map((x) => x?.split("\n")[0]), ["# RETOMAR, Adeorq compactar a tiempo (guardado el 2026-10-22)"]);
+    es("y la vieja deja su rastro para archivarse", p.archivadas.length, 1);
+    es("sin /compact en la vieja", p.mandado, ["/fin"]);
+    await p.tr.alSonar();
+    es("y después la vieja no se compacta sola", p.mandado, ["/fin"]);
+  }
+
+  // ── Una tarea grande, por debajo del aviso ──────────────────────────────
+  // Medido en sus transcripts (7 días, 1.981 turnos): un turno sube 12k de
+  // mediana y 87k en el p90; 50k o más, uno de cada cinco y medio.
+  {
+    const p = panel({ k: 150 });
+    await p.tr.alSonar();
+    p.s.k = 220;
+    await p.tr.alSonar();
+    es("una tarea que sube 70k y acaba en 220k lo sugiere", p.sugerencias, [220_000]);
     es("sugerir no manda nada", p.mandado, []);
-    p.s.pct = 47;
+    p.s.k = 240;
     await p.tr.alSonar();
-    es("la siguiente, que sube 3, no", p.sugerencias, [44]);
+    es("la siguiente, que sube 20k, no", p.sugerencias, [220_000]);
   }
   {
-    const p = panel({ pct: 20 });
+    const p = panel({ k: 100 });
     await p.tr.alSonar();
-    p.s.pct = 38;
+    p.s.k = 190;
     await p.tr.alSonar();
-    es("por debajo del 40 % no se sugiere aunque suba mucho", p.sugerencias, []);
+    es("por debajo de 200k no se sugiere aunque suba mucho", p.sugerencias, []);
   }
   {
-    const p = panel({ pct: 30, sugerir: false });
+    const p = panel({ k: 250 });
     await p.tr.alSonar();
-    p.s.pct = 45;
+    p.s.k = 320;
+    await p.tr.alSonar();
+    es("pasados los 300k ya no es sugerencia: es el aviso", p.sugerencias, []);
+  }
+  {
+    const p = panel({ k: 50, ventana: 200_000 });
+    await p.tr.alSonar();
+    p.s.k = 85;
+    await p.tr.alSonar();
+    es("en Haiku, como antes: sube 35k (más del 10 %) y acaba en 85k (más del 40 %)", p.sugerencias, [85_000]);
+  }
+  {
+    const p = panel({ k: 150, sugerir: false });
+    await p.tr.alSonar();
+    p.s.k = 260;
     await p.tr.alSonar();
     es("con la sugerencia apagada, nada", p.sugerencias, []);
   }

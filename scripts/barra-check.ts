@@ -20,6 +20,7 @@ import {
   HORAS_EN_LA_BARRA,
   MARGEN_DEL_CIERRE_MS,
   archivadasSolas,
+  conFecha,
   porQueSale,
   saleEnLaBarra,
   type Mirable,
@@ -170,6 +171,36 @@ ok(
   ok("la última línea que suelta el CLI al morir no cuenta como retomarla", solas.has("al-morir"), `margen de ${MARGEN_DEL_CIERRE_MS / 60000} min`);
   ok("la que abriste tú, sin rastro, ni se mira", !solas.has("suya"));
   ok("sin rastros no se archiva nada", archivadasSolas(sesiones, new Map(), e, ahora).size === 0);
+}
+
+// ── Las traídas a mano que llevan un mes sin tocarse, también ───────────────
+// Munir, 2026-10-22 (D5, «que se archiven solas»): diecisiete conversaciones de
+// hace dos meses seguían en la barra porque un día las trajo con el ＋, y ser
+// traída las libraba de todo para siempre.
+{
+  const ahora = Date.UTC(2026, 9, 22, 3, 0);
+  const dias = (d: number) => d * 24;
+  const sesiones: Mirable[] = [
+    { id: "vieja-traida", hours: dias(60) },
+    { id: "traida-hace-poco", hours: dias(60) },
+    { id: "traida-y-usada", hours: dias(2) },
+    { id: "fijada", hours: dias(60) },
+    { id: "abierta", hours: dias(60) },
+  ];
+  const e = {
+    enPantalla: new Set(["abierta"]),
+    traidas: new Set(sesiones.map((s) => s.id)),
+    traidasEn: conFecha({}, ["traida-hace-poco"], ahora - dias(3) * 3_600_000),
+    fijadas: ["fijada"],
+  };
+  const solas = archivadasSolas(sesiones, new Map(), e, ahora);
+  ok("una traída sin fecha que lleva más de un mes quieta se archiva sola", solas.has("vieja-traida"));
+  ok("la que trajiste hace tres días se queda, aunque sea vieja", !solas.has("traida-hace-poco"), "si no, traerla con el ＋ la mandaría a Archivadas al momento");
+  ok("la traída que usaste hace dos días se queda", !solas.has("traida-y-usada"));
+  ok("la fijada no se archiva nunca", !solas.has("fijada"));
+  ok("la abierta en un panel tampoco", !solas.has("abierta"));
+  const renovada = conFecha(e.traidasEn, ["vieja-traida"], ahora);
+  ok("desarchivarla le pone fecha nueva y se queda otro mes", !archivadasSolas(sesiones, new Map(), { ...e, traidasEn: renovada }, ahora).has("vieja-traida"));
 }
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

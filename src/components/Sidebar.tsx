@@ -44,7 +44,7 @@ import {
   type Lado,
 } from "../lib/ordenBarra";
 import { levantar, type Fantasma } from "../lib/fantasma";
-import { archivadasSolas, saleEnLaBarra, viejasPorProyecto } from "../lib/enLaBarra";
+import { archivadasSolas, conFecha, saleEnLaBarra, viejasPorProyecto } from "../lib/enLaBarra";
 import { MasAntiguas, MasAntiguasGlobal } from "./MasAntiguas";
 import UpdateBar from "./UpdateBar";
 import { hueOf } from "../lib/colors";
@@ -474,7 +474,7 @@ export default function Sidebar({
     if (!traerReq?.ids.length) return;
     mutate((prev) => ({
       ...prev,
-      traidas: [...new Set([...prev.traidas, ...traerReq.ids])],
+      traidas: [...new Set([...prev.traidas, ...traerReq.ids])], traidasEn: conFecha(prev.traidasEn, traerReq.ids),
     }));
     refresh();
   }, [traerReq]);
@@ -650,8 +650,8 @@ export default function Sidebar({
      cerró un agente y nadie las ha retomado (`archivadasSolas`). Juntas, para
      que la lista, las cuentas y «N más antiguas» digan lo mismo. */
   const solas = useMemo(
-    () => archivadasSolas(sessions, cerradas, { enPantalla, traidas }, Date.now()),
-    [sessions, cerradas, enPantalla, traidas],
+    () => archivadasSolas(sessions, cerradas, { enPantalla, traidas, traidasEn: ui.traidasEn, fijadas: ui.pinned }, Date.now()),
+    [sessions, cerradas, enPantalla, traidas, ui.traidasEn, ui.pinned],
   );
   const archived = useMemo(() => new Set([...ui.archived, ...solas]), [ui.archived, solas]);
   /* Los proyectos que quitaste de la barra. Ojo con el nombre: `gruposOcultos`,
@@ -1031,13 +1031,13 @@ export default function Sidebar({
   };
 
   const unarchive = (id: string) => {
-    // Una que se archivó sola no está en `archived`: desarchivarla es pedirla a
-    // la vista, que es lo que significa `traidas`.
+    // Una archivada sola no está en `archived`: se pide a la vista (`traidas`), con fecha nueva.
     const pedir = solas.has(id);
     mutate((prev) => ({
       ...prev,
       archived: prev.archived.filter((x) => x !== id),
       traidas: pedir && !prev.traidas.includes(id) ? [...prev.traidas, id] : prev.traidas,
+      traidasEn: pedir ? conFecha(prev.traidasEn, [id]) : prev.traidasEn,
     }));
   };
 

@@ -124,14 +124,16 @@ const ULTIMOS = {
 
 // Las terminales de la Cabina, como las devuelve `atenderTerminal` de `lib/movil.ts`.
 // El modelo con su versión, como lo lee el PC del transcript (`pretty_model`);
-// la 4 es una sesión vieja, con un Sonnet que ya no es el último.
+// la 4 es una sesión vieja, con un Sonnet que ya no es el último. `nivelCtx` es
+// el nivel del aviso que el PC saca de los tokens (`nivelDeContexto`): 1 avisa,
+// 2 compacta, 3 terminal nueva; las tres son de un millón de ventana.
 const terminales = [
-  { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "Opus 5.5", esfuerzo: "xhigh", estado: "a_medias", sesion: "s-1", contexto: 64 },
+  { panel: 1, nombre: "claude", carpeta: "C:\\proyectos\\Adeorq", agente: true, modelo: "Opus 5.5", esfuerzo: "xhigh", estado: "a_medias", sesion: "s-1", contexto: 45, nivelCtx: 2 },
   { panel: 2, nombre: "codex", carpeta: "C:\\proyectos\\crypto\\radar-bot", agente: true, modelo: "gpt-5.6-terra", estado: "pregunta", sesion: "s-2" },
   { panel: 3, nombre: "consola", carpeta: "C:\\proyectos\\Vidorq", agente: false, modelo: null, estado: "", sesion: null },
-  { panel: 4, nombre: "claude", carpeta: "C:\\proyectos\\Webs", agente: true, modelo: "Sonnet 5", estado: "pregunta", sesion: "s-4", contexto: 83 },
+  { panel: 4, nombre: "claude", carpeta: "C:\\proyectos\\Webs", agente: true, modelo: "Sonnet 5", estado: "pregunta", sesion: "s-4", contexto: 83, nivelCtx: 3 },
   // Una que ya terminó: en el chat, la mascota lo celebra.
-  { panel: 5, nombre: "claude", carpeta: "C:\\proyectos\\VoCript", agente: true, modelo: "Sonnet 5.5", estado: "lista", sesion: "s-5", contexto: 30 },
+  { panel: 5, nombre: "claude", carpeta: "C:\\proyectos\\VoCript", agente: true, modelo: "Sonnet 5.5", estado: "lista", sesion: "s-5", contexto: 30, nivelCtx: 1 },
 ];
 // Los proyectos del PC, como la clase «proyectos» de la ventana: el que trabajó
 // hace menos primero (`cuando`, en segundos), y los que nunca, detrás.

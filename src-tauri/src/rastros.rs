@@ -189,6 +189,27 @@ pub fn cerradas(dir: &Path) -> Vec<Cerrada> {
 /// agente que cuente qué hizo, así que el texto lo dice así y apunta adónde
 /// mirar. El id lo manda la ventana: solo vale si es un id.
 pub fn escribir_de_la_x(dir: &Path, nombre: &str, carpeta: &str, sesion: &str, abierta_por: &str, ahora_ms: u64) -> Result<PathBuf, String> {
+    let de = abierta_por.trim();
+    guardar_de_la_ventana(dir, nombre, sesion, ahora_ms, |dia, hora| format!(
+        "# Rastro de «{}»\n\n- Cerrada: {dia} {hora} UTC\n- Carpeta: `{carpeta}`\n- Conversación: `{sesion}` (se retoma con `claude --resume {sesion}` en esa carpeta)\n- La abrió la sesión «{de}» y la cerró Munir con la X\n\n## Qué hizo, dónde dejó su parte y qué falta\n\nLa cerró Munir con la X, sin rastro de su agente: lo que hizo está en su conversación y, si lo dejó, en el BUZON.md de su proyecto o en los commits de esa carpeta.\n",
+        nombre.trim()
+    ))
+}
+
+/// El rastro de una conversación que siguió en una terminal nueva («Nueva con
+/// traspaso»): su `/fin` dejó el traspaso y la nueva nació con su bloque
+/// «Retomar». Con él la barra la archiva en cuanto se cierra su panel, igual
+/// que las que cierra un agente (Munir, 2026-10-22, D4).
+pub fn escribir_de_relevo(dir: &Path, nombre: &str, carpeta: &str, sesion: &str, ahora_ms: u64) -> Result<PathBuf, String> {
+    guardar_de_la_ventana(dir, nombre, sesion, ahora_ms, |dia, hora| format!(
+        "# Rastro de «{}»\n\n- Relevada: {dia} {hora} UTC\n- Carpeta: `{carpeta}`\n- Conversación: `{sesion}` (se retoma con `claude --resume {sesion}` en esa carpeta)\n- Siguió en una terminal nueva («Nueva con traspaso»), con el bloque «Retomar la sesión» de su /fin como primer mensaje\n\n## Qué hizo, dónde dejó su parte y qué falta\n\nLo dejó su /fin al final de esta conversación: el resumen, los commits y el bloque «Retomar», y los traspasos en el BUZON.md de su proyecto.\n",
+        nombre.trim()
+    ))
+}
+
+/// Un rastro que escribe la ventana y no un agente: el id lo manda ella, así
+/// que solo vale si es un id, y el fichero no pisa a otro del mismo minuto.
+fn guardar_de_la_ventana(dir: &Path, nombre: &str, sesion: &str, ahora_ms: u64, md: impl FnOnce(&str, &str) -> String) -> Result<PathBuf, String> {
     if sesion.is_empty() || !sesion.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
         return Err(format!("«{sesion}» no es el id de una conversación"));
     }
@@ -201,13 +222,17 @@ pub fn escribir_de_la_x(dir: &Path, nombre: &str, carpeta: &str, sesion: &str, a
         ruta = dir.join(format!("{base}-{n}.md"));
         n += 1;
     }
-    let de = abierta_por.trim();
-    let md = format!(
-        "# Rastro de «{}»\n\n- Cerrada: {dia} {hora} UTC\n- Carpeta: `{carpeta}`\n- Conversación: `{sesion}` (se retoma con `claude --resume {sesion}` en esa carpeta)\n- La abrió la sesión «{de}» y la cerró Munir con la X\n\n## Qué hizo, dónde dejó su parte y qué falta\n\nLa cerró Munir con la X, sin rastro de su agente: lo que hizo está en su conversación y, si lo dejó, en el BUZON.md de su proyecto o en los commits de esa carpeta.\n",
-        nombre.trim()
-    );
-    std::fs::write(&ruta, md).map_err(|e| format!("no pude guardar el rastro en {}: {e}", ruta.display()))?;
+    std::fs::write(&ruta, md(&dia, &hora)).map_err(|e| format!("no pude guardar el rastro en {}: {e}", ruta.display()))?;
     Ok(ruta)
+}
+
+/// Para la ventana: «Nueva con traspaso» sobre una conversación de Claude Code.
+#[tauri::command(async)]
+pub fn rastro_de_relevo(nombre: String, carpeta: String, sesion: String) -> Result<(), String> {
+    let ahora = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as u64);
+    escribir_de_relevo(&crate::dir_datos()?.join("rastros"), &nombre, &carpeta, &sesion, ahora).map(|_| ())
 }
 
 /// Para la ventana: la X de Munir sobre una terminal que abrió otra sesión.
@@ -268,6 +293,19 @@ mod tests {
         // Lo que manda la ventana no puede salirse de la carpeta ni colar otra cosa.
         assert!(escribir_de_la_x(&dir, "x", "c", "../../malo", "y", 0).is_err());
         assert!(escribir_de_la_x(&dir, "x", "c", "", "y", 0).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn la_relevada_deja_un_rastro_que_la_barra_lee() {
+        let dir = std::env::temp_dir().join(format!("adeorq-rastros-relevo-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let id = "5e55a1d2-6c0a-4b1e-9a77-0c0ffee00022";
+        let ruta = escribir_de_relevo(&dir, "Adeorq · compactar", r"C:\proyectos\Adeorq", id, 1_792_034_400_000).unwrap();
+        let md = std::fs::read_to_string(&ruta).unwrap();
+        assert!(md.contains("Siguió en una terminal nueva"), "{md}");
+        assert_eq!(cerradas(&dir).iter().map(|c| c.sesion.as_str()).collect::<Vec<_>>(), vec![id]);
+        assert!(escribir_de_relevo(&dir, "x", "c", "../../malo", 0).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

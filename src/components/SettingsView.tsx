@@ -71,6 +71,7 @@ import { pestanasEncendidas, type Parte, type TerminalesPorVista } from "../lib/
 import GuideView from "./GuideView";
 import TerminalesAparte from "./TerminalesAparte";
 import AjusteBuscador from "./AjusteBuscador";
+import AjusteCompactar from "./AjusteCompactar";
 import { CheckIcon, ChevronIcon, CommandIcon, SearchIcon, TerminalIcon } from "./Icons";
 import type { Atajos } from "../lib/atajos";
 
@@ -1279,6 +1280,7 @@ export default function SettingsView({
                   />
                 </label>
                 <AjusteBuscador />
+                <AjusteCompactar />
                 <label className="setting-row setting-switch">
                   <span>{t("Arrancar Adeorq al encender el ordenador")}</span>
                   <input

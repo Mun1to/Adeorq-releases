@@ -445,7 +445,7 @@ fn analyze(path: &Path, folder: &str, cache: &SessionCache) -> Option<SessionInf
 
     if let Some((m, s, cached)) = cache.0.lock().unwrap().get(path) {
         if *m == mtime && *s == size {
-            return cached.clone();
+            return cached.clone().map(al_reloj);
         }
     }
 
@@ -456,6 +456,36 @@ fn analyze(path: &Path, folder: &str, cache: &SessionCache) -> Option<SessionInf
         .unwrap()
         .insert(path.to_owned(), (mtime, size, result.clone()));
     result
+}
+
+/// Lo que depende de la hora, puesto en hora. El caché vale mientras el
+/// archivo no cambie, pero la edad cambia sola: con la app abierta desde la
+/// tarde, la barra seguía diciendo «5 h» de una conversación de hacía doce, no
+/// archivaba las que había cerrado un agente (`archivadasSolas` mira la edad) y
+/// podía enseñar agentes vivos en una sesión abandonada (Munir, 2026-10-22).
+fn al_reloj(mut info: SessionInfo) -> SessionInfo {
+    let now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(info.mtime);
+    let hours = now.saturating_sub(info.mtime) as f64 / 3600.0;
+    info.hours = (hours * 10.0).round() / 10.0;
+    info.fresh = frescura(hours).into();
+    info.ago = ago_text(hours);
+    if now.saturating_sub(info.mtime) >= AGENTS_STALE_S {
+        info.agents_live = 0;
+    }
+    info
+}
+
+fn frescura(hours: f64) -> &'static str {
+    if hours < SLEEP_H {
+        "activa"
+    } else if hours < DEAD_H {
+        "dormida"
+    } else {
+        "muerta"
+    }
 }
 
 /// True for a transcript that is nothing but one of Adeorq's own `/usage`
@@ -578,13 +608,7 @@ fn analyze_uncached(path: &Path, folder: &str, mtime: u64, size: u64) -> Option<
         .map(|d| d.as_secs())
         .unwrap_or(mtime);
     let hours = (now.saturating_sub(mtime)) as f64 / 3600.0;
-    let fresh = if hours < SLEEP_H {
-        "activa"
-    } else if hours < DEAD_H {
-        "dormida"
-    } else {
-        "muerta"
-    };
+    let fresh = frescura(hours);
 
     let title_raw = if !custom_title.is_empty() {
         custom_title
@@ -2731,6 +2755,46 @@ tres
         let con = super::context_de(&f).expect("sigue habiendo contexto");
         assert_eq!(con.title, "Arreglar la barra de arriba");
         assert_eq!(con.used, 1500);
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// El caché guarda la lectura mientras el archivo no cambie, pero la edad
+    /// cambia sola con el reloj. Munir, 2026-10-22, con la app abierta desde la
+    /// tarde anterior: la barra decía «5 h» de una conversación de hacía doce, y
+    /// las que había cerrado un agente no se archivaban, porque
+    /// `archivadasSolas` mira la edad para saber si se tocó después del rastro.
+    #[test]
+    fn la_edad_no_se_congela_en_el_cache() {
+        let dir = std::env::temp_dir().join(format!("adeorq-edad-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("22222222-2222-4222-8222-222222222222.jsonl");
+        std::fs::write(
+            &f,
+            concat!(
+                r#"{"type":"user","cwd":"C:\\proyectos\\Adeorq","message":{"role":"user","content":"hola"}}"#,
+                "\n",
+                r#"{"type":"assistant","cwd":"C:\\proyectos\\Adeorq","message":{"role":"assistant","content":[{"type":"text","text":"Hecho."}]}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let hace_diez_horas = SystemTime::now() - std::time::Duration::from_secs(10 * 3600);
+        std::fs::File::options().write(true).open(&f).unwrap().set_modified(hace_diez_horas).unwrap();
+
+        let cache = SessionCache::default();
+        assert_eq!(analyze(&f, "C--proyectos-Adeorq", &cache).unwrap().ago, "10 h");
+        // Lo guardado es la foto de la primera lectura: se hace como si hubiera
+        // sido hace siete horas, que es lo que pasa con la app abierta.
+        if let Some((_, _, Some(i))) = cache.0.lock().unwrap().get_mut(&f) {
+            i.hours = 3.0;
+            i.ago = ago_text(3.0);
+            i.agents_live = 2;
+        }
+        let otra_vuelta = analyze(&f, "C--proyectos-Adeorq", &cache).unwrap();
+        assert_eq!(otra_vuelta.ago, "10 h", "la edad sale del reloj, no de la foto");
+        assert!((otra_vuelta.hours - 10.0).abs() < 0.2, "hours = {}", otra_vuelta.hours);
+        assert_eq!(otra_vuelta.agents_live, 0, "a las diez horas no queda ningún agente fuera");
 
         std::fs::remove_dir_all(&dir).ok();
     }

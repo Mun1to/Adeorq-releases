@@ -1703,7 +1703,8 @@
 
 /* El buscador de la barra del navegador: el desplegable a la derecha, como los
    interruptores de las filas de al lado. */
-.setting-buscador select {
+.setting-buscador select,
+.setting-compactar select {
   margin-left: auto;
   min-width: 160px;
 }

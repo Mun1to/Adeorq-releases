@@ -92,7 +92,11 @@ export function useContextoDeSesion(
  * un día completo de trabajo (2026-07-30). El aviso es para que esa decisión
  * se tome con el dato delante, que es lo único que faltaba.
  *
- * 0 = nada que decir · 1 = ya pesa · 2 = compactar sale peor que empezar.
+ * 0 = nada que decir · 1 = ya pesa (50 %) · 2 = compacta ya (60 %, fijo, y
+ * compacta solo si el ajuste lo dice) · 3 = compactar sale peor que empezar
+ * (80 %). El 50 y el 60 son de Munir, 2026-10-22, tras gastar el 40 % de su
+ * semana en un día: «que sea casi obligatorio compactar en ese rango». Antes
+ * el primer aviso salía al 60, y para entonces ya se llevaba pagado de más.
  *
  * Se mide SOLO en porcentaje de la ventana, y eso corrige lo anterior.
  *
@@ -112,9 +116,80 @@ export function useContextoDeSesion(
  * estando a la vista sin que nadie avise: la píldora de la cabecera lleva el
  * número puesto todo el rato.
  */
-export function nivelDeContexto(percent: number | undefined): 0 | 1 | 2 {
+export const AVISO_PCT = 50;
+export const FIJO_PCT = 60;
+export const NUEVA_PCT = 80;
+export type NivelCtx = 0 | 1 | 2 | 3;
+export function nivelDeContexto(percent: number | undefined): NivelCtx {
   if (percent == null) return 0;
-  return percent >= 80 ? 2 : percent >= 60 ? 1 : 0;
+  return percent >= NUEVA_PCT ? 3 : percent >= FIJO_PCT ? 2 : percent >= AVISO_PCT ? 1 : 0;
+}
+
+/**
+ * ¿Se le puede teclear algo ya? Solo con el turno acabado de verdad: la última
+ * palabra es del agente y es texto («lista», u «ofrece» si acaba preguntando
+ * en prosa), sin subagentes fuera y sin un menú suyo en pantalla. La campana
+ * sola no basta: el CLI la toca también al pedir un permiso y al acabar un
+ * turno intermedio, y teclear ahí es contestarle el menú o colarse a mitad.
+ */
+export function turnoAcabado(c: Pick<ContextInfo, "state" | "agentsLive"> | null, preguntaEnPantalla: boolean): boolean {
+  return !!c && (c.state === "lista" || c.state === "ofrece") && c.agentsLive === 0 && !preguntaEnPantalla;
+}
+
+/**
+ * Qué hace un panel de Claude Code al llegar al 60 % sin que nadie pulse nada.
+ * «no»: el aviso se queda fijo y espera al botón. «sin-commits»: a la campana
+ * manda `/fin sin commits` (los traspasos, sin tocar git) y luego `/compact`.
+ * «fin»: lo mismo con el `/fin` entero, que COMMITEA solo en sus repos.
+ * De fábrica «sin commits»: lo eligió Munir el 2026-10-22 (A1 de su página),
+ * con la condición de que nunca lo haga con el agente trabajando. El `/fin`
+ * entero no va de fábrica porque escribiría en sus repos sin su mano.
+ */
+export type ModoSolo = "no" | "sin-commits" | "fin";
+const MODO_DE_FABRICA: ModoSolo = "sin-commits";
+const CLAVE_MODO = "adeorq-compactar-solo";
+const CLAVE_SUGERIR = "adeorq-compactar-sugerir";
+export function leerModoSolo(): ModoSolo {
+  try {
+    const v = localStorage.getItem(CLAVE_MODO);
+    return v === "no" || v === "sin-commits" || v === "fin" ? v : MODO_DE_FABRICA;
+  } catch {
+    return MODO_DE_FABRICA;
+  }
+}
+
+/**
+ * ¿Está el CLI trabajando, según su pantalla? Claude Code pinta «esc to
+ * interrupt» en el pie mientras dura un turno (lo usa también el vigía del
+ * cuelgue). Es la segunda llave del automático, por si el transcript va por
+ * detrás: Munir, 2026-10-22, «que cuando todavía esté trabajando no compactar
+ * auto». `linea(i)` da la fila i de lo que se ve, de 0 a `filas - 1`.
+ */
+export function trabajaEnPantalla(linea: (i: number) => string, filas: number): boolean {
+  for (let i = 0; i < filas; i++) if (linea(i).includes("to interrupt")) return true;
+  return false;
+}
+export function guardarModoSolo(m: ModoSolo): void {
+  try {
+    localStorage.setItem(CLAVE_MODO, m);
+  } catch {
+    /* sin almacenamiento se queda en «no» */
+  }
+}
+/** Sugerir compactar al acabar una tarea grande aunque vaya por el 40 %. */
+export function leerSugerir(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_SUGERIR) !== "0";
+  } catch {
+    return true;
+  }
+}
+export function guardarSugerir(si: boolean): void {
+  try {
+    localStorage.setItem(CLAVE_SUGERIR, si ? "1" : "0");
+  } catch {
+    /* sin almacenamiento sigue encendido */
+  }
 }
 
 /**
@@ -126,8 +201,10 @@ export function nivelDeContexto(percent: number | undefined): 0 | 1 | 2 {
  * conservar. Los dos textos pasan por `t()` para que un agente de una app en
  * inglés los reciba en inglés.
  */
-export function traspasoAntesDeCompactar(t: Translate, conFin = false): string {
-  if (conFin) return "/fin";
+export function traspasoAntesDeCompactar(t: Translate, conFin = false, sinCommits = false): string {
+  // `/fin sin commits` lo entiende la propia skill: escribe los traspasos y
+  // lista lo suelto en vez de commitearlo. Es lo que va cuando nadie ha pulsado.
+  if (conFin) return sinCommits ? "/fin sin commits" : "/fin";
   return t(
     "Antes de compactar, deja al día el traspaso: el BUZON.md del proyecto y sus docs vivos, con lo hecho (rutas exactas), lo pendiente y las trampas de hoy. Sin commits. Cuando acabes, te compacto yo.",
   );
@@ -172,67 +249,196 @@ export function ordenDeCompactar(t: Translate): string {
   );
 }
 
+/** Lo pendiente caduca: no se compacta a destiempo encima de otro trabajo. */
+export const CADUCA_MS = 30 * 60_000;
+/** Lo que se deja asentar el transcript tras la campana antes de leerlo: el
+    CLI la toca al acabar un turno intermedio y arranca el siguiente al segundo. */
+const ASIENTO_MS = 2500;
+/** Una tarea es «grande» si subió el contexto estos puntos en un turno. */
+export const SUBIDA_GRANDE = 10;
+export const SUGERIR_PCT = 40;
+
+/** nada · esperando (pedido, a que acabe el turno) · cerrando (el traspaso
+    ya va, el `/compact` o la terminal nueva cuando acabe). */
+export type FaseTraspaso = "nada" | "esperando" | "cerrando";
+
+export interface DepsTraspaso {
+  t: Translate;
+  mandar: (texto: string) => Promise<void>;
+  /** El transcript releído AHORA, no el de hace veinte segundos. `null` si
+      este CLI no deja uno: entonces el botón va a ciegas, como siempre, y
+      solo no se hace nada. */
+  leer: () => Promise<Pick<ContextInfo, "state" | "agentsLive" | "percent"> | null>;
+  /** Un menú suyo en pantalla (permiso, pregunta). */
+  hayPregunta: () => boolean;
+  /** Algo tecleado y sin mandar: lo nuestro se pegaría detrás. */
+  hayBorrador: () => boolean;
+  /** El CLI dice en pantalla que sigue con el turno (`trabajaEnPantalla`). */
+  trabajando: () => boolean;
+  /** El nivel de aviso que ya se despachó con × o «Ahora no». */
+  visto: () => number;
+  modo: () => ModoSolo;
+  sugerir: () => boolean;
+  esClaude: () => boolean;
+  tieneFin: () => Promise<boolean>;
+  abrirNueva?: () => void;
+  alSugerir?: (pct: number) => void;
+  alCambiar?: (f: FaseTraspaso) => void;
+  esperar?: (ms: number) => Promise<void>;
+  ahora?: () => number;
+}
+
 /**
- * Los dos bailes en dos pasos de un panel (compactar y recuperar), con lo que
- * hay que recordar entre el clic y la campana. Se llama una vez por panel;
- * `alSonarCampana` va en la campana del terminal, por ref. Lo pendiente caduca
- * a los veinte minutos: no se compacta a destiempo encima de otro trabajo.
+ * Los dos bailes en dos pasos de un panel (compactar y recuperar): primero el
+ * traspaso (`/fin`), después el `/compact` o la terminal nueva. Cada paso se
+ * teclea SOLO con el turno acabado (`turnoAcabado`), así que pulsar Compactar
+ * con el agente trabajando ya no se le cuela a mitad: espera a su campana.
+ *
+ * Y el 60 % (Munir, 2026-10-22: «casi obligatorio»): si el ajuste lo dice
+ * (`ModoSolo`), la campana de un turno acabado lo empieza sola, con
+ * `/fin sin commits` salvo que el ajuste pida el entero. «Ahora no» lo para
+ * hasta el aviso siguiente. Tras compactar no vuelve a empezar con el número
+ * viejo del transcript: espera a verlo bajar del 50 %.
+ *
+ * Sin React a propósito, para que el banco lo pase entero
+ * (`scripts/contexto-check.ts`).
+ */
+export function crearTraspaso(d: DepsTraspaso) {
+  const ahora = d.ahora ?? Date.now;
+  const esperar = d.esperar ?? ((ms: number) => new Promise<void>((r) => window.setTimeout(r, ms)));
+  let pendiente: { que: "compactar" | "nueva"; paso: Exclude<FaseTraspaso, "nada">; solo: boolean; desde: number } | null = null;
+  /** Ya compactó en esta subida: no repetir hasta verlo bajar. */
+  let hecho = false;
+  /** El porcentaje al acabar el último turno, para medir lo que subió este. */
+  let base: number | null = null;
+  let ocupado = false;
+
+  const fase = (): FaseTraspaso => pendiente?.paso ?? "nada";
+  const poner = (p: typeof pendiente) => {
+    pendiente = p;
+    d.alCambiar?.(fase());
+  };
+
+  /** `/fin` si es Claude Code y la skill existe; si no, el texto de la casa. */
+  const traspaso = async (que: "compactar" | "nueva", solo: boolean) => {
+    const fin = d.esClaude() && (await d.tieneFin().catch(() => false));
+    if (que === "nueva") return traspasoAntesDeNueva(d.t, fin);
+    return traspasoAntesDeCompactar(d.t, fin, solo && d.modo() !== "fin");
+  };
+
+  /** El paso siguiente, si el turno lo deja; si no, a la próxima campana. */
+  const avanzar = async (c: Awaited<ReturnType<DepsTraspaso["leer"]>>) => {
+    const p = pendiente;
+    if (!p) return;
+    if (ahora() - p.desde > CADUCA_MS) return poner(null);
+    const puede = c ? turnoAcabado(c, d.hayPregunta()) && !d.hayBorrador() && !d.trabajando() : !p.solo;
+    if (!puede) return;
+    if (p.paso === "esperando") {
+      const texto = await traspaso(p.que, p.solo);
+      if (pendiente !== p) return; // «Ahora no» mientras se miraba la skill
+      poner({ ...p, paso: "cerrando", desde: ahora() });
+      await d.mandar(texto);
+      return;
+    }
+    poner(null);
+    if (p.que === "nueva") return d.abrirNueva?.();
+    hecho = true;
+    await d.mandar(`/compact ${ordenDeCompactar(d.t)}`);
+  };
+
+  const pedir = async (que: "compactar" | "nueva") => {
+    poner({ que, paso: "esperando", solo: false, desde: ahora() });
+    await avanzar(await d.leer().catch(() => null));
+  };
+
+  const alSonar = async () => {
+    if (ocupado) return;
+    ocupado = true;
+    try {
+      await esperar(ASIENTO_MS);
+      const c = await d.leer().catch(() => null);
+      const nivel = nivelDeContexto(c?.percent);
+      if (c && nivel === 0) hecho = false;
+      if (c && turnoAcabado(c, d.hayPregunta())) {
+        if (d.sugerir() && !pendiente && nivel === 0 && base != null && c.percent >= SUGERIR_PCT && c.percent - base >= SUBIDA_GRANDE) {
+          d.alSugerir?.(c.percent);
+        }
+        base = c.percent;
+      }
+      if (c && !pendiente && !hecho && nivel >= 2 && nivel > d.visto() && d.modo() !== "no" && d.esClaude()) {
+        poner({ que: "compactar", paso: "esperando", solo: true, desde: ahora() });
+      }
+      await avanzar(c);
+    } finally {
+      ocupado = false;
+    }
+  };
+
+  return { pedir, alSonar, cancelar: () => poner(null), fase };
+}
+
+/**
+ * `crearTraspaso` colgado de un panel. Se llama una vez por panel;
+ * `alSonarCampana` va en la campana del terminal, por ref.
  */
 export function useTraspaso(m: {
   id: number;
   t: Translate;
   /** El nivel del aviso que se está enseñando, para apagarlo al pulsar. */
   avisoCtx: number;
+  /** El nivel del contexto, se enseñe o no: «Ahora no» lo da por visto. */
+  nivel: number;
+  visto: number;
   setCtxVisto: (n: number) => void;
   onNueva?: (id: number) => void;
   /** Si en este panel corre Claude Code, que es el único que entiende `/fin`. */
   esClaude?: boolean;
+  leer: DepsTraspaso["leer"];
+  hayPregunta: () => boolean;
+  hayBorrador: () => boolean;
+  trabajando: () => boolean;
 }) {
-  const compactarPendiente = useRef<string | null>(null);
-  const nuevaPendiente = useRef(false);
-  const onNuevaRef = useRef(m.onNueva);
-  onNuevaRef.current = m.onNueva;
-  const CADUCA_MS = 20 * 60_000;
-  /** `/fin` si es Claude Code y la skill existe; si no, el texto de la casa. */
-  const conFin = () => (m.esClaude ? tieneSkillFin() : Promise.resolve(false));
+  const [fase, setFase] = useState<FaseTraspaso>("nada");
+  const [sugerencia, setSugerencia] = useState<number | null>(null);
+  const ultimo = useRef(m);
+  ultimo.current = m;
+  const tr = useRef<ReturnType<typeof crearTraspaso> | null>(null);
+  tr.current ??= crearTraspaso({
+    t: ((...a: Parameters<Translate>) => ultimo.current.t(...a)) as Translate,
+    mandar: (texto) => sendPty(ultimo.current.id, texto),
+    leer: () => ultimo.current.leer(),
+    hayPregunta: () => ultimo.current.hayPregunta(),
+    hayBorrador: () => ultimo.current.hayBorrador(),
+    trabajando: () => ultimo.current.trabajando(),
+    visto: () => ultimo.current.visto,
+    modo: leerModoSolo,
+    sugerir: leerSugerir,
+    esClaude: () => !!ultimo.current.esClaude,
+    tieneFin: tieneSkillFin,
+    abrirNueva: () => ultimo.current.onNueva?.(ultimo.current.id),
+    alSugerir: setSugerencia,
+    alCambiar: setFase,
+  });
+  const traspaso = tr.current;
 
-  const compactar = () => {
-    compactarPendiente.current = ordenDeCompactar(m.t);
-    void conFin()
-      .then((fin) => sendPty(m.id, traspasoAntesDeCompactar(m.t, fin)))
-      .catch(() => {});
-    m.setCtxVisto(m.avisoCtx);
-    window.setTimeout(() => {
-      compactarPendiente.current = null;
-    }, CADUCA_MS);
+  const pedir = (que: "compactar" | "nueva") => {
+    setSugerencia(null);
+    m.setCtxVisto(Math.max(m.avisoCtx, m.visto));
+    void traspaso.pedir(que).catch(() => {});
   };
-
-  const nueva = () => {
-    nuevaPendiente.current = true;
-    void conFin()
-      .then((fin) => sendPty(m.id, traspasoAntesDeNueva(m.t, fin)))
-      .catch(() => {});
-    m.setCtxVisto(m.avisoCtx);
-    window.setTimeout(() => {
-      nuevaPendiente.current = false;
-    }, CADUCA_MS);
+  return {
+    compactar: () => pedir("compactar"),
+    nueva: () => pedir("nueva"),
+    alSonarCampana: () => void traspaso.alSonar().catch(() => {}),
+    /** Nada solo en este nivel, y fuera lo que estuviera esperando. */
+    ahoraNo: () => {
+      m.setCtxVisto(Math.max(m.nivel, m.visto));
+      traspaso.cancelar();
+    },
+    fase,
+    sugerencia,
+    descartarSugerencia: () => setSugerencia(null),
   };
-
-  /** El traspaso ya está escrito: ahora el `/compact` (texto e Intro aparte,
-      ver `mandar_texto`) o la terminal nueva. */
-  const alSonarCampana = () => {
-    if (compactarPendiente.current) {
-      const orden = compactarPendiente.current;
-      compactarPendiente.current = null;
-      void sendPty(m.id, `/compact ${orden}`).catch(() => {});
-    }
-    if (nuevaPendiente.current) {
-      nuevaPendiente.current = false;
-      onNuevaRef.current?.(m.id);
-    }
-  };
-
-  return { compactar, nueva, alSonarCampana };
 }
 
 /**

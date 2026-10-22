@@ -139,6 +139,13 @@ a un reloj (cerrarla a la media hora), a una tira de «delegadas» y a un botón
   las sesiones: antes solo los leía al montarse, así que la que cerraba un agente con la app abierta
   seguía en la barra hasta reiniciar. Los dos caminos, en vivo, en
   `scripts/laboratorio/x-archiva-la-delegada.mjs` (rojo sin el latido: 61 s y seguía).
+  **La edad sale del reloj, no del caché** (2026-10-22): con su app abierta desde la tarde, la
+  barra decía «5 h» de una conversación de hacía doce y no archivaba nada, porque el caché de
+  `sessions.rs` devolvía la foto de la primera lectura con su edad, y `archivadasSolas` la usa
+  para saber si se escribió después del rastro. `al_reloj` la pone en hora en cada vuelta
+  (`cargo test --lib la_edad_no_se_congela`, rojo con «3 h»), y
+  `scripts/laboratorio/barra-edad-con-la-app-abierta.mjs` deja la app aislada abierta nueve
+  minutos antes de mirar, que es lo que ningún laboratorio de la barra hacía.
 - **Lo que no cubre:** una delegada cuyo agente se cerró antes que ella se queda sin dueño; esa la
   cierra Munir o la Suprema (con la X ya deja su rastro, ver abajo). Y el rastro no se ve todavía
   en la app: vive en esa carpeta.

@@ -2091,10 +2091,28 @@ const EN: Record<string, string> = {
   "Cerrada «{n}»": "Closed “{n}”",
   "{pct} % de contexto: mejor una terminal nueva que compactar.":
     "{pct}% of context: a new terminal beats compacting now.",
-  "{pct} % de contexto: cada mensaje lo vuelve a pagar entero.":
-    "{pct}% of context: every message pays for all of it again.",
-  "Primero el traspaso (BUZON.md y docs vivos), después /compact":
-    "First the handoff (BUZON.md and living docs), then /compact",
+  "{pct} % de contexto: buen momento para compactar, cada mensaje lo vuelve a pagar entero.":
+    "{pct}% of context: a good moment to compact, every message pays for all of it again.",
+  "{pct} % de contexto: compacta ya, cada mensaje lo vuelve a pagar entero.":
+    "{pct}% of context: compact now, every message pays for all of it again.",
+  "{pct} % de contexto: al acabar este turno lo compacto yo.":
+    "{pct}% of context: I will compact it when this turn ends.",
+  "{pct} % de contexto: al acabar este turno lo compacto yo (mejor aún, una terminal nueva).":
+    "{pct}% of context: I will compact it when this turn ends (better still, a new terminal).",
+  "Acabó una tarea grande y vas por el {pct} %: buen punto para compactar.":
+    "A big task just ended and you are at {pct}%: a good point to compact.",
+  "Compacto en cuanto acabe este turno.": "I will compact as soon as this turn ends.",
+  "Escribiendo el traspaso (/fin); en cuanto acabe, sigo yo.":
+    "Writing the handoff (/fin); as soon as it ends, I take it from there.",
+  "Primero el traspaso (BUZON.md y docs vivos), después /compact. Con el agente trabajando, espera a que acabe su turno.":
+    "First the handoff (BUZON.md and living docs), then /compact. With the agent working, it waits for its turn to end.",
+  "Nada solo hasta el aviso siguiente": "Nothing on its own until the next warning",
+  "Compactar ya": "Compact now",
+  "Al 60 % de contexto, en Claude Code": "At 60% of context, in Claude Code",
+  "Avisar y esperar al botón": "Warn and wait for the button",
+  "Compactar solo, sin commits": "Compact on its own, without commits",
+  "Compactar solo, con el /fin entero": "Compact on its own, with the full /fin",
+  "Sugerir compactar al acabar una tarea grande, desde el 40 %": "Suggest compacting after a big task, from 40%",
   Compactar: "Compact",
   "Nueva con traspaso": "New with handoff",
   "Primero el traspaso (BUZON.md y docs vivos), después una terminal nueva aquí mismo que sigue desde ahí":

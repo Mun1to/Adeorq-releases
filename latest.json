@@ -1,11 +1,11 @@
 {
-  "version": "0.9.232",
-  "notes": "Las sesiones de Codex se retoman con Codex y llevan su papelera, y las terminales que abre otra sesión llevan el color de su proyecto.",
-  "pub_date": "2026-10-21T17:50:41Z",
+  "version": "0.9.233",
+  "notes": "La barra archiva sola también con la app abierta muchas horas, y compactar a tiempo: aviso al 50 %, y al 60 % se compacta sola cuando el agente termina.",
+  "pub_date": "2026-10-22T01:54:58Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3lDMldCYklySGhqL3cxeUVod25QUHloYThHNnVTUEJSZGJ5S0JMT1cwRkpYUHhtM2dMNW9WbUZJcFE1R2JKeVMrK2ozN1ZieWs0K2pJRHUzdmMzb3dNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjA1MDI2CWZpbGU6QWRlb3JxXzAuOS4yMzJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzIKYVRwK2dtaWdXOGlhczdLWWppeFBVNC85eG5OeXVSVEhrelpvcGVWRVpSSng1cnVmZzVINlpHMmMrcFNrWDg2TnpNeVlLQkZTZGdQMEdXL0dIUmhzQUE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.232/Adeorq_0.9.232_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzZ1a1EvUzZHTnN4a25VMXEzYTBXaDRCbzJwdWo0TzVtUnkzYUxicUFjempRblBpdWJMNVR4V00vWlFudTZQNHJjMkJscGNOck9XQWs4RmxZSXZ0d2dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjM0MDgzCWZpbGU6QWRlb3JxXzAuOS4yMzNfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzMKY09KU29VaW9yaE9FbkNaWlJxYjJsK0UyWWJLSVQwZ1VXaDVYMGxSNEEzUmtiVnhYbURPQU1Vc1YxWFM1enU4YTlKdHpnUmNMU0lpNjJzbWFPZkFRQ0E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.233/Adeorq_0.9.233_x64-setup.exe"
     }
   }
 }

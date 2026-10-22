@@ -17,6 +17,7 @@ import {
   resizePty,
   savePastedImage,
   sendPty,
+  sessionContext,
   codexSessionSince,
   spawnPty,
   writePty,
@@ -89,7 +90,8 @@ import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
 import { proveedorDe, sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
-import { nivelDeContexto, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
+import { nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
+import AvisoContexto from "./AvisoContexto";
 import { useNombreSolo } from "../lib/nombreSolo";
 import { archivoDelDiff } from "../lib/diffEspejo";
 import { estadoDelPanel, loginSegun, parseAsk, pieDePantalla, type Ask } from "../lib/reglasPantalla";
@@ -646,6 +648,9 @@ export default function TerminalPane({
   /** Lo que toca al sonar la campana si se pidió compactar o recuperar
    *  (`useTraspaso`, más abajo); por ref, que la campana se suscribe una vez. */
   const traspasoRef = useRef<() => void>(() => {});
+  /** Hay algo tecleado aquí sin mandar: el `/fin` que va solo se pegaría
+   *  detrás de tu frase. Se apaga con el Intro (o Ctrl+C, que la borra). */
+  const borradorRef = useRef(false);
   // Lo leído del transcript, alcanzable desde el lector de pantalla, que se
   // construye una sola vez con la terminal y no se entera de los cambios.
   const ctxRef = useRef<ContextInfo | null>(null);
@@ -1636,6 +1641,12 @@ export default function TerminalPane({
       // Una frase entera es contestarle: la decisión que te hubiera preguntado
       // deja de esperarte (lib/hablada). Lo tecleado para un menú suyo, no.
       if (mandoUnaFrase(id, data, askRef.current !== null)) hablarCon(id);
+      // Contestar un menú suyo no deja borrador; una tecla de control suelta
+      // (flechas, Esc) tampoco lo cambia.
+      if (askRef.current === null) {
+        if (/[\r\n]$/.test(data) || data === "\x03") borradorRef.current = false;
+        else if (data.startsWith("\x1b[200~") || !/^[\x00-\x1f\x7f]/.test(data)) borradorRef.current = true;
+      }
       void writePty(id, data).catch(() => {});
     });
     unsubs.push(() => dataSub.dispose());
@@ -2151,10 +2162,37 @@ export default function TerminalPane({
 
   const ctxNivel = nivelDeContexto(ctx?.percent);
   const avisoCtx = ctxNivel > ctxVisto ? ctxNivel : 0;
+  // Bajó del 50 % (compactó): lo visto se olvida, para que la próxima subida
+  // vuelva a avisar. Antes no se olvidaba y el panel se quedaba mudo hasta el 80.
+  useEffect(() => {
+    if (ctx && ctxNivel === 0) setCtxVisto(0);
+  }, [ctx, ctxNivel]);
 
   /* Compactar y recuperar con traspaso: el porqué y los textos, en `lib/contexto.ts`. */
-  // `esClaude`: solo Claude Code entiende `/fin`; en Codex o Gemini va el texto de la casa.
-  const traspaso = useTraspaso({ id, t, avisoCtx, setCtxVisto, onNueva: onNuevaConTraspaso, esClaude: /\bclaude\b/i.test((command ?? []).join(" ")) });
+  // `esClaude`: solo Claude Code entiende `/fin`; en Codex o Gemini va el texto de la casa,
+  // a ciegas como siempre (sin `leer`), y nunca solo.
+  const esClaude = /\bclaude\b/i.test((command ?? []).join(" "));
+  const traspaso = useTraspaso({
+    id,
+    t,
+    avisoCtx,
+    nivel: ctxNivel,
+    visto: ctxVisto,
+    setCtxVisto,
+    onNueva: onNuevaConTraspaso,
+    esClaude,
+    leer: () => (esClaude ? sessionContext(cwd, sessionIdOf(joined)) : Promise.resolve(null)),
+    hayPregunta: () => askRef.current !== null,
+    hayBorrador: () => borradorRef.current,
+    trabajando: () => {
+      const term = termRef.current;
+      const buf = term?.buffer.active;
+      return !!term && !!buf && trabajaEnPantalla((i) => buf.getLine(buf.baseY + i)?.translateToString(true) ?? "", term.rows);
+    },
+  });
+  /** El aviso se ve con el nivel por encima de lo visto, con un traspaso en
+   *  marcha (que dice por dónde va) o con la sugerencia de una tarea grande. */
+  const verCtx = (avisoCtx > 0 && !!ctx) || traspaso.fase !== "nada" || traspaso.sugerencia != null;
   traspasoRef.current = traspaso.alSonarCampana;
   useTraspasoDelMovil(id, traspaso);
 
@@ -2587,7 +2625,7 @@ export default function TerminalPane({
           {suelta ? <DevolverIcon size={15} /> : <CloseIcon />}
         </button>
       </header>
-      {(needsLogin || ask || note || avisoCtx > 0 || colgado) && (
+      {(needsLogin || ask || note || verCtx || colgado) && (
         <div className="pane-overlays">
           {colgado && (
             <div className="pane-alert">
@@ -2614,46 +2652,15 @@ export default function TerminalPane({
               </button>
             </div>
           )}
-          {avisoCtx > 0 && ctx && (
-            <div className="pane-ctx-warn" data-grave={avisoCtx === 2}>
-              {/* Dos renglones, no un párrafo. Esto es una franja que se come
-                  el alto de la terminal mientras esté puesta, así que dice el
-                  dato y qué hacer; el porqué largo vive en el globo de la
-                  píldora del contexto, que está siempre a mano. Y pasa por
-                  `t()`: estaba escrito en duro y salía en español con la app
-                  puesta en inglés. */}
-              {/* Una frase, no dos renglones: «son muy largos y estorban» (Munir,
-                  2026-10-07). Los tokens y el porqué siguen en el globo de la
-                  píldora del contexto. */}
-              <span>
-                {avisoCtx === 2
-                  ? t("{pct} % de contexto: mejor una terminal nueva que compactar.", { pct: ctx.percent })
-                  : t("{pct} % de contexto: cada mensaje lo vuelve a pagar entero.", { pct: ctx.percent })}
-              </span>
-              {avisoCtx === 2 && onNuevaConTraspaso && (
-                <button
-                  className="mini pane-ctx-compactar"
-                  data-tip={t("Primero el traspaso (BUZON.md y docs vivos), después una terminal nueva aquí mismo que sigue desde ahí")}
-                  onClick={traspaso.nueva}
-                >
-                  {t("Nueva con traspaso")}
-                </button>
-              )}
-              <button
-                className="mini pane-ctx-compactar"
-                data-tip={t("Primero el traspaso (BUZON.md y docs vivos), después /compact")}
-                onClick={traspaso.compactar}
-              >
-                {t("Compactar")}
-              </button>
-              <button
-                className="pane-close"
-                data-tip={t("Ocultar aviso (vuelve si la sesión sigue creciendo)")}
-                onClick={() => setCtxVisto(avisoCtx)}
-              >
-                ×
-              </button>
-            </div>
+          {verCtx && (
+            <AvisoContexto
+              percent={ctx?.percent ?? 0}
+              avisoCtx={avisoCtx}
+              ctxNivel={ctxNivel}
+              traspaso={traspaso}
+              conNueva={!!onNuevaConTraspaso}
+              setCtxVisto={setCtxVisto}
+            />
           )}
           {needsLogin && (
             <div className="pane-alert">

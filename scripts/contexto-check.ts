@@ -24,17 +24,24 @@
 //
 //   pnpm bancos contexto
 
+import { kindDeComando } from "../src/components/KindIcon";
+import { lineaConEncargo } from "../src/lib/arranque";
+import { sabe } from "../src/lib/providers";
 import {
   bloqueRetomar,
   CADUCA_MS,
   crearTraspaso,
+  esDelegada,
+  esperaEnSuCaja,
+  leerDelPanel,
   leerModoSolo,
+  marcarDelegada,
   nivelDeContexto,
   trabajaEnPantalla,
   turnoAcabado,
   type ModoSolo,
 } from "../src/lib/contexto";
-import type { WorkState } from "../src/lib/pty";
+import type { ContextInfo, WorkState } from "../src/lib/pty";
 
 let fallos = 0;
 const rojos: string[] = [];
@@ -67,6 +74,9 @@ function panel(o: Partial<{
   sugerir: boolean;
   veces: number;
   respuesta: string | null;
+  delegada: boolean;
+  /** Claude Code esperando en su caja vacía (`esperaEnSuCaja`). */
+  caja: boolean;
 }> = {}) {
   const s = {
     modo: "sin-commits" as ModoSolo,
@@ -84,7 +94,13 @@ function panel(o: Partial<{
     sugerir: true,
     veces: 0,
     respuesta: null as string | null,
+    delegada: false,
+    caja: true,
     reloj: 1_000_000,
+    /** Si está, la PRÓXIMA lectura del transcript se queda esperando a que se
+        resuelva, con lo que decía el transcript al pedirla: una campana que
+        lee y tarda en volver. */
+    retener: null as Promise<void> | null,
     ...o,
   };
   const mandado: string[] = [];
@@ -97,12 +113,20 @@ function panel(o: Partial<{
     mandar: async (x) => {
       mandado.push(x);
     },
-    leer: async () => (s.sinDato ? null : { state: s.estado, agentsLive: s.vivos, used: s.k * 1000, window: s.ventana }),
+    leer: async () => {
+      const foto = s.sinDato ? null : { state: s.estado, agentsLive: s.vivos, used: s.k * 1000, window: s.ventana };
+      const espera = s.retener;
+      s.retener = null;
+      if (espera) await espera;
+      return foto;
+    },
     hayPregunta: () => s.pregunta,
     hayBorrador: () => s.borrador,
     trabajando: () => s.trabajando,
+    enSuCaja: () => s.caja,
     visto: () => s.visto,
     modo: () => s.modo,
+    delegada: () => s.delegada,
     sugerir: () => s.sugerir,
     esClaude: () => s.claude,
     tieneFin: async () => s.fin,
@@ -113,7 +137,10 @@ function panel(o: Partial<{
     },
     abrirNueva: (encargo) => nuevas.push(encargo),
     alSugerir: (p) => sugerencias.push(p),
-    esperar: async () => {},
+    // El reloj corre lo que se espera: el asiento tras la campana pasa de verdad.
+    esperar: async (ms) => {
+      s.reloj += ms;
+    },
     ahora: () => s.reloj,
   });
   return { s, tr, mandado, nuevas, archivadas, sugerencias };
@@ -348,6 +375,203 @@ async function main() {
     es("sin /compact en la vieja", p.mandado, ["/fin"]);
     await p.tr.alSonar();
     es("y después la vieja no se compacta sola", p.mandado, ["/fin"]);
+  }
+
+  // ── Las que abrió un agente con open_pane (2026-10-30) ─────────────────
+  // «Orquio General», 22-oct: sus seis delegadas acabaron entre 588k y 832k.
+  // En ellas no hay nadie que pulse, así que a la raya roja compactan solas
+  // aunque el ajuste de Munir diga «no» o «fin», y siempre sin commits. En
+  // las de Munir manda su ajuste, como antes.
+  marcarDelegada(7);
+  ok("la ventana sabe qué terminales abrió un agente", esDelegada(7) && !esDelegada(8));
+  {
+    const p = panel({ modo: "no", delegada: true });
+    await p.tr.alSonar();
+    es("una delegada a 420k compacta sola aunque el ajuste diga «no»", p.mandado, ["/fin sin commits"]);
+    await p.tr.alSonar();
+    ok("y al acabar el /fin, su /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
+  }
+  {
+    const p = panel({ modo: "fin", delegada: true });
+    await p.tr.alSonar();
+    es("con el ajuste en «fin», una delegada sigue sin commits", p.mandado, ["/fin sin commits"]);
+  }
+  for (const [nombre, o] of [
+    ["trabajando en pantalla", { trabajando: true }],
+    ["con herramientas en marcha", { estado: "a_medias" as WorkState }],
+    ["sin saber qué hace", { sinDato: true }],
+  ] as const) {
+    const p = panel({ modo: "no", delegada: true, ...o });
+    await p.tr.alSonar();
+    es(`una delegada ${nombre} no se toca`, p.mandado, []);
+  }
+  {
+    const p = panel({ modo: "no", delegada: true, veces: 2 });
+    await p.tr.alSonar();
+    es("una delegada ya compactada dos veces no se compacta sola una tercera", p.mandado, []);
+  }
+  {
+    const p = panel({ modo: "no", delegada: true, k: 350 });
+    await p.tr.alSonar();
+    es("una delegada a 350k solo avisa", p.mandado, []);
+  }
+
+  // ── compactar_terminal: lo pide un agente por el MCP ────────────────────
+  {
+    const p = panel({ modo: "fin", estado: "a_medias" });
+    await p.tr.pedirDeAgente();
+    es("con el agente trabajando, el pedido de un agente no teclea nada", p.mandado, []);
+    es("y espera a que acabe el turno", p.tr.fase(), "esperando");
+    p.s.estado = "lista";
+    p.s.trabajando = true;
+    await p.tr.alSonar();
+    es("con la pantalla diciendo que trabaja, tampoco", p.mandado, []);
+    p.s.trabajando = false;
+    await p.tr.alSonar();
+    es("al parar de verdad, /fin SIN commits aunque el ajuste diga «fin»", p.mandado, ["/fin sin commits"]);
+    await p.tr.alSonar();
+    ok("y cuando acaba el /fin, el /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
+  }
+  {
+    const p = panel({ k: 120 });
+    await p.tr.pedirDeAgente();
+    es("parada, lo empieza en el acto aunque vaya por 120k: lo pidió el agente", p.mandado, ["/fin sin commits"]);
+  }
+  {
+    const p = panel({ sinDato: true });
+    await p.tr.pedirDeAgente();
+    await p.tr.alSonar();
+    es("sin saber qué hace, el pedido de un agente no va a ciegas", p.mandado, []);
+  }
+  {
+    const p = panel({ modo: "no", estado: "a_medias" });
+    await p.tr.pedir("compactar");
+    await p.tr.pedirDeAgente();
+    p.s.estado = "lista";
+    await p.tr.alSonar();
+    es("si Munir ya había pulsado Compactar, el agente no empieza otro: va el /fin de Munir", p.mandado, ["/fin"]);
+  }
+  {
+    const p = panel();
+    await p.tr.alSonar();
+    await p.tr.pedirDeAgente();
+    await p.tr.alSonar();
+    ok("pedido a mitad de un traspaso, no repite el /fin: sigue al /compact", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
+  }
+  {
+    const p = panel({ claude: false, sinDato: true, fin: false });
+    await p.tr.pedirDeAgente();
+    await p.tr.alSonar();
+    es("en un panel que no es de Claude Code no teclea nada", p.mandado, []);
+  }
+
+  // ── Lo que vio la revisión de 1954cf0 (2026-10-30) ──────────────────────
+  // Caminos por los que Adeorq tecleaba donde no debía.
+
+  // 1. Una terminal que no es de Claude Code se tomaba por Claude si su
+  // encargo decía «claude» (`esClaude` buscaba la palabra en el comando
+  // entero, con el encargo dentro). Ahora se le pregunta a la tabla por su
+  // `kind` (`compactaConTraspaso`), y `kind` sale de `kindDeComando`, que
+  // quita el encargo antes de mirar.
+  {
+    const encargo = "Revisa lo que dejó la sesión de claude y no toques su Claude Code";
+    const linea = (cli: string) => ["powershell.exe", "-NoLogo", "-NoExit", "-Command", lineaConEncargo(cli, encargo, "powershell")].join(" ");
+    ok("(lo que miraba el panel, el comando entero, decía «claude» en un Codex)", /\bclaude\b/i.test(linea("codex")));
+    es("un Codex con «claude» en su encargo es Codex", kindDeComando(linea("codex")), "codex");
+    ok("y no compacta con traspaso", !sabe(kindDeComando(linea("codex")), "compactaConTraspaso"));
+    ok("un Claude con el mismo encargo, sí", sabe(kindDeComando(linea("claude --session-id 5e55a1d2-6c0a-4b1e-9a77-0c0ffee00030")), "compactaConTraspaso"));
+    ok("una consola, no", !sabe(kindDeComando("powershell.exe -NoLogo"), "compactaConTraspaso"));
+  }
+  // Y sin su conversación sabida no se lee «la más reciente de la carpeta»,
+  // que suele ser la de quien la abrió; ni cuenta una que ya no corre en
+  // ningún Claude Code (tras un /clear, o con el CLI cerrado y su PowerShell
+  // debajo), que se queda en «lista» y 450k para siempre.
+  {
+    const base: ContextInfo = { model: "Opus 5.5", used: 450_000, window: 1_000_000, percent: 45, agentsLive: 0, agentsTotal: 0, sessionId: "s", folder: "f", state: "lista", title: "", viva: true };
+    const pedidas: Array<string | undefined> = [];
+    const leer = async (_cwd: string, sid?: string): Promise<ContextInfo | null> => {
+      pedidas.push(sid);
+      return { ...base, sessionId: sid ?? "la-de-quien-la-abrio" };
+    };
+    es("sin conversación sabida, nada", await leerDelPanel({ esClaude: true, cwd: "C:\\x" }, leer), null);
+    es("y ni se le pregunta a Rust por la más reciente", pedidas, []);
+    es("en un panel que no es de Claude Code, nada", await leerDelPanel({ esClaude: false, cwd: "C:\\x", sesion: "s" }, leer), null);
+    es("con su conversación, la suya", (await leerDelPanel({ esClaude: true, cwd: "C:\\x", sesion: "s" }, leer))?.sessionId, "s");
+    es(
+      "una conversación que ya no corre en ningún Claude Code no cuenta",
+      await leerDelPanel({ esClaude: true, cwd: "C:\\x", sesion: "s" }, async () => ({ ...base, viva: false })),
+      null,
+    );
+  }
+
+  // 2. La carrera: la campana leía el transcript, `compactar_terminal`
+  // mandaba el /fin mientras tanto, y la campana llegaba después con su
+  // lectura de ANTES del /fin y lo daba por acabado: /compact pegado detrás.
+  {
+    const p = panel();
+    let soltar = () => {};
+    p.s.retener = new Promise<void>((r) => (soltar = r));
+    const campana = p.tr.alSonar();
+    const vuelta = () => new Promise((r) => setTimeout(r, 0));
+    await vuelta();
+    const agente = p.tr.pedirDeAgente();
+    await vuelta();
+    await vuelta();
+    soltar();
+    await Promise.all([campana, agente]);
+    es("compactar_terminal a mitad de una campana: un /fin y ningún /compact pegado detrás", p.mandado, ["/fin sin commits"]);
+    es("y espera a que acabe el /fin", p.tr.fase(), "cerrando");
+    await p.tr.alSonar();
+    ok("el /compact, en la campana del /fin", p.mandado.length === 2 && p.mandado[1].startsWith("/compact "), JSON.stringify(p.mandado));
+  }
+  {
+    const p = panel({ k: 120 });
+    let soltar = () => {};
+    p.s.retener = new Promise<void>((r) => (soltar = r));
+    const campana = p.tr.alSonar();
+    await new Promise((r) => setTimeout(r, 0));
+    const agente = p.tr.pedirDeAgente();
+    await new Promise((r) => setTimeout(r, 0));
+    soltar();
+    await Promise.all([campana, agente]);
+    es("a 120k la campana no empieza nada y el pedido del agente manda su /fin, sin /compact", p.mandado, ["/fin sin commits"]);
+  }
+
+  // 3. Nada se teclea si la pantalla no es la de Claude Code esperando en su
+  // caja: con el CLI cerrado queda un PowerShell (`-NoExit`), y ahí un /fin
+  // es un comando de consola.
+  const enPantalla = (...l: string[]) => esperaEnSuCaja((i) => l[i] ?? "", l.length + 2);
+  const RAYA = "─".repeat(60);
+  ok("Claude Code parado en su caja vacía (pantalla de la 2.1.302)", enPantalla("● Hecho.", "", `${"─".repeat(46)} Web ─`, "❯ ", RAYA, "  ⏵⏵ auto mode on (shift+tab to cycle)"));
+  ok("con la sugerencia atenuada, también (2.1.314)", enPantalla("◉ xhigh · /effort", RAYA, '❯ Try "edit <filepath> to..."', RAYA, "  ⏵⏵ auto mode on (shift+tab to cycle)"));
+  ok("el renderizador clásico («> »)", enPantalla(RAYA, "> ", RAYA));
+  ok("Claude Code cerrado y su PowerShell debajo, no", !enPantalla("● Hecho.", "", RAYA, "❯ ", RAYA, "", "PS C:\\proyectos\\Web> "));
+  ok("con cmd debajo, tampoco", !enPantalla(RAYA, "❯ ", RAYA, "C:\\proyectos\\Web>"));
+  ok("una consola con su prompt «❯» (starship), no", !enPantalla("~/web on main", "❯ "));
+  ok("con un borrador en la caja, no", !enPantalla(RAYA, "❯ arregla el scroll", RAYA));
+  ok("con un borrador de dos líneas, no", !enPantalla(RAYA, "❯ arregla el scroll", "  y el menú", RAYA));
+  ok("con un permiso abierto, no", !enPantalla(RAYA, " Bash command", " Do you want to proceed?", " ❯ 1. Yes", "   2. No", "", " Esc to cancel · Tab to amend"));
+  ok("con una pregunta abierta, no", !enPantalla(RAYA, "❯ 1. Instalador", "  2. En los dos sitios", RAYA, "  5. Chat about this", "", "Enter to select · Tab/Arrow keys to navigate · Esc to cancel"));
+  {
+    const p = panel({ caja: false });
+    await p.tr.alSonar();
+    es("a 420k, con la pantalla sin su caja (un PowerShell), la campana no teclea nada", p.mandado, []);
+    await p.tr.pedir("compactar");
+    es("ni el botón", p.mandado, []);
+    await p.tr.pedirDeAgente();
+    es("ni compactar_terminal", p.mandado, []);
+  }
+  {
+    const p = panel();
+    await p.tr.alSonar();
+    p.s.caja = false;
+    await p.tr.alSonar();
+    es("tras el /fin, si Claude Code se cerró, el /compact no va al PowerShell", p.mandado, ["/fin sin commits"]);
+  }
+  {
+    const p = panel({ claude: false, sinDato: true, fin: false, caja: false });
+    await p.tr.pedir("compactar");
+    es("en Gemini, que no tiene la caja de Claude, el botón va a ciegas como siempre", p.mandado.length, 1);
   }
 
   // ── Una tarea grande, por debajo del aviso ──────────────────────────────

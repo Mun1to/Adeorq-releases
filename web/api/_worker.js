@@ -16,9 +16,24 @@
 const REPO = 'Mun1to/Adeorq-releases'
 const CACHE_SECONDS = 3600
 
+// Pages that moved, old path -> new one, answered with a permanent 301 so the
+// old address hands its ranking to the new page. The guide left /docs for
+// /guia, and while /docs was a meta refresh page with `noindex` Google kept it
+// as a page of its own, excluded (Search Console, 2026-10-22). This lives here
+// and not in a `_redirects` file because Cloudflare does not apply that file to
+// requests served by Pages Functions, and in advanced mode this worker serves
+// every request (developers.cloudflare.com/pages/configuration/redirects,
+// checked 2026-10-30).
+const MOVED = new Map([
+  ['/docs', '/guia'],
+  ['/docs/', '/guia'],
+  ['/docs.html', '/guia'],
+])
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
+    const moved = MOVED.get(url.pathname)
 
     // One canonical hostname. Both adeorq.com and www.adeorq.com point at this
     // project, and both answering 200 splits every ranking signal in two, so
@@ -28,6 +43,13 @@ export default {
       url.hostname = 'adeorq.com'
       // Forced, not inherited: one hop, never http -> https -> apex.
       url.protocol = 'https:'
+      // A moved page goes straight to its new address, still in one hop.
+      if (moved) url.pathname = moved
+      return Response.redirect(url.toString(), 301)
+    }
+
+    if (moved) {
+      url.pathname = moved
       return Response.redirect(url.toString(), 301)
     }
 

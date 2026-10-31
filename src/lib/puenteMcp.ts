@@ -16,6 +16,8 @@
 // le manda doce pedidos a la ventana y devuelve una huella de lo que contestó.
 
 import { useEffect } from "react";
+import { marcarDelegada, type FaseTraspaso } from "./contexto";
+import { apuntarDelegada, olvidarDelegada } from "./delegadas";
 import { confiarCarpeta, listProjects, mcpReply, onPedidoMcp, type Account, type PaneStatus } from "./pty";
 import { pantallaDe } from "./terminales";
 import { fotoRapida, parteDelEquipo } from "./mundo";
@@ -95,6 +97,8 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
             responder({ error: "la ventana todavía no está lista para cerrar terminales" });
             return;
           }
+          // Cerrada por quien la abrió: si se retoma otro día, ya no es delegada.
+          olvidarDelegada(panelesRef.current().find((s) => s.id === id)?.sessionId);
           cerrarRef.current(id);
           responder({});
           return;
@@ -124,6 +128,20 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
             sessionId: s.sessionId ?? "",
           }));
           responder({ datos });
+          return;
+        }
+        // `compactar_terminal`: lo hace el panel con su traspaso, que espera a
+        // que pare, manda `/fin sin commits` y luego `/compact` (`lib/contexto.ts`).
+        // Rust ya comprobó que es de Claude Code y que la abrió un agente.
+        if (p.clase === "compactar") {
+          const detail: { id: number; que: string; hecho: boolean; deAgente: boolean; fase?: FaseTraspaso } = {
+            id: Number(p.paneId),
+            que: "compactar",
+            hecho: false,
+            deAgente: true,
+          };
+          window.dispatchEvent(new CustomEvent("adeorq:traspaso", { detail }));
+          responder(detail.hecho ? { parte: detail.fase ?? "nada" } : { error: `No tengo pintada la terminal ${p.paneId}.` });
           return;
         }
         if (p.clase === "uso") {
@@ -188,10 +206,15 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         // nueva dirá «de: …» (Munir, 2026-10-17). Solo si su puente presentó su
         // panel; un agente sin panel no tiene cabecera que nombrar.
         const madre = typeof p.quien === "number" ? panelesRef.current().find((s) => s.id === p.quien) : undefined;
+        const abiertaPor = madre ? tituloDeCabecera(madre.name, madre.cwd).trim() || undefined : undefined;
+        // Por su conversación, para que al recrear su panel (otro arranque,
+        // Reanimar) vuelva siendo delegada (`lib/delegadas.ts`).
+        apuntarDelegada(command, abiertaPor);
         const abierto = addPane(label, cwd, command, undefined, cuenta, undefined, undefined, undefined, undefined, {
-          abiertaPor: madre ? tituloDeCabecera(madre.name, madre.cwd).trim() || undefined : undefined,
+          abiertaPor,
         });
         if (!abierto) return responder({ error: "no pude abrir la terminal" });
+        marcarDelegada(abierto.id);
 
         // La flecha de paso, si la pidió: así el árbol le queda hecho sin una
         // segunda llamada. Solo cuela en el lienzo, y se dice cuando no.
@@ -206,6 +229,8 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         responder({
           pane_id: abierto.id,
           donde: abierto.donde,
+          // Lo que Rust guarda por su conversación (`mcp/delegadas.rs`).
+          datos: { name: label, cwd, command: command ?? [], abiertaPor: abiertaPor ?? null },
           parte: parteDeApertura({
             paneId: abierto.id,
             cli,

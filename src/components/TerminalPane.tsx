@@ -89,7 +89,7 @@ import { sessionIdOf } from "../lib/comandos";
 import { propsDeVelo } from "../lib/velo";
 import { proveedorDe, sabe } from "../lib/providers";
 import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
-import { nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
+import { enPantalla, esperaEnSuCaja, nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
 import AvisoContexto from "./AvisoContexto";
 import { useNombreSolo } from "../lib/nombreSolo";
 import { archivoDelDiff } from "../lib/diffEspejo";
@@ -2170,8 +2170,9 @@ export default function TerminalPane({
 
   /* Compactar y recuperar con traspaso: el porqué y los textos, en `lib/contexto.ts`. */
   // `esClaude`: solo Claude Code entiende `/fin`; en Codex o Gemini va el texto de la casa,
-  // a ciegas como siempre (no se lee su transcript), y nunca solo.
-  const esClaude = /\bclaude\b/i.test((command ?? []).join(" "));
+  // a ciegas como siempre (no se lee su transcript), y nunca solo. Del `kind`, que se mira
+  // sin el encargo: un Codex al que le encargaron algo de «claude» no es Claude Code.
+  const esClaude = sabe(kind, "compactaConTraspaso");
   const traspaso = useTraspaso({
     id,
     t,
@@ -2182,15 +2183,13 @@ export default function TerminalPane({
     onNueva: onNuevaConTraspaso,
     esClaude,
     cwd,
-    sesion: sessionIdOf(joined) ?? ctx?.sessionId,
+    // La de su comando y no la de `ctx`, que sin id es la más reciente de la carpeta.
+    sesion: sessionIdOf(joined),
     nombre: name,
     hayPregunta: () => askRef.current !== null,
     hayBorrador: () => borradorRef.current,
-    trabajando: () => {
-      const term = termRef.current;
-      const buf = term?.buffer.active;
-      return !!term && !!buf && trabajaEnPantalla((i) => buf.getLine(buf.baseY + i)?.translateToString(true) ?? "", term.rows);
-    },
+    trabajando: () => enPantalla(termRef.current, trabajaEnPantalla),
+    enSuCaja: () => enPantalla(termRef.current, esperaEnSuCaja),
   });
   /** El aviso se ve con el nivel por encima de lo visto, con un traspaso en
    *  marcha (que dice por dónde va) o con la sugerencia de una tarea grande. */

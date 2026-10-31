@@ -107,9 +107,10 @@ mantener un espacio limpio, con su respectivo rastro de handoff o feedback»*. E
 a un reloj (cerrarla a la media hora), a una tira de «delegadas» y a un botón.
 
 - **Adeorq apunta quién abrió cada una** (`Puente::delegadas` en `mcp.rs`, con el panel que
-  presentó el puente del agente; solo vale en ese arranque, como los números). `get_active_panes`
-  lo dice: «Abierta por: ti (cuando su tarea esté hecha, ciérrala con close_pane y su rastro)» a
-  quien la abrió, y «Abierta por: el panel N» a los demás.
+  presentó el puente del agente, y por su conversación en `delegadas.json`, que sobrevive a
+  reiniciar: ver «Quién la abrió sobrevive a reiniciar» abajo). `get_active_panes` lo dice:
+  «Abierta por: ti (cuando su tarea esté hecha, ciérrala con close_pane y su rastro)» a quien la
+  abrió, y «Abierta por: el panel N» a los demás.
 - **`close_pane` pide su `rastro`** para una que abrió un agente: qué hizo, dónde dejó su parte y
   qué falta, de 40 a 8.000 caracteres. Sin él, o si no se puede guardar, no la cierra. Se guarda
   en `%LOCALAPPDATA%\Adeorq\rastros\<fecha UTC>-<nombre>.md` con su carpeta, la conversación que
@@ -153,6 +154,118 @@ a un reloj (cerrarla a la media hora), a una tira de «delegadas» y a un botón
   puente de verdad contra una Adeorq aislada: abre, lista, se niega sin rastro, cierra con él,
   escribe el archivo y no enseña el aviso). NO PROBADO con un agente de verdad decidiendo solo.
 
+## Las delegadas no pasan de la raya roja de contexto (2026-10-30)
+
+«Orquio General», 22-oct: las seis terminales que abrió ese día acabaron entre 587.778 y 831.704
+tokens, y Munir: *«¿no tienes la habilidad de compactar las sesiones que controlas, o cerrarlas y
+crear nuevas?»*. Condición suya: una terminal que trabaja NUNCA se compacta sola, y en las suyas,
+sin su clic no (D8). Las rayas son las de la D7 (300k aviso, 400k compacta, 600k terminal nueva).
+
+- **`get_active_panes`** dice los tokens de cada Claude Code («Contexto: 412.000 tokens de
+  1.000.000») y, pasada una raya, qué hacer. **`send_command`** no manda trabajo nuevo desde el
+  aviso sin `confirm: true` (ver `escribir-a-una-sesion.md`).
+- **A quien la abrió se le avisa** en la respuesta de su siguiente llamada al MCP, una vez por raya
+  desde los 400k (`aviso_de_tus_terminales`, `Puente::avisadas`), y se olvida al bajar.
+- **La delegada se compacta sola** a la campana de un turno acabado, con `/fin sin commits` y
+  luego `/compact`, aunque el ajuste de Munir diga «no» o «fin» (`esDelegada` en
+  `lib/contexto.ts`, que apunta `lib/puenteMcp.ts` al abrirla). Con las mismas llaves que el
+  automático de siempre: transcript en «lista», sin subagentes, sin menú, sin borrador y sin «esc
+  to interrupt» en pantalla. Ya compactada dos veces no lo hace una tercera (D4): el aviso le dice
+  a quien la abrió que la cierre con su rastro o la compacte él.
+- **`compactar_terminal(paneId)`** (escalón «auto», como `send_command`): el mismo baile pedido
+  por el agente, sin esperar a la raya. Solo en delegadas de Claude Code; en una de Munir contesta
+  que sin su clic no. Si ya hay un traspaso en marcha no empieza otro; el pedido caduca a los 30
+  minutos si no para.
+- **`close_pane`** dice con cuánto contexto acabó, y **`open_pane`** cuánto llevan las otras que
+  ya abrió quien llama.
+- **Medido:** `cargo test --lib tope_contexto` (11, rojo antes con las funciones vacías),
+  `pnpm bancos contexto` (rojo antes: no existían) y
+  `node scripts/laboratorio/tope-de-contexto-de-verdad.mjs` (27 de 27, Adeorq aislada con Claudes
+  de mentira). NO PROBADO: con un Claude Code de verdad cruzando los 400k, ni el laboratorio
+  contra el código viejo. Las delegadas se olvidan si la ventana se recarga (`DELEGADAS` vive en
+  la página; Rust sigue sabiéndolo y `compactar_terminal` funciona, pero el automático no).
+- **Lo que vio la revisión (2026-10-30)**, seis caminos por los que tecleaba donde no debía:
+  - **Solo la conversación del panel, y solo si corre.** `leerDelPanel` (`lib/contexto.ts`) no
+    lee nada sin la conversación de su comando (antes caía en «la más reciente de la carpeta», la
+    de quien la abrió), y `ContextInfo.viva` dice si su id está en `~/.claude/sessions/<pid>.json`
+    de un proceso vivo. Medido con Claude Code 2.1.314: cada `/clear` pasa ese registro a un id
+    nuevo y al salir se borra, así que tras un `/clear` o con el CLI cerrado la de antes no
+    cuenta, ni en la ventana ni en Rust (`carga_de`: ni tokens en la lista ni retener).
+  - **Claude Code por el `kind`**, que se mira sin el encargo: un Codex al que se le encarga algo
+    de «claude» ya no recibe `/fin`.
+  - **Tercera llave, la caja:** nada se teclea solo si la pantalla no es Claude Code parado en su
+    caja vacía entre dos rayas (`esperaEnSuCaja`); un PowerShell, un menú o un borrador, no.
+  - **Un candado** para la campana, el botón y `compactar_terminal`, y el `/compact` solo con una
+    lectura de después del `/fin` (antes podía salir pegado detrás).
+  - **El aviso a quien la abrió** se olvida al bajar de 300k y no de 400k: rondando la raya se
+    repetía. **Un modelo que no está en la tabla** se lee de un millón (`context_window`): de
+    200k, un Opus nuevo compactaba a 120k.
+  - Medido: `cargo test --lib tope_contexto` y `sessions::` (rojos antes), `pnpm bancos contexto`
+    (17 rojos antes) y el laboratorio (R1, R3, R4, R5; con el frente de `HEAD`, R1 y la campana
+    de R3 en rojo).
+  - **`send_command` no retiene la respuesta a una pregunta** (`ed9a7b1`): contestar a lo que
+    pregunta (un permiso, el «Type something», un «no» en prosa) pasa sin `confirm`
+    (`tope_contexto::retiene`). El paso R4 del laboratorio, rojo antes y verde después.
+
+## Quién la abrió sobrevive a reiniciar, y las que ya no están se dicen (2026-10-30)
+
+La Suprema, ese día: tras reiniciar Adeorq, sus delegadas salían sin «Abierta por» y en
+`acceptEdits` en vez de `auto`, y una desapareció sin rastro ni aviso («quien la abrió no puede
+saber si la cerró Munir, si se murió el proceso o si se perdió al restaurar»). Las dos causas eran
+la misma: quién abrió cada una vivía en memoria y por número de panel, y la ventana tampoco lo
+guardaba, así que al reiniciar no había «de: …», el tablero la retomaba con el modo de Ajustes y
+la X no escribía su rastro (lo escribe solo si el panel tiene `abiertaPor`).
+
+- **Se guarda por conversación** en `%LOCALAPPDATA%\Adeorq\delegadas.json` (`mcp/delegadas.rs`):
+  nombre, carpeta, la conversación y el «de: …» de quien la abrió, el modo con que nació, y cómo
+  acabó. Lo escribe `open_pane` con lo que contesta la ventana (`datos` en `lib/puenteMcp.ts`).
+  Una sin id de conversación (Codex, una consola) va por su número de ese arranque: no se puede
+  retomar, pero sí decir cómo acabó. Las cerradas se olvidan a la semana; las que no vuelven, a
+  las dos.
+- **Al nacer un panel que retoma esa conversación vuelve a ser delegada**, venga del tablero,
+  del lienzo, de «Reanimar» o de la barra. En Rust, `al_nacer` (llamado desde `pty_spawn`) la
+  apunta otra vez en `Puente::delegadas`, y quien la abrió se reconoce por su conversación
+  (`es_suya`), con su número de hoy. En la ventana, `lib/delegadas.ts` lee lo guardado una vez al
+  arrancar (`delegadas_guardadas`), y `delegacionDe` le devuelve su «de: …» y la marca para que
+  compacte sola (`addPane`, `createCanvasPane` y el tablero). `resumeCommandFor` y «Reanimar» la
+  retoman en su modo (`modoAlRetomar`); las de Munir, en el de Ajustes como siempre. Cerrada con
+  `close_pane` o con la X, se olvida: retomada otro día, ya es de Munir.
+- **Las de los encargos programados también son delegadas** (`apuntar_de_programado` en
+  `programados.rs`): nadie hace clic en ellas, así que `compactar_terminal` ya no contesta «es de
+  Munir». `get_active_panes` dice «Abierta por: el encargo programado «…»», y al acabar su
+  encargo queda dicho que la cerró él.
+- **`get_active_panes` dice las que ya no están** (último día, como mucho ocho): con su nombre,
+  su conversación, quién la abrió, cuándo (en UTC) y cómo. Con `close_pane` dice por qué panel y
+  dónde está su rastro; con la X, que la cerró Munir y su rastro; si su proceso cayó, que salió
+  solo y con qué código (`al_salir`, desde el fin del PTY; al cerrar la app no cuenta,
+  `se_cierra_la_app`), y si no volvió al reiniciar, que nadie la cerró y cómo se retoma. Un
+  «Pane N not found» de una que fue delegada en este arranque lleva lo mismo detrás
+  (`por_que_no_esta`).
+- **El encargo dentro del comando ya no engaña** (`3440646`): `rastros::sin_encargo` lo quita antes
+  de buscar la conversación o si es Claude Code (`sesion_del_comando`, `es_claude`), igual que
+  `sinEncargo` en la ventana. Un `--resume` escrito en el encargo ganaba al `--session-id` de
+  verdad, y esa es la clave por la que se guarda todo esto.
+- **Ojo al probarlo:** un panel corre `cmd /k` y el CLI dentro, así que si solo sale el CLI el PTY
+  sigue vivo y no hay fin: «su proceso salió» es la terminal entera cayéndose. Y en Rust, un
+  `if let x = m.lock()…` deja el candado cogido en todo el bloque: así se colgó `close_pane` en la
+  primera versión.
+- **Medido:** `cargo test --lib delegadas` y `rastros::` (el del encargo, rojo antes: cogía la
+  conversación del encargo), `tras_reiniciar_la_reconoce_su_conversacion`, y
+  `node scripts/laboratorio/quien-la-abrio-de-verdad.mjs` (21 de 21): una Adeorq aislada con
+  Claudes de mentira que abre delegadas y una de encargo programado, se reinicia de verdad
+  (`reiniciar` en `aislada.mjs`) y mira «Abierta por», el modo, el «de: …», que se compacte sola a
+  los 400k y que `close_pane` pida rastro; luego la X, la caída del proceso, `close_pane` y la que
+  no volvió. Con el binario de antes, 15 de esos en rojo. **NO PROBADO:** con Claude Code de
+  verdad.
+- **Con las terminales en su propio proceso** (`terminales.rs`, encendido en la app publicada de
+  Windows), medido el mismo día: `LAB_TERMINALES_APARTE=1` delante de los dos laboratorios
+  (`aislada.mjs` enciende el ajuste y comprueba que las consolas cuelgan del proceso y no de la
+  app). `quien-la-abrio-de-verdad.mjs` 28 de 28, con una parte que solo corre así: reiniciar como
+  la tarjeta de actualizar (`reiniciar({ actualizando: true })`), y las delegadas siguen en el
+  mismo proceso, con su número, sin `--resume`, «Abierta por: ti» y su «de: …»; la X, la que sale
+  sola y la compactación van después sobre las recogidas. `tope-de-contexto-de-verdad.mjs` 38 de
+  38. Sin el ajuste, los dos como antes. No hubo nada que arreglar.
+
 ## Lo que se le dice a un agente al conectarse (2026-10-17)
 
 Munir, ese día: *«muchos agentes no lo están haciendo muy bien, y ADEORQ también no lo prioriza
@@ -190,8 +303,9 @@ abrió». Lo mínimo», y «que cualquiera pueda cerrar las que abrió ÉL, con 
   (`quien`), y la ventana (`lib/puenteMcp.ts`) apunta en la nueva el título que se ve en la
   cabecera de ese panel (`tituloDeCabecera` en `lib/supremo.ts`: el nombre sin el prefijo de su
   proyecto, la misma cuenta que usa la cabecera). Sale tenue a la derecha del título, en la Cabina
-  y en el Lienzo; por debajo de 545 px se va y queda en el globo del título. Solo de este arranque,
-  como los números: el tablero guardado no lo lleva. Una que abre un agente sin panel (Capataz, un
+  y en el Lienzo; por debajo de 545 px se va y queda en el globo del título. El tablero guardado no
+  lo lleva: al recrear el panel sale de su conversación (`lib/delegadas.ts`, desde el 2026-10-30).
+  Una que abre un agente sin panel (Capataz, un
   encargo programado) no lleva «de:». **No sale en la ventana suelta**, que arma su cabecera con el
   nombre que viaja en la dirección de la ventana; si hiciera falta, viajaría igual.
 - **El cierre en «plan»**: `close_pane` sale en el `tools/list` de un cliente en «plan»

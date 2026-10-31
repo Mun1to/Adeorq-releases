@@ -332,9 +332,28 @@ async function sesionesParaElMovil(exec: ConserjeExec): Promise<Record<string, u
   };
 }
 
+/** Lo que se está siguiendo desde el móvil, y lo recién abierto unos segundos
+    más: un doble toque manda dos pedidos con el mismo id, y el `panes()` de
+    cada uno es el de antes de abrir nada (React aún no ha pintado la nueva),
+    así que los dos la abrían y dos `--resume` la cuelgan
+    (`scripts/movil-seguir-check.ts`). */
+const siguiendo = new Map<string, Promise<Record<string, unknown>>>();
+const RECIEN_ABIERTA_MS = 5_000;
+
 /** Sigue una sesión del PC desde el móvil, como tocarla en su barra. */
-async function seguirDesdeElMovil(p: PedidoMovil, exec: ConserjeExec): Promise<Record<string, unknown>> {
+function seguirDesdeElMovil(p: PedidoMovil, exec: ConserjeExec): Promise<Record<string, unknown>> {
   const id = typeof p.id === "string" ? p.id : "";
+  const ya = siguiendo.get(id);
+  if (ya) return ya;
+  const pedido = seguirSesion(id, exec);
+  if (!id) return pedido;
+  siguiendo.set(id, pedido);
+  const soltar = () => siguiendo.delete(id);
+  pedido.then((r) => (r.panel === undefined ? soltar() : void setTimeout(soltar, RECIEN_ABIERTA_MS)), soltar);
+  return pedido;
+}
+
+async function seguirSesion(id: string, exec: ConserjeExec): Promise<Record<string, unknown>> {
   const s = id ? (await scanSessions()).find((x) => x.id === id) : undefined;
   if (!s) return { error: "Esa sesión ya no está en tu PC." };
   // Ya abierta aquí: se entra en la que hay. Abrirla dos veces la cuelga.

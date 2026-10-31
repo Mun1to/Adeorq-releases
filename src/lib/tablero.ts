@@ -13,6 +13,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { addPane as layoutAdd, type Col } from "./layout";
 import { loadEffort, resumeCommandFor } from "./lanzar";
+import { cargarDelegadas, delegacionDe } from "./delegadas";
 import { useCabina } from "./cabina";
 import { primerNumeroLibre, ptyHistorial, readBoard, terminalesVivas, type TerminalViva } from "./pty";
 import { dejarVolcado } from "./mudanza";
@@ -46,7 +47,8 @@ export interface Pane {
       que estás usando y apartar los demás sin cerrarlos. */
   grupo?: string;
   /** El nombre de la sesión que la abrió con `open_pane`, para el «de: …» de
-      su cabecera. Solo de este arranque, como en Rust (`Madre` en `mcp.rs`). */
+      su cabecera. No se guarda con el tablero: al recrear el panel sale de su
+      conversación (`delegacionDe` en `lib/delegadas.ts`). */
   abiertaPor?: string;
   shadow?: boolean;
   /** El espejo que YA tiene, cuando recoge tras una caída una terminal que
@@ -286,6 +288,9 @@ export function useTableroGuardado({
       // that were coming back without their effort, so the answer has to be in
       // hand before the first command line is written.
       await loadEffort();
+      // Y qué conversaciones son de una terminal que abrió un agente: vuelven con
+      // su «de: …», su modo y compactando solas (`lib/delegadas.ts`).
+      await cargarDelegadas();
       const ids: number[] = [];
       for (const [i, pane] of saved.panes.entries()) {
         if (cancelled) return;
@@ -299,17 +304,19 @@ export function useTableroGuardado({
           dejarVolcado(id, await ptyHistorial(id).catch(() => ""));
           // Si corría dentro de un espejo, vuelve siendo de espejo y con ESE.
           const espejo = espejoDe(viva.cwd)?.nombre;
+          const command = viva.command ?? pane.command;
           setPanes((prev) => [
             ...prev,
             {
               id,
               cwd: pane.cwd,
               name: pane.name,
-              command: viva.command ?? pane.command,
+              command,
               env: pane.env,
               account: pane.account,
               team: pane.team,
               grupo: pane.grupo,
+              abiertaPor: delegacionDe(id, command),
               shadow: espejo ? true : undefined,
               espejo,
             },
@@ -377,6 +384,7 @@ export function useTableroGuardado({
             account: pane.account,
             team: pane.team,
             grupo: pane.grupo,
+            abiertaPor: delegacionDe(id, command),
           },
         ]);
         // Lo apartado sigue apartado: el id es nuevo, así que se marca aquí,

@@ -45,10 +45,51 @@ pub fn validar(texto: &str) -> Result<String, String> {
     Ok(t.to_string())
 }
 
-/// La conversación de Claude Code que corre en un panel, leída de su comando
-/// (`--resume <id>` o `--session-id <id>`). Sin eso, no se adivina.
-pub fn sesion_del_comando(comando: &[String]) -> Option<String> {
+/// El comando de un panel en una línea, sin el encargo que lleva dentro una
+/// terminal abierta con uno (`$env:ADEORQ_ENCARGO = '…'; `, de
+/// `lineaConEncargo`). Lo que busca qué CLI es o qué conversación retoma no
+/// puede leer el encargo: uno que diga «claude» o traiga un `--resume` ganaba
+/// al comando de verdad (`sinEncargo` en `src/lib/comandos.ts` hace lo mismo).
+pub fn sin_encargo(comando: &[String]) -> String {
     let junto = comando.join(" ");
+    const MARCA: &str = "$env:adeorq_encargo = ";
+    let Some(desde) = junto.to_ascii_lowercase().find(MARCA) else { return junto };
+    let es_comilla = |c: char| matches!(c, '\'' | '‘' | '’' | '‚' | '‛');
+    let cuerpo = desde + MARCA.len();
+    let mut letras = junto[cuerpo..].char_indices().peekable();
+    if !letras.next().is_some_and(|(_, c)| es_comilla(c)) {
+        return junto;
+    }
+    // Entre comillas simples de PowerShell, dos comillas seguidas son una
+    // escrita, y cualquiera de las cinco cierra.
+    let mut fin = None;
+    while let Some((i, c)) = letras.next() {
+        if !es_comilla(c) {
+            continue;
+        }
+        if letras.peek().is_some_and(|&(_, d)| es_comilla(d)) {
+            letras.next();
+            continue;
+        }
+        fin = Some(cuerpo + i + c.len_utf8());
+        break;
+    }
+    let Some(mut fin) = fin else { return junto };
+    let resto = &junto[fin..];
+    let sin_punto = resto.strip_prefix(';').unwrap_or(resto);
+    fin += resto.len() - sin_punto.trim_start().len();
+    format!("{}{}", &junto[..desde], &junto[fin..])
+}
+
+/// Si en el panel corre Claude Code, mirando su comando sin el encargo.
+pub fn es_claude(comando: &[String]) -> bool {
+    sin_encargo(comando).contains("claude")
+}
+
+/// La conversación de Claude Code que corre en un panel, leída de su comando
+/// (`--resume <id>` o `--session-id <id>`) sin su encargo. Sin eso, no se adivina.
+pub fn sesion_del_comando(comando: &[String]) -> Option<String> {
+    let junto = sin_encargo(comando);
     let mut palabras = junto.split_whitespace();
     while let Some(p) = palabras.next() {
         if p == "--resume" || p == "--session-id" {
@@ -63,7 +104,7 @@ pub fn sesion_del_comando(comando: &[String]) -> Option<String> {
 
 /// «2026-10-15 03:20» en UTC, a partir de milisegundos desde 1970. Sin crate de
 /// fechas, con el algoritmo de Howard Hinnant (el mismo que `chat::hoy`).
-fn fecha_hora_utc(ms: u64) -> (String, String) {
+pub(crate) fn fecha_hora_utc(ms: u64) -> (String, String) {
     let secs = (ms / 1000) as i64;
     let z = secs.div_euclid(86_400) + 719_468;
     let era = z.div_euclid(146_097);
@@ -236,12 +277,15 @@ pub fn rastro_de_relevo(nombre: String, carpeta: String, sesion: String) -> Resu
 }
 
 /// Para la ventana: la X de Munir sobre una terminal que abrió otra sesión.
+/// Queda apuntado también cómo acabó, para quien la abrió (`get_active_panes`).
 #[tauri::command(async)]
-pub fn rastro_de_la_x(nombre: String, carpeta: String, sesion: String, abierta_por: String) -> Result<(), String> {
+pub fn rastro_de_la_x(app: tauri::AppHandle, nombre: String, carpeta: String, sesion: String, abierta_por: String) -> Result<(), String> {
     let ahora = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as u64);
-    escribir_de_la_x(&crate::dir_datos()?.join("rastros"), &nombre, &carpeta, &sesion, &abierta_por, ahora).map(|_| ())
+    let ruta = escribir_de_la_x(&crate::dir_datos()?.join("rastros"), &nombre, &carpeta, &sesion, &abierta_por, ahora)?;
+    crate::mcp::cerrada_con_la_x(&app, &sesion, &ruta);
+    Ok(())
 }
 
 /// Para la barra: qué conversaciones cerró un agente. Sin carpeta de rastros,
@@ -328,6 +372,33 @@ mod tests {
         assert_eq!(sesion_del_comando(&c("codex")), None);
         assert_eq!(sesion_del_comando(&c("claude --resume")), None);
         assert_eq!(sesion_del_comando(&c("claude --resume ../../malo")), None);
+    }
+
+    #[test]
+    fn el_encargo_no_cuenta_al_leer_el_comando() {
+        // Como lo arma `lineaConEncargo`: PowerShell, el encargo entre comillas
+        // simples con las suyas dobladas, y luego el CLI de verdad.
+        let ps = |encargo: &str, cli: &str| {
+            vec![
+                "powershell.exe".to_string(),
+                "-NoLogo".to_string(),
+                "-NoExit".to_string(),
+                "-Command".to_string(),
+                format!("$env:ADEORQ_ENCARGO = '{encargo}'; {cli}"),
+            ]
+        };
+        let real = "claude --permission-mode auto --session-id 0006490e-5bba-4a1e-9a77-0c0ffee00001";
+        let trampa = "retoma con claude --resume 1111aaaa-2222 y no con la otra";
+        assert_eq!(sesion_del_comando(&ps(trampa, real)).as_deref(), Some("0006490e-5bba-4a1e-9a77-0c0ffee00001"));
+        assert_eq!(sesion_del_comando(&ps(trampa, "codex")), None, "la del encargo no es la suya");
+        assert!(es_claude(&ps("nada", real)));
+        assert!(!es_claude(&ps("que lo mire claude después", "codex")), "un encargo que dice «claude» no hace Claude a un Codex");
+        // Comillas dobladas y tipográficas dentro, que PowerShell también cierra.
+        let raro = "it''s ’’claude’’ --session-id 9999";
+        assert_eq!(sin_encargo(&ps(raro, "codex")), "powershell.exe -NoLogo -NoExit -Command codex");
+        assert!(!es_claude(&ps(raro, "gemini")));
+        // Sin encargo, el comando entero.
+        assert_eq!(sin_encargo(&["claude".to_string(), "--resume".to_string(), "x".to_string()]), "claude --resume x");
     }
 
     #[test]

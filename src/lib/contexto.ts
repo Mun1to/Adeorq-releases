@@ -181,6 +181,77 @@ export function trabajaEnPantalla(linea: (i: number) => string, filas: number): 
   for (let i = 0; i < filas; i++) if (linea(i).includes("to interrupt")) return true;
   return false;
 }
+/** Lo que se VE de un terminal (de xterm), fila a fila, pasado a una de las
+    dos llaves de pantalla (`trabajaEnPantalla`, `esperaEnSuCaja`). Sin
+    terminal, no. */
+export function enPantalla(
+  term: { rows: number; buffer: { active: { baseY: number; getLine(y: number): { translateToString(trim?: boolean): string } | undefined } } } | null,
+  mirar: (linea: (i: number) => string, filas: number) => boolean,
+): boolean {
+  const buf = term?.buffer.active;
+  return !!term && !!buf && mirar((i) => buf.getLine(buf.baseY + i)?.translateToString(true) ?? "", term.rows);
+}
+
+/**
+ * ¿Está Claude Code parado en su caja de entrada, vacía? Es la tercera llave
+ * de lo que se teclea solo (revisión de `1954cf0`, 2026-10-30): con el CLI
+ * cerrado, el panel se queda en el PowerShell de `-NoExit` (o en el cmd de
+ * `/k`), su transcript sigue diciendo «lista», y un `/fin` ahí es un comando
+ * de consola. La caja es una fila que empieza en la columna 0 por `❯` (`> ` en
+ * el renderizador clásico) entre dos rayas `─`, la de arriba con el nombre de
+ * la sesión a veces; vacía, o con la sugerencia atenuada («Try "…"»). Debajo
+ * solo va su pie, sangrado («  ⏵⏵ auto mode on»): algo en la columna 0 es un
+ * prompt de consola. Un menú, un borrador o un `❯` sin rayas (el prompt de
+ * starship) no son la caja. Pantallas de la 2.1.302 y la 2.1.314.
+ */
+export function esperaEnSuCaja(linea: (i: number) => string, filas: number): boolean {
+  const raya = (l: string) => /^\s*─{8,}/.test(l);
+  let i = filas - 1;
+  for (; i >= 0 && !raya(linea(i)); i--) {
+    const l = linea(i);
+    if (l.trim() && !/^\s/.test(l)) return false;
+  }
+  if (i < 2 || !raya(linea(i - 2))) return false;
+  const caja = /^[❯>](.*)$/.exec(linea(i - 1));
+  const dentro = caja?.[1].trim();
+  return dentro !== undefined && (dentro === "" || dentro.startsWith('Try "'));
+}
+
+/**
+ * Lo que dice el transcript de la conversación de un panel, para decidir si
+ * se le teclea algo: solo la SUYA (revisión de `1954cf0`). Sin conversación
+ * sabida no se pregunta por «la más reciente de la carpeta» (lo que hace
+ * `session_context` sin id), que suele ser la de quien abrió la terminal. Y
+ * una que ya no corre en ningún Claude Code (`viva`) no cuenta: tras un
+ * `/clear` o un `/resume` dentro del panel, o con el CLI cerrado, ese
+ * transcript se queda en «lista» y 450k para siempre.
+ */
+export function leerDelPanel(
+  u: { esClaude?: boolean; cwd: string; sesion?: string },
+  leer: (cwd: string, sesion?: string) => Promise<ContextInfo | null> = sessionContext,
+): Promise<ContextInfo | null> {
+  if (!u.esClaude || !u.sesion) return Promise.resolve(null);
+  return leer(u.cwd, u.sesion).then((c) => (c?.viva === false ? null : c));
+}
+
+/**
+ * Las terminales que abrió un agente con `open_pane` en este arranque (las
+ * apunta `lib/puenteMcp.ts`). En ellas no hay nadie que pulse Compactar, así
+ * que a la raya roja compactan solas con `/fin sin commits` aunque el ajuste
+ * de Munir diga «no» o «fin»; en las suyas manda su ajuste (D8: sin su clic,
+ * nada que él no haya pedido). Pedido de «Orquio General», 2026-10-22: sus
+ * seis delegadas de ese día acabaron entre 588k y 832k tokens. Rust lleva su
+ * propia lista (`Puente::delegadas`) para el MCP; las dos nacen en el mismo
+ * `open_pane`, y al recrear su panel tras reiniciar vuelven por su
+ * conversación (`delegacionDe` en `lib/delegadas.ts`, `al_nacer` en `mcp.rs`).
+ */
+const DELEGADAS = new Set<number>();
+export function marcarDelegada(id: number): void {
+  DELEGADAS.add(id);
+}
+export function esDelegada(id: number): boolean {
+  return DELEGADAS.has(id);
+}
 export function guardarModoSolo(m: ModoSolo): void {
   try {
     localStorage.setItem(CLAVE_MODO, m);
@@ -315,9 +386,14 @@ export interface DepsTraspaso {
   hayBorrador: () => boolean;
   /** El CLI dice en pantalla que sigue con el turno (`trabajaEnPantalla`). */
   trabajando: () => boolean;
+  /** Claude Code parado en su caja vacía (`esperaEnSuCaja`). Solo se mira en
+      un panel de Claude Code; sin ella, como si estuviera. */
+  enSuCaja?: () => boolean;
   /** El nivel de aviso que ya se despachó con × o «Ahora no». */
   visto: () => number;
   modo: () => ModoSolo;
+  /** La abrió un agente (`esDelegada`): compacta sola y sin commits. */
+  delegada?: () => boolean;
   sugerir: () => boolean;
   esClaude: () => boolean;
   tieneFin: () => Promise<boolean>;
@@ -355,12 +431,47 @@ export interface DepsTraspaso {
 export function crearTraspaso(d: DepsTraspaso) {
   const ahora = d.ahora ?? Date.now;
   const esperar = d.esperar ?? ((ms: number) => new Promise<void>((r) => window.setTimeout(r, ms)));
-  let pendiente: { que: "compactar" | "nueva"; paso: Exclude<FaseTraspaso, "nada">; solo: boolean; desde: number } | null = null;
+  /** `solo`: no lo pulsó nadie, así que sin transcript no se va a ciegas.
+      `sinCommits`: el traspaso es `/fin sin commits` y no el entero. */
+  let pendiente: {
+    que: "compactar" | "nueva";
+    paso: Exclude<FaseTraspaso, "nada">;
+    solo: boolean;
+    sinCommits: boolean;
+    desde: number;
+  } | null = null;
   /** Ya compactó en esta subida: no repetir hasta verlo bajar. */
   let hecho = false;
   /** El porcentaje al acabar el último turno, para medir lo que subió este. */
   let base: number | null = null;
-  let ocupado = false;
+  /**
+   * Un solo candado para la campana, el botón y `compactar_terminal`
+   * (revisión de `1954cf0`). El pedido del agente no pasaba por él: mandaba el
+   * `/fin` mientras una campana leía el transcript, y esa campana llegaba
+   * después con su lectura de ANTES y pegaba el `/compact` detrás del `/fin`.
+   * Una campana que llega con el candado cogido se suelta, como siempre; los
+   * pedidos esperan su turno, que no se pierda ninguno.
+   */
+  let candado: Promise<void> | null = null;
+  const conCandado = async (f: () => Promise<void>, siOcupado: "esperar" | "soltar") => {
+    while (candado) {
+      if (siOcupado === "soltar") return;
+      await candado;
+    }
+    let abrir = () => {};
+    candado = new Promise<void>((r) => (abrir = r));
+    try {
+      await f();
+    } finally {
+      candado = null;
+      abrir();
+    }
+  };
+  /** El transcript releído ahora, con cuándo se pidió. */
+  const leerAhora = async () => {
+    const en = ahora();
+    return { c: await d.leer().catch(() => null), en };
+  };
 
   const fase = (): FaseTraspaso => pendiente?.paso ?? "nada";
   const poner = (p: typeof pendiente) => {
@@ -369,26 +480,33 @@ export function crearTraspaso(d: DepsTraspaso) {
   };
 
   /** `/fin` si es Claude Code y la skill existe; si no, el texto de la casa. */
-  const traspaso = async (que: "compactar" | "nueva", solo: boolean) => {
+  const traspaso = async (que: "compactar" | "nueva", sinCommits: boolean) => {
     const fin = d.esClaude() && (await d.tieneFin().catch(() => false));
     if (que === "nueva") return traspasoAntesDeNueva(d.t, fin);
-    return traspasoAntesDeCompactar(d.t, fin, solo && d.modo() !== "fin");
+    return traspasoAntesDeCompactar(d.t, fin, sinCommits);
   };
 
-  /** El paso siguiente, si el turno lo deja; si no, a la próxima campana. */
-  const avanzar = async (c: Awaited<ReturnType<DepsTraspaso["leer"]>>) => {
+  /** El paso siguiente, si el turno lo deja; si no, a la próxima campana.
+      `en` es cuándo se pidió la lectura `c`. */
+  const avanzar = async (c: Awaited<ReturnType<DepsTraspaso["leer"]>>, en: number) => {
     const p = pendiente;
     if (!p) return;
     if (ahora() - p.desde > CADUCA_MS) return poner(null);
     const puede = c ? turnoAcabado(c, d.hayPregunta()) && !d.hayBorrador() && !d.trabajando() : !p.solo;
     if (!puede) return;
+    // Y en Claude Code, con su caja a la vista: si no, el CLI se cerró (o
+    // tiene un menú abierto) y lo tecleado iría a otro sitio.
+    if (d.esClaude() && !(d.enSuCaja?.() ?? true)) return;
     if (p.paso === "esperando") {
-      const texto = await traspaso(p.que, p.solo);
+      const texto = await traspaso(p.que, p.sinCommits);
       if (pendiente !== p) return; // «Ahora no» mientras se miraba la skill
       poner({ ...p, paso: "cerrando", desde: ahora() });
       await d.mandar(texto);
       return;
     }
+    // El `/compact` (o la nueva) solo con una lectura de DESPUÉS del `/fin`, y
+    // asentada: una de antes dice «lista» del turno anterior, no del `/fin`.
+    if (en - p.desde < ASIENTO_MS) return;
     poner(null);
     // Hecho en los dos casos: la vieja no se compacta sola después.
     hecho = true;
@@ -401,17 +519,28 @@ export function crearTraspaso(d: DepsTraspaso) {
     await d.mandar(`/compact ${ordenDeCompactar(d.t)}`);
   };
 
-  const pedir = async (que: "compactar" | "nueva") => {
-    poner({ que, paso: "esperando", solo: false, desde: ahora() });
-    await avanzar(await d.leer().catch(() => null));
-  };
+  const pedir = (que: "compactar" | "nueva") =>
+    conCandado(async () => {
+      poner({ que, paso: "esperando", solo: false, sinCommits: false, desde: ahora() });
+      const { c, en } = await leerAhora();
+      await avanzar(c, en);
+    }, "esperar");
 
-  const alSonar = async () => {
-    if (ocupado) return;
-    ocupado = true;
-    try {
+  /** Lo pide un agente por el MCP (`compactar_terminal`): como el botón,
+      pero sin commits y nunca a ciegas, y si ya hay un traspaso en marcha
+      (lo pulsó Munir, o lo empezó la campana) no se empieza otro. */
+  const pedirDeAgente = () =>
+    conCandado(async () => {
+      if (pendiente) return;
+      poner({ que: "compactar", paso: "esperando", solo: true, sinCommits: true, desde: ahora() });
+      const { c, en } = await leerAhora();
+      await avanzar(c, en);
+    }, "esperar");
+
+  const alSonar = () =>
+    conCandado(async () => {
       await esperar(ASIENTO_MS);
-      const c = await d.leer().catch(() => null);
+      const { c, en } = await leerAhora();
       const nivel = nivelDeContexto(c);
       if (c && nivel === 0) hecho = false;
       if (c && turnoAcabado(c, d.hayPregunta())) {
@@ -421,19 +550,18 @@ export function crearTraspaso(d: DepsTraspaso) {
         base = c.used;
       }
       // Ya compactada dos veces no se compacta una tercera sola: el aviso
-      // ofrece seguir en una terminal nueva, y sin su clic se queda ahí.
-      if (c && !pendiente && !hecho && nivel >= 2 && nivel > d.visto() && d.modo() !== "no" && d.esClaude()) {
+      // ofrece seguir en una terminal nueva, y sin su clic se queda ahí. En
+      // una delegada se le avisa a quien la abrió (`mcp.rs`).
+      const modo: ModoSolo = d.delegada?.() ? "sin-commits" : d.modo();
+      if (c && !pendiente && !hecho && nivel >= 2 && nivel > d.visto() && modo !== "no" && d.esClaude()) {
         if ((await d.compactaciones().catch(() => 0)) < COMPACTADA_DE_MAS) {
-          poner({ que: "compactar", paso: "esperando", solo: true, desde: ahora() });
+          poner({ que: "compactar", paso: "esperando", solo: true, sinCommits: modo !== "fin", desde: ahora() });
         }
       }
-      await avanzar(c);
-    } finally {
-      ocupado = false;
-    }
-  };
+      await avanzar(c, en);
+    }, "soltar");
 
-  return { pedir, alSonar, cancelar: () => poner(null), fase };
+  return { pedir, pedirDeAgente, alSonar, cancelar: () => poner(null), fase };
 }
 
 /**
@@ -453,13 +581,15 @@ export function useTraspaso(m: {
   /** Si en este panel corre Claude Code, que es el único que entiende `/fin`. */
   esClaude?: boolean;
   /** Dónde y qué conversación: para releerla, contar sus compactaciones y
-      dejarle el rastro. Sin Claude Code no se lee nada (va a ciegas). */
+      dejarle el rastro. Sin Claude Code no se lee nada (va a ciegas), y sin
+      la conversación SABIDA (la de su comando) tampoco (`leerDelPanel`). */
   cwd: string;
   sesion?: string;
   nombre: string;
   hayPregunta: () => boolean;
   hayBorrador: () => boolean;
   trabajando: () => boolean;
+  enSuCaja: () => boolean;
 }) {
   const [fase, setFase] = useState<FaseTraspaso>("nada");
   const [sugerencia, setSugerencia] = useState<number | null>(null);
@@ -471,7 +601,7 @@ export function useTraspaso(m: {
   ultimo.current = m;
   const contar = () => {
     const u = ultimo.current;
-    if (!u.esClaude) return Promise.resolve(0);
+    if (!u.esClaude || !u.sesion) return Promise.resolve(0);
     return sessionCompactions(u.cwd, u.sesion).then((n) => {
       setVeces(n);
       return n;
@@ -484,19 +614,22 @@ export function useTraspaso(m: {
   tr.current ??= crearTraspaso({
     t: ((...a: Parameters<Translate>) => ultimo.current.t(...a)) as Translate,
     mandar: (texto) => sendPty(ultimo.current.id, texto),
-    leer: () => (ultimo.current.esClaude ? sessionContext(ultimo.current.cwd, ultimo.current.sesion) : Promise.resolve(null)),
+    leer: () => leerDelPanel(ultimo.current),
     hayPregunta: () => ultimo.current.hayPregunta(),
     hayBorrador: () => ultimo.current.hayBorrador(),
     trabajando: () => ultimo.current.trabajando(),
+    enSuCaja: () => ultimo.current.enSuCaja(),
     visto: () => ultimo.current.visto,
     modo: leerModoSolo,
+    delegada: () => esDelegada(ultimo.current.id),
     sugerir: leerSugerir,
     esClaude: () => !!ultimo.current.esClaude,
     tieneFin: tieneSkillFin,
     compactaciones: contar,
     // Entera: `last_reply` corta a 4.000 caracteres desde el principio, y el
     // bloque «Retomar» es lo ÚLTIMO de la respuesta del /fin.
-    ultimaRespuesta: () => lastReply(ultimo.current.cwd, ultimo.current.sesion, 100_000),
+    // Sin su conversación sabida, ninguna: la más reciente de la carpeta es de otro.
+    ultimaRespuesta: () => (ultimo.current.sesion ? lastReply(ultimo.current.cwd, ultimo.current.sesion, 100_000) : Promise.resolve(null)),
     archivar: async () => {
       const u = ultimo.current;
       if (u.sesion) await rastroDeRelevo(u.nombre, u.cwd, u.sesion);
@@ -516,6 +649,13 @@ export function useTraspaso(m: {
   return {
     compactar: () => pedir("compactar"),
     nueva: () => pedir("nueva"),
+    /** `compactar_terminal`: devuelve la fase en que lo encontró, al momento. */
+    deAgente: (): FaseTraspaso => {
+      const antes = traspaso.fase();
+      setSugerencia(null);
+      void traspaso.pedirDeAgente().catch(() => {});
+      return antes;
+    },
     alSonarCampana: () => void traspaso.alSonar().catch(() => {}),
     /** Nada solo en este nivel, y fuera lo que estuviera esperando. */
     ahoraNo: () => {
@@ -532,19 +672,25 @@ export function useTraspaso(m: {
 }
 
 /**
- * Los mismos dos botones, pedidos desde el móvil (`traspaso` en lib/movil.ts):
- * lo hace el panel, con su traspaso y su campana, y avisa de que lo oyó
- * (`hecho`) para que el móvil sepa si había alguien detrás de ese número.
+ * Los mismos dos botones, pedidos desde el móvil (`traspaso` en lib/movil.ts),
+ * y el compactar de un agente por el MCP (`compactar_terminal`, con `deAgente`
+ * en `lib/puenteMcp.ts`): lo hace el panel, con su traspaso y su campana, y
+ * avisa de que lo oyó (`hecho`) para que quien pide sepa si había alguien
+ * detrás de ese número. Al agente se le dice además en qué fase lo encontró.
  */
-export function useTraspasoDelMovil(id: number, traspaso: { compactar: () => void; nueva: () => void }): void {
+export function useTraspasoDelMovil(
+  id: number,
+  traspaso: { compactar: () => void; nueva: () => void; deAgente: () => FaseTraspaso },
+): void {
   const ultimo = useRef(traspaso);
   ultimo.current = traspaso;
   useEffect(() => {
     const oir = (ev: Event) => {
-      const d = (ev as CustomEvent<{ id: number; que: string; hecho: boolean }>).detail;
+      const d = (ev as CustomEvent<{ id: number; que: string; hecho: boolean; deAgente?: boolean; fase?: FaseTraspaso }>).detail;
       if (d?.id !== id) return;
       d.hecho = true;
-      if (d.que === "nueva") ultimo.current.nueva();
+      if (d.deAgente) d.fase = ultimo.current.deAgente();
+      else if (d.que === "nueva") ultimo.current.nueva();
       else ultimo.current.compactar();
     };
     window.addEventListener("adeorq:traspaso", oir);

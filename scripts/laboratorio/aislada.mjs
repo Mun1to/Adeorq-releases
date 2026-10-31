@@ -13,10 +13,14 @@
 //   - al cerrar, el navegador que no cuelga del árbol de la app se mata por su
 //     ruta, y la carpeta se borra cuando se suelta.
 //
+// Con `LAB_TERMINALES_APARTE=1` (o `aparte: true`) las terminales corren en su
+// proceso aparte (`terminales.rs`, `adeorq.exe --terminales`), como en la
+// Adeorq publicada de Windows; en desarrollo van dentro de la app.
+//
 //   cargo build --manifest-path src-tauri/Cargo.toml   (deja C:\ct\debug\adeorq.exe)
 //   pnpm dev                                            (el binario de desarrollo carga de ahí)
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -113,15 +117,32 @@ async function ventana(depurar) {
  * carpeta de datos antes de que arranque; `guarda`, más código que se
  * ejecuta en la página detrás de `GUARDA` (puede envolver otra vez `fetch`); y
  * `entorno`, variables de más para la app (`ADEORQ_NAVEGADOR_LABORATORIO`).
+ *
+ * Con `aparte`, las terminales van en su proceso aparte: el fichero
+ * `terminales\encendido` se escribe antes de arrancar (se lee en `setup`), con
+ * un canal propio, y la app corre desde una copia del ejecutable en su carpeta,
+ * porque el proceso de terminales se lanza desde el ejecutable de la app: así
+ * no coge `C:\ct\debug` (nadie podría recompilar) y `cerrar` lo encuentra por
+ * su ruta. Si la app no se engancha al proceso, `abrirAislada` falla: de lo
+ * contrario seguiría con las terminales dentro y daría un verde que no es.
+ * `motor()` dice el pid del proceso y las terminales que cuelgan de él.
  */
-export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(), exe = EXE, raiz, sembrar, guarda = "", entorno = {} }) {
+export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(), exe = EXE, raiz, sembrar, guarda = "", entorno = {}, aparte = process.env.LAB_TERMINALES_APARTE === "1" }) {
   const base = join(tmpdir(), `adeorq-${nombre}-${process.pid}`);
   const demo = join(base, "proyectos", "demo");
   const proyectos = raiz ?? join(base, "proyectos");
+  const canal = `lab-${nombre}-${process.pid}`;
   mkdirSync(join(base, "datos", "Adeorq"), { recursive: true });
   mkdirSync(join(base, "casa", "AppData", "Local"), { recursive: true });
   mkdirSync(demo, { recursive: true });
   writeFileSync(join(base, "datos", "Adeorq", "raiz.txt"), proyectos);
+  if (aparte) {
+    mkdirSync(join(base, "datos", "Adeorq", "terminales"), { recursive: true });
+    writeFileSync(join(base, "datos", "Adeorq", "terminales", "encendido"), "1");
+    mkdirSync(join(base, "bin"), { recursive: true });
+    copyFileSync(exe, join(base, "bin", "adeorq.exe"));
+    exe = join(base, "bin", "adeorq.exe");
+  }
   sembrar?.(join(base, "datos", "Adeorq"));
   const env = {
     ...process.env,
@@ -130,16 +151,46 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     WEBVIEW2_USER_DATA_FOLDER: join(base, "navegador"),
     WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${depurar} --remote-allow-origins=* --disable-features=CalculateNativeWinOcclusion`,
     ADEORQ_MCP_PUERTO: String(puertoMcp),
+    ADEORQ_TERMINALES_CANAL: canal,
     ...entorno,
   };
   // Lanzado desde un panel de Adeorq, el entorno trae el número de ESE panel.
   delete env.ADEORQ_PANE_ID;
 
-  const hijo = spawn(exe, [], { cwd: demo, detached: true, stdio: "ignore", env });
-  hijo.unref();
-  const app = hijo.pid;
+  const lanzar = () => {
+    const hijo = spawn(exe, [], { cwd: demo, detached: true, stdio: "ignore", env });
+    hijo.unref();
+    return hijo.pid;
+  };
+  let app = lanzar();
   let v;
   const puentes = [];
+
+  /** El proceso de terminales de esta pasada: su pid (0 si no hay uno vivo
+   *  que corra MI copia), cuántas consolas cuelgan de él (`terminales`) y
+   *  cuántas de la app (`enLaApp`), que con el proceso aparte son cero. */
+  const motor = () => {
+    let pid = 0;
+    try {
+      pid = JSON.parse(readFileSync(join(base, "datos", "Adeorq", "terminales", `${canal}.json`), "utf8")).pid ?? 0;
+    } catch {}
+    const r = spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", `
+      $p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue
+      $ruta = if ($p) { $p.Path } else { '' }
+      $consola = '^(cmd|powershell|pwsh)\\.exe$'
+      $suyas = @(Get-CimInstance Win32_Process -Filter "ParentProcessId=${pid}" | Where-Object { $_.Name -match $consola }).Count
+      $dentro = @(Get-CimInstance Win32_Process -Filter "ParentProcessId=${app}" | Where-Object { $_.Name -match $consola }).Count
+      "$ruta|$suyas|$dentro"
+    `], { encoding: "utf8" });
+    const [ruta, suyas, dentro] = (r.stdout ?? "").trim().split("|");
+    const mio = pid > 0 && ruta?.toLowerCase() === exe.toLowerCase();
+    return { pid: mio ? pid : 0, terminales: mio ? Number(suyas) : 0, enLaApp: Number(dentro) || 0 };
+  };
+  const enganchada = async () => {
+    if (!aparte) return;
+    const m = await hasta(() => (motor().pid ? true : null), 15_000, 500);
+    if (!m) throw new Error("la app no lanzó su proceso de terminales: con las terminales dentro, el laboratorio no prueba lo que dice");
+  };
 
   /** Un agente: el puente `--mcp` de verdad, presentándose como el panel `yo`
    *  (o sin panel, con `null`). */
@@ -214,6 +265,7 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     await dormir(2000);
     await v.enviar("DOM.enable");
     await v.enviar("CSS.enable");
+    await enganchada();
   } catch (e) {
     await cerrar();
     throw e;
@@ -226,7 +278,47 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     return ruta;
   };
 
-  return { v, base, demo, env, puente, foto, cerrar };
+  /** Cerrar la app como su «Salir» (`cierre_salir`: sus terminales mueren con
+   *  ella) y volver a abrirla con la MISMA casa, datos y navegador, que es lo
+   *  que hace Munir al reiniciar. Los puentes viejos se cierran; la ventana
+   *  nueva queda en `aislada.v`. Con `actualizando`, como la tarjeta de
+   *  actualizar (`terminales_por_actualizar` antes de irse): con el proceso
+   *  aparte las terminales no mueren y la app que vuelve las recoge. */
+  const reiniciar = async ({ actualizando = false } = {}) => {
+    for (const p of puentes.splice(0)) p.kill();
+    if (actualizando) await v.js(`window.__TAURI_INTERNALS__.invoke("terminales_por_actualizar")`);
+    // La respuesta no llega nunca: la ventana se va con la app.
+    await Promise.race([v.js(`window.__TAURI_INTERNALS__.invoke("cierre_salir").then(() => "ok", () => "ok")`).catch(() => {}), dormir(3000)]);
+    v.cerrar();
+    const vivo = () => spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", `if (Get-Process -Id ${app} -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }`]).status === 0;
+    // Sin `/T` al actualizar: el proceso de terminales cuelga de la app y se iría con ella.
+    if (!(await hasta(() => !vivo(), 20_000, 300))) spawnSync("taskkill", ["/PID", String(app), ...(actualizando ? [] : ["/T"]), "/F"], { stdio: "ignore" });
+    // Su navegador suelta la carpeta un rato después de que la app se vaya.
+    spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
+      `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${join(base, "navegador").replace(/'/g, "''")}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`,
+    ], { stdio: "ignore" });
+    await dormir(1500);
+    app = lanzar();
+    if (!(await hasta(() => alFondo(app, exe), 12_000, 200))) throw new Error("la ventana de pruebas no volvió (o no es la mía)");
+    v = await ventana(depurar);
+    aislada.v = v;
+    await v.enviar("Page.enable");
+    await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: guarda ? `${GUARDA};\n${guarda}` : GUARDA });
+    // El guion de guarda entra en la siguiente carga, no en la que ya corre.
+    await v.enviar("Page.reload");
+    await dormir(1500);
+    await hasta(() => v.js(`document.readyState === "complete" && !!document.querySelector(".app, #root > *")`), 20_000);
+    await hasta(() => {
+      const r = spawnSync("powershell", ["-NoProfile", "-Command", `if (Get-NetTCPConnection -LocalPort ${puertoMcp} -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }`]);
+      return r.status === 0;
+    }, 30_000, 500);
+    await dormir(2000);
+    await enganchada();
+    return v;
+  };
+
+  const aislada = { v, base, demo, env, puente, foto, cerrar, reiniciar, aparte, motor };
+  return aislada;
 }
 
 /** Lo que ve `carceles.js` (el detector de la casa) dentro de `ambito`

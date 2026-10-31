@@ -791,7 +791,9 @@ export function HiloConserje({
               data-tip={t("Reescribe lo que has puesto más claro, sin añadir nada")}
               onClick={mejorar}
             >
-              {antes !== null ? <UndoIcon size={13} /> : <SparkIcon size={13} />}
+              {/* Adeo y no una chispita (Munir, 2026-10-31, «D: 1»): quien
+                  reescribe es él, y mientras lo hace se le ve pensar. */}
+              {antes !== null ? <UndoIcon size={13} /> : <Mascota animo={mejorando ? "piensa" : "quieta"} alto={14} />}
               <Ocupado activo={mejorando} mientras={t("Mejorando…")}>
                 {antes !== null ? t("Deshacer") : t("Mejorar")}
               </Ocupado>

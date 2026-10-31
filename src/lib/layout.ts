@@ -275,57 +275,134 @@ export interface Preset {
   weights?: number[];
 }
 
-export const PRESETS: Preset[] = [
-  { id: "1", rows: [1] },
-  { id: "2", rows: [1, 1] },
-  { id: "3", rows: [1, 1, 1] },
-  { id: "big-left", rows: [1, 2], weights: [1.7, 1] },
-  { id: "big-right", rows: [2, 1], weights: [1, 1.7] },
-  { id: "2x2", rows: [2, 2] },
-  { id: "2x3", rows: [2, 2, 2] },
-  { id: "1-2", rows: [1, 1, 2] },
-  // The wall of terminals people post screenshots of: nine at once.
-  { id: "3x3", rows: [3, 3, 3] },
-  // Four columns of two: eight terminals with every line still readable,
-  // which is the shape that actually fits on a wide screen.
-  { id: "4x2", rows: [2, 2, 2, 2] },
-  // Four in a row, for watching four turns at once without stacking any.
-  { id: "4", rows: [1, 1, 1, 1] },
-  // One big one on the left and three stacked beside it: the shape for
-  // driving one session while three others report.
-  { id: "1-3", rows: [1, 3], weights: [1.6, 1] },
-];
+/**
+ * Cuatro columnas es el techo: con la barra abierta, la Cabina mide unos 1.600
+ * de ancho en una pantalla de 1920, y a cinco cada terminal bajaría de
+ * `MIN_PANE_W` y perdería los botones de su cabecera. Más terminales que eso
+ * crecen en filas, no en columnas. Es también el lado de la rejilla del menú.
+ */
+export const MAX_COLS = 4;
+export const MAX_FILAS = 4;
 
 /**
- * The tidiest template for a given number of panes, for when Adeorq opens a
- * squad and has to place it without asking. Falls back to equal columns, which
- * applyPreset already handles by piling the spares into the last one.
+ * La plantilla de la rejilla del menú: `c` columnas de `r` filas, como al
+ * insertar una tabla. Sustituye a la lista de doce dibujos sueltos, que se
+ * acababa en nueve y tenía varios que se leían igual (Munir, 2026-10-30, eligió
+ * «columnas y filas» entre tres caminos).
  */
-export function presetFor(n: number): Preset {
-  const byId = (id: string) => PRESETS.find((p) => p.id === id) as Preset;
-  if (n >= 9) return byId("3x3");
-  // Con ocho, cuatro columnas de dos se leen mejor que tres de tres.
-  if (n >= 8) return byId("4x2");
-  if (n >= 6) return byId("2x3");
-  if (n >= 4) return byId("2x2");
-  if (n === 3) return byId("3");
-  return byId("2");
+export function rejilla(c: number, r: number): Preset {
+  return { id: `${c}x${r}`, rows: Array.from({ length: c }, () => r) };
 }
 
 /**
- * Re-deals the panes that exist into a template, keeping their order. Spare
- * panes pile into the last column rather than vanish: no terminal is ever
- * dropped by a layout change.
+ * Una grande a la izquierda y el resto al lado, para llevar una sesión
+ * mientras las demás informan. El resto va en columnas de tres como mucho;
+ * con tres columnas al lado la grande se estrecha un poco, porque a 1,6 las
+ * de la derecha bajarían de `MIN_PANE_W`.
  */
-export function applyPreset(cols: Col[], preset: Preset, nextCid: () => number): Col[] {
+export function unaGrande(n: number): Preset {
+  const resto = Math.max(1, n - 1);
+  const cols = Math.min(MAX_COLS - 1, Math.ceil(resto / 3));
+  const rows = [1, ...equilibrada(resto, cols)];
+  const grande = rows.length > 3 ? 1.3 : 1.6;
+  return { id: `grande-${n}`, rows, weights: rows.map((_, i) => (i === 0 ? grande : 1)) };
+}
+
+/**
+ * `n` terminales en `c` columnas, lo más iguales posible, con las columnas de
+ * menos filas a la izquierda: las primeras terminales, que suelen ser las que
+ * llevas, quedan más altas. Diez en cuatro son 2, 2, 3 y 3.
+ */
+export function equilibrada(n: number, c: number): number[] {
+  const cols = Math.max(1, Math.min(c, n, MAX_COLS));
+  const base = Math.floor(n / cols);
+  const extra = n % cols;
+  return Array.from({ length: cols }, (_, i) => base + (i >= cols - extra ? 1 : 0));
+}
+
+/**
+ * Cuántas columnas le van a `n` terminales en una pantalla ancha. Hasta tres,
+ * una columna cada una; con cuatro, dos arriba y dos abajo («los más comunes
+ * son de cuatro, dos arriba y dos abajo», Munir, 2026-10-30); con ocho, cuatro
+ * columnas de dos se leen mejor que tres de tres; y de diez en adelante, el
+ * techo de cuatro.
+ */
+export function columnasPara(n: number): number {
+  if (n <= 3) return Math.max(1, n);
+  if (n === 4) return 2;
+  if (n <= 7 || n === 9) return 3;
+  return MAX_COLS;
+}
+
+/**
+ * The tidiest template for a given number of panes, for when Adeorq opens a
+ * squad and has to place it without asking. Built for exactly `n`, so none of
+ * them piles up: before, anything past nine went into the last column of the
+ * 3x3 and ten open terminals left four stacked in one strip.
+ */
+export function presetFor(n: number): Preset {
+  const rows = equilibrada(Math.max(1, n), columnasPara(n));
+  return { id: `auto-${rows.join("-")}`, rows };
+}
+
+/**
+ * Re-deals the panes that exist into a template, keeping their order.
+ *
+ * Nothing is ever dropped, and nothing piles up either: if there are more
+ * terminals than the template has room for, the spares go one by one to the
+ * column that has fewest, instead of all into the last one (with twelve open
+ * and the 3x3 picked, that column used to take six). And if there are fewer,
+ * the empty slots come off the column that has most, so the columns you
+ * picked are still there: filling in order, two columns of four with four
+ * terminals came out as ONE column.
+ *
+ * `fuera` are the panes that are open but out of the mosaic (minimized, or in
+ * a hidden group). The template is for what you SEE, so they are dealt after
+ * the visible ones; otherwise a hidden pane took a slot and the grid came out
+ * with a hole in it. They still get a place, the shortest column, for when
+ * they come back.
+ */
+export function applyPreset(
+  cols: Col[],
+  preset: Preset,
+  nextCid: () => number,
+  fuera?: ReadonlySet<number>,
+): Col[] {
   const ids = cols.flatMap((c) => c.panes);
   if (ids.length === 0) return cols;
-  const slots = preset.rows;
+  let vistas = fuera ? ids.filter((id) => !fuera.has(id)) : ids;
+  // Con todo apartado no hay nada que se vea: se reparte todo, que al volver
+  // es lo que va a verse.
+  if (vistas.length === 0) vistas = ids;
+  const apartadas = ids.filter((id) => !vistas.includes(id));
+
+  const rows = preset.rows.length ? [...preset.rows] : [1];
+  // Lo que se añade va a la derecha entre las empatadas y lo que se quita sale
+  // de la izquierda: así las columnas de menos filas quedan a la izquierda,
+  // como en `equilibrada`.
+  const masCorta = (xs: number[]) => {
+    let si = 0;
+    xs.forEach((r, i) => {
+      if (r <= xs[si]) si = i;
+    });
+    return si;
+  };
+  const masLarga = (xs: number[]) => {
+    let si = 0;
+    xs.forEach((r, i) => {
+      if (r > xs[si]) si = i;
+    });
+    return si;
+  };
+  let sitio = rows.reduce((a, b) => a + b, 0);
+  for (; sitio < vistas.length; sitio++) rows[masCorta(rows)]++;
+  for (; sitio > vistas.length; sitio--) rows[masLarga(rows)]--;
+
   const out: Col[] = [];
   let k = 0;
-  slots.forEach((rows, i) => {
-    const take = ids.slice(k, k + rows);
-    k += rows;
+  rows.forEach((n, i) => {
+    const take = vistas.slice(k, k + n);
+    k += n;
     if (take.length === 0) return;
     out.push({
       cid: nextCid(),
@@ -334,15 +411,10 @@ export function applyPreset(cols: Col[], preset: Preset, nextCid: () => number):
       hs: take.map(() => 1),
     });
   });
-  if (out.length === 0) {
-    return [{ cid: nextCid(), w: 1, panes: ids, hs: ids.map(() => 1) }];
-  }
-  if (k < ids.length) {
-    const last = out[out.length - 1];
-    ids.slice(k).forEach((id) => {
-      last.panes.push(id);
-      last.hs.push(1);
-    });
+  for (const id of apartadas) {
+    const col = out[masCorta(out.map((c) => c.panes.length))];
+    col.panes.push(id);
+    col.hs.push(1);
   }
   return out;
 }

@@ -631,7 +631,12 @@ impl Puertas for Reales<'_> {
         }
         let r = crate::mcp::pedir_a_la_ventana(self.app, "open_pane", pedido)?;
         self.paneles = None;
-        r.pane_id.ok_or_else(|| "la ventana no dijo qué terminal abrió".to_string())
+        let panel = r.pane_id.ok_or_else(|| "la ventana no dijo qué terminal abrió".to_string())?;
+        // Nadie hace clic en ella: es delegada también para el MCP, no solo en
+        // la ventana (se compacta sola, `compactar_terminal` la acepta, y
+        // sobrevive a un reinicio por su conversación).
+        crate::mcp::apuntar_de_programado(self.app, panel, &e.nombre, &r);
+        Ok(panel)
     }
 
     fn mirar(&mut self, panel: u32) -> Visto {
@@ -648,7 +653,9 @@ impl Puertas for Reales<'_> {
     }
 
     fn cerrar(&mut self, panel: u32) {
-        let _ = crate::mcp::pedir_a_la_ventana(self.app, "close_pane", serde_json::json!({ "paneId": panel }));
+        if crate::mcp::pedir_a_la_ventana(self.app, "close_pane", serde_json::json!({ "paneId": panel })).is_ok() {
+            crate::mcp::cerrada_por_programado(self.app, panel);
+        }
         self.paneles = None;
     }
 

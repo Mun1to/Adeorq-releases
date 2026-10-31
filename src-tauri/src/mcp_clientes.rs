@@ -96,7 +96,8 @@ pub fn escalon_de(herramienta: &str) -> Option<Nivel> {
         // Preguntarle algo a Munir no toca ninguna terminal que esté trabajando:
         // su respuesta vuelve a la del que pregunta.
         "open_pane" | "link_panes" | "ask_decision" => Some(Nivel::Plan),
-        "send_command" | "send_keys" | "close_pane" => Some(Nivel::Auto),
+        // Compactar es teclear `/fin` y `/compact` en una terminal viva.
+        "send_command" | "send_keys" | "close_pane" | "compactar_terminal" => Some(Nivel::Auto),
         _ => None,
     }
 }
@@ -266,7 +267,7 @@ mod tests {
             .filter(|n| escalon_de(n).is_none())
             .collect();
         assert!(sin.is_empty(), "sin escalón: {sin:?}");
-        assert_eq!(crate::mcp::lista_de_herramientas().len(), 17, "si cambió el número, revisa la tabla");
+        assert_eq!(crate::mcp::lista_de_herramientas().len(), 18, "si cambió el número, revisa la tabla");
     }
 
     #[test]

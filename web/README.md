@@ -215,6 +215,10 @@ production it answers:
 GET /api/latest      same shape as data/latest.json, cached one hour
 ```
 
+It also sends `www.adeorq.com` to `adeorq.com`, and the old guide (`/docs`,
+`/docs/`, `/docs.html`) to `/guia`, both with a permanent 301. A `_redirects`
+file would not do it, for the same reason as `_headers` below.
+
 Everything else falls through to the static files, with the cache headers set
 there as well: a year for the hashed files under `assets/`, five minutes for
 `data/`, ten minutes at the edge for HTML. Those headers live in the worker on

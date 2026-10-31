@@ -13,6 +13,7 @@ import { ES_WINDOWS, powershellCommand, sessionIdOf, shellCommand } from "./coma
 import { kindDeComando } from "../components/KindIcon";
 import { lineaDeArranque, lineaDeRetomar, type Provider } from "./providers";
 import { lineaConEncargo, planDeArranque, type Peticion, type Plan } from "./arranque";
+import { cargarDelegadas, delegadaDe } from "./delegadas";
 
 /** Una línea con un encargo escrito por una persona al final. Va SIEMPRE por
  *  PowerShell (o bash), nunca por el cmd ligero: en cmd un «&» dictado
@@ -62,6 +63,15 @@ const PERMISSION_MODES: PermissionMode[] = [
 export function modoGuardado(): PermissionMode {
   const v = localStorage.getItem(PERMISSION_MODE_KEY);
   return PERMISSION_MODES.find((m) => m === v) ?? DEFAULT_PERMISSION_MODE;
+}
+
+/** El modo con el que se retoma una conversación: el de Ajustes, salvo la de
+ *  una terminal que abrió un agente, que vuelve en el suyo (`auto`). La
+ *  Suprema, 2026-10-30: tras reiniciar, las suyas volvían en `acceptEdits`, y
+ *  ahí no hay nadie que conteste un permiso. */
+export function modoAlRetomar(command: string[] | undefined): PermissionMode | undefined {
+  const m = delegadaDe(command)?.modo;
+  return PERMISSION_MODES.find((x) => x === m);
 }
 
 // claudeCommand lives outside the App component, next to every other function
@@ -124,11 +134,13 @@ export async function resumeCommandFor<P extends { command?: string[]; cwd: stri
   // A session that never got a message has no transcript, and --resume on it
   // fails with "No conversation found": reopen it as a fresh one instead.
   const exists = await transcriptExists(pane.cwd, id).catch(() => false);
+  await cargarDelegadas();
+  const modo = modoAlRetomar(pane.command);
   // Restoring the board is exactly where the effort went missing, so it is
   // put back on the command line rather than hoped for.
   return exists
-    ? claudeCommand(withEffort(`--resume ${id}`))
-    : claudeCommand(withEffort(`--session-id ${id}`));
+    ? claudeCommand(withEffort(`--resume ${id}`), modo)
+    : claudeCommand(withEffort(`--session-id ${id}`), modo);
 }
 
 /**
@@ -168,7 +180,7 @@ export function providerCommand(provider: string): string[] {
  */
 export function lineaParaRetomar(s: { id: string; fuente?: string }): string[] {
   const fuente = s.fuente ?? "claude";
-  if (fuente === "claude") return claudeCommand(withEffort(`--resume ${s.id}`));
+  if (fuente === "claude") return claudeCommand(withEffort(`--resume ${s.id}`), modoAlRetomar(["--resume", s.id]));
   const linea = lineaDeRetomar(fuente, s.id);
   return linea ? shellCommand(linea) : providerCommand(fuente);
 }

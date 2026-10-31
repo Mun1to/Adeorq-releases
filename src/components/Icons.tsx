@@ -792,6 +792,17 @@ export function SparkIcon({ size = 17 }: Props) {
   );
 }
 
+/** Un libro abierto: las skills, lo que tus agentes saben hacer. Sustituyó a la
+    chispita en la franja de la derecha (Munir, 2026-10-31, «C: 2»). */
+export function BookIcon({ size = 17 }: Props) {
+  return (
+    <svg {...svg(size)}>
+      <path d="M12 6.8c-1.9-1.5-4.4-2.1-7.5-2.1v12.8c3.1 0 5.6.6 7.5 2.1 1.9-1.5 4.4-2.1 7.5-2.1V4.7c-3.1 0-5.6.6-7.5 2.1z" />
+      <path d="M12 6.8v12.8" />
+    </svg>
+  );
+}
+
 /** El Uso: un indicador con su aguja, cuánto le queda a cada cuenta. */
 export function GaugeIcon({ size = 17 }: Props) {
   return (

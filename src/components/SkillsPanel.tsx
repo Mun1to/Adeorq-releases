@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { listSkills, type Skill } from "../lib/pty";
+import { agrupar, fraseCorta, type QueGrupo } from "../lib/skills";
 import { useT } from "../lib/i18n";
 
 interface Props {
@@ -16,18 +17,21 @@ export default function SkillsPanel({ canPaste, onUse, pista }: Props) {
   const [q, setQ] = useState("");
 
   useEffect(() => {
-    listSkills().then(setSkills).catch(() => {});
+    listSkills(true).then(setSkills).catch(() => {});
   }, []);
 
-  const shown = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    if (!query) return skills;
-    return skills.filter(
-      (s) =>
-        s.name.toLowerCase().includes(query) ||
-        s.description.toLowerCase().includes(query),
-    );
-  }, [skills, q]);
+  const grupos = useMemo(() => agrupar(skills, q), [skills, q]);
+
+  // Escritos aquí y no en `lib/skills.ts` para que el comprobador de idiomas
+  // vea cada `t()` con su texto.
+  const titulo = (que: QueGrupo) =>
+    que === "usadas"
+      ? t("Las que más usas")
+      : que === "demas"
+        ? t("Las demás")
+        : que === "tuyas"
+          ? t("Las tuyas")
+          : t("De claude.ai y plugins");
 
   // Ni marco ni cabecera ni franja de cerrado: eso lo pone `PanelDerecho`, que
   // es quien sabe cuántos inquilinos tiene la barra y cuál se está viendo.
@@ -35,51 +39,66 @@ export default function SkillsPanel({ canPaste, onUse, pista }: Props) {
   // la derecha que había.
   return (
     <>
-      {/* Una línea, no tres. Lo que decía («arrástrala, o clic para mandarla al
-          panel activo») ahora lo dice el globo de cada skill, que es donde se
-          lee cuando hace falta; aquí solo robaba dos renglones a la lista. */}
-      <p className="skills-hint">{pista ?? t("Clic la manda · arrastrar la pega")}</p>
+      {/* Una línea, no tres. Lo de arrastrar lo dice el globo de cada skill,
+          que es donde se lee cuando hace falta. */}
+      <p className="skills-hint">{pista ?? t("Pulsa una y va a la terminal.")}</p>
       <input
         className="finder"
         placeholder={t("Buscar skill")}
         value={q}
         onChange={(e) => setQ(e.currentTarget.value)}
       />
-      {/* El nombre y una sola línea de lo que hace (2026-10-17, «B1»); entera,
-          al pasar el ratón. El 2026-08-24 se quedó en el nombre solo porque con
-          dos líneas cabían seis en la columna; ahora el Uso tiene su pestaña y
-          esta lista, el panel entero. */}
+      {/* Arriba las que más usas, luego las demás tuyas y al final, aparte, las
+          de tu cuenta de claude.ai y los plugins (Munir, 2026-10-30, «A3 B2»,
+          elegida entre cuatro con sus skills de verdad). Cada fila, el nombre y
+          lo que hace en su primera frase, dos líneas como mucho; entera, en el
+          globo. */}
       <div className="skills-list">
-        {shown.map((s) => (
-          <div
-            key={s.invocation}
-            className="skill"
-            draggable
-            /* Tres piezas y en este orden: el nombre (el globo pinta la primera
-               línea en negrita), para qué sirve, y qué pasa si la pulsas. Lo
-               último es lo que la pista de arriba ya no alcanza a decir cuando
-               cada fila es un renglón pelado. */
-            data-tip={[
-              s.invocation,
-              s.description || s.name,
-              canPaste ? t("Clic para mandarla · arrástrala sobre una terminal") : "",
-            ]
-              .filter(Boolean)
-              .join("\n")}
-            onDragStart={(e) => {
-              e.dataTransfer.setData("text/plain", `${s.invocation} `);
-              e.dataTransfer.effectAllowed = "copy";
-            }}
-            onClick={() => {
-              if (canPaste) onUse(`${s.invocation} `);
-            }}
-            data-disabled={!canPaste}
-          >
-            <span className="skill-name">{s.invocation}</span>
-            {s.description && <span className="skill-desc">{s.description}</span>}
+        {grupos.map((g) => (
+          <div key={g.que} className="skills-grupo">
+            <p className="skills-grupo-titulo">
+              {titulo(g.que)}
+              <span>{g.skills.length}</span>
+            </p>
+            {g.skills.map((s) => (
+              <div
+                key={s.invocation}
+                className="skill"
+                draggable
+                /* Tres piezas y en este orden: el nombre (el globo pinta la
+                   primera línea en negrita), para qué sirve, y qué pasa si la
+                   pulsas. */
+                data-tip={[
+                  s.invocation,
+                  s.description || s.name,
+                  canPaste ? t("Clic para mandarla · arrástrala sobre una terminal") : "",
+                ]
+                  .filter(Boolean)
+                  .join("\n")}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("text/plain", `${s.invocation} `);
+                  e.dataTransfer.effectAllowed = "copy";
+                }}
+                onClick={() => {
+                  if (canPaste) onUse(`${s.invocation} `);
+                }}
+                data-disabled={!canPaste}
+              >
+                <span className="skill-name">
+                  <span className="skill-barra">/</span>
+                  <span className="skill-orden">{s.invocation.slice(1)}</span>
+                  {g.que === "usadas" && (
+                    <span className="skill-veces">
+                      {s.veces} {s.veces === 1 ? t("vez") : t("veces")}
+                    </span>
+                  )}
+                </span>
+                {s.description && <span className="skill-desc">{fraseCorta(s.description)}</span>}
+              </div>
+            ))}
           </div>
         ))}
-        {shown.length === 0 && (
+        {skills.length === 0 && (
           <p className="skills-hint">{t("Sin skills en ~/.claude/skills")}</p>
         )}
       </div>

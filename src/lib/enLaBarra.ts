@@ -155,11 +155,11 @@ export function archivadasSolas(
   const solas = new Set<string>();
   const fijadas = new Set(e.fijadas ?? []);
   for (const s of sesiones) {
-    if (e.enPantalla.has(s.id)) continue;
+    if (e.enPantalla.has(s.id) || fijadas.has(s.id)) continue;
     const ultimaVez = ahoraMs - s.hours * 3_600_000;
     if (e.traidas.has(s.id)) {
       const desde = Math.max(ultimaVez, e.traidasEn?.[s.id] ?? 0);
-      if (!fijadas.has(s.id) && ahoraMs - desde > HORAS_EN_LA_BARRA * 3_600_000) solas.add(s.id);
+      if (ahoraMs - desde > HORAS_EN_LA_BARRA * 3_600_000) solas.add(s.id);
       continue;
     }
     const cerrada = cerradas.get(s.id);

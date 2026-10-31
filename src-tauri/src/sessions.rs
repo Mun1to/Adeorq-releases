@@ -188,25 +188,29 @@ fn leer_cola(path: &Path, size: u64) -> std::io::Result<Vec<String>> {
 /// Que el millón es real está medido en los transcripts de esta máquina, no
 /// supuesto: hay una compactación AUTOMÁTICA disparada a 937.268 tokens, cosa
 /// imposible en una ventana de 200k (2026-07-31).
+///
+/// La tabla es la de los de 200k, no la de los grandes. Lo que no estaba en
+/// ella se leía de 200k «por conservador», y desde que las rayas de la D7
+/// valen lo que llegue antes (tokens o el % de la ventana) eso adelantaba la
+/// compactación: un Opus nuevo de un millón compactaba a 120k, dos veces,
+/// antes de pasar de 200k y que la salvaguarda de `context_de` lo corrigiera
+/// (revisión de `1954cf0`, 2026-10-30). Con el millón, las rayas caen en sus
+/// tokens (300k, 400k, 600k), que es lo que nunca adelanta nada; un modelo de
+/// ventana pequeña que no esté aquí se compacta solo al llegar a su límite.
+/// Los modelos de sus transcripts ese día: Opus 5 y 5.5, Fable 5 y 5.1,
+/// Sonnet 5, 5.5 y 4.6, Opus 4.8 (todos de un millón) y Haiku 4.5 y 5.5.
 fn context_window(model: &str) -> u64 {
     // La marca explícita gana a cualquier tabla.
     if model.contains("[1m]") {
         return 1_000_000;
     }
-    // Haiku es el único de la hornada actual que se queda en 200k.
-    if model.contains("haiku") {
+    // Haiku, y la hornada de antes del millón (Opus 4, 4.1 y 4.5, Sonnet 4 y
+    // 4.5, los Claude 3): con fecha (`claude-sonnet-4-20250514`) o sin ella.
+    const PEQUENOS: [&str; 7] = ["haiku", "opus-4-5", "opus-4-1", "opus-4-2", "sonnet-4-5", "sonnet-4-2", "claude-3"];
+    if PEQUENOS.iter().any(|m| model.contains(m)) {
         return 200_000;
     }
-    const GRANDES: [&str; 8] = [
-        "opus-5", "opus-4-6", "opus-4-7", "opus-4-8", "sonnet-5", "sonnet-4-6", "fable-5",
-        "mythos-5",
-    ];
-    if GRANDES.iter().any(|m| model.contains(m)) {
-        return 1_000_000;
-    }
-    // Lo que no está en la tabla: el valor conservador. Enseñar de más asusta
-    // menos que enseñar de menos, porque el aviso salta antes y no después.
-    200_000
+    1_000_000
 }
 
 #[cfg(windows)]
@@ -1063,6 +1067,7 @@ fn codex_context_de(path: &Path, session_id: String) -> Option<ContextInfo> {
         // El primer mensaje no es un nombre (`titulo_de`): sin título, el
         // panel se sigue llamando como lo abriste.
         title: String::new(),
+        viva: false,
     })
 }
 
@@ -1503,8 +1508,10 @@ fn agy_archivos_en(raiz: &Path, session_id: &str) -> Vec<PathBuf> {
 /// (por eso su papelera no salía). El único sitio legible donde agy apunta
 /// conversación y carpeta juntas es `history.jsonl`: una línea por cosa
 /// tecleada, con `workspace`, `conversationId` y `timestamp` en milisegundos.
-/// Se coge la PRIMERA línea de esa carpeta desde que nació el panel y cuya base
-/// exista; las órdenes con barra no llevan `conversationId` y se saltan solas.
+/// Se coge la primera conversación de esa carpeta que NACIÓ desde que nació el
+/// panel (su primera línea, no cualquiera: a una vieja se le puede escribir
+/// desde otra terminal, y su papelera la borraría) y cuya base exista; las
+/// órdenes con barra no llevan `conversationId` y se saltan solas.
 #[tauri::command(async)]
 pub fn agy_session_since(cwd: String, since: u64) -> Option<String> {
     agy_session_since_en(&agy_dir()?, &cwd, since)
@@ -1514,10 +1521,11 @@ fn agy_session_since_en(raiz: &Path, cwd: &str, since: u64) -> Option<String> {
     let texto = std::fs::read_to_string(raiz.join("history.jsonl")).ok()?;
     let plano = |s: &str| s.replace('/', "\\").trim_end_matches('\\').to_lowercase();
     let cwd = plano(cwd);
+    let mut vistas = std::collections::HashSet::new();
     texto.lines().find_map(|linea| {
         let v: Value = serde_json::from_str(linea).ok()?;
         let id = v["conversationId"].as_str()?;
-        if v["timestamp"].as_u64()? / 1000 < since || plano(v["workspace"].as_str()?) != cwd {
+        if !vistas.insert(id.to_owned()) || v["timestamp"].as_u64()? / 1000 < since || plano(v["workspace"].as_str()?) != cwd {
             return None;
         }
         let db = raiz.join("conversations").join(format!("{id}.db"));
@@ -1614,6 +1622,14 @@ pub struct ContextInfo {
     /// ninguno; el último mensaje no cuenta, que eso no es un nombre. Con él
     /// un panel deja de llamarse «proyecto · claude» (`lib/nombreSolo.ts`).
     pub title: String,
+    /// Si esta conversación corre ahora en algún Claude Code: su id está en
+    /// `~/.claude/sessions/<pid>.json` de un proceso vivo. Tras un `/clear`
+    /// ese registro pasa al id nuevo y, al salir Claude Code, se borra
+    /// (medido con la 2.1.314 el 2026-10-30), así que una terminal que hizo
+    /// `/clear` o en la que solo queda el PowerShell ya no es de esta
+    /// conversación aunque su transcript siga diciendo «lista» y 450k. Solo
+    /// lo rellena `session_context`; en el resto, `false`.
+    pub viva: bool,
 }
 
 /// El nombre de una sesión, leído de la cola de su transcript. Manda el que se
@@ -1654,7 +1670,18 @@ const AGENTS_STALE_S: u64 = 300;
 ///   a_medias  a tool round is in flight: it is working
 ///   tuya      the ball is his and nothing is running
 pub(crate) fn last_message_state(lines: &[String]) -> Option<(String, String)> {
+    let mut tras_salida_local = false;
     for line in lines.iter().rev() {
+        // Se llega a la raya de una compactación solo si todo lo de detrás era
+        // de Claude Code: compactada y parada, esperando a Munir.
+        if line.contains("\"compact_boundary\"") {
+            if let Ok(v) = serde_json::from_str::<Value>(line) {
+                if v["type"] == "system" && v["subtype"] == "compact_boundary" {
+                    let cwd = v["cwd"].as_str().unwrap_or_default().to_owned();
+                    return Some((cwd, "lista".to_owned()));
+                }
+            }
+        }
         if !line.contains("\"message\"") {
             continue;
         }
@@ -1666,6 +1693,9 @@ pub(crate) fn last_message_state(lines: &[String]) -> Option<(String, String)> {
             continue;
         }
         if v["isSidechain"].as_bool().unwrap_or(false) {
+            continue;
+        }
+        if kind == "user" && no_lo_escribio_el(&v, &mut tras_salida_local) {
             continue;
         }
         let cwd = v["cwd"].as_str().unwrap_or_default().to_owned();
@@ -1696,6 +1726,33 @@ pub(crate) fn last_message_state(lines: &[String]) -> Option<(String, String)> {
         return Some((cwd, state.to_owned()));
     }
     None
+}
+
+/// Un mensaje «user» que escribió Claude Code y no Munir: el resumen de una
+/// compactación, los meta (el aviso de un comando local, el cuerpo de una
+/// skill) y la salida de un comando local junto con su `<command-name>`. El
+/// `<command-name>` de una skill no lleva salida detrás y sí cuenta como suyo:
+/// es una sesión que arranca.
+fn no_lo_escribio_el(v: &Value, tras_salida_local: &mut bool) -> bool {
+    if v["isCompactSummary"].as_bool().unwrap_or(false) || v["isMeta"].as_bool().unwrap_or(false) {
+        return true;
+    }
+    let content = &v["message"]["content"];
+    let texto = content
+        .as_str()
+        .or_else(|| {
+            content
+                .as_array()
+                .and_then(|a| a.iter().find(|b| b["type"] == "text"))
+                .and_then(|b| b["text"].as_str())
+        })
+        .unwrap_or_default()
+        .trim_start();
+    if texto.starts_with("<local-command-stdout>") || texto.starts_with("<local-command-stderr>") {
+        *tras_salida_local = true;
+        return true;
+    }
+    texto.starts_with("<command-name>") && std::mem::take(tras_salida_local)
 }
 
 /// ¿Acaba en pregunta? Los adornos de markdown que suelen cerrar la frase
@@ -1926,7 +1983,9 @@ pub fn session_agents(cwd: String, session_id: Option<String>) -> Vec<AgenteDeSe
 /// pane's folder when the session id is unknown (a fresh `claude`).
 #[tauri::command]
 pub async fn session_context(cwd: String, session_id: Option<String>) -> Option<ContextInfo> {
-    context_de(&transcript_de(&cwd, session_id.as_deref())?)
+    let mut c = context_de(&transcript_de(&cwd, session_id.as_deref())?)?;
+    c.viva = live_session_ids().contains(&c.session_id);
+    Some(c)
 }
 
 /// El transcript de una conversación, la tenga la cuenta que la tenga.
@@ -2079,23 +2138,28 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
             folder,
             state,
             title,
+            viva: false,
         });
     }
     // Compacted so recently that the tail we read holds no usage line at all:
     // the mark alone still knows what is loaded, and a meter is better than
     // nothing exactly here, on the session that just lost its history.
     if let Some(used) = tras_compactar {
+        // Sin línea de gasto no se sabe el modelo: la ventana de lo que no está
+        // en la tabla, que no adelanta ninguna raya.
+        let window = context_window("");
         return Some(ContextInfo {
             model: String::new(),
             used,
-            window: 200_000,
-            percent: ((used as f64 / 200_000.0) * 100.0).min(100.0) as u8,
+            window,
+            percent: ((used as f64 / window as f64) * 100.0).min(100.0) as u8,
             agents_live,
             agents_total,
             session_id,
             folder,
             state,
             title,
+            viva: false,
         });
     }
     // A session with no usage line yet (just started) can still have workers.
@@ -2110,6 +2174,7 @@ fn context_de(path: &Path) -> Option<ContextInfo> {
         folder,
         state,
         title,
+        viva: false,
     })
 }
 
@@ -3502,6 +3567,52 @@ otra
     }
 
     #[test]
+    fn a_compacted_session_is_not_waiting_on_a_message_of_his() {
+        // La forma de la cola de `d240e01c` (MarcaPersonal, 2026-10-30): Munir
+        // compactó a las 09:20 y la sesión se quedó parada. Lo que Claude Code
+        // escribe detrás del `/compact` son mensajes de tipo "user" (el resumen,
+        // el aviso, el comando y su salida), y se leían como uno suyo sin
+        // contestar: «tuya» a las 10:14, cuando estaba lista esperándole.
+        let compactada: Vec<String> = vec![
+            r#"{"type":"assistant","message":{"content":[{"type":"text","text":"La primera tanda está en tu tablero."}]}}"#.into(),
+            r#"{"type":"user","message":{"role":"user","content":"/compact # COMPACTACIÓN"}}"#.into(),
+            r#"{"type":"system","subtype":"compact_boundary","content":"Conversation compacted","cwd":"C:\\proyectos\\MarcaPersonal"}"#.into(),
+            r#"{"type":"user","isCompactSummary":true,"message":{"role":"user","content":"This session is being continued from a previous conversation"}}"#.into(),
+            r#"{"type":"user","isMeta":true,"message":{"role":"user","content":"<local-command-caveat>The command below was run directly</local-command-caveat>"}}"#.into(),
+            r#"{"type":"user","message":{"role":"user","content":"<command-name>/compact</command-name>\n<command-message>compact</command-message>"}}"#.into(),
+            r#"{"type":"user","message":{"role":"user","content":"<local-command-stdout>Compacted (ctrl+o to see full summary)</local-command-stdout>"}}"#.into(),
+        ];
+        let (cwd, estado) = last_message_state(&compactada).unwrap();
+        assert_eq!(estado, "lista", "compactada y parada: no espera nada suyo");
+        assert_eq!(cwd, "C:\\proyectos\\MarcaPersonal");
+
+        // Un comando local cualquiera (`/usage`, `/model`) tampoco es un mensaje
+        // suyo: manda lo que había antes.
+        let con_usage: Vec<String> = vec![
+            r#"{"type":"assistant","message":{"content":[{"type":"text","text":"¿Lo subo?"}]}}"#.into(),
+            r#"{"type":"user","message":{"role":"user","content":"<command-name>/usage</command-name>"}}"#.into(),
+            r#"{"type":"user","message":{"role":"user","content":[{"type":"text","text":"<local-command-stdout>47 % de la semana</local-command-stdout>"}]}}"#.into(),
+        ];
+        assert_eq!(last_message_state(&con_usage).unwrap().1, "ofrece");
+
+        // Una skill que acaba de lanzar (`/fin`) SÍ es suya y está arrancando: su
+        // comando no lleva salida local detrás, y el cuerpo de la skill es meta.
+        let con_skill: Vec<String> = vec![
+            r#"{"type":"assistant","message":{"content":[{"type":"text","text":"Hecho."}]}}"#.into(),
+            r#"{"type":"user","message":{"role":"user","content":"<command-name>/fin</command-name>"}}"#.into(),
+            r#"{"type":"user","isMeta":true,"message":{"role":"user","content":[{"type":"text","text":"Base directory for this skill"}]}}"#.into(),
+        ];
+        assert_eq!(last_message_state(&con_skill).unwrap().1, "tuya");
+
+        // Y un mensaje suyo de verdad sigue siendo suyo.
+        let escrito: Vec<String> = vec![
+            r#"{"type":"assistant","message":{"content":[{"type":"text","text":"Hecho."}]}}"#.into(),
+            r#"{"type":"user","message":{"role":"user","content":"ahora la web"}}"#.into(),
+        ];
+        assert_eq!(last_message_state(&escrito).unwrap().1, "tuya");
+    }
+
+    #[test]
     fn agents_are_counted_by_dispatch_minus_return() {
         // Two Tasks dispatched, one already reported back: one still working.
         let lines: Vec<String> = vec![
@@ -3600,9 +3711,55 @@ otra
         assert_eq!(context_window("claude-fable-5"), 1_000_000);
         // Haiku is the one current model that really is 200k.
         assert_eq!(context_window("claude-haiku-4-5"), 200_000);
-        // The explicit tag still wins, and an unknown model stays conservative.
+        // The explicit tag still wins.
         assert_eq!(context_window("claude-haiku-4-5[1m]"), 1_000_000);
-        assert_eq!(context_window("algo-que-no-existe-aun"), 200_000);
+    }
+
+    /// Un modelo que la tabla no conoce se leía de 200k, y con las rayas de la
+    /// D7 (vale lo que llegue antes, tokens o %) un Opus nuevo de un millón
+    /// compactaba a 120k, dos veces, antes de que su gasto pasara de 200k y la
+    /// salvaguarda lo corrigiera (revisión de `1954cf0`, 2026-10-30). Los
+    /// modelos son los que salen en los transcripts de esta máquina ese día,
+    /// más los que vendrán.
+    #[test]
+    fn un_modelo_que_no_esta_en_la_tabla_no_adelanta_la_compactacion() {
+        for m in ["claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-sonnet-5", "claude-sonnet-5-5", "claude-opus-4-8", "claude-sonnet-4-6"] {
+            assert_eq!(context_window(m), 1_000_000, "en sus transcripts: {m}");
+        }
+        for m in ["claude-opus-6", "claude-sonnet-6-1", "claude-fable-6", "algo-que-no-existe-aun"] {
+            assert_eq!(context_window(m), 1_000_000, "lo que la tabla no conoce: {m}");
+        }
+        // Los de 200k de verdad siguen en 200k: Haiku y la hornada de antes del millón.
+        for m in ["claude-haiku-5-5", "claude-haiku-4-5-20251001", "claude-opus-4-5-20251101", "claude-sonnet-4-5-20250929", "claude-opus-4-1-20250805", "claude-sonnet-4-20250514", "claude-3-7-sonnet-20250219"] {
+            assert_eq!(context_window(m), 200_000, "{m}");
+        }
+
+        // Y en la cabecera: 130k de un Opus que no está en la tabla son un 13 %.
+        let dir = std::env::temp_dir().join("adeorq-ctx-modelo-nuevo");
+        let _ = std::fs::remove_dir_all(&dir);
+        let cwd = dir.join("proj");
+        let claude = dir.join(".claude").join("projects").join(encode_claude(&cwd.to_string_lossy()));
+        std::fs::create_dir_all(&claude).unwrap();
+        std::fs::write(
+            claude.join("s.jsonl"),
+            concat!(
+                r#"{"type":"assistant","message":{"model":"claude-opus-6","role":"assistant","content":[{"type":"text","text":"Hecho."}],"#,
+                r#""usage":{"input_tokens":130000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}"#,
+                "\n"
+            ),
+        )
+        .unwrap();
+        let info = context_at(&dir.join(".claude").join("projects"), &cwd.to_string_lossy(), None).unwrap();
+        assert_eq!((info.window, info.percent), (1_000_000, 13), "y no 200k y un 65 %");
+        // Recién compactada, sin línea de gasto que diga el modelo: tampoco 200k.
+        std::fs::write(
+            claude.join("s.jsonl"),
+            concat!(r#"{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"manual","preTokens":430000,"postTokens":30000}}"#, "\n"),
+        )
+        .unwrap();
+        let info = context_at(&dir.join(".claude").join("projects"), &cwd.to_string_lossy(), None).unwrap();
+        assert_eq!((info.used, info.window), (30_000, 1_000_000));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -3769,6 +3926,32 @@ otra
         );
         assert!(agy_archivos_en(&raiz, "../conversations").is_empty(), "un id con ruta dentro no pasa");
 
+        let _ = std::fs::remove_dir_all(&raiz);
+    }
+
+    /// `history.jsonl` lleva una línea por cosa tecleada, no por conversación:
+    /// una vieja de la misma carpeta a la que se le escribe después de abrir el
+    /// panel no es la suya, y su papelera la mandaría a la basura.
+    #[test]
+    fn an_agy_pane_does_not_take_an_older_conversation_typed_into_after_it_opened() {
+        let raiz = std::env::temp_dir().join(format!("adeorq-agy-vieja-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&raiz);
+        let conv = raiz.join("conversations");
+        std::fs::create_dir_all(&conv).unwrap();
+        let (vieja, nueva) = ("11111111-1111-1111-1111-111111111111", "33333333-3333-3333-3333-333333333333");
+        for id in [vieja, nueva] {
+            std::fs::write(conv.join(format!("{id}.db")), "sqlite").unwrap();
+        }
+        let linea = |ts: u64, id: &str| {
+            serde_json::json!({ "display": "hola", "timestamp": ts, "workspace": "C:\\proyectos\\Adeorq", "conversationId": id })
+                .to_string()
+        };
+        // La vieja nació antes que el panel (1.000 s) y se le escribió otra vez
+        // desde otra terminal después (2.000,5 s); la del panel empieza a 2.001 s.
+        let historia = [linea(1_000_000, vieja), linea(2_000_500, vieja), linea(2_001_000, nueva)].join("\n");
+        std::fs::write(raiz.join("history.jsonl"), historia).unwrap();
+
+        assert_eq!(agy_session_since_en(&raiz, "C:\\proyectos\\Adeorq", 2_000).as_deref(), Some(nueva));
         let _ = std::fs::remove_dir_all(&raiz);
     }
 

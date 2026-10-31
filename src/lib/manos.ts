@@ -63,6 +63,10 @@ export const MANOS = {
   teclas: "mcp__adeorq__send_keys",
   /** ⚠ Cerrar una terminal, que es matar al agente de dentro. */
   cerrar: "mcp__adeorq__close_pane",
+  /** ⚠ Compactar una terminal que abrió un agente: le teclea `/fin sin
+      commits` y `/compact` (espera a que pare, pero teclea), así que va con
+      `teclear`. */
+  compactar: "mcp__adeorq__compactar_terminal",
   /* Las de las decisiones (0.9.177, src-tauri/src/decisiones.rs). Preguntarle
      algo a Munir no pisa ninguna terminal, así que va con montar trabajo, como
      en el escalón del MCP (`mcp_clientes.rs`); leer la respuesta, con mirar. */
@@ -102,7 +106,7 @@ const LECTURA = [
 ];
 const MONTAR = [MANOS.abrir, MANOS.enlazar, MANOS.decidir];
 /** Lo que puede pisar el trabajo de otro: escribirle, mandarle teclas o cerrarlo. */
-const PISAR = [MANOS.teclear, MANOS.teclas, MANOS.cerrar];
+const PISAR = [MANOS.teclear, MANOS.teclas, MANOS.cerrar, MANOS.compactar];
 
 /** Las manos de un modo. El orden es estable a propósito: se comparan en el
     comprobador y una lista que baila haría fallar casos por nada. */

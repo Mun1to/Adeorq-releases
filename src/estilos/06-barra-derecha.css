@@ -144,9 +144,14 @@
   background: var(--accent);
 }
 
+/* La lista de skills, como la eligió Munir entre cuatro con sus skills de
+   verdad (2026-10-30, «A3 B2»): letra de la app y no de código, el nombre en
+   la tinta del texto con solo la barra en el acento, lo que hace en su primera
+   frase y en dos líneas como mucho, y grupos con su título suelto. Hasta ese
+   día la descripción iba en gris a 11 px, por debajo del mínimo de 12. */
 .skills-hint {
-  color: var(--muted);
-  font-size: 11px;
+  color: color-mix(in srgb, var(--text) 70%, transparent);
+  font-size: 12.5px;
   margin: 0;
   line-height: 1.45;
 }
@@ -156,61 +161,93 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 12px;
   padding-right: 2px;
 }
 
-/* Una skill es su nombre y UNA línea de lo que hace (2026-10-17, «B1»).
-   El 2026-08-24 se quedó en el nombre solo, porque con dos líneas de
-   descripción cabían seis en la columna y el Uso se comía el fondo. Con el Uso
-   en su propia pestaña la lista tiene el panel entero, y una línea cortada
-   dice para qué sirve sin volver a los párrafos; entera, en el globo. */
-.skill {
+/* Sin encoger, ni el grupo ni la fila: la lista es un flex en columna y, con
+   más skills de las que caben, el navegador aplastaba cada fila hasta su
+   `min-height` en vez de dejar bajar la lista, y el nombre y la frase salían
+   cortados por abajo (2026-10-30: 28 px de 41 con las 24 de Munir). */
+.skills-grupo {
+  flex: none;
   display: grid;
-  gap: 1px;
-  align-content: center;
-  min-height: 26px;
-  padding: 4px 9px;
-  border: 1px solid transparent;
-  border-radius: var(--r-chico);
-  cursor: grab;
-  transition:
-    background var(--t-rapida) ease,
-    border-color var(--t-rapida) ease;
-  user-select: none;
+  gap: 2px;
 }
 
-.skill:hover {
-  background: var(--panel-head);
-  border-color: var(--accent-dim);
+/* El título del grupo, suelto y con su número al lado en texto. */
+.skills-grupo-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 10px 2px;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.skills-grupo-titulo > span {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+}
+
+/* Suelta en reposo y de cristal al pasar el ratón, como los demás botones que
+   salieron de su recuadro (`33-cristal-al-pasar.css`). */
+.skill {
+  flex: none;
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: var(--r-chico);
+  cursor: grab;
+  user-select: none;
 }
 
 .skill:active {
   cursor: grabbing;
 }
 
-.skill[data-disabled="true"] {
-  cursor: grab;
+.skill-name {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 650;
+}
+
+.skill-barra {
+  flex: none;
+  color: var(--accent);
+}
+
+/* Un nombre largo (`/anthropic-skills:deep-research`) se recorta antes que
+   partirse en dos y empujar el número de usos fuera de la fila. */
+.skill-orden {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-veces {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text) 62%, transparent);
 }
 
 .skill-desc {
-  font-size: 11px;
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.skill-name {
-  color: var(--accent);
   font-size: 12.5px;
-  font-weight: 600;
-  font-family: "Cascadia Mono", Consolas, monospace;
-  /* Un nombre largo se recorta antes que partirse en dos: con la fila de un
-     solo renglon, partirse la descoloca y rompe la rejilla de la lista. */
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--text) 74%, transparent);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* La terminal que va a recibir un archivo arrastrado desde el árbol se marca

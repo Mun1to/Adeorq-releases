@@ -95,6 +95,8 @@ impl Salida for SalidaVentana {
     }
     fn fin(&self, id: u32, code: Option<u32>) {
         let _ = self.0.emit("pty-exit", PtyExit { id, code });
+        // Una delegada cuyo proceso sale solo: que lo sepa quien la abrió.
+        crate::mcp::al_salir(&self.0, id, code);
     }
     fn mudo(&self, id: u32) {
         let _ = self.0.emit("pty-mudo", PtyMudo { id });
@@ -568,6 +570,9 @@ pub async fn pty_spawn(
     // which is what makes a terminal belong to one account.
     env: Option<HashMap<String, String>>,
 ) -> Result<(), String> {
+    // Si retoma la conversación de una terminal que abrió un agente, lo vuelve
+    // a ser (tras reiniciar, sus números son otros: `mcp::al_nacer`).
+    crate::mcp::al_nacer(&app, id, command.as_deref());
     let alta = Alta { id, cwd, cols, rows, command, env };
     if let Some(r) = crate::terminales::remoto(&app) {
         return tauri::async_runtime::spawn_blocking(move || r.crear(alta)).await.map_err(|e| e.to_string())?;
@@ -1218,6 +1223,7 @@ fn paneles_con_proceso(mapa: &Mapa) -> Vec<(u32, std::sync::mpsc::Sender<Vec<u8>
 /// llama justo antes de que el instalador de una actualización cierre la app
 /// de golpe (`terminales_por_actualizar`).
 pub fn despedir_todas(app: &AppHandle) {
+    crate::mcp::se_cierra_la_app();
     despedir_claudes(&paneles_con_proceso(&app.state::<PtyState>().0));
 }
 
@@ -1489,6 +1495,8 @@ pub fn cerrada_a_mano(id: u32) -> bool {
 /// llevaría por delante la app de escritorio de Claude y cualquier terminal que
 /// él tenga abierta por su cuenta.
 pub fn kill_all(app: &AppHandle) {
+    // Lo que muera desde aquí no es una delegada que salió sola.
+    crate::mcp::se_cierra_la_app();
     // Con el proceso de terminales, cerrar Adeorq de verdad es despedirse: el
     // proceso mata a todas y se va. Una caída no llega aquí, y entonces
     // aguantan (Munir, 2026-10-11).

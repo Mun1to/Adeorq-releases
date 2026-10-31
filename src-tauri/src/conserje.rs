@@ -1663,6 +1663,9 @@ fn entorno_del_puente() -> Vec<(String, String)> {
 struct Lectura {
     texto: String,
     error: Option<String>,
+    /// Una línea `error` suelta: Codex la manda al reintentar un corte y el
+    /// turno sigue, y Gemini como aviso. Solo vale si no llega ningún texto.
+    aviso: Option<String>,
 }
 
 impl Lectura {
@@ -1689,7 +1692,7 @@ impl Lectura {
                 None
             }
             (Dialecto::CodexExec, "error") => {
-                self.error = Some(v["message"].as_str().unwrap_or("error").to_string());
+                self.aviso = Some(v["message"].as_str().unwrap_or("error").to_string());
                 None
             }
             (Dialecto::GeminiStream, "tool_use") => {
@@ -1707,7 +1710,7 @@ impl Lectura {
                 None
             }
             (Dialecto::GeminiStream, "error") => {
-                self.error = Some(v["message"].as_str().unwrap_or("error").to_string());
+                self.aviso = Some(v["message"].as_str().unwrap_or("error").to_string());
                 None
             }
             _ => None,
@@ -1720,7 +1723,10 @@ impl Lectura {
         }
         let t = self.texto.trim().to_string();
         if t.is_empty() {
-            return Err(format!("{quien} no devolvió texto"));
+            return Err(match self.aviso {
+                Some(e) => format!("{quien} devolvió error: {e}"),
+                None => format!("{quien} no devolvió texto"),
+            });
         }
         Ok(t)
     }
@@ -2830,6 +2836,30 @@ mod tests {
         let mut mal = Lectura::default();
         mal.linea(Dialecto::GeminiStream, &json!({ "type": "result", "status": "error", "error": { "message": "quota" } }));
         assert!(mal.fin("gemini").unwrap_err().contains("quota"));
+    }
+
+    /// Una línea `error` no es el final: Codex la manda al reintentar un corte
+    /// («Reconnecting... 1/5», `will_retry`) y el turno acaba bien, y Gemini la
+    /// manda como aviso antes de un `result` con éxito. Solo cuenta si no llega
+    /// ningún texto.
+    #[test]
+    fn un_error_que_se_reintenta_no_tira_la_respuesta() {
+        let mut l = Lectura::default();
+        l.linea(Dialecto::CodexExec, &json!({ "type": "error", "message": "Reconnecting... 1/5" }));
+        l.linea(Dialecto::CodexExec, &json!({ "type": "item.completed", "item": { "type": "agent_message", "text": "Abro una." } }));
+        l.linea(Dialecto::CodexExec, &json!({ "type": "turn.completed", "usage": {} }));
+        assert_eq!(l.fin("codex").unwrap(), "Abro una.");
+
+        let mut g = Lectura::default();
+        g.linea(Dialecto::GeminiStream, &json!({ "type": "error", "severity": "warning", "message": "Loop detected" }));
+        g.linea(Dialecto::GeminiStream, &json!({ "type": "message", "role": "assistant", "content": "Hecho." }));
+        g.linea(Dialecto::GeminiStream, &json!({ "type": "result", "status": "success" }));
+        assert_eq!(g.fin("gemini").unwrap(), "Hecho.");
+
+        // Sin texto detrás, el error es lo que hay que enseñar.
+        let mut solo = Lectura::default();
+        solo.linea(Dialecto::CodexExec, &json!({ "type": "error", "message": "stream disconnected" }));
+        assert!(solo.fin("codex").unwrap_err().contains("stream disconnected"));
     }
 
     /// Con otro programa de verdad. Gasta un tiro de su cuenta:

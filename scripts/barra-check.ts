@@ -171,6 +171,11 @@ ok(
   ok("la última línea que suelta el CLI al morir no cuenta como retomarla", solas.has("al-morir"), `margen de ${MARGEN_DEL_CIERRE_MS / 60000} min`);
   ok("la que abriste tú, sin rastro, ni se mira", !solas.has("suya"));
   ok("sin rastros no se archiva nada", archivadasSolas(sesiones, new Map(), e, ahora).size === 0);
+  ok(
+    "la fijada que cerró un agente tampoco se archiva",
+    !archivadasSolas(sesiones, cerradas, { ...e, fijadas: ["ajustes"] }, ahora).has("ajustes"),
+    "lo fijado no se archiva nunca: si no, sale a la vez arriba en Fijadas y en las Archivadas de su proyecto",
+  );
 }
 
 // ── Las traídas a mano que llevan un mes sin tocarse, también ───────────────

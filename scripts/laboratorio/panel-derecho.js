@@ -12,7 +12,7 @@
 //   · todas las cuentas a la vez, con su nombre entero y su plan, la más
 //     gastada arriba y en rojo, una barra por ventana con cuándo se renueva;
 //     lo que no está instalado no sale;
-//   · Skills sin el Uso debajo, cada una con una línea de lo que hace;
+//   · Skills sin el Uso debajo, cada una con lo que hace;
 //   · nada se sale por la derecha;
 //   · quien tenía guardada la cara «actividad» vuelve con la franja sola, y
 //     el primer clic abre lo que pulsa.
@@ -60,9 +60,9 @@ async (page) => {
             weekTokens: 3_400_000, weekSessions: 12, weekMessages: 140, byModel: [{ model: "Opus 5.5", tokens: 2_100_000 }, { model: "Fable 5.1", tokens: 900_000 }], totalSessions: 80, totalMessages: 900 };
         case "list_skills":
           return [
-            { name: "review-pr", description: "Revisa el PR abierto y deja un comentario en cada archivo que cambió", invocation: "/review-pr", folder: "review-pr" },
-            { name: "write-tests", description: "Escribe las pruebas de lo que cambiaste", invocation: "/write-tests", folder: "write-tests" },
-            { name: "ship", description: "Prueba, commit y sube", invocation: "/ship", folder: "ship" },
+            { name: "review-pr", description: "Revisa el PR abierto y deja un comentario en cada archivo que cambió", invocation: "/review-pr", folder: "review-pr", origen: "tuya", veces: 0 },
+            { name: "write-tests", description: "Escribe las pruebas de lo que cambiaste", invocation: "/write-tests", folder: "write-tests", origen: "tuya", veces: 0 },
+            { name: "ship", description: "Prueba, commit y sube", invocation: "/ship", folder: "ship", origen: "tuya", veces: 0 },
           ];
         default: throw new Error(`sin doble: ${cmd}`);
       }
@@ -96,7 +96,7 @@ async (page) => {
 
   // 1. La franja.
   pasos.franja = await page.$$eval("nav.franja .franja-btn", (b) => b.map((x) => x.getAttribute("data-tip")));
-  debe(JSON.stringify(pasos.franja) === JSON.stringify(["Ocultar panel", "Skills", "Archivos", "Ver la web en un panel (localhost)"]), `la franja: Uso (abierta), Skills, Archivos y la web (${JSON.stringify(pasos.franja)})`);
+  debe(JSON.stringify(pasos.franja) === JSON.stringify(["Ocultar panel", "Skills", "Archivos", "Navegador"]),`la franja: Uso (abierta), Skills, Archivos y la web (${JSON.stringify(pasos.franja)})`);
   pasos.titulo = await page.textContent(".lateral-title");
   // El borde encendido y las cajas con halo (Munir, 2026-10-18, «2 y 3»), con
   // la barra por encima de la terminal enfocada (z 2) para que el halo se vea.
@@ -136,8 +136,9 @@ async (page) => {
   pasos.skills = await page.$$eval(".lateral .skill", (s) => s.map((x) => `${x.querySelector(".skill-name").textContent}|${x.querySelector(".skill-desc")?.textContent ?? ""}`));
   pasos.usoEnSkills = await page.locator(".lateral .bat, .lateral .uso").count();
   debe(pasos.skills[0] === "/review-pr|Revisa el PR abierto y deja un comentario en cada archivo que cambió" && pasos.usoEnSkills === 0, `cada skill con lo que hace, y sin el Uso debajo (${JSON.stringify(pasos.skills)}, ${pasos.usoEnSkills})`);
-  pasos.unaLinea = await page.$eval(".lateral .skill-desc", (d) => getComputedStyle(d).whiteSpace);
-  debe(pasos.unaLinea === "nowrap", "la descripción, en una línea");
+  // Desde el 2026-10-30 («A3»), su primera frase en dos líneas como mucho.
+  pasos.dosLineas = await page.$eval(".lateral .skill-desc", (d) => getComputedStyle(d).webkitLineClamp);
+  debe(pasos.dosLineas === "2", `la descripción, en dos líneas como mucho (${pasos.dosLineas})`);
   pasos.seSaleSkills = await seSale();
   debe(!pasos.seSaleSkills.length, `nada se sale en Skills (${pasos.seSaleSkills})`);
   await foto("skills");

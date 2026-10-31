@@ -13,7 +13,7 @@
 //    gesto, así que no hace falta una ✕ aparte que compita con los iconos.
 
 import { useT } from "../lib/i18n";
-import { BrowserIcon, FolderIcon, GaugeIcon, SparkIcon } from "./Icons";
+import { BookIcon, BrowserIcon, FolderIcon, GaugeIcon } from "./Icons";
 
 /** Qué panel se está viendo. Vacío es «ninguno, solo la franja». Hubo una
     cara «actividad» (skills, MCP y llamadas al modelo de la terminal enfocada)
@@ -45,7 +45,7 @@ interface Props {
 
 const CARAS: Array<{ id: Exclude<Cara, "">; titulo: string; icono: React.ReactNode }> = [
   { id: "uso", titulo: "Uso", icono: <GaugeIcon size={16} /> },
-  { id: "skills", titulo: "Skills", icono: <SparkIcon size={16} /> },
+  { id: "skills", titulo: "Skills", icono: <BookIcon size={16} /> },
   { id: "archivos", titulo: "Archivos", icono: <FolderIcon size={16} /> },
 ];
 

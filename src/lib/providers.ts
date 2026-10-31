@@ -203,6 +203,11 @@ export interface Provider {
    *  lecturas y ediciones, o el `rollout` de Codex, que solo trae las ediciones
    *  (lo que lee lo lee con comandos de consola). */
   archivosDelDisco?: "transcript" | "rollout";
+  /** Entiende `/fin` y `/compact`, y Adeorq lee del transcript de su sesión el
+   *  contexto y si acabó el turno (`session_context`): el aviso de contexto lo
+   *  compacta con traspaso, y solo, a la campana (`lib/contexto.ts`). A los
+   *  demás el botón les manda el texto de la casa, a ciegas. */
+  compactaConTraspaso?: boolean;
   /**
    * Cinco cosas que hasta el 2026-10-06 se preguntaban por el nombre
    * (`provider === "claude"`) en siete sitios entrados después de la limpieza
@@ -272,6 +277,7 @@ export const PROVIDERS: Provider[] = [
     relevo: true,
     confianza: true,
     archivosDelDisco: "transcript",
+    compactaConTraspaso: true,
   },
   {
     id: "codex",
@@ -842,6 +848,7 @@ export type Capacidad =
   | "usage"
   | "leeRutaDeImagen"
   | "skills"
+  | "compactaConTraspaso"
   /** Su carpeta de identidad se puede mover, así que admite varias cuentas.
    *  No es un booleano en la tabla sino el nombre de la variable, y por eso se
    *  pregunta aquí en vez de comparar contra `""` por ahí suelto. */

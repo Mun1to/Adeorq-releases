@@ -1,11 +1,11 @@
 {
-  "version": "0.9.234",
-  "notes": "El aviso de contexto va por tokens: avisa a 300.000, compacta a 400.000 y a 600.000 propone una terminal nueva. Una conversación ya compactada dos veces te ofrece seguir en una nueva.",
-  "pub_date": "2026-10-22T03:53:57Z",
+  "version": "0.9.235",
+  "notes": "Las terminales que abre un agente se compactan solas a los 400.000 tokens, nunca a mitad de trabajo; recuerdan quien las abrio tras reiniciar; el menu de plantillas es una rejilla de columnas por filas, y la lista de skills pone arriba las que mas usas.",
+  "pub_date": "2026-10-31T02:49:35Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzk1amgvOUsxbk1vbkVrdWx0UFNqSVZ2ekc0SnpnMUZyMTJCalQrd2I0NE1qMXNMYVhKMkdCWXZaTzJMdUw1NXpncFJSYjEwREtSamxNWDI3ZkpscXc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjQxMjE2CWZpbGU6QWRlb3JxXzAuOS4yMzRfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzQKemF3RitsZHJHYjI1MlRCelNEWkN5OWdlUE9rVy8xYVFScmZCNjNFc1dJOUpwVStnMytuNVVEbkkrWU8vU3JqaFpIUGd5RWM1SzVwTG5oWWVubXNPRGc9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.234/Adeorq_0.9.234_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzF4MG5xaVJTMWZ0RlZmUkFpNTRka05aQlJEU2tHWGdXc242UnBxZzlkQ3RGVzViYm1kajJEVk80dVd5SUpraW4vKzlzTk1LMlBZLzY0UzFjbmRRTlFnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNDE0OTYzCWZpbGU6QWRlb3JxXzAuOS4yMzVfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzUKS0JTY0VrQnUxd2RLL0puN3ZNTmdjbWtHNUZ1SkprTzd0RjlkWHNBTklFOWpEZTFPYUg3TFdwMWw0aDdObFEvcU9VVGVxWjU2UzFJNnpRQWpwOWEwQUE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.235/Adeorq_0.9.235_x64-setup.exe"
     }
   }
 }

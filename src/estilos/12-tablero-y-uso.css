@@ -529,12 +529,15 @@
   box-shadow: var(--sombra-2);
 }
 
-/* Layout picker: Windows-style snap thumbnails for the cockpit. */
+/* Repartir lo que tienes abierto: una rejilla de columnas y filas, como al
+   insertar una tabla, y debajo la de una grande (Munir, 2026-10-30). La letra
+   sube de 11 y 10,5 px a 15 y 12,5: estaba por debajo del suelo de 12. */
 .layout-pop {
   position: fixed;
   z-index: 9995;
-  width: 268px;
-  padding: 12px;
+  /* La rejilla (4 × 64 y tres huecos de 4) más el relleno y el borde. */
+  width: 298px;
+  padding: 14px 14px 12px;
   border-radius: var(--r-caja);
   background: var(--popover);
   border: 1px solid var(--border-strong);
@@ -543,46 +546,74 @@
 }
 
 .layout-pop-title {
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+  margin-bottom: 10px;
 }
 
-.layout-grid {
+.layout-rejilla {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(4, 64px);
+  grid-template-rows: repeat(4, 40px);
+  gap: 4px;
 }
 
-.layout-choice {
-  padding: 4px;
-  border-radius: var(--r-btn);
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
-  color: var(--accent);
+/* Cada casilla es el sitio de una terminal: vacía y con su filo, y en azul las
+   que caben en lo que señalas. */
+.layout-celda {
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-chico);
+  background: none;
   cursor: pointer;
   transition:
-    transform var(--t-rapida) ease,
-    border-color var(--t-rapida) ease,
-    background var(--t-rapida) ease;
+    background var(--t-rapida) ease,
+    border-color var(--t-rapida) ease;
 }
 
-.layout-choice:hover {
-  transform: translateY(-1px);
+.layout-celda[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.layout-cuenta {
+  margin: 10px 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Suelta en reposo; el cristal al pasar le viene de 33-cristal-al-pasar.css. */
+.layout-grande {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
 }
 
 .layout-thumb {
   display: block;
-  width: 100%;
-  height: auto;
+  flex: none;
+  width: 62px;
+  height: 40px;
+  color: var(--accent);
 }
 
 .layout-pop-foot {
-  margin-top: 10px;
-  font-size: 10.5px;
-  line-height: 1.5;
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
   color: var(--muted);
 }
 

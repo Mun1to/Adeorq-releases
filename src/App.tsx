@@ -141,6 +141,7 @@ import {
   installCommand,
   lineaParaRetomar,
   loadEffort,
+  modoAlRetomar,
   modoGuardado,
   newClaudeCommand,
   PERMISSION_MODE_KEY,
@@ -150,6 +151,7 @@ import {
   withEffort,
   type PermissionMode,
 } from "./lib/lanzar";
+import { delegacionDe, olvidarDelegada } from "./lib/delegadas";
 import { entornoDe } from "./lib/apikeys";
 import { kindDeComando } from "./components/KindIcon";
 import { guardarAtajos, leerAtajos, type Atajos } from "./lib/atajos";
@@ -896,6 +898,8 @@ function App() {
       const inferido = entornoDePane(command, account);
       const env = envOverride ? { ...inferido.env, ...envOverride } : inferido.env;
       const etiqueta = inferido.etiqueta;
+      // También la que retoma la conversación de una delegada (Reanimar, la barra).
+      const abiertaPor = delegacionDe(id, command, opciones?.abiertaPor);
 
       /* Estando en el LIENZO, la terminal nace en el lienzo.
          Antes esto acababa siempre en `setView("cabina")`, así que pulsar
@@ -913,7 +917,7 @@ function App() {
       if ((viewRef.current === "lienzo" && !at && !team) || !seVe("cabina", leerApagadas(), vivasRef.current)) {
         setCanvasPanes((prev) => [
           ...prev,
-          { id, cwd, name, command, env, account: etiqueta, abiertaPor: opciones?.abiertaPor },
+          { id, cwd, name, command, env, account: etiqueta, abiertaPor },
         ]);
         if (!opciones?.quieto) setView("lienzo");
         return { id, donde: "lienzo" as const };
@@ -921,7 +925,7 @@ function App() {
 
       setPanes((prev) => [
         ...prev,
-        { id, cwd, name, command, env, account: etiqueta, team, shadow, grupo, abiertaPor: opciones?.abiertaPor },
+        { id, cwd, name, command, env, account: etiqueta, team, shadow, grupo, abiertaPor },
       ]);
       setCols((prev) => layoutAdd(prev, id, () => nextCol.current++, at));
       if (!opciones?.quieto) {
@@ -1657,6 +1661,8 @@ function App() {
         command,
         env,
         account: etiqueta,
+        // La del lienzo que vuelve con la conversación de una delegada, también.
+        abiertaPor: delegacionDe(id, command),
         // Si corría dentro de un espejo, vuelve siendo de espejo y con ESE.
         shadow: propio?.viva?.espejo ? true : undefined,
         espejo: propio?.viva?.espejo,
@@ -1721,6 +1727,8 @@ function App() {
     const p = panesRef.current.find((x) => x.id === id) ?? canvasPanesRef.current.find((x) => x.id === id);
     const sid = p ? sessionIdOf(p.command) : undefined;
     if (!p?.abiertaPor || !sid) return;
+    // La cerró Munir: si la retoma otro día, ya es suya.
+    olvidarDelegada(sid);
     rastroDeLaX(p.name, p.cwd, sid, p.abiertaPor)
       // Que la barra la archive ya, no en su siguiente latido.
       .then(() => setRefreshKey((k) => k + 1))
@@ -2015,7 +2023,7 @@ function App() {
             ? shellCommand(ajena)
             : shellCommand(lineaDeArranque(kind))
           : sessionId
-            ? claudeCommand(withEffort(`--resume ${sessionId}`))
+            ? claudeCommand(withEffort(`--resume ${sessionId}`), modoAlRetomar(["--resume", sessionId]))
             : newClaudeCommand();
       // Un respiro para que el cierre suelte el PTY y el proceso muera antes
       // de que el nuevo intente retomar el mismo transcript.
@@ -2375,11 +2383,6 @@ function App() {
     setFocusedId(from);
   }, []);
 
-  const usePreset = useCallback((preset: Preset) => {
-    setCols((prev) => applyPreset(prev, preset, () => nextCol.current++));
-    setMaximizedId(null);
-  }, []);
-
   // Las costuras del mosaico y su arrastre, que no pasa por React hasta que
   // sueltas (ver `lib/costuras.ts`).
   const { gridRef, colsVisiblesRef, onDividerDown, onDividerMove, onDividerUp } = useCosturas(setCols);
@@ -2411,6 +2414,17 @@ function App() {
   /** Lo que hay fuera del mosaico, para la tira del pie: es la única respuesta
       a «cuántos agentes tengo apartados» que no obliga a contarlos a mano. */
   const apartadas = useMemo(() => panes.filter(oculto), [panes, oculto]);
+
+  // La plantilla es para lo que se ve: lo apartado se reparte detrás, sin
+  // ocupar un sitio que dejaría un hueco en la pantalla.
+  const usePreset = useCallback(
+    (preset: Preset) => {
+      const fuera = new Set(apartadas.map((p) => p.id));
+      setCols((prev) => applyPreset(prev, preset, () => nextCol.current++, fuera));
+      setMaximizedId(null);
+    },
+    [apartadas],
+  );
 
   /** La memoria de cada terminal. Un solo sondeo para todas y desde aquí, que
       es quien las conoce: cada panel preguntando lo suyo serían seis recorridos
@@ -2837,7 +2851,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                 {todoApartado ? <UnminimizeIcon size={15} /> : <MinimizeIcon size={15} />}
               </span>
             </button>
-            <LayoutPicker onPick={usePreset} />
+            <LayoutPicker onPick={usePreset} abiertas={panes.length - apartadas.length} />
             {/* Y la salida de verdad, la que se lleva a los agentes por
                 delante. Va la última y separada de su vecina de arriba a
                 propósito: es la única de la barra que no se puede deshacer, y

@@ -119,6 +119,11 @@ export interface Skill {
   /** La carpeta, que es su identificador: `name` sale del frontmatter y puede
       no parecerse a ella. Es lo que se le pasa a `skillText`. */
   folder: string;
+  /** Las tuyas (`~/.claude/skills`), las de tu cuenta de claude.ai o las de un
+      plugin. Las dos últimas solo llegan pidiéndolas: `listSkills(true)`. */
+  origen: "tuya" | "claude.ai" | "plugin";
+  /** Cuántas veces la has escrito en Claude Code, de su historial. */
+  veces: number;
 }
 
 /** El texto de una skill, para leerla dentro de la app. */
@@ -134,8 +139,8 @@ export function scanSessions(): Promise<SessionInfo[]> {
   return invoke("scan_sessions", { raiz: p.raiz, sinRaiz: p.sinRaiz });
 }
 
-export function listSkills(): Promise<Skill[]> {
-  return invoke("list_skills");
+export function listSkills(fuera = false): Promise<Skill[]> {
+  return invoke("list_skills", { fuera });
 }
 
 export interface CreatedProject {
@@ -283,6 +288,11 @@ export interface ContextInfo {
   /** El nombre de la sesión: el puesto a mano o, si no, el que le pone
       Claude. Vacío mientras no tiene ninguno. Ver `lib/nombreSolo.ts`. */
   title: string;
+  /** Si esa conversación corre ahora en algún Claude Code (su id está en
+      `~/.claude/sessions/<pid>.json` de un proceso vivo). Tras un `/clear`, o
+      con el CLI cerrado, el transcript se queda quieto y ya no es la del
+      panel. Solo lo dice `session_context`. */
+  viva?: boolean;
 }
 
 /** What a session or a pane is doing. Empty = unknown, and never actionable. */

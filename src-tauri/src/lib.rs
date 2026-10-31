@@ -473,6 +473,7 @@ pub fn run() {
             rastros::rastros_cerradas,
             rastros::rastro_de_la_x,
             rastros::rastro_de_relevo,
+            mcp::delegadas_guardadas,
             compactaciones::session_compactions,
             decisiones::decisiones_listar,
             decisiones::decision_responder,

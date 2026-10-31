@@ -28,8 +28,10 @@
     .cb-spawn,
     .choice,
     .set-tab,
+    .skill,
     .inicio-proy,
     .inicio-enlace,
+    .layout-grande,
     .inicio-estado,
     .project-logo
   ) {
@@ -53,8 +55,10 @@
     .cb-spawn,
     .choice,
     .set-tab,
+    .skill,
     .inicio-proy,
     .inicio-enlace,
+    .layout-grande,
     .inicio-estado
   ):not(:disabled):hover {
   background: linear-gradient(
@@ -80,8 +84,10 @@
     .cb-spawn,
     .choice,
     .set-tab,
+    .skill,
     .inicio-proy,
     .inicio-enlace,
+    .layout-grande,
     .inicio-estado
   ):not(:disabled):active {
   transform: translateY(1px);
@@ -123,8 +129,10 @@
     .cb-spawn,
     .choice,
     .set-tab,
+    .skill,
     .inicio-proy,
     .inicio-enlace,
+    .layout-grande,
     .inicio-estado
   ):not(:disabled):hover {
   background: linear-gradient(
@@ -151,8 +159,10 @@
       .cb-spawn,
       .choice,
       .set-tab,
+      .skill,
       .inicio-proy,
       .inicio-enlace,
+      .layout-grande,
       .inicio-estado,
       .project-logo
     ):is(:hover, :active) {

@@ -101,8 +101,12 @@ const RULES: Rule[] = [
     severity: "alta",
     advice: ROTATE,
     // postgres://user:password@host/db and every sibling protocol.
-    re: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp|ftp|ssh):\/\/[^\s:@/]+:([^\s@]+)@/g,
-    mask: (m, pwd) => m.replace(pwd, dots(pwd)),
+    // The part before the password is its own group so the mask can rebuild
+    // the match around it. Searching for the password inside the match found
+    // its FIRST occurrence, which in `postgres://postgres:postgres@` is the
+    // scheme: the scheme got dotted and the password stayed on screen.
+    re: /\b((?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp|ftp|ssh):\/\/[^\s:@/]+:)([^\s@]+)@/g,
+    mask: (_m, head, pwd) => `${head}${dots(pwd)}@`,
   },
   {
     // Alta por lo mismo que el JWT: `API_KEY=...` en pantalla es el caso más

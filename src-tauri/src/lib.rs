@@ -175,6 +175,40 @@ pub fn dir_casa() -> Option<std::path::PathBuf> {
     std::env::var(v).ok().map(std::path::PathBuf::from)
 }
 
+/// Escribe un archivo de la app ENTERO o nada: al lado y renombrado encima, y
+/// de uno en uno.
+///
+/// Con `fs::write` directo, dos guardados a la vez sobre el mismo archivo se
+/// mezclaban (el corto escribía sobre el principio del largo: medido, 54 de 150
+/// rondas ilegibles), y un corte a mitad lo dejaba a medias. Con el `.tmp`
+/// compartido y sin turno, uno podía renombrar el temporal a medio escribir del
+/// otro. El turno es uno para todos: son archivos pequeños.
+pub fn escribir_entero(path: &std::path::Path, contenido: &[u8]) -> Result<(), String> {
+    static EN_FILA: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _turno = EN_FILA.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = path.with_extension("adeorq-tmp");
+    std::fs::write(&tmp, contenido).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp, path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        e.to_string()
+    })
+}
+
+/// Lo que hay en un archivo de texto que se va a REESCRIBIR entero con algo
+/// añadido. Que no exista es estar vacío; cualquier otro fallo es un error.
+///
+/// Con `unwrap_or_default` un archivo que no se podía leer (un `.gitignore`
+/// guardado en ANSI por PowerShell 5.1, que no es UTF-8, o uno cogido por otro
+/// programa) contaba como vacío, y la escritura de después dejaba en él SOLO
+/// lo nuevo: un `.gitignore` sin el `.env`, una bandeja vacía.
+pub fn leer_para_reescribir(path: &std::path::Path) -> Result<String, String> {
+    match std::fs::read_to_string(path) {
+        Ok(t) => Ok(t),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+        Err(e) => Err(format!("No he podido leer {} ({e}), así que no lo toco.", path.display())),
+    }
+}
+
 /// Lanzar un programa SIN que parpadee una consola negra.
 ///
 /// Adeorq llama a `git`, a `where`, a los CLI y al propio Windows unas cuantas

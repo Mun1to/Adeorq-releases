@@ -199,7 +199,10 @@ export function useTableroGuardado({
   // Remember the board on every change, so a crash or an update loses nothing:
   // the same panes, in the same folders, with the same sizes.
   useEffect(() => {
-    if (!restored.current) return;
+    // Con la Cabina apagada lo guardado se queda para cuando vuelva (ver
+    // `cabinaApagada`): sin esto, una terminal recuperada tras una caída o abrir
+    // las de un grupo de la barra escribían encima lo poco que hubiera.
+    if (!restored.current || cabinaApagada) return;
     const order = new Map<number, number>();
     const saved: SavedPane[] = [];
     panes.forEach((pane) => {

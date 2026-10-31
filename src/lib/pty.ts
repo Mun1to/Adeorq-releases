@@ -214,8 +214,22 @@ export interface Encargo {
   cuando?: string;
 }
 
+/**
+ * Quita los medios caracteres que deja un corte por longitud en mitad de un
+ * emoji (un sustituto UTF-16 sin su pareja). `JSON.stringify` los escribe como
+ * `\ud83d` y `serde_json` rechaza el JSON entero, así que un nombre de grupo
+ * cortado así dejaba la barra sin poder guardar nada. Quitarlo es lo que haría
+ * un corte bien hecho: el carácter incompleto no entra.
+ */
+export function sinSueltos(s: string): string {
+  // Las parejas enteras casan primero y se quedan; lo que casa solo es un medio.
+  // Sin lookbehind a propósito: un WebKitGTK viejo no lo entiende y tumbaría el módulo.
+  return s.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDFFF]/g, (m) => (m.length === 2 ? m : ""));
+}
+const textosSinSueltos = (_k: string, v: unknown) => (typeof v === "string" ? sinSueltos(v) : v);
+
 export function saveEncargo(sessionId: string, encargo: Encargo): Promise<void> {
-  return invoke("save_encargo", { sessionId, encargo });
+  return invoke("save_encargo", { sessionId, encargo: { ...encargo, encargo: sinSueltos(encargo.encargo) } });
 }
 
 export function readEncargos(): Promise<Record<string, Encargo>> {
@@ -926,7 +940,7 @@ export function forgetProjectIcons(): Promise<void> {
 }
 
 export function saveUiState(state: UiState): Promise<void> {
-  return invoke("save_ui_state", { content: JSON.stringify(state, null, 2) });
+  return invoke("save_ui_state", { content: JSON.stringify(state, textosSinSueltos, 2) });
 }
 
 /** The Foreman: one claude -p call that returns a strict JSON action plan. */

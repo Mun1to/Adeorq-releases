@@ -261,11 +261,12 @@ export default function CanvasDraw({
   }, [tool, onSel]);
 
   // Suprimir borra lo seleccionado, como en cualquier editor. Se ignora si el
-  // foco está en un campo de texto: ahí Suprimir es borrar una letra.
+  // foco está en un campo de texto: ahí Suprimir es borrar una letra. Y si el
+  // lienzo no está a la vista: sigue montado en la Cabina, y borraba sin verse.
   useEffect(() => {
     if (!sel) return;
     const tecla = (e: KeyboardEvent) => {
-      if (escribiendoTexto()) return;
+      if (escribiendoTexto() || !capa.current?.getClientRects().length) return;
       if (e.key === "Delete" || e.key === "Backspace") {
         // Lo clavado no se borra con una tecla: primero se desclava. Si no,
         // «bloquear» solo protegería del ratón, que es media protección.

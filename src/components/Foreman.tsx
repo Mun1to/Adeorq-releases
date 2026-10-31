@@ -669,6 +669,9 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
   const [respuesta, setRespuesta] = useState<string | null>(null);
   /** El dictado en marcha, si lo hay. Null = el micrófono está en reposo. */
   const dictadoRef = useRef<Dictado | null>(null);
+  /** Un micrófono pedido que todavía no ha llegado. */
+  const arrancando = useRef(false);
+  const montado = useRef(true);
   const [oyendo, setOyendo] = useState(false);
   const [transcribiendo, setTranscribiendo] = useState(false);
   const [vozError, setVozError] = useState<string | null>(null);
@@ -891,7 +894,11 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
    * dice que está grabando es un REC en rojo, no un icono apagado.
    */
   const empezarAHablar = useCallback(() => {
-    if (oyendo || transcribiendo) return;
+    // Con uno pidiéndose, otra orden no abre un segundo micrófono: el atajo que
+    // abre el Asistente dictando lo recibía también el Asistente recién montado,
+    // así que cada Ctrl+Mayús+M abría dos y al parar solo se soltaba uno.
+    if (oyendo || transcribiendo || arrancando.current) return;
+    arrancando.current = true;
     setVozError(null);
     // Se pregunta ANTES de abrir el micrófono. Al revés, y era lo que hacía,
     // hablabas diez segundos para que al soltar te dijera que whisper no está
@@ -899,10 +906,15 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
     vozLista()
       .then(() => dictar())
       .then((d) => {
+        // Cerrado mientras arrancaba: se suelta ya, que el desmontaje no lo vio.
+        if (!montado.current || dictadoRef.current) return d.cancelar();
         dictadoRef.current = d;
         setOyendo(true);
       })
-      .catch((e) => setVozError(String(e)));
+      .catch((e) => setVozError(String(e)))
+      .finally(() => {
+        arrancando.current = false;
+      });
   }, [oyendo, transcribiendo]);
 
   const dejarDeHablar = () => {
@@ -955,13 +967,14 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
   // abierto, y nadie lo soltaba: la luz del micro se quedaba encendida hasta
   // cerrar Adeorq. `cancelar` para el grabador y suelta la pista, y lo dicho se
   // tira, que es lo que quiere decir cerrar sin terminar.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
       dictadoRef.current?.cancelar();
       dictadoRef.current = null;
-    },
-    [],
-  );
+    };
+  }, []);
 
   // Abierto por el atajo del micrófono: se pone a grabar al aparecer. Sin
   // dependencias a propósito, es una orden de arranque y no un estado: con

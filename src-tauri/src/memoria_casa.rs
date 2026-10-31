@@ -111,7 +111,7 @@ pub struct Indice {
 }
 
 /// El índice vivo de la app. Se rehace solo cuando se ha quedado viejo.
-pub struct MemoriaCasa(pub Mutex<Option<Indice>>);
+pub struct MemoriaCasa(pub Mutex<Option<std::sync::Arc<Indice>>>);
 
 impl Default for MemoriaCasa {
     fn default() -> Self {
@@ -690,16 +690,49 @@ pub fn memoria_reglas_router(estado: tauri::State<'_, MemoriaCasa>) -> Vec<Regla
 }
 
 pub fn con_indice<T>(estado: &MemoriaCasa, f: impl FnOnce(&Indice) -> T) -> T {
-    let mut guardia = estado.0.lock().unwrap_or_else(|e| e.into_inner());
-    if guardia.as_ref().map(|i| i.viejo()).unwrap_or(true) {
-        *guardia = Some(escanear());
-    }
-    f(guardia.as_ref().expect("acabamos de ponerlo"))
+    // El candado, solo para mirar si está viejo y coger el índice: `f` corre
+    // FUERA. `buscar_mezclado` le pregunta a Ollama (hasta 120 s con el modelo
+    // cargando), y con el candado cogido esperaban detrás las reglas del
+    // router y las búsquedas de las demás sesiones.
+    let indice = {
+        let mut guardia = estado.0.lock().unwrap_or_else(|e| e.into_inner());
+        if guardia.as_ref().map(|i| i.viejo()).unwrap_or(true) {
+            *guardia = Some(std::sync::Arc::new(escanear()));
+        }
+        std::sync::Arc::clone(guardia.as_ref().expect("acabamos de ponerlo"))
+    };
+    f(&indice)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Buscar por significado le pregunta a Ollama (hasta 120 s con el modelo
+    /// cargando). Mientras tanto, las reglas del router y las búsquedas de las
+    /// demás sesiones no pueden quedarse esperando a esa.
+    #[test]
+    fn una_busqueda_lenta_no_retiene_la_memoria() {
+        use std::time::{Duration, Instant};
+        let estado = std::sync::Arc::new(MemoriaCasa(Mutex::new(Some(con(&[("a", "uno dos")]).into()))));
+        let (dentro_tx, dentro_rx) = std::sync::mpsc::channel();
+        let lenta = {
+            let e = estado.clone();
+            std::thread::spawn(move || {
+                con_indice(&e, |_| {
+                    let _ = dentro_tx.send(());
+                    std::thread::sleep(Duration::from_millis(1500));
+                })
+            })
+        };
+        dentro_rx.recv().unwrap();
+        let t = Instant::now();
+        let notas = con_indice(&estado, |i| i.notas.len());
+        let espero = t.elapsed();
+        lenta.join().unwrap();
+        assert_eq!(notas, 1);
+        assert!(espero < Duration::from_millis(500), "esperó {espero:?} a que acabara la otra búsqueda");
+    }
 
     /// Un montón de notas de mentira con la misma forma que las de verdad.
     fn con(notas: &[(&str, &str)]) -> Indice {

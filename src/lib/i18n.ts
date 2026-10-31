@@ -957,6 +957,8 @@ const EN: Record<string, string> = {
 
   // Restore
   "Recuperar las terminales al abrir": "Bring the terminals back on start",
+  "Ver el modelo, el contexto y la memoria en la barra de cada terminal":
+    "Show the model, context and memory in each terminal's bar",
   "Preguntar si abro la web cuando una terminal levanta un servidor":
     "Ask to open the web view when a terminal starts a server",
   "¿Abro {u} en la web?": "Open {u} in the web view?",
@@ -3050,6 +3052,9 @@ const EN: Record<string, string> = {
   "{n} días seguidos": "{n} days in a row",
   "tu récord, {c} el {f}": "your record, {c} on {f}",
   "tokens en {mes}": "tokens in {mes}",
+  "no es un archivo de lienzo": "it is not a canvas file",
+  "No he podido leer tu lienzo guardado ({e}), así que no lo toco: lo que hagas ahora no se guarda solo.":
+    "I couldn't read your saved canvas ({e}), so I'm leaving it alone: what you do now won't save on its own.",
 };
 
 export function detectLang(): Lang {

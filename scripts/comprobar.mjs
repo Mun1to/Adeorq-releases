@@ -33,6 +33,7 @@ export const COMPROBADORES = [
   "gordos-check.mjs",
   "gordos-check-check.mjs",
   "css-check.mjs",
+  "webkit-check.mjs",
   "botones-check.mjs",
   "estilo-check.mjs",
   "estilo-check-check.mjs",

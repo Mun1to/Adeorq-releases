@@ -36,6 +36,8 @@ interface Manos {
   cabina: ManosDeLaBarra;
   /** Las terminales del lienzo, para no abrir dos veces la misma conversación. */
   delLienzo: Array<{ id: number; command?: string[] }>;
+  /** Y las de la Cabina, por lo mismo: el escaneo tarda hasta 45 s en darla por viva. */
+  deLaCabina: Array<{ id: number; command?: string[] }>;
   irAlLienzo: (id: number) => void;
   /** Con qué se retoma una conversación y en qué cuenta: lo mismo que la Cabina. */
   retomar: (s: SessionInfo) => { cwd: string; command: string[]; cuenta?: Account };
@@ -73,12 +75,12 @@ export function useBarraEnLienzo(m: Manos): { manos: ManosDeLaBarra; pedido: Abr
         const aqui = m.delLienzo.find((p) => sessionIdOf(p.command) === s.id);
         if (aqui) return m.irAlLienzo(aqui.id);
         // Viva fuera de Adeorq, o ya abierta en la Cabina: lo sabe la Cabina.
-        if (s.live) return m.cabina.onResume(s);
+        if (s.live || m.deLaCabina.some((p) => sessionIdOf(p.command) === s.id)) return m.cabina.onResume(s);
         const { cwd, command, cuenta } = m.retomar(s);
         const nombre = cwd.split(/[\\/]/).filter(Boolean).pop() ?? cwd;
         pedir({ kind: "claude", project: proyecto(nombre, cwd), propio: { name: s.title, command }, cuenta });
       },
     };
-  }, [m.enLienzo, m.cabina, m.delLienzo, m.irAlLienzo, m.retomar, m.arranque]);
+  }, [m.enLienzo, m.cabina, m.delLienzo, m.deLaCabina, m.irAlLienzo, m.retomar, m.arranque]);
   return { manos, pedido };
 }

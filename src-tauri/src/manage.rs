@@ -324,16 +324,12 @@ fn board_path() -> Result<std::path::PathBuf, String> {
 
 #[tauri::command(async)]
 pub fn save_board(content: String) -> Result<(), String> {
-    let p = board_path()?;
-    // Se escribe al lado y se cambia el nombre de golpe. Sin esto, cerrar la
-    // app a mitad de escritura (o quedarse sin disco) deja un JSON cortado, y
-    // el tablero que vuelve al abrir sería justo el que no se puede leer.
-    let tmp = p.with_extension("json.tmp");
-    std::fs::write(&tmp, content).map_err(|e| e.to_string())?;
-    if p.exists() {
-        let _ = std::fs::remove_file(&p);
-    }
-    std::fs::rename(&tmp, &p).map_err(|e| e.to_string())
+    // Entero o nada (`escribir_entero`). Sin esto, cerrar la app a mitad de
+    // escritura (o quedarse sin disco) deja un JSON cortado, y el tablero que
+    // vuelve al abrir sería justo el que no se puede leer. Antes se borraba
+    // `lienzo.json` antes de renombrar, que sobra (`rename` ya reemplaza) y
+    // dejaba un instante sin tablero, y dos guardados compartían el `.tmp`.
+    crate::escribir_entero(&board_path()?, content.as_bytes())
 }
 
 /**
@@ -377,25 +373,21 @@ pub fn read_board() -> Result<String, String> {
 /// se recupera desde el escritorio como cualquier otra cosa. Un botón que
 /// borrase de verdad una carpeta de trabajo no debería existir.
 ///
-/// Y solo dentro de `C:\proyectos`. La ruta llega del front, y esto acaba en
+/// Y solo dentro de la carpeta de proyectos. La ruta llega del front, y esto acaba en
 /// una llamada del sistema que borra lo que le digan: sin esta comprobación,
 /// un día alguien le pasa otra cosa —una ruta compuesta, un `..`— y se lleva
 /// por delante lo que no era. Se canonicaliza antes de comparar, que es lo
 /// único que convierte `C:\proyectos\..\Windows` en lo que de verdad es.
 #[tauri::command(async)]
 pub fn delete_project(path: String) -> Result<(), String> {
-    let root = Path::new("C:\\proyectos")
-        .canonicalize()
-        .map_err(|e| e.to_string())?;
-    let p = Path::new(&path).canonicalize().map_err(|e| e.to_string())?;
+    // La carpeta de proyectos que tenga puesta, no `C:\proyectos` a mano: en
+    // Linux o con otra raíz, no se podía tirar ninguno.
+    let (root, p) = crate::workspace::en_proyectos(&path)?;
     if !p.is_dir() {
         return Err("eso no es una carpeta".into());
     }
     if p == root {
         return Err("esa es la carpeta de todos los proyectos".into());
-    }
-    if !p.starts_with(&root) {
-        return Err("solo se pueden tirar proyectos de C:\\proyectos".into());
     }
     to_recycle_bin(&p)
 }
@@ -591,7 +583,8 @@ pub struct DirtyReport {
 #[tauri::command]
 pub async fn project_dirty(path: String) -> Result<DirtyReport, String> {
     let out = std::process::Command::new("git")
-        .args(["-C", &path, "status", "--porcelain"])
+        // Sin coger `index.lock`, que es del `git commit` de quien trabaja ahí.
+        .args(["--no-optional-locks", "-C", &path, "status", "--porcelain"])
         .sin_ventana()
         .output()
         .map_err(|e| e.to_string())?;
@@ -635,12 +628,48 @@ pub fn load_ui_state(app: tauri::AppHandle) -> Result<String, String> {
 #[tauri::command(async)]
 pub fn save_ui_state(app: tauri::AppHandle, content: String) -> Result<(), String> {
     serde_json::from_str::<serde_json::Value>(&content).map_err(|e| e.to_string())?;
-    std::fs::write(state_path(&app)?, content).map_err(|e| e.to_string())
+    crate::escribir_entero(&state_path(&app)?, content.as_bytes())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Tres sitios de la ventana guardan el estado de la interfaz sin esperarse
+    /// unos a otros (`App.tsx` los grupos, `Sidebar.tsx` lo archivado). Dos
+    /// `fs::write` a la vez sobre el mismo archivo se mezclan: el corto escribe
+    /// encima del principio del largo y queda un JSON que no se puede leer, y
+    /// con él se pierden los grupos y lo archivado.
+    #[test]
+    fn dos_guardados_a_la_vez_no_dejan_un_json_mezclado() {
+        let dir = std::env::temp_dir().join(format!("adeorq-estado-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("adeorq-state.json");
+        let mut rotos = 0;
+        for ronda in 0..150 {
+            let barrera = std::sync::Arc::new(std::sync::Barrier::new(2));
+            let hilos: Vec<_> = [20_000usize, 50]
+                .into_iter()
+                .map(|largo| {
+                    let (f, barrera) = (f.clone(), barrera.clone());
+                    std::thread::spawn(move || {
+                        let json = format!("{{\"ronda\":{ronda},\"relleno\":\"{}\"}}", "x".repeat(largo));
+                        barrera.wait();
+                        let _ = crate::escribir_entero(&f, json.as_bytes());
+                    })
+                })
+                .collect();
+            for h in hilos {
+                h.join().unwrap();
+            }
+            let leido = std::fs::read_to_string(&f).unwrap_or_default();
+            if serde_json::from_str::<serde_json::Value>(&leido).is_err() {
+                rotos += 1;
+            }
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(rotos, 0, "{rotos} de 150 rondas dejaron el archivo sin poder leerse");
+    }
 
     #[test]
     fn a_path_cannot_climb_out_of_the_claude_folder() {

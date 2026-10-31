@@ -126,12 +126,16 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
     }, MIRA_MS);
   }, [data.noteId, editando]);
 
+  /** Lo escrito que el retardo todavía no ha llevado a disco. */
+  const sinGuardar = useRef<string | null>(null);
   /** Guarda con retardo: escribir no puede ser un viaje a disco por tecla. */
   const guardar = useCallback(
     (nuevo: string) => {
       setTexto(nuevo);
       window.clearTimeout(timer.current);
+      sinGuardar.current = nuevo;
       timer.current = window.setTimeout(() => {
+        sinGuardar.current = null;
         void noteWrite(data.noteId, nuevo).then((f) => {
           sello.current = f.stamp;
           setRuta(f.path);
@@ -141,13 +145,16 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
     [data.noteId],
   );
 
-  // Y al desmontar se guarda ya, sin esperar al retardo: cerrar la pestaña del
-  // lienzo con lo último sin escribir sería perderlo.
+  // Y al desmontar se guarda ya, sin esperar al retardo: quitar la nota con lo
+  // último sin escribir sería perderlo. Antes solo se cancelaba el retardo, y
+  // eso es justo lo que perdía las últimas teclas.
   useEffect(
     () => () => {
       window.clearTimeout(timer.current);
+      if (sinGuardar.current !== null) void noteWrite(data.noteId, sinGuardar.current).catch(() => {});
+      sinGuardar.current = null;
     },
-    [],
+    [data.noteId],
   );
 
   /** Una frase que se borra sola. El reloj es uno: con uno por frase, el de la
@@ -166,6 +173,7 @@ export default function NoteNode({ data }: NodeProps<Node<NoteData>>) {
    */
   const guardarYa = async () => {
     window.clearTimeout(timer.current);
+    sinGuardar.current = null;
     const f = await noteWrite(data.noteId, texto);
     sello.current = f.stamp;
     setRuta(f.path);

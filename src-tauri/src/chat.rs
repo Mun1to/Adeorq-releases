@@ -421,18 +421,13 @@ pub async fn chat_enviar(
     }
 
     let mut uso = Uso::default();
-    // Los trozos de red no respetan las líneas: uno puede acabar a mitad de un
-    // JSON. Se acumula y solo se procesa lo que ya tiene su salto de línea.
-    let mut resto = String::new();
+    let mut lineas = Lineas::default();
     while let Some(bytes) = res
         .chunk()
         .await
         .map_err(|e| format!("se cortó la respuesta: {e}"))?
     {
-        resto.push_str(&String::from_utf8_lossy(&bytes));
-        while let Some(corte) = resto.find('\n') {
-            let linea = resto[..corte].trim().to_string();
-            resto = resto[corte + 1..].to_string();
+        for linea in lineas.meter(&bytes) {
             let Some(dato) = linea.strip_prefix("data:") else {
                 // Los comentarios (`: keep-alive`) y las líneas vacías del
                 // protocolo no son errores: se saltan.
@@ -464,6 +459,25 @@ pub async fn chat_enviar(
         apuntar_gasto(uso.coste)?;
     }
     Ok(uso)
+}
+
+/// Los trozos de red no respetan las líneas: uno puede acabar a mitad de un
+/// JSON, y también a mitad de una letra («ñ» son dos bytes, un emoji cuatro).
+/// Por eso se acumulan BYTES y solo se pasa a texto una línea ya entera:
+/// pasando cada trozo por separado, la letra partida salía como dos `�`.
+#[derive(Default)]
+struct Lineas(Vec<u8>);
+
+impl Lineas {
+    fn meter(&mut self, trozo: &[u8]) -> Vec<String> {
+        self.0.extend_from_slice(trozo);
+        let mut enteras = Vec::new();
+        while let Some(corte) = self.0.iter().position(|b| *b == b'\n') {
+            let linea: Vec<u8> = self.0.drain(..=corte).collect();
+            enteras.push(String::from_utf8_lossy(&linea[..corte]).trim().to_string());
+        }
+        enteras
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -509,8 +523,18 @@ fn hoy() -> String {
 }
 
 fn apuntar_gasto(coste: f64) -> Result<(), String> {
-    let p = gasto_path()?;
-    let mut g: Gasto = std::fs::read_to_string(&p)
+    apuntar_gasto_en(&gasto_path()?, coste)
+}
+
+/// Leer, sumar y escribir va de uno en uno: varias conversaciones del lienzo
+/// pueden acabar a la vez, y sin esto las dos leían el mismo total (se perdía
+/// un gasto) y las dos escribían el mismo `.tmp` (el `rename` del segundo
+/// fallaba y su chat, que sí había contestado, salía con error).
+static GASTO: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn apuntar_gasto_en(p: &std::path::Path, coste: f64) -> Result<(), String> {
+    let _uno = GASTO.lock().unwrap_or_else(|e| e.into_inner());
+    let mut g: Gasto = std::fs::read_to_string(p)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default();
@@ -600,6 +624,39 @@ pub fn chat_olvidar(id: String) -> Result<(), String> {
 #[cfg(test)]
 mod pruebas {
     use super::*;
+
+    /// Varias conversaciones del lienzo pueden acabar a la vez, y cada una
+    /// apunta lo que costó: no se pierde ninguna ni falla ninguna.
+    #[test]
+    fn dos_chats_que_acaban_a_la_vez_apuntan_los_dos_gastos() {
+        let dir = std::env::temp_dir().join(format!("adeorq-gasto-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("gasto.json");
+        let _ = std::fs::remove_file(&p);
+        let hilos: Vec<_> = (0..8)
+            .map(|_| {
+                let p = p.clone();
+                std::thread::spawn(move || (0..25).filter(|_| apuntar_gasto_en(&p, 0.5).is_err()).count())
+            })
+            .collect();
+        let fallos: usize = hilos.into_iter().map(|h| h.join().unwrap()).sum();
+        let g: Gasto = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!((fallos, g.total), (0, 100.0), "fallos y total apuntado");
+    }
+
+    /// Un trozo de red puede acabar a mitad de una letra de dos bytes («ñ») o
+    /// de cuatro (un emoji). La línea tiene que llegar entera, sin `�`.
+    #[test]
+    fn una_letra_partida_entre_dos_trozos_llega_entera() {
+        let linea = "data: {\"t\":\"año 🚀\"}\n".as_bytes();
+        for corte in 1..linea.len() {
+            let mut l = Lineas::default();
+            let mut todas = l.meter(&linea[..corte]);
+            todas.extend(l.meter(&linea[corte..]));
+            assert_eq!(todas, vec!["data: {\"t\":\"año 🚀\"}".to_string()], "cortando en el byte {corte}");
+        }
+    }
 
     /// Recorte de una respuesta REAL del endpoint (2026-08-19), con solo los
     /// campos que se leen. Está aquí y no en un archivo aparte porque lo que se

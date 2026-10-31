@@ -71,6 +71,16 @@ fn ruta_espejo(project_path: &str, pane_id: &str) -> PathBuf {
     Path::new(project_path).join(DIR_ESPEJOS).join(pane_id)
 }
 
+/// Que `worktree_path` sea el espejo de ESE panel en ESE proyecto y ninguna
+/// otra carpeta. Aceptar y tirar acaban en `remove_dir_all`, que no pasa por la
+/// papelera, y la ruta llega del front: con la del proyecto, se lo llevaba.
+fn espejo_de(project_path: &str, worktree_path: &str, pane_id: &str) -> Result<(), String> {
+    if Path::new(worktree_path) != ruta_espejo(project_path, pane_id) {
+        return Err(format!("«{worktree_path}» no es el espejo de este panel, así que no lo toco."));
+    }
+    Ok(())
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ShadowFileStatus {
@@ -189,7 +199,9 @@ pub(crate) fn partir_estado(linea: &str) -> Option<(String, String)> {
 
 #[tauri::command]
 pub async fn shadow_status(worktree_path: String) -> Result<Vec<ShadowFileStatus>, String> {
-    let status_out = run_git(&worktree_path, &["status", "--porcelain"])?;
+    // Se relee en cada campana del panel, dentro del árbol donde el agente hace
+    // sus commits: sin coger su `index.lock`.
+    let status_out = run_git(&worktree_path, &["--no-optional-locks", "status", "--porcelain"])?;
     let files = status_out
         .lines()
         .filter_map(partir_estado)
@@ -215,6 +227,7 @@ pub async fn shadow_accept(
     pane_id: String,
 ) -> Result<String, String> {
     id_valido(&pane_id)?;
+    espejo_de(&project_path, &worktree_path, &pane_id)?;
     let rama = rama_de(&pane_id);
 
     // 1. Cerrar lo que el agente haya dejado suelto, en SU árbol.
@@ -273,6 +286,7 @@ pub async fn shadow_discard(
     pane_id: String,
 ) -> Result<(), String> {
     id_valido(&pane_id)?;
+    espejo_de(&project_path, &worktree_path, &pane_id)?;
     limpiar(&project_path, &worktree_path, &rama_de(&pane_id))
 }
 
@@ -314,5 +328,26 @@ mod tests {
         assert!(partir_estado("").is_none());
         assert!(partir_estado(" M").is_none());
         assert!(partir_estado(" M ").is_none());
+    }
+
+    /// Tirar el espejo borra su carpeta con `remove_dir_all`, sin papelera, y
+    /// la ruta llega del front: si llegara la del proyecto, se lo llevaba entero.
+    #[test]
+    fn tirar_el_espejo_no_borra_una_carpeta_que_no_es_el_espejo() {
+        let dir = std::env::temp_dir().join(format!("adeorq-espejo-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("tuyo.txt"), "trabajo").unwrap();
+        let p = dir.to_string_lossy().into_owned();
+
+        let r = tauri::async_runtime::block_on(super::shadow_discard(p.clone(), p.clone(), "7".into()));
+        let sigue = dir.join("tuyo.txt").exists();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(sigue, "borró la carpeta del proyecto");
+        assert!(r.is_err());
+
+        // El espejo de verdad sí pasa, escrito como lo devuelve `shadow_init`.
+        let espejo = super::ruta_espejo(&p, "7").to_string_lossy().into_owned();
+        assert!(super::espejo_de(&p, &espejo, "7").is_ok());
+        assert!(super::espejo_de(&p, &espejo, "8").is_err());
     }
 }

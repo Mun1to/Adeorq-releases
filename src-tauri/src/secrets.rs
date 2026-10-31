@@ -194,8 +194,16 @@ pub fn secret_put(key: String, value: String) -> Result<(), String> {
 /// `secret_get` era genérico y devolvía cualquier cosa que le pidieran, así que
 /// eso que dice openrouter.rs de que la clave no vuelve al front dependía de
 /// que nadie escribiera la línea que la pedía. Ahora no depende de eso.
+///
+/// Se mira el nombre en la forma en que lo guarda el almacén, no tal cual: el
+/// Gestor de Credenciales no distingue mayúsculas (`API:openai` le da la de
+/// `api:openai`) y en Linux el archivo cambia `:` por `_` (`api_openai`).
 fn es_privada(key: &str) -> bool {
-    key == "openrouter" || key.starts_with("api:")
+    let k: String = key
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '-' { c.to_ascii_lowercase() } else { '_' })
+        .collect();
+    k == "openrouter" || k.starts_with("api_")
 }
 
 #[tauri::command(async)]
@@ -283,5 +291,23 @@ mod tests {
         // ...while Rust, who actually spawns the CLI with it, still gets it.
         assert_eq!(get(key).as_deref(), Some("sk-no-debería-salir"));
         forget(key).expect("olvidar");
+    }
+
+    /// Otro nombre para el MISMO sitio del almacén también es la clave: en
+    /// Linux el archivo cambia `:` por `_` (`api_openai` es `api:openai`), y el
+    /// Gestor de Credenciales de Windows no distingue mayúsculas.
+    #[test]
+    fn el_front_no_saca_una_clave_escribiendola_de_otra_forma() {
+        let _turno = turno();
+        let key = "api:test-otra-forma";
+        put(key, "sk-tampoco").expect("guardar");
+        let sale: Vec<&str> = ["API:test-otra-forma", "Api:Test-Otra-Forma", "api_test-otra-forma", "api.test-otra-forma"]
+            .into_iter()
+            .filter(|k| secret_get(k.to_string()).is_some())
+            .collect();
+        forget(key).expect("olvidar");
+        assert!(sale.is_empty(), "el front la saca como {sale:?}");
+        assert!(es_privada("OpenRouter") && es_privada("API:claude") && es_privada("api_claude"));
+        assert!(!es_privada("brujula/refresh"));
     }
 }

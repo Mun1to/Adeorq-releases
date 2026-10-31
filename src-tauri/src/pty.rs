@@ -878,11 +878,24 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
     let mapa_waiter = mapa.clone();
     std::thread::spawn(move || {
         let code = child.wait().ok().map(|s| s.exit_code());
-        mapa_waiter.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
+        retirar(&mapa_waiter, id);
         salida.fin(id, code);
     });
 
     Ok(())
+}
+
+/// Saca del mapa un panel que ha acabado y lo suelta FUERA del candado.
+///
+/// Soltar la sesión cierra su ConPTY (`ClosePseudoConsole`), y antes de
+/// Windows 11 24H2 esa llamada puede esperar sin fin a que alguien vacíe la
+/// salida. Escrito en una línea (`mapa.lock().remove(&id);`), la sesión que
+/// devuelve `remove` se suelta ANTES que la guarda, así que esa espera pasaba
+/// con el mapa cogido, y detrás de él cada `pty_write`, que corre en el hilo
+/// de la ventana: la app entera sin teclado por un panel que ya había muerto.
+fn retirar(mapa: &Mapa, id: u32) {
+    let sesion = mapa.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
+    drop(sesion);
 }
 
 /// ==========================================================================
@@ -1202,11 +1215,16 @@ pub fn matar(mapa: &Mapa, id: u32) -> bool {
     if let (Some(pid), tx) = &panel {
         despedir_claudes(&[(*pid, tx.clone())]);
     }
-    if let Some(session) = mapa.lock().unwrap_or_else(|e| e.into_inner()).get_mut(&id) {
-        let _ = session.killer.kill();
-    }
+    // La rama ANTES que la raíz. Con la raíz ya muerta, `taskkill /T` contesta
+    // «no se encontró el proceso» y no recorre nada (medido el 2026-10-31), y
+    // sobrevivían a la X los hijos que no cuelgan de la consola del panel: un
+    // servidor lanzado oculto, el navegador de un MCP. El `kill` queda detrás
+    // para el panel sin pid y por si `taskkill` no pudo.
     if let Some(pid) = panel.0 {
         matar_rama(pid);
+    }
+    if let Some(session) = mapa.lock().unwrap_or_else(|e| e.into_inner()).get_mut(&id) {
+        let _ = session.killer.kill();
     }
     true
 }
@@ -1232,19 +1250,20 @@ pub fn despedir_todas(app: &AppHandle) {
 /// como un fallo suyo por panel.
 pub fn matar_todas(mapa: &Mapa) {
     despedir_claudes(&paneles_con_proceso(mapa));
+    // La rama antes que la raíz, como en `matar`.
     let pids: Vec<u32> = {
-        let Ok(mut map) = mapa.lock() else {
+        let Ok(map) = mapa.lock() else {
             return;
         };
-        map.values_mut()
-            .filter_map(|s| {
-                let _ = s.killer.kill();
-                s.pid
-            })
-            .collect()
+        map.values().filter_map(|s| s.pid).collect()
     };
     for pid in pids {
         matar_rama(pid);
+    }
+    if let Ok(mut map) = mapa.lock() {
+        for s in map.values_mut() {
+            let _ = s.killer.kill();
+        }
     }
 }
 
@@ -1577,6 +1596,69 @@ mod tests {
     };
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
+
+    /// Cerrar el ConPTY de un panel acabado puede tardar (o no volver, antes de
+    /// Windows 11 24H2), y mientras tanto el mapa tiene que seguir libre: si no,
+    /// la siguiente tecla de cualquier panel se queda esperándolo en el hilo de
+    /// la ventana. Aquí lo lento de soltar es el `killer`, que se suelta con la
+    /// sesión entera igual que el ConPTY: un `Drop` que espera una señal.
+    #[test]
+    fn soltar_un_panel_acabado_no_retiene_el_mapa() {
+        use portable_pty::{native_pty_system, ChildKiller, PtySize};
+        use std::sync::{mpsc, Arc};
+        use std::time::Duration;
+
+        #[derive(Debug)]
+        struct CierreLento {
+            empieza: mpsc::Sender<()>,
+            sigue: Mutex<mpsc::Receiver<()>>,
+        }
+        impl Drop for CierreLento {
+            fn drop(&mut self) {
+                let _ = self.empieza.send(());
+                let _ = self.sigue.lock().unwrap().recv_timeout(Duration::from_secs(5));
+            }
+        }
+        impl ChildKiller for CierreLento {
+            fn kill(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+            fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+                unreachable!()
+            }
+        }
+
+        let (empieza_tx, empieza_rx) = mpsc::channel();
+        let (sigue_tx, sigue_rx) = mpsc::channel();
+        let par = native_pty_system()
+            .openpty(PtySize { rows: 24, cols: 80, pixel_width: 0, pixel_height: 0 })
+            .expect("no se abrió el pty");
+        let mapa: super::Mapa = Default::default();
+        mapa.lock().unwrap().insert(
+            5,
+            super::PtySession {
+                master: Arc::new(Mutex::new(par.master)),
+                tx_entrada: mpsc::channel().0,
+                killer: Box::new(CierreLento { empieza: empieza_tx, sigue: Mutex::new(sigue_rx) }),
+                pid: None,
+                cwd: String::new(),
+                command: None,
+                history: Arc::new(Mutex::new(String::new())),
+                pantalla_alternativa: Arc::new(AtomicBool::new(false)),
+                pegado: Arc::new(AtomicBool::new(false)),
+            },
+        );
+
+        let otro = mapa.clone();
+        let hilo = std::thread::spawn(move || super::retirar(&otro, 5));
+        empieza_rx.recv_timeout(Duration::from_secs(5)).expect("no llegó a cerrar el panel");
+        // El cierre está a medias: el mapa tiene que estar libre.
+        let libre = mapa.try_lock().is_ok();
+        sigue_tx.send(()).unwrap();
+        hilo.join().unwrap();
+        assert!(libre, "el cierre del ConPTY pasaba con el candado del mapa cogido");
+        assert!(mapa.lock().unwrap().is_empty());
+    }
 
     /// Quién hace el scroll en un panel, leído del propio flujo de bytes.
     ///
@@ -3318,5 +3400,49 @@ mod motor {
         assert!(matar(&mapa, 1));
         assert!(hasta(|| apuntes.fin.lock().unwrap().is_some(), 8000), "matar no terminó el proceso");
         assert!(!matar(&mapa, 1), "matar lo que ya no está no es nada");
+    }
+
+    /// La X se lleva también a los hijos que no cuelgan de la consola del
+    /// panel: un servidor que un agente lanzó oculto, un navegador. A esos no
+    /// los mata cerrar el ConPTY, solo `taskkill /T`, y con la raíz ya muerta
+    /// `taskkill` contesta «no se encontró el proceso» sin recorrer la rama.
+    #[test]
+    fn matar_se_lleva_a_los_hijos_con_consola_propia() {
+        let mapa: Mapa = Default::default();
+        let apuntes = Arc::new(Apuntes::default());
+        let alta = Alta {
+            id: 2,
+            cwd: std::env::temp_dir().to_string_lossy().into_owned(),
+            cols: 80,
+            rows: 24,
+            command: Some(vec![
+                "powershell.exe".into(),
+                "-NoProfile".into(),
+                "-Command".into(),
+                "Start-Process ping.exe -ArgumentList '-n','62','127.0.0.1' -WindowStyle Hidden -Wait".into(),
+            ]),
+            env: None,
+        };
+        abrir(&mapa, alta, Arc::new(Libreta(apuntes.clone()))).unwrap();
+        if hasta(|| apuntes.datos.lock().unwrap().contains("\x1b[6n"), 8000) {
+            escribir(&mapa, 2, b"\x1b[1;1R".to_vec()).unwrap();
+        }
+        let raiz = fichas_de(&mapa)[0].pid.expect("sin pid");
+        let hijo = || {
+            crate::pulso::foto_procesos()
+                .into_iter()
+                .find(|(_, padre, nombre)| *padre == raiz && nombre.eq_ignore_ascii_case("ping.exe"))
+                .map(|(pid, ..)| pid)
+        };
+        assert!(hasta(|| hijo().is_some(), 15000), "no arrancó el ping");
+        let ping = hijo().unwrap();
+
+        assert!(matar(&mapa, 2));
+        let vivo = || crate::pulso::foto_procesos().iter().any(|(pid, ..)| *pid == ping);
+        let murio = hasta(|| !vivo(), 5000);
+        if !murio {
+            matar_rama(ping);
+        }
+        assert!(murio, "el hijo con consola propia sobrevivió a la X");
     }
 }

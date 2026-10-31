@@ -1067,6 +1067,14 @@ function App() {
         setTecladoReq((prev) => ({ id: abierto.id, n: (prev?.n ?? 0) + 1 }));
         return;
       }
+      // Ni en el Lienzo: el escaneo tarda hasta 45 s en darla por viva, y en
+      // ese hueco se abría aquí un segundo `--resume` de la misma conversación.
+      const enLienzo = canvasPanesRef.current.find((p) => sessionIdOf(p.command) === s.id);
+      if (enLienzo) {
+        setView("lienzo");
+        setTecladoReq((prev) => ({ id: enLienzo.id, n: (prev?.n ?? 0) + 1 }));
+        return;
+      }
       // Viva FUERA de Adeorq (la app de escritorio, otra terminal, otro
       // Adeorq). Aquí no se puede saltar a ella porque no es nuestra, así que
       // se dice y no se abre: abrirla es exactamente lo que la cuelga.
@@ -2244,6 +2252,7 @@ function App() {
         addPane(`${name} · ${account.provider}`, cwd, providerCommand(account.provider), undefined, account),
     },
     delLienzo: canvasPanes,
+    deLaCabina: panes,
     irAlLienzo: (id) => irATerminal(id, true),
     retomar: comoRetomar,
     arranque: providerCommand,

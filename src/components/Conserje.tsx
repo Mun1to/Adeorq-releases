@@ -506,7 +506,16 @@ export function HiloConserje({
   /** Lo que había antes de pulsar Mejorar, para poder deshacerlo. */
   const [antes, setAntes] = useState<string | null>(null);
   const [mejorando, setMejorando] = useState(false);
-  const [pensando, setPensando] = useState(false);
+  /** Las conversaciones que están esperando al conserje, y no un sí o no para
+      todas: este hilo NO se vuelve a montar al elegir otra de la lista, solo
+      cambia su `id`, y con un solo «pensando» la de al lado salía pensando, no
+      dejaba mandar, y se saltaba lo que llegaba de la caja del Panel. */
+  const [enviandoEn, setEnviandoEn] = useState<ReadonlySet<string>>(() => new Set());
+  const pensando = enviandoEn.has(id);
+  /** La que está abierta AHORA, para que un envío que vuelve no escriba su
+      aviso ni su error en otra (su «Reintentar» mandaría el mensaje allí). */
+  const abiertaRef = useRef(id);
+  abiertaRef.current = id;
   /** Sube con cada mensaje que mandas: la mascota lo mira salir. */
   const [envios, setEnvios] = useState(0);
   const [paso, setPaso] = useState("");
@@ -639,12 +648,18 @@ export function HiloConserje({
     setPaso("");
     setPendiente(txt);
     setEnvios((n) => n + 1);
-    setPensando(true);
+    const de = id;
+    setEnviandoEn((s) => new Set(s).add(de));
     // El mismo camino que usa el móvil (`lib/conserjeEnvio.ts`).
-    const r = await enviarAlConserje(id, txt, { exec, conv, fijo, alCambio: onCambio });
+    const r = await enviarAlConserje(de, txt, { exec, conv, fijo, alCambio: onCambio });
+    setEnviandoEn((s) => {
+      const sin = new Set(s);
+      sin.delete(de);
+      return sin;
+    });
+    if (abiertaRef.current !== de) return;
     if (r.aviso) setAviso(r.aviso);
     if (r.error) setFallo({ texto: txt, error: r.error });
-    setPensando(false);
     setPaso("");
   };
 

@@ -84,6 +84,110 @@ pub(crate) fn claude_exe() -> PathBuf {
     PathBuf::from("claude")
 }
 
+/// Un `claude -p` del Capataz, SIN el prompt: va por la entrada (`dar_prompt`),
+/// que `claude -p` lee cuando no lleva el texto detrás. En la línea no cabía:
+/// Windows no lanza un proceso cuya línea pase de 32.767 caracteres, y el
+/// esqueleto de un proyecto grande, la lista del taller o el contexto de un
+/// panel la pasan. Lo que se veía era «no pude lanzar claude». Lo mismo que el
+/// conserje (`orden_claude` en `conserje.rs`).
+fn claude_p(args: &[&str]) -> std::process::Command {
+    let mut cmd = std::process::Command::new(claude_exe());
+    cmd.arg("-p").args(args).stdin(std::process::Stdio::piped());
+    cmd
+}
+
+/// El prompt, por la entrada y desde otro hilo: uno más grande que la tubería
+/// bloquearía a quien lo escribe. Al soltarla se cierra, y eso es lo que le
+/// dice a `claude` que ya está todo.
+fn dar_prompt(child: &mut std::process::Child, prompt: String) {
+    use std::io::Write;
+    if let Some(mut entrada) = child.stdin.take() {
+        std::thread::spawn(move || {
+            let _ = entrada.write_all(prompt.as_bytes());
+        });
+    }
+}
+
+/// La orden del mapa de un proyecto (o del taller entero, con `taller`).
+fn orden_mapa(taller: bool, sesion: &str) -> std::process::Command {
+    let mut cmd = claude_p(
+        &[
+            "--model",
+            MAPA_MODEL,
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--strict-mcp-config",
+            // Con nombre nuestro para poder borrarle el transcript: ver `SinRastro`.
+            "--session-id",
+            sesion,
+        ],
+    );
+    // Manos SOLO cuando hay que leer código. Para el taller la lista viene
+    // ya masticada desde Rust (`resumen_taller`), así que darle herramientas
+    // sería invitarle a recorrer veintiocho proyectos para averiguar lo que
+    // ya se le ha dicho: la primera prueba pasó de los seis minutos y no
+    // llegó a terminar (2026-08-14).
+    if !taller {
+        cmd.args(["--allowedTools", "Read", "Glob", "Grep"]);
+    }
+    cmd.args(["--disallowedTools", "Bash", "Write", "Edit", "NotebookEdit", "WebFetch", "WebSearch", "Task"]);
+    cmd
+}
+
+/// La orden del Capataz con manos: las herramientas de `manos` y ninguna más.
+fn orden_agente(modelo: &str, cfg: &Path, manos: &[String], sesion: &str) -> std::process::Command {
+    let mut cmd = claude_p(&["--model", modelo, "--output-format", "json"]);
+    // Con nombre nuestro para poder borrarle el transcript: ver `SinRastro`.
+    cmd.args(["--session-id", sesion])
+        // Solo el de Adeorq: los servidores que Munir tenga en su config
+        // global no pintan nada aquí y cada uno suma arranque.
+        .arg("--strict-mcp-config")
+        .arg("--mcp-config")
+        .arg(cfg)
+        .arg("--allowedTools");
+    for m in manos {
+        cmd.arg(m);
+    }
+    // Y la puerta de atrás, cerrada. `--allowedTools` dice qué SÍ, pero las
+    // de solo lectura de Claude Code no necesitan permiso, así que sin esto
+    // el Capataz podría leerse el disco entero para responder «¿en qué
+    // proyectos estoy?». Que solo pueda tocar Adeorq es media promesa si la
+    // otra media se la salta por un camino que nadie miró.
+    cmd.arg("--disallowedTools")
+        .args(["Bash", "Write", "Edit", "NotebookEdit", "WebFetch", "WebSearch", "Task"]);
+    cmd
+}
+
+/// La orden de una pregunta suelta, sin herramientas.
+fn orden_plan(modelo: &str, sesion: &str) -> std::process::Command {
+    // `--strict-mcp-config` sin ningún `--mcp-config` = CERO servidores
+    // MCP. Munir tiene el de Adeorq puesto en global, así que cada
+    // llamada del Capataz lo levantaba entero para no llamarlo jamás:
+    // esto pide un JSON, no usa una sola herramienta. Medido el
+    // 2026-08-09 con el mismo prompt: 6,75 s → 5,19 s, y el tiempo de
+    // API idéntico (~2 s), o sea que el segundo y medio era todo
+    // arranque. Sube solo si él conecta más servidores.
+    //
+    // ⚠ Y NO se usa `--bare`, que promete justo esto y más: su ayuda
+    // dice que con él «OAuth y el llavero nunca se leen», y aquí se
+    // entra con la suscripción de Munir, sin API key en ninguna parte
+    // (regla de la casa). Con `--bare` el Capataz no se autenticaría.
+    claude_p(
+        &[
+            "--model",
+            modelo,
+            "--output-format",
+            "json",
+            "--strict-mcp-config",
+            // Con nombre nuestro para poder borrarle el transcript después:
+            // ver `SinRastro`.
+            "--session-id",
+            sesion,
+        ],
+    )
+}
+
 /// Una sesión de usar y tirar, que se lleva su rastro al morir.
 ///
 /// Cada `claude -p` del Capataz archiva un transcript en `~/.claude/projects`
@@ -434,48 +538,16 @@ pub async fn foreman_mapa(
         use tauri::Emitter;
 
         let sesion = SinRastro::nueva();
-        let mut cmd = std::process::Command::new(claude_exe());
-        cmd.args([
-            "-p",
-            &prompt,
-            "--model",
-            MAPA_MODEL,
-            "--output-format",
-            "stream-json",
-            "--verbose",
-            "--strict-mcp-config",
-            // Con nombre nuestro para poder borrarle el transcript: ver `SinRastro`.
-            "--session-id",
-            sesion.id(),
-        ]);
-        // Manos SOLO cuando hay que leer código. Para el taller la lista viene
-        // ya masticada desde Rust (`resumen_taller`), así que darle herramientas
-        // sería invitarle a recorrer veintiocho proyectos para averiguar lo que
-        // ya se le ha dicho: la primera prueba pasó de los seis minutos y no
-        // llegó a terminar (2026-08-14).
-        if !taller {
-            cmd.args(["--allowedTools", "Read", "Glob", "Grep"]);
-        }
-        let mut child = cmd
-            .args([
-                "--disallowedTools",
-                "Bash",
-                "Write",
-                "Edit",
-                "NotebookEdit",
-                "WebFetch",
-                "WebSearch",
-                "Task",
-            ])
+        let mut child = orden_mapa(taller, sesion.id())
             // Desde el proyecto que se mira: es lo que hace que un `Read` con
             // una ruta relativa del esqueleto encuentre el archivo.
             .current_dir(&ruta)
             .sin_ventana()
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
-            .stdin(std::process::Stdio::null())
             .spawn()
             .map_err(|e| format!("no pude lanzar claude: {e}"))?;
+        dar_prompt(&mut child, prompt);
 
         let salida = child.stdout.take().ok_or("claude no dio salida")?;
         let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
@@ -638,34 +710,14 @@ pub async fn foreman_agente(
 
     tauri::async_runtime::spawn_blocking(move || {
         let sesion = SinRastro::nueva();
-        let mut cmd = std::process::Command::new(claude_exe());
-        cmd.args(["-p", &prompt, "--model", &modelo, "--output-format", "json"])
-            // Con nombre nuestro para poder borrarle el transcript: ver `SinRastro`.
-            .args(["--session-id", sesion.id()])
-            // Solo el de Adeorq: los servidores que Munir tenga en su config
-            // global no pintan nada aquí y cada uno suma arranque.
-            .arg("--strict-mcp-config")
-            .arg("--mcp-config")
-            .arg(&cfg)
-            .arg("--allowedTools");
-        for m in &manos {
-            cmd.arg(m);
-        }
-        // Y la puerta de atrás, cerrada. `--allowedTools` dice qué SÍ, pero las
-        // de solo lectura de Claude Code no necesitan permiso, así que sin esto
-        // el Capataz podría leerse el disco entero para responder «¿en qué
-        // proyectos estoy?». Que solo pueda tocar Adeorq es media promesa si la
-        // otra media se la salta por un camino que nadie miró.
-        cmd.arg("--disallowedTools")
-            .args(["Bash", "Write", "Edit", "NotebookEdit", "WebFetch", "WebSearch", "Task"]);
-        let mut child = cmd
+        let mut child = orden_agente(&modelo, &cfg, &manos, sesion.id())
             .current_dir(crate::workspace::raiz_por_defecto())
             .sin_ventana()
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
-            .stdin(std::process::Stdio::null())
             .spawn()
             .map_err(|e| format!("no pude lanzar claude: {e}"))?;
+        dar_prompt(&mut child, prompt);
 
         // Más margen que los otros tres oficios, y no por capricho: este da
         // varias vueltas de mirar y pensar, así que el reloj de una llamada
@@ -733,41 +785,16 @@ async fn preguntar(prompt: String) -> Result<String, String> {
 pub(crate) async fn preguntar_con(prompt: String, modelo: &'static str) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let sesion = SinRastro::nueva();
-        let mut child = std::process::Command::new(claude_exe())
-            // `--strict-mcp-config` sin ningún `--mcp-config` = CERO servidores
-            // MCP. Munir tiene el de Adeorq puesto en global, así que cada
-            // llamada del Capataz lo levantaba entero para no llamarlo jamás:
-            // esto pide un JSON, no usa una sola herramienta. Medido el
-            // 2026-08-09 con el mismo prompt: 6,75 s → 5,19 s, y el tiempo de
-            // API idéntico (~2 s), o sea que el segundo y medio era todo
-            // arranque. Sube solo si él conecta más servidores.
-            //
-            // ⚠ Y NO se usa `--bare`, que promete justo esto y más: su ayuda
-            // dice que con él «OAuth y el llavero nunca se leen», y aquí se
-            // entra con la suscripción de Munir, sin API key en ninguna parte
-            // (regla de la casa). Con `--bare` el Capataz no se autenticaría.
-            .args([
-                "-p",
-                &prompt,
-                "--model",
-                modelo,
-                "--output-format",
-                "json",
-                "--strict-mcp-config",
-                // Con nombre nuestro para poder borrarle el transcript después:
-                // ver `SinRastro`.
-                "--session-id",
-                sesion.id(),
-            ])
+        let mut child = orden_plan(modelo, sesion.id())
             // Desde la carpeta de proyectos del usuario, no desde una fija: en
             // un equipo sin `C:\proyectos` esto no llegaba ni a lanzarse.
             .current_dir(crate::workspace::raiz_por_defecto())
             .sin_ventana()
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
-            .stdin(std::process::Stdio::null())
             .spawn()
             .map_err(|e| format!("no pude lanzar claude: {e}"))?;
+        dar_prompt(&mut child, prompt);
 
         let start = Instant::now();
         loop {
@@ -810,21 +837,13 @@ pub(crate) async fn preguntar_con(prompt: String, modelo: &'static str) -> Resul
 }
 
 /// Writes the MISION.md brief inside a project (Antigravity + Claude teams
-/// coordinate through it). Path must stay under C:\proyectos.
+/// coordinate through it). Path must stay under the projects folder.
 #[tauri::command(async)]
 pub fn write_mission(project_path: String, content: String) -> Result<String, String> {
-    let base = Path::new(&project_path);
-    let canon = base
-        .canonicalize()
-        .map_err(|e| format!("ruta inválida: {e}"))?;
-    let ok = canon
-        .to_string_lossy()
-        .to_lowercase()
-        .trim_start_matches("\\\\?\\")
-        .starts_with("c:\\proyectos");
-    if !ok {
-        return Err("la ruta queda fuera de C:\\proyectos".into());
-    }
+    // Dentro de la carpeta de proyectos que tenga puesta, comparando por trozos
+    // de ruta: con el texto, `C:\proyectos-copia` contaba como dentro, y en
+    // Linux o con otra raíz no valía ninguna.
+    let (_, canon) = crate::workspace::en_proyectos(&project_path)?;
     let target = canon.join("MISION.md");
     std::fs::write(&target, content).map_err(|e| e.to_string())?;
     Ok(target
@@ -836,6 +855,25 @@ pub fn write_mission(project_path: String, content: String) -> Result<String, St
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Windows no lanza un proceso cuya línea de órdenes pase de 32.767
+    /// caracteres, y el esqueleto de un proyecto grande, la lista del taller o
+    /// el contexto de un panel la pasan: el prompt no puede ir detrás de `-p`.
+    #[test]
+    fn el_prompt_del_capataz_no_va_en_la_linea_de_ordenes() {
+        let cfg = Path::new("C:/a/mcp.json");
+        let manos = vec!["mcp__adeorq__get_projects".to_string()];
+        for (nombre, cmd) in [
+            ("mapa", orden_mapa(false, "id")),
+            ("taller", orden_mapa(true, "id")),
+            ("agente", orden_agente("sonnet", cfg, &manos, "id")),
+            ("plan", orden_plan("sonnet", "id")),
+        ] {
+            let largo: usize = cmd.get_args().map(|a| a.len() + 3).sum::<usize>() + cmd.get_program().len();
+            assert!(largo < 4_000, "la orden del {nombre} mide {largo} caracteres");
+            assert_eq!(cmd.get_args().nth(1).and_then(|a| a.to_str()), Some("--model"), "{nombre}: el prompt no va detrás de -p");
+        }
+    }
 
     /// Con la app en inglés y alguien que no es Munir, el Capataz escribe el
     /// encargo en inglés sin traducir lo que el formato pide tal cual (las

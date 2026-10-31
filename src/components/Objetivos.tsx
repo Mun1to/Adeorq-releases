@@ -371,6 +371,9 @@ export function ObjetivosFlotante({ onCerrar }: { onCerrar: () => void }) {
     return () => {
       window.removeEventListener("mousemove", alMover);
       window.removeEventListener("mouseup", alSoltar);
+      // Cerrado a medio arrastre (Escape): sin esto la app entera se quedaba sin
+      // poder seleccionar texto y con el cursor de agarre.
+      if (arrastre.current) document.body.classList.remove("arrastrando");
     };
   }, []);
 

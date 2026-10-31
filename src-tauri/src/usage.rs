@@ -19,9 +19,9 @@ const LIMITS_TIMEOUT: Duration = Duration::from_secs(60);
 pub fn config_root(config_dir: Option<&str>) -> Option<PathBuf> {
     match config_dir {
         Some(dir) if !dir.trim().is_empty() => Some(PathBuf::from(dir)),
-        _ => std::env::var("USERPROFILE")
-            .ok()
-            .map(|h| Path::new(&h).join(".claude")),
+        // `dir_casa` y no `USERPROFILE`, que en Linux no existe: sin la cuenta
+        // principal, el borrado de los transcripts del Capataz no borraba nada.
+        _ => crate::dir_casa().map(|h| h.join(".claude")),
     }
 }
 
@@ -503,6 +503,15 @@ pub async fn usage_limits(config_dir: Option<String>) -> Result<Limits, String> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// La cuenta principal cuelga de la carpeta del usuario, que en Linux es
+    /// `HOME`: con `USERPROFILE`, que allí no existe, salía `None`, y el uso, el
+    /// plan y el borrado de los transcripts del Capataz se quedaban sin cuenta.
+    #[test]
+    fn la_cuenta_principal_cuelga_de_la_carpeta_del_usuario() {
+        assert!(crate::dir_casa().is_some());
+        assert_eq!(config_root(None), crate::dir_casa().map(|h| h.join(".claude")));
+    }
 
     /// La cuota de CADA cuenta, contra las cuentas de verdad de esta máquina.
     ///

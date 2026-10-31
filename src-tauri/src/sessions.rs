@@ -20,6 +20,8 @@ use windows_sys::Win32::System::Threading::{
 // Titles and state markers sit near the end of the transcript; reading the
 // whole file would mean loading 24 MB transcripts on every scan.
 const TAIL_BYTES: u64 = 1_500_000;
+/// Hasta dónde se agranda la ventana cuando la última línea no cabe en ella.
+const TAIL_MAX: u64 = 24_000_000;
 const SLEEP_H: f64 = 48.0;
 const DEAD_H: f64 = 24.0 * 7.0;
 #[cfg(windows)]
@@ -162,14 +164,27 @@ pub(crate) fn read_tail(path: &Path) -> std::io::Result<Arc<Vec<String>>> {
 fn leer_cola(path: &Path, size: u64) -> std::io::Result<Vec<String>> {
     let mut f = std::fs::File::open(path)?;
     let mut data = Vec::new();
-    if size > TAIL_BYTES {
-        f.seek(SeekFrom::Start(size - TAIL_BYTES))?;
+    let mut ventana = TAIL_BYTES;
+    loop {
+        if size <= ventana {
+            f.seek(SeekFrom::Start(0))?;
+            data.clear();
+            f.read_to_end(&mut data)?;
+            break;
+        }
+        f.seek(SeekFrom::Start(size - ventana))?;
+        data.clear();
         f.read_to_end(&mut data)?;
         if let Some(cut) = data.iter().position(|&b| b == b'\n') {
             data.drain(..=cut);
         }
-    } else {
-        f.read_to_end(&mut data)?;
+        // Una última línea más larga que la ventana (un mensaje con capturas
+        // pegadas) se llevaba el corte a su salto final y no dejaba ninguna:
+        // la sesión desaparecía de la barra. Se mira más atrás, con techo.
+        if data.iter().any(|b| !b.is_ascii_whitespace()) || ventana >= TAIL_MAX {
+            break;
+        }
+        ventana = (ventana * 4).min(TAIL_MAX);
     }
     Ok(String::from_utf8_lossy(&data)
         .lines()
@@ -1558,12 +1573,18 @@ pub fn find_agy() -> Option<String> {
         }
     }
     // Last resort: anything named agy on the PATH.
-    std::env::var("PATH").ok().and_then(|path| {
-        path.split(';')
-            .map(|dir| Path::new(dir).join("agy.exe"))
-            .find(|p| p.exists())
-            .map(|p| p.to_string_lossy().into_owned())
-    })
+    agy_en_path(&std::env::var_os("PATH")?)
+}
+
+/// `agy` en un PATH. Partido como lo parte el sistema (`;` en Windows, `:` en
+/// Linux) y con el nombre de cada uno: con `split(';')` y `agy.exe` a mano, en
+/// Linux no se encontraba nunca uno instalado en `/usr/local/bin`.
+fn agy_en_path(path: &std::ffi::OsStr) -> Option<String> {
+    let nombre = if cfg!(windows) { "agy.exe" } else { "agy" };
+    std::env::split_paths(path)
+        .map(|dir| dir.join(nombre))
+        .find(|p| p.is_file())
+        .map(|p| p.to_string_lossy().into_owned())
 }
 
 /// "claude-opus-4-8" -> "Opus 4.8", "claude-sonnet-5[1m]" -> "Sonnet 5".
@@ -2003,6 +2024,9 @@ pub(crate) fn transcript_de(cwd: &str, session_id: Option<&str>) -> Option<PathB
         .into_iter()
         .map(|(_, r)| r.join("projects").join(encode_claude(cwd)));
     match session_id.filter(|id| !id.is_empty()) {
+        // El id llega del front y va a una ruta: con barras, «..» o una ruta
+        // entera (que `join` toma tal cual) se leía cualquier `.jsonl` del disco.
+        Some(id) if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') => None,
         Some(id) => carpetas
             .map(|d| d.join(format!("{id}.jsonl")))
             .find(|p| p.exists()),
@@ -2748,6 +2772,55 @@ pub fn open_in_antigravity(path: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
 
+
+    /// `agy` en el PATH, partido como lo parte el sistema y con su nombre de
+    /// allí: en Linux el separador es `:` y el programa no lleva `.exe`.
+    #[test]
+    fn agy_se_encuentra_en_el_path_de_cada_sistema() {
+        let base = std::env::temp_dir().join(format!("adeorq-agy-{}", std::process::id()));
+        let (vacia, con_agy) = (base.join("vacia"), base.join("bin"));
+        std::fs::create_dir_all(&vacia).unwrap();
+        std::fs::create_dir_all(&con_agy).unwrap();
+        let exe = con_agy.join(if cfg!(windows) { "agy.exe" } else { "agy" });
+        std::fs::write(&exe, "").unwrap();
+        let path = std::env::join_paths([&vacia, &con_agy]).unwrap();
+        let hallado = agy_en_path(&path);
+        let solo_vacia = agy_en_path(vacia.as_os_str());
+        let _ = std::fs::remove_dir_all(&base);
+        assert_eq!(hallado.as_deref(), Some(exe.to_string_lossy().as_ref()));
+        assert_eq!(solo_vacia, None);
+    }
+
+    /// El id de sesión llega del front y acaba en una ruta: con barras o «..»
+    /// (o una ruta entera, que `join` toma tal cual), `last_reply`,
+    /// `session_context` y compañía leían cualquier `.jsonl` del disco.
+    #[test]
+    fn un_id_de_sesion_con_ruta_no_sale_de_su_carpeta() {
+        let dir = std::env::temp_dir().join(format!("adeorq-fuera-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("ajeno.jsonl"), "{}\n").unwrap();
+        let id = dir.join("ajeno").to_string_lossy().into_owned();
+        let encontrado = transcript_de("C:/cualquiera", Some(&id));
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(encontrado, None, "leyó un transcript fuera de ~/.claude");
+    }
+
+    /// Una última línea más larga que la ventana (un mensaje con capturas
+    /// pegadas): el corte caía en su salto final y no quedaba ninguna línea, y
+    /// la sesión desaparecía de la barra hasta que llegara la siguiente.
+    #[test]
+    fn una_ultima_linea_gigante_no_deja_la_cola_vacia() {
+        let dir = std::env::temp_dir().join(format!("adeorq-cola-gigante-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("transcript.jsonl");
+        let mut texto = String::from("{\"type\":\"user\",\"sessionId\":\"a\",\"cwd\":\"C:/x\"}\n");
+        texto.push_str(&format!("{{\"type\":\"user\",\"imagen\":\"{}\"}}\n", "A".repeat(1_600_000)));
+        std::fs::write(&f, &texto).unwrap();
+        let lineas = leer_cola(&f, texto.len() as u64).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(lineas.iter().any(|l| l.contains("\"sessionId\":\"a\"")), "la cola salió con {} líneas", lineas.len());
+        assert!(lineas.last().is_some_and(|l| l.ends_with("\"}")), "la línea gigante tiene que salir entera");
+    }
 
     /// El caché de la cola no puede servir lo de antes cuando el archivo ha
     /// crecido, que es lo único que lo haría peligroso: un transcript que crece

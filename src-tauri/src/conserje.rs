@@ -876,7 +876,12 @@ pub fn filtrar(
                 }
                 let ruta = std::path::PathBuf::from(carpeta.trim());
                 let plana = ruta.to_string_lossy().to_lowercase().replace('/', "\\");
-                if !plana.starts_with(&raiz_plana) || plana.contains("..") || !existe(&ruta) {
+                // Detrás de la raíz, una barra o nada: con un `starts_with` a
+                // secas, `C:\proyectos-copia` pasaba por `C:\proyectos`.
+                let dentro = plana.strip_prefix(&raiz_plana).is_some_and(|resto| {
+                    resto.is_empty() || resto.starts_with('\\') || raiz_plana.ends_with('\\')
+                });
+                if !dentro || plana.contains("..") || !existe(&ruta) {
                     fuera.push(format!("«{}» no es una carpeta de tus proyectos", carpeta.trim()));
                     continue;
                 }
@@ -1450,6 +1455,27 @@ pub async fn conserje_enviar(
     Ok(Respuesta { texto: dice, acciones, descartes })
 }
 
+/// La línea de órdenes de `correr`, SIN el prompt: va por la entrada, que
+/// `claude -p` lee cuando no lleva el texto detrás. En la línea no cabía:
+/// Windows no lanza un proceso cuya línea pase de 32.767 caracteres, y el
+/// contexto de una conversación larga (24.000) más un mensaje largo del móvil
+/// (16.000) la pasaban. Lo que se veía era «no pude lanzar claude».
+fn orden_claude(modelo: &str, cfg: Option<&std::path::Path>, sesion: &str) -> std::process::Command {
+    let mut cmd = std::process::Command::new(crate::foreman::claude_exe());
+    cmd.args(["-p", "--model", modelo, "--output-format", "stream-json", "--verbose"])
+        .args(["--session-id", sesion])
+        .arg("--strict-mcp-config");
+    if let Some(cfg) = cfg {
+        cmd.arg("--mcp-config").arg(cfg).arg("--allowedTools");
+        for m in MANOS {
+            cmd.arg(m);
+        }
+    }
+    cmd.arg("--disallowedTools")
+        .args(["Bash", "Write", "Edit", "NotebookEdit", "WebFetch", "WebSearch", "Task", "Read", "Glob", "Grep"]);
+    cmd
+}
+
 /// La llamada de verdad: `claude -p` con la suscripción de Munir, las manos de
 /// mirar y recordar, y cada paso contado mientras ocurre.
 ///
@@ -1474,26 +1500,23 @@ fn correr(
     use std::io::BufRead;
 
     let sesion = crate::foreman::SinRastro::nueva();
-    let mut cmd = std::process::Command::new(crate::foreman::claude_exe());
-    cmd.args(["-p", prompt, "--model", modelo, "--output-format", "stream-json", "--verbose"])
-        .args(["--session-id", sesion.id()])
-        .arg("--strict-mcp-config");
-    if let Some(cfg) = cfg {
-        cmd.arg("--mcp-config").arg(cfg).arg("--allowedTools");
-        for m in MANOS {
-            cmd.arg(m);
-        }
-    }
-    cmd.arg("--disallowedTools")
-        .args(["Bash", "Write", "Edit", "NotebookEdit", "WebFetch", "WebSearch", "Task", "Read", "Glob", "Grep"]);
+    let mut cmd = orden_claude(modelo, cfg, sesion.id());
     let mut child = cmd
         .current_dir(crate::workspace::raiz_por_defecto())
         .sin_ventana()
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
-        .stdin(std::process::Stdio::null())
+        .stdin(std::process::Stdio::piped())
         .spawn()
         .map_err(|e| format!("no pude lanzar claude: {e}"))?;
+
+    // Desde otro hilo, y al soltarla se cierra, que es lo que le dice que ya
+    // está todo: un prompt más grande que la tubería bloquearía este hilo.
+    let mut entrada = child.stdin.take().ok_or("no se abrió su entrada")?;
+    let texto = prompt.to_string();
+    std::thread::spawn(move || {
+        let _ = entrada.write_all(texto.as_bytes());
+    });
 
     let salida = child.stdout.take().ok_or("claude no dio salida")?;
     let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
@@ -1907,6 +1930,18 @@ mod tests {
         Quien { nombre: nombre.into(), idioma: idioma.into() }
     }
 
+    /// Windows no lanza un proceso cuya línea de órdenes pase de 32.767
+    /// caracteres (CreateProcessW; medido: «el nombre del archivo o la
+    /// extensión es demasiado largo»). Una conversación larga lleva 24.000 de
+    /// contexto, y el móvil deja mandar 16.000 más: el prompt no puede ir ahí.
+    #[test]
+    fn un_prompt_largo_no_va_en_la_linea_de_ordenes() {
+        let cmd = orden_claude("sonnet", Some(std::path::Path::new("C:/a/mcp.json")), "id");
+        let largo: usize = cmd.get_args().map(|a| a.len() + 3).sum::<usize>() + cmd.get_program().len();
+        assert!(largo < 4_000, "la línea de órdenes mide {largo} caracteres");
+        assert_eq!(cmd.get_args().nth(1).and_then(|a| a.to_str()), Some("--model"), "el prompt no va detrás de -p");
+    }
+
     #[test]
     fn a_munir_en_espanol_no_se_le_anade_nada() {
         for q in [quien("Munir", "es"), quien("munir", "es"), quien("Munir Torres", "es"), quien("", "es"), quien("  ", ""), Quien::default()] {
@@ -2189,6 +2224,24 @@ mod tests {
         );
         assert_eq!(buenas.len(), 1, "solo la de dentro de proyectos");
         assert_eq!(fuera.len(), 2);
+    }
+
+    /// Una carpeta hermana cuyo nombre EMPIEZA como la raíz no está dentro:
+    /// `C:\proyectos-copia` no es de `C:\proyectos`.
+    #[test]
+    fn la_reja_no_confunde_una_carpeta_hermana_con_la_raiz() {
+        let todo_existe = |_: &std::path::Path| true;
+        let (buenas, fuera) = filtrar(
+            vec![abrir("C:\\proyectos-copia\\algo"), abrir("C:\\proyectosX"), abrir("C:\\proyectos"), abrir("C:/proyectos/Adeorq")],
+            &con(1),
+            std::path::Path::new("C:\\proyectos"),
+            &todo_existe,
+        );
+        assert_eq!(buenas.len(), 2, "la raíz y lo de dentro, sí; las hermanas, no: {fuera:?}");
+        assert_eq!(fuera.len(), 2);
+        // Una raíz que es una unidad entera ya acaba en barra.
+        let (buenas, _) = filtrar(vec![abrir("D:\\algo")], &con(1), std::path::Path::new("D:\\"), &todo_existe);
+        assert_eq!(buenas.len(), 1);
     }
 
     #[test]

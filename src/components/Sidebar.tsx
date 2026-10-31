@@ -439,11 +439,10 @@ export default function Sidebar({
       setUi(final);
       if (encolado.length) void saveUiState(final).catch(() => {});
     };
-    loadUiState()
-      .then(llegar)
-      // Sin archivo (primer arranque) el estado vacío ES el bueno, y a partir
-      // de ahí sí se puede escribir.
-      .catch(() => llegar(EMPTY_UI_STATE));
+    // Sin archivo, Rust ya contesta «{}»: un error de lectura NO es la barra vacía, y se reintenta sin darla por cargada.
+    let reintento = 0;
+    const leer = (): void => void loadUiState().then(llegar, (e) => { setError(String(e)); reintento = window.setTimeout(leer, 3000); });
+    leer();
     findAgy().then(setAgy).catch(() => {});
     // Whichever other agent CLIs exist get their own entry per project.
     detectClis(OTHER_CLIS.map((p) => [p.id, p.exe] as [string, string]))
@@ -451,11 +450,12 @@ export default function Sidebar({
       .catch(() => {});
     // Ver `lib/latido.ts`: barrer `~/.claude` entero es la consulta más cara
     // que se repite sola, y con la ventana tapada la lista no la mira nadie.
-    return latido(() => {
+    const parar = latido(() => {
       scanSessions().then(setSessions).catch(() => {});
       // Y los rastros: lo que se cierra con la app abierta se archiva aquí, no al reiniciar.
       rastrosCerradas().then(setCerradas).catch(() => {});
     }, SCAN_EVERY_MS);
+    return () => (parar(), window.clearTimeout(reintento));
   }, [refreshKey]);
 
   // Logos are read from disk once per project and kept in Rust: this fires on

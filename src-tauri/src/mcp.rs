@@ -1728,6 +1728,20 @@ fn aviso_de_tus_terminales(app: &tauri::AppHandle, quien: Option<u32>, conexion:
 
 /// `quien` es el panel del agente que llama, si su puente lo presentó, y
 /// `conexion` la conexión por la que llama (ver `Madre`).
+/// La carpeta del proyecto que pide `get_agenda`, buscada por su nombre entre
+/// los de `get_projects` (la raíz que eligió Munir y las carpetas sueltas que
+/// añadió). Antes se armaba `C:\proyectos\<nombre>` a pelo: en Linux, o con
+/// otra raíz, nunca encontraba el METAS.md, y un nombre con `..` dentro se
+/// salía de la carpeta.
+fn carpeta_de_agenda(nombre: &str, proyectos: &[crate::pty::Project]) -> Option<String> {
+    let nombre = nombre.trim();
+    proyectos
+        .iter()
+        .find(|p| p.name == nombre)
+        .or_else(|| proyectos.iter().find(|p| p.name.eq_ignore_ascii_case(nombre)))
+        .map(|p| p.path.clone())
+}
+
 fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Option<u32>, conexion: u64) -> Result<Value, String> {
     match name {
         "get_mods" => {
@@ -2086,7 +2100,11 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
         }
         "get_agenda" => {
             let project_name = args["project"].as_str().unwrap_or("Adeorq");
-            let project_path = format!("C:\\proyectos\\{}", project_name);
+            let aparte = crate::workspace::proyectos_aparte();
+            let proyectos = crate::pty::list_projects(None, Some(aparte.sin_raiz), Some(aparte.extras))?;
+            let project_path = carpeta_de_agenda(project_name, &proyectos).ok_or_else(|| {
+                format!("No hay ningún proyecto llamado «{project_name}». Los nombres salen de get_projects.")
+            })?;
             let metas = crate::metas::read_metas(project_path);
             
             let mut metas_text = format!("Path: {}\nExists: {}\n", metas.path, metas.exists);
@@ -2735,6 +2753,19 @@ mod tests {
         ] {
             assert!(abre_bien(linea), "{linea}");
         }
+    }
+
+    /// La agenda va a la carpeta del proyecto donde de verdad está (en Linux,
+    /// o con otra raíz, no es `C:\proyectos`), y un nombre que no es de un
+    /// proyecto no se convierte en una ruta.
+    #[test]
+    fn la_agenda_busca_el_proyecto_por_su_nombre() {
+        let p = |n: &str, r: &str| crate::pty::Project { name: n.into(), path: r.into(), has_git: true };
+        let proyectos = [p("Adeorq", "/home/munir/proyectos/Adeorq"), p("VoCript", "D:/otra/VoCript")];
+        assert_eq!(carpeta_de_agenda("Adeorq", &proyectos).as_deref(), Some("/home/munir/proyectos/Adeorq"));
+        assert_eq!(carpeta_de_agenda("vocript", &proyectos).as_deref(), Some("D:/otra/VoCript"));
+        assert_eq!(carpeta_de_agenda("..\\..\\Windows", &proyectos), None);
+        assert_eq!(carpeta_de_agenda("NoExiste", &proyectos), None);
     }
 
     #[test]

@@ -42,8 +42,8 @@ pub async fn skill_text(folder: String) -> Result<SkillText, String> {
     {
         return Err("nombre de skill no válido".into());
     }
-    let home = std::env::var("USERPROFILE").map_err(|e| e.to_string())?;
-    let path = Path::new(&home)
+    let home = crate::dir_casa().ok_or("no encuentro tu carpeta de usuario")?;
+    let path = home
         .join(".claude")
         .join("skills")
         .join(&folder)

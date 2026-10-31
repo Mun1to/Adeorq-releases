@@ -179,7 +179,7 @@ pub async fn goals_add(date: String, text: String) -> Result<GoalDay, String> {
     let limpio = limpio.replace(['\n', '\r'], " ");
     let path = goals_path(&date)?;
     std::fs::create_dir_all(goals_dir()?).map_err(|e| e.to_string())?;
-    let mut texto = std::fs::read_to_string(&path).unwrap_or_default();
+    let mut texto = crate::leer_para_reescribir(&path)?;
     if texto.is_empty() {
         texto.push_str(&format!("# Objetivos · {date}\n\n"));
     } else if !texto.ends_with('\n') {
@@ -265,7 +265,7 @@ pub async fn goals_carry(from: String, to: String) -> Result<GoalDay, String> {
     if !traer.is_empty() {
         let path = goals_path(&to)?;
         std::fs::create_dir_all(goals_dir()?).map_err(|e| e.to_string())?;
-        let mut texto = std::fs::read_to_string(&path).unwrap_or_default();
+        let mut texto = crate::leer_para_reescribir(&path)?;
         if texto.is_empty() {
             texto.push_str(&format!("# Objetivos · {to}\n\n"));
         } else if !texto.ends_with('\n') {

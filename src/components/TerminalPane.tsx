@@ -92,6 +92,7 @@ import { olvidarTerminal, registrarTerminal } from "../lib/terminales";
 import { enPantalla, esperaEnSuCaja, nivelDeContexto, trabajaEnPantalla, useContextoDeSesion, useTraspaso, useTraspasoDelMovil } from "../lib/contexto";
 import AvisoContexto from "./AvisoContexto";
 import { useNombreSolo } from "../lib/nombreSolo";
+import { useDatosCabecera } from "../lib/cabeceraTerminal";
 import { archivoDelDiff } from "../lib/diffEspejo";
 import { estadoDelPanel, loginSegun, parseAsk, pieDePantalla, type Ask } from "../lib/reglasPantalla";
 import { crearPegado } from "../lib/pegado";
@@ -2229,6 +2230,7 @@ export default function TerminalPane({
   // quedó a la vista: el ancho lo decide arrastrar un separador. Así que se
   // arma entero siempre y no se pierde nada por estrechar un panel.
   const cerebro = ctx?.model || brain.model;
+  const datosCabecera = useDatosCabecera();
   const resumen =
     [
       name === label ? "" : name,
@@ -2473,67 +2475,69 @@ export default function TerminalPane({
             </span>
           )}
         </div>
-        <div className="ph-meta">
-          {/* Counted in the transcript: then the total is a fact and it stays on
-              screen, dimmed, once they are back. Guessed off the screen: only
-              while they are out, because a wrong number that lingers is worse
-              than none. It looked broken because it only ever showed live ones
-              and a session with no subagents has nothing to show. */}
-          <AgentesDePanel live={crew.live} total={crew.total} exact={crew.exact} cwd={cwd} sessionId={sidPropio} />
-          {ctx && ctx.percent > 0 && (
-            <span
-              className="pane-ctx"
-              data-hot={ctxNivel >= 3}
-              data-tip={`${t("Contexto")}: ${ctx.used.toLocaleString()} / ${ctx.window.toLocaleString()} tokens (${ctx.percent}% ${t("de contexto usado")})\n${t("Cada mensaje en esta sesión vuelve a pagar esos {n} tokens.", { n: ctx.used.toLocaleString() })}${
-                ctxNivel >= 3
-                  ? `\n${t("A este nivel, compactar cuesta más que abrir una terminal nueva.")}`
-                  : ""
-              }`}
-            >
-              <span className="ctx-bar" style={{ ["--p" as string]: `${ctx.percent}%` }} />
-              {ctx.percent}%
-            </span>
-          )}
-          {(ctx?.model || brain.model || brain.effort) && (
-            <span
-              className="pane-brain"
-              data-tip={`${t("Modelo")}: ${ctx?.model || brain.model || "?"}${brain.effort ? ` · ${t("esfuerzo")} ${brain.effort}` : ""}\n${t("Se cambia dentro del pane con /model y /effort")}`}
-            >
-              {ctx?.model || brain.model}
-              {brain.effort && <span className="pane-effort">{brain.effort}</span>}
-            </span>
-          )}
-          {/* Lo que ocupa esta terminal. El Pulso de la barra ya decía el total
-              de la app; este número contesta a la otra pregunta, la de tener
-              varios agentes abiertos: cuál de ellos pesa. Va sin etiqueta («RAM»
-              no cabe y tampoco hace falta: 480 MB en una cabecera solo puede ser
-              memoria) y solo cuando hay algo que medir. */}
-          {ram && ram.ramMb > 0 && (
-            <span
-              className="pane-ram"
-              data-hot={ram.ramMb >= 1024}
-              /* Con el desglose, y no por gusto: la cifra a secas se lee como «lo
-                 que me cuesta Adeorq» cuando casi toda es el agente que corre
-                 dentro, que pesa lo mismo se abra desde donde se abra. */
-              data-tip={[
-                `${bonito(ram.ramMb, lang)} ${t("de memoria")} · ${ram.procesos} ${
-                  ram.procesos === 1 ? t("proceso") : t("procesos")
-                }`,
-                ram.agenteMb > 0
-                  ? `${bonito(ram.agenteMb, lang)} ${t("los pone el agente de dentro, no Adeorq")}`
-                  : "",
-                t("Es el árbol entero de esta terminal, no solo su primer proceso."),
-              ]
-                .filter(Boolean)
-                .join("\n")}
-            >
-              {bonito(ram.ramMb, lang)}
-            </span>
-          )}
-          {/* The path used to sit here too, and in C:\proyectos it was the same
-              text twice. The pill on the left already carries the whole path in
-              its tooltip, so this said nothing the header did not. */}
-        </div>
+        {datosCabecera === "todo" && (
+          <div className="ph-meta">
+            {/* Counted in the transcript: then the total is a fact and it stays on
+                screen, dimmed, once they are back. Guessed off the screen: only
+                while they are out, because a wrong number that lingers is worse
+                than none. It looked broken because it only ever showed live ones
+                and a session with no subagents has nothing to show. */}
+            <AgentesDePanel live={crew.live} total={crew.total} exact={crew.exact} cwd={cwd} sessionId={sidPropio} />
+            {ctx && ctx.percent > 0 && (
+              <span
+                className="pane-ctx"
+                data-hot={ctxNivel >= 3}
+                data-tip={`${t("Contexto")}: ${ctx.used.toLocaleString()} / ${ctx.window.toLocaleString()} tokens (${ctx.percent}% ${t("de contexto usado")})\n${t("Cada mensaje en esta sesión vuelve a pagar esos {n} tokens.", { n: ctx.used.toLocaleString() })}${
+                  ctxNivel >= 3
+                    ? `\n${t("A este nivel, compactar cuesta más que abrir una terminal nueva.")}`
+                    : ""
+                }`}
+              >
+                <span className="ctx-bar" style={{ ["--p" as string]: `${ctx.percent}%` }} />
+                {ctx.percent}%
+              </span>
+            )}
+            {(ctx?.model || brain.model || brain.effort) && (
+              <span
+                className="pane-brain"
+                data-tip={`${t("Modelo")}: ${ctx?.model || brain.model || "?"}${brain.effort ? ` · ${t("esfuerzo")} ${brain.effort}` : ""}\n${t("Se cambia dentro del pane con /model y /effort")}`}
+              >
+                {ctx?.model || brain.model}
+                {brain.effort && <span className="pane-effort">{brain.effort}</span>}
+              </span>
+            )}
+            {/* Lo que ocupa esta terminal. El Pulso de la barra ya decía el total
+                de la app; este número contesta a la otra pregunta, la de tener
+                varios agentes abiertos: cuál de ellos pesa. Va sin etiqueta («RAM»
+                no cabe y tampoco hace falta: 480 MB en una cabecera solo puede ser
+                memoria) y solo cuando hay algo que medir. */}
+            {ram && ram.ramMb > 0 && (
+              <span
+                className="pane-ram"
+                data-hot={ram.ramMb >= 1024}
+                /* Con el desglose, y no por gusto: la cifra a secas se lee como «lo
+                   que me cuesta Adeorq» cuando casi toda es el agente que corre
+                   dentro, que pesa lo mismo se abra desde donde se abra. */
+                data-tip={[
+                  `${bonito(ram.ramMb, lang)} ${t("de memoria")} · ${ram.procesos} ${
+                    ram.procesos === 1 ? t("proceso") : t("procesos")
+                  }`,
+                  ram.agenteMb > 0
+                    ? `${bonito(ram.agenteMb, lang)} ${t("los pone el agente de dentro, no Adeorq")}`
+                    : "",
+                  t("Es el árbol entero de esta terminal, no solo su primer proceso."),
+                ]
+                  .filter(Boolean)
+                  .join("\n")}
+              >
+                {bonito(ram.ramMb, lang)}
+              </span>
+            )}
+            {/* The path used to sit here too, and in C:\proyectos it was the same
+                text twice. The pill on the left already carries the whole path in
+                its tooltip, so this said nothing the header did not. */}
+          </div>
+        )}
         <div className="ph-acts">
           {/* Shadow Mode Button */}
           <button

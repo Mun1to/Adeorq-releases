@@ -711,7 +711,18 @@ html[data-panes="tarjetas"] .pane[data-delegada="true"] {
 }
 
 .pane-head {
-  /* `scroll-state`: para que la ✕ sepa si tiene botones pasando por debajo. */
+  /* Dos líneas, y la primera no sobra. `inline-size` es lo que hace que la
+     zona de estado suelte el esfuerzo, la memoria y el modelo al estrecharse
+     (los `@container` de `12-tablero-y-uso.css`); `scroll-state` solo le dice
+     a la ✕ si tiene botones pasando por debajo. WebKitGTK, que es el motor de
+     Adeorq en Linux, no conoce `scroll-state`, y una palabra que no conoce
+     tira la declaración ENTERA: la cabecera se quedaba sin contenedor, no
+     saltaba ningún `@container`, y la zona de estado se comía el proyecto y el
+     título hasta dejarlos a cero. Un usuario de Linux lo vio así, con su
+     terminal enseñando «12 % Sonnet 5.5 xhigh 176 MB» y ni rastro de su
+     proyecto (2026-10-31). Con la primera línea de respaldo, allí se queda en
+     `inline-size` y solo se pierde el fundido de la ✕. */
+  container-type: inline-size;
   container-type: inline-size scroll-state;
   display: flex;
   align-items: center;

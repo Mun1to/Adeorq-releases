@@ -148,7 +148,7 @@ pub fn write_inbox(kind: String, project: String, text: String) -> Result<(), St
     } else {
         project.trim()
     };
-    let mut current = std::fs::read_to_string(&path).unwrap_or_default();
+    let mut current = crate::leer_para_reescribir(&path)?;
     if !current.is_empty() && !current.ends_with('\n') {
         current.push('\n');
     }

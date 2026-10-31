@@ -42,9 +42,29 @@ pub fn raiz_por_defecto() -> PathBuf {
     if casa.is_dir() {
         return casa.to_path_buf();
     }
-    std::env::var("USERPROFILE")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| casa.to_path_buf())
+    // `dir_casa` y no `USERPROFILE`: en Linux no existe, y sin `raiz.txt` esto
+    // devolvía `C:\proyectos`, donde el Capataz no se podía ni lanzar.
+    crate::dir_casa().unwrap_or_else(|| casa.to_path_buf())
+}
+
+/// La carpeta de proyectos y `ruta`, las dos resueltas, si `ruta` está dentro
+/// (o es ella). Para lo que escribe o tira algo con una ruta que llega del
+/// front: estaba `C:\proyectos` escrito a mano, que en Linux o con otra raíz
+/// no existe.
+pub fn en_proyectos(ruta: &str) -> Result<(PathBuf, PathBuf), String> {
+    en_la_raiz(&raiz_por_defecto(), ruta)
+}
+
+fn en_la_raiz(raiz: &Path, ruta: &str) -> Result<(PathBuf, PathBuf), String> {
+    let raiz = raiz.canonicalize().map_err(|e| e.to_string())?;
+    let p = Path::new(ruta).canonicalize().map_err(|e| e.to_string())?;
+    // Por trozos de ruta, no por texto: `C:\proyectos-copia` empieza igual que
+    // `C:\proyectos` y no está dentro. Las dos están resueltas por el sistema,
+    // así que las mayúsculas ya coinciden.
+    if !p.starts_with(&raiz) {
+        return Err(format!("«{ruta}» queda fuera de la carpeta de proyectos"));
+    }
+    Ok((raiz, p))
 }
 
 #[tauri::command]
@@ -239,7 +259,7 @@ pub async fn escribir_buzon(proyecto: String, texto: String) -> Result<String, S
     asegurar_ignorado(dir)?;
 
     let buzon = dir.join("BUZON.md");
-    let anterior = std::fs::read_to_string(&buzon).unwrap_or_default();
+    let anterior = crate::leer_para_reescribir(&buzon)?;
     let mut nuevo = texto;
     if !anterior.trim().is_empty() {
         nuevo.push_str("\n---\n\n## Lo que había antes en el buzón\n\n");
@@ -253,7 +273,7 @@ pub async fn escribir_buzon(proyecto: String, texto: String) -> Result<String, S
 /// Que `BUZON.md` esté en el `.gitignore`, creándolo si hace falta.
 fn asegurar_ignorado(dir: &Path) -> Result<(), String> {
     let gi = dir.join(".gitignore");
-    let actual = std::fs::read_to_string(&gi).unwrap_or_default();
+    let actual = crate::leer_para_reescribir(&gi)?;
     if actual.lines().any(|l| l.trim() == "BUZON.md") {
         return Ok(());
     }
@@ -310,4 +330,40 @@ pub async fn guide_path(app: tauri::AppHandle, lang: Option<String>) -> Result<S
         .or_else(|| guide_file(&app, "GUIA.md"))
         .map(|p| p.to_string_lossy().into_owned())
         .ok_or_else(|| "No encuentro la guía".to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    /// Dentro de la carpeta de proyectos es dentro por trozos de ruta, no por
+    /// texto: `proyectos-copia` empieza igual que `proyectos` y no está dentro.
+    #[test]
+    fn una_carpeta_hermana_no_esta_dentro_de_los_proyectos() {
+        let base = std::env::temp_dir().join(format!("adeorq-raiz-{}", std::process::id()));
+        let raiz = base.join("proyectos");
+        std::fs::create_dir_all(raiz.join("uno")).unwrap();
+        std::fs::create_dir_all(base.join("proyectos-copia").join("dos")).unwrap();
+        let en = |r: std::path::PathBuf| super::en_la_raiz(&raiz, &r.to_string_lossy()).map(|_| ());
+        let dentro = en(raiz.join("uno"));
+        let la_raiz = en(raiz.clone());
+        let hermana = en(base.join("proyectos-copia").join("dos"));
+        let _ = std::fs::remove_dir_all(&base);
+        assert!(dentro.is_ok() && la_raiz.is_ok());
+        assert!(hermana.is_err(), "la carpeta hermana contó como dentro");
+    }
+
+    /// PowerShell 5.1 escribe en ANSI con `Add-Content` sin `-Encoding`, y eso
+    /// no es UTF-8: el `.gitignore` se leía como vacío y se reescribía con SOLO
+    /// `BUZON.md`, y el `.env` dejaba de estar ignorado.
+    #[test]
+    fn un_gitignore_que_no_es_utf8_no_se_pisa() {
+        let dir = std::env::temp_dir().join(format!("adeorq-gitignore-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let antes: &[u8] = b".env\n# configuraci\xf3n\nnode_modules\n";
+        std::fs::write(dir.join(".gitignore"), antes).unwrap();
+        let r = super::asegurar_ignorado(&dir);
+        let despues = std::fs::read(dir.join(".gitignore")).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(despues.starts_with(antes), "se perdió lo que había: {:?}", String::from_utf8_lossy(&despues));
+        assert!(r.is_err());
+    }
 }

@@ -1226,9 +1226,9 @@ ${ruta}` : ruta;
   }, []);
 
   const ponerChat = useCallback(
-    (chatId?: string, modelo?: string, en?: { x: number; y: number; w: number; h: number }) => {
+    (chatId?: string, modelo?: string, en?: { x: number; y: number; w: number; h: number }, id?: string) => {
       setNodes((prev) => {
-        const nodeId = `c${Date.now().toString(36)}${prev.length}`;
+        const nodeId = id ?? `c${Date.now().toString(36)}${prev.length}`;
         const nodo: Node<ChatData> = {
           id: nodeId,
           type: "chat",
@@ -1323,9 +1323,9 @@ ${ruta}` : ruta;
    * proyecto toma su color, y las terminales nuevas de ese proyecto nacen en él.
    */
   const ponerCarril = useCallback(
-    (nombre?: string, color?: string, en?: { x: number; y: number; w: number; h: number }) => {
+    (nombre?: string, color?: string, en?: { x: number; y: number; w: number; h: number }, id?: string) => {
       setNodes((prev) => {
-        const nodeId = `c${Date.now().toString(36)}${prev.length}`;
+        const nodeId = id ?? `c${Date.now().toString(36)}${prev.length}`;
         const n = prev.filter((x) => x.type === "carril").length;
         const nombreFinal = nombre ?? `${t("Carril")} ${n + 1}`;
         const alto = (x: CanvasNode) => x.measured?.height || Number(x.style?.height) || NODE_H;
@@ -1437,7 +1437,7 @@ ${ruta}` : ruta;
   useOfrecerEncargos(projects, project, lanzarPendiente, repartirPendientes);
 
   const ponerKanban = useCallback(
-    (pendientes: Pendiente[] = [], en?: { x: number; y: number; w: number; h: number }) => {
+    (pendientes: Pendiente[] = [], en?: { x: number; y: number; w: number; h: number }, id?: string) => {
       // Uno solo: son cuatro columnas de lo mismo, y dos tableros iguales al
       // lado solo reparten tu atención entre dos sitios que dicen igual. Se
       // comprueba AQUÍ y no dentro de setNodes: mover la cámara desde el
@@ -1449,7 +1449,7 @@ ${ruta}` : ruta;
         return;
       }
       setNodes((prev) => {
-        const nodeId = `k${Date.now().toString(36)}`;
+        const nodeId = id ?? `k${Date.now().toString(36)}`;
         const nodo: Node<KanbanData> = {
           id: nodeId,
           type: "kanban",
@@ -2213,7 +2213,8 @@ ${ruta}` : ruta;
     if (tool === "sel") return;
     const onKey = (e: KeyboardEvent) => {
       const a = accionDe(e, mapaRef.current);
-      if (a !== "deshacer" && a !== "rehacer") return;
+      // Escondido (en otra vista) no deshace nada que no estés viendo.
+      if ((a !== "deshacer" && a !== "rehacer") || !hoja.current?.offsetParent) return;
       e.preventDefault();
       if (a === "deshacer") deshacer();
       else rehacer();
@@ -2790,6 +2791,8 @@ ${ruta}` : ruta;
       setEntrante(null);
       const mapa = new Map<string, string>();
       const sello = Date.now().toString(36);
+      /** El id nuevo de una pieza, ya en el mapa: sin él, sus flechas y anclajes se tiran al volver. */
+      const idNuevo = (viejo: string, pre: string, suf = "") => { const id = `${pre}${sello}${mapa.size}${suf}`; mapa.set(viejo, id); return id; };
 
       for (const n of f.nodos) {
         if (n.tipo === "term") {
@@ -2807,8 +2810,7 @@ ${ruta}` : ruta;
           );
           mapa.set(n.id, String(pane.id));
         } else if (n.tipo === "widget") {
-          const nodeId = `w${sello}${mapa.size}`;
-          mapa.set(n.id, nodeId);
+          const nodeId = idNuevo(n.id, "w");
           setNodes((prev) => [
             ...prev,
             {
@@ -2823,8 +2825,7 @@ ${ruta}` : ruta;
           // La nota vuelve por su id de archivo: el texto lo lee ella sola de
           // disco, así que un tablero reabierto trae los apuntes al día y no
           // los que tenía el día que lo guardaste.
-          const nodeId = `n${sello}${mapa.size}`;
-          mapa.set(n.id, nodeId);
+          const nodeId = idNuevo(n.id, "n");
           setNodes((prev) => [
             ...prev,
             {
@@ -2842,19 +2843,18 @@ ${ruta}` : ruta;
             } as Node<NoteData>,
           ]);
         } else if (n.tipo === "carril") {
-          ponerCarril(n.nombre, n.color, { x: n.x, y: n.y, w: n.w, h: n.h });
+          ponerCarril(n.nombre, n.color, { x: n.x, y: n.y, w: n.w, h: n.h }, idNuevo(n.id, "c"));
         } else if (n.tipo === "chat") {
           // Con su archivo y su modelo: la conversación la lee él solo del
           // disco, así que un tablero reabierto trae la charla donde la dejaste.
-          ponerChat(n.chat, n.modelo, { x: n.x, y: n.y, w: n.w, h: n.h });
+          ponerChat(n.chat, n.modelo, { x: n.x, y: n.y, w: n.w, h: n.h }, idNuevo(n.id, "c"));
         } else if (n.tipo === "kanban") {
           // Con las tarjetas que trae, y en su sitio: `ponerKanban` decide solo
           // si ya había uno puesto, que es lo que evita el segundo tablero al
           // importar un lienzo encima de otro.
-          ponerKanban(n.pendientes, { x: n.x, y: n.y, w: n.w, h: n.h });
+          ponerKanban(n.pendientes, { x: n.x, y: n.y, w: n.w, h: n.h }, idNuevo(n.id, "k"));
         } else if (n.tipo === "web") {
-          const nodeId = `n${sello}${mapa.size}w`;
-          mapa.set(n.id, nodeId);
+          const nodeId = idNuevo(n.id, "n", "w");
           setNodes((prev) => [
             ...prev,
             {
@@ -2872,8 +2872,7 @@ ${ruta}` : ruta;
             } as Node<WebData>,
           ]);
         } else if (n.tipo === "img") {
-          const nodeId = `i${sello}${mapa.size}`;
-          mapa.set(n.id, nodeId);
+          const nodeId = idNuevo(n.id, "i");
           setNodes((prev) => [
             ...prev,
             {
@@ -3002,12 +3001,12 @@ ${ruta}` : ruta;
         // Las terminales solo si él tiene puesto recuperarlas, igual que en la
         // Cabina: son procesos, y el resto del tablero no cuesta nada. Y antes,
         // lo que le toca de lo vivo tras una caída (`lib/tablero.ts` reparte).
+        if (crudo && !leido) throw new Error(t("no es un archivo de lienzo"));
         if (leido) await aplicarImport(leido, recuperar, true, await lasDelLienzo());
-      } catch {
-        // Un tablero que no se puede leer no puede impedir abrir la app: se
-        // empieza en blanco, y el primer cambio lo reescribe.
-      } finally {
         setPuedeGuardar(true);
+      } catch (e) {
+        // En blanco y SIN guardado: pisaría el bueno (uno de +64 MB, que Rust no lee, se perdía así).
+        setNote(t("No he podido leer tu lienzo guardado ({e}), así que no lo toco: lo que hagas ahora no se guarda solo.", { e: String(e) }));
       }
     })();
     // A propósito solo al montar: es la vuelta, no algo que se repita.

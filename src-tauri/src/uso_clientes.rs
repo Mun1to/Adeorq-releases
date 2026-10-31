@@ -54,9 +54,8 @@ use std::path::{Path, PathBuf};
 fn raiz(config_dir: Option<&str>, por_defecto: &str) -> Option<PathBuf> {
     match config_dir {
         Some(dir) if !dir.trim().is_empty() => Some(PathBuf::from(dir)),
-        _ => std::env::var("USERPROFILE")
-            .ok()
-            .map(|h| Path::new(&h).join(por_defecto)),
+        // `dir_casa`, que en Linux es `HOME`: `USERPROFILE` solo existe en Windows.
+        _ => crate::dir_casa().map(|h| h.join(por_defecto)),
     }
 }
 

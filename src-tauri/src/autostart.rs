@@ -33,10 +33,25 @@ fn target_exe() -> Result<String, String> {
             "Adeorq no está instalado en este equipo: este interruptor gobierna la app \
              instalada, no la de desarrollo",
         )?
+    } else if let Some(a) = appimage() {
+        a
     } else {
         std::env::current_exe().map_err(|e| format!("no sé dónde estoy instalado: {e}"))?
     };
     Ok(exe.to_string_lossy().into_owned())
+}
+
+/// El AppImage de verdad, si la app corre desde uno. Dentro, `current_exe` es
+/// la copia montada en `/tmp/.mount_*`, que desaparece al cerrar: el arranque
+/// automático apuntaba a la nada. Es lo que hace `tauri-plugin-autostart`.
+#[cfg(target_os = "linux")]
+fn appimage() -> Option<std::path::PathBuf> {
+    std::env::var_os("APPIMAGE").filter(|a| !a.is_empty()).map(std::path::PathBuf::from)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn appimage() -> Option<std::path::PathBuf> {
+    None
 }
 
 fn launcher() -> Result<auto_launch::AutoLaunch, String> {
@@ -76,6 +91,17 @@ pub fn autostart_set(on: bool) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Desde un AppImage, el arranque automático apunta al AppImage y no a su
+    /// copia montada en `/tmp`, que ya no está al volver a entrar.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn desde_un_appimage_apunta_al_appimage() {
+        std::env::set_var("APPIMAGE", "/home/x/Adeorq.AppImage");
+        let a = appimage();
+        std::env::remove_var("APPIMAGE");
+        assert_eq!(a, Some(std::path::PathBuf::from("/home/x/Adeorq.AppImage")));
+    }
 
     /// Not part of the suite: this one TOUCHES the machine. It exists so the
     /// switch can be turned on for real without shipping a release first, and

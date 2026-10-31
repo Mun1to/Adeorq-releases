@@ -320,10 +320,15 @@ pub async fn guardar_archivo(
 
     if !forzar.unwrap_or(false) {
         if let (Some(visto), Ok(meta)) = (visto, std::fs::metadata(&f)) {
-            // Un margen de un segundo: hay sistemas de archivos que redondean
-            // la marca de tiempo, y un aviso falso cada vez que guardas enseña
-            // a ignorar el aviso de verdad.
-            if cuando_de(&meta) > visto + 1000.0 {
+            // Un margen de un segundo solo donde la hora va en segundos enteros
+            // (FAT, algunas unidades de red): ahí redondea, y un aviso falso
+            // cada vez que guardas enseña a ignorar el de verdad. Con
+            // milisegundos, estricto como el vigilante del editor, que ya
+            // enseña «cambiado» y cuenta con que esto se niegue: con el margen
+            // en todas partes, lo que un agente escribía medio segundo
+            // después de abrirlo se pisaba sin aviso.
+            let margen = if visto % 1000.0 == 0.0 { 1000.0 } else { 0.0 };
+            if cuando_de(&meta) > visto + margen {
                 return Ok(Guardado { cuando: cuando_de(&meta), pisaria: true });
             }
         }
@@ -406,7 +411,19 @@ pub fn renombrar(ruta: String, nombre: String) -> Result<String, String> {
     }
     let d = carpeta.join(nombre.trim());
     let solo_mayusculas = d.to_string_lossy().to_lowercase() == origen.to_string_lossy().to_lowercase();
-    if d.exists() && !solo_mayusculas {
+    let choca = if solo_mayusculas {
+        // Donde las mayúsculas cuentan (Linux), `Notes.md` puede ser OTRO
+        // archivo al lado de `notes.md`, y `rename` lo pisaría sin papelera:
+        // se busca en la carpeta ese nombre exacto, que no sea el mismo.
+        let (nuevo, viejo) = (d.file_name(), origen.file_name());
+        nuevo != viejo
+            && std::fs::read_dir(carpeta)
+                .map(|it| it.flatten().any(|e| Some(e.file_name().as_os_str()) == nuevo))
+                .unwrap_or(false)
+    } else {
+        d.exists()
+    };
+    if choca {
         return Err(format!("Ya hay algo que se llama «{}» ahí.", nombre.trim()));
     }
     std::fs::rename(&origen, &d).map_err(|e| e.to_string())?;
@@ -635,8 +652,17 @@ pub fn buscar_en_archivos(raiz: String, texto: String) -> Result<Vec<Hallazgo>, 
 pub fn estado_archivos(raiz: String) -> Result<EstadoArchivos, String> {
     use crate::SinVentana;
     let dir = ruta_de(&raiz)?;
+    // Sin los candados opcionales: `status` reescribe el índice si puede, y
+    // para eso coge `.git/index.lock`. Preguntando cada pocos segundos, el
+    // `git commit` de un agente que caía en ese instante fallaba.
     let git = |args: &[&str]| {
-        std::process::Command::new("git").arg("-C").arg(&dir).args(args).sin_ventana().output()
+        std::process::Command::new("git")
+            .arg("--no-optional-locks")
+            .arg("-C")
+            .arg(&dir)
+            .args(args)
+            .sin_ventana()
+            .output()
     };
     let sin_git = || {
         Ok(EstadoArchivos { git: false, cambios: Vec::new(), rama: String::new(), delante: 0, commits: Vec::new() })
@@ -1043,6 +1069,104 @@ mod tests {
         assert_eq!(c[1].archivos, [r("scripts/a.mjs")]);
         assert!(c[2].archivos.is_empty(), "un commit sin archivos en esta carpeta no se inventa ninguno");
         assert!(leer_commits("", raiz).is_empty());
+    }
+
+    /// Donde las mayúsculas cuentan (Linux; en Windows, una carpeta con
+    /// `fsutil file setCaseSensitiveInfo`), `notes.md` y `Notes.md` son dos
+    /// archivos, y renombrar el primero como el segundo pisaba a este sin
+    /// pasar por la papelera.
+    #[test]
+    fn renombrar_solo_mayusculas_no_pisa_a_otro_archivo() {
+        let dir = std::env::temp_dir().join(format!("adeorq-mayus-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        #[cfg(windows)]
+        {
+            use crate::SinVentana;
+            let distingue = std::process::Command::new("fsutil")
+                .args(["file", "setCaseSensitiveInfo"])
+                .arg(&dir)
+                .arg("enable")
+                .sin_ventana()
+                .output()
+                .is_ok_and(|o| o.status.success());
+            if !distingue {
+                eprintln!("sin una carpeta que distinga mayúsculas, esto no se puede ver aquí");
+                let _ = std::fs::remove_dir_all(&dir);
+                return;
+            }
+        }
+        std::fs::write(dir.join("notes.md"), "el mío").unwrap();
+        std::fs::write(dir.join("Notes.md"), "el otro").unwrap();
+        let r = renombrar(dir.join("notes.md").to_string_lossy().into_owned(), "Notes.md".into());
+        let otro = std::fs::read_to_string(dir.join("Notes.md")).unwrap_or_default();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(otro, "el otro", "renombrar pisó al otro archivo");
+        assert!(r.is_err());
+    }
+
+    /// Lo que un agente escribe medio segundo después de que lo abrieras no se
+    /// pisa al guardar: el editor ya enseña «cambiado» (compara estricto) y
+    /// cuenta con que guardar se niegue.
+    #[test]
+    fn guardar_no_pisa_lo_escrito_en_el_mismo_segundo() {
+        use std::time::{Duration, UNIX_EPOCH};
+        let dir = std::env::temp_dir().join(format!("adeorq-guardar-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("nota.md");
+        std::fs::write(&f, "lo tuyo").unwrap();
+        let poner_hora = |ms: u64| {
+            let h = std::fs::File::options().write(true).open(&f).unwrap();
+            h.set_modified(UNIX_EPOCH + Duration::from_millis(ms)).unwrap();
+        };
+        let abierto = 1_790_000_000_123u64;
+        poner_hora(abierto);
+        std::fs::write(&f, "lo del agente").unwrap();
+        poner_hora(abierto + 500);
+        let ruta = f.to_string_lossy().into_owned();
+        let g = tauri::async_runtime::block_on(guardar_archivo(ruta, "lo tuyo, editado".into(), false, Some(abierto as f64), None)).unwrap();
+        let queda = std::fs::read_to_string(&f).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(g.pisaria, "guardó encima de lo del agente");
+        assert_eq!(queda, "lo del agente");
+    }
+
+    /// Mirar el estado no escribe en el repositorio. `git status` refresca el
+    /// índice y lo reescribe si puede, y para eso coge `.git/index.lock`: con el
+    /// panel preguntando cada 2,5 s, el `git add` o el `git commit` de un agente
+    /// que caía en ese instante fallaba con «Unable to create index.lock».
+    #[test]
+    fn mirar_el_estado_no_reescribe_el_indice() {
+        use crate::SinVentana;
+        use std::time::{Duration, SystemTime};
+        let dir = std::env::temp_dir().join(format!("adeorq-indice-{}-{:?}", std::process::id(), std::thread::current().id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let git = |args: &[&str]| {
+            let o = std::process::Command::new("git")
+                .arg("-C").arg(&dir)
+                .args(["-c", "user.name=Prueba", "-c", "user.email=prueba@adeorq.invalid", "-c", "core.hooksPath=.sin-hooks", "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false"])
+                .args(args)
+                .sin_ventana()
+                .output()
+                .expect("git");
+            assert!(o.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&o.stderr));
+        };
+        git(&["init", "-q", "-b", "main"]);
+        std::fs::write(dir.join("a.txt"), "uno\n").unwrap();
+        git(&["add", "."]);
+        git(&["commit", "-q", "-m", "first"]);
+        // El mismo contenido con otra hora: el índice queda viejo y `status` lo refrescaría.
+        let f = std::fs::File::options().write(true).open(dir.join("a.txt")).unwrap();
+        f.set_modified(SystemTime::now() + Duration::from_secs(120)).unwrap();
+        drop(f);
+        let indice = || std::fs::metadata(dir.join(".git").join("index")).unwrap().modified().unwrap();
+        let antes = indice();
+        std::thread::sleep(Duration::from_millis(50));
+        estado_archivos(dir.to_string_lossy().to_string()).expect("estado");
+        let despues = indice();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(antes, despues, "mirar el estado reescribió el índice del repositorio");
     }
 
     /// Con el git de verdad, en un repositorio que nace y muere aquí: un archivo

@@ -179,7 +179,7 @@ pub fn add_parked(project: String, text: String) -> Result<(), String> {
     let parent = path.parent().ok_or("ruta rara")?;
     std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
 
-    let current = std::fs::read_to_string(&path).unwrap_or_default();
+    let current = crate::leer_para_reescribir(&path)?;
     let name = Path::new(&project)
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())

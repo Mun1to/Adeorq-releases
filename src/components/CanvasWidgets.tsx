@@ -130,8 +130,17 @@ function mmss(ms: number): string {
 }
 
 /** Un reloj que se repinta solo mientras hace falta, y solo entonces. */
-function useTicker(active: boolean, everyMs = 250): number {
+function useTicker(active: boolean, everyMs = 250, hasta?: number | null): number {
   const [, force] = useState(0);
+  /* El aviso de que llegó la hora no puede depender del latido: con la ventana
+     minimizada el latido no pinta, y el aviso se decide al pintar, así que el
+     pomodoro y la cuenta atrás sonaban al volver a la ventana. Un temporizador
+     suelto, a la hora, fuerza ese repintado aunque no se vea. */
+  useEffect(() => {
+    if (!active || !hasta) return;
+    const id = window.setTimeout(() => force((n) => n + 1), Math.max(0, hasta - Date.now()) + 30);
+    return () => window.clearTimeout(id);
+  }, [active, hasta]);
   useEffect(() => {
     if (!active) return;
     // Y con la ventana tapada no se repinta nada: cuatro veces por segundo
@@ -155,7 +164,7 @@ function Pomodoro() {
   const [restante, setRestante] = useState(FOCO_MIN * 60_000);
   const [vueltas, setVueltas] = useState(0);
   const corriendo = finAt !== null;
-  useTicker(corriendo);
+  useTicker(corriendo, 250, finAt);
 
   const total = (fase === "foco" ? FOCO_MIN : DESCANSO_MIN) * 60_000;
   const queda = corriendo ? Math.max(0, finAt - Date.now()) : restante;
@@ -244,7 +253,7 @@ function Cuenta() {
   const [restante, setRestante] = useState(5 * 60_000);
   const [sonado, setSonado] = useState(false);
   const corriendo = finAt !== null;
-  useTicker(corriendo);
+  useTicker(corriendo, 250, finAt);
 
   const total = min * 60_000;
   const queda = corriendo ? Math.max(0, finAt - Date.now()) : restante;

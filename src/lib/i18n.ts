@@ -1818,6 +1818,8 @@ const EN: Record<string, string> = {
   "Adeo está repartiendo…": "Adeo is handing it out…",
   "Este enjambre todavía no tiene sesiones: añade alguna y vuelve a mandarlo.":
     "This swarm has no sessions yet: add one and send it again.",
+  "Ese enjambre ya tiene {n} terminales: no caben más.":
+    "That swarm already has {n} terminals: no more fit.",
   "Juntadas en un enjambre. Su ✕ lo deshace y las terminales se quedan.":
     "Joined into a swarm. Its ✕ breaks it up and the terminals stay.",
   "Una consola no entra en un enjambre: solo se juntan sesiones de un agente.":

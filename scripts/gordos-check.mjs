@@ -49,7 +49,7 @@ export const HOLGURA = 150;
 export const GORDOS = {
   "src/App.tsx": 3800,
   "src/components/CanvasView.tsx": 4150,
-  "src/components/Sidebar.tsx": 3710,
+  "src/components/Sidebar.tsx": 3690,
   "src/components/TerminalPane.tsx": 2865,
 };
 

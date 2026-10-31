@@ -56,6 +56,8 @@ import {
 import { BrowserIcon, CandadoIcon, ChevronIcon, CloseIcon, ExternalIcon, PicarIcon, PlusIcon, RefreshIcon } from "./Icons";
 import EditorWeb from "./EditorWeb";
 import { canalDeMarco } from "../lib/editorWeb";
+import { SANDBOX_WEB } from "../lib/sandboxWeb";
+import { activaTrasQuitar, aQuienCerrar } from "../lib/pestanasNav";
 import Mascota from "./Mascota";
 
 /** Una pestaña. `clave` es el número de su panel nativo en Rust (`nav-<clave>`). */
@@ -230,7 +232,10 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
     if (!url) focoAlCambiar.current = true;
   }, [nativo]);
 
-  const cerrar = useCallback((clave: number) => {
+  const cerrar = useCallback((pedida: number) => {
+    // Un segundo Ctrl+W mientras la primera aún se va es para la de al lado.
+    const clave = aQuienCerrar(pestsRef.current, pedida);
+    if (clave == null) return;
     const todas = pestsRef.current.filter((p) => !p.muere);
     // La última cierra el panel: un navegador sin nada abierto es un hueco muerto.
     if (todas.length <= 1) {
@@ -250,7 +255,7 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
       setPests((prev) => {
         const i = prev.findIndex((p) => p.clave === clave);
         const out = prev.filter((p) => p.clave !== clave);
-        setAct((a) => Math.min(i < a ? a - 1 : a, out.length - 1));
+        setAct((a) => activaTrasQuitar(i, a, out.length));
         return out;
       });
     }, 180);
@@ -719,6 +724,7 @@ export default function Navegador({ visible, tabs, activa, pedida, onEstado, onC
                 data-clave={p.clave}
                 className="web-frame"
                 style={p === pest && !rechaza ? undefined : { visibility: "hidden", pointerEvents: "none" }}
+                sandbox={SANDBOX_WEB}
                 src={p.url}
                 title={p.url}
               />

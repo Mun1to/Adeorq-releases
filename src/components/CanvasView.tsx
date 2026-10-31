@@ -37,7 +37,7 @@ import CarrilNode, { CARRIL_H, CARRIL_W, colorDeCarril, type CarrilData } from "
 import EnjambreNode, { type EnjambreData } from "./CanvasEnjambre";
 import { guardarEnjambre, useEnjambres } from "../lib/enjambreEnLienzo";
 import TermNode, { type TermData } from "./CanvasTerm";
-import { alcanza, pasteInto, useFlechas, type Relay } from "../lib/flechas";
+import { alcanza, pasteInto, relevosTrasLaCampana, useFlechas, type Relay } from "../lib/flechas";
 import { textoDelTablero } from "../lib/tableroTexto";
 import { alternarGrande, MARGEN_GRANDE } from "../lib/ampliarPieza";
 import CanvasAyuda from "./CanvasAyuda";
@@ -527,24 +527,7 @@ function Canvas({
     for (const e of outgoing) firedRef.current.delete(e.id);
     const list = panesRef.current;
     const from = list.find((p) => p.id === id);
-    setRelays((prev) => {
-      const fresh = outgoing
-        .filter((e) => !prev.some((r) => r.edgeId === e.id))
-        .map((e) => {
-          const to = list.find((p) => p.id === Number(e.target));
-          return {
-            edgeId: e.id,
-            fromId: id,
-            toId: Number(e.target),
-            fromName: from?.name ?? String(id),
-            toName: to?.name ?? e.target,
-            brief: String(e.data?.brief ?? ""),
-            auto: !!e.data?.auto,
-          };
-        })
-        .filter((r) => list.some((p) => p.id === r.toId));
-      return fresh.length ? [...prev, ...fresh] : prev;
-    });
+    setRelays((prev) => relevosTrasLaCampana(prev, outgoing, list, from, id));
   }, [zoomTo]);
 
   const splitRef = useRef<(id: number) => void>(() => {});
@@ -2166,14 +2149,24 @@ ${ruta}` : ruta;
 
   /** Lo llama la capa de dibujo al empezar a mover, estirar o borrar: una foto
       por gesto, no por fotograma ni por trazo. */
+  const fotoDelGesto = useRef<{ trazos: Trazo[]; futuro: Trazo[][] } | null>(null);
   const alEmpezarGesto = useCallback(() => {
+    if (!enGesto.current) fotoDelGesto.current = { trazos: trazosVivos.current, futuro: futuro.current };
     recordar();
     enGesto.current = true;
   }, [recordar]);
 
-  /** Y al soltar. A partir de aquí lo siguiente vuelve a ser un paso propio. */
+  /** Y al soltar. A partir de aquí lo siguiente vuelve a ser un paso propio.
+      Un gesto que no cambió nada (un clic para seleccionar) no deja paso para
+      deshacer ni cierra el «rehacer»: la foto del principio se retira. */
   const alSoltarGesto = useCallback(() => {
     enGesto.current = false;
+    const foto = fotoDelGesto.current;
+    fotoDelGesto.current = null;
+    if (!foto || trazosVivos.current !== foto.trazos) return;
+    historia.current.pop();
+    futuro.current = foto.futuro;
+    setPasos({ atras: historia.current.length, alante: futuro.current.length });
   }, []);
 
   const deshacer = useCallback(() => {

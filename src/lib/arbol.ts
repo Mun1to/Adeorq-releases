@@ -98,6 +98,24 @@ export function nombreDeRuta(ruta: string): string {
   return trozos[trozos.length - 1] || ruta;
 }
 
+/**
+ * El panel de archivos tras cerrar una de sus pestañas, o `null` si era la
+ * última (con ella se va el panel). Si la cerrada era la activa pasa a la de
+ * al lado y el panel toma su nombre; si no, ni la activa ni el nombre cambian:
+ * el nombre es el del archivo que estás mirando, y ese sigue siendo el mismo.
+ */
+export function trasCerrarPestana<P extends { archivos?: string[]; activo?: string; name: string }>(
+  p: P,
+  ruta: string,
+): (P & { archivos: string[] }) | null {
+  const antes = p.archivos ?? [];
+  const quedan = antes.filter((a) => a !== ruta);
+  if (!quedan.length) return null;
+  if (p.activo !== ruta) return { ...p, archivos: quedan };
+  const nueva = quedan[Math.min(antes.indexOf(ruta), quedan.length - 1)];
+  return { ...p, archivos: quedan, activo: nueva, name: nombreDeRuta(nueva) };
+}
+
 /** Lo que se enseña bajo el nombre en la cabecera del editor: la ruta desde la
     raíz del proyecto, que es la que dice algo. La absoluta entera no cabe y
     empieza por lo mismo en todos los archivos. */

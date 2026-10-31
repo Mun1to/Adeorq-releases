@@ -92,8 +92,6 @@ import {
   forgetAccount,
   killPty,
   saveEncargo,
-  loadUiState,
-  saveUiState,
   writePty,
   sendPty,
   teclearOrden,
@@ -115,11 +113,12 @@ import {
 import { leerPerfil, raiz, tocarPerfil } from "./lib/perfil";
 import { coloresDeProyectos, proyectoDeCarpeta } from "./lib/colorLienzo";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
-import { nombreDeRuta } from "./lib/arbol";
+import { nombreDeRuta, trasCerrarPestana } from "./lib/arbol";
 import { usePuenteMcp } from "./lib/puenteMcp";
 import { useFrenoCuota } from "./lib/frenoCuota";
 import { useLanzarEnLienzo } from "./lib/lanzarEnLienzo";
 import { useTableroGuardado, type Pane, type Team } from "./lib/tablero";
+import { cambiarBarra } from "./lib/barraEstado";
 import type { Recogida } from "./lib/reenganche";
 import { useDeshacerCierre } from "./lib/deshacerCierre";
 import { useBarraEnLienzo } from "./lib/barraEnLienzo";
@@ -230,11 +229,6 @@ function App() {
   const nextCol = useRef(1);
   /** Para que dos cuadrillas seguidas no salgan del mismo color. */
   const teamColor = useRef(0);
-  /** Una cola, no una promesa suelta: los puestos de una cuadrilla se abren
-      escalonados y cada uno quiere anotar su hueco en el MISMO archivo de
-      grupos. Sin encadenar las escrituras, la segunda podía leer el estado de
-      antes de que la primera terminara de guardar y se perdía una de las dos. */
-  const uiStateChain = useRef(Promise.resolve());
   const [view, setVistaCruda] = useState<View>("panel");
   // Las partes apagadas (`lib/partes.ts`): una pestaña suya no se abre, se va
   // a la que la sustituye, venga de donde venga la orden.
@@ -1130,7 +1124,13 @@ function App() {
           }, ajustes.length * 400 + 250);
         });
 
-      const abierto = panesRef.current.find((p) => sessionIdOf(p.command) === s.id);
+      // En la Cabina o en el Lienzo: el PTY es el mismo, y `onResume` a una
+      // sesión del Lienzo solo salta allí (no abre nada), así que sin esta
+      // segunda búsqueda el mensaje esperaba cinco segundos a un panel que no
+      // iba a nacer y volvía a tu caja.
+      const abierto =
+        panesRef.current.find((p) => sessionIdOf(p.command) === s.id) ??
+        canvasPanesRef.current.find((p) => sessionIdOf(p.command) === s.id);
       if (abierto) {
         return escribir(abierto.id);
       }
@@ -1264,17 +1264,16 @@ function App() {
    */
   const meterEnGrupoDeCuadrilla = useCallback((sid: string, cwd: string, team: Team) => {
     const proyecto = cwd.split(/[\\/]/).filter(Boolean).pop() ?? cwd;
-    uiStateChain.current = uiStateChain.current
-      .then(() => loadUiState())
-      .then((ui) => {
-        const yaEsta = ui.groups.some((g) => g.id === team.id);
-        const groups = yaEsta
-          ? ui.groups
-          : [...ui.groups, { id: team.id, project: proyecto, name: team.objetivo, color: team.color }];
-        const sessionGroup = { ...ui.sessionGroup, [sid]: team.id };
-        return saveUiState({ ...ui, groups, sessionGroup });
-      })
-      .then(() => setRefreshKey((k) => k + 1))
+    // Por la barra y no por el disco: ver `lib/barraEstado.ts`. Los puestos de
+    // una cuadrilla se abren escalonados y cada uno anota su hueco; la barra los
+    // aplica en orden sobre su propia copia, y sin barra se guardan en fila.
+    cambiarBarra((ui) => {
+      const yaEsta = ui.groups.some((g) => g.id === team.id);
+      const groups = yaEsta
+        ? ui.groups
+        : [...ui.groups, { id: team.id, project: proyecto, name: team.objetivo, color: team.color }];
+      return { ...ui, groups, sessionGroup: { ...ui.sessionGroup, [sid]: team.id } };
+    })
       .catch(() => {
         // Si esto falla la cuadrilla se sigue abriendo igual: agruparla en la
         // barra es una comodidad de encima, no una condición para trabajar.
@@ -1972,27 +1971,13 @@ function App() {
   const cerrarPestana = useCallback(
     (paneId: number, ruta: string) => {
       const p = panesRef.current.find((x) => x.id === paneId);
-      const antes = p?.archivos ?? [];
-      const quedan = antes.filter((a) => a !== ruta);
-      if (!quedan.length) {
+      if (!p || !trasCerrarPestana(p, ruta)) {
         closePane(paneId);
         return;
       }
       // La de al lado, como en cualquier navegador: cerrar no debe dejarte
-      // mirando a otra cosa si todavía queda algo abierto.
-      const donde = Math.min(antes.indexOf(ruta), quedan.length - 1);
-      setPanes((prev) =>
-        prev.map((x) =>
-          x.id === paneId
-            ? {
-                ...x,
-                archivos: quedan,
-                activo: x.activo === ruta ? quedan[donde] : x.activo,
-                name: nombreDeRuta(quedan[donde]),
-              }
-            : x,
-        ),
-      );
+      // mirando a otra cosa si todavía queda algo abierto (`trasCerrarPestana`).
+      setPanes((prev) => prev.map((x) => (x.id === paneId ? (trasCerrarPestana(x, ruta) ?? x) : x)));
     },
     [closePane],
   );

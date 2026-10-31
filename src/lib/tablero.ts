@@ -426,16 +426,31 @@ export function useTableroGuardado({
         cols.push({ cid: nextCol.current++, w: 1, panes: recuperadas, hs: recuperadas.map(() => 1) });
       }
       const todas = [...ids, ...recuperadas];
-      setCols(
-        cols.length
+      // La vuelta dura (400 ms por panel) y en ese rato puede nacer otra
+      // terminal: un clic, o un `open_pane` de un agente que sobrevivió. Esa
+      // ya está en una columna, y poner el mosaico guardado entero la dejaba
+      // sin ninguna: no se pintaba, se desmontaba y su PTY moría. Se queda en
+      // una columna al final.
+      setCols((prev) => {
+        const propias = new Set(todas);
+        const nacidas = prev.flatMap((c) => c.panes).filter((id) => !propias.has(id));
+        const base = cols.length
           ? cols
-          : [{ cid: nextCol.current++, w: 1, panes: todas, hs: todas.map(() => 1) }],
-      );
+          : [{ cid: nextCol.current++, w: 1, panes: todas, hs: todas.map(() => 1) }];
+        return nacidas.length
+          ? [...base, { cid: nextCol.current++, w: 1, panes: nacidas, hs: nacidas.map(() => 1) }]
+          : base;
+      });
       setView("cabina");
     })()
       // Por cualquier salida (nada que devolver, cancelado, un fallo): el
       // lienzo no puede quedarse esperando su parte. Si ya la tenía, no cambia.
-      .finally(() => entregarAlLienzo(new Map()));
+      // Y el cartel de «Recuperando…» con ella: si la vuelta se cancela a medias
+      // (se apaga «recuperar al abrir») nadie más lo baja a cero.
+      .finally(() => {
+        setRestoring(0);
+        entregarAlLienzo(new Map());
+      });
     return () => {
       cancelled = true;
     };

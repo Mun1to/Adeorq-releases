@@ -298,6 +298,10 @@ export default function CanvasDraw({
       setGuias(null);
       if (!guardar || !s || s.p.length < 6) return;
       const p = s.p.slice(0, -2);
+      // Un doble clic son dos pulsaciones y cada una clava un punto: el último
+      // queda repetido, el tramo final mide cero y la punta de una flecha (que
+      // se orienta con él) mira siempre al este. Los repetidos al final se tiran.
+      while (p.length > 4 && p[p.length - 2] === p[p.length - 4] && p[p.length - 1] === p[p.length - 3]) p.length -= 2;
       onAdd({
         ...s,
         p,
@@ -308,6 +312,16 @@ export default function CanvasDraw({
     },
     [cajasNodos, onAdd, onFin],
   );
+
+  // Elegir otra herramienta con la línea a medias la cierra con lo clavado: si
+  // no, seguía en pantalla y el siguiente clic le añadía puntos. Por un ref, que
+  // `cerrarMulti` cambia cada vez que se mueve una pieza y eso no es cambiar de
+  // herramienta.
+  const cerrarMultiRef = useRef(cerrarMulti);
+  cerrarMultiRef.current = cerrarMulti;
+  useEffect(() => {
+    cerrarMultiRef.current(true);
+  }, [tool]);
 
   // Enter la cierra y Escape la tira, que es lo mismo que hace el cuadro de
   // texto de al lado: dos gestos y los mismos en toda la app.

@@ -9,18 +9,16 @@
 //
 // Ahora el agente escribe una línea y ya:
 //
-//     SUPABASE_ACCESS_TOKEN=$(adeorq secreto supabase) supabase projects list
+//     adeorq secreto supabase --env SUPABASE_ACCESS_TOKEN -- supabase projects list
 //
 // `adeorq secreto` habla con la app por el mismo puerto que el MCP. Si el
-// secreto no está guardado, se abre una ventana en Adeorq donde se pega, y solo
-// entonces el puente lo escribe por su salida, que va directa a la variable de
-// entorno del comando. En la pantalla de la terminal no aparece nunca, así que
-// tampoco en el transcript ni en el contexto del modelo.
+// secreto no está guardado, se abre una ventana en Adeorq donde se pega, y el
+// puente lanza el comando con la clave en su entorno y la salida tapada. El
+// puente NO escribe la clave nunca, ni a una consola ni a una tubería: hasta el
+// 2026-10-31 la escribía si su salida no era una consola, y `| cat` la sacaba.
 //
-// **La garantía no depende de la buena voluntad del agente.** El puente
-// comprueba que su salida NO sea una consola: si alguien ejecuta
-// `adeorq secreto supabase` a pelo para verlo en pantalla, no imprime el valor,
-// imprime cómo se usa. Un secreto solo sale hacia una tubería.
+// Para accidentes y lectura casual, no para un agente decidido: el comando lo
+// elige él. Lo que protege y lo que no, en `docs/contexto/secretos.md`.
 //
 // Guardado va donde ya van los demás (`secrets.rs`): Gestor de Credenciales en
 // Windows, fichero con permisos 600 en Linux. Aquí solo vive la ESPERA.
@@ -188,18 +186,247 @@ pub fn secreto_de_agente_olvidar(nombre: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Lo que corre cuando un agente escribe `adeorq secreto <nombre>`.
+/// Cómo se usa, para quien lo escribe mal. Es lo que lee el agente.
+const USO: &str = concat!(
+    "Uso:\n",
+    "    adeorq secreto <nombre> \"<para qué>\"                    pedirla y guardarla\n",
+    "    adeorq secreto <nombre> [--env VARIABLE] -- <comando> [args…]\n\n",
+    "La segunda forma lanza <comando> con la clave en la variable de entorno\n",
+    "(por defecto el nombre en mayúsculas, con _ en vez de -), y en su salida la\n",
+    "clave sale como ***. La clave no se escribe nunca en texto, ni por consola\n",
+    "ni por tubería: si necesitas verla, no es para ti.\n\n",
+    "Ejemplo:\n",
+    "    adeorq secreto supabase --env SUPABASE_ACCESS_TOKEN -- supabase projects list"
+);
+
+/// Lo que se pidió en la línea de `adeorq secreto`.
+#[derive(Debug, PartialEq)]
+struct Peticion {
+    nombre: String,
+    motivo: String,
+    /// `None`: solo pedirla y guardarla. `Some`: la variable y el comando.
+    lanzar: Option<(String, Vec<String>)>,
+}
+
+/// Una variable de entorno con forma de variable: la escribe el agente y
+/// acaba en el entorno de otro programa.
+fn variable_valida(v: &str) -> bool {
+    let mut c = v.chars();
+    matches!(c.next(), Some(p) if p.is_ascii_alphabetic() || p == '_')
+        && c.all(|x| x.is_ascii_alphanumeric() || x == '_')
+}
+
+/// Leer `<nombre> [para qué…] [--env VAR] [-- comando args…]`.
+fn leer_peticion(args: &[String]) -> Result<Peticion, String> {
+    let (nombre, resto) = args.split_first().ok_or(USO)?;
+    if nombre == "--" || nombre.starts_with("--") {
+        return Err(USO.into());
+    }
+    let corte = resto.iter().position(|a| a == "--");
+    let (antes, despues) = match corte {
+        Some(i) => (&resto[..i], Some(&resto[i + 1..])),
+        None => (resto, None),
+    };
+    let mut motivo = Vec::new();
+    let mut variable = None;
+    let mut i = 0;
+    while i < antes.len() {
+        if antes[i] == "--env" {
+            let v = antes.get(i + 1).ok_or("a --env le falta el nombre de la variable")?;
+            if !variable_valida(v) {
+                return Err(format!("«{v}» no es un nombre de variable de entorno"));
+            }
+            variable = Some(v.clone());
+            i += 2;
+        } else {
+            motivo.push(antes[i].as_str());
+            i += 1;
+        }
+    }
+    let lanzar = match despues {
+        None if variable.is_some() => return Err(format!("a --env le falta el comando.\n\n{USO}")),
+        None => None,
+        Some([]) => return Err(format!("después de -- va el comando.\n\n{USO}")),
+        Some(cmd) => {
+            let v = variable.unwrap_or_else(|| nombre.to_ascii_uppercase().replace('-', "_"));
+            if !variable_valida(&v) {
+                return Err(format!("«{v}» no vale como variable: ponle --env VARIABLE"));
+            }
+            Some((v, cmd.to_vec()))
+        }
+    };
+    Ok(Peticion { nombre: nombre.clone(), motivo: motivo.join(" "), lanzar })
+}
+
+/// Lo que corre cuando un agente escribe `adeorq secreto …`, en el proceso que
+/// lanza el agente en su terminal. Devuelve el código de salida.
 ///
-/// Se ejecuta en OTRO proceso, el que lanza el agente en su terminal, y su
-/// único trabajo es traer el valor y escribirlo por su salida.
+/// **La clave no sale nunca en texto**: ni por consola ni por tubería. O se
+/// guarda y no se imprime nada, o va a la variable de entorno del comando que
+/// se lanza, con la salida de ese comando pasada por `Tapador`.
 ///
-/// El seguro está aquí: **si la salida es una consola, no imprime el secreto**.
-/// Un secreto solo sale hacia una tubería, o sea hacia un `$(...)`, una
-/// variable o un fichero. Ejecutarlo a pelo para mirarlo no funciona, y no
-/// porque el agente sea bueno, sino porque no puede.
-pub fn puente(nombre: &str, motivo: &str) -> Result<(), String> {
-    let valor = traer(crate::mcp::puerto()?, nombre, motivo)?;
-    escribir(&valor)
+/// Esto para los accidentes (un `echo`, un `--verbose`, un error que repite la
+/// cabecera) y la lectura casual. No para a un agente decidido: el comando lo
+/// elige él, y `-- sh -c 'echo $X | base64'` la saca. Ver `docs/contexto/secretos.md`.
+pub fn principal(args: &[String]) -> i32 {
+    let p = match leer_peticion(args) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("{e}");
+            return 2;
+        }
+    };
+    let valor = match crate::mcp::puerto().and_then(|puerto| traer(puerto, &p.nombre, &p.motivo)) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("{e}");
+            return 1;
+        }
+    };
+    let (variable, comando) = match p.lanzar {
+        None => {
+            eprintln!(
+                "La clave «{}» está guardada. Úsala así, sin verla:\n\n    adeorq secreto {} -- <comando> [args…]",
+                p.nombre, p.nombre
+            );
+            return 0;
+        }
+        Some(l) => l,
+    };
+    if valor.is_empty() {
+        eprintln!("la clave «{}» está vacía", p.nombre);
+        return 1;
+    }
+    match lanzar(&valor, &variable, &comando, &mut std::io::stdout(), &mut std::io::stderr()) {
+        Ok(codigo) => codigo,
+        Err(e) => {
+            eprintln!("{e}");
+            127
+        }
+    }
+}
+
+/// Lanzar el comando con la clave en `variable` y su salida tapada.
+///
+/// La entrada se hereda (un comando que pregunta sigue pudiendo preguntar); la
+/// salida y los errores pasan por aquí, así que el hijo ya no ve una consola y
+/// los programas que pintan en color lo pintarán en plano.
+fn lanzar(
+    valor: &str,
+    variable: &str,
+    comando: &[String],
+    salida: &mut (dyn std::io::Write + Send),
+    errores: &mut (dyn std::io::Write + Send),
+) -> Result<i32, String> {
+    use std::process::{Command, Stdio};
+
+    let programa = resolver(&comando[0]);
+    let mut hijo = Command::new(&programa)
+        .args(&comando[1..])
+        .env(variable, valor)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("no se pudo lanzar «{}»: {e}", comando[0]))?;
+    let mut su_salida = hijo.stdout.take().ok_or("sin salida del comando")?;
+    let mut sus_errores = hijo.stderr.take().ok_or("sin errores del comando")?;
+    std::thread::scope(|s| {
+        s.spawn(|| Tapador::new(valor).copiar(&mut sus_errores, errores));
+        Tapador::new(valor).copiar(&mut su_salida, salida);
+    });
+    let estado = hijo.wait().map_err(|e| e.to_string())?;
+    Ok(estado.code().unwrap_or(1))
+}
+
+/// En Windows, `Command` solo busca `<programa>.exe` en el `PATH`, y la mitad de
+/// las herramientas que lanza un agente (`supabase`, `wrangler`, `vercel`, todo
+/// lo que instala npm) son un `.cmd`. Se busca como lo haría la consola.
+#[cfg(windows)]
+fn resolver(programa: &str) -> std::ffi::OsString {
+    let p = std::path::Path::new(programa);
+    if p.extension().is_some() || p.components().count() > 1 {
+        return programa.into();
+    }
+    let extensiones = std::env::var("PATHEXT").unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".into());
+    for dir in std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()) {
+        for ext in extensiones.split(';').filter(|e| !e.is_empty()) {
+            let candidato = dir.join(format!("{programa}{ext}"));
+            if candidato.is_file() {
+                return candidato.into_os_string();
+            }
+        }
+    }
+    programa.into()
+}
+
+/// En Linux y macOS `Command` ya busca en el `PATH` como la shell.
+#[cfg(not(windows))]
+fn resolver(programa: &str) -> std::ffi::OsString {
+    programa.into()
+}
+
+/// El filtro de la salida del hijo: cambia la clave por `***`, como hace
+/// GitHub Actions con sus secretos.
+///
+/// Trabaja por trozos según llegan, y la clave puede venir partida entre dos.
+/// Por eso se queda solo con la cola que PODRÍA ser el principio de la clave, y
+/// suelta todo lo demás en el acto: una pregunta como `¿Seguro? [s/N] ` se ve
+/// enseguida, no cuando el programa escriba algo más.
+struct Tapador {
+    clave: Vec<u8>,
+    pendiente: Vec<u8>,
+}
+
+impl Tapador {
+    fn new(clave: &str) -> Self {
+        Self { clave: clave.as_bytes().to_vec(), pendiente: Vec::new() }
+    }
+
+    fn empujar(&mut self, datos: &[u8]) -> Vec<u8> {
+        if self.clave.is_empty() {
+            return datos.to_vec();
+        }
+        self.pendiente.extend_from_slice(datos);
+        let buf = std::mem::take(&mut self.pendiente);
+        let mut fuera = Vec::with_capacity(buf.len());
+        let mut i = 0;
+        while i < buf.len() {
+            let resto = &buf[i..];
+            if resto.starts_with(&self.clave) {
+                fuera.extend_from_slice(b"***");
+                i += self.clave.len();
+            } else if self.clave.starts_with(resto) {
+                self.pendiente = resto.to_vec();
+                break;
+            } else {
+                fuera.push(buf[i]);
+                i += 1;
+            }
+        }
+        fuera
+    }
+
+    fn terminar(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.pendiente)
+    }
+
+    /// Copiar de `origen` a `destino` tapando, hasta que el hijo cierre.
+    fn copiar(mut self, origen: &mut dyn std::io::Read, destino: &mut (dyn std::io::Write + Send)) {
+        let mut trozo = [0u8; 8192];
+        loop {
+            match origen.read(&mut trozo) {
+                Ok(0) | Err(_) => break,
+                Ok(n) => {
+                    let limpio = self.empujar(&trozo[..n]);
+                    // Si quien lee se ha ido, se sigue leyendo para que el hijo no
+                    // se bloquee escribiendo en una tubería llena.
+                    let _ = destino.write_all(&limpio).and_then(|_| destino.flush());
+                }
+            }
+        }
+        let _ = destino.write_all(&self.terminar()).and_then(|_| destino.flush());
+    }
 }
 
 /// Traer el valor, hablando con la app por su puerto.
@@ -265,34 +492,6 @@ fn traer(puerto: u16, nombre: &str, motivo: &str) -> Result<String, String> {
     Ok(res["valor"].as_str().ok_or("respuesta sin valor")?.to_string())
 }
 
-/// Escribir el valor por la salida, y solo si la salida no es una pantalla.
-fn escribir(valor: &str) -> Result<(), String> {
-    use std::io::IsTerminal;
-    escribir_si(valor, std::io::stdout().is_terminal())
-}
-
-/// La decisión aparte de la salida real, para poder probar el caso que importa:
-/// que con una pantalla delante NO salga el secreto.
-fn escribir_si(valor: &str, es_pantalla: bool) -> Result<(), String> {
-    use std::io::Write;
-
-    if es_pantalla {
-        return Err(concat!(
-            "esto no escribe el secreto en pantalla nunca. Úsalo así:\n\n",
-            "    MI_TOKEN=$(adeorq secreto <nombre>) mi-comando\n\n",
-            "El valor entra directo en la variable y no pasa por la terminal."
-        )
-        .into());
-    }
-
-    // Sin salto de línea al final: `$(...)` ya lo quitaría, pero un token con un
-    // retorno pegado detrás rompe cabeceras HTTP y da errores que no dicen nada.
-    let salida = std::io::stdout();
-    let mut salida = salida.lock();
-    salida.write_all(valor.as_bytes()).map_err(|e| e.to_string())?;
-    salida.flush().map_err(|e| e.to_string())
-}
-
 #[cfg(test)]
 mod pruebas {
     use super::*;
@@ -334,16 +533,70 @@ mod pruebas {
         assert_eq!(traer(puerto, "otro", "").unwrap_err(), "lo has cancelado");
     }
 
-    /// Lo que impide que el secreto acabe en la pantalla del agente, y por tanto
-    /// en su transcript. No depende de que el agente se porte bien: con una
-    /// consola delante no se escribe, se explica cómo se usa.
+    fn a(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// Sin `--` solo se pide y se guarda: no hay forma de que la clave salga
+    /// por una tubería (`adeorq secreto supabase | cat` la imprimía).
     #[test]
-    fn con_una_pantalla_delante_no_sale_el_secreto() {
-        let e = escribir_si("sbp_loquesea", true).unwrap_err();
-        assert!(!e.contains("sbp_loquesea"), "el error no puede llevar el valor dentro");
-        assert!(e.contains("$(adeorq secreto"), "y tiene que decir cómo se usa: {e}");
-        // Sin pantalla sí escribe: en un test la salida está capturada.
-        assert!(escribir_si("sbp_loquesea", false).is_ok());
+    fn sin_comando_no_hay_nada_que_imprimir() {
+        let p = leer_peticion(&a(&["supabase", "para", "listar", "proyectos"])).unwrap();
+        assert_eq!(p.motivo, "para listar proyectos");
+        assert_eq!(p.lanzar, None);
+        // Y la vieja forma de leerla ya no existe en el código.
+        let fuente = include_str!("pedir_secreto.rs");
+        assert!(!fuente.contains(&["fn ", "escribir_si"].concat()));
+    }
+
+    #[test]
+    fn la_linea_se_lee_con_su_variable_y_su_comando() {
+        let p = leer_peticion(&a(&["mi-token", "para", "x", "--", "wrangler", "--", "deploy"])).unwrap();
+        assert_eq!(p.motivo, "para x");
+        assert_eq!(p.lanzar, Some(("MI_TOKEN".into(), a(&["wrangler", "--", "deploy"]))));
+        let p = leer_peticion(&a(&["supabase", "--env", "SUPABASE_ACCESS_TOKEN", "--", "supabase"])).unwrap();
+        assert_eq!(p.lanzar.unwrap().0, "SUPABASE_ACCESS_TOKEN");
+        // Lo que no vale, con su explicación y nunca con la clave (no la hay aún).
+        assert!(leer_peticion(&a(&["x", "--"])).is_err());
+        assert!(leer_peticion(&a(&["x", "--env", "A=B", "--", "c"])).is_err());
+        assert!(leer_peticion(&a(&["x", "--env", "A"])).is_err());
+        assert!(leer_peticion(&a(&[])).is_err());
+    }
+
+    /// El filtro tapa la clave aunque llegue partida en trozos, y no se guarda
+    /// lo que no puede ser clave (una pregunta sin salto de línea sale ya).
+    #[test]
+    fn el_tapador_tapa_aunque_llegue_partida() {
+        let mut t = Tapador::new("sbp_abc123");
+        let mut fuera = Vec::new();
+        for trozo in ["token=sbp_a", "bc", "123 y ", "otra sbp_abc123", "\n¿Seguro? "] {
+            fuera.extend(t.empujar(trozo.as_bytes()));
+        }
+        assert_eq!(String::from_utf8(fuera.clone()).unwrap(), "token=*** y otra ***\n¿Seguro? ");
+        // Un principio de clave que al final no lo era sale tal cual.
+        let mut t = Tapador::new("sbp_abc123");
+        let mut fuera = t.empujar(b"sbp_ab");
+        assert!(fuera.is_empty());
+        fuera.extend(t.empujar(b"X"));
+        fuera.extend(t.terminar());
+        assert_eq!(fuera, b"sbp_abX");
+    }
+
+    /// El hijo recibe la clave en su variable, y lo que escribe por salida y por
+    /// errores sale tapado.
+    #[test]
+    fn el_hijo_la_recibe_y_su_salida_sale_tapada() {
+        #[cfg(windows)]
+        let cmd = a(&["cmd", "/c", "if %MI_CLAVE%==sbp_x7 (echo recibida %MI_CLAVE%) & echo error %MI_CLAVE% 1>&2 & exit 3"]);
+        #[cfg(not(windows))]
+        let cmd = a(&["sh", "-c", "[ \"$MI_CLAVE\" = sbp_x7 ] && echo recibida $MI_CLAVE; echo error $MI_CLAVE >&2; exit 3"]);
+        let (mut salida, mut errores) = (Vec::new(), Vec::new());
+        let codigo = lanzar("sbp_x7", "MI_CLAVE", &cmd, &mut salida, &mut errores).unwrap();
+        let (salida, errores) = (String::from_utf8_lossy(&salida), String::from_utf8_lossy(&errores));
+        assert!(salida.contains("recibida ***"), "el hijo no la recibió: {salida:?}");
+        assert!(errores.contains("error ***"), "{errores:?}");
+        assert!(!salida.contains("sbp_x7") && !errores.contains("sbp_x7"));
+        assert_eq!(codigo, 3, "el código del hijo pasa tal cual");
     }
 
     /// El fallo que costó una prueba colgada: un Adeorq viejo sirviendo el

@@ -67,6 +67,43 @@ export function alcanza(desde: string, hasta: string, list: Edge[]): boolean {
  *  relevo se quedaba escrito en la caja de Claude Code sin enviarse: trae la
  *  respuesta entera del agente anterior, y un trozo de más de 800 caracteres
  *  lo toma por un pegado con el Intro dentro (ver `mandar_texto` en pty.rs). */
+/**
+ * Los relevos que quedan cuando un agente acaba su turno (suena su campana).
+ *
+ * Cada flecha que sale de él pide un relevo, salvo las que ya lo tienen. Y a
+ * las que ya lo tienen y están FRENADAS en automático (el agente preguntó algo)
+ * se les quita el motivo: la campana es el derecho a un intento nuevo, y
+ * `useFlechas` solo mira la lista cuando cambia de verdad, así que sin una
+ * lista distinta el relevo se quedaba parado para siempre. Los que están a
+ * mano conservan su motivo, que es lo que los explica.
+ */
+export function relevosTrasLaCampana(
+  prev: Relay[],
+  salientes: Edge[],
+  paneles: CanvasPane[],
+  desde: CanvasPane | undefined,
+  id: number,
+): Relay[] {
+  const frenado = (r: Relay) => r.auto && !!r.espera && salientes.some((e) => e.id === r.edgeId);
+  const base = prev.some(frenado) ? prev.map((r) => (frenado(r) ? { ...r, espera: undefined } : r)) : prev;
+  const fresh = salientes
+    .filter((e) => !prev.some((r) => r.edgeId === e.id))
+    .map((e) => {
+      const to = paneles.find((p) => p.id === Number(e.target));
+      return {
+        edgeId: e.id,
+        fromId: id,
+        toId: Number(e.target),
+        fromName: desde?.name ?? String(id),
+        toName: to?.name ?? e.target,
+        brief: String(e.data?.brief ?? ""),
+        auto: !!e.data?.auto,
+      };
+    })
+    .filter((r) => paneles.some((p) => p.id === r.toId));
+  return fresh.length ? [...base, ...fresh] : base;
+}
+
 export function pasteInto(id: number, text: string, send: boolean): void {
   void sendPty(id, text, send).catch(() => {});
 }
@@ -136,10 +173,15 @@ export function useFlechas({
   };
 
   /** Deja el relevo parado con su motivo, en vez de descartarlo. Vuelve a
-   *  intentarse solo en la campana siguiente. */
-  const frenar = (edgeId: string, motivo: string) =>
+   *  intentarse solo en la campana siguiente (`relevosTrasLaCampana`). Con
+   *  `aMano` el relevo deja además de ser automático. */
+  const frenar = (edgeId: string, motivo: string, aMano = false) =>
     setRelays((prev) =>
-      prev.map((x) => (x.edgeId === edgeId && x.espera !== motivo ? { ...x, espera: motivo } : x)),
+      prev.map((x) =>
+        x.edgeId === edgeId && (x.espera !== motivo || (aMano && x.auto))
+          ? { ...x, espera: motivo, ...(aMano ? { auto: false } : {}) }
+          : x,
+      ),
     );
 
   /** `auto` distingue quién manda el relevo: el reloj o tú. Solo el automático
@@ -221,6 +263,10 @@ export function useFlechas({
             b: r.toName,
             n: String(TOPE_AUTO),
           }),
+          // El relevo en la barra también pasa a mano, como su flecha: si no,
+          // seguía marcado como automático y se entregaba solo en cuanto la
+          // lista cambiara por cualquier otra flecha.
+          true,
         );
         continue;
       }

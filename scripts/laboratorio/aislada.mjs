@@ -72,7 +72,8 @@ const GUARDA = `(() => {
 async function ventana(depurar) {
   const destino = await hasta(async () => {
     const lista = await (await fetch(`http://127.0.0.1:${depurar}/json/list`)).json();
-    return lista.find((t) => t.type === "page" && t.url.includes("localhost:1420"));
+    // La de desarrollo carga de :1420; la empaquetada (`csp-ventana.mjs`), de tauri.localhost.
+    return lista.find((t) => t.type === "page" && /localhost:1420|\/\/tauri\.localhost\//.test(t.url));
   }, 30_000);
   if (!destino) throw new Error("la ventana no abrió su puerto de depuración");
   const ws = new WebSocket(destino.webSocketDebuggerUrl);

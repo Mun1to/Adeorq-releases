@@ -26,6 +26,8 @@ import {
   type UiState,
 } from "../lib/pty";
 import { anadirProyecto, raiz, sinRaiz } from "../lib/perfil";
+import { registrarBarra } from "../lib/barraEstado";
+import { shrinkToDataUri } from "../lib/reducirLogo";
 import {
   alternarFijada,
   colocarSuelta,
@@ -251,40 +253,8 @@ const FLYOUT_OUT_MS = 420;
 /** Beyond this many extra accounts the row would not fit: the rest stay in the
     right-click menu, which lists every one of them. */
 const MAX_ACCOUNT_BUTTONS = 4;
-/** Hand-picked logos are stored, not linked, so they survive a moved file. */
-const AVATAR_PX = 64;
 // Claude has its own ✦ button and agy its own AG; the rest share one lookup.
 const OTHER_CLIS = PROVIDERS.filter((p) => p.id !== "claude" && p.id !== "agy");
-
-/** Any image the user picks becomes a small centred PNG we keep ourselves. */
-function shrinkToDataUri(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("No he podido leer ese archivo"));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("Ese archivo no es una imagen que pueda mostrar"));
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = AVATAR_PX;
-        canvas.height = AVATAR_PX;
-        const ctx = canvas.getContext("2d");
-        if (!ctx || !img.width || !img.height) {
-          reject(new Error("Esa imagen viene vacía"));
-          return;
-        }
-        // Contain, not cover: a wide wordmark must stay readable, not cropped.
-        const scale = Math.min(AVATAR_PX / img.width, AVATAR_PX / img.height);
-        const w = img.width * scale;
-        const h = img.height * scale;
-        ctx.drawImage(img, (AVATAR_PX - w) / 2, (AVATAR_PX - h) / 2, w, h);
-        resolve(canvas.toDataURL("image/png"));
-      };
-      img.src = String(reader.result);
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 /** Cuánto te reclama una sesión, de más a menos: para ordenar por eso. */
 function reclama(s: SessionInfo): number {
@@ -633,6 +603,12 @@ export default function Sidebar({
       return next;
     });
   };
+
+  // Lo que cambia desde fuera (una cuadrilla anotando su grupo) entra por
+  // `mutate` y no por el disco: ver `lib/barraEstado.ts`.
+  const mutateRef = useRef(mutate);
+  mutateRef.current = mutate;
+  useEffect(() => registrarBarra((f) => mutateRef.current(f)), []);
 
   const traidas = useMemo(() => new Set(ui.traidas), [ui.traidas]);
   /* Las que tienes abiertas en un panel ahora mismo. Vive aquí fuera y no dentro

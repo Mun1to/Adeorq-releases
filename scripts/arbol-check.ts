@@ -15,6 +15,7 @@ import {
   peso,
   plegar,
   rutaCorta,
+  trasCerrarPestana,
   type Leidas,
 } from "../src/lib/arbol";
 import type { Entrada } from "../src/lib/archivos";
@@ -183,6 +184,21 @@ ok(
     nombres(conBorrados(base, ["c:/proyectos/adeorq/src/Zeta.ts"])).join() === "src,lib,App.tsx,main.tsx,Zeta.ts,LICENSE,package.json",
     nombres(conBorrados(base, ["c:/proyectos/adeorq/src/Zeta.ts"])).join(),
   );
+}
+
+// Cerrar una pestaña que NO es la activa no le cambia el nombre al panel: el
+// nombre es el del archivo que estás mirando, y ese no ha cambiado.
+{
+  const panel = { name: "b.ts", archivos: ["/p/a.ts", "/p/b.ts", "/p/c.ts"], activo: "/p/b.ts" };
+  const sinA = trasCerrarPestana(panel, "/p/a.ts");
+  ok("cerrar una pestaña que no es la activa deja el nombre", sinA?.name === "b.ts", sinA?.name);
+  ok("y la activa sigue siendo la misma", sinA?.activo === "/p/b.ts");
+  ok("y sin la que se cerró", sinA?.archivos.join() === "/p/b.ts,/p/c.ts");
+  const sinB = trasCerrarPestana(panel, "/p/b.ts");
+  ok("cerrar la activa pasa a la de al lado y toma su nombre", sinB?.activo === "/p/c.ts" && sinB?.name === "c.ts", JSON.stringify(sinB));
+  const ultima = trasCerrarPestana({ name: "c.ts", archivos: ["/p/a.ts", "/p/c.ts"], activo: "/p/c.ts" }, "/p/c.ts");
+  ok("cerrar la activa que era la última pasa a la anterior", ultima?.activo === "/p/a.ts" && ultima?.name === "a.ts");
+  ok("cerrar la única que queda quita el panel", trasCerrarPestana({ name: "a.ts", archivos: ["/p/a.ts"], activo: "/p/a.ts" }, "/p/a.ts") === null);
 }
 
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);

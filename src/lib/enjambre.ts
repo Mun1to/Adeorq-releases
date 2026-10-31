@@ -299,6 +299,13 @@ export function sobreQuien(suelta: Caja, otras: ReadonlyArray<{ id: string; caja
   return mejor;
 }
 
+/** Si caben TODAS las que entran: un enjambre admite `MAX_MIEMBROS` y ninguna
+ *  entra a medias. Las que ya están dentro no cuentan como nuevas. */
+export function cabenEn(miembros: ReadonlyArray<{ panel: number }>, entran: number[]): boolean {
+  const nuevas = new Set(entran.filter((p) => !miembros.some((m) => m.panel === p)));
+  return miembros.length + nuevas.size <= MAX_MIEMBROS;
+}
+
 /** Por qué soltar una terminal encima de otra pieza no las ha juntado. */
 export type MotivoDeNoJuntar = "consola" | "pronto";
 

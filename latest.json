@@ -1,11 +1,11 @@
 {
-  "version": "0.9.236",
-  "notes": "En Linux la barra de cada terminal vuelve a ensenar el nombre del proyecto, y en Ajustes puedes dejar solo eso; y 34 arreglos de la revision del codigo: claves, espejo, terminales que se cuelgan y datos que ya no se pierden.",
-  "pub_date": "2026-10-31T19:49:20Z",
+  "version": "0.9.237",
+  "notes": "Una clave ya no se le ensena nunca a un agente: va directa al programa que la usa; la ventana va blindada contra codigo de fuera y las webs de dentro ya no pueden llevarsela; y otros 14 arreglos de la interfaz y el lienzo.",
+  "pub_date": "2026-10-31T20:48:20Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzR1U3hvNFJUT1RWSHk1aGhoU1pCZE1sckRKaXZ5cDk0eUtMc3l4U3Vub0E2TnZJT2RvVmxDVXgzRTNwckRrSnhESXF2aFVvYzRTNlEyTDNxWGFoMEFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNDc2MTQ1CWZpbGU6QWRlb3JxXzAuOS4yMzZfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzYKNENON0UxNGxXaFNNRFpoU2VyR2hicTZOank2UWFRV2lGSTBxVGlNaTd6Y2JMdjNlVG9rYmdpRTczUzlDamliSGxva0tMc3FFK256akZxQ3ZPR01XQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.236/Adeorq_0.9.236_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3dpbm16UHN1NGRJUGY0MmYvYW1rN2ZoREs1Q0xFcVFxRHZqbGpCMWxNMXdoSmNqWlZuZW5JU0tQU3VsaUFXejhuUWRCRm0xSVVOZlhVUXlrMWRDVndrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNDc5NjkwCWZpbGU6QWRlb3JxXzAuOS4yMzdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzcKY3JpaS81VmJKY2l2WjhwVXBTSjZtTkhIM2RkdFpqQTNXOWFaNGtnc3lWL0d3OXBFdHZ6MHR3VTBUQlhkVTF4bTVnejJDS0d1emJIdEFyRUxXaTdyQ0E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.237/Adeorq_0.9.237_x64-setup.exe"
     }
   }
 }

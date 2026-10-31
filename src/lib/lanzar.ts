@@ -236,6 +236,13 @@ export function installCommand(p: Provider, listo: string): string[] {
 // Its installer only adds %LOCALAPPDATA%\agy\bin to the PATH for NEW shells,
 // so call it through the path Rust found. --mode accept-edits is agy's Auto.
 export function agyCommand(exe: string, prompt?: string): string[] {
+  // En Linux no hay `path` ni `%path%` de cmd ni `&` de PowerShell: la línea
+  // es de bash, con la ruta citada (un `'` dentro se escapa cerrando y
+  // reabriendo la comilla), y el encargo va detrás con la cita de bash.
+  if (!ES_WINDOWS) {
+    const programa = `'${exe.replace(/'/g, "'\\''")}' --mode accept-edits`;
+    return prompt ? conEncargo(programa, prompt) : shellCommand(programa);
+  }
   // Con encargo va por PowerShell, y no por ahorrar trabajo: ese texto lo ha
   // dictado Munir y en una línea de cmd un «&» o un «%» lo partiría o, peor,
   // ejecutaría lo de detrás (ver `conEncargo`). Sin encargo no hay texto de

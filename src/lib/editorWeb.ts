@@ -72,7 +72,19 @@ export interface Canal {
  */
 export function canalDeMarco(marco: HTMLIFrameElement | null): Canal {
   return {
-    enviar: (mensaje) => marco?.contentWindow?.postMessage({ de: "adeorq", ...mensaje }, "*"),
+    // Al ORIGEN de la web que se cargó y no a «*»: si el marco navega a otra
+    // web, el navegador descarta el mensaje en vez de entregarle las órdenes
+    // del editor. Sin una web http(s) cargada no hay nadie a quien hablar.
+    enviar: (mensaje) => {
+      let destino = "";
+      try {
+        const u = new URL(marco?.src ?? "");
+        if (u.protocol === "http:" || u.protocol === "https:") destino = u.origin;
+      } catch {
+        // Sin dirección válida, destino vacío.
+      }
+      if (destino) marco?.contentWindow?.postMessage({ de: "adeorq", ...mensaje }, destino);
+    },
     oir: (cb) => {
       const f = (e: MessageEvent) => {
         if (!marco || e.source !== marco.contentWindow || !esLocal(e.origin)) return;

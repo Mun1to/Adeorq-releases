@@ -22,6 +22,7 @@ import {
   memoriaSearch,
   memoriaVaults,
   memoriaWrite,
+  idDeEnlace,
   type Doc,
   type DocText,
   type Hit,
@@ -247,6 +248,10 @@ export default function MemoriaView({
       girando se sienten como una avería; con la frase, como una espera. */
   const [trabajando, setTrabajando] = useState("");
   const [errorMapa, setErrorMapa] = useState("");
+  /** El proyecto elegido AHORA, para que una lectura larga que termina después
+      de cambiar de proyecto no pinte su mapa bajo el otro. */
+  const queEsquemaRef = useRef(queEsquema);
+  queEsquemaRef.current = queEsquema;
 
   /**
    * Leer el proyecto entero: el Capataz abre su código y dice de qué está
@@ -258,6 +263,9 @@ export default function MemoriaView({
   const leerProyecto = useCallback(() => {
     const ruta = queEsquema;
     if (!ruta || trabajando) return;
+    // Leer tarda minutos y el selector sigue vivo: lo que vuelva solo se pinta
+    // si el proyecto elegido sigue siendo el que se leyó.
+    const sigueAbierto = () => queEsquemaRef.current === ruta;
     setErrorMapa("");
     setTrabajando(t("Mirando el proyecto…"));
     // El escáner de carpetas no dibuja nada: es la chuleta de dónde mirar, y
@@ -273,15 +281,19 @@ export default function MemoriaView({
       .then(async (crudoMapa) => {
         const m = leerMapa(crudoMapa);
         if (!m) throw new Error(t("el Capataz no devolvió un mapa que se pueda leer"));
-        setMapa(m);
         const cuando = new Date().toISOString();
-        setCuandoMapa(cuando);
+        if (sigueAbierto()) {
+          setMapa(m);
+          setCuandoMapa(cuando);
+        }
         await guardarMapa(ruta, JSON.stringify({ cuando, mapa: crudoMapa })).catch(() => {
           // Sin guardar se trabaja igual; solo se pagará otra lectura.
         });
       })
       // Pararlo lo pediste tú: eso no es un fallo y no se pinta en rojo.
-      .catch((e) => setErrorMapa(String(e).includes("parado") ? "" : String(e)))
+      .catch((e) => {
+        if (sigueAbierto()) setErrorMapa(String(e).includes("parado") ? "" : String(e));
+      })
       .finally(() => setTrabajando(""));
   }, [queEsquema, trabajando, raizProyectos, t]);
 
@@ -554,21 +566,8 @@ export default function MemoriaView({
     }
     if (!abierto) return;
     // Se resuelve como en Rust: relativo al que enlaza, y si no, por nombre.
-    const base = abierto.id.split("/").slice(0, -1);
-    const partes = decodeURI(href).split("#")[0].split("/");
-    const pila = [...base];
-    for (const p of partes) {
-      if (p === "" || p === ".") continue;
-      if (p === "..") pila.pop();
-      else pila.push(p);
-    }
-    const directo = pila.join("/");
-    if (porId.has(directo)) return abrir(directo);
-    const suelto = partes[partes.length - 1].toLowerCase();
-    const encontrado = (vault?.docs ?? []).find(
-      (d) => d.id.toLowerCase().endsWith(`/${suelto}`) || d.id.toLowerCase() === suelto,
-    );
-    if (encontrado) abrir(encontrado.id);
+    const destino = idDeEnlace(abierto.id, href, porId, vault?.docs ?? []);
+    if (destino) abrir(destino);
   };
 
   if (!raiz) {

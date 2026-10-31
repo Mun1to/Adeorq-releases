@@ -29,6 +29,7 @@ import { create } from "zustand";
 import { kindDeComando } from "../components/KindIcon";
 import {
   alLado,
+  cabenEn,
   colorLibre,
   dondeNace,
   ENJAMBRE_H,
@@ -472,6 +473,20 @@ export function useEnjambres<N extends Node>({ panes, estados, nodes, setNodes, 
       const vuelve = origen.current?.id === n.id ? origen.current : null;
       const suelta = Number(n.id);
       const sobre = d.id;
+      // Si el enjambre de destino está lleno no se mueve nada: antes la terminal
+      // salía del suyo, no entraba en este y el aviso decía «Juntadas».
+      const ahora = nodesRef.current;
+      const destino0 = ahora.find((x) => x.id === sobre);
+      if (destino0) {
+        const enjDe0 = (panel: string) => ahora.find((x) => esEnjambre(x) && datosDe(x).miembros.some((m) => String(m.panel) === panel));
+        const grupo0 = esEnjambre(destino0) ? destino0 : (enjDe0(destino0.id) ?? enjDe0(n.id));
+        const entran0 = [suelta, ...(esEnjambre(destino0) ? [] : [Number(destino0.id)])];
+        if (grupo0 && !cabenEn(datosDe(grupo0).miembros, entran0)) {
+          encender(null);
+          avisar(t("Ese enjambre ya tiene {n} terminales: no caben más.", { n: MAX_MIEMBROS }));
+          return;
+        }
+      }
       setNodes((prev) => {
         const destino = prev.find((x) => x.id === sobre);
         if (!destino) return prev;

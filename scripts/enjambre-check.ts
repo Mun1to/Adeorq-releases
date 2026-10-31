@@ -13,6 +13,8 @@
 import {
   acabanDeTerminar,
   alLado,
+  cabenEn,
+  MAX_MIEMBROS,
   COLORES,
   colorLibre,
   daEstado,
@@ -189,6 +191,16 @@ caso("dos consolas: lo dice", porQueNoSeJuntan(false, { entra: false }, false) =
 caso("dos sesiones soltadas antes de tiempo: pide aguantar", porQueNoSeJuntan(true, { entra: true }, false) === "pronto");
 caso("dos sesiones que sí aguantaron: nada que decir", porQueNoSeJuntan(true, { entra: true }, true) === null);
 caso("movida a un hueco libre: nada que decir", porQueNoSeJuntan(true, null, false) === null && porQueNoSeJuntan(false, null, false) === null);
+
+// Un enjambre lleno no admite a nadie, y la que no cabe no se saca del suyo:
+// soltar una terminal en el de 12 la sacaba de su enjambre sin meterla en
+// ninguno, y el aviso decía «Juntadas».
+const doce = Array.from({ length: MAX_MIEMBROS }, (_, i) => ({ panel: i + 1 }));
+caso("en un enjambre de once cabe una más", cabenEn(doce.slice(0, MAX_MIEMBROS - 1), [99]));
+caso("en el de doce no cabe otra", !cabenEn(doce, [99]));
+caso("una que ya está dentro no cuenta como nueva", cabenEn(doce, [3]));
+caso("dos nuevas en uno de once no caben a medias", !cabenEn(doce.slice(0, MAX_MIEMBROS - 1), [98, 99]));
+caso("dos nuevas en uno de diez sí", cabenEn(doce.slice(0, MAX_MIEMBROS - 2), [98, 99]));
 
 /* ── dónde cae cada cosa ──────────────────────────────────────────────────── */
 

@@ -87,6 +87,37 @@ export function memoriaSearch(q: string, limite?: number): Promise<Hit[]> {
   return invoke("memoria_search", { q, limite });
 }
 
+/**
+ * A qué nota lleva un enlace de la nota `actual`, o `null` si a ninguna.
+ * Primero relativo a la que enlaza, y si no, por nombre suelto (como Obsidian).
+ * Nunca lanza: un `%` suelto en el enlace (`100%.md`) hacía que `decodeURI`
+ * reventara dentro del clic y el enlace no hacía nada.
+ */
+export function idDeEnlace(
+  actual: string,
+  href: string,
+  ids: { has(id: string): boolean },
+  docs: ReadonlyArray<{ id: string }>,
+): string | null {
+  let limpio = href;
+  try {
+    limpio = decodeURI(href);
+  } catch {
+    // Un % que no es un escape: el enlace se toma tal cual lo escribió quien lo puso.
+  }
+  const partes = limpio.split("#")[0].split("/");
+  const pila = actual.split("/").slice(0, -1);
+  for (const p of partes) {
+    if (p === "" || p === ".") continue;
+    if (p === "..") pila.pop();
+    else pila.push(p);
+  }
+  const directo = pila.join("/");
+  if (ids.has(directo)) return directo;
+  const suelto = partes[partes.length - 1].toLowerCase();
+  return docs.find((d) => d.id.toLowerCase().endsWith(`/${suelto}`) || d.id.toLowerCase() === suelto)?.id ?? null;
+}
+
 /** La carpeta de primer nivel de un documento: es lo que le da color en la
     constelación, porque en la bóveda de Munir cada una es un proyecto. */
 export function familia(d: Doc): string {

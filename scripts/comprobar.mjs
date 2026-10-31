@@ -43,6 +43,8 @@ export const COMPROBADORES = [
   "markdown-check.mjs",
   "arranque-check.mjs",
   "latido-check.mjs",
+  "sonda-check.mjs",
+  "ventana-check.mjs",
   "lienzo-check.mjs",
   "xterm-check.mjs",
   "mascota-movil-check.mjs",

@@ -107,9 +107,25 @@ else document.addEventListener("DOMContentLoaded", montar, { once: true });
    `chrome.webview.postMessage` se probó antes y no sirve: como objeto no llega,
    y como texto Tauri lo lee también y deja un error en tu consola cada vez.
    Fuera de Adeorq no hay ninguno de los dos caminos y no se manda nada. */
+/* En el iframe, solo con el origen de Adeorq, nunca con "*": lo primero que se
+   manda es la ruta absoluta de tu proyecto, y una web de fuera que metiera esta
+   página en un iframe se la llevaría. Medidos el 2026-10-31: `http(s)://tauri.localhost`
+   en Windows, `tauri://localhost` en Linux, y `localhost`/`127.0.0.1` con
+   cualquier puerto en desarrollo (`devUrl` es el 1420) y en los laboratorios,
+   que sirven el front donde les cae. Una web local con otro puerto también
+   pasa: ya es código de esta máquina. */
+const ES_ADEORQ = /^(https?:\/\/tauri\.localhost|tauri:\/\/localhost|http:\/\/(localhost|127\.0\.0\.1|\[::1\]):\d+)$/;
+const esAdeorq = (origen) => typeof origen === "string" && ES_ADEORQ.test(origen);
+/* Quién es el padre se sabe al cargar por `ancestorOrigins` (Chromium y WebKit)
+   o, si la política de referente lo oculta, con el primer «hola». */
+const ancestro = location.ancestorOrigins && location.ancestorOrigins[0];
+let padre = window.parent !== window && esAdeorq(ancestro) ? ancestro : null;
+
 function aAdeorq(mensaje) {
   const m = { de: "adeorq-sonda", ...mensaje };
-  if (window.parent !== window) window.parent.postMessage(m, "*");
+  if (window.parent !== window) {
+    if (padre) window.parent.postMessage(m, padre);
+  }
   else if (window.chrome && window.chrome.webview) {
     fetch("https://adeorq-sonda.invalid/?d=" + encodeURIComponent(JSON.stringify(m)), {
       mode: "no-cors",
@@ -432,6 +448,10 @@ window.addEventListener("message", (e) => {
   // la propia página podría mandarse órdenes a sí mismo y acabar escribiendo
   // en tu fichero: lo que entra por aquí termina en `editor.rs`.
   if (e.source !== window.parent) return;
+  // Y esa ventana tiene que ser Adeorq: una web de fuera que nos meta en un
+  // iframe también es «la ventana que nos tiene dentro».
+  if (!esAdeorq(e.origin)) return;
+  padre = e.origin;
 
   switch (m.tipo) {
     case "hola":

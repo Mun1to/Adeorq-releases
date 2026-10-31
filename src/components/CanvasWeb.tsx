@@ -6,6 +6,7 @@ import { nodragEnControles } from "../lib/arrastre";
 import { Grip } from "./CanvasWidgets";
 import { puedeEmpotrarse } from "../lib/pty";
 import { comoEmpotrable, comoUrl, PUERTOS } from "../lib/urlweb";
+import { SANDBOX_WEB } from "../lib/sandboxWeb";
 import {
   CloseIcon,
   ExternalIcon,
@@ -166,6 +167,7 @@ export default function WebNode({ data }: NodeProps<Node<WebData>>) {
           <iframe
             key={`${data.url}#${vuelta}`}
             className="web-frame nowheel"
+            sandbox={SANDBOX_WEB}
             src={data.url}
             title={data.url}
           />

@@ -8,7 +8,7 @@
 // Lo que NO prueba: que WebKitGTK niegue de verdad el portapapeles ni que su
 // evento `paste` traiga el texto. Eso hay que verlo en un Linux.
 
-import { crearPegado, ESPERA_AL_PORTAPAPELES_MS, type Reloj } from "../src/lib/pegado";
+import { copiarPorOsc52, crearPegado, ESPERA_AL_PORTAPAPELES_MS, textoDeOsc52, TOPE_OSC52, type Reloj } from "../src/lib/pegado";
 
 let fallos = 0;
 function ok(nombre: string, cond: boolean, detalle = "") {
@@ -229,6 +229,34 @@ r = await escena(async ({ p, porta }) => {
   }
 });
 ok("dos pegados seguidos son dos, no tres ni cuatro", r.pegados.join("|") === "hola|hola", JSON.stringify(r.pegados));
+
+// Copiar desde el programa (OSC 52). Claude Code en pantalla completa tiene el
+// ratón: el arrastre es suyo y lo seleccionado lo manda así,
+// `ESC ] 52 ; c ; <base64> BEL`. Sin atenderlo, arrastrar y Ctrl+C no copiaba
+// nada (`scripts/laboratorio/copiar-pegar-claude.mjs`, 2026-11-01).
+const b64 = (s: string) => Buffer.from(s, "utf8").toString("base64");
+ok("OSC 52 con texto: se copia, tildes y emojis incluidos", textoDeOsc52(`c;${b64("añadir ✓ 🚀 línea\n2")}`) === "añadir ✓ 🚀 línea\n2");
+ok("OSC 52 sin destino (`;base64`): se copia igual", textoDeOsc52(`;${b64("hola")}`) === "hola");
+ok("OSC 52 «?» (el programa quiere LEER tu portapapeles): nunca", textoDeOsc52("c;?") === null);
+ok("OSC 52 vacío (borrar): no se toca el portapapeles", textoDeOsc52("c;") === null);
+ok("OSC 52 que no es base64: nada", textoDeOsc52("c;no es base64!!") === null);
+ok("OSC 52 de más de un mega: nada", textoDeOsc52(`c;${"A".repeat(TOPE_OSC52 + 4)}`) === null);
+
+// Solo la terminal en la que estás puede escribir tu portapapeles: un agente en
+// segundo plano, o un `cat` de un archivo con la secuencia dentro, en otro
+// panel, no puede pisarlo mientras trabajas en otro sitio.
+{
+  let manejador: ((datos: string) => boolean) | null = null;
+  const term = { parser: { registerOscHandler: (_id: number, f: (datos: string) => boolean) => ((manejador = f), {}) } };
+  const escrito: string[] = [];
+  let conFoco = false;
+  copiarPorOsc52(term, (t) => void escrito.push(t), () => conFoco);
+  manejador?.(`c;${b64("desde un panel sin foco")}`);
+  ok("OSC 52 de una terminal SIN foco: no toca el portapapeles", escrito.length === 0, JSON.stringify(escrito));
+  conFoco = true;
+  manejador?.(`c;${b64("desde la terminal en la que estás")}`);
+  ok("OSC 52 de la terminal CON foco: se copia", escrito.join("|") === "desde la terminal en la que estás", JSON.stringify(escrito));
+}
 
 console.log(fallos ? `\n${fallos} FALLOS` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

@@ -1096,6 +1096,17 @@ mod tests {
                 return;
             }
         }
+        // APFS, el disco de un Mac, no distingue mayúsculas de fábrica: `Notes.md` y
+        // `notes.md` son el MISMO archivo y no hay un segundo al que pisar.
+        #[cfg(target_os = "macos")]
+        {
+            std::fs::write(dir.join("sonda.md"), "").unwrap();
+            if dir.join("SONDA.md").exists() {
+                eprintln!("este disco no distingue mayúsculas, esto no se puede ver aquí");
+                let _ = std::fs::remove_dir_all(&dir);
+                return;
+            }
+        }
         std::fs::write(dir.join("notes.md"), "el mío").unwrap();
         std::fs::write(dir.join("Notes.md"), "el otro").unwrap();
         let r = renombrar(dir.join("notes.md").to_string_lossy().into_owned(), "Notes.md".into());

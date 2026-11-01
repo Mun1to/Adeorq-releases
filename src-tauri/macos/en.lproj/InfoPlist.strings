@@ -1,0 +1,4 @@
+"NSMicrophoneUsageDescription" = "Adeorq uses the microphone to dictate to your terminals by voice.";
+"NSDesktopFolderUsageDescription" = "Adeorq's terminals and the agents inside them read and edit your projects.";
+"NSDocumentsFolderUsageDescription" = "Adeorq's terminals and the agents inside them read and edit your projects.";
+"NSDownloadsFolderUsageDescription" = "Adeorq's terminals and the agents inside them read and edit your projects.";

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Los textos de los avisos de permisos de macOS. Estos son los de base (en
+       inglés); en español salen de macos/es.lproj/InfoPlist.strings. Sin una
+       línea aquí, macOS cierra la app sin preguntar al tocar ese recurso. -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Adeorq uses the microphone to dictate to your terminals by voice.</string>
+  <!-- Las terminales de Adeorq abren programas (claude, git, node) que leen tus
+       proyectos. macOS atribuye ese acceso a Adeorq y pregunta una vez por
+       carpeta protegida: que la pregunta diga por qué. -->
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>Adeorq's terminals and the agents inside them read and edit your projects.</string>
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>Adeorq's terminals and the agents inside them read and edit your projects.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>Adeorq's terminals and the agents inside them read and edit your projects.</string>
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>en</string>
+    <string>es</string>
+  </array>
+</dict>
+</plist>

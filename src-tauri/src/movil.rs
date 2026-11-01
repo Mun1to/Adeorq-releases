@@ -1794,10 +1794,24 @@ fn no_dormir(si: bool) -> bool {
     if !si {
         return false;
     }
-    let hijo = Command::new("systemd-inhibit")
-        .args(["--what=sleep", "--who=Adeorq", "--why=Sirve el conserje al móvil", "--mode=block", "tail"])
-        .arg(format!("--pid={}", std::process::id()))
-        .args(["-f", "/dev/null"])
+    // En un Mac no hay logind: `caffeinate -i -w <pid>` frena el reposo por
+    // inactividad mientras viva el proceso que se le dice, así que, igual que con
+    // `tail --pid`, si Adeorq muere el bloqueo se va con ella. NO PROBADO en un Mac.
+    #[cfg(target_os = "macos")]
+    let mut orden = {
+        let mut c = Command::new("caffeinate");
+        c.args(["-i", "-w", &std::process::id().to_string()]);
+        c
+    };
+    #[cfg(not(target_os = "macos"))]
+    let mut orden = {
+        let mut c = Command::new("systemd-inhibit");
+        c.args(["--what=sleep", "--who=Adeorq", "--why=Sirve el conserje al móvil", "--mode=block", "tail"])
+            .arg(format!("--pid={}", std::process::id()))
+            .args(["-f", "/dev/null"]);
+        c
+    };
+    let hijo = orden
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())

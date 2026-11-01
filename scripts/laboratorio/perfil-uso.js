@@ -223,7 +223,7 @@ async (page) => {
   await page.click(".pu-record");
   await sinTarjeta();
   pasos.tarjetas = await page.evaluate(() => window.__tarjetas);
-  debe(pasos.tarjetas[0]?.desde === hoy && pasos.tarjetas[0]?.hasta === hoy, `tocar hoy abre su tarjeta (${JSON.stringify(pasos.tarjetas[0])})`);
+  debe(pasos.tarjetas[0]?.desde === hoy && pasos.tarjetas[0]?.hasta === hoy && pasos.tarjetas[0]?.que === "dia", `tocar hoy abre su tarjeta (${JSON.stringify(pasos.tarjetas[0])})`);
   if (!real) {
     const dia40 = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 40);
     const f40 = `${dia40.getFullYear()}-${dos(dia40.getMonth() + 1)}-${dos(dia40.getDate())}`;
@@ -263,9 +263,9 @@ async (page) => {
   pasos.futuro = await page.$eval(".pu-mes-cab .pu-mover", (b) => b.disabled);
   debe(pasos.futuro, "un mes que no ha empezado no se comparte");
   pasos.compartir = (await page.evaluate(() => window.__tarjetas)).slice(-3);
-  debe(JSON.stringify(pasos.compartir[0]) === JSON.stringify({ desde: primeroDeEste, hasta: hoy }), `compartir desde los tokens: del 1 a hoy (${JSON.stringify(pasos.compartir[0])})`);
-  debe(JSON.stringify(pasos.compartir[1]) === JSON.stringify({ desde: primeroDeEste, hasta: hoy }), `desde la cabecera del mes en curso, lo mismo (${JSON.stringify(pasos.compartir[1])})`);
-  debe(JSON.stringify(pasos.compartir[2]) === JSON.stringify({ desde: fPasado(1), hasta: fPasado(mesPasado.getDate()) }), `del mes pasado, entero (${JSON.stringify(pasos.compartir[2])})`);
+  debe(JSON.stringify(pasos.compartir[0]) === JSON.stringify({ desde: primeroDeEste, hasta: hoy, que: "mes" }), `compartir desde los tokens: del 1 a hoy (${JSON.stringify(pasos.compartir[0])})`);
+  debe(JSON.stringify(pasos.compartir[1]) === JSON.stringify({ desde: primeroDeEste, hasta: hoy, que: "mes" }), `desde la cabecera del mes en curso, lo mismo (${JSON.stringify(pasos.compartir[1])})`);
+  debe(JSON.stringify(pasos.compartir[2]) === JSON.stringify({ desde: fPasado(1), hasta: fPasado(mesPasado.getDate()), que: "mes" }), `del mes pasado, entero (${JSON.stringify(pasos.compartir[2])})`);
 
   // 7. En inglés.
   await page.goto(`${URL_APP}?vez=2&lang=en`);

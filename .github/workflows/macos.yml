@@ -1,0 +1,259 @@
+# Adeorq para macOS (Apple Silicon): el .dmg y el .app del actualizador.
+#
+# Se parece a `linux.yml` en lo que importa, y se diferencia en tres cosas:
+#
+# · `release: published` construye y SUBE a esa versión, solo en el repo
+#   público (`Mun1to/Adeorq-releases`), donde viven las releases. El instalador de
+#   Windows se hace a mano en la máquina de Munir; esto añade el Mac a una
+#   release que ya existe. En el público los minutos de macOS son gratis.
+#
+# · La rama `ci/macos` solo COMPRUEBA (`cargo check` y `cargo test --lib`). En un
+#   repo privado un minuto de macOS cuenta por diez, así que empaquetar,
+#   firmar y notarizar solo se hace con el botón de «Run workflow»
+#   (`completo`, por defecto sí) o en una release.
+#
+# · Va EN CADENA detrás de Linux. Los dos workflows escriben el `latest.json` de
+#   la release (`tauri-action` descarga el que hay, le añade su plataforma y lo
+#   vuelve a subir), y si corren a la vez el que acabe último pisa al otro:
+#   la release se quedaría sin Linux o sin Mac, sin ningún aviso. El trabajo
+#   `esperar-linux` espera, en un Ubuntu barato, a que el Linux de ESA versión
+#   termine; solo entonces arranca el Mac.
+#
+# Sin los secretos de Apple (`APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
+# `APPLE_API_ISSUER`, `APPLE_API_KEY`, `APPLE_API_KEY_P8`) sale una app firmada
+# «ad-hoc», que arranca pero se abre con el aviso de «Apple no puede
+# comprobar…». Con ellos sale firmada con Developer ID y notarizada, el .app y
+# el .dmg. `scripts/macos/preparar-firma.sh` decide cuál, y
+# `scripts/macos/comprobar-firma.sh` comprueba al final que salió la pedida.
+#
+# macos-15 y no macos-14: GitHub retira el 14 el 2026-11-02.
+# Capítulo: docs/contexto/mac.md.
+
+name: macOS
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: [ci/macos]
+  workflow_dispatch:
+    inputs:
+      completo:
+        description: "Empaquetar, firmar y probar la app (si no, solo cargo check y los tests)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Lo barato y lo primero: si no compila en un Mac, que se vea aquí y con el
+  # error de Rust, antes de gastar una hora de macOS en empaquetar.
+  comprobar:
+    if: github.event_name != 'release'
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+          shared-key: mac-comprobar
+          # Si fallan los tests, que la vuelta siguiente no recompile todo.
+          cache-on-failure: true
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Comprobar que compila
+        working-directory: src-tauri
+        run: cargo check --all-targets
+
+      - name: Pasar los tests
+        working-directory: src-tauri
+        run: cargo test --lib
+
+  # Espera, sin gastar macOS, a que el Linux de esta versión haya escrito su
+  # parte del `latest.json`. Si Linux no aparece en tres minutos (no corre, o el
+  # evento no le llegó) se sigue: esperar para siempre sería peor.
+  esperar-linux:
+    if: github.event_name == 'release' && github.repository == 'Mun1to/Adeorq-releases'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Esperar al Linux de esta versión
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ETIQUETA: ${{ github.event.release.tag_name }}
+        run: |
+          desde=$(date -u -d '5 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          empezo=$SECONDS
+          while [ $((SECONDS - empezo)) -lt 4200 ]; do
+            estado=$(gh run list --repo "$REPO" --workflow linux.yml --event release --limit 20 \
+              --json headBranch,status,createdAt \
+              --jq "[.[] | select(.headBranch == \"$ETIQUETA\" or .createdAt > \"$desde\")] | (.[0].status // \"ninguno\")")
+            echo "Linux de $ETIQUETA: $estado ($((SECONDS - empezo)) s)"
+            case "$estado" in
+              completed)
+                echo "Linux ya escribió su parte: sigue el Mac."
+                exit 0
+                ;;
+              ninguno)
+                if [ $((SECONDS - empezo)) -ge 180 ]; then
+                  echo "::warning::No hay ningún Linux de esta versión en marcha: sigue el Mac sin esperar."
+                  exit 0
+                fi
+                ;;
+            esac
+            sleep 30
+          done
+          echo "::warning::Linux no terminó en 70 minutos: sigue el Mac, y puede pisar su latest.json."
+
+  empaquetar:
+    needs: [comprobar, esperar-linux]
+    # `always` porque uno de los dos de arriba se salta según el evento, y un
+    # `needs` saltado salta también a quien lo espera.
+    if: >-
+      ${{ !cancelled()
+      && (needs.comprobar.result == 'success' || needs.comprobar.result == 'skipped')
+      && (needs.esperar-linux.result == 'success' || needs.esperar-linux.result == 'skipped')
+      && ((github.event_name == 'release' && github.repository == 'Mun1to/Adeorq-releases')
+          || (github.event_name == 'workflow_dispatch' && inputs.completo)) }}
+    runs-on: macos-15
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    env:
+      APP: src-tauri/target/release/bundle/macos/Adeorq.app
+      DMGS: src-tauri/target/release/bundle/dmg
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+          shared-key: mac-release
+          cache-on-failure: true
+
+      - run: pnpm install --frozen-lockfile
+
+      # Con los secretos de Apple firma con Developer ID y notariza; sin ellos no
+      # exporta nada y la app sale ad-hoc. Las variables que lee Tauri solo
+      # existen a partir de aquí y solo si están completas: un secreto que no
+      # existe llega como texto vacío, y Tauri lo tomaría por puesto.
+      - name: Preparar la firma de Apple
+        id: firma
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: bash scripts/macos/preparar-firma.sh
+
+      # Publicar: solo cuando esto lo dispara una release.
+      - name: Construir y añadir a la versión
+        if: github.event_name == 'release'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Sin la clave, `tauri build` falla al firmar los artefactos del
+          # actualizador (`createUpdaterArtifacts` está activo en la config).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.event.release.tag_name }}
+          releaseId: ${{ github.event.release.id }}
+          includeUpdaterJson: true
+          # `app` es lo que consume el actualizador (.app.tar.gz) y `dmg` lo
+          # que descarga la gente.
+          args: --bundles app,dmg
+
+      # Compilar sin publicar, desde el botón. Sin artefactos de actualizador y
+      # por eso sin la clave que los firma: esta pasada pregunta «¿compila,
+      # empaqueta, firma y arranca?», y la clave del actualizador no tiene nada
+      # que ver con Apple.
+      - name: Construir sin publicar
+        if: github.event_name != 'release'
+        run: >
+          pnpm tauri build --bundles app,dmg
+          --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      # Tauri notariza el .app de dentro, pero el DMG que baja la gente solo lo
+      # firma. Se notariza aquí, se le grapa el ticket y, en una release, se
+      # vuelve a subir encima del que acaba de subir tauri-action.
+      - name: Notarizar el DMG
+        if: steps.firma.outputs.modo == 'notarizado'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dmg=$(find "$DMGS" -maxdepth 1 -name "*.dmg" | head -n1)
+          bash scripts/macos/notarizar-dmg.sh "$dmg"
+          if [ "${{ github.event_name }}" = release ]; then
+            gh release upload "${{ github.event.release.tag_name }}" "$dmg" --clobber --repo ${{ github.repository }}
+          fi
+
+      # Una copia con nombre FIJO, sin la versión dentro, para que el botón de la
+      # web apunte a `releases/latest/download/Adeorq-arm64.dmg` y no caduque en
+      # cada publicación. Es lo mismo que `Adeorq-setup.exe` en Windows y
+      # `Adeorq-x86_64.AppImage` en Linux.
+      - name: Subir la copia de nombre fijo
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dmg=$(find "$DMGS" -maxdepth 1 -name "*.dmg" | head -n1)
+          cp "$dmg" Adeorq-arm64.dmg
+          gh release upload "${{ github.event.release.tag_name }}" Adeorq-arm64.dmg \
+            --clobber --repo ${{ github.repository }}
+
+      # Con todo ya subido, para no dejar la release a medias: si la app no lleva
+      # la firma que se pidió (notarizada con los secretos puestos, ad-hoc sin
+      # ellos), el run sale en rojo y hay que mirarlo.
+      - name: Comprobar la firma
+        run: |
+          dmg=$(find "$DMGS" -maxdepth 1 -name "*.dmg" | head -n1)
+          bash scripts/macos/comprobar-firma.sh "$APP" "${{ steps.firma.outputs.modo }}" "$dmg"
+
+      # La app empaquetada, abierta de verdad: su MCP, una consola que ejecuta,
+      # el PATH del usuario y una captura de pantalla.
+      - name: Abrir la app y hablarle por su MCP
+        if: ${{ !cancelled() && hashFiles('src-tauri/target/release/bundle/macos/Adeorq.app/Contents/Info.plist') != '' }}
+        run: node scripts/macos/probar-app.mjs "$APP" "$RUNNER_TEMP/prueba-mac"
+
+      - name: Guardar las capturas y los registros
+        if: ${{ !cancelled() && github.event_name != 'release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: adeorq-mac-prueba
+          path: ${{ runner.temp }}/prueba-mac/
+          if-no-files-found: warn
+          retention-days: 3

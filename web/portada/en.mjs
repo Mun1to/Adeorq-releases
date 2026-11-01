@@ -230,6 +230,7 @@ export default {
     'with it.',
   'descarga.btnWindows': 'Download for Windows <em>free, no account</em>',
   'descarga.btnLinux': 'Download for Linux <em>AppImage, .deb or .rpm</em>',
+  'descarga.btnMac': 'Download for Mac <em>Apple Silicon, .dmg</em>',
   'descarga.requisitos': 'Windows 10 and 11 · Linux with glibc 2.35 or newer',
   'descarga.precio': 'Free. No account, no 14-day trial, no card.',
   'descarga.nota':

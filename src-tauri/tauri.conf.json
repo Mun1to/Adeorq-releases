@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Adeorq",
-  "version": "0.9.237",
+  "version": "0.9.238",
   "identifier": "com.orquio.adeorq",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -22,7 +22,8 @@
         "additionalBrowserArgs": "--use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required",
         "windowEffects": {
           "effects": [
-            "acrylic"
+            "acrylic",
+            "hudWindow"
           ],
           "state": "active"
         }
@@ -68,6 +69,16 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
+    "macOS": {
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "12.0",
+      "signingIdentity": "-",
+      "entitlements": "Entitlements.plist",
+      "files": {
+        "Resources/en.lproj/InfoPlist.strings": "macos/en.lproj/InfoPlist.strings",
+        "Resources/es.lproj/InfoPlist.strings": "macos/es.lproj/InfoPlist.strings"
+      }
+    },
     "linux": {
       "rpm": {
         "depends": [

@@ -31,7 +31,9 @@ const DEFAULT_SHELL: &str = "powershell.exe";
 
 #[cfg(not(windows))]
 fn shell_de_fabrica() -> String {
-    std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_owned())
+    // Una app abierta desde el Finder puede no traer `SHELL`; en un Mac la de
+    // siempre es zsh (`/bin/sh` ahí es bash en modo POSIX, sin su `.zprofile`).
+    std::env::var("SHELL").unwrap_or_else(|_| if cfg!(target_os = "macos") { "/bin/zsh" } else { "/bin/sh" }.to_owned())
 }
 
 pub struct PtySession {

@@ -1,11 +1,11 @@
 {
-  "version": "0.9.237",
-  "notes": "Una clave ya no se le ensena nunca a un agente: va directa al programa que la usa; la ventana va blindada contra codigo de fuera y las webs de dentro ya no pueden llevarsela; y otros 14 arreglos de la interfaz y el lienzo.",
-  "pub_date": "2026-10-31T20:48:20Z",
+  "version": "0.9.238",
+  "notes": "La tarjeta para compartir recorta el video, no tiene limite de duracion, tiene volumen para el video y para la vista previa, y lo que importas se queda guardado. Arrastrar en Claude Code a pantalla completa ya copia. Y Adeorq llega al Mac, firmado por Apple.",
+  "pub_date": "2026-11-01T19:35:54Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3dpbm16UHN1NGRJUGY0MmYvYW1rN2ZoREs1Q0xFcVFxRHZqbGpCMWxNMXdoSmNqWlZuZW5JU0tQU3VsaUFXejhuUWRCRm0xSVVOZlhVUXlrMWRDVndrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNDc5NjkwCWZpbGU6QWRlb3JxXzAuOS4yMzdfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzcKY3JpaS81VmJKY2l2WjhwVXBTSjZtTkhIM2RkdFpqQTNXOWFaNGtnc3lWL0d3OXBFdHZ6MHR3VTBUQlhkVTF4bTVnejJDS0d1emJIdEFyRUxXaTdyQ0E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.237/Adeorq_0.9.237_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzUwdndUdmtUQ2EvM3RWV25MNDZubGRQa1o5Ry9NVW1mRmNiMHM3QlVGZXN0bzhOSkxTeFNiZVRxUUxQWk1XVHc0N2ZjSTBJM0ZKQTNYdGhGSVJEeXc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNTYxMzkzCWZpbGU6QWRlb3JxXzAuOS4yMzhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzgKRi9YL1pBVGREb2pIcnJZMlFxTjU4L2duRjhPQnpyeW9BcklyRHlGVk50bEFUb1JIRHVjTUVPSmpVZUdxRTNteVdpUXd5MFY1NnpkNUlGd2lSb2RkQUE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.238/Adeorq_0.9.238_x64-setup.exe"
     }
   }
 }

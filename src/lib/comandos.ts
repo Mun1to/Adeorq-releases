@@ -9,6 +9,14 @@
     falta al construir cada comando. */
 export const ES_WINDOWS = /win/i.test(navigator.userAgent.split(")")[0] ?? "");
 
+/** Si corre sobre macOS. Lo mismo que arriba, por el `userAgent`. */
+export const ES_MAC = /mac/i.test(navigator.userAgent.split(")")[0] ?? "");
+
+/** La shell con la que se envuelve un comando fuera de Windows. En un Mac es
+    zsh: es la del usuario, y `/bin/bash` es la 3.2 de 2007 que además imprime
+    «The default interactive shell is now zsh» en cada terminal que abre. */
+const SHELL_UNIX = ES_MAC ? "/bin/zsh" : "/bin/bash";
+
 /** El comando de una terminal sin el encargo de PowerShell que lleva dentro
  *  (lo pone `lineaConEncargo`, de `arranque.ts`), para quien lo lee buscando
  *  qué CLI es o qué sesión retoma: un encargo que nombre «codex» o traiga un
@@ -49,13 +57,13 @@ export function sinEncargo(linea: string): string {
  * un «&» partiría el comando por la mitad. Lo que lleve texto libre va por
  * `powershellCommand`, que sabe citarlo.
  *
- * En Linux no cambia nada: una shell interactiva encadenada detrás
+ * En Linux no cambia nada (y en un Mac es zsh, no bash): una shell interactiva encadenada detrás
  * (`; exec bash -i`), porque `bash -c` no tiene un `-NoExit` y sin eso la
  * terminal se cerraría en cuanto el agente termina.
  */
 export function shellCommand(inner: string): string[] {
   if (ES_WINDOWS) return ["cmd.exe", "/k", `chcp 65001 >nul && ${inner}`];
-  const shell = "/bin/bash";
+  const shell = SHELL_UNIX;
   return [shell, "-lc", `${inner}; exec ${shell} -i`];
 }
 
@@ -71,7 +79,7 @@ export function shellCommand(inner: string): string[] {
  */
 export function powershellCommand(inner: string): string[] {
   if (ES_WINDOWS) return ["powershell.exe", "-NoLogo", "-NoExit", "-Command", inner];
-  const shell = "/bin/bash";
+  const shell = SHELL_UNIX;
   return [shell, "-lc", `${inner}; exec ${shell} -i`];
 }
 

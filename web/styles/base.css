@@ -148,6 +148,10 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* `hidden` tiene que ganar a cualquier `display` de una clase: sin esto un `.btn` con
+   `hidden` se ve igual. */
+[hidden] { display: none !important; }
+
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;          /* fallback si Lenis no carga */

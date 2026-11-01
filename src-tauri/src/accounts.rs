@@ -240,12 +240,15 @@ pub fn detect_clis(exes: Vec<(String, String)>) -> Vec<CliFound> {
             None
         });
         // Claude installs itself outside PATH for the shell Adeorq spawns.
+        // El `.exe` es de Windows: en Linux y en un Mac el ejecutable se llama
+        // como el programa, y con `.exe` esta búsqueda no encontraba nada.
         let found = found.or_else(|| {
             let home = crate::dir_casa()?;
+            let nombre = if cfg!(windows) { format!("{exe}.exe") } else { exe.clone() };
             let p = home
                 .join(".local")
                 .join("bin")
-                .join(format!("{exe}.exe"));
+                .join(nombre);
             p.is_file().then(|| p.to_string_lossy().into_owned())
         });
         if let Some(path) = found {

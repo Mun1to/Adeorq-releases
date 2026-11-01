@@ -35,6 +35,7 @@
 //     tiene que salir limpio.
 //
 // Sale con 1 si algo falla. Con `--fotos` deja ahí las capturas.
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -86,9 +87,14 @@ const page = ctx.pages()[0] ?? (await ctx.newPage());
 const errores = [];
 page.on("pageerror", (e) => errores.push(e.message));
 
-// Las fechas en la hora de la ventana, que es la que cuenta el componente.
+// Las fechas en la hora de la ventana, que es la que cuenta el componente. El
+// día es fijo, no el de hoy: con el de hoy la prueba cambiaba según cuándo se
+// lanzaba. Es un día 1 a propósito, el caso en que el mes en curso va «del 1
+// al 1» y se abría como «Día» (2026-11-01). El reloj de la página se fija al
+// mismo instante; los temporizadores siguen corriendo.
 const dos = (n) => String(n).padStart(2, "0");
-const ahora = new Date();
+const ahora = new Date(2026, 10, 1, 12, 0, 0);
+await ctx.clock.setFixedTime(ahora);
 const hoy = `${ahora.getFullYear()}-${dos(ahora.getMonth() + 1)}-${dos(ahora.getDate())}`;
 const horaDe = (dias) => new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - dias, 12).toISOString().slice(0, 13);
 const cubo = (dias, extra) => ({ hora: horaDe(dias), cli: "claude", modelo: "claude-opus-5-5", carpeta: "C:\\proyectos\\Adeorq", entrada: 0, salida: 0, cacheLeida: 0, cacheEscrita: 0, respuestas: 1, ...extra });
@@ -99,7 +105,7 @@ const historia = {
     cubo(0, { cacheLeida: 1044e6 }),
     cubo(0, { cli: "codex", modelo: "gpt-5.6-terra", carpeta: "C:\\proyectos\\Orquio", cacheLeida: 500e6 }),
     cubo(40, { modelo: "claude-opus-5", cacheLeida: 20000e6 }),
-    cubo(60, { modelo: "claude-sonnet-5", carpeta: "C:\\proyectos\\VoCript", cacheLeida: 9000e6 }),
+    cubo(75, { modelo: "claude-sonnet-5", carpeta: "C:\\proyectos\\VoCript", cacheLeida: 9000e6 }),
   ],
 };
 const mesLargo = (lang) => {
@@ -107,7 +113,26 @@ const mesLargo = (lang) => {
   return s[0].toUpperCase() + s.slice(1);
 };
 
-await page.route(`${BASE}/__fondo/**`, (r) => r.fulfill({ contentType: "image/png", body: readFileSync(join(RAIZ, "web", "assets", "og.png")) }));
+// Los fondos «importados» viven aquí, en Node, por su nombre: el protocolo de
+// assets del doble los sirve con `Range`, como el de Tauri (el `<video>` y
+// `mediabunny` piden trozos). Lo demás es el fondo de la casa.
+const archivos = new Map();
+await page.route(`${BASE}/__fondo/**`, (r) => {
+  const nombre = decodeURIComponent(new URL(r.request().url()).pathname.slice("/__fondo/".length)).split("\\").pop();
+  const b = archivos.get(nombre);
+  if (!b) return r.fulfill({ contentType: "image/png", body: readFileSync(join(RAIZ, "web", "assets", "og.png")) });
+  const tipo = /\.png$/i.test(nombre) ? "image/png" : "video/mp4";
+  const m = /bytes=(\d+)-(\d*)/.exec(r.request().headers().range ?? "");
+  if (!m) return r.fulfill({ contentType: tipo, headers: { "accept-ranges": "bytes" }, body: b });
+  const desde = Number(m[1]);
+  const hasta = Math.min(b.length - 1, m[2] ? Number(m[2]) : b.length - 1);
+  return r.fulfill({
+    status: 206,
+    contentType: tipo,
+    headers: { "accept-ranges": "bytes", "content-range": `bytes ${desde}-${hasta}/${b.length}` },
+    body: b.subarray(desde, hasta + 1),
+  });
+});
 await page.addInitScript(({ historia }) => {
   const q = new URLSearchParams(location.search);
   if (sessionStorage.getItem("banco-tarjeta") !== q.get("vez")) {
@@ -119,7 +144,38 @@ await page.addInitScript(({ historia }) => {
   const oyentes = {};
   window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
   window.__guardados = [];
+  window.__abrir = [];
+  window.__porImportar = {};
+  window.__quitados = [];
+  window.__cancelados = [];
+  window.__partes = {};
   window.__copiado = [];
+  // La carpeta de fondos de la tarjeta: en `sessionStorage`, que aguanta una
+  // recarga de la página (el «reinicio» de la app) y no la siguiente prueba.
+  const disco = () => JSON.parse(sessionStorage.getItem("banco-disco") ?? "[]");
+  const aDisco = (d) => sessionStorage.setItem("banco-disco", JSON.stringify(d));
+  // Cuántas veces se pinta un sonido entero (cada sonido nuevo de la caché).
+  window.__pintados = 0;
+  const pintar = OfflineAudioContext.prototype.startRendering;
+  OfflineAudioContext.prototype.startRendering = function (...a) {
+    window.__pintados++;
+    return pintar.apply(this, a);
+  };
+  // A dónde va cada sonido que suena: la ganancia de la vista previa.
+  const conectar = AudioNode.prototype.connect;
+  AudioNode.prototype.connect = function (destino, ...a) {
+    if (this instanceof AudioBufferSourceNode) this.__destino = destino;
+    return conectar.call(this, destino, ...a);
+  };
+  window.__niveles = [];
+  // El último volumen que se le puso a un vídeo: el de la vista previa no
+  // está en la página, se pinta en el lienzo.
+  const vol = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "volume");
+  Object.defineProperty(HTMLMediaElement.prototype, "volume", {
+    configurable: true,
+    get() { return vol.get.call(this); },
+    set(x) { window.__volumen = x; vol.set.call(this, x); },
+  });
   window.__ensenadas = [];
   // Cada sonido que empieza a sonar por el altavoz, con lo que dura: así se ve
   // que la vista previa suena. Los de un `OfflineAudioContext` no suenan: son
@@ -127,7 +183,10 @@ await page.addInitScript(({ historia }) => {
   window.__sonando = [];
   const empezar = AudioBufferSourceNode.prototype.start;
   AudioBufferSourceNode.prototype.start = function (...a) {
-    if (!(this.context instanceof OfflineAudioContext)) window.__sonando.push(this.buffer?.duration ?? 0);
+    if (!(this.context instanceof OfflineAudioContext)) {
+      window.__sonando.push(this.buffer?.duration ?? 0);
+      window.__niveles.push(this.__destino?.gain?.value ?? null);
+    }
     return empezar.apply(this, a);
   };
   Object.defineProperty(navigator, "clipboard", {
@@ -139,7 +198,9 @@ await page.addInitScript(({ historia }) => {
     return btoa(s);
   };
   let escucha = 1;
+  window.__orden = [];
   const contestar = (cmd, args, opciones) => {
+    if (/^(plugin:dialog\|save|tarjeta_video_)/.test(cmd) && cmd !== "tarjeta_video_escribir") window.__orden.push(cmd);
     switch (cmd) {
       case "plugin:event|listen": (oyentes[args.event] ??= []).push(args.handler); return escucha++;
       case "plugin:event|unlisten": return null;
@@ -155,6 +216,39 @@ await page.addInitScript(({ historia }) => {
       case "get_fondo": return "C:\\datos\\Adeorq\\fondo.png";
       case "uso_historia": return new Promise((ok) => setTimeout(() => ok(historia), 800));
       case "plugin:dialog|save": return `C:\\Salida\\${args.options?.defaultPath ?? "tarjeta"}`;
+      case "plugin:dialog|open": return window.__abrir.shift() ?? null;
+      case "tarjeta_fondos": return disco().map((g) => g.meta);
+      case "tarjeta_fondo_importar": {
+        const p = window.__porImportar[args.path];
+        if (!p) throw new Error("no encuentro ese archivo");
+        const d = disco();
+        const ya = d.find((g) => g.huella === p.huella);
+        if (ya) return ya.meta;
+        const meta = { nombre: p.nombre, ruta: `C:\\datos\\Adeorq\\tarjeta\\fondos\\${p.nombre}`, video: p.video, bytes: p.bytes };
+        aDisco([{ meta, huella: p.huella }, ...d]);
+        // Lo que tarda una copia grande, para ver «Copiando…».
+        return new Promise((ok) => setTimeout(() => ok(meta), 1200));
+      }
+      case "tarjeta_fondo_quitar":
+        aDisco(disco().filter((g) => g.meta.nombre !== args.nombre));
+        window.__quitados.push(args.nombre);
+        return null;
+      case "tarjeta_video_empezar": window.__partes[args.ruta] = []; return null;
+      case "tarjeta_video_escribir": {
+        const ruta = decodeURIComponent(opciones?.headers?.ruta ?? "");
+        if (!window.__partes[ruta]) throw new Error("no puedo escribir el vídeo");
+        window.__partes[ruta].push([Number(opciones.headers.posicion), args.slice()]);
+        return null;
+      }
+      case "tarjeta_video_acabar": {
+        const ps = window.__partes[args.ruta];
+        const u8 = new Uint8Array(Math.max(...ps.map(([p, d]) => p + d.length)));
+        for (const [p, d] of ps) u8.set(d, p);
+        window.__guardados.push({ ruta: args.ruta, b64: aBase64(u8), trozos: ps.length });
+        delete window.__partes[args.ruta];
+        return null;
+      }
+      case "tarjeta_video_cancelar": delete window.__partes[args.ruta]; window.__cancelados.push(args.ruta); return null;
       case "guardar_tarjeta":
         window.__guardados.push({ ruta: decodeURIComponent(opciones?.headers?.ruta ?? ""), b64: aBase64(args) });
         return null;
@@ -172,6 +266,59 @@ await page.addInitScript(({ historia }) => {
   });
 }, { historia });
 
+/** Importar un fondo como lo hace la app: «Subir», el diálogo contesta su
+    ruta y el doble de Rust lo «copia» a la carpeta de fondos. */
+const importar = async (nombre, b64, video = true) => {
+  archivos.set(nombre, Buffer.from(b64, "base64"));
+  const ruta = `C:\\Origen\\${nombre}`;
+  const huella = createHash("sha1").update(b64).digest("hex");
+  await page.evaluate(([ruta, p]) => {
+    window.__porImportar[ruta] = p;
+    window.__abrir.push(ruta);
+  }, [ruta, { nombre, video, bytes: Math.round((b64.length * 3) / 4), huella }]);
+  await page.click(".pt-subir");
+  await page.locator(`.pt-mini[aria-label="${nombre}"]`).waitFor({ timeout: 10000 });
+};
+/** Un vídeo hecho con el propio motor, cada instante de otro tono (`tono(t)`), en base64. */
+const hacerVideo = (segundos, { fps = 30, ancho = 640, alto = 360, la = false } = {}) =>
+  page.evaluate(async ([segundos, fps, ancho, alto, la]) => {
+    const m = await import("/src/lib/exportarTarjeta.ts");
+    let sonido = null;
+    if (la) {
+      const ctx = new OfflineAudioContext(2, Math.ceil(segundos * 48000), 48000);
+      const o = ctx.createOscillator();
+      o.frequency.value = 440;
+      const g = ctx.createGain();
+      g.gain.value = 0.5;
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      sonido = await ctx.startRendering();
+    }
+    const b = await m.exportarVideo((c, w, h, _f, t) => {
+      c.fillStyle = `hsl(${Math.round((t * 25) % 360)}, 70%, 45%)`;
+      c.fillRect(0, 0, w, h);
+    }, { ancho, alto, fps, segundos, sonido });
+    const u8 = new Uint8Array(await b.arrayBuffer());
+    let s = "";
+    for (let k = 0; k < u8.length; k += 0x8000) s += String.fromCharCode(...u8.subarray(k, k + 0x8000));
+    return btoa(s);
+  }, [segundos, fps, ancho, alto, la]);
+/** El pico del sonido que lleva un MP4 guardado (`__guardados[i]`). */
+const picoDe = (i) =>
+  page.evaluate(async (i) => {
+    const bin = atob(window.__guardados[i].b64);
+    const u8 = new Uint8Array(bin.length);
+    for (let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
+    const m = await import("/src/lib/exportarTarjeta.ts");
+    const a = await m.sonidoDelFondo(new Blob([u8], { type: "video/mp4" }), 2);
+    if (!a) return null;
+    // El centro, lejos de la entrada y del cierre.
+    const d = a.getChannelData(0).subarray(a.sampleRate * 0.3, a.sampleRate * 1.5);
+    let p = 0;
+    for (const x of d) p = Math.max(p, Math.abs(x));
+    return p;
+  }, i);
+const tramoTexto = () => page.$eval(".pt-tramo", (s) => s.textContent).catch(() => "");
 const foto = async (nombre) => { if (FOTOS) await page.screenshot({ path: join(FOTOS, `${nombre}.png`) }); };
 const etiqueta = () => page.$eval("canvas.pt-lienzo", (c) => c.getAttribute("aria-label"));
 const pulsado = (sel) => page.$$eval(sel, (bs) => bs.filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.getAttribute("aria-label") || b.textContent.trim()));
@@ -194,8 +341,8 @@ const abrirPerfil = async (q) => {
 const abierta = async () => { await page.locator(".pt-velo").waitFor({ timeout: 5000 }); await page.waitForTimeout(400); };
 const cerrar = async () => { await page.keyboard.press("Escape"); await page.locator(".pt-velo").waitFor({ state: "detached", timeout: 3000 }); };
 /** Que la fila de Imagen · Vídeo y la barra quepan cada una en una línea. */
-const enUnaLinea = async (cuando) => {
-  for (const fila of [".pt-pestanas", ".pt-barra"]) {
+const enUnaLinea = async (cuando, filas = [".pt-pestanas", ".pt-barra"]) => {
+  for (const fila of filas) {
     const f = await page.$eval(fila, (b) => {
       const hijos = [...b.children].filter((h) => h.getBoundingClientRect().width > 0);
       // Por el centro y no por arriba: la fila va centrada y cada pieza tiene su alto.
@@ -228,7 +375,7 @@ try {
   const tira = await page.$$eval(".pt-tira .pt-mini", (bs) => bs.map((b) => b.getAttribute("aria-label")));
   dice(JSON.stringify(tira) === JSON.stringify(["Tu fondo de Adeorq", "ASCII", "Solo los bordes", "Grano de película", "Proa de cristal"]), `la tira: tu fondo primero y los cuatro de serie (${tira})`);
   dice((await pulsado(".pt-mini"))[0] === "Tu fondo de Adeorq", "elegido, tu fondo");
-  dice(/Subir imagen\s*hasta 10 MB/.test(await page.$eval(".pt-subir", (b) => b.textContent)), "y «Subir imagen» al final");
+  dice((await page.$eval(".pt-subir", (b) => b.textContent.trim())) === "Subir imagen", "y «Subir imagen» al final, sin límite de tamaño");
   await foto("1-mes");
 
   // 2. Un fondo de serie, y «Resaltar la cifra» pinta la caja clara.
@@ -303,13 +450,13 @@ try {
   await foto("3-record");
   await cerrar();
 
-  // 6b. «Total»: todo desde tu primer día con uso (hace 60 días), con los
+  // 6b. «Total»: todo desde tu primer día con uso (hace 75 días), con los
   //     proyectos de siempre en la lista.
   await page.click(".pu-compartir");
   await abierta();
   await page.click('.pt-barra .pt-op:has-text("Total")');
   const tot = await etiqueta();
-  const dia60 = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 60).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+  const dia60 = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 75).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
   dice(tot?.startsWith(`Desde el ${dia60}: 32B Tokens`), `«Total» cuenta desde tu primer día con uso (${tot})`);
   dice(/Nuevos 12M/.test(tot) && /Claude Code 98 %/.test(tot) && /Días activos 3/.test(tot), `con sus filas (${tot})`);
   dice(JSON.stringify(await pulsado(".pt-barra .pt-op")) === JSON.stringify(["Total"]), `con «Total» elegido (${await pulsado(".pt-barra .pt-op")})`);
@@ -329,20 +476,22 @@ try {
   const bajarVideo = page.locator('.pt-accion:has-text("Descargar vídeo")');
   dice((await bajarVideo.isDisabled()) && /vídeo de fondo/.test((await bajarVideo.getAttribute("data-tip")) ?? ""), "y «Descargar vídeo» apagado, diciendo por qué");
   // Un vídeo de fondo de dos segundos, hecho con el propio motor: cada fotograma de otro color.
-  const mp4Fondo = await page.evaluate(async () => {
-    const m = await import("/src/lib/exportarTarjeta.ts");
-    const b = await m.exportarVideo((ctx, w, h, _f, t) => {
-      ctx.fillStyle = `hsl(${Math.round(t * 180)}, 70%, 45%)`;
-      ctx.fillRect(0, 0, w, h);
-    }, { ancho: 640, alto: 360, fps: 30, segundos: 2 });
-    const u8 = new Uint8Array(await b.arrayBuffer());
-    let s = "";
-    for (let k = 0; k < u8.length; k += 0x8000) s += String.fromCharCode(...u8.subarray(k, k + 0x8000));
-    return btoa(s);
-  });
-  await page.setInputFiles(".pt-tira input[type=file]", { name: "mi fondo.mp4", mimeType: "video/mp4", buffer: Buffer.from(mp4Fondo, "base64") });
+  const mp4Fondo = await hacerVideo(2);
+  archivos.set("mi fondo.mp4", Buffer.from(mp4Fondo, "base64"));
+  await page.evaluate((p) => {
+    window.__porImportar["C:\\Origen\\mi fondo.mp4"] = p;
+    window.__abrir.push("C:\\Origen\\mi fondo.mp4");
+  }, { nombre: "mi fondo.mp4", video: true, bytes: 1, huella: "uno" });
+  await page.click(".pt-subir");
+  await page.waitForTimeout(700);
+  const copiando = await page.$eval(".pt-subir", (b) => ({ texto: b.textContent.trim(), apagado: b.disabled }));
+  dice(copiando.apagado && copiando.texto === "Copiando…", `mientras Rust copia, «Subir» dice «Copiando…» (${copiando.texto})`);
   await page.locator('.pt-mini[aria-label="mi fondo.mp4"]').waitFor({ timeout: 5000 });
-  dice((await pulsado(".pt-mini"))[0] === "mi fondo.mp4", "el vídeo subido queda elegido");
+  dice((await pulsado(".pt-mini"))[0] === "mi fondo.mp4", "el vídeo importado queda elegido");
+  dice(
+    (await page.$eval('.pt-mini[aria-label="mi fondo.mp4"] video', (v) => v.getAttribute("src"))).startsWith("/__fondo/"),
+    "y se sirve por el protocolo de assets desde la carpeta de Adeorq, no desde la memoria",
+  );
   await page.waitForTimeout(800);
   const h1 = await huella();
   await page.waitForTimeout(500);
@@ -360,10 +509,15 @@ try {
   const mp4 = await page.evaluate(() => window.__guardados[1]);
   const info = leerMp4(Buffer.from(mp4.b64, "base64"));
   dice(
-    info.arriba?.join(" ") === "ftyp moov mdat" && info.codec === "avc1" && info.ancho === 1080 && info.alto === 1920 && info.muestras === 90,
+    info.arriba?.filter((c) => c !== "free").join(" ") === "ftyp moov mdat" && info.codec === "avc1" && info.ancho === 1080 && info.alto === 1920 && info.muestras === 90,
     `Descargar vídeo guarda un MP4: ${info.arriba?.join(" ")}, ${info.codec}, ${info.ancho}×${info.alto}, ${info.muestras} fotogramas (un fondo de 2 s da 3 s)`,
   );
   dice(/\.mp4$/.test(mp4.ruta), `con su extensión (${mp4.ruta})`);
+  const orden = await page.evaluate(() => window.__orden.slice(-3).join(" > "));
+  dice(
+    orden === "plugin:dialog|save > tarjeta_video_empezar > tarjeta_video_acabar" && (await page.evaluate(() => Object.keys(window.__partes).length)) === 0,
+    `primero el «Guardar como», luego a disco a trozos (${mp4.trozos}) y el .part renombrado (${orden})`,
+  );
   const s = info.sonido;
   dice(
     s?.codec === "mp4a" && s.canales === 2 && s.frecuencia === 48000 && Math.abs(s.segundos - info.segundos) < 0.1,
@@ -385,7 +539,10 @@ try {
   await page.locator(".pt-progreso").waitFor({ timeout: 5000 });
   await page.click('.pt-acciones .pt-accion:has-text("Cancelar")');
   await page.waitForFunction(() => document.querySelector(".pt-estado")?.textContent === "Cancelado.", null, { timeout: 5000 }).catch(() => {});
-  dice((await estado()) === "Cancelado." && (await page.evaluate(() => window.__guardados.length)) === 3, `cancelar a medias no guarda nada (${await estado()})`);
+  dice(
+    (await estado()) === "Cancelado." && (await page.evaluate(() => window.__guardados.length)) === 3 && (await page.evaluate(() => window.__cancelados.length)) === 1,
+    `cancelar a medias no guarda nada y borra el .part (${await estado()})`,
+  );
 
   // Los sonidos: «Golpe» de fábrica y «Contador»; sin sonido propio en el fondo, no hay «Del vídeo».
   const origenes = () => page.$$eval('.pt-sonido [role=group] .pt-op', (bs) => bs.map((b) => `${b.textContent}${b.getAttribute("aria-pressed") === "true" ? "*" : ""}`));
@@ -401,26 +558,7 @@ try {
   dice((await page.evaluate(() => window.__sonando.length)) > antes && Math.abs(tras - 3) < 0.01, "«Contador» elegido suena en la vista previa");
 
   // Un fondo con su propio sonido, un La de 440 Hz: aparece «Del vídeo», y ese es el que sale.
-  const conLa = await page.evaluate(async () => {
-    const m = await import("/src/lib/exportarTarjeta.ts");
-    const ctx = new OfflineAudioContext(2, 2 * 48000, 48000);
-    const o = ctx.createOscillator();
-    o.frequency.value = 440;
-    const g = ctx.createGain();
-    g.gain.value = 0.5;
-    o.connect(g).connect(ctx.destination);
-    o.start();
-    const la = await ctx.startRendering();
-    const b = await m.exportarVideo((c, w, h, _f, t) => {
-      c.fillStyle = `hsl(${Math.round(200 + t * 60)}, 60%, 35%)`;
-      c.fillRect(0, 0, w, h);
-    }, { ancho: 640, alto: 360, fps: 30, segundos: 2, sonido: la });
-    const u8 = new Uint8Array(await b.arrayBuffer());
-    let s = "";
-    for (let k = 0; k < u8.length; k += 0x8000) s += String.fromCharCode(...u8.subarray(k, k + 0x8000));
-    return btoa(s);
-  });
-  await page.setInputFiles(".pt-tira input[type=file]", { name: "con sonido.mp4", mimeType: "video/mp4", buffer: Buffer.from(conLa, "base64") });
+  await importar("con sonido.mp4", await hacerVideo(2, { la: true }));
   await page.locator('.pt-sonido [role=group] .pt-op:has-text("Del vídeo")').waitFor({ timeout: 8000 }).catch(() => {});
   dice(JSON.stringify(await origenes()) === JSON.stringify(["Golpe", "Contador*", "Del vídeo"]), `con un fondo que suena, «Del vídeo» se puede elegir (${await origenes()})`);
   // La barra es corta, como la de Axiom: en Vídeo, con los tres sonidos, cada fila cabe en una línea.
@@ -447,7 +585,186 @@ try {
     infoDelFondo.sonido?.codec === "mp4a" && Math.abs(infoDelFondo.sonido.segundos - infoDelFondo.segundos) < 0.1 && delFondo !== null && Math.abs(delFondo - 440) < 12,
     `«Del vídeo» mete en el MP4 el sonido del fondo, su La (${delFondo ?? "nada"} cruces por segundo en medio segundo ≈ 440 Hz, ${infoDelFondo.sonido?.segundos?.toFixed(3)} s de ${infoDelFondo.segundos?.toFixed(3)})`,
   );
+
+  // 7b. Los dos volúmenes: el del vídeo va dentro del MP4; el de la vista
+  // previa solo se oye editando, y nace al 30 %.
+  const vols = () => page.$$eval(".pt-volumen .pt-deslizador", (s) => s.map((x) => `${x.getAttribute("aria-label")} ${x.getAttribute("aria-valuetext")}`).join(", "));
+  dice((await vols()) === "Volumen del vídeo 100 %, Volumen de la vista previa 30 %", `de fábrica (${await vols()})`);
+  await page.waitForTimeout(300);
+  dice(Math.abs((await page.evaluate(() => window.__volumen)) - 0.3) < 1e-6, `«Del vídeo» suena por el <video> al 30 % (${await page.evaluate(() => window.__volumen)})`);
+  await page.focus('.pt-deslizador[aria-label="Volumen de la vista previa"]');
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await page.focus('.pt-deslizador[aria-label="Volumen del vídeo"]');
+  for (let k = 0; k < 10; k++) await page.keyboard.press("ArrowLeft");
+  await page.waitForTimeout(200);
+  dice((await vols()) === "Volumen del vídeo 50 %, Volumen de la vista previa 20 %", `con las flechas (${await vols()})`);
+  dice(Math.abs((await page.evaluate(() => window.__volumen)) - 0.1) < 1e-6, `lo que se oye es vídeo × vista previa: 0,5 × 0,2 (${await page.evaluate(() => window.__volumen)})`);
+  await bajarVideo.click();
+  await page.waitForFunction(() => window.__guardados.length > 4, null, { timeout: 60000 });
+  const [p100, p50] = [await picoDe(3), await picoDe(4)];
+  dice(p100 && p50 && Math.abs(p50 / p100 - 0.5) < 0.05, `el MP4 al 50 % mide la mitad de pico que al 100 % (${p50?.toFixed(3)} de ${p100?.toFixed(3)}: ${(p50 / p100).toFixed(3)})`);
+  await page.click('.pt-sonido [role=group] .pt-op:has-text("Golpe")');
+  await page.waitForTimeout(500);
+  const nivelGolpe = await page.evaluate(() => window.__niveles.slice(-1)[0]);
+  dice(Math.abs(nivelGolpe - 0.1) < 1e-6, `«Golpe» pasa por la misma ganancia, 0,5 × 0,2 (${nivelGolpe})`);
+
+  // 7c. El recorte, en un clip de 12 s: de fábrica entero; los tiradores con
+  // el ratón y con el teclado; la vista previa y el MP4, solo ese tramo.
+  await importar("doce.mp4", await hacerVideo(12, { fps: 10, ancho: 320, alto: 180 }));
+  await page.locator(".pt-recorte").waitFor({ timeout: 5000 });
+  await page.waitForTimeout(600);
+  dice((await tramoTexto()) === "Empieza 0:00 · Termina 0:12 · Dura 12 s", `de fábrica, el clip entero (${await tramoTexto()})`);
+  await page.waitForFunction(() => document.querySelectorAll(".pt-fotos img").length >= 10, null, { timeout: 8000 }).catch(() => {});
+  dice((await page.$$(".pt-fotos img")).length >= 10, `la línea de tiempo lleva los fotogramas del clip (${(await page.$$(".pt-fotos img")).length})`);
+  const caja = await page.$eval(".pt-recorte", (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width }; });
+  const pintadosAntes = await page.evaluate(() => window.__pintados);
+  await page.mouse.move(caja.x + 2, caja.y);
+  await page.mouse.down();
+  for (let k = 1; k <= 12; k++) await page.mouse.move(caja.x + (caja.w * 3 * k) / 12 / 12, caja.y);
+  await page.waitForTimeout(300);
+  const pintadosArrastrando = await page.evaluate(() => window.__pintados);
+  const enArrastre = await tramoTexto();
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const pintadosSoltado = await page.evaluate(() => window.__pintados);
+  dice(enArrastre === "Empieza 0:03 · Termina 0:12 · Dura 9 s", `el tirador de inicio con el ratón, en texto mientras se arrastra (${enArrastre})`);
+  dice(pintadosArrastrando === pintadosAntes && pintadosSoltado === pintadosAntes + 1, `arrastrando no se hace ningún sonido; al soltar, uno (${pintadosAntes} → ${pintadosArrastrando} → ${pintadosSoltado})`);
+  await page.focus('.pt-tirador[data-cual="hasta"]');
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await page.waitForTimeout(700);
+  dice((await tramoTexto()) === "Empieza 0:03 · Termina 0:10 · Dura 7 s", `el de fin con las flechas (${await tramoTexto()})`);
+  const tirador = await page.$eval('.pt-tirador[data-cual="hasta"]', (t) => `${t.getAttribute("role")} ${t.getAttribute("aria-valuetext")}`);
+  dice(tirador === "slider 0:10", `y el lector de pantalla lo lee (${tirador})`);
+  const ultimo = await page.evaluate(() => window.__sonando.slice(-1)[0]);
+  dice(Math.abs(ultimo - 7) < 0.01, `la vista previa suena lo que dura el tramo (${ultimo?.toFixed(2)} s)`);
+  const marcas = [];
+  for (let k = 0; k < 4; k++) {
+    marcas.push(await page.$eval(".pt-marca", (m) => parseFloat(m.style.left)));
+    await page.waitForTimeout(400);
+  }
+  dice(new Set(marcas.map((m) => m.toFixed(1))).size > 1 && marcas.every((m) => m >= 24 && m <= 85), `la marca de por dónde va avanza dentro del tramo (${marcas.map((m) => m.toFixed(1)).join(", ")} %)`);
+  if (FOTOS) await foto("6-recorte");
+  await bajarVideo.click();
+  await page.waitForFunction(() => window.__guardados.length > 5, null, { timeout: 60000 });
+  const recortado = leerMp4(Buffer.from((await page.evaluate(() => window.__guardados[5])).b64, "base64"));
+  dice(recortado.muestras === 210 && Math.abs(recortado.sonido?.segundos - 7) < 0.1, `el MP4 sale de ese tramo: ${recortado.muestras} fotogramas (7 s a 30), sonido de ${recortado.sonido?.segundos?.toFixed(2)} s`);
+  // Su primer fotograma es el del segundo 3 del clip, no el del 0.
+  const colores = await page.evaluate(async (b64Doce) => {
+    const m = await import("/src/lib/exportarTarjeta.ts");
+    const blob = (b64) => { const s = atob(b64); const u = new Uint8Array(s.length); for (let k = 0; k < s.length; k++) u[k] = s.charCodeAt(k); return new Blob([u], { type: "video/mp4" }); };
+    const pixel = async (fondo, t) => {
+      const png = await m.exportarImagen((c, w, h, f) => c.drawImage(f, 0, 0, w, h), { ancho: 16, alto: 16, fondo, t });
+      const img = await createImageBitmap(png);
+      const c = new OffscreenCanvas(16, 16).getContext("2d");
+      c.drawImage(img, 0, 0);
+      return [...c.getImageData(1, 1, 1, 1).data.slice(0, 3)];
+    };
+    return { salida: await pixel(blob(window.__guardados[5].b64), 0.05), en3: await pixel(blob(b64Doce), 3.05), en0: await pixel(blob(b64Doce), 0.05) };
+  }, archivos.get("doce.mp4").toString("base64"));
+  const lejos = (a, b) => a.reduce((s, x, k) => s + Math.abs(x - b[k]), 0);
+  dice(lejos(colores.salida, colores.en3) * 3 < lejos(colores.salida, colores.en0), `y empieza en el segundo 3 del clip (${colores.salida} ≈ ${colores.en3}, lejos de ${colores.en0})`);
+
+  // 7d. Sin límite: un clip de 70 s propone su primer minuto y se alarga.
+  await importar("largo.mp4", await hacerVideo(70, { fps: 2, ancho: 160, alto: 90 }));
+  await page.locator(".pt-recorte").waitFor({ timeout: 5000 });
+  await page.waitForTimeout(600);
+  dice((await tramoTexto()) === "Empieza 0:00 · Termina 1:00 · Dura 1:00" && !(await page.$(".pt-aviso")), `uno largo propone su primer minuto, sin aviso (${await tramoTexto()})`);
+  await page.focus('.pt-tirador[data-cual="hasta"]');
+  await page.keyboard.press("End");
+  await page.waitForTimeout(300);
+  const aviso = await page.$eval(".pt-aviso", (a) => a.textContent).catch(() => "");
+  dice((await tramoTexto()) === "Empieza 0:00 · Termina 1:10 · Dura 1:10" && aviso === "Recomendado: menos de 1 minuto", `se alarga hasta el final y avisa (${await tramoTexto()} · ${aviso})`);
+  dice(!(await bajarVideo.isDisabled()), "y el aviso no bloquea nada");
+  await enUnaLinea("con el recorte y el aviso,", [".pt-pestanas", ".pt-tiempo-fila >> nth=0", ".pt-tiempo-fila >> nth=1", ".pt-barra"]);
+
+  // 7e. La tira con ocho vídeos: «Subir» siempre a la vista, sin barra de
+  // scroll, la rueda la desliza y el mismo archivo dos veces no se duplica.
+  for (let k = 1; k <= 4; k++) await importar(`clip ${k}.mp4`, await hacerVideo(2 + k / 10, { fps: 10, ancho: 160, alto: 90 }));
+  const nVideos = (await page.$$(".pt-tira .pt-mini")).length;
+  await page.evaluate((p) => { window.__porImportar["C:\\Otra\\clip 1.mp4"] = p; window.__abrir.push("C:\\Otra\\clip 1.mp4"); }, {
+    nombre: "clip 1 (copia).mp4", video: true, bytes: 1, huella: createHash("sha1").update(archivos.get("clip 1.mp4").toString("base64")).digest("hex"),
+  });
+  await page.click(".pt-subir");
+  await page.waitForTimeout(800);
+  dice(nVideos === 8 && (await page.$$(".pt-tira .pt-mini")).length === 8, `el mismo archivo otra vez no se duplica (${nVideos} y ${(await page.$$(".pt-tira .pt-mini")).length})`);
+  const tira8 = await page.evaluate(() => {
+    const t = document.querySelector(".pt-editor").getBoundingClientRect();
+    const l = document.querySelector(".pt-tira-lista");
+    const s = document.querySelector(".pt-subir").getBoundingClientRect();
+    return { subir: s.right <= t.right + 1 && s.left >= t.left && s.width > 0, desliza: l.scrollWidth > l.clientWidth, barra: l.offsetHeight - l.clientHeight };
+  });
+  dice(tira8.subir && tira8.desliza && tira8.barra === 0, `con ocho, «Subir» a la vista y la tira se desliza sin barra (${JSON.stringify(tira8)})`);
+  const centroTira = await page.$eval(".pt-tira-lista", (l) => { l.scrollLeft = 0; const r = l.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.mouse.move(centroTira.x, centroTira.y);
+  await page.mouse.wheel(0, 300);
+  await page.waitForTimeout(200);
+  dice((await page.$eval(".pt-tira-lista", (l) => l.scrollLeft)) > 0, `la rueda la desliza de lado (${await page.$eval(".pt-tira-lista", (l) => l.scrollLeft)} px)`);
+  await page.$eval(".pt-tira-lista", (l) => { l.scrollLeft = 0; });
+  await page.click('.pt-mini[aria-label="doce.mp4"]');
+  await page.waitForTimeout(800);
+  await foto("7-tira-ocho-16x9-es");
+
+  // 7f. Quitar uno con la X al pasar por encima, y otro con el teclado.
+  const sitio = page.locator('.pt-mini-sitio:has(.pt-mini[aria-label="clip 4.mp4"])');
+  const antesDeMirar = await sitio.locator(".pt-quitar").evaluate((x) => getComputedStyle(x).opacity);
+  await sitio.hover();
+  await page.waitForTimeout(300);
+  const alMirar = await sitio.locator(".pt-quitar").evaluate((x) => getComputedStyle(x).opacity);
+  dice(antesDeMirar === "0" && alMirar === "1", `la X sale al pasar por encima (${antesDeMirar} → ${alMirar})`);
+  await sitio.locator(".pt-quitar").click();
+  await page.waitForTimeout(300);
+  await page.focus('.pt-mini[aria-label="clip 3.mp4"]');
+  await page.keyboard.press("Delete");
+  await page.waitForTimeout(300);
+  const quitados = await page.evaluate(() => window.__quitados.join(", "));
+  dice(quitados === "clip 4.mp4, clip 3.mp4" && (await page.$$(".pt-tira .pt-mini")).length === 6, `quitados con la X y con Supr, solo la copia de Adeorq (${quitados})`);
   await cerrar();
+
+  // 7g. «Reiniciar»: la página se recarga; los vídeos, el recorte y los
+  // volúmenes siguen ahí.
+  await abrirPerfil("vez=1");
+  await page.click(".pu-compartir");
+  await abierta();
+  await page.click('.pt-pestanas .pt-op:has-text("Vídeo")');
+  await page.waitForTimeout(400);
+  const reabierta = await page.$$eval(".pt-tira .pt-mini", (bs) => bs.map((b) => b.getAttribute("aria-label")).join(", "));
+  dice(reabierta === "clip 2.mp4, clip 1.mp4, largo.mp4, doce.mp4, con sonido.mp4, mi fondo.mp4", `al reabrir, los importados siguen en la tira (${reabierta})`);
+  await page.click('.pt-mini[aria-label="doce.mp4"]');
+  await page.locator(".pt-recorte").waitFor({ timeout: 5000 });
+  await page.waitForTimeout(500);
+  dice((await tramoTexto()) === "Empieza 0:03 · Termina 0:10 · Dura 7 s" && (await vols()) === "Volumen del vídeo 50 %, Volumen de la vista previa 20 %", `con su recorte y los volúmenes (${await tramoTexto()}; ${await vols()})`);
+
+  // 7h. El editor cabe sin scroll, en 16:9 y en 9:16, a 1920 y a 1536 (su
+  // portátil al 125 %, con y sin la barra de tareas).
+  for (const [w, h] of [[1920, 1080], [1920, 1000], [1536, 864], [1536, 790]]) {
+    await page.setViewportSize({ width: w, height: h });
+    for (const f of ["16:9", "9:16"]) {
+      await page.click(`.pt-formato .pt-op:has-text("${f}")`);
+      await page.waitForTimeout(250);
+      const m = await page.$eval(".pt-velo", (v) => ({ sobra: v.scrollHeight - v.clientHeight, alto: Math.round(document.querySelector(".pt-lienzo")?.getBoundingClientRect().height ?? 0) }));
+      dice(m.sobra <= 0, `a ${w}×${h} en ${f} el editor cabe sin scroll (${m.sobra} px de más; la tarjeta mide ${m.alto} de alto)`);
+      if (w === 1920 && h === 1080) await foto(`8-video-${f.replace(":", "x")}-es`);
+    }
+  }
+  await page.click('.pt-formato .pt-op:has-text("16:9")');
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await cerrar();
+
+  // 7i. Quien abre la tarjeta dice qué es (`que`). Sin decirlo, se deduce de
+  // las fechas como antes: un tramo es un mes y un solo día es un día.
+  const abrirCon = async (detail) => {
+    await page.evaluate((d) => window.dispatchEvent(new CustomEvent("adeorq:abrir-tarjeta", { detail: d })), detail);
+    await abierta();
+    const r = await pulsado(".pt-barra .pt-op");
+    await cerrar();
+    return r.join(",");
+  };
+  const conQue = await abrirCon({ desde: hoy, hasta: hoy, que: "mes" });
+  const sinQueTramo = await abrirCon({ desde: "2026-10-01", hasta: "2026-10-31" });
+  const sinQueDia = await abrirCon({ desde: "2026-10-20", hasta: "2026-10-20" });
+  dice(conQue === "Mes" && sinQueTramo === "Mes" && sinQueDia === "Día 20", `«del 1 al 1» con que: "mes" es un mes; sin «que», un tramo es un mes y un día es un día (${conQue} · ${sinQueTramo} · ${sinQueDia})`);
 
   // 8. En inglés.
   await abrirPerfil("vez=2&lang=en");
@@ -460,11 +777,26 @@ try {
   await page.click('.pt-formato .pt-op:has-text("16:9")');
   await page.click('.pt-barra .pt-op:has-text("All time")');
   const enTotal = await etiqueta();
-  const dia60en = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 60).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const dia60en = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 75).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   dice(enTotal?.startsWith(`Since ${dia60en}: 32B Tokens`) && /Active days 3/.test(enTotal), `«All time» en inglés (${enTotal})`);
   await foto("5a-ingles-total");
   await page.click('.pt-pestanas .pt-op:has-text("Video")');
   await enUnaLinea("en inglés, en Vídeo y con «All time»,");
+  await page.click('.pt-mini[aria-label="doce.mp4"]');
+  await page.locator(".pt-recorte").waitFor({ timeout: 5000 });
+  await page.waitForTimeout(600);
+  dice((await tramoTexto()) === "Starts 0:00 · Ends 0:12 · Lasts 12 s" && (await vols()) === "Video volume 100%, Preview volume 30%", `el recorte y los volúmenes en inglés (${await tramoTexto()}; ${await vols()})`);
+  await enUnaLinea("en inglés, con el recorte,", [".pt-tiempo-fila >> nth=0", ".pt-tiempo-fila >> nth=1"]);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  for (const f of ["16:9", "9:16"]) {
+    await page.click(`.pt-formato .pt-op:has-text("${f}")`);
+    await page.waitForTimeout(500);
+    const sobra = await page.$eval(".pt-velo", (v) => v.scrollHeight - v.clientHeight);
+    dice(sobra <= 0, `en inglés a 1920×1080 en ${f}, sin scroll (${sobra})`);
+    await foto(`9-video-${f.replace(":", "x")}-en`);
+  }
+  await page.click('.pt-formato .pt-op:has-text("16:9")');
+  await page.setViewportSize({ width: 1600, height: 1000 });
   await page.click('.pt-pestanas .pt-op:has-text("Image")');
   await page.click('.pt-barra .pt-op:has-text("Month")');
   await page.click(".pt-elegir-btn");

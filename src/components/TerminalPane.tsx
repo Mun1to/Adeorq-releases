@@ -95,7 +95,7 @@ import { useNombreSolo } from "../lib/nombreSolo";
 import { useDatosCabecera } from "../lib/cabeceraTerminal";
 import { archivoDelDiff } from "../lib/diffEspejo";
 import { estadoDelPanel, loginSegun, parseAsk, pieDePantalla, type Ask } from "../lib/reglasPantalla";
-import { crearPegado } from "../lib/pegado";
+import { copiarPorOsc52, crearPegado } from "../lib/pegado";
 import { mandoUnaFrase } from "../lib/hablada";
 import { hablarCon } from "../lib/decisiones";
 import DiffEspejo from "./DiffEspejo";
@@ -1195,6 +1195,7 @@ export default function TerminalPane({
     term.loadAddon(fit);
     const search = new SearchAddon();
     term.loadAddon(search);
+    copiarPorOsc52(term);
     termRef.current = term;
     fitRef.current = fit;
     searchRef.current = search;

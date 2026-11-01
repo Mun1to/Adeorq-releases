@@ -48,6 +48,7 @@ function cargar(ua: string): Comandos {
 
 const WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Edg/141.0";
 const LINUX = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36";
+const MAC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)";
 
 // --- Windows: el envoltorio ligero, que es el del ahorro ----------------------
 {
@@ -126,6 +127,27 @@ const LINUX = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36";
     JSON.stringify(powershellCommand("claude")) === JSON.stringify(shellCommand("claude")),
     "allí no hay PowerShell que valga",
   );
+}
+
+// --- macOS: zsh, no la bash de 2007 -------------------------------------------
+{
+  const { shellCommand, powershellCommand } = cargar(MAC);
+  const c = shellCommand("claude --permission-mode acceptEdits");
+  ok("en un Mac el envoltorio es zsh de login", c[0] === "/bin/zsh" && c[1] === "-lc");
+  ok(
+    "con la shell interactiva encadenada detrás, también zsh",
+    c[2].includes("; exec /bin/zsh -i") && !c[2].includes("bash"),
+    "bash -i en un Mac imprime en cada terminal el aviso de que la shell por defecto ya es zsh",
+  );
+  ok("no se cuela un chcp", !c[2].includes("chcp"));
+  ok(
+    "los dos envoltorios son el mismo",
+    JSON.stringify(powershellCommand("claude")) === JSON.stringify(shellCommand("claude")),
+  );
+  const w = cargar(WINDOWS);
+  ok("Windows sigue igual tras cargar el Mac", w.shellCommand("claude")[0] === "cmd.exe");
+  const l = cargar(LINUX);
+  ok("y Linux sigue en bash", l.shellCommand("claude")[0] === "/bin/bash");
 }
 
 // --- Lo que NO se puede romper al cambiar el envoltorio ------------------------

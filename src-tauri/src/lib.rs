@@ -7,11 +7,13 @@ mod crew;
 mod discord;
 mod editor;
 mod encargos;
+mod fondos_tarjeta;
 mod esquema;
 mod foreman;
 mod goals;
 mod hilo;
 mod icons;
+mod mac;
 mod pulso;
 mod inbox;
 mod manage;
@@ -108,14 +110,20 @@ fn ahora() -> String {
 ///
 /// En Windows es `%LOCALAPPDATA%\Adeorq`, que es donde está lo de siempre. En
 /// Linux, `$XDG_DATA_HOME/adeorq` o `~/.local/share/adeorq`, que es donde una
-/// aplicación guarda SUS datos según la convención del escritorio.
+/// aplicación guarda SUS datos según la convención del escritorio. En un Mac,
+/// `~/Library/Application Support/Adeorq` (`mac::datos_en`).
 pub fn dir_datos() -> Result<std::path::PathBuf, String> {
     #[cfg(windows)]
     {
         let local = std::env::var("LOCALAPPDATA").map_err(|e| e.to_string())?;
         Ok(std::path::Path::new(&local).join("Adeorq"))
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        let casa = std::env::var("HOME").map_err(|e| e.to_string())?;
+        Ok(mac::datos_en(&casa))
+    }
+    #[cfg(all(not(windows), not(target_os = "macos")))]
     {
         if let Ok(xdg) = std::env::var("XDG_DATA_HOME") {
             if !xdg.is_empty() {
@@ -372,6 +380,10 @@ pub fn run() {
     registrar_panicos();
     #[cfg(target_os = "linux")]
     apanar_webkit_del_appimage();
+    // Antes de que nazca ningún hilo (cambia el entorno): una app abierta desde
+    // el Finder no trae el PATH del usuario, y sin él no se encuentra `claude`.
+    #[cfg(target_os = "macos")]
+    mac::heredar_path_del_usuario();
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
 
@@ -631,6 +643,13 @@ pub fn run() {
             manage::save_canvas_file,
             manage::save_drawing,
             manage::guardar_tarjeta,
+            fondos_tarjeta::tarjeta_fondos,
+            fondos_tarjeta::tarjeta_fondo_importar,
+            fondos_tarjeta::tarjeta_fondo_quitar,
+            fondos_tarjeta::tarjeta_video_empezar,
+            fondos_tarjeta::tarjeta_video_escribir,
+            fondos_tarjeta::tarjeta_video_acabar,
+            fondos_tarjeta::tarjeta_video_cancelar,
             manage::read_canvas_file,
             manage::delete_project,
             manage::set_fondo,

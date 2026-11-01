@@ -12,7 +12,7 @@
 //
 //   pnpm bancos exportar-tarjeta
 
-import { anchoDelFondo, esVideo, fotogramas, FORMATOS, marcasDelFondo, nombreSugerido } from "../src/lib/exportarTarjeta";
+import { anchoDelFondo, esVideo, fotogramas, FORMATOS, marcasDelFondo, MINIMO, nombreSugerido, paquetesMaximos, RECOMENDADO, segundosDelTramo, tramoDe } from "../src/lib/exportarTarjeta";
 import { LLEGADA, pasos, subida } from "../src/lib/sonidoTarjeta";
 
 let fallos = 0;
@@ -74,6 +74,22 @@ const huecos = tics.slice(1).map((t, i) => t - tics[i]);
 es("los tics se espacian como frena la cifra", huecos.every((h, i) => i === 0 || h >= huecos[i - 1]), true);
 // Cada tic es un salto igual de la cifra: en el tic k la cifra vale k/18.
 es("cada tic cae donde la cifra da un salto igual", redondear(tics.map((t) => subida(t))), redondear(tics.map((_, k) => k / 18)));
+
+// El recorte (`tramoDe`): de fábrica el clip entero hasta un minuto, nunca más
+// corto que `MINIMO`, siempre dentro del clip; uno de menos de 3 s, entero.
+es("un minuto y tres segundos", [RECOMENDADO, MINIMO], [60, 3]);
+es("de fábrica, un clip de 12 s entero", tramoDe(12), { desde: 0, hasta: 12 });
+es("de fábrica, uno de 10 minutos da su primer minuto", tramoDe(600), { desde: 0, hasta: 60 });
+es("y se puede alargar hasta el final, sin límite", tramoDe(600, { desde: 0, hasta: 600 }), { desde: 0, hasta: 600 });
+es("uno de 2 s se usa entero", tramoDe(2, { desde: 1, hasta: 2 }), { desde: 0, hasta: 2 });
+es("lo guardado se mete dentro del clip", tramoDe(10, { desde: 8, hasta: 30 }), { desde: 7, hasta: 10 });
+es("y nunca más corto que 3 s", tramoDe(20, { desde: 5, hasta: 6 }), { desde: 5, hasta: 8 });
+es("sin duración todavía, nada", tramoDe(NaN), { desde: 0, hasta: 0 });
+es("la tarjeta dura el tramo, y 3 s si es más corto", [segundosDelTramo({ desde: 3, hasta: 10 }), segundosDelTramo({ desde: 0, hasta: 2 }), segundosDelTramo({ desde: 0, hasta: 600 })], [7, 3, 600]);
+// Un vídeo con un tramo que empieza en el 3: la primera marca es la del segundo 3.
+es("con tramo, el fondo empieza en su inicio y da la vuelta en su largo", redondear(marcasDelFondo(1, 4, 3, 2)), [3, 4, 3, 4]);
+// `fastStart: "reserve"` guarda sitio para el `moov` con estos números.
+es("los paquetes de reserva llevan margen", [paquetesMaximos(300), paquetesMaximos(18000) >= 18000], [394, true]);
 
 console.log(fallos ? `\n${fallos} FALLOS` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

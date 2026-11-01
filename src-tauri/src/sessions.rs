@@ -245,9 +245,16 @@ fn pid_alive(pid: u32) -> bool {
 /// Lo mismo en Linux, y aquí es una pregunta al sistema de archivos: `/proc`
 /// tiene una carpeta por proceso vivo y deja de tenerla en cuanto muere. No
 /// hace falta abrir un handle ni pedir permiso para mirar.
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "macos")))]
 fn pid_alive(pid: u32) -> bool {
     std::path::Path::new(&format!("/proc/{pid}")).exists()
+}
+
+/// Y en un Mac no hay `/proc`: con la misma pregunta todas las sesiones
+/// saldrían muertas y Adeorq dejaría abrir dos veces la misma conversación.
+#[cfg(target_os = "macos")]
+fn pid_alive(pid: u32) -> bool {
+    crate::mac::pid_vivo(pid)
 }
 
 fn live_session_ids() -> HashSet<String> {

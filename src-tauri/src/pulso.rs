@@ -62,8 +62,11 @@ pub struct Pulso {
 /// son 1/100 de segundo en cualquier sistema de escritorio actual.
 #[cfg(windows)]
 const UNIDAD_CPU: f64 = 1e-7;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "macos")))]
 const UNIDAD_CPU: f64 = 0.01;
+/// En macOS `mac::cpu_de` ya devuelve nanosegundos.
+#[cfg(target_os = "macos")]
+const UNIDAD_CPU: f64 = 1e-9;
 
 /// Los nombres que cuentan como agente. Un `powershell.exe` es el envoltorio
 /// que abre Adeorq; el que gasta y el que importa es lo que corre dentro.
@@ -152,7 +155,7 @@ fn cpu_de(pid: u32) -> Option<u64> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "macos")))]
 fn cpu_de(pid: u32) -> Option<u64> {
     // `/proc/<pid>/stat`: los campos 14 y 15 son utime y stime, en tics de
     // reloj. No se convierten a segundos por lo mismo que en Windows: solo se
@@ -183,14 +186,14 @@ static ANTES: std::sync::Mutex<Option<(Instant, u64)>> = std::sync::Mutex::new(N
 */
 
 /// El tamaño de página, para pasar de páginas a bytes. Se pregunta una vez.
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "macos")))]
 fn tam_pagina() -> u64 {
     // SAFETY: una consulta al sistema sin punteros ni memoria compartida.
     let n = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
     if n > 0 { n as u64 } else { 4096 }
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "macos")))]
 pub(crate) fn foto_procesos() -> Vec<(u32, u32, String)> {
     let mut out = Vec::new();
     let Ok(dir) = std::fs::read_dir("/proc") else {
@@ -218,7 +221,7 @@ pub(crate) fn foto_procesos() -> Vec<(u32, u32, String)> {
     out
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "macos")))]
 fn ram_de(pid: u32) -> Option<u64> {
     let statm = std::fs::read_to_string(format!("/proc/{pid}/statm")).ok()?;
     // El segundo número es la memoria RESIDENTE en páginas, que es el
@@ -232,7 +235,7 @@ fn ram_de(pid: u32) -> Option<u64> {
 /// `MemAvailable` y no `MemFree`: el segundo no cuenta la caché de disco, que
 /// el sistema suelta en cuanto hace falta, así que en un Linux con horas de uso
 /// diría que no queda nada cuando queda casi todo.
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "macos")))]
 fn memoria_sistema() -> (u64, u64) {
     let Ok(txt) = std::fs::read_to_string("/proc/meminfo") else {
         return (0, 0);
@@ -246,6 +249,32 @@ fn memoria_sistema() -> (u64, u64) {
             .unwrap_or(0)
     };
     (campo("MemTotal:"), campo("MemAvailable:"))
+}
+
+/* ------------------------------------------------------ y en macOS, con libproc
+
+   Ni la foto de Toolhelp ni `/proc`: el kernel de Apple contesta por `libproc`.
+   Está en `mac.rs`, que es donde viven las cosas que solo existen en un Mac.
+*/
+
+#[cfg(target_os = "macos")]
+fn cpu_de(pid: u32) -> Option<u64> {
+    crate::mac::cpu_de(pid)
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn foto_procesos() -> Vec<(u32, u32, String)> {
+    crate::mac::procesos()
+}
+
+#[cfg(target_os = "macos")]
+fn ram_de(pid: u32) -> Option<u64> {
+    crate::mac::ram_de(pid)
+}
+
+#[cfg(target_os = "macos")]
+fn memoria_sistema() -> (u64, u64) {
+    crate::mac::memoria_sistema()
 }
 
 /// Quién cuelga de quién, indexado una sola vez. Está separado de `arbol_de`

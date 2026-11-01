@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- El micrófono es el único permiso que el runtime endurecido deja a cero si
+         no se declara aquí: sin esto macOS le da silencio a la dictación, sin
+         avisar. Va con su texto en Info.plist. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <!-- Nada más, y a propósito:
+         - JIT y memoria ejecutable: los pide el motor de la web (WebKit), pero
+           corre en procesos de Apple (com.apple.WebKit.WebContent) con sus
+           propios derechos; Adeorq no compila nada al vuelo.
+         - Library validation: Adeorq no carga librerías de terceros en su
+           proceso. Las terminales lanzan programas de otros (zsh, claude, node,
+           git), pero cada uno es un proceso aparte con su propia firma, y el
+           runtime endurecido no mira a los hijos.
+         - Sandbox: no se activa. Una terminal que no puede leer ~/ no sirve. -->
+  </dict>
+</plist>

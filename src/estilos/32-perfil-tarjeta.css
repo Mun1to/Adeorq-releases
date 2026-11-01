@@ -60,11 +60,21 @@
 /* La tarjeta tan grande como deje la ventana, guardando sitio para lo de debajo. */
 .pt-marco {
   justify-self: center;
-  width: min(900px, 100%, calc(max(100vh - 300px, 180px) * 16 / 9));
+  width: min(900px, 100%, calc(max(100vh - var(--pt-resto), 180px) * 16 / 9));
 }
 
 .pt-vertical .pt-marco {
-  width: min(400px, 100%, calc(max(100vh - 300px, 320px) * 9 / 16));
+  width: min(400px, 100%, calc(max(100vh - var(--pt-resto), 320px) * 9 / 16));
+}
+
+/* Lo que ocupa lo de debajo de la tarjeta; con la línea de tiempo del recorte
+   y los volúmenes, dos filas más. */
+.pt-editor {
+  --pt-resto: 300px;
+}
+
+.pt-editor.pt-con-tiempo {
+  --pt-resto: 392px;
 }
 
 .pt-lienzo {
@@ -87,8 +97,11 @@
   text-align: center;
 }
 
+/* La columna no crece con lo que lleva dentro: con ocho vídeos, la tira
+   ensanchaba el editor en vez de deslizarse. */
 .pt-debajo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -164,12 +177,60 @@
 
 /* --- La tira de fondos -------------------------------------------------------- */
 
+/* «Subir» fuera de lo que se desliza, para que se vea siempre; lo que se
+   desliza no lleva barra de scroll a la vista y la rueda lo mueve de lado. */
 .pt-tira {
   display: flex;
   align-items: stretch;
   gap: 10px;
+}
+
+.pt-tira-lista {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: 10px;
   overflow-x: auto;
   padding-bottom: 9px;
+  scrollbar-width: none;
+}
+
+.pt-tira-lista::-webkit-scrollbar {
+  display: none;
+}
+
+.pt-mini-sitio {
+  position: relative;
+  flex: none;
+  display: flex;
+}
+
+/* La X de quitar un importado: suelta, con sombra para leerse sobre la foto,
+   y solo al pasar por encima o con el foco dentro. */
+.pt-quitar {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: #fff;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--t-rapida), color var(--t-rapida);
+}
+
+.pt-mini-sitio:hover .pt-quitar,
+.pt-mini-sitio:focus-within .pt-quitar {
+  opacity: 1;
+}
+
+.pt-quitar:hover,
+.pt-quitar:focus-visible {
+  color: var(--mal);
 }
 
 .pt-mini {
@@ -224,19 +285,201 @@
   align-content: center;
   gap: 2px;
   width: 118px;
-  font-size: 12.5px;
+  padding-bottom: 9px;
+  font-size: 13px;
   line-height: 1.3;
   text-align: center;
 }
 
-.pt-subir:hover,
+.pt-subir:hover:not(:disabled),
 .pt-subir:focus-visible {
   color: var(--claro);
 }
 
-.pt-subir small {
-  font-size: 11px;
-  opacity: 0.8;
+.pt-subir:disabled {
+  cursor: progress;
+}
+
+/* --- El recorte y los volúmenes (solo en Vídeo) --------------------------------- */
+
+.pt-tiempo {
+  display: grid;
+  gap: 10px;
+}
+
+.pt-tiempo-fila {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  white-space: nowrap;
+}
+
+/* Los fotogramas del clip; fuera del tramo, oscurecidos. */
+.pt-recorte {
+  position: relative;
+  flex: 1;
+  height: 44px;
+  touch-action: none;
+}
+
+.pt-fotos {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
+  border-radius: var(--r-btn);
+  background: var(--hondo);
+}
+
+.pt-fotos > * {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+
+.pt-fuera {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.62);
+  pointer-events: none;
+}
+
+.pt-fuera:first-of-type {
+  border-radius: var(--r-btn) 0 0 var(--r-btn);
+}
+
+.pt-fuera + .pt-fuera {
+  border-radius: 0 var(--r-btn) var(--r-btn) 0;
+}
+
+/* El tramo elegido, con una raya de acento arriba y abajo y no con un marco. */
+.pt-elegido {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  box-shadow:
+    inset 0 2px 0 var(--accent),
+    inset 0 -2px 0 var(--accent);
+  pointer-events: none;
+}
+
+.pt-marca {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: 0;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--claro);
+  pointer-events: none;
+}
+
+.pt-tirador {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 16px;
+  margin-left: -8px;
+  cursor: ew-resize;
+  outline: none;
+}
+
+.pt-tirador::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 6px;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: box-shadow var(--t-rapida);
+}
+
+.pt-tirador:hover::before,
+.pt-tirador:focus-visible::before {
+  box-shadow: 0 0 0 2px var(--claro);
+}
+
+.pt-recorte[data-fijo] .pt-tirador {
+  cursor: default;
+}
+
+.pt-recorte[data-fijo] .pt-tirador::before {
+  opacity: 0.5;
+}
+
+.pt-tramo {
+  margin-right: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.pt-aviso {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warn);
+}
+
+.pt-volumen {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pt-suave);
+}
+
+.pt-volumen[data-apagado] {
+  opacity: 0.35;
+}
+
+.pt-deslizador {
+  position: relative;
+  width: 72px;
+  height: 18px;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+
+.pt-volumen[data-apagado] .pt-deslizador {
+  cursor: default;
+}
+
+.pt-deslizador::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 7px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--v), rgba(255, 255, 255, 0.18) var(--v));
+}
+
+.pt-deslizador i {
+  position: absolute;
+  top: 3px;
+  left: var(--v);
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: #fff;
+  transition: box-shadow var(--t-rapida);
+}
+
+.pt-deslizador:hover i,
+.pt-deslizador:focus-visible i {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.pt-volumen-cifra {
+  min-width: 38px;
+  color: var(--claro);
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- La barra ----------------------------------------------------------------- */

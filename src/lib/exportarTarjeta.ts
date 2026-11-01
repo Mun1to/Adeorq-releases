@@ -67,11 +67,56 @@ export type OpcionesVideo = {
   /** El sonido, ya hecho y del largo del vídeo, que va como pista AAC. Sin él,
       el MP4 sale sin pista de audio. */
   sonido?: AudioBuffer | null;
+  /** La ganancia del sonido dentro del MP4, de 0 a 1 («Volumen del vídeo»).
+      Se aplica a trozos al codificar, sin copiar el sonido entero. */
+  volumen?: number;
+  /** El tramo del vídeo de fondo que se usa, en segundos desde su principio. */
+  tramo?: Tramo | null;
+  /** Con él, el MP4 sale a disco a trozos (`fastStart: "reserve"`) y la promesa
+      devuelve `null`; sin él, se monta en memoria y devuelve el `Blob`. */
+  escritor?: Escritor | null;
   /** Lo hecho, de 0 a 1, después de cada fotograma. */
   alProgreso?: (hecho: number) => void;
   /** Para cancelar: la promesa falla con el `AbortError` de la señal. */
   senal?: AbortSignal;
 };
+
+/** Un tramo de un vídeo, en segundos desde su principio. */
+export type Tramo = { desde: number; hasta: number };
+
+/** Quien recibe el MP4 a trozos: cada uno en su posición del archivo (el
+    `moov` se escribe al final en el hueco reservado al principio). */
+export type Escritor = { escribir: (posicion: number, datos: Uint8Array) => Promise<void> };
+
+/** Lo más corto que dura la tarjeta en vídeo, y lo que se propone de fábrica
+    como mucho: un minuto, lo recomendable para una red. */
+export const MINIMO = 3;
+export const RECOMENDADO = 60;
+
+/**
+ * El tramo que se usa de un vídeo de `duracion` segundos: el guardado, metido
+ * dentro del clip y de al menos `MINIMO`; de fábrica, el clip entero hasta
+ * `RECOMENDADO`. Un clip más corto que `MINIMO` se usa entero (y da la vuelta).
+ */
+export function tramoDe(duracion: number, guardado?: Tramo | null): Tramo {
+  if (!(duracion > 0)) return { desde: 0, hasta: 0 };
+  if (duracion <= MINIMO) return { desde: 0, hasta: duracion };
+  if (!guardado) return { desde: 0, hasta: Math.min(duracion, RECOMENDADO) };
+  const desde = Math.min(Math.max(0, guardado.desde), duracion - MINIMO);
+  const hasta = Math.min(duracion, Math.max(desde + MINIMO, guardado.hasta));
+  return { desde, hasta };
+}
+
+/** Cuánto dura la tarjeta con ese tramo: lo que dure, y nunca menos de `MINIMO`. */
+export function segundosDelTramo(t: Tramo): number {
+  return Math.max(MINIMO, Math.round((t.hasta - t.desde) * 10) / 10);
+}
+
+/** Los paquetes de una pista, con margen: `fastStart: "reserve"` guarda sitio
+    para el `moov` con este número y falla si se pasa. */
+export function paquetesMaximos(cuantos: number): number {
+  return Math.ceil(cuantos * 1.1) + 64;
+}
 
 /** Los errores que salen de aquí, por si quien llama los quiere traducir. */
 export const ERRORES = {
@@ -250,17 +295,20 @@ export async function fondoConSonido(fondo: Blob | string): Promise<boolean> {
  * menos vuelve a empezar y si dura más se corta, apagándose en el último
  * tercio de segundo para que no chasque.
  */
-export async function sonidoDelFondo(fondo: Blob | string, segundos: number, frecuencia = 48000): Promise<AudioBuffer | null> {
+export async function sonidoDelFondo(fondo: Blob | string, segundos: number, frecuencia = 48000, tramo?: Tramo | null): Promise<AudioBuffer | null> {
   const m = await libreria();
   const entrada = abrirArchivo(m, fondo);
   try {
     const pista = await entrada.getPrimaryAudioTrack();
     if (!pista || !(await pista.canDecode())) return null;
-    const inicio = await pista.getFirstTimestamp();
+    // Desde el principio del tramo y como mucho lo que dura: lo que pase de
+    // ahí vuelve a empezar desde su principio, como sus imágenes.
+    const inicio = (await pista.getFirstTimestamp()) + (tramo?.desde ?? 0);
+    const fin = inicio + Math.min(segundos, tramo ? tramo.hasta - tramo.desde : segundos);
     const trozos: import("mediabunny").WrappedAudioBuffer[] = [];
-    for await (const b of new m.AudioBufferSink(pista).buffers(inicio, inicio + segundos)) trozos.push(b);
+    for await (const b of new m.AudioBufferSink(pista).buffers(inicio, fin)) trozos.push(b);
     if (!trozos.length) return null;
-    const dura = Math.max(...trozos.map((b) => b.timestamp + b.duration)) - inicio;
+    const dura = Math.min(fin, Math.max(...trozos.map((b) => b.timestamp + b.duration))) - inicio;
     const ctx = new OfflineAudioContext(2, Math.ceil(segundos * frecuencia), frecuencia);
     const general = ctx.createGain();
     general.gain.setValueAtTime(1, Math.max(0, segundos - 0.35));
@@ -269,7 +317,7 @@ export async function sonidoDelFondo(fondo: Blob | string, segundos: number, fre
     for (let vuelta = 0; dura > 0 && vuelta * dura < segundos; vuelta++) {
       for (const b of trozos) {
         const t = vuelta * dura + b.timestamp - inicio;
-        if (t >= segundos) break;
+        if (t >= segundos || b.timestamp - inicio >= dura) break;
         const s = ctx.createBufferSource();
         s.buffer = b.buffer;
         s.connect(general);
@@ -277,6 +325,53 @@ export async function sonidoDelFondo(fondo: Blob | string, segundos: number, fre
       }
     }
     return await ctx.startRendering();
+  } finally {
+    entrada.dispose();
+  }
+}
+
+/**
+ * El sonido en trozos de un segundo con la ganancia ya puesta: el volumen no
+ * obliga a copiar el sonido entero (diez minutos en estéreo son 230 MB), y el
+ * codificador lo recibe poco a poco, al paso de las imágenes.
+ */
+export function* aTrozos(b: AudioBuffer, ganancia = 1, segundo = b.sampleRate): Generator<AudioBuffer> {
+  const k = Math.max(0, ganancia);
+  for (let i = 0; i < b.length; i += segundo) {
+    const n = Math.min(segundo, b.length - i);
+    const t = new AudioBuffer({ length: n, numberOfChannels: b.numberOfChannels, sampleRate: b.sampleRate });
+    for (let c = 0; c < b.numberOfChannels; c++) {
+      const d = b.getChannelData(c).subarray(i, i + n);
+      if (k === 1) t.copyToChannel(d, c);
+      else {
+        const o = t.getChannelData(c);
+        for (let j = 0; j < n; j++) o[j] = d[j] * k;
+      }
+    }
+    yield t;
+  }
+}
+
+/** `n` fotogramas repartidos por todo el vídeo, de `ancho` píxeles y listos
+    para un `<img>`: la tira de la línea de tiempo del recorte. */
+export async function fotogramasDelVideo(fuente: Blob | string, n: number, ancho = 96): Promise<string[]> {
+  const m = await libreria();
+  const entrada = abrirArchivo(m, fuente);
+  try {
+    const pista = await entrada.getPrimaryVideoTrack();
+    if (!pista || !(await pista.canDecode())) return [];
+    const inicio = await pista.getFirstTimestamp();
+    const dura = (await pista.computeDuration()) - inicio;
+    const lector = new m.CanvasSink(pista, { width: ancho, poolSize: 1 });
+    const marcas = Array.from({ length: n }, (_, i) => inicio + ((i + 0.5) / n) * dura);
+    const urls: string[] = [];
+    for await (const c of lector.canvasesAtTimestamps(marcas)) {
+      const lienzo = c?.canvas;
+      if (lienzo instanceof HTMLCanvasElement) urls.push(lienzo.toDataURL("image/jpeg", 0.7));
+      else if (lienzo) urls.push(URL.createObjectURL(await lienzo.convertToBlob({ type: "image/jpeg", quality: 0.7 })));
+      else urls.push("");
+    }
+    return urls;
   } finally {
     entrada.dispose();
   }
@@ -347,8 +442,10 @@ export async function exportarImagen(pintar: Pintar, { ancho, alto, fondo = null
  * del vídeo (`fastStart`), que es lo que piden las redes para empezar a
  * reproducir antes de bajarlo entero.
  */
-export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo): Promise<Blob> {
-  const { ancho, alto, fps, segundos, fondo = null, sonido = null, alProgreso, senal } = opciones;
+export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo & { escritor: Escritor }): Promise<null>;
+export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo): Promise<Blob>;
+export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo): Promise<Blob | null> {
+  const { ancho, alto, fps, segundos, fondo = null, sonido = null, volumen = 1, tramo = null, escritor = null, alProgreso, senal } = opciones;
   comprobarTamano(ancho, alto, true);
   const total = fotogramas(fps, segundos);
   if (total < 1) throw new Error(`Un vídeo de ${segundos} s a ${fps} fps no tiene fotogramas.`);
@@ -362,14 +459,24 @@ export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo): Pr
   // sale negro en vez de quedar a merced del codificador.
   const ctx = lienzo.getContext("2d", { alpha: false });
   if (!ctx) throw new Error("No hay lienzo 2D.");
+  // A disco, el `moov` va en un hueco reservado delante, medido con los
+  // paquetes que llevará cada pista: así no hace falta tener el archivo entero
+  // en memoria para ponerlo delante al final, que es lo que hace "in-memory".
+  const target = escritor
+    ? new m.StreamTarget(
+        new WritableStream<import("mediabunny").StreamTargetChunk>({ write: (c) => escritor.escribir(c.position, c.data) }),
+        { chunked: true, chunkSize: 8 * 1024 * 1024 },
+      )
+    : new m.BufferTarget();
   const salida = new m.Output({
-    format: new m.Mp4OutputFormat({ fastStart: "in-memory" }),
-    target: new m.BufferTarget(),
+    format: new m.Mp4OutputFormat({ fastStart: escritor ? "reserve" : "in-memory" }),
+    target,
   });
   const fuente = new m.CanvasSource(lienzo, { codec: "avc", quality: new m.Quality(CALIDAD) });
-  salida.addVideoTrack(fuente, { frameRate: fps });
+  salida.addVideoTrack(fuente, { frameRate: fps, maximumPacketCount: paquetesMaximos(total) });
   const pistaSonido = sonido ? new m.AudioBufferSource({ codec: "aac", quality: new m.Quality(CALIDAD) }) : null;
-  if (pistaSonido) salida.addAudioTrack(pistaSonido);
+  // AAC lleva 1.024 muestras por paquete.
+  if (pistaSonido && sonido) salida.addAudioTrack(pistaSonido, { maximumPacketCount: paquetesMaximos(Math.ceil(sonido.length / 1024)) });
 
   let video: VideoDeFondo | null = null;
   let fotos: AsyncGenerator<import("mediabunny").WrappedCanvas | null> | null = null;
@@ -378,7 +485,9 @@ export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo): Pr
     const deArchivo = fondo instanceof Blob || typeof fondo === "string";
     if (deArchivo && esVideo(fondo)) {
       video = await abrirVideo(fondo, ancho, alto);
-      fotos = video.lector.canvasesAtTimestamps(marcasDelFondo(fps, segundos, video.inicio, video.duracion));
+      const desde = tramo ? Math.min(tramo.desde, video.duracion) : 0;
+      const dura = tramo ? Math.min(tramo.hasta, video.duracion) - desde : video.duracion;
+      fotos = video.lector.canvasesAtTimestamps(marcasDelFondo(fps, segundos, video.inicio + desde, dura));
     } else {
       quieto = await fondoQuieto(fondo, 0, ancho, alto);
     }
@@ -407,9 +516,17 @@ export async function exportarVideo(pintar: Pintar, opciones: OpcionesVideo): Pr
     // El sonido entra a la vez que las imágenes y no antes ni después: el MP4
     // intercala las dos pistas, y esperar a una sin alimentar la otra puede
     // dejar las dos esperándose.
-    await Promise.all([imagenes(), pistaSonido && sonido ? pistaSonido.add(sonido) : null]);
+    const sonidos = async () => {
+      if (!pistaSonido || !sonido) return;
+      for (const trozo of aTrozos(sonido, volumen)) {
+        senal?.throwIfAborted();
+        await pistaSonido.add(trozo);
+      }
+    };
+    await Promise.all([imagenes(), sonidos()]);
     await salida.finalize();
-    const buffer = salida.target.buffer;
+    if (escritor) return null;
+    const buffer = (target as import("mediabunny").BufferTarget).buffer;
     if (!buffer) throw new Error("El MP4 salió vacío.");
     return new Blob([buffer], { type: "video/mp4" });
   } catch (e) {
@@ -444,6 +561,33 @@ export async function guardarTarjeta(archivo: Blob, nombre?: string): Promise<st
     headers: { ruta: encodeURIComponent(ruta) },
   });
   return ruta;
+}
+
+/** El «Guardar como» del vídeo, ANTES de sacarlo: uno largo no se puede tener
+    hecho en memoria a la espera de que se elija dónde. */
+export function pedirRutaVideo(nombre?: string): Promise<string | null> {
+  return save({ defaultPath: nombre ?? nombreSugerido("mp4"), filters: [{ name: "Vídeo MP4", extensions: ["mp4"] }] });
+}
+
+/**
+ * El MP4 a disco por trozos, en `<ruta>.part` (`fondos_tarjeta.rs`): cada trozo
+ * viaja crudo por el puente con su posición y al acabar se renombra; si falla
+ * o se cancela, el `.part` se borra.
+ */
+export async function aDisco<T>(ruta: string, hacer: (escritor: Escritor) => Promise<T>): Promise<T> {
+  await invoke("tarjeta_video_empezar", { ruta });
+  const escritor: Escritor = {
+    escribir: (posicion, datos) =>
+      invoke("tarjeta_video_escribir", datos, { headers: { ruta: encodeURIComponent(ruta), posicion: String(posicion) } }),
+  };
+  try {
+    const r = await hacer(escritor);
+    await invoke("tarjeta_video_acabar", { ruta });
+    return r;
+  } catch (e) {
+    await invoke("tarjeta_video_cancelar", { ruta }).catch(() => {});
+    throw e;
+  }
 }
 
 /** El PNG al portapapeles, para pegarlo en un chat o en una red. */

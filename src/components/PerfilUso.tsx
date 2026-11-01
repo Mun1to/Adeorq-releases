@@ -74,10 +74,12 @@ const FILAS = 10;
     tarjeta, y en cuanto el archivo existe todo aparece solo. */
 const HAY_TARJETA = Object.keys(import.meta.glob("./PerfilTarjeta.tsx")).length > 0;
 
-/** La tarjeta de unos días, con su editor encima de todo: la abre `PerfilTarjeta.tsx`. */
-function abrirTarjeta(desde: string, hasta = desde) {
+/** La tarjeta de un mes o de un día, con su editor encima de todo: la abre
+    `PerfilTarjeta.tsx`. Se dice qué es: el día 1, el mes en curso va del 1 al 1
+    y por las fechas parecería un día. */
+function abrirTarjeta(que: "mes" | "dia", desde: string, hasta = desde) {
   if (!HAY_TARJETA) return;
-  window.dispatchEvent(new CustomEvent("adeorq:abrir-tarjeta", { detail: { desde, hasta } }));
+  window.dispatchEvent(new CustomEvent("adeorq:abrir-tarjeta", { detail: { desde, hasta, que } }));
 }
 
 /** Los días de un mes que ya han pasado: del 1 al último, o a hoy si es el de ahora. */
@@ -142,7 +144,7 @@ export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
 
   const tocarDia = (fecha: string) => {
     setVisto({ anio: Number(fecha.slice(0, 4)), mes: Number(fecha.slice(5, 7)) });
-    abrirTarjeta(fecha);
+    abrirTarjeta("dia", fecha);
   };
   const moverMes = (paso: number) => setVisto((v) => mesVecino(v.anio, v.mes, paso));
   const esteMes = nombreDelMes(Number(hoy.slice(0, 4)), Number(hoy.slice(5, 7)), lang);
@@ -157,7 +159,7 @@ export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
             className="pu-compartir"
             data-tip={t("Compartir {mes}", { mes: esteMes })}
             aria-label={t("Compartir {mes}", { mes: esteMes })}
-            onClick={() => abrirTarjeta(desde, hasta)}
+            onClick={() => abrirTarjeta("mes", desde, hasta)}
           >
             <CompartirIcon size={16} />
           </button>
@@ -230,7 +232,7 @@ export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
                 data-tip={t("Compartir {mes}", { mes: elVisto })}
                 aria-label={t("Compartir {mes}", { mes: elVisto })}
                 disabled={!delVisto}
-                onClick={() => delVisto && abrirTarjeta(...delVisto)}
+                onClick={() => delVisto && abrirTarjeta("mes", ...delVisto)}
               >
                 <CompartirIcon size={13} />
               </button>

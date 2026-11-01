@@ -45,6 +45,7 @@ export const COMPROBADORES = [
   "latido-check.mjs",
   "sonda-check.mjs",
   "ventana-check.mjs",
+  "mac-check.mjs",
   "lienzo-check.mjs",
   "xterm-check.mjs",
   "mascota-movil-check.mjs",

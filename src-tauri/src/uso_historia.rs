@@ -338,7 +338,16 @@ fn decodificar(cod: &str) -> Option<PathBuf> {
     while !resto.is_empty() {
         let mut mejor: Option<(usize, PathBuf)> = None;
         for h in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
-            if !h.file_type().is_ok_and(|t| t.is_dir()) {
+            // Un enlace a una carpeta cuenta como carpeta: en un Mac `/var`, `/tmp` y
+            // `/etc` son enlaces a `/private/…`, y sin seguirlos el scratchpad de una
+            // sesión que cuelga de ellos no encontraba su proyecto (la prueba
+            // `la_carpeta_se_convierte_en_su_proyecto` salió en rojo en macOS).
+            let es_carpeta = match h.file_type() {
+                Ok(t) if t.is_dir() => true,
+                Ok(t) if t.is_symlink() => std::fs::metadata(h.path()).is_ok_and(|m| m.is_dir()),
+                _ => false,
+            };
+            if !es_carpeta {
                 continue;
             }
             let n = codificar(&h.file_name().to_string_lossy());
@@ -571,6 +580,20 @@ mod pruebas {
         assert_eq!(raiz(&scratch(&repo)), repo);
         assert_eq!(raiz(&base.join("suelta").join("sub")), base.join("suelta").join("sub"));
         assert_eq!(raiz(&scratch(&base.join("borrado"))), base.join("borrado"));
+        std::fs::remove_dir_all(&base).ok();
+    }
+
+    /// Un enlace a una carpeta se atraviesa: en un Mac `/var` y `/tmp` lo son, y
+    /// el scratchpad de una sesión cuelga de ahí.
+    #[cfg(unix)]
+    #[test]
+    fn decodificar_atraviesa_los_enlaces_a_carpetas() {
+        let base = carpeta("enlace");
+        let real = base.join("real-x");
+        std::fs::create_dir_all(real.join("dentro-y")).unwrap();
+        std::os::unix::fs::symlink(&real, base.join("atajo")).unwrap();
+        let esperado = base.join("atajo").join("dentro-y");
+        assert_eq!(decodificar(&codificar(&esperado.to_string_lossy())), Some(esperado));
         std::fs::remove_dir_all(&base).ok();
     }
 

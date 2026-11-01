@@ -165,3 +165,55 @@ export function crearPegado(
     },
   };
 }
+
+// Copiar desde el programa: OSC 52.
+//
+// Claude Code en pantalla completa tiene el ratón, así que el arrastre es suyo:
+// él pinta la selección y manda lo seleccionado a la terminal como
+// `ESC ] 52 ; c ; <base64> BEL`, que es como copian los programas de terminal.
+// xterm no lo atiende si nadie se lo pide, y hasta el 2026-11-01 Adeorq no se lo
+// pedía: arrastrar no copiaba nada, y el Ctrl+C de después, sin selección de
+// xterm, le llegaba al programa como interrupción. Medido con un Claude Code de
+// verdad en `scripts/laboratorio/copiar-pegar-claude.mjs`.
+//
+// Solo ESCRIBIR. La pregunta `?` (el programa quiere leer tu portapapeles) se
+// ignora siempre, como hace Windows Terminal: cualquier cosa que corra en un
+// panel podría llevarse lo último que copiaste.
+
+/** Lo más largo que se acepta, en caracteres de base64 (unos 750 KB de texto). */
+export const TOPE_OSC52 = 1_000_000;
+
+/** El texto que un OSC 52 pide copiar, o `null` si no hay que tocar nada. */
+export function textoDeOsc52(datos: string): string | null {
+  const sep = datos.indexOf(";");
+  if (sep < 0) return null;
+  const b64 = datos.slice(sep + 1);
+  if (!b64 || b64 === "?" || b64.length > TOPE_OSC52 || !/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) return null;
+  try {
+    const bin = atob(b64);
+    const texto = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+    return texto || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Atiende el OSC 52 en esa terminal; se suelta solo con ella.
+ *
+ *  Y solo si es la terminal en la que estás: la ventana con el foco y el foco
+ *  dentro de ESA terminal. Si no, cualquier programa de cualquier panel (un
+ *  agente en segundo plano, un `cat` de un archivo con la secuencia dentro)
+ *  podría pisarte el portapapeles mientras trabajas en otro sitio. El arrastre
+ *  en Claude Code no sufre: el clic ya ha puesto el foco en su terminal cuando
+ *  llega el OSC, al soltar el ratón (`copiar-pegar-claude.mjs`). */
+export function copiarPorOsc52(
+  term: { element?: HTMLElement; parser: { registerOscHandler(id: number, f: (datos: string) => boolean): unknown } },
+  escribir: (texto: string) => void = (t) => void navigator.clipboard.writeText(t).catch(() => {}),
+  conFoco: () => boolean = () => document.hasFocus() && !!term.element?.contains(document.activeElement),
+) {
+  term.parser.registerOscHandler(52, (datos) => {
+    const texto = textoDeOsc52(datos);
+    if (texto && conFoco()) escribir(texto);
+    return true;
+  });
+}

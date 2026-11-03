@@ -68,6 +68,8 @@ pub struct PtySession {
     /// Si el programa pidió el pegado entre corchetes (modo 2004). Claude Code
     /// lo pide; una PowerShell pelada, no. Lo usa `send_command` del MCP.
     pub pegado: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    /// Su contraseña (`ClaveDePanel`); `None` si nació sin ella.
+    pub clave: Option<ClaveDePanel>,
 }
 
 /// El mapa de terminales. Detrás de un `Arc` para que el hilo que espera a cada
@@ -117,6 +119,46 @@ pub struct Alta {
     /// hace que una terminal sea de una cuenta). Un valor `@secreto:` se cambia
     /// por la clave aquí dentro, en quien abre el proceso.
     pub env: Option<HashMap<String, String>>,
+    /// La contraseña de esta terminal (ver `ClaveDePanel`). `default`: un
+    /// proceso de terminales de antes no la manda ni la espera.
+    #[serde(default)]
+    pub clave: Option<ClaveDePanel>,
+}
+
+/// La variable con la que la contraseña de una terminal llega a lo que nace en
+/// ella, junto a `ADEORQ_PANE_ID`. Sin «KEY», «TOKEN» ni «SECRET» en el nombre:
+/// Gemini quita las que se llaman así del entorno que pasa a sus servidores.
+pub const VARIABLE_CLAVE_DE_PANEL: &str = "ADEORQ_PANE_CLAVE";
+
+/// La contraseña de una terminal: con ella, su puente demuestra al MCP que
+/// habla desde ESA terminal (decisión B1 de Munir, 2026-11-03). Nueva en cada
+/// terminal, 32 bytes del sistema en hex, y vale mientras la terminal viva: con
+/// las terminales en su proceso aparte viaja en su ficha, así que una que
+/// sobrevive a una actualización la conserva. Su `Debug` no la enseña, para
+/// que no acabe en el rastro por un `{:?}` de una ficha.
+#[derive(Clone, PartialEq, Eq, serde::Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct ClaveDePanel(String);
+
+impl std::fmt::Debug for ClaveDePanel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ClaveDePanel(***)")
+    }
+}
+
+impl ClaveDePanel {
+    pub fn nueva() -> Option<ClaveDePanel> {
+        let mut b = [0u8; 32];
+        getrandom::fill(&mut b).ok()?;
+        Some(ClaveDePanel(b.iter().map(|x| format!("{x:02x}")).collect()))
+    }
+    /// Si `otra` es esta, sin que el tiempo diga cuánto se acertó.
+    pub fn es(&self, otra: &str) -> bool {
+        crate::mcp::iguales_sin_prisa(self.0.as_bytes(), otra.as_bytes())
+    }
+    fn valor(&self) -> &str {
+        &self.0
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -575,7 +617,20 @@ pub async fn pty_spawn(
     // Si retoma la conversación de una terminal que abrió un agente, lo vuelve
     // a ser (tras reiniciar, sus números son otros: `mcp::al_nacer`).
     crate::mcp::al_nacer(&app, id, command.as_deref());
-    let alta = Alta { id, cwd, cols, rows, command, env };
+    // Las barreras de la principal, también en la cuenta con la que nace. Si no
+    // se puede, nace igual y queda apuntado: un archivo roto no para una terminal.
+    if let Some(dir) = env.as_ref().and_then(|e| e.get("CLAUDE_CONFIG_DIR")) {
+        if let Err(e) = crate::accounts::sembrar_barreras(std::path::Path::new(dir)) {
+            crate::anotar(&format!("barreras de la cuenta: {e}"));
+        }
+    }
+    // Una contraseña nueva para esta terminal. Si el id ya está vivo (la
+    // ventana suelta, o un panel que recoge la suya tras actualizar), `abrir`
+    // no abre nada y se queda la que ya tenía.
+    // Sin ella no se abre: una terminal sin contraseña se trata como una de antes
+    // de que existieran, y esa no se puede dar por buena en una nueva.
+    let clave = ClaveDePanel::nueva().ok_or("no se pudo crear la contraseña de esta terminal")?;
+    let alta = Alta { id, cwd, cols, rows, command, env, clave: Some(clave) };
     if let Some(r) = crate::terminales::remoto(&app) {
         return tauri::async_runtime::spawn_blocking(move || r.crear(alta)).await.map_err(|e| e.to_string())?;
     }
@@ -586,7 +641,7 @@ pub async fn pty_spawn(
 /// dentro: lo que el panel dice va a `salida`, y es el mismo código el que
 /// corre en la app y en el proceso de terminales.
 pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Result<(), String> {
-    let Alta { id, cwd, cols, rows, command, env } = alta;
+    let Alta { id, cwd, cols, rows, command, env, clave } = alta;
     // ── Ese panel YA está abierto ────────────────────────────────────────────
     //
     // Hasta hoy esto abría un proceso nuevo sin mirar, y al meterlo en el mapa
@@ -724,6 +779,15 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
         }
         cmd.env(&key, &value);
     }
+    // La contraseña de ESTA terminal, después del entorno del panel para que
+    // nada la pise. Sin ella se quita la que pudiera traer quien lanzó Adeorq
+    // (una Adeorq de pruebas abierta desde una terminal de otra), y la de casa
+    // del Capataz no entra nunca en una terminal (`mcp::clave_de_casa`).
+    match &clave {
+        Some(c) => cmd.env(VARIABLE_CLAVE_DE_PANEL, c.valor()),
+        None => cmd.env_remove(VARIABLE_CLAVE_DE_PANEL),
+    }
+    cmd.env_remove(crate::mcp::VARIABLE_DE_CASA);
 
     let mut child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     drop(pair.slave);
@@ -874,6 +938,7 @@ pub fn abrir(mapa: &Mapa, alta: Alta, salida: std::sync::Arc<dyn Salida>) -> Res
             history,
             pantalla_alternativa: alternativa,
             pegado,
+            clave,
         },
     );
 
@@ -960,6 +1025,11 @@ pub struct Ficha {
     pub alternativa: bool,
     /// Si pidió el pegado entre corchetes (modo 2004).
     pub pegado: bool,
+    /// Su contraseña: con ella el MCP sabe que habla esta terminal. `None` en
+    /// una que nació en una versión de antes (y que sobrevivió a la actualización
+    /// con las terminales en su proceso aparte): esa sigue como antes hasta que
+    /// se cierre. Nunca va al front: `Viva` no la lleva.
+    pub clave: Option<ClaveDePanel>,
 }
 
 fn ficha_de(id: u32, s: &PtySession) -> Ficha {
@@ -975,6 +1045,7 @@ fn ficha_de(id: u32, s: &PtySession) -> Ficha {
         tamano,
         alternativa: s.pantalla_alternativa.load(std::sync::atomic::Ordering::Relaxed),
         pegado: s.pegado.load(std::sync::atomic::Ordering::Relaxed),
+        clave: s.clave.clone(),
     }
 }
 
@@ -1648,6 +1719,7 @@ mod tests {
                 history: Arc::new(Mutex::new(String::new())),
                 pantalla_alternativa: Arc::new(AtomicBool::new(false)),
                 pegado: Arc::new(AtomicBool::new(false)),
+                clave: None,
             },
         );
 
@@ -3360,6 +3432,7 @@ mod motor {
             rows: 30,
             command: Some(vec!["cmd.exe".into(), "/q".into(), "/k".into(), "echo motor-listo".into()]),
             env: None,
+            clave: None,
         };
         abrir(&mapa, alta.clone(), Arc::new(Libreta(apuntes.clone()))).expect("no abrió");
         // El ConPTY pregunta dónde está el cursor y no pinta nada hasta que se
@@ -3397,6 +3470,7 @@ mod motor {
             rows: 24,
             command: Some(vec!["ping.exe".into(), "-n".into(), "60".into(), "127.0.0.1".into()]),
             env: None,
+            clave: None,
         };
         abrir(&mapa, alta, Arc::new(Libreta(apuntes.clone()))).unwrap();
         assert!(matar(&mapa, 1));
@@ -3424,6 +3498,7 @@ mod motor {
                 "Start-Process ping.exe -ArgumentList '-n','62','127.0.0.1' -WindowStyle Hidden -Wait".into(),
             ]),
             env: None,
+            clave: None,
         };
         abrir(&mapa, alta, Arc::new(Libreta(apuntes.clone()))).unwrap();
         if hasta(|| apuntes.datos.lock().unwrap().contains("\x1b[6n"), 8000) {

@@ -590,6 +590,18 @@ export async function aDisco<T>(ruta: string, hacer: (escritor: Escritor) => Pro
   }
 }
 
+/** Dónde deja «Copiar» el MP4: tiene que seguir en disco hasta que se pegue. */
+export function rutaParaCopiar(): Promise<string> {
+  return invoke("tarjeta_copia_ruta", { nombre: nombreSugerido("mp4") });
+}
+
+/** El MP4 al portapapeles como archivo: en un chat o en una carpeta se pega el
+    vídeo, y donde solo cabe texto, su dirección. Eso no lo sabe hacer el
+    portapapeles del navegador, que solo escribe texto e imágenes. */
+export function copiarArchivo(ruta: string): Promise<void> {
+  return invoke("tarjeta_copiar_archivo", { ruta });
+}
+
 /** El PNG al portapapeles, para pegarlo en un chat o en una red. */
 export async function copiarImagen(png: Blob): Promise<void> {
   if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) throw new Error(ERRORES.sinPortapapeles);

@@ -110,7 +110,13 @@ const PRIORIDAD: Record<ClaseConsejo, number> = {
 };
 
 /** Las que se dicen en el modo prudente. Las otras dos son de afinar. */
-const GORDOS: ClaseConsejo[] = ["contexto", "relevo"];
+const GORDOS: ClaseConsejo[] = ["relevo"];
+
+/** Las que `consejosDe` calcula pero NO van a la bandeja de la Agenda. El
+    contexto lleno cambia cada minuto y no es una tarea: la bandeja llegó a
+    tener 88 avisos «va por el N % de su contexto» tapando las tareas de verdad
+    (2026-11-02). El porcentaje ya se ve en la Cabina, que es donde se mira. */
+const NO_VAN_A_LA_BANDEJA: ClaseConsejo[] = ["contexto"];
 
 /* ── Umbrales ─────────────────────────────────────────────────────────────
    Todos con su porqué. Un número sin motivo es un número que alguien va a
@@ -437,6 +443,7 @@ export function aProponer(
     if (ahora - ultimaGlobal < ENFRIA_TODO) continue;
 
     const elegido = consejosDe(s, mundo)
+      .filter((c) => !NO_VAN_A_LA_BANDEJA.includes(c.clase))
       .filter((c) => modo === "siempre" || GORDOS.includes(c.clase))
       .find((c) => !memoria.dichos[llaveDe(s.sessionId, c)]);
     if (!elegido) continue;

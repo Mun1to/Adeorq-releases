@@ -252,7 +252,7 @@ export default function UsagePanel({ onUsage, cuentas }: Props) {
           {sinDato.map((c) => {
             const l = lecturas[claveDe(c)];
             return (
-              <div key={claveDe(c)} className="uso-sin-fila" data-tip={l?.error || undefined}>
+              <div key={claveDe(c)} className="uso-sin-fila" data-tip={l?.error ? t(l.error) : undefined}>
                 <b>{nombreDeCuenta(c.label, t)}</b>
                 <span data-mal={!conSesion(c) || undefined}>
                   {providerOf(c.provider).label} · {conSesion(c) ? t("no dice cuánto lleva") : t("sin sesión")}

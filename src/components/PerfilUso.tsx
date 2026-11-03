@@ -129,10 +129,16 @@ export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
   const delMes = useMemo(() => entre(cubos, desde, hasta), [cubos, desde, hasta]);
   const suma = useMemo(() => sumar(delMes), [delMes]);
   const filas = useMemo(() => porfolio(delMes, eje, FILAS, historia?.raiz), [delMes, eje, historia?.raiz]);
+  // Todas las pestañas con el alto de la más larga: el Perfil va centrado en su
+  // hueco, y con otro alto cada una, cambiar de pestaña lo movía bajo el ratón.
+  const reserva = useMemo(
+    () => Math.max(...EJES.map((e) => porfolio(delMes, e.key, FILAS, historia?.raiz).length)),
+    [delMes, historia?.raiz],
+  );
 
   if (!historia) {
     return (
-      <section className="pu" aria-label={t("Tu uso")}>
+      <section className={error ? "pu" : "pu pu-leyendo"} aria-label={t("Tu uso")}>
         {error ? (
           <p className="pu-error">{t("No se pudo leer tu uso: {e}", { e: error })}</p>
         ) : (
@@ -197,7 +203,7 @@ export default function PerfilUso({ cuentas }: { cuentas: Account[] }) {
           ))}
         </div>
         {filas.length ? (
-          <Lista filas={filas} t={t} lang={lang} />
+          <Lista filas={filas} reserva={reserva} t={t} lang={lang} />
         ) : (
           <p className="pu-nada">{t("Este mes todavía no hay uso.")}</p>
         )}
@@ -284,10 +290,15 @@ function titulo(c: Casilla, t: Translate, lang: "es" | "en"): string {
     (rosa, verde, violeta) era «a lot of colors» (Munir, 2026-10-18, «solo un
     color, quita el cuadradito de la izquierda»). A lo ancho van en dos
     columnas que se leen de arriba abajo, primero una y luego la otra:
-    `--filas` es lo que mide cada una. */
-function Lista({ filas, t, lang }: { filas: Parte[]; t: Translate; lang: "es" | "en" }) {
+    `--filas` es lo que mide cada una, y `--reserva`, lo que mide en la pestaña
+    más larga. */
+function Lista({ filas, reserva, t, lang }: { filas: Parte[]; reserva: number; t: Translate; lang: "es" | "en" }) {
   return (
-    <div className="pu-lista" role="tabpanel" style={{ "--filas": Math.ceil(filas.length / 2) } as CSSProperties}>
+    <div
+      className="pu-lista"
+      role="tabpanel"
+      style={{ "--filas": Math.ceil(filas.length / 2), "--reserva": Math.ceil(reserva / 2) } as CSSProperties}
+    >
       {filas.map((f) => (
         <div key={f.otros ? "otros" : `p:${f.clave}`} className="pu-parte" style={{ "--w": `${(f.parte * 100).toFixed(1)}%` } as CSSProperties}>
           <span className="pu-parte-nombre">{f.otros ? t("Otros") : f.nombre || t("Sin carpeta")}</span>

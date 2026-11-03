@@ -846,7 +846,9 @@
 }
 
 /* The button that throws something away wears it. */
-.modal-danger {
+.modal-danger,
+.np-btn.modal-danger {
+  /* `.np-btn` va después en la hoja y, con la misma fuerza, lo pintaba de azul. */
   background: linear-gradient(180deg, var(--mal), color-mix(in srgb, var(--mal) 80%, #000));
   border-color: color-mix(in srgb, var(--mal) 60%, transparent);
   color: var(--oscuro);

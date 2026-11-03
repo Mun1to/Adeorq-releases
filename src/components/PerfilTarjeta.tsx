@@ -53,6 +53,7 @@ import {
   RECOMENDADO,
   aDisco,
   audioDisponible,
+  copiarArchivo,
   copiarImagen,
   exportarImagen,
   exportarVideo,
@@ -60,6 +61,7 @@ import {
   fotogramasDelVideo,
   guardarTarjeta,
   pedirRutaVideo,
+  rutaParaCopiar,
   segundosDelTramo,
   sonidoDelFondo,
   tramoDe,
@@ -951,7 +953,7 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
   const pintar: Pintar = (ctx, w, h, f) => {
     if (datos) pintarTarjeta(ctx, w, h, f, datos);
   };
-  // En el vídeo la cifra sube; en la imagen y al copiar, quieta.
+  // En el vídeo la cifra sube; en la imagen, quieta.
   const pintarVideo: Pintar = (ctx, w, h, f, t) => {
     if (datos) pintarTarjeta(ctx, w, h, f, enElSegundo(datos, totalDelTramo, t, lang));
   };
@@ -967,33 +969,37 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
   };
   const conVideo = tipo === "video" && elegido?.tipo === "video";
 
+  // Sale a disco a trozos: un vídeo largo no cabe entero en memoria.
+  const sacarVideo = async (ruta: string, video: NonNullable<typeof elegido>) => {
+    const senal = (cancelar.current = new AbortController()).signal;
+    setProgreso(0);
+    const sonido = suena ? await sonidoPara(de, segundos, video, tramo) : null;
+    await aDisco(ruta, (escritor) =>
+      exportarVideo(pintarVideo, {
+        ancho: F.ancho,
+        alto: F.alto,
+        fps: 30,
+        segundos,
+        fondo: video.fuente,
+        tramo,
+        sonido,
+        volumen: volumen.video,
+        escritor,
+        alProgreso: (h) => setProgreso(Math.floor(h * 100)),
+        senal,
+      }),
+    );
+    setProgreso(null);
+  };
+
   const descargar = async () => {
     setEstado(null);
     try {
       if (conVideo && elegido) {
-        // Primero dónde, y después sale a disco a trozos: un vídeo largo no
-        // cabe entero en memoria esperando a que se elija la carpeta.
+        // Primero dónde: hay que saberlo antes de empezar a escribir.
         const ruta = await pedirRutaVideo();
         if (!ruta) return;
-        const senal = (cancelar.current = new AbortController()).signal;
-        setProgreso(0);
-        const sonido = suena ? await sonidoPara(de, segundos, elegido, tramo) : null;
-        await aDisco(ruta, (escritor) =>
-          exportarVideo(pintarVideo, {
-            ancho: F.ancho,
-            alto: F.alto,
-            fps: 30,
-            segundos,
-            fondo: elegido.fuente,
-            tramo,
-            sonido,
-            volumen: volumen.video,
-            escritor,
-            alProgreso: (h) => setProgreso(Math.floor(h * 100)),
-            senal,
-          }),
-        );
-        setProgreso(null);
+        await sacarVideo(ruta, elegido);
         setEstado({ texto: t("Guardada en {ruta}"), ruta });
         return;
       }
@@ -1012,8 +1018,15 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
 
   const copiar = async () => {
     setEstado(null);
-    setOcupado(true);
     try {
+      if (conVideo && elegido) {
+        const ruta = await rutaParaCopiar();
+        await sacarVideo(ruta, elegido);
+        await copiarArchivo(ruta);
+        setEstado({ texto: t("Copiado: pégalo donde quieras. Está en {ruta}"), ruta });
+        return;
+      }
+      setOcupado(true);
       const v = elegido?.tipo === "video" ? videos.get(elegido.url) : undefined;
       const png = await exportarImagen(pintar, { ancho: F.ancho, alto: F.alto, fondo: await fondoParaSacar(), t: v?.currentTime ?? 0 });
       await copiarImagen(png);
@@ -1021,6 +1034,8 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
     } catch (e) {
       fallo(e);
     } finally {
+      cancelar.current = null;
+      setProgreso(null);
       setOcupado(false);
     }
   };
@@ -1266,7 +1281,12 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
                         {tipo === "video" ? t("Descargar vídeo") : t("Descargar")}
                       </Ocupado>
                     </button>
-                    <button className="pt-accion" disabled={exportando || !datos} onClick={() => void copiar()}>
+                    <button
+                      className="pt-accion"
+                      disabled={exportando || !datos || sinVideo}
+                      data-tip={sinVideo ? t("Elige o sube un vídeo de fondo.") : undefined}
+                      onClick={() => void copiar()}
+                    >
                       <DuplicarIcon size={17} />
                       {t("Copiar")}
                     </button>

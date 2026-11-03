@@ -63,6 +63,17 @@ export interface CuentaViva {
    * de la que no sabemos el gasto se trata como disponible, y se dice.
    */
   gastado?: number;
+  /** Cuándo vuelve a cero esa semana, en milisegundos. Sin poner: no se sabe. */
+  renueva?: number;
+  /** Si el periodo largo es la semana o el mes (Copilot, Codex gratis). */
+  periodo?: "semana" | "mes";
+  /** Terminales abiertas en ella desde su última lectura y aún vivas: pesan
+      en su gasto hasta que llegue la lectura siguiente (`PESO_TERMINAL`). */
+  abiertas?: number;
+  /** El % gastado del tope de 5 horas, que no se pierde pero PARA la cuenta. */
+  sesion?: number;
+  /** Cuándo vuelve a cero el tope de 5 horas, en milisegundos. */
+  sesionRenueva?: number;
   /**
    * El plan contratado, tal como lo escribe el CLI en sus credenciales:
    * "max", "pro"… Vacío o sin poner significa que no se ha podido leer, y
@@ -76,17 +87,34 @@ export interface CuentaViva {
  * El techo que pone el plan de pago.
  *
  * Sin suscripción, cada turno de opus sale del bolsillo por tokens, así que la
- * recomendación baja sola. Con Pro cabe, pero se avisa. Con Max no se toca
- * nada. Lo intocable (juicio, o consecuencia alta) NO baja por esto, igual que
- * no baja por la cuota: ahorrar cerebro en una auditoría cuesta repetirla.
+ * recomendación baja sola. Con Pro cabe, pero se avisa. Con Max o Ultra (el
+ * antiguo Max 20x) no se toca nada. Lo intocable (juicio, o consecuencia alta)
+ * NO baja por esto, igual que no baja por la cuota: ahorrar cerebro en una
+ * auditoría cuesta repetirla.
  */
 export function techoDelPlan(plan: string | undefined): ModelAlias | null {
   const p = (plan ?? "").toLowerCase();
   if (!p) return null;
-  if (p.includes("max")) return null;
+  if (p.includes("max") || p.includes("ultra")) return null;
   if (p.includes("pro") || p.includes("team") || p.includes("enterprise")) return null;
   // Lo que queda es gratis o algo que no reconocemos como suscripción de pago.
   return "sonnet";
+}
+
+/**
+ * El modelo con que nace una terminal en una cuenta, dentro del techo de su
+ * plan. `elegirCuenta` ya prefiere una cuenta que dé el modelo pedido, pero si
+ * no hay ninguna se queda con la que haya, y `open_pane` la abría igual con
+ * `--model opus` en un plan gratuito (revisor, 2026-11-02). Aquí se baja y se
+ * dice por qué. PESO y techo son los mismos que usa `recetar`.
+ */
+export function modeloParaSuPlan(modelo: ModelAlias, plan: string | undefined): { modelo: ModelAlias; porque?: string } {
+  const techo = techoDelPlan(plan);
+  if (!techo || PESO[modelo] <= PESO[techo]) return { modelo };
+  return {
+    modelo: techo,
+    porque: `Nace con ${techo} y no con ${modelo}: su plan («${plan}») no lo cubre, y cada turno se facturaría aparte.`,
+  };
 }
 
 /** Si el plan da para opus sin que duela. Solo cambia el aviso, no la receta. */
@@ -107,6 +135,8 @@ export interface Mundo {
   /** Las reglas que Munir dejó escritas en la memoria (`reglasRouter.ts`).
       Solo las mira `recetarConMemoria`; `recetar` a secas no sabe de ellas. */
   reglas?: ReglaRouter[];
+  /** El reloj, para los bancos. Sin poner, ahora. */
+  ahora?: number;
 }
 
 /**
@@ -252,18 +282,163 @@ function vivas(mundo: Mundo, cli: string): CuentaViva[] {
  * semana, que es exactamente la decisión contraria a la que hay que tomar.
  */
 const DESCONOCIDA = 50;
+/** Sin fecha de renovación se cuenta como una semana entera por delante. */
+const DIAS_SIN_FECHA = 7;
+/** Y nunca menos de seis horas: a punto de renovarse, la cuenta no es infinita. */
+const DIAS_MINIMO = 0.25;
+const DIA_MS = 86_400_000;
 
-function laMasFresca(lista: CuentaViva[]): CuentaViva | undefined {
+/** Lo que dice `elegirCuenta`: cuál, por qué, y si fue a la fuerza. */
+export interface Eleccion {
+  viva: CuentaViva;
+  /** Una frase, para la respuesta de `open_pane`, `get_usage` y el porqué. */
+  porque: string;
+  /** Todas estaban paradas o por encima del 92 %: se eligió igual, y se dice. */
+  sinSitio: boolean;
+}
+
+/** Si el tope de 5 horas la tiene parada ahora. Uno ya renovado no para. */
+export function parada(c: CuentaViva, ahora: number): boolean {
+  if (c.sesion == null || c.sesion < 100) return false;
+  return !(c.sesionRenueva && c.sesionRenueva <= ahora);
+}
+
+/**
+ * Lo que pesa cada terminal abierta en una cuenta desde su última lectura, en
+ * puntos de su %. La foto de cuota tarda hasta diez minutos en refrescarse y
+ * abrir no reserva nada, así que tres aperturas seguidas veían la misma cuenta
+ * fresca y caían las tres en ella: una Pro pasó del 6 % al 87 % con tres
+ * terminales en una hora (revisor, 2026-11-02), unos 27 puntos por terminal y
+ * hora. Diez es lo que gasta una en poco más de veinte minutos, lo que tarda en
+ * llegar la lectura siguiente con margen: basta para que la segunda apertura
+ * mire a otra cuenta si estaban cerca, sin vaciar a la que de verdad pierde más.
+ */
+const PESO_TERMINAL = 10;
+
+/**
+ * Cuánto tarda el gasto de una terminal en salir en la lectura de su cuenta. En
+ * frío, la lectura que dispara la propia apertura llega segundos después de que
+ * nazca, y no trae nada de lo que va a gastar: contarla como ya leída le quitaba
+ * el peso justo en la tanda que venía a repartir. Diez minutos es lo que vive una
+ * lectura (`VIDA_CUOTA` en `mundo.ts`): la siguiente ya trae su gasto.
+ */
+const ASENTARSE_MS = 10 * 60_000;
+
+/** Lo que tarda una terminal recién abierta en salir en la lista de paneles, que
+    no la trae hasta que React pinta: mientras tanto no está cerrada, está naciendo. */
+const NACIENDO_MS = 5_000;
+
+/**
+ * Las terminales de una cuenta que aún pesan en ella: vivas, o naciendo (`panel`
+ * sin número: la cuenta ya está elegida y la terminal aún no existe; o con número
+ * y aún sin pintar), y sin una lectura que ya traiga su gasto.
+ */
+export function cuantasPesan(aperturas: { panel: number | null; at: number }[], leida: number, vivos: Set<number>, ahora = Date.now()): number {
+  return aperturas.filter((a) => (a.panel == null || vivos.has(a.panel) || ahora - a.at < NACIENDO_MS) && leida < a.at + ASENTARSE_MS).length;
+}
+
+/** Si la lectura es de antes de su renovación: lo que dice ya no vale. */
+function caducada(c: CuentaViva, ahora: number): boolean {
+  return !!c.renueva && c.renueva <= ahora;
+}
+
+/** El % del periodo y los días que le quedan, con los huecos ya rellenos.
+    Una lectura de antes de renovarse que no se pudo refrescar NO dice que esté
+    a cero: puede ir ya por el 98 %. Es un dato desconocido, el 50 % de siempre
+    (revisor, 2026-11-02). Y cada terminal abierta desde la lectura suma. */
+function semanaDe(c: CuentaViva, ahora: number): { gastado: number; dias: number } {
+  const pesan = (c.abiertas ?? 0) * PESO_TERMINAL;
+  if (caducada(c, ahora)) return { gastado: Math.min(100, DESCONOCIDA + pesan), dias: DIAS_SIN_FECHA };
+  const gastado = Math.min(100, (c.gastado ?? DESCONOCIDA) + pesan);
+  const dias = c.renueva ? Math.max(DIAS_MINIMO, (c.renueva - ahora) / DIA_MS) : DIAS_SIN_FECHA;
+  return { gastado, dias };
+}
+
+/**
+ * Cuánta cuota se pierde al día si esa cuenta no trabaja: `(100 − % semanal
+ * gastado) / días hasta renovarse`. Lo que no se gasta antes de renovarse se
+ * tira, así que manda la que más tiraría, no la que menos ha gastado: una Pro
+ * al 17 % que se renueva en dos días pierde 41 puntos al día, y una principal
+ * al 60 % con cinco días por delante pierde 8 (Munir, 2026-11-02: «tengo una
+ * cuenta pro que no le han delegado casi ninguna tarea… y se resetea en 2 días»).
+ */
+export function sePierde(c: CuentaViva, ahora: number): number {
+  const { gastado, dias } = semanaDe(c, ahora);
+  return Math.max(0, 100 - gastado) / dias;
+}
+
+/** «en 5 h», «en 1 día», «en 2 días»: lo corto, para una frase. */
+export function enCuanto(ms: number, ahora: number): string {
+  const h = (ms - ahora) / 3_600_000;
+  if (h < 1) return "en menos de una hora";
+  if (Math.round(h) < 24) return `en ${Math.round(h)} h`;
+  const d = Math.round(h / 24);
+  return d === 1 ? "en 1 día" : `en ${d} días`;
+}
+
+function retrato(c: CuentaViva, ahora: number): string {
+  const { dias } = semanaDe(c, ahora);
+  const pct =
+    c.gastado == null
+      ? "sin dato de gasto"
+      : caducada(c, ahora)
+        ? "con una lectura de antes de renovarse (se cuenta como 50 %)"
+        : `al ${Math.round(c.gastado)} %`;
+  const cuando = c.renueva && c.renueva > ahora ? `se renueva ${enCuanto(c.renueva, ahora)}` : `sin fecha de renovación (${dias} días)`;
+  const n = c.abiertas ?? 0;
+  const llevan = n ? `, más ${n} terminal${n === 1 ? "" : "es"} abierta${n === 1 ? "" : "s"} desde entonces (+${n * PESO_TERMINAL})` : "";
+  return `«${c.cuenta.label}» ${pct}${llevan}, ${cuando}`;
+}
+
+/**
+ * LA regla para elegir cuenta, la misma para `recetar`, para `open_pane` sin
+ * `account` y para la última línea de `get_usage`: gana la que más cuota
+ * perdería (`sePierde`). Fuera la que está parada por su tope de 5 horas y la
+ * que va por el 92 % de su semana o más, salvo que no quede otra (`sinSitio`).
+ * Con `modelo`, fuera también la que tiene un plan que no lo da
+ * (`techoDelPlan`), salvo que no quede otra. A igual pérdida, la que menos ha
+ * gastado, y luego el orden de la lista (la principal va primero).
+ */
+export function elegirCuenta(lista: CuentaViva[], ahora: number, modelo?: ModelAlias): Eleccion | undefined {
   if (lista.length === 0) return undefined;
-  return [...lista].sort(
-    (a, b) => (a.gastado ?? DESCONOCIDA) - (b.gastado ?? DESCONOCIDA),
-  )[0];
+  const conSitio = lista.filter((c) => !parada(c, ahora) && semanaDe(c, ahora).gastado < AGOTADA);
+  let pool = conSitio.length ? conSitio : lista;
+  if (modelo) {
+    const caben = pool.filter((c) => {
+      const t = techoDelPlan(c.plan);
+      return !t || PESO[t] >= PESO[modelo];
+    });
+    if (caben.length) pool = caben;
+  }
+  const orden = pool
+    .map((c, i) => ({ c, i, p: sePierde(c, ahora), g: semanaDe(c, ahora).gastado }))
+    .sort((a, b) => b.p - a.p || a.g - b.g || a.i - b.i);
+  const viva = orden[0].c;
+  const sinSitio = conSitio.length === 0;
+
+  let porque: string;
+  if (sinSitio) {
+    const periodo = viva.periodo ?? "semana";
+    const motivo = parada(viva, ahora)
+      ? `parada por su tope de 5 horas${viva.sesionRenueva ? ` hasta dentro de ${enCuanto(viva.sesionRenueva, ahora).replace(/^en /, "")}` : ""}`
+      : `al ${Math.round(semanaDe(viva, ahora).gastado)} % de su ${periodo}`;
+    porque = lista.length === 1
+      ? `Con «${viva.cuenta.label}», la única que hay, aunque está ${motivo}.`
+      : `No queda ninguna con sitio (todas paradas por su tope de 5 horas o por encima del ${AGOTADA} % de su ${periodo}): va a «${viva.cuenta.label}», ${motivo}, que es la menos mala.`;
+  } else if (lista.length === 1) {
+    porque = `Con «${viva.cuenta.label}», la única que hay.`;
+  } else {
+    const otras = orden.slice(1, 3).map((o) => `${retrato(o.c, ahora)} (${Math.round(o.p)} al día)`);
+    const fuera = lista.filter((c) => !conSitio.includes(c)).map((c) => `«${c.cuenta.label}» ${parada(c, ahora) ? "está parada por su tope de 5 horas" : "pasa del 92 %"}`);
+    porque =
+      `Con ${retrato(viva, ahora)}: es la que más cuota perdería sin usar (${Math.round(orden[0].p)} puntos al día` +
+      (otras.length ? `, frente a ${otras.join(" y ")})` : ")") +
+      (fuera.length ? `; ${fuera.join(", ")}` : "") +
+      ".";
+  }
+  return { viva, porque, sinSitio };
 }
 
-/** «Principal» o el nombre que Munir le puso, para escribirlo en el porqué. */
-function nombre(c: CuentaViva): string {
-  return c.cuenta.label;
-}
 
 /**
  * La receta: a quién va este encargo y por qué.
@@ -324,9 +499,12 @@ export function recetar(
     }
   }
 
-  // 3. Con qué cuenta. La más fresca de las que están de verdad conectadas.
+  // 3. Con qué cuenta: la que más cuota perdería sin usar (`elegirCuenta`), de
+  //    las que están de verdad conectadas.
+  const ahora = mundo.ahora ?? Date.now();
   const claudes = vivas(mundo, "claude");
-  const elegida = laMasFresca(claudes);
+  const eleccion = elegirCuenta(claudes, ahora, modelo);
+  const elegida = eleccion?.viva;
 
   if (claudes.length === 0) {
     // Sin Claude conectado no hay nada que optimizar: se busca quién queda.
@@ -340,20 +518,26 @@ export function recetar(
     return { cli: "claude", modelo, esfuerzo, porque };
   }
 
-  const gastado = elegida?.gastado;
-  if (claudes.length > 1 && gastado != null) {
-    porque.push(`Con «${nombre(elegida!)}», que es la que más semana le queda (${100 - gastado} %).`);
-  }
+  // Una lectura de antes de renovarse ya no dice cuánto queda: sin dato.
+  const gastado = elegida && caducada(elegida, ahora) ? undefined : elegida?.gastado;
+  if (claudes.length > 1 && eleccion && !eleccion.sinSitio) porque.push(eleccion.porque);
+  // Solo parada: si además se quedó sin semana, manda eso, que no vuelve en 5 horas.
+  const soloParada = !!eleccion?.sinSitio && !!elegida && parada(elegida, ahora) && !(gastado != null && gastado >= AGOTADA);
 
   // 4. La cuota corrige, y solo hacia abajo. Nunca al revés: que sobre semana
   //    no es motivo para gastar opus en un renombrado.
-  if (gastado != null && gastado >= AGOTADA) {
-    // Se acabó la semana. Y no hay que mirar si otra cuenta de Claude tiene
-    // sitio: `laMasFresca` ya devolvió la que MENOS ha gastado, así que si esa
-    // está agotada, todas lo están. Lo que queda es cambiar de CLI o abaratar.
+  if (eleccion?.sinSitio) {
+    // Ninguna con sitio: `elegirCuenta` solo devuelve una agotada o parada
+    // cuando lo están todas. Lo que queda es cambiar de CLI o abaratar.
     const relevo = primerRelevo(ex, mundo);
     if (relevo) {
-      porque.push(`No queda semana en ninguna cuenta de Claude (${gastado} % gastado).`);
+      porque.push(
+        soloParada
+          ? "Todas las cuentas de Claude están paradas por su tope de 5 horas."
+          : gastado != null && gastado >= AGOTADA
+            ? `No queda semana en ninguna cuenta de Claude (${gastado} % gastado).`
+            : eleccion.porque,
+      );
       porque.push(`Va a ${providerOf(relevo.cli).label}, que ${relevo.porque}.`);
       return {
         cli: relevo.cli,
@@ -371,8 +555,11 @@ export function recetar(
         },
       };
     }
-    // Sin relevo: se sigue con Claude, pero barato y dicho.
-    if (!esIntocable(ex) && modelo !== "haiku") {
+    // Sin relevo: se sigue con Claude, pero barato y dicho. Si solo está
+    // parada por el tope de 5 horas, la semana no aprieta: se dice y ya.
+    if (soloParada || gastado == null || gastado < AGOTADA) {
+      porque.push(eleccion.porque);
+    } else if (!esIntocable(ex) && modelo !== "haiku") {
       const antes = modelo;
       modelo = bajar(modelo);
       porque.push(
@@ -448,7 +635,7 @@ function primerRelevo(
   const posibles = suyos ? RELEVOS.filter((r) => suyos.includes(r.cli)) : RELEVOS;
   const encaja = posibles.filter((r) => r.fuerte.includes(ex.trabajo));
   for (const r of [...encaja, ...posibles.filter((r) => !encaja.includes(r))]) {
-    const cuenta = laMasFresca(vivas(mundo, r.cli));
+    const cuenta = elegirCuenta(vivas(mundo, r.cli), mundo.ahora ?? Date.now())?.viva;
     if (cuenta) return { cli: r.cli, cuenta: cuenta.cuenta, porque: r.porque };
   }
   return undefined;

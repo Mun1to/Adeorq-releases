@@ -45,6 +45,7 @@ import { hueOf } from "../lib/colors";
 import { coloresDeProyectos } from "../lib/colorLienzo";
 import { ColoresLienzo, colorDeProyecto } from "./ColoresLienzo";
 import { projectIcons, type Account } from "../lib/pty";
+import { cuentaDelNodo } from "../lib/frenoCuota";
 import GalleryNode, { type GalleryData } from "./CanvasGallery";
 import WebNode, { type WebData } from "./CanvasWeb";
 import { comoUrl } from "../lib/urlweb";
@@ -2643,6 +2644,8 @@ ${ruta}` : ruta;
       const pos = { id: n.id, x: Math.round(n.position.x), y: Math.round(n.position.y) };
       if (n.type === "term") {
         const d = (n as Node<TermData>).data;
+        // El CLI, del comando: `d.kind` es la pieza del lienzo, y ahí un Codex es «shell».
+        const cli = kindDeComando(d.pane.command?.join(" ") ?? "");
         guardados.push({
           ...pos,
           ...medida(n, NODE_W, NODE_H),
@@ -2652,6 +2655,9 @@ ${ruta}` : ruta;
           ruta: d.pane.cwd,
           cmd: conComandos ? d.pane.command : undefined,
           pty: conComandos ? d.pane.id : undefined,
+          // Su cuenta, para volver a ella (`NodoTerm.cuenta`). Solo de un
+          // agente: una consola no tiene con qué iniciar sesión.
+          cuenta: conComandos && cli !== "shell" ? cuentaDelNodo(d.pane, cli) : undefined,
         });
       } else if (n.type === "widget") {
         guardados.push({
@@ -2800,6 +2806,8 @@ ${ruta}` : ruta;
             { name: n.proyecto || n.ruta, path: n.ruta, hasGit: false },
             { x: n.x, y: n.y, w: n.w, h: n.h },
             command || viva ? { command, viva } : undefined,
+            // En su cuenta: App la acepta solo si sigue en Cuentas o es la principal.
+            n.cuenta,
           );
           mapa.set(n.id, String(pane.id));
         } else if (n.tipo === "widget") {
@@ -2897,14 +2905,14 @@ ${ruta}` : ruta;
         ...prev,
         ...f.flechas
           .filter((e) => mapa.has(e.de) && mapa.has(e.a))
-          .map((e) => {
+          .map((e, i) => {
             // De qué nota sale, si sale de una. No se guarda en el archivo:
             // se deduce del nodo de origen, que es la única fuente que no
             // puede quedarse desfasada.
             const desde = f.nodos.find((n) => n.id === e.de);
             const nota = desde?.tipo === "nota" ? desde.nota : undefined;
             return {
-              id: `e-${sello}-${e.id}`,
+              id: `e-${sello}-${i.toString(36)}`,
               source: mapa.get(e.de)!,
               target: mapa.get(e.a)!,
               animated: true,

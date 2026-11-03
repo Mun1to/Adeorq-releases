@@ -292,9 +292,301 @@ pub fn forget_account(config_dir: String) -> Result<(), String> {
     std::fs::remove_dir_all(&target).map_err(|e| e.to_string())
 }
 
+/// Dónde apunta Adeorq lo que copió a una cuenta, para poder quitarlo cuando ya
+/// no esté en la principal sin tocar lo que esa cuenta tenga de suyo.
+const BARRERAS_COPIADAS: &str = "barreras-adeorq.json";
+
+/// Las barreras de la cuenta principal, también en la cuenta con la que nace una
+/// terminal.
+///
+/// Una cuenta es una carpeta, y sus ajustes son solo suyos. Desde que las
+/// delegadas eligen cuenta solas (2026-11-02), un agente en modo auto nacía en
+/// otra sin los hooks ni las reglas `deny` de la principal, sin que nadie lo
+/// hubiera decidido (revisión de la 0.9.239: la «2da MAIN» no tenía ni el
+/// guardián). Se copia solo lo que protege: `hooks`, `permissions.deny`,
+/// `permissions.ask` y `attribution`. Ni el modelo, ni el tema, ni los plugins,
+/// ni `permissions.allow`, que no protege y en otra cuenta no tiene por qué valer.
+///
+/// `Ok(true)` si escribió algo. Lo llama `pty_spawn`, que es por donde nacen todas
+/// (la barra, un agente, el Capataz, el lienzo, Reanimar y al reiniciar).
+pub fn sembrar_barreras(dir: &Path) -> Result<bool, String> {
+    let principal = crate::dir_casa().ok_or("no sé cuál es la carpeta del usuario")?.join(".claude");
+    sembrar_desde(&principal, dir)
+}
+
+fn sembrar_desde(principal: &Path, dir: &Path) -> Result<bool, String> {
+    if !dir.is_dir() {
+        return Ok(false);
+    }
+    // Una cuenta que apunta a la propia principal ya tiene sus barreras.
+    if let (Ok(a), Ok(b)) = (principal.canonicalize(), dir.canonicalize()) {
+        if a == b {
+            return Ok(false);
+        }
+    }
+    let ajustes = dir.join("settings.json");
+    let copiadas = dir.join(BARRERAS_COPIADAS);
+    let ahora = barreras_de(&leer_json(&principal.join("settings.json"))?);
+    let suya = leer_json(&ajustes)?;
+    // Sin archivo o ilegible, no se sabe qué se copió: nada que quitar.
+    let antes = barreras_de_copia(&leer_json(&copiadas).unwrap_or_default());
+    let (nueva, copiado) = con_barreras(suya.clone(), &ahora, &antes)?;
+
+    let cambia = nueva != suya;
+    if cambia {
+        let texto = serde_json::to_string_pretty(&nueva).map_err(|e| e.to_string())?;
+        crate::escribir_entero(&ajustes, format!("{texto}\n").as_bytes())?;
+    }
+    if copiado != antes {
+        let texto = serde_json::to_string_pretty(&copiado).map_err(|e| e.to_string())?;
+        crate::escribir_entero(&copiadas, format!("{texto}\n").as_bytes())?;
+    }
+    Ok(cambia)
+}
+
+/// Un JSON de ajustes. Que no exista es estar vacío; que no se entienda es un
+/// error: un archivo que no se ha podido leer no se reescribe (se perdería).
+fn leer_json(ruta: &Path) -> Result<serde_json::Value, String> {
+    match std::fs::read_to_string(ruta) {
+        Ok(t) => serde_json::from_str(t.trim_start_matches('\u{feff}'))
+            .map_err(|e| format!("{} no se pudo leer, así que no lo toco: {e}", ruta.display())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(serde_json::json!({})),
+        Err(e) => Err(format!("{}: {e}", ruta.display())),
+    }
+}
+
+/// Lo que protege de unos ajustes, con todas sus piezas aunque estén vacías.
+fn barreras_de(ajustes: &serde_json::Value) -> serde_json::Value {
+    let pieza = |ruta: &str, vacia: serde_json::Value| ajustes.pointer(ruta).cloned().unwrap_or(vacia);
+    serde_json::json!({
+        "hooks": pieza("/hooks", serde_json::json!({})),
+        "deny": pieza("/permissions/deny", serde_json::json!([])),
+        "ask": pieza("/permissions/ask", serde_json::json!([])),
+        "attribution": pieza("/attribution", serde_json::Value::Null),
+    })
+}
+
+/// La copia guardada, con todas sus piezas aunque falte alguna o sea de otra versión.
+fn barreras_de_copia(copia: &serde_json::Value) -> serde_json::Value {
+    let pieza = |clave: &str, vacia: serde_json::Value| copia.get(clave).cloned().unwrap_or(vacia);
+    serde_json::json!({
+        "hooks": pieza("hooks", serde_json::json!({})),
+        "deny": pieza("deny", serde_json::json!([])),
+        "ask": pieza("ask", serde_json::json!([])),
+        "attribution": pieza("attribution", serde_json::Value::Null),
+    })
+}
+
+/// Quita de una lista lo que puso Adeorq la última vez y pone lo de ahora, sin
+/// repetir. Lo que no vino de Adeorq no se toca. Devuelve lo que ha puesto: lo que
+/// la cuenta ya tenía por su cuenta no se apunta como copiado, y así sigue siendo
+/// suyo el día que la principal lo quite (revisión de la 0.9.239).
+fn renovar(
+    lista: &mut Vec<serde_json::Value>,
+    antes: &serde_json::Value,
+    ahora: &serde_json::Value,
+) -> Vec<serde_json::Value> {
+    let vacio = Vec::new();
+    let antes = antes.as_array().unwrap_or(&vacio);
+    lista.retain(|x| !antes.contains(x));
+    let mut puesto = Vec::new();
+    for x in ahora.as_array().unwrap_or(&vacio) {
+        if !lista.contains(x) {
+            lista.push(x.clone());
+            puesto.push(x.clone());
+        }
+    }
+    puesto
+}
+
+/// Los ajustes de una cuenta con las barreras de ahora puestas, y lo que hay que
+/// apuntar como copiado. Sin escribir nada.
+fn con_barreras(
+    mut suya: serde_json::Value,
+    ahora: &serde_json::Value,
+    antes: &serde_json::Value,
+) -> Result<(serde_json::Value, serde_json::Value), String> {
+    let raiz = suya.as_object_mut().ok_or("los ajustes de esa cuenta no son un objeto, así que no los toco")?;
+    // Lo que no tiene la forma que se espera tampoco se pisa.
+    for clave in ["hooks", "permissions"] {
+        if raiz.get(clave).is_some_and(|v| !v.is_object()) {
+            return Err(format!("«{clave}» en los ajustes de esa cuenta no es un objeto, así que no los toco"));
+        }
+    }
+    let mut copiado = barreras_de_copia(&serde_json::Value::Null);
+
+    // Los hooks, evento a evento: cada uno es una lista de grupos.
+    let mut hooks = raiz.get("hooks").and_then(|h| h.as_object()).cloned().unwrap_or_default();
+    let mut eventos: Vec<String> = Vec::new();
+    for lado in [antes, ahora] {
+        if let Some(h) = lado["hooks"].as_object() {
+            eventos.extend(h.keys().cloned());
+        }
+    }
+    eventos.sort();
+    eventos.dedup();
+    for evento in eventos {
+        let mut lista = hooks.get(&evento).and_then(|l| l.as_array()).cloned().unwrap_or_default();
+        let puesto = renovar(&mut lista, &antes["hooks"][&evento], &ahora["hooks"][&evento]);
+        if !puesto.is_empty() {
+            copiado["hooks"][&evento] = puesto.into();
+        }
+        if lista.is_empty() {
+            hooks.remove(&evento);
+        } else {
+            hooks.insert(evento, lista.into());
+        }
+    }
+    if hooks.is_empty() {
+        raiz.remove("hooks");
+    } else {
+        raiz.insert("hooks".into(), hooks.into());
+    }
+
+    // Las reglas que niegan o preguntan. `allow` y el modo son de cada cuenta.
+    let mut permisos = raiz.get("permissions").and_then(|p| p.as_object()).cloned().unwrap_or_default();
+    for clave in ["deny", "ask"] {
+        let mut lista = permisos.get(clave).and_then(|l| l.as_array()).cloned().unwrap_or_default();
+        copiado[clave] = renovar(&mut lista, &antes[clave], &ahora[clave]).into();
+        if lista.is_empty() {
+            permisos.remove(clave);
+        } else {
+            permisos.insert(clave.into(), lista.into());
+        }
+    }
+    if permisos.is_empty() {
+        raiz.remove("permissions");
+    } else {
+        raiz.insert("permissions".into(), permisos.into());
+    }
+
+    // La firma de los commits: la de la principal, salvo que esa cuenta tenga otra suya.
+    let actual = raiz.get("attribution").cloned().unwrap_or(serde_json::Value::Null);
+    if actual.is_null() || actual == antes["attribution"] {
+        if ahora["attribution"].is_null() {
+            raiz.remove("attribution");
+        } else {
+            raiz.insert("attribution".into(), ahora["attribution"].clone());
+            copiado["attribution"] = ahora["attribution"].clone();
+        }
+    }
+    Ok((suya, copiado))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn principal_de_prueba() -> serde_json::Value {
+        serde_json::json!({
+            "model": "opus",
+            "theme": "dark",
+            "enabledPlugins": { "algo@sitio": true },
+            "hooks": { "PreToolUse": [{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "guardian" }] }] },
+            "permissions": { "allow": ["Bash(ls)"], "deny": ["Bash(rm -rf *)"], "defaultMode": "auto" },
+            "attribution": { "commit": "" },
+        })
+    }
+
+    #[test]
+    fn las_barreras_llegan_y_solo_ellas() {
+        let suya = serde_json::json!({ "model": "sonnet", "autoMode": { "x": 1 } });
+        let (n, _) = con_barreras(suya, &barreras_de(&principal_de_prueba()), &barreras_de(&serde_json::json!({}))).unwrap();
+        assert_eq!(n["hooks"]["PreToolUse"][0]["hooks"][0]["command"], "guardian");
+        assert_eq!(n["permissions"]["deny"][0], "Bash(rm -rf *)");
+        assert_eq!(n["attribution"]["commit"], "");
+        // Lo suyo se queda, y lo demás de la principal no viaja.
+        assert_eq!(n["model"], "sonnet");
+        assert_eq!(n["autoMode"]["x"], 1);
+        assert!(n.get("theme").is_none() && n.get("enabledPlugins").is_none());
+        assert!(n["permissions"].get("allow").is_none() && n["permissions"].get("defaultMode").is_none());
+    }
+
+    #[test]
+    fn lo_que_la_cuenta_tiene_de_suyo_se_queda() {
+        let mio = serde_json::json!({ "matcher": "Write", "hooks": [{ "type": "command", "command": "mio" }] });
+        let suya = serde_json::json!({
+            "hooks": { "PreToolUse": [mio.clone()] },
+            "permissions": { "allow": ["Bash(git *)"], "deny": ["Bash(mio)"] },
+            "attribution": { "commit": "la mia" },
+        });
+        let (n, _) = con_barreras(suya, &barreras_de(&principal_de_prueba()), &barreras_de(&serde_json::json!({}))).unwrap();
+        let grupos = n["hooks"]["PreToolUse"].as_array().unwrap();
+        assert_eq!(grupos.len(), 2, "el suyo y el de la principal");
+        assert!(grupos.contains(&mio));
+        assert_eq!(n["permissions"]["deny"].as_array().unwrap().len(), 2);
+        assert_eq!(n["permissions"]["allow"][0], "Bash(git *)");
+        assert_eq!(n["attribution"]["commit"], "la mia");
+    }
+
+    #[test]
+    fn lo_que_ya_no_esta_en_la_principal_se_quita_y_no_se_repite() {
+        let ahora = barreras_de(&principal_de_prueba());
+        let vacio = barreras_de(&serde_json::json!({}));
+        let (primera, copiado) = con_barreras(serde_json::json!({ "model": "sonnet" }), &ahora, &vacio).unwrap();
+        // Otra vez lo mismo: no cambia nada.
+        let (segunda, copia2) = con_barreras(primera.clone(), &ahora, &copiado).unwrap();
+        assert_eq!(segunda, primera);
+        assert_eq!(copia2, copiado);
+        // La principal se queda sin barreras: la cuenta vuelve a como estaba.
+        let (tercera, copia3) = con_barreras(primera, &vacio, &copiado).unwrap();
+        assert_eq!(tercera, serde_json::json!({ "model": "sonnet" }));
+        assert_eq!(copia3, vacio);
+    }
+
+    /// Quien copió sus ajustes a mano tiene ya las mismas reglas: son suyas. El
+    /// caso de la revisión: se apuntaban como copiadas, y el día que la principal
+    /// las quitaba, se las quitaba también a la cuenta.
+    #[test]
+    fn lo_que_ya_era_de_la_cuenta_sigue_siendo_suyo() {
+        let ahora = barreras_de(&principal_de_prueba());
+        let suya = serde_json::json!({
+            "hooks": principal_de_prueba()["hooks"].clone(),
+            "permissions": { "deny": principal_de_prueba()["permissions"]["deny"].clone() },
+            "attribution": principal_de_prueba()["attribution"].clone(),
+        });
+        let vacio = barreras_de(&serde_json::json!({}));
+        let (primera, copiado) = con_barreras(suya.clone(), &ahora, &vacio).unwrap();
+        assert_eq!(primera, suya, "ya las tiene: nada que poner");
+        assert_eq!(copiado, vacio, "y nada apuntado como copiado");
+        let (despues, _) = con_barreras(primera, &vacio, &copiado).unwrap();
+        assert_eq!(despues, suya, "la principal las quita y en la cuenta se quedan");
+    }
+
+    #[test]
+    fn lo_que_no_tiene_la_forma_esperada_no_se_pisa() {
+        let ahora = barreras_de(&principal_de_prueba());
+        let vacio = barreras_de(&serde_json::json!({}));
+        assert!(con_barreras(serde_json::json!({ "hooks": "nada" }), &ahora, &vacio).is_err());
+        assert!(con_barreras(serde_json::json!({ "permissions": ["x"] }), &ahora, &vacio).is_err());
+        assert!(con_barreras(serde_json::json!(["x"]), &ahora, &vacio).is_err());
+    }
+
+    #[test]
+    fn en_disco_y_sin_pisar_un_archivo_que_no_se_entiende() {
+        let base = std::env::temp_dir().join(format!("adeorq-barreras-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let (principal, cuenta) = (base.join("principal"), base.join("cuenta"));
+        std::fs::create_dir_all(&principal).unwrap();
+        std::fs::create_dir_all(&cuenta).unwrap();
+        std::fs::write(principal.join("settings.json"), format!("\u{feff}{}", principal_de_prueba())).unwrap();
+
+        assert!(sembrar_desde(&principal, &cuenta).unwrap(), "la primera vez escribe");
+        let puesto: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(cuenta.join("settings.json")).unwrap()).unwrap();
+        assert_eq!(puesto["permissions"]["deny"][0], "Bash(rm -rf *)");
+        assert!(!sembrar_desde(&principal, &cuenta).unwrap(), "la segunda, nada");
+
+        // La propia principal, y una carpeta que no existe: nada.
+        assert!(!sembrar_desde(&principal, &principal).unwrap());
+        assert!(!sembrar_desde(&principal, &base.join("no-existe")).unwrap());
+        assert!(!base.join("no-existe").exists());
+
+        // Unos ajustes que no se entienden: error, y el archivo sigue igual.
+        std::fs::write(cuenta.join("settings.json"), "{ esto no es json").unwrap();
+        assert!(sembrar_desde(&principal, &cuenta).is_err());
+        assert_eq!(std::fs::read_to_string(cuenta.join("settings.json")).unwrap(), "{ esto no es json");
+        let _ = std::fs::remove_dir_all(&base);
+    }
 
     /// Cerrar sesión BORRA archivos, así que lo que hay que fijar no es que
     /// funcione (eso se ve), sino lo que NO puede tocar. Un nombre de

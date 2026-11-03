@@ -1470,6 +1470,9 @@ fn orden_claude(modelo: &str, cfg: Option<&std::path::Path>, sesion: &str) -> st
         for m in MANOS {
             cmd.arg(m);
         }
+        // La contraseña de su puente de casa, solo en el entorno de este proceso
+        // (ver `mcp::clave_de_casa`).
+        crate::mcp::con_llave_de_casa(&mut cmd);
     }
     cmd.arg("--disallowedTools")
         .args(["Bash", "Write", "Edit", "NotebookEdit", "WebFetch", "WebSearch", "Task", "Read", "Glob", "Grep"]);
@@ -1659,9 +1662,13 @@ fn linea_codex(modelo: &str, adeorq: Option<&str>, entorno: &[(String, String)])
         let lista = manos_crudas().iter().map(|m| format!("'{m}'")).collect::<Vec<_>>().join(", ");
         // Literales de TOML entre comillas simples: la barra de Windows va tal cual.
         let env = entorno.iter().map(|(k, v)| format!("{k} = '{v}'")).collect::<Vec<_>>().join(", ");
+        // La contraseña de casa NO va en `env`, que está en esta línea de
+        // órdenes y la lee cualquier programa tuyo: va en el entorno de Codex
+        // (`mcp::con_llave_de_casa`) y `env_vars` le dice que se la pase.
+        let casa = crate::mcp::VARIABLE_DE_CASA;
         a.push("-c".into());
         a.push(format!(
-            "mcp_servers.adeorq={{ command = '{ruta}', args = ['--mcp', '--de-casa'], env = {{ {env} }}, enabled_tools = [{lista}], default_tools_approval_mode = 'approve' }}"
+            "mcp_servers.adeorq={{ command = '{ruta}', args = ['--mcp', '--de-casa'], env = {{ {env} }}, env_vars = ['{casa}'], enabled_tools = [{lista}], default_tools_approval_mode = 'approve' }}"
         ));
     }
     // El prompt, por la entrada: con `-` lo lee entero hasta que se cierra.
@@ -1814,6 +1821,12 @@ fn correr_otro(
         }
         Dialecto::Claude => return Err("Claude va por `correr`".into()),
     }
+    // La contraseña de su puente de casa, solo en el entorno de este proceso:
+    // Codex la reenvía por `env_vars` (`linea_codex`) y Gemini pasa el suyo a
+    // sus servidores salvo lo que se llame como una clave, que esta no.
+    if con_manos {
+        crate::mcp::con_llave_de_casa(&mut cmd);
+    }
     let mut hijo = cmd
         .current_dir(crate::workspace::raiz_por_defecto())
         .sin_ventana()
@@ -1940,6 +1953,10 @@ mod tests {
         let largo: usize = cmd.get_args().map(|a| a.len() + 3).sum::<usize>() + cmd.get_program().len();
         assert!(largo < 4_000, "la línea de órdenes mide {largo} caracteres");
         assert_eq!(cmd.get_args().nth(1).and_then(|a| a.to_str()), Some("--model"), "el prompt no va detrás de -p");
+        // Con manos, la contraseña de su puente de casa en su entorno; sin ellas, nada.
+        let lleva = |c: &std::process::Command| c.get_envs().any(|(k, v)| k == crate::mcp::VARIABLE_DE_CASA && v.is_some());
+        assert!(lleva(&cmd), "con manos lleva la contraseña de casa");
+        assert!(!lleva(&orden_claude("sonnet", None, "id")), "sin manos no hay puente que la necesite");
     }
 
     #[test]
@@ -2841,6 +2858,10 @@ mod tests {
         let mcp = l.iter().find(|a| a.starts_with("mcp_servers.adeorq=")).expect("el servidor de Adeorq");
         assert!(mcp.contains("'--de-casa'") && mcp.contains("default_tools_approval_mode = 'approve'"), "{mcp}");
         assert!(mcp.contains("env = { ADEORQ_MCP_PUERTO = '3097', LOCALAPPDATA = 'C:\\Users\\x\\AppData\\Local' }"), "a qué Adeorq habla: {mcp}");
+        // La contraseña de casa se reenvía por su nombre y nunca va escrita en
+        // esta línea, que cualquier programa tuyo puede leer.
+        assert!(mcp.contains("env_vars = ['ADEORQ_CASA']"), "{mcp}");
+        assert!(!todo.contains(crate::mcp::clave_de_casa_para_pruebas()), "la contraseña en la línea de órdenes: {todo}");
         for m in manos_crudas() {
             assert!(mcp.contains(&format!("'{m}'")), "{m} en enabled_tools: {mcp}");
         }

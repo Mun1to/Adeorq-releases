@@ -10,6 +10,11 @@
 // El aviso de dónde acaba guardado no es un adorno: en Windows es el Gestor de
 // Credenciales y en Linux un fichero con permisos 600, que no es lo mismo, y
 // esto se lee justo antes de pegar un token que puede valer dinero.
+//
+// Y desde el 2026-11-03 (decisión A1 de Munir): cuando la pide un programa de
+// fuera de Adeorq y ya está guardada, no hay nada que pegar: la ventana solo
+// pregunta si se le da esta vez. El valor no pasa por aquí ni entonces: lo lee
+// Rust del almacén (`secreto_permitir`).
 
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -20,6 +25,10 @@ import { propsDeVelo } from "../lib/velo";
 interface Pedido {
   nombre: string;
   motivo: string;
+  /** La pide algo de fuera de una terminal de Adeorq. */
+  deFuera?: boolean;
+  /** Ya está guardada: solo queda dársela o no. */
+  guardada?: boolean;
 }
 
 export default function PedirSecreto() {
@@ -63,12 +72,46 @@ export default function PedirSecreto() {
     );
   };
 
+  /** A un programa de fuera, con la clave ya guardada: dársela o no. */
+  const permitir = (dar: boolean) => {
+    const nombre = pedido?.nombre;
+    setPedido(null);
+    if (!nombre) return;
+    void invoke("secreto_permitir", { nombre, dar }).catch(() => {});
+  };
+
   if (!pedido) return null;
+
+  if (pedido.deFuera && pedido.guardada) {
+    return (
+      <div className="modal-overlay" data-sin-mods="" {...propsDeVelo(bajoEnVelo, () => permitir(false))}>
+        <div className="modal secreto-modal" onClick={(e) => e.stopPropagation()}>
+          <h3 className="modal-title">{t("Un programa de fuera de Adeorq pide una clave")}</h3>
+          <p className="modal-text">
+            {t("Pide la clave")} <code className="secreto-nombre">{pedido.nombre}</code>
+            {pedido.motivo ? `: ${pedido.motivo}` : "."}
+          </p>
+          <p className="modal-text secreto-como">
+            {t("No viene de una terminal de Adeorq. ")}
+            <b>{t("Dásela solo si sabes qué programa es.")}</b>
+          </p>
+          <div className="modal-actions">
+            <button className="mini modal-cancel" onClick={() => permitir(false)}>
+              {t("No")}
+            </button>
+            <button className="np-btn" onClick={() => permitir(true)}>
+              {t("Dársela esta vez")}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay" data-sin-mods="" {...propsDeVelo(bajoEnVelo, () => responder(null))}>
       <div className="modal secreto-modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="modal-title">{t("Un agente necesita una clave")}</h3>
+        <h3 className="modal-title">{pedido.deFuera ? t("Un programa de fuera de Adeorq pide una clave") : t("Un agente necesita una clave")}</h3>
         <p className="modal-text">
           {t("La pide con el nombre")} <code className="secreto-nombre">{pedido.nombre}</code>
           {pedido.motivo ? `: ${pedido.motivo}` : "."}

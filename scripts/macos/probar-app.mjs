@@ -65,6 +65,11 @@ writeFileSync(join(SONDA, "adeorq-sonda"), "#!/bin/sh\necho sonda-$((6*7))\n");
 chmodSync(join(SONDA, "adeorq-sonda"), 0o755);
 writeFileSync(join(CASA, ".zshrc"), 'export PATH="$HOME/sonda-bin:$PATH"\n');
 writeFileSync(join(CASA, ".zprofile"), "");
+// Lo que llega de fuera de una terminal de Adeorq solo mira y abre; esta sonda
+// también escribe, así que nace con ese permiso subido, como se sube en Ajustes.
+const DATOS = join(CASA, "Library", "Application Support", "Adeorq");
+mkdirSync(DATOS, { recursive: true });
+writeFileSync(join(DATOS, "mcp_clientes.json"), JSON.stringify({ niveles: { fuera: "auto" } }));
 
 // El entorno de un arranque desde el Finder: casi vacío.
 const env = {
@@ -149,10 +154,9 @@ try {
   if (!oye) throw new Error("sin MCP no hay nada más que probar");
 
   agente = puente();
-  // El escalón de un cliente MCP sale de su nombre (`mcp_clientes::nivel_de_fabrica`):
-  // uno que se llame «claude…» puede hacerlo todo, y uno sin nombre solo mirar y
-  // abrir, que es lo que pasó en la primera pasada con `send_command`.
-  const ini = await agente.pedir("initialize", { clientInfo: { name: "claude-sonda-mac", version: "1" } });
+  // Esta sonda habla desde fuera de una terminal de Adeorq, y lo de fuera solo mira
+  // y abre (`mcp_clientes::FUERA`): por eso su casa nace con ese permiso subido.
+  const ini = await agente.pedir("initialize", { clientInfo: { name: "sonda-mac", version: "1" } });
   debe(Boolean(ini.result), "el puente `adeorq --mcp` se presenta (initialize)");
 
   const paneles = await agente.llamar("get_active_panes", {});

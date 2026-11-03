@@ -1,12 +1,16 @@
-// Qué puede hacer cada cliente por el MCP (decisión D1 de Munir, 2026-10-07):
-// lo que Ajustes enseña y cambia. La puerta de verdad y la tabla de escalones
-// viven en `src-tauri/src/mcp_clientes.rs`; aquí solo se habla con ella.
+// Qué puede hacer cada cliente por el MCP (decisiones D1 y B1 de Munir): lo que
+// Ajustes enseña y cambia. La puerta de verdad y la tabla de escalones viven en
+// `src-tauri/src/mcp_clientes.rs`; aquí solo se habla con ella.
 
 import { invoke } from "@tauri-apps/api/core";
 import type { ModoCapataz } from "./manos";
 
+/** La fila de lo que llega sin la contraseña de una terminal de Adeorq. */
+export const FUERA = "fuera";
+
 export interface ClienteMcp {
-  /** Tal como se presentó en su `initialize` («codex-cli», «gemini-cli»…). */
+  /** El programa, con el id de `lib/providers.ts` («claude», «codex»…), o
+   *  `FUERA`. Uno que no está en la lista va con el nombre con que se presentó. */
   nombre: string;
   version: string;
   /** Epoch en segundos; 0 si Munir lo puso a mano y nunca se conectó. */

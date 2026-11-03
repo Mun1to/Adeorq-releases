@@ -190,6 +190,45 @@ async (page) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await foto("1-mes");
 
+  // 3c. El bloque va centrado en su hueco, a la altura de su ventana de 1910×965
+  //     y a 1920×1080, sin moverse al cambiar de pestaña ni cortarse en una
+  //     ventana bajita (Munir, 2026-11-03: «quitando ese hueco de abajo»).
+  const huecos = () => page.evaluate(() => {
+    const p = document.querySelector(".panel.perfil");
+    const r = p.getBoundingClientRect();
+    const hijos = [...p.children].map((h) => h.getBoundingClientRect()).filter((h) => h.height > 0);
+    return {
+      arriba: Math.round(Math.min(...hijos.map((h) => h.top)) - r.top),
+      abajo: Math.round(r.bottom - Math.max(...hijos.map((h) => h.bottom))),
+    };
+  });
+  const yPestanas = () => page.$eval(".pu-pestanas", (e) => Math.round(e.getBoundingClientRect().top));
+  for (const [width, height] of [[1910, 965], [1920, 1080]]) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(150);
+    const h = await huecos();
+    pasos[`centrado${width}`] = h;
+    debe(Math.abs(h.arriba - h.abajo) <= 2, `a ${width}×${height}, el mismo hueco arriba y abajo (${JSON.stringify(h)})`);
+    if (FOTOS) await page.screenshot({ path: `${FOTOS}/centrado-${width}.png` });
+    const antes = await yPestanas();
+    const pestanas = await page.$$(".pu-pestanas button");
+    for (const b of pestanas) {
+      await b.click();
+      await page.waitForTimeout(80);
+      const y = await yPestanas();
+      debe(y === antes, `a ${width}×${height}, cambiar de pestaña no mueve el bloque (${antes} → ${y})`);
+    }
+    await pestanas[0].click();
+  }
+  await page.setViewportSize({ width: 1536, height: 600 });
+  await page.waitForTimeout(150);
+  pasos.bajita = await page.$eval(".panel.perfil", (p) => {
+    p.scrollTop = 0;
+    return { arriba: Math.round(p.firstElementChild.getBoundingClientRect().top - p.getBoundingClientRect().top), baja: p.scrollHeight > p.clientHeight };
+  });
+  debe(pasos.bajita.baja && pasos.bajita.arriba >= 0, `en una ventana bajita baja con scroll y no se corta por arriba (${JSON.stringify(pasos.bajita)})`);
+  await page.setViewportSize({ width: 1600, height: 1000 });
+
   // 4. El año termina hoy; el mes, sin el número del día.
   pasos.anio = await page.$$eval(".pu-anio button", (b) => ({ n: b.length, ultimo: b[b.length - 1].dataset.hoy !== undefined }));
   debe(pasos.anio.ultimo && pasos.anio.n > 52 * 7, `el año termina hoy (${JSON.stringify(pasos.anio)})`);

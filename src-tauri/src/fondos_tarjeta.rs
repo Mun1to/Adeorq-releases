@@ -290,6 +290,64 @@ pub fn tarjeta_video_cancelar(ruta: String) -> Result<(), String> {
     }
 }
 
+fn carpeta_de_copias() -> Result<PathBuf, String> {
+    let d = crate::dir_datos_creado()?.join("tarjeta").join("copias");
+    fs::create_dir_all(&d).map_err(|e| e.to_string())?;
+    Ok(d)
+}
+
+/// Each copy gets its own folder: the file keeps a clean name for whoever
+/// receives it, and an earlier one still open in a player or an upload is no
+/// obstacle.
+fn ruta_de_copia(dir: &Path, nombre: &str, sello: u128) -> Result<PathBuf, String> {
+    // Las dos barras, en todos los sistemas: en Linux y en Mac la invertida es una
+    // letra más, y `..\fuera.mp4` pasaba por un nombre suelto.
+    let es_nombre_suelto = !nombre.contains(['/', '\\']) && Path::new(nombre).file_name().and_then(|n| n.to_str()) == Some(nombre);
+    if !es_nombre_suelto || extension(Path::new(nombre)).as_deref() != Some("mp4") {
+        return Err("nombre de vídeo no válido".into());
+    }
+    Ok(dir.join(sello.to_string()).join(nombre))
+}
+
+/// Where Copy leaves the MP4: it has to stay on disk until it is pasted.
+#[tauri::command(async)]
+pub fn tarjeta_copia_ruta(nombre: String) -> Result<String, String> {
+    let sello = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis());
+    let ruta = ruta_de_copia(&carpeta_de_copias()?, &nombre, sello)?;
+    Ok(ruta.to_string_lossy().into_owned())
+}
+
+fn es_una_copia(dir: &Path, ruta: &Path) -> bool {
+    let sin_saltos = ruta.components().all(|c| !matches!(c, std::path::Component::ParentDir));
+    sin_saltos && ruta.starts_with(dir) && extension(ruta).as_deref() == Some("mp4") && ruta.is_file()
+}
+
+/// Only the last copy stays: a video can weigh hundreds of MB, and the clipboard
+/// no longer points at the earlier ones. What is in use stays until the next time.
+fn barrer_copias(dir: &Path, ruta: &Path) {
+    let Ok(entradas) = fs::read_dir(dir) else { return };
+    for e in entradas.flatten() {
+        if ruta.parent() != Some(e.path().as_path()) {
+            let _ = fs::remove_dir_all(e.path());
+        }
+    }
+}
+
+/// The MP4 Copy just made, on the system clipboard.
+#[tauri::command(async)]
+pub fn tarjeta_copiar_archivo(app: tauri::AppHandle, ruta: String) -> Result<(), String> {
+    let dir = carpeta_de_copias()?;
+    let ruta = PathBuf::from(ruta);
+    if !es_una_copia(&dir, &ruta) {
+        return Err("ese archivo no es una copia de la tarjeta".into());
+    }
+    crate::portapapeles::copiar_archivo(&app, &ruta)?;
+    barrer_copias(&dir, &ruta);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -369,6 +427,53 @@ mod tests {
         assert!(!parte.exists());
         assert!(destino_mp4("relativa.mp4").is_err());
         assert!(destino_mp4(&raiz.join("x.exe").to_string_lossy()).is_err());
+        let _ = fs::remove_dir_all(&raiz);
+    }
+
+    #[test]
+    fn la_copia_se_queda_en_su_carpeta_y_con_su_nombre() {
+        let dir = Path::new("C:\\datos\\tarjeta\\copias");
+        assert_eq!(
+            ruta_de_copia(dir, "adeorq-uso-2026-11-02.mp4", 7).unwrap(),
+            dir.join("7").join("adeorq-uso-2026-11-02.mp4"),
+        );
+        for malo in ["..\\fuera.mp4", "../fuera.mp4", "sub\\x.mp4", "C:\\x.mp4", "x.exe", "x", ""] {
+            assert!(ruta_de_copia(dir, malo, 7).is_err(), "{malo}");
+        }
+    }
+
+    #[test]
+    fn solo_se_copia_un_mp4_de_la_carpeta_de_copias() {
+        let raiz = carpeta_de_prueba("copias-si");
+        let dir = raiz.join("copias");
+        let copia = dir.join("1").join("a.mp4");
+        fs::create_dir_all(copia.parent().unwrap()).unwrap();
+        fs::write(&copia, b"x").unwrap();
+        fs::write(dir.join("1").join("a.exe"), b"x").unwrap();
+        let fuera = raiz.join("b.mp4");
+        fs::write(&fuera, b"x").unwrap();
+        assert!(es_una_copia(&dir, &copia));
+        assert!(!es_una_copia(&dir, &dir.join("1").join("a.exe")), "otra extensión");
+        assert!(!es_una_copia(&dir, &fuera), "fuera de la carpeta");
+        assert!(!es_una_copia(&dir, &dir.join("..").join("b.mp4")), "saliendo con ..");
+        assert!(!es_una_copia(&dir, &dir.join("1").join("no-existe.mp4")), "no existe");
+        let _ = fs::remove_dir_all(&raiz);
+    }
+
+    #[test]
+    fn al_copiar_solo_queda_la_ultima() {
+        let raiz = carpeta_de_prueba("copias-barrer");
+        let vieja = raiz.join("1").join("a.mp4");
+        let cancelada = raiz.join("2");
+        let nueva = raiz.join("3").join("a.mp4");
+        fs::create_dir_all(vieja.parent().unwrap()).unwrap();
+        fs::create_dir_all(&cancelada).unwrap();
+        fs::create_dir_all(nueva.parent().unwrap()).unwrap();
+        fs::write(&vieja, b"x").unwrap();
+        fs::write(&nueva, b"x").unwrap();
+        barrer_copias(&raiz, &nueva);
+        assert!(!vieja.exists() && !cancelada.exists());
+        assert!(nueva.exists());
         let _ = fs::remove_dir_all(&raiz);
     }
 }

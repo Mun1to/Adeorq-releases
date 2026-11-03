@@ -115,7 +115,7 @@ import { coloresDeProyectos, proyectoDeCarpeta } from "./lib/colorLienzo";
 import { acabaDeReclamar, PINTA } from "./lib/estados";
 import { nombreDeRuta, trasCerrarPestana } from "./lib/arbol";
 import { usePuenteMcp } from "./lib/puenteMcp";
-import { useFrenoCuota } from "./lib/frenoCuota";
+import { cuentaConocida, cuentaDeSuEntorno, useFrenoCuota } from "./lib/frenoCuota";
 import { useLanzarEnLienzo } from "./lib/lanzarEnLienzo";
 import { useTableroGuardado, type Pane, type Team } from "./lib/tablero";
 import { cambiarBarra } from "./lib/barraEstado";
@@ -1655,7 +1655,11 @@ function App() {
       // `agy` y `shell` (lo convierte en `CanvasView`), así que aquí «el resto»
       // es siempre la consola pelada.
       const command = propio?.command ?? comandoDe({ cli: kind, agyExe: agyExe.current });
-      const { env, etiqueta } = entornoDePane(command, cuenta);
+      // Una cuenta que viene de un tablero guardado se acepta solo si es la
+      // principal o sigue en Cuentas, y entonces con la de Cuentas: un archivo
+      // de lienzo no decide la carpeta de configuración de un proceso.
+      const suya = cuenta && cuentaConocida(cuenta, accountsRef.current.list);
+      const { env, etiqueta } = entornoDePane(command, suya);
       const pane: CanvasPane = {
         id,
         cwd: project.path,
@@ -2006,6 +2010,13 @@ function App() {
    */
   const revivirPane = useCallback(
     (id: number, sessionId: string | undefined, cwd: string, name: string, kind?: string) => {
+      // En la MISMA cuenta en que vivía, leída de su entorno antes de cerrarlo:
+      // su conversación está en la carpeta de esa cuenta (`cuentaDeSuEntorno`).
+      const cuenta = cuentaDeSuEntorno(
+        panesRef.current.find((p) => p.id === id)?.env,
+        kind || "claude",
+        accountsRef.current.list,
+      );
       quitarPane(id, true, false); // ya mata la rama del panel; sin rastro, que vuelve
       // Codex y Gemini se retoman con su propia línea (`retomar` en la tabla
       // de proveedores); sin sesión, nacen de nuevo con la suya.
@@ -2020,7 +2031,7 @@ function App() {
             : newClaudeCommand();
       // Un respiro para que el cierre suelte el PTY y el proceso muera antes
       // de que el nuevo intente retomar el mismo transcript.
-      window.setTimeout(() => addPane(name, cwd, command), 400);
+      window.setTimeout(() => addPane(name, cwd, command, undefined, cuenta), 400);
     },
     [quitarPane, addPane],
   );

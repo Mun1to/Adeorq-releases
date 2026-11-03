@@ -4,6 +4,7 @@ BUZON.md
 # El seguimiento del proyecto (regla BA): una vista de docs/METAS.md que Munir
 # recarga con F5. Interna y derivada, asi que no se versiona.
 PROGRESO.html
+PROGRESO.html.version.js
 
 # Dependencies / build output
 node_modules/

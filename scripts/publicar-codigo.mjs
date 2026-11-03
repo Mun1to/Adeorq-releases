@@ -27,6 +27,9 @@ const REPO_PUBLICO = "https://github.com/Mun1to/Adeorq-releases.git";
 
 /** Los que no salen JAMÁS. Si alguien añade otro documento interno, va aquí. */
 const FUERA = [
+  // La receta paso a paso de dos agujeros locales que siguen abiertos en la versión
+  // instalada (encargo S1, 2026-11-03). Sale cuando estén cerrados los dos, no antes.
+  "scripts/laboratorio/seguridad-local-de-verdad.mjs",
   "AGENTS.md",
   // Los capítulos técnicos de AGENTS.md, que salieron de él el 2026-10-07 para
   // que cupiera en lo que leen los agentes: mismo contenido, mismo sitio. Es una

@@ -251,8 +251,20 @@
     grid-auto-flow: column;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: repeat(var(--filas, 5), auto);
+    align-content: start;
     column-gap: 56px;
+    min-height: calc(var(--reserva, 0) * 28px);
   }
+
+  .pu-parte {
+    min-height: 28px;
+  }
+}
+
+/* Mientras lee, casi el alto que tendrá: el Perfil va centrado en su hueco, y sin
+   esto todo saltaba al llegar los datos. */
+.pu-leyendo {
+  min-height: 560px;
 }
 
 /* --- Los dos calendarios -------------------------------------------------------- */

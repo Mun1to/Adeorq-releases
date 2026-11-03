@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import {
   boveda,
   guardarBoveda,
@@ -561,7 +561,7 @@ export default function MemoriaView({
     const href = a.getAttribute("href") ?? "";
     e.preventDefault();
     if (/^https?:/i.test(href)) {
-      void openPath(href).catch(() => {});
+      void openUrl(href).catch(() => {});
       return;
     }
     if (!abierto) return;

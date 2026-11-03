@@ -24,6 +24,10 @@ export interface PedidoMcp {
   /** La cuenta (su id) y el modelo («haiku», «sonnet», «opus», «fable») con
    *  que nace: los manda un encargo programado que los eligió. */
   account?: string;
+  /** Sin `account`, que la elija la ventana (`elegirCuenta`). Lo pone el
+   *  `open_pane` de un agente; un encargo programado no, y sigue en la
+   *  predeterminada que mide su freno. */
+  elegir?: boolean;
   model?: string;
   /** De qué panel colgar el nuevo, cuando el agente quiere el árbol hecho. */
   from?: number | null;

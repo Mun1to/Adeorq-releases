@@ -23,7 +23,8 @@
 //     a abrir.
 //   · Descargar: el PNG que llega a `guardar_tarjeta`, con su tamaño, y la
 //     ruta de «Guardada en…», que al pulsarla abre su carpeta.
-//   · Copiar: un `image/png` al portapapeles.
+//   · Copiar: en Imagen, un `image/png` al portapapeles; en Vídeo, el MP4 entero
+//     como archivo, sin preguntar dónde y sin ninguna foto.
 //   · Vídeo: sin un vídeo de fondo no se puede descargar; con uno subido, el
 //     MP4 que llega leído caja a caja (H.264, el tamaño, los fotogramas), y
 //     cancelar a medias.
@@ -150,6 +151,7 @@ await page.addInitScript(({ historia }) => {
   window.__cancelados = [];
   window.__partes = {};
   window.__copiado = [];
+  window.__archivosCopiados = [];
   // La carpeta de fondos de la tarjeta: en `sessionStorage`, que aguanta una
   // recarga de la página (el «reinicio» de la app) y no la siguiente prueba.
   const disco = () => JSON.parse(sessionStorage.getItem("banco-disco") ?? "[]");
@@ -249,6 +251,8 @@ await page.addInitScript(({ historia }) => {
         return null;
       }
       case "tarjeta_video_cancelar": delete window.__partes[args.ruta]; window.__cancelados.push(args.ruta); return null;
+      case "tarjeta_copia_ruta": return `C:\\datos\\Adeorq\\tarjeta\\copias\\123\\${args.nombre}`;
+      case "tarjeta_copiar_archivo": window.__archivosCopiados.push(args.ruta); return null;
       case "guardar_tarjeta":
         window.__guardados.push({ ruta: decodeURIComponent(opciones?.headers?.ruta ?? ""), b64: aBase64(args) });
         return null;
@@ -475,6 +479,8 @@ try {
   dice((await page.$$(".pt-tira .pt-mini")).length === 0, "en Vídeo, sin vídeos de fondo, solo «Subir vídeo»");
   const bajarVideo = page.locator('.pt-accion:has-text("Descargar vídeo")');
   dice((await bajarVideo.isDisabled()) && /vídeo de fondo/.test((await bajarVideo.getAttribute("data-tip")) ?? ""), "y «Descargar vídeo» apagado, diciendo por qué");
+  const copiarVideo = page.locator(".pt-acciones .pt-accion", { hasText: "Copiar" });
+  dice(await copiarVideo.isDisabled(), "y «Copiar» también: sin vídeo no hay nada que copiar");
   // Un vídeo de fondo de dos segundos, hecho con el propio motor: cada fotograma de otro color.
   const mp4Fondo = await hacerVideo(2);
   archivos.set("mi fondo.mp4", Buffer.from(mp4Fondo, "base64"));
@@ -543,6 +549,33 @@ try {
     (await estado()) === "Cancelado." && (await page.evaluate(() => window.__guardados.length)) === 3 && (await page.evaluate(() => window.__cancelados.length)) === 1,
     `cancelar a medias no guarda nada y borra el .part (${await estado()})`,
   );
+
+  // Copiar en Vídeo: el MP4 como archivo, nunca una foto de un fotograma.
+  // «Cuando le das a copiar el vídeo se copia un frame en imagen, no la dirección del vídeo de tu ordenador.»
+  const fotosAntes = await page.evaluate(() => window.__copiado.length);
+  const guardadosAntes = await page.evaluate(() => window.__guardados.length);
+  const ordenAntes = await page.evaluate(() => window.__orden.length);
+  await copiarVideo.click();
+  await page.waitForFunction(() => window.__archivosCopiados.length > 0, null, { timeout: 60000 }).catch(() => {});
+  const copiado = await page.evaluate(() => window.__archivosCopiados[0]);
+  dice((await page.evaluate(() => window.__copiado.length)) === fotosAntes, "Copiar en Vídeo no deja una foto en el portapapeles");
+  dice(/^C:\\datos\\Adeorq\\tarjeta\\copias\\123\\adeorq-uso-\d{4}-\d{2}-\d{2}\.mp4$/.test(copiado ?? ""), `y deja el archivo, en la carpeta de Adeorq y con su nombre (${copiado})`);
+  const copiaMp4 = (await page.evaluate(() => window.__guardados.at(-1))) ?? {};
+  const infoCopia = copiaMp4.b64 && (await page.evaluate(() => window.__guardados.length)) > guardadosAntes ? leerMp4(Buffer.from(copiaMp4.b64, "base64")) : {};
+  dice(copiaMp4.ruta === copiado && infoCopia.codec === "avc1" && infoCopia.muestras === 90, `ese archivo es el MP4 entero (${infoCopia.codec}, ${infoCopia.muestras} fotogramas)`);
+  dice(
+    (await page.evaluate((n) => window.__orden.slice(n).join(" > "), ordenAntes)) === "tarjeta_video_empezar > tarjeta_video_acabar",
+    `sin preguntar dónde guardarlo (${await page.evaluate((n) => window.__orden.slice(n).join(" > "), ordenAntes)})`,
+  );
+  dice(/^Copiado: pégalo donde quieras\. Está en C:\\datos\\/.test(await estado()), `y lo dice, con su dirección (${await estado()})`);
+  await copiarVideo.click();
+  await page.locator(".pt-progreso").waitFor({ timeout: 5000 });
+  dice(/Sacando el vídeo… \d+ %/.test(await page.$eval(".pt-progreso", (p) => p.textContent)), "mientras sale, el mismo progreso y «Cancelar»");
+  await page.click('.pt-acciones .pt-accion:has-text("Cancelar")');
+  await page.waitForFunction(() => document.querySelector(".pt-estado")?.textContent === "Cancelado.", null, { timeout: 5000 }).catch(() => {});
+  dice((await estado()) === "Cancelado." && (await page.evaluate(() => window.__archivosCopiados.length)) === 1, `cancelar no toca el portapapeles (${await estado()})`);
+  // Lo de abajo cuenta los vídeos guardados por su posición.
+  await page.evaluate((n) => { window.__guardados.length = n; }, guardadosAntes);
 
   // Los sonidos: «Golpe» de fábrica y «Contador»; sin sonido propio en el fondo, no hay «Del vídeo».
   const origenes = () => page.$$eval('.pt-sonido [role=group] .pt-op', (bs) => bs.map((b) => `${b.textContent}${b.getAttribute("aria-pressed") === "true" ? "*" : ""}`));

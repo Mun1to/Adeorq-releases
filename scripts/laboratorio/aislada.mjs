@@ -128,7 +128,7 @@ async function ventana(depurar) {
  * contrario seguiría con las terminales dentro y daría un verde que no es.
  * `motor()` dice el pid del proceso y las terminales que cuelgan de él.
  */
-export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(), exe = EXE, raiz, sembrar, guarda = "", entorno = {}, aparte = process.env.LAB_TERMINALES_APARTE === "1" }) {
+export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(), exe = EXE, raiz, sembrar, guarda = "", entorno = {}, aparte = process.env.LAB_TERMINALES_APARTE === "1", fueraConTodo = true }) {
   const base = join(tmpdir(), `adeorq-${nombre}-${process.pid}`);
   const demo = join(base, "proyectos", "demo");
   const proyectos = raiz ?? join(base, "proyectos");
@@ -137,6 +137,10 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
   mkdirSync(join(base, "casa", "AppData", "Local"), { recursive: true });
   mkdirSync(demo, { recursive: true });
   writeFileSync(join(base, "datos", "Adeorq", "raiz.txt"), proyectos);
+  // Un laboratorio habla por el puerto desde fuera de una terminal de Adeorq, y
+  // lo de fuera solo mira y abre (`mcp_clientes::FUERA`): nace subido, salvo que
+  // lo que se mida sea justo esa puerta (`fueraConTodo: false`).
+  if (fueraConTodo) writeFileSync(join(base, "datos", "Adeorq", "mcp_clientes.json"), JSON.stringify({ niveles: { fuera: "auto" } }));
   if (aparte) {
     mkdirSync(join(base, "datos", "Adeorq", "terminales"), { recursive: true });
     writeFileSync(join(base, "datos", "Adeorq", "terminales", "encendido"), "1");

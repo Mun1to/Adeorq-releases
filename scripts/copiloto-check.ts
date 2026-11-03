@@ -250,56 +250,61 @@ ok("sin ventana leida, no se inventa un porcentaje",
 ok(`justo por debajo del ${CONTEXTO_LLENO} % se calla`,
    !clases(sesion({ contexto: 740_000, ventana: 1_000_000 }), mundo()).includes("contexto"));
 
+/* Un relevo pendiente: lo unico gordo que llega a la bandeja. */
+const MR = mundo({
+  cuentas: [cuenta("claude", "Principal", 88), cuenta("gemini", "Munito", 5)],
+});
+
 /* ── 6. La moderacion, que es la mitad del trabajo ─────────────────────── */
 console.log("\n── cuando se calla ──");
 {
-  const s = sesion({ nacida: AHORA - 2 * MIN, contexto: 900_000 });
+  const s = sesion({ nacida: AHORA - 2 * MIN });
   ok("recien abierta no dice nada (gracia)",
-     aProponer([s], mundo(), memoriaVacia(), AHORA).length === 0);
+     aProponer([s], MR, memoriaVacia(), AHORA).length === 0);
 }
 {
-  const s = sesion({ herramientas: ["Read"], ultimoEncargo: "", contexto: 900_000 });
+  const s = sesion({ herramientas: ["Read"], ultimoEncargo: "" });
   ok("sin haber hecho nada y sin encargo, tampoco",
-     aProponer([s], mundo(), memoriaVacia(), AHORA).length === 0);
+     aProponer([s], MR, memoriaVacia(), AHORA).length === 0);
 }
 {
   // Con encargo SI habla aunque lleve pocas herramientas: el encargo ya dice
   // de que va.
-  const s = sesion({ herramientas: ["Read"], contexto: 900_000 });
-  ok("pero con un encargo escrito si", aProponer([s], mundo(), memoriaVacia(), AHORA).length === 1);
+  const s = sesion({ herramientas: ["Read"] });
+  ok("pero con un encargo escrito si", aProponer([s], MR, memoriaVacia(), AHORA).length === 1);
 }
 {
-  const s = sesion({ contexto: 900_000 });
-  const uno = aProponer([s], mundo(), memoriaVacia(), AHORA);
+  const s = sesion({ herramientas: Array(30).fill("Read") });
+  const uno = aProponer([s], MR, memoriaVacia(), AHORA);
   const m2 = anotar(memoriaVacia(), s.sessionId, uno[0].consejo, AHORA);
   ok("lo mismo no se dice dos veces",
-     aProponer([s], mundo(), m2, AHORA + ENFRIA_SESION + MIN).length === 0);
+     aProponer([s], MR, m2, AHORA + ENFRIA_SESION + MIN).length === 0);
 }
 {
-  const s = sesion({ contexto: 900_000 });
+  const s = sesion({ herramientas: Array(30).fill("Read") });
   const m2 = anotar(memoriaVacia(), s.sessionId, { clase: "relevo", sujeto: "x", texto: "y" }, AHORA);
   ok("y no se habla otra vez de la misma sesion enseguida",
-     aProponer([s], mundo(), m2, AHORA + MIN).length === 0);
+     aProponer([s], MR, m2, AHORA + MIN).length === 0);
 }
 {
   let m = memoriaVacia();
-  const s = sesion({ contexto: 900_000 });
+  const s = sesion({ herramientas: Array(30).fill("Read") });
   for (let i = 0; i < TOPE; i++) {
-    m = anotar(m, s.sessionId, { clase: "contexto", sujeto: `x${i}`, texto: "y" }, AHORA);
+    m = anotar(m, s.sessionId, { clase: "relevo", sujeto: `x${i}`, texto: "y" }, AHORA);
   }
   ok(`con ${TOPE} consejos ya dados, esa sesion se acabo`,
-     aProponer([s], mundo(), m, AHORA + 10 * ENFRIA_SESION).length === 0);
+     aProponer([s], MR, m, AHORA + 10 * ENFRIA_SESION).length === 0);
 }
 {
-  const a = sesion({ sessionId: "a", contexto: 900_000 });
-  const b = sesion({ sessionId: "b", contexto: 900_000, proyecto: "VoCript" });
+  const a = sesion({ sessionId: "a", herramientas: Array(30).fill("Read") });
+  const b = sesion({ sessionId: "b", herramientas: Array(30).fill("Read"), proyecto: "VoCript" });
   ok("con dos sesiones a la vez, solo habla de una",
-     aProponer([a, b], mundo(), memoriaVacia(), AHORA).length === 1);
+     aProponer([a, b], MR, memoriaVacia(), AHORA).length === 1);
 }
 {
-  const s = sesion({ contexto: 900_000 });
+  const s = sesion({ herramientas: Array(30).fill("Read") });
   ok("en modo «nunca» no dice nada, pase lo que pase",
-     aProponer([s], mundo(), memoriaVacia(), AHORA, "nunca").length === 0);
+     aProponer([s], MR, memoriaVacia(), AHORA, "nunca").length === 0);
 }
 {
   // En modo prudente, lo de afinar se calla y lo gordo no.
@@ -308,6 +313,16 @@ console.log("\n── cuando se calla ──");
   ok("en modo prudente, un derroche no interrumpe", solas.length === 0);
   ok("  ↳ pero en modo «siempre» si",
      aProponer([s], mundo(), memoriaVacia(), AHORA, "siempre").length === 1);
+}
+
+{
+  // El contexto lleno NO va a la bandeja: eran 88 avisos de 192 lineas.
+  const s = sesion({ contexto: 900_000 });
+  for (const modo of ["gordas", "siempre"] as const) {
+    ok(`el contexto lleno no llega a la bandeja (modo ${modo})`,
+       aProponer([s], mundo(), memoriaVacia(), AHORA, modo).every((p) => p.consejo.clase !== "contexto"));
+  }
+  ok("  ↳ pero consejosDe lo sigue calculando", clases(s, mundo()).includes("contexto"));
 }
 
 /* ── 7. Y lo mas importante: que primero va lo que mas urge ────────────── */

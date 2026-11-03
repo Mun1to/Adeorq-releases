@@ -767,6 +767,7 @@ const EN: Record<string, string> = {
   "Qué cerebro le pones": "Which brain it gets",
   "lo que decida el router": "whatever the router decides",
   "Todos con {m}": "All on {m}",
+  "en {c}": "on {c}",
   "Lo eligió el router. Pulsa para llevarle la contraria.":
     "The router picked this. Click to overrule it.",
   "Lo elegiste tú. Pulsa para cambiarlo o volver al automático.":
@@ -1143,8 +1144,8 @@ const EN: Record<string, string> = {
   "Cada terminal con su hueco, su esquina y su sombra.":
     "Each terminal with its own gap, corner and shadow.",
   "El copiloto de las sesiones": "The session copilot",
-  "Mira lo que está pasando en las terminales abiertas (qué herramientas usa el agente, cuánto contexto lleva, cuánta semana te queda) y te dice si hay un sitio mejor donde estar haciendo eso: otro cliente que tenga cuota, un cerebro más barato para un recado, o lo que costaría por API sin tocar tu suscripción. Un CLI no puede saber esto porque no sabe que existen los otros veinte. Deja una línea en la bandeja de la Agenda, como el vigía, y nunca cambia nada por su cuenta.":
-    "It watches what is going on in your open terminals (which tools the agent is using, how much context it has, how much week you have left) and tells you if there is a better place to be doing that: another client with quota to spare, a cheaper brain for an errand, or what it would cost through the API without touching your subscription. A CLI cannot know this, because it does not know the other twenty exist. It leaves a line in the Agenda tray, like the watcher, and never changes anything on its own.",
+  "Mira lo que está pasando en las terminales abiertas (qué herramientas usa el agente, cuánta semana te queda) y te dice si hay un sitio mejor donde estar haciendo eso: otro cliente que tenga cuota, un cerebro más barato para un recado, o lo que costaría por API sin tocar tu suscripción. Un CLI no puede saber esto porque no sabe que existen los otros veinte. Deja una línea en la bandeja de la Agenda, como el vigía, y nunca cambia nada por su cuenta.":
+    "It watches what is going on in your open terminals (which tools the agent is using, how much week you have left) and tells you if there is a better place to be doing that: another client with quota to spare, a cheaper brain for an errand, or what it would cost through the API without touching your subscription. A CLI cannot know this, because it does not know the other twenty exist. It leaves a line in the Agenda tray, like the watcher, and never changes anything on its own.",
   "El vigía de las cuadrillas": "The crew lookout",
   "Con una cuadrilla abierta, mira cada minuto quién ha terminado, quién lleva rato esperándote y si alguien anda tocando los archivos de otro. Cuando algo lo merece deja una línea en la bandeja de la Agenda, para que la aceptes o la descartes. Nunca escribe en una terminal ni abre ni cierra nada.":
     "With a crew open, it checks every minute who has finished, who has been waiting on you for a while, and whether anyone is touching someone else's files. When something is worth it, it leaves a line in the Agenda tray for you to accept or discard. It never types into a terminal and never opens or closes anything.",
@@ -2586,13 +2587,37 @@ const EN: Record<string, string> = {
   "Esta sesión se cerró sin llegar a escribir nada.": "This session closed before writing anything.",
   "Puedes quitar su pestaña con la ✕, o pedirle al conserje que la abra otra vez.":
     "You can remove its tab with the ✕, or ask the concierge to open it again.",
-  // Ajustes > Terminales > el escalón de cada cliente del MCP (decisión D1).
+  // Ajustes > Terminales > lo que puede hacer cada programa por el MCP (decisiones D1 y B1).
   "Qué puede hacer cada cliente por el MCP": "What each client may do through the MCP",
-  "Cada programa que se conecta al MCP de Adeorq (Codex, Gemini, Kimi, un Claude Code tuyo…) tiene su escalón, los mismos tres del Capataz. De fábrica, plan: puede mirar, abrir terminales y cerrar las que abrió él, nunca escribir en una que ya está trabajando. Claude Code nace en auto porque es lo que ya hace hoy. El Capataz y el conserje no cuentan: llevan su propio recorte.":
-    "Every program that connects to Adeorq's MCP (Codex, Gemini, Kimi, a Claude Code of yours…) has its level, the same three as the Foreman. Factory default is plan: it may look, open terminals and close the ones it opened, never type into one that is already working. Claude Code starts in auto because that is what it already does today. The Foreman and the concierge do not count: they carry their own cut.",
-  "Todavía no se ha conectado ninguno. Aparecen aquí la primera vez que hablan con el MCP.":
-    "None has connected yet. They show up here the first time they talk to the MCP.",
+  "Va por el programa que abriste en cada terminal de Adeorq: ": "It goes by the program you opened in each Adeorq terminal: ",
+  "Claude Code puede escribir en las demás": "Claude Code can type into the others",
+  "; los otros abren terminales y miran. ": "; the rest open terminals and look. ",
+  "Lo que llega de fuera de Adeorq": "Whatever comes from outside Adeorq",
+  " (un Claude Code en otra consola, cualquier programa) solo abre y mira, hasta que lo subas aquí. El Capataz y el conserje no cuentan.":
+    " (a Claude Code in another console, any program) only opens and looks, until you raise it here. The Foreman and the concierge do not count.",
+  "Fuera de Adeorq": "Outside Adeorq",
+  "Solo mirar": "Look only",
+  "Lee terminales y proyectos, y no cambia nada": "Reads terminals and projects, and changes nothing",
+  "Abrir y mirar": "Open and look",
+  "Además abre terminales y cierra las que abrió, pero no escribe en las de otros":
+    "Also opens terminals and closes the ones it opened, but does not type into anyone else's",
+  "Además escribe en cualquier terminal y la cierra": "Also types into any terminal and closes it",
+  // Las claves de los agentes: lo de fuera de Adeorq pregunta (decisión A1).
+  "Un programa de fuera de Adeorq pide una clave": "A program outside Adeorq asks for a key",
+  "Pide la clave": "It asks for the key",
+  "No viene de una terminal de Adeorq. ": "It does not come from an Adeorq terminal. ",
+  "Dásela solo si sabes qué programa es.": "Give it only if you know which program it is.",
+  "Dársela esta vez": "Give it this once",
+  "Claves de los agentes": "Agents' keys",
+  "Las que pegaste para un agente. ": "The ones you pasted for an agent. ",
+  "Una terminal de Adeorq las recibe sin preguntar": "An Adeorq terminal gets them without asking",
+  "; cualquier otro programa, solo si le dices que sí.": "; any other program, only if you say yes.",
+  "la usó la terminal {n} {cuando}": "terminal {n} used it {cuando}",
+  "la usó un programa de fuera de Adeorq {cuando}, con tu permiso": "a program outside Adeorq used it {cuando}, with your permission",
+  "todavía no se ha usado": "not used yet",
+  Olvidar: "Forget",
   "{n} veces, la última {cuando}": "{n} times, last {cuando}",
+  "una vez, {cuando}": "once, {cuando}",
   "nunca se ha conectado": "never connected",
   "de fábrica": "factory default",
   "Como de fábrica": "Back to factory",
@@ -3012,6 +3037,10 @@ const EN: Record<string, string> = {
   "Elige o sube un vídeo de fondo.": "Pick or upload a background video.",
   "Guardada en {ruta}": "Saved to {ruta}",
   "Copiada: pégala donde quieras.": "Copied: paste it wherever you like.",
+  "Copiado: pégalo donde quieras. Está en {ruta}": "Copied: paste it wherever you like. It's in {ruta}",
+  "otro programa tiene el portapapeles ocupado: vuelve a intentarlo": "another program is using the clipboard: try again",
+  "no he podido dejar el vídeo en el portapapeles": "couldn't put the video on the clipboard",
+  "no he podido vaciar el portapapeles": "couldn't clear the clipboard",
   "Cancelado.": "Cancelled.",
   "No ha salido: {e}": "It didn't work: {e}",
   "Eso no es una imagen.": "That is not an image.",

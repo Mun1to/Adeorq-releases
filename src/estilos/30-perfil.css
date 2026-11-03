@@ -5,12 +5,16 @@
    ========================================================================== */
 
 /* La 4 (Munir, 2026-10-17): tu nombre y tus secciones en la misma fila, y tu
-   uso debajo a todo lo ancho. `align-content: start` porque es el contenedor
-   que baja: sin él, con poco contenido, las filas se estiraban hasta llenarlo. */
+   uso debajo a todo lo ancho. Centrado en su hueco, sin dejarlo todo debajo
+   (Munir, 2026-11-03: «centreas bajando un poco el apartado centrándolo quitando
+   ese hueco de abajo»). `safe` porque es el contenedor que baja: en una ventana
+   bajita empieza arriba en vez de cortarse. El `start`, para el navegador que no
+   lo entienda: sin ninguno, las filas se estirarían hasta llenarlo. */
 .panel.perfil {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-content: start;
+  align-content: safe center;
   align-items: center;
   gap: 28px 36px;
 }

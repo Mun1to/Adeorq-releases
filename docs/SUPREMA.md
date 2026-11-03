@@ -322,6 +322,134 @@ abrió». Lo mínimo», y «que cualquiera pueda cerrar las que abrió ÉL, con 
   las cabeceras en esa carpeta. NO PROBADO: un Codex o un Gemini de verdad decidiendo solo cerrar
   las suyas.
 
+## Las delegadas se reparten entre cuentas solas (2026-11-02)
+
+Munir, ese día: *«tengo una cuenta pro de claude que no le han delegado casi ninguna tarea, va por
+el 17 % de la semana y se resetea en 2 días, hay que aprovechar bien eso»*. Medido: `open_pane` no
+reenviaba `account` ni lo ofrecía, así que todas las delegadas nacían en la cuenta predeterminada
+de Cuentas; `get_usage` no listaba la principal (la lista de cuentas no la lleva) ni decía cuándo
+se renovaba nada; y el router ordenaba solo por el % que más para, con el tope de 5 horas y el
+semanal mezclados.
+
+- **Una sola regla**, `elegirCuenta` en `lib/router.ts`, para `recetar`, el `open_pane` sin
+  `account` y la última línea de `get_usage`: gana la que más cuota **perdería** sin usar,
+  `(100 − % semanal) / días hasta renovarse` (mínimo 0,25 días; sin dato de gasto, 50 %; sin fecha,
+  7 días; una lectura de antes de su renovación que no se pudo refrescar, dato desconocido: 50 %,
+  no 0 %, que puede ir ya por el 98 %). Cada terminal abierta por `open_pane` en esa cuenta y aún
+  viva suma 10 puntos (`PESO_TERMINAL`) hasta una lectura de más de 10 minutos después de abrirla
+  (`cuantasPesan`): con la misma foto, tres aperturas caían en la misma. Se apunta al elegir, antes
+  de que nazca, para que dos a la vez se vean, y `get_usage` la cuenta igual que `open_pane`. Fuera
+  la parada por su tope de 5 horas y la que va por el 92 % o más,
+  salvo que no quede otra, y entonces se dice. Con un modelo pedido, fuera la de un plan que no lo
+  da (`techoDelPlan`), salvo que no quede otra; y si no queda otra, `open_pane` la abre con el techo
+  de su plan y lo dice (`modeloParaSuPlan`). El Lienzo guarda la carpeta de la cuenta de cada
+  terminal de agente, Codex incluido (su pieza es «shell»: el CLI sale del comando), y vuelve a ella
+  si sigue en Cuentas. Pro al 17 % en 2 días contra
+  principal al 60 % en 5: la Pro (41,5 contra 8 al día). Pro al 17 % en 6 días contra principal al
+  30 % en 1: la principal (70 contra 13,8).
+- **La tarjeta partida** (`partesDe` en `lib/cuota.ts`): la semana es la línea «all models» (la de
+  un modelo suelto solo para a ese modelo), el mes donde no hay semana, y la fecha sale del texto de
+  Claude o del número de Codex. `anotarCuota` y la caché del router guardan las cuatro piezas.
+  `loQueTePara` sigue igual para el freno de los programados, que pregunta «¿puede arrancar ya?».
+- **`open_pane`**: con `account` (la etiqueta de `get_usage`, el id de un programado, o
+  `principal`), esa o un error con las que hay; sin él, Rust pide `elegir` y la ventana elige
+  (`lib/puenteMcp.ts`) y lo dice en la respuesta. Un encargo programado sin cuenta NO elige: sigue
+  en la predeterminada, que es la que mide su freno (`cuentaDeArranque`). La principal viaja como
+  cuenta y no como `undefined`, que en `entornoDePane` significaría la predeterminada. La confianza
+  en la carpeta se escribe en el `.claude.json` de ESA cuenta. Se ve en la Cabina por las tres
+  letras de la cuenta en la cabecera, como cualquier terminal de otra cuenta.
+- **`get_usage`** lista la principal de cada CLI (`conLasPrincipales` en `lib/mundo.ts`), cada una
+  con su % de semana, cuándo se renueva en palabras («en 2 días, el miércoles a las 8:00») y, aparte,
+  si el tope de 5 horas la tiene parada; y al final, a qué cuenta va la siguiente terminal de cada
+  CLI y por qué. Sigue sin comparar unidades entre proveedores.
+- **Las instrucciones** de `initialize` y la descripción de `open_pane` dicen que se deje `account`
+  fuera: un agente reparte sin pensarlo.
+- **Medido:** `pnpm bancos reparto-cuentas` (los dos casos de Munir y los bordes), `cargo test --lib
+  mcp::` (`open_pane_ofrece_la_cuenta_y_get_usage_la_principal` y las instrucciones), y
+  `node scripts/laboratorio/reparto-cuentas-de-verdad.mjs [exe]`: una Adeorq aislada con cuatro
+  cuentas de mentira, su cuota sembrada en la caché de la ventana y un `claude` doble en el PATH que
+  solo escribe su `CLAUDE_CONFIG_DIR` y sus argumentos; sin `account` nace en la Pro, en modo auto,
+  con la carpeta de confianza en la Pro y «2DA» en la cabecera; Reanimar y reiniciar Adeorq la
+  retoman en la Pro.
+- **Vuelve a su cuenta.** Al reiniciar ya volvía: el tablero guarda el `env` de cada panel. Reanimar
+  no: reabría sin cuenta, en la predeterminada, donde su `--resume` no encuentra la conversación.
+  Ahora la lee de su entorno (`cuentaDeSuEntorno` en `lib/frenoCuota.ts`).
+- **Lo que no ve en otra cuenta.** Cada `CLAUDE_CONFIG_DIR` es una casa aparte. Medido en la «2da
+  MAIN» contra la principal: ni el MCP de Adeorq (ni playwright ni vibeset), 1 skill de 25, sin
+  plugins activos, y memoria en 5 carpetas contra 48. La respuesta de `open_pane` lo dice en una
+  frase con la ruta de la memoria (`loQueNoVe`).
+- **Sus barreras sí van con ella.** `pty_spawn` copia a la cuenta con la que nace una terminal los
+  `hooks`, las reglas `deny` y `ask` y la `attribution` de la principal (`sembrar_barreras` en
+  `accounts.rs`): sin esto, una delegada en modo auto nacía sin `guardian.mjs` y nadie lo había
+  decidido (revisión de la 0.9.239). Nada más viaja, ni el modelo ni `allow`. Lo que una cuenta
+  tenga de suyo se queda: `barreras-adeorq.json`, en su carpeta, recuerda lo que copió Adeorq para
+  poder quitarlo cuando ya no esté en la principal.
+- **De verdad:** `node scripts/laboratorio/claude-en-otra-cuenta-de-verdad.mjs <carpeta de la
+  cuenta> [exe]` abre un Claude Code real con Haiku por `open_pane` (gasta un mensaje): nace en esa
+  cuenta, sin preguntar por la carpeta, con «auto mode on», contesta y su transcript queda en esa
+  cuenta, que el laboratorio borra al acabar.
+
+## La línea de casa lleva contraseña (2026-11-03)
+
+Hasta ese día bastaba con mandar `{"adeorq":"de-casa"}` al 3012 (o lanzar `adeorq --mcp
+--de-casa`) para saltarse el escalón por cliente entero, aunque Munir los hubiera bajado todos a
+«mirar»: lo podía hacer cualquier programa, o cualquier agente en «plan» desde su terminal, con
+una línea (medido; encargo S1, `docs/contexto/propuesta-seguridad-local.md`).
+
+- **La contraseña** (`clave_de_casa` en `mcp.rs`): 32 bytes del sistema en hex, inventada en
+  cada arranque y solo en la memoria de la app. **No entra en el entorno de la app**: de ahí la
+  heredaría cada terminal. Se le pone a mano al proceso que lanza un puente de casa
+  (`con_llave_de_casa`: el `claude -p` del Capataz y del conserje, y Codex y Gemini del conserje),
+  en la variable `ADEORQ_CASA`, que el puente con `--de-casa` presenta como `{"adeorq":"de-casa",
+  "clave":"…"}`. Ni en una línea de órdenes ni en un archivo: cualquier programa tuyo los lee.
+- **Sin ella, o con otra**, la línea no hace nada: es un cliente más, con su escalón y apuntado en
+  Ajustes, sin error ni pista. La comparación no corta al primer byte distinto (`es_de_casa`).
+- **Tras reiniciar Adeorq**, un puente de casa que estaba vivo se reengancha con la contraseña
+  vieja (`escuchar_adeorq`), y la nueva Adeorq tiene otra: termina su turno como lo de fuera de
+  Adeorq (ver la sección siguiente), que de fábrica abre y mira. El conserje solo usa
+  herramientas de mirar, así que no lo nota; un Capataz a media respuesta pierde escribir en
+  terminales hasta su siguiente llamada, que ya nace con la contraseña nueva. No se queda sin
+  permisos para siempre: dura lo que dure ese turno. Guardarla para que sobreviviera sería dejarla
+  en un archivo.
+- **Lo que NO para:** un programa que lea la memoria o el entorno de esos procesos. Quita la línea
+  fácil, no a un programa malo decidido.
+- **Medido:** `cargo test --lib mcp::` (`solo_es_de_casa_quien_trae_la_clave_de_este_arranque`,
+  `la_clave_va_al_lanzado_y_no_al_entorno_de_la_app`,
+  `el_puente_de_casa_lleva_su_clave_y_la_repite_al_reengancharse`), las líneas de órdenes del
+  Capataz y del conserje (`foreman`, `conserje`), y `LAB_CLAUDE_CUENTA=<cuenta> node
+  scripts/laboratorio/seguridad-local-de-verdad.mjs`: la línea sin contraseña, con una mala y
+  `--de-casa` se niegan; una terminal no la hereda (`CASA=[]` desde dentro); el conserje con Codex
+  y con Gemini sin sesión (no gastan) y un Capataz y un conserje de Claude de verdad (Haiku)
+  entran como de casa sin quedar apuntados como cliente, y el Capataz escribe con «claude-code» en
+  «mirar»; ninguna línea de órdenes ni archivo lleva la contraseña.
+
+## Cada terminal tiene su contraseña, y los permisos van por terminal (2026-11-03)
+
+Munir, ese día: «Las terminales de Adeorq sin preguntar, y cualquier otro programa con un clic
+tuyo» y «Que fuera de Adeorq solo pueda abrir terminales y mirar, hasta que lo subas tú en
+Ajustes».
+
+- **La contraseña de cada terminal** (`pty::ClaveDePanel`): la inventa `pty_spawn`, nueva en cada
+  terminal, y va en su entorno como `ADEORQ_PANE_CLAVE`, junto a `ADEORQ_PANE_ID`. Viaja en el alta
+  y en la ficha de la terminal, así que con las terminales en su proceso aparte la app que vuelve
+  tras una actualización la conoce (`FichaRemota.clave`). Su `Debug` pinta `***`, nunca va al front
+  (`Viva` no la lleva) y no se escribe en ningún registro.
+- **El puente la presenta** con su número (`{"adeorq":"panel","id":N,"clave":"…"}`), y el servidor
+  solo cree el número con la contraseña de esa terminal (`panel_creible`).
+- **Los permisos van por el programa que se abrió en la terminal**, leído de su comando
+  (`mcp_clientes::programa_del_comando`): Claude Code puede escribir en otras terminales, los demás
+  abren y miran. El nombre con que se presenta el cliente ya no decide.
+- **Lo que llega sin una terminal creíble es «Fuera de Adeorq»**: su fila en Ajustes › Terminales,
+  que de fábrica abre y mira, y que Munir sube si quiere. Lo guardado por nombre se muda solo a su
+  programa, quedándose con el menor si dos nombres caen en el mismo.
+- **Las claves de los agentes** (`adeorq secreto`, `docs/contexto/secretos.md`): desde una terminal
+  de Adeorq, como siempre; desde fuera, la ventana pregunta antes de dar una guardada. Cada entrega
+  se apunta (rastro y Ajustes › «Claves de los agentes»), sin el valor.
+- **Medido:** `cargo test --lib` (`una_terminal_solo_se_cree_con_su_contrasena`, las de
+  `mcp_clientes`, y `al_actualizar_no_se_despide`, que exige que la terminal que sobrevive a una
+  actualización vuelva con su misma contraseña) y `node scripts/laboratorio/seguridad-local-de-verdad.mjs`
+  (también con `LAB_TERMINALES_APARTE=1`), con un `claude` y un `codex` de mentira en las terminales.
+
 ## Orden de construcción
 
 1. **`ADEORQ_PANE_ID`** en el entorno del PTY. Sin esto la suprema no puede

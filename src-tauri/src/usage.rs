@@ -85,7 +85,7 @@ fn pretty(id: &str) -> String {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlanInfo {
-    /// "max", "pro"... as Claude Code stores it.
+    /// "max", "ultra", "pro"... as Claude Code stores it, see `plan_con_su_nombre`.
     pub subscription: String,
     /// The rate limit tier that goes with the plan.
     pub tier: String,
@@ -232,7 +232,19 @@ pub async fn plan_info(config_dir: Option<String>) -> Option<PlanInfo> {
         .as_str()
         .unwrap_or_default()
         .to_owned();
+    let subscription = plan_con_su_nombre(subscription, &tier);
     (!subscription.is_empty() || !tier.is_empty()).then_some(PlanInfo { subscription, tier })
+}
+
+/// Anthropic renamed Max 20x to Ultra (10 times Pro's weekly usage, November
+/// 2026) and moved its subscribers automatically, but a login made before that
+/// still says «max» with the `..._max_20x` tier until it is renewed.
+fn plan_con_su_nombre(subscription: String, tier: &str) -> String {
+    if subscription.eq_ignore_ascii_case("max") && tier.contains("20x") {
+        "ultra".to_owned()
+    } else {
+        subscription
+    }
 }
 
 #[tauri::command]
@@ -503,6 +515,18 @@ pub async fn usage_limits(config_dir: Option<String>) -> Result<Limits, String> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// El Max 20x se llama Ultra, aunque su login siga diciendo «max»; el Max 5x
+    /// sigue siendo Max.
+    #[test]
+    fn el_max_de_20x_se_llama_ultra() {
+        let nombre = |s: &str, t: &str| plan_con_su_nombre(s.to_owned(), t);
+        assert_eq!(nombre("max", "default_claude_max_20x"), "ultra");
+        assert_eq!(nombre("max", "default_claude_max_5x"), "max");
+        assert_eq!(nombre("ultra", "default_claude_ultra"), "ultra");
+        assert_eq!(nombre("pro", "default_claude_ai"), "pro");
+        assert_eq!(nombre("", ""), "");
+    }
 
     /// La cuenta principal cuelga de la carpeta del usuario, que en Linux es
     /// `HOME`: con `USERPROFILE`, que allí no existe, salía `None`, y el uso, el

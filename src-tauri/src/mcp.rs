@@ -655,9 +655,11 @@ fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
 /// Run the stdio-to-TCP bridge for MCP clients executing from console.
 ///
 /// `de_casa`: el puente lo lanzó Adeorq mismo (el Capataz o el conserje, ver
-/// `foreman::config_mcp`). Se presenta con una línea propia antes del protocolo
-/// y el servidor no le aplica el escalón por cliente (`mcp_clientes.rs`): ya
-/// lleva su propio recorte de manos.
+/// `foreman::config_mcp`). Se presenta con una línea propia antes del protocolo,
+/// con la contraseña que Adeorq le dejó en `ADEORQ_CASA`, y el servidor no le
+/// aplica el escalón por cliente (`mcp_clientes.rs`): ya lleva su propio
+/// recorte de manos. `--de-casa` sin esa contraseña no da nada: ver
+/// `clave_de_casa`.
 ///
 /// **Aguanta que Adeorq se reinicie** (una actualización, o la app que se cae
 /// con las terminales en su propio proceso, `terminales.rs`): el agente sigue
@@ -681,7 +683,16 @@ pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
     // diferencia de un número que el agente tenga apuntado en su conversación.
     // Con las terminales en su proceso, la que vuelve tras un reinicio conserva
     // su número, así que vale también al reengancharse.
-    let panel = std::env::var("ADEORQ_PANE_ID").ok().and_then(|v| v.trim().parse::<u32>().ok());
+    // Y su contraseña (`pty::ClaveDePanel`), que es lo que hace creíble el número.
+    let panel = std::env::var("ADEORQ_PANE_ID").ok().and_then(|v| v.trim().parse::<u32>().ok()).map(|id| {
+        let clave = std::env::var(crate::pty::VARIABLE_CLAVE_DE_PANEL).ok().map(|c| c.trim().to_string()).filter(|c| !c.is_empty());
+        (id, clave)
+    });
+    let casa = if de_casa {
+        std::env::var(VARIABLE_DE_CASA).ok().map(|c| c.trim().to_string()).filter(|c| !c.is_empty())
+    } else {
+        None
+    };
     let salida: SalidaPuente = Arc::new(|linea: &str| {
         let mut out = io::stdout().lock();
         let _ = out.write_all(linea.as_bytes());
@@ -691,7 +702,7 @@ pub fn run_mcp_bridge(de_casa: bool) -> Result<(), Box<dyn std::error::Error>> {
     puente_con(
         primera,
         Arc::new(move || TcpStream::connect(("127.0.0.1", puerto))),
-        de_casa,
+        casa,
         panel,
         entrada,
         salida,
@@ -737,12 +748,20 @@ fn error_sin_adeorq(id: &Value) -> String {
     )
 }
 
-fn presentarse(tcp: &mut TcpStream, de_casa: bool, panel: Option<u32>) -> io::Result<()> {
-    if de_casa {
-        tcp.write_all(b"{\"adeorq\":\"de-casa\"}\n")?;
+/// `casa`: la contraseña de casa que le dio Adeorq al lanzarlo (ver
+/// `clave_de_casa`). Sin ella no se presenta como de casa: sería un cliente
+/// más igualmente, y así ni lo intenta. `panel`: su terminal y la contraseña
+/// de esa terminal, si la tiene (ver `panel_creible`).
+fn presentarse(tcp: &mut TcpStream, casa: Option<&str>, panel: Option<&(u32, Option<String>)>) -> io::Result<()> {
+    if let Some(clave) = casa {
+        tcp.write_all(format!("{}\n", json!({ "adeorq": "de-casa", "clave": clave })).as_bytes())?;
     }
-    if let Some(id) = panel {
-        tcp.write_all(format!("{{\"adeorq\":\"panel\",\"id\":{id}}}\n").as_bytes())?;
+    if let Some((id, clave)) = panel {
+        let linea = match clave {
+            Some(c) => json!({ "adeorq": "panel", "id": id, "clave": c }),
+            None => json!({ "adeorq": "panel", "id": id }),
+        };
+        tcp.write_all(format!("{linea}\n").as_bytes())?;
     }
     tcp.flush()
 }
@@ -752,21 +771,21 @@ fn presentarse(tcp: &mut TcpStream, de_casa: bool, panel: Option<u32>) -> io::Re
 fn puente_con(
     mut primera: TcpStream,
     conectar: ConectarPuente,
-    de_casa: bool,
-    panel: Option<u32>,
+    casa: Option<String>,
+    panel: Option<(u32, Option<String>)>,
     entrada: impl Iterator<Item = String>,
     salida: SalidaPuente,
     espera: Duration,
 ) -> io::Result<()> {
     let estado = Arc::new(Mutex::new(EstadoPuente::default()));
-    presentarse(&mut primera, de_casa, panel)?;
+    presentarse(&mut primera, casa.as_deref(), panel.as_ref())?;
     let escritor = crate::clon_sin_herencia(&primera)?;
     {
         let mut e = estado.lock().unwrap();
         e.tcp = Some(escritor);
         e.generacion = 1;
     }
-    escuchar_adeorq(primera, 1, estado.clone(), conectar, de_casa, panel, salida.clone(), espera);
+    escuchar_adeorq(primera, 1, estado.clone(), conectar, casa, panel, salida.clone(), espera);
 
     for linea in entrada {
         if linea.trim().is_empty() {
@@ -798,14 +817,20 @@ fn puente_con(
 
 /// Lee lo que dice Adeorq por una conexión y se lo pasa al cliente. Cuando la
 /// conexión se corta, contesta lo pendiente y se pone a buscar la Adeorq que vuelva.
+///
+/// A la que vuelva se le presenta con la MISMA contraseña de casa, y una Adeorq
+/// nueva inventa otra al arrancar: un Capataz o un conserje que estaban a media
+/// respuesta cuando Adeorq se reinició terminan su turno como un cliente más,
+/// con el escalón de su nombre. Es a propósito: guardar la contraseña para que
+/// sobreviviera al reinicio sería dejarla en un archivo.
 #[allow(clippy::too_many_arguments)]
 fn escuchar_adeorq(
     tcp: TcpStream,
     generacion: u64,
     estado: Arc<Mutex<EstadoPuente>>,
     conectar: ConectarPuente,
-    de_casa: bool,
-    panel: Option<u32>,
+    casa: Option<String>,
+    panel: Option<(u32, Option<String>)>,
     salida: SalidaPuente,
     espera: Duration,
 ) {
@@ -839,7 +864,7 @@ fn escuchar_adeorq(
             thread::sleep(espera);
             let Ok(mut nueva) = conectar() else { continue };
             let Ok(mut escritor) = crate::clon_sin_herencia(&nueva) else { continue };
-            if presentarse(&mut nueva, de_casa, panel).is_err() {
+            if presentarse(&mut nueva, casa.as_deref(), panel.as_ref()).is_err() {
                 continue;
             }
             let mut e = estado.lock().unwrap();
@@ -858,7 +883,7 @@ fn escuchar_adeorq(
             e.generacion = siguiente;
             e.tcp = Some(escritor);
             drop(e);
-            escuchar_adeorq(nueva, siguiente, estado, conectar, de_casa, panel, salida, espera);
+            escuchar_adeorq(nueva, siguiente, estado, conectar, casa, panel, salida, espera);
             return;
         }
     });
@@ -879,6 +904,102 @@ pub fn puerto() -> Result<u16, String> {
         Ok(p) => p.trim().parse::<u16>().ok().filter(|&n| n != 0).ok_or_else(|| {
             format!("ADEORQ_MCP_PUERTO={p} no es un puerto, y no se usa el 3012 en su lugar porque es el de la Adeorq de verdad")
         }),
+    }
+}
+
+/// La variable de entorno por la que la contraseña de casa llega al puente.
+/// Sin «KEY», «TOKEN», «SECRET» ni «AUTH» en el nombre: Gemini quita las que se
+/// llaman así del entorno que pasa a sus servidores MCP.
+pub(crate) const VARIABLE_DE_CASA: &str = "ADEORQ_CASA";
+
+/// La contraseña de casa de ESTE arranque: 32 bytes del sistema, en hex.
+///
+/// Hasta el 2026-11-03 bastaba con mandar `{"adeorq":"de-casa"}` (o lanzar
+/// `adeorq --mcp --de-casa`) para saltarse el escalón por cliente entero, y eso
+/// lo podía hacer cualquier programa, o cualquier agente desde su terminal
+/// (medido en `scripts/laboratorio/seguridad-local-de-verdad.mjs`). Ahora esa
+/// línea solo vale con esta contraseña, que:
+///   - vive solo en la memoria de la app, y se inventa otra en cada arranque;
+///   - NO entra en el entorno de la app (`std::env::set_var`), porque de ahí la
+///     heredaría cada terminal y cualquier agente la tendría a un `echo`;
+///   - se le pone a mano al proceso que lanza un puente de casa (el `claude -p`
+///     del Capataz y el conserje, Codex y Gemini del conserje), con
+///     `con_llave_de_casa`, y viaja por su entorno: ni en la línea de órdenes
+///     (cualquier programa tuyo la lee) ni en un archivo.
+/// Un programa que lea la memoria de esos procesos la saca: esto quita la línea
+/// fácil, no a un programa malo decidido (`docs/contexto/propuesta-seguridad-local.md`).
+fn clave_de_casa() -> Option<&'static str> {
+    static CLAVE: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+    CLAVE
+        .get_or_init(|| {
+            let mut b = [0u8; 32];
+            match getrandom::fill(&mut b) {
+                Ok(()) => Some(b.iter().map(|x| format!("{x:02x}")).collect()),
+                Err(e) => {
+                    // Sin contraseña nadie es de casa: el lado prudente.
+                    crate::anotar(&format!(
+                        "MCP: sin aleatoriedad del sistema ({e}): el Capataz y el conserje entran como un cliente más."
+                    ));
+                    None
+                }
+            }
+        })
+        .as_deref()
+}
+
+/// Darle la contraseña de casa a un programa que lanza Adeorq con su puente de
+/// casa. Solo a ese proceso, por su entorno: ver `clave_de_casa`.
+pub(crate) fn con_llave_de_casa(cmd: &mut std::process::Command) -> &mut std::process::Command {
+    if let Some(c) = clave_de_casa() {
+        cmd.env(VARIABLE_DE_CASA, c);
+    }
+    cmd
+}
+
+/// La contraseña, para que las pruebas de otros módulos comprueben que no se
+/// escribe donde no debe.
+#[cfg(test)]
+pub(crate) fn clave_de_casa_para_pruebas() -> &'static str {
+    clave_de_casa().expect("el sistema da aleatoriedad")
+}
+
+/// Comparar dos contraseñas sin cortar al primer byte distinto, para que el
+/// tiempo no diga cuánto se acertó.
+pub(crate) fn iguales_sin_prisa(a: &[u8], b: &[u8]) -> bool {
+    a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+/// Si la contraseña que trae la línea de casa es la de este arranque.
+fn es_de_casa(presentada: Option<&str>, buena: Option<&str>) -> bool {
+    match (presentada, buena) {
+        (Some(p), Some(b)) => iguales_sin_prisa(p.as_bytes(), b.as_bytes()),
+        _ => false,
+    }
+}
+
+/// Lo que se sabe de la terminal que dice ser una conexión, por su línea
+/// `{"adeorq":"panel","id":N,"clave":"…"}`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PanelCreido {
+    /// La terminal existe y la contraseña es la suya.
+    Suyo,
+    /// La terminal existe pero nació sin contraseña: en una versión de antes, y
+    /// sobrevivió a la actualización con las terminales en su proceso aparte.
+    /// Sigue como antes de que hubiera contraseñas hasta que se cierre, para
+    /// que actualizar no deje sin manos a los agentes que ya estaban trabajando.
+    DeAntes,
+    /// No existe, o la contraseña no es la suya: la línea no vale nada.
+    No,
+}
+
+/// Si se cree a quien dice ser la terminal: `de_la_terminal` es su ficha
+/// (`None` si no existe; `Some(None)` si nació sin contraseña).
+fn panel_creible(de_la_terminal: Option<Option<&crate::pty::ClaveDePanel>>, presentada: Option<&str>) -> PanelCreido {
+    match de_la_terminal {
+        None => PanelCreido::No,
+        Some(None) => PanelCreido::DeAntes,
+        Some(Some(c)) if presentada.is_some_and(|p| c.es(p)) => PanelCreido::Suyo,
+        Some(Some(_)) => PanelCreido::No,
     }
 }
 
@@ -1012,6 +1133,8 @@ pub fn start_mcp_server(app: tauri::AppHandle) {
             }
         };
         let Some(listener) = listener else { return };
+        // La contraseña de casa, inventada al arrancar y no al primer Capataz.
+        let _ = clave_de_casa();
 
         for stream in listener.incoming() {
             if let Ok(stream) = stream {
@@ -1040,6 +1163,9 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
     // La terminal del agente que habla (la presenta su puente) y si en ESTA
     // conexión ya ha mirado la lista o abierto alguna: ver `numero_dudoso`.
     let mut mi_panel: Option<u32> = None;
+    // Cómo se creyó esa terminal (`panel_creible`): `None` si no se presentó
+    // ninguna, o si la que dijo no era creíble. Lo usa el escalón.
+    let mut panel_creido: Option<PanelCreido> = None;
     let mut conoce_numeros = false;
     // Qué terminales abrió esta conexión: ver `es_suya`.
     static CONEXIONES: AtomicU64 = AtomicU64::new(0);
@@ -1064,11 +1190,25 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
         // abrir un segundo socket para dos líneas de conversación.
         if let Ok(v) = serde_json::from_str::<Value>(&line) {
             if v["adeorq"].as_str() == Some("de-casa") {
-                de_casa = true;
+                // Solo con la contraseña de este arranque (`clave_de_casa`). Sin
+                // ella, o con otra, sigue como un cliente más, con su escalón, y
+                // sin decirle nada: un error le diría que existe y qué falta.
+                de_casa = es_de_casa(v["clave"].as_str(), clave_de_casa());
                 continue;
             }
             if v["adeorq"].as_str() == Some("panel") {
-                mi_panel = v["id"].as_u64().and_then(|n| u32::try_from(n).ok());
+                // El número solo vale con la contraseña de esa terminal (o si
+                // es una de antes de que las hubiera). Si no, ni panel ni
+                // pista: sigue como lo de fuera de Adeorq.
+                let id = v["id"].as_u64().and_then(|n| u32::try_from(n).ok());
+                let creido = id.map_or(PanelCreido::No, |n| {
+                    let ficha = crate::pty::ficha(&app, n);
+                    panel_creible(ficha.as_ref().map(|f| f.clave.as_ref()), v["clave"].as_str())
+                });
+                (mi_panel, panel_creido) = match creido {
+                    PanelCreido::No => (None, None),
+                    c => (id, Some(c)),
+                };
                 continue;
             }
             if v["adeorq"].as_str() == Some("secreto") {
@@ -1082,7 +1222,17 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 writer.write_all(b"{\"adeorq\":\"esperando\"}
 ")?;
                 writer.flush()?;
-                let res = match crate::pedir_secreto::atender(&app, nombre, motivo) {
+                // Quién la pide (decisión A1): una terminal de Adeorq, con su
+                // contraseña, la recibe sin preguntar; lo demás, con un clic de Munir.
+                let panel = v["panel"].as_u64().and_then(|n| u32::try_from(n).ok());
+                let quien = match panel.map(|n| {
+                    let ficha = crate::pty::ficha(&app, n);
+                    (n, panel_creible(ficha.as_ref().map(|f| f.clave.as_ref()), v["clave"].as_str()))
+                }) {
+                    Some((n, PanelCreido::Suyo | PanelCreido::DeAntes)) => crate::pedir_secreto::QuienPide::Terminal(n),
+                    _ => crate::pedir_secreto::QuienPide::Fuera,
+                };
+                let res = match crate::pedir_secreto::atender(&app, nombre, motivo, quien) {
                     Ok(valor) => json!({ "valor": valor }),
                     Err(e) => json!({ "error": e }),
                 };
@@ -1119,30 +1269,33 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 let ci = &req["params"]["clientInfo"];
                 if let Some(n) = ci["name"].as_str().map(str::trim).filter(|n| !n.is_empty()) {
                     cliente = Some(n.to_string());
-                    if !de_casa {
-                        crate::mcp_clientes::apuntar_visto(n, ci["version"].as_str().unwrap_or(""));
-                    }
+                }
+                let programa = programa_de_la_conexion(&app, mi_panel, panel_creido, cliente.as_deref());
+                if !de_casa {
+                    crate::mcp_clientes::apuntar_visto(&programa, ci["version"].as_str().unwrap_or(""));
                 }
                 // Los puentes de casa llevan su propio prompt y sus manos recortadas.
-                let texto = if de_casa { None } else { instrucciones(&herramientas_visibles(&cliente, de_casa)) };
+                let texto = if de_casa { None } else { instrucciones(&herramientas_visibles(&programa, de_casa)) };
                 respuesta_initialize(&id, texto)
             }
             "tools/list" => {
+                let programa = programa_de_la_conexion(&app, mi_panel, panel_creido, cliente.as_deref());
                 json!({
                     "jsonrpc": "2.0",
                     "id": id,
-                    "result": { "tools": herramientas_visibles(&cliente, de_casa) }
+                    "result": { "tools": herramientas_visibles(&programa, de_casa) }
                 })
             }
             "tools/call" => {
                 let name = req["params"]["name"].as_str().unwrap_or_default();
                 let args = req["params"]["arguments"].clone();
-                // El escalón del cliente (decisión D1): lo que no le toca no se
-                // ejecuta, y se le dice por qué. Lo de casa no pasa por aquí.
-                let result = match escalon_que_falta(&cliente, de_casa, name)
+                // El escalón de su programa (decisiones D1 y B1): lo que no le
+                // toca no se ejecuta, y se le dice por qué. Lo de casa no pasa por aquí.
+                let programa = programa_de_la_conexion(&app, mi_panel, panel_creido, cliente.as_deref());
+                let result = match escalon_que_falta(&programa, de_casa, name)
                     .or_else(|| parte_apagada(name))
                     .or_else(|| numero_dudoso(name, &args, mi_panel, conoce_numeros, de_casa))
-                    .or_else(|| ajena_para_su_escalon(&cliente, de_casa, name, &args, &app, mi_panel, conexion))
+                    .or_else(|| ajena_para_su_escalon(&programa, de_casa, name, &args, &app, mi_panel, conexion))
                 {
                     Some(porque) => Err(porque),
                     None => handle_tool_call(name, args, &app, mi_panel, conexion),
@@ -1262,7 +1415,7 @@ fn instrucciones(visibles: &[Value]) -> Option<String> {
         t.push_str("- A terminal over 400,000 tokens of context re-reads all of it on every reply: compact one you opened with compactar_terminal (it waits for the turn to end), or close it and open a fresh one with the handoff.\n");
     }
     t.push_str(&format!(
-        "- Each terminal spends real quota of its own account: check get_usage to pick a CLI and an account with room. At most {MAX_VIVOS} opened this way are alive at once, and {MAX_POR_HORA} per hour."
+        "- Each terminal spends real quota of an account. Leave `account` out of open_pane: Adeorq sends it to the account that would waste the most quota if left idle (the one closest to renewing with the most left) and the reply says which. get_usage shows every account and where the next one goes. At most {MAX_VIVOS} opened this way are alive at once, and {MAX_POR_HORA} per hour."
     ));
     Some(t)
 }
@@ -1425,7 +1578,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "get_usage",
-                                "description": "How much of each AI subscription is left, which CLIs are installed but signed out (paid quota going to waste), and how to spread the work between them. Read this BEFORE deciding which model or account a job should run on: the units are not comparable across vendors, so the reading also explains what each number means. Costs nothing: it reads what Adeorq already knows.",
+                                "description": "Every account of every CLI, the main one included: % of its week spent, when it renews, whether its 5-hour cap has it stopped right now, which CLIs are installed but signed out (paid quota going to waste), and which account the next open_pane of each CLI goes to and why. Read this BEFORE choosing a model: the units are not comparable across vendors, so the reading also explains what each number means. Costs nothing: it reads what Adeorq already knows.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {}
@@ -1433,7 +1586,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                             },
                             {
                                 "name": "open_pane",
-                                "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_screen. This is how big work finishes sooner: one pane per independent piece (its own files, no need of the others' answers), opened from the start, each with a brief that stands on its own. Do not split one line of thought or pieces that edit the same files, and send a lookup to a subagent instead. Every pane spends real quota of its account (check get_usage). Hard limits apply (6 alive, 12 per hour) and you are told when you hit them. The pane is yours to clean up: when its task is done, close it with close_pane and its `rastro`, or the Cabina fills up.",
+                                "description": "Opens a NEW terminal in Adeorq running the CLI you choose, and returns its pane ID so you can drive it with send_command and read_pane_screen. This is how big work finishes sooner: one pane per independent piece (its own files, no need of the others' answers), opened from the start, each with a brief that stands on its own. Do not split one line of thought or pieces that edit the same files, and send a lookup to a subagent instead. Every pane spends real quota of an account: without `account` Adeorq picks the one that would waste the most quota if left idle and tells you which, so just open. Hard limits apply (6 alive, 12 per hour) and you are told when you hit them. The pane is yours to clean up: when its task is done, close it with close_pane and its `rastro`, or the Cabina fills up.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -1456,6 +1609,10 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                         "model": {
                                             "type": "string",
                                             "description": "haiku, sonnet or opus. A Claude pane opens on opus when you say nothing, whatever the person's own default is. Fable is refused here: a team of agents on the priciest model drains the plan, so only a person opens it."
+                                        },
+                                        "account": {
+                                            "type": "string",
+                                            "description": "Leave it out: Adeorq then picks the account of that CLI that would waste the most quota if left idle ((100 - % of the week spent) / days until it renews), skipping one stopped by its 5-hour cap or past 92 % of its week, and the reply says which one and why. Pass a label from get_usage only if you have a reason, or 'principal' for the main one. An account that does not exist is an error, never another one."
                                         },
                                         "name": {
                                             "type": "string",
@@ -1607,10 +1764,35 @@ fn parte_apagada(herramienta: &str) -> Option<String> {
     })
 }
 
-/// Las que ve ESTE cliente: todas si es de casa; si no, las de su escalón. Y
+/// De qué programa es una conexión, que es lo que da su escalón
+/// (`mcp_clientes.rs`, decisión B1 de Munir del 2026-11-03):
+///   - con la contraseña de su terminal, el programa que se abrió en ella
+///     (`programa_del_comando`); en una consola pelada, que no lo sabe, el de su
+///     nombre, porque ahí el programa lo teclea Munir;
+///   - en una terminal de antes de las contraseñas, el de su nombre, como antes;
+///   - sin terminal creíble, «fuera de Adeorq», diga el nombre que diga.
+fn programa_de_la_conexion(app: &tauri::AppHandle, mi_panel: Option<u32>, creido: Option<PanelCreido>, cliente: Option<&str>) -> String {
+    let por_nombre = || crate::mcp_clientes::programa_de_nombre(cliente.unwrap_or("desconocido"));
+    match (creido, mi_panel) {
+        (Some(PanelCreido::Suyo), Some(p)) => match crate::pty::ficha(app, p) {
+            Some(f) => f
+                .command
+                .as_deref()
+                .and_then(crate::mcp_clientes::programa_del_comando)
+                .map(str::to_string)
+                .unwrap_or_else(por_nombre),
+            // Su terminal ya se cerró: lo que quede de esta conexión, de fuera.
+            None => crate::mcp_clientes::FUERA.to_string(),
+        },
+        (Some(PanelCreido::DeAntes), Some(_)) => por_nombre(),
+        _ => crate::mcp_clientes::FUERA.to_string(),
+    }
+}
+
+/// Las que ve ESTE programa: todas si es de casa; si no, las de su escalón. Y
 /// nunca las de una parte apagada: una herramienta que solo sabe decir «está
 /// apagada» es una herramienta que el agente prueba en balde.
-fn herramientas_visibles(cliente: &Option<String>, de_casa: bool) -> Vec<Value> {
+fn herramientas_visibles(programa: &str, de_casa: bool) -> Vec<Value> {
     let todas: Vec<Value> = lista_de_herramientas()
         .into_iter()
         .filter(|h| h["name"].as_str().is_none_or(|n| parte_apagada(n).is_none()))
@@ -1618,8 +1800,7 @@ fn herramientas_visibles(cliente: &Option<String>, de_casa: bool) -> Vec<Value> 
     if de_casa {
         return todas;
     }
-    let nombre = cliente.as_deref().unwrap_or("desconocido");
-    let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), nombre);
+    let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), programa);
     todas
         .into_iter()
         .filter(|h| h["name"].as_str().is_some_and(|n| crate::mcp_clientes::la_ve(nivel, n)))
@@ -1629,22 +1810,21 @@ fn herramientas_visibles(cliente: &Option<String>, de_casa: bool) -> Vec<Value> 
 /// Por qué este cliente no puede llamar a esa herramienta, o `None` si puede.
 /// Una que su escalón solo le deja para lo suyo pasa aquí y se mira después,
 /// con la terminal en la mano (`ajena_para_su_escalon`).
-fn escalon_que_falta(cliente: &Option<String>, de_casa: bool, herramienta: &str) -> Option<String> {
+fn escalon_que_falta(programa: &str, de_casa: bool, herramienta: &str) -> Option<String> {
     if de_casa {
         return None;
     }
-    let nombre = cliente.as_deref().unwrap_or("desconocido");
-    let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), nombre);
+    let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), programa);
     if crate::mcp_clientes::la_ve(nivel, herramienta) {
         None
     } else {
-        Some(crate::mcp_clientes::mensaje_denegado(nombre, nivel, herramienta))
+        Some(crate::mcp_clientes::mensaje_denegado(programa, nivel, herramienta))
     }
 }
 
 /// Si su escalón solo le deja esa herramienta para lo suyo y la terminal no lo es.
 fn ajena_para_su_escalon(
-    cliente: &Option<String>,
+    programa: &str,
     de_casa: bool,
     herramienta: &str,
     args: &Value,
@@ -1655,8 +1835,8 @@ fn ajena_para_su_escalon(
     if de_casa {
         return None;
     }
-    let nombre = cliente.as_deref().unwrap_or("desconocido");
-    let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), nombre);
+    let nombre = programa;
+    let nivel = crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), programa);
     if !crate::mcp_clientes::solo_lo_suyo(nivel, herramienta) {
         return None;
     }
@@ -2159,6 +2339,11 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 );
             }
             let modelo = modelo_para_agente(&cli, args["model"].as_str().unwrap_or_default())?;
+            // La cuenta la resuelve la ventana, que es quien las conoce: con
+            // `account`, esa o un error; sin él, la que más cuota perdería
+            // (`elegirCuenta` en `lib/router.ts`). Hasta el 2026-11-02 esto no
+            // se reenviaba y todas las delegadas iban a la misma cuenta.
+            let account = args["account"].as_str().unwrap_or_default().trim().to_string();
 
             let r = pedir_a_la_ventana(
                 app,
@@ -2168,6 +2353,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     "cwd": cwd,
                     "project": project,
                     "brief": brief,
+                    "account": account,
+                    "elegir": account.is_empty(),
                     "model": modelo,
                     "name": args["name"].as_str().unwrap_or_default(),
                     "from": args["from"],
@@ -2566,8 +2753,8 @@ mod tests {
             puente_con(
                 tcp,
                 Arc::new(move || TcpStream::connect(("127.0.0.1", puerto))),
-                false,
-                Some(7),
+                None,
+                Some((7, Some("la-de-la-7".into()))),
                 entrada.into_iter(),
                 salida,
                 Duration::from_millis(30),
@@ -2580,7 +2767,7 @@ mod tests {
         a_puente.send(json!({ "jsonrpc": "2.0", "id": 2, "method": "tools/list" }).to_string()).unwrap();
         assert_eq!(recibir()["id"], 2);
         let leidas = primera.join().unwrap();
-        assert_eq!(leidas[0], json!({ "adeorq": "panel", "id": 7 }));
+        assert_eq!(leidas[0], json!({ "adeorq": "panel", "id": 7, "clave": "la-de-la-7" }));
 
         // Sin Adeorq: la petición se contesta con un error que dice qué pasa,
         // en vez de dejar al cliente esperando o cerrar el servidor.
@@ -2611,12 +2798,111 @@ mod tests {
         }
         let buena = buena.expect("el puente no se reenganchó en diez segundos");
         let leidas = segunda.join().unwrap();
-        assert_eq!(leidas[0], json!({ "adeorq": "panel", "id": 7 }));
+        assert_eq!(leidas[0], json!({ "adeorq": "panel", "id": 7, "clave": "la-de-la-7" }));
         assert_eq!(leidas[1]["method"], "initialize");
         assert_eq!(leidas[1]["params"]["clientInfo"]["name"], "claude-code");
         assert!(leidas[1]["id"].as_str().unwrap().starts_with(ID_DEL_PUENTE));
         assert_eq!(leidas[2]["method"], "notifications/initialized");
         assert_eq!(leidas[3]["id"], buena);
+    }
+
+    /// El puente de casa se presenta con su contraseña, y a la Adeorq que vuelve
+    /// tras un reinicio le presenta LA MISMA: la nueva tiene otra, así que lo
+    /// trata como un cliente más el resto de su turno (ver `escuchar_adeorq`).
+    #[test]
+    fn el_puente_de_casa_lleva_su_clave_y_la_repite_al_reengancharse() {
+        let l = TcpListener::bind("127.0.0.1:0").unwrap();
+        let puerto = l.local_addr().unwrap().port();
+        let primera = adeorq_de_mentira(l, "initialize");
+        let (a_puente, entrada) = mpsc::channel::<String>();
+        let (dice, al_cliente) = mpsc::channel::<String>();
+        let salida: SalidaPuente = Arc::new(move |l: &str| {
+            let _ = dice.send(l.trim().to_string());
+        });
+        let tcp = TcpStream::connect(("127.0.0.1", puerto)).unwrap();
+        thread::spawn(move || {
+            puente_con(
+                tcp,
+                Arc::new(move || TcpStream::connect(("127.0.0.1", puerto))),
+                Some("la-de-ayer".into()),
+                None,
+                entrada.into_iter(),
+                salida,
+                Duration::from_millis(30),
+            )
+        });
+        let recibir = || -> Value { serde_json::from_str(&al_cliente.recv_timeout(Duration::from_secs(5)).unwrap()).unwrap() };
+        a_puente.send(json!({ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": { "clientInfo": { "name": "claude-code" } } }).to_string()).unwrap();
+        assert_eq!(recibir()["id"], 1);
+        let leidas = primera.join().unwrap();
+        assert_eq!(leidas[0], json!({ "adeorq": "de-casa", "clave": "la-de-ayer" }));
+        assert_eq!(leidas[1]["method"], "initialize");
+
+        thread::sleep(Duration::from_millis(100));
+        let segunda = adeorq_de_mentira(TcpListener::bind(("127.0.0.1", puerto)).unwrap(), "tools/call");
+        let mut vuelto = false;
+        for id in 10..60 {
+            a_puente.send(json!({ "jsonrpc": "2.0", "id": id, "method": "tools/call" }).to_string()).unwrap();
+            if recibir()["result"].is_object() {
+                vuelto = true;
+                break;
+            }
+            thread::sleep(Duration::from_millis(200));
+        }
+        assert!(vuelto, "el puente no se reenganchó en diez segundos");
+        let leidas = segunda.join().unwrap();
+        assert_eq!(leidas[0], json!({ "adeorq": "de-casa", "clave": "la-de-ayer" }), "repite la suya: la Adeorq nueva decide");
+    }
+
+    /// La línea de casa vale solo con la contraseña de este arranque, entera.
+    #[test]
+    fn solo_es_de_casa_quien_trae_la_clave_de_este_arranque() {
+        let buena = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        assert!(es_de_casa(Some(buena), Some(buena)));
+        assert!(!es_de_casa(None, Some(buena)), "la línea sin clave, la de antes del 2026-11-03");
+        assert!(!es_de_casa(Some(""), Some(buena)));
+        assert!(!es_de_casa(Some(&buena[..63]), Some(buena)), "un trozo no basta");
+        assert!(!es_de_casa(Some(&format!("{buena}0")), Some(buena)), "ni de más");
+        assert!(!es_de_casa(Some("1123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"), Some(buena)));
+        assert!(!es_de_casa(Some(buena), None), "sin clave en el servidor no hay casa para nadie");
+        assert!(!es_de_casa(None, None));
+    }
+
+    /// El número de una terminal solo se cree con su contraseña; una terminal
+    /// nacida antes de que las hubiera sigue como antes; y una que no existe, nada.
+    #[test]
+    fn una_terminal_solo_se_cree_con_su_contrasena() {
+        let suya = crate::pty::ClaveDePanel::nueva().unwrap();
+        let otra = crate::pty::ClaveDePanel::nueva().unwrap();
+        let texto = |c: &crate::pty::ClaveDePanel| serde_json::to_value(c).unwrap().as_str().unwrap().to_string();
+        assert_eq!(panel_creible(Some(Some(&suya)), Some(&texto(&suya))), PanelCreido::Suyo);
+        assert_eq!(panel_creible(Some(Some(&suya)), Some(&texto(&otra))), PanelCreido::No, "la de otra terminal");
+        assert_eq!(panel_creible(Some(Some(&suya)), None), PanelCreido::No, "la línea de antes, sin contraseña");
+        assert_eq!(panel_creible(Some(Some(&suya)), Some("")), PanelCreido::No);
+        assert_eq!(panel_creible(Some(None), None), PanelCreido::DeAntes);
+        assert_eq!(panel_creible(None, Some(&texto(&suya))), PanelCreido::No, "una terminal que no existe");
+        assert_eq!(format!("{suya:?}"), "ClaveDePanel(***)", "su Debug no la enseña");
+    }
+
+    /// La contraseña va al proceso que se lanza y a ninguno más: la app no la
+    /// tiene en su entorno, así que una terminal (que hereda el de la app) no
+    /// puede heredarla.
+    #[test]
+    fn la_clave_va_al_lanzado_y_no_al_entorno_de_la_app() {
+        let mut cmd = std::process::Command::new("claude");
+        con_llave_de_casa(&mut cmd);
+        let puesta = cmd
+            .get_envs()
+            .find(|(k, _)| *k == std::ffi::OsStr::new(VARIABLE_DE_CASA))
+            .and_then(|(_, v)| v.map(|v| v.to_string_lossy().to_string()))
+            .expect("el lanzado lleva la contraseña");
+        assert_eq!(puesta.len(), 64);
+        assert!(puesta.chars().all(|c| c.is_ascii_hexdigit()), "{puesta}");
+        assert_eq!(Some(puesta.as_str()), clave_de_casa(), "la misma de todo el arranque");
+        assert!(std::env::var_os(VARIABLE_DE_CASA).is_none(), "la app no la tiene en su entorno");
+        let mut otro = std::process::Command::new("claude");
+        con_llave_de_casa(&mut otro);
+        assert_eq!(otro.get_envs().count(), 1);
     }
 
     #[test]
@@ -2701,6 +2987,9 @@ mod tests {
             assert!(todo.contains(frase), "falta «{frase}»: {todo}");
         }
         assert!(todo.contains(&format!("{MAX_VIVOS} opened this way")), "el tope sale de la constante: {todo}");
+        // Que reparta sin pensarlo: sin `account` ya va a la cuenta que toca
+        // (2026-11-02, todas las delegadas iban a la principal).
+        assert!(todo.contains("Leave `account` out of open_pane") && todo.contains("waste the most quota"), "{todo}");
         assert!(todo.chars().count() <= 2048, "{} caracteres: no cabe en el tope viejo de Claude Code", todo.chars().count());
 
         // Un Codex en «plan» abre y cierra lo que abrió, pero no escribe: se le
@@ -2714,6 +3003,19 @@ mod tests {
 
         // Sin open_pane no hay nada que repartir.
         assert_eq!(instrucciones(&de_escalon(Nivel::Mirar)), None);
+    }
+
+    /// `open_pane` ofrece la cuenta, y su descripción dice que sin ella ya elige.
+    #[test]
+    fn open_pane_ofrece_la_cuenta_y_get_usage_la_principal() {
+        let todas = lista_de_herramientas();
+        let de = |n: &str| todas.iter().find(|h| h["name"] == n).cloned().expect(n);
+        let abrir = de("open_pane");
+        let account = abrir["inputSchema"]["properties"]["account"]["description"].as_str().expect("open_pane sin `account`");
+        assert!(account.contains("Leave it out") && account.contains("principal") && account.contains("error"), "{account}");
+        assert!(abrir["description"].as_str().unwrap().contains("without `account` Adeorq picks"), "{abrir}");
+        let uso = de("get_usage")["description"].as_str().unwrap().to_string();
+        assert!(uso.contains("main one included") && uso.contains("renews") && uso.contains("5-hour"), "{uso}");
     }
 
     #[test]
@@ -2748,7 +3050,7 @@ mod tests {
         // cliente, la presentación del puente del Capataz y `adeorq secreto`.
         for linea in [
             r#"{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"clientInfo":{"name":"claude-code"}}}"#,
-            r#"{"adeorq":"de-casa"}"#,
+            r#"{"adeorq":"de-casa","clave":"x"}"#,
             r#"{"adeorq":"secreto","nombre":"x","motivo":"y"}"#,
         ] {
             assert!(abre_bien(linea), "{linea}");

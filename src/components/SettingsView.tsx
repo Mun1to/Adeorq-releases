@@ -65,6 +65,7 @@ import { open as pickFile } from "@tauri-apps/plugin-dialog";
 import AtajosEditor from "./AtajosEditor";
 import AjustesMovil from "./AjustesMovil";
 import AjustesMcp from "./AjustesMcp";
+import AjustesClavesAgente from "./AjustesClavesAgente";
 import AjustesMods from "./AjustesMods";
 import AjustesPartes from "./AjustesPartes";
 import { pestanasEncendidas, type Parte, type TerminalesPorVista } from "../lib/partes";
@@ -1328,6 +1329,7 @@ export default function SettingsView({
                 <p className="card-hint">{t(PERMISSION_MODE_HINT[permissionMode])}</p>
               </section>
               <AjustesMcp />
+              <AjustesClavesAgente />
             </>
           )}
           {seccion === "avisos" && (
@@ -1471,7 +1473,7 @@ export default function SettingsView({
                 <h2>{t("El copiloto de las sesiones")}</h2>
                 <p className="card-hint">
                   {t(
-                    "Mira lo que está pasando en las terminales abiertas (qué herramientas usa el agente, cuánto contexto lleva, cuánta semana te queda) y te dice si hay un sitio mejor donde estar haciendo eso: otro cliente que tenga cuota, un cerebro más barato para un recado, o lo que costaría por API sin tocar tu suscripción. Un CLI no puede saber esto porque no sabe que existen los otros veinte. Deja una línea en la bandeja de la Agenda, como el vigía, y nunca cambia nada por su cuenta.",
+                    "Mira lo que está pasando en las terminales abiertas (qué herramientas usa el agente, cuánta semana te queda) y te dice si hay un sitio mejor donde estar haciendo eso: otro cliente que tenga cuota, un cerebro más barato para un recado, o lo que costaría por API sin tocar tu suscripción. Un CLI no puede saber esto porque no sabe que existen los otros veinte. Deja una línea en la bandeja de la Agenda, como el vigía, y nunca cambia nada por su cuenta.",
                   )}
                 </p>
                 <div className="chip-row">

@@ -287,6 +287,10 @@ comprueba("el techo de Max y Pro es ninguno", techoDelPlan("max") === null && te
   techoDelPlan("max"),
   techoDelPlan("pro"),
 ]);
+// El Max 20x pasó a llamarse Ultra: es de pago y no puede caer en «sin suscripción».
+comprueba("el techo de Ultra es ninguno", techoDelPlan("ultra") === null, techoDelPlan("ultra"));
+r = recetar(ex({ clase: "recado" }), { cuentas: conPlan("ultra") }, "opus");
+comprueba("con Ultra, un recado pedido en opus se respeta", r.modelo === "opus", r);
 comprueba("el techo sin plan de pago es sonnet", techoDelPlan("free") === "sonnet", techoDelPlan("free"));
 
 // Las tarjetas del kanban entran por aquí en texto libre: nadie las etiqueta,

@@ -2784,7 +2784,7 @@ mod tests {
     /// allí: en Linux el separador es `:` y el programa no lleva `.exe`.
     #[test]
     fn agy_se_encuentra_en_el_path_de_cada_sistema() {
-        let base = std::env::temp_dir().join(format!("adeorq-agy-{}", std::process::id()));
+        let base = std::env::temp_dir().join(format!("adeorq-agy-path-{}", std::process::id()));
         let (vacia, con_agy) = (base.join("vacia"), base.join("bin"));
         std::fs::create_dir_all(&vacia).unwrap();
         std::fs::create_dir_all(&con_agy).unwrap();

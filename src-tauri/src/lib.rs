@@ -28,6 +28,7 @@ mod apikeys;
 mod chat;
 mod openrouter;
 mod voz;
+mod portapapeles;
 mod pty;
 /// El proceso de terminales (`adeorq.exe --terminales`), ver `docs/contexto/terminales-fuera.md`.
 pub mod terminales;
@@ -650,6 +651,8 @@ pub fn run() {
             fondos_tarjeta::tarjeta_video_escribir,
             fondos_tarjeta::tarjeta_video_acabar,
             fondos_tarjeta::tarjeta_video_cancelar,
+            fondos_tarjeta::tarjeta_copia_ruta,
+            fondos_tarjeta::tarjeta_copiar_archivo,
             manage::read_canvas_file,
             manage::delete_project,
             manage::set_fondo,
@@ -749,6 +752,7 @@ pub fn run() {
             secrets::secret_forget,
             secrets::secretos_donde,
             pedir_secreto::secreto_responder,
+            pedir_secreto::secreto_permitir,
             pedir_secreto::secretos_de_agente,
             pedir_secreto::secreto_de_agente_olvidar,
             autostart::autostart_get,

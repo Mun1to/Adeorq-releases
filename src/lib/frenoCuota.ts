@@ -10,6 +10,7 @@ import { listen } from "@tauri-apps/api/event";
 import { limitesDe, loQueTePara, type Cuenta } from "./cuota";
 import { MAIN_ACCOUNT, mainAccount, type Account } from "./pty";
 import { contestarCuota, EVENTO_CUOTA } from "./programados";
+import { providerOf } from "./providers";
 
 /** Una lectura de hace más de esto no vale para frenar: se pregunta otra vez. */
 const VIDA_FRENO = 2 * 60 * 1000;
@@ -24,6 +25,44 @@ const VIDA_FRENO = 2 * 60 * 1000;
 export function cuentaDeArranque(cli: string, cuentas: { list: Account[]; def: string }, pedida = ""): Cuenta {
   const suya = [MAIN_ACCOUNT, mainAccount(cli), ...cuentas.list].find((a) => a.id === (pedida || cuentas.def));
   return { provider: cli, dir: suya && suya.provider === cli ? suya.dir : "" };
+}
+
+/**
+ * La cuenta con la que vive un panel, sacada de su entorno: la que tiene su
+ * carpeta en la variable de ese CLI (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`…), o
+ * la principal si no la lleva. Para retomarlo en la MISMA (Reanimar): sin
+ * cuenta, `entornoDePane` le pondría la predeterminada, y su `--resume`
+ * buscaría la conversación en una carpeta que no la tiene. Desde el
+ * 2026-11-02 las delegadas nacen en otras cuentas por defecto, así que esto
+ * dejó de ser un caso raro.
+ */
+export function cuentaDeSuEntorno(env: Record<string, string> | undefined, cli: string, lista: Account[]): Account {
+  const variable = providerOf(cli).envVar;
+  const dir = variable ? env?.[variable] : undefined;
+  if (!dir) return mainAccount(cli);
+  const igual = (x: string) => x.replace(/[\\/]+$/, "").toLowerCase();
+  return (
+    lista.find((a) => a.provider === cli && !!a.dir && igual(a.dir) === igual(dir)) ??
+    // Una cuenta que ya no está en Cuentas pero cuya carpeta sigue ahí: se
+    // retoma igual en ella, con su nombre de carpeta.
+    { id: `dir:${dir}`, label: dir.split(/[\\/]/).filter(Boolean).pop() ?? dir, dir, provider: cli }
+  );
+}
+
+/** Lo que guarda el Lienzo de la cuenta de un panel (`NodoTerm.cuenta`): la
+    de su entorno, con el nombre que lleva su cabecera. Nunca el entorno. */
+export function cuentaDelNodo(pane: { env?: Record<string, string>; account?: string }, kind: string): Account {
+  const c = cuentaDeSuEntorno(pane.env, kind, []);
+  return { id: c.id, label: pane.account ?? c.label, dir: c.dir, provider: kind };
+}
+
+/** Una cuenta que llega de fuera (un tablero guardado), como la tiene Cuentas
+    ahora: la principal si su carpeta es la de siempre, la de Cuentas con esa
+    carpeta y ese CLI, o nada si ya no está. */
+export function cuentaConocida(c: Account, lista: Account[]): Account | undefined {
+  if (!c.dir) return c.id === mainAccount(c.provider).id ? mainAccount(c.provider) : undefined;
+  const igual = (x: string) => x.replace(/[\\/]+$/, "").toLowerCase();
+  return lista.find((a) => a.provider === c.provider && !!a.dir && igual(a.dir) === igual(c.dir));
 }
 
 /** Las cuentas de ese CLI, la principal primero: las que puede elegir un encargo. */

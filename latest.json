@@ -1,11 +1,11 @@
 {
-  "version": "0.9.238",
-  "notes": "La tarjeta para compartir recorta el video, no tiene limite de duracion, tiene volumen para el video y para la vista previa, y lo que importas se queda guardado. Arrastrar en Claude Code a pantalla completa ya copia. Y Adeorq llega al Mac, firmado por Apple.",
-  "pub_date": "2026-11-01T19:35:54Z",
+  "version": "0.9.239",
+  "notes": "Reparto entre cuentas con tus barreras, terminales mas seguras frente a otros programas, copiar el video de la tarjeta y el Perfil centrado",
+  "pub_date": "2026-11-03T14:08:08Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzUwdndUdmtUQ2EvM3RWV25MNDZubGRQa1o5Ry9NVW1mRmNiMHM3QlVGZXN0bzhOSkxTeFNiZVRxUUxQWk1XVHc0N2ZjSTBJM0ZKQTNYdGhGSVJEeXc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNTYxMzkzCWZpbGU6QWRlb3JxXzAuOS4yMzhfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzgKRi9YL1pBVGREb2pIcnJZMlFxTjU4L2duRjhPQnpyeW9BcklyRHlGVk50bEFUb1JIRHVjTUVPSmpVZUdxRTNteVdpUXd5MFY1NnpkNUlGd2lSb2RkQUE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.238/Adeorq_0.9.238_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzB4WVI2R2F0L3E1ZTZwcUc4L2NTaXRsRGgwRm9aM25rRGVvOG9Rekc3RFVQTGVqTDlKVUd1aXI3RDNVWTFaU29jeEx2ZC9sR0VFcmtBTW05bXcxdmdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzE0ODc4CWZpbGU6QWRlb3JxXzAuOS4yMzlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzkKcjAxcmh5TWowZUFaRlFCdmJoK1ozbngyVDVldEVLNndQbTBBMHkwNG1COFFhQkdrZStrWEdoTFZOQlNvRlFobld3a2JqVVhUdXJsZGVjazU5UTRIQ1E9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.239/Adeorq_0.9.239_x64-setup.exe"
     }
   }
 }

@@ -440,7 +440,7 @@ shows `getAgentDir()` reading `PI_CODING_AGENT_DIR` and falling back to
 `~/.pi/agent`, and its login writes `auth.json` inside that same folder. Mind
 one detail that is easy to get wrong: the folder is `.pi/agent`, not plain
 `.pi`, so looking for the login in `.pi` would always report "signed out". It
-is an agent that talks to several providers (Claude Pro/Max, ChatGPT, Copilot),
+is an agent that talks to several providers (Claude Pro, Max or Ultra, ChatGPT, Copilot),
 which is why it is **not offered as an automatic fallback** when you run out of
 week: if it is signed in with your own Claude account, sending you there would
 be sending you to the same exhausted quota.

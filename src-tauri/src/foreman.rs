@@ -156,6 +156,10 @@ fn orden_agente(modelo: &str, cfg: &Path, manos: &[String], sesion: &str) -> std
     // otra media se la salta por un camino que nadie miró.
     cmd.arg("--disallowedTools")
         .args(["Bash", "Write", "Edit", "NotebookEdit", "WebFetch", "WebSearch", "Task"]);
+    // La contraseña de su puente de casa, por el entorno de este proceso y de
+    // ninguno más: Claude Code se lo pasa entero a sus servidores MCP, y sin
+    // `Bash` no hay nada más que lo herede. Ver `mcp::clave_de_casa`.
+    crate::mcp::con_llave_de_casa(&mut cmd);
     cmd
 }
 
@@ -676,7 +680,10 @@ pub(crate) fn config_mcp() -> Result<PathBuf, String> {
     let json = serde_json::json!({
         // `--de-casa`: este puente es de Adeorq (el Capataz o el conserje), así
         // que el servidor no le aplica el escalón por cliente: ya lleva su
-        // propio recorte de manos (`lib/manos.ts`). Ver `mcp_clientes.rs`.
+        // propio recorte de manos (`lib/manos.ts`). Ver `mcp_clientes.rs`. Solo
+        // vale con la contraseña que llega por el entorno de quien lo lanza
+        // (`mcp::con_llave_de_casa`); aquí no se escribe, porque este archivo
+        // lo puede leer cualquier programa tuyo.
         "mcpServers": { "adeorq": { "type": "stdio", "command": ruta, "args": ["--mcp", "--de-casa"], "env": {} } }
     });
     let destino = std::env::temp_dir().join("adeorq-capataz-mcp.json");
@@ -872,6 +879,9 @@ mod tests {
             let largo: usize = cmd.get_args().map(|a| a.len() + 3).sum::<usize>() + cmd.get_program().len();
             assert!(largo < 4_000, "la orden del {nombre} mide {largo} caracteres");
             assert_eq!(cmd.get_args().nth(1).and_then(|a| a.to_str()), Some("--model"), "{nombre}: el prompt no va detrás de -p");
+            // Solo el que lleva el MCP de Adeorq necesita la contraseña de casa.
+            let lleva = cmd.get_envs().any(|(k, v)| k == crate::mcp::VARIABLE_DE_CASA && v.is_some());
+            assert_eq!(lleva, nombre == "agente", "{nombre}: contraseña de casa");
         }
     }
 

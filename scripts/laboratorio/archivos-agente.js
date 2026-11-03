@@ -117,7 +117,20 @@ async (page) => {
     await page.waitForTimeout(espera);
   };
 
-  const medir = () => page.evaluate(() => {
+  /** Las cifras +N −N suben contando (`useCifra`, 700 ms): se mide cuando el
+   *  texto del panel lleva dos lecturas seguidas iguales, no a un tiempo fijo. */
+  const quieto = async () => {
+    let antes = "";
+    for (let i = 0; i < 30; i++) {
+      const ahora = await page.evaluate(() => document.querySelector(".lateral")?.textContent ?? "");
+      if (ahora === antes) return;
+      antes = ahora;
+      await page.waitForTimeout(250);
+    }
+  };
+
+  const medir = async () => { await quieto(); return medirYa(); };
+  const medirYa = () => page.evaluate(() => {
     const limpio = (e) => e?.textContent?.replace(/\s+/g, " ").trim() ?? null;
     const txt = (s) => limpio(document.querySelector(s));
     const panel = document.querySelector(".lateral")?.getBoundingClientRect();

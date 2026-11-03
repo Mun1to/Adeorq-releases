@@ -47,11 +47,23 @@ const a = await abrirAislada({
     archivo = join(datos, "lienzo.json");
     if (existsSync(SUYO)) copyFileSync(SUYO, archivo);
     else writeFileSync(archivo, JSON.stringify(EJEMPLO));
+    // Y una flecha entre dos notas, con un id ya largo, que su tablero puede no
+    // tener: sus ids se rehacían igual que los de los trazos.
+    const f = JSON.parse(readFileSync(archivo, "utf8"));
+    if (!(f.flechas ?? []).length) {
+      const nota = (id, x) => ({ tipo: "nota", id, x, y: 0, w: 220, h: 120, nota: "x", color: "#f2c14e" });
+      f.nodos = [...(f.nodos ?? []), nota("na", 0), nota("nb", 400)];
+      f.flechas = [{ id: "e-mvhtw7d4-e-mvgfchuc-e1", de: "na", a: "nb", encargo: "", auto: false }];
+      writeFileSync(archivo, JSON.stringify(f));
+    }
     // Lo sembrado se mide AQUÍ: cuando la ventana está lista, el lienzo ya lo
     // ha leído y reescrito una vez.
     antes = ids();
   },
 });
+function flechas() {
+  return (JSON.parse(readFileSync(archivo, "utf8")).flechas ?? []).map((t) => t.id);
+}
 function ids() {
   return (JSON.parse(readFileSync(archivo, "utf8")).trazos ?? []).map((t) => t.id);
 }
@@ -83,6 +95,10 @@ try {
     await dormir(1500);
   }
   const ultima = ids();
+  const fl = flechas();
+  console.log(`      flechas tras tres aperturas: ${fl.join(", ")}`);
+  dice(fl.length > 0 && fl.every((i) => i.length <= 16), "las flechas tienen ids cortos y no crecen");
+  dice(new Set(fl).size === fl.length, "ni se repite ninguna flecha");
   console.log(`      tras abrir tres veces: el id más largo, ${largo(ultima)} caracteres`);
   dice(ultima.length === antes.length, `no se pierde ningún trazo (${antes.length} → ${ultima.length})`);
   dice(largo(ultima) === largo(primera), `el id no crece de una apertura a otra (${largo(primera)} → ${largo(ultima)})`);

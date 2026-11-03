@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { type Account } from "../lib/pty";
-import { limitesDe, loQueTePara } from "../lib/cuota";
+import { limitesDe } from "../lib/cuota";
 import { anotarCuota } from "../lib/mundo";
 
 // El sondeo de cuota: cada tanto pregunta los límites de cada cuenta de Claude y
@@ -48,9 +48,9 @@ export default function AvisoCuota({ cuentas, hayAgentes }: Props) {
           // Por el portero de `lib/cuota.ts`, no directo: preguntarlo lanza un
           // proceso `claude` de cinco segundos, y la lectura se comparte con el
           // panel de uso y con el router.
-          const peor = loQueTePara(await limitesDe(acc));
+          const l = await limitesDe(acc);
           if (stop) return;
-          anotarCuota(acc.id, peor.percent);
+          anotarCuota(acc.id, l);
         } catch {
           // Sin CLI, sin sesión iniciada o tardando demasiado: esto es un
           // extra, y un extra que falla se calla. La pestaña Cuentas ya enseña

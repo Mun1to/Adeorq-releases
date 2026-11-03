@@ -14,7 +14,7 @@
 // hay caché y por eso la comparte con el aviso de cuota, que ya sondeaba solo
 // cada veinte minutos: lo normal es que el dato ya esté cuando se pregunte.
 
-import { accountReady, detectClis, memoriaReglasRouter, planInfo, type Account } from "./pty";
+import { accountReady, detectClis, mainAccount, memoriaReglasRouter, planInfo, type Account, type Limits } from "./pty";
 import { reglasDe, type ReglaRouter } from "./reglasRouter";
 
 /* Las reglas del router que hay en la memoria de la casa, leídas de Rust y
@@ -50,9 +50,9 @@ export function conReloj<T>(promesa: Promise<T>, ms: number): Promise<T | null> 
     });
   });
 }
-import { limitesDe, loQueTePara } from "./cuota";
-import { PROVIDERS, providerOf } from "./providers";
-import type { CuentaViva } from "./router";
+import { enCache, limitesDe, partesDe, type Partes } from "./cuota";
+import { PROVIDERS, providerOf, sabe } from "./providers";
+import { elegirCuenta, enCuanto, parada, type CuentaViva } from "./router";
 
 /** Los CLIs del equipo cambian cuando instalas uno, o sea casi nunca. */
 const VIDA_PROGRAMAS = 5 * 60 * 1000;
@@ -73,7 +73,7 @@ interface Sello<T> {
 
 let programas: Sello<Set<string>> | null = null;
 const conectadas = new Map<string, Sello<boolean>>();
-const cuotas = new Map<string, Sello<number>>();
+const cuotas = new Map<string, Sello<Partes>>();
 /** El plan contratado. Se lee del propio archivo de credenciales, así que
     cambia cuando cambias de plan y no antes: media hora es de sobra. */
 const planes = new Map<string, Sello<string>>();
@@ -91,8 +91,24 @@ function fresco<T>(s: Sello<T> | null | undefined, vida: number): s is Sello<T> 
  * para esto. Así el router tiene el número a mano en vez de preguntarlo él al
  * decidir, que es un proceso `claude` de cinco segundos por cuenta.
  */
-export function anotarCuota(cuentaId: string, gastado: number): void {
-  cuotas.set(cuentaId, { valor: gastado, cuando: Date.now() });
+export function anotarCuota(cuentaId: string, l: Limits): void {
+  cuotas.set(cuentaId, { valor: partesDe(l), cuando: Date.now() });
+}
+
+/** La semana, cuándo se renueva y el tope de 5 horas, como los pide `CuentaViva`. */
+function deCuota(p: Partes | undefined): Pick<CuentaViva, "gastado" | "renueva" | "periodo" | "sesion" | "sesionRenueva"> {
+  return { gastado: p?.semanal, renueva: p?.renueva, periodo: p?.periodo, sesion: p?.sesion, sesionRenueva: p?.sesionRenueva };
+}
+
+/**
+ * Las cuentas que Munir añadió MÁS la principal de cada CLI, que no está en
+ * su lista porque no se añade: es la carpeta de siempre. Sin esto `get_usage`
+ * no la enseñaba y `open_pane` no podía elegirla (2026-11-02). Igual que hace
+ * `lanzarEnLienzo` al arrastrar una tarjeta.
+ */
+export function conLasPrincipales(lista: Account[]): Account[] {
+  const mains = PROVIDERS.map((p) => mainAccount(p.id));
+  return [...mains, ...lista.filter((a) => !mains.some((m) => m.id === a.id))];
 }
 
 /** Lo que se sepa ahora mismo, sin esperar a nada. Para pintar sin parpadeo. */
@@ -101,9 +117,25 @@ export function mundoEnCache(cuentas: Account[]): CuentaViva[] {
     cuenta,
     instalado: programas ? programas.valor.has(cuenta.provider) : true,
     conectada: conectadas.get(cuenta.id)?.valor ?? true,
-    gastado: cuotas.get(cuenta.id)?.valor,
+    // Si el router aún no la anotó, la última lectura guardada (`cuota.ts`, que
+    // sobrevive al arranque): sin esto, un `get_usage` que no esperaba a la
+    // consulta entera decía «sin dato» de cuentas que sí lo tenían (2026-11-02).
+    ...deCuota(cuotas.get(cuenta.id)?.valor ?? guardada(cuenta)),
     plan: planes.get(cuenta.id)?.valor,
   }));
+}
+
+function guardada(cuenta: Account): Partes | undefined {
+  const l = enCache({ provider: cuenta.provider, dir: cuenta.dir });
+  return l ? partesDe(l.limits) : undefined;
+}
+
+/** Cuándo se leyó por última vez la cuota de esa cuenta, la anote quien la
+    anote: lo que se abrió en ella después aún no sale en el número. */
+export function leidaEn(cuenta: Account): number | undefined {
+  const a = cuotas.get(cuenta.id)?.cuando;
+  const b = enCache({ provider: cuenta.provider, dir: cuenta.dir })?.at;
+  return a == null ? b : b == null ? a : Math.max(a, b);
 }
 
 /**
@@ -132,6 +164,25 @@ export function fotoRapida(cuentas: Account[], msMax = 1200): Promise<CuentaViva
 }
 
 export async function mirarMundo(cuentas: Account[]): Promise<CuentaViva[]> {
+  // Primero, si tienen la sesión iniciada, TODAS a la vez: es mirar unos
+  // archivos, milisegundos, y la cuota de una sola cuenta son cinco segundos.
+  // Yendo cuenta a cuenta, quien no espera (`fotoRapida`) veía «conectada» una
+  // que aún nadie había mirado, y una sin sesión ganaba por no tener gasto
+  // (revisión de la 0.9.239, `mundo-frio-check`).
+  await Promise.all(
+    cuentas.map(async (cuenta) => {
+      if (fresco(conectadas.get(cuenta.id), VIDA_CONECTADA)) return;
+      const p = providerOf(cuenta.provider);
+      // Sin archivos de credenciales conocidos no se puede comprobar, y ahí la
+      // casa ya decidió (ver `providers.ts`) que se dice lo que se sabe en vez
+      // de adivinar: se da por conectada, que es lo que el usuario ve.
+      const conectada = p.creds.length
+        ? await accountReady(cuenta.dir, p.creds, p.homeDir, p.envEsCasa).catch(() => false)
+        : true;
+      conectadas.set(cuenta.id, { valor: conectada, cuando: Date.now() });
+    }),
+  );
+
   if (!fresco(programas, VIDA_PROGRAMAS)) {
     const found = await detectClis(
       PROVIDERS.map((p) => [p.id, p.exe] as [string, string]),
@@ -147,35 +198,28 @@ export async function mirarMundo(cuentas: Account[]): Promise<CuentaViva[]> {
   for (const cuenta of cuentas) {
     const p = providerOf(cuenta.provider);
     const instalado = hay.has(cuenta.provider);
+    const conectada = conectadas.get(cuenta.id)?.valor ?? false;
 
-    let conectada = conectadas.get(cuenta.id)?.valor ?? false;
-    if (instalado && !fresco(conectadas.get(cuenta.id), VIDA_CONECTADA)) {
-      // Sin archivos de credenciales conocidos no se puede comprobar, y ahí la
-      // casa ya decidió (ver `providers.ts`) que se dice lo que se sabe en vez
-      // de adivinar: se da por conectada, que es lo que el usuario ve.
-      conectada = p.creds.length
-        ? await accountReady(cuenta.dir, p.creds, p.homeDir, p.envEsCasa).catch(() => false)
-        : true;
-      conectadas.set(cuenta.id, { valor: conectada, cuando: Date.now() });
-    }
-
-    let gastado = cuotas.get(cuenta.id)?.valor;
+    let cuota = cuotas.get(cuenta.id)?.valor;
     if (instalado && conectada && p.usage && !fresco(cuotas.get(cuenta.id), VIDA_CUOTA)) {
       // Por el portero, que puede tener la respuesta ya leída por el aviso de
       // cuota o por el panel de uso. Antes cada uno lanzaba su propio proceso
       // `claude` de cinco segundos para enterarse de lo mismo.
       const l = await limitesDe(cuenta).catch(() => null);
       if (l) {
-        gastado = loQueTePara(l).percent;
-        anotarCuota(cuenta.id, gastado);
+        anotarCuota(cuenta.id, l);
+        cuota = cuotas.get(cuenta.id)?.valor;
       }
     }
 
     // Qué plan tiene contratado esa cuenta. Sale del mismo archivo que ya se
     // mira para saber si ha iniciado sesión, así que no cuesta ni un proceso
     // más; hasta ahora solo se pintaba en Cuentas y quien decidía no lo veía.
+    // Solo para quien deja su plan en disco (Claude): `planInfo` lee el
+    // `.credentials.json` de Claude, y con la principal de Copilot (carpeta
+    // vacía) leía la de Claude y le ponía «plan max» (2026-11-02).
     let plan = planes.get(cuenta.id)?.valor;
-    if (instalado && conectada && p.usage && !fresco(planes.get(cuenta.id), VIDA_PLAN)) {
+    if (instalado && conectada && sabe(cuenta.provider, "estadisticas") && !fresco(planes.get(cuenta.id), VIDA_PLAN)) {
       const info = await planInfo(cuenta.dir || undefined).catch(() => null);
       if (info) {
         plan = info.subscription || info.tier;
@@ -183,7 +227,7 @@ export async function mirarMundo(cuentas: Account[]): Promise<CuentaViva[]> {
       }
     }
 
-    vivas.push({ cuenta, instalado, conectada, gastado, plan });
+    vivas.push({ cuenta, instalado, conectada, ...deCuota(cuota), plan });
   }
   return vivas;
 }
@@ -210,7 +254,7 @@ export async function mirarMundo(cuentas: Account[]): Promise<CuentaViva[]> {
  * es tener poca cuota: es gastar la buena en trabajo que no la necesita, y
  * dejar sin usar cuentas que ya están pagadas.
  */
-export function parteDelEquipo(vivas: CuentaViva[]): string {
+export function parteDelEquipo(vivas: CuentaViva[], ahora = Date.now()): string {
   const l: string[] = [];
   const listas = vivas.filter((v) => v.instalado && v.conectada);
   const dormidas = vivas.filter((v) => v.instalado && !v.conectada);
@@ -221,8 +265,13 @@ export function parteDelEquipo(vivas: CuentaViva[]): string {
     const p = providerOf(v.cuenta.provider);
     const trozos = [`- ${p.label} · «${v.cuenta.label}»`];
     if (v.plan) trozos.push(`plan ${v.plan}`);
-    if (v.gastado !== undefined) {
-      trozos.push(`lleva gastado el ${Math.round(v.gastado)} % de su semana`);
+    const periodo = v.periodo ?? "semana";
+    const renovada = !!v.renueva && v.renueva <= ahora;
+    if (renovada) {
+      // No «a cero»: si no se pudo volver a leer, puede ir ya por el 98 %.
+      trozos.push(`su última lectura es de antes de que se renovara su ${periodo}: no se sabe cuánto lleva (se cuenta como 50 %)`);
+    } else if (v.gastado !== undefined) {
+      trozos.push(`lleva gastado el ${Math.round(v.gastado)} % de su ${periodo}`);
       if (v.gastado >= 92) trozos.push("⚠ AGOTADA: no le mandes nada que pueda esperar");
       else if (v.gastado >= 78) trozos.push("⚠ apretada: gástala solo en lo que lo merezca");
     } else {
@@ -230,13 +279,42 @@ export function parteDelEquipo(vivas: CuentaViva[]): string {
       // Capataz recomendara vaciar una cuenta que a lo mejor está en las últimas.
       trozos.push("no publica cuánto lleva gastado, así que se trata como disponible SIN saberlo");
     }
+    if (!renovada) {
+      trozos.push(
+        v.renueva
+          ? `se renueva ${cuandoEnPalabras(v.renueva, ahora)}`
+          : "no dice cuándo se renueva (se cuenta como 7 días)",
+      );
+    }
+    // El tope de 5 horas va APARTE: no se pierde nada por no usarlo, solo dice
+    // si ahora mismo la cuenta puede trabajar.
+    if (parada(v, ahora)) {
+      trozos.push(
+        `⛔ PARADA ahora por su tope de 5 horas${v.sesionRenueva ? `, vuelve ${cuandoEnPalabras(v.sesionRenueva, ahora)}` : ""}`,
+      );
+    } else if (v.sesion != null && v.sesion >= 80) {
+      trozos.push(`su tope de 5 horas va por el ${Math.round(v.sesion)} %`);
+    }
     l.push(trozos.join(" · "));
   }
   if (dormidas.length) {
     l.push("");
     l.push("## Instaladas y sin usar (cuota pagada que se está tirando)");
     for (const v of dormidas) {
-      l.push(`- ${providerOf(v.cuenta.provider).label} está instalado y sin sesión iniciada.`);
+      l.push(`- ${providerOf(v.cuenta.provider).label} · «${v.cuenta.label}» está instalado y sin sesión iniciada.`);
+    }
+  }
+
+  // A qué cuenta va la siguiente terminal de cada CLI, con la MISMA regla que
+  // usa `open_pane` sin `account` (`elegirCuenta`): así lo que lee el agente y
+  // lo que pasa al abrir no se contradicen.
+  const clis = [...new Set(listas.map((v) => v.cuenta.provider))];
+  if (clis.length) {
+    l.push("");
+    l.push("## A qué cuenta va la siguiente terminal (open_pane sin `account`)");
+    for (const cli of clis) {
+      const e = elegirCuenta(listas.filter((v) => v.cuenta.provider === cli), ahora);
+      if (e) l.push(`- ${providerOf(cli).label} → «${e.viva.cuenta.label}». ${e.porque}`);
     }
   }
 
@@ -245,6 +323,27 @@ export function parteDelEquipo(vivas: CuentaViva[]): string {
   l.push("- Las unidades NO son comparables entre sí: Claude cuenta horas de modelo, Codex cuenta mensajes y Antigravity créditos. Compara el % de cada una consigo misma, nunca una contra otra.");
   l.push("- Reparto sano: el modelo pequeño hace los recados (renombrar, traducir, formatear, buscar dónde está algo), el mediano hace el grueso del trabajo, y el grande se guarda para lo que sale caro si se equivoca SIN QUE SE NOTE: auditorías, seguridad, arquitectura, revisar a otro.");
   l.push("- Que una tarea sea LARGA no la hace difícil. Lo que sube el cerebro es la consecuencia de equivocarse, no el tamaño.");
-  l.push("- Si hay una cuenta lista y sin gastar, propón repartir hacia ella antes que apretar una que ya va por encima del 78 %.");
+  l.push("- Lo que una cuenta no gasta antes de renovarse se pierde: manda la que más perdería, (100 − % gastado) / días hasta renovarse. open_pane sin `account` ya la elige sola; pasa `account` solo si tienes un motivo.");
   return l.join("\n");
+}
+
+const DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+/**
+ * «en 2 días, el miércoles a las 8:00», «en 5 h, hoy a las 14:30»: cuándo
+ * vuelve a cero, dicho para quien no tiene el calendario delante. Con la hora
+ * de esta máquina, que es la de Munir.
+ */
+export function cuandoEnPalabras(ms: number, ahora = Date.now()): string {
+  const f = new Date(ms);
+  const hoy = new Date(ahora);
+  const dias = Math.round(
+    (new Date(f.getFullYear(), f.getMonth(), f.getDate()).getTime() -
+      new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).getTime()) /
+      86_400_000,
+  );
+  const hora = `${f.getHours()}:${String(f.getMinutes()).padStart(2, "0")}`;
+  const dia =
+    dias === 0 ? "hoy" : dias === 1 ? "mañana" : dias < 7 ? `el ${DIAS_SEMANA[f.getDay()]}` : `el ${f.getDate()}/${f.getMonth() + 1}`;
+  return `${enCuanto(ms, ahora)}, ${dia} a las ${hora}`;
 }

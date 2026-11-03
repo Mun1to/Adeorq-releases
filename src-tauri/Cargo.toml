@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.238"
+version = "0.9.239"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 # PolyForm Shield 1.0.0 no está en la lista SPDX, así que se apunta al archivo.
@@ -94,6 +94,11 @@ windows-sys = { version = "0.61.2", features = [
     # SetThreadExecutionState: con el conserje en el móvil encendido, el PC no
     # se duerme solo (ver `movil.rs`). CallNtPowerInformation, para comprobarlo.
     "Win32_System_Power",
+    # Un archivo en el portapapeles (`portapapeles.rs`): la tarjeta copia su vídeo
+    # como archivo, y el portapapeles del navegador solo sabe de texto e imágenes.
+    "Win32_System_DataExchange",
+    "Win32_System_Memory",
+    "Win32_System_Ole",
 ] }
 # WinRT media transport controls (what is playing, next/previous) plus Core
 # Audio for per-app volume: no Spotify account, no OAuth, no Premium needed.
@@ -121,6 +126,11 @@ webview2-com = "0.39"
 # hay un equivalente de una línea, y la especificación XDG de la papelera tiene
 # más letra pequeña de la que parece (el archivo `.trashinfo`, los puntos de
 # montaje) como para escribirla a mano.
+[target.'cfg(windows)'.dev-dependencies]
+# La prueba de `portapapeles.rs` corre en su propia estación de ventanas, que
+# tiene su propio portapapeles: así nunca toca el de quien trabaja en el equipo.
+windows-sys = { version = "0.61.2", features = ["Win32_System_StationsAndDesktops"] }
+
 [target.'cfg(unix)'.dependencies]
 trash = "5"
 # Solo por `kill(-pgid)`: matar la RAMA de una terminal, no solo a su hijo

@@ -58,11 +58,23 @@ fn nombre_valido(nombre: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-/// Lo que hace la app cuando un agente pide un secreto.
+/// Quién pide una clave: una terminal de Adeorq (con su contraseña, o una de
+/// antes de que las hubiera) o algo de fuera de Adeorq.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum QuienPide {
+    Terminal(u32),
+    Fuera,
+}
+
+/// Lo que hace la app cuando un agente pide un secreto (decisión A1 de Munir,
+/// 2026-11-03: «las terminales de Adeorq sin preguntar, y cualquier otro
+/// programa con un clic tuyo»).
 ///
-/// Si ya está guardado se devuelve sin molestar a nadie. Si no, se abre la
-/// ventana y se espera a que lo peguen.
-pub fn atender(app: &tauri::AppHandle, nombre: &str, motivo: &str) -> Result<String, String> {
+/// Si ya está guardado y lo pide una terminal de Adeorq, se devuelve sin
+/// molestar a nadie. Si lo pide algo de fuera, la ventana pregunta antes
+/// («dársela esta vez / no»). Si no está guardado, se abre la ventana para
+/// pegarlo, que ya es un clic de Munir. Cada entrega se apunta, sin el valor.
+pub fn atender(app: &tauri::AppHandle, nombre: &str, motivo: &str, quien: QuienPide) -> Result<String, String> {
     if !nombre_valido(nombre) {
         return Err(
             "el nombre solo puede llevar letras, números, guion y guion bajo (64 como mucho)"
@@ -70,9 +82,12 @@ pub fn atender(app: &tauri::AppHandle, nombre: &str, motivo: &str) -> Result<Str
         );
     }
     let clave = format!("{ESPACIO}{nombre}");
+    let guardada = crate::secrets::get(&clave);
+    let de_fuera = quien == QuienPide::Fuera;
 
-    if let Some(valor) = crate::secrets::get(&clave) {
-        return Ok(valor);
+    if let (Some(valor), false) = (&guardada, de_fuera) {
+        apuntar_uso(nombre, quien);
+        return Ok(valor.clone());
     }
 
     let (tx, rx) = channel();
@@ -87,9 +102,11 @@ pub fn atender(app: &tauri::AppHandle, nombre: &str, motivo: &str) -> Result<Str
         mapa.insert(nombre.to_string(), tx);
     }
 
+    // `deFuera`: la ventana dice que lo pide un programa de fuera de Adeorq.
+    // `guardada`: entonces no hay nada que pegar, solo dársela o no.
     let aviso = app.emit(
         "secreto-pedido",
-        serde_json::json!({ "nombre": nombre, "motivo": motivo }),
+        serde_json::json!({ "nombre": nombre, "motivo": motivo, "deFuera": de_fuera, "guardada": guardada.is_some() }),
     );
     if aviso.is_err() {
         esperando().lock().ok().map(|mut m| m.remove(nombre));
@@ -100,9 +117,73 @@ pub fn atender(app: &tauri::AppHandle, nombre: &str, motivo: &str) -> Result<Str
     esperando().lock().ok().map(|mut m| m.remove(nombre));
 
     match respuesta {
-        Ok(Some(valor)) => Ok(valor),
+        Ok(Some(valor)) => {
+            apuntar_uso(nombre, quien);
+            Ok(valor)
+        }
+        Ok(None) if guardada.is_some() => Err("no se la has dado".into()),
         Ok(None) => Err("lo has cancelado".into()),
-        Err(_) => Err("nadie lo pegó a tiempo".into()),
+        Err(_) => Err("nadie contestó a tiempo".into()),
+    }
+}
+
+/// El front, cuando Munir contesta a un programa de fuera de Adeorq que pide
+/// una clave ya guardada: dársela esta vez o no. El valor no pasa por el front:
+/// se lee aquí del almacén.
+#[tauri::command(async)]
+pub fn secreto_permitir(nombre: String, dar: bool) -> Result<(), String> {
+    if !nombre_valido(&nombre) {
+        return Err("nombre no válido".into());
+    }
+    let valor = if dar { crate::secrets::get(&format!("{ESPACIO}{nombre}")) } else { None };
+    let tx = esperando().lock().map_err(|_| "el buzón está roto")?.remove(&nombre);
+    match tx {
+        Some(tx) => {
+            let _ = tx.send(valor);
+            Ok(())
+        }
+        None => Err(format!("ya no había nadie esperando «{nombre}»")),
+    }
+}
+
+/// La última vez que se entregó cada clave y a quién, para Ajustes («la usó la
+/// terminal 4 hace 3 minutos»). Solo el nombre, cuándo y quién: el valor no.
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct Uso {
+    /// Epoch en segundos.
+    pub cuando: u64,
+    /// El número de la terminal, o `None` si fue un programa de fuera de Adeorq.
+    pub terminal: Option<u32>,
+}
+
+fn ruta_usos() -> Result<std::path::PathBuf, String> {
+    Ok(crate::dir_datos_creado()?.join("secretos-de-agente-usos.json"))
+}
+
+fn leer_usos() -> HashMap<String, Uso> {
+    ruta_usos()
+        .ok()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
+
+fn apuntar_uso(nombre: &str, quien: QuienPide) {
+    static CERROJO: Mutex<()> = Mutex::new(());
+    let _g = CERROJO.lock().unwrap_or_else(|e| e.into_inner());
+    let terminal = match quien {
+        QuienPide::Terminal(n) => Some(n),
+        QuienPide::Fuera => None,
+    };
+    crate::anotar(&match terminal {
+        Some(n) => format!("Clave de agente «{nombre}» entregada a la terminal {n}."),
+        None => format!("Clave de agente «{nombre}» entregada a un programa de fuera de Adeorq, con tu permiso."),
+    });
+    let mut usos = leer_usos();
+    let cuando = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    usos.insert(nombre.to_string(), Uso { cuando, terminal });
+    if let (Ok(p), Ok(txt)) = (ruta_usos(), serde_json::to_string(&usos)) {
+        let _ = std::fs::write(p, txt);
     }
 }
 
@@ -167,11 +248,20 @@ fn apuntar(nombre: &str) {
     }
 }
 
+/// Un secreto de agente guardado, como lo enseña Ajustes.
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct SecretoDeAgente {
+    pub nombre: String,
+    pub uso: Option<Uso>,
+}
+
 /// Los secretos de agente que ya están guardados, para poder verlos y borrarlos
-/// desde Ajustes. Solo los NOMBRES: el valor no vuelve nunca al front.
+/// desde Ajustes, con la última vez que se entregaron. Solo los NOMBRES: el
+/// valor no vuelve nunca al front.
 #[tauri::command(async)]
-pub fn secretos_de_agente() -> Vec<String> {
-    leer_indice()
+pub fn secretos_de_agente() -> Vec<SecretoDeAgente> {
+    let usos = leer_usos();
+    leer_indice().into_iter().map(|nombre| SecretoDeAgente { uso: usos.get(&nombre).cloned(), nombre }).collect()
 }
 
 /// Olvidar uno.
@@ -449,11 +539,19 @@ fn traer(puerto: u16, nombre: &str, motivo: &str) -> Result<String, String> {
     let mut escritor = crate::clon_sin_herencia(&stream).map_err(|e| e.to_string())?;
     let mut lector = BufReader::new(stream);
 
-    let peticion = serde_json::json!({
+    // Desde qué terminal de Adeorq se pide, con su contraseña: dentro de una, la
+    // clave llega sin preguntar; desde fuera, Adeorq pregunta (decisión A1).
+    let mut peticion = serde_json::json!({
         "adeorq": "secreto",
         "nombre": nombre,
         "motivo": motivo,
     });
+    if let Some(id) = std::env::var("ADEORQ_PANE_ID").ok().and_then(|v| v.trim().parse::<u32>().ok()) {
+        peticion["panel"] = serde_json::json!(id);
+        if let Ok(c) = std::env::var(crate::pty::VARIABLE_CLAVE_DE_PANEL) {
+            peticion["clave"] = serde_json::json!(c.trim());
+        }
+    }
     writeln!(escritor, "{peticion}").map_err(|e| e.to_string())?;
     escritor.flush().map_err(|e| e.to_string())?;
 

@@ -43,6 +43,7 @@ import {
 import { mirarMundo, mundoEnCache, reglasDeLaMemoria } from "../lib/mundo";
 import { leerPerfil } from "../lib/perfil";
 import { providerOf, sabe } from "../lib/providers";
+import { conUnaAbierta, cuentaDeLaReceta, esLaPrincipal } from "../lib/cuentasDelPlan";
 import {
   MODOS,
   ROTULO,
@@ -73,7 +74,7 @@ export interface ForemanExec {
     model?: string,
     team?: any,
     shadow?: boolean,
-    extras?: { esfuerzo?: string },
+    extras?: { esfuerzo?: string; cuenta?: Account },
   ) => void;
   /** Abre una cuadrilla entera de golpe, marcada como equipo. */
   onOpenTeam: (
@@ -86,6 +87,8 @@ export interface ForemanExec {
       /** Con cuánto se lo piensa. Lo decide el router por el puesto: el que
        *  traduce cadenas no necesita el mismo esfuerzo que el que audita. */
       esfuerzo?: string;
+      /** En qué cuenta nace. Sin ella, en la predeterminada de Cuentas. */
+      cuenta?: Account;
       rol: string;
       /** Su carpeta, cuando no es la del grupo. Un despliegue puede repartirse
        *  entre varios proyectos; una cuadrilla no. */
@@ -176,6 +179,18 @@ interface Ficha {
 function cerebrosDe(c: Checked): ModelAlias[] {
   if (c.partes) return c.partes.map((p) => p.model);
   return isModelAlias(c.model) ? [c.model] : [];
+}
+
+/** Las cuentas que no son la principal en las que abre una acción, con cuántas
+    terminales van a cada una: lo único que vale enseñar, porque la principal es
+    donde nacería todo de todos modos. «2da MAIN» o «2da MAIN ×3, 3ra». */
+function cuentasAparte(c: Checked): string {
+  const todas = c.partes ? c.partes.map((p) => p.cuenta) : [c.cuenta];
+  const cuenta = new Map<string, number>();
+  for (const a of todas) {
+    if (a && !esLaPrincipal(a)) cuenta.set(a.label, (cuenta.get(a.label) ?? 0) + 1);
+  }
+  return [...cuenta].map(([l, n]) => (n > 1 ? `${l} ×${n}` : l)).join(", ");
 }
 
 /**
@@ -319,12 +334,15 @@ interface Checked {
   /** Y con cuánto se lo piensa. Nace en la línea de arranque, como el modelo:
    *  un recado con el esfuerzo al máximo es la otra forma de pagar de más. */
   esfuerzo?: Esfuerzo;
+  /** En qué cuenta nace, la que dijo el router contando las otras terminales
+   *  del mismo plan. Lo que aceptas y lo que se abre es esto, no un cálculo nuevo. */
+  cuenta?: Account;
   /** Por qué ese cerebro, cuando lo decidió el router y no el plan. */
   porque?: string;
   /** Los cerebros de una cuadrilla, en el orden de sus puestos. Se calculan
    *  aquí y no al ejecutar para que el total de abajo cuente lo que se va a
    *  abrir de verdad, no una estimación distinta. */
-  partes?: Array<{ model: ModelAlias; esfuerzo?: Esfuerzo }>;
+  partes?: Array<{ model: ModelAlias; esfuerzo?: Esfuerzo; cuenta?: Account }>;
   originalIndex: number;
 }
 
@@ -377,7 +395,7 @@ function cerebroDe(
   rol: string,
   pedido: string | undefined,
   mundo: CuentaViva[],
-): { model?: ModelAlias; esfuerzo?: Esfuerzo; porque?: string } {
+): { model?: ModelAlias; esfuerzo?: Esfuerzo; porque?: string; cuenta?: Account } {
   const base = isModelAlias(pedido) ? pedido : undefined;
   const deLaTabla = modelForRole(rol);
   const r = recetar(
@@ -387,6 +405,7 @@ function cerebroDe(
     cerebroPorDefecto(),
   );
   const esfuerzo = r.esfuerzo;
+  const cuenta = cuentaDeLaReceta(r);
   // Ojo con el relevo: el router puede proponer otro CLI cuando no queda
   // semana, pero esta acción del plan ya decidió que abre un Claude, así que
   // aquí no se cambia de CLI. Lo que sí se hace es DECIRLO, que es la mitad
@@ -394,23 +413,32 @@ function cerebroDe(
   // nacería con el de tus ajustes, en silencio.
   const model = (sabe(r.cli, "modelo") ? r.modelo : r.alternativa?.modelo) ?? base ?? deLaTabla;
   if (!sabe(r.cli, "modelo")) {
-    return { model, esfuerzo, porque: `sin semana; ${providerOf(r.cli).label} está libre` };
+    return { model, esfuerzo, cuenta, porque: `sin semana; ${providerOf(r.cli).label} está libre` };
   }
   // Solo se cuenta como "explicación" lo que CAMBIA algo respecto a lo que se
   // habría hecho igualmente: repetir "es oficio del día a día" en ocho líneas
   // no informa de nada.
   const movido = model !== (base ?? deLaTabla);
-  return { model, esfuerzo, porque: movido ? r.porque[r.porque.length - 1] : undefined };
+  return { model, esfuerzo, cuenta, porque: movido ? r.porque[r.porque.length - 1] : undefined };
 }
 
 /** Deterministic gate: every action must point at a real session/project. */
-function checkActions(
+export function checkActions(
   plan: ForemanPlan,
   projects: Project[],
   sessions: SessionInfo[],
   panes: PaneStatus[],
   mundo: CuentaViva[],
 ): Checked[] {
+  // Cada terminal que este plan va a abrir pesa en su cuenta para la siguiente:
+  // abrir no reserva nada, y sin contarlas seis acciones verían la misma foto y
+  // caerían todas en la misma cuenta (`cuentasDelPlan.ts`).
+  let vivo = mundo;
+  const cerebro = (rol: string, pedido: string | undefined) => {
+    const c = cerebroDe(rol, pedido, vivo);
+    vivo = conUnaAbierta(vivo, c.cuenta);
+    return c;
+  };
   return plan.acciones.map((action) => {
     if (action.tipo === "abrir_sesion") {
       const session = sessions.find((s) => s.id === action.sessionId);
@@ -459,8 +487,12 @@ function checkActions(
       if (crudo && !isModelAlias(crudo)) {
         return { action, ok: true, why: "", project, model: crudo };
       }
-      const { model, esfuerzo, porque } = cerebroDe(action.rol ?? action.prompt ?? "", crudo, mundo);
-      return { action, ok: true, why: "", project, model, esfuerzo, porque };
+      // Sin encargo se abre una terminal pelada que no gasta nada: no elige
+      // cuenta ni pesa en ninguna.
+      const { model, esfuerzo, porque, cuenta } = action.prompt?.trim()
+        ? cerebro(action.rol ?? action.prompt ?? "", crudo)
+        : { ...cerebroDe(action.rol ?? "", crudo, vivo), cuenta: undefined };
+      return { action, ok: true, why: "", project, model, esfuerzo, porque, cuenta };
     }
     // A reviewer ALWAYS gets a fresh pane, so it can never be the session that
     // did the work: self-review is ruled out by construction, not by a check.
@@ -474,8 +506,8 @@ function checkActions(
       if (crudo && !isModelAlias(crudo)) {
         return { action, ok: true, why: "", project, model: crudo };
       }
-      const { model, esfuerzo, porque } = cerebroDe("revisión", crudo ?? "opus", mundo);
-      return { action, ok: true, why: "", project, model, esfuerzo, porque };
+      const { model, esfuerzo, porque, cuenta } = cerebro("revisión", crudo ?? "opus");
+      return { action, ok: true, why: "", project, model, esfuerzo, porque, cuenta };
     }
     // Una cuadrilla: la reja mira lo único que puede arruinarla, que es que
     // dos puestos compartan archivos. Seis agentes editando lo mismo van más
@@ -502,8 +534,8 @@ function checkActions(
       // Seis agentes es donde la cuenta se dispara, así que es justo donde hay
       // que verla antes de dar el OK.
       const cerebros = partes.map((p) => {
-        const c = cerebroDe(p.rol, safeModel(p.modelo), mundo);
-        return { model: c.model ?? ("sonnet" as ModelAlias), esfuerzo: c.esfuerzo };
+        const c = cerebro(p.rol, safeModel(p.modelo));
+        return { model: c.model ?? ("sonnet" as ModelAlias), esfuerzo: c.esfuerzo, cuenta: c.cuenta };
       });
       return { action, ok: true, why: "", project, partes: cerebros };
     }
@@ -1048,6 +1080,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
       prompt: string;
       model?: string;
       esfuerzo?: string;
+      cuenta?: Account;
       rol: string;
       cwd: string;
       shadow?: boolean;
@@ -1065,6 +1098,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
             prompt: a.prompt.trim(),
             model: c.model,
             esfuerzo: c.esfuerzo,
+            cuenta: c.cuenta,
             rol: a.rol?.trim() || c.project.name,
             cwd: c.project.path,
             shadow: !!shadowEnabled[c.originalIndex],
@@ -1085,6 +1119,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
             // y lo que se abre tienen que ser la misma cosa.
             model: c.partes?.[i]?.model ?? safeModel(p.modelo) ?? modelForRole(p.rol),
             esfuerzo: c.partes?.[i]?.esfuerzo,
+            cuenta: c.partes?.[i]?.cuenta,
           })),
           !!shadowEnabled[c.originalIndex],
         );
@@ -1096,6 +1131,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
           prompt: reviewPrompt(a.encargo.trim(), c.pane?.name),
           model: c.model,
           esfuerzo: c.esfuerzo,
+          cuenta: c.cuenta,
           rol: t("revisión"),
           cwd: c.project.path,
           shadow: !!shadowEnabled[c.originalIndex],
@@ -1132,6 +1168,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
       const d = despliegue[0];
       exec.onOpenClaudePrompt(d.label, d.cwd, d.prompt, d.model, undefined, d.shadow, {
         esfuerzo: d.esfuerzo,
+        cuenta: d.cuenta,
       });
     } else if (despliegue.length > 1) {
       exec.onOpenTeam(
@@ -1572,6 +1609,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
                 <span className="plan-label">
                   {actionLabel(c)}
                   {c.action.motivo ? ` · ${c.action.motivo}` : ""}
+                  {c.ok && cuentasAparte(c) ? ` · ${t("en {c}", { c: cuentasAparte(c) })}` : ""}
                 {!c.ok && ` · ⚠ ${c.why}`}
                 </span>
                 {/* Con qué cerebro abre. Antes solo se veía en la revisión y

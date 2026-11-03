@@ -21,6 +21,7 @@
 
 import { usageLimits, usageOf, type Limits } from "./pty";
 import { sabe } from "./providers";
+import { leerRenovacion } from "./uso";
 
 export interface Lectura {
   /** Cuándo se leyó, en milisegundos. */
@@ -127,6 +128,56 @@ export function limitesDe(cuenta: Cuenta, vida = VIDA_MS): Promise<Limits> {
     });
   enVuelo.set(clave, p);
   return p;
+}
+
+/**
+ * La tarjeta partida en sus dos topes, que NO son lo mismo para repartir.
+ *
+ * - `semanal`: el % gastado del periodo largo (la semana; el mes en los planes
+ *   que cuentan por mes) y `renueva`, cuándo vuelve a cero en milisegundos.
+ *   Es lo que se PIERDE si no se gasta: lo que mira el router para repartir.
+ * - `sesion` y `sesionRenueva`: el tope de 5 horas. No se pierde nada por no
+ *   usarlo; solo dice si la cuenta está PARADA ahora mismo.
+ *
+ * `loQueTePara` junta los dos en un número, que vale para frenar un encargo
+ * («¿puede arrancar ya?») pero no para elegir cuenta: una Pro al 17 % de su
+ * semana con la sesión al 95 % salía como «la más gastada» (2026-11-02).
+ *
+ * De las líneas de la semana manda «all models», que es el tope de la cuenta;
+ * la de un modelo suelto («Current week (Fable)») solo para a ese modelo. Sin
+ * ella, la peor de las semanales. Una fecha que no se entiende queda sin poner,
+ * y quien decide la trata como desconocida en vez de inventarla.
+ */
+export interface Partes {
+  semanal?: number;
+  renueva?: number;
+  /** De qué es ese periodo largo: la semana, o el mes en los planes que
+      cuentan así (Copilot, Codex gratis). Para no llamar semana a un mes. */
+  periodo?: "semana" | "mes";
+  sesion?: number;
+  sesionRenueva?: number;
+}
+
+function cuandoDe(x: Limits["lines"][number], ahora: number): number | undefined {
+  if (x.resetsAt > 0) return x.resetsAt;
+  const f = x.resets ? leerRenovacion(x.resets, new Date(ahora)) : null;
+  return f ? f.getTime() : undefined;
+}
+
+export function partesDe(l: Limits, ahora = Date.now()): Partes {
+  const semanas = l.lines.filter((x) => /week/i.test(x.label));
+  const larga =
+    semanas.find((x) => /all models/i.test(x.label) || !/\(/.test(x.label)) ??
+    [...semanas].sort((a, b) => b.percent - a.percent)[0] ??
+    l.lines.find((x) => /month/i.test(x.label));
+  const corta = l.lines.find((x) => /session/i.test(x.label));
+  return {
+    semanal: larga?.percent,
+    renueva: larga ? cuandoDe(larga, ahora) : undefined,
+    periodo: larga ? (/month/i.test(larga.label) ? "mes" : "semana") : undefined,
+    sesion: corta?.percent,
+    sesionRenueva: corta ? cuandoDe(corta, ahora) : undefined,
+  };
 }
 
 /** De todas sus líneas, el porcentaje que de verdad te para.

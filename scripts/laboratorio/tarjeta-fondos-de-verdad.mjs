@@ -13,6 +13,9 @@
 //   · Cancelar a medias: ni el `.part` ni el destino se quedan en disco.
 //   · Reiniciar de verdad el binario: el vídeo sigue en la tira, con su
 //     recorte y los dos volúmenes.
+//   · Copiar: el MP4 entero en `tarjeta/copias/`, sin diálogo. El último paso, el
+//     portapapeles, no se da aquí porque es el de quien trabaja: lo prueba
+//     `cargo test --lib portapapeles`, en una estación de ventanas propia.
 //   · Quitarlo: se borra la copia de Adeorq y el original sigue donde estaba.
 //
 //   1. Un binario que sirva por el protocolo de assets la carpeta temporal de
@@ -76,6 +79,15 @@ const GUARDA = `(() => {
       return responde(ruta);
     }
     if (plugin && plugin[1] === "opener") return responde(null);
+    // El portapapeles es de quien trabaja en el equipo: una copia de la tarjeta se
+    // anota y no llega a Rust. Lo demás sí llega, y Rust lo rechaza sin tocarlo.
+    if (/\\/tarjeta_copiar_archivo$/.test(decodeURIComponent(url))) {
+      const { ruta } = JSON.parse(b.body);
+      if (ruta.includes("\\\\tarjeta\\\\copias\\\\")) {
+        (window.__archivosCopiados ??= []).push(ruta);
+        return responde(null);
+      }
+    }
     return antes(a, b);
   };
 })()`;
@@ -268,6 +280,31 @@ try {
     await pestana("Vídeo");
     await dormir(300);
   }
+
+  // 5b. Copiar en Vídeo: el MP4 de verdad en la carpeta de Adeorq. Un tramo corto, que esto ya se ha visto largo.
+  await tecla('.pt-tirador[data-cual="hasta"]', "ArrowLeft", Math.round(dura) - 10);
+  await dormir(700);
+  dice((await tramo()).startsWith("Empieza 0:05 · Termina 0:10"), `un tramo corto para copiar (${await tramo()})`);
+  const dialogosAntes = await js(`window.__dialogos.length`);
+  await js(`[...document.querySelectorAll(".pt-acciones .pt-accion")].find((b) => b.textContent.trim() === "Copiar").click(); true`);
+  const copiado = await hasta(() => js(`window.__archivosCopiados?.[0] ?? ""`), 5 * 60_000, 1000);
+  const carpetaCopias = join(a.base, "datos", "Adeorq", "tarjeta", "copias");
+  dice(Boolean(copiado) && copiado.startsWith(carpetaCopias) && /adeorq-uso-\d{4}-\d{2}-\d{2}\.mp4$/.test(copiado), `Copiar lo saca a la carpeta de Adeorq (${copiado})`);
+  dice((await js(`window.__dialogos.length`)) === dialogosAntes, "sin preguntar dónde guardarlo");
+  if (copiado) {
+    dice(existsSync(copiado) && !existsSync(`${copiado}.part`), "ya existe y sin .part: se puede pegar");
+    const infoCopia = existsSync(copiado) ? leerMp4(readFileSync(copiado)) : {};
+    dice(infoCopia.codec === "avc1" && infoCopia.muestras === 150 && infoCopia.sonido?.codec === "mp4a", `es el vídeo entero: ${infoCopia.codec}, ${infoCopia.muestras} fotogramas (5 s), sonido ${infoCopia.sonido?.codec}`);
+    const elProbe = spawnSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_name:format=duration", "-of", "compact", copiado], { encoding: "utf8" });
+    dice(elProbe.status === 0 && /h264/.test(elProbe.stdout) && /aac/.test(elProbe.stdout), `ffprobe lo abre: ${elProbe.stdout.trim().replace(/\r?\n/g, " | ")}`);
+  }
+  await hasta(() => js(`/^Copiado/.test(document.querySelector(".pt-estado")?.textContent ?? "")`), 10_000, 200);
+  const dicho = await js(`document.querySelector(".pt-estado")?.textContent ?? ""`);
+  dice(dicho.startsWith("Copiado: pégalo donde quieras. Está en ") && dicho.includes(carpetaCopias), `y lo dice (${dicho})`);
+  await foto("de-verdad-3-copiado.png");
+  // El comando existe en Rust y solo acepta sus copias: esto se rechaza antes de llegar al portapapeles.
+  const rechazo = await js(`window.__TAURI_INTERNALS__.invoke("tarjeta_copiar_archivo", { ruta: ${JSON.stringify(VIDEO)} }).then(() => "aceptado", (e) => String(e))`);
+  dice(/no es una copia/.test(rechazo), `Rust no copia nada de fuera de esa carpeta (${rechazo})`);
 
   // 6. Quitarlo: la copia de Adeorq se va, el original se queda.
   await js(`document.querySelector('.pt-mini-sitio:has(.pt-mini[aria-label=${JSON.stringify(NOMBRE)}]) .pt-quitar').click(); true`);

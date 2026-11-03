@@ -43,6 +43,12 @@ export interface NodoTerm {
       reconoce por él al volver (`lib/reenganche.ts`). En otra máquina no
       señala a nada. */
   pty?: number;
+  /** En qué cuenta vivía, y también solo en el tablero que vuelve solo: su
+      conversación está en la carpeta de esa cuenta, y sin esto volvía en la
+      predeterminada con un `--resume` que allí no existe (revisor,
+      2026-11-02). Solo id, nombre, carpeta y CLI: nunca el entorno entero,
+      que puede llevar una clave de API. */
+  cuenta?: { id: string; label: string; dir: string; provider: string };
 }
 
 export interface NodoWidget {
@@ -232,6 +238,17 @@ const ancla = (v: unknown): Ancla | undefined => {
   return { nodo, rx: acotar(r.rx), ry: acotar(r.ry) };
 };
 
+/** La cuenta de un nodo, si son cuatro textos. Quien la usa (`App.tsx`) solo
+    la acepta si es una de las cuentas de Cuentas o la principal: un archivo
+    editado a mano no elige la carpeta de configuración de un proceso. */
+function cuentaGuardada(v: unknown): NodoTerm["cuenta"] {
+  if (!v || typeof v !== "object") return undefined;
+  const c = v as Record<string, unknown>;
+  const s = (x: unknown) => (typeof x === "string" ? x : null);
+  const [id, label, dir, provider] = [s(c.id), s(c.label), s(c.dir), s(c.provider)];
+  return id && label !== null && dir !== null && provider ? { id, label, dir, provider } : undefined;
+}
+
 /** Lee un archivo de lienzo comprobándolo campo a campo.
  *
  *  Es más largo que un `JSON.parse` a pelo y esa es la idea: el archivo puede
@@ -279,6 +296,7 @@ export function parsear(raw: string): CanvasFile | null {
         ruta: txt(r.ruta),
         cmd,
         pty: typeof r.pty === "number" && Number.isInteger(r.pty) && r.pty > 0 ? r.pty : undefined,
+        cuenta: cuentaGuardada(r.cuenta),
       });
     } else if (r.tipo === "widget") {
       // Contra la lista de verdad: un widget que este Adeorq no conoce (de una

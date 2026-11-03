@@ -74,11 +74,26 @@ pub struct FichaRemota {
     pub tamano: Option<String>,
     pub alternativa: bool,
     pub pegado: bool,
+    /// La contraseña de la terminal (`pty::ClaveDePanel`): va y vuelve por esta
+    /// conexión, que ya lleva la suya, para que la app que vuelve tras una
+    /// actualización la conozca. `default` para entenderse con un proceso de antes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clave: Option<pty::ClaveDePanel>,
+}
+
+/// La ficha del espejo, con lo que dice el proceso de terminales: su pid y la
+/// contraseña que tiene de verdad. Uno de la versión de antes, vivo tras actualizar,
+/// no sabe de ellas: esa terminal nace sin ninguna, y si aquí constara la inventada,
+/// su puente no podría presentarla y se quedaría sin permisos hasta cerrarla
+/// (revisión de la 0.9.239).
+fn al_dia(ficha: &mut FichaRemota, real: FichaRemota) {
+    ficha.pid = real.pid;
+    ficha.clave = real.clave;
 }
 
 impl From<pty::Ficha> for FichaRemota {
     fn from(f: pty::Ficha) -> Self {
-        FichaRemota { id: f.id, cwd: f.cwd, command: f.command, pid: f.pid, tamano: f.tamano, alternativa: f.alternativa, pegado: f.pegado }
+        FichaRemota { id: f.id, cwd: f.cwd, command: f.command, pid: f.pid, tamano: f.tamano, alternativa: f.alternativa, pegado: f.pegado, clave: f.clave }
     }
 }
 
@@ -509,6 +524,7 @@ impl Sombra {
             tamano: f.tamano.clone(),
             alternativa: self.alternativa.load(std::sync::atomic::Ordering::Relaxed),
             pegado: self.pegado.load(std::sync::atomic::Ordering::Relaxed),
+            clave: f.clave.clone(),
         }
     }
 }
@@ -688,6 +704,7 @@ impl Remoto {
             tamano: Some(format!("{}x{}", alta.cols, alta.rows)),
             alternativa: false,
             pegado: false,
+            clave: alta.clave.clone(),
         };
         // Al espejo ANTES de pedirlo: lo primero que diga puede llegar antes
         // que el «hecho».
@@ -705,7 +722,7 @@ impl Remoto {
             let mut espejo = self.espejo.lock().unwrap_or_else(|e| e.into_inner());
             for f in fichas {
                 if let Some(s) = espejo.get_mut(&f.id) {
-                    s.ficha.pid = f.pid;
+                    al_dia(&mut s.ficha, f);
                 }
             }
         }
@@ -1025,6 +1042,25 @@ pub fn arrancar(app: &tauri::AppHandle) {
 mod pruebas {
     use super::*;
 
+    /// Un proceso de terminales de la versión de antes contesta sin ese campo: la
+    /// terminal no tiene contraseña, y en el espejo tampoco puede constar.
+    #[test]
+    fn con_un_proceso_de_antes_la_terminal_no_consta_con_contrasena() {
+        let mut ficha: FichaRemota = serde_json::from_str(
+            r#"{"id":3,"cwd":"x","command":null,"pid":null,"tamano":null,"alternativa":false,"pegado":false}"#,
+        )
+        .unwrap();
+        ficha.clave = pty::ClaveDePanel::nueva();
+        assert!(ficha.clave.is_some());
+        let de_antes: FichaRemota = serde_json::from_str(
+            r#"{"id":3,"cwd":"x","command":null,"pid":7,"tamano":null,"alternativa":false,"pegado":false}"#,
+        )
+        .unwrap();
+        al_dia(&mut ficha, de_antes);
+        assert_eq!(ficha.pid, Some(7));
+        assert!(ficha.clave.is_none());
+    }
+
     /// El ajuste: sin fichero manda lo de fábrica, «0» apaga aunque lo de
     /// fábrica sea encendido, y el «1» de antes sigue encendiendo.
     #[test]
@@ -1131,6 +1167,7 @@ mod pruebas {
             rows: 30,
             command: Some(consola_que_dice(eco)),
             env: None,
+            clave: None,
         }
     }
 
@@ -1605,7 +1642,9 @@ mod pruebas {
         }
         let (señas, hilo, dir) = servidor(Duration::from_secs(60));
         let r = Remoto::conectar(&señas, Arc::new(Nada)).unwrap();
-        r.crear(Alta { command: Some(quieta(60)), ..cmd(3, "") }).unwrap();
+        let clave = pty::ClaveDePanel::nueva();
+        r.crear(Alta { command: Some(quieta(60)), clave: clave.clone(), ..cmd(3, "") }).unwrap();
+        assert_eq!(r.fichas()[0].clave, clave, "la app la sabe desde que la crea");
         POR_ACTUALIZAR.store(true, std::sync::atomic::Ordering::Relaxed);
         al_cerrar_la_app(&r);
         POR_ACTUALIZAR.store(false, std::sync::atomic::Ordering::Relaxed);
@@ -1619,6 +1658,10 @@ mod pruebas {
             }
         };
         assert_eq!(nueva.fichas().iter().map(|f| f.id).collect::<Vec<_>>(), [3], "no aguantó la actualización");
+        // La contraseña de la terminal vuelve con ella: su puente sigue
+        // presentándose con la misma, y la app nueva tiene que reconocerla.
+        assert!(clave.is_some());
+        assert_eq!(nueva.fichas()[0].clave, clave, "la versión nueva no sabe la contraseña de la terminal que recogió");
         al_cerrar_la_app(&nueva);
         assert_eq!(hilo.join().unwrap(), Final::Despedida, "cerrar de verdad tiene que despedirse");
         let _ = std::fs::remove_dir_all(&dir);

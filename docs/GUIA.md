@@ -688,7 +688,7 @@ que una cuenta acabe escribiendo en la carpeta equivocada.
 usa `~/.pi/agent`; y su login guarda en `auth.json` dentro de esa misma
 carpeta. Ojo con un detalle que se cuela fácil: su carpeta es `.pi/agent`, no
 `.pi` a secas, así que buscar el login en `.pi` diría «desconectada» siempre.
-Es un agente que habla con varios proveedores (Claude Pro/Max, ChatGPT,
+Es un agente que habla con varios proveedores (Claude Pro, Max o Ultra, ChatGPT,
 Copilot), y por eso **no aparece como relevo automático** cuando te quedas sin
 semana: si su login es el de tu propia cuenta de Claude, mandarte ahí sería
 mandarte a la misma cuota agotada.

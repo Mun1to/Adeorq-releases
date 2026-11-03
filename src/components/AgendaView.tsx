@@ -69,6 +69,7 @@ import {
   type GoalCount,
 } from "../lib/goals";
 import { accionDe, olvidarAccion, type AccionConsejo } from "../lib/acciones";
+import { abrirEnlacesFuera } from "../lib/enlacesFuera";
 import { hueOf } from "../lib/colors";
 import { providerOf } from "../lib/providers";
 import { indiceValido, siguienteNota } from "../lib/agenda";
@@ -1080,7 +1081,7 @@ export default function AgendaView({ current, onOpenProject, modeloLocal, onResu
                 <span className="cal-when">{whenText(v.date, t)}</span>
                 <span className="cal-title stream-hide">
                   {v.url ? (
-                    <a href={v.url} target="_blank" rel="noreferrer">
+                    <a href={v.url} target="_blank" rel="noreferrer" onClick={abrirEnlacesFuera}>
                       {v.title}
                     </a>
                   ) : (

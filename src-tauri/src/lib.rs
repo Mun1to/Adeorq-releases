@@ -1,6 +1,8 @@
 mod accounts;
 mod archivos;
 mod bots;
+mod bots_conexion;
+mod bots_yaml;
 mod autostart;
 mod cierre;
 mod compactaciones;
@@ -22,6 +24,12 @@ mod media;
 mod navegador;
 mod pedir_abrir;
 pub mod pedir_secreto;
+
+/// `adeorq preguntar`: una llamada al MCP de una sola vez (`mcp/preguntar.rs`).
+pub fn preguntar_principal(args: &[String]) -> i32 {
+    mcp::preguntar::principal(args)
+}
+
 mod memoria;
 mod metas;
 mod notes;
@@ -551,6 +559,11 @@ pub fn run() {
             movil::movil_olvidar,
             movil::movil_avisar,
             bots::bots_estado,
+            bots_conexion::bots_conexiones,
+            bots_conexion::bots_conectar_vista,
+            bots_conexion::bots_conectar,
+            bots_conexion::bots_nivel,
+            bots_conexion::bots_desconectar,
             bots::bots_guardar,
             bots::bots_clave_poner,
             bots::bots_clave_quitar,

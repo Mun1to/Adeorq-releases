@@ -121,6 +121,7 @@ caso("sin mods no hay hoja ni línea en el rastro", hojaDeLosMods([]) === "" && 
     ["src/components/SettingsView.tsx", '<section className="panel-card" data-sin-mods="">\n                <h2>{t("Modo de permisos")}</h2>'],
     ["src/components/AjustesMcp.tsx", '<section className="panel-card" data-sin-mods="">\n      <h2>{t("Qué puede hacer cada cliente por el MCP")}</h2>'],
     ["src/components/PedirSecreto.tsx", '<div className="modal-overlay" data-sin-mods=""'],
+    ["src/components/AjustesBotsConexion.tsx", '<section className="panel-card" data-sin-mods="">\n      <h2>{t("Conectar un bot")}</h2>'],
     ["src/components/AccountsView.tsx", '<div className="panel accounts" data-sin-mods="">'],
   ];
   for (const [f, marca] of ZONAS) {

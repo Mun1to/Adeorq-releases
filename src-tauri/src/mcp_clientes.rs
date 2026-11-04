@@ -31,6 +31,9 @@
 // Adeorq» siempre. Lo que estaba guardado por nombre de cliente («claude-code»,
 // «codex-mcp-client») se muda solo a su programa al leerlo (`mudar`).
 //
+// Un bot conectado (`bots_conexion.rs`) es el programa `bot:<nombre>`, con su propia
+// tabla (`alcance_de_bot`) y su sitio en Ajustes › Bots. Decisión B3 de Munir.
+//
 // ── LO DE CASA NO PASA POR AQUÍ ─────────────────────────────────────────────
 //
 // El Capataz y el conserje hablan con el MCP por el puente `adeorq --mcp
@@ -77,6 +80,22 @@ pub const FABRICA: Nivel = Nivel::Plan;
 
 /// La fila de lo que llega sin la contraseña de una terminal de Adeorq.
 pub const FUERA: &str = "fuera";
+
+/// Lo que va delante del nombre en la fila de un bot conectado (`bots_conexion.rs`).
+/// Esa fila solo se gana con la clave del bot: nunca con el nombre del `initialize`.
+const PREFIJO_BOT: &str = "bot:";
+
+pub fn es_bot(programa: &str) -> bool {
+    programa.starts_with(PREFIJO_BOT)
+}
+
+pub fn programa_de_bot(bot: &str) -> String {
+    format!("{PREFIJO_BOT}{bot}")
+}
+
+pub fn bot_de(programa: &str) -> Option<&str> {
+    programa.strip_prefix(PREFIJO_BOT)
+}
 
 /// Los programas que se abren en una terminal: su ejecutable (o como se
 /// presenta) y el id con el que van en Ajustes, que es el de `lib/providers.ts`.
@@ -129,7 +148,7 @@ pub fn programa_del_comando(argv: &[String]) -> Option<&'static str> {
 /// ninguno queda con su nombre.
 pub fn programa_de_nombre(nombre: &str) -> String {
     let n = nombre.trim().to_ascii_lowercase();
-    if n == FUERA {
+    if n == FUERA || es_bot(&n) {
         return n;
     }
     PROGRAMAS
@@ -137,6 +156,17 @@ pub fn programa_de_nombre(nombre: &str) -> String {
         .find(|(exe, id)| n == *exe || n == *id || (id.len() >= 4 && n.contains(id)))
         .map(|(_, id)| id.to_string())
         .unwrap_or(n)
+}
+
+/// El programa de un cliente que se presenta por su nombre (una consola pelada, una
+/// terminal de antes). Decir «bot:hermes» no lo hace Hermes: eso lo da su clave.
+pub fn programa_de_cliente(nombre: &str) -> String {
+    let p = programa_de_nombre(nombre);
+    if es_bot(&p) {
+        "desconocido".to_string()
+    } else {
+        p
+    }
 }
 
 /// Cuándo se presentó un cliente por última vez, y con qué versión.
@@ -194,11 +224,54 @@ pub fn la_ve(nivel: Nivel, herramienta: &str) -> bool {
     permite(nivel, herramienta) || solo_lo_suyo(nivel, herramienta)
 }
 
+/// Hasta dónde llega un bot en una herramienta.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AlcanceDeBot {
+    Entera,
+    SoloLoSuyo,
+    Nada,
+}
+
+/// Lo que puede un bot en cada escalón. Es más corto que lo de los demás a propósito:
+/// lo que lee se va a su proveedor, y quien lo engañe lo lee también. La memoria, la
+/// agenda, las decisiones y los mods tampoco son «la lista de terminales y el uso», y
+/// una flecha pasa la respuesta de una terminal a otra.
+fn alcance_de_bot(nivel: Nivel, herramienta: &str) -> AlcanceDeBot {
+    use AlcanceDeBot::*;
+    match (nivel, herramienta) {
+        (Nivel::Auto, h) if permite(Nivel::Auto, h) => Entera,
+        (_, "get_active_panes" | "get_usage") => Entera,
+        (Nivel::Plan, "get_projects" | "open_pane") => Entera,
+        (Nivel::Plan, "close_pane") | (Nivel::Mirar | Nivel::Plan, "read_pane_screen" | "read_pane_transcript") => SoloLoSuyo,
+        _ => Nada,
+    }
+}
+
+/// `la_ve` para un programa concreto: los bots tienen su propia tabla.
+pub fn la_ve_programa(programa: &str, nivel: Nivel, herramienta: &str) -> bool {
+    if es_bot(programa) {
+        alcance_de_bot(nivel, herramienta) != AlcanceDeBot::Nada
+    } else {
+        la_ve(nivel, herramienta)
+    }
+}
+
+/// `solo_lo_suyo` para un programa concreto.
+pub fn solo_lo_suyo_programa(programa: &str, nivel: Nivel, herramienta: &str) -> bool {
+    if es_bot(programa) {
+        alcance_de_bot(nivel, herramienta) == AlcanceDeBot::SoloLoSuyo
+    } else {
+        solo_lo_suyo(nivel, herramienta)
+    }
+}
+
 /// El escalón de un programa que no está en la lista de Ajustes: Claude, auto;
-/// los demás y lo de fuera de Adeorq, plan.
+/// un bot, el de abajo; los demás y lo de fuera de Adeorq, plan.
 pub fn nivel_de_fabrica(programa: &str) -> Nivel {
     if programa == "claude" {
         Nivel::Auto
+    } else if es_bot(programa) {
+        Nivel::Mirar
     } else {
         FABRICA
     }
@@ -236,6 +309,14 @@ fn mudar(c: Clientes) -> Clientes {
 /// Dice el escalón, qué sí puede y dónde se cambia: un «no» seco deja al agente
 /// reintentando lo mismo.
 pub fn mensaje_denegado(programa: &str, nivel: Nivel, herramienta: &str) -> String {
+    if es_bot(programa) {
+        let que = match nivel {
+            Nivel::Mirar => "ve la lista de terminales y el uso, y lee solo las terminales que abrió él",
+            Nivel::Plan => "además ve los proyectos y abre terminales, y solo lee y cierra las que abrió él",
+            Nivel::Auto => "puede hacerlo todo",
+        };
+        return format!("«{herramienta}» no está al alcance de este bot: {que}. Se cambia en Ajustes > Bots de Adeorq.");
+    }
     let nombre = if programa == FUERA {
         "lo que se conecta desde fuera de una terminal de Adeorq".to_string()
     } else {
@@ -316,7 +397,8 @@ pub struct ClienteVisto {
 /// que Munir tiene que poder subir aunque todavía no haya llamado nadie de fuera.
 fn filas(c: &Clientes) -> Vec<ClienteVisto> {
     let fuera = FUERA.to_string();
-    let mut nombres: Vec<&String> = c.vistos.keys().chain(c.niveles.keys()).chain(std::iter::once(&fuera)).collect();
+    // Un bot tiene su sitio en Ajustes › Bots, con lo que implica cada escalón al lado.
+    let mut nombres: Vec<&String> = c.vistos.keys().chain(c.niveles.keys()).chain(std::iter::once(&fuera)).filter(|n| !es_bot(n)).collect();
     nombres.sort();
     nombres.dedup();
     nombres
@@ -347,18 +429,30 @@ pub fn mcp_clientes_poner(nombre: String, nivel: Option<Nivel>) -> Result<Vec<Cl
     if nombre.is_empty() || nombre.len() > 120 {
         return Err("Ese cliente no tiene nombre.".into());
     }
+    if es_bot(&nombre) {
+        return Err("Un bot se cambia en Ajustes > Bots.".into());
+    }
+    poner(&nombre, nivel).map(|c| filas(&c))
+}
+
+/// Poner el escalón de un bot; sin `nivel`, olvidarlo: al volver a conectarlo nace abajo.
+pub fn poner_de_bot(bot: &str, nivel: Option<Nivel>) -> Result<(), String> {
+    poner(&programa_de_bot(bot), nivel).map(|_| ())
+}
+
+fn poner(programa: &str, nivel: Option<Nivel>) -> Result<Clientes, String> {
     let _g = CERROJO.lock().unwrap_or_else(|e| e.into_inner());
     let mut c = leer();
     match nivel {
         Some(n) => {
-            c.niveles.insert(nombre, n);
+            c.niveles.insert(programa.to_string(), n);
         }
         None => {
-            c.niveles.remove(&nombre);
+            c.niveles.remove(programa);
         }
     }
     guardar(&c)?;
-    Ok(filas(&c))
+    Ok(c)
 }
 
 #[cfg(test)]
@@ -490,6 +584,77 @@ mod tests {
         assert!(m.contains("«plan»") && m.contains("codex") && m.contains("Ajustes"), "{m}");
         let f = mensaje_denegado(FUERA, Nivel::Plan, "send_command");
         assert!(f.contains("fuera de una terminal de Adeorq"), "{f}");
+    }
+
+    /// Lo que dice el encargo de cada escalón de un bot, herramienta por herramienta.
+    /// Lo que no se nombra aquí no le llega en ninguno salvo en «auto».
+    #[test]
+    fn los_tres_escalones_de_un_bot() {
+        let b = "bot:hermes";
+        let ve = |n: Nivel, h: &str| la_ve_programa(b, n, h);
+        let suyo = |n: Nivel, h: &str| solo_lo_suyo_programa(b, n, h);
+        assert_eq!(nivel_de(&Clientes::default(), b), Nivel::Mirar, "nace con el de abajo");
+
+        for h in ["get_active_panes", "get_usage"] {
+            assert!(ve(Nivel::Mirar, h) && !suyo(Nivel::Mirar, h), "{h}");
+        }
+        for h in ["read_pane_screen", "read_pane_transcript"] {
+            assert!(suyo(Nivel::Mirar, h) && suyo(Nivel::Plan, h), "{h} solo de lo suyo");
+            assert!(ve(Nivel::Auto, h) && !suyo(Nivel::Auto, h), "{h} entera en auto");
+        }
+        let ajenas = ["leer_memoria", "buscar_memoria", "leer_turno", "get_agenda", "get_decision", "ask_decision", "get_mods", "link_panes", "send_command", "send_keys", "compactar_terminal"];
+        for h in ajenas {
+            assert!(!ve(Nivel::Mirar, h) && !ve(Nivel::Plan, h), "{h} no le llega por debajo de auto");
+            assert!(ve(Nivel::Auto, h), "{h} sí en auto");
+        }
+        assert!(!ve(Nivel::Mirar, "open_pane") && !ve(Nivel::Mirar, "get_projects") && !ve(Nivel::Mirar, "close_pane"));
+        assert!(ve(Nivel::Plan, "open_pane") && ve(Nivel::Plan, "get_projects") && suyo(Nivel::Plan, "close_pane"));
+        assert!(ve(Nivel::Auto, "close_pane") && !suyo(Nivel::Auto, "close_pane"));
+        assert!(!ve(Nivel::Auto, "inventada"), "lo desconocido no pasa ni en auto");
+    }
+
+    /// Una herramienta nueva no le llega a un bot hasta que alguien lo decida.
+    #[test]
+    fn por_debajo_de_auto_un_bot_solo_ve_lo_que_se_nombra() {
+        let vistas: Vec<String> = crate::mcp::lista_de_herramientas()
+            .iter()
+            .filter_map(|h| h["name"].as_str().map(str::to_string))
+            .filter(|n| la_ve_programa("bot:x", Nivel::Plan, n))
+            .collect();
+        let mut esperadas = ["close_pane", "get_active_panes", "get_projects", "get_usage", "open_pane", "read_pane_screen", "read_pane_transcript"];
+        esperadas.sort_unstable();
+        let mut vistas: Vec<&str> = vistas.iter().map(String::as_str).collect();
+        vistas.sort_unstable();
+        assert_eq!(vistas, esperadas);
+    }
+
+    /// Solo la clave da la fila de un bot: ni el nombre del `initialize` en una
+    /// consola pelada, ni uno que se parezca a un programa («bot:grok» no es Grok).
+    #[test]
+    fn decir_que_eres_un_bot_no_te_hace_serlo() {
+        for n in ["bot:hermes", "BOT:hermes", "  bot:openclaw ", "bot:grok"] {
+            assert!(!es_bot(&programa_de_cliente(n)), "{n}");
+        }
+        assert_eq!(programa_de_nombre("bot:grok"), "bot:grok", "lo guardado no se muda a otro programa");
+        assert_eq!(programa_de_cliente("claude-code"), "claude");
+        let mut c = Clientes::default();
+        c.niveles.insert("bot:grok".into(), Nivel::Auto);
+        assert_eq!(mudar(c).niveles.get("bot:grok"), Some(&Nivel::Auto));
+    }
+
+    #[test]
+    fn un_bot_no_sale_en_la_fila_de_los_clientes() {
+        let mut c = Clientes::default();
+        c.vistos.insert("bot:hermes".into(), Visto::default());
+        c.niveles.insert("bot:hermes".into(), Nivel::Auto);
+        assert_eq!(filas(&c).iter().map(|f| f.nombre.as_str()).collect::<Vec<_>>(), ["fuera"]);
+        assert!(mcp_clientes_poner("bot:hermes".into(), Some(Nivel::Auto)).is_err());
+    }
+
+    #[test]
+    fn el_mensaje_a_un_bot_dice_donde_se_cambia() {
+        let m = mensaje_denegado("bot:hermes", Nivel::Mirar, "open_pane");
+        assert!(m.contains("Ajustes > Bots") && m.contains("open_pane"), "{m}");
     }
 
     #[test]

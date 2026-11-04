@@ -1,11 +1,11 @@
 {
-  "version": "0.9.240",
-  "notes": "Avisos a un bot en Ajustes, ventana al abrir terminales desde fuera con encargo, menos clics con las claves, Mac con Llavero y muchos arreglos en Linux.",
-  "pub_date": "2026-11-04T03:29:13Z",
+  "version": "0.9.241",
+  "notes": "Conectar un bot con un clic en Ajustes, con su propio permiso y un boton para desconectarlo, una linea para Grok Bot, y varios arreglos.",
+  "pub_date": "2026-11-04T06:16:06Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3cvZXZhak9FM3RmQjBTWkZROU1vMnJwVWRHOTk3aHhPNEdWQkdsT3EyR0JxNjRQK1VzY3F6YTRtMVlLdEFYTTBEOGxXaktwZ1FXZHFiR0FmQUVPOEFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzYyNDgyCWZpbGU6QWRlb3JxXzAuOS4yNDBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDAKS29FZmhPYkcrT1FHcSt5bklWZE10Z2hxdUZmZXJDbmdRbWd2cThUSjY0RlUra0xza2w2SjNLWGh0YmJhdkQwWloxZmlFR0NDQVpFcWNKaHpHbTNKREE9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.240/Adeorq_0.9.240_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzNoL25udk05N1ZXbG5PcVlhbzVNUVp1L2lnT1htQ201ZmxHTEU2ZGhGMUpxSFNuZU0vdTJxZnUrU2NGaGdLczFGZ1RjbWo1VW45eWxjeVhkZnowdUFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzcyOTIzCWZpbGU6QWRlb3JxXzAuOS4yNDFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDEKbkY5a0l5USs1aWJaOWwvb3RGWkI2L3duNmF6eFkzSkdlUzNTTDJPNExWMGxocHhUTjlQSHBVVEU1U1hCNDZlcmU3SjNLMVhUeVhwRVpXQ1JWOStXQkE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.241/Adeorq_0.9.241_x64-setup.exe"
     }
   }
 }

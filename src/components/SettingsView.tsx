@@ -65,6 +65,7 @@ import { open as pickFile } from "@tauri-apps/plugin-dialog";
 import AtajosEditor from "./AtajosEditor";
 import AjustesMovil from "./AjustesMovil";
 import AjustesBots from "./AjustesBots";
+import AjustesBotsConexion from "./AjustesBotsConexion";
 import AjustesMcp from "./AjustesMcp";
 import AjustesClavesAgente from "./AjustesClavesAgente";
 import AjustesMods from "./AjustesMods";
@@ -1654,6 +1655,7 @@ export default function SettingsView({
             </>
           )}
           {seccion === "movil" && <AjustesMovil />}
+          {seccion === "bots" && <AjustesBotsConexion />}
           {seccion === "bots" && <AjustesBots />}
           {seccion === "mods" && <AjustesMods onAlAgente={onAlAgente} />}
           {/* La guía dejó de ser una pestaña de la barra de arriba. Ocupaba

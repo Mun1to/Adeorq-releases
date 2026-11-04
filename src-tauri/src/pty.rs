@@ -1569,10 +1569,7 @@ pub async fn pty_kill(app: AppHandle, state: State<'_, PtyState>, id: u32) -> Re
     // fin en cuanto `matar` le dé la señal, y quien lo escuche tiene que saber
     // ya que lo cerraste tú (`programados.rs`).
     if existe(&app, id) {
-        let mut a_mano = CERRADAS_A_MANO.lock().unwrap_or_else(|e| e.into_inner());
-        if !a_mano.contains(&id) {
-            a_mano.push(id);
-        }
+        apuntar_cerrada(id);
     }
     if let Some(r) = crate::terminales::remoto(&app) {
         tauri::async_runtime::spawn_blocking(move || r.matar(id)).await.map_err(|e| e.to_string())??;
@@ -1592,6 +1589,13 @@ static CERRADAS_A_MANO: Mutex<Vec<u32>> = Mutex::new(Vec::new());
 
 pub fn cerrada_a_mano(id: u32) -> bool {
     CERRADAS_A_MANO.lock().unwrap_or_else(|e| e.into_inner()).contains(&id)
+}
+
+pub fn apuntar_cerrada(id: u32) {
+    let mut a_mano = CERRADAS_A_MANO.lock().unwrap_or_else(|e| e.into_inner());
+    if !a_mano.contains(&id) {
+        a_mano.push(id);
+    }
 }
 
 /// Cierra TODAS las terminales. Se llama cuando Adeorq se va a cerrar.

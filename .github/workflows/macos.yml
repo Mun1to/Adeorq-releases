@@ -262,8 +262,10 @@ jobs:
         if: ${{ !cancelled() && hashFiles('src-tauri/target/release/bundle/macos/Adeorq.app/Contents/Info.plist') != '' }}
         run: node scripts/macos/probar-app.mjs "$APP" "$RUNNER_TEMP/prueba-mac"
 
+      # En una publicación solo si algo salió mal: la 0.9.240 dio «la ventana no
+      # contestó a tiempo» al abrir la primera consola y no quedó nada que mirar.
       - name: Guardar las capturas y los registros
-        if: ${{ !cancelled() && github.event_name != 'release' }}
+        if: ${{ !cancelled() && (github.event_name != 'release' || failure()) }}
         uses: actions/upload-artifact@v4
         with:
           name: adeorq-mac-prueba

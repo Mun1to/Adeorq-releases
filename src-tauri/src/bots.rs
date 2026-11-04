@@ -501,11 +501,26 @@ fn matar_rama(hijo: &mut std::process::Child) {
 
 /// Lanza un programa con sus argumentos por separado, sin ventana, y espera a que
 /// acabe hasta `plazo`. Pasado el plazo lo mata, con lo que cuelgue de él.
-fn correr(programa: &Path, args: &[String], plazo: Duration) -> Result<(), String> {
+pub(crate) fn correr(programa: &Path, args: &[String], plazo: Duration) -> Result<(), String> {
+    correr_y_leer(programa, args, plazo).map(|_| ())
+}
+
+/// `correr`, y lo que dijo por su salida.
+pub(crate) fn correr_y_leer(programa: &Path, args: &[String], plazo: Duration) -> Result<String, String> {
     let mut c = Command::new(programa);
-    c.args(args).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::piped()).sin_ventana();
+    c.args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).sin_ventana();
     let mut hijo = c.spawn().map_err(|e| format!("no se pudo lanzar: {e}"))?;
     let mut errores = hijo.stderr.take();
+    // Se lee aunque no haga falta: un programa que llena la tubería se queda parado.
+    let mut dicho = hijo.stdout.take();
+    let (lo_dicho, salida_normal) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut todo = Vec::new();
+        if let Some(d) = dicho.as_mut() {
+            let _ = d.read_to_end(&mut todo);
+        }
+        let _ = lo_dicho.send(todo);
+    });
     let (lo_leido, salida) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         let mut cola: Vec<u8> = Vec::new();
@@ -537,11 +552,11 @@ fn correr(programa: &Path, args: &[String], plazo: Duration) -> Result<(), Strin
         }
     };
     // El programa ya ha acabado. Lo que haya dejado vivo (una pasarela, un demonio)
-    // hereda su salida de errores y no la cierra: esperar a eso colgaba el hilo de
-    // los avisos para siempre, y no salía ninguno más.
+    // hereda su salida y no la cierra: esperar a eso colgaba el hilo de los avisos
+    // para siempre, y no salía ninguno más.
     let salida = salida.recv_timeout(Duration::from_millis(500)).unwrap_or_default();
     if estado.success() {
-        Ok(())
+        Ok(String::from_utf8_lossy(&salida_normal.recv_timeout(Duration::from_millis(500)).unwrap_or_default()).to_string())
     } else {
         let por_que = ultima_linea(&salida);
         let codigo = estado.code().map(|c| c.to_string()).unwrap_or_else(|| "?".into());

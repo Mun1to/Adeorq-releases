@@ -336,7 +336,8 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         // nueva dirá «de: …» (Munir, 2026-10-17). Solo si su puente presentó su
         // panel; un agente sin panel no tiene cabecera que nombrar.
         const madre = typeof p.quien === "number" ? panelesRef.current().find((s) => s.id === p.quien) : undefined;
-        const abiertaPor = madre ? tituloDeCabecera(madre.name, madre.cwd).trim() || undefined : undefined;
+        // Un bot no tiene panel, pero sí nombre, y ese lo da su clave: lo pone Rust.
+        const abiertaPor = p.deBot || (madre ? tituloDeCabecera(madre.name, madre.cwd).trim() || undefined : undefined);
         // Por su conversación, para que al recrear su panel (otro arranque,
         // Reanimar) vuelva siendo delegada (`lib/delegadas.ts`).
         apuntarDelegada(command, abiertaPor);
@@ -369,6 +370,7 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
               donde: abierto.donde,
               conEncargo: conEncargo || !brief,
               flecha,
+              escribe: p.escribe,
             }),
             deCuenta,
             porTecho,

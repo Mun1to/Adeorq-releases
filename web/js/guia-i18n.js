@@ -745,6 +745,8 @@ window.ADEORQ_I18N_EXTRA = {
     'guia.dudas.r3bot': '<b>Notifications to a bot</b>, only if you turn them on in Settings → Bots: the webhook of ' +
                         'your Grok Bot (the address you paste yourself) or the Hermes or OpenClaw on your machine, ' +
                         'which goes out on its own.',
+    'guia.dudas.r3conectado': '<b>A connected bot</b>, if you connect one in Settings → Bots: what its permission lets ' +
+                              'it read reaches it, and from it, its provider.',
     'guia.dudas.r3e': '<b>The phone</b> goes through Tailscale, its private network, not through Adeorq servers.',
     'guia.dudas.r3f': '<b>What you open yourself</b>: the panel browser and the web windows on the canvas load ' +
                       'whatever page you give them, and the agents (Claude Code, Codex…) and the concierge reach ' +

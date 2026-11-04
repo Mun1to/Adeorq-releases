@@ -47,6 +47,20 @@ pub fn preparar() {
     }
 }
 
+/// La ruta del enlace para un cliente que se queda apuntándola, como un bot: la copia
+/// que el instalador no cierra y, donde no hay copia, el ejecutable de verdad (dentro
+/// de un AppImage, `current_exe` es una carpeta que cambia en cada arranque).
+pub(crate) fn ruta_del_enlace() -> Result<PathBuf, String> {
+    if let Some(imagen) = std::env::var_os("APPIMAGE").filter(|a| !a.is_empty()) {
+        return Ok(PathBuf::from(imagen));
+    }
+    let exe = std::env::current_exe().map_err(|e| format!("no sé dónde estoy: {e}"))?;
+    if cfg!(debug_assertions) || !cfg!(windows) {
+        return Ok(exe);
+    }
+    copia_estable(&exe, &crate::dir_datos()?.join("mcp"), env!("CARGO_PKG_VERSION"))
+}
+
 /// Copia `exe` a `dir\adeorq.exe` si la versión apuntada al lado no es `version`.
 fn copia_estable(exe: &Path, dir: &Path, version: &str) -> Result<PathBuf, String> {
     let copia = dir.join("adeorq.exe");
@@ -321,6 +335,51 @@ fn retocar(fichero: &Path, cambio: impl Fn(&str) -> Option<String>) -> Result<bo
     }
 }
 
+/// Para quien lo pide a propósito: si no se puede o no se entiende, lo dice, y deja
+/// una copia al lado antes de escribir (con los permisos del original, que puede llevar
+/// claves). Devuelve dónde quedó la copia; `None` si no había nada que copiar. Si el
+/// archivo no existe, `crear` dice si se empieza uno, en 600 donde eso existe.
+pub(crate) fn retocar_con_copia(fichero: &Path, crear: bool, cambio: impl Fn(&str) -> Result<String, String>) -> Result<Option<PathBuf>, String> {
+    let _turno = UN_RETOQUE.lock().unwrap_or_else(|e| e.into_inner());
+    let texto = match std::fs::read_to_string(fichero) {
+        Ok(t) => Some(t),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound && crear => None,
+        Err(e) => return Err(format!("no pude leer {}: {e}", fichero.display())),
+    };
+    let nuevo = cambio(texto.as_deref().unwrap_or_default())?;
+    let copia = match texto {
+        Some(leido) => {
+            if std::fs::metadata(fichero).is_ok_and(|m| m.permissions().readonly()) {
+                return Err(format!("{} es de solo lectura, así que no lo he tocado", fichero.display()));
+            }
+            let ahora = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis());
+            let nombre = fichero.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+            let copia = fichero.with_file_name(format!("{nombre}.antes-de-adeorq-{ahora}"));
+            std::fs::copy(fichero, &copia).map_err(|e| format!("no pude hacer la copia de {}, así que no lo he tocado: {e}", fichero.display()))?;
+            // Su dueño guarda reescribiéndolo entero: si lo ha hecho desde que se leyó,
+            // escribir ahora pisaría lo suyo con lo de antes.
+            if std::fs::read_to_string(&copia).ok().as_deref() != Some(leido.as_str()) {
+                let _ = std::fs::remove_file(&copia);
+                return Err(format!("{} acaba de cambiar, así que no lo he tocado: vuelve a pulsar", fichero.display()));
+            }
+            Some(copia)
+        }
+        None => {
+            if let Some(dir) = fichero.parent() {
+                std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+            }
+            None
+        }
+    };
+    escribir_atomico(fichero, nuevo.as_bytes()).map_err(|e| format!("no pude escribir {}: {e}", fichero.display()))?;
+    #[cfg(unix)]
+    if copia.is_none() {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(fichero, std::fs::Permissions::from_mode(0o600));
+    }
+    Ok(copia)
+}
+
 /// Deja a Codex pasarle su terminal al enlace del MCP. Al arrancar la app, en
 /// todas las plataformas (la ruta del ejecutable es cosa de Windows, esto no).
 /// Solo toca un `config.toml` que ya tenga `[mcp_servers.adeorq]`: no se la
@@ -348,7 +407,11 @@ fn escribir_atomico(fichero: &Path, contenido: &[u8]) -> Result<(), String> {
     if permisos.as_ref().is_some_and(|p| p.readonly()) {
         return Err("es de solo lectura".into());
     }
-    let temporal = destino.with_extension("adeorq-tmp");
+    // De nombre único: dos Adeorq a la vez no comparten el candado de `retocar`, y con
+    // uno fijo una publicaba lo que la otra aún estaba escribiendo.
+    static SIGUIENTE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = SIGUIENTE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let temporal = destino.with_extension(format!("adeorq-tmp-{}-{n}", std::process::id()));
     let escribir = || -> std::io::Result<()> {
         let mut f = std::fs::File::create(&temporal)?;
         if let Some(p) = permisos.clone() {
@@ -590,6 +653,98 @@ mod tests {
         escribir_atomico(&enlace, b"despues\n").unwrap();
         assert!(std::fs::symlink_metadata(&enlace).unwrap().file_type().is_symlink(), "dejó de ser un enlace");
         assert_eq!(std::fs::read_to_string(&destino).unwrap(), "despues\n");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn retocar_con_copia_deja_el_original_al_lado_y_no_escribe_lo_que_no_se_entiende() {
+        let (dir, f) = con_un_fichero("con-copia", "antes\n");
+        let copia = retocar_con_copia(&f, false, |t| Ok(format!("{t}despues\n"))).unwrap().expect("había original");
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), "antes\ndespues\n");
+        assert_eq!(std::fs::read_to_string(&copia).unwrap(), "antes\n");
+        assert!(copia.file_name().unwrap().to_string_lossy().starts_with("config.toml.antes-de-adeorq-"));
+
+        let copias = || std::fs::read_dir(&dir).unwrap().flatten().count();
+        let antes = copias();
+        assert_eq!(retocar_con_copia(&f, false, |_| Err("raro".into())).unwrap_err(), "raro");
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), "antes\ndespues\n");
+        assert_eq!(copias(), antes, "si no se entiende, ni copia");
+
+        let nuevo = dir.join("sub").join("nuevo.yaml");
+        assert!(retocar_con_copia(&nuevo, false, |_| Ok("x".into())).is_err(), "sin permiso para crear, un error");
+        assert_eq!(retocar_con_copia(&nuevo, true, |t| Ok(format!("{t}x"))).unwrap(), None);
+        assert_eq!(std::fs::read_to_string(&nuevo).unwrap(), "x");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Hermes guarda reescribiendo su archivo entero: si lo hace entre que se lee y se
+    /// escribe, lo suyo no se pisa con lo de antes.
+    #[test]
+    fn si_el_archivo_cambia_mientras_tanto_no_se_pisa() {
+        let (dir, f) = con_un_fichero("cambia", "antes\n");
+        let e = retocar_con_copia(&f, false, |t| {
+            std::fs::write(&f, "lo guardó Hermes\n").unwrap();
+            Ok(format!("{t}mio\n"))
+        })
+        .unwrap_err();
+        assert!(e.contains("acaba de cambiar"), "{e}");
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), "lo guardó Hermes\n");
+        assert_eq!(std::fs::read_dir(&dir).unwrap().flatten().count(), 1, "sin copia de más");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Uno de solo lectura se dice, y no va dejando una copia por cada vez que se pulsa.
+    #[test]
+    fn uno_de_solo_lectura_no_deja_copia() {
+        let (dir, f) = con_un_fichero("solo-lectura-copia", "antes\n");
+        let mut p = std::fs::metadata(&f).unwrap().permissions();
+        p.set_readonly(true);
+        std::fs::set_permissions(&f, p.clone()).unwrap();
+        assert!(retocar_con_copia(&f, false, |t| Ok(format!("{t}mio\n"))).unwrap_err().contains("solo lectura"));
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), "antes\n");
+        assert_eq!(std::fs::read_dir(&dir).unwrap().flatten().count(), 1, "sin copia de más");
+        #[allow(clippy::permissions_set_readonly_false)]
+        p.set_readonly(false);
+        std::fs::set_permissions(&f, p).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Dos Adeorq a la vez (la instalada y una de desarrollo) no comparten el candado de
+    /// `retocar`. Con un temporal de nombre fijo, una publicaba lo que la otra aún escribía.
+    #[test]
+    fn dos_escrituras_a_la_vez_no_publican_una_mezcla() {
+        let (dir, f) = con_un_fichero("mezcla", &"0".repeat(200_000));
+        let hilos: Vec<_> = (1..=4u8)
+            .map(|h| {
+                let f = f.clone();
+                std::thread::spawn(move || {
+                    let contenido = vec![b'0' + h; 200_000];
+                    for _ in 0..40 {
+                        // En Windows, renombrar encima de uno abierto puede dar un error: eso se
+                        // dice y se reintenta. Lo que no puede es quedar a medias.
+                        let _ = escribir_atomico(&f, &contenido);
+                    }
+                })
+            })
+            .collect();
+        // Lo que lea quien abra el archivo en cualquier momento tiene que estar entero.
+        let mut mezclas = 0;
+        while !hilos.iter().all(|h| h.is_finished()) {
+            if let Ok(visto) = std::fs::read(&f) {
+                if visto.len() != 200_000 || !visto.iter().all(|b| *b == visto[0]) {
+                    mezclas += 1;
+                }
+            }
+        }
+        for h in hilos {
+            h.join().unwrap();
+        }
+        assert_eq!(mezclas, 0, "alguien leyó el archivo a medias");
+        let final_ = std::fs::read(&f).unwrap();
+        assert_eq!(final_.len(), 200_000, "quedó a medias");
+        assert!(final_.iter().all(|b| *b == final_[0]), "quedó una mezcla");
+        let sobras: Vec<_> = std::fs::read_dir(&dir).unwrap().flatten().map(|e| e.file_name()).filter(|n| n != "config.toml").collect();
+        assert!(sobras.is_empty(), "temporales sin recoger: {sobras:?}");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

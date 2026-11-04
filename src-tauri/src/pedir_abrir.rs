@@ -160,8 +160,9 @@ fn nombre_a_la_vista(quien: &str) -> String {
 }
 
 /// Preguntar y esperar. `Ok` es que alguien ha pulsado «Abrir»; un `Err` es lo que
-/// contesta `open_pane`. `quien` es el nombre que se puso él: no prueba nada.
-pub fn preguntar(app: &tauri::AppHandle, quien: &str, cli: &str, carpeta: &str, encargo: &str) -> Result<(), String> {
+/// contesta `open_pane`. `quien` es el nombre que se puso él, que no prueba nada,
+/// salvo con `es_bot`: es un bot conectado, y eso lo dice su clave.
+pub fn preguntar(app: &tauri::AppHandle, quien: &str, es_bot: bool, cli: &str, carpeta: &str, encargo: &str) -> Result<(), String> {
     if encargo.chars().count() > TOPE_ENCARGO {
         return Err(format!("No se ha abierto: el encargo pasa de {TOPE_ENCARGO} caracteres y no se puede enseñar entero."));
     }
@@ -172,6 +173,7 @@ pub fn preguntar(app: &tauri::AppHandle, quien: &str, cli: &str, carpeta: &str, 
         serde_json::json!({
             "peticion": peticion,
             "quien": nombre,
+            "bot": es_bot,
             "cli": cli,
             "carpeta": a_la_vista(carpeta),
             "encargo": a_la_vista(encargo),
@@ -185,8 +187,9 @@ pub fn preguntar(app: &tauri::AppHandle, quien: &str, cli: &str, carpeta: &str, 
     buzon().soltar(peticion);
     // También a las demás ventanas, y a la que se quedó abierta si nadie contestó.
     let _ = app.emit("abrir-pedido-fin", peticion);
+    let quien_lo_pide = if es_bot { format!("El bot {nombre}") } else { format!("Un programa de fuera de Adeorq (dice ser «{nombre}»)") };
     crate::anotar(&format!(
-        "Un programa de fuera de Adeorq (dice ser «{nombre}») pidió abrir {cli} con encargo en {}: {}.",
+        "{quien_lo_pide} pidió abrir {cli} con encargo en {}: {}.",
         a_la_vista(carpeta),
         if res.is_ok() { "se abrió con tu clic" } else { "no se abrió" }
     ));

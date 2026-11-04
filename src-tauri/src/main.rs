@@ -26,5 +26,10 @@ fn main() {
     if args.len() > 1 && args[1] == "secreto" {
         std::process::exit(adeorq_lib::pedir_secreto::principal(&args[2..]));
     }
+    // `adeorq preguntar <herramienta> '<json>'`: una llamada al MCP de una sola vez, la
+    // única vía de un bot que vive en la nube. Ver `mcp/preguntar.rs`.
+    if args.len() > 1 && args[1] == "preguntar" {
+        std::process::exit(adeorq_lib::preguntar_principal(&args[2..]));
+    }
     adeorq_lib::run()
 }

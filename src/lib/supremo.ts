@@ -37,6 +37,10 @@ export interface PedidoMcp {
   /** La pide algo de fuera de Adeorq (`pedir_abrir.rs`): nace en el modo de
    *  Ajustes y sin marcar la carpeta de confianza. Lo pone Rust, nunca quien pide. */
   conSuModo?: boolean;
+  /** Si quien la pide puede escribir en una terminal: lo que se le cuenta depende de eso. Lo pone Rust. */
+  escribe?: boolean;
+  /** El nombre del bot conectado que la abre (`bots_conexion.rs`). Lo pone Rust. */
+  deBot?: string | null;
   to?: number | null;
   auto?: boolean;
   /** La terminal sobre la que va el pedido, cuando no se abre una nueva
@@ -139,8 +143,12 @@ export function nombreDe(pedido: PedidoMcp, cwd: string, cli: string): string {
  * usan la cabecera y el «de: …» de una terminal abierta por otra, que tiene que
  * decir lo mismo que se ve en la cabecera de esa otra.
  */
+export function proyectoDeLaCarpeta(cwd: string): string {
+  return cwd.split(/[\\/]/).filter(Boolean).pop() ?? cwd;
+}
+
 export function tituloDeCabecera(name: string, cwd: string): string {
-  const proyecto = cwd.split(/[\\/]/).filter(Boolean).pop() ?? cwd;
+  const proyecto = proyectoDeLaCarpeta(cwd);
   return name.startsWith(`${proyecto} · `) ? name.slice(proyecto.length + 3) : name;
 }
 
@@ -157,13 +165,18 @@ export function parteDeApertura(a: {
   donde: "lienzo" | "cabina";
   conEncargo: boolean;
   flecha?: "hecha" | "sin-lienzo";
+  /** `false`: quien la abre no puede usar `send_command` (su escalón, `mcp_clientes.rs`). */
+  escribe?: boolean;
 }): string {
+  const escribe = a.escribe !== false;
   const lineas = [
     `Terminal ${a.paneId} abierta con «${a.cli}» en ${a.donde === "lienzo" ? "el lienzo" : "la cabina"}.`,
   ];
   if (!a.conEncargo) {
     lineas.push(
-      `«${a.cli}» no admite el encargo al arrancar, así que ha nacido vacía: mándaselo tú con send_command(${a.paneId}, "...") en cuanto veas por read_pane_transcript que ya está lista.`,
+      escribe
+        ? `«${a.cli}» no admite el encargo al arrancar, así que ha nacido vacía: mándaselo tú con send_command(${a.paneId}, "...") en cuanto veas por read_pane_transcript que ya está lista.`
+        : `«${a.cli}» no admite el encargo al arrancar, así que ha nacido vacía, y tú no puedes escribir en ella: tendrá que dárselo quien usa Adeorq.`,
     );
   }
   if (a.donde === "cabina") {
@@ -181,7 +194,9 @@ export function parteDeApertura(a: {
   // carpeta antes de abrir, pero no todos, y quien abrió tiene que saber que
   // mirar la pantalla es parte de abrir.
   lineas.push(
-    `Míralo con read_pane_transcript(${a.paneId}) antes de darla por trabajando: si se ha parado a preguntarte algo, está esperando, no pensando, y se le contesta con send_command(${a.paneId}, "1").`,
+    escribe
+      ? `Míralo con read_pane_transcript(${a.paneId}) antes de darla por trabajando: si se ha parado a preguntarte algo, está esperando, no pensando, y se le contesta con send_command(${a.paneId}, "1").`
+      : `Míralo con read_pane_transcript(${a.paneId}) antes de darla por trabajando: si se ha parado a preguntar algo, está esperando, no pensando, y tiene que contestarle quien usa Adeorq.`,
   );
   return lineas.join(" ");
 }

@@ -40,6 +40,9 @@ pub struct Delegada {
     /// El título de la cabecera de quien la abrió: lo que dice su «de: …».
     #[serde(default)]
     pub madre_nombre: Option<String>,
+    /// El bot que la abrió (`bots_conexion.rs`): sigue siendo suya tras reiniciar.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub madre_bot: Option<String>,
     /// El encargo programado que la abrió (`programados.rs`), si fue uno.
     #[serde(default)]
     pub programado: Option<String>,
@@ -298,6 +301,7 @@ mod tests {
             carpeta: r"C:\proyectos\Adeorq".into(),
             madre_sesion: Some("5e55a1d2-6c0a-4b1e-9a77-0c0ffee00040".into()),
             madre_nombre: Some("Suprema".into()),
+            madre_bot: None,
             programado: None,
             modo: Some("auto".into()),
             panel: 3,

@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.240"
+version = "0.9.241"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 # PolyForm Shield 1.0.0 no está en la lista SPDX, así que se apunta al archivo.
@@ -31,6 +31,9 @@ serde_json = "1"
 # Para comprobar lo que se va a escribir en el `config.toml` de Codex antes de
 # escribirlo (`mcp_estable.rs`). Ya venía en el árbol y en THIRD-PARTY-NOTICES.md.
 toml = "1"
+# Lo mismo para el `config.yaml` de Hermes al conectar un bot (`bots_yaml.rs`): se
+# comprueba con un lector de verdad lo que se va a escribir. MIT o Apache-2.0.
+yaml-rust2 = { version = "0.13", default-features = false }
 portable-pty = "0.9.0"
 # Solo para hablar con Ollama en 127.0.0.1. Va por Rust y no por `fetch` del
 # front a propósito: desde el WebView la llamada es de otro origen y depende de

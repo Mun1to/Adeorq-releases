@@ -1071,7 +1071,22 @@ streaming mode, Discord goes back to generic.
 
 **Mobile**: see [section 19](#19-on-your-phone).
 
-**Bots**: **Notify a bot** (everything off by default). When a terminal finishes or is
+**Bots**: **Connect a bot** gives your **Hermes** or your **OpenClaw** Adeorq's tools, with
+its own permission. Before writing anything it shows what it will write, and it leaves a copy
+of the file. Each bot starts on **Looks** (the list of terminals and the usage, not what is
+inside), and you change it right there to **Opens with my click** (it opens terminals; if they
+carry a brief it asks you first, and it only reads the ones it opened) or to **In charge, no
+asking** (it types into any terminal, opens without asking and reads everything). With that
+last one, whoever fools the bot is in charge of your computer. **Disconnect** stops counting
+at once and removes its entry, and what each bot did last stays below. You link the chat with
+the bot (Telegram and the like) in the bot itself: Adeorq keeps nothing of that. **Grok Bot**
+lives in the cloud and does not reach your machine: **Give it a key** gives you a line to
+paste into it, which its desktop app runs here asking your permission each time (`adeorq
+preguntar <tool> [name=value]`). That line carries its key: it stays in Grok Bot and in the
+history of any console you paste it into. If Adeorq is not open, the bot gets an error that
+says so.
+
+**Notify a bot** (everything off by default). When a terminal finishes or is
 waiting for you, Adeorq writes to your **Grok Bot** (the webhook address of a routine and
 its key, which is kept in your machine's key store and never comes back to the window), to
 your **Hermes** or to your **OpenClaw**, if you have them installed. It sends only the
@@ -1591,6 +1606,8 @@ cases:
 - **Notifications to a bot**, only if you turn them on in **Settings › Bots**: the
   webhook of your Grok Bot (the address you paste yourself) or the Hermes or OpenClaw
   program on your machine, which goes out on its own.
+- **A connected bot**, if you connect one: what its permission lets it read reaches it,
+  and from it, its provider.
 - **The phone** goes over Tailscale; Adeorq runs `tailscale` on your machine.
 - **The panel's browser and the Canvas's localhost windows** load the page you open
   yourself.

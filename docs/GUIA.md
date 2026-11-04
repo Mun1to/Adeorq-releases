@@ -1036,7 +1036,21 @@ En modo emisión, Discord vuelve a lo genérico.
 
 **Móvil**: ver el [punto 19](#19-en-el-móvil).
 
-**Bots**: **Avisar a un bot** (todo apagado de fábrica). Cuando una terminal termina o te
+**Bots**: **Conectar un bot** le da a tu **Hermes** o a tu **OpenClaw** las herramientas de
+Adeorq, con su propio permiso. Antes de escribir nada enseña lo que va a escribir, y deja una
+copia del archivo. Cada bot nace en **Mira** (la lista de terminales y el uso, sin lo que hay
+dentro), y se cambia ahí mismo a **Abre con mi clic** (abre terminales; si llevan un encargo,
+te pregunta antes, y solo lee las que abrió él) o a **Manda sin preguntar** (escribe en
+cualquier terminal, abre sin preguntar y lo lee todo). Con este último, quien engañe al bot
+manda en tu ordenador. **Desconectar** deja de valer en el acto y quita su entrada, y debajo
+queda lo último que hizo cada bot. El chat con el bot (Telegram y demás) lo vinculas en el
+propio bot: Adeorq no guarda nada de eso. **Grok Bot** vive en la nube y no llega a tu equipo:
+**Darle una clave** te da una línea para pegarle, que su app de escritorio ejecuta aquí
+pidiéndote permiso cada vez (`adeorq preguntar <herramienta> [nombre=valor]`). Esa línea lleva
+su clave: se queda en Grok Bot y en el historial de la consola donde la pegues. Si Adeorq no
+está abierta, el bot recibe un error que lo dice.
+
+**Avisar a un bot** (todo apagado de fábrica). Cuando una terminal termina o te
 espera, Adeorq escribe a tu **Grok Bot** (la dirección del webhook de una rutina y su clave,
 que se guarda en el almacén de claves de tu equipo y no vuelve a la ventana), a tu
 **Hermes** o a tu **OpenClaw**, si los tienes instalados. Manda solo el nombre de la
@@ -1540,6 +1554,8 @@ Adeorq no lleva telemetría ni analíticas. Sale de tu equipo, y solo en estos c
 - **Los avisos a un bot**, solo si los enciendes en **Ajustes › Bots**: el webhook de tu Grok
   Bot (la dirección que pegas tú) o el programa Hermes u OpenClaw de tu equipo, que sale
   por su cuenta.
+- **Un bot conectado**, si conectas uno: lo que puede leer según su permiso le llega a él, y
+  de él a su proveedor.
 - **El móvil** va por Tailscale; Adeorq ejecuta `tailscale` en tu equipo.
 - **El navegador del panel y las ventanas de localhost del lienzo** cargan la página que
   abras tú.

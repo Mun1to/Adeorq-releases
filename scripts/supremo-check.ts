@@ -180,6 +180,16 @@ ok(
   "mandar a leer el panel de otro es peor que no decir nada",
 );
 
+// A quien no puede escribir en una terminal (un programa de fuera, un bot, un cliente en
+// «plan») no se le manda usar `send_command`: es una herramienta que no ve.
+const sinManos = parteDeApertura({ paneId: 5, cli: "codex", donde: "lienzo", conEncargo: false, escribe: false });
+ok("sin poder escribir, no se le manda send_command", !sinManos.includes("send_command"), sinManos);
+ok(
+  "y se le dice quien tiene que hacerlo, y que siga mirando",
+  sinManos.includes("no puedes escribir") && sinManos.includes("quien usa Adeorq") && sinManos.includes("read_pane_transcript(5)"),
+  sinManos,
+);
+
 console.log(fallos === 0 ? "\nTODO BIEN" : `\n${fallos} FALLOS`);
 // Sin esto `pnpm bancos` lo daba por bueno con fallos dentro: solo mira cómo sale (2026-10-18).
 (globalThis as unknown as { process: { exitCode?: number } }).process.exitCode = fallos ? 1 : 0;

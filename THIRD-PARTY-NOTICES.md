@@ -8,15 +8,15 @@ Cada componente sigue siendo de quien lo escribió y se usa bajo su propia
 licencia, que es la que manda sobre ese componente. Nada de lo que hay aquí es
 de Adeorq ni cambia por estar en esta lista.
 
-Resumen: **86** componentes de la interfaz y **552** del núcleo en Rust. No hay
+Resumen: **86** componentes de la interfaz y **555** del núcleo en Rust. No hay
 ninguna dependencia con licencia GPL o AGPL. Hay 6 con MPL-2.0 (cssparser,
 cssparser-macros, dtoa-short, mediabunny, option-ext, selectors): la MPL solo
 obliga a publicar los cambios de SUS propios archivos, y Adeorq no modifica
 ninguno.
 
 El texto íntegro de cada licencia viaja dentro del paquete de la dependencia
-correspondiente y puede consultarse en su repositorio de origen. De 638
-componentes, 482 declaran un titular de copyright explícito, recogido abajo.
+correspondiente y puede consultarse en su repositorio de origen. De 641
+componentes, 483 declaran un titular de copyright explícito, recogido abajo.
 
 ## Interfaz (npm, dependencias de producción)
 
@@ -123,6 +123,7 @@ componentes, 482 declaran un titular de copyright explícito, recogido abajo.
 | android_system_properties | 0.1.5 | MIT/Apache-2.0 | Copyright 2016 Nicolas Silva |
 | anyhow | 1.0.104 | MIT OR Apache-2.0 | — |
 | arbitrary | 1.4.2 | MIT OR Apache-2.0 | Copyright 2019 Manish Goregaokar |
+| arraydeque | 0.5.1 | MIT/Apache-2.0 | Copyright 2018 Andy Lok <andylokandy@hotmail.com> |
 | async-broadcast | 0.7.2 | MIT OR Apache-2.0 | Copyright 2020 Yoshua Wuyts |
 | async-channel | 2.5.0 | Apache-2.0 OR MIT | — |
 | async-executor | 1.14.0 | Apache-2.0 OR MIT | — |
@@ -268,6 +269,7 @@ componentes, 482 declaran un titular de copyright explícito, recogido abajo.
 | gtk3-macros | 0.18.2 | MIT | — |
 | hashbrown | 0.12.3 | MIT OR Apache-2.0 | Copyright 2016 Amanieu d'Antras |
 | hashbrown | 0.17.1 | MIT OR Apache-2.0 | Copyright 2016 Amanieu d'Antras |
+| hashlink | 0.12.2 | MIT OR Apache-2.0 | — |
 | heck | 0.4.1 | MIT OR Apache-2.0 | Copyright 2015 The Rust Project Developers |
 | heck | 0.5.0 | MIT OR Apache-2.0 | Copyright 2015 The Rust Project Developers |
 | hermit-abi | 0.5.2 | MIT OR Apache-2.0 | — |
@@ -647,6 +649,7 @@ componentes, 482 declaran un titular de copyright explícito, recogido abajo.
 | x11 | 2.21.0 | MIT | — |
 | x11-dl | 2.21.0 | MIT | — |
 | xattr | 1.6.1 | MIT OR Apache-2.0 | Copyright 2015 Steven Allen |
+| yaml-rust2 | 0.13.0 | MIT OR Apache-2.0 | — |
 | yoke | 0.8.3 | Unicode-3.0 | Copyright 2020-2024 Unicode, Inc |
 | yoke-derive | 0.8.2 | Unicode-3.0 | Copyright 2020-2024 Unicode, Inc |
 | zbus | 5.18.0 | MIT | Copyright 2024 Zeeshan Ali Khan & zbus contributors |
@@ -668,6 +671,6 @@ componentes, 482 declaran un titular de copyright explícito, recogido abajo.
 
 ---
 
-Generado el 2026-10-18 con `pnpm terceros` a partir de `pnpm licenses list --prod`
+Generado el 2026-11-04 con `pnpm terceros` a partir de `pnpm licenses list --prod`
 y `cargo metadata`. Si eres autor de alguno de estos componentes y ves algo mal
 atribuido, escribe y se corrige.

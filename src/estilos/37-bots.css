@@ -25,6 +25,98 @@
   }
 }
 
+/* Conectar un bot (`AjustesBotsConexion.tsx`): un bot por columna, para que en una
+   pantalla ancha no quede media tarjeta vacía a la derecha. */
+.bot-conexiones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 22px;
+  min-width: 0;
+}
+
+.bot-conexion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bot-conexion > .bot-nota,
+.bot-vista > .bot-nota {
+  margin: 0;
+}
+
+.bot-conexion-cab {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bot-conexion-cab .mcp-cliente-quien span,
+.bot-conexion-cab .bot-nota {
+  overflow-wrap: anywhere;
+}
+
+.bot-conexion-cab button {
+  flex: none;
+}
+
+.bot-niveles {
+  margin: 0;
+}
+
+.bot-frase {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.bot-vista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bot-vista .bot-nota {
+  overflow-wrap: anywhere;
+}
+
+/* Lo que se va a escribir o a pegar, tal cual: se lee entero y se selecciona. */
+.bot-texto {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-btn);
+  font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.bot-hechos {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.bot-hora {
+  margin-right: 8px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
 .bot-cabecera > span:first-child {
   display: grid;
   gap: 2px;

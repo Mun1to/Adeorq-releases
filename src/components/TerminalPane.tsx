@@ -55,7 +55,7 @@ import {
 import AgentesDePanel from "./AgentesDePanel";
 import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
-import { tituloDeCabecera } from "../lib/supremo";
+import { proyectoDeLaCarpeta, tituloDeCabecera } from "../lib/supremo";
 import { avisar, forgetPane, type NotifyMode } from "../lib/notify";
 import { callaAlVolcar, escribirVolcado, seMuda, tomarVolcado } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
@@ -702,7 +702,7 @@ export default function TerminalPane({
   const volcarRef = useRef(volcar ?? rescate ?? "");
   const envRef = useRef(env);
   const notifyRef = useRef({ mode: notifyMode, name, focused, project: "" });
-  notifyRef.current = { ...notifyRef.current, mode: notifyMode, name, focused };
+  notifyRef.current = { ...notifyRef.current, mode: notifyMode, name: tituloDeCabecera(name, cwd), focused, project: proyectoDeLaCarpeta(cwd) };
   // Re-fits the terminal AND its type to the box it currently has. Lives in a
   // ref because the ResizeObserver is created once, with the terminal.
   const refitRef = useRef<() => void>(() => {});

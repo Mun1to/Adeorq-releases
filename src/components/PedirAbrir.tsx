@@ -17,8 +17,10 @@ const SE_PUEDE_ABRIR_MS = 700;
 
 interface Pedido {
   peticion: number;
-  /** El nombre que se puso él: no prueba nada, y la ventana lo dice así. */
+  /** El nombre que se puso él: no prueba nada, y la ventana lo dice así. El de un
+      bot conectado (`bot`) sí, porque lo da su clave. */
   quien: string;
+  bot: boolean;
   cli: string;
   carpeta: string;
   encargo: string;
@@ -69,17 +71,23 @@ export default function PedirAbrir() {
           e.stopPropagation();
         }}
       >
-        <h3 className="modal-title">{t("Un programa de fuera de Adeorq quiere abrir una terminal")}</h3>
-        <p className="modal-text">
-          {pedido.quien ? (
-            <>
-              {t("Dice llamarse")} <b>{pedido.quien}</b>.
-            </>
-          ) : (
-            t("No dice cómo se llama.")
-          )}{" "}
-          {t("Ábrela solo si sabes qué programa es.")}
-        </p>
+        <h3 className="modal-title">
+          {pedido.bot ? t("{bot} quiere abrir una terminal", { bot: pedido.quien }) : t("Un programa de fuera de Adeorq quiere abrir una terminal")}
+        </h3>
+        {pedido.bot ? (
+          <p className="modal-text">{t("Ábrela solo si se lo has pedido tú: lo que le llega por su chat también lo puede haber escrito otro.")}</p>
+        ) : (
+          <p className="modal-text">
+            {pedido.quien ? (
+              <>
+                {t("Dice llamarse")} <b>{pedido.quien}</b>.
+              </>
+            ) : (
+              t("No dice cómo se llama.")
+            )}{" "}
+            {t("Ábrela solo si sabes qué programa es.")}
+          </p>
+        )}
         <p className="modal-text">
           <b>{pedido.cli}</b> {t("en la carpeta")} <b className="abrir-carpeta">{pedido.carpeta}</b>
           {t(", con este encargo:")}

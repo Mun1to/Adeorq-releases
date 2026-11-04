@@ -93,6 +93,12 @@ const GUARDA_AVISOS = `(() => {
     if (/plugin:notification\\|notify|plugin:window\\|request_user_attention/.test(url)) {
       return Promise.resolve(new Response("null", { status: 200, headers: { "content-type": "application/json", "Tauri-Response": "ok" } }));
     }
+    // El título y el cuerpo del aviso, que son los mismos que los del de escritorio.
+    if (/movil_avisar/.test(url) && b && typeof b.body === "string") {
+      try {
+        (window.__avisos ||= []).push(JSON.parse(b.body));
+      } catch {}
+    }
     return real(a, b);
   };
   window.AudioContext = undefined;
@@ -232,6 +238,8 @@ try {
   const pc = webhook.peticiones[0];
   const t0 = pc?.json?.terminals?.[0];
   dice(t0?.name === "ClienteWeb" && t0?.state === "finished" && t0?.project === "demo", "dice qué terminal, su proyecto (demo) y que terminó", JSON.stringify(pc?.json));
+  const aviso = JSON.parse((await v.js(`JSON.stringify(window.__avisos?.at(-1) ?? null)`)) ?? "null");
+  dice(aviso?.titulo === "demo · terminó" && aviso?.cuerpo === "ClienteWeb", "el aviso de escritorio y el del móvil dicen el proyecto, no «Adeorq · terminó»", JSON.stringify(aviso));
   const claves = Object.keys(pc?.json ?? {}).sort().join(",");
   dice(claves === "source,terminals,test,text", "y nada más que eso en el cuerpo", claves);
   const lh = llamadas().find((l) => l.programa === "hermes");

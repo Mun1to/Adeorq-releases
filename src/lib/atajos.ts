@@ -232,6 +232,45 @@ export function accionDe(e: KeyboardEvent, mapa: Record<AccionId, string>): Acci
   return null;
 }
 
+/**
+ * Las acciones del lienzo que piden la misma tecla que un atajo global
+ * (`atajosGlobales.ts`): Ctrl+Mayús+E es exportar el dibujo y el modo emisión, y
+ * Ctrl+Mayús+↓ es enviar al fondo y partir el panel hacia abajo. Los dos
+ * escuchan `window`, el global en captura y sin cortar la propagación, así que
+ * con el lienzo a la vista una sola pulsación hacía las dos cosas (medido el
+ * 2026-11-03: `scripts/laboratorio/atajos-lienzo-de-verdad.mjs`).
+ */
+const DISPUTADAS: ReadonlySet<AccionId> = new Set<AccionId>(["alFrente", "alFondo", "exportar"]);
+
+/**
+ * Si el lienzo tiene algo que hacer con esa tecla AHORA: al frente y al fondo
+ * necesitan algo cogido, exportar necesita algo dibujado, y las tres piden una
+ * pulsación de verdad. Una tecla que no lo es (`isTrusted` falso: la paleta de
+ * comandos y el navegador de un panel la reenvían tal cual) es del global que
+ * la quiere, y el lienzo no se la queda. Lo que no es de las disputadas, sí.
+ */
+export function puedeActuar(accion: AccionId, e: KeyboardEvent, cogidos: number, trazos: number): boolean {
+  if (!DISPUTADAS.has(accion)) return true;
+  return e.isTrusted && (accion === "exportar" ? trazos > 0 : cogidos > 0);
+}
+
+/** Si el lienzo se queda con esta tecla y los globales la sueltan. */
+export function laTomaElLienzo(accion: AccionId | null, e: KeyboardEvent, cogidos: number, trazos: number): boolean {
+  return !!accion && DISPUTADAS.has(accion) && puedeActuar(accion, e, cogidos, trazos);
+}
+
+let preguntarAlLienzo: ((e: KeyboardEvent) => boolean) | null = null;
+
+/** El lienzo, al montarse, dice cómo saber si una tecla es suya; al irse, nada. */
+export function registrarLienzo(f: ((e: KeyboardEvent) => boolean) | null): void {
+  preguntarAlLienzo = f;
+}
+
+/** Para los atajos globales: ¿esta tecla se la queda el lienzo que hay a la vista? */
+export function loTomaElLienzo(e: KeyboardEvent): boolean {
+  return preguntarAlLienzo?.(e) ?? false;
+}
+
 /** Teclas que significan lo mismo que otra. Se resuelven DESPUÉS del mapa, así
     que si alguien le pone a algo el Retroceso a propósito, gana lo suyo. */
 const GEMELAS: Record<string, string> = { Backspace: "Delete" };

@@ -20,6 +20,9 @@
 //                               finally ~/.qwen"
 //   pi      PI_CODING_AGENT_DIR its own config.ts: getAgentDir() reads it and
 //                               falls back to ~/.pi/agent (2026-08-01)
+//   grok    GROK_HOME           its xai-dirs crate and settings reference: the
+//                               folder itself, `auth.json` inside (2026-11-03,
+//                               read in its code, not yet run on disk)
 //
 // The rest are listed with envVar empty ON PURPOSE: they are installed and can
 // be launched, but no way to move their config folder turned up, so Adeorq
@@ -382,24 +385,31 @@ export const PROVIDERS: Provider[] = [
   {
     id: "grok",
     label: "Grok",
-    // Todo lo de aqui sale de SU PROPIO instalador oficial
-    // (https://x.ai/cli/install.ps1), leido el 2026-08-20. No esta instalado en
-    // esta maquina, asi que entra como entro Kiro: con lo que se comprueba solo
-    // y sin una sola capacidad marcada, porque una capacidad inventada no falla
-    // a la vista, falla en silencio.
+    // Lo de aqui sale de SU PROPIO instalador oficial
+    // (https://x.ai/cli/install.ps1, leido el 2026-08-20) y, para la carpeta y
+    // la clave, de su codigo y su documentacion (2026-11-03, mas abajo). No esta
+    // instalado en esta maquina, asi que entra como entro Kiro: con lo que se
+    // comprueba solo y sin una sola capacidad marcada, porque una capacidad
+    // inventada no falla a la vista, falla en silencio.
     //
     // El instalador deja `grok.exe` y `agent.exe` en `~/.grok/bin` y anade esa
     // carpeta al PATH del usuario, asi que el ejecutable se encuentra solo.
     exe: "grok",
-    // `GROK_BIN_DIR` mueve los BINARIOS, no la identidad: la carpeta de
-    // configuracion es `Join-Path $env:USERPROFILE '.grok'` a pelo, sin ninguna
-    // variable que la mueva. Vacio a proposito, la misma regla que Copilot: una
-    // cuenta, y Adeorq lo dice en vez de inventarse un nombre de variable que
-    // apuntaria una cuenta a la carpeta de otra.
-    envVar: "",
+    // `GROK_HOME` mueve config, login y sesiones (corregido el 2026-11-03: el
+    // 2026-08-20 esta ficha decia lo contrario por leer el INSTALADOR, que usa
+    // la ruta fija `$env:USERPROFILE\.grok` para dejar sus binarios; el programa
+    // no). Lo dice la tabla de variables de `docs.x.ai/build/settings/reference`
+    // («GROK_HOME ... Home for config, auth, sessions, skills, plugins, and
+    // logs») y lo hace `crates/codegen/xai-dirs/src/lib.rs` de
+    // `xai-org/grok-build`: `$GROK_HOME` tal cual si no esta vacia, y si no
+    // `<home>/.grok`. Es la CARPETA misma (como `CODEX_HOME`), no una casa
+    // (`envEsCasa`), y `auth.json` cuelga de ella (`xai-grok-login/src/storage.rs`:
+    // `grok_home.join("auth.json")`). `GROK_BIN_DIR` mueve solo los binarios.
+    // NO PROBADO en disco: no esta instalado aqui y iniciar sesion gasta una
+    // cuenta de Munir; falta instalar `@xai-official/grok` en un scratchpad con
+    // `GROK_HOME` propio y ver donde cae lo que crea.
+    envVar: "GROK_HOME",
     homeDir: ".grok",
-    // Su propia cabecera, literal: "Auth: GROK_DEPLOYMENT_KEY env var (takes
-    // precedence) or ~/.grok/auth.json from `grok login`".
     creds: ["auth.json"],
     usage: false,
     // Blanco frio: xAI firma en blanco y negro, y el negro no existe sobre un
@@ -409,7 +419,14 @@ export const PROVIDERS: Provider[] = [
     // envuelve en `powershell.exe`). En Linux y Mac es
     // `curl -fsSL https://x.ai/cli/install.sh | bash`, segun el mismo archivo.
     install: "irm https://x.ai/cli/install.ps1 | iex",
-    apiEnv: "GROK_DEPLOYMENT_KEY",
+    // La clave de usuario es `XAI_API_KEY` (`docs.x.ai/build/enterprise`,
+    // «API key ... Scripts, CI/CD, headless automation»). `GROK_DEPLOYMENT_KEY`,
+    // que esta ficha ponia antes por la cabecera del instalador, es la «Management
+    // API key for enterprise deployments» (README de `xai-grok-shell`). Ojo con el orden
+    // en que Grok elige credencial: `model.api_key` > `model.env_key` > sesion >
+    // `XAI_API_KEY`. La SESION gana a la variable: en una cuenta con el login
+    // hecho, `XAI_API_KEY` no cambia nada y sigue gastando el plan.
+    apiEnv: "XAI_API_KEY",
     cmd: "irm https://x.ai/cli/install.ps1 | iex",
   },
   {

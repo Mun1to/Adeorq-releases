@@ -9,6 +9,7 @@
 // en los dos sitios (su banco, `scripts/paleta-check.ts`, lo coteja).
 
 import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { loTomaElLienzo } from "./atajos";
 import { raiz } from "./perfil";
 
 /** Dónde se guarda si el modo emisión está puesto. */
@@ -30,6 +31,9 @@ export function useAtajosGlobales(m: {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!e.ctrlKey || !e.shiftKey) return;
+      // El lienzo a la vista, con algo cogido o dibujado, se queda con las que
+      // comparte (Ctrl+Mayús+E y Ctrl+Mayús+↓): una pulsación, una sola cosa.
+      if (loTomaElLienzo(e)) return;
       const k = e.key.toLowerCase();
       if ((k === "d" || e.key === "ArrowDown") && focusedId != null) {
         e.preventDefault();

@@ -14,7 +14,8 @@ Qué es verdad y qué es de demostración en una captura, para decirlo igual en 
   proyectos de demostración y reproducidas en el panel. La casa de pruebas no tiene sesión iniciada
   en ningún CLI, así que no pueden pensar en directo.
 - **Las consolas de la foto de Archivos** (`node --test`, `git diff`) son en directo.
-- **Las cuentas, su plan y su cuota** son datos de ejemplo, contestados en la página (ver abajo).
+- **Las cuentas, su plan y su cuota** son datos de ejemplo, contestados en la página (ver abajo; las
+  fechas de renovación se calculan respecto al día de la foto, que una fecha fija sale ya pasada).
   Y lo que hablaría de la máquina de quien hace la foto (el Pulso, los modelos locales, la versión).
 - **Tu uso** (el del inicio y el del Perfil) también es de ejemplo: doscientos días de Sam que
   inventa `historiaDeSam` en `escena.mjs`, con semilla, para que inglés y español pinten lo mismo.
@@ -63,12 +64,30 @@ ffmpeg -f lavfi -i color=c=black:s=1920x1080 -filter_script:v fondo.filtro -fram
    session limit» encima del prompt y sale en la web; la que lo lleve se regraba. Codex dice al
    arrancar «You have 1 usage limit reset available», que sube con el scroll antes del corte: ese
    solo importa si se ve en la foto.
+   **Codex 0.165 pregunta «Trust this folder?»** con cada carpeta nueva (el guion lo acepta) y guarda
+   la decisión en el `config.toml` de su cuenta: quedan entradas `[projects.'…\p\projects\invoice-cli']`
+   que hay que quitar al acabar. Y si la cuenta de Codex de fábrica está en su límite («You've hit your
+   usage limit») la grabación sale vacía: `GRABAR_CODEX_HOME=<carpeta de otra cuenta>` graba con esa. El
+   rollout queda en el `sessions/` de ESA cuenta: se copia a `respaldo/<idioma>/codex/sessions/AAAA/MM/DD/`
+   (de ahí lo coge `preparar-sesiones.mjs`) y se borra del original. Para repetir una grabación en un
+   proyecto que ya se editó, primero se repone: se para la app de pruebas (`cerrar.ps1`, o sus terminales
+   retienen la carpeta: «Device or resource busy»), se borra la carpeta de `P:\projects` y se vuelve a
+   lanzar `sembrar-proyectos.mjs`.
 2. **Cortar** las dos que salen a mitad de trabajo: `node cortar.mjs en-landing` enseña la línea del
    tiempo; `node cortar.mjs en-landing 34950 en-landing-mid` corta. El mismo instante va en
    `preparar-sesiones.mjs`, que corta el transcript por ahí para que el estado cuadre. En las de
    Codex, corta antes de que ejecute Python: el de la máquina que graba vive en su carpeta de
-   usuario, y la ruta saldría en la terminal (`hacer-demo.mjs` se pararía al verla).
-3. **Sesiones**: `node preparar-sesiones.mjs en` (y `es`). Pone en `PANELES` de `textos.mjs` los
+   usuario, y la ruta saldría en la terminal (`hacer-demo.mjs` se pararía al verla). Se mira también
+   dónde sale el primer «Exited (status 1) pytest» (un fallo que no es de Adeorq y no queda bien en
+   una foto) y se corta antes. `cortar.mjs <nombre> <ms> <salida> <desde>-<hasta>` quita además un
+   tramo de la grabación: el aviso de confianza de Codex enseña la ruta real de la carpeta. Antes de
+   fiarse de un corte, `grep -a -c -i "Users\|AppData" p/rec/*-mid.bin` tiene que dar cero.
+   **Codex pinta con posiciones absolutas**: su grabación solo sale limpia reproducida al tamaño EXACTO
+   en que se hizo (90 × 22, el de la Cabina; con otro se ve texto suelto de pantallas anteriores).
+   `p/rec/repetir.log` dice a qué tamaño se pintó cada panel, y la terminal de Codex del Lienzo mide
+   90 × 22 con `w: 815` en `textos.mjs` (a 860 mide 95 columnas). Si se toca el lienzo, se mira ahí.
+3. **Sesiones**: `node preparar-sesiones.mjs en` (y `es`; con el Vite del worktree encendido el
+   renombrado final puede dar `EPERM`: se copia `sesiones/<idioma>.nuevo` a `sesiones/<idioma>`). Pone en `PANELES` de `textos.mjs` los
    títulos que imprime. Guarda además el transcript entero de cada grabada en `respaldo/<idioma>/`,
    y de ahí los saca cuando el hogar ya está limpio (paso 6): se puede relanzar otro día. Si le
    falta una fuente no toca lo que había preparado, lo dice y sale con error.

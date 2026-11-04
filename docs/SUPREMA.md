@@ -442,6 +442,16 @@ Ajustes».
 - **Lo que llega sin una terminal creíble es «Fuera de Adeorq»**: su fila en Ajustes › Terminales,
   que de fábrica abre y mira, y que Munir sube si quiere. Lo guardado por nombre se muda solo a su
   programa, quedándose con el menor si dos nombres caen en el mismo.
+- **Abrir desde fuera nace en el modo de Ajustes, y con encargo pide un clic** (`pedir_abrir.rs`,
+  `PedirAbrir.tsx`): una ventana con el texto, quién lo pide y en qué carpeta, **No / Abrir**. Con
+  «No», `open_pane` contesta un error; si nadie contesta en dos minutos, otro. La carpeta no se marca
+  de confianza. Las terminales de Adeorq, los puentes de casa y los encargos programados no pasan por
+  ella, ni lo de fuera si se sube a «Todo».
+- **Un Codex dentro de una terminal también dice quién es**: Codex no pasa su entorno a sus
+  servidores MCP, y la app deja en su `config.toml` (el de `CODEX_HOME` y el de cada cuenta que tenga
+  la entrada `[mcp_servers.adeorq]`) un `env_vars` con `ADEORQ_PANE_ID` y `ADEORQ_PANE_CLAVE`
+  (`mcp_estable::codex_con_su_entorno`; `decisiones-2026-10-07.md`). Sin esa línea, caería en «Fuera
+  de Adeorq».
 - **Las claves de los agentes** (`adeorq secreto`, `docs/contexto/secretos.md`): desde una terminal
   de Adeorq, como siempre; desde fuera, la ventana pregunta antes de dar una guardada. Cada entrega
   se apunta (rastro y Ajustes › «Claves de los agentes»), sin el valor.

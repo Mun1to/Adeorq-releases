@@ -22,7 +22,11 @@ function lienzo(idioma, t) {
     // de pintarse y sale su tarjeta con el nombre.
     nodos: [
       { tipo: "kanban", id: "k1", x: -380, y: -200, w: 760, h: 400, pendientes: t.pendientes.map(([texto, proyecto], i) => ({ id: `p${i + 1}`, texto, ...(proyecto ? { ruta: P(proyecto) } : {}) })) },
-      { tipo: "term", id: "t3", x: 580, y: -260, w: 860, h: 520, kind: "shell", proyecto: "invoice-cli", ruta: P("invoice-cli"), cmd: repetir(`${idioma}-invoice-mid`, "codex") },
+      // Codex pinta con posiciones absolutas: su grabación solo sale limpia al
+      // tamaño exacto en que se hizo (90 × 22, el de la Cabina). A 860 de ancho
+      // esta terminal mide 95 columnas, así que se estrecha hasta las 90. Las
+      // otras rehacen la pantalla entera y aguantan cualquier tamaño.
+      { tipo: "term", id: "t3", x: 580, y: -260, w: 815, h: 520, kind: "shell", proyecto: "invoice-cli", ruta: P("invoice-cli"), cmd: repetir(`${idioma}-invoice-mid`, "codex") },
       { tipo: "term", id: "t1", x: -380, y: 320, w: 860, h: 520, kind: "claude", proyecto: "storefront-api", ruta: P("storefront-api"), cmd: repetir(`${idioma}-storefront`) },
       { tipo: "term", id: "t2", x: 580, y: 320, w: 860, h: 520, kind: "claude", proyecto: "landing-web", ruta: P("landing-web"), cmd: repetir(`${idioma}-landing-mid`) },
       // El enjambre ocupa la esquina de arriba a la derecha y las notas bajan,
@@ -252,15 +256,15 @@ export const TEXTOS = { en, es };
 /** Los cuatro paneles de la Cabina: [proyecto, grabación, CLI, título]. */
 export const PANELES = {
   en: [
-    ["storefront-api", "en-storefront", "claude", "Discount test failure"],
-    ["mobile-app", "en-mobile", "claude", "Dependencies and test suite"],
+    ["storefront-api", "en-storefront", "claude", "Discount test failure in npm test"],
+    ["mobile-app", "en-mobile", "claude", "Dependency install and test run"],
     ["invoice-cli", "en-invoice-mid", "codex", "Currency flag for the total"],
     ["landing-web", "en-landing-mid", "claude", "Header dark mode toggle"],
   ],
   es: [
-    ["storefront-api", "es-storefront", "claude", "Fallo en la prueba del descuento"],
+    ["storefront-api", "es-storefront", "claude", "Fallo en prueba del descuento"],
     ["mobile-app", "es-mobile", "claude", "Dependencias y pruebas"],
     ["invoice-cli", "es-invoice-mid", "codex", "Opción de moneda para el total"],
-    ["landing-web", "es-landing-mid", "claude", "Botón de modo oscuro en cabecera"],
+    ["landing-web", "es-landing-mid", "claude", "Botón de modo oscuro"],
   ],
 };

@@ -1481,6 +1481,14 @@ const DEL_PC = {
   // sessions.rs
   "esa conversación no está en el disco": "that conversation is not on disk",
   "id de sesión no válido": "invalid session id",
+  // El selector de /model y /effort de Claude Code (src/lib/selectorDeModelo.ts)
+  "Claude Code tiene algo escrito o una pregunta en pantalla, así que no se ha cambiado nada.":
+    "Claude Code has something typed or a question on screen, so nothing was changed.",
+  "El selector de modelos no se abrió, así que no se ha cambiado nada.": "The model picker did not open, so nothing was changed.",
+  "El selector de modelos no se cerró tras elegir; se ha cancelado.": "The model picker did not close after choosing; it was cancelled.",
+  "Claude Code pregunta algo tras elegir el modelo: la respuesta es tuya.": "Claude Code asks something after choosing the model: the answer is yours.",
+  "No encuentro la primera fila del selector de modelos.": "I cannot find the first row of the model picker.",
+  "No encuentro dónde está el cursor del selector de modelos.": "I cannot find where the model picker's cursor is.",
   // Lo que va haciendo el conserje (`frase_de_paso`, conserje.rs)
   "Mirando tus proyectos": "Looking at your projects",
   "Mirando las sesiones abiertas": "Looking at the open sessions",
@@ -1494,6 +1502,11 @@ const DEL_PC_CON_HUECO = [
   [/^Leyendo la sesión del panel (\d+)$/, "Reading the session in pane $1"],
   [/^Buscando en la memoria: «(.*)»$/, "Searching memory: “$1”"],
   [/^Repasando el turno (\d+)$/, "Going over turn $1"],
+  [/^No sé hacer «(.*)»\.$/, "I do not know how to do “$1”."],
+  [/^El selector no ofrece «(.*)» \(ofrece: (.*)\)\.$/, "The picker does not offer “$1” (it offers: $2)."],
+  [/^El cursor del selector no llegó a «(.*)»\.$/, "The picker's cursor did not reach “$1”."],
+  [/^Este modelo no deja elegir el esfuerzo, así que se queda como está y no en «(.*)»\.$/, "This model does not let you choose the effort, so it stays as it is and not at “$1”."],
+  [/^El selector no llega al esfuerzo «(.*)» con este modelo\.$/, "The picker does not reach effort “$1” with this model."],
 ];
 function delPc(texto) {
   if (!INGLES || !texto) return texto;

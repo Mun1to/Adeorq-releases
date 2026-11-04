@@ -25,6 +25,7 @@ const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /** En el orden en que conviene leerlos si fallan: primero lo que rompe la app. */
 export const COMPROBADORES = [
+  "tipos-check.mjs",
   "hilo-check.mjs",
   "anidado-check.mjs",
   "anidado-check-check.mjs",
@@ -41,6 +42,7 @@ export const COMPROBADORES = [
   "svg-check.mjs",
   "i18n-check.mjs",
   "markdown-check.mjs",
+  "guia-check.mjs",
   "arranque-check.mjs",
   "latido-check.mjs",
   "sonda-check.mjs",
@@ -54,6 +56,8 @@ export const COMPROBADORES = [
   "agents-check.mjs",
   "prueba-check-check.mjs",
   "publicar-check.mjs",
+  "cuentas-check.mjs",
+  "guia-anclas-check.mjs",
   "comprobar-check.mjs",
 ];
 

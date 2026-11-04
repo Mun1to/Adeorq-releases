@@ -230,6 +230,52 @@ r = await escena(async ({ p, porta }) => {
 });
 ok("dos pegados seguidos son dos, no tres ni cuatro", r.pegados.join("|") === "hola|hola", JSON.stringify(r.pegados));
 
+// --- el botón central: lo seleccionado, una vez, venga o no el evento del navegador ---
+{
+  const pegados: string[] = [];
+  const { reloj, pasa } = relojDeMentira();
+  const porta = portapapelesDeMentira();
+  const p = crearPegado(
+    { pegar: (x) => pegados.push(x), guardarImagen: async () => "", alPegarImagen: () => {} },
+    porta,
+    reloj,
+    async () => "del portapapeles",
+    async () => "lo seleccionado",
+  );
+  p.desdeLaSeleccion();
+  await deja();
+  ok("el botón central pega lo seleccionado, no el portapapeles", pegados.join("|") === "lo seleccionado", JSON.stringify(pegados));
+  // Si el navegador también dispara su `paste` (otro WebKit), no sale doble.
+  pasa(10);
+  p.desdeElEvento("lo seleccionado");
+  pasa(ESPERA_AL_PORTAPAPELES_MS + 1);
+  await deja();
+  ok("y si además llega el evento del navegador, no sale doble", pegados.join("|") === "lo seleccionado", JSON.stringify(pegados));
+
+  pegados.length = 0;
+  pasa(5000);
+  p.desdeElEvento("lo seleccionado");
+  p.desdeLaSeleccion();
+  await deja();
+  pasa(ESPERA_AL_PORTAPAPELES_MS + 1);
+  await deja();
+  ok("con el evento por delante, tampoco", pegados.join("|") === "lo seleccionado", JSON.stringify(pegados));
+}
+{
+  const pegados: string[] = [];
+  const { reloj } = relojDeMentira();
+  const p = crearPegado(
+    { pegar: (x) => pegados.push(x), guardarImagen: async () => "", alPegarImagen: () => {} },
+    portapapelesDeMentira(),
+    reloj,
+    async () => null,
+    async () => null,
+  );
+  p.desdeLaSeleccion();
+  await deja();
+  ok("sin nada seleccionado (Windows, macOS) no pega nada", pegados.length === 0, JSON.stringify(pegados));
+}
+
 // Copiar desde el programa (OSC 52). Claude Code en pantalla completa tiene el
 // ratón: el arrastre es suyo y lo seleccionado lo manda así,
 // `ESC ] 52 ; c ; <base64> BEL`. Sin atenderlo, arrastrar y Ctrl+C no copiaba

@@ -109,11 +109,11 @@ const PROGRAMAS: &[(&str, &str)] = &[
 
 /// Qué programa se abrió en una terminal, leído de su comando: el primer
 /// ejecutable conocido (`cmd.exe /k chcp 65001 >nul && claude --session-id …`
-/// es Claude). Va primero porque el encargo, que puede nombrar otros, va
-/// siempre detrás de su programa. `None` es una consola pelada.
+/// es Claude), sin mirar el encargo: puede nombrar otros y en Windows va delante
+/// del programa (`rastros::sin_encargo`). `None` es una consola pelada.
 pub fn programa_del_comando(argv: &[String]) -> Option<&'static str> {
-    argv.iter()
-        .flat_map(|a| a.split(|c: char| c.is_whitespace() || matches!(c, '&' | '|' | '"' | '\'' | ';' | '(' | ')')))
+    crate::rastros::sin_encargo(argv)
+        .split(|c: char| c.is_whitespace() || matches!(c, '&' | '|' | '"' | '\'' | ';' | '(' | ')'))
         .filter(|t| !t.is_empty())
         .find_map(|t| {
             let base = t.rsplit(['\\', '/']).next().unwrap_or(t).to_ascii_lowercase();
@@ -429,6 +429,14 @@ mod tests {
             programa_del_comando(&v(&["powershell.exe", "-NoExit", "-Command", "gemini -i 'que lo revise claude y codex'"])),
             Some("gemini")
         );
+        // Como nace de verdad con encargo (`lineaConEncargo`): el texto va DELANTE
+        // del programa, en una variable, y no decide qué programa es la terminal.
+        let con_encargo = |encargo: &str, programa: &str| {
+            v(&["powershell.exe", "-NoLogo", "-NoExit", "-Command", &format!("$env:ADEORQ_ENCARGO = '{encargo}'; $adeorqExe = '{programa}'; $adeorqPre = @(); & $adeorqExe @adeorqPre --% \"%ADEORQ_ENCARGO%\"")])
+        };
+        assert_eq!(programa_del_comando(&con_encargo("revisa lo de codex ahora", "claude")), Some("claude"));
+        assert_eq!(programa_del_comando(&con_encargo("que lo mire claude ahora", "codex")), Some("codex"));
+        assert_eq!(programa_del_comando(&con_encargo("it''s claude y pi ‘’ & codex", "gemini")), Some("gemini"));
         assert_eq!(programa_del_comando(&v(&["powershell.exe", "-NoLogo"])), None, "una consola pelada no tiene programa");
         assert_eq!(programa_del_comando(&[]), None);
     }

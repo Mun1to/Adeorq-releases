@@ -126,5 +126,22 @@ const cuentasDe = (mundo: CuentaViva[], acciones: unknown[]) =>
   ok("conUnaAbierta suma uno y no toca el original", luego[0].abiertas === 1 && mundo[0].abiertas === undefined && luego[1] === mundo[1], luego.map((v) => v.abiertas));
 }
 
+// 7. Lo que el Capataz marca como imposible, en el idioma de la app (el inglés del porqué
+//    del router y de las razones de una acción que no se puede hacer: `scripts/router-ingles-check.ts`).
+{
+  const { makeT } = require("../src/lib/i18n") as typeof import("../src/lib/i18n");
+  const roto = [
+    { tipo: "claude_nuevo", proyecto: "no-existe", rol: "x", prompt: "hola" },
+    { tipo: "revisar", proyecto: "demo", encargo: "" },
+    { tipo: "cuadrilla", proyecto: "demo", objetivo: "x", partes: [{ rol: "a", encargo: "a" }] },
+  ] as never[];
+  const enEs = checkActions(plan(roto), [proyecto], [], [], [], makeT("es")).map((c) => c.why);
+  const enEn = checkActions(plan(roto), [proyecto], [], [], [], makeT("en")).map((c) => c.why);
+  const sin = checkActions(plan(roto), [proyecto], [], [], []).map((c) => c.why);
+  ok("sin traductor, el porqué de lo imposible sale en español, como siempre", JSON.stringify(sin) === JSON.stringify(["proyecto desconocido", "sin qué revisar", "una cuadrilla es de dos o más"]), sin);
+  ok("con el traductor español, igual", JSON.stringify(enEs) === JSON.stringify(sin), enEs);
+  ok("con el inglés, ni una letra española", enEn.every((w) => w && !/[áéíóúüñ¿¡«»]/i.test(w)) && JSON.stringify(enEn) === JSON.stringify(["unknown project", "nothing to review", "a crew is two or more"]), enEn);
+}
+
 console.log(fallos ? `\n${fallos} fallos.` : "\nTodo bien.");
 process.exit(fallos ? 1 : 0);

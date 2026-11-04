@@ -70,7 +70,8 @@ try {
   const idDe = (r) => Number(/(?:Terminal|terminal|panel)\s+(\d+)/.exec(r.texto || "")?.[1]);
   const madre = idDe(await agente.llamar("open_pane", { cli: "shell", cwd: a.demo, name: "Madre", brief: "" }));
   await hasta(() => a.v.js(`!!document.querySelector('[data-pane-id="${madre}"]')`), 15_000, 400);
-  const desdeMadre = a.puente(madre);
+  // Desde la madre de verdad: su número solo no basta desde la 0.9.239.
+  const desdeMadre = await a.puenteDe(madre);
   await desdeMadre.pedir("initialize", { clientInfo: { name: "claude-code" } });
   const hijaX = idDe(await desdeMadre.llamar("open_pane", { cli: "claude", cwd: a.demo, name: "Hija de la X", brief: "" }));
   const hijaMcp = idDe(await desdeMadre.llamar("open_pane", { cli: "claude", cwd: a.demo, name: "Hija del agente", brief: "" }));

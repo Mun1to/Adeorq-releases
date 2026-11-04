@@ -68,7 +68,7 @@ export default function UpdateBar() {
       if (granted) {
         sendNotification({
           title: t("Adeorq {v} disponible", { v: version }),
-          body: t("Ábrelo y pulsa «Actualizar ahora» en la barra de arriba."),
+          body: t("Ábrelo y pulsa «Actualizar Adeorq» en la barra lateral."),
         });
       }
     } catch {

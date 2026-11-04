@@ -34,6 +34,9 @@ export interface PedidoMcp {
   /** El panel del agente que lo pide, si su puente lo presentó: lo pone Rust,
    *  no el agente, y es lo que dice la cabecera de la nueva («de: …»). */
   quien?: number | null;
+  /** La pide algo de fuera de Adeorq (`pedir_abrir.rs`): nace en el modo de
+   *  Ajustes y sin marcar la carpeta de confianza. Lo pone Rust, nunca quien pide. */
+  conSuModo?: boolean;
   to?: number | null;
   auto?: boolean;
   /** La terminal sobre la que va el pedido, cuando no se abre una nueva

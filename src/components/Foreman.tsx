@@ -54,7 +54,7 @@ import {
   type ModoCapataz,
 } from "../lib/manos";
 import { createPortal } from "react-dom";
-import { useT } from "../lib/i18n";
+import { makeT, useT, type Translate } from "../lib/i18n";
 import { useMenu } from "./Overlays";
 import Orbe, { type EstadoOrbe } from "./Orbe";
 import { BoltIcon, CheckIcon, CloseIcon, VozIcon } from "./Icons";
@@ -395,12 +395,13 @@ function cerebroDe(
   rol: string,
   pedido: string | undefined,
   mundo: CuentaViva[],
+  t?: Translate,
 ): { model?: ModelAlias; esfuerzo?: Esfuerzo; porque?: string; cuenta?: Account } {
   const base = isModelAlias(pedido) ? pedido : undefined;
   const deLaTabla = modelForRole(rol);
   const r = recetar(
     exigenciaDeRol(rol),
-    { cuentas: mundo, avisos: "nunca", usa: leerPerfil().clis },
+    { cuentas: mundo, avisos: "nunca", usa: leerPerfil().clis, t },
     base,
     cerebroPorDefecto(),
   );
@@ -413,7 +414,7 @@ function cerebroDe(
   // nacería con el de tus ajustes, en silencio.
   const model = (sabe(r.cli, "modelo") ? r.modelo : r.alternativa?.modelo) ?? base ?? deLaTabla;
   if (!sabe(r.cli, "modelo")) {
-    return { model, esfuerzo, cuenta, porque: `sin semana; ${providerOf(r.cli).label} está libre` };
+    return { model, esfuerzo, cuenta, porque: (t ?? makeT("es"))("sin semana; {cli} está libre", { cli: providerOf(r.cli).label }) };
   }
   // Solo se cuenta como "explicación" lo que CAMBIA algo respecto a lo que se
   // habría hecho igualmente: repetir "es oficio del día a día" en ocho líneas
@@ -429,13 +430,15 @@ export function checkActions(
   sessions: SessionInfo[],
   panes: PaneStatus[],
   mundo: CuentaViva[],
+  t?: Translate,
 ): Checked[] {
+  const tr = t ?? makeT("es");
   // Cada terminal que este plan va a abrir pesa en su cuenta para la siguiente:
   // abrir no reserva nada, y sin contarlas seis acciones verían la misma foto y
   // caerían todas en la misma cuenta (`cuentasDelPlan.ts`).
   let vivo = mundo;
   const cerebro = (rol: string, pedido: string | undefined) => {
-    const c = cerebroDe(rol, pedido, vivo);
+    const c = cerebroDe(rol, pedido, vivo, t);
     vivo = conUnaAbierta(vivo, c.cuenta);
     return c;
   };
@@ -444,13 +447,13 @@ export function checkActions(
       const session = sessions.find((s) => s.id === action.sessionId);
       return session
         ? { action, ok: true, why: "", session }
-        : { action, ok: false, why: "sesión desconocida" };
+        : { action, ok: false, why: tr("sesión desconocida") };
     }
     // Closing a pane belongs to no project either, so it is settled before the
     // project lookup. This is the gate that makes the whole feature safe.
     if (action.tipo === "cerrar_panel") {
       const pane = panes.find((p) => p.id === action.paneId);
-      if (!pane) return { action, ok: false, why: "panel desconocido" };
+      if (!pane) return { action, ok: false, why: tr("panel desconocido") };
       if (pane.agentsLive > 0) {
         return { action, ok: false, why: `tiene ${pane.agentsLive} subagentes fuera` };
       }
@@ -463,21 +466,21 @@ export function checkActions(
     // is checked before the project lookup that the rest need.
     if (action.tipo === "a_todas") {
       const cmd = action.comando?.trim() ?? "";
-      if (!cmd) return { action, ok: false, why: "orden vacía" };
+      if (!cmd) return { action, ok: false, why: tr("orden vacía") };
       // Only the CLI's own slash commands go out in bulk. Free text would let
       // one plan type anything into nine terminals at once, and the whole
       // house rule is that the model never runs anything by itself.
       if (!cmd.startsWith("/") || /\s*[\r\n]/.test(cmd)) {
-        return { action, ok: false, why: "a todas solo admite comandos con /" };
+        return { action, ok: false, why: tr("a todas solo admite comandos con /") };
       }
       return { action, ok: true, why: "" };
     }
     const project = projects.find((p) => p.name === action.proyecto);
-    if (!project) return { action, ok: false, why: "proyecto desconocido" };
+    if (!project) return { action, ok: false, why: tr("proyecto desconocido") };
     if (action.tipo === "comando") {
       return action.comando?.trim()
         ? { action, ok: true, why: "" }
-        : { action, ok: false, why: "comando vacío" };
+        : { action, ok: false, why: tr("comando vacío") };
     }
     if (action.tipo === "claude_nuevo") {
       // Un id completo de modelo («claude-opus-4-6») se respeta tal cual: si el
@@ -491,13 +494,13 @@ export function checkActions(
       // cuenta ni pesa en ninguna.
       const { model, esfuerzo, porque, cuenta } = action.prompt?.trim()
         ? cerebro(action.rol ?? action.prompt ?? "", crudo)
-        : { ...cerebroDe(action.rol ?? "", crudo, vivo), cuenta: undefined };
+        : { ...cerebroDe(action.rol ?? "", crudo, vivo, t), cuenta: undefined };
       return { action, ok: true, why: "", project, model, esfuerzo, porque, cuenta };
     }
     // A reviewer ALWAYS gets a fresh pane, so it can never be the session that
     // did the work: self-review is ruled out by construction, not by a check.
     if (action.tipo === "revisar") {
-      if (!action.encargo?.trim()) return { action, ok: false, why: "sin qué revisar" };
+      if (!action.encargo?.trim()) return { action, ok: false, why: tr("sin qué revisar") };
       // Revisar es juicio con consecuencia, así que arranca en el cerebro
       // fuerte aunque el plan no lo dijera. Y por eso mismo el router NO lo
       // abarata aunque la semana vaya justa: una revisión barata que no
@@ -514,7 +517,7 @@ export function checkActions(
     // lento que uno, porque se sobreescriben y hay que deshacer.
     if (action.tipo === "cuadrilla") {
       const partes = (action.partes ?? []).filter((p) => p?.encargo?.trim() && p?.rol?.trim());
-      if (partes.length < 2) return { action, ok: false, why: "una cuadrilla es de dos o más" };
+      if (partes.length < 2) return { action, ok: false, why: tr("una cuadrilla es de dos o más") };
       if (partes.length > MAX_CUADRILLA) {
         return {
           action,
@@ -524,10 +527,10 @@ export function checkActions(
       }
       const fronteras = partes.map((p) => (p.frontera ?? "").trim().toLowerCase()).filter(Boolean);
       if (fronteras.length !== partes.length) {
-        return { action, ok: false, why: "un puesto no dice qué archivos son suyos" };
+        return { action, ok: false, why: tr("un puesto no dice qué archivos son suyos") };
       }
       if (new Set(fronteras).size !== fronteras.length) {
-        return { action, ok: false, why: "dos puestos con los mismos archivos" };
+        return { action, ok: false, why: tr("dos puestos con los mismos archivos") };
       }
       // Los cerebros de la cuadrilla se deciden AQUÍ, no al ejecutar: es lo que
       // permite que el total de abajo cuente lo que se va a abrir de verdad.
@@ -545,7 +548,7 @@ export function checkActions(
     if (action.tipo === "antigravity") {
       return action.encargo?.trim()
         ? { action, ok: true, why: "", project }
-        : { action, ok: false, why: "encargo vacío" };
+        : { action, ok: false, why: tr("encargo vacío") };
     }
     return { action, ok: false, why: `acción desconocida: ${action.tipo}` };
   }).map((c, idx) => ({ ...c, originalIndex: idx } as Checked));
@@ -754,9 +757,9 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
   // that finished in between must be closeable, and one that started working
   // must stop being closeable.
   const checked = useMemo(
-    () => (plan ? checkActions(conAMano(plan, elegidos), projects, sessions, exec.panes(), mundo) : []),
+    () => (plan ? checkActions(conAMano(plan, elegidos), projects, sessions, exec.panes(), mundo, t) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [plan, aMano, projects, sessions, mundo],
+    [plan, aMano, projects, sessions, mundo, t],
   );
   const valid = checked.filter((c) => c.ok);
   /** Todos los cerebros que este plan va a encender, la cuadrilla desplegada. */
@@ -860,7 +863,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
         const { encargo, ex, porque } = interpretar(raw);
         const receta = recetarConMemoria(
           ex,
-          { cuentas: vivas, panel: p, avisos: modoAviso(), usa: leerPerfil().clis, reglas },
+          { cuentas: vivas, panel: p, avisos: modoAviso(), usa: leerPerfil().clis, reglas, t },
           undefined,
           cerebroPorDefecto(),
           { proyecto: p?.name, encargo },
@@ -1057,7 +1060,7 @@ export default function Foreman({ exec, onClose, dictarAlAbrir, onRepartir }: Pr
     // aceptarla un panel puede haber empezado a trabajar o haberle hecho una
     // pregunta. Lo que se ejecuta tiene que validarse contra el ahora, no
     // contra el rato en el que se dibujó la lista.
-    const ahora = checkActions(conAMano(plan, elegidos), projects, sessions, exec.panes(), mundo).filter(
+    const ahora = checkActions(conAMano(plan, elegidos), projects, sessions, exec.panes(), mundo, t).filter(
       (c) => c.ok,
     );
     if (ahora.length === 0) {

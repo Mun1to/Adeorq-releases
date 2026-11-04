@@ -64,6 +64,7 @@ import {
 import { open as pickFile } from "@tauri-apps/plugin-dialog";
 import AtajosEditor from "./AtajosEditor";
 import AjustesMovil from "./AjustesMovil";
+import AjustesBots from "./AjustesBots";
 import AjustesMcp from "./AjustesMcp";
 import AjustesClavesAgente from "./AjustesClavesAgente";
 import AjustesMods from "./AjustesMods";
@@ -84,6 +85,11 @@ import type { Atajos } from "../lib/atajos";
     Cuentas, para el aparte de vibecoding con Aider. */
 export const DOCS_URL = "https://adeorq.com/guia";
 
+/** Donde están los instaladores. El botón «Descargas y versiones» apuntaba a la
+    guía (igual que «Abrir la documentación», que además le pegaba `docs.html`
+    sin barra y abría `adeorq.com/guiadocs.html`). */
+const DESCARGAS_URL = "https://adeorq.com/#descargar";
+
 /** Las pestañas de la cabecera, las mismas y en el mismo orden que en `App.tsx`. */
 const TABS_CABECERA = PESTANAS;
 
@@ -93,7 +99,7 @@ interface Props {
   onLang: (l: Lang) => void;
   theme: ThemeId;
   onTheme: (t: ThemeId) => void;
-  /** Seguir el claro/oscuro de Windows (`lib/temaSistema.ts`). */
+  /** Seguir el claro/oscuro del sistema (`lib/temaSistema.ts`). */
   temaSistema: TemaSistema;
   onTemaSistema: (c: TemaSistema) => void;
   fontSize: number;
@@ -170,6 +176,7 @@ const SECCIONES = [
   { id: "modelo", label: "Modelo local" },
   { id: "discord", label: "Discord" },
   { id: "movil", label: "Móvil" },
+  { id: "bots", label: "Bots" },
   { id: "mods", label: "Mods" },
   { id: "ayuda", label: "Ayuda" },
   { id: "adeorq", label: "Adeorq" },
@@ -200,6 +207,7 @@ const CUANTOS: Record<string, number> = {
   modelo: 1,
   discord: 1,
   movil: 1,
+  bots: 1,
   mods: 1,
   ayuda: 2,
   adeorq: 3,
@@ -790,7 +798,7 @@ export default function SettingsView({
                 {/* Un tema para cuando Windows está en oscuro y otro para claro,
                     y que cambie solo. Elegir uno a mano en la rejilla lo apaga. */}
                 <label className="setting-row setting-switch tema-sistema">
-                  <span>{t("Seguir el claro/oscuro de Windows")}</span>
+                  <span>{t("Seguir el claro/oscuro del sistema")}</span>
                   <input
                     type="checkbox"
                     checked={temaSistema.activo}
@@ -800,7 +808,7 @@ export default function SettingsView({
                 {temaSistema.activo && (
                   <div className="tema-sistema-pares">
                     <label>
-                      <span>{t("Con Windows en oscuro")}</span>
+                      <span>{t("Con el sistema en oscuro")}</span>
                       <select
                         value={temaSistema.oscuro}
                         onChange={(e) => onTemaSistema({ ...temaSistema, oscuro: e.currentTarget.value as ThemeId })}
@@ -813,7 +821,7 @@ export default function SettingsView({
                       </select>
                     </label>
                     <label>
-                      <span>{t("Con Windows en claro")}</span>
+                      <span>{t("Con el sistema en claro")}</span>
                       <select
                         value={temaSistema.claro}
                         onChange={(e) => onTemaSistema({ ...temaSistema, claro: e.currentTarget.value as ThemeId })}
@@ -1302,7 +1310,7 @@ export default function SettingsView({
                 </p>
                 <p className="card-hint">
                   {t(
-                    "Con las dos cosas puestas, enciendes el ordenador y tu taller ya está montado. El arranque automático es una entrada normal de Windows: también puedes quitarla desde el Administrador de tareas, pestaña Inicio. Y siempre apunta a la Adeorq instalada, nunca a la de desarrollo.",
+                    "Con las dos cosas puestas, enciendes el ordenador y tu taller ya está montado. El arranque automático es una entrada normal del sistema, y también puedes quitarla desde allí (en Windows, el Administrador de tareas, pestaña Inicio). Y siempre apunta a la Adeorq instalada, nunca a la de desarrollo.",
                   )}
                 </p>
               </section>
@@ -1338,7 +1346,7 @@ export default function SettingsView({
                 <h2>{t("Avisos")}</h2>
                 <p className="card-hint">
                   {t(
-                    "Aviso de Windows cuando un agente termina su turno o cuando espera tu OK, con el icono parpadeando en la barra de tareas. Nunca avisa del panel que estás mirando.",
+                    "Aviso del sistema cuando un agente termina su turno o cuando espera tu OK, con el icono parpadeando en la barra de tareas. Nunca avisa del panel que estás mirando.",
                   )}
                 </p>
                 <div className="chip-row">
@@ -1646,6 +1654,7 @@ export default function SettingsView({
             </>
           )}
           {seccion === "movil" && <AjustesMovil />}
+          {seccion === "bots" && <AjustesBots />}
           {seccion === "mods" && <AjustesMods onAlAgente={onAlAgente} />}
           {/* La guía dejó de ser una pestaña de la barra de arriba. Ocupaba
               sitio permanente para algo que se mira el primer día y casi nunca
@@ -1684,13 +1693,13 @@ export default function SettingsView({
                 <div className="foreman-row">
                   <button
                     className="np-btn"
-                    onClick={() => void openUrl(`${DOCS_URL}docs.html`).catch(() => {})}
+                    onClick={() => void openUrl(DOCS_URL).catch(() => {})}
                   >
                     {t("Abrir la documentación")}
                   </button>
                   <button
                     className="mini"
-                    onClick={() => void openUrl(DOCS_URL).catch(() => {})}
+                    onClick={() => void openUrl(DESCARGAS_URL).catch(() => {})}
                   >
                     {t("Descargas y versiones")}
                   </button>
@@ -1868,7 +1877,7 @@ export default function SettingsView({
                 <h2>{t("Tu cuota")}</h2>
                 <p className="card-hint">
                   {t(
-                    "Cuánto uso de tu suscripción llevas esta semana. Solo lo sabe Claude por dentro, así que el botón escribe /usage en la terminal que tengas activa y te lleva allí.",
+                    "Cuánto uso de tu suscripción llevas esta semana. El botón escribe /usage en la terminal que tengas activa y te lleva allí.",
                   )}
                 </p>
                 <div className="foreman-row">

@@ -13,6 +13,12 @@ export const ESCALA = 2;
 // ningún CLI: las cuentas conectadas de Sam, su plan y su cuota. Las llamadas de
 // la página a Rust viajan por `fetch` a ipc.localhost, así que se contestan en
 // `GUARDA` con estos datos de demostración.
+/** Cuándo se renueva la semana de una cuenta, como lo escribe Claude Code
+ *  («Nov 6, 9am (Europe/Madrid)»), a tantos días del día de la foto: una fecha
+ *  fija se queda en el pasado y la tarjeta de Cuentas enseña una semana que ya
+ *  acabó. */
+const renuevaEn = (dias) => `${new Date(Date.now() + dias * 86_400_000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}, 9am (Europe/Madrid)`;
+
 const DEMO = {
   conectadas: [".claude", ".codex", ".gemini"],
   plan: { subscription: "max", tier: "default_claude_max_5x" },
@@ -20,7 +26,7 @@ const DEMO = {
   limites: {
     lines: [
       { label: "Current session", percent: 38, resets: "6am (Europe/Madrid)", resetsAt: 0 },
-      { label: "Current week (all models)", percent: 22, resets: "Oct 17, 9am (Europe/Madrid)", resetsAt: 0 },
+      { label: "Current week (all models)", percent: 22, resets: renuevaEn(4), resetsAt: 0 },
     ],
     note: "",
     plan: "",
@@ -28,7 +34,7 @@ const DEMO = {
   limitesTrabajo: {
     lines: [
       { label: "Current session", percent: 9, resets: "7am (Europe/Madrid)", resetsAt: 0 },
-      { label: "Current week (all models)", percent: 61, resets: "Oct 14, 9am (Europe/Madrid)", resetsAt: 0 },
+      { label: "Current week (all models)", percent: 61, resets: renuevaEn(2), resetsAt: 0 },
     ],
     note: "",
     plan: "",

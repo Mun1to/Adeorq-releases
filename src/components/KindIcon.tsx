@@ -14,7 +14,7 @@
 
 import ProviderMark, { CLAUDE_BURST, tieneMarca } from "./ProviderMark";
 import { PROVIDERS, providerOf } from "../lib/providers";
-import { sinEncargo } from "../lib/comandos";
+import { ES_WINDOWS, sinEncargo } from "../lib/comandos";
 import { useT } from "../lib/i18n";
 
 /** El id de un CLI de providers.ts, o "shell" para una consola pelada. */
@@ -27,7 +27,7 @@ export function tonoDeKind(kind: PaneKind): string | undefined {
 }
 
 export function nombreDeKind(kind: PaneKind): string {
-  if (kind === "shell") return "PowerShell";
+  if (kind === "shell") return ES_WINDOWS ? "PowerShell" : "Terminal";
   const p = PROVIDERS.find((x) => x.id === kind);
   return p ? (p.rotuloPane ?? p.label) : "Terminal";
 }

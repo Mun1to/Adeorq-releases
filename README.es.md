@@ -85,7 +85,7 @@ programas en lugar de sustituirlos, así que el día que salga algo nuevo, lo ti
 | **Adeo** | La A de cuadritos de la barra de arriba es la campana. Teclea cuando tus agentes trabajan, te llama cuando uno te espera, salta cuando uno termina y se duerme si no hay ninguno, y te sigue el ratón con el ojo. |
 
 <div align="center">
-<img src="web/assets/screens/es/canvas.png" width="49%" alt="El Lienzo: tres terminales dentro del tablero, una flecha que le pasa a un agente lo que hizo otro, un enjambre que junta a dos de ellas en un solo chat, dos notas y el tablero de qué hace cada agente">
+<img src="web/assets/screens/es/canvas.png" width="49%" alt="El Lienzo: tres terminales dentro del tablero, un enjambre que junta a dos de ellas en un solo chat, dos notas y el tablero de qué hace cada agente">
 <img src="web/assets/screens/es/files.png" width="49%" alt="Archivos: el árbol del proyecto a la derecha, un archivo abierto en el editor y dos terminales con las pruebas en verde y el diff">
 <img src="web/assets/screens/es/dashboard.png" width="49%" alt="El inicio: Adeo con la caja para pedirle lo que quieras, tus proyectos por quién trabaja y tu uso en casillas">
 <img src="web/assets/screens/es/profile.png" width="49%" alt="Tu perfil: tu nombre, los resúmenes de Cuentas, Agenda, Memoria y Comandos, y tu uso con el mes, el año y el reparto por proyecto">
@@ -165,8 +165,8 @@ Fedora (`sudo dnf install ./Adeorq-*.rpm`).
   propio sistema y en Linux el equivalente es MPRIS, que todavía no está.
 - **La ventana es translúcida**, así que necesita un escritorio con composición. Cualquier
   GNOME o KDE moderno la tiene; en uno sin compositor el cristal se verá opaco.
-- **Cerrar la ventana cierra Adeorq**, porque no hay icono en la bandeja que la mantenga
-  viva. Así que los encargos programados de la Agenda solo se lanzan con Adeorq abierta.
+- **No hay icono en la bandeja.** Si al cerrar la ventana dejas Adeorq en segundo plano, tus
+  agentes y los encargos programados de la Agenda siguen, y vuelves abriendo Adeorq otra vez.
 
 Se compila sobre **Ubuntu 22.04**, así que hace falta glibc 2.35 o posterior (Ubuntu 22.04+,
 Debian 12+, Fedora 36+, Arch).

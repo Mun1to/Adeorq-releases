@@ -268,7 +268,8 @@
   background: var(--accent);
 }
 
-.pt-mini video {
+.pt-mini video,
+.pt-mini img {
   position: absolute;
   inset: 0;
   width: 100%;

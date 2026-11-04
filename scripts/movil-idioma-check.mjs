@@ -37,6 +37,9 @@ const FUENTES = [
   "src-tauri/src/sessions.rs",
   "src-tauri/src/conserje.rs",
   "src/lib/movil.ts",
+  // Lo que el selector de /model dice cuando no pudo cambiar el modelo: el móvil
+  // se lo enseña tal cual (`movil.ts` devuelve el `message` del error).
+  "src/lib/selectorDeModelo.ts",
 ];
 
 /** Mensajes de `movil.rs` que no llegan nunca a la página, y por qué. */
@@ -80,21 +83,25 @@ export function trozosConHueco(pagina) {
     trozos: m[1]
       .replace(/^\^/, "")
       .replace(/\$$/, "")
-      .split(/\([^)]*\)/)
+      // Un grupo de captura, no un `\(` escapado que es un paréntesis de la frase.
+      .split(/(?<!\\)\((?:[^)\\]|\\.)*\)/)
       .map((t) => t.replace(/\\(.)/g, "$1"))
       .filter((t) => t.length >= 3),
   }));
 }
 
 /** Los mensajes que el PC le puede contestar al móvil, por fichero. */
-export function mensajesDelPc(movilRs, movilTs) {
+export function mensajesDelPc(movilRs, movilTs, selectorTs = "") {
   const rs = sinTests(movilRs);
   const deRs = [
     ...rs.matchAll(/Respuesta::error\(\d+,\s*"((?:[^"\\]|\\.)+)"\)/g),
     ...rs.matchAll(/Err\("((?:[^"\\]|\\.)+)"\.into\(\)\)/g),
   ].map((m) => desescapar(m[1]));
   const deTs = [...movilTs.matchAll(/error:\s*"((?:[^"\\]|\\.)+)"/g)].map((m) => desescapar(m[1]));
-  return [...new Set([...deRs, ...deTs])];
+  // `new Error("…")` y `rendirse("…")` con la frase puesta: los que llevan un dato
+  // dentro (`${alias}`) son plantillas y los cubre DEL_PC_CON_HUECO.
+  const deSelector = [...selectorTs.matchAll(/(?:new (?:Error|PreguntaTrasElegir)|rendirse)\("((?:[^"\\]|\\.)+)"\)/g)].map((m) => desescapar(m[1]));
+  return [...new Set([...deRs, ...deTs, ...deSelector])];
 }
 
 /** La página sin lo que no se ve: comentarios, diccionarios, mascota y lo que ya pasa por tr()
@@ -147,7 +154,7 @@ export function revisar(pagina, fuentes) {
   for (const { regex, trozos } of trozosConHueco(pagina)) {
     for (const t of trozos) if (!todo.includes(t)) fallos.push(`DEL_PC_CON_HUECO se quedó vieja: /${regex}/ (no encuentro «${t}»)`);
   }
-  for (const msg of mensajesDelPc(fuentes["src-tauri/src/movil.rs"], fuentes["src/lib/movil.ts"])) {
+  for (const msg of mensajesDelPc(fuentes["src-tauri/src/movil.rs"], fuentes["src/lib/movil.ts"], fuentes["src/lib/selectorDeModelo.ts"])) {
     if (!delPc.pares.has(msg) && !(msg in SOLO_EN_EL_PC)) fallos.push(`le puede llegar al móvil sin traducir: "${msg}" (añádelo a DEL_PC)`);
   }
 

@@ -293,10 +293,32 @@
   var ORIGINAL_HTML = {};     // Parrafos que llevan <b>, <code> o un enlace dentro
   var ORIGINAL_ARIA = {};     // aria-label de botones y diálogos
 
+  /* El texto de un nodo traducible, sin lo que lleve dentro. Un título de la
+     guía lleva su enlace «#» (`<h2>La Cabina<a class="doc-ancla">#</a></h2>`):
+     con `textContent` el original se guardaba como «La Cabina#» y al poner el
+     inglés se borraba el enlace (y de vuelta en español quedaba el «#» suelto).
+     Aquí solo cuentan los nodos de texto de primer nivel. */
+  function textoPropio(n) {
+    if (!n.children.length) return n.textContent.trim();
+    var t = '';
+    Array.prototype.forEach.call(n.childNodes, function (c) { if (c.nodeType === 3) t += c.nodeValue; });
+    return t.trim();
+  }
+
+  function ponerTextoPropio(n, txt) {
+    if (!n.children.length) { n.textContent = txt; return; }
+    var puesto = false;
+    Array.prototype.slice.call(n.childNodes).forEach(function (c) {
+      if (c.nodeType !== 3) return;
+      if (!puesto) { c.nodeValue = txt; puesto = true; } else n.removeChild(c);
+    });
+    if (!puesto) n.insertBefore(document.createTextNode(txt), n.firstChild);
+  }
+
   function registrarOriginales() {
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (n) {
       var k = n.getAttribute('data-i18n');
-      if (!ORIGINAL[k]) ORIGINAL[k] = n.textContent.trim();
+      if (!ORIGINAL[k]) ORIGINAL[k] = textoPropio(n);
     });
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-ph]'), function (n) {
       var k = n.getAttribute('data-i18n-ph');
@@ -323,7 +345,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (n) {
       var clave = n.getAttribute('data-i18n');
       var txt = dic[clave] != null ? dic[clave] : ORIGINAL[clave];
-      if (txt != null && n.textContent !== txt) n.textContent = txt;
+      if (txt != null && textoPropio(n) !== txt) ponerTextoPropio(n, txt);
     });
 
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-ph]'), function (n) {

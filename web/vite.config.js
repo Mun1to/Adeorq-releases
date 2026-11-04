@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto'
 import { cp, copyFile, readdir, access, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
+import { entradasDeCuentas, revisarSalida } from './scripts/cuentas-fuera.mjs'
 
 const ROOT = resolve(import.meta.dirname)
 
@@ -32,6 +33,9 @@ const NEVER_COPY = new Set([
   'guia.html',
   // La portada inglesa, que también es una entrada (la genera hacer-ingles.mjs).
   'en',
+  // Las cuentas: fuera siempre de esta copia. Con ADEORQ_CUENTAS=1 entran como
+  // entradas de Vite, y sin ella no entran por ningún lado (scripts/cuentas-fuera.mjs).
+  'cuenta',
 ])
 
 async function exists(path) {
@@ -66,12 +70,14 @@ function reloadOnPartials() {
  * so the hashed assets Vite emitted always win.
  */
 function copyStaticExtras() {
+  let outDir
   return {
     name: 'adeorq-copy-static-extras',
     apply: 'build',
+    configResolved(config) {
+      outDir = resolve(ROOT, config.build.outDir)
+    },
     async closeBundle() {
-      const outDir = resolve(ROOT, 'dist')
-
       for (const entry of await readdir(ROOT, { withFileTypes: true })) {
         if (NEVER_COPY.has(entry.name) || entry.name.endsWith('.md')) continue
         await cp(resolve(ROOT, entry.name), resolve(outDir, entry.name), {
@@ -90,6 +96,37 @@ function copyStaticExtras() {
       if (await exists(worker)) {
         await copyFile(worker, resolve(outDir, '_worker.js'))
       }
+    },
+  }
+}
+
+/**
+ * The account pages only exist in a build that asks for them. They get the project
+ * URL and its public key here, because neither lives in this repository, and the
+ * last thing any build does is make sure they did not slip into the output anyway.
+ */
+function accountPages() {
+  let outDir
+  return {
+    name: 'adeorq-cuentas',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(ROOT, config.build.outDir)
+    },
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html) {
+        return html
+          .replaceAll('__ADEORQ_SUPABASE_URL__', process.env.ADEORQ_SUPABASE_URL ?? '')
+          .replaceAll('__ADEORQ_SUPABASE_CLAVE__', process.env.ADEORQ_SUPABASE_CLAVE ?? '')
+      },
+    },
+    closeBundle: {
+      order: 'post',
+      sequential: true,
+      handler() {
+        revisarSalida(outDir)
+      },
     },
   }
 }
@@ -193,7 +230,7 @@ export default defineConfig({
   // Multi page: an unknown path returns a real 404 instead of the home page.
   appType: 'mpa',
   publicDir: false,
-  plugins: [reloadOnPartials(), bakeReleaseData(), copyStaticExtras()],
+  plugins: [reloadOnPartials(), bakeReleaseData(), copyStaticExtras(), accountPages()],
   // 127.0.0.1 y no «localhost»: en esta máquina localhost resuelve solo a ::1,
   // el servidor escuchaba solo en IPv6 y el Edge de Munir no llegaba (2026-10-14,
   // «me estáis abriendo localhost que no funcionan en mi navegador»).
@@ -219,6 +256,7 @@ export default defineConfig({
         en: resolve(ROOT, 'en/index.html'),
         // La web anterior, hasta que sus secciones (descarga, changelog, FAQ
         // y pie) esten portadas a la portada nueva de `index.html`.
+        ...entradasDeCuentas(ROOT),
       },
     },
   },

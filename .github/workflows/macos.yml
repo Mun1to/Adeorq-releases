@@ -84,6 +84,9 @@ jobs:
 
       - name: Pasar los tests
         working-directory: src-tauri
+        env:
+          # El Llavero de verdad tiene que dejar guardar en el Mac del runner.
+          ADEORQ_EXIGIR_LLAVERO: "1"
         run: cargo test --lib
 
   # Espera, sin gastar macOS, a que el Linux de esta versión haya escrito su
@@ -178,6 +181,16 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
         run: bash scripts/macos/preparar-firma.sh
+
+      # Tauri graba el sello de Apple en la app UNA vez y sin reintentar; si la
+      # red del runner falla en ese momento, el DMG y el .tar.gz del actualizador
+      # se hacen con la app sin sello. Este `xcrun` falso, el primero del PATH,
+      # reintenta solo `stapler staple` (ver el propio script).
+      - name: Reintentar el grapado de la app
+        if: steps.firma.outputs.modo == 'notarizado'
+        run: |
+          chmod +x "$GITHUB_WORKSPACE/scripts/macos/shim/xcrun"
+          echo "$GITHUB_WORKSPACE/scripts/macos/shim" >> "$GITHUB_PATH"
 
       # Publicar: solo cuando esto lo dispara una release.
       - name: Construir y añadir a la versión

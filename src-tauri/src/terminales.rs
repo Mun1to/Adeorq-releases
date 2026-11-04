@@ -81,14 +81,30 @@ pub struct FichaRemota {
     pub clave: Option<pty::ClaveDePanel>,
 }
 
-/// La ficha del espejo, con lo que dice el proceso de terminales: su pid y la
-/// contraseña que tiene de verdad. Uno de la versión de antes, vivo tras actualizar,
-/// no sabe de ellas: esa terminal nace sin ninguna, y si aquí constara la inventada,
-/// su puente no podría presentarla y se quedaría sin permisos hasta cerrarla
-/// (revisión de la 0.9.239).
+/// La ficha del espejo, con lo que dice el proceso de terminales: su pid y, si
+/// la sabe, su contraseña. Un proceso de la versión de antes, vivo tras
+/// actualizar, no guarda contraseñas y contesta sin ella; pero la terminal que
+/// la app abre en él SÍ la lleva, porque `crear` la manda también en su entorno
+/// (que ese proceso sí aplica). Por eso aquí no se borra la que el espejo ya
+/// sabe. La terminal que se recoge al reengancharse tiene la ficha que sale de
+/// `Listar`, sin contraseña si su proceso no la guarda: esa va «de antes».
 fn al_dia(ficha: &mut FichaRemota, real: FichaRemota) {
     ficha.pid = real.pid;
-    ficha.clave = real.clave;
+    if real.clave.is_some() {
+        ficha.clave = real.clave;
+    }
+}
+
+/// La contraseña de la terminal también en su entorno. Un proceso de terminales
+/// de antes de la 0.9.239 no conoce el campo `clave` y lo ignora, pero sí aplica
+/// `env`: así la terminal que la app abre en él nace con ella igualmente (AVISO
+/// E1 del 2026-11-03: sin esto nacía sin ninguna y cualquiera podía decir ser
+/// ella). Uno al día la pone otra vez desde `clave`, con el mismo valor.
+fn con_clave_en_el_entorno(mut alta: Alta) -> Alta {
+    if let Some(c) = &alta.clave {
+        alta.env.get_or_insert_with(Default::default).insert(pty::VARIABLE_CLAVE_DE_PANEL.to_string(), c.valor().to_string());
+    }
+    alta
 }
 
 impl From<pty::Ficha> for FichaRemota {
@@ -692,6 +708,7 @@ impl Remoto {
     }
 
     pub fn crear(&self, alta: Alta) -> Result<(), String> {
+        let alta = con_clave_en_el_entorno(alta);
         let id = alta.id;
         // Si ya está en el espejo es un reenganche: el proceso contesta que sí
         // sin abrir nada, como `pty::abrir` con un id que ya existe.
@@ -1028,6 +1045,7 @@ pub fn arrancar(app: &tauri::AppHandle) {
             // actualizar (ver `conserje::arranque`).
             crate::conserje::fijar_arranque(r.arranque.load(std::sync::atomic::Ordering::Relaxed));
             let _ = conexion.0.set(r);
+            crate::mcp::al_reengancharse(app);
         }
         Err(e) => crate::anotar(&format!("terminales: sin proceso aparte ({e}); van dentro de la app, como siempre")),
     }
@@ -1042,23 +1060,48 @@ pub fn arrancar(app: &tauri::AppHandle) {
 mod pruebas {
     use super::*;
 
-    /// Un proceso de terminales de la versión de antes contesta sin ese campo: la
-    /// terminal no tiene contraseña, y en el espejo tampoco puede constar.
+    /// Un proceso de terminales de la versión de antes contesta sin el campo de
+    /// la contraseña. La terminal que la app ABRE en él la lleva (va en su
+    /// entorno), así que el espejo no la olvida; la que RECOGE al reengancharse
+    /// sale de `Listar` y va sin ninguna, «de antes».
     #[test]
     fn con_un_proceso_de_antes_la_terminal_no_consta_con_contrasena() {
-        let mut ficha: FichaRemota = serde_json::from_str(
-            r#"{"id":3,"cwd":"x","command":null,"pid":null,"tamano":null,"alternativa":false,"pegado":false}"#,
-        )
-        .unwrap();
-        ficha.clave = pty::ClaveDePanel::nueva();
-        assert!(ficha.clave.is_some());
-        let de_antes: FichaRemota = serde_json::from_str(
-            r#"{"id":3,"cwd":"x","command":null,"pid":7,"tamano":null,"alternativa":false,"pegado":false}"#,
-        )
-        .unwrap();
-        al_dia(&mut ficha, de_antes);
-        assert_eq!(ficha.pid, Some(7));
-        assert!(ficha.clave.is_none());
+        let de_antes = || -> FichaRemota {
+            serde_json::from_str(r#"{"id":3,"cwd":"x","command":null,"pid":7,"tamano":null,"alternativa":false,"pegado":false}"#).unwrap()
+        };
+        // La que abre: el espejo nace con la suya y la conserva.
+        let mut abierta = de_antes();
+        abierta.pid = None;
+        abierta.clave = pty::ClaveDePanel::nueva();
+        let suya = abierta.clave.clone();
+        assert!(suya.is_some());
+        al_dia(&mut abierta, de_antes());
+        assert_eq!(abierta.pid, Some(7));
+        assert_eq!(abierta.clave, suya, "una terminal abierta en un proceso de antes perdió su contraseña");
+        // La que recoge al reengancharse: su ficha es la de `Listar`, sin contraseña.
+        let recogida = de_antes();
+        assert!(recogida.clave.is_none(), "una terminal recogida de un proceso de antes no puede constar con contraseña");
+        // Y un proceso al día manda la suya, que es la que vale.
+        let mut con = de_antes();
+        let real = pty::ClaveDePanel::nueva();
+        al_dia(&mut con, FichaRemota { clave: real.clone(), ..de_antes() });
+        assert_eq!(con.clave, real);
+    }
+
+    /// `crear` manda la contraseña también en el entorno, que es lo único que
+    /// un proceso de antes de la 0.9.239 sabe aplicar; sin contraseña no toca
+    /// nada, y lo que el panel ya llevaba en su entorno se queda.
+    #[test]
+    fn la_contrasena_va_tambien_en_el_entorno() {
+        let clave = pty::ClaveDePanel::nueva();
+        let mut env = std::collections::HashMap::new();
+        env.insert("CLAUDE_CONFIG_DIR".to_string(), "c".to_string());
+        let alta = con_clave_en_el_entorno(Alta { clave: clave.clone(), env: Some(env), ..cmd(4, "") });
+        let env = alta.env.unwrap();
+        assert_eq!(env.get(pty::VARIABLE_CLAVE_DE_PANEL).map(String::as_str), clave.as_ref().map(|c| c.valor()));
+        assert_eq!(env.get("CLAUDE_CONFIG_DIR").map(String::as_str), Some("c"));
+        let sin = con_clave_en_el_entorno(Alta { clave: None, env: None, ..cmd(4, "") });
+        assert!(sin.env.is_none());
     }
 
     /// El ajuste: sin fichero manda lo de fábrica, «0» apaga aunque lo de

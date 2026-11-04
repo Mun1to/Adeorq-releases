@@ -30,6 +30,7 @@ import { cuentasQueLeer, historiaLeida, leerHistoria } from "../lib/historiaDeUs
 import { comoFecha, diasDelMes } from "../lib/calendario";
 import { proveedorDe } from "../lib/providers";
 import { comoFuente, esVideo as fondoDeCasaEsVideo, leerFondo } from "../lib/fondo";
+import { ponerFuenteDeVideo, VIDEO_SOLO_POR_BLOB } from "../lib/videoEnLinux";
 import {
   cifra,
   conDia,
@@ -279,6 +280,8 @@ function imagenDe(url: string): Promise<HTMLImageElement> {
     lienzo en cada fotograma. Al exportar NO se usa este, sino el archivo
     (`lib/exportarTarjeta.ts` lo lee fotograma a fotograma, sin reloj). */
 const videos = new Map<string, HTMLVideoElement>();
+/** Con qué soltar lo que cada uno tiene en memoria (solo en Linux). */
+const soltarVideo = new Map<string, () => void>();
 function videoDe(url: string): HTMLVideoElement {
   let v = videos.get(url);
   if (!v) {
@@ -287,7 +290,7 @@ function videoDe(url: string): HTMLVideoElement {
     v.loop = true;
     v.playsInline = true;
     v.preload = "auto";
-    v.src = url;
+    soltarVideo.set(url, ponerFuenteDeVideo(v, url));
     videos.set(url, v);
   }
   return v;
@@ -304,6 +307,27 @@ function fotosDe(f: FondoTarjeta): Promise<string[]> {
     p.catch(() => tiras.delete(f.url));
   }
   return p;
+}
+
+/** La miniatura de un vídeo. En Linux, un `<video>` por miniatura bajaría cada archivo
+    entero a memoria (`lib/videoEnLinux.ts`): va el primer fotograma de su tira. */
+function MiniDeVideo({ f }: { f: FondoTarjeta }) {
+  const [foto, setFoto] = useState("");
+  useEffect(() => {
+    if (!VIDEO_SOLO_POR_BLOB) return;
+    let vivo = true;
+    fotosDe(f).then(
+      (fotos) => {
+        if (vivo) setFoto(fotos[0] ?? "");
+      },
+      () => {},
+    );
+    return () => {
+      vivo = false;
+    };
+  }, [f]);
+  if (!VIDEO_SOLO_POR_BLOB) return <video src={`${f.url}#t=0.1`} muted preload="metadata" />;
+  return foto ? <img src={foto} alt="" draggable={false} /> : null;
 }
 
 type Cual = "desde" | "hasta";
@@ -922,6 +946,8 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
       v.removeAttribute("src");
       v.load();
       videos.delete(f.url);
+      soltarVideo.get(f.url)?.();
+      soltarVideo.delete(f.url);
     }
     tiras.delete(f.url);
     try {
@@ -1141,7 +1167,7 @@ export default function PerfilTarjeta({ cuentas }: { cuentas: Account[] }) {
                         }
                       }}
                     >
-                      {f.tipo === "video" && <video src={`${f.url}#t=0.1`} muted preload="metadata" />}
+                      {f.tipo === "video" && <MiniDeVideo f={f} />}
                     </button>
                     {f.quitable && (
                       <button

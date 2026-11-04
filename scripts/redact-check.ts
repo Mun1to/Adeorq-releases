@@ -55,6 +55,15 @@ es(
   tapa("C:\\Users\\Muni\\proyectos"),
   "C:\\Users\\●●●●\\proyectos",
 );
+es("la ruta con tu usuario de Linux", tapa("cd /home/munir/proyectos"), "cd /home/●●●●●/proyectos");
+es("la ruta con tu usuario de Mac", tapa("/Users/munir/Library/x"), "/Users/●●●●●/Library/x");
+es("también al final de la ruta y entre comillas", tapa('cwd="/home/munir"'), 'cwd="/home/●●●●●"');
+es("también por debajo de otra carpeta", tapa("/var/home/munir/x y /mnt/c/Users/Muni/y"), "/var/home/●●●●●/x y /mnt/c/Users/●●●●/y");
+es("también en una dirección de archivo", tapa("file:///home/munir/a.txt"), "file:///home/●●●●●/a.txt");
+es("en passwd, solo el nombre", tapa("/home/munir:/bin/bash"), "/home/●●●●●:/bin/bash");
+es("una web con esa carpeta no es una ruta tuya", tapa("https://ejemplo.com/home/portada y https://ejemplo.com/Users/lista"), "https://ejemplo.com/home/portada y https://ejemplo.com/Users/lista");
+es("ni otra carpeta que se le parece", tapa("/homes/munir y src/home/portada"), "/homes/munir y src/home/portada");
+es("la de Windows con barras al revés no se tapa dos veces", tapa("C:/Users/Muni/x"), "C:/Users/●●●●/x");
 
 console.log(fallos ? `\n${fallos} FALLOS` : "\nTODO BIEN");
 process.exit(fallos ? 1 : 0);

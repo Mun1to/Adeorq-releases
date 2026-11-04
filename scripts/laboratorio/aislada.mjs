@@ -161,6 +161,9 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
   };
   // Lanzado desde un panel de Adeorq, el entorno trae el número de ESE panel.
   delete env.ADEORQ_PANE_ID;
+  // Y Claude Code se la pone a lo que lanza: quien abre Adeorq desde el menú de
+  // Inicio no la tiene, y heredarla escondía lo que `pty::entorno_al_nacer` arregla.
+  delete env.NoDefaultCurrentDirectoryInExePath;
 
   const lanzar = () => {
     const hijo = spawn(exe, [], { cwd: demo, detached: true, stdio: "ignore", env });
@@ -168,6 +171,7 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     return hijo.pid;
   };
   let app = lanzar();
+  const usados = new Set([exe.toLowerCase()]);
   let v;
   const puentes = [];
 
@@ -188,8 +192,10 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
       "$ruta|$suyas|$dentro"
     `], { encoding: "utf8" });
     const [ruta, suyas, dentro] = (r.stdout ?? "").trim().split("|");
-    const mio = pid > 0 && ruta?.toLowerCase() === exe.toLowerCase();
-    return { pid: mio ? pid : 0, terminales: mio ? Number(suyas) : 0, enLaApp: Number(dentro) || 0 };
+    // Tras `reiniciar({ exe })` el motor puede ser el de la versión de antes,
+    // que sigue corriendo desde la copia de entonces.
+    const mio = pid > 0 && usados.has(ruta?.toLowerCase());
+    return { pid: mio ? pid : 0, ruta: mio ? ruta : "", terminales: mio ? Number(suyas) : 0, enLaApp: Number(dentro) || 0 };
   };
   const enganchada = async () => {
     if (!aparte) return;
@@ -198,10 +204,14 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
   };
 
   /** Un agente: el puente `--mcp` de verdad, presentándose como el panel `yo`
-   *  (o sin panel, con `null`). */
-  const puente = (yo) => {
+   *  (o sin panel, con `null`) y con la contraseña `clave` si se le da. Sin
+   *  ella, desde la 0.9.239 no se le cree el número: va como «fuera de
+   *  Adeorq». Para hablar DESDE una terminal, `puenteDe`. */
+  const puente = (yo, clave) => {
     const suyo = { ...env };
+    delete suyo.ADEORQ_PANE_CLAVE;
     if (yo != null) suyo.ADEORQ_PANE_ID = String(yo);
+    if (clave) suyo.ADEORQ_PANE_CLAVE = clave;
     const p = spawn(exe, ["--mcp"], { env: suyo });
     puentes.push(p);
     let buf = "";
@@ -232,6 +242,50 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
       return r.error ? { error: r.error.message } : { texto: r.result?.content?.[0]?.text ?? JSON.stringify(r) };
     };
     return { pedir, llamar, cerrar: () => p.kill() };
+  };
+
+  /** La contraseña de la terminal `id` (`ADEORQ_PANE_CLAVE`), leída de lo que
+   *  ella misma dice: la busca en su historia como `ADEORQ-CLAVE=<64 hex>` (un
+   *  programa de mentira puede imprimirla al arrancar) y, si no está, se la
+   *  hace imprimir con un `echo`, que vale si es una consola. Se pide por un
+   *  puente sin panel, así que necesita «fuera de Adeorq» con manos
+   *  (`fueraConTodo`, lo de fábrica de la aislada). `null` si no sale en 15 s. */
+  const claveDe = async (id) => {
+    const mira = puente(null);
+    try {
+      await mira.pedir("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "laboratorio", version: "1" } });
+      await hasta(async () => /Arranque de Adeorq/.test((await mira.llamar("get_active_panes", {})).texto || ""), 15_000, 500);
+      // De su historia y, si no, de su pantalla sin saltos (en una de Claude o
+      // Codex el transcript es su conversación, y 64 cifras pueden partirse en
+      // dos renglones). La última: si se reabrió con su historia, la de antes queda arriba.
+      const leer = async () => {
+        for (const h of ["read_pane_transcript", "read_pane_screen"]) {
+          const t = ((await mira.llamar(h, { paneId: id })).texto ?? "").replace(/\r?\n/g, "");
+          const c = [...t.matchAll(/ADEORQ-CLAVE=([0-9a-f]{64})/g)].at(-1)?.[1];
+          if (c) return c;
+        }
+        return null;
+      };
+      const ya = await leer();
+      if (ya) return ya;
+      // `cmd /c` para que valga igual en cmd que en PowerShell. Hasta tres
+      // veces: si la consola aún arranca, lo tecleado se pierde.
+      for (let i = 0; i < 3; i++) {
+        await mira.llamar("send_command", { paneId: id, command: "cmd /c echo ADEORQ-CLAVE=%ADEORQ_PANE_CLAVE%" });
+        const c = await hasta(leer, 6_000, 400);
+        if (c) return c;
+      }
+      return null;
+    } finally {
+      mira.cerrar();
+    }
+  };
+  /** Un agente DESDE la terminal `id`: el puente con su número y su contraseña,
+   *  como el de un Claude que corre en ella. Falla si no se puede leer. */
+  const puenteDe = async (id) => {
+    const clave = await claveDe(id);
+    if (!clave) throw new Error(`no pude leer la contraseña de la terminal ${id}: sin ella el puerto no le cree el número`);
+    return puente(id, clave);
   };
 
   const cerrar = async () => {
@@ -288,8 +342,11 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
    *  que hace Munir al reiniciar. Los puentes viejos se cierran; la ventana
    *  nueva queda en `aislada.v`. Con `actualizando`, como la tarjeta de
    *  actualizar (`terminales_por_actualizar` antes de irse): con el proceso
-   *  aparte las terminales no mueren y la app que vuelve las recoge. */
-  const reiniciar = async ({ actualizando = false } = {}) => {
+   *  aparte las terminales no mueren y la app que vuelve las recoge. Con
+   *  `exe`, la que vuelve es OTRO binario (la versión nueva de una
+   *  actualización), copiado a su propia carpeta de la pasada: el motor de
+   *  antes sigue corriendo desde la copia de antes, como el de verdad. */
+  const reiniciar = async ({ actualizando = false, exe: otro } = {}) => {
     for (const p of puentes.splice(0)) p.kill();
     if (actualizando) await v.js(`window.__TAURI_INTERNALS__.invoke("terminales_por_actualizar")`);
     // La respuesta no llega nunca: la ventana se va con la app.
@@ -303,14 +360,26 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
       `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${join(base, "navegador").replace(/'/g, "''")}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`,
     ], { stdio: "ignore" });
     await dormir(1500);
+    if (otro) {
+      const dir = join(base, `bin-${usados.size + 1}`);
+      mkdirSync(dir, { recursive: true });
+      exe = join(dir, "adeorq.exe");
+      copyFileSync(otro, exe);
+      usados.add(exe.toLowerCase());
+      aislada.exe = exe;
+    }
     app = lanzar();
     if (!(await hasta(() => alFondo(app, exe), 12_000, 200))) throw new Error("la ventana de pruebas no volvió (o no es la mía)");
     v = await ventana(depurar);
     aislada.v = v;
     await v.enviar("Page.enable");
     await v.enviar("Page.addScriptToEvaluateOnNewDocument", { source: guarda ? `${GUARDA};\n${guarda}` : GUARDA });
-    // El guion de guarda entra en la siguiente carga, no en la que ya corre.
-    await v.enviar("Page.reload");
+    // Y en la carga que ya corre, sin recargarla: recargar aquí caía en mitad de
+    // la vuelta del tablero, con las terminales de la primera carga vivas en
+    // Rust, y la segunda las tomaba por ajenas («· recuperada») sobre un tablero
+    // guardado a medias. Era el «FALLO al reiniciar Adeorq vuelve en la Pro»
+    // intermitente de `reparto-cuentas-de-verdad.mjs` (t75, 2026-11-03).
+    await v.js(guarda ? `${GUARDA};\n${guarda}` : GUARDA);
     await dormir(1500);
     await hasta(() => v.js(`document.readyState === "complete" && !!document.querySelector(".app, #root > *")`), 20_000);
     await hasta(() => {
@@ -322,7 +391,7 @@ export async function abrirAislada({ nombre, puertoMcp, depurar, fotos = tmpdir(
     return v;
   };
 
-  const aislada = { v, base, demo, env, puente, foto, cerrar, reiniciar, aparte, motor };
+  const aislada = { v, base, demo, env, exe, puente, puenteDe, claveDe, foto, cerrar, reiniciar, aparte, motor };
   return aislada;
 }
 

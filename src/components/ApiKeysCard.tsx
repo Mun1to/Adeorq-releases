@@ -134,14 +134,18 @@ export default function ApiKeysCard() {
           cifrado donde no lo hay es lo peor que puede hacer una pantalla que
           pide una clave, así que ahora dice lo que pasa en TU sistema.
           Lo que sí es igual en los dos: la clave no vuelve nunca al front. */}
-      <p className="card-hint apikeys-donde" data-seguro={donde === "credenciales"}>
+      <p className="card-hint apikeys-donde" data-seguro={donde !== "archivo"}>
         {donde === "credenciales"
           ? t(
               "Se guarda en el Gestor de Credenciales de Windows, cifrada con tu sesión, y no vuelve a salir: al abrir una terminal la pone Rust justo antes de arrancar el proceso, así que no pasa por la pantalla ni aparece en una captura.",
             )
-          : t(
-              "En Linux no hay Gestor de Credenciales: se guarda en un archivo tuyo con permisos 600. Eso la protege de otros usuarios del equipo, pero NO de otro programa tuyo. Sí es igual que en Windows lo otro: no vuelve a salir, la pone Rust justo antes de arrancar el proceso.",
-            )}
+          : donde === "llavero"
+            ? t(
+                "Se guarda en el Llavero de tu Mac, cifrada con tu sesión, y no vuelve a salir: al abrir una terminal la pone Rust justo antes de arrancar el proceso, así que no pasa por la pantalla ni aparece en una captura. Si el Llavero no se deja, se guarda en un archivo tuyo con permisos 600 hasta que se pueda.",
+              )
+            : t(
+                "En Linux no hay Gestor de Credenciales: se guarda en un archivo tuyo con permisos 600. Eso la protege de otros usuarios del equipo, pero NO de otro programa tuyo. Sí es igual que en Windows lo otro: no vuelve a salir, la pone Rust justo antes de arrancar el proceso.",
+              )}
       </p>
       </header>
 

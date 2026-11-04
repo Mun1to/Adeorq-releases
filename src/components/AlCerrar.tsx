@@ -117,7 +117,7 @@ export default function AlCerrar() {
             ? t("Si cierras se cierran también las terminales, y luego puedes retomar cada sesión.")
             : conBandeja
               ? t(
-                  "En segundo plano la ventana se esconde y los agentes siguen trabajando; Adeorq se queda junto al reloj de Windows y vuelves con un clic. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.",
+                  "En segundo plano la ventana se esconde y los agentes siguen trabajando; Adeorq se queda junto al reloj y vuelves con un clic. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.",
                 )
               : t(
                   "En segundo plano la ventana se esconde y los agentes y los encargos programados siguen trabajando; vuelves abriendo Adeorq otra vez. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.",
@@ -170,7 +170,7 @@ export function AjusteAlCerrar() {
       <p className="card-hint">
         {conBandeja
           ? t(
-              "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde, los agentes siguen trabajando y Adeorq se queda junto al reloj de Windows: desde ahí vuelves con un clic o lo cierras del todo.",
+              "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde, los agentes siguen trabajando y Adeorq se queda junto al reloj: desde ahí vuelves con un clic o lo cierras del todo.",
             )
           : t(
               "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde y los agentes y los encargos programados siguen trabajando; vuelves abriendo Adeorq otra vez, y desde ahí lo cierras del todo.",

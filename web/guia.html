@@ -203,15 +203,20 @@
         <li><a href="#primeros-pasos" data-i18n="guia.nav.primeros">Primeros pasos</a></li>
         <li><a href="#cabina" data-i18n="guia.nav.cabina">La Cabina</a></li>
         <li><a href="#panel" data-i18n="guia.nav.panel">El Panel</a></li>
+        <li><a href="#chat" data-i18n="guia.nav.chat">El Chat</a></li>
+        <li><a href="#decisiones" data-i18n="guia.nav.decisiones">Decisiones</a></li>
         <li><a href="#perfil" data-i18n="guia.nav.perfil">El Perfil y tu uso</a></li>
         <li><a href="#agenda" data-i18n="guia.nav.agenda">La Agenda</a></li>
         <li><a href="#objetivos" data-i18n="guia.nav.objetivos">Los objetivos del día</a></li>
         <li><a href="#lienzo" data-i18n="guia.nav.lienzo">El Lienzo</a></li>
         <li><a href="#cuentas" data-i18n="guia.nav.cuentas">Las Cuentas</a></li>
         <li><a href="#ajustes" data-i18n="guia.nav.ajustes">Ajustes</a></li>
+        <li><a href="#programa-de-fuera" data-i18n="guia.nav.fuera">Lo que puede hacer un programa de fuera</a></li>
         <li><a href="#movil" data-i18n="guia.nav.movil">En el móvil</a></li>
         <li><a href="#emision" data-i18n="guia.nav.emision">El modo emisión</a></li>
         <li><a href="#pulso" data-i18n="guia.nav.pulso">El pulso</a></li>
+        <li><a href="#actualizar" data-i18n="guia.nav.actualizar">Actualizar sin perder las terminales</a></li>
+        <li><a href="#windows-linux-mac" data-i18n="guia.nav.sistemas">Windows, Linux y Mac</a></li>
         <li><a href="#atajos" data-i18n="guia.nav.atajos">Atajos</a></li>
         <li><a href="#donde-guarda" data-i18n="guia.nav.donde">Dónde guarda tus cosas</a></li>
         <li><a href="#dudas" data-i18n="guia.nav.dudas">Dudas frecuentes</a></li>
@@ -242,7 +247,7 @@
         <p data-i18n-html="guia.queEs.caja">
           <span class="doc-caja__titulo">Funciona con tus cuentas.</span>
           Adeorq no incluye ni revende acceso a ningún modelo. Usa las suscripciones y las
-          claves que ya tienes, y todo lo que hace ocurre en tu equipo: no hay servidor por
+          claves que ya tienes, y funciona en tu equipo: no hay un servidor de Adeorq por
           medio ni cuenta que crear para usarlo.
         </p>
       </div>
@@ -271,18 +276,22 @@
           <code>.deb</code> o el <code>.rpm</code> de tu distribución.
         </li>
         <li data-i18n-html="guia.instalar.p3">
-          Abre Adeorq. No hace falta crear ninguna cuenta ni introducir nada.
+          Abre Adeorq. No hace falta crear ninguna cuenta. La bienvenida te pregunta tu nombre,
+          dónde tienes los proyectos y qué programas usas, y se puede saltar.
         </li>
       </ol>
       <p data-i18n-html="guia.instalar.p4">
-        A partir de ahí <b>se actualiza sola</b>: comprueba si hay versión nueva al arrancar y
-        cada seis horas, y te avisa con una barra arriba. No hace falta volver a la web.
+        A partir de ahí <b>te avisa de cada versión nueva</b>: la busca al arrancar y cada seis
+        horas, y sale una tarjeta <b>Actualizar Adeorq</b> abajo a la izquierda. Un clic la baja
+        y la instala; nunca instala sola. Los detalles, en
+        <a href="#actualizar">Actualizar sin perder las terminales</a>.
       </p>
       <p data-i18n-html="guia.instalar.p5">
         <b>Requisitos:</b> Windows 10 u 11 de 64 bits, o un Linux de 64 bits con glibc 2.35 o
         más (Ubuntu 22.04, Debian 12, Fedora 36 o posteriores). El instalador de Windows ocupa
         unos 6 MB, porque la aplicación es nativa y no lleva un navegador entero empaquetado
-        dentro.
+        dentro. En Mac hay un instalador todavía en pruebas: mira
+        <a href="#windows-linux-mac">Windows, Linux y Mac</a>.
       </p>
     </section>
 
@@ -463,6 +472,73 @@
       </p>
     </section>
 
+    <!-- ------------------------------ CHAT ----------------------------- -->
+    <section id="chat">
+      <h2 data-i18n="guia.chat.h">El Chat<a class="doc-ancla" href="#chat" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.chat.p">
+        Una pestaña, en beta, para trabajar hablando en vez de entre terminales. Tiene dos partes.
+      </p>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.chat.l1">
+          <b>Arriba, el conserje.</b> «Hablar con el conserje» abre un chat con Adeo: le dices lo
+          que quieres, él lo parte en trabajos y abre una sesión por cada uno. Las sesiones salen
+          como pestañas encima del hilo (punto verde: trabajando; ámbar: te pregunta; naranja:
+          terminó) y un clic entra en ellas. Cada una deja una tarjeta con su programa, su modelo,
+          qué se le encargó y, si lo eligió el router, por qué.
+        </li>
+        <li data-i18n-html="guia.chat.l2">
+          <b>Debajo, tus sesiones de siempre</b>, por días, con <b>Nueva conversación</b> y un
+          buscador. Cada sesión se lee como una conversación (<b>Limpio</b>) o en crudo
+          (<b>Terminal</b>), y lo que escribes abajo baja a la misma terminal. La caja lleva
+          pastillas de modelo («Automático» deja que lo elija el router), de esfuerzo y un anillo
+          con el contexto.
+        </li>
+      </ul>
+      <p data-i18n="guia.chat.p2">Lo que conviene saber:</p>
+      <ul class="doc-lista">
+        <li data-i18n="guia.chat.l3">
+          El conserje solo abre sesiones en carpetas reales de tus proyectos, solo escribe en las
+          terminales que abrió él y como mucho abre cuatro por mensaje.
+        </li>
+        <li data-i18n-html="guia.chat.l4">
+          Cada mensaje al conserje es una llamada corta con tu suscripción (Claude, o el programa
+          que elijas en sus pastillas), no con una clave de API. Las sesiones que abre gastan su
+          propia cuota. <b>Mejorar</b> reescribe tu mensaje sin añadir nada, y <b>Parar</b> lo
+          corta mientras piensa.
+        </li>
+        <li data-i18n-html="guia.chat.l5">
+          Apagar la parte «Chat» en Ajustes también quita la caja del Panel. No apaga el conserje
+          del móvil, que tiene su propio interruptor (<a href="#movil">En el móvil</a>).
+        </li>
+      </ul>
+    </section>
+
+    <!-- --------------------------- DECISIONES -------------------------- -->
+    <section id="decisiones">
+      <h2 data-i18n="guia.dec.h">Decisiones<a class="doc-ancla" href="#decisiones" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n-html="guia.dec.p">
+        Cuando un agente necesita que elijas algo, te lo pregunta aquí en lugar de por el chat.
+        La pestaña lista <b>Te esperan</b> y <b>Anteriores</b>. Cada pregunta trae de dos a seis
+        opciones numeradas (la recomendada lleva «Recomendada») y una caja
+        <b>Otra cosa, con tus palabras</b>.
+      </p>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.dec.l1">
+          <b>Enviar respuesta</b> espera cinco segundos, con <b>Deshacer</b>, y luego la teclea en
+          la terminal que preguntó, si sigue siendo la misma. Si no, el agente la lee cuando
+          vuelva a mirar.
+        </li>
+        <li data-i18n-html="guia.dec.l2">
+          <b>Descartar</b> la aparta sin contestar y avisa a la terminal que esperaba.
+        </li>
+        <li data-i18n="guia.dec.l3">Las anteriores se borran solas a la semana.</li>
+        <li data-i18n-html="guia.dec.l4">
+          El aviso es un número ámbar en la pestaña y Adeo con cara de duda. En el móvil
+          emparejado llega un aviso y se contesta desde allí (<a href="#movil">En el móvil</a>).
+        </li>
+      </ul>
+    </section>
+
     <!-- ----------------------------- PERFIL ----------------------------- -->
     <section id="perfil">
       <h2 data-i18n="guia.perfil.h">El Perfil y tu uso<a class="doc-ancla" href="#perfil" aria-label="Enlace a esta sección">#</a></h2>
@@ -489,10 +565,30 @@
 
       <h3 data-i18n="guia.perfil.h3a">La tarjeta para compartir</h3>
       <p data-i18n-html="guia.perfil.p1">
-        Tocar un día, tu récord o el icono de compartir abre una tarjeta con tus cifras, lista
-        para publicar: eliges el fondo, el color y el formato, y la guardas como imagen o como
-        vídeo. Ningún proyecto sale en ella si no lo eliges tú.
+        Tocar un día, tu récord o el icono de compartir abre <b>Compartir tu uso</b>: una tarjeta
+        con tus cifras, lista para publicar. Eliges qué muestra (mes, día, récord o total), el
+        fondo, el color y el formato (16:9 o 9:16), y la sacas como imagen o como vídeo. Ningún
+        proyecto sale en ella si no lo eliges tú.
       </p>
+      <p data-i18n="guia.perfil.p2">
+        Siempre salen tu @ (o tu nombre), tu foto y, al pie, «adeorq.com · Hecho con Adeorq». En
+        el vídeo, la cifra sube de cero a la tuya; recortas el tramo del fondo con dos tiradores
+        y puedes ponerle sonido.
+      </p>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.perfil.l1">
+          <b>Descargar</b> guarda un PNG o un MP4 donde elijas.
+        </li>
+        <li data-i18n-html="guia.perfil.l2">
+          <b>Copiar</b>, en modo Imagen, copia la imagen al portapapeles para pegarla donde
+          quieras. En modo Vídeo copia el <b>archivo</b> MP4: en Windows se pega como archivo en un
+          chat o en una carpeta (y como su ruta en un sitio de solo texto, por ejemplo una
+          terminal); en Mac, como referencia de archivo; en Linux, solo la ruta.
+        </li>
+        <li data-i18n="guia.perfil.l3">
+          En Linux la pestaña Vídeo está apagada: «Este equipo no puede sacar vídeo.»
+        </li>
+      </ul>
     </section>
 
     <!-- ----------------------------- AGENDA ---------------------------- -->
@@ -610,13 +706,16 @@
       </figure>
       <ul class="doc-lista">
         <li data-i18n-html="guia.cuentas.l1">
-          <b>Tus cuentas</b>: una tarjeta por programa instalado, diciendo si está conectada y
-          cuánto llevas gastado de sus límites.
+          <b>Tus cuentas</b>: una tarjeta por programa instalado, diciendo si está conectada.
+          Claude Code, Codex y GitHub Copilot enseñan además sus barras de sesión y de semana,
+          con la hora a la que se renuevan, y sale gratis; los demás programas no publican tu
+          consumo en el equipo, y la tarjeta lo dice en vez de inventarse una barra.
         </li>
         <li data-i18n-html="guia.cuentas.l2">
           <b>Claves de API</b>: la otra forma de pagar lo que consume un programa: por tokens en
-          vez de con tu suscripción. Se guardan cifradas en el Gestor de Credenciales de Windows,
-          nunca en un archivo de configuración, y no vuelven a salir de ahí.
+          vez de con tu suscripción. La clave se guarda en el almacén de claves de tu sistema
+          (mira <a href="#donde-guarda">Dónde guarda tus cosas</a>) y nunca vuelve a la pantalla:
+          solo se ven sus cuatro últimas letras.
         </li>
         <li data-i18n-html="guia.cuentas.l3">
           <b>Atajos</b>: qué programas aparecen al pasar el ratón por un proyecto en la barra lateral.
@@ -632,6 +731,45 @@
           los proveedores, y lo que te juegas es el cierre de la cuenta.
         </p>
       </div>
+
+      <h3 data-i18n="guia.cuentas.h3a">Qué programas admiten varias cuentas</h3>
+      <p data-i18n-html="guia.cuentas.pa">
+        Adeorq conoce una veintena de programas, pero solo <b>ocho admiten varias cuentas</b>:
+        Claude Code, Codex, Gemini CLI, Qwen Code, Grok, Pi, Kimi Code y CodeWhale. En esos se ha
+        comprobado que una variable de entorno mueve de verdad la carpeta del programa. Los
+        demás salen con la nota «una sola cuenta»: es preferible decirlo a inventarse un nombre
+        y que una cuenta acabe escribiendo donde no toca. Antigravity guarda su estado dentro de
+        <code>~/.gemini</code> y solo puede tener una.
+      </p>
+
+      <h3 data-i18n="guia.cuentas.h3r">El reparto entre cuentas</h3>
+      <p data-i18n-html="guia.cuentas.pr">
+        Cuando un agente abre una terminal con el MCP de Adeorq
+        (<a href="#programa-de-fuera">más abajo</a>) y no dice con qué cuenta,
+        <b>la terminal va sola a la cuenta de ese programa que más cuota perdería si se quedara
+        sin usar</b>: la que más semana le sobra comparada con los días que faltan para que se
+        renueve. Así, una cuenta al 17 % que se renueva en dos días gana a otra al 60 % que se
+        renueva en cinco.
+      </p>
+      <ul class="doc-lista">
+        <li data-i18n="guia.cuentas.r1">
+          Se salta la cuenta parada por su tope de cinco horas o la que va por el 92 % de su
+          semana o más, salvo que no quede otra. Si el modelo que pide el agente no lo da el plan
+          de esa cuenta, prefiere otra.
+        </li>
+        <li data-i18n="guia.cuentas.r2">
+          Si el agente pide una cuenta concreta, la terminal nace en esa o falla diciéndolo:
+          nunca en otra en silencio. Un encargo programado sin cuenta no elige: va a la
+          predeterminada.
+        </li>
+        <li data-i18n="guia.cuentas.r3">
+          En pantalla lo ves en la cabecera de la terminal: la que no usa la cuenta principal
+          lleva las tres letras de su cuenta.
+        </li>
+        <li data-i18n="guia.cuentas.r4">
+          Hay un tope: seis terminales abiertas por agentes a la vez y doce por hora.
+        </li>
+      </ul>
 
       <h3 data-i18n="guia.cuentas.h3v">Vibecoding con OpenRouter (Aider)</h3>
       <p data-i18n-html="guia.cuentas.pv1">
@@ -660,33 +798,183 @@
       <p data-i18n="guia.ajustes.p">Cómo se ve y cómo habla tu taller.</p>
       <ul class="doc-lista">
         <li data-i18n-html="guia.ajustes.l1">
-          <b>Aspecto</b>: idioma (español o inglés), veinticuatro temas y el fondo: puedes poner
-          una imagen o un vídeo detrás de todo, graduar cuánto se ve y hacer que las terminales
-          sean transparentes para que la foto se vea a través del texto.
+          <b>Aspecto</b>: idioma (español o inglés), 32 temas con filtro y buscador, el color de
+          las terminales (también puedes traer un tema de Warp o de Ghostty), la suavidad del
+          scroll, el modo rendimiento y el fondo: puedes poner una imagen o un vídeo detrás de
+          todo, graduar cuánto se ve y hacer que las terminales sean transparentes para que la
+          foto se vea a través del texto.
+        </li>
+        <li data-i18n-html="guia.ajustes.l1b">
+          <b>Partes de Adeorq</b> y <b>La cabecera</b>, también en Aspecto: apagas Cabina, Lienzo,
+          Memoria o Chat enteras (sin pestaña, sin entrada en Ctrl+K y sin arrancar nada suyo; la
+          Cabina y el Lienzo no se apagan a la vez, porque son los dos sitios donde se abre una
+          terminal), y quitas o reordenas las pestañas de arriba.
         </li>
         <li data-i18n-html="guia.ajustes.l2">
-          <b>Terminales</b>: tamaño de letra, cuántas sesiones abre el botón de abrir todo y la
-          recuperación de lo que tenías abierto.
+          <b>Terminales</b>: tamaño de letra (de 11 a 32 px), cuántas sesiones abre de golpe un
+          proyecto, recuperar lo que tenías abierto, que las terminales aguanten si Adeorq se
+          cae, qué pasa al cerrar la ventana, con qué modo de permisos nace cada Claude nuevo y
+          las tarjetas del MCP y de las claves de los agentes (las dos, en
+          <a href="#programa-de-fuera">Lo que puede hacer un programa de fuera</a>).
         </li>
-        <li data-i18n-html="guia.ajustes.l3"><b>Avisos</b>: cómo te avisa cuando un agente termina o te pregunta.</li>
-        <li data-i18n-html="guia.ajustes.l4"><b>Atajos</b>: todas las combinaciones de teclas, editables.</li>
+        <li data-i18n-html="guia.ajustes.l3">
+          <b>Avisos</b>: cómo te avisa cuando un agente termina o te pregunta, qué modelo usa por
+          defecto (o que decida Adeorq) y dos ayudas que solo dejan propuestas en la bandeja de
+          la Agenda y nunca cambian nada solas: el vigía de las cuadrillas y el copiloto de las
+          sesiones.
+        </li>
+        <li data-i18n-html="guia.ajustes.l4">
+          <b>Atajos</b>: la tabla editable de los 31 atajos del lienzo. Los demás atajos no se
+          cambian (mira <a href="#atajos">Atajos</a>).
+        </li>
         <li data-i18n-html="guia.ajustes.l5">
           <b>Modelo local</b>: si tienes Ollama, Adeorq lo usa para tareas pequeñas sin gastar cuota.
         </li>
         <li data-i18n-html="guia.ajustes.l6">
           <b>Discord</b>: para que tu estado en Discord diga en qué estás trabajando.
         </li>
+        <li data-i18n-html="guia.ajustes.l6b">
+          <b>Mods</b>: cambios tuyos en cómo se ve Adeorq, apagados de fábrica. Solo cambian el
+          aspecto; si uno te deja la pantalla inservible, <kbd>Ctrl</kbd> + <kbd>Alt</kbd> +
+          <kbd>Mayús</kbd> + <kbd>0</kbd> los apaga todos.
+        </li>
         <li data-i18n-html="guia.ajustes.l7">
-          <b>Ayuda</b>: la guía completa dentro de la aplicación y el enlace a esta documentación.
+          <b>Ayuda</b>: el recorrido y la bienvenida otra vez, la guía completa dentro de la
+          aplicación, el enlace a esta documentación y «Que me la explique mi agente», que abre
+          una sesión con la guía delante.
         </li>
         <li data-i18n-html="guia.ajustes.l8">
-          <b>Adeorq</b>: versión instalada, buscar actualizaciones y tu consumo semanal.
+          <b>Adeorq</b>: tu nombre y la carpeta de tus proyectos, la versión instalada y
+          <b>Buscar actualizaciones</b> (solo busca; el resto, en
+          <a href="#actualizar">Actualizar sin perder las terminales</a>), y
+          <b>Ver mi uso semanal</b>, que escribe <code>/usage</code> en la terminal de Claude que
+          tengas activa y te lleva allí.
         </li>
         <li data-i18n-html="guia.ajustes.l9">
           <b>Móvil</b>: Adeorq en el móvil o en otro navegador, estés donde estés. Los pasos, en
           <a href="#movil">En el móvil</a>.
         </li>
       </ul>
+    </section>
+
+    <!-- ------------------------- PROGRAMA DE FUERA --------------------- -->
+    <section id="programa-de-fuera">
+      <h2 data-i18n="guia.fuera.h">Lo que puede hacer un programa de fuera<a class="doc-ancla" href="#programa-de-fuera" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n-html="guia.fuera.p1">
+        Adeorq tiene una puerta local, el <b>MCP</b>, por la que un programa de IA puede mirar y
+        manejar tus terminales: listar proyectos y terminales, leer lo que se ve en una, abrir
+        una nueva, escribirle, preguntarte algo con opciones (que llega a
+        <a href="#decisiones">Decisiones</a> y al móvil) y consultar tu cuota y tus notas de la
+        Memoria. Son dieciocho herramientas, repartidas en tres escalones:
+      </p>
+
+      <div class="doc-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="guia.fuera.th1">Escalón</th>
+              <th data-i18n="guia.fuera.th2">Qué puede hacer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b data-i18n="guia.fuera.e1">Solo mirar</b></td>
+              <td data-i18n="guia.fuera.e1d">Lee terminales, proyectos, la agenda, la cuota y la memoria. No cambia nada.</td>
+            </tr>
+            <tr>
+              <td><b data-i18n="guia.fuera.e2">Abrir y mirar</b></td>
+              <td data-i18n="guia.fuera.e2d">Además abre terminales nuevas, dibuja flechas entre dos del lienzo, te hace preguntas y cierra las que abrió ese mismo programa. No escribe en las de otros.</td>
+            </tr>
+            <tr>
+              <td><b data-i18n="guia.fuera.e3">Todo</b></td>
+              <td data-i18n="guia.fuera.e3d">Además escribe en cualquier terminal, la cierra y puede compactarla.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p data-i18n-html="guia.fuera.conecta">
+        <b>Cómo conectas tu Claude Code a estas herramientas.</b> Adeorq no toca la
+        configuración de tu Claude Code: se la das tú, una vez, con
+        <code>claude mcp add adeorq --scope user -- "&lt;ruta de adeorq.exe&gt;" --mcp</code>
+        (la ruta es la de la carpeta donde instalaste Adeorq). Hace falta que Adeorq esté
+        abierta: con ella abierta, <code>claude mcp list</code> tiene que decir «Connected».
+        Desde entonces, un Claude Code que abras en una terminal de Adeorq tiene las
+        herramientas con el escalón de esa terminal, y uno de otra consola las tiene como
+        programa de fuera (más abajo).
+      </p>
+      <p data-i18n-html="guia.fuera.p2">
+        <b>Cada terminal nace con su propia contraseña</b>, y el escalón sale de la terminal
+        desde donde se conecta el programa, no del nombre que dice tener: un programa que se
+        presenta como «claude» desde fuera no hereda el escalón de Claude Code. De fábrica,
+        <b>Claude Code tiene «Todo»</b> y los demás programas tienen «Abrir y mirar».
+      </p>
+      <p data-i18n-html="guia.fuera.p3">
+        <b>Fuera de Adeorq</b> es todo lo que llega <b>sin</b> la contraseña de una terminal de
+        Adeorq: un Claude Code abierto en otra consola, cualquier programa que hable con el
+        puerto. De fábrica solo puede <b>abrir terminales y mirar</b>. Esas terminales nacen en
+        el modo que tengas en Ajustes, y si pide abrir una <b>con un encargo</b> sale una ventana
+        con el texto, quién lo pide y en qué carpeta: <b>No</b> o <b>Abrir</b>; si nadie contesta,
+        no se abre. Para que haga más, súbelo
+        tú en <b>Ajustes → Terminales → Qué puede hacer cada cliente por el MCP</b>, en su fila;
+        vale para cualquier programa de fuera, y en «Todo» ya no pregunta, así que súbelo con
+        cuidado (<b>Como de
+        fábrica</b> lo devuelve). Cada fila dice el programa, su versión, cuántas veces se
+        conectó y cuándo fue la última. El Capataz y el conserje entran por una línea propia y no
+        cuentan como clientes.
+      </p>
+      <p data-i18n="guia.fuera.p4">
+        Un programa con un escalón bajo que pida algo que no le toca recibe un rechazo que le
+        dice qué escalón tiene y dónde se cambia.
+      </p>
+      <p data-i18n-html="guia.fuera.lim">
+        <b>Límites:</b> un agente abre como mucho seis terminales vivas a la vez y doce por hora;
+        un mensaje nuevo a una terminal de Claude con más de 300.000 tokens de contexto se le
+        devuelve y solo sale si insiste; no puede compactar una que abrió una persona; y las
+        terminales que abre un agente las cierra él cuando acaba, dejando un resumen en la carpeta
+        de datos.
+      </p>
+
+      <h3 data-i18n="guia.fuera.h3c">Pedir una clave sin enseñarla</h3>
+      <p data-i18n-html="guia.fuera.pc">
+        Cuando un agente necesita un token, <b>no se pide por el chat ni se deja en un
+        archivo</b>. Sale una ventana de Adeorq donde lo pegas, y el agente no lo lee ni queda en
+        su historial. El agente la usa con
+        <code>adeorq secreto &lt;nombre&gt; -- &lt;comando&gt;</code>: el comando recibe la clave
+        en una variable de entorno y su salida sale con <code>***</code> donde habría salido la
+        clave.
+      </p>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.fuera.c1">
+          Una <b>terminal de Adeorq</b> que pide una clave ya guardada la recibe <b>sin
+          preguntar</b>. Si no estaba guardada, sale la ventana <b>Un agente necesita una
+          clave</b>, con una casilla para guardarla la próxima vez.
+        </li>
+        <li data-i18n-html="guia.fuera.c2">
+          <b>Un programa de fuera de Adeorq</b> que pide una clave guardada hace salir otra
+          ventana: «No viene de una terminal de Adeorq. Dásela solo si sabes qué programa es.»
+          Eliges <b>No</b> o <b>Dársela esta vez</b>.
+        </li>
+        <li data-i18n-html="guia.fuera.c3">
+          <b>Claves de los agentes</b> (en Ajustes → Terminales) lista cada clave guardada con
+          quién la usó y cuándo, y un botón <b>Olvidar</b>. Nunca enseña el valor, y la tarjeta
+          no sale si no hay ninguna guardada.
+        </li>
+        <li data-i18n-html="guia.fuera.c4">
+          Dónde se guardan, en <a href="#donde-guarda">Dónde guarda tus cosas</a>: en el almacén
+          de claves de cada sistema y, en Linux, en un archivo sin cifrar.
+        </li>
+      </ul>
+      <div class="doc-caja doc-caja--ojo">
+        <p data-i18n-html="guia.fuera.caja">
+          <span class="doc-caja__titulo">Lo que esto no hace.</span>
+          El filtro <code>***</code> solo reconoce la clave tal cual, así que no para a un agente
+          decidido a sacarla (por ejemplo, con un comando que la codifique antes de imprimirla), y
+          cualquier programa que corra con tu usuario puede leer el Gestor de Credenciales (o el
+          Llavero) directamente, sin pasar por Adeorq. Es una barrera contra accidentes y
+          lecturas casuales, no contra un agente en el que no confías: a ese no se le da la clave.
+        </p>
+      </div>
     </section>
 
     <!-- ----------------------------- MOVIL ----------------------------- -->
@@ -756,9 +1044,15 @@
           agente, <b>Chat</b> trae todo lo hablado y <b>Pantalla</b>, lo que se ve ahora en el PC.
         </li>
         <li data-i18n-html="guia.movil.l5">
-          <b>Cambiar de modo.</b> En una terminal de Claude Code, el botón de teclas de la caja
-          (Intro, Esc, Ctrl+C y las flechas) trae <b>Cambiar modo</b>: hace lo que Mayús+Tab en
-          el PC (normal, aceptar ediciones, plan, auto) y dice en qué modo está.
+          <b>La caja de una terminal.</b> Admite texto, fotos y archivos, y lleva solo tres
+          mandos: <b>Parar</b> (hace lo que Esc en el PC, mientras el agente trabaja), una
+          pastilla de modelo y esfuerzo y <b>Modo</b> (lo que Mayús+Tab en Claude Code: cambia el
+          modo de permisos). Cada uno sale solo si ese programa lo entiende.
+        </li>
+        <li data-i18n-html="guia.movil.l13">
+          <b>Abrir sesiones del PC.</b> En el menú, <b>Nueva sesión aquí</b> en cada proyecto,
+          <b>Otro proyecto…</b> y seguir una sesión de antes. Solo en carpetas que son proyectos
+          tuyos y con programas conocidos.
         </li>
         <li data-i18n-html="guia.movil.l4">
           <b>Decisiones.</b> Cuando un agente necesita que elijas algo, te lo pregunta con sus
@@ -845,24 +1139,186 @@
     <section id="emision">
       <h2 data-i18n="guia.emision.h">El modo emisión<a class="doc-ancla" href="#emision" aria-label="Enlace a esta sección">#</a></h2>
       <p data-i18n-html="guia.emision.p">
-        Pensado para grabar o compartir pantalla: tapa rutas, correos, claves y datos personales
-        de las terminales de un golpe. Se activa con <kbd>Ctrl</kbd> + <kbd>Mayús</kbd> +
-        <kbd>E</kbd>, y manteniendo <kbd>Alt</kbd> puedes mirar debajo un momento sin desactivarlo.
+        Pensado para grabar o compartir pantalla sin regalar tus claves. Se activa con
+        <kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>E</kbd> (o con su botón, solo con icono, en la
+        barra de arriba) y tiene cuatro piezas:
       </p>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.emision.l1">
+          <b>Tapado, no desenfoque.</b> El pie de la barra lateral, el resumen del Capataz, los
+          nombres de cuentas y los textos de la Agenda se cubren con una barra sólida. <b>Los
+          títulos de tus sesiones y los objetivos del día no se tapan, a propósito</b>: son el
+          hilo de lo que estás haciendo, y sin ellos el directo no se entiende.
+        </li>
+        <li data-i18n-html="guia.emision.l2">
+          <b>Alt para mirar.</b> Mantén <kbd>Alt</kbd> para ver lo tapado; al soltarlo, o al
+          cambiar de ventana, se vuelve a tapar. El ratón por encima no revela nada.
+        </li>
+        <li data-i18n-html="guia.emision.l3">
+          <b>El escudo en las terminales.</b> Lo que escribe el agente se revisa antes de
+          pintarse y se cambia por ●●● lo que tiene forma de clave: claves de Anthropic, OpenAI,
+          AWS o Google, tokens de GitHub y Slack, JWT, claves privadas, contraseñas dentro de una
+          cadena de conexión, variables tipo <code>API_KEY=…</code>, tu correo y tu usuario en
+          las rutas. El agente sí recibe el texto real: solo se oculta a la vista. Cuando tapa
+          algo sale una tarjeta abajo a la derecha, «Tapé algo que parece…», con un consejo y el
+          botón <b>Entendido</b>.
+        </li>
+        <li data-i18n-html="guia.emision.l4">
+          <b>La cortina, <kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>P</kbd>.</b> Tapa la ventana
+          entera al instante; vuelve con un clic o con las mismas teclas. <b>Solo se pone a
+          mano</b>: el escudo no la baja por su cuenta.
+        </li>
+      </ul>
+      <p data-i18n-html="guia.emision.p2">
+        También puedes tapar una sola terminal, con el ojo de su cabecera o con el clic derecho
+        (<b>Tapar esta terminal (para emitir)</b>).
+      </p>
+      <div class="doc-caja doc-caja--ojo">
+        <p data-i18n-html="guia.emision.caja">
+          <span class="doc-caja__titulo">Lo que no hace.</span>
+          No arregla lo que ya salió antes de activarlo, no tapa tu navegador ni las
+          notificaciones del sistema, y ninguna lista de patrones es completa. Lo que más
+          protege sigue siendo un retardo de 30 segundos en OBS.
+        </p>
+      </div>
     </section>
 
     <!-- ------------------------------ PULSO ---------------------------- -->
     <section id="pulso">
       <h2 data-i18n="guia.pulso.h">El pulso<a class="doc-ancla" href="#pulso" aria-label="Enlace a esta sección">#</a></h2>
       <p data-i18n-html="guia.pulso.p1">
-        Arriba en la barra, cuánta memoria están gastando Adeorq y sus agentes, y cuántos agentes
-        hay vivos, que es el número que dice si te has dejado algo abierto.
+        Arriba en la barra, una píldora con tres cifras: cuánta CPU y cuánta memoria (RAM) están
+        gastando Adeorq y sus agentes, y cuántos agentes hay vivos (AG), que es el número que
+        dice si te has dejado algo abierto. Un clic abre <b>Lo que gasta Adeorq</b>, con el
+        detalle.
       </p>
       <p data-i18n-html="guia.pulso.p2">
         Mide el <b>árbol entero</b> de procesos, no sólo la ventana, porque lo que de verdad pesa
         son los programas que cuelgan de ella. Y lo compara con lo que tiene tu equipo: se pone
-        ámbar cuando el que aprieta es Adeorq, y rojo cuando la que va justa es la máquina.
+        ámbar cuando Adeorq usa un cuarto o más de la CPU o de la memoria del equipo, y rojo
+        cuando el equipo entero va al 90 % o Adeorq por sí solo pasa del 50 % de CPU.
       </p>
+    </section>
+
+    <!-- ---------------------------- ACTUALIZAR ------------------------- -->
+    <section id="actualizar">
+      <h2 data-i18n="guia.act.h">Actualizar sin perder las terminales<a class="doc-ancla" href="#actualizar" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n-html="guia.act.p1">
+        Adeorq mira si hay versión nueva al arrancar, cada seis horas y al volver a la ventana, y
+        te avisa de dos maneras: una notificación del sistema (una vez por versión) y una tarjeta
+        <b>Actualizar Adeorq</b> con la versión, al final de la barra lateral, abajo a la
+        izquierda. Si la barra está encogida a una tira, solo avisa la notificación. Un clic
+        descarga la versión, con su porcentaje, y la instala; después dice <b>Reinicia para
+        estrenar</b>. La ✕ (<b>Ahora no</b>) la esconde. <b>No instala nada sin que pulses.</b>
+      </p>
+      <p data-i18n-html="guia.act.p2">
+        Si hay agentes trabajando cuando vas a instalar o a reiniciar, la tarjeta dice <b>Espera
+        a que terminen</b> y quién anda a medias, y sigue sola cuando acaban. Si pulsas otra vez,
+        no espera.
+      </p>
+      <p data-i18n-html="guia.act.p3">
+        <b>«Las terminales siguen vivas»</b> quiere decir que tus consolas y tus agentes siguen
+        con lo que hacían: un <code>pnpm dev</code> sigue corriendo y Claude no vuelve a
+        arrancar. Las terminales viven en un proceso aparte que el instalador no cierra, y la
+        ventana nueva las recoge con su historial. Los límites, dichos claros:
+      </p>
+      <ul class="doc-lista">
+        <li data-i18n-html="guia.act.l1">
+          <b>Solo en Windows</b>, en la app instalada y con el ajuste <b>Que las terminales
+          aguanten si Adeorq se cae</b> encendido (de fábrica sí). En Linux y Mac está apagado de
+          fábrica.
+        </li>
+        <li data-i18n-html="guia.act.l2">
+          <b>Sin ese proceso aparte</b>, actualizar cierra las terminales: a los Claude se les
+          despide con Ctrl+C y se retoman con <code>--resume</code>, y una consola pierde lo que
+          tuviera en marcha.
+        </li>
+        <li data-i18n="guia.act.l3">
+          Lo que cierras tú las mata: cerrar Adeorq del todo, o cerrar las terminales. Y si
+          Adeorq muere de golpe, las terminales aguantan media hora; si nadie vuelve, se cierran
+          solas.
+        </li>
+        <li data-i18n-html="guia.act.l4">
+          <b>El proceso aparte es de la versión en la que nació.</b> Tras actualizar, la ventana
+          es nueva pero ese proceso sigue siendo el viejo, y las terminales que abras después en
+          esa sesión nacen también en él hasta que salgas de Adeorq del todo. Lo nuevo de la
+          versión que dependa de ese proceso no llega a ellas, así que tras actualizar conviene
+          salir de Adeorq del todo en cuanto puedas.
+        </li>
+      </ul>
+      <div class="doc-caja doc-caja--ojo">
+        <p data-i18n-html="guia.act.caja">
+          <span class="doc-caja__titulo">Sin probar con un instalador real.</span>
+          Que las terminales sobrevivan a la actualización está leído en el código, pero todavía
+          no se ha probado con un instalador de verdad. Si al actualizar te pasa algo distinto de
+          lo que se cuenta aquí, avísalo.
+        </p>
+      </div>
+    </section>
+
+    <!-- -------------------------- WINDOWS, LINUX, MAC ------------------ -->
+    <section id="windows-linux-mac">
+      <h2 data-i18n="guia.sis.h">Windows, Linux y Mac<a class="doc-ancla" href="#windows-linux-mac" aria-label="Enlace a esta sección">#</a></h2>
+      <p data-i18n="guia.sis.p">Adeorq se usa igual en los tres, con estas diferencias.</p>
+
+      <h3 data-i18n="guia.sis.h3w">Windows</h3>
+      <p data-i18n="guia.sis.pw">
+        Es donde más se usa y donde está todo: el motor de terminales en un proceso aparte, el
+        navegador de verdad, la música, el segundo plano con icono, el reloj de los encargos
+        programados y el Gestor de Credenciales.
+      </p>
+
+      <h3 data-i18n="guia.sis.h3l">Linux</h3>
+      <p data-i18n-html="guia.sis.pl">
+        Se publican AppImage, <code>.deb</code> y <code>.rpm</code> (en Fedora conviene el
+        <code>.rpm</code>; el AppImage lleva su propio motor web). La ventana es translúcida y
+        pide un escritorio con compositor. Las diferencias que verás:
+      </p>
+      <ul class="doc-lista">
+        <li data-i18n="guia.sis.l1">
+          Las claves van a un archivo con permisos 600, sin cifrar (la pantalla lo dice).
+        </li>
+        <li data-i18n="guia.sis.l2">No hay control de música.</li>
+        <li data-i18n-html="guia.sis.l3">
+          Al darle a la X con terminales abiertas ofrece <b>Seguir en segundo plano</b>: la
+          ventana se esconde, sin icono, y vuelve al abrir Adeorq otra vez.
+        </li>
+        <li data-i18n="guia.sis.l4">
+          El navegador del panel es una versión sencilla en un marco, no el Chromium de verdad.
+        </li>
+        <li data-i18n="guia.sis.l5">Las terminales no van de fábrica en un proceso aparte.</li>
+        <li data-i18n="guia.sis.l6">La pestaña Vídeo de la tarjeta de uso está apagada.</li>
+      </ul>
+
+      <h3 data-i18n="guia.sis.h3m">Mac</h3>
+      <p data-i18n-html="guia.sis.pm">
+        Hay un instalador <code>.dmg</code> para Apple Silicon (macOS 12 o más) entre las
+        versiones publicadas. Está construido y arrancado en un Mac automático, pero <b>todavía
+        no se ha usado a diario en un Mac real</b>: si algo falla, cuéntalo.
+      </p>
+      <ul class="doc-lista">
+        <li data-i18n="guia.sis.m1">
+          Las claves van al Llavero de inicio de sesión (servicio «Adeorq»). Adeorq mueve al
+          Llavero las que estuvieran en un archivo y solo borra el archivo cuando ha comprobado
+          que la clave leída de vuelta es idéntica.
+        </li>
+        <li data-i18n="guia.sis.m2">
+          La barra de título sigue el tema de Adeorq (clara u oscura) en lugar del modo del
+          sistema.
+        </li>
+        <li data-i18n-html="guia.sis.m3">
+          Los datos viven en <code>~/Library/Application Support/Adeorq</code>. Las consolas usan
+          zsh, y una app abierta desde el Finder hereda el PATH de tu shell de usuario, para
+          encontrar tus programas.
+        </li>
+        <li data-i18n="guia.sis.m4">
+          Los atajos usan la tecla Control, no ⌘ (pendiente de revisar con un Mac delante).
+        </li>
+        <li data-i18n="guia.sis.m5">
+          Como en Linux: sin control de música, navegador sencillo y terminales sin proceso
+          aparte de fábrica. Al cerrar la ventana se cierra Adeorq y se lleva sus terminales.
+        </li>
+      </ul>
     </section>
 
     <!-- ----------------------------- ATAJOS ---------------------------- -->
@@ -877,36 +1333,68 @@
             </tr>
           </thead>
           <tbody>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td data-i18n="guia.atajos.a7">La paleta: escribe y ve a cualquier pestaña, terminal abierta o proyecto, o lanza cualquiera de estos atajos. Funciona también dentro de una terminal</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>P</kbd></td><td data-i18n="guia.atajos.a8">Abrir un archivo del proyecto por su nombre (dentro de una terminal esa tecla es del programa: ahí, por Ctrl+K)</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>T</kbd></td><td data-i18n="guia.atajos.a9">Terminal nueva, en la carpeta de la activa</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>→</kbd></td><td data-i18n="guia.atajos.a10">Partir la terminal activa a la derecha</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>↓</kbd></td><td data-i18n="guia.atajos.a11">Partir la terminal activa hacia abajo</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>F</kbd></td><td data-i18n="guia.atajos.a12">Maximizar o restaurar la terminal activa</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>A</kbd></td><td data-i18n="guia.atajos.a1">Llamar al Capataz</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>M</kbd></td><td data-i18n="guia.atajos.a2">Llamar al Capataz y dictarle</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>E</kbd></td><td data-i18n="guia.atajos.a3">Modo emisión</td></tr>
             <tr><td><kbd>Ctrl</kbd> + <kbd>Mayús</kbd> + <kbd>P</kbd></td><td data-i18n="guia.atajos.a4">Tapar la pantalla entera</td></tr>
             <tr><td><kbd>Alt</kbd> <span data-i18n="guia.atajos.mantener">(mantener)</span></td><td data-i18n="guia.atajos.a5">Mirar debajo del modo emisión</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td data-i18n="guia.atajos.a13">Reabrir la última terminal cerrada (fuera de una terminal y de un cuadro de texto)</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Mayús</kbd> + <kbd>0</kbd></td><td data-i18n="guia.atajos.a14">Apagar todos los mods</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>C</kbd> / <kbd>Ctrl</kbd> + <kbd>V</kbd></td><td data-i18n="guia.atajos.a15">En una terminal: copiar (si no hay nada seleccionado, Ctrl+C va al programa) y pegar</td></tr>
+            <tr><td><kbd>Ctrl</kbd> + <kbd>F</kbd></td><td data-i18n="guia.atajos.a16">En una terminal: buscar dentro de ella. No le llega al agente</td></tr>
             <tr><td><kbd>Esc</kbd></td><td data-i18n="guia.atajos.a6">Cerrar lo que esté abierto encima</td></tr>
           </tbody>
         </table>
       </div>
-      <p data-i18n-html="guia.atajos.p">Todos son editables en <b>Ajustes → Atajos</b>.</p>
+      <p data-i18n-html="guia.atajos.p">
+        Estos <b>no se pueden cambiar</b>. Los del lienzo, sí, en <b>Ajustes → Atajos</b>: son 31
+        acciones (por ejemplo <kbd>Alt</kbd> + <kbd>C</kbd> abre un Claude, <kbd>Alt</kbd> +
+        <kbd>T</kbd> una terminal, y <kbd>V</kbd>, <kbd>P</kbd>, <kbd>F</kbd>… son las
+        herramientas de dibujo). Solo actúan con el lienzo delante y con el foco fuera de una
+        terminal y de un cuadro de texto, y <b>Volver a los de fábrica</b> lo deja todo como
+        venía.
+      </p>
     </section>
 
     <!-- -------------------------- DONDE GUARDA ------------------------- -->
     <section id="donde-guarda">
       <h2 data-i18n="guia.donde.h">Dónde guarda tus cosas<a class="doc-ancla" href="#donde-guarda" aria-label="Enlace a esta sección">#</a></h2>
-      <p data-i18n="guia.donde.p">Todo en tu equipo, y en formatos que puedes abrir por tu cuenta:</p>
+      <p data-i18n-html="guia.donde.p">
+        Todo en tu equipo, y en formatos que puedes abrir por tu cuenta. La carpeta de datos de
+        Adeorq es <code>%LOCALAPPDATA%\Adeorq</code> en Windows,
+        <code>~/.local/share/adeorq</code> en Linux (o donde diga <code>XDG_DATA_HOME</code>) y
+        <code>~/Library/Application Support/Adeorq</code> en Mac. Dentro:
+      </p>
       <div class="doc-tabla">
         <table>
           <thead>
             <tr>
               <th data-i18n="guia.donde.th1">Qué</th>
-              <th data-i18n="guia.donde.th2">Dónde</th>
+              <th data-i18n="guia.donde.th2">Dónde (dentro de esa carpeta)</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td data-i18n="guia.donde.q1">Objetivos del día</td><td data-i18n-html="guia.donde.d1"><code>%LOCALAPPDATA%\Adeorq\objetivos\</code>, un Markdown por día</td></tr>
-            <tr><td data-i18n="guia.donde.q2">Notas del lienzo</td><td data-i18n-html="guia.donde.d2"><code>%LOCALAPPDATA%\Adeorq\notas\</code>, en Markdown</td></tr>
-            <tr><td data-i18n="guia.donde.q3">Claves de API</td><td data-i18n="guia.donde.d3">Gestor de Credenciales de Windows, cifradas por el sistema</td></tr>
-            <tr><td data-i18n="guia.donde.q4">Rastro de fallos</td><td data-i18n-html="guia.donde.d4"><code>%LOCALAPPDATA%\Adeorq\rastro.log</code></td></tr>
-            <tr><td data-i18n="guia.donde.q5">Sesiones e historiales</td><td data-i18n="guia.donde.d5">Donde los deja cada programa: Adeorq los lee, no los copia</td></tr>
+            <tr><td data-i18n="guia.donde.q1">Objetivos del día</td><td data-i18n-html="guia.donde.d1"><code>objetivos</code>, un Markdown por día</td></tr>
+            <tr><td data-i18n="guia.donde.q2">Notas del lienzo</td><td data-i18n-html="guia.donde.d2"><code>notas</code>, en Markdown</td></tr>
+            <tr><td data-i18n="guia.donde.q3">El Lienzo</td><td data-i18n-html="guia.donde.d3"><code>lienzo.json</code></td></tr>
+            <tr><td data-i18n="guia.donde.q4">Encargos programados</td><td data-i18n-html="guia.donde.d4"><code>programados.json</code></td></tr>
+            <tr><td data-i18n="guia.donde.q5">Decisiones y chats</td><td data-i18n-html="guia.donde.d5"><code>decisiones</code>, <code>conserje</code> y <code>chats</code></td></tr>
+            <tr><td data-i18n="guia.donde.q6">Ideas de los agentes</td><td data-i18n-html="guia.donde.d6"><code>bandeja.md</code>, las ideas y pasos que proponen</td></tr>
+            <tr><td data-i18n="guia.donde.q7">Rastro de fallos</td><td data-i18n-html="guia.donde.d7"><code>rastro.log</code></td></tr>
+            <tr><td data-i18n="guia.donde.q8">Terminales cerradas</td><td data-i18n-html="guia.donde.d8"><code>rastros</code>, el resumen de cada terminal que cerró un agente</td></tr>
+            <tr><td data-i18n="guia.donde.q9">Cuentas de cada programa</td><td data-i18n-html="guia.donde.d9"><code>accounts</code>, una carpeta por cuenta</td></tr>
+            <tr><td data-i18n="guia.donde.q10">Mods</td><td data-i18n-html="guia.donde.d10"><code>mods</code></td></tr>
+            <tr><td data-i18n="guia.donde.q11">Móviles emparejados</td><td data-i18n-html="guia.donde.d11"><code>movil.json</code>, solo la huella de cada uno</td></tr>
+            <tr><td data-i18n="guia.donde.q12">Adjuntos del móvil</td><td data-i18n-html="guia.donde.d12"><code>pastes</code>, también las capturas pegadas</td></tr>
+            <tr><td data-i18n="guia.donde.q13">Claves de API y de agentes</td><td data-i18n-html="guia.donde.d13">Gestor de Credenciales de Windows, Llavero de Mac o, en Linux, la carpeta <code>secretos</code> (permisos 600, <b>sin cifrar</b>)</td></tr>
+            <tr><td data-i18n="guia.donde.q14">Sesiones e historiales</td><td data-i18n-html="guia.donde.d14">Donde los deja cada programa (<code>~/.claude</code> para Claude Code): Adeorq los lee, no los copia</td></tr>
+            <tr><td data-i18n="guia.donde.q15">Tus ajustes de ventana</td><td data-i18n="guia.donde.d15">Tema, letra, cabecera, partes y disposición de la Cabina viven en el almacén de la propia ventana, no en un archivo de esa carpeta</td></tr>
           </tbody>
         </table>
       </div>
@@ -919,7 +1407,10 @@
       <details class="doc-pregunta">
         <summary data-i18n="guia.dudas.q1">¿Necesito una cuenta de Adeorq?</summary>
         <div class="doc-pregunta__cuerpo">
-          <p data-i18n="guia.dudas.r1">No. Adeorq no tiene cuentas, ni servidor, ni te pide nada al instalarlo.</p>
+          <p data-i18n="guia.dudas.r1">
+            No hace falta ninguna cuenta. Adeorq se usa sin crear nada, y no te pide nada al
+            instalarlo. Los programas que ejecuta (Claude Code, Codex…) sí tienen las suyas.
+          </p>
         </div>
       </details>
 
@@ -937,8 +1428,43 @@
         <summary data-i18n="guia.dudas.q3">¿Se lleva mis datos a algún sitio?</summary>
         <div class="doc-pregunta__cuerpo">
           <p data-i18n="guia.dudas.r3">
-            No. Todo lo que ves ocurre en tu equipo. La aplicación sólo sale a internet para
-            comprobar si hay una versión nueva.
+            No hay telemetría ni analíticas, y lo que ves se guarda en tu equipo. Adeorq sale a
+            internet solo en estos casos:
+          </p>
+          <ul class="doc-lista">
+            <li data-i18n-html="guia.dudas.r3a">
+              <b>Para buscar actualizaciones</b>: pregunta a GitHub al arrancar, cada seis horas
+              y al volver a la ventana.
+            </li>
+            <li data-i18n-html="guia.dudas.r3b">
+              <b>OpenRouter</b>, solo si guardas tu clave: comprobar la clave y el saldo, listar
+              modelos, hablar con uno y generar la voz del Capataz.
+            </li>
+            <li data-i18n-html="guia.dudas.r3c">
+              <b>La brújula</b> de la Agenda (fechas e ideas), solo si entras en ella con una
+              cuenta de munito.dev.
+            </li>
+            <li data-i18n-html="guia.dudas.r3d">
+              <b>Los avisos al móvil</b>, si los activas: van cifrados por el servicio de avisos
+              de tu navegador (Google, Apple o Mozilla).
+            </li>
+            <li data-i18n-html="guia.dudas.r3bot">
+              <b>Los avisos a un bot</b>, solo si los enciendes en Ajustes → Bots: el webhook de tu
+              Grok Bot (la dirección que pegas tú) o el Hermes u OpenClaw de tu equipo, que sale
+              por su cuenta.
+            </li>
+            <li data-i18n-html="guia.dudas.r3e">
+              <b>El móvil</b> va por Tailscale, su red privada, no por servidores de Adeorq.
+            </li>
+            <li data-i18n-html="guia.dudas.r3f">
+              <b>Lo que abres tú</b>: el navegador del panel y las ventanas web del lienzo cargan
+              la página que pongas, y los agentes (Claude Code, Codex…) y el conserje salen a
+              internet por el programa de cada uno, no por Adeorq.
+            </li>
+          </ul>
+          <p data-i18n="guia.dudas.r3g">
+            Ollama, Discord, la voz local y los servidores del móvil y del MCP se quedan dentro de
+            tu equipo.
           </p>
         </div>
       </details>
@@ -946,8 +1472,10 @@
       <details class="doc-pregunta">
         <summary data-i18n="guia.dudas.q4">¿Puedo usar dos cuentas del mismo programa?</summary>
         <div class="doc-pregunta__cuerpo">
-          <p data-i18n="guia.dudas.r4">
-            Sí, siempre que sean tuyas. Cada una vive en su carpeta de configuración y no se pisan.
+          <p data-i18n-html="guia.dudas.r4">
+            Sí, siempre que sean tuyas y que el programa lo admita (hoy, siete: mira
+            <a href="#cuentas">Las Cuentas</a>). Cada una vive en su carpeta de configuración y no
+            se pisan.
           </p>
         </div>
       </details>
@@ -957,7 +1485,8 @@
         <div class="doc-pregunta__cuerpo">
           <p data-i18n="guia.dudas.r5">
             Se cierra el programa y todo lo que colgara de él. Si estaba a mitad de un turno, ese
-            trabajo se pierde: mira el estado del panel antes de cerrarlo.
+            trabajo se pierde: mira el estado del panel antes de cerrarlo. La conversación no se
+            borra y se puede retomar.
           </p>
         </div>
       </details>
@@ -969,6 +1498,27 @@
             Es el aviso estándar para programas sin firma comercial de pago. El instalador va
             firmado con la clave del actualizador de Adeorq, que es lo que garantiza que la
             actualización que te llega es la nuestra.
+          </p>
+        </div>
+      </details>
+
+      <details class="doc-pregunta">
+        <summary data-i18n="guia.dudas.q7">No me sale la Cabina (o el Lienzo, la Memoria o el Chat)</summary>
+        <div class="doc-pregunta__cuerpo">
+          <p data-i18n-html="guia.dudas.r7">
+            Está apagada en <b>Ajustes → Aspecto → Partes de Adeorq</b>, o quitada de la cabecera
+            en <b>La cabecera</b>. Ctrl+K te lleva igual.
+          </p>
+        </div>
+      </details>
+
+      <details class="doc-pregunta">
+        <summary data-i18n="guia.dudas.q8">Una terminal mía no deja que otro programa escriba en ella</summary>
+        <div class="doc-pregunta__cuerpo">
+          <p data-i18n-html="guia.dudas.r8">
+            Es el escalón del MCP: de fábrica, lo que llega de fuera de Adeorq solo abre
+            terminales y mira. Está contado en
+            <a href="#programa-de-fuera">Lo que puede hacer un programa de fuera</a>.
           </p>
         </div>
       </details>

@@ -5,6 +5,8 @@ import {
 } from "@tauri-apps/plugin-notification";
 import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
+import { estadoDeAviso } from "./bots";
+import { detectLang } from "./i18n";
 
 // Desktop notifications for the two moments that actually matter: an agent
 // finished its turn, or an agent is waiting for a yes/no. Nine terminals means
@@ -42,6 +44,9 @@ export interface NotifyOpts {
   /** Dónde abre la página del móvil al tocar el aviso (`/#terminal=<panel>`
       lleva a la pantalla de esa terminal, decisión E3). La raíz si no se dice. */
   url?: string;
+  /** Quién avisa, para un bot (`bots.rs`): solo el nombre de la terminal y su
+      proyecto, nunca lo que hay en pantalla. Sin esto no se avisa a ningún bot. */
+  bot?: { terminal: string; proyecto: string };
 }
 
 /**
@@ -67,6 +72,11 @@ export async function notify(o: NotifyOpts): Promise<void> {
     // elige en sus Ajustes cuáles quiere. Los relojes del lienzo no llevan.
     const tipo = o.tag.endsWith(":ask") ? "pregunta" : o.tag.endsWith(":done") ? "termino" : null;
     void invoke("movil_avisar", { titulo: o.title, cuerpo: o.body, url: o.url ?? "/", tipo }).catch(() => {});
+    // Y a su bot, si tiene alguno encendido, por las mismas dos campanas.
+    const estado = estadoDeAviso(o.tag);
+    if (o.bot && estado) {
+      void invoke("bot_avisar", { terminal: o.bot.terminal, proyecto: o.bot.proyecto, estado, ingles: detectLang() === "en" }).catch(() => {});
+    }
   }
 
   if (!(await allowed())) return;

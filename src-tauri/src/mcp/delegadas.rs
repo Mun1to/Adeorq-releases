@@ -104,6 +104,21 @@ pub fn es_conversacion(clave: &str) -> bool {
     !clave.starts_with("panel-")
 }
 
+/// De los paneles que siguen vivos (su número y su conversación, si su comando
+/// la nombra), los que son delegadas que nadie cerró, con su clave. Es lo que hay
+/// que recuperar al volver a engancharse la app al proceso de terminales: el
+/// número y el arranque no cambian, y por eso una consola sin conversación también
+/// se reconoce.
+pub fn las_que_siguen(libro: &Libro, paneles: &[(u32, Option<String>)], arranque: u64) -> Vec<(u32, String)> {
+    paneles
+        .iter()
+        .filter_map(|(id, sesion)| {
+            let k = clave(sesion.as_deref(), arranque, *id);
+            libro.get(&k).filter(|d| d.cierre.is_none()).map(|_| (*id, k))
+        })
+        .collect()
+}
+
 /// El modo de permisos de un comando de Claude Code, si lo dice.
 pub fn modo_del_comando(comando: &[String]) -> Option<String> {
     let junto = comando.join(" ");
@@ -305,6 +320,30 @@ mod tests {
         assert_eq!(clave(None, 7, 3), "panel-7-3");
         assert!(es_conversacion(SID));
         assert!(!es_conversacion("panel-7-3"));
+    }
+
+    /// Tras actualizar, una consola abierta por un agente sigue en su panel: salía
+    /// en «ya no están» y su `close_pane` no quedaba apuntado (2026-11-03).
+    #[test]
+    fn al_volver_a_engancharse_siguen_las_que_nadie_cerro_tambien_sin_conversacion() {
+        let mut libro = Libro::new();
+        libro.insert("panel-7-22".into(), una("Consola", HOY));
+        libro.insert(SID.into(), una("Con conversación", HOY));
+        libro.insert("panel-6-23".into(), una("De otra vida del proceso", HOY));
+        let mut cerrada = una("Cerrada", HOY);
+        cerrada.cierre = Some(Cierre { ms: HOY, como: Como::ClosePane, por: None, rastro: None });
+        libro.insert("panel-7-24".into(), cerrada);
+        let paneles = vec![
+            (22, None),
+            (23, None),
+            (24, None),
+            (25, Some(SID.to_string())),
+            (1, Some("de Munir, no de un agente".to_string())),
+        ];
+        assert_eq!(
+            las_que_siguen(&libro, &paneles, 7),
+            vec![(22, "panel-7-22".to_string()), (25, SID.to_string())]
+        );
     }
 
     #[test]

@@ -15,6 +15,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { Animo } from "./campana";
+import { makeT, type Translate } from "./i18n";
 import type { Exigencia, Receta } from "./router";
 import type { Account, PaneStatus, WorkState } from "./pty";
 import type { ModelAlias } from "./models";
@@ -348,6 +349,8 @@ export interface Manos {
   abrir: (r: Pick<Receta, "cli" | "cuenta" | "modelo" | "esfuerzo">, cwd: string, label: string, encargo: string) => number | undefined;
   escribir: (panel: number, texto: string) => Promise<boolean>;
   ahora?: () => number;
+  /** El idioma de la app para lo que se le cuenta a quien mira. Sin poner, español. */
+  t?: Translate;
 }
 
 export interface Hecho {
@@ -358,7 +361,9 @@ export interface Hecho {
 
 /** Las razones del router que hablan del MODELO (la clase del trabajo, lo que
  *  sube un escalón, tu cerebro por defecto, lo largo). Las de la cuenta y la
- *  semana son de Claude, y con otro programa forzado no dicen nada verdad. */
+ *  semana son de Claude, y con otro programa forzado no dicen nada verdad.
+ *  El router ya las trae aparte (`Receta.delModelo`), que vale en cualquier
+ *  idioma; esto es solo para un `recetar` que no las separa (los bancos). */
 const DEL_MODELO = /^(Es |Sube a |Tu cerebro por defecto|Tienes )/;
 
 type Elegida = Pick<Receta, "cli" | "cuenta" | "modelo" | "esfuerzo" | "porque">;
@@ -383,7 +388,10 @@ function recetaDe(a: Extract<Accion, { tipo: "abrir" }>, m: Manos): Elegida {
     cuenta: m.cuentaDe?.(programa),
     modelo: sabe(programa, "modelo") ? r.modelo : undefined,
     esfuerzo: r.esfuerzo,
-    porque: [`Con ${providerOf(programa).marca ?? providerOf(programa).label}, porque lo elegiste tú.`, ...r.porque.filter((p) => DEL_MODELO.test(p))],
+    porque: [
+      (m.t ?? makeT("es"))("Con {cli}, porque lo elegiste tú.", { cli: providerOf(programa).marca ?? providerOf(programa).label }),
+      ...(r.delModelo ?? r.porque.filter((p) => DEL_MODELO.test(p))),
+    ],
   };
 }
 
@@ -398,13 +406,14 @@ export function programasDeSesion(cuentas: Pick<Account, "provider">[]): string[
 export async function ejecutar(acciones: Accion[], m: Manos): Promise<Hecho> {
   const hecho: Hecho = { abiertos: [], escritos: [], fallos: [] };
   const ahora = m.ahora ?? (() => Math.floor(Date.now() / 1000));
+  const t = m.t ?? makeT("es");
   for (const a of acciones) {
     if (a.tipo === "abrir") {
       const receta = recetaDe(a, m);
       const label = `${hoja(a.carpeta)} · ${receta.cli}`;
       const panel = m.abrir(receta, a.carpeta, label, a.encargo);
       if (panel === undefined) {
-        hecho.fallos.push(`no se pudo abrir la sesión para «${a.encargo.slice(0, 60)}»`);
+        hecho.fallos.push(t("no se pudo abrir la sesión para «{encargo}»", { encargo: a.encargo.slice(0, 60) }));
         continue;
       }
       hecho.abiertos.push({
@@ -421,7 +430,7 @@ export async function ejecutar(acciones: Accion[], m: Manos): Promise<Hecho> {
     } else {
       const ok = await m.escribir(a.panel, a.texto);
       if (ok) hecho.escritos.push(a.panel);
-      else hecho.fallos.push(`no le llegó el mensaje al panel ${a.panel}`);
+      else hecho.fallos.push(t("no le llegó el mensaje al panel {n}", { n: a.panel }));
     }
   }
   return hecho;

@@ -1,68 +1,87 @@
-# The Adeorq guide (plain English, no jargon)
+# Adeorq guide (no jargon)
 
-> English version of `GUIA.md`, rewritten on 1 August 2026 for version 0.9.42.
-> It walks through every element on screen: what it is and what it does.
+> Reviewed on 3 November 2026 against version 0.9.239.
+> It goes screen by screen: what you see, what it does and what it does not do. If you
+> only want one part, jump from the contents.
 
 ## Contents
 
 0. [Why use Adeorq](#0-why-use-adeorq)
-1. [Adeorq in one sentence](#1-adeorq-in-one-sentence)
-2. [The TWO bars at the top](#2-the-two-bars-at-the-top)
-3. [The nine tabs](#3-the-seven-tabs)
-4. [Dashboard (the ◱ tab)](#4-dashboard-the-tab)
-5. [Cockpit (the ▦ tab)](#5-cockpit-the-tab)
-6. [Canvas (the ⬡ tab)](#6-canvas-the-tab)
-7. [Each terminal's header, field by field](#7-each-terminals-header-field-by-field)
-8. [The bars that appear inside a terminal](#8-the-bars-that-appear-inside-a-terminal)
-9. [Accounts (the ◍ tab)](#9-accounts-the-tab)
-10. [Commands (the ⌘ tab)](#10-commands-the-tab)
-11. [Settings (the ⚙ tab)](#11-settings-the-tab)
-12. [Streaming mode](#12-streaming-mode)
-13. [The Foreman](#13-the-foreman)
-14. [The Split (several tasks at once)](#14-the-split-several-tasks-at-once)
-15. [Right click and tooltips](#15-right-click-and-tooltips)
-16. [Keyboard shortcuts](#16-keyboard-shortcuts)
-17. [Colour legend](#17-colour-legend)
-18. [Glossary](#18-glossary)
-19. [Not there yet](#19-not-there-yet)
+1. [What Adeorq is](#1-what-adeorq-is)
+2. [The two bars at the top](#2-the-two-bars-at-the-top)
+3. [The seven tabs](#3-the-seven-tabs)
+4. [Dashboard](#4-dashboard)
+5. [Cockpit](#5-cockpit)
+6. [Chat](#6-chat)
+7. [Decisions](#7-decisions)
+8. [Canvas](#8-canvas)
+9. [The header of each terminal](#9-the-header-of-each-terminal)
+10. [What appears inside a terminal](#10-what-appears-inside-a-terminal)
+11. [Profile](#11-profile)
+12. [Accounts](#12-accounts)
+13. [Agenda](#13-agenda)
+14. [Memory](#14-memory)
+15. [Commands](#15-commands)
+16. [Settings](#16-settings)
+17. [What an outside program can do](#17-what-an-outside-program-can-do)
+18. [The Foreman and the Split](#18-the-foreman-and-the-split)
+19. [On your phone](#19-on-your-phone)
+20. [Streaming mode](#20-streaming-mode)
+21. [Updating without losing your terminals](#21-updating-without-losing-your-terminals)
+22. [Windows, Linux and Mac](#22-windows-linux-and-mac)
+23. [Right click and tooltips](#23-right-click-and-tooltips)
+24. [Keyboard shortcuts](#24-keyboard-shortcuts)
+25. [Colour legend](#25-colour-legend)
+26. [Where your things are kept](#26-where-your-things-are-kept)
+27. [Glossary in plain words](#27-glossary-in-plain-words)
+28. [Frequently asked questions](#28-frequently-asked-questions)
+29. [What it does not do yet](#29-what-it-does-not-do-yet)
+
+---
 
 ## 0. Why use Adeorq
 
-If you already have the Claude desktop app, it is a fair question. The reasons,
-heaviest first:
+Adeorq is a window where you work with the programming agents you already use
+(Claude Code, Codex, Gemini and the rest) in real terminals, with all your
+projects one click away. These are the reasons, heaviest first:
 
-**1. New things reach the terminal first.** Opus 5 was usable in the CLI before
-the app, and the million-token context took far longer to land there.
+**1. New things reach the terminal first.** Opus 5 could be used in the terminal
+before the desktop app, and the million-token context took quite a bit longer to
+get there. Working through terminals, you get new things the day they come out.
 
-**2. You see ALL of your work at once.** Every project in C:\proyectos and every
-session, grouped by project, showing which are alive and which are waiting on
-you. Without opening anything.
+**2. You see all your work at once.** Your projects and all their sessions, sorted
+by project, with which ones are alive and which ones are waiting for you.
 
-**3. Several at a time, for real.** Nine conversations working in parallel, each
-in its own folder, all visible.
+**3. Several at a time, for real.** You can have many conversations working in
+parallel, each in its own folder, and see which one has finished without opening
+them one by one.
 
-**4. Archiving does not eat your work.** The official app's archive can take
-uncommitted changes with it, without warning. Adeorq checks first, lists the
-files and never deletes anything.
+**4. Archiving does not delete your work.** Before archiving a session, Adeorq
+checks whether the project has changes not saved in git and shows them to you.
+Archiving never deletes anything and can be undone.
 
-**5. The Foreman sets the board up.** Say "today I want to fix VoCript bugs" and
-it proposes which sessions to open and with what brief. You approve.
+**5. It splits the work and watches your quota.** The Foreman sets up the board from
+one sentence, and picks the model and the account according to what you have left
+on each subscription. You give the OK.
 
-**6. It is yours.** Your rules, your language, your themes, your skills, your
-streaming mode. Built for how you work, not for the average.
+**6. It is yours.** Your language, your themes, your background, your skills, your
+canvas shortcuts, your accounts and the parts of Adeorq you want to use. And
+everything it saves lives on your computer.
 
-**7. It is fast.** Rust and Tauri: about 3 MB, instant start, GPU terminals.
+**7. It is light.** It is built in Rust with Tauri: the installer weighs a few
+megabytes, it starts instantly and the terminals are drawn with the graphics card.
 
 ### The map of the window
 
 <svg viewBox="0 0 720 330" width="100%" role="img" aria-label="Map of the Adeorq window">
   <rect x="1" y="1" width="718" height="328" rx="12" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
   <rect x="1" y="1" width="718" height="42" rx="12" fill="currentColor" fill-opacity="0.07"/>
-  <text x="18" y="27" font-size="13" fill="currentColor" font-weight="700">Adeorq</text>
-  <text x="88" y="27" font-size="12" fill="currentColor" fill-opacity="0.85">Dashboard   Cockpit   Canvas   Guide   Commands   Settings</text>
-  <text x="470" y="27" font-size="12" fill="currentColor" fill-opacity="0.6">music</text>
-  <text x="534" y="27" font-size="12" fill="currentColor" fill-opacity="0.6">Streaming</text>
-  <text x="622" y="27" font-size="12" fill="currentColor" fill-opacity="0.6">Foreman</text>
+  <text x="18" y="27" font-size="13" fill="currentColor" font-weight="700">Adeo</text>
+  <text x="62" y="27" font-size="11" fill="currentColor" fill-opacity="0.85">Dashboard  Cockpit  Chat  Decisions  Canvas  Profile  Settings</text>
+  <text x="452" y="27" font-size="12" fill="currentColor" fill-opacity="0.6">Pulse</text>
+  <text x="510" y="27" font-size="12" fill="currentColor" fill-opacity="0.6">music</text>
+  <text x="580" y="27" font-size="12" fill="currentColor" fill-opacity="0.6">Streaming</text>
+  <text x="654" y="27" font-size="12" fill="currentColor" fill-opacity="0.6">orb</text>
   <text x="6" y="58" font-size="11" fill="currentColor" fill-opacity="0.55">1</text>
   <rect x="14" y="62" width="160" height="252" rx="10" fill="currentColor" fill-opacity="0.05" stroke="currentColor" stroke-opacity="0.25"/>
   <text x="26" y="84" font-size="12" fill="currentColor" font-weight="600">Workspaces</text>
@@ -76,14 +95,14 @@ streaming mode. Built for how you work, not for the average.
   <text x="26" y="206" font-size="11" fill="currentColor" fill-opacity="0.55">2</text>
   <rect x="186" y="62" width="340" height="122" rx="10" fill="currentColor" fill-opacity="0.05" stroke="currentColor" stroke-opacity="0.25"/>
   <rect x="186" y="62" width="340" height="24" rx="10" fill="currentColor" fill-opacity="0.09"/>
-  <text x="198" y="79" font-size="11" fill="currentColor" fill-opacity="0.85">session   79%   Opus 5 high   C:\proyectos\Orquio</text>
+  <text x="198" y="79" font-size="11" fill="currentColor" fill-opacity="0.85">session   79%   Opus 5 high   Orquio</text>
   <text x="198" y="118" font-size="11" fill="currentColor" fill-opacity="0.7">the agent working in here</text>
   <rect x="186" y="192" width="340" height="122" rx="10" fill="currentColor" fill-opacity="0.05" stroke="currentColor" stroke-opacity="0.25"/>
   <rect x="186" y="192" width="340" height="24" rx="10" fill="currentColor" fill-opacity="0.09"/>
   <text x="198" y="209" font-size="11" fill="currentColor" fill-opacity="0.85">terminal</text>
   <text x="336" y="252" font-size="11" fill="currentColor" fill-opacity="0.55">3</text>
   <rect x="538" y="62" width="168" height="252" rx="10" fill="currentColor" fill-opacity="0.05" stroke="currentColor" stroke-opacity="0.25"/>
-  <text x="550" y="84" font-size="12" fill="currentColor" font-weight="600">Skills</text>
+  <text x="550" y="84" font-size="12" fill="currentColor" font-weight="600">Usage · Skills · Files</text>
   <rect x="550" y="96" width="144" height="26" rx="7" fill="currentColor" fill-opacity="0.09"/>
   <text x="558" y="113" font-size="10" fill="currentColor" fill-opacity="0.75">/frontlaxweb</text>
   <rect x="550" y="128" width="144" height="26" rx="7" fill="currentColor" fill-opacity="0.09"/>
@@ -91,610 +110,1398 @@ streaming mode. Built for how you work, not for the average.
   <text x="550" y="206" font-size="11" fill="currentColor" fill-opacity="0.55">4</text>
 </svg>
 
-1. **The app bar**: the seven views, today's goals, the Pulse, music,
-   streaming mode and the Foreman.
-2. **Workspaces**: your projects and their sessions.
+1. **The app bar**: Adeo, the seven tabs, your goals, the Pulse, the music, streaming mode and the Foreman's orb.
+2. **Workspaces**: your projects and, inside them, their sessions.
 3. **The terminals**: each box is an agent or a console at work.
-4. **Skills**: your commands, to drag onto a terminal.
-
-## 1. Adeorq in one sentence
-
-Your vibe coding workshop: one window where you see ALL your projects and ALL
-your Claude Code sessions, and from which you open them, resume them and talk
-to them, without depending on the Claude desktop app.
-
-The extra edge of working through terminals: new model features land in the CLI
-BEFORE they reach the desktop app. Opus 5 shipped in the terminal first, and
-things like the million-token context took much longer to arrive in the app.
-
-**How to open it**: Adeorq is installed like any other Windows program (Start
-menu, pinnable) and updates itself. Developer mode (`pnpm tauri dev`) is a
-separate window, only for when the app is being built; both can run at once.
-
-### The first time you open it
-
-A four-question welcome shows up, and none of them is decoration:
-
-1. **Your name**, for the Dashboard greeting.
-2. **Where your projects live**: the folder that is read to know which projects
-   you have. Every subfolder of it is one, and anything you open outside it
-   lands in the **Loose** drawer. Picking it tells you how many projects it can
-   see in there, so you know at once whether it is the right one.
-3. **Which clients you use**, out of the ones it finds installed. The ones you
-   do not tick will never be suggested as a fallback when you run out of week.
-4. **The look**: the theme, applied as you pick it.
-
-At the end it offers a **tour** pointing at each part of the window. Both can be
-replayed any time from **Settings › Help**, and the folder and the name are
-changed in **Settings › Adeorq › You and your projects**.
-
-## 2. The TWO bars at the top
-
-There are two bars up there and they are different things.
-
-### 2.1 The app bar (one only, at the very top)
-
-| Element | What it is |
-|---|---|
-| **Adeo, the mascot** | She stands alone, without the app's name written beside her. The A with an eye, arms and legs is called Adeo, and she is the bell. Her posture tells the most urgent thing going on: she calls you with an exclamation mark when a terminal is waiting for you, is left in doubt (a question mark) when a decision is waiting, celebrates when an agent finishes, frets when a scheduled order has stopped, types while your agents work, dances when music is playing and nothing needs you, and sleeps when no terminal is open. Click her and she hops; on the third click in a row she gets a heart. She carries the number of what you have not seen. Click her for the list of notices, with which terminal it is and why; clicking a row takes you there. **The list empties itself**: one that waited for you goes when you answer, and one that finished goes once you have seen it (you close the list, or you enter its terminal). |
-| **◱ Dashboard · ▦ Cockpit · ▤ Agenda · ⬡ Canvas · ◍ Accounts · ⌘ Commands · ⚙ Settings** | The seven views of the app. Each carries its name where it fits; on a narrow window they fall back to the icon and the tooltip says the name. |
-| **Number next to "Cockpit" or "Canvas"** | How many terminals are open there right now. |
-| **The Goals button** | Opens a floating panel with what you want to close out today. Type it, tick it off with a click anywhere on the row (no tiny checkbox to aim for), and it is saved to a file for the day, not localStorage, so an agent can also tick it off once it finishes what you asked. Drag it anywhere and fold it down to just the counter (say, 2/3). |
-| **The Pulse** | The pill showing what Adeorq and its agents are using in RAM right now, and how many agent processes are running. Click to open the detail: Adeorq's memory versus the whole machine's. It turns amber when Adeorq itself is the one squeezing memory and red when the whole machine is under pressure, so you know whose fault it is before opening Task Manager. |
-| **The music strip** | Only shows when something is playing. Title, artist, ⏮ previous, ❚❚/▶ pause and ⏭ next. Volume stays in Windows' own mixer. |
-| **○ Streaming / ◉ Streaming on** | The streaming shield: masks paths, personal data and any key the terminals print. Ctrl+Shift+E, details in section 12. |
-| **✦ Foreman** | Summons the orchestrator overlay. Ctrl+Shift+A. |
-| **The last three icons** (only in the Cockpit, with more than one terminal) | Set all terminals aside (they stay alive in the strip below), lay them out on a template, and close them all. They carry no written name: the tooltip says it. Close all asks first, because it kills their agents. |
-
-Above all of that, a blue **update bar** appears when a new version of Adeorq is
-out: "Update now" downloads it and "Restart" puts it live. A Windows
-notification arrives too, in case the app is minimised.
-
-### 2.2 The bar of EACH terminal (one per pane)
-
-Every pane carries its own header with the session name, the context meter, the
-model and the folder. Field by field in [section 6](#6-each-terminals-header-field-by-field).
-
-Rule of thumb: if it shows Adeo and the tabs, it is the app bar. If it
-shows a session name and a folder, it is a terminal's bar.
-
-## 3. The nine tabs
-
-- **◱ Dashboard**: your numbers, the Foreman, hot projects, new project,
-  missions and the focus.
-- **▦ Cockpit**: where the work happens. Projects left, terminals centre,
-  skills right.
-- **▤ Agenda**: the whole day in one place: your calendar, your saved ideas,
-  today's goals and the next steps from `docs/METAS.md`. It also holds your
-  **scheduled orders**: you write what to do, in which project and when
-  ("Mondays at 9", "every 6 hours"), and Adeorq opens a Claude session on its
-  own at that time, even with the window in the background. At most once a
-  day: if the PC was off at that hour it runs when you turn it on that same
-  day, otherwise it waits for the next time. Each one shows how its last three
-  runs went, and after three failures in a row it stops and tells you (on your
-  phone too) until you re-arm it. Windows only and Claude only, for now.
-- **⬡ Canvas**: the free board, with terminals you move and wire together. A
-  note is a real `.md` with checkboxes: its launch button sends it to an open
-  terminal, to a new session or, with two tasks or more, to the Foreman to
-  split, and each of those sessions ticks its own box when it is done. An
-  **empty** note also offers the project's **runbooks**: every `.md` you keep
-  in its `docs/fichas` folder is a recipe of steps, and picking one fills the
-  note with those steps as unticked boxes (a numbered list is enough).
-- **◍ Accounts**: every agent CLI's accounts in one place, grouped by
-  program, with which one is signed in and how much you have left.
-- **⌘ Commands**: the searchable cheat sheet for Claude, Antigravity and your
-  own skills.
-- **⚙ Settings**: language, theme, font size, updates, your quota and, under
-  Help, this very guide (it stopped being a tab up top).
-
-Terminals do NOT close when you change tabs: they stay alive.
-
-## 4. Dashboard (the ◱ tab)
-
-- **Three numbers**: sessions live right now, sessions this week, and projects
-  in `C:\proyectos`.
-- **✦ Foreman card**: tell it the goal of the day, it proposes the board.
-- **Hot projects**: the six busiest this week. Click one to jump to it.
-- **＋ New project**: creates the folder with `AGENTS.md`, `docs/METAS.md`,
-  `.gitignore` and git, ready for its first session. The `AGENTS.md` it writes
-  is a short, neutral starting point — drop your own rules in
-  `%LOCALAPPDATA%\Adeorq\plantilla-agents.md` (write `{name}` where the project
-  name should go) and every new project will be born with those instead.
-- **⚑ Mission**: describe what you want, pick a project and roles (Frontend,
-  Backend, Security, Design): one Claude per role, each with its brief, all
-  coordinating through the project's `BUZON.md`. Each one proposes a plan and
-  waits for your OK.
-- **The focus**: the only real deadline in the system, kept in sight.
-
-## 5. Cockpit (the ▦ tab)
-
-### 5.1 Left column: workspaces
-
-- **Search box**: filters by project name or session title.
-- **"Workspaces" row**: **⊟ n** shows or hides archived sessions, **↻** re-reads
-  everything now (it refreshes itself every 45 seconds).
-- **Each project card**: its **logo** in a rounded square, Discord style, found
-  inside the project's own folder (`brand/`, `assets/`, `public/`,
-  `web/public/`, `src-tauri/icons/`, or the icon you gave the folder in
-  Explorer); with none, its initials in the project's colour. Right-click the
-  card to set one by hand, remove it, or search again. Then the name (click to
-  expand its sessions), a **green dot** if it has a session open right now, a
-  **blue pill** with sessions this week and a **red pill** with how many are
-  waiting on you.
-- **Hover buttons**: **⧉** opens its sessions at once (up to the cap in
-  Settings, 12 by default), **✦** a new Claude, **>_** a PowerShell console,
-  **AG** Antigravity (`agy`) in a terminal.
-- **"no recent sessions" divider**: quiet projects sink below it.
-- The right border drags to widen the column and the width is remembered.
-
-### 5.2 Each session
-
-**▣ n on a row**: that session has that many subagents working inside it right
-now, counted from the transcript (dispatched minus returned), so it is exact.
-It used to be visible only inside an open pane.
-
-**Why were there dozens of "(sin título)" sessions?** An Adeorq bug, fixed on
-26 July 2026: the usage panel asks for your quota with `claude -p /usage`, which
-costs nothing but filed a saved session every time, 59 of them in one night. The
-part watching the plan was littering the part showing the work. Each probe now
-carries its own id and its file is deleted as soon as the answer is read, and
-such sessions are filtered out of the list even if they linger on disk.
-
-Dot colours: green (open now), amber (a question or an offer waiting), blue
-(left halfway), grey (nothing pending). The whole row is tinted **amber** when
-Claude ended by asking you something and **reddish** when it left you a
-multiple-choice question and is stopped until you answer.
-
-**Click a session = it resumes in a terminal**, with all its memory.
-
-The **⋯** button (or right click) gives three actions:
-
-- **✎ Rename**: saved where the official app keeps titles, so both agree.
-- **▣ Move to group…**: manual groups inside the project; the × dissolves a
-  group without touching its sessions.
-- **⊟ Archive**: hides it. Before doing it, Adeorq checks whether the project
-  has **uncommitted work** and lists the files. Archiving here never deletes
-  anything and can be undone (**⊟** button, then ↩).
-
-### 5.3 Centre: the terminal grid
-
-Terminals sit in columns (up to three) and stack inside each one. Each pane is
-a real terminal: **✦ Claude**, **◈ Antigravity** or **>_ shell**. Every agent
-Adeorq launches starts in auto mode (accepts edits, still asks about risky
-commands); Shift+Tab inside cycles the mode.
-
-Copy and paste work like any app: Ctrl+V pastes (right click too), Ctrl+C
-copies when there is a selection and still interrupts when there is not.
-Pasting an image works: it is saved to disk and the agent gets its path.
-
-### 5.4 Right column: your skills
-
-Your own commands from `~/.claude/skills`. **Drag one onto a terminal** to drop
-it into its prompt, or click to send it to the focused pane. The ▸ button folds
-the panel away.
-
-### 5.5 Right column: Files, and what the agent touches
-
-The folder icon in the right strip swaps Skills for the file tree of the project
-of the terminal in front of you. It keeps itself up to date: every row carries
-the colour of its state (changed, new, deleted, in conflict, being written right
-now) and the letter git will give it at commit time.
-
-Above the tree you can watch **the agent at work**:
-
-- **The card** tells the latest thing that matters: "Claude is editing" with its
-  file, "Claude edited 2 files" with what they add up to (`+13 −4`), or "Claude
-  committed 2 files" with the hash. Below, the branch, what is still to push
-  (`↑1`) and how much has changed overall.
-- **"Claude touched"** lists what it has touched: **Reading** and **Opened** in
-  purple, **Editing** and **Edited** in orange with their lines, **Committed** in
-  green. Click a row to open the file. Five are shown; the rest sit behind "and N
-  more".
-- **In the tree**, the file being edited right now is highlighted in orange with
-  its tag, what it read gets a purple name, every changed file shows its lines
-  and every folder says how many changed files it holds.
-- **When it commits**, "committing…" shows at the bottom, the rows turn **green**
-  and the hash stays. As soon as it edits something again, the committed ones
-  step back: they are no longer what it is doing.
-
-All of it comes from what the CLI itself writes in its transcript, at no token
-cost. So it depends on each one: **Claude Code** records what it reads and what
-it edits; **Codex** only what it edits, and the panel says so; the others record
-nothing Adeorq can read, and for them the panel sticks to what git says, which
-works for anyone. Edits made by a subagent do not show: they belong to its own
-conversation.
-
-## 6. Canvas (the ⬡ tab)
-
-The Cockpit gives you a tidy grid. The Canvas gives you an infinite board:
-terminals anywhere, resized by hand, and above all **wired together**.
-
-The Canvas keeps its OWN terminals: the Cockpit's stay where they are.
-
-- **Top bar**: pick a project and drop in **✦ Claude**, **>_ Terminal** or
-  **◈ Antigravity**.
-- **Move a card** by its header; inside, the mouse belongs to the terminal.
-  **Resize** from the corners when selected. **Pan** by dragging the
-  background, **zoom** with the wheel (inside a terminal the wheel scrolls).
-- **⛶** centres and zooms on a card; **◫** opens a sibling console in the same
-  folder, already wired.
-- **The arrows**: drag from the right edge of one card to the left edge of
-  another. **Click the arrow** to write the brief (what the second agent should
-  do with the first one's output) and to tick "send on its own".
-- When the first agent **finishes its turn**, a relay appears at the bottom:
-  **Hand it over** types the brief PLUS the first agent's last answer into the
-  second one and sends it. **✎** types it without sending.
-
-The answer is read from the session transcript (clean prose), not from the
-screen. If you open two brand new terminals in the same folder, the relay can
-read the wrong one: for chaining, prefer one per project or resumed sessions.
-
-### Swarms: several sessions and a single chat
-
-A swarm joins sessions you **already have open** into one piece: its name on
-top, a row per session below, and a chat with a single box to talk to all of
-them.
-
-- **Two ways to make one.** **＋ Add › Swarm** drops the piece with the list of
-  sessions on the canvas, and you pick the ones that join. Or drag a terminal
-  **over another** and hold it there for a moment: when the one underneath
-  lights up with a frame, let go. The one you dragged goes back to its place.
-  Passing over on the way somewhere else joins nothing. Adding one more works
-  the same way: drag it over the swarm.
-- **Each swarm has its own Adeo, in a colour**: the first on the board is blue,
-  the next green, then violet, pink… It sits in the header and on the stripe
-  along the top, so you can tell one swarm from another at a glance.
-- **Each row is a session**: its CLI's mark, its name, its project, its model
-  and how it is doing.
-- **What you write goes to Adeo**, not to the terminals. Adeo thinks with a
-  small model (Haiku), decides which session it belongs to, rewrites it so it
-  is understood the first time, and tells you who got it. Name one (by its
-  name or its project) and it goes there; say "to all of them" and they all
-  get it.
-- **What each session answers comes back into the chat** under its name, so
-  the whole group reads in one place.
-- **Its terminals, in view or minimised.** The eye in the header tucks them
-  under the card: they keep working, they just stop taking room. Click a row to
-  see that terminal.
-- **Taking one out** (the broken link on its row) leaves it alive next to the
-  swarm, outside the group. Closing it is its own ✕.
-- **Breaking up the swarm** (its ✕) removes the piece and deletes the group
-  chat. The terminals stay. And if you just joined two by dragging without
-  meaning to, the piece itself offers the way back: **Don't join them**. It is
-  not `Ctrl+Z`, on purpose: on the canvas that shortcut belongs to the
-  terminal, where it suspends whatever is running.
-
-Three things worth knowing. Adeo knows whether each session is working or
-finished and how much context it has used, and picks with that; it knows nothing
-else. Only Claude Code and Codex report how they are doing, and only their
-answers are brought into the chat: a session of another CLI (Gemini, Kimi…) can
-join and gets what Adeo sends it, but its row says "unknown" and what it answers
-stays in its terminal. And a session that is asking you something never gets
-a hand-out, because the text would land in its menu: Adeo tells you which one,
-and you answer it alone.
-
-Each message to Adeo spends one short call of your Claude subscription. The
-sessions were already open: joining them costs nothing.
-
-## 7. Each terminal's header, field by field
-
-| Element | What it means |
-|---|---|
-| **The icon** (Claude's burst, the orbiting arrow or the console mark) | What runs inside: Claude Code, Antigravity or a console, and whether it is still alive: the mark goes grey when the program ends. That last bit used to be a separate green square; the mark carries it now. The name is in the tooltip. |
-| **The name** | The session title, the same one in the left list. |
-| **▣ n** | Subagents working right now inside that session, counted in the transcript (dispatched minus returned), so it is exact. Only shows while there are any. |
-| **The bar + %** | The context: how full its working memory is. Hover for exact tokens; it turns amber past 80%. |
-| **"Opus 5" + "high"** | The model doing the thinking and its effort. Change them inside with `/model` and `/effort`. |
-| **The folder** | Where that agent works. If it is not the project folder, that agent cannot see the project's code. |
-| **○ / ◉** | Blurs THIS terminal only, for streaming. |
-| **◫ / ⬓** | Split: a console beside it / below it. |
-| **⛶ / ❐** | Full screen for that pane, and back. |
-| **×** | Close the terminal (the conversation is kept). |
-
-**The glows**: the pane you are working in carries a halo in the theme's
-colour; when an agent finishes its turn and waits for you, its pane lights up
-with a **blue glow** until you open it.
-
-## 8. The bars that appear inside a terminal
-
-1. **Blue question bar**: when the agent asks with a numbered menu, real
-   BUTTONS appear. It disappears on its own when the question does.
-2. **Amber reconnect notice**: when your access expires, the **Reconnect**
-   button does what `/login` does.
-3. **Plain-language notes**: when the agent is compacting the conversation or
-   is busy and what you type is queued.
-
-## 9. Accounts (the ◍ tab)
-
-Every agent CLI keeps everything it owns (your login, your history, its
-settings) in one folder. Point it at a different folder and it behaves like a
-clean install: another login, other limits. That is what an account is here.
-Your usual one is never touched; the others get a folder of their own inside
-Adeorq.
-
-Which programs it knows, with the variable that moves their folder, each one
-checked on this machine on 26 July 2026:
-
-| Program | Several accounts? | How | Shows what you spent? |
-|---|---|---|---|
-| Claude Code | Yes | `CLAUDE_CONFIG_DIR` | Yes, and for free |
-| Codex | Yes | `CODEX_HOME` | No |
-| Gemini CLI | Yes | `GEMINI_CLI_HOME` | No |
-| Qwen Code | Yes | `QWEN_HOME` | No |
-| Pi | Yes | `PI_CODING_AGENT_DIR` | No |
-| GitHub Copilot | No | uses `~/.copilot`, cannot be moved | No |
-| Crush | No | no variable found | No |
-| opencode | No | no variable found | No |
-| Amp | No | no variable found | No |
-| Antigravity (`agy`) | No | keeps its state in `~/.gemini` | No |
-| Cursor | No | no variable found | No |
-
-The first five can be multiplied because each variable was checked here: Codex
-moved its `auth.json` when the variable moved, and Gemini and Qwen say so in
-their own code. "No variable found" means exactly that, and adding one later is
-a one-line change. Saying "I don't know" beats guessing a variable name and
-having an account write into the wrong folder.
-
-**Pi** (pi.dev) joined on 1 August 2026 under the same bar: its `config.ts`
-shows `getAgentDir()` reading `PI_CODING_AGENT_DIR` and falling back to
-`~/.pi/agent`, and its login writes `auth.json` inside that same folder. Mind
-one detail that is easy to get wrong: the folder is `.pi/agent`, not plain
-`.pi`, so looking for the login in `.pi` would always report "signed out". It
-is an agent that talks to several providers (Claude Pro, Max or Ultra, ChatGPT, Copilot),
-which is why it is **not offered as an automatic fallback** when you run out of
-week: if it is signed in with your own Claude account, sending you there would
-be sending you to the same exhausted quota.
-
-⚠ Two install warnings that cost a check: the npm packages named `agy`,
-`antigravity-cli` and `cursor-agent` do NOT belong to those companies (one
-calls itself a "placeholder", another is a third party's), so use their
-official installers. And `opencode` through pnpm leaves a 0-byte .exe on
-Windows that will not run; its own installer works.
-
-**Antigravity's `agy`** installs with `irm
-https://antigravity.google/cli/install.ps1 | iex` and lands in
-`%LOCALAPPDATA%\agy\bin`. If it ever "disappears", look there first: on 26 July
-2026 the folder had been deleted while its PATH entry stayed, so Windows kept
-looking somewhere that no longer existed.
-
-Anything you do not have installed sits at the bottom under "Not installed",
-with the command to install it, and moves up on its own once it appears.
-
-Each card shows the name you gave it and whether it is signed in. Claude's also
-show its plan and the session and week bars with their reset time, free because
-`/usage` is a local slash command. **The other programs publish no usage on the
-machine**, so their cards say so rather than invent a bar: that is their limit,
-not Adeorq's.
-
-⚠ Antigravity is a special case: it keeps its state inside `~/.gemini` and no
-variable to move it turned up, so it can only have one account. Its own section
-says so.
-
-You can **add** an account (name it, it gets its folder and a terminal opens for
-the login), make one the **default** for new terminals, open a **terminal with a
-specific one**, **rename** and **remove** (which deletes only that account's
-folder, never `~/.claude`).
-
-The account is decided when the terminal is born and cannot change afterwards:
-the CLI reads that folder once, at start. A pane that is not on the main account
-carries its name in a blue pill in the header, and a restored board brings every
-terminal back to its own account.
-
-⚠ Several accounts of YOUR OWN, no problem. Rotating other people's accounts to
-stretch limits breaks Anthropic's terms, and what you risk is losing the account.
-
-### Vibecoding with OpenRouter (Aider)
-
-Inside **Accounts → API keys** there is an OpenRouter card: a pay-per-token key
-that unlocks models from many providers, including ones with no CLI of their
-own (Kimi, DeepSeek, Grok…). Once that key is saved, a second card appears
-below it, **Vibecoding**, which opens a real terminal of
-[Aider](https://aider.chat) — the only CLI in the house that accepts an
-OpenRouter model with a plain `--model openrouter/<whatever>` — pointed at
-whichever model you type in there (default: `moonshotai/kimi-k3`).
-
-**How to use it from the card**: paste the OpenRouter key, type the model, and
-press the button. The first time it says "Install Aider first": it installs it
-with `uv tool install aider-chat`, no need to repeat that afterwards. Every
-time after, it says "Open terminal" and opens one with the key already set.
-
-⚠ **If you open Aider by hand instead of through the button**, two things
-Adeorq handles for you that fail silently if you forget them:
-- **You always have to tell it the model**: `aider --model openrouter/<model>`.
-  Without `--model`, Aider grabs the first API key it finds lying around in
-  your environment (Gemini, Anthropic…) and tries that provider's own default
-  model, which may not even exist anymore, and never touches OpenRouter at
-  all.
-- **The key has to be in `OPENROUTER_API_KEY`** in that specific terminal
-  (`$env:OPENROUTER_API_KEY = "sk-or-v1-…"` in PowerShell, lasts only that
-  window). The card pulls it straight from the Credential Manager right before
-  starting the process; a plain terminal does not have it unless you set it
-  yourself.
+4. **The strip on the right**: your usage, your skills, the project's files and a browser.
 
 ---
 
-## 10. Commands (the ⌘ tab)
+## 1. What Adeorq is
 
-66 Claude Code and Antigravity commands plus your skills, read from disk.
-Search by what you want to do ("undo", "quota", "context"), filter by tool, and
-click one to type it into the active terminal. You press Enter, so nothing ever
-runs by accident. The Foreman knows this same list.
+Your vibe coding workshop: one window where you see all your projects and all your
+sessions, and from which you open them, resume them and talk to them, without
+depending on any provider's desktop app. Adeorq does not include or resell any
+model: it uses the subscriptions and keys you already have.
 
-## 11. Settings (the ⚙ tab)
+**How to install it.** On Windows it is a normal program (Start menu, can be pinned
+to the taskbar). On Linux there are AppImage, `.deb` and `.rpm`; the Mac is covered
+in [section 22](#22-windows-linux-and-mac). When there is a new version it tells you
+and it installs with one click: what happens to your open terminals is in
+[section 21](#21-updating-without-losing-your-terminals).
 
-- **Language**: Spanish or English, the whole app including this guide.
-- **Theme**: Midnight blue, Graphite, Violet, Forest, Crimson, Amber, Ocean, Neon, Nord, Cyberpunk, Dracula, Tokyo Night, Emerald, Sunset, Matrix, Synthwave '84, Solarized Dark, Rosé Pine, Gruvbox, One Dark, Catppuccin Mocha, Volcano, Turquoise and Light.
-- **Terminals**: auto-fit the type to each terminal (on by default, so a
-  crowded pane shrinks its type until the line fits again and the size you pick
-  becomes a ceiling), font size (11 to 22 px, applied live) and how many
-  sessions the ⧉ button opens (2 to 20; each one is about 200 MB).
-- **You and your projects** (under Adeorq): your name and the projects folder.
-  Changing it re-reads the whole list, so it is how you move Adeorq to another
-  working folder without reinstalling anything.
-- **Mods**: a mod is a change of your own to how Adeorq looks: round icons,
-  another colour, a hidden piece. It lives in your data folder (`mods\`), so an
-  update leaves it alone. You do not have to write it: "Ask your agent for a
-  mod" leaves the request typed in its terminal, unsent. **They are off by
-  default**; you switch them on here, and with them on a new mod applies by
-  itself within seconds. Each one says how it stands: "Applied", "No longer hooks
-  on" (an update changed the piece it held on to, and "Hand it to your agent"
-  gives it back to be redone) or "Not loaded", with the reason. They only change
-  the look: Adeorq loads no code from a mod and does not let its stylesheet ask
-  the internet for anything. If one leaves the screen unusable,
-  Ctrl+Alt+Shift+0 switches them all off.
-- **Help**: "First steps" replays the welcome, or just the tour; below it
-  lives this very guide (it stopped being a tab up top), and next to it a
-  link to the web documentation, which updates without waiting for a new
-  app version.
-- **Updates**: installed version and a button to check now; it also checks on
-  start and every 6 hours.
-- **Your quota**: the button types `/usage` into the active terminal, which is
-  the only place that number lives.
+### The first time you open it
 
-## 12. Streaming mode
+A welcome of six screens appears, and you can **Skip** whenever you like:
 
-Built so you can go live without giving away your keys:
+1. **Welcome to Adeorq**: what you are called (for the greeting) and the language.
+2. **Where your projects live**: the folder that is read to find out which projects
+   you have. Each subfolder of it is one. When you pick it, it tells you how many it
+   sees inside. If you do not keep them in a single folder, **They are not all in
+   one folder**.
+3. **Your agents**: you tick the programs you use, from the ones it finds
+   installed, and you can **Pick up the sessions you already have**.
+4. **What do you want to use?**: the parts of Adeorq you want switched on (Cockpit,
+   Canvas, Memory and Chat). It is explained in [section 16](#16-settings).
+5. **The look**: the theme, which is applied while you choose it.
+6. **Done**: a summary. **Just go in** or **Show me around**, which launches a tour
+   pointing at each part of the window.
 
-1. **Covered, not blurred**: paths, the sidebar footer and the Agenda's content
-   get a solid bar. A soft blur over monospaced text can be undone from a
-   recording. **Session titles and today's goals are NOT covered**: they are the
-   thread of what you are doing, and without them the stream makes no sense.
-2. **Hold Alt to peek**: hovering no longer reveals anything (it used to, which
-   on a stream meant a mouse move exposed it). Let go and it covers again.
-3. **Shield inside the terminals**: whatever the agent prints is checked BEFORE
-   it is painted, and anything key-shaped is replaced with ●●●: GitHub tokens,
-   Anthropic/OpenAI/AWS/Google keys, Supabase JWTs, passwords inside connection
-   strings, `API_KEY=...` variables, your email and your username in paths. The
-   agent still receives the real text; only the view is masked.
-4. **Ctrl+Shift+P, the curtain**: covers the whole window instantly. If the
-   shield catches a key, the curtain raises on its own in case more follows.
-5. **The bar naming what it masked.** Masking happens BEFORE the pane paints,
-   so if the bar appears, nothing reached the stream. The advice therefore
-   depends on what fired: a **red bar** (key, token, password) means it never
-   showed but that key is still loose wherever it was stored, so check where it
-   came from; a **blue bar** (your email, a path with your username) means it
-   is masked and there is nothing to do, and it leaves on its own after nine
-   seconds. Both used to say "treat it as burnt and rotate it", which means
-   nothing for a folder. Fixed 26 July 2026.
+Everything can be repeated whenever you want in **Settings › Help**. Your name and
+the projects folder are changed in **Settings › Adeorq › You and your projects**.
 
-What it does NOT do: it cannot fix what was printed before you turned it on, it
-does not cover your browser or Windows notifications, and no pattern list is
-ever complete. The single most effective measure is still a **30 second delay
-in OBS**. The full reasoning lives in `docs/EMISION.md`.
+---
 
-## 13. The Foreman
+## 2. The two bars at the top
 
-Your orchestrator. You write what you want, it proposes a plan, and NOTHING
-runs without your OK. It lives in the Dashboard card and in the Cockpit overlay
-(Ctrl+Shift+A).
+There are two bars at the top and they are different things. A rule so you do not
+get mixed up: if Adeo and the tabs are there, it is the app bar; if it shows the
+name of a session, it is the bar of a terminal.
 
-Under the hood: your request goes to one `claude -p` call (your Max
-subscription, no API keys) together with the real list of your projects,
-sessions, skills and commands. It returns a plan in a fixed format, and Adeorq
-checks every action against what actually exists: anything unknown is shown
-**struck through** and never runs.
+### The app bar (at the very top, only one)
 
-It picks only the sessions that match the goal of the day, and never resumes a
-session that would open OUTSIDE its project folder (those cannot see the code).
+From left to right:
 
-Every action that opens an agent shows **which brain it opens with**, and above
-the button you get what the whole plan weighs: «Opens 6 agents · 2 opus + 4
-sonnet · ×22». Not an invoice (a subscription has no invoice), just the only
-comparable figure there is, with haiku as 1. That brain goes through the same
-router as the brief card, so it looks at your real quota: with the week spent, a
-six-agent plan gets cheaper wherever it safely can, and says so. The one thing
-it never cheapens is judgement work, where saving on brains costs you the whole
-job twice.
+| Element | What it is |
+|---|---|
+| **Adeo, the mascot** | It is the notification bell and stands alone, without the app's name next to it. Its pose tells you the most urgent thing going on, in this order: it calls you if a terminal is waiting for you, is left in doubt if a decision is waiting for you, celebrates if someone finished without you having seen it, frets if a scheduled order has stopped, types if your agents are working, dances if music is playing, stays still if nothing is going on and sleeps if no terminal is open. If you click it, it hops, and on the third click in a row a heart comes out. The number it carries on top is the notices you have not seen. Clicking it opens **Notifications**, with which terminal it is, whether it "finished" or "is waiting for you" and how long ago; a row takes you to that terminal. **The list empties itself**: what was waiting for you goes when you answer it or close the terminal, and what finished goes when you close the list or enter that terminal. |
+| **The seven tabs** | Dashboard, Cockpit, Chat, Decisions, Canvas, Profile and Settings. If the window is narrow they shrink to the icon and the name shows when you hover. They are explained in [section 3](#3-the-seven-tabs). |
+| **A number on a tab** | On Cockpit and Canvas, how many terminals you have open there. On Decisions, how many are waiting for you (in amber). |
+| **Today's goals** | An icon that opens a floating panel with what you want to get closed today. You can drag it wherever you like, fold it down to just the counter (for example 2/3) and close it with Esc. More in [section 13](#13-agenda). |
+| **The Pulse** | A pill with three figures: what Adeorq and its agents use in CPU, in memory (RAM) and how many agents are alive (AG). It turns amber when Adeorq uses a quarter or more of the machine's CPU or memory, and red when the whole machine is at 90% or Adeorq alone goes over 50% CPU. A click opens **What Adeorq is using**, with the detail. It measures the whole tree of processes, not just the window. |
+| **The music strip** | Only appears if something is playing on the PC: title, artist, previous, pause and next. The volume stays in the system mixer. It is not there on Linux and Mac. |
+| **Streaming** | The shield for broadcasting, icon only. Ctrl+Shift+E turns it on. Details in [section 20](#20-streaming-mode). |
+| **The orb** | Calls the Foreman (in some texts of the app, "the Assistant"). Ctrl+Shift+A opens and closes it; Ctrl+Shift+M opens it already listening to you. More in [section 18](#18-the-foreman-and-the-split). |
+| **Three more icons** | Only in the Cockpit and with more than one terminal: **Minimise all** (they stay alive in the strip below and it turns into **Bring them all back**), **Layout** (a grid of up to 4 by 4, or "one big one and the rest beside it") and **Close all**, which asks first because it kills their agents and tells you which ones are working. |
 
-### Write the brief: the other button
+The **update** is no longer a bar at the top: it is a card at the end of the sidebar
+([section 21](#21-updating-without-losing-your-terminals)).
 
-This one builds no board. You give it one sentence and it hands back **the brief
-properly written** and **who should get it**, then waits.
+### The bar of each terminal (one per box)
 
-The card shows the brief (editable), the destination (CLI, account, model,
-effort) and, listed one by one, **why that one**. Three buttons: put it in the
-terminal in front of you (it sets the model and effort and types the brief
-without sending it), open a new terminal already born that way, or copy it.
+Each terminal carries its own header with the name of the session, the context, the
+model and the project. It is explained field by field in
+[section 9](#9-the-header-of-each-terminal).
 
-How the brain is picked: first what the work demands (a mechanical errand goes
-to **haiku**, everyday craft to **sonnet**, anything needing judgement, security,
-audits, review, architecture, to **opus**). Size never raises the model;
-**consequence** does, meaning a failure that could go unnoticed and cause harm
-later. Then it looks at your real weekly quota, account by account: it picks the
-one with the most left, makes things cheaper where cheaper is fine, and if no
-Claude account has any week left it offers another CLI **among the ones you have
-connected**, with the fallback still on screen. What it never does is cheapen an
-audit to save quota, because redoing that work costs more than the difference.
+---
 
-You can always override it: the three brains show their weight (`haiku ×1`,
-`sonnet ×3`, `opus ×5`, the list-price ratios). Note that **only Claude
-publishes how much is left**, so for other CLIs Adeorq knows whether they are
-connected, not how much they have. Settings → Alerts controls how much it says
-about the model you already have running.
+## 3. The seven tabs
 
-## 14. The Split (several tasks at once)
+- **Dashboard**: the home. Adeo, a box to ask for things, your projects and your usage.
+- **Cockpit**: where the work happens. Projects on the left, terminals in the
+  centre, a strip of tools on the right.
+- **Chat** (beta): the same conversations as the Cockpit, read like a chat, and on
+  top a concierge that opens sessions for you.
+- **Decisions**: what your agents ask you with options, so you can answer on the
+  spot.
+- **Canvas**: a free board where terminals move around, connect with arrows and
+  live next to notes, drawing and tools.
+- **Profile**: you (name, @ and photo), your usage and four sections that live
+  inside: **Accounts**, **Agenda**, **Memory** and **Commands**.
+- **Settings**: how everything looks and behaves, and the help.
 
-The three-branch button next to the Assistant. The Assistant solves ONE thing;
-this one solves a whole day.
+The terminals **do not close when you change tab**: they stay alive.
 
-Paste your tasks, one per line, or tick the ones you already wrote down: your
-**goals for today** and the **ideas your agents left in the Agenda** show up
-right there with a checkbox, so you do not have to copy them by hand.
+Two things you can change to your liking, in Settings › Look:
 
-Hitting Split does this, in order:
+- **The header**: remove, put back and reorder the tabs. Removing one only hides
+  it: it is still available with Ctrl+K. Settings cannot be removed.
+- **Parts of Adeorq**: switch off the Cockpit, the Canvas, Memory or Chat entirely
+  ([section 16](#16-settings)).
 
-1. **One single call** classifies EVERY task and hands out the files. One call,
-   not one per task, and it also lets the model see the whole list, which is the
-   only way it can tell that two tasks would collide.
-2. **The code picks each destination**: client, account, model and effort,
-   looking at what you have installed, which accounts are signed in, how much of
-   the week is left and **which plan you pay for**. That costs no tokens.
-3. **The shared sheet is written** into the project's `BUZON.md`: who does what,
-   which files belong to whom, and where to report back. If `.gitignore` did not
-   cover it, the line is added, because that file is never committed (rule Q).
-4. **They all open**, staggered, each with its brief already written in its own
-   client's language: skills (`/frontlaxweb`) are only offered to Claude Code,
-   because that slash does nothing in the others.
+---
 
-Before the final button you see what the batch weighs ("Opens 4 agents · 1 opus
-+ 3 sonnet · ×14"), and the warnings: if two tasks go to the same project with
-no files assigned, it says so, because two agents on one file are slower than
-one after the other.
+## 4. Dashboard
 
-**The paid plan works like the quota does**: downwards only, and never on
-judgement work. With no subscription it will not suggest opus for an errand, but
-an audit still comes out as opus, because redoing it costs more than the turn.
+The first thing you see when you open it. On the left, a big **Adeo** with a
+greeting according to the time of day and your name, and below it a line saying what
+is going on:
 
-## 15. Right click and tooltips
+- If something is waiting for you: "“X” is asking you something" or "“X” and N more
+  are waiting for you", with the **Answer** button, which takes you to that
+  terminal.
+- If all is well: "N sessions running, nothing waiting on you." or "All quiet.
+  Nothing running right now." A click takes you to the Cockpit.
 
-Adeorq uses its own menus, not the browser's: right click a terminal (copy,
-paste, split, maximise, blur, close), a project (new Claude, terminal,
-Antigravity, open all) or a session (resume, rename, group, archive). Hovering
-almost anything explains what it is and its shortcut.
+Below is **the box to ask Adeo for something**, with your own words ("open the
+Orquio stuff", "go over the login", "push today's work"). When you send it with
+Enter or **Send**, a new conversation opens in the [Chat](#6-chat) that already
+carries your request; **Dictate** adds what you say, if you have local voice
+installed.
 
-## 16. Keyboard shortcuts
+On the right:
+
+- **Your projects**: first the ones with a session this week (the ones waiting for
+  you, then the ones working and then by last activity), each with its logo and
+  "is asking you something", "one working", "N working" or how long ago. With no
+  activity, eight show, with **See all N** and **Show fewer**. A click takes you to
+  the Cockpit with that project unfolded.
+- **New project**, at the bottom: you type the name and **Create**. Adeorq creates
+  the folder with `AGENTS.md` (your rules for the agents), `docs/METAS.md`,
+  `.gitignore` and git already started. If you already have a model of your own for
+  `AGENTS.md`, leave it in `plantilla-agents.md` inside Adeorq's data folder
+  ([section 26](#26-where-your-things-are-kept)): it is used instead of the factory
+  one, and `{name}` puts in the project's name.
+- **Your usage**: the month's tokens, "N today · N days in a row · your record", and
+  squares for the last 26 weeks. **See your usage** takes you to the
+  [Profile](#11-profile).
+
+**Picking up sessions you already have** is not in the Dashboard but in the **＋** of
+the Cockpit's sidebar ([section 5](#5-cockpit)).
+
+---
+
+## 5. Cockpit
+
+Three zones:
+
+```
++----------------+--------------------------------------+-----------+
+|  LEFT          |  CENTRE                              |  RIGHT    |
+|  Workspaces    |  The terminals                       |  Usage    |
+|  (projects and |  Each box = one conversation         |  Skills   |
+|  their         |  or a console working                |  Files    |
+|  sessions)     |                                      |           |
++----------------+--------------------------------------+-----------+
+```
+
+### 5.1 Left: the projects bar
+
+The same bar is seen in the Canvas. From top to bottom:
+
+- **"Workspaces" header**: the **＋** (*Open a session*: you choose folder, program,
+  model and account), three ways to see the bar (logo and name, just the logos
+  big, or shrunk right down into a strip), the archived button with its number and
+  **Rescan projects and sessions** (it rescans by itself every 45 seconds).
+- **Search box** *Filter projects and sessions*: it forgives accents and accepts the
+  words in any order. With text typed in, everything unfolds.
+- **Each project** is a card with its logo (Adeorq looks for it in the folder by
+  itself, or draws its initials), its name, an arrow with the number of sessions, a
+  badge with the recent ones and a red one with the ones waiting for you. A green
+  frame with a glow means an agent is typing right now. Click: unfolds or folds.
+- **When you hover** buttons appear to open a new session in that project: the
+  programs you choose in [Accounts](#12-accounts) (Claude and Antigravity by
+  default) and one for each extra account.
+- **Right click on a project**: new Claude Code session, a normal terminal,
+  Antigravity, each other program you have installed, an entry per extra account,
+  **Open all N sessions at once** (up to the limit in Settings › Terminals) and the
+  options for name, logo and order. **Remove from Adeorq** deletes nothing;
+  **Delete the folder from disk…** sends it to the recycle bin and asks you to type
+  its name.
+- **The order** can be "By age" or "Whoever needs you first", and projects can be
+  dragged by hand (**Back to automatic order** undoes it). The **Pinned** ones go
+  on top; what you remove from the bar stays in **Hidden**.
+- **Old things are hidden**: whatever has gone more than a month untouched shows up
+  as "N older" in each project, and you can look at them.
+- **The right edge** can be dragged to widen the bar, and it is remembered.
+
+**The ＋ also resumes what you already had.** As well as opening something new, it
+lets you go back to conversations you had already started: the whole list with a
+search box, **Tick the ones I lack** and **Put them in the rail (N)**. **Bringing
+them in opens nothing**: what you tick appears in the bar and stays waiting,
+because every open terminal uses memory. The old ones show up too (the ones over a
+week old do not appear on other screens), and the ones you already have show up
+ticked and without a checkbox.
+
+### 5.2 Each session inside a project
+
+A session is a saved conversation. The bar lists those of Claude Code, Codex and
+Pi, each with the logo of its program. In its row you see a status dot, the title,
+the account if it is not the main one, the role if it belongs to a crew, and how
+long ago it was.
+
+- **Green** dot: open right now.
+- **Amber** dot: the agent left an offer or a question waiting for you.
+- **Dimmed** dot: left half done. Dimmer still: nothing pending.
+- The dot **empties** once you have looked at the last thing it did.
+
+On top of that, the whole row is tinted when it is waiting for you: **amber** if it
+finished by offering something and **pink or red** if it left you a question with
+options.
+
+**▣ N** in the row are the subagents that session has working right now. Hover and
+it tells you how many there are and how many it has launched in total.
+
+**Click on a session = it is resumed in a terminal**, with all its memory. The **⋯**
+button or the right click offer: *Resume the session here*, *Pin to the top*,
+*Rename* (saved where the official app saves titles), *Move to group…*, *Take it
+out of this project*, *Make “X” a project*, *Archive* and *Delete the session*
+(goes to the recycle bin). Groups are created by dragging one session onto another;
+they have a name and a colour, and dissolving them does not touch the sessions.
+
+**Archive** first checks whether the project has files not saved in git and shows
+them to you in a list. It never deletes anything and can be undone with the
+archived button.
+
+### 5.3 Centre: the mosaic of terminals
+
+The terminals are laid out in columns (up to three when splitting) and stack. The
+border between them can be dragged to share out the width or the height. The ones
+you **set aside** drop to a strip, keep working, and each tile carries the logo of
+the program, the name, the three letters of the account, the memory it takes up and
+a ✕ (which asks for a second click if the agent is working). With no terminals, the
+Cockpit says "The cockpit is ready."
+
+Each box is a real terminal with its program inside: Claude Code, Codex, Gemini,
+Antigravity, a normal console or any of the programs in
+[Accounts](#12-accounts). New Claudes are born with the permission mode you choose
+in Settings › Terminals (by default, *Auto-accept edits*); Shift+Tab switches mode
+inside.
+
+**Copy and paste like in any app.** Ctrl+V pastes (so does the right click), Ctrl+C
+copies if there is a selection and, if there is not, it is still the usual "stop what
+is going on". **Pasting an image** saves it and writes its path in quotes, which is
+what the agent knows how to read. **Dragging any file** onto a terminal writes its
+real path, without Enter and without copying it. **Ctrl+F** searches inside the
+terminal.
+
+An **open file** from the Files panel is another piece of the mosaic: an editor with
+tabs (Ctrl+S saves; if the file changed on disk, it lets you choose between bringing
+in the new one or saving yours over it).
+
+A **crew** (several terminals from the same split) is marked with its colour and
+with an "N/total", and has a board above the mosaic.
+
+### 5.4 Right: Usage, Skills, Files and Browser
+
+The strip of icons is always there. Each icon opens a face and, if you click the
+icon of the open face, it hides.
+
+- **Usage**: a battery for each account, the most spent on top, with the bars for
+  the five hours, for the week and for each model, and when each one renews.
+  Programs that do not publish their spending show "No usage data". **Ask again**
+  costs no quota.
+- **Skills**: your commands from `~/.claude/skills`, with a search box and grouped
+  into "The ones you use most", "The rest", "Yours" and "From claude.ai and
+  plugins". A click sends it to the terminal you have in front; dragging it onto
+  another one pastes it into that one.
+- **Files**: the tree of the project of the terminal you have in front, with the
+  colour of what git sees as changed. With the right click you open, create files
+  and folders, copy the path, show it in the file explorer, rename or send to the
+  recycle bin, and it never overwrites one that already exists. To search for a text
+  in the project: **Ctrl+K › Search in the files**.
+- **Browser** (set apart by a line): a real Chromium with tabs, which is also useful
+  for viewing your website while you program it. Ctrl+T opens a tab, Ctrl+W closes
+  it and Ctrl+L goes to the address bar. It has a mode for editing the page by
+  clicking and saving it into the code. On Linux and Mac a simpler version appears
+  ([section 22](#22-windows-linux-and-mac)). If a terminal starts a server, Adeorq
+  asks **Open {url} in the web view?** (turned off in Settings › Terminals).
+
+**What the agent does in your files.** Above the tree, a card says the last thing
+that matters: "Claude is editing" with its file, "Claude edited 2 files" with what
+they add up to, or "Claude committed 2 files" with the hash, plus the branch and
+what you have not pushed. Below, the list of what it has touched: **Reading** and
+**Opened** in purple, **Editing** and **Edited** in orange with their lines,
+**Committed** in green. It comes from what the program itself leaves written in its
+history, without spending a token, so it depends on the program: **Claude Code**
+notes what it reads and what it edits, **Codex** only what it edits (and the panel
+warns you), and with the others you only see what git says. A subagent's edits do
+not show.
+
+---
+
+## 6. Chat
+
+Chat (in beta) has two parts:
+
+- **At the top, the concierge.** "Talk to the concierge" opens a chat with Adeo: you
+  tell it what you want, it splits it into jobs and opens a session for each one.
+  The sessions show up as tabs above the thread (green dot: working; amber: asking
+  you; orange: finished) and a click enters them. Each session it opens leaves a
+  card with its program, its model, what it was asked to do and, if the router
+  chose it, why.
+- **Below, your usual sessions**, by day, with **New conversation** and a search
+  box. Each session is read as a conversation (**Clean**) or opened raw
+  (**Terminal**), and what you type below goes down to the same terminal. The box
+  carries pills for the model ("Automatic" lets the router choose it), for the
+  effort and a ring with the context.
+
+What is worth knowing:
+
+- The concierge only opens sessions in real folders from your projects, only writes
+  in the terminals it opened itself and opens four at most per message.
+- Each message to the concierge is a short call made with your subscription
+  (Claude, or the program you choose in its pills), not with an API key. The
+  sessions it opens spend their own quota. With the concierge you can press
+  **Improve** so it rewrites your message without adding anything, and **Stop**
+  while it thinks.
+- The router reads rules that you write in your notes in the house memory, in the
+  form `router: words -> model / effort / client` ([section 14](#14-memory)).
+- Switching off the "Chat" part also removes the box from the Dashboard. It does
+  not switch off the concierge on the phone, which has its own switch
+  ([section 19](#19-on-your-phone)).
+
+---
+
+## 7. Decisions
+
+When an agent needs you to choose something, it asks you here instead of in the
+chat. The tab lists **Waiting for you** and **Earlier**. Each question brings from
+two to six numbered options (the recommended one carries "Recommended", and none
+comes ticked) and a box **Something else, in your own words**.
+
+- **Send answer** waits five seconds with **Undo** and then types it into the
+  terminal that asked, if it is still the same one. If not, the agent reads it when
+  it looks again.
+- **Discard** sets it aside without answering and warns the terminal that was
+  waiting.
+- The earlier ones delete themselves after a week.
+- The notice is an amber count on the tab and Adeo with a doubtful face. On the
+  paired phone a notification arrives and you answer from there
+  ([section 19](#19-on-your-phone)).
+
+---
+
+## 8. Canvas
+
+The Cockpit gives you a tidy mosaic. The Canvas gives you a free board: terminals
+are placed wherever you want, enlarged by hand and **connected with arrows**. They
+live alongside notes, drawing and small tools.
+
+The board **saves itself** (a moment after every change) and comes back when you
+open Adeorq. The terminals come back according to the setting **Bring the terminals
+back on start**; the rest (pieces, arrows with their brief, notes, drawing) always
+comes back. The Canvas has its own terminals: those of the Cockpit are not moved or
+closed.
+
+### The top bar
+
+- **Pick a project**: decides in which folder what you drop is born.
+- **✦ Claude**, **>_ Terminal** and **◈ Antigravity**: open a session in that
+  project.
+- **Three modes**: **Terminals** (just the work), **Drawing** (the whiteboard) and
+  **All** (both, by default). Changing mode does not lose the drawing.
+- **Drawing tools**, in the same bar and only in the Drawing and All modes: move,
+  lasso several, pencil, arrow, line, box, diamond, ellipse, text and eraser.
+- **The grid**: makes what you move land in the nearest cell.
+- **＋ Add**: the menu of pieces (the right click on a gap of the board opens the
+  same one, with *Pick the whole canvas*).
+- **⌘ Describe the board**: tells the terminal you have focused what else there is
+  on the canvas and which arrows leave from where.
+- **Canvas ▾**: save the canvas to a file, open one (it asks whether only the drawing
+  and the pieces or also the terminals, and it is added to what is already there),
+  export the drawing to PNG or SVG, fit everything on screen and erase the whole
+  drawing.
+- **The "?"** opens a short help on how the canvas works.
+
+### The pieces you can put
+
+- **Your work**: **Note**, **Lane**, **Swarm**, **Gallery**, **A localhost window**,
+  **The work board** and **Chat with a model**.
+- **Gadgets**: Pomodoro (25 minutes of focus and 5 of rest), stopwatch, countdown,
+  calculator and a calendar with notes per day.
+- **Tools** ("nothing leaves this app"): JSON, regular expression, compare texts,
+  encoder, hash, passwords, identifiers, colour and count text.
+
+What each of the ones in your work is:
+
+- **Note** (Alt+N): a sticky note with checkboxes that inside is a real `.md` file,
+  so an agent can tick the box when it finishes. Its launch button sends it to an
+  open terminal, opens a new session in the project you choose or, if two or more
+  tasks are left, hands them to the Foreman to split. An empty note offers you the
+  project's **runbooks**: every `.md` you save in `docs/fichas` is a recipe of steps
+  that you repeat, and when you pick it the note is born with those steps as
+  checkboxes. Any note can be **Saved as a runbook**.
+- **Lane**: a named strip of colour that separates a workspace. It goes underneath
+  the terminals; it is renamed with a double click and removed with its ✕ without
+  closing anything.
+- **Gallery** (Alt+I): everything you have ever pasted into Adeorq; you drop an image
+  onto the canvas. With Ctrl+V on the canvas you paste a screenshot as a piece and
+  can annotate over it.
+- **A localhost window** (Alt+L): a web page inside the canvas, with an address bar
+  and shortcuts to the usual ports. You have to "Click to use the page" and then
+  release it to be able to move the piece. If a website forbids opening in a frame,
+  it says so.
+- **The work board**: a kanban with four columns. **To do** you write yourself;
+  **Working**, **Waiting on you** and **Done** fill themselves in from the state of
+  each terminal. Dropping a card into "Working" opens a terminal with that brief,
+  and you can tick several and split them together.
+- **Chat with a model**: a conversation with a model through your OpenRouter key,
+  which does not spend your subscription and shows you what it costs.
+
+### Move, enlarge and navigate
+
+- **Moving a terminal**: you grab it by its header. Inside, the mouse belongs to the
+  terminal.
+- **Enlarging**: stretch it from any edge or corner, without selecting it first. The
+  **Maximise** button in its header sets it to what you can see of the canvas and
+  the same button puts it back exactly in its place.
+- **Moving around the board**: drag the background. The wheel zooms (30 to 140%);
+  inside a terminal the wheel is for its scroll. Below you have the minimap and the
+  zoom buttons. With the zoom under 55%, each terminal shows its "cover" (logo,
+  name and project) and stops painting its contents, although it keeps working.
+- **Picking several**: dragging with the **right button** lassos pieces and drawing
+  at once; with Shift it adds. A bar "N picked" appears with *All*, *Delete* and
+  *Drop*.
+- **Each terminal wears the colour of its project**: a stripe, the header tinted and
+  the project's logo as a watermark. **Where** a new terminal is born: inside the
+  lane named like its project; if there is none, to the right of the last one; and
+  if it does not fit, below all of them with the camera going to look for it.
+- **The sessions bar** of the Cockpit is also in the Canvas; what you open from it
+  is born on the board.
+
+### Arrows: chaining
+
+This is what makes the canvas worth it.
+
+1. Drag from the dot on the right edge of one card to the dot on the left of
+   another: an arrow is born. An arrow can also leave from a note.
+2. **Click the arrow** to write the brief: what the second agent has to do with what
+   the first one produces. That is where the checkbox *Send on its own, without
+   asking me* is.
+3. When the first agent **finishes its turn**, "A finished → B" appears below with
+   **Hand it over**: Adeorq writes into the second one your brief PLUS the first
+   one's last answer, and sends it. The pencil leaves it written without sending,
+   in case you want to touch it up.
+
+The brakes: an automatic handover stops if the source agent asked you something,
+and an automatic arrow that hands over three times in ten minutes goes back to
+manual. If the arrow you draw closes a circle, Adeorq warns you, but does not forbid
+it. With the automatic checkbox unticked, nothing is sent unless you press it.
+
+### Swarms: several sessions and one chat
+
+A swarm gathers sessions that you **already have open** into a single piece: its name
+on top, a row for each session below and, at the end, a chat with a box to talk to
+all of them. Up to twelve fit.
+
+- **It is created in two ways**: with **＋ Add › Swarm**, ticking the sessions that go
+  in, or dragging a terminal **onto another** and holding for a moment: when the one
+  underneath lights up with a frame, drop it. The one you dragged goes back to its
+  place. A console cannot join: only sessions of an agent are gathered.
+- **Each swarm has its own Adeo, in a colour** (blue, green, violet, pink…), to tell
+  one from another at a glance.
+- **What you write goes to Adeo**, not to the terminals. Adeo thinks with a small
+  model (Haiku), decides which session it falls to, rewrites it so it is
+  understood and tells you who it sent it to. If you name one (by its name or its
+  project) it goes to that one; if you say "to all", to all of them. It does not
+  open new sessions.
+- **What each session answers comes back to the chat** with its name.
+- **The eye** in the header tucks the swarm's terminals away under the card: they
+  keep working, they just stop taking up room. *Taking one out* leaves it alive
+  beside it, outside the group. **Break up the swarm** (its ✕, with a double tap)
+  deletes the group's chat and leaves the terminals. If you have just joined them
+  by mistake, the piece offers **Don't join them**.
+
+Three things worth knowing: Adeo knows whether each session is working or has
+finished and how much context it carries, and chooses with that; **only Claude Code
+and Codex** report how they are doing and only from them is the answer brought to
+the chat (a session of another program joins, but its row says it is not known); and
+**a session that is asking you something does not get a split**, because it would
+land in its menu. Each message to Adeo spends a short call from your Claude
+subscription; joining the sessions spends nothing.
+
+### Drawing on top
+
+Everything is drawn **on top of** the terminals without bothering them: with the hand
+on, the mouse goes back to being theirs.
+
+- **Arrows stick.** If you finish an arrow on a terminal, it stays hooked and
+  follows it when you move it. The piece it is about to stick to is outlined in
+  green.
+- **It lines up by itself.** When drawing or stretching, everything snaps to the
+  edges and centres of what is already there. Hold **Ctrl** to turn the magnet off.
+- **Fill** hollow, translucent or solid; **freehand** for the wobble of a sketch;
+  text of several lines (Shift+Enter goes down a line).
+- **Undo is serious**: Ctrl+Z and Ctrl+Shift+Z go back up to sixty steps with a tool
+  on.
+- **Bring to front** and **send to back** appear when you select a stroke.
+
+### Ctrl+Z and closed terminals
+
+Outside a terminal and a text box, **Ctrl+Z reopens the last terminal you closed**
+with its ✕: a Claude session resumes its conversation and a console comes back
+empty. The notice "Closed “X” · Undo" lasts five seconds; in the Canvas, Ctrl+Z only
+does this while the notice is up, because the rest of the time it undoes the
+drawing.
+
+---
+
+## 9. The header of each terminal
+
+From left to right, it has three zones.
+
+**Who it is**
+
+| Element | What it means |
+|---|---|
+| **The icon** | What is inside: Claude Code, Codex, Antigravity, a console… When the program ends, the icon goes grey. |
+| **The three letters of the account** | Only if the terminal does not use your main account: the first three letters of its name, in capitals and in the accent colour. The full name shows when you hover. |
+| **The project** | In a pill of its colour. The full path, only when you hover. |
+| **The name** | The title of the session, the same as in the sidebar. Double click to rename it. |
+| **"from: X"** | If another session opened this terminal with the MCP ([section 17](#17-what-an-outside-program-can-do)), it says which one. |
+
+**The data**
+
+| Element | What it means |
+|---|---|
+| **▣ N** | How many subagents are working inside that session right now. When you hover (or press it) the list appears: who each one is, what it was sent to do, what state it is in and how long it has been at it. |
+| **The bar and the %** | The context: how much of its working memory it has taken up. The tooltip gives the exact tokens. Warnings go by tokens, not by percentage: see [section 10](#10-what-appears-inside-a-terminal). |
+| **The model and the effort** | Changed inside with `/model` and `/effort`. |
+| **The memory** | What that terminal takes up; it turns to a warning tone from 1 GB. |
+
+The three pieces of data (context, model and memory) can be hidden so that the bar
+only carries project and name: **Settings › Terminals › Show the model, context and
+memory in each terminal's bar**.
+
+**The buttons**: *Shadow Mode* (a separate branch, see section 10), the eye to cover
+only this terminal on a live stream, minimise, pop out into its own window, maximise
+or restore, delete the session (it goes to the recycle bin) and close. Splitting to
+the right or down are no longer buttons: they are in the right click and in
+Ctrl+Shift+→ and Ctrl+Shift+↓. The ✕ closes the terminal; the conversation is not
+deleted and stays in the sidebar.
+
+**Popping out into its own window.** If you drag a terminal's bar outside Adeorq, it
+comes out into a Windows window of its own and the agent never notices. Its ✕
+becomes **Return to Adeorq**.
+
+**The glow.** The panel where you are working wears a ring in the accent colour.
+When an agent **finishes its turn** and is waiting for you, its panel lights up with
+an **orange** glow that pulses until you open it.
+
+---
+
+## 10. What appears inside a terminal
+
+Adeorq watches the screen of each terminal and turns the cryptic into buttons.
+
+1. **Question bar**: when the agent asks with a menu of numbers (permission for a
+   command, trusting the folder, how to resume), buttons appear with the options.
+   Click and it is answered; you can also answer with the keyboard.
+2. **Reconnection notice**: if your access expires, "needs to reconnect your account"
+   appears with the **Reconnect** button, which is the same as typing `/login`.
+3. **Notes in plain words**: while the agent compresses its memory (the `/compact`),
+   or when it is busy and what you type is queued.
+4. **Hung agent notice**: if it has gone three minutes without giving a sign of life,
+   **Revive** appears (it closes the program and resumes the same conversation) or
+   **Start fresh** if the session weighs too much.
+5. **Context notice.** Long sessions get expensive: each message pays for the whole
+   context again. Adeorq warns by tokens: at **300,000** "good moment to compact", at
+   **400,000** (in red) it compacts by itself if you have that turned on and at
+   **600,000** it recommends a new terminal with a handoff. The buttons are
+   *Compact*, *New with handoff*, *Not now* and *Close this one*. In a small context
+   window the percentage rules (50, 60 and 80%). Compacting first sends the handoff
+   (the `/fin` if that skill exists) and then `/compact`, only when the agent has
+   finished its turn. What happens at 400,000 you choose in **Settings ›
+   Terminals** (warn and wait for the button, compact without commits, or compact with
+   the whole `/fin`). It never compacts by itself in Codex or Gemini. If the session
+   has already been compacted twice, it offers a new one instead of a third.
+6. **Shadow Mode**: a terminal born in shadow works on a separate branch, and its
+   button opens **Shadow proposals** with *Accept* and *Discard*. It is chosen when
+   opening; it cannot be turned on midway.
+
+If you use a program in the **alternate screen** (the "fullscreen" mode of Claude
+Code), Adeorq behaves like a normal terminal: the wheel goes to the program.
+
+---
+
+## 11. Profile
+
+One single page that scrolls down. At the top, you: your **photo**, your **name** and
+your **@**. **Edit** changes the name and the @ (the at sign and the spaces are
+removed by themselves) and clicking the photo changes it. Everything stays on your
+computer. Beside it, **Your sections**: four summaries that open the full section,
+with "‹ Profile" on top to go back. You also get to each one with Ctrl+K.
+
+- **Accounts**: how many are connected and what each one has spent
+  ([section 12](#12-accounts)).
+- **Agenda**: your pending things for today ([section 13](#13-agenda)).
+- **Memory**: how many notes there are and in which vault ([section 14](#14-memory));
+  it does not show with the Memory part switched off.
+- **Commands**: how many skills of yours there are, with the names of the first ones
+  ([section 15](#15-commands)).
+
+### Your usage
+
+Below, **Your usage**. The big figure is the **tokens of the current month**,
+counting the cache; below it, the *New* ones (without cache), the active days and
+your record (the day with the most tokens). A list with three tabs, **Providers**,
+**Models** and **Projects**, shares the month out with bars. Below is **The year** in
+squares and the month day by day, with arrows to go to the previous or the next one.
+Tapping a day with usage opens its card.
+
+The data comes from the conversations that **Claude Code and Codex** already save on
+your disk: it spends no quota and needs no key. The first read takes a good minute;
+the following ones, a few seconds.
+
+### The card to share
+
+Tapping a day, your record or the share icon opens **Share your usage**: a card with
+your figures ready to post. You choose:
+
+- What it shows: **Month**, **Day**, **Record** or **All time**.
+- The format: 16:9 (1920×1080) or 9:16 (1080×1920), as **Image** or as **Video**.
+- The background: the one behind your terminals, four built in, or the ones you
+  upload yourself (image or video; they are copied to Adeorq's data folder and an X
+  removes the copy, never your original).
+- The colour of the figure and whether it is **highlighted** on a box.
+- A **project**, if you want. It comes out as **None** every time it is opened: no
+  project appears on the card unless you choose it.
+
+Your @ (or your name), your photo and, at the foot, "adeorq.com · Made with Adeorq"
+always appear.
+
+In the video, the figure counts up from zero to yours; you trim the stretch of
+background with two handles and can add sound (a hit, a counter or the video's own).
+
+- **Download** saves a PNG or an MP4 wherever you choose.
+- **Copy**, in Image mode, copies the image to the clipboard so you can paste it
+  wherever you like. In Video mode it renders the whole MP4 and **copies the file**:
+  on Windows it pastes as a file in a chat or a folder (and as its path in a
+  text-only place, for example a terminal); on Mac, as a file reference; on Linux,
+  just the path.
+- On Linux the Video tab is switched off: "This computer can't make videos."
+
+---
+
+## 12. Accounts
+
+Inside the Profile. All your agent accounts in one place, grouped by program.
+
+**What an account is here.** Each agent program keeps everything of its own (your
+login, your history, its settings) in a folder. If you tell it to use another
+folder, it behaves like a clean installation: another login, other limits. That is
+what Adeorq does. Your usual account is never touched; the others live in a folder
+of their own inside Adeorq.
+
+The screen has a status line ("N connected of N installed", the tightest limit and
+which one is the usual one) and four sections: **Your accounts**, **API keys**,
+**Shortcuts** and **Not installed**.
+
+**Which programs it knows.** The catalogue has 22: Claude Code, Codex, Gemini CLI,
+Qwen Code, GitHub Copilot, Grok, Crush, opencode, Amp, Antigravity, Cursor, Pi, Kiro
+CLI, Kimi Code, CodeWhale, Goose, Droid, Jules, Auggie, Codebuff, Cody and Aider.
+**Eight support several accounts**, because it has been checked that their variable
+really moves the folder:
+
+| Program | Variable that moves its folder |
+|---|---|
+| Claude Code | `CLAUDE_CONFIG_DIR` |
+| Codex | `CODEX_HOME` |
+| Gemini CLI | `GEMINI_CLI_HOME` |
+| Qwen Code | `QWEN_HOME` |
+| Grok | `GROK_HOME` |
+| Pi | `PI_CODING_AGENT_DIR` |
+| Kimi Code | `KIMI_CODE_HOME` |
+| CodeWhale | `CODEWHALE_HOME` |
+
+The others show up with the note "one account only": no way has been found to move
+their folder, and it is better to say so than to make up a name and have an account
+end up writing where it should not. **Antigravity** keeps its state inside
+`~/.gemini` and can only have one. Pi talks to several providers, and that is why it
+is not proposed as an automatic relay when you run out of week: if its login is that
+of your own Claude account, sending you there would be sending you to the same
+used-up quota.
+
+**What you see on each card.** The name (the usual one carries the name of the
+program; the ones you add get a name of your own), the plan and whether it is the
+default. **Claude Code, Codex and GitHub Copilot** also show their session and week
+bars with their renewal time, and it comes free. The other programs do not publish
+your consumption on the machine, so the card says so instead of making up a bar.
+The ones that leave no trace when you sign in say "unknown".
+
+**What you can do.**
+
+- **Add account**: you give it a name (whatever you like, never your email, because
+  this screen can end up on a live stream), its folder is created and a terminal
+  opens where the program itself asks you to sign in.
+- **Make it the default**: new terminals of that program will be born with that
+  account.
+- **Terminal with this one**: a session with a specific account, without changing
+  the default.
+- **Sign out** (deletes only the login), **Share my skills** (the same skills folder
+  as the main one), **Rename** and **Remove**. Remove deletes only the folder of that
+  account, with its history.
+- **Sign out of all**, at the top, with two or more connected.
+- The programs you did not install show up in **Not installed**, with **Download**
+  (opens a terminal with the install command) or **Open its site**.
+- **Shortcuts** chooses which programs show up as buttons when you hover over a
+  project.
+
+**The account is decided when the terminal is opened and no longer changes**,
+because the program reads its folder only once, at startup. When a terminal does not
+use the main one, it carries the three letters of its account in the header. If you
+bring the board back when opening Adeorq, or press **Revive**, each terminal is born
+again in its account. And from the right click of a terminal, **Continue on another
+account** opens a new one with a record of where you were.
+
+⚠ Several accounts **of your own**, no problem. Taking turns with other people's
+accounts to stretch the limits breaks the providers' terms, and what you risk is
+having your account closed.
+
+### The split between accounts
+
+When an agent opens a terminal with Adeorq's MCP and does not say which account,
+**the terminal goes by itself to the account of that program that would lose the
+most quota if it were left unused**: the one with the most week to spare compared
+with the days left until it renews. So a Pro account at 17% that renews in two days
+beats a main one at 60% that renews in five, and the other way round if the main one
+renews tomorrow.
+
+- It skips the account that is stopped by its five-hour cap or the one that is at
+  92% of its week or more, unless there is no other. If the model the agent asks for
+  is not given by that account's plan, it prefers another; if there is none, it is
+  born with the ceiling of its plan.
+- Each terminal that an agent has just opened on an account counts as a bit of
+  spending until a new reading arrives, so that three openings in a row do not land
+  on the same one.
+- The one who finds out which account was chosen and why is the **agent** that
+  opened it (the reply tells it, and which things that account will not see). On
+  screen you see the result in the terminal's header. If the agent asks for a
+  specific account, it is born on that one or fails saying so: never on another one
+  in silence. A scheduled order with no account does not choose: it goes to the
+  default.
+- The same criterion chooses the account in the plans of the Foreman and of the
+  Split, and is explained in their "why".
+- There is a limit: six terminals open by agents at once and twelve per hour.
+
+### API keys and Vibecoding with OpenRouter
+
+**API keys** is the other way to pay for what a program consumes: by tokens instead
+of with your subscription. There is a card for each program that accepts a key
+(Claude Code, Codex, Gemini CLI, Grok, opencode, Pi and Aider): *Paste a key*, *Get
+one* (the link to where it is obtained), *Forget it* and a switch between **Opens on
+the key (by tokens)** and **Opens on your subscription**. The key is saved encrypted,
+you only see its last four letters and it never comes back to the screen. Where it is
+kept, in [section 17](#17-what-an-outside-program-can-do).
+
+The **OpenRouter** card is a single key that opens models from many providers,
+including those with no program of their own (Kimi, DeepSeek, Grok…). Once the key is
+pasted, it shows what you have left, today's, the week and the month. Below it
+appears **Vibecoding**: it opens a real terminal of [Aider](https://aider.chat)
+pointing at the model you type (by default, `moonshotai/kimi-k3`). The first time it
+says **Install Aider first**; afterwards, **Open terminal**, with the key in place.
+
+⚠ **If you open Aider by hand**, always tell it the model (`aider --model
+openrouter/<model>`), or it will take the first key it finds in your environment and
+try with another provider. And the key has to be in `OPENROUTER_API_KEY` in that
+terminal. The card does both things by itself.
+
+---
+
+## 13. Agenda
+
+Inside the Profile. What is coming at you, what you thought of and what is due. The
+front page brings today's date, five figures that open their screen (sessions waiting
+for you, proposals from your agents, open goals, live ideas and scheduled orders) and
+a calendar of the month that marks on each day how many goals you did.
+
+- **Today's goals**: which two or three things you want to get closed today. They
+  belong to no project: they are yours and the day's. They are ticked with a click on
+  the whole row and are saved as one text file per day, so **an agent can tick them
+  off** when it finishes what you asked. When the day changes an empty list is born
+  and, if you left something unticked, **Bring over the one you left yesterday**
+  appears. The icon in the top bar opens them as a floating panel from any tab, with a
+  slider for how much it covers of what is behind it.
+- **Your sessions**: all of them sorted by who is waiting for you, with **Resume this
+  session here**. If you have chosen a local model in Settings, each one carries a line
+  about what it needs from you.
+- **From your agents** (the tray): while they work, loose ends come up that are not
+  for now. Instead of interrupting you, the agents write them down there, one at a
+  time, and you choose **Accept** (a step is written into the project's `METAS.md`),
+  **Discard** or **Later**. An agent can propose things there without touching any of
+  your credentials.
+- **Next steps**: the goals in the `docs/METAS.md` of the project you choose and its
+  parked items.
+- **Ideas and external dates**: they come from the **compass**, a separate service
+  that belongs to Adeorq's author and which you enter with an email and a password. If
+  you do not have it, those two cards say "Connect your compass" and everything else
+  in the Agenda works the same.
+
+### Scheduled orders
+
+You leave written what to do, in which project and when, and Adeorq opens a session
+by itself at that time, also with the window in the background. You choose the agent
+(**Claude Code or Codex**), the account (if there are two or more of that agent), the
+model and a name.
+
+- **Days and time**: the days of the week and an hour. It launches at most once a
+  day; if the PC was off at its hour, it launches when you turn it on that same day
+  and, if not, it waits for the next time.
+- **Every N hours**: from one to a hundred and sixty-eight, and it repeats.
+- Each order shows how its last three times went (finished, failed, did not launch)
+  and its next time. **Try now** launches it right away. **Pause**, **Edit** and
+  **Delete** do what they say.
+- **The brake**: if it fails three times in a row it stops and warns you (on the
+  phone too) until you press **Re-arm**. If the account it would be born with is at
+  85% or more, that time is skipped and it does not count as a failure.
+- It is born in auto mode; if it asks something, the question reaches the phone.
+  There is a limit of twenty orders.
+
+The clock works on Windows, Linux and macOS; on Linux and Mac it has not been tested
+yet on a real desktop.
+
+---
+
+## 14. Memory
+
+Inside the Profile. Your Obsidian notes (or any folder with markdown) inside Adeorq.
+**Nothing is copied or moved**: they are read where they are. The first time it shows
+the Obsidian vaults it already knows, or lets you point at another folder.
+
+- **Search your notes**: by what they say, without capitals or accents, and the title
+  weighs more.
+- **The note**: the list by folders or by recent, the note read on the right, **Edit**
+  and **Save** (it checks that nobody touched the file in between) and **Open
+  outside**. `[[like this]]` links work.
+- **Brain**: the map of what links to what, in 3D, in two shapes, **Sphere** (by
+  projects) and **Galaxy**. Performance mode, which turns on by itself with four
+  terminals, leaves it still and says so.
+- **Schema**: you pick a project and **Read the project**. The Foreman (a Claude)
+  reads the code and draws what it is made of; it takes a few minutes, spends quota,
+  is saved and is shown as a map or a mind map.
+
+**The house memory** is something else, although it looks alike. The notes that Claude
+Code saves per folder, in all your accounts, are gathered into an index that **the
+agents** consult with the tools `buscar_memoria` and `leer_memoria`. It searches by
+words and, if you have Ollama with the `bge-m3` model, also by meaning. There you can
+write lines `router: words -> model / effort / client` that the router uses to decide
+(the rule that demands more words wins). With the Memory part switched off, none of
+this works.
+
+---
+
+## 15. Commands
+
+Inside the Profile. The house cheat sheet: **65 commands** (52 from Claude Code and
+13 from Antigravity) plus your skills (those in `~/.claude/skills`, those of your
+claude.ai account and those of plugins).
+
+- **Search box**: search by what you want to do, not by what it is called. Type
+  "undo", "quota", "context" or "security".
+- **Filters**: All, Claude Code, Antigravity (agy) and Your skills.
+- **One click** and the command is typed into the active terminal. You press the
+  Enter, so nothing ever runs by accident. With no terminal open, the buttons are
+  greyed out.
+
+---
+
+## 16. Settings
+
+Ten groups on the left, in this order. Clicking the open group folds its index, and
+Adeorq remembers the last one you looked at. If a group has several cards, their
+names appear below so you can jump to one.
+
+**Look**
+
+- **Parts of Adeorq**: switches for **Cockpit**, **Canvas**, **Memory** and **Chat**.
+  Switching one off switches it off **entirely**: no tab, no entry in Ctrl+K and
+  nothing of its own starting up (it is switched back on in the same place).
+  Dashboard, Profile, Decisions and Settings are always there. The Cockpit and the
+  Canvas **cannot both be switched off at once**, because they are the two places
+  where a terminal is opened. With the Cockpit off, new terminals are born in the
+  Canvas; with Memory off, the agents lose `buscar_memoria` and `leer_memoria`. A view
+  that is off but still has open terminals stays in sight until they are closed, and
+  Settings says how many are left.
+- **The header**: remove, put back and reorder the tabs at the top, with *Back to how
+  it came*.
+- **Language**: Spanish or English. It changes the whole app, this guide included. The
+  terminals keep speaking whatever each agent speaks.
+- **Theme**: 32 themes in five families (House, Familiar, Loud, Blacked out and Light
+  background), with a filter and a search box. Each card is a miniature of the app with
+  that palette. You can ask it to follow the **light or dark of the system**, with a
+  theme for each case, and **To match your photo** picks the theme whose accent
+  resembles your background image.
+- **The colour of the terminals**: 12 colour schemes for the 16 colours of the
+  terminal, and **Import a theme…** brings one from Warp (`.yaml`) or from Ghostty.
+- **Blackout**: solid black behind the terminals, even if there is a background.
+- **Scroll smoothness**: *Snap*, *Smooth* or *Very smooth*; it changes at once.
+- **Performance mode**: *Automatic* (it switches off the glass when you open the
+  fourth terminal and gives it back when you close them), *Always pretty* or *Always
+  fast*.
+- **Shape of the terminals**: *Flush* (mosaic), *Soft corners* or *Loose cards*.
+- **The background**: an image or a video (looping and without sound) behind
+  everything. It is copied to Adeorq's folder; you choose the framing, how much shows
+  and the blur. With **See-through terminals** the photo shows through the text.
+
+**Terminals**
+
+- **Fit the type to each terminal's size** (on): with many narrow terminals, the type
+  shrinks by itself until the line fits. The size you choose is then the maximum.
+- **Font size** (11 to 32 px) and **how many sessions a project opens at once** (2 to
+  20; each one is about 200 MB, which is why there is a limit).
+- **Show the model, context and memory in each terminal's bar.**
+- **Bring the terminals back on start** (yes by default): the same terminals come back
+  in their folders and each Claude resumes its conversation.
+- **Keep the terminals alive if Adeorq crashes**: see
+  [section 21](#21-updating-without-losing-your-terminals).
+- **Jump to the session that finishes, full screen**, **Ask to open the web view when
+  a terminal starts a server** and the **search engine of the browser bar** (Google,
+  Brave Search or DuckDuckGo).
+- **At 400,000 tokens of context**: warn and wait for the button, compact by itself
+  without commits, or compact by itself with the whole `/fin`
+  ([section 10](#10-what-appears-inside-a-terminal)).
+- **Start Adeorq when the computer boots.**
+- **When you close the window**: *Ask every time*, *Keep running in the background*
+  (the window hides, the agents carry on and an icon is left next to the clock) or
+  *Close everything*.
+- **Permission mode**: the mode each new Claude is born with (*Auto-accept edits* by
+  default, *Plan mode*, *Manual*, *Automatic*, *Only what is approved* or *No
+  checks*). It is changed inside with Shift+Tab.
+- **What each client may do through the MCP** and **Agents' keys**: they are told in
+  [section 17](#17-what-an-outside-program-can-do).
+
+**Notifications**
+
+- **Notifications**: a system notice when an agent finishes or waits for your OK, with
+  the icon blinking in the taskbar. *Only in the background* (default), *Always* or
+  *Never*. It never warns about the panel you are looking at.
+- **Your default brain**: *Let Adeorq decide*, or fix haiku, sonnet or opus for
+  everything. Quota decides, and a task that needs judgement is never made cheaper.
+- **When the brain does not fit**: the Foreman warns you if the model of the terminal
+  in front of you is much more expensive or weaker than the task asks for. *Only big
+  differences* (default), *Any difference* or *Never*.
+- **The crew lookout**: with a crew open, it checks every minute who finished, who is
+  waiting and whether anyone touches another one's files, and leaves a line in the
+  Agenda's tray. It never writes, opens or closes terminals.
+- **The session copilot**: looks at the open terminals and suggests, through the tray,
+  another program with quota, a cheaper brain or what it would cost by API. It never
+  changes anything by itself.
+
+**Shortcuts**: **Canvas shortcuts**, the editable table of the 31 actions of the canvas
+([section 24](#24-keyboard-shortcuts)).
+
+**Local model**: if Ollama answers on your machine, you choose a small model that writes
+the "what it asks you" line of each session in the Agenda. Without Ollama, the Agenda
+works the same without that line.
+
+**Discord**: **Show Adeorq on my Discord** (on by default) talks to the Discord open on
+your machine, with no account or server; **Say which project I am in** (off). In
+streaming mode, Discord goes back to generic.
+
+**Mobile**: see [section 19](#19-on-your-phone).
+
+**Bots**: **Notify a bot** (everything off by default). When a terminal finishes or is
+waiting for you, Adeorq writes to your **Grok Bot** (the webhook address of a routine and
+its key, which is kept in your machine's key store and never comes back to the window), to
+your **Hermes** or to your **OpenClaw**, if you have them installed. It sends only the
+terminal's name, its project and what happened, never what is on the screen. It only
+notifies when you are not looking at Adeorq and follows what you choose in **Notifications**;
+several terminals finishing together are one message, and at most one goes out every 30
+seconds. **Test** sends a test message, and the Grok Bot one starts a real run of your Bot
+and spends from its quota (so does every notice). If a notice does not arrive it does not
+interrupt you: Settings says so.
+
+**Mods**: a mod is a change of yours to how Adeorq looks (the round icons, another
+colour, a hidden piece). It lives in your data folder (`mods`), so an update does not
+touch it. **Ask your agent for a mod** leaves the brief written in its terminal,
+without sending it. **They are off by default**. Each one says how it is: *Applied*,
+*Off*, *No longer hooks on* (an update changed the piece it was hooked to; **Hand it to
+your agent** gives it to your agent to redo it) or *Not loaded*, with the reason. They
+only change the look: Adeorq does not load code from a mod nor does it let its
+stylesheet ask for anything from the internet. If one leaves your screen unusable,
+**Ctrl+Alt+Shift+0** switches them all off.
+
+**Help**: **First steps** (*Take the tour* and *Run the welcome again*), the web
+**Documentation** (it opens in your browser and is always up to date, without waiting
+for a new version) and **Have my agent explain it**, which opens a session with this
+guide in front of it: it asks you what you want to do and shows you only that. Below
+lives this whole guide.
+
+**Adeorq**
+
+- **You and your projects**: your name, the projects folder (changing it re-reads the
+  whole list) and the loose projects you add by hand.
+- **Updates**: the installed version and **Check for updates** (it only checks). If
+  there is one, a second click installs it and **Restart** puts it into use. It checks
+  by itself on startup and every six hours, and it installs nothing unless you tell it
+  to.
+- **Your quota**: **Show my weekly usage** types `/usage` into the Claude terminal you
+  have active and takes you there. To see all your accounts at once use the **Usage**
+  face of the Cockpit ([section 5](#5-cockpit)) or the [Profile](#11-profile).
+
+---
+
+## 17. What an outside program can do
+
+Adeorq has a local door, the **MCP**, through which an AI program can look at and
+handle your terminals: list projects and terminals, read what is on screen in one,
+open a new one, write to it, ask you something with options (which reaches
+[Decisions](#7-decisions) and the phone), check your quota and the house memory.
+There are eighteen tools, spread over three tiers named in plain words:
+
+- **Look only**: reads terminals, projects, the agenda, the quota and memory. It
+  changes nothing.
+- **Open and look**: also opens new terminals, draws arrows between two on the
+  canvas, asks you questions and closes **the ones that same program opened**. It does
+  not write into other people's.
+- **All**: also writes into any terminal, closes it and can compact it.
+
+**How you connect your Claude Code to these tools.** Adeorq does not touch your Claude
+Code's settings: you give it the door yourself, once, with
+`claude mcp add adeorq --scope user -- "<path to adeorq.exe>" --mcp` (the path is the
+folder where you installed Adeorq). Adeorq has to be open: with it open,
+`claude mcp list` should say "Connected". From then on, a Claude Code you open in an
+Adeorq terminal has the tools at that terminal's tier, and one in another console has
+them as an outside program (below).
+
+**Each terminal is born with its own password**, and the tier comes from the terminal
+the program connects from, not from the name it claims to have. A program that
+introduces itself as "claude" from outside does not inherit the tier of Claude Code.
+By default, **Claude Code has "All"** and the other programs have "Open and look".
+
+**Outside Adeorq** is everything that arrives **without** the password of an Adeorq
+terminal: a Claude Code open in another console, any program that talks to the port.
+By default it can only **open terminals and look**. Those terminals start in the mode
+you have in Settings, and if it asks to open one **with a job**, a window appears with
+the text, who is asking and in which folder: **No** or **Open**; if nobody answers, it
+does not open. For it to do more, raise it
+yourself in **Settings › Terminals › What each client may do through the MCP**, on its
+row (it applies to any outside program, and on **All** it no longer asks, so raise it with
+care). Each row says the
+program, its version, how many times it connected and when the last time was. The
+Foreman and the concierge come in through a line of their own and do not count as
+clients.
+
+An agent with a low tier that asks for something that is not its to ask gets a
+refusal that tells it which tier it has and where that is changed.
+
+Limits worth knowing: an agent opens six live terminals at most at once and twelve
+per hour; a new message to a Claude terminal with more than 300,000 tokens of context
+comes back to it and only goes out if it insists; it cannot compact one that a person
+opened; and the terminals an agent opens it closes itself when it finishes, leaving a
+summary in the data folder.
+
+### Asking for a key without showing it
+
+When an agent needs a token, **it is not asked for in the chat nor left in a file**.
+An Adeorq window comes up where you paste it, and the agent does not read it and it
+does not stay in its history. The agent uses it with `adeorq secreto <name> --
+<command>`: the command receives the key in an environment variable and its output
+comes out with `***` where the key would have been.
+
+- An **Adeorq terminal** that asks for an already saved key gets it **without
+  asking**. If it was not saved, the window **An agent needs a key** appears
+  (*Cancel* or *Hand it over*, with a checkbox to save it for next time).
+- **A program outside Adeorq** that asks for a saved key makes another window appear:
+  **A program outside Adeorq asks for a key. It does not come from an Adeorq terminal.
+  Give it only if you know which program it is.** You choose **No** or **Give it this
+  once**.
+- **The agents' keys** (Settings › Terminals) lists each saved key with who used it
+  and when ("terminal 4 used it 3 min ago"), with a *Forget* button. It never shows
+  the value, and the card does not appear if there are none.
+- **Where they are kept**: in the Windows Credential Manager, in your Mac's Keychain
+  or, on Linux, in a file in your data folder with 600 permissions **unencrypted**
+  (the screen warns you about it).
+
+**What this does not do**, so you do not get overconfident: the `***` filter only
+recognises the key as it is, so it does not stop an agent determined to get it out
+(for example, with a command that encodes it before printing it); and any program
+that runs under your user can read the Credential Manager directly, without going
+through Adeorq. It is a barrier against accidents and casual reads, not against an
+agent you do not trust: you do not give that one the key.
+
+---
+
+## 18. The Foreman and the Split
+
+The Foreman is your orchestrator agent. You write what you want and it proposes a
+plan; **nothing is run without your OK**. It opens with the orb in the top bar, with
+**Ctrl+Shift+A**, and from any tab. **Ctrl+Shift+M** opens it already listening to
+you, and with OpenRouter's voice it can answer you aloud. In the window and in some
+texts of the app it is called "the Assistant".
+
+**How much it can touch.** It has the same three tiers as
+[section 17](#17-what-an-outside-program-can-do): *Look* (only reads), *Plan* (opens
+new terminals, but does not write into other people's) and *Auto* (also writes into
+any terminal). It is chosen in the window itself.
+
+**What buttons it has.**
+
+- **Plan it**: it proposes which sessions to open, with which program, which brain and
+  which brief. In the list you see with which brain it opens each thing and, before
+  the button, how much the whole plan weighs ("Opens 6 agents · 2 opus + 4 sonnet ·
+  ×22"). It is not a bill (with a subscription there is no bill): it is the only
+  comparable figure that exists, with haiku as 1.
+- **Ask**: it only looks at Adeorq and answers you, without opening anything.
+- **Write the brief**: you throw it one sentence of what you want and it gives you
+  back the brief well written, for whom and why that one. There are three buttons: put
+  it in the terminal you have in front (it changes its model and effort and leaves the
+  brief written, without sending it), open a new terminal already born like that, or
+  copy it.
+- **Automatic**: instead of showing you the card, it adjusts the brain and leaves the
+  brief written in the terminal in front. It does not send it: "no intermediate
+  screen" does not mean "without your finger".
+- **Voice**: for the Foreman to say its answers aloud.
+
+**How it chooses the brain.** It goes through the same router as the rest of Adeorq
+and looks at your real quota, account by account:
+
+- First it looks at what the job asks for: a mechanical errand goes to haiku, the
+  day-to-day to sonnet and whatever demands judgement (security, auditing, reviewing,
+  architecture) to opus.
+- Then it looks at your week. With the week running short it makes cheaper what can be
+  made cheaper, chooses the account with the most margin (the same rule as the
+  [split between accounts](#12-accounts)) and, if no week is left on any Claude
+  account, proposes another program **among the ones you have connected**. Codex and
+  GitHub Copilot publish their quota and the router uses it; for the others, Adeorq
+  knows whether they are connected, not how much they have.
+- What it **never** does is make an audit cheaper to save quota: repeating that work
+  costs more than the difference.
+- Handovers to another program only come in for an objective reason, which is that you
+  have no week left. And you can always change the brain by hand.
+
+### The Split: several tasks at once
+
+It has no button of its own: it is the same Foreman. One sentence is planned right
+there; **several lines are several tasks**, and the button changes by itself to
+**Split up the N tasks** (up to eight per batch) and takes you to a screen with the
+text already put in. You can paste your tasks, one per line, or tick your **today's
+goals** and the **ideas your agents left in the Agenda**.
+
+1. **A single call** classifies all the tasks and shares the files out among them, so
+   that two tasks do not step on each other.
+2. **The code decides the destination of each one**: program, account, model and
+   effort, looking at what you have installed, which accounts are connected, how much
+   week you have left and what plan you have. That spends no token.
+3. **The common paper is written** in the project's `BUZON.md`: who does what, which
+   files belong to each one and where to note what they finish. That file is never
+   versioned.
+4. **They are all opened**, staggered, each one with its brief written in the language
+   of its program. Skills (such as `/frontlaxweb`) are only offered to Claude Code.
+
+Before the final button you see how much the whole batch weighs and the warnings: if
+two tasks go to the same project with no files shared out, it tells you, because two
+agents on the same file go slower than one after the other.
+
+---
+
+## 19. On your phone
+
+Adeorq comes with you. From your phone, a tablet or another computer you talk to the
+concierge, see how each terminal is going and write to it, answer what your agents ask
+you and open sessions on the PC. The page is **served by your own PC**, and the
+traffic goes over **Tailscale**, its private network: it does not go through any
+Adeorq server. Only devices you have paired get in. The PC has to be on with Adeorq
+open (while it serves, it asks the system not to sleep).
+
+**Pairing a phone.** In **Settings › Mobile**:
+
+1. Turn on **Concierge on my phone**. Three rows appear with a green or red dot —
+   *This PC*, *Tailscale* and *Your phone* — and the fix on the one that fails.
+2. If it is missing, **Bring the concierge to Tailscale** (and *Open the Tailscale
+   link* if it asks you to turn on HTTPS).
+3. An address `https://….ts.net:8443` appears with its QR and **Copy**.
+4. **Pair a phone** gives a six-digit code that is valid for ten minutes. On the phone
+   you type it and press **Pair**.
+
+The paired devices show up on the same screen with "seen … ago", if they have
+notifications, **Test notification** and **Remove**.
+
+**What is on the phone.** A drawer with **Concierge**, **Terminals**, **Decisions**,
+**Scheduled**, **Usage** and, at the bottom, **Settings**, plus **New task**.
+
+- **The home screen**: Adeo with the state of the PC, **Waiting for you** (decisions
+  and terminals that are asking), **Running**, your conversations with the concierge
+  and the box to write to it.
+- **Terminals**: grouped into *Asking you*, *Working*, *Finished* and *Idle*. For each
+  one you see **Chat** (what was said, with **Copy** on the code blocks) and **Screen**
+  (what is seen on the PC). Its box accepts text, photos and attached files, and
+  carries **Stop**, a pill for model and effort and **Mode** (Claude Code's
+  Shift+Tab).
+- **Opening sessions on the PC**: **New session here** per project, **Another
+  project…** and continuing an earlier session. Only in folders that are projects of
+  yours and with known programs.
+- **Decisions**: you answer with an option or with words, with five seconds to undo
+  and **Discard**. The ones that are no longer waiting go to *Earlier* and are deleted
+  after a week.
+- **The phone's own Settings** (saved on that device): the background, the colours, the
+  type and how Adeo moves, which sections show on the home screen and in what order,
+  the notifications and **Install Adeorq as an app on this device**.
+- **Notifications**: they arrive even if the page is closed, through the notification
+  service of your phone's browser (Google, Mozilla or Apple). On iPhone they only work
+  with the app added to the home screen. The filter of which notifications are sent is
+  applied on the PC.
+
+Security: the page only listens on your PC, every request carries the key of the
+paired device (only its fingerprint is left on disk) and any foreign origin is
+rejected.
+
+---
+
+## 20. Streaming mode
+
+Designed so that you can broadcast without giving away your keys. It has four pieces:
+
+1. **Covered, not blurred**: the foot of the sidebar, the Foreman's summary, the names
+   of accounts and the Agenda's texts are covered with a solid bar. A soft blur can be
+   undone from a recording, which is why it is not used. **The titles of your sessions
+   and the day's goals are not covered**: they are the thread of what you are doing,
+   and without them the stream makes no sense.
+2. **Alt to look**: the mouse hovering over reveals nothing. Hold **Alt** to see what is
+   covered; when you let go, or switch window, it is covered again.
+3. **The shield in the terminals**: what the agent writes is checked before it is
+   painted and anything shaped like a key is changed to ●●●: Anthropic, OpenAI, AWS or
+   Google keys, GitHub and Slack tokens, JWTs, private keys, passwords inside a
+   connection string, variables like `API_KEY=…`, your email and your user in paths.
+   The agent does get the real text: it is only hidden from view.
+4. **The curtain, Ctrl+Shift+P**: covers the whole window instantly; it comes back with
+   a click or with the same keys. **It is only put on by hand.**
+
+When the shield covers something a card appears at the bottom right, "I masked
+something that looks like…", with a piece of advice and the **Got it** button. As the
+shield acts **before** it is painted, if the card appears it means **nothing was seen
+on the stream**. The advice depends on what it was:
+
+- **Reddish border** (key, token, password; lasts nine seconds): it was not seen, but
+  that key is still loose wherever it was stored. What you have to look at is where it
+  came from.
+- **Blue border** (your email or a path with your user; lasts five): covered and that
+  is all.
+
+You can also cover **a single terminal** with the eye in its header or with the right
+click (*Cover this terminal (for streaming)*).
+
+What it **does not do**: it does not fix what already came out before you turned it
+on, it does not cover your browser or the system notifications, and no list of
+patterns is complete. What protects you most is still a **30-second delay in OBS**.
+The whole reasoning is in `docs/EMISION.md`.
+
+---
+
+## 21. Updating without losing your terminals
+
+**The card.** Adeorq checks whether there is a new version on startup, every six hours
+and when you come back to the window, and warns you in two ways: a system notification
+(once per version) and an **Update Adeorq** card with the version, at the end of the
+sidebar. If the bar is shrunk to a strip, only the notification warns you. One click
+downloads the version (with its percentage) and installs it; afterwards it says
+**Restart to get it**. The ✕ (*Not now*) hides it. It never installs by itself.
+
+**If there are agents working.** The card says **Waiting for them to finish** and who
+is half way through; when they finish, it updates by itself. If you press again, it
+updates now.
+
+**"The terminals stay alive" means** that your consoles and your agents carry on with
+what they were doing: a `pnpm dev` keeps running and Claude does not start again. The
+terminals live in a separate process that the installer does not close, and the new
+window picks them up with their history. The limits, said plainly:
+
+- **Only on Windows**, in the installed app and with the setting **Keep the terminals
+  alive if Adeorq crashes** on (yes by default). In development, Linux and Mac it is
+  off by default.
+- **Without that separate process**, updating closes the terminals: Claudes are
+  shut down with Ctrl+C and resumed with `--resume`, and a console loses whatever it
+  had running.
+- **What you close yourself kills them**: the ✕ with *Close everything*, *Quit Adeorq*
+  or *Close all*. And if Adeorq dies suddenly, the terminals hold on for half an hour;
+  if nobody comes back, they close by themselves.
+- **The separate process belongs to the version it was born in.** After updating, the
+  window is new but that process is still the old one, and the terminals you open
+  afterwards in that session are born in it too until you quit Adeorq completely.
+  What is new in the version that depends on that process does not reach them, so after
+  updating it is worth quitting Adeorq completely as soon as you can. This has been read
+  in the code and not tested with a real
+  installer.
+- A live terminal that was not on the saved board shows up marked as "recovered"; it is
+  never killed in silence.
+
+The Windows installer runs in passive mode. It carries no paid code signature, so
+Windows may warn that it does not recognise the publisher: the installer is signed
+with Adeorq's updater key, which is what guarantees that the update that reaches you
+is ours.
+
+---
+
+## 22. Windows, Linux and Mac
+
+Adeorq works the same on all three, with these differences.
+
+**Windows** is where it is used most and where everything is: the terminal engine in a
+separate process, the real browser, the music, the background with an icon, the clock
+for scheduled orders and the Credential Manager.
+
+**Linux.** AppImage, `.deb` and `.rpm` are published (on Fedora the `.rpm` is the
+better choice; the AppImage carries its own web engine). The window is translucent and
+asks for a desktop with a compositor. The differences you will see:
+
+- Keys go to a file with 600 permissions, unencrypted (the screen says so).
+- There is no music control.
+- When you hit the X with terminals open it offers **Keep running in the
+  background**: the window hides, with no icon, and comes back when you open Adeorq
+  again.
+- The panel's browser is a simple version in a frame, not the real Chromium.
+- The terminals do not run in a separate process by default.
+- The Video tab of the usage card is switched off.
+
+**Mac.** There is a `.dmg` installer for Apple Silicon (macOS 12 or later) among the
+published versions. It is built and started on an automatic Mac, but **it has
+not yet been used daily on a real Mac**, so if something fails, tell us.
+
+- Keys go to the login **Keychain** (service "Adeorq"); Adeorq moves into the Keychain
+  the ones that were in a file and only deletes the file once it has checked that the
+  key read back is identical.
+- The **title bar** follows Adeorq's theme (light or dark) instead of the system mode.
+- Data lives in `~/Library/Application Support/Adeorq`. Consoles use zsh, and an app
+  opened from the Finder inherits the PATH of your user shell, to find your programs.
+- Shortcuts use the **Control** key, not ⌘ (to be reviewed with a Mac at hand).
+- As on Linux: no music control, a simple browser and terminals without a separate
+  process by default. When you close the window Adeorq closes and takes its terminals
+  with it.
+
+---
+
+## 23. Right click and tooltips
+
+Adeorq does not use the browser's menus: they are its own, in your language and with
+the shortcuts written out.
+
+- **Right click on a terminal**: copy, paste, split right, split down, maximise, cover
+  for streaming, *Revive*, *Continue on another account* and close. In a loose window,
+  *Return to Adeorq*.
+- **Right click on a project**: a new session of each program, an entry per extra
+  account, open all its sessions, remove it from Adeorq, change its name, logo and
+  order.
+- **Right click on a session**: resume, pin to the top, rename, move to group, take it
+  out of the project, archive, delete.
+- **Right click on a gap in the Canvas**: the menu for adding pieces.
+- **Mouse over almost anything**: a tooltip appears explaining what it is and its
+  shortcut. The numbers and pills say exactly what they count.
+
+---
+
+## 24. Keyboard shortcuts
 
 | Shortcut | What it does |
 |---|---|
-| Ctrl+K | The palette: type to go to any tab (including the ones you removed from the header), open terminal or project, or to run any of the shortcuts below |
-| Ctrl+P | Open a file of the project in front of you by typing part of its name. Inside a terminal that key belongs to the program: from there, use Ctrl+K, "Open a file by its name" |
-| Ctrl+Shift+T | New terminal |
-| Ctrl+Shift+→ | Split the focused pane right |
+| Ctrl+K | The palette: type and go to any tab (also the ones you removed from the header), open terminal or project, or launch any of the shortcuts below. It searches without accents and with the words in any order. It also works inside a terminal |
+| Ctrl+P | Open a file of the project in front of you by typing part of its name. Inside a terminal that key belongs to the program: you get there through Ctrl+K, "Open a file by its name" |
+| Ctrl+Shift+T | New terminal (in the folder of the active one) |
+| Ctrl+Shift+→ | Split the active terminal to the right |
 | Ctrl+Shift+↓ (or D) | Split it down |
-| Ctrl+Shift+F | Maximise or restore it |
-| Ctrl+Shift+A | Call or dismiss the Foreman |
+| Ctrl+Shift+F | Maximise or restore the active terminal |
+| Ctrl+Shift+A | Call or close the Foreman |
+| Ctrl+Shift+M | Call the Foreman and dictate to it |
 | Ctrl+Shift+E | Streaming mode |
-| Shift+Tab | Change permission mode INSIDE Claude |
+| Ctrl+Shift+P | The curtain: covers the whole window |
+| Alt (held) | Look at what streaming mode covers |
+| Ctrl+Z | Reopen the last closed terminal (outside a terminal and a text box) |
+| Ctrl+Alt+Shift+0 | Switch off all mods |
+| Esc | Close whatever is open on top (palette, Pulse, Foreman, notifications) |
+
+These **cannot be changed**; those of the canvas can.
+
+### In a terminal
+
+| Shortcut | What it does |
+|---|---|
+| Ctrl+V / Ctrl+C | Paste / copy. Ctrl+C copies if there is a selection; if not, it goes to the program |
+| Ctrl+F | Search inside the terminal (Enter next, Shift+Enter previous, Esc closes). It does not reach the agent |
+| Shift+Tab | Change the permission mode inside Claude |
+
+### In the panel's browser
+
+With focus inside the browser: Ctrl+T new tab, Ctrl+W close, Ctrl+L the address bar.
 
 ### In the file editor
 
-With the keyboard inside an open file. Code is painted with the colours of the
-terminal scheme you picked under Settings → Appearance.
+With the keyboard inside an open file. The code is painted with the colours of the
+terminal scheme you have chosen.
 
 | Shortcut | What it does |
 |---|---|
 | Ctrl+S | Save |
-| Ctrl+F | Find and replace in the file |
+| Ctrl+F | Search and replace in the file |
 | Ctrl+G | Go to a line |
 | Alt+Z | Turn line wrapping off or on |
 | Ctrl+Z / Ctrl+Y | Undo / redo |
@@ -702,59 +1509,173 @@ terminal scheme you picked under Settings → Appearance.
 
 ### On the canvas
 
-These **can be changed** under Settings → Canvas shortcuts. They only fire with
-the canvas in front and the focus outside a terminal: while you type, the keys
-belong to whoever is typing.
+These **can be changed** in **Settings › Shortcuts**: there are 31 actions. They only
+act with the canvas in front and with focus outside a terminal and a text box: while
+you type, the keys belong to whoever is typing.
 
 | Shortcut | What it does |
 |---|---|
 | Alt+C / Alt+T / Alt+G | Open a Claude / a terminal / an Antigravity |
-| Alt+N / Alt+L / Alt+I | Place a note / a localhost window / the gallery |
+| Alt+N / Alt+L / Alt+I | Put a note / a localhost window / the gallery |
 | Ctrl+A | Pick the whole canvas |
-| Esc | Drop what is picked; with nothing picked, drop the tool |
-| Del | Delete what is picked (asks once) |
+| Esc | Drop what is picked; if nothing is picked, leave the tool |
+| Del (or Backspace) | Delete what is picked (asks once) |
 | Alt+0 | Fit everything on screen |
-| V M P F L R O T E | Hand, lasso, pencil, arrow, line, box, ellipse, text, eraser |
-| Ctrl+Z | Undo the last stroke (only with a tool active) |
+| V M P F L R D O T E | Hand, frame, pencil, arrow, line, box, diamond, ellipse, text, eraser |
+| Ctrl+Z / Ctrl+Shift+Z | Undo and redo the drawing (with a tool on) |
+| Ctrl+C / Ctrl+D | Copy / duplicate what is drawn |
+| Ctrl+G / Ctrl+L | Group / pin to the board |
+| Ctrl+Shift+↑ / Ctrl+Shift+↓ | Bring to front / send to back |
+| Ctrl+Alt+C / Ctrl+Alt+V | Copy / paste the style |
+| Ctrl+Shift+E | Export the drawing |
+| Ctrl (held) | While drawing, turns off the magnet of the guides |
 
-They use Alt rather than Ctrl because inside a terminal Ctrl+letter belongs to
-the program running there: Ctrl+C interrupts Claude, Ctrl+R searches history.
+They use Alt and not Ctrl because inside a terminal Ctrl+letter belongs to the program
+running there: Ctrl+C interrupts Claude and Ctrl+R searches the history. In the combination
+picker, a repeated combination takes the shortcut away from the other action, and
+**Back to the factory ones** puts everything back as it came.
 
-**With the mouse:** dragging with the **right button** lassoes pieces and
-drawing at once, with no trip to the toolbar. Hold Shift to add to what you
-already had. A plain right-click still opens the add menu.
+---
 
-## 17. Colour legend
+## 25. Colour legend
 
-- **Green**: alive right now.
-- **Amber**: waiting for you (a pending question, or context over 80%).
-- **Red**: stopped until you answer, or a warning worth reading.
-- **Theme blue**: what is selected or focused.
-- **Blue glow on a pane**: that agent finished its turn.
-- **Grey**: nothing pending.
+- **Green**: alive right now (open session, running process).
+- **Amber**: waiting for you (pending question or offer).
+- **Pink or red**: stopped until you answer (a question with options), or a notice
+  worth looking at. Context beyond the line, in red.
+- **Orange that pulses in a terminal**: that agent finished its turn and is waiting for
+  you.
+- **The theme's accent colour**: what you have selected or the terminal with focus.
+- **Dimmed**: nothing pending, or left half done.
+- **A thread of light** that runs round a session's card in the sidebar: the agent is
+  working.
 
-## 18. Glossary
+---
 
-- **Terminal**: a text window where a program lives.
-- **Pane**: each terminal box inside the Cockpit.
-- **Session**: a Claude Code conversation saved on disk, resumable months later.
-- **Context**: the working memory of that conversation, everything the model
-  has in front of it. When it fills up, older parts get compressed and detail
-  is lost.
-- **Tokens**: the chunks that text is measured in; a normal word is one or two.
-- **Window**: the maximum context of that model (200,000 tokens normally,
-  1,000,000 for the long-context ones).
-- **Effort** (low, medium, high, max): how hard it thinks before answering.
-- **Auto mode**: the agent applies its edits without asking file by file, but
-  still asks about risky things.
-- **Subagent**: a helper the agent dispatches for a side task. That is what ▣
+## 26. Where your things are kept
+
+Everything is on your computer, and in formats you can open yourself. Adeorq's data
+folder is `%LOCALAPPDATA%\Adeorq` on Windows, `~/.local/share/adeorq` on Linux (or
+wherever `XDG_DATA_HOME` says) and `~/Library/Application Support/Adeorq` on Mac.
+
+| What | Where (inside that folder) |
+|---|---|
+| Today's goals | `objetivos`, one Markdown file per day |
+| Canvas notes | `notas`, in Markdown |
+| The Canvas | `lienzo.json` |
+| Scheduled orders | `programados.json` |
+| Decisions and concierge conversations | `decisiones`, `conserje` and `chats` |
+| Ideas and steps that the agents propose | `bandeja.md` |
+| Failure trail | `rastro.log` |
+| Summaries of the terminals that an agent closed | `rastros` |
+| Accounts of each program | `accounts`, one folder per account |
+| Mods | `mods` |
+| Paired phone devices | `movil.json` (only their fingerprint) |
+| Pasted screenshots and phone attachments | `pastes` |
+| API keys and agents' keys | Windows Credential Manager, Mac Keychain or, on Linux, the `secretos` folder |
+| Sessions and histories | Where each program leaves them (`~/.claude` for Claude Code): Adeorq reads them, it does not copy them |
+| Your window settings (theme, type, header, parts, Cockpit layout) | In the window's own store, not in a file in that folder |
+
+### What goes out to the internet
+
+Adeorq carries no telemetry or analytics. Things leave your computer, and only in these
+cases:
+
+- **To look for updates**: it asks GitHub on startup, every six hours and when you come
+  back to the window.
+- **OpenRouter**, only if you save your key: checking the key and the balance, listing
+  models, talking to one and generating the Foreman's voice.
+- **The compass** of the Agenda, only if you sign in with your account.
+- **Notifications to the phone**, encrypted, through your browser's notification
+  service.
+- **Notifications to a bot**, only if you turn them on in **Settings › Bots**: the
+  webhook of your Grok Bot (the address you paste yourself) or the Hermes or OpenClaw
+  program on your machine, which goes out on its own.
+- **The phone** goes over Tailscale; Adeorq runs `tailscale` on your machine.
+- **The panel's browser and the Canvas's localhost windows** load the page you open
+  yourself.
+- **The agents** (Claude Code, Codex…) and the concierge reach the internet through the
+  program of each one, not through Adeorq.
+
+Ollama, Discord, local voice and the phone and MCP servers stay inside your machine.
+
+---
+
+## 27. Glossary in plain words
+
+- **Terminal**: a text window where a program lives. It is not magic: it is the
+  original way of talking to the computer, with no buttons.
+- **Pane** (panel): each terminal box.
+- **Session**: a conversation with an agent, saved on disk, that can be resumed months
+  later.
+- **Context**: the working memory of that conversation. Everything the model has in
+  front of it right now: your messages, its answers, the files it has read and the
+  results of commands. When it fills up, it compresses the old and detail is lost.
+- **Tokens**: the little pieces in which that text is measured. A normal word is one or
+  two.
+- **Window**: the maximum size of that model's context (200,000 tokens in normal mode, a
+  million in the long-context ones).
+- **Effort** (low, medium, high, max): how much it thinks things over before answering.
+  More effort, better answers and more quota spent.
+- **Brain**: the model that does a job (haiku, sonnet or opus). They weigh ×1, ×3 and
+  ×5.
+- **Auto mode**: the agent applies its edits without asking your permission file by
+  file, but still asks about anything risky.
+- **Subagent**: a helper that the agent launches for a one-off task. It is what the ▣
   counts.
+- **Quota**: how much of your subscription you have spent.
+- **Account**: a login of a program, with its own folder.
+- **MCP**: the local door through which an AI program can look at and handle your
+  terminals.
+- **Crew**: several terminals opened from the same split.
+- **Swarm**: several already-open sessions gathered into a piece of the Canvas with a
+  single chat.
+- **Concierge**: Adeo's chat that opens sessions for you, in the Chat and on the phone.
+- **Foreman**: the orchestrator agent behind the orb.
 
-## 19. Not there yet
+---
 
-- **Saving the canvas layout**: positions and arrows are lost when Adeorq
-  closes (the terminals do not survive a close either).
-- **Internal sessions of Antigravity and other CLIs** (Codex, Gemini) are not
-  listed: each one stores its data its own way.
-- **A kanban that dispatches agents, swarm missions and a CLI router**: parked
-  in `docs/METAS.md`, each with its unlock condition.
+## 28. Frequently asked questions
+
+- **"Do I need an Adeorq account?"** No. Adeorq is used without creating anything. The
+  programs it runs (Claude Code, Codex…) do have their own accounts.
+- **"Does it replace Claude Code or Codex?"** No: it runs them. Adeorq puts the room
+  around them, and if they release a new feature tomorrow, you have it the same day.
+- **"Does it take my data anywhere?"** There is no telemetry. What leaves your computer
+  and when is in [section 26](#26-where-your-things-are-kept).
+- **"Can I use two accounts of the same program?"** Yes, as long as they are yours
+  ([section 12](#12-accounts)).
+- **"What happens if I close a terminal with an agent working?"** The program closes,
+  and everything that hung from it. If it was in the middle of a turn, that work is
+  lost: check the state before closing it. The conversation is not deleted and can be
+  resumed.
+- **"Windows says the installer is not safe."** It is the standard warning for
+  programs with no paid code signature. Press *More info › Run anyway*. The installer
+  is signed with Adeorq's updater key.
+- **"I updated and my terminals are still there, but with an old version behind."** That
+  is what is expected: [section 21](#21-updating-without-losing-your-terminals).
+- **"A terminal of mine does not let another program write into it."** It is the MCP
+  tier: [section 17](#17-what-an-outside-program-can-do).
+- **"My terminal looks black and white."** An inherited program put the variable
+  `NO_COLOR` on it. Adeorq clears it when opening each terminal; if you see it in a
+  console you opened somewhere else, remove it.
+- **"Why do I have two Adeorqs open?"** The installed version only allows one window;
+  if you see two, the other is development mode.
+- **"I don't see the Cockpit (or the Canvas, Memory or Chat)."** It is switched off in
+  **Settings › Look › Parts of Adeorq**, or removed from the header in **The header**.
+  Ctrl+K takes you there anyway.
+
+---
+
+## 29. What it does not do yet
+
+- **Sessions of Antigravity and of other programs**: the bar lists those of Claude
+  Code, Codex and Pi. Each program saves its data its own way and the others are not
+  read yet.
+- **Mac daily**: the installer exists, but it has not been used on a real Mac.
+- **Scheduled orders on Linux and Mac**: the clock is there, but it has not been tested
+  on a real desktop.
+- **Music and the real Chromium outside Windows**: on Linux and Mac there is no music
+  control and the panel's browser is a simple version.
+- **MCP permissions reaching a terminal from an old process**: after updating, those
+  terminals are governed by the name of the program until they are closed.

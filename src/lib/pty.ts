@@ -2,6 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ordenGuardado } from "./ordenBarra";
 import { leerPerfil, quienSoy, raiz } from "./perfil";
+import { aliasDeLaLinea, enFila, esfuerzoSoloEnLaSesion, modeloSoloEnLaSesion, nivelDeLaLinea, sePuedeLeer, type EntradaSelector } from "./selectorDeModelo";
+import { pantallaDe } from "./terminales";
 import type { PedidoMcp, RespuestaMcp } from "./supremo";
 
 export interface PtyData {
@@ -90,10 +92,25 @@ export function sendPty(id: number, texto: string, enviar = true): Promise<void>
  * llega a menos de 40 ms de una ráfaga por un salto de línea dentro del texto
  * (`InputPrompt.tsx`), y la orden se queda escrita sin aplicarse.
  */
-export function teclearOrden(id: number, linea: string): Promise<void> {
-  return writePty(id, linea)
-    .then(() => new Promise<void>((listo) => window.setTimeout(listo, 150)))
-    .then(() => writePty(id, "\r"));
+export async function teclearOrden(id: number, linea: string): Promise<void> {
+  // El `/model opus` y el `/effort high` de Claude Code no valen solo para esta
+  // sesión: se guardan para TODAS las nuevas. Por el selector sí son solo de esta
+  // (`selectorDeModelo.ts`). Si no se puede leer la pantalla, como siempre.
+  const alias = aliasDeLaLinea(linea);
+  const nivel = nivelDeLaLinea(linea);
+  if (alias || nivel) {
+    const io: EntradaSelector = { escribir: (texto) => writePty(id, texto), pantalla: () => pantallaDe(id), esperar: (ms) => new Promise((r) => window.setTimeout(r, ms)) };
+    if (sePuedeLeer(io)) return alias ? modeloSoloEnLaSesion(io, alias) : esfuerzoSoloEnLaSesion(io, nivel as string);
+  }
+  await writePty(id, linea);
+  await new Promise<void>((listo) => window.setTimeout(listo, 150));
+  await writePty(id, "\r");
+}
+
+/** Varias órdenes de barra, cada una al acabar la anterior (`enFila`). Lo que se
+ *  quiera escribir detrás va cuando esto termine y solo si devuelve `true`. */
+export function teclearOrdenes(id: number, lineas: string[]): Promise<boolean> {
+  return enFila(lineas, (linea) => teclearOrden(id, linea), (ms) => new Promise((listo) => window.setTimeout(listo, ms)));
 }
 
 export function resizePty(id: number, cols: number, rows: number): Promise<void> {

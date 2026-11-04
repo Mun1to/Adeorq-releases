@@ -225,6 +225,7 @@ export default function RepartoView({ cuentas, sugerido, inicial, onAbrirLote, o
           avisos: modoAviso(),
           usa: leerPerfil().clis,
           reglas,
+          t,
         };
         setMundo(elMundo);
         setReparto(repartir(conProyecto, elMundo, meta, new Date().toLocaleString(), inicial?.nota));

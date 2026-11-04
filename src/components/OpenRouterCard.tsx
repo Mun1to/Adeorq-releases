@@ -190,7 +190,7 @@ export default function OpenRouterCard({ aiderInstalado, onInstalarAider, onVibe
             <>
               <p className="account-empty">
                 {t(
-                  "Una sola clave y hablas con todos los modelos que tenga OpenRouter. Se guarda cifrada en el Gestor de Credenciales de Windows, nunca en un archivo de ajustes, y no vuelve a salir de ahí: aquí solo se piden los datos de consumo.",
+                  "Una sola clave y hablas con todos los modelos que tenga OpenRouter. Se guarda como tus otras claves y no vuelve a salir de ahí: aquí solo se piden los datos de consumo.",
                 )}
               </p>
               <input

@@ -898,15 +898,16 @@
 
    Se listan por nombre a propósito: la regla global de arriba esconde TODAS las
    barras porque un raíl de sistema al lado de una lista es sitio tirado, y esa
-   decisión no se toca. Estas cinco son las excepciones, y son excepciones
-   porque en una lista de quinientos documentos o en un chat largo hace falta
-   saber por dónde vas.
+   decisión no se toca. Estas son las excepciones, y son excepciones porque en
+   una lista de quinientos documentos o en un chat largo hace falta saber por
+   dónde vas, y porque en un encargo que se va a mandar hay que ver que sigue.
    ========================================================================== */
 .mem-lista,
 .mem-doc-cuerpo,
 .ch-lista-cuerpo,
 .ch-charla,
-.kb-col-cuerpo {
+.kb-col-cuerpo,
+.abrir-encargo {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent) 38%, transparent) transparent;
 }
@@ -915,7 +916,8 @@
 .mem-doc-cuerpo::-webkit-scrollbar,
 .ch-lista-cuerpo::-webkit-scrollbar,
 .ch-charla::-webkit-scrollbar,
-.kb-col-cuerpo::-webkit-scrollbar {
+.kb-col-cuerpo::-webkit-scrollbar,
+.abrir-encargo::-webkit-scrollbar {
   width: 9px;
   height: 9px;
 }
@@ -924,7 +926,8 @@
 .mem-doc-cuerpo::-webkit-scrollbar-track,
 .ch-lista-cuerpo::-webkit-scrollbar-track,
 .ch-charla::-webkit-scrollbar-track,
-.kb-col-cuerpo::-webkit-scrollbar-track {
+.kb-col-cuerpo::-webkit-scrollbar-track,
+.abrir-encargo::-webkit-scrollbar-track {
   background: transparent;
 }
 
@@ -935,7 +938,8 @@
 .mem-doc-cuerpo::-webkit-scrollbar-thumb,
 .ch-lista-cuerpo::-webkit-scrollbar-thumb,
 .ch-charla::-webkit-scrollbar-thumb,
-.kb-col-cuerpo::-webkit-scrollbar-thumb {
+.kb-col-cuerpo::-webkit-scrollbar-thumb,
+.abrir-encargo::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
   border-radius: var(--r-pastilla);
   background: color-mix(in srgb, var(--accent) 38%, transparent);
@@ -946,7 +950,8 @@
 .mem-doc-cuerpo::-webkit-scrollbar-thumb:hover,
 .ch-lista-cuerpo::-webkit-scrollbar-thumb:hover,
 .ch-charla::-webkit-scrollbar-thumb:hover,
-.kb-col-cuerpo::-webkit-scrollbar-thumb:hover {
+.kb-col-cuerpo::-webkit-scrollbar-thumb:hover,
+.abrir-encargo::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--accent) 70%, transparent);
   background-clip: content-box;
 }

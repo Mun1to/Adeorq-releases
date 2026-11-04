@@ -134,6 +134,16 @@ const RULES: Rule[] = [
     re: /\b([A-Za-z]:[\\/]Users[\\/])([^\\/\s"'<>|]+)/g,
     mask: (_m, head, user) => `${head}${dots(user)}`,
   },
+  {
+    name: "ruta con tu usuario",
+    severity: "baja",
+    advice:
+      "Solo dejaba ver el nombre de tu cuenta en este equipo, y ya está tapado. Una carpeta no se rota: no hay nada que hacer.",
+    // `/home/<nombre>` y `/Users/<nombre>`, también debajo de otra carpeta (`/var/home`,
+    // `/mnt/c/Users`). Lo que va detrás de un `:` o una `/` es una web, salvo `file://`.
+    re: /(?:(?<![\w.:/-])|(?<=file:\/\/))((?:\/[\w.-]+)*?\/(?:home|Users)\/)([^/\s"'<>|:]+)/g,
+    mask: (_m, head, user) => `${head}${dots(user)}`,
+  },
 ];
 
 /** One thing that was masked, with what it means for you. */

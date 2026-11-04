@@ -20,9 +20,14 @@
 // «he decidido haiku».
 
 import type { Account } from "./pty";
+import { makeT, type Translate } from "./i18n";
 import { modelForRole, type ModelAlias } from "./models";
 import { providerOf, sabe } from "./providers";
 import { reglaQueManda, type ReglaRouter } from "./reglasRouter";
+
+/** Sin traductor, las frases salen en español tal cual están escritas aquí.
+    Con el de la app en inglés (`Mundo.t`), cada una sale por `i18n.ts`. */
+const ES: Translate = makeT("es");
 
 export const ESFUERZOS = ["low", "medium", "high", "xhigh", "max"] as const;
 export type Esfuerzo = (typeof ESFUERZOS)[number];
@@ -108,12 +113,12 @@ export function techoDelPlan(plan: string | undefined): ModelAlias | null {
  * `--model opus` en un plan gratuito (revisor, 2026-11-02). Aquí se baja y se
  * dice por qué. PESO y techo son los mismos que usa `recetar`.
  */
-export function modeloParaSuPlan(modelo: ModelAlias, plan: string | undefined): { modelo: ModelAlias; porque?: string } {
+export function modeloParaSuPlan(modelo: ModelAlias, plan: string | undefined, t: Translate = ES): { modelo: ModelAlias; porque?: string } {
   const techo = techoDelPlan(plan);
   if (!techo || PESO[modelo] <= PESO[techo]) return { modelo };
   return {
     modelo: techo,
-    porque: `Nace con ${techo} y no con ${modelo}: su plan («${plan}») no lo cubre, y cada turno se facturaría aparte.`,
+    porque: t("Nace con {techo} y no con {modelo}: su plan («{plan}») no lo cubre, y cada turno se facturaría aparte.", { techo, modelo, plan: plan ?? "" }),
   };
 }
 
@@ -137,6 +142,9 @@ export interface Mundo {
   reglas?: ReglaRouter[];
   /** El reloj, para los bancos. Sin poner, ahora. */
   ahora?: number;
+  /** El traductor de la app: con él, el porqué y los avisos salen en su idioma.
+      Sin poner, en español (los bancos, y el MCP, que habla con un agente). */
+  t?: Translate;
 }
 
 /**
@@ -173,6 +181,9 @@ export interface Receta {
   esfuerzo?: Esfuerzo;
   /** Las razones, en cristiano y en orden de peso. Se pintan tal cual. */
   porque: string[];
+  /** Cuáles de ellas hablan del modelo (la clase del trabajo, lo que sube un
+      escalón, el cerebro por defecto, lo largo) y no de la cuenta o la semana. */
+  delModelo?: string[];
   /** Lo que se dice sin que lo pidas, cuando lo puesto no cuadra de verdad. */
   aviso?: string;
   /** El plan B, cuando existe uno con sentido. */
@@ -367,27 +378,36 @@ export function sePierde(c: CuentaViva, ahora: number): number {
   return Math.max(0, 100 - gastado) / dias;
 }
 
-/** «en 5 h», «en 1 día», «en 2 días»: lo corto, para una frase. */
-export function enCuanto(ms: number, ahora: number): string {
+/** «5 h», «1 día», «2 días»: lo que falta, sin el «en» de delante. */
+export function cuantoFalta(ms: number, ahora: number, t: Translate = ES): string {
   const h = (ms - ahora) / 3_600_000;
-  if (h < 1) return "en menos de una hora";
-  if (Math.round(h) < 24) return `en ${Math.round(h)} h`;
+  if (h < 1) return t("menos de una hora");
+  if (Math.round(h) < 24) return t("{h} h", { h: Math.round(h) });
   const d = Math.round(h / 24);
-  return d === 1 ? "en 1 día" : `en ${d} días`;
+  return d === 1 ? t("1 día") : t("{d} días", { d });
 }
 
-function retrato(c: CuentaViva, ahora: number): string {
+/** «en 5 h», «en 1 día», «en 2 días»: lo corto, para una frase. */
+export function enCuanto(ms: number, ahora: number, t: Translate = ES): string {
+  return t("en {falta}", { falta: cuantoFalta(ms, ahora, t) });
+}
+
+function retrato(c: CuentaViva, ahora: number, t: Translate): string {
   const { dias } = semanaDe(c, ahora);
   const pct =
     c.gastado == null
-      ? "sin dato de gasto"
+      ? t("sin dato de gasto")
       : caducada(c, ahora)
-        ? "con una lectura de antes de renovarse (se cuenta como 50 %)"
-        : `al ${Math.round(c.gastado)} %`;
-  const cuando = c.renueva && c.renueva > ahora ? `se renueva ${enCuanto(c.renueva, ahora)}` : `sin fecha de renovación (${dias} días)`;
+        ? t("con una lectura de antes de renovarse (se cuenta como 50 %)")
+        : t("al {n} %", { n: Math.round(c.gastado) });
+  const cuando = c.renueva && c.renueva > ahora ? t("se renueva {cuando}", { cuando: enCuanto(c.renueva, ahora, t) }) : t("sin fecha de renovación ({dias} días)", { dias });
   const n = c.abiertas ?? 0;
-  const llevan = n ? `, más ${n} terminal${n === 1 ? "" : "es"} abierta${n === 1 ? "" : "s"} desde entonces (+${n * PESO_TERMINAL})` : "";
-  return `«${c.cuenta.label}» ${pct}${llevan}, ${cuando}`;
+  const llevan = !n
+    ? ""
+    : n === 1
+      ? t(", más 1 terminal abierta desde entonces (+{peso})", { peso: PESO_TERMINAL })
+      : t(", más {n} terminales abiertas desde entonces (+{peso})", { n, peso: n * PESO_TERMINAL });
+  return t("«{label}» {pct}{llevan}, {cuando}", { label: c.cuenta.label, pct, llevan, cuando });
 }
 
 /**
@@ -399,14 +419,14 @@ function retrato(c: CuentaViva, ahora: number): string {
  * (`techoDelPlan`), salvo que no quede otra. A igual pérdida, la que menos ha
  * gastado, y luego el orden de la lista (la principal va primero).
  */
-export function elegirCuenta(lista: CuentaViva[], ahora: number, modelo?: ModelAlias): Eleccion | undefined {
+export function elegirCuenta(lista: CuentaViva[], ahora: number, modelo?: ModelAlias, t: Translate = ES): Eleccion | undefined {
   if (lista.length === 0) return undefined;
   const conSitio = lista.filter((c) => !parada(c, ahora) && semanaDe(c, ahora).gastado < AGOTADA);
   let pool = conSitio.length ? conSitio : lista;
   if (modelo) {
     const caben = pool.filter((c) => {
-      const t = techoDelPlan(c.plan);
-      return !t || PESO[t] >= PESO[modelo];
+      const techo = techoDelPlan(c.plan);
+      return !techo || PESO[techo] >= PESO[modelo];
     });
     if (caben.length) pool = caben;
   }
@@ -417,24 +437,31 @@ export function elegirCuenta(lista: CuentaViva[], ahora: number, modelo?: ModelA
   const sinSitio = conSitio.length === 0;
 
   let porque: string;
+  const label = viva.cuenta.label;
   if (sinSitio) {
-    const periodo = viva.periodo ?? "semana";
+    const periodo = viva.periodo === "mes" ? t("mes") : t("semana");
     const motivo = parada(viva, ahora)
-      ? `parada por su tope de 5 horas${viva.sesionRenueva ? ` hasta dentro de ${enCuanto(viva.sesionRenueva, ahora).replace(/^en /, "")}` : ""}`
-      : `al ${Math.round(semanaDe(viva, ahora).gastado)} % de su ${periodo}`;
+      ? viva.sesionRenueva
+        ? t("parada por su tope de 5 horas hasta dentro de {falta}", { falta: cuantoFalta(viva.sesionRenueva, ahora, t) })
+        : t("parada por su tope de 5 horas")
+      : t("al {n} % de su {periodo}", { n: Math.round(semanaDe(viva, ahora).gastado), periodo });
     porque = lista.length === 1
-      ? `Con «${viva.cuenta.label}», la única que hay, aunque está ${motivo}.`
-      : `No queda ninguna con sitio (todas paradas por su tope de 5 horas o por encima del ${AGOTADA} % de su ${periodo}): va a «${viva.cuenta.label}», ${motivo}, que es la menos mala.`;
+      ? t("Con «{label}», la única que hay, aunque está {motivo}.", { label, motivo })
+      : t("No queda ninguna con sitio (todas paradas por su tope de 5 horas o por encima del {agotada} % de su {periodo}): va a «{label}», {motivo}, que es la menos mala.", { agotada: AGOTADA, periodo, label, motivo });
   } else if (lista.length === 1) {
-    porque = `Con «${viva.cuenta.label}», la única que hay.`;
+    porque = t("Con «{label}», la única que hay.", { label });
   } else {
-    const otras = orden.slice(1, 3).map((o) => `${retrato(o.c, ahora)} (${Math.round(o.p)} al día)`);
-    const fuera = lista.filter((c) => !conSitio.includes(c)).map((c) => `«${c.cuenta.label}» ${parada(c, ahora) ? "está parada por su tope de 5 horas" : "pasa del 92 %"}`);
-    porque =
-      `Con ${retrato(viva, ahora)}: es la que más cuota perdería sin usar (${Math.round(orden[0].p)} puntos al día` +
-      (otras.length ? `, frente a ${otras.join(" y ")})` : ")") +
-      (fuera.length ? `; ${fuera.join(", ")}` : "") +
-      ".";
+    const otras = orden.slice(1, 3).map((o) => t("{retrato} ({p} al día)", { retrato: retrato(o.c, ahora, t), p: Math.round(o.p) }));
+    const fuera = lista
+      .filter((c) => !conSitio.includes(c))
+      .map((c) => parada(c, ahora) ? t("«{label}» está parada por su tope de 5 horas", { label: c.cuenta.label }) : t("«{label}» pasa del 92 %", { label: c.cuenta.label }));
+    const p = Math.round(orden[0].p);
+    const cuanto = otras.length ? t("{p} puntos al día, frente a {otras}", { p, otras: otras.join(t(" y ")) }) : t("{p} puntos al día", { p });
+    porque = t("Con {retrato}: es la que más cuota perdería sin usar ({cuanto}){fuera}.", {
+      retrato: retrato(viva, ahora, t),
+      cuanto,
+      fuera: fuera.length ? `; ${fuera.join(", ")}` : "",
+    });
   }
   return { viva, porque, sinSitio };
 }
@@ -454,6 +481,15 @@ export function recetar(
   preferido?: ModelAlias,
 ): Receta {
   const porque: string[] = [];
+  const t = mundo.t ?? ES;
+  /** Las razones que hablan del modelo y no de la cuenta, aparte: quien abre con
+      otro programa se queda solo con ellas (`delModelo`), sin tener que
+      reconocerlas por el texto, que cambia con el idioma. */
+  const delModelo: string[] = [];
+  const sobreElModelo = (frase: string) => {
+    porque.push(frase);
+    delModelo.push(frase);
+  };
 
   // 1. Lo que pide el trabajo, antes de mirar la cartera.
   //
@@ -471,21 +507,19 @@ export function recetar(
   let modelo = pedido ?? POR_CLASE[ex.clase];
   if (!pedido && preferido && preferido !== modelo) {
     if (ex.clase === "juicio" && ESCALA.indexOf(preferido) < ESCALA.indexOf(modelo)) {
-      porque.push(
-        `Tienes ${preferido} como cerebro por defecto, pero esto es de los de juicio y ahí no se abarata.`,
-      );
+      sobreElModelo(t("Tienes {preferido} como cerebro por defecto, pero esto es de los de juicio y ahí no se abarata.", { preferido }));
     } else {
       modelo = preferido;
-      porque.push(`Tu cerebro por defecto es ${preferido}, así que se parte de ahí.`);
+      sobreElModelo(t("Tu cerebro por defecto es {preferido}, así que se parte de ahí.", { preferido }));
     }
   }
   const esfuerzo = ESFUERZO_CLASE[ex.clase];
-  porque.push(
+  sobreElModelo(
     ex.clase === "recado"
-      ? "Es un recado mecánico: no hace falta pensar mucho, hace falta acertar rápido."
+      ? t("Es un recado mecánico: no hace falta pensar mucho, hace falta acertar rápido.")
       : ex.clase === "juicio"
-        ? "Es de los de juicio: si sale mal y no se nota, sale caro."
-        : "Es oficio del día a día: escribir, refactorizar, probar.",
+        ? t("Es de los de juicio: si sale mal y no se nota, sale caro.")
+        : t("Es oficio del día a día: escribir, refactorizar, probar."),
   );
 
   // 2. La consecuencia sube un escalón, y solo ella. El TAMAÑO de la tarea no
@@ -495,7 +529,7 @@ export function recetar(
     const antes = modelo;
     modelo = subir(modelo);
     if (modelo !== antes) {
-      porque.push(`Sube a ${modelo} porque un fallo aquí no se ve hasta que ya ha hecho daño.`);
+      sobreElModelo(t("Sube a {modelo} porque un fallo aquí no se ve hasta que ya ha hecho daño.", { modelo }));
     }
   }
 
@@ -503,19 +537,19 @@ export function recetar(
   //    las que están de verdad conectadas.
   const ahora = mundo.ahora ?? Date.now();
   const claudes = vivas(mundo, "claude");
-  const eleccion = elegirCuenta(claudes, ahora, modelo);
+  const eleccion = elegirCuenta(claudes, ahora, modelo, t);
   const elegida = eleccion?.viva;
 
   if (claudes.length === 0) {
     // Sin Claude conectado no hay nada que optimizar: se busca quién queda.
     const relevo = primerRelevo(ex, mundo);
     if (relevo) {
-      porque.push("No hay ninguna cuenta de Claude conectada ahora mismo.");
-      porque.push(`Va a ${providerOf(relevo.cli).label}, que ${relevo.porque}.`);
-      return { cli: relevo.cli, cuenta: relevo.cuenta, modelo: sabe(relevo.cli, "modelo") ? modelo : undefined, esfuerzo, porque };
+      porque.push(t("No hay ninguna cuenta de Claude conectada ahora mismo."));
+      porque.push(t("Va a {cli}, que {porque}.", { cli: providerOf(relevo.cli).label, porque: t(relevo.porque) }));
+      return { cli: relevo.cli, cuenta: relevo.cuenta, modelo: sabe(relevo.cli, "modelo") ? modelo : undefined, esfuerzo, porque, delModelo };
     }
-    porque.push("No hay ninguna cuenta conectada: conecta una en Cuentas.");
-    return { cli: "claude", modelo, esfuerzo, porque };
+    porque.push(t("No hay ninguna cuenta conectada: conecta una en Cuentas."));
+    return { cli: "claude", modelo, esfuerzo, porque, delModelo };
   }
 
   // Una lectura de antes de renovarse ya no dice cuánto queda: sin dato.
@@ -533,12 +567,12 @@ export function recetar(
     if (relevo) {
       porque.push(
         soloParada
-          ? "Todas las cuentas de Claude están paradas por su tope de 5 horas."
+          ? t("Todas las cuentas de Claude están paradas por su tope de 5 horas.")
           : gastado != null && gastado >= AGOTADA
-            ? `No queda semana en ninguna cuenta de Claude (${gastado} % gastado).`
+            ? t("No queda semana en ninguna cuenta de Claude ({gastado} % gastado).", { gastado })
             : eleccion.porque,
       );
-      porque.push(`Va a ${providerOf(relevo.cli).label}, que ${relevo.porque}.`);
+      porque.push(t("Va a {cli}, que {porque}.", { cli: providerOf(relevo.cli).label, porque: t(relevo.porque) }));
       return {
         cli: relevo.cli,
         cuenta: relevo.cuenta,
@@ -547,11 +581,12 @@ export function recetar(
         modelo: sabe(relevo.cli, "modelo") ? modelo : undefined,
         esfuerzo,
         porque,
+        delModelo,
         alternativa: {
           cli: "claude",
           cuenta: elegida?.cuenta,
           modelo,
-          porque: "si prefieres gastar lo que queda de semana",
+          porque: t("si prefieres gastar lo que queda de semana"),
         },
       };
     }
@@ -562,27 +597,21 @@ export function recetar(
     } else if (!esIntocable(ex) && modelo !== "haiku") {
       const antes = modelo;
       modelo = bajar(modelo);
-      porque.push(
-        `Baja de ${antes} a ${modelo}: te queda un ${100 - gastado} % de semana y no hay otro CLI conectado.`,
-      );
+      porque.push(t("Baja de {antes} a {modelo}: te queda un {queda} % de semana y no hay otro CLI conectado.", { antes, modelo, queda: 100 - gastado }));
     } else if (esIntocable(ex)) {
       // Que no se abarate no quiere decir que se calle: enterarte de que vas a
       // gastar el 4 % que queda en esto es justo lo que te deja decidir
       // hacerlo mañana.
-      porque.push(
-        `Te queda un ${100 - gastado} % de semana y esto se lleva ${modelo}: en lo de juicio, abaratar sale más caro.`,
-      );
+      porque.push(t("Te queda un {queda} % de semana y esto se lleva {modelo}: en lo de juicio, abaratar sale más caro.", { queda: 100 - gastado, modelo }));
     }
   } else if (gastado != null && gastado >= APRETADA && modelo === "opus") {
     if (esIntocable(ex)) {
       // Aquí NO se baja. Bajar de opus en una auditoría para ahorrar cuota es
       // justo el error que sale caro: el trabajo hay que repetirlo entero.
-      porque.push(
-        `Se queda en opus aunque la semana va justa (${100 - gastado} %): en esto, ahorrar cerebro sale más caro que la cuota.`,
-      );
+      porque.push(t("Se queda en opus aunque la semana va justa ({queda} %): en esto, ahorrar cerebro sale más caro que la cuota.", { queda: 100 - gastado }));
     } else {
       modelo = "sonnet";
-      porque.push(`Baja a sonnet: te queda un ${100 - gastado} % de semana y esto no lo necesita.`);
+      porque.push(t("Baja a sonnet: te queda un {queda} % de semana y esto no lo necesita.", { queda: 100 - gastado }));
     }
   }
 
@@ -593,22 +622,20 @@ export function recetar(
   const techo = techoDelPlan(elegida?.plan);
   if (techo && PESO[modelo] > PESO[techo]) {
     if (esIntocable(ex)) {
-      porque.push(
-        `Sin suscripción esto se paga por tokens, pero se queda en ${modelo}: rehacer una revisión cuesta más que el turno.`,
-      );
+      porque.push(t("Sin suscripción esto se paga por tokens, pero se queda en {modelo}: rehacer una revisión cuesta más que el turno.", { modelo }));
     } else {
       const antes = modelo;
       modelo = techo;
-      porque.push(`Baja de ${antes} a ${modelo}: sin suscripción, cada turno se factura aparte.`);
+      porque.push(t("Baja de {antes} a {modelo}: sin suscripción, cada turno se factura aparte.", { antes, modelo }));
     }
   } else if (planJusto(elegida?.plan) && modelo === "opus") {
-    porque.push("Con el plan Pro, opus se come la semana mucho más rápido que sonnet.");
+    porque.push(t("Con el plan Pro, opus se come la semana mucho más rápido que sonnet."));
   }
 
   // 5. Lo largo pesa en el contexto, no en el cerebro. Se dice y ya: quien
   //    decide partir la tarea es Munir, no el router.
   if (ex.largo) {
-    porque.push("Es larga: si el contexto se llena a la mitad, mejor partirla en dos encargos.");
+    sobreElModelo(t("Es larga: si el contexto se llena a la mitad, mejor partirla en dos encargos."));
   }
 
   const receta: Receta = {
@@ -617,6 +644,7 @@ export function recetar(
     modelo,
     esfuerzo,
     porque,
+    delModelo,
   };
   receta.aviso = avisar(receta, ex, mundo);
   return receta;
@@ -653,6 +681,7 @@ function primerRelevo(
 function avisar(receta: Receta, ex: Exigencia, mundo: Mundo): string | undefined {
   const modo = mundo.avisos ?? "gordas";
   if (modo === "nunca") return undefined;
+  const t = mundo.t ?? ES;
   const puesto = (mundo.panel?.model ?? "").toLowerCase();
   if (!puesto || !receta.modelo) return undefined;
   const actual = ESCALA.find((m) => puesto.includes(m));
@@ -661,16 +690,17 @@ function avisar(receta: Receta, ex: Exigencia, mundo: Mundo): string | undefined
   const salto = PESO[actual] - PESO[receta.modelo];
   if (modo === "siempre") {
     return salto > 0
-      ? `El panel de delante lleva ${actual} y esto se hace con ${receta.modelo}.`
-      : `El panel de delante lleva ${actual} y esto pide ${receta.modelo}.`;
+      ? t("El panel de delante lleva {actual} y esto se hace con {modelo}.", { actual, modelo: receta.modelo })
+      : t("El panel de delante lleva {actual} y esto pide {modelo}.", { actual, modelo: receta.modelo });
   }
   if (salto >= 4 && ex.clase === "recado") {
-    return `El panel de delante lleva ${actual} y esto es un recado: son unas ${Math.round(
-      PESO[actual] / PESO[receta.modelo],
-    )} veces más caro por el mismo resultado.`;
+    return t("El panel de delante lleva {actual} y esto es un recado: son unas {veces} veces más caro por el mismo resultado.", {
+      actual,
+      veces: Math.round(PESO[actual] / PESO[receta.modelo]),
+    });
   }
   if (salto <= -4 && (ex.clase === "juicio" || ex.consecuencia === "alta")) {
-    return `El panel de delante lleva ${actual} y esto es de los de juicio: lo barato aquí suele acabar en repetir el trabajo.`;
+    return t("El panel de delante lleva {actual} y esto es de los de juicio: lo barato aquí suele acabar en repetir el trabajo.", { actual });
   }
   return undefined;
 }
@@ -777,6 +807,11 @@ export function recetarConMemoria(
     // Con otro cliente, la cuenta elegida (que era de Claude) ya no vale.
     cuenta: cambiaCli ? undefined : r.cuenta,
     esfuerzo: regla.esfuerzo ?? r.esfuerzo,
-    porque: [...r.porque, `Tu nota${regla.nota ? ` «${regla.nota}»` : ""} manda: ${regla.texto}`],
+    porque: [
+      ...r.porque,
+      regla.nota
+        ? (mundo.t ?? ES)("Tu nota «{nota}» manda: {texto}", { nota: regla.nota, texto: regla.texto })
+        : (mundo.t ?? ES)("Tu nota manda: {texto}", { texto: regla.texto }),
+    ],
   };
 }

@@ -21,9 +21,11 @@
 // y no ha llegado evento en `ESPERA_AL_PORTAPAPELES_MS`: un Ctrl+V con su
 // evento nunca lo usa, y lo que él pega cuenta como pegado para un evento tardío.
 //
-// NO PROBADO en un WebKitGTK de verdad: el fallo del portapapeles está leído en
-// el código y confirmado por quien lo sufre, no medido aquí. Lo que fija el
-// banco (`scripts/pegado-check.ts`) es la decisión.
+// El resultado está medido en WebKitGTK 2.52.5 sobre X11 con
+// `scripts/laboratorio/linux-de-verdad.mjs` (2026-11-03): cada gesto pega una vez. Qué
+// camino de los tres gana allí no se distingue desde fuera, y en Wayland, que es lo que
+// tenía quien abrió la #3, NO PROBADO. Lo que fija el banco
+// (`scripts/pegado-check.ts`) es la decisión.
 
 import { invoke } from "@tauri-apps/api/core";
 
@@ -60,12 +62,15 @@ const RELOJ: Reloj = {
 
 /** El portapapeles del sistema, leído por el PC: `null` si no sabe o no hay texto. */
 const delSistemaDeVerdad = () => invoke<string | null>("portapapeles_texto");
+/** Lo seleccionado en Linux (la selección PRIMARY de X): `null` en los demás sistemas. */
+const deLaSeleccionDeVerdad = () => invoke<string | null>("portapapeles_texto", { seleccion: true });
 
 export function crearPegado(
   m: ManosDePegado,
   portapapeles: Portapapeles = navigator.clipboard,
   reloj: Reloj = RELOJ,
   delSistema: () => Promise<string | null> = delSistemaDeVerdad,
+  deLaSeleccion: () => Promise<string | null> = deLaSeleccionDeVerdad,
 ) {
   /** El texto de un evento que espera a ver qué hace el portapapeles. */
   let espera: { texto: string; id: unknown } | null = null;
@@ -145,6 +150,17 @@ export function crearPegado(
         .catch(() => soloTexto());
     },
 
+    /** El botón central en Linux: lo seleccionado, que no es el portapapeles. */
+    desdeLaSeleccion() {
+      const mio = ++turno;
+      void deLaSeleccion().then(
+        (texto) => {
+          if (texto && leyo(mio)) m.pegar(texto);
+        },
+        () => {},
+      );
+    },
+
     /** El evento `paste` del navegador, ya parado: su texto es el repuesto. */
     desdeElEvento(texto: string) {
       if (!texto) return;
@@ -162,6 +178,54 @@ export function crearPegado(
         porElEvento(texto);
       }, ESPERA_AL_PORTAPAPELES_MS);
       espera = { texto, id };
+    },
+  };
+}
+
+/**
+ * El pegado de una terminal viva, enganchado a su caja. Devuelve `pegar` (Ctrl+V y
+ * «Pegar» del menú) y `soltar`. Pega texto e imágenes: una imagen va a disco y el panel
+ * recibe su ruta, que es lo que Claude Code y agy leen para verla.
+ */
+export function engancharPegado(
+  caja: HTMLElement,
+  term: { paste(texto: string): void; focus(): void; modes: { mouseTrackingMode: string } },
+  guardarImagen: ManosDePegado["guardarImagen"],
+  alPegarImagen: ManosDePegado["alPegarImagen"],
+) {
+  const pegado = crearPegado({ pegar: (texto) => term.paste(texto), guardarImagen, alPegarImagen });
+
+  // El pegado nativo del WebView, CALLADO. Cuando se escribió esto, el WebView no
+  // entregaba ese evento al cuadro de texto de xterm; el WebView2 se actualiza solo y
+  // dejó de ser verdad. Resultado: pegaban DOS caminos, este evento y nuestro Ctrl+V, y
+  // todo salía doble, concatenado sin espacio. Munir pegó `claude --strict-mcp-config`
+  // y la terminal recibió `claude --strict-mcp-configclaude --strict-mcp-config`
+  // (2026-07-30). En captura y con stopPropagation: el evento muere antes de llegar a
+  // xterm y pegar queda en un único dueño. Su TEXTO es el repuesto de arriba.
+  const alPegarNativo = (e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    pegado.desdeElEvento((e as ClipboardEvent).clipboardData?.getData("text/plain") ?? "");
+  };
+
+  // El botón central pega lo seleccionado, como cualquier terminal de Linux. xterm se
+  // lo deja al navegador (mueve su cuadro de texto bajo el ratón en `auxclick`), y en
+  // WebKitGTK no pega nada: el clic central ya le quitó el foco y llega tarde, medido
+  // en `scripts/laboratorio/linux-de-verdad.mjs`. Si el programa ha pedido el ratón, el
+  // clic es suyo. En Windows y macOS el PC contesta nada y no pega.
+  const alBotonCentral = (e: MouseEvent) => {
+    if (e.button !== 1 || term.modes.mouseTrackingMode !== "none") return;
+    pegado.desdeLaSeleccion();
+    term.focus();
+  };
+
+  caja.addEventListener("paste", alPegarNativo, true);
+  caja.addEventListener("auxclick", alBotonCentral);
+  return {
+    pegar: () => pegado.desdeElPortapapeles(),
+    soltar: () => {
+      caja.removeEventListener("paste", alPegarNativo, true);
+      caja.removeEventListener("auxclick", alBotonCentral);
     },
   };
 }

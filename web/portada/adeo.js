@@ -243,6 +243,11 @@ document.addEventListener('click', (e) => {
   }, FIESTA_MS)
 })
 
+/** Para la página a la que algo le pasa y Adeo reacciona: cambia el ánimo de todos. */
+export function ponerAnimo(animo) {
+  for (const m of montados) m.adeo.ponAnimo(animo)
+}
+
 /* El ojo sigue al ratón, unas quince veces por segundo como mucho: el ratón
    avisa cientos y el ojo solo tiene tres sitios a donde ir. Un solo oyente
    para todos los Adeo de la página. */

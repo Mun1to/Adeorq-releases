@@ -72,14 +72,18 @@ pub async fn save_pasted_image(bytes: Vec<u8>, ext: String) -> Result<String, St
 /// pegar pero sí con Ctrl+Shift+V»). Se lee con GTK, que en Linux ya va dentro
 /// de la app, y en su hilo, que es donde vive su portapapeles. En Windows y
 /// macOS el del navegador funciona: `None`.
+/// Con `seleccion`, lo seleccionado (PRIMARY), que es lo que pega el botón central
+/// en Linux y no existe en los otros dos sistemas.
 // async: espera al hilo de la ventana, y sin él la esperaría desde ese mismo hilo.
 #[tauri::command(async)]
-pub fn portapapeles_texto(app: tauri::AppHandle) -> Option<String> {
+pub fn portapapeles_texto(app: tauri::AppHandle, seleccion: Option<bool>) -> Option<String> {
     #[cfg(target_os = "linux")]
     {
+        let primaria = seleccion == Some(true);
         let (tx, rx) = std::sync::mpsc::channel();
         app.run_on_main_thread(move || {
-            let portapapeles = gtk::Clipboard::get(&gtk::gdk::SELECTION_CLIPBOARD);
+            let cual = if primaria { &gtk::gdk::SELECTION_PRIMARY } else { &gtk::gdk::SELECTION_CLIPBOARD };
+            let portapapeles = gtk::Clipboard::get(cual);
             let _ = tx.send(portapapeles.wait_for_text().map(|t| t.to_string()));
         })
         .ok()?;
@@ -87,7 +91,7 @@ pub fn portapapeles_texto(app: tauri::AppHandle) -> Option<String> {
     }
     #[cfg(not(target_os = "linux"))]
     {
-        let _ = app;
+        let _ = (app, seleccion);
         None
     }
 }

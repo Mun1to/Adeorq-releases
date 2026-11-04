@@ -17,6 +17,8 @@ import {
   type ConserjeExec,
   type Conversacion,
 } from "./conserje";
+import { avisoEnSuIdioma } from "./avisosDeRust";
+import { tAhora } from "./i18n";
 import { recetarConMemoria, type CuentaViva } from "./router";
 import type { Account } from "./pty";
 import { reglasDeLaMemoria } from "./mundo";
@@ -66,12 +68,13 @@ export async function enviarAlConserje(
     const hecho = await ejecutar(r.acciones, {
       router: conv?.router ?? true,
       recetar: (ex, de) =>
-        recetarConMemoria(ex, { cuentas: vivas, avisos: "nunca", reglas }, undefined, cerebroPorDefecto(), de),
+        recetarConMemoria(ex, { cuentas: vivas, avisos: "nunca", reglas, t: tAhora() }, undefined, cerebroPorDefecto(), de),
       fijo: { cli: "claude", modelo: fijo },
       programa: programaDe(conv),
       cuentaDe: (cli) => laMasFrescaDe(vivas, cli),
       abrir: exec.abrir,
       escribir: exec.escribir,
+      t: tAhora(),
     });
     // En qué turno lo pidió: el último de la conversación ya guardada, que es su
     // respuesta. Contarlo a mano (el último que había, más dos) fallaba con un
@@ -88,6 +91,6 @@ export async function enviarAlConserje(
     // Tu mensaje ya está guardado (Rust lo apunta antes de llamar al modelo),
     // así que se ofrece reintentarlo en vez de devolverlo a la caja.
     alCambio();
-    return { aviso: null, error: s === "parado" ? null : s };
+    return { aviso: null, error: s === "parado" ? null : avisoEnSuIdioma(tAhora(), s) };
   }
 }

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# A stand-in for `xcrun` that Tauri finds first in PATH while it builds.
+#
+# Tauri notarizes the .app, then runs `xcrun stapler staple` ONCE and ignores the
+# result, and only afterwards builds the .dmg and the updater .tar.gz out of that
+# .app. When Apple's ticket CDN is slow or the runner's network drops (it did on
+# the 0.9.239 release), the .app ends up without its ticket and both packages
+# carry it that way: first launch needs the internet. Stapling afterwards is too
+# late, those packages are already made, so the retries have to happen here.
+#
+# Only `stapler staple` is touched. It can only succeed when Apple really has a
+# ticket for the app, so retrying never passes off an unnotarized app as notarized;
+# after the last try it fails like before and comprobar-firma.sh turns the run red.
+# Everything else goes straight to the real xcrun.
+
+real="${XCRUN_REAL:-/usr/bin/xcrun}"
+
+if [ "${1:-}" = stapler ] && [ "${2:-}" = staple ]; then
+  intentos="${XCRUN_INTENTOS:-10}"
+  pausa="${XCRUN_PAUSA:-30}"
+  for ((intento = 1; intento <= intentos; intento++)); do
+    # Un testigo en el log: así se ve que Tauri pasó por aquí y a la vuelta que acertó.
+    echo "xcrun de reintentos: stapler staple, try $intento of $intentos" >&2
+    if "$real" "$@"; then
+      exit 0
+    fi
+    [ "$intento" = "$intentos" ] && break
+    echo "::warning title=Stapler::\"xcrun $*\" failed (try $intento of $intentos), retrying in $pausa s." >&2
+    sleep "$pausa"
+  done
+  exit 1
+fi
+
+exec "$real" "$@"

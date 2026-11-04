@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { comoFuente, esVideo } from "../lib/fondo";
+import { useFuenteDeVideo } from "../lib/videoEnLinux";
 import {
   ENCUADRE_DEFECTO,
   ZOOM_MAX,
@@ -96,6 +97,7 @@ export default function EncuadreFondo({ path, sello, desenfoque, encuadre, onEnc
   }, []);
 
   const src = comoFuente(path, sello);
+  const deVideo = useFuenteDeVideo(esVideo(path) ? src : "");
   // El desenfoque NO se aplica en la miniatura: a este tamaño 12 px de blur se
   // comen la foto entera y no se ve qué se está encuadrando. La escala sí lleva
   // su cuenta, así que el recorte que se ve es el que va a quedar.
@@ -114,7 +116,7 @@ export default function EncuadreFondo({ path, sello, desenfoque, encuadre, onEnc
         title={t("Arrastra para mover la foto. La rueda acerca y aleja.")}
       >
         {esVideo(path) ? (
-          <video className="enc-medio" src={src} autoPlay loop muted playsInline style={style} />
+          <video className="enc-medio" src={deVideo} autoPlay loop muted playsInline style={style} />
         ) : (
           <img className="enc-medio" src={src} alt="" draggable={false} style={style} />
         )}

@@ -19,6 +19,7 @@
 // `lib/conserje.ts` con el router. Aquí solo se pinta y se conecta.
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { avisoEnSuIdioma } from "../lib/avisosDeRust";
 import { useT } from "../lib/i18n";
 import { Ocupado } from "./Espera";
 import { aHtml } from "../lib/markdown";
@@ -631,9 +632,9 @@ export function HiloConserje({
         setAntes(original);
         setTexto(mejor);
       })
-      .catch((e) => setNoMejora(String(e)))
+      .catch((e) => setNoMejora(avisoEnSuIdioma(t, String(e))))
       .finally(() => setMejorando(false));
-  }, [antes, texto]);
+  }, [antes, texto, t]);
 
   /** `repetir` es el reintento: manda lo mismo sin tocar lo que tengas en la caja. */
   const enviar = async (repetir?: string) => {

@@ -2073,7 +2073,7 @@ export default function Sidebar({
       ? []
       : [
     { label: t("Nueva sesión de Claude Code aquí"), onClick: () => onOpenClaude(shownName(g.name), g.path) },
-    { label: t("Terminal PowerShell aquí"), onClick: () => onOpenTerminal(shownName(g.name), g.path) },
+    { label: t("Terminal aquí"), onClick: () => onOpenTerminal(shownName(g.name), g.path) },
     {
       label: agy ? t("Antigravity (agy) en una terminal aquí") : t("Abrir en Antigravity"),
       onClick: () => {
@@ -2204,7 +2204,7 @@ export default function Sidebar({
             <button
               key={id}
               className="mini"
-              data-tip={t("Terminal PowerShell aquí")}
+              data-tip={t("Terminal aquí")}
               onClick={() => onOpenTerminal(shownName(g.name), g.path)}
             >
               <TerminalIcon />
@@ -2512,7 +2512,7 @@ export default function Sidebar({
             one thing he asked for by name, and two clicks deep is not it. */}
         <button
           className="mini sess-bin"
-          data-tip={t("Borrar la sesión: va a la papelera de Windows")}
+          data-tip={t("Borrar la sesión: va a la papelera")}
           onClick={() => setBinning(s)}
         >
           <TrashIcon size={15} />
@@ -3399,7 +3399,7 @@ export default function Sidebar({
                 </button>
                 <button
                   className="fly-mini fly-mini-danger"
-                  data-tip={t("Borrar su carpeta del disco: se va a la papelera de Windows")}
+                  data-tip={t("Borrar su carpeta del disco: se va a la papelera")}
                   onClick={() => {
                     setFlyout(null);
                     pedirTirar(flyGroup);
@@ -3533,7 +3533,7 @@ export default function Sidebar({
             <h3 className="modal-title">{t("Borrar la carpeta del disco")}</h3>
             <p className="modal-text">
               {t(
-                "Esto borra del disco la CARPETA de «{n}», con todo lo que tenga dentro. Va a la papelera de Windows, así que se recupera desde el escritorio, pero deja de estar en su sitio y lo que la use dejará de encontrarla.",
+                "Esto borra del disco la CARPETA de «{n}», con todo lo que tenga dentro. Va a la papelera, así que se recupera desde allí, pero deja de estar en su sitio y lo que la use dejará de encontrarla.",
               ).replace("{n}", shownName(tirando.name))}
             </p>
             <p className="modal-text modal-dim">{tirando.path}</p>
@@ -3658,7 +3658,7 @@ export default function Sidebar({
             <h3 className="modal-title">{t("Borrar la sesión")}</h3>
             <p className="modal-text">
               {t(
-                "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de {p}, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.",
+                "«{n}» se va a la papelera. Desaparece de Adeorq y también de {p}, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.",
                 { n: binning.title, p: proveedorDe(binning.fuente ?? "claude")?.label ?? "Claude Code" },
               )}
             </p>

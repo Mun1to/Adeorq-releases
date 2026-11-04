@@ -173,7 +173,7 @@ export default function GalleryNode({ data }: NodeProps<Node<GalleryData>>) {
               <button
                 className="gal-x"
                 onClick={() => void tirar(p)}
-                data-tip={t("A la papelera de Windows")}
+                data-tip={t("A la papelera")}
               >
                 <TrashIcon size={13} />
               </button>

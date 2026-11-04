@@ -130,6 +130,25 @@ pub struct Alta {
 /// Gemini quita las que se llaman así del entorno que pasa a sus servidores.
 pub const VARIABLE_CLAVE_DE_PANEL: &str = "ADEORQ_PANE_CLAVE";
 
+/// `cmd.exe` busca un programa en la carpeta de trabajo ANTES que en el `PATH`, y
+/// casi todas las terminales nacen con `cmd /k chcp 65001 >nul && <el CLI>`: abierta
+/// en una carpeta con un `claude.cmd` o un `chcp.cmd` dentro, ejecutaba ESO, con la
+/// contraseña de la terminal en su entorno. Esta variable de Windows lo apaga, y la
+/// hereda lo que nazca dentro: los `.cmd` de pnpm llaman a `node` igual.
+const SIN_BUSCAR_EN_LA_CARPETA: &str = "NoDefaultCurrentDirectoryInExePath";
+
+/// El entorno propio de una terminal que nace. Va en `Alta` y no en `abrir` para que
+/// también lo lleve una terminal nueva en un proceso de terminales de una versión
+/// anterior. Una consola pelada no: ahí el programa lo teclea una persona.
+fn entorno_al_nacer(con_programa: bool, env: Option<HashMap<String, String>>) -> Option<HashMap<String, String>> {
+    if !cfg!(windows) || !con_programa {
+        return env;
+    }
+    let mut env = env.unwrap_or_default();
+    env.insert(SIN_BUSCAR_EN_LA_CARPETA.to_string(), "1".to_string());
+    Some(env)
+}
+
 /// La contraseña de una terminal: con ella, su puente demuestra al MCP que
 /// habla desde ESA terminal (decisión B1 de Munir, 2026-11-03). Nueva en cada
 /// terminal, 32 bytes del sistema en hex, y vale mientras la terminal viva: con
@@ -156,7 +175,7 @@ impl ClaveDePanel {
     pub fn es(&self, otra: &str) -> bool {
         crate::mcp::iguales_sin_prisa(self.0.as_bytes(), otra.as_bytes())
     }
-    fn valor(&self) -> &str {
+    pub(crate) fn valor(&self) -> &str {
         &self.0
     }
 }
@@ -630,6 +649,7 @@ pub async fn pty_spawn(
     // Sin ella no se abre: una terminal sin contraseña se trata como una de antes
     // de que existieran, y esa no se puede dar por buena en una nueva.
     let clave = ClaveDePanel::nueva().ok_or("no se pudo crear la contraseña de esta terminal")?;
+    let env = entorno_al_nacer(command.is_some(), env);
     let alta = Alta { id, cwd, cols, rows, command, env, clave: Some(clave) };
     if let Some(r) = crate::terminales::remoto(&app) {
         return tauri::async_runtime::spawn_blocking(move || r.crear(alta)).await.map_err(|e| e.to_string())?;
@@ -1664,9 +1684,26 @@ pub fn list_projects(
 #[cfg(test)]
 mod tests {
     use super::{
-        envuelto_para_pegar, marcar_pantalla, orden_y_resto, recortar_historial, tomar, vaciar_pase_lo_que_pase,
-        Fin, HIST_OBJETIVO, HIST_TOPE,
+        entorno_al_nacer, envuelto_para_pegar, marcar_pantalla, orden_y_resto, recortar_historial, tomar, vaciar_pase_lo_que_pase,
+        Fin, HIST_OBJETIVO, HIST_TOPE, SIN_BUSCAR_EN_LA_CARPETA,
     };
+
+    #[test]
+    fn una_terminal_con_programa_no_lo_busca_en_su_carpeta() {
+        let propio: std::collections::HashMap<String, String> = [("CLAUDE_CONFIG_DIR".to_string(), "x".to_string())].into();
+        let con = entorno_al_nacer(true, Some(propio.clone()));
+        if cfg!(windows) {
+            let con = con.unwrap();
+            assert_eq!(con.get(SIN_BUSCAR_EN_LA_CARPETA).map(String::as_str), Some("1"));
+            assert_eq!(con.get("CLAUDE_CONFIG_DIR").map(String::as_str), Some("x"), "lo suyo sigue");
+            assert!(entorno_al_nacer(true, None).unwrap().contains_key(SIN_BUSCAR_EN_LA_CARPETA));
+        } else {
+            assert_eq!(con, Some(propio.clone()));
+        }
+        // Una consola pelada, como estaba: ahí se teclea `foo.bat` y tiene que valer.
+        assert_eq!(entorno_al_nacer(false, None), None);
+        assert_eq!(entorno_al_nacer(false, Some(propio.clone())), Some(propio));
+    }
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 

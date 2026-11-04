@@ -124,11 +124,12 @@ const GUARDA = `(() => {
 })()`;
 
 /** El enlace del MCP de un agente que vive en la terminal `panel`, como lo
- *  lanza Claude Code: por su entrada y su salida, una línea por mensaje. */
-function enlaceMcp(panel) {
+ *  lanza Claude Code: por su entrada y su salida, una línea por mensaje, con
+ *  la contraseña de esa terminal (`clave`). */
+function enlaceMcp(panel, clave) {
   const p = spawn(EXE, ["--mcp"], {
     stdio: ["pipe", "pipe", "ignore"],
-    env: { ...process.env, ADEORQ_MCP_PUERTO: String(MCP), ADEORQ_PANE_ID: String(panel) },
+    env: { ...process.env, ADEORQ_MCP_PUERTO: String(MCP), ADEORQ_PANE_ID: String(panel), ADEORQ_PANE_CLAVE: clave ?? "" },
   });
   const esperando = new Map();
   // Un enlace que se murió (el de antes de este arreglo) no tumba la prueba:
@@ -261,7 +262,9 @@ try {
   dice(motor > 0 && vivo(motor), `el proceso de terminales corre aparte (pid ${motor})`);
 
   await dormir(2500);
-  await v.inv("pty_write", { id: uno, data: "echo marca-de-la-uno\r" });
+  // Con la marca, su contraseña: el enlace del MCP de un agente de la uno la
+  // presenta, como el de verdad (desde la 0.9.239, sin ella no se le cree).
+  await v.inv("pty_write", { id: uno, data: "echo marca-de-la-uno; echo \"ADEORQ-CLAVE=$env:ADEORQ_PANE_CLAVE\"\r" });
   await v.inv("pty_write", { id: dos, data: '1..600 | % { "tic $_"; Start-Sleep 1 }\r' });
   // Seis segundos: que el contador avance y que el tablero, con el número de
   // cada terminal ya apuntado, llegue al disco del navegador.
@@ -273,7 +276,9 @@ try {
   // Lo que tiene que seguir valiendo: la vida de los números, y un agente de
   // la uno con su enlace del MCP que le pregunta algo a Munir.
   const vida = await v.inv("conserje_arranque");
-  mcp = enlaceMcp(uno);
+  const claveUno = [...(await historial(v, uno)).replace(/\r?\n/g, "").matchAll(/ADEORQ-CLAVE=([0-9a-f]{64})/g)].at(-1)?.[1];
+  dice(!!claveUno, "la uno dice su contraseña");
+  mcp = enlaceMcp(uno, claveUno);
   const hola = await mcp.pedir("initialize", { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "caida-de-verdad", version: "1" } });
   dice(Boolean(hola?.result), "el enlace del MCP de un agente de la uno se presenta");
   const pregunta = await mcp.pedir("tools/call", {

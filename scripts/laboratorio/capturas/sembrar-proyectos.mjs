@@ -38,6 +38,9 @@ function proyecto(nombre, commits, sinGuardar = {}) {
   }
   mkdirSync(base, { recursive: true });
   git(base, ["init", "-q", "-b", "main"]);
+  // Sin esto, en una máquina con `core.autocrlf=true` el `git diff` de la foto de
+  // Archivos abre con «LF will be replaced by CRLF», que no es del proyecto.
+  git(base, ["config", "core.autocrlf", "false"]);
   for (const c of commits) {
     for (const [rel, texto] of Object.entries(c.archivos)) escribir(base, rel, texto);
     git(base, ["add", "-A"]);

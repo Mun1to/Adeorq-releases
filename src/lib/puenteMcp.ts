@@ -25,7 +25,7 @@ import { comandoDe } from "./lanzar";
 import { cuentaDeArranque, cuentaPedida, cuentasDe } from "./frenoCuota";
 import { cuantasPesan, elegirCuenta, modeloParaSuPlan, type CuentaViva } from "./router";
 import { isModelAlias } from "./models";
-import { sabe } from "./providers";
+import { proveedorDe, sabe } from "./providers";
 import {
   ARRANCAN_CON_ENCARGO,
   carpetaDe,
@@ -219,6 +219,18 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
           responder({ parte: parteDelEquipo(vivas) });
           return;
         }
+        // Lo que enseña la ventana de abrir desde fuera antes de abrir nada: la
+        // carpeta de verdad, y si ese CLI va a recibir el encargo (`pedir_abrir.rs`).
+        if (p.clase === "donde_abrir") {
+          const quiere = cliPedido(p.cli);
+          if ("error" in quiere) return responder({ error: quiere.error });
+          const carpeta = carpetaDe(p, await listProjects().catch(() => []));
+          if ("error" in carpeta) return responder({ error: carpeta.error });
+          responder({
+            datos: { cwd: carpeta.cwd, cli: proveedorDe(quiere.cli)?.label ?? quiere.cli, conEncargo: ARRANCAN_CON_ENCARGO.has(quiere.cli) },
+          });
+          return;
+        }
         if (p.clase !== "open_pane") {
           responder({ error: `No sé atender «${p.clase}».` });
           return;
@@ -235,7 +247,8 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
 
         const brief = (p.brief ?? "").trim();
         const label = nombreDe(p, cwd, cli);
-        // Solo Claude y Antigravity aceptan el encargo en la línea de arranque.
+        // Solo los que la tabla marca con `encargoEnLinea` (`ARRANCAN_CON_ENCARGO`,
+        // que sale de `providers.ts`) aceptan el encargo en la línea de arranque.
         // Al resto se les abre la terminal y se le DICE al agente que lo mande
         // él: meterle texto suelto a un CLI que espera un subcomando es abrirle
         // una terminal con un error dentro.
@@ -293,7 +306,9 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
         // puede ser otra, y la respuesta diría una cosa y la terminal haría otra.
         // `desatendida`: quien la abre es un agente, así que un Claude nace en
         // modo auto y no en el de Ajustes (ver `Peticion` en `lib/arranque.ts`).
-        const command = comandoDe({ cli, encargo: brief, modelo, agyExe: agyExe.current, desatendida: true });
+        // Salvo que venga de fuera de Adeorq: esa nace en el de Ajustes.
+        const conSuModo = p.conSuModo === true;
+        const command = comandoDe({ cli, encargo: brief, modelo, agyExe: agyExe.current, desatendida: !conSuModo });
 
         /* Antes de abrirla, que pueda arrancar. Una terminal de Claude en una
            carpeta donde Munir no ha entrado nunca nace parada en «¿confías en
@@ -304,8 +319,11 @@ export function usePuenteMcp({ addPane, enlazarRef, cerrarRef, panelesRef, accou
            Se ignora el fallo A PROPÓSITO: esto ahorra un clic, no autoriza nada
            que el agente no pudiera hacer igual. Si no se puede escribir, la
            terminal se abre lo mismo y el diálogo lo contesta el agente leyendo
-           la pantalla, que es lo que hacía antes de existir esto. */
-        if (sabe(cli, "confianza")) {
+           la pantalla, que es lo que hacía antes de existir esto.
+
+           Lo de fuera de Adeorq no se marca: ahí la pregunta de la carpeta la
+           contesta una persona, en la propia terminal. */
+        if (sabe(cli, "confianza") && !conSuModo) {
           // En la carpeta de configuración de la cuenta con la que nace: cada
           // `CLAUDE_CONFIG_DIR` guarda su propia lista de carpetas de confianza,
           // y marcarla en la principal dejaba a la otra cuenta parada en la

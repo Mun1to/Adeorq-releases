@@ -47,7 +47,8 @@ import {
 } from "./enjambre";
 import { conserjeEnviar, nuevoId } from "./conserje";
 import type { NodoEnjambre, NodoGuardado } from "./canvasFile";
-import type { Translate } from "./i18n";
+import { avisoEnSuIdioma } from "./avisosDeRust";
+import { tAhora, type Translate } from "./i18n";
 import { codexContext, codexLastReply, lastReply, sendPty, sessionContext, type PaneStatus } from "./pty";
 
 /** Lo que guarda la pieza. Lo demás (cómo va cada sesión, cómo se llama) se
@@ -208,7 +209,7 @@ export async function enviarAlEnjambre(conv: string, texto: string, estados: Rec
         await sendPty(a.panel, a.texto);
         escritos.push(a.panel);
       } catch {
-        fuera.push(`no le llegó el mensaje al panel ${a.panel}`);
+        fuera.push(tAhora()("no le llegó el mensaje al panel {n}", { n: a.panel }));
       }
     }
     return { aviso: fuera.length ? fuera.join(" · ") : null, error: null, escritos };
@@ -216,7 +217,7 @@ export async function enviarAlEnjambre(conv: string, texto: string, estados: Rec
     const s = String(e);
     // Lo tuyo ya está guardado (Rust lo apunta antes de llamar al modelo): se
     // ofrece reintentarlo en vez de devolverlo a la caja.
-    return { aviso: null, error: s === "parado" ? null : s, escritos: [] };
+    return { aviso: null, error: s === "parado" ? null : avisoEnSuIdioma(tAhora(), s), escritos: [] };
   }
 }
 

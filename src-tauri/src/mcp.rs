@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -10,6 +10,7 @@ use serde_json::{json, Value};
 use tauri::{Emitter, Manager};
 
 mod delegadas;
+mod quien_conecta;
 mod tope_contexto;
 use tope_contexto::Carga;
 
@@ -56,6 +57,8 @@ pub struct Puente {
     siguiente: AtomicU64,
     /// Cuándo se abrió cada panel por MCP y cuál fue, para los dos topes.
     aperturas: Mutex<Vec<(Instant, u32)>>,
+    /// Las que se están abriendo y aún no están ahí (`Reserva`).
+    en_curso: AtomicUsize,
     /// Quién abrió cada terminal delegada, por su panel de este arranque. Las de
     /// otro arranque vuelven aquí al nacer su panel con su conversación
     /// (`al_nacer`, que lo lee de `delegadas.json`).
@@ -223,6 +226,29 @@ pub fn cerrada_con_la_x(app: &tauri::AppHandle, sesion: &str, rastro: &std::path
     apuntar_cierre(app, sesion, cierre);
 }
 
+/// La app acaba de engancharse a un proceso de terminales que ya corría (al
+/// actualizar, o tras una caída). Sus paneles no nacen otra vez, así que
+/// `al_nacer` no los ve, y lo que se sabía de ellos estaba en la memoria de la app
+/// de antes: sin esto, una consola abierta por un agente salía en «ya no están»
+/// estando abierta, y su `close_pane` no dejaba constancia de cómo acabó.
+pub fn al_reengancharse(app: &tauri::AppHandle) {
+    let Some(ruta) = libro_de_delegadas() else { return };
+    let libro = delegadas::leer(&ruta);
+    let paneles: Vec<(u32, Option<String>)> = crate::pty::fichas(app)
+        .into_iter()
+        .map(|f| {
+            let sesion = f.command.as_deref().and_then(crate::rastros::sesion_del_comando);
+            (f.id, sesion)
+        })
+        .collect();
+    let puente = app.state::<Puente>();
+    for (id, clave) in delegadas::las_que_siguen(&libro, &paneles, crate::conserje::arranque()) {
+        let Some(d) = libro.get(&clave) else { continue };
+        puente.delegadas.lock().unwrap().insert(id, madre_de_lo_guardado(d));
+        puente.claves.lock().unwrap().insert(id, clave);
+    }
+}
+
 /// Un panel acaba de arrancar con este comando (`pty_spawn`). Si retoma la
 /// conversación de una delegada que nadie cerró (el tablero al reiniciar,
 /// «Reanimar», la barra), vuelve a serlo, con quien la abrió.
@@ -275,6 +301,15 @@ fn visto(app: &tauri::AppHandle, clave: &str) -> delegadas::Visto {
     delegadas::Visto { estuvo: !suyos.is_empty(), a_mano: suyos.iter().any(|p| crate::pty::cerrada_a_mano(*p)) }
 }
 
+/// Las terminales abiertas, sin las que ya se mandaron cerrar desde Adeorq (la
+/// X, `close_pane`): su proceso tarda medio segundo en irse, y en ese rato una
+/// delegada no salía ni entre las abiertas ni entre las que ya no están, y
+/// `read_pane_screen` decía que seguía abierta en su propio número
+/// (`quien-la-abrio-de-verdad.mjs`, 2026-11-03).
+fn fichas_abiertas(app: &tauri::AppHandle) -> Vec<crate::pty::Ficha> {
+    crate::pty::fichas(app).into_iter().filter(|f| !crate::pty::cerrada_a_mano(f.id)).collect()
+}
+
 /// Las delegadas que están ahora en un panel, por su clave, y en cuál.
 fn delegadas_en_panel(app: &tauri::AppHandle, fichas: &[crate::pty::Ficha]) -> HashMap<String, u32> {
     let claves = app.state::<Puente>().claves.lock().unwrap().clone();
@@ -295,7 +330,7 @@ fn delegadas_en_panel(app: &tauri::AppHandle, fichas: &[crate::pty::Ficha]) -> H
 /// saber si la cerró Munir, si se murió el proceso o si se perdió.
 fn por_que_no_esta(app: &tauri::AppHandle, id: u32) -> String {
     let Some(clave) = app.state::<Puente>().claves.lock().unwrap().get(&id).cloned() else { return String::new() };
-    if let Some(otro) = delegadas_en_panel(app, &crate::pty::fichas(app)).get(&clave) {
+    if let Some(otro) = delegadas_en_panel(app, &fichas_abiertas(app)).get(&clave) {
         return format!(" Su conversación sigue abierta en el panel {otro}.");
     }
     let Some(d) = libro_de_delegadas().and_then(|r| delegadas::leer(&r).remove(&clave)) else { return String::new() };
@@ -623,13 +658,30 @@ fn modelo_para_agente(cli: &str, pedido: &str) -> Result<Option<&'static str>, S
     }
 }
 
-/// ¿Queda presupuesto para abrir otra? Devuelve el motivo si no.
-fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
-    let puente = app.state::<Puente>();
-    let mut aperturas = puente.aperturas.lock().unwrap();
-    aperturas.retain(|(cuando, _)| cuando.elapsed() < VENTANA);
+/// Por qué no se abre una terminal en esa carpeta, o `None`. Con una que no existe,
+/// el panel nacía en la del usuario sin decir nada, y la ventana de «Abrir» habría
+/// aprobado otra carpeta de la que enseña. Una palabra suelta no es una ruta: es un
+/// proyecto por su nombre (`carpetaDe` en `lib/supremo.ts`), y eso lo mira la ventana.
+///
+/// Desde fuera, además, solo una ruta entera y de este equipo: una relativa no se
+/// puede juzgar en la ventana, y mirar si existe una de red ya es llamar a ese
+/// servidor con tu usuario de Windows.
+fn carpeta_mala(cwd: &str, de_fuera: bool) -> Option<String> {
+    let es_ruta = cwd.contains(['\\', '/']) || cwd.as_bytes().get(1) == Some(&b':');
+    if !es_ruta {
+        return None;
+    }
+    let ruta = std::path::Path::new(cwd);
+    if de_fuera && (cwd.starts_with("\\\\") || cwd.starts_with("//") || !ruta.is_absolute()) {
+        return Some(format!("No se ha abierto: desde fuera de Adeorq hace falta una carpeta de este equipo con su ruta entera, y «{cwd}» no lo es."));
+    }
+    (!ruta.is_dir()).then(|| format!("No existe la carpeta «{cwd}»: la terminal habría nacido en otra. Mira get_projects, o pasa una ruta que exista."))
+}
 
-    if aperturas.len() >= MAX_POR_HORA {
+/// Si cabe otra, contando las de la última hora, las que siguen vivas y las que se
+/// están abriendo ahora mismo. Si no, el motivo.
+fn cabe_otra(en_la_hora: usize, vivas: usize, en_curso: usize) -> Result<(), String> {
+    if en_la_hora + en_curso >= MAX_POR_HORA {
         return Err(format!(
             "Tope alcanzado: {} terminales abiertas por MCP en la última hora. \
              Cada una cuesta cuota de verdad, así que Adeorq no abre más por ahora. \
@@ -637,12 +689,7 @@ fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
             MAX_POR_HORA
         ));
     }
-
-    // Vivas de verdad: las que abrió el MCP y siguen en el mapa del PTY. Las que
-    // el usuario haya cerrado a mano no cuentan, que para eso las cerró.
-    let abiertos = crate::pty::paneles_abiertos(app);
-    let vivas = aperturas.iter().filter(|(_, id)| abiertos.contains(id)).count();
-    if vivas >= MAX_VIVOS {
+    if vivas + en_curso >= MAX_VIVOS {
         return Err(format!(
             "Tope alcanzado: ya hay {} terminales vivas abiertas por MCP. \
              Cierra alguna (o pide que la cierren) antes de abrir otra.",
@@ -650,6 +697,31 @@ fn hay_sitio(app: &tauri::AppHandle) -> Result<(), String> {
         ));
     }
     Ok(())
+}
+
+/// El hueco de una terminal que se está abriendo. Entre mirar los topes y apuntarla
+/// pasan la ventana y el nacer de su proceso, y sin esto veinte a la vez pasaban
+/// todas. Se suelta solo, abra o no.
+struct Reserva<'a>(&'a AtomicUsize);
+
+impl Drop for Reserva<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::Relaxed);
+    }
+}
+
+/// ¿Queda presupuesto para abrir otra? Devuelve su hueco, o el motivo si no.
+fn reservar_sitio<'a>(puente: &'a Puente, app: &tauri::AppHandle) -> Result<Reserva<'a>, String> {
+    let mut aperturas = puente.aperturas.lock().unwrap();
+    aperturas.retain(|(cuando, _)| cuando.elapsed() < VENTANA);
+    // Vivas de verdad: las que abrió el MCP y siguen en el mapa del PTY. Las que
+    // el usuario haya cerrado a mano no cuentan, que para eso las cerró.
+    let abiertos = crate::pty::paneles_abiertos(app);
+    let vivas = aperturas.iter().filter(|(_, id)| abiertos.contains(id)).count();
+    cabe_otra(aperturas.len(), vivas, puente.en_curso.load(Ordering::Relaxed))?;
+    // Con `aperturas` en la mano: nadie más mira los topes entre medias.
+    puente.en_curso.fetch_add(1, Ordering::Relaxed);
+    Ok(Reserva(&puente.en_curso))
 }
 
 /// Run the stdio-to-TCP bridge for MCP clients executing from console.
@@ -1150,6 +1222,8 @@ pub fn start_mcp_server(app: tauri::AppHandle) {
 }
 
 fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    // Las dos puntas de esta conexión: ver `quien_conecta.rs`.
+    let puntas = stream.peer_addr().ok().zip(stream.local_addr().ok());
     // Sin herencia: si no, cada terminal que se abre se lleva una copia de esta
     // conexión (ver `clon_sin_herencia`).
     let mut writer = crate::clon_sin_herencia(&stream)?;
@@ -1224,14 +1298,14 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 writer.flush()?;
                 // Quién la pide (decisión A1): una terminal de Adeorq, con su
                 // contraseña, la recibe sin preguntar; lo demás, con un clic de Munir.
+                // Sin `panel` puede ser el `adeorq` de una versión anterior que sigue en
+                // el `PATH` de una terminal: se mira qué proceso es (`quien_conecta.rs`).
                 let panel = v["panel"].as_u64().and_then(|n| u32::try_from(n).ok());
-                let quien = match panel.map(|n| {
+                let presentado = panel.map(|n| {
                     let ficha = crate::pty::ficha(&app, n);
                     (n, panel_creible(ficha.as_ref().map(|f| f.clave.as_ref()), v["clave"].as_str()))
-                }) {
-                    Some((n, PanelCreido::Suyo | PanelCreido::DeAntes)) => crate::pedir_secreto::QuienPide::Terminal(n),
-                    _ => crate::pedir_secreto::QuienPide::Fuera,
-                };
+                });
+                let quien = quien_conecta::quien_pide(presentado, || quien_conecta::terminal_del_que_pide(&app, puntas));
                 let res = match crate::pedir_secreto::atender(&app, nombre, motivo, quien) {
                     Ok(valor) => json!({ "valor": valor }),
                     Err(e) => json!({ "error": e }),
@@ -1292,13 +1366,18 @@ fn handle_mcp_client(stream: TcpStream, app: tauri::AppHandle) -> Result<(), Box
                 // El escalón de su programa (decisiones D1 y B1): lo que no le
                 // toca no se ejecuta, y se le dice por qué. Lo de casa no pasa por aquí.
                 let programa = programa_de_la_conexion(&app, mi_panel, panel_creido, cliente.as_deref());
+                // Qué dice ser, si es de fuera de Adeorq: abrir una terminal va distinto (`pedir_abrir.rs`).
+                let de_fuera = es_de_fuera(&programa, de_casa, panel_creido).then(|| DeFuera {
+                    nombre: cliente.as_deref().unwrap_or_default(),
+                    nivel: crate::mcp_clientes::nivel_de(&crate::mcp_clientes::leer(), &programa),
+                });
                 let result = match escalon_que_falta(&programa, de_casa, name)
                     .or_else(|| parte_apagada(name))
                     .or_else(|| numero_dudoso(name, &args, mi_panel, conoce_numeros, de_casa))
                     .or_else(|| ajena_para_su_escalon(&programa, de_casa, name, &args, &app, mi_panel, conexion))
                 {
                     Some(porque) => Err(porque),
-                    None => handle_tool_call(name, args, &app, mi_panel, conexion),
+                    None => handle_tool_call(name, args, &app, mi_panel, conexion, de_fuera),
                 };
                 if result.is_ok() && matches!(name, "get_active_panes" | "open_pane") {
                     conoce_numeros = true;
@@ -1592,7 +1671,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                     "properties": {
                                         "cli": {
                                             "type": "string",
-                                            "description": "Which agent to run: claude, codex, gemini, qwen, copilot, crush, opencode, amp, cursor, pi, kiro, kimi, codewhale, goose, droid, jules, auggie, codebuff, cody, aider, agy — or 'shell' for a plain terminal. Defaults to claude."
+                                            "description": "Which agent to run: claude, codex, gemini, qwen, copilot, grok, crush, opencode, amp, cursor, pi, kiro, kimi, codewhale, goose, droid, jules, auggie, codebuff, cody, aider, agy — or 'shell' for a plain terminal. Defaults to claude."
                                         },
                                         "project": {
                                             "type": "string",
@@ -1604,7 +1683,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                         },
                                         "brief": {
                                             "type": "string",
-                                            "description": "The job for this agent, typed into it as its first message. Say what to do and what NOT to touch: panes opened this way share the machine with the others."
+                                            "description": "The job for this agent, typed into it as its first message. Say what to do and what NOT to touch: panes opened this way share the machine with the others. From outside Adeorq a brief waits for the person's click (up to 2 minutes), and a refusal comes back as an error: do not retry it."
                                         },
                                         "model": {
                                             "type": "string",
@@ -1642,7 +1721,7 @@ pub fn lista_de_herramientas() -> Vec<Value> {
                                         },
                                         "auto": {
                                             "type": "boolean",
-                                            "description": "Hand over on its own instead of waiting for a human click. Defaults to false: automatic arrows spend quota with nobody watching, and Adeorq switches one back to manual if it fires 3 times in 10 minutes."
+                                            "description": "Hand over on its own instead of waiting for a human click. Defaults to false: automatic arrows spend quota with nobody watching, and Adeorq switches one back to manual if it fires 3 times in 10 minutes. From outside Adeorq the arrow always waits for the click."
                                         }
                                     },
                                     "required": ["from", "to"]
@@ -1789,6 +1868,30 @@ fn programa_de_la_conexion(app: &tauri::AppHandle, mi_panel: Option<u32>, creido
     }
 }
 
+/// Si esta conexión es de fuera de Adeorq a efectos de abrir una terminal
+/// (`pedir_abrir.rs`). Ni un puente de casa, ni una terminal de antes de las
+/// contraseñas: esa sigue como hasta ahora hasta que se cierre, se llame como se
+/// llame el cliente, porque la abrió alguien dentro de Adeorq.
+fn es_de_fuera(programa: &str, de_casa: bool, creido: Option<PanelCreido>) -> bool {
+    !de_casa && programa == crate::mcp_clientes::FUERA && creido != Some(PanelCreido::DeAntes)
+}
+
+/// Quién llama desde fuera de Adeorq y con qué escalón. Lo de dentro va sin esto.
+#[derive(Clone, Copy)]
+struct DeFuera<'a> {
+    /// El nombre con el que se presentó: no prueba nada.
+    nombre: &'a str,
+    nivel: crate::mcp_clientes::Nivel,
+}
+
+impl DeFuera<'_> {
+    /// Lo que no tiene «Todo» no mete texto en una terminal sin el clic de una
+    /// persona, ni por una flecha `auto` ni por la respuesta de una decisión.
+    fn sin_manos(self) -> bool {
+        self.nivel != crate::mcp_clientes::Nivel::Auto
+    }
+}
+
 /// Las que ve ESTE programa: todas si es de casa; si no, las de su escalón. Y
 /// nunca las de una parte apagada: una herramienta que solo sabe decir «está
 /// apagada» es una herramienta que el agente prueba en balde.
@@ -1922,7 +2025,7 @@ fn carpeta_de_agenda(nombre: &str, proyectos: &[crate::pty::Project]) -> Option<
         .map(|p| p.path.clone())
 }
 
-fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Option<u32>, conexion: u64) -> Result<Value, String> {
+fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Option<u32>, conexion: u64, de_fuera: Option<DeFuera>) -> Result<Value, String> {
     match name {
         "get_mods" => {
             let carpeta = crate::dir_datos()?.join("mods");
@@ -1962,7 +2065,7 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     (campo("name"), campo("model"), campo("state"), campo("porque"), campo("sessionId"))
                 })
             };
-            let fichas = crate::pty::fichas(app);
+            let fichas = fichas_abiertas(app);
             let delegadas = app.state::<Puente>().delegadas.lock().unwrap().clone();
             let mi_sesion = quien.and_then(|p| sesion_del_panel(app, p));
             // Dónde está ahora cada conversación: quien abrió una delegada en otro
@@ -2160,7 +2263,9 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
         }
         "read_pane_screen" => {
             let pane_id = args["paneId"].as_u64().ok_or("Missing paneId parameter")? as u32;
-            if !crate::pty::existe(app, pane_id) {
+            // La que se está cerrando ya no tiene panel en la ventana: se dice
+            // cómo acabó en vez de «no ha podido dar la pantalla».
+            if !crate::pty::existe(app, pane_id) || crate::pty::cerrada_a_mano(pane_id) {
                 return Err(format!("Pane {} not found.{}", pane_id, por_que_no_esta(app, pane_id)));
             }
             let pantalla = pantalla_de(app, pane_id)
@@ -2326,7 +2431,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
         // Las dos que necesitan a la ventana: un panel del lienzo lo monta React,
         // no Rust. Ver el bloque «EL PUENTE HACIA LA VENTANA», arriba.
         "open_pane" => {
-            hay_sitio(app)?;
+            let puente = app.state::<Puente>();
+            let hueco = reservar_sitio(&puente, app)?;
 
             let cli = args["cli"].as_str().unwrap_or("claude").trim().to_lowercase();
             let brief = args["brief"].as_str().unwrap_or_default().trim().to_string();
@@ -2338,12 +2444,42 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                         .into(),
                 );
             }
+            if let Some(porque) = carpeta_mala(&cwd, de_fuera.is_some()) {
+                return Err(porque);
+            }
             let modelo = modelo_para_agente(&cli, args["model"].as_str().unwrap_or_default())?;
             // La cuenta la resuelve la ventana, que es quien las conoce: con
             // `account`, esa o un error; sin él, la que más cuota perdería
             // (`elegirCuenta` en `lib/router.ts`). Hasta el 2026-11-02 esto no
             // se reenviaba y todas las delegadas iban a la misma cuenta.
             let account = args["account"].as_str().unwrap_or_default().trim().to_string();
+
+            // Lo de fuera de Adeorq (decisión C1): un encargo pide un clic, y nace
+            // en el modo de Ajustes sin marcar la carpeta. El segundo paso se hace
+            // con la carpeta que se ha enseñado, no volviendo a buscarla.
+            use crate::pedir_abrir::{apertura, preguntar, Apertura};
+            let como = apertura(de_fuera.is_some(), de_fuera.map_or(crate::mcp_clientes::FABRICA, |f| f.nivel), !brief.is_empty());
+            let mut cwd = cwd;
+            if como == Apertura::ConClic {
+                let donde = pedir_a_la_ventana_con(
+                    app,
+                    "donde_abrir",
+                    json!({ "cli": cli, "cwd": cwd, "project": project }),
+                    std::time::Duration::from_secs(8),
+                )?
+                .datos
+                .ok_or("la ventana no dijo dónde se abriría")?;
+                cwd = donde["cwd"].as_str().unwrap_or_default().to_string();
+                // La de un proyecto por su nombre, que hasta aquí no se sabía cuál era.
+                if let Some(porque) = carpeta_mala(&cwd, true) {
+                    return Err(porque);
+                }
+                // Un CLI que no recibe el encargo al arrancar no tiene texto que
+                // enseñar: nace vacío, y no se pregunta por lo que no se manda.
+                if donde["conEncargo"].as_bool().unwrap_or(true) {
+                    preguntar(app, de_fuera.map_or("", |f| f.nombre), donde["cli"].as_str().unwrap_or(&cli), &cwd, &brief)?;
+                }
+            }
 
             let r = pedir_a_la_ventana(
                 app,
@@ -2360,17 +2496,25 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                     "from": args["from"],
                     // Su panel, para que la cabecera de la nueva diga «de: su nombre».
                     "quien": quien,
+                    "conSuModo": como != Apertura::ComoSiempre,
                 }),
             )?;
 
             let pane_id = r.pane_id.ok_or("la ventana no devolvió el número del panel")?;
+            // La ventana contesta al poner el panel, y su proceso nace después,
+            // al montarse. Un agente que escribía en cuanto le llegaba «Terminal N
+            // abierta» recibía «Pane N not found … no se sabe cómo se fue» de una
+            // que aún no había nacido (2 de 12 en `reparto-cuentas-de-verdad.mjs`,
+            // con dos abiertas a la vez). Se espera a que exista, con un tope: una
+            // vista que no la monte no deja colgado a nadie.
+            let hasta = Instant::now() + std::time::Duration::from_secs(4);
+            while !crate::pty::existe(app, pane_id) && Instant::now() < hasta {
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
             // Se apunta DESPUÉS de que naciera de verdad: un intento fallido no
             // debe gastar presupuesto.
-            app.state::<Puente>()
-                .aperturas
-                .lock()
-                .unwrap()
-                .push((Instant::now(), pane_id));
+            puente.aperturas.lock().unwrap().push((Instant::now(), pane_id));
+            drop(hueco);
             // Y quién la abrió: es quien la cierra cuando su tarea está hecha. Por
             // su conversación también, que es lo que la reconoce tras reiniciar.
             let madre = Madre {
@@ -2413,30 +2557,42 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
             if from == to {
                 return Err("Una flecha de un panel a sí mismo se relevaría en bucle.".into());
             }
-            let auto = args["auto"].as_bool().unwrap_or(false);
+            let pedida = args["auto"].as_bool().unwrap_or(false);
+            // Una automática teclea la respuesta en el destino sin que nadie lo
+            // apruebe: desde fuera, es escribir en una terminal sin un clic.
+            let auto = pedida && !de_fuera.is_some_and(DeFuera::sin_manos);
             pedir_a_la_ventana(
                 app,
                 "link_panes",
                 json!({ "from": from, "to": to, "auto": auto }),
             )?;
-            Ok(json!({
-                "content": [{
-                    "type": "text",
-                    "text": format!(
-                        "Flecha dibujada de {} a {}{}. Cuando {} termine un turno, su respuesta pasa a {}.",
-                        from,
-                        to,
-                        if auto { " (automática)" } else { " (a la espera de un clic)" },
-                        from,
-                        to
-                    )
-                }]
-            }))
+            let texto = if pedida && !auto {
+                format!(
+                    "Flecha dibujada de {from} a {to}, a la espera de un clic: desde fuera de Adeorq una flecha no pasa el relevo sola. Cuando {from} termine un turno, quien usa Adeorq verá un botón para pasar su respuesta a {to}."
+                )
+            } else {
+                format!(
+                    "Flecha dibujada de {from} a {to}{}. Cuando {from} termine un turno, su respuesta pasa a {to}.",
+                    if auto { " (automática)" } else { " (a la espera de un clic)" },
+                )
+            };
+            Ok(json!({ "content": [{ "type": "text", "text": texto }] }))
         }
         // Una decisión para Munir, que le llega al móvil (`decisiones.rs`). Los
         // nombres de los campos van en inglés, como el resto del MCP, y se
         // guardan con los del almacén.
         "ask_decision" => {
+            // Lo que se conteste se teclea en `paneId`, y las opciones las puso quien
+            // pregunta: desde fuera, solo en una terminal que abrió él.
+            if let Some(panel) = args["paneId"].as_u64().and_then(|n| u32::try_from(n).ok()).filter(|_| de_fuera.is_some_and(DeFuera::sin_manos)) {
+                let madre = app.state::<Puente>().delegadas.lock().unwrap().get(&panel).cloned();
+                let mi_sesion = quien.and_then(|p| sesion_del_panel(app, p));
+                if !es_suya(madre.as_ref(), quien, mi_sesion.as_deref(), conexion) {
+                    return Err(format!(
+                        "Desde fuera de Adeorq, la respuesta de una decisión solo se teclea en una terminal que abrió quien pregunta, y la {panel} no lo es. Quita `paneId` y léela con get_decision."
+                    ));
+                }
+            }
             let texto = |v: &Value| v.as_str().map(str::to_string);
             let preguntas = args["questions"]
                 .as_array()
@@ -2481,6 +2637,8 @@ fn handle_tool_call(name: &str, args: Value, app: &tauri::AppHandle, quien: Opti
                 Some(format!("/#decision={}", d.id)),
                 Some("pregunta".into()),
             );
+            // Y a su bot, si tiene alguno encendido (solo el proyecto, no la pregunta).
+            crate::bots::avisar_decision(app, d.proyecto.as_deref());
             let vuelta = match d.panel {
                 Some(p) => format!("Cuando conteste, su respuesta se teclea en el panel {p}; también la puedes leer con get_decision. Si en vez de eso te escribe en la terminal, esa es su respuesta y la decisión se cierra sola."),
                 None => "Léela con get_decision cuando quieras (sin paneId no se teclea en ninguna terminal).".into(),
@@ -2856,6 +3014,35 @@ mod tests {
 
     /// La línea de casa vale solo con la contraseña de este arranque, entera.
     #[test]
+    fn una_carpeta_que_no_existe_no_abre_en_otra() {
+        let aqui = std::env::temp_dir();
+        let buena = aqui.to_string_lossy().to_string();
+        assert_eq!(carpeta_mala(&buena, false), None);
+        assert_eq!(carpeta_mala(&buena, true), None);
+        let no_esta = aqui.join("adeorq-esta-carpeta-no-existe").to_string_lossy().to_string();
+        assert!(carpeta_mala(&no_esta, false).unwrap().contains("No existe"));
+        assert!(carpeta_mala(&no_esta, true).unwrap().contains("No existe"));
+        assert_eq!(carpeta_mala("Adeorq", true), None, "una palabra suelta es un proyecto");
+        for rara in ["\\\\servidor\\compartida", "//servidor/compartida", "..\\otra", "./otra"] {
+            assert!(carpeta_mala(rara, true).unwrap().contains("este equipo"), "{rara}");
+        }
+    }
+
+    #[test]
+    fn las_que_se_estan_abriendo_cuentan_para_los_topes() {
+        assert!(cabe_otra(0, 0, 0).is_ok());
+        assert!(cabe_otra(MAX_POR_HORA - 1, 0, 0).is_ok());
+        assert!(cabe_otra(MAX_POR_HORA, 0, 0).unwrap_err().contains("última hora"));
+        assert!(cabe_otra(MAX_POR_HORA - 1, 0, 1).unwrap_err().contains("última hora"), "la que se está abriendo también");
+        assert!(cabe_otra(1, MAX_VIVOS - 1, 0).is_ok());
+        assert!(cabe_otra(1, MAX_VIVOS, 0).unwrap_err().contains("vivas"));
+        assert!(cabe_otra(1, 0, MAX_VIVOS).unwrap_err().contains("vivas"), "seis a la vez llenan el sitio aunque ninguna haya nacido");
+        let en_curso = AtomicUsize::new(1);
+        drop(Reserva(&en_curso));
+        assert_eq!(en_curso.load(Ordering::Relaxed), 0, "el hueco se suelta solo");
+    }
+
+    #[test]
     fn solo_es_de_casa_quien_trae_la_clave_de_este_arranque() {
         let buena = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
         assert!(es_de_casa(Some(buena), Some(buena)));
@@ -2882,6 +3069,18 @@ mod tests {
         assert_eq!(panel_creible(Some(None), None), PanelCreido::DeAntes);
         assert_eq!(panel_creible(None, Some(&texto(&suya))), PanelCreido::No, "una terminal que no existe");
         assert_eq!(format!("{suya:?}"), "ClaveDePanel(***)", "su Debug no la enseña");
+    }
+
+    /// Quién cuenta como de fuera al abrir una terminal (decisión C1).
+    #[test]
+    fn de_fuera_al_abrir_no_lo_es_una_terminal_de_antes_ni_un_puente_de_casa() {
+        let fuera = crate::mcp_clientes::FUERA;
+        assert!(es_de_fuera(fuera, false, None), "sin terminal creíble");
+        assert!(es_de_fuera(fuera, false, Some(PanelCreido::Suyo)), "su terminal ya se cerró");
+        assert!(!es_de_fuera(fuera, true, None), "un puente de casa");
+        assert!(!es_de_fuera(fuera, false, Some(PanelCreido::DeAntes)), "una terminal de antes, se llame como se llame");
+        assert!(!es_de_fuera("claude", false, Some(PanelCreido::Suyo)), "una terminal con su contraseña");
+        assert!(!es_de_fuera("codex", false, Some(PanelCreido::DeAntes)));
     }
 
     /// La contraseña va al proceso que se lanza y a ninguno más: la app no la

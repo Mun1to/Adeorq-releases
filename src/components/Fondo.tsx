@@ -3,6 +3,7 @@ import { comoFuente, esVideo } from "../lib/fondo";
 import { estiloDe, type Encuadre } from "../lib/encuadre";
 import { modoRendimiento } from "../lib/rendimiento";
 import { TEMA_TERM_EVENTO } from "../lib/temasTerm";
+import { useFuenteDeVideo } from "../lib/videoEnLinux";
 
 // La capa del fondo. Va debajo de todo y no recibe un solo clic.
 //
@@ -52,6 +53,8 @@ export default function Fondo({ path, sello, opacidad, desenfoque, encuadre }: P
    *     terminal, o sea justo cuando esos 33 puntos hacen falta para otra cosa.
    *
    * Con la ventana delante y sin ahorro, se mueve: eso es una decisión suya. */
+  const src = path ? comoFuente(path, sello) : "";
+  const deVideo = useFuenteDeVideo(path && esVideo(path) ? src : "");
   useEffect(() => {
     const decidir = () => {
       const v = video.current;
@@ -67,10 +70,11 @@ export default function Fondo({ path, sello, opacidad, desenfoque, encuadre }: P
       document.removeEventListener("visibilitychange", decidir);
       window.removeEventListener(TEMA_TERM_EVENTO, decidir);
     };
-  }, [path, sello]);
+    // `deVideo` entra porque en Linux llega después (`lib/videoEnLinux.ts`), y un `play()`
+    // sin fuente no se recuerda al cargarla.
+  }, [path, sello, deVideo]);
 
   if (!path) return null;
-  const src = comoFuente(path, sello);
   // El encaje, la posición y la escala salen de la MISMA función que usa la
   // miniatura del editor. Es lo único que garantiza que la vista previa no
   // mienta: si se escribieran dos veces, se separarían a la primera.
@@ -81,7 +85,7 @@ export default function Fondo({ path, sello, opacidad, desenfoque, encuadre }: P
   return (
     <div className="fondo" aria-hidden="true">
       {esVideo(path) ? (
-        <video ref={video} key={src} className="fondo-medio" src={src} autoPlay loop muted playsInline style={style} />
+        <video ref={video} key={src} className="fondo-medio" src={deVideo} autoPlay loop muted playsInline style={style} />
       ) : (
         <img key={src} className="fondo-medio" src={src} alt="" style={style} />
       )}

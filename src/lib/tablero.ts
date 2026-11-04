@@ -10,7 +10,7 @@
 // abrir la app de verdad: `scripts/laboratorio/tablero-guardado.js` recorre la
 // ida y la vuelta y devuelve una huella de cada una.
 
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { addPane as layoutAdd, type Col } from "./layout";
 import { loadEffort, resumeCommandFor } from "./lanzar";
 import { cargarDelegadas, delegacionDe } from "./delegadas";
@@ -196,13 +196,20 @@ export function useTableroGuardado({
   const gruposOcultos = useCabina((s) => s.gruposOcultos);
   const setMinimizados = useCabina((s) => s.ponerMinimizados);
   const setGruposOcultos = useCabina((s) => s.ponerGruposOcultos);
+  // Hasta que la vuelta TERMINA no se guarda: los paneles vuelven de uno en uno
+  // con un respiro entre ellos, y guardando a medias, si la ventana se iba en
+  // ese rato (una caída, una actualización, recargarla) los que faltaban por
+  // volver desaparecían del tablero para siempre. Medido con
+  // `reparto-cuentas-de-verdad.mjs` (t75, 2026-11-03). El lienzo ya lo hacía
+  // así (`puedeGuardar` en `CanvasView`).
+  const [devuelto, setDevuelto] = useState(false);
   // Remember the board on every change, so a crash or an update loses nothing:
   // the same panes, in the same folders, with the same sizes.
   useEffect(() => {
     // Con la Cabina apagada lo guardado se queda para cuando vuelva (ver
     // `cabinaApagada`): sin esto, una terminal recuperada tras una caída o abrir
     // las de un grupo de la barra escribían encima lo poco que hubiera.
-    if (!restored.current || cabinaApagada) return;
+    if (!restored.current || !devuelto || cabinaApagada) return;
     const order = new Map<number, number>();
     const saved: SavedPane[] = [];
     panes.forEach((pane) => {
@@ -235,7 +242,7 @@ export function useTableroGuardado({
       ocultos: [...gruposOcultos],
     };
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
-  }, [panes, cols, minimizados, gruposOcultos]);
+  }, [panes, cols, minimizados, gruposOcultos, devuelto]);
 
   // ...and bring it back when Adeorq opens, one pane at a time so twelve CLIs
   // do not start at once. Each Claude resumes ITS OWN conversation.
@@ -450,6 +457,7 @@ export function useTableroGuardado({
       .finally(() => {
         setRestoring(0);
         entregarAlLienzo(new Map());
+        setDevuelto(true);
       });
     return () => {
       cancelled = true;

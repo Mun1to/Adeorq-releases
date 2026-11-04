@@ -145,7 +145,9 @@ export default function PedirSecreto() {
           <span>
             {donde === "archivo"
               ? t("Guardarla para la próxima vez (en un archivo solo tuyo, permisos 600)")
-              : t("Guardarla para la próxima vez (en el Gestor de Credenciales de Windows)")}
+              : donde === "llavero"
+                ? t("Guardarla para la próxima vez (en el Llavero de tu Mac)")
+                : t("Guardarla para la próxima vez (en el Gestor de Credenciales de Windows)")}
           </span>
         </label>
         <div className="modal-actions">

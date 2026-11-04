@@ -1,0 +1,401 @@
+/* ============================================================================
+   Adeorq · web/cuenta/cuenta.css
+   La página de las cuentas y sus textos legales. Sigue al tema del sistema con los
+   tokens de styles/base.css; la barra de arriba es la de portada/barra.css.
+   ========================================================================= */
+
+.pagina-cuenta {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+[hidden] { display: none !important; }
+
+/* El cambio de idioma se toca con el dedo: la misma palabra, con más sitio alrededor. */
+.pagina-cuenta .nav__idioma { display: inline-block; padding: 10px 6px; }
+
+.alta__sinjs {
+  margin: calc(var(--nav-alto) + var(--e7)) auto 0;
+  padding: 0 var(--e4);
+  text-align: center;
+}
+
+/* Dos columnas centradas en el hueco. A 1920 crece lo que hay, no el aire. */
+.alta {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 500px);
+  align-items: center;
+  gap: clamp(48px, 6vw, 120px);
+  width: min(100%, 1320px);
+  margin-inline: auto;
+  padding: calc(var(--nav-alto) + clamp(20px, 4vh, 56px)) clamp(18px, 4vw, 54px) clamp(24px, 4vh, 56px);
+  box-sizing: border-box;
+}
+
+/* ------------------------------ ADEO Y EL NOMBRE -------------------------- */
+
+.alta__cara {
+  /* Para que el nombre se reparta el ancho de la columna con `cqw`. */
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.alta__adeo {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: clamp(18px, 3vh, 36px);
+}
+
+.adeo {
+  display: block;
+  flex: none;
+  overflow: visible;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fondo sin alfa: con alfa, Windows apaga el ClearType. */
+.adeo-dice {
+  position: relative;
+  margin: 0;
+  padding: 12px 16px;
+  max-width: 320px;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 14px;
+  background: var(--superficie-solida);
+  color: var(--tinta);
+  font-size: 16px;
+  line-height: 1.4;
+  text-wrap: pretty;
+  box-shadow: var(--sombra-baja);
+}
+
+.adeo-dice::after {
+  content: "";
+  position: absolute;
+  left: -6.5px;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  background: var(--superficie-solida);
+  border-right: 1px solid var(--borde-fuerte);
+  border-bottom: 1px solid var(--borde-fuerte);
+  transform: translateY(-50%) rotate(135deg);
+}
+
+/* Veinte letras tienen que caber en una línea: la letra sale del ancho de la columna
+   y de lo largo que es el nombre, con un tope para que los cortos no sean enormes. */
+.alta__arroba {
+  margin: 0;
+  color: var(--tinta);
+  font-weight: var(--peso-alto);
+  font-size: min(5.4rem, calc(100cqw / (var(--largo, 10) * 0.6)));
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.alta__arroba[data-vacia="si"] { color: var(--tinta-suave); }
+.alta__arroba[data-estado="bien"] { color: var(--vivo); }
+.alta__arroba[data-estado="mal"] { color: var(--parado); }
+
+/* ------------------------------ EL FORMULARIO ----------------------------- */
+
+.alta__panel { min-width: 0; }
+
+/* Los mismos 18 px en cualquier pantalla: el hueco entre piezas lo marcan los campos. */
+.alta__panel form,
+.alta__panel [data-vista] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alta__pestanas {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 22px;
+}
+.alta__pestanas button {
+  min-height: 44px;
+  padding: 6px 0 8px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--tinta-media);
+  font: inherit;
+  font-size: 18px;
+  font-weight: var(--peso-alto);
+  cursor: pointer;
+  transition: color 180ms var(--curva-ui), border-color 180ms var(--curva-ui);
+}
+.alta__pestanas button:hover { color: var(--tinta); }
+.alta__pestanas button[aria-current="page"] {
+  color: var(--tinta);
+  border-bottom-color: var(--acento);
+}
+
+.alta__titulo {
+  margin: 0 0 18px;
+  font-size: var(--t-h2);
+  font-weight: var(--peso-alto);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  outline: none;
+}
+
+.alta__nota {
+  margin: 0;
+  font-size: 15px;
+}
+.alta__nota:not(:empty) { margin-bottom: 14px; font-weight: var(--peso-medio); }
+.alta__nota[data-tono="mal"] { color: var(--parado); }
+.alta__nota[data-tono="bien"] { color: var(--vivo); }
+
+.alta__dato {
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--peso-alto);
+  overflow-wrap: anywhere;
+}
+
+.alta__texto {
+  margin: 0 0 6px;
+  color: var(--tinta-media);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.alta__aviso {
+  margin: 2px 0 0;
+  color: var(--tinta-media);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.alta__aviso a,
+.alta__pie a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--acento);
+  text-underline-offset: 3px;
+}
+
+.campo { display: grid; gap: 6px; }
+
+.campo label {
+  font-size: 15px;
+  font-weight: var(--peso-medio);
+}
+
+.campo__caja {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  border: 2px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--superficie-solida);
+  transition: border-color 180ms var(--curva-ui), box-shadow 180ms var(--curva-ui);
+}
+.campo__caja:focus-within {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--brillo);
+}
+.campo[data-mal] .campo__caja { border-color: var(--parado); }
+
+.campo__caja--arroba > span {
+  padding-left: 14px;
+  color: var(--tinta-media);
+  font-size: 17px;
+  font-weight: var(--peso-medio);
+}
+.campo__caja--arroba input { padding-left: 2px; }
+
+/* 16 px como mínimo: con menos, Safari en el móvil acerca la página al enfocar. */
+.campo input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--tinta);
+  font: inherit;
+  font-size: 17px;
+  outline: none;
+}
+
+.campo__ojo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-right: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radio-s);
+  background: none;
+  color: var(--tinta-media);
+  cursor: pointer;
+}
+.campo__ojo:hover { color: var(--tinta); }
+.campo__ojo[aria-pressed="true"] .campo__ojo-raya { display: none; }
+
+/* Reserva su línea: que aparezca un error no mueve el resto del formulario. */
+.campo__msj {
+  min-height: 21px;
+  margin: 0;
+  color: var(--tinta-media);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.campo__msj[data-tono="mal"] { color: var(--parado); font-weight: var(--peso-medio); }
+.campo__msj[data-tono="bien"] { color: var(--vivo); font-weight: var(--peso-medio); }
+
+.boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 22px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: var(--peso-alto);
+  cursor: pointer;
+  transition: transform 180ms var(--curva-ui), background 180ms var(--curva-ui), border-color 180ms var(--curva-ui);
+}
+.boton:active { transform: translateY(1px); }
+.boton[disabled] { cursor: progress; opacity: 0.7; }
+
+.boton--principal {
+  background: var(--acento);
+  color: var(--acento-tinta);
+  box-shadow: 0 8px 24px var(--brillo);
+}
+.boton--segundo {
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-solida);
+  color: var(--tinta);
+}
+.boton--segundo:hover { border-color: var(--acento); }
+
+/* Borrar: lo pide en rojo, pero solo se pinta entero cuando ya es la última palabra. */
+.boton--peligro-suave {
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-solida);
+  color: var(--parado);
+}
+.boton--peligro-suave:hover { border-color: var(--parado); }
+.boton--peligro {
+  background: #BE3A31;
+  color: #FFFFFF;
+}
+.boton--peligro:hover { background: #A93028; }
+
+.boton:focus-visible,
+.campo__ojo:focus-visible,
+.alta__pestanas button:focus-visible,
+.alta__aviso a:focus-visible,
+.alta__pie a:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 3px;
+}
+
+/* ------------------------------ EL PIE ------------------------------------ */
+
+.alta__pie {
+  padding: 0 clamp(18px, 4vw, 54px) 22px;
+  color: var(--tinta-media);
+  font-size: 14px;
+  text-align: center;
+}
+.alta__pie nav { display: flex; justify-content: center; gap: 22px; }
+.alta__pie a { display: inline-block; padding: 12px 2px; }
+
+/* ------------------------------ MÓVIL ------------------------------------- */
+
+@media (max-width: 860px) {
+  .alta {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    /* Sin esto, las filas se reparten el alto que sobra y abren un hueco en medio. */
+    align-content: start;
+    gap: 22px;
+  }
+  .alta__adeo { gap: 14px; margin-bottom: 12px; }
+  .alta__adeo .adeo { width: 80px; height: 56px; }
+  .adeo-dice { font-size: 15px; padding: 10px 14px; }
+  .alta__arroba { font-size: min(3.2rem, calc(100cqw / (var(--largo, 10) * 0.6))); }
+}
+
+/* ------------------------------ PANTALLA GRANDE --------------------------- */
+
+@media (min-width: 1700px) {
+  .alta { width: min(100%, 1560px); grid-template-columns: minmax(0, 1fr) minmax(0, 560px); }
+  .alta__adeo .adeo { width: 200px; height: 140px; }
+  .adeo-dice { font-size: 18px; max-width: 360px; }
+  .alta__arroba { font-size: min(6.4rem, calc(100cqw / (var(--largo, 10) * 0.6))); }
+  .campo label { font-size: 16px; }
+  .alta__pestanas button { font-size: 20px; }
+}
+
+/* ------------------------------ LOS TEXTOS LEGALES ------------------------ */
+
+.legal {
+  flex: 1;
+  width: min(100%, 760px);
+  margin-inline: auto;
+  padding: calc(var(--nav-alto) + 40px) clamp(18px, 4vw, 32px) 56px;
+  box-sizing: border-box;
+}
+.legal h1 {
+  margin: 0 0 8px;
+  font-size: var(--t-h2);
+  font-weight: var(--peso-alto);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+.legal h2 {
+  margin: 32px 0 8px;
+  font-size: var(--t-h3);
+  font-weight: var(--peso-alto);
+  letter-spacing: -0.01em;
+}
+.legal p, .legal li { color: var(--tinta-media); }
+.legal ul { margin: 0 0 12px; padding-left: 1.25em; list-style: disc; }
+.legal li { margin-bottom: 6px; }
+.legal strong { color: var(--tinta); font-weight: var(--peso-alto); }
+.legal a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--acento);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.legal mark {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--espera);
+  color: var(--fondo);
+  font-weight: var(--peso-medio);
+}
+.legal__fecha { margin: 0 0 24px; font-size: 15px; }

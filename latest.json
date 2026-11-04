@@ -1,11 +1,11 @@
 {
-  "version": "0.9.239",
-  "notes": "Reparto entre cuentas con tus barreras, terminales mas seguras frente a otros programas, copiar el video de la tarjeta y el Perfil centrado",
-  "pub_date": "2026-11-03T14:08:08Z",
+  "version": "0.9.240",
+  "notes": "Avisos a un bot en Ajustes, ventana al abrir terminales desde fuera con encargo, menos clics con las claves, Mac con Llavero y muchos arreglos en Linux.",
+  "pub_date": "2026-11-04T03:29:13Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNLzB4WVI2R2F0L3E1ZTZwcUc4L2NTaXRsRGgwRm9aM25rRGVvOG9Rekc3RFVQTGVqTDlKVUd1aXI3RDNVWTFaU29jeEx2ZC9sR0VFcmtBTW05bXcxdmdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzE0ODc4CWZpbGU6QWRlb3JxXzAuOS4yMzlfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yMzkKcjAxcmh5TWowZUFaRlFCdmJoK1ozbngyVDVldEVLNndQbTBBMHkwNG1COFFhQkdrZStrWEdoTFZOQlNvRlFobld3a2JqVVhUdXJsZGVjazU5UTRIQ1E9PQo=",
-      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.239/Adeorq_0.9.239_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUTVZMdEE0TjNNL3cvZXZhak9FM3RmQjBTWkZROU1vMnJwVWRHOTk3aHhPNEdWQkdsT3EyR0JxNjRQK1VzY3F6YTRtMVlLdEFYTTBEOGxXaktwZ1FXZHFiR0FmQUVPOEFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzYyNDgyCWZpbGU6QWRlb3JxXzAuOS4yNDBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjAuOS4yNDAKS29FZmhPYkcrT1FHcSt5bklWZE10Z2hxdUZmZXJDbmdRbWd2cThUSjY0RlUra0xza2w2SjNLWGh0YmJhdkQwWloxZmlFR0NDQVpFcWNKaHpHbTNKREE9PQo=",
+      "url": "https://github.com/Mun1to/Adeorq-releases/releases/download/v0.9.240/Adeorq_0.9.240_x64-setup.exe"
     }
   }
 }

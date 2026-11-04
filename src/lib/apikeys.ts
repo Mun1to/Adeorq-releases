@@ -39,7 +39,7 @@ export function apiKeysEstado(proveedores: string[]): Promise<EstadoClave[]> {
  * de la máquina pero no de otro programa tuyo. La pantalla prometía lo primero
  * en los dos sitios, y esa promesa hay que cumplirla o no hacerla.
  */
-export type DondeSecretos = "credenciales" | "archivo";
+export type DondeSecretos = "credenciales" | "llavero" | "archivo";
 
 export function secretosDonde(): Promise<DondeSecretos> {
   return invoke<DondeSecretos>("secretos_donde").catch(() => "archivo" as const);

@@ -54,6 +54,9 @@ mkdirSync(dirname(registro), { recursive: true });
 writeFileSync(registro, JSON.stringify({ pid: process.pid, sessionId: sid, cwd: process.cwd(), kind: "interactive" }));
 const RAYA = "─".repeat(50);
 const caja = "\\r\\n" + RAYA + "\\r\\n❯ \\r\\n" + RAYA + "\\r\\n  ? for shortcuts";
+// Su contraseña, para que el laboratorio hable desde esta terminal: tras
+// reiniciar, su pantalla se lee en blanco por el MCP, así que va a un fichero.
+appendFileSync(join(aqui, "claves.log"), sid + " " + (process.env.ADEORQ_PANE_CLAVE ?? "") + "\\n");
 process.stdout.write("Claude de mentira: apunto lo que me tecleen." + caja);
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
 let linea = "";
@@ -159,9 +162,18 @@ try {
     hasta(() => a.v.js(`(() => { const t = [...document.querySelectorAll(".tab")].find((x) => /Cabina/.test(x.textContent ?? "")); t?.click(); return !!document.querySelector("[data-pane-id]"); })()`), 30_000, 500);
   await enCabina();
 
-  /** Un agente presentándose como `panel`, con todo lo que contesta. */
-  const agente = async (panel) => {
-    const p = a.puente(panel);
+  /** La última contraseña con la que arrancó el Claude de la conversación `sid`. */
+  const claveDe = (sid) =>
+    existsSync(join(falso, "claves.log"))
+      ? readFileSync(join(falso, "claves.log"), "utf8").split("\n").filter((l) => l.startsWith(`${sid} `)).at(-1)?.split(" ")[1]?.trim() || null
+      : null;
+  /** Un agente presentándose como `panel`, con todo lo que contesta. Desde la
+   *  0.9.239 el número solo no basta: va con la contraseña de la terminal, como
+   *  su puente de verdad; aquí el único que habla desde una es la madre (`sid`). */
+  const agente = async (panel, sid = SID_M) => {
+    const clave = panel == null ? null : await hasta(() => claveDe(sid), 15_000, 300);
+    if (panel != null && !clave) throw new Error(`el Claude de mentira de ${sid} no apuntó su contraseña`);
+    const p = a.puente(panel, clave);
     await p.pedir("initialize", { clientInfo: { name: "claude-code" } });
     const llamar = async (name, args = {}) => {
       const r = await p.pedir("tools/call", { name, arguments: args });

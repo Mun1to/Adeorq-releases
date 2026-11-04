@@ -1,5 +1,6 @@
 mod accounts;
 mod archivos;
+mod bots;
 mod autostart;
 mod cierre;
 mod compactaciones;
@@ -19,6 +20,7 @@ mod inbox;
 mod manage;
 mod media;
 mod navegador;
+mod pedir_abrir;
 pub mod pedir_secreto;
 mod memoria;
 mod metas;
@@ -409,6 +411,9 @@ pub fn run() {
             // de que la ventana pida su primera terminal, o unas irían dentro de
             // la app y otras fuera.
             terminales::arrancar(app.handle());
+            // Que un Codex dentro de una terminal le diga al enlace del MCP de
+            // cuál es (`mcp_estable.rs`). En un hilo: es disco.
+            std::thread::spawn(mcp_estable::codex_con_su_entorno);
             // Las carpetas que dejó el actualizador en la temporal las veces
             // anteriores (`temporales.rs`). En un hilo: es disco y no corre prisa.
             std::thread::spawn(|| {
@@ -545,6 +550,12 @@ pub fn run() {
             movil::movil_emparejar,
             movil::movil_olvidar,
             movil::movil_avisar,
+            bots::bots_estado,
+            bots::bots_guardar,
+            bots::bots_clave_poner,
+            bots::bots_clave_quitar,
+            bots::bots_probar,
+            bots::bot_avisar,
             movil::movil_tailscale,
             mcp::confiar_carpeta,
             pty::pty_spawn,
@@ -751,6 +762,7 @@ pub fn run() {
             secrets::secret_get,
             secrets::secret_forget,
             secrets::secretos_donde,
+            pedir_abrir::abrir_contestar,
             pedir_secreto::secreto_responder,
             pedir_secreto::secreto_permitir,
             pedir_secreto::secretos_de_agente,

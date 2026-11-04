@@ -12,6 +12,12 @@ const guion = JSON.parse(readFileSync(process.argv[2], "utf8"));
 const REC = join(AQUI, "p", "rec");
 mkdirSync(REC, { recursive: true });
 
+// Una grabación de Codex con otra cuenta que la de fábrica (la de fábrica puede
+// estar en su límite): `GRABAR_CODEX_HOME=<carpeta de esa cuenta>`. La ruta no
+// va en el guion porque los guiones se publican con el código.
+const env = { ...guion.env };
+if (process.env.GRABAR_CODEX_HOME && /\bcodex\b/.test(guion.command.join(" "))) env.CODEX_HOME = process.env.GRABAR_CODEX_HOME;
+
 const motor = await arrancarMotor({ datos: join(AQUI, "grabadora") });
 const t0 = Date.now();
 const trozos = [];
@@ -23,7 +29,7 @@ const cola = (n = 4000) => sinAnsi(todo.slice(-n * 3)).slice(-n);
 const patron = (texto) => new RegExp(texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s*"), "i");
 
 await motor.crear(
-  { id: 1, cwd: guion.cwd, cols: guion.cols, rows: guion.rows, command: guion.command, env: guion.env },
+  { id: 1, cwd: guion.cwd, cols: guion.cols, rows: guion.rows, command: guion.command, env },
   (texto) => {
     trozos.push({ t: Date.now() - t0, d: texto });
     todo += texto;

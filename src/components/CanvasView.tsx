@@ -24,6 +24,7 @@ import {
   accionDe,
   comoTexto,
   escribiendoTexto,
+  laTomaElLienzo, puedeActuar, registrarLienzo,
   resolver,
   type AccionId,
   type Atajos,
@@ -278,11 +279,6 @@ interface Props {
 
 const NODE_W = 640;
 const NODE_H = 420;
-// Aquí vivía `GAP`, la separación entre piezas cuando las nuevas se colocaban
-// solas en filas de tres desde el origen. Se fue con esa forma de colocarlas
-// (2026-08-09): ahora nacen centradas en lo que estás mirando, así que no hay
-// ninguna fila que separar. Se quita en vez de dejarla por si acaso, que una
-// constante sin dueño es una pista falsa para el siguiente.
 
 /** Lo que mide una pieza. React Flow lo sabe una vez pintada (`measured`); si
     aún no lo está, manda lo que se le pidió, y si tampoco, el tamaño de casa. */
@@ -484,7 +480,7 @@ function Canvas({
         setProject((p) => p || list[0]?.name || "");
       })
       .catch(() => {});
-  }, []);
+  }, [visible]); // Siempre montado y escondido: con `[]`, un proyecto recién creado no salía aquí.
 
   const handleClose = useCallback(
     (id: number) => {
@@ -2479,7 +2475,7 @@ ${ruta}` : ruta;
       // Deshacer y rehacer los lleva el efecto de arriba, que solo escucha
       // mientras hay herramienta puesta: dentro de una terminal Ctrl+Z suspende
       // el proceso que corre ahí, y robárselo sería peor que no tener deshacer.
-      if (!accion || accion === "deshacer" || accion === "rehacer") return;
+      if (!accion || accion === "deshacer" || accion === "rehacer" || !puedeActuar(accion, e, cogidosRef.current.length, trazosRef.current.length)) return;
 
       // Un pane con el teclado es una terminal escuchando: no se le quitan las
       // teclas por la espalda. Solo pasan las que necesitan el foco fuera para
@@ -2577,7 +2573,11 @@ ${ruta}` : ruta;
       }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    registrarLienzo((e) => !!hoja.current?.offsetParent && laTomaElLienzo(accionDe(e, mapaRef.current), e, cogidosRef.current.length, trazosRef.current.length));
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      registrarLienzo(null);
+    };
   }, [
     hayGrupo,
     confirmar,
@@ -3215,7 +3215,7 @@ ${ruta}` : ruta;
           <button
             className="cb-spawn"
             disabled={!project}
-            data-tip={conTecla(t("Terminal PowerShell aquí"), "shell")}
+            data-tip={conTecla(t("Terminal aquí"), "shell")}
             onClick={() => spawn("shell")}
           >
             <span aria-hidden="true">&gt;_</span> {t("Terminal")}

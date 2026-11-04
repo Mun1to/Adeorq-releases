@@ -39,7 +39,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const EXE = "C:\\ct\\debug\\adeorq.exe";
+// Otro binario con `LAB_EXE` (una copia fuera de C:\ct, o uno con su frontal dentro).
+const EXE = process.env.LAB_EXE || "C:\\ct\\debug\\adeorq.exe";
 const PUERTO = 39314;
 const DEPURAR = 9342;
 const BASE = join(tmpdir(), `adeorq-de-quien-${process.pid}`);
@@ -67,6 +68,16 @@ mkdirSync(join(BASE, "datos", "Adeorq"), { recursive: true });
 mkdirSync(join(BASE, "casa", "AppData", "Local"), { recursive: true });
 mkdirSync(DEMO, { recursive: true });
 writeFileSync(join(BASE, "datos", "Adeorq", "raiz.txt"), join(BASE, "proyectos"));
+// El laboratorio habla por el puerto desde fuera de una terminal, y desde la
+// 0.9.239 lo de fuera solo mira y abre: nace con manos, como en `aislada.mjs`,
+// para poder leer la contraseña de cada terminal de su pantalla (`claveDe`).
+writeFileSync(join(BASE, "datos", "Adeorq", "mcp_clientes.json"), JSON.stringify({ niveles: { fuera: "auto" } }));
+// Un `codex` de mentira delante en el PATH: imprime su contraseña y se queda
+// como consola. El Codex de esta prueba habla desde SU terminal, porque el
+// programa de una conexión sale del comando de su terminal, no de su nombre.
+const DOBLE = join(BASE, "doble");
+mkdirSync(DOBLE, { recursive: true });
+writeFileSync(join(DOBLE, "codex.cmd"), ["@echo off", "echo ADEORQ-CLAVE=%ADEORQ_PANE_CLAVE%", "cmd /q /k", ""].join("\r\n"));
 const env = {
   ...process.env,
   LOCALAPPDATA: join(BASE, "datos"),
@@ -75,6 +86,9 @@ const env = {
   WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${DEPURAR} --remote-allow-origins=* --disable-features=CalculateNativeWinOcclusion`,
   ADEORQ_MCP_PUERTO: String(PUERTO),
 };
+const clavePath = Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+env[clavePath] = `${DOBLE};${env[clavePath] ?? ""}`;
+delete env.ADEORQ_PANE_CLAVE;
 // Lanzado desde un panel de Adeorq, el entorno trae el número de ESE panel.
 delete env.ADEORQ_PANE_ID;
 
@@ -110,7 +124,8 @@ const GUARDA = `(() => {
 async function ventana() {
   const destino = await hasta(async () => {
     const lista = await (await fetch(`http://127.0.0.1:${DEPURAR}/json/list`)).json();
-    return lista.find((t) => t.type === "page" && t.url.includes("localhost:1420"));
+    // La de desarrollo carga de :1420; una con su frontal dentro, de tauri.localhost.
+    return lista.find((t) => t.type === "page" && /localhost:1420|\/\/tauri\.localhost\//.test(t.url));
   }, 30_000);
   if (!destino) throw new Error("la ventana no abrió su puerto de depuración");
   const ws = new WebSocket(destino.webSocketDebuggerUrl);
@@ -144,10 +159,11 @@ async function ventana() {
 }
 
 /** Un agente: el puente `--mcp` de verdad, presentándose como el panel `yo`
- *  (o sin panel, con `null`), y diciendo que es el cliente `cliente`. */
-function puente(yo) {
+ *  (o sin panel, con `null`) con la contraseña `clave` de esa terminal. */
+function puente(yo, clave) {
   const suyo = { ...env };
   if (yo != null) suyo.ADEORQ_PANE_ID = String(yo);
+  if (clave) suyo.ADEORQ_PANE_CLAVE = clave;
   const p = spawn(EXE, ["--mcp"], { env: suyo });
   let buf = "";
   const pend = new Map();
@@ -289,7 +305,24 @@ try {
   const sinMadre = await hasta(() => v.js(cabecera("Sesión madre")), 10_000);
   debe(sinMadre && sinMadre.de === null, "la madre, que abrió un agente sin panel, no lleva «de:»");
 
-  const madre = puente(M);
+  /** La contraseña de la terminal `id`, de lo que ella misma imprime (la del
+   *  Codex al nacer; a una consola se le pide con un `echo`). */
+  const claveDe = async (id, pedir = true) => {
+    // De su historia o de su pantalla sin saltos (en la del Codex, el transcript es su conversación).
+    const leer = async () => {
+      for (const h of ["read_pane_transcript", "read_pane_screen"]) {
+        const t = ((await sinPanel.llamar(h, { paneId: id })).texto ?? "").replace(/\r?\n/g, "");
+        const c = [...t.matchAll(/ADEORQ-CLAVE=([0-9a-f]{64})/g)].at(-1)?.[1];
+        if (c) return c;
+      }
+      return null;
+    };
+    if (pedir && !(await leer())) await sinPanel.llamar("send_command", { paneId: id, command: "cmd /c echo ADEORQ-CLAVE=%ADEORQ_PANE_CLAVE%" });
+    return hasta(leer, 15_000, 400);
+  };
+  const claveM = await claveDe(M);
+  debe(!!claveM, "la madre dice su contraseña en su pantalla");
+  const madre = puente(M, claveM);
   await madre.pedir("initialize", { clientInfo: { name: "claude-code" } });
   const H1 = numero(await madre.llamar("open_pane", { cli: "shell", cwd: DEMO, name: "Hija en la cabina", brief: "" }));
   debe(H1 > 0, `la madre abre una hija (${H1})`);
@@ -383,8 +416,11 @@ try {
   const resto = await carceles(v, null);
   if (resto.length) console.log(`      fuera de las cabeceras, en esta pantalla: ${resto.join(" | ")}`);
 
-  // 3. Un Codex, en «plan» de fábrica.
-  const codex = puente(60);
+  // 3. Un Codex, en «plan» de fábrica, desde su terminal.
+  const X = numero(await sinPanel.llamar("open_pane", { cli: "codex", cwd: DEMO, name: "Terminal del Codex", brief: "" }));
+  const claveX = X > 0 ? await claveDe(X, false) : null;
+  debe(!!claveX, `hay una terminal con Codex (${X}) y dice su contraseña`);
+  const codex = puente(X, claveX);
   const ini = await codex.pedir("initialize", { clientInfo: { name: "codex-cli" } });
   const instrucciones = ini.result?.instructions ?? "";
   debe(/close the ones it opened/.test(instrucciones) && !/cannot type into or close/.test(instrucciones), "al conectarse se le dice que cierre las que abrió");

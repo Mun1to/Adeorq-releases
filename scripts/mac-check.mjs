@@ -63,6 +63,20 @@ for (const script of flujo.match(/scripts\/macos\/[\w.-]+/g) ?? []) {
   dice(existsSync(join(RAIZ, script)), `el workflow llama a ${script} y existe`);
 }
 
+/* ── El sello de Apple en la app: Tauri graba el ticket una sola vez ────── */
+const shim = leer("scripts/macos/shim/xcrun");
+dice(/stapler\b/.test(shim) && /staple\b/.test(shim) && /exec "\$real"/.test(shim), "el xcrun falso reintenta solo `stapler staple` y deja pasar lo demás");
+dice(/shim/.test(flujo) && /GITHUB_PATH/.test(flujo), "el workflow pone el xcrun falso el primero del PATH antes de que Tauri construya");
+dice(flujo.indexOf("GITHUB_PATH") < flujo.indexOf("pnpm tauri build"), "y lo pone ANTES de construir (el DMG y el .tar.gz salen de la app ya grapada)");
+dice(/^scripts\/macos\/shim\/\* text eol=lf/m.test(leer(".gitattributes")), "el xcrun falso lleva siempre saltos de Linux (con \\r no arranca en el Mac)");
+
+/* ── La barra de la ventana sigue el tema, solo en un Mac ────────────────── */
+const barra = leer("src/lib/barraMac.ts");
+dice(/if \(!ES_MAC\) return;/.test(barra), "ponerBarraDelTema no hace nada fuera de un Mac (Windows y Linux no cambian)");
+dice(leer("src/App.tsx").includes("ponerBarraDelTema(theme)"), "App.tsx la llama cada vez que cambia el tema");
+dice(leer("src-tauri/capabilities/default.json").includes("core:window:allow-set-theme"), "la ventana tiene permiso para cambiar su modo");
+dice(conf.app.windows[0].theme === undefined, "tauri.conf.json no fija `theme` (en Windows cambiaría la barra de siempre)");
+
 /* ── La web: el botón de Mac no puede verse antes de tiempo ─────────────── */
 const portada = leer("web/index.html");
 const boton = portada.match(/<a[^>]*data-en="descarga\.btnMac"[^>]*>/)?.[0];

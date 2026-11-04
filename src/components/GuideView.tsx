@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { marked } from "marked";
 import { limpiar } from "../lib/markdown";
 import { readGuide } from "../lib/pty";
@@ -13,12 +13,25 @@ interface Apartado {
   texto: string;
 }
 
+/** El anclaje que GitHub le da a un título: minúsculas, fuera lo que no sea
+ *  letra o número, y los espacios a guiones. Es la misma cuenta que hace
+ *  `scripts/guia-numerar.mjs` al escribir el índice del fichero. */
+function anclaje(texto: string): string {
+  return texto
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
 export default function GuideView() {
   const { lang, t } = useT();
   const [html, setHtml] = useState("");
   const [indice, setIndice] = useState<Apartado[]>([]);
   const [aqui, setAqui] = useState("");
   const caja = useRef<HTMLDivElement>(null);
+  /* Ancla de GitHub → `id` del título dentro de esta pantalla. */
+  const destinosRef = useRef<Record<string, string>>({});
   /* Mientras llega, la guía que hubiera se queda en pantalla, apagada: antes
      se cambiaba en el acto por un «Cargando la guía…» que duraba un parpadeo
      (`lib/espera.ts`). */
@@ -56,6 +69,15 @@ export default function GuideView() {
         hs.forEach((h, i) => {
           h.id = `guia-${i}`;
         });
+        /* Los enlaces del cuerpo («ver el punto 8») apuntan a anclas de GitHub,
+           que aquí no existen: se les da el mismo nombre que les daría GitHub
+           a los títulos para que `ir` los encuentre (ver `anclaje`). */
+        const destinos: Record<string, string> = {};
+        doc.querySelectorAll("h2, h3").forEach((h, i) => {
+          if (!h.id) h.id = `guia-t-${i}`;
+          destinos[anclaje(h.textContent ?? "")] ??= h.id;
+        });
+        destinosRef.current = destinos;
         // Se limpia al final y no antes: los `id` de arriba los pone esta
         // pantalla, así que el filtro tiene que ver el HTML definitivo.
         setHtml(limpiar(doc.body.innerHTML));
@@ -94,6 +116,23 @@ export default function GuideView() {
     caja.current?.querySelector(`#${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  /* Un enlace del cuerpo que empieza por «#»: sin esto el WebView lo seguía y
+     no pasaba nada. Los de fuera los abre `abrirEnlacesFuera`. */
+  const alPulsar = (e: MouseEvent) => {
+    abrirEnlacesFuera(e);
+    const a = (e.target as HTMLElement | null)?.closest?.("a[href^='#']");
+    if (!a) return;
+    e.preventDefault();
+    let nombre = (a.getAttribute("href") ?? "").slice(1);
+    try {
+      nombre = decodeURIComponent(nombre);
+    } catch {
+      /* un enlace mal escapado se busca tal cual */
+    }
+    const id = destinosRef.current[nombre];
+    if (id) ir(id);
+  };
+
   return (
     <div className="guide-wrap" ref={caja}>
       {/* El índice, pegado a la izquierda mientras lees.
@@ -119,7 +158,7 @@ export default function GuideView() {
       <Espera activo={cargando && !html} className="guide">
         {t("Cargando la guía…")}
       </Espera>
-      <article className="guide" data-espera={espera || undefined} onClick={abrirEnlacesFuera} dangerouslySetInnerHTML={{ __html: html }} />
+      <article className="guide" data-espera={espera || undefined} onClick={(e) => alPulsar(e)} dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 }

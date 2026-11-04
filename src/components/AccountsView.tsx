@@ -12,6 +12,7 @@
 //
 // Streaming note: no emails, ever. An account is called whatever Munir types.
 import OpenRouterCard from "./OpenRouterCard";
+import { ES_WINDOWS } from "../lib/comandos";
 import ApiKeysCard from "./ApiKeysCard";
 import { guardarAtajosProv, leerAtajosProv } from "../lib/atajosProveedor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -115,7 +116,7 @@ const ATAJOS_POSIBLES: Array<{ id: string; label: string }> = [
 ]
   .map((p) => ({ id: p.id, label: p.label }))
   // PowerShell no sale de PROVIDERS: no es un proveedor, es la terminal pelada.
-  .concat([{ id: "shell", label: "PowerShell" }]);
+  .concat([{ id: "shell", label: ES_WINDOWS ? "PowerShell" : "Terminal" }]);
 
 /** El color de cada chip. PowerShell no es un proveedor de PROVIDERS, así que
     sin esto heredaría el naranja de Claude, que es a donde cae providerOf(). */

@@ -2,6 +2,7 @@
 # \r al final de cada línea los rompe: con core.autocrlf puesto en Windows, un
 # clon nuevo los sacaría con saltos de Windows.
 *.sh text eol=lf
+scripts/macos/shim/* text eol=lf
 
 # Los esquemas de permisos los reescribe `tauri-build` en cada compilación, con
 # saltos de Linux. Sacados con saltos de Windows, cada `cargo build` los dejaba

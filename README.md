@@ -84,7 +84,7 @@ replacing them, so the day something new ships, you have it.
 | **Adeo** | The little pixel A in the top bar is the bell. He types when your agents are working, waves when one is waiting for you, jumps when one finishes and sleeps when there are none, and follows your mouse with his eye. |
 
 <div align="center">
-<img src="web/assets/screens/en/canvas.png" width="49%" alt="The Canvas: three terminals living on the board, an arrow that hands one agent's work to the next, a swarm that joins two of them into one chat, two notes and the board of what every agent is doing">
+<img src="web/assets/screens/en/canvas.png" width="49%" alt="The Canvas: three terminals living on the board, a swarm that joins two of them into one chat, two notes and the board of what every agent is doing">
 <img src="web/assets/screens/en/files.png" width="49%" alt="Files: the project's tree on the right, a file open in the editor, and two terminals with the tests passing and the diff">
 <img src="web/assets/screens/en/dashboard.png" width="49%" alt="Home: Adeo with the box to ask him for anything, your projects by who is working, and your usage in squares">
 <img src="web/assets/screens/en/profile.png" width="49%" alt="Your profile: your name, the summaries of Accounts, Agenda, Memory and Commands, and your usage with the month, the year and the split by project">
@@ -163,8 +163,9 @@ The [releases page](https://github.com/Mun1to/Adeorq-releases/releases/latest) a
   publishes that, and the Linux equivalent is MPRIS, which is not in yet.
 - **The window is translucent**, so it needs a compositing desktop. Any modern GNOME or KDE
   has one; without a compositor the glass will look opaque.
-- **Closing the window quits Adeorq**, because there is no tray icon to keep it alive. So the
-  Agenda's scheduled orders only run while Adeorq is open.
+- **There is no tray icon.** If you keep Adeorq running in the background when you close the
+  window, your agents and the Agenda's scheduled orders carry on, and you come back by opening
+  Adeorq again.
 
 It is built on **Ubuntu 22.04**, so it needs glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+,
 Fedora 36+, Arch).

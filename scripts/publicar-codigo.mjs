@@ -30,6 +30,15 @@ const FUERA = [
   // La receta paso a paso de dos agujeros locales que siguen abiertos en la versión
   // instalada (encargo S1, 2026-11-03). Sale cuando estén cerrados los dos, no antes.
   "scripts/laboratorio/seguridad-local-de-verdad.mjs",
+  // Lo mismo: mide con un programa que dice ser una terminal de un proceso de antes de
+  // la 0.9.239. Sale con el de arriba.
+  "scripts/laboratorio/motor-viejo-de-verdad.mjs",
+  // Lo mismo: cuenta qué alcanzaba un programa de fuera por una flecha o una decisión
+  // en la versión instalada, y cómo se presenta un bot en el puerto.
+  "scripts/laboratorio/bots-conectar-de-verdad.mjs",
+  // Lo mismo: cuenta cómo se saltaba la ventana de abrir desde fuera en la versión
+  // instalada. Sale cuando nadie esté en una anterior a la que lo cierra.
+  "scripts/laboratorio/abrir-desde-fuera-de-verdad.mjs",
   "AGENTS.md",
   // Los capítulos técnicos de AGENTS.md, que salieron de él el 2026-10-07 para
   // que cupiera en lo que leen los agentes: mismo contenido, mismo sitio. Es una

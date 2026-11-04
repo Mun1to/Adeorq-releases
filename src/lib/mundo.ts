@@ -40,14 +40,21 @@ export async function reglasDeLaMemoria(): Promise<ReglaRouter[]> {
   return reglas;
 }
 
-/** Lo que devuelva la promesa, o `null` si tarda más de `ms`. */
+/** Lo que devuelva la promesa, o `null` si tarda más de `ms`. Si falla, falla
+    ya (sin esperar al reloj): quien llama sigue pudiendo ponerle su `catch`. */
 export function conReloj<T>(promesa: Promise<T>, ms: number): Promise<T | null> {
-  return new Promise((ok) => {
+  return new Promise((ok, mal) => {
     const reloj = setTimeout(() => ok(null), ms);
-    void promesa.then((v) => {
-      clearTimeout(reloj);
-      ok(v);
-    });
+    promesa.then(
+      (v) => {
+        clearTimeout(reloj);
+        ok(v);
+      },
+      (e) => {
+        clearTimeout(reloj);
+        mal(e);
+      },
+    );
   });
 }
 import { enCache, limitesDe, partesDe, type Partes } from "./cuota";
@@ -163,7 +170,23 @@ export function fotoRapida(cuentas: Account[], msMax = 1200): Promise<CuentaViva
   return Promise.race([real, reloj]);
 }
 
-export async function mirarMundo(cuentas: Account[]): Promise<CuentaViva[]> {
+/**
+ * Cuánto se espera a mirar el mundo antes de seguir con lo último que se supo.
+ * En frío son unos diez segundos (un `/usage` por cuenta, que en Rust corta a
+ * los ocho). Pasado esto no es lentitud: es una orden de Rust que se cayó sin
+ * contestar (2026-10-13, las reglas del router), y quien lo espera (el Capataz,
+ * el Reparto) se quedaba en «Repartiendo…» sin fin. La consulta sigue por
+ * detrás y deja la caché al día para la siguiente.
+ */
+export const ESPERA_MUNDO_MS = 30_000;
+
+/** Mira de verdad (`mirarMundoSinReloj`), pero sin esperar más de `ESPERA_MUNDO_MS`. */
+export async function mirarMundo(cuentas: Account[], espera = ESPERA_MUNDO_MS): Promise<CuentaViva[]> {
+  const vivas = await conReloj(mirarMundoSinReloj(cuentas), espera);
+  return vivas ?? mundoEnCache(cuentas);
+}
+
+async function mirarMundoSinReloj(cuentas: Account[]): Promise<CuentaViva[]> {
   // Primero, si tienen la sesión iniciada, TODAS a la vez: es mirar unos
   // archivos, milisegundos, y la cuota de una sola cuenta son cinco segundos.
   // Yendo cuenta a cuenta, quien no espera (`fotoRapida`) veía «conectada» una

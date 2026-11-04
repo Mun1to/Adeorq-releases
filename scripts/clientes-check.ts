@@ -592,6 +592,24 @@ if (total < TECHO) {
   console.log(`     ↳ bajaron a ${total}: baja el TECHO en scripts/clientes-check.ts`);
 }
 
+// La lista de `cli` que ve un agente en `open_pane` vive escrita a mano en Rust
+// (`src-tauri/src/mcp.rs`) y nombraba a todos menos a Grok hasta el 2026-11-03.
+// Se lee el fuente: ni `tsc` ni `cargo check` la comparan con la tabla, y un
+// agente que no ve «grok» en la lista no se lo pide a nadie.
+{
+  const rust = readFileSync("src-tauri/src/mcp.rs", "utf8");
+  const m = rust.match(/Which agent to run: ([^"]+?) — or 'shell'/);
+  const lista = (m?.[1] ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
+  ok("`open_pane` lista los CLIs en su descripción", lista.length > 0, "no encontré «Which agent to run» en mcp.rs");
+  const faltan = IDS.filter((id: string) => !lista.includes(id));
+  const sobran = lista.filter((id: string) => !IDS.includes(id));
+  ok(
+    "y son los mismos que la tabla de proveedores",
+    faltan.length === 0 && sobran.length === 0 && new Set(lista).size === lista.length,
+    `faltan: ${faltan.join(", ") || "-"}; sobran o repetidos: ${sobran.join(", ") || "-"}`,
+  );
+}
+
 // Cambiar de cerebro DENTRO de una sesión abierta (2026-10-08, leído en el
 // código de cada CLI): Claude con `/model` y `/effort`; Gemini con `/model set`
 // y su alias, sin esfuerzo; Codex y Kimi, nada, porque su `/model` abre un menú

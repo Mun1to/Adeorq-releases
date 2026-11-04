@@ -11,6 +11,7 @@ import {
 import { anadirProyecto, leerPerfil, sinRaiz } from "../lib/perfil";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { useT } from "../lib/i18n";
+import { useCabina } from "../lib/cabina";
 import { hace } from "../lib/uso";
 import { usePartes } from "../lib/partes";
 import { dejarPedido } from "../lib/conserje";
@@ -38,13 +39,24 @@ interface Props {
   irA: (v: View) => void;
   /** Las cuentas, para leer tu uso. */
   cuentas: Account[];
+  /** Ir a una terminal que te espera, en la Cabina o en el Lienzo, con ella enfocada. */
+  onIrAlPanel: (id: number) => void;
 }
 
 /** Una sesión viva que te ha preguntado algo o espera tu OK. */
 const reclama = (s: SessionInfo) => s.live && (s.state === "pregunta" || s.state === "ofrece");
 
-export default function PanelView({ onGoProject, onCreated, onResume, irA, cuentas }: Props) {
+/** Lo que te espera, venga de una terminal o del disco: qué es y a dónde lleva «Contestar». */
+interface Espera {
+  titulo: string;
+  proyecto: string;
+  ir: () => void;
+}
+
+export default function PanelView({ onGoProject, onCreated, onResume, irA, cuentas, onIrAlPanel }: Props) {
   const { t } = useT();
+  // Lo que cada terminal abierta dice de sí misma (`estadoDelPanel`): lo mismo que enseña la Cabina.
+  const estados = useCabina((s) => s.estados);
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [iconos, setIconos] = useState<Record<string, string>>({});
@@ -69,7 +81,24 @@ export default function PanelView({ onGoProject, onCreated, onResume, irA, cuent
 
   const fresh = useMemo(() => sessions.filter((s) => s.fresh !== "muerta"), [sessions]);
   const liveCount = useMemo(() => fresh.filter((s) => s.live).length, [fresh]);
-  const esperan = useMemo(() => fresh.filter(reclama), [fresh]);
+  // Lo que te espera. Un permiso («Do you want to proceed?») NO está en el
+  // transcript hasta que lo contestas: ahí lo último es la herramienta, o sea
+  // «sigue trabajando». Solo lo sabe la pantalla de la terminal, y por eso se
+  // pregunta primero a las terminales (las mismas que la Cabina marca «TE
+  // ESPERA»). Del disco quedan las sesiones vivas que NO tienen terminal en
+  // Adeorq: de las que sí la tienen manda lo que dice su terminal.
+  const esperan = useMemo<Espera[]>(() => {
+    const proyectoDe = (cwd: string) => {
+      const norma = (r: string) => `${r.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase()}/`;
+      return projects.find((p) => norma(cwd).startsWith(norma(p.path)))?.name ?? cwd.split(/[\\/]/).filter(Boolean).pop() ?? "";
+    };
+    const terminales = Object.values(estados).filter((p) => p.agent && (p.state === "pregunta" || p.state === "ofrece"));
+    const conTerminal = new Set(Object.values(estados).map((p) => p.sessionId).filter(Boolean));
+    return [
+      ...terminales.map((p) => ({ titulo: p.name, proyecto: proyectoDe(p.cwd), ir: () => onIrAlPanel(p.id) })),
+      ...fresh.filter((s) => reclama(s) && !conTerminal.has(s.id)).map((s) => ({ titulo: s.title, proyecto: s.project, ir: () => onResume(s) })),
+    ];
+  }, [estados, fresh, projects, onIrAlPanel, onResume]);
 
   // Lo de cada proyecto esta semana: cuántas tiene en marcha, si alguna te
   // espera y cuándo fue lo último.
@@ -186,13 +215,13 @@ export default function PanelView({ onGoProject, onCreated, onResume, irA, cuent
           <h1>{nombre ? `${t(saludo)}, ${nombre}.` : `${t(saludo)}.`}</h1>
           {esperan.length > 0 ? (
             <div className="inicio-aviso">
-              <ProjectAvatar name={esperan[0].project} src={iconoDe(esperan[0].project)} />
+              <ProjectAvatar name={esperan[0].proyecto} src={iconoDe(esperan[0].proyecto)} />
               <span className="inicio-aviso-txt">
                 {esperan.length === 1
-                  ? t("«{s}» te pregunta algo.", { s: esperan[0].title })
-                  : t("«{s}» y {n} más te esperan.", { s: esperan[0].title, n: esperan.length - 1 })}
+                  ? t("«{s}» te pregunta algo.", { s: esperan[0].titulo })
+                  : t("«{s}» y {n} más te esperan.", { s: esperan[0].titulo, n: esperan.length - 1 })}
               </span>
-              <button type="button" className="np-btn" onClick={() => onResume(esperan[0])}>
+              <button type="button" className="np-btn" onClick={() => esperan[0].ir()}>
                 {t("Contestar")}
               </button>
             </div>

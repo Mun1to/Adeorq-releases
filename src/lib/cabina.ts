@@ -46,6 +46,8 @@ export interface Cabina {
   alternarGrupo: (id: string) => void;
   /** Todo de vuelta al mosaico: lo minimizado y los grupos apartados. */
   traerTodo: () => void;
+  /** Una terminal de vuelta al mosaico, y el grupo apartado en el que esté. */
+  traerPanel: (id: number, grupo?: string | null) => void;
   /** Los archivos abiertos en el editor con cambios sin guardar, por su ruta.
       Lo escribe cada pestaña del editor y lo lee el árbol de Archivos para
       pintarlos (`lib/estadoArchivos.ts`): dos vecinos sin props por medio. */
@@ -79,6 +81,11 @@ export const useCabina = create<Cabina>((set) => ({
   alternarMinimizado: (id) => set((s) => ({ minimizados: alternar(s.minimizados, id) })),
   alternarGrupo: (id) => set((s) => ({ gruposOcultos: alternar(s.gruposOcultos, id) })),
   traerTodo: () => set({ minimizados: new Set(), gruposOcultos: new Set() }),
+  traerPanel: (id, grupo) =>
+    set((s) => ({
+      minimizados: s.minimizados.has(id) ? alternar(s.minimizados, id) : s.minimizados,
+      gruposOcultos: grupo != null && s.gruposOcultos.has(grupo) ? alternar(s.gruposOcultos, grupo) : s.gruposOcultos,
+    })),
   sinGuardar: new Set(),
   marcarSinGuardar: (ruta, sucio) =>
     set((s) => {

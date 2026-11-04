@@ -5,8 +5,8 @@
 // completo, para mantener un espacio limpio, con su respectivo rastro de
 // handoff o feedback». Esto lo recorre entero:
 //
-//   1. un agente (panel 50) abre una consola con `open_pane`;
-//   2. `get_active_panes` le dice que la abrió él, y a otro (panel 51), quién;
+//   1. un agente (desde su consola, con su contraseña) abre otra con `open_pane`;
+//   2. `get_active_panes` le dice que la abrió él, y a otro (desde otra consola), quién;
 //   3. cerrarla sin rastro no deja; con uno de una palabra, tampoco;
 //   4. con su rastro se cierra, el archivo queda en `rastros\` con lo que hace
 //      falta para encontrarla, y la ventana no enseña el aviso de «cerrada».
@@ -26,7 +26,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const EXE = "C:\\ct\\debug\\adeorq.exe";
+// Otro binario con `LAB_EXE` (una copia fuera de C:\ct, o uno con su frontal dentro).
+const EXE = process.env.LAB_EXE || "C:\\ct\\debug\\adeorq.exe";
 const PUERTO = 39313;
 const DEPURAR = 9341;
 const BASE = join(tmpdir(), `adeorq-rastro-${process.pid}`);
@@ -53,6 +54,9 @@ mkdirSync(join(BASE, "datos", "Adeorq"), { recursive: true });
 mkdirSync(join(BASE, "casa", "AppData", "Local"), { recursive: true });
 mkdirSync(DEMO, { recursive: true });
 writeFileSync(join(BASE, "datos", "Adeorq", "raiz.txt"), join(BASE, "proyectos"));
+// Desde la 0.9.239 lo de fuera solo mira y abre; el laboratorio, que habla
+// desde fuera, nace con manos para leer la contraseña de cada consola (`claveDe`).
+writeFileSync(join(BASE, "datos", "Adeorq", "mcp_clientes.json"), JSON.stringify({ niveles: { fuera: "auto" } }));
 const env = {
   ...process.env,
   LOCALAPPDATA: join(BASE, "datos"),
@@ -94,7 +98,8 @@ const GUARDA = `(() => {
 async function ventana() {
   const destino = await hasta(async () => {
     const lista = await (await fetch(`http://127.0.0.1:${DEPURAR}/json/list`)).json();
-    return lista.find((t) => t.type === "page" && t.url.includes("localhost:1420"));
+    // La de desarrollo carga de :1420; una con su frontal dentro, de tauri.localhost.
+    return lista.find((t) => t.type === "page" && /localhost:1420|\/\/tauri\.localhost\//.test(t.url));
   }, 30_000);
   if (!destino) throw new Error("la ventana no abrió su puerto de depuración");
   const ws = new WebSocket(destino.webSocketDebuggerUrl);
@@ -127,9 +132,15 @@ async function ventana() {
   return { enviar, js, cerrar: () => ws.close() };
 }
 
-/** Un agente: el puente `--mcp` de verdad, presentándose como el panel `yo`. */
-function puente(yo) {
-  const p = spawn(EXE, ["--mcp"], { env: { ...env, ADEORQ_PANE_ID: String(yo) } });
+/** Un agente: el puente `--mcp` de verdad, presentándose como el panel `yo`
+ *  (o sin panel, con `null`) con la contraseña `clave` de esa terminal. */
+function puente(yo, clave) {
+  const suyo = { ...env };
+  delete suyo.ADEORQ_PANE_ID;
+  delete suyo.ADEORQ_PANE_CLAVE;
+  if (yo != null) suyo.ADEORQ_PANE_ID = String(yo);
+  if (clave) suyo.ADEORQ_PANE_CLAVE = clave;
+  const p = spawn(EXE, ["--mcp"], { env: suyo });
   let buf = "";
   const pend = new Map();
   p.stdout.on("data", (d) => {
@@ -182,8 +193,25 @@ try {
   }, 30_000, 500);
   await dormir(2000);
 
-  const yo = puente(50);
-  const otro = puente(51);
+  // Los dos agentes hablan desde una consola suya, con su contraseña: desde la
+  // 0.9.239 un número solo (antes, el 50 y el 51 sin terminal) no se cree.
+  const mirón = puente(null);
+  await mirón.pedir("initialize", { clientInfo: { name: "laboratorio" } });
+  await hasta(async () => /Arranque de Adeorq/.test((await mirón.llamar("get_active_panes", {})).texto || ""), 20_000, 500);
+  const consola = async (name) => Number(/(?:Terminal|terminal|panel)\s+(\d+)/.exec((await mirón.llamar("open_pane", { cli: "shell", cwd: DEMO, name, brief: "" })).texto || "")?.[1]);
+  const claveDe = async (id) => {
+    const leer = async () => [...((await mirón.llamar("read_pane_transcript", { paneId: id })).texto ?? "").replace(/\r?\n/g, "").matchAll(/ADEORQ-CLAVE=([0-9a-f]{64})/g)].at(-1)?.[1] ?? null;
+    for (let i = 0; i < 3; i++) {
+      await mirón.llamar("send_command", { paneId: id, command: "cmd /c echo ADEORQ-CLAVE=%ADEORQ_PANE_CLAVE%" });
+      const c = await hasta(leer, 6_000, 400);
+      if (c) return c;
+    }
+    return null;
+  };
+  const Y = await consola("El agente que reparte");
+  const O = await consola("Otro agente");
+  const yo = puente(Y, await claveDe(Y));
+  const otro = puente(O, await claveDe(O));
   await yo.pedir("initialize", { clientInfo: { name: "claude-code" } });
   await otro.pedir("initialize", { clientInfo: { name: "claude-code" } });
 
@@ -199,7 +227,7 @@ try {
   const suya = linea((await yo.llamar("get_active_panes", {})).texto);
   debe(/Abierta por: ti \(cuando su tarea esté hecha, ciérrala con close_pane y su rastro\)/.test(suya), `a quien la abrió le dice que es suya («${suya.slice(0, 170)}»)`);
   const ajena = linea((await otro.llamar("get_active_panes", {})).texto);
-  debe(/Abierta por: el panel 50/.test(ajena), `a otro le dice quién la abrió («${ajena.slice(0, 170)}»)`);
+  debe(new RegExp(`Abierta por: el panel ${Y}\\b`).test(ajena), `a otro le dice quién la abrió («${ajena.slice(0, 170)}»)`);
 
   // 3. Sin rastro, o con uno que no cuenta nada, no se cierra.
   const sinRastro = await yo.llamar("close_pane", { paneId: id });
@@ -218,12 +246,13 @@ try {
   const archivos = existsSync(dir) ? readdirSync(dir) : [];
   debe(archivos.length === 1 && /-delegada-de-prueba\.md$/.test(archivos[0]), `un archivo de rastro con su nombre (${archivos.join(", ") || "ninguno"})`);
   const md = archivos[0] ? readFileSync(join(dir, archivos[0]), "utf8") : "";
-  debe(md.includes(rastro) && md.includes("La abrió el panel 50 y la cerró el panel 50") && md.includes(DEMO), "el rastro lleva lo que hizo, quién la abrió y la cerró, y su carpeta");
+  debe(md.includes(rastro) && md.includes(`La abrió el panel ${Y} y la cerró el panel ${Y}`) && md.includes(DEMO), "el rastro lleva lo que hizo, quién la abrió y la cerró, y su carpeta");
   const aviso = await v.js(`document.querySelector(".deshacer-pill")?.textContent ?? ""`);
   debe(aviso === "", `la ventana no enseña el aviso de «cerrada» («${aviso}»)`);
 
   yo.cerrar();
   otro.cerrar();
+  mirón.cerrar();
 } catch (e) {
   fallos.push(String(e));
   console.log("REVENTÓ", e);

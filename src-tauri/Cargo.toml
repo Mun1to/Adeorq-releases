@@ -1,6 +1,6 @@
 [package]
 name = "adeorq"
-version = "0.9.239"
+version = "0.9.240"
 description = "El ADE de la casa: panel de vibe coding con terminales reales"
 authors = ["Munir Torres Athayde"]
 # PolyForm Shield 1.0.0 no está en la lista SPDX, así que se apunta al archivo.
@@ -28,6 +28,9 @@ tauri-plugin-single-instance = "2"
 tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Para comprobar lo que se va a escribir en el `config.toml` de Codex antes de
+# escribirlo (`mcp_estable.rs`). Ya venía en el árbol y en THIRD-PARTY-NOTICES.md.
+toml = "1"
 portable-pty = "0.9.0"
 # Solo para hablar con Ollama en 127.0.0.1. Va por Rust y no por `fetch` del
 # front a propósito: desde el WebView la llamada es de otro origen y depende de
@@ -83,6 +86,9 @@ windows-sys = { version = "0.61.2", features = [
     # CreateToolhelp32Snapshot: quién cuelga de quién, para poder sumar lo que
     # gastan las terminales y sus agentes además de la ventana.
     "Win32_System_Diagnostics_ToolHelp",
+    # GetExtendedTcpTable: de quién es una conexión al puerto del MCP, para reconocer
+    # el `adeorq secreto` de una versión anterior en una terminal (`mcp/quien_conecta.rs`).
+    "Win32_NetworkManagement_IpHelper",
     # Job Objects: el corral de `pty.rs`. Es lo que hace que un cierre ANORMAL
     # de Adeorq (colgada, matada desde el Administrador de tareas, caída) no
     # deje agentes sueltos: Windows los mata solo al morir la ventana.
@@ -130,6 +136,12 @@ webview2-com = "0.39"
 # La prueba de `portapapeles.rs` corre en su propia estación de ventanas, que
 # tiene su propio portapapeles: así nunca toca el de quien trabaja en el equipo.
 windows-sys = { version = "0.61.2", features = ["Win32_System_StationsAndDesktops"] }
+
+# Las claves en el Llavero de macOS (`secrets.rs`). Ya estaba en el árbol por
+# `reqwest`/`native-tls`; ahora se pide a propósito, solo para Mac. MIT OR
+# Apache-2.0, y su aviso está en THIRD-PARTY-NOTICES.md.
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"
 
 [target.'cfg(unix)'.dependencies]
 trash = "5"

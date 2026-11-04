@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tu cuenta · Adeorq</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<!-- Solo lo propio y el proyecto de las cuentas: ni terceros, ni analíticas, ni un
+     formulario que salga a otro sitio. La URL y la clave pública las escribe el build
+     (scripts/cuentas-fuera.mjs): no viven en este repositorio. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src __ADEORQ_SUPABASE_URL__; form-action 'none'; base-uri 'none'">
+<meta name="adeorq-supabase-url" content="__ADEORQ_SUPABASE_URL__">
+<meta name="adeorq-supabase-clave" content="__ADEORQ_SUPABASE_CLAVE__">
+<link rel="preload" href="../fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../styles/base.css">
+<link rel="stylesheet" href="../portada/barra.css">
+<link rel="stylesheet" href="cuenta.css">
+<script src="cuenta.js" type="module"></script>
+</head>
+<body class="pagina-cuenta">
+
+<header class="nav nav--fija">
+  <a class="nav__marca" href="/" data-inicio>
+    <img src="../assets/adeorq.svg" alt="" width="21" height="21">
+    <b>Adeorq</b>
+  </a>
+  <div class="nav__acciones">
+    <button class="nav__idioma" type="button" data-cambiar-idioma lang="en">English</button>
+  </div>
+</header>
+
+<noscript><p class="alta__sinjs">Esta página necesita JavaScript. This page needs JavaScript.</p></noscript>
+
+<!-- Nace escondida y la enseña cuenta.js con el idioma ya puesto, para que quien la
+     lee en inglés no vea antes el español. -->
+<main class="alta" hidden>
+  <div class="alta__cara">
+    <div class="alta__adeo">
+      <svg class="adeo" data-adeo="quieta" width="160" height="112" aria-hidden="true"></svg>
+      <p class="adeo-dice" data-dice></p>
+    </div>
+    <p class="alta__arroba" data-arroba aria-hidden="true"></p>
+  </div>
+
+  <div class="alta__panel">
+    <nav class="alta__pestanas" data-pestanas data-t-aria="pestanas.aria">
+      <button type="button" data-ir="crear" data-t="titulo.crear"></button>
+      <button type="button" data-ir="entrar" data-t="titulo.entrar"></button>
+    </nav>
+
+    <h1 class="alta__titulo" data-titulo tabindex="-1"></h1>
+    <p class="alta__nota" data-nota role="status"></p>
+
+    <form data-vista="crear" novalidate>
+      <div class="campo" data-campo>
+        <label for="crear-usuario" data-t="campo.usuario"></label>
+        <div class="campo__caja campo__caja--arroba">
+          <span aria-hidden="true">@</span>
+          <input id="crear-usuario" name="usuario" autocomplete="username" spellcheck="false" autocapitalize="none" maxlength="20" aria-describedby="crear-usuario-msj">
+        </div>
+        <p class="campo__msj" id="crear-usuario-msj" data-msj aria-live="polite"></p>
+      </div>
+      <div class="campo" data-campo>
+        <label for="crear-correo" data-t="campo.correo"></label>
+        <div class="campo__caja">
+          <input id="crear-correo" name="correo" type="email" autocomplete="email" spellcheck="false" autocapitalize="none" aria-describedby="crear-correo-msj">
+        </div>
+        <p class="campo__msj" id="crear-correo-msj" data-msj></p>
+      </div>
+      <div class="campo" data-campo>
+        <label for="crear-clave" data-t="campo.clave"></label>
+        <div class="campo__caja">
+          <input id="crear-clave" name="clave" type="password" autocomplete="new-password" data-nueva aria-describedby="crear-clave-msj">
+        </div>
+        <p class="campo__msj" id="crear-clave-msj" data-msj data-t="clave.corta"></p>
+      </div>
+      <button class="boton boton--principal" type="submit" data-t="crear.enviar"></button>
+      <p class="alta__aviso"><span data-t="crear.aviso"></span> <a data-enlace="enlace.privacidad" data-t="pie.privacidad"></a></p>
+    </form>
+
+    <form data-vista="entrar" novalidate hidden>
+      <div class="campo" data-campo>
+        <label for="entrar-correo" data-t="campo.correo"></label>
+        <div class="campo__caja">
+          <input id="entrar-correo" name="correo" type="email" autocomplete="email" spellcheck="false" autocapitalize="none" aria-describedby="entrar-correo-msj">
+        </div>
+        <p class="campo__msj" id="entrar-correo-msj" data-msj></p>
+      </div>
+      <div class="campo" data-campo>
+        <label for="entrar-clave" data-t="campo.clave"></label>
+        <div class="campo__caja">
+          <input id="entrar-clave" name="clave" type="password" autocomplete="current-password" aria-describedby="entrar-clave-msj">
+        </div>
+        <p class="campo__msj" id="entrar-clave-msj" data-msj></p>
+      </div>
+      <button class="boton boton--principal" type="submit" data-t="entrar.enviar"></button>
+      <button class="boton boton--segundo" type="button" data-reenviar hidden data-t="correo.reenviar"></button>
+      <button class="boton boton--segundo" type="button" data-ir="recuperar" data-t="entrar.olvido"></button>
+    </form>
+
+    <form data-vista="recuperar" novalidate hidden>
+      <div class="campo" data-campo>
+        <label for="recuperar-correo" data-t="campo.correo"></label>
+        <div class="campo__caja">
+          <input id="recuperar-correo" name="correo" type="email" autocomplete="email" spellcheck="false" autocapitalize="none" aria-describedby="recuperar-correo-msj">
+        </div>
+        <p class="campo__msj" id="recuperar-correo-msj" data-msj></p>
+      </div>
+      <button class="boton boton--principal" type="submit" data-t="recuperar.enviar"></button>
+      <button class="boton boton--segundo" type="button" data-ir="entrar" data-t="volver.entrar"></button>
+    </form>
+
+    <div data-vista="correo" hidden>
+      <p class="alta__dato" data-correo-a></p>
+      <p class="alta__texto" data-correo-texto></p>
+      <button class="boton boton--segundo" type="button" data-reenviar data-t="correo.reenviar"></button>
+      <button class="boton boton--segundo" type="button" data-ir="entrar" data-t="volver.entrar"></button>
+    </div>
+
+    <form data-vista="nueva" novalidate hidden>
+      <div class="campo" data-campo>
+        <label for="nueva-clave" data-t="campo.claveNueva"></label>
+        <div class="campo__caja">
+          <input id="nueva-clave" name="clave" type="password" autocomplete="new-password" data-nueva aria-describedby="nueva-clave-msj">
+        </div>
+        <p class="campo__msj" id="nueva-clave-msj" data-msj data-t="clave.corta"></p>
+      </div>
+      <button class="boton boton--principal" type="submit" data-t="nueva.enviar"></button>
+    </form>
+
+    <div data-vista="dentro" hidden>
+      <p class="alta__dato" data-mi-correo></p>
+      <!-- LA VUELTA A LA APP VA AQUÍ, encima de todo y como botón principal («Volver a
+           Adeorq»). Todavía no existe: depende de encender el servidor OAuth de Supabase
+           y de la prueba aislada de docs/contexto/cuentas.md, y no se inventa antes. -->
+      <button class="boton boton--segundo" type="button" data-salir data-t="dentro.salir"></button>
+      <button class="boton boton--peligro-suave" type="button" data-pedir-borrar data-t="dentro.borrar"></button>
+      <form data-borrar novalidate hidden>
+        <p class="alta__texto" data-t="borrar.aviso"></p>
+        <div class="campo" data-campo>
+          <label for="borrar-clave" data-t="campo.clave"></label>
+          <div class="campo__caja">
+            <input id="borrar-clave" name="clave" type="password" autocomplete="current-password" aria-describedby="borrar-clave-msj">
+          </div>
+          <p class="campo__msj" id="borrar-clave-msj" data-msj></p>
+        </div>
+        <button class="boton boton--peligro" type="submit" data-t="borrar.confirmar"></button>
+        <button class="boton boton--segundo" type="button" data-no-borrar data-t="borrar.cancelar"></button>
+      </form>
+    </div>
+
+    <div data-vista="borrada" hidden>
+      <p class="alta__texto" data-t="borrada.texto"></p>
+      <button class="boton boton--segundo" type="button" data-ir="crear" data-t="borrada.crear"></button>
+    </div>
+  </div>
+</main>
+
+<footer class="alta__pie" hidden>
+  <nav data-t-aria="pie.aria">
+    <a data-enlace="enlace.privacidad" data-t="pie.privacidad"></a>
+    <a data-enlace="enlace.legal" data-t="pie.legal"></a>
+  </nav>
+</footer>
+
+<template id="ojo">
+  <button class="campo__ojo" type="button">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/>
+      <circle cx="12" cy="12" r="3"/>
+      <path class="campo__ojo-raya" d="M4 4l16 16"/>
+    </svg>
+  </button>
+</template>
+
+</body>
+</html>

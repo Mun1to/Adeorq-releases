@@ -17,6 +17,7 @@ import Paleta from "./components/Paleta";
 import AlCerrar from "./components/AlCerrar";
 import Campana from "./components/Campana";
 import PedirSecreto from "./components/PedirSecreto";
+import PedirAbrir from "./components/PedirAbrir";
 import PuenteMovil from "./components/PuenteMovil";
 import type { ConserjeExec } from "./lib/conserje";
 import Vigia from "./components/Vigia";
@@ -94,7 +95,7 @@ import {
   saveEncargo,
   writePty,
   sendPty,
-  teclearOrden,
+  teclearOrdenes,
   scanSessions,
   sacarPanel,
   onVuelvePanel,
@@ -132,6 +133,7 @@ import { aplicarRendimiento, debeAhorrar, prefRendimiento } from "./lib/rendimie
 import { aplicarForma, prefForma } from "./lib/formaPaneles";
 import type { AccionConsejo } from "./lib/acciones";
 import { sessionIdOf, shellCommand } from "./lib/comandos";
+import { ponerBarraDelTema } from "./lib/barraMac";
 import {
   agyCommand,
   claudeCommand,
@@ -295,6 +297,7 @@ function App() {
       así que salir tiene que costar lo mismo: sin esto había que ir trayendo
       una a una lo que se apartó con un solo clic. */
   const traerTodo = useCabina((s) => s.traerTodo);
+  const traerPanel = useCabina((s) => s.traerPanel);
   const alternarGrupo = useCabina((s) => s.alternarGrupo);
   // Lo que hace cada panel AHORA, reportado por él mismo. Existe para el
   // Capataz, que sin esto no distinguía una que te espera de una que entregó.
@@ -647,6 +650,7 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(THEME_KEY, theme);
+    void ponerBarraDelTema(theme);
   }, [theme]);
 
   /* Seguir el claro/oscuro de Windows (`lib/temaSistema.ts`): con esto puesto,
@@ -1048,6 +1052,22 @@ function App() {
     }),
     [],
   );
+  /** Ir a una terminal que te espera (el Panel): a la Cabina o al Lienzo, según dónde viva. */
+  const irAlPanel = useCallback(
+    (id: number) => {
+      const enCabina = panes.find((p) => p.id === id);
+      if (enCabina) {
+        // Minimizada o en un grupo apartado, llevaba a una Cabina sin ella.
+        traerPanel(id, enCabina.grupo);
+        setView("cabina");
+        setMaximizedId(null);
+        setFocusedId(id);
+      } else if (canvasPanesRef.current.some((p) => p.id === id)) setView("lienzo");
+      else return;
+      setTecladoReq((prev) => ({ id, n: (prev?.n ?? 0) + 1 }));
+    },
+    [panes, traerPanel],
+  );
   const onResume = useCallback(
     (s: SessionInfo, grupo?: string) => {
       // Ya abierta AQUÍ: no se abre otra, se va a la que hay. Duplicar el panel
@@ -1112,17 +1132,14 @@ function App() {
       // Devuelve si el TEXTO llegó al PTY. Los ajustes no cuentan: que falle un
       // `/model` es una preferencia que se pierde, que falle el texto es tu
       // mensaje que se pierde, y son dos cosas distintas.
-      const escribir = (id: number): Promise<boolean> =>
-        new Promise<boolean>((listo) => {
-          ajustes.forEach((linea, i) => {
-            window.setTimeout(() => void teclearOrden(id, linea).catch(() => {}), i * 400);
-          });
-          window.setTimeout(() => {
-            sendPty(id, texto)
-              .then(() => listo(true))
-              .catch(() => listo(false));
-          }, ajustes.length * 400 + 250);
-        });
+      const escribir = async (id: number): Promise<boolean> => {
+        if (!(await teclearOrdenes(id, ajustes))) return false;
+        await new Promise((listo) => window.setTimeout(listo, ajustes.length ? 500 : 250));
+        return sendPty(id, texto).then(
+          () => true,
+          () => false,
+        );
+      };
 
       // En la Cabina o en el Lienzo: el PTY es el mismo, y `onResume` a una
       // sesión del Lienzo solo salta allí (no abre nada), así que sin esta
@@ -2089,21 +2106,7 @@ function App() {
       case "traer":
         // Estaba apartada. Se trae ANTES de maximizar, o la red que suelta la
         // pantalla completa de un panel que no se pinta la devolvería al sitio.
-        setMinimizados((prev) => {
-          if (!prev.has(id)) return prev;
-          const s = new Set(prev);
-          s.delete(id);
-          return s;
-        });
-        if (p?.grupo != null) {
-          const g = p.grupo;
-          setGruposOcultos((prev) => {
-            if (!prev.has(g)) return prev;
-            const s = new Set(prev);
-            s.delete(g);
-            return s;
-          });
-        }
+        traerPanel(id, p?.grupo);
         break;
       case "cabina":
         break;
@@ -2525,9 +2528,9 @@ function App() {
     // a medio escribir no ajusta nada; el encargo no, porque es lo único que
     // gasta y esa decisión sigue siendo suya.
     //
-    // Escalonados: el CLI repinta su pantalla al cambiar de modelo, y escribir
-    // encima mientras lo hace se come parte del texto. Mismo motivo que el
-    // retraso entre terminales de `onAll`.
+    // Uno detrás de otro: el `/model` de Claude tarda segundos (va por su selector),
+    // y el CLI repinta su pantalla al cambiar de modelo, así que escribir encima
+    // se come parte del texto.
     onDespachar: (encargo, modelo, esfuerzo) => {
       const id = focusedIdRef2.current;
       if (id == null) return;
@@ -2535,13 +2538,10 @@ function App() {
       // Codex, un `/model sonnet` se le iría como mensaje y se pondría a trabajar.
       const cli = kindDeComando(panesRef.current.find((p) => p.id === id)?.command?.join(" ") ?? "");
       const ajustes = lineasEnVivo(cli, modelo, esfuerzo);
-      ajustes.forEach((linea, i) => {
-        window.setTimeout(() => void teclearOrden(id, linea).catch(() => {}), i * 400);
+      void teclearOrdenes(id, ajustes).then((sigue) => {
+        if (!sigue) return;
+        window.setTimeout(() => void writePty(id, encargo).catch(() => {}), ajustes.length ? 500 : 250);
       });
-      window.setTimeout(
-        () => void writePty(id, encargo).catch(() => {}),
-        ajustes.length * 400 + 250,
-      );
       setView("cabina");
     },
     onAbrirReceta: openReceta,
@@ -2679,6 +2679,7 @@ function App() {
           siempre y sin pintar nada hasta que llega la petición, como el aviso
           de cuota: se abre sola desde Rust, no cuelga de ninguna pantalla. */}
       <PedirSecreto />
+      <PedirAbrir />
       <Paleta panes={panes} delLienzo={canvasPanes} irA={setView} abrirProyecto={openClaude} irATerminal={irATerminal} raiz={raizArchivos} abrirArchivo={abrirArchivo} />
       <AlCerrar />
       {/* Lo último cerrado, con su Deshacer: cinco segundos y se va (`AVISO_MS`). */}
@@ -2949,7 +2950,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
                 <PlusIcon size={15} /> {t("Abrir una sesión…")}
               </button>
               <p className="card-hint empty-pie">
-                {t("Cada proyecto enseña sus botones al pasar el ratón. Y si algo no cuadra, está la pestaña Guía.")}
+                {t("Cada proyecto enseña sus botones al pasar el ratón. Y si algo no cuadra, tienes la guía en Ajustes › Ayuda.")}
               </p>
             </div>
           ) : (
@@ -3329,6 +3330,7 @@ ${t("En beta: funciona, pero le faltan cosas y puede cambiar")}`
           onResume={onResume}
           irA={setView}
           cuentas={cuentasDeUso}
+          onIrAlPanel={irAlPanel}
         />
       )}
       {/* La otra cara de la Cabina: las mismas sesiones, leídas como

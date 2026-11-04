@@ -504,7 +504,7 @@ const EN: Record<string, string> = {
   "Volver al orden automático": "Back to automatic order",
   "lo abierto y lo reciente arriba": "open and recent on top",
   "Nueva sesión de Claude Code aquí": "New Claude Code session here",
-  "Terminal PowerShell aquí": "PowerShell terminal here",
+  "Terminal aquí": "Terminal here",
   "Antigravity (agy) en una terminal aquí": "Antigravity (agy) in a terminal here",
   "Abrir el IDE de Antigravity aquí (su CLI agy no está instalado)":
     "Open the Antigravity IDE here (its agy CLI is not installed)",
@@ -529,8 +529,8 @@ const EN: Record<string, string> = {
   "La cabina está lista.": "The cockpit is ready.",
   "Elige una conversación en la barra de la izquierda para retomarla, o abre una nueva aquí.":
     "Pick a conversation from the left-hand rail to resume it, or start a new one here.",
-  "Cada proyecto enseña sus botones al pasar el ratón. Y si algo no cuadra, está la pestaña Guía.":
-    "Each project shows its buttons on hover. And if something looks off, there is the Guide tab.",
+  "Cada proyecto enseña sus botones al pasar el ratón. Y si algo no cuadra, tienes la guía en Ajustes › Ayuda.":
+    "Each project shows its buttons on hover. And if something looks off, the guide is in Settings › Help.",
   "Abrir una sesión…": "Open a session…",
   "Imagen pegada como archivo: el agente la lee de esa ruta. Escribe tu pregunta al lado y Enter.":
     "Image pasted as a file: the agent reads it from that path. Type your question next to it and press Enter.",
@@ -861,8 +861,8 @@ const EN: Record<string, string> = {
   "de contexto usado": "of context used",
   "Doble clic para cambiar el nombre": "Double-click to change the name",
   "Tu cuota": "Your quota",
-  "Cuánto uso de tu suscripción llevas esta semana. Solo lo sabe Claude por dentro, así que el botón escribe /usage en la terminal que tengas activa y te lleva allí.":
-    "How much of your subscription you have used this week. Only Claude knows it internally, so this button types /usage into your active terminal and takes you there.",
+  "Cuánto uso de tu suscripción llevas esta semana. El botón escribe /usage en la terminal que tengas activa y te lleva allí.":
+    "How much of your subscription you have used this week. This button types /usage into your active terminal and takes you there.",
   "Ver mi uso semanal": "Show my weekly usage",
   "Abre antes una sesión de Claude en la Cabina.":
     "Open a Claude session in the Cockpit first.",
@@ -937,8 +937,8 @@ const EN: Record<string, string> = {
   "Solo en segundo plano": "Only in the background",
   Siempre: "Always",
   Nunca: "Never",
-  "Aviso de Windows cuando un agente termina su turno o cuando espera tu OK, con el icono parpadeando en la barra de tareas. Nunca avisa del panel que estás mirando.":
-    "A Windows notification when an agent finishes its turn or waits for your OK, with the taskbar icon flashing. Never for the pane you are already looking at.",
+  "Aviso del sistema cuando un agente termina su turno o cuando espera tu OK, con el icono parpadeando en la barra de tareas. Nunca avisa del panel que estás mirando.":
+    "A system notification when an agent finishes its turn or waits for your OK, with the taskbar icon flashing. Never for the pane you are already looking at.",
 
   // Layout
   Disposición: "Layout",
@@ -1194,8 +1194,8 @@ const EN: Record<string, string> = {
   "Este mes": "This month",
   gratis: "free",
   "de pago": "paid",
-  "Una sola clave y hablas con todos los modelos que tenga OpenRouter. Se guarda cifrada en el Gestor de Credenciales de Windows, nunca en un archivo de ajustes, y no vuelve a salir de ahí: aquí solo se piden los datos de consumo.":
-    "One key and you can talk to every model OpenRouter carries. It is stored encrypted in the Windows Credential Manager, never in a settings file, and it never comes back out: this screen only asks for the usage figures.",
+  "Una sola clave y hablas con todos los modelos que tenga OpenRouter. Se guarda como tus otras claves y no vuelve a salir de ahí: aquí solo se piden los datos de consumo.":
+    "One key and you can talk to every model OpenRouter carries. It is stored like your other keys and it never comes back out: this screen only asks for the usage figures.",
 
   // Todas tus sesiones en la Agenda, y el modelo local que las resume
   "Lo que tienes vivo ahora mismo, lo que te espera primero. El estado sale del disco y es exacto; la línea de debajo la escribe tu modelo local, solo para las que te esperan.":
@@ -1221,8 +1221,8 @@ const EN: Record<string, string> = {
   "Ver las archivadas": "Show the archived ones",
   "Quitar de Adeorq: sale de la barra, la carpeta no se toca":
     "Remove from Adeorq: it leaves the rail, the folder is not touched",
-  "Borrar su carpeta del disco: se va a la papelera de Windows":
-    "Delete its folder from disk: it goes to the Windows recycle bin",
+  "Borrar su carpeta del disco: se va a la papelera":
+    "Delete its folder from disk: it goes to the bin",
 
   // Quitar un proyecto de la barra. Nada de esto toca el disco.
   "Quitar de Adeorq": "Remove from Adeorq",
@@ -1237,8 +1237,8 @@ const EN: Record<string, string> = {
   // nadie recordara haberlas borrado: aquí nada dice «proyecto» a secas.
   "Borrar la carpeta del disco…": "Delete the folder from disk…",
   "Borrar la carpeta del disco": "Delete the folder from disk",
-  "Esto borra del disco la CARPETA de «{n}», con todo lo que tenga dentro. Va a la papelera de Windows, así que se recupera desde el escritorio, pero deja de estar en su sitio y lo que la use dejará de encontrarla.":
-    "This deletes “{n}”'s FOLDER from disk, with everything inside it. It goes to the Windows recycle bin, so you can get it back from the desktop, but it stops being where it was and anything using it will no longer find it.",
+  "Esto borra del disco la CARPETA de «{n}», con todo lo que tenga dentro. Va a la papelera, así que se recupera desde allí, pero deja de estar en su sitio y lo que la use dejará de encontrarla.":
+    "This deletes “{n}”'s FOLDER from disk, with everything inside it. It goes to the bin, so you can get it back from there, but it stops being where it was and anything using it will no longer find it.",
   "⚠ Tiene {n} sesiones de Claude. Sus conversaciones NO se borran: viven en tu carpeta de Claude, no en esta. Pero se quedarán apuntando a una carpeta que ya no está.":
     "⚠ It has {n} Claude sessions. Their conversations are NOT deleted: they live in your Claude folder, not this one. But they will be left pointing at a folder that is gone.",
   "Si lo que quieres es dejar de verlo en la barra, no hace falta borrar nada:":
@@ -1495,6 +1495,8 @@ const EN: Record<string, string> = {
     "It never showed. A private key on screen does deserve a look at whatever printed it.",
   "No ha llegado a verse: tapé el valor y dejé el nombre. Puede ser una clave de verdad o una variable que solo se llama así.":
     "It never showed: I masked the value and kept the name. It may be a real key, or just a variable named like one.",
+  "Solo dejaba ver el nombre de tu cuenta en este equipo, y ya está tapado. Una carpeta no se rota: no hay nada que hacer.":
+    "It only showed your account name on this computer, and it is masked now. A folder is not rotated: there is nothing to do.",
   "Solo dejaba ver el nombre de tu cuenta de Windows, y ya está tapado. Una carpeta no se rota: no hay nada que hacer.":
     "It only showed your Windows account name, and it is masked now. A folder cannot be rotated: nothing to do.",
   "clave de Anthropic": "an Anthropic key",
@@ -1776,11 +1778,11 @@ const EN: Record<string, string> = {
   "Aquí aparecerán las capturas que pegues en el lienzo con Ctrl+V.":
     "Screenshots you paste on the canvas with Ctrl+V will show up here.",
   "Clic: al lienzo": "Click: onto the canvas",
-  "A la papelera de Windows": "To the Windows recycle bin",
+  "A la papelera": "To the bin",
   "Ver más": "See more",
   "Abrir la sesión que la escribió": "Open the session that wrote it",
   "Esta nota la escribió una sesión; se abre esa conversación.": "A session wrote this note; this opens that conversation.",
-  "Seguir el claro/oscuro de Windows": "Follow Windows light/dark",
+  "Seguir el claro/oscuro del sistema": "Follow the system's light/dark",
   "A juego con tu foto": "To match your photo",
   "Carril": "Lane",
   "una franja que separa un espacio de trabajo": "a band that separates a work area",
@@ -1831,8 +1833,8 @@ const EN: Record<string, string> = {
   Recoger: "Collapse",
   "Tu foto pide": "Your photo calls for",
   "No pude leer la foto": "Couldn't read the photo",
-  "Con Windows en oscuro": "With Windows in dark",
-  "Con Windows en claro": "With Windows in light",
+  "Con el sistema en oscuro": "With the system in dark",
+  "Con el sistema en claro": "With the system in light",
   "Elegir un tema a mano en la lista de abajo lo desactiva.": "Picking a theme by hand in the list below turns this off.",
   "Primero el que te reclama": "Whoever needs you first",
   "Por antigüedad": "By age",
@@ -2200,8 +2202,8 @@ const EN: Record<string, string> = {
 
   // La lista de sesiones
   Borrar: "Delete",
-  "Borrar la sesión: va a la papelera de Windows":
-    "Delete the session: it goes to the Windows recycle bin",
+  "Borrar la sesión: va a la papelera":
+    "Delete the session: it goes to the bin",
   "Esta sesión está abierta ahora mismo.": "This session is open right now.",
   "Ponerle un logo…": "Give it a logo…",
   "Cambiar su logo…": "Change its logo…",
@@ -2225,8 +2227,8 @@ const EN: Record<string, string> = {
   "Con una aplicación propia, sube el logo en Rich Presence › Art Assets con el nombre exacto «adeorq» o saldrá sin imagen.":
     "With your own application, upload the logo under Rich Presence › Art Assets with the exact name \"adeorq\" or it will show up with no image.",
   "Publicado en tu Discord.": "Published to your Discord.",
-  "Con las dos cosas puestas, enciendes el ordenador y tu taller ya está montado. El arranque automático es una entrada normal de Windows: también puedes quitarla desde el Administrador de tareas, pestaña Inicio. Y siempre apunta a la Adeorq instalada, nunca a la de desarrollo.":
-    "With both switched on, you turn the computer on and your workshop is already set up. Auto-start is a normal Windows entry: you can also remove it from Task Manager, Startup tab. And it always points at the installed Adeorq, never at the development one.",
+  "Con las dos cosas puestas, enciendes el ordenador y tu taller ya está montado. El arranque automático es una entrada normal del sistema, y también puedes quitarla desde allí (en Windows, el Administrador de tareas, pestaña Inicio). Y siempre apunta a la Adeorq instalada, nunca a la de desarrollo.":
+    "With both switched on, you turn the computer on and your workshop is already set up. Auto-start is a normal system entry, and you can also remove it from there (on Windows, Task Manager, Startup tab). And it always points at the installed Adeorq, never at the development one.",
 
   // El Capataz
   "Ya no procede: los paneles han cambiado desde que se hizo el plan.":
@@ -2237,8 +2239,8 @@ const EN: Record<string, string> = {
   "Ver los de la izquierda": "See the ones on the left",
   "Ver los de la derecha": "See the ones on the right",
   "Abrir esta terminal aislada en Modo Espejo": "Open this terminal isolated, in Shadow Mode",
-  "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de {p}, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.":
-    "“{n}” goes to the Windows Recycle Bin. It disappears from Adeorq and from {p} too, so you will not be able to resume it. If you change your mind, it is in the bin.",
+  "«{n}» se va a la papelera. Desaparece de Adeorq y también de {p}, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.":
+    "“{n}” goes to the bin. It disappears from Adeorq and from {p} too, so you will not be able to resume it. If you change your mind, it is in the bin.",
 
   // Reanimar: el vigía del cuelgue. Las cadenas están en TerminalPane.tsx, que
   // otra sesión tiene abierto (ver BUZON.md); esto no lo toca, solo les da su
@@ -2248,8 +2250,8 @@ const EN: Record<string, string> = {
   // con el mismo diálogo que la de la barra en vez de armarse con dos clics.
   "Se cierra esta terminal y su conversación deja de estar en disco.":
     "This terminal closes and its conversation stops being on disk.",
-  "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera de Windows":
-    "Delete this session: it closes the terminal and its conversation goes to the Windows Recycle Bin",
+  "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera":
+    "Delete this session: it closes the terminal and its conversation goes to the bin",
   Reanimar: "Revive",
   "Empezar limpia": "Start fresh",
   "⚡ Reanimar (si se ha quedado colgada)": "⚡ Revive (if it has wedged)",
@@ -2470,7 +2472,7 @@ const EN: Record<string, string> = {
   "Salir del editor": "Leave the editor",
   "Suavidad del scroll": "Scroll smoothness",
   "Cómo se mueve la vista al rodar en una terminal. En «Seco» salta de golpe al sitio nuevo, que es lo de siempre; en los otros dos se desliza hasta allí. Cambia al momento en las terminales abiertas, así que se elige rodando con el dedo en el panel táctil y mirando cuál se siente mejor.":
-    "How the view moves when you scroll a terminal. On «Seco» it jumps straight to the new spot, which is what it always did; on the other two it glides there. It changes right away in open terminals, so you pick it by scrolling with your finger on the trackpad and seeing which one feels better.",
+    "How the view moves when you scroll a terminal. On «Snap» it jumps straight to the new spot, which is what it always did; on the other two it glides there. It changes right away in open terminals, so you pick it by scrolling with your finger on the trackpad and seeing which one feels better.",
   "Seco": "Snap",
   "Suave": "Smooth",
   "Muy suave": "Very smooth",
@@ -2480,6 +2482,10 @@ const EN: Record<string, string> = {
     "Paste it here and it goes straight into its command. It is never typed into the terminal, so the agent cannot read it and it does not stay in its history.",
   "Guardarla para la próxima vez (en el Gestor de Credenciales de Windows)":
     "Keep it for next time (in the Windows Credential Manager)",
+  "Guardarla para la próxima vez (en el Llavero de tu Mac)":
+    "Keep it for next time (in your Mac's Keychain)",
+  "Se guarda en el Llavero de tu Mac, cifrada con tu sesión, y no vuelve a salir: al abrir una terminal la pone Rust justo antes de arrancar el proceso, así que no pasa por la pantalla ni aparece en una captura. Si el Llavero no se deja, se guarda en un archivo tuyo con permisos 600 hasta que se pueda.":
+    "Stored in your Mac's Keychain, encrypted with your login, and it never comes back out: when a terminal opens, Rust puts it in right before starting the process, so it never goes through the screen or shows up in a screenshot. If the Keychain won't allow it, it goes into a file of yours with 600 permissions until it can.",
   "Guardarla para la próxima vez (en un archivo solo tuyo, permisos 600)":
     "Keep it for next time (in a file only you can read, mode 600)",
   "Dársela": "Hand it over",
@@ -2608,6 +2614,12 @@ const EN: Record<string, string> = {
   "No viene de una terminal de Adeorq. ": "It does not come from an Adeorq terminal. ",
   "Dásela solo si sabes qué programa es.": "Give it only if you know which program it is.",
   "Dársela esta vez": "Give it this once",
+  "Un programa de fuera de Adeorq quiere abrir una terminal": "A program outside Adeorq wants to open a terminal",
+  "Dice llamarse": "It calls itself",
+  "No dice cómo se llama.": "It does not say what it is called.",
+  "Ábrela solo si sabes qué programa es.": "Open it only if you know which program it is.",
+  "en la carpeta": "in the folder",
+  ", con este encargo:": ", with this job:",
   "Claves de los agentes": "Agents' keys",
   "Las que pegaste para un agente. ": "The ones you pasted for an agent. ",
   "Una terminal de Adeorq las recibe sin preguntar": "An Adeorq terminal gets them without asking",
@@ -2837,8 +2849,8 @@ const EN: Record<string, string> = {
   "Hay {n} agentes trabajando.": "{n} agents are working.",
   "Tienes 1 terminal abierta y ningún agente trabajando.": "You have 1 terminal open and no agent working.",
   "Tienes {n} terminales abiertas y ningún agente trabajando.": "You have {n} terminals open and no agent working.",
-  "En segundo plano la ventana se esconde y los agentes siguen trabajando; Adeorq se queda junto al reloj de Windows y vuelves con un clic. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.":
-    "In the background the window hides and the agents keep working; Adeorq stays next to the Windows clock and one click brings it back. Closing everything closes the terminals too, and you can resume each session later.",
+  "En segundo plano la ventana se esconde y los agentes siguen trabajando; Adeorq se queda junto al reloj y vuelves con un clic. Si cierras todo se cierran también las terminales, y luego puedes retomar cada sesión.":
+    "In the background the window hides and the agents keep working; Adeorq stays next to the clock and one click brings it back. Closing everything closes the terminals too, and you can resume each session later.",
   "Si cierras se cierran también las terminales, y luego puedes retomar cada sesión.":
     "Closing closes the terminals too, and you can resume each session later.",
   "No volver a preguntar": "Don't ask again",
@@ -2854,8 +2866,8 @@ const EN: Record<string, string> = {
   "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde y los agentes y los encargos programados siguen trabajando; vuelves abriendo Adeorq otra vez, y desde ahí lo cierras del todo.":
     "What happens when you hit the X with terminals open. In the background the window hides and the agents and scheduled jobs keep working; you come back by opening Adeorq again, and quit it for good from there.",
   "Al cerrar la ventana": "When you close the window",
-  "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde, los agentes siguen trabajando y Adeorq se queda junto al reloj de Windows: desde ahí vuelves con un clic o lo cierras del todo.":
-    "What happens when you hit the X with terminals open. In the background the window hides, the agents keep working and Adeorq stays next to the Windows clock: from there one click brings it back, or you can quit it for good.",
+  "Qué pasa cuando le das a la X con terminales abiertas. En segundo plano la ventana se esconde, los agentes siguen trabajando y Adeorq se queda junto al reloj: desde ahí vuelves con un clic o lo cierras del todo.":
+    "What happens when you hit the X with terminals open. In the background the window hides, the agents keep working and Adeorq stays next to the clock: from there one click brings it back, or you can quit it for good.",
   // Ajustes > Mods (`AjustesMods.tsx`).
   Mods: "Mods",
   "«{pedido}»": "“{pedido}”",
@@ -2950,7 +2962,7 @@ const EN: Record<string, string> = {
   "{p}: ver sus {n} sesiones": "{p}: show its {n} sessions",
   "«{n}» se ocultará de la lista. Es reversible (botón ⊟ arriba) y no borra nada del disco: ni la conversación ni tus archivos.":
     "“{n}” will be hidden from the list. It can be undone (the ⊟ button above) and nothing is deleted from disk: neither the conversation nor your files.",
-  "Ábrelo y pulsa «Actualizar ahora» en la barra de arriba.": "Open it and press “Update now” in the top bar.",
+  "Ábrelo y pulsa «Actualizar Adeorq» en la barra lateral.": "Open it and press “Update Adeorq” in the sidebar.",
   "última hace {t}": "last one {t} ago",
   "(sin título)": "(untitled)",
   "listo en 3,1 s": "done in 3.1 s",
@@ -3090,6 +3102,180 @@ const EN: Record<string, string> = {
   "no es un archivo de lienzo": "it is not a canvas file",
   "No he podido leer tu lienzo guardado ({e}), así que no lo toco: lo que hagas ahora no se guarda solo.":
     "I couldn't read your saved canvas ({e}), so I'm leaving it alone: what you do now won't save on its own.",
+
+  // El porqué del router (`lib/router.ts`): lo que enseñan la ficha del Capataz,
+  // el reparto y el hilo del conserje. Son frases con datos dentro, así que van
+  // enteras: una por una se traducen mal.
+  "Nace con {techo} y no con {modelo}: su plan («{plan}») no lo cubre, y cada turno se facturaría aparte.":
+    "It starts with {techo} instead of {modelo}: its plan (“{plan}”) doesn't cover it, and every turn would be billed separately.",
+  // Lo que cada relevo dice de sí mismo: sigue a «Va a {cli}, que …».
+  "es el relevo más parecido para código": "is the closest stand-in for code",
+  "Gemini aguanta bien leer mucho de golpe": "copes well with reading a lot at once",
+  "va sobrado de contexto para leer": "has plenty of context for reading",
+  "está conectado y sirve para esto": "is connected and fits this",
+  "menos de una hora": "less than an hour",
+  "{h} h": "{h} h",
+  "1 día": "1 day",
+  "{d} días": "{d} days",
+  "en {falta}": "in {falta}",
+  "sin dato de gasto": "no spending data",
+  "con una lectura de antes de renovarse (se cuenta como 50 %)": "with a reading from before it renewed (counted as 50 %)",
+  "al {n} %": "at {n} %",
+  "se renueva {cuando}": "renews {cuando}",
+  "sin fecha de renovación ({dias} días)": "no renewal date ({dias} days)",
+  ", más 1 terminal abierta desde entonces (+{peso})": ", plus 1 open terminal since then (+{peso})",
+  ", más {n} terminales abiertas desde entonces (+{peso})": ", plus {n} open terminals since then (+{peso})",
+  "«{label}» {pct}{llevan}, {cuando}": "“{label}” {pct}{llevan}, {cuando}",
+  "parada por su tope de 5 horas hasta dentro de {falta}": "held at its 5-hour limit for another {falta}",
+  "parada por su tope de 5 horas": "held at its 5-hour limit",
+  "al {n} % de su {periodo}": "at {n} % of its {periodo}",
+  "Con «{label}», la única que hay, aunque está {motivo}.": "With “{label}”, the only one there is, though it is {motivo}.",
+  "No queda ninguna con sitio (todas paradas por su tope de 5 horas o por encima del {agotada} % de su {periodo}): va a «{label}», {motivo}, que es la menos mala.":
+    "None has room left (all held at their 5-hour limit or above {agotada} % of their {periodo}): it goes to “{label}”, {motivo}, the least bad.",
+  "Con «{label}», la única que hay.": "With “{label}”, the only one there is.",
+  "{retrato} ({p} al día)": "{retrato} ({p} a day)",
+  "«{label}» está parada por su tope de 5 horas": "“{label}” is held at its 5-hour limit",
+  "«{label}» pasa del 92 %": "“{label}” is past 92 %",
+  " y ": " and ",
+  "{p} puntos al día, frente a {otras}": "{p} points a day, against {otras}",
+  "{p} puntos al día": "{p} points a day",
+  "Con {retrato}: es la que más cuota perdería sin usar ({cuanto}){fuera}.":
+    "With {retrato}: it is the one that would lose the most quota if left unused ({cuanto}){fuera}.",
+  "Tienes {preferido} como cerebro por defecto, pero esto es de los de juicio y ahí no se abarata.":
+    "You have {preferido} as your default brain, but this is a judgment task and those never get cheaper.",
+  "Tu cerebro por defecto es {preferido}, así que se parte de ahí.": "Your default brain is {preferido}, so it starts there.",
+  "Es un recado mecánico: no hace falta pensar mucho, hace falta acertar rápido.": "It's a mechanical errand: it doesn't need much thinking, it needs to get it right fast.",
+  "Es de los de juicio: si sale mal y no se nota, sale caro.": "It's a judgment task: if it goes wrong and nobody notices, it gets expensive.",
+  "Es oficio del día a día: escribir, refactorizar, probar.": "It's everyday craft work: writing, refactoring, testing.",
+  "Sube a {modelo} porque un fallo aquí no se ve hasta que ya ha hecho daño.": "Goes up to {modelo} because a mistake here doesn't show until it has already done damage.",
+  "No hay ninguna cuenta de Claude conectada ahora mismo.": "No Claude account is connected right now.",
+  "Va a {cli}, que {porque}.": "Goes to {cli}, which {porque}.",
+  "No hay ninguna cuenta conectada: conecta una en Cuentas.": "No account is connected: connect one in Accounts.",
+  "Todas las cuentas de Claude están paradas por su tope de 5 horas.": "All Claude accounts are held at their 5-hour limit.",
+  "No queda semana en ninguna cuenta de Claude ({gastado} % gastado).": "No week is left on any Claude account ({gastado} % spent).",
+  "si prefieres gastar lo que queda de semana": "if you'd rather spend what's left of the week",
+  "Baja de {antes} a {modelo}: te queda un {queda} % de semana y no hay otro CLI conectado.":
+    "Drops from {antes} to {modelo}: {queda} % of the week is left and no other CLI is connected.",
+  "Te queda un {queda} % de semana y esto se lleva {modelo}: en lo de juicio, abaratar sale más caro.":
+    "{queda} % of the week is left and this takes {modelo}: with judgment work, going cheaper costs more.",
+  "Se queda en opus aunque la semana va justa ({queda} %): en esto, ahorrar cerebro sale más caro que la cuota.":
+    "Stays on opus even though the week is tight ({queda} %): here, saving brainpower costs more than the quota.",
+  "Baja a sonnet: te queda un {queda} % de semana y esto no lo necesita.": "Drops to sonnet: {queda} % of the week is left and this doesn't need more.",
+  "Sin suscripción esto se paga por tokens, pero se queda en {modelo}: rehacer una revisión cuesta más que el turno.":
+    "Without a subscription this is paid per token, but it stays on {modelo}: redoing a review costs more than the turn.",
+  "Baja de {antes} a {modelo}: sin suscripción, cada turno se factura aparte.": "Drops from {antes} to {modelo}: without a subscription, every turn is billed separately.",
+  "Con el plan Pro, opus se come la semana mucho más rápido que sonnet.": "On the Pro plan, opus eats through the week much faster than sonnet.",
+  "Es larga: si el contexto se llena a la mitad, mejor partirla en dos encargos.": "It's long: if the context fills halfway, better to split it into two jobs.",
+  "El panel de delante lleva {actual} y esto se hace con {modelo}.": "The pane in front is on {actual} and this is done with {modelo}.",
+  "El panel de delante lleva {actual} y esto pide {modelo}.": "The pane in front is on {actual} and this asks for {modelo}.",
+  "El panel de delante lleva {actual} y esto es un recado: son unas {veces} veces más caro por el mismo resultado.":
+    "The pane in front is on {actual} and this is an errand: it costs about {veces} times more for the same result.",
+  "El panel de delante lleva {actual} y esto es de los de juicio: lo barato aquí suele acabar en repetir el trabajo.":
+    "The pane in front is on {actual} and this is a judgment task: going cheap here usually ends in redoing the work.",
+  "Tu nota «{nota}» manda: {texto}": "Your note “{nota}” takes over: {texto}",
+  "Tu nota manda: {texto}": "Your note takes over: {texto}",
+  "sin semana; {cli} está libre": "no week left; {cli} is free",
+  "Con {cli}, porque lo elegiste tú.": "With {cli}, because you chose it.",
+
+  // Lo que el conserje cuenta cuando no pudo abrir una sesión o escribir a un panel.
+  "no se pudo abrir la sesión para «{encargo}»": "could not open the session for “{encargo}”",
+  "no le llegó el mensaje al panel {n}": "the message did not reach pane {n}",
+
+  // Los fallos de Rust en el chat del conserje (`lib/avisosDeRust.ts`).
+  "id de conversación no válido": "invalid conversation id",
+  "«{x}» no es un modelo con el que pueda pensar el conserje": "“{x}” is not a model the concierge can think with",
+  "«{x}» no es un modelo que se pueda fijar": "“{x}” is not a model that can be pinned",
+  "«{x}» no es un programa con el que pueda pensar el conserje": "“{x}” is not a program the concierge can think with",
+  "«{x}» no es un programa": "“{x}” is not a program",
+  "esa conversación no es un enjambre": "that conversation is not a swarm",
+  "el conserje todavía está con lo anterior en esta conversación": "the concierge is still busy with the previous message in this conversation",
+  "no hay nada que mandar": "there is nothing to send",
+  "el conserje se quedó pensando demasiado (3 min); reintenta": "the concierge thought for too long (3 min); try again",
+  "claude devolvió error: {e}": "claude returned an error: {e}",
+  "desconocido": "unknown",
+  "claude no devolvió nada: {e}": "claude returned nothing: {e}",
+  "{quien} devolvió error: {e}": "{quien} returned an error: {e}",
+  "{quien} no devolvió texto": "{quien} returned no text",
+  "{quien} no devolvió nada": "{quien} returned nothing",
+  "la ruta de Adeorq lleva una comilla y no cabe en la línea de órdenes": "Adeorq's path has a quote in it and does not fit on the command line",
+  "es demasiado corto para mejorarlo": "it is too short to improve",
+  "la mejora ha salido vacía: se queda lo tuyo": "the improvement came out empty: your text stays as it is",
+  "la mejora se ha alargado demasiado (se estaría inventando cosas): se queda lo tuyo":
+    "the improvement grew too long (it would be making things up): your text stays as it is",
+  "conversación ilegible: {e}": "unreadable conversation: {e}",
+  "no pude lanzar claude: {e}": "could not launch claude: {e}",
+  "no pude lanzar {x}: {e}": "could not launch {x}: {e}",
+  "no se abrió su entrada": "its input did not open",
+  "claude no dio salida": "claude gave no output",
+  "la respuesta no trae texto": "the answer has no text",
+  "no dio salida de errores": "it gave no error output",
+  "no dio salida": "it gave no output",
+  "{x} no está instalado en este equipo": "{x} is not installed on this computer",
+  "no sé dónde estoy: {e}": "I don't know where I am: {e}",
+  "no pude escribir los ajustes de Gemini: {e}": "could not write Gemini's settings: {e}",
+
+  // Lo que el Capataz marca en rojo junto a una acción de su plan que no se puede hacer (`checkActions`).
+  "sesión desconocida": "unknown session",
+  "panel desconocido": "unknown pane",
+  "proyecto desconocido": "unknown project",
+  "comando vacío": "empty command",
+  "sin qué revisar": "nothing to review",
+  "una cuadrilla es de dos o más": "a crew is two or more",
+  "un puesto no dice qué archivos son suyos": "a post does not say which files are its own",
+  "dos puestos con los mismos archivos": "two posts with the same files",
+  "encargo vacío": "empty brief",
+  // Ajustes > Bots (`AjustesBots.tsx`, `lib/bots.ts`).
+  "Avisar a un bot": "Notify a bot",
+  "Leyendo tus bots…": "Reading your bots…",
+  "Cuando una terminal termina o te espera, Adeorq avisa a tu bot. Manda solo el nombre de la terminal, su proyecto y qué pasa, nunca lo que hay en la pantalla.":
+    "When a terminal finishes or is waiting for you, Adeorq notifies your bot. It sends only the terminal's name, its project and what happened, never what is on the screen.",
+  "Un webhook de una rutina de tu Grok Bot.": "A webhook of one of your Grok Bot routines.",
+  "Dirección del webhook": "Webhook address",
+  "Clave": "Key",
+  "Guardada en el almacén de claves de este equipo.": "Saved in this computer's key store.",
+  "Quitar la clave": "Remove the key",
+  "Pégala aquí": "Paste it here",
+  "Guardar la clave": "Save the key",
+  "Probar": "Test",
+  "Probando…": "Testing…",
+  "Cada aviso, y también Probar, lanza una ejecución de tu Bot y gasta de su cuota.":
+    "Every notice, and Test too, starts a run of your Bot and spends from its quota.",
+  "Con tu Hermes, ya configurado en este equipo.": "With your Hermes, already set up on this computer.",
+  "Con tu OpenClaw, ya configurado en este equipo.": "With your OpenClaw, already set up on this computer.",
+  "Destino": "Destination",
+  "Canal, si tienes varios": "Channel, if you have several",
+  "No está instalado en este equipo.": "It is not installed on this computer.",
+  "La prueba llegó.": "The test arrived.",
+  "La prueba no llegó: {motivo}": "The test did not arrive: {motivo}",
+  "El último aviso no llegó ({cuando}): {motivo}": "The last notice did not arrive ({cuando}): {motivo}",
+  "Avisa cuando no estás mirando Adeorq y sigue lo que elijas en Avisos. Si un aviso no llega, lo dice aquí y no te interrumpe.":
+    "It notifies you when you are not looking at Adeorq and follows what you choose in Notifications. If a notice does not arrive, it says so here and does not interrupt you.",
+  // Los motivos que cuenta Rust (`bots.rs`), con su dato o sin él.
+  "salió con el código {c}": "exited with code {c}",
+  "salió con el código {c}: {d}": "exited with code {c}: {d}",
+  "no contestó en {s} segundos": "did not answer in {s} seconds",
+  "el webhook contestó {c}": "the webhook answered {c}",
+  "el webhook no aceptó la clave ({c})": "the webhook did not accept the key ({c})",
+  "no se pudo llamar al webhook: {d}": "could not call the webhook: {d}",
+  "no se pudo lanzar: {d}": "could not start it: {d}",
+  "Hermes no está instalado en este equipo": "Hermes is not installed on this computer",
+  "OpenClaw no está instalado en este equipo": "OpenClaw is not installed on this computer",
+  "falta la clave del webhook": "the webhook key is missing",
+  "falta la dirección del webhook": "the webhook address is missing",
+  "falta el destino": "the destination is missing",
+  "falta la clave.": "the key is missing.",
+  "falta la dirección del webhook.": "the webhook address is missing.",
+  "falta el destino.": "the destination is missing.",
+  "La dirección es demasiado larga.": "The address is too long.",
+  "Eso no parece una dirección.": "That does not look like an address.",
+  "La dirección no puede llevar usuario ni contraseña.": "The address cannot contain a user name or a password.",
+  "Tiene que empezar por https://.": "It has to start with https://.",
+  "El destino solo puede llevar letras, números y _ - : # @ + .": "The destination can only contain letters, numbers and _ - : # @ + .",
+  "El canal solo puede llevar letras, números, _ y -.": "The channel can only contain letters, numbers, _ and -.",
+  "La clave está vacía.": "The key is empty.",
+  "Eso no parece una clave.": "That does not look like a key.",
+  "Ese destino no existe.": "That destination does not exist.",
+  "Espera unos segundos antes de probar otra vez.": "Wait a few seconds before testing again.",
 };
 
 export function detectLang(): Lang {
@@ -3115,6 +3301,10 @@ export function makeT(lang: Lang): Translate {
     return out;
   };
 }
+
+/** El traductor del idioma que la app tiene ahora, para el código que no es un
+    componente (no tiene `useT`) y escribe una frase que se va a leer en pantalla. */
+export const tAhora = (): Translate => makeT(detectLang());
 
 export const LangContext = createContext<{ lang: Lang; t: Translate }>({
   lang: "es",

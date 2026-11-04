@@ -181,30 +181,35 @@ Entries are newest first. Notes:
 
 ## Deployment
 
-Nothing here publishes anything. The build is ready and the deploy is a manual
-command that nobody has run.
+**A push to `main` that touches `web/` publishes the site.** The workflow
+`.github/workflows/web.yml` builds it (`pnpm data` and `pnpm build`), checks that
+the built home page really has what it should, and uploads `dist/` to the
+Cloudflare Pages project `adeorq-web`, which serves `adeorq.com`. It also runs
+when a release is published (the download button and the changelog come from the
+releases API) and by hand from the Actions tab. It needs two repository secrets,
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and does nothing in the
+public mirror, where they do not exist.
 
-**Recommendation: Cloudflare Pages.** It serves the static bundle from a global
-edge network for free and, in the same project, runs `api/_worker.js` so the
-download data can refresh itself between deploys, which GitHub Pages cannot do
-without a second service.
+So a change under `web/` is live a few minutes after the push, including this
+README. Work in a branch or leave it uncommitted until it is ready.
 
-The build is host agnostic: `dist/` is plain static files and works on GitHub
-Pages too. `_worker.js` is simply ignored there, and the site falls back to the
-static `data/latest.json`, which is the path it uses by default anyway.
+Cloudflare Pages serves the static bundle from a global edge network for free
+and, in the same project, runs `api/_worker.js` so the download data can refresh
+itself between deploys, which GitHub Pages cannot do without a second service.
+The build itself is host agnostic: `dist/` is plain static files, `_worker.js`
+is simply ignored on any other host, and the site falls back to the static
+`data/latest.json`, which is the path it uses by default anyway.
 
-When the time comes, and only then:
+To publish by hand, for example if the workflow is down:
 
 ```powershell
 cd web
-pnpm build
-pnpm dlx wrangler pages deploy dist --project-name adeorq-web
+pnpm deploy
 ```
 
-`wrangler.toml` already declares the project name, the compatibility date and
-`dist` as the output directory. No DNS record is touched by any of this: the
-domain `adeorq.com` is not bought yet, and pointing it at the project is a
-manual step in the Cloudflare dashboard afterwards.
+`wrangler.toml` declares the project name, the compatibility date and `dist` as
+the output directory. The domain is attached to the project in the Cloudflare
+dashboard; nothing in this repository touches DNS.
 
 ### The optional worker
 

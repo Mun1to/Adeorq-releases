@@ -64,6 +64,9 @@ export function cancelaMudanza(id: number): void {
 
 const volcados = new Map<number, string>();
 
+/** Y cómo se escribe sin contestar a sus preguntas viejas: `volcado.ts`. */
+export { callaAlVolcar, escribirVolcado } from "./volcado";
+
 /** Apunta lo que la terminal de este panel tiene que escribir al renacer. */
 export function dejarVolcado(id: number, texto: string): void {
   if (texto) volcados.set(id, texto);

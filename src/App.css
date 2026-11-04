@@ -125,3 +125,6 @@
 
 /* El navegador de verdad, pegado a la franja de la derecha. */
 @import "./estilos/36-navegador.css";
+
+/* Ajustes › Bots: avisar a Grok Bot, Hermes u OpenClaw. */
+@import "./estilos/37-bots.css";

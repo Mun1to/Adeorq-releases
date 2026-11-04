@@ -36,7 +36,8 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { confiarCarpeta, listProjects, scanSessions, sendPty, writePty, type PaneStatus, type SessionInfo } from "./pty";
+import { confiarCarpeta, listProjects, scanSessions, sendPty, teclearOrden, writePty, type PaneStatus, type SessionInfo } from "./pty";
+import { aliasDeLaLinea, nivelDeLaLinea } from "./selectorDeModelo";
 import { shellCommand } from "./comandos";
 import { claudeCommand, withEffort } from "./lanzar";
 import { historiaConColor, historiaDe } from "./terminales";
@@ -244,7 +245,15 @@ async function atenderTerminal(p: PedidoMovil, exec: ConserjeExec): Promise<Reco
     for (const [i, linea] of lineas.entries()) {
       // Escalonadas: el programa repinta al cambiar y se comería la siguiente.
       if (i) await new Promise((r) => setTimeout(r, 400));
-      await sendPty(panel, linea);
+      // El `/model` y el `/effort` de Claude van por su selector, para que valgan
+      // solo en esta sesión y no cambien los de fábrica (`selectorDeModelo.ts`).
+      if (aliasDeLaLinea(linea) || nivelDeLaLinea(linea)) {
+        try {
+          await teclearOrden(panel, linea);
+        } catch (e) {
+          return { error: e instanceof Error ? e.message : String(e) };
+        }
+      } else await sendPty(panel, linea);
     }
     return { ok: true };
   }

@@ -57,7 +57,7 @@ import KindIcon, { kindDeComando } from "./KindIcon";
 import { hueOf } from "../lib/colors";
 import { tituloDeCabecera } from "../lib/supremo";
 import { avisar, forgetPane, type NotifyMode } from "../lib/notify";
-import { seMuda, tomarVolcado } from "../lib/mudanza";
+import { callaAlVolcar, escribirVolcado, seMuda, tomarVolcado } from "../lib/mudanza";
 import { apuntaTecla } from "../lib/tecleando";
 import { apuntarMovimiento } from "../lib/actualizar";
 import { bonito, type PanePulso } from "../lib/ram";
@@ -95,7 +95,9 @@ import { useNombreSolo } from "../lib/nombreSolo";
 import { useDatosCabecera } from "../lib/cabeceraTerminal";
 import { archivoDelDiff } from "../lib/diffEspejo";
 import { estadoDelPanel, loginSegun, parseAsk, pieDePantalla, type Ask } from "../lib/reglasPantalla";
-import { copiarPorOsc52, crearPegado } from "../lib/pegado";
+import { copiarPorOsc52, engancharPegado } from "../lib/pegado";
+import { engancharCtrlCTrasArrastrar } from "../lib/ctrlCTrasArrastrar";
+import { repintarAlVolver } from "../lib/repintarAlVolver";
 import { mandoUnaFrase } from "../lib/hablada";
 import { hablarCon } from "../lib/decisiones";
 import DiffEspejo from "./DiffEspejo";
@@ -1447,38 +1449,13 @@ export default function TerminalPane({
       });
     refitRef.current();
 
-    // Clipboard like a normal Windows app: the WebView doesn't deliver the
-    // native paste event to xterm's hidden textarea, so handle it ourselves.
-    // Ctrl+V (and Ctrl+Shift+V) pastes; Ctrl+C copies when there IS a
-    // selection (and still interrupts when there isn't); right-click pastes,
-    // exactly like Windows Terminal.
-    // Paste handles BOTH text and images: an image goes to disk and the pane
-    // receives its path, which is what Claude Code and agy read to see it.
-    const pegado = crearPegado({
-      pegar: (texto) => term.paste(texto),
-      guardarImagen: savePastedImage,
-      alPegarImagen: () => setNote(t("Imagen pegada como archivo: el agente la lee de esa ruta. Escribe tu pregunta al lado y Enter.")),
-    });
-    const pasteClipboard = () => pegado.desdeElPortapapeles();
-
-    // El pegado nativo del WebView, CALLADO. El comentario de arriba dice que
-    // el WebView no entrega el evento de pegado al textarea de xterm, y cuando
-    // se escribió era verdad; el WebView2 se actualiza solo y ha dejado de
-    // serlo. Resultado: pegaban DOS caminos —este evento y nuestro Ctrl+V— y
-    // todo lo pegado salía doble, concatenado sin espacio. Munir pegó
-    // `claude --strict-mcp-config` y la terminal recibió
-    // `claude --strict-mcp-configclaude --strict-mcp-config` (2026-07-30).
-    // En captura y con stopPropagation: el evento muere antes de llegar al
-    // textarea de xterm, y pegar queda en manos de un único dueño,
-    // `pasteClipboard`, que es el que sabe de imágenes.
-    // Su TEXTO ya no se tira: es el repuesto cuando el portapapeles del
-    // navegador no da nada, que es lo que dejaba sin pegar en Linux (`lib/pegado`).
-    const pasteNativo = (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      pegado.desdeElEvento((e as ClipboardEvent).clipboardData?.getData("text/plain") ?? "");
-    };
-    el.addEventListener("paste", pasteNativo, true);
+    // Ctrl+V y Ctrl+Mayús+V pegan (cada camino y por qué, en `lib/pegado.ts`), y
+    // Ctrl+C copia si hay selección e interrumpe si no, como Windows Terminal.
+    const pegado = engancharPegado(el, term, savePastedImage, () =>
+      setNote(t("Imagen pegada como archivo: el agente la lee de esa ruta. Escribe tu pregunta al lado y Enter.")),
+    );
+    const pasteClipboard = pegado.pegar;
+    const trasArrastrar = engancharCtrlCTrasArrastrar(el, term);
 
     term.attachCustomKeyEventHandler((ev) => {
       if (ev.type !== "keydown" || !ev.ctrlKey || ev.altKey) return true;
@@ -1488,6 +1465,7 @@ export default function TerminalPane({
         term.clearSelection();
         return false;
       }
+      if (key === "c" && !ev.shiftKey && trasArrastrar.seTraga()) return false;
       if (key === "v") {
         pasteClipboard();
         return false;
@@ -1575,7 +1553,7 @@ export default function TerminalPane({
     // su misma pantalla y con su ratón, no en la normal con la rueda para Adeorq.
     const volcado = volcarRef.current || tomarVolcado(id);
     if (volcado) {
-      term.write(volcado);
+      escribirVolcado(term, volcado);
       volcarRef.current = "";
       onVolcado?.();
     }
@@ -1617,7 +1595,7 @@ export default function TerminalPane({
       // terminal que estaba leyendo, la marcaba como «escribiendo aquí» y
       // devolvía al mosaico la que tuviera a pantalla completa.
       if (esRespuestaDelTerminal(data)) {
-        void writePty(id, data).catch(() => {});
+        if (!callaAlVolcar(term)) void writePty(id, data).catch(() => {});
         return;
       }
       // Un clic SÍ es tuyo aunque no sea tecleo: cuenta para el testigo del
@@ -1686,6 +1664,7 @@ export default function TerminalPane({
               // En el móvil, tocar el aviso abre la pantalla de ESTA terminal,
               // con su caja para contestar (decisión E3).
               url: `/#terminal=${id}`,
+              bot: { terminal: n.name, proyecto: n.project },
               sigueIgual: () => askRef.current !== null,
             });
           }
@@ -1879,6 +1858,7 @@ export default function TerminalPane({
           body: n.name,
           looking: n.focused,
           url: `/#terminal=${id}`,
+          bot: { terminal: n.name, proyecto: n.project },
           sigueIgual: () => doneRef.current,
         });
       }
@@ -2079,7 +2059,11 @@ export default function TerminalPane({
         refitRef.current();
       });
     };
-    const ro = new ResizeObserver(pedirRefit);
+    const alVolver = repintarAlVolver(el, () => term.refresh(0, term.rows - 1));
+    const ro = new ResizeObserver(() => {
+      pedirRefit();
+      alVolver();
+    });
     ro.observe(el);
     /* El vigilante del tamaño. Cada tres segundos, si el proceso no tiene lo
        que tiene la rejilla y no hay ningún viaje en vuelo, se le vuelve a
@@ -2121,7 +2105,8 @@ export default function TerminalPane({
       if (pedido) cancelAnimationFrame(pedido);
       window.removeEventListener(EVENTO_REFIT, alSoltar);
       window.removeEventListener("resize", alMoverVentana);
-      el.removeEventListener("paste", pasteNativo, true);
+      pegado.soltar();
+      trasArrastrar.soltar();
       el.removeEventListener("wheel", alRodar, true);
       pasteRef.current = null;
       unsubs.forEach((un) => un());
@@ -2276,9 +2261,18 @@ export default function TerminalPane({
             hint: "Ctrl+C",
             onClick: () => {
               if (sel) void navigator.clipboard.writeText(sel).catch(() => {});
+              // Pulsar el menú le quita el teclado a la terminal, y se sigue escribiendo.
+              term?.focus();
             },
           },
-          { label: t("Pegar"), hint: "Ctrl+V", onClick: () => pasteRef.current?.() },
+          {
+            label: t("Pegar"),
+            hint: "Ctrl+V",
+            onClick: () => {
+              pasteRef.current?.();
+              term?.focus();
+            },
+          },
           { label: "", separator: true },
           {
             label: t("Partir a la derecha"),
@@ -2610,7 +2604,7 @@ export default function TerminalPane({
             <button
               className="pane-btn pane-bin"
               data-tip={t(
-                "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera de Windows",
+                "Borrar esta sesión: cierra la terminal y su conversación se va a la papelera",
               )}
               onClick={() => setBorrando(true)}
             >
@@ -2827,7 +2821,7 @@ export default function TerminalPane({
               <h3 className="modal-title">{t("Borrar la sesión")}</h3>
               <p className="modal-text">
                 {t(
-                  "«{n}» se va a la papelera de Windows. Desaparece de Adeorq y también de {p}, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.",
+                  "«{n}» se va a la papelera. Desaparece de Adeorq y también de {p}, así que ya no podrás retomarla. Si te arrepientes, está en la papelera.",
                   { n: name, p: proveedorDe(kind)?.label ?? "Claude Code" },
                 )}
               </p>

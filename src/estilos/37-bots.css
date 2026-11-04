@@ -1,0 +1,62 @@
+/* ── Ajustes › Bots (`AjustesBots.tsx`) ──────────────────────────────────
+   Un bloque por destino (Grok Bot, Hermes, OpenClaw): su nombre con lo que es
+   debajo y el interruptor a la derecha, y sus campos como filas de ajuste. Va
+   con las piezas de siempre (`.setting-row`, `.setting-switch`, `.foreman-row`);
+   aquí solo lo que esas no traen. */
+
+.bot-bloque {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 6px 0 10px;
+}
+
+/* Dentro de la tarjeta a dos columnas de una pantalla ancha, cada destino ocupa
+   su celda en vez de la fila entera. Grok Bot, que es el más alto (dirección,
+   clave y prueba), se queda con la columna de la izquierda entera y los otros
+   dos se apilan a su derecha: tres bloques en dos columnas dejaban un hueco. */
+@container (min-width: 1000px) {
+  .settings .set-marco:not([data-ancha]) .panel-card > .bot-bloque {
+    grid-column: auto;
+  }
+
+  .settings .set-marco:not([data-ancha]) .panel-card > .bot-bloque:first-of-type {
+    grid-row: span 2;
+  }
+}
+
+.bot-cabecera > span:first-child {
+  display: grid;
+  gap: 2px;
+  font-weight: 650;
+}
+
+.bot-nota {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.bot-campo .setting-input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  max-width: 340px;
+}
+
+/* «Guardada en el almacén…» ocupa el sitio del campo cuando ya hay clave. */
+.bot-clave {
+  flex: 1;
+  text-align: right;
+}
+
+.bot-probar {
+  margin-top: 8px;
+  align-items: center;
+}
+
+.bot-probar .bot-nota {
+  min-width: 0;
+}

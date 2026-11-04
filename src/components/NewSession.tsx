@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
+import { ES_WINDOWS } from "../lib/comandos";
 import { homeDir } from "@tauri-apps/api/path";
 import {
   createProject,
@@ -356,7 +357,7 @@ export default function NewSession({
   const tools = useMemo(() => {
     const list: Array<{ id: string; label: string }> = [];
     if (clis.includes("claude")) list.push({ id: "claude", label: "Claude Code" });
-    list.push({ id: "shell", label: "PowerShell" });
+    list.push({ id: "shell", label: ES_WINDOWS ? "PowerShell" : "Terminal" });
     if (agy) list.push({ id: "agy", label: "Antigravity (agy)" });
     for (const id of clis) {
       if (id === "claude" || id === "agy") continue;
